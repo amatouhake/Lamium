@@ -18,6 +18,10 @@ struct Settings {
         bool containerPreviews = true;
         bool durability = true;
     } inspection;
+    struct Inventory {
+        bool sorting = true;
+        bool sortContainers = true;
+    } inventory;
 
     void normalize() {
         if (!std::isfinite(camera.magnification)) camera.magnification = 3.0f;

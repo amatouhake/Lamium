@@ -19,6 +19,12 @@ Item-content readers, hover integration, and preview rendering are adapted from
 [LaminaPeek](https://github.com/amatouhake/LaminaPeek), an earlier mod by
 Lamium's author, copyright 2026 amatouhake.
 
+## LaminaSort
+
+Inventory planning, item classification, and container transfer integration are
+adapted from [LaminaSort](https://github.com/amatouhake/LaminaSort), an earlier
+mod by Lamium's author, copyright 2026 amatouhake.
+
 ## JSON for Modern C++
 
 Settings serialization uses [nlohmann/json](https://github.com/nlohmann/json)

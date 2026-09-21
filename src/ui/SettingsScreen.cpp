@@ -38,7 +38,7 @@ bool seen = false;
 bool closing = false;
 bool mouseNavigation = false;
 glm::vec2 previousPointer{-1,-1};
-constexpr int rowCount = 8;
+constexpr int rowCount = 10;
 std::string error;
 std::array<ll::event::ListenerPtr, 4> listeners;
 constexpr mce::Color white{1.0f,1.0f,1.0f,1.0f};
@@ -61,11 +61,13 @@ void activate(int direction) {
     case 3: draft.lighting.nightVision = !draft.lighting.nightVision; break;
     case 4: draft.inspection.containerPreviews = !draft.inspection.containerPreviews; break;
     case 5: draft.inspection.durability = !draft.inspection.durability; break;
-    case 6:
+    case 6: draft.inventory.sorting = !draft.inventory.sorting; break;
+    case 7: draft.inventory.sortContainers = !draft.inventory.sortContainers; break;
+    case 8:
         if (Runtime::instance().save(draft)) close();
         else error = "Could not save settings. Please try again.";
         break;
-    case 7: close(); break;
+    case 9: close(); break;
     }
     draft.normalize();
 }
@@ -99,7 +101,7 @@ void render(ll::event::AfterUIRenderEvent& event) {
     if (!scene) return;
     float width = std::min(330.0f, size.x-16);
     float left = (size.x-width)*.5f;
-    float top = std::max(8.0f, (size.y-256)*.5f);
+    float top = std::max(8.0f, (size.y-300)*.5f);
     context.fillRectangle(RectangleArea{0,size.x,0,size.y}, mce::Color{.07f,.08f,.11f,1.0f}, 1);
     context.flushImages(white,1,HashedString{"ui_fillColor"});
     label(context,left,top,width,"Lamium / Settings");
@@ -111,6 +113,8 @@ void render(ll::event::AfterUIRenderEvent& event) {
         std::string{"NightVision: "} + (draft.lighting.nightVision ? "On" : "Off"),
         std::string{"Container previews: "} + (draft.inspection.containerPreviews ? "On" : "Off"),
         std::string{"Durability: "} + (draft.inspection.durability ? "On" : "Off"),
+        std::string{"Inventory sorting: "} + (draft.inventory.sorting ? "On" : "Off"),
+        std::string{"Sort storage containers: "} + (draft.inventory.sortContainers ? "On" : "Off"),
         "Save and close", "Cancel"
     };
     glm::vec2 pointer = view.mPointerLocationPrevious;
@@ -126,8 +130,8 @@ void render(ll::event::AfterUIRenderEvent& event) {
         context.flushImages(white,1,HashedString{"ui_fillColor"});
         label(context,left+6,y+5,width-12,rows[i]);
     }
-    label(context,left,top+224,width,"Arrows: select/adjust | Enter: choose | Esc: cancel");
-    label(context,left,top+239,width,error.empty() ? "Left click: increase/toggle | Right click: decrease" : error);
+    label(context,left,top+268,width,"Arrows: select/adjust | Enter: choose | Esc: cancel");
+    label(context,left,top+283,width,error.empty() ? "Left click: increase/toggle | Right click: decrease" : error);
     context.flushText(0,std::nullopt);
 }
 }
@@ -156,7 +160,7 @@ void start() {
         if (event.actionButtonId() == MouseAction::ActionLeft && event.buttonData() == MouseAction::DataDown && hovered >= 0) {
             selected = hovered; command = 1;
         }
-        if (event.actionButtonId() == MouseAction::ActionRight && event.buttonData() == MouseAction::DataDown && hovered >= 0 && hovered < 6) {
+        if (event.actionButtonId() == MouseAction::ActionRight && event.buttonData() == MouseAction::DataDown && hovered >= 0 && hovered < rowCount-2) {
             selected = hovered; command = -1;
         }
     });
@@ -171,8 +175,8 @@ void start() {
         case 0x1b: command = 2; break;
         case 0x26: selected = (selected+rowCount-1)%rowCount; break;
         case 0x09: case 0x28: selected = (selected+1)%rowCount; break;
-        case 0x25: if (selected < 6) command = -1; break;
-        case 0x27: if (selected < 6) command = 1; break;
+        case 0x25: if (selected < rowCount-2) command = -1; break;
+        case 0x27: if (selected < rowCount-2) command = 1; break;
         case 0x0d: case 0x20: command = 1; break;
         }
     });

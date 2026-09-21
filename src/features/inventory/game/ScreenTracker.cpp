@@ -1,0 +1,105 @@
+#include "features/inventory/game/ScreenTracker.h"
+
+#include "features/inventory/game/TextInputTracker.h"
+
+#include "ll/api/event/EventBus.h"
+#include "ll/api/event/client/ClientExitLevelEvent.h"
+#include "app/Runtime.h"
+#include <stdexcept>
+#include "ll/api/event/render/UIRenderEvent.h"
+#include "ll/api/memory/Hook.h"
+
+#include "mc/client/gui/screens/ScreenController.h"
+#include "mc/client/gui/screens/ScreenView.h"
+#include "mc/client/gui/screens/controllers/ContainerScreenController.h"
+
+namespace lamium::inventory::game {
+
+namespace {
+
+// Closing a screen does not always render a final frame we could observe, so
+// forget the controller as soon as the game tells it to leave. The base
+// implementation is reached by every container screen subclass.
+LL_TYPE_INSTANCE_HOOK(
+    ContainerScreenLeaveHook,
+    ll::memory::HookPriority::Normal,
+    ContainerScreenController,
+    &ContainerScreenController::$onLeave,
+    void
+) {
+    ScreenTracker::getInstance().onControllerLeft(*this);
+    origin();
+}
+
+} // namespace
+
+ScreenTracker& ScreenTracker::getInstance() {
+    static ScreenTracker instance;
+    return instance;
+}
+
+void ScreenTracker::install() {
+    if (mInstalled) return;
+    if (ContainerScreenLeaveHook::hook(true) != 0) throw std::runtime_error("Could not install inventory screen hook");
+    mInstalled = true;
+    mRenderListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::AfterUIRenderEvent>(
+        [this](ll::event::AfterUIRenderEvent& event) { onAfterUIRender(event); }
+    );
+    mExitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
+        [this](auto&) {
+            TextInputTracker::getInstance().forget(mCurrentView);
+            mCurrent.reset();
+            mCurrentView = nullptr;
+        }
+    );
+}
+
+void ScreenTracker::uninstall() {
+    if (!mInstalled) return;
+    if (mRenderListener) {
+        ll::event::EventBus::getInstance().removeListener(mRenderListener);
+        mRenderListener.reset();
+    }
+    if (mExitListener) {
+        ll::event::EventBus::getInstance().removeListener(mExitListener);
+        mExitListener.reset();
+    }
+    if (ContainerScreenLeaveHook::unhook(true)) mInstalled = false;
+    else Runtime::instance().self().getLogger().error("Could not remove inventory screen hook");
+    mCurrent.reset();
+    mCurrentView = nullptr;
+}
+
+std::shared_ptr<ContainerScreenController> ScreenTracker::current() const {
+    auto controller = mCurrent.lock();
+    if (!controller) return nullptr;
+    // Only controllers that reported _isContainerScreen() are ever stored.
+    return std::static_pointer_cast<ContainerScreenController>(controller);
+}
+
+void ScreenTracker::onControllerLeft(ContainerScreenController& controller) {
+    auto current = mCurrent.lock();
+    if (current && current.get() == static_cast<ScreenController*>(&controller)) {
+        mCurrent.reset();
+        TextInputTracker::getInstance().forget(mCurrentView);
+        mCurrentView = nullptr;
+    }
+}
+
+void ScreenTracker::onAfterUIRender(ll::event::AfterUIRenderEvent& event) {
+    // Every ScreenView on the stack renders each frame; keep the most recent
+    // container screen. The HUD and other overlays are not container screens.
+    auto const& controller = event.screenView().mController;
+    if (!controller || !controller->_isContainerScreen()) {
+        return;
+    }
+    if (mCurrent.lock() != controller) {
+        mCurrent     = controller;
+        mCurrentView = &event.screenView();
+        // A freshly shown screen starts with no text box selected; drop any
+        // stale knowledge a previous screen at the same address left behind.
+        TextInputTracker::getInstance().forget(mCurrentView);
+    }
+}
+
+} // namespace lamium::inventory::game

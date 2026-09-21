@@ -6,8 +6,8 @@ No server plugin or companion protocol is required.
 ## Development status
 
 Lamium is under development. Zoom, local settings, NightVision, Shulker/Bundle
-previews, and durability information are implemented at prototype quality.
-Runtime validation is in progress; inventory sorting is planned. No stable
+previews, durability information, and inventory sorting are implemented at
+prototype quality. Runtime validation is in progress. No stable
 release is available yet. See [validation notes](docs/VALIDATION.md) for the
 distinction between implemented and verified behavior.
 
@@ -17,6 +17,14 @@ controls container previews and durability information. Use arrow keys and Enter
 applies changes, Cancel/Escape discards them. These keys are registered with
 Minecraft's keyboard settings. The prototype's on-screen hints show defaults.
 Keyboard/mouse behavior and resource-pack compatibility are still being tested.
+
+Press `R` in an inventory screen to consolidate compatible stacks and arrange
+the main inventory. Hover an ordinary storage-container slot to sort that
+container instead. Hotbar, equipment, crafting, and machine slots are excluded.
+Sorting is skipped while typing or holding an item on the cursor. The feature
+can be disabled in Lamium settings; its default key can be remapped in Minecraft.
+Sorting currently verifies client-predicted slots; server response correlation
+and real-game sorting validation remain release gates.
 
 ## Build
 

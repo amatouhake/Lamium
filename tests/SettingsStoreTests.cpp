@@ -13,6 +13,7 @@ void settingsStoreTests() {
     auto old = decodeSettings(R"({"version":1,"camera":{"zoom":true,"magnification":3.5,"wheelStep":0.5}})");
     check(old.camera.magnification == 3.5f && !old.lighting.nightVision,
           "adding lighting must preserve existing camera settings");
+    check(old.inventory.sorting && old.inventory.sortContainers, "old settings supply inventory defaults");
     auto partial = decodeSettings(R"({"camera":{"magnification":6}})");
     check(partial.camera.magnification == 6 && partial.camera.zoom, "missing fields use defaults");
     for (auto invalid : {R"({"version":999})", R"({"version":4294967297})", R"({"version":1.5})",
@@ -32,9 +33,12 @@ void settingsStoreTests() {
         initial << R"({"version":1,"extension":{"keep":true},"camera":{"futureField":42}})";
     }
     old.lighting.nightVision = true;
+    old.inventory.sorting = false;
+    old.inventory.sortContainers = false;
     writeSettings(path, old);
     auto loaded = readSettings(path);
     check(loaded.camera.magnification == 3.5f && loaded.lighting.nightVision, "disk round trip");
+    check(!loaded.inventory.sorting && !loaded.inventory.sortContainers, "inventory switches survive saves");
     auto contents = [&]() {
         std::ifstream file(path);
         return std::string{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};

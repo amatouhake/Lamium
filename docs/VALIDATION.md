@@ -45,6 +45,19 @@ These observations validate the UI prototype, not the whole feature suite.
 - Filled containers, damaged tools, preview toggles, and live content changes
   still require runtime verification.
 
+## Inventory sorting prototype
+
+- Integrated a pure consolidation/ordering planner, vanilla item classification,
+  ordinary container transfers, text-focus tracking, and an R binding.
+- Settings independently enable sorting and storage-container targeting.
+- Release DLL builds. Planner/key tests cover consolidation, fixed slots,
+  region bounds, full inventories, deterministic/idempotent ordering, custom
+  names, enchantments, damage, and Shulker content signatures.
+- Runtime execution checks local predicted contents before and after each
+  vanilla transfer. This does not prove server acceptance: response correlation,
+  latency/rejection handling, and in-game conservation checks are outstanding.
+- This build has not yet been installed for in-game sorting validation.
+
 ## Outstanding release gates
 
 - Verify zoom visually while held, wheel capture, sensitivity, and release.
@@ -54,7 +67,7 @@ These observations validate the UI prototype, not the whole feature suite.
   hints, localization, and gamepad/touch behavior.
 - Verify with vanilla UI and additional UI resource packs.
 - Verify NightVision underwater, in Nether/End, and across restart/dimension changes.
-- Complete runtime validation of previews and durability; implement and validate
-  inventory sorting.
+- Complete runtime validation of previews and durability; complete inventory
+  response handling and validate sorting in game.
 - Add CI and validate a clean dependency restore/build/package.
 - Complete dependency notices and distribution review.

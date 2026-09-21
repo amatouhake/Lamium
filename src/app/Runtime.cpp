@@ -2,6 +2,7 @@
 #include "features/camera/Zoom.h"
 #include "features/lighting/NightVision.h"
 #include "features/inspection/Inspection.h"
+#include "features/inventory/Inventory.h"
 #include "input/Actions.h"
 #include "ui/SettingsScreen.h"
 #include "settings/SettingsStore.h"
@@ -37,10 +38,17 @@ bool Runtime::enable() {
         Zoom::instance().stop();
         return false;
     }
+    if (!inventory::start()) {
+        inspection::stop();
+        NightVision::instance().stop();
+        Zoom::instance().stop();
+        return false;
+    }
     try { ui::start(); }
     catch (std::exception const& error) {
         mod.getLogger().error("Settings UI initialization failed: {}", error.what());
         ui::stop();
+        inventory::stop();
         inspection::stop();
         NightVision::instance().stop();
         Zoom::instance().stop();
@@ -53,6 +61,7 @@ bool Runtime::enable() {
 bool Runtime::disable() {
     running = false;
     ui::stop();
+    inventory::stop();
     inspection::stop();
     NightVision::instance().stop();
     Zoom::instance().stop();

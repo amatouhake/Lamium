@@ -1,11 +1,14 @@
 #include "input/Actions.h"
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
+#include "features/inventory/Inventory.h"
 #include "ui/SettingsScreen.h"
 #include "ll/api/input/KeyRegistry.h"
 
 namespace lamium {
 void registerActions() {
+    auto& sort = ll::input::KeyRegistry::getInstance().getOrCreateKey("sort", {0x52});
+    sort.registerButtonDownHandler([](FocusImpact, IClientInstance& client) { inventory::requestSort(client); });
     auto& nightVision = ll::input::KeyRegistry::getInstance().getOrCreateKey("nightvision", {0x4e});
     nightVision.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
         auto& runtime = Runtime::instance();
