@@ -1,0 +1,7 @@
+/.xmake/
+/build/
+/bin/
+/.vs/
+/.idea/
+*.user
+*.log
