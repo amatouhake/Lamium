@@ -13,6 +13,18 @@ Camera integration uses implementation lessons from
 [LaminaView](https://github.com/amatouhake/LaminaView), an earlier mod by
 Lamium's author, copyright 2026 amatouhake.
 
+## LaminaPeek
+
+Item-content readers, hover integration, and preview rendering are adapted from
+[LaminaPeek](https://github.com/amatouhake/LaminaPeek), an earlier mod by
+Lamium's author, copyright 2026 amatouhake.
+
+## JSON for Modern C++
+
+Settings serialization uses [nlohmann/json](https://github.com/nlohmann/json)
+v3.12.0, MIT, copyright 2013-2025 Niels Lohmann. Its license is included in
+[licenses/nlohmann-json-MIT.txt](licenses/nlohmann-json-MIT.txt).
+
 ## LeviLamina
 
 [LeviLamina](https://github.com/LiteLDev/LeviLamina) is a separately installed

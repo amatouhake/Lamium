@@ -5,12 +5,15 @@ No server plugin or companion protocol is required.
 
 ## Development status
 
-Lamium is under development. The first milestone is a locally configurable Zoom
-feature verified in game. NightVision, item previews, durability information, and
-inventory sorting are planned. No stable release is available yet.
+Lamium is under development. Zoom, local settings, NightVision, Shulker/Bundle
+previews, and durability information are implemented at prototype quality.
+Runtime validation is in progress; inventory sorting is planned. No stable
+release is available yet. See [validation notes](docs/VALIDATION.md) for the
+distinction between implemented and verified behavior.
 
 The current prototype provides hold-to-zoom (`C`) and a local camera settings
-panel (`F8`) while in a world. Use arrow keys and Enter or click the rows; Save
+panel (`F8`) and NightVision toggle (`N`) while in a world. The settings panel also
+controls container previews and durability information. Use arrow keys and Enter or click the rows; Save
 applies changes, Cancel/Escape discards them. These keys are registered with
 Minecraft's keyboard settings. The prototype's on-screen hints show defaults.
 Keyboard/mouse behavior and resource-pack compatibility are still being tested.

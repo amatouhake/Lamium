@@ -6,6 +6,14 @@
 
 namespace lamium {
 void registerActions() {
+    auto& nightVision = ll::input::KeyRegistry::getInstance().getOrCreateKey("nightvision", {0x4e});
+    nightVision.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
+        auto& runtime = Runtime::instance();
+        if (!runtime.enabled() || !gameplayScreen(client.getScreenName())) return;
+        auto settings = runtime.preferences();
+        settings.lighting.nightVision = !settings.lighting.nightVision;
+        if (!runtime.save(settings)) runtime.self().getLogger().error("Could not save NightVision setting");
+    });
     auto& settings = ll::input::KeyRegistry::getInstance().getOrCreateKey("settings", {0x77});
     settings.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
         if (Runtime::instance().enabled()) ui::open(client);

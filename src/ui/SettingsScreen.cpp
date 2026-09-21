@@ -35,6 +35,10 @@ int selected = 0;
 int hovered = -1;
 int command = 0;
 bool seen = false;
+bool closing = false;
+bool mouseNavigation = false;
+glm::vec2 previousPointer{-1,-1};
+constexpr int rowCount = 8;
 std::string error;
 std::array<ll::event::ListenerPtr, 4> listeners;
 constexpr mce::Color white{1.0f,1.0f,1.0f,1.0f};
@@ -42,21 +46,26 @@ constexpr mce::Color white{1.0f,1.0f,1.0f,1.0f};
 bool ownsTop() {
     return client && scene && client->getSceneFactory().getCurrentSceneStack()->getTopScene() == scene.get();
 }
-void clear() { client = nullptr; scene.reset(); seen = false; command = 0; hovered = -1; }
+void clear() { client = nullptr; scene.reset(); seen = false; closing = false; command = 0; hovered = -1; }
 void close() {
-    if (ownsTop()) client->getSceneFactory().getCurrentSceneStack()->schedulePopScreen(1);
-    clear();
+    if (ownsTop()) {
+        if (!closing) client->getSceneFactory().getCurrentSceneStack()->schedulePopScreen(1);
+        closing = true;
+    } else clear();
 }
 void activate(int direction) {
     switch (selected) {
     case 0: draft.camera.zoom = !draft.camera.zoom; break;
     case 1: draft.camera.magnification += direction * .5f; break;
     case 2: draft.camera.wheelStep += direction * .1f; break;
-    case 3:
+    case 3: draft.lighting.nightVision = !draft.lighting.nightVision; break;
+    case 4: draft.inspection.containerPreviews = !draft.inspection.containerPreviews; break;
+    case 5: draft.inspection.durability = !draft.inspection.durability; break;
+    case 6:
         if (Runtime::instance().save(draft)) close();
         else error = "Could not save settings. Please try again.";
         break;
-    case 4: close(); break;
+    case 7: close(); break;
     }
     draft.normalize();
 }
@@ -75,7 +84,7 @@ void render(ll::event::AfterUIRenderEvent& event) {
     glm::vec2 size = view.mSize;
     if (!scene) {
         if (gameplayScreen(current.getScreenName())) {
-            label(context, 6, 6, size.x-12, "Lamium: F8 settings | Hold C to zoom");
+            label(context, 6, 6, size.x-12, "Lamium defaults: F8 settings | Hold C: zoom | N: NightVision");
             context.flushText(0, std::nullopt);
         }
         return;
@@ -83,37 +92,42 @@ void render(ll::event::AfterUIRenderEvent& event) {
     if (&current != client) return;
     if (!ownsTop()) { if (seen) clear(); return; }
     seen = true;
-    int action = std::exchange(command, 0);
+    int action = closing ? 0 : std::exchange(command, 0);
     if (action == 1) activate(1);
     if (action == -1) activate(-1);
     if (action == 2) close();
     if (!scene) return;
     float width = std::min(330.0f, size.x-16);
     float left = (size.x-width)*.5f;
-    float top = std::max(8.0f, (size.y-190)*.5f);
+    float top = std::max(8.0f, (size.y-256)*.5f);
     context.fillRectangle(RectangleArea{0,size.x,0,size.y}, mce::Color{.07f,.08f,.11f,1.0f}, 1);
     context.flushImages(white,1,HashedString{"ui_fillColor"});
-    label(context,left,top,width,"Lamium / Camera");
-    label(context,left,top+18,width,"Local settings - no server installation required");
-    std::array<std::string,5> rows{
+    label(context,left,top,width,"Lamium / Settings");
+    label(context,left,top+18,width,"View, lighting and item information");
+    std::array<std::string,rowCount> rows{
         std::string{"Zoom: "} + (draft.camera.zoom ? "On" : "Off"),
         std::format("Magnification: {:.1f}x", draft.camera.magnification),
         std::format("Wheel step: {:.1f}", draft.camera.wheelStep),
+        std::string{"NightVision: "} + (draft.lighting.nightVision ? "On" : "Off"),
+        std::string{"Container previews: "} + (draft.inspection.containerPreviews ? "On" : "Off"),
+        std::string{"Durability: "} + (draft.inspection.durability ? "On" : "Off"),
         "Save and close", "Cancel"
     };
     glm::vec2 pointer = view.mPointerLocationPrevious;
+    if (pointer != previousPointer) mouseNavigation = true;
+    previousPointer = pointer;
     hovered = -1;
-    for (int i=0;i<5;++i) {
+    for (int i=0;i<rowCount;++i) {
         float y = top+42+i*22.0f;
         if (pointer.x >= left && pointer.x <= left+width && pointer.y >= y && pointer.y < y+20) hovered = i;
-        bool highlight = selected == i || hovered == i;
+        bool highlight = mouseNavigation ? hovered == i : selected == i;
         context.fillRectangle(RectangleArea{left,left+width,y,y+20},
             highlight ? mce::Color{.28f,.24f,.43f,1.0f} : mce::Color{.15f,.16f,.21f,1.0f},1);
         context.flushImages(white,1,HashedString{"ui_fillColor"});
         label(context,left+6,y+5,width-12,rows[i]);
     }
-    label(context,left,top+158,width,"Up/Down: select | Left/Right: adjust | Enter: apply");
-    label(context,left,top+173,width,error.empty() ? "Click to increase/toggle. Esc cancels. Keys: Minecraft settings." : error);
+    label(context,left,top+224,width,"Arrows: select/adjust | Enter: choose | Esc: cancel");
+    label(context,left,top+239,width,error.empty() ? "Left click: increase/toggle | Right click: decrease" : error);
     context.flushText(0,std::nullopt);
 }
 }
@@ -122,7 +136,8 @@ void open(IClientInstance& current) {
     if (scene || !gameplayScreen(current.getScreenName())) return;
     Zoom::instance().reset();
     draft = Runtime::instance().preferences();
-    selected = 0; hovered = -1; command = 0; error.clear(); seen = false;
+    selected = 0; hovered = -1; command = 0; error.clear(); seen = false; closing = false;
+    mouseNavigation = false;
     // This native information screen supplies focus/cursor ownership. It has no
     // form ID, packet, or server callback. Lamium draws and handles its own UI.
     scene = current.getSceneFactory().createCommonDialogInfoScreen("Lamium", "");
@@ -141,6 +156,9 @@ void start() {
         if (event.actionButtonId() == MouseAction::ActionLeft && event.buttonData() == MouseAction::DataDown && hovered >= 0) {
             selected = hovered; command = 1;
         }
+        if (event.actionButtonId() == MouseAction::ActionRight && event.buttonData() == MouseAction::DataDown && hovered >= 0 && hovered < 6) {
+            selected = hovered; command = -1;
+        }
     });
     listeners[2] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
         std::lock_guard lock(mutex);
@@ -148,12 +166,13 @@ void start() {
         // Let key-up through so keys pressed before opening cannot stick.
         if (!event.isDown()) return;
         event.cancel();
+        mouseNavigation = false;
         switch (event.keyCode()) {
         case 0x1b: command = 2; break;
-        case 0x26: selected = (selected+4)%5; break;
-        case 0x09: case 0x28: selected = (selected+1)%5; break;
-        case 0x25: if (selected < 3) command = -1; break;
-        case 0x27: if (selected < 3) command = 1; break;
+        case 0x26: selected = (selected+rowCount-1)%rowCount; break;
+        case 0x09: case 0x28: selected = (selected+1)%rowCount; break;
+        case 0x25: if (selected < 6) command = -1; break;
+        case 0x27: if (selected < 6) command = 1; break;
         case 0x0d: case 0x20: command = 1; break;
         }
     });
@@ -164,6 +183,7 @@ void start() {
 void stop() {
     std::lock_guard lock(mutex);
     close();
+    clear();
     for (auto& listener : listeners) {
         if (listener) ll::event::EventBus::getInstance().removeListener(listener);
         listener.reset();

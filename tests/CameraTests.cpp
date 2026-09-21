@@ -8,7 +8,14 @@
 void check(bool value, char const* message) {
     if (!value) throw std::runtime_error(message);
 }
+void settingsStoreTests();
+int runPreviewLayoutTests();
+int runDurabilityBarTests();
+int runBundlePreviewTests();
 int main() {
+    settingsStoreTests();
+    check(runPreviewLayoutTests() + runDurabilityBarTests() + runBundlePreviewTests() == 0,
+          "item inspection suites");
     lamium::ZoomState zoom;
     zoom.configure(3, .5f);
     check(zoom.fov(90) == 90, "inactive camera must pass through");
@@ -32,5 +39,5 @@ int main() {
     settings.camera.wheelStep = std::numeric_limits<float>::infinity();
     settings.normalize();
     check(settings.camera.magnification == 1 && settings.camera.wheelStep == .5f, "normalize settings");
-    std::cout << "Camera state and settings checks passed\n";
+    std::cout << "Lamium: camera, settings storage, and item inspection checks passed\n";
 }

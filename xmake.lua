@@ -16,6 +16,7 @@ option_end()
 add_requires("levilamina v26.51.3", {configs = {target_type = get_config("target_type")}})
 
 add_requires("levibuildscript")
+add_requires("nlohmann_json v3.12.0")
 
 if not has_config("vs_runtime") then
     set_runtimes("MD")
@@ -42,7 +43,7 @@ target("Lamium")
         )
         set_toolchains("clang-cl")
     end
-    add_packages("levilamina")
+    add_packages("levilamina", "nlohmann_json")
     set_kind("shared")
     set_languages("c++20")
     set_symbols("debug")
@@ -55,6 +56,7 @@ target("Lamium")
         os.cp("COPYING", destination)
         os.cp("COPYING.LESSER", destination)
         os.cp("THIRD_PARTY_NOTICES.md", destination)
+        os.cp("licenses", destination)
     end)
 
 -- Unit tests for the pure (game-independent) view math/state. Not built by
@@ -65,6 +67,8 @@ target("LamiumTests")
     set_languages("c++20")
     add_includedirs("src")
     add_files("tests/**.cpp")
+    add_files("src/settings/SettingsStore.cpp")
+    add_packages("nlohmann_json")
     if is_plat("windows") then
         add_cxflags("/utf-8", "/W4")
         set_toolchains("clang-cl")

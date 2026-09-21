@@ -9,7 +9,15 @@ struct Settings {
         bool zoom = true;
         float magnification = 3.0f;
         float wheelStep = 0.5f;
+        bool operator==(Camera const&) const = default;
     } camera;
+    struct Lighting {
+        bool nightVision = false;
+    } lighting;
+    struct Inspection {
+        bool containerPreviews = true;
+        bool durability = true;
+    } inspection;
 
     void normalize() {
         if (!std::isfinite(camera.magnification)) camera.magnification = 3.0f;

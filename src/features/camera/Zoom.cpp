@@ -61,6 +61,7 @@ bool Zoom::start() {
     if (running) return true;
     try {
         for (auto& hook : hooks) {
+            if (hook.installed) continue;
             int result = hook.install(true);
             if (result != 0) {
                 Runtime::instance().self().getLogger().error("Camera hook failed with code {}", result);
