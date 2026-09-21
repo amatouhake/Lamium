@@ -49,6 +49,13 @@ target("Lamium")
     add_headerfiles("src/**.h")
     add_files("src/**.cpp")
     add_includedirs("src")
+    after_build(function (target)
+        local destination = path.join(os.projectdir(), "bin", target:name())
+        os.mkdir(destination)
+        os.cp("COPYING", destination)
+        os.cp("COPYING.LESSER", destination)
+        os.cp("THIRD_PARTY_NOTICES.md", destination)
+    end)
 
 -- Unit tests for the pure (game-independent) view math/state. Not built by
 -- default: `xmake build LamiumTests && xmake run LamiumTests`.

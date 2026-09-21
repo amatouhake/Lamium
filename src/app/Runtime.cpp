@@ -1,6 +1,7 @@
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
 #include "input/Actions.h"
+#include "ui/SettingsScreen.h"
 #include "ll/api/Config.h"
 #include "ll/api/mod/RegisterHelper.h"
 
@@ -28,12 +29,20 @@ bool Runtime::load() {
 bool Runtime::enable() {
     if (running) return true;
     if (!Zoom::instance().start()) return false;
+    try { ui::start(); }
+    catch (std::exception const& error) {
+        mod.getLogger().error("Settings UI initialization failed: {}", error.what());
+        ui::stop();
+        Zoom::instance().stop();
+        return false;
+    }
     running = true;
     mod.getLogger().info("Lamium enabled. Hold C to zoom; scroll while held to adjust.");
     return true;
 }
 bool Runtime::disable() {
     running = false;
+    ui::stop();
     Zoom::instance().stop();
     return true;
 }
