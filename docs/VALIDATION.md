@@ -854,3 +854,18 @@ wheel restriction. English and Japanese strings are included. Client build,
 existing translation/settings tests, and package checks passed. The new
 wording and fit have not yet been checked in Minecraft; the running instance
 still uses the preceding event-coordinate build.
+
+### Binding guidance and wheel Toggle runtime check (2026-09-23)
+
+Installed the e316c31 build, DLL SHA-256
+`D3D53260E420DB0CB46D037137A911BD4218108EA4D1CD912EAD8695F01C1569`.
+On Minecraft 1.26.51.01 / LeviLamina 26.51.3, DeesseUI 1.3.9,
+1920x1080, the Debug View capture screen displayed the current binding,
+waiting message, and full Toggle guidance without clipping. Capturing a
+downward wheel input returned to Hotkeys with Wheel down displayed.
+After closing settings, two separate downward wheel inputs switched Debug
+View on and off respectively; the selected hotbar slot remained unchanged.
+Reopening capture showed Current binding: Wheel down. Clear returned the
+action to Unbound, leaving Debug View off. This verifies an unmodified wheel
+direction for one Toggle action, not modified wheel chords, wheel Hold
+rejection, opposite direction behavior, or other screen sizes/languages.
