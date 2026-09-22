@@ -5,6 +5,7 @@
 #include <atomic>
 class IClientInstance;
 class LocalPlayer;
+class Player;
 namespace lamium {
 struct Settings;
 class Zoom {
@@ -24,6 +25,7 @@ public:
     void pressLook(IClientInstance&);
     void releaseLook() { look.cancel(); }
     bool turnLook(LocalPlayer&, float pitchDelta, float yawDelta);
+    bool blocksLookInteraction(Player&);
     std::optional<DetachedLookState::Angles> lookAngles();
     void release() { state.release(); }
     void reset() { state.reset(); look.cancel(); client = nullptr; }

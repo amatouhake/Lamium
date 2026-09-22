@@ -26,10 +26,19 @@ lifecycle checks still require Minecraft validation. Interaction aim,
 split-screen rendering, culling and perspective transitions remain incomplete;
 this is not a stable Freelook feature.
 
-Interaction suppression must cover GameMode attack, block destruction, item
-use, placement and entity interaction paths, including remapped keyboard input.
-Cancelling mouse button events alone is insufficient. The inspected SDK exposes
-these paths, but no detached-camera interaction suppression is implemented yet.
+The interaction guard now intercepts GameMode attack, start/continue/final block
+destruction, start/continue/final placement, item use, use-as-attack, use-on-block
+and entity interaction. While a valid detached session owns that local player,
+these paths return no success (and no swing for use-on-block), without invoking
+the original operation. Other players and inactive sessions pass through.
+Stop/release operations remain untouched so vanilla can clean up existing use.
+The guard installs with the camera lifecycle and is unwound if startup fails.
+
+This is build-verified only. Runtime checks must cover keyboard remapping,
+offhand use, continued mining/placement, and another interaction mod. Starting
+Freelook while an item is already charging/eating, and release-triggered effects
+from such an earlier use, still need an explicit policy and validation. No claim
+of complete interaction isolation is made from the list of hooks alone.
 The next work should validate and correct this integration, not merely expand its
 settings. Do not enable the old fixed-angle `camera_probe` simultaneously.
 

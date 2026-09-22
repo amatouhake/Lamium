@@ -1,4 +1,5 @@
 #include "features/camera/Zoom.h"
+#include "features/camera/CameraInteraction.h"
 #include "settings/Settings.h"
 #include "input/Actions.h"
 #include "app/Runtime.h"
@@ -230,6 +231,10 @@ bool Zoom::turnLook(LocalPlayer& player, float pitchDelta, float yawDelta) {
     look.turn(pitchDelta * .15f, yawDelta * .15f);
     return true;
 }
+bool Zoom::blocksLookInteraction(Player& player) {
+    auto* current = client.load();
+    return current && current->getLocalPlayer() == &player && lookAngles().has_value();
+}
 void Zoom::press(IClientInstance& current) {
     if (!running || !allowed || !gameplayScreen(current.getScreenName())) return;
     client = &current;
@@ -238,6 +243,7 @@ void Zoom::press(IClientInstance& current) {
 bool Zoom::start() {
     if (running) return true;
     try {
+        camera::startInteractionGuard();
         for (auto& hook : hooks) {
             if (hook.installed) continue;
             int result = hook.install(true);
@@ -275,6 +281,7 @@ bool Zoom::start() {
 void Zoom::stop() {
     running = false;
     reset();
+    camera::stopInteractionGuard();
     auto& bus = ll::event::EventBus::getInstance();
     for (auto* listener : {&wheelListener, &screenListener, &exitListener}) {
         if (*listener) { bus.removeListener(*listener); listener->reset(); }
