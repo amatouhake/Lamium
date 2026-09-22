@@ -45,6 +45,7 @@ Json encode(Settings const& settings) {
     }
     return Json{
         {"version", settings.version},
+        {"overlays", {{"chunkBorders", settings.overlays.chunkBorders}}},
         {"bindings", std::move(bindings)},
         {"camera", {{"zoom", settings.camera.zoom}, {"magnification", settings.camera.magnification},
                     {"wheelStep", settings.camera.wheelStep}}},
@@ -64,6 +65,7 @@ Json encode(Settings const& settings) {
 Settings decodeSettings(std::string_view text) {
     auto data = parse(text);
     Settings value;
+    if (data.contains("overlays")) value.overlays.chunkBorders = data.at("overlays").value("chunkBorders", false);
     if (data.contains("bindings")) {
         auto const& bindings = data.at("bindings");
         if (!bindings.is_object()) throw std::runtime_error("Bindings must be an object");

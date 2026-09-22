@@ -1,7 +1,13 @@
 #include "overlay/Geometry.h"
+#include "overlay/ChunkBorders.h"
 void check(bool, char const*);
 void overlayGeometryTests() {
     using namespace lamium::overlay;
+    auto chunk = chunkBorders({-.1,64,-16}, -64, 320);
+    check(chunk.size() == 104, "chunk border includes section layers without duplicate end caps");
+    for (auto line : chunk) for (auto p : {line.from,line.to})
+        check(p.x >= -16 && p.x <= 0 && p.z >= -16 && p.z <= 0 && p.y >= -64 && p.y <= 320,
+              "negative chunks use floor division and supplied dimension height");
     check(snapped({-.1,-1,1.9}) == Point{-.5,-.5,1.5}, "block center snap floors negative coordinates");
     check(snapped({-.1,-1,1.9}, Snap::BlockCorner) == Point{-1,-1,1}, "corner snap uses lower grid corner");
     check(snapped({-.1,-1,1.9}, Snap::Off) == Point{-.1,-1,1.9}, "off retains arbitrary center");

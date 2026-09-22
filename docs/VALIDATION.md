@@ -7,8 +7,14 @@ Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
 The game-independent geometry component now provides continuous lines/wire boxes,
 block-grid circle/cylinder/sphere cells, rectangular planes/grids, exposed faces,
 and outward face vertices. Geometry tests and the existing unit suite passed.
-No render hook or game UI uses it yet. See [overlay conventions](OVERLAYS.md) for
-sampling, snapping, resource limits, and remaining integration work.
+A world-line render hook and an opt-in Chunk Borders setting now use the line
+geometry. DLL compilation/linking, the complete unit suite, and package checks
+passed. Tests cover negative chunk coordinates and dimension-height section
+lines, plus settings persistence and feature-list reachability. The hook has
+not been exercised in Minecraft: visible output, correct camera transforms,
+depth, mesh lifetime, world exit, and dimension changes remain unverified.
+Block-grid shapes are not connected to the renderer or an editor yet. See
+[overlay conventions](OVERLAYS.md) for sampling and remaining integration work.
 
 ## Settings foundation in progress
 

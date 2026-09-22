@@ -8,6 +8,7 @@
 namespace lamium::ui {
 struct FeatureInfo { std::string_view id, name, description, toggle; };
 inline constexpr auto features = std::to_array<FeatureInfo>({
+    {"chunkBorders", "feature.chunkBorders", "help.chunkBorders", "overlays.chunkBorders"},
     {"zoom", "feature.zoom", "help.zoom", "camera.zoom"},
     {"nightVision", "feature.nightVision", "help.nightVision", "lighting.nightVision"},
     {"previews", "feature.previews", "help.previews", "inspection.containerPreviews"},

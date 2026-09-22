@@ -32,6 +32,9 @@ struct Settings {
     struct Interface {
         bool gameplayHints = true;
     } ui;
+    struct Overlays {
+        bool chunkBorders = false;
+    } overlays;
 
     void normalize() {
         if (!std::isfinite(camera.magnification)) camera.magnification = 3.0f;
