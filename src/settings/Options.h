@@ -45,6 +45,7 @@ constexpr Option choice(std::string_view id, std::string_view feature, std::stri
         }};
 }
 inline constexpr auto options = std::to_array<Option>({
+    toggle<&Settings::interaction, &Settings::Interaction::breaking>("interaction.breaking", "restrictions", "breakingRestriction"),
     choice<&Settings::interaction, &Settings::Interaction::breakingMode, interaction::restrictionLabels>("interaction.breakingMode", "restrictions", "breakingMode"),
     choice<&Settings::interaction, &Settings::Interaction::placementMode, interaction::restrictionLabels>("interaction.placementMode", "restrictions", "placementMode"),
     toggle<&Settings::information, &Settings::Information::debug>("information.debug", "debugView", "debugView"),

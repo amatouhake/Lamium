@@ -5,6 +5,8 @@
 #include "features/information/TargetInfo.h"
 #include "features/information/TargetRows.h"
 #include "features/information/DebugView.h"
+#include "features/interaction/BreakingRestriction.h"
+#include "app/Runtime.h"
 #include "ui/HudLayout.h"
 #include "ui/Widgets.h"
 #include "ui/Localization.h"
@@ -15,6 +17,13 @@
 namespace lamium::information {
 void drawHud(MinecraftUIRenderContext& context, float width, float height, Settings::Information const& preferences) {
     auto settings = debugProfile(preferences);
+    if (Runtime::instance().preferences().interaction.breaking && context.mClient.getLocalPlayer()) {
+        auto anchor = interaction::breaking::region();
+        auto text = anchor ? ui::translated("breakingAnchor",std::format("{}, {}, {}",anchor->anchor.x,anchor->anchor.y,anchor->anchor.z))
+                           : ui::translated("breakingNeedsAnchor");
+        auto layout = ui::HudLayout::fit(width,height,100,100,1);
+        if (layout.lines) { ui::label(context,layout.x,layout.y,layout.width,text); context.flushText(0,std::nullopt); }
+    }
     float columnWidth = settings.debug ? std::min(230.f,width/2-8) : 230.f;
     if (settings.target) {
         if (auto target = collectTargetInfo(context.mClient,settings.targetStates)) {

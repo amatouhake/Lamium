@@ -9,6 +9,7 @@ struct Settings {
     int version = 1;
     input::Bindings bindings;
     struct Interaction {
+        bool breaking = false;
         interaction::RestrictionMode breakingMode = interaction::RestrictionMode::Plane;
         interaction::RestrictionMode placementMode = interaction::RestrictionMode::Plane;
     } interaction;

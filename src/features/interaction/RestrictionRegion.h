@@ -16,6 +16,7 @@ struct RestrictionRegion {
     RestrictionMode mode;
     overlay::Cell anchor;
     Axis axis;
+    bool operator==(RestrictionRegion const&) const = default;
     bool contains(overlay::Cell cell) const {
         bool x = cell.x == anchor.x, y = cell.y == anchor.y, z = cell.z == anchor.z;
         switch (mode) {

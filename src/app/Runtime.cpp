@@ -5,6 +5,7 @@
 #include "features/inventory/Inventory.h"
 #include "features/inventory/ToolSwitch.h"
 #include "features/information/FrameTiming.h"
+#include "features/interaction/BreakingRestriction.h"
 #include "features/visuals/HideOffhand.h"
 #include "input/Actions.h"
 #include "input/CustomInput.h"
@@ -66,9 +67,10 @@ bool Runtime::enable() {
         Zoom::instance().stop();
         return false;
     }
-    try { ui::start(); input::startCustomInput(); overlay::start(); visuals::start(); inventory::tools::start(); information::startFrameTiming(); }
+    try { ui::start(); input::startCustomInput(); overlay::start(); visuals::start(); inventory::tools::start(); information::startFrameTiming(); interaction::breaking::start(); }
     catch (std::exception const& error) {
         mod.getLogger().error("Client feature initialization failed: {}", error.what());
+        interaction::breaking::stop();
         information::stopFrameTiming();
         inventory::tools::stop();
         visuals::stop();
@@ -87,6 +89,7 @@ bool Runtime::enable() {
 }
 bool Runtime::disable() {
     running = false;
+    interaction::breaking::stop();
     information::stopFrameTiming();
     inventory::tools::stop();
     visuals::stop();
@@ -105,6 +108,8 @@ bool Runtime::save(Settings value) {
     try {
         writeSettings(mod.getConfigDir() / "settings.json", value);
         bool cameraChanged = !(settings.camera == value.camera);
+        if (settings.interaction.breaking != value.interaction.breaking
+            || settings.interaction.breakingMode != value.interaction.breakingMode) interaction::breaking::reset();
         settings = value;
         if (cameraChanged) Zoom::instance().configure(settings);
         NightVision::instance().configure(settings.lighting.nightVision);

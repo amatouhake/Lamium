@@ -1,5 +1,6 @@
 #include "input/Actions.h"
 #include "input/ToggleAction.h"
+#include "features/interaction/BreakingRestriction.h"
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
 #include "features/inventory/Inventory.h"
@@ -50,6 +51,8 @@ void executeAction(IClientInstance& client, input::Action action) {
     // Sorting validates its container/text-input context in requestSort.
     if (action == input::Action::Sort) { inventory::requestSort(client); return; }
     if (!gameplayScreen(client.getScreenName())) return;
+    if (action == input::Action::CaptureBreaking) { interaction::breaking::capture(client); return; }
+    if (action == input::Action::ResetBreaking) { interaction::breaking::reset(); return; }
     if (action == input::Action::Settings) { ui::open(client); return; }
     if (action == input::Action::Zoom) { Zoom::instance().press(client); return; }
     auto value = runtime.preferences();

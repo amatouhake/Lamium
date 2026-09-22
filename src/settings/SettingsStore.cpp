@@ -45,7 +45,7 @@ Json encode(Settings const& settings) {
     }
     return Json{
         {"version", settings.version},
-        {"interaction", {{"breakingMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.breakingMode)]},
+        {"interaction", {{"breaking", settings.interaction.breaking}, {"breakingMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.breakingMode)]},
                          {"placementMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.placementMode)]}}},
         {"information", {{"hud", settings.information.hud}, {"coordinates", settings.information.coordinates},
                          {"debug", settings.information.debug},
@@ -83,6 +83,7 @@ Settings decodeSettings(std::string_view text) {
     Settings value;
     if (data.contains("interaction")) {
         auto const& options = data.at("interaction");
+        value.interaction.breaking = options.value("breaking",false);
         auto mode = [&](char const* key) {
             auto name = options.value(key,std::string("plane"));
             for (size_t i=0;i<interaction::restrictionNames.size();++i)

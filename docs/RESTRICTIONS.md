@@ -7,7 +7,7 @@ The shared region predicate defines the proposed initial modes:
 - Column: fixes X/Z and extends vertically, independent of the selected face.
 - Layer: fixes Y and extends horizontally, independent of the selected face.
 
-The anchor is a block cell. Preview generation uses the same predicate as future
+The anchor is a block cell. Preview generation uses the same predicate as
 action enforcement. Preview radius is bounded to 0–16 cells; this bounds rendering
 work, not the allowed operation region. Integer coordinate edges retain the
 headroom required by block-face geometry. No Minecraft pointers are stored.
@@ -15,14 +15,20 @@ headroom required by block-face geometry. No Minecraft pointers are stored.
 ## Integration work still required
 
 The mode settings are exposed as independent named choices with immediate saving.
-The current implementation does not yet enforce restrictions. Placement
-and breaking must have separate toggles and anchors, with mode-switch actions, explicit
-anchor capture/reset and a visible description of the active region. Anchors are
-session state and must be invalidated on world/dimension changes and feature
-shutdown. Settings/input ownership must suppress editing anchors while typing.
+Breaking now has a default-off toggle and initially unbound capture/reset actions.
+Enable it, then point at a block and invoke capture. With no anchor, breaking is
+blocked and the HUD prompts for an anchor. Toggling, changing mode, world exit,
+dimension transition and feature shutdown clear the session anchor. The world
+preview shows a radius-four sample of the region; its geometry is cached by value.
+Settings/input ownership gates capture actions through the shared action layer.
+Placement enforcement and its anchor are not yet implemented. Dedicated mode-switch
+actions and fuller mode/axis status presentation remain outstanding.
 
-Breaking must check both initial and continued destruction, including creative
-instant break, before any related tool switch or vanilla mutation. Placement must
+Breaking hooks gate GameMode start/continue/destroy calls for the local client
+player. Rejected calls return false and clear the destroyed output parameter when
+present. Tool Switch also checks the predicate independently. The runtime call
+coverage, creative instant break and cancellation behavior remain unverified.
+Placement must
 validate the actual destination cell; blindly adding a face offset is incorrect
 for replaceable blocks and special placements. Resolve that through vanilla
 placement semantics before connecting the placement gate. Do not cancel unrelated
@@ -37,4 +43,8 @@ block state or send a placement/break packet. This is independent of fast placem
 Pure tests cover all axes, negative coordinates, preview membership/counts,
 unbounded predicate behavior, vertical modes, opposite faces, preview work limits
 and integer-edge handling. They do not prove Minecraft hook or placement behavior.
-Runtime integration and local-world validation remain outstanding.
+The breaking implementation builds and links, and catalog/settings/action tests
+pass. Local-world validation remains outstanding: all modes/faces, creative and
+survival, held-button target changes, anchor reset during mining, world exit,
+dimension changes, and interaction with Tool Switch. Do not claim packet suppression
+or complete enforcement until those native paths have been exercised.

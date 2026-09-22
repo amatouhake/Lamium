@@ -1,4 +1,5 @@
 #include "features/inventory/ToolSwitch.h"
+#include "features/interaction/BreakingRestriction.h"
 #include "features/inventory/ToolChoice.h"
 #include "app/Runtime.h"
 #include "ui/SettingsScreen.h"
@@ -19,6 +20,7 @@ namespace lamium::inventory::tools {
 namespace {
 bool installed = false;
 void selectTool(Player& player, BlockPos const& pos) {
+    if (!interaction::breaking::allows(player,pos)) return;
     auto& runtime = Runtime::instance();
     if (!runtime.enabled() || !runtime.preferences().inventory.toolSwitch || ui::ownsInput()) return;
     auto client = ll::service::getClientInstance();

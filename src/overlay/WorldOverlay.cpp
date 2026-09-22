@@ -1,6 +1,7 @@
 #include "overlay/WorldOverlay.h"
 #include "overlay/ChunkBorders.h"
 #include "overlay/Hitboxes.h"
+#include "features/interaction/BreakingRestriction.h"
 #include "app/Runtime.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
@@ -50,11 +51,21 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     auto& runtime = Runtime::instance();
     if (!runtime.enabled()) return;
     auto preferences = runtime.preferences().overlays;
-    if (!preferences.chunkBorders && !preferences.hitboxes) return;
+    bool breaking = runtime.preferences().interaction.breaking;
+    if (!preferences.chunkBorders && !preferences.hitboxes && !breaking) return;
     IClientInstance& client = context.mClientInstance;
     auto* player = client.getLocalPlayer();
     if (!player) return;
     try {
+        if (breaking) {
+            auto region = interaction::breaking::region();
+            if (region) {
+                thread_local std::optional<interaction::RestrictionRegion> cached;
+                thread_local std::vector<Line> lines;
+                if (cached != region) { lines = gridSurfaceLines(region->preview(4)); cached = region; }
+                drawLines(context,lines);
+            }
+        }
         auto& dimension = player->getDimension();
         if (preferences.chunkBorders) {
             auto const& range = dimension.mHeightRange;
