@@ -4,6 +4,7 @@
 #include "ui/SettingsRows.h"
 #include "ui/SearchQuery.h"
 #include "ui/NumberInput.h"
+#include "ui/Widgets.h"
 #include "ui/Localization.h"
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
@@ -16,19 +17,9 @@
 #include "ll/api/event/input/MouseInputEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "mc/client/game/IClientInstance.h"
-#include "mc/client/game/IMinecraftGame.h"
-#include "mc/client/gui/Font.h"
-#include "mc/client/gui/FontHandle.h"
-#include "mc/client/gui/FontRepository.h"
-#include "mc/client/gui/CaretMeasureData.h"
-#include "mc/client/gui/TextAlignment.h"
-#include "mc/client/gui/TextMeasureData.h"
 #include "mc/client/gui/screens/SceneFactory.h"
 #include "mc/client/gui/screens/UIScene.h"
 #include "mc/client/gui/screens/interfaces/ISceneStack.h"
-#include "mc/deps/core/math/Color.h"
-#include "mc/deps/core/string/HashedString.h"
-#include "mc/deps/input/RectangleArea.h"
 #include "mc/deps/input/MouseAction.h"
 #include <array>
 #include <mutex>
@@ -102,7 +93,6 @@ void cancelCapture() {
 }
 std::array<ll::event::ListenerPtr, 5> listeners;
 bool backgroundHook = false;
-constexpr mce::Color white{1.0f,1.0f,1.0f,1.0f};
 
 bool ownsTop() {
     return client && scene && client->getSceneFactory().getCurrentSceneStack()->getTopScene() == scene.get();
@@ -177,13 +167,6 @@ void activate(int row, int direction) {
     entry.option->adjust(value, direction);
     error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
 }
-void label(MinecraftUIRenderContext& context, float x, float y, float width, std::string text) {
-    auto& font = context.mClient.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default").getFont();
-    TextMeasureData const measure{1.0f, 0.0f, true, false, false, ::ui::TextAlignment::Left};
-    CaretMeasureData const caret{-1, false};
-    context.drawText(font, RectangleArea{x,x+width,y,y+14}, std::move(text), white, 1.0f,
-        ::ui::TextAlignment::Left, measure, caret);
-}
 void render(ll::event::UIRenderEvent& event) {
     std::lock_guard lock(mutex);
     auto& context = event.uiRenderContext();
@@ -217,10 +200,8 @@ void render(ll::event::UIRenderEvent& event) {
     auto layout = SettingsLayout::fit(size.x, size.y, rowCount(), selected, firstVisible);
     firstVisible = layout.first;
     float width = layout.width, left = layout.left, top = layout.top;
-    context.fillRectangle(RectangleArea{0,size.x,0,size.y}, mce::Color{.07f,.08f,.11f,1.0f}, .25f);
-    context.fillRectangle(RectangleArea{left-6,left+width+6,top-6,layout.footer+34},
-        mce::Color{.07f,.08f,.11f,1.0f}, .78f);
-    context.flushImages(white,1,HashedString{"ui_fillColor"});
+    panel(context,0,0,size.x,size.y,.25f);
+    panel(context,left-6,top-6,width+12,layout.footer+40-top);
     if (!layout.visible) {
         hovered = -1;
         label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
@@ -276,10 +257,7 @@ void render(ll::event::UIRenderEvent& event) {
     hovered = layout.hit(pointer.x, pointer.y);
     for (int i=layout.first;i<layout.first+layout.visible;++i) {
         float y = layout.rowY(i);
-        context.fillRectangle(RectangleArea{left,left+width,y,y+20},
-            selected == i ? mce::Color{.28f,.24f,.43f,1.0f}
-                : hovered == i ? mce::Color{.22f,.23f,.30f,1.0f} : mce::Color{.15f,.16f,.21f,1.0f},1);
-        context.flushImages(white,1,HashedString{"ui_fillColor"});
+        rowBackground(context,left,y,width,20,selected == i,hovered == i);
         label(context,left+6,y+5,width-12,rowLabel(i));
     }
     label(context,left,layout.footer,width,error.empty() ? translated(editingNumber ? "numberHint" : capturing ? "captureHint" : "navigation") : error);

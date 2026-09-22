@@ -25,6 +25,13 @@ Minecraft validation alongside the renderer.
 
 ## Settings foundation in progress
 
+Panel, row-background, and label drawing now live in shared UI widgets rather
+than the settings screen. Labels use native font widths to shorten overflowing
+text with an ellipsis while preserving UTF-8 codepoints. Tests cover exact fits,
+ASCII/Japanese/four-byte characters, and very narrow or invalid widths. Tests
+use a deterministic width function; actual Bedrock font metrics, UI scale,
+resource-pack fonts, and visual readability remain runtime checks.
+
 Magnification and wheel step now have an inline decimal editor, opened by click
 or Enter. The initial value is selected for replacement; Ctrl+A reselects it,
 Backspace edits, and Enter/Escape finish editing without rolling back values
