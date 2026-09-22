@@ -644,3 +644,21 @@ the panel visible**, so closing/scene lifecycle remains a reproduced unresolved
 issue. Both failed sessions were ended through the normal window-close action.
 Key capture, search, automatic saving, individual new features and full visual
 polish remain unverified. Existing instance mods and resource packs were retained.
+### Settings entrance/exit lifecycle repair (2026-09-23)
+
+The custom renderer cancels the native dialog rendering, so the owned dialog
+must not wait for native visual transitions. Lamium now disables transitions
+for both UIScene entrance and exit, only when the scene is its settings owner;
+other scenes retain their original arguments. Disabling exit transitions alone
+was insufficient in a runtime trial.
+
+The combined repair was tested in Minecraft 1.26.51.01 / LeviLamina Client
+26.51.3 with Deesse UI 1.3.9. Build and installed DLL SHA-256 matched:
+`A1C4912335570CAA5F6594D3C58A832C63ECB6541C59DA37D5255107EC560C17`.
+In a local creative world, two consecutive F8 -> Escape cycles displayed the
+translucent custom settings list and returned to gameplay without a lingering
+panel. A subsequent Escape opened Minecraft's normal pause screen, confirming
+that the settings input owner no longer trapped that input. This supersedes the
+unresolved close result above for this build and scenario. It does not verify
+focus loss, world exit while editing, binding capture, search, saving, or all
+settings/features. These remain separate runtime acceptance work.

@@ -95,6 +95,8 @@ void cancelCapture() {
 std::array<ll::event::ListenerPtr, 5> listeners;
 bool backgroundHook = false;
 bool renderHook = false;
+bool exitHook = false;
+bool entranceHook = false;
 thread_local ScreenView* settingsRenderView = nullptr;
 
 bool ownsTop() {
@@ -120,6 +122,26 @@ LL_TYPE_INSTANCE_HOOK(SettingsWorldBackground, ll::memory::HookPriority::Normal,
     std::lock_guard lock(mutex);
     if (scene.get() == this) return true;
     return origin();
+}
+LL_TYPE_INSTANCE_HOOK(SettingsSceneExit, ll::memory::HookPriority::Normal, UIScene,
+    &UIScene::$onScreenExit, void, bool isPopping, bool transitions, std::shared_ptr<AbstractScene> next) {
+    bool owned;
+    {
+        std::lock_guard lock(mutex);
+        owned = scene.get() == this;
+    }
+    // The native dialog is only our focus owner; its visual exit animation is
+    // not rendered. Let it finish exiting without waiting for that animation.
+    origin(isPopping, owned ? false : transitions, std::move(next));
+}
+LL_TYPE_INSTANCE_HOOK(SettingsSceneEntrance, ll::memory::HookPriority::Normal, UIScene,
+    &UIScene::$onScreenEntrance, void, bool revisiting, bool transitions) {
+    bool owned;
+    {
+        std::lock_guard lock(mutex);
+        owned = scene.get() == this;
+    }
+    origin(revisiting, owned ? false : transitions);
 }
 LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UIScene,
     &UIScene::$handleTextChar, void, std::string const& text, FocusImpact impact) {
@@ -327,6 +349,10 @@ void start() {
     if (!textHook) throw std::runtime_error("Could not install settings text input hook");
     renderHook = SettingsSceneRender::hook(true) == 0;
     if (!renderHook) throw std::runtime_error("Could not install settings scene render hook");
+    exitHook = SettingsSceneExit::hook(true) == 0;
+    if (!exitHook) throw std::runtime_error("Could not install settings scene exit hook");
+    entranceHook = SettingsSceneEntrance::hook(true) == 0;
+    if (!entranceHook) throw std::runtime_error("Could not install settings scene entrance hook");
     auto& bus = ll::event::EventBus::getInstance();
     listeners[0] = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
         std::lock_guard lock(mutex);
@@ -434,6 +460,8 @@ void stop() {
         listener.reset();
     }
     stopLocalization();
+    if (entranceHook) { SettingsSceneEntrance::unhook(true); entranceHook = false; }
+    if (exitHook) { SettingsSceneExit::unhook(true); exitHook = false; }
     if (renderHook) { SettingsSceneRender::unhook(true); renderHook = false; }
     if (textHook) { SettingsSearchText::unhook(true); textHook = false; }
     if (backgroundHook) { SettingsWorldBackground::unhook(true); backgroundHook = false; }
