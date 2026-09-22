@@ -13,6 +13,63 @@ class ShapePanel {
     std::optional<overlay::ShapeDefinition> definition;
     void row(Control control, std::string text, overlay::ShapeId id = 0) { rows.push_back({control,std::move(text),id}); }
 public:
+    struct Numeric { double value, minimum, maximum; bool integer = false; };
+    std::optional<Numeric> numeric(int index) const {
+        if (!definition) return {};
+        auto control = rows.at(index).control;
+        if (auto spec = std::get_if<overlay::ShapeSpec>(&definition->geometry)) {
+            switch (control) {
+            case Control::X: return Numeric{spec->center.x,-30000000,30000000};
+            case Control::Y: return Numeric{spec->center.y,-30000000,30000000};
+            case Control::Z: return Numeric{spec->center.z,-30000000,30000000};
+            case Control::Radius: return Numeric{spec->radius,0,512};
+            case Control::Height: return Numeric{double(spec->height),1,512,true};
+            default: return {};
+            }
+        }
+        auto const& plane = std::get<overlay::PlaneSpec>(definition->geometry);
+        switch (control) {
+        case Control::X: return Numeric{double(plane.origin.x),-30000000,30000000,true};
+        case Control::Y: return Numeric{double(plane.origin.y),-30000000,30000000,true};
+        case Control::Z: return Numeric{double(plane.origin.z),-30000000,30000000,true};
+        case Control::Width: return Numeric{double(plane.width),1,512,true};
+        case Control::Depth: return Numeric{double(plane.depth),1,512,true};
+        case Control::Spacing: return Numeric{double(plane.spacing),1,512,true};
+        default: return {};
+        }
+    }
+    void setNumber(int index, double number) {
+        auto range = numeric(index);
+        if (!range || !std::isfinite(number) || number < range->minimum || number > range->maximum
+            || (range->integer && std::trunc(number) != number)) throw std::invalid_argument("Invalid shape value");
+        if (number == range->value) return;
+        auto value = overlay::shapes::find(*editing);
+        if (!value) throw std::out_of_range("Shape no longer exists");
+        auto control = rows.at(index).control;
+        if (auto spec = std::get_if<overlay::ShapeSpec>(&value->geometry)) {
+            switch (control) {
+            case Control::X: spec->center.x=number; break;
+            case Control::Y: spec->center.y=number; break;
+            case Control::Z: spec->center.z=number; break;
+            case Control::Radius: spec->radius=number; break;
+            case Control::Height: spec->height=static_cast<int>(number); break;
+            default: break;
+            }
+        } else {
+            auto& plane = std::get<overlay::PlaneSpec>(value->geometry);
+            auto integer = static_cast<int>(number);
+            switch (control) {
+            case Control::X: plane.origin.x=integer; break;
+            case Control::Y: plane.origin.y=integer; break;
+            case Control::Z: plane.origin.z=integer; break;
+            case Control::Width: plane.width=integer; break;
+            case Control::Depth: plane.depth=integer; break;
+            case Control::Spacing: plane.spacing=integer; break;
+            default: break;
+            }
+        }
+        overlay::shapes::edit(*editing,std::move(*value)); refresh();
+    }
     void open() { editing.reset(); refresh(); }
     bool isEditing() const { return editing.has_value(); }
     int count() const { return static_cast<int>(rows.size()); }

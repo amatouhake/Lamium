@@ -31,10 +31,13 @@ The initial dedicated Shape panel reuses the settings host's modal input ownersh
 translucent panel, row layout and keyboard/mouse navigation. It creates spheres,
 circles, cylinders and grid planes at the player position. Its editor exposes
 visibility, per-axis movement, radius/height or grid dimensions/orientation,
-snapping, duplicate and remove. Left/right adjusts values; Enter/click performs
-actions; Escape returns to the parent view. Edits update the session immediately.
+snapping, duplicate and remove. Left/right adjusts values; Enter/click opens
+direct numeric input or performs actions; Escape finishes input or returns to
+the parent view. Coordinates/radius use double precision; block origins and
+grid dimensions require integers. Invalid or incomplete text leaves the last
+valid geometry intact. Edits update the session immediately.
 The panel explicitly states that shapes are cleared on world exit. This is an
-initial workflow: direct numeric input, renaming, persistence and broader runtime
+initial workflow: renaming, persistence and broader runtime
 verification remain outstanding. Session IDs distinguish identical names; stored
 coordinates retain full precision while display uses three decimal places.
 Successful compilation and

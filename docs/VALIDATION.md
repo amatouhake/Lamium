@@ -1007,3 +1007,16 @@ The check exposed excessive coordinate decimal digits. Source now formats
 coordinates to three decimal places without rounding stored values, and shows
 session IDs in list/editor titles to distinguish same-named shapes. These
 presentation fixes are not installed yet.
+
+### Shape direct numeric input (2026-09-23; runtime pending)
+
+The dedicated editor now shares native text input and NumberInput with Settings.
+Enter/click on a numeric row selects its value for replacement; valid changes
+apply immediately to the session. Ctrl+A, Backspace and Enter/Escape use the
+same editing lifecycle. Shape coordinates/radius parse as double; plane block
+origins and grid dimensions reject fractional input. The footer shows range
+requirements and does not claim disk saving. Unit tests verify sub-block values
+beyond the exact float integer range, negative integer positions and bounds;
+client build and existing tests passed. Native shape text entry, integer error
+recovery and drawing updates during typing remain runtime-pending. The running
+instance still uses 03d4ff6.

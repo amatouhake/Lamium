@@ -49,6 +49,8 @@ bool closing = false;
 SearchQuery query;
 bool searchFocused = false;
 settings::Option const* editingNumber = nullptr;
+int editingShapeRow = -1;
+bool numericEditing() { return editingNumber || editingShapeRow >= 0; }
 NumberInput numberInput;
 bool numberDirty = false;
 bool textHook = false;
@@ -124,8 +126,8 @@ void releaseTextKeyboard() {
     }
 }
 void syncTextKeyboard(float x, float y) {
-    bool wanted = !closing && !capturing && (searchFocused || editingNumber);
-    bool number = editingNumber != nullptr;
+    bool wanted = !closing && !capturing && (searchFocused || numericEditing());
+    bool number = numericEditing();
     if (textKeyboardOwned && (!wanted || number != textKeyboardNumber)) releaseTextKeyboard();
     if (!wanted || textKeyboardOwned || !client) return;
     auto& keyboard = client->getKeyboardManager();
@@ -185,16 +187,28 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
     &UIScene::$handleTextChar, void, std::string const& text, FocusImpact impact) {
     std::lock_guard lock(mutex);
     if (scene.get() == this && ownsTop()) {
-        if (editingNumber) { if (numberInput.append(text)) numberDirty = true; return; }
+        if (numericEditing()) { if (numberInput.append(text)) numberDirty = true; return; }
         if (!capturing && searchFocused && query.append(text)) { filterOptions(); selected = 1; }
         return;
     }
     origin(text, impact);
 }
-void clear() { releaseTextKeyboard(); editingNumber = nullptr; numberDirty = false; uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr; scene.reset(); seen = false; closing = false; command = 0; hovered = -1; }
+void clear() { releaseTextKeyboard(); editingNumber = nullptr; editingShapeRow = -1; numberDirty = false; uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr; scene.reset(); seen = false; closing = false; command = 0; hovered = -1; }
 void applyNumber() {
-    if (!editingNumber || !numberDirty) return;
+    if (!numericEditing() || !numberDirty) return;
     numberDirty = false;
+    if (editingShapeRow >= 0) {
+        auto range = shapePanel.numeric(editingShapeRow);
+        if (!range) { editingShapeRow = -1; return; }
+        auto parsed = numberInput.parsedPrecise(range->minimum,range->maximum,range->integer);
+        if (!parsed) {
+            error = translated(range->integer ? "integerRange" : "numberRange",range->minimum,range->maximum);
+            return;
+        }
+        try { shapePanel.setNumber(editingShapeRow,*parsed); error.clear(); }
+        catch (std::exception const&) { error = translated("shape.editError"); }
+        return;
+    }
     auto const& range = *editingNumber->numeric;
     auto parsed = numberInput.parsed(range.minimum, range.maximum);
     if (!parsed) { error = translated("numberRange", range.minimum, range.maximum); return; }
@@ -203,7 +217,7 @@ void applyNumber() {
     range.write(value, *parsed);
     error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
 }
-void finishNumber() { applyNumber(); editingNumber = nullptr; numberDirty = false; }
+void finishNumber() { applyNumber(); editingNumber = nullptr; editingShapeRow = -1; numberDirty = false; }
 void close() {
     releaseTextKeyboard();
     if (ownsTop()) {
@@ -214,6 +228,11 @@ void close() {
 void activate(int row, int direction) {
     finishNumber();
     if (shapeView) {
+        if (direction == 0) {
+            if (auto range = shapePanel.numeric(row)) {
+                editingShapeRow = row; numberInput.beginPrecise(range->value); error.clear(); return;
+            }
+        }
         auto* player = client ? client->getLocalPlayer() : nullptr;
         if (!player) return;
         auto position = player->getPosition();
@@ -320,7 +339,11 @@ void render(ll::event::UIRenderEvent& event) {
             : translated(visibleRows.empty() ? "noResults" : "subtitle"));
     auto const preferences = Runtime::instance().preferences();
     auto rowLabel = [&](int index) {
-        if (shapeView) return shapePanel.label(index);
+        if (shapeView) {
+            auto text = shapePanel.label(index);
+            return editingShapeRow == index ? translated("numberInput",text,
+                numberInput.selectedAll() ? "[" + numberInput.value() + "]" : numberInput.value() + "_") : text;
+        }
         if (capturing) {
             if (index == 0) return capture.value().empty() ? translated("captureWaiting")
                 : translated("capturing", bindingChordName(current, capture.value()));
@@ -397,10 +420,14 @@ void render(ll::event::UIRenderEvent& event) {
         rowBackground(context,left+width-3,layout.rowsTop,2,trackHeight,false,false);
         rowBackground(context,left+width-3,thumbY,2,thumbHeight,true,true);
     }
-    label(context,left,layout.footer,width,error.empty() ? translated(shapeView ? "shape.controls" : editingNumber ? "numberHint" : capturing ? "captureHint" : searchFocused ? "searchHint" : "navigation") : error);
+    label(context,left,layout.footer,width,error.empty() ? translated(numericEditing() ? (shapeView ? "shape.numberHint" : "numberHint") : shapeView ? "shape.controls" : capturing ? "captureHint" : searchFocused ? "searchHint" : "navigation") : error);
     if (layout.secondHint) {
         auto description = translated("adjustment");
-        if (shapeView) description = translated("shape.session");
+        if (shapeView) {
+            description = translated("shape.session");
+            if (auto range = shapePanel.numeric(selected))
+                description = translated(range->integer ? "integerRange" : "numberRange",range->minimum,range->maximum);
+        }
         else if (capturing) {
             auto behavior = input::actions[static_cast<size_t>(*capturing)].behavior;
             description = translated(behavior == input::Behavior::Hold ? "captureHold"
@@ -430,7 +457,7 @@ void open(IClientInstance& current) {
     Zoom::instance().reset();
     selected = 0; hovered = -1; command = 0; error.clear(); seen = false; closing = false;
     firstVisible = 0; commandRow = 0;
-    editingNumber = nullptr; numberDirty = false;
+    editingNumber = nullptr; editingShapeRow = -1; numberDirty = false;
     query.clear(); uiHeld.clear(); searchFocused = false; hotkeys = false; shapeView = false; capturing.reset(); bindingEdit.reset(); filterOptions();
     // This native information screen supplies focus/cursor ownership. It has no
     // form ID, packet, or server callback. Lamium draws and handles its own UI.
@@ -545,7 +572,7 @@ void start() {
         // Native text generation happens after HID onKeyDown. Keep editing
         // commands here, but let the focused native keyboard process the other
         // keys (including layout/IME input) while our modal scene owns gameplay.
-        if (textKeyboardOwned && (searchFocused || editingNumber)) {
+        if (textKeyboardOwned && (searchFocused || numericEditing())) {
             auto key = event.keyCode();
             bool commandKey = key == 0x08 || key == 0x1b || key == 0x0d || key == 0x09
                 || (searchFocused && key == 0x28);
@@ -556,7 +583,7 @@ void start() {
             if (!commandKey && !selectAll) return;
         }
         event.cancel();
-        if (editingNumber) {
+        if (numericEditing()) {
             switch (event.keyCode()) {
             case 0x08: if (numberInput.backspace()) numberDirty = true; break;
             case 0x41:

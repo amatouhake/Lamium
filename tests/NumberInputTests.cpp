@@ -21,6 +21,15 @@ void numberInputTests() {
     check(!editor.append(std::string(30,'1')), "number input has a bounded length");
     editor.begin(.1f);
     check(editor.parsed(.1f,2) == .1f, "lower inclusive float bound round trips");
+    editor.beginPrecise(16777217.5);
+    check(editor.parsedPrecise(-30000000,30000000) == 16777217.5,
+        "shape coordinates retain sub-block precision beyond float integer range");
+    check(!editor.parsedPrecise(-30000000,30000000,true), "grid integer fields reject fractional positions");
+    editor.selectAll(); editor.append("-16777217");
+    check(editor.parsedPrecise(-30000000,30000000,true) == -16777217,
+        "negative grid coordinates parse exactly");
+    editor.selectAll(); editor.append("513");
+    check(!editor.parsedPrecise(1,512,true), "grid dimensions enforce inclusive limits without clamping");
     lamium::Settings preferences;
     for (auto const& option : lamium::settings::options) {
         if (!option.numeric) continue;

@@ -12,6 +12,12 @@ class NumberInput {
     std::string text;
     bool replace = true;
 public:
+    void beginPrecise(double value) {
+        char buffer[64];
+        auto result = std::to_chars(buffer, buffer + sizeof(buffer), value, std::chars_format::fixed);
+        text.assign(buffer, result.ptr);
+        replace = true;
+    }
     void begin(float value) {
         char buffer[32];
         auto result = std::to_chars(buffer, buffer + sizeof(buffer), value);
@@ -44,6 +50,15 @@ public:
         auto conversion = std::from_chars(text.data(), text.data()+text.size(), result);
         if (conversion.ec != std::errc{} || conversion.ptr != text.data()+text.size()
             || !std::isfinite(result) || result < minimum || result > maximum) return {};
+        return result;
+    }
+    std::optional<double> parsedPrecise(double minimum, double maximum, bool integer = false) const {
+        if (text.empty() || text.back() == '.') return {};
+        double result = 0;
+        auto conversion = std::from_chars(text.data(), text.data()+text.size(), result);
+        if (conversion.ec != std::errc{} || conversion.ptr != text.data()+text.size()
+            || !std::isfinite(result) || result < minimum || result > maximum
+            || (integer && std::trunc(result) != result)) return {};
         return result;
     }
 };
