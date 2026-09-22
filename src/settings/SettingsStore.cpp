@@ -46,6 +46,7 @@ Json encode(Settings const& settings) {
     return Json{
         {"version", settings.version},
         {"information", {{"hud", settings.information.hud}, {"coordinates", settings.information.coordinates},
+                         {"biome", settings.information.biome}, {"facing", settings.information.facing},
                          {"dimension", settings.information.dimension}, {"horizontal", settings.information.horizontal},
                          {"vertical", settings.information.vertical}}},
         {"visuals", {{"hideOffhand", settings.visuals.hideOffhand}}},
@@ -76,6 +77,8 @@ Settings decodeSettings(std::string_view text) {
         value.information.hud = info.value("hud", false);
         value.information.coordinates = info.value("coordinates", true);
         value.information.dimension = info.value("dimension", true);
+        value.information.biome = info.value("biome", false);
+        value.information.facing = info.value("facing", false);
         value.information.horizontal = info.value("horizontal", 2.f);
         value.information.vertical = info.value("vertical", 15.f);
     }

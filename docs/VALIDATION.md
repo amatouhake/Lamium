@@ -13,8 +13,15 @@ It reads current local-player values only, retains no entity pointers, and
 draws no content without a local player. Pure layout, settings round-trip,
 translation, and action tests pass. Actual HUD visibility, text fit, position
 editing, GUI scaling, dimension changes, and resource packs are unverified.
-Biome, FPS, ping, facing, light, provider sharing with WAILA/F3, line ordering,
-and additional display controls remain unfinished.
+Biome and cardinal facing are now optional lines, disabled by default. A shared
+player-information collector returns owned optional values rather than retaining
+game pointers, and queries only requested fields. Biome is read at the floored
+player block position only when a client chunk exists; unavailable values are
+shown explicitly. Biome names are engine identifiers, not localized display
+names. Direction tests cover cardinal yaw, wraparound, sector boundaries, and
+invalid input. The actual yaw-axis convention and biome results remain runtime
+checks. FPS, ping, light, WAILA/F3 consumers, line ordering, and additional
+display controls remain unfinished. UI callback frequency is not used as FPS.
 
 ## Tool Switch prototype
 

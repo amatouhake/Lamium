@@ -45,6 +45,8 @@ struct Settings {
         bool hud = false;
         bool coordinates = true;
         bool dimension = true;
+        bool biome = false;
+        bool facing = false;
         float horizontal = 2.f;
         float vertical = 15.f;
     } information;

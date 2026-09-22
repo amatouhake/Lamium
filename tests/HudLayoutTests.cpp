@@ -1,7 +1,15 @@
 #include "ui/HudLayout.h"
+#include "features/information/PlayerInfo.h"
+#include <limits>
 void check(bool, char const*);
 void hudLayoutTests() {
     using lamium::ui::HudLayout;
+    using lamium::information::facingKey;
+    check(facingKey(0) == "facing.south" && facingKey(90) == "facing.west"
+        && facingKey(180) == "facing.north" && facingKey(-90) == "facing.east", "yaw maps cardinal axes");
+    check(facingKey(360) == facingKey(0) && facingKey(-450) == facingKey(-90), "unwrapped yaw maps consistently");
+    check(facingKey(44.9) == "facing.south" && facingKey(45) == "facing.west", "cardinal sector boundaries are deterministic");
+    check(!facingKey(std::numeric_limits<double>::infinity()), "invalid yaw stays unavailable");
     for (float width : {120.f,640.f}) for (float height : {100.f,360.f})
         for (float horizontal : {0.f,50.f,100.f}) for (float vertical : {0.f,50.f,100.f}) {
             auto layout = HudLayout::fit(width,height,horizontal,vertical,2);
