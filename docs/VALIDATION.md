@@ -114,6 +114,12 @@ have been added. The local locked configuration builds, passes the test suite,
 and passes the package check. A hosted CI run and a fresh dependency-cache
 restore have not yet been verified.
 
+A separate clone with no project build output also completed configuration,
+DLL compilation/packaging, test compilation/execution, and the package check.
+Its dependency lock remained unchanged. This reused the machine's downloaded
+dependency cache, so it is evidence for a clean checkout build, not a clean
+dependency restore.
+
 - Verify zoom visually while held, wheel capture, sensitivity, and release.
 - Verify menu transitions, focus loss, dimension changes, disconnect/rejoin.
 - Verify all settings survive restart and in-game errors preserve existing files.
