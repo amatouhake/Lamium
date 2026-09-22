@@ -291,11 +291,14 @@ void render(ll::event::UIRenderEvent& event) {
     panel(context,left-6,top-6,width+12,layout.bottom+6-top);
     label(context,left,top,width,capturing
         ? translated("key.Lamium." + std::string(input::actions[static_cast<size_t>(*capturing)].id)) : translated("title"));
-    if (layout.subtitle) label(context,left,top+16,width,translated(visibleRows.empty() ? "noResults" : "subtitle"));
+    if (layout.subtitle) label(context,left,top+16,width,capturing
+        ? translated("captureCurrent", actionBindingName(current, *capturing))
+        : translated(visibleRows.empty() ? "noResults" : "subtitle"));
     auto const preferences = Runtime::instance().preferences();
     auto rowLabel = [&](int index) {
         if (capturing) {
-            if (index == 0) return translated("capturing", bindingChordName(current, capture.value()));
+            if (index == 0) return capture.value().empty() ? translated("captureWaiting")
+                : translated("capturing", bindingChordName(current, capture.value()));
             return translated(index == 1 ? "clearBinding" : index == 2 ? "resetBinding" : "cancelBinding");
         }
         if (index == rowCount() - 1) return translated("close");
@@ -354,7 +357,11 @@ void render(ll::event::UIRenderEvent& event) {
     label(context,left,layout.footer,width,error.empty() ? translated(editingNumber ? "numberHint" : capturing ? "captureHint" : searchFocused ? "searchHint" : "navigation") : error);
     if (layout.secondHint) {
         auto description = translated("adjustment");
-        if (!capturing && selected >= 2 && selected < rowCount()-1)
+        if (capturing) {
+            auto behavior = input::actions[static_cast<size_t>(*capturing)].behavior;
+            description = translated(behavior == input::Behavior::Hold ? "captureHold"
+                : behavior == input::Behavior::Toggle ? "captureToggle" : "capturePress");
+        } else if (selected >= 2 && selected < rowCount()-1)
             description = translated(visibleRows[selected-2].feature->description);
         label(context,left,layout.footer+15,width,description);
     }

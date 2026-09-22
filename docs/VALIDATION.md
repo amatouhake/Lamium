@@ -843,3 +843,14 @@ middle click did not display the overlay. The saved bindings object contained
 Debug View was left off and unbound. This covers mouse button 3 and Clear for
 one Toggle action; side buttons, mouse/key chords, wheel bindings, and native
 pick-block conflict behavior on an in-range target remain unverified.
+
+### Binding editor guidance (2026-09-23; runtime pending)
+
+The capture screen now shows the current binding in its subtitle and an
+explicit waiting message before new input is pressed. It no longer labels
+an empty pending capture as Unbound. The secondary hint explains the action's
+Press, Toggle, or Hold behavior, including mouse/wheel support and the Hold
+wheel restriction. English and Japanese strings are included. Client build,
+existing translation/settings tests, and package checks passed. The new
+wording and fit have not yet been checked in Minecraft; the running instance
+still uses the preceding event-coordinate build.
