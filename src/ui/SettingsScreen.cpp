@@ -18,6 +18,8 @@
 #include "ll/api/event/input/MouseInputEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/client/input/KeyboardManager.h"
+#include "mc/deps/core/math/Vec2.h"
 #include "mc/client/gui/screens/SceneFactory.h"
 #include "mc/client/gui/screens/UIScene.h"
 #include "mc/client/gui/screens/interfaces/ISceneStack.h"
@@ -45,6 +47,8 @@ settings::Option const* editingNumber = nullptr;
 NumberInput numberInput;
 bool numberDirty = false;
 bool textHook = false;
+bool textKeyboardOwned = false;
+bool textKeyboardNumber = false;
 std::vector<SettingsRow> visibleRows;
 std::set<std::string_view> collapsed = [] {
     std::set<std::string_view> result;
@@ -102,6 +106,32 @@ thread_local ScreenView* settingsRenderView = nullptr;
 bool ownsTop() {
     return client && scene && client->getSceneFactory().getCurrentSceneStack()->getTopScene() == scene.get();
 }
+void releaseTextKeyboard() {
+    if (!textKeyboardOwned) return;
+    textKeyboardOwned = false;
+    if (client) {
+        auto& keyboard = client->getKeyboardManager();
+        keyboard.disableKeyboard();
+        keyboard.releaseKeyboardOwnership();
+    }
+}
+void syncTextKeyboard(float x, float y) {
+    bool wanted = !closing && !capturing && (searchFocused || editingNumber);
+    bool number = editingNumber != nullptr;
+    if (textKeyboardOwned && (!wanted || number != textKeyboardNumber)) releaseTextKeyboard();
+    if (!wanted || textKeyboardOwned || !client) return;
+    auto& keyboard = client->getKeyboardManager();
+    if (!keyboard.tryClaimKeyboardOwnership()) return;
+    auto const& text = number ? numberInput.value() : query.value();
+    // Drawing a caret alone does not enable the platform's UTF-8/IME path.
+    bool enabled = keyboard.tryEnableKeyboard(text, number ? 24 : 128, true, false, false, Vec2{x, y}, 20.0f);
+    if (!enabled) {
+        keyboard.releaseKeyboardOwnership();
+        return;
+    }
+    textKeyboardOwned = true;
+    textKeyboardNumber = number;
+}
 LL_TYPE_INSTANCE_HOOK(SettingsSceneRender, ll::memory::HookPriority::Normal, UIScene,
     &UIScene::$render, void, ScreenContext& context, FrameRenderObject const& object) {
     // Bedrock scene objects do not carry C++ RTTI. Identify the scene through
@@ -153,7 +183,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
     }
     origin(text, impact);
 }
-void clear() { editingNumber = nullptr; numberDirty = false; uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr; scene.reset(); seen = false; closing = false; command = 0; hovered = -1; }
+void clear() { releaseTextKeyboard(); editingNumber = nullptr; numberDirty = false; uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr; scene.reset(); seen = false; closing = false; command = 0; hovered = -1; }
 void applyNumber() {
     if (!editingNumber || !numberDirty) return;
     numberDirty = false;
@@ -167,6 +197,7 @@ void applyNumber() {
 }
 void finishNumber() { applyNumber(); editingNumber = nullptr; numberDirty = false; }
 void close() {
+    releaseTextKeyboard();
     if (ownsTop()) {
         if (!closing) client->getSceneFactory().getCurrentSceneStack()->schedulePopScreen(1);
         closing = true;
@@ -243,6 +274,7 @@ void render(ll::event::UIRenderEvent& event) {
     auto layout = SettingsLayout::fit(size.x, size.y, rowCount(), selected, firstVisible);
     firstVisible = layout.first;
     float width = layout.width, left = layout.left, top = layout.top;
+    syncTextKeyboard(left, layout.rowY(selected));
     panel(context,0,0,size.x,size.y,.25f);
     panel(context,left-6,top-6,width+12,layout.footer+40-top);
     if (!layout.visible) {
@@ -336,6 +368,7 @@ bool ownsInput() {
 }
 void cancelInputCapture() {
     std::lock_guard lock(mutex);
+    releaseTextKeyboard();
     if (capturing) cancelCapture();
     finishNumber();
     searchFocused = false;
@@ -415,6 +448,19 @@ void start() {
         }
         // Let key-up through so keys pressed before opening cannot stick.
         if (!event.isDown()) return;
+        // Native text generation happens after HID onKeyDown. Keep editing
+        // commands here, but let the focused native keyboard process the other
+        // keys (including layout/IME input) while our modal scene owns gameplay.
+        if (textKeyboardOwned && (searchFocused || editingNumber)) {
+            auto key = event.keyCode();
+            bool commandKey = key == 0x08 || key == 0x1b || key == 0x0d || key == 0x09
+                || (searchFocused && key == 0x28);
+            bool selectAll = editingNumber && key == 0x41
+                && (std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, 0x11}) != uiHeld.end()
+                    || std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, 0xa2}) != uiHeld.end()
+                    || std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, 0xa3}) != uiHeld.end());
+            if (!commandKey && !selectAll) return;
+        }
         event.cancel();
         if (editingNumber) {
             switch (event.keyCode()) {

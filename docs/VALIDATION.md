@@ -682,3 +682,44 @@ search/number editor only sets local focus flags. Connecting that lifecycle and
 verifying character delivery is still required. Do not replace native UTF-8
 input with a hard-coded virtual-key-to-ASCII mapping. HUD visibility toggling
 and persistence were not reached in this search-led test.
+
+### Native text focus integration trial (2026-09-23)
+
+A candidate connected the search/number fields to KeyboardManager ownership
+and tryEnableKeyboard, releasing on field exit, close, clear, and focus loss.
+Build, existing LamiumTests and package checks passed. The candidate DLL
+`0D5674D89A7D42B0E855804E39C6282975A72635384D2DEB7121F97FBD950CBB`
+was installed and loaded into the same local creative-world scenario. Search
+still displayed an empty query after entering `hints`; this is not a verified
+fix. The focus integration remains work in progress. Bounded diagnostics are
+being prepared to distinguish failed ownership/enable calls from missing text
+event delivery, logging state only and no entered text.
+
+### Native text delivery repair and normal-build confirmation (2026-09-23)
+
+Bounded diagnostics confirmed that KeyboardManager ownership and enable both
+succeeded, but text callbacks were absent. The settings key listener cancelled
+key-down before the native HID path generated text. The repair allows native
+key processing while a text field owns the keyboard, retaining local handling
+for editing commands. It keeps native character delivery rather than mapping
+virtual keys to ASCII. Ownership is released on field exit and screen cleanup.
+
+The diagnostic candidate delivered `hints` to the search field, filtered to the
+gameplay key hints option, and allowed that option to be switched off. Closing
+the screen removed the gameplay guide. The saved `interface.gameplayHints`
+value was independently checked as false.
+
+All temporary diagnostic logging was then removed. The normal DLL SHA-256 is
+`E90A5D89C386139455647D7277F77EDC8884BEB4BB2F2999665DBDC1B3AE10FD`.
+Existing LamiumTests, package/license checks, and diff whitespace checks passed.
+After installing this build and restarting through LeviLauncher, the local
+creative world retained the hidden gameplay guide. F8 opened settings; entering
+`hints` displayed the query and filtered results with the option still Off;
+Backspace changed the query to `hint`; clicking Close returned to gameplay.
+The fresh mod log recorded successful enable at 05:43:22.
+
+This verifies basic Latin search entry, deletion, restart persistence for the
+guide setting, and closing with text focus. It does not verify IME composition,
+numeric editing, every focus-loss transition, or comprehensive gameplay input
+isolation. The dense settings visual design and wider input validation remain
+unfinished.
