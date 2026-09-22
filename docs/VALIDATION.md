@@ -723,3 +723,21 @@ guide setting, and closing with text focus. It does not verify IME composition,
 numeric editing, every focus-loss transition, or comprehensive gameplay input
 isolation. The dense settings visual design and wider input validation remain
 unfinished.
+
+### Numeric editor runtime smoke (2026-09-23)
+
+On the same normal build `E90A5D89C386139455647D7277F77EDC8884BEB4BB2F2999665DBDC1B3AE10FD`,
+settings was reopened and searched for `zoom`. Clicking Magnification opened
+the numeric editor with the current 3.5 selected. Entering `4.5` updated the
+displayed value, and a read of settings.json while the editor remained open
+confirmed `camera.magnification` was already 4.5, without a save/close action.
+Ctrl+A selected the entered value. Replacing it with `0` displayed the allowed
+range (1 to 10) and retained the displayed applied value of 4.5. Ctrl+A followed
+by `3.5` restored the original setting and cleared the range error. Enter
+finished editing; Esc returned to gameplay. A final settings-file read
+confirmed the original 3.5 was saved and the wheel step remained 0.5.
+
+This adds evidence for decimal entry, replace-selection, immediate persistence,
+range rejection, recovery, and numeric-editor exit in the local creative
+scenario. It does not establish IME support, arbitrary keyboard layouts,
+numeric-field switching, or complete gameplay-input isolation.
