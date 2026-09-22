@@ -22,6 +22,7 @@ void translationTests() {
             auto pattern = find(entry.key, locale);
             std::string rendered;
             if (entry.key == "gameplay") rendered = std::vformat(pattern, std::make_format_args(key, zoom, light));
+            else if (entry.key == "bindingRow") rendered = std::vformat(pattern, std::make_format_args(key, zoom));
             else if (entry.key == "mouseButton") rendered = std::vformat(pattern, std::make_format_args(remaining));
             else if (entry.key == "durabilityValue") {
                 rendered = std::vformat(pattern, std::make_format_args(remaining, maximum));

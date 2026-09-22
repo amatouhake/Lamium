@@ -28,6 +28,12 @@ On-screen gameplay hints use the current keyboard bindings.
 The current source adds a translucent panel and a Search row; these changes
 still require in-game verification. Click Search or select it and press Enter
 to type. Enter finishes text editing; Escape leaves editing before closing.
+The first row switches between Features and Hotkeys. Binding rows open an editor:
+press the desired chord and release to set it, or use a wheel direction for a
+Press/Toggle action. Clear unbinds; Reset restores the Minecraft mapping; Escape
+cancels. These controls and custom input dispatch are implemented but await
+runtime validation. Identical custom overrides are marked Shared; conflicts with
+Minecraft or other mods are not comprehensively detected yet.
 Keyboard/mouse behavior and resource-pack compatibility are still being tested.
 Settings, gameplay hints, durability text, and Minecraft's Lamium key-binding labels follow the
 game's language: Japanese and English are included, with English as the fallback.

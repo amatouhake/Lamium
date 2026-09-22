@@ -12,7 +12,18 @@ inputs, and persistence/reset without losing unrelated bindings. These are
 components now feed native key/mouse event dispatch for custom overrides;
 actions without overrides still use Minecraft registrations. Explicit Unbound
 suppresses the native handler too. Gameplay hints show the effective binding.
-The in-game binding editor is not connected yet.
+The in-game binding editor is connected in source, pending runtime validation.
+Features places each action binding after its related options; Hotkeys lists
+all actions. Clicking a binding captures keys or mouse buttons until a captured
+input is released; wheel impulses complete immediately. The opening click/Enter
+is excluded until released. Clear selects Unbound; Reset restores the existing
+Minecraft mapping. Escape cancels, and app focus loss abandons the capture.
+Changes persist on the next render; a failed write preserves the old binding.
+Exact duplicates among explicit Lamium overrides are marked Shared. This does
+not detect native Minecraft or other-mod conflicts or overlapping subset chords.
+Pure capture tests cover arbitrary chords, opener suppression, mouse buttons,
+and modified wheel input. Layout, hit targets, input routing, focus loss, and
+the full capture/save/dispatch cycle still require Minecraft verification.
 
 Custom input resets on screen/assignment changes, world exit, and app focus loss.
 Held inputs are blocked until release after invalidation, preventing key repeats

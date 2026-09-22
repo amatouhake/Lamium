@@ -5,7 +5,7 @@
 void settingsLayoutTests() {
     using lamium::ui::SettingsLayout;
     auto check = [](bool ok) { if (!ok) throw std::runtime_error("settings layout invariant"); };
-    for (int count : {1, 10, static_cast<int>(lamium::settings::options.size()) + 1, 100}) {
+    for (int count : {1, 10, static_cast<int>(lamium::settings::options.size() + lamium::input::actions.size()) + 3, 100}) {
     for (float height : {100.f, 144.f, 180.f, 240.f, 300.f, 480.f}) {
         int first = 0;
         for (int row = 0; row < count; ++row) {

@@ -40,6 +40,7 @@ void invalidate() {
 LL_TYPE_INSTANCE_HOOK(CustomInputFocusLost, ll::memory::HookPriority::Normal, MinecraftGame,
     &MinecraftGame::$onAppFocusLost, void) {
     invalidate();
+    ui::cancelInputCapture();
     origin();
 }
 void sync(IClientInstance& client) {

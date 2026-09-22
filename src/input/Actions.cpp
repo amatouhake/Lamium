@@ -14,20 +14,22 @@ bool usesNative(input::Action action) {
     return !Runtime::instance().preferences().bindings[static_cast<size_t>(action)];
 }
 }
+std::string bindingChordName(IClientInstance& client, input::Chord const& chord) {
+    auto layout = client.getOptions().getCurrentKeyboardRemapping();
+    if (chord.empty()) return ui::translated("unbound");
+    std::string result;
+    for (auto token : chord) {
+        if (!result.empty()) result += " + ";
+        if (token.device == input::Device::Wheel) result += ui::translated(token.code > 0 ? "wheelUp" : "wheelDown");
+        else if (token.device == input::Device::Mouse) result += ui::translated("mouseButton", token.code);
+        else result += layout ? layout->getMappedKeyName(token.code) : std::to_string(token.code);
+    }
+    return result;
+}
 std::string actionBindingName(IClientInstance& client, input::Action action) {
     auto layout = client.getOptions().getCurrentKeyboardRemapping();
     auto override = Runtime::instance().preferences().bindings[static_cast<size_t>(action)];
-    if (override) {
-        if (override->empty()) return ui::translated("unbound");
-        std::string result;
-        for (auto token : *override) {
-            if (!result.empty()) result += " + ";
-            if (token.device == input::Device::Wheel) result += ui::translated(token.code > 0 ? "wheelUp" : "wheelDown");
-            else if (token.device == input::Device::Mouse) result += ui::translated("mouseButton", token.code);
-            else result += layout ? layout->getMappedKeyName(token.code) : std::to_string(token.code);
-        }
-        return result;
-    }
+    if (override) return bindingChordName(client, *override);
     if (!layout) return ui::translated("unbound");
     auto const& mapping = layout->getKeymappingByAction("key.Lamium." + std::string(input::actions[static_cast<size_t>(action)].id));
     if (!mapping.isAssigned()) return ui::translated("unbound");

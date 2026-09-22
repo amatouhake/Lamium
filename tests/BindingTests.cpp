@@ -1,4 +1,5 @@
 #include "input/Binding.h"
+#include "input/BindingCapture.h"
 void check(bool, char const*);
 void bindingTests() {
     using namespace lamium::input;
@@ -57,4 +58,19 @@ void bindingTests() {
     bool rejected = false;
     try { (void)canonicalChord(scroll, Behavior::Hold); } catch (...) { rejected = true; }
     check(rejected, "hold actions cannot use a wheel impulse");
+    BindingCapture capture;
+    capture.begin({Token{Device::Key, 13}});
+    check(!capture.observe({Device::Key, 13}, true, Behavior::Hold), "opening Enter repeat ignored");
+    check(!capture.observe({Device::Key, 13}, false, Behavior::Hold), "opening Enter release ignored");
+    check(!capture.observe(z, true, Behavior::Hold), "capture waits for release");
+    check(!capture.observe(three, true, Behavior::Hold), "capture accumulates simultaneous keys");
+    check(capture.observe(z, false, Behavior::Hold) == chord, "capture completes arbitrary chord on release");
+    capture.clear();
+    capture.observe(shift, true, Behavior::Press);
+    check(capture.observe(wheel, true, Behavior::Press) == canonicalChord(scroll, Behavior::Press),
+          "capture completes modified wheel immediately");
+    capture.clear();
+    capture.observe({Device::Mouse, 5}, true, Behavior::Press);
+    check(capture.observe({Device::Mouse, 5}, false, Behavior::Press) == Chord{{Device::Mouse, 5}},
+          "capture supports extra mouse buttons");
 }

@@ -6,12 +6,11 @@ Settings and input foundation work is now underway, before broader feature expan
 - The source now substitutes translucent drawing for the owned native dialog
   and requests the world behind it. Runtime world visibility, input isolation,
   and restoration still need verification; this is not a validated UX fix yet.
-- Lamium's panel has no key-binding editor. Default keys are defined in code;
-  the implementation registers them with Minecraft's Keyboard & Mouse settings,
-  and remapping there was previously tested. Users still report being unable to
-  change bindings in game. Reproduce that experience and improve discovery and
-  editing within the unified settings UI; do not treat the existing registration
-  as resolution of the usability problem.
+- Features and Hotkeys now expose a binding capture editor with Clear/Reset.
+  Native Minecraft mappings remain the fallback when no override is stored.
+  The reported binding usability issue still needs runtime verification of the
+  complete edit/save/use workflow. Exact duplicate custom bindings are marked;
+  broader conflict detection and clearer feature descriptions remain open.
 - The top-left gameplay hints now have a visibility toggle in source. Build and
   persistence tests pass; runtime validation remains pending.
 - A flat ten-row panel is only a prototype. Revisit navigation, grouping, search

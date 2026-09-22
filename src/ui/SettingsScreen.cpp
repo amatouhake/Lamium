@@ -6,6 +6,7 @@
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
 #include "input/Actions.h"
+#include "input/BindingCapture.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/memory/Hook.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
@@ -47,18 +48,59 @@ bool closing = false;
 SearchQuery query;
 bool searchFocused = false;
 bool textHook = false;
-std::vector<settings::Option const*> visibleOptions;
-int rowCount() { return static_cast<int>(visibleOptions.size()) + 2; }
+struct Row {
+    settings::Option const* option = nullptr;
+    std::optional<input::Action> action;
+};
+std::vector<Row> visibleRows;
+bool hotkeys = false;
+std::optional<input::Action> capturing;
+input::BindingCapture capture;
+input::Chord uiHeld;
+struct BindingEdit { input::Action action; std::optional<input::Chord> binding; };
+std::optional<BindingEdit> bindingEdit;
+int rowCount() { return capturing ? 4 : static_cast<int>(visibleRows.size()) + 3; }
 void filterOptions() {
-    visibleOptions.clear();
-    for (auto const& option : settings::options) {
-        auto searchable = std::string(option.id) + " " + std::string(option.feature) + " "
-            + translated(option.label) + " " + translated(option.feature);
-        if (query.matches(searchable)) visibleOptions.push_back(&option);
+    visibleRows.clear();
+    auto actionMatches = [&](size_t index) {
+        auto const& info = input::actions[index];
+        return query.matches(std::string(info.id) + " " + std::string(info.feature) + " "
+            + translated("key.Lamium." + std::string(info.id)) + " " + translated(info.feature));
+    };
+    if (hotkeys) {
+        for (size_t i = 0; i < input::actions.size(); ++i)
+            if (actionMatches(i)) visibleRows.push_back({nullptr, static_cast<input::Action>(i)});
+    } else {
+        for (size_t i = 0; i < settings::options.size(); ++i) {
+            auto const& option = settings::options[i];
+            auto searchable = std::string(option.id) + " " + std::string(option.feature) + " "
+                + translated(option.label) + " " + translated(option.feature);
+            if (query.matches(searchable)) visibleRows.push_back({&option, {}});
+            if (i + 1 == settings::options.size() || settings::options[i+1].feature != option.feature) {
+                for (size_t j = 0; j < input::actions.size(); ++j)
+                    if (input::actions[j].feature == option.feature && actionMatches(j))
+                        visibleRows.push_back({nullptr, static_cast<input::Action>(j)});
+            }
+        }
+        if (actionMatches(static_cast<size_t>(input::Action::Settings)))
+            visibleRows.push_back({nullptr, input::Action::Settings});
     }
     selected = 0; hovered = -1; firstVisible = 0; command = 0;
 }
 std::string error;
+void observeHeld(input::Token token, bool down) {
+    if (token.device == input::Device::Wheel) return;
+    if (!down) std::erase(uiHeld, token);
+    else if (std::find(uiHeld.begin(), uiHeld.end(), token) == uiHeld.end()) uiHeld.push_back(token);
+}
+void captureInput(input::Token token, bool down) {
+    if (!capturing || bindingEdit) return;
+    try {
+        auto value = capture.observe(token, down, input::actions[static_cast<size_t>(*capturing)].behavior);
+        if (value) bindingEdit = BindingEdit{*capturing, std::move(value)};
+    } catch (std::exception const&) { error = translated("invalidBinding"); }
+}
+void cancelCapture() { capturing.reset(); capture.clear(); bindingEdit.reset(); filterOptions(); }
 std::array<ll::event::ListenerPtr, 5> listeners;
 bool backgroundHook = false;
 constexpr mce::Color white{1.0f,1.0f,1.0f,1.0f};
@@ -76,12 +118,12 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
     &UIScene::$handleTextChar, void, std::string const& text, FocusImpact impact) {
     std::lock_guard lock(mutex);
     if (scene.get() == this && ownsTop()) {
-        if (searchFocused && query.append(text)) filterOptions();
+        if (!capturing && searchFocused && query.append(text)) { filterOptions(); selected = 1; }
         return;
     }
     origin(text, impact);
 }
-void clear() { client = nullptr; scene.reset(); seen = false; closing = false; command = 0; hovered = -1; }
+void clear() { uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr; scene.reset(); seen = false; closing = false; command = 0; hovered = -1; }
 void close() {
     if (ownsTop()) {
         if (!closing) client->getSceneFactory().getCurrentSceneStack()->schedulePopScreen(1);
@@ -93,10 +135,17 @@ void activate(int row, int direction) {
     // overwritten by a stale copy captured when the screen opened.
     auto value = Runtime::instance().preferences();
     if (row == rowCount() - 1) { close(); return; }
-    if (row == 0) { searchFocused = true; return; }
+    if (row == 0) { hotkeys = !hotkeys; searchFocused = false; filterOptions(); return; }
+    if (row == 1) { searchFocused = true; return; }
     if (row < 0 || row >= rowCount() - 1) return;
     searchFocused = false;
-    visibleOptions[row-1]->adjust(value, direction);
+    auto const& entry = visibleRows[row-2];
+    if (entry.action) {
+        capturing = entry.action; capture.begin(uiHeld); error.clear();
+        selected = 0; firstVisible = 0; hovered = -1;
+        return;
+    }
+    entry.option->adjust(value, direction);
     error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
 }
 void label(MinecraftUIRenderContext& context, float x, float y, float width, std::string text) {
@@ -122,6 +171,13 @@ void render(ll::event::UIRenderEvent& event) {
     if (&current != client) return;
     if (!ownsTop()) { if (seen) clear(); return; }
     seen = true;
+    if (bindingEdit) {
+        auto value = Runtime::instance().preferences();
+        value.bindings[static_cast<size_t>(bindingEdit->action)] = bindingEdit->binding;
+        bool saved = Runtime::instance().save(value);
+        cancelCapture();
+        error = saved ? std::string{} : translated("saveError");
+    }
     int action = closing ? 0 : std::exchange(command, 0);
     if (action == 1) activate(commandRow, 1);
     if (action == -1) activate(commandRow, -1);
@@ -140,13 +196,33 @@ void render(ll::event::UIRenderEvent& event) {
         context.flushText(0, std::nullopt);
         return;
     }
-    label(context,left,top,width,translated("title"));
-    if (layout.subtitle) label(context,left,top+18,width,translated(visibleOptions.empty() ? "noResults" : "subtitle"));
+    label(context,left,top,width,capturing
+        ? translated("key.Lamium." + std::string(input::actions[static_cast<size_t>(*capturing)].id)) : translated("title"));
+    if (layout.subtitle) label(context,left,top+18,width,translated(visibleRows.empty() ? "noResults" : "subtitle"));
     auto const preferences = Runtime::instance().preferences();
     auto rowLabel = [&](int index) {
+        if (capturing) {
+            if (index == 0) return translated("capturing", bindingChordName(current, capture.value()));
+            return translated(index == 1 ? "clearBinding" : index == 2 ? "resetBinding" : "cancelBinding");
+        }
         if (index == rowCount() - 1) return translated("close");
-        if (index == 0) return translated("search", query.value() + (searchFocused ? "_" : ""));
-        auto const& option = *visibleOptions[index-1];
+        if (index == 0) return translated(hotkeys ? "hotkeysView" : "featuresView");
+        if (index == 1) return translated("search", query.value() + (searchFocused ? "_" : ""));
+        auto const& entry = visibleRows[index-2];
+        if (entry.action) {
+            auto actionIndex = static_cast<size_t>(*entry.action);
+            auto text = translated("bindingRow",
+                translated("key.Lamium." + std::string(input::actions[actionIndex].id)),
+                actionBindingName(current, *entry.action));
+            auto const& binding = preferences.bindings[actionIndex];
+            if (binding && !binding->empty()) {
+                for (size_t other = 0; other < preferences.bindings.size(); ++other)
+                    if (other != actionIndex && preferences.bindings[other] == binding)
+                        return translated("sharedBinding", text);
+            }
+            return text;
+        }
+        auto const& option = *entry.option;
         auto value = option.read(preferences);
         if (auto flag = std::get_if<bool>(&value))
             return translated(option.label, translated(*flag ? "on" : "off"));
@@ -162,7 +238,7 @@ void render(ll::event::UIRenderEvent& event) {
         context.flushImages(white,1,HashedString{"ui_fillColor"});
         label(context,left+6,y+5,width-12,rowLabel(i));
     }
-    label(context,left,layout.footer,width,error.empty() ? translated("navigation") : error);
+    label(context,left,layout.footer,width,error.empty() ? translated(capturing ? "captureHint" : "navigation") : error);
     if (layout.secondHint)
         label(context,left,layout.footer+15,width,translated("adjustment"));
     context.flushText(0,std::nullopt);
@@ -174,7 +250,7 @@ void open(IClientInstance& current) {
     Zoom::instance().reset();
     selected = 0; hovered = -1; command = 0; error.clear(); seen = false; closing = false;
     firstVisible = 0; commandRow = 0;
-    query.clear(); searchFocused = false; filterOptions();
+    query.clear(); uiHeld.clear(); searchFocused = false; hotkeys = false; capturing.reset(); bindingEdit.reset(); filterOptions();
     // This native information screen supplies focus/cursor ownership. It has no
     // form ID, packet, or server callback. Lamium draws and handles its own UI.
     scene = current.getSceneFactory().createCommonDialogInfoScreen("Lamium", "");
@@ -185,6 +261,12 @@ void open(IClientInstance& current) {
 bool ownsInput() {
     std::lock_guard lock(mutex);
     return scene != nullptr;
+}
+void cancelInputCapture() {
+    std::lock_guard lock(mutex);
+    if (capturing) cancelCapture();
+    searchFocused = false;
+    uiHeld.clear();
 }
 void start() {
     if (!startLocalization()) throw std::runtime_error("Could not install Lamium action translations");
@@ -211,6 +293,21 @@ void start() {
         std::lock_guard lock(mutex);
         if (!ownsTop()) return;
         if (event.actionButtonId() == MouseAction::ActionMove || event.actionButtonId() == MouseAction::ActionMoveRelative) return;
+        bool wheel = event.actionButtonId() == MouseAction::ActionWheel;
+        if (wheel && event.buttonData() == 0) return;
+        int button = event.actionButtonId();
+        input::Token token = wheel ? input::Token{input::Device::Wheel, event.buttonData() > 0 ? 1 : -1}
+            : input::Token{input::Device::Mouse, button > MouseAction::ActionWheel ? button-1 : button};
+        bool down = wheel || event.buttonData() == MouseAction::DataDown;
+        observeHeld(token, down);
+        if (capturing) {
+            if (down) event.cancel();
+            if (button == MouseAction::ActionLeft && down && hovered >= 1 && hovered <= 3) {
+                if (hovered == 3) cancelCapture();
+                else bindingEdit = BindingEdit{*capturing, hovered == 1 ? std::optional<input::Chord>(input::Chord{}) : std::nullopt};
+            } else captureInput(token, down);
+            return;
+        }
         // A button may already be down when F8 opens the panel. Let vanilla
         // observe its release, just as we do for keys, so it cannot stay held.
         if (event.actionButtonId() != MouseAction::ActionWheel && event.buttonData() == MouseAction::DataUp) return;
@@ -229,15 +326,23 @@ void start() {
     listeners[2] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
         std::lock_guard lock(mutex);
         if (!ownsTop()) return;
+        input::Token token{input::Device::Key, event.keyCode()};
+        observeHeld(token, event.isDown());
+        if (capturing) {
+            if (event.isDown()) event.cancel();
+            if (event.isDown() && event.keyCode() == 0x1b) cancelCapture();
+            else captureInput(token, event.isDown());
+            return;
+        }
         // Let key-up through so keys pressed before opening cannot stick.
         if (!event.isDown()) return;
         event.cancel();
         if (searchFocused) {
             switch (event.keyCode()) {
-            case 0x08: if (query.backspace()) filterOptions(); break;
+            case 0x08: if (query.backspace()) { filterOptions(); selected = 1; } break;
             case 0x1b: searchFocused = false; break;
             case 0x0d: case 0x09: case 0x28:
-                searchFocused = false; selected = 1; break;
+                searchFocused = false; selected = 2; break;
             }
             return;
         }
