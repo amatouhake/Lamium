@@ -525,3 +525,19 @@ identity on BDS, LAN and NetherNet/Realms, including reconnect/server transfer,
 world exit and local hosting. Header layout and a successful link alone do not
 prove transport implementations report valid or fresh ping samples; do not treat
 this prototype as multiplayer-validated.
+
+### Deployment smoke attempt — 2026-09-23
+
+The d79b037 development build was deployed to the existing Minecraft 1.26.51.01
+instance after preserving the previous Lamium installation, including config.
+The deployed DLL SHA-256 matched the build output:
+`0FB005EFE678359D14D3DAA10A032661EEBB89B98E4A22E24A9F42BBBBCE49FB`.
+LeviLauncher started a fresh Minecraft process. The process module inventory
+contained Lamium.dll, LeviLamina.dll and LeviSchematic.dll, and reported responding.
+This establishes DLL loading only, not successful feature initialization.
+
+Launcher screenshots worked, but Minecraft state capture failed twice with
+`foreground window did not report a process id`, including after fresh window
+selection and activation. No in-game input was issued. The inspected loader log
+still belonged to an earlier run, so its enable messages are not evidence for
+this build. Settings, input, HUD and overlay runtime checks remain pending.
