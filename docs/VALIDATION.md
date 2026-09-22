@@ -195,6 +195,24 @@ with the stronger selection color while Zoom retained the weaker hover color.
 - A separate rotating Lamium log flushes informational messages while the game
   is running; request completion was verified from this log as well as the UI.
 
+## Vanilla UI smoke check
+
+With `e6392ea`, Deesse UI was temporarily deactivated in Global Resources,
+leaving only the default Minecraft Texture Pack. The native title menu and
+creative inventory appeared without the pack's controls. In a local creative
+world, Lamium's gameplay hints and all ten F8 settings rows rendered in English
+at 1920 x 1032; clicking Save returned to gameplay. An initial F8 attempt showed
+the pause menu, but after Resume Game the same key opened Lamium normally; the
+cause of that first transition was not established.
+
+Splitting 64 oak logs into 32 + 32 in the main inventory and pressing R restored
+64 with one acknowledged operation in the live log. The locked five-log stack
+and hotbar stayed unchanged. Hovering a full diamond pickaxe displayed
+`Durability: 1561 / 1561` above its native tooltip. The world was saved normally.
+This is limited to settings, a player-inventory merge and one durability tooltip;
+previews, other storage screens and live cancellation still need vanilla-UI
+coverage. Deesse UI was reactivated after the check.
+
 ## Outstanding release gates
 
 Build automation: a Windows CI workflow, dependency lock, and package checker
@@ -242,7 +260,8 @@ open; these are technical linkage and packaging checks, not a legal conclusion.
 - Verify all settings survive restart and in-game errors preserve existing files.
 - Verify localized layout in small windows and gamepad/touch behavior;
   verify new default bindings on a fresh profile.
-- Verify with vanilla UI and additional UI resource packs.
+- Extend vanilla UI coverage beyond the smoke check above and verify additional
+  UI resource packs.
 - Verify NightVision underwater, in Nether/End, and across restart/dimension changes.
 - Complete runtime validation of previews and durability; verify the remaining
   inventory scenarios listed above.
