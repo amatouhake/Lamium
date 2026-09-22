@@ -49,6 +49,7 @@ Json encode(Settings const& settings) {
                          {"biome", settings.information.biome}, {"facing", settings.information.facing},
                          {"fps", settings.information.fps}, {"frameTime", settings.information.frameTime},
                          {"light", settings.information.light},
+                         {"ping", settings.information.ping},
                          {"dimension", settings.information.dimension}, {"horizontal", settings.information.horizontal},
                          {"vertical", settings.information.vertical}}},
         {"visuals", {{"hideOffhand", settings.visuals.hideOffhand}}},
@@ -84,6 +85,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.fps = info.value("fps", false);
         value.information.frameTime = info.value("frameTime", false);
         value.information.light = info.value("light", false);
+        value.information.ping = info.value("ping", false);
         value.information.horizontal = info.value("horizontal", 2.f);
         value.information.vertical = info.value("vertical", 15.f);
     }

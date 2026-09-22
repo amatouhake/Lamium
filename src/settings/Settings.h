@@ -50,6 +50,7 @@ struct Settings {
         bool fps = false;
         bool frameTime = false;
         bool light = false;
+        bool ping = false;
         float horizontal = 2.f;
         float vertical = 15.f;
     } information;

@@ -32,6 +32,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"hudFps", "Client FPS: {}", "クライアント FPS: {}"},
     {"hudFrameTime", "Frame interval: {}", "フレーム間隔: {}"},
     {"hudLight", "Light at feet: {}", "足元の光量: {}"},
+    {"hudPing", "Ping: {}", "通信遅延: {}"},
     {"hudLightValues", "Sky {} / Block {}", "空 {} / ブロック {}"},
     {"unavailable", "Unavailable", "取得不可"},
     {"facing.south", "South (+Z)", "南 (+Z)"},

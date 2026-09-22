@@ -1,10 +1,14 @@
 #include "ui/HudLayout.h"
 #include "features/information/PlayerInfo.h"
+#include "features/information/NetworkInfo.h"
 #include <limits>
 void check(bool, char const*);
 void hudLayoutTests() {
     using lamium::ui::HudLayout;
     using lamium::information::facingKey;
+    using lamium::information::measuredPing;
+    check(!measuredPing(-1) && !measuredPing(std::numeric_limits<std::int64_t>::min()), "missing ping is unavailable");
+    check(measuredPing(0) == 0 && measuredPing(125) == 125, "ping preserves measured milliseconds including zero");
     using lamium::information::lightLevels;
     check(lightLevels(0,15)->sky == 0 && lightLevels(0,15)->block == 15, "sky and block light retain independent values");
     check(lightLevels(15,0).has_value() && lightLevels(0,0).has_value(), "darkness is available data");

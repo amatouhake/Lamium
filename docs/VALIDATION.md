@@ -507,3 +507,21 @@ round-trip tests, English/Japanese formatting, and light range tests pass.
 Minecraft verification remains pending: compare torch placement/removal, open sky
 versus roof, day/night, Nether/End, chunk boundaries and world transitions. Confirm
 that the SDK pair represents stored sky/block light at the intended feet cell.
+
+### Info HUD connection ping (runtime validation pending)
+
+The optional Ping line reads the current transport ping from the client's sole
+active remote NetworkConnection. It does not issue server-list probes or packets.
+Local connections, absent/closing connections, ambiguous multiple connections,
+negative measurements and a busy connection mutex produce Unavailable. The read
+uses a nonblocking lock and retains no connection or peer across frames. The
+setting defaults off and uses the common settings UI and persistence.
+
+SDK evidence: IClientInstance exposes ClientNetworkSystem; NetworkSystem exposes
+mConnectionsMutex and owned NetworkConnection entries; NetworkPeer::NetworkStatus
+contains mCurrentPing as chrono::milliseconds. This is transport latency, not
+server tick time. Runtime validation must confirm populated statistics and peer
+identity on BDS, LAN and NetherNet/Realms, including reconnect/server transfer,
+world exit and local hosting. Header layout and a successful link alone do not
+prove transport implementations report valid or fresh ping samples; do not treat
+this prototype as multiplayer-validated.

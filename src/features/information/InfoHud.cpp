@@ -1,6 +1,7 @@
 #include "features/information/InfoHud.h"
 #include "features/information/PlayerInfo.h"
 #include "features/information/FrameTiming.h"
+#include "features/information/NetworkInfo.h"
 #include "ui/HudLayout.h"
 #include "ui/Widgets.h"
 #include "ui/Localization.h"
@@ -35,6 +36,10 @@ void drawHud(MinecraftUIRenderContext& context, float width, float height, Setti
     }
     if (settings.light) lines.push_back(ui::translated("hudLight", info.light
         ? ui::translated("hudLightValues",info.light->sky,info.light->block) : ui::translated("unavailable")));
+    if (settings.ping) {
+        auto ping = connectionPing(context.mClient);
+        lines.push_back(ui::translated("hudPing",ping ? std::format("{} ms",*ping) : ui::translated("unavailable")));
+    }
     auto layout = ui::HudLayout::fit(width,height,settings.horizontal,settings.vertical,static_cast<int>(lines.size()));
     for (int i=0;i<layout.lines;++i) ui::label(context,layout.x,layout.y+i*14,layout.width,lines[i]);
     if (layout.lines) context.flushText(0,std::nullopt);
