@@ -84,3 +84,22 @@ its first mutation when any required destination violates the selected region.
 A gate that only undoes client block writes after server submission is insufficient.
 Placement remains unimplemented until a suitable path is established; the existing
 mode setting is preparation and does not enable a partial restriction.
+
+## Opt-in placement observation build
+
+`xmake f --placement_trace=y` followed by `xmake` builds local placement diagnostics.
+It logs entry/exit positions and return values for Item::calculatePlacePos and
+Item::_sendTryPlaceBlockEvent. Only local-player calls are recorded, capped at 200
+calls per enable; monotonically increasing IDs pair entries/exits and expose
+nesting order. Logs remain in the mod's existing local log file. The hooks call
+vanilla exactly once and return its result; they do not decide placement validity.
+
+This is partial observation, not a coverage claim: bypassed overrides, inventory
+consumption and final block mutations still require observation in the test world.
+Use ordinary items and special placements from the matrix above. Compare the
+calculated position with the event position and visible destination. Do not infer
+whole-operation atomicity from a single callback or successful build.
+
+Restore a normal build with `xmake f --placement_trace=n` then `xmake`. The option
+is off by default; normal builds do not install these hooks. Do not distribute a
+trace build as a normal release. Runtime trace collection is still pending.

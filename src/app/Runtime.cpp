@@ -6,6 +6,7 @@
 #include "features/inventory/ToolSwitch.h"
 #include "features/information/FrameTiming.h"
 #include "features/interaction/BreakingRestriction.h"
+#include "features/interaction/PlacementTrace.h"
 #include "features/visuals/HideOffhand.h"
 #include "input/Actions.h"
 #include "input/CustomInput.h"
@@ -67,9 +68,10 @@ bool Runtime::enable() {
         Zoom::instance().stop();
         return false;
     }
-    try { ui::start(); input::startCustomInput(); overlay::start(); visuals::start(); inventory::tools::start(); information::startFrameTiming(); interaction::breaking::start(); }
+    try { ui::start(); input::startCustomInput(); overlay::start(); visuals::start(); inventory::tools::start(); information::startFrameTiming(); interaction::breaking::start(); interaction::placementTrace::start(); }
     catch (std::exception const& error) {
         mod.getLogger().error("Client feature initialization failed: {}", error.what());
+        interaction::placementTrace::stop();
         interaction::breaking::stop();
         information::stopFrameTiming();
         inventory::tools::stop();
@@ -89,6 +91,7 @@ bool Runtime::enable() {
 }
 bool Runtime::disable() {
     running = false;
+    interaction::placementTrace::stop();
     interaction::breaking::stop();
     information::stopFrameTiming();
     inventory::tools::stop();

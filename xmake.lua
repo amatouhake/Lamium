@@ -12,6 +12,12 @@ option("target_type")
     set_values("client")
 option_end()
 
+option("placement_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Enable bounded local placement diagnostics")
+option_end()
+
 includes("packages/levilamina-client-sdk.lua")
 add_requires("levilamina-client-sdk 26.51.3", {configs = {shared = true}})
 
@@ -23,6 +29,7 @@ if not has_config("vs_runtime") then
 end
 
 target("Lamium")
+    if has_config("placement_trace") then add_defines("LAMIUM_PLACEMENT_TRACE") end
     add_rules("@levibuildscript/linkrule")
     add_rules("@levibuildscript/modpacker")
     if is_plat("windows") then

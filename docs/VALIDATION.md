@@ -612,3 +612,9 @@ detail view remain unfinished.
 Tests cover profile restoration, column separation and common settings/action
 catalog behavior. Runtime input, layout, world transitions and provider values
 still need Minecraft validation. The new build is not yet deployed.
+
+Follow-up: the mod-specific `logs/lamium.log` contains a successful enable entry
+at 04:15:00 on 2026-09-23, matching the fresh process started at 04:14:45 for the
+d79b037 deployment. This upgrades that attempt from DLL-load-only evidence to
+successful Runtime initialization. It does not verify HUD/input/render behavior,
+and does not cover subsequent undeployed builds.
