@@ -145,6 +145,11 @@ void testLiveFingerprintIsIndexAndStackSensitive() {
     CHECK(fingerprintBundleLiveEntry(0, 0, 11, 0, 1) != a); // id change
     CHECK(fingerprintBundleLiveEntry(0, 0, 10, 1, 1) != a); // aux change
     CHECK(fingerprintBundleLiveEntry(0, 0, 10, 0, 2) != a); // count change
+    // The same item and count can still change its visible damage/glint or
+    // nested contents. These updates must invalidate the cached item copies.
+    CHECK(fingerprintBundleLiveEntry(0, 0, 10, 0, 1, 123) != a);
+    CHECK(fingerprintBundleLiveEntry(0, 0, 10, 0, 1, 123)
+          != fingerprintBundleLiveEntry(0, 0, 10, 0, 1, 456));
     uint64_t const ab = fingerprintBundleLiveEntry(a, 1, 20, 0, 1);
     uint64_t const ba = fingerprintBundleLiveEntry(fingerprintBundleLiveEntry(0, 1, 20, 0, 1), 0, 10, 0, 1);
     CHECK(ab != ba);

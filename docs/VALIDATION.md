@@ -42,8 +42,16 @@ These observations validate the UI prototype, not the whole feature suite.
 - The updated DLL loaded in Minecraft. In the creative inventory, hovering a
   diamond sword displayed `Durability: 1561 / 1561` above the vanilla tooltip.
   Moving to a renamed diamond pickaxe updated the tooltip without a crash.
-- Filled containers, damaged tools, preview toggles, and live content changes
-  still require runtime verification.
+- A filled Shulker displayed its 9x3 contents grid, counts, and empty slots above
+  the vanilla tooltip. Moving to another UI control removed the preview.
+- A Bundle updated from empty to 32 bricks, then 32 bricks plus 32 slimeballs,
+  then back to 32 bricks after extraction, without closing the inventory.
+  Its grid matched the vanilla tooltip's contents and counts at each step.
+- Cache keys now include live Bundle entries' metadata and Shulker NBT hashes,
+  covering updates that keep item IDs/counts and tag addresses unchanged.
+  Metadata-only invalidation tests and the release build pass; that specific
+  mutation scenario still needs runtime validation.
+- Damaged tools, preview toggles, and larger Bundles still require runtime checks.
 
 ## Inventory sorting prototype
 
@@ -75,8 +83,10 @@ These observations validate the UI prototype, not the whole feature suite.
 - Splitting an unlocked 64-log stack into two stacks of 32 then pressing R
   completed one acknowledged merge and restored 64. Pressing R while the split
   stack was held on the cursor was refused without issuing a transfer.
+- Typing R into the creative search field entered a search character and issued
+  no sort operation (confirmed from the live log).
 - These checks used Deesse UI 1.3.9. Storage containers, survival inventories,
-  text-focus suppression, live cancellation, rejected requests, and remote-server
+  other text-input screens, live cancellation, rejected requests, and remote-server
   latency still require runtime checks.
 - A separate rotating Lamium log flushes informational messages while the game
   is running; request completion was verified from this log as well as the UI.

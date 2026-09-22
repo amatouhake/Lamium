@@ -123,10 +123,11 @@ inline constexpr uint64_t kBundleFingerprintNullHash = 0x9E3779B97F4A7C15ULL;
 
 /// Mixes one live Bundle entry (read from the client's dynamic container,
 /// see BundlePreviewProvider) into `seed`: container index, item id, aux
-/// value and count. Same FNV-1a chain as `fingerprintBundleEntry` so the two
+/// value, count and metadata hash (damage, enchantments, nested contents).
+/// Same FNV-1a chain as `fingerprintBundleEntry` so the two
 /// paths share the tail mixer.
 [[nodiscard]] inline uint64_t
-fingerprintBundleLiveEntry(uint64_t seed, int index, short itemId, short aux, uint8_t count) {
+fingerprintBundleLiveEntry(uint64_t seed, int index, short itemId, short aux, uint8_t count, uint64_t metadataHash = 0) {
     uint64_t hash = seed == 0 ? 14695981039346656037ULL : seed;
     auto     mix  = [&hash](uint64_t value, int bytes) {
         for (int i = 0; i < bytes; ++i) {
@@ -138,6 +139,7 @@ fingerprintBundleLiveEntry(uint64_t seed, int index, short itemId, short aux, ui
     mix(static_cast<uint64_t>(static_cast<uint16_t>(itemId)), 2);
     mix(static_cast<uint64_t>(static_cast<uint16_t>(aux)), 2);
     mix(static_cast<uint64_t>(count), 1);
+    mix(metadataHash, 8);
     return hash;
 }
 

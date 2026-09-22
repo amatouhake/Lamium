@@ -33,8 +33,8 @@ private:
     // fields catch a different stack in the slot; the content fingerprint
     // catches in-place NBT mutation at stable addresses (Bundle insert/remove
     // rewrites the same user-data object, so pointer comparison alone would go
-    // stale). `id`/`aux`/`count` are folded into the fingerprint for Bundles;
-    // the Shulker path keeps its cheap pointer fast-path via the same key.
+    // stale). Both container families include content hashes; Bundles also
+    // include the metadata of each live dynamic-container entry.
     struct Key {
         ItemStackBase const* stack{nullptr};
         CompoundTag const*   userData{nullptr};
@@ -57,6 +57,7 @@ private:
     std::optional<Key>                    mKey;
     std::optional<ContainerPreview>       mPreview;
     bool                                  mWarnedExtractionFailure{false};
+    bool                                  mWarnedFingerprintFailure{false};
 };
 
 } // namespace lamium::inspection::preview

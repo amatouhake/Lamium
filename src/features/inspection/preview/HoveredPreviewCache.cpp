@@ -22,15 +22,14 @@ namespace {
 // pointer all change the key. Null and non-Compound elements mix sentinels
 // (extract counts them as skipped). Returns the tail mix over a zero seed
 // when the item carries no Bundle content list (empty Bundle): stable across
-// identical empties. Shulker Boxes skip this (their static contents change
-// only with a new user-data object, caught by the pointer key).
+// identical empties. Shulker Boxes hash their stored contents separately.
 uint64_t fingerprintBundleContent(ItemStackBase const& item, ContainerScreenController const* controller) {
     auto const* userData = item.mUserData.get();
     uint64_t    fingerprint = 0;
     uint64_t    entryCount  = 0;
     if (controller) {
         // Live contents (the confirmed 26.51.3 data path, see
-        // BundlePreviewProvider): index/id/aux/count of every non-null stack
+        // BundlePreviewProvider): identity and metadata of every non-null stack
         // the game's own Bundle UI would read. Reference access only — no
         // stack copies, no registry work.
         for (int index = 0; index < BundleGrid::kMaxSlots; ++index) {
@@ -39,7 +38,9 @@ uint64_t fingerprintBundleContent(ItemStackBase const& item, ContainerScreenCont
                 continue;
             }
             ++entryCount;
-            fingerprint = fingerprintBundleLiveEntry(fingerprint, index, stack.getId(), stack.mAuxValue, stack.mCount);
+            fingerprint = fingerprintBundleLiveEntry(
+                fingerprint, index, stack.getId(), stack.mAuxValue, stack.mCount,
+                stack.mUserData ? stack.mUserData->hash() : 0);
         }
     }
     if (entryCount == 0 && userData) {
@@ -57,14 +58,7 @@ uint64_t fingerprintBundleContent(ItemStackBase const& item, ContainerScreenCont
                     continue;
                 }
                 uint32_t const kind = static_cast<uint32_t>(entryPtr->getId());
-                uint64_t     entryHash = 0;
-                try {
-                    entryHash = entryPtr->hash();
-                } catch (...) {
-                    // A throwing hash must still invalidate: fall back to a
-                    // sentinel no real hash mix is likely to collide with.
-                    entryHash = kBundleFingerprintNullHash;
-                }
+                uint64_t const entryHash = entryPtr->hash();
                 int slot = kBundleFingerprintNoSlot;
                 if (entryPtr->getId() == Tag::Type::Compound) {
                     auto const& entry = entryPtr->as<CompoundTag>();
@@ -96,16 +90,13 @@ HoveredPreviewCache::makeKey(ItemStackBase const& item, ContainerScreenControlle
     key.id       = item.getId();
     key.aux      = item.mAuxValue;
     key.count    = item.mCount;
-    // Fingerprinting every hovered item every frame would hash NBT on the
-    // hot path; only Bundles mutate in place, so only they pay for it. The
-    // fingerprint itself never resolves items (slot/tag-kind/tag-hash only).
-    // The predicate is the production one (no duplication).
+    // Hash only previewable containers. Pointer identity cannot detect an
+    // in-place content update. Reading tags avoids rebuilding item stacks or
+    // resolving their registry entries on every render.
     if (isBundleTypeName(item.getTypeName())) {
-        try {
-            key.contentFingerprint = fingerprintBundleContent(item, controller);
-        } catch (...) {
-            key.contentFingerprint = 0;
-        }
+        key.contentFingerprint = fingerprintBundleContent(item, controller);
+    } else if (mShulkerProvider.supports(item) && item.mUserData) {
+        key.contentFingerprint = item.mUserData->hash();
     }
     return key;
 }
@@ -122,7 +113,18 @@ ContainerPreview const* HoveredPreviewCache::resolve(ScreenController const& con
     auto const& hovered = hover::HoverTracker::getInstance().current();
     ContainerScreenController const* container = hovered ? hovered->controller : nullptr;
 
-    Key const key = makeKey(*item, container);
+    Key key;
+    try {
+        key = makeKey(*item, container);
+    } catch (...) {
+        // Never reuse stale contents when the current contents cannot be read.
+        clear();
+        if (!mWarnedFingerprintFailure) {
+            mWarnedFingerprintFailure = true;
+            Runtime::instance().self().getLogger().warn("Could not read container preview fingerprint");
+        }
+        return nullptr;
+    }
     if (!mKey || *mKey != key) {
         mKey     = key;
         mPreview = extract(*item, container);
