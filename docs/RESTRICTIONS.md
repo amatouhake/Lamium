@@ -50,3 +50,37 @@ pass. Local-world validation remains outstanding: all modes/faces, creative and
 survival, held-button target changes, anchor reset during mining, world exit,
 dimension changes, and interaction with Tool Switch. Do not claim packet suppression
 or complete enforcement until those native paths have been exercised.
+
+## Placement integration research (SDK 26.51.3)
+
+The SDK exposes Item::calculatePlacePos and BlockItem::_calculatePlacePos with
+mutable face/position arguments. Chalkboard, hanging sign, sign, skull, frog spawn,
+water lily, redstone dust and other items have specialized calculation paths.
+BedItem and DoorItem also implement their own use-on paths. A face-offset-only
+resolver or a hook on BlockItem alone therefore does not establish general coverage.
+
+The official [v26.51.3 placement event implementation](https://github.com/LiteLDev/LeviLamina/blob/v26.51.3/src/ll/api/event/player/PlayerPlaceBlockEvent.cpp)
+was inspected to establish API semantics, without importing its implementation.
+PlayerPlacingBlockEvent is emitted from a block-permission check scoped to use-on
+processing. Its position is the permission-check argument; the event name does
+not prove that it represents every final destination cell. Cancelling it rejects
+that permission check. Broad cancellation here could also affect non-placement
+uses that consult the same permission API. PlayerPlacedBlockEvent is not
+cancellable and is wired to a try-place gameplay event, so its name must not be
+used as proof that a placement has already completed.
+
+Other candidates in the installed SDK are Item::_sendTryPlaceBlockEvent (actor,
+block, source and position with CoordinatorResult) and BlockType::tryToPlace
+(source, position, block and optional sync message). The latter lacks a direct
+player argument. Neither header alone proves pre-mutation ordering, all special
+item coverage, or atomic rejection for multi-cell placements.
+
+Before connecting enforcement, observe these paths in a local test world for
+ordinary solid placement, replaceable vegetation, slabs/snow, doors/beds, signs,
+redstone, and non-placement uses such as opening a chest or using a bucket. Record
+calculated position, permission-check position, try-place position, cell changes
+and item consumption. The desired gate must reject the whole placement before
+its first mutation when any required destination violates the selected region.
+A gate that only undoes client block writes after server submission is insufficient.
+Placement remains unimplemented until a suitable path is established; the existing
+mode setting is preparation and does not enable a partial restriction.
