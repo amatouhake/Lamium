@@ -13,6 +13,8 @@ int runPreviewLayoutTests();
 int runDurabilityBarTests();
 int runBundlePreviewTests();
 int main() try {
+    extern void toolChoiceTests();
+    toolChoiceTests();
     extern void textFitTests();
     textFitTests();
     extern void numberInputTests();

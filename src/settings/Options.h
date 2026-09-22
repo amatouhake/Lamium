@@ -29,6 +29,7 @@ constexpr Option toggle(std::string_view id, std::string_view feature, std::stri
         [](Settings& value, int) { auto& field = (value.*Group).*Member; field = !field; }};
 }
 inline constexpr auto options = std::to_array<Option>({
+    toggle<&Settings::inventory, &Settings::Inventory::toolSwitch>("inventory.toolSwitch", "toolSwitch", "toolSwitch"),
     toggle<&Settings::overlays, &Settings::Overlays::hitboxes>("overlays.hitboxes", "hitboxes", "hitboxes"),
     {"overlays.hitboxDistance", "hitboxes", "hitboxDistance",
         [](Settings const& s) -> OptionValue { return s.overlays.hitboxDistance; },

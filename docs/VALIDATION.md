@@ -2,6 +2,22 @@
 
 Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
 
+## Tool Switch prototype
+
+Tool Switch is off by default, with a configurable initially unbound Toggle
+action. Before vanilla `GameMode::startDestroyBlock`, it evaluates only slots
+0–8 for the local player, excluding Creative/Spectator and settings ownership.
+A held item with finite destroy speed above 1 and the required harvesting
+capability is retained even if another hotbar tool is faster. Otherwise it picks
+the fastest eligible hotbar tool (first slot on ties) through the existing
+`PlayerInventory::selectSlot` API. It never moves, drops, or replaces stacks.
+Selection tests cover retaining effective tools, wrong tiers, ties, invalid
+speeds, and invalid selected slots; catalog persistence tests cover its setting.
+Actual mining, continuous mining between blocks, special tools/blocks,
+enchantments, selected-slot synchronization, Adventure restrictions, and remote
+servers remain unverified. The eligibility rule uses Item destroy speed and
+the block's correct-tool-for-drops flag, not a prediction of final break time.
+
 ## Offhand visibility prototype
 
 Hide Offhand Item is an opt-in setting with an initially unbound Toggle action

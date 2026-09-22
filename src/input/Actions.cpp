@@ -44,6 +44,15 @@ std::string gameplayKeyHint(IClientInstance& client) {
 }
 
 void registerActions() {
+    auto& toolSwitch = ll::input::KeyRegistry::getInstance().getOrCreateKey("toolswitch", {});
+    toolSwitch.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
+        if (!usesNative(input::Action::ToolSwitch) || ui::ownsInput()) return;
+        auto& runtime = Runtime::instance();
+        if (!runtime.enabled() || !gameplayScreen(client.getScreenName())) return;
+        auto settings = runtime.preferences();
+        settings.inventory.toolSwitch = !settings.inventory.toolSwitch;
+        if (!runtime.save(settings)) runtime.self().getLogger().error("Could not save Tool Switch setting");
+    });
     auto& hitboxes = ll::input::KeyRegistry::getInstance().getOrCreateKey("hitboxes", {});
     hitboxes.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
         if (!usesNative(input::Action::Hitboxes) || ui::ownsInput()) return;
