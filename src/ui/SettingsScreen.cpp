@@ -475,6 +475,19 @@ void start() {
         }
         // Let key-up through so keys pressed before opening cannot stick.
         if (!event.isDown()) return;
+        auto heldKey = [&](int key) {
+            return std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, key}) != uiHeld.end();
+        };
+        // Keep search reachable even after scrolling its row out of view.
+        // Capture handles keys above this point, so Ctrl+F remains bindable.
+        if (event.keyCode() == 0x46 && (heldKey(0x11) || heldKey(0xa2) || heldKey(0xa3))) {
+            event.cancel();
+            finishNumber();
+            searchFocused = true;
+            selected = 1;
+            query.selectAll();
+            return;
+        }
         // Native text generation happens after HID onKeyDown. Keep editing
         // commands here, but let the focused native keyboard process the other
         // keys (including layout/IME input) while our modal scene owns gameplay.
@@ -519,7 +532,14 @@ void start() {
         switch (event.keyCode()) {
         case 0x1b: command = 2; break;
         case 0x26: selected = (selected+rowCount()-1)%rowCount(); break;
-        case 0x09: case 0x28: selected = (selected+1)%rowCount(); break;
+        case 0x09:
+            selected = (selected + ((heldKey(0x10) || heldKey(0xa0) || heldKey(0xa1)) ? rowCount()-1 : 1)) % rowCount();
+            break;
+        case 0x28: selected = (selected+1)%rowCount(); break;
+        case 0x24: selected = 0; break; // Home
+        case 0x23: selected = rowCount()-1; break; // End
+        case 0x21: selected = std::max(0, selected-std::max(1, displayedLayout.visible-1)); break;
+        case 0x22: selected = std::min(rowCount()-1, selected+std::max(1, displayedLayout.visible-1)); break;
         case 0x25: if (selected < rowCount()-1) { commandRow = selected; command = -1; } break;
         case 0x27: if (selected < rowCount()-1) { commandRow = selected; command = 1; } break;
         case 0x0d: case 0x20: commandRow = selected; command = 3; break;

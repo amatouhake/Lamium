@@ -131,7 +131,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"close", "Close", "閉じる"},
     {"saveError", "Save failed; change not applied. Try again.", "保存失敗・変更は未反映です。再試行してください。"},
     {"smallWindow", "Enlarge window | Esc: close", "画面を広げてください | Esc: 閉じる"},
-    {"navigation", "Up/Down / wheel: navigate | Enter | Esc", "上下・ホイール: 選択 | Enter: 決定 | Esc: 戻る"},
+    {"navigation", "Up/Down/PgUp/PgDn: navigate | Ctrl+F: search | Enter | Esc", "上下・PgUp/PgDn: 選択 | Ctrl+F: 検索 | Enter | Esc"},
     {"adjustment", "Left/Right: adjust | Click: toggle/edit | Right click: decrease", "左右: 調整 | 左クリック: 切替・入力 | 右: 減らす"},
     {"controls", "Lamium | Configure controls in Keyboard & Mouse settings", "Lamium | キーボードとマウスの設定でキーを変更できます"},
     {"unbound", "Unbound", "未割り当て"},

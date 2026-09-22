@@ -910,3 +910,15 @@ settings and bindings expanded. Switching to Hotkeys retained the query and
 showed exactly their three actions, with the panel shrinking to fit. No
 preference values were changed. Japanese group search, other GUI scales and
 the remaining group subtitles are not covered by this runtime check.
+
+### Settings keyboard navigation (2026-09-23; runtime pending)
+
+Added Ctrl+F to focus search and select the current query, including from
+scrolled results or numeric editing. Outside text editing, Page Up/Down move
+by the visible row count minus one (clamped at the ends), Home/End select
+the first/last row, and Shift+Tab moves backward. Binding capture retains
+priority over these shortcuts. The navigation hint advertises page movement
+and search in English and Japanese. Client build, existing unit tests,
+package checks and diff checks passed. These do not verify native key-event
+routing; runtime shortcut behavior and hint fit remain pending. The running
+instance still uses the preceding grouped-feature build.
