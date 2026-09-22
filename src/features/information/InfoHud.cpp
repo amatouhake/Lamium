@@ -18,11 +18,21 @@ namespace lamium::information {
 void drawHud(MinecraftUIRenderContext& context, float width, float height, Settings::Information const& preferences) {
     auto settings = debugProfile(preferences);
     if (Runtime::instance().preferences().interaction.breaking && context.mClient.getLocalPlayer()) {
+        auto mode = Runtime::instance().preferences().interaction.breakingMode;
         auto anchor = interaction::breaking::region();
+        auto modeText = ui::translated("breakingMode",ui::translated(interaction::restrictionLabels[static_cast<size_t>(mode)]));
+        if (anchor) {
+            auto axis = anchor->effectiveAxis();
+            modeText += " | " + ui::translated("restrictionAxis",axis == interaction::Axis::X ? "X" : axis == interaction::Axis::Y ? "Y" : "Z");
+        }
         auto text = anchor ? ui::translated("breakingAnchor",std::format("{}, {}, {}",anchor->anchor.x,anchor->anchor.y,anchor->anchor.z))
                            : ui::translated("breakingNeedsAnchor");
-        auto layout = ui::HudLayout::fit(width,height,100,100,1);
-        if (layout.lines) { ui::label(context,layout.x,layout.y,layout.width,text); context.flushText(0,std::nullopt); }
+        auto layout = ui::HudLayout::fit(width,height,100,100,2);
+        if (layout.lines) {
+            ui::label(context,layout.x,layout.y,layout.width,text);
+            if (layout.lines > 1) ui::label(context,layout.x,layout.y+14,layout.width,modeText);
+            context.flushText(0,std::nullopt);
+        }
     }
     float columnWidth = settings.debug ? std::min(230.f,width/2-8) : 230.f;
     if (settings.target) {

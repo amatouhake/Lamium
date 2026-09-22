@@ -1,5 +1,6 @@
 #include "input/Actions.h"
 #include "input/ToggleAction.h"
+#include "settings/Options.h"
 #include "features/interaction/BreakingRestriction.h"
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
@@ -56,6 +57,11 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::Settings) { ui::open(client); return; }
     if (action == input::Action::Zoom) { Zoom::instance().press(client); return; }
     auto value = runtime.preferences();
+    if (action == input::Action::CycleBreakingMode) {
+        settings::find("interaction.breakingMode")->adjust(value,1);
+        if (!runtime.save(value)) runtime.self().getLogger().error("Could not save breaking mode");
+        return;
+    }
     if (input::toggleAction(value, action) && !runtime.save(value))
         runtime.self().getLogger().error("Could not save action setting: {}", input::actions[static_cast<size_t>(action)].id);
 }

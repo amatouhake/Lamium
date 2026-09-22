@@ -19,6 +19,8 @@ void restrictionRegionTests() {
         check(!plane.contains(along) && line.contains(along), "line follows face normal and is not preview-radius limited");
     }
     RestrictionRegion column{RestrictionMode::Column,anchor,Axis::X}, layer{RestrictionMode::Layer,anchor,Axis::Z};
+    check(column.effectiveAxis() == Axis::Y && layer.effectiveAxis() == Axis::Y,
+          "vertical modes report the effective axis rather than the captured face");
     check(column.contains({-17,-100,31}) && !column.contains({-16,64,31}), "column follows world vertical independently of face");
     check(layer.contains({500,64,-500}) && !layer.contains({-17,65,31}), "layer fixes world Y independently of face");
     check(normalAxis(Face::West) == normalAxis(Face::East) && normalAxis(Face::Up) == Axis::Y

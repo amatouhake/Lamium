@@ -32,6 +32,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"key.Lamium.breakingrestriction", "Lamium: Toggle breaking restriction", "Lamium: 破壊制限の切り替え"},
     {"key.Lamium.capturebreaking", "Lamium: Set breaking anchor at crosshair", "Lamium: 照準先を破壊の基準点に設定"},
     {"key.Lamium.resetbreaking", "Lamium: Clear breaking anchor", "Lamium: 破壊の基準点を解除"},
+    {"key.Lamium.cyclebreakingmode", "Lamium: Next breaking restriction mode", "Lamium: 破壊制限モードを次へ"},
+    {"restrictionAxis", "Axis: {}", "基準軸: {}"},
     {"placementMode", "Placement mode: {}", "設置の制限範囲: {}"},
     {"mode.plane", "Plane (face normal)", "平面（面の法線基準）"},
     {"mode.line", "Line (face normal)", "直線（面の法線方向）"},

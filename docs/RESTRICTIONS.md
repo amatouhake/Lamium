@@ -21,8 +21,10 @@ blocked and the HUD prompts for an anchor. Toggling, changing mode, world exit,
 dimension transition and feature shutdown clear the session anchor. The world
 preview shows a radius-four sample of the region; its geometry is cached by value.
 Settings/input ownership gates capture actions through the shared action layer.
-Placement enforcement and its anchor are not yet implemented. Dedicated mode-switch
-actions and fuller mode/axis status presentation remain outstanding.
+The initially unbound next-mode action cycles the same named option used by the
+settings editor and clears the anchor through the same save path. The HUD shows
+mode, effective axis and anchor state. Column and Layer report Y regardless of
+the captured face. Placement enforcement and its anchor are not yet implemented.
 
 Breaking hooks gate GameMode start/continue/destroy calls for the local client
 player. Rejected calls return false and clear the destroyed output parameter when
