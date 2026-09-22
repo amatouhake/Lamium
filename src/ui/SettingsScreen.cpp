@@ -1,5 +1,6 @@
 #include "ui/SettingsScreen.h"
 #include "ui/SettingsLayout.h"
+#include "ui/Localization.h"
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
 #include "input/Actions.h"
@@ -23,8 +24,8 @@
 #include "mc/deps/input/RectangleArea.h"
 #include "mc/deps/input/MouseAction.h"
 #include <array>
-#include <format>
 #include <mutex>
+#include <stdexcept>
 
 namespace lamium::ui {
 namespace {
@@ -66,7 +67,7 @@ void activate(int row, int direction) {
     case 7: draft.inventory.sortContainers = !draft.inventory.sortContainers; break;
     case 8:
         if (Runtime::instance().save(draft)) close();
-        else error = "Could not save settings. Please try again.";
+        else error = translated("saveError");
         break;
     case 9: close(); break;
     }
@@ -107,22 +108,23 @@ void render(ll::event::AfterUIRenderEvent& event) {
     context.flushImages(white,1,HashedString{"ui_fillColor"});
     if (!layout.visible) {
         hovered = -1;
-        label(context, 4, 4, std::max(1.0f, size.x - 8), "Enlarge window | Esc: cancel");
+        label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
         context.flushText(0, std::nullopt);
         return;
     }
-    label(context,left,top,width,"Lamium / Settings");
-    if (layout.subtitle) label(context,left,top+18,width,"Camera, lighting, items and inventory");
+    label(context,left,top,width,translated("title"));
+    if (layout.subtitle) label(context,left,top+18,width,translated("subtitle"));
+    auto toggle = [](std::string_view key, bool value) { return translated(key, translated(value ? "on" : "off")); };
     std::array<std::string,rowCount> rows{
-        std::string{"Zoom: "} + (draft.camera.zoom ? "On" : "Off"),
-        std::format("Magnification: {:.1f}x", draft.camera.magnification),
-        std::format("Wheel step: {:.1f}", draft.camera.wheelStep),
-        std::string{"NightVision: "} + (draft.lighting.nightVision ? "On" : "Off"),
-        std::string{"Container previews: "} + (draft.inspection.containerPreviews ? "On" : "Off"),
-        std::string{"Durability: "} + (draft.inspection.durability ? "On" : "Off"),
-        std::string{"Inventory sorting: "} + (draft.inventory.sorting ? "On" : "Off"),
-        std::string{"Sort storage containers: "} + (draft.inventory.sortContainers ? "On" : "Off"),
-        "Save and close", "Cancel"
+        toggle("zoom", draft.camera.zoom),
+        translated("magnification", draft.camera.magnification),
+        translated("wheelStep", draft.camera.wheelStep),
+        toggle("nightVision", draft.lighting.nightVision),
+        toggle("previews", draft.inspection.containerPreviews),
+        toggle("durability", draft.inspection.durability),
+        toggle("sorting", draft.inventory.sorting),
+        toggle("storage", draft.inventory.sortContainers),
+        translated("save"), translated("cancel")
     };
     glm::vec2 pointer = view.mPointerLocationPrevious;
     hovered = layout.hit(pointer.x, pointer.y);
@@ -134,9 +136,9 @@ void render(ll::event::AfterUIRenderEvent& event) {
         context.flushImages(white,1,HashedString{"ui_fillColor"});
         label(context,left+6,y+5,width-12,rows[i]);
     }
-    label(context,left,layout.footer,width,error.empty() ? "Arrows / wheel: navigate | Enter | Esc" : error);
+    label(context,left,layout.footer,width,error.empty() ? translated("navigation") : error);
     if (layout.secondHint)
-        label(context,left,layout.footer+15,width,"Left click: increase/toggle | Right: decrease");
+        label(context,left,layout.footer+15,width,translated("adjustment"));
     context.flushText(0,std::nullopt);
 }
 }
@@ -155,6 +157,7 @@ void open(IClientInstance& current) {
     current.getSceneFactory().getCurrentSceneStack()->pushScreen(scene, false);
 }
 void start() {
+    if (!startLocalization()) throw std::runtime_error("Could not install Lamium action translations");
     auto& bus = ll::event::EventBus::getInstance();
     listeners[0] = bus.emplaceListener<ll::event::AfterUIRenderEvent>(render);
     listeners[1] = bus.emplaceListener<ll::event::input::MouseInputEvent>([](auto& event) {
@@ -199,6 +202,7 @@ void stop() {
         if (listener) ll::event::EventBus::getInstance().removeListener(listener);
         listener.reset();
     }
+    stopLocalization();
 }
 }
 

@@ -13,6 +13,8 @@ int runPreviewLayoutTests();
 int runDurabilityBarTests();
 int runBundlePreviewTests();
 int main() {
+    extern void translationTests();
+    translationTests();
     extern void settingsLayoutTests();
     settingsLayoutTests();
     extern void responseBarrierTests();

@@ -46,8 +46,23 @@ with the stronger selection color while Zoom retained the weaker hover color.
 - New registrations now default NightVision to J. Existing saved bindings are
   not rewritten. The changed default builds; a fresh profile's initial mapping
   still needs verification. The runtime J check used a manual remap.
-- These checks used Deesse UI 1.3.9. Binding labels still expose translation keys
-  in Minecraft settings; localized action names remain a release gate.
+- These checks used Deesse UI 1.3.9.
+
+## Localization
+
+- A shared Japanese/English catalog supplies settings, HUD hints, and Lamium's
+  four Minecraft key-binding labels. Other languages fall back to English.
+- Native action-label lookup is scoped to the four Lamium translation keys;
+  unrelated lookups call the original implementation. The hook is installed and
+  removed with the UI lifecycle.
+- Catalog tests validate nonempty/unique entries, fallback, locale matching,
+  unknown-key pass-through, and format patterns with the UI's argument types.
+- In game, all four action names displayed in English. Switching Minecraft to
+  Japanese without restarting updated all four names, while vanilla labels and
+  saved key assignments remained visible.
+- In a local world, the HUD and all ten settings rows rendered in Japanese with
+  no observed overlap at the maximized window size. Small Japanese windows,
+  save-error text, and other resource packs still need visual checks.
 
 ## Lighting and settings persistence
 
@@ -142,7 +157,7 @@ dependency restore.
 - Verify zoom visually while held, wheel capture, sensitivity, and release.
 - Verify menu transitions, focus loss, dimension changes, disconnect/rejoin.
 - Verify all settings survive restart and in-game errors preserve existing files.
-- Complete localization (including action names) and gamepad/touch behavior;
+- Verify localized layout in small windows and gamepad/touch behavior;
   verify new default bindings on a fresh profile.
 - Verify with vanilla UI and additional UI resource packs.
 - Verify NightVision underwater, in Nether/End, and across restart/dimension changes.
