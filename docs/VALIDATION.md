@@ -1045,3 +1045,21 @@ created under the resolved system temporary directory and cleaned up afterward.
 `ShapeWorkspace` is not wired into `WorldOverlay` yet. These tests establish the
 storage transaction boundary, not Minecraft world identity or lifecycle behavior.
 The installed game build and its session-only Shape behavior are unchanged.
+
+### Local world identity probe (2026-09-23)
+
+A diagnostic client build (`xmake f --shape_trace=y`) was installed and launched
+through the existing launcher. DLL SHA-256:
+`9302E60303A2E1FF44E9B99F9ECD7E0887DBF499F19BDC9A8112274D0F364FDC`.
+`ClientStartJoinLevelEvent::isJoiningLocalServer()` reported true and
+`GameConnectionInfo::mType` reported Local. At `ClientJoinLevelEvent`, the
+primary player's `Level::getLevelId()` matched the selected local world's
+storage directory name. Saving, leaving and reentering the same world produced
+the same ID. No shape file is loaded or written by this probe.
+
+The optional trace is disabled by default, capped at 32 primary-player joins per
+enable, and hex-encodes at most 128 ID bytes to avoid log control characters.
+World IDs and personal storage paths are deliberately omitted from this record.
+Diagnostic build and package/license checks passed. Other local worlds,
+profile/storage-root separation, remote sessions and actual shape restoration
+remain unverified; this observation does not prove global uniqueness.

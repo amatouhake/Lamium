@@ -152,3 +152,9 @@ yet. Stable local/remote world identity, lifecycle integration, error feedback
 and runtime reentry validation remain required before automatic restoration.
 Connection type and Level ID accessors exist in the SDK, but their declarations
 alone do not prove a stable, unique persistent identity.
+
+An opt-in `shape_trace` build records bounded primary-player join diagnostics.
+One local world was verified to return its storage directory name as Level ID,
+unchanged across save/exit/reentry (see `VALIDATION.md`). Persistence integration
+must still scope IDs to the correct local storage/profile and separately resolve
+remote identities; a world display name or server address alone is insufficient.

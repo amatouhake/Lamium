@@ -26,6 +26,12 @@
 #include "mc/deps/minecraft_renderer/resources/OffscreenCaptureDescription.h"
 #include <span>
 #include <mutex>
+#ifdef LAMIUM_SHAPE_TRACE
+#include "ll/api/event/client/ClientStartJoinLevelEvent.h"
+#include "ll/api/event/client/ClientJoinLevelEvent.h"
+#include "mc/network/GameConnectionInfo.h"
+#include <atomic>
+#endif
 
 namespace lamium::overlay {
 namespace {
@@ -33,6 +39,27 @@ bool installed = false;
 std::mutex shapeMutex;
 ShapeCollection shapeCollection;
 ll::event::ListenerPtr exitListener;
+#ifdef LAMIUM_SHAPE_TRACE
+ll::event::ListenerPtr startJoinListener, joinListener;
+std::atomic<bool> joiningLocal{false};
+std::atomic<unsigned> identitySamples{0};
+void traceIdentity(ll::event::ClientJoinLevelEvent& event) noexcept {
+    try {
+        if (event.self().getLocalPlayer() != &event.player() || identitySamples.fetch_add(1) >= 32) return;
+        auto id = event.player().getLevel().getLevelId();
+        // Hex avoids log control characters; cap data even in a diagnostic build.
+        std::string encoded;
+        constexpr char digits[] = "0123456789abcdef";
+        for (unsigned char byte : id.substr(0,128)) {
+            encoded += digits[byte >> 4]; encoded += digits[byte & 15];
+        }
+        auto connection = event.self().getGameConnectionInfo();
+        Runtime::instance().self().getLogger().info(
+            "Shape identity trace: local={} connection={} levelIdBytes={} levelIdHex={}",
+            joiningLocal.load(), connection ? static_cast<int>(connection->mType) : -1, id.size(), encoded);
+    } catch (...) {} // Diagnostics never change joining behavior.
+}
+#endif
 bool hasShapes() {
     std::lock_guard lock(shapeMutex);
     return !shapeCollection.entries().empty();
@@ -157,9 +184,24 @@ void start() {
         exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
             [](auto&) { shapes::clear(); });
         if (!exitListener) throw std::runtime_error("Could not subscribe shape world exit");
+#ifdef LAMIUM_SHAPE_TRACE
+        identitySamples = 0;
+        auto& bus = ll::event::EventBus::getInstance();
+        startJoinListener = bus.emplaceListener<ll::event::ClientStartJoinLevelEvent>(
+            [](auto& event) { joiningLocal = event.isJoiningLocalServer(); });
+        joinListener = bus.emplaceListener<ll::event::ClientJoinLevelEvent>(traceIdentity);
+        if (!startJoinListener || !joinListener) throw std::runtime_error("Could not subscribe shape identity diagnostics");
+#endif
     } catch (...) { stop(); throw; }
 }
 void stop() {
+#ifdef LAMIUM_SHAPE_TRACE
+    for (auto* listener : {&startJoinListener,&joinListener}) if (*listener) {
+        ll::event::EventBus::getInstance().removeListener(*listener);
+        listener->reset();
+    }
+    joiningLocal = false;
+#endif
     if (exitListener) {
         ll::event::EventBus::getInstance().removeListener(exitListener);
         exitListener.reset();
