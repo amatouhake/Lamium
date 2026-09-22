@@ -16,6 +16,7 @@
 #include "mc/world/item/ItemStack.h"
 
 #include <array>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -34,7 +35,7 @@ struct PendingSort {
     size_t next = 0;
     bool waiting = false;
 };
-std::optional<PendingSort> pending;
+std::shared_ptr<PendingSort> pending;
 
 // Item collection names as the game's own UI definitions address them. They
 // are only ever used after the screen confirms it has such a collection.
@@ -209,7 +210,7 @@ bool SortSession::run(
 
     auto active = ScreenTracker::getInstance().current();
     if (!active || active.get() != &controller) return false;
-    pending = PendingSort{active, region, classifier.representatives(), plan, slots, 0, false};
+    pending = std::make_shared<PendingSort>(active, region, classifier.representatives(), plan, slots, 0, false);
     return true;
 }
 
@@ -217,7 +218,10 @@ void SortSession::cancel() { pending.reset(); }
 
 void SortSession::tick(ContainerScreenController& controller) {
     if (!pending) return;
-    auto& job = *pending;
+    // Vanilla transfers may synchronously close the screen and cancel the job.
+    // Keep this invocation's state alive until control returns from vanilla.
+    auto currentJob = pending;
+    auto& job = *currentJob;
     auto active = job.controller.lock();
     auto& logger = Runtime::instance().self().getLogger();
     auto manager = controller.mContainerManagerController.get();
@@ -286,6 +290,7 @@ void SortSession::tick(ContainerScreenController& controller) {
         throw;
     }
     endTransfer();
+    if (pending != currentJob) return;
     if (!success) {
         logger.warn("Sort stopped: vanilla refused a transfer");
         cancel();

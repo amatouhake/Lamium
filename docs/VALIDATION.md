@@ -135,7 +135,18 @@ with the stronger selection color while Zoom retained the weaker hover color.
   stack was held on the cursor was refused without issuing a transfer.
 - Typing R into the creative search field entered a search character and issued
   no sort operation (confirmed from the live log).
-- These checks used Deesse UI 1.3.9. Storage containers, survival inventories,
+- A large chest selected `container_items` with 54 slots and 39 occupied slots.
+  Splitting its 64 stone into two stacks of 32 and pressing R completed one
+  acknowledged merge back to 64. Swapping the stone and a filled pink Shulker
+  manually, then pressing R, completed one acknowledged swap restoring their
+  order. The player's 12 occupied inventory slots and hotbar remained unchanged.
+  These runtime checks used the localization build, before the lifetime guard below.
+- The pending job now stays alive across calls into vanilla transfer code, and
+  execution checks that it is still the current job before writing the resulting
+  state. This prevents a synchronous screen-exit callback from leaving a dangling
+  job reference. The release build and existing tests pass; synchronous cancellation
+  during a transfer has not been reproduced in game.
+- These checks used Deesse UI 1.3.9. Other storage types, survival inventories,
   other text-input screens, live cancellation, rejected requests, and remote-server
   latency still require runtime checks.
 - A separate rotating Lamium log flushes informational messages while the game
