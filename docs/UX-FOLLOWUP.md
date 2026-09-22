@@ -12,8 +12,10 @@ Settings and input foundation work is now underway, before broader feature expan
   Modifier chord editing, persistence, and Reset were verified in the feature
   view. Hotkeys capture/Reset and gameplay activation of a Ctrl+K Debug View
   binding were also verified. That action stayed suppressed while settings
-  were open and worked again after closing. Mouse/wheel and arbitrary
-  non-modifier chords still need runtime verification. Exact duplicate custom bindings are marked;
+  were open and worked again after closing. Middle-click capture, Toggle
+  activation, and Clear (including saved explicit unbinding) were verified.
+  Other mouse buttons, wheel and arbitrary non-modifier chords still need
+  runtime verification. Exact duplicate custom bindings are marked;
   broader conflict detection and clearer feature descriptions remain open.
 - The top-left gameplay hints can be hidden in-game; hiding and persistence
   across a game restart were verified.

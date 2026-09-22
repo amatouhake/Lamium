@@ -831,3 +831,15 @@ the bottom Zoom binding row, and cancelled capture using its upper control.
 All selected the intended target without a second click or Enter. Zoom's
 binding remained C; Esc returned to gameplay. Other GUI scales, split-screen
 viewports, and resizing during input still need runtime validation.
+
+### Mouse binding and Clear (2026-09-23)
+
+On the event-coordinate build above, captured a middle click for Debug View
+through Hotkeys. The row displayed Mouse 3. After closing settings, one middle
+click displayed the debug overlay and the next hid it. Reopened Hotkeys and
+clicked Clear: the row displayed Unbound. After closing settings, another
+middle click did not display the overlay. The saved bindings object contained
+`"debugview": []`, confirming explicit unbinding rather than a native fallback.
+Debug View was left off and unbound. This covers mouse button 3 and Clear for
+one Toggle action; side buttons, mouse/key chords, wheel bindings, and native
+pick-block conflict behavior on an in-range target remain unverified.
