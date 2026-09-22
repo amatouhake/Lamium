@@ -869,3 +869,18 @@ Reopening capture showed Current binding: Wheel down. Clear returned the
 action to Unbound, leaving Debug View off. This verifies an unmodified wheel
 direction for one Toggle action, not modified wheel chords, wheel Hold
 rejection, opposite direction behavior, or other screen sizes/languages.
+
+### Hold wheel rejection and non-modifier chord (2026-09-23)
+
+On the same e316c31 runtime and display configuration, Zoom capture showed
+the complete Hold guidance. A downward wheel input displayed Unsupported
+binding for this action, kept Current binding: C, and stayed in capture.
+Pressing C next successfully returned to Hotkeys with C; Reset then restored
+the native mapping. This verifies recovery from an invalid Hold candidate.
+
+Captured Z+3 for Debug View; the UI displayed the canonical order 3 + Z.
+In gameplay, separate Z and 3 presses did not activate Debug View (3 selected
+hotbar slot 3 normally). Z+3 displayed the overlay, and a second Z+3 hid it.
+Clear restored Debug View to Unbound and it remained off. This covers one
+two-key non-modifier chord; longer chords, reverse press order, partial-release
+retrigger behavior and modified wheel inputs still need runtime coverage.

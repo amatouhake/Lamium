@@ -15,9 +15,11 @@ Settings and input foundation work is now underway, before broader feature expan
   were open and worked again after closing. Middle-click capture, Toggle
   activation, and Clear (including saved explicit unbinding) were verified.
   Unmodified wheel-down capture and Toggle activation were verified without
-  changing the selected hotbar slot. Other mouse buttons, modified wheel
-  and arbitrary non-modifier chords still need
-  runtime verification. Exact duplicate custom bindings are marked;
+  changing the selected hotbar slot. Zoom rejected a wheel binding and accepted
+  a subsequent key without leaving capture first. A Z+3 Debug View chord was
+  captured and activated; either key alone did not activate it. Other mouse
+  buttons, modified wheel and more complex chords still need runtime
+  verification. Exact duplicate custom bindings are marked;
   broader conflict detection and clearer feature descriptions remain open.
 - The top-left gameplay hints can be hidden in-game; hiding and persistence
   across a game restart were verified.
