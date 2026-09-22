@@ -597,3 +597,18 @@ small heights there may be room only for identity or no rows at all. Tests cover
 zero capacity, exact fit, six-state limit and limited-height omission counts;
 shared layout tests cover screen margins. Runtime UI-scale and placement checks
 remain pending. This build has not replaced the running validation DLL.
+
+### Basic debug view (runtime validation pending)
+
+Debug View adds a default-off, initially unbound toggle that displays all existing
+client information providers on the left and target identity/states on the right.
+It uses a rendering-only profile: normal Info HUD/Target Info selections and
+positions are preserved. Columns shrink on narrow screens rather than overlap;
+shared clipping and state omission counts still apply. Settings expose the toggle
+and key binding through the same feature catalog. No profiler, TPS/MSPT estimates
+or server-only information is claimed. Further debug providers and a fuller target
+detail view remain unfinished.
+
+Tests cover profile restoration, column separation and common settings/action
+catalog behavior. Runtime input, layout, world transitions and provider values
+still need Minecraft validation. The new build is not yet deployed.

@@ -4,6 +4,7 @@
 #include "features/information/NetworkInfo.h"
 #include "features/information/TargetInfo.h"
 #include "features/information/TargetRows.h"
+#include "features/information/DebugView.h"
 #include "ui/HudLayout.h"
 #include "ui/Widgets.h"
 #include "ui/Localization.h"
@@ -12,14 +13,16 @@
 #include <vector>
 
 namespace lamium::information {
-void drawHud(MinecraftUIRenderContext& context, float width, float height, Settings::Information const& settings) {
+void drawHud(MinecraftUIRenderContext& context, float width, float height, Settings::Information const& preferences) {
+    auto settings = debugProfile(preferences);
+    float columnWidth = settings.debug ? std::min(230.f,width/2-8) : 230.f;
     if (settings.target) {
         if (auto target = collectTargetInfo(context.mClient,settings.targetStates)) {
-            auto capacity = ui::HudLayout::fit(width,height,settings.targetHorizontal,settings.targetVertical,9).lines;
+            auto capacity = ui::HudLayout::fit(width,height,settings.targetHorizontal,settings.targetVertical,9,columnWidth).lines;
             auto rows = targetRows(*target,settings.targetIdentifier,capacity);
             auto& targetLines = rows.lines;
             if (rows.showOmitted) targetLines.push_back(ui::translated("targetMore",std::to_string(rows.omittedStates)));
-            auto layout = ui::HudLayout::fit(width,height,settings.targetHorizontal,settings.targetVertical,static_cast<int>(targetLines.size()));
+            auto layout = ui::HudLayout::fit(width,height,settings.targetHorizontal,settings.targetVertical,static_cast<int>(targetLines.size()),columnWidth);
             for (int i=0;i<layout.lines;++i) ui::label(context,layout.x,layout.y+i*14,layout.width,targetLines[i]);
             if (layout.lines) context.flushText(0,std::nullopt);
         }
@@ -53,7 +56,7 @@ void drawHud(MinecraftUIRenderContext& context, float width, float height, Setti
         auto ping = connectionPing(context.mClient);
         lines.push_back(ui::translated("hudPing",ping ? std::format("{} ms",*ping) : ui::translated("unavailable")));
     }
-    auto layout = ui::HudLayout::fit(width,height,settings.horizontal,settings.vertical,static_cast<int>(lines.size()));
+    auto layout = ui::HudLayout::fit(width,height,settings.horizontal,settings.vertical,static_cast<int>(lines.size()),columnWidth);
     for (int i=0;i<layout.lines;++i) ui::label(context,layout.x,layout.y+i*14,layout.width,lines[i]);
     if (layout.lines) context.flushText(0,std::nullopt);
 }

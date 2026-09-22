@@ -42,6 +42,7 @@ struct Settings {
         bool hideOffhand = false;
     } visuals;
     struct Information {
+        bool debug = false;
         bool target = false;
         bool targetIdentifier = true;
         bool targetStates = false;

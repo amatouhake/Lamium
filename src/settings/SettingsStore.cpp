@@ -46,6 +46,7 @@ Json encode(Settings const& settings) {
     return Json{
         {"version", settings.version},
         {"information", {{"hud", settings.information.hud}, {"coordinates", settings.information.coordinates},
+                         {"debug", settings.information.debug},
                          {"target", settings.information.target}, {"targetIdentifier", settings.information.targetIdentifier},
                          {"targetStates", settings.information.targetStates},
                          {"targetHorizontal", settings.information.targetHorizontal}, {"targetVertical", settings.information.targetVertical},
@@ -80,6 +81,7 @@ Settings decodeSettings(std::string_view text) {
     Settings value;
     if (data.contains("information")) {
         auto const& info = data.at("information");
+        value.information.debug = info.value("debug", false);
         value.information.target = info.value("target", false);
         value.information.targetIdentifier = info.value("targetIdentifier", true);
         value.information.targetStates = info.value("targetStates", false);

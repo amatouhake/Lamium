@@ -2,10 +2,29 @@
 #include "features/information/PlayerInfo.h"
 #include "features/information/NetworkInfo.h"
 #include "features/information/TargetRows.h"
+#include "features/information/DebugView.h"
 #include <limits>
 void check(bool, char const*);
 void hudLayoutTests() {
     using lamium::ui::HudLayout;
+    lamium::Settings::Information preferences;
+    preferences.horizontal = 37;
+    preferences.debug = true;
+    auto debug = lamium::information::debugProfile(preferences);
+    check(debug.hud && debug.target && debug.biome && debug.ping && debug.targetStates,
+          "debug profile enables shared information providers");
+    check(!preferences.hud && !preferences.target && preferences.horizontal == 37,
+          "debug profile preserves normal HUD choices");
+    preferences.debug = false;
+    auto normal = lamium::information::debugProfile(preferences);
+    check(!normal.hud && normal.horizontal == 37, "disabling debug restores normal rendering profile");
+    for (float width : {80.f,320.f,640.f}) {
+        auto columnWidth = std::min(230.f,width/2-8);
+        auto first = HudLayout::fit(width,360,0,0,8,columnWidth);
+        auto second = HudLayout::fit(width,360,100,0,9,columnWidth);
+        check(first.x+first.width < second.x && second.x+second.width <= width-4,
+              "debug columns remain separated on narrow screens");
+    }
     lamium::information::TargetInfo target{"Stone","minecraft:stone",{"a: 0","b: 1","c: 2","d: 3","e: 4","f: 5","g: 6"}};
     using lamium::information::targetRows;
     check(targetRows(target,true,0).lines.empty(), "no space draws no target rows");
