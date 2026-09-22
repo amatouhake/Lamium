@@ -182,6 +182,10 @@ void open(IClientInstance& current) {
     client = &current;
     current.getSceneFactory().getCurrentSceneStack()->pushScreen(scene, false);
 }
+bool ownsInput() {
+    std::lock_guard lock(mutex);
+    return scene != nullptr;
+}
 void start() {
     if (!startLocalization()) throw std::runtime_error("Could not install Lamium action translations");
     backgroundHook = SettingsWorldBackground::hook(true) == 0;

@@ -9,9 +9,19 @@ explicit Unbound, and custom chords. Action metadata owns Press/Hold/Toggle
 semantics. Pure tests cover arbitrary chord order, repeated key-down suppression,
 release of any chord member, reset release, modified wheel impulses, invalid
 inputs, and persistence/reset without losing unrelated bindings. These are
-preparatory components: native event dispatch and the in-game binding editor
-are not connected yet, so custom bindings in JSON do not control actions yet.
-Current gameplay still uses the existing Minecraft key registrations.
+components now feed native key/mouse event dispatch for custom overrides;
+actions without overrides still use Minecraft registrations. Explicit Unbound
+suppresses the native handler too. Gameplay hints show the effective binding.
+The in-game binding editor is not connected yet.
+
+Custom input resets on screen/assignment changes, world exit, and app focus loss.
+Held inputs are blocked until release after invalidation, preventing key repeats
+from reactivating an action. Consumed Zoom wheel events preserve the custom hold,
+and key-up is observed even for cancelled events. Pure regression tests cover
+these state transitions. Native text focus and the settings scene suppress
+custom actions; Sort retains the container/text-input checks. Build and unit
+checks do not prove event ordering, live focus handling, mouse codes, binding
+display, or interaction with Minecraft mappings; all still need runtime checks.
 
 The current source replaces the owned native dialog's drawing through a scoped
 BeforeUIRenderEvent handler and requests world rendering behind that scene.

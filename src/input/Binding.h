@@ -54,11 +54,34 @@ inline Chord canonicalChord(Chord chord, Behavior behavior) {
 }
 
 struct Edge { bool pressed = false, released = false; };
+class HeldInputs {
+    Chord held, blocked;
+public:
+    Chord const& value() const { return held; }
+    void observe(Token token, bool down, bool accepted) {
+        if (token.device == Device::Wheel) return;
+        if (!down) { std::erase(held, token); std::erase(blocked, token); return; }
+        if (!accepted) {
+            if (std::find(held.begin(), held.end(), token) == held.end()
+                && std::find(blocked.begin(), blocked.end(), token) == blocked.end()) blocked.push_back(token);
+            return;
+        }
+        if (std::find(blocked.begin(), blocked.end(), token) != blocked.end()) return;
+        if (std::find(held.begin(), held.end(), token) == held.end()) held.push_back(token);
+    }
+    void invalidate() {
+        for (auto token : held)
+            if (std::find(blocked.begin(), blocked.end(), token) == blocked.end()) blocked.push_back(token);
+        held.clear();
+    }
+    void clear() { held.clear(); blocked.clear(); }
+};
 // One state per action. Host code resets this on focus/world/screen changes,
 // rebinding, or input ownership changes and delivers any released edge.
 class BindingState {
     bool active = false;
 public:
+    bool isActive() const { return active; }
     Edge update(Chord const& chord, Chord const& held, std::optional<Token> impulse = {}) {
         bool matches = !chord.empty();
         for (auto const token : chord) {

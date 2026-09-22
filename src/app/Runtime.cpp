@@ -4,6 +4,7 @@
 #include "features/inspection/Inspection.h"
 #include "features/inventory/Inventory.h"
 #include "input/Actions.h"
+#include "input/CustomInput.h"
 #include "ui/SettingsScreen.h"
 #include "settings/SettingsStore.h"
 #include "ll/api/mod/RegisterHelper.h"
@@ -61,9 +62,10 @@ bool Runtime::enable() {
         Zoom::instance().stop();
         return false;
     }
-    try { ui::start(); }
+    try { ui::start(); input::startCustomInput(); }
     catch (std::exception const& error) {
         mod.getLogger().error("Settings UI initialization failed: {}", error.what());
+        input::stopCustomInput();
         ui::stop();
         inventory::stop();
         inspection::stop();
@@ -77,6 +79,7 @@ bool Runtime::enable() {
 }
 bool Runtime::disable() {
     running = false;
+    input::stopCustomInput();
     ui::stop();
     inventory::stop();
     inspection::stop();
