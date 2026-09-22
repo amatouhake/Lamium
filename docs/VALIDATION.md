@@ -618,3 +618,29 @@ at 04:15:00 on 2026-09-23, matching the fresh process started at 04:14:45 for th
 d79b037 deployment. This upgrades that attempt from DLL-load-only evidence to
 successful Runtime initialization. It does not verify HUD/input/render behavior,
 and does not cover subsequent undeployed builds.
+
+### Settings runtime failure and RTTI repair (2026-09-23)
+
+The normal 6990f95 build was deployed to Minecraft 1.26.51.01 with
+LeviLamina Client 26.51.3 and Deesse UI 1.3.9. Runtime initialization and local
+creative-world loading succeeded. F8 displayed an empty native Lamium dialog,
+not the custom settings list; Escape did not dismiss it. This is a reproduced
+failure, superseding build-only evidence for the settings screen.
+
+The client log identified `std::__non_rtti_object` / `Access violation - no RTTI
+data!` in Lamium's BeforeUIRenderEvent listener. The renderer used C++
+`dynamic_cast` on a Bedrock scene object. It now identifies the owned scene
+inside the actual UIScene render call and scopes its ScreenView to that call,
+restoring the prior view on both normal return and exceptions. Temporary
+diagnostic logging was removed.
+
+The repaired build passed compilation, LamiumTests and the package/license-copy
+check. Installed DLL SHA-256:
+`8FFC46744F7FAB0011029E5934F1E279BA5F44258306B748E103B52C79DA013D`.
+In the same local creative world, F8 now displayed the custom translucent list
+over the visible world, and Enter switched from Features to Hotkeys. This does
+not establish the rest of the input/settings acceptance criteria: **Escape left
+the panel visible**, so closing/scene lifecycle remains a reproduced unresolved
+issue. Both failed sessions were ended through the normal window-close action.
+Key capture, search, automatic saving, individual new features and full visual
+polish remain unverified. Existing instance mods and resource packs were retained.

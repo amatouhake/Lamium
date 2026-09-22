@@ -94,9 +94,26 @@ void cancelCapture() {
 }
 std::array<ll::event::ListenerPtr, 5> listeners;
 bool backgroundHook = false;
+bool renderHook = false;
+thread_local ScreenView* settingsRenderView = nullptr;
 
 bool ownsTop() {
     return client && scene && client->getSceneFactory().getCurrentSceneStack()->getTopScene() == scene.get();
+}
+LL_TYPE_INSTANCE_HOOK(SettingsSceneRender, ll::memory::HookPriority::Normal, UIScene,
+    &UIScene::$render, void, ScreenContext& context, FrameRenderObject const& object) {
+    // Bedrock scene objects do not carry C++ RTTI. Identify the scene through
+    // the actual UIScene call, and scope the view to this render invocation.
+    // Restoring the previous value also handles nested rendering and exceptions.
+    struct RestoreView {
+        ScreenView* previous;
+        ~RestoreView() { settingsRenderView = previous; }
+    } restore{settingsRenderView};
+    {
+        std::lock_guard lock(mutex);
+        settingsRenderView = scene.get() == this ? mScreenView.get() : nullptr;
+    }
+    origin(context, object);
 }
 LL_TYPE_INSTANCE_HOOK(SettingsWorldBackground, ll::memory::HookPriority::Normal, UIScene,
     &UIScene::$renderGameBehind, bool) {
@@ -308,6 +325,8 @@ void start() {
     if (!backgroundHook) throw std::runtime_error("Could not install settings world background hook");
     textHook = SettingsSearchText::hook(true) == 0;
     if (!textHook) throw std::runtime_error("Could not install settings text input hook");
+    renderHook = SettingsSceneRender::hook(true) == 0;
+    if (!renderHook) throw std::runtime_error("Could not install settings scene render hook");
     auto& bus = ll::event::EventBus::getInstance();
     listeners[0] = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
         std::lock_guard lock(mutex);
@@ -316,8 +335,7 @@ void start() {
     });
     listeners[4] = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) {
         std::lock_guard lock(mutex);
-        auto* native = dynamic_cast<UIScene*>(scene.get());
-        if (!native || native->mScreenView.get() != &event.screenView()) return;
+        if (!scene || settingsRenderView != &event.screenView()) return;
         // Only replace our focus-owning dialog's drawing. Other native screens
         // and the world keep their normal rendering and resource-pack behavior.
         event.cancel();
@@ -416,6 +434,7 @@ void stop() {
         listener.reset();
     }
     stopLocalization();
+    if (renderHook) { SettingsSceneRender::unhook(true); renderHook = false; }
     if (textHook) { SettingsSearchText::unhook(true); textHook = false; }
     if (backgroundHook) { SettingsWorldBackground::unhook(true); backgroundHook = false; }
 }
