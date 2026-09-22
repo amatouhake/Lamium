@@ -4,6 +4,15 @@ Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
 
 ## Settings foundation in progress
 
+The binding model and storage format now distinguish native Minecraft mappings,
+explicit Unbound, and custom chords. Action metadata owns Press/Hold/Toggle
+semantics. Pure tests cover arbitrary chord order, repeated key-down suppression,
+release of any chord member, reset release, modified wheel impulses, invalid
+inputs, and persistence/reset without losing unrelated bindings. These are
+preparatory components: native event dispatch and the in-game binding editor
+are not connected yet, so custom bindings in JSON do not control actions yet.
+Current gameplay still uses the existing Minecraft key registrations.
+
 The current source replaces the owned native dialog's drawing through a scoped
 BeforeUIRenderEvent handler and requests world rendering behind that scene.
 Other scenes use their original rendering. The panel and backdrop use alpha;

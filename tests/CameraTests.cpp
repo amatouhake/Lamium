@@ -13,6 +13,8 @@ int runPreviewLayoutTests();
 int runDurabilityBarTests();
 int runBundlePreviewTests();
 int main() try {
+    extern void bindingTests();
+    bindingTests();
     extern void searchQueryTests();
     searchQueryTests();
     extern void sortPlannerPropertyTests();

@@ -1,10 +1,12 @@
 #pragma once
 #include <algorithm>
 #include <cmath>
+#include "input/Binding.h"
 
 namespace lamium {
 struct Settings {
     int version = 1;
+    input::Bindings bindings;
     struct Camera {
         bool zoom = true;
         float magnification = 3.0f;
