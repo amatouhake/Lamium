@@ -276,16 +276,16 @@ void render(ll::event::UIRenderEvent& event) {
     float width = layout.width, left = layout.left, top = layout.top;
     syncTextKeyboard(left, layout.rowY(selected));
     panel(context,0,0,size.x,size.y,.25f);
-    panel(context,left-6,top-6,width+12,layout.footer+40-top);
     if (!layout.visible) {
         hovered = -1;
         label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
         context.flushText(0, std::nullopt);
         return;
     }
+    panel(context,left-6,top-6,width+12,layout.bottom+6-top);
     label(context,left,top,width,capturing
         ? translated("key.Lamium." + std::string(input::actions[static_cast<size_t>(*capturing)].id)) : translated("title"));
-    if (layout.subtitle) label(context,left,top+18,width,translated(visibleRows.empty() ? "noResults" : "subtitle"));
+    if (layout.subtitle) label(context,left,top+16,width,translated(visibleRows.empty() ? "noResults" : "subtitle"));
     auto const preferences = Runtime::instance().preferences();
     auto rowLabel = [&](int index) {
         if (capturing) {
@@ -335,8 +335,15 @@ void render(ll::event::UIRenderEvent& event) {
     hovered = layout.hit(pointer.x, pointer.y);
     for (int i=layout.first;i<layout.first+layout.visible;++i) {
         float y = layout.rowY(i);
-        rowBackground(context,left,y,width,20,selected == i,hovered == i);
-        label(context,left+6,y+5,width-12,rowLabel(i));
+        rowBackground(context,left,y,width,SettingsLayout::rowHeight,selected == i,hovered == i);
+        label(context,left+6,y+2,width-16,rowLabel(i));
+    }
+    if (layout.visible < rowCount()) {
+        float trackHeight = layout.visible * SettingsLayout::rowPitch - 2;
+        float thumbHeight = std::max(8.0f, trackHeight * layout.visible / rowCount());
+        float thumbY = layout.rowsTop + (trackHeight-thumbHeight) * layout.first / (rowCount()-layout.visible);
+        rowBackground(context,left+width-3,layout.rowsTop,2,trackHeight,false,false);
+        rowBackground(context,left+width-3,thumbY,2,thumbHeight,true,true);
     }
     label(context,left,layout.footer,width,error.empty() ? translated(editingNumber ? "numberHint" : capturing ? "captureHint" : searchFocused ? "searchHint" : "navigation") : error);
     if (layout.secondHint) {

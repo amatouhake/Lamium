@@ -15,9 +15,10 @@ void settingsLayoutTests() {
             check(layout.rowY(first + layout.visible - 1) + layout.rowHeight < layout.footer);
             check(layout.footer + (layout.secondHint ? 29 : 14) <= height);
             check(layout.hit(layout.left + 5, layout.rowY(row) + 5) == row);
-            check(layout.hit(layout.left + 5, layout.rowY(row) + 21) == -1);
+            check(layout.hit(layout.left + 5, layout.rowY(row) + layout.rowHeight + 1) == -1);
             check(layout.hit(layout.left - 1, layout.rowY(row) + 5) == -1);
             check(layout.hit(layout.left + 5, layout.footer) == -1);
+            check(layout.bottom + 6 <= height);
         }
         auto wrap = SettingsLayout::fit(320, height, count, 0, first);
         check(wrap.first == 0);
@@ -25,4 +26,9 @@ void settingsLayoutTests() {
     }
     check(SettingsLayout::fit(90, 60, 10, 0, 0).visible == 0);
     check(SettingsLayout::fit(640, 480, 10, 0, 0).visible == 10);
+    auto full = SettingsLayout::fit(640, 360, 100, 0, 0);
+    auto filtered = SettingsLayout::fit(640, 360, 5, 0, 0);
+    check(full.visible >= 14);
+    check(full.rowsTop == filtered.rowsTop && full.top == filtered.top);
+    check(filtered.bottom < full.bottom);
 }

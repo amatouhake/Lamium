@@ -774,3 +774,24 @@ This verifies the feature-to-binding editor path, modifier chord capture,
 automatic persistence, Reset, and return selection. It does not verify Zoom
 activation using the temporary chord, arbitrary non-modifier chords, mouse or
 wheel capture, or the separate Hotkeys view.
+
+### Compact settings layout (2026-09-23)
+
+Reduced row pitch from 22 to 16 GUI units and widened the maximum list width
+from 330 to 460. Drawing and hit testing share the row-height constant. The
+panel bottom now follows the visible result count while the header/search
+position stays anchored. An overflow indicator shows the visible portion of
+the list. Layout tests cover short screens, scrolling selection, row gaps,
+panel bounds, and stable header placement during filtering. LamiumTests,
+client build, package/license checks, and whitespace checks passed.
+
+Installed DLL SHA-256:
+`5BE5F6998F607C72C8C0D6B0A893F94A93FD5EC866C5F299A9EEBCAD89C6BABC`.
+In the existing local creative scenario at 1920x1080, F8 displayed 14 rows
+instead of the preceding 10. Text was readable without overlap, with the
+overflow indicator visible at the right. Clicking the search row focused it;
+entering `hints` filtered to five rows, kept the search position, and shortened
+the panel to the footer rather than covering the lower world view. Clicking
+Close returned to gameplay. Other GUI scales and resource packs remain pending.
+This is an incremental density improvement, not completion of the planned
+feature-centric visual design and broader navigation work.

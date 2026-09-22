@@ -4,23 +4,26 @@ The current build is a development checkpoint, not a finished settings experienc
 Settings and input foundation work is now underway, before broader feature expansion.
 
 - The source now substitutes translucent drawing for the owned native dialog
-  and requests the world behind it. Runtime world visibility, input isolation,
-  and restoration still need verification; this is not a validated UX fix yet.
+  and requests the world behind it. World visibility and repeated close/return
+  were verified in the local creative scenario. Comprehensive input isolation
+  and transition coverage remain pending.
 - Features and Hotkeys now expose a binding capture editor with Clear/Reset.
   Native Minecraft mappings remain the fallback when no override is stored.
-  The reported binding usability issue still needs runtime verification of the
-  complete edit/save/use workflow. Exact duplicate custom bindings are marked;
+  Modifier chord editing, persistence, and Reset were verified in the feature
+  view. Activation with the edited binding and the Hotkeys view still need
+  runtime verification. Exact duplicate custom bindings are marked;
   broader conflict detection and clearer feature descriptions remain open.
-- The top-left gameplay hints now have a visibility toggle in source. Build and
-  persistence tests pass; runtime validation remains pending.
+- The top-left gameplay hints can be hidden in-game; hiding and persistence
+  across a game restart were verified.
 - Features now groups settings and bindings under collapsible feature headers
   with state/binding summaries and short descriptions. Search reveals matching
   children even when the feature is collapsed; Hotkeys remains a flat action
-  list. Pure row-generation and text tests pass. In-game input delivery, text
-  fit, expansion/click targets, and layout remain unverified.
+  list. Latin search entry, deletion, and Ctrl+A replacement were verified
+  in-game. IME, broader text fit, and expansion/click-target coverage remain open.
 - Explicit Save/Cancel has been replaced with per-edit persistence and application.
   Escape/Close only dismisses the screen. Failed saves leave the previous setting
-  active and display an error. Runtime validation remains pending.
+  active and display an error. Numeric editing and saving before leaving the
+  editor were verified; runtime save-failure recovery remains pending.
 
 ## Foundation requirements
 
