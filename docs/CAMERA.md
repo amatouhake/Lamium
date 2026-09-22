@@ -65,6 +65,26 @@ cancel the detached session, and Zoom must use the same camera/input policy.
 
 ## Required runtime evidence
 
+### Opt-in view override experiment
+
+`xmake f --camera_probe=y` enables a development-only fixed 20-degree
+camera-local yaw while the existing Zoom action is held in gameplay. It also
+enables the trace hooks. The probe composes with the fresh vanilla view after
+each setup call, marks the view stack dirty through its mutable accessor, and
+leaves dependency updates to the normal render path. It does not write player
+position/rotation or cached camera dependencies. Zoom release, cancellation,
+disable, and non-gameplay screens stop applying the override; it does not restore
+a saved matrix. Disable with `xmake f --camera_probe=n` and rebuild.
+
+This is not Freelook: mouse input still follows vanilla player rotation,
+Zoom still changes FOV, and interaction aim has not been separated. Use only in
+a local validation world to check whether the modified view remains stable
+across frames, aligns with world overlays, and returns on release. Its runtime
+behavior is not yet verified. A complete feature still needs its own input
+action, detached pose, cancellation policy, and interaction handling.
+
+### Read-only observations
+
 An optional read-only probe is available with `xmake f --camera_trace=y`
 followed by `xmake`. It observes the existing Zoom hook lifecycle and samples
 `setupCamera` once per 120 calls, up to 32 samples per process. It records the

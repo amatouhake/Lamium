@@ -21,5 +21,8 @@ public:
     void reset() { state.reset(); client = nullptr; }
     float fov(float base) const { return running ? state.fov(base) : base; }
     float sensitivity() const { return running ? state.sensitivity() : 1.0f; }
+#ifdef LAMIUM_CAMERA_PROBE
+    bool viewProbeActive() const;
+#endif
 };
 }

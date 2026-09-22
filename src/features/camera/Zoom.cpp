@@ -69,7 +69,7 @@ LL_TYPE_INSTANCE_HOOK(CameraDependenciesTraceHook, ll::memory::HookPriority::Nor
     } catch (...) {}
 }
 
-// Observe only: never modify matrices, dependency caches, or the player pose.
+// The trace is read-only; the separately enabled probe modifies only the fresh view.
 LL_TYPE_INSTANCE_HOOK(CameraTraceHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::setupCamera, void, mce::Camera& camera, float alpha) {
     CameraTraceScope scope{camera};
@@ -82,6 +82,25 @@ LL_TYPE_INSTANCE_HOOK(CameraTraceHook, ll::memory::HookPriority::Normal, LevelRe
     glm::mat4 before{1};
     if (beforeValid) before = *camera.viewMatrixStack->top()._m;
     origin(camera, alpha);
+#ifdef LAMIUM_CAMERA_PROBE
+    if (Zoom::instance().viewProbeActive() && !camera.viewMatrixStack->stack->empty()) {
+        // Camera-local 20-degree yaw. Pre-multiplication rotates the view without
+        // translating its eye. Always compose with this call's vanilla result.
+        auto view = *camera.viewMatrixStack->top()._m;
+        bool finite = true;
+        for (int column = 0; column < 4; ++column)
+            for (int row = 0; row < 4; ++row)
+                finite = finite && std::isfinite(view[column][row]);
+        if (finite) {
+            constexpr float angle = 0.3490658504f;
+            glm::mat4 rotation{1.f};
+            rotation[0][0] = rotation[2][2] = std::cos(angle);
+            rotation[0][2] = -std::sin(angle);
+            rotation[2][0] = std::sin(angle);
+            *camera.viewMatrixStack->getTop()._m = rotation * view;
+        }
+    }
+#endif
     if (!sample || camera.viewMatrixStack->stack->empty()) return;
     try {
         auto const& view = *camera.viewMatrixStack->top()._m;
@@ -140,6 +159,12 @@ HookEntry hooks[] = {
 };
 }
 Zoom& Zoom::instance() { static Zoom value; return value; }
+#ifdef LAMIUM_CAMERA_PROBE
+bool Zoom::viewProbeActive() const {
+    auto* current = client.load();
+    return running && allowed && state.held() && current && gameplayScreen(current->getScreenName());
+}
+#endif
 void Zoom::configure(Settings const& settings) {
     allowed = settings.camera.zoom;
     state.configure(settings.camera.magnification, settings.camera.wheelStep);
