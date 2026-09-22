@@ -11,7 +11,7 @@ prototype quality. Runtime validation is in progress. No stable
 release is available yet. See [validation notes](docs/VALIDATION.md) for the
 distinction between implemented and verified behavior.
 
-The current development checkpoint is awaiting hands-on feedback. Known settings
+Settings and input foundation work is underway. Known settings
 and controls limitations are recorded in [UI follow-up](docs/UX-FOLLOWUP.md);
 the current settings interaction is not the final design.
 
@@ -19,9 +19,11 @@ The current prototype provides hold-to-zoom (`C`), local settings (`F8`), and a
 NightVision toggle (`J`) while in a world. Settings also control container
 previews, durability information, and inventory sorting. Use Up/Down or the wheel
 to select rows, Left/Right to adjust, and Enter or a click to choose. Short windows
-scroll to keep the selected row visible. Save applies changes; Cancel/Escape
-discards them. These feature keys are registered with
-Minecraft's keyboard settings. On-screen gameplay hints use the current keyboard bindings.
+scroll to keep the selected row visible. Changes are saved and applied when edited;
+Escape or Close only closes the panel. A failed save leaves the previous value
+active and shows an error. Gameplay key hints can be hidden from the panel.
+These feature keys are registered with Minecraft's keyboard settings.
+On-screen gameplay hints use the current keyboard bindings.
 Keyboard/mouse behavior and resource-pack compatibility are still being tested.
 Settings, gameplay hints, durability text, and Minecraft's Lamium key-binding labels follow the
 game's language: Japanese and English are included, with English as the fallback.

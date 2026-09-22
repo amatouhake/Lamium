@@ -22,6 +22,9 @@ struct Settings {
         bool sorting = true;
         bool sortContainers = true;
     } inventory;
+    struct Interface {
+        bool gameplayHints = true;
+    } ui;
 
     void normalize() {
         if (!std::isfinite(camera.magnification)) camera.magnification = 3.0f;

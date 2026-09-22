@@ -32,7 +32,6 @@ namespace {
 std::recursive_mutex mutex;
 IClientInstance* client = nullptr;
 std::shared_ptr<AbstractScene> scene;
-Settings draft;
 int selected = 0;
 int hovered = -1;
 int command = 0;
@@ -56,22 +55,23 @@ void close() {
     } else clear();
 }
 void activate(int row, int direction) {
+    // Read current preferences for every edit so another action cannot be
+    // overwritten by a stale copy captured when the screen opened.
+    auto value = Runtime::instance().preferences();
     switch (row) {
-    case 0: draft.camera.zoom = !draft.camera.zoom; break;
-    case 1: draft.camera.magnification += direction * .5f; break;
-    case 2: draft.camera.wheelStep += direction * .1f; break;
-    case 3: draft.lighting.nightVision = !draft.lighting.nightVision; break;
-    case 4: draft.inspection.containerPreviews = !draft.inspection.containerPreviews; break;
-    case 5: draft.inspection.durability = !draft.inspection.durability; break;
-    case 6: draft.inventory.sorting = !draft.inventory.sorting; break;
-    case 7: draft.inventory.sortContainers = !draft.inventory.sortContainers; break;
-    case 8:
-        if (Runtime::instance().save(draft)) close();
-        else error = translated("saveError");
-        break;
-    case 9: close(); break;
+    case 0: value.camera.zoom = !value.camera.zoom; break;
+    case 1: value.camera.magnification += direction * .5f; break;
+    case 2: value.camera.wheelStep += direction * .1f; break;
+    case 3: value.lighting.nightVision = !value.lighting.nightVision; break;
+    case 4: value.inspection.containerPreviews = !value.inspection.containerPreviews; break;
+    case 5: value.inspection.durability = !value.inspection.durability; break;
+    case 6: value.inventory.sorting = !value.inventory.sorting; break;
+    case 7: value.inventory.sortContainers = !value.inventory.sortContainers; break;
+    case 8: value.ui.gameplayHints = !value.ui.gameplayHints; break;
+    case 9: close(); return;
+    default: return;
     }
-    draft.normalize();
+    error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
 }
 void label(MinecraftUIRenderContext& context, float x, float y, float width, std::string text) {
     auto& font = context.mClient.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default").getFont();
@@ -87,7 +87,7 @@ void render(ll::event::AfterUIRenderEvent& event) {
     auto& view = event.screenView();
     glm::vec2 size = view.mSize;
     if (!scene) {
-        if (gameplayScreen(current.getScreenName())) {
+        if (gameplayScreen(current.getScreenName()) && Runtime::instance().preferences().ui.gameplayHints) {
             label(context, 6, 6, size.x-12, gameplayKeyHint(current));
             context.flushText(0, std::nullopt);
         }
@@ -115,6 +115,7 @@ void render(ll::event::AfterUIRenderEvent& event) {
     label(context,left,top,width,translated("title"));
     if (layout.subtitle) label(context,left,top+18,width,translated("subtitle"));
     auto toggle = [](std::string_view key, bool value) { return translated(key, translated(value ? "on" : "off")); };
+    auto const draft = Runtime::instance().preferences();
     std::array<std::string,rowCount> rows{
         toggle("zoom", draft.camera.zoom),
         translated("magnification", draft.camera.magnification),
@@ -124,7 +125,7 @@ void render(ll::event::AfterUIRenderEvent& event) {
         toggle("durability", draft.inspection.durability),
         toggle("sorting", draft.inventory.sorting),
         toggle("storage", draft.inventory.sortContainers),
-        translated("save"), translated("cancel")
+        toggle("gameplayHints", draft.ui.gameplayHints), translated("close")
     };
     glm::vec2 pointer = view.mPointerLocationPrevious;
     hovered = layout.hit(pointer.x, pointer.y);
@@ -146,7 +147,6 @@ void open(IClientInstance& current) {
     std::lock_guard lock(mutex);
     if (scene || !gameplayScreen(current.getScreenName())) return;
     Zoom::instance().reset();
-    draft = Runtime::instance().preferences();
     selected = 0; hovered = -1; command = 0; error.clear(); seen = false; closing = false;
     firstVisible = 0; commandRow = 0;
     // This native information screen supplies focus/cursor ownership. It has no
@@ -174,7 +174,7 @@ void start() {
         if (event.actionButtonId() == MouseAction::ActionLeft && event.buttonData() == MouseAction::DataDown && hovered >= 0) {
             selected = hovered; commandRow = hovered; command = 1;
         }
-        if (event.actionButtonId() == MouseAction::ActionRight && event.buttonData() == MouseAction::DataDown && hovered >= 0 && hovered < rowCount-2) {
+        if (event.actionButtonId() == MouseAction::ActionRight && event.buttonData() == MouseAction::DataDown && hovered >= 0 && hovered < rowCount-1) {
             selected = hovered; commandRow = hovered; command = -1;
         }
     });
@@ -188,8 +188,8 @@ void start() {
         case 0x1b: command = 2; break;
         case 0x26: selected = (selected+rowCount-1)%rowCount; break;
         case 0x09: case 0x28: selected = (selected+1)%rowCount; break;
-        case 0x25: if (selected < rowCount-2) { commandRow = selected; command = -1; } break;
-        case 0x27: if (selected < rowCount-2) { commandRow = selected; command = 1; } break;
+        case 0x25: if (selected < rowCount-1) { commandRow = selected; command = -1; } break;
+        case 0x27: if (selected < rowCount-1) { commandRow = selected; command = 1; } break;
         case 0x0d: case 0x20: commandRow = selected; command = 1; break;
         }
     });

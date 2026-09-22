@@ -2,6 +2,21 @@
 
 Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
 
+## Settings foundation in progress
+
+The current source replaces draft/Save/Cancel with per-edit persistence and
+application. Escape/Close only dismisses the screen. Each edit reads current
+preferences, and a failed write leaves both runtime state and displayed values
+unchanged with an error message. Gameplay hints now have a visibility setting.
+
+Release build, all automated tests (including 3,000 sort planner layouts), and
+package checks passed. Storage tests cover defaults for older files, persistence
+of hidden hints, and preservation of the previous file on replacement failure.
+These checks do not verify the new interaction in Minecraft. Installation,
+live NightVision changes, hiding/restoring hints, Escape persistence, and the
+in-game failure message still require runtime validation. Historical Save/Cancel
+observations below apply to earlier builds, not this interaction.
+
 ## Confirmed for the initial camera/settings prototype
 
 - Release DLL compilation and mod packaging completed.

@@ -39,7 +39,8 @@ Json encode(Settings const& settings) {
         {"lighting", {{"nightVision", settings.lighting.nightVision}}},
         {"inspection", {{"containerPreviews", settings.inspection.containerPreviews},
                         {"durability", settings.inspection.durability}}},
-        {"inventory", {{"sorting", settings.inventory.sorting}, {"sortContainers", settings.inventory.sortContainers}}}
+        {"inventory", {{"sorting", settings.inventory.sorting}, {"sortContainers", settings.inventory.sortContainers}}},
+        {"interface", {{"gameplayHints", settings.ui.gameplayHints}}}
     };
 }
 }
@@ -62,6 +63,9 @@ Settings decodeSettings(std::string_view text) {
     if (data.contains("inventory")) {
         value.inventory.sorting = data.at("inventory").value("sorting", true);
         value.inventory.sortContainers = data.at("inventory").value("sortContainers", true);
+    }
+    if (data.contains("interface")) {
+        value.ui.gameplayHints = data.at("interface").value("gameplayHints", true);
     }
     value.normalize();
     return value;
