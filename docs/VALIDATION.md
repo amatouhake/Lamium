@@ -7,6 +7,9 @@ Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
 - Release DLL compilation and mod packaging completed.
 - Camera state tests passed: inactive pass-through, held projection scaling,
   sensitivity, wheel limits, transient reset, invalid configuration, small FOV.
+- User-reported runtime validation confirms Zoom hold, wheel adjustment and
+  release work correctly. Sensitivity and focus/dimension transitions remain
+  separate checks; this report does not establish those behaviors.
 - Minecraft loaded Lamium with the older feature mods disabled.
 - F8 opened the local settings panel from a creative world.
 - Arrow keys changed magnification from 3.0 to 3.5.
@@ -255,7 +258,8 @@ checker; removing the probe restores a passing result. Additional DLLs and linke
 inputs are not allowed in the package. The distribution review below remains
 open; these are technical linkage and packaging checks, not a legal conclusion.
 
-- Verify zoom visually while held, wheel capture, sensitivity, and release.
+- Verify zoom sensitivity and transition behavior; hold, wheel adjustment and
+  release have passed user-reported runtime validation.
 - Verify menu transitions, focus loss, dimension changes, disconnect/rejoin.
 - Verify all settings survive restart and in-game errors preserve existing files.
 - Verify localized layout in small windows and gamepad/touch behavior;
