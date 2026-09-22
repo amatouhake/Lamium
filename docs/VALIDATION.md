@@ -541,3 +541,18 @@ Launcher screenshots worked, but Minecraft state capture failed twice with
 selection and activation. No in-game input was issued. The inspected loader log
 still belonged to an earlier run, so its enable messages are not evidence for
 this build. Settings, input, HUD and overlay runtime checks remain pending.
+
+### Target information foundation (runtime validation pending)
+
+Target Info is a separate default-off feature with an unbound toggle action and
+an optional identifier line. The first provider reads the client's latest block
+hit, rejects missing chunks, out-of-height positions and air, and returns owned
+name/identifier strings. The minimal HUD uses shared text/layout rendering at the
+top center, independently of Info HUD. No server requests or block entity data are
+used. Settings and Hotkeys expose the feature through the common catalog.
+
+This is the initial block identity provider, not the completed WAILA subsystem.
+Entity identity, block state/direction, progress/redstone providers, configurable
+placement and target icons remain future work. Runtime checks must cover target
+changes, empty sky, entities occluding blocks, chunk loading, world/dimension exit,
+language/resource-pack names, small UI scales and settings input ownership.

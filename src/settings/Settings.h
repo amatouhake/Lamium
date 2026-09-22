@@ -42,6 +42,8 @@ struct Settings {
         bool hideOffhand = false;
     } visuals;
     struct Information {
+        bool target = false;
+        bool targetIdentifier = true;
         bool hud = false;
         bool coordinates = true;
         bool dimension = true;

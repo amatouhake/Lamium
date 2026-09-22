@@ -2,6 +2,7 @@
 #include "features/information/PlayerInfo.h"
 #include "features/information/FrameTiming.h"
 #include "features/information/NetworkInfo.h"
+#include "features/information/TargetInfo.h"
 #include "ui/HudLayout.h"
 #include "ui/Widgets.h"
 #include "ui/Localization.h"
@@ -11,6 +12,14 @@
 
 namespace lamium::information {
 void drawHud(MinecraftUIRenderContext& context, float width, float height, Settings::Information const& settings) {
+    if (settings.target) {
+        if (auto target = collectTargetInfo(context.mClient)) {
+            auto layout = ui::HudLayout::fit(width,height,50,2,settings.targetIdentifier ? 2 : 1);
+            if (layout.lines > 0) ui::label(context,layout.x,layout.y,layout.width,target->name);
+            if (layout.lines > 1) ui::label(context,layout.x,layout.y+14,layout.width,target->identifier);
+            if (layout.lines) context.flushText(0,std::nullopt);
+        }
+    }
     if (!settings.hud) return;
     auto info = collectPlayerInfo(context.mClient,{settings.coordinates,settings.dimension,settings.biome,settings.facing,settings.light});
     if (!info.present) return;
