@@ -61,9 +61,16 @@ fields never silently truncate fractional values. Collection replacement builds
 and validates a complete candidate before swapping it in; failed loading keeps
 the old definitions, IDs and caches. Successful replacement assigns fresh IDs.
 Codec tests cover round trips across all shape/snap/plane variants, UTF-8 metadata,
-large-coordinate precision and malformed input. File I/O, world association and
-UI saving/loading are not connected yet; this codec alone does not persist the
-running session.
+large-coordinate precision and malformed input.
+
+`ShapeStore` reads at most 1 MiB plus one detection byte and validates before
+returning definitions. Its Windows writer validates first, reserves a sibling
+temporary file with exclusive creation, writes and flushes it, then replaces
+the destination. On failure it cleans up only its own temporary file and leaves
+the previous destination intact. Filesystem tests cover first save, replacement,
+UTF-8 names, invalid data, oversized reads and replacement blocked by an open
+Windows handle. World association and UI saving/loading are not connected yet;
+the running game session still does not persist automatically.
 
 Chunk Borders defaults off. The prototype draws the player's current chunk
 boundary, using floor division at negative coordinates and the dimension's

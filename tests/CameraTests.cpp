@@ -31,6 +31,8 @@ int main() try {
     shapeCollectionTests();
     extern void shapeDocumentTests();
     shapeDocumentTests();
+    extern void shapeStoreTests();
+    shapeStoreTests();
     extern void settingsRowsTests();
     settingsRowsTests();
     extern void bindingTests();

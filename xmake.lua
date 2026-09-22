@@ -76,6 +76,7 @@ target("LamiumTests")
     add_files("tests/**.cpp")
     add_files("src/settings/SettingsStore.cpp")
     add_files("src/overlay/ShapeDocument.cpp")
+    add_files("src/overlay/ShapeStore.cpp")
     add_files("src/features/inventory/sort/**.cpp")
     add_packages("nlohmann_json")
     if is_plat("windows") then
