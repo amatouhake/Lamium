@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 
 class ContainerScreenController;
 class CreativeItemRegistry;
@@ -27,7 +28,9 @@ struct SortRegion {
 class SortSession {
 public:
     static void tick(ContainerScreenController& controller);
-    static void cancel();
+    // A reason is logged only when there is an active job. Already-reported
+    // failures and successful completion can reset silently.
+    static void cancel(std::string_view reason = {});
     /// Chooses what to sort for the given screen: the storage container under
     /// the pointer when it is an ordinary one and container sorting is
     /// enabled, otherwise the player's main inventory. Empty when the screen

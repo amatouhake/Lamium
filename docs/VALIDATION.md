@@ -173,6 +173,12 @@ with the stronger selection color while Zoom retained the weaker hover color.
   returns before collecting request IDs. The container manager itself is retained
   across the vanilla call. Build, existing tests and package validation pass;
   the synchronous teardown/exception paths still need runtime reproduction.
+- Screen close, focus loss, screen replacement, world exit and feature shutdown
+  now log cancellation only while a sort is pending, with its region, operation
+  position and response-wait state. Request capture and the pending job are
+  cleared before logging. This makes an interrupted runtime run distinguishable
+  from one that finished before the screen closed; it does not by itself prove
+  the interruption paths. Build, existing tests and package validation pass.
 - With the cancellation and equal-key stability fixes (`29ab144`), a local
   survival inventory selected the 27-slot player region. Splitting 64 oak logs
   into 32 + 32 and pressing R completed one acknowledged merge back to 64;

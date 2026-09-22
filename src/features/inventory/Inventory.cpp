@@ -23,7 +23,7 @@ bool start() {
     }
 }
 void stop() {
-    game::SortSession::cancel();
+    game::SortSession::cancel("inventory feature stopped");
     game::ScreenTracker::getInstance().uninstall();
     game::TextInputTracker::getInstance().uninstall();
     game::removeRequestTracker();

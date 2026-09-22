@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace lamium::inventory::game {
@@ -214,9 +215,17 @@ bool SortSession::run(
     return true;
 }
 
-void SortSession::cancel() {
-    pending.reset();
+void SortSession::cancel(std::string_view reason) {
+    auto cancelled = std::move(pending);
     cancelTransfer();
+    // Clear capture before diagnostics, including when the logger throws.
+    if (cancelled && !reason.empty()) {
+        Runtime::instance().self().getLogger().info(
+            "Sort cancelled: {} ({}; operation {}/{}, awaiting response={})",
+            reason, cancelled->region.label, cancelled->next + 1,
+            cancelled->plan.ops.size(), cancelled->waiting
+        );
+    }
 }
 
 void SortSession::tick(ContainerScreenController& controller) {

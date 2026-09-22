@@ -48,7 +48,7 @@ void ScreenTracker::install() {
     );
     mExitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
         [this](auto&) {
-            SortSession::cancel();
+            SortSession::cancel("world exited");
             TextInputTracker::getInstance().forget(mCurrentView);
             mCurrent.reset();
             mCurrentView = nullptr;
@@ -57,7 +57,7 @@ void ScreenTracker::install() {
 }
 
 void ScreenTracker::uninstall() {
-    SortSession::cancel();
+    SortSession::cancel("screen tracking stopped");
     if (!mInstalled) return;
     if (mRenderListener) {
         ll::event::EventBus::getInstance().removeListener(mRenderListener);
@@ -83,7 +83,7 @@ std::shared_ptr<ContainerScreenController> ScreenTracker::current() const {
 void ScreenTracker::onControllerLeft(ContainerScreenController& controller) {
     auto current = mCurrent.lock();
     if (current && current.get() == static_cast<ScreenController*>(&controller)) {
-        SortSession::cancel();
+        SortSession::cancel("container screen closed");
         mCurrent.reset();
         TextInputTracker::getInstance().forget(mCurrentView);
         mCurrentView = nullptr;
@@ -99,14 +99,14 @@ void ScreenTracker::onAfterUIRender(ll::event::AfterUIRenderEvent& event) {
     }
     if (!event.screenView().mHasFocus) {
         if (mCurrent.lock() == controller) {
-            SortSession::cancel();
+            SortSession::cancel("container screen lost focus");
             mCurrent.reset();
             mCurrentView = nullptr;
         }
         return;
     }
     if (mCurrent.lock() != controller) {
-        SortSession::cancel();
+        SortSession::cancel("container screen changed");
         mCurrent     = controller;
         mCurrentView = &event.screenView();
         // Do not erase text focus here: a search box may already have gained
