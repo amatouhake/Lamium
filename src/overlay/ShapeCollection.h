@@ -97,6 +97,14 @@ public:
         return true;
     }
     void clear() { shapes.clear(); totalLines = 0; }
+    void replace(std::vector<ShapeDefinition> definitions) {
+        ShapeCollection replacement(maximumShapes,maximumLines);
+        replacement.nextId = nextId;
+        for (auto& definition : definitions) replacement.add(std::move(definition));
+        shapes.swap(replacement.shapes);
+        nextId = replacement.nextId;
+        totalLines = replacement.totalLines;
+    }
     template<class Draw> void forVisible(int dimension, Draw draw) const {
         for (auto const& [id, shape] : shapes)
             if (shape.definition.visible && shape.definition.dimension == dimension) draw(id, shape);

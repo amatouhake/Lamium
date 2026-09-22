@@ -45,6 +45,26 @@ coordinates retain full precision while display uses three decimal places.
 Successful compilation and
 search-row tests do not establish rendering or input correctness in Minecraft.
 
+## Shape document format
+
+The definition codec now supports version 1 JSON documents with a `shapes`
+array. Each entry contains `name`, `dimension`, `visible` and `geometry`.
+Round shapes use `type` (`circle`, `cylinder`, `sphere`), a three-number `center`,
+`snap` (`block_center`, `block_corner`, `off`), `radius` and integer `height`.
+Planes use `type: plane`, integer `origin`, `width`, `depth`, `spacing` and
+`plane` (`xz`, `xy`, `yz`). Coordinates retain double precision. Session IDs
+and derived geometry are excluded.
+
+Decoding rejects unsupported versions/options, malformed values, documents over
+1 MiB, more than 32 entries, and collections exceeding geometry budgets. Integer
+fields never silently truncate fractional values. Collection replacement builds
+and validates a complete candidate before swapping it in; failed loading keeps
+the old definitions, IDs and caches. Successful replacement assigns fresh IDs.
+Codec tests cover round trips across all shape/snap/plane variants, UTF-8 metadata,
+large-coordinate precision and malformed input. File I/O, world association and
+UI saving/loading are not connected yet; this codec alone does not persist the
+running session.
+
 Chunk Borders defaults off. The prototype draws the player's current chunk
 boundary, using floor division at negative coordinates and the dimension's
 height range, with horizontal edges at 16-block intervals. It hooks the native
