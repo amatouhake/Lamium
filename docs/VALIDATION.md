@@ -556,3 +556,18 @@ Entity identity, block state/direction, progress/redstone providers, configurabl
 placement and target icons remain future work. Runtime checks must cover target
 changes, empty sky, entities occluding blocks, chunk loading, world/dimension exit,
 language/resource-pack names, small UI scales and settings input ownership.
+
+### Target entity identity (runtime validation pending)
+
+The target snapshot now also resolves entity hits through HitResult::getEntity.
+Null, removed, local-player and other-dimension actors are excluded. It copies the
+client actor type ID and filtered name tag; absent names use the native entity
+localization lookup, with an identifier fallback. No actor pointer survives the
+collection call and no entity metadata is requested from the server.
+
+Release build/link, shared settings/translation tests and package checks pass.
+These checks do not execute actor lookup. Runtime verification still needs named
+and unnamed mobs, players with text filtering, item/vehicle entities, despawn,
+dimension changes and resource-pack language overrides. Confirm native entity
+localization-key semantics before considering this provider validated. Block
+states and dedicated detail providers remain unfinished.
