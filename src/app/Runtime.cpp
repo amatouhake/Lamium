@@ -7,10 +7,27 @@
 #include "ui/SettingsScreen.h"
 #include "settings/SettingsStore.h"
 #include "ll/api/mod/RegisterHelper.h"
+#include "ll/api/io/FileSink.h"
+#include "ll/api/io/PatternFormatter.h"
+#include "ll/api/io/RotatePolicy.h"
 
 namespace lamium {
 Runtime& Runtime::instance() { static Runtime value; return value; }
 bool Runtime::load() {
+    try {
+        ll::io::RotatePolicy rotation;
+        rotation.maxFileSize = 4 * 1024 * 1024;
+        rotation.maxFiles = 7;
+        rotation.totalSizeCap = 32 * 1024 * 1024;
+        rotation.compress = false;
+        auto sink = std::make_shared<ll::io::FileSink>(
+            mod.getModDir() / "logs" / "lamium.log",
+            ll::makePolymorphic<ll::io::PatternFormatter>("[{3:.3%F %T.} {2}][{1}] {0}", false), rotation);
+        sink->setFlushLevel(ll::io::LogLevel::Info);
+        mod.getLogger().addSink(std::move(sink));
+    } catch (std::exception const& error) {
+        mod.getLogger().warn("Could not create Lamium log: {}", error.what());
+    }
     auto path = mod.getConfigDir() / "settings.json";
     try {
         if (std::filesystem::exists(path)) settings = readSettings(path);

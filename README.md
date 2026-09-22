@@ -47,6 +47,10 @@ changes the same camera or inventory behavior while testing Lamium.
 
 ## Design
 
+Lamium writes its own diagnostics to `mods/Lamium/logs/lamium.log`, flushing
+informational messages immediately so failures can be inspected while the game
+is running. Logs rotate by size/date and retain at most seven archives.
+
 One mod owns settings and input actions. Features own their transient state and
 restore vanilla behavior when disabled, leaving a world, or losing input focus.
 Settings and UI remain local. Inventory actions must use ordinary game operations

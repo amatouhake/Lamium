@@ -62,15 +62,24 @@ These observations validate the UI prototype, not the whole feature suite.
 - Screen exit, loss of UI focus, changed contents, text editing, and disabling
   sorting cancel the remaining plan. Already-issued transfers remain owned by
   vanilla; Lamium does not synthesize a rollback.
-- In-game request capture, acceptance/rejection, latency, cancellation, and
-  item-conservation checks are still required; unit tests do not prove them.
 - The response-aware build loaded in game. An R press in the creative inventory
   planned five operations around one locked slot, applied the first swap, then
   stopped with an untracked-request result. The update callback did not capture
   that swap's request ID. Capture now compares the client's pending request batch
   immediately before and after each vanilla transfer. It refuses to begin while
-  another request scope is active. This replacement builds but still needs
-  in-game verification.
+  another request scope is active.
+- With pending-batch capture, the remaining four swaps completed in a local
+  creative world: the log recorded four acknowledged operations. The 12 occupied
+  slots retained their displayed counts; the locked five-log stack and hotbar
+  remained in place. Repeating R planned zero operations.
+- Splitting an unlocked 64-log stack into two stacks of 32 then pressing R
+  completed one acknowledged merge and restored 64. Pressing R while the split
+  stack was held on the cursor was refused without issuing a transfer.
+- These checks used Deesse UI 1.3.9. Storage containers, survival inventories,
+  text-focus suppression, live cancellation, rejected requests, and remote-server
+  latency still require runtime checks.
+- A separate rotating Lamium log flushes informational messages while the game
+  is running; request completion was verified from this log as well as the UI.
 
 ## Outstanding release gates
 
@@ -81,7 +90,7 @@ These observations validate the UI prototype, not the whole feature suite.
   hints, localization, and gamepad/touch behavior.
 - Verify with vanilla UI and additional UI resource packs.
 - Verify NightVision underwater, in Nether/End, and across restart/dimension changes.
-- Complete runtime validation of previews and durability; complete inventory
-  response handling validation and validate sorting in game.
+- Complete runtime validation of previews and durability; verify the remaining
+  inventory scenarios listed above.
 - Add CI and validate a clean dependency restore/build/package.
 - Complete dependency notices and distribution review.
