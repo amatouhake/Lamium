@@ -34,6 +34,10 @@ void settingsStoreTests() {
     check(old.camera.magnification == 3.5f && !old.lighting.nightVision,
           "adding lighting must preserve existing camera settings");
     check(old.inventory.sorting && old.inventory.sortContainers, "old settings supply inventory defaults");
+    check(!old.camera.freelook, "existing installations keep experimental Freelook disabled");
+    check(input::actions[static_cast<size_t>(input::Action::Freelook)].behavior == input::Behavior::Hold
+          && input::actions[static_cast<size_t>(input::Action::Freelook)].defaultKey == 0,
+          "Freelook is an independent unassigned hold action");
     check(old.ui.gameplayHints, "existing settings preserve visible gameplay hints by default");
     check(!old.inspection.hideShulkerContents, "older settings retain vanilla Shulker contents text");
     check(old.inspection.shulkerPreviews && old.inspection.emptyShulkerPreviews

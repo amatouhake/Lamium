@@ -13,6 +13,9 @@
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
 #include "mc/deps/core/math/Vec2.h"
 #include "mc/deps/input/MouseAction.h"
+#include "mc/deps/renderer/Camera.h"
+#include "ui/SettingsScreen.h"
+#include <cmath>
 #ifdef LAMIUM_CAMERA_TRACE
 #include "mc/deps/renderer/Camera.h"
 #include <algorithm>
@@ -123,12 +126,33 @@ LL_TYPE_INSTANCE_HOOK(CameraTraceHook, ll::memory::HookPriority::Normal, LevelRe
     }
 }
 #endif
+LL_TYPE_INSTANCE_HOOK(FreelookCameraHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
+    &LevelRendererPlayer::setupCamera, void, mce::Camera& camera, float alpha) {
+    origin(camera, alpha);
+    auto pose = Zoom::instance().lookAngles();
+    if (!pose || camera.viewMatrixStack->stack->empty()) return;
+    auto view = *camera.viewMatrixStack->top()._m;
+    for (int column = 0; column < 4; ++column)
+        for (int row = 0; row < 4; ++row)
+            if (!std::isfinite(view[column][row])) { Zoom::instance().releaseLook(); return; }
+    constexpr float radians = 0.01745329252f;
+    float yaw = pose->yaw * radians, pitch = pose->pitch * radians;
+    glm::mat4 horizontal{1.f}, vertical{1.f};
+    horizontal[0][0] = horizontal[2][2] = std::cos(yaw);
+    horizontal[0][2] = -std::sin(yaw);
+    horizontal[2][0] = std::sin(yaw);
+    vertical[1][1] = vertical[2][2] = std::cos(pitch);
+    vertical[1][2] = std::sin(pitch);
+    vertical[2][1] = -std::sin(pitch);
+    *camera.viewMatrixStack->getTop()._m = vertical * horizontal * view;
+}
 LL_TYPE_INSTANCE_HOOK(FovHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::getFov, float, float alpha, bool variable) {
     return Zoom::instance().fov(origin(alpha, variable));
 }
 LL_TYPE_INSTANCE_HOOK(TurnHook, ll::memory::HookPriority::Normal, LocalPlayer,
     &LocalPlayer::_applyTurnDelta, void, Vec2 const& delta) {
+    if (Zoom::instance().turnLook(*this, delta.x, delta.z)) return;
     float scale = Zoom::instance().sensitivity();
     origin(Vec2{delta.x * scale, delta.z * scale});
 }
@@ -148,6 +172,7 @@ struct HookEntry {
     bool installed = false;
 };
 HookEntry hooks[] = {
+    {FreelookCameraHook::hook, FreelookCameraHook::unhook},
 #ifdef LAMIUM_CAMERA_TRACE
     {CameraDependenciesTraceHook::hook, CameraDependenciesTraceHook::unhook},
     {CameraTraceHook::hook, CameraTraceHook::unhook},
@@ -166,8 +191,34 @@ bool Zoom::viewProbeActive() const {
 }
 #endif
 void Zoom::configure(Settings const& settings) {
+    lookAllowed = settings.camera.freelook;
+    releaseLook();
     allowed = settings.camera.zoom;
     state.configure(settings.camera.magnification, settings.camera.wheelStep);
+}
+void Zoom::pressLook(IClientInstance& current) {
+    if (!running || !lookAllowed || ui::ownsInput() || !gameplayScreen(current.getScreenName())
+        || !current.getLocalPlayer()) return;
+    client = &current;
+    look.begin(0, 0);
+}
+std::optional<DetachedLookState::Angles> Zoom::lookAngles() {
+    if (!look.snapshot()) return {};
+    auto* current = client.load();
+    if (!running || !lookAllowed || !current || ui::ownsInput()
+        || !gameplayScreen(current->getScreenName()) || !current->getLocalPlayer()) {
+        releaseLook();
+        return {};
+    }
+    return look.snapshot();
+}
+bool Zoom::turnLook(LocalPlayer& player, float pitchDelta, float yawDelta) {
+    auto* current = client.load();
+    if (!current || current->getLocalPlayer() != &player) return false;
+    if (!lookAngles()) return false;
+    // Experimental input calibration: native turn units still need runtime verification.
+    look.turn(pitchDelta * .15f, yawDelta * .15f);
+    return true;
 }
 void Zoom::press(IClientInstance& current) {
     if (!running || !allowed || !gameplayScreen(current.getScreenName())) return;
@@ -197,6 +248,7 @@ bool Zoom::start() {
             event.cancel();
         });
         screenListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([this](auto&) {
+            (void)lookAngles();
             if (!state.held()) return;
             auto* current = client.load();
             if (!current || !gameplayScreen(current->getScreenName())) release();

@@ -1,16 +1,28 @@
 # Detached camera implementation notes
 
-Freelook and FreeCamera are not implemented yet. This records SDK evidence and
-the remaining integration questions; it is not a runtime validation report.
+Freelook now has an experimental integration, disabled and unbound by default.
+FreeCamera is not implemented. This records SDK evidence and remaining
+integration questions; it does not claim detached-camera runtime validation.
 
 `DetachedLookState` now provides the game-independent angular session: begin from
 a fresh orientation, ignore repeated activation, accumulate degree deltas with
 bounded pitch and wrapped yaw, and discard the pose on cancellation or invalid
 input. Snapshot and input updates are synchronized. Unit tests cover boundary
 crossing, pitch limits, repeated activation, cancellation/reactivation, and
-nonfinite/extreme input. This state is not connected to native input or rendering
-yet; native turn-delta units and view composition must be verified before wiring
-it into a user-facing Freelook action.
+nonfinite/extreme input. The experimental `freelook` Hold action starts a relative
+angular session; native turn input is consumed for that local player and the
+render setup applies the accumulated rotation to vanilla's fresh view matrix.
+Features and Hotkeys expose the action, with a separately persisted enable flag.
+Release, settings entry, focus loss, world exit, dimension transition, camera
+configuration changes, and non-gameplay screens discard the detached pose.
+
+Runtime validation is still pending. The provisional native-input scale of
+0.15 degrees per unit and camera-local rotation order require calibration. The
+relative pitch limit is not yet an absolute world pitch limit. Player replacement,
+death/riding/sleeping, interaction aim, split-screen rendering, culling and
+perspective transitions remain incomplete; this is not a stable Freelook feature.
+The next work should validate and correct this integration, not merely expand its
+settings. Do not enable the old fixed-angle `camera_probe` simultaneously.
 
 ## Boundaries
 

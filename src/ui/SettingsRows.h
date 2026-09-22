@@ -8,7 +8,7 @@
 namespace lamium::ui {
 struct FeatureInfo { std::string_view id, name, description, toggle; };
 inline constexpr std::string_view featureSection(std::string_view id) {
-    if (id == "zoom" || id == "nightVision" || id == "hideOffhand") return "section.camera";
+    if (id == "zoom" || id == "freelook" || id == "nightVision" || id == "hideOffhand") return "section.camera";
     if (id == "previews" || id == "durability" || id == "sorting" || id == "toolSwitch") return "section.inventory";
     if (id == "restrictions") return "section.interaction";
     if (id == "settings" || id == "gameplayHints") return "section.interface";
@@ -16,6 +16,7 @@ inline constexpr std::string_view featureSection(std::string_view id) {
 }
 inline constexpr auto features = std::to_array<FeatureInfo>({
     {"zoom", "feature.zoom", "help.zoom", "camera.zoom"},
+    {"freelook", "feature.freelook", "help.freelook", "camera.freelook"},
     {"nightVision", "feature.nightVision", "help.nightVision", "lighting.nightVision"},
     {"hideOffhand", "feature.hideOffhand", "help.hideOffhand", "visuals.hideOffhand"},
     {"previews", "feature.previews", "help.previews", "inspection.containerPreviews"},

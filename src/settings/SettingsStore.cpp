@@ -62,7 +62,7 @@ Json encode(Settings const& settings) {
         {"overlays", {{"chunkBorders", settings.overlays.chunkBorders}, {"hitboxes", settings.overlays.hitboxes},
                       {"hitboxDistance", settings.overlays.hitboxDistance}}},
         {"bindings", std::move(bindings)},
-        {"camera", {{"zoom", settings.camera.zoom}, {"magnification", settings.camera.magnification},
+        {"camera", {{"zoom", settings.camera.zoom}, {"freelook", settings.camera.freelook}, {"magnification", settings.camera.magnification},
                     {"wheelStep", settings.camera.wheelStep}}},
         {"lighting", {{"nightVision", settings.lighting.nightVision}}},
         {"inspection", {{"containerPreviews", settings.inspection.containerPreviews},
@@ -146,6 +146,7 @@ Settings decodeSettings(std::string_view text) {
     if (data.contains("camera")) {
         auto const& camera = data.at("camera");
         value.camera.zoom = camera.value("zoom", value.camera.zoom);
+        value.camera.freelook = camera.value("freelook", value.camera.freelook);
         value.camera.magnification = camera.value("magnification", value.camera.magnification);
         value.camera.wheelStep = camera.value("wheelStep", value.camera.wheelStep);
     }

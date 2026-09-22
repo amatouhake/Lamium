@@ -56,6 +56,7 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::ResetBreaking) { interaction::breaking::reset(); return; }
     if (action == input::Action::Settings) { ui::open(client); return; }
     if (action == input::Action::Zoom) { Zoom::instance().press(client); return; }
+    if (action == input::Action::Freelook) { Zoom::instance().pressLook(client); return; }
     auto value = runtime.preferences();
     if (action == input::Action::CycleBreakingMode) {
         settings::find("interaction.breakingMode")->adjust(value,1);
@@ -67,6 +68,7 @@ void executeAction(IClientInstance& client, input::Action action) {
 }
 void releaseAction(input::Action action) {
     if (action == input::Action::Zoom) Zoom::instance().release();
+    if (action == input::Action::Freelook) Zoom::instance().releaseLook();
 }
 void registerActions() {
     auto& registry = ll::input::KeyRegistry::getInstance();

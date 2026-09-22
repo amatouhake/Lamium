@@ -86,6 +86,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::visuals, &Settings::Visuals::hideOffhand>("visuals.hideOffhand", "hideOffhand", "hideOffhand"),
     toggle<&Settings::overlays, &Settings::Overlays::chunkBorders>("overlays.chunkBorders", "chunkBorders", "chunkBorders"),
     toggle<&Settings::camera, &Settings::Camera::zoom>("camera.zoom", "zoom", "zoom"),
+    toggle<&Settings::camera, &Settings::Camera::freelook>("camera.freelook", "freelook", "freelook"),
     {"camera.magnification", "zoom", "magnification",
         [](Settings const& s) -> OptionValue { return s.camera.magnification; },
         [](Settings& s, int direction) { s.camera.magnification += direction * .5f; s.normalize(); },
