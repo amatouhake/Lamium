@@ -662,3 +662,23 @@ that the settings input owner no longer trapped that input. This supersedes the
 unresolved close result above for this build and scenario. It does not verify
 focus loss, world exit while editing, binding capture, search, saving, or all
 settings/features. These remain separate runtime acceptance work.
+### Search text input runtime failure (2026-09-23)
+
+On the ed906fa runtime build above, selecting Search showed its caret, but
+entering `hints` produced no text or filtered results. Refocusing and retrying,
+then pressing an ordinary `h` key, also left the query empty. Search is therefore
+not runtime-validated despite the model-level search tests passing.
+
+An isolated trial moved text handling from UIScene::handleTextChar to
+ClientInputCallbacks::handleTextChar, gated by the settings client's top-scene
+ownership. It compiled and initialized successfully, but entering `hints` in
+the focused search field still produced no text. The trial was reverted; it is
+not a fix. Its installed DLL hash was
+`F57619CA8A53D8D93D5BF254E44CB4E989D1B59818D4CBDC239DB4C8E0B90E86`.
+
+The next investigation is native text-edit focus: KeyboardManager exposes
+tryEnableKeyboard/disableKeyboard and ownership APIs, while the current custom
+search/number editor only sets local focus flags. Connecting that lifecycle and
+verifying character delivery is still required. Do not replace native UTF-8
+input with a hard-coded virtual-key-to-ASCII mapping. HUD visibility toggling
+and persistence were not reached in this search-led test.
