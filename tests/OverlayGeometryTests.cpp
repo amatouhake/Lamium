@@ -1,8 +1,16 @@
 #include "overlay/Geometry.h"
 #include "overlay/ChunkBorders.h"
+#include "overlay/Hitboxes.h"
 void check(bool, char const*);
 void overlayGeometryTests() {
     using namespace lamium::overlay;
+    check(hitboxInRange({-1,-1,-1},{1,1,1},{0,0,0},0), "camera inside hitbox is within range");
+    check(hitboxInRange({-10,0,0},{-2,2,2},{0,1,1},2), "hitbox distance uses nearest face, not center");
+    check(!hitboxInRange({-10,0,0},{-2,2,2},{0,1,1},1.9), "outside hitbox display distance is culled");
+    check(!hitboxInRange({0,0,0},{0,1,1},{0,0,0},64), "degenerate hitboxes are skipped");
+    check(!hitboxInRange({1,1,1},{-1,-1,-1},{0,0,0},64), "inverted hitboxes are skipped");
+    check(!hitboxInRange({0,0,0},{1,1,1},{std::numeric_limits<double>::quiet_NaN(),0,0},64),
+          "invalid camera cannot create hitbox vertices");
     check(gridSurfaceLines({}).empty(), "empty block surface has no lines");
     check(gridSurfaceLines({{0,0,0}}).size() == 12, "single block surface draws each edge once");
     check(gridSurfaceLines({{0,0,0},{1,0,0}}).size() == 20,

@@ -29,7 +29,7 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(remaining, maximum));
                 check(rendered.find("123 / 1561") != std::string::npos);
             }
-            else if (entry.key == "magnification" || entry.key == "wheelStep")
+            else if (entry.key == "magnification" || entry.key == "wheelStep" || entry.key == "hitboxDistance")
                 rendered = std::vformat(pattern, std::make_format_args(number));
             else if (pattern.find("{}") != std::string_view::npos)
                 rendered = std::vformat(pattern, std::make_format_args(on));

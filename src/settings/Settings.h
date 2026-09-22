@@ -34,12 +34,16 @@ struct Settings {
     } ui;
     struct Overlays {
         bool chunkBorders = false;
+        bool hitboxes = false;
+        float hitboxDistance = 64.f;
     } overlays;
     struct Visuals {
         bool hideOffhand = false;
     } visuals;
 
     void normalize() {
+        if (!std::isfinite(overlays.hitboxDistance)) overlays.hitboxDistance = 64.f;
+        overlays.hitboxDistance = std::clamp(overlays.hitboxDistance, 8.f, 128.f);
         if (!std::isfinite(camera.magnification)) camera.magnification = 3.0f;
         if (!std::isfinite(camera.wheelStep)) camera.wheelStep = 0.5f;
         camera.magnification = std::clamp(camera.magnification, 1.0f, 10.0f);

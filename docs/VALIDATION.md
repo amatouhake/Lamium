@@ -15,6 +15,18 @@ Special item render paths may need additional coverage after observation.
 
 ## Overlay geometry foundation
 
+Hitboxes is an opt-in consumer of the world-line renderer, with an unbound
+Toggle action and editable display distance (8–128 blocks, default 64). It reads
+the local player's client level actor list during the render pass, skips the
+local player and other dimensions, rejects invalid/degenerate bounds, and draws
+white AABB edges within the configured camera-to-box distance. No actor pointer
+is retained across frames and no server data is requested. Unit tests cover
+nearest-face distance, inclusive boundaries, invalid boxes/camera, persistence,
+and settings/action reachability. Actual actor enumeration lifetime, render
+placement/depth, moving-entity jitter, crowded-world performance, dimension
+changes, and unload remain unverified. Eye/look-direction markers and the local
+player's third-person box are not implemented yet.
+
 The game-independent geometry component now provides continuous lines/wire boxes,
 block-grid circle/cylinder/sphere cells, rectangular planes/grids, exposed faces,
 and outward face vertices. Geometry tests and the existing unit suite passed.

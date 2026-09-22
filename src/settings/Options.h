@@ -29,6 +29,11 @@ constexpr Option toggle(std::string_view id, std::string_view feature, std::stri
         [](Settings& value, int) { auto& field = (value.*Group).*Member; field = !field; }};
 }
 inline constexpr auto options = std::to_array<Option>({
+    toggle<&Settings::overlays, &Settings::Overlays::hitboxes>("overlays.hitboxes", "hitboxes", "hitboxes"),
+    {"overlays.hitboxDistance", "hitboxes", "hitboxDistance",
+        [](Settings const& s) -> OptionValue { return s.overlays.hitboxDistance; },
+        [](Settings& s, int direction) { s.overlays.hitboxDistance += direction * 8.f; s.normalize(); },
+        NumericOption{8, 128, [](Settings& s, float v) { s.overlays.hitboxDistance = v; }}},
     toggle<&Settings::visuals, &Settings::Visuals::hideOffhand>("visuals.hideOffhand", "hideOffhand", "hideOffhand"),
     toggle<&Settings::overlays, &Settings::Overlays::chunkBorders>("overlays.chunkBorders", "chunkBorders", "chunkBorders"),
     toggle<&Settings::camera, &Settings::Camera::zoom>("camera.zoom", "zoom", "zoom"),

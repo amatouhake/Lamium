@@ -65,6 +65,13 @@ void press(Action action, IClientInstance& client) {
         break;
     }
     case Action::Sort: inventory::requestSort(client); break;
+    case Action::Hitboxes: {
+        auto value = Runtime::instance().preferences();
+        value.overlays.hitboxes = !value.overlays.hitboxes;
+        if (!Runtime::instance().save(value))
+            Runtime::instance().self().getLogger().error("Could not save Hitboxes setting");
+        break;
+    }
     case Action::HideOffhand: {
         auto value = Runtime::instance().preferences();
         value.visuals.hideOffhand = !value.visuals.hideOffhand;
