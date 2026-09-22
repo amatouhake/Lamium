@@ -1142,3 +1142,22 @@ Both the input row and committed editor title agreed, without the former stale
 suffix. The test shape is now named `abc`. This verifies the reproduced ASCII
 replacement cases, not IME composition, long/repeated input, numeric-field
 regressions or all focus transitions; those remain outstanding.
+
+### Unicode name and numeric input follow-up (2026-09-23)
+
+On the same ff25950 binary, native automated insertion of `建築の球` replaced
+the selected ASCII name exactly. Backspace removed only the final `球`, leaving
+`建築の`; inserting `球` restored the name without corruption or duplication.
+This exercises committed Unicode text, not IME preedit/candidate selection.
+
+Clicking Radius directly while name editing switched the text owner correctly.
+Replacing radius 4.5 with 3.25 updated the value and visible grid geometry.
+Ctrl+A then `-1` displayed the range error while retaining committed radius 3.25
+and its guide. Replacing the invalid text with 4.5 cleared the error and restored
+the larger guide. A sidecar read while settings remained open confirmed the
+exact Japanese name, radius 4.5 and visibility true.
+
+The invalid numeric state currently repeats the range message in both footer
+lines; this is a presentation issue, not a failed rejection. Long input, IME
+composition, integer-only field errors and storage-failure recovery are still
+unverified in Minecraft. The test sphere retains the Japanese name above.
