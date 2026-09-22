@@ -14,6 +14,15 @@ pointers are cached across frames. Depth behavior, render timing, mesh lifetime,
 camera transforms, resource-pack compatibility, and performance require runtime
 validation; successful compilation is not evidence of correct visible output.
 
+Chunk border line coordinates are cached per render thread by chunk origin and
+dimension height range. Movement within a chunk reuses the same CPU geometry;
+crossing a chunk boundary or changing the height range rebuilds it. Reuse across
+worlds with identical bounds is safe because the cache contains only coordinates.
+Inputs are validated even on cache hits, and failed generation preserves the last
+valid cache entry. GPU meshes remain temporary and camera-relative vertices are
+still submitted each frame. Unit tests cover reuse, positive/negative boundary
+crossings, height changes, and invalid input; runtime performance is unmeasured.
+
 World-space lines and wire boxes use continuous coordinates. Building guides use
 integer block cells and exposed block faces. They are distinct representations;
 turning center snapping off never converts a building guide into a smooth mesh.

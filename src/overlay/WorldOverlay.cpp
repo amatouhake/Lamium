@@ -51,7 +51,8 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     try {
         auto const& range = player->getDimension().mHeightRange;
         Vec3 const position = player->getPosition();
-        drawLines(context, chunkBorders({position.x,position.y,position.z}, range->mMin, range->mMax));
+        thread_local ChunkBorderCache borders;
+        drawLines(context, borders.get({position.x,position.y,position.z}, range->mMin, range->mMax));
     } catch (std::exception const& error) {
         // Rate-limit repeated failures without swallowing the vanilla pass.
         static bool reported = false;

@@ -3,6 +3,27 @@
 void check(bool, char const*);
 void overlayGeometryTests() {
     using namespace lamium::overlay;
+    ChunkBorderCache cache;
+    auto const* reused = cache.get({-.1,64,-16}, -64,320).data();
+    check(cache.get({-15.9,200,-.1}, -64,320).data() == reused,
+          "movement inside one chunk reuses geometry storage");
+    for (auto position : {Point{0,64,0}, Point{-16.1,64,-16.1}, Point{16,64,16}}) {
+        auto const& actual = cache.get(position, -64,320);
+        auto expected = chunkBorders(position, -64,320);
+        check(actual.size() == expected.size(), "crossing chunk edges refreshes geometry");
+        for (size_t i=0; i<expected.size(); ++i)
+            check(actual[i].from == expected[i].from && actual[i].to == expected[i].to,
+                  "cached borders follow positive and negative chunk transitions");
+    }
+    auto const& shorter = cache.get({16,64,16}, 0,128);
+    check(shorter.size() == 40, "dimension height changes regenerate section lines");
+    reused = shorter.data();
+    bool invalidCacheInput = false;
+    try { (void)cache.get({16,std::numeric_limits<double>::quiet_NaN(),16}, 0,128); }
+    catch (std::invalid_argument const&) { invalidCacheInput = true; }
+    check(invalidCacheInput, "cache hit still validates position");
+    check(cache.get({16,64,16}, 0,128).data() == reused,
+          "invalid request preserves last valid geometry");
     auto chunk = chunkBorders({-.1,64,-16}, -64, 320);
     check(chunk.size() == 104, "chunk border includes section layers without duplicate end caps");
     for (auto line : chunk) for (auto p : {line.from,line.to})
