@@ -1177,3 +1177,25 @@ the error, changed the guide, and persisted radius 3.25 in the sidecar. No world
 reload or process restart was required. This verifies replacement-denied write
 failure and explicit edit retry for a numeric field; it does not cover every
 filesystem failure or failed-load recovery. The test sphere now has radius 3.25.
+
+### Experimental Freelook startup and settings smoke (2026-09-23)
+
+Build `0e22e25`, including the detached-look interaction hooks, was installed
+with matching source/destination DLL SHA-256:
+`117FD3DC75282810D5518B8954F3863A602D07A230EE33F2484E7FE3127B2CB6`.
+Camera trace and fixed-angle probe were disabled. The existing launcher instance
+opened a local creative world in rear third-person view; world and Shape overlay
+rendering remained visible. F8 displayed the experimental Freelook row, initially
+Off and Unbound. Enabling it and assigning Mouse 1 worked in the settings UI.
+
+An automated mouse drag returned to the same visible view without an observed
+crash. Only the post-release frame was captured: this is not evidence that the
+hold activated, native turn input reached Freelook, or camera rotation occurred.
+Body isolation, interaction suppression, input scale/sign, and lifecycle recovery
+remain unverified at runtime. Do not classify this smoke as working Freelook.
+
+The toggle was restored to Off and Reset to Minecraft mapping restored Unbound;
+both were verified together in the settings screen. Minecraft was closed normally
+and its window disappeared. The flushed session log confirms Lamium enabled and
+later reached mod disabling, with no ERR entry in that session. This establishes
+startup and settings integration only, not the detached-camera validation gate.
