@@ -11,6 +11,10 @@ prototype quality. Runtime validation is in progress. No stable
 release is available yet. See [validation notes](docs/VALIDATION.md) for the
 distinction between implemented and verified behavior.
 
+The current development checkpoint is awaiting hands-on feedback. Known settings
+and controls limitations are recorded in [UI follow-up](docs/UX-FOLLOWUP.md);
+the current settings interaction is not the final design.
+
 The current prototype provides hold-to-zoom (`C`), local settings (`F8`), and a
 NightVision toggle (`J`) while in a world. Settings also control container
 previews, durability information, and inventory sorting. Use Up/Down or the wheel
