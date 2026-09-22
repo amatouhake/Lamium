@@ -73,6 +73,52 @@ void bindingTests() {
     check(state.update(scroll, {shift}, wheel).pressed && state.update(scroll, {shift}, wheel).pressed,
           "each wheel impulse triggers even when modifier stays held");
     check(!state.update(scroll, {shift}, Token{Device::Wheel, -1}).pressed, "wheel direction matters");
+    // Exercise event sequences, including mixed devices, rather than only
+    // passing complete snapshots to the matcher. Any member may arrive last.
+    Chord mixed{z, three, {Device::Mouse, 3}};
+    auto ordered = canonicalChord(mixed, Behavior::Hold);
+    do {
+        for (auto released : mixed) {
+            HeldInputs sequence;
+            BindingState actionState;
+            for (size_t index = 0; index < ordered.size(); ++index) {
+                sequence.observe(ordered[index], true, true);
+                auto edge = actionState.update(mixed, sequence.value());
+                check(edge.pressed == (index + 1 == ordered.size()) && !edge.released,
+                    "mixed chord activates only on the last member in every press order");
+            }
+            sequence.observe(released, false, false);
+            check(actionState.update(mixed, sequence.value()).released,
+                "each member can end a mixed-device hold");
+            sequence.observe(released, true, true);
+            check(actionState.update(mixed, sequence.value()).pressed,
+                "repressing the released member re-arms a chord without releasing its other members");
+            sequence.invalidate();
+            check(actionState.reset().released, "focus loss ends mixed-device hold");
+            sequence.observe(released, false, false);
+            sequence.observe(released, true, true);
+            for (auto token : ordered) sequence.observe(token, true, true);
+            check(!actionState.update(mixed, sequence.value()).pressed,
+                "partial release after focus loss cannot revive other stale held inputs");
+            for (auto token : ordered) sequence.observe(token, false, false);
+            for (auto token : ordered) sequence.observe(token, true, true);
+            check(actionState.update(mixed, sequence.value()).pressed,
+                "all fresh inputs restore mixed chord after focus loss");
+        }
+    } while (std::next_permutation(ordered.begin(), ordered.end()));
+    HeldInputs wheelModifiers;
+    BindingState wheelState;
+    wheelModifiers.observe(shift, true, true);
+    check(wheelState.update(scroll, wheelModifiers.value(), wheel).pressed,
+        "modified wheel fires before focus loss");
+    wheelModifiers.invalidate();
+    wheelModifiers.observe(shift, true, true);
+    check(!wheelState.update(scroll, wheelModifiers.value(), wheel).pressed,
+        "wheel cannot revive a modifier held across focus loss");
+    wheelModifiers.observe(shift, false, false);
+    wheelModifiers.observe(shift, true, true);
+    check(wheelState.update(scroll, wheelModifiers.value(), wheel).pressed,
+        "fresh modifier re-arms wheel binding");
     for (auto invalid : {Chord{{Device::Key, 0}}, Chord{{Device::Mouse, 6}},
                          Chord{{Device::Wheel, 0}}, Chord{{Device::Wheel, 1}, {Device::Wheel, -1}}}) {
         bool rejected = false;

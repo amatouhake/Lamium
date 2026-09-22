@@ -975,3 +975,14 @@ The descriptions match the preview enable guards in Inspection.cpp. Client
 build, unit tests (including translated numeric format strings), package and
 diff checks passed. The current test instance still runs c1187d7; text fit and
 selection-dependent guidance need runtime verification on this new build.
+
+### Mixed input lifecycle sequences (2026-09-23)
+
+Added event-sequence coverage for a three-member keyboard/middle-mouse chord:
+all six press orders, each possible released member, partial-release rearming,
+focus invalidation, partial recovery while other members remain stale, and
+full release/repress recovery. Added modified-wheel sequences across focus
+loss, verifying that a stale modifier cannot activate a wheel binding and a
+fresh press restores it. All unit tests passed without production changes.
+These validate HeldInputs and BindingState; native event routing, physical
+press order and focus callbacks still require separate runtime coverage.
