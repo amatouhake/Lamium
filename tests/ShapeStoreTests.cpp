@@ -12,7 +12,7 @@ void shapeStoreTests() {
         + std::to_string(GetCurrentProcessId()) + "-"
         + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     root = std::filesystem::absolute(root).lexically_normal();
-    if (root.parent_path() != std::filesystem::absolute(std::filesystem::temp_directory_path()).lexically_normal())
+    if (!std::filesystem::equivalent(root.parent_path(),std::filesystem::temp_directory_path()))
         throw std::runtime_error("Test cleanup path escaped temporary directory");
     if (!std::filesystem::create_directory(root)) throw std::runtime_error("Test directory already exists");
     struct Cleanup { std::filesystem::path root; ~Cleanup() { std::error_code ignored; std::filesystem::remove_all(root,ignored); } } cleanup{root};
