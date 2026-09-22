@@ -65,6 +65,8 @@ still needs runtime verification.
   mutation scenario still needs runtime validation.
 - Saving previews Off removed Lamium's Bundle grid while retaining the vanilla
   tooltip. The setting was also confirmed in the saved configuration.
+- Saving previews On restored the Bundle grid and the filled Shulker grid in
+  the build with metadata hashing. Both rendered after a full game restart.
 - Damaged tools and larger Bundles still require runtime checks.
 
 ## Inventory sorting prototype
