@@ -2,6 +2,17 @@
 
 Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
 
+## Offhand visibility prototype
+
+Hide Offhand Item is an opt-in setting with an initially unbound Toggle action
+in Features/Hotkeys. Its hook skips `ItemInHandRenderer::renderOffhandItem` only
+when the SDK FirstPersonPass flag is present and WorldPass/UIPass are absent.
+It writes no equipment, item stacks, use state, or network messages. Existing
+settings keep the offhand visible. Catalog/persistence/localization tests pass.
+Runtime behavior is unverified: check shields while blocking, totems, maps,
+main-hand rendering, third-person/paper-doll views, toggling, and world changes.
+Special item render paths may need additional coverage after observation.
+
 ## Overlay geometry foundation
 
 The game-independent geometry component now provides continuous lines/wire boxes,

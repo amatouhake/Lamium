@@ -3,6 +3,7 @@
 #include "features/lighting/NightVision.h"
 #include "features/inspection/Inspection.h"
 #include "features/inventory/Inventory.h"
+#include "features/visuals/HideOffhand.h"
 #include "input/Actions.h"
 #include "input/CustomInput.h"
 #include "overlay/WorldOverlay.h"
@@ -63,9 +64,10 @@ bool Runtime::enable() {
         Zoom::instance().stop();
         return false;
     }
-    try { ui::start(); input::startCustomInput(); overlay::start(); }
+    try { ui::start(); input::startCustomInput(); overlay::start(); visuals::start(); }
     catch (std::exception const& error) {
-        mod.getLogger().error("Settings UI initialization failed: {}", error.what());
+        mod.getLogger().error("Client feature initialization failed: {}", error.what());
+        visuals::stop();
         input::stopCustomInput();
         overlay::stop();
         ui::stop();
@@ -81,6 +83,7 @@ bool Runtime::enable() {
 }
 bool Runtime::disable() {
     running = false;
+    visuals::stop();
     overlay::stop();
     input::stopCustomInput();
     ui::stop();

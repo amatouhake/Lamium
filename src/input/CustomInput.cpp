@@ -65,6 +65,13 @@ void press(Action action, IClientInstance& client) {
         break;
     }
     case Action::Sort: inventory::requestSort(client); break;
+    case Action::HideOffhand: {
+        auto value = Runtime::instance().preferences();
+        value.visuals.hideOffhand = !value.visuals.hideOffhand;
+        if (!Runtime::instance().save(value))
+            Runtime::instance().self().getLogger().error("Could not save offhand visibility setting");
+        break;
+    }
     case Action::ChunkBorders: {
         auto value = Runtime::instance().preferences();
         value.overlays.chunkBorders = !value.overlays.chunkBorders;

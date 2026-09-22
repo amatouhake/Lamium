@@ -23,6 +23,7 @@ void settingsStoreTests() {
           && old.inspection.bundlePreviews && old.inspection.emptyBundlePreviews,
           "older files retain the existing preview behavior including empty containers");
     auto partial = decodeSettings(R"({"camera":{"magnification":6}})");
+    check(!old.visuals.hideOffhand, "existing settings keep the offhand visible");
     check(partial.camera.magnification == 6 && partial.camera.zoom, "missing fields use defaults");
     for (auto invalid : {R"({"version":999})", R"({"version":4294967297})", R"({"version":1.5})",
                          R"({"version":true})", R"({"camera":{"zoom":"yes"}})", "[]", "{"}) {
