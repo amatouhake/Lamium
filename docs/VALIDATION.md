@@ -963,3 +963,15 @@ expanded matching features with one section caption; switching to Hotkeys
 retained the query, showed its three actions, and fitted the caption beside
 Zoom. No preference values were changed. Japanese captions, narrower panels,
 other GUI scales and long custom chord summaries remain unverified.
+
+### Contextual option guidance (2026-09-23; runtime pending)
+
+Numeric rows now show their accepted range and entry/adjustment controls in
+the description area; active numeric editing keeps the range visible.
+Container-preview options have individual English/Japanese descriptions for
+the master switch, per-container switches, empty previews and vanilla Shulker
+text suppression. Options without dedicated help retain the feature description.
+The descriptions match the preview enable guards in Inspection.cpp. Client
+build, unit tests (including translated numeric format strings), package and
+diff checks passed. The current test instance still runs c1187d7; text fit and
+selection-dependent guidance need runtime verification on this new build.

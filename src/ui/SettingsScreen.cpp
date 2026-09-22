@@ -380,8 +380,20 @@ void render(ll::event::UIRenderEvent& event) {
             auto behavior = input::actions[static_cast<size_t>(*capturing)].behavior;
             description = translated(behavior == input::Behavior::Hold ? "captureHold"
                 : behavior == input::Behavior::Toggle ? "captureToggle" : "capturePress");
-        } else if (selected >= 2 && selected < rowCount()-1)
-            description = translated(visibleRows[selected-2].feature->description);
+        } else if (selected >= 2 && selected < rowCount()-1) {
+            auto const& entry = visibleRows[selected-2];
+            description = translated(entry.feature->description);
+            if (entry.option) {
+                if (entry.option->numeric) {
+                    auto const& range = *entry.option->numeric;
+                    description = translated(editingNumber ? "numberRange" : "numberControl", range.minimum, range.maximum);
+                } else {
+                    auto helpKey = "help." + std::string(entry.option->id);
+                    auto help = translated(helpKey);
+                    if (!help.empty() && help != helpKey) description = std::move(help);
+                }
+            }
+        }
         label(context,left,layout.footer+15,width,description);
     }
     context.flushText(0,std::nullopt);

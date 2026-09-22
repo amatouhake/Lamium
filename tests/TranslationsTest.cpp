@@ -24,7 +24,7 @@ void translationTests() {
             if (entry.key == "gameplay") rendered = std::vformat(pattern, std::make_format_args(key, zoom, light));
             else if (entry.key == "hudXYZ") rendered = std::vformat(pattern, std::make_format_args(number,number,number));
             else if (entry.key == "bindingRow" || entry.key == "numberInput") rendered = std::vformat(pattern, std::make_format_args(key, zoom));
-            else if (entry.key == "numberRange") rendered = std::vformat(pattern, std::make_format_args(number, number));
+            else if (entry.key == "numberRange" || entry.key == "numberControl") rendered = std::vformat(pattern, std::make_format_args(number, number));
             else if (entry.key == "hudLightValues") rendered = std::vformat(pattern, std::make_format_args(remaining,maximum));
             else if (entry.key == "mouseButton") rendered = std::vformat(pattern, std::make_format_args(remaining));
             else if (entry.key == "durabilityValue") {
