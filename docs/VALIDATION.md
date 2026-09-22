@@ -741,3 +741,14 @@ This adds evidence for decimal entry, replace-selection, immediate persistence,
 range rejection, recovery, and numeric-editor exit in the local creative
 scenario. It does not establish IME support, arbitrary keyboard layouts,
 numeric-field switching, or complete gameplay-input isolation.
+
+### Search replacement controls (2026-09-23)
+
+Search now accepts Ctrl+A to select the query for replacement, with a visible
+selection marker and localized input hint. Typing replaces the selection;
+Backspace clears it. Rejected input retains both the existing query and its
+selection. Tests cover replacement of a near-limit query with UTF-8 text,
+control-character rejection, selection deletion, and clearing replacement state.
+The rebuilt LamiumTests passed, and the client build/package checks passed.
+These new search-selection controls have not yet been installed or exercised
+in Minecraft; the running instance still uses the preceding numeric-tested DLL.

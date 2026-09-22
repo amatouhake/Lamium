@@ -294,7 +294,8 @@ void render(ll::event::UIRenderEvent& event) {
         }
         if (index == rowCount() - 1) return translated("close");
         if (index == 0) return translated(hotkeys ? "hotkeysView" : "featuresView");
-        if (index == 1) return translated("search", query.value() + (searchFocused ? "_" : ""));
+        if (index == 1) return translated("search", searchFocused && query.selectedAll()
+            ? "[" + query.value() + "]" : query.value() + (searchFocused ? "_" : ""));
         auto const& entry = visibleRows[index-2];
         if (entry.heading()) {
             bool expanded = !collapsed.contains(entry.feature->id) || query.value().find_first_not_of(' ') != std::string::npos;
@@ -337,7 +338,7 @@ void render(ll::event::UIRenderEvent& event) {
         rowBackground(context,left,y,width,20,selected == i,hovered == i);
         label(context,left+6,y+5,width-12,rowLabel(i));
     }
-    label(context,left,layout.footer,width,error.empty() ? translated(editingNumber ? "numberHint" : capturing ? "captureHint" : "navigation") : error);
+    label(context,left,layout.footer,width,error.empty() ? translated(editingNumber ? "numberHint" : capturing ? "captureHint" : searchFocused ? "searchHint" : "navigation") : error);
     if (layout.secondHint) {
         auto description = translated("adjustment");
         if (!capturing && selected >= 2 && selected < rowCount()-1)
@@ -455,7 +456,7 @@ void start() {
             auto key = event.keyCode();
             bool commandKey = key == 0x08 || key == 0x1b || key == 0x0d || key == 0x09
                 || (searchFocused && key == 0x28);
-            bool selectAll = editingNumber && key == 0x41
+            bool selectAll = key == 0x41
                 && (std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, 0x11}) != uiHeld.end()
                     || std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, 0xa2}) != uiHeld.end()
                     || std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, 0xa3}) != uiHeld.end());
@@ -477,6 +478,11 @@ void start() {
         }
         if (searchFocused) {
             switch (event.keyCode()) {
+            case 0x41:
+                if (std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, 0x11}) != uiHeld.end()
+                    || std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, 0xa2}) != uiHeld.end()
+                    || std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, 0xa3}) != uiHeld.end()) query.selectAll();
+                break;
             case 0x08: if (query.backspace()) { filterOptions(); selected = 1; } break;
             case 0x1b: searchFocused = false; break;
             case 0x0d: case 0x09: case 0x28:

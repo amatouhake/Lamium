@@ -7,6 +7,7 @@ struct Entry { std::string_view key, english, japanese; };
 inline constexpr auto entries = std::to_array<Entry>({
     {"title", "Lamium / Settings", "Lamium / 設定"},
     {"search", "Search: {}", "検索: {}"},
+    {"searchHint", "Type to filter | Ctrl+A: replace | Enter: results", "入力して検索 | Ctrl+A: 全選択 | Enter: 検索結果へ"},
     {"noResults", "No matching settings", "該当する設定はありません"},
     {"featuresView", "Features  |  Switch to Hotkeys", "機能  |  キー一覧に切り替え"},
     {"hotkeysView", "Hotkeys  |  Switch to Features", "キー一覧  |  機能に切り替え"},

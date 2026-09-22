@@ -16,4 +16,15 @@ void searchQueryTests() {
     check(!query.append("\n") && !query.append("\b"), "control characters do not enter query");
     check(query.append(std::string(127, 'a')), "search length below limit");
     check(!query.append("あ") && query.value().size() == 127, "limit never splits UTF-8 event");
+    query.selectAll();
+    check(!query.append("\n") && query.selectedAll() && query.value().size() == 127,
+        "rejected input preserves selected search");
+    check(query.append("ズーム") && query.value() == "ズーム" && !query.selectedAll(),
+        "selected long query can be replaced with UTF-8 text");
+    query.selectAll();
+    check(query.backspace() && query.value().empty() && !query.selectedAll(),
+        "backspace clears the selected query");
+    query.selectAll(); query.clear();
+    check(query.append("zoom") && query.append(" wheel") && query.value() == "zoom wheel",
+        "clear resets replace mode for subsequent typing");
 }
