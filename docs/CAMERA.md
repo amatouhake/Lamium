@@ -65,6 +65,21 @@ cancel the detached session, and Zoom must use the same camera/input policy.
 
 ## Required runtime evidence
 
+An optional read-only probe is available with `xmake f --camera_trace=y`
+followed by `xmake`. It observes the existing Zoom hook lifecycle and samples
+`setupCamera` once per 120 calls, up to 32 samples per process. It records the
+interpolation factor, availability of the prior view matrix, finite matrix
+values, maximum pre/post view change, view/inverse-view identity error, and
+camera basis lengths. It does not record positions, world identifiers, or
+paths, and does not modify camera matrices or player state. Disable it with
+`xmake f --camera_trace=n` and rebuild for ordinary use.
+
+The diagnostic build compiles and links against SDK 26.51.3. Runtime observation
+is still pending. A zero view change alone cannot establish that vanilla
+reconstructs the camera on every call; it can also mean the camera is stationary.
+These measurements do not establish culling, input ownership, or detached-camera
+correctness.
+
 Verify body position and rotation stay unchanged from another local observation
 or suitable client diagnostics, and check remote behavior before claiming
 multiplayer support. Exercise release/toggle, focus loss, menus, dimension/world

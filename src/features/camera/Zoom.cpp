@@ -13,9 +13,50 @@
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
 #include "mc/deps/core/math/Vec2.h"
 #include "mc/deps/input/MouseAction.h"
+#ifdef LAMIUM_CAMERA_TRACE
+#include "mc/deps/renderer/Camera.h"
+#include <algorithm>
+#include <atomic>
+#include <cmath>
+#endif
 
 namespace lamium {
 namespace {
+#ifdef LAMIUM_CAMERA_TRACE
+// Observe only: never modify matrices, dependency caches, or the player pose.
+LL_TYPE_INSTANCE_HOOK(CameraTraceHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
+    &LevelRendererPlayer::setupCamera, void, mce::Camera& camera, float alpha) {
+    static std::atomic<unsigned> calls{0};
+    auto count = calls.load(std::memory_order_relaxed);
+    while (count < 3840 && !calls.compare_exchange_weak(
+        count, count + 1, std::memory_order_relaxed)) {}
+    bool sample = count < 3840 && count % 120 == 0;
+    bool beforeValid = sample && !camera.viewMatrixStack->stack->empty();
+    glm::mat4 before{1};
+    if (beforeValid) before = *camera.viewMatrixStack->top()._m;
+    origin(camera, alpha);
+    if (!sample || camera.viewMatrixStack->stack->empty()) return;
+    try {
+        auto const& view = *camera.viewMatrixStack->top()._m;
+        auto product = view * *camera.mInverseViewMatrix;
+        float inverseError = 0, change = 0;
+        bool finite = true;
+        for (int column = 0; column < 4; ++column) {
+            for (int row = 0; row < 4; ++row) {
+                finite = finite && std::isfinite(view[column][row]) && std::isfinite(product[column][row]);
+                inverseError = std::max(inverseError, std::abs(product[column][row] - (column == row ? 1.f : 0.f)));
+                if (beforeValid) change = std::max(change, std::abs(view[column][row] - before[column][row]));
+            }
+        }
+        Runtime::instance().self().getLogger().info(
+            "Camera trace: sample={} alpha={} before={} finite={} viewChange={} inverseError={} basisLengths={}/{}/{}",
+            count / 120, alpha, beforeValid, finite, change, inverseError,
+            glm::length(*camera.mRight), glm::length(*camera.mUp), glm::length(*camera.mForward));
+    } catch (...) {
+        // Diagnostics must not interrupt rendering or expose native text/paths.
+    }
+}
+#endif
 LL_TYPE_INSTANCE_HOOK(FovHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::getFov, float, float alpha, bool variable) {
     return Zoom::instance().fov(origin(alpha, variable));
@@ -41,6 +82,9 @@ struct HookEntry {
     bool installed = false;
 };
 HookEntry hooks[] = {
+#ifdef LAMIUM_CAMERA_TRACE
+    {CameraTraceHook::hook, CameraTraceHook::unhook},
+#endif
     {FovHook::hook, FovHook::unhook},
     {TurnHook::hook, TurnHook::unhook},
     {DimensionHook::hook, DimensionHook::unhook},

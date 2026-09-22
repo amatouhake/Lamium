@@ -24,6 +24,12 @@ option("shape_trace")
     set_description("Enable bounded local shape world-identity diagnostics")
 option_end()
 
+option("camera_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Enable bounded read-only render camera diagnostics")
+option_end()
+
 includes("packages/levilamina-client-sdk.lua")
 add_requires("levilamina-client-sdk 26.51.3", {configs = {shared = true}})
 
@@ -35,6 +41,7 @@ if not has_config("vs_runtime") then
 end
 
 target("Lamium")
+    if has_config("camera_trace") then add_defines("LAMIUM_CAMERA_TRACE") end
     if has_config("shape_trace") then add_defines("LAMIUM_SHAPE_TRACE") end
     if has_config("placement_trace") then add_defines("LAMIUM_PLACEMENT_TRACE") end
     add_rules("@levibuildscript/linkrule")
