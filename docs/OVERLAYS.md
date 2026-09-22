@@ -14,8 +14,15 @@ hidden shapes; removing entries frees the budget. IDs are not reused by clear,
 so a stale editor selection cannot refer to a new shape. The future session
 owner must clear on world exit; dimension IDs alone do not identify worlds.
 Tests cover cache retention, dimension filtering, transactional edits, aggregate
-budget recovery and stale IDs. UI, runtime lifecycle wiring, persistence and
-render integration are still outstanding.
+budget recovery and stale IDs.
+
+The runtime now owns this collection behind a mutex and exposes definition-only
+snapshots and mutations through `ShapeSession.h`. The world render hook submits
+cached lines only for visible shapes in the player's current dimension. World
+exit and overlay shutdown clear the collection; initialization failures clean
+up the exit listener and render hook. This wiring builds against the client SDK,
+but no UI creates shapes yet, so visible geometry, lifecycle callbacks and
+render-thread performance remain unverified. UI and persistence are outstanding.
 
 Chunk Borders defaults off. The prototype draws the player's current chunk
 boundary, using floor division at negative coordinates and the dimension's

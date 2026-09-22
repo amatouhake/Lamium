@@ -1,9 +1,12 @@
 #include "overlay/WorldOverlay.h"
 #include "overlay/ChunkBorders.h"
 #include "overlay/Hitboxes.h"
+#include "overlay/ShapeSession.h"
 #include "features/interaction/BreakingRestriction.h"
 #include "app/Runtime.h"
 #include "ll/api/memory/Hook.h"
+#include "ll/api/event/EventBus.h"
+#include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
 #include "mc/client/renderer/BaseActorRenderContext.h"
 #include "mc/client/renderer/Tessellator.h"
@@ -22,10 +25,18 @@
 #include "mc/deps/minecraft_renderer/resources/ServerTexture.h"
 #include "mc/deps/minecraft_renderer/resources/OffscreenCaptureDescription.h"
 #include <span>
+#include <mutex>
 
 namespace lamium::overlay {
 namespace {
 bool installed = false;
+std::mutex shapeMutex;
+ShapeCollection shapeCollection;
+ll::event::ListenerPtr exitListener;
+bool hasShapes() {
+    std::lock_guard lock(shapeMutex);
+    return !shapeCollection.entries().empty();
+}
 void drawLines(BaseActorRenderContext& context, std::span<Line const> lines, bool hitboxes = false) {
     if (lines.empty() || !context.mImpl) return;
     ScreenContext& screen = context.mScreenContext;
@@ -52,11 +63,16 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     if (!runtime.enabled()) return;
     auto preferences = runtime.preferences().overlays;
     bool breaking = runtime.preferences().interaction.breaking;
-    if (!preferences.chunkBorders && !preferences.hitboxes && !breaking) return;
+    if (!preferences.chunkBorders && !preferences.hitboxes && !breaking && !hasShapes()) return;
     IClientInstance& client = context.mClientInstance;
     auto* player = client.getLocalPlayer();
     if (!player) return;
     try {
+        {
+            std::lock_guard lock(shapeMutex);
+            shapeCollection.forVisible(static_cast<int>(player->getDimensionId()),
+                [&](ShapeId, ManagedShape const& shape) { drawLines(context, shape.lines); });
+        }
         if (breaking) {
             auto region = interaction::breaking::region();
             if (region) {
@@ -95,12 +111,56 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     }
 }
 }
+namespace shapes {
+std::vector<Summary> list() {
+    std::lock_guard lock(shapeMutex);
+    std::vector<Summary> result;
+    result.reserve(shapeCollection.entries().size());
+    for (auto const& [id, shape] : shapeCollection.entries()) result.push_back({id, shape.definition});
+    return result;
+}
+std::optional<ShapeDefinition> find(ShapeId id) {
+    std::lock_guard lock(shapeMutex);
+    auto shape = shapeCollection.find(id);
+    return shape ? std::optional(shape->definition) : std::nullopt;
+}
+ShapeId add(ShapeDefinition definition) {
+    std::lock_guard lock(shapeMutex);
+    return shapeCollection.add(std::move(definition));
+}
+void edit(ShapeId id, ShapeDefinition definition) {
+    std::lock_guard lock(shapeMutex);
+    shapeCollection.edit(id, std::move(definition));
+}
+void setVisible(ShapeId id, bool visible) {
+    std::lock_guard lock(shapeMutex);
+    shapeCollection.setVisible(id, visible);
+}
+bool remove(ShapeId id) {
+    std::lock_guard lock(shapeMutex);
+    return shapeCollection.remove(id);
+}
+void clear() {
+    std::lock_guard lock(shapeMutex);
+    shapeCollection.clear();
+}
+}
 void start() {
     if (installed) return;
-    installed = WorldLines::hook(true) == 0;
-    if (!installed) throw std::runtime_error("Could not install world overlay render hook");
+    try {
+        installed = WorldLines::hook(true) == 0;
+        if (!installed) throw std::runtime_error("Could not install world overlay render hook");
+        exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
+            [](auto&) { shapes::clear(); });
+        if (!exitListener) throw std::runtime_error("Could not subscribe shape world exit");
+    } catch (...) { stop(); throw; }
 }
 void stop() {
+    if (exitListener) {
+        ll::event::EventBus::getInstance().removeListener(exitListener);
+        exitListener.reset();
+    }
+    shapes::clear();
     if (installed && WorldLines::unhook(true)) installed = false;
 }
 }
