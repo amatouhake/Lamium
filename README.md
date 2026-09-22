@@ -11,10 +11,12 @@ prototype quality. Runtime validation is in progress. No stable
 release is available yet. See [validation notes](docs/VALIDATION.md) for the
 distinction between implemented and verified behavior.
 
-The current prototype provides hold-to-zoom (`C`) and a local camera settings
-panel (`F8`) and NightVision toggle (`N`) while in a world. The settings panel also
-controls container previews and durability information. Use arrow keys and Enter or click the rows; Save
-applies changes, Cancel/Escape discards them. These keys are registered with
+The current prototype provides hold-to-zoom (`C`), local settings (`F8`), and a
+NightVision toggle (`N`) while in a world. Settings also control container
+previews, durability information, and inventory sorting. Use Up/Down or the wheel
+to select rows, Left/Right to adjust, and Enter or a click to choose. Short windows
+scroll to keep the selected row visible. Save applies changes; Cancel/Escape
+discards them. These feature keys are registered with
 Minecraft's keyboard settings. The prototype's on-screen hints show defaults.
 Keyboard/mouse behavior and resource-pack compatibility are still being tested.
 

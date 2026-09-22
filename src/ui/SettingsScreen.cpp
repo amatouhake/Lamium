@@ -39,8 +39,6 @@ int commandRow = 0;
 int firstVisible = 0;
 bool seen = false;
 bool closing = false;
-bool mouseNavigation = false;
-glm::vec2 previousPointer{-1,-1};
 constexpr int rowCount = 10;
 std::string error;
 std::array<ll::event::ListenerPtr, 4> listeners;
@@ -127,14 +125,12 @@ void render(ll::event::AfterUIRenderEvent& event) {
         "Save and close", "Cancel"
     };
     glm::vec2 pointer = view.mPointerLocationPrevious;
-    if (pointer != previousPointer) mouseNavigation = true;
-    previousPointer = pointer;
     hovered = layout.hit(pointer.x, pointer.y);
     for (int i=layout.first;i<layout.first+layout.visible;++i) {
         float y = layout.rowY(i);
-        bool highlight = mouseNavigation ? hovered == i : selected == i;
         context.fillRectangle(RectangleArea{left,left+width,y,y+20},
-            highlight ? mce::Color{.28f,.24f,.43f,1.0f} : mce::Color{.15f,.16f,.21f,1.0f},1);
+            selected == i ? mce::Color{.28f,.24f,.43f,1.0f}
+                : hovered == i ? mce::Color{.22f,.23f,.30f,1.0f} : mce::Color{.15f,.16f,.21f,1.0f},1);
         context.flushImages(white,1,HashedString{"ui_fillColor"});
         label(context,left+6,y+5,width-12,rows[i]);
     }
@@ -151,7 +147,6 @@ void open(IClientInstance& current) {
     draft = Runtime::instance().preferences();
     selected = 0; hovered = -1; command = 0; error.clear(); seen = false; closing = false;
     firstVisible = 0; commandRow = 0;
-    mouseNavigation = false;
     // This native information screen supplies focus/cursor ownership. It has no
     // form ID, packet, or server callback. Lamium draws and handles its own UI.
     scene = current.getSceneFactory().createCommonDialogInfoScreen("Lamium", "");
@@ -169,7 +164,6 @@ void start() {
         event.cancel();
         if (event.actionButtonId() == MouseAction::ActionWheel && event.buttonData() != 0) {
             selected = std::clamp(selected + (event.buttonData() > 0 ? -1 : 1), 0, rowCount-1);
-            mouseNavigation = false;
         }
         if (event.actionButtonId() == MouseAction::ActionLeft && event.buttonData() == MouseAction::DataDown && hovered >= 0) {
             selected = hovered; commandRow = hovered; command = 1;
@@ -184,7 +178,6 @@ void start() {
         // Let key-up through so keys pressed before opening cannot stick.
         if (!event.isDown()) return;
         event.cancel();
-        mouseNavigation = false;
         switch (event.keyCode()) {
         case 0x1b: command = 2; break;
         case 0x26: selected = (selected+rowCount-1)%rowCount; break;

@@ -22,8 +22,13 @@ Settings now use a viewport that keeps the selected row visible in short windows
 Arrow keys and the wheel navigate all rows, including Save/Cancel. Queued actions
 retain their original target row when selection moves before the next render.
 Layout tests cover 100–480 GUI-unit heights, row hit testing, navigation wrapping,
-footer separation, and tiny-window fallback. The revised release DLL builds;
-runtime verification of resizing and wheel navigation is pending.
+footer separation, and tiny-window fallback. In game, resizing the window to
+263 pixels high changed the list to six visible rows; wheel/Tab navigation
+reached Save, and Enter persisted a changed preview setting. Mouse toggling also
+worked at that size. The window was subsequently maximized for ordinary use.
+Keyboard selection and pointer hover now use separate colors after this check
+showed hover could obscure the selected row; this color adjustment builds but
+still needs runtime verification.
 
 ## Lighting and settings persistence
 
@@ -58,7 +63,9 @@ runtime verification of resizing and wheel navigation is pending.
   covering updates that keep item IDs/counts and tag addresses unchanged.
   Metadata-only invalidation tests and the release build pass; that specific
   mutation scenario still needs runtime validation.
-- Damaged tools, preview toggles, and larger Bundles still require runtime checks.
+- Saving previews Off removed Lamium's Bundle grid while retaining the vanilla
+  tooltip. The setting was also confirmed in the saved configuration.
+- Damaged tools and larger Bundles still require runtime checks.
 
 ## Inventory sorting prototype
 
