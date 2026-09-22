@@ -65,6 +65,13 @@ void press(Action action, IClientInstance& client) {
         break;
     }
     case Action::Sort: inventory::requestSort(client); break;
+    case Action::ChunkBorders: {
+        auto value = Runtime::instance().preferences();
+        value.overlays.chunkBorders = !value.overlays.chunkBorders;
+        if (!Runtime::instance().save(value))
+            Runtime::instance().self().getLogger().error("Could not save Chunk Borders setting");
+        break;
+    }
     default: break;
     }
 }

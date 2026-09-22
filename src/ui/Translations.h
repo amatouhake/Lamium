@@ -64,6 +64,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"mouseButton", "Mouse {}", "マウス {}"},
     {"gameplay", "Lamium | {}: settings | Hold {}: zoom | {}: NightVision", "Lamium | {}: 設定 | {} 長押し: ズーム | {}: 暗視"},
     {"key.Lamium.sort", "Lamium: Sort inventory", "Lamium: インベントリの整頓"},
+    {"key.Lamium.chunkborders", "Lamium: Toggle chunk borders", "Lamium: チャンク境界の切り替え"},
     {"key.Lamium.nightvision", "Lamium: Toggle NightVision", "Lamium: 暗視の切替"},
     {"key.Lamium.settings", "Lamium: Open settings", "Lamium: 設定を開く"},
     {"key.Lamium.zoom", "Lamium: Hold to zoom", "Lamium: 長押しでズーム"},

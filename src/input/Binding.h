@@ -14,7 +14,7 @@ struct Token {
     int code;
     auto operator<=>(Token const&) const = default;
 };
-enum class Action { Settings, Zoom, NightVision, Sort, Count };
+enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, Count };
 enum class Behavior { Press, Hold, Toggle };
 struct ActionInfo { std::string_view id, feature; Behavior behavior; };
 inline constexpr auto actions = std::to_array<ActionInfo>({
@@ -22,7 +22,9 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"zoom", "zoom", Behavior::Hold},
     {"nightvision", "nightVision", Behavior::Toggle},
     {"sort", "sorting", Behavior::Press},
+    {"chunkborders", "chunkBorders", Behavior::Toggle},
 });
+static_assert(actions.size() == static_cast<size_t>(Action::Count));
 using Chord = std::vector<Token>;
 // Absent means use the existing Minecraft mapping; an empty chord explicitly
 // unbinds the action. Reset can remove an override without losing native remaps.

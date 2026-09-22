@@ -44,6 +44,16 @@ std::string gameplayKeyHint(IClientInstance& client) {
 }
 
 void registerActions() {
+    // Optional overlays start unbound; users choose a key in either settings UI.
+    auto& borders = ll::input::KeyRegistry::getInstance().getOrCreateKey("chunkborders", {});
+    borders.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
+        if (!usesNative(input::Action::ChunkBorders) || ui::ownsInput()) return;
+        auto& runtime = Runtime::instance();
+        if (!runtime.enabled() || !gameplayScreen(client.getScreenName())) return;
+        auto settings = runtime.preferences();
+        settings.overlays.chunkBorders = !settings.overlays.chunkBorders;
+        if (!runtime.save(settings)) runtime.self().getLogger().error("Could not save Chunk Borders setting");
+    });
     auto& sort = ll::input::KeyRegistry::getInstance().getOrCreateKey("sort", {0x52});
     sort.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
         if (usesNative(input::Action::Sort) && !ui::ownsInput()) inventory::requestSort(client);

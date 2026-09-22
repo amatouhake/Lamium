@@ -16,6 +16,13 @@ depth, mesh lifetime, world exit, and dimension changes remain unverified.
 Block-grid shapes are not connected to the renderer or an editor yet. See
 [overlay conventions](OVERLAYS.md) for sampling and remaining integration work.
 
+Chunk Borders also has a Toggle action in Features and Hotkeys. Its native
+default is unbound; custom chords and native remaps toggle the same persisted
+setting, only during gameplay and outside Lamium input ownership. The action
+catalog, localized labels, and settings-row coverage pass the unit suite.
+Native unbound registration, rebinding, and actual toggle behavior still need
+Minecraft validation alongside the renderer.
+
 ## Settings foundation in progress
 
 Features now starts as a collapsed list of feature headers showing state and
