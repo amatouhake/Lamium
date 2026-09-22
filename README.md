@@ -17,7 +17,8 @@ the current settings interaction is not the final design.
 
 The current prototype provides hold-to-zoom (`C`), local settings (`F8`), and a
 NightVision toggle (`J`) while in a world. Settings also control container
-previews, durability information, and inventory sorting. Use Up/Down or the wheel
+previews, durability information, and inventory sorting. Shulker and Bundle
+previews each have their own enable and show-empty switches. Use Up/Down or the wheel
 to select rows, Left/Right to adjust, and Enter or a click to choose. Short windows
 scroll to keep the selected row visible. Changes are saved and applied when edited;
 Escape or Close only closes the panel. A failed save leaves the previous value

@@ -4,7 +4,7 @@
 
 namespace lamium::ui {
 // GUI units, shared by drawing and hit testing. Keep the selected row visible
-// instead of drawing the Save/Cancel controls below a short window's edge.
+// instead of drawing settings or the Close control below a short window's edge.
 struct SettingsLayout {
     float left{}, top{}, width{}, rowsTop{}, footer{};
     int first{}, visible{};

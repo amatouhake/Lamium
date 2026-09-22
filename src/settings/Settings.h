@@ -16,6 +16,10 @@ struct Settings {
     } lighting;
     struct Inspection {
         bool containerPreviews = true;
+        bool shulkerPreviews = true;
+        bool emptyShulkerPreviews = true;
+        bool bundlePreviews = true;
+        bool emptyBundlePreviews = true;
         bool durability = true;
     } inspection;
     struct Inventory {

@@ -31,10 +31,10 @@ Settings and input foundation work is now underway, before broader feature expan
 - Reusable panels, lists, search, controls, numeric/text input, binding capture,
   item rendering, navigation, descriptions, and localization. Keep these useful
   for dedicated tools without building a separate GUI framework.
-- Recover missing preview controls: Shulker enabled, empty Shulker visibility,
-  vanilla Shulker contents text suppression, Bundle enabled, and empty Bundle
-  visibility. Reference defaults hide empty previews; migration behavior needs
-  an explicit decision to avoid silently changing existing Lamium preferences.
+- Shulker enabled, empty Shulker visibility, Bundle enabled, and empty Bundle
+  visibility are now editable through the shared settings catalog; runtime
+  validation is pending. Defaults retain existing Lamium behavior, including
+  empty previews. Vanilla Shulker contents text suppression remains to be added.
 - Distinguish world-space lines/boxes from block-grid shapes. Building shapes
   show block positions/faces, with Block Center snapping by default and optional
   Block Corner/Off. A Shape Manager/Editor owns individual shape workflows.

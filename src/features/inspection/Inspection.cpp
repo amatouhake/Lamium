@@ -30,6 +30,11 @@ bool start() {
             if (!settings.inspection.containerPreviews) { cache.clear(); return; }
             auto const* contents = cache.resolve(*controller);
             if (!contents) return;
+            bool const shulker = contents->family == preview::ContainerPreview::Family::Shulker;
+            auto const& preferences = settings.inspection;
+            if (!(shulker ? preferences.shulkerPreviews : preferences.bundlePreviews)) return;
+            if (contents->filledSlotCount() == 0 && contents->skippedSlotCount == 0
+                && !(shulker ? preferences.emptyShulkerPreviews : preferences.emptyBundlePreviews)) return;
             renderer.render(event.screenView(), event.uiRenderContext(), *contents);
         });
         exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { cache.clear(); });

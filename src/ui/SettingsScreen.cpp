@@ -1,4 +1,5 @@
 #include "ui/SettingsScreen.h"
+#include "settings/Options.h"
 #include "ui/SettingsLayout.h"
 #include "ui/Localization.h"
 #include "app/Runtime.h"
@@ -39,7 +40,7 @@ int commandRow = 0;
 int firstVisible = 0;
 bool seen = false;
 bool closing = false;
-constexpr int rowCount = 10;
+constexpr int rowCount = static_cast<int>(settings::options.size()) + 1;
 std::string error;
 std::array<ll::event::ListenerPtr, 4> listeners;
 constexpr mce::Color white{1.0f,1.0f,1.0f,1.0f};
@@ -58,19 +59,9 @@ void activate(int row, int direction) {
     // Read current preferences for every edit so another action cannot be
     // overwritten by a stale copy captured when the screen opened.
     auto value = Runtime::instance().preferences();
-    switch (row) {
-    case 0: value.camera.zoom = !value.camera.zoom; break;
-    case 1: value.camera.magnification += direction * .5f; break;
-    case 2: value.camera.wheelStep += direction * .1f; break;
-    case 3: value.lighting.nightVision = !value.lighting.nightVision; break;
-    case 4: value.inspection.containerPreviews = !value.inspection.containerPreviews; break;
-    case 5: value.inspection.durability = !value.inspection.durability; break;
-    case 6: value.inventory.sorting = !value.inventory.sorting; break;
-    case 7: value.inventory.sortContainers = !value.inventory.sortContainers; break;
-    case 8: value.ui.gameplayHints = !value.ui.gameplayHints; break;
-    case 9: close(); return;
-    default: return;
-    }
+    if (row == rowCount - 1) { close(); return; }
+    if (row < 0 || row >= rowCount - 1) return;
+    settings::options[row].adjust(value, direction);
     error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
 }
 void label(MinecraftUIRenderContext& context, float x, float y, float width, std::string text) {
@@ -114,18 +105,14 @@ void render(ll::event::AfterUIRenderEvent& event) {
     }
     label(context,left,top,width,translated("title"));
     if (layout.subtitle) label(context,left,top+18,width,translated("subtitle"));
-    auto toggle = [](std::string_view key, bool value) { return translated(key, translated(value ? "on" : "off")); };
-    auto const draft = Runtime::instance().preferences();
-    std::array<std::string,rowCount> rows{
-        toggle("zoom", draft.camera.zoom),
-        translated("magnification", draft.camera.magnification),
-        translated("wheelStep", draft.camera.wheelStep),
-        toggle("nightVision", draft.lighting.nightVision),
-        toggle("previews", draft.inspection.containerPreviews),
-        toggle("durability", draft.inspection.durability),
-        toggle("sorting", draft.inventory.sorting),
-        toggle("storage", draft.inventory.sortContainers),
-        toggle("gameplayHints", draft.ui.gameplayHints), translated("close")
+    auto const preferences = Runtime::instance().preferences();
+    auto rowLabel = [&](int index) {
+        if (index == rowCount - 1) return translated("close");
+        auto const& option = settings::options[index];
+        auto value = option.read(preferences);
+        if (auto flag = std::get_if<bool>(&value))
+            return translated(option.label, translated(*flag ? "on" : "off"));
+        return translated(option.label, std::get<float>(value));
     };
     glm::vec2 pointer = view.mPointerLocationPrevious;
     hovered = layout.hit(pointer.x, pointer.y);
@@ -135,7 +122,7 @@ void render(ll::event::AfterUIRenderEvent& event) {
             selected == i ? mce::Color{.28f,.24f,.43f,1.0f}
                 : hovered == i ? mce::Color{.22f,.23f,.30f,1.0f} : mce::Color{.15f,.16f,.21f,1.0f},1);
         context.flushImages(white,1,HashedString{"ui_fillColor"});
-        label(context,left+6,y+5,width-12,rows[i]);
+        label(context,left+6,y+5,width-12,rowLabel(i));
     }
     label(context,left,layout.footer,width,error.empty() ? translated("navigation") : error);
     if (layout.secondHint)

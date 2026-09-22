@@ -38,6 +38,10 @@ Json encode(Settings const& settings) {
                     {"wheelStep", settings.camera.wheelStep}}},
         {"lighting", {{"nightVision", settings.lighting.nightVision}}},
         {"inspection", {{"containerPreviews", settings.inspection.containerPreviews},
+                        {"shulkerPreviews", settings.inspection.shulkerPreviews},
+                        {"emptyShulkerPreviews", settings.inspection.emptyShulkerPreviews},
+                        {"bundlePreviews", settings.inspection.bundlePreviews},
+                        {"emptyBundlePreviews", settings.inspection.emptyBundlePreviews},
                         {"durability", settings.inspection.durability}}},
         {"inventory", {{"sorting", settings.inventory.sorting}, {"sortContainers", settings.inventory.sortContainers}}},
         {"interface", {{"gameplayHints", settings.ui.gameplayHints}}}
@@ -59,6 +63,10 @@ Settings decodeSettings(std::string_view text) {
     if (data.contains("inspection")) {
         value.inspection.containerPreviews = data.at("inspection").value("containerPreviews", true);
         value.inspection.durability = data.at("inspection").value("durability", true);
+        value.inspection.shulkerPreviews = data.at("inspection").value("shulkerPreviews", true);
+        value.inspection.emptyShulkerPreviews = data.at("inspection").value("emptyShulkerPreviews", true);
+        value.inspection.bundlePreviews = data.at("inspection").value("bundlePreviews", true);
+        value.inspection.emptyBundlePreviews = data.at("inspection").value("emptyBundlePreviews", true);
     }
     if (data.contains("inventory")) {
         value.inventory.sorting = data.at("inventory").value("sorting", true);

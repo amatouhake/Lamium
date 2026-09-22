@@ -4,6 +4,20 @@ Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
 
 ## Settings foundation in progress
 
+Setting rows now use a shared catalog with stable IDs, feature ownership, typed
+values, and editing accessors. Shulker and Bundle previews can each be disabled,
+and each has an empty-container visibility toggle. Missing fields default to
+enabled to retain the existing Lamium behavior. Empty visibility applies only
+when no items were decoded and no undecodable slots were reported.
+
+Automated storage checks exercise every catalog editor through a disk round
+trip and verify that unrelated settings stay unchanged. Layout checks cover
+one row, the current catalog, and 100 rows at multiple window heights. This
+does not establish usability of the eventual search/feature navigation UI.
+Preview switches, scrolling the expanded panel, and empty/nonempty Shulker and
+Bundle behavior still need Minecraft verification. Vanilla Shulker tooltip
+contents suppression has not yet been restored as an option.
+
 The current source replaces draft/Save/Cancel with per-edit persistence and
 application. Escape/Close only dismisses the screen. Each edit reads current
 preferences, and a failed write leaves both runtime state and displayed values
