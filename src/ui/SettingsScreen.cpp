@@ -135,9 +135,11 @@ void syncTextKeyboard(float x, float y) {
     if (!wanted || textKeyboardOwned || !client) return;
     auto& keyboard = client->getKeyboardManager();
     if (!keyboard.tryClaimKeyboardOwnership()) return;
-    auto const& text = number ? numberInput.value() : editingShapeName >= 0 ? shapeNameInput.value() : query.value();
     // Drawing a caret alone does not enable the platform's UTF-8/IME path.
-    bool enabled = keyboard.tryEnableKeyboard(text, number ? 24 : 128, true, false, false, Vec2{x, y}, 20.0f);
+    // Lamium owns text and selection; this keyboard supplies insertion events.
+    // Seeding its independent edit buffer with our current value leaves stale
+    // suffixes when Lamium handles select-all/backspace without native editing.
+    bool enabled = keyboard.tryEnableKeyboard({}, number ? 24 : 128, true, false, false, Vec2{x, y}, 20.0f);
     if (!enabled) {
         keyboard.releaseKeyboardOwnership();
         return;
@@ -230,7 +232,12 @@ void applyNumber() {
     range.write(value, *parsed);
     error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
 }
-void finishNumber() { applyNumber(); applyShapeName(); editingNumber = nullptr; editingShapeRow = -1; editingShapeName = -1; numberDirty = false; }
+void finishNumber() {
+    applyNumber();
+    applyShapeName();
+    releaseTextKeyboard();
+    editingNumber = nullptr; editingShapeRow = -1; editingShapeName = -1; numberDirty = false;
+}
 void close() {
     releaseTextKeyboard();
     if (ownsTop()) {

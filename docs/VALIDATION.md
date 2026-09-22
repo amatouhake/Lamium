@@ -1123,3 +1123,22 @@ Native automated name input still failed: replacing the selected name with
 stale native text/selection synchronization as another hypothesis to investigate;
 the callback/save scheduling change alone does not resolve the defect. The
 test shape currently retains the latter name. IME remains untested.
+
+### Native text buffer initialization fix (2026-09-23)
+
+The native keyboard now starts with an empty insertion buffer; Lamium continues
+to own the displayed text and selection. Finishing an edit releases keyboard
+ownership so another field starts a fresh native session. Passing the existing
+Lamium text into the independent native buffer had reproduced stale suffixes
+when replacing names through Lamium's select-all handling.
+
+Client build, existing unit tests and package/license checks passed. The new
+DLL was installed after normal shutdown and launched through LeviLauncher:
+`79F54C3E9D963B0738F7DBF07DF355B5C0A7A9E3E474187E1DAE642C5065DB47`.
+In the same local test world, search `shape` worked. Selecting the existing
+`abc spheree` name and typing `Saved sphere` produced exactly `Saved sphere`;
+Ctrl+A and typing `abc` in that same edit session produced exactly `abc`.
+Both the input row and committed editor title agreed, without the former stale
+suffix. The test shape is now named `abc`. This verifies the reproduced ASCII
+replacement cases, not IME composition, long/repeated input, numeric-field
+regressions or all focus transitions; those remain outstanding.
