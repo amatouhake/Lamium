@@ -123,6 +123,14 @@ with the stronger selection color while Zoom retained the weaker hover color.
 - Release DLL builds. Planner/key tests cover consolidation, fixed slots,
   region bounds, full inventories, deterministic/idempotent ordering, custom
   names, enchantments, damage, and Shulker content signatures.
+- A reproducible 3,000-layout property suite adds an independent operation
+  interpreter, checking conservation after every transfer, slot bounds, fixed
+  slots, capacities, minimum movable stack counts, and repeated sorting after
+  first-appearance group reclassification. It found an equal-key ordering defect:
+  fixed slots could change group numbering so a second sort reordered movable
+  stacks. Equal-key groups now use first movable appearance, not numeric IDs.
+  A four-slot regression and the generated suite pass. These synthetic checks do
+  not establish vanilla stackability or server transaction behavior.
 - Runtime execution now issues one vanilla transfer at a time, captures its
   new request IDs from the client's pending batch, and waits for matching server
   responses before checking the whole region and issuing the next transfer.

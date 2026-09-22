@@ -67,7 +67,8 @@ struct Plan {
 [[nodiscard]] bool applyOperation(std::vector<SlotStack>& slots, Operation const& op);
 
 /// Computes the operations that consolidate compatible partial stacks and
-/// arrange the region in sorted order (key ascending, then group, then count
+/// arrange the region in sorted order (key ascending, then the group's first
+/// appearance among movable slots, then count
 /// descending, empty slots last). Fixed (locked, non-empty) slots are left
 /// exactly as they are and never addressed by any operation; the movable
 /// slots are sorted around them. The result is deterministic for a given

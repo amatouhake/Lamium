@@ -50,20 +50,24 @@ void planConsolidation(std::vector<SlotStack>& state, std::vector<Operation>& op
 // (group, count): two full stacks of one group are interchangeable, so no
 // operation is spent on swapping them.
 //
-// Order: key, then group (so the stacks of one kind stay together even when
-// two vanilla-distinct kinds happen to share a key; group ids follow first
-// appearance, which keeps a sorted region stable), then count descending.
+// Order: key, then first movable appearance of the group, then count descending.
+// Group IDs are opaque: fixed slots can change their first-appearance numbering
+// on the next classification, so numeric IDs must not decide equal-key order.
 void planArrangement(std::vector<SlotStack>& state, std::vector<Operation>& ops) {
     std::vector<int> order;
+    std::map<int, size_t> groupOrder;
     for (int i = 0; i < static_cast<int>(state.size()); ++i) {
-        if (!state[static_cast<size_t>(i)].empty()) order.push_back(i);
+        if (!state[static_cast<size_t>(i)].empty()) {
+            order.push_back(i);
+            groupOrder.try_emplace(state[static_cast<size_t>(i)].group, groupOrder.size());
+        }
     }
     std::stable_sort(order.begin(), order.end(), [&](int a, int b) {
         auto const& sa = state[static_cast<size_t>(a)];
         auto const& sb = state[static_cast<size_t>(b)];
         if (sa.key < sb.key) return true;
         if (sb.key < sa.key) return false;
-        if (sa.group != sb.group) return sa.group < sb.group;
+        if (sa.group != sb.group) return groupOrder.at(sa.group) < groupOrder.at(sb.group);
         return sa.count > sb.count;
     });
     std::vector<SlotStack> desired;

@@ -88,7 +88,10 @@ bool emptiesLast(std::vector<SlotStack> const& slots) {
     return true;
 }
 
-bool sorted(std::vector<SlotStack> const& slots) {
+bool sorted(std::vector<SlotStack> const& slots, std::vector<SlotStack> const& input) {
+    std::map<int, size_t> groupOrder;
+    for (auto const& slot : input)
+        if (!slot.empty() && !slot.fixed()) groupOrder.try_emplace(slot.group, groupOrder.size());
     SlotStack const* prev = nullptr;
     for (auto const& s : slots) {
         if (s.fixed() || s.empty()) continue;
@@ -96,7 +99,7 @@ bool sorted(std::vector<SlotStack> const& slots) {
             auto const& a = *prev;
             auto const& b = s;
             if (b.key < a.key) return false;
-            if (a.key == b.key && b.group < a.group) return false;
+            if (a.key == b.key && groupOrder.at(b.group) < groupOrder.at(a.group)) return false;
             if (a.key == b.key && a.group == b.group && b.count > a.count) return false;
         }
         prev = &s;
@@ -126,7 +129,7 @@ void checkInvariants(std::vector<SlotStack> const& input, Plan const& plan, int 
     }
     check(totalsByGroup(input) == totalsByGroup(plan.expected), "item totals preserved per group", line);
     check(emptiesLast(plan.expected), "empty slots are last", line);
-    check(sorted(plan.expected), "expected layout is sorted", line);
+    check(sorted(plan.expected, input), "expected layout is sorted", line);
     for (auto const& s : plan.expected) {
         check(s.empty() || s.count <= s.maxStackSize, "no stack exceeds its max size", line);
     }

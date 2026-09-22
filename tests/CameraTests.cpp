@@ -12,7 +12,9 @@ void settingsStoreTests();
 int runPreviewLayoutTests();
 int runDurabilityBarTests();
 int runBundlePreviewTests();
-int main() {
+int main() try {
+    extern void sortPlannerPropertyTests();
+    sortPlannerPropertyTests();
     extern void translationTests();
     translationTests();
     extern void settingsLayoutTests();
@@ -48,4 +50,7 @@ int main() {
     settings.normalize();
     check(settings.camera.magnification == 1 && settings.camera.wheelStep == .5f, "normalize settings");
     std::cout << "Lamium: camera, settings storage, and item inspection checks passed\n";
+} catch (std::exception const& error) {
+    std::cerr << "Lamium test failure: " << error.what() << '\n';
+    return 1;
 }
