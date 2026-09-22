@@ -20,8 +20,19 @@ player block position only when a client chunk exists; unavailable values are
 shown explicitly. Biome names are engine identifiers, not localized display
 names. Direction tests cover cardinal yaw, wraparound, sector boundaries, and
 invalid input. The actual yaw-axis convention and biome results remain runtime
-checks. FPS, ping, light, WAILA/F3 consumers, line ordering, and additional
-display controls remain unfinished. UI callback frequency is not used as FPS.
+checks. Ping, light, WAILA/F3 consumers, line ordering, and additional display
+controls remain unfinished. UI callback frequency is not used as FPS.
+
+Client FPS and mean frame interval are now optional HUD lines. A hook samples
+steady-clock timestamps after `MinecraftGame::endFrame`; windows of at least
+half a second publish completed intervals divided by elapsed time and the
+reciprocal mean interval. These are frame-completion cadence measurements, not
+GPU execution time, server TPS, or MSPT. A gap over two seconds clears the window
+and stale values become unavailable; disable/re-enable resets it too. Tests
+cover 60/30 Hz, unequal intervals, stale data, duplicate/backward timestamps,
+and suspension recovery. Runtime validation must establish one callback per
+actual frame and compare the readings against an independent frame counter,
+including menus, minimized windows, low frame rates, and loading transitions.
 
 ## Tool Switch prototype
 

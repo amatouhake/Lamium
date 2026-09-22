@@ -4,6 +4,7 @@
 #include "features/inspection/Inspection.h"
 #include "features/inventory/Inventory.h"
 #include "features/inventory/ToolSwitch.h"
+#include "features/information/FrameTiming.h"
 #include "features/visuals/HideOffhand.h"
 #include "input/Actions.h"
 #include "input/CustomInput.h"
@@ -65,9 +66,10 @@ bool Runtime::enable() {
         Zoom::instance().stop();
         return false;
     }
-    try { ui::start(); input::startCustomInput(); overlay::start(); visuals::start(); inventory::tools::start(); }
+    try { ui::start(); input::startCustomInput(); overlay::start(); visuals::start(); inventory::tools::start(); information::startFrameTiming(); }
     catch (std::exception const& error) {
         mod.getLogger().error("Client feature initialization failed: {}", error.what());
+        information::stopFrameTiming();
         inventory::tools::stop();
         visuals::stop();
         input::stopCustomInput();
@@ -85,6 +87,7 @@ bool Runtime::enable() {
 }
 bool Runtime::disable() {
     running = false;
+    information::stopFrameTiming();
     inventory::tools::stop();
     visuals::stop();
     overlay::stop();

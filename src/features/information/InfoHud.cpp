@@ -1,5 +1,6 @@
 #include "features/information/InfoHud.h"
 #include "features/information/PlayerInfo.h"
+#include "features/information/FrameTiming.h"
 #include "ui/HudLayout.h"
 #include "ui/Widgets.h"
 #include "ui/Localization.h"
@@ -26,6 +27,11 @@ void drawHud(MinecraftUIRenderContext& context, float width, float height, Setti
     if (settings.facing) {
         auto key = info.yaw ? facingKey(*info.yaw) : std::nullopt;
         lines.push_back(ui::translated("hudFacing",key ? ui::translated(*key) : ui::translated("unavailable")));
+    }
+    if (settings.fps || settings.frameTime) {
+        auto timing = frameStatistics();
+        if (settings.fps) lines.push_back(ui::translated("hudFps", timing ? std::format("{:.0f}",timing->fps) : ui::translated("unavailable")));
+        if (settings.frameTime) lines.push_back(ui::translated("hudFrameTime", timing ? std::format("{:.1f} ms",timing->milliseconds) : ui::translated("unavailable")));
     }
     auto layout = ui::HudLayout::fit(width,height,settings.horizontal,settings.vertical,static_cast<int>(lines.size()));
     for (int i=0;i<layout.lines;++i) ui::label(context,layout.x,layout.y+i*14,layout.width,lines[i]);

@@ -29,6 +29,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"hudDimension", "Dimension: {}", "ディメンション: {}"},
     {"hudBiome", "Biome: {}", "バイオーム: {}"},
     {"hudFacing", "Facing: {}", "向き: {}"},
+    {"hudFps", "Client FPS: {}", "クライアント FPS: {}"},
+    {"hudFrameTime", "Frame interval: {}", "フレーム間隔: {}"},
     {"unavailable", "Unavailable", "取得不可"},
     {"facing.south", "South (+Z)", "南 (+Z)"},
     {"facing.west", "West (-X)", "西 (-X)"},

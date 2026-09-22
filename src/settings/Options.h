@@ -34,6 +34,8 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::dimension>("information.dimension", "infoHud", "hudDimension"),
     toggle<&Settings::information, &Settings::Information::biome>("information.biome", "infoHud", "hudBiome"),
     toggle<&Settings::information, &Settings::Information::facing>("information.facing", "infoHud", "hudFacing"),
+    toggle<&Settings::information, &Settings::Information::fps>("information.fps", "infoHud", "hudFps"),
+    toggle<&Settings::information, &Settings::Information::frameTime>("information.frameTime", "infoHud", "hudFrameTime"),
     {"information.horizontal", "infoHud", "hudHorizontal",
         [](Settings const& s) -> OptionValue { return s.information.horizontal; },
         [](Settings& s, int direction) { s.information.horizontal += direction * 5.f; s.normalize(); },

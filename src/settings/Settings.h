@@ -47,6 +47,8 @@ struct Settings {
         bool dimension = true;
         bool biome = false;
         bool facing = false;
+        bool fps = false;
+        bool frameTime = false;
         float horizontal = 2.f;
         float vertical = 15.f;
     } information;
