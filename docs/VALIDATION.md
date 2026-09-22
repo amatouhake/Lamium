@@ -1031,3 +1031,17 @@ Renaming updates metadata without regenerating grid lines. Unit tests verify
 Japanese names, cache identity and failed-rename preservation. Client build and
 the full unit suite passed; native name editing, IME and text fit are unverified.
 Shapes still do not persist across world exit.
+
+### Shape workspace persistence boundary (2026-09-23; game integration pending)
+
+The full unit suite passed with real temporary-file tests for a new workspace,
+automatic persistence of a candidate change, replacement blocked by a Windows
+file handle, live/file rollback, subsequent successful visibility save, separate
+world files, restoration with fresh session IDs, corrupt-file load rejection,
+prevention of edits overwriting an unreadable file, deletion of the last shape,
+and clearing the destination on departure. The test directories are exclusively
+created under the resolved system temporary directory and cleaned up afterward.
+
+`ShapeWorkspace` is not wired into `WorldOverlay` yet. These tests establish the
+storage transaction boundary, not Minecraft world identity or lifecycle behavior.
+The installed game build and its session-only Shape behavior are unchanged.

@@ -1,4 +1,5 @@
 #include "overlay/ShapeStore.h"
+#include "overlay/ShapeWorkspace.h"
 #include <chrono>
 #include <fstream>
 #ifndef NOMINMAX
@@ -42,4 +43,54 @@ void shapeStoreTests() {
     failed=false;
     try { (void)readShapes(oversized); } catch (std::length_error const&) { failed=true; }
     check(failed,"shape file reads enforce bounded document size");
+
+    ShapeWorkspace workspace;
+    auto worldA = root / "world-a" / "shapes.json";
+    auto worldB = root / "world-b" / "shapes.json";
+    workspace.enter(worldA);
+    check(workspace.persistent() && workspace.collection().entries().empty(),"new world begins empty and permits saving");
+    ShapeDefinition original{"World A sphere",0,true,ShapeSpec{Shape::Sphere,{2,4,6},Snap::BlockCenter,1,1}};
+    auto first = workspace.change([&](auto& collection) { return collection.add(original); });
+    check(readShapes(worldA)[0].name == original.name,"workspace creation persists without a separate save action");
+    locked = CreateFileW(worldA.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
+    check(locked != INVALID_HANDLE_VALUE,"workspace test blocks replacement");
+    failed=false;
+    try { workspace.change([&](auto& collection) { collection.rename(first,"Unsaved"); }); }
+    catch (std::exception const&) { failed=true; }
+    CloseHandle(locked);
+    check(failed && workspace.collection().find(first)->definition.name == original.name
+        && readShapes(worldA)[0].name == original.name,"failed workspace edit preserves live and saved values");
+    workspace.change([&](auto& collection) { collection.setVisible(first,false); });
+    check(!readShapes(worldA)[0].visible,"visibility persists after a failed save is retried");
+    workspace.enter(worldB);
+    check(workspace.collection().entries().empty(),"switching to another world clears old shapes");
+    original.name="World B sphere";
+    auto second=workspace.change([&](auto& collection) { return collection.add(original); });
+    check(second != first,"world transitions do not reuse stale editor IDs");
+    workspace.enter(worldA);
+    auto restored=workspace.collection().entries().begin()->first;
+    check(restored != first && restored != second && !workspace.collection().find(first)
+        && workspace.collection().find(restored)->definition.name == "World A sphere"
+        && !workspace.collection().find(restored)->definition.visible,"reentry restores only the chosen world's shapes with fresh IDs");
+    auto corrupt=root / "broken.json";
+    { std::ofstream file(corrupt); file << "broken shape document"; }
+    failed=false;
+    try { workspace.enter(corrupt); } catch (std::exception const&) { failed=true; }
+    check(failed && workspace.failedToLoad() && !workspace.persistent() && workspace.collection().entries().empty(),
+        "failed world load clears previous rendering and disables persistence");
+    failed=false;
+    try { workspace.change([&](auto& collection) { return collection.add(original); }); }
+    catch (std::exception const&) { failed=true; }
+    std::ifstream unchanged(corrupt);
+    std::string contents((std::istreambuf_iterator<char>(unchanged)),{});
+    check(failed && workspace.collection().entries().empty() && contents=="broken shape document",
+        "editing cannot overwrite an unreadable workspace with an empty replacement");
+    workspace.enter(worldB);
+    auto removeId=workspace.collection().entries().begin()->first;
+    workspace.change([&](auto& collection) { return collection.remove(removeId); });
+    check(readShapes(worldB).empty(),"removing the final shape saves an empty collection");
+    workspace.leave();
+    check(!workspace.persistent() && !workspace.failedToLoad() && workspace.collection().entries().empty(),"leave clears binding and transient errors");
+    workspace.change([&](auto& collection) { return collection.add(original); });
+    check(readShapes(worldB).empty(),"unbound session changes cannot write to a departed world");
 }

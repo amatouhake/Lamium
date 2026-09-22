@@ -118,8 +118,8 @@ matching. The operation rejects inputs over 250,000 cells or its configurable
 line budget (one million by default); it never returns a truncated guide.
 Tests cover a single block, adjacent blocks, a solid cube, internal-edge removal,
 and budget rejection. These lines use the same `Line` representation accepted
-by the world renderer, but no Shape screen or runtime shape consumer is wired
-yet. CPU geometry conversion does not establish visible rendering correctness.
+by the world renderer and the session Shape Manager/Editor. CPU geometry
+conversion alone does not establish visible rendering correctness.
 
 Enumeration has a default work limit of 250,000 candidate cells. Oversized shapes
 are rejected before enumeration rather than silently truncated. Coordinates are
@@ -131,3 +131,24 @@ Pure tests cover negative-coordinate snapping, translations, known small shapes,
 shared-face removal, rings, plane orientation, grid gaps, face winding, and
 invalid/oversized input. GPU rendering, depth/material behavior, camera-relative
 precision, performance, and world/dimension lifecycle remain unverified.
+
+### Persistence transaction boundary
+
+`ShapeWorkspace` owns a collection and an optional resolved world-specific file.
+Entering another workspace clears previous shapes before reading. Successful
+loads allocate fresh session IDs so an old editor selection cannot target a
+different shape. A failed load leaves an empty collection and blocks editing
+until a successful retry or explicit departure; it cannot overwrite the
+unreadable source with an empty document.
+
+Changes prepare a candidate collection and publish it only after the complete
+file has been written successfully. Failed writes preserve both previous live
+values and the destination file. Leaving clears the file binding; subsequent
+session-only changes cannot save into the departed world's file. Candidate
+copies and geometry validation have a cost and must remain outside rendering.
+
+This boundary has file-system tests but is not connected to the game session
+yet. Stable local/remote world identity, lifecycle integration, error feedback
+and runtime reentry validation remain required before automatic restoration.
+Connection type and Level ID accessors exist in the SDK, but their declarations
+alone do not prove a stable, unique persistent identity.
