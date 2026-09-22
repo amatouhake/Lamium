@@ -183,8 +183,20 @@ using checksum-pinned official source headers and release exports. In the isolat
 environment, this recipe installed successfully and Lamium's DLL and test suite
 built and passed. Dependencies were downloaded during this validation, including
 upstream precompiled packages where available. The normal development build also
-passes all tests and the package/notice check with the new SDK. A repeat from an
-untouched clone with empty caches remains pending. Xmake still emits an LGPL
+passes all tests and the package/notice check with the new SDK. An untouched clone
+of `a6e58dc`, with separate initially empty xmake configuration, package install,
+download-cache and temporary directories, also completed dependency restore,
+DLL build, all tests and package checks. Its working tree remained clean and its
+dependency lock hash matched the source checkout. This used the existing system
+compiler/Windows SDK; it was not a fresh operating-system installation.
+
+The development DLL built against the new SDK loaded through LeviLauncher with
+Client 26.51.3. A local world displayed the gameplay hints and F8 settings, showed
+`1561 / 1561` for a full-durability diamond pickaxe, and logged an already-sorted
+27-slot inventory with 12 occupied slots and one locked slot. No inventory
+transfer was issued in this smoke test.
+
+Xmake still emits an LGPL
 compatibility warning for the import-library package; the distribution review
 below remains open and is not replaced by this build result.
 
@@ -197,7 +209,7 @@ below remains open and is not replaced by this build result.
 - Verify NightVision underwater, in Nether/End, and across restart/dimension changes.
 - Complete runtime validation of previews and durability; verify the remaining
   inventory scenarios listed above.
-- Verify hosted CI and a clean dependency restore/build/package.
+- Verify hosted CI; local clean dependency restore/build/package now passes.
 - Dependency notices now include the locked SDK's header libraries, link inputs,
   and LeviLamina's GPL/LGPL texts. Package validation checks referenced notice
   files as well as the hashes of all copied notices. Complete the remaining
