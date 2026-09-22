@@ -15,6 +15,13 @@ client headers in the same order as the upstream build. It generates a module
 definition from the official DLL's named exports and uses Microsoft's librarian
 to create `LeviLamina.lib`. The game still needs the separately installed runtime.
 
+The package's fetch metadata explicitly marks this import library as shared.
+Xmake otherwise treats a Windows `.lib` without an accompanying DLL as static,
+which produces an incorrect LGPL compatibility warning. License checking remains
+enabled. `dumpbin /dependents bin/Lamium/Lamium.dll` shows `LeviLamina.dll` as a
+normal dependency and `bedrock_runtime.dll` as a delay-load dependency. The package
+checker rejects additional DLLs and linker inputs in the distributable directory.
+
 Dependencies are explicitly listed, with Bedrock runtime data
 `v26.51.1-client.4` matching this release's source build. Package repository
 revisions and transitive versions remain in the project's dependency lock.

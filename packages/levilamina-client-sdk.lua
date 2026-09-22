@@ -18,6 +18,21 @@ package("levilamina-client-sdk")
         "symbolprovider v1.3.0", "parallel-hashmap v1.3.12", "concurrentqueue v1.0.4",
         "stb 2025.03.14", "bedrockdata v26.51.1-client.4")
 
+    on_fetch(function(package, opt)
+        if opt.system then return false end
+        local result = package:find_package("xmake::" .. package:name(), {
+            require_version = package:version_str(), external = opt.external, force = opt.force
+        })
+        if result then
+            -- This .lib contains DLL import records, not runtime implementation.
+            -- xmake's Windows scanner otherwise requires a bundled DLL to infer
+            -- shared linkage. Keep the runtime outside the SDK installation.
+            result.shared = true
+            result.static = nil
+        end
+        return result
+    end)
+
     on_install("windows|x64", function(package)
         import("core.tool.toolchain")
         import("lib.detect.find_tool")

@@ -196,9 +196,15 @@ Client 26.51.3. A local world displayed the gameplay hints and F8 settings, show
 27-slot inventory with 12 occupied slots and one locked slot. No inventory
 transfer was issued in this smoke test.
 
-Xmake still emits an LGPL
-compatibility warning for the import-library package; the distribution review
-below remains open and is not replaced by this build result.
+`dumpbin /dependents` confirms a normal import of `LeviLamina.dll` and a delayed
+import of `bedrock_runtime.dll`. Xmake's earlier LGPL warning came from classifying
+the DLL-less SDK import library as static. The package fetch metadata now reports
+shared linkage, and configure/build/package validation succeeds without that
+warning or disabling license checks. The dependency lock remains unchanged.
+A deliberate extra `LeviLamina.dll` in the package is rejected by the package
+checker; removing the probe restores a passing result. Additional DLLs and linker
+inputs are not allowed in the package. The distribution review below remains
+open; these are technical linkage and packaging checks, not a legal conclusion.
 
 - Verify zoom visually while held, wheel capture, sensitivity, and release.
 - Verify menu transitions, focus loss, dimension changes, disconnect/rejoin.

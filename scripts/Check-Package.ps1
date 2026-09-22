@@ -39,4 +39,11 @@ foreach ($privateDirectory in @('config', 'logs', '.xmake', '.git')) {
         throw "Development state must not be packaged: $privateDirectory"
     }
 }
+foreach ($binary in Get-ChildItem -LiteralPath $package -File -Recurse) {
+    $relative = [IO.Path]::GetRelativePath($package, $binary.FullName)
+    if (($binary.Extension -ieq '.dll' -and $relative -ine 'Lamium.dll') -or
+        $binary.Extension -iin @('.lib', '.exp')) {
+        throw "Dependency runtime or build link input must not be packaged: $relative"
+    }
+}
 Write-Output 'Lamium client package and license copies verified.'
