@@ -752,3 +752,25 @@ control-character rejection, selection deletion, and clearing replacement state.
 The rebuilt LamiumTests passed, and the client build/package checks passed.
 These new search-selection controls have not yet been installed or exercised
 in Minecraft; the running instance still uses the preceding numeric-tested DLL.
+
+### Search replacement and chord editor runtime smoke (2026-09-23)
+
+The search-selection build was installed through the existing validation
+instance (DLL SHA-256
+`226AFE4215489E02E7378395EA2FEAF86B498A350FD21B588877C34CF0F60502`).
+The fresh mod log recorded enable at 05:52:50. In the local creative world,
+F8 opened settings and the new search hint appeared. Entering `hints`, pressing
+Ctrl+A, then entering `zoom` replaced the query and displayed the Zoom options.
+The selected-query marker was visible before replacement.
+
+From the filtered feature view, clicking the Zoom binding opened capture.
+Ctrl+J returned to the edited row and displayed CONTROL + J. Reading the saved
+configuration confirmed a two-key chord (key codes 17 and 74). Reopening the
+editor and clicking Reset restored the Minecraft mapping C; the saved bindings
+object was empty again. Esc returned to gameplay. The temporary binding was
+not left installed.
+
+This verifies the feature-to-binding editor path, modifier chord capture,
+automatic persistence, Reset, and return selection. It does not verify Zoom
+activation using the temporary chord, arbitrary non-modifier chords, mouse or
+wheel capture, or the separate Hotkeys view.
