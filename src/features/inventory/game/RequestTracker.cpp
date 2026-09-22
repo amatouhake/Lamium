@@ -4,6 +4,11 @@
 #include "mc/world/inventory/network/ItemStackNetManagerClient.h"
 #include "mc/world/inventory/network/ItemStackRequestData.h"
 #include "mc/world/inventory/network/ItemStackRequestScope.h"
+#include "mc/world/inventory/network/ItemStackRequestBatch.h"
+#include "mc/world/containers/managers/models/ContainerManagerModel.h"
+#include "mc/world/actor/player/Player.h"
+#include <set>
+#include <utility>
 #include "mc/world/containers/managers/controllers/ContainerManagerController.h"
 #include "mc/client/network/ClientNetworkHandler.h"
 #include "mc/network/packet/ItemStackResponseSlotInfo.h"
@@ -17,18 +22,9 @@ namespace lamium::inventory::game {
 namespace {
 std::mutex mutex;
 ResponseBarrier barrier;
-thread_local bool capturing = false;
-bool requestInstalled = false, responseInstalled = false;
-LL_TYPE_INSTANCE_HOOK(RequestEndHook, ll::memory::HookPriority::Normal, ContainerManagerController,
-    &ContainerManagerController::_updateItemStackRequest, void,
-    ContainerScreenActionResult const& result, ItemStackRequestScope& scope) {
-    origin(result, scope);
-    auto* manager = scope.mItemStackNetManagerClient;
-    if (capturing && manager && manager->mRequest) {
-        std::lock_guard lock(mutex);
-        barrier.track(manager->mRequest->mClientRequestId->mRawId);
-    }
-}
+std::set<int64_t> previousRequests;
+ItemStackNetManagerClient* transferManager = nullptr;
+bool responseInstalled = false;
 LL_TYPE_INSTANCE_HOOK(ResponseHook, ll::memory::HookPriority::Normal, ClientNetworkHandler,
     &ClientNetworkHandler::$handle, void,
     NetworkIdentifier const& source, ItemStackResponsePacket const& packet) {
@@ -40,10 +36,6 @@ LL_TYPE_INSTANCE_HOOK(ResponseHook, ll::memory::HookPriority::Normal, ClientNetw
 }
 }
 void installRequestTracker() {
-    if (!requestInstalled) {
-        if (RequestEndHook::hook(true) != 0) throw std::runtime_error("Could not track inventory requests");
-        requestInstalled = true;
-    }
     if (!responseInstalled) {
         if (ResponseHook::hook(true) != 0) throw std::runtime_error("Could not track inventory responses");
         responseInstalled = true;
@@ -51,19 +43,43 @@ void installRequestTracker() {
 }
 void removeRequestTracker() {
     if (responseInstalled && ResponseHook::unhook(true)) responseInstalled = false;
-    if (requestInstalled && RequestEndHook::unhook(true)) requestInstalled = false;
-    if (requestInstalled || responseInstalled)
+
+    if (responseInstalled)
         Runtime::instance().self().getLogger().error("Could not remove inventory response hooks");
     std::lock_guard lock(mutex);
     barrier.begin(ResponseBarrier::Clock::now());
-    capturing = false;
+    transferManager = nullptr;
 }
-void beginTransfer() {
+bool beginTransfer(ContainerManagerController& controller) {
     std::lock_guard lock(mutex);
+    transferManager = nullptr;
     barrier.begin(ResponseBarrier::Clock::now());
-    capturing = true;
+    previousRequests.clear();
+    auto model = controller.mContainerManagerModel.lock();
+    if (!model) return false;
+    auto* base = model->mPlayer.mItemStackNetManager.get();
+    if (!base || !base->mIsClientSide || !base->mIsEnabled) return false;
+    auto* manager = static_cast<ItemStackNetManagerClient*>(base);
+    // Do not append Lamium operations to somebody else's active request.
+    if (manager->mRequest) return false;
+    if (manager->mRequestBatch) {
+        for (auto const& request : manager->mRequestBatch->mRequests.get())
+            if (request) previousRequests.insert(request->mClientRequestId->mRawId);
+    }
+    transferManager = manager;
+    return true;
 }
-void endTransfer() { capturing = false; }
+void endTransfer() {
+    std::lock_guard lock(mutex);
+    // Vanilla adds completed scopes to this batch. We only observe new IDs;
+    // packet creation, sending, and retries remain entirely vanilla-owned.
+    auto* manager = std::exchange(transferManager, nullptr);
+    if (!manager || !manager->mRequestBatch) return;
+    for (auto const& request : manager->mRequestBatch->mRequests.get()) {
+        if (request && !previousRequests.contains(request->mClientRequestId->mRawId))
+            barrier.track(request->mClientRequestId->mRawId);
+    }
+}
 ResponseBarrier::Result transferResult() {
     std::lock_guard lock(mutex);
     return barrier.result(ResponseBarrier::Clock::now());

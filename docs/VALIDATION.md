@@ -54,7 +54,7 @@ These observations validate the UI prototype, not the whole feature suite.
   region bounds, full inventories, deterministic/idempotent ordering, custom
   names, enchantments, damage, and Shulker content signatures.
 - Runtime execution now issues one vanilla transfer at a time, captures its
-  request IDs through the container controller, and waits for matching server
+  new request IDs from the client's pending batch, and waits for matching server
   responses before checking the whole region and issuing the next transfer.
 - Response-barrier tests cover multiple IDs, unrelated/old responses, duplicate
   replies, rejection, absent capture, and a five-second timeout. The release DLL
@@ -64,7 +64,13 @@ These observations validate the UI prototype, not the whole feature suite.
   vanilla; Lamium does not synthesize a rollback.
 - In-game request capture, acceptance/rejection, latency, cancellation, and
   item-conservation checks are still required; unit tests do not prove them.
-- This build has not yet been installed for in-game sorting validation.
+- The response-aware build loaded in game. An R press in the creative inventory
+  planned five operations around one locked slot, applied the first swap, then
+  stopped with an untracked-request result. The update callback did not capture
+  that swap's request ID. Capture now compares the client's pending request batch
+  immediately before and after each vanilla transfer. It refuses to begin while
+  another request scope is active. This replacement builds but still needs
+  in-game verification.
 
 ## Outstanding release gates
 

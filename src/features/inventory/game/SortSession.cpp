@@ -270,7 +270,11 @@ void SortSession::tick(ContainerScreenController& controller) {
     }
     SlotData const source(job.region.collectionName, op.from);
     SlotData const destination(job.region.collectionName, op.to);
-    beginTransfer();
+    if (!beginTransfer(*manager)) {
+        logger.warn("Sort stopped: no available client request scope");
+        cancel();
+        return;
+    }
     bool success = false;
     try {
         success = op.kind == sort::OpKind::Move
