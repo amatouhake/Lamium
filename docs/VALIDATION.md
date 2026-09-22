@@ -896,3 +896,17 @@ tests; additional checks cover contiguous groups and searching a group while
 features are collapsed. Client build, unit tests and package checks passed.
 This build is not installed yet; group labels and search still need visual
 runtime verification. Separate group header rows are not implemented.
+
+### Feature grouping runtime check (2026-09-23)
+
+Installed 99effd8 with DLL SHA-256
+`F6DA4BB9BA481BF47E9C4B5BBEEBAF98F2EBCC72ECBEEF15E6E41E46D2F850B7`.
+Minecraft 1.26.51.01 / LeviLamina 26.51.3 / DeesseUI 1.3.9 launched
+and entered the local creative scenario. At 1920x1080, Features began with
+Zoom, NightVision, Hide Offhand, then inventory features. Expanding Zoom
+displayed Camera & appearance in the subtitle and retained C / 3.5x / 0.5.
+Searching appearance showed Zoom, NightVision and Hide Offhand with their
+settings and bindings expanded. Switching to Hotkeys retained the query and
+showed exactly their three actions, with the panel shrinking to fit. No
+preference values were changed. Japanese group search, other GUI scales and
+the remaining group subtitles are not covered by this runtime check.
