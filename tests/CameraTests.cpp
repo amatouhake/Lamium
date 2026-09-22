@@ -27,6 +27,8 @@ int main() try {
     numberInputTests();
     extern void overlayGeometryTests();
     overlayGeometryTests();
+    extern void shapeCollectionTests();
+    shapeCollectionTests();
     extern void settingsRowsTests();
     settingsRowsTests();
     extern void bindingTests();

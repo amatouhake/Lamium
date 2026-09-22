@@ -4,6 +4,19 @@ This is an overlay component under development. A prototype world-line backend
 and a Chunk Borders setting are connected in source; actual rendering has not
 been verified in Minecraft. Shape Manager/Editor is not connected yet.
 
+`ShapeCollection` now provides the game-independent manager model: stable
+session IDs, names, visibility, dimension ownership, and cached grid-surface
+lines for circles, cylinders, spheres and rectangular grid planes. Geometry is
+built on add/edit, never during read-only drawing. Visibility changes retain
+the cache. Failed generation or budget checks leave the previous entry intact.
+The collection defaults to 32 shapes and 200,000 total cached lines, including
+hidden shapes; removing entries frees the budget. IDs are not reused by clear,
+so a stale editor selection cannot refer to a new shape. The future session
+owner must clear on world exit; dimension IDs alone do not identify worlds.
+Tests cover cache retention, dimension filtering, transactional edits, aggregate
+budget recovery and stale IDs. UI, runtime lifecycle wiring, persistence and
+render integration are still outstanding.
+
 Chunk Borders defaults off. The prototype draws the player's current chunk
 boundary, using floor division at negative coordinates and the dimension's
 height range, with horizontal edges at 16-block intervals. It hooks the native
