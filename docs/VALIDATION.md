@@ -949,3 +949,17 @@ No rows or navigation stops are added, and capture has no section captions.
 Client build and package checks passed. Caption fit in both languages,
 truncation of long binding summaries and scrolled presentation need runtime
 verification. This build has not yet been installed in the test instance.
+
+### Inline section caption runtime check (2026-09-23)
+
+Installed c1187d7 with DLL SHA-256
+`AD190AA077C25944D19106EBAF1B953C4438C4CED4794D2FA846BD6254FE9541`.
+At 1920x1080 in English on Minecraft 1.26.51.01 / LeviLamina 26.51.3 /
+DeesseUI 1.3.9, all five section captions fit in the collapsed Features list.
+The long Block Restrictions binding summary was ellipsized before the caption,
+with no overlap. End scrolled to Close and repeated Camera & appearance on
+the now-first-visible Hide Offhand row. Searching appearance showed the
+expanded matching features with one section caption; switching to Hotkeys
+retained the query, showed its three actions, and fitted the caption beside
+Zoom. No preference values were changed. Japanese captions, narrower panels,
+other GUI scales and long custom chord summaries remain unverified.
