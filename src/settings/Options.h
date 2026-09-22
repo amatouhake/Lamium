@@ -29,6 +29,17 @@ constexpr Option toggle(std::string_view id, std::string_view feature, std::stri
         [](Settings& value, int) { auto& field = (value.*Group).*Member; field = !field; }};
 }
 inline constexpr auto options = std::to_array<Option>({
+    toggle<&Settings::information, &Settings::Information::hud>("information.hud", "infoHud", "infoHud"),
+    toggle<&Settings::information, &Settings::Information::coordinates>("information.coordinates", "infoHud", "hudCoordinates"),
+    toggle<&Settings::information, &Settings::Information::dimension>("information.dimension", "infoHud", "hudDimension"),
+    {"information.horizontal", "infoHud", "hudHorizontal",
+        [](Settings const& s) -> OptionValue { return s.information.horizontal; },
+        [](Settings& s, int direction) { s.information.horizontal += direction * 5.f; s.normalize(); },
+        NumericOption{0,100,[](Settings& s, float v) { s.information.horizontal = v; }}},
+    {"information.vertical", "infoHud", "hudVertical",
+        [](Settings const& s) -> OptionValue { return s.information.vertical; },
+        [](Settings& s, int direction) { s.information.vertical += direction * 5.f; s.normalize(); },
+        NumericOption{0,100,[](Settings& s, float v) { s.information.vertical = v; }}},
     toggle<&Settings::inventory, &Settings::Inventory::toolSwitch>("inventory.toolSwitch", "toolSwitch", "toolSwitch"),
     toggle<&Settings::overlays, &Settings::Overlays::hitboxes>("overlays.hitboxes", "hitboxes", "hitboxes"),
     {"overlays.hitboxDistance", "hitboxes", "hitboxDistance",

@@ -8,6 +8,7 @@
 #include "ui/Localization.h"
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
+#include "features/information/InfoHud.h"
 #include "input/Actions.h"
 #include "input/BindingCapture.h"
 #include "ll/api/event/EventBus.h"
@@ -174,6 +175,8 @@ void render(ll::event::UIRenderEvent& event) {
     auto& view = event.screenView();
     glm::vec2 size = view.mSize;
     if (!scene) {
+        if (gameplayScreen(current.getScreenName()))
+            information::drawHud(context,size.x,size.y,Runtime::instance().preferences().information);
         if (gameplayScreen(current.getScreenName()) && Runtime::instance().preferences().ui.gameplayHints) {
             label(context, 6, 6, size.x-12, gameplayKeyHint(current));
             context.flushText(0, std::nullopt);
@@ -197,6 +200,7 @@ void render(ll::event::UIRenderEvent& event) {
     if (action == 3) activate(commandRow, 0);
     if (action == 2) close();
     if (!scene) return;
+    information::drawHud(context,size.x,size.y,Runtime::instance().preferences().information);
     auto layout = SettingsLayout::fit(size.x, size.y, rowCount(), selected, firstVisible);
     firstVisible = layout.first;
     float width = layout.width, left = layout.left, top = layout.top;

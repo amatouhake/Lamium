@@ -2,6 +2,20 @@
 
 Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
 
+## Info HUD prototype
+
+Info HUD is off by default, with an initially unbound Toggle action. Coordinates
+and dimension name can be enabled separately. Horizontal/vertical positions
+use 0–100 percent anchors within available screen space, including margins and
+line height; both support numeric editing. The HUD draws minimal text without
+a card, in gameplay and behind Lamium settings for live placement feedback.
+It reads current local-player values only, retains no entity pointers, and
+draws no content without a local player. Pure layout, settings round-trip,
+translation, and action tests pass. Actual HUD visibility, text fit, position
+editing, GUI scaling, dimension changes, and resource packs are unverified.
+Biome, FPS, ping, facing, light, provider sharing with WAILA/F3, line ordering,
+and additional display controls remain unfinished.
+
 ## Tool Switch prototype
 
 Tool Switch is off by default, with a configurable initially unbound Toggle

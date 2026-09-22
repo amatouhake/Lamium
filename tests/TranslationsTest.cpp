@@ -22,6 +22,7 @@ void translationTests() {
             auto pattern = find(entry.key, locale);
             std::string rendered;
             if (entry.key == "gameplay") rendered = std::vformat(pattern, std::make_format_args(key, zoom, light));
+            else if (entry.key == "hudXYZ") rendered = std::vformat(pattern, std::make_format_args(number,number,number));
             else if (entry.key == "bindingRow" || entry.key == "numberInput") rendered = std::vformat(pattern, std::make_format_args(key, zoom));
             else if (entry.key == "numberRange") rendered = std::vformat(pattern, std::make_format_args(number, number));
             else if (entry.key == "mouseButton") rendered = std::vformat(pattern, std::make_format_args(remaining));
@@ -29,7 +30,8 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(remaining, maximum));
                 check(rendered.find("123 / 1561") != std::string::npos);
             }
-            else if (entry.key == "magnification" || entry.key == "wheelStep" || entry.key == "hitboxDistance")
+            else if (entry.key == "magnification" || entry.key == "wheelStep" || entry.key == "hitboxDistance"
+                || entry.key == "hudHorizontal" || entry.key == "hudVertical")
                 rendered = std::vformat(pattern, std::make_format_args(number));
             else if (pattern.find("{}") != std::string_view::npos)
                 rendered = std::vformat(pattern, std::make_format_args(on));

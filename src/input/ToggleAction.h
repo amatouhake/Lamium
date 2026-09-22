@@ -4,6 +4,7 @@ namespace lamium::input {
 inline bool toggleAction(Settings& value, Action action) {
     bool* field = nullptr;
     switch (action) {
+    case Action::InfoHud: field = &value.information.hud; break;
     case Action::NightVision: field = &value.lighting.nightVision; break;
     case Action::ChunkBorders: field = &value.overlays.chunkBorders; break;
     case Action::HideOffhand: field = &value.visuals.hideOffhand; break;

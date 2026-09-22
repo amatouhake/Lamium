@@ -45,6 +45,9 @@ Json encode(Settings const& settings) {
     }
     return Json{
         {"version", settings.version},
+        {"information", {{"hud", settings.information.hud}, {"coordinates", settings.information.coordinates},
+                         {"dimension", settings.information.dimension}, {"horizontal", settings.information.horizontal},
+                         {"vertical", settings.information.vertical}}},
         {"visuals", {{"hideOffhand", settings.visuals.hideOffhand}}},
         {"overlays", {{"chunkBorders", settings.overlays.chunkBorders}, {"hitboxes", settings.overlays.hitboxes},
                       {"hitboxDistance", settings.overlays.hitboxDistance}}},
@@ -68,6 +71,14 @@ Json encode(Settings const& settings) {
 Settings decodeSettings(std::string_view text) {
     auto data = parse(text);
     Settings value;
+    if (data.contains("information")) {
+        auto const& info = data.at("information");
+        value.information.hud = info.value("hud", false);
+        value.information.coordinates = info.value("coordinates", true);
+        value.information.dimension = info.value("dimension", true);
+        value.information.horizontal = info.value("horizontal", 2.f);
+        value.information.vertical = info.value("vertical", 15.f);
+    }
     if (data.contains("visuals")) value.visuals.hideOffhand = data.at("visuals").value("hideOffhand", false);
     if (data.contains("overlays")) {
         auto const& overlays = data.at("overlays");

@@ -41,8 +41,19 @@ struct Settings {
     struct Visuals {
         bool hideOffhand = false;
     } visuals;
+    struct Information {
+        bool hud = false;
+        bool coordinates = true;
+        bool dimension = true;
+        float horizontal = 2.f;
+        float vertical = 15.f;
+    } information;
 
     void normalize() {
+        if (!std::isfinite(information.horizontal)) information.horizontal = 2.f;
+        if (!std::isfinite(information.vertical)) information.vertical = 15.f;
+        information.horizontal = std::clamp(information.horizontal, 0.f, 100.f);
+        information.vertical = std::clamp(information.vertical, 0.f, 100.f);
         if (!std::isfinite(overlays.hitboxDistance)) overlays.hitboxDistance = 64.f;
         overlays.hitboxDistance = std::clamp(overlays.hitboxDistance, 8.f, 128.f);
         if (!std::isfinite(camera.magnification)) camera.magnification = 3.0f;
