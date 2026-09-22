@@ -795,3 +795,20 @@ the panel to the footer rather than covering the lower world view. Clicking
 Close returned to gameplay. Other GUI scales and resource packs remain pending.
 This is an incremental density improvement, not completion of the planned
 feature-centric visual design and broader navigation work.
+
+### Hotkeys activation and settings ownership (2026-09-23)
+
+On the same installed compact-layout build and local creative scenario,
+opened Hotkeys and captured Ctrl+K for Toggle debug view. The list showed
+CONTROL + K. After Esc, the chord displayed the debug information overlay.
+Reopened settings: the same chord did not toggle the overlay, and a W key
+press left the displayed XYZ unchanged. After closing settings, Ctrl+K hid
+the overlay again. Reset in Hotkeys restored Unbound before leaving settings.
+This verifies one edited Toggle action across menu transitions, not Hold
+semantics, sustained movement, attack/use isolation, or focus-loss recovery.
+
+One later click on Switch to Hotkeys only highlighted the row; a fresh
+snapshot still showed Features, and Enter then switched successfully.
+The mouse handler currently uses the hover row from rendering, so stale
+hover at click time is a candidate cause to investigate, not a confirmed
+diagnosis. Broader click-target validation remains open.
