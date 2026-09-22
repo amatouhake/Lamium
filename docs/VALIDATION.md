@@ -173,7 +173,17 @@ with the stronger selection color while Zoom retained the weaker hover color.
   returns before collecting request IDs. The container manager itself is retained
   across the vanilla call. Build, existing tests and package validation pass;
   the synchronous teardown/exception paths still need runtime reproduction.
-- These checks used Deesse UI 1.3.9. Other storage types, survival inventories,
+- With the cancellation and equal-key stability fixes (`29ab144`), a local
+  survival inventory selected the 27-slot player region. Splitting 64 oak logs
+  into 32 + 32 and pressing R completed one acknowledged merge back to 64;
+  repeating R issued zero operations. Manually swapping an iron helmet and
+  three diamonds, then sorting, completed one acknowledged swap restoring their
+  order. The separate item-locked five-log stack, all nine hotbar slots and empty
+  equipment/offhand slots remained unchanged. The final inventory again had
+  12 occupied main slots. The original creative game mode was restored and the
+  world saved normally. This verifies ordinary survival transfers on the latest
+  build, not the synchronous teardown or equal-key collision edge cases.
+- These checks used Deesse UI 1.3.9. Other storage types,
   other text-input screens, live cancellation, rejected requests, and remote-server
   latency still require runtime checks.
 - A separate rotating Lamium log flushes informational messages while the game
