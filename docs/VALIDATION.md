@@ -168,14 +168,25 @@ with the stronger selection color while Zoom retained the weaker hover color.
 
 Build automation: a Windows CI workflow, dependency lock, and package checker
 have been added. The local locked configuration builds, passes the test suite,
-and passes the package check. A hosted CI run and a fresh dependency-cache
-restore have not yet been verified.
+and passes the package check. A hosted CI run has not yet been verified.
 
 A separate clone with no project build output also completed configuration,
 DLL compilation/packaging, test compilation/execution, and the package check.
 Its dependency lock remained unchanged. This reused the machine's downloaded
 dependency cache, so it is evidence for a clean checkout build, not a clean
 dependency restore.
+
+A subsequent isolated dependency-cache restore exposed an upstream runtime
+build failure: the defaulted `MinecraftCommands` destructor uses an incomplete
+`CommandRegistry` with MSVC 14.44 headers. Lamium now provides a client SDK recipe
+using checksum-pinned official source headers and release exports. In the isolated
+environment, this recipe installed successfully and Lamium's DLL and test suite
+built and passed. Dependencies were downloaded during this validation, including
+upstream precompiled packages where available. The normal development build also
+passes all tests and the package/notice check with the new SDK. A repeat from an
+untouched clone with empty caches remains pending. Xmake still emits an LGPL
+compatibility warning for the import-library package; the distribution review
+below remains open and is not replaced by this build result.
 
 - Verify zoom visually while held, wheel capture, sensitivity, and release.
 - Verify menu transitions, focus loss, dimension changes, disconnect/rejoin.
@@ -190,5 +201,5 @@ dependency restore.
 - Dependency notices now include the locked SDK's header libraries, link inputs,
   and LeviLamina's GPL/LGPL texts. Package validation checks referenced notice
   files as well as the hashes of all copied notices. Complete the remaining
-  distribution review, including SymbolProvider's MinGW disclaimer reference
-  and generated runtime import libraries, before a public release.
+  distribution review, including generated runtime import libraries, before a
+  public release. SymbolProvider's referenced MinGW disclaimer is now included.

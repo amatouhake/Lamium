@@ -71,5 +71,7 @@ are retained verbatim from the indicated version's upstream source.
 Snappy test data and RapidJSON's jsonchecker executable are not shipped with
 Lamium. Their mentions above are preserved as part of the upstream notice files.
 SymbolProvider has a public-domain notice in its source file rather than a root
-LICENSE file. Its reference to MinGW's `DISCLAIMER.PD` and the build-generated
-runtime import libraries remain part of the outstanding distribution review.
+LICENSE file. The referenced [MinGW disclaimer](licenses/mingw-w64-DISCLAIMER.PD.txt)
+is retained from [mingw-w64 at commit 57b5950](https://github.com/mingw-w64/mingw-w64/blob/57b595039040eaa15bece85b7cc71d952281b269/DISCLAIMER.PD).
+Build-generated runtime import libraries remain part of the outstanding
+distribution review.

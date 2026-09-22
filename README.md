@@ -52,9 +52,11 @@ xmake run LamiumTests
 
 Use PowerShell 7 for the package check. `xmake-requires.lock` records the package
 versions and repository revisions used for Windows x64. Keep it when cloning;
-review changes from `xmake require --upgrade` before committing them. The current
-LeviLamina tag uses the pinned repository's `main` dependency mapping because
-that repository has no version-specific entry for the tag.
+review changes from `xmake require --upgrade` before committing them.
+The project includes a client SDK recipe that downloads the matching LeviLamina
+source headers and official release DLL with SHA-256 verification, then generates
+an import library using Visual Studio's `dumpbin` and `lib`. It does not install
+or bundle that runtime. See [SDK build notes](packages/README.md).
 
 The GitHub Actions workflow builds with xmake 3.1.1 on Windows, runs the tests and
 package check, and uploads a development artifact. It does not publish releases.

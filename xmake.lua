@@ -1,4 +1,5 @@
 add_rules("mode.debug", "mode.release")
+set_license("LGPL-3.0")
 set_policy("package.requires_lock", true)
 
 add_repositories("levimc-repo https://github.com/LiteLDev/xmake-repo.git")
@@ -11,10 +12,8 @@ option("target_type")
     set_values("client")
 option_end()
 
--- The "v" form checks out the upstream git tag directly; the LeviMC xmake-repo
--- had not published a 26.51.3 version entry when this was written. Switch to
--- "levilamina 26.51.3" once it has one.
-add_requires("levilamina v26.51.3", {configs = {target_type = get_config("target_type")}})
+includes("packages/levilamina-client-sdk.lua")
+add_requires("levilamina-client-sdk 26.51.3", {configs = {shared = true}})
 
 add_requires("levibuildscript")
 add_requires("nlohmann_json v3.12.0")
@@ -44,7 +43,7 @@ target("Lamium")
         )
         set_toolchains("clang-cl")
     end
-    add_packages("levilamina", "nlohmann_json")
+    add_packages("levilamina-client-sdk", "nlohmann_json")
     set_kind("shared")
     set_languages("c++20")
     set_symbols("debug")
