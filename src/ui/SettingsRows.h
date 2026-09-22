@@ -7,20 +7,27 @@
 
 namespace lamium::ui {
 struct FeatureInfo { std::string_view id, name, description, toggle; };
+inline constexpr std::string_view featureSection(std::string_view id) {
+    if (id == "zoom" || id == "nightVision" || id == "hideOffhand") return "section.camera";
+    if (id == "previews" || id == "durability" || id == "sorting" || id == "toolSwitch") return "section.inventory";
+    if (id == "restrictions") return "section.interaction";
+    if (id == "settings" || id == "gameplayHints") return "section.interface";
+    return "section.information";
+}
 inline constexpr auto features = std::to_array<FeatureInfo>({
-    {"restrictions", "feature.restrictions", "help.restrictions", ""},
-    {"debugView", "feature.debugView", "help.debugView", "information.debug"},
-    {"targetInfo", "feature.targetInfo", "help.targetInfo", "information.target"},
-    {"infoHud", "feature.infoHud", "help.infoHud", "information.hud"},
-    {"toolSwitch", "feature.toolSwitch", "help.toolSwitch", "inventory.toolSwitch"},
-    {"hitboxes", "feature.hitboxes", "help.hitboxes", "overlays.hitboxes"},
-    {"hideOffhand", "feature.hideOffhand", "help.hideOffhand", "visuals.hideOffhand"},
-    {"chunkBorders", "feature.chunkBorders", "help.chunkBorders", "overlays.chunkBorders"},
     {"zoom", "feature.zoom", "help.zoom", "camera.zoom"},
     {"nightVision", "feature.nightVision", "help.nightVision", "lighting.nightVision"},
+    {"hideOffhand", "feature.hideOffhand", "help.hideOffhand", "visuals.hideOffhand"},
     {"previews", "feature.previews", "help.previews", "inspection.containerPreviews"},
     {"durability", "feature.durability", "help.durability", "inspection.durability"},
     {"sorting", "feature.sorting", "help.sorting", "inventory.sorting"},
+    {"toolSwitch", "feature.toolSwitch", "help.toolSwitch", "inventory.toolSwitch"},
+    {"restrictions", "feature.restrictions", "help.restrictions", ""},
+    {"infoHud", "feature.infoHud", "help.infoHud", "information.hud"},
+    {"targetInfo", "feature.targetInfo", "help.targetInfo", "information.target"},
+    {"debugView", "feature.debugView", "help.debugView", "information.debug"},
+    {"chunkBorders", "feature.chunkBorders", "help.chunkBorders", "overlays.chunkBorders"},
+    {"hitboxes", "feature.hitboxes", "help.hitboxes", "overlays.hitboxes"},
     {"gameplayHints", "feature.gameplayHints", "help.gameplayHints", "interface.gameplayHints"},
     {"settings", "feature.settings", "help.settings", ""},
 });
@@ -38,7 +45,8 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, SearchQuery const& quer
     std::vector<SettingsRow> rows;
     bool const searching = query.value().find_first_not_of(' ') != std::string::npos;
     for (auto const& feature : features) {
-        std::string scope = std::string(feature.id) + " " + translate(feature.name) + " " + translate(feature.description);
+        std::string scope = std::string(feature.id) + " " + translate(feature.name) + " " + translate(feature.description)
+            + " " + translate(featureSection(feature.id));
         std::vector<SettingsRow> children;
         if (!hotkeys) {
             for (auto const& option : settings::options)

@@ -24,6 +24,23 @@ void settingsRowsTests() {
     for (auto const& feature : ui::features) collapsed.insert(feature.id);
     rows = ui::buildSettingsRows(false, query, collapsed, translate);
     check(rows.size() == ui::features.size(), "collapsed view exposes only feature headers");
+    std::set<std::string_view> sections;
+    std::string_view section;
+    for (auto const& row : rows) {
+        auto next = ui::featureSection(row.feature->id);
+        check(translate(next) != next, "section name is localized");
+        if (next != section) {
+            check(sections.insert(next).second, "each section forms one contiguous group");
+            section = next;
+        }
+    }
+    check(sections.size() == 5, "all broad sections are represented");
+    query.append("Camera & appearance");
+    rows = ui::buildSettingsRows(false, query, collapsed, translate);
+    check(!rows.empty(), "section search reveals collapsed features");
+    for (auto const& row : rows)
+        check(ui::featureSection(row.feature->id) == "section.camera", "section search stays in matching group");
+    query.clear();
     query.append("magnification");
     rows = ui::buildSettingsRows(false, query, collapsed, translate);
     check(rows.size() == 2 && rows[0].heading() && rows[1].option->id == "camera.magnification", "search reveals matching setting inside collapsed feature");

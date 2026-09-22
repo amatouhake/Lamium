@@ -884,3 +884,15 @@ hotbar slot 3 normally). Z+3 displayed the overlay, and a second Z+3 hid it.
 Clear restored Debug View to Unbound and it remained off. This covers one
 two-key non-modifier chord; longer chords, reverse press order, partial-release
 retrigger behavior and modified wheel inputs still need runtime coverage.
+
+### Broad feature grouping (2026-09-23; runtime pending)
+
+Features are ordered in contiguous Camera & appearance, Inventory,
+Interaction, Information & overlays, and Interface groups. The selected
+feature's group appears in the subtitle, and localized group names participate
+in search in both Features and Hotkeys. No new top-level tabs are introduced.
+All options and actions remain reachable once, verified by the settings-row
+tests; additional checks cover contiguous groups and searching a group while
+features are collapsed. Client build, unit tests and package checks passed.
+This build is not installed yet; group labels and search still need visual
+runtime verification. Separate group header rows are not implemented.

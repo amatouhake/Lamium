@@ -293,7 +293,9 @@ void render(ll::event::UIRenderEvent& event) {
         ? translated("key.Lamium." + std::string(input::actions[static_cast<size_t>(*capturing)].id)) : translated("title"));
     if (layout.subtitle) label(context,left,top+16,width,capturing
         ? translated("captureCurrent", actionBindingName(current, *capturing))
-        : translated(visibleRows.empty() ? "noResults" : "subtitle"));
+        : selected >= 2 && selected < rowCount()-1
+            ? translated(featureSection(visibleRows[selected-2].feature->id))
+            : translated(visibleRows.empty() ? "noResults" : "subtitle"));
     auto const preferences = Runtime::instance().preferences();
     auto rowLabel = [&](int index) {
         if (capturing) {
