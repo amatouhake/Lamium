@@ -1161,3 +1161,19 @@ The invalid numeric state currently repeats the range message in both footer
 lines; this is a presentation issue, not a failed rejection. Long input, IME
 composition, integer-only field errors and storage-failure recovery are still
 unverified in Minecraft. The test sphere retains the Japanese name above.
+
+### Shape save failure and retry (2026-09-23)
+
+On ff25950, the existing local-world sidecar was opened with a read-only Windows
+handle sharing reads but denying replacement for 60 seconds. While that handle
+was confirmed live, changing radius 4.5 to 3.25 displayed the dedicated save
+failure message. The input retained the attempted 3.25, while the committed row
+value and visible guide retained 4.5. A file read also retained 4.5 and the
+Japanese name, and no `shapes.json.*.tmp` files remained. The lock holder verified
+that the complete sidecar SHA-256 was unchanged before releasing its handle.
+
+After confirmed release, selecting and retyping 3.25 in the same editor cleared
+the error, changed the guide, and persisted radius 3.25 in the sidecar. No world
+reload or process restart was required. This verifies replacement-denied write
+failure and explicit edit retry for a numeric field; it does not cover every
+filesystem failure or failed-load recovery. The test sphere now has radius 3.25.

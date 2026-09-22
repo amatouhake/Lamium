@@ -163,6 +163,9 @@ leaves an explicitly session-only collection. Remote persistence, in-screen
 load retry, and broader multi-world/failure runtime validation remain outstanding.
 One local-world save/reentry was verified with the stored name, coordinates,
 radius, visibility and snap mode restored in the editor and the guide visible.
+Runtime testing also verified a replacement-denied save: the previous live
+geometry and file survived, a save error was shown, and retyping the edit after
+the lock was released successfully saved without leaving the world.
 
 An opt-in `shape_trace` build records bounded primary-player join diagnostics.
 One local world was verified to return its storage directory name as Level ID,
