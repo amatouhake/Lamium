@@ -3,6 +3,7 @@
 #include "ui/SettingsLayout.h"
 #include "ui/SettingsRows.h"
 #include "ui/SearchQuery.h"
+#include "ui/NumberInput.h"
 #include "ui/Localization.h"
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
@@ -48,6 +49,9 @@ bool seen = false;
 bool closing = false;
 SearchQuery query;
 bool searchFocused = false;
+settings::Option const* editingNumber = nullptr;
+NumberInput numberInput;
+bool numberDirty = false;
 bool textHook = false;
 std::vector<SettingsRow> visibleRows;
 std::set<std::string_view> collapsed = [] {
@@ -113,12 +117,25 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
     &UIScene::$handleTextChar, void, std::string const& text, FocusImpact impact) {
     std::lock_guard lock(mutex);
     if (scene.get() == this && ownsTop()) {
+        if (editingNumber) { if (numberInput.append(text)) numberDirty = true; return; }
         if (!capturing && searchFocused && query.append(text)) { filterOptions(); selected = 1; }
         return;
     }
     origin(text, impact);
 }
-void clear() { uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr; scene.reset(); seen = false; closing = false; command = 0; hovered = -1; }
+void clear() { editingNumber = nullptr; numberDirty = false; uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr; scene.reset(); seen = false; closing = false; command = 0; hovered = -1; }
+void applyNumber() {
+    if (!editingNumber || !numberDirty) return;
+    numberDirty = false;
+    auto const& range = *editingNumber->numeric;
+    auto parsed = numberInput.parsed(range.minimum, range.maximum);
+    if (!parsed) { error = translated("numberRange", range.minimum, range.maximum); return; }
+    auto value = Runtime::instance().preferences();
+    if (std::get<float>(editingNumber->read(value)) == *parsed) { error.clear(); return; }
+    range.write(value, *parsed);
+    error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
+}
+void finishNumber() { applyNumber(); editingNumber = nullptr; numberDirty = false; }
 void close() {
     if (ownsTop()) {
         if (!closing) client->getSceneFactory().getCurrentSceneStack()->schedulePopScreen(1);
@@ -126,6 +143,7 @@ void close() {
     } else clear();
 }
 void activate(int row, int direction) {
+    finishNumber();
     // Read current preferences for every edit so another action cannot be
     // overwritten by a stale copy captured when the screen opened.
     auto value = Runtime::instance().preferences();
@@ -148,6 +166,12 @@ void activate(int row, int direction) {
         capturing = entry.action; capture.begin(uiHeld); error.clear();
         captureFirstVisible = firstVisible;
         selected = 0; firstVisible = 0; hovered = -1;
+        return;
+    }
+    if (entry.option->numeric && direction == 0) {
+        editingNumber = entry.option;
+        numberInput.begin(std::get<float>(entry.option->read(value)));
+        error.clear();
         return;
     }
     entry.option->adjust(value, direction);
@@ -176,6 +200,7 @@ void render(ll::event::UIRenderEvent& event) {
     if (&current != client) return;
     if (!ownsTop()) { if (seen) clear(); return; }
     seen = true;
+    applyNumber();
     if (bindingEdit) {
         auto value = Runtime::instance().preferences();
         value.bindings[static_cast<size_t>(bindingEdit->action)] = bindingEdit->binding;
@@ -186,6 +211,7 @@ void render(ll::event::UIRenderEvent& event) {
     int action = closing ? 0 : std::exchange(command, 0);
     if (action == 1) activate(commandRow, 1);
     if (action == -1) activate(commandRow, -1);
+    if (action == 3) activate(commandRow, 0);
     if (action == 2) close();
     if (!scene) return;
     auto layout = SettingsLayout::fit(size.x, size.y, rowCount(), selected, firstVisible);
@@ -239,6 +265,9 @@ void render(ll::event::UIRenderEvent& event) {
         }
         auto const& option = *entry.option;
         auto value = option.read(preferences);
+        if (editingNumber == &option)
+            return translated("numberInput", translated(option.label, std::get<float>(value)),
+                numberInput.selectedAll() ? "[" + numberInput.value() + "]" : numberInput.value() + "_");
         if (auto flag = std::get_if<bool>(&value))
             return translated(option.label, translated(*flag ? "on" : "off"));
         return translated(option.label, std::get<float>(value));
@@ -253,7 +282,7 @@ void render(ll::event::UIRenderEvent& event) {
         context.flushImages(white,1,HashedString{"ui_fillColor"});
         label(context,left+6,y+5,width-12,rowLabel(i));
     }
-    label(context,left,layout.footer,width,error.empty() ? translated(capturing ? "captureHint" : "navigation") : error);
+    label(context,left,layout.footer,width,error.empty() ? translated(editingNumber ? "numberHint" : capturing ? "captureHint" : "navigation") : error);
     if (layout.secondHint) {
         auto description = translated("adjustment");
         if (!capturing && selected >= 2 && selected < rowCount()-1)
@@ -269,6 +298,7 @@ void open(IClientInstance& current) {
     Zoom::instance().reset();
     selected = 0; hovered = -1; command = 0; error.clear(); seen = false; closing = false;
     firstVisible = 0; commandRow = 0;
+    editingNumber = nullptr; numberDirty = false;
     query.clear(); uiHeld.clear(); searchFocused = false; hotkeys = false; capturing.reset(); bindingEdit.reset(); filterOptions();
     // This native information screen supplies focus/cursor ownership. It has no
     // form ID, packet, or server callback. Lamium draws and handles its own UI.
@@ -284,6 +314,7 @@ bool ownsInput() {
 void cancelInputCapture() {
     std::lock_guard lock(mutex);
     if (capturing) cancelCapture();
+    finishNumber();
     searchFocused = false;
     uiHeld.clear();
 }
@@ -332,11 +363,12 @@ void start() {
         if (event.actionButtonId() != MouseAction::ActionWheel && event.buttonData() == MouseAction::DataUp) return;
         event.cancel();
         if (event.actionButtonId() == MouseAction::ActionWheel && event.buttonData() != 0) {
+            finishNumber();
             searchFocused = false;
             selected = std::clamp(selected + (event.buttonData() > 0 ? -1 : 1), 0, rowCount()-1);
         }
         if (event.actionButtonId() == MouseAction::ActionLeft && event.buttonData() == MouseAction::DataDown && hovered >= 0) {
-            selected = hovered; commandRow = hovered; command = 1;
+            selected = hovered; commandRow = hovered; command = 3;
         }
         if (event.actionButtonId() == MouseAction::ActionRight && event.buttonData() == MouseAction::DataDown && hovered >= 0 && hovered < rowCount()-1) {
             selected = hovered; commandRow = hovered; command = -1;
@@ -356,6 +388,19 @@ void start() {
         // Let key-up through so keys pressed before opening cannot stick.
         if (!event.isDown()) return;
         event.cancel();
+        if (editingNumber) {
+            switch (event.keyCode()) {
+            case 0x08: if (numberInput.backspace()) numberDirty = true; break;
+            case 0x41:
+                if (std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, 0x11}) != uiHeld.end()
+                    || std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, 0xa2}) != uiHeld.end()
+                    || std::find(uiHeld.begin(), uiHeld.end(), input::Token{input::Device::Key, 0xa3}) != uiHeld.end()) numberInput.selectAll();
+                break;
+            case 0x1b: case 0x0d: finishNumber(); break;
+            case 0x09: finishNumber(); selected = (selected+1)%rowCount(); break;
+            }
+            return;
+        }
         if (searchFocused) {
             switch (event.keyCode()) {
             case 0x08: if (query.backspace()) { filterOptions(); selected = 1; } break;
@@ -371,7 +416,7 @@ void start() {
         case 0x09: case 0x28: selected = (selected+1)%rowCount(); break;
         case 0x25: if (selected < rowCount()-1) { commandRow = selected; command = -1; } break;
         case 0x27: if (selected < rowCount()-1) { commandRow = selected; command = 1; } break;
-        case 0x0d: case 0x20: commandRow = selected; command = 1; break;
+        case 0x0d: case 0x20: commandRow = selected; command = 3; break;
         }
     });
     listeners[3] = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) {

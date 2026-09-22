@@ -25,6 +25,16 @@ Minecraft validation alongside the renderer.
 
 ## Settings foundation in progress
 
+Magnification and wheel step now have an inline decimal editor, opened by click
+or Enter. The initial value is selected for replacement; Ctrl+A reselects it,
+Backspace edits, and Enter/Escape finish editing without rolling back values
+already saved. Valid in-range input applies on the next render; incomplete or
+out-of-range input leaves the last saved value unchanged. Left/right adjustment
+remains available outside text editing. Pure tests cover replacement, decimal
+precision, intermediate signs/decimal points, invalid characters, bounds, and
+numeric catalog setters. The full unit suite passes. Actual text delivery,
+focus, layout, and autosave interaction still require Minecraft validation.
+
 Features now starts as a collapsed list of feature headers showing state and
 binding. Expand a feature to edit its options and binding together. Search
 temporarily reveals matching children even in collapsed groups; clearing search

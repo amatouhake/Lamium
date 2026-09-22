@@ -1,17 +1,23 @@
 #pragma once
 #include "settings/Settings.h"
 #include <array>
+#include <optional>
 #include <string_view>
 #include <variant>
 
 namespace lamium::settings {
 using OptionValue = std::variant<bool, float>;
+struct NumericOption {
+    float minimum, maximum;
+    void (*write)(Settings&, float);
+};
 struct Option {
     std::string_view id;
     std::string_view feature;
     std::string_view label;
     OptionValue (*read)(Settings const&);
     void (*adjust)(Settings&, int);
+    std::optional<NumericOption> numeric = std::nullopt;
 };
 
 // Stable identifiers and feature ownership are independent of presentation
@@ -27,10 +33,12 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::camera, &Settings::Camera::zoom>("camera.zoom", "zoom", "zoom"),
     {"camera.magnification", "zoom", "magnification",
         [](Settings const& s) -> OptionValue { return s.camera.magnification; },
-        [](Settings& s, int direction) { s.camera.magnification += direction * .5f; s.normalize(); }},
+        [](Settings& s, int direction) { s.camera.magnification += direction * .5f; s.normalize(); },
+        NumericOption{1, 10, [](Settings& s, float v) { s.camera.magnification = v; }}},
     {"camera.wheelStep", "zoom", "wheelStep",
         [](Settings const& s) -> OptionValue { return s.camera.wheelStep; },
-        [](Settings& s, int direction) { s.camera.wheelStep += direction * .1f; s.normalize(); }},
+        [](Settings& s, int direction) { s.camera.wheelStep += direction * .1f; s.normalize(); },
+        NumericOption{.1f, 2, [](Settings& s, float v) { s.camera.wheelStep = v; }}},
     toggle<&Settings::lighting, &Settings::Lighting::nightVision>("lighting.nightVision", "nightVision", "nightVision"),
     toggle<&Settings::inspection, &Settings::Inspection::containerPreviews>("inspection.containerPreviews", "previews", "previews"),
     toggle<&Settings::inspection, &Settings::Inspection::shulkerPreviews>("inspection.shulkerPreviews", "previews", "shulkerPreviews"),
