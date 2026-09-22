@@ -7,16 +7,35 @@
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
+#include "ll/api/memory/Hook.h"
 #include "mc/client/gui/screens/ScreenController.h"
+#include "mc/safety/RedactableString.h"
+#include "mc/world/item/Item.h"
+#include "mc/world/item/ShulkerBoxBlockItem.h"
 
 namespace lamium::inspection {
 namespace {
 preview::HoveredPreviewCache cache;
 render::PreviewRenderer renderer;
 ll::event::ListenerPtr renderListener, exitListener;
+bool tooltipHookInstalled = false;
+LL_TYPE_INSTANCE_HOOK(ShulkerContentsText, ll::memory::HookPriority::Normal, ShulkerBoxBlockItem,
+    &ShulkerBoxBlockItem::$appendFormattedHovertext, void, ItemStackBase const& stack,
+    Level& level, Bedrock::Safety::RedactableString& hovertext, bool const showCategory) {
+    auto& runtime = Runtime::instance();
+    auto const preferences = runtime.preferences().inspection;
+    if (runtime.enabled() && preferences.containerPreviews && preferences.shulkerPreviews
+        && preferences.hideShulkerContents) {
+        // Keep the generic item text (name/lore/etc.); only skip the Shulker
+        // specialization which appends the contained-item list.
+        Item::$appendFormattedHovertext(stack, level, hovertext, showCategory);
+    } else origin(stack, level, hovertext, showCategory);
+}
 }
 bool start() {
     try {
+        tooltipHookInstalled = ShulkerContentsText::hook(true) == 0;
+        if (!tooltipHookInstalled) throw std::runtime_error("Could not install Shulker contents text hook");
         hover::HoverTracker::getInstance().install();
         auto& bus = ll::event::EventBus::getInstance();
         renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
@@ -52,5 +71,9 @@ void stop() {
     }
     cache.clear();
     hover::HoverTracker::getInstance().uninstall();
+    if (tooltipHookInstalled) {
+        if (ShulkerContentsText::unhook(true)) tooltipHookInstalled = false;
+        else Runtime::instance().self().getLogger().error("Could not remove Shulker contents text hook");
+    }
 }
 }

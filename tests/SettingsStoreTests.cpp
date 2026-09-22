@@ -18,6 +18,7 @@ void settingsStoreTests() {
           "adding lighting must preserve existing camera settings");
     check(old.inventory.sorting && old.inventory.sortContainers, "old settings supply inventory defaults");
     check(old.ui.gameplayHints, "existing settings preserve visible gameplay hints by default");
+    check(!old.inspection.hideShulkerContents, "older settings retain vanilla Shulker contents text");
     check(old.inspection.shulkerPreviews && old.inspection.emptyShulkerPreviews
           && old.inspection.bundlePreviews && old.inspection.emptyBundlePreviews,
           "older files retain the existing preview behavior including empty containers");

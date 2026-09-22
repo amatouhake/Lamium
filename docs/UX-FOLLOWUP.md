@@ -35,7 +35,9 @@ Settings and input foundation work is now underway, before broader feature expan
 - Shulker enabled, empty Shulker visibility, Bundle enabled, and empty Bundle
   visibility are now editable through the shared settings catalog; runtime
   validation is pending. Defaults retain existing Lamium behavior, including
-  empty previews. Vanilla Shulker contents text suppression remains to be added.
+  empty previews. Vanilla Shulker contents text suppression is also editable,
+  defaults off, and only applies while Shulker previews are enabled. Its runtime
+  behavior remains unverified.
 - Distinguish world-space lines/boxes from block-grid shapes. Building shapes
   show block positions/faces, with Block Center snapping by default and optional
   Block Corner/Off. A Shape Manager/Editor owns individual shape workflows.

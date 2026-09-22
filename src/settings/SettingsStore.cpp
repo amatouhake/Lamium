@@ -52,6 +52,7 @@ Json encode(Settings const& settings) {
         {"inspection", {{"containerPreviews", settings.inspection.containerPreviews},
                         {"shulkerPreviews", settings.inspection.shulkerPreviews},
                         {"emptyShulkerPreviews", settings.inspection.emptyShulkerPreviews},
+                        {"hideShulkerContents", settings.inspection.hideShulkerContents},
                         {"bundlePreviews", settings.inspection.bundlePreviews},
                         {"emptyBundlePreviews", settings.inspection.emptyBundlePreviews},
                         {"durability", settings.inspection.durability}}},
@@ -100,6 +101,7 @@ Settings decodeSettings(std::string_view text) {
         value.inspection.durability = data.at("inspection").value("durability", true);
         value.inspection.shulkerPreviews = data.at("inspection").value("shulkerPreviews", true);
         value.inspection.emptyShulkerPreviews = data.at("inspection").value("emptyShulkerPreviews", true);
+        value.inspection.hideShulkerContents = data.at("inspection").value("hideShulkerContents", false);
         value.inspection.bundlePreviews = data.at("inspection").value("bundlePreviews", true);
         value.inspection.emptyBundlePreviews = data.at("inspection").value("emptyBundlePreviews", true);
     }

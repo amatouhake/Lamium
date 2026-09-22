@@ -27,6 +27,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"previews", "Container previews: {}", "収納アイテムのプレビュー: {}"},
     {"shulkerPreviews", "Shulker previews: {}", "シュルカーのプレビュー: {}"},
     {"emptyShulkerPreviews", "Show empty Shulkers: {}", "空のシュルカーを表示: {}"},
+    {"hideShulkerContents", "Hide Shulker contents text: {}", "シュルカーの内容テキストを隠す: {}"},
     {"bundlePreviews", "Bundle previews: {}", "バンドルのプレビュー: {}"},
     {"emptyBundlePreviews", "Show empty Bundles: {}", "空のバンドルを表示: {}"},
     {"durability", "Durability: {}", "耐久値の表示: {}"},

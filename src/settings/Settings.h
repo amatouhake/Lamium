@@ -20,6 +20,7 @@ struct Settings {
         bool containerPreviews = true;
         bool shulkerPreviews = true;
         bool emptyShulkerPreviews = true;
+        bool hideShulkerContents = false;
         bool bundlePreviews = true;
         bool emptyBundlePreviews = true;
         bool durability = true;

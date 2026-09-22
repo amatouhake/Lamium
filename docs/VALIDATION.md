@@ -64,8 +64,13 @@ trip and verify that unrelated settings stay unchanged. Layout checks cover
 one row, the current catalog, and 100 rows at multiple window heights. This
 does not establish usability of the eventual search/feature navigation UI.
 Preview switches, scrolling the expanded panel, and empty/nonempty Shulker and
-Bundle behavior still need Minecraft verification. Vanilla Shulker tooltip
-contents suppression has not yet been restored as an option.
+Bundle behavior still need Minecraft verification. Vanilla Shulker contents
+text suppression is now an editable option, off by default to preserve previous
+Lamium behavior. The hook uses generic item hover text only while both the
+master preview switch and Shulker previews are enabled. This leaves the vanilla
+Shulker path intact when either switch is off. Automated tests cover its
+default, editing, and persistence; actual contents suppression, preservation of
+custom names/lore, and immediate restoration still need Minecraft validation.
 
 The current source replaces draft/Save/Cancel with per-edit persistence and
 application. Escape/Close only dismisses the screen. Each edit reads current
