@@ -74,11 +74,27 @@ camera basis lengths. It does not record positions, world identifiers, or
 paths, and does not modify camera matrices or player state. Disable it with
 `xmake f --camera_trace=n` and rebuild for ordinary use.
 
-The diagnostic build compiles and links against SDK 26.51.3. Runtime observation
-is still pending. A zero view change alone cannot establish that vanilla
-reconstructs the camera on every call; it can also mean the camera is stationary.
-These measurements do not establish culling, input ownership, or detached-camera
-correctness.
+The diagnostic build compiles and links against SDK 26.51.3. On 2026-09-23,
+build `6bfaeb4` was installed with matching source/destination DLL hashes and
+observed in a local creative world on Minecraft 1.26.51.01. First-person world
+rendering and an F5 switch to rear third-person rendering remained visible,
+including the existing Shape overlay. Minecraft then exited normally.
+
+The flushed log contained exactly 32 samples (0 through 31). All reported finite
+view/product matrices and an available pre-call view. Sample 0 had basis lengths
+`0/0/0` and inverse error `0.74165905`; subsequent samples had lengths `1/1/1`
+and inverse error `0`. Pre/post view differences stayed approximately `0.741659`.
+This demonstrates that the hook runs and changes the view in this scene, but
+cached camera dependencies are not valid at every observed initialization stage.
+The perspective transition was not tagged in the trace, so these values must not
+be assigned to a specific perspective or used to claim transition coverage.
+
+Next, observe `updateViewMatrixDependencies()` ordering relative to setup and
+compare fresh inverse/basis values during deliberate camera rotation. The
+stationary samples cannot establish whether cached dependencies belong to the
+current or previous frame. A zero view change alone would likewise not establish
+that vanilla reconstructs the camera on every call. These measurements do not
+establish culling, input ownership, or detached-camera correctness.
 
 Verify body position and rotation stay unchanged from another local observation
 or suitable client diagnostics, and check remote behavior before claiming
