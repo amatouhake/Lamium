@@ -82,7 +82,12 @@ public:
     int count() const { return static_cast<int>(rows.size()); }
     std::string label(int index) const { return rows.at(index).text; }
     std::string title() const { return translated(editing ? "shape.editor" : "shape.manager"); }
-    std::string subtitle() const { return definition ? "#" + std::to_string(*editing) + " " + definition->name : translated("shape.session"); }
+    static std::string storageDescription() {
+        auto mode = overlay::shapes::storage();
+        return translated(mode == overlay::shapes::Storage::LocalWorld ? "shape.localWorld"
+            : mode == overlay::shapes::Storage::LoadFailed ? "shape.loadError" : "shape.session");
+    }
+    std::string subtitle() const { return definition ? "#" + std::to_string(*editing) + " " + definition->name : storageDescription(); }
     void refresh() {
         rows.clear();
         definition = editing ? overlay::shapes::find(*editing) : std::nullopt;
@@ -127,6 +132,7 @@ public:
     // generation leaves the collection unchanged and propagates to its error UI.
     bool activate(int index, int direction, overlay::Point position, int dimension) {
         auto item = rows.at(index);
+        if (item.control == Control::Name) return false;
         if (direction != 0 && (item.control == Control::Back || item.control == Control::Select
             || item.control == Control::Duplicate || item.control == Control::Remove || !editing)) return false;
         int step = direction < 0 ? -1 : 1;

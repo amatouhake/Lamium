@@ -1063,3 +1063,19 @@ World IDs and personal storage paths are deliberately omitted from this record.
 Diagnostic build and package/license checks passed. Other local worlds,
 profile/storage-root separation, remote sessions and actual shape restoration
 remain unverified; this observation does not prove global uniqueness.
+
+### Local shape persistence wiring (2026-09-23; runtime pending)
+
+World join/exit now binds and clears a `ShapeWorkspace`. Local joins resolve an
+existing world below the game's current `FilePathManager::mWorlds`; saves use a
+`lamium/shapes.json` sidecar inside that world. Remote/unresolved joins remain
+explicitly session-only. UI descriptions reflect storage state and distinguish
+write failures from invalid names/geometry. A load failure blocks creation until
+reentry and cannot silently replace the unreadable file.
+
+The full unit suite passed, including separate roots containing the same Level
+ID, traversal/separator/relative-root rejection, missing-world rejection and
+the previous transaction/reentry tests. The client build passed with
+`shape_trace` enabled. This new binary has not yet been installed: real SDK
+storage-root resolution, successful save, restoration and UI save-error recovery
+remain pending. The running instance still uses the earlier identity probe.

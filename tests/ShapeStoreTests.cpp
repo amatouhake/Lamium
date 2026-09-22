@@ -1,5 +1,6 @@
 #include "overlay/ShapeStore.h"
 #include "overlay/ShapeWorkspace.h"
+#include "overlay/LocalShapePath.h"
 #include <chrono>
 #include <fstream>
 #ifndef NOMINMAX
@@ -17,6 +18,21 @@ void shapeStoreTests() {
         throw std::runtime_error("Test cleanup path escaped temporary directory");
     if (!std::filesystem::create_directory(root)) throw std::runtime_error("Test directory already exists");
     struct Cleanup { std::filesystem::path root; ~Cleanup() { std::error_code ignored; std::filesystem::remove_all(root,ignored); } } cleanup{root};
+    auto profiles = root / "profiles";
+    for (auto profile : {"a","b"}) {
+        auto world = profiles / profile / "worlds" / "same-id";
+        std::filesystem::create_directories(world);
+        std::ofstream marker(world / "level.dat"); marker << "test marker";
+    }
+    auto scopedA=localShapePath(profiles / "a" / "worlds","same-id");
+    auto scopedB=localShapePath(profiles / "b" / "worlds","same-id");
+    check(scopedA && scopedB && *scopedA != *scopedB,"same level ID remains separated by profile storage root");
+    check(scopedA->filename()=="shapes.json" && scopedA->parent_path().filename()=="lamium","shape sidecar stays in dedicated world directory");
+    for (auto id : {"", ".", "..", "../same-id", "same-id/child", "same-id\\child", "C:world", "world.", "world ", "missing"})
+        check(!localShapePath(profiles / "a" / "worlds",id),"invalid or missing local world is not a save target");
+    check(!localShapePath("relative-worlds","same-id"),"relative storage roots cannot select a world");
+    std::filesystem::create_directory(profiles / "a" / "worlds" / "not-a-world");
+    check(!localShapePath(profiles / "a" / "worlds","not-a-world"),"arbitrary directories are not local worlds");
     auto path = root / "nested" / "shapes.json";
     std::vector<ShapeDefinition> definitions{{"保存テスト",0,true,ShapeSpec{Shape::Sphere,{0,0,0},Snap::BlockCenter,1,1}}};
     writeShapes(path,definitions);
@@ -56,7 +72,7 @@ void shapeStoreTests() {
     check(locked != INVALID_HANDLE_VALUE,"workspace test blocks replacement");
     failed=false;
     try { workspace.change([&](auto& collection) { collection.rename(first,"Unsaved"); }); }
-    catch (std::exception const&) { failed=true; }
+    catch (ShapeSaveError const&) { failed=true; }
     CloseHandle(locked);
     check(failed && workspace.collection().find(first)->definition.name == original.name
         && readShapes(worldA)[0].name == original.name,"failed workspace edit preserves live and saved values");

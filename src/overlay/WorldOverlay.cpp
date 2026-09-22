@@ -2,6 +2,8 @@
 #include "overlay/ChunkBorders.h"
 #include "overlay/Hitboxes.h"
 #include "overlay/ShapeSession.h"
+#include "overlay/ShapeWorkspace.h"
+#include "overlay/LocalShapePath.h"
 #include "features/interaction/BreakingRestriction.h"
 #include "app/Runtime.h"
 #include "ll/api/memory/Hook.h"
@@ -26,9 +28,12 @@
 #include "mc/deps/minecraft_renderer/resources/OffscreenCaptureDescription.h"
 #include <span>
 #include <mutex>
-#ifdef LAMIUM_SHAPE_TRACE
+#include <atomic>
 #include "ll/api/event/client/ClientStartJoinLevelEvent.h"
 #include "ll/api/event/client/ClientJoinLevelEvent.h"
+#include "mc/client/game/IMinecraftGame.h"
+#include "mc/deps/core/utility/FilePathManager.h"
+#ifdef LAMIUM_SHAPE_TRACE
 #include "mc/network/GameConnectionInfo.h"
 #include <atomic>
 #endif
@@ -37,11 +42,13 @@ namespace lamium::overlay {
 namespace {
 bool installed = false;
 std::mutex shapeMutex;
-ShapeCollection shapeCollection;
+ShapeWorkspace shapeWorkspace;
+auto const& shapeCollection = shapeWorkspace.collection();
 ll::event::ListenerPtr exitListener;
-#ifdef LAMIUM_SHAPE_TRACE
 ll::event::ListenerPtr startJoinListener, joinListener;
 std::atomic<bool> joiningLocal{false};
+bool identityFailed = false;
+#ifdef LAMIUM_SHAPE_TRACE
 std::atomic<unsigned> identitySamples{0};
 void traceIdentity(ll::event::ClientJoinLevelEvent& event) noexcept {
     try {
@@ -60,6 +67,26 @@ void traceIdentity(ll::event::ClientJoinLevelEvent& event) noexcept {
     } catch (...) {} // Diagnostics never change joining behavior.
 }
 #endif
+void joinWorld(ll::event::ClientJoinLevelEvent& event) noexcept {
+#ifdef LAMIUM_SHAPE_TRACE
+    traceIdentity(event);
+#endif
+    try {
+        if (event.self().getLocalPlayer() != &event.player()) return;
+        std::lock_guard lock(shapeMutex);
+        shapeWorkspace.leave();
+        identityFailed = false;
+        if (!joiningLocal) return;
+        try {
+            auto paths = event.self().getMinecraftGame_DEPRECATED().getFilePathManager();
+            auto path = localShapePath(std::filesystem::u8path(paths->mWorlds->value),
+                event.player().getLevel().getLevelId());
+            if (path) shapeWorkspace.enter(*path);
+        } catch (...) { identityFailed = true; throw; }
+    } catch (std::exception const& error) {
+        Runtime::instance().self().getLogger().error("Shape workspace load failed: {}", error.what());
+    } catch (...) {}
+}
 bool hasShapes() {
     std::lock_guard lock(shapeMutex);
     return !shapeCollection.entries().empty();
@@ -153,27 +180,35 @@ std::optional<ShapeDefinition> find(ShapeId id) {
 }
 ShapeId add(ShapeDefinition definition) {
     std::lock_guard lock(shapeMutex);
-    return shapeCollection.add(std::move(definition));
+    if (identityFailed) throw std::runtime_error("Shape workspace unavailable");
+    return shapeWorkspace.change([&](auto& values) { return values.add(std::move(definition)); });
 }
 void edit(ShapeId id, ShapeDefinition definition) {
     std::lock_guard lock(shapeMutex);
-    shapeCollection.edit(id, std::move(definition));
+    shapeWorkspace.change([&](auto& values) { values.edit(id, std::move(definition)); });
 }
 void setVisible(ShapeId id, bool visible) {
     std::lock_guard lock(shapeMutex);
-    shapeCollection.setVisible(id, visible);
+    shapeWorkspace.change([&](auto& values) { values.setVisible(id, visible); });
 }
 void rename(ShapeId id, std::string name) {
     std::lock_guard lock(shapeMutex);
-    shapeCollection.rename(id,std::move(name));
+    shapeWorkspace.change([&](auto& values) { values.rename(id,std::move(name)); });
 }
 bool remove(ShapeId id) {
     std::lock_guard lock(shapeMutex);
-    return shapeCollection.remove(id);
+    return shapeWorkspace.change([&](auto& values) { return values.remove(id); });
 }
 void clear() {
     std::lock_guard lock(shapeMutex);
-    shapeCollection.clear();
+    shapeWorkspace.leave();
+    joiningLocal = false;
+    identityFailed = false;
+}
+Storage storage() {
+    std::lock_guard lock(shapeMutex);
+    return identityFailed || shapeWorkspace.failedToLoad() ? Storage::LoadFailed
+        : shapeWorkspace.persistent() ? Storage::LocalWorld : Storage::Session;
 }
 }
 void start() {
@@ -186,22 +221,19 @@ void start() {
         if (!exitListener) throw std::runtime_error("Could not subscribe shape world exit");
 #ifdef LAMIUM_SHAPE_TRACE
         identitySamples = 0;
+#endif
         auto& bus = ll::event::EventBus::getInstance();
         startJoinListener = bus.emplaceListener<ll::event::ClientStartJoinLevelEvent>(
-            [](auto& event) { joiningLocal = event.isJoiningLocalServer(); });
-        joinListener = bus.emplaceListener<ll::event::ClientJoinLevelEvent>(traceIdentity);
-        if (!startJoinListener || !joinListener) throw std::runtime_error("Could not subscribe shape identity diagnostics");
-#endif
+            [](auto& event) { shapes::clear(); std::lock_guard lock(shapeMutex); joiningLocal = event.isJoiningLocalServer(); });
+        joinListener = bus.emplaceListener<ll::event::ClientJoinLevelEvent>(joinWorld);
+        if (!startJoinListener || !joinListener) throw std::runtime_error("Could not subscribe shape world entry");
     } catch (...) { stop(); throw; }
 }
 void stop() {
-#ifdef LAMIUM_SHAPE_TRACE
     for (auto* listener : {&startJoinListener,&joinListener}) if (*listener) {
         ll::event::EventBus::getInstance().removeListener(*listener);
         listener->reset();
     }
-    joiningLocal = false;
-#endif
     if (exitListener) {
         ll::event::EventBus::getInstance().removeListener(exitListener);
         exitListener.reset();

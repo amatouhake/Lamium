@@ -55,7 +55,10 @@ public:
         if (loadFailed) throw std::runtime_error("Shape workspace failed to load; retry before editing");
         auto candidate = shapes;
         auto commit = [&] {
-            if (destination) writeShapes(*destination, definitions(candidate));
+            if (destination) {
+                try { writeShapes(*destination, definitions(candidate)); }
+                catch (std::exception const& error) { throw ShapeSaveError(error.what()); }
+            }
             shapes = std::move(candidate);
         };
         if constexpr (std::is_void_v<Result>) {

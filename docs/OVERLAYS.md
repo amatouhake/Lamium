@@ -36,8 +36,9 @@ direct numeric input or performs actions; Escape finishes input or returns to
 the parent view. Coordinates/radius use double precision; block origins and
 grid dimensions require integers. Invalid or incomplete text leaves the last
 valid geometry intact. Edits update the session immediately.
-The panel explicitly states that shapes are cleared on world exit. This is an
-initial workflow: persistence and broader runtime verification remain outstanding.
+The panel reports whether changes are saved in a local world, held only for the
+session, or blocked by a load failure. Local persistence is connected in source;
+its game integration and broader runtime behavior still need validation.
 The Name row supports immediate UTF-8 renaming without regenerating geometry;
 empty/invalid names retain the last valid name. Native name input and IME still
 need runtime verification. Session IDs distinguish identical names; stored
@@ -147,14 +148,22 @@ values and the destination file. Leaving clears the file binding; subsequent
 session-only changes cannot save into the departed world's file. Candidate
 copies and geometry validation have a cost and must remain outside rendering.
 
-This boundary has file-system tests but is not connected to the game session
-yet. Stable local/remote world identity, lifecycle integration, error feedback
-and runtime reentry validation remain required before automatic restoration.
-Connection type and Level ID accessors exist in the SDK, but their declarations
-alone do not prove a stable, unique persistent identity.
+This boundary is connected to primary-player world entry and world exit. For
+local joins, the current game's `FilePathManager::mWorlds` and Level ID resolve
+an existing direct-child world directory containing `level.dat`. The shape file
+is `lamium/shapes.json` inside that world, separating identical IDs in different
+storage roots/profiles and allowing the sidecar to travel with a copied world.
+The resolver rejects relative roots, traversal/separator IDs and directories
+that do not look like worlds. It does not scan or guess personal directories.
+
+Changes save before publishing to rendering. Save errors have a dedicated
+message and keep previous values; load errors clear the previous world's
+collection and block edits until reentry. Resolving no supported local target
+leaves an explicitly session-only collection. Remote persistence, in-screen
+load retry, and runtime validation of local save/reentry remain outstanding.
 
 An opt-in `shape_trace` build records bounded primary-player join diagnostics.
 One local world was verified to return its storage directory name as Level ID,
 unchanged across save/exit/reentry (see `VALIDATION.md`). Persistence integration
-must still scope IDs to the correct local storage/profile and separately resolve
-remote identities; a world display name or server address alone is insufficient.
+uses the storage root to scope local IDs and must separately resolve remote
+identities; a world display name or server address alone is insufficient.

@@ -1,5 +1,6 @@
 #pragma once
 #include "overlay/ShapeCollection.h"
+#include "overlay/ShapeStore.h"
 #include <optional>
 
 namespace lamium::overlay::shapes {
@@ -13,4 +14,6 @@ void setVisible(ShapeId, bool);
 void rename(ShapeId, std::string);
 bool remove(ShapeId);
 void clear();
+enum class Storage { Session, LocalWorld, LoadFailed };
+Storage storage();
 }

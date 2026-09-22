@@ -187,6 +187,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSceneEntrance, ll::memory::HookPriority::Normal, U
 }
 void applyShapeName() {
     try { shapePanel.rename(shapeNameInput.value()); error.clear(); }
+    catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
     catch (std::exception const&) { error = translated("shape.nameError"); }
 }
 LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UIScene,
@@ -213,6 +214,7 @@ void applyNumber() {
             return;
         }
         try { shapePanel.setNumber(editingShapeRow,*parsed); error.clear(); }
+        catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
         catch (std::exception const&) { error = translated("shape.editError"); }
         return;
     }
@@ -255,7 +257,8 @@ void activate(int row, int direction) {
             selected = std::clamp(selected,0,rowCount()-1);
             displayedLayout = {};
             error.clear();
-        } catch (std::exception const&) { error = translated("shape.editError"); }
+        } catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
+        catch (std::exception const&) { error = translated("shape.editError"); }
         return;
     }
     // Read current preferences for every edit so another action cannot be
@@ -437,7 +440,7 @@ void render(ll::event::UIRenderEvent& event) {
     if (layout.secondHint) {
         auto description = translated("adjustment");
         if (shapeView) {
-            description = translated("shape.session");
+            description = ShapePanel::storageDescription();
             if (auto range = shapePanel.numeric(selected))
                 description = translated(range->integer ? "integerRange" : "numberRange",range->minimum,range->maximum);
         }
