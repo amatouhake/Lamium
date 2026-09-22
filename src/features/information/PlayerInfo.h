@@ -5,13 +5,19 @@
 #include <string_view>
 class IClientInstance;
 namespace lamium::information {
-struct PlayerInfoRequest { bool coordinates{}, dimension{}, biome{}, facing{}; };
+struct PlayerInfoRequest { bool coordinates{}, dimension{}, biome{}, facing{}, light{}; };
+struct LightLevels { int sky, block; };
+inline std::optional<LightLevels> lightLevels(int sky, int block) {
+    if (sky < 0 || sky > 15 || block < 0 || block > 15) return {};
+    return LightLevels{sky,block};
+}
 struct PlayerInfo {
     struct Position { float x, y, z; };
     bool present = false;
     std::optional<Position> position;
     std::optional<std::string> dimension, biome;
     std::optional<float> yaw;
+    std::optional<LightLevels> light;
 };
 // Values own their data, so consumers never retain Minecraft pointers.
 PlayerInfo collectPlayerInfo(IClientInstance&, PlayerInfoRequest);

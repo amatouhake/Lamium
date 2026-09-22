@@ -493,3 +493,17 @@ open; these are technical linkage and packaging checks, not a legal conclusion.
   files as well as the hashes of all copied notices. Complete the remaining
   distribution review, including generated runtime import libraries, before a
   public release. SymbolProvider's referenced MinGW disclaimer is now included.
+
+### Info HUD light levels (runtime validation pending)
+
+The optional Light at feet line reports separate stored sky and block light from
+client chunk data at the floored player position. It defaults off and participates
+in the common settings UI and automatic persistence. It is not a night-adjusted
+brightness value or a server spawning prediction. Missing chunks, out-of-height
+positions, and values outside 0–15 produce Unavailable rather than zero.
+
+Validation: release DLL links against the current client SDK; settings catalog
+round-trip tests, English/Japanese formatting, and light range tests pass.
+Minecraft verification remains pending: compare torch placement/removal, open sky
+versus roof, day/night, Nether/End, chunk boundaries and world transitions. Confirm
+that the SDK pair represents stored sky/block light at the intended feet cell.

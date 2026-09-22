@@ -5,6 +5,11 @@ void check(bool, char const*);
 void hudLayoutTests() {
     using lamium::ui::HudLayout;
     using lamium::information::facingKey;
+    using lamium::information::lightLevels;
+    check(lightLevels(0,15)->sky == 0 && lightLevels(0,15)->block == 15, "sky and block light retain independent values");
+    check(lightLevels(15,0).has_value() && lightLevels(0,0).has_value(), "darkness is available data");
+    check(!lightLevels(-1,0) && !lightLevels(0,-1) && !lightLevels(16,0) && !lightLevels(0,255),
+          "invalid light stays unavailable instead of being clamped to darkness");
     check(facingKey(0) == "facing.south" && facingKey(90) == "facing.west"
         && facingKey(180) == "facing.north" && facingKey(-90) == "facing.east", "yaw maps cardinal axes");
     check(facingKey(360) == facingKey(0) && facingKey(-450) == facingKey(-90), "unwrapped yaw maps consistently");

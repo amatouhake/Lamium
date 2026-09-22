@@ -4,6 +4,7 @@
 #include "mc/world/level/dimension/Dimension.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/biome/Biome.h"
+#include "mc/world/level/block/BrightnessPair.h"
 #include <limits>
 
 namespace lamium::information {
@@ -17,7 +18,7 @@ PlayerInfo collectPlayerInfo(IClientInstance& client, PlayerInfoRequest request)
     if (request.coordinates && finite) result.position = PlayerInfo::Position{p.x,p.y,p.z};
     if (request.dimension) result.dimension = player->getDimension().mName.get();
     if (request.facing && std::isfinite(player->getRotation().z)) result.yaw = player->getRotation().z;
-    if (request.biome && finite) {
+    if ((request.biome || request.light) && finite) {
         auto safe = [](double value) {
             return value >= double(std::numeric_limits<int>::min())+1
                 && value <= double(std::numeric_limits<int>::max())-1;
@@ -25,7 +26,16 @@ PlayerInfo collectPlayerInfo(IClientInstance& client, PlayerInfoRequest request)
         if (safe(p.x) && safe(p.y) && safe(p.z)) {
             BlockPos pos{static_cast<int>(std::floor(p.x)),static_cast<int>(std::floor(p.y)),static_cast<int>(std::floor(p.z))};
             auto& region = player->getDimensionBlockSource();
-            if (region.getChunkAt(pos)) result.biome = region.getBiome(pos).mHash->getString();
+            if (region.getChunkAt(pos)) {
+                if (request.biome) result.biome = region.getBiome(pos).mHash->getString();
+                auto const& range = player->getDimension().mHeightRange;
+                // Report stored sky/block light at the feet, not a night-adjusted
+                // brightness or a prediction of server-side spawning rules.
+                if (request.light && pos.y >= range->mMin && pos.y < range->mMax) {
+                    auto brightness = region.getBrightnessPair(pos);
+                    result.light = lightLevels(brightness.sky->mValue,brightness.block->mValue);
+                }
+            }
         }
     }
     return result;

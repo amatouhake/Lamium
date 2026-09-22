@@ -11,7 +11,7 @@
 namespace lamium::information {
 void drawHud(MinecraftUIRenderContext& context, float width, float height, Settings::Information const& settings) {
     if (!settings.hud) return;
-    auto info = collectPlayerInfo(context.mClient,{settings.coordinates,settings.dimension,settings.biome,settings.facing});
+    auto info = collectPlayerInfo(context.mClient,{settings.coordinates,settings.dimension,settings.biome,settings.facing,settings.light});
     if (!info.present) return;
     std::vector<std::string> lines;
     if (settings.coordinates) {
@@ -33,6 +33,8 @@ void drawHud(MinecraftUIRenderContext& context, float width, float height, Setti
         if (settings.fps) lines.push_back(ui::translated("hudFps", timing ? std::format("{:.0f}",timing->fps) : ui::translated("unavailable")));
         if (settings.frameTime) lines.push_back(ui::translated("hudFrameTime", timing ? std::format("{:.1f} ms",timing->milliseconds) : ui::translated("unavailable")));
     }
+    if (settings.light) lines.push_back(ui::translated("hudLight", info.light
+        ? ui::translated("hudLightValues",info.light->sky,info.light->block) : ui::translated("unavailable")));
     auto layout = ui::HudLayout::fit(width,height,settings.horizontal,settings.vertical,static_cast<int>(lines.size()));
     for (int i=0;i<layout.lines;++i) ui::label(context,layout.x,layout.y+i*14,layout.width,lines[i]);
     if (layout.lines) context.flushText(0,std::nullopt);

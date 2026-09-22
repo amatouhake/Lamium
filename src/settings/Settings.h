@@ -49,6 +49,7 @@ struct Settings {
         bool facing = false;
         bool fps = false;
         bool frameTime = false;
+        bool light = false;
         float horizontal = 2.f;
         float vertical = 15.f;
     } information;
