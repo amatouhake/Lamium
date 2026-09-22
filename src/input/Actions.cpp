@@ -65,6 +65,9 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (input::toggleAction(value, action) && !runtime.save(value))
         runtime.self().getLogger().error("Could not save action setting: {}", input::actions[static_cast<size_t>(action)].id);
 }
+void releaseAction(input::Action action) {
+    if (action == input::Action::Zoom) Zoom::instance().release();
+}
 void registerActions() {
     auto& registry = ll::input::KeyRegistry::getInstance();
     for (size_t i=0; i<input::actions.size(); ++i) {
@@ -76,9 +79,9 @@ void registerActions() {
         key.registerButtonDownHandler([action](FocusImpact, IClientInstance& client) {
             if (usesNative(action)) executeAction(client, action);
         });
-        if (action == input::Action::Zoom) {
-            key.registerButtonUpHandler([](FocusImpact, IClientInstance&) {
-                if (usesNative(input::Action::Zoom)) Zoom::instance().release();
+        if (info.behavior == input::Behavior::Hold) {
+            key.registerButtonUpHandler([action](FocusImpact, IClientInstance&) {
+                if (usesNative(action)) releaseAction(action);
             });
         }
     }

@@ -2,7 +2,6 @@
 #include "input/Binding.h"
 #include "input/Actions.h"
 #include "app/Runtime.h"
-#include "features/camera/Zoom.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/inventory/game/TextInputTracker.h"
 #include "ui/SettingsScreen.h"
@@ -30,7 +29,7 @@ std::string screen;
 bool installed = false;
 void releaseStates() {
     for (size_t i = 0; i < states.size(); ++i)
-        if (states[i].reset().released && i == static_cast<size_t>(Action::Zoom)) Zoom::instance().release();
+        if (states[i].reset().released) releaseAction(static_cast<Action>(i));
 }
 void invalidate() {
     releaseStates();
@@ -46,8 +45,8 @@ void sync(IClientInstance& client) {
     auto name = client.getScreenName();
     auto bindings = Runtime::instance().preferences().bindings;
     if (screen != name || previous != bindings) {
-        if (previous[static_cast<size_t>(Action::Zoom)] != bindings[static_cast<size_t>(Action::Zoom)])
-            Zoom::instance().release();
+        for (size_t i = 0; i < actions.size(); ++i)
+            if (previous[i] != bindings[i]) releaseAction(static_cast<Action>(i));
         invalidate();
         screen = name;
         previous = std::move(bindings);
@@ -67,8 +66,8 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
         // A different consumer (notably Zoom's wheel adjustment) owns this
         // event. Preserve held inputs, but always observe key-up releases.
         for (size_t i = 0; i < states.size(); ++i)
-            if (previous[i] && states[i].update(*previous[i], held.value()).released
-                && i == static_cast<size_t>(Action::Zoom)) Zoom::instance().release();
+            if (previous[i] && states[i].update(*previous[i], held.value()).released)
+                releaseAction(static_cast<Action>(i));
         return false;
     }
     bool const gameplay = gameplayScreen(current->getScreenName());
@@ -78,13 +77,13 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
     for (size_t i = 0; i < states.size(); ++i) {
         bool allowed = i == static_cast<size_t>(Action::Sort) ? container : gameplay;
         if (!allowed || !previous[i]) {
-            if (states[i].reset().released && i == static_cast<size_t>(Action::Zoom)) Zoom::instance().release();
+            if (states[i].reset().released) releaseAction(static_cast<Action>(i));
             continue;
         }
         auto edge = states[i].update(*previous[i], held.value(), wheel ? std::optional<Token>(token) : std::nullopt);
         if (down && states[i].isActive()
             && std::find(previous[i]->begin(), previous[i]->end(), token) != previous[i]->end()) consumed = true;
-        if (edge.released && i == static_cast<size_t>(Action::Zoom)) Zoom::instance().release();
+        if (edge.released) releaseAction(static_cast<Action>(i));
         if (edge.pressed) {
             executeAction(*current, static_cast<Action>(i));
             consumed = true;
