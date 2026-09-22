@@ -160,7 +160,9 @@ Changes save before publishing to rendering. Save errors have a dedicated
 message and keep previous values; load errors clear the previous world's
 collection and block edits until reentry. Resolving no supported local target
 leaves an explicitly session-only collection. Remote persistence, in-screen
-load retry, and runtime validation of local save/reentry remain outstanding.
+load retry, and broader multi-world/failure runtime validation remain outstanding.
+One local-world save/reentry was verified with the stored name, coordinates,
+radius, visibility and snap mode restored in the editor and the guide visible.
 
 An opt-in `shape_trace` build records bounded primary-player join diagnostics.
 One local world was verified to return its storage directory name as Level ID,

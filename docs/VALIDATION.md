@@ -1094,3 +1094,32 @@ These checks do not exercise native keyboard timing. This is an input-path
 latency improvement, not proof that the observed extra trailing character in
 automated native name entry is fixed. Repeated native text entry and IME testing
 remain required. This change has not yet been installed in Minecraft.
+
+### Local shape persistence smoke (2026-09-23)
+
+The 7536e98 diagnostic build was installed (DLL SHA-256
+`D64328C864293EE225814DD82CD3DBCF8100F9A32F6A49E792185ECFF9E2BE3F`).
+In a local creative world, Shape Manager reported automatic local-world saving.
+A sphere was created, named and resized to radius 4.5 through native numeric
+input. Its sidecar contained the changed definition before closing settings.
+After Save & Quit and reentering that world, the guide appeared again. The
+Manager and Editor then showed the saved name, radius 4.5, original coordinates,
+visibility On and Block Center snap, with a fresh session shape ID.
+
+The automated name entry produced an extra trailing character, which was also
+persisted/restored; successful persistence is not evidence of correct native
+name input. Multiple-world isolation, dimension transitions, unreadable-file UI
+and write-failure recovery still require runtime validation.
+
+The ecb784e input-scheduling build was subsequently installed after normal
+Minecraft shutdown, preserving configuration, and launched with LeviLauncher.
+Installed DLL SHA-256:
+`A8E847D51840E7EC2A2A92E7BA49702926451CD02F383E0073366C37A8956138`.
+It retains the bounded `shape_trace` diagnostics. After this process restart,
+the local sphere was again restored with radius 4.5 and the same stored fields.
+Native automated name input still failed: replacing the selected name with
+`Saved sphere` produced `Saved sphere spheree`; Ctrl+A followed by `abc` produced
+`abc spheree`. Search input `shape` was correct in the same run. This points to
+stale native text/selection synchronization as another hypothesis to investigate;
+the callback/save scheduling change alone does not resolve the defect. The
+test shape currently retains the latter name. IME remains untested.
