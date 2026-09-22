@@ -18,11 +18,12 @@
 #include "mc/deps/minecraft_renderer/resources/ClientTexture.h"
 #include "mc/deps/minecraft_renderer/resources/ServerTexture.h"
 #include "mc/deps/minecraft_renderer/resources/OffscreenCaptureDescription.h"
+#include <span>
 
 namespace lamium::overlay {
 namespace {
 bool installed = false;
-void drawLines(BaseActorRenderContext& context, std::vector<Line> const& lines) {
+void drawLines(BaseActorRenderContext& context, std::span<Line const> lines) {
     if (lines.empty() || !context.mImpl) return;
     ScreenContext& screen = context.mScreenContext;
     Tessellator& shared = screen.tessellator;

@@ -3,6 +3,24 @@
 void check(bool, char const*);
 void overlayGeometryTests() {
     using namespace lamium::overlay;
+    check(gridSurfaceLines({}).empty(), "empty block surface has no lines");
+    check(gridSurfaceLines({{0,0,0}}).size() == 12, "single block surface draws each edge once");
+    check(gridSurfaceLines({{0,0,0},{1,0,0}}).size() == 20,
+          "adjacent blocks preserve surface grid seams without duplicate edges");
+    std::set<Cell> cube;
+    for (int x=0;x<2;++x) for (int y=0;y<2;++y) for (int z=0;z<2;++z) cube.insert({x,y,z});
+    auto surface = gridSurfaceLines(cube);
+    check(surface.size() == 48, "solid cube draws exterior grid edges only");
+    for (auto edge : surface) {
+        auto a=edge.from, b=edge.to;
+        check((a.x==b.x && (a.x==0 || a.x==2)) || (a.y==b.y && (a.y==0 || a.y==2))
+              || (a.z==b.z && (a.z==0 || a.z==2)), "no grid line is buried inside a solid shape");
+        check(std::abs(a.x-b.x)+std::abs(a.y-b.y)+std::abs(a.z-b.z) == 1,
+              "block surface lines preserve unit grid positions");
+    }
+    bool limited = false;
+    try { (void)gridSurfaceLines(cube, 47); } catch (std::length_error const&) { limited = true; }
+    check(limited, "surface budget rejects instead of returning a partial shape");
     ChunkBorderCache cache;
     auto const* reused = cache.get({-.1,64,-16}, -64,320).data();
     check(cache.get({-15.9,200,-.1}, -64,320).data() == reused,

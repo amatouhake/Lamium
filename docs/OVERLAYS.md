@@ -42,6 +42,17 @@ plane; larger spacing produces grid lines with a complete outside border. Face
 vertices lie on block boundaries and have outward winding for subsequent line
 or triangle rendering.
 
+`gridSurfaceLines` converts exposed block faces into unique unit-length edges.
+It preserves grid seams on the outside surface so individual block positions
+remain visible, while excluding edges contributed only by internal faces.
+Canonical integer endpoints avoid reversed-edge duplicates and floating-point
+matching. The operation rejects inputs over 250,000 cells or its configurable
+line budget (one million by default); it never returns a truncated guide.
+Tests cover a single block, adjacent blocks, a solid cube, internal-edge removal,
+and budget rejection. These lines use the same `Line` representation accepted
+by the world renderer, but no Shape screen or runtime shape consumer is wired
+yet. CPU geometry conversion does not establish visible rendering correctness.
+
 Enumeration has a default work limit of 250,000 candidate cells. Oversized shapes
 are rejected before enumeration rather than silently truncated. Coordinates are
 checked before integer conversion and retain neighbour-arithmetic headroom.

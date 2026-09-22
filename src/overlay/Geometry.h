@@ -7,6 +7,7 @@
 #include <limits>
 #include <set>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace lamium::overlay {
@@ -131,5 +132,31 @@ inline std::array<Point,4> faceVertices(CellFace face) {
     case Face::South: return {{{x,y,z+1},{x+1,y,z+1},{x+1,y+1,z+1},{x,y+1,z+1}}};
     }
     throw std::invalid_argument("Invalid block face");
+}
+
+// Keep the unit grid on exposed faces, including seams between adjacent surface
+// blocks. Internal faces contribute no edges; shared surface edges draw once.
+// Build outside the render loop and cache the result with its shape definition.
+inline std::vector<Line> gridSurfaceLines(std::set<Cell> const& cells, size_t lineLimit = 1000000) {
+    if (cells.size() > 250000) throw std::length_error("Surface exceeds cell limit");
+    std::set<std::pair<Cell,Cell>> edges;
+    for (auto face : boundaryFaces(cells)) {
+        auto vertices = faceVertices(face);
+        for (size_t i=0; i<vertices.size(); ++i) {
+            auto a = vertices[i], b = vertices[(i+1)%vertices.size()];
+            // boundaryFaces validated cell coordinates with neighbour headroom;
+            // face vertices therefore remain representable as integer corners.
+            Cell first{static_cast<int>(a.x),static_cast<int>(a.y),static_cast<int>(a.z)};
+            Cell second{static_cast<int>(b.x),static_cast<int>(b.y),static_cast<int>(b.z)};
+            if (second < first) std::swap(first, second);
+            edges.emplace(first, second);
+            if (edges.size() > lineLimit) throw std::length_error("Surface exceeds line limit");
+        }
+    }
+    std::vector<Line> result;
+    result.reserve(edges.size());
+    for (auto [a,b] : edges)
+        result.push_back({{double(a.x),double(a.y),double(a.z)}, {double(b.x),double(b.y),double(b.z)}});
+    return result;
 }
 }
