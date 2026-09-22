@@ -4,6 +4,25 @@ Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
 
 ## Settings foundation in progress
 
+The current source replaces the owned native dialog's drawing through a scoped
+BeforeUIRenderEvent handler and requests world rendering behind that scene.
+Other scenes use their original rendering. The panel and backdrop use alpha;
+the native dialog continues to supply focus/cursor ownership. Rendering hooks
+compile and link, but actual world visibility, input isolation, and restoration
+after closing require runtime checks.
+
+A search row filters option IDs, feature IDs, and localized option/feature labels.
+Click/Enter focuses it; Backspace edits, Enter/Tab/Down leaves text editing, and
+Escape leaves text editing before a subsequent Escape closes the screen.
+Native UIScene text events supply UTF-8. Pure tests cover ASCII case folding,
+multiple required words, Japanese matching/deletion, rejected controls, and
+the byte limit without splitting text events. Native text delivery, IME behavior,
+search-result hit testing, and visual layout remain unverified in Minecraft.
+
+The runtime verification attempt could enumerate the running game window, but
+screen capture failed twice with `foreground window did not report a process id`.
+No game inputs, instance installation, or restart were performed in that attempt.
+
 Setting rows now use a shared catalog with stable IDs, feature ownership, typed
 values, and editing accessors. Shulker and Bundle previews can each be disabled,
 and each has an empty-container visibility toggle. Missing fields default to

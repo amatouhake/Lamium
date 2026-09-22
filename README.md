@@ -25,6 +25,9 @@ Escape or Close only closes the panel. A failed save leaves the previous value
 active and shows an error. Gameplay key hints can be hidden from the panel.
 These feature keys are registered with Minecraft's keyboard settings.
 On-screen gameplay hints use the current keyboard bindings.
+The current source adds a translucent panel and a Search row; these changes
+still require in-game verification. Click Search or select it and press Enter
+to type. Enter finishes text editing; Escape leaves editing before closing.
 Keyboard/mouse behavior and resource-pack compatibility are still being tested.
 Settings, gameplay hints, durability text, and Minecraft's Lamium key-binding labels follow the
 game's language: Japanese and English are included, with English as the fallback.

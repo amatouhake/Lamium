@@ -3,9 +3,9 @@
 The current build is a development checkpoint, not a finished settings experience.
 Settings and input foundation work is now underway, before broader feature expansion.
 
-- The F8 panel has an opaque background, preventing inspection of the world
-  while changing visual settings. Evaluate a translucent background and how
-  settings can be previewed in context.
+- The source now substitutes translucent drawing for the owned native dialog
+  and requests the world behind it. Runtime world visibility, input isolation,
+  and restoration still need verification; this is not a validated UX fix yet.
 - Lamium's panel has no key-binding editor. Default keys are defined in code;
   the implementation registers them with Minecraft's Keyboard & Mouse settings,
   and remapping there was previously tested. Users still report being unable to
@@ -16,6 +16,8 @@ Settings and input foundation work is now underway, before broader feature expan
   persistence tests pass; runtime validation remains pending.
 - A flat ten-row panel is only a prototype. Revisit navigation, grouping, search
   and descriptions before adding enough features to make it hard to browse.
+  The expanded catalog now has a search row and native text-input hook, with
+  pure text tests passing; in-game delivery and layout remain unverified.
 - Explicit Save/Cancel has been replaced with per-edit persistence and application.
   Escape/Close only dismisses the screen. Failed saves leave the previous setting
   active and display an error. Runtime validation remains pending.

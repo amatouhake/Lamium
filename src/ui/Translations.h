@@ -6,6 +6,8 @@ namespace lamium::ui::translations {
 struct Entry { std::string_view key, english, japanese; };
 inline constexpr auto entries = std::to_array<Entry>({
     {"title", "Lamium / Settings", "Lamium / 設定"},
+    {"search", "Search: {}", "検索: {}"},
+    {"noResults", "No matching settings", "該当する設定はありません"},
     {"subtitle", "Camera, lighting, items and inventory", "視点・明るさ・アイテム・インベントリ"},
     {"on", "On", "オン"}, {"off", "Off", "オフ"},
     {"zoom", "Zoom: {}", "ズーム: {}"},
