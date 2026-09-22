@@ -44,6 +44,7 @@ struct Settings {
     struct Information {
         bool target = false;
         bool targetIdentifier = true;
+        bool targetStates = false;
         bool hud = false;
         bool coordinates = true;
         bool dimension = true;

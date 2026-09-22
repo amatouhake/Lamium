@@ -6,9 +6,10 @@
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/dimension/Dimension.h"
 #include "mc/locale/I18n.h"
+#include "mc/deps/nbt/CompoundTagVariant.h"
 
 namespace lamium::information {
-std::optional<TargetInfo> collectTargetInfo(IClientInstance& client) {
+std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates) {
     auto* player = client.getLocalPlayer();
     if (!player) return {};
     auto const& hit = client.getLatestHitResult();
@@ -35,6 +36,21 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client) {
     if (block.isAir()) return {};
     TargetInfo result{block.buildDescriptionName(),block.getTypeName()};
     if (result.name.empty()) result.name = result.identifier;
+    if (includeStates) {
+        auto const& tags = block.mSerializationId->mTags;
+        auto found = tags.find("states");
+        if (found != tags.end()) {
+            if (auto* states = std::get_if<CompoundTag>(&found->second.mTagStorage)) {
+                for (auto const& [key,value] : states->mTags) {
+                    std::optional<std::string> text;
+                    if (auto* v = std::get_if<ByteTag>(&value.mTagStorage)) text = std::to_string(v->data);
+                    else if (auto* v = std::get_if<IntTag>(&value.mTagStorage)) text = std::to_string(v->data);
+                    else if (auto* v = std::get_if<StringTag>(&value.mTagStorage)) text = *v;
+                    if (text) result.states.push_back(key + ": " + *text);
+                }
+            }
+        }
+    }
     return result;
 }
 }

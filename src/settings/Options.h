@@ -31,6 +31,7 @@ constexpr Option toggle(std::string_view id, std::string_view feature, std::stri
 inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::target>("information.target", "targetInfo", "targetInfo"),
     toggle<&Settings::information, &Settings::Information::targetIdentifier>("information.targetIdentifier", "targetInfo", "targetIdentifier"),
+    toggle<&Settings::information, &Settings::Information::targetStates>("information.targetStates", "targetInfo", "targetStates"),
     toggle<&Settings::information, &Settings::Information::hud>("information.hud", "infoHud", "infoHud"),
     toggle<&Settings::information, &Settings::Information::coordinates>("information.coordinates", "infoHud", "hudCoordinates"),
     toggle<&Settings::information, &Settings::Information::dimension>("information.dimension", "infoHud", "hudDimension"),

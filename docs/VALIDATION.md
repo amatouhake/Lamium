@@ -571,3 +571,18 @@ and unnamed mobs, players with text filtering, item/vehicle entities, despawn,
 dimension changes and resource-pack language overrides. Confirm native entity
 localization-key semantics before considering this provider validated. Block
 states and dedicated detail providers remain unfinished.
+
+### Target block-state provider (runtime validation pending)
+
+An optional, default-off block-state section now reads only the `states` compound
+from the targeted block's existing serialization identity. Byte and integer values
+remain numeric; string values remain strings. State keys retain their engine names
+and ordered-map ordering. No block entity/container data is queried. The snapshot
+owns its strings; when disabled, the provider does not enumerate state tags.
+
+The minimal target HUD shows up to six state rows and an additional remaining-count
+row, subject to available screen height and shared text clipping. This exposes
+client-known direction, open/powered flags and other states without claiming
+access to server-only progress or redstone simulation. Dedicated semantic providers
+and a full detail view remain future work. Runtime checks: logs/pillars, doors,
+stairs, redstone wire, state transitions and resource-pack/custom block states.

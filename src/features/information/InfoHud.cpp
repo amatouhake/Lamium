@@ -13,10 +13,14 @@
 namespace lamium::information {
 void drawHud(MinecraftUIRenderContext& context, float width, float height, Settings::Information const& settings) {
     if (settings.target) {
-        if (auto target = collectTargetInfo(context.mClient)) {
-            auto layout = ui::HudLayout::fit(width,height,50,2,settings.targetIdentifier ? 2 : 1);
-            if (layout.lines > 0) ui::label(context,layout.x,layout.y,layout.width,target->name);
-            if (layout.lines > 1) ui::label(context,layout.x,layout.y+14,layout.width,target->identifier);
+        if (auto target = collectTargetInfo(context.mClient,settings.targetStates)) {
+            std::vector<std::string> targetLines{target->name};
+            if (settings.targetIdentifier) targetLines.push_back(target->identifier);
+            auto shown = std::min<size_t>(6,target->states.size());
+            for (size_t i=0;i<shown;++i) targetLines.push_back(target->states[i]);
+            if (shown < target->states.size()) targetLines.push_back(ui::translated("targetMore",std::to_string(target->states.size()-shown)));
+            auto layout = ui::HudLayout::fit(width,height,50,2,static_cast<int>(targetLines.size()));
+            for (int i=0;i<layout.lines;++i) ui::label(context,layout.x,layout.y+i*14,layout.width,targetLines[i]);
             if (layout.lines) context.flushText(0,std::nullopt);
         }
     }

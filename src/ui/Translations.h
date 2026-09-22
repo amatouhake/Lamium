@@ -27,6 +27,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.targetInfo", "Show the targeted block or entity name and optional identifier.", "照準先のブロック・エンティティ名と、任意で ID を表示。"},
     {"targetInfo", "Target Info: {}", "照準先の情報: {}"},
     {"targetIdentifier", "Show identifier: {}", "ID を表示: {}"},
+    {"targetStates", "Show block states: {}", "ブロック状態を表示: {}"},
+    {"targetMore", "+{} more states", "ほか {} 項目"},
     {"key.Lamium.targetinfo", "Lamium: Toggle target info", "Lamium: 照準先情報の切り替え"},
     {"help.infoHud", "Choose information lines and screen position.", "表示する情報と画面内の位置を設定。"},
     {"infoHud", "Info HUD: {}", "情報 HUD: {}"},
