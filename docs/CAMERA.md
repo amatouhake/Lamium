@@ -3,6 +3,15 @@
 Freelook and FreeCamera are not implemented yet. This records SDK evidence and
 the remaining integration questions; it is not a runtime validation report.
 
+`DetachedLookState` now provides the game-independent angular session: begin from
+a fresh orientation, ignore repeated activation, accumulate degree deltas with
+bounded pitch and wrapped yaw, and discard the pose on cancellation or invalid
+input. Snapshot and input updates are synchronized. Unit tests cover boundary
+crossing, pitch limits, repeated activation, cancellation/reactivation, and
+nonfinite/extreme input. This state is not connected to native input or rendering
+yet; native turn-delta units and view composition must be verified before wiring
+it into a user-facing Freelook action.
+
 ## Boundaries
 
 Freelook changes camera rotation while retaining the player's position and

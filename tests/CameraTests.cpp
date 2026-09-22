@@ -13,6 +13,8 @@ int runPreviewLayoutTests();
 int runDurabilityBarTests();
 int runBundlePreviewTests();
 int main() try {
+    extern void detachedLookTests();
+    detachedLookTests();
     extern void restrictionRegionTests();
     restrictionRegionTests();
     extern void frameRateTests();
