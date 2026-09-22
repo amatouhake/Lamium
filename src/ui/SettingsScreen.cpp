@@ -5,6 +5,7 @@
 #include "ui/SearchQuery.h"
 #include "ui/NumberInput.h"
 #include "ui/Widgets.h"
+#include "ui/ShapePanel.h"
 #include "ui/Localization.h"
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
@@ -18,6 +19,7 @@
 #include "ll/api/event/input/MouseInputEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/client/player/LocalPlayer.h"
 #include "mc/client/gui/GuiData.h"
 #include "mc/client/input/KeyboardManager.h"
 #include "mc/deps/core/math/Vec2.h"
@@ -59,13 +61,15 @@ std::set<std::string_view> collapsed = [] {
     return result;
 }();
 bool hotkeys = false;
+bool shapeView = false;
+ShapePanel shapePanel;
 std::optional<input::Action> capturing;
 int captureFirstVisible = 0;
 input::BindingCapture capture;
 input::Chord uiHeld;
 struct BindingEdit { input::Action action; std::optional<input::Chord> binding; };
 std::optional<BindingEdit> bindingEdit;
-int rowCount() { return capturing ? 4 : static_cast<int>(visibleRows.size()) + 3; }
+int rowCount() { return shapeView ? shapePanel.count() : capturing ? 4 : static_cast<int>(visibleRows.size()) + 3; }
 void filterOptions() {
     displayedLayout = {};
     visibleRows = buildSettingsRows(hotkeys, query, collapsed, [](std::string_view key) { return translated(key); });
@@ -209,6 +213,21 @@ void close() {
 }
 void activate(int row, int direction) {
     finishNumber();
+    if (shapeView) {
+        auto* player = client ? client->getLocalPlayer() : nullptr;
+        if (!player) return;
+        auto position = player->getPosition();
+        bool wasEditing = shapePanel.isEditing();
+        try {
+            if (shapePanel.activate(row,direction,{position.x,position.y,position.z},static_cast<int>(player->getDimensionId()))) {
+                shapeView = false; filterOptions();
+            } else if (wasEditing != shapePanel.isEditing()) { selected = 0; firstVisible = 0; }
+            selected = std::clamp(selected,0,rowCount()-1);
+            displayedLayout = {};
+            error.clear();
+        } catch (std::exception const&) { error = translated("shape.editError"); }
+        return;
+    }
     // Read current preferences for every edit so another action cannot be
     // overwritten by a stale copy captured when the screen opened.
     auto value = Runtime::instance().preferences();
@@ -218,6 +237,9 @@ void activate(int row, int direction) {
     if (row < 0 || row >= rowCount() - 1) return;
     searchFocused = false;
     auto const& entry = visibleRows[row-2];
+    if (entry.tool) {
+        shapePanel.open(); shapeView = true; selected = 0; firstVisible = 0; displayedLayout = {}; return;
+    }
     if (entry.heading()) {
         if (query.value().find_first_not_of(' ') != std::string::npos) return;
         auto id = entry.feature->id;
@@ -272,7 +294,7 @@ void render(ll::event::UIRenderEvent& event) {
     if (action == 1) activate(commandRow, 1);
     if (action == -1) activate(commandRow, -1);
     if (action == 3) activate(commandRow, 0);
-    if (action == 2) close();
+    if (action == 2) { if (shapeView) activate(0,0); else close(); }
     if (!scene) return;
     information::drawHud(context,size.x,size.y,Runtime::instance().preferences().information);
     auto layout = SettingsLayout::fit(size.x, size.y, rowCount(), selected, firstVisible);
@@ -289,15 +311,16 @@ void render(ll::event::UIRenderEvent& event) {
         return;
     }
     panel(context,left-6,top-6,width+12,layout.bottom+6-top);
-    label(context,left,top,width,capturing
+    label(context,left,top,width,shapeView ? shapePanel.title() : capturing
         ? translated("key.Lamium." + std::string(input::actions[static_cast<size_t>(*capturing)].id)) : translated("title"));
-    if (layout.subtitle) label(context,left,top+16,width,capturing
+    if (layout.subtitle) label(context,left,top+16,width,shapeView ? shapePanel.subtitle() : capturing
         ? translated("captureCurrent", actionBindingName(current, *capturing))
         : selected >= 2 && selected < rowCount()-1
             ? translated(featureSection(visibleRows[selected-2].feature->id))
             : translated(visibleRows.empty() ? "noResults" : "subtitle"));
     auto const preferences = Runtime::instance().preferences();
     auto rowLabel = [&](int index) {
+        if (shapeView) return shapePanel.label(index);
         if (capturing) {
             if (index == 0) return capture.value().empty() ? translated("captureWaiting")
                 : translated("capturing", bindingChordName(current, capture.value()));
@@ -308,6 +331,7 @@ void render(ll::event::UIRenderEvent& event) {
         if (index == 1) return translated("search", searchFocused && query.selectedAll()
             ? "[" + query.value() + "]" : query.value() + (searchFocused ? "_" : ""));
         auto const& entry = visibleRows[index-2];
+        if (entry.tool) return translated("shape.open");
         if (entry.heading()) {
             bool expanded = !collapsed.contains(entry.feature->id) || query.value().find_first_not_of(' ') != std::string::npos;
             auto text = std::string(expanded ? "[-] " : "[+] ") + translated(entry.feature->name);
@@ -348,7 +372,7 @@ void render(ll::event::UIRenderEvent& event) {
         float y = layout.rowY(i);
         rowBackground(context,left,y,width,SettingsLayout::rowHeight,selected == i,hovered == i);
         std::string_view section;
-        if (!capturing && i >= 2 && i < rowCount()-1) {
+        if (!shapeView && !capturing && i >= 2 && i < rowCount()-1) {
             auto index = static_cast<size_t>(i-2);
             auto currentSection = featureSection(visibleRows[index].feature->id);
             if (i == layout.first || index == 0
@@ -373,10 +397,11 @@ void render(ll::event::UIRenderEvent& event) {
         rowBackground(context,left+width-3,layout.rowsTop,2,trackHeight,false,false);
         rowBackground(context,left+width-3,thumbY,2,thumbHeight,true,true);
     }
-    label(context,left,layout.footer,width,error.empty() ? translated(editingNumber ? "numberHint" : capturing ? "captureHint" : searchFocused ? "searchHint" : "navigation") : error);
+    label(context,left,layout.footer,width,error.empty() ? translated(shapeView ? "shape.controls" : editingNumber ? "numberHint" : capturing ? "captureHint" : searchFocused ? "searchHint" : "navigation") : error);
     if (layout.secondHint) {
         auto description = translated("adjustment");
-        if (capturing) {
+        if (shapeView) description = translated("shape.session");
+        else if (capturing) {
             auto behavior = input::actions[static_cast<size_t>(*capturing)].behavior;
             description = translated(behavior == input::Behavior::Hold ? "captureHold"
                 : behavior == input::Behavior::Toggle ? "captureToggle" : "capturePress");
@@ -406,7 +431,7 @@ void open(IClientInstance& current) {
     selected = 0; hovered = -1; command = 0; error.clear(); seen = false; closing = false;
     firstVisible = 0; commandRow = 0;
     editingNumber = nullptr; numberDirty = false;
-    query.clear(); uiHeld.clear(); searchFocused = false; hotkeys = false; capturing.reset(); bindingEdit.reset(); filterOptions();
+    query.clear(); uiHeld.clear(); searchFocused = false; hotkeys = false; shapeView = false; capturing.reset(); bindingEdit.reset(); filterOptions();
     // This native information screen supplies focus/cursor ownership. It has no
     // form ID, packet, or server callback. Lamium draws and handles its own UI.
     scene = current.getSceneFactory().createCommonDialogInfoScreen("Lamium", "");
@@ -509,7 +534,7 @@ void start() {
         };
         // Keep search reachable even after scrolling its row out of view.
         // Capture handles keys above this point, so Ctrl+F remains bindable.
-        if (event.keyCode() == 0x46 && (heldKey(0x11) || heldKey(0xa2) || heldKey(0xa3))) {
+        if (!shapeView && event.keyCode() == 0x46 && (heldKey(0x11) || heldKey(0xa2) || heldKey(0xa3))) {
             event.cancel();
             finishNumber();
             searchFocused = true;

@@ -48,6 +48,13 @@ void settingsRowsTests() {
     rows = ui::buildSettingsRows(false, query, collapsed, [](std::string_view key) { return std::string(ui::translations::find(key, "ja_JP")); });
     check(rows.size() == 5 && rows.front().feature->id == "zoom", "Japanese feature search reveals settings and binding");
     query.clear();
+    query.append("Shape Manager");
+    rows = ui::buildSettingsRows(false, query, collapsed, translate);
+    check(rows.size() == 2 && rows[0].heading() && rows[1].tool && !rows[1].heading(),
+        "shape manager search exposes its dedicated tool entry while collapsed");
+    check(ui::buildSettingsRows(true, query, collapsed, translate).empty(),
+        "tool launch rows are not misrepresented as hotkey actions");
+    query.clear();
     rows = ui::buildSettingsRows(true, query, collapsed, translate);
     check(rows.size() == input::actions.size(), "Hotkeys includes every action regardless of collapse");
     for (auto const& row : rows) check(row.action && !row.option && !row.heading(), "Hotkeys contains only bindings");

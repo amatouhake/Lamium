@@ -2,7 +2,8 @@
 
 This is an overlay component under development. A prototype world-line backend
 and a Chunk Borders setting are connected in source; actual rendering has not
-been verified in Minecraft. Shape Manager/Editor is not connected yet.
+been verified in Minecraft. A first Shape Manager/Editor is connected in source
+through the searchable Features list, but has not been installed or tested yet.
 
 `ShapeCollection` now provides the game-independent manager model: stable
 session IDs, names, visibility, dimension ownership, and cached grid-surface
@@ -21,8 +22,19 @@ snapshots and mutations through `ShapeSession.h`. The world render hook submits
 cached lines only for visible shapes in the player's current dimension. World
 exit and overlay shutdown clear the collection; initialization failures clean
 up the exit listener and render hook. This wiring builds against the client SDK,
-but no UI creates shapes yet, so visible geometry, lifecycle callbacks and
-render-thread performance remain unverified. UI and persistence are outstanding.
+with visible geometry, lifecycle callbacks and render-thread performance still
+unverified.
+
+The initial dedicated Shape panel reuses the settings host's modal input ownership,
+translucent panel, row layout and keyboard/mouse navigation. It creates spheres,
+circles, cylinders and grid planes at the player position. Its editor exposes
+visibility, per-axis movement, radius/height or grid dimensions/orientation,
+snapping, duplicate and remove. Left/right adjusts values; Enter/click performs
+actions; Escape returns to the parent view. Edits update the session immediately.
+The panel explicitly states that shapes are cleared on world exit. This is an
+initial workflow: direct numeric input, renaming, persistence, better identity
+labels and runtime verification remain outstanding. Successful compilation and
+search-row tests do not establish rendering or input correctness in Minecraft.
 
 Chunk Borders defaults off. The prototype draws the player's current chunk
 boundary, using floor division at negative coordinates and the dimension's

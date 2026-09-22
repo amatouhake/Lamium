@@ -28,6 +28,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"debugView", "feature.debugView", "help.debugView", "information.debug"},
     {"chunkBorders", "feature.chunkBorders", "help.chunkBorders", "overlays.chunkBorders"},
     {"hitboxes", "feature.hitboxes", "help.hitboxes", "overlays.hitboxes"},
+    {"shapes", "shape.manager", "shape.session", ""},
     {"gameplayHints", "feature.gameplayHints", "help.gameplayHints", "interface.gameplayHints"},
     {"settings", "feature.settings", "help.settings", ""},
 });
@@ -35,7 +36,8 @@ struct SettingsRow {
     FeatureInfo const* feature;
     settings::Option const* option = nullptr;
     std::optional<input::Action> action;
-    bool heading() const { return !option && !action; }
+    bool tool = false;
+    bool heading() const { return !option && !action && !tool; }
 };
 // Presentation independent of Minecraft objects: search/collapse behavior can
 // be verified without rendering, and reused by other settings surfaces.
@@ -48,6 +50,8 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, SearchQuery const& quer
         std::string scope = std::string(feature.id) + " " + translate(feature.name) + " " + translate(feature.description)
             + " " + translate(featureSection(feature.id));
         std::vector<SettingsRow> children;
+        if (!hotkeys && feature.id == "shapes" && query.matches(scope))
+            children.push_back({&feature,nullptr,{},true});
         if (!hotkeys) {
             for (auto const& option : settings::options)
                 if (option.feature == feature.id && query.matches(scope + " " + std::string(option.id) + " " + translate(option.label)))
