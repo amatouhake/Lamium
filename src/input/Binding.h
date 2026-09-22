@@ -16,12 +16,13 @@ struct Token {
 };
 enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, Count };
 enum class Behavior { Press, Hold, Toggle };
-struct ActionInfo { std::string_view id, feature; Behavior behavior; };
+struct ActionInfo { std::string_view id, feature; Behavior behavior; int defaultKey = 0; };
 inline constexpr auto actions = std::to_array<ActionInfo>({
-    {"settings", "settings", Behavior::Press},
-    {"zoom", "zoom", Behavior::Hold},
-    {"nightvision", "nightVision", Behavior::Toggle},
-    {"sort", "sorting", Behavior::Press},
+    {"settings", "settings", Behavior::Press, 0x77},
+    {"zoom", "zoom", Behavior::Hold, 0x43},
+    // N belongs to Minecraft notifications; retain J for NightVision.
+    {"nightvision", "nightVision", Behavior::Toggle, 0x4a},
+    {"sort", "sorting", Behavior::Press, 0x52},
     {"chunkborders", "chunkBorders", Behavior::Toggle},
     {"hideoffhand", "hideOffhand", Behavior::Toggle},
     {"hitboxes", "hitboxes", Behavior::Toggle},

@@ -96,9 +96,15 @@ explicit Unbound, and custom chords. Action metadata owns Press/Hold/Toggle
 semantics. Pure tests cover arbitrary chord order, repeated key-down suppression,
 release of any chord member, reset release, modified wheel impulses, invalid
 inputs, and persistence/reset without losing unrelated bindings. These are
-components now feed native key/mouse event dispatch for custom overrides;
+components that now feed native key/mouse event dispatch for custom overrides;
 actions without overrides still use Minecraft registrations. Explicit Unbound
 suppresses the native handler too. Gameplay hints show the effective binding.
+Native registrations and custom chords share the action executor and setting
+toggle logic. Native defaults are recorded in action metadata; tests preserve
+F8/C/J/R and verify that each Toggle action edits only one setting in its owning
+feature, while Press/Hold actions do not edit toggle settings. Both paths retain
+input ownership/gameplay checks; Sort delegates its context checks to inventory
+handling. Callback delivery and remapping still need runtime validation.
 The in-game binding editor is connected in source, pending runtime validation.
 Features places each action binding after its related options; Hotkeys lists
 all actions. Clicking a binding captures keys or mouse buttons until a captured

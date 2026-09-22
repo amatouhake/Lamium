@@ -1,8 +1,32 @@
 #include "input/Binding.h"
 #include "input/BindingCapture.h"
+#include "input/ToggleAction.h"
+#include "settings/Options.h"
 void check(bool, char const*);
 void bindingTests() {
     using namespace lamium::input;
+    for (size_t i=0; i<actions.size(); ++i) {
+        lamium::Settings value;
+        auto action = static_cast<Action>(i);
+        bool changed = toggleAction(value,action);
+        check(changed == (actions[i].behavior == Behavior::Toggle), "every toggle action has one shared implementation");
+        size_t count = 0;
+        for (auto const& option : lamium::settings::options) {
+            if (option.read(value) == option.read(lamium::Settings{})) continue;
+            ++count;
+            check(option.feature == actions[i].feature, "toggle changes only its owning feature");
+        }
+        check(count == (changed ? 1u : 0u), "press and hold actions cannot modify toggle settings");
+        toggleAction(value,action);
+        for (auto const& option : lamium::settings::options)
+            check(option.read(value) == option.read(lamium::Settings{}), "second toggle restores original settings");
+        check(actions[i].defaultKey >= 0 && actions[i].defaultKey <= 255, "native defaults use valid key codes or unbound");
+    }
+    check(actions[static_cast<size_t>(Action::Settings)].defaultKey == 0x77
+        && actions[static_cast<size_t>(Action::Zoom)].defaultKey == 0x43
+        && actions[static_cast<size_t>(Action::NightVision)].defaultKey == 0x4a
+        && actions[static_cast<size_t>(Action::Sort)].defaultKey == 0x52,
+        "existing native defaults remain compatible");
     Token z{Device::Key, 0x5a}, three{Device::Key, 0x33};
     auto chord = canonicalChord({z, three, z}, Behavior::Hold);
     check(chord == canonicalChord({three, z}, Behavior::Hold), "chord order and duplicate keys canonicalize");

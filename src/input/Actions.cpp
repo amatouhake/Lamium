@@ -1,4 +1,5 @@
 #include "input/Actions.h"
+#include "input/ToggleAction.h"
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
 #include "features/inventory/Inventory.h"
@@ -43,69 +44,34 @@ std::string gameplayKeyHint(IClientInstance& client) {
         actionBindingName(client, input::Action::NightVision));
 }
 
+void executeAction(IClientInstance& client, input::Action action) {
+    auto& runtime = Runtime::instance();
+    if (!runtime.enabled() || ui::ownsInput()) return;
+    // Sorting validates its container/text-input context in requestSort.
+    if (action == input::Action::Sort) { inventory::requestSort(client); return; }
+    if (!gameplayScreen(client.getScreenName())) return;
+    if (action == input::Action::Settings) { ui::open(client); return; }
+    if (action == input::Action::Zoom) { Zoom::instance().press(client); return; }
+    auto value = runtime.preferences();
+    if (input::toggleAction(value, action) && !runtime.save(value))
+        runtime.self().getLogger().error("Could not save action setting: {}", input::actions[static_cast<size_t>(action)].id);
+}
 void registerActions() {
-    auto& toolSwitch = ll::input::KeyRegistry::getInstance().getOrCreateKey("toolswitch", {});
-    toolSwitch.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
-        if (!usesNative(input::Action::ToolSwitch) || ui::ownsInput()) return;
-        auto& runtime = Runtime::instance();
-        if (!runtime.enabled() || !gameplayScreen(client.getScreenName())) return;
-        auto settings = runtime.preferences();
-        settings.inventory.toolSwitch = !settings.inventory.toolSwitch;
-        if (!runtime.save(settings)) runtime.self().getLogger().error("Could not save Tool Switch setting");
-    });
-    auto& hitboxes = ll::input::KeyRegistry::getInstance().getOrCreateKey("hitboxes", {});
-    hitboxes.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
-        if (!usesNative(input::Action::Hitboxes) || ui::ownsInput()) return;
-        auto& runtime = Runtime::instance();
-        if (!runtime.enabled() || !gameplayScreen(client.getScreenName())) return;
-        auto settings = runtime.preferences();
-        settings.overlays.hitboxes = !settings.overlays.hitboxes;
-        if (!runtime.save(settings)) runtime.self().getLogger().error("Could not save Hitboxes setting");
-    });
-    auto& offhand = ll::input::KeyRegistry::getInstance().getOrCreateKey("hideoffhand", {});
-    offhand.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
-        if (!usesNative(input::Action::HideOffhand) || ui::ownsInput()) return;
-        auto& runtime = Runtime::instance();
-        if (!runtime.enabled() || !gameplayScreen(client.getScreenName())) return;
-        auto settings = runtime.preferences();
-        settings.visuals.hideOffhand = !settings.visuals.hideOffhand;
-        if (!runtime.save(settings)) runtime.self().getLogger().error("Could not save offhand visibility setting");
-    });
-    // Optional overlays start unbound; users choose a key in either settings UI.
-    auto& borders = ll::input::KeyRegistry::getInstance().getOrCreateKey("chunkborders", {});
-    borders.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
-        if (!usesNative(input::Action::ChunkBorders) || ui::ownsInput()) return;
-        auto& runtime = Runtime::instance();
-        if (!runtime.enabled() || !gameplayScreen(client.getScreenName())) return;
-        auto settings = runtime.preferences();
-        settings.overlays.chunkBorders = !settings.overlays.chunkBorders;
-        if (!runtime.save(settings)) runtime.self().getLogger().error("Could not save Chunk Borders setting");
-    });
-    auto& sort = ll::input::KeyRegistry::getInstance().getOrCreateKey("sort", {0x52});
-    sort.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
-        if (usesNative(input::Action::Sort) && !ui::ownsInput()) inventory::requestSort(client);
-    });
-    // N is Minecraft's notification shortcut; avoid clearing either binding
-    // when Minecraft resolves duplicate keys after a remap.
-    auto& nightVision = ll::input::KeyRegistry::getInstance().getOrCreateKey("nightvision", {0x4a});
-    nightVision.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
-        if (!usesNative(input::Action::NightVision) || ui::ownsInput()) return;
-        auto& runtime = Runtime::instance();
-        if (!runtime.enabled() || !gameplayScreen(client.getScreenName())) return;
-        auto settings = runtime.preferences();
-        settings.lighting.nightVision = !settings.lighting.nightVision;
-        if (!runtime.save(settings)) runtime.self().getLogger().error("Could not save NightVision setting");
-    });
-    auto& settings = ll::input::KeyRegistry::getInstance().getOrCreateKey("settings", {0x77});
-    settings.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
-        if (Runtime::instance().enabled() && usesNative(input::Action::Settings)) ui::open(client);
-    });
-    auto& zoom = ll::input::KeyRegistry::getInstance().getOrCreateKey("zoom", {0x43});
-    zoom.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
-        if (Runtime::instance().enabled() && usesNative(input::Action::Zoom) && !ui::ownsInput()) Zoom::instance().press(client);
-    });
-    zoom.registerButtonUpHandler([](FocusImpact, IClientInstance&) {
-        if (usesNative(input::Action::Zoom)) Zoom::instance().release();
-    });
+    auto& registry = ll::input::KeyRegistry::getInstance();
+    for (size_t i=0; i<input::actions.size(); ++i) {
+        auto action = static_cast<input::Action>(i);
+        auto const& info = input::actions[i];
+        std::vector<int> defaults;
+        if (info.defaultKey) defaults.push_back(info.defaultKey);
+        auto& key = registry.getOrCreateKey(info.id, defaults);
+        key.registerButtonDownHandler([action](FocusImpact, IClientInstance& client) {
+            if (usesNative(action)) executeAction(client, action);
+        });
+        if (action == input::Action::Zoom) {
+            key.registerButtonUpHandler([](FocusImpact, IClientInstance&) {
+                if (usesNative(input::Action::Zoom)) Zoom::instance().release();
+            });
+        }
+    }
 }
 }

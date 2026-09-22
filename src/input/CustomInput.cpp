@@ -3,7 +3,6 @@
 #include "input/Actions.h"
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
-#include "features/inventory/Inventory.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/inventory/game/TextInputTracker.h"
 #include "ui/SettingsScreen.h"
@@ -54,48 +53,6 @@ void sync(IClientInstance& client) {
         previous = std::move(bindings);
     }
 }
-void press(Action action, IClientInstance& client) {
-    switch (action) {
-    case Action::Settings: ui::open(client); break;
-    case Action::Zoom: Zoom::instance().press(client); break;
-    case Action::NightVision: {
-        auto value = Runtime::instance().preferences();
-        value.lighting.nightVision = !value.lighting.nightVision;
-        Runtime::instance().save(value);
-        break;
-    }
-    case Action::Sort: inventory::requestSort(client); break;
-    case Action::ToolSwitch: {
-        auto value = Runtime::instance().preferences();
-        value.inventory.toolSwitch = !value.inventory.toolSwitch;
-        if (!Runtime::instance().save(value))
-            Runtime::instance().self().getLogger().error("Could not save Tool Switch setting");
-        break;
-    }
-    case Action::Hitboxes: {
-        auto value = Runtime::instance().preferences();
-        value.overlays.hitboxes = !value.overlays.hitboxes;
-        if (!Runtime::instance().save(value))
-            Runtime::instance().self().getLogger().error("Could not save Hitboxes setting");
-        break;
-    }
-    case Action::HideOffhand: {
-        auto value = Runtime::instance().preferences();
-        value.visuals.hideOffhand = !value.visuals.hideOffhand;
-        if (!Runtime::instance().save(value))
-            Runtime::instance().self().getLogger().error("Could not save offhand visibility setting");
-        break;
-    }
-    case Action::ChunkBorders: {
-        auto value = Runtime::instance().preferences();
-        value.overlays.chunkBorders = !value.overlays.chunkBorders;
-        if (!Runtime::instance().save(value))
-            Runtime::instance().self().getLogger().error("Could not save Chunk Borders setting");
-        break;
-    }
-    default: break;
-    }
-}
 bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
     auto current = ll::service::getClientInstance();
     if (!current) { invalidate(); return false; }
@@ -129,7 +86,7 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
             && std::find(previous[i]->begin(), previous[i]->end(), token) != previous[i]->end()) consumed = true;
         if (edge.released && i == static_cast<size_t>(Action::Zoom)) Zoom::instance().release();
         if (edge.pressed) {
-            press(static_cast<Action>(i), *current);
+            executeAction(*current, static_cast<Action>(i));
             consumed = true;
             // Opening a menu changes ownership immediately, before the next
             // render callback. Do not fire another action from the same chord.
