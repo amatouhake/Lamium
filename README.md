@@ -12,13 +12,16 @@ release is available yet. See [validation notes](docs/VALIDATION.md) for the
 distinction between implemented and verified behavior.
 
 The current prototype provides hold-to-zoom (`C`), local settings (`F8`), and a
-NightVision toggle (`N`) while in a world. Settings also control container
+NightVision toggle (`J`) while in a world. Settings also control container
 previews, durability information, and inventory sorting. Use Up/Down or the wheel
 to select rows, Left/Right to adjust, and Enter or a click to choose. Short windows
 scroll to keep the selected row visible. Save applies changes; Cancel/Escape
 discards them. These feature keys are registered with
-Minecraft's keyboard settings. The prototype's on-screen hints show defaults.
+Minecraft's keyboard settings. On-screen gameplay hints use the current keyboard bindings.
 Keyboard/mouse behavior and resource-pack compatibility are still being tested.
+Earlier prototypes used `N` for NightVision, which conflicts with Minecraft's
+notification shortcut. Existing saved bindings are preserved; change NightVision
+to `J` in Keyboard & Mouse settings if upgrading from those builds.
 
 Press `R` in an inventory screen to consolidate compatible stacks and arrange
 the main inventory. Hover an ordinary storage-container slot to sort that

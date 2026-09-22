@@ -87,7 +87,7 @@ void render(ll::event::AfterUIRenderEvent& event) {
     glm::vec2 size = view.mSize;
     if (!scene) {
         if (gameplayScreen(current.getScreenName())) {
-            label(context, 6, 6, size.x-12, "Lamium defaults: F8 settings | Hold C: zoom | N: NightVision");
+            label(context, 6, 6, size.x-12, gameplayKeyHint(current));
             context.flushText(0, std::nullopt);
         }
         return;

@@ -72,7 +72,7 @@ bool Runtime::enable() {
         return false;
     }
     running = true;
-    mod.getLogger().info("Lamium enabled. Hold C to zoom; scroll while held to adjust.");
+    mod.getLogger().info("Lamium enabled. Configure bindings in Minecraft's Keyboard & Mouse settings.");
     return true;
 }
 bool Runtime::disable() {

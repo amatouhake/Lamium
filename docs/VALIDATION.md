@@ -26,9 +26,28 @@ footer separation, and tiny-window fallback. In game, resizing the window to
 263 pixels high changed the list to six visible rows; wheel/Tab navigation
 reached Save, and Enter persisted a changed preview setting. Mouse toggling also
 worked at that size. The window was subsequently maximized for ordinary use.
-Keyboard selection and pointer hover now use separate colors after this check
-showed hover could obscure the selected row; this color adjustment builds but
-still needs runtime verification.
+Keyboard selection and pointer hover use separate colors. In a later runtime
+check, leaving the pointer over Zoom and pressing Down highlighted Magnification
+with the stronger selection color while Zoom retained the weaker hover color.
+
+## Key bindings and hints
+
+- Gameplay hints read Minecraft's current keyboard remapping and native display
+  names rather than the registered default key codes.
+- Changing the settings binding from F8 to F7 updated the hint immediately after
+  returning to the world; F7 successfully opened Lamium settings. F8 was restored
+  after the check.
+- The original NightVision default N collided with Minecraft's notification
+  binding. Editing the settings binding caused Minecraft to clear both N
+  assignments. The HUD correctly displayed NightVision as Unbound.
+- Restoring notification N and assigning NightVision J resolved the observed
+  collision. The HUD displayed J, and pressing J changed NightVision from Off to
+  On in the settings panel and saved configuration, then back to Off.
+- New registrations now default NightVision to J. Existing saved bindings are
+  not rewritten. The changed default builds; a fresh profile's initial mapping
+  still needs verification. The runtime J check used a manual remap.
+- These checks used Deesse UI 1.3.9. Binding labels still expose translation keys
+  in Minecraft settings; localized action names remain a release gate.
 
 ## Lighting and settings persistence
 
@@ -123,8 +142,8 @@ dependency restore.
 - Verify zoom visually while held, wheel capture, sensitivity, and release.
 - Verify menu transitions, focus loss, dimension changes, disconnect/rejoin.
 - Verify all settings survive restart and in-game errors preserve existing files.
-- Improve keyboard/mouse focus feedback, small-window layout, actual binding
-  hints, localization, and gamepad/touch behavior.
+- Complete localization (including action names) and gamepad/touch behavior;
+  verify new default bindings on a fresh profile.
 - Verify with vanilla UI and additional UI resource packs.
 - Verify NightVision underwater, in Nether/End, and across restart/dimension changes.
 - Complete runtime validation of previews and durability; verify the remaining

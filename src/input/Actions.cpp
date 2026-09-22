@@ -4,12 +4,30 @@
 #include "features/inventory/Inventory.h"
 #include "ui/SettingsScreen.h"
 #include "ll/api/input/KeyRegistry.h"
+#include "mc/client/input/KeyboardRemappingLayout.h"
+#include "mc/client/options/IOptionRegistry.h"
+#include <format>
 
 namespace lamium {
+std::string gameplayKeyHint(IClientInstance& client) {
+    auto layout = client.getOptions().getCurrentKeyboardRemapping();
+    if (!layout) return "Lamium | Configure controls in Keyboard & Mouse settings";
+    auto keyName = [&](std::string_view action) {
+        auto const& mapping = layout->getKeymappingByAction("key.Lamium." + std::string(action));
+        if (!mapping.isAssigned()) return std::string{"Unbound"};
+        // Use the live remapping, not KeyHandle's original default key codes.
+        return static_cast<RemappingLayout const&>(*layout).getMappedKeyName(mapping);
+    };
+    return std::format("Lamium | {}: settings | Hold {}: zoom | {}: NightVision",
+        keyName("settings"), keyName("zoom"), keyName("nightvision"));
+}
+
 void registerActions() {
     auto& sort = ll::input::KeyRegistry::getInstance().getOrCreateKey("sort", {0x52});
     sort.registerButtonDownHandler([](FocusImpact, IClientInstance& client) { inventory::requestSort(client); });
-    auto& nightVision = ll::input::KeyRegistry::getInstance().getOrCreateKey("nightvision", {0x4e});
+    // N is Minecraft's notification shortcut; avoid clearing either binding
+    // when Minecraft resolves duplicate keys after a remap.
+    auto& nightVision = ll::input::KeyRegistry::getInstance().getOrCreateKey("nightvision", {0x4a});
     nightVision.registerButtonDownHandler([](FocusImpact, IClientInstance& client) {
         auto& runtime = Runtime::instance();
         if (!runtime.enabled() || !gameplayScreen(client.getScreenName())) return;
