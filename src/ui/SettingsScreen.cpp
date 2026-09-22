@@ -164,6 +164,9 @@ void start() {
         std::lock_guard lock(mutex);
         if (!ownsTop()) return;
         if (event.actionButtonId() == MouseAction::ActionMove || event.actionButtonId() == MouseAction::ActionMoveRelative) return;
+        // A button may already be down when F8 opens the panel. Let vanilla
+        // observe its release, just as we do for keys, so it cannot stay held.
+        if (event.actionButtonId() != MouseAction::ActionWheel && event.buttonData() == MouseAction::DataUp) return;
         event.cancel();
         if (event.actionButtonId() == MouseAction::ActionWheel && event.buttonData() != 0) {
             selected = std::clamp(selected + (event.buttonData() > 0 ? -1 : 1), 0, rowCount-1);

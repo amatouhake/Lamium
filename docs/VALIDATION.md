@@ -18,6 +18,12 @@ Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
 
 These observations validate the UI prototype, not the whole feature suite.
 
+Settings input consumes presses and wheel actions but passes key and mouse-button
+releases through to vanilla. The mouse path previously consumed releases too;
+it now mirrors the existing key-release behavior for buttons held before opening
+the panel. This change builds; opening settings during a held mouse action still
+needs runtime verification.
+
 Settings now use a viewport that keeps the selected row visible in short windows.
 Arrow keys and the wheel navigate all rows, including Save/Cancel. Queued actions
 retain their original target row when selection moves before the next render.
