@@ -1079,3 +1079,18 @@ the previous transaction/reentry tests. The client build passed with
 `shape_trace` enabled. This new binary has not yet been installed: real SDK
 storage-root resolution, successful save, restoration and UI save-error recovery
 remain pending. The running instance still uses the earlier identity probe.
+
+### Shape name input persistence scheduling (2026-09-23)
+
+Native name text and Backspace events now mark the edit dirty instead of writing
+the entire shape workspace inside each input callback. The settings render pass
+coalesces pending characters into one rename/save; finishing an edit (including
+Enter, Escape, navigation and focus-loss cancellation) also applies a pending
+name before clearing its target. Validation and storage failures still preserve
+the last committed shape and use the existing visible error messages.
+
+Client build, the full existing unit suite and package/license checks passed.
+These checks do not exercise native keyboard timing. This is an input-path
+latency improvement, not proof that the observed extra trailing character in
+automated native name entry is fixed. Repeated native text entry and IME testing
+remain required. This change has not yet been installed in Minecraft.

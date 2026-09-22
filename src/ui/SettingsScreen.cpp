@@ -52,6 +52,7 @@ settings::Option const* editingNumber = nullptr;
 int editingShapeRow = -1;
 int editingShapeName = -1;
 SearchQuery shapeNameInput;
+bool shapeNameDirty = false;
 bool numericEditing() { return editingNumber || editingShapeRow >= 0; }
 NumberInput numberInput;
 bool numberDirty = false;
@@ -186,6 +187,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSceneEntrance, ll::memory::HookPriority::Normal, U
     origin(revisiting, owned ? false : transitions);
 }
 void applyShapeName() {
+    if (editingShapeName < 0 || !std::exchange(shapeNameDirty, false)) return;
     try { shapePanel.rename(shapeNameInput.value()); error.clear(); }
     catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
     catch (std::exception const&) { error = translated("shape.nameError"); }
@@ -194,14 +196,16 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
     &UIScene::$handleTextChar, void, std::string const& text, FocusImpact impact) {
     std::lock_guard lock(mutex);
     if (scene.get() == this && ownsTop()) {
-        if (editingShapeName >= 0) { if (shapeNameInput.append(text)) applyShapeName(); return; }
+        // Coalesce native text events before persisting the whole workspace.
+        // Never flush the world sidecar from inside a text callback.
+        if (editingShapeName >= 0) { if (shapeNameInput.append(text)) shapeNameDirty = true; return; }
         if (numericEditing()) { if (numberInput.append(text)) numberDirty = true; return; }
         if (!capturing && searchFocused && query.append(text)) { filterOptions(); selected = 1; }
         return;
     }
     origin(text, impact);
 }
-void clear() { releaseTextKeyboard(); editingNumber = nullptr; editingShapeRow = -1; editingShapeName = -1; numberDirty = false; uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr; scene.reset(); seen = false; closing = false; command = 0; hovered = -1; }
+void clear() { releaseTextKeyboard(); editingNumber = nullptr; editingShapeRow = -1; editingShapeName = -1; shapeNameDirty = false; numberDirty = false; uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr; scene.reset(); seen = false; closing = false; command = 0; hovered = -1; }
 void applyNumber() {
     if (!numericEditing() || !numberDirty) return;
     numberDirty = false;
@@ -226,7 +230,7 @@ void applyNumber() {
     range.write(value, *parsed);
     error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
 }
-void finishNumber() { applyNumber(); editingNumber = nullptr; editingShapeRow = -1; editingShapeName = -1; numberDirty = false; }
+void finishNumber() { applyNumber(); applyShapeName(); editingNumber = nullptr; editingShapeRow = -1; editingShapeName = -1; numberDirty = false; }
 void close() {
     releaseTextKeyboard();
     if (ownsTop()) {
@@ -316,6 +320,7 @@ void render(ll::event::UIRenderEvent& event) {
     if (!ownsTop()) { if (seen) clear(); return; }
     seen = true;
     applyNumber();
+    applyShapeName();
     if (bindingEdit) {
         auto value = Runtime::instance().preferences();
         value.bindings[static_cast<size_t>(bindingEdit->action)] = bindingEdit->binding;
@@ -473,7 +478,7 @@ void open(IClientInstance& current) {
     Zoom::instance().reset();
     selected = 0; hovered = -1; command = 0; error.clear(); seen = false; closing = false;
     firstVisible = 0; commandRow = 0;
-    editingNumber = nullptr; editingShapeRow = -1; editingShapeName = -1; numberDirty = false;
+    editingNumber = nullptr; editingShapeRow = -1; editingShapeName = -1; shapeNameDirty = false; numberDirty = false;
     query.clear(); uiHeld.clear(); searchFocused = false; hotkeys = false; shapeView = false; capturing.reset(); bindingEdit.reset(); filterOptions();
     // This native information screen supplies focus/cursor ownership. It has no
     // form ID, packet, or server callback. Lamium draws and handles its own UI.
@@ -601,7 +606,7 @@ void start() {
         event.cancel();
         if (editingShapeName >= 0) {
             switch (event.keyCode()) {
-            case 0x08: if (shapeNameInput.backspace()) applyShapeName(); break;
+            case 0x08: if (shapeNameInput.backspace()) shapeNameDirty = true; break;
             case 0x41: if (heldKey(0x11) || heldKey(0xa2) || heldKey(0xa3)) shapeNameInput.selectAll(); break;
             case 0x1b: case 0x0d: finishNumber(); break;
             case 0x09: finishNumber(); selected = (selected+1)%rowCount(); break;
