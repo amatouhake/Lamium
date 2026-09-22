@@ -36,7 +36,12 @@ struct SettingsLayout {
         return layout;
     }
     float rowY(int index) const { return rowsTop + (index - first) * rowPitch; }
+    int hitPixels(float x, float y, float inverseScale) const {
+        if (!std::isfinite(inverseScale) || inverseScale <= 0) return -1;
+        return hit(x * inverseScale, y * inverseScale);
+    }
     int hit(float x, float y) const {
+        if (!std::isfinite(x) || !std::isfinite(y)) return -1;
         if (visible <= 0 || x < left || x >= left + width || y < rowsTop) return -1;
         int offset = static_cast<int>((y - rowsTop) / rowPitch);
         if (offset >= visible || y >= rowY(first + offset) + rowHeight) return -1;

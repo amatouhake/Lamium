@@ -812,3 +812,22 @@ snapshot still showed Features, and Enter then switched successfully.
 The mouse handler currently uses the hover row from rendering, so stale
 hover at click time is a candidate cause to investigate, not a confirmed
 diagnosis. Broader click-target validation remains open.
+
+### Event-coordinate click targeting (2026-09-23)
+
+Mouse button handling now hits the last displayed layout with the event's
+pixel coordinates converted by the GUI scale used for drawing. It no longer
+uses the previous render's hover row to choose an action. Filter changes
+invalidate that layout until the new rows are drawn. Unit coverage includes
+scrolled rows, row gaps, scales 1 through 4, and invalid coordinates/scales.
+Client build, LamiumTests, package/license checks, and diff checks passed.
+
+Installed DLL SHA-256:
+`43A0A70800C92C4D2CB85CF4A791021547BF1266CF47875991265276624A94E9`.
+In Minecraft 1.26.51.01 / LeviLamina 26.51.3 with DeesseUI 1.3.9 at
+1920x1080, opened settings in the local creative scenario. Single clicks
+expanded Zoom, switched from the lower rows to Hotkeys at the top, opened
+the bottom Zoom binding row, and cancelled capture using its upper control.
+All selected the intended target without a second click or Enter. Zoom's
+binding remained C; Esc returned to gameplay. Other GUI scales, split-screen
+viewports, and resizing during input still need runtime validation.

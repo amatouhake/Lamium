@@ -18,6 +18,7 @@
 #include "ll/api/event/input/MouseInputEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/client/gui/GuiData.h"
 #include "mc/client/input/KeyboardManager.h"
 #include "mc/deps/core/math/Vec2.h"
 #include "mc/client/gui/screens/SceneFactory.h"
@@ -36,6 +37,8 @@ IClientInstance* client = nullptr;
 std::shared_ptr<AbstractScene> scene;
 int selected = 0;
 int hovered = -1;
+SettingsLayout displayedLayout;
+float displayedInverseScale = 0;
 int command = 0;
 int commandRow = 0;
 int firstVisible = 0;
@@ -64,6 +67,7 @@ struct BindingEdit { input::Action action; std::optional<input::Chord> binding; 
 std::optional<BindingEdit> bindingEdit;
 int rowCount() { return capturing ? 4 : static_cast<int>(visibleRows.size()) + 3; }
 void filterOptions() {
+    displayedLayout = {};
     visibleRows = buildSettingsRows(hotkeys, query, collapsed, [](std::string_view key) { return translated(key); });
     selected = 0; hovered = -1; firstVisible = 0; command = 0;
 }
@@ -272,6 +276,8 @@ void render(ll::event::UIRenderEvent& event) {
     if (!scene) return;
     information::drawHud(context,size.x,size.y,Runtime::instance().preferences().information);
     auto layout = SettingsLayout::fit(size.x, size.y, rowCount(), selected, firstVisible);
+    displayedLayout = layout;
+    displayedInverseScale = current.getGuiData()->mInvGuiScale;
     firstVisible = layout.first;
     float width = layout.width, left = layout.left, top = layout.top;
     syncTextKeyboard(left, layout.rowY(selected));
@@ -418,12 +424,16 @@ void start() {
         input::Token token = wheel ? input::Token{input::Device::Wheel, event.buttonData() > 0 ? 1 : -1}
             : input::Token{input::Device::Mouse, button > MouseAction::ActionWheel ? button-1 : button};
         bool down = wheel || event.buttonData() == MouseAction::DataDown;
+        // Render hover can still describe the previous pointer position when
+        // movement and a click arrive between frames. Hit the displayed rows
+        // using this event's pixel coordinates and the scale used to draw them.
+        int const clicked = displayedLayout.hitPixels(event.x(), event.y(), displayedInverseScale);
         observeHeld(token, down);
         if (capturing) {
             if (down) event.cancel();
-            if (button == MouseAction::ActionLeft && down && hovered >= 1 && hovered <= 3) {
-                if (hovered == 3) cancelCapture();
-                else bindingEdit = BindingEdit{*capturing, hovered == 1 ? std::optional<input::Chord>(input::Chord{}) : std::nullopt};
+            if (button == MouseAction::ActionLeft && down && clicked >= 1 && clicked <= 3) {
+                if (clicked == 3) cancelCapture();
+                else bindingEdit = BindingEdit{*capturing, clicked == 1 ? std::optional<input::Chord>(input::Chord{}) : std::nullopt};
             } else captureInput(token, down);
             return;
         }
@@ -436,11 +446,11 @@ void start() {
             searchFocused = false;
             selected = std::clamp(selected + (event.buttonData() > 0 ? -1 : 1), 0, rowCount()-1);
         }
-        if (event.actionButtonId() == MouseAction::ActionLeft && event.buttonData() == MouseAction::DataDown && hovered >= 0) {
-            selected = hovered; commandRow = hovered; command = 3;
+        if (event.actionButtonId() == MouseAction::ActionLeft && event.buttonData() == MouseAction::DataDown && clicked >= 0) {
+            selected = clicked; commandRow = clicked; command = 3;
         }
-        if (event.actionButtonId() == MouseAction::ActionRight && event.buttonData() == MouseAction::DataDown && hovered >= 0 && hovered < rowCount()-1) {
-            selected = hovered; commandRow = hovered; command = -1;
+        if (event.actionButtonId() == MouseAction::ActionRight && event.buttonData() == MouseAction::DataDown && clicked >= 0 && clicked < rowCount()-1) {
+            selected = clicked; commandRow = clicked; command = -1;
         }
     });
     listeners[2] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {

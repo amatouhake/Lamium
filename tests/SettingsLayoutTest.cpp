@@ -1,6 +1,7 @@
 #include "ui/SettingsLayout.h"
 #include "settings/Options.h"
 #include <stdexcept>
+#include <limits>
 
 void settingsLayoutTests() {
     using lamium::ui::SettingsLayout;
@@ -31,4 +32,16 @@ void settingsLayoutTests() {
     check(full.visible >= 14);
     check(full.rowsTop == filtered.rowsTop && full.top == filtered.top);
     check(filtered.bottom < full.bottom);
+    for (float scale : {1.f, 2.f, 3.f, 4.f}) {
+        auto scrolled = SettingsLayout::fit(640, 360, 100, 40, 30);
+        for (int row = scrolled.first; row < scrolled.first + scrolled.visible; ++row) {
+            check(scrolled.hitPixels((scrolled.left + 8) * scale,
+                (scrolled.rowY(row) + 5) * scale, 1 / scale) == row);
+            check(scrolled.hitPixels((scrolled.left + 8) * scale,
+                (scrolled.rowY(row) + SettingsLayout::rowHeight + 1) * scale, 1 / scale) == -1);
+        }
+    }
+    check(full.hitPixels(300, 300, 0) == -1);
+    check(full.hitPixels(300, 300, std::numeric_limits<float>::infinity()) == -1);
+    check(full.hit(std::numeric_limits<float>::quiet_NaN(), full.rowsTop) == -1);
 }
