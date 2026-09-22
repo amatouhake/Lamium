@@ -922,3 +922,18 @@ and search in English and Japanese. Client build, existing unit tests,
 package checks and diff checks passed. These do not verify native key-event
 routing; runtime shortcut behavior and hint fit remain pending. The running
 instance still uses the preceding grouped-feature build.
+
+### Settings keyboard navigation runtime check (2026-09-23)
+
+Installed 4fef3e2 with DLL SHA-256
+`C3975682629D957C488AD5323D0EA9D2434A3437870D83E80EECCF4E697BA3ED`.
+On Minecraft 1.26.51.01 / LeviLamina 26.51.3 / DeesseUI 1.3.9,
+1920x1080, the complete navigation hint fit inside the settings panel.
+End selected Close at the bottom of the collapsed Features list. Ctrl+F
+brought search into view and accepted zoom, filtering the list correctly.
+A second Ctrl+F selected the entire query; Backspace cleared it in one press.
+Escape left search editing without closing the panel. Page Down moved from
+search to Hitboxes (13 rows), and Page Up returned to search. Home selected
+the first row; Shift+Tab wrapped backward to Close. No preference values
+were changed. Ctrl+F during numeric editing or binding capture, Japanese
+labels and other GUI scales remain outside this runtime check.
