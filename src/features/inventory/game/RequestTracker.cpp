@@ -46,9 +46,13 @@ void removeRequestTracker() {
 
     if (responseInstalled)
         Runtime::instance().self().getLogger().error("Could not remove inventory response hooks");
+    cancelTransfer();
+}
+void cancelTransfer() {
     std::lock_guard lock(mutex);
-    barrier.begin(ResponseBarrier::Clock::now());
     transferManager = nullptr;
+    previousRequests.clear();
+    barrier.begin(ResponseBarrier::Clock::now());
 }
 bool beginTransfer(ContainerManagerController& controller) {
     std::lock_guard lock(mutex);

@@ -214,7 +214,10 @@ bool SortSession::run(
     return true;
 }
 
-void SortSession::cancel() { pending.reset(); }
+void SortSession::cancel() {
+    pending.reset();
+    cancelTransfer();
+}
 
 void SortSession::tick(ContainerScreenController& controller) {
     if (!pending) return;
@@ -224,7 +227,8 @@ void SortSession::tick(ContainerScreenController& controller) {
     auto& job = *currentJob;
     auto active = job.controller.lock();
     auto& logger = Runtime::instance().self().getLogger();
-    auto manager = controller.mContainerManagerController.get();
+    // The screen may release its manager from a synchronous vanilla callback.
+    auto manager = controller.mContainerManagerController;
     if (!active || active.get() != &controller || !manager || manager->mContainersClosed
         || controller._isCursorSelectedActive()
         || !Runtime::instance().preferences().inventory.sorting
@@ -285,12 +289,13 @@ void SortSession::tick(ContainerScreenController& controller) {
             ? manager->handlePlaceAmount(source, op.count, destination)
             : manager->handleSwap(source, destination);
     } catch (...) {
-        endTransfer();
+        // An exceptional transfer may have invalidated the game's request
+        // manager. Discard capture without inspecting its pending batch.
         cancel();
         throw;
     }
-    endTransfer();
     if (pending != currentJob) return;
+    endTransfer();
     if (!success) {
         logger.warn("Sort stopped: vanilla refused a transfer");
         cancel();

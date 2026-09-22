@@ -158,6 +158,13 @@ with the stronger selection color while Zoom retained the weaker hover color.
   state. This prevents a synchronous screen-exit callback from leaving a dangling
   job reference. The release build and existing tests pass; synchronous cancellation
   during a transfer has not been reproduced in game.
+- Cancellation now also clears Lamium's request capture pointer, previous request
+  IDs and response barrier. Screen-exit/world-exit paths invoke this before
+  returning to vanilla. An exceptional transfer discards capture without reading
+  the possibly invalidated request manager, and a synchronously cancelled job
+  returns before collecting request IDs. The container manager itself is retained
+  across the vanilla call. Build, existing tests and package validation pass;
+  the synchronous teardown/exception paths still need runtime reproduction.
 - These checks used Deesse UI 1.3.9. Other storage types, survival inventories,
   other text-input screens, live cancellation, rejected requests, and remote-server
   latency still require runtime checks.
