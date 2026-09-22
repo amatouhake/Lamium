@@ -37,8 +37,10 @@ the parent view. Coordinates/radius use double precision; block origins and
 grid dimensions require integers. Invalid or incomplete text leaves the last
 valid geometry intact. Edits update the session immediately.
 The panel explicitly states that shapes are cleared on world exit. This is an
-initial workflow: renaming, persistence and broader runtime
-verification remain outstanding. Session IDs distinguish identical names; stored
+initial workflow: persistence and broader runtime verification remain outstanding.
+The Name row supports immediate UTF-8 renaming without regenerating geometry;
+empty/invalid names retain the last valid name. Native name input and IME still
+need runtime verification. Session IDs distinguish identical names; stored
 coordinates retain full precision while display uses three decimal places.
 Successful compilation and
 search-row tests do not establish rendering or input correctness in Minecraft.

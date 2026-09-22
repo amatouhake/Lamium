@@ -1020,3 +1020,14 @@ beyond the exact float integer range, negative integer positions and bounds;
 client build and existing tests passed. Native shape text entry, integer error
 recovery and drawing updates during typing remain runtime-pending. The running
 instance still uses 03d4ff6.
+
+### Shape names (2026-09-23; runtime pending)
+
+Shape Editor now has a Name row using native UTF-8 text input with select-all,
+replacement, Backspace and Enter/Escape completion. Valid name changes apply
+immediately to the session; empty, ASCII-space-only, control-character and
+over-128-byte names are rejected without replacing the last valid name.
+Renaming updates metadata without regenerating grid lines. Unit tests verify
+Japanese names, cache identity and failed-rename preservation. Client build and
+the full unit suite passed; native name editing, IME and text fit are unverified.
+Shapes still do not persist across world exit.

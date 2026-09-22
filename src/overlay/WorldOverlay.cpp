@@ -136,6 +136,10 @@ void setVisible(ShapeId id, bool visible) {
     std::lock_guard lock(shapeMutex);
     shapeCollection.setVisible(id, visible);
 }
+void rename(ShapeId id, std::string name) {
+    std::lock_guard lock(shapeMutex);
+    shapeCollection.rename(id,std::move(name));
+}
 bool remove(ShapeId id) {
     std::lock_guard lock(shapeMutex);
     return shapeCollection.remove(id);

@@ -32,9 +32,15 @@ class ShapeCollection {
     size_t totalLines = 0;
     size_t maximumShapes, maximumLines;
 
+    static void validateName(std::string const& name) {
+        if (name.empty() || name.size() > 128 || name.find_first_not_of(' ') == std::string::npos)
+            throw std::invalid_argument("Shape name must contain 1 to 128 bytes of visible text");
+        for (unsigned char c : name) if (c < 32 || c == 127)
+            throw std::invalid_argument("Shape name cannot contain control characters");
+    }
+
     ManagedShape prepare(ShapeDefinition definition, size_t replacedLines = 0) const {
-        if (definition.name.empty() || definition.name.size() > 128)
-            throw std::invalid_argument("Shape name must contain 1 to 128 bytes");
+        validateName(definition.name);
         auto cells = std::visit([](auto const& spec) {
             using Spec = std::decay_t<decltype(spec)>;
             if constexpr (std::is_same_v<Spec, ShapeSpec>) {
@@ -79,6 +85,10 @@ public:
         totalLines = count;
     }
     void setVisible(ShapeId id, bool visible) { shapes.at(id).definition.visible = visible; }
+    void rename(ShapeId id, std::string name) {
+        validateName(name);
+        shapes.at(id).definition.name = std::move(name);
+    }
     bool remove(ShapeId id) {
         auto found = shapes.find(id);
         if (found == shapes.end()) return false;

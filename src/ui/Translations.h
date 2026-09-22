@@ -24,6 +24,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"shape.planeName", "Grid plane", "格子平面"},
     {"shape.entry", "{} | {} | Dimension {}", "{} | {} | ディメンション {}"},
     {"shape.visible", "Visible: {}", "表示: {}"},
+    {"shape.name", "Name: {}", "名前: {}"},
+    {"shape.nameError", "Enter a non-empty name (up to 128 UTF-8 bytes).", "空でない名前を入力してください（UTF-8 で最大128バイト）。"},
     {"shape.x", "X: {:.3f}", "X: {:.3f}"},
     {"shape.y", "Y: {:.3f}", "Y: {:.3f}"},
     {"shape.z", "Z: {:.3f}", "Z: {:.3f}"},

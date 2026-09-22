@@ -10,6 +10,7 @@ std::optional<ShapeDefinition> find(ShapeId);
 ShapeId add(ShapeDefinition);
 void edit(ShapeId, ShapeDefinition);
 void setVisible(ShapeId, bool);
+void rename(ShapeId, std::string);
 bool remove(ShapeId);
 void clear();
 }

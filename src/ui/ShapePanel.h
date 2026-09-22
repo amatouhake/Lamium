@@ -6,13 +6,20 @@ namespace lamium::ui {
 // Dedicated tool content; the host supplies focus, navigation and list drawing.
 class ShapePanel {
     enum class Control { Back, Sphere, Circle, Cylinder, Plane, Select, Visible, X, Y, Z,
-        Radius, Height, Snap, Width, Depth, Spacing, Orientation, Duplicate, Remove };
+        Radius, Height, Snap, Width, Depth, Spacing, Orientation, Duplicate, Remove, Name };
     struct Row { Control control; std::string text; overlay::ShapeId id = 0; };
     std::vector<Row> rows;
     std::optional<overlay::ShapeId> editing;
     std::optional<overlay::ShapeDefinition> definition;
     void row(Control control, std::string text, overlay::ShapeId id = 0) { rows.push_back({control,std::move(text),id}); }
 public:
+    std::optional<std::string> nameAt(int index) const {
+        return definition && rows.at(index).control == Control::Name ? std::optional(definition->name) : std::nullopt;
+    }
+    void rename(std::string name) {
+        if (!editing) throw std::out_of_range("No shape selected");
+        overlay::shapes::rename(*editing,std::move(name)); refresh();
+    }
     struct Numeric { double value, minimum, maximum; bool integer = false; };
     std::optional<Numeric> numeric(int index) const {
         if (!definition) return {};
@@ -90,6 +97,7 @@ public:
                 row(Control::Select, translated("shape.entry", "#" + std::to_string(shape.id) + " " + shape.definition.name,
                     translated(shape.definition.visible ? "on" : "off"), shape.definition.dimension), shape.id);
         } else {
+            row(Control::Name,translated("shape.name",definition->name));
             row(Control::Visible, translated("shape.visible", translated(definition->visible ? "on" : "off")));
             auto point = [&](double x, double y, double z) {
                 row(Control::X, translated("shape.x", x)); row(Control::Y, translated("shape.y", y));

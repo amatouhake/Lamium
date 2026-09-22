@@ -6,6 +6,16 @@ void shapeCollectionTests() {
     ShapeDefinition block{"First", 0, true, ShapeSpec{Shape::Sphere, {-.1,5,2}, Snap::BlockCenter, 0, 1}};
     auto first = collection.add(block);
     auto const* cached = collection.find(first)->lines.data();
+    collection.rename(first,"建築用の球");
+    check(collection.find(first)->definition.name == "建築用の球" && collection.find(first)->lines.data() == cached,
+        "UTF-8 shape rename preserves identity and cached geometry");
+    for (auto bad : {std::string{},std::string("   "),std::string("line\nbreak"),std::string(129,'a')}) {
+        bool failed = false;
+        try { collection.rename(first,bad); } catch (std::invalid_argument const&) { failed=true; }
+        check(failed && collection.find(first)->definition.name == "建築用の球",
+            "invalid rename preserves the previous name");
+    }
+    collection.rename(first,"First");
     check(collection.find(first)->lines.size() == 12, "shape collection caches block surface geometry");
     block.name = "Second"; block.dimension = 1;
     auto second = collection.add(block);
