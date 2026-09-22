@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <mutex>
 #include <optional>
 
@@ -16,12 +17,20 @@ public:
 private:
     mutable std::mutex mutex;
     std::optional<Angles> pose;
+    std::uint64_t owner = 0;
 public:
-    bool begin(float pitch, float yaw) {
+    bool begin(float pitch, float yaw, std::uint64_t ownerId = 0) {
         std::lock_guard lock{mutex};
         if (pose) return false; // Key repeat must not reset the detached view.
         if (!std::isfinite(pitch) || !std::isfinite(yaw)) return false;
         pose = Angles{std::clamp(pitch, -90.f, 90.f), std::remainder(yaw, 360.f)};
+        owner = ownerId;
+        return true;
+    }
+    bool retainOwner(std::uint64_t ownerId) {
+        std::lock_guard lock{mutex};
+        if (!pose) return false;
+        if (owner != ownerId) { pose.reset(); return false; }
         return true;
     }
     bool turn(float pitchDelta, float yawDelta) {

@@ -18,9 +18,18 @@ configuration changes, and non-gameplay screens discard the detached pose.
 
 Runtime validation is still pending. The provisional native-input scale of
 0.15 degrees per unit and camera-local rotation order require calibration. The
-relative pitch limit is not yet an absolute world pitch limit. Player replacement,
-death/riding/sleeping, interaction aim, split-screen rendering, culling and
-perspective transitions remain incomplete; this is not a stable Freelook feature.
+relative pitch limit is not yet an absolute world pitch limit. Runtime actor ID
+changes now cancel the session without retaining an actor pointer; death,
+sleeping, riding, missing runtime identity, and an empty view stack also cancel
+or prevent activation. Owner replacement is unit-tested, while these native
+lifecycle checks still require Minecraft validation. Interaction aim,
+split-screen rendering, culling and perspective transitions remain incomplete;
+this is not a stable Freelook feature.
+
+Interaction suppression must cover GameMode attack, block destruction, item
+use, placement and entity interaction paths, including remapped keyboard input.
+Cancelling mouse button events alone is insufficient. The inspected SDK exposes
+these paths, but no detached-camera interaction suppression is implemented yet.
 The next work should validate and correct this integration, not merely expand its
 settings. Do not enable the old fixed-angle `camera_probe` simultaneously.
 

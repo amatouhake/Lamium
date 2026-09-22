@@ -31,4 +31,11 @@ void detachedLookTests() {
         "invalid input cancels override");
     require(!look.begin(0, std::numeric_limits<float>::infinity()) && !look.snapshot(),
         "invalid initial pose cannot activate");
+    require(look.begin(0, 0, 42) && look.retainOwner(42), "session retains its player identity");
+    require(!look.begin(10, 10, 43), "repeat cannot replace session ownership");
+    require(!look.retainOwner(43) && !look.snapshot(), "player replacement cancels detached view");
+    require(!look.turn(5, 5), "replacement cannot inherit detached input");
+    require(look.begin(10, 20, 43) && look.retainOwner(43), "fresh activation accepts replacement player");
+    look.cancel();
+    require(!look.retainOwner(43), "cancelled owner cannot reactivate session");
 }

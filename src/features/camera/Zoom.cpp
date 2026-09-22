@@ -14,6 +14,7 @@
 #include "mc/deps/core/math/Vec2.h"
 #include "mc/deps/input/MouseAction.h"
 #include "mc/deps/renderer/Camera.h"
+#include "mc/legacy/ActorRuntimeID.h"
 #include "ui/SettingsScreen.h"
 #include <cmath>
 #ifdef LAMIUM_CAMERA_TRACE
@@ -130,7 +131,8 @@ LL_TYPE_INSTANCE_HOOK(FreelookCameraHook, ll::memory::HookPriority::Normal, Leve
     &LevelRendererPlayer::setupCamera, void, mce::Camera& camera, float alpha) {
     origin(camera, alpha);
     auto pose = Zoom::instance().lookAngles();
-    if (!pose || camera.viewMatrixStack->stack->empty()) return;
+    if (!pose) return;
+    if (camera.viewMatrixStack->stack->empty()) { Zoom::instance().releaseLook(); return; }
     auto view = *camera.viewMatrixStack->top()._m;
     for (int column = 0; column < 4; ++column)
         for (int row = 0; row < 4; ++row)
@@ -199,14 +201,22 @@ void Zoom::configure(Settings const& settings) {
 void Zoom::pressLook(IClientInstance& current) {
     if (!running || !lookAllowed || ui::ownsInput() || !gameplayScreen(current.getScreenName())
         || !current.getLocalPlayer()) return;
+    auto* player = current.getLocalPlayer();
+    if (!player->isAlive() || player->isSleeping() || player->getVehicle() || !player->hasRuntimeID()) return;
     client = &current;
-    look.begin(0, 0);
+    look.begin(0, 0, player->getRuntimeID().rawID);
 }
 std::optional<DetachedLookState::Angles> Zoom::lookAngles() {
     if (!look.snapshot()) return {};
     auto* current = client.load();
     if (!running || !lookAllowed || !current || ui::ownsInput()
         || !gameplayScreen(current->getScreenName()) || !current->getLocalPlayer()) {
+        releaseLook();
+        return {};
+    }
+    auto* player = current->getLocalPlayer();
+    if (!player->isAlive() || player->isSleeping() || player->getVehicle() || !player->hasRuntimeID()
+        || !look.retainOwner(player->getRuntimeID().rawID)) {
         releaseLook();
         return {};
     }
