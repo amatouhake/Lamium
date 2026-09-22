@@ -30,7 +30,10 @@ On-screen gameplay hints use the current keyboard bindings.
 The current source adds a translucent panel and a Search row; these changes
 still require in-game verification. Click Search or select it and press Enter
 to type. Enter finishes text editing; Escape leaves editing before closing.
-The first row switches between Features and Hotkeys. Binding rows open an editor:
+The first row switches between Features and Hotkeys. Features groups each tool's
+settings and binding under an expandable header with its state and key. Search
+reveals matching settings inside collapsed groups; a description follows the
+selected feature. Binding rows open an editor:
 press the desired chord and release to set it, or use a wheel direction for a
 Press/Toggle action. Clear unbinds; Reset restores the Minecraft mapping; Escape
 cancels. These controls and custom input dispatch are implemented but await

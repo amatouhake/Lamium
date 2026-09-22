@@ -4,6 +4,16 @@ Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
 
 ## Settings foundation in progress
 
+Features now starts as a collapsed list of feature headers showing state and
+binding. Expand a feature to edit its options and binding together. Search
+temporarily reveals matching children even in collapsed groups; clearing search
+restores the collapse choices. Hotkeys ignores feature collapse. A short feature
+description follows the selected row. Row generation is a game-independent
+component with tests proving that all options/actions remain reachable exactly
+once, children stay under the correct feature, English/Japanese search reveals
+collapsed matches, and unmatched queries produce no rows. These tests do not
+verify in-game text fit, click targets, focus, or scrolling after expansion.
+
 The binding model and storage format now distinguish native Minecraft mappings,
 explicit Unbound, and custom chords. Action metadata owns Press/Hold/Toggle
 semantics. Pure tests cover arbitrary chord order, repeated key-down suppression,

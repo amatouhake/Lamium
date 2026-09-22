@@ -1,6 +1,7 @@
 #include "ui/SettingsScreen.h"
 #include "settings/Options.h"
 #include "ui/SettingsLayout.h"
+#include "ui/SettingsRows.h"
 #include "ui/SearchQuery.h"
 #include "ui/Localization.h"
 #include "app/Runtime.h"
@@ -48,11 +49,12 @@ bool closing = false;
 SearchQuery query;
 bool searchFocused = false;
 bool textHook = false;
-struct Row {
-    settings::Option const* option = nullptr;
-    std::optional<input::Action> action;
-};
-std::vector<Row> visibleRows;
+std::vector<SettingsRow> visibleRows;
+std::set<std::string_view> collapsed = [] {
+    std::set<std::string_view> result;
+    for (auto const& feature : features) result.insert(feature.id);
+    return result;
+}();
 bool hotkeys = false;
 std::optional<input::Action> capturing;
 input::BindingCapture capture;
@@ -61,30 +63,7 @@ struct BindingEdit { input::Action action; std::optional<input::Chord> binding; 
 std::optional<BindingEdit> bindingEdit;
 int rowCount() { return capturing ? 4 : static_cast<int>(visibleRows.size()) + 3; }
 void filterOptions() {
-    visibleRows.clear();
-    auto actionMatches = [&](size_t index) {
-        auto const& info = input::actions[index];
-        return query.matches(std::string(info.id) + " " + std::string(info.feature) + " "
-            + translated("key.Lamium." + std::string(info.id)) + " " + translated(info.feature));
-    };
-    if (hotkeys) {
-        for (size_t i = 0; i < input::actions.size(); ++i)
-            if (actionMatches(i)) visibleRows.push_back({nullptr, static_cast<input::Action>(i)});
-    } else {
-        for (size_t i = 0; i < settings::options.size(); ++i) {
-            auto const& option = settings::options[i];
-            auto searchable = std::string(option.id) + " " + std::string(option.feature) + " "
-                + translated(option.label) + " " + translated(option.feature);
-            if (query.matches(searchable)) visibleRows.push_back({&option, {}});
-            if (i + 1 == settings::options.size() || settings::options[i+1].feature != option.feature) {
-                for (size_t j = 0; j < input::actions.size(); ++j)
-                    if (input::actions[j].feature == option.feature && actionMatches(j))
-                        visibleRows.push_back({nullptr, static_cast<input::Action>(j)});
-            }
-        }
-        if (actionMatches(static_cast<size_t>(input::Action::Settings)))
-            visibleRows.push_back({nullptr, input::Action::Settings});
-    }
+    visibleRows = buildSettingsRows(hotkeys, query, collapsed, [](std::string_view key) { return translated(key); });
     selected = 0; hovered = -1; firstVisible = 0; command = 0;
 }
 std::string error;
@@ -140,6 +119,15 @@ void activate(int row, int direction) {
     if (row < 0 || row >= rowCount() - 1) return;
     searchFocused = false;
     auto const& entry = visibleRows[row-2];
+    if (entry.heading()) {
+        if (query.value().find_first_not_of(' ') != std::string::npos) return;
+        auto id = entry.feature->id;
+        if (!collapsed.erase(id)) collapsed.insert(id);
+        filterOptions();
+        for (size_t index = 0; index < visibleRows.size(); ++index)
+            if (visibleRows[index].heading() && visibleRows[index].feature->id == id) selected = static_cast<int>(index) + 2;
+        return;
+    }
     if (entry.action) {
         capturing = entry.action; capture.begin(uiHeld); error.clear();
         selected = 0; firstVisible = 0; hovered = -1;
@@ -209,6 +197,16 @@ void render(ll::event::UIRenderEvent& event) {
         if (index == 0) return translated(hotkeys ? "hotkeysView" : "featuresView");
         if (index == 1) return translated("search", query.value() + (searchFocused ? "_" : ""));
         auto const& entry = visibleRows[index-2];
+        if (entry.heading()) {
+            bool expanded = !collapsed.contains(entry.feature->id) || query.value().find_first_not_of(' ') != std::string::npos;
+            auto text = std::string(expanded ? "[-] " : "[+] ") + translated(entry.feature->name);
+            if (auto option = settings::find(entry.feature->toggle))
+                text += " | " + translated(std::get<bool>(option->read(preferences)) ? "on" : "off");
+            for (size_t actionIndex = 0; actionIndex < input::actions.size(); ++actionIndex)
+                if (input::actions[actionIndex].feature == entry.feature->id)
+                    text += " | " + actionBindingName(current, static_cast<input::Action>(actionIndex));
+            return text;
+        }
         if (entry.action) {
             auto actionIndex = static_cast<size_t>(*entry.action);
             auto text = translated("bindingRow",
@@ -239,8 +237,12 @@ void render(ll::event::UIRenderEvent& event) {
         label(context,left+6,y+5,width-12,rowLabel(i));
     }
     label(context,left,layout.footer,width,error.empty() ? translated(capturing ? "captureHint" : "navigation") : error);
-    if (layout.secondHint)
-        label(context,left,layout.footer+15,width,translated("adjustment"));
+    if (layout.secondHint) {
+        auto description = translated("adjustment");
+        if (!capturing && selected >= 2 && selected < rowCount()-1)
+            description = translated(visibleRows[selected-2].feature->description);
+        label(context,left,layout.footer+15,width,description);
+    }
     context.flushText(0,std::nullopt);
 }
 }

@@ -13,10 +13,11 @@ Settings and input foundation work is now underway, before broader feature expan
   broader conflict detection and clearer feature descriptions remain open.
 - The top-left gameplay hints now have a visibility toggle in source. Build and
   persistence tests pass; runtime validation remains pending.
-- A flat ten-row panel is only a prototype. Revisit navigation, grouping, search
-  and descriptions before adding enough features to make it hard to browse.
-  The expanded catalog now has a search row and native text-input hook, with
-  pure text tests passing; in-game delivery and layout remain unverified.
+- Features now groups settings and bindings under collapsible feature headers
+  with state/binding summaries and short descriptions. Search reveals matching
+  children even when the feature is collapsed; Hotkeys remains a flat action
+  list. Pure row-generation and text tests pass. In-game input delivery, text
+  fit, expansion/click targets, and layout remain unverified.
 - Explicit Save/Cancel has been replaced with per-edit persistence and application.
   Escape/Close only dismisses the screen. Failed saves leave the previous setting
   active and display an error. Runtime validation remains pending.
