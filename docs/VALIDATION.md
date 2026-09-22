@@ -175,4 +175,8 @@ dependency restore.
 - Complete runtime validation of previews and durability; verify the remaining
   inventory scenarios listed above.
 - Verify hosted CI and a clean dependency restore/build/package.
-- Complete dependency notices and distribution review.
+- Dependency notices now include the locked SDK's header libraries, link inputs,
+  and LeviLamina's GPL/LGPL texts. Package validation checks referenced notice
+  files as well as the hashes of all copied notices. Complete the remaining
+  distribution review, including SymbolProvider's MinGW disclaimer reference
+  and generated runtime import libraries, before a public release.

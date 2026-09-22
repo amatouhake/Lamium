@@ -18,6 +18,15 @@ foreach ($relative in @('COPYING', 'COPYING.LESSER', 'THIRD_PARTY_NOTICES.md')) 
     if ($sourceHash -ne $packageHash) { throw "Package notice differs from source: $relative" }
 }
 $licenseRoot = Join-Path $projectDirectory 'licenses'
+$noticeText = Get-Content -LiteralPath (Join-Path $projectDirectory 'THIRD_PARTY_NOTICES.md') -Raw
+$referencedLicenses = [regex]::Matches($noticeText, '\]\((licenses/[^)]+)\)') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+foreach ($relative in $referencedLicenses) {
+    $source = Join-Path $projectDirectory $relative
+    if (-not (Test-Path -LiteralPath $source -PathType Leaf) -or (Get-Item -LiteralPath $source).Length -eq 0) {
+        throw "Referenced license is missing or empty: $relative"
+    }
+}
 foreach ($source in Get-ChildItem -LiteralPath $licenseRoot -File -Recurse) {
     $relative = [IO.Path]::GetRelativePath($projectDirectory, $source.FullName)
     $packageHash = (Get-FileHash -LiteralPath (Join-Path $package $relative)).Hash

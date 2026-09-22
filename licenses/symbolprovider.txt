@@ -1,0 +1,19 @@
+/**
+ * This file has no copyright assigned and is placed in the Public Domain.
+ * This file is part of the mingw-w64 runtime package.
+ * No warranty is given; refer to the file DISCLAIMER.PD within this package.
+ *
+ * This file is derived from Microsoft implementation file delayhlp.cpp, which
+ * is free for users to modify and derive.
+ *
+ * Modified By BDSLiteloader Developers in ordered to support SymDB
+ * You Must Link with BDSLiteLoader.dll to get dlsym support
+ *
+ * To use this Method, you should static link this project (and LiteLoader)
+ * Open Your Plugin's Project Setting
+ * [Properties -> Linker -> Input -> Delay Load DLL] and add "bedrock_server.dll" to the list
+ * then make sure you link bedrock_server_api.lib and bedrock_server_var.lib and here we go!
+ *
+ * BDS Funtions will be loaded as you call them
+ *
+ */
