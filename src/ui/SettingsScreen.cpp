@@ -57,6 +57,7 @@ std::set<std::string_view> collapsed = [] {
 }();
 bool hotkeys = false;
 std::optional<input::Action> capturing;
+int captureFirstVisible = 0;
 input::BindingCapture capture;
 input::Chord uiHeld;
 struct BindingEdit { input::Action action; std::optional<input::Chord> binding; };
@@ -79,7 +80,22 @@ void captureInput(input::Token token, bool down) {
         if (value) bindingEdit = BindingEdit{*capturing, std::move(value)};
     } catch (std::exception const&) { error = translated("invalidBinding"); }
 }
-void cancelCapture() { capturing.reset(); capture.clear(); bindingEdit.reset(); filterOptions(); }
+void cancelCapture() {
+    auto action = capturing;
+    capturing.reset(); capture.clear(); bindingEdit.reset(); error.clear();
+    filterOptions();
+    // Return to the edited action, keeping the surrounding list in view. This
+    // also covers save, Clear, Reset, Escape, and focus-loss cancellation.
+    if (action) {
+        for (size_t i = 0; i < visibleRows.size(); ++i) {
+            if (visibleRows[i].action == action) {
+                selected = static_cast<int>(i) + 2;
+                firstVisible = captureFirstVisible;
+                break;
+            }
+        }
+    }
+}
 std::array<ll::event::ListenerPtr, 5> listeners;
 bool backgroundHook = false;
 constexpr mce::Color white{1.0f,1.0f,1.0f,1.0f};
@@ -130,6 +146,7 @@ void activate(int row, int direction) {
     }
     if (entry.action) {
         capturing = entry.action; capture.begin(uiHeld); error.clear();
+        captureFirstVisible = firstVisible;
         selected = 0; firstVisible = 0; hovered = -1;
         return;
     }

@@ -50,6 +50,16 @@ input is released; wheel impulses complete immediately. The opening click/Enter
 is excluded until released. Clear selects Unbound; Reset restores the existing
 Minecraft mapping. Escape cancels, and app focus loss abandons the capture.
 Changes persist on the next render; a failed write preserves the old binding.
+Leaving binding capture now restores selection to the edited action and reuses
+the previous list scroll position. This applies to successful edits, Clear,
+Reset, Escape, and focus-loss cancellation. DLL build validation covers the
+change; navigation behavior still requires an in-game check.
+
+The latest Computer Use retry still could not capture Minecraft. The first
+snapshot failed with `foreground window did not report a process id`; recovery
+by refreshing the window list and rehydrating its returned Minecraft handle
+failed because that window was not found. No game input or installation was
+performed during this attempt.
 Exact duplicates among explicit Lamium overrides are marked Shared. This does
 not detect native Minecraft or other-mod conflicts or overlapping subset chords.
 Pure capture tests cover arbitrary chords, opener suppression, mouse buttons,
