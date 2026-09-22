@@ -80,8 +80,26 @@ whether setup is still on the stack, and whether the dependency update is for
 that active setup camera, followed by post-update inverse error and basis
 lengths. Camera identity is retained only within the synchronous setup scope;
 an update outside that scope is deliberately not identified with a prior camera.
-The two log streams have separate limits (32 setup samples, 64 updates). This
-ordering probe has been built but has not yet been exercised in Minecraft.
+The two log streams have separate limits (32 setup samples, 64 updates).
+
+On 2026-09-23, ordering-probe build `dc02bbc` was installed with matching DLL
+hashes and exercised in the same local creative world, starting in rear
+third-person view. All 64 dependency samples were outside setup and finite.
+The first setup sample (serial 1) still had zero basis lengths; the immediately
+following dependency samples at serial 1 had unit basis lengths and inverse
+errors of zero and approximately `1.53e-5`. The sample budget ended at setup
+serial 43 during startup. World and Shape rendering remained visible and the
+game exited normally. This does not cover subsequent perspective transitions
+or deliberate rotation.
+
+The observed order supports trying an opt-in render-only rotation after vanilla
+setup, allowing the existing later dependency update to process the modified
+view. It does not prove camera identity outside setup: `sameCamera=false` there
+means no identity comparison was possible, not that it was a different camera.
+The next experiment should apply a reversible rotation to the fresh view matrix
+on each call, with no player transform writes, then inspect world/overlay
+alignment and dependency consistency. Do not extend passive tracing indefinitely
+instead of testing that integration hypothesis.
 
 The diagnostic build compiles and links against SDK 26.51.3. On 2026-09-23,
 build `6bfaeb4` was installed with matching source/destination DLL hashes and
