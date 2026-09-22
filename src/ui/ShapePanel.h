@@ -18,7 +18,7 @@ public:
     int count() const { return static_cast<int>(rows.size()); }
     std::string label(int index) const { return rows.at(index).text; }
     std::string title() const { return translated(editing ? "shape.editor" : "shape.manager"); }
-    std::string subtitle() const { return definition ? definition->name : translated("shape.session"); }
+    std::string subtitle() const { return definition ? "#" + std::to_string(*editing) + " " + definition->name : translated("shape.session"); }
     void refresh() {
         rows.clear();
         definition = editing ? overlay::shapes::find(*editing) : std::nullopt;
@@ -30,7 +30,7 @@ public:
             row(Control::Cylinder, translated("shape.addCylinder"));
             row(Control::Plane, translated("shape.addPlane"));
             for (auto const& shape : overlay::shapes::list())
-                row(Control::Select, translated("shape.entry", shape.definition.name,
+                row(Control::Select, translated("shape.entry", "#" + std::to_string(shape.id) + " " + shape.definition.name,
                     translated(shape.definition.visible ? "on" : "off"), shape.definition.dimension), shape.id);
         } else {
             row(Control::Visible, translated("shape.visible", translated(definition->visible ? "on" : "off")));

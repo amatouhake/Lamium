@@ -1,9 +1,11 @@
 # Overlay foundation
 
 This is an overlay component under development. A prototype world-line backend
-and a Chunk Borders setting are connected in source; actual rendering has not
-been verified in Minecraft. A first Shape Manager/Editor is connected in source
-through the searchable Features list, but has not been installed or tested yet.
+and a Chunk Borders setting are connected in source. A first Shape Manager/Editor
+is reachable through the searchable Features list. Creating a sphere, changing
+its radius and hiding it were verified in Minecraft; cyan grid lines changed
+accordingly behind the editor. This does not validate Chunk Borders, other shape
+types, projection/depth accuracy, camera movement or world/dimension lifecycle.
 
 `ShapeCollection` now provides the game-independent manager model: stable
 session IDs, names, visibility, dimension ownership, and cached grid-surface
@@ -32,8 +34,10 @@ visibility, per-axis movement, radius/height or grid dimensions/orientation,
 snapping, duplicate and remove. Left/right adjusts values; Enter/click performs
 actions; Escape returns to the parent view. Edits update the session immediately.
 The panel explicitly states that shapes are cleared on world exit. This is an
-initial workflow: direct numeric input, renaming, persistence, better identity
-labels and runtime verification remain outstanding. Successful compilation and
+initial workflow: direct numeric input, renaming, persistence and broader runtime
+verification remain outstanding. Session IDs distinguish identical names; stored
+coordinates retain full precision while display uses three decimal places.
+Successful compilation and
 search-row tests do not establish rendering or input correctness in Minecraft.
 
 Chunk Borders defaults off. The prototype draws the player's current chunk

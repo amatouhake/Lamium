@@ -986,3 +986,24 @@ loss, verifying that a stale modifier cannot activate a wheel binding and a
 fresh press restores it. All unit tests passed without production changes.
 These validate HeldInputs and BindingState; native event routing, physical
 press order and focus callbacks still require separate runtime coverage.
+
+### First Shape Manager runtime check (2026-09-23)
+
+Installed 03d4ff6, DLL SHA-256
+`461FD1C4A923AFC7E0227C38C52725E302717C84E6679B8DAE206C904DDEA1CD`.
+In the local creative scenario on Minecraft 1.26.51.01 / LeviLamina 26.51.3 /
+DeesseUI 1.3.9, 1920x1080 English, searching shape revealed the dedicated
+manager entry. Opening it showed all creation controls and the session-only
+notice. Adding a sphere opened its editor with radius 4 and Block Center snap;
+cyan block-grid lines appeared in the world behind the translucent panel.
+Clicking radius changed it to 4.5 and visibly rebuilt the outline. Switching
+Visible off removed the lines; Escape returned to the manager with one Sphere,
+Off, Dimension 0 entry. This proves the first sphere UI-to-render path only:
+other shape types, exact projection/depth correctness, camera movement,
+world-exit clearing, dimension transitions, performance and other locales/scales
+remain unverified. The session currently contains that one hidden sphere.
+
+The check exposed excessive coordinate decimal digits. Source now formats
+coordinates to three decimal places without rounding stored values, and shows
+session IDs in list/editor titles to distinguish same-named shapes. These
+presentation fixes are not installed yet.

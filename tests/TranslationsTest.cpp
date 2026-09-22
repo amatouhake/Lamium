@@ -32,7 +32,8 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(remaining, maximum));
                 check(rendered.find("123 / 1561") != std::string::npos);
             }
-            else if (entry.key == "magnification" || entry.key == "wheelStep" || entry.key == "hitboxDistance"
+            else if (entry.key == "shape.x" || entry.key == "shape.y" || entry.key == "shape.z"
+                || entry.key == "magnification" || entry.key == "wheelStep" || entry.key == "hitboxDistance"
                 || entry.key == "hudHorizontal" || entry.key == "hudVertical")
                 rendered = std::vformat(pattern, std::make_format_args(number));
             else if (pattern.find("{}") != std::string_view::npos)
