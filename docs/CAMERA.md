@@ -74,6 +74,15 @@ camera basis lengths. It does not record positions, world identifiers, or
 paths, and does not modify camera matrices or player state. Disable it with
 `xmake f --camera_trace=n` and rebuild for ordinary use.
 
+The probe also observes the first 64 dependency-update calls after setup has
+been seen on the calling thread. Each records a thread-local setup serial,
+whether setup is still on the stack, and whether the dependency update is for
+that active setup camera, followed by post-update inverse error and basis
+lengths. Camera identity is retained only within the synchronous setup scope;
+an update outside that scope is deliberately not identified with a prior camera.
+The two log streams have separate limits (32 setup samples, 64 updates). This
+ordering probe has been built but has not yet been exercised in Minecraft.
+
 The diagnostic build compiles and links against SDK 26.51.3. On 2026-09-23,
 build `6bfaeb4` was installed with matching source/destination DLL hashes and
 observed in a local creative world on Minecraft 1.26.51.01. First-person world

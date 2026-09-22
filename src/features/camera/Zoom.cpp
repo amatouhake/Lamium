@@ -23,9 +23,56 @@
 namespace lamium {
 namespace {
 #ifdef LAMIUM_CAMERA_TRACE
+struct CameraTraceContext {
+    mce::Camera const* setupCamera = nullptr;
+    unsigned setupSerial = 0;
+    bool seenSetup = false;
+};
+thread_local CameraTraceContext cameraTraceContext;
+
+// Keep camera identity only for the duration of the synchronous setup callback.
+struct CameraTraceScope {
+    mce::Camera const* previous;
+    explicit CameraTraceScope(mce::Camera const& camera)
+    : previous(cameraTraceContext.setupCamera) {
+        cameraTraceContext.setupCamera = &camera;
+        cameraTraceContext.seenSetup = true;
+        ++cameraTraceContext.setupSerial;
+    }
+    ~CameraTraceScope() { cameraTraceContext.setupCamera = previous; }
+};
+
+LL_TYPE_INSTANCE_HOOK(CameraDependenciesTraceHook, ll::memory::HookPriority::Normal, mce::Camera,
+    &mce::Camera::updateViewMatrixDependencies, void) {
+    origin();
+    if (!cameraTraceContext.seenSetup) return;
+    static std::atomic<unsigned> calls{0};
+    auto count = calls.load(std::memory_order_relaxed);
+    while (count < 64 && !calls.compare_exchange_weak(
+        count, count + 1, std::memory_order_relaxed)) {}
+    if (count >= 64 || viewMatrixStack->stack->empty()) return;
+    try {
+        auto product = *viewMatrixStack->top()._m * *mInverseViewMatrix;
+        float inverseError = 0;
+        bool finite = true;
+        for (int column = 0; column < 4; ++column) {
+            for (int row = 0; row < 4; ++row) {
+                finite = finite && std::isfinite(product[column][row]);
+                inverseError = std::max(inverseError, std::abs(product[column][row] - (column == row ? 1.f : 0.f)));
+            }
+        }
+        Runtime::instance().self().getLogger().info(
+            "Camera dependencies: sample={} setupSerial={} insideSetup={} sameCamera={} finite={} inverseError={} basisLengths={}/{}/{}",
+            count, cameraTraceContext.setupSerial, cameraTraceContext.setupCamera != nullptr,
+            cameraTraceContext.setupCamera == this, finite, inverseError,
+            glm::length(*mRight), glm::length(*mUp), glm::length(*mForward));
+    } catch (...) {}
+}
+
 // Observe only: never modify matrices, dependency caches, or the player pose.
 LL_TYPE_INSTANCE_HOOK(CameraTraceHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::setupCamera, void, mce::Camera& camera, float alpha) {
+    CameraTraceScope scope{camera};
     static std::atomic<unsigned> calls{0};
     auto count = calls.load(std::memory_order_relaxed);
     while (count < 3840 && !calls.compare_exchange_weak(
@@ -49,8 +96,8 @@ LL_TYPE_INSTANCE_HOOK(CameraTraceHook, ll::memory::HookPriority::Normal, LevelRe
             }
         }
         Runtime::instance().self().getLogger().info(
-            "Camera trace: sample={} alpha={} before={} finite={} viewChange={} inverseError={} basisLengths={}/{}/{}",
-            count / 120, alpha, beforeValid, finite, change, inverseError,
+            "Camera trace: sample={} setupSerial={} alpha={} before={} finite={} viewChange={} inverseError={} basisLengths={}/{}/{}",
+            count / 120, cameraTraceContext.setupSerial, alpha, beforeValid, finite, change, inverseError,
             glm::length(*camera.mRight), glm::length(*camera.mUp), glm::length(*camera.mForward));
     } catch (...) {
         // Diagnostics must not interrupt rendering or expose native text/paths.
@@ -83,6 +130,7 @@ struct HookEntry {
 };
 HookEntry hooks[] = {
 #ifdef LAMIUM_CAMERA_TRACE
+    {CameraDependenciesTraceHook::hook, CameraDependenciesTraceHook::unhook},
     {CameraTraceHook::hook, CameraTraceHook::unhook},
 #endif
     {FovHook::hook, FovHook::unhook},
