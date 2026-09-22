@@ -45,6 +45,8 @@ Json encode(Settings const& settings) {
     }
     return Json{
         {"version", settings.version},
+        {"interaction", {{"breakingMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.breakingMode)]},
+                         {"placementMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.placementMode)]}}},
         {"information", {{"hud", settings.information.hud}, {"coordinates", settings.information.coordinates},
                          {"debug", settings.information.debug},
                          {"target", settings.information.target}, {"targetIdentifier", settings.information.targetIdentifier},
@@ -79,6 +81,17 @@ Json encode(Settings const& settings) {
 Settings decodeSettings(std::string_view text) {
     auto data = parse(text);
     Settings value;
+    if (data.contains("interaction")) {
+        auto const& options = data.at("interaction");
+        auto mode = [&](char const* key) {
+            auto name = options.value(key,std::string("plane"));
+            for (size_t i=0;i<interaction::restrictionNames.size();++i)
+                if (name == interaction::restrictionNames[i]) return static_cast<interaction::RestrictionMode>(i);
+            throw std::runtime_error("Unknown restriction mode");
+        };
+        value.interaction.breakingMode = mode("breakingMode");
+        value.interaction.placementMode = mode("placementMode");
+    }
     if (data.contains("information")) {
         auto const& info = data.at("information");
         value.information.debug = info.value("debug", false);

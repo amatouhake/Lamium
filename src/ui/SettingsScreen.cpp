@@ -255,6 +255,8 @@ void render(ll::event::UIRenderEvent& event) {
                 numberInput.selectedAll() ? "[" + numberInput.value() + "]" : numberInput.value() + "_");
         if (auto flag = std::get_if<bool>(&value))
             return translated(option.label, translated(*flag ? "on" : "off"));
+        if (auto choice = std::get_if<settings::ChoiceValue>(&value))
+            return translated(option.label, translated(choice->label));
         return translated(option.label, std::get<float>(value));
     };
     glm::vec2 pointer = view.mPointerLocationPrevious;

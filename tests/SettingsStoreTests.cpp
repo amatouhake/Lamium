@@ -13,6 +13,23 @@
 void check(bool, char const*);
 void settingsStoreTests() {
     using namespace lamium;
+    {
+        auto* mode = settings::find("interaction.breakingMode");
+        Settings value;
+        mode->adjust(value,-1);
+        check(value.interaction.breakingMode == interaction::RestrictionMode::Layer, "choice wraps backward");
+        mode->adjust(value,0);
+        check(value.interaction.breakingMode == interaction::RestrictionMode::Plane, "click advances choice and wraps forward");
+        check(!mode->numeric && std::get<settings::ChoiceValue>(mode->read(value)).label == "mode.plane",
+              "choice exposes localized label and never opens numeric input");
+        for (auto label : interaction::restrictionLabels)
+            check(!ui::translations::find(label,"en_US").empty() && !ui::translations::find(label,"ja_JP").empty(),
+                  "every restriction choice has both translations");
+        bool rejected = false;
+        try { (void)decodeSettings(R"({"interaction":{"breakingMode":"unknown"}})"); }
+        catch (...) { rejected = true; }
+        check(rejected, "unknown stored restriction mode is not silently reinterpreted");
+    }
     auto old = decodeSettings(R"({"version":1,"camera":{"zoom":true,"magnification":3.5,"wheelStep":0.5}})");
     check(old.camera.magnification == 3.5f && !old.lighting.nightVision,
           "adding lighting must preserve existing camera settings");

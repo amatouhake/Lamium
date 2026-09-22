@@ -6,7 +6,8 @@
 #include <variant>
 
 namespace lamium::settings {
-using OptionValue = std::variant<bool, float>;
+struct ChoiceValue { std::string_view label; bool operator==(ChoiceValue const&) const = default; };
+using OptionValue = std::variant<bool, float, ChoiceValue>;
 struct NumericOption {
     float minimum, maximum;
     void (*write)(Settings&, float);
@@ -28,7 +29,24 @@ constexpr Option toggle(std::string_view id, std::string_view feature, std::stri
         [](Settings const& value) -> OptionValue { return (value.*Group).*Member; },
         [](Settings& value, int) { auto& field = (value.*Group).*Member; field = !field; }};
 }
+template<auto Group, auto Member, auto const& Labels>
+constexpr Option choice(std::string_view id, std::string_view feature, std::string_view label) {
+    return {id, feature, label,
+        [](Settings const& value) -> OptionValue {
+            auto index = static_cast<size_t>((value.*Group).*Member);
+            return ChoiceValue{Labels[index < Labels.size() ? index : 0]};
+        },
+        [](Settings& value, int direction) {
+            auto& field = (value.*Group).*Member;
+            auto index = static_cast<size_t>(field);
+            if (index >= Labels.size()) index = 0;
+            index = (index + (direction < 0 ? Labels.size()-1 : 1)) % Labels.size();
+            field = static_cast<std::remove_reference_t<decltype(field)>>(index);
+        }};
+}
 inline constexpr auto options = std::to_array<Option>({
+    choice<&Settings::interaction, &Settings::Interaction::breakingMode, interaction::restrictionLabels>("interaction.breakingMode", "restrictions", "breakingMode"),
+    choice<&Settings::interaction, &Settings::Interaction::placementMode, interaction::restrictionLabels>("interaction.placementMode", "restrictions", "placementMode"),
     toggle<&Settings::information, &Settings::Information::debug>("information.debug", "debugView", "debugView"),
     toggle<&Settings::information, &Settings::Information::target>("information.target", "targetInfo", "targetInfo"),
     toggle<&Settings::information, &Settings::Information::targetIdentifier>("information.targetIdentifier", "targetInfo", "targetIdentifier"),

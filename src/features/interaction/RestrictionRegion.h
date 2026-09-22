@@ -1,8 +1,8 @@
 #pragma once
 #include "overlay/Geometry.h"
+#include "features/interaction/RestrictionMode.h"
 #include <optional>
 namespace lamium::interaction {
-enum class RestrictionMode { Plane, Line, Column, Layer };
 enum class Axis { X, Y, Z };
 inline Axis normalAxis(overlay::Face face) {
     switch (face) {

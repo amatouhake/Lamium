@@ -14,8 +14,9 @@ headroom required by block-face geometry. No Minecraft pointers are stored.
 
 ## Integration work still required
 
-This commit does not yet enforce restrictions or expose their settings. Placement
-and breaking must have separate toggles and anchors, with mode switching, explicit
+The mode settings are exposed as independent named choices with immediate saving.
+The current implementation does not yet enforce restrictions. Placement
+and breaking must have separate toggles and anchors, with mode-switch actions, explicit
 anchor capture/reset and a visible description of the active region. Anchors are
 session state and must be invalidated on world/dimension changes and feature
 shutdown. Settings/input ownership must suppress editing anchors while typing.

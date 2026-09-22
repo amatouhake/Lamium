@@ -2,11 +2,16 @@
 #include <algorithm>
 #include <cmath>
 #include "input/Binding.h"
+#include "features/interaction/RestrictionMode.h"
 
 namespace lamium {
 struct Settings {
     int version = 1;
     input::Bindings bindings;
+    struct Interaction {
+        interaction::RestrictionMode breakingMode = interaction::RestrictionMode::Plane;
+        interaction::RestrictionMode placementMode = interaction::RestrictionMode::Plane;
+    } interaction;
     struct Camera {
         bool zoom = true;
         float magnification = 3.0f;
@@ -62,6 +67,9 @@ struct Settings {
     } information;
 
     void normalize() {
+        auto normalizeMode = [](auto& mode) { if (static_cast<unsigned>(mode) >= 4) mode = lamium::interaction::RestrictionMode::Plane; };
+        normalizeMode(interaction.breakingMode);
+        normalizeMode(interaction.placementMode);
         if (!std::isfinite(information.targetHorizontal)) information.targetHorizontal = 50.f;
         if (!std::isfinite(information.targetVertical)) information.targetVertical = 2.f;
         information.targetHorizontal = std::clamp(information.targetHorizontal,0.f,100.f);
