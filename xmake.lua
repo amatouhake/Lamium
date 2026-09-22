@@ -1,4 +1,5 @@
 add_rules("mode.debug", "mode.release")
+set_policy("package.requires_lock", true)
 
 add_repositories("levimc-repo https://github.com/LiteLDev/xmake-repo.git")
 

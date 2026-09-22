@@ -1,0 +1,48 @@
+name: Build and test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-client:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: xmake-io/github-action-setup-xmake@3a1a5dddfc7fa625d9a698738334bf55655a861a # v1
+        with:
+          xmake-version: '3.1.1'
+      - name: Configure client release
+        run: xmake f -a x64 -m release -p windows --target_type=client -y
+      - name: Build mod
+        run: xmake -y
+      - name: Build tests
+        run: xmake build LamiumTests
+      - name: Run tests
+        run: xmake run LamiumTests
+      - name: Check package
+        run: ./scripts/Check-Package.ps1
+      - name: Ensure dependency lock was preserved
+        run: git diff --exit-code -- xmake-requires.lock
+      - name: Upload development package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Lamium-windows-x64-${{ github.sha }}
+          path: bin/Lamium/
+          if-no-files-found: error
+          retention-days: 14

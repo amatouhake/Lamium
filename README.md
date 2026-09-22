@@ -42,7 +42,18 @@ xmake f -a x64 -m release -p windows --target_type=client -y
 xmake -y
 xmake build LamiumTests
 xmake run LamiumTests
+./scripts/Check-Package.ps1
 ```
+
+Use PowerShell 7 for the package check. `xmake-requires.lock` records the package
+versions and repository revisions used for Windows x64. Keep it when cloning;
+review changes from `xmake require --upgrade` before committing them. The current
+LeviLamina tag uses the pinned repository's `main` dependency mapping because
+that repository has no version-specific entry for the tag.
+
+The GitHub Actions workflow builds with xmake 3.1.1 on Windows, runs the tests and
+package check, and uploads a development artifact. It does not publish releases.
+Minecraft runtime checks still need a local installation; CI cannot prove them.
 
 Use a separate launcher instance for development. Do not enable another mod that
 changes the same camera or inventory behavior while testing Lamium.

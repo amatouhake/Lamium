@@ -109,6 +109,11 @@ still needs runtime verification.
 
 ## Outstanding release gates
 
+Build automation: a Windows CI workflow, dependency lock, and package checker
+have been added. The local locked configuration builds, passes the test suite,
+and passes the package check. A hosted CI run and a fresh dependency-cache
+restore have not yet been verified.
+
 - Verify zoom visually while held, wheel capture, sensitivity, and release.
 - Verify menu transitions, focus loss, dimension changes, disconnect/rejoin.
 - Verify all settings survive restart and in-game errors preserve existing files.
@@ -118,5 +123,5 @@ still needs runtime verification.
 - Verify NightVision underwater, in Nether/End, and across restart/dimension changes.
 - Complete runtime validation of previews and durability; verify the remaining
   inventory scenarios listed above.
-- Add CI and validate a clean dependency restore/build/package.
+- Verify hosted CI and a clean dependency restore/build/package.
 - Complete dependency notices and distribution review.
