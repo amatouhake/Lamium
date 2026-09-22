@@ -1,6 +1,7 @@
 #include "features/inventory/game/ScreenTracker.h"
 
 #include "features/inventory/game/TextInputTracker.h"
+#include "features/inventory/game/SortSession.h"
 
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
@@ -47,6 +48,7 @@ void ScreenTracker::install() {
     );
     mExitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
         [this](auto&) {
+            SortSession::cancel();
             TextInputTracker::getInstance().forget(mCurrentView);
             mCurrent.reset();
             mCurrentView = nullptr;
@@ -55,6 +57,7 @@ void ScreenTracker::install() {
 }
 
 void ScreenTracker::uninstall() {
+    SortSession::cancel();
     if (!mInstalled) return;
     if (mRenderListener) {
         ll::event::EventBus::getInstance().removeListener(mRenderListener);
@@ -80,6 +83,7 @@ std::shared_ptr<ContainerScreenController> ScreenTracker::current() const {
 void ScreenTracker::onControllerLeft(ContainerScreenController& controller) {
     auto current = mCurrent.lock();
     if (current && current.get() == static_cast<ScreenController*>(&controller)) {
+        SortSession::cancel();
         mCurrent.reset();
         TextInputTracker::getInstance().forget(mCurrentView);
         mCurrentView = nullptr;
@@ -93,12 +97,25 @@ void ScreenTracker::onAfterUIRender(ll::event::AfterUIRenderEvent& event) {
     if (!controller || !controller->_isContainerScreen()) {
         return;
     }
+    if (!event.screenView().mHasFocus) {
+        if (mCurrent.lock() == controller) {
+            SortSession::cancel();
+            mCurrent.reset();
+            mCurrentView = nullptr;
+        }
+        return;
+    }
     if (mCurrent.lock() != controller) {
+        SortSession::cancel();
         mCurrent     = controller;
         mCurrentView = &event.screenView();
-        // A freshly shown screen starts with no text box selected; drop any
-        // stale knowledge a previous screen at the same address left behind.
-        TextInputTracker::getInstance().forget(mCurrentView);
+        // Do not erase text focus here: a search box may already have gained
+        // focus before the first rendered frame. onLeave handles old views.
+    }
+    try { SortSession::tick(*std::static_pointer_cast<ContainerScreenController>(controller)); }
+    catch (std::exception const& error) {
+        SortSession::cancel();
+        Runtime::instance().self().getLogger().error("Sort stopped: {}", error.what());
     }
 }
 

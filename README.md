@@ -23,8 +23,10 @@ the main inventory. Hover an ordinary storage-container slot to sort that
 container instead. Hotbar, equipment, crafting, and machine slots are excluded.
 Sorting is skipped while typing or holding an item on the cursor. The feature
 can be disabled in Lamium settings; its default key can be remapped in Minecraft.
-Sorting currently verifies client-predicted slots; server response correlation
-and real-game sorting validation remain release gates.
+Sorting waits for matching vanilla server responses between operations and
+checks the region again before continuing. Rejection, missing responses, or a
+changed screen stops the plan. Real-game validation of this integration remains
+a release gate.
 
 ## Build
 

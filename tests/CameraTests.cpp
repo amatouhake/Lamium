@@ -13,6 +13,8 @@ int runPreviewLayoutTests();
 int runDurabilityBarTests();
 int runBundlePreviewTests();
 int main() {
+    extern void responseBarrierTests();
+    responseBarrierTests();
     extern int runSortPlannerTests();
     check(runSortPlannerTests() == 0, "inventory planning and ordering suites");
     settingsStoreTests();

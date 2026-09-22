@@ -2,6 +2,7 @@
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/inventory/game/TextInputTracker.h"
 #include "features/inventory/game/SortSession.h"
+#include "features/inventory/game/RequestTracker.h"
 #include "app/Runtime.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/multiplayer/ClientLevel.h"
@@ -11,6 +12,7 @@
 namespace lamium::inventory {
 bool start() {
     try {
+        game::installRequestTracker();
         game::TextInputTracker::getInstance().install();
         game::ScreenTracker::getInstance().install();
         return true;
@@ -21,8 +23,10 @@ bool start() {
     }
 }
 void stop() {
+    game::SortSession::cancel();
     game::ScreenTracker::getInstance().uninstall();
     game::TextInputTracker::getInstance().uninstall();
+    game::removeRequestTracker();
 }
 void requestSort(IClientInstance& client) {
     auto& runtime = Runtime::instance();

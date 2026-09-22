@@ -1,4 +1,8 @@
 #include "features/inventory/game/SortSession.h"
+#include "features/inventory/game/ScreenTracker.h"
+#include "features/inventory/game/TextInputTracker.h"
+#include "features/inventory/game/RequestTracker.h"
+#include "app/Runtime.h"
 
 #include "features/inventory/game/StackClassifier.h"
 #include "features/inventory/sort/SortPlanner.h"
@@ -21,6 +25,16 @@ namespace lamium::inventory::game {
 namespace {
 
 using SharedTypes::Legacy::ContainerType;
+struct PendingSort {
+    std::weak_ptr<ContainerScreenController> controller;
+    SortRegion region;
+    std::vector<ItemStack> representatives;
+    sort::Plan plan;
+    std::vector<sort::SlotStack> state;
+    size_t next = 0;
+    bool waiting = false;
+};
+std::optional<PendingSort> pending;
 
 // Item collection names as the game's own UI definitions address them. They
 // are only ever used after the screen confirms it has such a collection.
@@ -135,6 +149,7 @@ bool SortSession::run(
     CreativeItemRegistry const* creativeRegistry,
     ll::io::Logger&             logger
 ) {
+    if (pending) return false;
     auto const manager = controller.mContainerManagerController;
     if (!manager) {
         logger.warn("Sort aborted: screen has no container manager");
@@ -192,69 +207,87 @@ bool SortSession::run(
         return true;
     }
 
-    // 4. Execute through the same controller the inventory UI uses, checking
-    //    the touched slots against the simulation before and after each step.
-    SlotVerifier                 verify{*manager, region.collectionName, classifier.representatives()};
-    std::vector<sort::SlotStack> state = slots;
-    size_t                       done  = 0;
-    for (auto const& op : plan.ops) {
-        for (int index : {op.from, op.to}) {
-            if (!verify.matches(index, state[static_cast<size_t>(index)])) {
-                logger.warn(
-                    "Sort aborted before {} ({}/{}): slot changed under us: {}",
-                    sort::describe(op),
-                    done,
-                    plan.ops.size(),
-                    verify.mismatch(index, state[static_cast<size_t>(index)])
-                );
-                return false;
-            }
-        }
-        if (!sort::applyOperation(state, op)) {
-            logger.error("Sort aborted: planner produced an invalid step {}", sort::describe(op));
-            return false;
-        }
-
-        SlotData const src(region.collectionName, op.from);
-        SlotData const dst(region.collectionName, op.to);
-        bool           ok = false;
-        if (op.kind == sort::OpKind::Move) {
-            // Same path as shift-clicking / dragging part of a stack onto a
-            // compatible or empty slot: a Place transfer of `count` items.
-            ok = manager->handlePlaceAmount(src, op.count, dst);
-        } else {
-            // Same path as the hotbar hotkey swap: exchange two slots.
-            ok = manager->handleSwap(src, dst);
-        }
-        logger.debug("{} -> {}", sort::describe(op), ok ? "ok" : "refused");
-
-        for (int index : {op.from, op.to}) {
-            if (ok && verify.matches(index, state[static_cast<size_t>(index)])) continue;
-            logger.warn(
-                "Sort aborted after {} ({}/{}): {}{}",
-                sort::describe(op),
-                done + 1,
-                plan.ops.size(),
-                ok ? "" : "transfer refused; ",
-                verify.mismatch(index, state[static_cast<size_t>(index)])
-            );
-            return false;
-        }
-        ++done;
-    }
-
-    // 5. Verify the whole region against the planned layout.
-    for (int i = 0; i < region.size; ++i) {
-        if (!verify.matches(i, plan.expected[static_cast<size_t>(i)])) {
-            logger.warn(
-                "Sort finished but region differs from plan: {}",
-                verify.mismatch(i, plan.expected[static_cast<size_t>(i)])
-            );
-            return false;
-        }
-    }
-    logger.info("Sort complete: {} operation(s) applied", done);
+    auto active = ScreenTracker::getInstance().current();
+    if (!active || active.get() != &controller) return false;
+    pending = PendingSort{active, region, classifier.representatives(), plan, slots, 0, false};
     return true;
 }
 
+void SortSession::cancel() { pending.reset(); }
+
+void SortSession::tick(ContainerScreenController& controller) {
+    if (!pending) return;
+    auto& job = *pending;
+    auto active = job.controller.lock();
+    auto& logger = Runtime::instance().self().getLogger();
+    auto manager = controller.mContainerManagerController.get();
+    if (!active || active.get() != &controller || !manager || manager->mContainersClosed
+        || controller._isCursorSelectedActive()
+        || !Runtime::instance().preferences().inventory.sorting
+        || TextInputTracker::getInstance().isEditing(ScreenTracker::getInstance().currentView())) {
+        logger.info("Sort cancelled: screen, input, or settings changed");
+        cancel();
+        return;
+    }
+    if (job.waiting) {
+        auto result = transferResult();
+        if (result == ResponseBarrier::Result::Waiting) return;
+        if (result != ResponseBarrier::Result::Accepted) {
+            logger.warn("Sort stopped: request rejected, untracked, or timed out ({})", static_cast<int>(result));
+            cancel();
+            return;
+        }
+        job.waiting = false;
+        ++job.next;
+    }
+    if (!manager->hasContainerController(job.region.collectionName)
+        || manager->getContainerSize(job.region.collectionName) != job.region.size) {
+        logger.warn("Sort cancelled: container changed");
+        cancel();
+        return;
+    }
+    SlotVerifier verify{*manager, job.region.collectionName, job.representatives};
+    // Compare the whole region, including slots not touched by our last step.
+    // A manual action or another player editing storage invalidates the plan.
+    for (int i = 0; i < job.region.size; ++i) {
+        if (!verify.matches(i, job.state[static_cast<size_t>(i)])) {
+            logger.warn("Sort stopped: {}", verify.mismatch(i, job.state[static_cast<size_t>(i)]));
+            cancel();
+            return;
+        }
+    }
+    if (job.next == job.plan.ops.size()) {
+        logger.info("Sort complete: {} operation(s) acknowledged", job.next);
+        cancel();
+        return;
+    }
+    auto const op = job.plan.ops[job.next];
+    auto expected = job.state;
+    if (!sort::applyOperation(expected, op)) {
+        logger.error("Sort stopped: invalid planned operation");
+        cancel();
+        return;
+    }
+    SlotData const source(job.region.collectionName, op.from);
+    SlotData const destination(job.region.collectionName, op.to);
+    beginTransfer();
+    bool success = false;
+    try {
+        success = op.kind == sort::OpKind::Move
+            ? manager->handlePlaceAmount(source, op.count, destination)
+            : manager->handleSwap(source, destination);
+    } catch (...) {
+        endTransfer();
+        cancel();
+        throw;
+    }
+    endTransfer();
+    if (!success) {
+        logger.warn("Sort stopped: vanilla refused a transfer");
+        cancel();
+        return;
+    }
+    job.state = std::move(expected);
+    job.waiting = true;
+}
 } // namespace lamium::inventory::game

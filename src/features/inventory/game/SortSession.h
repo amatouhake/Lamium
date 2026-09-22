@@ -26,6 +26,8 @@ struct SortRegion {
 /// the operations already issued are ordinary, server-validated transfers.
 class SortSession {
 public:
+    static void tick(ContainerScreenController& controller);
+    static void cancel();
     /// Chooses what to sort for the given screen: the storage container under
     /// the pointer when it is an ordinary one and container sorting is
     /// enabled, otherwise the player's main inventory. Empty when the screen
@@ -35,8 +37,8 @@ public:
     /// Diagnostic summary of the screen's container collections, for logs.
     static std::string describeScreen(ContainerScreenController& controller);
 
-    /// Runs the sort. Returns true when the region ended in the planned
-    /// state (including "nothing to do").
+    /// Plans the sort. Returns true when scheduled (or already sorted).
+    /// tick() sends one operation and waits for its matching server responses.
     static bool
     run(ContainerScreenController&  controller,
         SortRegion const&           region,

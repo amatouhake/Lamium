@@ -53,9 +53,17 @@ These observations validate the UI prototype, not the whole feature suite.
 - Release DLL builds. Planner/key tests cover consolidation, fixed slots,
   region bounds, full inventories, deterministic/idempotent ordering, custom
   names, enchantments, damage, and Shulker content signatures.
-- Runtime execution checks local predicted contents before and after each
-  vanilla transfer. This does not prove server acceptance: response correlation,
-  latency/rejection handling, and in-game conservation checks are outstanding.
+- Runtime execution now issues one vanilla transfer at a time, captures its
+  request IDs through the container controller, and waits for matching server
+  responses before checking the whole region and issuing the next transfer.
+- Response-barrier tests cover multiple IDs, unrelated/old responses, duplicate
+  replies, rejection, absent capture, and a five-second timeout. The release DLL
+  links against exported container and packet-handler functions.
+- Screen exit, loss of UI focus, changed contents, text editing, and disabling
+  sorting cancel the remaining plan. Already-issued transfers remain owned by
+  vanilla; Lamium does not synthesize a rollback.
+- In-game request capture, acceptance/rejection, latency, cancellation, and
+  item-conservation checks are still required; unit tests do not prove them.
 - This build has not yet been installed for in-game sorting validation.
 
 ## Outstanding release gates
@@ -68,6 +76,6 @@ These observations validate the UI prototype, not the whole feature suite.
 - Verify with vanilla UI and additional UI resource packs.
 - Verify NightVision underwater, in Nether/End, and across restart/dimension changes.
 - Complete runtime validation of previews and durability; complete inventory
-  response handling and validate sorting in game.
+  response handling validation and validate sorting in game.
 - Add CI and validate a clean dependency restore/build/package.
 - Complete dependency notices and distribution review.
