@@ -18,9 +18,14 @@ void translationTests() {
         for (auto locale : {"en_US", "ja_JP"}) {
             std::string key = "F8", zoom = "C", light = "J", on = "On";
             float number = 3.5f;
+            int remaining = 123, maximum = 1561;
             auto pattern = find(entry.key, locale);
             std::string rendered;
             if (entry.key == "gameplay") rendered = std::vformat(pattern, std::make_format_args(key, zoom, light));
+            else if (entry.key == "durabilityValue") {
+                rendered = std::vformat(pattern, std::make_format_args(remaining, maximum));
+                check(rendered.find("123 / 1561") != std::string::npos);
+            }
             else if (entry.key == "magnification" || entry.key == "wheelStep")
                 rendered = std::vformat(pattern, std::make_format_args(number));
             else if (pattern.find("{}") != std::string_view::npos)

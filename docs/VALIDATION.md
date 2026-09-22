@@ -107,7 +107,13 @@ with the stronger selection color while Zoom retained the weaker hover color.
   tooltip. The setting was also confirmed in the saved configuration.
 - Saving previews On restored the Bundle grid and the filled Shulker grid in
   the build with metadata hashing. Both rendered after a full game restart.
-- Damaged tools and larger Bundles still require runtime checks.
+- Hovering two damaged diamond pickaxes in a large chest displayed `961 / 1561`
+  and `161 / 1561` respectively. The text updated when moving between them and
+  stayed above the vanilla tooltip without overlap at the maximized window size.
+  The background now uses native font measurement instead of a fixed width.
+- Numeric durability uses the Japanese/English catalog; both numeric format
+  patterns pass tests. The measured tooltip has been checked in English;
+  Japanese rendering and larger Bundles still require runtime checks.
 
 ## Inventory sorting prototype
 

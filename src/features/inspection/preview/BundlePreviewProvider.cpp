@@ -144,9 +144,8 @@ BundlePreviewProvider::extract(ItemStackBase const& item, ContainerScreenControl
     }
 
     if (decoded.empty()) {
-        // Empty Bundle (or nothing decodable): report the minimal 3x1 frame so
-        // `bundle.showEmpty` has something to draw, and let the render layer
-        // decide (it skips empty grids unless asked).
+        // Empty Bundle (or nothing decodable): show a minimal 3x1 frame,
+        // consistent with the empty cells shown for Shulker previews.
         auto preview             = ContainerPreview::empty(BundleGrid::kEmptyColumns, BundleGrid::kEmptyRows);
         preview.family           = ContainerPreview::Family::Bundle;
         preview.skippedSlotCount = skipped;

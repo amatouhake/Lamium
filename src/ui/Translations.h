@@ -14,6 +14,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"nightVision", "NightVision: {}", "暗視: {}"},
     {"previews", "Container previews: {}", "収納アイテムのプレビュー: {}"},
     {"durability", "Durability: {}", "耐久値の表示: {}"},
+    {"durabilityValue", "Durability: {} / {}", "耐久値: {} / {}"},
     {"sorting", "Inventory sorting: {}", "インベントリの整頓: {}"},
     {"storage", "Sort storage containers: {}", "チェストなどの整頓: {}"},
     {"save", "Save and close", "保存して閉じる"},

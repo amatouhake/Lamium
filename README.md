@@ -19,7 +19,7 @@ scroll to keep the selected row visible. Save applies changes; Cancel/Escape
 discards them. These feature keys are registered with
 Minecraft's keyboard settings. On-screen gameplay hints use the current keyboard bindings.
 Keyboard/mouse behavior and resource-pack compatibility are still being tested.
-Settings, gameplay hints, and Minecraft's Lamium key-binding labels follow the
+Settings, gameplay hints, durability text, and Minecraft's Lamium key-binding labels follow the
 game's language: Japanese and English are included, with English as the fallback.
 Earlier prototypes used `N` for NightVision, which conflicts with Minecraft's
 notification shortcut. Existing saved bindings are preserved; change NightVision
