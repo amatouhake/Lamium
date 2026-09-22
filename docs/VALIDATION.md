@@ -937,3 +937,15 @@ search to Hitboxes (13 rows), and Page Up returned to search. Home selected
 the first row; Shift+Tab wrapped backward to Close. No preference values
 were changed. Ctrl+F during numeric editing or binding capture, Japanese
 labels and other GUI scales remain outside this runtime check.
+
+### Inline section captions (2026-09-23; runtime pending)
+
+Features and Hotkeys now display a section caption on the first row of each
+broad group, plus a thin separator between groups. The first visible feature
+row repeats its section when scrolling starts inside a group. Captions use a
+reserved right column on panels at least 360 GUI units wide; narrower panels
+keep the full setting-label width and the existing selected-row subtitle.
+No rows or navigation stops are added, and capture has no section captions.
+Client build and package checks passed. Caption fit in both languages,
+truncation of long binding summaries and scrolled presentation need runtime
+verification. This build has not yet been installed in the test instance.

@@ -347,7 +347,24 @@ void render(ll::event::UIRenderEvent& event) {
     for (int i=layout.first;i<layout.first+layout.visible;++i) {
         float y = layout.rowY(i);
         rowBackground(context,left,y,width,SettingsLayout::rowHeight,selected == i,hovered == i);
-        label(context,left+6,y+2,width-16,rowLabel(i));
+        std::string_view section;
+        if (!capturing && i >= 2 && i < rowCount()-1) {
+            auto index = static_cast<size_t>(i-2);
+            auto currentSection = featureSection(visibleRows[index].feature->id);
+            if (i == layout.first || index == 0
+                || featureSection(visibleRows[index-1].feature->id) != currentSection)
+                section = currentSection;
+        }
+        // Keep section context visible without adding navigation stops. Narrow
+        // panels retain the full row width and use the selected-row subtitle.
+        float sectionWidth = !section.empty() && width >= 360 ? 140.0f : 0.0f;
+        label(context,left+6,y+2,width-16-sectionWidth,rowLabel(i));
+        if (sectionWidth) {
+            panel(context,left+width-sectionWidth-6,y,sectionWidth,SettingsLayout::rowHeight,.65f);
+            label(context,left+width-sectionWidth,y+2,sectionWidth-10,translated(section));
+        }
+        if (!section.empty() && i != layout.first)
+            rowBackground(context,left,y-1,width,1,false,true);
     }
     if (layout.visible < rowCount()) {
         float trackHeight = layout.visible * SettingsLayout::rowPitch - 2;
