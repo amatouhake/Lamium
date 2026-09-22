@@ -48,6 +48,7 @@ Json encode(Settings const& settings) {
         {"information", {{"hud", settings.information.hud}, {"coordinates", settings.information.coordinates},
                          {"target", settings.information.target}, {"targetIdentifier", settings.information.targetIdentifier},
                          {"targetStates", settings.information.targetStates},
+                         {"targetHorizontal", settings.information.targetHorizontal}, {"targetVertical", settings.information.targetVertical},
                          {"biome", settings.information.biome}, {"facing", settings.information.facing},
                          {"fps", settings.information.fps}, {"frameTime", settings.information.frameTime},
                          {"light", settings.information.light},
@@ -82,6 +83,8 @@ Settings decodeSettings(std::string_view text) {
         value.information.target = info.value("target", false);
         value.information.targetIdentifier = info.value("targetIdentifier", true);
         value.information.targetStates = info.value("targetStates", false);
+        value.information.targetHorizontal = info.value("targetHorizontal", 50.f);
+        value.information.targetVertical = info.value("targetVertical", 2.f);
         value.information.hud = info.value("hud", false);
         value.information.coordinates = info.value("coordinates", true);
         value.information.dimension = info.value("dimension", true);

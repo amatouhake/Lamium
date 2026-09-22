@@ -1,0 +1,21 @@
+#pragma once
+#include "features/information/TargetInfo.h"
+#include <algorithm>
+namespace lamium::information {
+struct TargetRows { std::vector<std::string> lines; size_t omittedStates{}; bool showOmitted{}; };
+inline TargetRows targetRows(TargetInfo const& target, bool identifier, int capacity) {
+    TargetRows result;
+    if (capacity <= 0) return result;
+    result.lines.push_back(target.name);
+    if (identifier && capacity > 1) result.lines.push_back(target.identifier);
+    size_t available = static_cast<size_t>(capacity) - result.lines.size();
+    size_t shown = std::min({size_t{6},target.states.size(),available});
+    if (shown < target.states.size() && available > 0) {
+        shown = std::min(shown,available-1);
+        result.showOmitted = true;
+    }
+    result.lines.insert(result.lines.end(),target.states.begin(),target.states.begin()+shown);
+    result.omittedStates = target.states.size()-shown;
+    return result;
+}
+}

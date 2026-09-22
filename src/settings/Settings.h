@@ -45,6 +45,8 @@ struct Settings {
         bool target = false;
         bool targetIdentifier = true;
         bool targetStates = false;
+        float targetHorizontal = 50.f;
+        float targetVertical = 2.f;
         bool hud = false;
         bool coordinates = true;
         bool dimension = true;
@@ -59,6 +61,10 @@ struct Settings {
     } information;
 
     void normalize() {
+        if (!std::isfinite(information.targetHorizontal)) information.targetHorizontal = 50.f;
+        if (!std::isfinite(information.targetVertical)) information.targetVertical = 2.f;
+        information.targetHorizontal = std::clamp(information.targetHorizontal,0.f,100.f);
+        information.targetVertical = std::clamp(information.targetVertical,0.f,100.f);
         if (!std::isfinite(information.horizontal)) information.horizontal = 2.f;
         if (!std::isfinite(information.vertical)) information.vertical = 15.f;
         information.horizontal = std::clamp(information.horizontal, 0.f, 100.f);

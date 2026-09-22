@@ -1,10 +1,22 @@
 #include "ui/HudLayout.h"
 #include "features/information/PlayerInfo.h"
 #include "features/information/NetworkInfo.h"
+#include "features/information/TargetRows.h"
 #include <limits>
 void check(bool, char const*);
 void hudLayoutTests() {
     using lamium::ui::HudLayout;
+    lamium::information::TargetInfo target{"Stone","minecraft:stone",{"a: 0","b: 1","c: 2","d: 3","e: 4","f: 5","g: 6"}};
+    using lamium::information::targetRows;
+    check(targetRows(target,true,0).lines.empty(), "no space draws no target rows");
+    auto compact = targetRows(target,true,4);
+    check(compact.lines.size() == 3 && compact.lines.back() == "a: 0" && compact.showOmitted && compact.omittedStates == 6,
+          "small target view reserves its last row for omitted state count");
+    auto full = targetRows(target,true,9);
+    check(full.lines.size() == 8 && full.showOmitted && full.omittedStates == 1, "target details cap at six states");
+    target.states.resize(2);
+    auto exact = targetRows(target,false,3);
+    check(exact.lines.size() == 3 && !exact.showOmitted && exact.omittedStates == 0, "exact fit does not hide a state for an unnecessary marker");
     using lamium::information::facingKey;
     using lamium::information::measuredPing;
     check(!measuredPing(-1) && !measuredPing(std::numeric_limits<std::int64_t>::min()), "missing ping is unavailable");

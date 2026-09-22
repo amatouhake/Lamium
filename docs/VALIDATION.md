@@ -586,3 +586,14 @@ client-known direction, open/powered flags and other states without claiming
 access to server-only progress or redstone simulation. Dedicated semantic providers
 and a full detail view remain future work. Runtime checks: logs/pillars, doors,
 stairs, redstone wire, state transitions and resource-pack/custom block states.
+
+### Target HUD positioning and limited-height rows
+
+Target Info now has independent horizontal/vertical percentage settings, defaulting
+to top center. Both use the common numeric editor, normalization and persistence.
+The target row builder reserves space for the omitted-state count when details
+exceed available rows; name and optional identifier retain priority. At extremely
+small heights there may be room only for identity or no rows at all. Tests cover
+zero capacity, exact fit, six-state limit and limited-height omission counts;
+shared layout tests cover screen margins. Runtime UI-scale and placement checks
+remain pending. This build has not replaced the running validation DLL.
