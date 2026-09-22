@@ -1,4 +1,5 @@
 #include "ui/SettingsScreen.h"
+#include "ui/SettingsLayout.h"
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
 #include "input/Actions.h"
@@ -34,6 +35,8 @@ Settings draft;
 int selected = 0;
 int hovered = -1;
 int command = 0;
+int commandRow = 0;
+int firstVisible = 0;
 bool seen = false;
 bool closing = false;
 bool mouseNavigation = false;
@@ -53,8 +56,8 @@ void close() {
         closing = true;
     } else clear();
 }
-void activate(int direction) {
-    switch (selected) {
+void activate(int row, int direction) {
+    switch (row) {
     case 0: draft.camera.zoom = !draft.camera.zoom; break;
     case 1: draft.camera.magnification += direction * .5f; break;
     case 2: draft.camera.wheelStep += direction * .1f; break;
@@ -95,17 +98,23 @@ void render(ll::event::AfterUIRenderEvent& event) {
     if (!ownsTop()) { if (seen) clear(); return; }
     seen = true;
     int action = closing ? 0 : std::exchange(command, 0);
-    if (action == 1) activate(1);
-    if (action == -1) activate(-1);
+    if (action == 1) activate(commandRow, 1);
+    if (action == -1) activate(commandRow, -1);
     if (action == 2) close();
     if (!scene) return;
-    float width = std::min(330.0f, size.x-16);
-    float left = (size.x-width)*.5f;
-    float top = std::max(8.0f, (size.y-300)*.5f);
+    auto layout = SettingsLayout::fit(size.x, size.y, rowCount, selected, firstVisible);
+    firstVisible = layout.first;
+    float width = layout.width, left = layout.left, top = layout.top;
     context.fillRectangle(RectangleArea{0,size.x,0,size.y}, mce::Color{.07f,.08f,.11f,1.0f}, 1);
     context.flushImages(white,1,HashedString{"ui_fillColor"});
+    if (!layout.visible) {
+        hovered = -1;
+        label(context, 4, 4, std::max(1.0f, size.x - 8), "Enlarge window | Esc: cancel");
+        context.flushText(0, std::nullopt);
+        return;
+    }
     label(context,left,top,width,"Lamium / Settings");
-    label(context,left,top+18,width,"View, lighting and item information");
+    if (layout.subtitle) label(context,left,top+18,width,"Camera, lighting, items and inventory");
     std::array<std::string,rowCount> rows{
         std::string{"Zoom: "} + (draft.camera.zoom ? "On" : "Off"),
         std::format("Magnification: {:.1f}x", draft.camera.magnification),
@@ -120,18 +129,18 @@ void render(ll::event::AfterUIRenderEvent& event) {
     glm::vec2 pointer = view.mPointerLocationPrevious;
     if (pointer != previousPointer) mouseNavigation = true;
     previousPointer = pointer;
-    hovered = -1;
-    for (int i=0;i<rowCount;++i) {
-        float y = top+42+i*22.0f;
-        if (pointer.x >= left && pointer.x <= left+width && pointer.y >= y && pointer.y < y+20) hovered = i;
+    hovered = layout.hit(pointer.x, pointer.y);
+    for (int i=layout.first;i<layout.first+layout.visible;++i) {
+        float y = layout.rowY(i);
         bool highlight = mouseNavigation ? hovered == i : selected == i;
         context.fillRectangle(RectangleArea{left,left+width,y,y+20},
             highlight ? mce::Color{.28f,.24f,.43f,1.0f} : mce::Color{.15f,.16f,.21f,1.0f},1);
         context.flushImages(white,1,HashedString{"ui_fillColor"});
         label(context,left+6,y+5,width-12,rows[i]);
     }
-    label(context,left,top+268,width,"Arrows: select/adjust | Enter: choose | Esc: cancel");
-    label(context,left,top+283,width,error.empty() ? "Left click: increase/toggle | Right click: decrease" : error);
+    label(context,left,layout.footer,width,error.empty() ? "Arrows / wheel: navigate | Enter | Esc" : error);
+    if (layout.secondHint)
+        label(context,left,layout.footer+15,width,"Left click: increase/toggle | Right: decrease");
     context.flushText(0,std::nullopt);
 }
 }
@@ -141,6 +150,7 @@ void open(IClientInstance& current) {
     Zoom::instance().reset();
     draft = Runtime::instance().preferences();
     selected = 0; hovered = -1; command = 0; error.clear(); seen = false; closing = false;
+    firstVisible = 0; commandRow = 0;
     mouseNavigation = false;
     // This native information screen supplies focus/cursor ownership. It has no
     // form ID, packet, or server callback. Lamium draws and handles its own UI.
@@ -157,11 +167,15 @@ void start() {
         if (!ownsTop()) return;
         if (event.actionButtonId() == MouseAction::ActionMove || event.actionButtonId() == MouseAction::ActionMoveRelative) return;
         event.cancel();
+        if (event.actionButtonId() == MouseAction::ActionWheel && event.buttonData() != 0) {
+            selected = std::clamp(selected + (event.buttonData() > 0 ? -1 : 1), 0, rowCount-1);
+            mouseNavigation = false;
+        }
         if (event.actionButtonId() == MouseAction::ActionLeft && event.buttonData() == MouseAction::DataDown && hovered >= 0) {
-            selected = hovered; command = 1;
+            selected = hovered; commandRow = hovered; command = 1;
         }
         if (event.actionButtonId() == MouseAction::ActionRight && event.buttonData() == MouseAction::DataDown && hovered >= 0 && hovered < rowCount-2) {
-            selected = hovered; command = -1;
+            selected = hovered; commandRow = hovered; command = -1;
         }
     });
     listeners[2] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
@@ -175,9 +189,9 @@ void start() {
         case 0x1b: command = 2; break;
         case 0x26: selected = (selected+rowCount-1)%rowCount; break;
         case 0x09: case 0x28: selected = (selected+1)%rowCount; break;
-        case 0x25: if (selected < rowCount-2) command = -1; break;
-        case 0x27: if (selected < rowCount-2) command = 1; break;
-        case 0x0d: case 0x20: command = 1; break;
+        case 0x25: if (selected < rowCount-2) { commandRow = selected; command = -1; } break;
+        case 0x27: if (selected < rowCount-2) { commandRow = selected; command = 1; } break;
+        case 0x0d: case 0x20: commandRow = selected; command = 1; break;
         }
     });
     listeners[3] = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) {

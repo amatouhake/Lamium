@@ -18,6 +18,13 @@ Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
 
 These observations validate the UI prototype, not the whole feature suite.
 
+Settings now use a viewport that keeps the selected row visible in short windows.
+Arrow keys and the wheel navigate all rows, including Save/Cancel. Queued actions
+retain their original target row when selection moves before the next render.
+Layout tests cover 100–480 GUI-unit heights, row hit testing, navigation wrapping,
+footer separation, and tiny-window fallback. The revised release DLL builds;
+runtime verification of resizing and wheel navigation is pending.
+
 ## Lighting and settings persistence
 
 - NightVision toggled on with N in an Overworld night scene, visibly brightened
