@@ -1,6 +1,10 @@
 # Lamium backlog
 
-Triage of the maintainer's 2026-09-23 review, plus earlier deferred items.
+Work the maintainer has decided to pursue. Ideas are discussed first and
+enter this file only once they are to be worked on; each gets the next free
+`L-` number, a kind and its open questions. A task with an open user-visible
+choice is **Design**, whoever writes it down.
+
 Each task has a **kind**, which decides who should pick it up:
 
 | Kind | Meaning | Who |
@@ -9,7 +13,11 @@ Each task has a **kind**, which decides who should pick it up:
 | **Design** | A user-visible choice is open. Output is a spec (often a web demo) that turns into Ready tasks | Maintainer + strong model |
 | **Research** | Needs native reverse engineering, trace builds or runtime-driven debugging | Strong model; cheap models may only collect traces |
 
-Rules: take the lowest-numbered Ready task whose dependencies are done. Do not
+Ready tasks marked **(strong model)** are fully specified but visual or
+cross-cutting enough that a strong model should implement them.
+
+Rules: take the lowest-numbered Ready task whose dependencies are done
+(cheap models skip tasks marked strong model). Do not
 start a Design/Research task as a cheap model (see AGENTS.md). When a task is
 done, change its status line, update the feature doc, and note the commit.
 
@@ -18,16 +26,10 @@ Attack, Periodic Use, settings screen, Shapes view.
 
 ---
 
-## Quick decisions for the maintainer
+## Open decisions
 
-These block Ready work. Answer them in one short session.
-
-- **D-1 Settings key (L-01).** Decided: `L` replaces F8. Only this key changes.
-- **D-2 HUD proposal.** Direction accepted; details are being agreed through
-  the web demo [docs/demos/hud.html](demos/hud.html). Do not implement L-02,
-  L-03, L-04 or L-08 until DESIGN.md marks the HUD section Decided.
-- **D-3 Shape types (L-13).** Decided: cross-section × profile × axis model
-  with familiar names as presets. Which presets come first is still open.
+None. HUD (docs/demos/hud.html), the settings key and the shape model are
+decided; see DESIGN.md.
 
 ---
 
@@ -49,7 +51,7 @@ Free single letters include F G H I K L M O P U V Y. Changing a default only
 affects users without an override; Minecraft may keep its own saved mapping.
 
 ### L-02 Replace gameplay key hints with an "Open Hotkeys" action
-Status: waiting for D-2.
+Status: ready.
 - Remove the gameplay key-hint overlay and the `interface.gameplayHints`
   setting (keep loading old files without error; just ignore the key).
 - Add action `openhotkeys` (Press, unbound): opens the settings screen on the
@@ -59,7 +61,7 @@ Status: waiting for D-2.
 - Tests: SettingsStore round trip without the key; binding count.
 
 ### L-03 Toggle toast
-Status: waiting for D-2.
+Status: ready.
 - When a Toggle action changes a feature from a hotkey, show
   `[switch] <feature name>` for 1.5 s centered above the hotbar, fading over
   the last 0.3 s. A new toast replaces the current one. Not shown for changes
@@ -69,6 +71,36 @@ Status: waiting for D-2.
   draw with `ui::panel`, `ui::toggleSwitch`, `ui::label`.
 - Files: `input/Actions.cpp` (emit), `features/information/InfoHud.cpp`
   (draw call site), new `ui/Toast.h`, settings files, translations.
+
+### L-04 HUD elements (split into L-04a to L-04c)
+Design decided: DESIGN.md "HUD" and [docs/demos/hud.html](demos/hud.html).
+Replaces the separate Info HUD, automation status and restriction status
+placement. Covers the review points: few info options, hard positioning,
+plain look, fixed-position automation status.
+
+#### L-04a HUD element model
+Status: ready.
+- Pure `ui/HudElement.h`: anchor (9 presets), pinned flag, offset, scale
+  75-150 %, background (none/card), shadow. Placement math replaces
+  `HudLayout::fit` (the anchor point stays put when the element grows; clamp
+  to the screen). Drag resolution: nearest anchor when not pinned, offset only
+  when pinned; small offsets snap to 0.
+- Settings per element with load/save and defaults matching the demo.
+- Tests: placement at all anchors, growth direction, clamping, drag rules.
+
+#### L-04b Move existing HUD pieces onto elements
+Status: after L-04a.
+- Info lines, target info, status (automation + restriction) and the toast
+  (L-03) draw through the element model. Status merges the automation and
+  restriction lines into one element with colored markers.
+- Info lines become an ordered list with per-line switches (order saved).
+
+#### L-04c Layout editor **(strong model)**
+Status: after L-04b.
+- "Edit HUD layout" button in General opens an editor over the live HUD:
+  drag elements, anchor dots, dashed anchor guide, per-element panel.
+- The per-element panel is generated from the same option definitions as
+  the settings rows (never duplicated); long lists scroll.
 
 ### L-05 More Info HUD lines (providers only)
 Status: ready. Layout/appearance changes belong to L-04, not here.
@@ -91,6 +123,13 @@ Status: ready. The card design is L-08.
 - Represent them as typed rows (label, value, optional progress 0–1) so L-08
   can draw bars. Keep `TargetRows` pure and tested.
 - Anything not present on the client is omitted, not guessed.
+
+### L-08 Target card **(strong model)**
+Status: after L-07 and L-04b.
+- Card style per the demo: icon, name, identifier line, rows, progress bars
+  (growth, health). The current text-only view stays as the "Simple" style.
+- Item/block icon rendering must be found in the SDK; if it is not
+  practical, draw the card without the icon and report.
 
 ### L-09 Colored line batches in the world overlay
 Status: ready.
@@ -119,8 +158,9 @@ Status: after L-09.
   with tests.
 
 ### L-13 More shape types
-Status: model decided (below, "Proposed model" is accepted); pick the first
-presets with the maintainer, then this becomes Ready.
+Status: ready. The model below is decided. The implementing agent picks the
+first presets; suggested: box, cone/frustum, pyramid, ellipsoid, dome.
+Keep each preset a thin entry over the shared families.
 
 Prior art (behavior only, never code):
 - MiniHUD (current fork) ships: box, centered box, circle, square, rhombus,
@@ -132,7 +172,7 @@ Prior art (behavior only, never code):
 - Building generators and WorldEdit-style tools commonly offer sphere and
   ellipsoid (three radii), cylinder (two radii), pyramid, hollow variants.
 
-Proposed model: a shape is a cross-section × a profile × an axis.
+Model (decided): a shape is a cross-section × a profile × an axis.
 - Cross-section: circle, square, diamond (rhombus), octagon.
 - Profile: constant (circle/cylinder, square/box), linear taper with
   bottom and top size (cone, frustum, pyramid), round (sphere, ellipsoid,
@@ -160,19 +200,6 @@ surface for small sizes.
 ---
 
 ## Design
-
-### L-04 HUD element system
-Merge Info HUD, automation status and restriction status into HUD elements
-with anchor presets, offset, scale, background and shadow (DESIGN.md "HUD").
-Demo under review: [docs/demos/hud.html](demos/hud.html).
-Covers the review points: few info options, hard positioning, plain look,
-fixed-position automation status. Start with a web demo, as the settings
-screen and Shapes view did. Then split into Ready tasks.
-
-### L-08 Target card (Jade/WAILA-like) redesign
-Card with icon, name, source line, provider rows and progress bars in
-Lamium's tokens. Depends on L-07 data rows. Web demo first. The drawing
-itself should stay with a strong model because visual consistency matters.
 
 ### L-15 Breaking/placement restriction redesign
 Review points: anchoring UX, height-band clearing, shape-linked limits,
@@ -226,5 +253,7 @@ Native text entry for shape names inserts extra characters.
   checks only, no code expected.
 - L-21 Shape color picker or more colors: only if the four colors prove
   insufficient.
-- Schematic subsystem, Mass Craft, Scroll Transfer: see the Notion roadmap
-  (Waves 2–3). Not started.
+- Not started, not yet triaged: F3-style debug view, Scroll Transfer
+  (wheel transfers between inventories), Schematic subsystem (browser,
+  placement, projection, verifier, material list), Mass Craft, Fast
+  Attack/Use. These need a Design pass before they become tasks.

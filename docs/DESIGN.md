@@ -77,12 +77,13 @@ at most 640×380 and centered. New screens reuse these numbers.
 - Labels with a value use one translation string with `{}`
   ("Radius: {}"), split by `splitLabel` for table display.
 
-## HUD (Proposed — being agreed through [demos/hud.html](demos/hud.html))
+## HUD (Decided — see [demos/hud.html](demos/hud.html))
 
 Menus are polished; HUD is minimal; debug views may be dense. The HUD is now a
 set of separate pieces (Info HUD, target info, automation status, restriction
 status) with their own fixed or percentage positions. The proposal is to turn
-them into one **HUD element** system before adding more content:
+them into one **HUD element** system before adding more content. Where the
+demo and this text differ, this text wins:
 
 - Every element has: anchor (9 presets: corners, edge centers, center) plus
   an offset; scale (75–150 %); background (none / translucent card);
@@ -99,10 +100,11 @@ them into one **HUD element** system before adding more content:
   Status (automation, restriction, toggle toasts), later F3 view.
 - Info lines are providers with an id, a label and a value; unavailable values
   say so. Line order is user-editable in a small list editor.
-- **Target card** (Jade/WAILA role): item/block icon, name, mod-style source
-  line ("Minecraft"), then provider rows (state, growth, power, health bars).
-  Built from panel/row tokens above; needs a web demo before implementation,
-  like the settings screen and Shapes view had.
+- **Target card** (Jade/WAILA role): item/block icon, name, identifier line,
+  then provider rows (state, growth, power, health bars). The text-only view
+  remains as the "Simple" style.
+- **Status** combines automation and restriction lines, each with a colored
+  marker.
 - **Toggle toast**: when a hotkey switches a feature, show
   `[switch] Feature name` for ~1.5 s centered above the hotbar, fading out.
   One toast at a time; a new one replaces the old. Can be turned off.
@@ -121,7 +123,7 @@ them into one **HUD element** system before adding more content:
   Visuals: full-strength lines). See `docs/OVERLAYS.md`.
 - Shape colors: cyan (default), yellow, pink, white. Drafts use a dashed cyan.
 - Meshes are rebuilt only when a shape changes, never per frame.
-- (Proposed) Line overlays get per-batch colors so chunk borders and hitboxes
+- (Decided) Line overlays get per-batch colors so chunk borders and hitboxes
   can follow Java's F3+G / F3+B color coding (see BACKLOG L-09 to L-11).
 - (Proposed) Overlays must not hide vanilla's block selection outline: skip or
   dim geometry on the targeted block.

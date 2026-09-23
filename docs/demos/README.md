@@ -8,7 +8,7 @@ Text in the demos is Japanese because they were reviewed in Japanese.
 |---|---|---|
 | [settings.html](settings.html) | Implemented (layout A) | Sidebar + table, switches, key caps. The native screen is the source of truth where they differ. |
 | [shapes.html](shapes.html) | Implemented | Draft → create flow, dock button. "Lines + faces" was dropped after review. |
-| [hud.html](hud.html) | Under review | HUD elements, layout editing, target card, toggle toast. Do not implement until docs/DESIGN.md marks the HUD section Decided. |
+| [hud.html](hud.html) | Decided, not implemented | HUD elements, layout editing, target card, toggle toast. BACKLOG L-02 to L-04, L-08. |
 
 Rules for agents:
 

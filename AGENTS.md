@@ -12,23 +12,17 @@ Read it fully before changing code.
 - Machine-specific paths (instance folder etc.): `AGENTS.local.md` if present.
   It is gitignored; never copy its contents into tracked files.
 
-### Where information lives
-
-| Place | Holds | Read by |
-|---|---|---|
-| Repo `docs/` + this file | Everything needed to do the work: rules, design, tasks, validation state | Every agent. Cheap models read only this. |
-| Notion Lamium page (private) | Product vision, roadmap waves, licensing stance, session checkpoints | Maintainer and strong models when planning. Not required for tasks. |
-
-If a decision made in Notion or chat affects implementation, it must be
-written into DESIGN.md or BACKLOG.md; the repo is the source of truth for work.
+The repository is the source of truth for work: everything needed to pick up
+a task is in this file and `docs/`. If a decision made in chat affects
+implementation, write it into DESIGN.md or BACKLOG.md.
 
 ## Talking to the user
 
-- The user is Japanese. Write chat replies and in-game test instructions in
-  Japanese. Code, comments, commit messages and repo docs are English.
+- Reply in the user's language. Code, comments, commit messages and repo
+  docs are English.
 - The user tests in Minecraft. You cannot. Every change that touches game
-  behavior ends with a short Japanese checklist: what to do in game and what
-  they should see. Say which build (commit and DLL SHA-256) they are testing.
+  behavior ends with a short checklist: what to do in game and what they
+  should see. Say which build (commit and DLL SHA-256) they are testing.
 - Do not claim runtime behavior you have not seen confirmed. "Builds and
   tests pass" is not "works in game".
 
@@ -107,7 +101,8 @@ Rules the code already follows; keep them:
 
 ## Git
 
-- Work on `main` unless told otherwise; the user allows direct pushes.
+- Follow the user's branch and push preferences (see `AGENTS.local.md`);
+  otherwise work on a branch and do not push without being asked.
 - One logical change per commit. Subject: English, imperative, sentence case,
   no prefix, ~70 chars (e.g. "Pull shapes slightly toward the eye to stop
   flicker inside blocks"). Body only when the why is not obvious.
