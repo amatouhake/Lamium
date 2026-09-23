@@ -170,6 +170,13 @@ emitted before `cancelButton` sends its final synthetic release, so these counts
 are not final totals and do not by themselves establish a stuck input.
 Observing that final release directly remains a diagnostic limitation.
 
+The subsequent diagnostic revision moves the stop summary after cancellation's
+release callback. It includes `finalRelease` when that callback was dispatched
+and `releaseSkipped` when a release was needed but the primary client no longer
+matched. Counts remain bounded at 1000. This revision passes the DLL build and
+existing test suite; its new diagnostic fields still need a fresh-process
+runtime check and do not retroactively change the preceding observations.
+
 This establishes repeated instant-use consumption in one local world. It does
 not establish food consumption, bow charging, other continuous-use items,
 placement, physical-button overlap, world transitions, or multiplayer behavior.

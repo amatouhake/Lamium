@@ -57,14 +57,19 @@ void emit(Button& button, bool down, IClientInstance& client) {
 }
 void cancelButton(Button& button) {
 #ifdef LAMIUM_AUTOMATION_TRACE
-    if (button.intent.active()) Runtime::instance().self().getLogger().info(
-        "Periodic input stopped: presses={} releases={} physical={}", button.presses, button.releases, button.physical);
+    bool wasActive = button.intent.active();
 #endif
     button.intent.cancel();
     bool release = std::exchange(button.synthetic, false) && !button.physical;
     auto* client = std::exchange(button.client, nullptr);
     auto current = ll::service::getClientInstance();
-    if (release && current && &current.get() == client) emit(button, false, *client);
+    bool finalRelease = release && current && &current.get() == client;
+    if (finalRelease) emit(button, false, *client);
+#ifdef LAMIUM_AUTOMATION_TRACE
+    if (wasActive) Runtime::instance().self().getLogger().info(
+        "Periodic input stopped: presses={} releases={} physical={} finalRelease={} releaseSkipped={}",
+        button.presses, button.releases, button.physical, finalRelease, release && !finalRelease);
+#endif
 }
 Callback capture(InputHandler* handler, std::string const& name, bool down, Callback callback) {
     auto index = actionIndex(name);
