@@ -23,6 +23,7 @@
 #include "mc/deps/ecs/gamerefs_entity/EntityContext.h"
 #include "mc/entity/components/ActorHeadRotationComponent.h"
 #include "mc/deps/minecraft_camera/components/ActiveCameraComponent.h"
+#include "mc/deps/minecraft_camera/components/CameraOffsetComponent.h"
 #include "mc/deps/minecraft_camera/components/CameraDirectLookComponent.h"
 #include "mc/deps/minecraft_camera/components/CameraOrbitComponent.h"
 #include "mc/deps/vanilla_camera/components/UpdatePlayerFromCameraComponent.h"
@@ -132,6 +133,51 @@ void restoreCameras(LocalPlayer* player) {
         }
     }
     detachedCameras.clear();
+}
+// Entity-side displacement for FreeCamera. Vanilla consumes the camera
+// entity's own offset while building the render view, so culling and
+// overlays follow by construction instead of fighting a post-setup edit.
+struct SavedCameraOffset {
+    bool active = false;
+    bool added = false;
+    EntityId entity;
+    float x = 0, y = 0, z = 0;
+};
+SavedCameraOffset savedOffset; // Mirrors the detachedCameras lifetime rules.
+void takeFreeCameraOffset(LocalPlayer& player) {
+    if (detachedCameras.empty()) throw std::runtime_error("FreeCamera has no detached camera entity");
+    auto& registry = player.getEntityContext().getRegistry();
+    auto entity = detachedCameras.back().entity;
+    if (!registry.valid(entity)) throw std::runtime_error("FreeCamera camera entity is gone");
+    savedOffset = {};
+    if (auto* existing = registry.try_get<MinecraftCamera::CameraOffsetComponent>(entity)) {
+        savedOffset = {true, false, entity,
+            (*existing->mEntityOffset).x, (*existing->mEntityOffset).y, (*existing->mEntityOffset).z};
+    } else {
+        registry.emplace<MinecraftCamera::CameraOffsetComponent>(entity);
+        savedOffset.active = true;
+        savedOffset.added = true;
+        savedOffset.entity = entity;
+    }
+}
+void restoreFreeCameraOffset(LocalPlayer* player) {
+    if (!savedOffset.active) return;
+    savedOffset.active = false;
+    try {
+        if (!player) return; // Level gone; its entities are dead anyway.
+        auto& registry = player->getEntityContext().getRegistry();
+        if (!registry.valid(savedOffset.entity)) return;
+        auto* offset = registry.try_get<MinecraftCamera::CameraOffsetComponent>(savedOffset.entity);
+        if (!offset) return;
+        if (savedOffset.added) registry.remove<MinecraftCamera::CameraOffsetComponent>(savedOffset.entity);
+        else {
+            (*offset->mEntityOffset).x = savedOffset.x;
+            (*offset->mEntityOffset).y = savedOffset.y;
+            (*offset->mEntityOffset).z = savedOffset.z;
+        }
+    } catch (...) {
+        Runtime::instance().self().getLogger().error("FreeCamera could not restore the camera offset");
+    }
 }
 #ifdef LAMIUM_CAMERA_TRACE
 void traceFreeCamera(unsigned reason, double x, double y, double z) noexcept {
@@ -456,6 +502,7 @@ void Zoom::pressFreeCamera(IClientInstance& current) {
     try {
         lockedHead = player->getYHeadRot();
         detachCameras(*player);
+        takeFreeCameraOffset(*player);
     } catch (...) {
         cancelLook();
         Runtime::instance().self().getLogger().error("FreeCamera could not detach the camera");
@@ -474,7 +521,9 @@ void Zoom::consumeFreeCameraInput(MoveInputComponent const& input, RawMoveInputC
     if (!running || !freeCameraAllowed || !current) return;
     // The extraction runs once per local player; ignore other viewports.
     if (ClientMoveInputHandler::getMoveInput(*current) != &input) return;
-    auto axes = camera::consumeMovement(raw);
+    // Read the stash before consumption clears the extracted flags.
+    auto axes = camera::freecameraInputAxes(raw);
+    camera::consumeMovement(raw);
     std::lock_guard lock{freeInputMutex};
     freeCameraInput = axes;
     hasFreeCameraInput = true;
@@ -492,8 +541,32 @@ void Zoom::endFreeCameraMotion(bool wasFreeCamera) {
     logFreeCameraSamples();
     motion.cancel();
     freeMotionOwner.store(0);
+    auto* current = client.load();
+    restoreFreeCameraOffset(current ? current->getLocalPlayer() : nullptr);
     std::lock_guard lock{freeInputMutex};
     freeMotionTimed = false;
+    hasDisplacement = false;
+}
+void Zoom::writeFreeCameraOffset() {
+    if (lookOwner.load() != DetachedOwner::FreeCamera) return;
+    DetachedCameraMotion::Vector displacement{};
+    {
+        std::lock_guard lock{freeInputMutex};
+        if (!hasDisplacement) return;
+        displacement = lastDisplacement;
+    }
+    auto* current = client.load();
+    if (!current || !current->getLocalPlayer() || detachedCameras.empty()) return;
+    try {
+        auto& registry = current->getLocalPlayer()->getEntityContext().getRegistry();
+        auto entity = detachedCameras.back().entity;
+        if (!registry.valid(entity)) return;
+        auto* offset = registry.try_get<MinecraftCamera::CameraOffsetComponent>(entity);
+        if (!offset) return;
+        (*offset->mEntityOffset).x = static_cast<float>(displacement[0]);
+        (*offset->mEntityOffset).y = static_cast<float>(displacement[1]);
+        (*offset->mEntityOffset).z = static_cast<float>(displacement[2]);
+    } catch (...) {}
 }
 void Zoom::releaseLook() {
     auto owner = lookOwner.load();
@@ -541,9 +614,8 @@ bool Zoom::freeCameraView(IClientInstance const& renderedClient, mce::Camera& ca
         for (int row = 0; row < 4; ++row)
             if (!std::isfinite(view[column][row])) return false;
     // Yaw-relative basis from the fresh vanilla view: horizontal right and
-    // camera forward, world up for Space/Shift. The ECS camera position is
-    // recomputed by vanilla every frame, so the displacement is composed onto
-    // the fresh view instead (as the validated position probe did).
+    // camera forward, world up for Space/Shift. The row layout matches the
+    // validated position probe, which shifted the image toward camera-right.
     auto horizontal = [](double x, double z) {
         double length = std::hypot(x, z);
         if (!(length > 1e-6)) return DetachedCameraMotion::Vector{};
@@ -565,26 +637,14 @@ bool Zoom::freeCameraView(IClientInstance const& renderedClient, mce::Camera& ca
     if (!displacement) return false;
     double dx = (*displacement)[0], dy = (*displacement)[1], dz = (*displacement)[2];
     if (!std::isfinite(dx) || !std::isfinite(dy) || !std::isfinite(dz)) return false;
-    if (dx * dx + dy * dy + dz * dz < 1e-18) return true; // Active but unmoved.
-    // Camera-local shift of the eye: newView = Translate(-R*d) * view.
-    double local[3] = {
-        view[0][0] * dx + view[1][0] * dy + view[2][0] * dz,
-        view[0][1] * dx + view[1][1] * dy + view[2][1] * dz,
-        view[0][2] * dx + view[1][2] * dy + view[2][2] * dz,
-    };
-    auto& top = *camera.viewMatrixStack->getTop()._m;
-    for (int column = 0; column < 4; ++column) {
-        double w = view[column][3];
-        for (int row = 0; row < 3; ++row) top[column][row] = static_cast<float>(view[column][row] - local[row] * w);
-        top[column][3] = view[column][3];
+    // Post-setup view edits never reached the detached render, so the render
+    // hook only stages the displacement here; the UI-render writer carries it
+    // into the camera entity's own offset for vanilla to consume.
+    {
+        std::lock_guard lock{freeInputMutex};
+        lastDisplacement = *displacement;
+        hasDisplacement = dx * dx + dy * dy + dz * dz >= 1e-18;
     }
-    // Culling, chunks and overlays read the camera eye and its cached
-    // dependencies, not just the view matrix: move them with the eye and
-    // rebuild the dependents from the translated view.
-    camera.mPosition->x += static_cast<float>(dx);
-    camera.mPosition->y += static_cast<float>(dy);
-    camera.mPosition->z += static_cast<float>(dz);
-    camera.updateViewMatrixDependencies();
 #ifdef LAMIUM_CAMERA_TRACE
     traceFreeCamera(3, dx, dy, dz);
 #endif
@@ -693,6 +753,7 @@ bool Zoom::start() {
                 // The head may also be turned outside the look-input path.
                 if (auto* current = client.load(); current && current->getLocalPlayer())
                     keepHead(*current->getLocalPlayer());
+                try { writeFreeCameraOffset(); } catch (...) {}
             }
             if (!state.held()) return;
             auto* current = client.load();

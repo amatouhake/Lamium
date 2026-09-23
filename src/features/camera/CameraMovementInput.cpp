@@ -1,9 +1,28 @@
 #include "features/camera/CameraMovementInput.h"
 #include "mc/entity/components/RawMoveInputComponent.h"
 #include "mc/input/MoveInputState.h"
+#include <algorithm>
 #include <array>
 
 namespace lamium::camera {
+DetachedCameraMotion::Vector freecameraInputAxes(RawMoveInputComponent const& raw) {
+    using Flag = MoveInputState::Flag;
+    auto& flags = *raw.mRawInput->mFlagValues;
+    auto held = [&](Flag flag) { return flags.test(static_cast<size_t>(flag)); };
+    // Flags first: summing both sources could cancel when their signs differ.
+    double x = 0, z = 0;
+    if (held(Flag::Right)) x += 1;
+    if (held(Flag::Left)) x -= 1;
+    if (held(Flag::Up)) z += 1;
+    if (held(Flag::Down)) z -= 1;
+    if (x == 0 && z == 0) {
+        x = raw.mRawMove->x;
+        z = raw.mRawMove->z;
+    }
+    double y = static_cast<double>(held(Flag::JumpDown) || held(Flag::Ascend))
+        - static_cast<double>(held(Flag::SneakDown) || held(Flag::Descend));
+    return {std::clamp(x, -1.0, 1.0), y, std::clamp(z, -1.0, 1.0)};
+}
 DetachedCameraMotion::Vector consumeMovement(RawMoveInputComponent& raw) {
     using Flag = MoveInputState::Flag;
     auto& flags = *raw.mRawInput->mFlagValues;

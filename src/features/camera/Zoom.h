@@ -33,6 +33,9 @@ class Zoom {
     DetachedCameraMotion::Vector freeCameraInput{};
     bool hasFreeCameraInput = false;
     unsigned freeMoveSamples = 0;
+    // Latest session displacement for the entity-offset writer below.
+    DetachedCameraMotion::Vector lastDisplacement{};
+    bool hasDisplacement = false;
     // Stage 3: session displacement for the moving camera. The motion state
     // is advanced per render frame from the stashed input above.
     DetachedCameraMotion motion;
@@ -57,9 +60,12 @@ public:
     void pressFreeCamera(IClientInstance&); // Toggle: press again to return to the player
     // Extraction-hook entry: consumes movement only for the FreeCamera owner.
     void consumeFreeCameraInput(MoveInputComponent const&, RawMoveInputComponent&);
-    // Render-hook entry: advances the displacement and translates the fresh
-    // vanilla view. Returns false when vanilla rendering must stay untouched.
+    // Render-hook entry: advances the session displacement from the stashed
+    // input. Returns false when vanilla rendering must stay untouched.
     bool freeCameraView(IClientInstance const&, mce::Camera&);
+    // Frame writer: carries the latest displacement into the detached camera
+    // entity's offset component on the UI-render thread (mirrors keepHead).
+    void writeFreeCameraOffset();
     void releaseLook();
     void releaseLookKey(); // Key release: ends a held session, ignored in toggle mode
     void cancelLook();

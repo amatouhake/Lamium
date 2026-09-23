@@ -37,6 +37,21 @@ int main() try {
     check(lamium::camera::consumeMovement(raw)[1] == 0, "persistent sneak must not move the camera");
     flags.set(static_cast<size_t>(Flag::SneakDown));
     check(lamium::camera::consumeMovement(raw)[1] == -1, "held sneak descends the camera");
+    RawMoveInputComponent keys{};
+    auto& keyFlags = *keys.mRawInput->mFlagValues;
+    keyFlags.set(static_cast<size_t>(Flag::Up));
+    keyFlags.set(static_cast<size_t>(Flag::Right));
+    check(lamium::camera::freecameraInputAxes(keys) == lamium::DetachedCameraMotion::Vector{1, 0, 1},
+          "keyboard direction flags drive WASD axes");
+    keyFlags.set(static_cast<size_t>(Flag::Down));
+    check(lamium::camera::freecameraInputAxes(keys) == lamium::DetachedCameraMotion::Vector{1, 0, 0},
+          "opposing direction flags cancel");
+    keyFlags.set(static_cast<size_t>(Flag::JumpDown));
+    check(lamium::camera::freecameraInputAxes(keys)[1] == 1, "jump flag ascends the stash");
+    RawMoveInputComponent pad{};
+    *pad.mRawMove = Vec2{.5f, -.25f};
+    check(lamium::camera::freecameraInputAxes(pad) == lamium::DetachedCameraMotion::Vector{.5, 0, -.25},
+          "analog vector is the fallback without flags");
     std::cout << "Native camera movement extraction checks passed\n";
     return 0;
 } catch (std::exception const& error) {
