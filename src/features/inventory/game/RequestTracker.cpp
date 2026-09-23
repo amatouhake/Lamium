@@ -17,6 +17,9 @@
 #include "mc/network/packet/ItemStackResponsePacket.h"
 #include <mutex>
 #include <stdexcept>
+#ifdef LAMIUM_RESTOCK_TRACE
+#include <atomic>
+#endif
 
 namespace lamium::inventory::game {
 namespace {
@@ -25,12 +28,28 @@ OwnedResponseBarrier barrier;
 std::set<int64_t> previousRequests;
 ItemStackNetManagerClient* transferManager = nullptr;
 bool responseInstalled = false;
+void traceRequests(char const* stage, std::size_t count, bool active) noexcept {
+#ifdef LAMIUM_RESTOCK_TRACE
+    try {
+        if (!Runtime::instance().preferences().inventory.handRestock) return;
+        static std::atomic<unsigned> samples{};
+        if (samples.fetch_add(1) >= 64) return;
+        Runtime::instance().self().getLogger().info(
+            "Restock request trace: {} count={} active={}",stage,count,active);
+    } catch (...) {}
+#else
+    (void)stage; (void)count; (void)active;
+#endif
+}
 LL_TYPE_INSTANCE_HOOK(ResponseHook, ll::memory::HookPriority::Normal, ClientNetworkHandler,
     &ClientNetworkHandler::$handle, void,
     NetworkIdentifier const& source, ItemStackResponsePacket const& packet) {
     // Wait until vanilla has applied authoritative corrections.
     origin(source, packet);
     std::lock_guard lock(mutex);
+    // Observe even after an untracked use released ownership. Counts alone do
+    // not associate a response with that use, and must not advance its state.
+    traceRequests("responses-applied",packet.mResponses->size(),barrier.busy());
     for (auto const& response : packet.mResponses.get())
         barrier.respond(response.mClientRequestId->mRawId, response.mResult == ItemStackNetResult::Success);
 }
@@ -76,6 +95,7 @@ std::optional<TransferToken> beginTransfer(ContainerManagerController& controlle
     if (!token) return {};
     previousRequests = std::move(previous);
     transferManager = manager;
+    traceRequests("capture-start",previousRequests.size(),bool(manager->mRequest));
     return token;
 }
 void endTransfer(TransferToken token) {
@@ -84,11 +104,18 @@ void endTransfer(TransferToken token) {
     // Vanilla adds completed scopes to this batch. We only observe new IDs;
     // packet creation, sending, and retries remain entirely vanilla-owned.
     auto* manager = std::exchange(transferManager, nullptr);
-    if (!manager || !manager->mRequestBatch) return;
+    if (!manager) return;
+    traceRequests("capture-end-batch",manager->mRequestBatch ? manager->mRequestBatch->mRequests->size() : 0,
+        bool(manager->mRequest));
+    if (!manager->mRequestBatch) return;
+    std::size_t added = 0;
     for (auto const& request : manager->mRequestBatch->mRequests.get()) {
-        if (request && !previousRequests.contains(request->mClientRequestId->mRawId))
+        if (request && !previousRequests.contains(request->mClientRequestId->mRawId)) {
             barrier.track(token,request->mClientRequestId->mRawId);
+            ++added;
+        }
     }
+    traceRequests("capture-new-requests",added,bool(manager->mRequest));
 }
 ResponseBarrier::Result transferResult(TransferToken token) {
     std::lock_guard lock(mutex);

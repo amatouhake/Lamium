@@ -79,6 +79,17 @@ not correlated acknowledgements: a packet may update another slot or reflect
 a correction unrelated to use. They never advance or initiate replenishment.
 Runtime confirmation of this path is pending.
 
+Request diagnostics additionally emit at most 64 fixed stage records while
+Hand Restock is enabled: pre-existing request count at capture start, batch
+size and active vanilla request scope at capture end, newly captured count,
+and the number of responses after vanilla applies each response packet. For
+response records, `active` means the tracker still has an owner; for capture
+records it means a vanilla request scope is active. Responses are observed
+even after an Untracked cancellation so a later response is not silently
+excluded from the investigation. No request IDs, packet contents or identities
+are logged. Response counts do not establish correlation or authorize a move.
+These diagnostics build successfully; their native behavior remains untested.
+
 The installed SDK exposes `HudScreenController::mHudScreenManagerController`
 and the controller's vanilla `handleSwap` operation. Existing Sort uses
 `ContainerManagerController` plus request-ID observation and authoritative
