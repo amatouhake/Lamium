@@ -1383,3 +1383,25 @@ The next diagnostic build adds bounded fixed stage labels to the existing
 unavailable capture and absent depletion plans. These observations are needed
 before attributing this failure to any particular guard or changing request
 ownership behavior.
+
+### Hand Restock observation timing diagnosis (2026-09-23)
+
+The bounded trace at `8e8f456` entered `use-item`, acquired capture, and
+reported `after-use-count=1` followed by `no-depletion-plan` for a survival
+egg use. The HUD subsequently showed an empty selected slot. This locates
+the early exit before response handling: synchronous return is too early to
+observe this depletion.
+
+A second diagnostic build temporarily wrapped `SurvivalMode::useItem` and
+`useItemOn` as well (DLL SHA-256
+`0B2FCC69D03A2F9AB95B0F76F35648C09CD9E0BC637BF3FA08803DBB82BCA0A3`).
+At 10:54:36.349, the outer survival hook acquired capture, the nested base
+hook correctly skipped capture, and the outer return still reported count 1
+and no plan. The held egg then disappeared without replenishment. Expanding
+the synchronous hook boundary therefore did not solve the observed failure;
+these extra hooks were removed from source after this experiment.
+
+The next investigation must observe inventory updates after use returns and
+establish the actual acknowledgement path. Neither a successful use return
+nor elapsed time alone proves server acceptance. Food, blocks, fireworks,
+multiplayer and actual replenishment remain unverified.
