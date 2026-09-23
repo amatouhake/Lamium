@@ -1517,3 +1517,21 @@ Regression cases cover changed reserve, other hotbar mutation, and pickup into
 an unrelated slot. The diagnostic native build passed. Native success,
 correction/rejection handling, and the full block/food/firework matrix remain
 unverified; the installed DLL is still the preceding diagnostic build.
+
+### Consumption planning reached; HUD swap did not replenish (2026-09-23)
+
+Installed `77d4ad2` with matching DLL SHA-256
+`A1127758015E8A0363BD886DD3992073CE6EE65CABC8052D3AD4730976CCDD3F`.
+Before the test, the selected slot was empty and the main inventory contained
+14 reserve eggs. After supplying one test egg and using it, the trace at
+11:35:03.758 recorded observed-use-count=0 and plan-ready. A new capture for
+the refill opened and closed with an empty batch. No refill acknowledgement
+was logged. Opening inventory afterward showed the reserve still at 14 and
+the selected slot empty. Consumption correlation now reaches planning, but
+the inventory transfer is not working.
+
+The next build uses handlePlaceAmount with the reserve's exact count for the
+known-empty destination and records its boolean return. This is a targeted
+controller-operation experiment, not a proven fix. It builds successfully;
+native validation is pending. The previous implementation did not log the
+swap return, so its precise rejection reason remains unknown.

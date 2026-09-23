@@ -206,7 +206,11 @@ void tick() noexcept {
         op->token = game::beginTransfer(*controller);
         if (!op->token) { cancel(); return; }
         op->replenishing = true;
-        bool success = controller->handleSwap(SlotData{collection,op->plan->source},SlotData{collection,op->plan->destination});
+        // The destination is known empty: express the operation as a transfer
+        // of the reserve's exact count.
+        bool success = controller->handlePlaceAmount(SlotData{collection,op->plan->source},
+            op->plan->expectedSource.count,SlotData{collection,op->plan->destination});
+        trace("replenishment-submitted",success);
         if (pending != op) return; // Vanilla may synchronously leave the screen/world.
         game::endTransfer(*op->token);
         if (!success) cancel();
