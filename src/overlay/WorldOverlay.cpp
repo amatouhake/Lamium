@@ -219,8 +219,14 @@ void drawShape(BaseActorRenderContext& context, FaceMaterial const& faceMaterial
     Vec3 const camera = context.mImpl->mCameraPosition;
     auto ref = screen.camera.worldMatrixStack->push(false);
     ref.stack->_isDirty = true;
-    ref.mat->_m = glm::translate(ref.mat->_m.get(), glm::vec3{static_cast<float>(mesh.origin.x - camera.x),
-        static_cast<float>(mesh.origin.y - camera.y), static_cast<float>(mesh.origin.z - camera.z)});
+    // Scale the shape toward the eye. The projection is unchanged, but depth
+    // moves slightly nearer in proportion to distance, so faces that run
+    // through existing blocks stay in front of those blocks' own faces instead
+    // of flickering against them (the inset alone only helps faces in air).
+    constexpr float towardEye = .997f;
+    glm::vec3 offset{static_cast<float>(mesh.origin.x - camera.x), static_cast<float>(mesh.origin.y - camera.y),
+        static_cast<float>(mesh.origin.z - camera.z)};
+    ref.mat->_m = glm::scale(glm::translate(ref.mat->_m.get(), offset * towardEye), glm::vec3{towardEye});
     if (mesh.faces && faceMaterial.material.mRenderMaterialInfoPtr)
         mesh.faces->renderMesh(screen, faceMaterial.material, gsl::span<mce::ClientTexture const*>{}, 0, mesh.faceVertices,
             OffscreenCaptureDescription{}, nullptr);
