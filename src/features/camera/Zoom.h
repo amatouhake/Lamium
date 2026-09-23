@@ -42,6 +42,11 @@ class Zoom {
     std::atomic<std::uint64_t> freeMotionOwner{0};
     std::chrono::steady_clock::time_point freeMotionTime{};
     bool freeMotionTimed = false;
+    // Perspective travel state (frame listener completes activation).
+    std::atomic<bool> pendingFreeCamera{false};
+    std::atomic<int> freeToggles{0};
+    std::chrono::steady_clock::time_point freeTravelStart{};
+    std::chrono::steady_clock::time_point freeLastToggle{};
     std::atomic<bool> running{false};
     std::atomic<bool> allowed{true};
     std::atomic<IClientInstance*> client{nullptr};
@@ -60,6 +65,14 @@ public:
     void pressFreeCamera(IClientInstance&); // Toggle: press again to return to the player
     // True while FreeCamera owns the detached session (perspective is locked).
     bool blocksPerspective() const;
+    // Perspective travel: FreeCamera always flies first-person. Returns true
+    // when the first-person rig is already active; otherwise requests vanilla
+    // toggles and completes activation from the frame listener.
+    bool ensureFirstPerson(IClientInstance&, LocalPlayer&);
+    bool beginFreeCameraSession(IClientInstance&, LocalPlayer&);
+    void pollFreeTravel();
+    void abortPendingTravel();
+    void restoreFreePerspective(IClientInstance&);
     // Extraction-hook entry: consumes movement only for the FreeCamera owner.
     void consumeFreeCameraInput(MoveInputComponent const&, RawMoveInputComponent&);
     // Render-hook entry: advances the session displacement from the stashed
@@ -78,7 +91,13 @@ public:
     std::optional<DetachedLookState::Angles> lookAngles();
     std::optional<DetachedLookState::Angles> lookAnglesFor(IClientInstance const&);
     void release() { state.release(); }
-    void reset() { state.reset(); cancelLook(); client = nullptr; }
+    void reset() {
+        // A pending perspective travel restores first (it needs the client).
+        if (pendingFreeCamera.load()) abortPendingTravel();
+        state.reset();
+        cancelLook();
+        client = nullptr;
+    }
     float fov(IClientInstance const&, float base) const;
     float sensitivity(LocalPlayer const&) const;
 #if defined(LAMIUM_CAMERA_PROBE) || defined(LAMIUM_CAMERA_POSITION_PROBE)

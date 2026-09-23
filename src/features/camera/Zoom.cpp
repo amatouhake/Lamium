@@ -545,41 +545,130 @@ void Zoom::pressLook(IClientInstance& current) {
         Runtime::instance().self().getLogger().error("Freelook could not detach the camera");
     }
 }
+bool findFirstPersonRig(LocalPlayer& player) {
+    auto& registry = player.getEntityContext().getRegistry();
+    for (auto entity : registry.view<MinecraftCamera::ActiveCameraComponent>()) {
+        if (!registry.valid(entity)) continue;
+        if (registry.try_get<MinecraftCamera::CameraDirectLookComponent>(entity)) return true;
+    }
+    return false;
+}
 void Zoom::pressFreeCamera(IClientInstance& current) {
-    // Stage 1: rotation only, detached exactly like Freelook. Always toggles:
-    // a press ends the FreeCamera session, the key release does nothing.
+    // Always toggles: a press ends the FreeCamera session, the key release
+    // does nothing. A press during perspective travel aborts the travel.
     if (lookOwner.load() == DetachedOwner::Freelook) return;
     if (look.snapshot()) { releaseLook(); return; }
-    if (!running || !freeCameraAllowed || ui::ownsInput() || !gameplayScreen(current.getScreenName())
-        || !current.getLocalPlayer()) return;
+    if (pendingFreeCamera.load()) { abortPendingTravel(); return; }
     auto* player = current.getLocalPlayer();
-    if (!canDetachLook(*player)) return;
-    auto ownerId = player->getRuntimeID().rawID;
+    if (!player || !running || !freeCameraAllowed) return;
+    freeToggles.store(0);
+    if (!ensureFirstPerson(current, *player)) return;
+    beginFreeCameraSession(current, *player);
+}
+bool Zoom::ensureFirstPerson(IClientInstance& current, LocalPlayer& player) {
+    try {
+        if (findFirstPersonRig(player)) return true;
+    } catch (...) {}
+    // Travel: request vanilla toggles; the frame listener completes the
+    // activation once the first-person rig arrives. No session exists yet,
+    // so the perspective lock lets the toggle through.
+    freeToggles.store(0);
+    client = &current;
+    pendingFreeCamera.store(true);
+    {
+        std::lock_guard lock{freeInputMutex};
+        freeTravelStart = freeLastToggle = std::chrono::steady_clock::now();
+    }
+    try {
+        ClientInputCallbacks::handleTogglePerspectiveButtonPress(current);
+        freeToggles.store(1);
+        std::lock_guard lock{freeInputMutex};
+        freeLastToggle = std::chrono::steady_clock::now();
+    } catch (...) {
+        pendingFreeCamera.store(false);
+    }
+    return false;
+}
+void Zoom::pollFreeTravel() {
+    auto* current = client.load();
+    if (!current || !current->getLocalPlayer()) { abortPendingTravel(); return; }
+    try {
+        if (findFirstPersonRig(*current->getLocalPlayer())) {
+            pendingFreeCamera.store(false);
+            if (!beginFreeCameraSession(*current, *current->getLocalPlayer()))
+                restoreFreePerspective(*current);
+            return;
+        }
+    } catch (...) { abortPendingTravel(); return; }
+    auto now = std::chrono::steady_clock::now();
+    int toggles = freeToggles.load();
+    std::chrono::steady_clock::time_point start, last;
+    {
+        std::lock_guard lock{freeInputMutex};
+        start = freeTravelStart;
+        last = freeLastToggle;
+    }
+    using namespace std::chrono;
+    if (now - start > seconds(5)) { abortPendingTravel(); return; }
+    if (toggles >= 2 || now - last < milliseconds(400)) return;
+    try {
+        ClientInputCallbacks::handleTogglePerspectiveButtonPress(*current);
+        freeToggles.store(toggles + 1);
+        std::lock_guard lock{freeInputMutex};
+        freeLastToggle = std::chrono::steady_clock::now();
+    } catch (...) { abortPendingTravel(); }
+}
+void Zoom::abortPendingTravel() {
+    if (!pendingFreeCamera.load()) return;
+    pendingFreeCamera.store(false);
+    auto* current = client.load();
+    if (current) {
+        try { restoreFreePerspective(*current); } catch (...) {}
+    }
+    reset();
+}
+void Zoom::restoreFreePerspective(IClientInstance& current) {
+    // The perspective cycles through three modes; undo N applied toggles.
+    int applied = freeToggles.load();
+    freeToggles.store(0);
+    int back = (3 - applied % 3) % 3;
+    for (int i = 0; i < back; ++i) {
+        try { ClientInputCallbacks::handleTogglePerspectiveButtonPress(current); }
+        catch (...) { break; }
+    }
+}
+bool Zoom::beginFreeCameraSession(IClientInstance& current, LocalPlayer& player) {
+    if (!running || !freeCameraAllowed || ui::ownsInput() || !gameplayScreen(current.getScreenName()))
+        return false;
+    if (!canDetachLook(player)) return false;
+    auto ownerId = player.getRuntimeID().rawID;
     client = &current;
     look.release();
-    if (!look.begin(player->getRotation().x, player->getRotation().z, ownerId)) return;
+    if (!look.begin(player.getRotation().x, player.getRotation().z, ownerId)) return false;
     lookOwner.store(DetachedOwner::FreeCamera);
     { std::lock_guard lock{freeInputMutex}; freeCameraInput = {}; hasFreeCameraInput = false; freeMoveSamples = 0; freeMotionTimed = false; }
     // The displacement session never survives a previous one; a stale session
     // cancels the whole activation rather than flying from a wrong origin.
     motion.cancel();
     freeMotionOwner.store(0);
-    if (!ownerId || !motion.begin(ownerId)) { cancelLook(); return; }
+    if (!ownerId || !motion.begin(ownerId)) { cancelLook(); return false; }
     freeMotionOwner.store(ownerId);
 #ifdef LAMIUM_CAMERA_TRACE
-    traceLook(LookTraceStage::Begin, player->getRotation().x, player->getRotation().z);
-    try { Runtime::instance().self().getLogger().info("FreeCamera body: begin head={}", player->getYHeadRot()); } catch (...) {}
+    traceLook(LookTraceStage::Begin, player.getRotation().x, player.getRotation().z);
+    try { Runtime::instance().self().getLogger().info("FreeCamera body: begin head={}", player.getYHeadRot()); } catch (...) {}
 #endif
     try {
-        lockedHead = player->getYHeadRot();
-        detachCameras(*player);
+        lockedHead = player.getYHeadRot();
+        detachCameras(player);
         if (detachedCameras.empty()) throw std::runtime_error("FreeCamera has no detached camera entity");
-        takeFreeCameraOffset(*player, detachedCameras.back().entity);
-        takeFreeCameraBody(*player, detachedCameras.back().entity);
+        takeFreeCameraOffset(player, detachedCameras.back().entity);
+        takeFreeCameraBody(player, detachedCameras.back().entity);
     } catch (...) {
         cancelLook();
         Runtime::instance().self().getLogger().error("FreeCamera could not detach the camera");
+        return false;
     }
+    return true;
 }
 bool Zoom::blocksPerspective() const {
     // Input-thread safe: atomics and a mutex-guarded snapshot only.
@@ -622,6 +711,9 @@ void Zoom::endFreeCameraMotion(bool wasFreeCamera) {
     auto* current = client.load();
     restoreFreeCameraOffset(current ? current->getLocalPlayer() : nullptr);
     restoreFreeCameraBody(current ? current->getLocalPlayer() : nullptr);
+    if (current) {
+        try { restoreFreePerspective(*current); } catch (...) {}
+    }
     std::lock_guard lock{freeInputMutex};
     freeMotionTimed = false;
     hasDisplacement = false;
@@ -847,6 +939,9 @@ bool Zoom::start() {
             event.cancel();
         });
         screenListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([this](auto&) {
+            if (pendingFreeCamera.load()) {
+                try { pollFreeTravel(); } catch (...) {}
+            }
             if (lookAngles()) {
                 // The head may also be turned outside the look-input path.
                 if (auto* current = client.load(); current && current->getLocalPlayer())
