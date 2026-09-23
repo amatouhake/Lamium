@@ -6,6 +6,15 @@ experimental native adapter and an unbound toggle action in Features/Hotkeys.
 Its game behavior is **not runtime validated yet**. Periodic Attack and Use
 are not yet connected or exposed in the UI.
 
+Initial local-world check on 2026-09-23: the settings editor accepted a custom
+binding and the action logged activation, but the third-person player did not
+visibly crouch. DLL SHA-256:
+`8E45DEE8B16C7AAB1675C6FF7CC7AFF9181C21D3018FCEBE89C14C0F1973BD29`.
+This is evidence against treating the first adapter as functional. Bounded
+extraction/local-match/raw-sneak counters now report on cancellation to separate
+an unused hook or identity mismatch from an ineffective input bit. No packet or
+actor-state fallback has been added.
+
 ## Runtime contract
 
 - Arming is session state, never a persisted instruction to act on world load.
