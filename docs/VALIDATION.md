@@ -572,6 +572,21 @@ dimension changes and resource-pack language overrides. Confirm native entity
 localization-key semantics before considering this provider validated. Block
 states and dedicated detail providers remain unfinished.
 
+### Target block coordinates (runtime validation pending)
+
+Target Info also offers a default-off block-coordinate line. Its owned snapshot
+copies the validated tile hit's integer position, rather than rounding the player
+position or the hit's world-space intersection. Entity hits do not fabricate a
+block coordinate. Debug View enables this line in its temporary rendering profile
+without overwriting the normal Target Info setting.
+
+The coordinate line follows the name/optional identifier and precedes state
+details. Unit tests cover capacities zero through ten, retaining coordinates when
+space permits, and budgeting the remaining-state indicator. Shared option tests
+cover persistence; translation tests format the new line with integer arguments
+in English and Japanese. Native targeting accuracy and in-game text fit remain
+pending runtime validation.
+
 ### Target block-state provider (runtime validation pending)
 
 An optional, default-off block-state section now reads only the `states` compound

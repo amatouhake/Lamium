@@ -35,6 +35,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     auto const& block = source.getBlock(hit.mBlock);
     if (block.isAir()) return {};
     TargetInfo result{block.buildDescriptionName(),block.getTypeName()};
+    result.blockPosition = TargetInfo::BlockPosition{hit.mBlock.x,hit.mBlock.y,hit.mBlock.z};
     if (result.name.empty()) result.name = result.identifier;
     if (includeStates) {
         auto const& tags = block.mSerializationId->mTags;

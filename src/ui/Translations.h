@@ -105,6 +105,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"targetInfo", "Target Info: {}", "照準先の情報: {}"},
     {"targetIdentifier", "Show identifier: {}", "ID を表示: {}"},
     {"targetStates", "Show block states: {}", "ブロック状態を表示: {}"},
+    {"targetCoordinates", "Show block coordinates: {}", "ブロック座標を表示: {}"},
+    {"targetBlockPosition", "Block: {} / {} / {}", "ブロック: {} / {} / {}"},
     {"targetMore", "+{} more states", "ほか {} 項目"},
     {"key.Lamium.targetinfo", "Lamium: Toggle target info", "Lamium: 照準先情報の切り替え"},
     {"help.infoHud", "Choose information lines and screen position.", "表示する情報と画面内の位置を設定。"},

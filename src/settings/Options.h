@@ -52,6 +52,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::target>("information.target", "targetInfo", "targetInfo"),
     toggle<&Settings::information, &Settings::Information::targetIdentifier>("information.targetIdentifier", "targetInfo", "targetIdentifier"),
     toggle<&Settings::information, &Settings::Information::targetStates>("information.targetStates", "targetInfo", "targetStates"),
+    toggle<&Settings::information, &Settings::Information::targetCoordinates>("information.targetCoordinates", "targetInfo", "targetCoordinates"),
     {"information.targetHorizontal", "targetInfo", "hudHorizontal",
         [](Settings const& s) -> OptionValue { return s.information.targetHorizontal; },
         [](Settings& s, int direction) { s.information.targetHorizontal += direction * 5.f; s.normalize(); },

@@ -55,6 +55,7 @@ struct Settings {
         bool target = false;
         bool targetIdentifier = true;
         bool targetStates = false;
+        bool targetCoordinates = false;
         float targetHorizontal = 50.f;
         float targetVertical = 2.f;
         bool hud = false;

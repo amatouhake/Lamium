@@ -11,9 +11,9 @@ void hudLayoutTests() {
     preferences.horizontal = 37;
     preferences.debug = true;
     auto debug = lamium::information::debugProfile(preferences);
-    check(debug.hud && debug.target && debug.biome && debug.ping && debug.targetStates,
+    check(debug.hud && debug.target && debug.biome && debug.ping && debug.targetStates && debug.targetCoordinates,
           "debug profile enables shared information providers");
-    check(!preferences.hud && !preferences.target && preferences.horizontal == 37,
+    check(!preferences.hud && !preferences.target && !preferences.targetCoordinates && preferences.horizontal == 37,
           "debug profile preserves normal HUD choices");
     preferences.debug = false;
     auto normal = lamium::information::debugProfile(preferences);
@@ -33,6 +33,19 @@ void hudLayoutTests() {
           "small target view reserves its last row for omitted state count");
     auto full = targetRows(target,true,9);
     check(full.lines.size() == 8 && full.showOmitted && full.omittedStates == 1, "target details cap at six states");
+    auto located = targetRows(target,true,10,"Block: -12 / 64 / 30");
+    check(located.lines.size() == 9 && located.lines[2] == "Block: -12 / 64 / 30"
+        && located.showOmitted && located.omittedStates == 1,
+        "coordinates precede states and retain six-state budget with overflow marker");
+    for (int capacity = 0; capacity <= 10; ++capacity) {
+        auto rows = targetRows(target,true,capacity,"Block: -12 / 64 / 30");
+        check(rows.lines.size() + (rows.showOmitted ? 1 : 0) <= static_cast<size_t>(capacity),
+              "coordinates and state overflow marker stay within available rows");
+        if (capacity >= 3) check(rows.lines[2] == "Block: -12 / 64 / 30", "coordinates survive state truncation");
+    }
+    lamium::information::TargetInfo entity{"Pig","minecraft:pig",{}};
+    check(!entity.blockPosition && targetRows(entity,true,10).lines.size() == 2,
+          "entity targets do not acquire fabricated block coordinates");
     target.states.resize(2);
     auto exact = targetRows(target,false,3);
     check(exact.lines.size() == 3 && !exact.showOmitted && exact.omittedStates == 0, "exact fit does not hide a state for an unnecessary marker");

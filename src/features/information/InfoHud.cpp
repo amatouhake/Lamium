@@ -37,8 +37,13 @@ void drawHud(MinecraftUIRenderContext& context, float width, float height, Setti
     float columnWidth = settings.debug ? std::min(230.f,width/2-8) : 230.f;
     if (settings.target) {
         if (auto target = collectTargetInfo(context.mClient,settings.targetStates)) {
-            auto capacity = ui::HudLayout::fit(width,height,settings.targetHorizontal,settings.targetVertical,9,columnWidth).lines;
-            auto rows = targetRows(*target,settings.targetIdentifier,capacity);
+            std::string coordinates;
+            if (settings.targetCoordinates && target->blockPosition) {
+                auto const& p = *target->blockPosition;
+                coordinates = ui::translated("targetBlockPosition",p.x,p.y,p.z);
+            }
+            auto capacity = ui::HudLayout::fit(width,height,settings.targetHorizontal,settings.targetVertical,10,columnWidth).lines;
+            auto rows = targetRows(*target,settings.targetIdentifier,capacity,coordinates);
             auto& targetLines = rows.lines;
             if (rows.showOmitted) targetLines.push_back(ui::translated("targetMore",std::to_string(rows.omittedStates)));
             auto layout = ui::HudLayout::fit(width,height,settings.targetHorizontal,settings.targetVertical,static_cast<int>(targetLines.size()),columnWidth);
