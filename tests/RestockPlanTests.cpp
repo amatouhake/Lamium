@@ -30,10 +30,15 @@ void restockPlanTests() {
     changed = after;
     changed.slots[11].count--;
     check(!plan->stillValid(changed));
-    auto alternate = planRestock(before,changed,true);
-    check(alternate && alternate->source == 12);
+    check(!planRestock(before,changed,true)); // No alternate after interference.
     changed.slots[12] = {};
     check(!planRestock(before,changed,true));
+    changed = after;
+    changed.slots[0].count--;
+    check(!planRestock(before,changed,true)); // Other hotbar mutation cancels.
+    changed = after;
+    changed.slots[20] = {4,1};
+    check(!planRestock(before,changed,true)); // Pickup/manual move cancels.
     changed = after;
     changed.slots[3].locked = true;
     check(!planRestock(before,changed,true) && !plan->stillValid(changed));

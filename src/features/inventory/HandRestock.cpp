@@ -24,6 +24,8 @@
 #include "mc/world/item/HandSlot.h"
 #include "mc/legacy/ActorRuntimeID.h"
 #include <atomic>
+#include <chrono>
+#include "mc/world/inventory/transaction/ItemUseInventoryTransaction.h"
 #ifdef LAMIUM_RESTOCK_TRACE
 #include "mc/client/network/LegacyClientNetworkHandler.h"
 #include "mc/network/packet/InventorySlotPacket.h"
@@ -46,6 +48,8 @@ struct Operation {
     std::optional<game::TransferToken> token;
     bool useFinished = false;
     bool replenishing = false;
+    bool useSent = false;
+    std::chrono::steady_clock::time_point useDeadline;
 };
 std::shared_ptr<Operation> pending;
 ll::event::ListenerPtr tickListener, exitListener;
@@ -153,8 +157,10 @@ void finishUse(std::shared_ptr<Operation> const& op, bool success) noexcept {
         }
         game::endTransfer(*op->token);
         // The local use callback can return before inventory depletion arrives.
-        // Plan only after the captured requests have received their responses.
+        // Legacy consumption can instead send a complex transaction after this
+        // callback. Keep the ownership token while observing that separate path.
         op->useFinished = true;
+        op->useDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(1);
         trace("use-finished");
     } catch (...) { failure(); }
 }
@@ -170,13 +176,21 @@ void tick() noexcept {
         if (!op->useFinished) return; // A synchronous vanilla use is still on the stack.
         auto result = game::transferResult(*op->token);
         if (result == ResponseBarrier::Result::Waiting) return;
-        if (result != ResponseBarrier::Result::Accepted) {
+        bool legacyUse = !op->replenishing && result == ResponseBarrier::Result::Untracked && op->useSent;
+        if (result != ResponseBarrier::Result::Accepted && !legacyUse) {
             Runtime::instance().self().getLogger().info("Hand Restock stopped: inventory response {}",static_cast<int>(result));
             cancel(); return;
         }
         auto now = snapshot(*op,*controller,*player);
+        if (legacyUse && std::chrono::steady_clock::now() >= op->useDeadline) { cancel(); return; }
+        if (legacyUse && !now.slots[now.selected].empty()) {
+            // Only an unchanged inventory may wait for delayed depletion. The
+            // deadline cancels observation; elapsed time never proves success.
+            if (now.slots != op->before.slots || std::chrono::steady_clock::now() >= op->useDeadline) cancel();
+            return;
+        }
         if (!op->plan) {
-            trace("accepted-use-count",now.slots[now.selected].count);
+            trace(legacyUse ? "observed-use-count" : "accepted-use-count",now.slots[now.selected].count);
             op->plan = planRestock(op->before,now,true);
             trace(op->plan ? "plan-ready" : "no-depletion-plan");
             if (!op->plan) { cancel(); return; }
@@ -230,18 +244,38 @@ LL_TYPE_INSTANCE_HOOK(CompleteUse, ll::memory::HookPriority::Normal, Player,
 }
 LL_TYPE_INSTANCE_HOOK(FocusLost, ll::memory::HookPriority::Normal, MinecraftGame,
     &MinecraftGame::$onAppFocusLost, void) { cancel(); origin(); }
-#ifdef LAMIUM_RESTOCK_TRACE
 // A legacy use transaction need not appear in the item-stack request batch.
 // Observe this boundary without interpreting a send as server acceptance.
-LL_TYPE_INSTANCE_HOOK(ComplexSendTrace, ll::memory::HookPriority::Normal, LocalPlayer,
+LL_TYPE_INSTANCE_HOOK(ComplexSend, ll::memory::HookPriority::Normal, LocalPlayer,
     &LocalPlayer::$sendComplexInventoryTransaction, void,
     std::unique_ptr<ComplexInventoryTransaction> transaction) {
-    if (eligible() == this) {
+    std::shared_ptr<Operation> observed;
+    try { if (eligible() == this) {
         trace("complex-transaction-send-type",transaction ? static_cast<int>(transaction->mType) : -1);
         trace("complex-transaction-during-use",bool(pending && !pending->useFinished));
-    }
-    origin(std::move(transaction));
+        auto op = pending;
+        if (op && !op->replenishing) {
+            bool matches = false;
+            if (transaction && transaction->mType == ComplexInventoryTransaction::Type::ItemUseTransaction) {
+                auto const& use = static_cast<ItemUseInventoryTransaction const&>(*transaction);
+                matches = use.mHand == HandSlot::Mainhand && use.mSlot == op->before.selected
+                    && (use.mActionType == ItemUseInventoryTransaction::ActionType::Use
+                        || use.mActionType == ItemUseInventoryTransaction::ActionType::Place);
+            }
+            if (matches && !op->useSent) observed = op;
+            else cancel();
+        }
+    }} catch (...) { failure(); }
+    try { origin(std::move(transaction)); }
+    catch (...) { if (observed && pending == observed) cancel(); throw; }
+    if (observed && pending == observed) observed->useSent = true;
 }
+LL_TYPE_INSTANCE_HOOK(Drop, ll::memory::HookPriority::Normal, Player,
+    &Player::$drop, bool, ItemStack const& item, bool const randomly) {
+    try { if (static_cast<Player*>(eligible()) == static_cast<Player*>(this)) cancel(); } catch (...) { failure(); }
+    return origin(item,randomly);
+}
+#ifdef LAMIUM_RESTOCK_TRACE
 // Observe the legacy inventory path without treating an arbitrary server update
 // as acknowledgement of a use. Do not retain packet data or alter pending work.
 void traceInventoryUpdate(char const* stage) noexcept {
@@ -268,8 +302,8 @@ LL_TYPE_INSTANCE_HOOK(ContentUpdateTrace, ll::memory::HookPriority::Normal, Lega
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[] = {{CaptureHud::hook,CaptureHud::unhook},{Use::hook,Use::unhook},
     {UseOn::hook,UseOn::unhook},{CompleteUse::hook,CompleteUse::unhook},{FocusLost::hook,FocusLost::unhook},
+    {ComplexSend::hook,ComplexSend::unhook},{Drop::hook,Drop::unhook},
 #ifdef LAMIUM_RESTOCK_TRACE
-    {ComplexSendTrace::hook,ComplexSendTrace::unhook},
     {SlotUpdateTrace::hook,SlotUpdateTrace::unhook},{ContentUpdateTrace::hook,ContentUpdateTrace::unhook},
 #endif
 };

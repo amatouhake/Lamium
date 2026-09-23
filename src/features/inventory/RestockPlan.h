@@ -49,6 +49,10 @@ inline std::optional<RestockPlan> planRestock(
     auto const& depleted = after.slots[after.selected];
     // A replacement such as an empty bucket/bowl is not an empty hand.
     if (used.count != 1 || used.locked || !depleted.empty() || depleted.locked) return {};
+    // An unrelated mutation breaks correlation with the observed use. Do not
+    // silently select another reserve after a manual move or correction.
+    for (int slot = 0; slot < 36; ++slot)
+        if (slot != before.selected && before.slots[slot] != after.slots[slot]) return {};
     // Preserve the other hotbar slots and equipment. Select the first unchanged,
     // compatible main-inventory stack; never rearrange unrelated items.
     for (int source = 9; source < 36; ++source) {

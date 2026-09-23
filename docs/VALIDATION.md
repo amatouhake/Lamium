@@ -1499,3 +1499,21 @@ the owned response barrier. Do not label client prediction or transaction
 submission as server acknowledgement. Block, food, firework, rejection and
 multiplayer behavior require independent validation. Keep this uncertainty
 bounded rather than blocking the remaining feature waves.
+
+### Correlated legacy consumption adapter (2026-09-23, runtime pending)
+
+The adapter now observes complex use sends in normal builds. A locally captured
+successful use may take the legacy path only when a main-hand Use/Place
+transaction matches its selected slot. After vanilla submits that transaction,
+the adapter waits at most one second for the selected stack to disappear, with
+all other inventory slots unchanged. This is local consumption observation,
+not a claim of server acceptance; the timeout only cancels, never succeeds.
+Manual drop, another unmatched transaction, changed selection/context, and
+unrelated inventory mutations cancel the operation. Replenishment still uses
+the vanilla HUD swap and requires its own captured request response.
+
+The planner no longer falls back to another reserve when a source changed.
+Regression cases cover changed reserve, other hotbar mutation, and pickup into
+an unrelated slot. The diagnostic native build passed. Native success,
+correction/rejection handling, and the full block/food/firework matrix remain
+unverified; the installed DLL is still the preceding diagnostic build.
