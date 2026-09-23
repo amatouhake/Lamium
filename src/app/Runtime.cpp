@@ -1,5 +1,6 @@
 #include "app/Runtime.h"
 #include "features/interaction/PermanentSneak.h"
+#include "features/interaction/AutomationTrace.h"
 #include "features/camera/Zoom.h"
 #include "features/lighting/NightVision.h"
 #include "features/inspection/Inspection.h"
@@ -45,6 +46,10 @@ bool Runtime::load() {
         settings = {};
     }
     settings.normalize();
+    try { interaction::automationTrace::start(); }
+    catch (std::exception const& error) {
+        mod.getLogger().warn("Automation diagnostics unavailable: {}", error.what());
+    }
     Zoom::instance().configure(settings);
     NightVision::instance().configure(settings.lighting.nightVision);
     registerActions();
@@ -98,6 +103,7 @@ bool Runtime::enable() {
 }
 bool Runtime::disable() {
     running = false;
+    interaction::automationTrace::stop();
     interaction::sneak::stop();
     interaction::placementTrace::stop();
     interaction::breaking::stop();

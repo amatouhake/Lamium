@@ -59,6 +59,33 @@ behavior, and multiplayer remain unverified. The feature is still experimental.
 
 ## Integration still required
 
+### Periodic input discovery
+
+SDK 26.51.3 exposes named `InputHandler::registerButtonDownHandler` and
+`registerButtonUpHandler` callbacks, but the inspected client input handler
+interfaces do not expose a direct attack/use input dispatcher. Do not guess
+button hashes or invoke GameMode methods as a substitute for vanilla input.
+
+Configure `xmake f --automation_trace=y` for an opt-in discovery build. It
+observes at most 128 registrations and 64 callback invocations per process,
+logging the button name, down/up edge, suspendable flag (registration), and
+focus impact (dispatch). It forwards each callback with its original arguments
+and does not generate input or retain callbacks for replay. No typed text,
+inventory contents, player identity, or world data is recorded by this trace.
+Hooks start during mod load to catch subsequent client input registration.
+Callbacks registered before mod load are not covered; absence of a logged
+action is not evidence that the game lacks that action.
+
+The discovery build requires a fresh process and is not intended for hot DLL
+unloading: observed callbacks contain trace wrappers for their original
+lifetime. Disable stops logging and removes the registration hooks. Rebuild
+with `--automation_trace=n` for ordinary use.
+
+Next runtime check: observe an ordinary attack and use press/release in a local
+world, correlate their registered names and focus values, then establish the
+native update boundary and physical-input ownership before connecting periodic
+intent. The trace itself does not implement Periodic Attack or Periodic Use.
+
 The first Permanent Sneak adapter hooks `extractRawHIDInput`, verifies that the
 input belongs to the primary local client, and passes a transient copy with
 `SneakDown` set to vanilla. It never stores synthetic flags in the user's HID
