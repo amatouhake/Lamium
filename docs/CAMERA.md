@@ -15,6 +15,12 @@ render setup applies the accumulated rotation to vanilla's fresh view matrix.
 Features and Hotkeys expose the action, with a separately persisted enable flag.
 Release, settings entry, focus loss, world exit, dimension transition, camera
 configuration changes, and non-gameplay screens discard the detached pose.
+Cancellation retains a release latch: native key repeat cannot restart an
+interrupted hold. The action's release callback clears that latch. Invalid input
+and owner replacement follow the same rule. If the platform loses a key-up during
+focus loss, one press/release may be needed before the next activation; silently
+restarting a still-held input is not used to recover. Unit tests cover these
+cancellation/repeat/release sequences; native focus recovery remains unverified.
 
 Runtime validation is still pending. The provisional native-input scale of
 0.15 degrees per unit and camera-local rotation order require calibration. The

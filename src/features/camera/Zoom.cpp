@@ -157,11 +157,11 @@ LL_TYPE_INSTANCE_HOOK(FreelookCameraHook, ll::memory::HookPriority::Normal, Leve
     origin(camera, alpha);
     auto pose = Zoom::instance().lookAngles();
     if (!pose) return;
-    if (camera.viewMatrixStack->stack->empty()) { Zoom::instance().releaseLook(); return; }
+    if (camera.viewMatrixStack->stack->empty()) { Zoom::instance().cancelLook(); return; }
     auto view = *camera.viewMatrixStack->top()._m;
     for (int column = 0; column < 4; ++column)
         for (int row = 0; row < 4; ++row)
-            if (!std::isfinite(view[column][row])) { Zoom::instance().releaseLook(); return; }
+            if (!std::isfinite(view[column][row])) { Zoom::instance().cancelLook(); return; }
     constexpr float radians = 0.01745329252f;
     float yaw = pose->yaw * radians, pitch = pose->pitch * radians;
     glm::mat4 horizontal{1.f}, vertical{1.f};
@@ -222,7 +222,7 @@ bool Zoom::viewProbeActive() const {
 #endif
 void Zoom::configure(Settings const& settings) {
     lookAllowed = settings.camera.freelook;
-    releaseLook();
+    cancelLook();
     allowed = settings.camera.zoom;
     state.configure(settings.camera.magnification, settings.camera.wheelStep);
 }
@@ -244,13 +244,13 @@ std::optional<DetachedLookState::Angles> Zoom::lookAngles() {
     auto* current = client.load();
     if (!running || !lookAllowed || !current || ui::ownsInput()
         || !gameplayScreen(current->getScreenName()) || !current->getLocalPlayer()) {
-        releaseLook();
+        cancelLook();
         return {};
     }
     auto* player = current->getLocalPlayer();
     if (!canDetachLook(*player)
         || !look.retainOwner(player->getRuntimeID().rawID)) {
-        releaseLook();
+        cancelLook();
         return {};
     }
     return look.snapshot();

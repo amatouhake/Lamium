@@ -23,7 +23,8 @@ public:
     void configure(Settings const&);
     void press(IClientInstance&);
     void pressLook(IClientInstance&);
-    void releaseLook() { look.cancel(); }
+    void releaseLook() { look.release(); }
+    void cancelLook() { look.cancel(); }
     bool turnLook(LocalPlayer&, float pitchDelta, float yawDelta);
     bool blocksLookInteraction(Player&);
     std::optional<DetachedLookState::Angles> lookAngles();

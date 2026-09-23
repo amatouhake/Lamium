@@ -20,6 +20,8 @@ void detachedLookTests() {
     require(look.snapshot()->pitch == -90, "downward pitch limit");
     look.cancel();
     require(!look.snapshot() && !look.turn(1, 1), "cancel discards pose");
+    require(!look.begin(-10, 725), "held repeat cannot reactivate after cancellation");
+    look.release();
     require(look.begin(-10, 725) && look.snapshot()->yaw == 5, "new session uses fresh pose");
     auto maximum = std::numeric_limits<float>::max();
     look.turn(maximum, maximum);
@@ -29,13 +31,22 @@ void detachedLookTests() {
         "finite extreme input cannot poison view");
     require(!look.turn(std::numeric_limits<float>::quiet_NaN(), 0) && !look.snapshot(),
         "invalid input cancels override");
+    require(!look.begin(0, 0), "invalid turn requires release before reactivation");
+    look.release();
     require(!look.begin(0, std::numeric_limits<float>::infinity()) && !look.snapshot(),
         "invalid initial pose cannot activate");
+    require(!look.begin(0, 0), "invalid initial input cannot recover through key repeat");
+    look.release();
     require(look.begin(0, 0, 42) && look.retainOwner(42), "session retains its player identity");
     require(!look.begin(10, 10, 43), "repeat cannot replace session ownership");
     require(!look.retainOwner(43) && !look.snapshot(), "player replacement cancels detached view");
     require(!look.turn(5, 5), "replacement cannot inherit detached input");
+    require(!look.begin(10, 20, 43), "owner replacement cannot reactivate through repeat");
+    look.release();
     require(look.begin(10, 20, 43) && look.retainOwner(43), "fresh activation accepts replacement player");
     look.cancel();
     require(!look.retainOwner(43), "cancelled owner cannot reactivate session");
+    look.release();
+    look.release();
+    require(look.begin(0, 0, 43), "duplicate releases keep a fresh press available");
 }
