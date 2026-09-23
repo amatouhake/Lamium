@@ -16,6 +16,9 @@ spawn verdict, or server-only information. Non-air surfaces, partial blocks and
 unusual solid/collision shapes are not comprehensively supported. This first
 pass scans each rendered frame and keeps no world references or cached samples;
 runtime performance must be measured before increasing its fixed small range.
+Digit geometry appends directly into one reserved render batch, avoiding a
+temporary vector and copy for every marker. This does not reduce native world
+queries or cache light values; frame-time impact has not been measured.
 
 Pure tests cover negative coordinates, stacked floors, unavailable and invalid
 samples, coordinate overflow, and decimal geometry for every valid value.

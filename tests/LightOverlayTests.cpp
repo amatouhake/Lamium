@@ -32,4 +32,21 @@ void lightOverlayTests() {
     check(lightNumberLines({0,0,0},0).size() == 6, "zero is a visible closed digit");
     check(lightNumberLines({0,0,0},15).size() == 7, "fifteen is decimal one plus five");
     check(lightNumberLines({0,0,0},16).empty(), "invalid brightness has no numeric marker");
+    std::vector<Line> batch{{{1,2,3},{4,5,6}}};
+    batch.reserve(1+16*14);
+    auto const* storage = batch.data();
+    size_t expected = 1;
+    for (unsigned level = 0; level <= 15; ++level) {
+        auto single = lightNumberLines({-1,-64,-16},level);
+        appendLightNumberLines(batch,{-1,-64,-16},level);
+        check(batch.size() == expected+single.size(), "append preserves earlier markers");
+        for (size_t i = 0; i < single.size(); ++i)
+            check(batch[expected+i].from == single[i].from && batch[expected+i].to == single[i].to,
+                "batch geometry matches individual digits");
+        expected = batch.size();
+    }
+    appendLightNumberLines(batch,{0,0,0},16);
+    check(batch.size() == expected && batch.front().from == Point{1,2,3}
+        && batch.front().to == Point{4,5,6}, "invalid value leaves existing batch intact");
+    check(batch.data() == storage, "reserved batch needs no per-marker growth");
 }

@@ -156,9 +156,11 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
                 return LightSurface{light.block->mValue,light.sky->mValue};
             });
             std::vector<Line> lines;
+            // At most two seven-segment digits per marker. Append directly to
+            // the render batch instead of allocating a vector for each floor.
+            lines.reserve(markers.size()*14);
             for (auto const& marker : markers) {
-                auto digits = lightNumberLines(marker.air,preferences.skyLight ? marker.light.sky : marker.light.block);
-                lines.insert(lines.end(),digits.begin(),digits.end());
+                appendLightNumberLines(lines,marker.air,preferences.skyLight ? marker.light.sky : marker.light.block);
             }
             drawLines(context,lines,true);
         }

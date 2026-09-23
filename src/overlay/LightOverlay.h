@@ -37,13 +37,12 @@ std::vector<LightMarker> sampleLightSurfaces(Cell center, int radius, int vertic
 
 // Seven-segment decimal digits laid flat within the sampled cell. North is the
 // top of a digit. Values 10..15 use two digits rather than a hexadecimal label.
-inline std::vector<Line> lightNumberLines(Cell air, unsigned value) {
-    if (value > 15) return {};
+inline void appendLightNumberLines(std::vector<Line>& lines, Cell air, unsigned value) {
+    if (value > 15) return;
     constexpr std::array<unsigned,10> masks{0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f};
     constexpr std::array<std::array<double,4>,7> segments{{
         {0,0,1,0}, {1,0,1,.5}, {1,.5,1,1}, {0,1,1,1},
         {0,.5,0,1}, {0,0,0,.5}, {0,.5,1,.5}}};
-    std::vector<Line> lines;
     bool two = value >= 10;
     auto digit = [&](unsigned number, double left) {
         double width = two ? .25 : .4;
@@ -55,6 +54,11 @@ inline std::vector<Line> lightNumberLines(Cell air, unsigned value) {
     };
     if (two) { digit(value/10,.2); digit(value%10,.55); }
     else digit(value,.3);
+}
+
+inline std::vector<Line> lightNumberLines(Cell air, unsigned value) {
+    std::vector<Line> lines;
+    appendLightNumberLines(lines, air, value);
     return lines;
 }
 }
