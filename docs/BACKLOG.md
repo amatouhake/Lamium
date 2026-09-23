@@ -348,6 +348,15 @@ Native text entry for shape names inserts extra characters.
 
 - L-19 Freelook in multiplayer, riding, dimension change, controller: runtime
   checks only, no code expected.
+- L-25 Detached-camera interaction options (parked, after L-18; agreed
+  2026-09-24, implement only once FreeCamera proves viable). While detached,
+  attack/use are fully blocked and clicks still swing the arm. Desired shape:
+  per-feature detail settings, FreeCamera x {attack, use/place/interact,
+  break} and Freelook x {attack, use/place/interact, break} (6 toggles,
+  all default off). Aim follows the body, never the detached view; state
+  this in the help text. Movement freeze (FreeCamera) and movement keep
+  (Freelook) stay non-optional. Swing suppression (no arm swing while
+  detached) is a separate Research item: find the swing trigger first.
 - L-21 Shape color picker or more colors: only if the four colors prove
   insufficient.
 - Not started, not yet triaged: F3-style debug view, Scroll Transfer

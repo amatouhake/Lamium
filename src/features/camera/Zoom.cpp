@@ -283,6 +283,14 @@ LL_TYPE_INSTANCE_HOOK(FovHook, ll::memory::HookPriority::Normal, LevelRendererPl
     &LevelRendererPlayer::getFov, float, float alpha, bool variable) {
     return Zoom::instance().fov(mClientInstance, origin(alpha, variable));
 }
+LL_TYPE_INSTANCE_HOOK(FreeCameraSetupHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
+    &LevelRendererPlayer::setupCamera, void, mce::Camera& camera, float alpha) {
+    origin(camera, alpha);
+    (void)alpha;
+    try {
+        Zoom::instance().freeCameraView(mClientInstance, camera);
+    } catch (...) {}
+}
 LL_TYPE_INSTANCE_HOOK(TurnHook, ll::memory::HookPriority::Normal, LocalPlayer,
     &LocalPlayer::_applyTurnDelta, void, Vec2 const& delta) {
     // While detached, vanilla still turns the camera; only the copy to the
@@ -342,6 +350,7 @@ HookEntry hooks[] = {
     {CameraTraceHook::hook, CameraTraceHook::unhook},
 #endif
     {FovHook::hook, FovHook::unhook},
+    {FreeCameraSetupHook::hook, FreeCameraSetupHook::unhook},
     {ExtractFreeCameraInput::hook, ExtractFreeCameraInput::unhook},
     {TurnHook::hook, TurnHook::unhook},
     {DimensionHook::hook, DimensionHook::unhook},
@@ -410,11 +419,18 @@ void Zoom::pressFreeCamera(IClientInstance& current) {
         || !current.getLocalPlayer()) return;
     auto* player = current.getLocalPlayer();
     if (!canDetachLook(*player)) return;
+    auto ownerId = player->getRuntimeID().rawID;
     client = &current;
     look.release();
-    if (!look.begin(player->getRotation().x, player->getRotation().z, player->getRuntimeID().rawID)) return;
+    if (!look.begin(player->getRotation().x, player->getRotation().z, ownerId)) return;
     lookOwner.store(DetachedOwner::FreeCamera);
-    { std::lock_guard lock{freeInputMutex}; freeCameraInput = {}; hasFreeCameraInput = false; freeMoveSamples = 0; }
+    { std::lock_guard lock{freeInputMutex}; freeCameraInput = {}; hasFreeCameraInput = false; freeMoveSamples = 0; freeMotionTimed = false; }
+    // The displacement session never survives a previous one; a stale session
+    // cancels the whole activation rather than flying from a wrong origin.
+    motion.cancel();
+    freeMotionOwner.store(0);
+    if (!ownerId || !motion.begin(ownerId)) { cancelLook(); return; }
+    freeMotionOwner.store(ownerId);
 #ifdef LAMIUM_CAMERA_TRACE
     traceLook(LookTraceStage::Begin, player->getRotation().x, player->getRotation().z);
     try { Runtime::instance().self().getLogger().info("FreeCamera body: begin head={}", player->getYHeadRot()); } catch (...) {}
@@ -453,19 +469,83 @@ void Zoom::logFreeCameraSamples() {
         Runtime::instance().self().getLogger().info("FreeCamera movement: consumedSamples={}", samples);
     } catch (...) {}
 }
+void Zoom::endFreeCameraMotion(bool wasFreeCamera) {
+    if (!wasFreeCamera) return;
+    logFreeCameraSamples();
+    motion.cancel();
+    freeMotionOwner.store(0);
+    std::lock_guard lock{freeInputMutex};
+    freeMotionTimed = false;
+}
 void Zoom::releaseLook() {
     auto owner = lookOwner.load();
     look.release();
     lookOwner.store(DetachedOwner::None);
-    if (owner == DetachedOwner::FreeCamera) logFreeCameraSamples();
+    endFreeCameraMotion(owner == DetachedOwner::FreeCamera);
     endLookCamera();
 }
 void Zoom::cancelLook() {
     auto owner = lookOwner.load();
     look.cancel();
     lookOwner.store(DetachedOwner::None);
-    if (owner == DetachedOwner::FreeCamera) logFreeCameraSamples();
+    endFreeCameraMotion(owner == DetachedOwner::FreeCamera);
     endLookCamera();
+}
+bool Zoom::freeCameraView(IClientInstance const& renderedClient, mce::Camera& camera) {
+    // A different viewport must neither advance nor translate the session.
+    // This also keeps the angular session alive or cancels it on violations.
+    if (!lookAnglesFor(renderedClient) || lookOwner.load() != DetachedOwner::FreeCamera) return false;
+    DetachedCameraMotion::Vector input{};
+    double seconds = 0;
+    {
+        std::lock_guard lock{freeInputMutex};
+        if (!hasFreeCameraInput) return false;
+        input = freeCameraInput;
+        auto now = std::chrono::steady_clock::now();
+        if (freeMotionTimed)
+            seconds = std::chrono::duration<double>(now - freeMotionTime).count();
+        freeMotionTime = now;
+        freeMotionTimed = true;
+    }
+    if (camera.viewMatrixStack->stack->empty()) return false;
+    auto view = *camera.viewMatrixStack->top()._m;
+    for (int column = 0; column < 4; ++column)
+        for (int row = 0; row < 4; ++row)
+            if (!std::isfinite(view[column][row])) return false;
+    // Yaw-relative basis from the fresh vanilla view: horizontal right and
+    // camera forward, world up for Space/Shift. The ECS camera position is
+    // recomputed by vanilla every frame, so the displacement is composed onto
+    // the fresh view instead (as the validated position probe did).
+    auto horizontal = [](double x, double z) {
+        double length = std::hypot(x, z);
+        if (!(length > 1e-6)) return DetachedCameraMotion::Vector{};
+        return DetachedCameraMotion::Vector{x / length, 0, z / length};
+    };
+    auto right = horizontal(view[0][0], view[2][0]);
+    auto forward = horizontal(-view[0][2], -view[2][2]);
+    constexpr DetachedCameraMotion::Vector up{0, 1, 0};
+    // Internal experiment speed, not a user setting.
+    constexpr double speed = 10.0;
+    auto owner = freeMotionOwner.load();
+    if (!owner || !motion.advance(owner, input, right, up, forward, speed, seconds)) return false;
+    auto displacement = motion.snapshot();
+    if (!displacement) return false;
+    double dx = (*displacement)[0], dy = (*displacement)[1], dz = (*displacement)[2];
+    if (!std::isfinite(dx) || !std::isfinite(dy) || !std::isfinite(dz)) return false;
+    if (dx * dx + dy * dy + dz * dz < 1e-18) return true; // Active but unmoved.
+    // Camera-local shift of the eye: newView = Translate(-R*d) * view.
+    double local[3] = {
+        view[0][0] * dx + view[1][0] * dy + view[2][0] * dz,
+        view[0][1] * dx + view[1][1] * dy + view[2][1] * dz,
+        view[0][2] * dx + view[1][2] * dy + view[2][2] * dz,
+    };
+    auto& top = *camera.viewMatrixStack->getTop()._m;
+    for (int column = 0; column < 4; ++column) {
+        double w = view[column][3];
+        for (int row = 0; row < 3; ++row) top[column][row] = static_cast<float>(view[column][row] - local[row] * w);
+        top[column][3] = view[column][3];
+    }
+    return true;
 }
 void Zoom::endLookCamera() {
     auto* current = client.load();

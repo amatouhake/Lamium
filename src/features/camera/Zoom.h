@@ -4,7 +4,10 @@
 #include "features/camera/DetachedCameraMotion.h"
 #include "ll/api/event/ListenerBase.h"
 #include <atomic>
+#include <chrono>
+#include <cstdint>
 #include <mutex>
+namespace mce { class Camera; }
 class Actor;
 class IClientInstance;
 class LocalPlayer;
@@ -30,12 +33,19 @@ class Zoom {
     DetachedCameraMotion::Vector freeCameraInput{};
     bool hasFreeCameraInput = false;
     unsigned freeMoveSamples = 0;
+    // Stage 3: session displacement for the moving camera. The motion state
+    // is advanced per render frame from the stashed input above.
+    DetachedCameraMotion motion;
+    std::atomic<std::uint64_t> freeMotionOwner{0};
+    std::chrono::steady_clock::time_point freeMotionTime{};
+    bool freeMotionTimed = false;
     std::atomic<bool> running{false};
     std::atomic<bool> allowed{true};
     std::atomic<IClientInstance*> client{nullptr};
     std::atomic<float> lockedHead{0.f};
     void endLookCamera();
     void logFreeCameraSamples();
+    void endFreeCameraMotion(bool wasFreeCamera);
     ll::event::ListenerPtr wheelListener, screenListener, exitListener;
 public:
     static Zoom& instance();
@@ -47,6 +57,9 @@ public:
     void pressFreeCamera(IClientInstance&); // Toggle: press again to return to the player
     // Extraction-hook entry: consumes movement only for the FreeCamera owner.
     void consumeFreeCameraInput(MoveInputComponent const&, RawMoveInputComponent&);
+    // Render-hook entry: advances the displacement and translates the fresh
+    // vanilla view. Returns false when vanilla rendering must stay untouched.
+    bool freeCameraView(IClientInstance const&, mce::Camera&);
     void releaseLook();
     void releaseLookKey(); // Key release: ends a held session, ignored in toggle mode
     void cancelLook();
