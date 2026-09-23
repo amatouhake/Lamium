@@ -41,8 +41,16 @@ Immediate use (`GameMode::useItem` / `useItemOn`) and delayed consumption
 (`Player::completeUsingItem`) need separate runtime checks. A successful use
 return value alone does not prove server acceptance. Avoid nested/double
 observations and wait for the use operation's inventory state to settle before
-starting the restock request. Sort and Restock must share explicit ownership of
-the response tracker; neither may reset the other's pending operation.
+starting the restock request.
+
+The shared response tracker now grants a unique token to each operation. A
+second acquisition fails without changing the first operation's pending IDs.
+Reading, ending capture and releasing an operation require its token; stale
+cancellation cannot erase a newer operation. Sort uses this interface and
+releases its token after acknowledgement or cancellation. Restock must use the
+same interface when connected. Tests cover contention, stale cancellation,
+unrelated responses and shutdown/restart; the changed Sort integration still
+requires a fresh runtime regression check.
 
 Cancel on settings/input capture, focus loss, death, world/dimension/player
 change, selection change or inventory mismatch. A rejected, untracked or timed

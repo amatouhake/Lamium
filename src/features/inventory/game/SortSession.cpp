@@ -35,6 +35,7 @@ struct PendingSort {
     std::vector<sort::SlotStack> state;
     size_t next = 0;
     bool waiting = false;
+    std::optional<TransferToken> transfer;
 };
 std::shared_ptr<PendingSort> pending;
 
@@ -217,7 +218,7 @@ bool SortSession::run(
 
 void SortSession::cancel(std::string_view reason) {
     auto cancelled = std::move(pending);
-    cancelTransfer();
+    if (cancelled && cancelled->transfer) cancelTransfer(*cancelled->transfer);
     // Clear capture before diagnostics, including when the logger throws.
     if (cancelled && !reason.empty()) {
         Runtime::instance().self().getLogger().info(
@@ -247,7 +248,7 @@ void SortSession::tick(ContainerScreenController& controller) {
         return;
     }
     if (job.waiting) {
-        auto result = transferResult();
+        auto result = job.transfer ? transferResult(*job.transfer) : ResponseBarrier::Result::Untracked;
         if (result == ResponseBarrier::Result::Waiting) return;
         if (result != ResponseBarrier::Result::Accepted) {
             logger.warn("Sort stopped: request rejected, untracked, or timed out ({})", static_cast<int>(result));
@@ -255,6 +256,8 @@ void SortSession::tick(ContainerScreenController& controller) {
             return;
         }
         job.waiting = false;
+        cancelTransfer(*job.transfer);
+        job.transfer.reset();
         ++job.next;
     }
     if (!manager->hasContainerController(job.region.collectionName)
@@ -287,7 +290,8 @@ void SortSession::tick(ContainerScreenController& controller) {
     }
     SlotData const source(job.region.collectionName, op.from);
     SlotData const destination(job.region.collectionName, op.to);
-    if (!beginTransfer(*manager)) {
+    job.transfer = beginTransfer(*manager);
+    if (!job.transfer) {
         logger.warn("Sort stopped: no available client request scope");
         cancel();
         return;
@@ -304,7 +308,7 @@ void SortSession::tick(ContainerScreenController& controller) {
         throw;
     }
     if (pending != currentJob) return;
-    endTransfer();
+    endTransfer(*job.transfer);
     if (!success) {
         logger.warn("Sort stopped: vanilla refused a transfer");
         cancel();

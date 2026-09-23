@@ -21,7 +21,7 @@
 namespace lamium::inventory::game {
 namespace {
 std::mutex mutex;
-ResponseBarrier barrier;
+OwnedResponseBarrier barrier;
 std::set<int64_t> previousRequests;
 ItemStackNetManagerClient* transferManager = nullptr;
 bool responseInstalled = false;
@@ -46,46 +46,52 @@ void removeRequestTracker() {
 
     if (responseInstalled)
         Runtime::instance().self().getLogger().error("Could not remove inventory response hooks");
-    cancelTransfer();
-}
-void cancelTransfer() {
     std::lock_guard lock(mutex);
     transferManager = nullptr;
     previousRequests.clear();
-    barrier.begin(ResponseBarrier::Clock::now());
+    barrier.reset();
 }
-bool beginTransfer(ContainerManagerController& controller) {
+void cancelTransfer(TransferToken token) {
     std::lock_guard lock(mutex);
+    if (!barrier.release(token)) return;
     transferManager = nullptr;
-    barrier.begin(ResponseBarrier::Clock::now());
     previousRequests.clear();
+}
+std::optional<TransferToken> beginTransfer(ContainerManagerController& controller) {
+    std::lock_guard lock(mutex);
+    if (barrier.busy()) return {};
     auto model = controller.mContainerManagerModel.lock();
-    if (!model) return false;
+    if (!model) return {};
     auto* base = model->mPlayer.mItemStackNetManager.get();
-    if (!base || !base->mIsClientSide || !base->mIsEnabled) return false;
+    if (!base || !base->mIsClientSide || !base->mIsEnabled) return {};
     auto* manager = static_cast<ItemStackNetManagerClient*>(base);
     // Do not append Lamium operations to somebody else's active request.
-    if (manager->mRequest) return false;
+    if (manager->mRequest) return {};
+    std::set<int64_t> previous;
     if (manager->mRequestBatch) {
         for (auto const& request : manager->mRequestBatch->mRequests.get())
-            if (request) previousRequests.insert(request->mClientRequestId->mRawId);
+            if (request) previous.insert(request->mClientRequestId->mRawId);
     }
+    auto token = barrier.begin(ResponseBarrier::Clock::now());
+    if (!token) return {};
+    previousRequests = std::move(previous);
     transferManager = manager;
-    return true;
+    return token;
 }
-void endTransfer() {
+void endTransfer(TransferToken token) {
     std::lock_guard lock(mutex);
+    if (!barrier.owns(token)) return;
     // Vanilla adds completed scopes to this batch. We only observe new IDs;
     // packet creation, sending, and retries remain entirely vanilla-owned.
     auto* manager = std::exchange(transferManager, nullptr);
     if (!manager || !manager->mRequestBatch) return;
     for (auto const& request : manager->mRequestBatch->mRequests.get()) {
         if (request && !previousRequests.contains(request->mClientRequestId->mRawId))
-            barrier.track(request->mClientRequestId->mRawId);
+            barrier.track(token,request->mClientRequestId->mRawId);
     }
 }
-ResponseBarrier::Result transferResult() {
+ResponseBarrier::Result transferResult(TransferToken token) {
     std::lock_guard lock(mutex);
-    return barrier.result(ResponseBarrier::Clock::now());
+    return barrier.result(token,ResponseBarrier::Clock::now());
 }
 }
