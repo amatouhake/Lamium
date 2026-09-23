@@ -22,12 +22,13 @@ Attack, Periodic Use, settings screen, Shapes view.
 
 These block Ready work. Answer them in one short session.
 
-- **D-1 Default keys (L-01).** Which key opens Lamium settings, and should
-  other features keep default keys (Zoom C, NightVision J, Sort R) or ship
-  unbound?
-- **D-2 HUD proposal (DESIGN.md "HUD").** Confirm the HUD element model,
-  the toggle toast and the removal of gameplay key hints.
-- **D-3 Shape types (L-13).** Which new types, in what order.
+- **D-1 Settings key (L-01).** Decided scope: only the settings key changes
+  now; no general default-key policy. Which key replaces F8 is open.
+- **D-2 HUD proposal.** Direction accepted; details are being agreed through
+  the web demo [docs/demos/hud.html](demos/hud.html). Do not implement L-02,
+  L-03, L-04 or L-08 until DESIGN.md marks the HUD section Decided.
+- **D-3 Shape types (L-13).** Direction accepted; the modelling question
+  (dedicated cone type vs parameters) is open. See L-13.
 
 ---
 
@@ -104,28 +105,62 @@ Status: after L-09.
   with tests.
 
 ### L-13 More shape types
-Status: waiting for D-3.
-- Proposed candidates: box (width/height/depth, hollow), ellipsoid (three
-  radii), dome (half sphere), and "range" presets (mob spawn/despawn spheres,
-  beacon, conduit) whose numbers must come from a cited source.
-- Add types through the type registry in `ui/ShapeEditor.h`; generation goes
-  in `overlay/Geometry.h` by columns like `roundColumns` (never enumerate the
-  full volume). Add the new type to `ShapeDocument` load/save.
-- Tests: surface equals a brute-force volume surface for small sizes (same
-  pattern as `ShapeCollectionTests`), large sizes stay within budget.
+Status: waiting for D-3 (modelling question below).
+
+Prior art (behavior only, never code):
+- MiniHUD (current fork) ships: box, centered box, circle, square, rhombus,
+  block line, blocky sphere, spawn/despawn spheres (several variants),
+  ellipsoid spawn, cone, pyramid, diamond pyramid, octagon pyramid. Cones and
+  pyramids share one "tapered" model: bottom radius, top radius, height,
+  direction. Circles have a main axis. Rendering can pick full block / inner
+  edge / outer edge for which cells count as the boundary.
+- Building generators and WorldEdit-style tools commonly offer sphere and
+  ellipsoid (three radii), cylinder (two radii), pyramid, hollow variants.
+
+Proposed model: a shape is a cross-section × a profile × an axis.
+- Cross-section: circle, square, diamond (rhombus), octagon.
+- Profile: constant (circle/cylinder, square/box), linear taper with
+  bottom and top size (cone, frustum, pyramid), round (sphere, ellipsoid,
+  dome = half).
+- Axis: Y (default), X, Z.
+The type list still shows familiar names (Cone, Pyramid, Box, Ellipsoid,
+Dome...) as presets over these families, so users find "cone" by name while
+the generator stays small. Alternatives: a dedicated type per shape (MiniHUD
+style), or not supporting cones at all.
+
+Range presets (numbers from minecraft.wiki, Bedrock):
+- Mob spawning: 24–44 blocks spherical at simulation distance 4; 24–128 at 6+,
+  limited horizontally by simulation distance.
+- Beacon: box, 20/30/40/50 blocks by level toward south/east and one more
+  toward north/west (asymmetric in Bedrock), full height.
+- Conduit: sphere, 32/48/64/80/96 by frame size (16/21/28/35/42 blocks);
+  attacks hostile mobs within 8.
+- Despawn distances: not yet confirmed from a reliable Bedrock source.
+
+Implementation notes for later: add types through the registry in
+`ui/ShapeEditor.h`; generate by columns like `roundColumns` (never the full
+volume); extend `ShapeDocument` load/save; test against a brute-force volume
+surface for small sizes.
 
 ---
 
 ## Design
 
-### L-01 Default keys
-Needs D-1. F8 is missing on some keyboards and is meaningless for Lamium.
-Collect vanilla Bedrock default keys first so the proposal avoids them.
-Changing a default only affects users without an override.
+### L-01 Settings key
+Needs D-1. Only the settings action's default changes; other defaults stay.
+F8 is missing on some keyboards and is meaningless for Lamium. Vanilla
+Bedrock keyboard defaults (options.txt, 1.26.51): Q drop, 1–9 hotbar, E
+inventory, F5 perspective, Space jump, Shift sneak, Ctrl sprint, WASD, Z mob
+effects, T/Enter chat, / command, C copy coordinates, X copy facing
+coordinates, B emote, F2 screenshot, F4 social, [ ] menu tabs, N toast.
+Lamium already uses C (Zoom, clashes with copy coordinates), J, R.
+Free single letters include F G H I K L M O P U V Y. Changing a default only
+affects users without an override; Minecraft may keep its own saved mapping.
 
 ### L-04 HUD element system
 Merge Info HUD, automation status and restriction status into HUD elements
 with anchor presets, offset, scale, background and shadow (DESIGN.md "HUD").
+Demo under review: [docs/demos/hud.html](demos/hud.html).
 Covers the review points: few info options, hard positioning, plain look,
 fixed-position automation status. Start with a web demo, as the settings
 screen and Shapes view did. Then split into Ready tasks.
@@ -154,8 +189,9 @@ position rules before it can be built (see RESTRICTIONS.md).
 Review points: numbers hard to read and flat on the ground, small range, poor
 readability at angles, no spawn marking.
 To decide: camera-facing numbers vs colored markers only; range and update
-strategy (per chunk cache); marking of spawnable blocks. First confirm the
-exact current Bedrock hostile spawn light rule from a reliable source.
+strategy (per chunk cache); marking of spawnable blocks. minecraft.wiki
+(Bedrock): most Overworld monsters cannot spawn where sky light is 7 or more
+or block light is above 0. Confirm in game before relying on it.
 
 ---
 

@@ -1,0 +1,535 @@
+<title>Lamium Settings Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  /* Page chrome: slate tinted toward Bedrock's green accent. */
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  /* In-game tokens: flat fills and text only, as Lamium draws natively. */
+  --mc-panel:16,17,19; --mc-row-hover:rgba(255,255,255,.07); --mc-row-alt:rgba(255,255,255,.025);
+  --mc-sel:rgba(108,195,73,.16); --mc-edge:rgba(255,255,255,.14); --mc-text:#ffffff; --mc-dim:#b4b8b6; --mc-faint:#7f8583;
+  --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-exp:#b98bff; --mc-warn:#ffc24a; --mc-guide:rgba(255,255,255,.18);
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:28px 64px;display:grid;gap:24px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;letter-spacing:.01em;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:70ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:10px}
+
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px 24px;align-items:end}
+.cgroup{display:grid;gap:6px}
+.cgroup > span{font-size:12px;color:var(--ink-3);letter-spacing:.04em}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);background:var(--ground-2);width:max-content;max-width:100%}
+.seg button{all:unset;cursor:pointer;padding:7px 12px;color:var(--ink-2);font:500 13px/1.2 "Noto Sans JP",sans-serif;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-deep);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ctl{display:inline-flex;align-items:center;gap:8px;color:var(--ink-2);font-size:13px}
+.ctl input[type=range]{accent-color:var(--accent);width:130px}
+.ctl input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+
+/* Game viewport: GUI units scaled so 960 GUI units fill the page width. */
+.stage-outer{width:100%;border:1px solid var(--line);background:#0b0c0d}
+.stage-fit{position:relative;width:100%;overflow:hidden;display:flex;justify-content:center}
+.stage-box{position:relative;overflow:hidden}
+.stage{position:absolute;left:0;top:0;transform-origin:0 0;font-family:var(--mc-font);color:var(--mc-text);user-select:none;overflow:hidden}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
+.hint-hud{position:absolute;left:8px;top:6px;font-size:12px;color:#fff;text-shadow:1px 1px 0 #3f3f3f;opacity:.9;white-space:nowrap}
+.hotbar{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);display:flex;background:rgba(0,0,0,.45);border:2px solid #1d1d1d}
+.hotbar i{width:30px;height:30px;border:2px solid #8b8b8b;border-right-width:0}
+.hotbar i:last-child{border-right-width:2px}
+.hotbar i.sel{outline:2px solid #fff;outline-offset:-2px}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.18)}
+.sizetag{position:absolute;right:8px;bottom:6px;font:11px var(--mc-font);color:rgba(255,255,255,.7);text-shadow:1px 1px 0 #000}
+
+/* ---- Lamium panel ---- */
+.panel{position:absolute;display:flex;flex-direction:column;background:rgba(var(--mc-panel),var(--op,.8));box-shadow:inset 0 0 0 1px var(--mc-edge);--stateW:64px;--keyW:132px}
+.phead{display:flex;align-items:center;gap:12px;height:34px;padding:0 10px;border-bottom:1px solid var(--mc-edge);flex:none}
+.brand{font-size:15px;letter-spacing:.02em;white-space:nowrap}
+.brand small{font-size:11px;color:var(--mc-faint);margin-left:6px}
+.search{flex:1;display:flex;align-items:center;height:22px;background:rgba(0,0,0,.45);box-shadow:inset 0 0 0 1px var(--mc-key-edge);padding:0 8px;gap:6px;max-width:320px;margin-left:auto;min-width:0}
+.search span{color:var(--mc-faint);font-size:12px;white-space:nowrap}
+.search input{all:unset;flex:1;font:13px var(--mc-font);color:#fff;min-width:0}
+.search input::placeholder{color:var(--mc-faint)}
+.close{all:unset;cursor:pointer;font:12px var(--mc-font);color:var(--mc-dim);padding:3px 8px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);white-space:nowrap}
+.close:hover{color:#fff;background:var(--mc-row-hover)}
+.pbody{flex:1;min-height:0;display:flex}
+.panel.compact .pbody{flex-direction:column}
+.pfoot{border-top:1px solid var(--mc-edge);padding:6px 10px;min-height:52px;display:grid;gap:2px;flex:none}
+.pfoot .d{font-size:12.5px;color:var(--mc-text);line-height:1.45}
+.pfoot .h{font-size:11px;color:var(--mc-faint)}
+.panel.short .pfoot{min-height:0;padding:4px 10px}
+.panel.short .pfoot .d{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel.short .pfoot .h{display:none}
+
+.side{width:176px;border-right:1px solid var(--mc-edge);display:flex;flex-direction:column;padding:6px 0;flex:none}
+.side button,.tabs button{all:unset;cursor:pointer;font:13px var(--mc-font);color:var(--mc-dim);white-space:nowrap}
+.side button{display:flex;justify-content:space-between;gap:8px;padding:5px 10px 5px 12px;height:26px;align-items:center}
+.side button b{font-weight:400;font-size:11px;color:var(--mc-faint)}
+.side button:hover,.tabs button:hover{background:var(--mc-row-hover);color:#fff}
+.side button[aria-current="true"]{background:var(--mc-sel);color:#fff;box-shadow:inset 3px 0 0 var(--mc-on-edge)}
+.side .sep{height:1px;background:var(--mc-edge);margin:6px 10px}
+.side .grow{flex:1}
+.tabs{display:flex;border-bottom:1px solid var(--mc-edge);padding:0 4px;height:28px;align-items:stretch;flex:none;overflow-x:auto;scrollbar-width:none}
+.tabs button{padding:0 9px;display:flex;align-items:center}
+.tabs button[aria-current="true"]{color:#fff;box-shadow:inset 0 -2px 0 var(--mc-on-edge)}
+.tabs .spacer{flex:1}
+.col{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}
+
+.thead,.row{display:grid;grid-template-columns:minmax(0,1fr) var(--stateW) var(--keyW);align-items:center;column-gap:10px;padding:0 10px}
+.hk .thead,.hk .row{grid-template-columns:minmax(0,1fr) var(--keyW)}
+.thead{height:22px;font-size:11px;color:var(--mc-faint);border-bottom:1px solid var(--mc-edge);flex:none}
+.thead span:nth-child(2){text-align:center}
+.hk .thead span:nth-child(2){text-align:left}
+.scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#5a5b5c transparent;position:relative}
+.row{height:24px;font-size:13px;cursor:pointer;position:relative}
+.row:nth-child(even){background:var(--mc-row-alt)}
+.row:hover{background:var(--mc-row-hover)}
+.row.sel{background:var(--mc-sel);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.row .name{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden}
+.row .name .t{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.chev{width:12px;flex:none;color:var(--mc-dim);font-size:11px;text-align:center}
+.count{font-size:10.5px;color:var(--mc-faint);flex:none}
+.exp{font-size:10px;color:var(--mc-exp);box-shadow:inset 0 0 0 1px var(--mc-exp);padding:0 3px;line-height:14px;flex:none}
+.row.child{font-size:12.5px;color:var(--mc-dim)}
+.row.child .name{padding-left:24px}
+.row.child::before{content:"";position:absolute;left:15px;top:0;bottom:0;width:1px;background:var(--mc-guide)}
+.row.child.last::before{bottom:50%}
+.row.child::after{content:"";position:absolute;left:15px;top:50%;width:8px;height:1px;background:var(--mc-guide)}
+.row.parent.open{background:rgba(255,255,255,.05)}
+.secthead{height:22px;display:flex;align-items:end;padding:0 10px 3px;font-size:11px;color:var(--mc-on-edge);letter-spacing:.06em;border-bottom:1px solid rgba(108,195,73,.25)}
+.state{justify-self:center;display:flex;align-items:center}
+
+/* Three candidate toggle renderings, all rect-drawable. */
+.pill{display:inline-block;width:44px;height:16px;line-height:16px;text-align:center;font-size:11px;color:#fff;background:var(--mc-off);box-shadow:inset 0 -2px 0 rgba(0,0,0,.35)}
+.pill.on{background:var(--mc-on);box-shadow:inset 0 -2px 0 #1d4d13,inset 0 0 0 1px var(--mc-on-edge)}
+.sw{position:relative;display:inline-block;width:30px;height:14px;background:var(--mc-off);box-shadow:inset 0 0 0 1px #2e2f30}
+.sw::after{content:"";position:absolute;top:1px;left:1px;width:12px;height:12px;background:#d0d1d4;box-shadow:inset 0 -2px 0 #9a9b9e}
+.sw.on{background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.sw.on::after{left:17px;background:#fff;box-shadow:inset 0 -2px 0 #b5b6b8}
+.ck{position:relative;display:inline-block;width:14px;height:14px;background:rgba(0,0,0,.4);box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.ck.on{box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.ck.on::after{content:"";position:absolute;inset:3px;background:var(--mc-on-edge)}
+.na{font-size:11px;color:var(--mc-faint)}
+
+.keys{display:flex;gap:3px;align-items:center;min-width:0;overflow:hidden}
+.cap{display:inline-block;height:16px;line-height:16px;padding:0 5px;font-size:11px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge),inset 0 -2px 0 rgba(0,0,0,.5);color:#fff;white-space:nowrap}
+.plus{font-size:10px;color:var(--mc-faint)}
+.unbound{font-size:11px;color:var(--mc-faint);white-space:nowrap}
+.dup{font-size:10px;color:var(--mc-warn);box-shadow:inset 0 0 0 1px var(--mc-warn);padding:0 3px;line-height:14px;margin-left:2px;white-space:nowrap}
+.capture{font-size:11px;color:#fff;background:rgba(108,195,73,.25);box-shadow:inset 0 0 0 1px var(--mc-on-edge);padding:0 6px;height:18px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.ctrl{grid-column:2 / 4;display:flex;align-items:center;justify-self:end;min-width:0}
+.stepper{display:flex;align-items:center;box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.stepper button{all:unset;cursor:pointer;width:18px;text-align:center;height:18px;line-height:18px;font:12px var(--mc-font);color:var(--mc-dim);background:var(--mc-key)}
+.stepper button:hover{color:#fff;background:#3a3b3c}
+.stepper output{min-width:78px;text-align:center;font-size:12px;color:#fff;padding:0 4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.toolbtn{all:unset;cursor:pointer;font:11px var(--mc-font);color:#fff;background:var(--mc-on);box-shadow:inset 0 -2px 0 #1d4d13;padding:0 10px;height:18px;line-height:18px}
+mark{background:rgba(255,194,74,.35);color:#fff}
+.empty{padding:18px 12px;font-size:12px;color:var(--mc-faint)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:16px 18px;display:grid;gap:8px;align-content:start}
+.note h3{font:700 15px/1.4 "Noto Sans JP",sans-serif;margin:0}
+.note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:4px}
+.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.ask ol{margin:0;padding-left:1.3em;color:var(--ink-2);font-size:13.5px;display:grid;gap:4px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Lamium · Settings UI · A 案</div>
+    <h1>A 案を詰める：表示言語、ON/OFF の見せ方、ウィンドウサイズ</h1>
+    <p class="lede">A 案（サイドバー＋表）を土台に、下の切り替えで比べられるようにしました。描画は引き続き、Lamium がゲーム内で描ける「文字」と「半透明の矩形」だけです。キー欄から「長押し / 切替 / 押す」の表示を外し、キーの行を選んだときに下の説明欄で伝えるようにしました。フリールックには「起動方法」の設定を足しています。</p>
+  </header>
+
+  <div class="controls">
+    <div class="cgroup"><span>表示言語</span><div class="seg" role="group" aria-label="表示言語">
+      <button id="l-en" data-lang="en">English</button><button id="l-ja" data-lang="ja">日本語</button></div></div>
+    <div class="cgroup"><span>ON/OFF の表示</span><div class="seg" role="group" aria-label="ON/OFF の表示">
+      <button id="t-switch" data-toggle="switch">スイッチ</button><button id="t-text" data-toggle="text">文字</button><button id="t-check" data-toggle="check">チェック</button></div></div>
+    <div class="cgroup"><span>ウィンドウ（GUI 空間の大きさ）</span><div class="seg" role="group" aria-label="ウィンドウ">
+      <button id="w-169" data-win="169">16:9</button><button id="w-43" data-win="43">4:3</button><button id="w-narrow" data-win="narrow">幅が狭い</button><button id="w-short" data-win="short">高さが低い</button></div></div>
+    <div class="cgroup"><span>その他</span><div style="display:flex;flex-wrap:wrap;gap:8px 18px">
+      <label class="ctl" for="op">不透明度 <input id="op" type="range" min="45" max="95" value="80"> <output id="opv">80%</output></label>
+      <label class="ctl" for="anchor"><input id="anchor" type="checkbox" checked> 展開時に行の位置を固定</label></div></div>
+  </div>
+
+  <div class="stage-outer"><div class="stage-fit" id="fit"><div class="stage-box" id="box"><div class="stage" id="stage">
+    <canvas id="world" width="480" height="270"></canvas>
+    <div class="dim"></div>
+    <div class="hint-hud" id="hud"></div>
+    <div class="hotbar"><i></i><i class="sel"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="panel" id="panel"></div>
+    <div class="sizetag" id="sizetag"></div>
+  </div></div></div></div>
+
+  <section class="cards">
+    <article class="note"><h3>ON/OFF の3案</h3><ul>
+      <li><b>スイッチ</b>：Bedrock 標準の設定画面と同じ形。言語に依存せず、つまみの位置でも ON/OFF が分かる</li>
+      <li><b>文字</b>：ON / OFF の文字入り。いちばん明確だが幅を取る</li>
+      <li><b>チェック</b>：最も省スペース。ゲームの設定画面というより PC アプリ寄りの印象</li>
+    </ul></article>
+    <article class="note"><h3>ウィンドウサイズへの対応</h3><ul>
+      <li>16:9 の通常表示はこれまでのデモと同じ</li>
+      <li>パネルは画面に合わせて縮み、幅が足りないとキー列を細くする</li>
+      <li>さらに狭いとサイドバーを上部のタブに切り替える</li>
+      <li>高さが低いと説明欄を1行にし、操作のヒントを隠す</li>
+    </ul></article>
+    <article class="note"><h3>多言語対応</h3><ul>
+      <li>英語が標準で、ゲームの言語が日本語なら日本語（今の Mod と同じ仕組み）</li>
+      <li>英語の方が項目名が長いので、列からはみ出す部分は「…」で省略し、全文は下の説明欄に出す</li>
+      <li>中国語などは要望があれば追加（翻訳表に1列足すだけの構造）</li>
+    </ul></article>
+  </section>
+
+  <section class="ask">
+    <h2>決めてほしいこと</h2>
+    <ol>
+      <li>ON/OFF の表示：スイッチ / 文字 / チェックのどれにするか</li>
+      <li>幅が狭いとき・高さが低いときの崩れ方はこれでよいか</li>
+      <li>英語表示で、読みにくい・省略が気になる項目はないか</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+/* ---------- Localized strings (English is the fallback) ---------- */
+const UI = {
+  settings:['Settings','設定'], search:['Search','検索'], ph:['Features, settings, keys','機能・設定・キー'], close:['Close  Esc','閉じる Esc'],
+  all:['All','すべて'], hotkeys:['Hotkeys','ホットキー一覧'], hotkeysShort:['Hotkeys','ホットキー'],
+  feature:['Feature','機能'], state:['State','状態'], key:['Key','キー'], action:['Action','操作'],
+  unbound:['Unbound','未割り当て'], dup:['Shared','重複'], exp:['Exp.','試験的'], open:['Open','開く'],
+  capture:['Press a key…  Esc: cancel  Del: clear','キーを押す…  Esc：取消  Del：解除'],
+  none:['No matches for “%”.','「%」に一致する項目はありません。'], noneHot:['No matching actions.','一致する操作はありません。'],
+  hint:['▸ Expand   State: click to toggle   Key: click, then press   ◀ ▶ / − +: change','▸ 展開　状態：クリックで切り替え　キー：クリックして入力　◀ ▶ / − ＋：値を変更'],
+  hintCap:['Press the keys to assign. Esc: cancel  Del: clear','キーを押すと割り当て。Esc：取り消し　Del：解除'],
+  Hold:['Active while the key is held.','押している間だけ有効です。'], Toggle:['Each press turns it on or off.','押すたびに ON / OFF を切り替えます。'], Press:['Runs once per press.','押すたびに1回実行します。'],
+  range:['Range: % to %','範囲：% ～ %'],
+  hud:['Lamium | F8: Settings | Hold C: Zoom | J: Night Vision','Lamium | F8: 設定 | C 長押し: ズーム | J: 暗視'],
+};
+const st = {lang:'ja', toggle:'switch', win:'169', view:'features', cat:'all', open:new Set(['zoom']), sel:'f:zoom', q:'', capture:null, anchor:true, scale:1};
+try { const s = JSON.parse(localStorage.getItem('lamium-demo-a') || '{}'); ['lang','toggle','win'].forEach(k => { if (s[k]) st[k] = s[k]; }); } catch {}
+const L = p => Array.isArray(p) ? p[st.lang === 'ja' ? 1 : 0] : p;
+const U = (k, ...a) => { let s = L(UI[k]); a.forEach(v => s = s.replace('%', v)); return s; };
+
+/* ---------- Catalog: mirrors current Lamium features ---------- */
+const ON = true, OFF = false;
+const unit = (en, ja) => v => st.lang === 'ja' ? v + ja : v + en;
+const num = (id,label,v,min,max,step,fmt) => ({id,label,type:'num',v,min,max,step,fmt});
+const bool = (id,label,v) => ({id,label,type:'bool',v});
+const choice = (id,label,v,choices) => ({id,label,type:'choice',v,choices});
+const REGION = [['Plane','平面'],['Line','直線'],['Column','柱'],['Layer','層']];
+const S = [
+ {id:'camera',name:['Camera & appearance','カメラ・見た目'],short:['Camera','カメラ'],features:[
+  {id:'zoom',name:['Zoom','ズーム'],desc:['Hold to zoom; use the wheel to adjust.','長押しでズーム。ホイールで倍率を調整。'],on:ON,key:['C'],mode:'Hold',opts:[num('mag',['Magnification','倍率'],3.5,1,10,.5,unit('x','倍')),num('wheel',['Wheel step','ホイールの調整幅'],.5,.1,2,.1,v=>v.toFixed(1))]},
+  {id:'freelook',name:['Freelook','フリールック'],exp:1,desc:['Turn only the view; body direction and movement stay as they are.','視点だけを回転。体の向きと移動方向は維持します。'],on:ON,key:['H'],mode:'Hold',opts:[choice('activation',['Activation','起動方法'],0,[['Hold','長押し'],['Toggle','切り替え']])]},
+  {id:'nv',name:['Night Vision','暗視'],desc:['Brighten the view locally; no status effect.','視界を明るくします。状態効果は付与しません。'],on:ON,key:['J'],mode:'Toggle',opts:[]},
+  {id:'offhand',name:['Hide Offhand Item','オフハンドを非表示'],desc:['Hide the first-person offhand drawing; keep equipment and use.','一人称のオフハンド描画を隠します。装備・使用は維持。'],on:OFF,key:null,mode:'Toggle',opts:[]},
+ ]},
+ {id:'inventory',name:['Inventory','インベントリ'],short:['Inventory','インベントリ'],features:[
+  {id:'previews',name:['Container previews','収納アイテムのプレビュー'],desc:['Inspect Shulker or Bundle contents on hover.','カーソルを重ねてシュルカーやバンドルの中身を表示。'],on:ON,opts:[bool('shulker',['Shulker previews','シュルカーのプレビュー'],ON),bool('eshulker',['Show empty Shulkers','空のシュルカーを表示'],ON),bool('shulkertext',['Hide Shulker contents text','シュルカーの内容テキストを隠す'],OFF),bool('bundle',['Bundle previews','バンドルのプレビュー'],ON),bool('ebundle',['Show empty Bundles','空のバンドルを表示'],ON)]},
+  {id:'durability',name:['Durability','耐久値'],desc:['Show remaining durability in item tooltips.','アイテムのツールチップに残り耐久値を表示。'],on:ON,opts:[]},
+  {id:'sorting',name:['Inventory sorting','インベントリの整頓'],desc:['Merge and sort inventory or the hovered container.','インベントリや、カーソルを重ねた側の収納をまとめて整頓。'],on:ON,key:['R'],mode:'Press',opts:[bool('storage',['Sort storage containers','チェストなどの整頓'],ON)]},
+  {id:'toolswitch',name:['Tool Switch','道具の自動切り替え'],desc:['Choose a hotbar tool when mining; keep an effective held tool.','採掘時にホットバーから道具を選択。有効な道具は維持。'],on:OFF,key:null,mode:'Toggle',opts:[]},
+  {id:'restock',name:['Hand Restock','手持ちの自動補充'],exp:1,desc:['Replenish a consumed main-hand stack from inventory.','使い切ったメインハンドをインベントリから補充。'],on:ON,key:null,mode:'Toggle',opts:[]},
+ ]},
+ {id:'interaction',name:['Interaction','ブロック操作'],short:['Interaction','ブロック操作'],features:[
+  {id:'restrict',name:['Block Restrictions','ブロック操作の制限'],desc:['Choose separate placement and breaking regions around a captured anchor.','記録した基準ブロックを軸に、設置と破壊の範囲を制限。'],on:OFF,key:null,mode:'Toggle',opts:[choice('bmode',['Breaking mode','破壊の制限範囲'],0,REGION),choice('pmode',['Placement mode','設置の制限範囲'],0,REGION)],acts:[{id:'cap',name:['Capture anchor block','基準ブロックを記録'],key:null,mode:'Press'},{id:'reset',name:['Reset anchor','基準をリセット'],key:null,mode:'Press'},{id:'cycle',name:['Cycle restriction mode','制限範囲を切り替え'],key:null,mode:'Press'}]},
+  {id:'sneak',name:['Permanent Sneak','常時スニーク'],exp:1,desc:['Toggle sneak with a hotkey. Menus, focus loss and world changes stop it.','キーでスニークを切り替え。メニュー・フォーカス喪失・ワールド変更で停止。'],key:null,mode:'Toggle',opts:[]},
+  {id:'pattack',name:['Periodic Attack','周期攻撃'],exp:1,desc:['Repeat attack at the configured interval. Manual clicks and menus stop it.','設定した間隔で攻撃を繰り返します。手動クリック・メニューで停止。'],key:null,mode:'Toggle',opts:[num('ai',['Interval','間隔'],.6,.1,60,.1,v=>(st.lang==='ja'?v.toFixed(1)+' 秒':v.toFixed(1)+' s'))]},
+  {id:'puse',name:['Periodic Use','周期使用'],exp:1,desc:['Repeat use at the configured interval. Manual clicks and menus stop it.','設定した間隔で使用を繰り返します。手動クリック・メニューで停止。'],key:null,mode:'Toggle',opts:[num('ui',['Interval','間隔'],.5,.1,60,.1,v=>(st.lang==='ja'?v.toFixed(1)+' 秒':v.toFixed(1)+' s'))]},
+ ]},
+ {id:'info',name:['Information & overlays','情報・オーバーレイ'],short:['Info','情報'],features:[
+  {id:'infohud',name:['Info HUD','情報 HUD'],desc:['Choose information lines and screen position.','表示する情報と画面内の位置を設定。'],on:OFF,key:null,mode:'Toggle',opts:[bool('coords',['Coordinates','座標'],ON),bool('dim',['Dimension','ディメンション'],ON),bool('biome',['Biome','バイオーム'],OFF),bool('facing',['Facing','向き'],OFF),bool('fps',['Client FPS','クライアント FPS'],OFF),bool('ft',['Frame interval','フレーム間隔'],OFF),bool('light',['Light at feet','足元の光量'],OFF),bool('ping',['Ping','通信遅延'],OFF),num('hx',['Horizontal position','横位置'],2,0,100,5,v=>v+'%'),num('hy',['Vertical position','縦位置'],15,0,100,5,v=>v+'%')]},
+  {id:'target',name:['Target Info','照準先の情報'],desc:['Show the targeted block or entity name and optional identifier.','照準先のブロック・エンティティ名と、任意で ID を表示。'],on:OFF,key:null,mode:'Toggle',opts:[bool('tid',['Show identifier','ID を表示'],ON),bool('tst',['Show block states','ブロック状態を表示'],OFF),bool('tco',['Show block coordinates','ブロック座標を表示'],OFF),num('tx',['Horizontal position','横位置'],50,0,100,5,v=>v+'%'),num('ty',['Vertical position','縦位置'],2,0,100,5,v=>v+'%')]},
+  {id:'debug',name:['Debug View','デバッグ表示'],desc:['Show client information and target details together.','クライアント情報と照準先の詳細をまとめて表示。'],on:OFF,key:['Ctrl','K'],mode:'Toggle',opts:[]},
+  {id:'chunk',name:['Chunk Borders','チャンク境界'],desc:['Show current chunk edges and 16-block layers.','現在のチャンクの境界と16ブロックごとの高さを表示。'],on:ON,key:null,mode:'Toggle',opts:[]},
+  {id:'hitbox',name:['Hitboxes','当たり判定'],desc:['Show nearby client-known entity bounds in this dimension.','同じディメンションの近くのエンティティの当たり判定を表示。'],on:OFF,key:null,mode:'Toggle',opts:[num('hd',['Display distance','表示距離'],64,8,128,8,unit(' blocks',' ブロック'))]},
+  {id:'lightov',name:['Light Level Overlay','光量オーバーレイ'],exp:1,desc:['Stored light above nearby solid floors. Not a spawn prediction.','近くの固体の床上に保存された光量を表示。スポーン予測ではありません。'],on:OFF,key:null,mode:'Toggle',opts:[bool('sky',['Show sky light instead of block light','ブロック光の代わりに空の光を表示'],OFF)]},
+  {id:'shapes',name:['Shape Manager','形状の管理'],desc:['Create and edit block-grid building guides in a dedicated screen.','ブロック格子に沿った建築ガイドを専用画面で作成・編集。'],tool:'open',opts:[]},
+ ]},
+ {id:'ui',name:['Interface','インターフェース'],short:['Interface','画面'],features:[
+  {id:'hints',name:['Gameplay key hints','プレイ中のキー案内'],desc:['Show or hide the gameplay key guide.','プレイ中のキー案内の表示を切り替え。'],on:ON,opts:[]},
+  {id:'autostatus',name:['Automation status','自動操作の状態表示'],desc:['Show active automatic inputs at the upper right. Hiding this does not stop them.','動作中の自動入力を右上に表示。非表示にしても自動入力は停止しません。'],on:ON,opts:[]},
+  {id:'settings',name:['Settings screen','設定画面'],desc:['Choose the key that opens this screen.','この画面を開くキーを設定。'],key:['F8'],mode:'Press',opts:[]},
+ ]},
+];
+const F = new Map(); S.forEach(s => s.features.forEach(f => { f.sec = s; F.set(f.id,f); }));
+
+/* ---------- Helpers ---------- */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = s => s.toLowerCase();
+const both = p => Array.isArray(p) ? p.join(' ') : p;           // search matches either language
+const matches = p => norm(both(p)).includes(norm(st.q.trim()));
+function hl(p){
+  const text = L(p), q = st.q.trim(); if (!q) return esc(text);
+  const i = norm(text).indexOf(norm(q)); if (i < 0) return esc(text);
+  return esc(text.slice(0,i)) + '<mark>' + esc(text.slice(i,i+q.length)) + '</mark>' + esc(text.slice(i+q.length));
+}
+const chordText = k => k && k.length ? k.join('+') : '';
+function modeOf(f){ return f.id === 'freelook' ? (f.opts[0].v ? 'Toggle' : 'Hold') : f.mode; }
+function allBindings(){
+  const list = [];
+  S.forEach(s => s.features.forEach(f => {
+    if (f.key !== undefined) list.push({sec:s, f, a:null, name:f.name, key:f.key, mode:modeOf(f)});
+    (f.acts||[]).forEach(a => list.push({sec:s, f, a, name:a.name, key:a.key, mode:a.mode}));
+  }));
+  return list;
+}
+function dupSet(){
+  const seen = new Map();
+  allBindings().forEach(b => { const t = chordText(b.key); if (t) seen.set(t, (seen.get(t)||0)+1); });
+  return new Set([...seen].filter(([,n]) => n > 1).map(([t]) => t));
+}
+function keyCell(key, target){
+  if (st.capture === target) return `<span class="capture">${esc(U('capture'))}</span>`;
+  const caps = key && key.length
+    ? key.map((k,i) => (i ? '<span class="plus">+</span>' : '') + `<span class="cap">${esc(k)}</span>`).join('') + (dupSet().has(chordText(key)) ? `<span class="dup">${U('dup')}</span>` : '')
+    : `<span class="unbound">${U('unbound')}</span>`;
+  return `<span class="keys" data-act="key" data-target="${target}">${caps}</span>`;
+}
+function tog(on){
+  if (on === undefined) return '<span class="na">—</span>';
+  if (st.toggle === 'text') return `<span class="pill ${on?'on':''}">${on?'ON':'OFF'}</span>`;
+  if (st.toggle === 'check') return `<span class="ck ${on?'on':''}" role="img" aria-label="${on?'ON':'OFF'}"></span>`;
+  return `<span class="sw ${on?'on':''}" role="img" aria-label="${on?'ON':'OFF'}"></span>`;
+}
+function stepper(f,o){
+  const val = o.type === 'num' ? o.fmt(o.v) : L(o.choices[o.v]);
+  const kind = o.type === 'num' ? 'num' : 'choice';
+  return `<span class="stepper"><button data-act="${kind}" data-dir="-1" data-target="o:${f.id}:${o.id}" aria-label="-">${o.type==='num'?'−':'◀'}</button><output>${esc(val)}</output><button data-act="${kind}" data-dir="1" data-target="o:${f.id}:${o.id}" aria-label="+">${o.type==='num'?'+':'▶'}</button></span>`;
+}
+const childCount = f => (f.opts||[]).length + (f.acts||[]).length;
+function enabledCount(sec){ const fs = sec.features.filter(f => f.on !== undefined); return `${fs.filter(f=>f.on).length}/${fs.length}`; }
+
+/* ---------- Rows ---------- */
+function featureRows(f, {forceOpen=false, onlyMatches=false}={}){
+  const n = childCount(f), open = n && (forceOpen || st.open.has(f.id)), sk = 'f:'+f.id;
+  let html = `<div class="row parent ${open?'open':''} ${st.sel===sk?'sel':''}" data-row="${sk}" data-act="select">
+    <span class="name">${n ? `<span class="chev" data-act="expand" data-target="${f.id}">${open?'▾':'▸'}</span>` : '<span class="chev"></span>'}<span class="t">${hl(f.name)}</span>${f.exp?`<span class="exp">${U('exp')}</span>`:''}${n?`<span class="count">${n}</span>`:''}</span>
+    <span class="state" data-act="toggle" data-target="f:${f.id}">${f.tool ? '' : tog(f.on)}</span>
+    ${f.tool ? `<span><button class="toolbtn" data-act="tool">${U('open')}</button></span>` : (f.key !== undefined ? keyCell(f.key, 'k:'+f.id) : '<span></span>')}
+  </div>`;
+  if (!open) return html;
+  let kids = [...(f.opts||[]).map(o => ({o})), ...(f.acts||[]).map(a => ({a}))];
+  if (onlyMatches) kids = kids.filter(k => matches(k.o ? k.o.label : k.a.name));
+  kids.forEach((k, i) => {
+    const last = i === kids.length - 1 ? 'last' : '';
+    if (k.o){
+      const o = k.o, key = `o:${f.id}:${o.id}`;
+      html += `<div class="row child ${last} ${st.sel===key?'sel':''}" data-row="${key}" data-act="select">
+        <span class="name"><span class="t">${hl(o.label)}</span></span>
+        ${o.type === 'bool' ? `<span class="state" data-act="toggle" data-target="${key}">${tog(o.v)}</span><span></span>` : `<span class="ctrl">${stepper(f,o)}</span>`}
+      </div>`;
+    } else {
+      const a = k.a, key = `a:${f.id}:${a.id}`;
+      html += `<div class="row child ${last} ${st.sel===key?'sel':''}" data-row="${key}" data-act="select">
+        <span class="name"><span class="t">${hl(a.name)}</span></span><span></span>${keyCell(a.key, 'k:'+f.id+':'+a.id)}
+      </div>`;
+    }
+  });
+  return html;
+}
+function featureList(sections, headings){
+  const searching = !!st.q.trim(); let html = '', any = false;
+  sections.forEach(s => {
+    let body = '';
+    s.features.forEach(f => {
+      const self = matches(f.name) || matches(f.desc) || matches(s.name);
+      const kid = [...(f.opts||[]).map(o=>o.label), ...(f.acts||[]).map(a=>a.name)].some(matches);
+      if (searching && !self && !kid) return;
+      body += featureRows(f, searching && !self && kid ? {forceOpen:true, onlyMatches:true} : {});
+    });
+    if (body){ any = true; html += (headings ? `<div class="secthead">${esc(L(s.name))}</div>` : '') + body; }
+  });
+  return any ? html : `<div class="empty">${esc(U('none', st.q))}</div>`;
+}
+function hotkeyList(){
+  let html = '', any = false;
+  S.forEach(s => {
+    const rows = allBindings().filter(b => b.sec === s && (!st.q.trim() || matches(b.name) || matches(b.f.name)));
+    if (!rows.length) return; any = true;
+    html += `<div class="secthead">${esc(L(s.name))}</div>`;
+    rows.forEach(b => {
+      const t = b.a ? 'k:'+b.f.id+':'+b.a.id : 'k:'+b.f.id, key = 'h:'+t;
+      const label = b.a ? L(b.f.name) + ' · ' + L(b.name) : L(b.name);
+      html += `<div class="row ${st.sel===key?'sel':''}" data-row="${key}" data-act="select">
+        <span class="name"><span class="t">${hl([label,label])}</span>${b.f.exp?`<span class="exp">${U('exp')}</span>`:''}</span>${keyCell(b.key, t)}</div>`;
+    });
+  });
+  return any ? html : `<div class="empty">${esc(U('noneHot'))}</div>`;
+}
+
+/* ---------- Layout (responsive in GUI units) ---------- */
+const WIN = {'169':[960,540,'16:9'], '43':[720,540,'4:3'], narrow:[560,540,'narrow'], short:[960,380,'short']};
+function geometry(){
+  const [W,H] = WIN[st.win];
+  const w = Math.min(780, W - 40), h = Math.min(440, H - 60);
+  return {W, H, w, h, l:Math.round((W-w)/2), t:Math.max(12, Math.round((H-h)/2) - 10),
+          compact: w < 620, keyW: w < 700 ? 108 : 132, short: h < 330};
+}
+const panel = document.getElementById('panel');
+function renderShell(){
+  const g = geometry();
+  Object.assign(panel.style, {left:g.l+'px', top:g.t+'px', width:g.w+'px', height:g.h+'px'});
+  panel.style.setProperty('--keyW', g.keyW+'px');
+  panel.style.setProperty('--stateW', st.toggle === 'text' ? '64px' : '44px');
+  panel.classList.toggle('compact', g.compact);
+  panel.classList.toggle('short', g.short);
+  panel.innerHTML = `<div class="phead"><span class="brand">Lamium<small>${U('settings')}</small></span>
+      <label class="search" for="q"><span>${U('search')}</span><input id="q" placeholder="${esc(U('ph'))}" value="${esc(st.q)}" autocomplete="off"></label>
+      <button class="close" data-act="close">${U('close')}</button></div>
+    <div class="pbody" id="pbody"></div><div class="pfoot" id="pfoot"></div>`;
+  panel.querySelector('#q').addEventListener('input', e => { st.q = e.target.value; renderBody(); });
+  document.getElementById('hud').textContent = U('hud');
+  document.getElementById('sizetag').textContent = `GUI ${g.W}×${g.H}`;
+  renderBody();
+}
+function nav(g){
+  const hot = st.view === 'hotkeys';
+  const items = [{id:'all', name:U('all'), short:U('all'), count:''}, ...S.map(s => ({id:s.id, name:L(s.name), short:L(s.short), count:enabledCount(s)}))];
+  const hotCount = allBindings().filter(b => b.key && b.key.length).length;
+  if (g.compact) return `<div class="tabs">${items.map(n => `<button data-act="cat" data-target="${n.id}" aria-current="${!hot && st.cat===n.id}">${esc(n.short)}</button>`).join('')}<span class="spacer"></span><button data-act="view" aria-current="${hot}">${U('hotkeysShort')}</button></div>`;
+  return `<nav class="side">${items.map(n => `<button data-act="cat" data-target="${n.id}" aria-current="${!hot && st.cat===n.id}">${esc(n.name)}<b>${n.count}</b></button>`).join('')}
+    <div class="grow"></div><div class="sep"></div><button data-act="view" aria-current="${hot}">${U('hotkeys')}<b>${hotCount}</b></button></nav>`;
+}
+function describe(){
+  const parts = st.sel.split(':');
+  if (parts[0] === 'h'){ const f = F.get(parts[2]); const a = parts[3] && f.acts.find(x => x.id === parts[3]); return `${L(f.name)}${a ? ' › '+L(a.name) : ''} — ${U(a ? a.mode : modeOf(f))}`; }
+  const f = F.get(parts[1]); if (!f) return '';
+  if (parts[0] === 'o'){ const o = f.opts.find(x => x.id === parts[2]); return `${L(f.name)} › ${L(o.label)}` + (o.type==='num' ? ` — ${U('range', o.fmt(o.min), o.fmt(o.max))}` : ''); }
+  if (parts[0] === 'a'){ const a = f.acts.find(x => x.id === parts[2]); return `${L(f.name)} › ${L(a.name)} — ${U(a.mode)}`; }
+  return L(f.desc) + (f.key !== undefined ? ' ' + U(modeOf(f)) : '');
+}
+function renderBody(){
+  const g = geometry(), hot = st.view === 'hotkeys';
+  const secs = st.cat === 'all' ? S : S.filter(s => s.id === st.cat);
+  const head = hot ? `<div class="thead"><span>${U('action')}</span><span>${U('key')}</span></div>`
+                   : `<div class="thead"><span>${U('feature')}</span><span>${U('state')}</span><span>${U('key')}</span></div>`;
+  panel.querySelector('#pbody').innerHTML = nav(g) + `<div class="col ${hot?'hk':''}">${head}<div class="scroll">${hot ? hotkeyList() : featureList(secs, st.cat==='all')}</div></div>`;
+  panel.querySelector('#pfoot').innerHTML = `<div class="d">${esc(describe())}</div><div class="h">${esc(st.capture ? U('hintCap') : U('hint'))}</div>`;
+}
+function rerenderKeepingRow(rowKey){
+  const sc = panel.querySelector('.scroll'), top = sc ? sc.scrollTop : 0;
+  const el = rowKey && sc ? sc.querySelector(`[data-row="${CSS.escape(rowKey)}"]`) : null;
+  const before = el ? el.getBoundingClientRect().top : null;
+  renderBody();
+  const sc2 = panel.querySelector('.scroll'); if (!sc2) return;
+  sc2.scrollTop = top;
+  const el2 = rowKey ? sc2.querySelector(`[data-row="${CSS.escape(rowKey)}"]`) : null;
+  if (!el2) return;
+  if (st.anchor && before !== null) sc2.scrollTop += (el2.getBoundingClientRect().top - before) / st.scale;
+  else if (!st.anchor) sc2.scrollTop = Math.max(0, el2.offsetTop - 24);   // previous behavior
+}
+
+/* ---------- Interaction ---------- */
+panel.addEventListener('click', e => {
+  const act = e.target.closest('[data-act]'); if (!act) return;
+  const a = act.dataset.act, t = act.dataset.target, row = e.target.closest('[data-row]'), rowKey = row ? row.dataset.row : null;
+  if (a === 'close') return;
+  if (a === 'tool') { st.sel = 'f:shapes'; renderBody(); return; }
+  if (a === 'cat') { st.view = 'features'; st.cat = t; st.capture = null; renderBody(); return; }
+  if (a === 'view') { st.view = 'hotkeys'; st.capture = null; renderBody(); return; }
+  if (a === 'expand') { e.stopPropagation(); st.open.has(t) ? st.open.delete(t) : st.open.add(t); st.sel = 'f:'+t; rerenderKeepingRow('f:'+t); return; }
+  if (a === 'key') { e.stopPropagation(); st.capture = t; if (rowKey) st.sel = rowKey; rerenderKeepingRow(rowKey); return; }
+  if (a === 'toggle') {
+    e.stopPropagation(); const [kind, fid, oid] = t.split(':'); const f = F.get(fid);
+    if (kind === 'o'){ const o = f.opts.find(x => x.id === oid); o.v = !o.v; } else if (f.on !== undefined) f.on = !f.on;
+    if (rowKey) st.sel = rowKey; rerenderKeepingRow(rowKey); return;
+  }
+  if (a === 'num' || a === 'choice') {
+    e.stopPropagation(); const [, fid, oid] = t.split(':'); const o = F.get(fid).opts.find(x => x.id === oid), d = +act.dataset.dir;
+    if (o.type === 'num') o.v = Math.round(Math.min(o.max, Math.max(o.min, o.v + d*o.step)) * 100) / 100;
+    else o.v = (o.v + d + o.choices.length) % o.choices.length;
+    if (rowKey) st.sel = rowKey; rerenderKeepingRow(rowKey); return;
+  }
+  if (a === 'select') {
+    st.sel = rowKey; st.capture = null;
+    if (rowKey.startsWith('f:') && childCount(F.get(rowKey.slice(2))) && !e.target.closest('.state,.keys')) {
+      const id = rowKey.slice(2); st.open.has(id) ? st.open.delete(id) : st.open.add(id);
+    }
+    rerenderKeepingRow(rowKey);
+  }
+});
+const MOD = {Control:1, Shift:1, Alt:1, Meta:1};
+document.addEventListener('keydown', e => {
+  if (!st.capture) return;
+  e.preventDefault(); if (MOD[e.key]) return;
+  const [, fid, aid] = st.capture.split(':'); st.capture = null;
+  const f = F.get(fid), target = aid ? f.acts.find(a => a.id === aid) : f;
+  if (e.key === 'Escape') { renderBody(); return; }
+  if (e.key === 'Delete' || e.key === 'Backspace') { target.key = null; renderBody(); return; }
+  const chord = []; if (e.ctrlKey) chord.push('Ctrl'); if (e.altKey) chord.push('Alt'); if (e.shiftKey) chord.push('Shift');
+  let k = e.key.length === 1 ? e.key.toUpperCase() : e.key.replace('Arrow',''); if (k === ' ') k = 'Space';
+  chord.push(k); target.key = chord; renderBody();
+});
+
+/* ---------- Page controls ---------- */
+function save(){ try { localStorage.setItem('lamium-demo-a', JSON.stringify({lang:st.lang, toggle:st.toggle, win:st.win})); } catch {} }
+function sync(){
+  document.querySelectorAll('[data-lang]').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === st.lang));
+  document.querySelectorAll('[data-toggle]').forEach(b => b.setAttribute('aria-pressed', b.dataset.toggle === st.toggle));
+  document.querySelectorAll('[data-win]').forEach(b => b.setAttribute('aria-pressed', b.dataset.win === st.win));
+}
+document.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => { st.lang = b.dataset.lang; st.capture = null; save(); sync(); renderShell(); }));
+document.querySelectorAll('[data-toggle]').forEach(b => b.addEventListener('click', () => { st.toggle = b.dataset.toggle; save(); sync(); renderShell(); }));
+document.querySelectorAll('[data-win]').forEach(b => b.addEventListener('click', () => { st.win = b.dataset.win; save(); sync(); resize(); renderShell(); }));
+const op = document.getElementById('op'), opv = document.getElementById('opv');
+op.addEventListener('input', () => { panel.style.setProperty('--op', op.value/100); opv.textContent = op.value + '%'; });
+document.getElementById('anchor').addEventListener('change', e => st.anchor = e.target.checked);
+
+/* ---------- Scale: 960 GUI units = page width, so sizes compare truthfully ---------- */
+const fit = document.getElementById('fit'), box = document.getElementById('box'), stage = document.getElementById('stage');
+function resize(){
+  const [W,H] = WIN[st.win];
+  st.scale = fit.clientWidth / 960;
+  stage.style.width = W+'px'; stage.style.height = H+'px'; stage.style.transform = `scale(${st.scale})`;
+  box.style.width = (W*st.scale)+'px'; box.style.height = (H*st.scale)+'px';
+}
+new ResizeObserver(resize).observe(fit);
+
+/* ---------- Procedural blocky world ---------- */
+(function world(){
+  const c = document.getElementById('world'), g = c.getContext('2d');
+  let seed = 1337; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
+  const B = 15, W = 32, H = 18, sea = 12;
+  for (let y = 0; y < 270; y++){ const t = y/170; g.fillStyle = `rgb(${120+t*60|0},${166+t*50|0},255)`; g.fillRect(0,y,480,1); }
+  g.fillStyle = '#fffbe0'; g.fillRect(372,28,26,26); g.fillStyle = '#fff3a8'; g.fillRect(376,32,18,18);
+  g.fillStyle = 'rgba(255,255,255,.92)'; [[40,40,60,10],[52,34,30,8],[210,56,74,10],[230,50,34,8],[300,30,48,8]].forEach(r => g.fillRect(...r));
+  const hs = []; for (let x = 0; x < W; x++) hs.push(Math.round(10 + Math.sin(x*.35)*1.6 + Math.sin(x*.13+1)*2.2 + Math.sin(x*.9)*.5));
+  const tex = (x,y,v,n) => { for (let i=0;i<n;i++){ g.fillStyle = v[rnd()*v.length|0]; g.fillRect(x+(rnd()*B|0), y+(rnd()*B|0), 2, 2);} };
+  for (let x = 0; x < W; x++){
+    const top = hs[x];
+    for (let y = top; y < H; y++){
+      const px = x*B, py = y*B; let base, v;
+      if (y === top){ base='#5d9b3a'; v=['#6fb146','#4d8a2f','#78bd4f']; }
+      else if (y < top+3){ base='#866043'; v=['#96704f','#6e4c34','#7a563b']; }
+      else { base='#7d7d7d'; v=rnd()<.06?['#2b2b2b','#1e1e1e']:['#8c8c8c','#6b6b6b','#747474']; }
+      g.fillStyle = base; g.fillRect(px,py,B,B); tex(px,py,v,10);
+      if (y === top){ g.fillStyle='#866043'; g.fillRect(px,py+B-4,B,4); }
+    }
+    if (top > sea) for (let y = sea; y < top; y++){ g.fillStyle='rgba(52,96,214,.78)'; g.fillRect(x*B,y*B,B,B); }
+  }
+  [5,14,24,28].forEach(tx => {
+    const top = hs[tx]; if (top > sea) return;
+    for (let i = 1; i <= 4; i++){ g.fillStyle='#6b5231'; g.fillRect(tx*B+3,(top-i)*B,B-6,B); }
+    for (let dx = -2; dx <= 2; dx++) for (let dy = 4; dy <= 6; dy++){
+      if (Math.abs(dx) === 2 && dy === 6) continue;
+      const px = (tx+dx)*B, py = (top-dy)*B; g.fillStyle='#3f7d2a'; g.fillRect(px,py,B,B); tex(px,py,['#4f9535','#2f6620','#57a33b'],12);
+    }
+  });
+})();
+
+sync(); resize(); renderShell();
+})();
+</script>

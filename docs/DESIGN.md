@@ -77,7 +77,7 @@ at most 640×380 and centered. New screens reuse these numbers.
 - Labels with a value use one translation string with `{}`
   ("Radius: {}"), split by `splitLabel` for table display.
 
-## HUD (Proposed — needs confirmation)
+## HUD (Proposed — being agreed through [demos/hud.html](demos/hud.html))
 
 Menus are polished; HUD is minimal; debug views may be dense. The HUD is now a
 set of separate pieces (Info HUD, target info, automation status, restriction
@@ -118,9 +118,9 @@ them into one **HUD element** system before adding more content:
 - (Proposed) Overlays must not hide vanilla's block selection outline: skip or
   dim geometry on the targeted block.
 
-## Keys (Open)
+## Keys
 
-F8 is missing on some keyboards and says nothing about Lamium. The default
-settings key and the policy for other defaults are an open decision
-(BACKLOG L-01). Until decided, do not add new default keys; new actions ship
-unbound.
+- (Decided) There is no general default-key policy to design now; defaults are
+  decided per feature when needed. New actions ship unbound unless the
+  maintainer picks a key.
+- (Open) F8 for settings is being replaced (BACKLOG L-01).

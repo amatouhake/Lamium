@@ -1,0 +1,463 @@
+<title>Lamium Shape Manager Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --mc-panel:16,17,19; --mc-row-hover:rgba(255,255,255,.07); --mc-row-alt:rgba(255,255,255,.025);
+  --mc-sel:rgba(108,195,73,.16); --mc-edge:rgba(255,255,255,.14); --mc-text:#fff; --mc-dim:#b4b8b6; --mc-faint:#7f8583;
+  --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-warn:#ffc24a; --mc-draft:#9fd4ff; --mc-guide:rgba(255,255,255,.18);
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:28px 64px;display:grid;gap:24px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:72ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:10px}
+
+.stage-outer{width:100%;border:1px solid var(--line);background:#000}
+.stage-fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--mc-font);color:var(--mc-text);user-select:none;overflow:hidden}
+.stage canvas.world{position:absolute;inset:0;width:960px;height:540px;image-rendering:pixelated}
+.stage canvas.overlay{position:absolute;inset:0;width:960px;height:540px}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.14)}
+.hotbar{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);display:flex;background:rgba(0,0,0,.45);border:2px solid #1d1d1d}
+.hotbar i{width:30px;height:30px;border:2px solid #8b8b8b;border-right-width:0}
+.hotbar i:last-child{border-right-width:2px}
+.hotbar i.sel{outline:2px solid #fff;outline-offset:-2px}
+
+.panel{position:absolute;display:flex;flex-direction:column;background:rgba(var(--mc-panel),.8);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.phead{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-bottom:1px solid var(--mc-edge);flex:none}
+.brand{font-size:15px}
+.crumb{font-size:12px;color:var(--mc-faint)}
+.hbtn{all:unset;cursor:pointer;font:12px var(--mc-font);color:var(--mc-dim);padding:0 8px;height:20px;line-height:20px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);white-space:nowrap}
+.hbtn:hover{color:#fff;background:var(--mc-row-hover)}
+.spacer{flex:1}
+.pbody{flex:1;min-height:0;display:flex}
+.pfoot{border-top:1px solid var(--mc-edge);padding:6px 10px;min-height:48px;display:grid;gap:2px;flex:none}
+.pfoot .d{font-size:12.5px;line-height:1.45}
+.pfoot .h{font-size:11px;color:var(--mc-faint)}
+.side{width:150px;border-right:1px solid var(--mc-edge);display:flex;flex-direction:column;padding:6px 0;flex:none}
+.side button{all:unset;cursor:pointer;font:13px var(--mc-font);color:var(--mc-dim);display:flex;justify-content:space-between;padding:5px 10px 5px 12px;height:26px;align-items:center;white-space:nowrap}
+.side button b{font-weight:400;font-size:11px;color:var(--mc-faint)}
+.side button:hover{background:var(--mc-row-hover);color:#fff}
+.side button[aria-current="true"]{background:var(--mc-sel);color:#fff;box-shadow:inset 3px 0 0 var(--mc-on-edge)}
+.side .sep{height:1px;background:var(--mc-edge);margin:6px 10px}
+.side .grow{flex:1}
+
+.col{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}
+.toolbar{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--mc-edge);flex:none;flex-wrap:wrap}
+.toolbar .lab{font-size:11px;color:var(--mc-faint);margin-right:2px}
+.btn{all:unset;cursor:pointer;font:12px var(--mc-font);color:#fff;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge),inset 0 -2px 0 rgba(0,0,0,.5);padding:0 9px;height:20px;line-height:20px;white-space:nowrap}
+.btn:hover{background:#3a3b3c}
+.btn.primary{background:var(--mc-on);box-shadow:inset 0 -2px 0 #1d4d13,inset 0 0 0 1px var(--mc-on-edge)}
+.btn.primary:hover{background:#4a9a33}
+.btn.danger{color:#ffb3ad;box-shadow:inset 0 0 0 1px #8a3a34,inset 0 -2px 0 rgba(0,0,0,.5)}
+.btn.danger.armed{background:#8a2f28;color:#fff}
+.btn.on{box-shadow:inset 0 0 0 1px var(--mc-draft);color:var(--mc-draft)}
+.glyph{display:inline-block;width:12px;height:12px;vertical-align:-2px;margin-right:4px}
+.thead,.row{display:grid;grid-template-columns:18px minmax(0,1fr) 56px 44px;align-items:center;column-gap:8px;padding:0 10px}
+.thead{height:22px;font-size:11px;color:var(--mc-faint);border-bottom:1px solid var(--mc-edge);flex:none}
+.scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#5a5b5c transparent}
+.row{height:26px;font-size:13px;cursor:pointer}
+.row:nth-child(even){background:var(--mc-row-alt)}
+.row:hover{background:var(--mc-row-hover)}
+.row.sel{background:var(--mc-sel);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.row.draft{box-shadow:inset 0 0 0 1px var(--mc-draft);color:var(--mc-draft)}
+.row.other{color:var(--mc-faint)}
+.row .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;gap:6px;align-items:center;min-width:0}
+.row .nm span{overflow:hidden;text-overflow:ellipsis}
+.tag{font-size:10px;color:var(--mc-faint);box-shadow:inset 0 0 0 1px var(--mc-key-edge);padding:0 4px;line-height:14px;flex:none}
+.tag.draft{color:var(--mc-draft);box-shadow:inset 0 0 0 1px var(--mc-draft)}
+.type{font-size:11.5px;color:var(--mc-dim)}
+.swatch{width:10px;height:10px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.5)}
+.sw{position:relative;display:inline-block;width:30px;height:14px;background:var(--mc-off);box-shadow:inset 0 0 0 1px #2e2f30;cursor:pointer}
+.sw::after{content:"";position:absolute;top:1px;left:1px;width:12px;height:12px;background:#d0d1d4;box-shadow:inset 0 -2px 0 #9a9b9e}
+.sw.on{background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.sw.on::after{left:17px;background:#fff}
+.empty{padding:16px 12px;font-size:12px;color:var(--mc-faint);line-height:1.6}
+
+.detail{width:330px;border-left:1px solid var(--mc-edge);display:flex;flex-direction:column;min-height:0;flex:none}
+.dhead{padding:8px 10px;border-bottom:1px solid var(--mc-edge);display:grid;gap:6px}
+.draftnote{font-size:11.5px;color:var(--mc-draft);line-height:1.45}
+.namefield{display:flex;align-items:center;gap:6px}
+.namefield input{all:unset;flex:1;min-width:0;font:14px var(--mc-font);color:#fff;background:rgba(0,0,0,.4);box-shadow:inset 0 0 0 1px var(--mc-key-edge);height:22px;padding:0 6px}
+.namefield input:focus{box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.preview{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start}
+.preview canvas{width:120px;height:120px;image-rendering:pixelated;background:rgba(0,0,0,.35);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.pinfo{display:grid;gap:4px;font-size:11.5px;color:var(--mc-dim);line-height:1.45}
+.pinfo b{font-weight:400;color:#fff}
+.props .grp{font-size:10.5px;color:var(--mc-faint);padding:7px 10px 3px;letter-spacing:.06em}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;min-height:24px;padding:0 10px;font-size:12.5px}
+.prow:nth-child(even){background:var(--mc-row-alt)}
+.prow .k{color:var(--mc-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stepper{display:flex;align-items:center;box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.stepper button{all:unset;cursor:pointer;width:18px;text-align:center;height:18px;line-height:18px;font:12px var(--mc-font);color:var(--mc-dim);background:var(--mc-key)}
+.stepper button:hover{color:#fff;background:#3a3b3c}
+.stepper output{min-width:112px;text-align:center;font-size:12px;color:#fff;padding:0 4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dactions{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--mc-edge);flex:none}
+.dactions .spacer{flex:1}
+
+.panel.dock .detail{width:auto;border-left:0;border-top:1px solid var(--mc-edge);flex:1}
+.panel.dock .pbody{flex-direction:column}
+.panel.dock .listwrap{flex:none;height:150px}
+.panel.dock .side{display:none}
+
+.settingsmock{border:1px solid var(--line);background:var(--ground-2);padding:16px 18px;display:grid;gap:10px}
+.settingsmock .tbl{font-family:var(--mc-font);font-size:13px;background:rgba(16,17,19,.95);box-shadow:inset 0 0 0 1px var(--mc-edge);max-width:620px}
+.settingsmock .r{display:grid;grid-template-columns:minmax(0,1fr) 54px 112px;gap:10px;align-items:center;height:26px;padding:0 10px;color:#fff}
+.settingsmock .r.c{color:var(--mc-dim);position:relative;padding-left:34px}
+.settingsmock .r.c::before{content:"";position:absolute;left:15px;top:0;bottom:0;width:1px;background:var(--mc-guide)}
+.settingsmock .r.c.last::before{bottom:50%}
+.settingsmock .r.c::after{content:"";position:absolute;left:15px;top:50%;width:8px;height:1px;background:var(--mc-guide)}
+.settingsmock .r.sec{color:var(--accent);font-size:11px;height:22px;border-bottom:1px solid rgba(108,195,73,.3)}
+.cap{display:inline-block;height:16px;line-height:16px;padding:0 5px;font-size:11px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);color:#fff}
+.faint{color:var(--mc-faint);font-size:11px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:16px 18px;display:grid;gap:8px;align-content:start}
+.note h3{font:700 15px/1.4 "Noto Sans JP",sans-serif;margin:0}
+.note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:4px}
+.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.ask ol{margin:0;padding-left:1.3em;color:var(--ink-2);font-size:13.5px;display:grid;gap:4px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Lamium · Shape Manager · 改訂</div>
+    <h1>形状の画面：下書きから作成し、右寄せは画面内で切り替える</h1>
+    <p class="lede">A 案を土台にしました。ヘッダーの「右に寄せる」で B の配置に切り替えられます（最後の状態を覚えます）。追加ボタンはすぐに形状を作らず、下書きを開きます。下書きはワールドに水色の破線で仮表示され、「作成」で確定します。描き方は形状ごとに選べ、既定は「面」です。値を変えてもスクロール位置は保たれます。</p>
+  </header>
+
+  <div class="stage-outer"><div class="stage-fit" id="fit"><div class="stage" id="stage">
+    <canvas class="world" id="world" width="480" height="270"></canvas>
+    <div class="dim"></div>
+    <canvas class="overlay" id="overlay" width="960" height="540"></canvas>
+    <div class="hotbar"><i></i><i class="sel"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="panel" id="panel"></div>
+  </div></div></div>
+
+  <section class="settingsmock">
+    <h2>設定画面側に置く「形状の描画」</h2>
+    <p class="lede" style="margin:0">機能一覧からは形状の画面を開かず、表示の ON/OFF と2つのキーだけを置きます（情報・オーバーレイ内）。</p>
+    <div class="tbl" role="img" aria-label="設定画面の形状の描画の行">
+      <div class="r sec">情報・オーバーレイ</div>
+      <div class="r"><span>▾ 形状の描画 <span class="faint">2</span></span><span class="sw on" style="justify-self:center"></span><span><span class="cap">未割り当て</span></span></div>
+      <div class="r c"><span>表示の切り替え</span><span></span><span class="faint">未割り当て</span></div>
+      <div class="r c last"><span>形状の画面を開く</span><span></span><span class="faint">未割り当て</span></div>
+    </div>
+    <p class="faint" style="font-family:'Noto Sans JP',sans-serif;font-size:13px">親の行のスイッチは全形状の表示の ON/OFF。キー欄は「表示の切り替え」を主キーとして表示します。</p>
+  </section>
+
+  <section class="cards">
+    <article class="note"><h3>新しい形状の流れ</h3><ul>
+      <li>「新しい形状」で種類を選ぶと下書きが開く（一覧に「下書き」として表示）</li>
+      <li>中心の基準：立っているブロックの中心 / 今いる正確な位置 / 見ているブロック</li>
+      <li>下書きはワールドに破線で仮表示。「作成」で確定、「取消」で破棄</li>
+      <li>「ここへ移動」も同じ基準で中心を合わせ直す</li>
+    </ul></article>
+    <article class="note"><h3>右に寄せる（B）の扱い</h3><ul>
+      <li>設定項目にはせず、形状の画面のヘッダーのボタンで切り替え</li>
+      <li>位置合わせは右寄せ、一覧の整理は大きく、と使い分ける</li>
+      <li>部品は同じで位置と幅が変わるだけなので、保守の負担は小さい</li>
+    </ul></article>
+    <article class="note"><h3>描き方</h3><ul>
+      <li>形状ごとに 面 / 線 / 線＋面。新しい形状の既定は面</li>
+      <li>線は、大きな形状を透かして見る・負荷を下げるときに使う</li>
+      <li>描画処理は編集時だけ作り直し、毎フレームの再生成をやめる</li>
+    </ul></article>
+  </section>
+
+  <section class="ask">
+    <h2>確認したいこと</h2>
+    <ol>
+      <li>下書き → 作成の流れと、中心の基準の3択でよいか（既定は「立っているブロックの中心」）</li>
+      <li>右寄せをヘッダーのボタンで切り替える形でよいか</li>
+      <li>設定画面側の「形状の描画」の構成でよいか</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+const COLORS = {cyan:['シアン','#3fd0e0'], yellow:['黄','#f2cc3d'], pink:['桃','#ef7fc0'], white:['白','#f2f2f2']};
+const TYPES = {circle:'円', cylinder:'円柱', sphere:'球', plane:'平面'};
+const SNAP = ['ブロック中央','ブロックの角','なし'];
+const ORIENT = ['水平 (XZ)','垂直 (XY)','垂直 (YZ)'];
+const STYLE = {face:'面', line:'線', both:'線＋面'};
+const REF = ['立っているブロックの中心','今いる正確な位置','見ているブロック'];
+const PLAYER = [101.3, 64, -31.7], TARGET = [106, 63, -34];
+let nextId = 5;
+const shapes = [
+  {id:1, name:'拠点の外周', type:'circle', dim:'overworld', visible:true, color:'cyan', style:'face', x:120.5, y:64, z:-38.5, r:12, h:1, snap:0},
+  {id:2, name:'ドーム', type:'sphere', dim:'overworld', visible:true, color:'yellow', style:'both', x:96.5, y:70, z:-20.5, r:8, h:1, snap:0},
+  {id:3, name:'畑の格子', type:'plane', dim:'overworld', visible:false, color:'white', style:'line', x:80, y:63, z:-60, w:16, d:16, sp:4, orient:0},
+  {id:4, name:'ネザー通路', type:'cylinder', dim:'nether', visible:true, color:'pink', style:'face', x:15.5, y:70, z:-4.5, r:3, h:12, snap:0},
+];
+const st = {dock:false, sel:1, layer:0, armed:false, draft:null, ref:0};
+try { const s = JSON.parse(localStorage.getItem('lamium-shapes-demo2')||'{}'); if (typeof s.dock === 'boolean') st.dock = s.dock; } catch {}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = v => Number.isInteger(v) ? String(v) : v.toFixed(1);
+const cur = () => st.draft || shapes.find(s => s.id === st.sel);
+function centerFor(type, ref){
+  const p = ref === 0 ? PLAYER.map(Math.floor) : ref === 1 ? PLAYER : TARGET;
+  const off = type === 'plane' || ref === 1 ? 0 : .5;
+  return ref === 1 ? {x:+p[0].toFixed(1), y:p[1], z:+p[2].toFixed(1)} : {x:p[0]+off, y:p[1], z:p[2]+off};
+}
+
+function cells(s, layer){
+  const out = [];
+  if (s.type === 'plane'){
+    for (let i = 0; i <= s.w; i++) for (let j = 0; j <= s.d; j++)
+      if (i % s.sp === 0 || j % s.sp === 0) out.push([i - (s.w/2|0), j - (s.d/2|0)]);
+    return out;
+  }
+  let r = s.r;
+  if (s.type === 'sphere'){ if (Math.abs(layer) > r) return out; r = Math.sqrt(r*r - layer*layer); }
+  if (s.type === 'cylinder' && (layer < 0 || layer >= s.h)) return out;
+  if (s.type === 'circle' && layer !== 0) return out;
+  const R = Math.ceil(r) + 1;
+  for (let i = -R; i <= R; i++) for (let j = -R; j <= R; j++){
+    const d = Math.hypot(i, j);
+    if (Math.abs(d - r) < .5 || (s.type === 'sphere' && d < r && Math.abs(layer) >= s.r - .5)) out.push([i, j]);
+  }
+  return out;
+}
+function layerRange(s){
+  if (s.type === 'sphere') return [-Math.floor(s.r), Math.floor(s.r)];
+  if (s.type === 'cylinder') return [0, s.h - 1];
+  return [0, 0];
+}
+
+/* ---------- Panel ---------- */
+const panel = document.getElementById('panel');
+function geometry(){ return st.dock ? {l:600,t:24,w:340,h:476} : {l:60,t:36,w:840,h:452}; }
+function glyph(type){
+  const m = {circle:[[1,0],[2,0],[3,0],[0,1],[4,1],[0,2],[4,2],[0,3],[4,3],[1,4],[2,4],[3,4]],
+    cylinder:[[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[4,1],[0,2],[4,2],[0,3],[4,3],[1,4],[2,4],[3,4]],
+    sphere:[[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[4,1],[0,2],[1,2],[2,2],[3,2],[4,2],[0,3],[1,3],[2,3],[3,3],[4,3],[1,4],[2,4],[3,4]],
+    plane:[[0,0],[2,0],[4,0],[0,1],[1,1],[2,1],[3,1],[4,1],[0,2],[2,2],[4,2],[0,3],[1,3],[2,3],[3,3],[4,3],[0,4],[2,4],[4,4]]}[type];
+  return `<svg class="glyph" viewBox="0 0 5 5" aria-hidden="true">${m.map(([x,y]) => `<rect x="${x}" y="${y}" width="1" height="1" fill="currentColor"/>`).join('')}</svg>`;
+}
+const stepper = (key, val) => `<span class="stepper"><button data-act="step" data-key="${key}" data-dir="-1" aria-label="減らす">−</button><output>${esc(val)}</output><button data-act="step" data-key="${key}" data-dir="1" aria-label="増やす">+</button></span>`;
+const chooser = (key, val) => `<span class="stepper"><button data-act="cycle" data-key="${key}" data-dir="-1" aria-label="前へ">◀</button><output>${esc(val)}</output><button data-act="cycle" data-key="${key}" data-dir="1" aria-label="次へ">▶</button></span>`;
+function rowHtml(s){
+  const other = s.dim !== 'overworld';
+  return `<div class="row ${s.id===st.sel && !st.draft?'sel':''} ${other?'other':''}" data-act="select" data-id="${s.id}">
+    <span class="swatch" style="background:${COLORS[s.color][1]};opacity:${s.visible && !other ? 1 : .35}"></span>
+    <span class="nm"><span>${esc(s.name)}</span>${other ? '<span class="tag">ネザー</span>' : ''}</span>
+    <span class="type">${TYPES[s.type]}</span>
+    <span class="sw ${s.visible?'on':''}" data-act="vis" data-id="${s.id}" role="switch" aria-checked="${s.visible}"></span></div>`;
+}
+function draftRow(){
+  const d = st.draft;
+  return `<div class="row draft" data-act="none"><span class="swatch" style="background:${COLORS[d.color][1]}"></span>
+    <span class="nm"><span>${esc(d.name)}</span><span class="tag draft">下書き</span></span><span class="type">${TYPES[d.type]}</span><span></span></div>`;
+}
+function renderPanel(){
+  // Keep both scroll positions across re-rendering, as the native screen will.
+  const keep = [...panel.querySelectorAll('.scroll')].map(el => el.scrollTop);
+  const g = geometry();
+  Object.assign(panel.style, {left:g.l+'px', top:g.t+'px', width:g.w+'px', height:g.h+'px'});
+  panel.classList.toggle('dock', st.dock);
+  const s = cur();
+  const side = `<nav class="side">
+      ${['すべて','カメラ・見た目','インベントリ','操作','情報・オーバーレイ','全般'].map(n => `<button data-act="nav">${n}</button>`).join('')}
+      <div class="grow"></div><div class="sep"></div>
+      <button data-act="nav">ホットキー<b>12</b></button>
+      <button aria-current="true">形状<b>${shapes.length}</b></button></nav>`;
+  const list = `<div class="toolbar"><span class="lab">新しい形状</span>
+      ${Object.entries(TYPES).map(([k,v]) => `<button class="btn ${st.draft && st.draft.type===k?'on':''}" data-act="add" data-type="${k}">${glyph(k)}${v}</button>`).join('')}</div>
+    <div class="thead"><span></span><span>名前</span><span>種類</span><span>表示</span></div>
+    <div class="scroll">${st.draft ? draftRow() : ''}${shapes.length ? shapes.map(rowHtml).join('') : '<div class="empty">形状はまだありません。</div>'}</div>`;
+  panel.innerHTML = `<div class="phead"><span class="brand">Lamium</span><span class="crumb">› 形状</span><span class="spacer"></span>
+      <button class="hbtn" data-act="dock">${st.dock ? '大きく表示' : '右に寄せる'}</button>
+      <button class="hbtn" data-act="none">閉じる (Esc)</button></div>
+    <div class="pbody">${side}
+      <div class="col listwrap">${list}</div>
+      ${s ? detailHtml(s) : `<aside class="detail"><div class="empty">左の一覧から形状を選ぶか、「新しい形状」で作成します。</div></aside>`}
+    </div>
+    <div class="pfoot"><div class="d" id="desc">${esc(describe())}</div><div class="h">変更はこのローカルワールドに自動保存されます　|　− ＋ / ◀ ▶：値の変更　Esc：閉じる</div></div>`;
+  panel.querySelectorAll('.scroll').forEach((el, i) => { if (keep[i] !== undefined) el.scrollTop = keep[i]; });
+  drawPreview(); drawOverlay();
+}
+function detailHtml(s){
+  const draft = s === st.draft;
+  const [lo, hi] = layerRange(s);
+  st.layer = Math.min(hi, Math.max(lo, st.layer));
+  const round = s.type !== 'plane';
+  const dist = Math.hypot(s.x - PLAYER[0], s.z - PLAYER[2]);
+  let geo = '';
+  if (round){
+    geo += `<div class="prow"><span class="k">半径</span>${stepper('r', fmt(s.r)+' ブロック')}</div>`;
+    if (s.type === 'cylinder') geo += `<div class="prow"><span class="k">高さ</span>${stepper('h', s.h+' ブロック')}</div>`;
+    geo += `<div class="prow"><span class="k">中心の合わせ方</span>${chooser('snap', SNAP[s.snap])}</div>`;
+  } else {
+    geo += `<div class="prow"><span class="k">幅</span>${stepper('w', s.w+' ブロック')}</div>
+            <div class="prow"><span class="k">奥行き</span>${stepper('d', s.d+' ブロック')}</div>
+            <div class="prow"><span class="k">格子の間隔</span>${stepper('sp', s.sp+' ブロック')}</div>
+            <div class="prow"><span class="k">向き</span>${chooser('orient', ORIENT[s.orient])}</div>`;
+  }
+  const position = draft
+    ? `<div class="prow"><span class="k">中心の基準</span>${chooser('ref', REF[st.ref])}</div>
+       <div class="prow"><span class="k">中心</span><span class="type">${fmt(s.x)}, ${fmt(s.y)}, ${fmt(s.z)}</span></div>`
+    : `<div class="prow"><span class="k">X</span>${stepper('x', fmt(s.x))}</div>
+       <div class="prow"><span class="k">Y</span>${stepper('y', fmt(s.y))}</div>
+       <div class="prow"><span class="k">Z</span>${stepper('z', fmt(s.z))}</div>
+       <div class="prow"><span class="k">移動の基準</span>${chooser('ref', REF[st.ref])}</div>
+       <div class="prow"><span class="k"></span><button class="btn" data-act="here">ここへ移動</button></div>`;
+  return `<aside class="detail">
+    <div class="dhead">
+      ${draft ? '<span class="draftnote">下書き：まだ作成されていません。ワールドには破線で仮表示しています。</span>' : ''}
+      <label class="namefield" for="nm">${glyph(s.type)}<input id="nm" value="${esc(s.name)}" aria-label="名前"></label>
+      <div class="preview"><canvas id="pv" width="33" height="33" aria-label="上から見たブロック配置"></canvas>
+        <div class="pinfo"><span>${TYPES[s.type]}・<b>${cells(s, st.layer).length}</b> ブロック${lo !== hi ? '（この段）' : ''}</span>
+          <span>中心まで <b>${dist.toFixed(0)}</b> ブロック</span>
+          ${lo !== hi ? `<span>段 ${stepper('layer', (st.layer>=0?'+':'')+st.layer+'（'+lo+'〜'+hi+'）')}</span>` : ''}
+          <span style="color:var(--mc-faint)">上から見た配置。緑は中心。</span></div></div>
+    </div>
+    <div class="scroll props">
+      ${draft ? `<div class="grp">種類</div><div class="prow"><span class="k">種類</span>${chooser('type', TYPES[s.type])}</div>` : ''}
+      <div class="grp">形</div>${geo}
+      <div class="grp">位置</div>${position}
+      <div class="grp">表示</div>
+      ${draft ? '' : `<div class="prow"><span class="k">表示する</span><span class="sw ${s.visible?'on':''}" data-act="vis" data-id="${s.id}"></span></div>`}
+      <div class="prow"><span class="k">描き方</span>${chooser('style', STYLE[s.style])}</div>
+      <div class="prow"><span class="k">色</span>${chooser('color', COLORS[s.color][0])}</div>
+    </div>
+    <div class="dactions">${draft
+      ? `<button class="btn primary" data-act="create">作成</button><button class="btn" data-act="cancel">取消</button>`
+      : `<button class="btn" data-act="dup">複製</button><span class="spacer"></span><button class="btn danger ${st.armed?'armed':''}" data-act="del">${st.armed ? 'もう一度押すと削除' : '削除'}</button>`}</div>
+  </aside>`;
+}
+function describe(){
+  const s = cur(); if (!s) return '形状を選んでください。';
+  if (s === st.draft) return `新しい${TYPES[s.type]}の下書きです。大きさと中心を決めて「作成」を押すと、ワールドに描画されます。`;
+  if (s.dim !== 'overworld') return `${s.name} はネザーにあります。別のディメンションの形状は、そのディメンションにいるときだけ描画されます。`;
+  return `${s.name}：${TYPES[s.type]}。${s.visible ? 'ワールドに描画中です。' : '非表示です。'}値を変えるとすぐにワールドの表示に反映されます。`;
+}
+function drawPreview(){
+  const c = document.getElementById('pv'); const s = cur(); if (!c || !s) return;
+  const g = c.getContext('2d'); g.clearRect(0,0,33,33);
+  const scale = s.type === 'plane' ? Math.max(1, Math.floor(30 / Math.max(s.w, s.d, 1))) : Math.max(1, Math.floor(30 / (2*Math.ceil(s.r)+3)));
+  g.fillStyle = 'rgba(255,255,255,.06)';
+  for (let i = 0; i < 33; i += scale*2) for (let j = 0; j < 33; j += scale*2) g.fillRect(i,j,scale,scale);
+  g.fillStyle = s === st.draft ? '#9fd4ff' : COLORS[s.color][1];
+  cells(s, st.layer).forEach(([i,j]) => g.fillRect(16 + i*scale - (scale>>1), 16 + j*scale - (scale>>1), scale, scale));
+  g.fillStyle = '#6cc349'; g.fillRect(16 - (scale>>1), 16 - (scale>>1), scale, scale);
+}
+function drawOverlay(){
+  const c = document.getElementById('overlay'), g = c.getContext('2d');
+  g.clearRect(0,0,960,540);
+  const anchor = st.dock ? 300 : 480;
+  const list = shapes.filter(s => s.visible && s.dim === 'overworld');
+  if (st.draft) list.push(st.draft);
+  const focus = cur();
+  let side = -1;
+  list.forEach(s => {
+    const selected = s === focus, draft = s === st.draft;
+    const col = draft ? '#9fd4ff' : COLORS[s.color][1];
+    const ox = selected ? anchor : anchor + (side *= -1) * 240, oy = 370;
+    const cw = 14.4, ch = 7;
+    const [lo, hi] = s.type === 'sphere' || s.type === 'cylinder' ? layerRange(s) : [0,0];
+    for (let layer = lo; layer <= hi; layer++){
+      cells(s, layer).forEach(([i,j]) => {
+        const x = ox + (i - j*.35) * cw, y = oy + j*ch - layer*cw;
+        if (draft){ g.setLineDash([3,2]); g.globalAlpha = .9; g.strokeStyle = col; g.strokeRect(x+.5,y+.5,cw-1,ch-1); g.setLineDash([]); return; }
+        if (s.style !== 'line'){ g.globalAlpha = selected ? .32 : .18; g.fillStyle = col; g.fillRect(x, y, cw, ch); }
+        if (s.style !== 'face'){ g.globalAlpha = selected ? .95 : .55; g.strokeStyle = col; g.strokeRect(x+.5, y+.5, cw-1, ch-1); }
+      });
+    }
+    g.globalAlpha = 1;
+  });
+}
+
+/* ---------- Interaction ---------- */
+panel.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]'); if (!t) return;
+  const a = t.dataset.act, s = cur();
+  if (a !== 'del') st.armed = false;
+  switch (a) {
+  case 'dock': st.dock = !st.dock; try { localStorage.setItem('lamium-shapes-demo2', JSON.stringify({dock:st.dock})); } catch {} break;
+  case 'select': if (e.target.closest('[data-act="vis"]')) return; st.draft = null; st.sel = +t.dataset.id; st.layer = 0; break;
+  case 'vis': { const x = shapes.find(v => v.id === +t.dataset.id); x.visible = !x.visible; e.stopPropagation(); break; }
+  case 'add': {
+    const type = t.dataset.type, c = centerFor(type, st.ref);
+    st.draft = {id:0, name:TYPES[type], type, dim:'overworld', visible:true, color:'cyan', style:'face', ...c, snap:0,
+      r:4, h:type === 'cylinder' ? 5 : 1, w:8, d:8, sp:2, orient:0};
+    st.layer = 0; break;
+  }
+  case 'create': { const n = {...st.draft, id:nextId++}; shapes.push(n); st.sel = n.id; st.draft = null; break; }
+  case 'cancel': st.draft = null; break;
+  case 'here': if (s) Object.assign(s, centerFor(s.type, st.ref)); break;
+  case 'dup': if (s) { const copy = {...s, id:nextId++, name:s.name + ' のコピー'}; shapes.push(copy); st.sel = copy.id; } break;
+  case 'del':
+    if (!s) return;
+    if (!st.armed) st.armed = true;
+    else { const i = shapes.indexOf(s); shapes.splice(i,1); st.armed = false; st.sel = shapes[Math.min(i, shapes.length-1)]?.id ?? null; }
+    break;
+  case 'step': {
+    if (!s) return;
+    const k = t.dataset.key, d = +t.dataset.dir;
+    if (k === 'layer'){ const [lo,hi] = layerRange(s); st.layer = Math.min(hi, Math.max(lo, st.layer + d)); }
+    else if (k === 'r') s.r = Math.max(.5, Math.min(64, s.r + d*.5));
+    else if (k === 'h') s.h = Math.max(1, Math.min(64, s.h + d));
+    else if (k === 'sp') s.sp = Math.max(1, Math.min(32, s.sp + d));
+    else if (k === 'w' || k === 'd') s[k] = Math.max(1, Math.min(64, s[k] + d));
+    else s[k] = Math.round((s[k] + d) * 10) / 10;
+    break;
+  }
+  case 'cycle': {
+    if (!s) return;
+    const k = t.dataset.key, d = +t.dataset.dir, wrap = (v, n) => (v + d + n) % n;
+    if (k === 'snap') s.snap = wrap(s.snap, 3);
+    if (k === 'orient') s.orient = wrap(s.orient, 3);
+    if (k === 'ref'){ st.ref = wrap(st.ref, 3); if (s === st.draft) Object.assign(s, centerFor(s.type, st.ref)); }
+    if (k === 'type'){ const ks = Object.keys(TYPES); s.type = ks[wrap(ks.indexOf(s.type), 4)]; s.name = TYPES[s.type]; Object.assign(s, centerFor(s.type, st.ref)); st.layer = 0; }
+    if (k === 'style'){ const ks = Object.keys(STYLE); s.style = ks[wrap(ks.indexOf(s.style), 3)]; }
+    if (k === 'color'){ const ks = Object.keys(COLORS); s.color = ks[wrap(ks.indexOf(s.color), ks.length)]; }
+    break;
+  }
+  case 'nav': document.getElementById('desc').textContent = 'このデモでは「形状」の画面だけを再現しています。'; return;
+  default: return;
+  }
+  renderPanel();
+});
+panel.addEventListener('input', e => {
+  if (e.target.id !== 'nm' || !cur()) return;
+  cur().name = e.target.value;
+  const label = panel.querySelector(st.draft ? '.row.draft .nm span' : '.row.sel .nm span');
+  if (label) label.textContent = e.target.value;
+});
+
+const fit = document.getElementById('fit'), stage = document.getElementById('stage');
+function resize(){ const k = fit.clientWidth / 960; stage.style.transform = `scale(${k})`; fit.style.height = (540*k)+'px'; }
+new ResizeObserver(resize).observe(fit); resize();
+(function world(){
+  const c = document.getElementById('world'), g = c.getContext('2d');
+  let seed = 4242; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
+  const B = 15, W = 32, H = 18;
+  for (let y = 0; y < 270; y++){ const t = y/170; g.fillStyle = `rgb(${120+t*60|0},${166+t*50|0},255)`; g.fillRect(0,y,480,1); }
+  g.fillStyle = 'rgba(255,255,255,.92)'; [[40,40,60,10],[52,34,30,8],[210,56,74,10],[300,30,48,8]].forEach(r => g.fillRect(...r));
+  const hs = []; for (let x = 0; x < W; x++) hs.push(Math.round(11 + Math.sin(x*.3)*1.2 + Math.sin(x*.11+2)*1.4));
+  const tex = (x,y,v,n) => { for (let i=0;i<n;i++){ g.fillStyle = v[rnd()*v.length|0]; g.fillRect(x+(rnd()*B|0), y+(rnd()*B|0), 2, 2);} };
+  for (let x = 0; x < W; x++){
+    const top = hs[x];
+    for (let y = top; y < H; y++){
+      const px = x*B, py = y*B; let base, v;
+      if (y === top){ base='#5d9b3a'; v=['#6fb146','#4d8a2f','#78bd4f']; }
+      else if (y < top+3){ base='#866043'; v=['#96704f','#6e4c34']; }
+      else { base='#7d7d7d'; v=['#8c8c8c','#6b6b6b']; }
+      g.fillStyle = base; g.fillRect(px,py,B,B); tex(px,py,v,10);
+    }
+  }
+})();
+renderPanel();
+})();
+</script>
