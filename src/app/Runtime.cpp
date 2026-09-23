@@ -86,7 +86,7 @@ bool Runtime::enable() {
         return false;
     }
     running = true;
-    mod.getLogger().info("Lamium enabled. Configure bindings in Minecraft's Keyboard & Mouse settings.");
+    mod.getLogger().info("Lamium enabled. Configure features and bindings in Lamium Settings (default: F8), using Features or Hotkeys.");
     return true;
 }
 bool Runtime::disable() {

@@ -25,8 +25,10 @@ to select rows, Left/Right to adjust, and Enter or a click to choose. Short wind
 scroll to keep the selected row visible. Changes are saved and applied when edited;
 Escape or Close only closes the panel. A failed save leaves the previous value
 active and shows an error. Gameplay key hints can be hidden from the panel.
-These feature keys are registered with Minecraft's keyboard settings.
-On-screen gameplay hints use the current keyboard bindings.
+Edit feature bindings directly in Lamium Settings, either under the feature or
+in the Hotkeys view. Minecraft's keyboard settings provide the base mappings;
+Lamium's custom bindings override them until reset. On-screen gameplay hints
+use the effective bindings.
 The current source adds a translucent panel and a Search row; these changes
 still require in-game verification. Click Search or select it and press Enter
 to type. Enter finishes text editing; Escape leaves editing before closing.
@@ -46,13 +48,13 @@ Settings, gameplay hints, durability text, and Minecraft's Lamium key-binding la
 game's language: Japanese and English are included, with English as the fallback.
 Earlier prototypes used `N` for NightVision, which conflicts with Minecraft's
 notification shortcut. Existing saved bindings are preserved; change NightVision
-to `J` in Keyboard & Mouse settings if upgrading from those builds.
+to `J` in Lamium Settings if upgrading from those builds.
 
 Press `R` in an inventory screen to consolidate compatible stacks and arrange
 the main inventory. Hover an ordinary storage-container slot to sort that
 container instead. Hotbar, equipment, crafting, and machine slots are excluded.
 Sorting is skipped while typing or holding an item on the cursor. The feature
-can be disabled in Lamium settings; its default key can be remapped in Minecraft.
+can be disabled and its binding edited in Lamium Settings.
 Sorting waits for matching vanilla server responses between operations and
 checks the region again before continuing. Rejection, missing responses, or a
 changed screen stops the plan. Real-game validation of this integration remains

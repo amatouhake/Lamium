@@ -192,7 +192,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"smallWindow", "Enlarge window | Esc: close", "画面を広げてください | Esc: 閉じる"},
     {"navigation", "Up/Down/PgUp/PgDn: navigate | Ctrl+F: search | Enter | Esc", "上下・PgUp/PgDn: 選択 | Ctrl+F: 検索 | Enter | Esc"},
     {"adjustment", "Left/Right: adjust | Click: toggle/edit | Right click: decrease", "左右: 調整 | 左クリック: 切替・入力 | 右: 減らす"},
-    {"controls", "Lamium | Configure controls in Keyboard & Mouse settings", "Lamium | キーボードとマウスの設定でキーを変更できます"},
+    {"controls", "Lamium | Edit bindings in Lamium Settings: Features / Hotkeys", "Lamium | Lamium 設定の Features / Hotkeys でキーを変更できます"},
     {"unbound", "Unbound", "未割り当て"},
     {"wheelUp", "Wheel up", "ホイール上"},
     {"wheelDown", "Wheel down", "ホイール下"},
