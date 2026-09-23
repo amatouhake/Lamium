@@ -79,37 +79,51 @@ at most 640×380 and centered. New screens reuse these numbers.
 
 ## HUD (Decided — see [demos/hud.html](demos/hud.html))
 
-Menus are polished; HUD is minimal; debug views may be dense. The HUD is now a
-set of separate pieces (Info HUD, target info, automation status, restriction
-status) with their own fixed or percentage positions. The proposal is to turn
-them into one **HUD element** system before adding more content. Where the
-demo and this text differ, this text wins:
+Menus are polished; HUD is minimal; debug views may be dense. Everything the
+HUD shows is a **HUD element**, placed and styled the same way. Where the
+demo and this text differ, this text wins.
 
-- Every element has: anchor (9 presets: corners, edge centers, center) plus
-  an offset; scale (75–150 %); background (none / translucent card);
-  text shadow on/off.
+Elements: **Info lines**, **Target**, **Status**, **Toast** (later: F3 view).
+
+Placement and look (every element):
+- Anchor (9 presets: corners, edge centers, center) plus an offset in GUI
+  units; scale 75–150 %; background none / translucent card; text shadow.
 - The anchor is the point that stays put when the element grows or the screen
-  resizes. By default a drag picks the nearest anchor; choosing an anchor in
-  the element's panel pins it, and drags then change only the offset (so an
-  element can hang low from a top anchor). A dashed line shows the anchor
-  while dragging.
-- The layout editor's per-element panel and the settings screen rows are
-  generated from the same option definitions, never written twice. Long
-  lists scroll inside the panel.
-- Element types: Info lines (user-chosen, user-ordered lines), Target card,
-  Status (automation, restriction, toggle toasts), later F3 view.
-- Info lines are providers with an id, a label and a value; unavailable values
-  say so. Line order is user-editable in a small list editor.
-- **Target card** (Jade/WAILA role): item/block icon, name, identifier line,
-  then provider rows (state, growth, power, health bars). The text-only view
-  remains as the "Simple" style.
-- **Status** combines automation and restriction lines, each with a colored
-  marker.
-- **Toggle toast**: when a hotkey switches a feature, show
-  `[switch] Feature name` for ~1.5 s centered above the hotbar, fading out.
-  One toast at a time; a new one replaces the old. Can be turned off.
+  resizes (a top-anchored list grows downward). By default a drag picks the
+  nearest anchor. Choosing an anchor in the element's panel pins it; drags
+  then change only the offset, so an element can hang low from a top anchor.
+  Why: automatic anchors alone cannot express "top-anchored but placed low".
+- A dashed line from the anchor to the element shows the relation while
+  dragging. Small offsets snap to zero.
+
+Editing:
+- Settings → General has "Edit HUD layout", which shows the live HUD with
+  draggable elements, anchor dots and a per-element panel. Each element also
+  has "Placement" and "Look" rows in its settings, so everything is reachable
+  without dragging.
+- The per-element panel and the settings rows are generated from the same
+  option definitions and are never written twice; long lists scroll inside
+  the panel. Why: hand-written copies drift when options are added.
+
+Contents:
+- **Info lines**: providers with an id, a label and a value; unavailable values
+  say so. Each line has a switch and a position in a user-ordered list.
+  Defaults on: coordinates, facing, biome, FPS. Everything else starts off.
+- **Target** (Jade/WAILA role): "Card" (default) shows an item/block icon,
+  name, identifier line, then rows (states, growth, power, health) with
+  progress bars where a value has a range. "Simple" keeps today's text-only
+  view.
+- **Status**: automation (periodic attack/use, permanent sneak) and breaking/
+  placement restriction lines in one element, each with a colored marker
+  (accent for automation, warning color for restrictions).
+- **Toast**: when a hotkey switches a feature, show `[switch] Feature name`
+  for ~1.5 s, fading over the last 0.3 s; default position above the hotbar
+  (bottom center). One at a time; a new one replaces the old. Setting to turn
+  it off. Changes made inside the settings screen do not toast.
 - The gameplay key-hint overlay is removed; an "Open Hotkeys" action replaces
   it.
+- Appearance options stay at scale, background and shadow for now; add text
+  color or background opacity only if asked.
 
 ## World overlays (Decided unless noted)
 

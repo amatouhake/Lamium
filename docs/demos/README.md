@@ -14,6 +14,6 @@ Rules for agents:
 
 - A demo shows intent and structure, not exact pixels. Build with the tokens
   and widgets in `src/ui/Widgets.h` and the sizes in docs/DESIGN.md.
-- The "確認したいこと" (open questions) box at the bottom of a demo lists what
-  was still undecided. Check docs/DESIGN.md and docs/BACKLOG.md for the answers.
+- The box at the bottom of a demo lists either open questions ("確認したいこと")
+  or, once agreed, the decisions ("決定事項"). docs/DESIGN.md is authoritative.
 - When a new demo is made, add it here with its status.
