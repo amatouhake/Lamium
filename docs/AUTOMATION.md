@@ -3,7 +3,8 @@
 Periodic Attack, Periodic Use, and Permanent Sneak share the runtime intent
 contract in `interaction::AutomationInput`. Permanent Sneak now has an
 experimental native adapter and an unbound toggle action in Features/Hotkeys.
-Its game behavior is **not runtime validated yet**. Periodic Attack and Use
+Its basic toggle and settings-screen cancellation have passed a local-world
+runtime check; broader compatibility is still unverified. Periodic Attack and Use
 are not yet connected or exposed in the UI.
 
 Initial local-world check on 2026-09-23: the settings editor accepted a custom
@@ -21,6 +22,20 @@ samples while armed. This excludes an unused hook or local identity mismatch
 for that run. The next adapter changes `mRawInputState` rather than
 `mInputState` in the transient copy; that change still requires a new runtime
 check.
+
+The raw-input revision (commit `01604e3`, DLL
+`F229ED391E7F245AAD1345081BD39D1D83C4C3A6F849F1702AF3DF9C9A175090`)
+passed the following local survival checks with Minecraft 1.26.51.01,
+LeviLamina Client 26.51.3, and Deesse UI 1.3.9:
+
+- A custom hotkey activates crouching and maintains it after key release.
+- The same hotkey restores the standing pose. Diagnostics reported 472
+  extraction calls, local matches, and output SneakDown samples.
+- Reactivating, opening Lamium Settings, and closing it restores standing
+  without automatically resuming crouching.
+
+Physical-key overlap, focus loss, world/dimension transitions, movement/ledge
+behavior, and multiplayer remain unverified. The feature is still experimental.
 
 ## Runtime contract
 
