@@ -215,6 +215,20 @@ void traceFreeCamera(unsigned reason, double x, double y, double z) noexcept {
             "FreeCamera trace: what={} sample={} dx={} dy={} dz={}", names[reason], count, x, y, z);
     } catch (...) {}
 }
+void traceWriter(bool same, bool orbit, DetachedCameraMotion::Vector const& displacement) noexcept {
+    // Bounded: tells morph (same entity, changed shape) from swap (entity
+    // replaced by the perspective switch) in a single session.
+    static std::atomic<unsigned> count{0};
+    auto taken = count.load(std::memory_order_relaxed);
+    while (taken < 6 && !count.compare_exchange_weak(
+        taken, taken + 1, std::memory_order_relaxed)) {}
+    if (taken >= 6) return;
+    try {
+        Runtime::instance().self().getLogger().info(
+            "FreeCamera writer: sample={} sameEntity={} orbit={} dx={} dy={} dz={}",
+            taken, same, orbit, displacement[0], displacement[1], displacement[2]);
+    } catch (...) {}
+}
 enum class LookTraceStage { Begin, Turn, Render };
 void traceLook(LookTraceStage stage, float pitch, float yaw) noexcept {
     // Independent budgets: startup render sampling must not consume input evidence.
@@ -580,16 +594,25 @@ void Zoom::writeFreeCameraOffset() {
         if (!registry.valid(entity)) return;
         auto* offset = registry.try_get<MinecraftCamera::CameraOffsetComponent>(entity);
         if (!offset) return;
-        if (savedOffset.active && savedOffset.orbit && savedOffset.entity == entity) {
+        // F5 may morph the rig (direct-look converts to orbit or back), so
+        // read the live shape instead of the activation-time flag.
+        bool orbit = registry.try_get<MinecraftCamera::CameraOrbitComponent>(entity) != nullptr;
+        bool same = savedOffset.active && savedOffset.entity == entity;
+#ifdef LAMIUM_CAMERA_TRACE
+        traceWriter(same, orbit, displacement);
+#endif
+        if (same && orbit) {
             // Third person: swing the pivot, keep the vanilla entity offset.
             (*offset->mPivot).x = savedOffset.px + static_cast<float>(displacement[0]);
             (*offset->mPivot).y = savedOffset.py + static_cast<float>(displacement[1]);
             (*offset->mPivot).z = savedOffset.pz + static_cast<float>(displacement[2]);
-        } else {
+        } else if (same) {
             (*offset->mEntityOffset).x = static_cast<float>(displacement[0]);
             (*offset->mEntityOffset).y = static_cast<float>(displacement[1]);
             (*offset->mEntityOffset).z = static_cast<float>(displacement[2]);
         }
+        // A different entity (perspective swap) keeps vanilla values until a
+        // re-take lands; writing blind would steer the wrong rig.
     } catch (...) {}
 }
 void Zoom::releaseLook() {
