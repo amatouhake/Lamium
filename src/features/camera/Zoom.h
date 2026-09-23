@@ -16,8 +16,8 @@ class Zoom {
     std::atomic<bool> running{false};
     std::atomic<bool> allowed{true};
     std::atomic<IClientInstance*> client{nullptr};
-    // Degrees of rotation per native turn unit, observed from vanilla turns.
-    std::atomic<float> pitchTurnScale{1.f}, yawTurnScale{1.f};
+    std::atomic<float> lockedHead{0.f};
+    void endLookCamera();
     ll::event::ListenerPtr wheelListener, screenListener, exitListener;
 public:
     static Zoom& instance();
@@ -26,16 +26,15 @@ public:
     void configure(Settings const&);
     void press(IClientInstance&);
     void pressLook(IClientInstance&);
-    void releaseLook() { look.release(); }
-    void cancelLook() { look.cancel(); }
+    void releaseLook();
+    void cancelLook();
     bool turnLook(LocalPlayer&, float pitchDelta, float yawDelta);
-    void observeTurn(float pitchDelta, float pitchChange, float pitchAfter, float yawDelta, float yawChange);
-    bool isLookOwner(Actor const*) const;
     bool blocksLookInteraction(Player&);
+    std::optional<float> lockedHeadFor(Actor const&) const;
     std::optional<DetachedLookState::Angles> lookAngles();
     std::optional<DetachedLookState::Angles> lookAnglesFor(IClientInstance const&);
     void release() { state.release(); }
-    void reset() { state.reset(); look.cancel(); client = nullptr; }
+    void reset() { state.reset(); cancelLook(); client = nullptr; }
     float fov(IClientInstance const&, float base) const;
     float sensitivity(LocalPlayer const&) const;
 #if defined(LAMIUM_CAMERA_PROBE) || defined(LAMIUM_CAMERA_POSITION_PROBE)

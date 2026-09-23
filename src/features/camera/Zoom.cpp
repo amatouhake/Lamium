@@ -15,9 +15,12 @@
 #include "mc/deps/core/math/Vec2.h"
 #include "mc/deps/input/MouseAction.h"
 #include "mc/deps/renderer/Camera.h"
-#include "mc/deps/vanilla_camera/CameraAPI.h"
-#include "mc/deps/ecs/gamerefs_entity/GameRefsEntity.h"
-#include "mc/deps/game_refs/WeakRef.h"
+#include "mc/deps/ecs/gamerefs_entity/EntityContext.h"
+#include "mc/deps/minecraft_camera/components/ActiveCameraComponent.h"
+#include "mc/deps/minecraft_camera/components/CameraDirectLookComponent.h"
+#include "mc/deps/minecraft_camera/components/CameraOrbitComponent.h"
+#include "mc/deps/vanilla_camera/components/UpdatePlayerFromCameraComponent.h"
+#include "mc/deps/vanilla_camera/CameraClientInstance.h"
 #include "mc/legacy/ActorRuntimeID.h"
 #include "mc/world/actor/ActorFlags.h"
 #include "ui/SettingsScreen.h"
@@ -25,6 +28,7 @@
 #ifdef LAMIUM_CAMERA_TRACE
 #include "mc/deps/renderer/Camera.h"
 #include <algorithm>
+#include <format>
 #include <atomic>
 #include <cmath>
 #endif
@@ -36,6 +40,93 @@ bool canDetachLook(LocalPlayer const& player) {
     // release it on the player's behalf when entering a detached camera.
     return player.isAlive() && !player.isSleeping() && !player.getVehicle()
         && player.hasRuntimeID() && !player.getStatusFlag(ActorFlags::Usingitem);
+}
+// Vanilla turns the active camera from look input, then copies the camera's
+// orientation to the player for cameras carrying UpdatePlayerFromCamera.
+// Freelook withholds that component so only the camera turns. The camera's own
+// look angles are saved first and written back before reattaching, so the view
+// returns to the unchanged player orientation instead of turning the player.
+struct DetachedCamera {
+    EntityId entity;
+    VanillaCamera::UpdatePlayerFromCameraComponent::LookMode mode;
+    bool hasDirectLook;
+    float yaw, pitch;
+    // Third-person cameras keep their orientation in the orbit instead.
+    bool hasOrbit = false;
+    float currentAzimuth = 0, currentPolar = 0, idealAzimuth = 0, idealPolar = 0;
+};
+std::vector<DetachedCamera> detachedCameras; // Client thread only.
+void detachCameras(LocalPlayer& player) {
+    auto& registry = player.getEntityContext().getRegistry();
+    std::vector<EntityId> targets;
+    for (auto entity : registry.view<MinecraftCamera::ActiveCameraComponent,
+                                     VanillaCamera::UpdatePlayerFromCameraComponent>())
+        targets.push_back(entity);
+    for (auto entity : targets) {
+        DetachedCamera saved{entity, registry.get<VanillaCamera::UpdatePlayerFromCameraComponent>(entity).mLookMode, false, 0, 0};
+        if (auto* look = registry.try_get<MinecraftCamera::CameraDirectLookComponent>(entity)) {
+            saved.hasDirectLook = true;
+            saved.yaw = look->mYaw;
+            saved.pitch = look->mPitch;
+        }
+        if (auto* orbit = registry.try_get<MinecraftCamera::CameraOrbitComponent>(entity)) {
+            saved.hasOrbit = true;
+            saved.currentAzimuth = orbit->mCurrentSpherical->mAzimuth;
+            saved.currentPolar = orbit->mCurrentSpherical->mPolarAngle;
+            saved.idealAzimuth = orbit->mIdealSpherical->mAzimuth;
+            saved.idealPolar = orbit->mIdealSpherical->mPolarAngle;
+        }
+        registry.remove<VanillaCamera::UpdatePlayerFromCameraComponent>(entity);
+        detachedCameras.push_back(saved);
+    }
+#ifdef LAMIUM_CAMERA_TRACE
+    try {
+        Runtime::instance().self().getLogger().info("Freelook camera: detached={} directLook={} orbit={} yaw={} pitch={}",
+            detachedCameras.size(), !detachedCameras.empty() && detachedCameras[0].hasDirectLook,
+            !detachedCameras.empty() && detachedCameras[0].hasOrbit,
+            detachedCameras.empty() ? 0.f : detachedCameras[0].yaw, detachedCameras.empty() ? 0.f : detachedCameras[0].pitch);
+    } catch (...) {}
+#endif
+}
+void restoreCameras(LocalPlayer* player) {
+    if (detachedCameras.empty()) return;
+    // Without the owning level the camera entities no longer exist.
+    if (player) {
+        auto& registry = player->getEntityContext().getRegistry();
+        for (auto const& saved : detachedCameras) {
+            if (!registry.valid(saved.entity)) continue;
+            if (auto* look = registry.try_get<MinecraftCamera::CameraDirectLookComponent>(saved.entity);
+                look && saved.hasDirectLook) {
+#ifdef LAMIUM_CAMERA_TRACE
+                try {
+                    Runtime::instance().self().getLogger().info("Freelook camera: restore yaw={}->{} pitch={}->{}",
+                        look->mYaw, saved.yaw, look->mPitch, saved.pitch);
+                } catch (...) {}
+#endif
+                look->mYaw = saved.yaw;
+                look->mPitch = saved.pitch;
+                look->mYawDelta = 0.f;
+            }
+            if (auto* orbit = registry.try_get<MinecraftCamera::CameraOrbitComponent>(saved.entity);
+                orbit && saved.hasOrbit) {
+#ifdef LAMIUM_CAMERA_TRACE
+                try {
+                    Runtime::instance().self().getLogger().info("Freelook camera: restore orbit azimuth={}->{} polar={}->{}",
+                        (float)orbit->mCurrentSpherical->mAzimuth, saved.currentAzimuth,
+                        (float)orbit->mCurrentSpherical->mPolarAngle, saved.currentPolar);
+                } catch (...) {}
+#endif
+                orbit->mCurrentSpherical->mAzimuth = saved.currentAzimuth;
+                orbit->mCurrentSpherical->mPolarAngle = saved.currentPolar;
+                orbit->mIdealSpherical->mAzimuth = saved.idealAzimuth;
+                orbit->mIdealSpherical->mPolarAngle = saved.idealPolar;
+                orbit->mAzimuthVelocity = 0.f;
+                orbit->mPolarAngleVelocity = 0.f;
+            }
+            registry.emplace_or_replace<VanillaCamera::UpdatePlayerFromCameraComponent>(saved.entity).mLookMode = saved.mode;
+        }
+    }
+    detachedCameras.clear();
 }
 #ifdef LAMIUM_CAMERA_TRACE
 enum class LookTraceStage { Begin, Turn, Render };
@@ -53,6 +144,33 @@ void traceLook(LookTraceStage stage, float pitch, float yaw) noexcept {
         Runtime::instance().self().getLogger().info(
             "Freelook trace: stage={} sample={} pitch={} yaw={}", names[index], count, pitch, yaw);
     } catch (...) {}
+}
+
+// Bounded per-call-site budget for the Freelook source diagnostics below.
+struct TraceBudget {
+    std::atomic<unsigned> used{0};
+    bool take(unsigned limit) noexcept {
+        auto count = used.load(std::memory_order_relaxed);
+        while (count < limit && !used.compare_exchange_weak(count, count + 1, std::memory_order_relaxed)) {}
+        return count < limit;
+    }
+};
+template <class Message>
+void traceFreelookSource(TraceBudget& budget, unsigned limit, Message&& message) noexcept {
+    if (!budget.take(limit)) return;
+    try { Runtime::instance().self().getLogger().info("Freelook source: {}", message()); } catch (...) {}
+}
+// Read-only: does the camera consume look input independently of the player's turn?
+LL_TYPE_INSTANCE_HOOK(LookDeltaTraceHook, ll::memory::HookPriority::Normal, CameraClientInstance,
+    &CameraClientInstance::$getLookDelta, Vec2) {
+    auto delta = origin();
+    if (delta.x != 0 || delta.z != 0) {
+        // Separate budgets: ordinary looking must not exhaust the detached evidence.
+        static TraceBudget budgets[2];
+        bool detached = Zoom::instance().lookAngles().has_value();
+        traceFreelookSource(budgets[detached], 16, [&] { return std::format("camera-look-delta pitch={} yaw={} detached={}", delta.x, delta.z, detached); });
+    }
+    return delta;
 }
 
 struct CameraTraceContext {
@@ -168,38 +286,45 @@ LL_TYPE_INSTANCE_HOOK(CameraTraceHook, ll::memory::HookPriority::Normal, LevelRe
     }
 }
 #endif
-// The vanilla camera derives its orientation (render, culling and third-person
-// boom alike) from the target actor's rotation. Substituting the detached pose
-// here rotates the whole camera consistently while the player keeps its own.
-// Overriding only the view matrix after setup left rendering and culling
-// disagreeing at runtime.
-LL_TYPE_INSTANCE_HOOK(FreelookRotationHook, ll::memory::HookPriority::Normal, CameraAPI,
-    &CameraAPI::$tryGetActorRotation, std::optional<Vec2>, WeakRef<EntityContext const> const actorRef) {
-    auto result = origin(actorRef);
-    if (!result) return result;
-    auto pose = Zoom::instance().lookAnglesFor(mClientInstance);
-    if (!pose) return result;
-    WeakRef<EntityContext> mutableRef{static_cast<WeakStorageEntity const&>(actorRef)};
-    if (!Zoom::instance().isLookOwner(_getActor(mutableRef))) return result;
-#ifdef LAMIUM_CAMERA_TRACE
-    traceLook(LookTraceStage::Render, pose->pitch, pose->yaw);
-#endif
-    return Vec2{pose->pitch, pose->yaw};
-}
 LL_TYPE_INSTANCE_HOOK(FovHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::getFov, float, float alpha, bool variable) {
     return Zoom::instance().fov(mClientInstance, origin(alpha, variable));
 }
 LL_TYPE_INSTANCE_HOOK(TurnHook, ll::memory::HookPriority::Normal, LocalPlayer,
     &LocalPlayer::_applyTurnDelta, void, Vec2 const& delta) {
-    if (Zoom::instance().turnLook(*this, delta.x, delta.z)) return;
+    // While detached, vanilla still turns the camera; only the copy to the
+    // player is withheld (see detachCameras).
+    if (Zoom::instance().turnLook(*this, delta.x, delta.z)) { origin(delta); return; }
     float scale = Zoom::instance().sensitivity(*this);
-    Vec2 applied{delta.x * scale, delta.z * scale};
-    auto before = getRotation();
-    origin(applied);
-    auto after = getRotation();
-    Zoom::instance().observeTurn(applied.x, after.x - before.x, after.x,
-        applied.z, std::remainder(after.z - before.z, 360.f));
+    origin(Vec2{delta.x * scale, delta.z * scale});
+}
+// Vanilla also turns the local player's head yaw toward the camera. Keep the
+// head where it was when the detached look began; the body is already fixed.
+#ifdef LAMIUM_CAMERA_TRACE
+void traceHeadLock(char const* setter, float requested, float kept) noexcept {
+    static TraceBudget budget;
+    traceFreelookSource(budget, 16, [&] { return std::format("head-lock setter={} requested={} kept={}", setter, requested, kept); });
+}
+#endif
+LL_TYPE_INSTANCE_HOOK(HeadRotHook, ll::memory::HookPriority::Normal, Actor,
+    &Actor::setYHeadRot, void, float yHeadRot) {
+    if (auto kept = Zoom::instance().lockedHeadFor(*this)) {
+#ifdef LAMIUM_CAMERA_TRACE
+        traceHeadLock("single", yHeadRot, *kept);
+#endif
+        yHeadRot = *kept;
+    }
+    origin(yHeadRot);
+}
+LL_TYPE_INSTANCE_HOOK(HeadRotationsHook, ll::memory::HookPriority::Normal, Actor,
+    &Actor::setYHeadRotations, void, float yHeadRot, float oldYHeadRot) {
+    if (auto kept = Zoom::instance().lockedHeadFor(*this)) {
+#ifdef LAMIUM_CAMERA_TRACE
+        traceHeadLock("pair", yHeadRot, *kept);
+#endif
+        yHeadRot = oldYHeadRot = *kept;
+    }
+    origin(yHeadRot, oldYHeadRot);
 }
 LL_TYPE_INSTANCE_HOOK(DimensionHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::$onWillChangeDimension, void, Player& player) {
@@ -217,12 +342,14 @@ struct HookEntry {
     bool installed = false;
 };
 HookEntry hooks[] = {
-    {FreelookRotationHook::hook, FreelookRotationHook::unhook},
 #ifdef LAMIUM_CAMERA_TRACE
     {CameraDependenciesTraceHook::hook, CameraDependenciesTraceHook::unhook},
     {CameraTraceHook::hook, CameraTraceHook::unhook},
+    {LookDeltaTraceHook::hook, LookDeltaTraceHook::unhook},
 #endif
     {FovHook::hook, FovHook::unhook},
+    {HeadRotHook::hook, HeadRotHook::unhook},
+    {HeadRotationsHook::hook, HeadRotationsHook::unhook},
     {TurnHook::hook, TurnHook::unhook},
     {DimensionHook::hook, DimensionHook::unhook},
     {FocusHook::hook, FocusHook::unhook}
@@ -259,12 +386,43 @@ void Zoom::pressLook(IClientInstance& current) {
     auto* player = current.getLocalPlayer();
     if (!canDetachLook(*player)) return;
     client = &current;
-    bool started = look.begin(player->getRotation().x, player->getRotation().z, player->getRuntimeID().rawID);
+    if (!look.begin(player->getRotation().x, player->getRotation().z, player->getRuntimeID().rawID)) return;
 #ifdef LAMIUM_CAMERA_TRACE
-    if (started) traceLook(LookTraceStage::Begin, 0, 0);
-#else
-    (void)started;
+    traceLook(LookTraceStage::Begin, player->getRotation().x, player->getRotation().z);
+    try { Runtime::instance().self().getLogger().info("Freelook body: begin head={}", player->getYHeadRot()); } catch (...) {}
 #endif
+    try {
+        lockedHead = player->getYHeadRot();
+        detachCameras(*player);
+    } catch (...) {
+        cancelLook();
+        Runtime::instance().self().getLogger().error("Freelook could not detach the camera");
+    }
+}
+void Zoom::releaseLook() {
+    look.release();
+    endLookCamera();
+}
+void Zoom::cancelLook() {
+    look.cancel();
+    endLookCamera();
+}
+void Zoom::endLookCamera() {
+    auto* current = client.load();
+#ifdef LAMIUM_CAMERA_TRACE
+    if (auto* player = current ? current->getLocalPlayer() : nullptr; player && !detachedCameras.empty()) {
+        try {
+            Runtime::instance().self().getLogger().info("Freelook body: end pitch={} yaw={} head={}",
+                player->getRotation().x, player->getRotation().z, player->getYHeadRot());
+        } catch (...) {}
+    }
+#endif
+    try {
+        restoreCameras(current ? current->getLocalPlayer() : nullptr);
+    } catch (...) {
+        detachedCameras.clear();
+        Runtime::instance().self().getLogger().error("Freelook could not restore the camera");
+    }
 }
 std::optional<DetachedLookState::Angles> Zoom::lookAngles() {
     if (!look.snapshot()) return {};
@@ -289,23 +447,14 @@ bool Zoom::turnLook(LocalPlayer& player, float pitchDelta, float yawDelta) {
 #ifdef LAMIUM_CAMERA_TRACE
     traceLook(LookTraceStage::Turn, pitchDelta, yawDelta);
 #endif
-    // Match the sign and scale vanilla applied to the player's own rotation.
-    look.turn(pitchDelta * pitchTurnScale.load(), yawDelta * yawTurnScale.load());
     return true;
 }
-void Zoom::observeTurn(float pitchDelta, float pitchChange, float pitchAfter, float yawDelta, float yawChange) {
-    auto calibrate = [](std::atomic<float>& target, float delta, float change) {
-        if (std::abs(delta) < .01f || !std::isfinite(change)) return;
-        float ratio = change / delta;
-        if (std::isfinite(ratio) && std::abs(ratio) > .01f && std::abs(ratio) < 10.f) target = ratio;
-    };
-    // A clamped pitch does not reflect the applied delta.
-    if (std::abs(pitchAfter) < 89.f) calibrate(pitchTurnScale, pitchDelta, pitchChange);
-    calibrate(yawTurnScale, yawDelta, yawChange);
-}
-bool Zoom::isLookOwner(Actor const* actor) const {
+std::optional<float> Zoom::lockedHeadFor(Actor const& actor) const {
+    // Snapshot only: a setter callback must not start cancellation/restoration.
     auto* current = client.load();
-    return actor && current && static_cast<Actor const*>(current->getLocalPlayer()) == actor;
+    if (!running || !current || static_cast<Actor const*>(current->getLocalPlayer()) != &actor
+        || !look.snapshot()) return {};
+    return lockedHead.load();
 }
 bool Zoom::blocksLookInteraction(Player& player) {
     auto* current = client.load();
