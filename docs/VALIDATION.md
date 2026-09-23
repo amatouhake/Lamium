@@ -1583,4 +1583,6 @@ flight with WASD/Space/Shift, the player frozen in survival and creative
 camera, F5 ignored with the body shown and the perspective restored, and
 clean exits on toggle, settings, death, Alt-Tab and world re-entry. Not
 verified: dimension change while flying, controllers, multiplayer. The
-trace-free build after the cleanup commit is not yet checked in game.
+trace-free cleanup build (cf8d5e9) passed the same checks the same day. Left
+clicks still swing the arm while detached (no attack or break); tracked in
+L-25.
