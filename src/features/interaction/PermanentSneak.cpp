@@ -45,7 +45,7 @@ LL_STATIC_HOOK(ExtractSneakInput, ll::memory::HookPriority::Normal,
     // stored HID state, so cancelling cannot clear a physically held key.
     auto augmented = input;
     if (matched < 1000) ++matched;
-    augmented.mInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown));
+    augmented.mRawInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown));
     origin(abilities, augmented, flags, raw, sneaking, water);
     if (rawSneak < 1000 && raw.mRawInput->mFlagValues->test(static_cast<size_t>(MoveInputState::Flag::SneakDown))) ++rawSneak;
 }

@@ -15,6 +15,13 @@ extraction/local-match/raw-sneak counters now report on cancellation to separate
 an unused hook or identity mismatch from an ineffective input bit. No packet or
 actor-state fallback has been added.
 
+The diagnostic run (DLL `22C7BBC1B4B76D69525D07FBE6ACC1FC4D941A3537035DD3E1E0BF199D01E72E`)
+reported 313 extraction calls, 313 local matches, and zero output SneakDown
+samples while armed. This excludes an unused hook or local identity mismatch
+for that run. The next adapter changes `mRawInputState` rather than
+`mInputState` in the transient copy; that change still requires a new runtime
+check.
+
 ## Runtime contract
 
 - Arming is session state, never a persisted instruction to act on world load.
