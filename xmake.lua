@@ -55,7 +55,7 @@ option("camera_position_probe")
 option_end()
 
 includes("packages/levilamina-client-sdk.lua")
-add_requires("levilamina-client-sdk 26.51.3", {configs = {shared = true}})
+add_requires("levilamina-client-sdk 26.51.5", {configs = {shared = true}})
 
 add_requires("levibuildscript")
 add_requires("nlohmann_json v3.12.0")

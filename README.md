@@ -65,7 +65,7 @@ a release gate.
 
 ## Build
 
-Target: Windows x64, Minecraft 1.26.51.01, LeviLamina Client v26.51.3.
+Target: Windows x64, Minecraft 1.26.51.01, LeviLamina Client v26.51.5.
 Install Visual Studio Build Tools with the Windows SDK and C++ toolchain, LLVM
 (clang-cl), Git, and xmake. Dependencies are resolved by xmake; no sibling project
 or machine-specific configuration is needed.
