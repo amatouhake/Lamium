@@ -7,7 +7,8 @@ struct Entry { std::string_view key, english, japanese; };
 inline constexpr auto entries = std::to_array<Entry>({
     {"feature.periodicAttack", "Periodic Attack (experimental)", "周期攻撃（試験的）"},
     {"feature.periodicUse", "Periodic Use (experimental)", "周期使用（試験的）"},
-    {"help.periodicInput", "Toggle repeated clicks every 0.5 seconds. Manual clicks, menus, focus loss and world changes stop it.", "0.5秒ごとのクリックをキーで切り替えます。手動クリック・メニュー・フォーカス喪失・ワールド変更で停止します。"},
+    {"help.periodicInput", "Toggle repeated clicks at the configured interval. Manual clicks, menus, focus loss and world changes stop it.", "設定した間隔でクリックを繰り返します。手動クリック・メニュー・フォーカス喪失・ワールド変更で停止します。"},
+    {"periodicInterval", "Interval: {:.1f} s", "間隔: {:.1f} 秒"},
     {"key.Lamium.periodicattack", "Toggle Periodic Attack", "周期攻撃を切り替え"},
     {"key.Lamium.periodicuse", "Toggle Periodic Use", "周期使用を切り替え"},
     {"feature.permanentSneak", "Permanent Sneak (experimental)", "常時スニーク（試験的）"},

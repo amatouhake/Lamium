@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <chrono>
 #include <fstream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #ifdef _WIN32
@@ -13,6 +14,19 @@
 void check(bool, char const*);
 void settingsStoreTests() {
     using namespace lamium;
+    {
+        auto defaults = decodeSettings(R"({"interaction":{"breaking":false}})");
+        check(defaults.interaction.attackInterval == .5f && defaults.interaction.useInterval == .5f,
+              "older interaction settings preserve default periodic cadence");
+        auto bounded = decodeSettings(R"({"interaction":{"attackInterval":0,"useInterval":999}})");
+        check(bounded.interaction.attackInterval == .1f && bounded.interaction.useInterval == 60.f,
+              "stored periodic intervals cannot become zero or unbounded");
+        bounded.interaction.attackInterval = std::numeric_limits<float>::quiet_NaN();
+        bounded.interaction.useInterval = std::numeric_limits<float>::infinity();
+        bounded.normalize();
+        check(bounded.interaction.attackInterval == .5f && bounded.interaction.useInterval == .5f,
+              "non-finite periodic intervals recover a usable cadence");
+    }
     {
         auto* mode = settings::find("interaction.breakingMode");
         Settings value;
@@ -105,8 +119,12 @@ void settingsStoreTests() {
     old.inventory.sorting = false;
     old.inventory.sortContainers = false;
     old.ui.gameplayHints = false;
+    old.interaction.attackInterval = 1.2f;
+    old.interaction.useInterval = 3.4f;
     writeSettings(path, old);
     auto loaded = readSettings(path);
+    check(loaded.interaction.attackInterval == 1.2f && loaded.interaction.useInterval == 3.4f,
+          "independent attack and use intervals survive disk round trip");
     check(loaded.camera.magnification == 3.5f && loaded.lighting.nightVision, "disk round trip");
     check(!loaded.inventory.sorting && !loaded.inventory.sortContainers, "inventory switches survive saves");
     check(!loaded.ui.gameplayHints, "hidden gameplay hints survive restart");

@@ -45,6 +45,14 @@ constexpr Option choice(std::string_view id, std::string_view feature, std::stri
         }};
 }
 inline constexpr auto options = std::to_array<Option>({
+    {"interaction.attackInterval", "periodicAttack", "periodicInterval",
+        [](Settings const& s) -> OptionValue { return s.interaction.attackInterval; },
+        [](Settings& s, int direction) { s.interaction.attackInterval += direction * .1f; s.normalize(); },
+        NumericOption{.1f, 60.f, [](Settings& s, float v) { s.interaction.attackInterval = v; }}},
+    {"interaction.useInterval", "periodicUse", "periodicInterval",
+        [](Settings const& s) -> OptionValue { return s.interaction.useInterval; },
+        [](Settings& s, int direction) { s.interaction.useInterval += direction * .1f; s.normalize(); },
+        NumericOption{.1f, 60.f, [](Settings& s, float v) { s.interaction.useInterval = v; }}},
     toggle<&Settings::interaction, &Settings::Interaction::breaking>("interaction.breaking", "restrictions", "breakingRestriction"),
     choice<&Settings::interaction, &Settings::Interaction::breakingMode, interaction::restrictionLabels>("interaction.breakingMode", "restrictions", "breakingMode"),
     choice<&Settings::interaction, &Settings::Interaction::placementMode, interaction::restrictionLabels>("interaction.placementMode", "restrictions", "placementMode"),

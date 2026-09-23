@@ -9,6 +9,8 @@ struct Settings {
     int version = 1;
     input::Bindings bindings;
     struct Interaction {
+        float attackInterval = 0.5f;
+        float useInterval = 0.5f;
         bool breaking = false;
         interaction::RestrictionMode breakingMode = interaction::RestrictionMode::Plane;
         interaction::RestrictionMode placementMode = interaction::RestrictionMode::Plane;
@@ -73,6 +75,10 @@ struct Settings {
     } information;
 
     void normalize() {
+        for (auto* interval : {&interaction.attackInterval, &interaction.useInterval}) {
+            if (!std::isfinite(*interval)) *interval = 0.5f;
+            *interval = std::clamp(*interval, 0.1f, 60.f);
+        }
         auto normalizeMode = [](auto& mode) { if (static_cast<unsigned>(mode) >= 4) mode = lamium::interaction::RestrictionMode::Plane; };
         normalizeMode(interaction.breakingMode);
         normalizeMode(interaction.placementMode);

@@ -69,8 +69,11 @@ that handler's native input tick, only for the primary client whose
 observed `DeactivateFocus` argument. No input hash, packet, or GameMode action
 is constructed directly.
 
-Each press lasts one input update and currently repeats at a fixed 500 ms.
-Configurable intervals and visible runtime state are still required. Activation
+Each press lasts one input update. Attack and Use each expose an Interval in
+their feature settings, in seconds (0.1–60, default 0.5). The adapter snapshots
+the interval on activation; opening Settings cancels an active session, so
+editing does not leave a previously scheduled click pending. Missing values
+retain the old 500 ms cadence. Visible runtime state is still required. Activation
 is never persisted. A manual down event disarms that action and transfers held
 state to the physical input; cancellation does not release underneath a held
 physical button. Common input invalidation, dimension changes, and runtime
@@ -115,7 +118,9 @@ Deesse UI 1.3.9:
 These observations supersede the earlier inconclusive attack smoke only.
 They do not establish entity damage, block breaking, Periodic Use, continuous-use
 items, world/dimension transitions, multiplayer, or hot re-enable support.
-Configurable intervals and visible active state remain implementation work.
+The configurable-interval revision passes build and settings tests; its in-game
+editor and non-default cadence still need runtime validation. Visible active
+state remains implementation work.
 
 ## Integration still required
 

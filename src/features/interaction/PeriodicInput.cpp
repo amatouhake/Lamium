@@ -26,6 +26,7 @@ struct Button {
     IClientInstance* client = nullptr;
     bool physical = false, synthetic = false;
     unsigned presses = 0, releases = 0;
+    AutomationInput::Duration interval = std::chrono::milliseconds(500);
 };
 struct Owner { std::array<Button, 2> buttons; };
 std::map<InputHandler*, std::shared_ptr<Owner>> owners;
@@ -130,7 +131,7 @@ LL_TYPE_INSTANCE_HOOK(Update, ll::memory::HookPriority::Normal, InputHandler,
             continue;
         }
         auto edge = button.intent.update(AutomationInput::Clock::now(), true,
-            button.physical, false, std::chrono::milliseconds(500));
+            button.physical, false, button.interval);
         if (edge == InputEdge::Press) {
             button.synthetic = true;
             emit(button, true, primary);
@@ -167,6 +168,10 @@ void toggle(IClientInstance& client, Action action) {
         return;
     }
     button.presses = button.releases = 0;
+    auto preferences = Runtime::instance().preferences();
+    preferences.normalize();
+    auto seconds = action == Action::Attack ? preferences.interaction.attackInterval : preferences.interaction.useInterval;
+    button.interval = std::chrono::duration_cast<AutomationInput::Duration>(std::chrono::duration<float>(seconds));
     button.client = &client;
     button.intent.arm();
     logger.info("Periodic input {}: on", static_cast<int>(action));
