@@ -44,9 +44,8 @@ class Zoom {
     bool freeMotionTimed = false;
     // Perspective travel state (frame listener completes activation).
     std::atomic<bool> pendingFreeCamera{false};
-    std::atomic<int> freeToggles{0};
+    std::atomic<int> freePerspective{-1}; // Perspective saved at activation.
     std::chrono::steady_clock::time_point freeTravelStart{};
-    std::chrono::steady_clock::time_point freeLastToggle{};
     std::atomic<bool> running{false};
     std::atomic<bool> allowed{true};
     std::atomic<IClientInstance*> client{nullptr};

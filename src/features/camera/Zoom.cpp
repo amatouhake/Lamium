@@ -12,6 +12,8 @@
 #include "mc/client/entity/systems/ClientInputUpdateSystem.h"
 #include "mc/client/game/ClientInputCallbacks.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/client/options/IOptionRegistry.h"
+#include "mc/deps/shared_types/v1_21_100/camera/PlayerViewMode.h"
 #include "mc/client/game/MinecraftGame.h"
 #include "mc/client/input/ClientMoveInputHandler.h"
 #include "mc/client/player/LocalPlayer.h"
@@ -561,7 +563,7 @@ void Zoom::pressFreeCamera(IClientInstance& current) {
     if (pendingFreeCamera.load()) { abortPendingTravel(); return; }
     auto* player = current.getLocalPlayer();
     if (!player || !running || !freeCameraAllowed) return;
-    freeToggles.store(0);
+    freePerspective.store(-1);
     if (!ensureFirstPerson(current, *player)) return;
     beginFreeCameraSession(current, *player);
 }
@@ -569,21 +571,20 @@ bool Zoom::ensureFirstPerson(IClientInstance& current, LocalPlayer& player) {
     try {
         if (findFirstPersonRig(player)) return true;
     } catch (...) {}
-    // Travel: request vanilla toggles; the frame listener completes the
-    // activation once the first-person rig arrives. No session exists yet,
-    // so the perspective lock lets the toggle through.
-    freeToggles.store(0);
+    // Travel: set first person directly (no cycle through front-third); the
+    // frame listener completes activation once the rig arrives. No session
+    // exists yet, so nothing is locked.
+    freePerspective.store(-1);
     client = &current;
     pendingFreeCamera.store(true);
     {
         std::lock_guard lock{freeInputMutex};
-        freeTravelStart = freeLastToggle = std::chrono::steady_clock::now();
+        freeTravelStart = std::chrono::steady_clock::now();
     }
     try {
-        ClientInputCallbacks::handleTogglePerspectiveButtonPress(current);
-        freeToggles.store(1);
-        std::lock_guard lock{freeInputMutex};
-        freeLastToggle = std::chrono::steady_clock::now();
+        using Mode = SharedTypes::v1_21_100::PlayerViewMode;
+        freePerspective.store(current.getOptions().getPlayerViewPerspective());
+        current.getOptions().setPlayerViewPerspective(static_cast<int>(Mode::FirstPerson));
     } catch (...) {
         pendingFreeCamera.store(false);
     }
@@ -600,23 +601,12 @@ void Zoom::pollFreeTravel() {
             return;
         }
     } catch (...) { abortPendingTravel(); return; }
-    auto now = std::chrono::steady_clock::now();
-    int toggles = freeToggles.load();
-    std::chrono::steady_clock::time_point start, last;
+    std::chrono::steady_clock::time_point start;
     {
         std::lock_guard lock{freeInputMutex};
         start = freeTravelStart;
-        last = freeLastToggle;
     }
-    using namespace std::chrono;
-    if (now - start > seconds(5)) { abortPendingTravel(); return; }
-    if (toggles >= 2 || now - last < milliseconds(400)) return;
-    try {
-        ClientInputCallbacks::handleTogglePerspectiveButtonPress(*current);
-        freeToggles.store(toggles + 1);
-        std::lock_guard lock{freeInputMutex};
-        freeLastToggle = std::chrono::steady_clock::now();
-    } catch (...) { abortPendingTravel(); }
+    if (std::chrono::steady_clock::now() - start > std::chrono::seconds(5)) abortPendingTravel();
 }
 void Zoom::abortPendingTravel() {
     if (!pendingFreeCamera.load()) return;
@@ -628,14 +618,10 @@ void Zoom::abortPendingTravel() {
     reset();
 }
 void Zoom::restoreFreePerspective(IClientInstance& current) {
-    // The perspective cycles through three modes; undo N applied toggles.
-    int applied = freeToggles.load();
-    freeToggles.store(0);
-    int back = (3 - applied % 3) % 3;
-    for (int i = 0; i < back; ++i) {
-        try { ClientInputCallbacks::handleTogglePerspectiveButtonPress(current); }
-        catch (...) { break; }
-    }
+    int saved = freePerspective.load();
+    freePerspective.store(-1);
+    if (saved < 0) return;
+    try { current.getOptions().setPlayerViewPerspective(saved); } catch (...) {}
 }
 bool Zoom::beginFreeCameraSession(IClientInstance& current, LocalPlayer& player) {
     if (!running || !freeCameraAllowed || ui::ownsInput() || !gameplayScreen(current.getScreenName()))
