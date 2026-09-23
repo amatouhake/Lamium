@@ -349,6 +349,12 @@ displacement, yet no visible motion; terrain vanishes instead. Third attempt
 from direction flags. Verified 2026-09-24: first-person flight correct
 (WASD/Space/Shift, slow), terrain follows, no residue on exit, menus exit.
 Remaining: third-person flight (rotation only), speed, menu behavior.
+2026-09-24: entity-offset flight verified first person; third person moves via
+pivot after 2ff1649; F5 migration verified after 89e802a with no residue.
+Open: third-person rotation pivot feels off (center is not the viewpoint).
+Proposal: while FreeCamera is active, lock first-person camera motion plus
+forced body rendering and ignore F5 (no per-perspective rigs at all). Needs
+research into F5 suppression and the first-person body-hide flag.
 
 ### L-20 Shape name text input adds stray characters
 Native text entry for shape names inserts extra characters.
