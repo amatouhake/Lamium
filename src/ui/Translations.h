@@ -5,6 +5,11 @@
 namespace lamium::ui::translations {
 struct Entry { std::string_view key, english, japanese; };
 inline constexpr auto entries = std::to_array<Entry>({
+    {"feature.periodicAttack", "Periodic Attack (experimental)", "周期攻撃（試験的）"},
+    {"feature.periodicUse", "Periodic Use (experimental)", "周期使用（試験的）"},
+    {"help.periodicInput", "Toggle repeated clicks every 0.5 seconds. Manual clicks, menus, focus loss and world changes stop it.", "0.5秒ごとのクリックをキーで切り替えます。手動クリック・メニュー・フォーカス喪失・ワールド変更で停止します。"},
+    {"key.Lamium.periodicattack", "Toggle Periodic Attack", "周期攻撃を切り替え"},
+    {"key.Lamium.periodicuse", "Toggle Periodic Use", "周期使用を切り替え"},
     {"feature.permanentSneak", "Permanent Sneak (experimental)", "常時スニーク（試験的）"},
     {"help.permanentSneak", "Toggle sneak with a hotkey. Menus, focus loss and world changes stop it. Activate again to resume.", "キーでスニークを切り替えます。メニュー・フォーカス喪失・ワールド変更で解除。再開にはもう一度キーを押します。"},
     {"key.Lamium.permanentsneak", "Toggle Permanent Sneak", "常時スニークを切り替え"},

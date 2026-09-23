@@ -5,7 +5,8 @@ contract in `interaction::AutomationInput`. Permanent Sneak now has an
 experimental native adapter and an unbound toggle action in Features/Hotkeys.
 Its basic toggle, settings-screen cancellation, and app-switch cancellation have passed a local-world
 runtime check; broader compatibility is still unverified. Periodic Attack and Use
-are not yet connected or exposed in the UI.
+now have an initial native adapter with unbound session toggles in Features and
+Hotkeys. Their synthetic behavior has not yet been validated in Minecraft.
 
 Initial local-world check on 2026-09-23: the settings editor accepted a custom
 binding and the action logged activation, but the third-person player did not
@@ -56,6 +57,31 @@ behavior, and multiplayer remain unverified. The feature is still experimental.
   contribution; the adapter must preserve the user's physically held input.
 - Interval values must be positive. Interval configuration will be bounded in
   the settings layer before reaching this state machine.
+
+## Periodic adapter checkpoint
+
+The initial adapter captures the two observed vanilla action callbacks during
+registration and scopes them to their owning `InputHandler`. It advances after
+that handler's native input tick, only for the primary client whose
+`ClientInputHandler` references the same owner. Native callbacks receive the
+observed `DeactivateFocus` argument. No input hash, packet, or GameMode action
+is constructed directly.
+
+Each press lasts one input update and currently repeats at a fixed 500 ms.
+Configurable intervals and visible runtime state are still required. Activation
+is never persisted. A manual down event disarms that action and transfers held
+state to the physical input; cancellation does not release underneath a held
+physical button. Common input invalidation, dimension changes, and runtime
+disable cancel intent. Owner destruction discards callbacks without replaying
+them against a disappearing input handler. Callback wrappers use weak owners
+and continue forwarding original input after the adapter is stopped.
+
+This initial registration-based adapter requires a fresh game process. It does
+not recover callback registrations that happened before hook installation, or
+rebuild captures when the mod is disabled and enabled within the same process.
+Runtime checks must cover synthetic attack/use, physical takeover, menu/focus
+cancellation, world exit, and continuous-use items before this feature can be
+treated as usable. Build success alone does not establish those behaviors.
 
 ## Integration still required
 

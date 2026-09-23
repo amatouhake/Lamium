@@ -1,5 +1,6 @@
 #include "app/Runtime.h"
 #include "features/interaction/PermanentSneak.h"
+#include "features/interaction/PeriodicInput.h"
 #include "features/interaction/AutomationTrace.h"
 #include "features/camera/Zoom.h"
 #include "features/lighting/NightVision.h"
@@ -46,6 +47,10 @@ bool Runtime::load() {
         settings = {};
     }
     settings.normalize();
+    try { interaction::periodic::start(); }
+    catch (std::exception const& error) {
+        mod.getLogger().warn("Periodic input unavailable: {}", error.what());
+    }
     try { interaction::automationTrace::start(); }
     catch (std::exception const& error) {
         mod.getLogger().warn("Automation diagnostics unavailable: {}", error.what());
@@ -103,6 +108,7 @@ bool Runtime::enable() {
 }
 bool Runtime::disable() {
     running = false;
+    interaction::periodic::stop();
     interaction::automationTrace::stop();
     interaction::sneak::stop();
     interaction::placementTrace::stop();

@@ -1,5 +1,6 @@
 #include "input/CustomInput.h"
 #include "features/interaction/PermanentSneak.h"
+#include "features/interaction/PeriodicInput.h"
 #include "input/Binding.h"
 #include "input/Actions.h"
 #include "app/Runtime.h"
@@ -33,6 +34,7 @@ void releaseStates() {
         if (states[i].reset().released) releaseAction(static_cast<Action>(i));
 }
 void invalidate() {
+    interaction::periodic::cancel();
     interaction::sneak::cancel();
     releaseStates();
     held.invalidate();
