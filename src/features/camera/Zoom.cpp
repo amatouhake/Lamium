@@ -136,6 +136,10 @@ LL_TYPE_INSTANCE_HOOK(CameraTraceHook, ll::memory::HookPriority::Normal, LevelRe
             glm::mat4 translation{1.f};
             translation[3][0] = -2.f;
             *camera.viewMatrixStack->getTop()._m = translation * view;
+            static std::atomic<unsigned> positionSamples{0};
+            auto sampleIndex = positionSamples.fetch_add(1, std::memory_order_relaxed);
+            if (sampleIndex < 8) Runtime::instance().self().getLogger().info(
+                "Camera position probe: sample={} appliedLocalRight=2", sampleIndex);
 #endif
         }
     }
