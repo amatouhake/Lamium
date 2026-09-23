@@ -36,7 +36,7 @@ decided; see DESIGN.md.
 ## Ready
 
 ### L-01 Settings key
-Status: ready. Change the `settings` action's default key from F8 (0x77) to
+Status: done. Change the `settings` action's default key from F8 (0x77) to
 `L` (0x4C) in `input/Binding.h`; update README, translations/help text that
 mention F8, and BindingTests. Users with an override keep it; Minecraft may
 keep its own saved mapping for the Lamium key, so tell the user to check

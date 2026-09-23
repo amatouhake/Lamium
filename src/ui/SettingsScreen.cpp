@@ -1492,7 +1492,7 @@ void start() {
             else captureInput(token, down);
             return;
         }
-        // A button may already be down when F8 opens the panel. Let vanilla
+        // A button may already be down when L opens the panel. Let vanilla
         // observe its release, just as we do for keys, so it cannot stay held.
         if (!wheel && event.buttonData() == MouseAction::DataUp) return;
         event.cancel();

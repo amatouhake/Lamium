@@ -25,7 +25,7 @@ void bindingTests() {
             check(option.read(value) == option.read(lamium::Settings{}), "second toggle restores original settings");
         check(actions[i].defaultKey >= 0 && actions[i].defaultKey <= 255, "native defaults use valid key codes or unbound");
     }
-    check(actions[static_cast<size_t>(Action::Settings)].defaultKey == 0x77
+    check(actions[static_cast<size_t>(Action::Settings)].defaultKey == 0x4C
         && actions[static_cast<size_t>(Action::Zoom)].defaultKey == 0x43
         && actions[static_cast<size_t>(Action::NightVision)].defaultKey == 0x4a
         && actions[static_cast<size_t>(Action::Sort)].defaultKey == 0x52,

@@ -18,7 +18,7 @@ Settings and input foundation work is underway. Known settings
 and controls limitations are recorded in [UI follow-up](docs/UX-FOLLOWUP.md);
 the current settings interaction is not the final design.
 
-The current prototype provides hold-to-zoom (`C`), local settings (`F8`), and a
+The current prototype provides hold-to-zoom (`C`), local settings (`L`), and a
 NightVision toggle (`J`) while in a world. Settings also control container
 previews, durability information, and inventory sorting. Shulker and Bundle
 previews each have their own enable and show-empty switches. Shulker's vanilla

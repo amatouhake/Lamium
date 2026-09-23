@@ -18,7 +18,7 @@ enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand
 enum class Behavior { Press, Hold, Toggle };
 struct ActionInfo { std::string_view id, feature; Behavior behavior; int defaultKey = 0; };
 inline constexpr auto actions = std::to_array<ActionInfo>({
-    {"settings", "settings", Behavior::Press, 0x77},
+    {"settings", "settings", Behavior::Press, 0x4C},
     {"zoom", "zoom", Behavior::Hold, 0x43},
     // N belongs to Minecraft notifications; retain J for NightVision.
     {"nightvision", "nightVision", Behavior::Toggle, 0x4a},
