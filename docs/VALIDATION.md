@@ -1199,3 +1199,26 @@ both were verified together in the settings screen. Minecraft was closed normall
 and its window disappeared. The flushed session log confirms Lamium enabled and
 later reached mod disabling, with no ERR entry in that session. This establishes
 startup and settings integration only, not the detached-camera validation gate.
+
+### Freelook active-path trace (2026-09-23)
+
+Diagnostic build `caf0d9b` was installed with matching DLL SHA-256
+`024052C6AF8AC9644A4E432417418FC0D48B6898C0FAE5A82347636E58407A30`.
+Camera trace was enabled and the fixed-angle probe disabled. In the same local
+creative world and rear third-person view, Freelook was enabled and temporarily
+bound to Mouse 1. An automated left-button drag was issued in gameplay.
+
+After normal shutdown, the flushed log contained one successful session begin,
+one native turn sample with pitch/yaw both zero, and two render application
+samples with relative pitch/yaw both zero. Thus the binding reaches session
+activation and the render override; this attempt did not supply nonzero turn
+input while active. The unchanged post-release screenshot cannot validate
+rotation, sensitivity or body isolation. Do not adjust the rotation matrix or
+input scale based on this zero-input experiment. CustomInput's mouse listener
+explicitly passes both absolute and relative move events through; the next check
+must distinguish mouse capture/input delivery from detached-view math.
+
+Freelook was restored to Off and its binding reset to Unbound, verified together
+in the settings screen before exit. Minecraft's window disappeared normally and
+the session log reached Lamium disabling. The installed DLL remains diagnostic;
+restore a non-trace build before ordinary use.
