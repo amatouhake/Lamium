@@ -23,8 +23,14 @@ restarting a still-held input is not used to recover. Unit tests cover these
 cancellation/repeat/release sequences; native focus recovery remains unverified.
 
 Runtime validation is still pending. The provisional native-input scale of
-0.15 degrees per unit and camera-local rotation order require calibration. The
-relative pitch limit is not yet an absolute world pitch limit. Runtime actor ID
+0.15 degrees per unit and native rotation signs require calibration. The session
+now starts from the player's pitch and clamps its target pitch to +/-90 degrees.
+The view correction removes that initial pitch before relative yaw and applies
+the target pitch afterwards; zero input is identity even when starting tilted.
+Pure tests cover pitched starts, both poles and yaw boundary angles. Matching
+this model to native interpolation, front third-person view and camera effects
+still needs runtime validation; it is not proof of the final rendered world pitch.
+Runtime actor ID
 changes now cancel the session without retaining an actor pointer; death,
 sleeping, riding, missing runtime identity, and an empty view stack also cancel
 or prevent activation. Owner replacement is unit-tested, while these native

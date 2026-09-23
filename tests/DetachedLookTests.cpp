@@ -1,4 +1,5 @@
 #include "features/camera/DetachedLookState.h"
+#include "features/camera/LookRotation.h"
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -49,4 +50,35 @@ void detachedLookTests() {
     look.release();
     look.release();
     require(look.begin(0, 0, 43), "duplicate releases keep a fresh press available");
+    look.release();
+    require(look.begin(80, 0), "start while already looking near a pole");
+    look.turn(30, 0);
+    require(look.snapshot()->pitch == 90 && look.snapshot()->initialPitch == 80,
+        "pitch clamps in the initial player's frame, not relative to zero");
+    look.turn(-180, 0);
+    require(look.snapshot()->pitch == -90, "full pitch range remains reachable");
+
+    for (float base : {-90.f, -60.f, 0.f, 45.f, 90.f}) {
+        auto identity = lamium::lookRotation(base, base, 0);
+        for (int i = 0; i < 9; ++i)
+            require(std::abs(identity[i] - (i % 4 == 0 ? 1.f : 0.f)) < 1e-5f,
+                "activation must not jump at a nonzero initial pitch");
+        for (float pitch : {-90.f, -30.f, 0.f, 70.f, 90.f}) {
+            for (float yaw : {-180.f, -90.f, 0.f, 45.f, 180.f}) {
+                auto correction = lamium::lookRotation(base, pitch, yaw);
+                constexpr double rad = 3.14159265358979323846 / 180;
+                double cb = std::cos(base * rad), sb = std::sin(base * rad);
+                double cp = std::cos(pitch * rad), sp = std::sin(pitch * rad);
+                double cy = std::cos(yaw * rad), sy = std::sin(yaw * rad);
+                double initial[] = {1,0,0, 0,cb,-sb, 0,sb,cb};
+                double expected[] = {cy,0,sy, sp*sy,cp,-sp*cy, -cp*sy,sp,cp*cy};
+                for (int row = 0; row < 3; ++row) for (int col = 0; col < 3; ++col) {
+                    double actual = 0;
+                    for (int k = 0; k < 3; ++k) actual += correction[row*3+k] * initial[k*3+col];
+                    require(std::abs(actual - expected[row*3+col]) < 1e-5,
+                        "yaw/pitch result must be independent of starting pitch");
+                }
+            }
+        }
+    }
 }

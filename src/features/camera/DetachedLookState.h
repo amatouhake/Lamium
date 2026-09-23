@@ -13,6 +13,7 @@ public:
     struct Angles {
         float pitch = 0;
         float yaw = 0;
+        float initialPitch = 0;
     };
 private:
     mutable std::mutex mutex;
@@ -25,7 +26,8 @@ public:
         if (awaitingRelease) return false; // Includes a cancelled but still-held session.
         awaitingRelease = true;
         if (!std::isfinite(pitch) || !std::isfinite(yaw)) return false;
-        pose = Angles{std::clamp(pitch, -90.f, 90.f), std::remainder(yaw, 360.f)};
+        pitch = std::clamp(pitch, -90.f, 90.f);
+        pose = Angles{pitch, std::remainder(yaw, 360.f), pitch};
         owner = ownerId;
         return true;
     }

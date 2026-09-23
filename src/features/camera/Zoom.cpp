@@ -1,5 +1,6 @@
 #include "features/camera/Zoom.h"
 #include "features/camera/CameraInteraction.h"
+#include "features/camera/LookRotation.h"
 #include "settings/Settings.h"
 #include "input/Actions.h"
 #include "app/Runtime.h"
@@ -162,18 +163,14 @@ LL_TYPE_INSTANCE_HOOK(FreelookCameraHook, ll::memory::HookPriority::Normal, Leve
     for (int column = 0; column < 4; ++column)
         for (int row = 0; row < 4; ++row)
             if (!std::isfinite(view[column][row])) { Zoom::instance().cancelLook(); return; }
-    constexpr float radians = 0.01745329252f;
-    float yaw = pose->yaw * radians, pitch = pose->pitch * radians;
-    glm::mat4 horizontal{1.f}, vertical{1.f};
-    horizontal[0][0] = horizontal[2][2] = std::cos(yaw);
-    horizontal[0][2] = -std::sin(yaw);
-    horizontal[2][0] = std::sin(yaw);
-    vertical[1][1] = vertical[2][2] = std::cos(pitch);
-    vertical[1][2] = std::sin(pitch);
-    vertical[2][1] = -std::sin(pitch);
-    *camera.viewMatrixStack->getTop()._m = vertical * horizontal * view;
+    auto correction = lookRotation(pose->initialPitch, pose->pitch, pose->yaw);
+    glm::mat4 rotation{1.f};
+    for (int column = 0; column < 3; ++column)
+        for (int row = 0; row < 3; ++row)
+            rotation[column][row] = correction[row * 3 + column];
+    *camera.viewMatrixStack->getTop()._m = rotation * view;
 #ifdef LAMIUM_CAMERA_TRACE
-    traceLook(LookTraceStage::Render, pose->pitch, pose->yaw);
+    traceLook(LookTraceStage::Render, pose->pitch - pose->initialPitch, pose->yaw);
 #endif
 }
 LL_TYPE_INSTANCE_HOOK(FovHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
@@ -232,7 +229,7 @@ void Zoom::pressLook(IClientInstance& current) {
     auto* player = current.getLocalPlayer();
     if (!canDetachLook(*player)) return;
     client = &current;
-    bool started = look.begin(0, 0, player->getRuntimeID().rawID);
+    bool started = look.begin(player->getRotation().x, 0, player->getRuntimeID().rawID);
 #ifdef LAMIUM_CAMERA_TRACE
     if (started) traceLook(LookTraceStage::Begin, 0, 0);
 #else
