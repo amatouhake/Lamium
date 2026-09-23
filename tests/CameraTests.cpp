@@ -53,6 +53,8 @@ int main() try {
     translationTests();
     extern void lightOverlayTests();
     lightOverlayTests();
+    extern void settingsTableTests();
+    settingsTableTests();
     extern void settingsLayoutTests();
     settingsLayoutTests();
     extern void responseBarrierTests();

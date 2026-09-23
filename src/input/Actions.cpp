@@ -73,7 +73,7 @@ void executeAction(IClientInstance& client, input::Action action) {
 }
 void releaseAction(input::Action action) {
     if (action == input::Action::Zoom) Zoom::instance().release();
-    if (action == input::Action::Freelook) Zoom::instance().releaseLook();
+    if (action == input::Action::Freelook) Zoom::instance().releaseLookKey();
 }
 void registerActions() {
     auto& registry = ll::input::KeyRegistry::getInstance();

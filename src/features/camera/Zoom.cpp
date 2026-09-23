@@ -350,16 +350,21 @@ bool Zoom::viewProbeActive() const {
 #endif
 void Zoom::configure(Settings const& settings) {
     lookAllowed = settings.camera.freelook;
+    lookToggle = settings.camera.freelookToggle;
     cancelLook();
     allowed = settings.camera.zoom;
     state.configure(settings.camera.magnification, settings.camera.wheelStep);
 }
 void Zoom::pressLook(IClientInstance& current) {
+    // Toggle activation: a press always ends an active session, and a new
+    // session never waits for a key release that this mode ignores.
+    if (lookToggle && look.snapshot()) { releaseLook(); return; }
     if (!running || !lookAllowed || ui::ownsInput() || !gameplayScreen(current.getScreenName())
         || !current.getLocalPlayer()) return;
     auto* player = current.getLocalPlayer();
     if (!canDetachLook(*player)) return;
     client = &current;
+    if (lookToggle) look.release();
     if (!look.begin(player->getRotation().x, player->getRotation().z, player->getRuntimeID().rawID)) return;
 #ifdef LAMIUM_CAMERA_TRACE
     traceLook(LookTraceStage::Begin, player->getRotation().x, player->getRotation().z);
@@ -372,6 +377,9 @@ void Zoom::pressLook(IClientInstance& current) {
         cancelLook();
         Runtime::instance().self().getLogger().error("Freelook could not detach the camera");
     }
+}
+void Zoom::releaseLookKey() {
+    if (!lookToggle) releaseLook();
 }
 void Zoom::releaseLook() {
     look.release();

@@ -1,63 +1,104 @@
 #include "ui/SettingsRows.h"
 #include "ui/Translations.h"
+#include <format>
 #include <set>
 void check(bool, char const*);
 void settingsRowsTests() {
     using namespace lamium;
+    using ui::RowKind;
     auto translate = [](std::string_view key) { return std::string(ui::translations::find(key, "en_US")); };
     ui::SearchQuery query;
-    std::set<std::string_view> collapsed;
-    auto rows = ui::buildSettingsRows(false, query, collapsed, translate);
-    std::set<std::string_view> options, features;
+    std::set<std::string_view> expanded;
+    for (auto const& feature : ui::features) expanded.insert(feature.id);
+
+    // Fully expanded "All": every setting and binding is reachable exactly once,
+    // each feature's toggle is its row state rather than a duplicate child.
+    auto rows = ui::buildSettingsRows(false, {}, query, expanded, translate);
+    std::set<std::string_view> options, features, sectionsSeen;
     std::set<input::Action> actions;
-    std::string_view parent;
-    for (auto const& row : rows) {
-        check(row.feature && !translate(row.feature->name).empty() && !translate(row.feature->description).empty(), "feature metadata resolves");
-        if (row.heading()) { parent = row.feature->id; check(features.insert(parent).second, "one heading per feature"); }
-        else {
-            check(row.feature->id == parent, "children stay under their feature");
-            if (row.option) check(options.insert(row.option->id).second, "option appears exactly once");
-            if (row.action) check(actions.insert(*row.action).second, "binding appears exactly once");
-        }
-    }
-    check(options.size() == settings::options.size() && actions.size() == input::actions.size(), "all settings and actions are reachable");
-    for (auto const& feature : ui::features) collapsed.insert(feature.id);
-    rows = ui::buildSettingsRows(false, query, collapsed, translate);
-    check(rows.size() == ui::features.size(), "collapsed view exposes only feature headers");
-    std::set<std::string_view> sections;
+    ui::FeatureInfo const* parent = nullptr;
     std::string_view section;
+    for (size_t i = 0; i < rows.size(); ++i) {
+        auto const& row = rows[i];
+        if (row.kind == RowKind::Section) {
+            check(sectionsSeen.insert(row.section).second, "each section heading appears once");
+            check(translate(row.section) != row.section, "section name is localized");
+            section = row.section;
+            check(i + 1 < rows.size() && rows[i+1].heading(), "a section heading is followed by a feature");
+            continue;
+        }
+        check(row.section == section && ui::featureSection(row.feature->id) == section, "rows stay in their section");
+        check(!translate(row.feature->name).empty() && !translate(row.feature->description).empty(), "feature metadata resolves");
+        if (row.heading()) {
+            parent = row.feature;
+            check(features.insert(row.feature->id).second, "one heading per feature");
+            if (auto primary = ui::primaryAction(*row.feature)) check(actions.insert(*primary).second, "primary binding shown once");
+            if (!row.feature->toggle.empty()) check(options.insert(row.feature->toggle).second, "toggle shown as feature state");
+            check(row.expanded == (row.children > 0), "expanded features open when they have content");
+            continue;
+        }
+        check(row.child() && row.feature == parent, "children stay under their feature");
+        bool last = i + 1 == rows.size() || !rows[i+1].child() || rows[i+1].feature != parent;
+        check(row.lastChild == last, "the last child ends the tree guide");
+        if (row.option) check(options.insert(row.option->id).second, "option appears exactly once");
+        if (row.action) check(actions.insert(*row.action).second, "binding appears exactly once");
+    }
+    check(sectionsSeen.size() == ui::sections.size(), "all broad sections are represented");
+    check(features.size() == ui::features.size(), "every feature is listed");
+    check(options.size() == settings::options.size() && actions.size() == input::actions.size(), "all settings and actions are reachable");
+
+    // Collapsed: only headings and features; child counts remain visible.
+    expanded.clear();
+    rows = ui::buildSettingsRows(false, {}, query, expanded, translate);
+    check(rows.size() == ui::features.size() + ui::sections.size(), "collapsed view exposes only sections and features");
+    for (auto const& row : rows) check(!row.child() && !row.expanded, "collapsed features have no visible children");
+
+    // A category shows only its features, without section headings.
+    rows = ui::buildSettingsRows(false, "section.camera", query, expanded, translate);
+    check(!rows.empty(), "category has features");
+    for (auto const& row : rows) check(row.heading() && row.section == "section.camera", "category filters features");
+
+    // Search spans all categories and opens features whose settings match.
+    query.append("magnification");
+    rows = ui::buildSettingsRows(false, "section.inventory", query, expanded, translate);
+    check(rows.size() == 3 && rows[0].kind == RowKind::Section && rows[1].feature->id == "zoom" && rows[1].expanded
+        && rows[2].option->id == "camera.magnification" && rows[2].lastChild, "search reveals a matching setting in any category");
+    query.clear(); query.append("Camera & appearance");
+    rows = ui::buildSettingsRows(false, {}, query, expanded, translate);
+    for (auto const& row : rows) check(row.section == "section.camera", "section search stays in matching group");
+    query.clear(); query.append("ズーム");
+    rows = ui::buildSettingsRows(false, {}, query, expanded, [](std::string_view key) { return std::string(ui::translations::find(key, "ja_JP")); });
+    check(rows.size() >= 2 && rows[1].feature->id == "zoom" && !rows[1].expanded, "Japanese feature search keeps a matched feature collapsed");
+    query.clear(); query.append("Shape Manager");
+    rows = ui::buildSettingsRows(false, {}, query, expanded, translate);
+    check(rows.size() == 2 && rows[1].heading() && ui::isTool(*rows[1].feature) && !rows[1].children,
+        "shape manager is a feature row opening its own screen");
+    check(ui::buildSettingsRows(true, {}, query, expanded, translate).empty(), "tools are not hotkey actions");
+    query.clear(); query.append("not-a-real-setting");
+    check(ui::buildSettingsRows(false, {}, query, expanded, translate).empty(), "unmatched query is empty");
+    query.clear();
+
+    // Hotkeys lists every action regardless of expansion, grouped by section.
+    rows = ui::buildSettingsRows(true, {}, query, expanded, translate);
+    size_t actionRows = 0;
     for (auto const& row : rows) {
-        auto next = ui::featureSection(row.feature->id);
-        check(translate(next) != next, "section name is localized");
-        if (next != section) {
-            check(sections.insert(next).second, "each section forms one contiguous group");
-            section = next;
+        check(row.kind == RowKind::Section || (row.kind == RowKind::Action && row.action), "Hotkeys contains only bindings");
+        if (row.action) ++actionRows;
+    }
+    check(actionRows == input::actions.size(), "Hotkeys includes every action");
+
+    // Every option label splits into a column name and a formattable value.
+    for (auto locale : {"en_US", "ja_JP"}) {
+        for (auto const& option : settings::options) {
+            auto parts = ui::splitLabel(ui::translations::find(option.label, locale));
+            check(!parts.name.empty() && parts.name.find('{') == std::string::npos, "option name has no placeholder");
+            check(parts.value.find('{') != std::string::npos, "option value keeps its placeholder");
+            float number = 2.5f;
+            check(!std::vformat(parts.value, std::make_format_args(number)).empty(), "value pattern formats");
         }
     }
-    check(sections.size() == 5, "all broad sections are represented");
-    query.append("Camera & appearance");
-    rows = ui::buildSettingsRows(false, query, collapsed, translate);
-    check(!rows.empty(), "section search reveals collapsed features");
-    for (auto const& row : rows)
-        check(ui::featureSection(row.feature->id) == "section.camera", "section search stays in matching group");
-    query.clear();
-    query.append("magnification");
-    rows = ui::buildSettingsRows(false, query, collapsed, translate);
-    check(rows.size() == 2 && rows[0].heading() && rows[1].option->id == "camera.magnification", "search reveals matching setting inside collapsed feature");
-    query.clear(); query.append("ズーム");
-    rows = ui::buildSettingsRows(false, query, collapsed, [](std::string_view key) { return std::string(ui::translations::find(key, "ja_JP")); });
-    check(rows.size() == 5 && rows.front().feature->id == "zoom", "Japanese feature search reveals settings and binding");
-    query.clear();
-    query.append("Shape Manager");
-    rows = ui::buildSettingsRows(false, query, collapsed, translate);
-    check(rows.size() == 2 && rows[0].heading() && rows[1].tool && !rows[1].heading(),
-        "shape manager search exposes its dedicated tool entry while collapsed");
-    check(ui::buildSettingsRows(true, query, collapsed, translate).empty(),
-        "tool launch rows are not misrepresented as hotkey actions");
-    query.clear();
-    rows = ui::buildSettingsRows(true, query, collapsed, translate);
-    check(rows.size() == input::actions.size(), "Hotkeys includes every action regardless of collapse");
-    for (auto const& row : rows) check(row.action && !row.option && !row.heading(), "Hotkeys contains only bindings");
-    query.append("not-a-real-setting");
-    check(ui::buildSettingsRows(false, query, collapsed, translate).empty(), "unmatched query is empty");
+    check(ui::splitLabel("Magnification: {}x").name == "Magnification" && ui::splitLabel("Magnification: {}x").value == "{}x",
+        "label splits at the first separator");
+    check(ui::actionName("Lamium: Hold to zoom") == "Hold to zoom" && ui::actionName("Toggle Periodic Use") == "Toggle Periodic Use",
+        "action names drop the controls-screen prefix only");
 }

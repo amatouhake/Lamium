@@ -18,6 +18,7 @@ struct Settings {
     struct Camera {
         bool zoom = true;
         bool freelook = false;
+        bool freelookToggle = false; // Activation: false = hold the key, true = press to switch
         float magnification = 3.0f;
         float wheelStep = 0.5f;
         bool operator==(Camera const&) const = default;

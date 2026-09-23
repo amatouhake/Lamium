@@ -49,6 +49,16 @@ void settingsStoreTests() {
           "adding lighting must preserve existing camera settings");
     check(old.inventory.sorting && old.inventory.sortContainers, "old settings supply inventory defaults");
     check(!old.camera.freelook, "existing installations keep experimental Freelook disabled");
+    check(!old.camera.freelookToggle, "Freelook activation defaults to holding the key");
+    {
+        Settings toggled; toggled.camera.freelookToggle = true;
+        check(decodeSettings(R"({"camera":{"freelookToggle":true}})").camera.freelookToggle, "Freelook activation is read from storage");
+        auto activation = settings::find("camera.freelookActivation");
+        check(activation && std::get<settings::ChoiceValue>(activation->read(toggled)).label == "activation.toggle",
+              "activation choice reads the stored mode");
+        activation->adjust(toggled, 1);
+        check(!toggled.camera.freelookToggle, "activation choice cycles back to hold");
+    }
     check(input::actions[static_cast<size_t>(input::Action::Freelook)].behavior == input::Behavior::Hold
           && input::actions[static_cast<size_t>(input::Action::Freelook)].defaultKey == 0,
           "Freelook is an independent unassigned hold action");
@@ -121,12 +131,13 @@ void settingsStoreTests() {
     old.ui.gameplayHints = false;
     old.ui.automationStatus = false;
     old.interaction.attackInterval = 1.2f;
+    old.camera.freelookToggle = true;
     old.interaction.useInterval = 3.4f;
     writeSettings(path, old);
     auto loaded = readSettings(path);
     check(loaded.interaction.attackInterval == 1.2f && loaded.interaction.useInterval == 3.4f,
           "independent attack and use intervals survive disk round trip");
-    check(loaded.camera.magnification == 3.5f && loaded.lighting.nightVision, "disk round trip");
+    check(loaded.camera.magnification == 3.5f && loaded.lighting.nightVision && loaded.camera.freelookToggle, "disk round trip");
     check(!loaded.inventory.sorting && !loaded.inventory.sortContainers, "inventory switches survive saves");
     check(!loaded.ui.gameplayHints, "hidden gameplay hints survive restart");
     check(!loaded.ui.automationStatus, "hidden automation status survives restart");

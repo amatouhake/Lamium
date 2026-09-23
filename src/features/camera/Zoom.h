@@ -13,6 +13,7 @@ class Zoom {
     ZoomState state;
     DetachedLookState look;
     std::atomic<bool> lookAllowed{false};
+    std::atomic<bool> lookToggle{false};
     std::atomic<bool> running{false};
     std::atomic<bool> allowed{true};
     std::atomic<IClientInstance*> client{nullptr};
@@ -27,6 +28,7 @@ public:
     void press(IClientInstance&);
     void pressLook(IClientInstance&);
     void releaseLook();
+    void releaseLookKey(); // Key release: ends a held session, ignored in toggle mode
     void cancelLook();
     bool turnLook(LocalPlayer&, float pitchDelta, float yawDelta);
     bool blocksLookInteraction(Player&);

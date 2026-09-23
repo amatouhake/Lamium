@@ -65,7 +65,7 @@ Json encode(Settings const& settings) {
                       {"light", settings.overlays.light}, {"skyLight", settings.overlays.skyLight},
                       {"hitboxDistance", settings.overlays.hitboxDistance}}},
         {"bindings", std::move(bindings)},
-        {"camera", {{"zoom", settings.camera.zoom}, {"freelook", settings.camera.freelook}, {"magnification", settings.camera.magnification},
+        {"camera", {{"zoom", settings.camera.zoom}, {"freelook", settings.camera.freelook}, {"freelookToggle", settings.camera.freelookToggle}, {"magnification", settings.camera.magnification},
                     {"wheelStep", settings.camera.wheelStep}}},
         {"lighting", {{"nightVision", settings.lighting.nightVision}}},
         {"inspection", {{"containerPreviews", settings.inspection.containerPreviews},
@@ -155,6 +155,7 @@ Settings decodeSettings(std::string_view text) {
         auto const& camera = data.at("camera");
         value.camera.zoom = camera.value("zoom", value.camera.zoom);
         value.camera.freelook = camera.value("freelook", value.camera.freelook);
+        value.camera.freelookToggle = camera.value("freelookToggle", value.camera.freelookToggle);
         value.camera.magnification = camera.value("magnification", value.camera.magnification);
         value.camera.wheelStep = camera.value("wheelStep", value.camera.wheelStep);
     }

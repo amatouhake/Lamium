@@ -44,6 +44,7 @@ constexpr Option choice(std::string_view id, std::string_view feature, std::stri
             field = static_cast<std::remove_reference_t<decltype(field)>>(index);
         }};
 }
+inline constexpr std::array<std::string_view,2> activationLabels{"activation.hold","activation.toggle"};
 inline constexpr auto options = std::to_array<Option>({
     {"interaction.attackInterval", "periodicAttack", "periodicInterval",
         [](Settings const& s) -> OptionValue { return s.interaction.attackInterval; },
@@ -99,6 +100,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::overlays, &Settings::Overlays::chunkBorders>("overlays.chunkBorders", "chunkBorders", "chunkBorders"),
     toggle<&Settings::camera, &Settings::Camera::zoom>("camera.zoom", "zoom", "zoom"),
     toggle<&Settings::camera, &Settings::Camera::freelook>("camera.freelook", "freelook", "freelook"),
+    choice<&Settings::camera, &Settings::Camera::freelookToggle, activationLabels>("camera.freelookActivation", "freelook", "freelookActivation"),
     {"camera.magnification", "zoom", "magnification",
         [](Settings const& s) -> OptionValue { return s.camera.magnification; },
         [](Settings& s, int direction) { s.camera.magnification += direction * .5f; s.normalize(); },
