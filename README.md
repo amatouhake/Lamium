@@ -10,6 +10,9 @@ previews, durability information, and inventory sorting are implemented at
 prototype quality. Runtime validation is in progress. No stable
 release is available yet. See [validation notes](docs/VALIDATION.md) for the
 distinction between implemented and verified behavior.
+Contributors and coding agents start with [AGENTS.md](AGENTS.md); the design
+rules are in [docs/DESIGN.md](docs/DESIGN.md) and open work in
+[docs/BACKLOG.md](docs/BACKLOG.md).
 
 Settings and input foundation work is underway. Known settings
 and controls limitations are recorded in [UI follow-up](docs/UX-FOLLOWUP.md);
