@@ -33,6 +33,15 @@ void label(MinecraftUIRenderContext& context, float x, float y, float width, std
     context.drawText(font, RectangleArea{x,x+width,y,y+14}, std::move(text), white, 1.0f,
         ::ui::TextAlignment::Left, measure, caret);
 }
+void paragraph(MinecraftUIRenderContext& context, float x, float y, float width, std::string_view text, size_t maxLines) {
+    auto& font = context.mClient.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default").getFont();
+    auto lines = wrapLabel(text, width, maxLines,
+        [&](std::string_view value) { return font.getLineLength(value, 1.0f, false); });
+    for (auto& line : lines) {
+        label(context, x, y, width, std::move(line));
+        y += 14;
+    }
+}
 void panel(MinecraftUIRenderContext& context, float left, float top, float width, float height, float opacity) {
     fill(context,left,top,width,height,mce::Color{.07f,.08f,.11f,1.f},std::clamp(opacity,0.f,1.f));
 }

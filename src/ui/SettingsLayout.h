@@ -23,12 +23,12 @@ struct SettingsLayout {
         layout.subtitle = panelHeight >= 200;
         layout.secondHint = panelHeight >= 200;
         layout.rowsTop = layout.top + (layout.subtitle ? 34 : 20);
-        layout.footer = layout.top + panelHeight - (layout.secondHint ? 32 : 16);
+        layout.footer = layout.top + panelHeight - (layout.secondHint ? 60 : 16);
         layout.visible = std::clamp(static_cast<int>((layout.footer - layout.rowsTop - 4) / rowPitch), 1, count);
         // Keep the search/header anchored while filtering, but fit the bottom
         // to the results instead of leaving a large empty panel behind them.
         layout.footer = layout.rowsTop + layout.visible * rowPitch + 4;
-        layout.bottom = layout.footer + (layout.secondHint ? 30 : 15);
+        layout.bottom = layout.footer + (layout.secondHint ? 58 : 15);
         layout.first = std::clamp(first, 0, count - layout.visible);
         selected = std::clamp(selected, 0, count - 1);
         if (selected < layout.first) layout.first = selected;

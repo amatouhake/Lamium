@@ -28,6 +28,12 @@ Settings and input foundation work is now underway, before broader feature expan
   children even when the feature is collapsed; Hotkeys remains a flat action
   list. Latin search entry, deletion, and Ctrl+A replacement were verified
   in-game. IME, broader text fit, and expansion/click-target coverage remain open.
+- Selected-row descriptions now use a shared paragraph widget with up to three
+  lines on regular-height panels. It wraps English at spaces and CJK at whole
+  UTF-8 characters, with an ellipsis when the final line is too short. Compact
+  panels retain their single navigation hint. Automated wrapping and layout
+  bounds tests pass; native-font rendering of the new paragraph needs a runtime
+  check before treating the text-fit issue as resolved.
 - Explicit Save/Cancel has been replaced with per-edit persistence and application.
   Escape/Close only dismisses the screen. Failed saves leave the previous setting
   active and display an error. Numeric editing and saving before leaving the

@@ -474,7 +474,7 @@ void render(ll::event::UIRenderEvent& event) {
                 }
             }
         }
-        label(context,left,layout.footer+15,width,description);
+        paragraph(context,left,layout.footer+15,width,description,3);
     }
     context.flushText(0,std::nullopt);
 }

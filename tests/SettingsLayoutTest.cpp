@@ -14,7 +14,7 @@ void settingsLayoutTests() {
             first = layout.first;
             check(layout.visible > 0 && row >= first && row < first + layout.visible);
             check(layout.rowY(first + layout.visible - 1) + layout.rowHeight < layout.footer);
-            check(layout.footer + (layout.secondHint ? 29 : 14) <= height);
+            check(layout.footer + (layout.secondHint ? 57 : 14) <= height);
             check(layout.hit(layout.left + 5, layout.rowY(row) + 5) == row);
             check(layout.hit(layout.left + 5, layout.rowY(row) + layout.rowHeight + 1) == -1);
             check(layout.hit(layout.left - 1, layout.rowY(row) + 5) == -1);
@@ -29,7 +29,7 @@ void settingsLayoutTests() {
     check(SettingsLayout::fit(640, 480, 10, 0, 0).visible == 10);
     auto full = SettingsLayout::fit(640, 360, 100, 0, 0);
     auto filtered = SettingsLayout::fit(640, 360, 5, 0, 0);
-    check(full.visible >= 14);
+    check(full.visible >= 12);
     check(full.rowsTop == filtered.rowsTop && full.top == filtered.top);
     check(filtered.bottom < full.bottom);
     for (float scale : {1.f, 2.f, 3.f, 4.f}) {
