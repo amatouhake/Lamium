@@ -10,6 +10,7 @@
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/entity/systems/ClientInputUpdateSystem.h"
+#include "mc/client/game/ClientInputCallbacks.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/game/MinecraftGame.h"
 #include "mc/client/input/ClientMoveInputHandler.h"
@@ -24,6 +25,7 @@
 #include "mc/entity/components/ActorHeadRotationComponent.h"
 #include "mc/deps/minecraft_camera/components/ActiveCameraComponent.h"
 #include "mc/deps/minecraft_camera/components/CameraOffsetComponent.h"
+#include "mc/deps/minecraft_camera/components/CameraRenderPlayerModelComponent.h"
 #include "mc/deps/minecraft_camera/components/CameraDirectLookComponent.h"
 #include "mc/deps/minecraft_camera/components/CameraOrbitComponent.h"
 #include "mc/deps/vanilla_camera/components/UpdatePlayerFromCameraComponent.h"
@@ -62,13 +64,6 @@ struct DetachedCamera {
     float currentAzimuth = 0, currentPolar = 0, idealAzimuth = 0, idealPolar = 0;
 };
 std::vector<DetachedCamera> detachedCameras; // Client thread only.
-template<class Registry>
-bool hasActiveCamera(Registry& registry, EntityId entity) {
-    // ActiveCameraComponent is an empty tag; entt cannot try_get it.
-    for (auto candidate : registry.template view<MinecraftCamera::ActiveCameraComponent>())
-        if (candidate == entity) return true;
-    return false;
-}
 template<class Registry>
 void detachOneCamera(Registry& registry, EntityId entity) {
     DetachedCamera saved{entity, registry.get<VanillaCamera::UpdatePlayerFromCameraComponent>(entity).mLookMode, false, 0, 0};
@@ -203,40 +198,35 @@ void restoreFreeCameraOffset(LocalPlayer* player) {
         Runtime::instance().self().getLogger().error("FreeCamera could not restore the camera offset");
     }
 }
-void migrateFreeCamera(LocalPlayer& player) {
-    // F5 hands the active role to another camera entity. Move the session:
-    // restore the old rig, detach the new one, take its offset. The restore
-    // path replays every list entry, so accumulation across switches is safe.
+struct SavedBodyRender {
+    bool added = false;
+    EntityId entity;
+};
+SavedBodyRender savedBody; // First-person rigs hide the body; show it.
+void takeFreeCameraBody(LocalPlayer& player, EntityId entity) {
+    savedBody = {};
     auto& registry = player.getEntityContext().getRegistry();
-    EntityId next{};
-    bool found = false;
-    unsigned count = 0;
-    for (auto entity : registry.view<MinecraftCamera::ActiveCameraComponent>()) {
-        if (!registry.valid(entity)) continue;
-        if (!found) { next = entity; found = true; }
-        ++count;
+    if (!registry.valid(entity)) return;
+    // Direct-look rigs render hands, not the body. Orbit rigs already show it.
+    if (!registry.try_get<MinecraftCamera::CameraDirectLookComponent>(entity)) return;
+    // Empty tag: entt cannot try_get it, so test membership instead.
+    if (registry.all_of<MinecraftCamera::CameraRenderPlayerModelComponent>(entity)) return;
+    registry.emplace<MinecraftCamera::CameraRenderPlayerModelComponent>(entity);
+    savedBody.added = true;
+    savedBody.entity = entity;
+}
+void restoreFreeCameraBody(LocalPlayer* player) {
+    if (!savedBody.added) return;
+    savedBody.added = false;
+    try {
+        if (!player) return;
+        auto& registry = player->getEntityContext().getRegistry();
+        if (!registry.valid(savedBody.entity)) return;
+        if (registry.all_of<MinecraftCamera::CameraRenderPlayerModelComponent>(savedBody.entity))
+            registry.remove<MinecraftCamera::CameraRenderPlayerModelComponent>(savedBody.entity);
+    } catch (...) {
+        Runtime::instance().self().getLogger().error("FreeCamera could not restore body rendering");
     }
-#ifdef LAMIUM_CAMERA_TRACE
-    static std::atomic<unsigned> migrations{0};
-    if (migrations.load(std::memory_order_relaxed) < 8) {
-        migrations.fetch_add(1, std::memory_order_relaxed);
-        try {
-            Runtime::instance().self().getLogger().info(
-                "FreeCamera camera: retarget activeCameras={} found={}", count, found);
-        } catch (...) {}
-    }
-#endif
-    if (!found) throw std::runtime_error("FreeCamera found no active camera");
-    restoreFreeCameraOffset(&player);
-    auto& fresh = player.getEntityContext().getRegistry();
-    if (fresh.try_get<VanillaCamera::UpdatePlayerFromCameraComponent>(next))
-        detachOneCamera(fresh, next);
-    else {
-        bool known = false;
-        for (auto const& saved : detachedCameras) known = known || saved.entity == next;
-        if (!known) throw std::runtime_error("FreeCamera cannot take the new camera");
-    }
-    takeFreeCameraOffset(player, next);
 }
 #ifdef LAMIUM_CAMERA_TRACE
 void traceFreeCamera(unsigned reason, double x, double y, double z) noexcept {
@@ -463,6 +453,13 @@ LL_TYPE_INSTANCE_HOOK(FocusHook, ll::memory::HookPriority::Normal, MinecraftGame
     Zoom::instance().reset();
     origin();
 }
+// Plan A: perspective is locked while FreeCamera owns the session. F5 would
+// hand the render to a rig the session never detached, so swallow the press.
+LL_STATIC_HOOK(PerspectiveLockHook, ll::memory::HookPriority::Normal,
+    &ClientInputCallbacks::handleTogglePerspectiveButtonPress, void, IClientInstance& client) {
+    if (Zoom::instance().blocksPerspective()) return;
+    origin(client);
+}
 // Stage 2: after vanilla HID extraction, withhold movement from the extracted
 // output for the FreeCamera owner. Other players and Freelook pass through
 // untouched; Freelook keeps its movement while looking around.
@@ -487,6 +484,7 @@ HookEntry hooks[] = {
     {CameraTraceHook::hook, CameraTraceHook::unhook},
 #endif
     {FovHook::hook, FovHook::unhook},
+    {PerspectiveLockHook::hook, PerspectiveLockHook::unhook},
     {FreeCameraSetupHook::hook, FreeCameraSetupHook::unhook},
     {ExtractFreeCameraInput::hook, ExtractFreeCameraInput::unhook},
     {TurnHook::hook, TurnHook::unhook},
@@ -577,10 +575,16 @@ void Zoom::pressFreeCamera(IClientInstance& current) {
         detachCameras(*player);
         if (detachedCameras.empty()) throw std::runtime_error("FreeCamera has no detached camera entity");
         takeFreeCameraOffset(*player, detachedCameras.back().entity);
+        takeFreeCameraBody(*player, detachedCameras.back().entity);
     } catch (...) {
         cancelLook();
         Runtime::instance().self().getLogger().error("FreeCamera could not detach the camera");
     }
+}
+bool Zoom::blocksPerspective() const {
+    // Input-thread safe: atomics and a mutex-guarded snapshot only.
+    if (lookOwner.load() != DetachedOwner::FreeCamera) return false;
+    return look.snapshot().has_value();
 }
 void Zoom::releaseLookKey() {
     // A Toggle-owned session (FreeCamera, or Freelook in toggle mode) ignores
@@ -617,6 +621,7 @@ void Zoom::endFreeCameraMotion(bool wasFreeCamera) {
     freeMotionOwner.store(0);
     auto* current = client.load();
     restoreFreeCameraOffset(current ? current->getLocalPlayer() : nullptr);
+    restoreFreeCameraBody(current ? current->getLocalPlayer() : nullptr);
     std::lock_guard lock{freeInputMutex};
     freeMotionTimed = false;
     hasDisplacement = false;
@@ -634,16 +639,10 @@ void Zoom::writeFreeCameraOffset() {
     try {
         auto& registry = current->getLocalPlayer()->getEntityContext().getRegistry();
         auto entity = detachedCameras.back().entity;
-        // F5 may hand the active role to another entity. Migrate the session
-        // instead of steering a stale rig.
-        if (!registry.valid(entity) || !hasActiveCamera(registry, entity)) {
-            try {
-                migrateFreeCamera(*current->getLocalPlayer());
-            } catch (...) { return; }
-            if (detachedCameras.empty()) return;
-            entity = detachedCameras.back().entity;
-            if (!registry.valid(entity)) return;
-        }
+        // Perspective switches are suppressed while detached (see the F5
+        // hook), so the activation rig stays current; anything else keeps
+        // vanilla values instead of steering a stale rig.
+        if (!registry.valid(entity)) return;
         auto* offset = registry.try_get<MinecraftCamera::CameraOffsetComponent>(entity);
         if (!offset) return;
         // F5 may morph the rig (direct-look converts to orbit or back), so

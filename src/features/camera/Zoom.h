@@ -58,6 +58,8 @@ public:
     void press(IClientInstance&);
     void pressLook(IClientInstance&);
     void pressFreeCamera(IClientInstance&); // Toggle: press again to return to the player
+    // True while FreeCamera owns the detached session (perspective is locked).
+    bool blocksPerspective() const;
     // Extraction-hook entry: consumes movement only for the FreeCamera owner.
     void consumeFreeCameraInput(MoveInputComponent const&, RawMoveInputComponent&);
     // Render-hook entry: advances the session displacement from the stashed
