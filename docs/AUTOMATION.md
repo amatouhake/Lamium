@@ -83,6 +83,15 @@ Runtime checks must cover synthetic attack/use, physical takeover, menu/focus
 cancellation, world exit, and continuous-use items before this feature can be
 treated as usable. Build success alone does not establish those behaviors.
 
+Initial adapter smoke on 2026-09-23, DLL
+`C822AF983F6CA5BD767D15F31EBA1E72CDD8EC3B12333BAC530EFEE19B4B181D`:
+startup and local-world entry succeeded, and Features accepted a custom Periodic
+Attack binding. Activation did not produce sufficient visual or diagnostic
+evidence to establish repeated attacks. Settings was reopened to cancel any
+remaining intent. This is not a successful automation check. The next trace
+adds activation rejection reasons, bounded edge counts, and update-owner
+eligibility diagnostics to distinguish capture, activation, and dispatch failure.
+
 ## Integration still required
 
 ### Periodic input discovery

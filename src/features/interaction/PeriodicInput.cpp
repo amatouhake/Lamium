@@ -25,6 +25,7 @@ struct Button {
     std::vector<Callback> down, up;
     IClientInstance* client = nullptr;
     bool physical = false, synthetic = false;
+    unsigned presses = 0, releases = 0;
 };
 struct Owner { std::array<Button, 2> buttons; };
 std::map<InputHandler*, std::shared_ptr<Owner>> owners;
@@ -42,12 +43,22 @@ bool eligible(IClientInstance& client) {
         && !Zoom::instance().blocksLookInteraction(*player);
 }
 void emit(Button& button, bool down, IClientInstance& client) {
+    auto& count = down ? button.presses : button.releases;
+    if (count < 1000) ++count;
+#ifdef LAMIUM_AUTOMATION_TRACE
+    if (count <= 4) Runtime::instance().self().getLogger().info(
+        "Periodic input edge: down={} count={}", down, count);
+#endif
     // Copy callbacks in case a callback changes screen ownership and cancels
     // intent. Registration/destruction cannot invalidate this iteration.
     auto callbacks = down ? button.down : button.up;
     for (auto const& callback : callbacks) callback(FocusImpact::DeactivateFocus, client);
 }
 void cancelButton(Button& button) {
+#ifdef LAMIUM_AUTOMATION_TRACE
+    if (button.intent.active()) Runtime::instance().self().getLogger().info(
+        "Periodic input stopped: presses={} releases={} physical={}", button.presses, button.releases, button.physical);
+#endif
     button.intent.cancel();
     bool release = std::exchange(button.synthetic, false) && !button.physical;
     auto* client = std::exchange(button.client, nullptr);
@@ -109,6 +120,12 @@ LL_TYPE_INSTANCE_HOOK(Update, ll::memory::HookPriority::Normal, InputHandler,
         if (!current || &current.get() != &primary || button.client != &primary
             || !eligible(primary) || !primary.getInput()
             || &primary.getInput()->mInputHandler != this) {
+#ifdef LAMIUM_AUTOMATION_TRACE
+            Runtime::instance().self().getLogger().info(
+                "Periodic input rejected update: primary={} armedClient={} eligible={} owner={}",
+                current && &current.get() == &primary, button.client == &primary, eligible(primary),
+                primary.getInput() && &primary.getInput()->mInputHandler == this);
+#endif
             cancelButton(button);
             continue;
         }
@@ -135,14 +152,24 @@ Hook hooks[] = {{RegisterDown::hook, RegisterDown::unhook}, {RegisterUp::hook, R
 }
 void cancel() { for (auto const& [_, owner] : owners) for (auto& button : owner->buttons) cancelButton(button); }
 void toggle(IClientInstance& client, Action action) {
-    if (!eligible(client) || !client.getInput()) return;
+    auto& logger = Runtime::instance().self().getLogger();
+    if (!eligible(client) || !client.getInput()) {
+        logger.info("Periodic input unavailable: gameplay input is not owned"); return;
+    }
     auto found = owners.find(&client.getInput()->mInputHandler);
-    if (found == owners.end()) return;
+    if (found == owners.end()) {
+        logger.info("Periodic input unavailable: no registered owner (captured owners={})", owners.size()); return;
+    }
     auto& button = found->second->buttons[static_cast<size_t>(action)];
-    if (button.intent.active()) { cancelButton(button); return; }
-    if (button.down.empty() || button.up.empty() || button.physical) return;
+    if (button.intent.active()) { cancelButton(button); logger.info("Periodic input {}: off", static_cast<int>(action)); return; }
+    if (button.down.empty() || button.up.empty() || button.physical) {
+        logger.info("Periodic input unavailable: down={} up={} physical={}", button.down.size(), button.up.size(), button.physical);
+        return;
+    }
+    button.presses = button.releases = 0;
     button.client = &client;
     button.intent.arm();
+    logger.info("Periodic input {}: on", static_cast<int>(action));
 }
 void start() {
     try {
