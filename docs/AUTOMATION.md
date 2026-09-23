@@ -67,7 +67,7 @@ interfaces do not expose a direct attack/use input dispatcher. Do not guess
 button hashes or invoke GameMode methods as a substitute for vanilla input.
 
 Configure `xmake f --automation_trace=y` for an opt-in discovery build. It
-observes at most 128 registrations and 64 callback invocations per process,
+observes at most 512 registrations and 64 callback invocations per process,
 logging the button name, down/up edge, suspendable flag (registration), and
 focus impact (dispatch). It forwards each callback with its original arguments
 and does not generate input or retain callbacks for replay. No typed text,
@@ -81,10 +81,28 @@ unloading: observed callbacks contain trace wrappers for their original
 lifetime. Disable stops logging and removes the registration hooks. Rebuild
 with `--automation_trace=n` for ordinary use.
 
-Next runtime check: observe an ordinary attack and use press/release in a local
-world, correlate their registered names and focus values, then establish the
-native update boundary and physical-input ownership before connecting periodic
-intent. The trace itself does not implement Periodic Attack or Periodic Use.
+Runtime discovery on 2026-09-23 (Minecraft 1.26.51.01, LeviLamina Client
+26.51.3, Deesse UI 1.3.9):
+
+- The initial 128-registration budget ended at hotbar selection, before attack
+  and use. This was an instrumentation limit, not a missing vanilla path.
+- The revised 512-registration budget captured 329 registrations without
+  reaching the limit. DLL SHA-256:
+  `C234AD031842E4F8A66BD54E38F7A47D47C5EC59ACB9BE1FE312E7B66BC308D8`.
+- In a local survival world with an empty selected slot, one left click invoked
+  `button.destroy_or_attack` down and up, followed respectively by
+  `button.pointer_pressed` down and up. One right click invoked
+  `button.build_or_interact` down and up.
+- Both action callbacks used focus value 2, named `DeactivateFocus` by the SDK.
+  This enum is an input focus-impact argument, not evidence of OS focus loss.
+- Both action names have down/up registrations with `suspendable=false`.
+  A synthetic adapter still needs its own eligibility guard.
+
+Next establish the native update boundary, callback owner lifetime, and
+physical-input ownership before connecting periodic intent. These observations
+cover ordinary click dispatch, not successful item use, block breaking, or
+synthetic callback replay. The trace itself does not implement Periodic Attack
+or Periodic Use.
 
 The first Permanent Sneak adapter hooks `extractRawHIDInput`, verifies that the
 input belongs to the primary local client, and passes a transient copy with

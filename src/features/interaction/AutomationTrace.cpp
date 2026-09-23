@@ -14,10 +14,12 @@ unsigned registrations = 0, dispatches = 0;
 // callbacks for replay. Existing callback arguments and ordering are preserved.
 InputHandler::ButtonPressHandler observe(std::string name, bool down, bool suspendable,
                                         InputHandler::ButtonPressHandler handler) {
-    if (!handler || registrations >= 128) return handler;
+    if (!handler || registrations >= 512) return handler;
     ++registrations;
     Runtime::instance().self().getLogger().info(
         "Automation input registration: name={} down={} suspendable={}", name, down, suspendable);
+    if (registrations == 512) Runtime::instance().self().getLogger().info(
+        "Automation input registration limit reached; later registrations are not observed");
     return [name = std::move(name), down, handler = std::move(handler)](FocusImpact focus, IClientInstance& client) {
         if (enabled && dispatches < 64) {
             ++dispatches;
