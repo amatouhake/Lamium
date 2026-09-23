@@ -26,6 +26,15 @@ held physical keys must be verified before enabling the adapter. Culling/world
 overlays use a separate render camera origin; translating only the view matrix
 is not sufficient evidence of a correct position override.
 
+The standalone `LamiumNativeTests` target builds this adapter against the SDK
+types without launching Minecraft or calling engine functions. Run
+`xmake build LamiumNativeTests` and `xmake run LamiumNativeTests`. It verifies
+that consumption clears both horizontal vectors and movement flags, preserves
+look/selection state, does not modify a copied source snapshot, and distinguishes
+held jump/sneak from a persistent sneak toggle. The local build/run passes;
+CI now includes the target. These tests establish data manipulation only, not
+native input ordering, axis signs, or actual player movement suppression.
+
 `DetachedLookState` now provides the game-independent angular session: begin from
 a fresh orientation, ignore repeated activation, accumulate degree deltas with
 bounded pitch and wrapped yaw, and discard the pose on cancellation or invalid

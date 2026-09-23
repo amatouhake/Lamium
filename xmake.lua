@@ -119,3 +119,17 @@ target("LamiumTests")
         set_toolchains("clang-cl")
     end
 
+-- SDK data-layout checks that do not launch Minecraft or call engine symbols.
+target("LamiumNativeTests")
+    set_kind("binary")
+    set_default(false)
+    set_languages("c++20")
+    add_includedirs("src")
+    add_packages("levilamina-client-sdk")
+    add_files("tests-native/**.cpp", "src/features/camera/CameraMovementInput.cpp")
+    add_defines("NOMINMAX", "UNICODE")
+    if is_plat("windows") then
+        add_cxflags("/utf-8", "/W4")
+        set_toolchains("clang-cl")
+    end
+

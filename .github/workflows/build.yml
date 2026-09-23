@@ -35,6 +35,10 @@ jobs:
         run: xmake build LamiumTests
       - name: Run tests
         run: xmake run LamiumTests
+      - name: Build SDK data-layout tests
+        run: xmake build LamiumNativeTests
+      - name: Run SDK data-layout tests
+        run: xmake run LamiumNativeTests
       - name: Check package
         run: ./scripts/Check-Package.ps1
       - name: Ensure dependency lock was preserved
