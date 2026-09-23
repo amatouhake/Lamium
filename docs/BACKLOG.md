@@ -203,6 +203,8 @@ Status: after L-09.
   lines.
 - Extend `overlay/ChunkBorders.h` to return colored groups; keep the cache and
   the bounds checks; add tests for line counts and positions.
+- When a detached camera (Freelook/FreeCamera) is active, center on the view
+  chunk instead of the player chunk (requested 2026-09-24).
 
 ### L-11 Hitboxes like Java F3+B
 Status: after L-09.
@@ -369,6 +371,10 @@ Native text entry for shape names inserts extra characters.
 - L-26 FreeCamera flight speed (parked, after L-18). Verified slow but correct
   at the internal 10 blocks/s. Add a user-facing speed setting with sane
   bounds; decide on a fast-flight modifier, if any, at design time.
+- L-28 Third-person underground camera (parked, after L-18). While detached
+  underground, vanilla collision avoidance fights the pivot offset and the
+  view judders block by block. Decide whether to soften avoidance while
+  detached or document it as a limit; above-ground flight is unaffected.
 - L-27 Detached menu behavior (parked, after L-18; small Design open).
   Inventory/settings opening currently exits FreeCamera and discards the flown
   position, which is safe but annoying. Desired: an option around inventory

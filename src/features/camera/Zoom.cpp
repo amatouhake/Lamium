@@ -62,29 +62,38 @@ struct DetachedCamera {
     float currentAzimuth = 0, currentPolar = 0, idealAzimuth = 0, idealPolar = 0;
 };
 std::vector<DetachedCamera> detachedCameras; // Client thread only.
+template<class Registry>
+bool hasActiveCamera(Registry& registry, EntityId entity) {
+    // ActiveCameraComponent is an empty tag; entt cannot try_get it.
+    for (auto candidate : registry.template view<MinecraftCamera::ActiveCameraComponent>())
+        if (candidate == entity) return true;
+    return false;
+}
+template<class Registry>
+void detachOneCamera(Registry& registry, EntityId entity) {
+    DetachedCamera saved{entity, registry.get<VanillaCamera::UpdatePlayerFromCameraComponent>(entity).mLookMode, false, 0, 0};
+    if (auto* look = registry.try_get<MinecraftCamera::CameraDirectLookComponent>(entity)) {
+        saved.hasDirectLook = true;
+        saved.yaw = look->mYaw;
+        saved.pitch = look->mPitch;
+    }
+    if (auto* orbit = registry.try_get<MinecraftCamera::CameraOrbitComponent>(entity)) {
+        saved.hasOrbit = true;
+        saved.currentAzimuth = orbit->mCurrentSpherical->mAzimuth;
+        saved.currentPolar = orbit->mCurrentSpherical->mPolarAngle;
+        saved.idealAzimuth = orbit->mIdealSpherical->mAzimuth;
+        saved.idealPolar = orbit->mIdealSpherical->mPolarAngle;
+    }
+    registry.remove<VanillaCamera::UpdatePlayerFromCameraComponent>(entity);
+    detachedCameras.push_back(saved);
+}
 void detachCameras(LocalPlayer& player) {
     auto& registry = player.getEntityContext().getRegistry();
     std::vector<EntityId> targets;
     for (auto entity : registry.view<MinecraftCamera::ActiveCameraComponent,
                                      VanillaCamera::UpdatePlayerFromCameraComponent>())
         targets.push_back(entity);
-    for (auto entity : targets) {
-        DetachedCamera saved{entity, registry.get<VanillaCamera::UpdatePlayerFromCameraComponent>(entity).mLookMode, false, 0, 0};
-        if (auto* look = registry.try_get<MinecraftCamera::CameraDirectLookComponent>(entity)) {
-            saved.hasDirectLook = true;
-            saved.yaw = look->mYaw;
-            saved.pitch = look->mPitch;
-        }
-        if (auto* orbit = registry.try_get<MinecraftCamera::CameraOrbitComponent>(entity)) {
-            saved.hasOrbit = true;
-            saved.currentAzimuth = orbit->mCurrentSpherical->mAzimuth;
-            saved.currentPolar = orbit->mCurrentSpherical->mPolarAngle;
-            saved.idealAzimuth = orbit->mIdealSpherical->mAzimuth;
-            saved.idealPolar = orbit->mIdealSpherical->mPolarAngle;
-        }
-        registry.remove<VanillaCamera::UpdatePlayerFromCameraComponent>(entity);
-        detachedCameras.push_back(saved);
-    }
+    for (auto entity : targets) detachOneCamera(registry, entity);
 #ifdef LAMIUM_CAMERA_TRACE
     try {
         Runtime::instance().self().getLogger().info("Freelook camera: detached={} directLook={} orbit={} yaw={} pitch={}",
@@ -146,10 +155,8 @@ struct SavedCameraOffset {
     float px = 0, py = 0, pz = 0;
 };
 SavedCameraOffset savedOffset; // Mirrors the detachedCameras lifetime rules.
-void takeFreeCameraOffset(LocalPlayer& player) {
-    if (detachedCameras.empty()) throw std::runtime_error("FreeCamera has no detached camera entity");
+void takeFreeCameraOffset(LocalPlayer& player, EntityId entity) {
     auto& registry = player.getEntityContext().getRegistry();
-    auto entity = detachedCameras.back().entity;
     if (!registry.valid(entity)) throw std::runtime_error("FreeCamera camera entity is gone");
     savedOffset = {};
     auto* offset = registry.try_get<MinecraftCamera::CameraOffsetComponent>(entity);
@@ -195,6 +202,41 @@ void restoreFreeCameraOffset(LocalPlayer* player) {
     } catch (...) {
         Runtime::instance().self().getLogger().error("FreeCamera could not restore the camera offset");
     }
+}
+void migrateFreeCamera(LocalPlayer& player) {
+    // F5 hands the active role to another camera entity. Move the session:
+    // restore the old rig, detach the new one, take its offset. The restore
+    // path replays every list entry, so accumulation across switches is safe.
+    auto& registry = player.getEntityContext().getRegistry();
+    EntityId next{};
+    bool found = false;
+    unsigned count = 0;
+    for (auto entity : registry.view<MinecraftCamera::ActiveCameraComponent>()) {
+        if (!registry.valid(entity)) continue;
+        if (!found) { next = entity; found = true; }
+        ++count;
+    }
+#ifdef LAMIUM_CAMERA_TRACE
+    static std::atomic<unsigned> migrations{0};
+    if (migrations.load(std::memory_order_relaxed) < 8) {
+        migrations.fetch_add(1, std::memory_order_relaxed);
+        try {
+            Runtime::instance().self().getLogger().info(
+                "FreeCamera camera: retarget activeCameras={} found={}", count, found);
+        } catch (...) {}
+    }
+#endif
+    if (!found) throw std::runtime_error("FreeCamera found no active camera");
+    restoreFreeCameraOffset(&player);
+    auto& fresh = player.getEntityContext().getRegistry();
+    if (fresh.try_get<VanillaCamera::UpdatePlayerFromCameraComponent>(next))
+        detachOneCamera(fresh, next);
+    else {
+        bool known = false;
+        for (auto const& saved : detachedCameras) known = known || saved.entity == next;
+        if (!known) throw std::runtime_error("FreeCamera cannot take the new camera");
+    }
+    takeFreeCameraOffset(player, next);
 }
 #ifdef LAMIUM_CAMERA_TRACE
 void traceFreeCamera(unsigned reason, double x, double y, double z) noexcept {
@@ -533,7 +575,8 @@ void Zoom::pressFreeCamera(IClientInstance& current) {
     try {
         lockedHead = player->getYHeadRot();
         detachCameras(*player);
-        takeFreeCameraOffset(*player);
+        if (detachedCameras.empty()) throw std::runtime_error("FreeCamera has no detached camera entity");
+        takeFreeCameraOffset(*player, detachedCameras.back().entity);
     } catch (...) {
         cancelLook();
         Runtime::instance().self().getLogger().error("FreeCamera could not detach the camera");
@@ -591,7 +634,16 @@ void Zoom::writeFreeCameraOffset() {
     try {
         auto& registry = current->getLocalPlayer()->getEntityContext().getRegistry();
         auto entity = detachedCameras.back().entity;
-        if (!registry.valid(entity)) return;
+        // F5 may hand the active role to another entity. Migrate the session
+        // instead of steering a stale rig.
+        if (!registry.valid(entity) || !hasActiveCamera(registry, entity)) {
+            try {
+                migrateFreeCamera(*current->getLocalPlayer());
+            } catch (...) { return; }
+            if (detachedCameras.empty()) return;
+            entity = detachedCameras.back().entity;
+            if (!registry.valid(entity)) return;
+        }
         auto* offset = registry.try_get<MinecraftCamera::CameraOffsetComponent>(entity);
         if (!offset) return;
         // F5 may morph the rig (direct-look converts to orbit or back), so
