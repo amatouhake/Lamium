@@ -142,7 +142,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
         }
         auto& dimension = player->getDimension();
         if (preferences.light) {
-            Vec3 const position = player->getPosition();
+            Vec3 const position = player->getFeetPos();
             Cell center{checkedCoordinate(std::floor(position.x)), checkedCoordinate(std::floor(position.y)),
                         checkedCoordinate(std::floor(position.z))};
             auto& region = player->getDimensionBlockSource();

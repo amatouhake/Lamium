@@ -1291,3 +1291,26 @@ uses `getPosition()` for XYZ and the cell labeled "Light at feet". Its coordinat
 reference must be investigated and corrected or explicitly labeled before
 claiming feet-based sampling. This finding does not invalidate the independently
 checked target-block position, which comes from the tile hit.
+
+### Feet-position correction (2026-09-23)
+
+PlayerInfo now uses the SDK's `getFeetPos()` for displayed XYZ and biome/light
+cell sampling, instead of the actor state-vector position. The Light Level
+Overlay scan center uses the same feet reference. No fixed eye-height subtraction
+is used, since the SDK owns the pose-dependent offset.
+
+The native build and package/license check passed. The normal DLL was installed
+with matching source/destination SHA-256:
+`665C19C1266BBEA9E56DE3D02533E59A533638EA59177FC164CF02E6D00DFE9A`.
+In the same local creative-world standing scene, Debug View's Y changed from
+72.6 to 71.0, matching the preceding vanilla teleport result at that location.
+Stored sky/block light remained displayed as 15/0. This is a standing-coordinate
+baseline, not independent verification of the light samples. Crouching, swimming,
+riding and other poses remain untested, and the overlay scan-center change was
+not visually rechecked with Light Level Overlay enabled.
+
+Debug View was restored to Off with its binding Unbound; both information columns
+disappeared immediately. Minecraft closed normally and its window disappeared.
+The flushed log records Lamium enabled at 09:46:25.057 and disabling at
+09:52:13.481. This supersedes the unresolved player-height finding above for the
+tested standing case only.

@@ -5,7 +5,7 @@ toggle; the feature also selects stored sky light instead of stored block light.
 Settings apply immediately and use the existing persistence and binding system.
 
 The initial implementation scans a 9 by 9 by 5 cell volume around the player's
-floored position (405 candidates). It draws decimal 0 through 15 as flat line
+floored feet position (405 candidates). It draws decimal 0 through 15 as flat line
 digits above air cells whose block below reports solid through the SDK. Multiple
 floors in the volume can each have a marker. Digits have north at their top.
 Only loaded chunks and cells within the dimension height range are queried.

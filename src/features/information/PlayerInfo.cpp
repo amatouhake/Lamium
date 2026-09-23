@@ -13,7 +13,10 @@ PlayerInfo collectPlayerInfo(IClientInstance& client, PlayerInfoRequest request)
     auto* player = client.getLocalPlayer();
     if (!player) return result;
     result.present = true;
-    auto const& p = player->getPosition();
+    // Actor state-vector position includes the player's vertical offset. Use
+    // the SDK's feet position for both displayed XYZ and block sampling; do not
+    // subtract a fixed standing eye height (poses can change that offset).
+    auto const p = player->getFeetPos();
     bool finite = std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z);
     if (request.coordinates && finite) result.position = PlayerInfo::Position{p.x,p.y,p.z};
     if (request.dimension) result.dimension = player->getDimension().mName.get();
