@@ -28,6 +28,7 @@
 #include "mc/client/network/LegacyClientNetworkHandler.h"
 #include "mc/network/packet/InventorySlotPacket.h"
 #include "mc/network/packet/InventoryContentPacket.h"
+#include "mc/world/inventory/transaction/ComplexInventoryTransaction.h"
 #endif
 
 namespace lamium::inventory::restock {
@@ -230,6 +231,17 @@ LL_TYPE_INSTANCE_HOOK(CompleteUse, ll::memory::HookPriority::Normal, Player,
 LL_TYPE_INSTANCE_HOOK(FocusLost, ll::memory::HookPriority::Normal, MinecraftGame,
     &MinecraftGame::$onAppFocusLost, void) { cancel(); origin(); }
 #ifdef LAMIUM_RESTOCK_TRACE
+// A legacy use transaction need not appear in the item-stack request batch.
+// Observe this boundary without interpreting a send as server acceptance.
+LL_TYPE_INSTANCE_HOOK(ComplexSendTrace, ll::memory::HookPriority::Normal, LocalPlayer,
+    &LocalPlayer::$sendComplexInventoryTransaction, void,
+    std::unique_ptr<ComplexInventoryTransaction> transaction) {
+    if (eligible() == this) {
+        trace("complex-transaction-send-type",transaction ? static_cast<int>(transaction->mType) : -1);
+        trace("complex-transaction-during-use",bool(pending && !pending->useFinished));
+    }
+    origin(std::move(transaction));
+}
 // Observe the legacy inventory path without treating an arbitrary server update
 // as acknowledgement of a use. Do not retain packet data or alter pending work.
 void traceInventoryUpdate(char const* stage) noexcept {
@@ -257,6 +269,7 @@ struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false
 Hook hooks[] = {{CaptureHud::hook,CaptureHud::unhook},{Use::hook,Use::unhook},
     {UseOn::hook,UseOn::unhook},{CompleteUse::hook,CompleteUse::unhook},{FocusLost::hook,FocusLost::unhook},
 #ifdef LAMIUM_RESTOCK_TRACE
+    {ComplexSendTrace::hook,ComplexSendTrace::unhook},
     {SlotUpdateTrace::hook,SlotUpdateTrace::unhook},{ContentUpdateTrace::hook,ContentUpdateTrace::unhook},
 #endif
 };

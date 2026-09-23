@@ -1450,3 +1450,25 @@ it rules out relying on the observed legacy-content path alone for this case.
 Next investigate item-stack responses without captured IDs and local inventory
 mutation/synchronization rather than extending an uncorrelated wait. The trace
 build remains installed and replenishment is still not validated.
+
+### Request capture boundaries for egg consumption (2026-09-23)
+
+The `324e411` diagnostic DLL was installed with matching SHA-256
+`FFFFB4E5B875ECF2DF809F69EAF0A5735C84CA338746BE4A192908D0BA9B8756`.
+At 11:16:41.841, a local survival egg use logged both capture-start and
+capture-end-batch with count 0 and active=false. It stopped as Untracked at
+11:16:41.857. The selected slot became empty without replenishment.
+No responses-applied or legacy inventory-update observation followed the use
+in the log, including a later read. Supplying the egg beforehand did produce
+four legacy-content observations with held count 1.
+
+This narrows the failure to a use path not captured by the current batch
+observer; it does not prove absence of all network traffic or validate the
+response hook. Extending its timeout is not supported by this evidence.
+The next opt-in diagnostic observes LocalPlayer's complex-transaction send
+boundary, recording only transaction type and whether use capture is active.
+A send is not acknowledgement and cannot authorize replenishment. Native
+validation of that diagnostic is pending; Hand Restock remains experimental.
+The diagnostic build and existing LamiumTests passed. These checks cover
+compilation and existing inventory-planning invariants, not hook execution
+or successful replenishment in Minecraft.
