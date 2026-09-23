@@ -3,7 +3,7 @@
 Periodic Attack, Periodic Use, and Permanent Sneak share the runtime intent
 contract in `interaction::AutomationInput`. Permanent Sneak now has an
 experimental native adapter and an unbound toggle action in Features/Hotkeys.
-Its basic toggle and settings-screen cancellation have passed a local-world
+Its basic toggle, settings-screen cancellation, and app-switch cancellation have passed a local-world
 runtime check; broader compatibility is still unverified. Periodic Attack and Use
 are not yet connected or exposed in the UI.
 
@@ -19,9 +19,8 @@ actor-state fallback has been added.
 The diagnostic run (DLL `22C7BBC1B4B76D69525D07FBE6ACC1FC4D941A3537035DD3E1E0BF199D01E72E`)
 reported 313 extraction calls, 313 local matches, and zero output SneakDown
 samples while armed. This excludes an unused hook or local identity mismatch
-for that run. The next adapter changes `mRawInputState` rather than
-`mInputState` in the transient copy; that change still requires a new runtime
-check.
+for that run. The corrected adapter changes `mRawInputState` rather than
+`mInputState` in the transient copy; the runtime results follow below.
 
 The raw-input revision (commit `01604e3`, DLL
 `F229ED391E7F245AAD1345081BD39D1D83C4C3A6F849F1702AF3DF9C9A175090`)
@@ -33,8 +32,14 @@ LeviLamina Client 26.51.3, and Deesse UI 1.3.9:
   extraction calls, local matches, and output SneakDown samples.
 - Reactivating, opening Lamium Settings, and closing it restores standing
   without automatically resuming crouching.
+- Switching to another app while crouching cancels the intent. Returning to
+  Minecraft and resuming from its automatically opened pause screen leaves the
+  player standing, without reactivation. Diagnostics reported 315 extraction
+  calls, local matches, and output SneakDown samples before cancellation.
+  This checks the combined focus-loss/pause transition; focus loss without a
+  pause screen (including multiplayer) has not been isolated.
 
-Physical-key overlap, focus loss, world/dimension transitions, movement/ledge
+Physical-key overlap, world/dimension transitions, movement/ledge
 behavior, and multiplayer remain unverified. The feature is still experimental.
 
 ## Runtime contract
@@ -58,8 +63,8 @@ The first Permanent Sneak adapter hooks `extractRawHIDInput`, verifies that the
 input belongs to the primary local client, and passes a transient copy with
 `SneakDown` set to vanilla. It never stores synthetic flags in the user's HID
 state. Common input invalidation cancels its session intent; dimension changes
-and runtime disable also cancel. Verify that vanilla consumes this copied bit
-as expected before considering the feature functional.
+and runtime disable also cancel. The checks above establish basic local-world
+consumption of the copied bit, not the remaining movement or multiplayer cases.
 
 Use the vanilla local input path rather than constructing attack/use packets
 or modifying authoritative actor state directly. The SDK exposes separate
