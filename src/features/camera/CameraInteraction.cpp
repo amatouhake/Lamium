@@ -3,6 +3,7 @@
 #include "app/Runtime.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/world/gamemode/GameMode.h"
+#include "mc/world/gamemode/SurvivalMode.h"
 #include "mc/world/gamemode/InteractionResult.h"
 #include <stdexcept>
 
@@ -64,6 +65,54 @@ LL_TYPE_INSTANCE_HOOK(LookAttack, ll::memory::HookPriority::Highest, GameMode,
     if (blocked(mPlayer)) return false;
     return origin(entity, hit);
 }
+// SurvivalMode overrides the GameMode virtuals above with its own bodies, so
+// the base hooks never fire in survival mode. Mirror the same predicate for
+// each override; creative mode keeps using the GameMode hooks.
+LL_TYPE_INSTANCE_HOOK(SurvivalStartBreak, ll::memory::HookPriority::Highest, SurvivalMode,
+    &SurvivalMode::$startDestroyBlock, bool, BlockPos const& pos, uchar face, bool& destroyed) {
+    if (blocked(mPlayer)) { destroyed = false; return false; }
+    return origin(pos, face, destroyed);
+}
+LL_TYPE_INSTANCE_HOOK(SurvivalFinishBreak, ll::memory::HookPriority::Highest, SurvivalMode,
+    &SurvivalMode::$destroyBlock, bool, BlockPos const& pos, uchar face) {
+    if (blocked(mPlayer)) return false;
+    return origin(pos, face);
+}
+LL_TYPE_INSTANCE_HOOK(SurvivalStartBuild, ll::memory::HookPriority::Highest, SurvivalMode,
+    &SurvivalMode::$startBuildBlock, void, BlockPos const& pos, uchar face, HandSlot hand) {
+    if (!blocked(mPlayer)) origin(pos, face, hand);
+}
+LL_TYPE_INSTANCE_HOOK(SurvivalBuild, ll::memory::HookPriority::Highest, SurvivalMode,
+    &SurvivalMode::$buildBlock, bool, BlockPos const& pos, uchar face, HandSlot hand, bool simTick) {
+    if (blocked(mPlayer)) return false;
+    return origin(pos, face, hand, simTick);
+}
+LL_TYPE_INSTANCE_HOOK(SurvivalUse, ll::memory::HookPriority::Highest, SurvivalMode,
+    &SurvivalMode::$useItem, bool, ItemStack& item, HandSlot hand) {
+    if (blocked(mPlayer)) return false;
+    return origin(item, hand);
+}
+LL_TYPE_INSTANCE_HOOK(SurvivalUseAttack, ll::memory::HookPriority::Highest, SurvivalMode,
+    &SurvivalMode::$useItemAsAttack, bool, ItemStack& item, Vec3 const& direction, HandSlot hand) {
+    if (blocked(mPlayer)) return false;
+    return origin(item, direction, hand);
+}
+LL_TYPE_INSTANCE_HOOK(SurvivalUseOn, ll::memory::HookPriority::Highest, SurvivalMode,
+    &SurvivalMode::$useItemOn, InteractionResult, ItemStack& item, BlockPos const& pos, uchar face,
+    Vec3 const& hit, HandSlot hand, Block const* target, bool first) {
+    if (blocked(mPlayer)) return InteractionResult{false, false};
+    return origin(item, pos, face, hit, hand, target, first);
+}
+LL_TYPE_INSTANCE_HOOK(SurvivalInteract, ll::memory::HookPriority::Highest, SurvivalMode,
+    &SurvivalMode::$interact, bool, Actor& entity, Vec3 const& location, HandSlot hand) {
+    if (blocked(mPlayer)) return false;
+    return origin(entity, location, hand);
+}
+LL_TYPE_INSTANCE_HOOK(SurvivalAttack, ll::memory::HookPriority::Highest, SurvivalMode,
+    &SurvivalMode::$attack, bool, Actor& entity, Vec3 const& hit) {
+    if (blocked(mPlayer)) return false;
+    return origin(entity, hit);
+}
 // Stop/release operations must still reach vanilla to clean up existing actions.
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[] = {
@@ -72,7 +121,14 @@ Hook hooks[] = {
     {LookContinueBuild::hook, LookContinueBuild::unhook}, {LookBuild::hook, LookBuild::unhook},
     {LookUse::hook, LookUse::unhook}, {LookUseAttack::hook, LookUseAttack::unhook},
     {LookUseOn::hook, LookUseOn::unhook}, {LookInteract::hook, LookInteract::unhook},
-    {LookAttack::hook, LookAttack::unhook}
+    {LookAttack::hook, LookAttack::unhook},
+    {SurvivalStartBreak::hook, SurvivalStartBreak::unhook},
+    {SurvivalFinishBreak::hook, SurvivalFinishBreak::unhook},
+    {SurvivalStartBuild::hook, SurvivalStartBuild::unhook},
+    {SurvivalBuild::hook, SurvivalBuild::unhook}, {SurvivalUse::hook, SurvivalUse::unhook},
+    {SurvivalUseAttack::hook, SurvivalUseAttack::unhook},
+    {SurvivalUseOn::hook, SurvivalUseOn::unhook}, {SurvivalInteract::hook, SurvivalInteract::unhook},
+    {SurvivalAttack::hook, SurvivalAttack::unhook}
 };
 }
 void startInteractionGuard() {

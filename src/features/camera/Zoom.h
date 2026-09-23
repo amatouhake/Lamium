@@ -1,12 +1,16 @@
 #pragma once
 #include "features/camera/ZoomState.h"
 #include "features/camera/DetachedLookState.h"
+#include "features/camera/DetachedCameraMotion.h"
 #include "ll/api/event/ListenerBase.h"
 #include <atomic>
+#include <mutex>
 class Actor;
 class IClientInstance;
 class LocalPlayer;
 class Player;
+struct MoveInputComponent;
+struct RawMoveInputComponent;
 namespace lamium {
 struct Settings;
 class Zoom {
@@ -19,11 +23,19 @@ class Zoom {
     std::atomic<bool> lookAllowed{false};
     std::atomic<bool> lookToggle{false};
     std::atomic<bool> freeCameraAllowed{false};
+    // Stage 2: latest extracted movement axes while FreeCamera owns the
+    // session, kept for the stage 3 camera adapter. Guarded because the
+    // extraction hook runs outside the client thread.
+    std::mutex freeInputMutex;
+    DetachedCameraMotion::Vector freeCameraInput{};
+    bool hasFreeCameraInput = false;
+    unsigned freeMoveSamples = 0;
     std::atomic<bool> running{false};
     std::atomic<bool> allowed{true};
     std::atomic<IClientInstance*> client{nullptr};
     std::atomic<float> lockedHead{0.f};
     void endLookCamera();
+    void logFreeCameraSamples();
     ll::event::ListenerPtr wheelListener, screenListener, exitListener;
 public:
     static Zoom& instance();
@@ -33,6 +45,8 @@ public:
     void press(IClientInstance&);
     void pressLook(IClientInstance&);
     void pressFreeCamera(IClientInstance&); // Toggle: press again to return to the player
+    // Extraction-hook entry: consumes movement only for the FreeCamera owner.
+    void consumeFreeCameraInput(MoveInputComponent const&, RawMoveInputComponent&);
     void releaseLook();
     void releaseLookKey(); // Key release: ends a held session, ignored in toggle mode
     void cancelLook();

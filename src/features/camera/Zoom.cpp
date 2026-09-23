@@ -1,5 +1,6 @@
 #include "features/camera/Zoom.h"
 #include "features/camera/CameraInteraction.h"
+#include "features/camera/CameraMovementInput.h"
 #include "settings/Settings.h"
 #include "input/Actions.h"
 #include "app/Runtime.h"
@@ -8,9 +9,13 @@
 #include "ll/api/event/input/MouseInputEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "ll/api/memory/Hook.h"
+#include "mc/client/entity/systems/ClientInputUpdateSystem.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/game/MinecraftGame.h"
+#include "mc/client/input/ClientMoveInputHandler.h"
 #include "mc/client/player/LocalPlayer.h"
+#include "mc/entity/components/MoveInputComponent.h"
+#include "mc/entity/components/RawMoveInputComponent.h"
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
 #include "mc/deps/core/math/Vec2.h"
 #include "mc/deps/input/MouseAction.h"
@@ -313,6 +318,19 @@ LL_TYPE_INSTANCE_HOOK(FocusHook, ll::memory::HookPriority::Normal, MinecraftGame
     Zoom::instance().reset();
     origin();
 }
+// Stage 2: after vanilla HID extraction, withhold movement from the extracted
+// output for the FreeCamera owner. Other players and Freelook pass through
+// untouched; Freelook keeps its movement while looking around.
+LL_STATIC_HOOK(ExtractFreeCameraInput, ll::memory::HookPriority::Normal,
+    &ClientInputUpdateSystem::extractRawHIDInput, void,
+    MovementAbilitiesComponent const& abilities, MoveInputComponent const& input,
+    ActorDataFlagComponent const& flags, RawMoveInputComponent& raw,
+    Optional<SneakingComponent const> sneaking, Optional<WasInWaterFlagComponent const> water) {
+    origin(abilities, input, flags, raw, sneaking, water);
+    try {
+        Zoom::instance().consumeFreeCameraInput(input, raw);
+    } catch (...) {}
+}
 struct HookEntry {
     int (*install)(bool);
     bool (*remove)(bool);
@@ -324,6 +342,7 @@ HookEntry hooks[] = {
     {CameraTraceHook::hook, CameraTraceHook::unhook},
 #endif
     {FovHook::hook, FovHook::unhook},
+    {ExtractFreeCameraInput::hook, ExtractFreeCameraInput::unhook},
     {TurnHook::hook, TurnHook::unhook},
     {DimensionHook::hook, DimensionHook::unhook},
     {FocusHook::hook, FocusHook::unhook}
@@ -395,6 +414,7 @@ void Zoom::pressFreeCamera(IClientInstance& current) {
     look.release();
     if (!look.begin(player->getRotation().x, player->getRotation().z, player->getRuntimeID().rawID)) return;
     lookOwner.store(DetachedOwner::FreeCamera);
+    { std::lock_guard lock{freeInputMutex}; freeCameraInput = {}; hasFreeCameraInput = false; freeMoveSamples = 0; }
 #ifdef LAMIUM_CAMERA_TRACE
     traceLook(LookTraceStage::Begin, player->getRotation().x, player->getRotation().z);
     try { Runtime::instance().self().getLogger().info("FreeCamera body: begin head={}", player->getYHeadRot()); } catch (...) {}
@@ -413,14 +433,38 @@ void Zoom::releaseLookKey() {
     if (lookToggle || lookOwner.load() != DetachedOwner::Freelook) return;
     releaseLook();
 }
+void Zoom::consumeFreeCameraInput(MoveInputComponent const& input, RawMoveInputComponent& raw) {
+    // Only the FreeCamera owner loses movement; Freelook keeps vanilla motion.
+    if (lookOwner.load() != DetachedOwner::FreeCamera || !look.snapshot()) return;
+    auto* current = client.load();
+    if (!running || !freeCameraAllowed || !current) return;
+    // The extraction runs once per local player; ignore other viewports.
+    if (ClientMoveInputHandler::getMoveInput(*current) != &input) return;
+    auto axes = camera::consumeMovement(raw);
+    std::lock_guard lock{freeInputMutex};
+    freeCameraInput = axes;
+    hasFreeCameraInput = true;
+    if (freeMoveSamples < 1000000) ++freeMoveSamples;
+}
+void Zoom::logFreeCameraSamples() {
+    unsigned samples = 0;
+    { std::lock_guard lock{freeInputMutex}; samples = freeMoveSamples; }
+    try {
+        Runtime::instance().self().getLogger().info("FreeCamera movement: consumedSamples={}", samples);
+    } catch (...) {}
+}
 void Zoom::releaseLook() {
+    auto owner = lookOwner.load();
     look.release();
     lookOwner.store(DetachedOwner::None);
+    if (owner == DetachedOwner::FreeCamera) logFreeCameraSamples();
     endLookCamera();
 }
 void Zoom::cancelLook() {
+    auto owner = lookOwner.load();
     look.cancel();
     lookOwner.store(DetachedOwner::None);
+    if (owner == DetachedOwner::FreeCamera) logFreeCameraSamples();
     endLookCamera();
 }
 void Zoom::endLookCamera() {

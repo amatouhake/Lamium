@@ -62,7 +62,9 @@ coordinates and all lifecycle exits.
 adapter. After vanilla HID extraction it consumes `RawMoveInputComponent`'s
 horizontal axes and momentary jump/sneak/ascend/descend flags, then clears only
 the extracted movement axes/flags. It does not alter the stored physical input
-or look/selection flags. It is not called by a runtime hook yet. Axis signs,
+or look/selection flags. A FreeCamera extraction hook calls it after vanilla HID
+extraction for the session owner only; the returned axes are stashed for the
+stage 3 camera adapter. Freelook sessions pass through untouched. Axis signs,
 keyboard/controller behavior, subsequent movement consumers, and resumption of
 held physical keys must be verified before enabling the adapter. Culling/world
 overlays use a separate render camera origin; translating only the view matrix
@@ -114,7 +116,11 @@ independent simultaneous split-screen sessions or prove split-screen support.
 
 The interaction guard now intercepts GameMode attack, start/continue/final block
 destruction, start/continue/final placement, item use, use-as-attack, use-on-block
-and entity interaction. While a valid detached session owns that local player,
+and entity interaction, plus the SurvivalMode overrides of attack, interact,
+finish/start block destruction, start/final placement, use, use-as-attack and
+use-on-block (the base hooks never fire in survival mode; creative mode uses
+the base GameMode). Stage 1 runtime testing showed mob attacks passing while
+detached in survival mode, which these mirrors address; verification is pending. While a valid detached session owns that local player,
 these paths return no success (and no swing for use-on-block), without invoking
 the original operation. Other players and inactive sessions pass through.
 Stop/release operations remain untouched so vanilla can clean up existing use.
