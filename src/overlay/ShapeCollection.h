@@ -41,7 +41,9 @@ inline std::set<Cell> shapeCells(ShapeDefinition const& definition) {
                 throw std::invalid_argument("Unknown shape type");
             if (spec.snap != Snap::BlockCenter && spec.snap != Snap::BlockCorner && spec.snap != Snap::Off)
                 throw std::invalid_argument("Unknown shape snapping");
-            return displayCells(spec);
+            std::set<Cell> cells;
+            for (auto const& face : roundFaces(spec)) cells.insert(face.cell);
+            return cells;
         } else {
             if (spec.plane != Plane::XZ && spec.plane != Plane::XY && spec.plane != Plane::YZ)
                 throw std::invalid_argument("Unknown plane orientation");
@@ -73,13 +75,26 @@ class ShapeCollection {
             throw std::invalid_argument("Unknown shape style");
         if (static_cast<unsigned>(definition.color) > static_cast<unsigned>(ShapeColor::White))
             throw std::invalid_argument("Unknown shape color");
-        auto cells = shapeCells(definition);
-        auto lines = gridSurfaceLines(cells, maximumLines - (totalLines - replacedLines));
-        auto faces = boundaryFaces(cells);
+        size_t available = maximumLines - (totalLines - replacedLines);
+        std::vector<Line> lines;
+        std::vector<CellFace> faces;
+        if (auto spec = std::get_if<ShapeSpec>(&definition.geometry)) {
+            // Round shapes come straight from their columns, never the volume.
+            if (spec->shape != Shape::Circle && spec->shape != Shape::Cylinder && spec->shape != Shape::Sphere)
+                throw std::invalid_argument("Unknown shape type");
+            if (spec->snap != Snap::BlockCenter && spec->snap != Snap::BlockCorner && spec->snap != Snap::Off)
+                throw std::invalid_argument("Unknown shape snapping");
+            faces = roundFaces(*spec, available);
+            lines = faceLines(faces, available);
+        } else {
+            auto cells = shapeCells(definition);
+            lines = gridSurfaceLines(cells, available);
+            faces = boundaryFaces(cells);
+        }
         return {std::move(definition), std::move(lines), std::move(faces), nextRevision++};
     }
 public:
-    explicit ShapeCollection(size_t shapeLimit = 32, size_t lineLimit = 200000)
+    explicit ShapeCollection(size_t shapeLimit = 32, size_t lineLimit = 4000000)
         : maximumShapes(shapeLimit), maximumLines(lineLimit) {}
     auto const& entries() const { return shapes; }
     ManagedShape const* find(ShapeId id) const {

@@ -24,6 +24,7 @@
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/client/gui/GuiData.h"
 #include "mc/client/input/KeyboardManager.h"
+#include "mc/client/options/IOptionRegistry.h"
 #include "mc/deps/core/math/Vec2.h"
 #include "mc/client/gui/screens/SceneFactory.h"
 #include "mc/client/gui/screens/UIScene.h"
@@ -1133,11 +1134,16 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     fill(context,l.left,l.footerTop,l.width,1,palette::white,.14f);
     float textLeft = l.left + ShapesLayout::pad, available = l.width - 2 * ShapesLayout::pad;
     bool shortFooter = l.docked || displayed.shortFooter;
-    std::string text = error.empty() ? shapeDescription(definition) : error;
-    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),error.empty() ? palette::text : palette::warning);
+    // Simple graphics draw faces poorly (additive, order dependent); say so
+    // rather than tuning that mode further.
+    bool simple = client && client->getOptions().getGraphicsMode() == GraphicsMode::Simple;
+    bool warn = !error.empty() || simple;
+    std::string text = !error.empty() ? error : simple && shortFooter ? translated("shape.simpleWarning") : shapeDescription(definition);
+    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),warn ? palette::warning : palette::text);
     else {
         paragraph(context,textLeft,l.footerTop+3,available,text,2,error.empty() ? palette::text : palette::warning);
-        label(context,textLeft,l.footerTop+30,available,translated(editingShapeName || editingShapeField >= 0 ? "shape.numberHint" : "shape.hint"),palette::faint);
+        label(context,textLeft,l.footerTop+30,available,translated(simple ? "shape.simpleWarning"
+            : editingShapeName || editingShapeField >= 0 ? "shape.numberHint" : "shape.hint"),simple ? palette::warning : palette::faint);
     }
 }
 std::optional<overlay::ShapeDefinition> visibleShape() {

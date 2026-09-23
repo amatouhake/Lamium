@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <limits>
 #include <set>
+#include <unordered_set>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -125,6 +126,110 @@ inline std::set<Cell> displayCells(ShapeSpec const& spec) {
     auto cells = rasterize(spec);
     return spec.shape == Shape::Sphere ? cells : boundaryCells(cells, true);
 }
+// Round shapes by column: every (x, z) column holds one contiguous y range, so
+// surfaces come from comparing neighbouring columns without enumerating the
+// volume. Work grows with the footprint and surface, not the volume, so large
+// radii (for example a 128-block despawn sphere) stay practical. Circles and
+// cylinders keep only the columns on the disk's edge (a ring); spheres keep all
+// columns, whose exposed faces form the outer surface.
+inline constexpr double maximumRoundRadius = 1024;
+struct RoundColumns {
+    int x0 = 0, z0 = 0, width = 0, depth = 0;
+    int low = 1, high = 0; // y extent over all kept columns
+    std::vector<std::pair<int,int>> ranges; // empty when first > second
+    std::pair<int,int> at(int x, int z) const {
+        if (x < x0 || z < z0 || x >= x0 + width || z >= z0 + depth) return {1, 0};
+        return ranges[static_cast<size_t>(x - x0) * depth + (z - z0)];
+    }
+};
+inline RoundColumns roundColumns(ShapeSpec const& spec) {
+    if (!std::isfinite(spec.radius) || spec.radius < 0 || spec.height < 1)
+        throw std::invalid_argument("Invalid shape dimensions");
+    if (spec.radius > maximumRoundRadius || spec.height > 4096) throw std::length_error("Shape exceeds work limit");
+    auto center = snapped(spec.center, spec.snap);
+    double r2 = spec.radius * spec.radius;
+    RoundColumns result;
+    result.x0 = checkedCoordinate(std::ceil(center.x - spec.radius - .5));
+    result.z0 = checkedCoordinate(std::ceil(center.z - spec.radius - .5));
+    int x1 = checkedCoordinate(std::floor(center.x + spec.radius - .5));
+    int z1 = checkedCoordinate(std::floor(center.z + spec.radius - .5));
+    if (result.x0 > x1 || result.z0 > z1) return result;
+    result.width = x1 - result.x0 + 1;
+    result.depth = z1 - result.z0 + 1;
+    int base = checkedCoordinate(std::floor(center.y));
+    checkedCoordinate(double(base) + spec.height);
+    std::vector<std::pair<int,int>> disk(static_cast<size_t>(result.width) * result.depth, {1, 0});
+    for (int i = 0; i < result.width; ++i) for (int k = 0; k < result.depth; ++k) {
+        double dx = result.x0 + i + .5 - center.x, dz = result.z0 + k + .5 - center.z;
+        double d2 = dx*dx + dz*dz;
+        if (d2 > r2) continue;
+        auto& range = disk[static_cast<size_t>(i) * result.depth + k];
+        if (spec.shape == Shape::Sphere) {
+            double s = std::sqrt(r2 - d2);
+            range = {checkedCoordinate(std::ceil(center.y - .5 - s)), checkedCoordinate(std::floor(center.y - .5 + s))};
+        } else range = {base, spec.shape == Shape::Cylinder ? base + spec.height - 1 : base};
+    }
+    result.ranges = disk;
+    if (spec.shape != Shape::Sphere) {
+        // Keep the ring: disk columns with a horizontal neighbour outside the disk.
+        auto inside = [&](int i, int k) {
+            return i >= 0 && k >= 0 && i < result.width && k < result.depth
+                && disk[static_cast<size_t>(i) * result.depth + k].first <= disk[static_cast<size_t>(i) * result.depth + k].second;
+        };
+        for (int i = 0; i < result.width; ++i) for (int k = 0; k < result.depth; ++k)
+            if (inside(i, k) && inside(i-1, k) && inside(i+1, k) && inside(i, k-1) && inside(i, k+1))
+                result.ranges[static_cast<size_t>(i) * result.depth + k] = {1, 0};
+    }
+    bool any = false;
+    for (auto const& [lo, hi] : result.ranges) {
+        if (lo > hi) continue;
+        if (!any) { result.low = lo; result.high = hi; any = true; }
+        result.low = std::min(result.low, lo); result.high = std::max(result.high, hi);
+    }
+    return result;
+}
+// Exposed block faces of a round shape. Throws std::length_error over the limit.
+inline std::vector<CellFace> roundFaces(ShapeSpec const& spec, size_t faceLimit = 4000000) {
+    auto columns = roundColumns(spec);
+    std::vector<CellFace> faces;
+    auto emit = [&](Cell cell, Face face) {
+        if (faces.size() >= faceLimit) throw std::length_error("Surface exceeds face limit");
+        faces.push_back({cell, face});
+    };
+    static constexpr std::array<std::pair<int,int>,4> sides{{{-1,0},{1,0},{0,-1},{0,1}}};
+    static constexpr std::array<Face,4> sideFaces{Face::West, Face::East, Face::North, Face::South};
+    for (int x = columns.x0; x < columns.x0 + columns.width; ++x)
+        for (int z = columns.z0; z < columns.z0 + columns.depth; ++z) {
+            auto [lo, hi] = columns.at(x, z);
+            if (lo > hi) continue;
+            emit({x, lo, z}, Face::Down);
+            emit({x, hi, z}, Face::Up);
+            for (size_t s = 0; s < sides.size(); ++s) {
+                auto [nlo, nhi] = columns.at(x + sides[s].first, z + sides[s].second);
+                for (int y = lo; y <= hi; ++y)
+                    if (nlo > nhi || y < nlo || y > nhi) emit({x, y, z}, sideFaces[s]);
+            }
+        }
+    return faces;
+}
+// Blocks of one layer that belong to the displayed surface, for previews.
+inline std::vector<Cell> roundLayer(RoundColumns const& columns, int y, bool sphere) {
+    std::vector<Cell> cells;
+    for (int x = columns.x0; x < columns.x0 + columns.width; ++x)
+        for (int z = columns.z0; z < columns.z0 + columns.depth; ++z) {
+            auto [lo, hi] = columns.at(x, z);
+            if (y < lo || y > hi) continue;
+            bool surface = !sphere || y == lo || y == hi;
+            for (auto [dx, dz] : {std::pair{-1,0}, std::pair{1,0}, std::pair{0,-1}, std::pair{0,1}}) {
+                auto [nlo, nhi] = columns.at(x + dx, z + dz);
+                surface = surface || y < nlo || y > nhi;
+            }
+            if (surface) cells.push_back({x, y, z});
+        }
+    return cells;
+}
+// Unit block edges of a set of faces, each drawn once.
+inline std::vector<Line> faceLines(std::vector<CellFace> const& faces, size_t lineLimit = 1000000);
 // Ordered corners of the actual block face; no mathematical smooth surface.
 // The renderer may use a line loop or two triangles from these coordinates.
 inline std::array<Point,4> faceVertices(CellFace face) {
@@ -140,6 +245,39 @@ inline std::array<Point,4> faceVertices(CellFace face) {
     throw std::invalid_argument("Invalid block face");
 }
 
+inline std::vector<Line> faceLines(std::vector<CellFace> const& faces, size_t lineLimit) {
+    // Key an edge by its lower corner and axis; hashing keeps large surfaces fast.
+    struct Edge { int x, y, z, axis; bool operator==(Edge const&) const = default; };
+    struct EdgeHash {
+        size_t operator()(Edge const& e) const noexcept {
+            uint64_t h = static_cast<uint32_t>(e.x);
+            h = h * 1000003u ^ static_cast<uint32_t>(e.y);
+            h = h * 1000003u ^ static_cast<uint32_t>(e.z);
+            return static_cast<size_t>(h * 4 + e.axis);
+        }
+    };
+    std::unordered_set<Edge, EdgeHash> edges;
+    edges.reserve(faces.size() * 2);
+    for (auto const& face : faces) {
+        auto vertices = faceVertices(face);
+        for (size_t i = 0; i < vertices.size(); ++i) {
+            auto a = vertices[i], b = vertices[(i+1) % vertices.size()];
+            int axis = a.x != b.x ? 0 : a.y != b.y ? 1 : 2;
+            Edge edge{static_cast<int>(std::min(a.x, b.x)), static_cast<int>(std::min(a.y, b.y)),
+                      static_cast<int>(std::min(a.z, b.z)), axis};
+            edges.insert(edge);
+            if (edges.size() > lineLimit) throw std::length_error("Surface exceeds line limit");
+        }
+    }
+    std::vector<Line> result;
+    result.reserve(edges.size());
+    for (auto const& e : edges) {
+        Point from{double(e.x), double(e.y), double(e.z)}, to = from;
+        (e.axis == 0 ? to.x : e.axis == 1 ? to.y : to.z) += 1;
+        result.push_back({from, to});
+    }
+    return result;
+}
 // Keep the unit grid on exposed faces, including seams between adjacent surface
 // blocks. Internal faces contribute no edges; shared surface edges draw once.
 // Build outside the render loop and cache the result with its shape definition.

@@ -1,4 +1,6 @@
 #include "overlay/ShapeCollection.h"
+#include <algorithm>
+#include <tuple>
 void check(bool, char const*);
 void shapeCollectionTests() {
     using namespace lamium::overlay;
@@ -61,6 +63,30 @@ void shapeCollectionTests() {
         rings.edit(circle, restyled);
         check(rings.find(circle)->revision != before && rings.find(circle)->definition.style == ShapeStyle::Line,
             "appearance changes produce a new render revision");
+    }
+    {
+        // The column model matches the volume-based surface for small shapes.
+        auto sorted = [](std::vector<CellFace> faces) {
+            std::sort(faces.begin(), faces.end(), [](auto const& a, auto const& b) {
+                return std::tie(a.cell, a.face) < std::tie(b.cell, b.face);
+            });
+            return faces;
+        };
+        for (auto shape : {Shape::Circle, Shape::Cylinder, Shape::Sphere})
+            for (double radius : {0.0, 1.0, 2.5, 4.0, 6.5})
+                for (auto snap : {Snap::BlockCenter, Snap::BlockCorner, Snap::Off}) {
+                    ShapeSpec spec{shape, {3.3, 64.7, -2.2}, snap, radius, 3};
+                    check(sorted(roundFaces(spec)) == sorted(boundaryFaces(displayCells(spec))),
+                        "column surfaces equal the volume-based surfaces");
+                }
+        // Large shapes stay practical: a 128-block despawn sphere.
+        ShapeCollection large;
+        auto despawn = large.add({"Despawn", 0, true, ShapeSpec{Shape::Sphere, {0.5, 64.5, 0.5}, Snap::BlockCenter, 128, 1}});
+        check(large.find(despawn)->faces.size() > 100000, "a radius-128 sphere is generated");
+        bool rejected = false;
+        try { (void)roundFaces(ShapeSpec{Shape::Sphere, {}, Snap::BlockCenter, 5000, 1}); }
+        catch (std::length_error const&) { rejected = true; }
+        check(rejected, "absurd radii are rejected before any work");
     }
     collection.clear();
     check(collection.entries().empty(), "world exit clears all geometry");

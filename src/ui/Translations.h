@@ -116,6 +116,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"shape.duplicateShort", "Duplicate", "複製"},
     {"shape.delete", "Delete", "削除"},
     {"shape.copyName", "{} copy", "{} のコピー"},
+    {"shape.simpleWarning", "Simple graphics show shape faces poorly; Fancy or higher is recommended.",
+        "描画設定「シンプル」では形状の面が見えにくくなります。「描画優先」以上を推奨します。"},
     {"shape.deleteConfirm", "Press again to delete", "もう一度押すと削除"},
     {"shape.draftTag", "Draft", "下書き"},
     {"shape.draftNote", "Draft: not created yet. Previewed in the world.", "下書き: まだ作成されていません。ワールドに仮表示中。"},

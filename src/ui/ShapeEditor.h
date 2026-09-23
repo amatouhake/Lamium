@@ -209,10 +209,36 @@ inline Preview preview(ShapeDefinition const& definition, int layer) {
     overlay::Cell center{};
     auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry);
     if (spec) {
-        auto filled = overlay::rasterize(*spec);
-        cells = spec->shape == overlay::Shape::Sphere ? overlay::boundaryCells(filled) : overlay::boundaryCells(filled, true);
-        auto snappedCenter = overlay::snapped(spec->center, spec->snap);
-        center = blockOf(snappedCenter);
+        // Round shapes: only the requested layer, from the column model, so
+        // large radii stay cheap. Bounds cover every column.
+        auto columns = overlay::roundColumns(*spec);
+        center = blockOf(overlay::snapped(spec->center, spec->snap));
+        bool any = false;
+        for (int x = columns.x0; x < columns.x0 + columns.width; ++x)
+            for (int z = columns.z0; z < columns.z0 + columns.depth; ++z) {
+                auto [lo, hi] = columns.at(x, z);
+                if (lo > hi) continue;
+                int u = x - center.x, v = z - center.z;
+                if (!any) { result.minU = result.maxU = u; result.minV = result.maxV = v; any = true; }
+                result.minU = std::min(result.minU, u); result.maxU = std::max(result.maxU, u);
+                result.minV = std::min(result.minV, v); result.maxV = std::max(result.maxV, v);
+            }
+        if (!any) return result;
+        result.lowLayer = columns.low - center.y;
+        result.highLayer = columns.high - center.y;
+        std::map<std::pair<int,int>, bool> layerCells;
+        for (auto const& c : overlay::roundLayer(columns, center.y + layer, spec->shape == overlay::Shape::Sphere))
+            layerCells[{c.z - center.z, c.x - center.x}] = true;
+        result.cells = static_cast<int>(layerCells.size());
+        for (auto it = layerCells.begin(); it != layerCells.end();) {
+            auto [v, u] = it->first;
+            int length = 1;
+            auto next = std::next(it);
+            while (next != layerCells.end() && next->first.first == v && next->first.second == u + length) { ++length; ++next; }
+            result.runs.push_back({u, v, length});
+            it = next;
+        }
+        return result;
     } else {
         auto const& plane = std::get<overlay::PlaneSpec>(definition.geometry);
         cells = overlay::shapeCells(definition);
