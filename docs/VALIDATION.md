@@ -1222,3 +1222,27 @@ Freelook was restored to Off and its binding reset to Unbound, verified together
 in the settings screen before exit. Minecraft's window disappeared normally and
 the session log reached Lamium disabling. The installed DLL remains diagnostic;
 restore a non-trace build before ordinary use.
+
+### Light overlay display and settings smoke (2026-09-23)
+
+Normal build `a4213a0` replaced the preceding diagnostic DLL. Camera trace,
+fixed-angle camera probe, and Shape trace were disabled. Source/destination DLL
+SHA-256 matched:
+`016258EC81297F2D4458053012FE2E02C8520942830B52FB84C84D5E07DC89D7`.
+
+In a local creative world in rear third-person view, F8 search found Light Level
+Overlay, initially Off and Unbound. Enabling it drew white floor digits behind
+the translucent settings panel. Selecting stored sky light changed visible
+digits from 0 to 15; they remained visible in gameplay after closing settings.
+Reopening settings and restoring sky light to Off returned block-light display.
+Disabling the overlay removed its floor digits while Shape rendering remained.
+Both options were verified Off and the binding Unbound before normal shutdown.
+
+Minecraft's window disappeared, and the flushed session log records Lamium
+enabled at 09:23:00.778 and disabling at 09:29:59.590, with no ERR entry in that
+session. The installed DLL is now the normal build above, superseding the
+diagnostic-install state in the preceding historical entry.
+
+This is display/settings smoke evidence, not independent verification of native
+light values or all eligible surfaces. Light-source changes, dimension changes,
+depth/readability across perspectives, and frame cost remain unverified.

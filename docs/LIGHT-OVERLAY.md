@@ -23,3 +23,17 @@ The shared settings tests exercise labels and disk round trips for both options.
 Native value correctness, solid-surface filtering, depth/readability, light
 updates and dimension changes still require Minecraft validation. Do not classify
 this feature as runtime-validated based on build/tests alone.
+
+## Initial runtime smoke (2026-09-23)
+
+The normal (non-trace, non-probe) build of `a4213a0` displayed floor digits
+in a local creative world in rear third-person view. Switching from stored block
+light to stored sky light changed visible digits from 0 to 15; the overlay also
+remained visible after closing settings. Switching back and disabling the feature
+removed the digits while the existing Shape overlay remained visible. Both light
+options were restored to Off, with the binding still Unbound, before normal exit.
+
+This verifies rendering and immediate settings integration in that scene only.
+There was no independent comparison of the sampled values, light-source edit,
+dimension transition, or performance measurement. Those validation gates remain
+open. See [VALIDATION.md](VALIDATION.md) for the installed build identity.
