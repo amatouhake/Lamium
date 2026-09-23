@@ -42,8 +42,10 @@ player runtime ID, dimension, selected slot, input availability and model owner
 are rechecked. All 36 HUD slots must agree with the player inventory before
 planning or dispatch. Creative and spectator players are excluded.
 
-A depleted stack first waits for the captured use requests to be accepted. Only
-then does the adapter revalidate the plan and invoke the HUD controller's
+A successful use callback closes request capture without deciding whether the
+held stack has depleted. A subsequent tick first waits for the captured use
+requests to be accepted, then takes the post-use snapshot and creates the
+depletion plan. Only then does the adapter revalidate the plan and invoke the HUD controller's
 `handleSwap` between the compatible source and empty selected slot. This second
 operation has a separate ownership token and must also be acknowledged; source
 and destination are checked afterward. Untracked, rejected or timed-out use
@@ -61,9 +63,11 @@ The opt-in `restock_trace` build also emits up to 128 fixed use-stage labels
 and numeric values while Hand Restock is enabled. These distinguish hook entry,
 eligibility/HUD checks, capture acquisition, depletion planning and context
 cancellation. They do not log item contents or player/world identifiers, enable
-the feature, bypass a guard, or add transfers. The first failed egg check produced
-neither a result nor an error, so diagnosing these earlier exits precedes changes
-to request handling. A missing result log alone does not identify the failed guard.
+the feature, bypass a guard, or add transfers. Egg diagnostics showed that both
+the base and outer survival use callbacks returned before the held count fell.
+Planning now occurs after tracked acceptance rather than at callback return.
+Whether egg use produces a trackable request still requires native validation;
+an Untracked result remains a cancellation, never permission to transfer.
 
 The installed SDK exposes `HudScreenController::mHudScreenManagerController`
 and the controller's vanilla `handleSwap` operation. Existing Sort uses

@@ -38,6 +38,7 @@ struct Operation {
     std::vector<ItemStack> kinds;
     std::optional<RestockPlan> plan;
     std::optional<game::TransferToken> token;
+    bool useFinished = false;
     bool replenishing = false;
 };
 std::shared_ptr<Operation> pending;
@@ -145,11 +146,10 @@ void finishUse(std::shared_ptr<Operation> const& op, bool success) noexcept {
             trace("finish-invalid",success); cancel(); return;
         }
         game::endTransfer(*op->token);
-        auto after = snapshot(*op,*controller,*player);
-        trace("after-use-count",after.slots[after.selected].count);
-        op->plan = planRestock(op->before,after,true);
-        trace(op->plan ? "plan-ready" : "no-depletion-plan");
-        if (!op->plan) cancel();
+        // The local use callback can return before inventory depletion arrives.
+        // Plan only after the captured requests have received their responses.
+        op->useFinished = true;
+        trace("use-finished");
     } catch (...) { failure(); }
 }
 void tick() noexcept {
@@ -161,7 +161,7 @@ void tick() noexcept {
         if (!player || !controller || !current(*op,*player,*controller)) {
             trace("tick-context-changed"); cancel(); return;
         }
-        if (!op->plan) return; // A synchronous vanilla use is still on the stack.
+        if (!op->useFinished) return; // A synchronous vanilla use is still on the stack.
         auto result = game::transferResult(*op->token);
         if (result == ResponseBarrier::Result::Waiting) return;
         if (result != ResponseBarrier::Result::Accepted) {
@@ -169,6 +169,12 @@ void tick() noexcept {
             cancel(); return;
         }
         auto now = snapshot(*op,*controller,*player);
+        if (!op->plan) {
+            trace("accepted-use-count",now.slots[now.selected].count);
+            op->plan = planRestock(op->before,now,true);
+            trace(op->plan ? "plan-ready" : "no-depletion-plan");
+            if (!op->plan) { cancel(); return; }
+        }
         if (op->replenishing) {
             auto const& destination = now.slots[op->plan->destination];
             bool complete = destination == op->plan->expectedSource && now.slots[op->plan->source].empty();

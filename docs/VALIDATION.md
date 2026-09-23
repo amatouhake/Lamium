@@ -1405,3 +1405,12 @@ The next investigation must observe inventory updates after use returns and
 establish the actual acknowledgement path. Neither a successful use return
 nor elapsed time alone proves server acceptance. Food, blocks, fireworks,
 multiplayer and actual replenishment remain unverified.
+
+The adapter now closes capture at successful use return and defers snapshot /
+depletion planning until a subsequent tick observes Accepted for the owned
+request token. It continues to cancel Untracked, Rejected and TimedOut results.
+This avoids rejecting depletion solely because the callback returned too early;
+it does not establish that egg use emits the required request. The diagnostic
+build and existing LamiumTests passed after this change. Native validation of
+the revised sequencing is pending; the installed experimental DLL from the
+previous experiment has not yet been replaced by this build.
