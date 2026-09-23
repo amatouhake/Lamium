@@ -1,4 +1,5 @@
 #include "features/inventory/Inventory.h"
+#include "features/inventory/HandRestock.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/inventory/game/TextInputTracker.h"
 #include "features/inventory/game/SortSession.h"
@@ -15,6 +16,7 @@ bool start() {
     try {
         game::installRequestTracker();
         game::restockTrace::start();
+        restock::start();
         game::TextInputTracker::getInstance().install();
         game::ScreenTracker::getInstance().install();
         return true;
@@ -26,6 +28,7 @@ bool start() {
 }
 void stop() {
     game::SortSession::cancel("inventory feature stopped");
+    restock::stop();
     game::restockTrace::stop();
     game::ScreenTracker::getInstance().uninstall();
     game::TextInputTracker::getInstance().uninstall();

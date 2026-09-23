@@ -14,6 +14,7 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::Hitboxes: field = &value.overlays.hitboxes; break;
     case Action::LightOverlay: field = &value.overlays.light; break;
     case Action::ToolSwitch: field = &value.inventory.toolSwitch; break;
+    case Action::HandRestock: field = &value.inventory.handRestock; break;
     default: return false;
     }
     *field = !*field;

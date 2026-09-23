@@ -1,7 +1,10 @@
 # Hand Restock implementation work
 
-The replenishment planner is implemented and tested, but is not connected to
-Minecraft yet. No setting or automatic inventory action is enabled by this work.
+The replenishment planner and initial native adapter are implemented. The
+experimental feature is Off and Unbound by default, with controls in Features
+and Hotkeys. Native build, settings round trips, translations, toggle behavior,
+planner and response-ownership tests pass. Actual replenishment has not yet been
+validated in Minecraft; do not treat the earlier read-only HUD probe as proof.
 
 The intended feature replenishes a consumed held block, food or firework from
 the main inventory. It must run through vanilla inventory operations and wait
@@ -27,7 +30,29 @@ Tests cover depletion, unsuccessful use, pre-existing empty hands, replacement
 items, locked slots, different kinds, source changes, changed selection/context,
 invalid selected indices and exhaustion of eligible candidates.
 
-## Native integration still required
+## Native integration and remaining validation
+
+`HandRestock.cpp` observes main-hand `GameMode::useItem`, `useItemOn` and
+`Player::completeUsingItem`. Nested use callbacks do not start another operation.
+The adapter retains a weak HUD controller and copied stack representatives;
+player runtime ID, dimension, selected slot, input availability and model owner
+are rechecked. All 36 HUD slots must agree with the player inventory before
+planning or dispatch. Creative and spectator players are excluded.
+
+A depleted stack first waits for the captured use requests to be accepted. Only
+then does the adapter revalidate the plan and invoke the HUD controller's
+`handleSwap` between the compatible source and empty selected slot. This second
+operation has a separate ownership token and must also be acknowledged; source
+and destination are checked afterward. Untracked, rejected or timed-out use
+requests stop without replenishment. There is no timer-based assumption that
+use succeeded, and no retry loop after failure.
+
+World exit and focus loss cancel pending work immediately. A client tick cancels
+on changed settings, screen input ownership, death, player/dimension/selection
+change, or an unavailable/mismatching HUD model. Runtime checks must establish
+whether each consumption path actually creates observable item-stack requests
+and whether delayed updates require a different observation point. The current
+adapter may deliberately stop as Untracked; that is not successful restock.
 
 The installed SDK exposes `HudScreenController::mHudScreenManagerController`
 and the controller's vanilla `handleSwap` operation. Existing Sort uses

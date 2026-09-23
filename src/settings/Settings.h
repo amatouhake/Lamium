@@ -36,6 +36,7 @@ struct Settings {
         bool sorting = true;
         bool sortContainers = true;
         bool toolSwitch = false;
+        bool handRestock = false;
     } inventory;
     struct Interface {
         bool gameplayHints = true;
