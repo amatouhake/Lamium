@@ -134,8 +134,8 @@ confirmed the following in the same environment:
 - After closing Settings and explicitly reactivating attack, four traced down
   edges were separated by 615, 602, and 600 ms. Toggling off removes the status.
 
-The visibility switch in-game, alternate UI scales/locales, and overlap with
-other configurable HUD positions still need runtime coverage.
+Alternate UI scales/locales and overlap with other configurable HUD positions
+still need runtime coverage.
 
 ### Periodic Use local check
 
@@ -156,8 +156,19 @@ check on 2026-09-23:
   click had disarmed the intent.
 - Opening Settings during that activation stopped it after 23 matched
   presses/releases. The diagnostic reported matching client/owner identity
-  with gameplay eligibility false. Closing Settings and checking non-resumption
-  for Periodic Use remains outstanding; the equivalent attack check is above.
+  with gameplay eligibility false. In a follow-up, closing Settings left the
+  status absent; the next explicit toggle logged a new activation and restored
+  the status, confirming that closing Settings had not rearmed use.
+
+The follow-up also exercised the Automation status visibility option through
+the in-game Features list. Turning it off saved `interface.automationStatus`
+as false without a save button. After closing Settings and explicitly arming
+Periodic Use with an empty hand, the status stayed hidden while diagnostics
+confirmed repeated input edges. The next toggle stopped the action.
+The stop diagnostic reported 23 presses and 22 releases: this diagnostic is
+emitted before `cancelButton` sends its final synthetic release, so these counts
+are not final totals and do not by themselves establish a stuck input.
+Observing that final release directly remains a diagnostic limitation.
 
 This establishes repeated instant-use consumption in one local world. It does
 not establish food consumption, bow charging, other continuous-use items,
