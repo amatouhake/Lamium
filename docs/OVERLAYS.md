@@ -1,8 +1,8 @@
 # Overlay foundation
 
 This is an overlay component under development. A prototype world-line backend
-and a Chunk Borders setting are connected in source. A first Shape Manager/Editor
-is reachable through the searchable Features list. Creating a sphere, changing
+and a Chunk Borders setting are connected in source. Shapes are managed in the
+Shapes view described below. Creating a sphere, changing
 its radius and hiding it were verified in Minecraft; cyan grid lines changed
 accordingly behind the editor. This does not validate Chunk Borders, other shape
 types, projection/depth accuracy, camera movement or world/dimension lifecycle.
@@ -27,24 +27,44 @@ up the exit listener and render hook. This wiring builds against the client SDK,
 with visible geometry, lifecycle callbacks and render-thread performance still
 unverified.
 
-The initial dedicated Shape panel reuses the settings host's modal input ownership,
-translucent panel, row layout and keyboard/mouse navigation. It creates spheres,
-circles, cylinders and grid planes at the player position. Its editor exposes
-visibility, per-axis movement, radius/height or grid dimensions/orientation,
-snapping, duplicate and remove. Left/right adjusts values; Enter/click opens
-direct numeric input or performs actions; Escape finishes input or returns to
-the parent view. Coordinates/radius use double precision; block origins and
-grid dimensions require integers. Invalid or incomplete text leaves the last
-valid geometry intact. Edits update the session immediately.
-The panel reports whether changes are saved in a local world, held only for the
-session, or blocked by a load failure. Local persistence is connected in source;
-its game integration and broader runtime behavior still need validation.
-The Name row supports immediate UTF-8 renaming without regenerating geometry;
-empty/invalid names retain the last valid name. Native name input and IME still
-need runtime verification. Session IDs distinguish identical names; stored
-coordinates retain full precision while display uses three decimal places.
-Successful compilation and
-search-row tests do not establish rendering or input correctness in Minecraft.
+## Shapes view and rendering (2026-09-23; runtime validation pending)
+
+Shapes open from the settings sidebar (pinned below Hotkeys) or the
+initially unbound `openshapes` key; they are no longer a row in the Features
+list. Features keeps a Shape rendering entry: its switch hides or shows every
+shape, with `toggleshapes` and `openshapes` bindings.
+
+The view places a shape list beside an editor. The list shows color, name,
+type (other dimensions are dimmed and tagged) and a visibility switch. The
+editor shows the name, a top-down block preview of one layer (planes are seen
+along their normal) with a layer stepper, and fields grouped as shape,
+position and display. Fields come from `ui/ShapeEditor.h`: adding a shape type
+means adding its entry and fields there. The header toggles all shape drawing,
+links to the Shape rendering row in settings, and docks the view to the right
+edge so the world stays visible (the draw-all switch then moves to the
+toolbar). Editing keeps both scroll positions.
+
+"New shape" first asks for a type, then opens a draft that is previewed in the
+world as light-blue lines but not saved. The center reference is the standing
+block (snapped to its center), the exact position (no snapping) or the
+targeted block; "Move here" uses the same reference for existing shapes. Create
+adds the draft; Cancel or leaving the view discards it. Delete requires a
+second press.
+
+Shapes are drawn from the blocks that form them, as in MiniHUD: circles and
+cylinders as rings, spheres as the outer surface of the filled volume, planes
+as their grid. Each shape has a style (faces: translucent block faces with a
+faint outline; lines: block edges) and a color; both are optional fields in
+the shape document, so older files load with faces and cyan. Previously the
+renderer rebuilt and uploaded every line of every shape each frame, and
+circles were drawn as filled disks. Now each shape's faces and lines are
+uploaded once per geometry revision, relative to the shape's first block, and
+positioned each frame with the world matrix. Meshes are released when shapes
+are removed or the world is left. Faces use the block selection overlay
+material; whether it blends as intended must be confirmed in Minecraft.
+
+Pure tests cover type definitions, editor rows, stepping and validation,
+reference placement, preview layers and runs, and the view's hit testing.
 
 ## Shape document format
 
