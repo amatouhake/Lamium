@@ -19,7 +19,7 @@ struct Settings {
         bool zoom = true;
         bool freelook = false;
         bool freelookToggle = false; // Activation: false = hold the key, true = press to switch
-        bool freecamera = false; // Stage 1: rotation-only detached session, shares Freelook's session
+        bool freecamera = false; // Experimental flying camera; shares Freelook's session
         float magnification = 3.0f;
         float wheelStep = 0.5f;
         bool operator==(Camera const&) const = default;

@@ -1574,3 +1574,13 @@ around. Normal build installed afterwards, DLL SHA-256:
 `4463C1F9B684FD1D870DB4442E1777CE761117C185C375E606AA139332DE253A`.
 Multiplayer, riding, dimension changes during a hold and controllers remain
 unverified.
+
+### FreeCamera experiment (2026-09-24)
+
+Verified by the maintainer on 31323b8 (camera trace build): first-person
+flight with WASD/Space/Shift, the player frozen in survival and creative
+(no movement, attack or use), terrain, shapes and chunk borders following the
+camera, F5 ignored with the body shown and the perspective restored, and
+clean exits on toggle, settings, death, Alt-Tab and world re-entry. Not
+verified: dimension change while flying, controllers, multiplayer. The
+trace-free build after the cleanup commit is not yet checked in game.

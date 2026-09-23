@@ -1,9 +1,9 @@
 # Detached camera implementation notes
 
-Freelook has an experimental integration, disabled and unbound by default. Its
-basic behavior has passed a local runtime check (see Freelook camera detachment
-below). FreeCamera is not implemented. This records SDK evidence and remaining
-integration questions.
+Freelook and FreeCamera are experimental integrations, disabled and unbound by
+default. Both passed local runtime checks (see Freelook camera detachment and
+FreeCamera below). This records SDK evidence and remaining integration
+questions.
 
 ## Freelook camera detachment
 
@@ -52,23 +52,16 @@ speed and elapsed time; it normalizes diagonals, limits a stalled update to
 0.1 seconds, caps supplied speed at 100 blocks/second, and discards the session
 on invalid input or owner replacement. These are initial internal bounds, not
 user-facing settings. Cancellation removes the displacement without retaining
-or restoring any player transform. This component is not connected to native
-movement or rendering yet, and does not make FreeCamera available in-game.
-The adapter still needs to anchor the activation eye, own/suppress local
-movement, share the detached angular session, and validate render/culling
-coordinates and all lifecycle exits.
+or restoring any player transform. FreeCamera drives it (see FreeCamera below).
 
 `camera::consumeMovement` is the native extraction boundary prepared for that
 adapter. After vanilla HID extraction it consumes `RawMoveInputComponent`'s
 horizontal axes and momentary jump/sneak/ascend/descend flags, then clears only
 the extracted movement axes/flags. It does not alter the stored physical input
 or look/selection flags. A FreeCamera extraction hook calls it after vanilla HID
-extraction for the session owner only; the returned axes are stashed for the
-stage 3 camera adapter. Freelook sessions pass through untouched. Axis signs,
-keyboard/controller behavior, subsequent movement consumers, and resumption of
-held physical keys must be verified before enabling the adapter. Culling/world
-overlays use a separate render camera origin; translating only the view matrix
-is not sufficient evidence of a correct position override.
+extraction for the session owner only; FreeCamera reads its axes with
+`camera::freecameraInputAxes` just before. Freelook sessions pass through
+untouched. Keyboard axes were verified in game; controllers were not tested.
 
 The standalone `LamiumNativeTests` target builds this adapter against the SDK
 types without launching Minecraft or calling engine functions. Run
@@ -120,7 +113,7 @@ and entity interaction, plus the SurvivalMode overrides of attack, interact,
 finish/start block destruction, start/final placement, use, use-as-attack and
 use-on-block (the base hooks never fire in survival mode; creative mode uses
 the base GameMode). Stage 1 runtime testing showed mob attacks passing while
-detached in survival mode, which these mirrors address; verification is pending. While a valid detached session owns that local player,
+detached in survival mode, which these mirrors fixed (verified in game 2026-09-24). While a valid detached session owns that local player,
 these paths return no success (and no swing for use-on-block), without invoking
 the original operation. Other players and inactive sessions pass through.
 Stop/release operations remain untouched so vanilla can clean up existing use.
@@ -137,6 +130,38 @@ including the initial-use tick and release-triggered effects. No claim
 of complete interaction isolation is made from the list of hooks alone.
 The next work should validate and correct this integration, not merely expand its
 settings. Do not enable the old fixed-angle `camera_probe` simultaneously.
+
+## FreeCamera
+
+FreeCamera (experimental, unbound Toggle) reuses Freelook's detached session
+and adds position. Verified in game 2026-09-24 on build 31323b8 (trace build):
+
+- Rotation: the same detachment as Freelook; the two never run together.
+- Movement: after `ClientInputUpdateSystem::extractRawHIDInput`, axes are read
+  from the direction flags (analog vector as controller fallback) and then
+  consumed, so the player stays still. Attack/use are blocked by the
+  interaction guard, including the SurvivalMode mirrors.
+- Position: `DetachedCameraMotion` advances once per rendered frame (fixed 20
+  blocks/s, basis from the fresh vanilla view) and the displacement is written
+  into the detached camera entity's `CameraOffsetComponent::mEntityOffset`
+  after UI render. Vanilla builds the view from it, so terrain, culling,
+  shapes and chunk borders follow. Chunks outside the player's render
+  distance stay ungenerated.
+- Perspective: FreeCamera always flies in first person and adds
+  `CameraRenderPlayerModelComponent` (an empty tag: test it with `all_of`, not
+  `try_get`) so the body is visible. Starting in third person sets first
+  person with `setPlayerViewPerspective`, waits until the render eye stops
+  moving, and restores the saved perspective on exit. F5 is ignored while
+  active.
+- Exits: toggle, settings, death, focus loss and world re-entry verified.
+  Dimension change could not be exercised with the camera alone.
+
+Failed approaches: translating the view after `setupCamera` (924dd12,
+8c81b36) was applied but never reached the detached render; terrain vanished
+instead. Moving third-person orbit rigs through the pivot worked but the
+rotation center felt wrong, so FreeCamera locks first person instead.
+Continuing flight from the previous third-person eye (31323b8) did not pass
+verification and was removed: starting from third person begins at the head.
 
 ## Boundaries
 

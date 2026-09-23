@@ -198,7 +198,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"freelook", "Freelook: {}", "フリールック: {}"},
     {"key.Lamium.freelook", "Lamium: Freelook", "Lamium: フリールック"},
     {"feature.freecamera", "FreeCamera", "フリーカメラ"},
-    {"help.freecamera", "Experimental: detach only the view like Freelook. The player does not move yet.", "試験的: フリールックと同じく視点だけを切り離します。プレイヤーはまだ移動しません。"},
+    {"help.freecamera", "Experimental: fly the view freely while the player stays in place.", "試験的: プレイヤーをその場に残し、視点だけを自由に飛ばします。"},
     {"freecamera", "FreeCamera: {}", "フリーカメラ: {}"},
     {"key.Lamium.freecamera", "Lamium: Toggle FreeCamera", "Lamium: フリーカメラを切り替え"},
     {"freelookActivation", "Activation: {}", "起動方法: {}"},

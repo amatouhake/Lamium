@@ -19,16 +19,15 @@ struct Settings;
 class Zoom {
     ZoomState state;
     DetachedLookState look;
-    // Stage 1 FreeCamera shares Freelook's angular session. Only one owner
+    // FreeCamera shares Freelook's angular session. Only one owner
     // runs at a time; the owner decides which enable flag keeps it alive.
     enum class DetachedOwner { None, Freelook, FreeCamera };
     std::atomic<DetachedOwner> lookOwner{DetachedOwner::None};
     std::atomic<bool> lookAllowed{false};
     std::atomic<bool> lookToggle{false};
     std::atomic<bool> freeCameraAllowed{false};
-    // Stage 2: latest extracted movement axes while FreeCamera owns the
-    // session, kept for the stage 3 camera adapter. Guarded because the
-    // extraction hook runs outside the client thread.
+    // Latest extracted movement axes while FreeCamera owns the session.
+    // Written by the input extraction hook, read by the render hook.
     std::mutex freeInputMutex;
     DetachedCameraMotion::Vector freeCameraInput{};
     bool hasFreeCameraInput = false;
@@ -36,11 +35,9 @@ class Zoom {
     // Latest session displacement for the entity-offset writer below.
     DetachedCameraMotion::Vector lastDisplacement{};
     bool hasDisplacement = false;
-    // Render-eye history for third-person continuity (seed the session from
-    // the pre-switch eye instead of snapping to the head).
-    DetachedCameraMotion::Vector lastEye{}, prevEye{}, thirdEye{};
-    bool hasThirdEye = false;
-    // Stage 3: session displacement for the moving camera. The motion state
+    // Last two render eyes: a perspective switch has settled once they match.
+    DetachedCameraMotion::Vector lastEye{}, prevEye{};
+    // Session displacement for the moving camera. The motion state
     // is advanced per render frame from the stashed input above.
     DetachedCameraMotion motion;
     std::atomic<std::uint64_t> freeMotionOwner{0};

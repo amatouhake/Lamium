@@ -456,14 +456,14 @@ LL_TYPE_INSTANCE_HOOK(FocusHook, ll::memory::HookPriority::Normal, MinecraftGame
     Zoom::instance().reset();
     origin();
 }
-// Plan A: perspective is locked while FreeCamera owns the session. F5 would
+// Perspective is locked while FreeCamera owns the session. F5 would
 // hand the render to a rig the session never detached, so swallow the press.
 LL_STATIC_HOOK(PerspectiveLockHook, ll::memory::HookPriority::Normal,
     &ClientInputCallbacks::handleTogglePerspectiveButtonPress, void, IClientInstance& client) {
     if (Zoom::instance().blocksPerspective()) return;
     origin(client);
 }
-// Stage 2: after vanilla HID extraction, withhold movement from the extracted
+// After vanilla HID extraction, withhold movement from the extracted
 // output for the FreeCamera owner. Other players and Freelook pass through
 // untouched; Freelook keeps its movement while looking around.
 LL_STATIC_HOOK(ExtractFreeCameraInput, ll::memory::HookPriority::Normal,
@@ -581,11 +581,6 @@ bool Zoom::ensureFirstPerson(IClientInstance& current, LocalPlayer& player) {
     {
         std::lock_guard lock{freeInputMutex};
         freeTravelStart = std::chrono::steady_clock::now();
-        // Latch the pre-switch eye; the completion seeds the session with
-        // (thirdEye - settledEye) so flight continues from the third-person
-        // viewpoint instead of snapping to the head.
-        thirdEye = lastEye;
-        hasThirdEye = true;
     }
     try {
         using Mode = SharedTypes::v1_21_100::PlayerViewMode;
@@ -620,9 +615,8 @@ void Zoom::pollFreeTravel() {
     } catch (...) { abortPendingTravel(); return; }
     auto now = std::chrono::steady_clock::now();
     if (now - start > std::chrono::seconds(3)) {
-        // Blend never settled; begin without the continuity seed.
+        // Blend never settled; begin anyway.
         pendingFreeCamera.store(false);
-        { std::lock_guard lock{freeInputMutex}; hasThirdEye = false; }
         if (!beginFreeCameraSession(*current, *current->getLocalPlayer()))
             restoreFreePerspective(*current);
         return;
@@ -637,7 +631,6 @@ void Zoom::pollFreeTravel() {
 void Zoom::abortPendingTravel() {
     if (!pendingFreeCamera.load()) return;
     pendingFreeCamera.store(false);
-    { std::lock_guard lock{freeInputMutex}; hasThirdEye = false; }
     auto* current = client.load();
     if (current) {
         try { restoreFreePerspective(*current); } catch (...) {}
@@ -666,19 +659,6 @@ bool Zoom::beginFreeCameraSession(IClientInstance& current, LocalPlayer& player)
     freeMotionOwner.store(0);
     if (!ownerId || !motion.begin(ownerId)) { cancelLook(); return false; }
     freeMotionOwner.store(ownerId);
-    {
-        DetachedCameraMotion::Vector seed{};
-        bool seedIt = false;
-        {
-            std::lock_guard lock{freeInputMutex};
-            if (hasThirdEye) {
-                seed = {thirdEye[0] - lastEye[0], thirdEye[1] - lastEye[1], thirdEye[2] - lastEye[2]};
-                hasThirdEye = false;
-                seedIt = true;
-            }
-        }
-        if (seedIt && !motion.shift(ownerId, seed)) { cancelLook(); return false; }
-    }
 #ifdef LAMIUM_CAMERA_TRACE
     traceLook(LookTraceStage::Begin, player.getRotation().x, player.getRotation().z);
     try { Runtime::instance().self().getLogger().info("FreeCamera body: begin head={}", player.getYHeadRot()); } catch (...) {}
@@ -731,7 +711,9 @@ void Zoom::logFreeCameraSamples() {
 }
 void Zoom::endFreeCameraMotion(bool wasFreeCamera) {
     if (!wasFreeCamera) return;
+#ifdef LAMIUM_CAMERA_TRACE
     logFreeCameraSamples();
+#endif
     motion.cancel();
     freeMotionOwner.store(0);
     auto* current = client.load();
@@ -743,7 +725,6 @@ void Zoom::endFreeCameraMotion(bool wasFreeCamera) {
     std::lock_guard lock{freeInputMutex};
     freeMotionTimed = false;
     hasDisplacement = false;
-    hasThirdEye = false;
 }
 void Zoom::writeFreeCameraOffset() {
     if (lookOwner.load() != DetachedOwner::FreeCamera) return;
@@ -841,7 +822,7 @@ bool Zoom::freeCameraView(IClientInstance const& renderedClient, mce::Camera& ca
     auto right = horizontal(view[0][0], view[2][0]);
     auto forward = horizontal(-view[0][2], -view[2][2]);
     constexpr DetachedCameraMotion::Vector up{0, 1, 0};
-    // Interim speed until L-26 makes it a setting; roughly creative flight.
+    // Fixed until L-26 makes it a setting (vanilla creative flight is ~11).
     constexpr double speed = 20.0;
     auto owner = freeMotionOwner.load();
     if (!owner || !motion.advance(owner, input, right, up, forward, speed, seconds)) {

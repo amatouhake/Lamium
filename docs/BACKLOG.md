@@ -298,66 +298,11 @@ Consumption is detected, but the transfer through the HUD fails
 (`handlePlaceAmount` returns false). See HAND-RESTOCK.md and VALIDATION.md.
 
 ### L-18 FreeCamera
-Status: research, assigned as an experiment (2026-09-23). Work on branch
-`freecamera`, not `main`, until the maintainer accepts it.
-
-Goal: a Toggle action detaches the camera from the player. The camera turns
-like Freelook and flies like creative flight (WASD horizontal relative to the
-camera yaw, Space up, Shift down); the player stays where it is and receives
-no movement, attack or use. Toggling off returns the view to the player.
-
-Read first: docs/CAMERA.md (all of it), `features/camera/Zoom.cpp` (Freelook),
-`DetachedCameraMotion.h`, `DetachedLookState.h`, `CameraMovementInput.*`.
-
-Known facts (verified in game):
-- Overriding the view matrix after `setupCamera` changed culling but not the
-  rendered rotation; overriding `tryGetActorRotation` had no visible effect.
-- Freelook works by removing `VanillaCamera::UpdatePlayerFromCameraComponent`
-  from the active camera entity and restoring the camera's own angles later.
-  Reuse this for FreeCamera's rotation.
-- The `camera_position_probe` build (translation composed after
-  `setupCamera`) visibly moved the camera two blocks to the right. Whether
-  culling, chunks and overlays agree with a moved camera is unknown.
-- `camera::consumeMovement` can clear `RawMoveInputComponent` movement, but no
-  hook calls it yet.
-
-Stages. Stop after each stage, deploy, and ask the maintainer to check in
-game before the next one:
-1. Action + rotation: append a `freecamera` Toggle action (unbound) and an
-   experimental feature row; while active, detach rotation exactly like
-   Freelook (share its session; Freelook and FreeCamera never run together).
-2. Freeze the player: while active, the player does not move, jump, sneak,
-   attack or use. Find where vanilla consumes `RawMoveInputComponent` and
-   call `consumeMovement` there; keep the extracted input for stage 3.
-3. Move the camera: feed the extracted input to `DetachedCameraMotion` and
-   apply the position. Try the camera entity's own position (ECS components
-   in `MinecraftCamera`/`VanillaCamera`) before a view-matrix translation.
-   Report what happens to culling, distant chunks, shapes and chunk borders.
-4. Exits: toggling off, settings opening, world exit, dimension change,
-   death, focus loss and disable all return to vanilla cleanly.
-
-Hand back instead of pushing on when a stage fails in game twice with the
-same approach, or when a needed game function cannot be found in the SDK.
-Use trace options (`xmake f --camera_trace=y`) for evidence, never in a build
-handed over as final.
-
-Stage 3 status 2026-09-24: the post-setup view override failed twice in game
-(924dd12 view only; 8c81b36 view plus render eye and dependencies), in first
-and third person. Trace proves the transform is applied with growing
-displacement, yet no visible motion; terrain vanishes instead. Third attempt
-(af27536): drive the detached camera entity's offset component, stash WASD
-from direction flags. Verified 2026-09-24: first-person flight correct
-(WASD/Space/Shift, slow), terrain follows, no residue on exit, menus exit.
-Remaining: third-person flight (rotation only), speed, menu behavior.
-2026-09-24: entity-offset flight verified first person; third person moves via
-pivot after 2ff1649; F5 migration verified after 89e802a with no residue.
-Open: third-person rotation pivot feels off (center is not the viewpoint).
-Proposal: while FreeCamera is active, lock first-person camera motion plus
-forced body rendering and ignore F5 (no per-perspective rigs at all). Needs
-research into F5 suppression and the first-person body-hide flag.
-2026-09-24: lock verified (F5 ignored, body shown, perspective restored).
-Third-person-start continuity (seed from pre-switch eye, 31323b8) failed
-verification; parked as a remaining issue. Hotbar-hide parked as L-29.
+Status: done as an experiment (Pi, reviewed 2026-09-24). Flight, movement
+freeze, first-person lock and exits were verified in game; details and failed
+approaches are in docs/CAMERA.md. Follow-ups: L-25 to L-29 below and the
+L-10 note. Open polish: starting from third person begins at the head rather
+than at the previous third-person eye; needs a new approach if wanted.
 
 ### L-20 Shape name text input adds stray characters
 Native text entry for shape names inserts extra characters.
@@ -377,14 +322,14 @@ Native text entry for shape names inserts extra characters.
   this in the help text. Movement freeze (FreeCamera) and movement keep
   (Freelook) stay non-optional. Swing suppression (no arm swing while
   detached) is a separate Research item: find the swing trigger first.
-- L-26 FreeCamera flight speed (parked, after L-18). Verified slow but correct
-  at the internal 10 blocks/s. Add a user-facing speed setting with sane
+- L-26 FreeCamera flight speed (parked, after L-18). Currently fixed at
+  20 blocks/s. Add a user-facing speed setting with sane
   bounds; decide on a fast-flight modifier, if any, at design time.
 - L-28 Third-person underground camera (parked, after L-18). While detached
   underground, vanilla collision avoidance fights the pivot offset and the
   view judders block by block. Decide whether to soften avoidance while
   detached or document it as a limit; above-ground flight is unaffected.
-  Mostly moot if FreeCamera locks first person (plan A).
+  Moot while FreeCamera locks first person.
 - L-29 Hide the hotbar while detached (parked, after L-18). Requested
   2026-09-24, Tweakeroo-like: an option to hide the hotbar while FreeCamera
   is active (looking-only flight needs no hotbar). Find the vanilla hotbar

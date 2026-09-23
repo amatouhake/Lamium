@@ -10,6 +10,6 @@ DetachedCameraMotion::Vector consumeMovement(RawMoveInputComponent&);
 // Stash source for the FreeCamera adapter. Keyboard state may not have reached
 // the extracted analog vector yet, so WASD-equivalent direction flags are read
 // first with the analog vector as a controller fallback; axes are unit-clamped.
-// Axis signs follow vanilla (Up/W is forward) and still need game checks.
+// Axis signs follow vanilla (Up/W is forward).
 DetachedCameraMotion::Vector freecameraInputAxes(RawMoveInputComponent const& raw);
 }
