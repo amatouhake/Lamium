@@ -16,6 +16,7 @@
 #include "mc/deps/input/MouseAction.h"
 #include "mc/deps/renderer/Camera.h"
 #include "mc/legacy/ActorRuntimeID.h"
+#include "mc/world/actor/ActorFlags.h"
 #include "ui/SettingsScreen.h"
 #include <cmath>
 #ifdef LAMIUM_CAMERA_TRACE
@@ -27,6 +28,12 @@
 
 namespace lamium {
 namespace {
+bool canDetachLook(LocalPlayer const& player) {
+    // Leave an existing charge/eating action with vanilla. Do not finish or
+    // release it on the player's behalf when entering a detached camera.
+    return player.isAlive() && !player.isSleeping() && !player.getVehicle()
+        && player.hasRuntimeID() && !player.getStatusFlag(ActorFlags::Usingitem);
+}
 #ifdef LAMIUM_CAMERA_TRACE
 enum class LookTraceStage { Begin, Turn, Render };
 void traceLook(LookTraceStage stage, float pitch, float yaw) noexcept {
@@ -223,7 +230,7 @@ void Zoom::pressLook(IClientInstance& current) {
     if (!running || !lookAllowed || ui::ownsInput() || !gameplayScreen(current.getScreenName())
         || !current.getLocalPlayer()) return;
     auto* player = current.getLocalPlayer();
-    if (!player->isAlive() || player->isSleeping() || player->getVehicle() || !player->hasRuntimeID()) return;
+    if (!canDetachLook(*player)) return;
     client = &current;
     bool started = look.begin(0, 0, player->getRuntimeID().rawID);
 #ifdef LAMIUM_CAMERA_TRACE
@@ -241,7 +248,7 @@ std::optional<DetachedLookState::Angles> Zoom::lookAngles() {
         return {};
     }
     auto* player = current->getLocalPlayer();
-    if (!player->isAlive() || player->isSleeping() || player->getVehicle() || !player->hasRuntimeID()
+    if (!canDetachLook(*player)
         || !look.retainOwner(player->getRuntimeID().rawID)) {
         releaseLook();
         return {};

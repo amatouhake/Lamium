@@ -36,8 +36,12 @@ The guard installs with the camera lifecycle and is unwound if startup fails.
 
 This is build-verified only. Runtime checks must cover keyboard remapping,
 offhand use, continued mining/placement, and another interaction mod. Starting
-Freelook while an item is already charging/eating, and release-triggered effects
-from such an earlier use, still need an explicit policy and validation. No claim
+Freelook while an item is already charging/eating is now rejected using the SDK's
+`ActorFlags::Usingitem` status flag. If that flag becomes set during a detached
+session, the override is discarded. Lamium does not call stop/release/complete
+item use or mutate the flag; the existing action remains vanilla-owned. This
+policy still requires validation with food, bows, crossbows and offhand use,
+including the initial-use tick and release-triggered effects. No claim
 of complete interaction isolation is made from the list of hooks alone.
 The next work should validate and correct this integration, not merely expand its
 settings. Do not enable the old fixed-angle `camera_probe` simultaneously.
