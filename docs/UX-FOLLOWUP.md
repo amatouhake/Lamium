@@ -32,8 +32,14 @@ Settings and input foundation work is now underway, before broader feature expan
   lines on regular-height panels. It wraps English at spaces and CJK at whole
   UTF-8 characters, with an ellipsis when the final line is too short. Compact
   panels retain their single navigation hint. Automated wrapping and layout
-  bounds tests pass; native-font rendering of the new paragraph needs a runtime
-  check before treating the text-fit issue as resolved.
+  bounds tests pass. A local runtime check of `170fd80` on Minecraft 1.26.51.01 /
+  LeviLamina Client 26.51.3 / Deesse UI 1.3.9 confirmed that the Periodic Use
+  description wraps into two readable lines, including its previously clipped
+  ending. Page navigation and expanding the feature kept its selected row above
+  the footer without overlap at 1920x1080. Single-line descriptions also remained
+  readable. Japanese rendering and alternate scales still need runtime coverage.
+  Tested DLL SHA-256:
+  `37F48C3FE05EA2933430BC1E298E97D70C6F0D5293BDDA0533BEC6887F3AC193`.
 - Explicit Save/Cancel has been replaced with per-edit persistence and application.
   Escape/Close only dismisses the screen. Failed saves leave the previous setting
   active and display an error. Numeric editing and saving before leaving the
