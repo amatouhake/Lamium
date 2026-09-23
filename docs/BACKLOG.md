@@ -340,12 +340,13 @@ Use trace options (`xmake f --camera_trace=y`) for evidence, never in a build
 handed over as final.
 
 Stage 3 status 2026-09-24: the post-setup view override failed twice in game
-(924dd12 view only; 8c81b36 view plus render eye and dependencies). Trace
-proves the transform is applied with growing displacement, yet no visible
-motion; terrain vanishes and the player model glitches instead. Both sessions
-were third person (orbit). Next guesses before retrying: check first person
-(separates the third-person boom path), or drive the ECS camera (boom/offset
-components) instead of the render view.
+(924dd12 view only; 8c81b36 view plus render eye and dependencies), in first
+and third person. Trace proves the transform is applied with growing
+displacement, yet no visible motion; terrain vanishes instead. Third attempt
+(af27536): drive the detached camera entity's offset component, stash WASD
+from direction flags. Verified 2026-09-24: first-person flight correct
+(WASD/Space/Shift, slow), terrain follows, no residue on exit, menus exit.
+Remaining: third-person flight (rotation only), speed, menu behavior.
 
 ### L-20 Shape name text input adds stray characters
 Native text entry for shape names inserts extra characters.
@@ -365,6 +366,15 @@ Native text entry for shape names inserts extra characters.
   this in the help text. Movement freeze (FreeCamera) and movement keep
   (Freelook) stay non-optional. Swing suppression (no arm swing while
   detached) is a separate Research item: find the swing trigger first.
+- L-26 FreeCamera flight speed (parked, after L-18). Verified slow but correct
+  at the internal 10 blocks/s. Add a user-facing speed setting with sane
+  bounds; decide on a fast-flight modifier, if any, at design time.
+- L-27 Detached menu behavior (parked, after L-18; small Design open).
+  Inventory/settings opening currently exits FreeCamera and discards the flown
+  position, which is safe but annoying. Desired: an option around inventory
+  rendering while detached (Java mods have similar), so looking-only flight
+  need not pass through inventory. Exits for death/dimension/world change
+  stay mandatory regardless of the option.
 - L-21 Shape color picker or more colors: only if the four colors prove
   insufficient.
 - Not started, not yet triaged: F3-style debug view, Scroll Transfer
