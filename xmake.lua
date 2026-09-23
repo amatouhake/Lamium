@@ -15,7 +15,7 @@ option_end()
 option("restock_trace")
     set_default(false)
     set_showmenu(true)
-    set_description("Enable bounded read-only HUD inventory diagnostics")
+    set_description("Enable bounded HUD mapping and restock use diagnostics")
 option_end()
 
 option("placement_trace")

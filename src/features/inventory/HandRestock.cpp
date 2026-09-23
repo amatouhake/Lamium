@@ -23,6 +23,7 @@
 #include "mc/world/item/ItemLockMode.h"
 #include "mc/world/item/HandSlot.h"
 #include "mc/legacy/ActorRuntimeID.h"
+#include <atomic>
 
 namespace lamium::inventory::restock {
 namespace {
@@ -41,6 +42,20 @@ struct Operation {
 };
 std::shared_ptr<Operation> pending;
 ll::event::ListenerPtr tickListener, exitListener;
+// Opt-in diagnostics explain silent early exits without changing use/transfer
+// behavior. Only fixed stage labels and numeric state are emitted.
+void trace(char const* stage, int value = 0) noexcept {
+#ifdef LAMIUM_RESTOCK_TRACE
+    try {
+        if (!Runtime::instance().preferences().inventory.handRestock) return;
+        static std::atomic<unsigned> samples{};
+        if (samples.fetch_add(1) >= 128) return;
+        Runtime::instance().self().getLogger().info("Restock use trace: {} value={}",stage,value);
+    } catch (...) {}
+#else
+    (void)stage; (void)value;
+#endif
+}
 void cancel() {
     auto old = std::move(pending);
     if (old && old->token) game::cancelTransfer(*old->token);
@@ -94,20 +109,24 @@ RestockSnapshot snapshot(Operation& op, HudContainerManagerController& controlle
 }
 std::shared_ptr<Operation> beginUse(Player& actor, HandSlot hand) noexcept {
     try {
-        if (pending || hand != HandSlot::Mainhand) return {};
+        if (pending || hand != HandSlot::Mainhand) { trace("nested-or-offhand"); return {}; }
         auto* player = eligible();
         auto controller = hud.lock();
-        if (!player || player != &actor || !controller || !owned(*controller,*player)) return {};
+        if (!player) { trace("ineligible"); return {}; }
+        if (player != &actor) { trace("non-local-actor"); return {}; }
+        if (!controller) { trace("hud-expired"); return {}; }
+        if (!owned(*controller,*player)) { trace("hud-not-owned-or-closed"); return {}; }
         auto op = std::make_shared<Operation>();
         op->controller = controller;
         op->playerId = player->getRuntimeID().rawID;
         op->dimension = static_cast<int>(player->getDimensionId());
         op->before = snapshot(*op,*controller,*player);
         auto const& held = op->before.slots[op->before.selected];
-        if (held.count != 1 || held.locked) return {};
+        if (held.count != 1 || held.locked) { trace("held-count-or-lock",held.count); return {}; }
         op->token = game::beginTransfer(*controller);
-        if (!op->token) return {};
+        if (!op->token) { trace("capture-unavailable"); return {}; }
         pending = op;
+        trace("capture-started");
         return op;
     } catch (...) { failure(); return {}; }
 }
@@ -122,9 +141,14 @@ void finishUse(std::shared_ptr<Operation> const& op, bool success) noexcept {
     try {
         auto* player = eligible();
         auto controller = op->controller.lock();
-        if (!success || !player || !controller || !current(*op,*player,*controller)) { cancel(); return; }
+        if (!success || !player || !controller || !current(*op,*player,*controller)) {
+            trace("finish-invalid",success); cancel(); return;
+        }
         game::endTransfer(*op->token);
-        op->plan = planRestock(op->before,snapshot(*op,*controller,*player),true);
+        auto after = snapshot(*op,*controller,*player);
+        trace("after-use-count",after.slots[after.selected].count);
+        op->plan = planRestock(op->before,after,true);
+        trace(op->plan ? "plan-ready" : "no-depletion-plan");
         if (!op->plan) cancel();
     } catch (...) { failure(); }
 }
@@ -134,7 +158,9 @@ void tick() noexcept {
         auto op = pending;
         auto* player = eligible();
         auto controller = op->controller.lock();
-        if (!player || !controller || !current(*op,*player,*controller)) { cancel(); return; }
+        if (!player || !controller || !current(*op,*player,*controller)) {
+            trace("tick-context-changed"); cancel(); return;
+        }
         if (!op->plan) return; // A synchronous vanilla use is still on the stack.
         auto result = game::transferResult(*op->token);
         if (result == ResponseBarrier::Result::Waiting) return;
@@ -165,10 +191,12 @@ LL_TYPE_INSTANCE_HOOK(CaptureHud, ll::memory::HookPriority::Normal, ClientInstan
     auto result = origin();
     cancel();
     hud = result;
+    trace("hud-captured",bool(result));
     return result;
 }
 LL_TYPE_INSTANCE_HOOK(Use, ll::memory::HookPriority::Normal, GameMode,
     &GameMode::$useItem, bool, ItemStack& item, HandSlot hand) {
+    trace("use-item");
     auto op = beginUse(mPlayer,hand);
     try { bool result = origin(item,hand); finishUse(op,result); return result; }
     catch (...) { if (pending == op) cancel(); throw; }
@@ -176,12 +204,14 @@ LL_TYPE_INSTANCE_HOOK(Use, ll::memory::HookPriority::Normal, GameMode,
 LL_TYPE_INSTANCE_HOOK(UseOn, ll::memory::HookPriority::Normal, GameMode,
     &GameMode::$useItemOn, InteractionResult, ItemStack& item, BlockPos const& pos, uchar face,
     Vec3 const& hit, HandSlot hand, Block const* target, bool first) {
+    trace("use-item-on");
     auto op = beginUse(mPlayer,hand);
     try { auto result = origin(item,pos,face,hit,hand,target,first); finishUse(op,result.mSuccess); return result; }
     catch (...) { if (pending == op) cancel(); throw; }
 }
 LL_TYPE_INSTANCE_HOOK(CompleteUse, ll::memory::HookPriority::Normal, Player,
     &Player::completeUsingItem, void) {
+    trace("complete-use");
     auto op = beginUse(*this,HandSlot::Mainhand);
     try { origin(); finishUse(op,true); }
     catch (...) { if (pending == op) cancel(); throw; }

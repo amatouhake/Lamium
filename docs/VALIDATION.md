@@ -1358,3 +1358,28 @@ The session log reached Lamium disabling at 10:14:13.170. Afterward,
 `restock_trace` was disabled, the normal build/package check passed, and the
 instance DLL was restored with matching source/destination SHA-256
 `CB33F555198F70446B03A8353A7DF9E64A9782514F882989A55139518C4085B2`.
+
+### Hand Restock first depletion check: not working yet (2026-09-23)
+
+The normal native adapter build at `0d083a3` was tested with installed DLL
+SHA-256 `E79ED64E1878CF801B919B9CE105A1555C96024EB52439FC9A42BD4206EF0730`.
+In a local world with Deesse UI, one egg was placed in the selected hotbar slot
+and 15 matching eggs remained in a main-inventory slot. Hand Restock was enabled
+through F8, then the player was changed from creative to survival. A single
+right-click consumed the held egg. The selected slot remained empty after
+waiting, and reopening inventory showed all 15 reserve eggs still in their
+original slot. No Hand Restock acknowledgement, response failure or inventory
+error appeared in the session log. This is a failed replenishment check, not a
+successful safety or networking test; the silent early-exit cause is unresolved.
+
+Hand Restock was restored to Off, creative mode was restored, and the temporarily
+stored shield was returned to the original hotbar slot with durability 336/336.
+The one test egg was consumed normally; the reserve stack remained 15. Minecraft
+closed, its window disappeared, and the global log recorded Lamium disabling at
+10:35:39.555. No multiplayer, food, firework or block-placement path was tested.
+
+The next diagnostic build adds bounded fixed stage labels to the existing
+`restock_trace` option to distinguish hook entry, failed eligibility/HUD checks,
+unavailable capture and absent depletion plans. These observations are needed
+before attributing this failure to any particular guard or changing request
+ownership behavior.

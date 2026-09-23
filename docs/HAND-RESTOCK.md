@@ -3,8 +3,11 @@
 The replenishment planner and initial native adapter are implemented. The
 experimental feature is Off and Unbound by default, with controls in Features
 and Hotkeys. Native build, settings round trips, translations, toggle behavior,
-planner and response-ownership tests pass. Actual replenishment has not yet been
-validated in Minecraft; do not treat the earlier read-only HUD probe as proof.
+planner and response-ownership tests pass. The first native runtime check failed:
+a final egg was consumed in local survival, but the 15 reserve eggs stayed in
+the main inventory and the selected slot stayed empty. No restock result/error
+was logged. Actual replenishment is not validated; do not treat the earlier
+read-only HUD probe as proof.
 
 The intended feature replenishes a consumed held block, food or firework from
 the main inventory. It must run through vanilla inventory operations and wait
@@ -53,6 +56,14 @@ change, or an unavailable/mismatching HUD model. Runtime checks must establish
 whether each consumption path actually creates observable item-stack requests
 and whether delayed updates require a different observation point. The current
 adapter may deliberately stop as Untracked; that is not successful restock.
+
+The opt-in `restock_trace` build also emits up to 128 fixed use-stage labels
+and numeric values while Hand Restock is enabled. These distinguish hook entry,
+eligibility/HUD checks, capture acquisition, depletion planning and context
+cancellation. They do not log item contents or player/world identifiers, enable
+the feature, bypass a guard, or add transfers. The first failed egg check produced
+neither a result nor an error, so diagnosing these earlier exits precedes changes
+to request handling. A missing result log alone does not identify the failed guard.
 
 The installed SDK exposes `HudScreenController::mHudScreenManagerController`
 and the controller's vanilla `handleSwap` operation. Existing Sort uses
