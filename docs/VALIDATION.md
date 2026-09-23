@@ -1314,3 +1314,28 @@ disappeared immediately. Minecraft closed normally and its window disappeared.
 The flushed log records Lamium enabled at 09:46:25.057 and disabling at
 09:52:13.481. This supersedes the unresolved player-height finding above for the
 tested standing case only.
+
+### Inventory request ownership regression (2026-09-23)
+
+Normal build `97800a2` was installed with matching source/destination DLL SHA-256:
+`88A2CD77F06139E768FA96C51BD06B6E3037BC7FF12CE7D3F377FBA99640A609`.
+In the local creative test world with Deesse UI, R sorted the existing main
+inventory. The log records 27 slots, 13 occupied kinds and one locked slot,
+followed by 11 acknowledged operations completed at 10:06:24.482. The visible
+hotbar and locked helmet stayed in place.
+
+A stack of 64 sticks was manually split into two stacks of 32, with the second
+placed in an empty main-inventory slot. R consolidated them back to 64 and
+cleared that second slot. The log records a separate one-operation sort
+acknowledged at 10:06:55.788. This exercises acquiring and releasing the new
+response ownership token across multiple operations and across separate jobs.
+
+Minecraft exited normally, its window disappeared, and the log reached Lamium
+disabling at 10:07:26.872. The updated startup message directs users to Lamium
+Settings / Features / Hotkeys. No feature settings were changed during this
+check. The installed DLL includes the light-digit batching change, but its
+rendering/performance was not rechecked in this session.
+
+This is local inventory regression evidence, not validation of multiplayer
+rejection/delay, concurrent feature execution, or Hand Restock. Restock's native
+connection is still pending.

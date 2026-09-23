@@ -49,8 +49,10 @@ Reading, ending capture and releasing an operation require its token; stale
 cancellation cannot erase a newer operation. Sort uses this interface and
 releases its token after acknowledgement or cancellation. Restock must use the
 same interface when connected. Tests cover contention, stale cancellation,
-unrelated responses and shutdown/restart; the changed Sort integration still
-requires a fresh runtime regression check.
+unrelated responses and shutdown/restart. A local creative-world regression
+check completed 11 acknowledged sorting operations, followed by a separate
+one-operation stack consolidation. Multiplayer contention, rejection and
+timeouts remain unverified; see [VALIDATION.md](VALIDATION.md).
 
 Cancel on settings/input capture, focus loss, death, world/dimension/player
 change, selection change or inventory mismatch. A rejected, untracked or timed
