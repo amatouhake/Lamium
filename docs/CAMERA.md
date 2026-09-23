@@ -16,6 +16,16 @@ The adapter still needs to anchor the activation eye, own/suppress local
 movement, share the detached angular session, and validate render/culling
 coordinates and all lifecycle exits.
 
+`camera::consumeMovement` is the native extraction boundary prepared for that
+adapter. After vanilla HID extraction it consumes `RawMoveInputComponent`'s
+horizontal axes and momentary jump/sneak/ascend/descend flags, then clears only
+the extracted movement axes/flags. It does not alter the stored physical input
+or look/selection flags. It is not called by a runtime hook yet. Axis signs,
+keyboard/controller behavior, subsequent movement consumers, and resumption of
+held physical keys must be verified before enabling the adapter. Culling/world
+overlays use a separate render camera origin; translating only the view matrix
+is not sufficient evidence of a correct position override.
+
 `DetachedLookState` now provides the game-independent angular session: begin from
 a fresh orientation, ignore repeated activation, accumulate degree deltas with
 bounded pitch and wrapped yaw, and discard the pose on cancellation or invalid
