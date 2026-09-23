@@ -1535,3 +1535,15 @@ known-empty destination and records its boolean return. This is a targeted
 controller-operation experiment, not a proven fix. It builds successfully;
 native validation is pending. The previous implementation did not log the
 swap return, so its precise rejection reason remains unknown.
+
+### HUD count transfer returns false (2026-09-23)
+
+Installed the `df664b3` code build with matching DLL SHA-256
+`C611E2A56D803E75C7C2DDC71D7BF45871A67A84AB3F1C96BC29C3D0CAD86FF9`.
+The local survival egg test reached observed-use-count=0 and plan-ready at
+11:40:52.469. The count-transfer call then logged replenishment-submitted=0
+and capture-end-batch count=0/active=false. The selected slot remained empty.
+Thus changing swap to count transfer did not establish a working HUD transfer
+path. Investigate controller permissions/context and simulation mapping before
+further transfer attempts; repeated waits or method substitutions are not a
+supported fix. This feature remains experimental and must not block other waves.
