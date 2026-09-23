@@ -339,6 +339,14 @@ same approach, or when a needed game function cannot be found in the SDK.
 Use trace options (`xmake f --camera_trace=y`) for evidence, never in a build
 handed over as final.
 
+Stage 3 status 2026-09-24: the post-setup view override failed twice in game
+(924dd12 view only; 8c81b36 view plus render eye and dependencies). Trace
+proves the transform is applied with growing displacement, yet no visible
+motion; terrain vanishes and the player model glitches instead. Both sessions
+were third person (orbit). Next guesses before retrying: check first person
+(separates the third-person boom path), or drive the ECS camera (boom/offset
+components) instead of the render view.
+
 ### L-20 Shape name text input adds stray characters
 Native text entry for shape names inserts extra characters.
 
