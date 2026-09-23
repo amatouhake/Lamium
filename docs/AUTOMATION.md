@@ -8,7 +8,9 @@ runtime check; broader compatibility is still unverified. Periodic Attack and Us
 now have an initial native adapter with unbound session toggles in Features and
 Hotkeys. Periodic Attack has passed a basic local empty-hand check, including
 toggle-off, settings cancellation, and a manual click disarming the action.
-Periodic Use and the broader interaction matrix remain unverified.
+Periodic Use has passed a local egg-consumption check, toggle-off, manual-click
+disarming, and cancellation on opening Settings. The broader interaction matrix
+remains unverified.
 
 Initial local-world check on 2026-09-23: the settings editor accepted a custom
 binding and the action logged activation, but the third-person player did not
@@ -132,8 +134,34 @@ confirmed the following in the same environment:
 - After closing Settings and explicitly reactivating attack, four traced down
   edges were separated by 615, 602, and 600 ms. Toggling off removes the status.
 
-Periodic Use, the visibility switch in-game, alternate UI scales/locales, and
-overlap with other configurable HUD positions still need runtime coverage.
+The visibility switch in-game, alternate UI scales/locales, and overlap with
+other configurable HUD positions still need runtime coverage.
+
+### Periodic Use local check
+
+The same `99e1641` DLL and environment were used for a subsequent local survival
+check on 2026-09-23:
+
+- The in-game editor accepted a custom Periodic Use binding, with its independent
+  interval left at 0.5 seconds.
+- Activating with 14 eggs in the selected hotbar slot displayed the active status
+  line and reduced the count to 13, then emptied the slot while no manual use
+  input was supplied. Projectile flight was not separately captured.
+- The first four traced down edges were separated by 516, 503, and 500 ms;
+  corresponding releases followed about 16–17 ms later. Toggling off recorded
+  33 matched presses/releases and removed the status line. Periodic input
+  continued after the slot became empty until explicitly stopped.
+- On a subsequent empty-hand activation, a manual right click removed the
+  status. The next toggle logged a new activation, confirming that the manual
+  click had disarmed the intent.
+- Opening Settings during that activation stopped it after 23 matched
+  presses/releases. The diagnostic reported matching client/owner identity
+  with gameplay eligibility false. Closing Settings and checking non-resumption
+  for Periodic Use remains outstanding; the equivalent attack check is above.
+
+This establishes repeated instant-use consumption in one local world. It does
+not establish food consumption, bow charging, other continuous-use items,
+placement, physical-button overlap, world transitions, or multiplayer behavior.
 
 ## Integration still required
 
