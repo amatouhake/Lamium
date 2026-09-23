@@ -140,8 +140,10 @@ void restoreCameras(LocalPlayer* player) {
 struct SavedCameraOffset {
     bool active = false;
     bool added = false;
+    bool orbit = false; // Third-person rigs pivot instead of offsetting.
     EntityId entity;
     float x = 0, y = 0, z = 0;
+    float px = 0, py = 0, pz = 0;
 };
 SavedCameraOffset savedOffset; // Mirrors the detachedCameras lifetime rules.
 void takeFreeCameraOffset(LocalPlayer& player) {
@@ -150,14 +152,24 @@ void takeFreeCameraOffset(LocalPlayer& player) {
     auto entity = detachedCameras.back().entity;
     if (!registry.valid(entity)) throw std::runtime_error("FreeCamera camera entity is gone");
     savedOffset = {};
-    if (auto* existing = registry.try_get<MinecraftCamera::CameraOffsetComponent>(entity)) {
-        savedOffset = {true, false, entity,
-            (*existing->mEntityOffset).x, (*existing->mEntityOffset).y, (*existing->mEntityOffset).z};
-    } else {
+    auto* offset = registry.try_get<MinecraftCamera::CameraOffsetComponent>(entity);
+    if (!offset) {
         registry.emplace<MinecraftCamera::CameraOffsetComponent>(entity);
-        savedOffset.active = true;
+        offset = registry.try_get<MinecraftCamera::CameraOffsetComponent>(entity);
+        if (!offset) throw std::runtime_error("FreeCamera cannot attach a camera offset");
         savedOffset.added = true;
-        savedOffset.entity = entity;
+    }
+    savedOffset.active = true;
+    savedOffset.entity = entity;
+    savedOffset.x = (*offset->mEntityOffset).x;
+    savedOffset.y = (*offset->mEntityOffset).y;
+    savedOffset.z = (*offset->mEntityOffset).z;
+    // Orbit cameras ignore the entity offset; their rig pivots instead.
+    if (registry.try_get<MinecraftCamera::CameraOrbitComponent>(entity)) {
+        savedOffset.orbit = true;
+        savedOffset.px = (*offset->mPivot).x;
+        savedOffset.py = (*offset->mPivot).y;
+        savedOffset.pz = (*offset->mPivot).z;
     }
 }
 void restoreFreeCameraOffset(LocalPlayer* player) {
@@ -174,6 +186,11 @@ void restoreFreeCameraOffset(LocalPlayer* player) {
             (*offset->mEntityOffset).x = savedOffset.x;
             (*offset->mEntityOffset).y = savedOffset.y;
             (*offset->mEntityOffset).z = savedOffset.z;
+            if (savedOffset.orbit) {
+                (*offset->mPivot).x = savedOffset.px;
+                (*offset->mPivot).y = savedOffset.py;
+                (*offset->mPivot).z = savedOffset.pz;
+            }
         }
     } catch (...) {
         Runtime::instance().self().getLogger().error("FreeCamera could not restore the camera offset");
@@ -563,9 +580,16 @@ void Zoom::writeFreeCameraOffset() {
         if (!registry.valid(entity)) return;
         auto* offset = registry.try_get<MinecraftCamera::CameraOffsetComponent>(entity);
         if (!offset) return;
-        (*offset->mEntityOffset).x = static_cast<float>(displacement[0]);
-        (*offset->mEntityOffset).y = static_cast<float>(displacement[1]);
-        (*offset->mEntityOffset).z = static_cast<float>(displacement[2]);
+        if (savedOffset.active && savedOffset.orbit && savedOffset.entity == entity) {
+            // Third person: swing the pivot, keep the vanilla entity offset.
+            (*offset->mPivot).x = savedOffset.px + static_cast<float>(displacement[0]);
+            (*offset->mPivot).y = savedOffset.py + static_cast<float>(displacement[1]);
+            (*offset->mPivot).z = savedOffset.pz + static_cast<float>(displacement[2]);
+        } else {
+            (*offset->mEntityOffset).x = static_cast<float>(displacement[0]);
+            (*offset->mEntityOffset).y = static_cast<float>(displacement[1]);
+            (*offset->mEntityOffset).z = static_cast<float>(displacement[2]);
+        }
     } catch (...) {}
 }
 void Zoom::releaseLook() {
@@ -624,8 +648,8 @@ bool Zoom::freeCameraView(IClientInstance const& renderedClient, mce::Camera& ca
     auto right = horizontal(view[0][0], view[2][0]);
     auto forward = horizontal(-view[0][2], -view[2][2]);
     constexpr DetachedCameraMotion::Vector up{0, 1, 0};
-    // Internal experiment speed, not a user setting.
-    constexpr double speed = 10.0;
+    // Interim speed until L-26 makes it a setting; roughly creative flight.
+    constexpr double speed = 20.0;
     auto owner = freeMotionOwner.load();
     if (!owner || !motion.advance(owner, input, right, up, forward, speed, seconds)) {
 #ifdef LAMIUM_CAMERA_TRACE
