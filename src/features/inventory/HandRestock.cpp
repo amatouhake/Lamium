@@ -24,6 +24,11 @@
 #include "mc/world/item/HandSlot.h"
 #include "mc/legacy/ActorRuntimeID.h"
 #include <atomic>
+#ifdef LAMIUM_RESTOCK_TRACE
+#include "mc/client/network/LegacyClientNetworkHandler.h"
+#include "mc/network/packet/InventorySlotPacket.h"
+#include "mc/network/packet/InventoryContentPacket.h"
+#endif
 
 namespace lamium::inventory::restock {
 namespace {
@@ -224,9 +229,37 @@ LL_TYPE_INSTANCE_HOOK(CompleteUse, ll::memory::HookPriority::Normal, Player,
 }
 LL_TYPE_INSTANCE_HOOK(FocusLost, ll::memory::HookPriority::Normal, MinecraftGame,
     &MinecraftGame::$onAppFocusLost, void) { cancel(); origin(); }
+#ifdef LAMIUM_RESTOCK_TRACE
+// Observe the legacy inventory path without treating an arbitrary server update
+// as acknowledgement of a use. Do not retain packet data or alter pending work.
+void traceInventoryUpdate(char const* stage) noexcept {
+    try {
+        auto* player = eligible();
+        if (!player) return;
+        auto const& held = player->getInventory().getItem(player->mInventory->mSelected);
+        trace(stage,held.isNull() ? 0 : static_cast<int>(held.mCount));
+    } catch (...) {}
+}
+LL_TYPE_INSTANCE_HOOK(SlotUpdateTrace, ll::memory::HookPriority::Normal, LegacyClientNetworkHandler,
+    &LegacyClientNetworkHandler::$handle, void,
+    NetworkIdentifier const& source, InventorySlotPacket const& packet) {
+    origin(source,packet);
+    traceInventoryUpdate("legacy-slot-applied-held-count");
+}
+LL_TYPE_INSTANCE_HOOK(ContentUpdateTrace, ll::memory::HookPriority::Normal, LegacyClientNetworkHandler,
+    &LegacyClientNetworkHandler::$handle, void,
+    NetworkIdentifier const& source, InventoryContentPacket const& packet) {
+    origin(source,packet);
+    traceInventoryUpdate("legacy-content-applied-held-count");
+}
+#endif
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[] = {{CaptureHud::hook,CaptureHud::unhook},{Use::hook,Use::unhook},
-    {UseOn::hook,UseOn::unhook},{CompleteUse::hook,CompleteUse::unhook},{FocusLost::hook,FocusLost::unhook}};
+    {UseOn::hook,UseOn::unhook},{CompleteUse::hook,CompleteUse::unhook},{FocusLost::hook,FocusLost::unhook},
+#ifdef LAMIUM_RESTOCK_TRACE
+    {SlotUpdateTrace::hook,SlotUpdateTrace::unhook},{ContentUpdateTrace::hook,ContentUpdateTrace::unhook},
+#endif
+};
 }
 void start() {
     try {

@@ -69,6 +69,16 @@ Planning now occurs after tracked acceptance rather than at callback return.
 Whether egg use produces a trackable request still requires native validation;
 an Untracked result remains a cancellation, never permission to transfer.
 
+The SDK routes `InventorySlotPacket` and `InventoryContentPacket` through
+`LegacyClientNetworkHandler`, separately from the item-stack response hook.
+The trace build observes these handlers after vanilla returns and logs only a
+fixed stage label and the current selected-stack count (within the existing
+128-sample budget and only for eligible local gameplay). Normal builds contain
+neither hook. These observations can identify a delayed update path, but are
+not correlated acknowledgements: a packet may update another slot or reflect
+a correction unrelated to use. They never advance or initiate replenishment.
+Runtime confirmation of this path is pending.
+
 The installed SDK exposes `HudScreenController::mHudScreenManagerController`
 and the controller's vanilla `handleSwap` operation. Existing Sort uses
 `ContainerManagerController` plus request-ID observation and authoritative
