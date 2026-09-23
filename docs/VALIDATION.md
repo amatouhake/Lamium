@@ -1261,3 +1261,33 @@ diagnostic-install state in the preceding historical entry.
 This is display/settings smoke evidence, not independent verification of native
 light values or all eligible surfaces. Light-source changes, dimension changes,
 depth/readability across perspectives, and frame cost remain unverified.
+
+### Target-coordinate and Debug View smoke (2026-09-23)
+
+Normal build `037d7ea` was installed with matching source/destination DLL SHA-256:
+`329ABFF1A80BEFC64B6EAA0A9A27360472F306AFB0C61CD65308225D0AF4A01E`.
+In a local creative world with Deesse UI, Target Info and its new block-coordinate
+option were enabled through F8 search. A local relative teleport command changed
+the view to look straight down without requesting a position change. After
+switching perspective, Target Info displayed Sulfur, `minecraft:sulfur`, and
+integer block coordinates. The vanilla `testforblock` command succeeded for that
+displayed position and type. First-person rendering showed all three rows.
+
+Turning the coordinate option Off immediately removed only that line. Target
+Info was then restored to Off. Enabling Debug View displayed the same block
+coordinates in the right column despite the normal options being Off, alongside
+player information in the left column. Disabling Debug View removed both columns.
+No bindings were assigned. The original rear third-person perspective was
+restored; the view remains pointed downward. Minecraft closed normally; the log
+records Lamium enabled at 09:37:04.921 and disabling at 09:43:19.398.
+
+This verifies one positive-coordinate tile target and the settings/profile
+transitions, not negative-coordinate targeting, entity transitions, multiplayer,
+all GUI scales, or every information provider's accuracy.
+
+The smoke also exposed an existing player-position discrepancy: the HUD Y value
+was approximately 1.62 above the vanilla teleport result. PlayerInfo currently
+uses `getPosition()` for XYZ and the cell labeled "Light at feet". Its coordinate
+reference must be investigated and corrected or explicitly labeled before
+claiming feet-based sampling. This finding does not invalidate the independently
+checked target-block position, which comes from the tile hit.
