@@ -12,6 +12,9 @@
 #include "mc/deps/core/math/Color.h"
 #include "mc/deps/core/string/HashedString.h"
 #include "mc/deps/input/RectangleArea.h"
+#include "mc/locale/I18n.h"
+#include "mc/locale/Localization.h"
+#include "ui/Translations.h"
 #include <algorithm>
 
 namespace lamium::ui {
@@ -36,16 +39,47 @@ void frame(MinecraftUIRenderContext& context, float x, float y, float width, flo
     fill(context,x,y+1,1,height-2,value,opacity);
     fill(context,x+width-1,y+1,1,height-2,value,opacity);
 }
+namespace {
+// With a Japanese locale, Latin letters and digits are drawn from glyphs that sit
+// lower than kana and kanji on the same line. Raise those runs to share the line.
+float latinRaise() {
+    auto locale = getI18n().getCurrentLanguage();
+    return translations::japanese(*locale->mCode) ? 1.5f : 0.f;
+}
+void drawRun(MinecraftUIRenderContext& context, Font& font, float x, float y, float width, std::string text, Rgb value,
+             ::ui::TextAlignment align) {
+    TextMeasureData const measure{1.0f, 0.0f, true, false, false, align};
+    CaretMeasureData const caret{-1, false};
+    context.drawText(font, RectangleArea{x,x+width,y,y+14}, std::move(text), color(value), 1.0f, align, measure, caret);
+}
+}
 void label(MinecraftUIRenderContext& context, float x, float y, float width, std::string text, Rgb value, Align align) {
     auto& font = defaultFont(context);
-    text = fitLabel(text, width, [&](std::string_view part) { return font.getLineLength(part, 1.0f, false); });
+    auto measure = [&](std::string_view part) { return static_cast<float>(font.getLineLength(part, 1.0f, false)); };
+    text = fitLabel(text, width, measure);
     if (text.empty()) return;
-    auto native = align == Align::Right ? ::ui::TextAlignment::Right
-        : align == Align::Center ? ::ui::TextAlignment::Center : ::ui::TextAlignment::Left;
-    TextMeasureData const measure{1.0f, 0.0f, true, false, false, native};
-    CaretMeasureData const caret{-1, false};
-    context.drawText(font, RectangleArea{x,x+width,y,y+14}, std::move(text), color(value), 1.0f,
-        native, measure, caret);
+    float raise = latinRaise();
+    bool latin = std::any_of(text.begin(), text.end(), [](unsigned char ch) { return ch < 0x80 && ch != ' '; });
+    if (!raise || !latin) {
+        auto native = align == Align::Right ? ::ui::TextAlignment::Right
+            : align == Align::Center ? ::ui::TextAlignment::Center : ::ui::TextAlignment::Left;
+        drawRun(context, font, x, y, width, std::move(text), value, native);
+        return;
+    }
+    // Mixed or Latin-only text: position runs manually from the whole width.
+    float total = measure(text);
+    float cursor = align == Align::Right ? x + width - total : align == Align::Center ? x + (width - total) / 2 : x;
+    size_t start = 0;
+    while (start < text.size()) {
+        bool ascii = static_cast<unsigned char>(text[start]) < 0x80;
+        size_t end = start;
+        while (end < text.size() && (static_cast<unsigned char>(text[end]) < 0x80) == ascii) ++end;
+        auto run = text.substr(start, end - start);
+        float runWidth = measure(run);
+        drawRun(context, font, cursor, ascii ? y - raise : y, runWidth + 2, std::move(run), value, ::ui::TextAlignment::Left);
+        cursor += runWidth;
+        start = end;
+    }
 }
 void paragraph(MinecraftUIRenderContext& context, float x, float y, float width, std::string_view text, size_t maxLines,
                Rgb value) {

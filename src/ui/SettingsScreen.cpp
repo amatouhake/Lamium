@@ -107,6 +107,8 @@ void rebuild(bool keepSelection) {
     first = SettingsTable::clampFirst(first, static_cast<int>(rows.size()), displayed.visible);
 }
 void selectNav(int index) {
+    // Choosing a category ends a search, which otherwise spans every category.
+    query.clear();
     navIndex = std::clamp(index, 0, navCount - 1);
     first = 0;
     rebuild(false);
@@ -461,7 +463,9 @@ std::string optionValueText(settings::Option const& option, settings::OptionValu
     return {};
 }
 std::vector<std::string> bindingKeys(IClientInstance& current, input::Action action) {
-    auto const& binding = Runtime::instance().preferences().bindings[static_cast<size_t>(action)];
+    // preferences() returns a copy: keep it alive while its bindings are read.
+    auto const preferences = Runtime::instance().preferences();
+    auto const& binding = preferences.bindings[static_cast<size_t>(action)];
     std::vector<std::string> keys;
     if (binding) {
         for (auto token : *binding) keys.push_back(bindingChordName(current, input::Chord{token}));
@@ -472,7 +476,8 @@ std::vector<std::string> bindingKeys(IClientInstance& current, input::Action act
     return keys;
 }
 bool sharedBinding(input::Action action) {
-    auto const& bindings = Runtime::instance().preferences().bindings;
+    auto const preferences = Runtime::instance().preferences();
+    auto const& bindings = preferences.bindings;
     auto const& binding = bindings[static_cast<size_t>(action)];
     if (!binding || binding->empty()) return false;
     for (size_t other = 0; other < bindings.size(); ++other)
@@ -601,8 +606,6 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
 
     // Header: title, search field, Close.
     label(context,t.left+SettingsTable::pad,t.top+6,80,"Lamium");
-    label(context,t.left+SettingsTable::pad+textWidth(context,"Lamium")+5,t.top+6,t.searchX-t.left-60,
-        translated("settingsTitle"),palette::faint);
     fill(context,t.searchX,t.top+4,t.searchWidth,12,Rgb{0,0,0},.45f);
     frame(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused ? palette::accent : palette::keyEdge);
     if (searchFocused && query.selectedAll() && !query.value().empty())
@@ -618,11 +621,14 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     fill(context,t.left,t.top+SettingsTable::headerHeight-1,t.width,1,palette::white,.14f);
 
     // Categories: sidebar, or tabs when narrow.
+    // A query searches every category, so the navigation shows "All" meanwhile.
+    bool searching = query.value().find_first_not_of(' ') != std::string::npos;
+    int activeNav = searching && !hotkeysView() ? 0 : navIndex;
     if (t.compact) {
         displayedTabWidth = (t.width - 4) / navCount;
         for (int i = 0; i < navCount; ++i) {
             float x = t.left + 2 + i * displayedTabWidth;
-            bool active = i == navIndex, over = hover.zone == Zone::Nav && hover.index == i;
+            bool active = i == activeNav, over = hover.zone == Zone::Nav && hover.index == i;
             if (over && !active) fill(context,x,t.navTop,displayedTabWidth,SettingsTable::tabsHeight,palette::white,.07f);
             if (active) fill(context,x+2,t.navBottom-2,displayedTabWidth-4,2,palette::accent);
             label(context,x+1,t.navTop+3,displayedTabWidth-2,navLabel(i,true),active || over ? palette::text : palette::dim,Align::Center);
@@ -634,7 +640,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         for (int i = 0; i < navCount; ++i) {
             float y = i == hotkeysNav ? t.navBottom - 4 - SettingsTable::navItemHeight : t.navItemY(i);
             float x = t.left + 1, w = SettingsTable::sidebarWidth - 2;
-            bool active = i == navIndex, over = hover.zone == Zone::Nav && hover.index == i;
+            bool active = i == activeNav, over = hover.zone == Zone::Nav && hover.index == i;
             if (i == hotkeysNav) fill(context,x+6,y-4,w-12,1,palette::white,.14f);
             if (active) { fill(context,x,y,w,SettingsTable::navItemHeight,palette::accent,.16f); fill(context,x,y,2,SettingsTable::navItemHeight,palette::accent); }
             else if (over) fill(context,x,y,w,SettingsTable::navItemHeight,palette::white,.07f);
