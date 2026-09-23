@@ -120,9 +120,20 @@ Deesse UI 1.3.9:
 These observations supersede the earlier inconclusive attack smoke only.
 They do not establish entity damage, block breaking, Periodic Use, continuous-use
 items, world/dimension transitions, multiplayer, or hot re-enable support.
-The configurable-interval revision passes build and settings tests; its in-game
-editor and non-default cadence still need runtime validation. The active-state
-HUD also needs visual validation with simultaneous actions and cancellation.
+The configurable-interval and status HUD revisions pass build and settings
+tests. A local runtime check of `99e1641`, DLL SHA-256
+`B14199694DDE22CEC291E808BA3CA97F1AACD01F44EC0270F55BFBFED1034A07`,
+confirmed the following in the same environment:
+
+- Periodic Attack shows its active line; enabling Permanent Sneak adds a second
+  line. Both disappear when Settings opens, and neither returns on closing it.
+- The feature's Interval row displays 0.5 seconds and its 0.1–60 range. Right
+  arrow changes it to 0.6 seconds without a save button.
+- After closing Settings and explicitly reactivating attack, four traced down
+  edges were separated by 615, 602, and 600 ms. Toggling off removes the status.
+
+Periodic Use, the visibility switch in-game, alternate UI scales/locales, and
+overlap with other configurable HUD positions still need runtime coverage.
 
 ## Integration still required
 
