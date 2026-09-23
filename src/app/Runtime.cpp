@@ -1,4 +1,5 @@
 #include "app/Runtime.h"
+#include "features/interaction/PermanentSneak.h"
 #include "features/camera/Zoom.h"
 #include "features/lighting/NightVision.h"
 #include "features/inspection/Inspection.h"
@@ -85,12 +86,19 @@ bool Runtime::enable() {
         Zoom::instance().stop();
         return false;
     }
+    try { interaction::sneak::start(); }
+    catch (std::exception const& error) {
+        mod.getLogger().error("Sneak initialization failed: {}", error.what());
+        disable();
+        return false;
+    }
     running = true;
     mod.getLogger().info("Lamium enabled. Configure features and bindings in Lamium Settings (default: F8), using Features or Hotkeys.");
     return true;
 }
 bool Runtime::disable() {
     running = false;
+    interaction::sneak::stop();
     interaction::placementTrace::stop();
     interaction::breaking::stop();
     information::stopFrameTiming();

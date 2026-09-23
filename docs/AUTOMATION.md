@@ -1,9 +1,10 @@
 # Lightweight input automation
 
-Periodic Attack, Periodic Use, and Permanent Sneak are planned consumers of
-`interaction::AutomationInput`. This state machine is implemented and unit
-tested, but is **not connected to Minecraft input yet**. These features are
-not currently available in the settings UI.
+Periodic Attack, Periodic Use, and Permanent Sneak share the runtime intent
+contract in `interaction::AutomationInput`. Permanent Sneak now has an
+experimental native adapter and an unbound toggle action in Features/Hotkeys.
+Its game behavior is **not runtime validated yet**. Periodic Attack and Use
+are not yet connected or exposed in the UI.
 
 ## Runtime contract
 
@@ -21,6 +22,13 @@ not currently available in the settings UI.
   the settings layer before reaching this state machine.
 
 ## Integration still required
+
+The first Permanent Sneak adapter hooks `extractRawHIDInput`, verifies that the
+input belongs to the primary local client, and passes a transient copy with
+`SneakDown` set to vanilla. It never stores synthetic flags in the user's HID
+state. Common input invalidation cancels its session intent; dimension changes
+and runtime disable also cancel. Verify that vanilla consumes this copied bit
+as expected before considering the feature functional.
 
 Use the vanilla local input path rather than constructing attack/use packets
 or modifying authoritative actor state directly. The SDK exposes separate

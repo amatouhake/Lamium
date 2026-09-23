@@ -10,7 +10,7 @@ struct FeatureInfo { std::string_view id, name, description, toggle; };
 inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "zoom" || id == "freelook" || id == "nightVision" || id == "hideOffhand") return "section.camera";
     if (id == "previews" || id == "durability" || id == "sorting" || id == "toolSwitch" || id == "handRestock") return "section.inventory";
-    if (id == "restrictions") return "section.interaction";
+    if (id == "restrictions" || id == "permanentSneak") return "section.interaction";
     if (id == "settings" || id == "gameplayHints") return "section.interface";
     return "section.information";
 }
@@ -25,6 +25,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"toolSwitch", "feature.toolSwitch", "help.toolSwitch", "inventory.toolSwitch"},
     {"handRestock", "feature.handRestock", "help.handRestock", "inventory.handRestock"},
     {"restrictions", "feature.restrictions", "help.restrictions", ""},
+    {"permanentSneak", "feature.permanentSneak", "help.permanentSneak", ""},
     {"infoHud", "feature.infoHud", "help.infoHud", "information.hud"},
     {"targetInfo", "feature.targetInfo", "help.targetInfo", "information.target"},
     {"debugView", "feature.debugView", "help.debugView", "information.debug"},

@@ -5,6 +5,9 @@
 namespace lamium::ui::translations {
 struct Entry { std::string_view key, english, japanese; };
 inline constexpr auto entries = std::to_array<Entry>({
+    {"feature.permanentSneak", "Permanent Sneak (experimental)", "常時スニーク（試験的）"},
+    {"help.permanentSneak", "Toggle sneak with a hotkey. Menus, focus loss and world changes stop it. Runtime validation pending.", "キーでスニークを切り替えます。メニュー・フォーカス喪失・ワールド変更で解除。実機検証待ち。"},
+    {"key.Lamium.permanentsneak", "Toggle Permanent Sneak", "常時スニークを切り替え"},
     {"title", "Lamium / Settings", "Lamium / 設定"},
     {"shape.manager", "Shape Manager", "形状の管理"},
     {"shape.editor", "Shape Editor", "形状の編集"},

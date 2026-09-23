@@ -1,0 +1,77 @@
+#include "features/interaction/PermanentSneak.h"
+#include "features/interaction/AutomationInput.h"
+#include "features/camera/Zoom.h"
+#include "app/Runtime.h"
+#include "input/Actions.h"
+#include "ui/SettingsScreen.h"
+#include "ll/api/memory/Hook.h"
+#include "ll/api/service/TargetedBedrock.h"
+#include "mc/client/entity/systems/ClientInputUpdateSystem.h"
+#include "mc/client/input/ClientMoveInputHandler.h"
+#include "mc/client/game/IClientInstance.h"
+#include "mc/client/game/ClientInstance.h"
+#include "mc/client/player/LocalPlayer.h"
+#include "mc/client/renderer/game/LevelRendererPlayer.h"
+#include "mc/entity/components/MoveInputComponent.h"
+#include <stdexcept>
+
+namespace lamium::interaction::sneak {
+namespace {
+AutomationInput intent;
+bool installed = false;
+bool dimensionInstalled = false;
+bool eligible(IClientInstance& client) {
+    auto* player = client.getLocalPlayer();
+    return Runtime::instance().enabled() && !ui::ownsInput()
+        && gameplayScreen(client.getScreenName()) && player && player->isAlive()
+        && !player->isSleeping() && !player->getVehicle()
+        && !Zoom::instance().blocksLookInteraction(*player);
+}
+LL_STATIC_HOOK(ExtractSneakInput, ll::memory::HookPriority::Normal,
+    &ClientInputUpdateSystem::extractRawHIDInput, void,
+    MovementAbilitiesComponent const& abilities, MoveInputComponent const& input,
+    ActorDataFlagComponent const& flags, RawMoveInputComponent& raw,
+    Optional<SneakingComponent const> sneaking, Optional<WasInWaterFlagComponent const> water) {
+    auto client = ll::service::getClientInstance();
+    if (!client || !eligible(*client)) intent.cancel();
+    if (!intent.active() || !client || ClientMoveInputHandler::getMoveInput(*client) != &input) {
+        origin(abilities, input, flags, raw, sneaking, water);
+        return;
+    }
+    // Feed vanilla a transient copy. Never leave synthetic bits in the user's
+    // stored HID state, so cancelling cannot clear a physically held key.
+    auto augmented = input;
+    augmented.mInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown));
+    origin(abilities, augmented, flags, raw, sneaking, water);
+}
+LL_TYPE_INSTANCE_HOOK(SneakDimensionChange, ll::memory::HookPriority::Normal, LevelRendererPlayer,
+    &LevelRendererPlayer::$onWillChangeDimension, void, Player& player) {
+    intent.cancel();
+    origin(player);
+}
+}
+void cancel() { intent.cancel(); }
+void toggle(IClientInstance& client) {
+    if (!eligible(client)) { cancel(); return; }
+    if (intent.active()) cancel();
+    else intent.arm();
+    Runtime::instance().self().getLogger().info("Permanent Sneak: {}", intent.active() ? "on" : "off");
+}
+void start() {
+    try {
+        if (!installed) {
+            if (ExtractSneakInput::hook(true) != 0) throw std::runtime_error("Could not install sneak input hook");
+            installed = true;
+        }
+        if (!dimensionInstalled) {
+            if (SneakDimensionChange::hook(true) != 0) throw std::runtime_error("Could not install sneak dimension hook");
+            dimensionInstalled = true;
+        }
+    } catch (...) { stop(); throw; }
+}
+void stop() {
+    cancel();
+    if (dimensionInstalled && SneakDimensionChange::unhook(true)) dimensionInstalled = false;
+    if (installed && ExtractSneakInput::unhook(true)) installed = false;
+}
+}

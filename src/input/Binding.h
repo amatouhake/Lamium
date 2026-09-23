@@ -14,7 +14,7 @@ struct Token {
     int code;
     auto operator<=>(Token const&) const = default;
 };
-enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, Count };
+enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, PermanentSneak, Count };
 enum class Behavior { Press, Hold, Toggle };
 struct ActionInfo { std::string_view id, feature; Behavior behavior; int defaultKey = 0; };
 inline constexpr auto actions = std::to_array<ActionInfo>({
@@ -37,6 +37,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"freelook", "freelook", Behavior::Hold},
     {"lightoverlay", "lightOverlay", Behavior::Toggle},
     {"handrestock", "handRestock", Behavior::Toggle},
+    {"permanentsneak", "permanentSneak", Behavior::Toggle},
 });
 static_assert(actions.size() == static_cast<size_t>(Action::Count));
 using Chord = std::vector<Token>;

@@ -9,7 +9,9 @@ void bindingTests() {
         lamium::Settings value;
         auto action = static_cast<Action>(i);
         bool changed = toggleAction(value,action);
-        check(changed == (actions[i].behavior == Behavior::Toggle), "every toggle action has one shared implementation");
+        // Permanent Sneak toggles runtime intent, not a saved preference.
+        bool persistentToggle = actions[i].behavior == Behavior::Toggle && action != Action::PermanentSneak;
+        check(changed == persistentToggle, "every persistent toggle action has one shared implementation");
         size_t count = 0;
         for (auto const& option : lamium::settings::options) {
             if (option.read(value) == option.read(lamium::Settings{})) continue;

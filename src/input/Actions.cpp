@@ -1,4 +1,5 @@
 #include "input/Actions.h"
+#include "features/interaction/PermanentSneak.h"
 #include "input/ToggleAction.h"
 #include "settings/Options.h"
 #include "features/interaction/BreakingRestriction.h"
@@ -52,6 +53,7 @@ void executeAction(IClientInstance& client, input::Action action) {
     // Sorting validates its container/text-input context in requestSort.
     if (action == input::Action::Sort) { inventory::requestSort(client); return; }
     if (!gameplayScreen(client.getScreenName())) return;
+    if (action == input::Action::PermanentSneak) { interaction::sneak::toggle(client); return; }
     if (action == input::Action::CaptureBreaking) { interaction::breaking::capture(client); return; }
     if (action == input::Action::ResetBreaking) { interaction::breaking::reset(); return; }
     if (action == input::Action::Settings) { ui::open(client); return; }
