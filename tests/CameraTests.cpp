@@ -53,10 +53,10 @@ int main() try {
     translationTests();
     extern void lightOverlayTests();
     lightOverlayTests();
+    extern void shapeEditorTests();
+    shapeEditorTests();
     extern void settingsTableTests();
     settingsTableTests();
-    extern void settingsLayoutTests();
-    settingsLayoutTests();
     extern void responseBarrierTests();
     responseBarrierTests();
     extern int runSortPlannerTests();

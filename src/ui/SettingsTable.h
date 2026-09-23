@@ -78,6 +78,8 @@ struct SettingsTable {
     float controlX() const { return stateX; }
     float controlWidth() const { return keyX + keyWidth - stateX; }
     float navItemY(int index) const { return navTop + 4 + index * navItemHeight; }
+    static constexpr int pinnedItems = 2;
+    float pinnedItemY(int k) const { return navBottom - 4 - (pinnedItems - k) * navItemHeight; }
     // Binding-editor buttons (Clear / Reset / Cancel) on the footer's first line.
     static constexpr float footerButtonWidth = 50, footerButtonHeight = 11;
     float footerButtonX(int index) const { return left + pad + index * (footerButtonWidth + 4); }
@@ -122,10 +124,14 @@ struct SettingsTable {
                 return index >= 0 && index < navItems ? Hit{Zone::Nav, index} : Hit{};
             }
         } else if (x < tableLeft) {
-            // The last item is pinned to the sidebar bottom (Hotkeys).
-            if (navItems > 0 && y >= navBottom - 4 - navItemHeight && y < navBottom - 4) return {Zone::Nav, navItems - 1};
+            // The last items are tools pinned to the sidebar bottom (Hotkeys, Shapes).
+            for (int k = 0; k < pinnedItems && k < navItems; ++k) {
+                int index = navItems - pinnedItems + k;
+                float itemTop = pinnedItemY(k);
+                if (y >= itemTop && y < itemTop + navItemHeight) return {Zone::Nav, index};
+            }
             int index = static_cast<int>(std::floor((y - navTop - 4) / navItemHeight));
-            return index >= 0 && index < navItems - 1 ? Hit{Zone::Nav, index} : Hit{};
+            return index >= 0 && index < navItems - pinnedItems ? Hit{Zone::Nav, index} : Hit{};
         }
         if (y < rowsTop) return {};
         int offset = static_cast<int>((y - rowsTop) / rowHeight);

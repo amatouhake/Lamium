@@ -9,6 +9,8 @@ void shapeDocumentTests() {
             definitions.push_back({"日本語の形状",1,false,ShapeSpec{type,{16777217.5,-3.25,7},snap,1,3}});
     for (auto plane : {Plane::XZ,Plane::XY,Plane::YZ})
         definitions.push_back({"Grid",0,true,PlaneSpec{{-10,20,30},3,4,2,plane}});
+    definitions.front().style = ShapeStyle::Line;
+    definitions.front().color = ShapeColor::Pink;
     auto encoded = encodeShapes(definitions);
     auto decoded = decodeShapes(encoded);
     check(decoded.size() == definitions.size() && encodeShapes(decoded) == encoded,
@@ -17,10 +19,20 @@ void shapeDocumentTests() {
         "shape documents preserve double coordinate precision");
     check(decoded.front().name == "日本語の形状" && !decoded.front().visible && decoded.front().dimension == 1,
         "shape metadata round trips with UTF-8 names");
+    check(decoded.front().style == ShapeStyle::Line && decoded.front().color == ShapeColor::Pink
+        && decoded.back().style == ShapeStyle::Face && decoded.back().color == ShapeColor::Cyan,
+        "shape appearance round trips");
     auto root = nlohmann::json::parse(encoded);
+    {
+        auto legacy = root;
+        for (auto& entry : legacy["shapes"]) { entry.erase("style"); entry.erase("color"); }
+        auto upgraded = decodeShapes(legacy.dump());
+        check(upgraded.front().style == ShapeStyle::Face && upgraded.front().color == ShapeColor::Cyan,
+            "files without appearance fields load with face style and default color");
+    }
     check(!root["shapes"][0].contains("id") && !root["shapes"][0].contains("lines"),
         "runtime identity and derived geometry are not serialized");
-    for (int scenario=0;scenario<8;++scenario) {
+    for (int scenario=0;scenario<10;++scenario) {
         auto bad = root;
         switch (scenario) {
         case 0: bad["version"]=2; break;
@@ -31,6 +43,8 @@ void shapeDocumentTests() {
         case 5: bad["shapes"][0]["geometry"]["center"]={1,2}; break;
         case 6: bad["shapes"][9]["geometry"]["origin"][0]=2147483648ull; break;
         case 7: bad["shapes"][9]["geometry"]["spacing"]=0; break;
+        case 8: bad["shapes"][0]["style"]="blocks"; break;
+        case 9: bad["shapes"][0]["color"]=3; break;
         }
         bool rejected=false;
         try { (void)decodeShapes(bad.dump()); } catch (std::exception const&) { rejected=true; }

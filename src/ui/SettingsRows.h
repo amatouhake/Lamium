@@ -36,13 +36,11 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"chunkBorders", "feature.chunkBorders", "help.chunkBorders", "overlays.chunkBorders"},
     {"hitboxes", "feature.hitboxes", "help.hitboxes", "overlays.hitboxes"},
     {"lightOverlay", "feature.lightOverlay", "help.lightOverlay", "overlays.light", true},
-    {"shapes", "shape.manager", "shape.description", ""},
+    {"shapes", "feature.shapes", "help.shapes", "overlays.shapes"},
     {"gameplayHints", "feature.gameplayHints", "help.gameplayHints", "interface.gameplayHints"},
     {"automationStatus", "feature.automationStatus", "help.automationStatus", "interface.automationStatus"},
     {"settings", "feature.settings", "help.settings", ""},
 });
-// The Shape Manager is a dedicated screen opened from its feature row.
-inline constexpr bool isTool(FeatureInfo const& feature) { return feature.id == "shapes"; }
 // The first action of a feature is its main binding, shown on the feature row.
 inline std::optional<input::Action> primaryAction(FeatureInfo const& feature) {
     for (size_t i = 0; i < input::actions.size(); ++i)

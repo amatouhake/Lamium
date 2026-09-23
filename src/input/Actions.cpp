@@ -60,6 +60,7 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::CaptureBreaking) { interaction::breaking::capture(client); return; }
     if (action == input::Action::ResetBreaking) { interaction::breaking::reset(); return; }
     if (action == input::Action::Settings) { ui::open(client); return; }
+    if (action == input::Action::OpenShapes) { ui::openShapes(client); return; }
     if (action == input::Action::Zoom) { Zoom::instance().press(client); return; }
     if (action == input::Action::Freelook) { Zoom::instance().pressLook(client); return; }
     auto value = runtime.preferences();

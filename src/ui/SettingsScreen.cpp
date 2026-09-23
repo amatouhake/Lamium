@@ -1,12 +1,13 @@
 #include "ui/SettingsScreen.h"
 #include "settings/Options.h"
-#include "ui/SettingsLayout.h"
 #include "ui/SettingsRows.h"
 #include "ui/SettingsTable.h"
+#include "ui/ShapeEditor.h"
+#include "ui/ShapesLayout.h"
 #include "ui/SearchQuery.h"
 #include "ui/NumberInput.h"
 #include "ui/Widgets.h"
-#include "ui/ShapePanel.h"
+#include "overlay/ShapeSession.h"
 #include "ui/Localization.h"
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
@@ -28,6 +29,7 @@
 #include "mc/client/gui/screens/UIScene.h"
 #include "mc/client/gui/screens/interfaces/ISceneStack.h"
 #include "mc/deps/input/MouseAction.h"
+#include "mc/world/phys/HitResult.h"
 #include <array>
 #include <mutex>
 #include <stdexcept>
@@ -44,9 +46,11 @@ bool seen = false;
 bool closing = false;
 std::string error;
 
-// Settings table. Navigation items: All, each section, then Hotkeys.
-constexpr int navCount = static_cast<int>(sections.size()) + 2;
-constexpr int hotkeysNav = navCount - 1;
+// Settings table. Navigation items: All, each section, then the Hotkeys and
+// Shapes tools pinned to the sidebar bottom.
+constexpr int navCount = static_cast<int>(sections.size()) + 3;
+constexpr int hotkeysNav = navCount - 2;
+constexpr int shapesNav = navCount - 1;
 int navIndex = 0;
 std::set<std::string_view> expanded;
 std::vector<SettingsRow> rows;
@@ -55,7 +59,8 @@ int first = 0;
 SettingsTable displayed;
 float displayedInverseScale = 0;
 float displayedTabWidth = 0;
-struct Click { SettingsTable::Hit hit; bool right; };
+// GUI coordinates; resolved against the layout drawn in the next frame.
+struct Click { float x, y; bool right; };
 std::optional<Click> pendingClick;
 std::vector<int> pendingKeys;
 SearchQuery query;
@@ -64,20 +69,22 @@ settings::Option const* editingNumber = nullptr;
 NumberInput numberInput;
 bool numberDirty = false;
 
-// Shape Manager keeps the list presentation it was built with.
-bool shapeView = false;
-ShapePanel shapePanel;
-int shapeSelected = 0;
-int shapeFirst = 0;
-int shapeHovered = -1;
-SettingsLayout shapeLayout;
-int shapeCommand = 0;
-int shapeCommandRow = 0;
-int editingShapeRow = -1;
-int editingShapeName = -1;
+// Shapes view. The collection lives in the overlay session; this is only what
+// the editor shows: the selected shape or an unsaved draft, and scroll state.
+using ShapeZone = ShapesLayout::Zone;
+bool shapesDocked = false;
+std::optional<overlay::ShapeId> shapeSelected;
+std::optional<overlay::ShapeDefinition> shapeDraft;
+bool shapePicking = false, shapeDeleteArmed = false;
+int shapeListFirst = 0, shapeFieldFirst = 0, shapeFieldSelected = -1, shapeLayer = 0;
+shape::Reference shapeReference = shape::Reference::StandingBlock;
+std::vector<overlay::shapes::Summary> shapeList;
+ShapesLayout shapesDisplayed;
+int editingShapeField = -1;
+bool editingShapeName = false;
 SearchQuery shapeNameInput;
 bool shapeNameDirty = false;
-bool numericEditing() { return editingNumber || editingShapeRow >= 0; }
+bool numericEditing() { return editingNumber || editingShapeField >= 0; }
 
 bool textHook = false;
 bool textKeyboardOwned = false;
@@ -90,6 +97,7 @@ std::optional<BindingEdit> bindingEdit;
 
 std::string_view categoryKey() { return navIndex > 0 && navIndex < hotkeysNav ? sections[navIndex-1] : std::string_view{}; }
 bool hotkeysView() { return navIndex == hotkeysNav; }
+bool shapesView() { return navIndex == shapesNav; }
 bool valid(int row) { return row >= 0 && row < static_cast<int>(rows.size()); }
 int nextSelectable(int from, int step) {
     for (int row = from; valid(row); row += step) if (rows[row].selectable()) return row;
@@ -109,6 +117,7 @@ void rebuild(bool keepSelection) {
 void selectNav(int index) {
     // Choosing a category ends a search, which otherwise spans every category.
     query.clear();
+    if (navIndex == shapesNav && index != shapesNav) { shapeDraft.reset(); shapePicking = false; overlay::shapes::setDraft({}); }
     navIndex = std::clamp(index, 0, navCount - 1);
     first = 0;
     rebuild(false);
@@ -152,7 +161,7 @@ void releaseTextKeyboard() {
     }
 }
 void syncTextKeyboard(float x, float y) {
-    bool wanted = !closing && !capturing && (searchFocused || numericEditing() || editingShapeName >= 0);
+    bool wanted = !closing && !capturing && (searchFocused || numericEditing() || editingShapeName);
     bool number = numericEditing();
     if (textKeyboardOwned && (!wanted || number != textKeyboardNumber)) releaseTextKeyboard();
     if (!wanted || textKeyboardOwned || !client) return;
@@ -211,9 +220,33 @@ LL_TYPE_INSTANCE_HOOK(SettingsSceneEntrance, ll::memory::HookPriority::Normal, U
     }
     origin(revisiting, owned ? false : transitions);
 }
+// Applies an edited definition: a draft only updates its world preview; an
+// existing shape is saved through the session, reporting failures in the footer.
+void applyShape(overlay::ShapeDefinition definition) {
+    try {
+        if (shapeDraft) { overlay::shapes::setDraft(definition); shapeDraft = std::move(definition); }
+        else if (shapeSelected) overlay::shapes::edit(*shapeSelected, std::move(definition));
+        error.clear();
+    } catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
+    catch (std::exception const&) { error = translated("shape.editError"); }
+}
+std::optional<overlay::ShapeDefinition> currentShape() {
+    if (shapeDraft) return shapeDraft;
+    if (shapeSelected) return overlay::shapes::find(*shapeSelected);
+    return {};
+}
 void applyShapeName() {
-    if (editingShapeName < 0 || !std::exchange(shapeNameDirty, false)) return;
-    try { shapePanel.rename(shapeNameInput.value()); error.clear(); }
+    if (!editingShapeName || !std::exchange(shapeNameDirty, false)) return;
+    try {
+        if (shapeDraft) {
+            auto definition = *shapeDraft;
+            definition.name = shapeNameInput.value();
+            overlay::ShapeCollection{}.add(definition); // Validates the name only.
+            shapeDraft = std::move(definition);
+            overlay::shapes::setDraft(shapeDraft);
+        } else if (shapeSelected) overlay::shapes::rename(*shapeSelected, shapeNameInput.value());
+        error.clear();
+    }
     catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
     catch (std::exception const&) { error = translated("shape.nameError"); }
 }
@@ -224,28 +257,38 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
     if (scene.get() == this && ownsTop()) {
         // Coalesce native text events before persisting the whole workspace.
         // Never flush the world sidecar from inside a text callback.
-        if (editingShapeName >= 0) { if (shapeNameInput.append(text)) shapeNameDirty = true; return; }
+        if (editingShapeName) { if (shapeNameInput.append(text)) shapeNameDirty = true; return; }
         if (numericEditing()) { if (numberInput.append(text)) numberDirty = true; return; }
         if (!capturing && searchFocused && query.append(text)) queryChanged();
         return;
     }
     origin(text, impact);
 }
-void clear() { releaseTextKeyboard(); editingNumber = nullptr; editingShapeRow = -1; editingShapeName = -1; shapeNameDirty = false; numberDirty = false; uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr; scene.reset(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear(); shapeCommand = 0; shapeHovered = -1; }
+void clear() {
+    releaseTextKeyboard(); editingNumber = nullptr; editingShapeField = -1; editingShapeName = false; shapeNameDirty = false;
+    numberDirty = false; uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr;
+    scene.reset(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear();
+    // A draft is never kept once the screen is gone.
+    if (shapeDraft) { shapeDraft.reset(); overlay::shapes::setDraft({}); }
+    shapePicking = false; shapeDeleteArmed = false;
+}
 void applyNumber() {
     if (!numericEditing() || !numberDirty) return;
     numberDirty = false;
-    if (editingShapeRow >= 0) {
-        auto range = shapePanel.numeric(editingShapeRow);
-        if (!range) { editingShapeRow = -1; return; }
+    if (editingShapeField >= 0) {
+        auto definition = currentShape();
+        auto fields = definition ? shape::rows(*definition, shapeDraft.has_value()) : std::vector<shape::Row>{};
+        if (!definition || editingShapeField >= static_cast<int>(fields.size())) { editingShapeField = -1; return; }
+        auto field = fields[editingShapeField].field;
+        auto range = shape::numeric(*definition, field);
+        if (!range) { editingShapeField = -1; return; }
         auto parsed = numberInput.parsedPrecise(range->minimum,range->maximum,range->integer);
         if (!parsed) {
             error = translated(range->integer ? "integerRange" : "numberRange",range->minimum,range->maximum);
             return;
         }
-        try { shapePanel.setNumber(editingShapeRow,*parsed); error.clear(); }
-        catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
-        catch (std::exception const&) { error = translated("shape.editError"); }
+        if (*parsed == range->value) { error.clear(); return; }
+        applyShape(shape::setNumber(*definition, field, *parsed));
         return;
     }
     auto const& range = *editingNumber->numeric;
@@ -260,7 +303,7 @@ void finishNumber() {
     applyNumber();
     applyShapeName();
     releaseTextKeyboard();
-    editingNumber = nullptr; editingShapeRow = -1; editingShapeName = -1; numberDirty = false;
+    editingNumber = nullptr; editingShapeField = -1; editingShapeName = false; numberDirty = false;
 }
 void close() {
     releaseTextKeyboard();
@@ -297,10 +340,6 @@ void setExpanded(int row, bool open) {
     }
     first = SettingsTable::clampFirst(first, static_cast<int>(rows.size()), displayed.visible);
 }
-void openShapes() {
-    finishNumber();
-    shapePanel.open(); shapeView = true; shapeSelected = 0; shapeFirst = 0; shapeLayout = {};
-}
 void beginNumber(settings::Option const& option) {
     editingNumber = &option;
     numberInput.begin(std::get<float>(option.read(Runtime::instance().preferences())));
@@ -313,7 +352,6 @@ void activateRow(int row, bool space) {
     switch (entry.kind) {
     case RowKind::Section: return;
     case RowKind::Feature:
-        if (isTool(*entry.feature)) { openShapes(); return; }
         if (space && !entry.feature->toggle.empty()) { toggleFeature(*entry.feature); return; }
         if (entry.children) { setExpanded(row, !entry.expanded); return; }
         if (!entry.feature->toggle.empty()) { toggleFeature(*entry.feature); return; }
@@ -365,8 +403,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     case RowKind::Feature:
         if (hit.column == Column::State) toggleFeature(*entry.feature);
         else if (hit.column == Column::Key) {
-            if (isTool(*entry.feature)) openShapes();
-            else if (auto primary = primaryAction(*entry.feature)) startCapture(*primary);
+            if (auto primary = primaryAction(*entry.feature)) startCapture(*primary);
         } else if (entry.children) setExpanded(hit.index, !entry.expanded);
         return;
     case RowKind::Option: {
@@ -550,6 +587,7 @@ void drawGuide(MinecraftUIRenderContext& context, float y, bool last) {
 std::string navLabel(int index, bool compact) {
     if (index == 0) return translated("nav.all");
     if (index == hotkeysNav) return translated("nav.hotkeys");
+    if (index == shapesNav) return translated("nav.shapes");
     auto key = std::string(sections[index-1]);
     return translated(compact ? key + ".short" : key);
 }
@@ -589,6 +627,561 @@ std::string description() {
     default: return {};
     }
 }
+// ---- Shapes view ----
+// Reference point for new or moved shapes, and the reference actually used: a
+// missing target falls back to the standing block with a notice.
+std::optional<std::pair<overlay::Point, shape::Reference>> referencePoint() {
+    auto* player = client ? client->getLocalPlayer() : nullptr;
+    if (!player) return {};
+    if (shapeReference == shape::Reference::TargetBlock) {
+        auto const& hit = client->getLatestHitResult();
+        if (hit.mType == HitResultType::Tile)
+            return std::pair{overlay::Point{hit.mBlock.x + .5, hit.mBlock.y + .5, hit.mBlock.z + .5}, shapeReference};
+        error = translated("shape.targetMissing");
+        auto feet = player->getFeetPos();
+        return std::pair{overlay::Point{feet.x, feet.y, feet.z}, shape::Reference::StandingBlock};
+    }
+    auto feet = player->getFeetPos();
+    return std::pair{overlay::Point{feet.x, feet.y, feet.z}, shapeReference};
+}
+int playerDimension() {
+    auto* player = client ? client->getLocalPlayer() : nullptr;
+    return player ? static_cast<int>(player->getDimensionId()) : 0;
+}
+overlay::Point centerOf(overlay::ShapeDefinition const& definition) {
+    if (auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry)) return spec->center;
+    auto const& origin = std::get<overlay::PlaneSpec>(definition.geometry).origin;
+    return {double(origin.x), double(origin.y), double(origin.z)};
+}
+void resetShapeEditor() { shapeFieldFirst = 0; shapeFieldSelected = -1; shapeLayer = 0; shapeDeleteArmed = false; }
+void cancelDraft() {
+    if (shapeDraft) { shapeDraft.reset(); overlay::shapes::setDraft({}); }
+    shapePicking = false;
+}
+void beginDraft(int type) {
+    auto point = referencePoint();
+    if (!point) return;
+    overlay::ShapeDefinition definition;
+    definition.name = translated(shape::types[type].name);
+    definition.dimension = playerDimension();
+    shapeDraft = shape::withType(std::move(definition), type, point->first, point->second);
+    shapePicking = false;
+    shapeSelected.reset();
+    resetShapeEditor();
+    try { overlay::shapes::setDraft(shapeDraft); }
+    catch (std::exception const&) { error = translated("shape.editError"); }
+}
+void createDraft() {
+    if (!shapeDraft) return;
+    try {
+        auto id = overlay::shapes::add(*shapeDraft);
+        cancelDraft();
+        shapeSelected = id;
+        resetShapeEditor();
+        error.clear();
+    } catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
+    catch (std::exception const&) { error = translated("shape.editError"); }
+}
+void selectShape(std::optional<overlay::ShapeId> id) {
+    cancelDraft();
+    shapeSelected = id;
+    resetShapeEditor();
+}
+// Click or key activation of an editor row. part: -1/1 step, 0 value, 2 label.
+void activateShapeField(int index, int part) {
+    auto definition = currentShape();
+    if (!definition) return;
+    auto fields = shape::rows(*definition, shapeDraft.has_value());
+    if (index < 0 || index >= static_cast<int>(fields.size()) || fields[index].kind == shape::Row::Kind::Group) return;
+    shapeFieldSelected = index;
+    if (part == 2) return;
+    int direction = part == -1 ? -1 : 1;
+    auto const& row = fields[index];
+    switch (row.field) {
+    case shape::Field::Type: {
+        if (!shapeDraft) return;
+        int count = static_cast<int>(shape::types.size());
+        int old = shape::typeIndex(*shapeDraft), type = (old + direction + count) % count;
+        auto next = shape::withType(*shapeDraft, type, centerOf(*shapeDraft), shapeReference);
+        if (next.name == translated(shape::types[old].name)) next.name = translated(shape::types[type].name);
+        applyShape(std::move(next));
+        return;
+    }
+    case shape::Field::Reference: {
+        shapeReference = static_cast<shape::Reference>((static_cast<int>(shapeReference) + direction + 3) % 3);
+        if (shapeDraft) if (auto point = referencePoint()) {
+            auto moved = *shapeDraft;
+            shape::place(moved, point->first, point->second);
+            applyShape(std::move(moved));
+        }
+        return;
+    }
+    case shape::Field::MoveHere: {
+        if (auto point = referencePoint()) {
+            auto moved = *definition;
+            shape::place(moved, point->first, point->second);
+            moved.dimension = playerDimension();
+            applyShape(std::move(moved));
+        }
+        return;
+    }
+    default: break;
+    }
+    if (auto range = shape::numeric(*definition, row.field); range && part == 0) {
+        editingShapeField = index;
+        numberInput.beginPrecise(range->value);
+        error.clear();
+        return;
+    }
+    applyShape(shape::adjust(*definition, row.field, direction));
+}
+void moveShapeField(int step) {
+    auto definition = currentShape();
+    if (!definition) return;
+    auto fields = shape::rows(*definition, shapeDraft.has_value());
+    int index = shapeFieldSelected;
+    for (size_t tries = 0; tries < fields.size(); ++tries) {
+        index = std::clamp(index + step, 0, static_cast<int>(fields.size()) - 1);
+        if (fields[index].kind != shape::Row::Kind::Group) break;
+        if (index == 0 || index == static_cast<int>(fields.size()) - 1) step = -step;
+    }
+    shapeFieldSelected = index;
+    int visible = shapesDisplayed.fieldVisible;
+    if (visible > 0) {
+        if (index < shapeFieldFirst) shapeFieldFirst = index;
+        if (index >= shapeFieldFirst + visible) shapeFieldFirst = index - visible + 1;
+    }
+}
+void openShapeKeySettings() {
+    // Show the Shape rendering row, expanded, in its category.
+    cancelDraft();
+    int category = 0;
+    for (size_t i = 0; i < sections.size(); ++i) if (sections[i] == featureSection("shapes")) category = static_cast<int>(i) + 1;
+    expanded.insert("shapes");
+    selectNav(category);
+    for (size_t i = 0; i < rows.size(); ++i)
+        if (rows[i].heading() && rows[i].feature->id == "shapes") { selected = static_cast<int>(i); break; }
+    first = SettingsTable::reveal(first, selected, displayed.visible);
+}
+void handleShapeClick(float x, float y, bool right) {
+    finishNumber();
+    if (!shapesDocked) {
+        auto nav = displayed.hit(x, y, navCount, displayedTabWidth);
+        if (nav.zone == Zone::Nav) { selectNav(nav.index); return; }
+    }
+    auto hit = shapesDisplayed.hit(x, y);
+    if (!(hit.zone == ShapeZone::Action && hit.index == 1 && !shapeDraft)) shapeDeleteArmed = false;
+    switch (hit.zone) {
+    case ShapeZone::Close: close(); return;
+    case ShapeZone::Dock: shapesDocked = !shapesDocked; return;
+    case ShapeZone::Keys: openShapeKeySettings(); return;
+    case ShapeZone::DrawAll:
+        if (auto option = settings::find("overlays.shapes")) adjustOption(*option, 1);
+        return;
+    case ShapeZone::NewShape:
+        cancelDraft();
+        shapeSelected.reset();
+        shapePicking = true;
+        resetShapeEditor();
+        return;
+    case ShapeZone::ListRow: {
+        int index = hit.index - (shapeDraft ? 1 : 0);
+        if (index < 0 || index >= static_cast<int>(shapeList.size())) return;
+        auto const& item = shapeList[index];
+        auto const& l = shapesDisplayed;
+        if (x >= l.listLeft + l.listWidth - ShapesLayout::pad - switchWidth - 2) {
+            try { overlay::shapes::setVisible(item.id, !item.definition.visible); error.clear(); }
+            catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
+            catch (std::exception const&) { error = translated("shape.editError"); }
+            return;
+        }
+        if (shapeSelected != item.id || shapeDraft) selectShape(item.id);
+        return;
+    }
+    case ShapeZone::Name:
+        if (auto definition = currentShape()) {
+            editingShapeName = true;
+            shapeNameInput.clear();
+            shapeNameInput.append(definition->name);
+            shapeNameInput.selectAll();
+            error.clear();
+        }
+        return;
+    case ShapeZone::LayerDown: --shapeLayer; return;
+    case ShapeZone::LayerUp: ++shapeLayer; return;
+    case ShapeZone::Field: activateShapeField(hit.index, right ? -1 : hit.part); return;
+    case ShapeZone::Pick: beginDraft(hit.index); return;
+    case ShapeZone::Action:
+        if (shapeDraft) { if (hit.index == 0) createDraft(); else cancelDraft(); return; }
+        if (!shapeSelected) return;
+        if (hit.index == 0) {
+            if (auto definition = currentShape()) {
+                definition->name = translated("shape.copyName", definition->name);
+                if (definition->name.size() > 128) definition->name.resize(128);
+                try { selectShape(overlay::shapes::add(*definition)); error.clear(); }
+                catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
+                catch (std::exception const&) { error = translated("shape.editError"); }
+            }
+            return;
+        }
+        if (!shapeDeleteArmed) { shapeDeleteArmed = true; return; }
+        try {
+            size_t position = 0;
+            for (; position < shapeList.size() && shapeList[position].id != *shapeSelected; ++position) {}
+            overlay::shapes::remove(*shapeSelected);
+            auto remaining = overlay::shapes::list();
+            selectShape(remaining.empty() ? std::nullopt
+                : std::optional(remaining[std::min(position, remaining.size() - 1)].id));
+            error.clear();
+        } catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
+        catch (std::exception const&) { error = translated("shape.editError"); }
+        return;
+    default: return;
+    }
+}
+void handleShapeKey(int key) {
+    if (editingShapeName) {
+        switch (key) {
+        case 0x08: if (shapeNameInput.backspace()) shapeNameDirty = true; break;
+        case 0x41: if (heldCtrl()) shapeNameInput.selectAll(); break;
+        case 0x1b: case 0x0d: case 0x09: finishNumber(); break;
+        }
+        return;
+    }
+    if (editingShapeField >= 0) {
+        switch (key) {
+        case 0x08: if (numberInput.backspace()) numberDirty = true; break;
+        case 0x41: if (heldCtrl()) numberInput.selectAll(); break;
+        case 0x1b: case 0x0d: case 0x09: finishNumber(); break;
+        }
+        return;
+    }
+    switch (key) {
+    case 0x1b:
+        if (shapePicking || shapeDraft) cancelDraft();
+        else close();
+        break;
+    case 0x26: moveShapeField(-1); break;
+    case 0x28: moveShapeField(1); break;
+    case 0x25: activateShapeField(shapeFieldSelected, -1); break;
+    case 0x27: activateShapeField(shapeFieldSelected, 1); break;
+    case 0x0d: case 0x20: activateShapeField(shapeFieldSelected, 0); break;
+    case 0x21: case 0x22: {
+        // Previous / next shape in the list.
+        if (shapeList.empty()) break;
+        int index = 0;
+        for (size_t i = 0; i < shapeList.size(); ++i) if (shapeSelected == shapeList[i].id) index = static_cast<int>(i);
+        index = std::clamp(index + (key == 0x22 ? 1 : -1), 0, static_cast<int>(shapeList.size()) - 1);
+        selectShape(shapeList[index].id);
+        break;
+    }
+    case 0x09: selectNav((navIndex + (heldShift() ? navCount - 1 : 1)) % navCount); break;
+    }
+}
+
+// Preview is regenerated only when the geometry or layer changes.
+struct PreviewCache {
+    std::optional<overlay::ShapeDefinition> definition;
+    int layer = 0;
+    std::optional<shape::Preview> preview;
+} previewCache;
+bool sameGeometry(overlay::ShapeDefinition const& a, overlay::ShapeDefinition const& b) {
+    auto sa = std::get_if<overlay::ShapeSpec>(&a.geometry), sb = std::get_if<overlay::ShapeSpec>(&b.geometry);
+    if (sa && sb) return sa->shape == sb->shape && sa->center == sb->center && sa->snap == sb->snap
+        && sa->radius == sb->radius && sa->height == sb->height;
+    auto pa = std::get_if<overlay::PlaneSpec>(&a.geometry), pb = std::get_if<overlay::PlaneSpec>(&b.geometry);
+    return pa && pb && pa->origin == pb->origin && pa->width == pb->width && pa->depth == pb->depth
+        && pa->spacing == pb->spacing && pa->plane == pb->plane;
+}
+shape::Preview const* previewFor(overlay::ShapeDefinition const& definition) {
+    if (!previewCache.definition || !sameGeometry(*previewCache.definition, definition) || previewCache.layer != shapeLayer) {
+        previewCache.definition = definition;
+        previewCache.layer = shapeLayer;
+        try { previewCache.preview = shape::preview(definition, shapeLayer); }
+        catch (std::exception const&) { previewCache.preview.reset(); }
+        if (previewCache.preview) {
+            // Keep the shown layer inside the shape, then rebuild once for it.
+            int layer = std::clamp(shapeLayer, previewCache.preview->lowLayer, previewCache.preview->highLayer);
+            if (layer != shapeLayer) {
+                shapeLayer = previewCache.layer = layer;
+                try { previewCache.preview = shape::preview(definition, shapeLayer); }
+                catch (std::exception const&) { previewCache.preview.reset(); }
+            }
+        }
+    }
+    return previewCache.preview ? &*previewCache.preview : nullptr;
+}
+Rgb shapeRgb(overlay::ShapeColor color) {
+    switch (color) {
+    case overlay::ShapeColor::Yellow: return {.95f,.8f,.24f};
+    case overlay::ShapeColor::Pink: return {.94f,.5f,.75f};
+    case overlay::ShapeColor::White: return {.95f,.95f,.95f};
+    default: return {.25f,.82f,.88f};
+    }
+}
+constexpr Rgb draftRgb{.62f,.83f,1.f};
+void drawTypeIcon(MinecraftUIRenderContext& context, float x, float y, int type, Rgb color) {
+    // 5x5 glyphs drawn from rectangles: ring, stacked ring, ball, grid.
+    static constexpr std::array<char const*,4> icons{
+        ".###.#...##...##...#.###.", ".###.#####...###...#.###.",
+        ".###.##########.####.###.", "#.#.######.#.######.#.#.#"};
+    auto pattern = icons[static_cast<size_t>(std::clamp(type, 0, 3))];
+    for (int i = 0; i < 25 && pattern[i]; ++i)
+        if (pattern[i] == '#') fill(context, x + (i % 5) * 2, y + (i / 5) * 2, 2, 2, color);
+}
+void drawSmallButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
+                     bool hovered, Rgb fillColor = palette::keyFill, Rgb edge = palette::keyEdge, Rgb textColor = palette::text) {
+    fill(context,x,y,w,h,fillColor);
+    if (hovered) fill(context,x,y,w,h,palette::white,.1f);
+    frame(context,x,y,w,h,edge);
+    label(context,x,y+(h-10)/2+boxTextInset()-1,w,std::move(text),textColor,Align::Center);
+}
+void drawShapeStepper(MinecraftUIRenderContext& context, ShapesLayout const& l, float y, bool numeric, std::string text,
+                      bool editing) {
+    float x = l.stepperX(), w = l.stepperWidth(), aw = ShapesLayout::arrowWidth, h = ShapesLayout::rowHeight - 2;
+    fill(context,x,y+1,aw,h,palette::keyFill);
+    fill(context,x+w-aw,y+1,aw,h,palette::keyFill);
+    frame(context,x,y+1,w,h,editing ? palette::accent : palette::keyEdge);
+    if (numeric) {
+        label(context,x,y+2+boxTextInset(),aw,"-",palette::dim,Align::Center);
+        label(context,x+w-aw,y+2+boxTextInset(),aw,"+",palette::dim,Align::Center);
+    } else {
+        arrow(context,x+4,y+4,true);
+        arrow(context,x+w-aw+4,y+4,false);
+    }
+    if (editing) text = numberInput.selectedAll() ? "[" + numberInput.value() + "]" : numberInput.value() + "_";
+    label(context,x+aw+1,y+2+boxTextInset(),w-2*aw-2,std::move(text),palette::text,Align::Center);
+}
+std::string shapeDescription(std::optional<overlay::ShapeDefinition> const& definition) {
+    if (shapePicking) return translated("shape.pickType");
+    if (!definition) return translated(shapeList.empty() ? "shape.empty" : "shape.selectHint");
+    if (shapeDraft) return translated("shape.draftNote");
+    if (definition->dimension != playerDimension()) return definition->name + ": " + translated("shape.elsewhere");
+    if (editingShapeField >= 0) {
+        auto fields = shape::rows(*definition, false);
+        if (editingShapeField < static_cast<int>(fields.size()))
+            if (auto range = shape::numeric(*definition, fields[editingShapeField].field))
+                return translated(range->integer ? "integerRange" : "numberRange", range->minimum, range->maximum);
+    }
+    return definition->name + ": " + translated(definition->visible ? "shape.shownState" : "shape.hiddenState");
+}
+// List, editor, header controls and footer of the Shapes view.
+void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, glm::vec2 pointer,
+                    std::optional<overlay::ShapeDefinition> const& definition) {
+    auto const preferences = Runtime::instance().preferences();
+    auto hover = l.hit(pointer.x, pointer.y);
+    auto over = [&](ShapeZone zone, int index = -1) { return hover.zone == zone && (index < 0 || hover.index == index); };
+    float top = l.top + 4;
+    // Header controls.
+    label(context,l.drawAllX,l.drawAllY+1+boxTextInset(),l.drawAllWidth-switchWidth-4,translated("shape.drawAll"),
+        over(ShapeZone::DrawAll) ? palette::text : palette::dim,Align::Right);
+    toggleSwitch(context,l.drawAllX+l.drawAllWidth-switchWidth,l.drawAllY+2,preferences.overlays.shapes);
+    label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),
+        over(ShapeZone::Keys) ? palette::text : palette::accent,Align::Center);
+    fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,over(ShapeZone::Keys) ? 1.f : .5f);
+    drawSmallButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(shapesDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
+
+    // List pane.
+    float listRight = l.listLeft + l.listWidth;
+    drawSmallButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("shape.new"),
+        over(ShapeZone::NewShape),shapePicking ? palette::accent : palette::accentDeep,palette::accent);
+    fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
+    float nameX = l.listLeft + ShapesLayout::pad + 12;
+    float shownX = listRight - ShapesLayout::pad - switchWidth - 2;
+    float typeX = shownX - 50;
+    label(context,nameX,l.theadTop+2,typeX-nameX-4,translated("shape.columnName"),palette::faint);
+    label(context,typeX,l.theadTop+2,48,translated("shape.columnType"),palette::faint);
+    label(context,shownX-6,l.theadTop+2,switchWidth+12,translated("shape.columnShown"),palette::faint,Align::Center);
+    fill(context,l.listLeft,l.rowsTop-1,l.listWidth,1,palette::white,.14f);
+    int draftOffset = shapeDraft ? 1 : 0;
+    if (l.listCount == 0)
+        paragraph(context,l.listLeft+ShapesLayout::pad,l.rowsTop+3,l.listWidth-2*ShapesLayout::pad,translated("shape.empty"),3,palette::faint);
+    for (int i = l.listFirst; i < l.listFirst + l.listVisible && i < l.listCount; ++i) {
+        float y = l.listRowY(i);
+        bool isDraft = shapeDraft && i == 0;
+        auto const* item = isDraft ? nullptr : &shapeList[i - draftOffset];
+        auto const& shown = isDraft ? *shapeDraft : item->definition;
+        bool chosen = isDraft || (!shapeDraft && item && shapeSelected == item->id);
+        if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
+        rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,chosen && !isDraft,over(ShapeZone::ListRow,i));
+        if (isDraft) frame(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,draftRgb);
+        bool elsewhere = shown.dimension != playerDimension();
+        fill(context,l.listLeft+ShapesLayout::pad,y+4,6,6,isDraft ? draftRgb : shapeRgb(shown.color),shown.visible && !elsewhere ? 1.f : .35f);
+        std::string suffix = isDraft ? translated("shape.draftTag") : elsewhere ? translated("shape.otherDimension", shown.dimension) : "";
+        float suffixWidth = suffix.empty() ? 0 : textWidth(context, suffix) + 6;
+        label(context,nameX,y+3,typeX-nameX-4-suffixWidth,shown.name,isDraft ? draftRgb : elsewhere ? palette::faint : palette::text);
+        if (!suffix.empty())
+            label(context,typeX-4-suffixWidth+2,y+3,suffixWidth,suffix,isDraft ? draftRgb : palette::faint);
+        label(context,typeX,y+3,48,translated(shape::types[shape::typeIndex(shown)].name),palette::dim);
+        if (!isDraft) toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,shown.visible);
+    }
+    if (l.listCount > l.listVisible) {
+        float track = l.listVisible * ShapesLayout::rowHeight;
+        float thumb = std::max(8.0f, track * l.listVisible / l.listCount);
+        float thumbY = l.rowsTop + (track - thumb) * l.listFirst / (l.listCount - l.listVisible);
+        fill(context,listRight-3,l.rowsTop,2,track,palette::white,.08f);
+        fill(context,listRight-3,thumbY,2,thumb,palette::keyEdge);
+    }
+    // Divider between list and editor.
+    if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
+    else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
+
+    // Editor pane.
+    float dx = l.detailLeft + ShapesLayout::pad, dw = l.detailWidth - 2 * ShapesLayout::pad;
+    if (shapePicking) {
+        label(context,dx,l.nameY+2,dw,translated("shape.group.basic"),palette::accent);
+        for (int i = l.fieldFirst; i < l.fieldFirst + l.fieldVisible && i < static_cast<int>(shape::types.size()); ++i) {
+            float y = l.fieldY(i);
+            if (over(ShapeZone::Pick, i)) fill(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::pickHeight,palette::white,.07f);
+            drawTypeIcon(context,dx+1,y+6,i,palette::dim);
+            label(context,dx+16,y+2,dw-16,translated(shape::types[i].name));
+            label(context,dx+16,y+11,dw-16,translated(shape::types[i].description),palette::faint);
+        }
+    } else if (!definition) {
+        paragraph(context,dx,l.detailTop+6,dw,translated(shapeList.empty() ? "shape.empty" : "shape.selectHint"),3,palette::faint);
+    } else {
+        if (shapeDraft) label(context,dx,l.detailTop+4,dw,translated("shape.draftNote"),draftRgb);
+        // Name field.
+        fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,Rgb{0,0,0},.4f);
+        frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingShapeName ? palette::accent : palette::keyEdge);
+        drawTypeIcon(context,dx+3,l.nameY+1.5f,shape::typeIndex(*definition),shapeDraft ? draftRgb : shapeRgb(definition->color));
+        std::string name = editingShapeName
+            ? (shapeNameInput.selectedAll() ? "[" + shapeNameInput.value() + "]" : shapeNameInput.value() + "_") : definition->name;
+        label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,std::move(name));
+        // Preview: one layer seen from above; plane seen along its normal.
+        float px = dx, py = l.previewY, size = ShapesLayout::previewSize;
+        fill(context,px,py,size,size,Rgb{0,0,0},.35f);
+        frame(context,px,py,size,size,palette::white,.14f);
+        auto const* preview = previewFor(*definition);
+        if (preview) {
+            float spanU = float(preview->maxU - preview->minU + 1), spanV = float(preview->maxV - preview->minV + 1);
+            float scale = std::min((size - 4) / spanU, (size - 4) / spanV);
+            float ox = px + (size - spanU * scale) / 2 - preview->minU * scale;
+            float oy = py + (size - spanV * scale) / 2 - preview->minV * scale;
+            Rgb color = shapeDraft ? draftRgb : shapeRgb(definition->color);
+            for (auto const& run : preview->runs)
+                fill(context,ox + run.u * scale,oy + run.v * scale,std::max(1.0f, run.length * scale),std::max(1.0f, scale),color,.9f);
+            fill(context,ox,oy,std::max(1.0f, scale),std::max(1.0f, scale),palette::accent);
+        }
+        float ix = px + size + 8, iw = dw - size - 8;
+        label(context,ix,py+1,iw,translated(shape::types[shape::typeIndex(*definition)].name));
+        if (preview) label(context,ix,py+12,iw,translated("shape.cellCount",preview->cells),palette::dim);
+        if (auto* player = client ? client->getLocalPlayer() : nullptr) {
+            auto feet = player->getFeetPos();
+            auto center = centerOf(*definition);
+            int distance = static_cast<int>(std::round(std::hypot(center.x - feet.x, center.z - feet.z)));
+            label(context,ix,py+22,iw,translated("shape.distance",distance),palette::dim);
+        }
+        if (preview && preview->lowLayer != preview->highLayer) {
+            float lx = l.layerStepperX(), ly = l.layerY(), lw = 64, aw = ShapesLayout::arrowWidth;
+            fill(context,lx,ly+1,aw,ShapesLayout::rowHeight-2,palette::keyFill);
+            fill(context,lx+lw-aw,ly+1,aw,ShapesLayout::rowHeight-2,palette::keyFill);
+            frame(context,lx,ly+1,lw,ShapesLayout::rowHeight-2,palette::keyEdge);
+            label(context,lx,ly+2+boxTextInset(),aw,"-",palette::dim,Align::Center);
+            label(context,lx+lw-aw,ly+2+boxTextInset(),aw,"+",palette::dim,Align::Center);
+            label(context,lx+aw,ly+2+boxTextInset(),lw-2*aw,translated("shape.layer",(shapeLayer >= 0 ? "+" : "") + std::to_string(shapeLayer)),palette::text,Align::Center);
+        }
+        paragraph(context,ix,py+45,iw,translated("shape.previewHint"),1,palette::faint);
+        // Fields.
+        auto fields = shape::rows(*definition, shapeDraft.has_value());
+        for (int i = l.fieldFirst; i < l.fieldFirst + l.fieldVisible && i < static_cast<int>(fields.size()); ++i) {
+            float y = l.fieldY(i);
+            auto const& row = fields[i];
+            if (row.kind == shape::Row::Kind::Group) {
+                label(context,dx,y+4,dw,translated(row.label),palette::faint);
+                continue;
+            }
+            rowBackground(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::rowHeight,shapeFieldSelected == i,over(ShapeZone::Field,i));
+            label(context,dx,y+3,l.stepperX()-dx-4,translated(row.label),palette::dim);
+            switch (row.kind) {
+            case shape::Row::Kind::Switch:
+                toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,definition->visible);
+                break;
+            case shape::Row::Kind::Button:
+                drawSmallButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated(row.label),over(ShapeZone::Field,i));
+                break;
+            default: {
+                auto range = shape::numeric(*definition, row.field);
+                std::string value;
+                if (range) {
+                    value = range->integer ? std::to_string(static_cast<long long>(range->value)) : std::format("{:.3g}", range->value);
+                    if (row.field == shape::Field::X || row.field == shape::Field::Y || row.field == shape::Field::Z)
+                        value = range->integer ? value : std::format("{:.3f}", range->value);
+                    else value = translated("shape.blocks", value);
+                } else value = translated(shape::choiceLabel(*definition, row.field, shapeReference));
+                drawShapeStepper(context,l,y,range.has_value(),std::move(value),editingShapeField == i);
+                break;
+            }
+            }
+        }
+        // Actions.
+        fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
+        if (shapeDraft) {
+            drawSmallButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.create"),
+                over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
+            drawSmallButton(context,l.actionX(1),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.cancel"),over(ShapeZone::Action,1));
+        } else {
+            drawSmallButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.duplicateShort"),over(ShapeZone::Action,0));
+            drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
+                translated(shapeDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1),
+                shapeDeleteArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,Rgb{.54f,.23f,.2f},
+                shapeDeleteArmed ? palette::text : Rgb{1.f,.7f,.68f});
+        }
+    }
+
+    // Footer.
+    fill(context,l.left,l.footerTop,l.width,1,palette::white,.14f);
+    float textLeft = l.left + ShapesLayout::pad, available = l.width - 2 * ShapesLayout::pad;
+    bool shortFooter = l.docked || displayed.shortFooter;
+    std::string text = error.empty() ? shapeDescription(definition) : error;
+    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),error.empty() ? palette::text : palette::warning);
+    else {
+        paragraph(context,textLeft,l.footerTop+3,available,text,2,error.empty() ? palette::text : palette::warning);
+        label(context,textLeft,l.footerTop+30,available,translated(editingShapeName || editingShapeField >= 0 ? "shape.numberHint" : "shape.hint"),palette::faint);
+    }
+}
+std::optional<overlay::ShapeDefinition> visibleShape() {
+    auto definition = currentShape();
+    if (!definition && shapeSelected) shapeSelected.reset(); // Removed elsewhere.
+    return definition;
+}
+void renderShapesContent(MinecraftUIRenderContext& context, IClientInstance&, glm::vec2 size, glm::vec2 pointer,
+                         SettingsTable const& t) {
+    auto definition = visibleShape();
+    int fieldCount = shapePicking ? static_cast<int>(shape::types.size())
+        : definition ? static_cast<int>(shape::rows(*definition, shapeDraft.has_value()).size()) : 0;
+    auto l = ShapesLayout::fit(t, size.x, size.y, false, static_cast<int>(shapeList.size()) + (shapeDraft ? 1 : 0),
+        shapeListFirst, fieldCount, shapeFieldFirst, shapeDraft.has_value(), shapePicking);
+    shapesDisplayed = l;
+    shapeListFirst = l.listFirst; shapeFieldFirst = l.fieldFirst;
+    if (l.usable()) drawShapesBody(context, l, pointer, definition);
+    context.flushText(0,std::nullopt);
+}
+void renderShapesDocked(MinecraftUIRenderContext& context, IClientInstance&, glm::vec2 size, glm::vec2 pointer) {
+    auto definition = visibleShape();
+    int fieldCount = shapePicking ? static_cast<int>(shape::types.size())
+        : definition ? static_cast<int>(shape::rows(*definition, shapeDraft.has_value()).size()) : 0;
+    auto l = ShapesLayout::fit(displayed, size.x, size.y, true, static_cast<int>(shapeList.size()) + (shapeDraft ? 1 : 0),
+        shapeListFirst, fieldCount, shapeFieldFirst, shapeDraft.has_value(), shapePicking);
+    shapesDisplayed = l;
+    shapeListFirst = l.listFirst; shapeFieldFirst = l.fieldFirst;
+    if (!l.usable()) {
+        label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
+        context.flushText(0, std::nullopt);
+        return;
+    }
+    // Docked: the world stays visible; only the panel is drawn.
+    panel(context,l.left,l.top,l.width,l.height,.82f);
+    frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
+    label(context,l.left+ShapesLayout::pad,l.top+6,l.drawAllX-l.left-10,translated("nav.shapes"));
+    bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
+    drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),closeHover,
+        palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
+    fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
+    drawShapesBody(context, l, pointer, definition);
+    context.flushText(0,std::nullopt);
+}
+
 void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {
     auto const t = SettingsTable::fit(size.x, size.y, static_cast<int>(rows.size()), first);
     displayed = t;
@@ -604,8 +1197,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     panel(context,t.left,t.top,t.width,t.height,.8f);
     frame(context,t.left,t.top,t.width,t.height,palette::white,.14f);
 
-    // Header: title, search field, Close.
+    // Header: title, search field (table views), Close.
     label(context,t.left+SettingsTable::pad,t.top+6,80,"Lamium");
+    if (shapesView()) {
+        label(context,t.left+SettingsTable::pad+textWidth(context,"Lamium")+5,t.top+6,80,"> " + translated("nav.shapes"),palette::faint);
+    } else {
     fill(context,t.searchX,t.top+4,t.searchWidth,12,Rgb{0,0,0},.45f);
     frame(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused ? palette::accent : palette::keyEdge);
     if (searchFocused && query.selectedAll() && !query.value().empty())
@@ -613,6 +1209,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (query.value().empty() && !searchFocused)
         label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("searchPlaceholder") + "  Ctrl+F",palette::faint);
     else label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,query.value() + (searchFocused ? "_" : ""));
+    }
     bool closeHover = hover.zone == Zone::Close;
     if (closeHover) fill(context,t.closeX,t.top+4,SettingsTable::closeWidth,12,palette::white,.07f);
     frame(context,t.closeX,t.top+4,SettingsTable::closeWidth,12,palette::keyEdge);
@@ -638,18 +1235,22 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         displayedTabWidth = 0;
         fill(context,t.tableLeft-1,t.navTop,1,t.navBottom-t.navTop,palette::white,.14f);
         for (int i = 0; i < navCount; ++i) {
-            float y = i == hotkeysNav ? t.navBottom - 4 - SettingsTable::navItemHeight : t.navItemY(i);
+            bool pinned = i >= navCount - SettingsTable::pinnedItems;
+            float y = pinned ? t.pinnedItemY(i - (navCount - SettingsTable::pinnedItems)) : t.navItemY(i);
             float x = t.left + 1, w = SettingsTable::sidebarWidth - 2;
             bool active = i == activeNav, over = hover.zone == Zone::Nav && hover.index == i;
-            if (i == hotkeysNav) fill(context,x+6,y-4,w-12,1,palette::white,.14f);
+            if (i == navCount - SettingsTable::pinnedItems) fill(context,x+6,y-4,w-12,1,palette::white,.14f);
             if (active) { fill(context,x,y,w,SettingsTable::navItemHeight,palette::accent,.16f); fill(context,x,y,2,SettingsTable::navItemHeight,palette::accent); }
             else if (over) fill(context,x,y,w,SettingsTable::navItemHeight,palette::white,.07f);
-            std::string count = i > 0 && i < hotkeysNav ? sectionCount(sections[i-1], preferences) : std::string{};
+            std::string count = i > 0 && i < hotkeysNav ? sectionCount(sections[i-1], preferences)
+                : i == shapesNav ? std::to_string(overlay::shapes::list().size()) : std::string{};
             float countWidth = count.empty() ? 0 : textWidth(context, count) + 4;
             label(context,x+7,y+3,w-12-countWidth,navLabel(i,false),active || over ? palette::text : palette::dim);
             if (!count.empty()) label(context,x+w-5-countWidth,y+3,countWidth,count,palette::faint,Align::Right);
         }
     }
+
+    if (shapesView()) { renderShapesContent(context, current, size, pointer, t); return; }
 
     // Column headings.
     float theadY = t.theadTop + 2;
@@ -684,13 +1285,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             if (auto option = settings::find(entry.feature->toggle))
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,
                     std::get<bool>(option->read(preferences)));
-            if (isTool(*entry.feature)) {
-                auto text = translated("open");
-                float w = std::min(t.keyWidth, textWidth(context, text) + 14);
-                bool over = hover.zone == Zone::Row && hover.index == i && hover.column == Column::Key;
-                fill(context,t.keyX,y+2,w,SettingsTable::rowHeight-4,over ? palette::accent : palette::accentDeep);
-                label(context,t.keyX,y+3,w,std::move(text),palette::text,Align::Center);
-            } else if (auto primary = primaryAction(*entry.feature)) drawKeyCell(context,current,y,*primary);
+            if (auto primary = primaryAction(*entry.feature)) drawKeyCell(context,current,y,*primary);
             break;
         }
         case RowKind::Option: {
@@ -754,112 +1349,6 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     context.flushText(0,std::nullopt);
 }
 
-// ---- Shape Manager list ----
-void activateShape(int row, int direction) {
-    finishNumber();
-    if (direction == 0) {
-        if (auto name = shapePanel.nameAt(row)) {
-            editingShapeName = row; shapeNameInput.clear(); shapeNameInput.append(*name);
-            shapeNameInput.selectAll(); error.clear(); return;
-        }
-        if (auto range = shapePanel.numeric(row)) {
-            editingShapeRow = row; numberInput.beginPrecise(range->value); error.clear(); return;
-        }
-    }
-    auto* player = client ? client->getLocalPlayer() : nullptr;
-    if (!player) return;
-    auto position = player->getPosition();
-    bool wasEditing = shapePanel.isEditing();
-    try {
-        if (shapePanel.activate(row,direction,{position.x,position.y,position.z},static_cast<int>(player->getDimensionId()))) {
-            shapeView = false; rebuild(true);
-        } else if (wasEditing != shapePanel.isEditing()) { shapeSelected = 0; shapeFirst = 0; }
-        shapeSelected = std::clamp(shapeSelected,0,std::max(0,shapePanel.count()-1));
-        shapeLayout = {};
-        error.clear();
-    } catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
-    catch (std::exception const&) { error = translated("shape.editError"); }
-}
-void renderShapes(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer) {
-    int count = shapePanel.count();
-    auto layout = SettingsLayout::fit(size.x, size.y, count, shapeSelected, shapeFirst);
-    shapeLayout = layout;
-    shapeFirst = layout.first;
-    fill(context,0,0,size.x,size.y,Rgb{0,0,0},.2f);
-    if (!layout.visible) {
-        shapeHovered = -1;
-        label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
-        context.flushText(0, std::nullopt);
-        return;
-    }
-    float width = layout.width, left = layout.left, top = layout.top;
-    panel(context,left-6,top-6,width+12,layout.bottom+6-top);
-    frame(context,left-6,top-6,width+12,layout.bottom+6-top,palette::white,.14f);
-    label(context,left,top,width,shapePanel.title());
-    if (layout.subtitle) label(context,left,top+16,width,shapePanel.subtitle(),palette::faint);
-    shapeHovered = layout.hit(pointer.x, pointer.y);
-    for (int i=layout.first;i<layout.first+layout.visible;++i) {
-        float y = layout.rowY(i);
-        if (i % 2) fill(context,left,y,width,SettingsLayout::rowHeight,palette::white,.025f);
-        rowBackground(context,left,y,width,SettingsLayout::rowHeight,shapeSelected == i,shapeHovered == i);
-        auto text = shapePanel.label(i);
-        if (editingShapeName == i) text = translated("shape.name",
-            shapeNameInput.selectedAll() ? "[" + shapeNameInput.value() + "]" : shapeNameInput.value() + "_");
-        else if (editingShapeRow == i) text = translated("numberInput",text,
-            numberInput.selectedAll() ? "[" + numberInput.value() + "]" : numberInput.value() + "_");
-        label(context,left+6,y+2,width-16,std::move(text));
-    }
-    if (layout.visible < count) {
-        float trackHeight = layout.visible * SettingsLayout::rowPitch - 2;
-        float thumbHeight = std::max(8.0f, trackHeight * layout.visible / count);
-        float thumbY = layout.rowsTop + (trackHeight-thumbHeight) * layout.first / (count-layout.visible);
-        fill(context,left+width-3,layout.rowsTop,2,trackHeight,palette::white,.08f);
-        fill(context,left+width-3,thumbY,2,thumbHeight,palette::keyEdge);
-    }
-    label(context,left,layout.footer,width,error.empty() ? translated(editingShapeName >= 0 || numericEditing()
-        ? "shape.numberHint" : "shape.controls") : error, error.empty() ? palette::faint : palette::warning);
-    if (layout.secondHint) {
-        auto text = ShapePanel::storageDescription();
-        if (auto range = shapePanel.numeric(shapeSelected))
-            text = translated(range->integer ? "integerRange" : "numberRange",range->minimum,range->maximum);
-        paragraph(context,left,layout.footer+15,width,text,3,palette::dim);
-    }
-    context.flushText(0,std::nullopt);
-}
-void handleShapeKey(int key) {
-    int count = shapePanel.count();
-    if (editingShapeName >= 0) {
-        switch (key) {
-        case 0x08: if (shapeNameInput.backspace()) shapeNameDirty = true; break;
-        case 0x41: if (heldCtrl()) shapeNameInput.selectAll(); break;
-        case 0x1b: case 0x0d: finishNumber(); break;
-        case 0x09: finishNumber(); shapeSelected = (shapeSelected+1)%count; break;
-        }
-        return;
-    }
-    if (editingShapeRow >= 0) {
-        switch (key) {
-        case 0x08: if (numberInput.backspace()) numberDirty = true; break;
-        case 0x41: if (heldCtrl()) numberInput.selectAll(); break;
-        case 0x1b: case 0x0d: finishNumber(); break;
-        case 0x09: finishNumber(); shapeSelected = (shapeSelected+1)%count; break;
-        }
-        return;
-    }
-    switch (key) {
-    case 0x1b: activateShape(0,0); break; // Back
-    case 0x26: shapeSelected = (shapeSelected+count-1)%count; break;
-    case 0x28: case 0x09: shapeSelected = (shapeSelected+1)%count; break;
-    case 0x24: shapeSelected = 0; break;
-    case 0x23: shapeSelected = count-1; break;
-    case 0x21: shapeSelected = std::max(0, shapeSelected-std::max(1, shapeLayout.visible-1)); break;
-    case 0x22: shapeSelected = std::min(count-1, shapeSelected+std::max(1, shapeLayout.visible-1)); break;
-    case 0x25: activateShape(shapeSelected,-1); break;
-    case 0x27: activateShape(shapeSelected,1); break;
-    case 0x0d: case 0x20: activateShape(shapeSelected,0); break;
-    }
-}
-
 void render(ll::event::UIRenderEvent& event) {
     std::lock_guard lock(mutex);
     auto& context = event.uiRenderContext();
@@ -888,13 +1377,13 @@ void render(ll::event::UIRenderEvent& event) {
         error = saved ? std::string{} : translated("saveError");
     }
     if (!closing) {
-        if (shapeView) {
-            int action = std::exchange(shapeCommand, 0);
-            if (action == 1 || action == -1) activateShape(shapeCommandRow, action);
-            if (action == 3) activateShape(shapeCommandRow, 0);
+        if (shapesView()) {
+            shapeList = overlay::shapes::list();
+            if (auto click = std::exchange(pendingClick, std::nullopt)) handleShapeClick(click->x, click->y, click->right);
             for (int key : std::exchange(pendingKeys, {})) handleShapeKey(key);
         } else {
-            if (auto click = std::exchange(pendingClick, std::nullopt)) handleClick(click->hit, click->right);
+            if (auto click = std::exchange(pendingClick, std::nullopt))
+                handleClick(displayed.hit(click->x, click->y, navCount, displayedTabWidth), click->right);
             for (int key : std::exchange(pendingKeys, {})) handleKey(key);
         }
     }
@@ -902,9 +1391,11 @@ void render(ll::event::UIRenderEvent& event) {
     information::drawHud(context,size.x,size.y,Runtime::instance().preferences().information);
     displayedInverseScale = current.getGuiData()->mInvGuiScale;
     glm::vec2 pointer = view.mPointerLocationPrevious;
-    if (shapeView) {
-        syncTextKeyboard(shapeLayout.left, shapeLayout.rowY(shapeSelected));
-        renderShapes(context, size, pointer);
+    if (shapesView()) {
+        shapeList = overlay::shapes::list();
+        syncTextKeyboard(shapesDisplayed.stepperX(), editingShapeName ? shapesDisplayed.nameY : shapesDisplayed.fieldY(std::max(0, editingShapeField)));
+        if (shapesDocked) renderShapesDocked(context, current, size, pointer);
+        else renderTable(context, current, size, pointer);
     } else {
         float caretY = editingNumber && valid(selected) ? displayed.rowY(selected) : displayed.top + 4;
         syncTextKeyboard(editingNumber ? displayed.stepperX() : displayed.searchX, caretY);
@@ -917,8 +1408,8 @@ void open(IClientInstance& current) {
     if (scene || !gameplayScreen(current.getScreenName())) return;
     Zoom::instance().reset();
     error.clear(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear();
-    editingNumber = nullptr; editingShapeRow = -1; editingShapeName = -1; shapeNameDirty = false; numberDirty = false;
-    query.clear(); uiHeld.clear(); searchFocused = false; shapeView = false; capturing.reset(); bindingEdit.reset();
+    editingNumber = nullptr; editingShapeField = -1; editingShapeName = false; shapeNameDirty = false; numberDirty = false;
+    query.clear(); uiHeld.clear(); searchFocused = false; capturing.reset(); bindingEdit.reset();
     // Category, expansion and scroll persist between openings in a session.
     rebuild(true);
     // This native information screen supplies focus/cursor ownership. It has no
@@ -927,6 +1418,11 @@ void open(IClientInstance& current) {
     if (!scene) return;
     client = &current;
     current.getSceneFactory().getCurrentSceneStack()->pushScreen(scene, false);
+}
+void openShapes(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    if (!scene) open(current);
+    if (scene) selectNav(shapesNav);
 }
 bool ownsInput() {
     std::lock_guard lock(mutex);
@@ -982,11 +1478,11 @@ void start() {
         float x = event.x() * displayedInverseScale, y = event.y() * displayedInverseScale;
         bool scaled = std::isfinite(displayedInverseScale) && displayedInverseScale > 0;
         observeHeld(token, down);
-        if (capturing && !shapeView) {
+        if (capturing && !shapesView()) {
             if (down) event.cancel();
             auto hit = scaled ? displayed.hit(x, y, navCount, displayedTabWidth) : SettingsTable::Hit{};
             if (button == MouseAction::ActionLeft && down && hit.zone == Zone::Footer
-                && displayed.footerButton(hit.x, hit.y) >= 0) pendingClick = Click{hit, false};
+                && displayed.footerButton(hit.x, hit.y) >= 0) pendingClick = Click{x, y, false};
             else captureInput(token, down);
             return;
         }
@@ -994,12 +1490,13 @@ void start() {
         // observe its release, just as we do for keys, so it cannot stay held.
         if (!wheel && event.buttonData() == MouseAction::DataUp) return;
         event.cancel();
-        if (shapeView) {
-            int clicked = shapeLayout.hitPixels(event.x(), event.y(), displayedInverseScale);
-            int count = shapePanel.count();
-            if (wheel) { finishNumber(); shapeSelected = std::clamp(shapeSelected + (event.buttonData() > 0 ? -1 : 1), 0, count-1); }
-            if (button == MouseAction::ActionLeft && down && clicked >= 0) { shapeSelected = clicked; shapeCommandRow = clicked; shapeCommand = 3; }
-            if (button == MouseAction::ActionRight && down && clicked >= 0) { shapeSelected = clicked; shapeCommandRow = clicked; shapeCommand = -1; }
+        if (shapesView() && wheel) {
+            // Scroll whichever pane is under the pointer; selection stays put.
+            int step = event.buttonData() > 0 ? -3 : 3;
+            auto const& l = shapesDisplayed;
+            bool overList = scaled && x >= l.listLeft && x < l.listLeft + l.listWidth && (!l.docked || y < l.detailTop);
+            if (overList) shapeListFirst = std::max(0, shapeListFirst + step);
+            else shapeFieldFirst = std::max(0, shapeFieldFirst + step);
             return;
         }
         if (wheel) {
@@ -1009,9 +1506,8 @@ void start() {
             return;
         }
         if (!scaled || !down) return;
-        auto hit = displayed.hit(x, y, navCount, displayedTabWidth);
-        if (button == MouseAction::ActionLeft) pendingClick = Click{hit, false};
-        if (button == MouseAction::ActionRight) pendingClick = Click{hit, true};
+        if (button == MouseAction::ActionLeft) pendingClick = Click{x, y, false};
+        if (button == MouseAction::ActionRight) pendingClick = Click{x, y, true};
     });
     listeners[2] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
         std::lock_guard lock(mutex);
@@ -1028,7 +1524,7 @@ void start() {
         if (!event.isDown()) return;
         // Keep search reachable from anywhere in the table. Capture handles
         // keys above this point, so Ctrl+F remains bindable.
-        if (!shapeView && event.keyCode() == 0x46 && heldCtrl()) {
+        if (!shapesView() && event.keyCode() == 0x46 && heldCtrl()) {
             event.cancel();
             finishNumber();
             searchFocused = true;
@@ -1038,7 +1534,7 @@ void start() {
         // Native text generation happens after HID onKeyDown. Keep editing
         // commands here, but let the focused native keyboard process the other
         // keys (including layout/IME input) while our modal scene owns gameplay.
-        if (textKeyboardOwned && (searchFocused || numericEditing() || editingShapeName >= 0)) {
+        if (textKeyboardOwned && (searchFocused || numericEditing() || editingShapeName)) {
             auto key = event.keyCode();
             bool commandKey = key == 0x08 || key == 0x1b || key == 0x0d || key == 0x09
                 || (searchFocused && key == 0x28);
@@ -1048,8 +1544,8 @@ void start() {
         event.cancel();
         // Editing keys act immediately so rapid typing keeps its order; the
         // remaining navigation runs with the next frame's layout.
-        if (shapeView ? (editingShapeName >= 0 || editingShapeRow >= 0) : (searchFocused || editingNumber != nullptr)) {
-            if (shapeView) handleShapeKey(event.keyCode()); else handleKey(event.keyCode());
+        if (shapesView() ? (editingShapeName || editingShapeField >= 0) : (searchFocused || editingNumber != nullptr)) {
+            if (shapesView()) handleShapeKey(event.keyCode()); else handleKey(event.keyCode());
             return;
         }
         pendingKeys.push_back(event.keyCode());

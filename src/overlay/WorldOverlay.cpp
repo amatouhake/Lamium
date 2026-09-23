@@ -30,6 +30,11 @@
 #include "mc/deps/minecraft_renderer/resources/ClientTexture.h"
 #include "mc/deps/minecraft_renderer/resources/ServerTexture.h"
 #include "mc/deps/minecraft_renderer/resources/OffscreenCaptureDescription.h"
+#include "mc/common/client/renderer/helpers/MeshHelpers.h"
+#include "mc/deps/renderer/Camera.h"
+#include "mc/deps/renderer/MatrixStack.h"
+#include <glm/gtc/matrix_transform.hpp>
+#include <map>
 #include <span>
 #include <mutex>
 #include <atomic>
@@ -91,9 +96,91 @@ void joinWorld(ll::event::ClientJoinLevelEvent& event) noexcept {
         Runtime::instance().self().getLogger().error("Shape workspace load failed: {}", error.what());
     } catch (...) {}
 }
+// A shape being created is previewed as lines and never persisted.
+ShapeCollection draftCollection(1);
+constexpr ShapeId draftKey = ~ShapeId{0};
 bool hasShapes() {
     std::lock_guard lock(shapeMutex);
-    return !shapeCollection.entries().empty();
+    return !shapeCollection.entries().empty() || !draftCollection.entries().empty();
+}
+
+// Uploaded shape meshes, owned by the render thread. Vertices are relative to
+// the shape's first block so the mesh is reused while the camera moves; only a
+// revision change rebuilds it. World exit asks the next frame to release them.
+struct ShapeMesh {
+    uint64_t revision = 0;
+    Cell origin{};
+    std::optional<mce::Mesh> faces, lines;
+    uint32_t faceVertices = 0, lineVertices = 0;
+};
+std::map<ShapeId, ShapeMesh> shapeMeshes;
+std::atomic<bool> releaseMeshes{false};
+std::array<float,3> shapeColor(ShapeColor color, bool draft) {
+    if (draft) return {.62f,.83f,1.f};
+    switch (color) {
+    case ShapeColor::Yellow: return {.95f,.8f,.24f};
+    case ShapeColor::Pink: return {.94f,.5f,.75f};
+    case ShapeColor::White: return {.95f,.95f,.95f};
+    default: return {.25f,.82f,.88f};
+    }
+}
+void buildShapeMesh(ScreenContext& screen, ShapeMesh& mesh, ManagedShape const& shape, bool draft) {
+    mesh.faces.reset(); mesh.lines.reset();
+    mesh.faceVertices = mesh.lineVertices = 0;
+    mesh.revision = shape.revision;
+    if (!shape.faces.empty()) mesh.origin = shape.faces.front().cell;
+    else if (!shape.lines.empty()) mesh.origin = {static_cast<int>(shape.lines.front().from.x),
+        static_cast<int>(shape.lines.front().from.y), static_cast<int>(shape.lines.front().from.z)};
+    auto [r, g, b] = shapeColor(shape.definition.color, draft);
+    bool faces = !draft && shape.definition.style == ShapeStyle::Face;
+    auto relative = [&](Tessellator& batch, Point p) {
+        batch.vertex(static_cast<float>(p.x - mesh.origin.x), static_cast<float>(p.y - mesh.origin.y),
+            static_cast<float>(p.z - mesh.origin.z));
+    };
+    if (faces && !shape.faces.empty()) {
+        Tessellator batch(screen.tessellator.mBufferResourceService);
+        batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(shape.faces.size()*4), false);
+        batch.color(r, g, b, .3f);
+        for (auto const& face : shape.faces) for (auto p : faceVertices(face)) relative(batch, p);
+        mesh.faces.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium shape faces", SupplementaryFieldAutoGenerationMode{}));
+        mesh.faceVertices = static_cast<uint32_t>(shape.faces.size()*4);
+    }
+    if (!shape.lines.empty()) {
+        Tessellator batch(screen.tessellator.mBufferResourceService);
+        batch.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(shape.lines.size()*2), false);
+        // Faces carry a faint outline so the block grid stays readable.
+        batch.color(r, g, b, faces ? .45f : 1.f);
+        for (auto const& line : shape.lines) { relative(batch, line.from); relative(batch, line.to); }
+        mesh.lines.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium shape lines", SupplementaryFieldAutoGenerationMode{}));
+        mesh.lineVertices = static_cast<uint32_t>(shape.lines.size()*2);
+    }
+}
+void drawShape(BaseActorRenderContext& context, mce::MaterialPtr const& faceMaterial, ShapeId id,
+               ManagedShape const& shape, bool draft) {
+    if (!context.mImpl) return;
+    ScreenContext& screen = context.mScreenContext;
+    auto& mesh = shapeMeshes[id];
+    if (mesh.revision != shape.revision || (mesh.faces && !mesh.faces->isValid()) || (mesh.lines && !mesh.lines->isValid()))
+        buildShapeMesh(screen, mesh, shape, draft);
+    mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
+    Vec3 const camera = context.mImpl->mCameraPosition;
+    auto ref = screen.camera.worldMatrixStack->push(false);
+    ref.stack->_isDirty = true;
+    ref.mat->_m = glm::translate(ref.mat->_m.get(), glm::vec3{static_cast<float>(mesh.origin.x - camera.x),
+        static_cast<float>(mesh.origin.y - camera.y), static_cast<float>(mesh.origin.z - camera.z)});
+    if (mesh.faces && faceMaterial.mRenderMaterialInfoPtr)
+        mesh.faces->renderMesh(screen, faceMaterial, gsl::span<mce::ClientTexture const*>{}, 0, mesh.faceVertices,
+            OffscreenCaptureDescription{}, nullptr);
+    if (mesh.lines && lineMaterial.mRenderMaterialInfoPtr)
+        mesh.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, mesh.lineVertices,
+            OffscreenCaptureDescription{}, nullptr);
+    // Pop manually, matching the proven LeviSchematic pattern for this stack.
+    ref.stack->_isDirty = true;
+    if (ref.stack->sortOrigin->has_value() && (ref.stack->stack->size() - 1) <= ref.stack->sortOrigin->value())
+        ref.stack->sortOrigin->reset();
+    ref.stack->stack->pop_back();
+    ref.mat = nullptr;
+    ref.stack = nullptr;
 }
 void drawLines(BaseActorRenderContext& context, std::span<Line const> lines, bool hitboxes = false) {
     if (lines.empty() || !context.mImpl) return;
@@ -121,15 +208,26 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     if (!runtime.enabled()) return;
     auto preferences = runtime.preferences().overlays;
     bool breaking = runtime.preferences().interaction.breaking;
-    if (!preferences.chunkBorders && !preferences.hitboxes && !preferences.light && !breaking && !hasShapes()) return;
+    if (releaseMeshes.exchange(false)) shapeMeshes.clear();
+    bool shapesShown = preferences.shapes && hasShapes();
+    if (!preferences.chunkBorders && !preferences.hitboxes && !preferences.light && !breaking && !shapesShown) return;
     IClientInstance& client = context.mClientInstance;
     auto* player = client.getLocalPlayer();
     if (!player) return;
     try {
-        {
+        if (shapesShown) {
             std::lock_guard lock(shapeMutex);
-            shapeCollection.forVisible(static_cast<int>(player->getDimensionId()),
-                [&](ShapeId, ManagedShape const& shape) { drawLines(context, shape.lines); });
+            mce::MaterialPtr const& faceMaterial = selectionOverlayMaterial;
+            int dimensionId = static_cast<int>(player->getDimensionId());
+            shapeCollection.forVisible(dimensionId,
+                [&](ShapeId id, ManagedShape const& shape) { drawShape(context, faceMaterial, id, shape, false); });
+            draftCollection.forVisible(dimensionId,
+                [&](ShapeId, ManagedShape const& shape) { drawShape(context, faceMaterial, draftKey, shape, true); });
+            // Release meshes of removed shapes.
+            if (shapeMeshes.size() > shapeCollection.entries().size() + draftCollection.entries().size())
+                std::erase_if(shapeMeshes, [&](auto const& entry) {
+                    return entry.first == draftKey ? draftCollection.entries().empty() : !shapeCollection.find(entry.first);
+                });
         }
         if (breaking) {
             auto region = interaction::breaking::region();
@@ -226,8 +324,15 @@ bool remove(ShapeId id) {
     std::lock_guard lock(shapeMutex);
     return shapeWorkspace.change([&](auto& values) { return values.remove(id); });
 }
+void setDraft(std::optional<ShapeDefinition> definition) {
+    std::lock_guard lock(shapeMutex);
+    draftCollection.clear();
+    if (definition) draftCollection.add(std::move(*definition));
+}
 void clear() {
     std::lock_guard lock(shapeMutex);
+    draftCollection.clear();
+    releaseMeshes = true;
     shapeWorkspace.leave();
     joiningLocal = false;
     identityFailed = false;

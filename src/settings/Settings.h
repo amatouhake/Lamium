@@ -47,6 +47,7 @@ struct Settings {
     } ui;
     struct Overlays {
         bool chunkBorders = false;
+        bool shapes = true;
         bool hitboxes = false;
         bool light = false;
         bool skyLight = false;

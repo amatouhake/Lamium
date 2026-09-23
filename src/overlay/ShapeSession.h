@@ -14,6 +14,8 @@ void setVisible(ShapeId, bool);
 void rename(ShapeId, std::string);
 bool remove(ShapeId);
 void clear();
+// Previews a definition that is not yet part of the collection; nullopt ends it.
+void setDraft(std::optional<ShapeDefinition>);
 enum class Storage { Session, LocalWorld, LoadFailed };
 Storage storage();
 }

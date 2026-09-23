@@ -69,11 +69,11 @@ void settingsRowsTests() {
     query.clear(); query.append("ズーム");
     rows = ui::buildSettingsRows(false, {}, query, expanded, [](std::string_view key) { return std::string(ui::translations::find(key, "ja_JP")); });
     check(rows.size() >= 2 && rows[1].feature->id == "zoom" && !rows[1].expanded, "Japanese feature search keeps a matched feature collapsed");
-    query.clear(); query.append("Shape Manager");
+    query.clear(); query.append("Shape rendering");
     rows = ui::buildSettingsRows(false, {}, query, expanded, translate);
-    check(rows.size() == 2 && rows[1].heading() && ui::isTool(*rows[1].feature) && !rows[1].children,
-        "shape manager is a feature row opening its own screen");
-    check(ui::buildSettingsRows(true, {}, query, expanded, translate).empty(), "tools are not hotkey actions");
+    check(rows.size() == 2 && rows[1].heading() && rows[1].feature->id == "shapes" && rows[1].children == 1,
+        "shape rendering is a feature with its toggle and the open-shapes key");
+    check(ui::buildSettingsRows(true, {}, query, expanded, translate).size() == 3, "both shape keys are listed in Hotkeys");
     query.clear(); query.append("not-a-real-setting");
     check(ui::buildSettingsRows(false, {}, query, expanded, translate).empty(), "unmatched query is empty");
     query.clear();

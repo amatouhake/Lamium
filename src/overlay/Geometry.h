@@ -119,6 +119,12 @@ inline std::set<Cell> gridPlane(Cell origin, int width, int depth, int spacing =
     }
     return result;
 }
+// Blocks a round shape is drawn from, as in MiniHUD: circles and cylinders are
+// rings, spheres the filled volume whose exposed faces form the outer surface.
+inline std::set<Cell> displayCells(ShapeSpec const& spec) {
+    auto cells = rasterize(spec);
+    return spec.shape == Shape::Sphere ? cells : boundaryCells(cells, true);
+}
 // Ordered corners of the actual block face; no mathematical smooth surface.
 // The renderer may use a line loop or two triangles from these coordinates.
 inline std::array<Point,4> faceVertices(CellFace face) {

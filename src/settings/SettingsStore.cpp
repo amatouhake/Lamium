@@ -61,7 +61,7 @@ Json encode(Settings const& settings) {
                          {"dimension", settings.information.dimension}, {"horizontal", settings.information.horizontal},
                          {"vertical", settings.information.vertical}}},
         {"visuals", {{"hideOffhand", settings.visuals.hideOffhand}}},
-        {"overlays", {{"chunkBorders", settings.overlays.chunkBorders}, {"hitboxes", settings.overlays.hitboxes},
+        {"overlays", {{"chunkBorders", settings.overlays.chunkBorders}, {"hitboxes", settings.overlays.hitboxes}, {"shapes", settings.overlays.shapes},
                       {"light", settings.overlays.light}, {"skyLight", settings.overlays.skyLight},
                       {"hitboxDistance", settings.overlays.hitboxDistance}}},
         {"bindings", std::move(bindings)},
@@ -124,6 +124,7 @@ Settings decodeSettings(std::string_view text) {
         auto const& overlays = data.at("overlays");
         value.overlays.chunkBorders = overlays.value("chunkBorders", false);
         value.overlays.hitboxes = overlays.value("hitboxes", false);
+        value.overlays.shapes = overlays.value("shapes", true);
         value.overlays.light = overlays.value("light", false);
         value.overlays.skyLight = overlays.value("skyLight", false);
         value.overlays.hitboxDistance = overlays.value("hitboxDistance", 64.f);

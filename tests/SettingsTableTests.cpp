@@ -5,7 +5,7 @@ void settingsTableTests() {
     using lamium::ui::SettingsTable;
     using Zone = SettingsTable::Zone;
     using Column = SettingsTable::Column;
-    constexpr int navItems = 7;
+    constexpr int navItems = 8;
 
     // Typical 16:9 GUI sizes keep the sidebar and full columns.
     for (auto [w, h] : {std::pair{640.f, 360.f}, std::pair{480.f, 270.f}, std::pair{960.f, 540.f}}) {
@@ -45,8 +45,10 @@ void settingsTableTests() {
     check(t.hit(t.searchX + 2, t.top + 8, navItems).zone == Zone::Search, "search field");
     auto nav = t.hit(t.left + 10, t.navItemY(2) + 3, navItems);
     check(nav.zone == Zone::Nav && nav.index == 2, "sidebar item");
-    auto pinned = t.hit(t.left + 10, t.navBottom - 4 - SettingsTable::navItemHeight + 3, navItems);
-    check(pinned.zone == Zone::Nav && pinned.index == navItems - 1, "hotkeys item is pinned at the sidebar bottom");
+    auto pinned = t.hit(t.left + 10, t.pinnedItemY(1) + 3, navItems);
+    check(pinned.zone == Zone::Nav && pinned.index == navItems - 1, "shapes item is pinned at the sidebar bottom");
+    pinned = t.hit(t.left + 10, t.pinnedItemY(0) + 3, navItems);
+    check(pinned.zone == Zone::Nav && pinned.index == navItems - 2, "hotkeys item is pinned above it");
     check(t.hit(t.left + 10, t.footerTop + 5, navItems).zone == Zone::Footer, "footer spans the panel");
     check(t.footerButton(t.footerButtonX(1) + 3, t.footerButtonY() + 3) == 1, "footer button index");
     check(t.hit(t.left - 1, y, navItems).zone == Zone::None, "outside the panel");

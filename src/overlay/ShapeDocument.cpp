@@ -25,6 +25,8 @@ template<class Enum, size_t N> Enum named(Json const& value, std::array<std::str
 constexpr std::array<std::string_view,3> types{"circle","cylinder","sphere"};
 constexpr std::array<std::string_view,3> snaps{"block_center","block_corner","off"};
 constexpr std::array<std::string_view,3> planes{"xz","xy","yz"};
+constexpr std::array<std::string_view,2> styles{"face","line"};
+constexpr std::array<std::string_view,4> colors{"cyan","yellow","pink","white"};
 void triple(Json const& value) {
     if (!value.is_array() || value.size()!=3) throw std::invalid_argument("Expected three coordinates");
 }
@@ -41,6 +43,9 @@ std::vector<ShapeDefinition> decodeShapes(std::string_view text) {
         definition.name = entry.at("name").get<std::string>();
         definition.dimension = integer(entry.at("dimension"));
         definition.visible = entry.at("visible").get<bool>();
+        // Appearance fields arrived after version 1 files existed; absent means defaults.
+        if (entry.contains("style")) definition.style = named<ShapeStyle>(entry.at("style"),styles);
+        if (entry.contains("color")) definition.color = named<ShapeColor>(entry.at("color"),colors);
         auto const& geometry = entry.at("geometry");
         if (geometry.at("type") == "plane") {
             auto const& origin = geometry.at("origin"); triple(origin);
@@ -76,7 +81,8 @@ std::string encodeShapes(std::vector<ShapeDefinition> const& definitions) {
                 {"plane",planes.at(static_cast<size_t>(plane.plane))}};
         }
         root["shapes"].push_back({{"name",definition.name},{"dimension",definition.dimension},
-            {"visible",definition.visible},{"geometry",std::move(geometry)}});
+            {"visible",definition.visible},{"style",styles.at(static_cast<size_t>(definition.style))},
+            {"color",colors.at(static_cast<size_t>(definition.color))},{"geometry",std::move(geometry)}});
     }
     return root.dump(2) + "\n";
 }
