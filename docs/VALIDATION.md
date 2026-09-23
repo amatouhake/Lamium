@@ -1,6 +1,9 @@
 # Development validation
 
-Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.3, Windows x64.
+Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.5, Windows x64.
+Entries below that name 26.51.3 were verified on that release. After the
+26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
+it was not a full re-run of every entry.
 
 ## Info HUD prototype
 
