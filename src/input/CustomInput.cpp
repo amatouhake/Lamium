@@ -14,15 +14,43 @@
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "ll/api/memory/Hook.h"
 #include "ll/api/service/TargetedBedrock.h"
+#include "ll/api/thread/ClientThreadExecutor.h"
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/game/MinecraftGame.h"
 #include "mc/deps/input/HIDController.h"
 #include "mc/deps/input/MouseAction.h"
+#include <mutex>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace lamium::input {
 namespace {
-// Input, UI lifecycle, and focus callbacks execute on the client main thread.
+// Key and mouse events arrive from the window procedure, outside the client
+// tick. Game state (inventories in particular) must not be touched there, so
+// actions are queued in order and run on the client thread.
+std::mutex queueLock;
+std::vector<std::pair<Action, bool>> queued;
+bool flushScheduled = false;
+void flush() {
+    std::vector<std::pair<Action, bool>> work;
+    {
+        std::scoped_lock lock(queueLock);
+        work.swap(queued);
+        flushScheduled = false;
+    }
+    for (auto [action, press] : work) {
+        if (!press) { releaseAction(action); continue; }
+        if (auto client = ll::service::getClientInstance()) executeAction(*client, action);
+    }
+}
+void post(Action action, bool press) {
+    std::scoped_lock lock(queueLock);
+    queued.emplace_back(action, press);
+    if (flushScheduled) return;
+    flushScheduled = true;
+    ll::thread::ClientThreadExecutor::getDefault().execute(flush);
+}
 HeldInputs held;
 std::array<Chord, actions.size()> previous;
 std::array<BindingState, actions.size()> states;
@@ -31,7 +59,7 @@ std::string screen;
 bool installed = false;
 void releaseStates() {
     for (size_t i = 0; i < states.size(); ++i)
-        if (states[i].reset().released) releaseAction(static_cast<Action>(i));
+        if (states[i].reset().released) post(static_cast<Action>(i), false);
 }
 void invalidate() {
     interaction::periodic::cancel();
@@ -52,7 +80,7 @@ void sync(IClientInstance& client) {
     for (size_t i = 0; i < actions.size(); ++i) chords[i] = effectiveChord(overrides, static_cast<Action>(i));
     if (screen != name || previous != chords) {
         for (size_t i = 0; i < actions.size(); ++i)
-            if (previous[i] != chords[i]) releaseAction(static_cast<Action>(i));
+            if (previous[i] != chords[i]) post(static_cast<Action>(i), false);
         invalidate();
         screen = name;
         previous = std::move(chords);
@@ -73,7 +101,7 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
         // event. Preserve held inputs, but always observe key-up releases.
         for (size_t i = 0; i < states.size(); ++i)
             if (!previous[i].empty() && states[i].update(previous[i], held.value()).released)
-                releaseAction(static_cast<Action>(i));
+                post(static_cast<Action>(i), false);
         return false;
     }
     bool const gameplay = gameplayScreen(current->getScreenName());
@@ -83,19 +111,22 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
     for (size_t i = 0; i < states.size(); ++i) {
         bool allowed = i == static_cast<size_t>(Action::Sort) ? container : gameplay;
         if (!allowed || previous[i].empty()) {
-            if (states[i].reset().released) releaseAction(static_cast<Action>(i));
+            if (states[i].reset().released) post(static_cast<Action>(i), false);
             continue;
         }
         auto edge = states[i].update(previous[i], held.value(), wheel ? std::optional<Token>(token) : std::nullopt);
         if (down && states[i].isActive()
             && std::find(previous[i].begin(), previous[i].end(), token) != previous[i].end()) consumed = true;
-        if (edge.released) releaseAction(static_cast<Action>(i));
+        if (edge.released) post(static_cast<Action>(i), false);
         if (edge.pressed) {
-            executeAction(*current, static_cast<Action>(i));
+            post(static_cast<Action>(i), true);
             consumed = true;
-            // Opening a menu changes ownership immediately, before the next
-            // render callback. Do not fire another action from the same chord.
-            if (ui::ownsInput()) { invalidate(); break; }
+            // Opening a menu takes input ownership once the queue runs. Do not
+            // fire another action from the same chord.
+            if (i == static_cast<size_t>(Action::Settings) || i == static_cast<size_t>(Action::OpenShapes)) {
+                invalidate();
+                break;
+            }
         }
     }
     return consumed;
