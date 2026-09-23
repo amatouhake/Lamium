@@ -51,7 +51,11 @@ Free single letters include F G H I K L M O P U V Y. Changing a default only
 affects users without an override; Minecraft may keep its own saved mapping.
 
 ### L-23 Lamium owns all key bindings
-Status: done. Do this before L-22. Decided: Lamium is the only place key
+Status: done (75e87d9; dispatch fix below). Verified in game 2026-09-23:
+L, C, J, R in inventory/chest/ender chest, nothing fires while typing.
+Follow-up: running actions inside the key event crashed Sort (Minecraft
+asserts when inventories are read outside the client tick). Actions are now
+queued and run through `ClientThreadExecutor`. Do this before L-22. Decided: Lamium is the only place key
 bindings live; Minecraft's keyboard settings no longer list Lamium actions.
 
 Why: actions were registered in Minecraft's keyboard settings (KeyRegistry)
@@ -94,6 +98,14 @@ Status: done. Found while testing L-01.
   ignore an explicit empty binding for `settings` (treat it as absent, i.e.
   use the default key after L-23), so existing files recover.
 - Tests: BindingTests / SettingsStoreTests for both rules.
+
+### L-24 Remove the unused action-label localization hook
+Status: ready.
+- `src/ui/Localization.cpp` hooks `Localization::_getSimple` only so that
+  Minecraft's keyboard settings could show `key.Lamium.*` labels. After L-23
+  nothing native asks for them, so the hook runs on every string lookup for
+  no reason. Remove the hook and its install/uninstall; keep
+  `ui::translated`, which the settings UI uses for those labels.
 
 ### L-02 Replace gameplay key hints with an "Open Hotkeys" action
 Status: ready.

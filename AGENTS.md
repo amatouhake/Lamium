@@ -78,6 +78,10 @@ Rules the code already follows; keep them:
    in `tests/`. Hooks and rendering call into them. When adding behavior,
    first ask "which part can be a pure function with a test?".
 2. **No game pointers kept across frames.** Collect owned values each frame.
+   Key and mouse events arrive from the window procedure, outside the client
+   tick: never touch game state there. `input/CustomInput.cpp` queues actions
+   and runs them on the client thread (touching inventories from the event
+   crashed Minecraft).
 3. **Every feature restores vanilla behavior** when disabled, on world exit,
    dimension change and focus loss.
 4. **Settings**: add a field in `Settings.h`, an entry in `Options.h`, load/save

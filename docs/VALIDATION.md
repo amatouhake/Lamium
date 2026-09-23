@@ -168,7 +168,13 @@ Held inputs are blocked until release after invalidation, preventing key repeats
 from reactivating an action. Consumed Zoom wheel events preserve the custom hold,
 and key-up is observed even for cancelled events. Pure regression tests cover
 these state transitions. Native text focus and the settings scene suppress
-custom actions; Sort retains the container/text-input checks. Build and unit
+custom actions; Sort retains the container/text-input checks. Since L-23
+every action goes through this path. Running actions inside the key event
+crashed Sort (Minecraft's assertion writes 0xDEADC0DE while reading the first
+inventory slot), because window-procedure input arrives outside the client
+tick. Actions are now queued and executed through ClientThreadExecutor; on
+2026-09-23 Sort worked in the inventory, a chest and an ender chest, and
+Settings (L), Zoom (C), NightVision (J) and chat suppression still worked. Build and unit
 checks do not prove event ordering, live focus handling, mouse codes, binding
 display, or interaction with Minecraft mappings; all still need runtime checks.
 
