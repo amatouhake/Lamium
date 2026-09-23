@@ -83,6 +83,15 @@ In the 26.51.3 client SDK:
 
 ## Next integration experiment
 
+For the next hold/drag experiment, `camera_trace` also records three independently
+bounded Freelook stages (32 records each per process): successful session begin,
+native turn deltas accepted by that session, and relative degree angles actually
+written to the render view. Startup camera samples cannot consume these budgets.
+These records contain no player/world identifiers or positions. They distinguish
+an unobserved hold from missing turn input or missing render application; they do
+not by themselves prove body isolation, correct sensitivity, or visible rotation.
+The ordinary build has no Freelook trace code.
+
 First observe `setupCamera` during first/third-person rendering and establish
 the view-matrix convention, whether vanilla reconstructs it every frame, and
 which camera position drives culling, world overlays, and hand rendering.

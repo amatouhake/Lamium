@@ -28,6 +28,23 @@
 namespace lamium {
 namespace {
 #ifdef LAMIUM_CAMERA_TRACE
+enum class LookTraceStage { Begin, Turn, Render };
+void traceLook(LookTraceStage stage, float pitch, float yaw) noexcept {
+    // Independent budgets: startup render sampling must not consume input evidence.
+    static std::atomic<unsigned> counts[3]{};
+    auto index = static_cast<unsigned>(stage);
+    auto& counter = counts[index];
+    auto count = counter.load(std::memory_order_relaxed);
+    while (count < 32 && !counter.compare_exchange_weak(
+        count, count + 1, std::memory_order_relaxed)) {}
+    if (count >= 32) return;
+    try {
+        constexpr char const* names[] = {"begin", "turn-native-delta", "render-relative-degrees"};
+        Runtime::instance().self().getLogger().info(
+            "Freelook trace: stage={} sample={} pitch={} yaw={}", names[index], count, pitch, yaw);
+    } catch (...) {}
+}
+
 struct CameraTraceContext {
     mce::Camera const* setupCamera = nullptr;
     unsigned setupSerial = 0;
@@ -148,6 +165,9 @@ LL_TYPE_INSTANCE_HOOK(FreelookCameraHook, ll::memory::HookPriority::Normal, Leve
     vertical[1][2] = std::sin(pitch);
     vertical[2][1] = -std::sin(pitch);
     *camera.viewMatrixStack->getTop()._m = vertical * horizontal * view;
+#ifdef LAMIUM_CAMERA_TRACE
+    traceLook(LookTraceStage::Render, pose->pitch, pose->yaw);
+#endif
 }
 LL_TYPE_INSTANCE_HOOK(FovHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::getFov, float, float alpha, bool variable) {
@@ -205,7 +225,12 @@ void Zoom::pressLook(IClientInstance& current) {
     auto* player = current.getLocalPlayer();
     if (!player->isAlive() || player->isSleeping() || player->getVehicle() || !player->hasRuntimeID()) return;
     client = &current;
-    look.begin(0, 0, player->getRuntimeID().rawID);
+    bool started = look.begin(0, 0, player->getRuntimeID().rawID);
+#ifdef LAMIUM_CAMERA_TRACE
+    if (started) traceLook(LookTraceStage::Begin, 0, 0);
+#else
+    (void)started;
+#endif
 }
 std::optional<DetachedLookState::Angles> Zoom::lookAngles() {
     if (!look.snapshot()) return {};
@@ -227,6 +252,9 @@ bool Zoom::turnLook(LocalPlayer& player, float pitchDelta, float yawDelta) {
     auto* current = client.load();
     if (!current || current->getLocalPlayer() != &player) return false;
     if (!lookAngles()) return false;
+#ifdef LAMIUM_CAMERA_TRACE
+    traceLook(LookTraceStage::Turn, pitchDelta, yawDelta);
+#endif
     // Experimental input calibration: native turn units still need runtime verification.
     look.turn(pitchDelta * .15f, yawDelta * .15f);
     return true;
