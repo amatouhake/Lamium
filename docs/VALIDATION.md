@@ -1431,3 +1431,22 @@ does not prove that vanilla emits no request anywhere, nor that increasing a
 timeout would fix it. Investigate the consumption transaction / authoritative
 inventory update path before permitting replenishment for this case. The
 diagnostic DLL remains installed; no successful restock is claimed.
+
+### Legacy inventory-update diagnostic smoke (2026-09-23)
+
+The `4f75321` diagnostic DLL was installed with matching SHA-256
+`B49851B1FFEB37BF676C9524FFB5F185AAA0B64CB79ECF6EF28B2D98B973BE3B`.
+In the local survival world, replacing the empty selected slot with a test egg
+produced four `legacy-content-applied-held-count=1` observations at
+11:08:41.076. This demonstrates that the content hook is active and that its
+post-handler inventory read sees the newly supplied stack.
+
+Using that egg at 11:09:24.398 reached capture and use completion, then stopped
+as Untracked at 11:09:24.417. The HUD became empty. No legacy slot/content
+observation followed this use, including a subsequent log read after the
+initial smoke. The diagnostic sample cap was not exhausted. This does not
+establish that the slot hook works, nor exclude other synchronization paths;
+it rules out relying on the observed legacy-content path alone for this case.
+Next investigate item-stack responses without captured IDs and local inventory
+mutation/synchronization rather than extending an uncorrelated wait. The trace
+build remains installed and replenishment is still not validated.
