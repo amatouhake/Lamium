@@ -134,6 +134,24 @@ void restoreCameras(LocalPlayer* player) {
     detachedCameras.clear();
 }
 #ifdef LAMIUM_CAMERA_TRACE
+void traceFreeCamera(unsigned reason, double x, double y, double z) noexcept {
+    // Bounded per-reason budget: distinguishes a hook that never fires (no
+    // samples at all) from missing input, failed advance, or an
+    // applied-but-invisible transform. Reasons: 0 no-session, 1 no-input,
+    // 2 advance-fail, 3 applied with the displacement.
+    static std::atomic<unsigned> counts[4]{};
+    if (reason >= 4) return;
+    auto& counter = counts[reason];
+    auto count = counter.load(std::memory_order_relaxed);
+    while (count < 4 && !counter.compare_exchange_weak(
+        count, count + 1, std::memory_order_relaxed)) {}
+    if (count >= 4) return;
+    try {
+        static constexpr char const* names[] = {"no-session", "no-input", "advance-fail", "applied"};
+        Runtime::instance().self().getLogger().info(
+            "FreeCamera trace: what={} sample={} dx={} dy={} dz={}", names[reason], count, x, y, z);
+    } catch (...) {}
+}
 enum class LookTraceStage { Begin, Turn, Render };
 void traceLook(LookTraceStage stage, float pitch, float yaw) noexcept {
     // Independent budgets: startup render sampling must not consume input evidence.
@@ -494,12 +512,22 @@ void Zoom::cancelLook() {
 bool Zoom::freeCameraView(IClientInstance const& renderedClient, mce::Camera& camera) {
     // A different viewport must neither advance nor translate the session.
     // This also keeps the angular session alive or cancels it on violations.
-    if (!lookAnglesFor(renderedClient) || lookOwner.load() != DetachedOwner::FreeCamera) return false;
+    if (!lookAnglesFor(renderedClient) || lookOwner.load() != DetachedOwner::FreeCamera) {
+#ifdef LAMIUM_CAMERA_TRACE
+        traceFreeCamera(0, 0, 0, 0);
+#endif
+        return false;
+    }
     DetachedCameraMotion::Vector input{};
     double seconds = 0;
     {
         std::lock_guard lock{freeInputMutex};
-        if (!hasFreeCameraInput) return false;
+        if (!hasFreeCameraInput) {
+#ifdef LAMIUM_CAMERA_TRACE
+            traceFreeCamera(1, 0, 0, 0);
+#endif
+            return false;
+        }
         input = freeCameraInput;
         auto now = std::chrono::steady_clock::now();
         if (freeMotionTimed)
@@ -527,7 +555,12 @@ bool Zoom::freeCameraView(IClientInstance const& renderedClient, mce::Camera& ca
     // Internal experiment speed, not a user setting.
     constexpr double speed = 10.0;
     auto owner = freeMotionOwner.load();
-    if (!owner || !motion.advance(owner, input, right, up, forward, speed, seconds)) return false;
+    if (!owner || !motion.advance(owner, input, right, up, forward, speed, seconds)) {
+#ifdef LAMIUM_CAMERA_TRACE
+        traceFreeCamera(2, 0, 0, 0);
+#endif
+        return false;
+    }
     auto displacement = motion.snapshot();
     if (!displacement) return false;
     double dx = (*displacement)[0], dy = (*displacement)[1], dz = (*displacement)[2];
@@ -545,6 +578,16 @@ bool Zoom::freeCameraView(IClientInstance const& renderedClient, mce::Camera& ca
         for (int row = 0; row < 3; ++row) top[column][row] = static_cast<float>(view[column][row] - local[row] * w);
         top[column][3] = view[column][3];
     }
+    // Culling, chunks and overlays read the camera eye and its cached
+    // dependencies, not just the view matrix: move them with the eye and
+    // rebuild the dependents from the translated view.
+    camera.mPosition->x += static_cast<float>(dx);
+    camera.mPosition->y += static_cast<float>(dy);
+    camera.mPosition->z += static_cast<float>(dz);
+    camera.updateViewMatrixDependencies();
+#ifdef LAMIUM_CAMERA_TRACE
+    traceFreeCamera(3, dx, dy, dz);
+#endif
     return true;
 }
 void Zoom::endLookCamera() {
