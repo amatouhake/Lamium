@@ -1414,3 +1414,20 @@ it does not establish that egg use emits the required request. The diagnostic
 build and existing LamiumTests passed after this change. Native validation of
 the revised sequencing is pending; the installed experimental DLL from the
 previous experiment has not yet been replaced by this build.
+
+### Deferred restock planning: egg use is Untracked (2026-09-23)
+
+The `b6380bb` trace build was installed with matching source/instance SHA-256
+`B85EF749A97B303DDBF8ED4521197643B86C14A34C9E537535401251A9E9CC5A`.
+The previous world session was saved through Save & Quit before replacing the
+DLL. In the same local survival test, a single egg in the selected slot was
+used. At 11:02:13.554 the trace recorded `use-item`, `capture-started` and
+`use-finished`. At 11:02:13.587 the adapter logged inventory response 3
+(`Untracked`); the held slot became empty and no replenishment occurred.
+
+This proves the revised sequence reaches response evaluation, but the current
+batch-difference capture does not obtain a use request for this egg path. It
+does not prove that vanilla emits no request anywhere, nor that increasing a
+timeout would fix it. Investigate the consumption transaction / authoritative
+inventory update path before permitting replenishment for this case. The
+diagnostic DLL remains installed; no successful restock is claimed.
