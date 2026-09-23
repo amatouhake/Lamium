@@ -166,6 +166,24 @@ cancel the detached session, and Zoom must use the same camera/input policy.
 
 ## Required runtime evidence
 
+### Opt-in position override experiment
+
+`xmake f --camera_position_probe=y --camera_probe=n` followed by
+`xmake build Lamium` enables a two-block camera-local rightward displacement
+while Zoom is held. The probe applies a translation to the fresh vanilla view
+after setup, retains vanilla's world origin, and lets the subsequent camera
+dependency update run normally. It does not alter player position, movement,
+game mode, or packets. Releasing Zoom removes the per-frame override. The
+rotation probe takes precedence if both options are enabled; use one at a time.
+
+This is a local development experiment, not FreeCamera. Zoom still affects FOV,
+movement still belongs to vanilla, and the existing camera trace is enabled.
+Check visible parallax, near/far geometry, Shape alignment, culling at the view
+edges, and return to vanilla before extending the translation to a moving
+session. In particular, the separate render origin may have downstream users
+that do not consume the adjusted view. Disable with
+`xmake f --camera_position_probe=n` and rebuild before ordinary use.
+
 ### Opt-in view override experiment
 
 `xmake f --camera_probe=y` enables a development-only fixed 20-degree

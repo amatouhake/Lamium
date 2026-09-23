@@ -48,6 +48,12 @@ option("camera_probe")
     set_description("Experimental render-only rotation while Zoom is held (enables camera trace)")
 option_end()
 
+option("camera_position_probe")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Experimental render-only camera translation while Zoom is held")
+option_end()
+
 includes("packages/levilamina-client-sdk.lua")
 add_requires("levilamina-client-sdk 26.51.3", {configs = {shared = true}})
 
@@ -61,8 +67,9 @@ end
 target("Lamium")
     if has_config("automation_trace") then add_defines("LAMIUM_AUTOMATION_TRACE") end
     if has_config("restock_trace") then add_defines("LAMIUM_RESTOCK_TRACE") end
-    if has_config("camera_trace") or has_config("camera_probe") then add_defines("LAMIUM_CAMERA_TRACE") end
+    if has_config("camera_trace") or has_config("camera_probe") or has_config("camera_position_probe") then add_defines("LAMIUM_CAMERA_TRACE") end
     if has_config("camera_probe") then add_defines("LAMIUM_CAMERA_PROBE") end
+    if has_config("camera_position_probe") then add_defines("LAMIUM_CAMERA_POSITION_PROBE") end
     if has_config("shape_trace") then add_defines("LAMIUM_SHAPE_TRACE") end
     if has_config("placement_trace") then add_defines("LAMIUM_PLACEMENT_TRACE") end
     add_rules("@levibuildscript/linkrule")

@@ -33,7 +33,7 @@ public:
     void reset() { state.reset(); look.cancel(); client = nullptr; }
     float fov(IClientInstance const&, float base) const;
     float sensitivity(LocalPlayer const&) const;
-#ifdef LAMIUM_CAMERA_PROBE
+#if defined(LAMIUM_CAMERA_PROBE) || defined(LAMIUM_CAMERA_POSITION_PROBE)
     bool viewProbeActive() const;
 #endif
 };

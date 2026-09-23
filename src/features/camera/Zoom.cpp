@@ -112,7 +112,7 @@ LL_TYPE_INSTANCE_HOOK(CameraTraceHook, ll::memory::HookPriority::Normal, LevelRe
     glm::mat4 before{1};
     if (beforeValid) before = *camera.viewMatrixStack->top()._m;
     origin(camera, alpha);
-#ifdef LAMIUM_CAMERA_PROBE
+#if defined(LAMIUM_CAMERA_PROBE) || defined(LAMIUM_CAMERA_POSITION_PROBE)
     if (Zoom::instance().viewProbeActive() && !camera.viewMatrixStack->stack->empty()) {
         // Camera-local 20-degree yaw. Pre-multiplication rotates the view without
         // translating its eye. Always compose with this call's vanilla result.
@@ -122,12 +122,21 @@ LL_TYPE_INSTANCE_HOOK(CameraTraceHook, ll::memory::HookPriority::Normal, LevelRe
             for (int row = 0; row < 4; ++row)
                 finite = finite && std::isfinite(view[column][row]);
         if (finite) {
+#ifdef LAMIUM_CAMERA_PROBE
             constexpr float angle = 0.3490658504f;
             glm::mat4 rotation{1.f};
             rotation[0][0] = rotation[2][2] = std::cos(angle);
             rotation[0][2] = -std::sin(angle);
             rotation[2][0] = std::sin(angle);
             *camera.viewMatrixStack->getTop()._m = rotation * view;
+#else
+            // A bounded two-block camera-local displacement. Keep the original
+            // world origin; test whether downstream view dependencies and
+            // world-relative geometry agree before integrating free movement.
+            glm::mat4 translation{1.f};
+            translation[3][0] = -2.f;
+            *camera.viewMatrixStack->getTop()._m = translation * view;
+#endif
         }
     }
 #endif
@@ -223,7 +232,7 @@ std::optional<DetachedLookState::Angles> Zoom::lookAnglesFor(IClientInstance con
     if (client.load() != &renderedClient) return {};
     return lookAngles();
 }
-#ifdef LAMIUM_CAMERA_PROBE
+#if defined(LAMIUM_CAMERA_PROBE) || defined(LAMIUM_CAMERA_POSITION_PROBE)
 bool Zoom::viewProbeActive() const {
     auto* current = client.load();
     return running && allowed && state.held() && current && gameplayScreen(current->getScreenName());
