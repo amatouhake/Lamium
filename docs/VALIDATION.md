@@ -1472,3 +1472,30 @@ validation of that diagnostic is pending; Hand Restock remains experimental.
 The diagnostic build and existing LamiumTests passed. These checks cover
 compilation and existing inventory-planning invariants, not hook execution
 or successful replenishment in Minecraft.
+
+### Egg use takes the complex-transaction send path (2026-09-23)
+
+The `83814f7` diagnostic DLL was installed with matching SHA-256
+`AEB1694C5B53341DCDE4A19BB546F670E1922833297F572361AFE05C21EBEE69`.
+In the local survival world, using one egg at 11:26:38.774 produced the
+following order: use-item, capture-start (0/false), capture-end-batch
+(0/false), use-finished, complex-transaction-send-type=2, and
+complex-transaction-during-use=0. The SDK defines type 2 as
+ItemUseTransaction. The adapter stopped as Untracked at 11:26:38.807 and
+the selected slot was empty. A subsequent log read showed no later response
+or inventory-update observation.
+
+This positively validates the complex-send diagnostic hook and identifies a
+send after the current synchronous capture boundary. It does not establish
+server acceptance, and no replenishment occurred. Repeating batch capture or
+extending its timeout is not the next implementation step.
+
+The adapter needs separate consumption observation and replenishment-response
+tracking. Investigate matching a successful local use to the outbound use
+transaction's slot/hand/action and subsequent inventory depletion; cancel on
+selection/context changes, unrelated slot changes, or manual inventory actions.
+Any resulting replenishment must still use vanilla controller operations and
+the owned response barrier. Do not label client prediction or transaction
+submission as server acknowledgement. Block, food, firework, rejection and
+multiplayer behavior require independent validation. Keep this uncertainty
+bounded rather than blocking the remaining feature waves.
