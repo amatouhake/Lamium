@@ -38,6 +38,12 @@ lifecycle checks still require Minecraft validation. Interaction aim,
 split-screen rendering, culling and perspective transitions remain incomplete;
 this is not a stable Freelook feature.
 
+Render application now checks `LevelRendererPlayer::mClientInstance` against the
+client that owns the hold. A different renderer passes through without cancelling
+that hold. Zoom FOV and turn sensitivity also check their client/player owner.
+This narrows native hook effects to the current owner; it does not implement
+independent simultaneous split-screen sessions or prove split-screen support.
+
 The interaction guard now intercepts GameMode attack, start/continue/final block
 destruction, start/continue/final placement, item use, use-as-attack, use-on-block
 and entity interaction. While a valid detached session owns that local player,

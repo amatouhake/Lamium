@@ -156,7 +156,7 @@ LL_TYPE_INSTANCE_HOOK(CameraTraceHook, ll::memory::HookPriority::Normal, LevelRe
 LL_TYPE_INSTANCE_HOOK(FreelookCameraHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::setupCamera, void, mce::Camera& camera, float alpha) {
     origin(camera, alpha);
-    auto pose = Zoom::instance().lookAngles();
+    auto pose = Zoom::instance().lookAnglesFor(mClientInstance);
     if (!pose) return;
     if (camera.viewMatrixStack->stack->empty()) { Zoom::instance().cancelLook(); return; }
     auto view = *camera.viewMatrixStack->top()._m;
@@ -175,12 +175,12 @@ LL_TYPE_INSTANCE_HOOK(FreelookCameraHook, ll::memory::HookPriority::Normal, Leve
 }
 LL_TYPE_INSTANCE_HOOK(FovHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::getFov, float, float alpha, bool variable) {
-    return Zoom::instance().fov(origin(alpha, variable));
+    return Zoom::instance().fov(mClientInstance, origin(alpha, variable));
 }
 LL_TYPE_INSTANCE_HOOK(TurnHook, ll::memory::HookPriority::Normal, LocalPlayer,
     &LocalPlayer::_applyTurnDelta, void, Vec2 const& delta) {
     if (Zoom::instance().turnLook(*this, delta.x, delta.z)) return;
-    float scale = Zoom::instance().sensitivity();
+    float scale = Zoom::instance().sensitivity(*this);
     origin(Vec2{delta.x * scale, delta.z * scale});
 }
 LL_TYPE_INSTANCE_HOOK(DimensionHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
@@ -211,6 +211,18 @@ HookEntry hooks[] = {
 };
 }
 Zoom& Zoom::instance() { static Zoom value; return value; }
+float Zoom::fov(IClientInstance const& renderedClient, float base) const {
+    return running && client.load() == &renderedClient ? state.fov(base) : base;
+}
+float Zoom::sensitivity(LocalPlayer const& player) const {
+    auto* current = client.load();
+    return running && current && current->getLocalPlayer() == &player ? state.sensitivity() : 1.f;
+}
+std::optional<DetachedLookState::Angles> Zoom::lookAnglesFor(IClientInstance const& renderedClient) {
+    // A different viewport must neither consume nor cancel the owner's session.
+    if (client.load() != &renderedClient) return {};
+    return lookAngles();
+}
 #ifdef LAMIUM_CAMERA_PROBE
 bool Zoom::viewProbeActive() const {
     auto* current = client.load();

@@ -28,10 +28,11 @@ public:
     bool turnLook(LocalPlayer&, float pitchDelta, float yawDelta);
     bool blocksLookInteraction(Player&);
     std::optional<DetachedLookState::Angles> lookAngles();
+    std::optional<DetachedLookState::Angles> lookAnglesFor(IClientInstance const&);
     void release() { state.release(); }
     void reset() { state.reset(); look.cancel(); client = nullptr; }
-    float fov(float base) const { return running ? state.fov(base) : base; }
-    float sensitivity() const { return running ? state.sensitivity() : 1.0f; }
+    float fov(IClientInstance const&, float base) const;
+    float sensitivity(LocalPlayer const&) const;
 #ifdef LAMIUM_CAMERA_PROBE
     bool viewProbeActive() const;
 #endif
