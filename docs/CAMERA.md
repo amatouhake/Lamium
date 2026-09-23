@@ -4,6 +4,18 @@ Freelook now has an experimental integration, disabled and unbound by default.
 FreeCamera is not implemented. This records SDK evidence and remaining
 integration questions; it does not claim detached-camera runtime validation.
 
+`DetachedCameraMotion` now supplies a game-independent displacement session for
+the future FreeCamera adapter. It consumes camera-basis vectors, analog axes,
+speed and elapsed time; it normalizes diagonals, limits a stalled update to
+0.1 seconds, caps supplied speed at 100 blocks/second, and discards the session
+on invalid input or owner replacement. These are initial internal bounds, not
+user-facing settings. Cancellation removes the displacement without retaining
+or restoring any player transform. This component is not connected to native
+movement or rendering yet, and does not make FreeCamera available in-game.
+The adapter still needs to anchor the activation eye, own/suppress local
+movement, share the detached angular session, and validate render/culling
+coordinates and all lifecycle exits.
+
 `DetachedLookState` now provides the game-independent angular session: begin from
 a fresh orientation, ignore repeated activation, accumulate degree deltas with
 bounded pitch and wrapped yaw, and discard the pose on cancellation or invalid

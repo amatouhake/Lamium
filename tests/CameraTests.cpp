@@ -17,6 +17,8 @@ int main() try {
     automationInputTests();
     extern void detachedLookTests();
     detachedLookTests();
+    extern void detachedCameraMotionTests();
+    detachedCameraMotionTests();
     extern void restrictionRegionTests();
     restrictionRegionTests();
     extern void frameRateTests();
