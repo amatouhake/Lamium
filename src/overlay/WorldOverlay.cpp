@@ -112,7 +112,28 @@ struct ShapeMesh {
     Cell origin{};
     std::optional<mce::Mesh> faces, lines;
     uint32_t faceVertices = 0, lineVertices = 0;
+    bool twoSided = false;
 };
+// Faces need an unlit, alpha-blended material. The block selection overlay
+// multiplies the scene color, so it followed day and night; it also culls back
+// faces. Prefer the hologram pointer material (vertex color, alpha blending,
+// depth-tested without depth writes), available with fancy graphics, and emit
+// both windings since it culls. Otherwise use the lightning material, which is
+// two-sided but additive.
+struct FaceMaterial { mce::MaterialPtr material; bool twoSided; };
+FaceMaterial faceMaterial() {
+    mce::MaterialPtr hologram(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
+    bool preferred = hologram.mRenderMaterialInfoPtr != nullptr;
+    static std::atomic<int> reported{-1};
+    if (reported.exchange(preferred ? 1 : 0) != (preferred ? 1 : 0)) {
+        try {
+            Runtime::instance().self().getLogger().info("Shape faces use the {} material",
+                preferred ? "hologram pointer" : "lightning fallback");
+        } catch (...) {}
+    }
+    if (preferred) return {std::move(hologram), true};
+    return {mce::MaterialPtr(mce::RenderMaterialGroup::common(), HashedString{"lightning"}), false};
+}
 std::map<ShapeId, ShapeMesh> shapeMeshes;
 std::atomic<bool> releaseMeshes{false};
 std::array<float,3> shapeColor(ShapeColor color, bool draft) {
@@ -124,10 +145,11 @@ std::array<float,3> shapeColor(ShapeColor color, bool draft) {
     default: return {.25f,.82f,.88f};
     }
 }
-void buildShapeMesh(ScreenContext& screen, ShapeMesh& mesh, ManagedShape const& shape, bool draft) {
+void buildShapeMesh(ScreenContext& screen, ShapeMesh& mesh, ManagedShape const& shape, bool draft, bool twoSided) {
     mesh.faces.reset(); mesh.lines.reset();
     mesh.faceVertices = mesh.lineVertices = 0;
     mesh.revision = shape.revision;
+    mesh.twoSided = twoSided;
     if (!shape.faces.empty()) mesh.origin = shape.faces.front().cell;
     else if (!shape.lines.empty()) mesh.origin = {static_cast<int>(shape.lines.front().from.x),
         static_cast<int>(shape.lines.front().from.y), static_cast<int>(shape.lines.front().from.z)};
@@ -139,11 +161,17 @@ void buildShapeMesh(ScreenContext& screen, ShapeMesh& mesh, ManagedShape const& 
     };
     if (faces && !shape.faces.empty()) {
         Tessellator batch(screen.tessellator.mBufferResourceService);
-        batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(shape.faces.size()*4), false);
-        batch.color(r, g, b, .3f);
-        for (auto const& face : shape.faces) for (auto p : faceVertices(face)) relative(batch, p);
+        int sides = twoSided ? 2 : 1;
+        batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(shape.faces.size()*4*sides), false);
+        batch.color(r, g, b, twoSided ? .28f : .2f);
+        for (auto const& face : shape.faces) {
+            auto corners = faceVertices(face);
+            for (auto p : corners) relative(batch, p);
+            // The reverse winding keeps faces visible from inside the shape.
+            if (twoSided) for (auto it = corners.rbegin(); it != corners.rend(); ++it) relative(batch, *it);
+        }
         mesh.faces.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium shape faces", SupplementaryFieldAutoGenerationMode{}));
-        mesh.faceVertices = static_cast<uint32_t>(shape.faces.size()*4);
+        mesh.faceVertices = static_cast<uint32_t>(shape.faces.size()*4*sides);
     }
     if (!shape.lines.empty()) {
         Tessellator batch(screen.tessellator.mBufferResourceService);
@@ -155,21 +183,22 @@ void buildShapeMesh(ScreenContext& screen, ShapeMesh& mesh, ManagedShape const& 
         mesh.lineVertices = static_cast<uint32_t>(shape.lines.size()*2);
     }
 }
-void drawShape(BaseActorRenderContext& context, mce::MaterialPtr const& faceMaterial, ShapeId id,
+void drawShape(BaseActorRenderContext& context, FaceMaterial const& faceMaterial, ShapeId id,
                ManagedShape const& shape, bool draft) {
     if (!context.mImpl) return;
     ScreenContext& screen = context.mScreenContext;
     auto& mesh = shapeMeshes[id];
-    if (mesh.revision != shape.revision || (mesh.faces && !mesh.faces->isValid()) || (mesh.lines && !mesh.lines->isValid()))
-        buildShapeMesh(screen, mesh, shape, draft);
+    if (mesh.revision != shape.revision || mesh.twoSided != faceMaterial.twoSided
+        || (mesh.faces && !mesh.faces->isValid()) || (mesh.lines && !mesh.lines->isValid()))
+        buildShapeMesh(screen, mesh, shape, draft, faceMaterial.twoSided);
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
     Vec3 const camera = context.mImpl->mCameraPosition;
     auto ref = screen.camera.worldMatrixStack->push(false);
     ref.stack->_isDirty = true;
     ref.mat->_m = glm::translate(ref.mat->_m.get(), glm::vec3{static_cast<float>(mesh.origin.x - camera.x),
         static_cast<float>(mesh.origin.y - camera.y), static_cast<float>(mesh.origin.z - camera.z)});
-    if (mesh.faces && faceMaterial.mRenderMaterialInfoPtr)
-        mesh.faces->renderMesh(screen, faceMaterial, gsl::span<mce::ClientTexture const*>{}, 0, mesh.faceVertices,
+    if (mesh.faces && faceMaterial.material.mRenderMaterialInfoPtr)
+        mesh.faces->renderMesh(screen, faceMaterial.material, gsl::span<mce::ClientTexture const*>{}, 0, mesh.faceVertices,
             OffscreenCaptureDescription{}, nullptr);
     if (mesh.lines && lineMaterial.mRenderMaterialInfoPtr)
         mesh.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, mesh.lineVertices,
@@ -217,12 +246,12 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     try {
         if (shapesShown) {
             std::lock_guard lock(shapeMutex);
-            mce::MaterialPtr const& faceMaterial = selectionOverlayMaterial;
+            auto const faces = faceMaterial();
             int dimensionId = static_cast<int>(player->getDimensionId());
             shapeCollection.forVisible(dimensionId,
-                [&](ShapeId id, ManagedShape const& shape) { drawShape(context, faceMaterial, id, shape, false); });
+                [&](ShapeId id, ManagedShape const& shape) { drawShape(context, faces, id, shape, false); });
             draftCollection.forVisible(dimensionId,
-                [&](ShapeId, ManagedShape const& shape) { drawShape(context, faceMaterial, draftKey, shape, true); });
+                [&](ShapeId, ManagedShape const& shape) { drawShape(context, faces, draftKey, shape, true); });
             // Release meshes of removed shapes.
             if (shapeMeshes.size() > shapeCollection.entries().size() + draftCollection.entries().size())
                 std::erase_if(shapeMeshes, [&](auto const& entry) {
