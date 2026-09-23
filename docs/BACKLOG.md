@@ -295,9 +295,49 @@ renderer). Needs a trace build to find which call draws it.
 Consumption is detected, but the transfer through the HUD fails
 (`handlePlaceAmount` returns false). See HAND-RESTOCK.md and VALIDATION.md.
 
-### L-18 FreeCamera (paused)
-Movement extraction and motion math exist but are not connected. Paused by
-the maintainer.
+### L-18 FreeCamera
+Status: research, assigned as an experiment (2026-09-23). Work on branch
+`freecamera`, not `main`, until the maintainer accepts it.
+
+Goal: a Toggle action detaches the camera from the player. The camera turns
+like Freelook and flies like creative flight (WASD horizontal relative to the
+camera yaw, Space up, Shift down); the player stays where it is and receives
+no movement, attack or use. Toggling off returns the view to the player.
+
+Read first: docs/CAMERA.md (all of it), `features/camera/Zoom.cpp` (Freelook),
+`DetachedCameraMotion.h`, `DetachedLookState.h`, `CameraMovementInput.*`.
+
+Known facts (verified in game):
+- Overriding the view matrix after `setupCamera` changed culling but not the
+  rendered rotation; overriding `tryGetActorRotation` had no visible effect.
+- Freelook works by removing `VanillaCamera::UpdatePlayerFromCameraComponent`
+  from the active camera entity and restoring the camera's own angles later.
+  Reuse this for FreeCamera's rotation.
+- The `camera_position_probe` build (translation composed after
+  `setupCamera`) visibly moved the camera two blocks to the right. Whether
+  culling, chunks and overlays agree with a moved camera is unknown.
+- `camera::consumeMovement` can clear `RawMoveInputComponent` movement, but no
+  hook calls it yet.
+
+Stages. Stop after each stage, deploy, and ask the maintainer to check in
+game before the next one:
+1. Action + rotation: append a `freecamera` Toggle action (unbound) and an
+   experimental feature row; while active, detach rotation exactly like
+   Freelook (share its session; Freelook and FreeCamera never run together).
+2. Freeze the player: while active, the player does not move, jump, sneak,
+   attack or use. Find where vanilla consumes `RawMoveInputComponent` and
+   call `consumeMovement` there; keep the extracted input for stage 3.
+3. Move the camera: feed the extracted input to `DetachedCameraMotion` and
+   apply the position. Try the camera entity's own position (ECS components
+   in `MinecraftCamera`/`VanillaCamera`) before a view-matrix translation.
+   Report what happens to culling, distant chunks, shapes and chunk borders.
+4. Exits: toggling off, settings opening, world exit, dimension change,
+   death, focus loss and disable all return to vanilla cleanly.
+
+Hand back instead of pushing on when a stage fails in game twice with the
+same approach, or when a needed game function cannot be found in the SDK.
+Use trace options (`xmake f --camera_trace=y`) for evidence, never in a build
+handed over as final.
 
 ### L-20 Shape name text input adds stray characters
 Native text entry for shape names inserts extra characters.
