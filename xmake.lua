@@ -12,6 +12,12 @@ option("target_type")
     set_values("client")
 option_end()
 
+option("restock_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Enable bounded read-only HUD inventory diagnostics")
+option_end()
+
 option("placement_trace")
     set_default(false)
     set_showmenu(true)
@@ -47,6 +53,7 @@ if not has_config("vs_runtime") then
 end
 
 target("Lamium")
+    if has_config("restock_trace") then add_defines("LAMIUM_RESTOCK_TRACE") end
     if has_config("camera_trace") or has_config("camera_probe") then add_defines("LAMIUM_CAMERA_TRACE") end
     if has_config("camera_probe") then add_defines("LAMIUM_CAMERA_PROBE") end
     if has_config("shape_trace") then add_defines("LAMIUM_SHAPE_TRACE") end

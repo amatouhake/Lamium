@@ -37,6 +37,17 @@ obtain and validate the HUD-owned controller without retaining it across world
 or screen transitions. Collection names, slot mapping and source availability
 must be verified against the live HUD model before attempting transfers.
 
+A read-only `restock_trace` build now observes the first eight client HUD
+controller creations. In a local creative-world check, the controller exposed
+one collection, `hotbar_items`, with **36** slots. Every occupied slot 0–21
+uniquely matched the same index in `Player::getInventory()`. Thus the HUD
+collection name does not mean it contains only nine slots. Empty slots 22–35,
+survival/multiplayer and actual transfers remain unverified. The adapter must
+check collection existence, size and slot contents at use time; this observation
+does not justify hardcoded unchecked access. The diagnostic is off by default,
+never transfers items, and logs only bounded engine names/indices and match
+counts, not item names/NBT or world/account identifiers.
+
 Immediate use (`GameMode::useItem` / `useItemOn`) and delayed consumption
 (`Player::completeUsingItem`) need separate runtime checks. A successful use
 return value alone does not prove server acceptance. Avoid nested/double

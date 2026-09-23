@@ -1339,3 +1339,22 @@ rendering/performance was not rechecked in this session.
 This is local inventory regression evidence, not validation of multiplayer
 rejection/delay, concurrent feature execution, or Hand Restock. Restock's native
 connection is still pending.
+
+### Read-only HUD inventory mapping (2026-09-23)
+
+An opt-in `restock_trace` build installed with matching DLL SHA-256
+`5A6441D99B5DEDCDA2BAB74620674795220664134E20293CEFA909346307326F`
+observed vanilla HUD controller creation in a local creative world. At
+10:13:27.672 the controller reported one collection, `hotbar_items`, size 36,
+and `closed=false`. Each occupied slot 0–21 uniquely matched the corresponding
+player-inventory index. The remaining slots were empty, so their mapping was
+not established by item comparison. No transfer or gameplay setting change was
+performed. Minecraft subsequently closed normally and its window disappeared.
+
+This establishes an available HUD-owned inventory view for a future Restock
+adapter, not successful gameplay transfers or consumption detection. Survival,
+multiplayer, delayed initialization and recreated HUDs remain to be checked.
+The session log reached Lamium disabling at 10:14:13.170. Afterward,
+`restock_trace` was disabled, the normal build/package check passed, and the
+instance DLL was restored with matching source/destination SHA-256
+`CB33F555198F70446B03A8353A7DF9E64A9782514F882989A55139518C4085B2`.
