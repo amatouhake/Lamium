@@ -6,7 +6,9 @@ experimental native adapter and an unbound toggle action in Features/Hotkeys.
 Its basic toggle, settings-screen cancellation, and app-switch cancellation have passed a local-world
 runtime check; broader compatibility is still unverified. Periodic Attack and Use
 now have an initial native adapter with unbound session toggles in Features and
-Hotkeys. Their synthetic behavior has not yet been validated in Minecraft.
+Hotkeys. Periodic Attack has passed a basic local empty-hand check, including
+toggle-off, settings cancellation, and a manual click disarming the action.
+Periodic Use and the broader interaction matrix remain unverified.
 
 Initial local-world check on 2026-09-23: the settings editor accepted a custom
 binding and the action logged activation, but the third-person player did not
@@ -91,6 +93,29 @@ evidence to establish repeated attacks. Settings was reopened to cancel any
 remaining intent. This is not a successful automation check. The next trace
 adds activation rejection reasons, bounded edge counts, and update-owner
 eligibility diagnostics to distinguish capture, activation, and dispatch failure.
+
+Follow-up on 2026-09-23, commit `71883c7`, DLL SHA-256
+`2A9A153A7CEC0A7C91B3B391F75BB3B2A084F50E9ABBDFC5586EEBAC45E3B9D8`,
+in a local survival world on Minecraft 1.26.51.01 / LeviLamina Client 26.51.3 /
+Deesse UI 1.3.9:
+
+- The custom Periodic Attack key activated arm swings with an empty hand.
+  The first four down edges were about 0.51 seconds apart; their corresponding
+  up edges followed about 17–22 ms later. Toggling off recorded 39 presses and
+  39 releases.
+- Reactivating and opening Settings stopped after 23 matched presses/releases.
+  The rejection diagnostic showed the primary client, armed client, and input
+  owner matched; gameplay eligibility was false while Settings owned input.
+  Closing Settings did not rearm: the next toggle logged a new activation.
+- A manual left click during a subsequent activation delivered the ordinary
+  attack down/up callbacks. The next toggle activated again rather than
+  toggling off, establishing that the click had disarmed the session intent.
+  This does not test a physically held button overlapping a synthetic press.
+
+These observations supersede the earlier inconclusive attack smoke only.
+They do not establish entity damage, block breaking, Periodic Use, continuous-use
+items, world/dimension transitions, multiplayer, or hot re-enable support.
+Configurable intervals and visible active state remain implementation work.
 
 ## Integration still required
 
