@@ -113,29 +113,34 @@ struct ShapeMesh {
     Cell origin{};
     std::optional<mce::Mesh> faces, lines;
     uint32_t faceVertices = 0, lineVertices = 0;
-    bool twoSided = false;
+    int variant = -1; // The FaceMaterial variant the mesh was built for.
 };
-// Faces need an unlit, alpha-blended material. The block selection overlay
-// multiplies the scene color, so it followed day and night; it also culls back
-// faces. Prefer the hologram pointer material (vertex color, alpha blending,
-// depth-tested without depth writes), available with fancy graphics, and emit
-// both windings since it culls. Simple graphics do not load it (the pointer
-// still resolves but draws nothing), so use the two-sided, additive lightning
-// material there.
-struct FaceMaterial { mce::MaterialPtr material; bool twoSided; };
+// Faces need an unlit, alpha-blended material, chosen per graphics mode:
+// - Fancy: the hologram pointer material (vertex color, alpha blending,
+//   depth-tested without depth writes). It culls, so faces get both windings.
+// - Simple: that material is not loaded (its pointer resolves but draws
+//   nothing); use the two-sided, additive lightning material, fainter.
+// - Vibrant Visuals / ray tracing: the deferred pipeline does not show the
+//   hologram material here. Try lightning and draw full-strength outlines so
+//   the shape stays readable even if faces are not shown.
+// The block selection overlay was unsuitable: it multiplies the scene color.
+struct FaceMaterial { mce::MaterialPtr material; int variant; bool twoSided; float alpha; bool strongLines; };
 FaceMaterial faceMaterial(IClientInstance& client) {
-    bool fancy = client.getOptions().getGraphicsMode() != GraphicsMode::Simple;
-    mce::MaterialPtr hologram(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
-    bool preferred = fancy && hologram.mRenderMaterialInfoPtr != nullptr;
+    auto mode = client.getOptions().getGraphicsMode();
     static std::atomic<int> reported{-1};
-    if (reported.exchange(preferred ? 1 : 0) != (preferred ? 1 : 0)) {
+    if (reported.exchange(static_cast<int>(mode)) != static_cast<int>(mode)) {
         try {
-            Runtime::instance().self().getLogger().info("Shape faces use the {} material",
-                preferred ? "hologram pointer" : "lightning fallback");
+            Runtime::instance().self().getLogger().info("Shape faces use the {} material (graphics mode {})",
+                mode == GraphicsMode::Fancy ? "hologram pointer" : "lightning", static_cast<int>(mode));
         } catch (...) {}
     }
-    if (preferred) return {std::move(hologram), true};
-    return {mce::MaterialPtr(mce::RenderMaterialGroup::common(), HashedString{"lightning"}), false};
+    if (mode == GraphicsMode::Fancy) {
+        mce::MaterialPtr hologram(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
+        if (hologram.mRenderMaterialInfoPtr) return {std::move(hologram), 0, true, .28f, false};
+    }
+    mce::MaterialPtr lightning(mce::RenderMaterialGroup::common(), HashedString{"lightning"});
+    if (mode == GraphicsMode::Simple) return {std::move(lightning), 1, false, .13f, false};
+    return {std::move(lightning), 2, false, .13f, true};
 }
 std::map<ShapeId, ShapeMesh> shapeMeshes;
 std::atomic<bool> releaseMeshes{false};
@@ -148,11 +153,26 @@ std::array<float,3> shapeColor(ShapeColor color, bool draft) {
     default: return {.25f,.82f,.88f};
     }
 }
-void buildShapeMesh(ScreenContext& screen, ShapeMesh& mesh, ManagedShape const& shape, bool draft, bool twoSided) {
+// Faces sit a hair inside their block so they never share a plane with the
+// terrain face next to them, which otherwise flickers (z-fighting).
+Point inset(Point p, Face face) {
+    constexpr double depth = .005;
+    switch (face) {
+    case Face::West: p.x += depth; break;
+    case Face::East: p.x -= depth; break;
+    case Face::Down: p.y += depth; break;
+    case Face::Up: p.y -= depth; break;
+    case Face::North: p.z += depth; break;
+    case Face::South: p.z -= depth; break;
+    }
+    return p;
+}
+void buildShapeMesh(ScreenContext& screen, ShapeMesh& mesh, ManagedShape const& shape, bool draft, FaceMaterial const& material) {
+    bool twoSided = material.twoSided;
     mesh.faces.reset(); mesh.lines.reset();
     mesh.faceVertices = mesh.lineVertices = 0;
     mesh.revision = shape.revision;
-    mesh.twoSided = twoSided;
+    mesh.variant = material.variant;
     if (!shape.faces.empty()) mesh.origin = shape.faces.front().cell;
     else if (!shape.lines.empty()) mesh.origin = {static_cast<int>(shape.lines.front().from.x),
         static_cast<int>(shape.lines.front().from.y), static_cast<int>(shape.lines.front().from.z)};
@@ -166,9 +186,10 @@ void buildShapeMesh(ScreenContext& screen, ShapeMesh& mesh, ManagedShape const& 
         Tessellator batch(screen.tessellator.mBufferResourceService);
         int sides = twoSided ? 2 : 1;
         batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(shape.faces.size()*4*sides), false);
-        batch.color(r, g, b, twoSided ? .28f : .2f);
+        batch.color(r, g, b, material.alpha);
         for (auto const& face : shape.faces) {
             auto corners = faceVertices(face);
+            for (auto& corner : corners) corner = inset(corner, face.face);
             for (auto p : corners) relative(batch, p);
             // The reverse winding keeps faces visible from inside the shape.
             if (twoSided) for (auto it = corners.rbegin(); it != corners.rend(); ++it) relative(batch, *it);
@@ -180,7 +201,7 @@ void buildShapeMesh(ScreenContext& screen, ShapeMesh& mesh, ManagedShape const& 
         Tessellator batch(screen.tessellator.mBufferResourceService);
         batch.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(shape.lines.size()*2), false);
         // Faces carry a faint outline so the block grid stays readable.
-        batch.color(r, g, b, faces ? .45f : 1.f);
+        batch.color(r, g, b, faces && !material.strongLines ? .45f : 1.f);
         for (auto const& line : shape.lines) { relative(batch, line.from); relative(batch, line.to); }
         mesh.lines.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium shape lines", SupplementaryFieldAutoGenerationMode{}));
         mesh.lineVertices = static_cast<uint32_t>(shape.lines.size()*2);
@@ -191,9 +212,9 @@ void drawShape(BaseActorRenderContext& context, FaceMaterial const& faceMaterial
     if (!context.mImpl) return;
     ScreenContext& screen = context.mScreenContext;
     auto& mesh = shapeMeshes[id];
-    if (mesh.revision != shape.revision || mesh.twoSided != faceMaterial.twoSided
+    if (mesh.revision != shape.revision || mesh.variant != faceMaterial.variant
         || (mesh.faces && !mesh.faces->isValid()) || (mesh.lines && !mesh.lines->isValid()))
-        buildShapeMesh(screen, mesh, shape, draft, faceMaterial.twoSided);
+        buildShapeMesh(screen, mesh, shape, draft, faceMaterial);
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
     Vec3 const camera = context.mImpl->mCameraPosition;
     auto ref = screen.camera.worldMatrixStack->push(false);
