@@ -40,9 +40,11 @@ a fresh orientation, ignore repeated activation, accumulate degree deltas with
 bounded pitch and wrapped yaw, and discard the pose on cancellation or invalid
 input. Snapshot and input updates are synchronized. Unit tests cover boundary
 crossing, pitch limits, repeated activation, cancellation/reactivation, and
-nonfinite/extreme input. The experimental `freelook` Hold action starts a relative
-angular session; native turn input is consumed for that local player and the
-render setup applies the accumulated rotation to vanilla's fresh view matrix.
+nonfinite/extreme input. The experimental `freelook` Hold action starts an
+angular session from the player's current pitch/yaw; native turn input is
+consumed for that local player. The camera API's actor-rotation query returns
+the session angles for the local player, so vanilla derives render, culling and
+third-person boom orientation from the detached pose.
 Features and Hotkeys expose the action, with a separately persisted enable flag.
 Release, settings entry, focus loss, world exit, dimension transition, camera
 configuration changes, and non-gameplay screens discard the detached pose.
@@ -53,11 +55,14 @@ focus loss, one press/release may be needed before the next activation; silently
 restarting a still-held input is not used to recover. Unit tests cover these
 cancellation/repeat/release sequences; native focus recovery remains unverified.
 
-Runtime validation is still pending. The provisional native-input scale of
-0.15 degrees per unit and native rotation signs require calibration. The session
-now starts from the player's pitch and clamps its target pitch to +/-90 degrees.
-The view correction removes that initial pitch before relative yaw and applies
-the target pitch afterwards; zero input is identity even when starting tilted.
+User testing of the earlier view-matrix override (2026-09-23) showed that the
+player and view both stayed fixed while terrain in the turned direction was
+culled: culling consumed the modified view, but rendering did not. That override
+was removed in favor of the actor-rotation substitution above. Turn scale and
+sign are no longer assumed: ordinary (non-detached) turns record the ratio of
+vanilla's actual rotation change to the native delta per axis, and Freelook
+applies that ratio (1 until observed). Runtime validation of the replacement is
+pending.
 Pure tests cover pitched starts, both poles and yaw boundary angles. Matching
 this model to native interpolation, front third-person view and camera effects
 still needs runtime validation; it is not proof of the final rendered world pitch.

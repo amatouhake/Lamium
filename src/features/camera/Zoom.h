@@ -3,6 +3,7 @@
 #include "features/camera/DetachedLookState.h"
 #include "ll/api/event/ListenerBase.h"
 #include <atomic>
+class Actor;
 class IClientInstance;
 class LocalPlayer;
 class Player;
@@ -15,6 +16,8 @@ class Zoom {
     std::atomic<bool> running{false};
     std::atomic<bool> allowed{true};
     std::atomic<IClientInstance*> client{nullptr};
+    // Degrees of rotation per native turn unit, observed from vanilla turns.
+    std::atomic<float> pitchTurnScale{1.f}, yawTurnScale{1.f};
     ll::event::ListenerPtr wheelListener, screenListener, exitListener;
 public:
     static Zoom& instance();
@@ -26,6 +29,8 @@ public:
     void releaseLook() { look.release(); }
     void cancelLook() { look.cancel(); }
     bool turnLook(LocalPlayer&, float pitchDelta, float yawDelta);
+    void observeTurn(float pitchDelta, float pitchChange, float pitchAfter, float yawDelta, float yawChange);
+    bool isLookOwner(Actor const*) const;
     bool blocksLookInteraction(Player&);
     std::optional<DetachedLookState::Angles> lookAngles();
     std::optional<DetachedLookState::Angles> lookAnglesFor(IClientInstance const&);

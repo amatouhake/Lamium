@@ -1,6 +1,5 @@
 #include "features/camera/Zoom.h"
 #include "features/camera/CameraInteraction.h"
-#include "features/camera/LookRotation.h"
 #include "settings/Settings.h"
 #include "input/Actions.h"
 #include "app/Runtime.h"
@@ -16,6 +15,9 @@
 #include "mc/deps/core/math/Vec2.h"
 #include "mc/deps/input/MouseAction.h"
 #include "mc/deps/renderer/Camera.h"
+#include "mc/deps/vanilla_camera/CameraAPI.h"
+#include "mc/deps/ecs/gamerefs_entity/GameRefsEntity.h"
+#include "mc/deps/game_refs/WeakRef.h"
 #include "mc/legacy/ActorRuntimeID.h"
 #include "mc/world/actor/ActorFlags.h"
 #include "ui/SettingsScreen.h"
@@ -47,7 +49,7 @@ void traceLook(LookTraceStage stage, float pitch, float yaw) noexcept {
         count, count + 1, std::memory_order_relaxed)) {}
     if (count >= 32) return;
     try {
-        constexpr char const* names[] = {"begin", "turn-native-delta", "render-relative-degrees"};
+        constexpr char const* names[] = {"begin", "turn-native-delta", "camera-rotation"};
         Runtime::instance().self().getLogger().info(
             "Freelook trace: stage={} sample={} pitch={} yaw={}", names[index], count, pitch, yaw);
     } catch (...) {}
@@ -166,25 +168,23 @@ LL_TYPE_INSTANCE_HOOK(CameraTraceHook, ll::memory::HookPriority::Normal, LevelRe
     }
 }
 #endif
-LL_TYPE_INSTANCE_HOOK(FreelookCameraHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
-    &LevelRendererPlayer::setupCamera, void, mce::Camera& camera, float alpha) {
-    origin(camera, alpha);
+// The vanilla camera derives its orientation (render, culling and third-person
+// boom alike) from the target actor's rotation. Substituting the detached pose
+// here rotates the whole camera consistently while the player keeps its own.
+// Overriding only the view matrix after setup left rendering and culling
+// disagreeing at runtime.
+LL_TYPE_INSTANCE_HOOK(FreelookRotationHook, ll::memory::HookPriority::Normal, CameraAPI,
+    &CameraAPI::$tryGetActorRotation, std::optional<Vec2>, WeakRef<EntityContext const> const actorRef) {
+    auto result = origin(actorRef);
+    if (!result) return result;
     auto pose = Zoom::instance().lookAnglesFor(mClientInstance);
-    if (!pose) return;
-    if (camera.viewMatrixStack->stack->empty()) { Zoom::instance().cancelLook(); return; }
-    auto view = *camera.viewMatrixStack->top()._m;
-    for (int column = 0; column < 4; ++column)
-        for (int row = 0; row < 4; ++row)
-            if (!std::isfinite(view[column][row])) { Zoom::instance().cancelLook(); return; }
-    auto correction = lookRotation(pose->initialPitch, pose->pitch, pose->yaw);
-    glm::mat4 rotation{1.f};
-    for (int column = 0; column < 3; ++column)
-        for (int row = 0; row < 3; ++row)
-            rotation[column][row] = correction[row * 3 + column];
-    *camera.viewMatrixStack->getTop()._m = rotation * view;
+    if (!pose) return result;
+    WeakRef<EntityContext> mutableRef{static_cast<WeakStorageEntity const&>(actorRef)};
+    if (!Zoom::instance().isLookOwner(_getActor(mutableRef))) return result;
 #ifdef LAMIUM_CAMERA_TRACE
-    traceLook(LookTraceStage::Render, pose->pitch - pose->initialPitch, pose->yaw);
+    traceLook(LookTraceStage::Render, pose->pitch, pose->yaw);
 #endif
+    return Vec2{pose->pitch, pose->yaw};
 }
 LL_TYPE_INSTANCE_HOOK(FovHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::getFov, float, float alpha, bool variable) {
@@ -194,7 +194,12 @@ LL_TYPE_INSTANCE_HOOK(TurnHook, ll::memory::HookPriority::Normal, LocalPlayer,
     &LocalPlayer::_applyTurnDelta, void, Vec2 const& delta) {
     if (Zoom::instance().turnLook(*this, delta.x, delta.z)) return;
     float scale = Zoom::instance().sensitivity(*this);
-    origin(Vec2{delta.x * scale, delta.z * scale});
+    Vec2 applied{delta.x * scale, delta.z * scale};
+    auto before = getRotation();
+    origin(applied);
+    auto after = getRotation();
+    Zoom::instance().observeTurn(applied.x, after.x - before.x, after.x,
+        applied.z, std::remainder(after.z - before.z, 360.f));
 }
 LL_TYPE_INSTANCE_HOOK(DimensionHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::$onWillChangeDimension, void, Player& player) {
@@ -212,7 +217,7 @@ struct HookEntry {
     bool installed = false;
 };
 HookEntry hooks[] = {
-    {FreelookCameraHook::hook, FreelookCameraHook::unhook},
+    {FreelookRotationHook::hook, FreelookRotationHook::unhook},
 #ifdef LAMIUM_CAMERA_TRACE
     {CameraDependenciesTraceHook::hook, CameraDependenciesTraceHook::unhook},
     {CameraTraceHook::hook, CameraTraceHook::unhook},
@@ -254,7 +259,7 @@ void Zoom::pressLook(IClientInstance& current) {
     auto* player = current.getLocalPlayer();
     if (!canDetachLook(*player)) return;
     client = &current;
-    bool started = look.begin(player->getRotation().x, 0, player->getRuntimeID().rawID);
+    bool started = look.begin(player->getRotation().x, player->getRotation().z, player->getRuntimeID().rawID);
 #ifdef LAMIUM_CAMERA_TRACE
     if (started) traceLook(LookTraceStage::Begin, 0, 0);
 #else
@@ -284,9 +289,23 @@ bool Zoom::turnLook(LocalPlayer& player, float pitchDelta, float yawDelta) {
 #ifdef LAMIUM_CAMERA_TRACE
     traceLook(LookTraceStage::Turn, pitchDelta, yawDelta);
 #endif
-    // Experimental input calibration: native turn units still need runtime verification.
-    look.turn(pitchDelta * .15f, yawDelta * .15f);
+    // Match the sign and scale vanilla applied to the player's own rotation.
+    look.turn(pitchDelta * pitchTurnScale.load(), yawDelta * yawTurnScale.load());
     return true;
+}
+void Zoom::observeTurn(float pitchDelta, float pitchChange, float pitchAfter, float yawDelta, float yawChange) {
+    auto calibrate = [](std::atomic<float>& target, float delta, float change) {
+        if (std::abs(delta) < .01f || !std::isfinite(change)) return;
+        float ratio = change / delta;
+        if (std::isfinite(ratio) && std::abs(ratio) > .01f && std::abs(ratio) < 10.f) target = ratio;
+    };
+    // A clamped pitch does not reflect the applied delta.
+    if (std::abs(pitchAfter) < 89.f) calibrate(pitchTurnScale, pitchDelta, pitchChange);
+    calibrate(yawTurnScale, yawDelta, yawChange);
+}
+bool Zoom::isLookOwner(Actor const* actor) const {
+    auto* current = client.load();
+    return actor && current && static_cast<Actor const*>(current->getLocalPlayer()) == actor;
 }
 bool Zoom::blocksLookInteraction(Player& player) {
     auto* current = client.load();
