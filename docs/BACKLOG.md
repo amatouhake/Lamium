@@ -355,6 +355,9 @@ Open: third-person rotation pivot feels off (center is not the viewpoint).
 Proposal: while FreeCamera is active, lock first-person camera motion plus
 forced body rendering and ignore F5 (no per-perspective rigs at all). Needs
 research into F5 suppression and the first-person body-hide flag.
+2026-09-24: lock verified (F5 ignored, body shown, perspective restored).
+Third-person-start continuity (seed from pre-switch eye, 31323b8) failed
+verification; parked as a remaining issue. Hotbar-hide parked as L-29.
 
 ### L-20 Shape name text input adds stray characters
 Native text entry for shape names inserts extra characters.
