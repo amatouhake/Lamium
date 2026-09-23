@@ -44,6 +44,8 @@ xmake build LamiumNativeTests && xmake run LamiumNativeTests   # SDK-type tests
   `xmake.lua`). Never deploy or commit with a trace option left on unless the
   user asked for a trace build. Reset with `xmake f --camera_trace=n ...`.
 - Runtime log: `<instance>/mods/Lamium/logs/lamium.log`.
+- Search with `git grep` or limit searches to `src tests docs`. `build/` holds
+  full SDK source copies; a plain recursive grep over it takes minutes.
 - SDK headers (read-only reference for game types): the xmake package cache,
   `%LOCALAPPDATA%/.xmake/packages/l/levilamina-client-sdk/26.51.5/*/include/mc/...`.
   Search there before guessing a member or function name.

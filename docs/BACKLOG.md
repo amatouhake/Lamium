@@ -36,7 +36,7 @@ decided; see DESIGN.md.
 ## Ready
 
 ### L-01 Settings key
-Status: done. Change the `settings` action's default key from F8 (0x77) to
+Status: done (9e6ee5c). Change the `settings` action's default key from F8 (0x77) to
 `L` (0x4C) in `input/Binding.h`; update README, translations/help text that
 mention F8, and BindingTests. Users with an override keep it; Minecraft may
 keep its own saved mapping for the Lamium key, so tell the user to check
@@ -49,6 +49,16 @@ coordinates, B emote, F2 screenshot, F4 social, [ ] menu tabs, N toast.
 Lamium already uses C (Zoom, clashes with copy coordinates), J, R.
 Free single letters include F G H I K L M O P U V Y. Changing a default only
 affects users without an override; Minecraft may keep its own saved mapping.
+
+### L-22 Never leave the settings action without a key
+Status: ready. Found while testing L-01.
+- Clearing the settings action's binding saves `"settings": []`, an explicit
+  unbind that overrides Minecraft's mapping. The settings screen then cannot
+  be opened at all, so the binding cannot be fixed in game.
+- Do not offer Clear for the settings action (Reset stays). When loading,
+  ignore an explicit empty binding for `settings` (treat it as absent, i.e.
+  use Minecraft's mapping), so existing files recover.
+- Tests: BindingTests / SettingsStoreTests for both rules.
 
 ### L-02 Replace gameplay key hints with an "Open Hotkeys" action
 Status: ready.
@@ -200,6 +210,13 @@ surface for small sizes.
 ---
 
 ## Design
+
+### L-23 What "Reset" means for a binding
+Found while testing L-01. Reset removes Lamium's override and falls back to
+Minecraft's stored mapping. After the default changed from F8 to L, Reset
+still gave F8, because Minecraft keeps the old key in options.txt; only
+Minecraft's own keyboard reset gave L. Decide whether Lamium's Reset should
+mean "Lamium's default" and, if so, how it updates Minecraft's mapping.
 
 ### L-15 Breaking/placement restriction redesign
 Review points: anchoring UX, height-band clearing, shape-linked limits,
