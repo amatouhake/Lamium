@@ -23,6 +23,8 @@ int main() try {
     hudLayoutTests();
     extern void toolChoiceTests();
     toolChoiceTests();
+    extern void restockPlanTests();
+    restockPlanTests();
     extern void textFitTests();
     textFitTests();
     extern void numberInputTests();
