@@ -50,6 +50,41 @@ Lamium already uses C (Zoom, clashes with copy coordinates), J, R.
 Free single letters include F G H I K L M O P U V Y. Changing a default only
 affects users without an override; Minecraft may keep its own saved mapping.
 
+### L-23 Lamium owns all key bindings
+Status: ready. Do this before L-22. Decided: Lamium is the only place key
+bindings live; Minecraft's keyboard settings no longer list Lamium actions.
+
+Why: actions were registered in Minecraft's keyboard settings (KeyRegistry)
+and could also be overridden in Lamium. Two sources confused Reset: after the
+default moved from F8 to L, Lamium's Reset still gave F8 because Minecraft kept
+the old key in options.txt, and a Lamium override silently beat any change in
+Minecraft's screen.
+
+- `input/Binding.h` (pure, tested): `defaultChord(Action)` returns
+  `{Key, defaultKey}` or an empty chord when `defaultKey` is 0;
+  `effectiveChord(Bindings const&, Action)` returns the override when present,
+  else the default.
+- `input/CustomInput.cpp`: dispatch every action through its effective chord
+  (today only overridden actions are dispatched here). Keep all existing
+  context rules unchanged: text editing, `ui::ownsInput()`, gameplay screens,
+  Sort only in containers, focus loss, cancelled events, release handling.
+- `input/Actions.cpp`: remove the KeyRegistry registration and `usesNative`
+  (and the `registerActions` call in `app/Runtime.cpp`). `actionBindingName`
+  shows the effective chord via `bindingChordName`.
+- Reset removes the override, which now means Lamium's default. Change the
+  `resetBinding` text to "Reset to default" / "既定に戻す". Remove the
+  `key.Lamium.*` translation entries if nothing uses them any more.
+- README: replace the sentences saying Minecraft's keyboard settings provide the
+  base mappings.
+- No migration: Lamium has no release yet. Leftover `Lamium.*` lines in
+  Minecraft's options.txt are harmless.
+- Note for the hand-back: single-key defaults are now consumed by Lamium during
+  gameplay (C is also Minecraft's "copy coordinates").
+- In-game checks: L opens settings; C zoom, J night vision, R sort in an
+  inventory; existing custom chords still work; nothing fires while typing in
+  chat or a sign; Lamium no longer appears in Minecraft's keyboard settings;
+  Reset in Hotkeys returns an action to its default.
+
 ### L-22 Never leave the settings action without a key
 Status: ready. Found while testing L-01.
 - Clearing the settings action's binding saves `"settings": []`, an explicit
@@ -57,7 +92,7 @@ Status: ready. Found while testing L-01.
   be opened at all, so the binding cannot be fixed in game.
 - Do not offer Clear for the settings action (Reset stays). When loading,
   ignore an explicit empty binding for `settings` (treat it as absent, i.e.
-  use Minecraft's mapping), so existing files recover.
+  use the default key after L-23), so existing files recover.
 - Tests: BindingTests / SettingsStoreTests for both rules.
 
 ### L-02 Replace gameplay key hints with an "Open Hotkeys" action
@@ -210,13 +245,6 @@ surface for small sizes.
 ---
 
 ## Design
-
-### L-23 What "Reset" means for a binding
-Found while testing L-01. Reset removes Lamium's override and falls back to
-Minecraft's stored mapping. After the default changed from F8 to L, Reset
-still gave F8, because Minecraft keeps the old key in options.txt; only
-Minecraft's own keyboard reset gave L. Decide whether Lamium's Reset should
-mean "Lamium's default" and, if so, how it updates Minecraft's mapping.
 
 ### L-15 Breaking/placement restriction redesign
 Review points: anchoring UX, height-band clearing, shape-linked limits,
