@@ -50,6 +50,7 @@ void settingsStoreTests() {
     check(old.inventory.sorting && old.inventory.sortContainers, "old settings supply inventory defaults");
     check(!old.camera.freelook, "existing installations keep experimental Freelook disabled");
     check(!old.camera.freelookToggle, "Freelook activation defaults to holding the key");
+    check(!old.camera.freecamera, "existing installations keep experimental FreeCamera disabled");
     {
         Settings toggled; toggled.camera.freelookToggle = true;
         check(decodeSettings(R"({"camera":{"freelookToggle":true}})").camera.freelookToggle, "Freelook activation is read from storage");
@@ -62,6 +63,9 @@ void settingsStoreTests() {
     check(input::actions[static_cast<size_t>(input::Action::Freelook)].behavior == input::Behavior::Hold
           && input::actions[static_cast<size_t>(input::Action::Freelook)].defaultKey == 0,
           "Freelook is an independent unassigned hold action");
+    check(input::actions[static_cast<size_t>(input::Action::FreeCamera)].behavior == input::Behavior::Toggle
+          && input::actions[static_cast<size_t>(input::Action::FreeCamera)].defaultKey == 0,
+          "FreeCamera is an independent unassigned toggle action");
     check(old.ui.gameplayHints, "existing settings preserve visible gameplay hints by default");
     check(!old.inspection.hideShulkerContents, "older settings retain vanilla Shulker contents text");
     check(old.inspection.shulkerPreviews && old.inspection.emptyShulkerPreviews

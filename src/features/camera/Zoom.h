@@ -12,8 +12,13 @@ struct Settings;
 class Zoom {
     ZoomState state;
     DetachedLookState look;
+    // Stage 1 FreeCamera shares Freelook's angular session. Only one owner
+    // runs at a time; the owner decides which enable flag keeps it alive.
+    enum class DetachedOwner { None, Freelook, FreeCamera };
+    std::atomic<DetachedOwner> lookOwner{DetachedOwner::None};
     std::atomic<bool> lookAllowed{false};
     std::atomic<bool> lookToggle{false};
+    std::atomic<bool> freeCameraAllowed{false};
     std::atomic<bool> running{false};
     std::atomic<bool> allowed{true};
     std::atomic<IClientInstance*> client{nullptr};
@@ -27,6 +32,7 @@ public:
     void configure(Settings const&);
     void press(IClientInstance&);
     void pressLook(IClientInstance&);
+    void pressFreeCamera(IClientInstance&); // Toggle: press again to return to the player
     void releaseLook();
     void releaseLookKey(); // Key release: ends a held session, ignored in toggle mode
     void cancelLook();

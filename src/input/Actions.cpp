@@ -52,6 +52,7 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::OpenShapes) { ui::openShapes(client); return; }
     if (action == input::Action::Zoom) { Zoom::instance().press(client); return; }
     if (action == input::Action::Freelook) { Zoom::instance().pressLook(client); return; }
+    if (action == input::Action::FreeCamera) { Zoom::instance().pressFreeCamera(client); return; }
     auto value = runtime.preferences();
     if (action == input::Action::CycleBreakingMode) {
         settings::find("interaction.breakingMode")->adjust(value,1);

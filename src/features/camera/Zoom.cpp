@@ -351,11 +351,14 @@ bool Zoom::viewProbeActive() const {
 void Zoom::configure(Settings const& settings) {
     lookAllowed = settings.camera.freelook;
     lookToggle = settings.camera.freelookToggle;
+    freeCameraAllowed = settings.camera.freecamera;
     cancelLook();
     allowed = settings.camera.zoom;
     state.configure(settings.camera.magnification, settings.camera.wheelStep);
 }
 void Zoom::pressLook(IClientInstance& current) {
+    // Freelook and FreeCamera share one session and never run together.
+    if (lookOwner.load() == DetachedOwner::FreeCamera) return;
     // Toggle activation: a press always ends an active session, and a new
     // session never waits for a key release that this mode ignores.
     if (lookToggle && look.snapshot()) { releaseLook(); return; }
@@ -366,6 +369,7 @@ void Zoom::pressLook(IClientInstance& current) {
     client = &current;
     if (lookToggle) look.release();
     if (!look.begin(player->getRotation().x, player->getRotation().z, player->getRuntimeID().rawID)) return;
+    lookOwner.store(DetachedOwner::Freelook);
 #ifdef LAMIUM_CAMERA_TRACE
     traceLook(LookTraceStage::Begin, player->getRotation().x, player->getRotation().z);
     try { Runtime::instance().self().getLogger().info("Freelook body: begin head={}", player->getYHeadRot()); } catch (...) {}
@@ -378,15 +382,45 @@ void Zoom::pressLook(IClientInstance& current) {
         Runtime::instance().self().getLogger().error("Freelook could not detach the camera");
     }
 }
+void Zoom::pressFreeCamera(IClientInstance& current) {
+    // Stage 1: rotation only, detached exactly like Freelook. Always toggles:
+    // a press ends the FreeCamera session, the key release does nothing.
+    if (lookOwner.load() == DetachedOwner::Freelook) return;
+    if (look.snapshot()) { releaseLook(); return; }
+    if (!running || !freeCameraAllowed || ui::ownsInput() || !gameplayScreen(current.getScreenName())
+        || !current.getLocalPlayer()) return;
+    auto* player = current.getLocalPlayer();
+    if (!canDetachLook(*player)) return;
+    client = &current;
+    look.release();
+    if (!look.begin(player->getRotation().x, player->getRotation().z, player->getRuntimeID().rawID)) return;
+    lookOwner.store(DetachedOwner::FreeCamera);
+#ifdef LAMIUM_CAMERA_TRACE
+    traceLook(LookTraceStage::Begin, player->getRotation().x, player->getRotation().z);
+    try { Runtime::instance().self().getLogger().info("FreeCamera body: begin head={}", player->getYHeadRot()); } catch (...) {}
+#endif
+    try {
+        lockedHead = player->getYHeadRot();
+        detachCameras(*player);
+    } catch (...) {
+        cancelLook();
+        Runtime::instance().self().getLogger().error("FreeCamera could not detach the camera");
+    }
+}
 void Zoom::releaseLookKey() {
-    if (!lookToggle) releaseLook();
+    // A Toggle-owned session (FreeCamera, or Freelook in toggle mode) ignores
+    // the key release; only a held Freelook ends here.
+    if (lookToggle || lookOwner.load() != DetachedOwner::Freelook) return;
+    releaseLook();
 }
 void Zoom::releaseLook() {
     look.release();
+    lookOwner.store(DetachedOwner::None);
     endLookCamera();
 }
 void Zoom::cancelLook() {
     look.cancel();
+    lookOwner.store(DetachedOwner::None);
     endLookCamera();
 }
 void Zoom::endLookCamera() {
@@ -408,8 +442,11 @@ void Zoom::endLookCamera() {
 }
 std::optional<DetachedLookState::Angles> Zoom::lookAngles() {
     if (!look.snapshot()) return {};
+    // The owner decides which enable flag keeps the shared session alive, so
+    // disabling Freelook does not end FreeCamera and vice versa.
+    bool allowed = lookOwner.load() == DetachedOwner::FreeCamera ? freeCameraAllowed.load() : lookAllowed.load();
     auto* current = client.load();
-    if (!running || !lookAllowed || !current || ui::ownsInput()
+    if (!running || !allowed || !current || ui::ownsInput()
         || !gameplayScreen(current->getScreenName()) || !current->getLocalPlayer()) {
         cancelLook();
         return {};

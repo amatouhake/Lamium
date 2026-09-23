@@ -10,7 +10,7 @@ struct FeatureInfo { std::string_view id, name, description, toggle; bool experi
 inline constexpr auto sections = std::to_array<std::string_view>({
     "section.camera", "section.inventory", "section.interaction", "section.information", "section.interface"});
 inline constexpr std::string_view featureSection(std::string_view id) {
-    if (id == "zoom" || id == "freelook" || id == "nightVision" || id == "hideOffhand") return "section.camera";
+    if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand") return "section.camera";
     if (id == "previews" || id == "durability" || id == "sorting" || id == "toolSwitch" || id == "handRestock") return "section.inventory";
     if (id == "restrictions" || id == "permanentSneak" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
     if (id == "settings" || id == "gameplayHints" || id == "automationStatus") return "section.interface";
@@ -19,6 +19,7 @@ inline constexpr std::string_view featureSection(std::string_view id) {
 inline constexpr auto features = std::to_array<FeatureInfo>({
     {"zoom", "feature.zoom", "help.zoom", "camera.zoom"},
     {"freelook", "feature.freelook", "help.freelook", "camera.freelook", true},
+    {"freecamera", "feature.freecamera", "help.freecamera", "camera.freecamera", true},
     {"nightVision", "feature.nightVision", "help.nightVision", "lighting.nightVision"},
     {"hideOffhand", "feature.hideOffhand", "help.hideOffhand", "visuals.hideOffhand"},
     {"previews", "feature.previews", "help.previews", "inspection.containerPreviews"},
