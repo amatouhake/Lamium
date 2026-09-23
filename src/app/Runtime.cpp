@@ -11,7 +11,6 @@
 #include "features/interaction/BreakingRestriction.h"
 #include "features/interaction/PlacementTrace.h"
 #include "features/visuals/HideOffhand.h"
-#include "input/Actions.h"
 #include "input/CustomInput.h"
 #include "overlay/WorldOverlay.h"
 #include "ui/SettingsScreen.h"
@@ -57,7 +56,6 @@ bool Runtime::load() {
     }
     Zoom::instance().configure(settings);
     NightVision::instance().configure(settings.lighting.nightVision);
-    registerActions();
     return true;
 }
 bool Runtime::enable() {

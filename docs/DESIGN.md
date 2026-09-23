@@ -148,3 +148,5 @@ Contents:
   decided per feature when needed. New actions ship unbound unless the
   maintainer picks a key.
 - (Decided) Settings opens with `L` instead of F8 (BACKLOG L-01).
+- (Decided) Lamium owns its key bindings; Minecraft's keyboard settings no
+  longer list Lamium actions (BACKLOG L-23).

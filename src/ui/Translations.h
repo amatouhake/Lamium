@@ -182,7 +182,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"captureToggle", "Press to switch on/off. Mouse buttons and wheel directions are supported.", "押すたびに ON/OFF。マウスボタン・ホイール方向も指定できます。"},
     {"captureHold", "Active while held. Use keys or mouse buttons; wheel directions cannot be held.", "押している間だけ有効。キー・マウスボタンを指定。ホイールは使えません。"},
     {"clearBinding", "Clear (Unbound)", "割り当てを解除"},
-    {"resetBinding", "Reset to Minecraft mapping", "Minecraft の割り当てに戻す"},
+    {"resetBinding", "Reset to default", "既定に戻す"},
     {"cancelBinding", "Cancel binding edit", "キー編集をキャンセル"},
     {"captureHint", "Press chord, release to set | Esc: cancel", "キーを押して離すと設定 | Esc: キャンセル"},
     {"invalidBinding", "Unsupported binding for this action", "この操作には割り当てられない入力です"},

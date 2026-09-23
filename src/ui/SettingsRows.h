@@ -149,7 +149,7 @@ inline LabelParts splitLabel(std::string_view pattern) {
     }
     return {std::string(pattern.substr(0, split)), std::string(pattern.substr(split + 2))};
 }
-// Action labels are registered for Minecraft's controls screen with a prefix.
+// Action labels carry a catalog prefix that the settings UI strips.
 inline std::string actionName(std::string label) {
     constexpr std::string_view prefix = "Lamium: ";
     if (label.starts_with(prefix)) label.erase(0, prefix.size());

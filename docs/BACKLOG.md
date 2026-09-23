@@ -51,7 +51,7 @@ Free single letters include F G H I K L M O P U V Y. Changing a default only
 affects users without an override; Minecraft may keep its own saved mapping.
 
 ### L-23 Lamium owns all key bindings
-Status: ready. Do this before L-22. Decided: Lamium is the only place key
+Status: done. Do this before L-22. Decided: Lamium is the only place key
 bindings live; Minecraft's keyboard settings no longer list Lamium actions.
 
 Why: actions were registered in Minecraft's keyboard settings (KeyRegistry)

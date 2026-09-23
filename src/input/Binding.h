@@ -45,9 +45,20 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
 });
 static_assert(actions.size() == static_cast<size_t>(Action::Count));
 using Chord = std::vector<Token>;
-// Absent means use the existing Minecraft mapping; an empty chord explicitly
-// unbinds the action. Reset can remove an override without losing native remaps.
+// Absent means Lamium's default; an empty chord explicitly unbinds the
+// action. Reset removes the override, restoring the default.
 using Bindings = std::array<std::optional<Chord>, static_cast<size_t>(Action::Count)>;
+
+inline Chord defaultChord(Action action) {
+    int key = actions[static_cast<size_t>(action)].defaultKey;
+    if (!key) return {};
+    return Chord{Token{Device::Key, key}};
+}
+inline Chord effectiveChord(Bindings const& bindings, Action action) {
+    auto const& override = bindings[static_cast<size_t>(action)];
+    if (override) return *override;
+    return defaultChord(action);
+}
 
 inline Chord canonicalChord(Chord chord, Behavior behavior) {
     if (chord.size() > 8) throw std::invalid_argument("A binding accepts at most eight inputs");

@@ -104,13 +104,13 @@ void settingsStoreTests() {
     check(settings::find("unknown") == nullptr, "unknown option lookup is safe");
     {
         auto legacy = decodeSettings("{}");
-        for (auto const& binding : legacy.bindings) check(!binding, "legacy settings use native remaps");
+        for (auto const& binding : legacy.bindings) check(!binding, "legacy settings fall back to Lamium defaults");
         auto configured = decodeSettings(R"({"bindings":{"zoom":[{"device":"key","code":90},{"device":"key","code":51}],"sort":[],"nightvision":[{"device":"key","code":16},{"device":"wheel","code":1}]}})");
         writeSettings(path, configured);
         check(readSettings(path).bindings == configured.bindings, "chords, wheel and explicit unbound survive restart");
         configured.bindings[static_cast<size_t>(input::Action::Zoom)].reset();
         writeSettings(path, configured);
-        check(!readSettings(path).bindings[static_cast<size_t>(input::Action::Zoom)], "reset removes only native override");
+        check(!readSettings(path).bindings[static_cast<size_t>(input::Action::Zoom)], "reset removes only the override");
         check(readSettings(path).bindings[static_cast<size_t>(input::Action::Sort)]->empty(), "reset preserves another unbound action");
         for (auto invalid : {R"({"bindings":[]})", R"({"bindings":{"zoom":true}})",
                              R"({"bindings":{"zoom":[{"device":"wheel","code":1}]}})",

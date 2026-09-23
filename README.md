@@ -29,9 +29,9 @@ scroll to keep the selected row visible. Changes are saved and applied when edit
 Escape or Close only closes the panel. A failed save leaves the previous value
 active and shows an error. Gameplay key hints can be hidden from the panel.
 Edit feature bindings directly in Lamium Settings, either under the feature or
-in the Hotkeys view. Minecraft's keyboard settings provide the base mappings;
-Lamium's custom bindings override them until reset. On-screen gameplay hints
-use the effective bindings.
+in the Hotkeys view. Lamium owns its bindings: an empty slot uses the default,
+Clear unbinds an action, and Reset restores the default. On-screen gameplay
+hints use the effective bindings.
 The current source adds a translucent panel and a Search row; these changes
 still require in-game verification. Click Search or select it and press Enter
 to type. Enter finishes text editing; Escape leaves editing before closing.
@@ -40,7 +40,7 @@ settings and binding under an expandable header with its state and key. Search
 reveals matching settings inside collapsed groups; a description follows the
 selected feature. Binding rows open an editor:
 press the desired chord and release to set it, or use a wheel direction for a
-Press/Toggle action. Clear unbinds; Reset restores the Minecraft mapping; Escape
+Press/Toggle action. Clear unbinds; Reset restores the default; Escape
 cancels. These controls and custom input dispatch are implemented but await
 runtime validation. Identical custom overrides are marked Shared; conflicts with
 Minecraft or other mods are not comprehensively detected yet.

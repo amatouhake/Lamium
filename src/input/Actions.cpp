@@ -9,16 +9,11 @@
 #include "features/inventory/Inventory.h"
 #include "ui/SettingsScreen.h"
 #include "ui/Localization.h"
-#include "ll/api/input/KeyRegistry.h"
+#include "mc/client/game/ClientInstance.h"
 #include "mc/client/input/KeyboardRemappingLayout.h"
 #include "mc/client/options/IOptionRegistry.h"
 
 namespace lamium {
-namespace {
-bool usesNative(input::Action action) {
-    return !Runtime::instance().preferences().bindings[static_cast<size_t>(action)];
-}
-}
 std::string bindingChordName(IClientInstance& client, input::Chord const& chord) {
     auto layout = client.getOptions().getCurrentKeyboardRemapping();
     if (chord.empty()) return ui::translated("unbound");
@@ -32,13 +27,7 @@ std::string bindingChordName(IClientInstance& client, input::Chord const& chord)
     return result;
 }
 std::string actionBindingName(IClientInstance& client, input::Action action) {
-    auto layout = client.getOptions().getCurrentKeyboardRemapping();
-    auto override = Runtime::instance().preferences().bindings[static_cast<size_t>(action)];
-    if (override) return bindingChordName(client, *override);
-    if (!layout) return ui::translated("unbound");
-    auto const& mapping = layout->getKeymappingByAction("key.Lamium." + std::string(input::actions[static_cast<size_t>(action)].id));
-    if (!mapping.isAssigned()) return ui::translated("unbound");
-    return static_cast<RemappingLayout const&>(*layout).getMappedKeyName(mapping);
+    return bindingChordName(client, input::effectiveChord(Runtime::instance().preferences().bindings, action));
 }
 std::string gameplayKeyHint(IClientInstance& client) {
     auto layout = client.getOptions().getCurrentKeyboardRemapping();
@@ -75,23 +64,5 @@ void executeAction(IClientInstance& client, input::Action action) {
 void releaseAction(input::Action action) {
     if (action == input::Action::Zoom) Zoom::instance().release();
     if (action == input::Action::Freelook) Zoom::instance().releaseLookKey();
-}
-void registerActions() {
-    auto& registry = ll::input::KeyRegistry::getInstance();
-    for (size_t i=0; i<input::actions.size(); ++i) {
-        auto action = static_cast<input::Action>(i);
-        auto const& info = input::actions[i];
-        std::vector<int> defaults;
-        if (info.defaultKey) defaults.push_back(info.defaultKey);
-        auto& key = registry.getOrCreateKey(info.id, defaults);
-        key.registerButtonDownHandler([action](FocusImpact, IClientInstance& client) {
-            if (usesNative(action)) executeAction(client, action);
-        });
-        if (info.behavior == input::Behavior::Hold) {
-            key.registerButtonUpHandler([action](FocusImpact, IClientInstance&) {
-                if (usesNative(action)) releaseAction(action);
-            });
-        }
-    }
 }
 }

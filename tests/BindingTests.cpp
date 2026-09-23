@@ -30,6 +30,18 @@ void bindingTests() {
         && actions[static_cast<size_t>(Action::NightVision)].defaultKey == 0x4a
         && actions[static_cast<size_t>(Action::Sort)].defaultKey == 0x52,
         "existing native defaults remain compatible");
+    check(defaultChord(Action::Settings) == Chord{Token{Device::Key, 0x4C}}
+        && defaultChord(Action::ChunkBorders).empty(), "defaults resolve to single-key chords or unbound");
+    Bindings fresh;
+    check(effectiveChord(fresh, Action::Settings) == Chord{Token{Device::Key, 0x4C}}
+        && effectiveChord(fresh, Action::ChunkBorders).empty(), "absent bindings use Lamium defaults");
+    fresh[static_cast<size_t>(Action::Settings)] = Chord{Token{Device::Key, 0x46}};
+    fresh[static_cast<size_t>(Action::ChunkBorders)] = Chord{};
+    check(effectiveChord(fresh, Action::Settings) == Chord{Token{Device::Key, 0x46}},
+        "an override beats the default");
+    check(effectiveChord(fresh, Action::ChunkBorders).empty()
+        && effectiveChord(fresh, Action::Zoom) == Chord{Token{Device::Key, 0x43}},
+        "explicit unbind stays unbound while other defaults apply");
     Token z{Device::Key, 0x5a}, three{Device::Key, 0x33};
     auto chord = canonicalChord({z, three, z}, Behavior::Hold);
     check(chord == canonicalChord({three, z}, Behavior::Hold), "chord order and duplicate keys canonicalize");

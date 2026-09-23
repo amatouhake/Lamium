@@ -24,7 +24,7 @@ namespace lamium::input {
 namespace {
 // Input, UI lifecycle, and focus callbacks execute on the client main thread.
 HeldInputs held;
-Bindings previous;
+std::array<Chord, actions.size()> previous;
 std::array<BindingState, actions.size()> states;
 std::array<ll::event::ListenerPtr, 4> listeners;
 std::string screen;
@@ -47,13 +47,15 @@ LL_TYPE_INSTANCE_HOOK(CustomInputFocusLost, ll::memory::HookPriority::Normal, Mi
 }
 void sync(IClientInstance& client) {
     auto name = client.getScreenName();
-    auto bindings = Runtime::instance().preferences().bindings;
-    if (screen != name || previous != bindings) {
+    auto overrides = Runtime::instance().preferences().bindings;
+    std::array<Chord, actions.size()> chords;
+    for (size_t i = 0; i < actions.size(); ++i) chords[i] = effectiveChord(overrides, static_cast<Action>(i));
+    if (screen != name || previous != chords) {
         for (size_t i = 0; i < actions.size(); ++i)
-            if (previous[i] != bindings[i]) releaseAction(static_cast<Action>(i));
+            if (previous[i] != chords[i]) releaseAction(static_cast<Action>(i));
         invalidate();
         screen = name;
-        previous = std::move(bindings);
+        previous = std::move(chords);
     }
 }
 bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
@@ -70,7 +72,7 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
         // A different consumer (notably Zoom's wheel adjustment) owns this
         // event. Preserve held inputs, but always observe key-up releases.
         for (size_t i = 0; i < states.size(); ++i)
-            if (previous[i] && states[i].update(*previous[i], held.value()).released)
+            if (!previous[i].empty() && states[i].update(previous[i], held.value()).released)
                 releaseAction(static_cast<Action>(i));
         return false;
     }
@@ -80,13 +82,13 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
     bool consumed = false;
     for (size_t i = 0; i < states.size(); ++i) {
         bool allowed = i == static_cast<size_t>(Action::Sort) ? container : gameplay;
-        if (!allowed || !previous[i]) {
+        if (!allowed || previous[i].empty()) {
             if (states[i].reset().released) releaseAction(static_cast<Action>(i));
             continue;
         }
-        auto edge = states[i].update(*previous[i], held.value(), wheel ? std::optional<Token>(token) : std::nullopt);
+        auto edge = states[i].update(previous[i], held.value(), wheel ? std::optional<Token>(token) : std::nullopt);
         if (down && states[i].isActive()
-            && std::find(previous[i]->begin(), previous[i]->end(), token) != previous[i]->end()) consumed = true;
+            && std::find(previous[i].begin(), previous[i].end(), token) != previous[i].end()) consumed = true;
         if (edge.released) releaseAction(static_cast<Action>(i));
         if (edge.pressed) {
             executeAction(*current, static_cast<Action>(i));
