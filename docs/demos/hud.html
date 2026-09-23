@@ -86,6 +86,11 @@ p{margin:0}
 .editing .anchors{display:block}
 .anchors i{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;box-shadow:inset 0 0 0 2px var(--mc-edit);opacity:.5}
 .anchors i.near{background:var(--mc-edit);opacity:1}
+.guide{position:absolute;inset:0;pointer-events:none;display:none}
+.editing .guide.show{display:block}
+.guide line{stroke:var(--mc-edit);stroke-width:2;stroke-dasharray:6 4}
+.guide rect{fill:var(--mc-edit)}
+.pin{font-size:11px;color:var(--mc-faint)}
 
 /* Inspector (Lamium panel) */
 .panel{position:absolute;display:flex;flex-direction:column;background:rgba(var(--mc-panel),.86);box-shadow:inset 0 0 0 1px var(--mc-edge);width:300px}
@@ -173,6 +178,7 @@ p{margin:0}
     <div class="hotbar" aria-hidden="true"><i></i><i class="sel"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="editdim"></div>
     <div class="anchors" id="anchors"></div>
+    <svg class="guide" id="guide" width="960" height="540" aria-hidden="true"><line id="guideLine"/><rect id="guideDot" width="10" height="10"/></svg>
     <div id="huds"></div>
     <div class="panel" id="inspector" hidden></div>
   </div></div></div>
@@ -198,12 +204,14 @@ p{margin:0}
   <section class="cards">
     <article class="note"><h3>HUD 要素（共通の設定）</h3><ul>
       <li>位置：9 か所の基準点（四隅・各辺の中央・中央）＋ずらし</li>
-      <li>ドラッグすると近い基準点に吸着し、画面サイズが変わっても同じ場所に残る</li>
+      <li>基準点は既定ではドラッグで自動に決まる。設定欄で基準点を選ぶと固定になり、ドラッグではずらしだけが変わる（上を基準に下の方へ置ける）</li>
+      <li>ドラッグ中は、基準点から要素まで点線を引き、どこを基準にしているかを見せる</li>
       <li>大きさ 75〜150%、背景（なし / 半透明）、文字の影</li>
       <li>要素：情報表示 / 見ている対象 / 状態 / 通知。将来の F3 画面も同じ仕組み</li>
     </ul></article>
     <article class="note"><h3>情報表示</h3><ul>
       <li>項目は一覧でオンオフと並べ替え（▲▼）。取得できない値は「取得不可」</li>
+      <li>設定欄の行は、設定画面の行と同じ定義から自動で作る。片方だけに項目を足すことは起こらない。項目が増えたら設定欄の中でスクロールする</li>
       <li>候補：座標、ブロック座標、チャンク、向き＋軸、yaw / pitch、速度、時刻と日数、天気、月齢、明るさ、バイオーム、ディメンション、FPS、Ping</li>
       <li>MiniHUD と同じく、既定では少なめにオン</li>
     </ul></article>
@@ -218,6 +226,7 @@ p{margin:0}
     <h2>確認したいこと</h2>
     <ol>
       <li>配置の決め方：「配置の編集」でのドラッグと、設定画面の行の両方を用意する形でよいか。</li>
+      <li>基準点は「ドラッグで自動」を既定にし、設定欄で選ぶと固定になる形でよいか。</li>
       <li>見た目の設定は「大きさ・背景・影」で足りるか。文字色や背景の濃さも欲しいか。</li>
       <li>見ている対象の情報は、カードを既定にし、今の文字だけの表示を「簡易」として残してよいか。</li>
       <li>自動操作と破壊・設置制限の表示を、1 つの「状態」要素にまとめてよいか。</li>
@@ -254,10 +263,10 @@ const TARGETS = {
 };
 const TOASTS = {toolSwitch:'ツールの自動切替', nightVision:'暗視', chunkBorders:'チャンク境界'};
 const el = {
-  info:{name:'情報表示', anchor:'tl', dx:0, dy:0, scale:100, bg:'plain', shadow:true},
-  target:{name:'見ている対象', anchor:'tc', dx:0, dy:0, scale:100, bg:'card', shadow:false, style:'card'},
-  status:{name:'状態', anchor:'mr', dx:0, dy:-40, scale:100, bg:'plain', shadow:true},
-  toast:{name:'通知', anchor:'bc', dx:0, dy:-96, scale:100, bg:'card', shadow:false},
+  info:{name:'情報表示', anchor:'tl', auto:true, dx:0, dy:0, scale:100, bg:'plain', shadow:true},
+  target:{name:'見ている対象', anchor:'tc', auto:true, dx:0, dy:0, scale:100, bg:'card', shadow:false, style:'card'},
+  status:{name:'状態', anchor:'mr', auto:true, dx:0, dy:-40, scale:100, bg:'plain', shadow:true},
+  toast:{name:'通知', anchor:'bc', auto:true, dx:0, dy:-96, scale:100, bg:'card', shadow:false},
 };
 const st = {edit:false, sel:null, target:'wheat', toast:null, toastState:{}, drag:null};
 try { const s = JSON.parse(localStorage.getItem('lamium-hud-demo')||'null'); if (s) { for (const k in s.el) Object.assign(el[k], s.el[k]); s.lines?.forEach(([id,on],i) => { const l = LINES.find(x => x.id === id); if (l) { l.on = on; l.order = i; } }); LINES.sort((a,b) => (a.order ?? 99) - (b.order ?? 99)); } } catch {}
@@ -354,16 +363,18 @@ function moveDrag(ev){
   const x = Math.max(0, Math.min(W - g.w, px - g.ox)), y = Math.max(0, Math.min(H - g.h, py - g.oy));
   g.moved = true; g.x = x; g.y = y;
   g.d.style.left = x + 'px'; g.d.style.top = y + 'px';
-  const a = nearest(x, y, g.w, g.h);
+  const e = el[g.id], a = e.auto ? nearest(x, y, g.w, g.h) : e.anchor;
   anchorsEl.querySelectorAll('i').forEach(i => i.classList.toggle('near', i.dataset.a === a));
+  showGuide(a, x, y, g.w, g.h);
 }
 function endDrag(){
   const g = st.drag; st.drag = null;
   g.d.removeEventListener('pointermove', moveDrag);
   anchorsEl.querySelectorAll('i').forEach(i => i.classList.remove('near'));
+  $('guide').classList.remove('show');
   if (g.moved) {
     const e = el[g.id];
-    e.anchor = nearest(g.x, g.y, g.w, g.h);
+    if (e.auto) e.anchor = nearest(g.x, g.y, g.w, g.h);
     const [bx, by] = base(e, g.w, g.h);
     let dx = Math.round((g.x - bx)/2)*2, dy = Math.round((g.y - by)/2)*2;
     if (Math.abs(dx) < 12) dx = 0;
@@ -371,6 +382,16 @@ function endDrag(){
     e.dx = dx; e.dy = dy; save();
   }
   render();
+}
+
+// The line runs from the anchor point to the matching point of the element,
+// so it is visible which corner stays put when the element grows.
+function showGuide(a, x, y, w, h){
+  const [ax, ay] = ANCH[a], px = M + (W - 2*M)*ax, py = M + (H - 2*M)*ay;
+  const l = $('guideLine'), d = $('guideDot');
+  l.setAttribute('x1', px); l.setAttribute('y1', py); l.setAttribute('x2', x + w*ax); l.setAttribute('y2', y + h*ay);
+  d.setAttribute('x', x + w*ax - 5); d.setAttribute('y', y + h*ay - 5);
+  $('guide').classList.add('show');
 }
 
 /* ---------- Inspector ---------- */
@@ -381,14 +402,14 @@ function renderInspector(){
   if (!st.edit || !st.sel) { inspector.hidden = true; return; }
   const id = st.sel, e = el[id];
   let html = `<div class="phead"><span class="t">${esc(e.name)}</span><span class="spacer"></span><button class="hbtn" data-reset>元に戻す</button><button class="hbtn" data-close>閉じる</button></div>`;
-  html += `<div class="grp">配置</div><div class="prow"><span class="k">基準点：${ANAME[e.anchor]}</span><span class="grid9">${Object.keys(ANCH).map(k => `<button data-anchor="${k}" aria-label="${ANAME[k]}" aria-pressed="${e.anchor===k}"></button>`).join('')}</span></div>`;
+  html += `<div class="grp">配置</div>` + toggle('auto','基準点をドラッグで決める',e.auto) + `<div class="prow"><span class="k">基準点：${ANAME[e.anchor]}${e.auto?'':' <span class="pin">（固定）</span>'}</span><span class="grid9">${Object.keys(ANCH).map(k => `<button data-anchor="${k}" aria-label="${ANAME[k]}" aria-pressed="${e.anchor===k}"></button>`).join('')}</span></div>`;
   html += stepper('dx','横のずらし',e.dx/2) + stepper('dy','縦のずらし',e.dy/2);
   html += `<div class="grp">見た目</div>` + stepper('scale','大きさ',e.scale+'%') + choice('bg','背景',e.bg==='card'?'半透明':'なし') + toggle('shadow','文字の影',e.shadow);
   if (id === 'target') html += choice('style','スタイル',e.style==='card'?'カード':'簡易');
   if (id === 'info') {
     html += `<div class="grp">表示する項目</div><div class="lines">` + LINES.map((l,i) => `<div class="lrow ${l.on?'':'offrow'}"><span class="sw ${l.on?'on':''}" role="switch" aria-checked="${l.on}" tabindex="0" data-line="${l.id}"></span><span class="k">${esc(l.k)}</span><span class="mv"><button data-move="${i}" data-d="-1" ${i===0?'disabled':''} aria-label="上へ">▲</button><button data-move="${i}" data-d="1" ${i===LINES.length-1?'disabled':''} aria-label="下へ">▼</button></span></div>`).join('') + `</div>`;
   }
-  html += `<div class="pfoot">ドラッグで移動すると、近い基準点に吸着します。ずらしは GUI の単位です。</div>`;
+  html += `<div class="pfoot">${e.auto ? 'ドラッグすると、近い基準点に切り替わります。' : '基準点は固定です。ドラッグしてもずらしだけが変わります。'}点線は基準点と、要素の中でその基準点に対応する点を結びます。要素が大きくなっても、この点の位置は動きません。</div>`;
   inspector.innerHTML = html;
   inspector.hidden = false;
   const box = huds.querySelector(`[data-id="${id}"]`), r = box ? box.offsetLeft : 0;
@@ -401,10 +422,11 @@ inspector.addEventListener('click', ev => {
   const e = el[st.sel];
   if (b.dataset.close !== undefined) { st.sel = null; }
   else if (b.dataset.reset !== undefined) { Object.assign(e, {dx:0, dy:0, scale:100}); }
-  else if (b.dataset.anchor) { e.anchor = b.dataset.anchor; e.dx = 0; e.dy = 0; }
+  else if (b.dataset.anchor) { e.anchor = b.dataset.anchor; e.auto = false; e.dx = 0; e.dy = 0; }
   else if (b.dataset.step) { const k = b.dataset.step, d = +b.dataset.d; if (k === 'scale') e.scale = Math.max(75, Math.min(150, e.scale + d*25)); else e[k] += d*2; }
   else if (b.dataset.choice === 'bg') e.bg = e.bg === 'card' ? 'plain' : 'card';
   else if (b.dataset.choice === 'style') e.style = e.style === 'card' ? 'text' : 'card';
+  else if (b.dataset.toggle === 'auto') e.auto = !e.auto;
   else if (b.dataset.toggle) e.shadow = !e.shadow;
   else if (b.dataset.line) { const l = LINES.find(x => x.id === b.dataset.line); l.on = !l.on; }
   else if (b.dataset.move) { const i = +b.dataset.move, j = i + +b.dataset.d; [LINES[i], LINES[j]] = [LINES[j], LINES[i]]; }

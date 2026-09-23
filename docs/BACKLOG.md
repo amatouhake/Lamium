@@ -22,17 +22,31 @@ Attack, Periodic Use, settings screen, Shapes view.
 
 These block Ready work. Answer them in one short session.
 
-- **D-1 Settings key (L-01).** Decided scope: only the settings key changes
-  now; no general default-key policy. Which key replaces F8 is open.
+- **D-1 Settings key (L-01).** Decided: `L` replaces F8. Only this key changes.
 - **D-2 HUD proposal.** Direction accepted; details are being agreed through
   the web demo [docs/demos/hud.html](demos/hud.html). Do not implement L-02,
   L-03, L-04 or L-08 until DESIGN.md marks the HUD section Decided.
-- **D-3 Shape types (L-13).** Direction accepted; the modelling question
-  (dedicated cone type vs parameters) is open. See L-13.
+- **D-3 Shape types (L-13).** Decided: cross-section × profile × axis model
+  with familiar names as presets. Which presets come first is still open.
 
 ---
 
 ## Ready
+
+### L-01 Settings key
+Status: ready. Change the `settings` action's default key from F8 (0x77) to
+`L` (0x4C) in `input/Binding.h`; update README, translations/help text that
+mention F8, and BindingTests. Users with an override keep it; Minecraft may
+keep its own saved mapping for the Lamium key, so tell the user to check
+Keyboard settings after updating. Only the settings action's default changes.
+F8 is missing on some keyboards and is meaningless for Lamium. Vanilla
+Bedrock keyboard defaults (options.txt, 1.26.51): Q drop, 1–9 hotbar, E
+inventory, F5 perspective, Space jump, Shift sneak, Ctrl sprint, WASD, Z mob
+effects, T/Enter chat, / command, C copy coordinates, X copy facing
+coordinates, B emote, F2 screenshot, F4 social, [ ] menu tabs, N toast.
+Lamium already uses C (Zoom, clashes with copy coordinates), J, R.
+Free single letters include F G H I K L M O P U V Y. Changing a default only
+affects users without an override; Minecraft may keep its own saved mapping.
 
 ### L-02 Replace gameplay key hints with an "Open Hotkeys" action
 Status: waiting for D-2.
@@ -105,7 +119,8 @@ Status: after L-09.
   with tests.
 
 ### L-13 More shape types
-Status: waiting for D-3 (modelling question below).
+Status: model decided (below, "Proposed model" is accepted); pick the first
+presets with the maintainer, then this becomes Ready.
 
 Prior art (behavior only, never code):
 - MiniHUD (current fork) ships: box, centered box, circle, square, rhombus,
@@ -145,17 +160,6 @@ surface for small sizes.
 ---
 
 ## Design
-
-### L-01 Settings key
-Needs D-1. Only the settings action's default changes; other defaults stay.
-F8 is missing on some keyboards and is meaningless for Lamium. Vanilla
-Bedrock keyboard defaults (options.txt, 1.26.51): Q drop, 1–9 hotbar, E
-inventory, F5 perspective, Space jump, Shift sneak, Ctrl sprint, WASD, Z mob
-effects, T/Enter chat, / command, C copy coordinates, X copy facing
-coordinates, B emote, F2 screenshot, F4 social, [ ] menu tabs, N toast.
-Lamium already uses C (Zoom, clashes with copy coordinates), J, R.
-Free single letters include F G H I K L M O P U V Y. Changing a default only
-affects users without an override; Minecraft may keep its own saved mapping.
 
 ### L-04 HUD element system
 Merge Info HUD, automation status and restriction status into HUD elements

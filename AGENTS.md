@@ -8,8 +8,19 @@ Read it fully before changing code.
 - Product direction, UI rules and colors: [docs/DESIGN.md](docs/DESIGN.md)
 - What to work on, and who should do it: [docs/BACKLOG.md](docs/BACKLOG.md)
 - Per-feature technical notes: `docs/*.md` (CAMERA, OVERLAYS, RESTRICTIONS, ...)
+- UI mockups agreed with the maintainer: `docs/demos/` (see its README)
 - Machine-specific paths (instance folder etc.): `AGENTS.local.md` if present.
   It is gitignored; never copy its contents into tracked files.
+
+### Where information lives
+
+| Place | Holds | Read by |
+|---|---|---|
+| Repo `docs/` + this file | Everything needed to do the work: rules, design, tasks, validation state | Every agent. Cheap models read only this. |
+| Notion Lamium page (private) | Product vision, roadmap waves, licensing stance, session checkpoints | Maintainer and strong models when planning. Not required for tasks. |
+
+If a decision made in Notion or chat affects implementation, it must be
+written into DESIGN.md or BACKLOG.md; the repo is the source of truth for work.
 
 ## Talking to the user
 

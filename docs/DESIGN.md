@@ -86,7 +86,15 @@ them into one **HUD element** system before adding more content:
 
 - Every element has: anchor (9 presets: corners, edge centers, center) plus
   an offset; scale (75–150 %); background (none / translucent card);
-  text shadow on/off. Settings rows are generated from this shared model.
+  text shadow on/off.
+- The anchor is the point that stays put when the element grows or the screen
+  resizes. By default a drag picks the nearest anchor; choosing an anchor in
+  the element's panel pins it, and drags then change only the offset (so an
+  element can hang low from a top anchor). A dashed line shows the anchor
+  while dragging.
+- The layout editor's per-element panel and the settings screen rows are
+  generated from the same option definitions, never written twice. Long
+  lists scroll inside the panel.
 - Element types: Info lines (user-chosen, user-ordered lines), Target card,
   Status (automation, restriction, toggle toasts), later F3 view.
 - Info lines are providers with an id, a label and a value; unavailable values
@@ -123,4 +131,4 @@ them into one **HUD element** system before adding more content:
 - (Decided) There is no general default-key policy to design now; defaults are
   decided per feature when needed. New actions ship unbound unless the
   maintainer picks a key.
-- (Open) F8 for settings is being replaced (BACKLOG L-01).
+- (Decided) Settings opens with `L` instead of F8 (BACKLOG L-01).
