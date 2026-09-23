@@ -490,7 +490,7 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
         fill(context,x,cy-1,width,capHeight+2,palette::accent,.25f);
         frame(context,x,cy-1,width,capHeight+2,palette::accent);
         auto text = capture.value().empty() ? translated("captureBox") : bindingChordName(current, capture.value());
-        label(context,x+3,cy+1,width-6,std::move(text));
+        label(context,x+3,cy+boxTextInset(),width-6,std::move(text));
         return;
     }
     auto keys = bindingKeys(current, action);
@@ -501,14 +501,14 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
         float w = textWidth(context, text) + 4;
         if (used + 3 + w <= width) {
             frame(context,x+used+3,cy,w,capHeight,palette::warning);
-            label(context,x+used+5,cy+1,w-3,std::move(text),palette::warning);
+            label(context,x+used+5,cy+boxTextInset(),w-3,std::move(text),palette::warning);
         }
     }
 }
 float badge(MinecraftUIRenderContext& context, float x, float y, std::string text, Rgb color) {
     float w = textWidth(context, text) + 5;
     frame(context,x,y+1,w,SettingsTable::rowHeight-3,color);
-    label(context,x+3,y+2,w-3,std::move(text),color);
+    label(context,x+3,y+1+boxTextInset(),w-3,std::move(text),color);
     return w;
 }
 // Name cell with optional trailing count and experimental badge, truncated to fit.
@@ -532,15 +532,15 @@ void drawStepper(MinecraftUIRenderContext& context, float y, settings::Option co
     frame(context,x,cy,w,h,editing ? palette::accent : palette::keyEdge);
     bool numeric = option.numeric.has_value();
     if (numeric) {
-        label(context,x,cy+2,aw,"-",palette::dim,Align::Center);
-        label(context,x+w-aw,cy+2,aw,"+",palette::dim,Align::Center);
+        label(context,x,cy+1+boxTextInset(),aw,"-",palette::dim,Align::Center);
+        label(context,x+w-aw,cy+1+boxTextInset(),aw,"+",palette::dim,Align::Center);
     } else {
         arrow(context,x+4,cy+3,true);
         arrow(context,x+w-aw+4,cy+3,false);
     }
     std::string text = editing
         ? (numberInput.selectedAll() ? "[" + numberInput.value() + "]" : numberInput.value() + "_") : value;
-    label(context,x+aw+1,cy+2,w-2*aw-2,std::move(text),palette::text,Align::Center);
+    label(context,x+aw+1,cy+1+boxTextInset(),w-2*aw-2,std::move(text),palette::text,Align::Center);
 }
 void drawGuide(MinecraftUIRenderContext& context, float y, bool last) {
     float x = displayed.nameX + 3;
@@ -611,12 +611,12 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (searchFocused && query.selectedAll() && !query.value().empty())
         fill(context,t.searchX+3,t.top+5,std::min(t.searchWidth-6,textWidth(context,query.value())),10,palette::accent,.35f);
     if (query.value().empty() && !searchFocused)
-        label(context,t.searchX+4,t.top+6,t.searchWidth-8,translated("searchPlaceholder") + "  Ctrl+F",palette::faint);
-    else label(context,t.searchX+4,t.top+6,t.searchWidth-8,query.value() + (searchFocused ? "_" : ""));
+        label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("searchPlaceholder") + "  Ctrl+F",palette::faint);
+    else label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,query.value() + (searchFocused ? "_" : ""));
     bool closeHover = hover.zone == Zone::Close;
     if (closeHover) fill(context,t.closeX,t.top+4,SettingsTable::closeWidth,12,palette::white,.07f);
     frame(context,t.closeX,t.top+4,SettingsTable::closeWidth,12,palette::keyEdge);
-    label(context,t.closeX,t.top+6,SettingsTable::closeWidth,translated("closeButton"),
+    label(context,t.closeX,t.top+5+boxTextInset(),SettingsTable::closeWidth,translated("closeButton"),
         closeHover ? palette::text : palette::dim,Align::Center);
     fill(context,t.left,t.top+SettingsTable::headerHeight-1,t.width,1,palette::white,.14f);
 
@@ -737,7 +737,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == i;
             fill(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,over ? Rgb{.23f,.23f,.24f} : palette::keyFill);
             frame(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
-            label(context,x,y+1,SettingsTable::footerButtonWidth,names[i],palette::text,Align::Center);
+            label(context,x,y+boxTextInset(),SettingsTable::footerButtonWidth,names[i],palette::text,Align::Center);
         }
         float after = t.footerButtonX(3);
         label(context,after,t.footerButtonY()+1,t.left+t.width-SettingsTable::pad-after,

@@ -20,6 +20,9 @@ enum class Align { Left, Right, Center };
 // for this call; screens retain navigation and input ownership themselves.
 void label(MinecraftUIRenderContext&, float x, float y, float width, std::string text,
            Rgb color = palette::text, Align align = Align::Left);
+// Japanese glyphs fill more of the line; text framed by a border starts this
+// much lower than its box top so it clears the bottom edge in every locale.
+float boxTextInset();
 void paragraph(MinecraftUIRenderContext&, float x, float y, float width, std::string_view text, size_t maxLines,
                Rgb color = palette::text);
 float textWidth(MinecraftUIRenderContext&, std::string_view text);

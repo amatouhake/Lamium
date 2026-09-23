@@ -42,6 +42,7 @@ void frame(MinecraftUIRenderContext& context, float x, float y, float width, flo
 namespace {
 // With a Japanese locale, Latin letters and digits are drawn from glyphs that sit
 // lower than kana and kanji on the same line. Raise those runs to share the line.
+bool japaneseLocale() { return translations::japanese(*getI18n().getCurrentLanguage()->mCode); }
 float latinRaise() {
     auto locale = getI18n().getCurrentLanguage();
     return translations::japanese(*locale->mCode) ? 1.5f : 0.f;
@@ -53,6 +54,7 @@ void drawRun(MinecraftUIRenderContext& context, Font& font, float x, float y, fl
     context.drawText(font, RectangleArea{x,x+width,y,y+14}, std::move(text), color(value), 1.0f, align, measure, caret);
 }
 }
+float boxTextInset() { return japaneseLocale() ? 0.f : 1.f; }
 void label(MinecraftUIRenderContext& context, float x, float y, float width, std::string text, Rgb value, Align align) {
     auto& font = defaultFont(context);
     auto measure = [&](std::string_view part) { return static_cast<float>(font.getLineLength(part, 1.0f, false)); };
@@ -125,7 +127,7 @@ float keycaps(MinecraftUIRenderContext& context, float x, float y, float width, 
     for (size_t i = 0; i < keys.size(); ++i) {
         if (i) {
             if (used + 6 > width) break;
-            label(context,x+used,y+1,6,"+",palette::faint,Align::Center);
+            label(context,x+used,y+boxTextInset(),6,"+",palette::faint,Align::Center);
             used += 6;
         }
         float capWidth = std::min(textWidth(context, keys[i]) + 6, width - used);
@@ -133,7 +135,7 @@ float keycaps(MinecraftUIRenderContext& context, float x, float y, float width, 
         fill(context,x+used,y,capWidth,capHeight,palette::keyFill);
         frame(context,x+used,y,capWidth,capHeight,palette::keyEdge);
         fill(context,x+used+1,y+capHeight-2,capWidth-2,1,Rgb{0,0,0},.5f);
-        label(context,x+used+3,y+1,capWidth-5,keys[i]);
+        label(context,x+used+3,y+boxTextInset(),capWidth-5,keys[i]);
         used += capWidth;
     }
     return used;
