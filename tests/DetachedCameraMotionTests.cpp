@@ -27,4 +27,10 @@ void detachedCameraMotionTests() {
     motion.advance(2,{0,0,1},forward,up,Motion::Vector{-1,0,0},10,.1);
     check((*motion.snapshot())[0] == -1 && (*motion.snapshot())[2] == 0,
           "movement follows the supplied camera orientation");
+    motion.cancel();
+    motion.begin(3);
+    check(motion.shift(3, Motion::Vector{0, 0, -4}), "third-person eye seeds the session");
+    check((*motion.snapshot())[2] == -4, "seeded offset persists without input");
+    check(!motion.shift(4, Motion::Vector{1, 0, 0}) && !motion.snapshot(),
+          "seeding rejects a replaced owner");
 }

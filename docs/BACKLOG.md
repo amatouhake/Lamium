@@ -381,6 +381,11 @@ Native text entry for shape names inserts extra characters.
   underground, vanilla collision avoidance fights the pivot offset and the
   view judders block by block. Decide whether to soften avoidance while
   detached or document it as a limit; above-ground flight is unaffected.
+  Mostly moot if FreeCamera locks first person (plan A).
+- L-29 Hide the hotbar while detached (parked, after L-18). Requested
+  2026-09-24, Tweakeroo-like: an option to hide the hotbar while FreeCamera
+  is active (looking-only flight needs no hotbar). Find the vanilla hotbar
+  render entry first; Freelook is out of scope unless trivially shared.
 - L-27 Detached menu behavior (parked, after L-18; small Design open).
   Inventory/settings opening currently exits FreeCamera and discards the flown
   position, which is safe but annoying. Desired: an option around inventory

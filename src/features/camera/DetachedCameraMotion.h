@@ -51,6 +51,19 @@ public:
         displacement = next;
         return true;
     }
+    // Seeds the session from a non-player eye (third-person continuity).
+    // Adds an absolute world delta once; normal advance() continues from it.
+    bool shift(std::uint64_t ownerId, Vector delta) {
+        std::lock_guard lock{mutex};
+        if (!displacement) return false;
+        if (owner != ownerId || !finite(delta)) { displacement.reset(); return false; }
+        Vector next{(*displacement)[0] + delta[0],
+                    (*displacement)[1] + delta[1],
+                    (*displacement)[2] + delta[2]};
+        if (!finite(next)) { displacement.reset(); return false; }
+        displacement = next;
+        return true;
+    }
     std::optional<Vector> snapshot() const {
         std::lock_guard lock{mutex};
         return displacement;

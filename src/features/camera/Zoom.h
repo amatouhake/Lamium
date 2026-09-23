@@ -36,6 +36,10 @@ class Zoom {
     // Latest session displacement for the entity-offset writer below.
     DetachedCameraMotion::Vector lastDisplacement{};
     bool hasDisplacement = false;
+    // Render-eye history for third-person continuity (seed the session from
+    // the pre-switch eye instead of snapping to the head).
+    DetachedCameraMotion::Vector lastEye{}, prevEye{}, thirdEye{};
+    bool hasThirdEye = false;
     // Stage 3: session displacement for the moving camera. The motion state
     // is advanced per render frame from the stashed input above.
     DetachedCameraMotion motion;
@@ -80,6 +84,8 @@ public:
     // Frame writer: carries the latest displacement into the detached camera
     // entity's offset component on the UI-render thread (mirrors keepHead).
     void writeFreeCameraOffset();
+    // Records every render eye; the poll loop reads the history.
+    void recordRenderEye(mce::Camera&);
     void releaseLook();
     void releaseLookKey(); // Key release: ends a held session, ignored in toggle mode
     void cancelLook();

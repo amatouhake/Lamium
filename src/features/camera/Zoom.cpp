@@ -417,6 +417,7 @@ LL_TYPE_INSTANCE_HOOK(FreeCameraSetupHook, ll::memory::HookPriority::Normal, Lev
     origin(camera, alpha);
     (void)alpha;
     try {
+        Zoom::instance().recordRenderEye(camera);
         Zoom::instance().freeCameraView(mClientInstance, camera);
     } catch (...) {}
 }
@@ -580,6 +581,11 @@ bool Zoom::ensureFirstPerson(IClientInstance& current, LocalPlayer& player) {
     {
         std::lock_guard lock{freeInputMutex};
         freeTravelStart = std::chrono::steady_clock::now();
+        // Latch the pre-switch eye; the completion seeds the session with
+        // (thirdEye - settledEye) so flight continues from the third-person
+        // viewpoint instead of snapping to the head.
+        thirdEye = lastEye;
+        hasThirdEye = true;
     }
     try {
         using Mode = SharedTypes::v1_21_100::PlayerViewMode;
@@ -590,27 +596,48 @@ bool Zoom::ensureFirstPerson(IClientInstance& current, LocalPlayer& player) {
     }
     return false;
 }
+void Zoom::recordRenderEye(mce::Camera& camera) {
+    auto eye = *camera.mPosition;
+    if (!std::isfinite(eye.x) || !std::isfinite(eye.y) || !std::isfinite(eye.z)) return;
+    std::lock_guard lock{freeInputMutex};
+    prevEye = lastEye;
+    lastEye = {eye.x, eye.y, eye.z};
+}
 void Zoom::pollFreeTravel() {
     auto* current = client.load();
     if (!current || !current->getLocalPlayer()) { abortPendingTravel(); return; }
-    try {
-        if (findFirstPersonRig(*current->getLocalPlayer())) {
-            pendingFreeCamera.store(false);
-            if (!beginFreeCameraSession(*current, *current->getLocalPlayer()))
-                restoreFreePerspective(*current);
-            return;
-        }
-    } catch (...) { abortPendingTravel(); return; }
     std::chrono::steady_clock::time_point start;
+    DetachedCameraMotion::Vector eye{}, prev{};
     {
         std::lock_guard lock{freeInputMutex};
         start = freeTravelStart;
+        eye = lastEye;
+        prev = prevEye;
     }
-    if (std::chrono::steady_clock::now() - start > std::chrono::seconds(5)) abortPendingTravel();
+    bool settled = false;
+    try {
+        settled = findFirstPersonRig(*current->getLocalPlayer());
+    } catch (...) { abortPendingTravel(); return; }
+    auto now = std::chrono::steady_clock::now();
+    if (now - start > std::chrono::seconds(3)) {
+        // Blend never settled; begin without the continuity seed.
+        pendingFreeCamera.store(false);
+        { std::lock_guard lock{freeInputMutex}; hasThirdEye = false; }
+        if (!beginFreeCameraSession(*current, *current->getLocalPlayer()))
+            restoreFreePerspective(*current);
+        return;
+    }
+    if (!settled) return;
+    double dx = eye[0] - prev[0], dy = eye[1] - prev[1], dz = eye[2] - prev[2];
+    if (dx * dx + dy * dy + dz * dz > 1e-6) return; // Blend still running.
+    pendingFreeCamera.store(false);
+    if (!beginFreeCameraSession(*current, *current->getLocalPlayer()))
+        restoreFreePerspective(*current);
 }
 void Zoom::abortPendingTravel() {
     if (!pendingFreeCamera.load()) return;
     pendingFreeCamera.store(false);
+    { std::lock_guard lock{freeInputMutex}; hasThirdEye = false; }
     auto* current = client.load();
     if (current) {
         try { restoreFreePerspective(*current); } catch (...) {}
@@ -639,6 +666,19 @@ bool Zoom::beginFreeCameraSession(IClientInstance& current, LocalPlayer& player)
     freeMotionOwner.store(0);
     if (!ownerId || !motion.begin(ownerId)) { cancelLook(); return false; }
     freeMotionOwner.store(ownerId);
+    {
+        DetachedCameraMotion::Vector seed{};
+        bool seedIt = false;
+        {
+            std::lock_guard lock{freeInputMutex};
+            if (hasThirdEye) {
+                seed = {thirdEye[0] - lastEye[0], thirdEye[1] - lastEye[1], thirdEye[2] - lastEye[2]};
+                hasThirdEye = false;
+                seedIt = true;
+            }
+        }
+        if (seedIt && !motion.shift(ownerId, seed)) { cancelLook(); return false; }
+    }
 #ifdef LAMIUM_CAMERA_TRACE
     traceLook(LookTraceStage::Begin, player.getRotation().x, player.getRotation().z);
     try { Runtime::instance().self().getLogger().info("FreeCamera body: begin head={}", player.getYHeadRot()); } catch (...) {}
@@ -703,6 +743,7 @@ void Zoom::endFreeCameraMotion(bool wasFreeCamera) {
     std::lock_guard lock{freeInputMutex};
     freeMotionTimed = false;
     hasDisplacement = false;
+    hasThirdEye = false;
 }
 void Zoom::writeFreeCameraOffset() {
     if (lookOwner.load() != DetachedOwner::FreeCamera) return;
