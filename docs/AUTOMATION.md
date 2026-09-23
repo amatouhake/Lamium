@@ -73,7 +73,9 @@ Each press lasts one input update. Attack and Use each expose an Interval in
 their feature settings, in seconds (0.1–60, default 0.5). The adapter snapshots
 the interval on activation; opening Settings cancels an active session, so
 editing does not leave a previously scheduled click pending. Missing values
-retain the old 500 ms cadence. Visible runtime state is still required. Activation
+retain the old 500 ms cadence. Active automation appears at the upper right,
+independent of Info HUD and gameplay key hints. The Automation status setting
+can hide these lines without changing input intent. Activation
 is never persisted. A manual down event disarms that action and transfers held
 state to the physical input; cancellation does not release underneath a held
 physical button. Common input invalidation, dimension changes, and runtime
@@ -119,8 +121,8 @@ These observations supersede the earlier inconclusive attack smoke only.
 They do not establish entity damage, block breaking, Periodic Use, continuous-use
 items, world/dimension transitions, multiplayer, or hot re-enable support.
 The configurable-interval revision passes build and settings tests; its in-game
-editor and non-default cadence still need runtime validation. Visible active
-state remains implementation work.
+editor and non-default cadence still need runtime validation. The active-state
+HUD also needs visual validation with simultaneous actions and cancellation.
 
 ## Integration still required
 

@@ -66,6 +66,7 @@ void toggle(IClientInstance& client) {
     else { observed = matched = rawSneak = 0; intent.arm(); }
     Runtime::instance().self().getLogger().info("Permanent Sneak: {}", intent.active() ? "on" : "off");
 }
+bool active(IClientInstance& client) { return intent.active() && eligible(client); }
 void start() {
     try {
         if (!installed) {

@@ -6,6 +6,8 @@
 #include "features/information/TargetRows.h"
 #include "features/information/DebugView.h"
 #include "features/interaction/BreakingRestriction.h"
+#include "features/interaction/PeriodicInput.h"
+#include "features/interaction/PermanentSneak.h"
 #include "app/Runtime.h"
 #include "ui/HudLayout.h"
 #include "ui/Widgets.h"
@@ -17,6 +19,19 @@
 namespace lamium::information {
 void drawHud(MinecraftUIRenderContext& context, float width, float height, Settings::Information const& preferences) {
     auto settings = debugProfile(preferences);
+    if (Runtime::instance().preferences().ui.automationStatus) {
+        std::vector<std::string> lines;
+        if (interaction::periodic::active(context.mClient, interaction::periodic::Action::Attack))
+            lines.push_back(ui::translated("status.periodicAttack"));
+        if (interaction::periodic::active(context.mClient, interaction::periodic::Action::Use))
+            lines.push_back(ui::translated("status.periodicUse"));
+        if (interaction::sneak::active(context.mClient))
+            lines.push_back(ui::translated("status.permanentSneak"));
+        auto layout = ui::HudLayout::fit(width,height,100,15,static_cast<int>(lines.size()));
+        for (int i = 0; i < layout.lines; ++i)
+            ui::label(context,layout.x,layout.y+i*14,layout.width,lines[i]);
+        if (layout.lines) context.flushText(0,std::nullopt);
+    }
     if (Runtime::instance().preferences().interaction.breaking && context.mClient.getLocalPlayer()) {
         auto mode = Runtime::instance().preferences().interaction.breakingMode;
         auto anchor = interaction::breaking::region();

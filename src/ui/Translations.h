@@ -6,6 +6,12 @@ namespace lamium::ui::translations {
 struct Entry { std::string_view key, english, japanese; };
 inline constexpr auto entries = std::to_array<Entry>({
     {"feature.periodicAttack", "Periodic Attack (experimental)", "周期攻撃（試験的）"},
+    {"feature.automationStatus", "Automation status", "自動操作の状態表示"},
+    {"automationStatus", "Automation status: {}", "自動操作の状態表示: {}"},
+    {"help.automationStatus", "Show active automatic inputs at the upper right. Hiding this does not stop them.", "動作中の自動入力を右上に表示します。非表示にしても自動入力は停止しません。"},
+    {"status.periodicAttack", "Periodic Attack active", "周期攻撃: 動作中"},
+    {"status.periodicUse", "Periodic Use active", "周期使用: 動作中"},
+    {"status.permanentSneak", "Permanent Sneak active", "スニーク維持: 動作中"},
     {"feature.periodicUse", "Periodic Use (experimental)", "周期使用（試験的）"},
     {"help.periodicInput", "Toggle repeated clicks at the configured interval. Manual clicks, menus, focus loss and world changes stop it.", "設定した間隔でクリックを繰り返します。手動クリック・メニュー・フォーカス喪失・ワールド変更で停止します。"},
     {"periodicInterval", "Interval: {:.1f} s", "間隔: {:.1f} 秒"},

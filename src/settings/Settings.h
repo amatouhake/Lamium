@@ -42,6 +42,7 @@ struct Settings {
     } inventory;
     struct Interface {
         bool gameplayHints = true;
+        bool automationStatus = true;
     } ui;
     struct Overlays {
         bool chunkBorders = false;

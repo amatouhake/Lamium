@@ -118,6 +118,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inventory, &Settings::Inventory::sorting>("inventory.sorting", "sorting", "sorting"),
     toggle<&Settings::inventory, &Settings::Inventory::sortContainers>("inventory.sortContainers", "sorting", "storage"),
     toggle<&Settings::ui, &Settings::Interface::gameplayHints>("interface.gameplayHints", "gameplayHints", "gameplayHints"),
+    toggle<&Settings::ui, &Settings::Interface::automationStatus>("interface.automationStatus", "automationStatus", "automationStatus"),
 });
 inline Option const* find(std::string_view id) {
     for (auto const& option : options) if (option.id == id) return &option;

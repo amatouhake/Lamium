@@ -119,6 +119,7 @@ void settingsStoreTests() {
     old.inventory.sorting = false;
     old.inventory.sortContainers = false;
     old.ui.gameplayHints = false;
+    old.ui.automationStatus = false;
     old.interaction.attackInterval = 1.2f;
     old.interaction.useInterval = 3.4f;
     writeSettings(path, old);
@@ -128,6 +129,7 @@ void settingsStoreTests() {
     check(loaded.camera.magnification == 3.5f && loaded.lighting.nightVision, "disk round trip");
     check(!loaded.inventory.sorting && !loaded.inventory.sortContainers, "inventory switches survive saves");
     check(!loaded.ui.gameplayHints, "hidden gameplay hints survive restart");
+    check(!loaded.ui.automationStatus, "hidden automation status survives restart");
     auto contents = [&]() {
         std::ifstream file(path);
         return std::string{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};

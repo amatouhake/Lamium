@@ -152,6 +152,13 @@ Hook hooks[] = {{RegisterDown::hook, RegisterDown::unhook}, {RegisterUp::hook, R
     {ChangeDimension::hook, ChangeDimension::unhook}};
 }
 void cancel() { for (auto const& [_, owner] : owners) for (auto& button : owner->buttons) cancelButton(button); }
+bool active(IClientInstance& client, Action action) {
+    if (!eligible(client) || !client.getInput()) return false;
+    auto found = owners.find(&client.getInput()->mInputHandler);
+    if (found == owners.end()) return false;
+    auto const& button = found->second->buttons[static_cast<size_t>(action)];
+    return button.client == &client && button.intent.active();
+}
 void toggle(IClientInstance& client, Action action) {
     auto& logger = Runtime::instance().self().getLogger();
     if (!eligible(client) || !client.getInput()) {

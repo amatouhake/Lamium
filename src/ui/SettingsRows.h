@@ -11,7 +11,7 @@ inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "zoom" || id == "freelook" || id == "nightVision" || id == "hideOffhand") return "section.camera";
     if (id == "previews" || id == "durability" || id == "sorting" || id == "toolSwitch" || id == "handRestock") return "section.inventory";
     if (id == "restrictions" || id == "permanentSneak" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
-    if (id == "settings" || id == "gameplayHints") return "section.interface";
+    if (id == "settings" || id == "gameplayHints" || id == "automationStatus") return "section.interface";
     return "section.information";
 }
 inline constexpr auto features = std::to_array<FeatureInfo>({
@@ -36,6 +36,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"lightOverlay", "feature.lightOverlay", "help.lightOverlay", "overlays.light"},
     {"shapes", "shape.manager", "shape.description", ""},
     {"gameplayHints", "feature.gameplayHints", "help.gameplayHints", "interface.gameplayHints"},
+    {"automationStatus", "feature.automationStatus", "help.automationStatus", "interface.automationStatus"},
     {"settings", "feature.settings", "help.settings", ""},
 });
 struct SettingsRow {
