@@ -86,7 +86,7 @@ Minecraft's screen.
   Reset in Hotkeys returns an action to its default.
 
 ### L-22 Never leave the settings action without a key
-Status: ready. Found while testing L-01.
+Status: done. Found while testing L-01.
 - Clearing the settings action's binding saves `"settings": []`, an explicit
   unbind that overrides Minecraft's mapping. The settings screen then cannot
   be opened at all, so the binding cannot be fixed in game.

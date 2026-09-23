@@ -112,6 +112,15 @@ void settingsStoreTests() {
         writeSettings(path, configured);
         check(!readSettings(path).bindings[static_cast<size_t>(input::Action::Zoom)], "reset removes only the override");
         check(readSettings(path).bindings[static_cast<size_t>(input::Action::Sort)]->empty(), "reset preserves another unbound action");
+        auto locked = decodeSettings(R"({"bindings":{"settings":[]}})"
+        );
+        check(!locked.bindings[static_cast<size_t>(input::Action::Settings)],
+              "stored empty settings binding recovers the default");
+        auto remapped = decodeSettings(R"({"bindings":{"settings":[{"device":"key","code":70}]}})"
+        );
+        check(remapped.bindings[static_cast<size_t>(input::Action::Settings)]
+                  == input::Chord{input::Token{input::Device::Key, 70}},
+              "non-empty settings binding still loads");
         for (auto invalid : {R"({"bindings":[]})", R"({"bindings":{"zoom":true}})",
                              R"({"bindings":{"zoom":[{"device":"wheel","code":1}]}})",
                              R"({"bindings":{"sort":[{"device":"key","code":4294967350}]}})",

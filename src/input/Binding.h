@@ -59,6 +59,9 @@ inline Chord effectiveChord(Bindings const& bindings, Action action) {
     if (override) return *override;
     return defaultChord(action);
 }
+// Clearing the settings binding would lock the screen shut, so only Reset is
+// offered for it. Loading also ignores a stored empty settings binding.
+inline constexpr bool canClear(Action action) { return action != Action::Settings; }
 
 inline Chord canonicalChord(Chord chord, Behavior behavior) {
     if (chord.size() > 8) throw std::invalid_argument("A binding accepts at most eight inputs");

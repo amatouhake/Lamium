@@ -379,7 +379,10 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     if (capturing) {
         if (hit.zone == Zone::Footer && !right) {
             int button = displayed.footerButton(hit.x, hit.y);
-            if (button == 2) cancelCapture();
+            if (!input::canClear(*capturing)) {
+                if (button == 0) bindingEdit = BindingEdit{*capturing, std::nullopt};
+                else if (button == 1) cancelCapture();
+            } else if (button == 2) cancelCapture();
             else if (button >= 0) bindingEdit = BindingEdit{*capturing, button == 0
                 ? std::optional<input::Chord>(input::Chord{}) : std::nullopt};
         }
@@ -1332,10 +1335,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     fill(context,t.left,t.footerTop,t.width,1,palette::white,.14f);
     float textLeft = t.left + SettingsTable::pad, textWidthAvailable = t.width - 2*SettingsTable::pad;
     if (capturing) {
-        std::array<std::string,3> names{translated("clearShort"),translated("resetShort"),translated("cancelShort")};
-        for (int i = 0; i < 3; ++i) {
-            float x = t.footerButtonX(i), y = t.footerButtonY();
-            bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == i;
+        std::vector<std::string> names{translated("resetShort"), translated("cancelShort")};
+        if (input::canClear(*capturing)) names.insert(names.begin(), translated("clearShort"));
+        for (size_t i = 0; i < names.size(); ++i) {
+            float x = t.footerButtonX(static_cast<int>(i)), y = t.footerButtonY();
+            bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == static_cast<int>(i);
             fill(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,over ? Rgb{.23f,.23f,.24f} : palette::keyFill);
             frame(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
             label(context,x,y+boxTextInset(),SettingsTable::footerButtonWidth,names[i],palette::text,Align::Center);

@@ -149,7 +149,11 @@ Settings decodeSettings(std::string_view text) {
                 else throw std::runtime_error("Unknown binding device");
                 chord.push_back({kind, code.get<int>()});
             }
-            value.bindings[i] = input::canonicalChord(std::move(chord), input::actions[i].behavior);
+            auto stored = input::canonicalChord(std::move(chord), input::actions[i].behavior);
+            // An empty settings binding would lock the screen shut; treat it
+            // as absent so the default key applies.
+            if (stored.empty() && i == static_cast<size_t>(input::Action::Settings)) continue;
+            value.bindings[i] = std::move(stored);
         }
     }
     if (data.contains("camera")) {

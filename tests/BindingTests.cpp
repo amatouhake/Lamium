@@ -42,6 +42,8 @@ void bindingTests() {
     check(effectiveChord(fresh, Action::ChunkBorders).empty()
         && effectiveChord(fresh, Action::Zoom) == Chord{Token{Device::Key, 0x43}},
         "explicit unbind stays unbound while other defaults apply");
+    check(!canClear(Action::Settings) && canClear(Action::Zoom) && canClear(Action::ChunkBorders),
+        "only the settings action refuses Clear");
     Token z{Device::Key, 0x5a}, three{Device::Key, 0x33};
     auto chord = canonicalChord({z, three, z}, Behavior::Hold);
     check(chord == canonicalChord({three, z}, Behavior::Hold), "chord order and duplicate keys canonicalize");
