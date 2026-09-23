@@ -43,6 +43,8 @@ struct Settings {
     struct Overlays {
         bool chunkBorders = false;
         bool hitboxes = false;
+        bool light = false;
+        bool skyLight = false;
         float hitboxDistance = 64.f;
     } overlays;
     struct Visuals {

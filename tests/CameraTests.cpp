@@ -45,6 +45,8 @@ int main() try {
     sortPlannerPropertyTests();
     extern void translationTests();
     translationTests();
+    extern void lightOverlayTests();
+    lightOverlayTests();
     extern void settingsLayoutTests();
     settingsLayoutTests();
     extern void responseBarrierTests();

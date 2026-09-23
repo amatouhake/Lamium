@@ -60,6 +60,7 @@ Json encode(Settings const& settings) {
                          {"vertical", settings.information.vertical}}},
         {"visuals", {{"hideOffhand", settings.visuals.hideOffhand}}},
         {"overlays", {{"chunkBorders", settings.overlays.chunkBorders}, {"hitboxes", settings.overlays.hitboxes},
+                      {"light", settings.overlays.light}, {"skyLight", settings.overlays.skyLight},
                       {"hitboxDistance", settings.overlays.hitboxDistance}}},
         {"bindings", std::move(bindings)},
         {"camera", {{"zoom", settings.camera.zoom}, {"freelook", settings.camera.freelook}, {"magnification", settings.camera.magnification},
@@ -118,6 +119,8 @@ Settings decodeSettings(std::string_view text) {
         auto const& overlays = data.at("overlays");
         value.overlays.chunkBorders = overlays.value("chunkBorders", false);
         value.overlays.hitboxes = overlays.value("hitboxes", false);
+        value.overlays.light = overlays.value("light", false);
+        value.overlays.skyLight = overlays.value("skyLight", false);
         value.overlays.hitboxDistance = overlays.value("hitboxDistance", 64.f);
     }
     if (data.contains("bindings")) {

@@ -12,6 +12,7 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ChunkBorders: field = &value.overlays.chunkBorders; break;
     case Action::HideOffhand: field = &value.visuals.hideOffhand; break;
     case Action::Hitboxes: field = &value.overlays.hitboxes; break;
+    case Action::LightOverlay: field = &value.overlays.light; break;
     case Action::ToolSwitch: field = &value.inventory.toolSwitch; break;
     default: return false;
     }

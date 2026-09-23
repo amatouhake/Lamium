@@ -79,6 +79,8 @@ inline constexpr auto options = std::to_array<Option>({
         NumericOption{0,100,[](Settings& s, float v) { s.information.vertical = v; }}},
     toggle<&Settings::inventory, &Settings::Inventory::toolSwitch>("inventory.toolSwitch", "toolSwitch", "toolSwitch"),
     toggle<&Settings::overlays, &Settings::Overlays::hitboxes>("overlays.hitboxes", "hitboxes", "hitboxes"),
+    toggle<&Settings::overlays, &Settings::Overlays::light>("overlays.light", "lightOverlay", "lightOverlay"),
+    toggle<&Settings::overlays, &Settings::Overlays::skyLight>("overlays.skyLight", "lightOverlay", "skyLightOverlay"),
     {"overlays.hitboxDistance", "hitboxes", "hitboxDistance",
         [](Settings const& s) -> OptionValue { return s.overlays.hitboxDistance; },
         [](Settings& s, int direction) { s.overlays.hitboxDistance += direction * 8.f; s.normalize(); },

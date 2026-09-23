@@ -1,6 +1,7 @@
 #include "overlay/WorldOverlay.h"
 #include "overlay/ChunkBorders.h"
 #include "overlay/Hitboxes.h"
+#include "overlay/LightOverlay.h"
 #include "overlay/ShapeSession.h"
 #include "overlay/ShapeWorkspace.h"
 #include "overlay/LocalShapePath.h"
@@ -19,6 +20,9 @@
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/level/dimension/Dimension.h"
 #include "mc/world/level/Level.h"
+#include "mc/world/level/BlockSource.h"
+#include "mc/world/level/block/Block.h"
+#include "mc/world/level/block/BrightnessPair.h"
 #include "mc/deps/core_graphics/enums/PrimitiveMode.h"
 #include "mc/deps/minecraft_renderer/renderer/Mesh.h"
 #include "mc/deps/minecraft_renderer/renderer/MaterialPtr.h"
@@ -117,7 +121,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     if (!runtime.enabled()) return;
     auto preferences = runtime.preferences().overlays;
     bool breaking = runtime.preferences().interaction.breaking;
-    if (!preferences.chunkBorders && !preferences.hitboxes && !breaking && !hasShapes()) return;
+    if (!preferences.chunkBorders && !preferences.hitboxes && !preferences.light && !breaking && !hasShapes()) return;
     IClientInstance& client = context.mClientInstance;
     auto* player = client.getLocalPlayer();
     if (!player) return;
@@ -137,6 +141,27 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
             }
         }
         auto& dimension = player->getDimension();
+        if (preferences.light) {
+            Vec3 const position = player->getPosition();
+            Cell center{checkedCoordinate(std::floor(position.x)), checkedCoordinate(std::floor(position.y)),
+                        checkedCoordinate(std::floor(position.z))};
+            auto& region = player->getDimensionBlockSource();
+            auto const& height = dimension.mHeightRange;
+            auto markers = sampleLightSurfaces(center,4,2,[&](Cell cell) -> std::optional<LightSurface> {
+                if (cell.y <= height->mMin || cell.y >= height->mMax) return {};
+                BlockPos air{cell.x,cell.y,cell.z}, floor{cell.x,cell.y-1,cell.z};
+                if (!region.getChunkAt(air) || !region.getBlock(air).isAir()
+                    || !region.getBlock(floor)._isSolid()) return {};
+                auto light = region.getBrightnessPair(air);
+                return LightSurface{light.block->mValue,light.sky->mValue};
+            });
+            std::vector<Line> lines;
+            for (auto const& marker : markers) {
+                auto digits = lightNumberLines(marker.air,preferences.skyLight ? marker.light.sky : marker.light.block);
+                lines.insert(lines.end(),digits.begin(),digits.end());
+            }
+            drawLines(context,lines,true);
+        }
         if (preferences.chunkBorders) {
             auto const& range = dimension.mHeightRange;
             Vec3 const position = player->getPosition();

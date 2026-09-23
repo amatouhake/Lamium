@@ -29,6 +29,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"debugView", "feature.debugView", "help.debugView", "information.debug"},
     {"chunkBorders", "feature.chunkBorders", "help.chunkBorders", "overlays.chunkBorders"},
     {"hitboxes", "feature.hitboxes", "help.hitboxes", "overlays.hitboxes"},
+    {"lightOverlay", "feature.lightOverlay", "help.lightOverlay", "overlays.light"},
     {"shapes", "shape.manager", "shape.description", ""},
     {"gameplayHints", "feature.gameplayHints", "help.gameplayHints", "interface.gameplayHints"},
     {"settings", "feature.settings", "help.settings", ""},
