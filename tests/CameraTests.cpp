@@ -13,6 +13,8 @@ int runPreviewLayoutTests();
 int runDurabilityBarTests();
 int runBundlePreviewTests();
 int main() try {
+    extern void automationInputTests();
+    automationInputTests();
     extern void detachedLookTests();
     detachedLookTests();
     extern void restrictionRegionTests();
