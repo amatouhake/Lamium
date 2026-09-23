@@ -17,6 +17,7 @@
 #include "mc/client/renderer/SupplementaryFieldAutoGenerationMode.h"
 #include "mc/client/gui/screens/ScreenContext.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/level/dimension/Dimension.h"
 #include "mc/world/level/Level.h"
@@ -118,12 +119,14 @@ struct ShapeMesh {
 // multiplies the scene color, so it followed day and night; it also culls back
 // faces. Prefer the hologram pointer material (vertex color, alpha blending,
 // depth-tested without depth writes), available with fancy graphics, and emit
-// both windings since it culls. Otherwise use the lightning material, which is
-// two-sided but additive.
+// both windings since it culls. Simple graphics do not load it (the pointer
+// still resolves but draws nothing), so use the two-sided, additive lightning
+// material there.
 struct FaceMaterial { mce::MaterialPtr material; bool twoSided; };
-FaceMaterial faceMaterial() {
+FaceMaterial faceMaterial(IClientInstance& client) {
+    bool fancy = client.getOptions().getGraphicsMode() != GraphicsMode::Simple;
     mce::MaterialPtr hologram(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
-    bool preferred = hologram.mRenderMaterialInfoPtr != nullptr;
+    bool preferred = fancy && hologram.mRenderMaterialInfoPtr != nullptr;
     static std::atomic<int> reported{-1};
     if (reported.exchange(preferred ? 1 : 0) != (preferred ? 1 : 0)) {
         try {
@@ -246,7 +249,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     try {
         if (shapesShown) {
             std::lock_guard lock(shapeMutex);
-            auto const faces = faceMaterial();
+            auto const faces = faceMaterial(client);
             int dimensionId = static_cast<int>(player->getDimensionId());
             shapeCollection.forVisible(dimensionId,
                 [&](ShapeId id, ManagedShape const& shape) { drawShape(context, faces, id, shape, false); });
