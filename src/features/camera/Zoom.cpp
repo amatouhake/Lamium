@@ -16,11 +16,11 @@
 #include "mc/deps/input/MouseAction.h"
 #include "mc/deps/renderer/Camera.h"
 #include "mc/deps/ecs/gamerefs_entity/EntityContext.h"
+#include "mc/entity/components/ActorHeadRotationComponent.h"
 #include "mc/deps/minecraft_camera/components/ActiveCameraComponent.h"
 #include "mc/deps/minecraft_camera/components/CameraDirectLookComponent.h"
 #include "mc/deps/minecraft_camera/components/CameraOrbitComponent.h"
 #include "mc/deps/vanilla_camera/components/UpdatePlayerFromCameraComponent.h"
-#include "mc/deps/vanilla_camera/CameraClientInstance.h"
 #include "mc/legacy/ActorRuntimeID.h"
 #include "mc/world/actor/ActorFlags.h"
 #include "ui/SettingsScreen.h"
@@ -160,18 +160,6 @@ void traceFreelookSource(TraceBudget& budget, unsigned limit, Message&& message)
     if (!budget.take(limit)) return;
     try { Runtime::instance().self().getLogger().info("Freelook source: {}", message()); } catch (...) {}
 }
-// Read-only: does the camera consume look input independently of the player's turn?
-LL_TYPE_INSTANCE_HOOK(LookDeltaTraceHook, ll::memory::HookPriority::Normal, CameraClientInstance,
-    &CameraClientInstance::$getLookDelta, Vec2) {
-    auto delta = origin();
-    if (delta.x != 0 || delta.z != 0) {
-        // Separate budgets: ordinary looking must not exhaust the detached evidence.
-        static TraceBudget budgets[2];
-        bool detached = Zoom::instance().lookAngles().has_value();
-        traceFreelookSource(budgets[detached], 16, [&] { return std::format("camera-look-delta pitch={} yaw={} detached={}", delta.x, delta.z, detached); });
-    }
-    return delta;
-}
 
 struct CameraTraceContext {
     mce::Camera const* setupCamera = nullptr;
@@ -294,37 +282,26 @@ LL_TYPE_INSTANCE_HOOK(TurnHook, ll::memory::HookPriority::Normal, LocalPlayer,
     &LocalPlayer::_applyTurnDelta, void, Vec2 const& delta) {
     // While detached, vanilla still turns the camera; only the copy to the
     // player is withheld (see detachCameras).
-    if (Zoom::instance().turnLook(*this, delta.x, delta.z)) { origin(delta); return; }
+    if (Zoom::instance().turnLook(*this, delta.x, delta.z)) {
+        // Vanilla's look input also turns the head directly; undo that below.
+        auto head = getEntityContext().tryGetComponent<ActorHeadRotationComponent>();
+#ifdef LAMIUM_CAMERA_TRACE
+        float before = head ? static_cast<float>(head->mYHeadRot) : 0.f;
+#endif
+        origin(delta);
+        if (head) {
+#ifdef LAMIUM_CAMERA_TRACE
+            static TraceBudget budget;
+            float after = head->mYHeadRot;
+            if (after != before)
+                traceFreelookSource(budget, 16, [&] { return std::format("head-turned-by-look before={} after={}", before, after); });
+#endif
+            Zoom::instance().keepHead(*this);
+        }
+        return;
+    }
     float scale = Zoom::instance().sensitivity(*this);
     origin(Vec2{delta.x * scale, delta.z * scale});
-}
-// Vanilla also turns the local player's head yaw toward the camera. Keep the
-// head where it was when the detached look began; the body is already fixed.
-#ifdef LAMIUM_CAMERA_TRACE
-void traceHeadLock(char const* setter, float requested, float kept) noexcept {
-    static TraceBudget budget;
-    traceFreelookSource(budget, 16, [&] { return std::format("head-lock setter={} requested={} kept={}", setter, requested, kept); });
-}
-#endif
-LL_TYPE_INSTANCE_HOOK(HeadRotHook, ll::memory::HookPriority::Normal, Actor,
-    &Actor::setYHeadRot, void, float yHeadRot) {
-    if (auto kept = Zoom::instance().lockedHeadFor(*this)) {
-#ifdef LAMIUM_CAMERA_TRACE
-        traceHeadLock("single", yHeadRot, *kept);
-#endif
-        yHeadRot = *kept;
-    }
-    origin(yHeadRot);
-}
-LL_TYPE_INSTANCE_HOOK(HeadRotationsHook, ll::memory::HookPriority::Normal, Actor,
-    &Actor::setYHeadRotations, void, float yHeadRot, float oldYHeadRot) {
-    if (auto kept = Zoom::instance().lockedHeadFor(*this)) {
-#ifdef LAMIUM_CAMERA_TRACE
-        traceHeadLock("pair", yHeadRot, *kept);
-#endif
-        yHeadRot = oldYHeadRot = *kept;
-    }
-    origin(yHeadRot, oldYHeadRot);
 }
 LL_TYPE_INSTANCE_HOOK(DimensionHook, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::$onWillChangeDimension, void, Player& player) {
@@ -345,11 +322,8 @@ HookEntry hooks[] = {
 #ifdef LAMIUM_CAMERA_TRACE
     {CameraDependenciesTraceHook::hook, CameraDependenciesTraceHook::unhook},
     {CameraTraceHook::hook, CameraTraceHook::unhook},
-    {LookDeltaTraceHook::hook, LookDeltaTraceHook::unhook},
 #endif
     {FovHook::hook, FovHook::unhook},
-    {HeadRotHook::hook, HeadRotHook::unhook},
-    {HeadRotationsHook::hook, HeadRotationsHook::unhook},
     {TurnHook::hook, TurnHook::unhook},
     {DimensionHook::hook, DimensionHook::unhook},
     {FocusHook::hook, FocusHook::unhook}
@@ -446,8 +420,22 @@ bool Zoom::turnLook(LocalPlayer& player, float pitchDelta, float yawDelta) {
     if (!lookAngles()) return false;
 #ifdef LAMIUM_CAMERA_TRACE
     traceLook(LookTraceStage::Turn, pitchDelta, yawDelta);
+#else
+    (void)pitchDelta;
+    (void)yawDelta;
 #endif
     return true;
+}
+// Vanilla turns the local head toward the detached camera outside any setter.
+// Rewrite the head component (current and previous, so interpolation cannot
+// swing it) to the yaw captured when the detached look began.
+void Zoom::keepHead(LocalPlayer& player) {
+    auto kept = lockedHeadFor(player);
+    if (!kept) return;
+    if (auto head = player.getEntityContext().tryGetComponent<ActorHeadRotationComponent>()) {
+        head->mYHeadRot = *kept;
+        head->mYHeadRotO = *kept;
+    }
 }
 std::optional<float> Zoom::lockedHeadFor(Actor const& actor) const {
     // Snapshot only: a setter callback must not start cancellation/restoration.
@@ -489,7 +477,11 @@ bool Zoom::start() {
             event.cancel();
         });
         screenListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([this](auto&) {
-            (void)lookAngles();
+            if (lookAngles()) {
+                // The head may also be turned outside the look-input path.
+                if (auto* current = client.load(); current && current->getLocalPlayer())
+                    keepHead(*current->getLocalPlayer());
+            }
             if (!state.held()) return;
             auto* current = client.load();
             if (!current || !gameplayScreen(current->getScreenName())) release();

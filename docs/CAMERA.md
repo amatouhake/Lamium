@@ -1,8 +1,50 @@
 # Detached camera implementation notes
 
-Freelook now has an experimental integration, disabled and unbound by default.
-FreeCamera is not implemented. This records SDK evidence and remaining
-integration questions; it does not claim detached-camera runtime validation.
+Freelook has an experimental integration, disabled and unbound by default. Its
+basic behavior has passed a local runtime check (see Freelook camera detachment
+below). FreeCamera is not implemented. This records SDK evidence and remaining
+integration questions.
+
+## Freelook camera detachment
+
+Vanilla (Minecraft 1.26.51.01) turns the active camera entity from look input and
+then copies the camera orientation to the local player for camera entities that
+carry `VanillaCamera::UpdatePlayerFromCameraComponent`. `LocalPlayer::_applyTurnDelta`
+does not change the player's rotation synchronously; it also turns the head yaw
+(`ActorHeadRotationComponent`) directly, without `Actor::setYHeadRot`.
+
+While the Freelook action is held:
+
+- The component is removed from every entity with `ActiveCameraComponent` and
+  `UpdatePlayerFromCameraComponent`, after saving its look mode and the camera's
+  own angles: `CameraDirectLookComponent` yaw/pitch (first person, radians) and
+  `CameraOrbitComponent` current/ideal azimuth and polar angle (third person).
+- Look input still reaches vanilla, so only the camera turns; the player's body
+  and pitch stay unchanged and movement (including elytra flight) keeps its
+  original direction.
+- The head yaw captured at activation is written back to both current and
+  previous head yaw after each look input and after each UI render.
+
+On release or any cancellation, the saved camera angles are written back (with
+orbit velocities and the direct-look yaw delta cleared) before the component is
+re-added with its original look mode. Without a local player the saved state is
+discarded, since the camera entities belong to that level. Attack, use and
+building remain blocked by the existing interaction guard while detached.
+
+Earlier approaches did not work at runtime and were removed: overriding the view
+matrix after `setupCamera` changed culling but not the rendered view, and
+substituting the local player's angles in `CameraAPI::tryGetActorRotation` did not
+affect the rendered orientation.
+
+Local runtime check (2026-09-23, Minecraft 1.26.51.01 / LeviLamina Client 26.51.3):
+in first and third person, the view turned freely while held and returned to the
+original direction on release; body, head pitch and head yaw stayed fixed without
+jitter, and nothing snapped on release. During elytra flight the original flight
+direction was kept while looking around; turning the view did not steer. Trace
+logs confirmed one detached camera per activation (direct look in first person,
+orbit in third person) and head yaw changes originating in `_applyTurnDelta`.
+Multiplayer visibility of the head, riding, spectator/creative flight, dimension
+changes during a hold, controllers and custom camera presets are unverified.
 
 `DetachedCameraMotion` now supplies a game-independent displacement session for
 the future FreeCamera adapter. It consumes camera-basis vectors, analog axes,
@@ -40,11 +82,9 @@ a fresh orientation, ignore repeated activation, accumulate degree deltas with
 bounded pitch and wrapped yaw, and discard the pose on cancellation or invalid
 input. Snapshot and input updates are synchronized. Unit tests cover boundary
 crossing, pitch limits, repeated activation, cancellation/reactivation, and
-nonfinite/extreme input. The experimental `freelook` Hold action starts an
-angular session from the player's current pitch/yaw; native turn input is
-consumed for that local player. The camera API's actor-rotation query returns
-the session angles for the local player, so vanilla derives render, culling and
-third-person boom orientation from the detached pose.
+nonfinite/extreme input. The experimental `freelook` Hold action uses this
+session for activation, ownership and cancellation; the camera itself is
+detached as described above.
 Features and Hotkeys expose the action, with a separately persisted enable flag.
 Release, settings entry, focus loss, world exit, dimension transition, camera
 configuration changes, and non-gameplay screens discard the detached pose.
@@ -55,14 +95,6 @@ focus loss, one press/release may be needed before the next activation; silently
 restarting a still-held input is not used to recover. Unit tests cover these
 cancellation/repeat/release sequences; native focus recovery remains unverified.
 
-User testing of the earlier view-matrix override (2026-09-23) showed that the
-player and view both stayed fixed while terrain in the turned direction was
-culled: culling consumed the modified view, but rendering did not. That override
-was removed in favor of the actor-rotation substitution above. Turn scale and
-sign are no longer assumed: ordinary (non-detached) turns record the ratio of
-vanilla's actual rotation change to the native delta per axis, and Freelook
-applies that ratio (1 until observed). Runtime validation of the replacement is
-pending.
 Pure tests cover pitched starts, both poles and yaw boundary angles. Matching
 this model to native interpolation, front third-person view and camera effects
 still needs runtime validation; it is not proof of the final rendered world pitch.

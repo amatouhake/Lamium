@@ -1547,3 +1547,21 @@ Thus changing swap to count transfer did not establish a working HUD transfer
 path. Investigate controller permissions/context and simulation mapping before
 further transfer attempts; repeated waits or method substitutions are not a
 supported fix. This feature remains experimental and must not block other waves.
+
+### Freelook camera detachment (2026-09-23)
+
+User testing of the earlier Freelook showed the view and player both fixed while
+terrain in the turned direction was culled. Two replacement attempts were traced
+and discarded (see CAMERA.md). The current implementation withholds
+`UpdatePlayerFromCameraComponent` from the active camera while held, restores the
+saved direct-look/orbit angles on release, and keeps the head yaw captured at
+activation.
+
+In the user's local world on Minecraft 1.26.51.01 / LeviLamina Client 26.51.3,
+first and third person: the camera turned freely and returned on release; body,
+head pitch and head yaw stayed fixed without visible jitter or a snap on release.
+During elytra flight the original flight direction was retained while looking
+around. Normal build installed afterwards, DLL SHA-256:
+`4463C1F9B684FD1D870DB4442E1777CE761117C185C375E606AA139332DE253A`.
+Multiplayer, riding, dimension changes during a hold and controllers remain
+unverified.

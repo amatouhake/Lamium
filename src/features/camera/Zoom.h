@@ -31,6 +31,7 @@ public:
     bool turnLook(LocalPlayer&, float pitchDelta, float yawDelta);
     bool blocksLookInteraction(Player&);
     std::optional<float> lockedHeadFor(Actor const&) const;
+    void keepHead(LocalPlayer&);
     std::optional<DetachedLookState::Angles> lookAngles();
     std::optional<DetachedLookState::Angles> lookAnglesFor(IClientInstance const&);
     void release() { state.release(); }
