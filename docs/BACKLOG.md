@@ -195,7 +195,9 @@ Status: ready.
   several colors in one frame. No behavior change for existing callers.
 
 ### L-10 Chunk borders like Java F3+G
-Status: after L-09.
+Status: after L-09. Reconfirmed by the maintainer after the 2026-09-24
+in-game trial: the target is Java F3+G-like information/visual structure, not
+merely a 16x16 chunk outline.
 - Reference behavior (confirm against a Java screenshot from the maintainer):
   current chunk walls have yellow lines every 2 blocks, vertical and
   horizontal; section boundaries every 16 blocks and the current chunk's
@@ -210,6 +212,9 @@ Status: after L-09.
 Status: after L-09.
 - Keep the white bounding box; add a red rectangle at eye height and a blue
   line from the eyes along the view direction (2 blocks long).
+- The Ender Dragon is a special case and must not be approximated from model
+  geometry. Bedrock multipart/damage-box exposure is tracked separately in
+  L-30; ordinary L-11 work must not wait on it.
 - Find the eye position and view vector in the SDK (`Actor`,
   `ActorHeadRotationComponent`, `getViewVector`-like functions). If not found,
   stop and hand back.
@@ -267,6 +272,12 @@ Proposed direction to confirm:
 - The anchor is the first block you start breaking; the restriction lasts
   while the button stays held and ends on release. The capture/reset keys go
   away. The mode is still picked with one key.
+- Rejected blocks must not terminate the user's physical left-click hold.
+  If the crosshair passes over a forbidden block and later reaches an allowed
+  block while the button is still held, breaking should resume without a
+  release/re-press. The current implementation can leave vanilla's breaking
+  session stopped after the forbidden target; fix the input/session handoff,
+  not the region predicate.
 - New modes: height band (blocks from the feet level up to N−1 above, for
   clearing 2-high tunnels/fields), inside a shape, on a shape's surface
   (linking to Shapes).
@@ -296,6 +307,12 @@ renderer). Needs a trace build to find which call draws it.
 ### L-17 Hand Restock does not replenish
 Consumption is detected, but the transfer through the HUD fails
 (`handlePlaceAmount` returns false). See HAND-RESTOCK.md and VALIDATION.md.
+Desired scope also includes **offhand auto-restock when a safe vanilla-backed
+path exists**, especially replacing a consumed Totem of Undying from inventory.
+Treat offhand consumption/slot mapping as a separate runtime path: do not assume
+the main-hand use observer or HUD indices apply, and do not synthesize stacks or
+forge inventory packets. Main-hand success is not required to prove feasibility,
+but each path needs independent runtime validation.
 
 ### L-18 FreeCamera
 Status: done as an experiment (Pi, reviewed 2026-09-24). Flight, movement
@@ -306,6 +323,58 @@ than at the previous third-person eye; needs a new approach if wanted.
 
 ### L-20 Shape name text input adds stray characters
 Native text entry for shape names inserts extra characters.
+
+### L-30 Ender Dragon multipart hitboxes on Bedrock
+Status: research.
+The maintainer wants the hitbox overlay to distinguish the dragon's damageable
+parts (at minimum head vs body/rest, ideally every real part exposed by the
+client) instead of drawing only the dragon's coarse actor AABB.
+
+Java F3+B displays eight damageable sub-hitboxes (head, neck/body, wings and
+tail parts). Current public documentation also distinguishes Bedrock head-hit
+damage behavior, but that does **not** prove that the Bedrock 26.51.5 client
+exposes Java-style part entities or stable per-part AABBs.
+
+- Inspect the current client SDK/symbols and, if needed, a bounded runtime trace
+  for dragon-specific part/AABB data used by targeting or damage.
+- Prefer the actual client damage/targeting boxes. Do not derive boxes from
+  render bones or copy Java dimensions merely to look similar.
+- If stable parts are exposed, feed them to the normal hitbox overlay and label
+  or color enough to distinguish the head from the other parts. If all eight
+  parts are available, render all eight.
+- If Bedrock exposes only a coarse box or an opaque internal head test, record
+  that limit and leave L-11's ordinary entity hitboxes unchanged.
+- Validate against a real Ender Dragon in the End; summoned/custom entities are
+  not sufficient evidence for vanilla dragon part behavior.
+
+References for expected Java behavior / Bedrock uncertainty:
+https://minecraft.wiki/w/Ender_Dragon
+https://minecraft.wiki/w/Tutorial:Hitboxes
+
+### L-31 Continuous Tool Switch across block transitions
+Status: research.
+2026-09-24 in-game observation: Tool Switch chooses for the first block, but a
+continuous physical left-click can move from dirt to wood to stone without
+re-evaluating the tool for each new target. The current hook only calls
+`selectTool` from `GameMode::startDestroyBlock`.
+
+Desired behavior:
+- While the player keeps the physical attack button held, re-evaluate Tool
+  Switch whenever the actual targeted block transitions to a new block.
+- Dirt -> wood -> stone should be able to select shovel -> axe -> pickaxe
+  without requiring the player to release left click.
+- Preserve the existing per-target choice rule: if the currently selected item
+  is already an effective harvesting tool for the new block, do not switch just
+  because another tool is faster.
+- Respect Breaking Restriction before selecting and do not synthesize attacks,
+  continue breaking through UI ownership, or keep a stale target after focus,
+  world/dimension, or input cancellation.
+
+First establish which 26.51.5 client path carries the new block while an attack
+is held (`continueDestroyBlock` may be sufficient, but that must be verified).
+If it is, make the smallest hook/change and add pure choice/transition tests plus
+an in-game dirt/wood/stone hold check. If not, trace the attack/retarget path
+rather than polling arbitrary world state.
 
 ---
 
