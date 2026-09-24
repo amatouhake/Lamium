@@ -93,11 +93,15 @@ UTF-8 names, invalid data, oversized reads and replacement blocked by an open
 Windows handle. World association and UI saving/loading are not connected yet;
 the running game session still does not persist automatically.
 
-Chunk Borders defaults off. The prototype draws the player's current chunk
-boundary, using floor division at negative coordinates and the dimension's
-height range, with horizontal edges at 16-block intervals. It hooks the native
-entity-effects pass, preserves the original pass, and submits camera-relative
-line vertices using the standard `debug` material. A private temporary
+Chunk Borders defaults off. It draws the current chunk walls with a yellow
+2-block grid, blue 16-block section lines and current-chunk corners, and red
+neighbor-chunk corners, using floor division at negative coordinates and the
+dimension's height range. While a detached camera is active the view chunk
+replaces the player chunk as the center. Hitboxes draw the white bounds plus
+a red eye-height box and a blue 2-block look line per entity. Callers submit
+grouped (lines, color) batches through one tessellator upload. It hooks the
+native entity-effects pass, preserves the original pass, and submits
+camera-relative line vertices using the standard `debug` material. A private temporary
 tessellator avoids overwriting a shared vanilla vertex batch. No world or player
 pointers are cached across frames. Depth behavior, render timing, mesh lifetime,
 camera transforms, resource-pack compatibility, and performance require runtime
