@@ -120,6 +120,22 @@ void settingsRowsTests() {
             && hotkeys[section+3].action == input::Action::OpenShapes,
             "Hotkeys lists the openers in sidebar order");
     }
+    {
+        // Info line rows follow the user-ordered list, not catalog order.
+        std::vector<std::string> order = {"ping", "coordinates"};
+        for (auto id : information::defaultLineOrder())
+            if (id != "ping" && id != "coordinates") order.emplace_back(id);
+        std::set<std::string_view> open = {"infoHud"};
+        auto view = ui::buildSettingsRows(false, "section.information", query, open, translate, order);
+        std::vector<std::string> seen;
+        bool underInfo = false;
+        for (auto const& row : view) {
+            if (row.heading()) underInfo = row.feature->id == "infoHud";
+            else if (underInfo && row.option && row.option->id.starts_with("information."))
+                seen.emplace_back(row.option->id.substr(std::string_view{"information."}.size()));
+        }
+        check(seen == order, "settings rows list info lines in user order");
+    }
 
     // Every option label splits into a column name and a formattable value.
     for (auto locale : {"en_US", "ja_JP"}) {

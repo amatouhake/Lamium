@@ -72,7 +72,8 @@ struct SettingsRow {
 // Presentation independent of Minecraft objects, so it is testable without rendering.
 template<class Translate>
 std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view category, SearchQuery const& query,
-    std::set<std::string_view> const& expanded, Translate translate) {
+    std::set<std::string_view> const& expanded, Translate translate,
+    std::vector<std::string> const& lineOrder = {}) {
     std::vector<SettingsRow> rows;
     bool const searching = query.value().find_first_not_of(' ') != std::string::npos;
     if (searching) category = {};
@@ -120,6 +121,21 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
                 auto action = static_cast<input::Action>(i);
                 if (input::actions[i].feature == feature.id && action != primary)
                     children.push_back({RowKind::Action, &feature, nullptr, action, section});
+            }
+            // Info lines follow the user-ordered list; every other child
+            // keeps catalog order (stable). Unknown ids sort last.
+            if (!lineOrder.empty()) {
+                auto orderKey = [&](SettingsRow const& row) {
+                    if (!row.option) return lineOrder.size();
+                    constexpr std::string_view prefix = "information.";
+                    if (!row.option->id.starts_with(prefix)) return lineOrder.size();
+                    auto id = row.option->id.substr(prefix.size());
+                    auto at = std::find(lineOrder.begin(), lineOrder.end(), id);
+                    return at == lineOrder.end() ? lineOrder.size()
+                                                 : static_cast<size_t>(at - lineOrder.begin());
+                };
+                std::stable_sort(children.begin(), children.end(),
+                    [&](SettingsRow const& a, SettingsRow const& b) { return orderKey(a) < orderKey(b); });
             }
             auto childText = [&](SettingsRow const& row) {
                 return row.option ? std::string(row.option->id) + " " + translate(row.option->label)

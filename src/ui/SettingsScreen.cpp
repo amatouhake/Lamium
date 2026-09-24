@@ -108,7 +108,10 @@ int nextSelectable(int from, int step) {
 void rebuild(bool keepSelection) {
     std::optional<SettingsRow> previous;
     if (keepSelection && valid(selected)) previous = rows[selected];
-    rows = buildSettingsRows(hotkeysView(), categoryKey(), query, expanded, [](std::string_view key) { return translated(key); });
+    // preferences() returns a copy: keep it alive while its bindings are read.
+    auto const preferences = Runtime::instance().preferences();
+    rows = buildSettingsRows(hotkeysView(), categoryKey(), query, expanded,
+        [](std::string_view key) { return translated(key); }, preferences.information.lineOrder);
     selected = -1;
     if (previous)
         for (size_t i = 0; i < rows.size(); ++i)
