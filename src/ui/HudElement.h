@@ -46,7 +46,7 @@ inline constexpr HudElement defaultHudElement(HudElementId id) {
     case HudElementId::Status:
         return {Anchor::MiddleRight, false, 0, -20, 100, ElementBackground::None, true};
     default:
-        return {Anchor::BottomCenter, false, 0, -48, 100, ElementBackground::None, false};
+        return {Anchor::BottomCenter, false, 0, -48, 100, ElementBackground::Card, false};
     }
 }
 inline constexpr std::string_view hudElementKey(HudElementId id) {

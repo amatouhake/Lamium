@@ -120,8 +120,8 @@ Contents:
 - **Toast**: when a hotkey switches a feature, show the feature name with its
   toggle switch for ~1.5 s, dimming over the last 0.3 s; default position
   above the hotbar (bottom center). One at a time; a new one replaces the
-  old. No `[switch]` marker text. No background panel for now (text-only
-  like the info lines). Fires only after the new state is saved. Setting to
+  old. No `[switch]` marker text. Card background by default, fading with
+  the toast. Fires only after the new state is saved. Setting to
   turn it off. Changes made inside the settings screen do not toast.
 - The HUD is hidden while the settings screen is open (the overlap hurt
   readability); the layout editor shows it on purpose.

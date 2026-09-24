@@ -200,8 +200,12 @@ void drawHud(MinecraftUIRenderContext& context, float width, float height, Setti
         if (auto toast = ui::currentToggleToast(ui::toastNow())) {
             float zoom = elementZoom(runtime.hud.toast);
             float textWidth = ui::textWidthScaled(context, toast->text, zoom);
-            float total = ui::switchWidth + 6 + textWidth;
-            auto placement = ui::placeElement(width, height, total, 14 * zoom, runtime.hud.toast);
+            bool card = runtime.hud.toast.background == ui::ElementBackground::Card;
+            float padX = card ? 6 : 0, padY = card ? 3 : 0;
+            float total = ui::switchWidth + 6 + textWidth + 2 * padX;
+            auto box = ui::placeElement(width, height, total, 14 * zoom + 2 * padY, runtime.hud.toast);
+            if (card) ui::panel(context, box.x, box.y, total, 14 * zoom + 2 * padY, .72f * toast->opacity);
+            ui::ElementPlacement placement{box.x + padX, box.y + padY};
             ui::toggleSwitch(context, placement.x, placement.y + (14 * zoom - ui::switchHeight) / 2, toast->on);
             ui::labelScaled(context, placement.x + ui::switchWidth + 6, placement.y, textWidth + 2,
                 std::string(toast->text), zoom, toast->opacity < 1 ? ui::palette::dim : ui::palette::text,

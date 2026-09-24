@@ -137,8 +137,8 @@ feature, so all three screen openers group under 全般 in Hotkeys.
 - Tests: SettingsStore round trip without the key; binding count.
 
 ### L-03 Toggle toast
-Status: done. Follow-up 2026-09-24: no `[switch]` marker and no background
-panel; the last 0.3 s dims the text instead
+Status: done. Follow-up 2026-09-24: no `[switch]` marker; card background by
+default (the panel fades, the text dims); the last 0.3 s dims the text instead
 of fading; the toast fires only after the new state is saved. Open: the
 toggle switch stays fixed-size when the toast element scales; decide after
 seeing it in game.

@@ -9,7 +9,8 @@ void hudElementTests() {
           && defaultHudElement(HudElementId::Status).anchor == Anchor::MiddleRight
           && defaultHudElement(HudElementId::Status).dy == -20
           && defaultHudElement(HudElementId::Toast).anchor == Anchor::BottomCenter
-          && defaultHudElement(HudElementId::Toast).dy == -48,
+          && defaultHudElement(HudElementId::Toast).dy == -48
+          && defaultHudElement(HudElementId::Toast).background == ElementBackground::Card,
           "element defaults match the demo");
     HudElement plain;
     auto at = [&](Anchor anchor) {
