@@ -137,14 +137,19 @@ feature, so all three screen openers group under 全般 in Hotkeys.
 - Tests: SettingsStore round trip without the key; binding count.
 
 ### L-03 Toggle toast
-Status: done.
-- When a Toggle action changes a feature from a hotkey, show
-  `[switch] <feature name>` for 1.5 s centered above the hotbar, fading over
-  the last 0.3 s. A new toast replaces the current one. Not shown for changes
-  made inside the settings screen.
-- Setting `interface.toggleToasts` (default on) in the General category.
+Status: done. Follow-up 2026-09-24: no `[switch]` marker and no background
+panel (HUD-pass fills render opaque); the last 0.3 s dims the text instead
+of fading; the toast fires only after the new state is saved.
+- When a Toggle action changes a feature from a hotkey, show the feature
+  name with its toggle switch for 1.5 s centered above the hotbar, dimming
+  over the last 0.3 s. A new toast replaces the current one. Not shown for
+  changes made inside the settings screen, and not shown when the save
+  fails.
+- Setting `interface.toggleToasts` (default on) under the Settings screen
+  feature.
 - Put the timing/replace logic in a pure header (`ui/Toast.h`) with tests;
-  draw with `ui::panel`, `ui::toggleSwitch`, `ui::label`.
+  draw with `ui::toggleSwitch` and `ui::label` (no `ui::panel`: fills come
+  out opaque in the HUD pass, verified in game).
 - Files: `input/Actions.cpp` (emit), `features/information/InfoHud.cpp`
   (draw call site), new `ui/Toast.h`, settings files, translations.
 

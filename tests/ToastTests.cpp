@@ -10,7 +10,7 @@ void toastTests() {
     check(shown && shown->text == "NightVision" && shown->on && shown->opacity == 1.f, "toast appears at once");
     check(toast.current(11.1)->opacity == 1.f, "fully opaque before the fade");
     auto fading = toast.current(11.35);
-    check(fading && fading->opacity > 0.f && fading->opacity < 1.f, "last stretch fades");
+    check(fading && fading->opacity > 0.f && fading->opacity < 1.f, "last stretch dims");
     check(!toast.current(11.5), "toast expires after its duration");
     check(!toast.current(9.0), "toast ignores the past");
     toast.show("Zoom", false, 20.0);

@@ -6,8 +6,8 @@
 #include <string>
 
 namespace lamium::ui {
-// Toggle toast timing: "[switch] <feature>" shows for 1.5 s, fading over the
-// last 0.3 s. A new toast replaces the current one. Timing only; InfoHud owns
+// Toggle toast timing: "<feature>" shows for 1.5 s, dimming over the
+// last 0.3 s (HUD-pass widgets take no alpha, so this is a dim, not a fade). A new toast replaces the current one. Timing only; InfoHud owns
 // the shared instance and the drawing.
 class Toast {
     double shownAt = std::numeric_limits<double>::quiet_NaN();

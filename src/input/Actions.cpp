@@ -95,8 +95,12 @@ void executeAction(IClientInstance& client, input::Action action) {
         return;
     }
     if (input::toggleAction(value, action)) {
-        if (!runtime.save(value))
+        if (!runtime.save(value)) {
             runtime.self().getLogger().error("Could not save action setting: {}", input::actions[static_cast<size_t>(action)].id);
+            return;
+        }
+        // Emit only once the new state is persisted; a failed save keeps the
+        // old settings, so a toast would report a change that never happened.
         emitToggleToast(client, action, value);
     }
 }
