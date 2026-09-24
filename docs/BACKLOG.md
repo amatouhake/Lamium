@@ -296,8 +296,8 @@ or block light is above 0. Confirm in game before relying on it.
 
 ---
 
-### L-32 Hotkey overlap and chord semantics
-Status: design.
+### L-32 Hotkey overlap and chord semantics **(strong model)**
+Status: ready. Design agreed 2026-09-24.
 2026-09-24 playtest finding: overlapping bindings do not behave like the
 maintainer expects from Java / Tweakeroo / MaLiLib. Concrete required case:
 if one action is bound to `B` and another to `F3 + B`, pressing **F3 then B**
@@ -311,32 +311,52 @@ set. It does not reject extra held inputs, so `{B}` remains a match while
 order-insensitive, and `CustomInput::process` evaluates every action
 independently, so overlapping matches can both fire.
 
-Before changing only this one example, define the general semantics against
-the familiar MaLiLib/Tweakeroo model (behavior reference only; do not copy
-implementation):
-- MaLiLib normal keybinds default to no extra keys and order-sensitive matching.
-  Modifier-style bindings explicitly opt into extra keys and order-insensitive
-  matching.
-- MaLiLib also distinguishes activation on press/release/both and has
-  priority/exclusive/first-only controls for conflicts.
-- Lamium does **not** need to expose every MaLiLib advanced setting. Decide the
-  smallest predictable model that covers Lamium's Press/Hold/Toggle actions,
-  mouse buttons and wheel chords without making ordinary movement keys or
-  vanilla controls surprising.
+Implement a small Lamium model inspired by MaLiLib/Tweakeroo behavior, without
+exposing their full advanced keybind settings:
+- Separate **ordinary action chords** from **modifier-like chords** internally;
+  this matching mode is part of the action definition, not a user-facing
+  advanced setting.
+- Ordinary chords are order-sensitive and do not activate a shorter subset when
+  a more-specific chord is completed. Example: with `B` and `F3+B`, F3 then B
+  fires only `F3+B`. B then F3 may already have fired B; do not delay a simple
+  action waiting to see whether another key arrives later.
+- Modifier-like actions (Zoom, Freelook and future actions explicitly classified
+  that way) allow unrelated held inputs and are not broken by normal movement or
+  gameplay keys. Their purpose is to remain usable while moving/acting.
+- If a more-specific ordinary chord becomes active, suppress only the overlapping
+  shorter match for that activation. Do not invent delayed dispatch or retroactive
+  cancellation of an action that already fired earlier in the input sequence.
+- **Identical chords are allowed intentionally.** The Hotkeys UI marks them as a
+  conflict/shared binding, but all enabled actions with that exact chord fire
+  together. This supports deliberate grouped toggles. Do not resolve identical
+  bindings with hidden priority and do not disable either action.
+- Press/Hold/Toggle semantics remain properties of the action. Matching mode is
+  orthogonal to behavior.
+- Mouse + keyboard and wheel + modifier bindings follow the same overlap rules.
+  Wheel remains an impulse and cannot back a Hold action.
+- Preserve current text-entry, UI ownership, focus-loss, cancelled-event and
+  client-thread dispatch safety rules.
+- F3-style Lamium chords must coexist with vanilla deliberately: when Lamium
+  successfully handles the completed chord, consume the relevant completion
+  event so the shorter Lamium binding does not fire; preserve the existing
+  vanilla/debug-key suppression behavior needed to avoid accidental F3 actions.
 
-The resulting spec must cover at least:
-- exact-overlap precedence (`B` vs `F3+B`) and press order;
-- whether unrelated held keys such as WASD suppress a normal chord or are
-  ignored;
-- subset/superset and identical-binding conflicts across two Lamium actions;
-- modifier-like bindings versus ordinary action chords;
-- Hold release behavior when a more-specific chord appears/disappears;
-- wheel + modifier and mouse + keyboard chords;
-- event consumption / vanilla coexistence, including F3-style chords;
-- conflict indication in the Hotkeys UI if two bindings can still collide.
+Hotkeys UI:
+- warn on exact duplicate bindings and on overlapping subset/superset bindings;
+- exact duplicates are informational/actionable warnings, not invalid state;
+- show which actions share or overlap a binding so the user can intentionally
+  keep or change them.
 
-Add pure event-sequence tests for all decided cases before changing runtime
-dispatch. Reference behavior:
+Tests must cover event sequences, not only held snapshots:
+- `B` vs `F3+B`: F3 -> B, B -> F3, releases and repeats;
+- exact duplicate bindings: both actions fire once from the same completion;
+- three-level overlap such as `B`, `Shift+B`, `Ctrl+Shift+B`;
+- modifier-like action while WASD/Space/Shift are also held;
+- ordinary Hold transition when a more-specific chord appears/disappears;
+- mouse + keyboard and modified wheel cases;
+- focus loss, text input, settings ownership and cancelled events.
+
+Behavior reference only; do not copy implementation:
 https://github.com/maruohon/malilib/blob/ornithe/1.12.2/src/main/java/malilib/input/KeyBindImpl.java
 https://github.com/maruohon/malilib/blob/ornithe/1.12.2/src/main/java/malilib/input/KeyBindSettings.java
 https://github.com/maruohon/malilib/blob/ornithe/1.12.2/src/main/java/malilib/input/HotkeyManagerImpl.java
