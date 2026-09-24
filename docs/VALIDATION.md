@@ -5,7 +5,40 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
-## Info HUD prototype
+This file is chronological evidence, not the current product specification.
+Older sections intentionally preserve what was true at that checkpoint and may
+describe behavior that has since been replaced. For current behavior use
+[DESIGN.md](DESIGN.md); for current work use [BACKLOG.md](BACKLOG.md).
+
+## Current verified status (2026-09-25)
+
+Main is beyond the original settings/HUD prototype. In-game checks through the
+HUD/Target integration verified translucent single-pass HUD drawing, settings
+ownership, the live HUD layout editor, element toolbar/snapping/reset/popovers,
+Target icons and vanilla hearts, target-card morphing and global Animations,
+camera-following Target picks in Freelook/FreeCamera, the unified Range setting,
+and Bedrock-style sliders including stepping while numeric entry is active.
+
+Freelook and experimental FreeCamera have local runtime evidence. FreeCamera was
+checked for first-person flight, movement freeze, blocked attack/use, overlay
+movement with the camera, perspective locking and cleanup on settings, death,
+focus loss and world re-entry. Multiplayer, controllers and some dimension/menu
+edges remain incomplete.
+
+Shapes have local-world persistence evidence and the current renderer/editor is
+integrated. Chunk Borders and ordinary entity Hitboxes have moved beyond the
+compile-only prototype; Java-style border colors were compared against a Java
+reference and the hitbox overlay now includes mob eye/look markers. Broad
+graphics-mode/resource-pack/performance coverage is still incomplete.
+
+The current main build/test workflow is exercised by hosted GitHub Actions.
+Hand Restock remains experimental and has **not** successfully replenished an
+item. Hide Offhand still needs a shield-specific render-path investigation.
+Continuous Tool Switch, breaking/placement handoff, dragon multipart hitboxes
+and mob growth/breeding timers remain research. Hotkey overlap semantics L-32
+and the L-34 Auto attack/Auto use redesign remain planned strong-model work.
+
+## Historical checkpoint — Info HUD prototype
 
 Info HUD is off by default, with an initially unbound Toggle action. Coordinates
 and dimension name can be enabled separately. Horizontal/vertical positions
@@ -37,7 +70,7 @@ and suspension recovery. Runtime validation must establish one callback per
 actual frame and compare the readings against an independent frame counter,
 including menus, minimized windows, low frame rates, and loading transitions.
 
-## Tool Switch prototype
+## Historical checkpoint — Tool Switch prototype
 
 Tool Switch is off by default, with a configurable initially unbound Toggle
 action. Before vanilla `GameMode::startDestroyBlock`, it evaluates only slots
@@ -53,7 +86,7 @@ enchantments, selected-slot synchronization, Adventure restrictions, and remote
 servers remain unverified. The eligibility rule uses Item destroy speed and
 the block's correct-tool-for-drops flag, not a prediction of final break time.
 
-## Offhand visibility prototype
+## Historical checkpoint — Offhand visibility prototype
 
 Hide Offhand Item is an opt-in setting with an initially unbound Toggle action
 in Features/Hotkeys. Its hook skips `ItemInHandRenderer::renderOffhandItem` only
@@ -64,7 +97,7 @@ Runtime behavior is unverified: check shields while blocking, totems, maps,
 main-hand rendering, third-person/paper-doll views, toggling, and world changes.
 Special item render paths may need additional coverage after observation.
 
-## Overlay geometry foundation
+## Historical checkpoint — Overlay geometry foundation
 
 Hitboxes is an opt-in consumer of the world-line renderer, with an unbound
 Toggle action and editable display distance (8–128 blocks, default 64). It reads
@@ -97,7 +130,7 @@ catalog, localized labels, and settings-row coverage pass the unit suite.
 Native unbound registration, rebinding, and actual toggle behavior still need
 Minecraft validation alongside the renderer.
 
-## Settings foundation in progress
+## Historical checkpoint — Settings foundation in progress
 
 Panel, row-background, and label drawing now live in shared UI widgets rather
 than the settings screen. Labels use native font widths to shorten overflowing
@@ -443,11 +476,34 @@ This is limited to settings, a player-inventory merge and one durability tooltip
 previews, other storage screens and live cancellation still need vanilla-UI
 coverage. Deesse UI was reactivated after the check.
 
-## Outstanding release gates
+## Release readiness
 
-Build automation: a Windows CI workflow, dependency lock, and package checker
-have been added. The local locked configuration builds, passes the test suite,
-and passes the package check. A hosted CI run has not yet been verified.
+Hosted Windows CI is now exercised on main and runs the build, pure tests,
+native SDK-type tests and package validation. Earlier clean-checkout and
+isolated dependency-restore evidence below remains useful historical evidence;
+hosted CI itself is no longer an open gate.
+
+Current pre-release priorities are:
+
+- implement and runtime-check L-32 hotkey overlap/order semantics;
+- implement and runtime-check L-34 Auto attack/Auto use after L-32;
+- resolve or explicitly scope the user-visible day-to-day issues L-31
+  (continuous Tool Switch), L-15 (breaking/placement restrictions) and L-20
+  (Shape name stray input);
+- keep experimental/research features honest: Hand Restock is not working,
+  Hide Offhand has a shield path gap, and L-30/L-33/L-16 remain bounded
+  research/design work rather than completed features;
+- run one full release-build regression across settings/hotkeys, previews,
+  sorting, camera tools, HUD/Target, Shapes and world overlays, including
+  world/focus/dimension transitions;
+- verify the packaged mod from a fresh install and finish the remaining
+  dependency/distribution review before publishing a stable release.
+
+Multiplayer, controllers/touch, alternate UI resource packs and several
+feature-specific edge cases do not have comprehensive coverage. Their status
+must be described accurately; compilation or CI is not runtime evidence.
+
+### Earlier build and distribution evidence
 
 A separate clone with no project build output also completed configuration,
 DLL compilation/packaging, test compilation/execution, and the package check.
@@ -457,51 +513,36 @@ dependency restore.
 
 A subsequent isolated dependency-cache restore exposed an upstream runtime
 build failure: the defaulted `MinecraftCommands` destructor uses an incomplete
-`CommandRegistry` with MSVC 14.44 headers. Lamium now provides a client SDK recipe
-using checksum-pinned official source headers and release exports. In the isolated
-environment, this recipe installed successfully and Lamium's DLL and test suite
-built and passed. Dependencies were downloaded during this validation, including
-upstream precompiled packages where available. The normal development build also
-passes all tests and the package/notice check with the new SDK. An untouched clone
-of `a6e58dc`, with separate initially empty xmake configuration, package install,
-download-cache and temporary directories, also completed dependency restore,
-DLL build, all tests and package checks. Its working tree remained clean and its
-dependency lock hash matched the source checkout. This used the existing system
-compiler/Windows SDK; it was not a fresh operating-system installation.
+`CommandRegistry` with MSVC 14.44 headers. Lamium now provides a client SDK
+recipe using checksum-pinned official source headers and release exports. In
+the isolated environment, this recipe installed successfully and Lamium's DLL
+and test suite built and passed. Dependencies were downloaded during this
+validation, including upstream precompiled packages where available. The normal
+development build also passes all tests and the package/notice check with the
+new SDK. An untouched clone of `a6e58dc`, with separate initially empty xmake
+configuration, package install, download-cache and temporary directories, also
+completed dependency restore, DLL build, all tests and package checks. Its
+working tree remained clean and its dependency lock hash matched the source
+checkout. This used the existing system compiler/Windows SDK; it was not a fresh
+operating-system installation.
 
 The development DLL built against the new SDK loaded through LeviLauncher with
-Client 26.51.3. A local world displayed the gameplay hints and F8 settings, showed
+Client 26.51.3. A local world displayed the then-current settings UI, showed
 `1561 / 1561` for a full-durability diamond pickaxe, and logged an already-sorted
 27-slot inventory with 12 occupied slots and one locked slot. No inventory
-transfer was issued in this smoke test.
+transfer was issued in this smoke test. This is historical evidence; later UI
+behavior is covered by the dated entries below.
 
 `dumpbin /dependents` confirms a normal import of `LeviLamina.dll` and a delayed
-import of `bedrock_runtime.dll`. Xmake's earlier LGPL warning came from classifying
-the DLL-less SDK import library as static. The package fetch metadata now reports
-shared linkage, and configure/build/package validation succeeds without that
-warning or disabling license checks. The dependency lock remains unchanged.
-A deliberate extra `LeviLamina.dll` in the package is rejected by the package
-checker; removing the probe restores a passing result. Additional DLLs and linker
-inputs are not allowed in the package. The distribution review below remains
-open; these are technical linkage and packaging checks, not a legal conclusion.
-
-- Verify zoom sensitivity and transition behavior; hold, wheel adjustment and
-  release have passed user-reported runtime validation.
-- Verify menu transitions, focus loss, dimension changes, disconnect/rejoin.
-- Verify all settings survive restart and in-game errors preserve existing files.
-- Verify localized layout in small windows and gamepad/touch behavior;
-  verify new default bindings on a fresh profile.
-- Extend vanilla UI coverage beyond the smoke check above and verify additional
-  UI resource packs.
-- Verify NightVision underwater, in Nether/End, and across restart/dimension changes.
-- Complete runtime validation of previews and durability; verify the remaining
-  inventory scenarios listed above.
-- Verify hosted CI; local clean dependency restore/build/package now passes.
-- Dependency notices now include the locked SDK's header libraries, link inputs,
-  and LeviLamina's GPL/LGPL texts. Package validation checks referenced notice
-  files as well as the hashes of all copied notices. Complete the remaining
-  distribution review, including generated runtime import libraries, before a
-  public release. SymbolProvider's referenced MinGW disclaimer is now included.
+import of `bedrock_runtime.dll`. Xmake's earlier LGPL warning came from
+classifying the DLL-less SDK import library as static. The package fetch metadata
+now reports shared linkage, and configure/build/package validation succeeds
+without that warning or disabling license checks. The dependency lock remains
+unchanged. A deliberate extra `LeviLamina.dll` in the package is rejected by
+the package checker; removing the probe restores a passing result. Additional
+DLLs and linker inputs are not allowed in the package. The distribution review
+remains open; these are technical linkage and packaging checks, not a legal
+conclusion.
 
 ### Info HUD light levels (runtime validation pending)
 

@@ -22,25 +22,27 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins.
 
-1. **Close input/settings foundation:** L-24, L-32, L-02, L-03, then L-34.
+1. **Finish input/automation foundation:** L-32, then L-34.
 2. **Fix observed day-to-day behavior:** L-31, L-15, L-20.
-3. **Finish shared HUD/world presentation:** L-04a/b, L-05, L-07, L-09 -> L-10/L-11, then L-13.
-4. **Polish and release:** L-04c and L-08 where useful, then release preparation and a full runtime regression pass.
+3. **Run bounded native research in parallel:** L-14, L-17, L-30, L-33 and the
+   unresolved parts of L-16/L-15.
+4. **Prepare the first release:** keep user-facing docs current, run a full
+   runtime regression on the release build, verify a fresh install/package and
+   finish the remaining distribution review.
 
-Research (L-14, L-17, L-30 and unresolved parts of L-16/L-15) runs in parallel
-and must not block the main sequence unless it uncovers a correctness or safety
-problem. Large new subsystems in Later / parked do not start before the first
-Lamium release unless the maintainer explicitly changes this plan.
+HUD/world presentation and the strong-model HUD/Target polish (L-04a/b/c,
+L-05, L-07, L-08, L-09/L-10/L-11 and L-13) are complete and no longer belong
+in the active ordering. Large new subsystems in Later / parked do not start
+before the first Lamium release unless the maintainer explicitly changes this
+plan. Experimental research does not block the release unless the feature is
+advertised as finished or uncovers a correctness/safety problem.
 
-Task-picking rule: work in the earliest active group above. Within that group,
-take the lowest-numbered eligible **Ready** task whose dependencies are done
-(cheap models skip tasks marked strong model). Design/Research work still
-requires the model/maintainer class stated above. When a task is done, update
-its status and relevant feature doc; do not duplicate task details into this
+Task-picking rule: work in the earliest active group above. Cheap models skip
+strong-model, Design and Research work. Within a group, follow dependencies and
+the L-item's model/validation requirements. When a task is done, update its
+status and relevant feature doc; do not duplicate task details into this
 summary.
 
-Confirmed working in the 2026-09-23 review (no action): Freelook, Periodic
-Attack, Periodic Use, settings screen, Shapes view.
 
 ---
 

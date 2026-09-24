@@ -1,85 +1,89 @@
-# Settings and controls follow-up
+# Settings, controls and HUD follow-up
 
-The current build is a development checkpoint, not a finished settings experience.
-Settings and input foundation work is now underway, before broader feature expansion.
+This file records the current state of the shared Lamium UI foundation and the
+remaining input/UI gaps. Product behavior is defined in
+[DESIGN.md](DESIGN.md); task status and ordering live in
+[BACKLOG.md](BACKLOG.md). Do not use old prototype behavior as a second source
+of truth.
 
-- The source now substitutes translucent drawing for the owned native dialog
-  and requests the world behind it. World visibility and repeated close/return
-  were verified in the local creative scenario. Comprehensive input isolation
-  and transition coverage remain pending.
-- Features and Hotkeys now expose a binding capture editor with Clear/Reset.
-  Native Minecraft mappings remain the fallback when no override is stored.
-  Modifier chord editing, persistence, and Reset were verified in the feature
-  view. Hotkeys capture/Reset and gameplay activation of a Ctrl+K Debug View
-  binding were also verified. That action stayed suppressed while settings
-  were open and worked again after closing. Middle-click capture, Toggle
-  activation, and Clear (including saved explicit unbinding) were verified.
-  Unmodified wheel-down capture and Toggle activation were verified without
-  changing the selected hotbar slot. Zoom rejected a wheel binding and accepted
-  a subsequent key without leaving capture first. A Z+3 Debug View chord was
-  captured and activated; either key alone did not activate it. Other mouse
-  buttons, modified wheel and more complex chords still need runtime
-  verification. Exact duplicate custom bindings are marked;
-  broader conflict detection and clearer feature descriptions remain open.
-- The top-left gameplay hints can be hidden in-game; hiding and persistence
-  across a game restart were verified.
-- Features now groups settings and bindings under collapsible feature headers
-  with state/binding summaries and short descriptions. Search reveals matching
-  children even when the feature is collapsed; Hotkeys remains a flat action
-  list. Latin search entry, deletion, and Ctrl+A replacement were verified
-  in-game. IME, broader text fit, and expansion/click-target coverage remain open.
-- Selected-row descriptions now use a shared paragraph widget with up to three
-  lines on regular-height panels. It wraps English at spaces and CJK at whole
-  UTF-8 characters, with an ellipsis when the final line is too short. Compact
-  panels retain their single navigation hint. Automated wrapping and layout
-  bounds tests pass. A local runtime check of `170fd80` on Minecraft 1.26.51.01 /
-  LeviLamina Client 26.51.3 / Deesse UI 1.3.9 confirmed that the Periodic Use
-  description wraps into two readable lines, including its previously clipped
-  ending. Page navigation and expanding the feature kept its selected row above
-  the footer without overlap at 1920x1080. Single-line descriptions also remained
-  readable. Japanese rendering and alternate scales still need runtime coverage.
-  Tested DLL SHA-256:
-  `37F48C3FE05EA2933430BC1E298E97D70C6F0D5293BDDA0533BEC6887F3AC193`.
-- Explicit Save/Cancel has been replaced with per-edit persistence and application.
-  Escape/Close only dismisses the screen. Failed saves leave the previous setting
-  active and display an error. Numeric editing and saving before leaving the
-  editor were verified; runtime save-failure recovery remains pending.
+## Current foundation
 
-## Foundation requirements
+The settings foundation is integrated and has been exercised in Minecraft:
 
-- A translucent, dense, list-first Features view with search from the start.
-  Group each feature's toggle, binding, and options together in broad sections.
-  Settings own input while the underlying world remains visible.
-- A cross-feature Hotkeys view and direct feature binding editor supporting
-  arbitrary chords, modifiers, mouse buttons, modified wheel directions,
-  Unbound, and Reset. Actions define Press/Hold/Toggle semantics.
-- Reusable panels, lists, search, controls, numeric/text input, binding capture,
-  item rendering, navigation, descriptions, and localization. Keep these useful
-  for dedicated tools without building a separate GUI framework.
-- Shulker enabled, empty Shulker visibility, Bundle enabled, and empty Bundle
-  visibility are now editable through the shared settings catalog; runtime
-  validation is pending. Defaults retain existing Lamium behavior, including
-  empty previews. Vanilla Shulker contents text suppression is also editable,
-  defaults off, and only applies while Shulker previews are enabled. Its runtime
-  behavior remains unverified.
-- Distinguish world-space lines/boxes from block-grid shapes. Building shapes
-  show block positions/faces, with Block Center snapping by default and optional
-  Block Corner/Off. A Shape Manager/Editor owns individual shape workflows.
+- `L` opens Lamium Settings. The owned native dialog provides focus while
+  Lamium draws a translucent, dense sidebar/table UI over the live world.
+- Categories, search, collapsible feature rows, per-feature options and action
+  bindings share one screen. Hotkeys, Shapes and HUD layout are pinned tools in
+  the same navigation.
+- Changes apply and persist immediately. Escape/Close dismisses the screen;
+  failed saves keep the previous value active and report an error.
+- English is the fallback language and Japanese follows the game locale.
+  Shared widgets handle text, descriptions, switches, key caps, steppers,
+  sliders and text/numeric entry.
+- Bounded numeric options that do not need precision use Bedrock-style sliders.
+  Clicking the value enters a number; Left/Right or -/+ steps it. Precise
+  settings keep direct numeric editing.
+- Lamium owns all action bindings. Clear means explicitly Unbound and Reset
+  returns to Lamium's default. The Settings action cannot be cleared.
+- Gameplay key hints were removed. Unbound Open Hotkeys, Open Shapes and Open
+  HUD layout actions provide direct entry points instead.
 
-## Subsequent stages
+## HUD and target UI
 
-After the foundation, add camera and interaction tools (Freelook, FreeCamera,
-hotbar Tool Switch, Hide Offhand Item, Chunk Borders, Hitboxes, placement/breaking
-restrictions), then information and everyday utilities (shared providers for
-Info HUD/target information/F3, light overlays, Hand Restock, periodic attack/use,
-permanent sneak, and wheel transfers).
+The HUD is now one shared element system rather than separate hard-coded
+positions. Info, Target, Status and Toast elements use anchors plus offsets
+internally, but users place them directly in the HUD layout editor.
 
-Schematic workflows are a later subsystem: browser, placements, projection,
-verifier, layers, and material list, followed by staged placement guidance and
-assistance. Implement independently from functional requirements and public
-formats; do not copy reference code, structures, tests, strings, assets, or
-pixel-level UI. Mass Craft, fast attack/use, profiler data, and remote server
-timing are research tracks, not blockers. Never invent unavailable information.
-Map/minimap/waypoints remain external-first; fast/flexible placement is deferred.
+The editor was reworked after in-game use and verified with:
 
-Runtime validation gaps remain separately documented in [VALIDATION.md](VALIDATION.md).
+- click/drag placement, edge/center snapping and keyboard nudging;
+- per-element scale, background and shadow controls;
+- an Info lines popover with switches and ordering;
+- reset for one element or the whole layout;
+- toolbar/popover placement that avoids covering the selected element controls.
+
+HUD drawing is restricted to the gameplay HUD view so translucent cards remain
+translucent instead of being composited repeatedly. The normal settings screen
+hides the HUD for readability; the HUD editor intentionally shows live/sample
+content.
+
+The Target element is the current Jade/WAILA-style surface: block/entity icon,
+name, optional identifier and detail rows, vanilla heart sprites and progress
+bars. It follows the rendered camera during Freelook/FreeCamera and uses one
+2-64 block Range setting for every viewpoint, skipping water/lava in detached
+camera picks. Lamium-wide Animations can follow Minecraft's Screen Animations,
+be forced On or forced Off.
+
+## Remaining input work
+
+The major unresolved settings/input item is **L-32 Hotkey overlap and chord
+semantics**. The current matcher still canonicalizes chords without press
+order and treats a shorter chord as matched when its tokens are a subset of a
+longer held chord.
+
+The accepted replacement is already specified in BACKLOG/DESIGN:
+
+- ordinary chords are order-sensitive;
+- completing a more-specific ordinary chord suppresses the competing shorter
+  activation for that sequence;
+- modifier-like actions such as Zoom/Freelook allow unrelated gameplay keys;
+- exact duplicate chords are valid and fire all enabled actions;
+- the Hotkeys UI warns about exact duplicates and subset/superset overlaps.
+
+Do not add a second advanced keybind-settings system; matching mode remains an
+action property.
+
+## Remaining UI/runtime gaps
+
+These are not reasons to redesign the shared settings UI:
+
+- L-20: Shape name native text input can still insert stray characters.
+- Controller/touch and broad resource-pack/layout coverage are incomplete.
+- Some feature-specific native paths remain research items: shield rendering
+  under Hide Offhand, Hand Restock transfers, continuous Tool Switch and
+  breaking/placement handoff.
+- F3-style full Debug View, Scroll Transfer, Schematics and Mass Craft are
+  separate future work and need their own design passes.
+
+Runtime evidence, including exact tested builds, stays in
+[VALIDATION.md](VALIDATION.md).
