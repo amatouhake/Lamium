@@ -457,7 +457,8 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
             if (hit.column != Column::Name) adjustOption(*entry.option, 1);
             return;
         }
-        if (entry.option->numeric && entry.option->numeric->step > 0) {
+        // While typing, the row shows the stepper, so clicks go to its buttons.
+        if (entry.option->numeric && entry.option->numeric->step > 0 && editingNumber != entry.option) {
             float fraction = displayed.sliderFraction(hit.x);
             if (fraction < 0) { beginNumber(*entry.option); return; }
             if (hit.x < displayed.sliderX()) return;
