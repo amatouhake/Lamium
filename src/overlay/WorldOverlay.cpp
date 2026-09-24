@@ -347,9 +347,11 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
             }
             thread_local ChunkBorderCache borders;
             auto const& groups = borders.get(center, range->mMin, range->mMax);
-            std::array<LineBatch, 3> colored{{{groups.yellow, chunkYellow[0], chunkYellow[1], chunkYellow[2]},
+            std::array<LineBatch, 5> colored{{{groups.yellow, chunkYellow[0], chunkYellow[1], chunkYellow[2]},
                                                {groups.blue, chunkBlue[0], chunkBlue[1], chunkBlue[2]},
-                                               {groups.red, chunkRed[0], chunkRed[1], chunkRed[2]}}};
+                                               {groups.red, chunkRed[0], chunkRed[1], chunkRed[2]},
+                                               {groups.purple, chunkPurple[0], chunkPurple[1], chunkPurple[2]},
+                                               {groups.teal, chunkTeal[0], chunkTeal[1], chunkTeal[2]}}};
             drawLines(context, colored);
         }
         if (preferences.hitboxes && context.mImpl) {

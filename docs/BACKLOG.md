@@ -229,9 +229,10 @@ Status: done.
   several colors in one frame. No behavior change for existing callers.
 
 ### L-10 Chunk borders like Java F3+G
-Status: done. Implemented from the documented numbers (yellow 2-block grid,
-blue 16-block sections and current corners, red neighbor corners); the Java
-screenshot comparison still needs the maintainer. Reconfirmed target after the
+Status: done. Colors confirmed against a Java screenshot 2026-09-24: purple
+current corners, yellow 2-block grid alternating with dark-cyan verticals,
+dark-cyan middle horizontals, blue 16-block sections, red neighbor corners.
+Exact shades still need a side-by-side comparison. Reconfirmed target after the
 2026-09-24 in-game trial: Java F3+G-like information/visual structure, not
 merely a 16x16 chunk outline.
 - Reference behavior (confirm against a Java screenshot from the maintainer):

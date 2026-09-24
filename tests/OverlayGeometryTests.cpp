@@ -61,8 +61,9 @@ void overlayGeometryTests() {
               "crossing chunk edges refreshes grouped geometry");
     }
     auto const& small = cache.get({1,64,1}, 0,16);
-    check(small.yellow.size() == 56 && small.blue.size() == 12 && small.red.size() == 12,
-          "yellow grid, blue sections/corners and red neighbor corners group separately");
+    check(small.yellow.size() == 40 && small.blue.size() == 8 && small.red.size() == 12
+          && small.purple.size() == 4 && small.teal.size() == 16,
+          "yellow grid, blue sections, red neighbors, purple corners and teal middles group separately");
     auto hasLine = [](std::vector<Line> const& lines, Point from, Point to) {
         for (auto const& line : lines)
             if (line.from == from && line.to == to) return true;
@@ -70,12 +71,16 @@ void overlayGeometryTests() {
     };
     check(hasLine(small.yellow, {0,0,2}, {0,16,2}) && hasLine(small.yellow, {0,2,0}, {16,2,0}),
           "yellow grid runs every 2 blocks, vertical and horizontal");
-    check(hasLine(small.blue, {0,0,0}, {0,16,0}) && hasLine(small.blue, {0,0,0}, {16,0,0}),
-          "current chunk corners and section lines are blue");
+    check(hasLine(small.purple, {0,0,0}, {0,16,0}), "current chunk corners are purple");
+    check(hasLine(small.blue, {0,0,0}, {16,0,0}), "section lines stay blue");
+    check(hasLine(small.teal, {0,0,4}, {0,16,4}) && hasLine(small.teal, {0,8,0}, {16,8,0}),
+          "alternating verticals and middle horizontals are dark cyan");
     check(hasLine(small.red, {-16,0,-16}, {-16,16,-16}), "neighbor chunk corners are red");
-    check(!hasLine(small.yellow, {0,0,0}, {0,16,0}), "exact corners are not yellow");
+    check(!hasLine(small.yellow, {0,0,0}, {0,16,0}) && !hasLine(small.yellow, {0,0,4}, {0,16,4}),
+          "corners and teal verticals are not yellow");
     auto const& shorter = cache.get({16,64,16}, 0,128);
-    check(shorter.blue.size() == 9 * 4 + 4, "dimension height changes regenerate section lines");
+    check(shorter.blue.size() == 9 * 4 && shorter.teal.size() == 12 + 8 * 4,
+          "dimension height changes regenerate section lines");
     auto const* reusedLines = shorter.yellow.data();
     bool invalidCacheInput = false;
     try { (void)cache.get({16,std::numeric_limits<double>::quiet_NaN(),16}, 0,128); }
@@ -89,7 +94,8 @@ void overlayGeometryTests() {
             if (p.x < lo || p.x > hi || p.z < lo || p.z > hi || p.y < -64 || p.y > 320) return false;
         return true;
     };
-    check(inBounds(chunk.yellow, -16, 0) && inBounds(chunk.blue, -16, 0) && inBounds(chunk.red, -32, 16),
+    check(inBounds(chunk.yellow, -16, 0) && inBounds(chunk.blue, -16, 0) && inBounds(chunk.red, -32, 16)
+          && inBounds(chunk.purple, -16, 0) && inBounds(chunk.teal, -16, 0),
           "negative chunks use floor division and supplied dimension height");
     check(snapped({-.1,-1,1.9}) == Point{-.5,-.5,1.5}, "block center snap floors negative coordinates");
     check(snapped({-.1,-1,1.9}, Snap::BlockCorner) == Point{-1,-1,1}, "corner snap uses lower grid corner");
