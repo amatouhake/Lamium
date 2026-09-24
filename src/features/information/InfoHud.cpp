@@ -21,6 +21,8 @@
 #include "mc/client/renderer/actor/ItemRenderer.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/client/options/IOptionRegistry.h"
+#include "mc/client/player/LocalPlayer.h"
+#include "mc/world/gamemode/GameMode.h"
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -322,11 +324,26 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         box(ui::HudElementId::Status) = drawElement(context, width, height, hud.status, lines);
     }
     if (preview || settings.target) {
-        // A detached camera (Freelook, FreeCamera) looks elsewhere than the
-        // body, so pick along the camera ray instead of the game's hit.
+        // One range for every viewpoint. A detached camera (Freelook,
+        // FreeCamera) looks elsewhere than the body, so it always picks along
+        // the camera; the body uses the game's own hit unless a longer fixed
+        // range is chosen.
         std::optional<ViewRay> ray;
-        if (auto view = Zoom::instance().detachedViewRay(context.mClient))
-            ray = ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, settings.targetReach};
+        auto blocks = rangeBlocks(settings.targetRange);
+        if (auto* player = context.mClient.getLocalPlayer()) {
+            if (auto view = Zoom::instance().detachedViewRay(context.mClient)) {
+                float reach = blocks.value_or(5.f);
+                if (!blocks) {
+                    std::unique_ptr<GameMode> const& mode = player->mGameMode;
+                    if (mode) reach = mode->getMaxPickRange();
+                }
+                ray = ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, reach};
+            } else if (blocks) {
+                auto eye = player->getEyePos();
+                auto direction = player->getViewVector();
+                ray = ViewRay{eye.x, eye.y, eye.z, direction.x, direction.y, direction.z, *blocks};
+            }
+        }
         auto target = collectTargetInfo(context.mClient, true, ray);
         if (!target && preview) {
             TargetInfo sample{ui::translated("feature.targetInfo"), "minecraft:grass_block", "minecraft:grass_block"};

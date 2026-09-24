@@ -47,6 +47,7 @@ constexpr Option choice(std::string_view id, std::string_view feature, std::stri
 inline constexpr std::array<std::string_view,2> activationLabels{"activation.hold","activation.toggle"};
 inline constexpr std::array<std::string_view,3> healthMeterLabels{"meter.hearts","meter.bar","meter.number"};
 inline constexpr std::array<std::string_view,2> growthMeterLabels{"meter.bar","meter.number"};
+inline constexpr std::array<std::string_view,5> targetRangeLabels{"range.reach","range.8","range.16","range.32","range.64"};
 inline constexpr std::array<std::string_view,3> animationLabels{"animations.follow","animations.on","animations.off"};
 inline constexpr auto anchorLabels = std::to_array<std::string_view>(
     {"anchor.topLeft", "anchor.topCenter", "anchor.topRight", "anchor.middleLeft", "anchor.center",
@@ -120,10 +121,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::targetIcon>("information.targetIcon", "targetInfo", "targetIcon"),
     choice<&Settings::information, &Settings::Information::targetHealth, healthMeterLabels>("information.targetHealth", "targetInfo", "targetHealth"),
     choice<&Settings::information, &Settings::Information::targetGrowth, growthMeterLabels>("information.targetGrowth", "targetInfo", "targetGrowth"),
-    {"information.targetReach", "targetInfo", "targetReach",
-        [](Settings const& s) -> OptionValue { return s.information.targetReach; },
-        [](Settings& s, int direction) { s.information.targetReach += direction * 4.f; s.normalize(); },
-        NumericOption{4, 64, [](Settings& s, float v) { s.information.targetReach = v; }}},
+    choice<&Settings::information, &Settings::Information::targetRange, targetRangeLabels>("information.targetRange", "targetInfo", "targetRange"),
     toggle<&Settings::information, &Settings::Information::targetStates>("information.targetStates", "targetInfo", "targetStates"),
     toggle<&Settings::information, &Settings::Information::targetCoordinates>("information.targetCoordinates", "targetInfo", "targetCoordinates"),
     toggle<&Settings::information, &Settings::Information::hud>("information.hud", "infoHud", "infoHud"),

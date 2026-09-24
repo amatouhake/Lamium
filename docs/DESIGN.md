@@ -140,7 +140,12 @@ Contents:
   sprites.
   While Freelook or FreeCamera is active the card follows the camera: the
   nearest block or entity box along the rendered camera's forward, water and
-  lava excluded, within the "Camera reach" setting (default 24, 4-64).
+  lava excluded.
+- One "Range" setting for every viewpoint: "Within reach" (default: the
+  game's own hit for the body, the game's pick range from a detached
+  camera) or 8 / 16 / 32 / 64 blocks. Why: one mental model ("this far from
+  where I look"), and the default never shows more than vanilla would;
+  FreeCamera can fly closer, so a separate camera range is rarely needed.
 - **Animations** (General): one Lamium-wide setting, "Follow Minecraft"
   (Video > Screen Animations, the default), On or Off. Why: one switch for
   every Lamium motion, and people who turned animations off in Minecraft
