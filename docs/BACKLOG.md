@@ -136,7 +136,7 @@ Status: done.
 - Tests: SettingsStore round trip without the key; binding count.
 
 ### L-03 Toggle toast
-Status: ready.
+Status: done.
 - When a Toggle action changes a feature from a hotkey, show
   `[switch] <feature name>` for 1.5 s centered above the hotbar, fading over
   the last 0.3 s. A new toast replaces the current one. Not shown for changes

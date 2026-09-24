@@ -43,6 +43,7 @@ struct Settings {
         bool handRestock = false;
     } inventory;
     struct Interface {
+        bool toggleToasts = true;
         bool automationStatus = true;
     } ui;
     struct Overlays {

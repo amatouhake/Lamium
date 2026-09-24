@@ -10,14 +10,37 @@
 #include "features/interaction/PermanentSneak.h"
 #include "app/Runtime.h"
 #include "ui/HudLayout.h"
+#include "ui/Toast.h"
 #include "ui/Widgets.h"
 #include "ui/Localization.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/client/game/IClientInstance.h"
+#include <algorithm>
 #include <vector>
 
+namespace lamium::ui {
+namespace {
+Toast activeToast;
+}
+void showToggleToast(std::string feature, bool on) { activeToast.show(std::move(feature), on, toastNow()); }
+std::optional<Toast::Visible> currentToggleToast(double now) { return activeToast.current(now); }
+}
 namespace lamium::information {
 void drawHud(MinecraftUIRenderContext& context, float width, float height, Settings::Information const& preferences) {
+    if (Runtime::instance().preferences().ui.toggleToasts) {
+        if (auto toast = ui::currentToggleToast(ui::toastNow())) {
+            std::string text = ui::translated("toggleToast", toast->text);
+            float textWidth = ui::textWidth(context, text);
+            float panelWidth = 8 + ui::switchWidth + 6 + textWidth + 8;
+            float x = std::max(4.f, (width - panelWidth) / 2);
+            float y = std::clamp(height - 64, 4.f, std::max(4.f, height - 20));
+            ui::panel(context, x, y, panelWidth, 18, .8f * toast->opacity);
+            ui::toggleSwitch(context, x + 8, y + 4.5f, toast->on);
+            ui::label(context, x + 8 + ui::switchWidth + 6, y + 2, textWidth + 2, std::move(text),
+                toast->opacity < 1 ? ui::palette::dim : ui::palette::text);
+            context.flushText(0, std::nullopt);
+        }
+    }
     auto settings = debugProfile(preferences);
     if (Runtime::instance().preferences().ui.automationStatus) {
         std::vector<std::string> lines;

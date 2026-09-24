@@ -121,6 +121,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inspection, &Settings::Inspection::durability>("inspection.durability", "durability", "durability"),
     toggle<&Settings::inventory, &Settings::Inventory::sorting>("inventory.sorting", "sorting", "sorting"),
     toggle<&Settings::inventory, &Settings::Inventory::sortContainers>("inventory.sortContainers", "sorting", "storage"),
+    toggle<&Settings::ui, &Settings::Interface::toggleToasts>("interface.toggleToasts", "settings", "toggleToasts"),
     toggle<&Settings::ui, &Settings::Interface::automationStatus>("interface.automationStatus", "automationStatus", "automationStatus"),
 });
 inline Option const* find(std::string_view id) {

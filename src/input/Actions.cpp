@@ -8,12 +8,42 @@
 #include "features/camera/Zoom.h"
 #include "features/inventory/Inventory.h"
 #include "ui/SettingsScreen.h"
+#include "ui/SettingsRows.h"
+#include "ui/Toast.h"
 #include "ui/Localization.h"
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/input/KeyboardRemappingLayout.h"
 #include "mc/client/options/IOptionRegistry.h"
 
 namespace lamium {
+namespace {
+std::string toggleFeatureName(input::Action action) {
+    auto id = input::actions[static_cast<size_t>(action)].feature;
+    for (auto const& feature : ui::features)
+        if (feature.id == id) return ui::translated(feature.name);
+    return std::string(id);
+}
+bool toggleState(IClientInstance& client, Settings const& value, input::Action action) {
+    if (action == input::Action::BreakingRestriction) return value.interaction.breaking;
+    if (action == input::Action::PermanentSneak) return interaction::sneak::active(client);
+    if (action == input::Action::PeriodicAttack)
+        return interaction::periodic::active(client, interaction::periodic::Action::Attack);
+    if (action == input::Action::PeriodicUse)
+        return interaction::periodic::active(client, interaction::periodic::Action::Use);
+    auto id = input::actions[static_cast<size_t>(action)].feature;
+    for (auto const& feature : ui::features) {
+        if (feature.id != id || feature.toggle.empty()) continue;
+        if (auto option = settings::find(feature.toggle)) {
+            auto current = option->read(value);
+            if (auto state = std::get_if<bool>(&current)) return *state;
+        }
+    }
+    return false;
+}
+void emitToggleToast(IClientInstance& client, input::Action action, Settings const& value) {
+    ui::showToggleToast(toggleFeatureName(action), toggleState(client, value, action));
+}
+}
 std::string bindingChordName(IClientInstance& client, input::Chord const& chord) {
     auto layout = client.getOptions().getCurrentKeyboardRemapping();
     if (chord.empty()) return ui::translated("unbound");
@@ -35,9 +65,21 @@ void executeAction(IClientInstance& client, input::Action action) {
     // Sorting validates its container/text-input context in requestSort.
     if (action == input::Action::Sort) { inventory::requestSort(client); return; }
     if (!gameplayScreen(client.getScreenName())) return;
-    if (action == input::Action::PermanentSneak) { interaction::sneak::toggle(client); return; }
-    if (action == input::Action::PeriodicAttack) { interaction::periodic::toggle(client, interaction::periodic::Action::Attack); return; }
-    if (action == input::Action::PeriodicUse) { interaction::periodic::toggle(client, interaction::periodic::Action::Use); return; }
+    if (action == input::Action::PermanentSneak) {
+        interaction::sneak::toggle(client);
+        emitToggleToast(client, action, runtime.preferences());
+        return;
+    }
+    if (action == input::Action::PeriodicAttack) {
+        interaction::periodic::toggle(client, interaction::periodic::Action::Attack);
+        emitToggleToast(client, action, runtime.preferences());
+        return;
+    }
+    if (action == input::Action::PeriodicUse) {
+        interaction::periodic::toggle(client, interaction::periodic::Action::Use);
+        emitToggleToast(client, action, runtime.preferences());
+        return;
+    }
     if (action == input::Action::CaptureBreaking) { interaction::breaking::capture(client); return; }
     if (action == input::Action::ResetBreaking) { interaction::breaking::reset(); return; }
     if (action == input::Action::Settings) { ui::open(client); return; }
@@ -52,8 +94,11 @@ void executeAction(IClientInstance& client, input::Action action) {
         if (!runtime.save(value)) runtime.self().getLogger().error("Could not save breaking mode");
         return;
     }
-    if (input::toggleAction(value, action) && !runtime.save(value))
-        runtime.self().getLogger().error("Could not save action setting: {}", input::actions[static_cast<size_t>(action)].id);
+    if (input::toggleAction(value, action)) {
+        if (!runtime.save(value))
+            runtime.self().getLogger().error("Could not save action setting: {}", input::actions[static_cast<size_t>(action)].id);
+        emitToggleToast(client, action, value);
+    }
 }
 void releaseAction(input::Action action) {
     if (action == input::Action::Zoom) Zoom::instance().release();

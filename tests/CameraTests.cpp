@@ -59,6 +59,8 @@ int main() try {
     settingsTableTests();
     extern void responseBarrierTests();
     responseBarrierTests();
+    extern void toastTests();
+    toastTests();
     extern int runSortPlannerTests();
     check(runSortPlannerTests() == 0, "inventory planning and ordering suites");
     settingsStoreTests();
