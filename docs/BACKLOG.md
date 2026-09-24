@@ -35,7 +35,7 @@ Lamium release unless the maintainer explicitly changes this plan.
 Task-picking rule: work in the earliest active group above. Within that group,
 take the lowest-numbered eligible **Ready** task whose dependencies are done
 (cheap models skip tasks marked strong model). Design/Research work still
-requires the model/maintainer class stated below. When a task is done, update
+requires the model/maintainer class stated above. When a task is done, update
 its status and relevant feature doc; do not duplicate task details into this
 summary.
 
