@@ -190,6 +190,33 @@ Contents:
 - (Proposed) Overlays must not hide vanilla's block selection outline: skip or
   dim geometry on the targeted block.
 
+## Automatic attack and use (Decided 2026-09-25; details settle in game)
+
+Periodic Attack/Use and the "fast click" idea do the same work (clicking on
+a schedule) and differ only in when they run, so they are one feature per
+action, **Auto attack** and **Auto use**, with three ways to run:
+
+| Mode | Started by | Does | Setting |
+|---|---|---|---|
+| Periodic | its hotkey (toggle) | clicks every N ticks, hands-free | interval in ticks, shown with seconds ("12 tick (0.60 s)") |
+| Hold | its hotkey (toggle) | keeps the button held (mining, eating, shield, bow) | none |
+| Fast click | its hotkey switches it on/off | while on, holding the physical button clicks N times per tick | clicks per tick, shown with clicks per second ("2 /tick (40 /s)") |
+
+- Pressing the physical button stops Periodic and Hold and hands control
+  back ("you touched it, you own it"; today's Periodic already stops on a
+  manual click). While Fast click is on, that press then spams.
+- Periodic and Hold of the same action never run together; starting one
+  stops the other. Menus, focus loss, world/dimension change stop both.
+- Intervals are whole ticks (1 tick = 0.05 s). Fast click may exceed one
+  click per tick: some items (scaffolding, snowballs) use several per tick
+  and the client runs faster than ticks. Help text warns that servers may
+  treat very fast input as cheating.
+- The status element shows which mode runs.
+- Why one feature: shared stop rules, status and settings; separate
+  hotkeys keep "mine with Hold, AFK farm with Periodic" free of mode
+  switching. Reference behavior: Tweakeroo's periodic attack/use, hold
+  attack/use and fast left/right click (behavior only, no code).
+
 ## Keys
 
 - (Decided) There is no general default-key policy to design now; defaults are

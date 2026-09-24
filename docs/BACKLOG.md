@@ -22,7 +22,7 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins.
 
-1. **Close input/settings foundation:** L-24, L-32, L-02, L-03.
+1. **Close input/settings foundation:** L-24, L-32, L-02, L-03, then L-34.
 2. **Fix observed day-to-day behavior:** L-31, L-15, L-20.
 3. **Finish shared HUD/world presentation:** L-04a/b, L-05, L-07, L-09 -> L-10/L-11, then L-13.
 4. **Polish and release:** L-04c and L-08 where useful, then release preparation and a full runtime regression pass.
@@ -471,6 +471,21 @@ References for expected Java behavior / Bedrock uncertainty:
 https://minecraft.wiki/w/Ender_Dragon
 https://minecraft.wiki/w/Tutorial:Hitboxes
 
+### L-34 Auto attack and auto use (periodic, hold, fast click) **(strong model)**
+Status: design agreed 2026-09-25 (DESIGN "Automatic attack and use"); after
+L-32 (Opus). Details are settled with in-game checks.
+- Rework Periodic Attack/Use into Auto attack / Auto use with three modes:
+  Periodic (hotkey toggle, interval in ticks), Hold (hotkey toggle, keeps
+  the button down), Fast click (hotkey on/off; while on, holding the button
+  clicks N times per tick).
+- Drive clicks from the client tick instead of wall-clock timers so whole
+  ticks are exact; Fast click may issue several clicks per tick.
+- A physical press stops Periodic/Hold; Periodic and Hold of one action are
+  exclusive; existing stop rules (menus, focus, world, dimension) apply.
+- Settings migrate from the current periodic interval (seconds) to ticks.
+- Verify in game: several attacks/uses per tick actually land on Bedrock
+  (scaffolding, snowballs, mobs); Hold keeps mining a block; servers.
+
 ### L-33 Mob growth and breeding timers in the target card
 Status: research (asked 2026-09-24; not part of L-08).
 The maintainer wants the time until a baby mob grows up and the remaining
@@ -547,5 +562,5 @@ rather than polling arbitrary world state.
   insufficient.
 - Not started, not yet triaged: F3-style debug view, Scroll Transfer
   (wheel transfers between inventories), Schematic subsystem (browser,
-  placement, projection, verifier, material list), Mass Craft, Fast
-  Attack/Use. These need a Design pass before they become tasks.
+  placement, projection, verifier, material list), Mass Craft. These need
+  a Design pass before they become tasks. (Fast Attack/Use became L-34.)
