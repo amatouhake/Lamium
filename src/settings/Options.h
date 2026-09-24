@@ -45,6 +45,60 @@ constexpr Option choice(std::string_view id, std::string_view feature, std::stri
         }};
 }
 inline constexpr std::array<std::string_view,2> activationLabels{"activation.hold","activation.toggle"};
+inline constexpr auto anchorLabels = std::to_array<std::string_view>(
+    {"anchor.topLeft", "anchor.topCenter", "anchor.topRight", "anchor.middleLeft", "anchor.center",
+     "anchor.middleRight", "anchor.bottomLeft", "anchor.bottomCenter", "anchor.bottomRight"});
+inline constexpr auto elementBackgroundLabels = std::to_array<std::string_view>(
+    {"hudBackgroundNone", "hudBackgroundCard"});
+inline ui::HudElement const& hudElement(Settings const& value, ui::HudElementId id) {
+    switch (id) {
+    case ui::HudElementId::Info: return value.hud.info;
+    case ui::HudElementId::Target: return value.hud.target;
+    case ui::HudElementId::Status: return value.hud.status;
+    default: return value.hud.toast;
+    }
+}
+inline ui::HudElement& hudElement(Settings& value, ui::HudElementId id) {
+    switch (id) {
+    case ui::HudElementId::Info: return value.hud.info;
+    case ui::HudElementId::Target: return value.hud.target;
+    case ui::HudElementId::Status: return value.hud.status;
+    default: return value.hud.toast;
+    }
+}
+template<ui::HudElementId Id, auto Field>
+constexpr Option hudToggle(std::string_view id, std::string_view feature, std::string_view label) {
+    return {id, feature, label,
+        [](Settings const& value) -> OptionValue { return hudElement(value, Id).*Field; },
+        [](Settings& value, int) { auto& field = hudElement(value, Id).*Field; field = !field; }};
+}
+template<ui::HudElementId Id, auto Field, auto const& Labels>
+constexpr Option hudChoice(std::string_view id, std::string_view feature, std::string_view label) {
+    return {id, feature, label,
+        [](Settings const& value) -> OptionValue {
+            auto index = static_cast<size_t>(hudElement(value, Id).*Field);
+            return ChoiceValue{Labels[index < Labels.size() ? index : 0]};
+        },
+        [](Settings& value, int direction) {
+            auto& field = hudElement(value, Id).*Field;
+            auto index = static_cast<size_t>(field);
+            if (index >= Labels.size()) index = 0;
+            index = (index + (direction < 0 ? Labels.size() - 1 : 1)) % Labels.size();
+            field = static_cast<std::remove_reference_t<decltype(field)>>(index);
+        }};
+}
+template<ui::HudElementId Id, auto Field, int Step>
+constexpr Option hudNumeric(std::string_view id, std::string_view feature, std::string_view label,
+                            float minimum, float maximum) {
+    return {id, feature, label,
+        [](Settings const& value) -> OptionValue { return hudElement(value, Id).*Field; },
+        [](Settings& value, int direction) {
+            auto& field = hudElement(value, Id).*Field;
+            field += direction * Step;
+            value.normalize();
+        },
+        NumericOption{minimum, maximum, [](Settings& value, float number) { hudElement(value, Id).*Field = number; }}};
+}
 inline constexpr auto options = std::to_array<Option>({
     {"interaction.attackInterval", "periodicAttack", "periodicInterval",
         [](Settings const& s) -> OptionValue { return s.interaction.attackInterval; },
@@ -123,6 +177,34 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inventory, &Settings::Inventory::sortContainers>("inventory.sortContainers", "sorting", "storage"),
     toggle<&Settings::ui, &Settings::Interface::toggleToasts>("interface.toggleToasts", "settings", "toggleToasts"),
     toggle<&Settings::ui, &Settings::Interface::automationStatus>("interface.automationStatus", "automationStatus", "automationStatus"),
+    hudChoice<ui::HudElementId::Info, &ui::HudElement::anchor, anchorLabels>("hud.info.anchor", "infoHud", "hudAnchor"),
+    hudToggle<ui::HudElementId::Info, &ui::HudElement::pinned>("hud.info.pinned", "infoHud", "hudPinned"),
+    hudNumeric<ui::HudElementId::Info, &ui::HudElement::dx, 1>("hud.info.dx", "infoHud", "hudOffsetX", -512, 512),
+    hudNumeric<ui::HudElementId::Info, &ui::HudElement::dy, 1>("hud.info.dy", "infoHud", "hudOffsetY", -512, 512),
+    hudNumeric<ui::HudElementId::Info, &ui::HudElement::scale, 25>("hud.info.scale", "infoHud", "hudScale", 75, 150),
+    hudChoice<ui::HudElementId::Info, &ui::HudElement::background, elementBackgroundLabels>("hud.info.background", "infoHud", "hudBackground"),
+    hudToggle<ui::HudElementId::Info, &ui::HudElement::shadow>("hud.info.shadow", "infoHud", "hudShadow"),
+    hudChoice<ui::HudElementId::Target, &ui::HudElement::anchor, anchorLabels>("hud.target.anchor", "targetInfo", "hudAnchor"),
+    hudToggle<ui::HudElementId::Target, &ui::HudElement::pinned>("hud.target.pinned", "targetInfo", "hudPinned"),
+    hudNumeric<ui::HudElementId::Target, &ui::HudElement::dx, 1>("hud.target.dx", "targetInfo", "hudOffsetX", -512, 512),
+    hudNumeric<ui::HudElementId::Target, &ui::HudElement::dy, 1>("hud.target.dy", "targetInfo", "hudOffsetY", -512, 512),
+    hudNumeric<ui::HudElementId::Target, &ui::HudElement::scale, 25>("hud.target.scale", "targetInfo", "hudScale", 75, 150),
+    hudChoice<ui::HudElementId::Target, &ui::HudElement::background, elementBackgroundLabels>("hud.target.background", "targetInfo", "hudBackground"),
+    hudToggle<ui::HudElementId::Target, &ui::HudElement::shadow>("hud.target.shadow", "targetInfo", "hudShadow"),
+    hudChoice<ui::HudElementId::Status, &ui::HudElement::anchor, anchorLabels>("hud.status.anchor", "automationStatus", "hudAnchor"),
+    hudToggle<ui::HudElementId::Status, &ui::HudElement::pinned>("hud.status.pinned", "automationStatus", "hudPinned"),
+    hudNumeric<ui::HudElementId::Status, &ui::HudElement::dx, 1>("hud.status.dx", "automationStatus", "hudOffsetX", -512, 512),
+    hudNumeric<ui::HudElementId::Status, &ui::HudElement::dy, 1>("hud.status.dy", "automationStatus", "hudOffsetY", -512, 512),
+    hudNumeric<ui::HudElementId::Status, &ui::HudElement::scale, 25>("hud.status.scale", "automationStatus", "hudScale", 75, 150),
+    hudChoice<ui::HudElementId::Status, &ui::HudElement::background, elementBackgroundLabels>("hud.status.background", "automationStatus", "hudBackground"),
+    hudToggle<ui::HudElementId::Status, &ui::HudElement::shadow>("hud.status.shadow", "automationStatus", "hudShadow"),
+    hudChoice<ui::HudElementId::Toast, &ui::HudElement::anchor, anchorLabels>("hud.toast.anchor", "settings", "hudAnchor"),
+    hudToggle<ui::HudElementId::Toast, &ui::HudElement::pinned>("hud.toast.pinned", "settings", "hudPinned"),
+    hudNumeric<ui::HudElementId::Toast, &ui::HudElement::dx, 1>("hud.toast.dx", "settings", "hudOffsetX", -512, 512),
+    hudNumeric<ui::HudElementId::Toast, &ui::HudElement::dy, 1>("hud.toast.dy", "settings", "hudOffsetY", -512, 512),
+    hudNumeric<ui::HudElementId::Toast, &ui::HudElement::scale, 25>("hud.toast.scale", "settings", "hudScale", 75, 150),
+    hudChoice<ui::HudElementId::Toast, &ui::HudElement::background, elementBackgroundLabels>("hud.toast.background", "settings", "hudBackground"),
+    hudToggle<ui::HudElementId::Toast, &ui::HudElement::shadow>("hud.toast.shadow", "settings", "hudShadow"),
 });
 inline Option const* find(std::string_view id) {
     for (auto const& option : options) if (option.id == id) return &option;

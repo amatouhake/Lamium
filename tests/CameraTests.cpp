@@ -61,6 +61,8 @@ int main() try {
     responseBarrierTests();
     extern void toastTests();
     toastTests();
+    extern void hudElementTests();
+    hudElementTests();
     extern int runSortPlannerTests();
     check(runSortPlannerTests() == 0, "inventory planning and ordering suites");
     settingsStoreTests();

@@ -101,9 +101,13 @@ void settingsRowsTests() {
         for (size_t i = 0; i < view.size(); ++i)
             if (view[i].heading() && view[i].feature->id == "settings") heading = i;
         check(heading + 3 < view.size(), "settings feature lists its rows");
-        check(view[heading+1].option && view[heading+1].option->id == "interface.toggleToasts"
-            && view[heading+2].action == input::Action::OpenHotkeys
-            && view[heading+3].action == input::Action::OpenShapes,
+        check(view[heading+1].option && view[heading+1].option->id == "interface.toggleToasts",
+            "toggle toasts option first");
+        std::vector<input::Action> openerKeys;
+        for (size_t i = heading + 1; i < view.size() && view[i].child(); ++i)
+            if (view[i].action) openerKeys.push_back(*view[i].action);
+        check(openerKeys.size() == 2 && openerKeys[0] == input::Action::OpenHotkeys
+            && openerKeys[1] == input::Action::OpenShapes,
             "settings children follow the sidebar: Hotkeys opener above Shapes opener");
     }
     {

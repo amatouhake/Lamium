@@ -160,7 +160,7 @@ placement. Covers the review points: few info options, hard positioning,
 plain look, fixed-position automation status.
 
 #### L-04a HUD element model
-Status: ready.
+Status: done.
 - Pure `ui/HudElement.h`: anchor (9 presets), pinned flag, offset, scale
   75-150 %, background (none/card), shadow. Placement math replaces
   `HudLayout::fit` (the anchor point stays put when the element grows; clamp

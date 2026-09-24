@@ -31,6 +31,20 @@ std::string read(std::filesystem::path const& path) {
     if (stream.bad()) throw std::runtime_error("Could not read settings file");
     return text;
 }
+Json encodeHudElement(ui::HudElement const& element) {
+    return {{"anchor", static_cast<int>(element.anchor)}, {"pinned", element.pinned}, {"dx", element.dx},
+            {"dy", element.dy}, {"scale", element.scale},
+            {"background", static_cast<int>(element.background)}, {"shadow", element.shadow}};
+}
+void decodeHudElement(Json const& data, ui::HudElement& element, ui::HudElement defaultValue) {
+    element.anchor = static_cast<ui::Anchor>(data.value("anchor", static_cast<int>(defaultValue.anchor)));
+    element.pinned = data.value("pinned", defaultValue.pinned);
+    element.dx = data.value("dx", defaultValue.dx);
+    element.dy = data.value("dy", defaultValue.dy);
+    element.scale = data.value("scale", defaultValue.scale);
+    element.background = static_cast<ui::ElementBackground>(data.value("background", static_cast<int>(defaultValue.background)));
+    element.shadow = data.value("shadow", defaultValue.shadow);
+}
 Json encode(Settings const& settings) {
     Json bindings = Json::object();
     for (size_t i = 0; i < input::actions.size(); ++i) {
@@ -77,7 +91,9 @@ Json encode(Settings const& settings) {
                         {"durability", settings.inspection.durability}}},
         {"inventory", {{"sorting", settings.inventory.sorting}, {"sortContainers", settings.inventory.sortContainers},
                        {"toolSwitch", settings.inventory.toolSwitch}, {"handRestock", settings.inventory.handRestock}}},
-        {"interface", {{"toggleToasts", settings.ui.toggleToasts}, {"automationStatus", settings.ui.automationStatus}}}
+        {"interface", {{"toggleToasts", settings.ui.toggleToasts}, {"automationStatus", settings.ui.automationStatus}}},
+        {"hud", {{"info", encodeHudElement(settings.hud.info)}, {"target", encodeHudElement(settings.hud.target)},
+                   {"status", encodeHudElement(settings.hud.status)}, {"toast", encodeHudElement(settings.hud.toast)}}}
     };
 }
 }
@@ -186,6 +202,18 @@ Settings decodeSettings(std::string_view text) {
     if (data.contains("interface")) {
         value.ui.toggleToasts = data.at("interface").value("toggleToasts", true);
         value.ui.automationStatus = data.at("interface").value("automationStatus", true);
+    }
+    if (data.contains("hud") && data.at("hud").is_object()) {
+        auto const& hud = data.at("hud");
+        auto element = [&](char const* key, ui::HudElement& target, ui::HudElementId id) {
+            auto found = hud.find(key);
+            if (found != hud.end() && found->is_object())
+                decodeHudElement(*found, target, ui::defaultHudElement(id));
+        };
+        element("info", value.hud.info, ui::HudElementId::Info);
+        element("target", value.hud.target, ui::HudElementId::Target);
+        element("status", value.hud.status, ui::HudElementId::Status);
+        element("toast", value.hud.toast, ui::HudElementId::Toast);
     }
     value.normalize();
     return value;

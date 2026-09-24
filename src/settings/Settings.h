@@ -3,6 +3,7 @@
 #include <cmath>
 #include "input/Binding.h"
 #include "features/interaction/RestrictionMode.h"
+#include "ui/HudElement.h"
 
 namespace lamium {
 struct Settings {
@@ -46,6 +47,12 @@ struct Settings {
         bool toggleToasts = true;
         bool automationStatus = true;
     } ui;
+    struct Hud {
+        ui::HudElement info = ui::defaultHudElement(ui::HudElementId::Info);
+        ui::HudElement target = ui::defaultHudElement(ui::HudElementId::Target);
+        ui::HudElement status = ui::defaultHudElement(ui::HudElementId::Status);
+        ui::HudElement toast = ui::defaultHudElement(ui::HudElementId::Toast);
+    } hud;
     struct Overlays {
         bool chunkBorders = false;
         bool shapes = true;
@@ -96,6 +103,20 @@ struct Settings {
         information.vertical = std::clamp(information.vertical, 0.f, 100.f);
         if (!std::isfinite(overlays.hitboxDistance)) overlays.hitboxDistance = 64.f;
         overlays.hitboxDistance = std::clamp(overlays.hitboxDistance, 8.f, 128.f);
+        auto normalizeElement = [](ui::HudElement& element, ui::HudElement defaultValue) {
+            if (!std::isfinite(element.dx)) element.dx = defaultValue.dx;
+            if (!std::isfinite(element.dy)) element.dy = defaultValue.dy;
+            element.dx = std::clamp(element.dx, -512.f, 512.f);
+            element.dy = std::clamp(element.dy, -512.f, 512.f);
+            if (!std::isfinite(element.scale)) element.scale = defaultValue.scale;
+            element.scale = std::clamp(element.scale, 75.f, 150.f);
+            if (static_cast<unsigned>(element.anchor) > 8) element.anchor = defaultValue.anchor;
+            if (static_cast<unsigned>(element.background) > 1) element.background = defaultValue.background;
+        };
+        normalizeElement(hud.info, ui::defaultHudElement(ui::HudElementId::Info));
+        normalizeElement(hud.target, ui::defaultHudElement(ui::HudElementId::Target));
+        normalizeElement(hud.status, ui::defaultHudElement(ui::HudElementId::Status));
+        normalizeElement(hud.toast, ui::defaultHudElement(ui::HudElementId::Toast));
         if (!std::isfinite(camera.magnification)) camera.magnification = 3.0f;
         if (!std::isfinite(camera.wheelStep)) camera.wheelStep = 0.5f;
         camera.magnification = std::clamp(camera.magnification, 1.0f, 10.0f);

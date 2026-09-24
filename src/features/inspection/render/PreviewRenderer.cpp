@@ -190,7 +190,7 @@ void PreviewRenderer::render(
     auto const& fontHandle = client.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default");
     Font&       font       = fontHandle.getFont();
     Bedrock::NotNullNonOwnerPtr<FontHandle const> const fontRef{Bedrock::NonOwnerPointer<FontHandle const>{fontHandle}};
-    TextMeasureData const  textData{kCountFontSize, 0.0f, true, false, false, ui::TextAlignment::Right};
+    TextMeasureData const  textData{kCountFontSize, 0.0f, true, false, false, ::ui::TextAlignment::Right};
     CaretMeasureData const caretData{-1, false};
     auto&                  measure = context.getMeasureStrategy();
     bool                   anyText = false;
@@ -210,7 +210,7 @@ void PreviewRenderer::render(
             std::move(text),
             kCountText,
             1.0f,
-            ui::TextAlignment::Right,
+            ::ui::TextAlignment::Right,
             textData,
             caretData
         );
