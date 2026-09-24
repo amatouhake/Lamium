@@ -16,10 +16,28 @@ Each task has a **kind**, which decides who should pick it up:
 Ready tasks marked **(strong model)** are fully specified but visual or
 cross-cutting enough that a strong model should implement them.
 
-Rules: take the lowest-numbered Ready task whose dependencies are done
-(cheap models skip tasks marked strong model). Do not
-start a Design/Research task as a cheap model (see AGENTS.md). When a task is
-done, change its status line, update the feature doc, and note the commit.
+## Current execution order
+
+Keep this section short. It is only the ordering layer; task details and status
+live in the L-items below. If this summary ever disagrees with an L-item, the
+L-item wins.
+
+1. **Close input/settings foundation:** L-24, L-32, L-02, L-03.
+2. **Fix observed day-to-day behavior:** L-31, L-15, L-20.
+3. **Finish shared HUD/world presentation:** L-04a/b, L-05, L-07, L-09 -> L-10/L-11, then L-13.
+4. **Polish and release:** L-04c and L-08 where useful, then release preparation and a full runtime regression pass.
+
+Research (L-14, L-17, L-30 and unresolved parts of L-16/L-15) runs in parallel
+and must not block the main sequence unless it uncovers a correctness or safety
+problem. Large new subsystems in Later / parked do not start before the first
+Lamium release unless the maintainer explicitly changes this plan.
+
+Task-picking rule: work in the earliest active group above. Within that group,
+take the lowest-numbered eligible **Ready** task whose dependencies are done
+(cheap models skip tasks marked strong model). Design/Research work still
+requires the model/maintainer class stated below. When a task is done, update
+its status and relevant feature doc; do not duplicate task details into this
+summary.
 
 Confirmed working in the 2026-09-23 review (no action): Freelook, Periodic
 Attack, Periodic Use, settings screen, Shapes view.
