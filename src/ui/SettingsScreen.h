@@ -6,6 +6,7 @@ void stop();
 void open(IClientInstance& client);
 void openShapes(IClientInstance& client);
 void openHotkeys(IClientInstance& client);
+void openHudLayout(IClientInstance& client);
 bool ownsInput();
 void cancelInputCapture();
 }

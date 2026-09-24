@@ -360,6 +360,10 @@ void beginNumber(settings::Option const& option) {
     error.clear();
 }
 // Enter / Space / click on the name of a row.
+void openLayout(std::optional<HudElementId> element) {
+    selectNav(hudNav);
+    hud_editor::select(element);
+}
 void activateRow(int row, bool space) {
     if (!valid(row)) return;
     auto const& entry = rows[row];
@@ -376,6 +380,7 @@ void activateRow(int row, bool space) {
         else adjustOption(*entry.option, 1);
         return;
     case RowKind::Action: startCapture(*entry.action); return;
+    case RowKind::Layout: openLayout(*entry.layout); return;
     }
 }
 void moveSelection(int step) {
@@ -440,6 +445,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     case RowKind::Action:
         if (hit.column == Column::Key) startCapture(*entry.action);
         return;
+    case RowKind::Layout: openLayout(*entry.layout); return;
     default: return;
     }
 }
@@ -642,6 +648,7 @@ std::string description() {
     }
     case RowKind::Action:
         return (hotkeysView() ? featureName(*entry.feature) + ": " : std::string{}) + behaviorText(*entry.action);
+    case RowKind::Layout: return translated("help.layoutLink");
     default: return {};
     }
 }
@@ -1334,6 +1341,12 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             drawKeyCell(context,current,y,*entry.action);
             break;
         }
+        case RowKind::Layout: {
+            drawGuide(context,y,entry.lastChild);
+            label(context,t.nameX+12,y+3,nameRight-t.nameX-12,translated(layoutLinkLabel(*entry.layout)),palette::dim);
+            label(context,t.stateX,y+3,t.controlWidth(),translated("layoutLinkValue"),palette::accent,Align::Right);
+            break;
+        }
         default: break;
         }
     }
@@ -1469,6 +1482,11 @@ void openHotkeys(IClientInstance& current) {
     std::lock_guard lock(mutex);
     if (!scene) open(current);
     if (scene) selectNav(hotkeysNav);
+}
+void openHudLayout(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    if (!scene) open(current);
+    if (scene) openLayout(std::nullopt);
 }
 bool ownsInput() {
     std::lock_guard lock(mutex);

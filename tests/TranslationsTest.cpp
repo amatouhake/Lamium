@@ -30,6 +30,7 @@ void translationTests() {
             else if (entry.key == "hudBlock") rendered = std::vformat(pattern, std::make_format_args(remaining,remaining,remaining));
             else if (entry.key == "hudTime") rendered = std::vformat(pattern, std::make_format_args(remaining,key));
             else if (entry.key == "mouseButton") rendered = std::vformat(pattern, std::make_format_args(remaining));
+            else if (entry.key == "hudEditor.anchorReadout") rendered = std::vformat(pattern, std::make_format_args(key, key));
             else if (entry.key == "durabilityValue") {
                 rendered = std::vformat(pattern, std::make_format_args(remaining, maximum));
                 check(rendered.find("123 / 1561") != std::string::npos);

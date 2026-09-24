@@ -32,13 +32,12 @@ std::string read(std::filesystem::path const& path) {
     return text;
 }
 Json encodeHudElement(ui::HudElement const& element) {
-    return {{"anchor", static_cast<int>(element.anchor)}, {"pinned", element.pinned}, {"dx", element.dx},
+    return {{"anchor", static_cast<int>(element.anchor)}, {"dx", element.dx},
             {"dy", element.dy}, {"scale", element.scale},
             {"background", static_cast<int>(element.background)}, {"shadow", element.shadow}};
 }
 void decodeHudElement(Json const& data, ui::HudElement& element, ui::HudElement defaultValue) {
     element.anchor = static_cast<ui::Anchor>(data.value("anchor", static_cast<int>(defaultValue.anchor)));
-    element.pinned = data.value("pinned", defaultValue.pinned);
     element.dx = data.value("dx", defaultValue.dx);
     element.dy = data.value("dy", defaultValue.dy);
     element.scale = data.value("scale", defaultValue.scale);

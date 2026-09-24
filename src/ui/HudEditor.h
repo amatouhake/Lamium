@@ -1,4 +1,6 @@
 #pragma once
+#include "ui/HudElement.h"
+#include <optional>
 class MinecraftUIRenderContext;
 
 namespace lamium::ui::hud_editor {
@@ -7,6 +9,7 @@ namespace lamium::ui::hud_editor {
 // selection, drag and panel state and saves through Runtime.
 enum class Result { Stay, Exit };
 void reset();
+void select(std::optional<HudElementId>);
 void render(MinecraftUIRenderContext&, float width, float height, float pointerX, float pointerY);
 Result press(float x, float y);
 void release();

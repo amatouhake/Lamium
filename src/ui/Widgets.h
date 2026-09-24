@@ -34,6 +34,9 @@ float textWidthScaled(MinecraftUIRenderContext&, std::string_view text, float sc
 void fill(MinecraftUIRenderContext&, float x, float y, float width, float height, Rgb color, float opacity = 1);
 void frame(MinecraftUIRenderContext&, float x, float y, float width, float height, Rgb color, float opacity = 1);
 void panel(MinecraftUIRenderContext&, float left, float top, float width, float height, float opacity = .8f);
+// HUD card: the panel fill with corners stepped by one GUI pixel, like
+// Bedrock's item-name popup.
+void card(MinecraftUIRenderContext&, float left, float top, float width, float height, float opacity = .72f);
 void rowBackground(MinecraftUIRenderContext&, float left, float top, float width, float height,
                    bool selected, bool hovered);
 // Bedrock-style switch: the knob position carries the state as well as color.

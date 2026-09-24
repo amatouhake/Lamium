@@ -105,6 +105,12 @@ void paragraph(MinecraftUIRenderContext& context, float x, float y, float width,
 void panel(MinecraftUIRenderContext& context, float left, float top, float width, float height, float opacity) {
     fill(context,left,top,width,height,palette::panel,opacity);
 }
+void card(MinecraftUIRenderContext& context, float left, float top, float width, float height, float opacity) {
+    if (width < 3 || height < 3) { fill(context,left,top,width,height,palette::panel,opacity); return; }
+    fill(context,left+1,top,width-2,1,palette::panel,opacity);
+    fill(context,left,top+1,width,height-2,palette::panel,opacity);
+    fill(context,left+1,top+height-1,width-2,1,palette::panel,opacity);
+}
 void rowBackground(MinecraftUIRenderContext& context, float left, float top, float width, float height,
                    bool selected, bool hovered) {
     if (selected) {

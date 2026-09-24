@@ -182,8 +182,9 @@ views per frame and the HUD was drawn on each; it now draws only on the
 - Info lines become an ordered list with per-line switches (order saved).
 
 #### L-04c Layout editor **(strong model)**
-Status: first build 2026-09-24 (45211d7) reviewed in game; reworking to the
-decisions in DESIGN "HUD" and demos/hud-editor.html (Opus):
+Status: first build 2026-09-24 (45211d7) reviewed in game; rework implemented
+2026-09-24 (Opus), in-game check pending. Decisions in DESIGN "HUD" and
+demos/hud-editor.html:
 - Placement: no pin; drop position decides the anchor (screen thirds);
   flush edges allowed; snap at the edge, at a 4-unit inset and to center
   lines; defaults and snap-to buttons use the inset.

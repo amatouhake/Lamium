@@ -16,6 +16,7 @@ void settingsRowsTests() {
     auto rows = ui::buildSettingsRows(false, {}, query, expanded, translate);
     std::set<std::string_view> options, features, sectionsSeen;
     std::set<input::Action> actions;
+    std::set<ui::HudElementId> layouts;
     ui::FeatureInfo const* parent = nullptr;
     std::string_view section;
     for (size_t i = 0; i < rows.size(); ++i) {
@@ -41,11 +42,16 @@ void settingsRowsTests() {
         bool last = i + 1 == rows.size() || !rows[i+1].child() || rows[i+1].feature != parent;
         check(row.lastChild == last, "the last child ends the tree guide");
         if (row.option) check(options.insert(row.option->id).second, "option appears exactly once");
+        if (row.layout) check(layouts.insert(*row.layout).second, "each HUD element has one layout link");
         if (row.action) check(actions.insert(*row.action).second, "binding appears exactly once");
     }
     check(sectionsSeen.size() == ui::sections.size(), "all broad sections are represented");
     check(features.size() == ui::features.size(), "every feature is listed");
-    check(options.size() == settings::options.size() && actions.size() == input::actions.size(), "all settings and actions are reachable");
+    // HUD look options are edited in the layout editor, reached through the links.
+    size_t listed = 0;
+    for (auto const& option : settings::options) if (!option.id.starts_with("hud.")) ++listed;
+    check(options.size() == listed && actions.size() == input::actions.size(), "all settings and actions are reachable");
+    check(layouts.size() == 4, "every HUD element is reachable from the settings list");
 
     // Collapsed: only headings and features; child counts remain visible.
     expanded.clear();
@@ -106,18 +112,19 @@ void settingsRowsTests() {
         std::vector<input::Action> openerKeys;
         for (size_t i = heading + 1; i < view.size() && view[i].child(); ++i)
             if (view[i].action) openerKeys.push_back(*view[i].action);
-        check(openerKeys.size() == 2 && openerKeys[0] == input::Action::OpenHotkeys
-            && openerKeys[1] == input::Action::OpenShapes,
-            "settings children follow the sidebar: Hotkeys opener above Shapes opener");
+        check(openerKeys.size() == 3 && openerKeys[0] == input::Action::OpenHotkeys
+            && openerKeys[1] == input::Action::OpenShapes && openerKeys[2] == input::Action::OpenHudLayout,
+            "settings children follow the sidebar: Hotkeys, Shapes, HUD layout openers");
     }
     {
         auto hotkeys = ui::buildSettingsRows(true, {}, query, expanded, translate);
         size_t section = hotkeys.size();
         for (size_t i = 0; i < hotkeys.size(); ++i)
             if (hotkeys[i].kind == RowKind::Section && hotkeys[i].section == "section.interface") section = i;
-        check(section + 3 < hotkeys.size() && hotkeys[section+1].action == input::Action::Settings
+        check(section + 4 < hotkeys.size() && hotkeys[section+1].action == input::Action::Settings
             && hotkeys[section+2].action == input::Action::OpenHotkeys
-            && hotkeys[section+3].action == input::Action::OpenShapes,
+            && hotkeys[section+3].action == input::Action::OpenShapes
+            && hotkeys[section+4].action == input::Action::OpenHudLayout,
             "Hotkeys lists the openers in sidebar order");
     }
     {

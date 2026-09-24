@@ -1,6 +1,7 @@
 #pragma once
 #include "settings/Options.h"
 #include "ui/SearchQuery.h"
+#include "ui/HudElement.h"
 #include <algorithm>
 #include <set>
 #include <string>
@@ -49,22 +50,35 @@ inline std::optional<input::Action> primaryAction(FeatureInfo const& feature) {
     return {};
 }
 
-enum class RowKind { Section, Feature, Option, Action };
+enum class RowKind { Section, Feature, Option, Action, Layout };
+// HUD features link to their element in the layout editor instead of listing
+// placement and look rows (DESIGN "HUD").
+inline std::optional<HudElementId> layoutElement(std::string_view feature) {
+    if (feature == "infoHud") return HudElementId::Info;
+    if (feature == "targetInfo") return HudElementId::Target;
+    if (feature == "automationStatus") return HudElementId::Status;
+    if (feature == "settings") return HudElementId::Toast;
+    return std::nullopt;
+}
+inline constexpr std::string_view layoutLinkLabel(HudElementId id) {
+    return id == HudElementId::Toast ? "layoutLinkToast" : "layoutLink";
+}
 struct SettingsRow {
     RowKind kind;
     FeatureInfo const* feature = nullptr;
     settings::Option const* option = nullptr;
     std::optional<input::Action> action;
     std::string_view section;
+    std::optional<HudElementId> layout; // Layout rows
     int children = 0;       // Feature rows: expandable content
     bool expanded = false;  // Feature rows
     bool lastChild = false; // Child rows: end of the tree guide
     bool heading() const { return kind == RowKind::Feature; }
     bool selectable() const { return kind != RowKind::Section; }
-    bool child() const { return kind == RowKind::Option || kind == RowKind::Action; }
+    bool child() const { return kind == RowKind::Option || kind == RowKind::Action || kind == RowKind::Layout; }
     bool operator==(SettingsRow const& other) const {
         return kind == other.kind && feature == other.feature && option == other.option
-            && action == other.action && section == other.section;
+            && action == other.action && section == other.section && layout == other.layout;
     }
 };
 // Category is a section key, or empty for all sections. A query searches every
@@ -115,6 +129,7 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
             std::vector<SettingsRow> children;
             for (auto const& option : settings::options) {
                 if (option.feature != feature.id || option.id == feature.toggle) continue;
+                if (option.id.starts_with("hud.")) continue; // Edited in the layout editor.
                 children.push_back({RowKind::Option, &feature, &option, {}, section});
             }
             for (size_t i : actionOrder) {
@@ -137,7 +152,10 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
                 std::stable_sort(children.begin(), children.end(),
                     [&](SettingsRow const& a, SettingsRow const& b) { return orderKey(a) < orderKey(b); });
             }
+            if (auto element = layoutElement(feature.id))
+                children.push_back({RowKind::Layout, &feature, nullptr, {}, section, element});
             auto childText = [&](SettingsRow const& row) {
+                if (row.layout) return std::string(translate(layoutLinkLabel(*row.layout))) + " " + translate("nav.hudLayout");
                 return row.option ? std::string(row.option->id) + " " + translate(row.option->label)
                     : std::string(input::actions[static_cast<size_t>(*row.action)].id) + " "
                         + translate("key.Lamium." + std::string(input::actions[static_cast<size_t>(*row.action)].id));

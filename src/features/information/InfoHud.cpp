@@ -54,7 +54,7 @@ std::optional<ui::hud_editor::Box> drawElement(MinecraftUIRenderContext& context
     float boxWidth = contentWidth + 2 * padX, boxHeight = static_cast<float>(lines.size()) * rowHeight + 2 * padY;
     auto placement = ui::placeElement(width, height, boxWidth, boxHeight, element);
     if (element.background == ui::ElementBackground::Card)
-        ui::panel(context, placement.x, placement.y, boxWidth, boxHeight, .72f);
+        ui::card(context, placement.x, placement.y, boxWidth, boxHeight);
     for (size_t i = 0; i < lines.size(); ++i) {
         float x = placement.x + padX, y = placement.y + padY + i * rowHeight;
         float textX = x;
@@ -217,7 +217,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             float padX = card ? 6 : 0, padY = card ? 3 : 0;
             float total = ui::switchWidth + 6 + textWidth + 2 * padX;
             auto frame = ui::placeElement(width, height, total, 14 * zoom + 2 * padY, hud.toast);
-            if (card) ui::panel(context, frame.x, frame.y, total, 14 * zoom + 2 * padY, .72f * toast->opacity);
+            if (card) ui::card(context, frame.x, frame.y, total, 14 * zoom + 2 * padY, .72f * toast->opacity);
             box(ui::HudElementId::Toast) = ui::hud_editor::Box{frame.x, frame.y, total, 14 * zoom + 2 * padY};
             ui::ElementPlacement placement{frame.x + padX, frame.y + padY};
             ui::toggleSwitch(context, placement.x, placement.y + (14 * zoom - ui::switchHeight) / 2, toast->on);
