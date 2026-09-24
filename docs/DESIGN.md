@@ -78,45 +78,59 @@ at most 640×380 and centered. New screens reuse these numbers.
 - Labels with a value use one translation string with `{}`
   ("Radius: {}"), split by `splitLabel` for table display.
 
-## HUD (Decided — see [demos/hud.html](demos/hud.html))
+## HUD (Decided — see [demos/hud-editor.html](demos/hud-editor.html))
 
 Menus are polished; HUD is minimal; debug views may be dense. Everything the
 HUD shows is a **HUD element**, placed and styled the same way. Where the
-demo and this text differ, this text wins.
+demo and this text differ, this text wins. The first demo
+([demos/hud.html](demos/hud.html)) is superseded where they differ; the
+rework came from using the first editor build (2026-09-24).
 
 Elements: **Info lines**, **Target**, **Status**, **Toast** (later: F3 view).
 
-Placement and look (every element):
-- Anchor (9 presets: corners, edge centers, center) plus an offset in GUI
-  units; scale 75–150 %; background none / translucent card; text shadow.
-- The anchor is the point that stays put when the element grows or the screen
-  resizes (a top-anchored list grows downward). By default a drag picks the
-  nearest anchor. Choosing an anchor in the element's panel pins it; drags
-  then change only the offset, so an element can hang low from a top anchor.
-  Why: automatic anchors alone cannot express "top-anchored but placed low".
-- A dashed line from the anchor to the element shows the relation while
-  dragging. Small offsets snap to zero.
+Placement (every element):
+- Stored as an anchor (9 presets) plus an offset in GUI units, but the user
+  never picks an anchor directly. Where an element is dropped decides it:
+  the screen third holding the element's center gives the anchor, so an
+  element grows away from the nearest edge (info lines placed bottom-left
+  grow upward). There is no "pin". Why: anchor + pin + offset was the
+  implementation showing through; people only want to put things somewhere.
+- Elements can sit flush against the screen edge. Dragging snaps at the edge
+  and at a 4-unit inset from it, and to the center lines; defaults and the
+  3x3 "snap to" buttons use the inset. Why: flush must be possible, but a
+  small gap reads better and makes aligned layouts easy.
+- Look: scale 75–150 %, background none / card, text shadow.
 
 Editing:
-- The settings sidebar has a pinned "HUD layout" item (below Hotkeys and
-  Shapes) that opens the editor: the live HUD with sample content for empty
-  elements, draggable elements, anchor dots, a dashed guide and a panel.
-  Arrow keys nudge the selected element (Shift: 10); Esc deselects, then
-  returns to the list. Info lines are reordered only in the editor panel. Each element also
-  has "Placement" and "Look" rows in its settings, so everything is reachable
-  without dragging.
-- The per-element panel and the settings rows are generated from the same
-  option definitions and are never written twice; long lists scroll inside
-  the panel. Why: hand-written copies drift when options are added.
+- Entry: the pinned "HUD layout" item in the settings sidebar, an unbound
+  "Open HUD layout" action under General, and a "Placement and look" link row
+  on each HUD feature that opens the editor with that element selected.
+  The settings list has no placement or look rows of its own.
+- The editor shows the live HUD (sample content for empty elements). Click
+  selects, drag moves, arrows nudge (Shift: 10), Esc deselects then leaves.
+  A dashed guide joins the anchor point and the element while selected.
+- Selecting an element opens a small toolbar next to it (below, or above
+  when there is no room): snap-to 3x3, scale, background, shadow, and for
+  info lines a "Lines" popover (switch + up/down per line). The toolbar
+  stays where it is while only the look changes and re-anchors after a move
+  or when the element grows over it. Why: a side panel that follows the
+  selection jumps across the screen and is disorienting.
+
+Card look (background "card"): Bedrock popup style — a dark translucent
+fill (about 72 %) with corners stepped by one GUI pixel, no border, no
+accent stripe.
 
 Contents:
 - **Info lines**: providers with an id, a label and a value; unavailable values
   say so. Each line has a switch and a position in a user-ordered list.
   Defaults on: coordinates, facing, biome, FPS. Everything else starts off.
-- **Target** (Jade/WAILA role): "Card" (default) shows an item/block icon,
-  name, identifier line, then rows (states, growth, power, health) with
-  progress bars where a value has a range. "Simple" keeps today's text-only
-  view.
+- **Target** (Jade/WAILA role): icon, name, identifier line, then rows. What
+  is shown is chosen by independent rows in the settings list: icon, ID,
+  health (hearts / bar / number), growth (bar / number), other details.
+  There is no separate "card / simple" style; the element's background
+  setting decides whether it has a card. When the target changes, the card
+  eases to its new size and position in about 0.16 s and the content fades
+  in (Jade does the same). Mobs use their spawn egg as the icon.
 - **Status**: automation (periodic attack/use, permanent sneak) and breaking/
   placement restriction lines in one element, each with a colored marker
   (accent for automation, warning color for restrictions).

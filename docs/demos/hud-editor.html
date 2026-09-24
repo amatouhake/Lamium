@@ -1,5 +1,5 @@
 <title>Lamium HUD Editor</title>
-<meta name="description" content="Lamium HUD editor rework demo: three editing models, three card styles, and a target card with icons and bars.">
+<meta name="description" content="Lamium HUD editor rework demo: element toolbar, Bedrock-style card, and a target card with icons, bars and a smooth switch.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
@@ -208,7 +208,7 @@ svg.guide rect{fill:var(--mc-edit)}
       <ul>
         <li>ツールバーは、見た目（背景・影・大きさ）を変えても動かない。要素を動かしたあと、または要素がツールバーに重なったときだけ付け直す</li>
         <li>吸い付く位置は画面の端と、端から 4 マス内側の 2 段。既定の位置は内側の段に置く（見やすい余白）</li>
-        <li>照準先の情報は、表示のしかた・アイコン・ID・体力（ハート / バー / 数値）・成長（バー / 数値）・その他の詳細を設定一覧で選ぶ</li>
+        <li>照準先の情報は、アイコン・ID・体力（ハート / バー / 数値）・成長（バー / 数値）・その他の詳細を、それぞれ独立した行で選ぶ。「カード / 簡易」の切り替えは設けない（背景は HUD レイアウトの「背景」）</li>
         <li>見ている対象が変わると、カードの大きさと位置が約 0.16 秒でなめらかに変わり、中身はふわっと出る（Jade を参考）</li>
       </ul>
     </section>
@@ -220,7 +220,8 @@ svg.guide rect{fill:var(--mc-edit)}
       <li>編集のしかたは B（要素に付くツールバー）。カードの見た目は A（Bedrock 風）</li>
       <li>「基準点を固定」はなくす。3×3 は「寄せる」ボタン。画面の端にも置けるが、既定は少し内側</li>
       <li>設定一覧の配置と見た目の行は、HUD レイアウトへのリンク 1 行にまとめる。全般に「HUD レイアウトを開く」キーを置く</li>
-      <li>確認したいこと：ツールバーの振る舞い、吸い付きの 2 段、照準先の情報の設定項目、切り替えのアニメーションの速さ</li>
+      <li>照準先の情報に出すものは独立した行で選ぶ（カード / 簡易の切り替えはなし）。対象が変わるとカードがなめらかに変わる</li>
+      <li>モブの成長や繁殖までの時間は別の調査項目（L-33）</li>
     </ol>
   </section>
 </div>
@@ -258,9 +259,9 @@ const DEF = {
 };
 const el = JSON.parse(JSON.stringify(DEF));
 const st = {mode:'B', card:'A', target:'wheat', sel:null, drag:null, panelSide:'right', pop:null, toast:null, tb:null, shownTarget:null, prevTarget:null};
-const tset = {style:'card', icon:true, id:true, health:'hearts', growth:'bar', details:true};
-const CHOICES = {style:['card','simple'], health:['hearts','bar','number'], growth:['bar','number']};
-const LABELS = {card:'カード', simple:'簡易', hearts:'ハート', bar:'バー', number:'数値'};
+const tset = {icon:true, id:true, health:'hearts', growth:'bar', details:true};
+const CHOICES = {health:['hearts','bar','number'], growth:['bar','number']};
+const LABELS = {hearts:'ハート', bar:'バー', number:'数値'};
 const $ = id => document.getElementById(id);
 const stage = $('stage'), huds = $('huds'), chrome = $('chrome'), guide = $('guide'), anchorsEl = $('anchors');
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -297,7 +298,6 @@ function content(id){
   }
   if (id === 'target') {
     const t = TARGETS[st.target];
-    if (tset.style === 'simple') return `<div>${esc(t.name)}</div><div class="k">${esc(t.id)}</div>` + t.rows.map(([k,v]) => `<div><span class="k">${esc(k)}:</span> ${esc(plain(v))}</div>`).join('');
     const rows = t.rows.filter(([k]) => tset.details || k === '体力' || k === '成長');
     return `<div class="tgt">${tset.icon ? `<span data-icon="${t.icon}"></span>` : ''}<div${tset.icon ? '' : ' style="grid-column:1 / -1"'}><div class="nm">${esc(t.name)}</div>${tset.id ? `<div class="src">${esc(t.id)}</div>` : ''}</div>
       ${rows.length ? `<div class="rows">${rows.map(([k,v]) => `<span class="k">${esc(k)}</span><span>${value(v)}</span>`).join('')}</div>` : ''}</div>`;
@@ -492,7 +492,7 @@ function renderTable(){
   rows += `<div class="r"><span>▾ 照準先の情報</span><span class="sw sm on"></span><span><span class="cap">未割り当て</span></span></div>`;
   const cyc = (k, label, last) => `<div class="r c btn ${last?'last':''}" data-tset="${k}"><span>${label}</span><span></span><span class="v">◀ ${LABELS[tset[k]]} ▶</span></div>`;
   const tog = (k, label) => `<div class="r c btn" data-tset="${k}"><span>${label}</span><span class="sw sm ${tset[k]?'on':''}"></span><span></span></div>`;
-  rows += cyc('style','表示のしかた') + tog('icon','アイコン') + tog('id','ID') + cyc('health','体力') + cyc('growth','成長') + tog('details','その他の詳細');
+  rows += tog('icon','アイコン') + tog('id','ID') + cyc('health','体力') + cyc('growth','成長') + tog('details','その他の詳細');
   rows += `<div class="r c last"><span>配置と見た目</span><span></span>${link}</div>`;
   if (st.mode === 'C') {
     rows += `<div class="r c"><span>表示する項目</span><span></span><span class="v">${on}/${LINES.length} ▸</span></div>`;
@@ -504,7 +504,7 @@ function renderTable(){
   } else {
     rows += `<div class="r c"><span>表示する項目</span><span></span><span class="v">${on}/${LINES.length} ▸</span></div>`;
     rows += `<div class="r c last"><span>配置と見た目</span><span></span>${link}</div>`;
-    $('tblhelp').textContent = '配置と見た目は 1 行のリンクにまとめ、押すとその要素を選んだ状態で HUD レイアウトが開く。照準先の情報の出し方（体力・成長・詳細など）は好みが分かれるので一覧に置く。行をクリックすると上のカードに反映される。';
+    $('tblhelp').textContent = '配置と見た目は 1 行のリンクにまとめ、押すとその要素を選んだ状態で HUD レイアウトが開く。照準先の情報に出すもの（アイコン・ID・体力・成長・詳細）は好みが分かれるので、一つずつ独立した行として一覧に置く。背景の有無は HUD レイアウト側の「背景」で決める。行をクリックすると上のカードに反映される。';
   }
   rows += `<div class="r sec">全般</div><div class="r"><span>HUD レイアウトを開く</span><span></span><span><span class="cap">未割り当て</span></span></div>`;
   $('tbl').innerHTML = rows;

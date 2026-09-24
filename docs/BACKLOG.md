@@ -182,12 +182,16 @@ views per frame and the HUD was drawn on each; it now draws only on the
 - Info lines become an ordered list with per-line switches (order saved).
 
 #### L-04c Layout editor **(strong model)**
-Status: implemented 2026-09-24 (Opus), in-game check pending. Entry is a
-pinned sidebar item instead of a General button; see DESIGN "HUD".
-- "Edit HUD layout" button in General opens an editor over the live HUD:
-  drag elements, anchor dots, dashed anchor guide, per-element panel.
-- The per-element panel is generated from the same option definitions as
-  the settings rows (never duplicated); long lists scroll.
+Status: first build 2026-09-24 (45211d7) reviewed in game; reworking to the
+decisions in DESIGN "HUD" and demos/hud-editor.html (Opus):
+- Placement: no pin; drop position decides the anchor (screen thirds);
+  flush edges allowed; snap at the edge, at a 4-unit inset and to center
+  lines; defaults and snap-to buttons use the inset.
+- Element toolbar instead of the side panel; it stays put on look changes.
+- Settings list: replace the per-element placement/look rows with one
+  "Placement and look" link row per HUD feature; add an unbound
+  "Open HUD layout" action under General.
+- Card look A (Bedrock popup, stepped corners).
 
 ### L-05 More Info HUD lines (providers only)
 Status: done. Notes 2026-09-24: thunder is not separately exposed (the weather
@@ -218,11 +222,17 @@ west/east and crop maxima cover common crops only — confirm in game.
 - Anything not present on the client is omitted, not guessed.
 
 ### L-08 Target card **(strong model)**
-Status: after L-07 and L-04b.
-- Card style per the demo: icon, name, identifier line, rows, progress bars
-  (growth, health). The current text-only view stays as the "Simple" style.
-- Item/block icon rendering must be found in the SDK; if it is not
-  practical, draw the card without the icon and report.
+Status: design decided 2026-09-24 (DESIGN "HUD", demos/hud-editor.html); after
+L-04c (Opus).
+- Icon (blocks/items through the item renderer already used by container
+  previews; mobs use their spawn egg), name, identifier line, then rows with
+  labels in a faint column and values aligned.
+- Independent settings rows: icon, ID, health (hearts / bar / number),
+  growth (bar / number), other details. No card/simple style switch.
+- Ease the card's size and position over about 0.16 s when the target
+  changes; fade the content in.
+- If icon rendering in the HUD pass is not practical, draw the card without
+  the icon and report.
 
 ### L-09 Colored line batches in the world overlay
 Status: done.
@@ -459,6 +469,20 @@ exposes Java-style part entities or stable per-part AABBs.
 References for expected Java behavior / Bedrock uncertainty:
 https://minecraft.wiki/w/Ender_Dragon
 https://minecraft.wiki/w/Tutorial:Hitboxes
+
+### L-33 Mob growth and breeding timers in the target card
+Status: research (asked 2026-09-24; not part of L-08).
+The maintainer wants the time until a baby mob grows up and the remaining
+breeding cooldown. The client SDK has `AgeableComponent::mAge` and
+`BreedableComponent::mBreedCooldown`/`mLoveTimer`, but these are behavior
+(server-side) components; the client-side actor only receives the synced
+`Baby` and `Inlove` flags. Find out:
+- whether the client actor carries these components at all (likely not);
+- in a local world, whether the in-process server actor with the same
+  unique ID can be read safely from the client thread (singleplayer only);
+- otherwise show only "baby" / "in love" states, and say so in the help text.
+Estimating from observed events (feeding speeds growth up) is not accurate
+enough to show as a time.
 
 ### L-31 Continuous Tool Switch across block transitions
 Status: research.
