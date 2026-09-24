@@ -71,7 +71,10 @@ struct Settings {
         bool debug = false;
         bool target = false;
         bool targetIdentifier = true;
-        bool targetStates = false;
+        bool targetIcon = true;
+        int targetHealth = 0; // 0 hearts, 1 bar, 2 number
+        int targetGrowth = 0; // 0 bar, 1 number
+        bool targetStates = false; // Other details
         bool targetCoordinates = false;
         bool hud = false;
         bool coordinates = true;
@@ -99,6 +102,8 @@ struct Settings {
         }
         auto normalizeMode = [](auto& mode) { if (static_cast<unsigned>(mode) >= 4) mode = lamium::interaction::RestrictionMode::Plane; };
         normalizeMode(interaction.breakingMode);
+        information.targetHealth = std::clamp(information.targetHealth, 0, 2);
+        information.targetGrowth = std::clamp(information.targetGrowth, 0, 1);
         normalizeMode(interaction.placementMode);
         information.lineOrder = information::mergeLineOrder(information.lineOrder);
         if (!std::isfinite(overlays.hitboxDistance)) overlays.hitboxDistance = 64.f;

@@ -223,8 +223,10 @@ west/east and crop maxima cover common crops only — confirm in game.
 - Anything not present on the client is omitted, not guessed.
 
 ### L-08 Target card **(strong model)**
-Status: design decided 2026-09-24 (DESIGN "HUD", demos/hud-editor.html); after
-L-04c (Opus).
+Status: implemented 2026-09-24 (Opus), in-game check pending. Design in
+DESIGN "HUD" and demos/hud-editor.html. Icons use the pick-block item for
+blocks and the spawn egg for mobs; the card content appears after the
+0.16 s size ease (no text fade).
 - Icon (blocks/items through the item renderer already used by container
   previews; mobs use their spawn egg), name, identifier line, then rows with
   labels in a faint column and values aligned.

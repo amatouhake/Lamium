@@ -67,6 +67,8 @@ int main() try {
     infoLinesTests();
     extern void targetDetailTests();
     targetDetailTests();
+    extern void targetCardTests();
+    targetCardTests();
     extern void shapeProfileTests();
     shapeProfileTests();
     extern int runSortPlannerTests();

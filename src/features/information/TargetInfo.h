@@ -7,15 +7,19 @@
 #include <vector>
 class IClientInstance;
 namespace lamium::information {
+enum class DetailKind { Other, Health, Growth };
 // Owned snapshot shared by target HUD and future detailed debug providers.
 struct TargetInfo {
     std::string name, identifier;
+    std::string iconItem; // Item drawn as the card icon; empty when there is none.
+    short iconAux = 0;
     std::vector<std::string> states;
     struct DetailRow {
         std::string label; // Translation key, resolved by the caller.
         std::string value; // Display text, or a translation key when valueIsKey.
         bool valueIsKey = false;
         std::optional<float> progress; // 0-1 for ranged values; empty otherwise.
+        DetailKind kind = DetailKind::Other;
     };
     std::vector<DetailRow> details;
     struct BlockPosition { int x, y, z; };
@@ -48,7 +52,8 @@ inline std::optional<TargetInfo::DetailRow> interpretBlockState(std::string_view
             value += " / " + std::to_string(*max);
             progress = *max > 0 ? static_cast<float>(number) / *max : 0.f;
         }
-        return DetailRow{key == "age" ? "target.age" : "target.growth", std::move(value), false, progress};
+        return DetailRow{key == "age" ? "target.age" : "target.growth", std::move(value), false, progress,
+                         DetailKind::Growth};
     }
     if (key == "redstone_signal" && kind == StateKind::Integer && number >= 0 && number <= 15)
         return DetailRow{"target.power", std::to_string(number), false, static_cast<float>(number) / 15};

@@ -1,4 +1,7 @@
 #include "features/information/TargetInfo.h"
+#include "features/information/TargetCard.h"
+#include "mc/world/item/Item.h"
+#include "mc/world/item/ItemInstance.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/actor/Mob.h"
@@ -22,6 +25,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         // Respect the game's filtered name, then use its localized entity type.
         // The weak hit reference is resolved only for this snapshot.
         TargetInfo result{entity->getFilteredNameTag(),entity->getTypeName()};
+        result.iconItem = spawnEggItem(result.identifier);
         if (result.name.empty()) {
             auto key = entity->getEntityLocNameString();
             result.name = getI18n().get(key,getI18n().getCurrentLanguage());
@@ -33,7 +37,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
             if (maxHealth > 0 && health >= 0) {
                 float progress = std::clamp(static_cast<float>(health) / maxHealth, 0.f, 1.f);
                 result.details.push_back({"target.health",
-                    std::to_string(health) + " / " + std::to_string(maxHealth), false, progress});
+                    std::to_string(health) + " / " + std::to_string(maxHealth), false, progress, DetailKind::Health});
             }
             int armor = static_cast<Mob*>(entity)->getArmorValue();
             if (armor > 0) result.details.push_back({"target.armor", std::to_string(armor), false, {}});
@@ -59,6 +63,12 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     if (block.isAir()) return {};
     TargetInfo result{block.buildDescriptionName(),block.getTypeName()};
     result.blockPosition = TargetInfo::BlockPosition{hit.mBlock.x,hit.mBlock.y,hit.mBlock.z};
+    // The pick-block item (seeds for crops, the block item otherwise).
+    auto pick = block.asItemInstance(source, hit.mBlock, true);
+    if (!pick.isNull() && pick.mItem) {
+        result.iconItem = pick.mItem->mFullName->getString();
+        result.iconAux = pick.getAuxValue();
+    }
     if (result.name.empty()) result.name = result.identifier;
     if (includeStates) {
         auto const& tags = block.mSerializationId->mTags;
