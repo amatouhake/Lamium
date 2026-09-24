@@ -65,6 +65,8 @@ public:
     void pressFreeCamera(IClientInstance&); // Toggle: press again to return to the player
     // True while FreeCamera owns the detached session (perspective is locked).
     bool blocksPerspective() const;
+    // True while Freelook or FreeCamera detaches the view from the player.
+    bool detachedCameraActive() const { return lookOwner.load() != DetachedOwner::None; }
     // Perspective travel: FreeCamera always flies first-person. Returns true
     // when the first-person rig is already active; otherwise requests vanilla
     // toggles and completes activation from the frame listener.

@@ -30,31 +30,53 @@ void overlayGeometryTests() {
     try { (void)gridSurfaceLines(cube, 47); } catch (std::length_error const&) { limited = true; }
     check(limited, "surface budget rejects instead of returning a partial shape");
     ChunkBorderCache cache;
-    auto const* reused = cache.get({-.1,64,-16}, -64,320).data();
-    check(cache.get({-15.9,200,-.1}, -64,320).data() == reused,
+    auto const& reused = cache.get({-.1,64,-16}, -64,320);
+    check(&cache.get({-15.9,200,-.1}, -64,320).yellow == &reused.yellow,
           "movement inside one chunk reuses geometry storage");
+    auto sameLines = [](std::vector<Line> const& actual, std::vector<Line> const& expected) {
+        if (actual.size() != expected.size()) return false;
+        for (size_t i = 0; i < expected.size(); ++i)
+            if (actual[i].from != expected[i].from || actual[i].to != expected[i].to) return false;
+        return true;
+    };
     for (auto position : {Point{0,64,0}, Point{-16.1,64,-16.1}, Point{16,64,16}}) {
         auto const& actual = cache.get(position, -64,320);
-        auto expected = chunkBorders(position, -64,320);
-        check(actual.size() == expected.size(), "crossing chunk edges refreshes geometry");
-        for (size_t i=0; i<expected.size(); ++i)
-            check(actual[i].from == expected[i].from && actual[i].to == expected[i].to,
-                  "cached borders follow positive and negative chunk transitions");
+        auto expected = chunkBorderGroups(position, -64,320);
+        check(sameLines(actual.yellow, expected.yellow) && sameLines(actual.blue, expected.blue)
+              && sameLines(actual.red, expected.red),
+              "crossing chunk edges refreshes grouped geometry");
     }
+    auto const& small = cache.get({1,64,1}, 0,16);
+    check(small.yellow.size() == 56 && small.blue.size() == 12 && small.red.size() == 12,
+          "yellow grid, blue sections/corners and red neighbor corners group separately");
+    auto hasLine = [](std::vector<Line> const& lines, Point from, Point to) {
+        for (auto const& line : lines)
+            if (line.from == from && line.to == to) return true;
+        return false;
+    };
+    check(hasLine(small.yellow, {0,0,2}, {0,16,2}) && hasLine(small.yellow, {0,2,0}, {16,2,0}),
+          "yellow grid runs every 2 blocks, vertical and horizontal");
+    check(hasLine(small.blue, {0,0,0}, {0,16,0}) && hasLine(small.blue, {0,0,0}, {16,0,0}),
+          "current chunk corners and section lines are blue");
+    check(hasLine(small.red, {-16,0,-16}, {-16,16,-16}), "neighbor chunk corners are red");
+    check(!hasLine(small.yellow, {0,0,0}, {0,16,0}), "exact corners are not yellow");
     auto const& shorter = cache.get({16,64,16}, 0,128);
-    check(shorter.size() == 40, "dimension height changes regenerate section lines");
-    reused = shorter.data();
+    check(shorter.blue.size() == 9 * 4 + 4, "dimension height changes regenerate section lines");
+    auto const* reusedLines = shorter.yellow.data();
     bool invalidCacheInput = false;
     try { (void)cache.get({16,std::numeric_limits<double>::quiet_NaN(),16}, 0,128); }
     catch (std::invalid_argument const&) { invalidCacheInput = true; }
     check(invalidCacheInput, "cache hit still validates position");
-    check(cache.get({16,64,16}, 0,128).data() == reused,
+    check(cache.get({16,64,16}, 0,128).yellow.data() == reusedLines,
           "invalid request preserves last valid geometry");
-    auto chunk = chunkBorders({-.1,64,-16}, -64, 320);
-    check(chunk.size() == 104, "chunk border includes section layers without duplicate end caps");
-    for (auto line : chunk) for (auto p : {line.from,line.to})
-        check(p.x >= -16 && p.x <= 0 && p.z >= -16 && p.z <= 0 && p.y >= -64 && p.y <= 320,
-              "negative chunks use floor division and supplied dimension height");
+    auto chunk = chunkBorderGroups({-.1,64,-16}, -64, 320);
+    auto inBounds = [&](std::vector<Line> const& lines, double lo, double hi) {
+        for (auto line : lines) for (auto p : {line.from, line.to})
+            if (p.x < lo || p.x > hi || p.z < lo || p.z > hi || p.y < -64 || p.y > 320) return false;
+        return true;
+    };
+    check(inBounds(chunk.yellow, -16, 0) && inBounds(chunk.blue, -16, 0) && inBounds(chunk.red, -32, 16),
+          "negative chunks use floor division and supplied dimension height");
     check(snapped({-.1,-1,1.9}) == Point{-.5,-.5,1.5}, "block center snap floors negative coordinates");
     check(snapped({-.1,-1,1.9}, Snap::BlockCorner) == Point{-1,-1,1}, "corner snap uses lower grid corner");
     check(snapped({-.1,-1,1.9}, Snap::Off) == Point{-.1,-1,1.9}, "off retains arbitrary center");

@@ -1,6 +1,7 @@
 #include "overlay/WorldOverlay.h"
 #include "overlay/ChunkBorders.h"
 #include "overlay/Hitboxes.h"
+#include "features/camera/Zoom.h"
 #include "overlay/LightOverlay.h"
 #include "overlay/ShapeSession.h"
 #include "overlay/ShapeWorkspace.h"
@@ -35,6 +36,7 @@
 #include "mc/deps/renderer/Camera.h"
 #include "mc/deps/renderer/MatrixStack.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include <array>
 #include <map>
 #include <span>
 #include <mutex>
@@ -336,8 +338,19 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
         if (preferences.chunkBorders) {
             auto const& range = dimension.mHeightRange;
             Vec3 const position = player->getPosition();
+            Point center{position.x, position.y, position.z};
+            // A detached camera looks from away from the body; center the
+            // borders on the rendered view instead of the player chunk.
+            if (context.mImpl && Zoom::instance().detachedCameraActive()) {
+                Vec3 const camera = context.mImpl->mCameraPosition;
+                center = {camera.x, camera.y, camera.z};
+            }
             thread_local ChunkBorderCache borders;
-            drawLines(context, borders.get({position.x,position.y,position.z}, range->mMin, range->mMax));
+            auto const& groups = borders.get(center, range->mMin, range->mMax);
+            std::array<LineBatch, 3> colored{{{groups.yellow, chunkYellow[0], chunkYellow[1], chunkYellow[2]},
+                                               {groups.blue, chunkBlue[0], chunkBlue[1], chunkBlue[2]},
+                                               {groups.red, chunkRed[0], chunkRed[1], chunkRed[2]}}};
+            drawLines(context, colored);
         }
         if (preferences.hitboxes && context.mImpl) {
             Vec3 const camera = context.mImpl->mCameraPosition;

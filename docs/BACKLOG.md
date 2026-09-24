@@ -225,8 +225,10 @@ Status: done.
   several colors in one frame. No behavior change for existing callers.
 
 ### L-10 Chunk borders like Java F3+G
-Status: after L-09. Reconfirmed by the maintainer after the 2026-09-24
-in-game trial: the target is Java F3+G-like information/visual structure, not
+Status: done. Implemented from the documented numbers (yellow 2-block grid,
+blue 16-block sections and current corners, red neighbor corners); the Java
+screenshot comparison still needs the maintainer. Reconfirmed target after the
+2026-09-24 in-game trial: Java F3+G-like information/visual structure, not
 merely a 16x16 chunk outline.
 - Reference behavior (confirm against a Java screenshot from the maintainer):
   current chunk walls have yellow lines every 2 blocks, vertical and
