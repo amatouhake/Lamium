@@ -28,6 +28,10 @@ Font& defaultFont(MinecraftUIRenderContext& context) {
 float textWidth(MinecraftUIRenderContext& context, std::string_view text) {
     return defaultFont(context).getLineLength(text, 1.0f, false);
 }
+float textWidthScaled(MinecraftUIRenderContext& context, std::string_view text, float size) {
+    if (!(size > 0) || !std::isfinite(size)) size = 1;
+    return static_cast<float>(defaultFont(context).getLineLength(text, size, false));
+}
 void fill(MinecraftUIRenderContext& context, float x, float y, float width, float height, Rgb value, float opacity) {
     if (width <= 0 || height <= 0) return;
     context.fillRectangle(RectangleArea{x,x+width,y,y+height}, color(value), std::clamp(opacity,0.f,1.f));
@@ -48,24 +52,29 @@ float latinRaise() {
     return translations::japanese(*locale->mCode) ? 1.5f : 0.f;
 }
 void drawRun(MinecraftUIRenderContext& context, Font& font, float x, float y, float width, std::string text, Rgb value,
-             ::ui::TextAlignment align) {
-    TextMeasureData const measure{1.0f, 0.0f, true, false, false, align};
+             ::ui::TextAlignment align, float size) {
+    TextMeasureData const measure{size, 0.0f, true, false, false, align};
     CaretMeasureData const caret{-1, false};
-    context.drawText(font, RectangleArea{x,x+width,y,y+14}, std::move(text), color(value), 1.0f, align, measure, caret);
+    context.drawText(font, RectangleArea{x,x+width,y,y+14*size}, std::move(text), color(value), size, align, measure, caret);
 }
 }
 float boxTextInset() { return japaneseLocale() ? 0.f : 1.f; }
 void label(MinecraftUIRenderContext& context, float x, float y, float width, std::string text, Rgb value, Align align) {
+    labelScaled(context, x, y, width, std::move(text), 1.f, value, align);
+}
+void labelScaled(MinecraftUIRenderContext& context, float x, float y, float width, std::string text, float size,
+                 Rgb value, Align align) {
+    if (!(size > 0) || !std::isfinite(size)) size = 1;
     auto& font = defaultFont(context);
-    auto measure = [&](std::string_view part) { return static_cast<float>(font.getLineLength(part, 1.0f, false)); };
+    auto measure = [&](std::string_view part) { return static_cast<float>(font.getLineLength(part, size, false)); };
     text = fitLabel(text, width, measure);
     if (text.empty()) return;
-    float raise = latinRaise();
+    float raise = latinRaise() * size;
     bool latin = std::any_of(text.begin(), text.end(), [](unsigned char ch) { return ch < 0x80 && ch != ' '; });
     if (!raise || !latin) {
         auto native = align == Align::Right ? ::ui::TextAlignment::Right
             : align == Align::Center ? ::ui::TextAlignment::Center : ::ui::TextAlignment::Left;
-        drawRun(context, font, x, y, width, std::move(text), value, native);
+        drawRun(context, font, x, y, width, std::move(text), value, native, size);
         return;
     }
     // Mixed or Latin-only text: position runs manually from the whole width.
@@ -78,7 +87,7 @@ void label(MinecraftUIRenderContext& context, float x, float y, float width, std
         while (end < text.size() && (static_cast<unsigned char>(text[end]) < 0x80) == ascii) ++end;
         auto run = text.substr(start, end - start);
         float runWidth = measure(run);
-        drawRun(context, font, cursor, ascii ? y - raise : y, runWidth + 2, std::move(run), value, ::ui::TextAlignment::Left);
+        drawRun(context, font, cursor, ascii ? y - raise : y, runWidth + 2, std::move(run), value, ::ui::TextAlignment::Left, size);
         cursor += runWidth;
         start = end;
     }

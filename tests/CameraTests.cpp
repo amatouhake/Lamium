@@ -23,8 +23,6 @@ int main() try {
     restrictionRegionTests();
     extern void frameRateTests();
     frameRateTests();
-    extern void hudLayoutTests();
-    hudLayoutTests();
     extern void toolChoiceTests();
     toolChoiceTests();
     extern void restockPlanTests();
@@ -63,6 +61,8 @@ int main() try {
     toastTests();
     extern void hudElementTests();
     hudElementTests();
+    extern void infoLinesTests();
+    infoLinesTests();
     extern int runSortPlannerTests();
     check(runSortPlannerTests() == 0, "inventory planning and ordering suites");
     settingsStoreTests();

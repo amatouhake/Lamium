@@ -8,8 +8,6 @@ inline Settings::Information debugProfile(Settings::Information value) {
     value.fps = value.frameTime = value.light = value.ping = true;
     value.target = value.targetIdentifier = value.targetStates = true;
     value.targetCoordinates = true;
-    value.horizontal = value.vertical = value.targetVertical = 0;
-    value.targetHorizontal = 100;
     return value;
 }
 }

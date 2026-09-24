@@ -67,13 +67,12 @@ Json encode(Settings const& settings) {
                          {"target", settings.information.target}, {"targetIdentifier", settings.information.targetIdentifier},
                          {"targetStates", settings.information.targetStates},
                          {"targetCoordinates", settings.information.targetCoordinates},
-                         {"targetHorizontal", settings.information.targetHorizontal}, {"targetVertical", settings.information.targetVertical},
+                         {"lineOrder", settings.information.lineOrder},
                          {"biome", settings.information.biome}, {"facing", settings.information.facing},
                          {"fps", settings.information.fps}, {"frameTime", settings.information.frameTime},
                          {"light", settings.information.light},
                          {"ping", settings.information.ping},
-                         {"dimension", settings.information.dimension}, {"horizontal", settings.information.horizontal},
-                         {"vertical", settings.information.vertical}}},
+                         {"dimension", settings.information.dimension}}},
         {"visuals", {{"hideOffhand", settings.visuals.hideOffhand}}},
         {"overlays", {{"chunkBorders", settings.overlays.chunkBorders}, {"hitboxes", settings.overlays.hitboxes}, {"shapes", settings.overlays.shapes},
                       {"light", settings.overlays.light}, {"skyLight", settings.overlays.skyLight},
@@ -121,8 +120,6 @@ Settings decodeSettings(std::string_view text) {
         value.information.targetIdentifier = info.value("targetIdentifier", true);
         value.information.targetStates = info.value("targetStates", false);
         value.information.targetCoordinates = info.value("targetCoordinates", false);
-        value.information.targetHorizontal = info.value("targetHorizontal", 50.f);
-        value.information.targetVertical = info.value("targetVertical", 2.f);
         value.information.hud = info.value("hud", false);
         value.information.coordinates = info.value("coordinates", true);
         value.information.dimension = info.value("dimension", true);
@@ -132,8 +129,11 @@ Settings decodeSettings(std::string_view text) {
         value.information.frameTime = info.value("frameTime", false);
         value.information.light = info.value("light", false);
         value.information.ping = info.value("ping", false);
-        value.information.horizontal = info.value("horizontal", 2.f);
-        value.information.vertical = info.value("vertical", 15.f);
+        if (info.contains("lineOrder") && info.at("lineOrder").is_array()) {
+            value.information.lineOrder.clear();
+            for (auto const& item : info.at("lineOrder"))
+                if (item.is_string()) value.information.lineOrder.push_back(item.get<std::string>());
+        }
     }
     if (data.contains("visuals")) value.visuals.hideOffhand = data.at("visuals").value("hideOffhand", false);
     if (data.contains("overlays")) {

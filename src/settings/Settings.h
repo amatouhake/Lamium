@@ -1,8 +1,11 @@
 #pragma once
 #include <algorithm>
 #include <cmath>
+#include <string>
+#include <vector>
 #include "input/Binding.h"
 #include "features/interaction/RestrictionMode.h"
+#include "features/information/InfoLines.h"
 #include "ui/HudElement.h"
 
 namespace lamium {
@@ -70,8 +73,6 @@ struct Settings {
         bool targetIdentifier = true;
         bool targetStates = false;
         bool targetCoordinates = false;
-        float targetHorizontal = 50.f;
-        float targetVertical = 2.f;
         bool hud = false;
         bool coordinates = true;
         bool dimension = true;
@@ -81,8 +82,7 @@ struct Settings {
         bool frameTime = false;
         bool light = false;
         bool ping = false;
-        float horizontal = 2.f;
-        float vertical = 15.f;
+        std::vector<std::string> lineOrder;
     } information;
 
     void normalize() {
@@ -93,14 +93,7 @@ struct Settings {
         auto normalizeMode = [](auto& mode) { if (static_cast<unsigned>(mode) >= 4) mode = lamium::interaction::RestrictionMode::Plane; };
         normalizeMode(interaction.breakingMode);
         normalizeMode(interaction.placementMode);
-        if (!std::isfinite(information.targetHorizontal)) information.targetHorizontal = 50.f;
-        if (!std::isfinite(information.targetVertical)) information.targetVertical = 2.f;
-        information.targetHorizontal = std::clamp(information.targetHorizontal,0.f,100.f);
-        information.targetVertical = std::clamp(information.targetVertical,0.f,100.f);
-        if (!std::isfinite(information.horizontal)) information.horizontal = 2.f;
-        if (!std::isfinite(information.vertical)) information.vertical = 15.f;
-        information.horizontal = std::clamp(information.horizontal, 0.f, 100.f);
-        information.vertical = std::clamp(information.vertical, 0.f, 100.f);
+        information.lineOrder = information::mergeLineOrder(information.lineOrder);
         if (!std::isfinite(overlays.hitboxDistance)) overlays.hitboxDistance = 64.f;
         overlays.hitboxDistance = std::clamp(overlays.hitboxDistance, 8.f, 128.f);
         auto normalizeElement = [](ui::HudElement& element, ui::HudElement defaultValue) {

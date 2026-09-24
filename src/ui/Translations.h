@@ -253,8 +253,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"facing.west", "West (-X)", "西 (-X)"},
     {"facing.north", "North (-Z)", "北 (-Z)"},
     {"facing.east", "East (+X)", "東 (+X)"},
-    {"hudHorizontal", "Horizontal position: {}%", "横位置: {}%"},
-    {"hudVertical", "Vertical position: {}%", "縦位置: {}%"},
     {"hudAnchor", "Anchor: {}", "基準点: {}"},
     {"hudPinned", "Pin anchor: {}", "基準点を固定: {}"},
     {"hudOffsetX", "X offset: {}", "横のずらし: {}"},
