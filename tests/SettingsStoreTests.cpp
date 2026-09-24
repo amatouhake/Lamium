@@ -105,8 +105,15 @@ void settingsStoreTests() {
         Settings edited;
         option.adjust(edited, 1);
         check(option.read(edited) != option.read(Settings{}), "editing changes the target value");
+        // Choosing a HUD anchor also pins it and clears that element's offset.
+        auto coupled = [&](std::string_view other) {
+            if (!option.id.starts_with("hud.") || !option.id.ends_with(".anchor")) return false;
+            auto element = option.id.substr(0, option.id.size() - std::string_view("anchor").size());
+            return other == std::string(element) + "pinned" || other == std::string(element) + "dx"
+                || other == std::string(element) + "dy";
+        };
         for (auto const& other : settings::options)
-            if (other.id != option.id)
+            if (other.id != option.id && !coupled(other.id))
                 check(other.read(edited) == other.read(Settings{}), "editing preserves unrelated options");
         writeSettings(path, edited);
         auto restored = readSettings(path);

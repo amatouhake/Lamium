@@ -45,10 +45,12 @@ void settingsTableTests() {
     check(t.hit(t.searchX + 2, t.top + 8, navItems).zone == Zone::Search, "search field");
     auto nav = t.hit(t.left + 10, t.navItemY(2) + 3, navItems);
     check(nav.zone == Zone::Nav && nav.index == 2, "sidebar item");
-    auto pinned = t.hit(t.left + 10, t.pinnedItemY(1) + 3, navItems);
-    check(pinned.zone == Zone::Nav && pinned.index == navItems - 1, "shapes item is pinned at the sidebar bottom");
+    auto pinned = t.hit(t.left + 10, t.pinnedItemY(2) + 3, navItems);
+    check(pinned.zone == Zone::Nav && pinned.index == navItems - 1, "HUD layout item is pinned at the sidebar bottom");
+    pinned = t.hit(t.left + 10, t.pinnedItemY(1) + 3, navItems);
+    check(pinned.zone == Zone::Nav && pinned.index == navItems - 2, "shapes item is pinned above it");
     pinned = t.hit(t.left + 10, t.pinnedItemY(0) + 3, navItems);
-    check(pinned.zone == Zone::Nav && pinned.index == navItems - 2, "hotkeys item is pinned above it");
+    check(pinned.zone == Zone::Nav && pinned.index == navItems - 3, "hotkeys item is pinned above shapes");
     check(t.hit(t.left + 10, t.footerTop + 5, navItems).zone == Zone::Footer, "footer spans the panel");
     check(t.footerButton(t.footerButtonX(1) + 3, t.footerButtonY() + 3) == 1, "footer button index");
     check(t.hit(t.left - 1, y, navItems).zone == Zone::None, "outside the panel");

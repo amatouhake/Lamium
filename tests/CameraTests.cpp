@@ -61,6 +61,8 @@ int main() try {
     toastTests();
     extern void hudElementTests();
     hudElementTests();
+    extern void hudEditorLayoutTests();
+    hudEditorLayoutTests();
     extern void infoLinesTests();
     infoLinesTests();
     extern void targetDetailTests();

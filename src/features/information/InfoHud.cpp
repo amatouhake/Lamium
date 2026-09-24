@@ -35,9 +35,9 @@ float elementZoom(ui::HudElement const& element) {
     return std::clamp(std::isfinite(element.scale) ? element.scale : 100.f, 75.f, 150.f) / 100;
 }
 // Draw lines through the element model: card background, shadow, scale.
-void drawElement(MinecraftUIRenderContext& context, float width, float height, ui::HudElement const& element,
-                 std::vector<ElementLine> const& lines) {
-    if (lines.empty()) return;
+std::optional<ui::hud_editor::Box> drawElement(MinecraftUIRenderContext& context, float width, float height,
+                                               ui::HudElement const& element, std::vector<ElementLine> const& lines) {
+    if (lines.empty()) return std::nullopt;
     float zoom = elementZoom(element);
     float rowHeight = 14 * zoom;
     float contentWidth = 0;
@@ -68,6 +68,7 @@ void drawElement(MinecraftUIRenderContext& context, float width, float height, u
             element.shadow);
     }
     context.flushText(0, std::nullopt);
+    return ui::hud_editor::Box{placement.x, placement.y, boxWidth, boxHeight};
 }
 bool infoLineEnabled(Settings::Information const& settings, std::string_view id) {
     if (id == "coordinates") return settings.coordinates;
@@ -146,10 +147,14 @@ std::optional<std::string> infoLineText(std::string_view id, PlayerInfo const& i
     return {};
 }
 }
-void drawHud(MinecraftUIRenderContext& context, float width, float height, Settings::Information const& preferences) {
+ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, float height,
+                              Settings::Information const& preferences, HudPreview const* preview) {
+    ui::hud_editor::Boxes boxes;
+    auto box = [&](ui::HudElementId id) -> auto& { return boxes[static_cast<size_t>(id)]; };
     auto settings = debugProfile(preferences);
     auto const& runtime = Runtime::instance().preferences();
-    if (runtime.ui.automationStatus || runtime.interaction.breaking) {
+    auto const& hud = preview ? preview->layout : runtime.hud;
+    if (preview || runtime.ui.automationStatus || runtime.interaction.breaking) {
         std::vector<ElementLine> lines;
         if (runtime.ui.automationStatus) {
             if (interaction::periodic::active(context.mClient, interaction::periodic::Action::Attack))
@@ -174,10 +179,16 @@ void drawHud(MinecraftUIRenderContext& context, float width, float height, Setti
             lines.push_back({std::move(text), ui::palette::warning});
             lines.push_back({std::move(modeText), ui::palette::warning});
         }
-        drawElement(context, width, height, runtime.hud.status, lines);
+        if (preview && lines.empty()) lines.push_back({ui::translated("status.permanentSneak"), ui::palette::accent});
+        box(ui::HudElementId::Status) = drawElement(context, width, height, hud.status, lines);
     }
-    if (settings.target) {
-        if (auto target = collectTargetInfo(context.mClient, settings.targetStates)) {
+    if (preview || settings.target) {
+        auto target = collectTargetInfo(context.mClient, settings.targetStates);
+        if (!target && preview) {
+            box(ui::HudElementId::Target) = drawElement(context, width, height, hud.target,
+                {{ui::translated("feature.targetInfo"), {}}, {"minecraft:grass_block", {}}});
+        }
+        if (target) {
             std::string coordinates;
             if (settings.targetCoordinates && target->blockPosition) {
                 auto const& p = *target->blockPosition;
@@ -193,44 +204,49 @@ void drawHud(MinecraftUIRenderContext& context, float width, float height, Setti
             if (rows.showOmitted) targetLines.push_back(ui::translated("targetMore", std::to_string(rows.omittedStates)));
             std::vector<ElementLine> lines;
             for (auto& line : targetLines) lines.push_back({std::move(line), {}});
-            drawElement(context, width, height, runtime.hud.target, lines);
+            box(ui::HudElementId::Target) = drawElement(context, width, height, hud.target, lines);
         }
     }
-    if (runtime.ui.toggleToasts) {
-        if (auto toast = ui::currentToggleToast(ui::toastNow())) {
-            float zoom = elementZoom(runtime.hud.toast);
+    if (preview || runtime.ui.toggleToasts) {
+        auto toast = ui::currentToggleToast(ui::toastNow());
+        if (!toast && preview) toast = ui::Toast::Visible{ui::translated("feature.toolSwitch"), true, 1.f};
+        if (toast) {
+            float zoom = elementZoom(hud.toast);
             float textWidth = ui::textWidthScaled(context, toast->text, zoom);
-            bool card = runtime.hud.toast.background == ui::ElementBackground::Card;
+            bool card = hud.toast.background == ui::ElementBackground::Card;
             float padX = card ? 6 : 0, padY = card ? 3 : 0;
             float total = ui::switchWidth + 6 + textWidth + 2 * padX;
-            auto box = ui::placeElement(width, height, total, 14 * zoom + 2 * padY, runtime.hud.toast);
-            if (card) ui::panel(context, box.x, box.y, total, 14 * zoom + 2 * padY, .72f * toast->opacity);
-            ui::ElementPlacement placement{box.x + padX, box.y + padY};
+            auto frame = ui::placeElement(width, height, total, 14 * zoom + 2 * padY, hud.toast);
+            if (card) ui::panel(context, frame.x, frame.y, total, 14 * zoom + 2 * padY, .72f * toast->opacity);
+            box(ui::HudElementId::Toast) = ui::hud_editor::Box{frame.x, frame.y, total, 14 * zoom + 2 * padY};
+            ui::ElementPlacement placement{frame.x + padX, frame.y + padY};
             ui::toggleSwitch(context, placement.x, placement.y + (14 * zoom - ui::switchHeight) / 2, toast->on);
             ui::labelScaled(context, placement.x + ui::switchWidth + 6, placement.y, textWidth + 2,
                 std::string(toast->text), zoom, toast->opacity < 1 ? ui::palette::dim : ui::palette::text,
-                ui::Align::Left, runtime.hud.toast.shadow);
+                ui::Align::Left, hud.toast.shadow);
             context.flushText(0, std::nullopt);
         }
     }
-    if (!settings.hud) return;
+    if (!preview && !settings.hud) return boxes;
     auto info = collectPlayerInfo(context.mClient,
         {settings.coordinates || settings.block || settings.chunk || settings.speed, settings.dimension,
          settings.biome, settings.facing, settings.light, settings.rotation, settings.time || settings.moon,
          settings.weather});
-    if (!info.present) return;
+    if (!info.present) return boxes;
     auto timing = (settings.fps || settings.frameTime) ? frameStatistics() : std::optional<FrameStatistics>{};
     auto ping = settings.ping ? connectionPing(context.mClient) : std::optional<std::int64_t>{};
     if (settings.speed && info.position)
         speedSampler.sample(info.position->x, info.position->y, info.position->z, ui::toastNow());
     auto speed = settings.speed ? speedSampler.read() : std::optional<double>{};
     std::vector<ElementLine> lines;
-    int capacity = std::max(1, static_cast<int>((height - 8) / (14 * elementZoom(runtime.hud.info))));
+    int capacity = std::max(1, static_cast<int>((height - 8) / (14 * elementZoom(hud.info))));
     for (auto const& id : settings.lineOrder) {
         if (static_cast<int>(lines.size()) >= capacity) break;
         if (!infoLineEnabled(settings, id)) continue;
         if (auto text = infoLineText(id, info, timing, ping, speed)) lines.push_back({std::move(*text), {}});
     }
-    drawElement(context, width, height, runtime.hud.info, lines);
+    if (preview && lines.empty()) lines.push_back({ui::translated("feature.infoHud"), {}});
+    box(ui::HudElementId::Info) = drawElement(context, width, height, hud.info, lines);
+    return boxes;
 }
 }

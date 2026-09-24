@@ -182,7 +182,8 @@ views per frame and the HUD was drawn on each; it now draws only on the
 - Info lines become an ordered list with per-line switches (order saved).
 
 #### L-04c Layout editor **(strong model)**
-Status: after L-04b.
+Status: implemented 2026-09-24 (Opus), in-game check pending. Entry is a
+pinned sidebar item instead of a General button; see DESIGN "HUD".
 - "Edit HUD layout" button in General opens an editor over the live HUD:
   drag elements, anchor dots, dashed anchor guide, per-element panel.
 - The per-element panel is generated from the same option definitions as

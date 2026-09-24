@@ -87,6 +87,25 @@ constexpr Option hudChoice(std::string_view id, std::string_view feature, std::s
             field = static_cast<std::remove_reference_t<decltype(field)>>(index);
         }};
 }
+// Choosing an anchor pins it and clears the offset (DESIGN "HUD"): drags then
+// move only the offset, so an element can hang low from a top anchor.
+template<ui::HudElementId Id>
+constexpr Option hudAnchor(std::string_view id, std::string_view feature, std::string_view label) {
+    return {id, feature, label,
+        [](Settings const& value) -> OptionValue {
+            auto index = static_cast<size_t>(hudElement(value, Id).anchor);
+            return ChoiceValue{anchorLabels[index < anchorLabels.size() ? index : 0]};
+        },
+        [](Settings& value, int direction) {
+            auto& element = hudElement(value, Id);
+            auto index = static_cast<size_t>(element.anchor);
+            if (index >= anchorLabels.size()) index = 0;
+            index = (index + (direction < 0 ? anchorLabels.size() - 1 : 1)) % anchorLabels.size();
+            element.anchor = static_cast<ui::Anchor>(index);
+            element.pinned = true;
+            element.dx = element.dy = 0;
+        }};
+}
 template<ui::HudElementId Id, auto Field, int Step>
 constexpr Option hudNumeric(std::string_view id, std::string_view feature, std::string_view label,
                             float minimum, float maximum) {
@@ -168,28 +187,28 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inventory, &Settings::Inventory::sortContainers>("inventory.sortContainers", "sorting", "storage"),
     toggle<&Settings::ui, &Settings::Interface::toggleToasts>("interface.toggleToasts", "settings", "toggleToasts"),
     toggle<&Settings::ui, &Settings::Interface::automationStatus>("interface.automationStatus", "automationStatus", "automationStatus"),
-    hudChoice<ui::HudElementId::Info, &ui::HudElement::anchor, anchorLabels>("hud.info.anchor", "infoHud", "hudAnchor"),
+    hudAnchor<ui::HudElementId::Info>("hud.info.anchor", "infoHud", "hudAnchor"),
     hudToggle<ui::HudElementId::Info, &ui::HudElement::pinned>("hud.info.pinned", "infoHud", "hudPinned"),
     hudNumeric<ui::HudElementId::Info, &ui::HudElement::dx, 1>("hud.info.dx", "infoHud", "hudOffsetX", -512, 512),
     hudNumeric<ui::HudElementId::Info, &ui::HudElement::dy, 1>("hud.info.dy", "infoHud", "hudOffsetY", -512, 512),
     hudNumeric<ui::HudElementId::Info, &ui::HudElement::scale, 25>("hud.info.scale", "infoHud", "hudScale", 75, 150),
     hudChoice<ui::HudElementId::Info, &ui::HudElement::background, elementBackgroundLabels>("hud.info.background", "infoHud", "hudBackground"),
     hudToggle<ui::HudElementId::Info, &ui::HudElement::shadow>("hud.info.shadow", "infoHud", "hudShadow"),
-    hudChoice<ui::HudElementId::Target, &ui::HudElement::anchor, anchorLabels>("hud.target.anchor", "targetInfo", "hudAnchor"),
+    hudAnchor<ui::HudElementId::Target>("hud.target.anchor", "targetInfo", "hudAnchor"),
     hudToggle<ui::HudElementId::Target, &ui::HudElement::pinned>("hud.target.pinned", "targetInfo", "hudPinned"),
     hudNumeric<ui::HudElementId::Target, &ui::HudElement::dx, 1>("hud.target.dx", "targetInfo", "hudOffsetX", -512, 512),
     hudNumeric<ui::HudElementId::Target, &ui::HudElement::dy, 1>("hud.target.dy", "targetInfo", "hudOffsetY", -512, 512),
     hudNumeric<ui::HudElementId::Target, &ui::HudElement::scale, 25>("hud.target.scale", "targetInfo", "hudScale", 75, 150),
     hudChoice<ui::HudElementId::Target, &ui::HudElement::background, elementBackgroundLabels>("hud.target.background", "targetInfo", "hudBackground"),
     hudToggle<ui::HudElementId::Target, &ui::HudElement::shadow>("hud.target.shadow", "targetInfo", "hudShadow"),
-    hudChoice<ui::HudElementId::Status, &ui::HudElement::anchor, anchorLabels>("hud.status.anchor", "automationStatus", "hudAnchor"),
+    hudAnchor<ui::HudElementId::Status>("hud.status.anchor", "automationStatus", "hudAnchor"),
     hudToggle<ui::HudElementId::Status, &ui::HudElement::pinned>("hud.status.pinned", "automationStatus", "hudPinned"),
     hudNumeric<ui::HudElementId::Status, &ui::HudElement::dx, 1>("hud.status.dx", "automationStatus", "hudOffsetX", -512, 512),
     hudNumeric<ui::HudElementId::Status, &ui::HudElement::dy, 1>("hud.status.dy", "automationStatus", "hudOffsetY", -512, 512),
     hudNumeric<ui::HudElementId::Status, &ui::HudElement::scale, 25>("hud.status.scale", "automationStatus", "hudScale", 75, 150),
     hudChoice<ui::HudElementId::Status, &ui::HudElement::background, elementBackgroundLabels>("hud.status.background", "automationStatus", "hudBackground"),
     hudToggle<ui::HudElementId::Status, &ui::HudElement::shadow>("hud.status.shadow", "automationStatus", "hudShadow"),
-    hudChoice<ui::HudElementId::Toast, &ui::HudElement::anchor, anchorLabels>("hud.toast.anchor", "settings", "hudAnchor"),
+    hudAnchor<ui::HudElementId::Toast>("hud.toast.anchor", "settings", "hudAnchor"),
     hudToggle<ui::HudElementId::Toast, &ui::HudElement::pinned>("hud.toast.pinned", "settings", "hudPinned"),
     hudNumeric<ui::HudElementId::Toast, &ui::HudElement::dx, 1>("hud.toast.dx", "settings", "hudOffsetX", -512, 512),
     hudNumeric<ui::HudElementId::Toast, &ui::HudElement::dy, 1>("hud.toast.dy", "settings", "hudOffsetY", -512, 512),

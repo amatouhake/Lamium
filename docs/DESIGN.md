@@ -98,8 +98,11 @@ Placement and look (every element):
   dragging. Small offsets snap to zero.
 
 Editing:
-- Settings → General has "Edit HUD layout", which shows the live HUD with
-  draggable elements, anchor dots and a per-element panel. Each element also
+- The settings sidebar has a pinned "HUD layout" item (below Hotkeys and
+  Shapes) that opens the editor: the live HUD with sample content for empty
+  elements, draggable elements, anchor dots, a dashed guide and a panel.
+  Arrow keys nudge the selected element (Shift: 10); Esc deselects, then
+  returns to the list. Info lines are reordered only in the editor panel. Each element also
   has "Placement" and "Look" rows in its settings, so everything is reachable
   without dragging.
 - The per-element panel and the settings rows are generated from the same

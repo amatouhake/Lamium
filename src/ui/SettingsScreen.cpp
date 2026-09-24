@@ -13,6 +13,7 @@
 #include "features/camera/Zoom.h"
 #include "features/information/InfoHud.h"
 #include "features/information/InfoLines.h"
+#include "ui/HudEditor.h"
 #include "mc/client/gui/controls/VisualTree.h"
 #include "input/Actions.h"
 #include "input/BindingCapture.h"
@@ -51,9 +52,13 @@ std::string error;
 
 // Settings table. Navigation items: All, each section, then the Hotkeys and
 // Shapes tools pinned to the sidebar bottom.
-constexpr int navCount = static_cast<int>(sections.size()) + 3;
-constexpr int hotkeysNav = navCount - 2;
-constexpr int shapesNav = navCount - 1;
+constexpr int navCount = static_cast<int>(sections.size()) + 4;
+constexpr int hotkeysNav = navCount - 3;
+constexpr int shapesNav = navCount - 2;
+// The HUD layout editor replaces the whole panel; leaving returns to editorReturn.
+constexpr int hudNav = navCount - 1;
+int editorReturn = 0;
+bool pendingRelease = false;
 int navIndex = 0;
 std::set<std::string_view> expanded;
 std::vector<SettingsRow> rows;
@@ -101,6 +106,7 @@ std::optional<BindingEdit> bindingEdit;
 std::string_view categoryKey() { return navIndex > 0 && navIndex < hotkeysNav ? sections[navIndex-1] : std::string_view{}; }
 bool hotkeysView() { return navIndex == hotkeysNav; }
 bool shapesView() { return navIndex == shapesNav; }
+bool hudEditorView() { return navIndex == hudNav; }
 bool valid(int row) { return row >= 0 && row < static_cast<int>(rows.size()); }
 int nextSelectable(int from, int step) {
     for (int row = from; valid(row); row += step) if (rows[row].selectable()) return row;
@@ -124,7 +130,9 @@ void selectNav(int index) {
     // Choosing a category ends a search, which otherwise spans every category.
     query.clear();
     if (navIndex == shapesNav && index != shapesNav) { shapeDraft.reset(); shapePicking = false; overlay::shapes::setDraft({}); }
-    navIndex = std::clamp(index, 0, navCount - 1);
+    index = std::clamp(index, 0, navCount - 1);
+    if (index == hudNav && navIndex != hudNav) { editorReturn = navIndex; hud_editor::reset(); pendingRelease = false; }
+    navIndex = index;
     first = 0;
     rebuild(false);
 }
@@ -327,24 +335,6 @@ void adjustOption(settings::Option const& option, int direction) {
     option.adjust(value, direction);
     error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
 }
-// Info lines live in a user-ordered list: Left/Right moves the row instead
-// of flipping its switch (Enter/Space/click still toggle).
-bool isInfoLine(settings::Option const& option) {
-    constexpr std::string_view prefix = "information.";
-    if (!option.id.starts_with(prefix)) return false;
-    auto id = option.id.substr(prefix.size());
-    return std::find(information::infoLineIds.begin(), information::infoLineIds.end(), id)
-        != information::infoLineIds.end();
-}
-void moveInfoLine(SettingsRow const& entry, int direction) {
-    auto id = entry.option->id.substr(std::string_view{"information."}.size());
-    auto value = Runtime::instance().preferences();
-    auto order = information::moveLineOrder(value.information.lineOrder, id, direction);
-    if (order == value.information.lineOrder) return;
-    value.information.lineOrder = std::move(order);
-    if (!Runtime::instance().save(value)) { error = translated("saveError"); return; }
-    rebuild(true); // Selection follows the moved row by content match.
-}
 void toggleFeature(FeatureInfo const& feature) {
     if (auto option = settings::find(feature.toggle)) adjustOption(*option, 1);
 }
@@ -492,12 +482,11 @@ void handleKey(int key) {
     case 0x22: moveSelection(page); break;
     case 0x24: selected = -1; moveSelection(1); break; // Home
     case 0x23: selected = static_cast<int>(rows.size()); moveSelection(-1); break; // End
-    case 0x09: selectNav((navIndex + (heldShift() ? navCount - 1 : 1)) % navCount); break;
+    case 0x09: selectNav((navIndex + (heldShift() ? hudNav - 1 : 1)) % hudNav); break;
     case 0x25: case 0x27: {
         int direction = key == 0x27 ? 1 : -1;
         if (!entry) break;
         if (entry->heading()) setExpanded(selected, direction > 0);
-        else if (entry->option && isInfoLine(*entry->option)) moveInfoLine(*entry, direction);
         else if (entry->option) adjustOption(*entry->option, direction);
         break;
     }
@@ -616,6 +605,7 @@ std::string navLabel(int index, bool compact) {
     if (index == 0) return translated("nav.all");
     if (index == hotkeysNav) return translated("nav.hotkeys");
     if (index == shapesNav) return translated("nav.shapes");
+    if (index == hudNav) return translated("nav.hudLayout");
     auto key = std::string(sections[index-1]);
     return translated(compact ? key + ".short" : key);
 }
@@ -903,7 +893,7 @@ void handleShapeKey(int key) {
         selectShape(shapeList[index].id);
         break;
     }
-    case 0x09: selectNav((navIndex + (heldShift() ? navCount - 1 : 1)) % navCount); break;
+    case 0x09: selectNav((navIndex + (heldShift() ? hudNav - 1 : 1)) % hudNav); break;
     }
 }
 
@@ -1413,7 +1403,16 @@ void render(ll::event::UIRenderEvent& event) {
         cancelCapture();
         error = saved ? std::string{} : translated("saveError");
     }
-    if (!closing) {
+    if (!closing && hudEditorView()) {
+        // Release first so a click that lands after a drag starts fresh.
+        if (std::exchange(pendingRelease, false)) hud_editor::release();
+        bool exit = false;
+        if (auto click = std::exchange(pendingClick, std::nullopt); click && !click->right)
+            exit = hud_editor::press(click->x, click->y) == hud_editor::Result::Exit;
+        for (int key : std::exchange(pendingKeys, {}))
+            if (!exit) exit = hud_editor::key(key, heldShift()) == hud_editor::Result::Exit;
+        if (exit) { hud_editor::reset(); selectNav(editorReturn); }
+    } else if (!closing) {
         if (shapesView()) {
             shapeList = overlay::shapes::list();
             if (auto click = std::exchange(pendingClick, std::nullopt)) handleShapeClick(click->x, click->y, click->right);
@@ -1428,6 +1427,11 @@ void render(ll::event::UIRenderEvent& event) {
     // No HUD under the settings list: the overlap made both hard to read.
     displayedInverseScale = current.getGuiData()->mInvGuiScale;
     glm::vec2 pointer = view.mPointerLocationPrevious;
+    if (hudEditorView()) {
+        releaseTextKeyboard();
+        hud_editor::render(context, size.x, size.y, pointer.x, pointer.y);
+        return;
+    }
     if (shapesView()) {
         shapeList = overlay::shapes::list();
         syncTextKeyboard(shapesDisplayed.stepperX(), editingShapeName ? shapesDisplayed.nameY : shapesDisplayed.fieldY(std::max(0, editingShapeField)));
@@ -1529,8 +1533,15 @@ void start() {
         }
         // A button may already be down when L opens the panel. Let vanilla
         // observe its release, just as we do for keys, so it cannot stay held.
-        if (!wheel && event.buttonData() == MouseAction::DataUp) return;
+        if (!wheel && event.buttonData() == MouseAction::DataUp) {
+            if (hudEditorView() && button == MouseAction::ActionLeft) pendingRelease = true;
+            return;
+        }
         event.cancel();
+        if (hudEditorView() && wheel) {
+            if (scaled) hud_editor::wheel(event.buttonData() > 0 ? -3 : 3, x, y);
+            return;
+        }
         if (shapesView() && wheel) {
             // Scroll whichever pane is under the pointer; selection stays put.
             int step = event.buttonData() > 0 ? -3 : 3;

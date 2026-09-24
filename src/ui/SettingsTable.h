@@ -78,7 +78,7 @@ struct SettingsTable {
     float controlX() const { return stateX; }
     float controlWidth() const { return keyX + keyWidth - stateX; }
     float navItemY(int index) const { return navTop + 4 + index * navItemHeight; }
-    static constexpr int pinnedItems = 2;
+    static constexpr int pinnedItems = 3;
     float pinnedItemY(int k) const { return navBottom - 4 - (pinnedItems - k) * navItemHeight; }
     // Binding-editor buttons (Clear / Reset / Cancel) on the footer's first line.
     static constexpr float footerButtonWidth = 50, footerButtonHeight = 11;
@@ -124,7 +124,7 @@ struct SettingsTable {
                 return index >= 0 && index < navItems ? Hit{Zone::Nav, index} : Hit{};
             }
         } else if (x < tableLeft) {
-            // The last items are tools pinned to the sidebar bottom (Hotkeys, Shapes).
+            // The last items are tools pinned to the sidebar bottom (Hotkeys, Shapes, HUD layout).
             for (int k = 0; k < pinnedItems && k < navItems; ++k) {
                 int index = navItems - pinnedItems + k;
                 float itemTop = pinnedItemY(k);
