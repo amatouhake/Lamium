@@ -93,6 +93,29 @@ void settingsRowsTests() {
         if (row.action) ++actionRows;
     }
     check(actionRows == input::actions.size(), "Hotkeys includes every action");
+    query.clear();
+    {
+        std::set<std::string_view> open = {"settings", "automationStatus"};
+        auto view = ui::buildSettingsRows(false, "section.interface", query, open, translate);
+        size_t heading = view.size();
+        for (size_t i = 0; i < view.size(); ++i)
+            if (view[i].heading() && view[i].feature->id == "settings") heading = i;
+        check(heading + 3 < view.size(), "settings feature lists its rows");
+        check(view[heading+1].option && view[heading+1].option->id == "interface.toggleToasts"
+            && view[heading+2].action == input::Action::OpenHotkeys
+            && view[heading+3].action == input::Action::OpenShapes,
+            "settings children follow the sidebar: Hotkeys opener above Shapes opener");
+    }
+    {
+        auto hotkeys = ui::buildSettingsRows(true, {}, query, expanded, translate);
+        size_t section = hotkeys.size();
+        for (size_t i = 0; i < hotkeys.size(); ++i)
+            if (hotkeys[i].kind == RowKind::Section && hotkeys[i].section == "section.interface") section = i;
+        check(section + 3 < hotkeys.size() && hotkeys[section+1].action == input::Action::Settings
+            && hotkeys[section+2].action == input::Action::OpenHotkeys
+            && hotkeys[section+3].action == input::Action::OpenShapes,
+            "Hotkeys lists the openers in sidebar order");
+    }
 
     // Every option label splits into a column name and a formattable value.
     for (auto locale : {"en_US", "ja_JP"}) {

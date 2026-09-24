@@ -1,6 +1,7 @@
 #pragma once
 #include "settings/Options.h"
 #include "ui/SearchQuery.h"
+#include <algorithm>
 #include <set>
 #include <string>
 #include <vector>
@@ -87,8 +88,21 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
             std::string scope = std::string(feature.id) + " " + translate(feature.name) + " "
                 + translate(feature.description) + " " + translate(section);
             auto primary = primaryAction(feature);
+            // Action registration order is frozen for save compatibility, but
+            // the settings openers read better with Hotkeys above Shapes,
+            // matching the sidebar. This presentation exception lives here.
+            std::vector<size_t> actionOrder;
+            for (size_t i = 0; i < input::actions.size(); ++i)
+                if (input::actions[i].feature == feature.id) actionOrder.push_back(i);
+            if (feature.id == "settings")
+                std::stable_sort(actionOrder.begin(), actionOrder.end(), [](size_t a, size_t b) {
+                    auto key = [](size_t i) {
+                        return i == static_cast<size_t>(input::Action::OpenShapes) ? i + 3 : i;
+                    };
+                    return key(a) < key(b);
+                });
             if (hotkeys) {
-                for (size_t i = 0; i < input::actions.size(); ++i) {
+                for (size_t i : actionOrder) {
                     auto const& action = input::actions[i];
                     if (action.feature != feature.id || !query.matches(scope + " " + std::string(action.id) + " "
                         + translate("key.Lamium." + std::string(action.id)))) continue;
@@ -102,7 +116,7 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
                 if (option.feature != feature.id || option.id == feature.toggle) continue;
                 children.push_back({RowKind::Option, &feature, &option, {}, section});
             }
-            for (size_t i = 0; i < input::actions.size(); ++i) {
+            for (size_t i : actionOrder) {
                 auto action = static_cast<input::Action>(i);
                 if (input::actions[i].feature == feature.id && action != primary)
                     children.push_back({RowKind::Action, &feature, nullptr, action, section});
