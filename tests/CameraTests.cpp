@@ -65,6 +65,8 @@ int main() try {
     infoLinesTests();
     extern void targetDetailTests();
     targetDetailTests();
+    extern void shapeProfileTests();
+    shapeProfileTests();
     extern int runSortPlannerTests();
     check(runSortPlannerTests() == 0, "inventory planning and ordering suites");
     settingsStoreTests();

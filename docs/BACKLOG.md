@@ -255,9 +255,9 @@ comparison; the dragon stays out (L-30).
   with tests.
 
 ### L-13 More shape types
-Status: ready. The model below is decided. The implementing agent picks the
-first presets; suggested: box, cone/frustum, pyramid, ellipsoid, dome.
-Keep each preset a thin entry over the shared families.
+Status: done. First presets: box, cone, frustum, pyramid, ellipsoid, dome
+(plus axis X/Z for every round shape). Diamond/octagon sections arrive with
+their own presets; no octagon taper.
 
 Prior art (behavior only, never code):
 - MiniHUD (current fork) ships: box, centered box, circle, square, rhombus,

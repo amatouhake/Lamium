@@ -16,7 +16,10 @@ struct Point { double x{}, y{}, z{}; bool operator==(Point const&) const = defau
 struct Line { Point from, to; };
 struct Cell { int x{}, y{}, z{}; auto operator<=>(Cell const&) const = default; };
 enum class Snap { BlockCenter, BlockCorner, Off };
-enum class Shape { Circle, Cylinder, Sphere };
+enum class Shape { Circle, Cylinder, Sphere, Box, Cone, Frustum, Pyramid, Ellipsoid, Dome };
+enum class CrossSection { Circle, Square };
+enum class Profile { Constant, Taper, Round };
+enum class Axis { Y, X, Z };
 enum class Face { West, East, Down, Up, North, South };
 enum class Plane { XZ, XY, YZ };
 struct CellFace { Cell cell; Face face; bool operator==(CellFace const&) const = default; };
@@ -46,8 +49,61 @@ struct ShapeSpec {
     Point center;
     Snap snap = Snap::BlockCenter;
     double radius = 4;
-    int height = 1; // Cylinder starts at the center's block Y and extends upward.
+    int height = 1; // Constant/taper layers above the center's block. Unused by round.
+    Axis axis = Axis::Y;
+    double topRadius = 0; // Taper radius at the far end; 0 is a point.
+    double heightRadius = 0; // Round vertical half-extent; 0 falls back to radius.
+    bool dome = false; // Round keeps the upper half only.
 };
+// The model behind the presets: section and profile derive from the shape,
+// so documents cannot store contradictory combinations.
+inline CrossSection shapeSection(Shape shape) {
+    return shape == Shape::Box || shape == Shape::Pyramid ? CrossSection::Square : CrossSection::Circle;
+}
+inline Profile shapeProfile(Shape shape) {
+    switch (shape) {
+    case Shape::Cone:
+    case Shape::Frustum:
+    case Shape::Pyramid: return Profile::Taper;
+    case Shape::Sphere:
+    case Shape::Ellipsoid:
+    case Shape::Dome: return Profile::Round;
+    case Shape::Circle:
+    case Shape::Cylinder:
+    case Shape::Box: return Profile::Constant;
+    }
+    throw std::invalid_argument("Unknown shape type");
+}
+// World/local frame swap for X/Z shapes (self-inverse). Local generation
+// always runs along Y; faces permute back to the world afterwards.
+inline Point swapShapeAxes(Point point, Axis axis) {
+    if (axis == Axis::X) return {point.y, point.x, point.z};
+    if (axis == Axis::Z) return {point.x, point.z, point.y};
+    return point;
+}
+inline CellFace permuteFace(CellFace face, Axis axis) {
+    auto cell = face.cell;
+    if (axis == Axis::X) {
+        face.cell = {cell.y, cell.x, cell.z};
+        switch (face.face) {
+        case Face::West: face.face = Face::Down; break;
+        case Face::East: face.face = Face::Up; break;
+        case Face::Down: face.face = Face::West; break;
+        case Face::Up: face.face = Face::East; break;
+        default: break;
+        }
+    } else if (axis == Axis::Z) {
+        face.cell = {cell.x, cell.z, cell.y};
+        switch (face.face) {
+        case Face::North: face.face = Face::Down; break;
+        case Face::South: face.face = Face::Up; break;
+        case Face::Down: face.face = Face::North; break;
+        case Face::Up: face.face = Face::South; break;
+        default: break;
+        }
+    }
+    return face;
+}
 inline int checkedCoordinate(double value) {
     // Keep one cell of headroom for neighbour/face computations.
     if (!std::isfinite(value) || value < std::numeric_limits<int>::min()+1.0
@@ -142,7 +198,7 @@ struct RoundColumns {
         return ranges[static_cast<size_t>(x - x0) * depth + (z - z0)];
     }
 };
-inline RoundColumns roundColumns(ShapeSpec const& spec) {
+inline RoundColumns legacyRoundColumns(ShapeSpec const& spec) {
     if (!std::isfinite(spec.radius) || spec.radius < 0 || spec.height < 1)
         throw std::invalid_argument("Invalid shape dimensions");
     if (spec.radius > maximumRoundRadius || spec.height > 4096) throw std::length_error("Shape exceeds work limit");
@@ -188,9 +244,100 @@ inline RoundColumns roundColumns(ShapeSpec const& spec) {
     }
     return result;
 }
+// Generalized columns for the newer presets: square sections, tapers, round
+// ellipsoids and domes. Circles and cylinders keep the ring; every other
+// preset keeps solid columns whose exposed faces form the surface.
+inline RoundColumns profileColumns(ShapeSpec const& spec) {
+    if (!std::isfinite(spec.radius) || spec.radius < 0 || spec.height < 1
+        || !std::isfinite(spec.topRadius) || spec.topRadius < 0
+        || !std::isfinite(spec.heightRadius) || spec.heightRadius < 0)
+        throw std::invalid_argument("Invalid shape dimensions");
+    if (spec.radius > maximumRoundRadius || spec.height > 4096 || spec.topRadius > maximumRoundRadius
+        || spec.heightRadius > maximumRoundRadius)
+        throw std::length_error("Shape exceeds work limit");
+    auto center = snapped(spec.center, spec.snap);
+    double r = spec.radius, r2 = r * r;
+    double footprint = r;
+    if (shapeProfile(spec.shape) == Profile::Taper) footprint = std::max(r, spec.topRadius);
+    RoundColumns result;
+    result.x0 = checkedCoordinate(std::ceil(center.x - footprint - .5));
+    result.z0 = checkedCoordinate(std::ceil(center.z - footprint - .5));
+    int x1 = checkedCoordinate(std::floor(center.x + footprint - .5));
+    int z1 = checkedCoordinate(std::floor(center.z + footprint - .5));
+    if (result.x0 > x1 || result.z0 > z1) return result;
+    result.width = x1 - result.x0 + 1;
+    result.depth = z1 - result.z0 + 1;
+    int base = checkedCoordinate(std::floor(center.y));
+    checkedCoordinate(double(base) + spec.height);
+    bool square = shapeSection(spec.shape) == CrossSection::Square;
+    auto profile = shapeProfile(spec.shape);
+    double top = spec.topRadius;
+    double vertical = spec.heightRadius > 0 ? spec.heightRadius : r;
+    std::vector<std::pair<int,int>> disk(static_cast<size_t>(result.width) * result.depth, {1, 0});
+    for (int i = 0; i < result.width; ++i) for (int k = 0; k < result.depth; ++k) {
+        double dx = result.x0 + i + .5 - center.x, dz = result.z0 + k + .5 - center.z;
+        double distance = square ? std::max(std::abs(dx), std::abs(dz)) : std::sqrt(dx * dx + dz * dz);
+        auto& range = disk[static_cast<size_t>(i) * result.depth + k];
+        if (profile == Profile::Constant) {
+            if (distance > r) continue;
+            range = {base, base + spec.height - 1};
+        } else if (profile == Profile::Taper) {
+            if (distance > std::max(r, top)) continue;
+            if (spec.height == 1) {
+                range = {base, base};
+            } else if (top == r) {
+                range = {base, base + spec.height - 1};
+            } else if (top < r) {
+                double layers = (spec.height - 1) * (distance - r) / (top - r);
+                int keep = static_cast<int>(std::floor(layers + 1e-9));
+                keep = std::clamp(keep, 0, spec.height - 1);
+                range = {base, base + keep};
+            } else {
+                double layers = (spec.height - 1) * (distance - r) / (top - r);
+                int skip = static_cast<int>(std::ceil(layers - 1e-9));
+                skip = std::clamp(skip, 0, spec.height - 1);
+                range = {base + skip, base + spec.height - 1};
+            }
+        } else {
+            if (distance > r) continue;
+            double s = vertical * std::sqrt(std::max(0., 1 - (r > 0 ? distance * distance / r2 : 0)));
+            int lo = checkedCoordinate(std::ceil(center.y - .5 - s));
+            int hi = checkedCoordinate(std::floor(center.y - .5 + s));
+            if (spec.dome) lo = std::max(lo, checkedCoordinate(std::floor(center.y)));
+            range = {lo, hi};
+        }
+    }
+    result.ranges = disk;
+    if (spec.shape == Shape::Circle || spec.shape == Shape::Cylinder) {
+        // Keep the ring: disk columns with a horizontal neighbour outside the disk.
+        auto inside = [&](int i, int k) {
+            return i >= 0 && k >= 0 && i < result.width && k < result.depth
+                && disk[static_cast<size_t>(i) * result.depth + k].first <= disk[static_cast<size_t>(i) * result.depth + k].second;
+        };
+        for (int i = 0; i < result.width; ++i) for (int k = 0; k < result.depth; ++k)
+            if (inside(i, k) && inside(i-1, k) && inside(i+1, k) && inside(i, k-1) && inside(i, k+1))
+                result.ranges[static_cast<size_t>(i) * result.depth + k] = {1, 0};
+    }
+    bool any = false;
+    for (auto const& [lo, hi] : result.ranges) {
+        if (lo > hi) continue;
+        if (!any) { result.low = lo; result.high = hi; any = true; }
+        result.low = std::min(result.low, lo); result.high = std::max(result.high, hi);
+    }
+    return result;
+}
+inline bool legacyRoundSpec(ShapeSpec const& spec) {
+    return spec.axis == Axis::Y && spec.topRadius == 0 && spec.heightRadius == 0 && !spec.dome
+        && (spec.shape == Shape::Circle || spec.shape == Shape::Cylinder || spec.shape == Shape::Sphere);
+}
+inline RoundColumns roundColumns(ShapeSpec const& spec) {
+    if (spec.axis != Axis::Y)
+        throw std::invalid_argument("Round columns generate along Y; use a local spec and permute faces");
+    if (legacyRoundSpec(spec)) return legacyRoundColumns(spec);
+    return profileColumns(spec);
+}
 // Exposed block faces of a round shape. Throws std::length_error over the limit.
-inline std::vector<CellFace> roundFaces(ShapeSpec const& spec, size_t faceLimit = 4000000) {
-    auto columns = roundColumns(spec);
+inline std::vector<CellFace> facesFromColumns(RoundColumns const& columns, size_t faceLimit) {
     std::vector<CellFace> faces;
     auto emit = [&](Cell cell, Face face) {
         if (faces.size() >= faceLimit) throw std::length_error("Surface exceeds face limit");
@@ -210,6 +357,15 @@ inline std::vector<CellFace> roundFaces(ShapeSpec const& spec, size_t faceLimit 
                     if (nlo > nhi || y < nlo || y > nhi) emit({x, y, z}, sideFaces[s]);
             }
         }
+    return faces;
+}
+inline std::vector<CellFace> roundFaces(ShapeSpec const& spec, size_t faceLimit = 4000000) {
+    if (spec.axis == Axis::Y) return facesFromColumns(roundColumns(spec), faceLimit);
+    ShapeSpec local = spec;
+    local.center = swapShapeAxes(spec.center, spec.axis);
+    local.axis = Axis::Y;
+    auto faces = facesFromColumns(roundColumns(local), faceLimit);
+    for (auto& face : faces) face = permuteFace(face, spec.axis);
     return faces;
 }
 // Blocks of one layer that belong to the displayed surface, for previews.

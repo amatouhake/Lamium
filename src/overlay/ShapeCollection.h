@@ -37,8 +37,6 @@ inline std::set<Cell> shapeCells(ShapeDefinition const& definition) {
     return std::visit([](auto const& spec) {
         using Spec = std::decay_t<decltype(spec)>;
         if constexpr (std::is_same_v<Spec, ShapeSpec>) {
-            if (spec.shape != Shape::Circle && spec.shape != Shape::Cylinder && spec.shape != Shape::Sphere)
-                throw std::invalid_argument("Unknown shape type");
             if (spec.snap != Snap::BlockCenter && spec.snap != Snap::BlockCorner && spec.snap != Snap::Off)
                 throw std::invalid_argument("Unknown shape snapping");
             std::set<Cell> cells;
@@ -80,8 +78,6 @@ class ShapeCollection {
         std::vector<CellFace> faces;
         if (auto spec = std::get_if<ShapeSpec>(&definition.geometry)) {
             // Round shapes come straight from their columns, never the volume.
-            if (spec->shape != Shape::Circle && spec->shape != Shape::Cylinder && spec->shape != Shape::Sphere)
-                throw std::invalid_argument("Unknown shape type");
             if (spec->snap != Snap::BlockCenter && spec->snap != Snap::BlockCorner && spec->snap != Snap::Off)
                 throw std::invalid_argument("Unknown shape snapping");
             faces = roundFaces(*spec, available);

@@ -45,7 +45,7 @@ void shapeEditorTests() {
     check(spec.snap == overlay::Snap::Off && spec.center == feet, "exact position keeps the precise center");
     ui::shape::place(sphere, feet, Reference::StandingBlock);
     check(std::get<overlay::ShapeSpec>(sphere.geometry).snap == overlay::Snap::BlockCenter, "standing block snaps to its center");
-    auto plane = ui::shape::withType({"P"}, 3, feet, Reference::ExactPosition);
+    auto plane = ui::shape::withType({"P"}, 9, feet, Reference::ExactPosition);
     check(std::get<overlay::PlaneSpec>(plane.geometry).origin == overlay::Cell{10, 64, -4}, "planes start at the block containing the point");
 
     // Numbers step within range; choices cycle; invalid values are rejected.
@@ -71,7 +71,7 @@ void shapeEditorTests() {
     bool hollow = true;
     for (auto const& run : ring.runs) hollow = hollow && !(run.v == 0 && run.u <= 0 && run.u + run.length > 0);
     check(hollow && ring.lowLayer == 0 && ring.highLayer == 0, "circle preview is a ring on one layer");
-    auto grid = ui::shape::withType({"G"}, 3, {0, 0, 0}, Reference::StandingBlock);
+    auto grid = ui::shape::withType({"G"}, 9, {0, 0, 0}, Reference::StandingBlock);
     auto filled = ui::shape::preview(grid, 0);
     check(filled.cells == 81 && filled.runs.size() == 9, "a filled plane previews as one run per row");
 

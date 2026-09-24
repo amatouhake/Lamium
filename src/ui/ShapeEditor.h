@@ -20,12 +20,29 @@ inline constexpr auto types = std::to_array<TypeInfo>({
     {"circle", "shape.circleName", "shape.type.circle", "shape.group.basic"},
     {"cylinder", "shape.cylinderName", "shape.type.cylinder", "shape.group.basic"},
     {"sphere", "shape.sphereName", "shape.type.sphere", "shape.group.basic"},
+    {"box", "shape.boxName", "shape.type.box", "shape.group.basic"},
+    {"cone", "shape.coneName", "shape.type.cone", "shape.group.basic"},
+    {"frustum", "shape.frustumName", "shape.type.frustum", "shape.group.basic"},
+    {"pyramid", "shape.pyramidName", "shape.type.pyramid", "shape.group.basic"},
+    {"ellipsoid", "shape.ellipsoidName", "shape.type.ellipsoid", "shape.group.basic"},
+    {"dome", "shape.domeName", "shape.type.dome", "shape.group.basic"},
     {"plane", "shape.planeName", "shape.type.plane", "shape.group.basic"},
 });
 inline int typeIndex(ShapeDefinition const& definition) {
-    if (auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry))
-        return spec->shape == overlay::Shape::Circle ? 0 : spec->shape == overlay::Shape::Cylinder ? 1 : 2;
-    return 3;
+    if (auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry)) {
+        switch (spec->shape) {
+        case overlay::Shape::Circle: return 0;
+        case overlay::Shape::Cylinder: return 1;
+        case overlay::Shape::Sphere: return 2;
+        case overlay::Shape::Box: return 3;
+        case overlay::Shape::Cone: return 4;
+        case overlay::Shape::Frustum: return 5;
+        case overlay::Shape::Pyramid: return 6;
+        case overlay::Shape::Ellipsoid: return 7;
+        case overlay::Shape::Dome: return 8;
+        }
+    }
+    return 9;
 }
 
 // Where a new shape's center comes from. It also chooses how the center snaps:
@@ -49,15 +66,30 @@ inline void place(ShapeDefinition& definition, overlay::Point point, Reference r
 }
 // A type's defaults, keeping name, dimension and appearance of the source.
 inline ShapeDefinition withType(ShapeDefinition definition, int type, overlay::Point point, Reference reference) {
-    if (type == 3) definition.geometry = overlay::PlaneSpec{{}, 9, 9, 1, overlay::Plane::XZ};
-    else definition.geometry = overlay::ShapeSpec{type == 0 ? overlay::Shape::Circle : type == 1
-        ? overlay::Shape::Cylinder : overlay::Shape::Sphere, {}, overlay::Snap::BlockCenter, 4, 5};
+    if (type == 9) definition.geometry = overlay::PlaneSpec{{}, 9, 9, 1, overlay::Plane::XZ};
+    else {
+        auto shape = static_cast<overlay::Shape>(type);
+        double radius = 4, topRadius = 0, heightRadius = 0;
+        int height = 5;
+        bool dome = false;
+        switch (shape) {
+        case overlay::Shape::Box: height = 3; break;
+        case overlay::Shape::Cone: height = 7; break;
+        case overlay::Shape::Frustum: height = 6; topRadius = 2; break;
+        case overlay::Shape::Pyramid: height = 5; break;
+        case overlay::Shape::Ellipsoid: height = 1; heightRadius = 2; break;
+        case overlay::Shape::Dome: height = 1; dome = true; break;
+        default: break;
+        }
+        definition.geometry = overlay::ShapeSpec{shape, {}, overlay::Snap::BlockCenter, radius, height,
+            overlay::Axis::Y, topRadius, heightRadius, dome};
+    }
     place(definition, point, reference);
     return definition;
 }
 
 enum class Field { Type, Radius, Height, Snap, Width, Depth, Spacing, Orientation, X, Y, Z,
-    Reference, MoveHere, Visible, Style, Color };
+    Reference, MoveHere, Visible, Style, Color, TopRadius, VerticalRadius, Axis };
 struct Row {
     enum class Kind { Group, Value, Switch, Button } kind;
     std::string_view label;
@@ -75,8 +107,15 @@ inline std::vector<Row> rows(ShapeDefinition const& definition, bool draft) {
     result.push_back({Kind::Group, "shape.group.shape"});
     if (auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry)) {
         result.push_back({Kind::Value, "shape.field.radius", Field::Radius});
-        if (spec->shape == overlay::Shape::Cylinder) result.push_back({Kind::Value, "shape.field.height", Field::Height});
+        if (spec->shape == overlay::Shape::Cylinder || spec->shape == overlay::Shape::Box
+            || overlay::shapeProfile(spec->shape) == overlay::Profile::Taper)
+            result.push_back({Kind::Value, "shape.field.height", Field::Height});
+        if (overlay::shapeProfile(spec->shape) == overlay::Profile::Taper)
+            result.push_back({Kind::Value, "shape.field.topRadius", Field::TopRadius});
+        if (spec->shape == overlay::Shape::Ellipsoid)
+            result.push_back({Kind::Value, "shape.field.verticalRadius", Field::VerticalRadius});
         result.push_back({Kind::Value, "shape.field.snap", Field::Snap});
+        result.push_back({Kind::Value, "shape.field.axis", Field::Axis});
     } else {
         result.push_back({Kind::Value, "shape.field.width", Field::Width});
         result.push_back({Kind::Value, "shape.field.depth", Field::Depth});
@@ -107,6 +146,8 @@ inline std::optional<Numeric> numeric(ShapeDefinition const& definition, Field f
         case Field::Z: return Numeric{spec->center.z, -30000000, 30000000};
         case Field::Radius: return Numeric{spec->radius, 0, 512, false, .5};
         case Field::Height: return Numeric{double(spec->height), 1, 512, true};
+        case Field::TopRadius: return Numeric{spec->topRadius, 0, 512, false, .5};
+        case Field::VerticalRadius: return Numeric{spec->heightRadius, 0, 512, false, .5};
         default: return {};
         }
     }
@@ -133,6 +174,8 @@ inline ShapeDefinition setNumber(ShapeDefinition definition, Field field, double
         case Field::Z: spec->center.z = number; break;
         case Field::Radius: spec->radius = number; break;
         case Field::Height: spec->height = static_cast<int>(number); break;
+        case Field::TopRadius: spec->topRadius = number; break;
+        case Field::VerticalRadius: spec->heightRadius = number; break;
         default: break;
         }
     } else {
@@ -165,6 +208,9 @@ inline ShapeDefinition adjust(ShapeDefinition definition, Field field, int direc
     case Field::Orientation:
         if (auto plane = std::get_if<overlay::PlaneSpec>(&definition.geometry)) plane->plane = cycle(plane->plane, 3);
         break;
+    case Field::Axis:
+        if (auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry)) spec->axis = cycle(spec->axis, 3);
+        break;
     case Field::Style: definition.style = cycle(definition.style, 2); break;
     case Field::Color: definition.color = cycle(definition.color, 4); break;
     case Field::Visible: definition.visible = !definition.visible; break;
@@ -174,6 +220,7 @@ inline ShapeDefinition adjust(ShapeDefinition definition, Field field, int direc
 }
 inline constexpr auto snapLabels = std::to_array<std::string_view>({"shape.blockCenter", "shape.blockCorner", "shape.noSnap"});
 inline constexpr auto orientationLabels = std::to_array<std::string_view>({"shape.plane.xz", "shape.plane.xy", "shape.plane.yz"});
+inline constexpr auto axisLabels = std::to_array<std::string_view>({"shape.axis.y", "shape.axis.x", "shape.axis.z"});
 inline constexpr auto styleLabels = std::to_array<std::string_view>({"shape.style.face", "shape.style.line"});
 inline constexpr auto colorLabels = std::to_array<std::string_view>({"shape.color.cyan", "shape.color.yellow", "shape.color.pink", "shape.color.white"});
 // The translation key of a choice value, or empty for numbers and actions.
@@ -185,6 +232,9 @@ inline std::string_view choiceLabel(ShapeDefinition const& definition, Field fie
         return {};
     case Field::Orientation:
         if (auto plane = std::get_if<overlay::PlaneSpec>(&definition.geometry)) return orientationLabels[static_cast<size_t>(plane->plane)];
+        return {};
+    case Field::Axis:
+        if (auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry)) return axisLabels[static_cast<size_t>(spec->axis)];
         return {};
     case Field::Reference: return referenceLabels[static_cast<size_t>(reference)];
     case Field::Style: return styleLabels[static_cast<size_t>(definition.style)];
@@ -207,7 +257,15 @@ inline Preview preview(ShapeDefinition const& definition, int layer) {
     Preview result;
     std::set<overlay::Cell> cells;
     overlay::Cell center{};
-    auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry);
+    // X/Z shapes preview in their own frame: the center permutes to a local
+    // spec and the layer index runs in that frame.
+    ShapeDefinition working = definition;
+    if (auto local = std::get_if<overlay::ShapeSpec>(&working.geometry);
+        local && local->axis != overlay::Axis::Y) {
+        local->center = overlay::swapShapeAxes(local->center, local->axis);
+        local->axis = overlay::Axis::Y;
+    }
+    auto spec = std::get_if<overlay::ShapeSpec>(&working.geometry);
     if (spec) {
         // Round shapes: only the requested layer, from the column model, so
         // large radii stay cheap. Bounds cover every column.
@@ -227,7 +285,8 @@ inline Preview preview(ShapeDefinition const& definition, int layer) {
         result.lowLayer = columns.low - center.y;
         result.highLayer = columns.high - center.y;
         std::map<std::pair<int,int>, bool> layerCells;
-        for (auto const& c : overlay::roundLayer(columns, center.y + layer, spec->shape == overlay::Shape::Sphere))
+        bool round = overlay::shapeProfile(spec->shape) == overlay::Profile::Round;
+        for (auto const& c : overlay::roundLayer(columns, center.y + layer, round))
             layerCells[{c.z - center.z, c.x - center.x}] = true;
         result.cells = static_cast<int>(layerCells.size());
         for (auto it = layerCells.begin(); it != layerCells.end();) {

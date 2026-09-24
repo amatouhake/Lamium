@@ -22,8 +22,10 @@ template<class Enum, size_t N> Enum named(Json const& value, std::array<std::str
     if (found == names.end()) throw std::invalid_argument("Unknown shape option");
     return static_cast<Enum>(found-names.begin());
 }
-constexpr std::array<std::string_view,3> types{"circle","cylinder","sphere"};
+constexpr std::array<std::string_view,9> types
+    {"circle","cylinder","sphere","box","cone","frustum","pyramid","ellipsoid","dome"};
 constexpr std::array<std::string_view,3> snaps{"block_center","block_corner","off"};
+constexpr std::array<std::string_view,3> axes{"y","x","z"};
 constexpr std::array<std::string_view,3> planes{"xz","xy","yz"};
 constexpr std::array<std::string_view,2> styles{"face","line"};
 constexpr std::array<std::string_view,4> colors{"cyan","yellow","pink","white"};
@@ -54,9 +56,16 @@ std::vector<ShapeDefinition> decodeShapes(std::string_view text) {
                 named<Plane>(geometry.at("plane"),planes)};
         } else {
             auto const& center = geometry.at("center"); triple(center);
-            definition.geometry = ShapeSpec{named<Shape>(geometry.at("type"),types),
+            ShapeSpec spec{named<Shape>(geometry.at("type"),types),
                 {number(center[0]),number(center[1]),number(center[2])},named<Snap>(geometry.at("snap"),snaps),
                 number(geometry.at("radius")),integer(geometry.at("height"))};
+            // Axis and taper/round parameters arrived with the newer presets;
+            // absent means the legacy Y-oriented shape.
+            if (geometry.contains("axis")) spec.axis = named<Axis>(geometry.at("axis"),axes);
+            if (geometry.contains("topRadius")) spec.topRadius = number(geometry.at("topRadius"));
+            if (geometry.contains("heightRadius")) spec.heightRadius = number(geometry.at("heightRadius"));
+            if (geometry.contains("dome")) spec.dome = geometry.at("dome").get<bool>();
+            definition.geometry = spec;
         }
         result.push_back(std::move(definition));
     }
@@ -73,7 +82,9 @@ std::string encodeShapes(std::vector<ShapeDefinition> const& definitions) {
         if (auto spec = std::get_if<ShapeSpec>(&definition.geometry)) {
             geometry = {{"type",types.at(static_cast<size_t>(spec->shape))},
                 {"center",{spec->center.x,spec->center.y,spec->center.z}},
-                {"snap",snaps.at(static_cast<size_t>(spec->snap))},{"radius",spec->radius},{"height",spec->height}};
+                {"snap",snaps.at(static_cast<size_t>(spec->snap))},{"radius",spec->radius},{"height",spec->height},
+                {"axis",axes.at(static_cast<size_t>(spec->axis))},{"topRadius",spec->topRadius},
+                {"heightRadius",spec->heightRadius},{"dome",spec->dome}};
         } else {
             auto const& plane = std::get<PlaneSpec>(definition.geometry);
             geometry = {{"type","plane"},{"origin",{plane.origin.x,plane.origin.y,plane.origin.z}},

@@ -9,6 +9,11 @@ void shapeDocumentTests() {
             definitions.push_back({"日本語の形状",1,false,ShapeSpec{type,{16777217.5,-3.25,7},snap,1,3}});
     for (auto plane : {Plane::XZ,Plane::XY,Plane::YZ})
         definitions.push_back({"Grid",0,true,PlaneSpec{{-10,20,30},3,4,2,plane}});
+    definitions.push_back({"Cone",0,true,ShapeSpec{Shape::Cone,{1.5,2.5,3.5},Snap::BlockCenter,4,7,Axis::Y,0,0,false}});
+    definitions.push_back({"Frustum",0,true,ShapeSpec{Shape::Frustum,{1.5,2.5,3.5},Snap::BlockCenter,4,6,Axis::Y,2,0,false}});
+    definitions.push_back({"Ellipsoid",0,true,ShapeSpec{Shape::Ellipsoid,{1.5,2.5,3.5},Snap::BlockCenter,4,1,Axis::Y,0,2,false}});
+    definitions.push_back({"Dome",0,true,ShapeSpec{Shape::Dome,{1.5,2.5,3.5},Snap::BlockCenter,4,1,Axis::Y,0,0,true}});
+    definitions.push_back({"Sideways",0,true,ShapeSpec{Shape::Box,{1.5,2.5,3.5},Snap::BlockCenter,2,3,Axis::X,0,0,false}});
     definitions.front().style = ShapeStyle::Line;
     definitions.front().color = ShapeColor::Pink;
     auto encoded = encodeShapes(definitions);
@@ -32,6 +37,24 @@ void shapeDocumentTests() {
     }
     check(!root["shapes"][0].contains("id") && !root["shapes"][0].contains("lines"),
         "runtime identity and derived geometry are not serialized");
+    {
+        auto legacy = root;
+        for (auto& entry : legacy["shapes"]) {
+            if (entry["geometry"]["type"] == "plane") continue;
+            entry["geometry"].erase("axis");
+            entry["geometry"].erase("topRadius");
+            entry["geometry"].erase("heightRadius");
+            entry["geometry"].erase("dome");
+        }
+        auto upgraded = decodeShapes(legacy.dump());
+        bool defaults = true;
+        for (auto const& shape : upgraded) {
+            if (auto spec = std::get_if<ShapeSpec>(&shape.geometry))
+                defaults = defaults && spec->axis == Axis::Y && spec->topRadius == 0 && spec->heightRadius == 0
+                    && !spec->dome;
+        }
+        check(defaults, "files without preset fields load the legacy shape");
+    }
     for (int scenario=0;scenario<10;++scenario) {
         auto bad = root;
         switch (scenario) {
