@@ -296,6 +296,54 @@ or block light is above 0. Confirm in game before relying on it.
 
 ---
 
+### L-32 Hotkey overlap and chord semantics
+Status: design.
+2026-09-24 playtest finding: overlapping bindings do not behave like the
+maintainer expects from Java / Tweakeroo / MaLiLib. Concrete required case:
+if one action is bound to `B` and another to `F3 + B`, pressing **F3 then B**
+must trigger the `F3 + B` action and must **not** also trigger the `B`
+action.
+
+Current Lamium behavior explains the mismatch: `BindingState::update` treats a
+chord as matched when every token in that chord is present in the held-input
+set. It does not reject extra held inputs, so `{B}` remains a match while
+`{F3,B}` is held. `canonicalChord` also sorts tokens, making normal chords
+order-insensitive, and `CustomInput::process` evaluates every action
+independently, so overlapping matches can both fire.
+
+Before changing only this one example, define the general semantics against
+the familiar MaLiLib/Tweakeroo model (behavior reference only; do not copy
+implementation):
+- MaLiLib normal keybinds default to no extra keys and order-sensitive matching.
+  Modifier-style bindings explicitly opt into extra keys and order-insensitive
+  matching.
+- MaLiLib also distinguishes activation on press/release/both and has
+  priority/exclusive/first-only controls for conflicts.
+- Lamium does **not** need to expose every MaLiLib advanced setting. Decide the
+  smallest predictable model that covers Lamium's Press/Hold/Toggle actions,
+  mouse buttons and wheel chords without making ordinary movement keys or
+  vanilla controls surprising.
+
+The resulting spec must cover at least:
+- exact-overlap precedence (`B` vs `F3+B`) and press order;
+- whether unrelated held keys such as WASD suppress a normal chord or are
+  ignored;
+- subset/superset and identical-binding conflicts across two Lamium actions;
+- modifier-like bindings versus ordinary action chords;
+- Hold release behavior when a more-specific chord appears/disappears;
+- wheel + modifier and mouse + keyboard chords;
+- event consumption / vanilla coexistence, including F3-style chords;
+- conflict indication in the Hotkeys UI if two bindings can still collide.
+
+Add pure event-sequence tests for all decided cases before changing runtime
+dispatch. Reference behavior:
+https://github.com/maruohon/malilib/blob/ornithe/1.12.2/src/main/java/malilib/input/KeyBindImpl.java
+https://github.com/maruohon/malilib/blob/ornithe/1.12.2/src/main/java/malilib/input/KeyBindSettings.java
+https://github.com/maruohon/malilib/blob/ornithe/1.12.2/src/main/java/malilib/input/HotkeyManagerImpl.java
+https://github.com/maruohon/tweakeroo/blob/ornithe/1.12.2/src/main/java/tweakeroo/config/Hotkeys.java
+
+---
+
 ## Research
 
 ### L-14 Hidden offhand still shows a shield
