@@ -5,7 +5,9 @@
 #include <string_view>
 class IClientInstance;
 namespace lamium::information {
-struct PlayerInfoRequest { bool coordinates{}, dimension{}, biome{}, facing{}, light{}; };
+struct PlayerInfoRequest {
+    bool coordinates{}, dimension{}, biome{}, facing{}, light{}, rotation{}, time{}, weather{};
+};
 struct LightLevels { int sky, block; };
 inline std::optional<LightLevels> lightLevels(int sky, int block) {
     if (sky < 0 || sky > 15 || block < 0 || block > 15) return {};
@@ -16,8 +18,10 @@ struct PlayerInfo {
     bool present = false;
     std::optional<Position> position;
     std::optional<std::string> dimension, biome;
-    std::optional<float> yaw;
+    std::optional<float> yaw, pitch;
     std::optional<LightLevels> light;
+    std::optional<int> worldTime; // Total world ticks; day count, clock and moon phase derive from it.
+    std::optional<bool> raining; // Thunder is not separately exposed; true covers rain and storms.
 };
 // Values own their data, so consumers never retain Minecraft pointers.
 PlayerInfo collectPlayerInfo(IClientInstance&, PlayerInfoRequest);

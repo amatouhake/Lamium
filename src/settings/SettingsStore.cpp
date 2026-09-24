@@ -72,6 +72,10 @@ Json encode(Settings const& settings) {
                          {"fps", settings.information.fps}, {"frameTime", settings.information.frameTime},
                          {"light", settings.information.light},
                          {"ping", settings.information.ping},
+                         {"rotation", settings.information.rotation}, {"block", settings.information.block},
+                         {"chunk", settings.information.chunk}, {"speed", settings.information.speed},
+                         {"time", settings.information.time}, {"weather", settings.information.weather},
+                         {"moon", settings.information.moon},
                          {"dimension", settings.information.dimension}}},
         {"visuals", {{"hideOffhand", settings.visuals.hideOffhand}}},
         {"overlays", {{"chunkBorders", settings.overlays.chunkBorders}, {"hitboxes", settings.overlays.hitboxes}, {"shapes", settings.overlays.shapes},
@@ -129,6 +133,13 @@ Settings decodeSettings(std::string_view text) {
         value.information.frameTime = info.value("frameTime", false);
         value.information.light = info.value("light", false);
         value.information.ping = info.value("ping", false);
+        value.information.rotation = info.value("rotation", false);
+        value.information.block = info.value("block", false);
+        value.information.chunk = info.value("chunk", false);
+        value.information.speed = info.value("speed", false);
+        value.information.time = info.value("time", false);
+        value.information.weather = info.value("weather", false);
+        value.information.moon = info.value("moon", false);
         if (info.contains("lineOrder") && info.at("lineOrder").is_array()) {
             value.information.lineOrder.clear();
             for (auto const& item : info.at("lineOrder"))

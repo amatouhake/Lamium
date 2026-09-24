@@ -82,6 +82,13 @@ struct Settings {
         bool frameTime = false;
         bool light = false;
         bool ping = false;
+        bool rotation = false;
+        bool block = false;
+        bool chunk = false;
+        bool speed = false;
+        bool time = false;
+        bool weather = false;
+        bool moon = false;
         std::vector<std::string> lineOrder;
     } information;
 

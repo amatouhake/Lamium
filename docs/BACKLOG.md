@@ -184,7 +184,10 @@ Status: after L-04b.
   the settings rows (never duplicated); long lists scroll.
 
 ### L-05 More Info HUD lines (providers only)
-Status: ready. Layout/appearance changes belong to L-04, not here.
+Status: done. Notes 2026-09-24: thunder is not separately exposed (the weather
+line shows Clear/Rain via `Weather::isRainingAt`); day count, clock epoch and
+the 8-day moon cycle derive from `Level::getTime()` total ticks and need one
+in-game check against /time query and the visible moon.
 - Add optional lines, each with a setting, English/Japanese label and an
   "unavailable" fallback: rotation (yaw/pitch, one decimal), facing with axis
   ("North (−Z)"), block position, chunk position and position inside the

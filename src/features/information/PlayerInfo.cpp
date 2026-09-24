@@ -1,6 +1,8 @@
 #include "features/information/PlayerInfo.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
+#include "mc/world/level/Level.h"
+#include "mc/world/level/Weather.h"
 #include "mc/world/level/dimension/Dimension.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/biome/Biome.h"
@@ -20,7 +22,13 @@ PlayerInfo collectPlayerInfo(IClientInstance& client, PlayerInfoRequest request)
     bool finite = std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z);
     if (request.coordinates && finite) result.position = PlayerInfo::Position{p.x,p.y,p.z};
     if (request.dimension) result.dimension = player->getDimension().mName.get();
-    if (request.facing && std::isfinite(player->getRotation().z)) result.yaw = player->getRotation().z;
+    auto const rotation = player->getRotation();
+    if ((request.facing || request.rotation) && std::isfinite(rotation.z)) result.yaw = rotation.z;
+    if (request.rotation && std::isfinite(rotation.x)) result.pitch = rotation.x;
+    if (request.time) {
+        int ticks = player->getLevel().getTime();
+        if (ticks >= 0) result.worldTime = ticks;
+    }
     if ((request.biome || request.light) && finite) {
         auto safe = [](double value) {
             return value >= double(std::numeric_limits<int>::min())+1
@@ -31,6 +39,8 @@ PlayerInfo collectPlayerInfo(IClientInstance& client, PlayerInfoRequest request)
             auto& region = player->getDimensionBlockSource();
             if (region.getChunkAt(pos)) {
                 if (request.biome) result.biome = region.getBiome(pos).mHash->getString();
+                if (request.weather)
+                    result.raining = player->getDimension().mWeather->isRainingAt(region, pos);
                 auto const& range = player->getDimension().mHeightRange;
                 // Report stored sky/block light at the feet, not a night-adjusted
                 // brightness or a prediction of server-side spawning rules.

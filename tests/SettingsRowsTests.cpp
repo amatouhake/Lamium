@@ -128,7 +128,7 @@ void settingsRowsTests() {
             check(!parts.name.empty() && parts.name.find('{') == std::string::npos, "option name has no placeholder");
             check(parts.value.find('{') != std::string::npos, "option value keeps its placeholder");
             float number = 2.5f;
-            check(!std::vformat(parts.value, std::make_format_args(number)).empty(), "value pattern formats");
+            check(!std::vformat(parts.value, std::make_format_args(number, number, number)).empty(), "value pattern formats");
         }
     }
     check(ui::splitLabel("Magnification: {}x").name == "Magnification" && ui::splitLabel("Magnification: {}x").value == "{}x",
