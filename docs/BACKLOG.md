@@ -138,7 +138,7 @@ feature, so all three screen openers group under 全般 in Hotkeys.
 
 ### L-03 Toggle toast
 Status: done. Follow-up 2026-09-24: no `[switch]` marker and no background
-panel (HUD-pass fills render opaque); the last 0.3 s dims the text instead
+panel; the last 0.3 s dims the text instead
 of fading; the toast fires only after the new state is saved. Open: the
 toggle switch stays fixed-size when the toast element scales; decide after
 seeing it in game.
@@ -150,8 +150,7 @@ seeing it in game.
 - Setting `interface.toggleToasts` (default on) under the Settings screen
   feature.
 - Put the timing/replace logic in a pure header (`ui/Toast.h`) with tests;
-  draw with `ui::toggleSwitch` and `ui::label` (no `ui::panel`: fills come
-  out opaque in the HUD pass, verified in game).
+  draw with `ui::toggleSwitch` and `ui::label`.
 - Files: `input/Actions.cpp` (emit), `features/information/InfoHud.cpp`
   (draw call site), new `ui/Toast.h`, settings files, translations.
 
@@ -173,8 +172,10 @@ Status: done.
 
 #### L-04b Move existing HUD pieces onto elements
 Status: done. Notes 2026-09-24: info lines reorder with Left/Right on the
-row (Enter/click still toggles; drags wait for the L-04c editor); Target
-defaults to no card because HUD-pass fills render opaque (see L-03).
+row (Enter/click still toggles; drags wait for the L-04c editor).
+2026-09-24: HUD fills looked opaque because the gameplay screen renders four
+views per frame and the HUD was drawn on each; it now draws only on the
+`hud_screen` view, fills are translucent, and Target defaults to the card.
 - Info lines, target info, status (automation + restriction) and the toast
   (L-03) draw through the element model. Status merges the automation and
   restriction lines into one element with colored markers.

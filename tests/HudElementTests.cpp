@@ -4,7 +4,7 @@ void hudElementTests() {
     using namespace lamium::ui;
     check(defaultHudElement(HudElementId::Info).anchor == Anchor::TopLeft
           && defaultHudElement(HudElementId::Target).anchor == Anchor::TopCenter
-          && defaultHudElement(HudElementId::Target).background == ElementBackground::None
+          && defaultHudElement(HudElementId::Target).background == ElementBackground::Card
           && !defaultHudElement(HudElementId::Target).shadow
           && defaultHudElement(HudElementId::Status).anchor == Anchor::MiddleRight
           && defaultHudElement(HudElementId::Status).dy == -20

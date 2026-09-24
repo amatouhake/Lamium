@@ -13,6 +13,7 @@
 #include "features/camera/Zoom.h"
 #include "features/information/InfoHud.h"
 #include "features/information/InfoLines.h"
+#include "mc/client/gui/controls/VisualTree.h"
 #include "input/Actions.h"
 #include "input/BindingCapture.h"
 #include "ll/api/event/EventBus.h"
@@ -1382,6 +1383,10 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     context.flushText(0,std::nullopt);
 }
 
+bool hudView(ScreenView const& view) {
+    auto const& tree = view.mVisualTree;
+    return tree && std::string_view(*tree->mRootControlName).ends_with(".hud_screen");
+}
 void render(ll::event::UIRenderEvent& event) {
     std::lock_guard lock(mutex);
     auto& context = event.uiRenderContext();
@@ -1389,7 +1394,10 @@ void render(ll::event::UIRenderEvent& event) {
     auto& view = event.screenView();
     glm::vec2 size = view.mSize;
     if (!scene) {
-        if (gameplayScreen(current.getScreenName()))
+        // The gameplay screen renders four views per frame (crosshair, hud,
+        // debug, toast). Drawing on each stacked translucent fills four times,
+        // so draw once, on the HUD view itself.
+        if (gameplayScreen(current.getScreenName()) && hudView(view))
             information::drawHud(context,size.x,size.y,Runtime::instance().preferences().information);
         return;
     }
