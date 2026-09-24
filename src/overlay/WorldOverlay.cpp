@@ -241,24 +241,36 @@ void drawShape(BaseActorRenderContext& context, FaceMaterial const& faceMaterial
     ref.mat = nullptr;
     ref.stack = nullptr;
 }
-void drawLines(BaseActorRenderContext& context, std::span<Line const> lines, bool hitboxes = false) {
-    if (lines.empty() || !context.mImpl) return;
+// Per-batch colors so one frame can carry Java-style color coding.
+struct LineBatch { std::span<Line const> lines; float r, g, b, a = 1; };
+void drawLines(BaseActorRenderContext& context, std::span<LineBatch const> batches) {
+    if (batches.empty() || !context.mImpl) return;
     ScreenContext& screen = context.mScreenContext;
     Tessellator& shared = screen.tessellator;
     // Own the temporary tessellation state. Never reset or reuse a partially
     // assembled vanilla batch. Mesh lifetime follows the engine submission API.
+    size_t count = 0;
+    for (auto const& group : batches) count += group.lines.size();
+    if (!count) return;
     Tessellator batch(shared.mBufferResourceService);
-    batch.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(lines.size()*2), false);
-    if (hitboxes) batch.color(1.f,1.f,1.f,1.f);
-    else batch.color(.2f,.85f,1.f,1.f);
+    batch.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(count * 2), false);
     Vec3 const camera = context.mImpl->mCameraPosition;
-    for (auto const& line : lines) for (auto p : {line.from, line.to})
-        batch.vertex(static_cast<float>(p.x-camera.x), static_cast<float>(p.y-camera.y), static_cast<float>(p.z-camera.z));
+    for (auto const& group : batches) {
+        batch.color(group.r, group.g, group.b, group.a);
+        for (auto const& line : group.lines) for (auto p : {line.from, line.to})
+            batch.vertex(static_cast<float>(p.x - camera.x), static_cast<float>(p.y - camera.y),
+                static_cast<float>(p.z - camera.z));
+    }
     auto mesh = batch.end(Tessellator::UploadMode::Buffered, "Lamium world lines", SupplementaryFieldAutoGenerationMode{});
     mce::MaterialPtr material(mce::RenderMaterialGroup::common(), HashedString{"debug"});
     if (!material.mRenderMaterialInfoPtr) return;
     mesh.renderMesh(screen, material, gsl::span<mce::ClientTexture const*>{}, 0,
-        static_cast<uint>(lines.size()*2), OffscreenCaptureDescription{}, nullptr);
+        static_cast<uint>(count * 2), OffscreenCaptureDescription{}, nullptr);
+}
+void drawLines(BaseActorRenderContext& context, std::span<Line const> lines, bool hitboxes = false) {
+    LineBatch single{lines, 1, 1, 1};
+    if (!hitboxes) { single.r = .2f; single.g = .85f; single.b = 1.f; }
+    drawLines(context, std::span<LineBatch const>{&single, 1});
 }
 LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::$renderEntityEffects, void, BaseActorRenderContext& context) {

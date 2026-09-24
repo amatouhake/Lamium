@@ -219,7 +219,7 @@ Status: after L-07 and L-04b.
   practical, draw the card without the icon and report.
 
 ### L-09 Colored line batches in the world overlay
-Status: ready.
+Status: done.
 - `drawLines` in `overlay/WorldOverlay.cpp` uses two fixed colors. Let callers
   pass a list of (lines, color) groups so chunk borders and hitboxes can use
   several colors in one frame. No behavior change for existing callers.
