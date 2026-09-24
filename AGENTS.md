@@ -6,15 +6,17 @@ working manual for any coding agent (Claude Code, Pi, OpenCode, ...).
 Read it fully before changing code.
 
 - Product direction, UI rules and colors: [docs/DESIGN.md](docs/DESIGN.md)
-- What to work on, and who should do it: [docs/BACKLOG.md](docs/BACKLOG.md)
+- What to work on, in what order, and who should do it: [docs/BACKLOG.md](docs/BACKLOG.md)
 - Per-feature technical notes: `docs/*.md` (CAMERA, OVERLAYS, RESTRICTIONS, ...)
 - UI mockups agreed with the maintainer: `docs/demos/` (see its README)
 - Machine-specific paths (instance folder etc.): `AGENTS.local.md` if present.
   It is gitignored; never copy its contents into tracked files.
 
 The repository is the source of truth for work: everything needed to pick up
-a task is in this file and `docs/`. If a decision made in chat affects
-implementation, write it into DESIGN.md or BACKLOG.md.
+a task is in this file and `docs/`. Start with BACKLOG.md's short
+**Current execution order**, then read the selected L-item and its feature doc.
+The L-item is authoritative if a summary ever drifts. If a decision made in
+chat affects implementation, write it into DESIGN.md or BACKLOG.md.
 
 ## Talking to the user
 
