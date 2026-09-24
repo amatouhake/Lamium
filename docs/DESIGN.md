@@ -106,6 +106,11 @@ Editing:
   "Open HUD layout" action under General, and a "Placement and look" link row
   on each HUD feature that opens the editor with that element selected.
   The settings list has no placement or look rows of its own.
+- A corner bar holds "Reset" and "Done (Esc)". Reset returns the selected
+  element to its defaults at once; with nothing selected it resets the whole
+  layout (including the info-line order) and asks for a second press.
+- Popovers (snap-to, lines) never cover their toolbar: they open on the side
+  that fits and scroll when there is not enough room.
 - The editor shows the live HUD (sample content for empty elements). Click
   selects, drag moves, arrows nudge (Shift: 10), Esc deselects then leaves.
   A dashed guide joins the anchor point and the element while selected.

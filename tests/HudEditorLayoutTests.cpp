@@ -36,9 +36,16 @@ void hudEditorLayoutTests() {
     auto edge = toolbarSpot(Box{600, 10, 40, 20}, 120, 14, 640, 360);
     check(edge.x == 640 - 120 - 2, "the toolbar stays on screen at the right edge");
     auto pop = popoverSpot(under, 14, 90, 60, 640, 360);
-    check(pop.y == under.y + 14 + 2, "popovers open below a toolbar that is below");
+    check(pop.y == under.y + 14 + 2 && pop.h == 60, "popovers open below a toolbar that is below");
     auto popUp = popoverSpot(over, 14, 90, 60, 640, 360);
-    check(popUp.y == over.y - 2 - 60, "popovers open above a toolbar that is above");
+    check(popUp.y == over.y - 2 - 60 && popUp.h == 60, "popovers open above a toolbar that is above");
+    Spot low{10, 300, true};
+    auto flipped = popoverSpot(low, 14, 90, 120, 640, 360);
+    check(flipped.y + flipped.h <= low.y && flipped.h == 120, "a popover that does not fit below opens above");
+    Spot middle{10, 170, true};
+    auto squeezed = popoverSpot(middle, 14, 90, 400, 640, 360);
+    check(squeezed.y >= middle.y + 14 && squeezed.y + squeezed.h <= 360 && squeezed.h < 400,
+          "a tall popover shrinks instead of covering the toolbar");
     check(Box{0, 0, 10, 10}.overlaps(Box{5, 5, 10, 10}) && !Box{0, 0, 10, 10}.overlaps(Box{10, 0, 5, 5}),
           "box overlap excludes touching edges");
 }

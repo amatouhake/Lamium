@@ -168,10 +168,12 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     } else if (popover == Popover::Lines) {
         auto const& order = value.information.lineOrder;
         constexpr float rowH = 12;
-        int visible = std::min<int>(10, static_cast<int>(order.size()));
+        float w = 130;
+        auto at = popoverSpot(*spot, barHeight, w, order.size() * rowH + 6, screenW, screenH);
+        int visible = std::clamp(static_cast<int>((at.h - 6) / rowH), 0, static_cast<int>(order.size()));
         linesFirst = std::clamp(linesFirst, 0, std::max(0, static_cast<int>(order.size()) - visible));
-        float w = 130, h = visible * rowH + 6;
-        auto at = popoverSpot(*spot, barHeight, w, h, screenW, screenH);
+        float h = visible * rowH + 6;
+        if (!spot->below || at.y < spot->y) at.y = at.y + at.h - h; // Hug the toolbar when opening upward.
         popoverBox = Box{at.x, at.y, w, h};
         panel(context, at.x, at.y, w, h, .94f);
         frame(context, at.x, at.y, w, h, palette::white, .14f);
@@ -192,6 +194,11 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
             controls.push_back({{at.x + 2, ry, w - 30, rowH}, Command::LineSwitch, 0, line});
             controls.push_back({{at.x + w - 26, ry, 11, rowH}, Command::LineUp, 0, line});
             controls.push_back({{at.x + w - 15, ry, 13, rowH}, Command::LineDown, 0, line});
+        }
+        if (visible < static_cast<int>(order.size()) && visible > 0) {
+            float track = visible * rowH, thumb = std::max(6.f, track * visible / order.size());
+            float top = at.y + 3 + (track - thumb) * linesFirst / std::max<size_t>(1, order.size() - visible);
+            fill(context, at.x + w - 3, top, 2, thumb, palette::white, .3f);
         }
     }
     return bar;
@@ -224,7 +231,7 @@ void drawActions(MinecraftUIRenderContext& context, std::optional<Box> toolbar, 
 void run(Control const& control) {
     auto value = Runtime::instance().preferences();
     if (control.command == Command::Reset) {
-        if (!resetArmed) { resetArmed = true; return; }
+        if (!selected && !resetArmed) { resetArmed = true; return; }
         resetArmed = false;
         for (auto id : drawOrder)
             if (!selected || *selected == id) settings::hudElement(value, id) = defaultHudElement(id);

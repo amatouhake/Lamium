@@ -72,10 +72,17 @@ inline Spot toolbarSpot(Box element, float w, float h, float screenW, float scre
     float y = below ? element.y + element.h + toolbarGap : element.y - toolbarGap - h;
     return {x, std::clamp(y, 2.f, std::max(2.f, screenH - h - 2)), below};
 }
-// Popovers open away from the element, on the far side of the toolbar.
-inline Point popoverSpot(Spot toolbar, float toolbarH, float w, float h, float screenW, float screenH) {
+// Popovers never cover their toolbar: they open on the far side from the
+// element when the content fits there, otherwise on the roomier side, and
+// shrink to the room they get (the caller scrolls what does not fit).
+struct PopoverFit { float x = 0, y = 0, h = 0; };
+inline PopoverFit popoverSpot(Spot toolbar, float toolbarH, float w, float h, float screenW, float screenH) {
     float x = std::clamp(toolbar.x, 2.f, std::max(2.f, screenW - w - 2));
-    float y = toolbar.below ? toolbar.y + toolbarH + 2 : toolbar.y - 2 - h;
-    return {x, std::clamp(y, 2.f, std::max(2.f, screenH - h - 2))};
+    float roomBelow = std::max(0.f, screenH - (toolbar.y + toolbarH + 2) - 2);
+    float roomAbove = std::max(0.f, toolbar.y - 2 - 2);
+    bool preferBelow = toolbar.below ? roomBelow >= h || roomBelow >= roomAbove : !(roomAbove >= h || roomAbove >= roomBelow);
+    float height = std::min(h, preferBelow ? roomBelow : roomAbove);
+    float y = preferBelow ? toolbar.y + toolbarH + 2 : toolbar.y - 2 - height;
+    return {x, y, height};
 }
 }
