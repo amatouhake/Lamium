@@ -105,4 +105,16 @@ inline std::vector<std::string> mergeLineOrder(std::vector<std::string> stored) 
             result.emplace_back(id);
     return result;
 }
+// Move one line up (direction < 0) or down within the order. Clamped at the
+// ends; unknown ids leave the order unchanged.
+inline std::vector<std::string> moveLineOrder(std::vector<std::string> order, std::string_view id, int direction) {
+    auto at = std::find(order.begin(), order.end(), id);
+    if (at == order.end()) return order;
+    size_t index = static_cast<size_t>(at - order.begin());
+    size_t other = direction < 0 ? (index == 0 ? 0 : index - 1)
+                                 : (index + 1 >= order.size() ? order.size() - 1 : index + 1);
+    if (other == index) return order;
+    std::swap(order[index], order[other]);
+    return order;
+}
 }

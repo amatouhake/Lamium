@@ -170,7 +170,9 @@ Status: done.
 - Tests: placement at all anchors, growth direction, clamping, drag rules.
 
 #### L-04b Move existing HUD pieces onto elements
-Status: done.
+Status: done. Notes 2026-09-24: info lines reorder with Left/Right on the
+row (Enter/click still toggles; drags wait for the L-04c editor); Target
+defaults to no card because HUD-pass fills render opaque (see L-03).
 - Info lines, target info, status (automation + restriction) and the toast
   (L-03) draw through the element model. Status merges the automation and
   restriction lines into one element with colored markers.

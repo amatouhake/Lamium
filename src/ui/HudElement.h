@@ -37,12 +37,14 @@ struct HudElement {
     ElementBackground background = ElementBackground::None;
     bool shadow = true;
 };
-// Defaults match the demo (its offsets are doubled GUI units, halved here).
+// Defaults match the demo, except Target starts without a card: HUD-pass
+// fills render opaque, so a default card would ship as a black slab until
+// the HUD blend state is addressed (L-04c/editor territory).
 inline constexpr HudElement defaultHudElement(HudElementId id) {
     switch (id) {
     case HudElementId::Info: return {};
     case HudElementId::Target:
-        return {Anchor::TopCenter, false, 0, 0, 100, ElementBackground::Card, false};
+        return {Anchor::TopCenter, false, 0, 0, 100, ElementBackground::None, false};
     case HudElementId::Status:
         return {Anchor::MiddleRight, false, 0, -20, 100, ElementBackground::None, true};
     default:

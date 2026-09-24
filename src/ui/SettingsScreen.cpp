@@ -12,6 +12,7 @@
 #include "app/Runtime.h"
 #include "features/camera/Zoom.h"
 #include "features/information/InfoHud.h"
+#include "features/information/InfoLines.h"
 #include "input/Actions.h"
 #include "input/BindingCapture.h"
 #include "ll/api/event/EventBus.h"
@@ -322,6 +323,24 @@ void adjustOption(settings::Option const& option, int direction) {
     option.adjust(value, direction);
     error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
 }
+// Info lines live in a user-ordered list: Left/Right moves the row instead
+// of flipping its switch (Enter/Space/click still toggle).
+bool isInfoLine(settings::Option const& option) {
+    constexpr std::string_view prefix = "information.";
+    if (!option.id.starts_with(prefix)) return false;
+    auto id = option.id.substr(prefix.size());
+    return std::find(information::infoLineIds.begin(), information::infoLineIds.end(), id)
+        != information::infoLineIds.end();
+}
+void moveInfoLine(SettingsRow const& entry, int direction) {
+    auto id = entry.option->id.substr(std::string_view{"information."}.size());
+    auto value = Runtime::instance().preferences();
+    auto order = information::moveLineOrder(value.information.lineOrder, id, direction);
+    if (order == value.information.lineOrder) return;
+    value.information.lineOrder = std::move(order);
+    if (!Runtime::instance().save(value)) { error = translated("saveError"); return; }
+    rebuild(true); // Selection follows the moved row by content match.
+}
 void toggleFeature(FeatureInfo const& feature) {
     if (auto option = settings::find(feature.toggle)) adjustOption(*option, 1);
 }
@@ -474,6 +493,7 @@ void handleKey(int key) {
         int direction = key == 0x27 ? 1 : -1;
         if (!entry) break;
         if (entry->heading()) setExpanded(selected, direction > 0);
+        else if (entry->option && isInfoLine(*entry->option)) moveInfoLine(*entry, direction);
         else if (entry->option) adjustOption(*entry->option, direction);
         break;
     }

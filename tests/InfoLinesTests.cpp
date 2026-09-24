@@ -15,6 +15,14 @@ void infoLinesTests() {
           && std::find(cleaned.begin(), cleaned.end(), "nope") == cleaned.end(),
           "unknown ids drop out and duplicates collapse");
     check(decodeSettings("{}").information.lineOrder == defaultLineOrder(), "fresh settings list every line");
+    auto moved = moveLineOrder({"a", "b", "c"}, "b", 1);
+    check((moved == std::vector<std::string>{"a", "c", "b"}), "lines move down");
+    moved = moveLineOrder(moved, "b", -1);
+    check((moved == std::vector<std::string>{"a", "b", "c"}), "lines move back up");
+    check(moveLineOrder({"a", "b"}, "a", -1) == std::vector<std::string>{"a", "b"}
+          && moveLineOrder({"a", "b"}, "b", 1) == std::vector<std::string>{"a", "b"}
+          && moveLineOrder({"a", "b"}, "nope", 1) == std::vector<std::string>{"a", "b"},
+          "moves clamp at the ends and ignore unknown ids");
     auto stored = decodeSettings(R"({"information":{"lineOrder":["ping","nope"]}})");
     check(stored.information.lineOrder.front() == "ping" && stored.information.lineOrder.size() == infoLineIds.size(),
           "stored line order loads and merges");

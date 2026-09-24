@@ -255,7 +255,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"targetBlockPosition", "Block: {} / {} / {}", "ブロック: {} / {} / {}"},
     {"targetMore", "+{} more states", "ほか {} 項目"},
     {"key.Lamium.targetinfo", "Lamium: Toggle target info", "Lamium: 照準先情報の切り替え"},
-    {"help.infoHud", "Choose information lines and screen position.", "表示する情報と画面内の位置を設定。"},
+    {"help.infoHud", "Choose information lines and screen position. Left/Right on a line moves it.", "表示する情報と画面内の位置を設定。項目の行で左右キーを押すと並べ替え。"},
     {"infoHud", "Info HUD: {}", "情報 HUD: {}"},
     {"hudCoordinates", "Coordinates: {}", "座標: {}"},
     {"hudDimension", "Dimension: {}", "ディメンション: {}"},

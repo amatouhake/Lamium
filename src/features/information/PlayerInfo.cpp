@@ -29,7 +29,7 @@ PlayerInfo collectPlayerInfo(IClientInstance& client, PlayerInfoRequest request)
         int ticks = player->getLevel().getTime();
         if (ticks >= 0) result.worldTime = ticks;
     }
-    if ((request.biome || request.light) && finite) {
+    if ((request.biome || request.light || request.weather) && finite) {
         auto safe = [](double value) {
             return value >= double(std::numeric_limits<int>::min())+1
                 && value <= double(std::numeric_limits<int>::max())-1;
