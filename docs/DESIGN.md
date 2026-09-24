@@ -123,6 +123,8 @@ Contents:
   old. No `[switch]` marker text. No background panel for now (text-only
   like the info lines). Fires only after the new state is saved. Setting to
   turn it off. Changes made inside the settings screen do not toast.
+- The HUD is hidden while the settings screen is open (the overlap hurt
+  readability); the layout editor shows it on purpose.
 - The gameplay key-hint overlay is removed; an "Open Hotkeys" action replaces
   it.
 - Appearance options stay at scale, background and shadow for now; add text

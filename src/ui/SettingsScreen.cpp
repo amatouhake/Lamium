@@ -1425,7 +1425,7 @@ void render(ll::event::UIRenderEvent& event) {
         }
     }
     if (!scene) return;
-    information::drawHud(context,size.x,size.y,Runtime::instance().preferences().information);
+    // No HUD under the settings list: the overlap made both hard to read.
     displayedInverseScale = current.getGuiData()->mInvGuiScale;
     glm::vec2 pointer = view.mPointerLocationPrevious;
     if (shapesView()) {
