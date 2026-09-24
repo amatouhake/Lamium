@@ -6,6 +6,10 @@
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/actor/Mob.h"
 #include "mc/world/phys/HitResult.h"
+#include "mc/world/phys/AABB.h"
+#include "mc/world/phys/AABBHitResult.h"
+#include "mc/world/level/ShapeType.h"
+#include <cmath>
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/dimension/Dimension.h"
@@ -14,12 +18,53 @@
 #include <algorithm>
 
 namespace lamium::information {
-std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates) {
+namespace {
+// What a detached camera looks at: the nearest block or entity box along the
+// ray. Only owned values and this frame's pointers leave this function.
+struct Pick { HitResultType type = HitResultType::NoHit; BlockPos block; Actor* entity = nullptr; };
+Pick pickAlong(LocalPlayer& player, ViewRay const& ray) {
+    Vec3 from{static_cast<float>(ray.x), static_cast<float>(ray.y), static_cast<float>(ray.z)};
+    Vec3 to{static_cast<float>(ray.x + ray.dx * ray.reach), static_cast<float>(ray.y + ray.dy * ray.reach),
+            static_cast<float>(ray.z + ray.dz * ray.reach)};
+    auto distance = [&](Vec3 const& p) {
+        double dx = p.x - from.x, dy = p.y - from.y, dz = p.z - from.z;
+        return std::sqrt(dx * dx + dy * dy + dz * dz);
+    };
+    auto& source = player.getDimensionBlockSource();
+    Pick pick;
+    double best = ray.reach;
+    auto hit = source.clip(from, to, false, ShapeType::Outline, static_cast<int>(ray.reach) + 1, false, false, nullptr,
+        [](BlockSource const&, Block const&, bool) { return true; }, false);
+    if (hit.mType == HitResultType::Tile) {
+        pick = {HitResultType::Tile, hit.mBlock, nullptr};
+        best = distance(hit.mPos);
+    }
+    AABB area{Vec3{std::min(from.x, to.x) - 1, std::min(from.y, to.y) - 1, std::min(from.z, to.z) - 1},
+              Vec3{std::max(from.x, to.x) + 1, std::max(from.y, to.y) + 1, std::max(from.z, to.z) + 1}};
+    for (Actor* actor : source.fetchEntities(&player, area, true, false)) {
+        if (!actor || actor->mRemoved) continue;
+        auto result = actor->getAABB().clip(from, to);
+        if (!result.mIsHit) continue;
+        double d = distance(result.mPos);
+        if (d < best) { best = d; pick = {HitResultType::Entity, {}, actor}; }
+    }
+    return pick;
+}
+}
+std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates, std::optional<ViewRay> ray) {
     auto* player = client.getLocalPlayer();
     if (!player) return {};
-    auto const& hit = client.getLatestHitResult();
+    Pick pick;
+    if (ray) pick = pickAlong(*player, *ray);
+    else {
+        auto const& latest = client.getLatestHitResult();
+        pick.type = latest.mType;
+        pick.block = latest.mBlock;
+        if (latest.mType == HitResultType::Entity) pick.entity = latest.getEntity();
+    }
+    struct { HitResultType mType; BlockPos mBlock; } hit{pick.type, pick.block};
     if (hit.mType == HitResultType::Entity) {
-        auto* entity = hit.getEntity();
+        auto* entity = pick.entity;
         if (!entity || entity == player || entity->mRemoved
             || entity->getDimensionId() != player->getDimensionId()) return {};
         // Respect the game's filtered name, then use its localized entity type.
@@ -64,10 +109,10 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     TargetInfo result{block.buildDescriptionName(),block.getTypeName()};
     result.blockPosition = TargetInfo::BlockPosition{hit.mBlock.x,hit.mBlock.y,hit.mBlock.z};
     // The pick-block item (seeds for crops, the block item otherwise).
-    auto pick = block.asItemInstance(source, hit.mBlock, true);
-    if (!pick.isNull() && pick.mItem) {
-        result.iconItem = pick.mItem->mFullName->getString();
-        result.iconAux = pick.getAuxValue();
+    auto item = block.asItemInstance(source, hit.mBlock, true);
+    if (!item.isNull() && item.mItem) {
+        result.iconItem = item.mItem->mFullName->getString();
+        result.iconAux = item.getAuxValue();
     }
     if (result.name.empty()) result.name = result.identifier;
     if (includeStates) {

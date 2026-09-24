@@ -79,5 +79,8 @@ inline std::optional<TargetInfo::DetailRow> interpretBlockState(std::string_view
         return DetailRow{"target.hinge", number ? "target.hingeRight" : "target.hingeLeft", true, {}};
     return {};
 }
-std::optional<TargetInfo> collectTargetInfo(IClientInstance&, bool includeStates = false);
+// A camera ray for detached views; without one the game's own hit is used.
+struct ViewRay { double x, y, z, dx, dy, dz; double reach; };
+std::optional<TargetInfo> collectTargetInfo(IClientInstance&, bool includeStates = false,
+                                            std::optional<ViewRay> ray = std::nullopt);
 }

@@ -94,6 +94,10 @@ public:
     void keepHead(LocalPlayer&);
     std::optional<DetachedLookState::Angles> lookAngles();
     std::optional<DetachedLookState::Angles> lookAnglesFor(IClientInstance const&);
+    // Where the detached camera looks from and toward (Freelook or FreeCamera),
+    // for readouts that should follow the camera rather than the body.
+    struct ViewRay { double x, y, z, dx, dy, dz; };
+    std::optional<ViewRay> detachedViewRay(IClientInstance&);
     void release() { state.release(); }
     void reset() {
         // A pending perspective travel restores first (it needs the client).

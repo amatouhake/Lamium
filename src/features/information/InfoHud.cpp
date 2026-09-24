@@ -5,6 +5,7 @@
 #include "features/information/TargetInfo.h"
 #include "features/information/TargetCard.h"
 #include "features/information/DebugView.h"
+#include "features/camera/Zoom.h"
 #include "features/interaction/BreakingRestriction.h"
 #include "features/interaction/PeriodicInput.h"
 #include "features/interaction/PermanentSneak.h"
@@ -321,7 +322,12 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         box(ui::HudElementId::Status) = drawElement(context, width, height, hud.status, lines);
     }
     if (preview || settings.target) {
-        auto target = collectTargetInfo(context.mClient, true);
+        // A detached camera (Freelook, FreeCamera) looks elsewhere than the
+        // body, so pick along the camera ray instead of the game's hit.
+        std::optional<ViewRay> ray;
+        if (auto view = Zoom::instance().detachedViewRay(context.mClient))
+            ray = ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, 24};
+        auto target = collectTargetInfo(context.mClient, true, ray);
         if (!target && preview) {
             TargetInfo sample{ui::translated("feature.targetInfo"), "minecraft:grass_block", "minecraft:grass_block"};
             box(ui::HudElementId::Target) = drawTargetCard(context, width, height, hud.target, sample, settings, false);

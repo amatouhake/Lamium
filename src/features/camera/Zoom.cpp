@@ -1,4 +1,5 @@
 #include "features/camera/Zoom.h"
+#include <numbers>
 #include "features/camera/CameraInteraction.h"
 #include "features/camera/CameraMovementInput.h"
 #include "settings/Settings.h"
@@ -502,6 +503,28 @@ float Zoom::fov(IClientInstance const& renderedClient, float base) const {
 float Zoom::sensitivity(LocalPlayer const& player) const {
     auto* current = client.load();
     return running && current && current->getLocalPlayer() == &player ? state.sensitivity() : 1.f;
+}
+std::optional<Zoom::ViewRay> Zoom::detachedViewRay(IClientInstance& current) {
+    if (lookOwner.load() == DetachedOwner::None) return {};
+    auto angles = lookAnglesFor(current);
+    auto* player = current.getLocalPlayer();
+    if (!angles || !player) return {};
+    auto eye = player->getEyePos();
+    ViewRay ray{eye.x, eye.y, eye.z, 0, 0, 0};
+    if (lookOwner.load() == DetachedOwner::FreeCamera) {
+        if (auto displacement = motion.snapshot()) {
+            ray.x += (*displacement)[0];
+            ray.y += (*displacement)[1];
+            ray.z += (*displacement)[2];
+        }
+    }
+    // Minecraft angles: yaw 0 faces +Z, positive pitch looks down.
+    double pitch = angles->pitch * std::numbers::pi / 180, yaw = angles->yaw * std::numbers::pi / 180;
+    ray.dx = -std::sin(yaw) * std::cos(pitch);
+    ray.dy = -std::sin(pitch);
+    ray.dz = std::cos(yaw) * std::cos(pitch);
+    if (!std::isfinite(ray.x + ray.y + ray.z + ray.dx + ray.dy + ray.dz)) return {};
+    return ray;
 }
 std::optional<DetachedLookState::Angles> Zoom::lookAnglesFor(IClientInstance const& renderedClient) {
     // A different viewport must neither consume nor cancel the owner's session.
