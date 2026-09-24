@@ -1,12 +1,14 @@
 #include "features/information/TargetInfo.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
+#include "mc/world/actor/Mob.h"
 #include "mc/world/phys/HitResult.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/dimension/Dimension.h"
 #include "mc/locale/I18n.h"
 #include "mc/deps/nbt/CompoundTagVariant.h"
+#include <algorithm>
 
 namespace lamium::information {
 std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates) {
@@ -24,6 +26,27 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
             auto key = entity->getEntityLocNameString();
             result.name = getI18n().get(key,getI18n().getCurrentLanguage());
             if (result.name.empty() || result.name == key) result.name = result.identifier;
+        }
+        // Mob details need no hook beyond the hit reference already held.
+        if (includeStates && entity->hasType(ActorType::Mob)) {
+            int health = entity->getHealth(), maxHealth = entity->getMaxHealth();
+            if (maxHealth > 0 && health >= 0) {
+                float progress = std::clamp(static_cast<float>(health) / maxHealth, 0.f, 1.f);
+                result.details.push_back({"target.health",
+                    std::to_string(health) + " / " + std::to_string(maxHealth), false, progress});
+            }
+            int armor = static_cast<Mob*>(entity)->getArmorValue();
+            if (armor > 0) result.details.push_back({"target.armor", std::to_string(armor), false, {}});
+            result.details.push_back({"target.age", entity->isBaby() ? "target.baby" : "target.adult", true, {}});
+            if (entity->isTame()) {
+                std::string owner = "target.yes";
+                bool ownerIsKey = true;
+                if (auto* ownerMob = entity->getOwner()) {
+                    auto name = ownerMob->getFilteredNameTag();
+                    if (!name.empty()) { owner = std::move(name); ownerIsKey = false; }
+                }
+                result.details.push_back({"target.tamed", std::move(owner), ownerIsKey, {}});
+            }
         }
         return result;
     }
@@ -43,6 +66,17 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         if (found != tags.end()) {
             if (auto* states = std::get_if<CompoundTag>(&found->second.mTagStorage)) {
                 for (auto const& [key,value] : states->mTags) {
+                    std::optional<TargetInfo::DetailRow> detail;
+                    if (auto* v = std::get_if<ByteTag>(&value.mTagStorage))
+                        detail = interpretBlockState(key, StateKind::Integer, v->data, {}, result.identifier);
+                    else if (auto* v = std::get_if<IntTag>(&value.mTagStorage))
+                        detail = interpretBlockState(key, StateKind::Integer, v->data, {}, result.identifier);
+                    else if (auto* v = std::get_if<StringTag>(&value.mTagStorage))
+                        detail = interpretBlockState(key, StateKind::Text, 0, *v, result.identifier);
+                    if (detail) {
+                        result.details.push_back(std::move(*detail));
+                        continue;
+                    }
                     std::optional<std::string> text;
                     if (auto* v = std::get_if<ByteTag>(&value.mTagStorage)) text = std::to_string(v->data);
                     else if (auto* v = std::get_if<IntTag>(&value.mTagStorage)) text = std::to_string(v->data);

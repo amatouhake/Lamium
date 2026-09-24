@@ -199,7 +199,10 @@ in-game check against /time query and the visible moon.
   (`PlayerInfo.h` / new `InfoLines.h`).
 
 ### L-07 More target information (providers only)
-Status: ready. The card design is L-08.
+Status: done. Notes 2026-09-24: active effects have no list API (only single
+`getEffect`), so they are omitted; thunder is not part of this task; armor
+rows show only above zero; `facing_direction` 0-5 maps down/up/north/south/
+west/east and crop maxima cover common crops only — confirm in game.
 - Extend `collectTargetInfo` with client-available details: block: growth
   stage for crops, redstone power level, facing/half/open states in readable
   form; entity: health/max health, armor points, baby/adult, tamed/owner if

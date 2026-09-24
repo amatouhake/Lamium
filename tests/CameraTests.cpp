@@ -63,6 +63,8 @@ int main() try {
     hudElementTests();
     extern void infoLinesTests();
     infoLinesTests();
+    extern void targetDetailTests();
+    targetDetailTests();
     extern int runSortPlannerTests();
     check(runSortPlannerTests() == 0, "inventory planning and ordering suites");
     settingsStoreTests();

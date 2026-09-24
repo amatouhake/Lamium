@@ -185,7 +185,11 @@ void drawHud(MinecraftUIRenderContext& context, float width, float height, Setti
                 coordinates = ui::translated("targetBlockPosition", p.x, p.y, p.z);
             }
             int capacity = std::max(1, std::min(10, static_cast<int>((height - 8) / 14)));
-            auto rows = targetRows(*target, settings.targetIdentifier, capacity, coordinates);
+            std::vector<std::string> details;
+            for (auto const& detail : target->details)
+                details.push_back(ui::translated(detail.label) + ": "
+                    + (detail.valueIsKey ? ui::translated(detail.value) : detail.value));
+            auto rows = targetRows(*target, settings.targetIdentifier, capacity, coordinates, details);
             auto& targetLines = rows.lines;
             if (rows.showOmitted) targetLines.push_back(ui::translated("targetMore", std::to_string(rows.omittedStates)));
             std::vector<ElementLine> lines;
