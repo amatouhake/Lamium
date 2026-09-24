@@ -13,6 +13,14 @@ inventory stacks using vanilla inventory operations. No server mod, inventory
 synthesis, packet forgery, or automatic retry loop is required or introduced.
 Bowls, buckets and other consumption replacements remain in the selected slot.
 
+The maintainer also wants an offhand extension if the client exposes a safe
+vanilla-backed path, especially automatically replacing a consumed Totem of
+Undying from the main inventory. Treat this as a distinct observation/transfer
+path until proven otherwise: offhand slot mapping, consumption timing and
+controller permissions must be validated independently from the main-hand
+adapter. Do not emulate success by writing the stack locally or forging an
+inventory packet.
+
 ## Current consumption observation
 
 The native adapter snapshots around main-hand GameMode use callbacks and
