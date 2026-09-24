@@ -17,7 +17,7 @@ namespace lamium::ui::hud_editor {
 namespace {
 // Everything clickable is laid out while drawing and hit-tested on the next
 // press, so drawing and hit testing can never disagree.
-enum class Command { Done, OpenSnap, OpenLines, Snap, ScaleDown, ScaleUp, Background, Shadow, LineSwitch, LineUp, LineDown };
+enum class Command { Done, Reset, OpenSnap, OpenLines, Snap, ScaleDown, ScaleUp, Background, Shadow, LineSwitch, LineUp, LineDown };
 struct Control { Box box; Command command; int arg = 0; std::string line; };
 enum class Popover { None, Snap, Lines };
 struct Drag { HudElementId id; float grabX, grabY, w, h, startX, startY; bool moved = false; std::optional<Drop> drop; };
@@ -31,6 +31,7 @@ Boxes lastBoxes;
 std::vector<Control> controls;
 std::optional<Box> popoverBox;
 float screenW = 0, screenH = 0;
+bool resetArmed = false; // Reset asks for a second press.
 
 constexpr std::array<std::string_view, 9> growLabels{
     "grow.topLeft", "grow.topCenter", "grow.topRight", "grow.middleLeft", "grow.center",
@@ -73,11 +74,14 @@ void moveTo(HudElementId id, float x, float y, Box const& box) {
     save(value);
     spot.reset();
 }
-void button(MinecraftUIRenderContext& context, Box box, std::string text, bool hot, Rgb edge = palette::keyEdge) {
+void button(MinecraftUIRenderContext& context, Box box, std::string text, bool hot, Rgb edge = palette::keyEdge,
+            bool dropdown = false) {
     fill(context, box.x, box.y, box.w, box.h, palette::keyFill, .9f);
     if (hot) fill(context, box.x, box.y, box.w, box.h, palette::white, .08f);
     frame(context, box.x, box.y, box.w, box.h, edge);
-    label(context, box.x, box.y + boxTextInset(), box.w, std::move(text), hot ? palette::text : palette::dim, Align::Center);
+    float textW = dropdown ? box.w - 9 : box.w;
+    label(context, box.x, box.y + boxTextInset(), textW, std::move(text), hot ? palette::text : palette::dim, Align::Center);
+    if (dropdown) chevron(context, box.x + box.w - 9, box.y + 3, true, hot ? palette::text : palette::dim);
 }
 bool hovering(Box const& box, float px, float py) { return box.contains(px, py); }
 void triangle(MinecraftUIRenderContext& context, float x, float y, bool up, Rgb color) {
@@ -86,21 +90,21 @@ void triangle(MinecraftUIRenderContext& context, float x, float y, bool up, Rgb 
 
 // ---- Toolbar ----
 constexpr float barHeight = 15, itemHeight = 11, pad = 2, gap = 3;
-void drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box element, float px, float py) {
+Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box element, float px, float py) {
     auto id = *selected;
     auto background = lookOption(id, "background");
     auto shadow = lookOption(id, "shadow");
     auto const& current = settings::hudElement(value, id);
     // Measure first so the spot can be computed from the real width.
-    std::string snapText = translated("hudEditor.snap") + " v";
+    std::string snapText = translated("hudEditor.snap");
     std::string scaleText = std::format("{}%", static_cast<int>(current.scale));
     std::string backgroundText = background ? optionText(*background, value) : std::string{};
     std::string shadowText = shadow ? splitLabel(translated(shadow->label)).name : std::string{};
-    std::string linesText = translated("hudEditor.lines") + " v";
-    float snapW = textWidth(context, snapText) + 8, scaleW = textWidth(context, "150%") + 24;
+    std::string linesText = translated("hudEditor.lines");
+    float snapW = textWidth(context, snapText) + 17, scaleW = textWidth(context, "150%") + 24;
     float backgroundW = textWidth(context, backgroundText) + 8;
     float shadowW = textWidth(context, shadowText) + switchWidth + 10;
-    float linesW = id == HudElementId::Info ? textWidth(context, linesText) + 8 : 0;
+    float linesW = id == HudElementId::Info ? textWidth(context, linesText) + 17 : 0;
     float width = pad + snapW + gap + scaleW + gap + backgroundW + gap + shadowW + (linesW ? gap + linesW : 0) + pad;
     if (!spot || element.overlaps(Box{spot->x, spot->y, width, barHeight}))
         spot = toolbarSpot(element, width, barHeight, screenW, screenH);
@@ -115,7 +119,7 @@ void drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box e
         return box;
     };
     auto snap = add(snapW, Command::OpenSnap);
-    button(context, snap, snapText, popover == Popover::Snap || hovering(snap, px, py));
+    button(context, snap, snapText, popover == Popover::Snap || hovering(snap, px, py), palette::keyEdge, true);
     // Scale: arrows at both ends of one field.
     Box scaleBox{x, y, scaleW, itemHeight};
     fill(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyFill, .9f);
@@ -139,7 +143,7 @@ void drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box e
     }
     if (linesW) {
         auto box = add(linesW, Command::OpenLines);
-        button(context, box, linesText, popover == Popover::Lines || hovering(box, px, py));
+        button(context, box, linesText, popover == Popover::Lines || hovering(box, px, py), palette::keyEdge, true);
     }
     popoverBox.reset();
     if (popover == Popover::Snap) {
@@ -190,22 +194,46 @@ void drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box e
             controls.push_back({{at.x + w - 15, ry, 13, rowH}, Command::LineDown, 0, line});
         }
     }
+    return bar;
 }
-void drawHint(MinecraftUIRenderContext& context, float px, float py) {
-    std::string text = translated("hudEditor.hint");
+// Reset and Done sit in a bottom corner, clear of elements and the toolbar.
+void drawActions(MinecraftUIRenderContext& context, std::optional<Box> toolbar, float px, float py) {
+    std::string reset = translated(resetArmed ? "hudEditor.resetConfirm"
+        : selected ? "hudEditor.resetElement" : "hudEditor.resetAll");
     std::string done = translated("hudEditor.done");
-    float doneW = textWidth(context, done) + 12;
-    float w = textWidth(context, text) + doneW + 16, h = 15;
-    float x = (screenW - w) / 2, y = screenH / 2 + 14;
-    panel(context, x, y, w, h, .85f);
-    frame(context, x, y, w, h, palette::white, .14f);
-    label(context, x + 5, y + 2 + boxTextInset(), w - doneW - 12, text, palette::dim);
-    Box doneBox{x + w - doneW - 2, y + 2, doneW, itemHeight};
+    float resetW = textWidth(context, reset) + 10, doneW = textWidth(context, done) + 10;
+    float w = resetW + doneW + 3 * pad + 1, h = barHeight;
+    auto placeAt = [&](float x) { return Box{x, screenH - h - hudInset, w, h}; };
+    auto blocked = [&](Box const& bar) {
+        if (toolbar && toolbar->overlaps(bar)) return true;
+        for (auto const& box : lastBoxes) if (box && box->overlaps(bar)) return true;
+        return false;
+    };
+    Box bar = placeAt(screenW - w - hudInset);
+    if (blocked(bar)) bar = placeAt(hudInset);
+    panel(context, bar.x, bar.y, bar.w, bar.h, .92f);
+    frame(context, bar.x, bar.y, bar.w, bar.h, palette::white, .14f);
+    float y = bar.y + (barHeight - itemHeight) / 2;
+    Box resetBox{bar.x + pad, y, resetW, itemHeight};
+    Box doneBox{resetBox.x + resetW + pad + 1, y, doneW, itemHeight};
+    button(context, resetBox, reset, resetArmed || hovering(resetBox, px, py), resetArmed ? palette::warning : palette::keyEdge);
     button(context, doneBox, done, hovering(doneBox, px, py), palette::accent);
+    controls.push_back({resetBox, Command::Reset});
     controls.push_back({doneBox, Command::Done});
 }
 void run(Control const& control) {
     auto value = Runtime::instance().preferences();
+    if (control.command == Command::Reset) {
+        if (!resetArmed) { resetArmed = true; return; }
+        resetArmed = false;
+        for (auto id : drawOrder)
+            if (!selected || *selected == id) settings::hudElement(value, id) = defaultHudElement(id);
+        if (!selected) value.information.lineOrder = information::defaultLineOrder();
+        spot.reset();
+        save(value);
+        return;
+    }
+    resetArmed = false;
     if (control.command == Command::OpenSnap) { popover = popover == Popover::Snap ? Popover::None : Popover::Snap; return; }
     if (control.command == Command::OpenLines) { popover = popover == Popover::Lines ? Popover::None : Popover::Lines; return; }
     if (!selected) return;
@@ -247,12 +275,13 @@ void reset() {
     spot.reset();
     popover = Popover::None;
     linesFirst = 0;
+    resetArmed = false;
     lastBoxes = {};
     controls.clear();
     popoverBox.reset();
 }
 void select(std::optional<HudElementId> id) {
-    if (selected != id) { spot.reset(); popover = Popover::None; linesFirst = 0; }
+    if (selected != id) { spot.reset(); popover = Popover::None; linesFirst = 0; resetArmed = false; }
     selected = id;
 }
 void render(MinecraftUIRenderContext& context, float width, float height, float pointerX, float pointerY) {
@@ -304,14 +333,17 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
             float tagW = textWidth(context, name) + 6;
             float tagY = box->y - 13 >= 0 ? box->y - 13 : box->y + box->h + 2;
             fill(context, box->x - 1, tagY, tagW, 11, palette::accent);
-            label(context, box->x + 2, tagY + boxTextInset(), tagW - 4, name, palette::panel);
+            labelScaled(context, box->x + 2, tagY + boxTextInset(), tagW - 4, name, 1.f, palette::panel, Align::Left, false);
         }
     }
     context.flushText(0, std::nullopt);
     if (!drag || !drag->moved) {
-        drawHint(context, pointerX, pointerY);
+        std::optional<Box> toolbar;
         if (selected)
-            if (auto const& box = lastBoxes[static_cast<size_t>(*selected)]) drawToolbar(context, value, *box, pointerX, pointerY);
+            if (auto const& box = lastBoxes[static_cast<size_t>(*selected)]) {
+                toolbar = drawToolbar(context, value, *box, pointerX, pointerY);
+            }
+        drawActions(context, toolbar, pointerX, pointerY);
     }
     context.flushText(0, std::nullopt);
 }
@@ -323,6 +355,7 @@ Result press(float x, float y) {
         run(*it);
         return Result::Stay;
     }
+    resetArmed = false;
     if (popoverBox && popoverBox->contains(x, y)) return Result::Stay;
     popover = Popover::None;
     auto id = topmost(lastBoxes, x, y);
@@ -349,6 +382,7 @@ Result key(int key, bool shift) {
     switch (key) {
     case 0x1b:
         if (drag) { drag.reset(); return Result::Stay; }
+        if (resetArmed) { resetArmed = false; return Result::Stay; }
         if (popover != Popover::None) { popover = Popover::None; return Result::Stay; }
         if (selected) { select(std::nullopt); return Result::Stay; }
         return Result::Exit;

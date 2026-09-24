@@ -14,6 +14,7 @@
 #include "features/information/InfoHud.h"
 #include "features/information/InfoLines.h"
 #include "ui/HudEditor.h"
+#include <chrono>
 #include "mc/client/gui/controls/VisualTree.h"
 #include "input/Actions.h"
 #include "input/BindingCapture.h"
@@ -46,7 +47,9 @@ using Column = SettingsTable::Column;
 std::recursive_mutex mutex;
 IClientInstance* client = nullptr;
 std::shared_ptr<AbstractScene> scene;
+std::shared_ptr<AbstractScene> retired; // Popped scene, released next frame.
 bool seen = false;
+std::chrono::steady_clock::time_point openedAt;
 bool closing = false;
 std::string error;
 
@@ -214,6 +217,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsWorldBackground, ll::memory::HookPriority::Normal,
     if (scene.get() == this) return true;
     return origin();
 }
+void clear();
 LL_TYPE_INSTANCE_HOOK(SettingsSceneExit, ll::memory::HookPriority::Normal, UIScene,
     &UIScene::$onScreenExit, void, bool isPopping, bool transitions, std::shared_ptr<AbstractScene> next) {
     bool owned;
@@ -224,6 +228,14 @@ LL_TYPE_INSTANCE_HOOK(SettingsSceneExit, ll::memory::HookPriority::Normal, UISce
     // The native dialog is only our focus owner; its visual exit animation is
     // not rendered. Let it finish exiting without waiting for that animation.
     origin(isPopping, owned ? false : transitions, std::move(next));
+    // Popped by anything (Esc, a dimension change, a disconnect): forget it,
+    // even if it never rendered, so hotkeys do not stay blocked.
+    if (owned && isPopping) {
+        std::lock_guard lock(mutex);
+        // Keep our reference until the next frame: the stack may still be
+        // using this scene after the callback returns.
+        if (scene.get() == this) { retired = scene; clear(); }
+    }
 }
 LL_TYPE_INSTANCE_HOOK(SettingsSceneEntrance, ll::memory::HookPriority::Normal, UIScene,
     &UIScene::$onScreenEntrance, void, bool revisiting, bool transitions) {
@@ -1471,6 +1483,7 @@ void open(IClientInstance& current) {
     scene = current.getSceneFactory().createCommonDialogInfoScreen("Lamium", "");
     if (!scene) return;
     client = &current;
+    openedAt = std::chrono::steady_clock::now();
     current.getSceneFactory().getCurrentSceneStack()->pushScreen(scene, false);
 }
 void openShapes(IClientInstance& current) {
@@ -1514,7 +1527,12 @@ void start() {
     auto& bus = ll::event::EventBus::getInstance();
     listeners[0] = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
         std::lock_guard lock(mutex);
-        if (scene && seen && &event.uiRenderContext().mClient == client && !ownsTop()) clear();
+        retired.reset();
+        if (scene && &event.uiRenderContext().mClient == client && !ownsTop()) {
+            // A push can also be dropped by a screen transition without an exit
+            // callback. Give an unseen dialog a moment to reach the top first.
+            if (seen || std::chrono::steady_clock::now() - openedAt > std::chrono::seconds(3)) clear();
+        }
         if (!scene) render(event);
     });
     listeners[4] = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) {
