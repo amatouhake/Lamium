@@ -78,6 +78,12 @@ p{margin:0}
 .tgt .rows .k{color:var(--mc-faint)}
 .bar{position:relative;display:block;height:12px;min-width:120px;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(0,0,0,.45)}
 .bar b{position:absolute;left:0;top:0;bottom:0;background:var(--accent)}
+.bar.hp b{background:var(--mc-heart)}
+.hud.morph{overflow:hidden;transition:left .16s ease-out,top .16s ease-out,width .16s ease-out,height .16s ease-out}
+.hud.morph > *:not(.outline):not(.tagname){animation:fadein .16s ease-out}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.tbl .r.btn{cursor:pointer}
+.tbl .r.btn:hover{background:rgba(255,255,255,.06)}
 .bar span{position:absolute;right:4px;top:0;font-size:11px;line-height:12px;color:#fff;text-shadow:1px 1px 0 #000}
 .hearts{display:flex;gap:2px;align-items:center}
 .hearts i{width:12px;height:10px;clip-path:polygon(0 20%,20% 0,45% 0,50% 10%,55% 0,80% 0,100% 20%,100% 50%,50% 100%,0 50%);background:var(--mc-heart-empty)}
@@ -159,27 +165,17 @@ svg.guide rect{fill:var(--mc-edit)}
 .cap{display:inline-block;height:16px;line-height:16px;padding:0 5px;font-size:11px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);color:#fff}
 .box ul,.box ol{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:5px}
 .ask{border-color:var(--accent-deep)}
-@media (prefers-reduced-motion: reduce){.lpanel{transition:none}}
+@media (prefers-reduced-motion: reduce){.lpanel,.hud.morph{transition:none}.hud.morph > *{animation:none}}
 </style>
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Lamium · HUD · デモ 2</div>
-    <h1>HUD レイアウト編集の作り直し：編集のしかた、カードの見た目、ターゲットカード</h1>
-    <p class="lede">前回の実装を触って出た違和感をもとに作り直した比較用のデモです。要素はドラッグで動かせます。上のボタンで編集のしかた（A / B / C）とカードの見た目を切り替え、触り比べてください。「固定」はなくし、置いた場所から伸びる向きを自動で決めます。画面の端にもぴったり置けます。</p>
+    <div class="eyebrow">Lamium · HUD · デモ 2（第 2 版）</div>
+    <h1>HUD レイアウト編集：要素に付くツールバーと、切り替えの滑らかなターゲットカード</h1>
+    <p class="lede">1 回目の比較で決まった「B 要素に付くツールバー」「カード A（Bedrock 風）」で作り直した版です。要素をクリックするとツールバーが出ます。見ている対象を切り替えると、カードの大きさがなめらかに変わります。照準先の情報の出し方は、下の「設定画面側の行」をクリックして変えられます。</p>
   </header>
 
   <div class="controls" aria-label="デモの操作">
-    <div class="cgroup"><span class="lab">編集のしかた</span>
-      <button class="seg" data-mode="A" aria-pressed="true">A パネル固定</button>
-      <button class="seg" data-mode="B" aria-pressed="false">B 要素に付くツールバー</button>
-      <button class="seg" data-mode="C" aria-pressed="false">C 移動だけ（設定は一覧）</button>
-    </div>
-    <div class="cgroup"><span class="lab">カードの見た目</span>
-      <button class="seg" data-card="A" aria-pressed="true">A Bedrock 風</button>
-      <button class="seg" data-card="B" aria-pressed="false">B ツールチップ風</button>
-      <button class="seg" data-card="C" aria-pressed="false">C Bedrock＋緑</button>
-    </div>
     <div class="cgroup"><span class="lab">見ている対象</span>
       <button class="seg" data-target="wheat" aria-pressed="true">小麦</button>
       <button class="seg" data-target="zombie" aria-pressed="false">ゾンビ</button>
@@ -205,34 +201,33 @@ svg.guide rect{fill:var(--mc-edit)}
     <section class="box">
       <h2>設定画面側の行</h2>
       <p class="lede" style="margin:0" id="tblhelp"></p>
-      <div class="tblwrap"><div class="tbl" id="tbl" role="img" aria-label="設定画面の行の例"></div></div>
+      <div class="tblwrap"><div class="tbl" id="tbl" aria-label="設定画面の行の例"></div></div>
     </section>
     <section class="box">
-      <h2>このデモで変えたこと</h2>
+      <h2>第 2 版で変えたこと</h2>
       <ul>
-        <li>「基準点を固定」をなくした。置いた場所が画面のどの 3 分の 1 にあるかで、伸びる向きを自動で決める（左下に置いた情報表示は上に伸びる）</li>
-        <li>3×3 のマスは「その位置に寄せる」ボタン。いま基準になっているマスが光る</li>
-        <li>画面の端・中央の線に近づけると吸い付く（黄色い線）。端にもぴったり置ける</li>
-        <li>矢印キーで 1、Shift＋矢印で 10 動かせる（要素を選んでから）</li>
-        <li>ターゲットカードにアイコン、成長のバー、体力のハート、道具の適正を追加</li>
+        <li>ツールバーは、見た目（背景・影・大きさ）を変えても動かない。要素を動かしたあと、または要素がツールバーに重なったときだけ付け直す</li>
+        <li>吸い付く位置は画面の端と、端から 4 マス内側の 2 段。既定の位置は内側の段に置く（見やすい余白）</li>
+        <li>照準先の情報は、表示のしかた・アイコン・ID・体力（ハート / バー / 数値）・成長（バー / 数値）・その他の詳細を設定一覧で選ぶ</li>
+        <li>見ている対象が変わると、カードの大きさと位置が約 0.16 秒でなめらかに変わり、中身はふわっと出る（Jade を参考）</li>
       </ul>
     </section>
   </div>
 
   <section class="box ask">
-    <h2>確認したいこと</h2>
+    <h2>決定事項（2026-09-24）と確認したいこと</h2>
     <ol>
-      <li>編集のしかたは A・B・C のどれがよいか（混ぜてもよい）</li>
-      <li>カードの見た目は A・B・C のどれがよいか</li>
-      <li>ターゲットカードの中身（アイコン、ハート、バー、適正ツール）の方向は合っているか</li>
-      <li>「固定」をなくし、寄せるマスと吸い付きで置く方式で困る場面はないか</li>
+      <li>編集のしかたは B（要素に付くツールバー）。カードの見た目は A（Bedrock 風）</li>
+      <li>「基準点を固定」はなくす。3×3 は「寄せる」ボタン。画面の端にも置けるが、既定は少し内側</li>
+      <li>設定一覧の配置と見た目の行は、HUD レイアウトへのリンク 1 行にまとめる。全般に「HUD レイアウトを開く」キーを置く</li>
+      <li>確認したいこと：ツールバーの振る舞い、吸い付きの 2 段、照準先の情報の設定項目、切り替えのアニメーションの速さ</li>
     </ol>
   </section>
 </div>
 
 <script>
 (() => {
-const W = 960, H = 540, SNAP = 8, INSET = 4;
+const W = 960, H = 540, SNAP = 8, INSET = 8; // INSET: 4 GUI units
 const ANCH = {tl:[0,0],tc:[.5,0],tr:[1,0],ml:[0,.5],mc:[.5,.5],mr:[1,.5],bl:[0,1],bc:[.5,1],br:[1,1]};
 const ANAME = {tl:'左上',tc:'上中央',tr:'右上',ml:'左中央',mc:'中央',mr:'右中央',bl:'左下',bc:'下中央',br:'右下'};
 const GROW = {tl:'右下へ伸びる',tc:'下へ伸びる',tr:'左下へ伸びる',ml:'右へ伸びる',mc:'上下に伸びる',mr:'左へ伸びる',bl:'右上へ伸びる',bc:'上へ伸びる',br:'左上へ伸びる'};
@@ -259,10 +254,13 @@ const DEF = {
   info:{anchor:'tl', dx:INSET, dy:INSET, scale:100, bg:'plain', shadow:true},
   target:{anchor:'tc', dx:0, dy:INSET, scale:100, bg:'card', shadow:false, style:'card'},
   status:{anchor:'mr', dx:-INSET, dy:-40, scale:100, bg:'plain', shadow:true},
-  toast:{anchor:'bc', dx:0, dy:-56, scale:100, bg:'card', shadow:false},
+  toast:{anchor:'bc', dx:0, dy:-60, scale:100, bg:'card', shadow:false},
 };
 const el = JSON.parse(JSON.stringify(DEF));
-const st = {mode:'A', card:'A', target:'wheat', sel:null, drag:null, panelSide:'right', pop:null, toast:null};
+const st = {mode:'B', card:'A', target:'wheat', sel:null, drag:null, panelSide:'right', pop:null, toast:null, tb:null, shownTarget:null, prevTarget:null};
+const tset = {style:'card', icon:true, id:true, health:'hearts', growth:'bar', details:true};
+const CHOICES = {style:['card','simple'], health:['hearts','bar','number'], growth:['bar','number']};
+const LABELS = {card:'カード', simple:'簡易', hearts:'ハート', bar:'バー', number:'数値'};
 const $ = id => document.getElementById(id);
 const stage = $('stage'), huds = $('huds'), chrome = $('chrome'), guide = $('guide'), anchorsEl = $('anchors');
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -299,9 +297,10 @@ function content(id){
   }
   if (id === 'target') {
     const t = TARGETS[st.target];
-    if (el.target.style === 'simple') return `<div>${esc(t.name)}</div><div class="k">${esc(t.id)}</div>` + t.rows.map(([k,v]) => `<div><span class="k">${esc(k)}:</span> ${esc(plain(v))}</div>`).join('');
-    return `<div class="tgt"><span data-icon="${t.icon}"></span><div><div class="nm">${esc(t.name)}</div><div class="src">${esc(t.id)}</div></div>
-      <div class="rows">${t.rows.map(([k,v]) => `<span class="k">${esc(k)}</span><span>${value(v)}</span>`).join('')}</div></div>`;
+    if (tset.style === 'simple') return `<div>${esc(t.name)}</div><div class="k">${esc(t.id)}</div>` + t.rows.map(([k,v]) => `<div><span class="k">${esc(k)}:</span> ${esc(plain(v))}</div>`).join('');
+    const rows = t.rows.filter(([k]) => tset.details || k === '体力' || k === '成長');
+    return `<div class="tgt">${tset.icon ? `<span data-icon="${t.icon}"></span>` : ''}<div${tset.icon ? '' : ' style="grid-column:1 / -1"'}><div class="nm">${esc(t.name)}</div>${tset.id ? `<div class="src">${esc(t.id)}</div>` : ''}</div>
+      ${rows.length ? `<div class="rows">${rows.map(([k,v]) => `<span class="k">${esc(k)}</span><span>${value(v)}</span>`).join('')}</div>` : ''}</div>`;
   }
   if (id === 'status') return `<div class="chip">周期攻撃: 0.6 秒</div><div class="chip">常時スニーク</div><div class="chip warn">破壊制限: 高さ 2 マス</div>`;
   const t = st.toast || {name:'道具の自動切り替え', on:true};
@@ -310,6 +309,9 @@ function content(id){
 function plain(v){ if (typeof v === 'string') return v; if (v.bar !== undefined) return v.text; if (v.hearts !== undefined) return `${v.hearts} / ${v.max}`; return v.pill; }
 function value(v){
   if (typeof v === 'string') return esc(v);
+  if (v.bar !== undefined && tset.growth === 'number') return esc(v.text);
+  if (v.hearts !== undefined && tset.health === 'number') return esc(`${v.hearts} / ${v.max}`);
+  if (v.hearts !== undefined && tset.health === 'bar') return `<span class="bar hp"><b style="width:${Math.round(v.hearts/v.max*100)}%"></b><span>${v.hearts} / ${v.max}</span></span>`;
   if (v.bar !== undefined) return `<span class="bar"><b style="width:${Math.round(v.bar*100)}%"></b><span>${esc(v.text)}</span></span>`;
   if (v.hearts !== undefined) {
     let h = ''; for (let i = 0; i < v.max/2; i++) { const left = v.hearts - i*2; h += `<i class="${left >= 2 ? 'f' : left === 1 ? 'h' : ''}"></i>`; }
@@ -332,8 +334,8 @@ function position(id, w, h){
 // Magnet: edges and center lines within SNAP pixels.
 function magnet(x, y, w, h){
   const lines = [];
-  const xs = [[0, 0, 'v', 0], [W - w, W, 'v', 0], [W/2 - w/2, W/2, 'v', 0]];
-  const ys = [[0, 0, 'h', 0], [H - h, H, 'h', 0], [H/2 - h/2, H/2, 'h', 0]];
+  const xs = [[INSET, INSET], [W - w - INSET, W - INSET], [0, 0], [W - w, W], [W/2 - w/2, W/2]];
+  const ys = [[INSET, INSET], [H - h - INSET, H - INSET], [0, 0], [H - h, H], [H/2 - h/2, H/2]];
   for (const [target, at] of xs) if (Math.abs(x - target) < SNAP) { x = target; lines.push(['v', at]); break; }
   for (const [target, at] of ys) if (Math.abs(y - target) < SNAP) { y = target; lines.push(['h', at]); break; }
   return [x, y, lines];
@@ -369,9 +371,22 @@ function render(){
     else [x, y] = position(id, w, h);
     d.style.left = x + 'px'; d.style.top = y + 'px';
     if (y < 30) d.classList.add('low');
+    const prev = boxes[id];
+    if (id === 'target' && st.morph && prev && !st.drag) {
+      // Start at the old box, then ease to the new one while the content fades in.
+      d.classList.add('morph');
+      d.style.width = (prev.w / (e.scale/100)) + 'px'; d.style.height = (prev.h / (e.scale/100)) + 'px';
+      d.style.left = prev.x + 'px'; d.style.top = prev.y + 'px';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        d.style.width = (w / (e.scale/100)) + 'px'; d.style.height = (h / (e.scale/100)) + 'px';
+        d.style.left = x + 'px'; d.style.top = y + 'px';
+      }));
+      setTimeout(() => { d.classList.remove('morph'); d.style.width = ''; d.style.height = ''; }, 200);
+    }
     boxes[id] = {x, y, w, h};
     d.addEventListener('pointerdown', ev => startDrag(ev, id));
   }
+  st.morph = false;
   renderGuides();
   renderChrome();
   renderTable();
@@ -419,7 +434,6 @@ function toolbarB(id){
   let html = `<button class="tbtn" data-pop="grid" aria-expanded="${st.pop==='grid'}">寄せる ▾</button><span class="sep"></span>`;
   html += `<span class="stepper"><button data-step="scale" data-d="-1" aria-label="小さく">−</button><output>${e.scale}%</output><button data-step="scale" data-d="1" aria-label="大きく">+</button></span>`;
   html += `<button class="tbtn" data-choice="bg">${e.bg==='card'?'カード':'背景なし'}</button><button class="tbtn" data-toggle="shadow">${e.shadow?'影あり':'影なし'}</button>`;
-  if (id === 'target') html += `<button class="tbtn" data-choice="style">${e.style==='card'?'カード表示':'簡易表示'}</button>`;
   if (id === 'info') html += `<span class="sep"></span><button class="tbtn" data-pop="lines" aria-expanded="${st.pop==='lines'}">項目 ▾</button>`;
   return html;
 }
@@ -445,10 +459,14 @@ function renderChrome(){
     t.className = 'toolbar'; t.innerHTML = toolbarB(st.sel);
     chrome.appendChild(t);
     const tw = t.offsetWidth, th = t.offsetHeight;
-    const below = b.y + b.h + 10 + th < H;
-    const tx = Math.max(4, Math.min(W - tw - 4, b.x));
-    const ty = below ? b.y + b.h + 10 : b.y - th - 30;
-    t.style.left = tx + 'px'; t.style.top = Math.max(4, ty) + 'px';
+    // Re-anchor only when there is no stored spot or the element now covers it.
+    const covers = st.tb && b.x < st.tb.x + tw && b.x + b.w > st.tb.x && b.y < st.tb.y + th && b.y + b.h > st.tb.y;
+    if (!st.tb || covers) {
+      const below = b.y + b.h + 10 + th < H;
+      st.tb = {x:Math.max(4, Math.min(W - tw - 4, b.x)), y:Math.max(4, below ? b.y + b.h + 10 : b.y - th - 30), below};
+    }
+    const tx = st.tb.x, ty = st.tb.y, below = st.tb.below;
+    t.style.left = tx + 'px'; t.style.top = ty + 'px';
     if (st.pop) {
       const pop = document.createElement('div');
       pop.className = 'pop';
@@ -456,7 +474,7 @@ function renderChrome(){
       chrome.appendChild(pop);
       const pw = pop.offsetWidth, ph = pop.offsetHeight;
       pop.style.left = Math.max(4, Math.min(W - pw - 4, tx)) + 'px';
-      const py = below ? Math.max(4, ty) + th + 4 : Math.max(4, ty) - ph - 4;
+      const py = below ? ty + th + 4 : ty - ph - 4;
       pop.style.top = Math.max(4, Math.min(H - ph - 4, py)) + 'px';
     }
   } else if (st.mode === 'C') {
@@ -471,6 +489,11 @@ function renderTable(){
   const link = '<span class="link">HUD レイアウトで編集 ▸</span>';
   let rows = `<div class="r sec">情報・オーバーレイ</div>`;
   rows += `<div class="r"><span>▾ 情報 HUD</span><span class="sw sm on"></span><span><span class="cap">未割り当て</span></span></div>`;
+  rows += `<div class="r"><span>▾ 照準先の情報</span><span class="sw sm on"></span><span><span class="cap">未割り当て</span></span></div>`;
+  const cyc = (k, label, last) => `<div class="r c btn ${last?'last':''}" data-tset="${k}"><span>${label}</span><span></span><span class="v">◀ ${LABELS[tset[k]]} ▶</span></div>`;
+  const tog = (k, label) => `<div class="r c btn" data-tset="${k}"><span>${label}</span><span class="sw sm ${tset[k]?'on':''}"></span><span></span></div>`;
+  rows += cyc('style','表示のしかた') + tog('icon','アイコン') + tog('id','ID') + cyc('health','体力') + cyc('growth','成長') + tog('details','その他の詳細');
+  rows += `<div class="r c last"><span>配置と見た目</span><span></span>${link}</div>`;
   if (st.mode === 'C') {
     rows += `<div class="r c"><span>表示する項目</span><span></span><span class="v">${on}/${LINES.length} ▸</span></div>`;
     rows += `<div class="r c"><span>大きさ</span><span></span><span class="v">◀ ${el.info.scale}% ▶</span></div>`;
@@ -481,17 +504,24 @@ function renderTable(){
   } else {
     rows += `<div class="r c"><span>表示する項目</span><span></span><span class="v">${on}/${LINES.length} ▸</span></div>`;
     rows += `<div class="r c last"><span>配置と見た目</span><span></span>${link}</div>`;
-    $('tblhelp').textContent = 'A・B では、配置と見た目は 1 行のリンクにまとめる。押すとその要素を選んだ状態で HUD レイアウトが開く。';
+    $('tblhelp').textContent = '配置と見た目は 1 行のリンクにまとめ、押すとその要素を選んだ状態で HUD レイアウトが開く。照準先の情報の出し方（体力・成長・詳細など）は好みが分かれるので一覧に置く。行をクリックすると上のカードに反映される。';
   }
   rows += `<div class="r sec">全般</div><div class="r"><span>HUD レイアウトを開く</span><span></span><span><span class="cap">未割り当て</span></span></div>`;
   $('tbl').innerHTML = rows;
 }
+$('tbl').addEventListener('click', ev => {
+  const r = ev.target.closest('[data-tset]'); if (!r) return;
+  const k = r.dataset.tset;
+  if (CHOICES[k]) { const c = CHOICES[k]; tset[k] = c[(c.indexOf(tset[k]) + 1) % c.length]; }
+  else tset[k] = !tset[k];
+  st.morph = true; render();
+});
 
 /* ---------- Dragging ---------- */
 function toStage(ev){ const r = stage.getBoundingClientRect(), k = r.width / W; return [(ev.clientX - r.left)/k, (ev.clientY - r.top)/k]; }
 function startDrag(ev, id){
   ev.preventDefault();
-  if (st.sel !== id) st.pop = null;
+  if (st.sel !== id) { st.pop = null; st.tb = null; }
   st.sel = id;
   const [px, py] = toStage(ev), b = boxes[id];
   st.drag = {id, ox:px - b.x, oy:py - b.y, sx:b.x, sy:b.y, moved:false, x:b.x, y:b.y, lines:[]};
@@ -510,7 +540,7 @@ stage.addEventListener('pointermove', ev => {
 stage.addEventListener('pointerup', () => {
   const g = st.drag; if (!g) return;
   st.drag = null;
-  if (g.moved) place(g.id, g.x, g.y, boxes[g.id].w, boxes[g.id].h);
+  if (g.moved) { place(g.id, g.x, g.y, boxes[g.id].w, boxes[g.id].h); st.tb = null; }
   render();
 });
 stage.addEventListener('pointerdown', ev => {
@@ -526,10 +556,10 @@ chrome.addEventListener('click', ev => {
   else if (b.dataset.done !== undefined) { st.sel = null; st.pop = null; }
   else if (b.dataset.select) st.sel = b.dataset.select;
   else if (b.dataset.pop) st.pop = st.pop === b.dataset.pop ? null : b.dataset.pop;
-  else if (b.dataset.snap) snapTo(id, b.dataset.snap);
+  else if (b.dataset.snap) { snapTo(id, b.dataset.snap); st.tb = null; }
   else if (b.dataset.step === 'scale') e.scale = Math.max(75, Math.min(150, e.scale + (+b.dataset.d)*25));
   else if (b.dataset.choice === 'bg') e.bg = e.bg === 'card' ? 'plain' : 'card';
-  else if (b.dataset.choice === 'style') e.style = e.style === 'card' ? 'simple' : 'card';
+
   else if (b.dataset.toggle === 'shadow') e.shadow = !e.shadow;
   else if (b.dataset.line) { const l = LINES.find(x => x.id === b.dataset.line); l.on = !l.on; }
   else if (b.dataset.move) { const i = +b.dataset.move, j = i + +b.dataset.d; [LINES[i], LINES[j]] = [LINES[j], LINES[i]]; }
@@ -545,6 +575,7 @@ document.addEventListener('keydown', ev => {
   ev.preventDefault();
   const b = boxes[st.sel];
   place(st.sel, Math.max(0, Math.min(W - b.w, b.x + d[0])), Math.max(0, Math.min(H - b.h, b.y + d[1])), b.w, b.h);
+  st.tb = null;
   render();
 });
 
@@ -552,7 +583,7 @@ document.addEventListener('keydown', ev => {
 function pressGroup(attr, value){ document.querySelectorAll(`[data-${attr}]`).forEach(x => x.setAttribute('aria-pressed', x.dataset[attr] === value)); }
 document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { st.mode = b.dataset.mode; st.pop = null; pressGroup('mode', st.mode); render(); });
 document.querySelectorAll('[data-card]').forEach(b => b.onclick = () => { st.card = b.dataset.card; pressGroup('card', st.card); render(); });
-document.querySelectorAll('[data-target]').forEach(b => b.onclick = () => { st.target = b.dataset.target; pressGroup('target', st.target); render(); });
+document.querySelectorAll('[data-target]').forEach(b => b.onclick = () => { if (st.target !== b.dataset.target) st.morph = true; st.target = b.dataset.target; pressGroup('target', st.target); render(); });
 let toastState = false, toastTimer;
 $('toastBtn').onclick = () => {
   toastState = !toastState; st.toast = {name:'暗視', on:toastState}; render();
