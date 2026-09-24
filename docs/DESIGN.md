@@ -45,6 +45,7 @@ All colors come from `ui::palette` in `src/ui/Widgets.h`:
 | `text` / `dim` / `faint` | Primary text / secondary text and icons / hints |
 | `accent`, `accentDeep` | Switch on, selection, links, primary buttons |
 | `off` | Switch off track |
+| `shadow` | HUD text shadow |
 | `keyFill`, `keyEdge` | Key caps |
 | `experimental` | "Experimental" badge |
 | `warning` | Warnings (e.g. Simple graphics notice) |

@@ -65,7 +65,7 @@ void drawElement(MinecraftUIRenderContext& context, float width, float height, u
         }
         float textWidth = std::min(textWidths[i], contentWidth - (textX - x - padX));
         if (element.shadow)
-            ui::labelScaled(context, textX + zoom, y + zoom, textWidth + 2, lines[i].text, zoom, {0, 0, 0});
+            ui::labelScaled(context, textX + zoom, y + zoom, textWidth + 2, lines[i].text, zoom, ui::palette::shadow);
         ui::labelScaled(context, textX, y, textWidth + 2, lines[i].text, zoom);
     }
     context.flushText(0, std::nullopt);
@@ -206,7 +206,7 @@ void drawHud(MinecraftUIRenderContext& context, float width, float height, Setti
             ui::toggleSwitch(context, placement.x, placement.y + (14 * zoom - ui::switchHeight) / 2, toast->on);
             if (runtime.hud.toast.shadow)
                 ui::labelScaled(context, placement.x + ui::switchWidth + 6 + zoom, placement.y + zoom,
-                    textWidth + 2, std::string(toast->text), zoom, {0, 0, 0});
+                    textWidth + 2, std::string(toast->text), zoom, ui::palette::shadow);
             ui::labelScaled(context, placement.x + ui::switchWidth + 6, placement.y, textWidth + 2,
                 std::string(toast->text), zoom, toast->opacity < 1 ? ui::palette::dim : ui::palette::text);
             context.flushText(0, std::nullopt);
