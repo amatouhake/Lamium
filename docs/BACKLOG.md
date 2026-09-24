@@ -139,7 +139,9 @@ feature, so all three screen openers group under 全般 in Hotkeys.
 ### L-03 Toggle toast
 Status: done. Follow-up 2026-09-24: no `[switch]` marker and no background
 panel (HUD-pass fills render opaque); the last 0.3 s dims the text instead
-of fading; the toast fires only after the new state is saved.
+of fading; the toast fires only after the new state is saved. Open: the
+toggle switch stays fixed-size when the toast element scales; decide after
+seeing it in game.
 - When a Toggle action changes a feature from a hotkey, show the feature
   name with its toggle switch for 1.5 s centered above the hotbar, dimming
   over the last 0.3 s. A new toast replaces the current one. Not shown for
