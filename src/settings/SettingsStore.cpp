@@ -96,7 +96,8 @@ Json encode(Settings const& settings) {
                         {"durability", settings.inspection.durability}}},
         {"inventory", {{"sorting", settings.inventory.sorting}, {"sortContainers", settings.inventory.sortContainers},
                        {"toolSwitch", settings.inventory.toolSwitch}, {"handRestock", settings.inventory.handRestock}}},
-        {"interface", {{"toggleToasts", settings.ui.toggleToasts}, {"automationStatus", settings.ui.automationStatus}}},
+        {"interface", {{"toggleToasts", settings.ui.toggleToasts}, {"automationStatus", settings.ui.automationStatus},
+                       {"animations", settings.ui.animations}}},
         {"hud", {{"info", encodeHudElement(settings.hud.info)}, {"target", encodeHudElement(settings.hud.target)},
                    {"status", encodeHudElement(settings.hud.status)}, {"toast", encodeHudElement(settings.hud.toast)}}}
     };
@@ -217,6 +218,7 @@ Settings decodeSettings(std::string_view text) {
     }
     if (data.contains("interface")) {
         value.ui.toggleToasts = data.at("interface").value("toggleToasts", true);
+        value.ui.animations = data.at("interface").value("animations", 0);
         value.ui.automationStatus = data.at("interface").value("automationStatus", true);
     }
     if (data.contains("hud") && data.at("hud").is_object()) {

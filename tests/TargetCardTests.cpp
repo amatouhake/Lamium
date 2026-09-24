@@ -43,6 +43,10 @@ void targetCardTests() {
     check(hearts(0)[0] == Heart::Empty && hearts(2.f)[9] == Heart::Full, "hearts clamp to the range");
     check(spawnEggItem("minecraft:zombie") == "minecraft:zombie_spawn_egg" && spawnEggItem("").empty(),
           "mobs use their spawn egg as the icon");
+    check(spawnEggItem("minecraft:villager_v2") == "minecraft:villager_spawn_egg"
+          && spawnEggItem("minecraft:zombie_villager_v2") == "minecraft:zombie_villager_spawn_egg"
+          && spawnEggItem("minecraft:evocation_illager") == "minecraft:evoker_spawn_egg",
+          "renamed entities map to their egg");
     check(morphProgress(0) == 0 && morphProgress(morphSeconds) == 1 && morphProgress(1) == 1
           && morphProgress(morphSeconds / 2) > .5f, "the card eases out and settles");
 }

@@ -134,8 +134,14 @@ Contents:
   health (hearts / bar / number), growth (bar / number), other details.
   There is no separate "card / simple" style; the element's background
   setting decides whether it has a card. When the target changes, the card
-  eases to its new size and position in about 0.16 s and the content fades
-  in (Jade does the same). Mobs use their spawn egg as the icon.
+  background eases to its new size and position in 0.1 s; the content is
+  always drawn at once (hiding it blanked the card while the view moved).
+  Mobs use their spawn egg as the icon; hearts use the game's health-bar
+  sprites.
+- **Animations** (General): one Lamium-wide setting, "Follow Minecraft"
+  (Video > Screen Animations, the default), On or Off. Why: one switch for
+  every Lamium motion, and people who turned animations off in Minecraft
+  get the same from Lamium without looking for it.
 - **Status**: automation (periodic attack/use, permanent sneak) and breaking/
   placement restriction lines in one element, each with a colored marker
   (accent for automation, warning color for restrictions).

@@ -41,6 +41,10 @@ void rowBackground(MinecraftUIRenderContext&, float left, float top, float width
                    bool selected, bool hovered);
 // Bedrock-style switch: the knob position carries the state as well as color.
 void toggleSwitch(MinecraftUIRenderContext&, float x, float y, bool on);
+// Draws a vanilla UI texture (e.g. "textures/ui/heart") into each rectangle,
+// batched into one flush. Rectangles are x, y, width, height.
+struct ImageRect { float x, y, w, h; };
+void images(MinecraftUIRenderContext&, std::string_view texture, std::vector<ImageRect> const& rects, float opacity = 1);
 constexpr float switchWidth = 18, switchHeight = 9;
 // Glyph-independent disclosure and stepper arrows drawn from rectangles.
 void chevron(MinecraftUIRenderContext&, float x, float y, bool expanded, Rgb color = palette::dim);

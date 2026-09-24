@@ -12,6 +12,12 @@
 #include "mc/deps/core/math/Color.h"
 #include "mc/deps/core/string/HashedString.h"
 #include "mc/deps/input/RectangleArea.h"
+#include "mc/deps/core/file/PathView.h"
+#include "mc/deps/core/resource/ResourceLocation.h"
+#include "mc/deps/minecraft_renderer/renderer/BedrockTextureData.h"
+#include "mc/deps/minecraft_renderer/renderer/TexturePtr.h"
+#include "mc/deps/minecraft_renderer/resources/ClientTexture.h"
+#include <glm/vec2.hpp>
 #include "mc/locale/I18n.h"
 #include "mc/locale/Localization.h"
 #include "ui/Translations.h"
@@ -117,6 +123,17 @@ void rowBackground(MinecraftUIRenderContext& context, float left, float top, flo
         fill(context,left,top,width,height,palette::accent,.16f);
         frame(context,left,top,width,height,palette::accent,.9f);
     } else if (hovered) fill(context,left,top,width,height,palette::white,.07f);
+}
+void images(MinecraftUIRenderContext& context, std::string_view texture, std::vector<ImageRect> const& rects,
+            float opacity) {
+    if (rects.empty()) return;
+    auto pointer = context.getTexture(ResourceLocation(Core::PathView(texture)), false);
+    std::shared_ptr<BedrockTextureData const> const& data = pointer.mClientTexture;
+    if (!data) return;
+    for (auto const& r : rects)
+        context.drawImage(*data->mClientTexture, glm::vec2{r.x, r.y}, glm::vec2{r.w, r.h}, glm::vec2{0, 0},
+                          glm::vec2{1, 1}, false);
+    context.flushImages(white, std::clamp(opacity, 0.f, 1.f), HashedString{"ui_textured_and_glcolor"});
 }
 void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on) {
     fill(context,x,y,switchWidth,switchHeight,on ? palette::accentDeep : palette::off);

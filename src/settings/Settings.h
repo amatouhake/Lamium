@@ -47,6 +47,7 @@ struct Settings {
         bool handRestock = false;
     } inventory;
     struct Interface {
+        int animations = 0; // 0 follow Minecraft's Screen Animations, 1 on, 2 off
         bool toggleToasts = true;
         bool automationStatus = true;
     } ui;
@@ -103,6 +104,7 @@ struct Settings {
         auto normalizeMode = [](auto& mode) { if (static_cast<unsigned>(mode) >= 4) mode = lamium::interaction::RestrictionMode::Plane; };
         normalizeMode(interaction.breakingMode);
         information.targetHealth = std::clamp(information.targetHealth, 0, 2);
+        ui.animations = std::clamp(ui.animations, 0, 2);
         information.targetGrowth = std::clamp(information.targetGrowth, 0, 1);
         normalizeMode(interaction.placementMode);
         information.lineOrder = information::mergeLineOrder(information.lineOrder);

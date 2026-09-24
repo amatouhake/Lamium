@@ -65,12 +65,16 @@ inline std::array<Heart, 10> hearts(float progress) {
     return result;
 }
 // Mobs have no item of their own; their spawn egg stands in as the icon.
+// A few Bedrock entity ids differ from their egg's name.
 inline std::string spawnEggItem(std::string_view entityIdentifier) {
     if (entityIdentifier.empty()) return {};
-    return std::string(entityIdentifier) + "_spawn_egg";
+    std::string id(entityIdentifier);
+    if (id.ends_with("_v2")) id.resize(id.size() - 3); // villager_v2, zombie_villager_v2
+    if (id == "minecraft:evocation_illager") id = "minecraft:evoker";
+    return id + "_spawn_egg";
 }
-// The card eases between targets: 0.16 s, ease-out.
-inline constexpr double morphSeconds = 0.16;
+// The card eases between targets: 0.1 s, ease-out.
+inline constexpr double morphSeconds = 0.1;
 inline float morphProgress(double elapsed) {
     if (!(elapsed > 0)) return 0;
     double t = std::min(1.0, elapsed / morphSeconds);

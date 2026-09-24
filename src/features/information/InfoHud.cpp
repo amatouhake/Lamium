@@ -19,6 +19,7 @@
 #include "mc/client/renderer/BaseActorRenderContext.h"
 #include "mc/client/renderer/actor/ItemRenderer.h"
 #include "mc/world/item/ItemStack.h"
+#include "mc/client/options/IOptionRegistry.h"
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -75,20 +76,24 @@ std::optional<ui::hud_editor::Box> drawElement(MinecraftUIRenderContext& context
     return ui::hud_editor::Box{placement.x, placement.y, boxWidth, boxHeight};
 }
 // ---- Target card ----
-// Pixel heart like the vanilla health bar (7x6), drawn from rectangles.
-void heartIcon(MinecraftUIRenderContext& context, float x, float y, float unit, Heart fill) {
-    constexpr int rows[6][2] = {{1, 5}, {0, 7}, {0, 7}, {1, 5}, {2, 3}, {3, 1}};
-    for (int r = 0; r < 6; ++r) {
-        float left = x + rows[r][0] * unit, width = rows[r][1] * unit, top = y + r * unit;
-        if (fill == Heart::Full) ui::fill(context, left, top, width, unit, ui::palette::heart);
-        else if (fill == Heart::Empty) ui::fill(context, left, top, width, unit, ui::palette::heartEmpty);
-        else {
-            float half = x + 3.5f * unit;
-            float split = std::clamp(half - left, 0.f, width);
-            ui::fill(context, left, top, split, unit, ui::palette::heart);
-            ui::fill(context, left + split, top, width - split, unit, ui::palette::heartEmpty);
-        }
+// Hearts use the game's own health-bar sprites (9x9, overlapping by one).
+void heartRow(MinecraftUIRenderContext& context, float x, float y, float unit, std::array<Heart, 10> const& icons) {
+    std::vector<ui::ImageRect> backs, fulls, halves;
+    for (int h = 0; h < 10; ++h) {
+        ui::ImageRect r{x + h * 8 * unit, y, 9 * unit, 9 * unit};
+        backs.push_back(r);
+        if (icons[h] == Heart::Full) fulls.push_back(r);
+        else if (icons[h] == Heart::Half) halves.push_back(r);
     }
+    ui::images(context, "textures/ui/heart_background", backs);
+    ui::images(context, "textures/ui/heart", fulls);
+    ui::images(context, "textures/ui/heart_half", halves);
+}
+bool animationsOn(IClientInstance& client) {
+    auto mode = Runtime::instance().preferences().ui.animations;
+    if (mode == 1) return true;
+    if (mode == 2) return false;
+    try { return client.getOptions().getScreenAnimations(); } catch (...) { return true; }
 }
 struct CardMorph {
     std::string identity;
@@ -101,6 +106,10 @@ ItemStack iconStack(TargetInfo const& target) {
     if (!target.iconItem.empty()) {
         try { stack.reinit(target.iconItem, 1, target.iconAux); } catch (...) { stack = ItemStack(); }
     }
+    // A fresh stack counts as just picked up, and the renderer would keep
+    // playing the pickup squash on it.
+    stack.mShowPickUp = false;
+    stack.mWasPickedUp = false;
     return stack;
 }
 std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& context, float width, float height,
@@ -129,7 +138,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         labelW = std::max(labelW, ui::textWidthScaled(context, labels.back(), z));
         float valueW = ui::textWidthScaled(context, values.back(), z);
         if (row.progress && row.meter == Meter::Bar) valueW += (barUnits + 4) * z;
-        if (row.progress && row.meter == Meter::Hearts) valueW += (10 * 8 - 1 + 4) * z;
+        if (row.progress && row.meter == Meter::Hearts) valueW += (10 * 8 + 1 + 4) * z;
         valuesW = std::max(valuesW, valueW);
     }
     float nameW = ui::textWidthScaled(context, target.name, z);
@@ -144,10 +153,9 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     auto placement = ui::placeElement(width, height, boxW, boxH, element);
     ui::hud_editor::Box finalBox{placement.x, placement.y, boxW, boxH};
     // Ease the card between targets; the content appears once it settles.
-    auto identity = target.identifier + "|" + target.name
-        + (target.blockPosition ? "|" + std::to_string(target.blockPosition->x) + "," + std::to_string(target.blockPosition->y)
-            + "," + std::to_string(target.blockPosition->z) : std::string{});
-    if (animate && card) {
+    auto identity = target.identifier + "|" + target.name;
+    std::optional<ui::hud_editor::Box> background = finalBox;
+    if (animate && card && animationsOn(context.mClient)) {
         double now = ui::toastNow();
         if (identity != cardMorph.identity) {
             cardMorph.from = cardMorph.shown;
@@ -157,16 +165,12 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         float t = cardMorph.from ? morphProgress(now - cardMorph.start) : 1.f;
         if (t < 1) {
             auto const& a = *cardMorph.from;
-            ui::hud_editor::Box b{a.x + (finalBox.x - a.x) * t, a.y + (finalBox.y - a.y) * t,
-                                  a.w + (finalBox.w - a.w) * t, a.h + (finalBox.h - a.h) * t};
-            ui::card(context, b.x, b.y, b.w, b.h);
-            cardMorph.shown = b;
-            return b;
-        }
-        cardMorph.from.reset();
-        cardMorph.shown = finalBox;
+            background = ui::hud_editor::Box{a.x + (finalBox.x - a.x) * t, a.y + (finalBox.y - a.y) * t,
+                                             a.w + (finalBox.w - a.w) * t, a.h + (finalBox.h - a.h) * t};
+        } else cardMorph.from.reset();
+        cardMorph.shown = background;
     }
-    if (card) ui::card(context, finalBox.x, finalBox.y, finalBox.w, finalBox.h);
+    if (card) ui::card(context, background->x, background->y, background->w, background->h);
     float left = finalBox.x + padX, top = finalBox.y + padY;
     if (icon) {
         if (auto* renderer = context.mClient.getItemRenderer()) {
@@ -195,9 +199,8 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
                      health ? ui::palette::heart : ui::palette::accent);
             x += barW + 4 * z;
         } else if (row.progress && row.meter == Meter::Hearts) {
-            auto icons = hearts(*row.progress);
-            for (int h = 0; h < 10; ++h) heartIcon(context, x + h * 8 * z, y + 2 * z, z, icons[h]);
-            x += (10 * 8 - 1 + 4) * z;
+            heartRow(context, x, y + 1 * z, z, hearts(*row.progress));
+            x += (10 * 8 + 1 + 4) * z;
         }
         ui::labelScaled(context, x, y, left + contentW - x + 2, values[i], z, ui::palette::text, ui::Align::Left,
                         element.shadow);

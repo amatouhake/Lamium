@@ -47,6 +47,7 @@ constexpr Option choice(std::string_view id, std::string_view feature, std::stri
 inline constexpr std::array<std::string_view,2> activationLabels{"activation.hold","activation.toggle"};
 inline constexpr std::array<std::string_view,3> healthMeterLabels{"meter.hearts","meter.bar","meter.number"};
 inline constexpr std::array<std::string_view,2> growthMeterLabels{"meter.bar","meter.number"};
+inline constexpr std::array<std::string_view,3> animationLabels{"animations.follow","animations.on","animations.off"};
 inline constexpr auto anchorLabels = std::to_array<std::string_view>(
     {"anchor.topLeft", "anchor.topCenter", "anchor.topRight", "anchor.middleLeft", "anchor.center",
      "anchor.middleRight", "anchor.bottomLeft", "anchor.bottomCenter", "anchor.bottomRight"});
@@ -172,6 +173,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inventory, &Settings::Inventory::sorting>("inventory.sorting", "sorting", "sorting"),
     toggle<&Settings::inventory, &Settings::Inventory::sortContainers>("inventory.sortContainers", "sorting", "storage"),
     toggle<&Settings::ui, &Settings::Interface::toggleToasts>("interface.toggleToasts", "settings", "toggleToasts"),
+    choice<&Settings::ui, &Settings::Interface::animations, animationLabels>("interface.animations", "settings", "animations"),
     toggle<&Settings::ui, &Settings::Interface::automationStatus>("interface.automationStatus", "automationStatus", "automationStatus"),
     hudNumeric<ui::HudElementId::Info, &ui::HudElement::scale, 25>("hud.info.scale", "infoHud", "hudScale", 75, 150),
     hudChoice<ui::HudElementId::Info, &ui::HudElement::background, elementBackgroundLabels>("hud.info.background", "infoHud", "hudBackground"),
