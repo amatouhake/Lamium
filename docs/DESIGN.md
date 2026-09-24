@@ -139,7 +139,8 @@ Contents:
   Mobs use their spawn egg as the icon; hearts use the game's health-bar
   sprites.
   While Freelook or FreeCamera is active the card follows the camera: the
-  nearest block or entity box along the camera ray within 24 blocks.
+  nearest block or entity box along the rendered camera's forward, water and
+  lava excluded, within the "Camera reach" setting (default 24, 4-64).
 - **Animations** (General): one Lamium-wide setting, "Follow Minecraft"
   (Video > Screen Animations, the default), On or Off. Why: one switch for
   every Lamium motion, and people who turned animations off in Minecraft

@@ -75,6 +75,7 @@ struct Settings {
         bool targetIcon = true;
         int targetHealth = 0; // 0 hearts, 1 bar, 2 number
         int targetGrowth = 0; // 0 bar, 1 number
+        float targetReach = 24; // Blocks, while Freelook or FreeCamera is active
         bool targetStates = false; // Other details
         bool targetCoordinates = false;
         bool hud = false;
@@ -106,6 +107,8 @@ struct Settings {
         information.targetHealth = std::clamp(information.targetHealth, 0, 2);
         ui.animations = std::clamp(ui.animations, 0, 2);
         information.targetGrowth = std::clamp(information.targetGrowth, 0, 1);
+        if (!std::isfinite(information.targetReach)) information.targetReach = 24;
+        information.targetReach = std::clamp(std::round(information.targetReach), 4.f, 64.f);
         normalizeMode(interaction.placementMode);
         information.lineOrder = information::mergeLineOrder(information.lineOrder);
         if (!std::isfinite(overlays.hitboxDistance)) overlays.hitboxDistance = 64.f;

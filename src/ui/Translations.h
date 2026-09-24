@@ -277,6 +277,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"targetIcon", "Icon: {}", "アイコン: {}"},
     {"targetHealth", "Health: {}", "体力: {}"},
     {"targetGrowth", "Growth: {}", "成長: {}"},
+    {"targetReach", "Camera reach: {} blocks", "カメラ使用時の距離: {} ブロック"},
+    {"help.information.targetReach", "While Freelook or FreeCamera is active, how far along the camera the card looks for a target.", "フリールック・フリーカメラ中に、カメラの先どこまでの対象を表示するか。"},
     {"meter.hearts", "Hearts", "ハート"},
     {"animations", "Animations: {}", "アニメーション: {}"},
     {"animations.follow", "Follow Minecraft", "Minecraft に合わせる"},

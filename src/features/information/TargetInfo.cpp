@@ -34,7 +34,12 @@ Pick pickAlong(LocalPlayer& player, ViewRay const& ray) {
     Pick pick;
     double best = ray.reach;
     auto hit = source.clip(from, to, false, ShapeType::Outline, static_cast<int>(ray.reach) + 1, false, false, nullptr,
-        [](BlockSource const&, Block const&, bool) { return true; }, false);
+        [](BlockSource const&, Block const& block, bool) {
+            // Like the game's own pick, look through water and lava.
+            auto name = block.getTypeName();
+            return name != "minecraft:water" && name != "minecraft:flowing_water" && name != "minecraft:lava"
+                && name != "minecraft:flowing_lava";
+        }, false);
     if (hit.mType == HitResultType::Tile) {
         pick = {HitResultType::Tile, hit.mBlock, nullptr};
         best = distance(hit.mPos);

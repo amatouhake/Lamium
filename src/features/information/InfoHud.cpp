@@ -326,7 +326,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         // body, so pick along the camera ray instead of the game's hit.
         std::optional<ViewRay> ray;
         if (auto view = Zoom::instance().detachedViewRay(context.mClient))
-            ray = ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, 24};
+            ray = ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, settings.targetReach};
         auto target = collectTargetInfo(context.mClient, true, ray);
         if (!target && preview) {
             TargetInfo sample{ui::translated("feature.targetInfo"), "minecraft:grass_block", "minecraft:grass_block"};

@@ -37,6 +37,11 @@ class Zoom {
     bool hasDisplacement = false;
     // Last two render eyes: a perspective switch has settled once they match.
     DetachedCameraMotion::Vector lastEye{}, prevEye{};
+    // Forward of the camera actually rendered last frame. The detached camera
+    // entity turns natively, so this (not the session's start angles) is
+    // where it looks.
+    DetachedCameraMotion::Vector lastForward{};
+    bool hasForward = false;
     // Session displacement for the moving camera. The motion state
     // is advanced per render frame from the stashed input above.
     DetachedCameraMotion motion;

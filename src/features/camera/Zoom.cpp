@@ -518,11 +518,22 @@ std::optional<Zoom::ViewRay> Zoom::detachedViewRay(IClientInstance& current) {
             ray.z += (*displacement)[2];
         }
     }
-    // Minecraft angles: yaw 0 faces +Z, positive pitch looks down.
-    double pitch = angles->pitch * std::numbers::pi / 180, yaw = angles->yaw * std::numbers::pi / 180;
-    ray.dx = -std::sin(yaw) * std::cos(pitch);
-    ray.dy = -std::sin(pitch);
-    ray.dz = std::cos(yaw) * std::cos(pitch);
+    {
+        std::lock_guard lock{freeInputMutex};
+        if (hasForward) {
+            ray.dx = lastForward[0];
+            ray.dy = lastForward[1];
+            ray.dz = lastForward[2];
+        }
+    }
+    if (ray.dx == 0 && ray.dy == 0 && ray.dz == 0) {
+        // No rendered frame yet: fall back to the session's angles.
+        // Minecraft angles: yaw 0 faces +Z, positive pitch looks down.
+        double pitch = angles->pitch * std::numbers::pi / 180, yaw = angles->yaw * std::numbers::pi / 180;
+        ray.dx = -std::sin(yaw) * std::cos(pitch);
+        ray.dy = -std::sin(pitch);
+        ray.dz = std::cos(yaw) * std::cos(pitch);
+    }
     if (!std::isfinite(ray.x + ray.y + ray.z + ray.dx + ray.dy + ray.dz)) return {};
     return ray;
 }
@@ -617,9 +628,22 @@ bool Zoom::ensureFirstPerson(IClientInstance& current, LocalPlayer& player) {
 void Zoom::recordRenderEye(mce::Camera& camera) {
     auto eye = *camera.mPosition;
     if (!std::isfinite(eye.x) || !std::isfinite(eye.y) || !std::isfinite(eye.z)) return;
+    DetachedCameraMotion::Vector forward{};
+    bool haveForward = false;
+    if (!camera.viewMatrixStack->stack->empty()) {
+        auto view = *camera.viewMatrixStack->top()._m;
+        double fx = -view[0][2], fy = -view[1][2], fz = -view[2][2];
+        double length = std::sqrt(fx * fx + fy * fy + fz * fz);
+        if (std::isfinite(length) && length > 1e-6) {
+            forward = {fx / length, fy / length, fz / length};
+            haveForward = true;
+        }
+    }
     std::lock_guard lock{freeInputMutex};
     prevEye = lastEye;
     lastEye = {eye.x, eye.y, eye.z};
+    lastForward = forward;
+    hasForward = haveForward;
 }
 void Zoom::pollFreeTravel() {
     auto* current = client.load();
