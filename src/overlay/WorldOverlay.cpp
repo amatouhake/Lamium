@@ -354,7 +354,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
         }
         if (preferences.hitboxes && context.mImpl) {
             Vec3 const camera = context.mImpl->mCameraPosition;
-            std::vector<Line> lines;
+            std::vector<Line> white, red, blue;
             // Only borrow client actors during this pass. No entity pointers or
             // bounds survive world exit or a subsequent frame.
             for (auto* actor : player->getLevel().getRuntimeActorList()) {
@@ -363,9 +363,15 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
                 Point min{bounds.min.x,bounds.min.y,bounds.min.z}, max{bounds.max.x,bounds.max.y,bounds.max.z};
                 if (!hitboxInRange(min,max,{camera.x,camera.y,camera.z},preferences.hitboxDistance)) continue;
                 auto edges = wireBox(min,max);
-                lines.insert(lines.end(),edges.begin(),edges.end());
+                white.insert(white.end(),edges.begin(),edges.end());
+                Vec3 const eye = actor->getEyePos();
+                auto marker = eyeBox({eye.x, eye.y, eye.z});
+                red.insert(red.end(),marker.begin(),marker.end());
+                Vec3 const view = actor->getViewVector();
+                blue.push_back(lookLine({eye.x, eye.y, eye.z}, view.x, view.y, view.z));
             }
-            drawLines(context,lines,true);
+            std::array<LineBatch, 3> colored{{{white, 1, 1, 1}, {red, 1, 0, 0}, {blue, 0, 0, 1}}};
+            drawLines(context, colored);
         }
     } catch (std::exception const& error) {
         // Rate-limit repeated failures without swallowing the vanilla pass.

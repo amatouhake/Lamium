@@ -11,6 +11,20 @@ void overlayGeometryTests() {
     check(!hitboxInRange({1,1,1},{-1,-1,-1},{0,0,0},64), "inverted hitboxes are skipped");
     check(!hitboxInRange({0,0,0},{1,1,1},{std::numeric_limits<double>::quiet_NaN(),0,0},64),
           "invalid camera cannot create hitbox vertices");
+    auto eye = eyeBox({1,2,3});
+    check(eye.size() == 12, "eye marker is a box");
+    for (auto const& edge : eye)
+        check(edge.from.x >= .8 && edge.from.x <= 1.2 && edge.to.x >= .8 && edge.to.x <= 1.2
+              && edge.from.y >= 1.8 && edge.from.y <= 2.2 && edge.to.y >= 1.8 && edge.to.y <= 2.2
+              && edge.from.z >= 2.8 && edge.from.z <= 3.2 && edge.to.z >= 2.8 && edge.to.z <= 3.2,
+              "eye marker spans the eye position on every axis");
+    auto look = lookLine({0,0,0}, 0, 0, -1);
+    check(look.from == Point{0,0,0} && look.to == Point{0,0,-2}, "look line reaches 2 blocks ahead");
+    auto diagonal = lookLine({1,1,1}, 1, 0, 0);
+    check(diagonal.to.x - diagonal.from.x > 1.99 && diagonal.to.x - diagonal.from.x < 2.01
+          && diagonal.to.y == 1 && diagonal.to.z == 1, "look line follows the view direction");
+    auto degenerate = lookLine({1,2,3}, 0, 0, 0);
+    check(degenerate.from == degenerate.to, "missing view direction draws nothing extended");
     check(gridSurfaceLines({}).empty(), "empty block surface has no lines");
     check(gridSurfaceLines({{0,0,0}}).size() == 12, "single block surface draws each edge once");
     check(gridSurfaceLines({{0,0,0},{1,0,0}}).size() == 20,
