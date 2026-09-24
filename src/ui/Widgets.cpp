@@ -52,8 +52,8 @@ float latinRaise() {
     return translations::japanese(*locale->mCode) ? 1.5f : 0.f;
 }
 void drawRun(MinecraftUIRenderContext& context, Font& font, float x, float y, float width, std::string text, Rgb value,
-             ::ui::TextAlignment align, float size) {
-    TextMeasureData const measure{size, 0.0f, true, false, false, align};
+             ::ui::TextAlignment align, float size, bool shadow = true) {
+    TextMeasureData const measure{size, 0.0f, shadow, false, false, align};
     CaretMeasureData const caret{-1, false};
     context.drawText(font, RectangleArea{x,x+width,y,y+14*size}, std::move(text), color(value), size, align, measure, caret);
 }
@@ -63,7 +63,7 @@ void label(MinecraftUIRenderContext& context, float x, float y, float width, std
     labelScaled(context, x, y, width, std::move(text), 1.f, value, align);
 }
 void labelScaled(MinecraftUIRenderContext& context, float x, float y, float width, std::string text, float size,
-                 Rgb value, Align align) {
+                 Rgb value, Align align, bool shadow) {
     if (!(size > 0) || !std::isfinite(size)) size = 1;
     auto& font = defaultFont(context);
     auto measure = [&](std::string_view part) { return static_cast<float>(font.getLineLength(part, size, false)); };
@@ -74,7 +74,7 @@ void labelScaled(MinecraftUIRenderContext& context, float x, float y, float widt
     if (!raise || !latin) {
         auto native = align == Align::Right ? ::ui::TextAlignment::Right
             : align == Align::Center ? ::ui::TextAlignment::Center : ::ui::TextAlignment::Left;
-        drawRun(context, font, x, y, width, std::move(text), value, native, size);
+        drawRun(context, font, x, y, width, std::move(text), value, native, size, shadow);
         return;
     }
     // Mixed or Latin-only text: position runs manually from the whole width.
@@ -87,7 +87,7 @@ void labelScaled(MinecraftUIRenderContext& context, float x, float y, float widt
         while (end < text.size() && (static_cast<unsigned char>(text[end]) < 0x80) == ascii) ++end;
         auto run = text.substr(start, end - start);
         float runWidth = measure(run);
-        drawRun(context, font, cursor, ascii ? y - raise : y, runWidth + 2, std::move(run), value, ::ui::TextAlignment::Left, size);
+        drawRun(context, font, cursor, ascii ? y - raise : y, runWidth + 2, std::move(run), value, ::ui::TextAlignment::Left, size, shadow);
         cursor += runWidth;
         start = end;
     }

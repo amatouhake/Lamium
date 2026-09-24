@@ -15,6 +15,11 @@
 #include "ui/Localization.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/client/game/IClientInstance.h"
+#ifdef LAMIUM_HUD_FILL_PROBE
+#include "mc/deps/core/math/Color.h"
+#include "mc/deps/core/string/HashedString.h"
+#include "mc/deps/input/RectangleArea.h"
+#endif
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -64,9 +69,8 @@ void drawElement(MinecraftUIRenderContext& context, float width, float height, u
             textX += 8 * zoom + 4;
         }
         float textWidth = std::min(textWidths[i], contentWidth - (textX - x - padX));
-        if (element.shadow)
-            ui::labelScaled(context, textX + zoom, y + zoom, textWidth + 2, lines[i].text, zoom, ui::palette::shadow);
-        ui::labelScaled(context, textX, y, textWidth + 2, lines[i].text, zoom);
+        ui::labelScaled(context, textX, y, textWidth + 2, lines[i].text, zoom, ui::palette::text, ui::Align::Left,
+            element.shadow);
     }
     context.flushText(0, std::nullopt);
 }
@@ -147,7 +151,49 @@ std::optional<std::string> infoLineText(std::string_view id, PlayerInfo const& i
     return {};
 }
 }
+#ifdef LAMIUM_HUD_FILL_PROBE
+// Six red squares at 40 % opacity, numbered; the maintainer reports which
+// ones let the world show through. Remove with the probe option.
+void drawFillProbe(MinecraftUIRenderContext& context, float height) {
+    float y = height / 2 - 20, x = 8;
+    mce::Color const opaqueRed{1.f, 0.f, 0.f, 1.f}, alphaRed{1.f, 0.f, 0.f, .4f}, white{1.f, 1.f, 1.f, 1.f};
+    auto box = [&](float left) { return RectangleArea{left, left + 36, y, y + 24}; };
+    for (int i = 0; i < 6; ++i) {
+        auto area = box(x + i * 42);
+        switch (i) {
+        case 0: // Current Widgets::fill.
+            context.fillRectangle(area, opaqueRed, .4f);
+            context.flushImages(white, 1, HashedString{"ui_fillColor"});
+            break;
+        case 1: // Alpha in the color too.
+            context.fillRectangle(area, alphaRed, .4f);
+            context.flushImages(white, 1, HashedString{"ui_fillColor"});
+            break;
+        case 2: // Alpha in the flush.
+            context.fillRectangle(area, opaqueRed, .4f);
+            context.flushImages(white, .4f, HashedString{"ui_fillColor"});
+            break;
+        case 3: // No explicit flush.
+            context.fillRectangle(area, opaqueRed, .4f);
+            break;
+        case 4: // Vanilla material name.
+            context.fillRectangle(area, opaqueRed, .4f);
+            context.flushImages(white, 1, HashedString{"ui_fill_color"});
+            break;
+        default: // Outline only, as a control that draws at all.
+            context.drawRectangle(area, opaqueRed, .4f, 2);
+            context.flushImages(white, 1, HashedString{"ui_fillColor"});
+            break;
+        }
+        ui::label(context, x + i * 42 + 14, y + 6, 12, std::to_string(i + 1));
+    }
+    context.flushText(0, std::nullopt);
+}
+#endif
 void drawHud(MinecraftUIRenderContext& context, float width, float height, Settings::Information const& preferences) {
+#ifdef LAMIUM_HUD_FILL_PROBE
+    drawFillProbe(context, height);
+#endif
     auto settings = debugProfile(preferences);
     auto const& runtime = Runtime::instance().preferences();
     if (runtime.ui.automationStatus || runtime.interaction.breaking) {
@@ -204,11 +250,9 @@ void drawHud(MinecraftUIRenderContext& context, float width, float height, Setti
             float total = ui::switchWidth + 6 + textWidth;
             auto placement = ui::placeElement(width, height, total, 14 * zoom, runtime.hud.toast);
             ui::toggleSwitch(context, placement.x, placement.y + (14 * zoom - ui::switchHeight) / 2, toast->on);
-            if (runtime.hud.toast.shadow)
-                ui::labelScaled(context, placement.x + ui::switchWidth + 6 + zoom, placement.y + zoom,
-                    textWidth + 2, std::string(toast->text), zoom, ui::palette::shadow);
             ui::labelScaled(context, placement.x + ui::switchWidth + 6, placement.y, textWidth + 2,
-                std::string(toast->text), zoom, toast->opacity < 1 ? ui::palette::dim : ui::palette::text);
+                std::string(toast->text), zoom, toast->opacity < 1 ? ui::palette::dim : ui::palette::text,
+                ui::Align::Left, runtime.hud.toast.shadow);
             context.flushText(0, std::nullopt);
         }
     }

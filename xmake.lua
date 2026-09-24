@@ -54,6 +54,12 @@ option("camera_position_probe")
     set_description("Experimental render-only camera translation while Zoom is held")
 option_end()
 
+option("hud_fill_probe")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Draw numbered translucent test squares in the HUD")
+option_end()
+
 includes("packages/levilamina-client-sdk.lua")
 add_requires("levilamina-client-sdk 26.51.5", {configs = {shared = true}})
 
@@ -71,6 +77,7 @@ target("Lamium")
     if has_config("camera_probe") then add_defines("LAMIUM_CAMERA_PROBE") end
     if has_config("camera_position_probe") then add_defines("LAMIUM_CAMERA_POSITION_PROBE") end
     if has_config("shape_trace") then add_defines("LAMIUM_SHAPE_TRACE") end
+    if has_config("hud_fill_probe") then add_defines("LAMIUM_HUD_FILL_PROBE") end
     if has_config("placement_trace") then add_defines("LAMIUM_PLACEMENT_TRACE") end
     add_rules("@levibuildscript/linkrule")
     add_rules("@levibuildscript/modpacker")
