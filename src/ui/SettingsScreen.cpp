@@ -1447,7 +1447,6 @@ void cancelInputCapture() {
     uiHeld.clear();
 }
 void start() {
-    if (!startLocalization()) throw std::runtime_error("Could not install Lamium action translations");
     backgroundHook = SettingsWorldBackground::hook(true) == 0;
     if (!backgroundHook) throw std::runtime_error("Could not install settings world background hook");
     textHook = SettingsSearchText::hook(true) == 0;
@@ -1572,7 +1571,6 @@ void stop() {
         if (listener) ll::event::EventBus::getInstance().removeListener(listener);
         listener.reset();
     }
-    stopLocalization();
     if (entranceHook) { SettingsSceneEntrance::unhook(true); entranceHook = false; }
     if (exitHook) { SettingsSceneExit::unhook(true); exitHook = false; }
     if (renderHook) { SettingsSceneRender::unhook(true); renderHook = false; }

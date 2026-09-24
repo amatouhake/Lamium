@@ -118,7 +118,7 @@ Status: done. Found while testing L-01.
 - Tests: BindingTests / SettingsStoreTests for both rules.
 
 ### L-24 Remove the unused action-label localization hook
-Status: ready.
+Status: done.
 - `src/ui/Localization.cpp` hooks `Localization::_getSimple` only so that
   Minecraft's keyboard settings could show `key.Lamium.*` labels. After L-23
   nothing native asks for them, so the hook runs on every string lookup for
