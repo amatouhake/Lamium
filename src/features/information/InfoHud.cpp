@@ -29,14 +29,14 @@ namespace lamium::information {
 void drawHud(MinecraftUIRenderContext& context, float width, float height, Settings::Information const& preferences) {
     if (Runtime::instance().preferences().ui.toggleToasts) {
         if (auto toast = ui::currentToggleToast(ui::toastNow())) {
-            std::string text = ui::translated("toggleToast", toast->text);
-            float textWidth = ui::textWidth(context, text);
-            float panelWidth = 8 + ui::switchWidth + 6 + textWidth + 8;
-            float x = std::max(4.f, (width - panelWidth) / 2);
+            // HUD-pass fills render opaque, so the toast borrows the text-only
+            // style of the other HUD lines instead of a panel background.
+            float textWidth = ui::textWidth(context, toast->text);
+            float total = ui::switchWidth + 6 + textWidth;
+            float x = std::max(4.f, (width - total) / 2);
             float y = std::clamp(height - 64, 4.f, std::max(4.f, height - 20));
-            ui::panel(context, x, y, panelWidth, 18, .8f * toast->opacity);
-            ui::toggleSwitch(context, x + 8, y + 4.5f, toast->on);
-            ui::label(context, x + 8 + ui::switchWidth + 6, y + 2, textWidth + 2, std::move(text),
+            ui::toggleSwitch(context, x, y + 2.5f, toast->on);
+            ui::label(context, x + ui::switchWidth + 6, y, textWidth + 2, std::string(toast->text),
                 toast->opacity < 1 ? ui::palette::dim : ui::palette::text);
             context.flushText(0, std::nullopt);
         }

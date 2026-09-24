@@ -126,7 +126,8 @@ Status: done.
   `ui::translated`, which the settings UI uses for those labels.
 
 ### L-02 Replace gameplay key hints with an "Open Hotkeys" action
-Status: done.
+Status: done. Follow-up 2026-09-24: `openshapes` also belongs to the settings
+feature, so all three screen openers group under 全般 in Hotkeys.
 - Remove the gameplay key-hint overlay and the `interface.gameplayHints`
   setting (keep loading old files without error; just ignore the key).
 - Add action `openhotkeys` (Press, unbound): opens the settings screen on the

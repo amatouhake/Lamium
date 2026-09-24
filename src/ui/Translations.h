@@ -318,7 +318,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"storage", "Sort storage containers: {}", "チェストなどの整頓: {}"},
     {"close", "Close", "閉じる"},
     {"toggleToasts", "Toggle toasts: {}", "切り替え通知: {}"},
-    {"toggleToast", "[switch] {}", "[switch] {}"},
     {"saveError", "Save failed; change not applied. Try again.", "保存失敗・変更は未反映です。再試行してください。"},
     {"smallWindow", "Enlarge window | Esc: close", "画面を広げてください | Esc: 閉じる"},
     {"navigation", "Up/Down/PgUp/PgDn: navigate | Ctrl+F: search | Enter | Esc", "上下・PgUp/PgDn: 選択 | Ctrl+F: 検索 | Enter | Esc"},

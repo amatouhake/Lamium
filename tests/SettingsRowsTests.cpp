@@ -71,9 +71,16 @@ void settingsRowsTests() {
     check(rows.size() >= 2 && rows[1].feature->id == "zoom" && !rows[1].expanded, "Japanese feature search keeps a matched feature collapsed");
     query.clear(); query.append("Shape rendering");
     rows = ui::buildSettingsRows(false, {}, query, expanded, translate);
-    check(rows.size() == 2 && rows[1].heading() && rows[1].feature->id == "shapes" && rows[1].children == 1,
-        "shape rendering is a feature with its toggle and the open-shapes key");
-    check(ui::buildSettingsRows(true, {}, query, expanded, translate).size() == 3, "both shape keys are listed in Hotkeys");
+    check(rows.size() == 2 && rows[1].heading() && rows[1].feature->id == "shapes" && rows[1].children == 0,
+        "shape rendering is a feature with only its toggle; the shapes key lives with the settings keys");
+    query.clear(); query.append("shapes");
+    auto hotkeyRows = ui::buildSettingsRows(true, {}, query, expanded, translate);
+    size_t shapeKeys = 0;
+    for (auto const& row : hotkeyRows) {
+        if (row.action == input::Action::ToggleShapes || row.action == input::Action::OpenShapes) ++shapeKeys;
+        else check(!row.action, "shape search lists only shape keys");
+    }
+    check(shapeKeys == 2, "both shape keys are listed in Hotkeys");
     query.clear(); query.append("not-a-real-setting");
     check(ui::buildSettingsRows(false, {}, query, expanded, translate).empty(), "unmatched query is empty");
     query.clear();

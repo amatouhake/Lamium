@@ -41,7 +41,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"periodicattack", "periodicAttack", Behavior::Toggle},
     {"periodicuse", "periodicUse", Behavior::Toggle},
     {"toggleshapes", "shapes", Behavior::Toggle},
-    {"openshapes", "shapes", Behavior::Press},
+    {"openshapes", "settings", Behavior::Press},
     {"freecamera", "freecamera", Behavior::Toggle},
     {"openhotkeys", "settings", Behavior::Press},
 });

@@ -66,11 +66,13 @@ void settingsStoreTests() {
     check(input::actions[static_cast<size_t>(input::Action::FreeCamera)].behavior == input::Behavior::Toggle
           && input::actions[static_cast<size_t>(input::Action::FreeCamera)].defaultKey == 0,
           "FreeCamera is an independent unassigned toggle action");
-    check(input::actions[static_cast<size_t>(input::Action::OpenHotkeys)].behavior == input::Behavior::Press
-          && input::actions[static_cast<size_t>(input::Action::OpenHotkeys)].defaultKey == 0
-          && input::actions[static_cast<size_t>(input::Action::OpenHotkeys)].feature == "settings"
+    for (auto action : {input::Action::OpenHotkeys, input::Action::OpenShapes})
+        check(input::actions[static_cast<size_t>(action)].behavior == input::Behavior::Press
+              && input::actions[static_cast<size_t>(action)].feature == "settings",
+              "screen openers group with the settings keys");
+    check(input::actions[static_cast<size_t>(input::Action::OpenHotkeys)].defaultKey == 0
           && input::defaultChord(input::Action::OpenHotkeys).empty(),
-          "OpenHotkeys is an unbound press action on the settings screen");
+          "OpenHotkeys is unbound by default");
     check(decodeSettings(R"({"interface":{"gameplayHints":false}})").ui.automationStatus,
           "removed gameplay hints key loads without error");
     check(!old.inspection.hideShulkerContents, "older settings retain vanilla Shulker contents text");

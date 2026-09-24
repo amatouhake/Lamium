@@ -116,10 +116,13 @@ Contents:
 - **Status**: automation (periodic attack/use, permanent sneak) and breaking/
   placement restriction lines in one element, each with a colored marker
   (accent for automation, warning color for restrictions).
-- **Toast**: when a hotkey switches a feature, show `[switch] Feature name`
-  for ~1.5 s, fading over the last 0.3 s; default position above the hotbar
-  (bottom center). One at a time; a new one replaces the old. Setting to turn
-  it off. Changes made inside the settings screen do not toast.
+- **Toast**: when a hotkey switches a feature, show the feature name with its
+  toggle switch for ~1.5 s, fading over the last 0.3 s; default position
+  above the hotbar (bottom center). One at a time; a new one replaces the
+  old. No `[switch]` marker text. No background panel: HUD-pass fills render
+  opaque, so the toast borrows the text-only style of the other HUD lines
+  (verified 2026-09-24). Setting to turn it off. Changes made inside the
+  settings screen do not toast.
 - The gameplay key-hint overlay is removed; an "Open Hotkeys" action replaces
   it.
 - Appearance options stay at scale, background and shadow for now; add text
