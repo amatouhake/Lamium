@@ -150,3 +150,19 @@ Contents:
 - (Decided) Settings opens with `L` instead of F8 (BACKLOG L-01).
 - (Decided) Lamium owns its key bindings; Minecraft's keyboard settings no
   longer list Lamium actions (BACKLOG L-23).
+- (Decided, BACKLOG L-32) Ordinary action chords and modifier-like chords have
+  different matching semantics. Ordinary chords are order-sensitive and a
+  more-specific completed chord suppresses an overlapping shorter chord for
+  that activation. Example: with `B` and `F3+B`, pressing F3 then B fires
+  only `F3+B`; pressing B first may fire B immediately and is not delayed in
+  case another key arrives later.
+- (Decided, BACKLOG L-32) Modifier-like actions such as Zoom and Freelook allow
+  unrelated held gameplay inputs so they remain usable while moving. Matching
+  mode is an action property, not another advanced user option.
+- (Decided, BACKLOG L-32) Exact duplicate bindings are valid. The Hotkeys UI
+  warns that the actions share a binding, but all enabled actions assigned to
+  that exact chord fire together. This intentionally permits grouped toggles;
+  duplicate bindings are never silently prioritized or disabled.
+- (Decided, BACKLOG L-32) Hotkeys UI also warns about subset/superset overlaps.
+  Press/Hold/Toggle remains separate from chord matching semantics, and mouse /
+  keyboard / wheel combinations follow the same overlap rules.
