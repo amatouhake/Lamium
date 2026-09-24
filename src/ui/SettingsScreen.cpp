@@ -348,6 +348,12 @@ void adjustOption(settings::Option const& option, int direction) {
     auto value = Runtime::instance().preferences();
     option.adjust(value, direction);
     error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
+    // The stepper of a row being typed into shows the typed text; replace it
+    // with the stepped value so -/+ are visible at once.
+    if (editingNumber == &option) {
+        numberInput.begin(std::get<float>(option.read(Runtime::instance().preferences())));
+        numberDirty = false;
+    }
 }
 void toggleFeature(FeatureInfo const& feature) {
     if (auto option = settings::find(feature.toggle)) adjustOption(*option, 1);
