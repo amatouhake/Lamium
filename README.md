@@ -47,7 +47,7 @@ Minecraft or other mods are not comprehensively detected yet.
 An opt-in Chunk Borders prototype is also available in Features. Its world-render
 backend compiles but has not yet been validated in Minecraft.
 Keyboard/mouse behavior and resource-pack compatibility are still being tested.
-Settings, gameplay hints, durability text, and Minecraft's Lamium key-binding labels follow the
+Settings, durability text, and action labels follow the
 game's language: Japanese and English are included, with English as the fallback.
 Earlier prototypes used `N` for NightVision, which conflicts with Minecraft's
 notification shortcut. Existing saved bindings are preserved; change NightVision

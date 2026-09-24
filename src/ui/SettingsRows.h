@@ -13,7 +13,7 @@ inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand") return "section.camera";
     if (id == "previews" || id == "durability" || id == "sorting" || id == "toolSwitch" || id == "handRestock") return "section.inventory";
     if (id == "restrictions" || id == "permanentSneak" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
-    if (id == "settings" || id == "gameplayHints" || id == "automationStatus") return "section.interface";
+    if (id == "settings" || id == "automationStatus") return "section.interface";
     return "section.information";
 }
 inline constexpr auto features = std::to_array<FeatureInfo>({
@@ -38,7 +38,6 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"hitboxes", "feature.hitboxes", "help.hitboxes", "overlays.hitboxes"},
     {"lightOverlay", "feature.lightOverlay", "help.lightOverlay", "overlays.light", true},
     {"shapes", "feature.shapes", "help.shapes", "overlays.shapes"},
-    {"gameplayHints", "feature.gameplayHints", "help.gameplayHints", "interface.gameplayHints"},
     {"automationStatus", "feature.automationStatus", "help.automationStatus", "interface.automationStatus"},
     {"settings", "feature.settings", "help.settings", ""},
 });

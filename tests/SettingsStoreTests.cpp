@@ -66,7 +66,13 @@ void settingsStoreTests() {
     check(input::actions[static_cast<size_t>(input::Action::FreeCamera)].behavior == input::Behavior::Toggle
           && input::actions[static_cast<size_t>(input::Action::FreeCamera)].defaultKey == 0,
           "FreeCamera is an independent unassigned toggle action");
-    check(old.ui.gameplayHints, "existing settings preserve visible gameplay hints by default");
+    check(input::actions[static_cast<size_t>(input::Action::OpenHotkeys)].behavior == input::Behavior::Press
+          && input::actions[static_cast<size_t>(input::Action::OpenHotkeys)].defaultKey == 0
+          && input::actions[static_cast<size_t>(input::Action::OpenHotkeys)].feature == "settings"
+          && input::defaultChord(input::Action::OpenHotkeys).empty(),
+          "OpenHotkeys is an unbound press action on the settings screen");
+    check(decodeSettings(R"({"interface":{"gameplayHints":false}})").ui.automationStatus,
+          "removed gameplay hints key loads without error");
     check(!old.inspection.hideShulkerContents, "older settings retain vanilla Shulker contents text");
     check(old.inspection.shulkerPreviews && old.inspection.emptyShulkerPreviews
           && old.inspection.bundlePreviews && old.inspection.emptyBundlePreviews,
@@ -141,7 +147,6 @@ void settingsStoreTests() {
     old.lighting.nightVision = true;
     old.inventory.sorting = false;
     old.inventory.sortContainers = false;
-    old.ui.gameplayHints = false;
     old.ui.automationStatus = false;
     old.interaction.attackInterval = 1.2f;
     old.camera.freelookToggle = true;
@@ -152,7 +157,6 @@ void settingsStoreTests() {
           "independent attack and use intervals survive disk round trip");
     check(loaded.camera.magnification == 3.5f && loaded.lighting.nightVision && loaded.camera.freelookToggle, "disk round trip");
     check(!loaded.inventory.sorting && !loaded.inventory.sortContainers, "inventory switches survive saves");
-    check(!loaded.ui.gameplayHints, "hidden gameplay hints survive restart");
     check(!loaded.ui.automationStatus, "hidden automation status survives restart");
     auto contents = [&]() {
         std::ifstream file(path);

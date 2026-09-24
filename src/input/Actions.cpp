@@ -29,14 +29,6 @@ std::string bindingChordName(IClientInstance& client, input::Chord const& chord)
 std::string actionBindingName(IClientInstance& client, input::Action action) {
     return bindingChordName(client, input::effectiveChord(Runtime::instance().preferences().bindings, action));
 }
-std::string gameplayKeyHint(IClientInstance& client) {
-    auto layout = client.getOptions().getCurrentKeyboardRemapping();
-    if (!layout) return ui::translated("controls");
-    return ui::translated("gameplay",
-        actionBindingName(client, input::Action::Settings), actionBindingName(client, input::Action::Zoom),
-        actionBindingName(client, input::Action::NightVision));
-}
-
 void executeAction(IClientInstance& client, input::Action action) {
     auto& runtime = Runtime::instance();
     if (!runtime.enabled() || ui::ownsInput()) return;
@@ -50,6 +42,7 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::ResetBreaking) { interaction::breaking::reset(); return; }
     if (action == input::Action::Settings) { ui::open(client); return; }
     if (action == input::Action::OpenShapes) { ui::openShapes(client); return; }
+    if (action == input::Action::OpenHotkeys) { ui::openHotkeys(client); return; }
     if (action == input::Action::Zoom) { Zoom::instance().press(client); return; }
     if (action == input::Action::Freelook) { Zoom::instance().pressLook(client); return; }
     if (action == input::Action::FreeCamera) { Zoom::instance().pressFreeCamera(client); return; }

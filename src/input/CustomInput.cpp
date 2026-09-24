@@ -123,7 +123,8 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
             consumed = true;
             // Opening a menu takes input ownership once the queue runs. Do not
             // fire another action from the same chord.
-            if (i == static_cast<size_t>(Action::Settings) || i == static_cast<size_t>(Action::OpenShapes)) {
+            if (i == static_cast<size_t>(Action::Settings) || i == static_cast<size_t>(Action::OpenShapes)
+                || i == static_cast<size_t>(Action::OpenHotkeys)) {
                 invalidate();
                 break;
             }

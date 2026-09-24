@@ -77,7 +77,7 @@ Json encode(Settings const& settings) {
                         {"durability", settings.inspection.durability}}},
         {"inventory", {{"sorting", settings.inventory.sorting}, {"sortContainers", settings.inventory.sortContainers},
                        {"toolSwitch", settings.inventory.toolSwitch}, {"handRestock", settings.inventory.handRestock}}},
-        {"interface", {{"gameplayHints", settings.ui.gameplayHints}, {"automationStatus", settings.ui.automationStatus}}}
+        {"interface", {{"automationStatus", settings.ui.automationStatus}}}
     };
 }
 }
@@ -184,7 +184,6 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.handRestock = data.at("inventory").value("handRestock", false);
     }
     if (data.contains("interface")) {
-        value.ui.gameplayHints = data.at("interface").value("gameplayHints", true);
         value.ui.automationStatus = data.at("interface").value("automationStatus", true);
     }
     value.normalize();

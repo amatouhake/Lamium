@@ -1368,10 +1368,6 @@ void render(ll::event::UIRenderEvent& event) {
     if (!scene) {
         if (gameplayScreen(current.getScreenName()))
             information::drawHud(context,size.x,size.y,Runtime::instance().preferences().information);
-        if (gameplayScreen(current.getScreenName()) && Runtime::instance().preferences().ui.gameplayHints) {
-            label(context, 6, 6, size.x-12, gameplayKeyHint(current));
-            context.flushText(0, std::nullopt);
-        }
         return;
     }
     if (&current != client) return;
@@ -1433,6 +1429,11 @@ void openShapes(IClientInstance& current) {
     std::lock_guard lock(mutex);
     if (!scene) open(current);
     if (scene) selectNav(shapesNav);
+}
+void openHotkeys(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    if (!scene) open(current);
+    if (scene) selectNav(hotkeysNav);
 }
 bool ownsInput() {
     std::lock_guard lock(mutex);

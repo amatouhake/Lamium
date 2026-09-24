@@ -126,7 +126,7 @@ Status: done.
   `ui::translated`, which the settings UI uses for those labels.
 
 ### L-02 Replace gameplay key hints with an "Open Hotkeys" action
-Status: ready.
+Status: done.
 - Remove the gameplay key-hint overlay and the `interface.gameplayHints`
   setting (keep loading old files without error; just ignore the key).
 - Add action `openhotkeys` (Press, unbound): opens the settings screen on the
