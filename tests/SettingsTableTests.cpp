@@ -64,4 +64,14 @@ void settingsTableTests() {
     check(t.stepperPart(t.stepperX() + 2) == -1 && t.stepperPart(t.stepperX() + t.stepperWidth() - 2) == 1
         && t.stepperPart(t.stepperX() + t.stepperWidth() / 2) == 0 && t.stepperPart(t.nameX) == 2, "stepper parts");
     check(t.stepperX() >= t.stateX, "stepper stays in the value columns");
+    {
+        auto slider = SettingsTable::fit(640, 360, 20, 0);
+        check(slider.sliderFraction(slider.sliderX() + 3) == 0 && slider.sliderFraction(slider.sliderX() + slider.sliderWidth() - 3) == 1,
+              "the slider track maps its ends to 0 and 1");
+        check(slider.sliderFraction(slider.sliderValueX() + 1) == -1, "the value text is not part of the track");
+        check(SettingsTable::sliderValue(.5f, 2, 64, 1) == 33 && SettingsTable::sliderValue(.52f, 1, 10, .5f) == 5.5f,
+              "slider values snap to the step");
+        check(SettingsTable::sliderValue(2, 2, 64, 1) == 64 && SettingsTable::sliderPosition(6, 2, 64) > 0,
+              "slider values and positions clamp to the range");
+    }
 }

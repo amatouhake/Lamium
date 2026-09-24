@@ -75,7 +75,7 @@ struct Settings {
         bool targetIcon = true;
         int targetHealth = 0; // 0 hearts, 1 bar, 2 number
         int targetGrowth = 0; // 0 bar, 1 number
-        int targetRange = 0; // 0 the game's reach, then 8/16/32/64 blocks (TargetCard.h)
+        float targetDistance = 6; // Blocks from the viewpoint (the body, or a detached camera)
         bool targetStates = false; // Other details
         bool targetCoordinates = false;
         bool hud = false;
@@ -107,7 +107,8 @@ struct Settings {
         information.targetHealth = std::clamp(information.targetHealth, 0, 2);
         ui.animations = std::clamp(ui.animations, 0, 2);
         information.targetGrowth = std::clamp(information.targetGrowth, 0, 1);
-        information.targetRange = std::clamp(information.targetRange, 0, 4);
+        if (!std::isfinite(information.targetDistance)) information.targetDistance = 6;
+        information.targetDistance = std::clamp(std::round(information.targetDistance), 2.f, 64.f);
         normalizeMode(interaction.placementMode);
         information.lineOrder = information::mergeLineOrder(information.lineOrder);
         if (!std::isfinite(overlays.hitboxDistance)) overlays.hitboxDistance = 64.f;

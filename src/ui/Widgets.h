@@ -46,6 +46,10 @@ void toggleSwitch(MinecraftUIRenderContext&, float x, float y, bool on);
 struct ImageRect { float x, y, w, h; };
 void images(MinecraftUIRenderContext&, std::string_view texture, std::vector<ImageRect> const& rects, float opacity = 1);
 constexpr float switchWidth = 18, switchHeight = 9;
+// Bedrock-style slider in the switch's colors: filled track, square knob.
+// `fraction` is 0-1 along the track; the knob stays inside x..x+width.
+void slider(MinecraftUIRenderContext&, float x, float y, float width, float fraction, bool active = false);
+constexpr float sliderKnobWidth = 6, sliderKnobHeight = 10, sliderTrackHeight = 4;
 // Glyph-independent disclosure and stepper arrows drawn from rectangles.
 void chevron(MinecraftUIRenderContext&, float x, float y, bool expanded, Rgb color = palette::dim);
 void arrow(MinecraftUIRenderContext&, float x, float y, bool left, Rgb color = palette::dim);

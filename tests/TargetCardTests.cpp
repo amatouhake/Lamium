@@ -47,8 +47,6 @@ void targetCardTests() {
           && spawnEggItem("minecraft:zombie_villager_v2") == "minecraft:zombie_villager_spawn_egg"
           && spawnEggItem("minecraft:evocation_illager") == "minecraft:evoker_spawn_egg",
           "renamed entities map to their egg");
-    check(!rangeBlocks(0) && rangeBlocks(1) == 8.f && rangeBlocks(4) == 64.f && !rangeBlocks(9),
-          "range choice 0 keeps the game's reach");
     check(morphProgress(0) == 0 && morphProgress(morphSeconds) == 1 && morphProgress(1) == 1
           && morphProgress(morphSeconds / 2) > .5f, "the card eases out and settles");
 }

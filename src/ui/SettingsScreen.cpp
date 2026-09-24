@@ -62,6 +62,7 @@ constexpr int shapesNav = navCount - 2;
 constexpr int hudNav = navCount - 1;
 int editorReturn = 0;
 bool pendingRelease = false;
+settings::Option const* sliderDrag = nullptr; // Slider being dragged with the left button.
 int navIndex = 0;
 std::set<std::string_view> expanded;
 std::vector<SettingsRow> rows;
@@ -291,6 +292,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
     origin(text, impact);
 }
 void clear() {
+    sliderDrag = nullptr;
     releaseTextKeyboard(); editingNumber = nullptr; editingShapeField = -1; editingShapeName = false; shapeNameDirty = false;
     numberDirty = false; uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr;
     scene.reset(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear();
@@ -376,6 +378,15 @@ void openLayout(std::optional<HudElementId> element) {
     selectNav(hudNav);
     hud_editor::select(element);
 }
+void setSlider(settings::Option const& option, float fraction) {
+    auto const& range = *option.numeric;
+    float value = SettingsTable::sliderValue(fraction, range.minimum, range.maximum, range.step);
+    auto preferences = Runtime::instance().preferences();
+    if (option.read(preferences) == settings::OptionValue{value}) return;
+    range.write(preferences, value);
+    preferences.normalize();
+    error = Runtime::instance().save(preferences) ? std::string{} : translated("saveError");
+}
 void activateRow(int row, bool space) {
     if (!valid(row)) return;
     auto const& entry = rows[row];
@@ -444,6 +455,14 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
         auto value = entry.option->read(Runtime::instance().preferences());
         if (std::holds_alternative<bool>(value)) {
             if (hit.column != Column::Name) adjustOption(*entry.option, 1);
+            return;
+        }
+        if (entry.option->numeric && entry.option->numeric->step > 0) {
+            float fraction = displayed.sliderFraction(hit.x);
+            if (fraction < 0) { beginNumber(*entry.option); return; }
+            if (hit.x < displayed.sliderX()) return;
+            sliderDrag = entry.option;
+            setSlider(*entry.option, fraction);
             return;
         }
         int part = displayed.stepperPart(hit.x);
@@ -1227,6 +1246,7 @@ void renderShapesDocked(MinecraftUIRenderContext& context, IClientInstance&, glm
 void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {
     auto const t = SettingsTable::fit(size.x, size.y, static_cast<int>(rows.size()), first);
     displayed = t;
+    if (sliderDrag && sliderDrag->numeric) setSlider(*sliderDrag, std::max(0.f, t.sliderFraction(std::min(pointer.x, t.sliderValueX() - 1))));
     first = t.first;
     fill(context,0,0,size.x,size.y,Rgb{0,0,0},.2f);
     if (!t.usable()) {
@@ -1338,8 +1358,19 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(name),palette::dim);
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,*flag);
             } else {
-                label(context,t.nameX+12,y+3,t.stepperX()-SettingsTable::gap-t.nameX-12,std::move(name),palette::dim);
-                drawStepper(context,y,*entry.option,optionValueText(*entry.option,value),editingNumber == entry.option);
+                bool asSlider = entry.option->numeric && entry.option->numeric->step > 0 && editingNumber != entry.option;
+                float nameEnd = asSlider ? t.sliderX() : t.stepperX();
+                label(context,t.nameX+12,y+3,nameEnd-SettingsTable::gap-t.nameX-12,std::move(name),palette::dim);
+                if (asSlider) {
+                    auto const& range = *entry.option->numeric;
+                    float number = std::get<float>(value);
+                    slider(context,t.sliderX(),y+2,t.sliderWidth(),
+                        SettingsTable::sliderPosition(number,range.minimum,range.maximum),sliderDrag == entry.option);
+                    label(context,t.sliderValueX(),y+3,SettingsTable::sliderValueWidth,optionValueText(*entry.option,value),
+                        palette::text,Align::Right);
+                } else {
+                    drawStepper(context,y,*entry.option,optionValueText(*entry.option,value),editingNumber == entry.option);
+                }
             }
             break;
         }
@@ -1438,6 +1469,7 @@ void render(ll::event::UIRenderEvent& event) {
             if (!exit) exit = hud_editor::key(key, heldShift()) == hud_editor::Result::Exit;
         if (exit) { hud_editor::reset(); selectNav(editorReturn); }
     } else if (!closing) {
+        if (std::exchange(pendingRelease, false)) sliderDrag = nullptr;
         if (shapesView()) {
             shapeList = overlay::shapes::list();
             if (auto click = std::exchange(pendingClick, std::nullopt)) handleShapeClick(click->x, click->y, click->right);
@@ -1570,7 +1602,7 @@ void start() {
         // A button may already be down when L opens the panel. Let vanilla
         // observe its release, just as we do for keys, so it cannot stay held.
         if (!wheel && event.buttonData() == MouseAction::DataUp) {
-            if (hudEditorView() && button == MouseAction::ActionLeft) pendingRelease = true;
+            if (button == MouseAction::ActionLeft) pendingRelease = true;
             return;
         }
         event.cancel();

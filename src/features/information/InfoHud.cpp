@@ -22,7 +22,6 @@
 #include "mc/world/item/ItemStack.h"
 #include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
-#include "mc/world/gamemode/GameMode.h"
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -324,24 +323,17 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         box(ui::HudElementId::Status) = drawElement(context, width, height, hud.status, lines);
     }
     if (preview || settings.target) {
-        // One range for every viewpoint. A detached camera (Freelook,
-        // FreeCamera) looks elsewhere than the body, so it always picks along
-        // the camera; the body uses the game's own hit unless a longer fixed
-        // range is chosen.
+        // One distance for every viewpoint: the body normally, the camera
+        // during Freelook and FreeCamera (it looks elsewhere than the body).
         std::optional<ViewRay> ray;
-        auto blocks = rangeBlocks(settings.targetRange);
         if (auto* player = context.mClient.getLocalPlayer()) {
+            double reach = settings.targetDistance;
             if (auto view = Zoom::instance().detachedViewRay(context.mClient)) {
-                float reach = blocks.value_or(5.f);
-                if (!blocks) {
-                    std::unique_ptr<GameMode> const& mode = player->mGameMode;
-                    if (mode) reach = mode->getMaxPickRange();
-                }
                 ray = ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, reach};
-            } else if (blocks) {
+            } else {
                 auto eye = player->getEyePos();
                 auto direction = player->getViewVector();
-                ray = ViewRay{eye.x, eye.y, eye.z, direction.x, direction.y, direction.z, *blocks};
+                ray = ViewRay{eye.x, eye.y, eye.z, direction.x, direction.y, direction.z, reach};
             }
         }
         auto target = collectTargetInfo(context.mClient, true, ray);

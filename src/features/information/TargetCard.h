@@ -73,13 +73,6 @@ inline std::string spawnEggItem(std::string_view entityIdentifier) {
     if (id == "minecraft:evocation_illager") id = "minecraft:evoker";
     return id + "_spawn_egg";
 }
-// "Target range" choices: 0 is the game's own reach (its hit result, or its
-// pick range from a detached camera); the rest are fixed block distances.
-inline constexpr std::array<float, 5> targetRanges{0, 8, 16, 32, 64};
-inline std::optional<float> rangeBlocks(int choice) {
-    if (choice <= 0 || choice >= static_cast<int>(targetRanges.size())) return std::nullopt;
-    return targetRanges[static_cast<size_t>(choice)];
-}
 // The card eases between targets: 0.1 s, ease-out.
 inline constexpr double morphSeconds = 0.1;
 inline float morphProgress(double elapsed) {

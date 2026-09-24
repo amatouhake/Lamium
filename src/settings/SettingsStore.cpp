@@ -67,7 +67,7 @@ Json encode(Settings const& settings) {
                          {"targetIcon", settings.information.targetIcon},
                          {"targetHealth", settings.information.targetHealth},
                          {"targetGrowth", settings.information.targetGrowth},
-                         {"targetRange", settings.information.targetRange},
+                         {"targetDistance", settings.information.targetDistance},
                          {"targetStates", settings.information.targetStates},
                          {"targetCoordinates", settings.information.targetCoordinates},
                          {"lineOrder", settings.information.lineOrder},
@@ -130,7 +130,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.targetIcon = info.value("targetIcon", true);
         value.information.targetHealth = info.value("targetHealth", 0);
         value.information.targetGrowth = info.value("targetGrowth", 0);
-        value.information.targetRange = info.value("targetRange", 0);
+        value.information.targetDistance = info.value("targetDistance", 6.f);
         value.information.targetCoordinates = info.value("targetCoordinates", false);
         value.information.hud = info.value("hud", false);
         value.information.coordinates = info.value("coordinates", true);

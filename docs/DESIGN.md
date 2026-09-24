@@ -141,11 +141,12 @@ Contents:
   While Freelook or FreeCamera is active the card follows the camera: the
   nearest block or entity box along the rendered camera's forward, water and
   lava excluded.
-- One "Range" setting for every viewpoint: "Within reach" (default: the
-  game's own hit for the body, the game's pick range from a detached
-  camera) or 8 / 16 / 32 / 64 blocks. Why: one mental model ("this far from
-  where I look"), and the default never shows more than vanilla would;
-  FreeCamera can fly closer, so a separate camera range is rarely needed.
+- One "Range" (2-64 blocks, default 6) for every viewpoint: the card picks
+  along the body's view normally and along the camera during Freelook and
+  FreeCamera. Why: one mental model ("this far from where I look"); the
+  game's own "reach" was not a usable distance (its hit result runs past the
+  outline, its pick range from a camera was about 4), and 6 is close to
+  survival reach so distant things do not clutter the card.
 - **Animations** (General): one Lamium-wide setting, "Follow Minecraft"
   (Video > Screen Animations, the default), On or Off. Why: one switch for
   every Lamium motion, and people who turned animations off in Minecraft
@@ -163,6 +164,12 @@ Contents:
   readability); the layout editor shows it on purpose.
 - The gameplay key-hint overlay is removed; an "Open Hotkeys" action replaces
   it.
+- Bounded numeric settings where "about this much" is enough (ranges,
+  zoom) use a slider styled like the Bedrock switch: green filled track, a
+  light square knob with a bottom bevel, the value to the right. Click or
+  drag the track; Left/Right step; clicking the value types a number.
+  Settings that need precision (periodic intervals, shape coordinates)
+  keep the arrows and number entry.
 - Appearance options stay at scale, background and shadow for now; add text
   color or background opacity only if asked.
 

@@ -94,6 +94,27 @@ struct SettingsTable {
     float stepperWidth() const { return std::min(96.0f, controlWidth()); }
     float stepperX() const { return keyX + keyWidth - stepperWidth(); }
     static constexpr float arrowWidth = 11;
+    // Sliders span the state and key columns: track left, value right.
+    static constexpr float sliderValueWidth = 50;
+    float sliderX() const { return controlX(); }
+    float sliderWidth() const { return std::max(0.0f, controlWidth() - sliderValueWidth - 4); }
+    float sliderValueX() const { return controlX() + controlWidth() - sliderValueWidth; }
+    // Fraction of the track under x (0-1), or -1 when x is on the value text.
+    float sliderFraction(float x) const {
+        if (x >= sliderValueX()) return -1;
+        float usable = sliderWidth() - 6; // knob width
+        if (!(usable > 0)) return 0;
+        return std::clamp((x - sliderX() - 3) / usable, 0.0f, 1.0f);
+    }
+    static float sliderValue(float fraction, float minimum, float maximum, float step) {
+        float value = minimum + (maximum - minimum) * std::clamp(fraction, 0.0f, 1.0f);
+        if (step > 0) value = minimum + std::round((value - minimum) / step) * step;
+        return std::clamp(value, minimum, maximum);
+    }
+    static float sliderPosition(float value, float minimum, float maximum) {
+        if (!(maximum > minimum) || !std::isfinite(value)) return 0;
+        return std::clamp((value - minimum) / (maximum - minimum), 0.0f, 1.0f);
+    }
     // -1 decrease, 1 increase, 0 value, 2 outside.
     int stepperPart(float x) const {
         float sx = stepperX();

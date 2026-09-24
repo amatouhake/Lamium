@@ -11,6 +11,7 @@ using OptionValue = std::variant<bool, float, ChoiceValue>;
 struct NumericOption {
     float minimum, maximum;
     void (*write)(Settings&, float);
+    float step = 0; // > 0: shown as a slider that snaps to this step
 };
 struct Option {
     std::string_view id;
@@ -47,7 +48,6 @@ constexpr Option choice(std::string_view id, std::string_view feature, std::stri
 inline constexpr std::array<std::string_view,2> activationLabels{"activation.hold","activation.toggle"};
 inline constexpr std::array<std::string_view,3> healthMeterLabels{"meter.hearts","meter.bar","meter.number"};
 inline constexpr std::array<std::string_view,2> growthMeterLabels{"meter.bar","meter.number"};
-inline constexpr std::array<std::string_view,5> targetRangeLabels{"range.reach","range.8","range.16","range.32","range.64"};
 inline constexpr std::array<std::string_view,3> animationLabels{"animations.follow","animations.on","animations.off"};
 inline constexpr auto anchorLabels = std::to_array<std::string_view>(
     {"anchor.topLeft", "anchor.topCenter", "anchor.topRight", "anchor.middleLeft", "anchor.center",
@@ -121,7 +121,10 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::targetIcon>("information.targetIcon", "targetInfo", "targetIcon"),
     choice<&Settings::information, &Settings::Information::targetHealth, healthMeterLabels>("information.targetHealth", "targetInfo", "targetHealth"),
     choice<&Settings::information, &Settings::Information::targetGrowth, growthMeterLabels>("information.targetGrowth", "targetInfo", "targetGrowth"),
-    choice<&Settings::information, &Settings::Information::targetRange, targetRangeLabels>("information.targetRange", "targetInfo", "targetRange"),
+    {"information.targetDistance", "targetInfo", "targetDistance",
+        [](Settings const& s) -> OptionValue { return s.information.targetDistance; },
+        [](Settings& s, int direction) { s.information.targetDistance += direction; s.normalize(); },
+        NumericOption{2, 64, [](Settings& s, float v) { s.information.targetDistance = v; }, 1}},
     toggle<&Settings::information, &Settings::Information::targetStates>("information.targetStates", "targetInfo", "targetStates"),
     toggle<&Settings::information, &Settings::Information::targetCoordinates>("information.targetCoordinates", "targetInfo", "targetCoordinates"),
     toggle<&Settings::information, &Settings::Information::hud>("information.hud", "infoHud", "infoHud"),
@@ -148,7 +151,7 @@ inline constexpr auto options = std::to_array<Option>({
     {"overlays.hitboxDistance", "hitboxes", "hitboxDistance",
         [](Settings const& s) -> OptionValue { return s.overlays.hitboxDistance; },
         [](Settings& s, int direction) { s.overlays.hitboxDistance += direction * 8.f; s.normalize(); },
-        NumericOption{8, 128, [](Settings& s, float v) { s.overlays.hitboxDistance = v; }}},
+        NumericOption{8, 128, [](Settings& s, float v) { s.overlays.hitboxDistance = v; }, 8}},
     toggle<&Settings::visuals, &Settings::Visuals::hideOffhand>("visuals.hideOffhand", "hideOffhand", "hideOffhand"),
     toggle<&Settings::overlays, &Settings::Overlays::chunkBorders>("overlays.chunkBorders", "chunkBorders", "chunkBorders"),
     toggle<&Settings::overlays, &Settings::Overlays::shapes>("overlays.shapes", "shapes", "shapeRendering"),
@@ -159,11 +162,11 @@ inline constexpr auto options = std::to_array<Option>({
     {"camera.magnification", "zoom", "magnification",
         [](Settings const& s) -> OptionValue { return s.camera.magnification; },
         [](Settings& s, int direction) { s.camera.magnification += direction * .5f; s.normalize(); },
-        NumericOption{1, 10, [](Settings& s, float v) { s.camera.magnification = v; }}},
+        NumericOption{1, 10, [](Settings& s, float v) { s.camera.magnification = v; }, .5f}},
     {"camera.wheelStep", "zoom", "wheelStep",
         [](Settings const& s) -> OptionValue { return s.camera.wheelStep; },
         [](Settings& s, int direction) { s.camera.wheelStep += direction * .1f; s.normalize(); },
-        NumericOption{.1f, 2, [](Settings& s, float v) { s.camera.wheelStep = v; }}},
+        NumericOption{.1f, 2, [](Settings& s, float v) { s.camera.wheelStep = v; }, .1f}},
     toggle<&Settings::lighting, &Settings::Lighting::nightVision>("lighting.nightVision", "nightVision", "nightVision"),
     toggle<&Settings::inspection, &Settings::Inspection::containerPreviews>("inspection.containerPreviews", "previews", "previews"),
     toggle<&Settings::inspection, &Settings::Inspection::shulkerPreviews>("inspection.shulkerPreviews", "previews", "shulkerPreviews"),

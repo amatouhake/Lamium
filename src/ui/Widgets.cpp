@@ -143,6 +143,20 @@ void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on) 
     fill(context,knobX,y+1,knob,knob,on ? palette::knobOn : palette::knobOff);
     fill(context,knobX,y+knob-1,knob,2,on ? Rgb{.71f,.71f,.72f} : Rgb{.6f,.61f,.62f});
 }
+void slider(MinecraftUIRenderContext& context, float x, float y, float width, float fraction, bool active) {
+    if (width < sliderKnobWidth + 2) return;
+    fraction = std::clamp(std::isfinite(fraction) ? fraction : 0.f, 0.f, 1.f);
+    float knobX = x + (width - sliderKnobWidth) * fraction;
+    float trackY = y + (sliderKnobHeight - sliderTrackHeight) / 2;
+    float split = knobX + sliderKnobWidth / 2;
+    fill(context,x,trackY,split-x,sliderTrackHeight,palette::accentDeep);
+    fill(context,split,trackY,x+width-split,sliderTrackHeight,palette::off);
+    frame(context,x,trackY,width,sliderTrackHeight,Rgb{.18f,.18f,.19f});
+    fill(context,x+1,trackY,split-x-1,1,palette::accent);
+    fill(context,knobX,y,sliderKnobWidth,sliderKnobHeight,active ? palette::white : palette::knobOn);
+    fill(context,knobX,y+sliderKnobHeight-2,sliderKnobWidth,2,Rgb{.6f,.61f,.62f});
+    frame(context,knobX,y,sliderKnobWidth,sliderKnobHeight,Rgb{.18f,.18f,.19f});
+}
 void chevron(MinecraftUIRenderContext& context, float x, float y, bool expanded, Rgb value) {
     // A 5-unit triangle: pointing right when collapsed, down when expanded.
     for (int i = 0; i < 3; ++i) {
