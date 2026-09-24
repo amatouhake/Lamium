@@ -1586,3 +1586,16 @@ verified: dimension change while flying, controllers, multiplayer. The
 trace-free cleanup build (cf8d5e9) passed the same checks the same day. Left
 clicks still swing the arm while detached (no attack or break); tracked in
 L-25.
+
+### HUD editor, target card and sliders (2026-09-24/25)
+
+Verified by the maintainer in game on builds up to 1c6ff4e: HUD fills are
+translucent once the HUD draws only on the hud_screen view (it drew on four
+views per frame before); single text shadow; HUD hidden under the settings
+list; layout editor with element toolbar, snapping, reset and popovers that
+avoid the toolbar; settings dialog no longer blocks hotkeys after a
+dimension change; target card with icons (villagers included), vanilla
+heart sprites, 0.1 s morph and the Animations setting; camera-following
+picks during Freelook/FreeCamera without liquids; Range slider (default 6);
+Bedrock-style sliders with working -/+ while typing. Not verified:
+multiplayer servers, controllers.

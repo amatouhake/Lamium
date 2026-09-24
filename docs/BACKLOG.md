@@ -182,9 +182,8 @@ views per frame and the HUD was drawn on each; it now draws only on the
 - Info lines become an ordered list with per-line switches (order saved).
 
 #### L-04c Layout editor **(strong model)**
-Status: first build 2026-09-24 (45211d7) reviewed in game; rework implemented
-2026-09-24 (Opus), in-game check pending. Decisions in DESIGN "HUD" and
-demos/hud-editor.html:
+Status: done (verified in game 2026-09-25, merged at 1c6ff4e). Decisions in
+DESIGN "HUD" and demos/hud-editor.html:
 - Placement: no pin; drop position decides the anchor (screen thirds);
   flush edges allowed; snap at the edge, at a 4-unit inset and to center
   lines; defaults and snap-to buttons use the inset.
@@ -223,10 +222,9 @@ west/east and crop maxima cover common crops only — confirm in game.
 - Anything not present on the client is omitted, not guessed.
 
 ### L-08 Target card **(strong model)**
-Status: implemented 2026-09-24 (Opus), in-game check pending. Design in
-DESIGN "HUD" and demos/hud-editor.html. Icons use the pick-block item for
-blocks and the spawn egg for mobs; the card content appears after the
-0.16 s size ease (no text fade).
+Status: done (verified in game 2026-09-25, merged at 1c6ff4e). Icons use the
+pick-block item for blocks and the spawn egg for mobs; hearts use the
+game's sprites; the card follows the camera during Freelook/FreeCamera.
 - Icon (blocks/items through the item renderer already used by container
   previews; mobs use their spawn egg), name, identifier line, then rows with
   labels in a faint column and values aligned.
