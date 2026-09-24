@@ -366,6 +366,9 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
                 if (!hitboxInRange(min,max,{camera.x,camera.y,camera.z},preferences.hitboxDistance)) continue;
                 auto edges = wireBox(min,max);
                 white.insert(white.end(),edges.begin(),edges.end());
+                // Java shows the eye box and look line for mobs only; items
+                // and other eyeless entities keep the white bounds alone.
+                if (!actor->hasType(ActorType::Mob)) continue;
                 Vec3 const eye = actor->getEyePos();
                 auto marker = eyeBox({eye.x, eye.y, eye.z});
                 red.insert(red.end(),marker.begin(),marker.end());

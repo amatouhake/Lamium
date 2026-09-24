@@ -247,7 +247,8 @@ merely a 16x16 chunk outline.
 
 ### L-11 Hitboxes like Java F3+B
 Status: done. The red eye box is a fixed-size marker pending a screenshot
-comparison; the dragon stays out (L-30).
+comparison; the dragon stays out (L-30). Eye box and look line draw for mobs
+only, matching Java (no red frames on items).
 - Keep the white bounding box; add a red rectangle at eye height and a blue
   line from the eyes along the view direction (2 blocks long).
 - The Ender Dragon is a special case and must not be approximated from model
