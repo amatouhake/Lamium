@@ -351,7 +351,9 @@ or block light is above 0. Confirm in game before relying on it.
 ---
 
 ### L-32 Hotkey overlap and chord semantics **(strong model)**
-Status: ready. Design agreed 2026-09-24.
+Status: implemented 2026-09-25, awaiting in-game check. `ChordDispatch` in
+`input/Binding.h` (event-sequence tests in BindingTests); choices made while
+building are recorded in DESIGN "Keys". Design agreed 2026-09-24.
 2026-09-24 playtest finding: overlapping bindings do not behave like the
 maintainer expects from Java / Tweakeroo / MaLiLib. Concrete required case:
 if one action is bound to `B` and another to `F3 + B`, pressing **F3 then B**

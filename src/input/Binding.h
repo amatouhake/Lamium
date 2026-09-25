@@ -16,10 +16,14 @@ struct Token {
 };
 enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, PermanentSneak, PeriodicAttack, PeriodicUse, ToggleShapes, OpenShapes, FreeCamera, OpenHotkeys, OpenHudLayout, Count };
 enum class Behavior { Press, Hold, Toggle };
-struct ActionInfo { std::string_view id, feature; Behavior behavior; int defaultKey = 0; };
+// Ordinary chords are order-sensitive and yield to a more specific chord
+// completed by the same press. Modifier-like chords (held camera keys) match
+// in any order and stay active when a longer chord starts on top of them.
+enum class Matching { Ordinary, Modifier };
+struct ActionInfo { std::string_view id, feature; Behavior behavior; int defaultKey = 0; Matching matching = Matching::Ordinary; };
 inline constexpr auto actions = std::to_array<ActionInfo>({
     {"settings", "settings", Behavior::Press, 0x4C},
-    {"zoom", "zoom", Behavior::Hold, 0x43},
+    {"zoom", "zoom", Behavior::Hold, 0x43, Matching::Modifier},
     // N belongs to Minecraft notifications; retain J for NightVision.
     {"nightvision", "nightVision", Behavior::Toggle, 0x4a},
     {"sort", "sorting", Behavior::Press, 0x52},
@@ -34,7 +38,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"capturebreaking", "restrictions", Behavior::Press},
     {"resetbreaking", "restrictions", Behavior::Press},
     {"cyclebreakingmode", "restrictions", Behavior::Press},
-    {"freelook", "freelook", Behavior::Hold},
+    {"freelook", "freelook", Behavior::Hold, 0, Matching::Modifier},
     {"lightoverlay", "lightOverlay", Behavior::Toggle},
     {"handrestock", "handRestock", Behavior::Toggle},
     {"permanentsneak", "permanentSneak", Behavior::Toggle},
@@ -66,6 +70,8 @@ inline Chord effectiveChord(Bindings const& bindings, Action action) {
 // offered for it. Loading also ignores a stored empty settings binding.
 inline constexpr bool canClear(Action action) { return action != Action::Settings; }
 
+// Order is the press order and is significant: the last input completes the
+// chord. A wheel impulse is always last.
 inline Chord canonicalChord(Chord chord, Behavior behavior) {
     if (chord.size() > 8) throw std::invalid_argument("A binding accepts at most eight inputs");
     int wheels = 0;
@@ -86,53 +92,175 @@ inline Chord canonicalChord(Chord chord, Behavior behavior) {
     }
     if (wheels > 1 || (wheels && behavior == Behavior::Hold))
         throw std::invalid_argument("Wheel impulses cannot be combined or held");
-    std::sort(chord.begin(), chord.end());
-    chord.erase(std::unique(chord.begin(), chord.end()), chord.end());
+    Chord result;
+    for (auto token : chord)
+        if (std::find(result.begin(), result.end(), token) == result.end()) result.push_back(token);
+    std::stable_partition(result.begin(), result.end(), [](Token t) { return t.device != Device::Wheel; });
+    return result;
+}
+// Settings saved before chords kept their order were sorted by code. Restore
+// the usual press order: modifiers, function keys, other keys, mouse, wheel.
+inline Chord legacyChordOrder(Chord chord) {
+    auto rank = [](Token t) {
+        if (t.device == Device::Wheel) return 4;
+        if (t.device == Device::Mouse) return 3;
+        int c = t.code;
+        if ((c >= 0x10 && c <= 0x12) || (c >= 0xA0 && c <= 0xA5) || c == 0x5B || c == 0x5C) return 0;
+        if (c >= 0x70 && c <= 0x87) return 1;
+        return 2;
+    };
+    std::stable_sort(chord.begin(), chord.end(), [&](Token a, Token b) { return rank(a) < rank(b); });
     return chord;
 }
+inline bool contains(Chord const& chord, Token token) { return std::find(chord.begin(), chord.end(), token) != chord.end(); }
+inline bool coversAll(Chord const& outer, Chord const& inner) {
+    return std::all_of(inner.begin(), inner.end(), [&](Token t) { return contains(outer, t); });
+}
+// Strictly more inputs, including every input of the shorter chord.
+inline bool moreSpecific(Chord const& longer, Chord const& shorter) {
+    return longer.size() > shorter.size() && coversAll(longer, shorter);
+}
 
-struct Edge { bool pressed = false, released = false; };
+enum class Relation { None, Overlap, Shared };
+// Shared: the same chord, so both actions fire together. Overlap: one chord's
+// inputs include the other's (or the same inputs in another order).
+inline Relation bindingRelation(Chord const& a, Chord const& b) {
+    if (a.empty() || b.empty()) return Relation::None;
+    if (a == b) return Relation::Shared;
+    return coversAll(a, b) || coversAll(b, a) ? Relation::Overlap : Relation::None;
+}
+// Sort only runs in containers and everything else only in gameplay, so their
+// bindings never meet.
+inline bool sameInputContext(Action a, Action b) { return (a == Action::Sort) == (b == Action::Sort); }
+struct Conflict { Action action; Relation relation; };
+inline std::vector<Conflict> bindingConflicts(Bindings const& bindings, Action action) {
+    std::vector<Conflict> result;
+    auto chord = effectiveChord(bindings, action);
+    for (size_t i = 0; i < actions.size(); ++i) {
+        auto other = static_cast<Action>(i);
+        if (other == action || !sameInputContext(action, other)) continue;
+        auto relation = bindingRelation(chord, effectiveChord(bindings, other));
+        if (relation != Relation::None) result.push_back({other, relation});
+    }
+    return result;
+}
+
 class HeldInputs {
     Chord held, blocked;
 public:
+    // Press order is kept: ordinary chords compare against it.
     Chord const& value() const { return held; }
-    void observe(Token token, bool down, bool accepted) {
-        if (token.device == Device::Wheel) return;
-        if (!down) { std::erase(held, token); std::erase(blocked, token); return; }
+    // True for a fresh press that may complete a chord (every accepted wheel
+    // impulse is one); key repeats and blocked inputs are not.
+    bool observe(Token token, bool down, bool accepted) {
+        if (token.device == Device::Wheel) return down && accepted;
+        if (!down) { std::erase(held, token); std::erase(blocked, token); return false; }
         if (!accepted) {
-            if (std::find(held.begin(), held.end(), token) == held.end()
-                && std::find(blocked.begin(), blocked.end(), token) == blocked.end()) blocked.push_back(token);
-            return;
+            if (!contains(held, token) && !contains(blocked, token)) blocked.push_back(token);
+            return false;
         }
-        if (std::find(blocked.begin(), blocked.end(), token) != blocked.end()) return;
-        if (std::find(held.begin(), held.end(), token) == held.end()) held.push_back(token);
+        if (contains(blocked, token) || contains(held, token)) return false;
+        held.push_back(token);
+        return true;
     }
     void invalidate() {
         for (auto token : held)
-            if (std::find(blocked.begin(), blocked.end(), token) == blocked.end()) blocked.push_back(token);
+            if (!contains(blocked, token)) blocked.push_back(token);
         held.clear();
     }
     void clear() { held.clear(); blocked.clear(); }
 };
-// One state per action. Host code resets this on focus/world/screen changes,
-// rebinding, or input ownership changes and delivers any released edge.
-class BindingState {
-    bool active = false;
-public:
-    bool isActive() const { return active; }
-    Edge update(Chord const& chord, Chord const& held, std::optional<Token> impulse = {}) {
-        bool matches = !chord.empty();
-        for (auto const token : chord) {
-            bool present = token.device == Device::Wheel ? impulse == token
-                : std::find(held.begin(), held.end(), token) != held.end();
-            matches = matches && present;
+
+struct Transition {
+    size_t action;
+    bool pressed;
+    bool operator==(Transition const&) const = default;
+};
+struct Dispatch {
+    std::vector<Transition> transitions;
+    // The input event belongs to Lamium and should not reach the game.
+    bool consumed = false;
+};
+using ChordSet = std::array<Chord, actions.size()>;
+// Matches every action's chord against one input event. Actions activate only
+// on the press that completes their chord. A chord that yielded to a more
+// specific one stays latched until one of its inputs is released, so it never
+// fires late. Host code resets this on focus/world/screen changes, rebinding
+// or input ownership changes and delivers the released edges.
+class ChordDispatch {
+    enum class Phase { Idle, Active, Latched };
+    std::array<Phase, actions.size()> phases{};
+    static bool pulsed(Chord const& chord) { return !chord.empty() && chord.back().device == Device::Wheel; }
+    static bool heldPart(Chord const& chord, Chord const& held) {
+        return std::all_of(chord.begin(), chord.end(), [&](Token t) { return t.device == Device::Wheel || contains(held, t); });
+    }
+    static bool inOrder(Chord const& chord, Chord const& held) {
+        std::ptrdiff_t last = -1;
+        for (auto token : chord) {
+            if (token.device == Device::Wheel) continue;
+            auto at = std::find(held.begin(), held.end(), token) - held.begin();
+            if (at <= last) return false;
+            last = at;
         }
-        bool pulsed = std::any_of(chord.begin(), chord.end(), [](Token t) { return t.device == Device::Wheel; });
-        if (pulsed) return {matches, false};
-        Edge result{matches && !active, !matches && active};
-        active = matches;
+        return true;
+    }
+    static bool completes(Chord const& chord, Matching matching, Chord const& held, Token press) {
+        if (chord.empty() || !heldPart(chord, held)) return false;
+        if (press.device == Device::Wheel) return chord.back() == press && (matching == Matching::Modifier || inOrder(chord, held));
+        if (pulsed(chord)) return false;
+        if (matching == Matching::Modifier) return contains(chord, press);
+        return chord.back() == press && inOrder(chord, held);
+    }
+public:
+    bool isActive(Action action) const { return phases[static_cast<size_t>(action)] == Phase::Active; }
+    // chords[i] is empty when the action is unbound or not allowed here.
+    // down is a key/button press (repeats included) or a wheel impulse; fresh
+    // says it newly entered the held set. Pass nothing for a release or for an
+    // event another consumer cancelled: only releases are reported then.
+    Dispatch update(ChordSet const& chords, Chord const& held, std::optional<Token> down = {}, bool fresh = false) {
+        Dispatch result;
+        for (size_t i = 0; i < chords.size(); ++i) {
+            if (phases[i] == Phase::Idle) continue;
+            if (!chords[i].empty() && heldPart(chords[i], held)) continue;
+            if (phases[i] == Phase::Active) result.transitions.push_back({i, false});
+            phases[i] = Phase::Idle;
+        }
+        if (!down) return result;
+        std::vector<size_t> candidates, firing;
+        if (fresh)
+            for (size_t i = 0; i < chords.size(); ++i)
+                if (phases[i] == Phase::Idle && completes(chords[i], actions[i].matching, held, *down)) candidates.push_back(i);
+        for (auto i : candidates) {
+            bool yields = std::any_of(candidates.begin(), candidates.end(), [&](size_t j) { return moreSpecific(chords[j], chords[i]); });
+            if (!yields) firing.push_back(i);
+            else if (!pulsed(chords[i])) phases[i] = Phase::Latched;
+        }
+        // A longer chord starting on top of an ordinary held action takes
+        // over; the shorter one does not resume until pressed again.
+        for (size_t i = 0; i < chords.size(); ++i) {
+            if (phases[i] != Phase::Active || actions[i].matching != Matching::Ordinary) continue;
+            if (std::any_of(firing.begin(), firing.end(), [&](size_t j) { return moreSpecific(chords[j], chords[i]); })) {
+                result.transitions.push_back({i, false});
+                phases[i] = Phase::Latched;
+            }
+        }
+        for (auto i : firing) {
+            result.transitions.push_back({i, true});
+            if (!pulsed(chords[i])) phases[i] = Phase::Active;
+        }
+        result.consumed = !firing.empty();
+        if (down->device != Device::Wheel)
+            for (size_t i = 0; i < chords.size(); ++i)
+                if (phases[i] != Phase::Idle && contains(chords[i], *down)) result.consumed = true;
         return result;
     }
-    Edge reset() { bool wasActive = active; active = false; return {false, wasActive}; }
+    std::vector<Transition> reset() {
+        std::vector<Transition> released;
+        for (size_t i = 0; i < phases.size(); ++i) {
+            if (phases[i] == Phase::Active) released.push_back({i, false});
+            phases[i] = Phase::Idle;
+        }
+        return released;
+    }
 };
 }

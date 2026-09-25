@@ -48,96 +48,220 @@ void bindingTests() {
         "only the settings action refuses Clear");
     Token z{Device::Key, 0x5a}, three{Device::Key, 0x33};
     auto chord = canonicalChord({z, three, z}, Behavior::Hold);
-    check(chord == canonicalChord({three, z}, Behavior::Hold), "chord order and duplicate keys canonicalize");
-    BindingState state;
-    check(!state.update(chord, {z}).pressed, "partial chord does not trigger");
-    check(state.update(chord, {three, z}).pressed, "arbitrary chord triggers when all inputs held");
-    check(!state.update(chord, {three, z}).pressed, "key repeats do not repeat an action");
-    check(state.update(chord, {three}).released, "releasing any chord member ends hold");
-    check(!state.update(chord, {}).released, "release delivered only once");
-    check(state.update(chord, {z, three}).pressed, "chord can be pressed again");
-    check(state.reset().released && !state.reset().released, "focus reset releases exactly once");
-    check(!state.update({}, {z}).pressed, "unbound action never triggers");
-    HeldInputs held;
-    held.observe(z, true, true);
-    held.observe(three, true, true);
-    check(state.update(chord, held.value()).pressed, "tracked chord presses");
-    held.observe(z, true, true);
-    check(!state.update(chord, held.value()).pressed && state.isActive(), "tracked repeat stays held without firing");
-    held.observe({Device::Wheel, 1}, true, false);
-    check(!state.update(chord, held.value()).released, "consumed wheel does not cancel a held chord");
-    held.invalidate();
-    check(state.reset().released, "ownership change releases action");
-    held.observe(z, true, true);
-    held.observe(three, true, true);
-    check(!state.update(chord, held.value()).pressed, "held repeats cannot reactivate after focus loss");
-    held.observe(z, false, false);
-    held.observe(three, false, false);
-    held.observe(z, true, true);
-    held.observe(three, true, true);
-    check(state.update(chord, held.value()).pressed, "fresh press after release re-arms chord");
-    held.observe(z, false, false);
-    check(state.update(chord, held.value()).released, "cancelled key-up still releases chord");
-    held.clear();
-    held.observe(z, true, false);
-    held.observe(z, true, true);
-    check(held.value().empty(), "key pressed in a text field cannot activate on repeat after it closes");
-    held.observe(z, false, false);
-    held.observe(z, true, true);
-    check(held.value() == Chord{z}, "text-field key re-arms after its release");
-    Token shift{Device::Key, 0x10}, wheel{Device::Wheel, 1};
-    Chord scroll{shift, wheel};
-    check(!state.update(scroll, {}, wheel).pressed, "wheel requires modifier");
-    check(!state.update(scroll, {shift}).pressed, "held modifier alone does not pulse");
-    check(state.update(scroll, {shift}, wheel).pressed && state.update(scroll, {shift}, wheel).pressed,
-          "each wheel impulse triggers even when modifier stays held");
-    check(!state.update(scroll, {shift}, Token{Device::Wheel, -1}).pressed, "wheel direction matters");
-    // Exercise event sequences, including mixed devices, rather than only
-    // passing complete snapshots to the matcher. Any member may arrive last.
-    Chord mixed{z, three, {Device::Mouse, 3}};
-    auto ordered = canonicalChord(mixed, Behavior::Hold);
-    do {
-        for (auto released : mixed) {
-            HeldInputs sequence;
-            BindingState actionState;
-            for (size_t index = 0; index < ordered.size(); ++index) {
-                sequence.observe(ordered[index], true, true);
-                auto edge = actionState.update(mixed, sequence.value());
-                check(edge.pressed == (index + 1 == ordered.size()) && !edge.released,
-                    "mixed chord activates only on the last member in every press order");
-            }
-            sequence.observe(released, false, false);
-            check(actionState.update(mixed, sequence.value()).released,
-                "each member can end a mixed-device hold");
-            sequence.observe(released, true, true);
-            check(actionState.update(mixed, sequence.value()).pressed,
-                "repressing the released member re-arms a chord without releasing its other members");
-            sequence.invalidate();
-            check(actionState.reset().released, "focus loss ends mixed-device hold");
-            sequence.observe(released, false, false);
-            sequence.observe(released, true, true);
-            for (auto token : ordered) sequence.observe(token, true, true);
-            check(!actionState.update(mixed, sequence.value()).pressed,
-                "partial release after focus loss cannot revive other stale held inputs");
-            for (auto token : ordered) sequence.observe(token, false, false);
-            for (auto token : ordered) sequence.observe(token, true, true);
-            check(actionState.update(mixed, sequence.value()).pressed,
-                "all fresh inputs restore mixed chord after focus loss");
+    check(chord == Chord{z, three} && canonicalChord({three, z}, Behavior::Hold) == Chord{three, z},
+        "chords keep press order and drop repeated inputs");
+    Token shift{Device::Key, 0x10}, ctrl{Device::Key, 0x11}, alt{Device::Key, 0x12}, f3{Device::Key, 0x72},
+        b{Device::Key, 0x42}, c{Device::Key, 0x43}, w{Device::Key, 0x57}, space{Device::Key, 0x20},
+        wheel{Device::Wheel, 1}, left{Device::Mouse, 1}, middle{Device::Mouse, 3}, back{Device::Mouse, 4};
+    check(canonicalChord({wheel, shift}, Behavior::Press) == Chord{shift, wheel}, "a wheel impulse always completes a chord");
+    check(legacyChordOrder({b, f3}) == Chord{f3, b} && legacyChordOrder({z, shift}) == Chord{shift, z}
+        && legacyChordOrder({wheel, back, z, ctrl}) == Chord{ctrl, z, back, wheel}
+        && legacyChordOrder({three, z}) == Chord{three, z},
+        "legacy sorted chords regain modifier-first press order");
+
+    // Event-sequence harness: every input goes through HeldInputs and then the
+    // dispatcher, as CustomInput does.
+    struct Keys {
+        ChordSet chords;
+        HeldInputs held;
+        ChordDispatch dispatch;
+        void bind(Action action, Chord value) {
+            chords[static_cast<size_t>(action)] = canonicalChord(std::move(value), actions[static_cast<size_t>(action)].behavior);
         }
-    } while (std::next_permutation(ordered.begin(), ordered.end()));
-    HeldInputs wheelModifiers;
-    BindingState wheelState;
-    wheelModifiers.observe(shift, true, true);
-    check(wheelState.update(scroll, wheelModifiers.value(), wheel).pressed,
-        "modified wheel fires before focus loss");
-    wheelModifiers.invalidate();
-    wheelModifiers.observe(shift, true, true);
-    check(!wheelState.update(scroll, wheelModifiers.value(), wheel).pressed,
-        "wheel cannot revive a modifier held across focus loss");
-    wheelModifiers.observe(shift, false, false);
-    wheelModifiers.observe(shift, true, true);
-    check(wheelState.update(scroll, wheelModifiers.value(), wheel).pressed,
-        "fresh modifier re-arms wheel binding");
+        Dispatch press(Token token, bool accepted = true) {
+            bool fresh = held.observe(token, true, accepted);
+            return dispatch.update(chords, held.value(), accepted ? std::optional<Token>(token) : std::nullopt, fresh);
+        }
+        Dispatch release(Token token) {
+            held.observe(token, false, false);
+            return dispatch.update(chords, held.value());
+        }
+        void focusLost() { held.invalidate(); }
+    };
+    auto only = [](Dispatch const& result, std::vector<Transition> expected) { return result.transitions == expected; };
+    auto on = [](Action action) { return Transition{static_cast<size_t>(action), true}; };
+    auto off = [](Action action) { return Transition{static_cast<size_t>(action), false}; };
+    auto const shortA = Action::NightVision, longA = Action::ChunkBorders, longestA = Action::Hitboxes;
+
+    {
+        Keys keys;
+        keys.bind(shortA, {b});
+        keys.bind(longA, {f3, b});
+        check(only(keys.press(f3), {}), "F3 alone fires nothing");
+        auto completed = keys.press(b);
+        check(only(completed, {on(longA)}) && completed.consumed, "F3 then B fires only F3+B and consumes B");
+        auto repeat = keys.press(b);
+        check(only(repeat, {}) && repeat.consumed, "B repeats stay with F3+B and never fire B");
+        check(only(keys.release(f3), {off(longA)}), "releasing F3 ends F3+B without starting B");
+        check(only(keys.press(b), {}), "B repeats after F3 is up cannot fire B late");
+        check(only(keys.release(b), {}), "the latched B releases silently");
+        check(only(keys.press(b), {on(shortA)}), "a fresh B fires B");
+        auto late = keys.press(f3);
+        check(only(late, {}) && !late.consumed, "B then F3 does not complete F3+B and leaves F3 to the game");
+        check(only(keys.release(f3), {}) && only(keys.release(b), {off(shortA)}), "B releases once");
+        keys.press(f3);
+        check(only(keys.press(b), {on(longA)}), "F3+B repeats after a full release");
+        keys.release(b);
+        check(only(keys.press(b), {on(longA)}), "re-pressing B while F3 stays held repeats F3+B");
+    }
+    {
+        Keys keys;
+        keys.bind(shortA, {b});
+        keys.bind(longA, {b});
+        check(only(keys.press(b), {on(shortA), on(longA)}), "identical chords fire together");
+        check(only(keys.press(b), {}), "identical chords fire once per press");
+        check(only(keys.release(b), {off(shortA), off(longA)}), "identical chords release together");
+    }
+    {
+        Keys keys;
+        keys.bind(shortA, {b});
+        keys.bind(longA, {shift, b});
+        keys.bind(longestA, {ctrl, shift, b});
+        keys.press(ctrl); keys.press(shift);
+        check(only(keys.press(b), {on(longestA)}), "Ctrl+Shift+B fires only the three-key action");
+        keys.release(b); keys.release(ctrl);
+        check(only(keys.press(b), {on(longA)}), "Shift+B fires only the two-key action");
+        keys.release(b); keys.release(shift);
+        check(only(keys.press(b), {on(shortA)}), "B alone fires the single-key action");
+        keys.release(b);
+        keys.press(shift); keys.press(ctrl);
+        check(only(keys.press(b), {on(longA)}), "Shift, Ctrl, B is not Ctrl+Shift+B; Shift+B wins");
+    }
+    {
+        Keys keys;
+        keys.bind(Action::Zoom, {c});
+        keys.press(w); keys.press(space); keys.press(shift);
+        check(only(keys.press(c), {on(Action::Zoom)}), "modifier-like zoom starts while moving, jumping and sneaking");
+        check(only(keys.release(w), {}) && only(keys.press(w), {}) && only(keys.release(space), {}),
+            "movement keys never break a modifier-like hold");
+        check(only(keys.release(c), {off(Action::Zoom)}), "zoom ends with its key");
+        keys.release(shift); keys.release(w);
+        keys.bind(shortA, {c});
+        keys.press(w);
+        check(only(keys.press(c), {on(Action::Zoom), on(shortA)}), "ordinary chords also tolerate unrelated held keys");
+    }
+    {
+        Keys keys;
+        keys.bind(Action::Zoom, {c});
+        keys.bind(longA, {c, left});
+        check(only(keys.press(c), {on(Action::Zoom)}), "zoom starts");
+        check(only(keys.press(left), {on(longA)}), "a longer chord fires on top of zoom");
+        check(keys.dispatch.isActive(Action::Zoom), "zoom keeps running under the longer chord");
+        check(only(keys.release(c), {off(Action::Zoom), off(longA)}), "releasing the shared key ends both");
+    }
+    {
+        Keys keys;
+        keys.bind(shortA, {b});
+        keys.bind(longA, {b, left});
+        check(only(keys.press(b), {on(shortA)}), "ordinary B activates");
+        check(only(keys.press(left), {off(shortA), on(longA)}), "a longer ordinary chord takes over from an active shorter one");
+        check(only(keys.release(left), {off(longA)}) && !keys.dispatch.isActive(shortA),
+            "the shorter ordinary chord does not resume when the longer one ends");
+        check(only(keys.release(b), {}) && only(keys.press(b), {on(shortA)}), "it activates again on a fresh press");
+    }
+    {
+        Keys keys;
+        keys.bind(shortA, {back});
+        keys.bind(longA, {shift, back});
+        keys.press(shift);
+        check(only(keys.press(back), {on(longA)}), "Shift + mouse button beats the bare mouse button");
+        keys.release(back); keys.release(shift);
+        check(only(keys.press(back), {on(shortA)}), "the bare mouse button still works alone");
+    }
+    {
+        Keys keys;
+        keys.bind(shortA, {wheel});
+        keys.bind(longA, {shift, wheel});
+        check(only(keys.press(wheel), {on(shortA)}), "a bare wheel impulse fires");
+        keys.press(shift);
+        auto first = keys.press(wheel);
+        check(only(first, {on(longA)}) && first.consumed, "Shift + wheel beats the bare wheel");
+        check(only(keys.press(wheel), {on(longA)}), "each wheel impulse fires while Shift stays held");
+        check(only(keys.press(Token{Device::Wheel, -1}), {}), "wheel direction matters");
+        check(only(keys.release(shift), {}), "wheel chords have no release edge");
+        keys.press(shift);
+        keys.focusLost();
+        keys.dispatch.reset();
+        keys.press(shift);
+        check(only(keys.press(wheel), {on(shortA)}), "a modifier held across focus loss cannot back a wheel chord");
+        keys.release(shift); keys.press(shift);
+        check(only(keys.press(wheel), {on(longA)}), "a fresh modifier re-arms the wheel chord");
+    }
+    {
+        Keys keys;
+        keys.bind(shortA, {z, three});
+        keys.press(z);
+        check(only(keys.press(three), {on(shortA)}), "chord fires on its last input");
+        keys.focusLost();
+        check(keys.dispatch.reset() == std::vector<Transition>{off(shortA)} && keys.dispatch.reset().empty(), "focus reset releases exactly once");
+        check(only(keys.press(z), {}) && only(keys.press(three), {}), "held repeats cannot reactivate after focus loss");
+        keys.release(three);
+        check(only(keys.press(three), {}), "a stale first input cannot back a fresh last input");
+        keys.release(z); keys.release(three);
+        keys.press(z);
+        check(only(keys.press(three), {on(shortA)}), "fresh presses after release re-arm the chord");
+        keys.held.observe(z, false, false);
+        check(only(keys.dispatch.update(keys.chords, keys.held.value()), {off(shortA)}), "cancelled key-up still releases");
+    }
+    {
+        Keys keys;
+        keys.bind(shortA, {z});
+        check(only(keys.press(z, false), {}) && only(keys.press(z), {}), "key pressed in a text field cannot activate on repeat after it closes");
+        keys.release(z);
+        check(only(keys.press(z), {on(shortA)}), "text-field key re-arms after its release");
+        keys.release(z);
+        keys.press(z, false);
+        keys.chords = {};
+        check(only(keys.dispatch.update(keys.chords, keys.held.value()), {}), "unbound actions never fire");
+    }
+    {
+        // Every press order of a mixed-device chord: the ordinary binding fires
+        // only in its own order, the modifier-like one in any order.
+        Chord mixed{alt, z, middle};
+        auto order = mixed;
+        std::sort(order.begin(), order.end());
+        do {
+            Keys keys;
+            keys.bind(shortA, mixed);
+            keys.bind(Action::Freelook, mixed);
+            for (size_t index = 0; index < order.size(); ++index) {
+                auto result = keys.press(order[index]);
+                bool last = index + 1 == order.size();
+                std::vector<Transition> expected;
+                if (last && order == mixed) expected.push_back(on(shortA));
+                if (last) expected.push_back(on(Action::Freelook));
+                std::sort(expected.begin(), expected.end(), [](Transition l, Transition r) { return l.action < r.action; });
+                check(only(result, expected), "ordinary chords follow press order, modifier-like chords do not");
+            }
+            for (auto released : mixed) {
+                bool wasActive = keys.dispatch.isActive(Action::Freelook);
+                auto result = keys.release(released);
+                check(!wasActive || std::find(result.transitions.begin(), result.transitions.end(), off(Action::Freelook))
+                    != result.transitions.end(), "any member ends a mixed-device hold");
+            }
+        } while (std::next_permutation(order.begin(), order.end()));
+    }
+    {
+        Bindings bindings;
+        bindings[static_cast<size_t>(Action::NightVision)] = Chord{b};
+        bindings[static_cast<size_t>(Action::Hitboxes)] = Chord{b};
+        bindings[static_cast<size_t>(Action::ChunkBorders)] = Chord{f3, b};
+        bindings[static_cast<size_t>(Action::DebugView)] = Chord{b, f3};
+        bindings[static_cast<size_t>(Action::Sort)] = Chord{b};
+        check(bindingRelation({b}, {b}) == Relation::Shared && bindingRelation({f3, b}, {b}) == Relation::Overlap
+            && bindingRelation({f3, b}, {b, f3}) == Relation::Overlap && bindingRelation({b}, {c}) == Relation::None
+            && bindingRelation({}, {}) == Relation::None, "binding relations classify shared and overlapping chords");
+        auto conflicts = bindingConflicts(bindings, Action::NightVision);
+        auto has = [&](Action action, Relation relation) {
+            return std::any_of(conflicts.begin(), conflicts.end(), [&](Conflict x) { return x.action == action && x.relation == relation; });
+        };
+        check(has(Action::Hitboxes, Relation::Shared) && has(Action::ChunkBorders, Relation::Overlap)
+            && has(Action::DebugView, Relation::Overlap) && !has(Action::Sort, Relation::Shared),
+            "the hotkeys list reports shared and overlapping bindings, not container-only ones");
+        check(std::none_of(conflicts.begin(), conflicts.end(), [](Conflict x) { return x.action == Action::Zoom; }),
+            "unrelated default keys are not reported");
+    }
+    Chord scroll{shift, wheel};
     for (auto invalid : {Chord{{Device::Key, 0}}, Chord{{Device::Mouse, 6}},
                          Chord{{Device::Wheel, 0}}, Chord{{Device::Wheel, 1}, {Device::Wheel, -1}}}) {
         bool rejected = false;

@@ -52,14 +52,17 @@ void post(Action action, bool press) {
     ll::thread::ClientThreadExecutor::getDefault().execute(flush);
 }
 HeldInputs held;
-std::array<Chord, actions.size()> previous;
-std::array<BindingState, actions.size()> states;
+ChordSet previous;
+ChordDispatch dispatch;
 std::array<ll::event::ListenerPtr, 4> listeners;
 std::string screen;
 bool installed = false;
 void releaseStates() {
-    for (size_t i = 0; i < states.size(); ++i)
-        if (states[i].reset().released) post(static_cast<Action>(i), false);
+    for (auto transition : dispatch.reset()) post(static_cast<Action>(transition.action), false);
+}
+bool opensMenu(Action action) {
+    return action == Action::Settings || action == Action::OpenShapes || action == Action::OpenHotkeys
+        || action == Action::OpenHudLayout;
 }
 void invalidate() {
     interaction::periodic::cancel();
@@ -76,7 +79,7 @@ LL_TYPE_INSTANCE_HOOK(CustomInputFocusLost, ll::memory::HookPriority::Normal, Mi
 void sync(IClientInstance& client) {
     auto name = client.getScreenName();
     auto overrides = Runtime::instance().preferences().bindings;
-    std::array<Chord, actions.size()> chords;
+    ChordSet chords;
     for (size_t i = 0; i < actions.size(); ++i) chords[i] = effectiveChord(overrides, static_cast<Action>(i));
     if (screen != name || previous != chords) {
         for (size_t i = 0; i < actions.size(); ++i)
@@ -90,47 +93,29 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
     auto current = ll::service::getClientInstance();
     if (!current) { invalidate(); return false; }
     sync(*current);
-    bool const wheel = token.device == Device::Wheel;
-    held.observe(token, down, !cancelled && !textEditing);
+    bool const fresh = held.observe(token, down, !cancelled && !textEditing);
     if (!Runtime::instance().enabled() || textEditing || ui::ownsInput()) {
         invalidate();
-        return false;
-    }
-    if (cancelled) {
-        // A different consumer (notably Zoom's wheel adjustment) owns this
-        // event. Preserve held inputs, but always observe key-up releases.
-        for (size_t i = 0; i < states.size(); ++i)
-            if (!previous[i].empty() && states[i].update(previous[i], held.value()).released)
-                post(static_cast<Action>(i), false);
         return false;
     }
     bool const gameplay = gameplayScreen(current->getScreenName());
     auto& tracker = inventory::game::ScreenTracker::getInstance();
     bool const container = tracker.current() && !inventory::game::TextInputTracker::getInstance().isEditing(tracker.currentView());
-    bool consumed = false;
-    for (size_t i = 0; i < states.size(); ++i) {
-        bool allowed = i == static_cast<size_t>(Action::Sort) ? container : gameplay;
-        if (!allowed || previous[i].empty()) {
-            if (states[i].reset().released) post(static_cast<Action>(i), false);
-            continue;
-        }
-        auto edge = states[i].update(previous[i], held.value(), wheel ? std::optional<Token>(token) : std::nullopt);
-        if (down && states[i].isActive()
-            && std::find(previous[i].begin(), previous[i].end(), token) != previous[i].end()) consumed = true;
-        if (edge.released) post(static_cast<Action>(i), false);
-        if (edge.pressed) {
-            post(static_cast<Action>(i), true);
-            consumed = true;
-            // Opening a menu takes input ownership once the queue runs. Do not
-            // fire another action from the same chord.
-            if (i == static_cast<size_t>(Action::Settings) || i == static_cast<size_t>(Action::OpenShapes)
-                || i == static_cast<size_t>(Action::OpenHotkeys) || i == static_cast<size_t>(Action::OpenHudLayout)) {
-                invalidate();
-                break;
-            }
-        }
+    ChordSet allowed;
+    for (size_t i = 0; i < allowed.size(); ++i)
+        if (i == static_cast<size_t>(Action::Sort) ? container : gameplay) allowed[i] = previous[i];
+    // A different consumer (notably Zoom's wheel adjustment) may own this
+    // event. Preserve held inputs, but always observe key-up releases.
+    auto result = dispatch.update(allowed, held.value(), down && !cancelled ? std::optional<Token>(token) : std::nullopt, fresh);
+    bool menu = false;
+    for (auto [index, pressed] : result.transitions) {
+        post(static_cast<Action>(index), pressed);
+        menu = menu || (pressed && opensMenu(static_cast<Action>(index)));
     }
-    return consumed;
+    // Opening a menu takes input ownership once the queue runs. Actions that
+    // share the chord already fired together; nothing else may follow.
+    if (menu) invalidate();
+    return result.consumed;
 }
 }
 void resetCustomInput() { invalidate(); }

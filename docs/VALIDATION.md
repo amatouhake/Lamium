@@ -190,8 +190,13 @@ snapshot failed with `foreground window did not report a process id`; recovery
 by refreshing the window list and rehydrating its returned Minecraft handle
 failed because that window was not found. No game input or installation was
 performed during this attempt.
-Exact duplicates among explicit Lamium overrides are marked Shared. This does
-not detect native Minecraft or other-mod conflicts or overlapping subset chords.
+Hotkeys marks effective bindings (defaults included) as Shared (same chord)
+or Overlap (one chord's inputs include the other's); the footer names the
+other actions. Native Minecraft and other-mod conflicts are not detected.
+L-32 overlap semantics (order-sensitive ordinary chords, most specific chord
+wins, latching, modifier-like Zoom/Freelook, shared chords firing together,
+legacy sorted-order migration) are covered by event-sequence tests in
+BindingTests and SettingsStoreTests; not yet verified in game.
 Pure capture tests cover arbitrary chords, opener suppression, mouse buttons,
 and modified wheel input. Layout, hit targets, input routing, focus loss, and
 the full capture/save/dispatch cycle still require Minecraft verification.

@@ -573,14 +573,11 @@ std::vector<std::string> bindingKeys(IClientInstance& current, input::Action act
     if (name != translated("unbound")) keys.push_back(std::move(name));
     return keys;
 }
-bool sharedBinding(input::Action action) {
-    auto const preferences = Runtime::instance().preferences();
-    auto const& bindings = preferences.bindings;
-    auto const& binding = bindings[static_cast<size_t>(action)];
-    if (!binding || binding->empty()) return false;
-    for (size_t other = 0; other < bindings.size(); ++other)
-        if (other != static_cast<size_t>(action) && bindings[other] == binding) return true;
-    return false;
+input::Relation strongestConflict(input::Action action) {
+    auto relation = input::Relation::None;
+    for (auto conflict : input::bindingConflicts(Runtime::instance().preferences().bindings, action))
+        relation = std::max(relation, conflict.relation);
+    return relation;
 }
 void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, float y, input::Action action) {
     float x = displayed.keyX, width = displayed.keyWidth, cy = y + (SettingsTable::rowHeight - capHeight) / 2;
@@ -594,8 +591,8 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     auto keys = bindingKeys(current, action);
     if (keys.empty()) { label(context,x,cy+1,width,translated("unbound"),palette::faint); return; }
     float used = keycaps(context,x,cy,width,keys);
-    if (sharedBinding(action)) {
-        auto text = translated("shared");
+    if (auto relation = strongestConflict(action); relation != input::Relation::None) {
+        auto text = translated(relation == input::Relation::Shared ? "shared" : "overlap");
         float w = textWidth(context, text) + 4;
         if (used + 3 + w <= width) {
             frame(context,x+used+3,cy,w,capHeight,palette::warning);
@@ -684,8 +681,17 @@ std::string description() {
         auto help = translated(helpKey);
         return help != helpKey ? help : translated(entry.feature->description);
     }
-    case RowKind::Action:
-        return (hotkeysView() ? featureName(*entry.feature) + ": " : std::string{}) + behaviorText(*entry.action);
+    case RowKind::Action: {
+        auto text = (hotkeysView() ? featureName(*entry.feature) + ": " : std::string{}) + behaviorText(*entry.action);
+        std::string shared, overlapping;
+        for (auto conflict : input::bindingConflicts(Runtime::instance().preferences().bindings, *entry.action)) {
+            auto& names = conflict.relation == input::Relation::Shared ? shared : overlapping;
+            names += (names.empty() ? "" : ", ") + actionLabel(conflict.action);
+        }
+        if (!shared.empty()) text += " " + translated("sharesWith", shared);
+        if (!overlapping.empty()) text += " " + translated("overlapsWith", overlapping);
+        return text;
+    }
     case RowKind::Layout: return translated("help.layoutLink");
     default: return {};
     }

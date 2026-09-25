@@ -58,6 +58,7 @@ Json encode(Settings const& settings) {
     }
     return Json{
         {"version", settings.version},
+        {"orderedBindings", true},
         {"interaction", {{"attackInterval", settings.interaction.attackInterval}, {"useInterval", settings.interaction.useInterval},
                          {"breaking", settings.interaction.breaking}, {"breakingMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.breakingMode)]},
                          {"placementMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.placementMode)]}}},
@@ -167,6 +168,8 @@ Settings decodeSettings(std::string_view text) {
     if (data.contains("bindings")) {
         auto const& bindings = data.at("bindings");
         if (!bindings.is_object()) throw std::runtime_error("Bindings must be an object");
+        // Older files stored chords sorted by code; press order was lost.
+        bool const ordered = data.value("orderedBindings", false);
         for (size_t i = 0; i < input::actions.size(); ++i) {
             auto found = bindings.find(std::string(input::actions[i].id));
             if (found == bindings.end() || found->is_null()) continue;
@@ -184,6 +187,7 @@ Settings decodeSettings(std::string_view text) {
                 else throw std::runtime_error("Unknown binding device");
                 chord.push_back({kind, code.get<int>()});
             }
+            if (!ordered) chord = input::legacyChordOrder(std::move(chord));
             auto stored = input::canonicalChord(std::move(chord), input::actions[i].behavior);
             // An empty settings binding would lock the screen shut; treat it
             // as absent so the default key applies.

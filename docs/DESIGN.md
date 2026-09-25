@@ -241,3 +241,17 @@ action, **Auto attack** and **Auto use**, with three ways to run:
 - (Decided, BACKLOG L-32) Hotkeys UI also warns about subset/superset overlaps.
   Press/Hold/Toggle remains separate from chord matching semantics, and mouse /
   keyboard / wheel combinations follow the same overlap rules.
+- (Implemented L-32, 2026-09-25) Details chosen while building it:
+  - A chord is stored in press order; its last input completes it. Actions
+    activate only on that completing press, never while keys merely stay held.
+  - Both kinds tolerate unrelated held inputs (walking with W still lets J
+    toggle). Ordinary chords differ by order and by yielding.
+  - The most specific completed chord wins for everyone, modifier-like actions
+    included (Ctrl+C beats C when Ctrl is held). A chord that yielded stays
+    silent until one of its keys is released: no late firing on key repeat.
+  - When a longer chord starts on top of an active ordinary one (B held, then
+    B + click), the shorter one is released and does not resume. Active
+    modifier-like actions (Zoom) keep running.
+  - Settings files written before L-32 stored chords sorted by code. They load
+    in the order modifiers, function keys, other keys, mouse, wheel (so a saved
+    F3+B stays F3 then B); new files carry `orderedBindings: true`.

@@ -120,6 +120,14 @@ void settingsStoreTests() {
         auto configured = decodeSettings(R"({"bindings":{"zoom":[{"device":"key","code":90},{"device":"key","code":51}],"sort":[],"nightvision":[{"device":"key","code":16},{"device":"wheel","code":1}]}})");
         writeSettings(path, configured);
         check(readSettings(path).bindings == configured.bindings, "chords, wheel and explicit unbound survive restart");
+        auto const border = static_cast<size_t>(input::Action::ChunkBorders);
+        input::Chord f3b{{input::Device::Key, 0x72}, {input::Device::Key, 0x42}}, bf3{f3b[1], f3b[0]};
+        check(decodeSettings(R"({"bindings":{"chunkborders":[{"device":"key","code":66},{"device":"key","code":114}]}})")
+            .bindings[border] == f3b, "sorted legacy chords regain F3-first press order");
+        auto ordered = decodeSettings(R"({"orderedBindings":true,"bindings":{"chunkborders":[{"device":"key","code":66},{"device":"key","code":114}]}})");
+        check(ordered.bindings[border] == bf3, "saved press order is kept as written");
+        writeSettings(path, ordered);
+        check(readSettings(path).bindings[border] == bf3, "press order survives restart");
         configured.bindings[static_cast<size_t>(input::Action::Zoom)].reset();
         writeSettings(path, configured);
         check(!readSettings(path).bindings[static_cast<size_t>(input::Action::Zoom)], "reset removes only the override");
