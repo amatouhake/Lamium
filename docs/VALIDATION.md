@@ -499,11 +499,9 @@ hosted CI itself is no longer an open gate.
 
 Current pre-release priorities are:
 
-- implement and runtime-check L-32 hotkey overlap/order semantics;
-- implement and runtime-check L-34 Auto attack/Auto use after L-32;
-- resolve or explicitly scope the user-visible day-to-day issues L-31
-  (continuous Tool Switch), L-15 (breaking/placement restrictions) and L-20
-  (Shape name stray input);
+- design and build the L-16 light overlay redesign, then the L-15
+  breaking/placement restriction redesign (L-32, L-34 and L-31 are done and
+  verified; L-20 was closed as not reproducible);
 - keep experimental/research features honest: Hand Restock is not working,
   Hide Offhand has a shield path gap, and L-30/L-33/L-16 remain bounded
   research/design work rather than completed features;
