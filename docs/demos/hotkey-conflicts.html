@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hotkey Conflict Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  /* In-game tokens (src/ui/Widgets.h palette). */
+  --mc-panel:16,17,19; --mc-row-hover:rgba(255,255,255,.07); --mc-sel:rgba(108,195,73,.16); --mc-edge:rgba(255,255,255,.14);
+  --mc-text:#ffffff; --mc-dim:#b4b8b6; --mc-faint:#7f8583; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-exp:#b98bff; --mc-warn:#ffc24a; --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:24px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+h3{font:700 15px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:72ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px 24px;align-items:start}
+.cgroup{display:grid;gap:6px}
+.cgroup > span{font-size:12px;color:var(--ink-3);letter-spacing:.04em}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);background:var(--ground-2);max-width:100%}
+.seg button{all:unset;cursor:pointer;padding:7px 12px;color:var(--ink-2);font:500 13px/1.2 "Noto Sans JP",sans-serif;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-deep);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+/* ---- Stage: a fixed GUI-unit panel scaled to the page width ---- */
+.stage-outer{border:1px solid var(--line);background:linear-gradient(#2d4d6b,#35572c 62%,#4b3a28);overflow:hidden;position:relative}
+.stage-box{position:relative;margin:0 auto}
+.stage{position:absolute;left:0;top:0;width:760px;height:660px;transform-origin:0 0;font-family:var(--mc-font);color:var(--mc-text);user-select:none}
+.panel{position:absolute;inset:12px;display:flex;flex-direction:column;background:rgba(var(--mc-panel),.84);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.phead{display:flex;align-items:center;height:28px;padding:0 10px;border-bottom:1px solid var(--mc-edge);font-size:13px;gap:10px}
+.phead .crumb{color:var(--mc-faint);font-size:11px}
+.rows{flex:1;min-height:0;overflow:hidden;padding:2px 0}
+.sec{font-size:11px;color:var(--mc-on-edge);padding:5px 10px 2px;border-bottom:1px solid rgba(108,195,73,.25)}
+.row{display:grid;align-items:center;height:22px;padding:0 10px;gap:8px;cursor:default;position:relative}
+.row.hot{grid-template-columns:1fr var(--keyW)}
+.row.feat{grid-template-columns:1fr 40px var(--keyW)}
+.row:hover{background:var(--mc-row-hover)}
+.row.sel{background:var(--mc-sel);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.feat .name{color:var(--mc-dim);padding-left:14px}
+.row.feat .name.main{color:#fff;padding-left:0}
+.exp{font-size:10px;color:var(--mc-exp);box-shadow:inset 0 0 0 1px var(--mc-exp);padding:0 3px;margin-left:6px}
+.sw{width:22px;height:11px;background:var(--mc-off);position:relative;justify-self:center}
+.sw.on{background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.sw::after{content:"";position:absolute;top:1px;left:1px;width:9px;height:9px;background:#d0d1d4}
+.sw.on::after{left:12px;background:#fff}
+
+.kcell{display:flex;align-items:center;gap:2px;min-width:0;height:18px;position:relative}
+.kcell.bar{padding-left:6px}
+.kcell.bar::before{content:"";position:absolute;left:0;top:1px;bottom:1px;width:2px;background:var(--mc-warn)}
+.cap{display:inline-block;height:15px;line-height:15px;padding:0 4px;font-size:10.5px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge),inset 0 -2px 0 rgba(0,0,0,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:none;max-width:100%}
+.plus{font-size:9px;color:var(--mc-faint);flex:none}
+.cap.w-line{color:var(--mc-warn);box-shadow:inset 0 0 0 1px var(--mc-warn),inset 0 -2px 0 rgba(0,0,0,.5)}
+.cap.w-fill{color:#1b1406;background:var(--mc-warn);box-shadow:inset 0 0 0 1px #ffd98a,inset 0 -2px 0 rgba(0,0,0,.35)}
+.unbound{font-size:11px;color:var(--mc-faint)}
+.badge{font-size:10px;color:var(--mc-warn);box-shadow:inset 0 0 0 1px var(--mc-warn);padding:0 3px;height:15px;line-height:15px;white-space:nowrap;flex:none;margin-left:3px}
+.count{font-size:10px;color:var(--mc-warn);flex:none;margin-left:3px}
+
+.pfoot{border-top:1px solid var(--mc-edge);padding:5px 10px;min-height:46px;display:grid;gap:2px;align-content:start}
+.pfoot .d{font-size:11.5px;line-height:1.45}
+.pfoot .w{font-size:11px;color:var(--mc-warn)}
+.pfoot .h{font-size:10.5px;color:var(--mc-faint)}
+
+/* ---- Tooltip ---- */
+.tip{position:absolute;z-index:5;width:300px;background:rgba(10,11,12,.96);box-shadow:inset 0 0 0 1px var(--mc-warn);padding:6px 8px 7px;display:none;pointer-events:none;font-size:11px}
+.tip.show{display:block}
+.tip .head{display:flex;align-items:center;gap:4px;margin-bottom:4px}
+.tip .head .n{margin-left:auto;color:var(--mc-warn);font-size:10.5px}
+.tip .lead{color:var(--mc-warn);margin:2px 0 4px;line-height:1.4}
+.tip .g{color:var(--mc-dim);font-size:10.5px;margin-top:5px;border-top:1px solid rgba(255,255,255,.1);padding-top:3px;line-height:1.35}
+.tip .g small{color:var(--mc-faint);font-size:10px;display:block}
+.tip .it{display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:center;margin-top:3px}
+.tip .it .ch{display:flex;gap:2px;align-items:center}
+.tip .it .an{color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tip .more{color:var(--mc-faint);margin-top:4px}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px}
+.note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:4px}
+.note b{color:var(--ink)}
+.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.ask ol{margin:0;padding-left:1.3em;color:var(--ink-2);font-size:13.5px;display:grid;gap:6px}
+.ask b{color:var(--ink)}
+kbd{font:12px var(--mc-font);background:var(--ground-2);border:1px solid var(--line);padding:0 5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">LAMIUM · BACKLOG L-32 追補</div>
+    <h1>ホットキーの重なりの警告とツールチップ</h1>
+    <p class="lede">キーの重なりを、ホットキー一覧でも機能ごとの設定画面でも、同じ見た目で知らせます。詳しい内容は、キー欄にマウスを乗せると出るツールチップにまとめます。上の切り替えで各案を比べてください。行はクリックか <kbd>↑</kbd><kbd>↓</kbd> で選べます（キーボード操作の再現）。割り当ては 2026-09-25 のスクリーンショットをもとに、重複の例を1つ足したものです。</p>
+  </header>
+
+  <div class="controls">
+    <div class="cgroup"><span>画面</span><div class="seg" data-key="view">
+      <button data-v="hot">ホットキー一覧（キー欄が広い）</button><button data-v="feat">機能の設定（キー欄が狭い）</button></div></div>
+    <div class="cgroup"><span>A. 警告の出し方</span><div class="seg" data-key="warn">
+      <button data-v="badge">今の形（文字の印）</button><button data-v="keys">キーを黄色に</button><button data-v="count">キーを黄色＋件数</button><button data-v="bar">キー欄の左に黄色い線</button></div></div>
+    <div class="cgroup"><span>B. 重複（同じキー）と重なりの区別</span><div class="seg" data-key="dist">
+      <button data-v="fill">重複は塗り、重なりは枠</button><button data-v="same">区別しない</button></div></div>
+    <div class="cgroup"><span>C. ツールチップを出す範囲</span><div class="seg" data-key="trig">
+      <button data-v="cell">キー欄に乗せたとき</button><button data-v="row">行のどこかに乗せたとき</button></div></div>
+    <div class="cgroup"><span>D. ツールチップの位置</span><div class="seg" data-key="pos">
+      <button data-v="anchor">キー欄の下に固定</button><button data-v="cursor">マウスについていく</button></div></div>
+    <div class="cgroup"><span>E. キーボードで行を選んだとき</span><div class="seg" data-key="kbd">
+      <button data-v="foot">説明欄に1行だけ</button><button data-v="tip">ツールチップも出す</button></div></div>
+  </div>
+
+  <div class="stage-outer" id="outer"><div class="stage-box" id="box"><div class="stage" id="stage">
+    <div class="panel" id="panel"></div>
+    <div class="tip" id="tip"></div>
+  </div></div></div>
+
+  <section class="cards">
+    <article class="note"><h3>A. 警告の出し方</h3><ul>
+      <li><b>今の形</b>：「重なり」「重複」の文字の印。意味は分かりやすいが、幅が足りないと入らない。キーが長いとホットキー一覧でも消える（スクリーンショットの Ctrl + J がこれ）</li>
+      <li><b>キーを黄色に</b>：Tweakeroo と同じ考え方。幅に関係なくいつも出せて、どの画面でも同じ見た目になる</li>
+      <li><b>黄色＋件数</b>：黄色のキーの後ろに「3」のような件数を足す。入らないときは件数だけ省く</li>
+      <li><b>左に黄色い線</b>：キーの見た目は変えない。いちばん控えめだが、見落としやすい</li>
+    </ul></article>
+    <article class="note"><h3>ツールチップの中身</h3><ul>
+      <li>関係の種類ごとに見出しを付け、組み合わせと操作名を1行ずつ並べる</li>
+      <li>種類：<b>同じキー</b>（同時に動作） / <b>このキーで始まる組み合わせ</b>（このキーは離したときに動作） / <b>このキーを含む長い組み合わせ</b>（そちらが優先） / <b>このキーに含まれる短い組み合わせ</b>（このキーが優先） / <b>順番違い</b></li>
+      <li>「離したときに動作」は種類の見出しではなく、先頭に黄色い1行で出す</li>
+      <li>入りきらない分は「ほか N 件」</li>
+    </ul></article>
+    <article class="note"><h3>説明欄</h3><ul>
+      <li>説明欄は、機能・操作の説明と「押す／押している間／切り替え」に戻す</li>
+      <li>E で「説明欄に1行だけ」を選んだ場合は、重なりがある行を選んだときだけ黄色い1行を足す</li>
+      <li>機能の行（例：デバッグ表示）でも、そのキー欄に乗せれば同じツールチップが出る</li>
+    </ul></article>
+  </section>
+
+  <section class="ask">
+    <h2>確認したいこと</h2>
+    <ol>
+      <li><b>A. 警告の出し方</b>：私の案は「キーを黄色に」です。どの幅でも出せて、見た目がそろいます。</li>
+      <li><b>B. 区別</b>：同じキー（全部同時に動く）と重なり（長い方が優先）を見た目で分けるか。私の案は「重複は塗り、重なりは枠」です。重複はわざとまとめて切り替えるための使い方もあるので、別物として見分けられる方がよいと考えます。</li>
+      <li><b>C / D. ツールチップ</b>：私の案は「キー欄に乗せたとき」と「キー欄の下に固定」です。行全体にすると、行をクリックするたびにツールチップが出て邪魔になりやすいためです。</li>
+      <li><b>E. キーボード</b>：私の案は「説明欄に1行だけ」です。</li>
+      <li>ツールチップの文言と、種類の分け方は分かりやすいか。</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+const st = {view:'hot', warn:'keys', dist:'fill', trig:'cell', pos:'anchor', kbd:'foot', sel:'debug', hover:null, mouse:null, byKey:false};
+
+// Bindings from the 2026-09-25 screenshot plus one shared example (K).
+// ctx: gameplay unless 'container'. hold: acts while held (never waits for release).
+const SECTIONS = [
+  ['カメラ・見た目', [
+    {id:'zoom', name:'ズーム', key:['C'], hold:true, feat:'ズーム'},
+    {id:'nv', name:'ナイトビジョンの切り替え', key:['J'], feat:'ナイトビジョン'},
+  ]],
+  ['インベントリ', [
+    {id:'sort', name:'整理', key:['R'], ctx:'container', feat:'整理'},
+  ]],
+  ['操作', [
+    {id:'cap', name:'照準先を破壊の基準点に設定', key:['Ctrl','G']},
+    {id:'rst', name:'破壊の基準点を解除', key:['Ctrl','H']},
+    {id:'cyc', name:'破壊制限モードを次へ', key:['Ctrl','J']},
+    {id:'sneak', name:'常時スニークを切り替え', key:['K'], exp:true, feat:'常時スニーク'},
+    {id:'patk', name:'周期攻撃を切り替え', key:['P'], exp:true, feat:'周期攻撃'},
+    {id:'puse', name:'周期使用を切り替え', key:['O'], exp:true, feat:'周期使用'},
+  ]],
+  ['情報・オーバーレイ', [
+    {id:'target', name:'照準先情報の切り替え', key:['T','マウス 4'], feat:'照準先情報'},
+    {id:'debug', name:'デバッグ表示の切り替え', key:['F3'], feat:'デバッグ表示'},
+    {id:'chunk', name:'チャンク境界の切り替え', key:['F3','B'], feat:'チャンク境界'},
+    {id:'hit', name:'当たり判定の切り替え', key:['F3','G'], feat:'当たり判定'},
+    {id:'light', name:'光量オーバーレイ切り替え', key:['F3','O'], exp:true, feat:'光量オーバーレイ'},
+    {id:'shapes', name:'形状の描画を切り替え', key:['K'], feat:'形状'},
+  ]],
+  ['全般', [
+    {id:'settings', name:'設定を開く', key:['L']},
+    {id:'hk', name:'ホットキーを開く', key:['=']},
+    {id:'hud', name:'HUD レイアウトを開く', key:[]},
+  ]],
+];
+const ALL = SECTIONS.flatMap(([, list]) => list);
+const DESC = {
+  zoom:'押している間ズームします。', nv:'押すたびに ON / OFF を切り替えます。', sort:'開いている画面のアイテムを整理します。',
+  cap:'照準先のブロックを破壊制限の基準点にします。', rst:'破壊制限の基準点を解除します。', cyc:'破壊制限のモードを順に切り替えます。',
+  sneak:'押すたびに常時スニークを切り替えます。', patk:'押すたびに周期攻撃を切り替えます。', puse:'押すたびに周期使用を切り替えます。',
+  target:'押すたびに照準先情報を切り替えます。', debug:'押すたびに ON / OFF を切り替えます。', chunk:'押すたびに ON / OFF を切り替えます。',
+  hit:'押すたびに ON / OFF を切り替えます。', light:'押すたびに ON / OFF を切り替えます。', shapes:'押すたびに形状の描画を切り替えます。',
+  settings:'Lamium の設定を開きます。', hk:'ホットキー一覧を開きます。', hud:'HUD レイアウトを開きます。',
+};
+
+/* ---------- Relations: same rules as src/input/Binding.h ---------- */
+const same = (a, b) => a.length === b.length && a.every((k, i) => k === b[i]);
+const covers = (outer, inner) => inner.every(k => outer.includes(k));
+const starts = (longer, prefix) => longer.length > prefix.length && prefix.every((k, i) => longer[i] === k);
+const ctxOf = a => a.ctx || 'play';
+function relations(a) {
+  const out = {shared:[], leads:[], inLonger:[], shorter:[], order:[]};
+  if (!a.key.length) return out;
+  for (const b of ALL) {
+    if (b === a || !b.key.length || ctxOf(a) !== ctxOf(b)) continue;
+    if (same(a.key, b.key)) out.shared.push(b);
+    else if (starts(b.key, a.key)) out.leads.push(b);
+    else if (b.key.length > a.key.length && covers(b.key, a.key)) out.inLonger.push(b);
+    else if (a.key.length > b.key.length && covers(a.key, b.key)) out.shorter.push(b);
+    else if (a.key.length === b.key.length && covers(a.key, b.key)) out.order.push(b);
+  }
+  return out;
+}
+const total = r => r.shared.length + r.leads.length + r.inLonger.length + r.shorter.length + r.order.length;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- Rendering ---------- */
+function capsHtml(key, cls = '') {
+  return key.map((k, i) => (i ? '<span class="plus">+</span>' : '') + `<span class="cap ${cls}">${esc(k)}</span>`).join('');
+}
+function keyCell(a) {
+  if (!a.key.length) return '<span class="kcell"><span class="unbound">未割り当て</span></span>';
+  const r = relations(a), n = total(r);
+  if (!n) return `<span class="kcell" data-cell="${a.id}">${capsHtml(a.key)}</span>`;
+  const shared = r.shared.length > 0;
+  const tone = st.dist === 'fill' && shared ? 'w-fill' : 'w-line';
+  const narrow = st.view === 'feat';
+  switch (st.warn) {
+  case 'badge': {
+    // Today's rule: the badge only appears when it fits.
+    const fits = !narrow && a.key.join('').length <= 4;
+    const badge = fits ? `<span class="badge">${shared ? '重複' : '重なり'}</span>` : '';
+    return `<span class="kcell" data-cell="${a.id}">${capsHtml(a.key)}${badge}</span>`;
+  }
+  case 'keys': return `<span class="kcell" data-cell="${a.id}">${capsHtml(a.key, tone)}</span>`;
+  case 'count': {
+    const fits = !narrow || a.key.join('').length <= 4;
+    return `<span class="kcell" data-cell="${a.id}">${capsHtml(a.key, tone)}${fits ? `<span class="count">${n}</span>` : ''}</span>`;
+  }
+  case 'bar': return `<span class="kcell bar" data-cell="${a.id}">${capsHtml(a.key)}</span>`;
+  }
+}
+function rowHtml(a, main) {
+  const exp = a.exp ? '<span class="exp">試験的</span>' : '';
+  const sel = st.sel === a.id ? ' sel' : '';
+  if (st.view === 'hot')
+    return `<div class="row hot${sel}" data-row="${a.id}"><span class="name">${esc(a.name)}${exp}</span>${keyCell(a)}</div>`;
+  const on = ['debug','chunk','shapes','nv'].includes(a.id);
+  return `<div class="row feat${sel}" data-row="${a.id}"><span class="name${main ? ' main' : ''}">${esc(main ? a.feat : a.name)}${main ? exp : ''}</span>`
+    + `${main ? `<span class="sw${on ? ' on' : ''}"></span>` : '<span></span>'}${keyCell(a)}</div>`;
+}
+function visibleRows() {
+  if (st.view === 'hot') return SECTIONS;
+  // Feature view: the information section as it appears with Debug view expanded.
+  return [['情報・オーバーレイ', SECTIONS[3][1]], ['操作', SECTIONS[2][1].slice(3)]];
+}
+function render() {
+  const panel = document.getElementById('panel');
+  const rows = visibleRows().map(([title, list]) =>
+    `<div class="sec">${esc(title)}</div>` + list.map(a => rowHtml(a, st.view === 'feat' && !!a.feat)).join('')).join('');
+  panel.style.setProperty('--keyW', st.view === 'hot' ? '176px' : '112px');
+  panel.innerHTML = `<div class="phead">Lamium<span class="crumb">${st.view === 'hot' ? 'ホットキー' : '機能の設定 › 情報・オーバーレイ'}</span></div>`
+    + `<div class="rows" id="rows">${rows}</div><div class="pfoot" id="foot"></div>`;
+  renderFoot();
+  renderTip();
+}
+function renderFoot() {
+  const a = ALL.find(x => x.id === st.sel);
+  const foot = document.getElementById('foot');
+  if (!a) { foot.innerHTML = ''; return; }
+  const n = total(relations(a));
+  const warn = st.kbd === 'foot' && n ? `<div class="w">重なり ${n} 件 — キー欄にマウスを乗せると詳細</div>` : '';
+  foot.innerHTML = `<div class="d">${esc(a.feat ? a.feat + '：' : '')}${esc(DESC[a.id] || '')}</div>${warn}`
+    + `<div class="h">クリック：切替・展開 | キー欄：変更 | ホイール：スクロール | Tab：カテゴリ | Ctrl+F：検索</div>`;
+}
+function tipHtml(a) {
+  const r = relations(a), n = total(r);
+  const MAX = 9;
+  let shown = 0;
+  const group = (title, sub, list) => {
+    if (!list.length) return '';
+    let html = `<div class="g">${esc(title)}<small>${esc(sub)}</small></div>`;
+    for (const b of list) {
+      if (shown >= MAX) break;
+      shown++;
+      html += `<div class="it"><span class="ch">${capsHtml(b.key)}</span><span class="an">${esc(b.name)}</span></div>`;
+    }
+    return html;
+  };
+  const waits = r.leads.length && !a.hold;
+  const keys = a.key.join(' + ');
+  let html = `<div class="head">${capsHtml(a.key, st.dist === 'fill' && r.shared.length ? 'w-fill' : 'w-line')}<span class="n">${r.shared.length ? '重複・' : ''}重なり ${n} 件</span></div>`;
+  if (waits) html += `<div class="lead">離したときに動作します（このキーで始まる組み合わせがあるため）。</div>`;
+  if (r.leads.length && a.hold) html += `<div class="lead">押している間の操作なので、押した時点で動作します。</div>`;
+  html += group('同じキー', 'すべて同時に動作', r.shared);
+  html += group('このキーで始まる組み合わせ', `${keys} を押したまま続けて押すと、そちらだけが動作`, r.leads);
+  html += group('このキーを含む長い組み合わせ', '押したときはそちらが優先され、このキーの操作は動かない', r.inLonger);
+  html += group('このキーに含まれる短い組み合わせ', `${keys} を押したときはこちらが優先`, r.shorter);
+  html += group('同じキーで順番違い', '押した順番で、どちらが動くかが決まる', r.order);
+  if (n > shown) html += `<div class="more">ほか ${n - shown} 件</div>`;
+  return html;
+}
+function renderTip() {
+  const tip = document.getElementById('tip');
+  const id = st.hover || (st.kbd === 'tip' && st.byKey ? st.sel : null);
+  const a = id && ALL.find(x => x.id === id);
+  if (!a || !total(relations(a))) { tip.className = 'tip'; return; }
+  tip.innerHTML = tipHtml(a);
+  tip.className = 'tip show';
+  const stage = document.getElementById('stage');
+  const cell = stage.querySelector(`[data-cell="${a.id}"]`) || stage.querySelector(`[data-row="${a.id}"]`);
+  const sr = stage.getBoundingClientRect(), s = sr.width / 760;
+  let x, y;
+  if (st.pos === 'cursor' && st.mouse && st.hover) {
+    x = (st.mouse.x - sr.left) / s + 12; y = (st.mouse.y - sr.top) / s + 14;
+  } else {
+    const cr = cell.getBoundingClientRect();
+    x = (cr.right - sr.left) / s - 300; y = (cr.bottom - sr.top) / s + 3;
+  }
+  const h = tip.offsetHeight;
+  if (y + h > 654) {
+    // Flip above the anchor when it would leave the screen.
+    const cr = cell.getBoundingClientRect();
+    y = st.pos === 'cursor' && st.mouse && st.hover ? (st.mouse.y - sr.top) / s - h - 8 : (cr.top - sr.top) / s - h - 3;
+  }
+  tip.style.left = Math.max(4, Math.min(x, 756 - 300)) + 'px';
+  tip.style.top = Math.max(4, y) + 'px';
+}
+
+/* ---------- Controls and input ---------- */
+document.querySelectorAll('.seg').forEach(seg => {
+  const key = seg.dataset.key;
+  const sync = () => seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === st[key])));
+  seg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    st[key] = b.dataset.v; st.hover = null; sync();
+    if (key === 'view') st.sel = st.view === 'hot' ? 'debug' : 'debug';
+    render();
+  });
+  sync();
+});
+const stage = document.getElementById('stage');
+stage.addEventListener('mousemove', e => {
+  st.mouse = {x:e.clientX, y:e.clientY};
+  const target = st.trig === 'cell' ? e.target.closest('[data-cell]') : e.target.closest('[data-row]');
+  const id = target ? (target.dataset.cell || target.dataset.row) : null;
+  if (id !== st.hover || st.pos === 'cursor') { st.hover = id; st.byKey = false; renderTip(); }
+});
+stage.addEventListener('mouseleave', () => { st.hover = null; renderTip(); });
+stage.addEventListener('click', e => {
+  const row = e.target.closest('[data-row]'); if (!row) return;
+  st.sel = row.dataset.row; st.byKey = false; render();
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  const ids = [...document.querySelectorAll('#rows [data-row]')].map(r => r.dataset.row);
+  let i = ids.indexOf(st.sel);
+  i = Math.max(0, Math.min(ids.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)));
+  st.sel = ids[i]; st.byKey = true; st.hover = null; e.preventDefault(); render();
+});
+
+/* ---------- Scale the 760x660 GUI stage to the page ---------- */
+const outer = document.getElementById('outer'), box = document.getElementById('box');
+function resize() {
+  const s = Math.min(outer.clientWidth / 760, 1.6);
+  stage.style.transform = `scale(${s})`;
+  box.style.width = 760 * s + 'px'; box.style.height = 660 * s + 'px';
+  renderTip();
+}
+new ResizeObserver(resize).observe(outer);
+render(); resize();
+})();
+</script>
+</body>
+</html>
