@@ -334,17 +334,21 @@ void buildLightMesh(ScreenContext& screen, LightChunk& chunk, Cell origin, Light
         std::array<std::tuple<std::vector<Quad> const*, float, float, float, float>, 4> groups{{
             {&always, .88f, .31f, .22f, tint}, {&night, 1.f, .76f, .29f, tint},
             {&numbers, 1.f, 1.f, 1.f, ink}, {&sky, .62f, .82f, 1.f, ink}}};
+        // Like shape faces, add the reverse winding only for the culling
+        // (Fancy) material. The others are already two-sided, and a second
+        // copy at the same depth flickers against the first.
+        size_t sides = material.twoSided ? 2 : 1;
         Tessellator batch(screen.tessellator.mBufferResourceService);
-        batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(quads * 8), false);
+        batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(quads * 4 * sides), false);
         for (auto const& [group, r, g, b, a] : groups) {
             batch.color(r, g, b, a);
             for (auto const& quad : *group) {
                 for (auto p : quad.corners) relative(batch, p);
-                for (auto it = quad.corners.rbegin(); it != quad.corners.rend(); ++it) relative(batch, *it);
+                if (sides == 2) for (auto it = quad.corners.rbegin(); it != quad.corners.rend(); ++it) relative(batch, *it);
             }
         }
         chunk.faces.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium light overlay", SupplementaryFieldAutoGenerationMode{}));
-        chunk.faceVertices = static_cast<uint32_t>(quads * 8);
+        chunk.faceVertices = static_cast<uint32_t>(quads * 4 * sides);
     }
     if (!lines.empty()) {
         Tessellator batch(screen.tessellator.mBufferResourceService);

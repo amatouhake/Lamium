@@ -253,8 +253,11 @@ exactly one switch, one mode and one set of keys:
   fixed north/east/south/west up. Following rebuilds nearest chunks first
   within a per-frame budget, so turning at a large range does not stall; a
   fixed direction never rebuilds on turning.
-- Tint and digits sit 4 cm and 7 cm above the floor: closer layers flickered
-  in Simple and Vibrant Visuals.
+- Tint and digits sit 4 cm and 7 cm above the floor. The flicker seen in
+  Simple and Vibrant Visuals was not the height: every quad was emitted with
+  both windings, and those materials are already two-sided, so two copies at
+  the same depth fought. Like shape faces, the reverse winding is added only
+  for the culling Fancy material.
 - Drawn like Shapes: meshes kept per chunk, nudged toward the eye so they do
   not flicker against the floor, and as faint as shape faces on the additive
   material (Simple, Vibrant Visuals).
