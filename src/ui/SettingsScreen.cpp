@@ -463,6 +463,8 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
         } else if (entry.children) setExpanded(hit.index, !entry.expanded);
         return;
     case RowKind::Option: {
+        auto linked = optionAction(entry.option->id);
+        if (linked && hit.column == Column::Key) { startCapture(*linked); return; }
         auto value = entry.option->read(Runtime::instance().preferences());
         if (std::holds_alternative<bool>(value)) {
             if (hit.column != Column::Name) adjustOption(*entry.option, 1);
@@ -477,7 +479,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
             setSlider(*entry.option, fraction);
             return;
         }
-        int part = displayed.stepperPart(hit.x);
+        int part = displayed.stepperPart(hit.x, linked.has_value());
         if (part == -1 || part == 1) adjustOption(*entry.option, part);
         else if (part == 0) {
             if (entry.option->numeric) beginNumber(*entry.option);
@@ -631,7 +633,8 @@ void drawName(MinecraftUIRenderContext& context, float x, float y, float right, 
 }
 void drawStepper(MinecraftUIRenderContext& context, float y, settings::Option const& option, std::string const& value,
                  bool editing) {
-    float x = displayed.stepperX(), w = displayed.stepperWidth(), aw = SettingsTable::arrowWidth;
+    bool keyed = optionAction(option.id).has_value();
+    float x = displayed.stepperX(keyed), w = displayed.stepperWidth(keyed), aw = SettingsTable::arrowWidth;
     float cy = y + 1, h = SettingsTable::rowHeight - 2;
     fill(context,x,cy,aw,h,palette::keyFill);
     fill(context,x+w-aw,cy,aw,h,palette::keyFill);
@@ -1265,6 +1268,8 @@ std::optional<std::pair<int, input::Action>> tipTarget(SettingsTable const& t, S
         if (!valid(row) || row < t.first || row >= t.first + t.visible) return {};
         auto const& entry = rows[row];
         if (entry.kind == RowKind::Action) return std::pair{row, *entry.action};
+        if (entry.kind == RowKind::Option)
+            if (auto linked = optionAction(entry.option->id)) return std::pair{row, *linked};
         if (entry.kind == RowKind::Feature)
             if (auto primary = primaryAction(*entry.feature)) return std::pair{row, *primary};
         return {};
@@ -1473,7 +1478,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,*flag);
             } else {
                 bool asSlider = entry.option->numeric && entry.option->numeric->step > 0 && editingNumber != entry.option;
-                float nameEnd = asSlider ? t.sliderX() : t.stepperX();
+                float nameEnd = asSlider ? t.sliderX() : t.stepperX(optionAction(entry.option->id).has_value());
                 label(context,t.nameX+12,y+3,nameEnd-SettingsTable::gap-t.nameX-12,std::move(name),palette::dim);
                 if (asSlider) {
                     auto const& range = *entry.option->numeric;
@@ -1486,6 +1491,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                     drawStepper(context,y,*entry.option,optionValueText(*entry.option,value),editingNumber == entry.option);
                 }
             }
+            if (auto linked = optionAction(entry.option->id)) drawKeyCell(context,current,y,*linked);
             break;
         }
         case RowKind::Action: {

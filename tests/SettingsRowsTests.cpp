@@ -44,6 +44,11 @@ void settingsRowsTests() {
         if (row.option) check(options.insert(row.option->id).second, "option appears exactly once");
         if (row.layout) check(layouts.insert(*row.layout).second, "each HUD element has one layout link");
         if (row.action) check(actions.insert(*row.action).second, "binding appears exactly once");
+        // A keyed option row also carries its action's binding.
+        if (row.option)
+            if (auto linked = ui::optionAction(row.option->id))
+                check(actions.insert(*linked).second && row.feature->id == input::actions[static_cast<size_t>(*linked)].feature,
+                      "a keyed option carries its own feature's binding exactly once");
     }
     check(sectionsSeen.size() == ui::sections.size(), "all broad sections are represented");
     check(features.size() == ui::features.size(), "every feature is listed");

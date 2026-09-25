@@ -11,8 +11,9 @@ and use"). Feature ids stay `periodicAttack`/`periodicUse`; the
   `attackMode`/`useMode` (saved by name, unknown names load as periodic),
   `attackTicks`/`useTicks` (1-1200, default 10; old seconds values migrate by
   rounding seconds x 20), `attackClicks`/`useClicks` (1-10, default 1) and
-  `attackTrigger`/`useTrigger` (`always` default or `held`, Fast click
-  only; hotkeys `cycleattacktrigger`/`cycleusetrigger`).
+  `attackHeldOnly`/`useHeldOnly` (Fast click only while held, default
+  off; a short-lived `attackTrigger: "held"` still loads; hotkeys keep the
+  ids `cycleattacktrigger`/`cycleusetrigger`).
 - `interaction::AutoClick` (pure, `tests/AutoClickTests.cpp`) is the state
   machine per button. The adapter calls `configure` with the settings and
   `tick` on every `ClientLevelTickEvent`; edges are delivered from the native

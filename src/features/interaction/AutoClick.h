@@ -19,11 +19,13 @@ public:
     // Called with the current settings every tick; only changes act. Turning
     // on or changing mode releases any press of the old mode first, and a
     // Periodic start clicks at once.
-    void configure(bool on, AutoMode mode, int interval, int clicksPerTick, FastTrigger trigger = FastTrigger::Always) {
+    // Fast click clicks while switched on unless `heldOnly`: then only while
+    // the user holds the button. Periodic and Hold have no such choice.
+    void configure(bool on, AutoMode mode, int interval, int clicksPerTick, bool heldOnly = false) {
         period = std::clamp(interval, 1, maxInterval);
         countdown = std::min(countdown, period);
         clicks = std::clamp(clicksPerTick, 1, maxClicks);
-        fastAlways = trigger == FastTrigger::Always;
+        fastAlways = !heldOnly;
         if (on == enabled && (!on || mode == current)) return;
         enabled = on;
         current = mode;

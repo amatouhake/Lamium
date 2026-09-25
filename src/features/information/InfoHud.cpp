@@ -302,8 +302,8 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             bool paused = interaction::periodic::paused(context.mClient);
             auto const& value = runtime.interaction;
             for (auto [on, mode, trigger, feature] : {
-                     std::tuple{value.autoAttack, value.attackMode, value.attackTrigger, "feature.periodicAttack"},
-                     std::tuple{value.autoUse, value.useMode, value.useTrigger, "feature.periodicUse"}}) {
+                     std::tuple{value.autoAttack, value.attackMode, value.attackHeldOnly, "feature.periodicAttack"},
+                     std::tuple{value.autoUse, value.useMode, value.useHeldOnly, "feature.periodicUse"}}) {
                 if (!on) continue;
                 auto text = ui::translated(feature) + ": " + interaction::autoModeText(mode, trigger);
                 if (paused) text += " " + ui::translated("autoPaused");

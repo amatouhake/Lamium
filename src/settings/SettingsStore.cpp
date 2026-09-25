@@ -63,8 +63,7 @@ Json encode(Settings const& settings) {
                          {"attackClicks", settings.interaction.attackClicks}, {"useClicks", settings.interaction.useClicks},
                          {"attackMode", interaction::autoModeNames[static_cast<size_t>(settings.interaction.attackMode)]},
                          {"useMode", interaction::autoModeNames[static_cast<size_t>(settings.interaction.useMode)]},
-                         {"attackTrigger", interaction::fastTriggerNames[static_cast<size_t>(settings.interaction.attackTrigger)]},
-                         {"useTrigger", interaction::fastTriggerNames[static_cast<size_t>(settings.interaction.useTrigger)]},
+                         {"attackHeldOnly", settings.interaction.attackHeldOnly}, {"useHeldOnly", settings.interaction.useHeldOnly},
                          {"breaking", settings.interaction.breaking}, {"breakingMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.breakingMode)]},
                          {"placementMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.placementMode)]}}},
         {"information", {{"hud", settings.information.hud}, {"coordinates", settings.information.coordinates},
@@ -133,12 +132,13 @@ Settings decodeSettings(std::string_view text) {
         };
         value.interaction.attackMode = autoMode("attackMode");
         value.interaction.useMode = autoMode("useMode");
-        auto trigger = [&](char const* key) {
-            auto name = options.value(key, std::string("always"));
-            return name == interaction::fastTriggerNames[1] ? interaction::FastTrigger::WhileHeld : interaction::FastTrigger::Always;
+        // A short-lived build saved this as "attackTrigger": "held".
+        auto heldOnly = [&](char const* key, char const* trigger) {
+            if (options.contains(key)) return options.value(key, false);
+            return options.value(trigger, std::string("always")) == "held";
         };
-        value.interaction.attackTrigger = trigger("attackTrigger");
-        value.interaction.useTrigger = trigger("useTrigger");
+        value.interaction.attackHeldOnly = heldOnly("attackHeldOnly", "attackTrigger");
+        value.interaction.useHeldOnly = heldOnly("useHeldOnly", "useTrigger");
         value.interaction.breaking = options.value("breaking",false);
         auto mode = [&](char const* key) {
             auto name = options.value(key,std::string("plane"));

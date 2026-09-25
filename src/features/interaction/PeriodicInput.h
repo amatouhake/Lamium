@@ -4,7 +4,7 @@
 class IClientInstance;
 namespace lamium::interaction {
 // The mode as toasts and the status line name it: "Hold", "Fast click (while held)".
-std::string autoModeText(AutoMode mode, FastTrigger trigger);
+std::string autoModeText(AutoMode mode, bool heldOnly);
 }
 // Auto Attack / Auto Use (the files keep the Periodic name of the first mode).
 // The switches and modes live in Settings; this adapter follows them each

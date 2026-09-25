@@ -206,11 +206,17 @@ exactly one switch, one mode and one set of keys:
 - **Settings**: Periodic interval 1-1200 ticks, default 10, shown as
   "10 tick (0.50s)"; Fast click 1-10 clicks per tick, default 1, shown as
   "1/tick (20/s)". Both rows are always listed; their labels name the mode.
-- **Fast click runs** (saved, Fast click only): Always (default, like the
-  other modes: clicks while switched on) or While the button is held. A
-  hotkey toggles it (unbound). Only Fast click gets this choice: Hold
-  "while held" would be vanilla and Periodic did not need it (maintainer,
-  2026-09-25). Toasts/status say "Fast click (while held)" for the latter.
+- **Fast click only while the button is held** (saved switch, Fast click
+  only): off by default, so Fast click acts while switched on like the other
+  modes. Only Fast click gets this: Hold "while held" would be vanilla and
+  Periodic did not need it (maintainer, 2026-09-25). Toasts/status say
+  "Fast click (while held)" when it is on.
+- **Keyed option rows** (2026-09-25): a setting and the hotkey that changes
+  it share one row. The "Fast click only while held" row has its switch and
+  key; the Mode row has its stepper (moved left of the key column) and the
+  "next mode" key. Breaking Restriction's mode row carries its "next mode"
+  key the same way. Those actions get no row of their own under the feature;
+  Hotkeys still lists them. Clicking the key cell edits the binding.
 - **Nothing stops it implicitly.** Only the switch (row or hotkey) turns it
   off, plus leaving the world. A manual click takes priority while held and
   automation resumes after release (Hold presses again; Periodic continues on

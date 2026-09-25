@@ -50,6 +50,22 @@ inline std::optional<input::Action> primaryAction(FeatureInfo const& feature) {
     return {};
 }
 
+// Option rows that carry a hotkey in their own key cell, so a setting and
+// the key that changes it read as one item. Such an action gets no row of its
+// own under the feature; Hotkeys still lists it.
+inline std::optional<input::Action> optionAction(std::string_view option) {
+    if (option == "interaction.attackMode") return input::Action::CycleAttackMode;
+    if (option == "interaction.useMode") return input::Action::CycleUseMode;
+    if (option == "interaction.attackHeldOnly") return input::Action::AttackHeldOnly;
+    if (option == "interaction.useHeldOnly") return input::Action::UseHeldOnly;
+    if (option == "interaction.breakingMode") return input::Action::CycleBreakingMode;
+    return {};
+}
+inline bool shownOnOption(input::Action action) {
+    return std::any_of(settings::options.begin(), settings::options.end(),
+        [&](settings::Option const& option) { return optionAction(option.id) == action; });
+}
+
 enum class RowKind { Section, Feature, Option, Action, Layout };
 // HUD features link to their element in the layout editor instead of listing
 // placement and look rows (DESIGN "HUD").
@@ -134,7 +150,7 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
             }
             for (size_t i : actionOrder) {
                 auto action = static_cast<input::Action>(i);
-                if (input::actions[i].feature == feature.id && action != primary)
+                if (input::actions[i].feature == feature.id && action != primary && !shownOnOption(action))
                     children.push_back({RowKind::Action, &feature, nullptr, action, section});
             }
             // Info lines follow the user-ordered list; every other child

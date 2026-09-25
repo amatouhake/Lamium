@@ -90,9 +90,12 @@ struct SettingsTable {
             if (x >= footerButtonX(i) && x < footerButtonX(i) + footerButtonWidth) return i;
         return -1;
     }
-    // Numeric and choice steppers, right-aligned in the value columns.
-    float stepperWidth() const { return std::min(96.0f, controlWidth()); }
-    float stepperX() const { return keyX + keyWidth - stepperWidth(); }
+    // Numeric and choice steppers, right-aligned in the value columns. A
+    // keyed row keeps its key cell, so its stepper ends before the key column.
+    float stepperWidth(bool keyed = false) const { return keyed ? 96.0f : std::min(96.0f, controlWidth()); }
+    float stepperX(bool keyed = false) const {
+        return keyed ? keyX - gap - stepperWidth(true) : keyX + keyWidth - stepperWidth();
+    }
     static constexpr float arrowWidth = 11;
     // Sliders span the state and key columns: track left, value right.
     static constexpr float sliderValueWidth = 50;
@@ -116,11 +119,11 @@ struct SettingsTable {
         return std::clamp((value - minimum) / (maximum - minimum), 0.0f, 1.0f);
     }
     // -1 decrease, 1 increase, 0 value, 2 outside.
-    int stepperPart(float x) const {
-        float sx = stepperX();
-        if (x < sx || x >= sx + stepperWidth()) return 2;
+    int stepperPart(float x, bool keyed = false) const {
+        float sx = stepperX(keyed), sw = stepperWidth(keyed);
+        if (x < sx || x >= sx + sw) return 2;
         if (x < sx + arrowWidth) return -1;
-        if (x >= sx + stepperWidth() - arrowWidth) return 1;
+        if (x >= sx + sw - arrowWidth) return 1;
         return 0;
     }
 

@@ -20,8 +20,8 @@
 #include <utility>
 
 namespace lamium::interaction {
-std::string autoModeText(AutoMode mode, FastTrigger trigger) {
-    if (mode == AutoMode::Fast && trigger == FastTrigger::WhileHeld) return ui::translated("autoFastHeld");
+std::string autoModeText(AutoMode mode, bool heldOnly) {
+    if (mode == AutoMode::Fast && heldOnly) return ui::translated("autoFastHeld");
     return ui::translated(autoModeLabels[static_cast<size_t>(mode)]);
 }
 }
@@ -155,7 +155,7 @@ void followSettings() {
             button.click.configure(on, attack ? value.attackMode : value.useMode,
                 static_cast<int>(attack ? value.attackTicks : value.useTicks),
                 static_cast<int>(attack ? value.attackClicks : value.useClicks),
-                attack ? value.attackTrigger : value.useTrigger);
+                attack ? value.attackHeldOnly : value.useHeldOnly);
             button.click.tick();
         }
 }

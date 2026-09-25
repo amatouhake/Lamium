@@ -23,7 +23,7 @@ std::optional<std::string> autoModeText(Settings const& value, input::Action act
     auto attack = input::actions[static_cast<size_t>(action)].feature == "periodicAttack";
     if (!attack && input::actions[static_cast<size_t>(action)].feature != "periodicUse") return std::nullopt;
     return interaction::autoModeText(attack ? value.interaction.attackMode : value.interaction.useMode,
-        attack ? value.interaction.attackTrigger : value.interaction.useTrigger);
+        attack ? value.interaction.attackHeldOnly : value.interaction.useHeldOnly);
 }
 std::string toggleFeatureName(input::Action action) {
     auto id = input::actions[static_cast<size_t>(action)].feature;
@@ -86,12 +86,8 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::Freelook) { Zoom::instance().pressLook(client); return; }
     if (action == input::Action::FreeCamera) { Zoom::instance().pressFreeCamera(client); return; }
     auto value = runtime.preferences();
-    if (action == input::Action::CycleAttackMode || action == input::Action::CycleUseMode
-        || action == input::Action::CycleAttackTrigger || action == input::Action::CycleUseTrigger) {
-        auto id = action == input::Action::CycleAttackMode ? "interaction.attackMode"
-            : action == input::Action::CycleUseMode ? "interaction.useMode"
-            : action == input::Action::CycleAttackTrigger ? "interaction.attackTrigger" : "interaction.useTrigger";
-        settings::find(id)->adjust(value,1);
+    if (action == input::Action::CycleAttackMode || action == input::Action::CycleUseMode) {
+        settings::find(action == input::Action::CycleAttackMode ? "interaction.attackMode" : "interaction.useMode")->adjust(value,1);
         if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save auto mode"); return; }
         emitToggleToast(client, action, value);
         return;

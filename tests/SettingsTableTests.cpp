@@ -64,6 +64,9 @@ void settingsTableTests() {
     check(t.stepperPart(t.stepperX() + 2) == -1 && t.stepperPart(t.stepperX() + t.stepperWidth() - 2) == 1
         && t.stepperPart(t.stepperX() + t.stepperWidth() / 2) == 0 && t.stepperPart(t.nameX) == 2, "stepper parts");
     check(t.stepperX() >= t.stateX, "stepper stays in the value columns");
+    check(t.stepperX(true) + t.stepperWidth(true) <= t.keyX - SettingsTable::gap && t.stepperX(true) > t.nameX
+        && t.stepperPart(t.keyX + 2, true) == 2 && t.stepperPart(t.stepperX(true) + 2, true) == -1,
+        "a keyed stepper ends before the key column, which stays the key cell");
     {
         auto slider = SettingsTable::fit(640, 360, 20, 0);
         check(slider.sliderFraction(slider.sliderX() + 3) == 0 && slider.sliderFraction(slider.sliderX() + slider.sliderWidth() - 3) == 1,

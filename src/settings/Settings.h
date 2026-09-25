@@ -20,8 +20,9 @@ struct Settings {
         float attackTicks = 10, useTicks = 10;
         float attackClicks = 1, useClicks = 1;
         interaction::AutoMode attackMode = interaction::AutoMode::Periodic, useMode = interaction::AutoMode::Periodic;
-        // Always by default, matching Periodic and Hold, which act without a click.
-        interaction::FastTrigger attackTrigger = interaction::FastTrigger::Always, useTrigger = interaction::FastTrigger::Always;
+        // Fast click only while the button is held. Off by default: like
+        // Periodic and Hold, Fast click then acts without a click.
+        bool attackHeldOnly = false, useHeldOnly = false;
         // Auto Attack / Auto Use switches: session state, never saved, so a
         // new game never starts clicking by itself.
         bool autoAttack = false, autoUse = false;
@@ -120,8 +121,6 @@ struct Settings {
         normalizeMode(interaction.breakingMode);
         for (auto* mode : {&interaction.attackMode, &interaction.useMode})
             if (static_cast<unsigned>(*mode) >= lamium::interaction::autoModeNames.size()) *mode = lamium::interaction::AutoMode::Periodic;
-        for (auto* trigger : {&interaction.attackTrigger, &interaction.useTrigger})
-            if (static_cast<unsigned>(*trigger) >= lamium::interaction::fastTriggerNames.size()) *trigger = lamium::interaction::FastTrigger::Always;
         information.targetHealth = std::clamp(information.targetHealth, 0, 2);
         ui.animations = std::clamp(ui.animations, 0, 2);
         information.targetGrowth = std::clamp(information.targetGrowth, 0, 1);
