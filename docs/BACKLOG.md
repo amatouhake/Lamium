@@ -351,15 +351,15 @@ or block light is above 0. Confirm in game before relying on it.
 ---
 
 ### L-32 Hotkey overlap and chord semantics **(strong model)**
-Status: implemented 2026-09-25, awaiting in-game check. `ChordDispatch` in
+Status: done (verified in game 2026-09-25, last build 8cbf8977). `ChordDispatch` in
 `input/Binding.h` (event-sequence tests in BindingTests); choices made while
 building are recorded in DESIGN "Keys". Design agreed 2026-09-24.
 2026-09-25 runtime check: checklist 1-10 passed (build 188a1c3a). Follow-up
 decided the same day and implemented: a key that begins a longer chord fires
 on release (Java F3 behavior, DESIGN "Keys"); verified in game 2026-09-25.
 Then the conflict display moved from the footer to warning key caps and a
-key-cell tooltip (DESIGN "Keys", docs/demos/hotkey-conflicts.html); awaiting
-in-game check.
+key-cell tooltip (DESIGN "Keys", docs/demos/hotkey-conflicts.html); verified
+in game 2026-09-25.
 2026-09-24 playtest finding: overlapping bindings do not behave like the
 maintainer expects from Java / Tweakeroo / MaLiLib. Concrete required case:
 if one action is bound to `B` and another to `F3 + B`, pressing **F3 then B**

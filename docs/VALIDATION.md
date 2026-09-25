@@ -35,8 +35,8 @@ The current main build/test workflow is exercised by hosted GitHub Actions.
 Hand Restock remains experimental and has **not** successfully replenished an
 item. Hide Offhand still needs a shield-specific render-path investigation.
 Continuous Tool Switch, breaking/placement handoff, dragon multipart hitboxes
-and mob growth/breeding timers remain research. Hotkey overlap semantics L-32 are verified in game; its
-release-triggered leading keys await an in-game check; the L-34 Auto attack/Auto use redesign remains planned
+and mob growth/breeding timers remain research. Hotkey overlap semantics L-32, release-triggered leading keys and the
+conflict display are verified in game; the L-34 Auto attack/Auto use redesign remains planned
 strong-model work.
 
 ## Historical checkpoint — Info HUD prototype
@@ -201,8 +201,8 @@ BindingTests and SettingsStoreTests and passed the in-game checklist on
 2026-09-25 (DLL 188a1c3a). Release-triggered leading keys (F3 alone fires on
 release, silent after F3+B) passed in game on 2026-09-25 (DLL 3e7045f8).
 Warning key caps and the key-cell conflict tooltip (hover and keyboard
-selection) build and their grouping is covered by BindingTests; not yet
-verified in game.
+selection) are covered by BindingTests and passed in game on 2026-09-25
+(DLL 8cbf8977).
 Pure capture tests cover arbitrary chords, opener suppression, mouse buttons,
 and modified wheel input. Layout, hit targets, input routing, focus loss, and
 the full capture/save/dispatch cycle still require Minecraft verification.
