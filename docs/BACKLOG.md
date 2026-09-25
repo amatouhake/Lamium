@@ -22,11 +22,10 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins.
 
-1. **Finish input/automation foundation:** L-32, then L-34.
-2. **Fix observed day-to-day behavior:** L-31, L-15, L-20.
-3. **Run bounded native research in parallel:** L-14, L-17, L-30, L-33 and the
+1. **Fix observed day-to-day behavior:** L-31, L-15, L-20.
+2. **Run bounded native research in parallel:** L-14, L-17, L-30, L-33 and the
    unresolved parts of L-16/L-15.
-4. **Prepare the first release:** keep user-facing docs current, run a full
+3. **Prepare the first release:** keep user-facing docs current, run a full
    runtime regression on the release build, verify a fresh install/package and
    finish the remaining distribution review.
 
@@ -485,8 +484,9 @@ https://minecraft.wiki/w/Tutorial:Hitboxes
 Status: first version (separate Periodic/Hold/Fast toggles) passed its
 in-game checklist 2026-09-25 (DLL 85fdf605) but was hard to understand;
 reworked the same day to one switch + one mode + a next-mode key, with no
-implicit stops (DESIGN "Automatic attack and use", AUTOMATION.md). The rework
-awaits an in-game check. The list below is the original brief.
+implicit stops (DESIGN "Automatic attack and use", AUTOMATION.md), then Fast
+click's held-only switch and keyed option rows. Status: done (verified in game
+2026-09-25, DLL 66d534be). The list below is the original brief.
 - Rework Periodic Attack/Use into Auto attack / Auto use with three modes:
   Periodic (hotkey toggle, interval in ticks), Hold (hotkey toggle, keeps
   the button down), Fast click (hotkey on/off; while on, holding the button
