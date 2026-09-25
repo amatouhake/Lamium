@@ -10,14 +10,17 @@ and use"). Feature ids stay `periodicAttack`/`periodicUse`; the
 - Settings: `interaction.autoAttack`/`autoUse` (switches, never saved),
   `attackMode`/`useMode` (saved by name, unknown names load as periodic),
   `attackTicks`/`useTicks` (1-1200, default 10; old seconds values migrate by
-  rounding seconds x 20) and `attackClicks`/`useClicks` (1-10, default 1).
+  rounding seconds x 20), `attackClicks`/`useClicks` (1-10, default 1) and
+  `attackTrigger`/`useTrigger` (`always` default or `held`, Fast click
+  only; hotkeys `cycleattacktrigger`/`cycleusetrigger`).
 - `interaction::AutoClick` (pure, `tests/AutoClickTests.cpp`) is the state
   machine per button. The adapter calls `configure` with the settings and
   `tick` on every `ClientLevelTickEvent`; edges are delivered from the native
   `InputHandler::tick` through the captured vanilla callbacks.
 - A physical press takes priority while held; Hold presses again after
   release and Periodic skips (not queues) clicks during the hold. Fast click
-  gives N release/press pairs per tick while held.
+  gives N press/release pairs per tick (Always), or N release/press pairs
+  while the button is held, ending pressed.
 - Losing gameplay input (menus, focus, death, detached camera, another
   client) suspends and releases any synthetic press; it resumes when input
   returns. Focus loss, screen and dimension changes also forget the physical

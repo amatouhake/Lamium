@@ -206,6 +206,11 @@ exactly one switch, one mode and one set of keys:
 - **Settings**: Periodic interval 1-1200 ticks, default 10, shown as
   "10 tick (0.50s)"; Fast click 1-10 clicks per tick, default 1, shown as
   "1/tick (20/s)". Both rows are always listed; their labels name the mode.
+- **Fast click runs** (saved, Fast click only): Always (default, like the
+  other modes: clicks while switched on) or While the button is held. A
+  hotkey toggles it (unbound). Only Fast click gets this choice: Hold
+  "while held" would be vanilla and Periodic did not need it (maintainer,
+  2026-09-25). Toasts/status say "Fast click (while held)" for the latter.
 - **Nothing stops it implicitly.** Only the switch (row or hotkey) turns it
   off, plus leaving the world. A manual click takes priority while held and
   automation resumes after release (Hold presses again; Periodic continues on

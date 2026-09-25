@@ -62,9 +62,10 @@ void autoClickTests() {
     }
     {
         AutoClick click;
-        click.configure(true, AutoMode::Fast, 1, 3);
+        auto const held = FastTrigger::WhileHeld;
+        click.configure(true, AutoMode::Fast, 1, 3, held);
         click.tick();
-        check(click.update().empty(), "fast click does nothing without the button held");
+        check(click.update().empty(), "fast click while held does nothing without the button held");
         click.physical(true);
         check(click.update().empty(), "fast click waits for the next tick");
         click.tick();
@@ -75,13 +76,34 @@ void autoClickTests() {
         click.tick();
         click.physical(false);
         check(click.update().empty(), "letting go ends the burst");
-        click.configure(true, AutoMode::Fast, 1, 99);
+        click.configure(true, AutoMode::Fast, 1, 99, held);
         click.physical(true);
         click.tick();
         check(click.update().size() == 2 * AutoClick::maxClicks, "clicks per tick are bounded");
-        click.configure(false, AutoMode::Fast, 1, 1);
+        click.configure(false, AutoMode::Fast, 1, 1, held);
         click.tick();
         check(click.update().empty(), "fast click off leaves the held button to vanilla");
+    }
+    {
+        AutoClick click;
+        click.configure(true, AutoMode::Fast, 1, 2);
+        check(click.update().empty(), "fast click always waits for the next tick");
+        click.tick();
+        check(click.update() == Edges{P, R, P, R}, "fast click always clicks without the button held");
+        check(click.update().empty(), "one burst per tick");
+        click.physical(true);
+        click.tick();
+        check(click.update() == Edges{R, P, R, P}, "a held button keeps bursting and ends pressed");
+        click.physical(false);
+        click.tick();
+        check(click.update() == Edges{P, R, P, R}, "releasing the button goes back to unheld bursts");
+        click.configure(true, AutoMode::Fast, 1, 2, FastTrigger::WhileHeld);
+        click.tick();
+        check(click.update().empty(), "switching to while held stops unheld bursts");
+        click.suspend();
+        click.configure(true, AutoMode::Fast, 1, 2);
+        click.tick();
+        check(click.update().empty(), "no bursts are queued while suspended");
     }
     {
         AutoClick click;
@@ -97,7 +119,7 @@ void autoClickTests() {
         check(click.update().empty(), "no periodic clicks are queued while suspended");
         ticks(click, 2);
         check(click.update() == Edges{P}, "periodic resumes on schedule");
-        click.configure(true, AutoMode::Fast, 1, 2);
+        click.configure(true, AutoMode::Fast, 1, 2, FastTrigger::WhileHeld);
         click.physical(true);
         click.forgetHeld();
         click.tick();

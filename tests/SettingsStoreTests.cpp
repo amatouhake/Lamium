@@ -25,6 +25,9 @@ void settingsStoreTests() {
         auto modes = decodeSettings(R"({"interaction":{"attackMode":"fast","useMode":"sideways"}})");
         check(modes.interaction.attackMode == interaction::AutoMode::Fast && modes.interaction.useMode == interaction::AutoMode::Periodic,
               "auto modes load by name and unknown names fall back to periodic");
+        check(modes.interaction.attackTrigger == interaction::FastTrigger::Always
+              && decodeSettings(R"({"interaction":{"useTrigger":"held"}})").interaction.useTrigger == interaction::FastTrigger::WhileHeld,
+              "fast click defaults to always and loads while held by name");
         check(!decodeSettings(R"({"interaction":{"autoAttack":true,"autoUse":true}})").interaction.autoAttack,
               "a hand-edited switch never starts auto attack on load");
         auto both = decodeSettings(R"({"interaction":{"attackInterval":3,"attackTicks":7}})");

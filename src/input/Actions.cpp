@@ -17,11 +17,13 @@
 
 namespace lamium {
 namespace {
-// Auto Attack / Auto Use toasts name the mode: "Auto Attack: Hold  ON".
-std::optional<interaction::AutoMode> autoMode(Settings const& value, input::Action action) {
-    if (action == input::Action::PeriodicAttack || action == input::Action::CycleAttackMode) return value.interaction.attackMode;
-    if (action == input::Action::PeriodicUse || action == input::Action::CycleUseMode) return value.interaction.useMode;
-    return std::nullopt;
+// Auto Attack / Auto Use toasts and status name the mode: "Hold", or
+// "Fast click (while held)".
+std::optional<std::string> autoModeText(Settings const& value, input::Action action) {
+    auto attack = input::actions[static_cast<size_t>(action)].feature == "periodicAttack";
+    if (!attack && input::actions[static_cast<size_t>(action)].feature != "periodicUse") return std::nullopt;
+    return interaction::autoModeText(attack ? value.interaction.attackMode : value.interaction.useMode,
+        attack ? value.interaction.attackTrigger : value.interaction.useTrigger);
 }
 std::string toggleFeatureName(input::Action action) {
     auto id = input::actions[static_cast<size_t>(action)].feature;
@@ -44,8 +46,7 @@ bool toggleState(IClientInstance& client, Settings const& value, input::Action a
 }
 void emitToggleToast(IClientInstance& client, input::Action action, Settings const& value) {
     auto name = toggleFeatureName(action);
-    if (auto mode = autoMode(value, action))
-        name += ": " + ui::translated(interaction::autoModeLabels[static_cast<size_t>(*mode)]);
+    if (auto mode = autoModeText(value, action)) name += ": " + *mode;
     ui::showToggleToast(name, toggleState(client, value, action));
 }
 }
@@ -85,8 +86,12 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::Freelook) { Zoom::instance().pressLook(client); return; }
     if (action == input::Action::FreeCamera) { Zoom::instance().pressFreeCamera(client); return; }
     auto value = runtime.preferences();
-    if (action == input::Action::CycleAttackMode || action == input::Action::CycleUseMode) {
-        settings::find(action == input::Action::CycleAttackMode ? "interaction.attackMode" : "interaction.useMode")->adjust(value,1);
+    if (action == input::Action::CycleAttackMode || action == input::Action::CycleUseMode
+        || action == input::Action::CycleAttackTrigger || action == input::Action::CycleUseTrigger) {
+        auto id = action == input::Action::CycleAttackMode ? "interaction.attackMode"
+            : action == input::Action::CycleUseMode ? "interaction.useMode"
+            : action == input::Action::CycleAttackTrigger ? "interaction.attackTrigger" : "interaction.useTrigger";
+        settings::find(id)->adjust(value,1);
         if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save auto mode"); return; }
         emitToggleToast(client, action, value);
         return;

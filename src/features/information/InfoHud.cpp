@@ -300,10 +300,12 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             // One line per switched-on button: "Auto Attack: Periodic", marked
             // when gameplay input is not Lamium's to drive right now.
             bool paused = interaction::periodic::paused(context.mClient);
-            for (auto [on, mode, feature] : {std::tuple{runtime.interaction.autoAttack, runtime.interaction.attackMode, "feature.periodicAttack"},
-                                             std::tuple{runtime.interaction.autoUse, runtime.interaction.useMode, "feature.periodicUse"}}) {
+            auto const& value = runtime.interaction;
+            for (auto [on, mode, trigger, feature] : {
+                     std::tuple{value.autoAttack, value.attackMode, value.attackTrigger, "feature.periodicAttack"},
+                     std::tuple{value.autoUse, value.useMode, value.useTrigger, "feature.periodicUse"}}) {
                 if (!on) continue;
-                auto text = ui::translated(feature) + ": " + ui::translated(interaction::autoModeLabels[static_cast<size_t>(mode)]);
+                auto text = ui::translated(feature) + ": " + interaction::autoModeText(mode, trigger);
                 if (paused) text += " " + ui::translated("autoPaused");
                 lines.push_back({std::move(text), paused ? ui::palette::dim : ui::palette::accent});
             }

@@ -3,6 +3,7 @@
 #include "app/Runtime.h"
 #include "input/Actions.h"
 #include "ui/SettingsScreen.h"
+#include "ui/Localization.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/world/ClientLevelTickEvent.h"
 #include "ll/api/memory/Hook.h"
@@ -18,6 +19,12 @@
 #include <stdexcept>
 #include <utility>
 
+namespace lamium::interaction {
+std::string autoModeText(AutoMode mode, FastTrigger trigger) {
+    if (mode == AutoMode::Fast && trigger == FastTrigger::WhileHeld) return ui::translated("autoFastHeld");
+    return ui::translated(autoModeLabels[static_cast<size_t>(mode)]);
+}
+}
 namespace lamium::interaction::periodic {
 namespace {
 using Callback = InputHandler::ButtonPressHandler;
@@ -147,7 +154,8 @@ void followSettings() {
             if (on && button.client != client) { suspend(button); button.client = client; }
             button.click.configure(on, attack ? value.attackMode : value.useMode,
                 static_cast<int>(attack ? value.attackTicks : value.useTicks),
-                static_cast<int>(attack ? value.attackClicks : value.useClicks));
+                static_cast<int>(attack ? value.attackClicks : value.useClicks),
+                attack ? value.attackTrigger : value.useTrigger);
             button.click.tick();
         }
 }

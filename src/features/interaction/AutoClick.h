@@ -19,10 +19,11 @@ public:
     // Called with the current settings every tick; only changes act. Turning
     // on or changing mode releases any press of the old mode first, and a
     // Periodic start clicks at once.
-    void configure(bool on, AutoMode mode, int interval, int clicksPerTick) {
+    void configure(bool on, AutoMode mode, int interval, int clicksPerTick, FastTrigger trigger = FastTrigger::Always) {
         period = std::clamp(interval, 1, maxInterval);
         countdown = std::min(countdown, period);
         clicks = std::clamp(clicksPerTick, 1, maxClicks);
+        fastAlways = trigger == FastTrigger::Always;
         if (on == enabled && (!on || mode == current)) return;
         enabled = on;
         current = mode;
@@ -51,12 +52,12 @@ public:
             countdown = period;
             if (!held) pressPending = true;
         }
-        if (current == AutoMode::Fast && held) burst = clicks;
+        if (current == AutoMode::Fast && (held || fastAlways)) burst = clicks;
     }
     // Once per native input update while gameplay input is ours: the edges
     // to deliver, in order. A synthetic release never releases a button the
     // user holds, except between the clicks of a Fast click burst, which
-    // ends pressed again.
+    // ends pressed again. Unheld, a burst is press/release pairs.
     std::vector<InputEdge> update() {
         suspended = false;
         std::vector<InputEdge> edges;
@@ -72,7 +73,10 @@ public:
         }
         switch (current) {
         case AutoMode::Fast:
-            if (held) for (; burst > 0; --burst) { edges.push_back(InputEdge::Release); edges.push_back(InputEdge::Press); }
+            for (; burst > 0; --burst) {
+                if (held) { edges.push_back(InputEdge::Release); edges.push_back(InputEdge::Press); }
+                else if (fastAlways) { edges.push_back(InputEdge::Press); edges.push_back(InputEdge::Release); }
+            }
             break;
         case AutoMode::Hold:
             if (!syntheticDown && !held) { syntheticDown = true; edges.push_back(InputEdge::Press); }
@@ -101,6 +105,7 @@ public:
 private:
     AutoMode current = AutoMode::Periodic;
     bool enabled = false, held = false, syntheticDown = false, pressPending = false, restart = false, suspended = false;
+    bool fastAlways = true;
     int period = 1, countdown = 1, clicks = 1, burst = 0;
 };
 }
