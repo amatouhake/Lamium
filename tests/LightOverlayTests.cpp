@@ -85,6 +85,20 @@ void lightOverlayTests() {
     appendLightNumberQuads(none,{0,0,0},16);
     appendLightNumberQuads(none,{0,0,0},5,Facing::North,2);
     check(none.empty(), "invalid values and rows draw nothing");
+    for (unsigned level = 0; level <= 15; ++level)
+        for (int row : {-1, 0, 1}) {
+            auto rects = lightDigitRects(level, row);
+            for (size_t i = 0; i < rects.size(); ++i) {
+                check(rects[i].u1 > rects[i].u0 && rects[i].v1 > rects[i].v0, "digit pieces have area");
+                for (size_t j = i + 1; j < rects.size(); ++j) {
+                    auto a = rects[i], b = rects[j];
+                    bool overlap = a.u0 < b.u1 - 1e-9 && b.u0 < a.u1 - 1e-9 && a.v0 < b.v1 - 1e-9 && b.v0 < a.v1 - 1e-9;
+                    check(!overlap, "digit pieces never overlap, so nothing in one plane can flicker");
+                }
+            }
+        }
+    check(lightDigitRects(8).size() == 7 && lightDigitRects(1).size() == 5,
+        "eight fills bars and middle rows; one is a single column of five cells");
     auto upper = lightDigitStrokes(8,-1), lower = lightDigitStrokes(8,1);
     check(std::all_of(upper.begin(), upper.end(), [](Stroke s) { return s.v0 < .5 && s.v1 < .5; })
         && std::all_of(lower.begin(), lower.end(), [](Stroke s) { return s.v0 > .5 && s.v1 > .5; }),

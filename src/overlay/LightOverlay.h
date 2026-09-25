@@ -164,34 +164,68 @@ inline Point floorPoint(Cell air, Facing facing, double u, double v, double lift
     double du = u - .5, dv = v - .5;
     return {air.x + .5 + du * right[0] - dv * f[0], air.y + lift, air.z + .5 + du * right[1] - dv * f[1]};
 }
+// Heights above the floor, like shape faces: a hair above it, digits just
+// above the tint. The mesh is also drawn nudged toward the eye.
+inline constexpr double tintLift = .005, digitLift = .012, lineLift = .015;
 // Thin digits for renderers that cannot show filled quads.
 inline void appendLightNumberLines(std::vector<Line>& lines, Cell air, unsigned value,
                                    Facing facing = Facing::North, int row = 0) {
     for (auto s : lightDigitStrokes(value, row))
-        lines.push_back({floorPoint(air, facing, s.u0, s.v0, .075), floorPoint(air, facing, s.u1, s.v1, .075)});
+        lines.push_back({floorPoint(air, facing, s.u0, s.v0, lineLift), floorPoint(air, facing, s.u1, s.v1, lineLift)});
 }
 inline std::vector<Line> lightNumberLines(Cell air, unsigned value, Facing facing = Facing::North) {
     std::vector<Line> lines;
     appendLightNumberLines(lines, air, value, facing);
     return lines;
 }
-// Filled digits: each stroke widened into a quad that also covers its ends,
-// so segments meet at the corners.
+// Filled digits as rectangles in the unit box that never overlap: a digit
+// is a 3x5 grid (thin bar columns/rows around two open areas), each needed
+// cell filled once and merged along its row. Overlapping pieces in one plane
+// flickered against each other on the two-sided materials.
+struct Rect { double u0, v0, u1, v1; };
+inline std::vector<Rect> lightDigitRects(unsigned value, int row = 0) {
+    std::vector<Rect> rects;
+    if (value > 15 || row < -1 || row > 1) return rects;
+    // Grid cells per segment a..g, as (row, first column, last column) runs:
+    // rows 0/2/4 are bars, 1/3 the open areas; columns 0/2 bars, 1 open.
+    constexpr std::array<unsigned,10> masks{0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f};
+    constexpr std::array<std::array<std::array<int,2>,3>,7> cells{{
+        {{{0,0},{0,1},{0,2}}}, {{{0,2},{1,2},{2,2}}}, {{{2,2},{3,2},{4,2}}}, {{{4,0},{4,1},{4,2}}},
+        {{{2,0},{3,0},{4,0}}}, {{{0,0},{1,0},{2,0}}}, {{{2,0},{2,1},{2,2}}}}};
+    double scale = row ? .45 : 1, shift = row * .23, bar = .07 * scale;
+    auto box = [&](double u, double v) { return std::pair{.5 + (u - .5) * scale, .5 + (v - .5) * scale + shift}; };
+    bool two = value >= 10;
+    auto digit = [&](unsigned number, double left) {
+        double width = two ? .25 : .4;
+        auto [x0, y0] = box(left, .2);
+        auto [x1, y1] = box(left + width, .8);
+        std::array<double,4> us{x0, x0 + bar, x1 - bar, x1};
+        std::array<double,6> vEdges{y0, y0 + bar, (y0 + y1) / 2 - bar / 2, (y0 + y1) / 2 + bar / 2, y1 - bar, y1};
+        std::array<std::array<bool,3>,5> filled{};
+        for (size_t s = 0; s < cells.size(); ++s) if (masks[number] & (1u << s))
+            for (auto [r, c] : cells[s]) filled[r][c] = true;
+        for (int r = 0; r < 5; ++r)
+            for (int c = 0; c < 3;) {
+                if (!filled[r][c]) { ++c; continue; }
+                int end = c;
+                while (end + 1 < 3 && filled[r][end + 1]) ++end;
+                rects.push_back({us[c], vEdges[r], us[end + 1], vEdges[r + 1]});
+                c = end + 1;
+            }
+    };
+    if (two) { digit(value/10,.2); digit(value%10,.55); }
+    else digit(value,.3);
+    return rects;
+}
 inline void appendLightNumberQuads(std::vector<Quad>& quads, Cell air, unsigned value,
                                    Facing facing = Facing::North, int row = 0) {
-    double half = (row ? .45 : 1) * .035;
-    for (auto s : lightDigitStrokes(value, row)) {
-        double u0 = std::min(s.u0, s.u1) - half, u1 = std::max(s.u0, s.u1) + half;
-        double v0 = std::min(s.v0, s.v1) - half, v1 = std::max(s.v0, s.v1) + half;
-        quads.push_back({{floorPoint(air, facing, u0, v0, .07), floorPoint(air, facing, u1, v0, .07),
-                          floorPoint(air, facing, u1, v1, .07), floorPoint(air, facing, u0, v1, .07)}});
-    }
+    for (auto r : lightDigitRects(value, row))
+        quads.push_back({{floorPoint(air, facing, r.u0, r.v0, digitLift), floorPoint(air, facing, r.u1, r.v0, digitLift),
+                          floorPoint(air, facing, r.u1, r.v1, digitLift), floorPoint(air, facing, r.u0, r.v1, digitLift)}});
 }
-// The whole floor of a cell, slightly inset, for the spawn color. Tint and
-// digits sit clearly above the floor and apart from each other: closer
-// layers flickered against the ground in Simple and Vibrant Visuals.
+// The whole floor of a cell, slightly inset, for the spawn color.
 inline Quad lightTintQuad(Cell air) {
-    constexpr double in = .02, lift = .04;
+    constexpr double in = .02, lift = tintLift;
     return {{Point{air.x + in, air.y + lift, air.z + in}, Point{air.x + 1 - in, air.y + lift, air.z + in},
              Point{air.x + 1 - in, air.y + lift, air.z + 1 - in}, Point{air.x + in, air.y + lift, air.z + 1 - in}}};
 }
