@@ -267,7 +267,7 @@ action, **Auto attack** and **Auto use**, with three ways to run:
 - (Decided 2026-09-25, docs/demos/hotkey-conflicts.html) Conflict display.
   Every key cell (Hotkeys and feature rows alike) draws related bindings with
   warning-colored key caps: filled for the exact same chord, outlined for an
-  overlap. The "Shared"/"Overlap" text badge is kept where it fits. Hovering
+  overlap. No text badge beside the keys (it looked like another key cap). Hovering
   the key cell opens a tooltip below it (above when there is more room) that
   lists every related binding grouped as same key / starts with this key /
   longer chords containing it / shorter chords inside it / same keys in

@@ -593,7 +593,9 @@ KeyTone conflictTone(input::Relation relation) {
         : relation == input::Relation::Overlap ? KeyTone::Outline : KeyTone::Plain;
 }
 void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, float y, input::Action action) {
-    float x = displayed.keyX, width = displayed.keyWidth, cy = y + (SettingsTable::rowHeight - capHeight) / 2;
+    // Cap text sits at the cap top in Japanese; start the cap low enough that
+    // its text lines up with the row name at y + 3.
+    float x = displayed.keyX, width = displayed.keyWidth, cy = y + 2;
     if (capturing == action) {
         fill(context,x,cy-1,width,capHeight+2,palette::accent,.25f);
         frame(context,x,cy-1,width,capHeight+2,palette::accent);
@@ -604,15 +606,7 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     auto keys = bindingKeys(current, action);
     if (keys.empty()) { label(context,x,cy+1,width,translated("unbound"),palette::faint); return; }
     auto relation = strongestConflict(input::bindingConflicts(Runtime::instance().preferences().bindings, action));
-    float used = keycaps(context,x,cy,width,keys,conflictTone(relation));
-    if (relation != input::Relation::None) {
-        auto text = translated(relation == input::Relation::Shared ? "shared" : "overlap");
-        float w = textWidth(context, text) + 4;
-        if (used + 3 + w <= width) {
-            frame(context,x+used+3,cy,w,capHeight,palette::warning);
-            label(context,x+used+5,cy+boxTextInset(),w-3,std::move(text),palette::warning);
-        }
-    }
+    keycaps(context,x,cy,width,keys,conflictTone(relation));
 }
 float badge(MinecraftUIRenderContext& context, float x, float y, std::string text, Rgb color) {
     float w = textWidth(context, text) + 5;
@@ -1293,22 +1287,24 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     auto const preferences = Runtime::instance().preferences();
     auto const conflicts = input::bindingConflicts(preferences.bindings, action);
     if (conflicts.empty()) return;
-    constexpr float pad = 4, headHeight = 14, lineHeight = 10, titleHeight = 12, itemHeight = 12;
+    constexpr float pad = 4, headHeight = 15, lineHeight = 12, titleHeight = 13, itemHeight = 14;
     float width = std::min(240.0f, t.width - 2*SettingsTable::pad), inner = width - 2*pad;
     std::vector<std::string> notes;
     bool leads = std::any_of(conflicts.begin(), conflicts.end(), [](auto c) { return c.link == input::Link::StartsWithThis; });
     if (input::firesOnRelease(preferences.bindings, action)) notes.push_back(translated("tip.release"));
     else if (leads && input::actions[static_cast<size_t>(action)].behavior == input::Behavior::Hold)
         notes.push_back(translated("tip.holdLeads"));
+    auto lines = [&](std::string const& text) { return textWidth(context, text) > inner ? size_t{2} : size_t{1}; };
+    auto groupNote = [](input::Link link) { return translated(linkTitle(link) + "Note"); };
     float notesHeight = 0;
-    for (auto const& note : notes) notesHeight += (textWidth(context, note) > inner ? 2 : 1) * lineHeight;
+    for (auto const& note : notes) notesHeight += lines(note) * lineHeight;
     // Items that fit the budget; the rest are counted on a last line.
     auto fitting = [&](float budget, float& height) {
         height = 2*pad + headHeight + notesHeight;
         size_t shown = 0;
         for (; shown < conflicts.size(); ++shown) {
             bool group = shown == 0 || conflicts[shown].link != conflicts[shown-1].link;
-            float need = (group ? titleHeight + lineHeight : 0) + itemHeight;
+            float need = (group ? titleHeight + lines(groupNote(conflicts[shown].link)) * lineHeight : 0) + itemHeight;
             float reserve = shown + 1 < conflicts.size() ? lineHeight : 0;
             if (height + need + reserve > budget) break;
             height += need;
@@ -1333,25 +1329,25 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     auto relation = strongestConflict(conflicts);
     keycaps(context,x+pad,cursor,inner*.6f,chordKeys(current, input::effectiveChord(preferences.bindings, action)),
         conflictTone(relation));
-    label(context,x+pad,cursor+1,inner,translated(relation == input::Relation::Shared ? "tip.countShared" : "tip.count",
+    label(context,x+pad,cursor+boxTextInset(),inner,translated(relation == input::Relation::Shared ? "tip.countShared" : "tip.count",
         std::to_string(conflicts.size())),palette::warning,Align::Right);
     cursor += headHeight;
     for (auto const& note : notes) {
-        size_t lines = textWidth(context, note) > inner ? 2 : 1;
-        paragraph(context,x+pad,cursor,inner,note,lines,palette::warning);
-        cursor += lines * lineHeight;
+        paragraph(context,x+pad,cursor,inner,note,lines(note),palette::warning);
+        cursor += lines(note) * lineHeight;
     }
     for (size_t i = 0; i < shown; ++i) {
         auto const& conflict = conflicts[i];
         if (i == 0 || conflict.link != conflicts[i-1].link) {
             fill(context,x+pad,cursor+1,inner,1,palette::white,.1f);
             label(context,x+pad,cursor+3,inner,translated(linkTitle(conflict.link)),palette::dim);
-            label(context,x+pad,cursor+3+lineHeight,inner,translated(linkTitle(conflict.link) + "Note"),palette::faint);
-            cursor += titleHeight + lineHeight;
+            auto note = groupNote(conflict.link);
+            paragraph(context,x+pad,cursor+3+lineHeight,inner,note,lines(note),palette::faint);
+            cursor += titleHeight + lines(note) * lineHeight;
         }
-        float used = keycaps(context,x+pad,cursor,inner*.45f,
+        float used = keycaps(context,x+pad,cursor+1,inner*.45f,
             chordKeys(current, input::effectiveChord(preferences.bindings, conflict.action)));
-        label(context,x+pad+used+5,cursor+1,inner-used-5,actionLabel(conflict.action));
+        label(context,x+pad+used+5,cursor+1+boxTextInset(),inner-used-5,actionLabel(conflict.action));
         cursor += itemHeight;
     }
     if (shown < conflicts.size())

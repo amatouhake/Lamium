@@ -198,8 +198,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"closeButton", "Close (Esc)", "閉じる (Esc)"},
     {"experimental", "Exp.", "試験的"},
     {"open", "Open", "開く"},
-    {"shared", "Shared", "重複"},
-    {"overlap", "Overlap", "重なり"},
     {"behavior.hold", "Active while the key is held.", "押している間だけ有効です。"},
     {"behavior.toggle", "Each press turns it on or off.", "押すたびに ON / OFF を切り替えます。"},
     {"behavior.press", "Runs once per press.", "押すたびに1回実行します。"},
