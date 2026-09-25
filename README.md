@@ -3,14 +3,74 @@
 Client-side quality-of-life tools for Minecraft Bedrock and LeviLamina Client.
 No server plugin or companion protocol is required.
 
-## Development status
+## Status
 
-Lamium is under active development and has no stable release yet. The current
-main branch is substantially beyond the original prototype: the shared settings
-screen, Lamium-owned hotkeys, Shapes view, HUD layout editor, target card,
-camera tools and world overlays are integrated, and the main HUD/editor/target
-flows have been exercised in Minecraft. Runtime evidence and remaining gaps are
-tracked in [validation notes](docs/VALIDATION.md).
+Lamium 0.1.0 is a **pre-release**. The main settings, hotkey, HUD, target
+card, camera and overlay flows have been exercised in Minecraft on a local
+single-player setup; multiplayer servers, controllers and broad
+resource-pack/graphics coverage are not verified yet. Some features are still
+experimental (see [Known issues](#known-issues)). Runtime evidence and
+remaining gaps are tracked in [validation notes](docs/VALIDATION.md).
+
+Supported: Minecraft Bedrock 1.26.51.01, LeviLamina Client 26.51.x, Windows
+x64.
+
+## Install
+
+1. Install LeviLamina Client 26.51.x for Minecraft 1.26.51.01 (for example
+   with LeviLauncher).
+2. Download `Lamium-client-windows-x64.zip` from the
+   [Releases](https://github.com/amatouhake/Lamium/releases) page.
+3. Extract it so that `Lamium.dll` and `manifest.json` end up in
+   `<instance>/mods/Lamium/`.
+4. Start Minecraft, enter a world and press `L` to open Lamium Settings.
+
+Settings are stored in `mods/Lamium/config/` and the log is written to
+`mods/Lamium/logs/lamium.log`. To uninstall, delete the `mods/Lamium/` folder.
+
+## Features
+
+Press `L` in a world to open Lamium Settings. The screen uses a dense
+Bedrock-fitting sidebar/table layout with search, English/Japanese text,
+immediate persistence and no Save/Cancel step. Hotkeys, Shapes and HUD layout
+are first-class views in the same UI.
+
+- **Camera/visuals:** Zoom, Night Vision, Freelook, experimental FreeCamera
+  and Hide Offhand Item.
+- **Information/HUD:** ordered Info HUD lines, a live HUD layout editor, a
+  Target card with icons, hearts and bars, Debug View basics and toggle
+  toasts.
+- **World overlays:** Shapes (box, cone, pyramid, ellipsoid, dome and more)
+  with per-world persistence, Java-style Chunk Borders, Hitboxes with eye/look
+  markers and a light-level overlay.
+- **Inventory/inspection:** Shulker and Bundle previews, durability
+  information, inventory sorting, Tool Switch and experimental Hand Restock.
+- **Interaction:** Permanent Sneak, breaking restriction and Auto Attack/Use
+  (Periodic, Hold or Fast click).
+
+Lamium owns its key bindings; they do not appear in Minecraft's keyboard
+settings. Bindings are edited under each feature or in the Hotkeys view.
+Clear unbinds an action and Reset restores its default. The Settings action
+cannot be cleared, so the UI cannot be locked out. Default keys: `L` settings,
+`C` zoom (hold), `J` night vision, `R` sort (in a container). `C` replaces
+Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
+
+## Known issues
+
+- Hand Restock has not yet successfully replenished an item.
+- Hide Offhand Item still shows a held shield.
+- Breaking restriction: after the crosshair passes over a forbidden block,
+  breaking does not resume on an allowed block until the mouse button is
+  released and pressed again. The restriction modes will be redesigned.
+- FreeCamera is experimental; multiplayer, controllers and some dimension/menu
+  edges are untested.
+- Auto Attack/Use: whether several clicks per tick land on servers is not
+  verified.
+
+Reports are welcome as GitHub issues; please attach
+`mods/Lamium/logs/lamium.log`.
+
+## Development
 
 The repository is the source of truth for development:
 
@@ -19,48 +79,6 @@ The repository is the source of truth for development:
 - [Validation](docs/VALIDATION.md) separates compiled/tested behavior from
   behavior actually checked in Minecraft.
 - [Agent guide](AGENTS.md) is the working manual for coding agents.
-
-### Current UI and controls
-
-Press `L` in a world to open Lamium Settings. The screen uses a dense
-Bedrock-fitting sidebar/table layout with search, English/Japanese text,
-immediate persistence and no Save/Cancel step. Hotkeys, Shapes and HUD layout
-are first-class views in the same UI. Bounded numeric options such as view
-range and zoom use sliders; precise values keep direct numeric entry.
-
-Lamium owns its action bindings. A missing override uses Lamium's default,
-Clear explicitly unbinds an action, and Reset restores the default. The
-Settings action itself cannot be cleared so the UI cannot be locked out.
-Bindings are edited under each feature or in the Hotkeys view; Open Hotkeys,
-Open Shapes and Open HUD layout actions are available for direct access.
-
-The remaining input-foundation task is [L-32](docs/BACKLOG.md): overlapping
-chords still use the older order-insensitive/subset matcher. The agreed
-ordinary-vs-modifier-like semantics and overlap warnings are documented but
-not implemented yet.
-
-### Current feature areas
-
-Implemented areas include:
-
-- Camera/visuals: Zoom, NightVision, Freelook, experimental FreeCamera and
-  Hide Offhand Item.
-- Inspection/inventory: Shulker and Bundle previews, durability information,
-  inventory sorting, experimental Tool Switch and Hand Restock.
-- Information/HUD: ordered Info HUD lines, a live HUD layout editor, Target
-  card with icons/hearts/bars and camera-following picks, Debug View basics,
-  toggle toasts and automation/restriction status.
-- World overlays: Shapes with local-world persistence, Java-style Chunk
-  Borders, Hitboxes and an experimental light-level overlay.
-- Interaction: Permanent Sneak, breaking restriction work and Auto
-  Attack/Use (one switch each, with a Periodic, Hold or Fast click mode).
-
-Not every implemented feature is release-ready. Hand Restock has not yet
-successfully replenished an item; Hide Offhand still has a shield-specific
-render-path issue; continuous Tool Switch, breaking/placement restriction
-behavior and several native-data questions remain research items. Auto
-Attack/Use's tick-driven modes still need their in-game checks (BACKLOG L-34).
-See the backlog instead of inferring readiness from presence in the UI.
 
 Inventory sorting uses ordinary game operations, waits for matching responses
 between operations and revalidates the affected region before continuing.

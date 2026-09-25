@@ -73,7 +73,7 @@ target("Lamium")
     if has_config("shape_trace") then add_defines("LAMIUM_SHAPE_TRACE") end
     if has_config("placement_trace") then add_defines("LAMIUM_PLACEMENT_TRACE") end
     add_rules("@levibuildscript/linkrule")
-    add_rules("@levibuildscript/modpacker")
+    add_rules("@levibuildscript/modpacker", {modVersion = "0.1.0"})
     if is_plat("windows") then
         add_defines("NOMINMAX", "UNICODE")
         set_exceptions("none") -- To avoid conflicts with /EHa.
