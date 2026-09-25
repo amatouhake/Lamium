@@ -145,6 +145,35 @@ inline std::vector<Conflict> bindingConflicts(Bindings const& bindings, Action a
     return result;
 }
 
+using ChordSet = std::array<Chord, actions.size()>;
+// Like Java's F3: a Press/Toggle action whose chord begins a longer bound
+// chord waits for its release and fires then, unless the longer chord was used
+// meanwhile. Hold actions cannot wait; they act while held.
+inline bool startsWith(Chord const& longer, Chord const& prefix) {
+    return longer.size() > prefix.size() && std::equal(prefix.begin(), prefix.end(), longer.begin());
+}
+inline std::optional<size_t> releaseLeader(ChordSet const& chords, size_t index) {
+    auto const& chord = chords[index];
+    auto const& info = actions[index];
+    if (chord.empty() || chord.back().device == Device::Wheel || info.matching != Matching::Ordinary
+        || info.behavior == Behavior::Hold) return {};
+    for (size_t j = 0; j < chords.size(); ++j) {
+        bool extends = actions[j].matching == Matching::Modifier ? moreSpecific(chords[j], chord) : startsWith(chords[j], chord);
+        if (j != index && extends) return j;
+    }
+    return {};
+}
+// The action whose longer chord makes this one fire on release, for the
+// Hotkeys description.
+inline std::optional<Action> firesOnRelease(Bindings const& bindings, Action action) {
+    ChordSet chords;
+    for (size_t i = 0; i < chords.size(); ++i)
+        if (sameInputContext(action, static_cast<Action>(i))) chords[i] = effectiveChord(bindings, static_cast<Action>(i));
+    auto leader = releaseLeader(chords, static_cast<size_t>(action));
+    if (!leader) return {};
+    return static_cast<Action>(*leader);
+}
+
 class HeldInputs {
     Chord held, blocked;
 public:
@@ -181,14 +210,15 @@ struct Dispatch {
     // The input event belongs to Lamium and should not reach the game.
     bool consumed = false;
 };
-using ChordSet = std::array<Chord, actions.size()>;
-// Matches every action's chord against one input event. Actions activate only
-// on the press that completes their chord. A chord that yielded to a more
-// specific one stays latched until one of its inputs is released, so it never
-// fires late. Host code resets this on focus/world/screen changes, rebinding
-// or input ownership changes and delivers the released edges.
+// Matches every action's chord against one input event. Actions activate on
+// the press that completes their chord, or on its release when they lead a
+// longer chord (Pending). A chord that yielded to a more specific one stays
+// latched until one of its inputs is released, so it never fires late. Host
+// code resets this on focus/world/screen changes, rebinding or input
+// ownership changes and delivers the released edges; a pending action then
+// never fires.
 class ChordDispatch {
-    enum class Phase { Idle, Active, Latched };
+    enum class Phase { Idle, Active, Pending, Latched };
     std::array<Phase, actions.size()> phases{};
     static bool pulsed(Chord const& chord) { return !chord.empty() && chord.back().device == Device::Wheel; }
     static bool heldPart(Chord const& chord, Chord const& held) {
@@ -223,6 +253,7 @@ public:
             if (phases[i] == Phase::Idle) continue;
             if (!chords[i].empty() && heldPart(chords[i], held)) continue;
             if (phases[i] == Phase::Active) result.transitions.push_back({i, false});
+            if (phases[i] == Phase::Pending && !chords[i].empty()) result.transitions.push_back({i, true});
             phases[i] = Phase::Idle;
         }
         if (!down) return result;
@@ -235,20 +266,24 @@ public:
             if (!yields) firing.push_back(i);
             else if (!pulsed(chords[i])) phases[i] = Phase::Latched;
         }
-        // A longer chord starting on top of an ordinary held action takes
-        // over; the shorter one does not resume until pressed again.
+        // A longer chord starting on top of an ordinary held or pending action
+        // takes over; the shorter one does not resume or fire on release.
         for (size_t i = 0; i < chords.size(); ++i) {
-            if (phases[i] != Phase::Active || actions[i].matching != Matching::Ordinary) continue;
+            bool active = phases[i] == Phase::Active && actions[i].matching == Matching::Ordinary;
+            if (!active && phases[i] != Phase::Pending) continue;
             if (std::any_of(firing.begin(), firing.end(), [&](size_t j) { return moreSpecific(chords[j], chords[i]); })) {
-                result.transitions.push_back({i, false});
+                if (active) result.transitions.push_back({i, false});
                 phases[i] = Phase::Latched;
             }
         }
+        bool acted = false;
         for (auto i : firing) {
+            if (releaseLeader(chords, i)) { phases[i] = Phase::Pending; continue; }
             result.transitions.push_back({i, true});
+            acted = true;
             if (!pulsed(chords[i])) phases[i] = Phase::Active;
         }
-        result.consumed = !firing.empty();
+        result.consumed = acted;
         if (down->device != Device::Wheel)
             for (size_t i = 0; i < chords.size(); ++i)
                 if (phases[i] != Phase::Idle && contains(chords[i], *down)) result.consumed = true;

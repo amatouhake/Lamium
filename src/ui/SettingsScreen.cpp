@@ -690,6 +690,11 @@ std::string description() {
         }
         if (!shared.empty()) text += " " + translated("sharesWith", shared);
         if (!overlapping.empty()) text += " " + translated("overlapsWith", overlapping);
+        // preferences() returns a copy: keep it alive while its bindings are read.
+        auto const preferences = Runtime::instance().preferences();
+        auto const& bindings = preferences.bindings;
+        if (auto leader = input::firesOnRelease(bindings, *entry.action); leader && client)
+            text += " " + translated("firesOnRelease", bindingChordName(*client, input::effectiveChord(bindings, *leader)));
         return text;
     }
     case RowKind::Layout: return translated("help.layoutLink");

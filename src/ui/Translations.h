@@ -236,6 +236,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"numberHint", "Auto-save | Ctrl+A: replace | Enter/Esc: finish", "自動保存 | Ctrl+A: 全選択 | Enter/Esc: 入力終了"},
     {"sharesWith", "Same key as: {} (all fire together).", "同じキー: {}（同時に動作）。"},
     {"overlapsWith", "Overlaps: {} (the longer combination wins).", "重なるキー: {}（長い組み合わせが優先）。"},
+    {"firesOnRelease", "Fires on release (it starts {}).", "離したときに動作（{} の先頭のため）。"},
     {"feature.zoom", "Zoom", "ズーム"},
     {"feature.freelook", "Freelook", "フリールック"},
     {"help.freelook", "Turn only the view while active; body direction and movement are kept.", "有効な間は視点だけを回転します。体の向きと移動方向は維持します。"},

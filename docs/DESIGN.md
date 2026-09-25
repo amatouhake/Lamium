@@ -255,3 +255,12 @@ action, **Auto attack** and **Auto use**, with three ways to run:
   - Settings files written before L-32 stored chords sorted by code. They load
     in the order modifiers, function keys, other keys, mouse, wheel (so a saved
     F3+B stays F3 then B); new files carry `orderedBindings: true`.
+- (Decided 2026-09-25, after the L-32 playtest) Keys that begin a longer chord
+  act on release, like Java's F3. A Press/Toggle action whose chord is the
+  leading part of another bound chord (F3 with F3+B bound) does nothing on
+  press and fires when released, unless a longer chord containing it fired
+  while it was held. Unrelated keys (walking, other Lamium actions) do not
+  cancel it; focus loss, menus and text input drop it silently. This is
+  derived from the bindings, not a user option. Actions without such a longer
+  chord still fire on press, and Hold actions (Zoom, Freelook) always act on
+  press. The Hotkeys description says "Fires on release (it starts F3 + B)".

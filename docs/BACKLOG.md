@@ -354,6 +354,9 @@ or block light is above 0. Confirm in game before relying on it.
 Status: implemented 2026-09-25, awaiting in-game check. `ChordDispatch` in
 `input/Binding.h` (event-sequence tests in BindingTests); choices made while
 building are recorded in DESIGN "Keys". Design agreed 2026-09-24.
+2026-09-25 runtime check: checklist 1-10 passed (build 188a1c3a). Follow-up
+decided the same day and implemented: a key that begins a longer chord fires
+on release (Java F3 behavior, DESIGN "Keys"); awaiting in-game check.
 2026-09-24 playtest finding: overlapping bindings do not behave like the
 maintainer expects from Java / Tweakeroo / MaLiLib. Concrete required case:
 if one action is bound to `B` and another to `F3 + B`, pressing **F3 then B**

@@ -152,12 +152,66 @@ void bindingTests() {
     {
         Keys keys;
         keys.bind(shortA, {b});
-        keys.bind(longA, {b, left});
-        check(only(keys.press(b), {on(shortA)}), "ordinary B activates");
+        keys.bind(longA, {shift, b, left});
+        keys.press(b);
+        check(only(keys.press(shift), {}), "Shift after B completes nothing");
+        keys.release(b);
+        check(only(keys.press(b), {on(shortA)}), "ordinary B activates with Shift held");
         check(only(keys.press(left), {off(shortA), on(longA)}), "a longer ordinary chord takes over from an active shorter one");
         check(only(keys.release(left), {off(longA)}) && !keys.dispatch.isActive(shortA),
             "the shorter ordinary chord does not resume when the longer one ends");
         check(only(keys.release(b), {}) && only(keys.press(b), {on(shortA)}), "it activates again on a fresh press");
+    }
+    {
+        // Java's F3: a key that begins a longer chord acts on release unless
+        // the longer chord was used while it was held.
+        Keys keys;
+        auto const debug = Action::DebugView;
+        keys.bind(debug, {f3});
+        keys.bind(longA, {f3, b});
+        keys.bind(shortA, {Token{Device::Key, 0x4a}});
+        auto pressed = keys.press(f3);
+        check(only(pressed, {}) && pressed.consumed, "F3 does nothing on press but belongs to Lamium");
+        check(only(keys.press(f3), {}), "F3 repeats keep waiting");
+        check(only(keys.release(f3), {on(debug)}), "F3 alone fires on release");
+        keys.press(f3);
+        check(only(keys.press(b), {on(longA)}), "F3+B fires on B's press");
+        check(only(keys.release(b), {off(longA)}) && only(keys.press(b), {on(longA)}), "F3+B repeats while F3 stays held");
+        keys.release(b);
+        check(only(keys.release(f3), {}), "F3 is silent after F3+B was used");
+        keys.press(f3);
+        keys.press(w);
+        check(only(keys.press(Token{Device::Key, 0x4a}), {on(shortA)}), "an unrelated action still fires while F3 is held");
+        keys.release(w);
+        keys.release(Token{Device::Key, 0x4a});
+        check(only(keys.release(f3), {on(debug)}), "walking or other actions do not cancel F3");
+        keys.press(f3);
+        keys.focusLost();
+        check(keys.dispatch.reset().empty() && only(keys.release(f3), {}), "focus loss drops a waiting F3");
+        keys.press(f3);
+        auto elsewhere = keys.chords;
+        keys.chords = {};
+        check(only(keys.release(f3), {}), "a waiting F3 does not fire once its action is no longer allowed");
+        keys.chords = elsewhere;
+        keys.bind(longA, {});
+        check(only(keys.press(f3), {on(debug)}), "without a longer chord F3 fires on press");
+        keys.release(f3);
+        keys.bind(Action::Zoom, {f3});
+        keys.bind(longA, {f3, b});
+        check(only(keys.press(f3), {on(Action::Zoom)}), "a hold action leading a longer chord still acts on press");
+    }
+    {
+        Bindings bindings;
+        bindings[static_cast<size_t>(Action::DebugView)] = Chord{f3};
+        bindings[static_cast<size_t>(Action::ChunkBorders)] = Chord{f3, b};
+        bindings[static_cast<size_t>(Action::Zoom)] = Chord{f3};
+        bindings[static_cast<size_t>(Action::NightVision)] = Chord{b};
+        bindings[static_cast<size_t>(Action::Sort)] = Chord{Token{Device::Key, 0x4a}};
+        bindings[static_cast<size_t>(Action::Hitboxes)] = Chord{{Device::Key, 0x4a}, b};
+        check(firesOnRelease(bindings, Action::DebugView) == Action::ChunkBorders
+            && !firesOnRelease(bindings, Action::ChunkBorders) && !firesOnRelease(bindings, Action::Zoom)
+            && !firesOnRelease(bindings, Action::NightVision) && !firesOnRelease(bindings, Action::Sort),
+            "the Hotkeys list names release-triggered actions; hold, trailing and container-only keys stay on press");
     }
     {
         Keys keys;
