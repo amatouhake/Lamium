@@ -17,4 +17,10 @@ void toolChoiceTests() {
     tools[4].speed = std::numeric_limits<float>::infinity();
     check(!chooseHotbarTool(tools,0), "non-finite tool speeds cannot drive selection");
     check(!chooseHotbarTool(tools,-1) && !chooseHotbarTool(tools,9), "selection outside hotbar is never changed");
+    ToolTarget target;
+    check(target.enter({1,2,3}), "the first block is chosen for");
+    check(!target.enter({1,2,3}) && !target.enter({1,2,3}), "continuing on the same block does not choose again");
+    check(target.enter({1,2,4}) && target.enter({1,2,3}), "each move to another block chooses again, even back to an earlier one");
+    target.clear();
+    check(target.enter({1,2,3}), "a released attack starts fresh on the same block");
 }

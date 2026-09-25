@@ -19,6 +19,7 @@
 namespace lamium::inventory::tools {
 namespace {
 bool installed = false;
+ToolTarget target;
 void selectTool(Player& player, BlockPos const& pos) {
     if (!interaction::breaking::allows(player,pos)) return;
     auto& runtime = Runtime::instance();
@@ -41,22 +42,55 @@ void selectTool(Player& player, BlockPos const& pos) {
     if (auto slot = chooseHotbarTool(candidates,selected))
         supplies->selectSlot(*slot,ContainerID::Inventory);
 }
-LL_TYPE_INSTANCE_HOOK(ToolSwitchStart, ll::memory::HookPriority::Normal, GameMode,
-    &GameMode::$startDestroyBlock, bool, BlockPos const& pos, uchar face, bool& destroyed) {
-    try { selectTool(mPlayer,pos); }
-    catch (std::exception const& error) {
+bool clientPlayer(Player const& player) {
+    auto client = ll::service::getClientInstance();
+    return client && client->getLocalPlayer() == &player;
+}
+void choose(Player& player, BlockPos const& pos, bool starting) {
+    // In a local world the integrated server's player breaks the same blocks,
+    // possibly on another thread; only the client's own player is tracked.
+    if (!clientPlayer(player)) return;
+    try {
+        bool moved = target.enter({pos.x, pos.y, pos.z});
+        if (starting || moved) selectTool(player,pos);
+    } catch (std::exception const& error) {
         static bool reported = false;
         if (!reported) { Runtime::instance().self().getLogger().error("Tool selection failed: {}",error.what()); reported = true; }
     }
+}
+LL_TYPE_INSTANCE_HOOK(ToolSwitchStart, ll::memory::HookPriority::Normal, GameMode,
+    &GameMode::$startDestroyBlock, bool, BlockPos const& pos, uchar face, bool& destroyed) {
+    choose(mPlayer,pos,true);
     return origin(pos,face,destroyed);
 }
+// Holding the attack button across blocks continues breaking on the new block
+// without a new start, so choose again when the position changes.
+LL_TYPE_INSTANCE_HOOK(ToolSwitchContinue, ll::memory::HookPriority::Normal, GameMode,
+    &GameMode::$continueDestroyBlock, bool, BlockPos const& pos, uchar face, Vec3 const& playerPos, bool& destroyed) {
+    choose(mPlayer,pos,false);
+    return origin(pos,face,playerPos,destroyed);
+}
+LL_TYPE_INSTANCE_HOOK(ToolSwitchStop, ll::memory::HookPriority::Normal, GameMode,
+    &GameMode::$stopDestroyBlock, void, BlockPos const& pos) {
+    if (clientPlayer(mPlayer)) target.clear();
+    origin(pos);
+}
+struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
+Hook hooks[] = {{ToolSwitchStart::hook, ToolSwitchStart::unhook}, {ToolSwitchContinue::hook, ToolSwitchContinue::unhook},
+    {ToolSwitchStop::hook, ToolSwitchStop::unhook}};
 }
 void start() {
     if (installed) return;
-    installed = ToolSwitchStart::hook(true) == 0;
-    if (!installed) throw std::runtime_error("Could not install tool switch hook");
+    for (auto& hook : hooks) if (!hook.installed) {
+        if (hook.install(true) != 0) { stop(); throw std::runtime_error("Could not install tool switch hook"); }
+        hook.installed = true;
+    }
+    installed = true;
 }
 void stop() {
-    if (installed && ToolSwitchStart::unhook(true)) installed = false;
+    for (auto it = std::rbegin(hooks); it != std::rend(hooks); ++it)
+        if (it->installed && it->remove(true)) it->installed = false;
+    target.clear();
+    installed = false;
 }
 }

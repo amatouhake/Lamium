@@ -514,7 +514,14 @@ Estimating from observed events (feeding speeds growth up) is not accurate
 enough to show as a time.
 
 ### L-31 Continuous Tool Switch across block transitions
-Status: research.
+Status: implemented 2026-09-25, awaiting in-game check. SurvivalMode does not
+override `continueDestroyBlock`, so `GameMode::$continueDestroyBlock` is
+hooked; a pure `ToolTarget` (ToolChoice.h, tested) re-runs the unchanged
+choice rule once per new block position, and `stopDestroyBlock` clears it.
+Only the client's local player is tracked (the integrated server's player
+also breaks blocks). Whether vanilla also calls `startDestroyBlock` on the
+new block does not matter to this change; the in-game check confirms that
+`continueDestroyBlock` carries the new position.
 2026-09-24 in-game observation: Tool Switch chooses for the first block, but a
 continuous physical left-click can move from dirt to wood to stone without
 re-evaluating the tool for each new target. The current hook only calls

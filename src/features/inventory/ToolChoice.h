@@ -13,4 +13,17 @@ inline std::optional<int> chooseHotbarTool(std::array<ToolCandidate,9> const& to
         if (effective(tools[slot]) && (!best || tools[slot].speed > tools[*best].speed)) best = slot;
     return best;
 }
+// The block a held attack is working on. Tool Switch chooses once per new
+// block: when breaking starts, and again whenever continued breaking moves to
+// another block without the button being released (BACKLOG L-31).
+class ToolTarget {
+    std::optional<std::array<int,3>> current;
+public:
+    bool enter(std::array<int,3> pos) {
+        if (current == pos) return false;
+        current = pos;
+        return true;
+    }
+    void clear() { current.reset(); }
+};
 }
