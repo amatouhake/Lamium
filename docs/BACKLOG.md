@@ -27,7 +27,10 @@ L-item wins.
    unresolved parts of L-16/L-15.
 3. **Prepare the first release:** keep user-facing docs current, run a full
    runtime regression on the release build, verify a fresh install/package and
-   finish the remaining distribution review.
+   finish the remaining distribution review. 0.1.0 was published as a GitHub
+   pre-release on 2026-09-26 (tag v0.1.0, DLL 9e7fd594, the build verified
+   for L-16) with the known issues listed in the README; the version is set
+   in `xmake.lua` and `tooth.json`. lip registration is not done yet.
 
 HUD/world presentation and the strong-model HUD/Target polish (L-04a/b/c,
 L-05, L-07, L-08, L-09/L-10/L-11 and L-13) are complete and no longer belong
