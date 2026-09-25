@@ -34,8 +34,8 @@ graphics-mode/resource-pack/performance coverage is still incomplete.
 The current main build/test workflow is exercised by hosted GitHub Actions.
 Hand Restock remains experimental and has **not** successfully replenished an
 item. Hide Offhand still needs a shield-specific render-path investigation.
-Continuous Tool Switch (L-31) is implemented through `continueDestroyBlock`
-and awaits an in-game check. Breaking/placement handoff, dragon multipart
+Continuous Tool Switch (L-31) through `continueDestroyBlock` passed its
+in-game dirt/wood/stone hold check on 2026-09-25 (DLL c81c6cb1). Breaking/placement handoff, dragon multipart
 hitboxes and mob growth/breeding timers remain research. Hotkey overlap semantics L-32, release-triggered leading keys and the
 conflict display are verified in game; L-34 Auto Attack/Auto Use (switch plus mode,
 Fast click held-only switch, keyed option rows) passed its in-game checklists
