@@ -22,7 +22,7 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins.
 
-1. **Fix observed day-to-day behavior:** L-31, L-15, L-20.
+1. **Fix observed day-to-day behavior:** L-15 (Design first), L-20.
 2. **Run bounded native research in parallel:** L-14, L-17, L-30, L-33 and the
    unresolved parts of L-16/L-15.
 3. **Prepare the first release:** keep user-facing docs current, run a full
