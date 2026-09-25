@@ -105,6 +105,8 @@ constexpr Option hudNumeric(std::string_view id, std::string_view feature, std::
         NumericOption{minimum, maximum, [](Settings& value, float number) { hudElement(value, Id).*Field = number; }}};
 }
 inline constexpr auto options = std::to_array<Option>({
+    toggle<&Settings::interaction, &Settings::Interaction::autoAttack>("interaction.autoAttack", "periodicAttack", "autoAttack"),
+    choice<&Settings::interaction, &Settings::Interaction::attackMode, interaction::autoModeLabels>("interaction.attackMode", "periodicAttack", "autoModeRow"),
     {"interaction.attackTicks", "periodicAttack", "autoInterval",
         [](Settings const& s) -> OptionValue { return s.interaction.attackTicks; },
         [](Settings& s, int direction) { s.interaction.attackTicks += direction; s.normalize(); },
@@ -113,6 +115,8 @@ inline constexpr auto options = std::to_array<Option>({
         [](Settings const& s) -> OptionValue { return s.interaction.attackClicks; },
         [](Settings& s, int direction) { s.interaction.attackClicks += direction; s.normalize(); },
         NumericOption{1, 10, [](Settings& s, float v) { s.interaction.attackClicks = v; }, 0, 20}},
+    toggle<&Settings::interaction, &Settings::Interaction::autoUse>("interaction.autoUse", "periodicUse", "autoUse"),
+    choice<&Settings::interaction, &Settings::Interaction::useMode, interaction::autoModeLabels>("interaction.useMode", "periodicUse", "autoModeRow"),
     {"interaction.useTicks", "periodicUse", "autoInterval",
         [](Settings const& s) -> OptionValue { return s.interaction.useTicks; },
         [](Settings& s, int direction) { s.interaction.useTicks += direction; s.normalize(); },

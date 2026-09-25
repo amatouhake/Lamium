@@ -7,8 +7,9 @@ void autoClickTests() {
     auto ticks = [](AutoClick& click, int count) { for (int i = 0; i < count; ++i) click.tick(); };
     {
         AutoClick click;
-        click.start(AutoMode::Periodic, 3);
-        check(click.update() == Edges{P}, "periodic clicks at once when started");
+        check(click.update().empty(), "off does nothing");
+        click.configure(true, AutoMode::Periodic, 3, 1);
+        check(click.update() == Edges{P}, "periodic clicks at once when switched on");
         check(click.update() == Edges{R}, "a periodic press lasts one input update");
         check(click.update().empty(), "nothing between periodic clicks");
         ticks(click, 2);
@@ -18,40 +19,50 @@ void autoClickTests() {
         ticks(click, 30);
         check(click.update() == Edges{P} && click.update() == Edges{R} && click.update().empty(),
             "a stall never produces catch-up clicks");
-        click.start(AutoMode::Periodic, 0);
-        click.update(); click.update();
+        click.configure(true, AutoMode::Periodic, 3, 1);
+        ticks(click, 3);
+        check(click.update() == Edges{P}, "configuring the same settings every tick changes nothing");
+        click.update();
+        click.configure(true, AutoMode::Periodic, 0, 1);
         click.tick();
         check(click.update() == Edges{P}, "the interval is at least one tick");
+        click.configure(false, AutoMode::Periodic, 3, 1);
+        check(click.update() == Edges{R} && click.update().empty(), "switching off releases a pending press once");
+        ticks(click, 10);
+        check(click.update().empty(), "off stays quiet");
     }
     {
         AutoClick click;
-        click.start(AutoMode::Hold);
+        click.configure(true, AutoMode::Hold, 1, 1);
         check(click.update() == Edges{P} && click.update().empty(), "hold presses once and keeps it");
-        click.start(AutoMode::Periodic, 5);
-        check(click.update() == Edges{R} && click.update() == Edges{P}, "starting periodic ends hold first");
-        click.start(AutoMode::Hold);
-        check(click.update() == Edges{R} && click.update() == Edges{P}, "starting hold ends periodic");
-        click.stop();
-        check(click.update() == Edges{R} && click.update().empty(), "stopping hold releases once");
+        click.configure(true, AutoMode::Periodic, 5, 1);
+        check(click.update() == Edges{R} && click.update() == Edges{P}, "changing to periodic releases the hold first");
+        click.configure(true, AutoMode::Hold, 5, 1);
+        check(click.update() == Edges{R} && click.update() == Edges{P}, "changing to hold releases the periodic press");
+        click.configure(false, AutoMode::Hold, 5, 1);
+        check(click.update() == Edges{R} && click.update().empty(), "switching hold off releases once");
     }
     {
         AutoClick click;
-        click.start(AutoMode::Hold);
+        click.configure(true, AutoMode::Hold, 1, 1);
         click.update();
         click.physical(true);
-        check(click.mode() == AutoMode::Off && click.update().empty(),
-            "a physical press takes over hold without releasing under it");
+        check(click.on() && click.update().empty(), "a physical press takes priority and hold stays on");
         click.physical(false);
-        ticks(click, 5);
-        check(click.update().empty() && click.mode() == AutoMode::Off, "releasing the button does not resume automation");
-        click.start(AutoMode::Periodic, 2);
+        check(click.update() == Edges{P}, "hold presses again after the user lets go");
+        click.configure(true, AutoMode::Periodic, 2, 1);
+        click.update(); click.update(); click.update();
         click.physical(true);
-        ticks(click, 4);
-        check(click.update().empty(), "a physical press stops periodic too");
+        ticks(click, 6);
+        check(click.update().empty(), "periodic stays quiet while the user holds the button");
+        click.physical(false);
+        check(click.update().empty(), "no clicks saved up while held");
+        ticks(click, 2);
+        check(click.update() == Edges{P}, "periodic resumes after release");
     }
     {
         AutoClick click;
-        click.setFast(true, 3);
+        click.configure(true, AutoMode::Fast, 1, 3);
         click.tick();
         check(click.update().empty(), "fast click does nothing without the button held");
         click.physical(true);
@@ -64,30 +75,32 @@ void autoClickTests() {
         click.tick();
         click.physical(false);
         check(click.update().empty(), "letting go ends the burst");
-        click.setFast(false);
-        click.physical(true);
-        click.tick();
-        check(click.update().empty(), "fast click off leaves the held button to vanilla");
-        click.physical(false);
-    }
-    {
-        AutoClick click;
-        click.setFast(true, 2);
-        click.start(AutoMode::Periodic, 4);
-        click.update();
-        click.physical(true);
-        click.tick();
-        check(click.mode() == AutoMode::Off && click.update() == Edges{R, P, R, P},
-            "pressing during periodic with fast click on hands over to fast clicks");
-        click.physical(false);
-        click.start(AutoMode::Hold);
-        click.update();
-        click.cancel();
-        check(!click.fast() && click.releaseOwed(), "cancel stops every mode and still owes the release");
-        check(click.update() == Edges{R} && !click.releaseOwed(), "the owed release is delivered once");
-        click.setFast(true, 99);
+        click.configure(true, AutoMode::Fast, 1, 99);
         click.physical(true);
         click.tick();
         check(click.update().size() == 2 * AutoClick::maxClicks, "clicks per tick are bounded");
+        click.configure(false, AutoMode::Fast, 1, 1);
+        click.tick();
+        check(click.update().empty(), "fast click off leaves the held button to vanilla");
+    }
+    {
+        AutoClick click;
+        click.configure(true, AutoMode::Hold, 1, 1);
+        click.update();
+        check(click.suspend() && click.on(), "suspending owes the release of a synthetic hold and stays on");
+        check(!click.suspend(), "the release is owed once");
+        check(click.update() == Edges{P}, "hold presses again when input returns");
+        click.configure(true, AutoMode::Periodic, 2, 1);
+        click.update(); click.update(); click.update();
+        click.suspend();
+        ticks(click, 10);
+        check(click.update().empty(), "no periodic clicks are queued while suspended");
+        ticks(click, 2);
+        check(click.update() == Edges{P}, "periodic resumes on schedule");
+        click.configure(true, AutoMode::Fast, 1, 2);
+        click.physical(true);
+        click.forgetHeld();
+        click.tick();
+        check(click.update().empty(), "a forgotten held button stops fast click bursts");
     }
 }

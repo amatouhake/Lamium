@@ -17,24 +17,11 @@
 
 namespace lamium {
 namespace {
-// Auto attack / Auto use actions: which button and which mode they switch.
-struct AutoTarget { interaction::periodic::Action button; std::optional<interaction::AutoMode> mode; };
-std::optional<AutoTarget> autoTarget(input::Action action) {
-    using interaction::AutoMode;
-    using Button = interaction::periodic::Action;
-    switch (action) {
-    case input::Action::PeriodicAttack: return AutoTarget{Button::Attack, AutoMode::Periodic};
-    case input::Action::HoldAttack: return AutoTarget{Button::Attack, AutoMode::Hold};
-    case input::Action::FastAttack: return AutoTarget{Button::Attack, std::nullopt};
-    case input::Action::PeriodicUse: return AutoTarget{Button::Use, AutoMode::Periodic};
-    case input::Action::HoldUse: return AutoTarget{Button::Use, AutoMode::Hold};
-    case input::Action::FastUse: return AutoTarget{Button::Use, std::nullopt};
-    default: return std::nullopt;
-    }
-}
-std::string autoModeName(std::optional<interaction::AutoMode> mode) {
-    if (!mode) return ui::translated("autoMode.fast");
-    return ui::translated(*mode == interaction::AutoMode::Hold ? "autoMode.hold" : "autoMode.periodic");
+// Auto Attack / Auto Use toasts name the mode: "Auto Attack: Hold  ON".
+std::optional<interaction::AutoMode> autoMode(Settings const& value, input::Action action) {
+    if (action == input::Action::PeriodicAttack || action == input::Action::CycleAttackMode) return value.interaction.attackMode;
+    if (action == input::Action::PeriodicUse || action == input::Action::CycleUseMode) return value.interaction.useMode;
+    return std::nullopt;
 }
 std::string toggleFeatureName(input::Action action) {
     auto id = input::actions[static_cast<size_t>(action)].feature;
@@ -45,9 +32,6 @@ std::string toggleFeatureName(input::Action action) {
 bool toggleState(IClientInstance& client, Settings const& value, input::Action action) {
     if (action == input::Action::BreakingRestriction) return value.interaction.breaking;
     if (action == input::Action::PermanentSneak) return interaction::sneak::active(client);
-    if (auto target = autoTarget(action))
-        return target->mode ? interaction::periodic::mode(client, target->button) == *target->mode
-                            : interaction::periodic::fast(client, target->button);
     auto id = input::actions[static_cast<size_t>(action)].feature;
     for (auto const& feature : ui::features) {
         if (feature.id != id || feature.toggle.empty()) continue;
@@ -60,7 +44,8 @@ bool toggleState(IClientInstance& client, Settings const& value, input::Action a
 }
 void emitToggleToast(IClientInstance& client, input::Action action, Settings const& value) {
     auto name = toggleFeatureName(action);
-    if (auto target = autoTarget(action)) name += ": " + autoModeName(target->mode);
+    if (auto mode = autoMode(value, action))
+        name += ": " + ui::translated(interaction::autoModeLabels[static_cast<size_t>(*mode)]);
     ui::showToggleToast(name, toggleState(client, value, action));
 }
 }
@@ -90,12 +75,6 @@ void executeAction(IClientInstance& client, input::Action action) {
         emitToggleToast(client, action, runtime.preferences());
         return;
     }
-    if (auto target = autoTarget(action)) {
-        if (target->mode) interaction::periodic::toggle(client, target->button, *target->mode);
-        else interaction::periodic::toggleFast(client, target->button);
-        emitToggleToast(client, action, runtime.preferences());
-        return;
-    }
     if (action == input::Action::CaptureBreaking) { interaction::breaking::capture(client); return; }
     if (action == input::Action::ResetBreaking) { interaction::breaking::reset(); return; }
     if (action == input::Action::Settings) { ui::open(client); return; }
@@ -106,6 +85,12 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::Freelook) { Zoom::instance().pressLook(client); return; }
     if (action == input::Action::FreeCamera) { Zoom::instance().pressFreeCamera(client); return; }
     auto value = runtime.preferences();
+    if (action == input::Action::CycleAttackMode || action == input::Action::CycleUseMode) {
+        settings::find(action == input::Action::CycleAttackMode ? "interaction.attackMode" : "interaction.useMode")->adjust(value,1);
+        if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save auto mode"); return; }
+        emitToggleToast(client, action, value);
+        return;
+    }
     if (action == input::Action::CycleBreakingMode) {
         settings::find("interaction.breakingMode")->adjust(value,1);
         if (!runtime.save(value)) runtime.self().getLogger().error("Could not save breaking mode");

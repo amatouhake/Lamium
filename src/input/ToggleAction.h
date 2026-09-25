@@ -16,6 +16,8 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::LightOverlay: field = &value.overlays.light; break;
     case Action::ToolSwitch: field = &value.inventory.toolSwitch; break;
     case Action::HandRestock: field = &value.inventory.handRestock; break;
+    case Action::PeriodicAttack: field = &value.interaction.autoAttack; break;
+    case Action::PeriodicUse: field = &value.interaction.autoUse; break;
     default: return false;
     }
     *field = !*field;

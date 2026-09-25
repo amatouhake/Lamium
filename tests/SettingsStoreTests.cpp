@@ -22,6 +22,11 @@ void settingsStoreTests() {
         auto seconds = decodeSettings(R"({"interaction":{"attackInterval":1.23,"useInterval":0.12}})");
         check(seconds.interaction.attackTicks == 25 && seconds.interaction.useTicks == 2,
               "intervals saved in seconds migrate to the nearest whole tick");
+        auto modes = decodeSettings(R"({"interaction":{"attackMode":"fast","useMode":"sideways"}})");
+        check(modes.interaction.attackMode == interaction::AutoMode::Fast && modes.interaction.useMode == interaction::AutoMode::Periodic,
+              "auto modes load by name and unknown names fall back to periodic");
+        check(!decodeSettings(R"({"interaction":{"autoAttack":true,"autoUse":true}})").interaction.autoAttack,
+              "a hand-edited switch never starts auto attack on load");
         auto both = decodeSettings(R"({"interaction":{"attackInterval":3,"attackTicks":7}})");
         check(both.interaction.attackTicks == 7, "a saved tick interval wins over an old seconds value");
         auto bounded = decodeSettings(R"({"interaction":{"attackTicks":0,"useTicks":99999,"attackClicks":0,"useClicks":50}})");
@@ -117,8 +122,12 @@ void settingsStoreTests() {
                 check(other.read(edited) == other.read(Settings{}), "editing preserves unrelated options");
         writeSettings(path, edited);
         auto restored = readSettings(path);
+        // The Auto Attack/Use switches are session state: a new game must not
+        // start clicking, so they load switched off.
+        bool session = option.id == "interaction.autoAttack" || option.id == "interaction.autoUse";
         for (auto const& other : settings::options)
-            check(other.read(restored) == other.read(edited), "all options survive disk round trip");
+            check(session ? other.read(restored) == other.read(Settings{}) : other.read(restored) == other.read(edited),
+                  "all options survive disk round trip; session switches load off");
     }
     check(settings::find("unknown") == nullptr, "unknown option lookup is safe");
     {

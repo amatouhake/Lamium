@@ -1,19 +1,18 @@
 #pragma once
 #include "features/interaction/AutoClick.h"
 class IClientInstance;
-// Auto attack / Auto use (the files keep the Periodic name of the first mode).
+// Auto Attack / Auto Use (the files keep the Periodic name of the first mode).
+// The switches and modes live in Settings; this adapter follows them each
+// client tick and feeds vanilla's own attack/use callbacks.
 namespace lamium::interaction::periodic {
 enum class Action { Attack, Use };
 void start();
 void stop();
-// Menus, focus loss, dimension changes: stops Periodic and Hold. Fast click
-// stays switched on; it only acts while the button is physically held.
-void cancel();
-// World exit and disable: also switches Fast click off.
+// Focus loss, screen and dimension changes: forget the physical held state
+// and release any synthetic press. The switches stay on.
+void interrupt();
+// World exit: switch both off.
 void endSession();
-AutoMode mode(IClientInstance& client, Action action);
-bool fast(IClientInstance& client, Action action);
-// Periodic/Hold toggle: the same mode again stops it, another mode replaces it.
-void toggle(IClientInstance&, Action, AutoMode);
-void toggleFast(IClientInstance&, Action);
+// On, but gameplay input is not ours right now (menu, death, detached camera).
+bool paused(IClientInstance& client);
 }

@@ -61,6 +61,8 @@ Json encode(Settings const& settings) {
         {"orderedBindings", true},
         {"interaction", {{"attackTicks", settings.interaction.attackTicks}, {"useTicks", settings.interaction.useTicks},
                          {"attackClicks", settings.interaction.attackClicks}, {"useClicks", settings.interaction.useClicks},
+                         {"attackMode", interaction::autoModeNames[static_cast<size_t>(settings.interaction.attackMode)]},
+                         {"useMode", interaction::autoModeNames[static_cast<size_t>(settings.interaction.useMode)]},
                          {"breaking", settings.interaction.breaking}, {"breakingMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.breakingMode)]},
                          {"placementMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.placementMode)]}}},
         {"information", {{"hud", settings.information.hud}, {"coordinates", settings.information.coordinates},
@@ -120,6 +122,15 @@ Settings decodeSettings(std::string_view text) {
         value.interaction.useTicks = ticks("useTicks", "useInterval");
         value.interaction.attackClicks = options.value("attackClicks", 1.f);
         value.interaction.useClicks = options.value("useClicks", 1.f);
+        // An unknown mode name falls back to Periodic rather than failing the load.
+        auto autoMode = [&](char const* key) {
+            auto name = options.value(key, std::string("periodic"));
+            for (size_t i = 0; i < interaction::autoModeNames.size(); ++i)
+                if (interaction::autoModeNames[i] == name) return static_cast<interaction::AutoMode>(i);
+            return interaction::AutoMode::Periodic;
+        };
+        value.interaction.attackMode = autoMode("attackMode");
+        value.interaction.useMode = autoMode("useMode");
         value.interaction.breaking = options.value("breaking",false);
         auto mode = [&](char const* key) {
             auto name = options.value(key,std::string("plane"));

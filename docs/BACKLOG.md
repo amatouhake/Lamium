@@ -482,9 +482,11 @@ https://minecraft.wiki/w/Ender_Dragon
 https://minecraft.wiki/w/Tutorial:Hitboxes
 
 ### L-34 Auto attack and auto use (periodic, hold, fast click) **(strong model)**
-Status: implemented 2026-09-25, awaiting in-game check (AUTOMATION.md "Auto
-Attack / Auto Use"). Design agreed 2026-09-25 (DESIGN "Automatic attack and
-use"). Details are settled with in-game checks.
+Status: first version (separate Periodic/Hold/Fast toggles) passed its
+in-game checklist 2026-09-25 (DLL 85fdf605) but was hard to understand;
+reworked the same day to one switch + one mode + a next-mode key, with no
+implicit stops (DESIGN "Automatic attack and use", AUTOMATION.md). The rework
+awaits an in-game check. The list below is the original brief.
 - Rework Periodic Attack/Use into Auto attack / Auto use with three modes:
   Periodic (hotkey toggle, interval in ticks), Hold (hotkey toggle, keeps
   the button down), Fast click (hotkey on/off; while on, holding the button

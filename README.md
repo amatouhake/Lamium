@@ -53,7 +53,7 @@ Implemented areas include:
 - World overlays: Shapes with local-world persistence, Java-style Chunk
   Borders, Hitboxes and an experimental light-level overlay.
 - Interaction: Permanent Sneak, breaking restriction work and Auto
-  Attack/Use (Periodic, Hold and Fast click, each on its own key).
+  Attack/Use (one switch each, with a Periodic, Hold or Fast click mode).
 
 Not every implemented feature is release-ready. Hand Restock has not yet
 successfully replenished an item; Hide Offhand still has a shield-specific

@@ -36,9 +36,9 @@ Hand Restock remains experimental and has **not** successfully replenished an
 item. Hide Offhand still needs a shield-specific render-path investigation.
 Continuous Tool Switch, breaking/placement handoff, dragon multipart hitboxes
 and mob growth/breeding timers remain research. Hotkey overlap semantics L-32, release-triggered leading keys and the
-conflict display are verified in game; the L-34 Auto Attack/Auto Use modes
-(Periodic, Hold, Fast click) build and pass AutoClickTests but are not yet
-verified in game.
+conflict display are verified in game; the first L-34 Auto Attack/Auto Use build
+passed its checklist, and the reworked switch-plus-mode model builds and
+passes AutoClickTests but is not yet verified in game.
 
 ## Historical checkpoint — Info HUD prototype
 

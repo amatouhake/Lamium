@@ -5,6 +5,7 @@
 #include <vector>
 #include "input/Binding.h"
 #include "features/interaction/RestrictionMode.h"
+#include "features/interaction/AutoMode.h"
 #include "features/information/InfoLines.h"
 #include "ui/HudElement.h"
 
@@ -18,6 +19,10 @@ struct Settings {
         // numeric option editor.
         float attackTicks = 10, useTicks = 10;
         float attackClicks = 1, useClicks = 1;
+        interaction::AutoMode attackMode = interaction::AutoMode::Periodic, useMode = interaction::AutoMode::Periodic;
+        // Auto Attack / Auto Use switches: session state, never saved, so a
+        // new game never starts clicking by itself.
+        bool autoAttack = false, autoUse = false;
         bool breaking = false;
         interaction::RestrictionMode breakingMode = interaction::RestrictionMode::Plane;
         interaction::RestrictionMode placementMode = interaction::RestrictionMode::Plane;
@@ -111,6 +116,8 @@ struct Settings {
         }
         auto normalizeMode = [](auto& mode) { if (static_cast<unsigned>(mode) >= 4) mode = lamium::interaction::RestrictionMode::Plane; };
         normalizeMode(interaction.breakingMode);
+        for (auto* mode : {&interaction.attackMode, &interaction.useMode})
+            if (static_cast<unsigned>(*mode) >= lamium::interaction::autoModeNames.size()) *mode = lamium::interaction::AutoMode::Periodic;
         information.targetHealth = std::clamp(information.targetHealth, 0, 2);
         ui.animations = std::clamp(ui.animations, 0, 2);
         information.targetGrowth = std::clamp(information.targetGrowth, 0, 1);

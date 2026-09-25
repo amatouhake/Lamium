@@ -14,7 +14,7 @@ struct Token {
     int code;
     auto operator<=>(Token const&) const = default;
 };
-enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, PermanentSneak, PeriodicAttack, PeriodicUse, ToggleShapes, OpenShapes, FreeCamera, OpenHotkeys, OpenHudLayout, HoldAttack, HoldUse, FastAttack, FastUse, Count };
+enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, PermanentSneak, PeriodicAttack, PeriodicUse, ToggleShapes, OpenShapes, FreeCamera, OpenHotkeys, OpenHudLayout, CycleAttackMode, CycleUseMode, Count };
 enum class Behavior { Press, Hold, Toggle };
 // Ordinary chords are order-sensitive and yield to a more specific chord
 // completed by the same press. Modifier-like chords (held camera keys) match
@@ -49,11 +49,9 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"freecamera", "freecamera", Behavior::Toggle},
     {"openhotkeys", "settings", Behavior::Press},
     {"openhudlayout", "settings", Behavior::Press},
-    // Auto attack / Auto use modes; Periodic keeps its original ids above.
-    {"holdattack", "periodicAttack", Behavior::Toggle},
-    {"holduse", "periodicUse", Behavior::Toggle},
-    {"fastattack", "periodicAttack", Behavior::Toggle},
-    {"fastuse", "periodicUse", Behavior::Toggle},
+    // Auto Attack / Auto Use: the periodic* ids above are their on/off switch.
+    {"cycleattackmode", "periodicAttack", Behavior::Press},
+    {"cycleusemode", "periodicUse", Behavior::Press},
 });
 static_assert(actions.size() == static_cast<size_t>(Action::Count));
 using Chord = std::vector<Token>;

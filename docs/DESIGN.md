@@ -190,37 +190,36 @@ Contents:
 - (Proposed) Overlays must not hide vanilla's block selection outline: skip or
   dim geometry on the targeted block.
 
-## Automatic attack and use (Decided 2026-09-25; details settle in game)
+## Automatic attack and use (Decided 2026-09-25, revised the same day)
 
-Periodic Attack/Use and the "fast click" idea do the same work (clicking on
-a schedule) and differ only in when they run, so they are one feature per
-action, **Auto attack** and **Auto use**, with three ways to run:
+One feature per mouse action, **Auto Attack** and **Auto Use**, each with
+exactly one switch, one mode and one set of keys:
 
-| Mode | Started by | Does | Setting |
-|---|---|---|---|
-| Periodic | its hotkey (toggle) | clicks every N ticks, hands-free | interval in ticks, shown with seconds ("12 tick (0.60 s)") |
-| Hold | its hotkey (toggle) | keeps the button held (mining, eating, shield, bow) | none |
-| Fast click | its hotkey switches it on/off | while on, holding the physical button clicks N times per tick | clicks per tick, shown with clicks per second ("2 /tick (40 /s)") |
-
-- Pressing the physical button stops Periodic and Hold and hands control
-  back ("you touched it, you own it"; today's Periodic already stops on a
-  manual click). While Fast click is on, that press then spams.
-- Periodic and Hold of the same action never run together; starting one
-  stops the other. Menus, focus loss, world/dimension change stop both.
-- Intervals are whole ticks (1 tick = 0.05 s). Fast click may exceed one
-  click per tick: some items (scaffolding, snowballs) use several per tick
-  and the client runs faster than ticks. Help text warns that servers may
-  treat very fast input as cheating.
-- The status element shows which mode runs.
-- (Implemented 2026-09-25) Fast click stays on through menus and focus loss
-  (it only acts while the button is held) and switches off on world exit.
-  Clicks per tick: 1-10, default 1. Periodic interval: 1-1200 ticks,
-  default 10 (the old 0.5 s). Settings show "10 tick (0.50s)" and
-  "1/tick (20/s)" on steppers, which leave room for both numbers.
-- Why one feature: shared stop rules, status and settings; separate
-  hotkeys keep "mine with Hold, AFK farm with Periodic" free of mode
-  switching. Reference behavior: Tweakeroo's periodic attack/use, hold
-  attack/use and fast left/right click (behavior only, no code).
+- **Switch**: the feature row's switch; its hotkey toggles it. On means it is
+  working in the chosen mode. The switch is session state: never saved, off
+  after leaving the world or restarting.
+- **Mode** (saved): Periodic (clicks every N ticks), Hold (keeps the button
+  pressed: mining, eating, shield, bow) or Fast click (while the physical
+  button is held, clicks N times per tick). One mode at a time. A separate
+  "next mode" hotkey cycles it (unbound by default). Changing mode while on
+  releases the old mode's press first.
+- **Settings**: Periodic interval 1-1200 ticks, default 10, shown as
+  "10 tick (0.50s)"; Fast click 1-10 clicks per tick, default 1, shown as
+  "1/tick (20/s)". Both rows are always listed; their labels name the mode.
+- **Nothing stops it implicitly.** Only the switch (row or hotkey) turns it
+  off, plus leaving the world. A manual click takes priority while held and
+  automation resumes after release (Hold presses again; Periodic continues on
+  its schedule without saved-up clicks). Menus, focus loss, death, dimension
+  changes and detached cameras pause it; it resumes when gameplay input
+  returns. The status element shows "Auto Attack: Periodic", with
+  "(paused)" while paused.
+- Toasts name the mode: "Auto Attack: Hold  ON".
+- Help text warns that servers may treat very fast input as cheating.
+- Why: the first version had separate Periodic/Hold/Fast toggles plus a
+  parent row without a switch, so it was unclear what was on, and stopping on
+  a manual click felt arbitrary (maintainer review 2026-09-25). Reference
+  behavior: Tweakeroo's periodic/hold attack and use and fast click (behavior
+  only, no code).
 
 ## Keys
 
