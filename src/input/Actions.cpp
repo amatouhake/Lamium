@@ -17,6 +17,25 @@
 
 namespace lamium {
 namespace {
+// Auto attack / Auto use actions: which button and which mode they switch.
+struct AutoTarget { interaction::periodic::Action button; std::optional<interaction::AutoMode> mode; };
+std::optional<AutoTarget> autoTarget(input::Action action) {
+    using interaction::AutoMode;
+    using Button = interaction::periodic::Action;
+    switch (action) {
+    case input::Action::PeriodicAttack: return AutoTarget{Button::Attack, AutoMode::Periodic};
+    case input::Action::HoldAttack: return AutoTarget{Button::Attack, AutoMode::Hold};
+    case input::Action::FastAttack: return AutoTarget{Button::Attack, std::nullopt};
+    case input::Action::PeriodicUse: return AutoTarget{Button::Use, AutoMode::Periodic};
+    case input::Action::HoldUse: return AutoTarget{Button::Use, AutoMode::Hold};
+    case input::Action::FastUse: return AutoTarget{Button::Use, std::nullopt};
+    default: return std::nullopt;
+    }
+}
+std::string autoModeName(std::optional<interaction::AutoMode> mode) {
+    if (!mode) return ui::translated("autoMode.fast");
+    return ui::translated(*mode == interaction::AutoMode::Hold ? "autoMode.hold" : "autoMode.periodic");
+}
 std::string toggleFeatureName(input::Action action) {
     auto id = input::actions[static_cast<size_t>(action)].feature;
     for (auto const& feature : ui::features)
@@ -26,10 +45,9 @@ std::string toggleFeatureName(input::Action action) {
 bool toggleState(IClientInstance& client, Settings const& value, input::Action action) {
     if (action == input::Action::BreakingRestriction) return value.interaction.breaking;
     if (action == input::Action::PermanentSneak) return interaction::sneak::active(client);
-    if (action == input::Action::PeriodicAttack)
-        return interaction::periodic::active(client, interaction::periodic::Action::Attack);
-    if (action == input::Action::PeriodicUse)
-        return interaction::periodic::active(client, interaction::periodic::Action::Use);
+    if (auto target = autoTarget(action))
+        return target->mode ? interaction::periodic::mode(client, target->button) == *target->mode
+                            : interaction::periodic::fast(client, target->button);
     auto id = input::actions[static_cast<size_t>(action)].feature;
     for (auto const& feature : ui::features) {
         if (feature.id != id || feature.toggle.empty()) continue;
@@ -41,7 +59,9 @@ bool toggleState(IClientInstance& client, Settings const& value, input::Action a
     return false;
 }
 void emitToggleToast(IClientInstance& client, input::Action action, Settings const& value) {
-    ui::showToggleToast(toggleFeatureName(action), toggleState(client, value, action));
+    auto name = toggleFeatureName(action);
+    if (auto target = autoTarget(action)) name += ": " + autoModeName(target->mode);
+    ui::showToggleToast(name, toggleState(client, value, action));
 }
 }
 std::string bindingChordName(IClientInstance& client, input::Chord const& chord) {
@@ -70,13 +90,9 @@ void executeAction(IClientInstance& client, input::Action action) {
         emitToggleToast(client, action, runtime.preferences());
         return;
     }
-    if (action == input::Action::PeriodicAttack) {
-        interaction::periodic::toggle(client, interaction::periodic::Action::Attack);
-        emitToggleToast(client, action, runtime.preferences());
-        return;
-    }
-    if (action == input::Action::PeriodicUse) {
-        interaction::periodic::toggle(client, interaction::periodic::Action::Use);
+    if (auto target = autoTarget(action)) {
+        if (target->mode) interaction::periodic::toggle(client, target->button, *target->mode);
+        else interaction::periodic::toggleFast(client, target->button);
         emitToggleToast(client, action, runtime.preferences());
         return;
     }

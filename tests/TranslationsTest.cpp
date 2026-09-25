@@ -30,13 +30,15 @@ void translationTests() {
             else if (entry.key == "hudBlock") rendered = std::vformat(pattern, std::make_format_args(remaining,remaining,remaining));
             else if (entry.key == "hudTime") rendered = std::vformat(pattern, std::make_format_args(remaining,key));
             else if (entry.key == "mouseButton") rendered = std::vformat(pattern, std::make_format_args(remaining));
+            else if (entry.key == "autoInterval" || entry.key == "autoClicks")
+                rendered = std::vformat(pattern, std::make_format_args(number, number));
             else if (entry.key == "hudEditor.anchorReadout") rendered = std::vformat(pattern, std::make_format_args(key, key));
             else if (entry.key == "durabilityValue") {
                 rendered = std::vformat(pattern, std::make_format_args(remaining, maximum));
                 check(rendered.find("123 / 1561") != std::string::npos);
             }
             else if (entry.key == "shape.x" || entry.key == "shape.y" || entry.key == "shape.z"
-                || entry.key == "magnification" || entry.key == "wheelStep" || entry.key == "hitboxDistance" || entry.key == "periodicInterval")
+                || entry.key == "magnification" || entry.key == "wheelStep" || entry.key == "hitboxDistance")
                 rendered = std::vformat(pattern, std::make_format_args(number));
             else if (pattern.find("{}") != std::string_view::npos)
                 rendered = std::vformat(pattern, std::make_format_args(on));

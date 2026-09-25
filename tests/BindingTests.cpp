@@ -13,6 +13,8 @@ void bindingTests() {
         // FreeCamera toggles a detached-camera session, not a saved preference.
         bool persistentToggle = actions[i].behavior == Behavior::Toggle && action != Action::PermanentSneak
             && action != Action::PeriodicAttack && action != Action::PeriodicUse
+            && action != Action::HoldAttack && action != Action::HoldUse
+            && action != Action::FastAttack && action != Action::FastUse
             && action != Action::FreeCamera;
         check(changed == persistentToggle, "every persistent toggle action has one shared implementation");
         size_t count = 0;

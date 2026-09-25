@@ -52,15 +52,15 @@ Implemented areas include:
   toggle toasts and automation/restriction status.
 - World overlays: Shapes with local-world persistence, Java-style Chunk
   Borders, Hitboxes and an experimental light-level overlay.
-- Interaction: Permanent Sneak, breaking restriction work and the current
-  Periodic Attack/Use implementation.
+- Interaction: Permanent Sneak, breaking restriction work and Auto
+  Attack/Use (Periodic, Hold and Fast click, each on its own key).
 
 Not every implemented feature is release-ready. Hand Restock has not yet
 successfully replenished an item; Hide Offhand still has a shield-specific
 render-path issue; continuous Tool Switch, breaking/placement restriction
-behavior and several native-data questions remain research items. Periodic
-Attack/Use is also scheduled for the L-34 Auto attack/Auto use redesign after
-L-32. See the backlog instead of inferring readiness from presence in the UI.
+behavior and several native-data questions remain research items. Auto
+Attack/Use's tick-driven modes still need their in-game checks (BACKLOG L-34).
+See the backlog instead of inferring readiness from presence in the UI.
 
 Inventory sorting uses ordinary game operations, waits for matching responses
 between operations and revalidates the affected region before continuing.

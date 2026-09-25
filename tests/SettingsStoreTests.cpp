@@ -16,16 +16,23 @@ void settingsStoreTests() {
     using namespace lamium;
     {
         auto defaults = decodeSettings(R"({"interaction":{"breaking":false}})");
-        check(defaults.interaction.attackInterval == .5f && defaults.interaction.useInterval == .5f,
-              "older interaction settings preserve default periodic cadence");
-        auto bounded = decodeSettings(R"({"interaction":{"attackInterval":0,"useInterval":999}})");
-        check(bounded.interaction.attackInterval == .1f && bounded.interaction.useInterval == 60.f,
-              "stored periodic intervals cannot become zero or unbounded");
-        bounded.interaction.attackInterval = std::numeric_limits<float>::quiet_NaN();
-        bounded.interaction.useInterval = std::numeric_limits<float>::infinity();
+        check(defaults.interaction.attackTicks == 10 && defaults.interaction.useTicks == 10
+              && defaults.interaction.attackClicks == 1 && defaults.interaction.useClicks == 1,
+              "older interaction settings keep the 0.5 s periodic cadence and one click per tick");
+        auto seconds = decodeSettings(R"({"interaction":{"attackInterval":1.23,"useInterval":0.12}})");
+        check(seconds.interaction.attackTicks == 25 && seconds.interaction.useTicks == 2,
+              "intervals saved in seconds migrate to the nearest whole tick");
+        auto both = decodeSettings(R"({"interaction":{"attackInterval":3,"attackTicks":7}})");
+        check(both.interaction.attackTicks == 7, "a saved tick interval wins over an old seconds value");
+        auto bounded = decodeSettings(R"({"interaction":{"attackTicks":0,"useTicks":99999,"attackClicks":0,"useClicks":50}})");
+        check(bounded.interaction.attackTicks == 1 && bounded.interaction.useTicks == 1200
+              && bounded.interaction.attackClicks == 1 && bounded.interaction.useClicks == 10,
+              "stored tick intervals and click rates stay in range");
+        bounded.interaction.attackTicks = std::numeric_limits<float>::quiet_NaN();
+        bounded.interaction.useClicks = std::numeric_limits<float>::infinity();
         bounded.normalize();
-        check(bounded.interaction.attackInterval == .5f && bounded.interaction.useInterval == .5f,
-              "non-finite periodic intervals recover a usable cadence");
+        check(bounded.interaction.attackTicks == 10 && bounded.interaction.useClicks == 1,
+              "non-finite values recover usable defaults");
     }
     {
         auto* mode = settings::find("interaction.breakingMode");
@@ -158,13 +165,16 @@ void settingsStoreTests() {
     old.inventory.sorting = false;
     old.inventory.sortContainers = false;
     old.ui.automationStatus = false;
-    old.interaction.attackInterval = 1.2f;
+    old.interaction.attackTicks = 12;
     old.camera.freelookToggle = true;
-    old.interaction.useInterval = 3.4f;
+    old.interaction.useTicks = 34;
+    old.interaction.attackClicks = 3;
+    old.interaction.useClicks = 4;
     writeSettings(path, old);
     auto loaded = readSettings(path);
-    check(loaded.interaction.attackInterval == 1.2f && loaded.interaction.useInterval == 3.4f,
-          "independent attack and use intervals survive disk round trip");
+    check(loaded.interaction.attackTicks == 12 && loaded.interaction.useTicks == 34
+          && loaded.interaction.attackClicks == 3 && loaded.interaction.useClicks == 4,
+          "independent attack and use intervals and click rates survive disk round trip");
     check(loaded.camera.magnification == 3.5f && loaded.lighting.nightVision && loaded.camera.freelookToggle, "disk round trip");
     check(!loaded.inventory.sorting && !loaded.inventory.sortContainers, "inventory switches survive saves");
     check(!loaded.ui.automationStatus, "hidden automation status survives restart");

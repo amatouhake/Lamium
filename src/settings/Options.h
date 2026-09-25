@@ -12,6 +12,7 @@ struct NumericOption {
     float minimum, maximum;
     void (*write)(Settings&, float);
     float step = 0; // > 0: shown as a slider that snaps to this step
+    float secondary = 0; // > 0: the label also formats value * secondary (ticks -> seconds)
 };
 struct Option {
     std::string_view id;
@@ -104,14 +105,22 @@ constexpr Option hudNumeric(std::string_view id, std::string_view feature, std::
         NumericOption{minimum, maximum, [](Settings& value, float number) { hudElement(value, Id).*Field = number; }}};
 }
 inline constexpr auto options = std::to_array<Option>({
-    {"interaction.attackInterval", "periodicAttack", "periodicInterval",
-        [](Settings const& s) -> OptionValue { return s.interaction.attackInterval; },
-        [](Settings& s, int direction) { s.interaction.attackInterval += direction * .1f; s.normalize(); },
-        NumericOption{.1f, 60.f, [](Settings& s, float v) { s.interaction.attackInterval = v; }}},
-    {"interaction.useInterval", "periodicUse", "periodicInterval",
-        [](Settings const& s) -> OptionValue { return s.interaction.useInterval; },
-        [](Settings& s, int direction) { s.interaction.useInterval += direction * .1f; s.normalize(); },
-        NumericOption{.1f, 60.f, [](Settings& s, float v) { s.interaction.useInterval = v; }}},
+    {"interaction.attackTicks", "periodicAttack", "autoInterval",
+        [](Settings const& s) -> OptionValue { return s.interaction.attackTicks; },
+        [](Settings& s, int direction) { s.interaction.attackTicks += direction; s.normalize(); },
+        NumericOption{1, 1200, [](Settings& s, float v) { s.interaction.attackTicks = v; }, 0, .05f}},
+    {"interaction.attackClicks", "periodicAttack", "autoClicks",
+        [](Settings const& s) -> OptionValue { return s.interaction.attackClicks; },
+        [](Settings& s, int direction) { s.interaction.attackClicks += direction; s.normalize(); },
+        NumericOption{1, 10, [](Settings& s, float v) { s.interaction.attackClicks = v; }, 0, 20}},
+    {"interaction.useTicks", "periodicUse", "autoInterval",
+        [](Settings const& s) -> OptionValue { return s.interaction.useTicks; },
+        [](Settings& s, int direction) { s.interaction.useTicks += direction; s.normalize(); },
+        NumericOption{1, 1200, [](Settings& s, float v) { s.interaction.useTicks = v; }, 0, .05f}},
+    {"interaction.useClicks", "periodicUse", "autoClicks",
+        [](Settings const& s) -> OptionValue { return s.interaction.useClicks; },
+        [](Settings& s, int direction) { s.interaction.useClicks += direction; s.normalize(); },
+        NumericOption{1, 10, [](Settings& s, float v) { s.interaction.useClicks = v; }, 0, 20}},
     toggle<&Settings::interaction, &Settings::Interaction::breaking>("interaction.breaking", "restrictions", "breakingRestriction"),
     choice<&Settings::interaction, &Settings::Interaction::breakingMode, interaction::restrictionLabels>("interaction.breakingMode", "restrictions", "breakingMode"),
     choice<&Settings::interaction, &Settings::Interaction::placementMode, interaction::restrictionLabels>("interaction.placementMode", "restrictions", "placementMode"),

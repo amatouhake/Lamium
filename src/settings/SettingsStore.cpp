@@ -59,7 +59,8 @@ Json encode(Settings const& settings) {
     return Json{
         {"version", settings.version},
         {"orderedBindings", true},
-        {"interaction", {{"attackInterval", settings.interaction.attackInterval}, {"useInterval", settings.interaction.useInterval},
+        {"interaction", {{"attackTicks", settings.interaction.attackTicks}, {"useTicks", settings.interaction.useTicks},
+                         {"attackClicks", settings.interaction.attackClicks}, {"useClicks", settings.interaction.useClicks},
                          {"breaking", settings.interaction.breaking}, {"breakingMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.breakingMode)]},
                          {"placementMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.placementMode)]}}},
         {"information", {{"hud", settings.information.hud}, {"coordinates", settings.information.coordinates},
@@ -110,8 +111,15 @@ Settings decodeSettings(std::string_view text) {
     Settings value;
     if (data.contains("interaction")) {
         auto const& options = data.at("interaction");
-        value.interaction.attackInterval = options.value("attackInterval", 0.5f);
-        value.interaction.useInterval = options.value("useInterval", 0.5f);
+        // Older files stored the periodic interval in seconds.
+        auto ticks = [&](char const* key, char const* seconds) {
+            if (options.contains(key)) return options.value(key, 10.f);
+            return options.value(seconds, .5f) * 20;
+        };
+        value.interaction.attackTicks = ticks("attackTicks", "attackInterval");
+        value.interaction.useTicks = ticks("useTicks", "useInterval");
+        value.interaction.attackClicks = options.value("attackClicks", 1.f);
+        value.interaction.useClicks = options.value("useClicks", 1.f);
         value.interaction.breaking = options.value("breaking",false);
         auto mode = [&](char const* key) {
             auto name = options.value(key,std::string("plane"));

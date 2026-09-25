@@ -140,7 +140,11 @@ void startCustomInput() {
         if (process(token, down, event.isCancelled()) && down) event.cancel();
     });
     listeners[2] = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) { sync(event.uiRenderContext().mClient); });
-    listeners[3] = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { invalidate(); screen.clear(); });
+    listeners[3] = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) {
+        invalidate();
+        interaction::periodic::endSession();
+        screen.clear();
+    });
     for (auto const& listener : listeners)
         if (!listener) throw std::runtime_error("Could not subscribe custom input");
 }

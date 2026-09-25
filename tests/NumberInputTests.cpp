@@ -1,3 +1,4 @@
+#include <cmath>
 #include "ui/NumberInput.h"
 #include "settings/Options.h"
 void check(bool, char const*);
@@ -34,7 +35,10 @@ void numberInputTests() {
     for (auto const& option : lamium::settings::options) {
         if (!option.numeric) continue;
         auto range = *option.numeric;
-        editor.begin((range.minimum+range.maximum)/2);
+        // Whole-number bounds may belong to a whole-number setting; type a whole midpoint.
+        float middle = (range.minimum+range.maximum)/2;
+        if (range.minimum == std::floor(range.minimum) && range.maximum == std::floor(range.maximum)) middle = std::floor(middle);
+        editor.begin(middle);
         auto parsed = editor.parsed(range.minimum,range.maximum);
         check(parsed.has_value(), "numeric catalog range accepts its midpoint");
         range.write(preferences,*parsed);

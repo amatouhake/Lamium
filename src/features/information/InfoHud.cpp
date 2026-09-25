@@ -297,10 +297,17 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     if (preview || runtime.ui.automationStatus || runtime.interaction.breaking) {
         std::vector<ElementLine> lines;
         if (runtime.ui.automationStatus) {
-            if (interaction::periodic::active(context.mClient, interaction::periodic::Action::Attack))
-                lines.push_back({ui::translated("status.periodicAttack"), ui::palette::accent});
-            if (interaction::periodic::active(context.mClient, interaction::periodic::Action::Use))
-                lines.push_back({ui::translated("status.periodicUse"), ui::palette::accent});
+            // One line per button naming what runs: "Auto Attack: Periodic + Fast click".
+            for (auto [button, feature] : {std::pair{interaction::periodic::Action::Attack, "feature.periodicAttack"},
+                                           std::pair{interaction::periodic::Action::Use, "feature.periodicUse"}}) {
+                auto mode = interaction::periodic::mode(context.mClient, button);
+                std::string modes;
+                if (mode != interaction::AutoMode::Off)
+                    modes = ui::translated(mode == interaction::AutoMode::Hold ? "autoMode.hold" : "autoMode.periodic");
+                if (interaction::periodic::fast(context.mClient, button))
+                    modes += (modes.empty() ? "" : " + ") + ui::translated("autoMode.fast");
+                if (!modes.empty()) lines.push_back({ui::translated(feature) + ": " + modes, ui::palette::accent});
+            }
             if (interaction::sneak::active(context.mClient))
                 lines.push_back({ui::translated("status.permanentSneak"), ui::palette::accent});
         }

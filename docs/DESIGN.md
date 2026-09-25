@@ -212,6 +212,11 @@ action, **Auto attack** and **Auto use**, with three ways to run:
   and the client runs faster than ticks. Help text warns that servers may
   treat very fast input as cheating.
 - The status element shows which mode runs.
+- (Implemented 2026-09-25) Fast click stays on through menus and focus loss
+  (it only acts while the button is held) and switches off on world exit.
+  Clicks per tick: 1-10, default 1. Periodic interval: 1-1200 ticks,
+  default 10 (the old 0.5 s). Settings show "10 tick (0.50s)" and
+  "1/tick (20/s)" on steppers, which leave room for both numbers.
 - Why one feature: shared stop rules, status and settings; separate
   hotkeys keep "mine with Hold, AFK farm with Periodic" free of mode
   switching. Reference behavior: Tweakeroo's periodic attack/use, hold

@@ -561,7 +561,10 @@ std::string optionValueText(settings::Option const& option, settings::OptionValu
     auto pattern = splitLabel(translated(option.label)).value;
     try {
         if (auto choice = std::get_if<settings::ChoiceValue>(&value)) return translated(choice->label);
-        if (auto number = std::get_if<float>(&value)) return std::vformat(pattern, std::make_format_args(*number));
+        if (auto number = std::get_if<float>(&value)) {
+            float secondary = option.numeric ? *number * option.numeric->secondary : 0;
+            return std::vformat(pattern, std::make_format_args(*number, secondary));
+        }
     } catch (std::exception const&) {}
     return {};
 }

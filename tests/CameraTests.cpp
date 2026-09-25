@@ -15,6 +15,8 @@ int runBundlePreviewTests();
 int main() try {
     extern void automationInputTests();
     automationInputTests();
+    extern void autoClickTests();
+    autoClickTests();
     extern void detachedLookTests();
     detachedLookTests();
     extern void detachedCameraMotionTests();

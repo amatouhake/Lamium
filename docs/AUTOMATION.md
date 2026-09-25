@@ -1,5 +1,32 @@
 # Lightweight input automation
 
+## Auto Attack / Auto Use (L-34, 2026-09-25)
+
+Periodic Attack/Use became Auto Attack / Auto Use (DESIGN "Automatic attack
+and use"). The feature ids stay `periodicAttack`/`periodicUse` and the
+Periodic actions keep `periodicattack`/`periodicuse`; Hold and Fast click are
+new actions (`holdattack`, `holduse`, `fastattack`, `fastuse`), all unbound.
+
+- `interaction::AutoClick` (pure, `tests/AutoClickTests.cpp`) is the state
+  machine per button. Periodic and Hold are exclusive session modes; Fast
+  click is a switch. A physical press ends Periodic/Hold; with Fast click on,
+  a held button gives N release/press pairs per tick. Timing counts client
+  ticks (`ClientLevelTickEvent`); edges are still delivered from the native
+  `InputHandler::tick` through the captured vanilla callbacks, as before.
+- Periodic presses last one input update; a stall never queues catch-up
+  clicks. Switching modes releases the previous press first.
+- Menus, focus loss, screen changes and dimension changes stop Periodic and
+  Hold and forget the physical held state. Fast click stays on until toggled
+  or the world is left; the click rate is re-read on those screen changes.
+- Settings: `interaction.attackTicks`/`useTicks` (1-1200, default 10) replace
+  the seconds-based intervals (old files migrate by rounding seconds x 20);
+  `attackClicks`/`useClicks` (1-10, default 1) set the Fast click rate.
+- The status element shows e.g. "Auto Attack: Periodic + Fast click".
+
+Unverified in game: whether several clicks within one input update all land
+(attacks, scaffolding, snowballs), whether Hold keeps mining, and behavior
+on servers. The rest of this file records the earlier Periodic adapter.
+
 Periodic Attack, Periodic Use, and Permanent Sneak share the runtime intent
 contract in `interaction::AutomationInput`. Permanent Sneak now has an
 experimental native adapter and an unbound toggle action in Features/Hotkeys.

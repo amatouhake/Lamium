@@ -13,8 +13,11 @@ struct Settings {
     int version = 1;
     input::Bindings bindings;
     struct Interaction {
-        float attackInterval = 0.5f;
-        float useInterval = 0.5f;
+        // Auto attack / Auto use: periodic interval in client ticks and Fast
+        // click rate in clicks per tick. Whole numbers kept as float for the
+        // numeric option editor.
+        float attackTicks = 10, useTicks = 10;
+        float attackClicks = 1, useClicks = 1;
         bool breaking = false;
         interaction::RestrictionMode breakingMode = interaction::RestrictionMode::Plane;
         interaction::RestrictionMode placementMode = interaction::RestrictionMode::Plane;
@@ -98,9 +101,13 @@ struct Settings {
     } information;
 
     void normalize() {
-        for (auto* interval : {&interaction.attackInterval, &interaction.useInterval}) {
-            if (!std::isfinite(*interval)) *interval = 0.5f;
-            *interval = std::clamp(*interval, 0.1f, 60.f);
+        for (auto* ticks : {&interaction.attackTicks, &interaction.useTicks}) {
+            if (!std::isfinite(*ticks)) *ticks = 10;
+            *ticks = std::clamp(std::round(*ticks), 1.f, 1200.f);
+        }
+        for (auto* clicks : {&interaction.attackClicks, &interaction.useClicks}) {
+            if (!std::isfinite(*clicks)) *clicks = 1;
+            *clicks = std::clamp(std::round(*clicks), 1.f, 10.f);
         }
         auto normalizeMode = [](auto& mode) { if (static_cast<unsigned>(mode) >= 4) mode = lamium::interaction::RestrictionMode::Plane; };
         normalizeMode(interaction.breakingMode);
