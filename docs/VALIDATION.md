@@ -499,9 +499,9 @@ hosted CI itself is no longer an open gate.
 
 Current pre-release priorities are:
 
-- design and build the L-16 light overlay redesign, then the L-15
-  breaking/placement restriction redesign (L-32, L-34 and L-31 are done and
-  verified; L-20 was closed as not reproducible);
+- design and build the L-15 breaking/placement restriction redesign (L-32,
+  L-34, L-31 and the L-16 light overlay are done and verified; L-20 was
+  closed as not reproducible);
 - keep experimental/research features honest: Hand Restock is not working,
   Hide Offhand has a shield path gap, and L-30/L-33/L-16 remain bounded
   research/design work rather than completed features;
@@ -1299,6 +1299,18 @@ Freelook was restored to Off and its binding reset to Unbound, verified together
 in the settings screen before exit. Minecraft's window disappeared normally and
 the session log reached Lamium disabling. The installed DLL remains diagnostic;
 restore a non-trace build before ordinary use.
+
+### Light overlay redesign (L-16, 2026-09-26)
+
+Build `da601ba`, DLL SHA-256
+`9e7fd5942655dde0598df25eb39cec3dddf06d9633c830c3089b77edf5db5bb2`, passed the
+maintainer's checklists: filled digits turned toward the view (including
+Freelook and FreeCamera), red/yellow spawn tints matching real night
+spawning, torch refresh within a second, number modes, fixed directions,
+range up to 64 while walking and flying without stutter, dimension changes,
+and steady (non-flickering) rendering in Fancy, Simple and Vibrant Visuals.
+Frame cost was judged by feel only. This supersedes the open items of the
+2026-09-23 smoke below.
 
 ### Light overlay display and settings smoke (2026-09-23)
 

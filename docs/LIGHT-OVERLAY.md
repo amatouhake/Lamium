@@ -18,9 +18,11 @@ Decided in DESIGN "Light overlay" (mockup: docs/demos/light-overlay.html).
   or the material change, and draws it with Shapes' toward-the-eye matrix in
   the shape face material. With Vibrant Visuals the digits are also lines.
   The center is the detached camera during FreeCamera.
-- Not verified in game yet: the spawn colors against real spawning, digit
-  readability per graphics mode, the refresh after placing a torch, and frame
-  time at radius 16.
+- Verified in game 2026-09-26 (DLL 9e7fd594): spawn colors against real
+  night spawning, digits readable and steady in Fancy, Simple and Vibrant
+  Visuals, torch placement refresh, radius 64 while walking and flying,
+  FreeCamera center and direction, fixed directions, dimension changes.
+  Not measured: frame time numbers on other machines.
 
 The sections below record the first implementation.
 
