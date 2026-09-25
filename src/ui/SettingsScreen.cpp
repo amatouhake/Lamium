@@ -68,6 +68,10 @@ std::set<std::string_view> expanded;
 std::vector<SettingsRow> rows;
 int selected = -1;
 int first = 0;
+// Keyboard navigation shows the selected row's key tooltip; moving the mouse
+// hands it back to hover.
+bool keyboardTip = false;
+glm::vec2 tipPointer{};
 SettingsTable displayed;
 float displayedInverseScale = 0;
 float displayedTabWidth = 0;
@@ -443,6 +447,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     default: return;
     }
     searchFocused = false;
+    keyboardTip = false;
     if (!valid(hit.index) || !rows[hit.index].selectable()) return;
     selected = hit.index;
     auto const& entry = rows[hit.index];
@@ -520,12 +525,12 @@ void handleKey(int key) {
     int page = std::max(1, displayed.visible - 1);
     switch (key) {
     case 0x1b: close(); break;
-    case 0x26: moveSelection(-1); break;
-    case 0x28: moveSelection(1); break;
-    case 0x21: moveSelection(-page); break;
-    case 0x22: moveSelection(page); break;
-    case 0x24: selected = -1; moveSelection(1); break; // Home
-    case 0x23: selected = static_cast<int>(rows.size()); moveSelection(-1); break; // End
+    case 0x26: moveSelection(-1); keyboardTip = true; break;
+    case 0x28: moveSelection(1); keyboardTip = true; break;
+    case 0x21: moveSelection(-page); keyboardTip = true; break;
+    case 0x22: moveSelection(page); keyboardTip = true; break;
+    case 0x24: selected = -1; moveSelection(1); keyboardTip = true; break; // Home
+    case 0x23: selected = static_cast<int>(rows.size()); moveSelection(-1); keyboardTip = true; break; // End
     case 0x09: selectNav((navIndex + (heldShift() ? hudNav - 1 : 1)) % hudNav); break;
     case 0x25: case 0x27: {
         int direction = key == 0x27 ? 1 : -1;
@@ -573,11 +578,19 @@ std::vector<std::string> bindingKeys(IClientInstance& current, input::Action act
     if (name != translated("unbound")) keys.push_back(std::move(name));
     return keys;
 }
-input::Relation strongestConflict(input::Action action) {
+std::vector<std::string> chordKeys(IClientInstance& current, input::Chord const& chord) {
+    std::vector<std::string> keys;
+    for (auto token : chord) keys.push_back(bindingChordName(current, input::Chord{token}));
+    return keys;
+}
+input::Relation strongestConflict(std::vector<input::Conflict> const& conflicts) {
     auto relation = input::Relation::None;
-    for (auto conflict : input::bindingConflicts(Runtime::instance().preferences().bindings, action))
-        relation = std::max(relation, conflict.relation);
+    for (auto conflict : conflicts) relation = std::max(relation, conflict.relation);
     return relation;
+}
+KeyTone conflictTone(input::Relation relation) {
+    return relation == input::Relation::Shared ? KeyTone::Filled
+        : relation == input::Relation::Overlap ? KeyTone::Outline : KeyTone::Plain;
 }
 void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, float y, input::Action action) {
     float x = displayed.keyX, width = displayed.keyWidth, cy = y + (SettingsTable::rowHeight - capHeight) / 2;
@@ -590,8 +603,9 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     }
     auto keys = bindingKeys(current, action);
     if (keys.empty()) { label(context,x,cy+1,width,translated("unbound"),palette::faint); return; }
-    float used = keycaps(context,x,cy,width,keys);
-    if (auto relation = strongestConflict(action); relation != input::Relation::None) {
+    auto relation = strongestConflict(input::bindingConflicts(Runtime::instance().preferences().bindings, action));
+    float used = keycaps(context,x,cy,width,keys,conflictTone(relation));
+    if (relation != input::Relation::None) {
         auto text = translated(relation == input::Relation::Shared ? "shared" : "overlap");
         float w = textWidth(context, text) + 4;
         if (used + 3 + w <= width) {
@@ -681,22 +695,8 @@ std::string description() {
         auto help = translated(helpKey);
         return help != helpKey ? help : translated(entry.feature->description);
     }
-    case RowKind::Action: {
-        auto text = (hotkeysView() ? featureName(*entry.feature) + ": " : std::string{}) + behaviorText(*entry.action);
-        std::string shared, overlapping;
-        for (auto conflict : input::bindingConflicts(Runtime::instance().preferences().bindings, *entry.action)) {
-            auto& names = conflict.relation == input::Relation::Shared ? shared : overlapping;
-            names += (names.empty() ? "" : ", ") + actionLabel(conflict.action);
-        }
-        if (!shared.empty()) text += " " + translated("sharesWith", shared);
-        if (!overlapping.empty()) text += " " + translated("overlapsWith", overlapping);
-        // preferences() returns a copy: keep it alive while its bindings are read.
-        auto const preferences = Runtime::instance().preferences();
-        auto const& bindings = preferences.bindings;
-        if (auto leader = input::firesOnRelease(bindings, *entry.action); leader && client)
-            text += " " + translated("firesOnRelease", bindingChordName(*client, input::effectiveChord(bindings, *leader)));
-        return text;
-    }
+    case RowKind::Action:
+        return (hotkeysView() ? featureName(*entry.feature) + ": " : std::string{}) + behaviorText(*entry.action);
     case RowKind::Layout: return translated("help.layoutLink");
     default: return {};
     }
@@ -1261,6 +1261,102 @@ void renderShapesDocked(MinecraftUIRenderContext& context, IClientInstance&, glm
     context.flushText(0,std::nullopt);
 }
 
+// The action whose key cell gets the conflict tooltip: the hovered key cell,
+// else the keyboard-selected row.
+std::optional<std::pair<int, input::Action>> tipTarget(SettingsTable const& t, SettingsTable::Hit const& hover) {
+    auto actionAt = [&](int row) -> std::optional<std::pair<int, input::Action>> {
+        if (!valid(row) || row < t.first || row >= t.first + t.visible) return {};
+        auto const& entry = rows[row];
+        if (entry.kind == RowKind::Action) return std::pair{row, *entry.action};
+        if (entry.kind == RowKind::Feature)
+            if (auto primary = primaryAction(*entry.feature)) return std::pair{row, *primary};
+        return {};
+    };
+    if (hover.zone == Zone::Row && hover.column == Column::Key)
+        if (auto target = actionAt(hover.index)) return target;
+    if (keyboardTip) return actionAt(selected);
+    return {};
+}
+std::string linkTitle(input::Link link) {
+    switch (link) {
+    case input::Link::Same: return "tip.same";
+    case input::Link::StartsWithThis: return "tip.starts";
+    case input::Link::ContainsThis: return "tip.contains";
+    case input::Link::InsideThis: return "tip.inside";
+    default: return "tip.reordered";
+    }
+}
+// Lists every binding related to the action's chord, grouped by how it
+// relates, below the key cell (above it when there is more room there).
+void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current, SettingsTable const& t, int row,
+                     input::Action action) {
+    auto const preferences = Runtime::instance().preferences();
+    auto const conflicts = input::bindingConflicts(preferences.bindings, action);
+    if (conflicts.empty()) return;
+    constexpr float pad = 4, headHeight = 14, lineHeight = 10, titleHeight = 12, itemHeight = 12;
+    float width = std::min(240.0f, t.width - 2*SettingsTable::pad), inner = width - 2*pad;
+    std::vector<std::string> notes;
+    bool leads = std::any_of(conflicts.begin(), conflicts.end(), [](auto c) { return c.link == input::Link::StartsWithThis; });
+    if (input::firesOnRelease(preferences.bindings, action)) notes.push_back(translated("tip.release"));
+    else if (leads && input::actions[static_cast<size_t>(action)].behavior == input::Behavior::Hold)
+        notes.push_back(translated("tip.holdLeads"));
+    float notesHeight = 0;
+    for (auto const& note : notes) notesHeight += (textWidth(context, note) > inner ? 2 : 1) * lineHeight;
+    // Items that fit the budget; the rest are counted on a last line.
+    auto fitting = [&](float budget, float& height) {
+        height = 2*pad + headHeight + notesHeight;
+        size_t shown = 0;
+        for (; shown < conflicts.size(); ++shown) {
+            bool group = shown == 0 || conflicts[shown].link != conflicts[shown-1].link;
+            float need = (group ? titleHeight + lineHeight : 0) + itemHeight;
+            float reserve = shown + 1 < conflicts.size() ? lineHeight : 0;
+            if (height + need + reserve > budget) break;
+            height += need;
+        }
+        if (shown < conflicts.size()) height += lineHeight;
+        return shown;
+    };
+    float rowTop = t.rowY(row), rowBottom = rowTop + SettingsTable::rowHeight;
+    float below = t.top + t.height - 2 - (rowBottom + 1), above = rowTop - 1 - (t.top + 2);
+    float height = 0;
+    size_t shown = fitting(std::numeric_limits<float>::infinity(), height);
+    bool under = height <= below || (height > above && below >= above);
+    if (height > (under ? below : above)) shown = fitting(under ? below : above, height);
+    float x = std::max(t.left + 2, t.keyX + t.keyWidth - width);
+    float y = under ? rowBottom + 1 : rowTop - 1 - height;
+
+    // Row text is queued until a flush; flush it so the tooltip covers it.
+    context.flushText(0, std::nullopt);
+    fill(context,x,y,width,height,palette::panel,.97f);
+    frame(context,x,y,width,height,palette::warning);
+    float cursor = y + pad;
+    auto relation = strongestConflict(conflicts);
+    keycaps(context,x+pad,cursor,inner*.6f,chordKeys(current, input::effectiveChord(preferences.bindings, action)),
+        conflictTone(relation));
+    label(context,x+pad,cursor+1,inner,translated(relation == input::Relation::Shared ? "tip.countShared" : "tip.count",
+        std::to_string(conflicts.size())),palette::warning,Align::Right);
+    cursor += headHeight;
+    for (auto const& note : notes) {
+        size_t lines = textWidth(context, note) > inner ? 2 : 1;
+        paragraph(context,x+pad,cursor,inner,note,lines,palette::warning);
+        cursor += lines * lineHeight;
+    }
+    for (size_t i = 0; i < shown; ++i) {
+        auto const& conflict = conflicts[i];
+        if (i == 0 || conflict.link != conflicts[i-1].link) {
+            fill(context,x+pad,cursor+1,inner,1,palette::white,.1f);
+            label(context,x+pad,cursor+3,inner,translated(linkTitle(conflict.link)),palette::dim);
+            label(context,x+pad,cursor+3+lineHeight,inner,translated(linkTitle(conflict.link) + "Note"),palette::faint);
+            cursor += titleHeight + lineHeight;
+        }
+        float used = keycaps(context,x+pad,cursor,inner*.45f,
+            chordKeys(current, input::effectiveChord(preferences.bindings, conflict.action)));
+        label(context,x+pad+used+5,cursor+1,inner-used-5,actionLabel(conflict.action));
+        cursor += itemHeight;
+    }
+    if (shown < conflicts.size())
+        label(context,x+pad,cursor+1,inner,translated("tip.more", std::to_string(conflicts.size() - shown)),palette::faint);
+}
 void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {
     auto const t = SettingsTable::fit(size.x, size.y, static_cast<int>(rows.size()), first);
     displayed = t;
@@ -1274,6 +1370,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     }
     auto const preferences = Runtime::instance().preferences();
     auto hover = t.hit(pointer.x, pointer.y, navCount, displayedTabWidth);
+    if (pointer != tipPointer) { keyboardTip = false; tipPointer = pointer; }
     panel(context,t.left,t.top,t.width,t.height,.8f);
     frame(context,t.left,t.top,t.width,t.height,palette::white,.14f);
 
@@ -1444,6 +1541,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         std::string hint = !error.empty() ? error : translated(searchFocused ? "searchHint" : editingNumber ? "numberHint" : "tableHint");
         label(context,textLeft,t.footerTop+30,textWidthAvailable,std::move(hint),error.empty() ? palette::faint : palette::warning);
     }
+    if (!capturing)
+        if (auto target = tipTarget(t, hover)) drawConflictTip(context,current,t,target->first,target->second);
     context.flushText(0,std::nullopt);
 }
 

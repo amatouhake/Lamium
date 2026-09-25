@@ -53,7 +53,11 @@ constexpr float sliderKnobWidth = 6, sliderKnobHeight = 10, sliderTrackHeight = 
 // Glyph-independent disclosure and stepper arrows drawn from rectangles.
 void chevron(MinecraftUIRenderContext&, float x, float y, bool expanded, Rgb color = palette::dim);
 void arrow(MinecraftUIRenderContext&, float x, float y, bool left, Rgb color = palette::dim);
+// Warning caps mark a binding that relates to another: Outline overlaps,
+// Filled is the exact same chord (all its actions fire together).
+enum class KeyTone { Plain, Outline, Filled };
 // Draws key caps left to right within width and returns the width used.
-float keycaps(MinecraftUIRenderContext&, float x, float y, float width, std::vector<std::string> const& keys);
+float keycaps(MinecraftUIRenderContext&, float x, float y, float width, std::vector<std::string> const& keys,
+              KeyTone tone = KeyTone::Plain);
 constexpr float capHeight = 11;
 }

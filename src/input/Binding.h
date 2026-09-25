@@ -132,16 +132,29 @@ inline Relation bindingRelation(Chord const& a, Chord const& b) {
 // Sort only runs in containers and everything else only in gameplay, so their
 // bindings never meet.
 inline bool sameInputContext(Action a, Action b) { return (a == Action::Sort) == (b == Action::Sort); }
-struct Conflict { Action action; Relation relation; };
+// How another binding relates to this one; the Hotkeys tooltip groups by it.
+enum class Link { Same, StartsWithThis, ContainsThis, InsideThis, Reordered };
+struct Conflict { Action action; Relation relation; Link link; };
+inline bool startsWith(Chord const& longer, Chord const& prefix) {
+    return longer.size() > prefix.size() && std::equal(prefix.begin(), prefix.end(), longer.begin());
+}
+// Ordered by link, then by action.
 inline std::vector<Conflict> bindingConflicts(Bindings const& bindings, Action action) {
     std::vector<Conflict> result;
     auto chord = effectiveChord(bindings, action);
     for (size_t i = 0; i < actions.size(); ++i) {
         auto other = static_cast<Action>(i);
         if (other == action || !sameInputContext(action, other)) continue;
-        auto relation = bindingRelation(chord, effectiveChord(bindings, other));
-        if (relation != Relation::None) result.push_back({other, relation});
+        auto otherChord = effectiveChord(bindings, other);
+        auto relation = bindingRelation(chord, otherChord);
+        if (relation == Relation::None) continue;
+        Link link = relation == Relation::Shared ? Link::Same
+            : startsWith(otherChord, chord) ? Link::StartsWithThis
+            : otherChord.size() > chord.size() ? Link::ContainsThis
+            : chord.size() > otherChord.size() ? Link::InsideThis : Link::Reordered;
+        result.push_back({other, relation, link});
     }
+    std::stable_sort(result.begin(), result.end(), [](Conflict a, Conflict b) { return a.link < b.link; });
     return result;
 }
 
@@ -149,9 +162,6 @@ using ChordSet = std::array<Chord, actions.size()>;
 // Like Java's F3: a Press/Toggle action whose chord begins a longer bound
 // chord waits for its release and fires then, unless the longer chord was used
 // meanwhile. Hold actions cannot wait; they act while held.
-inline bool startsWith(Chord const& longer, Chord const& prefix) {
-    return longer.size() > prefix.size() && std::equal(prefix.begin(), prefix.end(), longer.begin());
-}
 inline std::optional<size_t> releaseLeader(ChordSet const& chords, size_t index) {
     auto const& chord = chords[index];
     auto const& info = actions[index];

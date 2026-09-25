@@ -199,8 +199,10 @@ wins, latching, modifier-like Zoom/Freelook, shared chords firing together,
 legacy sorted-order migration) are covered by event-sequence tests in
 BindingTests and SettingsStoreTests and passed the in-game checklist on
 2026-09-25 (DLL 188a1c3a). Release-triggered leading keys (F3 alone fires on
-release, silent after F3+B) are covered by BindingTests; not yet verified in
-game.
+release, silent after F3+B) passed in game on 2026-09-25 (DLL 3e7045f8).
+Warning key caps and the key-cell conflict tooltip (hover and keyboard
+selection) build and their grouping is covered by BindingTests; not yet
+verified in game.
 Pure capture tests cover arbitrary chords, opener suppression, mouse buttons,
 and modified wheel input. Layout, hit targets, input routing, focus loss, and
 the full capture/save/dispatch cycle still require Minecraft verification.

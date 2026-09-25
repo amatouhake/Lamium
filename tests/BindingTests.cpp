@@ -314,6 +314,17 @@ void bindingTests() {
             "the hotkeys list reports shared and overlapping bindings, not container-only ones");
         check(std::none_of(conflicts.begin(), conflicts.end(), [](Conflict x) { return x.action == Action::Zoom; }),
             "unrelated default keys are not reported");
+        auto links = [](std::vector<Conflict> const& list) {
+            std::vector<std::pair<Action, Link>> result;
+            for (auto x : list) result.emplace_back(x.action, x.link);
+            return result;
+        };
+        check(links(conflicts) == std::vector<std::pair<Action, Link>>{{Action::Hitboxes, Link::Same},
+            {Action::DebugView, Link::StartsWithThis}, {Action::ChunkBorders, Link::ContainsThis}},
+            "the tooltip groups same, leading and containing chords in that order");
+        check(links(bindingConflicts(bindings, Action::ChunkBorders)) == std::vector<std::pair<Action, Link>>{
+            {Action::NightVision, Link::InsideThis}, {Action::Hitboxes, Link::InsideThis}, {Action::DebugView, Link::Reordered}},
+            "shorter chords inside this one and reordered chords are grouped last");
     }
     Chord scroll{shift, wheel};
     for (auto invalid : {Chord{{Device::Key, 0}}, Chord{{Device::Mouse, 6}},
