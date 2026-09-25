@@ -249,6 +249,12 @@ exactly one switch, one mode and one set of keys:
   struggles.
 - Centered on the camera while it is detached (FreeCamera), like Chunk
   Borders; digits turn with the camera's direction.
+- Number direction setting (2026-09-26): follow the view (default) or a
+  fixed north/east/south/west up. Following rebuilds nearest chunks first
+  within a per-frame budget, so turning at a large range does not stall; a
+  fixed direction never rebuilds on turning.
+- Tint and digits sit 4 cm and 7 cm above the floor: closer layers flickered
+  in Simple and Vibrant Visuals.
 - Drawn like Shapes: meshes kept per chunk, nudged toward the eye so they do
   not flicker against the floor, and as faint as shape faces on the additive
   material (Simple, Vibrant Visuals).

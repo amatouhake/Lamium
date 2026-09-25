@@ -167,6 +167,7 @@ inline constexpr auto options = std::to_array<Option>({
         [](Settings const& s) -> OptionValue { return s.overlays.lightRange; },
         [](Settings& s, int direction) { s.overlays.lightRange += direction; s.normalize(); },
         NumericOption{4, 64, [](Settings& s, float v) { s.overlays.lightRange = v; }, 1}},
+    choice<&Settings::overlays, &Settings::Overlays::lightFacing, overlay::lightFacingLabels>("overlays.lightFacing", "lightOverlay", "lightFacingRow"),
     {"overlays.hitboxDistance", "hitboxes", "hitboxDistance",
         [](Settings const& s) -> OptionValue { return s.overlays.hitboxDistance; },
         [](Settings& s, int direction) { s.overlays.hitboxDistance += direction * 8.f; s.normalize(); },

@@ -90,6 +90,7 @@ Json encode(Settings const& settings) {
                       {"light", settings.overlays.light},
                       {"lightValue", overlay::lightValueNames[static_cast<size_t>(settings.overlays.lightValue)]},
                       {"lightRange", settings.overlays.lightRange},
+                      {"lightFacing", overlay::lightFacingNames[static_cast<size_t>(settings.overlays.lightFacing)]},
                       {"hitboxDistance", settings.overlays.hitboxDistance}}},
         {"bindings", std::move(bindings)},
         {"camera", {{"zoom", settings.camera.zoom}, {"freelook", settings.camera.freelook}, {"freelookToggle", settings.camera.freelookToggle}, {"freecamera", settings.camera.freecamera}, {"magnification", settings.camera.magnification},
@@ -196,6 +197,9 @@ Settings decodeSettings(std::string_view text) {
         for (size_t i = 0; i < overlay::lightValueNames.size(); ++i)
             if (overlay::lightValueNames[i] == lightValue) value.overlays.lightValue = static_cast<overlay::LightValue>(i);
         value.overlays.lightRange = overlays.value("lightRange", 16.f);
+        auto lightFacing = overlays.value("lightFacing", std::string("view"));
+        for (size_t i = 0; i < overlay::lightFacingNames.size(); ++i)
+            if (overlay::lightFacingNames[i] == lightFacing) value.overlays.lightFacing = static_cast<overlay::LightFacing>(i);
         value.overlays.hitboxDistance = overlays.value("hitboxDistance", 64.f);
     }
     if (data.contains("bindings")) {

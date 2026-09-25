@@ -76,6 +76,7 @@ struct Settings {
         bool light = false;
         overlay::LightValue lightValue = overlay::LightValue::Block;
         float lightRange = 16; // Radius in blocks, sideways and up/down.
+        overlay::LightFacing lightFacing = overlay::LightFacing::View;
         float hitboxDistance = 64.f;
     } overlays;
     struct Visuals {
@@ -131,6 +132,7 @@ struct Settings {
         normalizeMode(interaction.placementMode);
         information.lineOrder = information::mergeLineOrder(information.lineOrder);
         if (static_cast<unsigned>(overlays.lightValue) >= overlay::lightValueNames.size()) overlays.lightValue = overlay::LightValue::Block;
+        if (static_cast<unsigned>(overlays.lightFacing) >= overlay::lightFacingNames.size()) overlays.lightFacing = overlay::LightFacing::View;
         if (!std::isfinite(overlays.lightRange)) overlays.lightRange = 16;
         overlays.lightRange = std::clamp(std::round(overlays.lightRange), 4.f, 64.f);
         if (!std::isfinite(overlays.hitboxDistance)) overlays.hitboxDistance = 64.f;

@@ -58,6 +58,9 @@ void lightOverlayTests() {
         && facingFromYaw(180) == Facing::North && facingFromYaw(-180) == Facing::North && facingFromYaw(-90) == Facing::East
         && facingFromYaw(-44) == Facing::South && facingFromYaw(720) == Facing::South
         && facingFromYaw(std::numeric_limits<float>::quiet_NaN()) == Facing::North, "yaw maps to the nearest quarter");
+    check(facingFromDirection(0,1) == Facing::South && facingFromDirection(.2,-1) == Facing::North
+        && facingFromDirection(1,.5) == Facing::East && facingFromDirection(-1,.9) == Facing::West
+        && facingFromDirection(0,0) == Facing::North, "a camera direction maps to the nearest quarter");
     // The top of a digit points where the viewer looks; its right side to the viewer's right.
     std::array<std::pair<Facing, std::array<double,4>>, 4> frames{{
         {Facing::South, {0,1,-1,0}}, {Facing::West, {-1,0,0,-1}}, {Facing::North, {0,-1,1,0}}, {Facing::East, {1,0,0,1}}}};

@@ -37,6 +37,9 @@ void settingsStoreTests() {
               && decodeSettings("{}").overlays.lightRange == 16
               && decodeSettings(R"({"overlays":{"lightRange":400}})").overlays.lightRange == 64,
               "the old sky-light switch migrates, the value choice wins, and the range stays in 4-64");
+        check(decodeSettings("{}").overlays.lightFacing == overlay::LightFacing::View
+              && decodeSettings(R"({"overlays":{"lightFacing":"east"}})").overlays.lightFacing == overlay::LightFacing::East,
+              "numbers follow the view by default and a fixed direction loads by name");
         auto both = decodeSettings(R"({"interaction":{"attackInterval":3,"attackTicks":7}})");
         check(both.interaction.attackTicks == 7, "a saved tick interval wins over an old seconds value");
         auto bounded = decodeSettings(R"({"interaction":{"attackTicks":0,"useTicks":99999,"attackClicks":0,"useClicks":50}})");

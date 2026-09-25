@@ -120,6 +120,12 @@ inline Facing facingFromYaw(float yaw) {
     int quarter = static_cast<int>(std::floor(std::fmod(std::fmod(yaw + 45.f, 360.f) + 360.f, 360.f) / 90.f)) % 4;
     return static_cast<Facing>(quarter);
 }
+// The same from a horizontal view direction (the detached camera's).
+inline Facing facingFromDirection(double dx, double dz) {
+    if (!std::isfinite(dx) || !std::isfinite(dz) || (dx == 0 && dz == 0)) return Facing::North;
+    if (std::abs(dz) >= std::abs(dx)) return dz > 0 ? Facing::South : Facing::North;
+    return dx > 0 ? Facing::East : Facing::West;
+}
 struct Quad { std::array<Point,4> corners; };
 
 // Seven-segment decimal digits in a unit box (u right, v down on screen);
@@ -162,7 +168,7 @@ inline Point floorPoint(Cell air, Facing facing, double u, double v, double lift
 inline void appendLightNumberLines(std::vector<Line>& lines, Cell air, unsigned value,
                                    Facing facing = Facing::North, int row = 0) {
     for (auto s : lightDigitStrokes(value, row))
-        lines.push_back({floorPoint(air, facing, s.u0, s.v0, .025), floorPoint(air, facing, s.u1, s.v1, .025)});
+        lines.push_back({floorPoint(air, facing, s.u0, s.v0, .075), floorPoint(air, facing, s.u1, s.v1, .075)});
 }
 inline std::vector<Line> lightNumberLines(Cell air, unsigned value, Facing facing = Facing::North) {
     std::vector<Line> lines;
@@ -177,13 +183,15 @@ inline void appendLightNumberQuads(std::vector<Quad>& quads, Cell air, unsigned 
     for (auto s : lightDigitStrokes(value, row)) {
         double u0 = std::min(s.u0, s.u1) - half, u1 = std::max(s.u0, s.u1) + half;
         double v0 = std::min(s.v0, s.v1) - half, v1 = std::max(s.v0, s.v1) + half;
-        quads.push_back({{floorPoint(air, facing, u0, v0, .03), floorPoint(air, facing, u1, v0, .03),
-                          floorPoint(air, facing, u1, v1, .03), floorPoint(air, facing, u0, v1, .03)}});
+        quads.push_back({{floorPoint(air, facing, u0, v0, .07), floorPoint(air, facing, u1, v0, .07),
+                          floorPoint(air, facing, u1, v1, .07), floorPoint(air, facing, u0, v1, .07)}});
     }
 }
-// The whole floor of a cell, slightly inset, for the spawn color.
+// The whole floor of a cell, slightly inset, for the spawn color. Tint and
+// digits sit clearly above the floor and apart from each other: closer
+// layers flickered against the ground in Simple and Vibrant Visuals.
 inline Quad lightTintQuad(Cell air) {
-    constexpr double in = .02, lift = .015;
+    constexpr double in = .02, lift = .04;
     return {{Point{air.x + in, air.y + lift, air.z + in}, Point{air.x + 1 - in, air.y + lift, air.z + in},
              Point{air.x + 1 - in, air.y + lift, air.z + 1 - in}, Point{air.x + in, air.y + lift, air.z + 1 - in}}};
 }

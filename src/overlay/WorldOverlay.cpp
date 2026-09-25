@@ -397,18 +397,38 @@ void drawLightOverlay(BaseActorRenderContext& context, IClientInstance& client, 
         }
     }
 
-    float yaw = player.getRotation().z;
-    if (auto look = Zoom::instance().lookAngles()) yaw = look->yaw;
-    auto facing = facingFromYaw(yaw);
+    // Follow the rendered view: the detached camera's direction during
+    // Freelook/FreeCamera, else the player's.
+    Facing facing = Facing::North;
+    switch (preferences.lightFacing) {
+    case LightFacing::North: facing = Facing::North; break;
+    case LightFacing::East: facing = Facing::East; break;
+    case LightFacing::South: facing = Facing::South; break;
+    case LightFacing::West: facing = Facing::West; break;
+    case LightFacing::View:
+        if (auto ray = Zoom::instance().detachedViewRay(client)) facing = facingFromDirection(ray->dx, ray->dz);
+        else facing = facingFromYaw(player.getRotation().z);
+        break;
+    }
     auto material = faceMaterial(client);
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
     ScreenContext& screen = context.mScreenContext;
-    for (auto& [column, chunk] : lightChunks) {
-        if (chunk.markers.empty()) continue;
+    // Rebuild nearest first within a per-frame budget, so turning around at a
+    // large range spreads the work; a chunk not rebuilt yet keeps its old mesh.
+    constexpr size_t markerBudget = 4096;
+    size_t rebuilt = 0;
+    for (auto column : wanted) {
+        auto found = lightChunks.find(column);
+        if (found == lightChunks.end() || found->second.markers.empty()) continue;
+        auto& chunk = found->second;
         Cell origin{column.x * 16, 0, column.z * 16};
         LightChunk::Built key{chunk.revision, facing, preferences.lightValue, material.variant};
-        if (chunk.built != key || (chunk.faces && !chunk.faces->isValid()) || (chunk.lines && !chunk.lines->isValid()))
+        bool invalid = (chunk.faces && !chunk.faces->isValid()) || (chunk.lines && !chunk.lines->isValid());
+        if ((chunk.built != key || invalid) && (rebuilt == 0 || rebuilt + chunk.markers.size() <= markerBudget || invalid)) {
             buildLightMesh(screen, chunk, origin, key, material);
+            rebuilt += chunk.markers.size();
+        }
+        if (!chunk.built) continue;
         withTowardEye(context, origin, [&] {
             if (chunk.faces && material.material.mRenderMaterialInfoPtr)
                 chunk.faces->renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
