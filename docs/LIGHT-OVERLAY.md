@@ -1,5 +1,26 @@
 # Light level overlay
 
+## Redesign (L-16, 2026-09-25)
+
+Decided in DESIGN "Light overlay" (mockup: docs/demos/light-overlay.html).
+
+- Settings: `overlays.light` (switch), `overlays.lightValue` (`block`
+  default, `sky`, `both`; the old `skyLight: true` loads as `sky`) and
+  `overlays.lightRange` (4-16, default 8).
+- Pure logic in `overlay/LightOverlay.h`, tested in LightOverlayTests:
+  `spawnRisk` (red/yellow/none), `facingFromYaw` and `floorPoint` (digits turn
+  toward the view), `appendLightNumberQuads` (filled strokes) and
+  `appendLightNumberLines` (fallback), `lightTintQuad`, `LightRefresh`.
+- `WorldOverlay.cpp` samples a (2r+1)^2 x 7 volume only when `LightRefresh`
+  says so, then draws tints and digits as quads in the shape face material
+  (hologram in Fancy, additive lightning otherwise). With Vibrant Visuals the
+  digits are also drawn as lines because faces may not show there.
+- Not verified in game yet: the spawn colors against real spawning, digit
+  readability per graphics mode, the refresh after placing a torch, and frame
+  time at radius 16.
+
+The sections below record the first implementation.
+
 Experimental, disabled and unbound by default. Features and Hotkeys expose a
 toggle; the feature also selects stored sky light instead of stored block light.
 Settings apply immediately and use the existing persistence and binding system.

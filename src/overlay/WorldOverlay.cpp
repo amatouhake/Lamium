@@ -37,6 +37,7 @@
 #include "mc/deps/renderer/MatrixStack.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
+#include <chrono>
 #include <map>
 #include <span>
 #include <mutex>
@@ -274,6 +275,93 @@ void drawLines(BaseActorRenderContext& context, std::span<Line const> lines, boo
     if (!hitboxes) { single.r = .2f; single.g = .85f; single.b = 1.f; }
     drawLines(context, std::span<LineBatch const>{&single, 1});
 }
+// Filled quads in the shape face material, one color per batch. Both
+// windings are emitted so culling materials show them from either side.
+struct QuadBatch { std::span<Quad const> quads; float r, g, b, a; };
+void drawQuads(BaseActorRenderContext& context, FaceMaterial const& material, std::span<QuadBatch const> batches) {
+    if (!context.mImpl || !material.material.mRenderMaterialInfoPtr) return;
+    size_t count = 0;
+    for (auto const& group : batches) count += group.quads.size();
+    if (!count) return;
+    ScreenContext& screen = context.mScreenContext;
+    Tessellator batch(screen.tessellator.mBufferResourceService);
+    batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(count * 8), false);
+    Vec3 const camera = context.mImpl->mCameraPosition;
+    auto vertex = [&](Point p) {
+        batch.vertex(static_cast<float>(p.x - camera.x), static_cast<float>(p.y - camera.y), static_cast<float>(p.z - camera.z));
+    };
+    for (auto const& group : batches) {
+        batch.color(group.r, group.g, group.b, group.a);
+        for (auto const& quad : group.quads) {
+            for (auto p : quad.corners) vertex(p);
+            for (auto it = quad.corners.rbegin(); it != quad.corners.rend(); ++it) vertex(*it);
+        }
+    }
+    auto mesh = batch.end(Tessellator::UploadMode::Buffered, "Lamium light overlay", SupplementaryFieldAutoGenerationMode{});
+    mesh.renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
+        static_cast<uint>(count * 8), OffscreenCaptureDescription{}, nullptr);
+}
+// Light overlay (BACKLOG L-16): spawn tint plus filled numbers turned toward
+// the viewer. Samples are kept between frames (LightRefresh).
+void drawLightOverlay(BaseActorRenderContext& context, IClientInstance& client, LocalPlayer& player,
+                      Settings::Overlays const& preferences) {
+    thread_local LightRefresh refresh;
+    thread_local std::vector<LightMarker> markers;
+    Vec3 const position = player.getFeetPos();
+    Cell center{checkedCoordinate(std::floor(position.x)), checkedCoordinate(std::floor(position.y)),
+                checkedCoordinate(std::floor(position.z))};
+    int radius = static_cast<int>(preferences.lightRange);
+    auto& dimension = player.getDimension();
+    if (refresh.due(center, static_cast<int>(player.getDimensionId()), radius, std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count())) {
+        auto& region = player.getDimensionBlockSource();
+        auto const& height = dimension.mHeightRange;
+        markers = sampleLightSurfaces(center,radius,3,[&](Cell cell) -> std::optional<LightSurface> {
+            if (cell.y <= height->mMin || cell.y >= height->mMax) return {};
+            BlockPos air{cell.x,cell.y,cell.z}, floor{cell.x,cell.y-1,cell.z};
+            if (!region.getChunkAt(air) || !region.getBlock(air).isAir()
+                || !region.getBlock(floor)._isSolid()) return {};
+            auto light = region.getBrightnessPair(air);
+            return LightSurface{light.block->mValue,light.sky->mValue};
+        });
+    }
+    float yaw = player.getRotation().z;
+    if (auto look = Zoom::instance().lookAngles()) yaw = look->yaw;
+    auto facing = facingFromYaw(yaw);
+    thread_local std::vector<Quad> always, night, numbers, sky;
+    always.clear(); night.clear(); numbers.clear(); sky.clear();
+    for (auto const& marker : markers) {
+        auto risk = spawnRisk(marker.light);
+        if (risk == SpawnRisk::Always) always.push_back(lightTintQuad(marker.air));
+        else if (risk == SpawnRisk::Night) night.push_back(lightTintQuad(marker.air));
+        switch (preferences.lightValue) {
+        case LightValue::Block: appendLightNumberQuads(numbers, marker.air, marker.light.block, facing); break;
+        case LightValue::Sky: appendLightNumberQuads(numbers, marker.air, marker.light.sky, facing); break;
+        case LightValue::Both:
+            appendLightNumberQuads(numbers, marker.air, marker.light.block, facing, -1);
+            appendLightNumberQuads(sky, marker.air, marker.light.sky, facing, 1);
+            break;
+        }
+    }
+    auto material = faceMaterial(client);
+    // Additive materials (Simple, Vibrant) need less alpha to read the same.
+    bool blended = material.variant == 0;
+    float tint = blended ? .35f : .22f, ink = blended ? .9f : .75f;
+    std::array<QuadBatch, 4> batches{{{always, .88f, .31f, .22f, tint}, {night, 1.f, .76f, .29f, tint},
+                                      {numbers, 1, 1, 1, ink}, {sky, .62f, .82f, 1.f, ink}}};
+    drawQuads(context, material, batches);
+    // Vibrant Visuals may not show these faces; keep the digits readable as lines.
+    if (material.strongLines) {
+        thread_local std::vector<Line> lines;
+        lines.clear();
+        for (auto const& marker : markers) {
+            bool both = preferences.lightValue == LightValue::Both;
+            unsigned value = preferences.lightValue == LightValue::Sky ? marker.light.sky : marker.light.block;
+            appendLightNumberLines(lines, marker.air, value, facing, both ? -1 : 0);
+            if (both) appendLightNumberLines(lines, marker.air, marker.light.sky, facing, 1);
+        }
+        drawLines(context, lines, true);
+    }
+}
 LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::$renderEntityEffects, void, BaseActorRenderContext& context) {
     origin(context);
@@ -312,29 +400,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
             }
         }
         auto& dimension = player->getDimension();
-        if (preferences.light) {
-            Vec3 const position = player->getFeetPos();
-            Cell center{checkedCoordinate(std::floor(position.x)), checkedCoordinate(std::floor(position.y)),
-                        checkedCoordinate(std::floor(position.z))};
-            auto& region = player->getDimensionBlockSource();
-            auto const& height = dimension.mHeightRange;
-            auto markers = sampleLightSurfaces(center,4,2,[&](Cell cell) -> std::optional<LightSurface> {
-                if (cell.y <= height->mMin || cell.y >= height->mMax) return {};
-                BlockPos air{cell.x,cell.y,cell.z}, floor{cell.x,cell.y-1,cell.z};
-                if (!region.getChunkAt(air) || !region.getBlock(air).isAir()
-                    || !region.getBlock(floor)._isSolid()) return {};
-                auto light = region.getBrightnessPair(air);
-                return LightSurface{light.block->mValue,light.sky->mValue};
-            });
-            std::vector<Line> lines;
-            // At most two seven-segment digits per marker. Append directly to
-            // the render batch instead of allocating a vector for each floor.
-            lines.reserve(markers.size()*14);
-            for (auto const& marker : markers) {
-                appendLightNumberLines(lines,marker.air,preferences.skyLight ? marker.light.sky : marker.light.block);
-            }
-            drawLines(context,lines,true);
-        }
+        if (preferences.light) drawLightOverlay(context, client, *player, preferences);
         if (preferences.chunkBorders) {
             auto const& range = dimension.mHeightRange;
             Vec3 const position = player->getPosition();

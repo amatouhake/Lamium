@@ -87,7 +87,9 @@ Json encode(Settings const& settings) {
                          {"dimension", settings.information.dimension}}},
         {"visuals", {{"hideOffhand", settings.visuals.hideOffhand}}},
         {"overlays", {{"chunkBorders", settings.overlays.chunkBorders}, {"hitboxes", settings.overlays.hitboxes}, {"shapes", settings.overlays.shapes},
-                      {"light", settings.overlays.light}, {"skyLight", settings.overlays.skyLight},
+                      {"light", settings.overlays.light},
+                      {"lightValue", overlay::lightValueNames[static_cast<size_t>(settings.overlays.lightValue)]},
+                      {"lightRange", settings.overlays.lightRange},
                       {"hitboxDistance", settings.overlays.hitboxDistance}}},
         {"bindings", std::move(bindings)},
         {"camera", {{"zoom", settings.camera.zoom}, {"freelook", settings.camera.freelook}, {"freelookToggle", settings.camera.freelookToggle}, {"freecamera", settings.camera.freecamera}, {"magnification", settings.camera.magnification},
@@ -189,7 +191,11 @@ Settings decodeSettings(std::string_view text) {
         value.overlays.hitboxes = overlays.value("hitboxes", false);
         value.overlays.shapes = overlays.value("shapes", true);
         value.overlays.light = overlays.value("light", false);
-        value.overlays.skyLight = overlays.value("skyLight", false);
+        // Older files had a sky-light switch instead of the value choice.
+        auto lightValue = overlays.value("lightValue", std::string(overlays.value("skyLight", false) ? "sky" : "block"));
+        for (size_t i = 0; i < overlay::lightValueNames.size(); ++i)
+            if (overlay::lightValueNames[i] == lightValue) value.overlays.lightValue = static_cast<overlay::LightValue>(i);
+        value.overlays.lightRange = overlays.value("lightRange", 8.f);
         value.overlays.hitboxDistance = overlays.value("hitboxDistance", 64.f);
     }
     if (data.contains("bindings")) {

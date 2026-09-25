@@ -232,6 +232,21 @@ exactly one switch, one mode and one set of keys:
   behavior: Tweakeroo's periodic/hold attack and use and fast click (behavior
   only, no code).
 
+## Light overlay (Decided 2026-09-25, docs/demos/light-overlay.html)
+
+- Numbers plus color. Numbers lie on the floor, filled (not thin lines), and
+  turn by quarter turns so their top points where the viewer looks (the
+  detached camera's direction during Freelook/FreeCamera).
+- Color by spawning, as a faint tint over the whole floor: red = monsters
+  can spawn at any time (block light 0, stored sky light below 7), yellow =
+  only at night (block light 0, sky light 7 or more), none = block light 1+.
+  From minecraft.wiki (Bedrock); confirm in game.
+- Numbers show block light by default; the setting also offers sky light or
+  both (block above, sky below in blue).
+- Range: radius 8 by default, 4-16 in settings; 3 blocks up and down.
+- Samples are kept between frames and refreshed every 0.25 s or when the
+  player moves to another block, changes dimension or range.
+
 ## Keys
 
 - (Decided) There is no general default-key policy to design now; defaults are

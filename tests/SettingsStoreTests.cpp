@@ -31,6 +31,12 @@ void settingsStoreTests() {
               "fast click defaults to always; held-only loads, including the short-lived trigger name");
         check(!decodeSettings(R"({"interaction":{"autoAttack":true,"autoUse":true}})").interaction.autoAttack,
               "a hand-edited switch never starts auto attack on load");
+        check(decodeSettings(R"({"overlays":{"skyLight":true}})").overlays.lightValue == overlay::LightValue::Sky
+              && decodeSettings(R"({"overlays":{"skyLight":true,"lightValue":"both"}})").overlays.lightValue == overlay::LightValue::Both
+              && decodeSettings("{}").overlays.lightValue == overlay::LightValue::Block
+              && decodeSettings("{}").overlays.lightRange == 8
+              && decodeSettings(R"({"overlays":{"lightRange":40}})").overlays.lightRange == 16,
+              "the old sky-light switch migrates, the value choice wins, and the range stays in 4-16");
         auto both = decodeSettings(R"({"interaction":{"attackInterval":3,"attackTicks":7}})");
         check(both.interaction.attackTicks == 7, "a saved tick interval wins over an old seconds value");
         auto bounded = decodeSettings(R"({"interaction":{"attackTicks":0,"useTicks":99999,"attackClicks":0,"useClicks":50}})");
