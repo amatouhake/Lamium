@@ -210,6 +210,29 @@ void buildShapeMesh(ScreenContext& screen, ShapeMesh& mesh, ManagedShape const& 
         mesh.lineVertices = static_cast<uint32_t>(shape.lines.size()*2);
     }
 }
+// Draws a mesh built relative to `origin`, scaled toward the eye. The
+// projection is unchanged, but depth moves slightly nearer in proportion to
+// distance, so faces that run along or through existing blocks stay in front
+// of those blocks' own faces instead of flickering against them.
+template <class Draw>
+void withTowardEye(BaseActorRenderContext& context, Cell origin, Draw&& draw) {
+    ScreenContext& screen = context.mScreenContext;
+    Vec3 const camera = context.mImpl->mCameraPosition;
+    auto ref = screen.camera.worldMatrixStack->push(false);
+    ref.stack->_isDirty = true;
+    constexpr float towardEye = .997f;
+    glm::vec3 offset{static_cast<float>(origin.x - camera.x), static_cast<float>(origin.y - camera.y),
+        static_cast<float>(origin.z - camera.z)};
+    ref.mat->_m = glm::scale(glm::translate(ref.mat->_m.get(), offset * towardEye), glm::vec3{towardEye});
+    draw();
+    // Pop manually, matching the proven LeviSchematic pattern for this stack.
+    ref.stack->_isDirty = true;
+    if (ref.stack->sortOrigin->has_value() && (ref.stack->stack->size() - 1) <= ref.stack->sortOrigin->value())
+        ref.stack->sortOrigin->reset();
+    ref.stack->stack->pop_back();
+    ref.mat = nullptr;
+    ref.stack = nullptr;
+}
 void drawShape(BaseActorRenderContext& context, FaceMaterial const& faceMaterial, ShapeId id,
                ManagedShape const& shape, bool draft) {
     if (!context.mImpl) return;
@@ -219,30 +242,14 @@ void drawShape(BaseActorRenderContext& context, FaceMaterial const& faceMaterial
         || (mesh.faces && !mesh.faces->isValid()) || (mesh.lines && !mesh.lines->isValid()))
         buildShapeMesh(screen, mesh, shape, draft, faceMaterial);
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
-    Vec3 const camera = context.mImpl->mCameraPosition;
-    auto ref = screen.camera.worldMatrixStack->push(false);
-    ref.stack->_isDirty = true;
-    // Scale the shape toward the eye. The projection is unchanged, but depth
-    // moves slightly nearer in proportion to distance, so faces that run
-    // through existing blocks stay in front of those blocks' own faces instead
-    // of flickering against them (the inset alone only helps faces in air).
-    constexpr float towardEye = .997f;
-    glm::vec3 offset{static_cast<float>(mesh.origin.x - camera.x), static_cast<float>(mesh.origin.y - camera.y),
-        static_cast<float>(mesh.origin.z - camera.z)};
-    ref.mat->_m = glm::scale(glm::translate(ref.mat->_m.get(), offset * towardEye), glm::vec3{towardEye});
-    if (mesh.faces && faceMaterial.material.mRenderMaterialInfoPtr)
-        mesh.faces->renderMesh(screen, faceMaterial.material, gsl::span<mce::ClientTexture const*>{}, 0, mesh.faceVertices,
-            OffscreenCaptureDescription{}, nullptr);
-    if (mesh.lines && lineMaterial.mRenderMaterialInfoPtr)
-        mesh.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, mesh.lineVertices,
-            OffscreenCaptureDescription{}, nullptr);
-    // Pop manually, matching the proven LeviSchematic pattern for this stack.
-    ref.stack->_isDirty = true;
-    if (ref.stack->sortOrigin->has_value() && (ref.stack->stack->size() - 1) <= ref.stack->sortOrigin->value())
-        ref.stack->sortOrigin->reset();
-    ref.stack->stack->pop_back();
-    ref.mat = nullptr;
-    ref.stack = nullptr;
+    withTowardEye(context, mesh.origin, [&] {
+        if (mesh.faces && faceMaterial.material.mRenderMaterialInfoPtr)
+            mesh.faces->renderMesh(screen, faceMaterial.material, gsl::span<mce::ClientTexture const*>{}, 0, mesh.faceVertices,
+                OffscreenCaptureDescription{}, nullptr);
+        if (mesh.lines && lineMaterial.mRenderMaterialInfoPtr)
+            mesh.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, mesh.lineVertices,
+                OffscreenCaptureDescription{}, nullptr);
+    });
 }
 // Per-batch colors so one frame can carry Java-style color coding.
 struct LineBatch { std::span<Line const> lines; float r, g, b, a = 1; };
@@ -275,91 +282,141 @@ void drawLines(BaseActorRenderContext& context, std::span<Line const> lines, boo
     if (!hitboxes) { single.r = .2f; single.g = .85f; single.b = 1.f; }
     drawLines(context, std::span<LineBatch const>{&single, 1});
 }
-// Filled quads in the shape face material, one color per batch. Both
-// windings are emitted so culling materials show them from either side.
-struct QuadBatch { std::span<Quad const> quads; float r, g, b, a; };
-void drawQuads(BaseActorRenderContext& context, FaceMaterial const& material, std::span<QuadBatch const> batches) {
-    if (!context.mImpl || !material.material.mRenderMaterialInfoPtr) return;
-    size_t count = 0;
-    for (auto const& group : batches) count += group.quads.size();
-    if (!count) return;
-    ScreenContext& screen = context.mScreenContext;
-    Tessellator batch(screen.tessellator.mBufferResourceService);
-    batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(count * 8), false);
-    Vec3 const camera = context.mImpl->mCameraPosition;
-    auto vertex = [&](Point p) {
-        batch.vertex(static_cast<float>(p.x - camera.x), static_cast<float>(p.y - camera.y), static_cast<float>(p.z - camera.z));
+// Light overlay (BACKLOG L-16). Per chunk column: the markers read last and a
+// mesh of spawn tints and filled numbers, rebuilt only when the markers, the
+// viewing quarter, the number mode or the face material change. Owned by the
+// render thread; world exit and switching the overlay off release it.
+struct LightChunk {
+    std::vector<LightMarker> markers;
+    uint64_t revision = 1;
+    std::optional<mce::Mesh> faces, lines;
+    uint32_t faceVertices = 0, lineVertices = 0;
+    struct Built {
+        uint64_t revision; Facing facing; LightValue value; int variant;
+        bool operator==(Built const&) const = default;
     };
-    for (auto const& group : batches) {
-        batch.color(group.r, group.g, group.b, group.a);
-        for (auto const& quad : group.quads) {
-            for (auto p : quad.corners) vertex(p);
-            for (auto it = quad.corners.rbegin(); it != quad.corners.rend(); ++it) vertex(*it);
-        }
-    }
-    auto mesh = batch.end(Tessellator::UploadMode::Buffered, "Lamium light overlay", SupplementaryFieldAutoGenerationMode{});
-    mesh.renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
-        static_cast<uint>(count * 8), OffscreenCaptureDescription{}, nullptr);
-}
-// Light overlay (BACKLOG L-16): spawn tint plus filled numbers turned toward
-// the viewer. Samples are kept between frames (LightRefresh).
-void drawLightOverlay(BaseActorRenderContext& context, IClientInstance& client, LocalPlayer& player,
-                      Settings::Overlays const& preferences) {
-    thread_local LightRefresh refresh;
-    thread_local std::vector<LightMarker> markers;
-    Vec3 const position = player.getFeetPos();
-    Cell center{checkedCoordinate(std::floor(position.x)), checkedCoordinate(std::floor(position.y)),
-                checkedCoordinate(std::floor(position.z))};
-    int radius = static_cast<int>(preferences.lightRange);
-    auto& dimension = player.getDimension();
-    if (refresh.due(center, static_cast<int>(player.getDimensionId()), radius, std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count())) {
-        auto& region = player.getDimensionBlockSource();
-        auto const& height = dimension.mHeightRange;
-        markers = sampleLightSurfaces(center,radius,3,[&](Cell cell) -> std::optional<LightSurface> {
-            if (cell.y <= height->mMin || cell.y >= height->mMax) return {};
-            BlockPos air{cell.x,cell.y,cell.z}, floor{cell.x,cell.y-1,cell.z};
-            if (!region.getChunkAt(air) || !region.getBlock(air).isAir()
-                || !region.getBlock(floor)._isSolid()) return {};
-            auto light = region.getBrightnessPair(air);
-            return LightSurface{light.block->mValue,light.sky->mValue};
-        });
-    }
-    float yaw = player.getRotation().z;
-    if (auto look = Zoom::instance().lookAngles()) yaw = look->yaw;
-    auto facing = facingFromYaw(yaw);
-    thread_local std::vector<Quad> always, night, numbers, sky;
-    always.clear(); night.clear(); numbers.clear(); sky.clear();
-    for (auto const& marker : markers) {
+    std::optional<Built> built;
+};
+struct LightView { int dimension; int radius; bool operator==(LightView const&) const = default; };
+std::map<ChunkColumn, LightChunk> lightChunks;
+LightSchedule lightSchedule;
+std::optional<LightView> lightView;
+void releaseLight() { lightChunks.clear(); lightSchedule.clear(); lightView.reset(); }
+void buildLightMesh(ScreenContext& screen, LightChunk& chunk, Cell origin, LightChunk::Built key, FaceMaterial const& material) {
+    chunk.faces.reset(); chunk.lines.reset();
+    chunk.faceVertices = chunk.lineVertices = 0;
+    chunk.built = key;
+    std::vector<Quad> always, night, numbers, sky;
+    std::vector<Line> lines;
+    bool both = key.value == LightValue::Both;
+    for (auto const& marker : chunk.markers) {
         auto risk = spawnRisk(marker.light);
         if (risk == SpawnRisk::Always) always.push_back(lightTintQuad(marker.air));
         else if (risk == SpawnRisk::Night) night.push_back(lightTintQuad(marker.air));
-        switch (preferences.lightValue) {
-        case LightValue::Block: appendLightNumberQuads(numbers, marker.air, marker.light.block, facing); break;
-        case LightValue::Sky: appendLightNumberQuads(numbers, marker.air, marker.light.sky, facing); break;
-        case LightValue::Both:
-            appendLightNumberQuads(numbers, marker.air, marker.light.block, facing, -1);
-            appendLightNumberQuads(sky, marker.air, marker.light.sky, facing, 1);
-            break;
+        unsigned value = key.value == LightValue::Sky ? marker.light.sky : marker.light.block;
+        appendLightNumberQuads(numbers, marker.air, value, key.facing, both ? -1 : 0);
+        if (both) appendLightNumberQuads(sky, marker.air, marker.light.sky, key.facing, 1);
+        // Vibrant Visuals may not show the faces; keep the digits readable as lines.
+        if (material.strongLines) {
+            appendLightNumberLines(lines, marker.air, value, key.facing, both ? -1 : 0);
+            if (both) appendLightNumberLines(lines, marker.air, marker.light.sky, key.facing, 1);
         }
     }
-    auto material = faceMaterial(client);
-    // Additive materials (Simple, Vibrant) need less alpha to read the same.
-    bool blended = material.variant == 0;
-    float tint = blended ? .35f : .22f, ink = blended ? .9f : .75f;
-    std::array<QuadBatch, 4> batches{{{always, .88f, .31f, .22f, tint}, {night, 1.f, .76f, .29f, tint},
-                                      {numbers, 1, 1, 1, ink}, {sky, .62f, .82f, 1.f, ink}}};
-    drawQuads(context, material, batches);
-    // Vibrant Visuals may not show these faces; keep the digits readable as lines.
-    if (material.strongLines) {
-        thread_local std::vector<Line> lines;
-        lines.clear();
-        for (auto const& marker : markers) {
-            bool both = preferences.lightValue == LightValue::Both;
-            unsigned value = preferences.lightValue == LightValue::Sky ? marker.light.sky : marker.light.block;
-            appendLightNumberLines(lines, marker.air, value, facing, both ? -1 : 0);
-            if (both) appendLightNumberLines(lines, marker.air, marker.light.sky, facing, 1);
+    auto relative = [&](Tessellator& batch, Point p) {
+        batch.vertex(static_cast<float>(p.x - origin.x), static_cast<float>(p.y - origin.y), static_cast<float>(p.z - origin.z));
+    };
+    size_t quads = always.size() + night.size() + numbers.size() + sky.size();
+    if (quads) {
+        // Blended (Fancy) faces take shape-like alpha; additive ones add up
+        // quickly on bright ground, so they stay as faint as shape faces.
+        bool blended = material.variant == 0;
+        float tint = material.alpha, ink = blended ? .85f : .3f;
+        std::array<std::tuple<std::vector<Quad> const*, float, float, float, float>, 4> groups{{
+            {&always, .88f, .31f, .22f, tint}, {&night, 1.f, .76f, .29f, tint},
+            {&numbers, 1.f, 1.f, 1.f, ink}, {&sky, .62f, .82f, 1.f, ink}}};
+        Tessellator batch(screen.tessellator.mBufferResourceService);
+        batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(quads * 8), false);
+        for (auto const& [group, r, g, b, a] : groups) {
+            batch.color(r, g, b, a);
+            for (auto const& quad : *group) {
+                for (auto p : quad.corners) relative(batch, p);
+                for (auto it = quad.corners.rbegin(); it != quad.corners.rend(); ++it) relative(batch, *it);
+            }
         }
-        drawLines(context, lines, true);
+        chunk.faces.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium light overlay", SupplementaryFieldAutoGenerationMode{}));
+        chunk.faceVertices = static_cast<uint32_t>(quads * 8);
+    }
+    if (!lines.empty()) {
+        Tessellator batch(screen.tessellator.mBufferResourceService);
+        batch.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(lines.size() * 2), false);
+        batch.color(1.f, 1.f, 1.f, 1.f);
+        for (auto const& line : lines) { relative(batch, line.from); relative(batch, line.to); }
+        chunk.lines.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium light lines", SupplementaryFieldAutoGenerationMode{}));
+        chunk.lineVertices = static_cast<uint32_t>(lines.size() * 2);
+    }
+}
+void drawLightOverlay(BaseActorRenderContext& context, IClientInstance& client, LocalPlayer& player,
+                      Settings::Overlays const& preferences) {
+    if (!context.mImpl) return;
+    // Like Chunk Borders, follow the rendered view while the camera is detached.
+    Vec3 position = player.getFeetPos();
+    if (Zoom::instance().detachedCameraActive()) position = context.mImpl->mCameraPosition;
+    Cell center{checkedCoordinate(std::floor(position.x)), checkedCoordinate(std::floor(position.y)),
+                checkedCoordinate(std::floor(position.z))};
+    int radius = static_cast<int>(preferences.lightRange);
+    LightView view{static_cast<int>(player.getDimensionId()), radius};
+    if (lightView != view) { releaseLight(); lightView = view; }
+    auto wanted = chunksInRange(center, radius);
+    std::erase_if(lightChunks, [&](auto const& entry) {
+        return std::find(wanted.begin(), wanted.end(), entry.first) == wanted.end();
+    });
+    lightSchedule.keepOnly(wanted);
+
+    // Read a bounded number of cells per frame: the viewer's band spans the
+    // same distance up and down as sideways, within the dimension.
+    auto& dimension = player.getDimension();
+    auto const& height = dimension.mHeightRange;
+    int low = std::max(center.y - radius, static_cast<int>(height->mMin) + 1);
+    int high = std::min(center.y + radius, static_cast<int>(height->mMax) - 1);
+    if (low <= high) {
+        constexpr size_t cellBudget = 32768;
+        size_t perColumn = 256 * static_cast<size_t>(high - low + 1);
+        double now = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+        auto& region = player.getDimensionBlockSource();
+        for (auto column : lightSchedule.pick(wanted, chunkOf(center), now, std::max<size_t>(1, cellBudget / perColumn))) {
+            Cell first{column.x * 16, low, column.z * 16};
+            if (!region.getChunkAt(BlockPos{first.x, first.y, first.z})) continue;
+            auto markers = sampleLightBox(first, {first.x + 15, high, first.z + 15}, [&](Cell cell) -> std::optional<LightSurface> {
+                BlockPos air{cell.x,cell.y,cell.z}, floor{cell.x,cell.y-1,cell.z};
+                if (!region.getBlock(air).isAir() || !region.getBlock(floor)._isSolid()) return {};
+                auto light = region.getBrightnessPair(air);
+                return LightSurface{light.block->mValue,light.sky->mValue};
+            });
+            auto& chunk = lightChunks[column];
+            if (chunk.markers != markers) { chunk.markers = std::move(markers); ++chunk.revision; }
+        }
+    }
+
+    float yaw = player.getRotation().z;
+    if (auto look = Zoom::instance().lookAngles()) yaw = look->yaw;
+    auto facing = facingFromYaw(yaw);
+    auto material = faceMaterial(client);
+    mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
+    ScreenContext& screen = context.mScreenContext;
+    for (auto& [column, chunk] : lightChunks) {
+        if (chunk.markers.empty()) continue;
+        Cell origin{column.x * 16, 0, column.z * 16};
+        LightChunk::Built key{chunk.revision, facing, preferences.lightValue, material.variant};
+        if (chunk.built != key || (chunk.faces && !chunk.faces->isValid()) || (chunk.lines && !chunk.lines->isValid()))
+            buildLightMesh(screen, chunk, origin, key, material);
+        withTowardEye(context, origin, [&] {
+            if (chunk.faces && material.material.mRenderMaterialInfoPtr)
+                chunk.faces->renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
+                    chunk.faceVertices, OffscreenCaptureDescription{}, nullptr);
+            if (chunk.lines && lineMaterial.mRenderMaterialInfoPtr)
+                chunk.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0,
+                    chunk.lineVertices, OffscreenCaptureDescription{}, nullptr);
+        });
     }
 }
 LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendererPlayer,
@@ -369,7 +426,8 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     if (!runtime.enabled()) return;
     auto preferences = runtime.preferences().overlays;
     bool breaking = runtime.preferences().interaction.breaking;
-    if (releaseMeshes.exchange(false)) shapeMeshes.clear();
+    if (releaseMeshes.exchange(false)) { shapeMeshes.clear(); releaseLight(); }
+    if (!preferences.light && !lightChunks.empty()) releaseLight();
     bool shapesShown = preferences.shapes && hasShapes();
     if (!preferences.chunkBorders && !preferences.hitboxes && !preferences.light && !breaking && !shapesShown) return;
     IClientInstance& client = context.mClientInstance;

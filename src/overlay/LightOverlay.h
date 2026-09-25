@@ -1,5 +1,6 @@
 #pragma once
 #include "overlay/Geometry.h"
+#include <map>
 #include <optional>
 
 namespace lamium::overlay {
@@ -7,23 +8,24 @@ namespace lamium::overlay {
 struct LightSurface {
     unsigned block = 0;
     unsigned sky = 0;
+    bool operator==(LightSurface const&) const = default;
 };
 struct LightMarker {
     Cell air;
     LightSurface light;
+    bool operator==(LightMarker const&) const = default;
 };
 
 // The provider returns a value only for a loaded air cell above a supported
 // surface. It must not load chunks. Enumerate every qualifying floor in range,
 // including stacked floors; do not silently select just the topmost surface.
+// Every qualifying cell in an inclusive box, at most one chunk column of the
+// tallest dimension, so a caller cannot ask for an unbounded scan.
 template <class Sample>
-std::vector<LightMarker> sampleLightSurfaces(Cell center, int radius, int verticalRadius, Sample&& sample) {
-    if (radius < 0 || radius > 16 || verticalRadius < 0 || verticalRadius > 8)
+std::vector<LightMarker> sampleLightBox(Cell low, Cell high, Sample&& sample) {
+    if (low.x > high.x || low.y > high.y || low.z > high.z
+        || double(high.x) - low.x > 128 || double(high.z) - low.z > 128 || double(high.y) - low.y > 512)
         throw std::invalid_argument("Light overlay range out of bounds");
-    Cell low{checkedCoordinate(double(center.x)-radius), checkedCoordinate(double(center.y)-verticalRadius),
-             checkedCoordinate(double(center.z)-radius)};
-    Cell high{checkedCoordinate(double(center.x)+radius), checkedCoordinate(double(center.y)+verticalRadius),
-              checkedCoordinate(double(center.z)+radius)};
     std::vector<LightMarker> result;
     for (int x = low.x; x <= high.x; ++x)
         for (int z = low.z; z <= high.z; ++z)
@@ -34,6 +36,71 @@ std::vector<LightMarker> sampleLightSurfaces(Cell center, int radius, int vertic
             }
     return result;
 }
+template <class Sample>
+std::vector<LightMarker> sampleLightSurfaces(Cell center, int radius, int verticalRadius, Sample&& sample) {
+    if (radius < 0 || radius > 64 || verticalRadius < 0 || verticalRadius > 64)
+        throw std::invalid_argument("Light overlay range out of bounds");
+    Cell low{checkedCoordinate(double(center.x)-radius), checkedCoordinate(double(center.y)-verticalRadius),
+             checkedCoordinate(double(center.z)-radius)};
+    Cell high{checkedCoordinate(double(center.x)+radius), checkedCoordinate(double(center.y)+verticalRadius),
+              checkedCoordinate(double(center.z)+radius)};
+    return sampleLightBox(low, high, std::forward<Sample>(sample));
+}
+
+// Large ranges are read a few chunk columns per frame and kept per chunk
+// (the way Shapes keep meshes), so radius 64 does not stall a frame.
+struct ChunkColumn {
+    int x = 0, z = 0;
+    auto operator<=>(ChunkColumn const&) const = default;
+};
+inline int floorDiv16(int value) { return value >= 0 ? value / 16 : -((-value + 15) / 16); }
+inline ChunkColumn chunkOf(Cell cell) { return {floorDiv16(cell.x), floorDiv16(cell.z)}; }
+// Columns that touch the square of `radius` blocks around `center`, nearest
+// first; each is shown whole so moving inside a chunk re-reads nothing.
+inline std::vector<ChunkColumn> chunksInRange(Cell center, int radius) {
+    radius = std::clamp(radius, 0, 64);
+    auto low = chunkOf({center.x - radius, 0, center.z - radius}), high = chunkOf({center.x + radius, 0, center.z + radius});
+    auto home = chunkOf(center);
+    std::vector<ChunkColumn> columns;
+    for (int x = low.x; x <= high.x; ++x)
+        for (int z = low.z; z <= high.z; ++z) columns.push_back({x, z});
+    auto distance = [&](ChunkColumn c) { return std::max(std::abs(c.x - home.x), std::abs(c.z - home.z)); };
+    std::stable_sort(columns.begin(), columns.end(), [&](ChunkColumn a, ChunkColumn b) { return distance(a) < distance(b); });
+    return columns;
+}
+// Picks the columns to read this frame: unread ones first, then those older
+// than their refresh interval (fast next to the viewer, slower further out),
+// nearest first and at most `budget` columns.
+class LightSchedule {
+    std::map<ChunkColumn, double> readAt;
+public:
+    static constexpr double nearInterval = .25, farInterval = 2;
+    std::vector<ChunkColumn> pick(std::vector<ChunkColumn> const& wanted, ChunkColumn home, double now, size_t budget) {
+        std::vector<ChunkColumn> chosen;
+        for (int pass = 0; pass < 2 && chosen.size() < budget; ++pass)
+            for (auto column : wanted) {
+                if (chosen.size() >= budget) break;
+                auto found = readAt.find(column);
+                bool unread = found == readAt.end();
+                if (pass == 0 ? !unread : unread) continue;
+                if (!unread) {
+                    bool near = std::max(std::abs(column.x - home.x), std::abs(column.z - home.z)) <= 1;
+                    double age = now - found->second;
+                    if (age >= 0 && age < (near ? nearInterval : farInterval)) continue;
+                }
+                readAt[column] = now;
+                chosen.push_back(column);
+            }
+        return chosen;
+    }
+    // Columns no longer shown are read afresh if they come back.
+    void keepOnly(std::vector<ChunkColumn> const& wanted) {
+        std::erase_if(readAt, [&](auto const& entry) {
+            return std::find(wanted.begin(), wanted.end(), entry.first) == wanted.end();
+        });
+    }
+    void clear() { readAt.clear(); }
+};
 
 // Most monsters spawn only where block light is 0; stored sky light of 7 or
 // more keeps them away by day, so such a spot spawns only at night
@@ -121,22 +188,4 @@ inline Quad lightTintQuad(Cell air) {
              Point{air.x + 1 - in, air.y + lift, air.z + 1 - in}, Point{air.x + in, air.y + lift, air.z + 1 - in}}};
 }
 
-// Sampling reads many blocks, so the overlay keeps its markers and samples
-// again only when the player moves to another block, the dimension or range
-// changes, or `interval` seconds pass (placed torches show up within it).
-class LightRefresh {
-    struct Key { Cell center; int dimension; int radius; bool operator==(Key const&) const = default; };
-    std::optional<Key> last;
-    double sampledAt = 0;
-public:
-    static constexpr double interval = .25;
-    bool due(Cell center, int dimension, int radius, double now) {
-        Key key{center, dimension, radius};
-        if (last == key && std::isfinite(now) && now >= sampledAt && now - sampledAt < interval) return false;
-        last = key;
-        sampledAt = now;
-        return true;
-    }
-    void clear() { last.reset(); }
-};
 }

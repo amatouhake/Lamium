@@ -195,7 +195,7 @@ Settings decodeSettings(std::string_view text) {
         auto lightValue = overlays.value("lightValue", std::string(overlays.value("skyLight", false) ? "sky" : "block"));
         for (size_t i = 0; i < overlay::lightValueNames.size(); ++i)
             if (overlay::lightValueNames[i] == lightValue) value.overlays.lightValue = static_cast<overlay::LightValue>(i);
-        value.overlays.lightRange = overlays.value("lightRange", 8.f);
+        value.overlays.lightRange = overlays.value("lightRange", 16.f);
         value.overlays.hitboxDistance = overlays.value("hitboxDistance", 64.f);
     }
     if (data.contains("bindings")) {

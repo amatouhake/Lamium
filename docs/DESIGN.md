@@ -243,9 +243,17 @@ exactly one switch, one mode and one set of keys:
   From minecraft.wiki (Bedrock); confirm in game.
 - Numbers show block light by default; the setting also offers sky light or
   both (block above, sky below in blue).
-- Range: radius 8 by default, 4-16 in settings; 3 blocks up and down.
-- Samples are kept between frames and refreshed every 0.25 s or when the
-  player moves to another block, changes dimension or range.
+- Range (revised after the first in-game check): radius 16 by default, 4-64
+  in settings, the same distance up and down (flying high still shows the
+  ground). Whole chunk columns are shown. Users lower it if their machine
+  struggles.
+- Centered on the camera while it is detached (FreeCamera), like Chunk
+  Borders; digits turn with the camera's direction.
+- Drawn like Shapes: meshes kept per chunk, nudged toward the eye so they do
+  not flicker against the floor, and as faint as shape faces on the additive
+  material (Simple, Vibrant Visuals).
+- Reading is spread over frames: a bounded number of chunk columns per frame,
+  columns next to the viewer re-read every 0.25 s, the rest every 2 s.
 
 ## Keys
 

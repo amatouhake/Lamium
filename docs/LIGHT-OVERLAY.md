@@ -6,15 +6,18 @@ Decided in DESIGN "Light overlay" (mockup: docs/demos/light-overlay.html).
 
 - Settings: `overlays.light` (switch), `overlays.lightValue` (`block`
   default, `sky`, `both`; the old `skyLight: true` loads as `sky`) and
-  `overlays.lightRange` (4-16, default 8).
+  `overlays.lightRange` (4-64, default 16; same distance up and down).
 - Pure logic in `overlay/LightOverlay.h`, tested in LightOverlayTests:
   `spawnRisk` (red/yellow/none), `facingFromYaw` and `floorPoint` (digits turn
   toward the view), `appendLightNumberQuads` (filled strokes) and
-  `appendLightNumberLines` (fallback), `lightTintQuad`, `LightRefresh`.
-- `WorldOverlay.cpp` samples a (2r+1)^2 x 7 volume only when `LightRefresh`
-  says so, then draws tints and digits as quads in the shape face material
-  (hologram in Fancy, additive lightning otherwise). With Vibrant Visuals the
-  digits are also drawn as lines because faces may not show there.
+  `appendLightNumberLines` (fallback), `lightTintQuad`, `chunksInRange` and
+  `LightSchedule` (which chunk columns to read this frame).
+- `WorldOverlay.cpp` keeps markers and a mesh per chunk column. It reads at
+  most ~32k cells per frame (near columns every 0.25 s, far ones every 2 s),
+  rebuilds a mesh only when its markers, the viewing quarter, the number mode
+  or the material change, and draws it with Shapes' toward-the-eye matrix in
+  the shape face material. With Vibrant Visuals the digits are also lines.
+  The center is the detached camera during FreeCamera.
 - Not verified in game yet: the spawn colors against real spawning, digit
   readability per graphics mode, the refresh after placing a torch, and frame
   time at radius 16.

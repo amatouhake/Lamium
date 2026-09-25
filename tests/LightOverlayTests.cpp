@@ -89,13 +89,34 @@ void lightOverlayTests() {
     auto tint = lightTintQuad({2,64,-7});
     check(tint.corners[0].x > 2 && tint.corners[2].x < 3 && tint.corners[0].z > -7 && tint.corners[2].z < -6
         && tint.corners[0].y > 64 && tint.corners[0].y < tint.corners[0].y + 1, "the spawn tint covers its own floor");
-    LightRefresh refresh;
-    check(refresh.due({0,64,0},0,8,10), "the first frame samples");
-    check(!refresh.due({0,64,0},0,8,10.1), "standing still reuses samples");
-    check(refresh.due({0,64,0},0,8,10.3), "samples refresh after the interval");
-    check(refresh.due({1,64,0},0,8,10.31) && refresh.due({1,64,0},1,8,10.32) && refresh.due({1,64,0},1,12,10.33),
-        "moving, changing dimension or range samples at once");
-    check(refresh.due({1,64,0},1,12,5), "a clock going backwards samples again");
-    refresh.clear();
-    check(refresh.due({1,64,0},1,12,5.01), "clearing forces a sample");
+    check(chunkOf({-1,0,-16}) == ChunkColumn{-1,-1} && chunkOf({15,0,16}) == ChunkColumn{0,1}
+        && chunkOf({-17,0,0}) == ChunkColumn{-2,0}, "chunk columns floor negative coordinates");
+    auto columns = chunksInRange({8,64,8}, 8);
+    check(columns.size() == 4 && columns.front() == ChunkColumn{0,0},
+        "radius 8 from a chunk center reaches x/z 0..16, so 2x2 columns, the viewer's own first");
+    auto wide = chunksInRange({0,64,0}, 64);
+    check(wide.size() == 81 && std::is_sorted(wide.begin(), wide.end(), [](ChunkColumn a, ChunkColumn b) {
+        return std::max(std::abs(a.x), std::abs(a.z)) < std::max(std::abs(b.x), std::abs(b.z)); }),
+        "radius 64 spans 9x9 columns ordered by distance");
+    check(chunksInRange({0,0,0}, 999).size() == 81, "the range is capped at 64");
+    LightSchedule schedule;
+    ChunkColumn home{0,0};
+    auto first = schedule.pick(wide, home, 10, 5);
+    check(first.size() == 5 && first.front() == home, "unread columns are read nearest first within the budget");
+    size_t readAll = 5;
+    for (int frame = 0; frame < 40 && readAll < wide.size(); ++frame) readAll += schedule.pick(wide, home, 10, 5).size();
+    check(readAll == wide.size(), "every column is read once");
+    check(schedule.pick(wide, home, 10.1, 5).empty(), "fresh columns are not read again");
+    auto nearAgain = schedule.pick(wide, home, 10.3, 20);
+    check(nearAgain.size() == 9, "columns next to the viewer refresh after a quarter second");
+    auto farAgain = schedule.pick(wide, home, 12.5, 200);
+    check(farAgain.size() == wide.size(), "far columns refresh after two seconds");
+    schedule.keepOnly({home});
+    check(schedule.pick(wide, home, 12.6, 200).size() == wide.size() - 1, "dropped columns read afresh when they return");
+    schedule.clear();
+    check(schedule.pick({home}, home, 1, 1).size() == 1, "clearing forgets everything");
+    bool tooBig = false;
+    try { (void)sampleLightBox({0,0,0}, {200,0,0}, [](Cell) -> std::optional<LightSurface> { return {}; }); }
+    catch (std::invalid_argument const&) { tooBig = true; }
+    check(tooBig, "a light box larger than the maximum range is rejected");
 }

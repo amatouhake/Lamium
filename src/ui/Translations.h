@@ -416,7 +416,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"lightValue.both", "Both (block / sky)", "両方（ブロック・空）"},
     {"lightRange", "Range: {} blocks", "範囲: {} ブロック"},
     {"help.overlays.lightValue", "Which light the numbers show. Both puts block light above sky light (blue).", "数字に表示する光。両方では、ブロックの光を上、空の光（青）を下に表示します。"},
-    {"help.overlays.lightRange", "How many blocks around you get markers.", "自分の周り何ブロックまで表示するか。"},
+    {"help.overlays.lightRange", "How many blocks around you (sideways and up/down) get markers. Large ranges fill in over a moment; lower it if the game slows down.", "自分の周り（横と上下）何ブロックまで表示するか。広い範囲は少しずつ読み込みます。重く感じたら下げてください。"},
     {"help.lightOverlay", "Light level on nearby solid floors, turned toward you. Red: monsters can spawn at any time. Yellow: only at night. Based on stored light; blocks such as slabs are not judged.", "近くの固体の床の光量を、自分の方へ向けて表示します。赤: いつでも敵がわく。黄: 夜だけわく。保存された光量から判定し、ハーフブロックなどの種類は考慮しません。"},
     {"key.Lamium.lightoverlay", "Lamium: Toggle Light Level Overlay", "Lamium: 光量オーバーレイ切り替え"},
     {"hitboxes", "Hitboxes: {}", "当たり判定: {}"},

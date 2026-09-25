@@ -75,7 +75,7 @@ struct Settings {
         bool hitboxes = false;
         bool light = false;
         overlay::LightValue lightValue = overlay::LightValue::Block;
-        float lightRange = 8; // Horizontal radius in blocks.
+        float lightRange = 16; // Radius in blocks, sideways and up/down.
         float hitboxDistance = 64.f;
     } overlays;
     struct Visuals {
@@ -131,8 +131,8 @@ struct Settings {
         normalizeMode(interaction.placementMode);
         information.lineOrder = information::mergeLineOrder(information.lineOrder);
         if (static_cast<unsigned>(overlays.lightValue) >= overlay::lightValueNames.size()) overlays.lightValue = overlay::LightValue::Block;
-        if (!std::isfinite(overlays.lightRange)) overlays.lightRange = 8;
-        overlays.lightRange = std::clamp(std::round(overlays.lightRange), 4.f, 16.f);
+        if (!std::isfinite(overlays.lightRange)) overlays.lightRange = 16;
+        overlays.lightRange = std::clamp(std::round(overlays.lightRange), 4.f, 64.f);
         if (!std::isfinite(overlays.hitboxDistance)) overlays.hitboxDistance = 64.f;
         overlays.hitboxDistance = std::clamp(overlays.hitboxDistance, 8.f, 128.f);
         auto normalizeElement = [](ui::HudElement& element, ui::HudElement defaultValue) {
