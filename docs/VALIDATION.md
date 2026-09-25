@@ -35,8 +35,9 @@ The current main build/test workflow is exercised by hosted GitHub Actions.
 Hand Restock remains experimental and has **not** successfully replenished an
 item. Hide Offhand still needs a shield-specific render-path investigation.
 Continuous Tool Switch, breaking/placement handoff, dragon multipart hitboxes
-and mob growth/breeding timers remain research. Hotkey overlap semantics L-32
-and the L-34 Auto attack/Auto use redesign remain planned strong-model work.
+and mob growth/breeding timers remain research. Hotkey overlap semantics L-32 are implemented and await an
+in-game check; the L-34 Auto attack/Auto use redesign remains planned
+strong-model work.
 
 ## Historical checkpoint — Info HUD prototype
 
