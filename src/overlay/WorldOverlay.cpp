@@ -215,12 +215,11 @@ void buildShapeMesh(ScreenContext& screen, ShapeMesh& mesh, ManagedShape const& 
 // distance, so faces that run along or through existing blocks stay in front
 // of those blocks' own faces instead of flickering against them.
 template <class Draw>
-void withTowardEye(BaseActorRenderContext& context, Cell origin, Draw&& draw) {
+void withTowardEye(BaseActorRenderContext& context, Cell origin, Draw&& draw, float towardEye = .997f) {
     ScreenContext& screen = context.mScreenContext;
     Vec3 const camera = context.mImpl->mCameraPosition;
     auto ref = screen.camera.worldMatrixStack->push(false);
     ref.stack->_isDirty = true;
-    constexpr float towardEye = .997f;
     glm::vec3 offset{static_cast<float>(origin.x - camera.x), static_cast<float>(origin.y - camera.y),
         static_cast<float>(origin.z - camera.z)};
     ref.mat->_m = glm::scale(glm::translate(ref.mat->_m.get(), offset * towardEye), glm::vec3{towardEye});
@@ -289,8 +288,11 @@ void drawLines(BaseActorRenderContext& context, std::span<Line const> lines, boo
 struct LightChunk {
     std::vector<LightMarker> markers;
     uint64_t revision = 1;
-    std::optional<mce::Mesh> faces, lines;
-    uint32_t faceVertices = 0, lineVertices = 0;
+    // Tints and digits are separate meshes so digits can be drawn nudged
+    // further toward the eye: a fixed lift alone runs out of depth precision
+    // tens of blocks away and the layers fought there.
+    std::optional<mce::Mesh> tints, digits, lines;
+    uint32_t tintVertices = 0, digitVertices = 0, lineVertices = 0;
     struct Built {
         uint64_t revision; Facing facing; LightValue value; int variant;
         bool operator==(Built const&) const = default;
@@ -303,8 +305,8 @@ LightSchedule lightSchedule;
 std::optional<LightView> lightView;
 void releaseLight() { lightChunks.clear(); lightSchedule.clear(); lightView.reset(); }
 void buildLightMesh(ScreenContext& screen, LightChunk& chunk, Cell origin, LightChunk::Built key, FaceMaterial const& material) {
-    chunk.faces.reset(); chunk.lines.reset();
-    chunk.faceVertices = chunk.lineVertices = 0;
+    chunk.tints.reset(); chunk.digits.reset(); chunk.lines.reset();
+    chunk.tintVertices = chunk.digitVertices = chunk.lineVertices = 0;
     chunk.built = key;
     std::vector<Quad> always, night, numbers, sky;
     std::vector<Line> lines;
@@ -325,19 +327,19 @@ void buildLightMesh(ScreenContext& screen, LightChunk& chunk, Cell origin, Light
     auto relative = [&](Tessellator& batch, Point p) {
         batch.vertex(static_cast<float>(p.x - origin.x), static_cast<float>(p.y - origin.y), static_cast<float>(p.z - origin.z));
     };
-    size_t quads = always.size() + night.size() + numbers.size() + sky.size();
-    if (quads) {
-        // Blended (Fancy) faces take shape-like alpha; additive ones add up
-        // quickly on bright ground, so they stay as faint as shape faces.
-        bool blended = material.variant == 0;
-        float tint = material.alpha, ink = blended ? .85f : .3f;
-        std::array<std::tuple<std::vector<Quad> const*, float, float, float, float>, 4> groups{{
-            {&always, .88f, .31f, .22f, tint}, {&night, 1.f, .76f, .29f, tint},
-            {&numbers, 1.f, 1.f, 1.f, ink}, {&sky, .62f, .82f, 1.f, ink}}};
-        // Like shape faces, add the reverse winding only for the culling
-        // (Fancy) material. The others are already two-sided, and a second
-        // copy at the same depth flickers against the first.
-        size_t sides = material.twoSided ? 2 : 1;
+    // Blended (Fancy) faces take shape-like alpha; additive ones add up
+    // quickly on bright ground, so they stay as faint as shape faces.
+    bool blended = material.variant == 0;
+    float tint = material.alpha, ink = blended ? .85f : .3f;
+    // Like shape faces, add the reverse winding only for the culling (Fancy)
+    // material. The others are already two-sided, and a second copy at the
+    // same depth flickers against the first.
+    size_t sides = material.twoSided ? 2 : 1;
+    using Group = std::tuple<std::vector<Quad> const*, float, float, float, float>;
+    auto build = [&](std::initializer_list<Group> groups, std::optional<mce::Mesh>& mesh, uint32_t& vertices, char const* name) {
+        size_t quads = 0;
+        for (auto const& group : groups) quads += std::get<0>(group)->size();
+        if (!quads) return;
         Tessellator batch(screen.tessellator.mBufferResourceService);
         batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(quads * 4 * sides), false);
         for (auto const& [group, r, g, b, a] : groups) {
@@ -347,9 +349,13 @@ void buildLightMesh(ScreenContext& screen, LightChunk& chunk, Cell origin, Light
                 if (sides == 2) for (auto it = quad.corners.rbegin(); it != quad.corners.rend(); ++it) relative(batch, *it);
             }
         }
-        chunk.faces.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium light overlay", SupplementaryFieldAutoGenerationMode{}));
-        chunk.faceVertices = static_cast<uint32_t>(quads * 4 * sides);
-    }
+        mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, name, SupplementaryFieldAutoGenerationMode{}));
+        vertices = static_cast<uint32_t>(quads * 4 * sides);
+    };
+    build({Group{&always, .88f, .31f, .22f, tint}, Group{&night, 1.f, .76f, .29f, tint}},
+        chunk.tints, chunk.tintVertices, "Lamium light tints");
+    build({Group{&numbers, 1.f, 1.f, 1.f, ink}, Group{&sky, .62f, .82f, 1.f, ink}},
+        chunk.digits, chunk.digitVertices, "Lamium light digits");
     if (!lines.empty()) {
         Tessellator batch(screen.tessellator.mBufferResourceService);
         batch.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(lines.size() * 2), false);
@@ -427,20 +433,30 @@ void drawLightOverlay(BaseActorRenderContext& context, IClientInstance& client, 
         auto& chunk = found->second;
         Cell origin{column.x * 16, 0, column.z * 16};
         LightChunk::Built key{chunk.revision, facing, preferences.lightValue, material.variant};
-        bool invalid = (chunk.faces && !chunk.faces->isValid()) || (chunk.lines && !chunk.lines->isValid());
+        bool invalid = (chunk.tints && !chunk.tints->isValid()) || (chunk.digits && !chunk.digits->isValid())
+            || (chunk.lines && !chunk.lines->isValid());
         if ((chunk.built != key || invalid) && (rebuilt == 0 || rebuilt + chunk.markers.size() <= markerBudget || invalid)) {
             buildLightMesh(screen, chunk, origin, key, material);
             rebuilt += chunk.markers.size();
         }
         if (!chunk.built) continue;
-        withTowardEye(context, origin, [&] {
-            if (chunk.faces && material.material.mRenderMaterialInfoPtr)
-                chunk.faces->renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
-                    chunk.faceVertices, OffscreenCaptureDescription{}, nullptr);
-            if (chunk.lines && lineMaterial.mRenderMaterialInfoPtr)
+        // Each layer sits nearer the eye in proportion to distance (screen
+        // positions do not change), so tint, digits and lines stay apart in
+        // depth at any range.
+        auto faces = [&](std::optional<mce::Mesh>& mesh, uint32_t vertices, float towardEye) {
+            if (!mesh || !material.material.mRenderMaterialInfoPtr) return;
+            withTowardEye(context, origin, [&] {
+                mesh->renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
+                    vertices, OffscreenCaptureDescription{}, nullptr);
+            }, towardEye);
+        };
+        faces(chunk.tints, chunk.tintVertices, .997f);
+        faces(chunk.digits, chunk.digitVertices, .995f);
+        if (chunk.lines && lineMaterial.mRenderMaterialInfoPtr)
+            withTowardEye(context, origin, [&] {
                 chunk.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0,
                     chunk.lineVertices, OffscreenCaptureDescription{}, nullptr);
-        });
+            }, .993f);
     }
 }
 LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendererPlayer,

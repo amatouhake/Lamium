@@ -259,7 +259,10 @@ exactly one switch, one mode and one set of keys:
   quad had both windings on already two-sided materials, so two copies at one
   depth fought (reverse winding now only for Fancy), and (2) digit strokes
   overlapped at their corners in one plane (digits are now non-overlapping
-  cells of a 3x5 bar grid).
+  cells of a 3x5 bar grid), and (3) tint and digits a few millimetres apart
+  run out of depth precision far away. Tints, digits and Vibrant's line digits
+  are separate meshes nudged toward the eye by growing factors (.997, .995,
+  .993), so their depth gap grows with distance like Shapes' own nudge.
 - Drawn like Shapes: meshes kept per chunk, nudged toward the eye so they do
   not flicker against the floor, and as faint as shape faces on the additive
   material (Simple, Vibrant Visuals).
