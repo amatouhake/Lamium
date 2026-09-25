@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Light Overlay Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  /* In-game tokens (src/ui/Widgets.h palette). */
+  --mc-warn:#ffc24a; --mc-red:#e05038;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:24px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+h3{font:700 15px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:72ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px 24px;align-items:start}
+.cgroup{display:grid;gap:6px}
+.cgroup > span{font-size:12px;color:var(--ink-3);letter-spacing:.04em}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);background:var(--ground-2);max-width:100%}
+.seg button{all:unset;cursor:pointer;padding:7px 12px;color:var(--ink-2);font:500 13px/1.2 "Noto Sans JP",sans-serif;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-deep);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ctl{display:inline-flex;align-items:center;gap:8px;color:var(--ink-2);font-size:13px}
+.ctl input[type=range]{accent-color:var(--accent);width:160px}
+.stage{position:relative;border:1px solid var(--line);background:#0b0c0d}
+.stage canvas{display:block;width:100%;height:auto;cursor:grab;touch-action:none}
+.stage canvas:active{cursor:grabbing}
+.legend{position:absolute;left:10px;bottom:8px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:#fff;text-shadow:1px 1px 0 #000}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+.hint{position:absolute;right:10px;top:8px;font-size:12px;color:rgba(255,255,255,.75);text-shadow:1px 1px 0 #000}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px}
+.note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:4px}
+.note b{color:var(--ink)}
+.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.ask ol{margin:0;padding-left:1.3em;color:var(--ink-2);font-size:13.5px;display:grid;gap:6px}
+.ask b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">LAMIUM · BACKLOG L-16</div>
+    <h1>光量オーバーレイの見せ方</h1>
+    <p class="lede">今の光量オーバーレイは、細い線の数字を床に北向きで寝かせています。そのため斜めから読みにくく、範囲も半径 4 ブロックだけです。下の場面（草地・たいまつ 2 本・壁と屋根のある小屋・高台）で各案を比べてください。場面はドラッグで回せます。角度のスライダーで、上から見たときと水平に近いときの読みやすさを確かめられます。光の値はモック用の近似です。</p>
+  </header>
+
+  <div class="controls">
+    <div class="cgroup"><span>A. 表示するもの</span><div class="seg" data-key="show">
+      <button data-v="num">数字だけ（今）</button><button data-v="both">数字＋色</button><button data-v="color">色だけ</button></div></div>
+    <div class="cgroup"><span>B. 数字の向き</span><div class="seg" data-key="orient">
+      <button data-v="north">床に寝かせて北向き固定（今）</button><button data-v="yaw">床に寝かせて視点の方へ回す</button><button data-v="bill">立てて常にカメラへ向ける</button></div></div>
+    <div class="cgroup"><span>C. 数字の太さ</span><div class="seg" data-key="weight">
+      <button data-v="thin">細い線（今）</button><button data-v="thick">太く塗る</button></div></div>
+    <div class="cgroup"><span>D. 色の付け方</span><div class="seg" data-key="mark">
+      <button data-v="tint">床を薄く塗る</button><button data-v="cross">× 印</button><button data-v="square">小さい四角</button></div></div>
+    <div class="cgroup"><span>E. 数字の値</span><div class="seg" data-key="value">
+      <button data-v="block">ブロックの光</button><button data-v="sky">空の光</button><button data-v="both">両方（ブロック・空）</button></div></div>
+    <div class="cgroup"><span>F. 範囲（半径）</span><div class="seg" data-key="range">
+      <button data-v="4">4（今）</button><button data-v="8">8</button><button data-v="12">12</button><button data-v="16">16</button></div></div>
+    <div class="cgroup"><span>視点</span>
+      <label class="ctl" for="pitch">見下ろす角度 <input id="pitch" type="range" min="12" max="85" value="38"> <output id="pitchv">38°</output></label></div>
+  </div>
+
+  <div class="stage">
+    <canvas id="view" width="1280" height="720" aria-label="光量オーバーレイのモック場面"></canvas>
+    <div class="legend" id="legend"></div>
+    <div class="hint">ドラッグで回転</div>
+  </div>
+
+  <section class="cards">
+    <article class="note"><h3>色の意味（案）</h3><ul>
+      <li><b style="color:var(--mc-red)">赤</b>：いつでも敵がわく（ブロックの光 0、空の光も低い＝屋根の下など）</li>
+      <li><b style="color:var(--mc-warn)">黄</b>：夜だけ敵がわく（ブロックの光 0、空が開けている）</li>
+      <li>色なし：わかない（ブロックの光が 1 以上）</li>
+      <li>minecraft.wiki（Bedrock）によると、たいていの敵はブロックの光が 1 以上、または空の光が 7 以上だとわかない。実装前にゲームで確かめる</li>
+    </ul></article>
+    <article class="note"><h3>技術面（こちらで決める部分）</h3><ul>
+      <li>毎フレーム読み直すのをやめ、チャンクごとに光の値を覚えておき、ブロックの変化や数 tick ごとに更新する。これで範囲を広げても重くならないようにする</li>
+      <li>ゲームでは文字を描けないので、数字は今と同じく線（または面）で組んだ7セグメントの形</li>
+      <li>「わく場所」は光だけで判定し、ブロックの種類（ハーフブロック・ガラスなど）は第一段階では細かく扱わない</li>
+    </ul></article>
+  </section>
+
+  <section class="ask">
+    <h2>確認したいこと</h2>
+    <ol>
+      <li><b>A. 表示するもの</b>：私の案は「数字＋色」です。数字で値を、色でわくかどうかを一目で分かるようにします。</li>
+      <li><b>B. 数字の向き</b>：私の案は「床に寝かせて視点の方へ回す」です。床に貼り付いたまま読めて、立てた数字のように奥の数字を隠しません。水平に近い角度では「立てる」の方が読みやすいので、見比べてください。</li>
+      <li><b>C. 太さ</b>：私の案は「太く塗る」です。</li>
+      <li><b>D. 色の付け方</b>：私の案は「床を薄く塗る」です。× 印は数字と重なって読みにくくなりやすいです。</li>
+      <li><b>E. 数字の値</b>：私の案は、既定を「ブロックの光」にして、設定で空の光・両方に切り替えられるようにすることです。</li>
+      <li><b>F. 範囲</b>：私の案は、既定を 8 にして、設定で 4〜16 から選べるようにすることです。</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+const st = {show:'both', orient:'yaw', weight:'thick', mark:'tint', value:'block', range:'8', yaw:-0.6, pitch:38};
+const RED = '#e05038', YELLOW = '#ffc24a';
+
+/* ---------- Scene: 41x41 cells, ground heights, walls, roof, torches ---------- */
+const N = 41, C = 20;
+const height = [], wall = [], roof = [];
+for (let x = 0; x < N; x++) { height[x] = []; wall[x] = []; roof[x] = []; for (let z = 0; z < N; z++) { height[x][z] = 0; wall[x][z] = false; roof[x][z] = false; } }
+// Plateau to the north-east.
+for (let x = 23; x < 33; x++) for (let z = 8; z < 16; z++) height[x][z] = 1;
+// Shelter south-west: 9x9 walls with a door, roofed.
+const hx0 = 12, hz0 = 23, hs = 8;
+for (let x = hx0; x < hx0 + hs; x++) for (let z = hz0; z < hz0 + hs; z++) {
+  const edge = x === hx0 || z === hz0 || x === hx0 + hs - 1 || z === hz0 + hs - 1;
+  if (edge) wall[x][z] = true; else roof[x][z] = true;
+}
+wall[hx0 + 4][hz0] = false; roof[hx0 + 4][hz0] = true; // door on the north side
+const torches = [[C + 6, C - 3], [C + 14, C + 12]];
+const isTorch = (x, z) => torches.some(([tx, tz]) => tx === x && tz === z);
+
+// Light by flood fill through open cells (a 2D approximation of vanilla).
+function flood(seed) {
+  const level = []; for (let x = 0; x < N; x++) level[x] = new Array(N).fill(0);
+  const queue = [];
+  for (const [x, z, v] of seed) { level[x][z] = v; queue.push([x, z]); }
+  while (queue.length) {
+    const [x, z] = queue.shift(), v = level[x][z] - 1;
+    if (v <= 0) continue;
+    for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nx = x + dx, nz = z + dz;
+      if (nx < 0 || nz < 0 || nx >= N || nz >= N || wall[nx][nz]) continue;
+      const step = Math.abs(height[nx][nz] - height[x][z]) > 0 ? v - 1 : v;
+      if (step > level[nx][nz]) { level[nx][nz] = step; queue.push([nx, nz]); }
+    }
+  }
+  return level;
+}
+const skySeed = [], blockSeed = torches.map(([x, z]) => [x, z, 14]);
+for (let x = 0; x < N; x++) for (let z = 0; z < N; z++) if (!wall[x][z] && !roof[x][z]) skySeed.push([x, z, 15]);
+const sky = flood(skySeed), block = flood(blockSeed);
+// Interior darkness: the roofed shelter is far from its door, so pull sky down.
+for (let x = 0; x < N; x++) for (let z = 0; z < N; z++) if (roof[x][z]) sky[x][z] = Math.max(0, sky[x][z] - 6);
+const spawn = (x, z) => block[x][z] > 0 || isTorch(x, z) ? null : sky[x][z] < 7 ? RED : YELLOW;
+
+/* ---------- Camera and projection ---------- */
+const canvas = document.getElementById('view'), g = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+function camera() {
+  const p = st.pitch * Math.PI / 180, dist = 8 + +st.range * 1.1;
+  const target = [C + .5, 0.5, C + .5];
+  const eye = [target[0] + Math.sin(st.yaw) * Math.cos(p) * dist, target[1] + Math.sin(p) * dist, target[2] + Math.cos(st.yaw) * Math.cos(p) * dist];
+  const f = norm(sub(target, eye)), r = norm(cross(f, [0, 1, 0])), u = cross(r, f);
+  return {eye, f, r, u};
+}
+const sub = (a, b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+const dot = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+const norm = a => { const l = Math.hypot(...a); return [a[0]/l, a[1]/l, a[2]/l]; };
+let cam;
+function project(p) {
+  const d = sub(p, cam.eye), z = dot(d, cam.f);
+  if (z < .1) return null;
+  const s = H * 1.1 / z;
+  return [W / 2 + dot(d, cam.r) * s, H / 2 - dot(d, cam.u) * s, z];
+}
+function poly(points, fill, stroke, alpha = 1) {
+  const pts = points.map(project); if (pts.some(p => !p)) return;
+  g.globalAlpha = alpha; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath();
+  if (fill) { g.fillStyle = fill; g.fill(); }
+  if (stroke) { g.strokeStyle = stroke; g.lineWidth = 1; g.stroke(); }
+  g.globalAlpha = 1;
+}
+
+/* ---------- Seven-segment digits ---------- */
+const MASKS = [0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f];
+const SEGS = [[0,0,1,0],[1,0,1,.5],[1,.5,1,1],[0,1,1,1],[0,.5,0,1],[0,0,0,.5],[0,.5,1,.5]];
+// Segment strokes of a number in a unit box (u right, v down), width w per digit.
+function digitSegments(value, box) {
+  const text = String(value), n = text.length, gap = .12;
+  const w = Math.min(.42, (box - gap * (n - 1)) / n), total = w * n + gap * (n - 1);
+  const out = [];
+  [...text].forEach((ch, i) => {
+    const left = (1 - total) / 2 + i * (w + gap), mask = MASKS[+ch];
+    SEGS.forEach((s, k) => { if (mask & (1 << k)) out.push([left + s[0]*w, .18 + s[1]*.64, left + s[2]*w, .18 + s[3]*.64]); });
+  });
+  return out;
+}
+function numberText(x, z) {
+  const b = isTorch(x, z) ? 14 : block[x][z], s = sky[x][z];
+  return st.value === 'block' ? [String(b)] : st.value === 'sky' ? [String(s)] : [String(b), String(s)];
+}
+
+/* ---------- Drawing ---------- */
+function draw() {
+  cam = camera();
+  g.fillStyle = '#7fb0e8'; g.fillRect(0, 0, W, H);
+  const range = +st.range, items = [];
+  for (let x = 0; x < N; x++) for (let z = 0; z < N; z++) {
+    const h = height[x][z], center = [x + .5, h, z + .5];
+    const depth = dot(sub(center, cam.eye), cam.f);
+    items.push({depth, kind: wall[x][z] ? 'wall' : 'top', x, z, h});
+  }
+  items.sort((a, b) => b.depth - a.depth);
+  // Ground tops first (far to near), then markers, then walls/roof so they occlude.
+  for (const it of items) if (it.kind === 'top') {
+    const {x, z, h} = it, shade = (x + z) % 2 ? '#5f9c3c' : '#5a9638';
+    poly([[x,h,z],[x+1,h,z],[x+1,h,z+1],[x,h,z+1]], roof[x][z] ? '#4b6f35' : shade);
+    if (h > 0) {
+      poly([[x,0,z+1],[x+1,0,z+1],[x+1,h,z+1],[x,h,z+1]], '#7a563b');
+      poly([[x+1,0,z],[x+1,0,z+1],[x+1,h,z+1],[x+1,h,z]], '#6e4c34');
+    }
+    if (isTorch(x, z)) {
+      poly([[x+.44,h,z+.44],[x+.56,h,z+.44],[x+.56,h+.6,z+.44],[x+.44,h+.6,z+.44]], '#8a6a3a');
+      poly([[x+.4,h+.6,z+.4],[x+.6,h+.6,z+.4],[x+.6,h+.75,z+.4],[x+.4,h+.75,z+.4]], '#ffd24a');
+    }
+  }
+  const px = C, pz = C;
+  const markers = items.filter(it => it.kind === 'top' && Math.max(Math.abs(it.x - px), Math.abs(it.z - pz)) <= range);
+  for (const it of markers) drawMarker(it);
+  for (const it of items) if (it.kind === 'wall') {
+    const {x, z, h} = it, top = h + 3;
+    const faces = [
+      [[x,h,z+1],[x+1,h,z+1],[x+1,top,z+1],[x,top,z+1]], [[x,h,z],[x+1,h,z],[x+1,top,z],[x,top,z]],
+      [[x+1,h,z],[x+1,h,z+1],[x+1,top,z+1],[x+1,top,z]], [[x,h,z],[x,h,z+1],[x,top,z+1],[x,top,z]],
+      [[x,top,z],[x+1,top,z],[x+1,top,z+1],[x,top,z+1]]];
+    faces.map(f => ({f, d: dot(sub([f.reduce((s,p)=>s+p[0],0)/4, f.reduce((s,p)=>s+p[1],0)/4, f.reduce((s,p)=>s+p[2],0)/4], cam.eye), cam.f)}))
+      .sort((a, b) => b.d - a.d).forEach(({f}, i) => poly(f, i === 4 ? '#9a9a9a' : '#858585', '#6d6d6d', .55));
+  }
+  // Roof as an outline only so the interior markers stay visible.
+  poly([[hx0,3,hz0],[hx0+hs,3,hz0],[hx0+hs,3,hz0+hs],[hx0,3,hz0+hs]], null, '#d9b07a', .9);
+  // Player marker.
+  const pp = project([px + .5, .02, pz + .5]);
+  if (pp) { g.fillStyle = '#ffffff'; g.beginPath(); g.arc(pp[0], pp[1], 5, 0, 7); g.fill(); }
+  renderLegend();
+}
+function drawMarker({x, z, h}) {
+  const color = spawn(x, z), y = h + .02;
+  if (st.show !== 'num' && color) {
+    if (st.mark === 'tint') poly([[x,y,z],[x+1,y,z],[x+1,y,z+1],[x,y,z+1]], color, null, .45);
+    else if (st.mark === 'square') poly([[x+.38,y,z+.38],[x+.62,y,z+.38],[x+.62,y,z+.62],[x+.38,y,z+.62]], color);
+    else {
+      strokeWorld([[x+.12,y,z+.12],[x+.88,y,z+.88]], color, st.weight === 'thick' ? 3 : 1.5);
+      strokeWorld([[x+.88,y,z+.12],[x+.12,y,z+.88]], color, st.weight === 'thick' ? 3 : 1.5);
+    }
+  }
+  if (st.show === 'color') return;
+  const texts = numberText(x, z), ink = '#ffffff';
+  if (st.orient === 'bill') { drawBillboard(x, z, h, texts, ink); return; }
+  // Flat digits on the floor, rotated around the cell center.
+  const angle = st.orient === 'north' ? 0 : Math.round(-st.yaw / (Math.PI / 2)) * (Math.PI / 2) + Math.PI;
+  const cos = Math.cos(angle), sin = Math.sin(angle);
+  const place = (u, v) => { const du = u - .5, dv = v - .5; return [x + .5 + du * cos - dv * sin, y + .005, z + .5 + du * sin + dv * cos]; };
+  texts.forEach((text, row) => {
+    const segs = digitSegments(text, .8);
+    const vOff = texts.length === 2 ? (row ? .22 : -.22) : 0, scale = texts.length === 2 ? .45 : 1;
+    const color = texts.length === 2 && row ? '#9fd2ff' : ink;
+    for (const [u0, v0, u1, v1] of segs) {
+      const map = (u, v) => place(.5 + (u - .5) * scale, .5 + (v - .5) * scale + vOff);
+      if (st.weight === 'thick') thickSegment(map(u0, v0), map(u1, v1), color, .07 * scale);
+      else strokeWorld([map(u0, v0), map(u1, v1)], color, 1);
+    }
+  });
+}
+function strokeWorld(points, color, width) {
+  const pts = points.map(project); if (pts.some(p => !p)) return;
+  g.strokeStyle = color; g.lineWidth = width; g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); g.lineTo(pts[1][0], pts[1][1]); g.stroke();
+}
+function thickSegment(a, b, color, w) {
+  const d = norm(sub(b, a)), side = [-d[2] * w, 0, d[0] * w];
+  poly([[a[0]-side[0],a[1],a[2]-side[2]],[b[0]-side[0],b[1],b[2]-side[2]],[b[0]+side[0],b[1],b[2]+side[2]],[a[0]+side[0],a[1],a[2]+side[2]]], color);
+}
+function drawBillboard(x, z, h, texts, ink) {
+  const p = project([x + .5, h + .45, z + .5]); if (!p) return;
+  const size = H * 1.1 / p[2] * .55;
+  texts.forEach((text, row) => {
+    const segs = digitSegments(text, .8), scale = texts.length === 2 ? .55 : 1;
+    const oy = texts.length === 2 ? (row ? .3 : -.3) * size : 0, color = texts.length === 2 && row ? '#9fd2ff' : ink;
+    g.strokeStyle = color; g.lineCap = 'round';
+    g.lineWidth = st.weight === 'thick' ? Math.max(1.5, size * .11 * scale) : 1;
+    // Dark backing keeps white strokes readable over bright ground.
+    for (const pass of [0, 1]) {
+      g.strokeStyle = pass ? color : 'rgba(0,0,0,.55)';
+      g.lineWidth = (st.weight === 'thick' ? Math.max(1.5, size * .11 * scale) : 1) + (pass ? 0 : 2);
+      g.beginPath();
+      for (const [u0, v0, u1, v1] of segs) {
+        g.moveTo(p[0] + (u0 - .5) * size * scale, p[1] + oy + (v0 - .5) * size * scale);
+        g.lineTo(p[0] + (u1 - .5) * size * scale, p[1] + oy + (v1 - .5) * size * scale);
+      }
+      g.stroke();
+    }
+    g.lineCap = 'butt';
+  });
+}
+function renderLegend() {
+  const parts = [];
+  if (st.show !== 'num') parts.push(`<span><i style="background:${RED}"></i>いつでもわく</span>`, `<span><i style="background:${YELLOW}"></i>夜だけわく</span>`);
+  if (st.show !== 'color' && st.value === 'both') parts.push('<span><i style="background:#fff"></i>ブロックの光</span>', '<span><i style="background:#9fd2ff"></i>空の光</span>');
+  parts.push('<span><i style="background:#fff;border-radius:50%"></i>プレイヤー</span>');
+  document.getElementById('legend').innerHTML = parts.join('');
+}
+
+/* ---------- Controls ---------- */
+document.querySelectorAll('.seg').forEach(seg => {
+  const key = seg.dataset.key;
+  const sync = () => seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === st[key])));
+  seg.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; st[key] = b.dataset.v; sync(); draw(); });
+  sync();
+});
+const pitch = document.getElementById('pitch'), pitchv = document.getElementById('pitchv');
+pitch.addEventListener('input', () => { st.pitch = +pitch.value; pitchv.textContent = st.pitch + '°'; draw(); });
+let dragX = null;
+canvas.addEventListener('pointerdown', e => { dragX = e.clientX; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => { if (dragX === null) return; st.yaw -= (e.clientX - dragX) * .01; dragX = e.clientX; draw(); });
+canvas.addEventListener('pointerup', () => { dragX = null; });
+draw();
+})();
+</script>
+</body>
+</html>
