@@ -23,11 +23,23 @@ namespace {
 bool installed = false;
 #ifdef LAMIUM_RESEARCH_TRACE
 void logRenderSite(int site, ItemContextFlags flags, int mainHand) noexcept;
+// L-14: per-site call counts reported every ~300 frames. Combo-once logging
+// goes blind once combos are consumed, so A/B runs (offhand empty vs shield)
+// reveal the shield's path by count difference.
+struct RenderCounts {
+    unsigned firstPerson = 0, offhand = 0, itemMH[2] = {}, itemNew = 0;
+    unsigned objectFP = 0, objectWorld = 0, objectUI = 0;
+    unsigned getcall = 0, rebuild = 0, applyTrans = 0, tessBlock = 0, frames = 0;
+};
+inline RenderCounts renderCounts{};
 #endif
 LL_TYPE_INSTANCE_HOOK(OffhandVisibility, ll::memory::HookPriority::Normal, ItemInHandRenderer,
     &ItemInHandRenderer::renderOffhandItem, void, BaseActorRenderContext& context,
     Player& player, ItemContextFlags flags) {
     auto& runtime = Runtime::instance();
+#ifdef LAMIUM_RESEARCH_TRACE
+    ++renderCounts.offhand;
+#endif
     bool firstPerson = (static_cast<unsigned>(flags) & static_cast<unsigned>(ItemContextFlags::FirstPersonPass)) != 0;
     bool otherPass = (static_cast<unsigned>(flags) & (static_cast<unsigned>(ItemContextFlags::WorldPass)
         | static_cast<unsigned>(ItemContextFlags::UIPass))) != 0;
@@ -79,6 +91,16 @@ void traceDecision(char const* what, int a, int b) noexcept {
 inline void traceDecision(char const*, int, int) noexcept {}
 #endif
 #ifdef LAMIUM_RESEARCH_TRACE
+void reportRenderCounts() {
+    if (++renderCounts.frames % 300 != 0) return;
+    try {
+        auto& c = renderCounts;
+        Runtime::instance().self().getLogger().info(
+            "research L-14 counts fp={} off={} item={}/{}/{} obj={}/{}/{} get={} rebuild={} apply={} tess={}",
+            c.firstPerson, c.offhand, c.itemMH[0], c.itemMH[1], c.itemNew, c.objectFP, c.objectWorld, c.objectUI,
+            c.getcall, c.rebuild, c.applyTrans, c.tessBlock);
+    } catch (...) {}
+}
 // L-14: which stack flows through the cached-call builders? Bounded.
 void traceItemIdentity(char const* site, ItemStack const& item) noexcept {
     try {
@@ -107,6 +129,7 @@ LL_TYPE_INSTANCE_HOOK(OffhandGetCallTrace, ll::memory::HookPriority::Low, ItemIn
     &ItemInHandRenderer::_getRenderCall, ItemRenderCall*, Mob* mob, ItemStack const& itemInstance,
     int fallbackFrame) {
     auto* call = origin(mob, itemInstance, fallbackFrame);
+    ++renderCounts.getcall;
     traceItemIdentity("getcall", itemInstance);
     return call;
 }
@@ -114,6 +137,7 @@ LL_TYPE_INSTANCE_HOOK(OffhandRebuildTrace, ll::memory::HookPriority::Low, ItemIn
     &ItemInHandRenderer::_rebuildItem, ItemRenderCall&, BaseActorRenderContext& context, Mob* mob,
     ItemStack const& item, int fallbackFrame) {
     auto& call = origin(context, mob, item, fallbackFrame);
+    ++renderCounts.rebuild;
     traceItemIdentity("rebuild", item);
     return call;
 }
@@ -193,6 +217,8 @@ void logRenderSite(int site, ItemContextFlags flags, int mainHand) noexcept {
 LL_TYPE_INSTANCE_HOOK(OffhandFirstPersonTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
     &ItemInHandRenderer::renderFirstPerson, void, BaseActorRenderContext& context, Matrix const& prevProj,
     ItemContextFlags flags) {
+    ++renderCounts.firstPerson;
+    reportRenderCounts();
     logRenderSite(1, flags, -1);
     origin(context, prevProj, flags);
 }
@@ -200,6 +226,7 @@ LL_TYPE_INSTANCE_HOOK(OffhandItemTrace, ll::memory::HookPriority::Low, ItemInHan
     &ItemInHandRenderer::renderItem, void, BaseActorRenderContext& context, Actor& entity,
     ItemStack const& item, bool posAndRotSetByJSON, ItemContextFlags flags, bool useMatrixAsIs,
     bool renderingMainHand) {
+    ++renderCounts.itemMH[renderingMainHand ? 1 : 0];
     logRenderSite(2, flags, renderingMainHand ? 1 : 0);
     origin(context, entity, item, posAndRotSetByJSON, flags, useMatrixAsIs, renderingMainHand);
 }
@@ -211,6 +238,7 @@ LL_TYPE_INSTANCE_HOOK(OffhandItemNewTrace, ll::memory::HookPriority::Low, ItemIn
         auto& runtime = Runtime::instance();
         if (runtime.enabled() && runtime.preferences().visuals.hideOffhand) logRenderSite(3, flags, -1);
     } catch (...) {}
+    ++renderCounts.itemNew;
     origin(context, entity, item, flags, lightEmission);
 }
 LL_TYPE_INSTANCE_HOOK(OffhandRenderObjectTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
@@ -222,6 +250,10 @@ LL_TYPE_INSTANCE_HOOK(OffhandRenderObjectTrace, ll::memory::HookPriority::Low, I
         auto& runtime = Runtime::instance();
         if (runtime.enabled() && runtime.preferences().visuals.hideOffhand) logRenderSite(5, flags, -1);
     } catch (...) {}
+    unsigned f = static_cast<unsigned>(flags);
+    if (f & static_cast<unsigned>(ItemContextFlags::UIPass)) ++renderCounts.objectUI;
+    else if (f & static_cast<unsigned>(ItemContextFlags::WorldPass)) ++renderCounts.objectWorld;
+    else ++renderCounts.objectFP;
     origin(context, renderObject, renderMetadata, flags);
 }
 LL_TYPE_INSTANCE_HOOK(OffhandTessellateTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
@@ -234,13 +266,30 @@ LL_TYPE_INSTANCE_HOOK(OffhandTessellateTrace, ll::memory::HookPriority::Low, Ite
     } catch (...) {}
     origin(context, mob, item, frame);
 }
+LL_TYPE_INSTANCE_HOOK(OffhandApplyTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
+    &ItemInHandRenderer::_applyDefaultItemTransforms, void, MatrixStack::MatrixStackRef& worldMatrix,
+    ItemStack const& item, bool isInHandItem, BlockType const* blockType, BlockShape blockShape,
+    ItemRenderCall const* renderObjectCall, float heldItemScale, bool posAndRotSetByJSON) {
+    ++renderCounts.applyTrans;
+    traceItemIdentity("apply", item);
+    origin(worldMatrix, item, isInHandItem, blockType, blockShape, renderObjectCall, heldItemScale,
+        posAndRotSetByJSON);
+}
+LL_TYPE_INSTANCE_HOOK(OffhandTessBlockTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
+    &ItemInHandRenderer::_tessellateBlockItem, void, Tessellator& tessellator, BlockTessellator& t,
+    Block const& block, mce::framebuilder::FrameLightingModelCapabilities const& lightingModelCaps) {
+    ++renderCounts.tessBlock;
+    origin(tessellator, t, block, lightingModelCaps);
+}
 struct TraceHook { int (*install)(bool); bool (*remove)(bool); };
 TraceHook traceHooks[] = {{OffhandFirstPersonTrace::hook, OffhandFirstPersonTrace::unhook},
     {OffhandItemTrace::hook, OffhandItemTrace::unhook}, {OffhandItemNewTrace::hook, OffhandItemNewTrace::unhook},
     {OffhandRenderObjectTrace::hook, OffhandRenderObjectTrace::unhook},
     {OffhandTessellateTrace::hook, OffhandTessellateTrace::unhook},
     {OffhandGetCallTrace::hook, OffhandGetCallTrace::unhook},
-    {OffhandRebuildTrace::hook, OffhandRebuildTrace::unhook}};
+    {OffhandRebuildTrace::hook, OffhandRebuildTrace::unhook},
+    {OffhandApplyTrace::hook, OffhandApplyTrace::unhook},
+    {OffhandTessBlockTrace::hook, OffhandTessBlockTrace::unhook}};
 #endif
 }
 struct Hook { int (*install)(bool); bool (*remove)(bool); };
