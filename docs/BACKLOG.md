@@ -26,8 +26,7 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins.
 
-1. **Fix bugs:** L-27 (Design) and the bug research L-36, L-37, L-14 and
-   L-17.
+1. **Fix bugs:** L-27 (Design) and the bug research L-37, L-14 and L-17.
 2. **Camera requests from users:** L-45 (Ready, awaiting check), L-39 (Design).
 3. **High-priority new work:** L-40 Fake Sneak (Research).
 4. **Restriction redesign:** L-15 (Design; its resume bug is L-36).
@@ -84,7 +83,7 @@ on their own (clock, compass) to make sure those still animate.
 
 ### L-36 Breaking does not resume after a forbidden block
 Kind: Research. Split from L-15 on 2026-09-26.
-Status: cause found and fixed, awaiting the batched in-game check. The trace
+Status: done (verified in game 2026-09-26, DLL aadaa782). The trace
 (2026-09-26) showed that when `continueDestroyBlock` returns false for a block
 outside the region, vanilla calls `stopDestroyBlock` on the previous block and
 never calls `continueDestroyBlock` again while the button stays held. The
@@ -98,8 +97,7 @@ Check (DLL a6fdad6e): cracking stopped, but afterwards allowed blocks showed the
 crack animation without breaking; the trace showed client `destroyBlock` calls
 returning true that the server never applied, because the aborted session was
 continued without a new start action. Since b5094f7 the first allowed target
-after such an abort calls `startDestroyBlock` like a fresh click (awaiting
-re-check).
+after such an abort calls `startDestroyBlock` like a fresh click; verified.
 With Breaking Restriction on, once the crosshair passes over a forbidden block,
 breaking does not resume on an allowed block until the mouse button is released
 and pressed again. The forbidden block must still not break, but the held
@@ -473,8 +471,16 @@ or keep 1x; where and how the magnification is shown (next to the crosshair,
 as a toast, or an Info HUD line) and its default.
 
 ### L-46 Reset settings to defaults
-Kind: Design. Raised by the maintainer 2026-09-26. Demo under review:
-docs/demos/settings-reset.html (three layouts A/B/C and the "reset all" scope).
+Kind: Design. Raised by the maintainer 2026-09-26. The demo
+(docs/demos/settings-reset.html) showed per-row and per-feature resets; the
+maintainer judged them excessive (vanilla Minecraft has no per-setting reset)
+and narrowed the scope to: reset everything, and reset key bindings only
+(HUD elements already have Reset in the layout editor). A per-category reset
+is optional and not planned now. Open: whether "reset everything" includes key
+bindings and the HUD layout (proposed: yes, Shapes excluded), and where the two
+actions live (proposed: General, and the Hotkeys view header, each with an
+in-screen confirmation).
+The text below is the original question.
 Only key bindings (Reset per action) and HUD elements (Reset in the layout
 editor) can go back to their defaults; ordinary settings cannot, short of
 deleting the settings file. To decide: per-row reset (for example a small
