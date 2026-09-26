@@ -92,6 +92,11 @@ bool shapesDocked = false;
 std::optional<overlay::ShapeId> shapeSelected;
 std::optional<overlay::ShapeDefinition> shapeDraft;
 bool shapePicking = false, shapeDeleteArmed = false;
+// L-46: General resets every setting, Hotkeys resets key bindings. The
+// first press arms the button; the second applies. Shapes are per-world
+// data and are never touched.
+enum class ResetScope { None, All, Keys };
+bool resetArmed = false;
 int shapeListFirst = 0, shapeFieldFirst = 0, shapeFieldSelected = -1, shapeLayer = 0;
 shape::Reference shapeReference = shape::Reference::StandingBlock;
 std::vector<overlay::shapes::Summary> shapeList;
@@ -137,6 +142,7 @@ void rebuild(bool keepSelection) {
 void selectNav(int index) {
     // Choosing a category ends a search, which otherwise spans every category.
     query.clear();
+    resetArmed = false;
     if (navIndex == shapesNav && index != shapesNav) { shapeDraft.reset(); shapePicking = false; overlay::shapes::setDraft({}); }
     index = std::clamp(index, 0, navCount - 1);
     if (index == hudNav && navIndex != hudNav) { editorReturn = navIndex; hud_editor::reset(); pendingRelease = false; }
@@ -339,6 +345,7 @@ void finishNumber() {
 }
 void close() {
     releaseTextKeyboard();
+    resetArmed = false;
     if (ownsTop()) {
         if (!closing) client->getSceneFactory().getCurrentSceneStack()->schedulePopScreen(1);
         closing = true;
@@ -424,7 +431,26 @@ void moveSelection(int step) {
     if (found >= 0) selected = found;
     first = SettingsTable::reveal(first, selected, displayed.visible);
 }
+ResetScope resetScope() {
+    if (hotkeysView()) return ResetScope::Keys;
+    if (categoryKey() == "section.interface" && query.value().find_first_not_of(' ') == std::string::npos)
+        return ResetScope::All;
+    return ResetScope::None;
+}
+void pressReset(ResetScope scope) {
+    if (!resetArmed) { resetArmed = true; return; }
+    resetArmed = false;
+    auto value = Runtime::instance().preferences();
+    if (scope == ResetScope::Keys) value.bindings = {};
+    else value = Settings{};
+    error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
+    rebuild(false);
+}
 void handleClick(SettingsTable::Hit const& hit, bool right) {
+    auto scope = capturing ? ResetScope::None : resetScope();
+    bool head = scope != ResetScope::None && displayed.headAction(hit.x, hit.y, hotkeysView());
+    if (!head || right) resetArmed = false;
+    if (head && !right) { finishNumber(); pressReset(scope); return; }
     if (hit.zone != Zone::Row || !valid(hit.index) || rows[hit.index].kind != RowKind::Option
         || editingNumber != rows[hit.index].option) finishNumber();
     if (capturing) {
@@ -1442,6 +1468,14 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         label(context,t.stateX-6,theadY,SettingsTable::stateWidth+12,translated("column.state"),palette::faint,Align::Center);
     }
     label(context,t.keyX,theadY,t.keyWidth,translated("column.key"),palette::faint);
+    if (auto scope = capturing ? ResetScope::None : resetScope(); scope != ResetScope::None) {
+        bool keys = scope == ResetScope::Keys;
+        drawSmallButton(context,t.headActionX(keys),t.theadTop,SettingsTable::headActionWidth,11,
+            translated(resetArmed ? "reset.confirm" : keys ? "reset.keys" : "reset.all"),
+            t.headAction(hover.x,hover.y,keys),
+            resetArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,resetArmed ? Rgb{.54f,.23f,.2f} : palette::keyEdge,
+            resetArmed ? palette::text : palette::dim);
+    }
     fill(context,t.tableLeft,t.rowsTop-1,t.tableWidth,1,palette::white,.14f);
 
     // Rows.

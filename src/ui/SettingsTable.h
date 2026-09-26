@@ -72,6 +72,14 @@ struct SettingsTable {
         return first;
     }
     bool usable() const { return visible > 0; }
+    // Reset button on the column-heading line (General: all settings,
+    // Hotkeys: key bindings), right-aligned before the state/key heading.
+    static constexpr float headActionWidth = 84;
+    float headActionX(bool hotkeys) const { return (hotkeys ? keyX : stateX - 6) - gap - headActionWidth; }
+    bool headAction(float x, float y, bool hotkeys) const {
+        float ax = headActionX(hotkeys);
+        return usable() && y >= theadTop && y < rowsTop && x >= ax && x < ax + headActionWidth;
+    }
     float rowY(int index) const { return rowsTop + (index - first) * rowHeight; }
     float rowsRight() const { return tableLeft + tableWidth; }
     // Values without a switch span the state and key columns.

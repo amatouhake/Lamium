@@ -27,6 +27,16 @@ void settingsTableTests() {
     check(shortWindow.shortFooter && shortWindow.usable(), "short windows keep a one-line footer");
     check(!SettingsTable::fit(200, 300, 60, 0).usable() && !SettingsTable::fit(640, 120, 60, 0).usable(),
         "too-small windows are reported unusable");
+    for (auto const& t : {wide, narrow}) {
+        for (bool hotkeys : {false, true}) {
+            float x = t.headActionX(hotkeys), y = t.theadTop + 2;
+            check(x > t.nameX + 40 && x + SettingsTable::headActionWidth <= (hotkeys ? t.keyX : t.stateX - 6),
+                "the reset button sits between the name heading and the next column heading");
+            check(t.headAction(x + 1, y, hotkeys) && !t.headAction(x + 1, t.rowsTop + 1, hotkeys)
+                && t.hit(x + 1, y, 9).zone == SettingsTable::Zone::None,
+                "the reset button is hit only on the heading line, which no other zone claims");
+        }
+    }
 
     // Scrolling is owned by the caller and clamped.
     check(SettingsTable::fit(640, 360, 60, 1000).first == 60 - wide.visible, "scroll clamps to the last page");
