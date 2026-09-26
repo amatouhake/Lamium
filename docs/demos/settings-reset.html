@@ -1,0 +1,379 @@
+<title>Lamium Reset Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --mc-panel:rgba(16,17,19,.86); --mc-hover:rgba(255,255,255,.07); --mc-sel:rgba(108,195,73,.16);
+  --mc-edge:rgba(255,255,255,.14); --mc-text:#ffffff; --mc-dim:#b4b8b6; --mc-faint:#7f8583;
+  --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-warn:#ffc24a; --mc-danger:#e0564b; --mc-guide:rgba(255,255,255,.18);
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:28px 64px;display:grid;gap:22px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 17px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px;text-wrap:balance}
+p{margin:0}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:10px}
+.lede{color:var(--ink-2);max-width:70ch;margin-top:8px}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);background:var(--ground-2);max-width:100%}
+.seg button{all:unset;cursor:pointer;padding:8px 14px;color:var(--ink-2);font:500 13px/1.3 "Noto Sans JP",sans-serif;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-deep);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.row-ctl{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+.ghost{all:unset;cursor:pointer;font:13px "Noto Sans JP",sans-serif;color:var(--ink-2);border:1px solid var(--line);padding:6px 12px}
+.ghost:hover{color:#fff;border-color:var(--ink-3)}
+.ghost:focus-visible{outline:2px solid var(--accent)}
+
+/* Game view with the Lamium panel. Wider than a phone: scrolls in its own box. */
+.stage-outer{border:1px solid var(--line);overflow-x:auto;background:
+  linear-gradient(180deg,#6d9fd6 0%,#9cc3ea 38%,#5f8a3a 38%,#4d7430 60%,#6b5132 60%,#5a432a 100%)}
+.stage{position:relative;width:940px;height:520px;margin:0 auto;font-family:var(--mc-font);color:var(--mc-text);user-select:none}
+.panel{position:absolute;inset:20px 40px;display:flex;flex-direction:column;background:var(--mc-panel);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.phead{display:flex;align-items:center;gap:12px;height:34px;padding:0 10px;border-bottom:1px solid var(--mc-edge);flex:none}
+.brand{font-size:15px}
+.brand small{font-size:11px;color:var(--mc-faint);margin-left:6px}
+.search{margin-left:auto;display:flex;align-items:center;height:22px;width:280px;background:rgba(0,0,0,.45);box-shadow:inset 0 0 0 1px var(--mc-key-edge);padding:0 8px;font-size:12px;color:var(--mc-faint)}
+.close{font-size:12px;color:var(--mc-dim);padding:3px 8px;box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.pbody{flex:1;min-height:0;display:flex}
+.side{width:176px;border-right:1px solid var(--mc-edge);padding:6px 0;display:flex;flex-direction:column;flex:none}
+.side div{display:flex;justify-content:space-between;align-items:center;height:26px;padding:0 10px 0 12px;font-size:13px;color:var(--mc-dim)}
+.side div b{font-weight:400;font-size:11px;color:var(--mc-faint)}
+.side div.cur{background:var(--mc-sel);color:#fff;box-shadow:inset 3px 0 0 var(--mc-on-edge)}
+.side div.changed b{color:var(--mc-warn)}
+.side .sep{height:1px;background:var(--mc-edge);margin:6px 10px;padding:0}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.thead,.row{display:grid;grid-template-columns:1fr 150px 110px;align-items:center}
+.thead{height:24px;padding:0 10px;font-size:11px;color:var(--mc-faint);border-bottom:1px solid var(--mc-edge)}
+.rows{flex:1;overflow:hidden}
+.row{position:relative;height:26px;padding:0 10px;font-size:13px}
+.row:hover{background:var(--mc-hover)}
+.row.sel{background:var(--mc-sel)}
+.row.feat{color:#fff}
+.row.child{padding-left:30px;color:var(--mc-dim)}
+.row.child::before{content:"";position:absolute;left:17px;top:0;bottom:0;width:1px;background:var(--mc-guide)}
+.row .name{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden}
+.caret{color:var(--mc-faint);width:10px;display:inline-block}
+.mark{width:6px;height:6px;background:var(--mc-warn);display:inline-block;flex:none}
+.state{display:flex;align-items:center;gap:6px}
+.sw{width:30px;height:14px;background:var(--mc-off);position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.4)}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;background:#d8d8d8}
+.sw.on{background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.sw.on::after{left:18px;background:#fff}
+.val{display:flex;align-items:center;gap:4px;color:#fff}
+.val i{font-style:normal;color:var(--mc-faint);padding:0 3px;box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.key{justify-self:start;font-size:12px;padding:1px 7px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);color:#fff}
+.link{color:var(--mc-on-edge)}
+.rst{all:unset;cursor:pointer;font-size:12px;color:var(--mc-warn);padding:0 5px;line-height:18px;box-shadow:inset 0 0 0 1px rgba(255,194,74,.45)}
+.rst:hover{background:rgba(255,194,74,.16)}
+.rst:focus-visible{outline:1px solid #fff}
+.rst.feat{margin-left:8px;font-size:11px}
+.danger{all:unset;cursor:pointer;font-size:12px;color:#fff;padding:1px 8px;box-shadow:inset 0 0 0 1px var(--mc-danger)}
+.danger.armed{background:var(--mc-danger)}
+.danger:focus-visible{outline:1px solid #fff}
+.pfoot{border-top:1px solid var(--mc-edge);padding:6px 10px;min-height:52px;display:grid;gap:2px;flex:none}
+.pfoot .d{font-size:12.5px;line-height:1.45}
+.pfoot .h{font-size:11px;color:var(--mc-faint)}
+.pfoot .h b{font-weight:400;color:var(--mc-warn)}
+.menu{position:absolute;z-index:3;background:#1b1c1e;box-shadow:inset 0 0 0 1px var(--mc-key-edge),0 4px 0 rgba(0,0,0,.35);font-size:12px;min-width:170px}
+.menu div{padding:5px 10px}
+.menu div:hover{background:var(--mc-hover)}
+.menu .off{color:var(--mc-faint)}
+.dialog{position:absolute;z-index:4;left:50%;top:50%;transform:translate(-50%,-50%);width:360px;background:#1b1c1e;box-shadow:inset 0 0 0 1px var(--mc-edge),0 6px 0 rgba(0,0,0,.4);padding:12px;display:grid;gap:8px;font-size:13px}
+.dialog label{display:flex;gap:8px;align-items:center;color:var(--mc-dim)}
+.dialog input{accent-color:var(--accent)}
+.dialog .btns{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+.dialog .btns span{cursor:pointer;padding:2px 10px;box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.dialog .btns span.go{box-shadow:inset 0 0 0 1px var(--mc-danger);background:var(--mc-danger)}
+.toast{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(16,17,19,.8);padding:3px 10px;font-size:12px;box-shadow:inset 0 0 0 1px var(--mc-edge)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px;display:grid;gap:8px;align-content:start}
+.card[data-on="true"]{border-color:var(--accent-deep)}
+.card ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:14px;display:grid;gap:4px}
+.tag{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.08em;color:var(--ink-3)}
+.pros{color:var(--ink)}
+.box{border:1px solid var(--line);padding:16px 18px;display:grid;gap:10px}
+.box ol{margin:0;padding-left:1.3em;display:grid;gap:8px;color:var(--ink-2);max-width:75ch}
+.box ol b{color:var(--ink);font-weight:500}
+@media (prefers-reduced-motion:no-preference){.rst,.danger,.seg button{transition:background .12s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">BACKLOG L-46 · 設定を初期値に戻す</div>
+    <h1>設定リセットの 3 案</h1>
+    <p class="lede">一般の設定には今、初期値に戻す手段がありません。項目ごと・機能ごと・すべて、の 3 段階をどう見せるかを比べるモックです。下の画面は操作できます。黄色の印が付いているのが初期値から変えた項目です。</p>
+  </header>
+
+  <div class="row-ctl">
+    <div class="seg" role="group" aria-label="案">
+      <button id="optA" type="button" aria-pressed="true" data-opt="A">A 行の ↺ ボタン</button>
+      <button id="optB" type="button" aria-pressed="false" data-opt="B">B 印 + 右クリック</button>
+      <button id="optC" type="button" aria-pressed="false" data-opt="C">C 変更した設定ビュー</button>
+    </div>
+    <button id="restore" class="ghost" type="button">サンプルの値に戻す</button>
+  </div>
+
+  <div class="stage-outer"><div class="stage" id="stage"></div></div>
+
+  <div class="cards" id="cards">
+    <section class="card" data-card="A">
+      <span class="tag">案 A</span>
+      <h2>変えた行にだけ ↺ が出る</h2>
+      <ul>
+        <li>値の右に ↺。押すとその項目だけ初期値に戻る。下の説明欄に初期値を表示。</li>
+        <li>機能の見出し行に「↺ 機能」。子の項目がどれか変わっているときだけ出る。</li>
+        <li>全般に「すべての設定を初期化」。押すと確認画面。</li>
+        <li class="pros">見ればすぐ分かる。マウスで 1 クリック。行が少し混む。</li>
+      </ul>
+    </section>
+    <section class="card" data-card="B">
+      <span class="tag">案 B</span>
+      <h2>印だけ出して、操作は右クリックとキー</h2>
+      <ul>
+        <li>変えた行の名前の前に小さな印。表は今と同じ見た目のまま。</li>
+        <li>行を右クリック、または選んで Backspace で「初期値に戻す」。見出し行なら機能ごと。</li>
+        <li>全般の「すべての設定を初期化」は A と同じ。</li>
+        <li class="pros">表がすっきり、キーボードでも使える。操作に気づきにくい（説明欄で案内）。</li>
+      </ul>
+    </section>
+    <section class="card" data-card="C">
+      <span class="tag">案 C</span>
+      <h2>サイドバーに「変更した設定」</h2>
+      <ul>
+        <li>サイドバーに件数付きの「変更した設定」。開くと変えた項目だけが機能ごとに並ぶ。</li>
+        <li>各行に ↺、上部に「すべて初期値に戻す」。ほかの画面では印だけ。</li>
+        <li class="pros">何を変えたかを一覧で確かめられる。戻す操作が 1 か所に集まる。行の場所から直接は戻せない。</li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="box">
+    <h2>確認したいこと</h2>
+    <ol>
+      <li><b>どの案にするか。</b>組み合わせ（例：A の ↺ + C の一覧）もありです。</li>
+      <li><b>「すべて初期化」に含めるもの。</b>確認画面で選べる形にしています。キー割り当てと HUD レイアウトは既定で含める・含めない、どちらにしますか。形状はワールドごとのデータなので含めない案です。</li>
+      <li><b>機能ごとのリセットにその機能のキー割り当てを含めるか。</b>モックでは含めません（キーはホットキー画面の Reset で戻せます）。</li>
+      <li><b>元に戻す（Undo）が要るか。</b>モックでは戻した直後に通知だけ出します。</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const DEFAULTS = {
+    zoom: true, magnification: 3, showMag: true,
+    freelook: false, activation: "長押し",
+    freecam: false, night: false, offhand: false,
+  };
+  const SAMPLE = {
+    zoom: true, magnification: 8, showMag: true,
+    freelook: true, activation: "切り替え",
+    freecam: false, night: true, offhand: false,
+  };
+  const FEATURES = [
+    { id: "zoom", name: "ズーム", key: "C", toggle: "zoom", children: [
+      { id: "magnification", name: "倍率", kind: "num", unit: "倍" },
+      { id: "showMag", name: "倍率を表示", kind: "sw" },
+      { id: "magLayout", name: "倍率表示の配置と見た目", kind: "link" },
+    ]},
+    { id: "freelook", name: "フリールック", key: "Alt", toggle: "freelook", children: [
+      { id: "activation", name: "起動方法", kind: "choice" },
+    ]},
+    { id: "freecam", name: "フリーカメラ（試験的）", key: "未割り当て", toggle: "freecam", children: [] },
+    { id: "night", name: "暗視", key: "J", toggle: "night", children: [] },
+    { id: "offhand", name: "オフハンドを隠す", key: "未割り当て", toggle: "offhand", children: [] },
+  ];
+  const LABEL = { zoom: "ズーム", magnification: "倍率", showMag: "倍率を表示", freelook: "フリールック",
+    activation: "起動方法", freecam: "フリーカメラ", night: "暗視", offhand: "オフハンドを隠す" };
+  const fmt = (id, v) => typeof v === "boolean" ? (v ? "ON" : "OFF") : id === "magnification" ? v + "倍" : v;
+
+  let opt = "A", values = { ...SAMPLE }, view = "camera", selected = "magnification";
+  let menu = null, dialog = false, armed = false, toast = "";
+  let toastTimer = 0;
+  const stage = document.getElementById("stage");
+  const changed = id => id in DEFAULTS && values[id] !== DEFAULTS[id];
+  const featureIds = f => [f.toggle, ...f.children.filter(c => c.id in DEFAULTS).map(c => c.id)];
+  const featureChanged = f => featureIds(f).some(changed);
+  const changedCount = () => Object.keys(DEFAULTS).filter(changed).length;
+
+  function say(text) {
+    toast = text; clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast = ""; render(); }, 2200);
+  }
+  function resetIds(ids, label) {
+    const hit = ids.filter(changed);
+    hit.forEach(id => values[id] = DEFAULTS[id]);
+    if (hit.length) say(label + "を初期値に戻しました");
+    menu = null; render();
+  }
+
+  function stateCell(id, kind) {
+    const v = values[id];
+    if (kind === "sw" || typeof v === "boolean") return `<span class="sw ${v ? "on" : ""}"></span>`;
+    if (kind === "num") return `<span class="val"><i>−</i>${fmt(id, v)}<i>＋</i></span>`;
+    if (kind === "choice") return `<span class="val"><i>◀</i>${v}<i>▶</i></span>`;
+    return "";
+  }
+  function resetButton(id) {
+    return opt !== "B" && changed(id)
+      ? `<button class="rst" type="button" data-reset="${id}" aria-label="${LABEL[id]}を初期値に戻す">↺</button>` : "";
+  }
+  function markFor(id, isFeature, f) {
+    if (opt === "A") return "";
+    return (isFeature ? featureChanged(f) : changed(id)) ? `<span class="mark" title="初期値から変更"></span>` : "";
+  }
+
+  function rowsCamera() {
+    let html = "";
+    for (const f of FEATURES) {
+      const open = f.children.length > 0;
+      const sel = selected === f.id ? " sel" : "";
+      const featReset = opt === "A" && featureChanged(f) && open
+        ? `<button class="rst feat" type="button" data-reset-feature="${f.id}">↺ 機能</button>` : "";
+      html += `<div class="row feat${sel}" data-row="${f.id}" data-feature="${f.id}">
+        <span class="name"><span class="caret">${open ? "▾" : ""}</span>${markFor(f.toggle, true, f)}${f.name}${featReset}</span>
+        <span class="state">${stateCell(f.toggle, "sw")}${resetButton(f.toggle)}</span>
+        <span class="key">${f.key}</span></div>`;
+      for (const c of f.children) {
+        const csel = selected === c.id ? " sel" : "";
+        if (c.kind === "link") {
+          html += `<div class="row child${csel}" data-row="${c.id}"><span class="name link">${c.name} → HUD レイアウト</span><span></span><span></span></div>`;
+          continue;
+        }
+        html += `<div class="row child${csel}" data-row="${c.id}">
+          <span class="name">${markFor(c.id, false)}${c.name}</span>
+          <span class="state">${stateCell(c.id, c.kind)}${resetButton(c.id)}</span><span></span></div>`;
+      }
+    }
+    return html;
+  }
+  function rowsChanged() {
+    const ids = Object.keys(DEFAULTS).filter(changed);
+    if (!ids.length) return `<div class="row"><span class="name" style="color:var(--mc-faint)">初期値から変えた設定はありません</span><span></span><span></span></div>`;
+    let html = `<div class="row"><span class="name" style="color:var(--mc-faint)">初期値から変えた設定 ${ids.length} 件</span>
+      <span></span><span><button class="rst" type="button" data-reset-all-changed>すべて戻す</button></span></div>`;
+    for (const f of FEATURES) {
+      const own = featureIds(f).filter(changed);
+      if (!own.length) continue;
+      html += `<div class="row feat"><span class="name"><span class="caret">▾</span>${f.name}</span><span></span><span></span></div>`;
+      for (const id of own) {
+        html += `<div class="row child${selected === id ? " sel" : ""}" data-row="${id}">
+          <span class="name">${LABEL[id]}　<span style="color:var(--mc-faint)">初期値 ${fmt(id, DEFAULTS[id])}</span></span>
+          <span class="state">${stateCell(id, id === "magnification" ? "num" : id === "activation" ? "choice" : "sw")}
+          <button class="rst" type="button" data-reset="${id}" aria-label="${LABEL[id]}を初期値に戻す">↺</button></span><span></span></div>`;
+      }
+    }
+    return html;
+  }
+  function rowsGeneral() {
+    return `<div class="row feat"><span class="name">切り替え通知</span><span class="state"><span class="sw on"></span></span><span class="key">未割り当て</span></div>
+      <div class="row feat"><span class="name">アニメーション</span><span class="state"><span class="val"><i>◀</i>ゲームに合わせる<i>▶</i></span></span><span></span></div>
+      <div class="row feat" data-row="resetAll"><span class="name">すべての設定を初期化</span>
+      <span class="state"><button class="danger" type="button" data-open-dialog>初期化…</button></span><span></span></div>`;
+  }
+
+  function footer() {
+    if (view === "general") return `<div class="d">すべての設定を初期化：機能の設定を初期値に戻します。含める範囲は確認画面で選びます。</div><div class="h">形状（ワールドごとのデータ）は含めません。</div>`;
+    const id = selected in DEFAULTS ? selected : null;
+    const base = id ? `<div class="d">${LABEL[id]}：今 ${fmt(id, values[id])}　／　初期値 ${fmt(id, DEFAULTS[id])}</div>` : `<div class="d">${LABEL[selected] || "倍率表示の配置と見た目"}</div>`;
+    if (opt === "A") return base + `<div class="h">${id && changed(id) ? "<b>↺</b> で初期値に戻す" : "初期値のままです"}</div>`;
+    if (opt === "B") return base + `<div class="h">${id && changed(id) ? "<b>右クリック</b>または <b>Backspace</b> で初期値に戻す。見出し行では機能ごと" : "右クリックでメニュー"}</div>`;
+    return base + `<div class="h">変えた項目は「変更した設定」にまとめて表示されます</div>`;
+  }
+
+  function render() {
+    const count = changedCount();
+    const cur = v => view === v ? "cur" : "";
+    const changedSide = opt === "C"
+      ? `<div class="${cur("changed")} ${count ? "changed" : ""}" data-view="changed">変更した設定<b>${count}</b></div><div class="sep"></div>` : "";
+    const body = view === "changed" ? rowsChanged() : view === "general" ? rowsGeneral() : rowsCamera();
+    const title = view === "changed" ? "変更した設定" : view === "general" ? "全般" : "カメラ・見た目";
+    stage.innerHTML = `<div class="panel">
+      <div class="phead"><span class="brand">Lamium<small>設定</small></span><span class="search">検索…</span><span class="close">閉じる Esc</span></div>
+      <div class="pbody">
+        <div class="side">${changedSide}
+          <div class="${cur("camera")}" data-view="camera">カメラ・見た目<b>5</b></div>
+          <div>インベントリ<b>5</b></div><div>操作<b>4</b></div><div>情報・オーバーレイ<b>7</b></div>
+          <div class="${cur("general")}" data-view="general">全般<b>3</b></div>
+          <div class="sep"></div><div>ホットキー</div><div>形状</div><div>HUD レイアウト</div>
+        </div>
+        <div class="main">
+          <div class="thead"><span>${title}</span><span>状態</span><span>キー</span></div>
+          <div class="rows">${body}</div>
+          <div class="pfoot">${footer()}</div>
+        </div>
+      </div></div>
+      ${menu ? menuHtml() : ""}${dialog ? dialogHtml() : ""}${toast ? `<div class="toast">${toast}</div>` : ""}`;
+    document.querySelectorAll("#cards .card").forEach(c => c.dataset.on = String(c.dataset.card === opt));
+  }
+  function menuHtml() {
+    const f = FEATURES.find(x => x.id === menu.id);
+    const can = f ? featureChanged(f) : changed(menu.id);
+    const label = f ? `「${f.name}」を初期値に戻す` : `「${LABEL[menu.id]}」を初期値に戻す`;
+    return `<div class="menu" style="left:${menu.x}px;top:${menu.y}px">
+      <div class="${can ? "" : "off"}" data-menu-reset="${menu.id}">${label}${can ? "" : "（変更なし）"}</div>
+      <div class="off">初期値：${f ? "機能の全項目" : fmt(menu.id, DEFAULTS[menu.id])}</div></div>`;
+  }
+  function dialogHtml() {
+    return `<div class="dialog" role="dialog" aria-label="すべての設定を初期化">
+      <div>すべての設定を初期化しますか？</div>
+      <label><input id="incFeatures" type="checkbox" checked disabled> 機能の設定（${changedCount()} 件を変更中）</label>
+      <label><input id="incKeys" type="checkbox"> キー割り当て</label>
+      <label><input id="incHud" type="checkbox"> HUD レイアウト</label>
+      <div style="color:var(--mc-faint);font-size:11px">形状は含まれません。この操作は取り消せません。</div>
+      <div class="btns"><span data-dialog="cancel">キャンセル</span><span class="go" data-dialog="go">初期化する</span></div></div>`;
+  }
+
+  stage.addEventListener("click", e => {
+    const t = e.target.closest("[data-reset],[data-reset-feature],[data-reset-all-changed],[data-view],[data-row],[data-menu-reset],[data-open-dialog],[data-dialog]");
+    if (!t) { if (menu) { menu = null; render(); } return; }
+    if (t.dataset.reset) return resetIds([t.dataset.reset], LABEL[t.dataset.reset]);
+    if (t.dataset.resetFeature) { const f = FEATURES.find(x => x.id === t.dataset.resetFeature); return resetIds(featureIds(f), f.name); }
+    if ("resetAllChanged" in t.dataset) return resetIds(Object.keys(DEFAULTS), "変更した設定");
+    if (t.dataset.menuReset) {
+      const f = FEATURES.find(x => x.id === t.dataset.menuReset);
+      return resetIds(f ? featureIds(f) : [t.dataset.menuReset], f ? f.name : LABEL[t.dataset.menuReset]);
+    }
+    if ("openDialog" in t.dataset) { dialog = true; render(); return; }
+    if (t.dataset.dialog) {
+      if (t.dataset.dialog === "go") { values = { ...DEFAULTS }; say("設定を初期化しました"); }
+      dialog = false; render(); return;
+    }
+    if (t.dataset.view) { view = t.dataset.view; menu = null; render(); return; }
+    if (t.dataset.row) { selected = t.dataset.row; menu = null; render(); }
+  });
+  stage.addEventListener("contextmenu", e => {
+    const row = e.target.closest("[data-row]");
+    if (opt !== "B" || !row || view !== "camera") return;
+    e.preventDefault();
+    const box = stage.getBoundingClientRect();
+    const id = row.dataset.feature || row.dataset.row;
+    if (!(id in DEFAULTS) && !FEATURES.some(f => f.id === id)) return;
+    selected = row.dataset.row;
+    menu = { id: row.dataset.feature || id, x: e.clientX - box.left, y: e.clientY - box.top };
+    render();
+  });
+  document.addEventListener("keydown", e => {
+    if (opt !== "B" || e.key !== "Backspace" || view !== "camera") return;
+    const f = FEATURES.find(x => x.id === selected);
+    if (f) resetIds(featureIds(f), f.name);
+    else if (selected in DEFAULTS) resetIds([selected], LABEL[selected]);
+  });
+  document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+    opt = b.dataset.opt; menu = null; dialog = false;
+    if (opt !== "C" && view === "changed") view = "camera";
+    document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    render();
+  }));
+  document.getElementById("restore").addEventListener("click", () => { values = { ...SAMPLE }; say("サンプルの値に戻しました"); render(); });
+  render();
+})();
+</script>

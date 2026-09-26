@@ -93,7 +93,13 @@ so the session survives; a menu or settings screen still ends it.
 Check 2026-09-26 (DLL d421e275): resuming works, but while an allowed block
 was cracking, resting the crosshair on a forbidden block kept cracking the
 allowed one. Since 8f2d38a the first forbidden target aborts the allowed
-block's progress through vanilla `stopDestroyBlock` (awaiting re-check).
+block's progress through vanilla `stopDestroyBlock`.
+Check (DLL a6fdad6e): cracking stopped, but afterwards allowed blocks showed the
+crack animation without breaking; the trace showed client `destroyBlock` calls
+returning true that the server never applied, because the aborted session was
+continued without a new start action. Since b5094f7 the first allowed target
+after such an abort calls `startDestroyBlock` like a fresh click (awaiting
+re-check).
 With Breaking Restriction on, once the crosshair passes over a forbidden block,
 breaking does not resume on an allowed block until the mouse button is released
 and pressed again. The forbidden block must still not break, but the held
@@ -467,7 +473,8 @@ or keep 1x; where and how the magnification is shown (next to the crosshair,
 as a toast, or an Info HUD line) and its default.
 
 ### L-46 Reset settings to defaults
-Kind: Design. Raised by the maintainer 2026-09-26.
+Kind: Design. Raised by the maintainer 2026-09-26. Demo under review:
+docs/demos/settings-reset.html (three layouts A/B/C and the "reset all" scope).
 Only key bindings (Reset per action) and HUD elements (Reset in the layout
 editor) can go back to their defaults; ordinary settings cannot, short of
 deleting the settings file. To decide: per-row reset (for example a small

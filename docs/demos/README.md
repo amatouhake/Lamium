@@ -12,6 +12,7 @@ Text in the demos is Japanese because they were reviewed in Japanese.
 | [hud-editor.html](hud-editor.html) | Decided, being implemented | Rework after the first editor build: three editing models, three card styles, target card with icons and bars. |
 | [hotkey-conflicts.html](hotkey-conflicts.html) | Implemented | Warning style for shared/overlapping bindings in every key cell and a hover tooltip listing every related binding (L-32 follow-up). |
 | [light-overlay.html](light-overlay.html) | Implemented | Light overlay redesign (L-16): what to show, digit orientation and weight, spawn coloring, value and range. |
+| [settings-reset.html](settings-reset.html) | Under review | Resetting settings to defaults (L-46): per-row ↺, marks + right-click/Backspace, or a "changed settings" view; scope of "reset all". |
 
 Rules for agents:
 
