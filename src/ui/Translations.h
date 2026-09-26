@@ -42,7 +42,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.permanentSneak", "Toggle sneak with a hotkey. Menus, focus loss and world changes stop it. Activate again to resume.", "キーでスニークを切り替えます。メニュー・フォーカス喪失・ワールド変更で解除。再開にはもう一度キーを押します。"},
     {"key.Lamium.permanentsneak", "Toggle Permanent Sneak", "常時スニークを切り替え"},
     {"feature.permanentSprint", "Permanent Sprint", "常時ダッシュ"},
-    {"help.permanentSprint", "Toggle sprint with a hotkey. The game still decides when you can sprint (moving forward, enough food). Menus, focus loss and world changes stop it. Activate again to resume.", "キーでダッシュを切り替えます。ダッシュできるか（前進中・満腹度など）はゲームが判断します。メニュー・フォーカス喪失・ワールド変更で解除。再開にはもう一度キーを押します。"},
+    {"help.permanentSprint", "Toggle sprint with a hotkey. The game still decides when you can sprint (moving forward, enough food). It pauses while a menu is open; death, dimension changes and leaving the world stop it.", "キーでダッシュを切り替えます。ダッシュできるか（前進中・満腹度など）はゲームが判断します。メニューを開いている間は止まり、死亡・ディメンション移動・ワールド退出で解除されます。"},
     {"key.Lamium.permanentsprint", "Toggle Permanent Sprint", "常時ダッシュを切り替え"},
     {"title", "Lamium / Settings", "Lamium / 設定"},
     {"shape.manager", "Shape Manager", "形状の管理"},

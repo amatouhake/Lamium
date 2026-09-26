@@ -37,8 +37,13 @@ LL_STATIC_HOOK(ExtractSneakInput, ll::memory::HookPriority::Normal,
     Optional<SneakingComponent const> sneaking, Optional<WasInWaterFlagComponent const> water) {
     auto client = ll::service::getClientInstance();
     if (intent.active() && observed < 1000) ++observed;
-    if (!client || !eligible(*client)) { intent.cancel(); sprintIntent.cancel(); }
-    if ((!intent.active() && !sprintIntent.active()) || !client
+    if (!client || !eligible(*client)) intent.cancel();
+    // Sprint survives menus and focus changes; it only pauses while ineligible
+    // and ends on death (dimension change and world exit cancel it elsewhere).
+    auto* player = client ? client->getLocalPlayer() : nullptr;
+    if (player && !player->isAlive()) sprintIntent.cancel();
+    bool sprint = sprintIntent.active() && client && eligible(*client);
+    if ((!intent.active() && !sprint) || !client
         || ClientMoveInputHandler::getMoveInput(*client) != &input) {
         origin(abilities, input, flags, raw, sneaking, water);
         return;
@@ -51,7 +56,7 @@ LL_STATIC_HOOK(ExtractSneakInput, ll::memory::HookPriority::Normal,
         augmented.mRawInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown));
     }
     // Vanilla still decides whether sprinting starts (forward input, food, blindness).
-    if (sprintIntent.active())
+    if (sprint)
         augmented.mRawInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SprintDown));
     origin(abilities, augmented, flags, raw, sneaking, water);
     if (rawSneak < 1000 && raw.mRawInput->mFlagValues->test(static_cast<size_t>(MoveInputState::Flag::SneakDown))) ++rawSneak;

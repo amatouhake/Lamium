@@ -67,7 +67,6 @@ bool opensMenu(Action action) {
 void invalidate() {
     interaction::periodic::interrupt();
     interaction::sneak::cancel();
-    interaction::sprint::cancel();
     releaseStates();
     held.invalidate();
 }
@@ -143,6 +142,7 @@ void startCustomInput() {
     listeners[2] = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) { sync(event.uiRenderContext().mClient); });
     listeners[3] = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) {
         invalidate();
+        interaction::sprint::cancel();
         interaction::periodic::endSession();
         screen.clear();
     });
