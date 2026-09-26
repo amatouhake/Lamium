@@ -10,7 +10,14 @@
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
 #include "mc/deps/ecs/gamerefs_entity/EntityContext.h"
 #include "mc/deps/minecraft_renderer/game/LevelCullerType.h"
-#include "mc/world/actor/provider/PlayerMoveInput.h"
+#include "mc/client/entity/systems/ClientInputUpdateSystem.h"
+#include "mc/deps/core/math/Vec2.h"
+#include "mc/entity/components/MoveInputComponent.h"
+#include "mc/entity/components/RawMoveInputComponent.h"
+#include "mc/entity/components/SneakingComponent.h"
+#include "mc/entity/systems/sneak_movement_system/SneakMovementSystem.h"
+#include "mc/world/actor/provider/PlayerMovement.h"
+#include "mc/world/phys/AABB.h"
 #include <Windows.h>
 #pragma comment(lib, "user32.lib") // GetAsyncKeyState, trace builds only
 #include <intrin.h>
@@ -32,59 +39,117 @@ void log(std::format_string<Args...> format, Args&&... args) noexcept {
     catch (...) {} // Diagnostics must not replace the vanilla result.
 }
 
-// L-40: F9 toggles "report sneak-down" for the local player without real
-// sneak input; call sites are grouped by return address to tell edge
-// protection apart from speed, pose and network uses.
-std::atomic<bool> forceSneak{false};
-bool f9Down = false;
-std::mutex callerMutex;
-std::map<std::tuple<uintptr_t, bool, bool>, unsigned> callers;
-Clock::time_point lastDump = Clock::now();
+// Call sites are grouped by return address (offset into the game module).
 uintptr_t const moduleBase = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
-
-bool isLocal(EntityContext const& entity) {
+uintptr_t callerOffset(void* address) { return reinterpret_cast<uintptr_t>(address) - moduleBase; }
+LocalPlayer* localPlayer() {
     auto client = ll::service::getClientInstance();
-    auto* player = client ? client->getLocalPlayer() : nullptr;
-    if (!player) return false;
-    auto const& own = player->getEntityContext();
-    return &own.mEnTTRegistry == &entity.mEnTTRegistry && own.mEntity == entity.mEntity;
+    return client ? client->getLocalPlayer() : nullptr;
 }
-void dumpCallers(bool force) {
-    std::lock_guard lock{callerMutex};
-    if (callers.empty() || (!force && Clock::now() - lastDump < std::chrono::seconds(5))) return;
-    lastDump = Clock::now();
-    for (auto const& [key, count] : callers) {
-        auto const& [offset, result, forced] = key;
-        log("research L-40 isSneakDown caller=+0x{:x} vanilla={} forced={} calls={}", offset, result, forced, count);
+struct Toggle {
+    int key;
+    char const* name;
+    std::atomic<bool> on{false};
+    bool down = false;
+    void poll() {
+        bool now = (GetAsyncKeyState(key) & 0x8000) != 0;
+        if (now && !down) {
+            on = !on.load();
+            log("research {} {}", name, on.load() ? "ON" : "OFF");
+        }
+        down = now;
     }
-    callers.clear();
+};
+
+// L-40: SneakMovementSystem looks like vanilla edge protection and
+// PlayerMovement::calculateMoveVector takes the SneakingComponent (speed).
+// F9 gives the local player a SneakingComponent with a movement factor of 1
+// each input tick, without sneak input, to see whether edge protection
+// follows the component alone.
+Toggle fakeSneak{VK_F9, "L-40 fake SneakingComponent (factor 1)"};
+bool addedSneaking = false;
+std::atomic<unsigned> volumeCalls{0}, moveWithSneak{0}, moveWithout{0};
+float lastFactor = -1;
+Clock::time_point lastL40 = Clock::now();
+void dumpL40() {
+    if (Clock::now() - lastL40 < std::chrono::seconds(2)) return;
+    lastL40 = Clock::now();
+    unsigned volume = volumeCalls.exchange(0), with = moveWithSneak.exchange(0), without = moveWithout.exchange(0);
+    if (!volume && !with) return;
+    auto* player = localPlayer();
+    log("research L-40 per2s edgeVolumeCalls={} moveVector(sneakComponent)={} moveVector(none)={} factor={:.2f} "
+        "fake={} sneakingFlag={}", volume, with, without, lastFactor, fakeSneak.on.load(),
+        player ? player->isSneaking() : false);
 }
-LL_STATIC_HOOK(SneakDownHook, ll::memory::HookPriority::Normal, &PlayerMoveInput::isSneakDown, bool,
-    EntityContext const& entity) {
-    bool result = origin(entity);
-    static std::atomic<bool> seenAny{false}, seenLocal{false};
-    bool local = isLocal(entity);
-    if (!seenAny.exchange(true)) log("research L-40 isSneakDown first call (local={})", local);
-    if (local && !seenLocal.exchange(true)) log("research L-40 isSneakDown first local call");
-    if (!local) return result;
-    bool forced = forceSneak.load() && !result;
+LL_STATIC_HOOK(SneakVolumeHook, ll::memory::HookPriority::Normal, &SneakMovementSystem::getMaxCollisionVolume, AABB,
+    Vec3 const& speed, MaxAutoStepComponent const& step, AABBShapeComponent const& shape) {
+    ++volumeCalls;
+    return origin(speed, step, shape);
+}
+LL_STATIC_HOOK(MoveVectorHook, ll::memory::HookPriority::Normal, &PlayerMovement::calculateMoveVector, Vec2,
+    MoveInputState const& input, bool flying, ActorDataFlagComponent const& flags, bool water,
+    SneakingComponent const* sneaking) {
+    if (sneaking) { ++moveWithSneak; lastFactor = sneaking->mSneakingMovementFactor; }
+    else ++moveWithout;
+    return origin(input, flying, flags, water, sneaking);
+}
+LL_STATIC_HOOK(FakeSneakInputHook, ll::memory::HookPriority::Low, &ClientInputUpdateSystem::extractRawHIDInput, void,
+    MovementAbilitiesComponent const& abilities, MoveInputComponent const& input, ActorDataFlagComponent const& flags,
+    RawMoveInputComponent& raw, Optional<SneakingComponent const> sneaking, Optional<WasInWaterFlagComponent const> water) {
+    origin(abilities, input, flags, raw, sneaking, water);
+    try {
+        auto* player = localPlayer();
+        if (!player) return;
+        auto& context = player->getEntityContext();
+        if (fakeSneak.on.load()) {
+            if (!context.hasComponent<SneakingComponent>()) addedSneaking = true;
+            context.getOrAddComponent<SneakingComponent>().mSneakingMovementFactor = 1.0f;
+        } else if (addedSneaking) {
+            addedSneaking = false;
+            if (!player->isSneaking()) context.removeComponent<SneakingComponent>();
+        }
+    } catch (...) {}
+}
+
+// L-37: spectator switches the renderer to culler type 5. F10 makes
+// Actor::isSpectator answer true for the local player (all callers) so the
+// culler switch can be observed from FreeCamera; callers are logged so a
+// later build can limit the answer to the renderer's call site.
+Toggle fakeSpectator{VK_F10, "L-37 fake spectator"};
+std::mutex spectatorMutex;
+std::map<std::pair<uintptr_t, bool>, unsigned> spectatorCallers;
+Clock::time_point lastL37 = Clock::now();
+unsigned l37Lines = 0;
+void dumpL37(bool force) {
+    std::lock_guard lock{spectatorMutex};
+    if (spectatorCallers.empty() || (!force && Clock::now() - lastL37 < std::chrono::seconds(10))) return;
+    lastL37 = Clock::now();
+    for (auto const& [key, count] : spectatorCallers) {
+        if (l37Lines >= 1500) break;
+        ++l37Lines;
+        log("research L-37 isSpectator caller=+0x{:x} answered={} calls={}", key.first, key.second, count);
+    }
+    spectatorCallers.clear();
+}
+LL_TYPE_INSTANCE_HOOK(SpectatorHook, ll::memory::HookPriority::Normal, Actor, &Actor::isSpectator, bool) {
+    bool result = origin();
+    auto* player = localPlayer();
+    if (player != static_cast<Actor const*>(this)) return result;
+    bool answer = result || fakeSpectator.on.load();
     {
-        std::lock_guard lock{callerMutex};
-        auto offset = reinterpret_cast<uintptr_t>(_ReturnAddress()) - moduleBase;
-        auto& count = callers[{offset, result, forced}];
+        std::lock_guard lock{spectatorMutex};
+        auto& count = spectatorCallers[{callerOffset(_ReturnAddress()), answer}];
         if (count < 1000000) ++count;
     }
-    return result || forced;
+    return answer;
 }
 void pollKeys() {
-    bool down = (GetAsyncKeyState(VK_F9) & 0x8000) != 0;
-    if (down != f9Down) log("research L-40 F9 {}", down ? "down" : "up");
-    if (down && !f9Down) {
-        dumpCallers(true);
-        forceSneak = !forceSneak.load();
-        log("research L-40 forced sneak-down {}", forceSneak.load() ? "ON" : "OFF");
-    }
-    f9Down = down;
+    bool before = fakeSpectator.on.load();
+    fakeSneak.poll();
+    fakeSpectator.poll();
+    if (before != fakeSpectator.on.load()) dumpL37(true);
+    dumpL37(false);
+    dumpL40();
 }
 
 // L-37 / L-44: sample the culler and FOV state once a change happens (and
@@ -131,26 +196,33 @@ LL_TYPE_INSTANCE_HOOK(FovSampleHook, ll::memory::HookPriority::Low, LevelRendere
     float result = origin(alpha, variable);
     try {
         pollKeys();
-        dumpCallers(false);
         sample(*this, variable, result);
     } catch (...) {}
     return result;
 }
-bool sneakInstalled = false, fovInstalled = false;
+bool volumeInstalled = false, moveInstalled = false, inputInstalled = false, spectatorInstalled = false,
+     fovInstalled = false;
 }
 void start() {
-    sneakInstalled = SneakDownHook::hook(true) == 0;
+    volumeInstalled = SneakVolumeHook::hook(true) == 0;
+    moveInstalled = MoveVectorHook::hook(true) == 0;
+    inputInstalled = FakeSneakInputHook::hook(true) == 0;
+    spectatorInstalled = SpectatorHook::hook(true) == 0;
     fovInstalled = FovSampleHook::hook(true) == 0;
-    if (!sneakInstalled || !fovInstalled) {
+    if (!volumeInstalled || !moveInstalled || !inputInstalled || !spectatorInstalled || !fovInstalled) {
         stop();
         throw std::runtime_error("Could not install research diagnostics");
     }
-    Runtime::instance().self().getLogger().warn("Research diagnostics enabled (L-37, L-40, L-44); F9 toggles forced sneak-down");
+    Runtime::instance().self().getLogger().warn("Research diagnostics enabled (L-37, L-40, L-44); F9 fake sneak component, F10 fake spectator");
 }
 void stop() {
-    forceSneak = false;
+    fakeSneak.on = false;
+    fakeSpectator.on = false;
     if (fovInstalled && FovSampleHook::unhook(true)) fovInstalled = false;
-    if (sneakInstalled && SneakDownHook::unhook(true)) sneakInstalled = false;
+    if (spectatorInstalled && SpectatorHook::unhook(true)) spectatorInstalled = false;
+    if (inputInstalled && FakeSneakInputHook::unhook(true)) inputInstalled = false;
+    if (moveInstalled && MoveVectorHook::unhook(true)) moveInstalled = false;
+    if (volumeInstalled && SneakVolumeHook::unhook(true)) volumeInstalled = false;
 }
 }
 #else
