@@ -27,6 +27,8 @@ int main() try {
     frameRateTests();
     extern void toolChoiceTests();
     toolChoiceTests();
+    extern void edgeGuardTests();
+    edgeGuardTests();
     extern void restockPlanTests();
     restockPlanTests();
     extern void textFitTests();

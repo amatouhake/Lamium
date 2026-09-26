@@ -14,7 +14,7 @@ inline constexpr auto sections = std::to_array<std::string_view>({
 inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand") return "section.camera";
     if (id == "previews" || id == "durability" || id == "sorting" || id == "toolSwitch" || id == "handRestock") return "section.inventory";
-    if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
+    if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
     if (id == "settings" || id == "automationStatus") return "section.interface";
     return "section.information";
 }
@@ -34,6 +34,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"restrictions", "feature.restrictions", "help.restrictions", ""},
     {"permanentSneak", "feature.permanentSneak", "help.permanentSneak", "", true},
     {"permanentSprint", "feature.permanentSprint", "help.permanentSprint", "", true},
+    {"edgeGuard", "feature.edgeGuard", "help.edgeGuard", "interaction.edgeGuard", true},
     {"periodicAttack", "feature.periodicAttack", "help.periodicInput", "interaction.autoAttack", true},
     {"periodicUse", "feature.periodicUse", "help.periodicInput", "interaction.autoUse", true},
     {"infoHud", "feature.infoHud", "help.infoHud", "information.hud"},

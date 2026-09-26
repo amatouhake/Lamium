@@ -64,7 +64,8 @@ Json encode(Settings const& settings) {
                          {"attackMode", interaction::autoModeNames[static_cast<size_t>(settings.interaction.attackMode)]},
                          {"useMode", interaction::autoModeNames[static_cast<size_t>(settings.interaction.useMode)]},
                          {"attackHeldOnly", settings.interaction.attackHeldOnly}, {"useHeldOnly", settings.interaction.useHeldOnly},
-                         {"breaking", settings.interaction.breaking}, {"breakingMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.breakingMode)]},
+                         {"breaking", settings.interaction.breaking}, {"edgeGuard", settings.interaction.edgeGuard},
+                         {"breakingMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.breakingMode)]},
                          {"placementMode", interaction::restrictionNames[static_cast<size_t>(settings.interaction.placementMode)]}}},
         {"information", {{"hud", settings.information.hud}, {"coordinates", settings.information.coordinates},
                          {"debug", settings.information.debug},
@@ -144,6 +145,7 @@ Settings decodeSettings(std::string_view text) {
         value.interaction.attackHeldOnly = heldOnly("attackHeldOnly", "attackTrigger");
         value.interaction.useHeldOnly = heldOnly("useHeldOnly", "useTrigger");
         value.interaction.breaking = options.value("breaking",false);
+        value.interaction.edgeGuard = options.value("edgeGuard",false);
         auto mode = [&](char const* key) {
             auto name = options.value(key,std::string("plane"));
             for (size_t i=0;i<interaction::restrictionNames.size();++i)

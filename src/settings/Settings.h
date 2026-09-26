@@ -28,6 +28,7 @@ struct Settings {
         // new game never starts clicking by itself.
         bool autoAttack = false, autoUse = false;
         bool breaking = false;
+        bool edgeGuard = false; // Stop at block edges without sneaking.
         interaction::RestrictionMode breakingMode = interaction::RestrictionMode::Plane;
         interaction::RestrictionMode placementMode = interaction::RestrictionMode::Plane;
     } interaction;
