@@ -37,7 +37,7 @@ namespace lamium::information {
 namespace {
 SpeedSampler speedSampler;
 // One element row: text with an optional leading marker square.
-struct ElementLine { std::string text; std::optional<ui::Rgb> marker; };
+struct ElementLine { std::string text; std::optional<ui::Rgb> marker; ui::Rgb color = ui::palette::text; };
 float elementZoom(ui::HudElement const& element) {
     return std::clamp(std::isfinite(element.scale) ? element.scale : 100.f, 75.f, 150.f) / 100;
 }
@@ -71,7 +71,7 @@ std::optional<ui::hud_editor::Box> drawElement(MinecraftUIRenderContext& context
             textX += 8 * zoom + 4;
         }
         float textWidth = std::min(textWidths[i], contentWidth - (textX - x - padX));
-        ui::labelScaled(context, textX, y, textWidth + 2, lines[i].text, zoom, ui::palette::text, ui::Align::Left,
+        ui::labelScaled(context, textX, y, textWidth + 2, lines[i].text, zoom, lines[i].color, ui::Align::Left,
             element.shadow);
     }
     context.flushText(0, std::nullopt);
@@ -354,14 +354,12 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         if (target) box(ui::HudElementId::Target) = drawTargetCard(context, width, height, hud.target, *target, settings, !preview);
         else if (!preview) cardMorph = {};
     }
-    if (!preview && runtime.camera.showMagnification) {
-        if (auto level = Zoom::instance().magnification(context.mClient)) {
-            auto text = std::format("\u00d7{:.1f}", *level);
-            float textWidth = ui::textWidthScaled(context, text, 1.f) + 2;
-            ui::labelScaled(context, (width - textWidth) / 2, height / 2 + 10, textWidth, std::move(text), 1.f,
-                ui::palette::text, ui::Align::Center, true);
-            context.flushText(0, std::nullopt);
-        }
+    if (preview || runtime.camera.showMagnification) {
+        auto level = Zoom::instance().magnification(context.mClient);
+        if (!level && preview) level = runtime.camera.magnification;
+        if (level)
+            box(ui::HudElementId::Magnification) = drawElement(context, width, height, hud.magnification,
+                {{std::format("\u00d7{:.1f}", *level), std::nullopt, ui::palette::dim}});
     }
     if (preview || runtime.ui.toggleToasts) {
         auto toast = ui::currentToggleToast(ui::toastNow());

@@ -75,10 +75,12 @@ inline std::optional<HudElementId> layoutElement(std::string_view feature) {
     if (feature == "targetInfo") return HudElementId::Target;
     if (feature == "automationStatus") return HudElementId::Status;
     if (feature == "settings") return HudElementId::Toast;
+    if (feature == "zoom") return HudElementId::Magnification;
     return std::nullopt;
 }
 inline constexpr std::string_view layoutLinkLabel(HudElementId id) {
-    return id == HudElementId::Toast ? "layoutLinkToast" : "layoutLink";
+    return id == HudElementId::Toast ? "layoutLinkToast"
+        : id == HudElementId::Magnification ? "layoutLinkMagnification" : "layoutLink";
 }
 struct SettingsRow {
     RowKind kind;

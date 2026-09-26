@@ -8,8 +8,9 @@
 
 namespace lamium::ui {
 // HUD element placement model (BACKLOG L-04a, DESIGN "HUD", docs/demos/hud.html).
-// Elements are info lines, target, status and toast. Pure math; InfoHud draws.
-enum class HudElementId { Info, Target, Status, Toast };
+// Elements are info lines, target, status, toast and the zoom magnification.
+// Pure math; InfoHud draws. Append new ids: they index saved boxes.
+enum class HudElementId { Info, Target, Status, Toast, Magnification };
 enum class Anchor {
     TopLeft, TopCenter, TopRight,
     MiddleLeft, Center, MiddleRight,
@@ -47,7 +48,10 @@ inline constexpr HudElement defaultHudElement(HudElementId id) {
     case HudElementId::Info: return {Anchor::TopLeft, hudInset, hudInset, 100, ElementBackground::None, true};
     case HudElementId::Target: return {Anchor::TopCenter, 0, hudInset, 100, ElementBackground::Card, false};
     case HudElementId::Status: return {Anchor::MiddleRight, -hudInset, -20, 100, ElementBackground::None, true};
-    default: return {Anchor::BottomCenter, 0, -48, 100, ElementBackground::Card, false};
+    // Small and away from the crosshair so it does not compete with the view.
+    case HudElementId::Magnification: return {Anchor::Center, 0, 36, 75, ElementBackground::None, true};
+    // Above the armor and absorption rows over the hotbar.
+    default: return {Anchor::BottomCenter, 0, -72, 100, ElementBackground::Card, false};
     }
 }
 inline constexpr std::string_view hudElementKey(HudElementId id) {
@@ -55,6 +59,7 @@ inline constexpr std::string_view hudElementKey(HudElementId id) {
     case HudElementId::Info: return "info";
     case HudElementId::Target: return "target";
     case HudElementId::Status: return "status";
+    case HudElementId::Magnification: return "magnification";
     default: return "toast";
     }
 }

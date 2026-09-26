@@ -60,6 +60,7 @@ inline ui::HudElement const& hudElement(Settings const& value, ui::HudElementId 
     case ui::HudElementId::Info: return value.hud.info;
     case ui::HudElementId::Target: return value.hud.target;
     case ui::HudElementId::Status: return value.hud.status;
+    case ui::HudElementId::Magnification: return value.hud.magnification;
     default: return value.hud.toast;
     }
 }
@@ -68,6 +69,7 @@ inline ui::HudElement& hudElement(Settings& value, ui::HudElementId id) {
     case ui::HudElementId::Info: return value.hud.info;
     case ui::HudElementId::Target: return value.hud.target;
     case ui::HudElementId::Status: return value.hud.status;
+    case ui::HudElementId::Magnification: return value.hud.magnification;
     default: return value.hud.toast;
     }
 }
@@ -209,6 +211,9 @@ inline constexpr auto options = std::to_array<Option>({
     hudNumeric<ui::HudElementId::Toast, &ui::HudElement::scale, 25>("hud.toast.scale", "settings", "hudScale", 75, 150),
     hudChoice<ui::HudElementId::Toast, &ui::HudElement::background, elementBackgroundLabels>("hud.toast.background", "settings", "hudBackground"),
     hudToggle<ui::HudElementId::Toast, &ui::HudElement::shadow>("hud.toast.shadow", "settings", "hudShadow"),
+    hudNumeric<ui::HudElementId::Magnification, &ui::HudElement::scale, 25>("hud.magnification.scale", "zoom", "hudScale", 75, 150),
+    hudChoice<ui::HudElementId::Magnification, &ui::HudElement::background, elementBackgroundLabels>("hud.magnification.background", "zoom", "hudBackground"),
+    hudToggle<ui::HudElementId::Magnification, &ui::HudElement::shadow>("hud.magnification.shadow", "zoom", "hudShadow"),
 });
 inline Option const* find(std::string_view id) {
     for (auto const& option : options) if (option.id == id) return &option;

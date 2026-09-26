@@ -108,7 +108,8 @@ Json encode(Settings const& settings) {
         {"interface", {{"toggleToasts", settings.ui.toggleToasts}, {"automationStatus", settings.ui.automationStatus},
                        {"animations", settings.ui.animations}}},
         {"hud", {{"info", encodeHudElement(settings.hud.info)}, {"target", encodeHudElement(settings.hud.target)},
-                   {"status", encodeHudElement(settings.hud.status)}, {"toast", encodeHudElement(settings.hud.toast)}}}
+                   {"status", encodeHudElement(settings.hud.status)}, {"toast", encodeHudElement(settings.hud.toast)},
+                   {"magnification", encodeHudElement(settings.hud.magnification)}}}
     };
 }
 }
@@ -275,6 +276,7 @@ Settings decodeSettings(std::string_view text) {
         element("target", value.hud.target, ui::HudElementId::Target);
         element("status", value.hud.status, ui::HudElementId::Status);
         element("toast", value.hud.toast, ui::HudElementId::Toast);
+        element("magnification", value.hud.magnification, ui::HudElementId::Magnification);
     }
     value.normalize();
     return value;

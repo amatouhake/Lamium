@@ -68,6 +68,7 @@ struct Settings {
         ui::HudElement target = ui::defaultHudElement(ui::HudElementId::Target);
         ui::HudElement status = ui::defaultHudElement(ui::HudElementId::Status);
         ui::HudElement toast = ui::defaultHudElement(ui::HudElementId::Toast);
+        ui::HudElement magnification = ui::defaultHudElement(ui::HudElementId::Magnification);
     } hud;
     struct Overlays {
         bool chunkBorders = false;
@@ -151,6 +152,7 @@ struct Settings {
         normalizeElement(hud.target, ui::defaultHudElement(ui::HudElementId::Target));
         normalizeElement(hud.status, ui::defaultHudElement(ui::HudElementId::Status));
         normalizeElement(hud.toast, ui::defaultHudElement(ui::HudElementId::Toast));
+        normalizeElement(hud.magnification, ui::defaultHudElement(ui::HudElementId::Magnification));
         if (!std::isfinite(camera.magnification)) camera.magnification = 3.0f;
         camera.magnification = std::clamp(camera.magnification, 1.0f, 50.0f);
     }
