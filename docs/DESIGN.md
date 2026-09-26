@@ -292,6 +292,14 @@ exactly one switch, one mode and one set of keys:
 - Reading is spread over frames: a bounded number of chunk columns per frame,
   columns next to the viewer re-read every 0.25 s, the rest every 2 s.
 
+## Resetting settings (Decided 2026-09-26, BACKLOG L-46)
+
+- No per-setting or per-feature reset (vanilla has none either). General has
+  "Reset all" (every setting, key bindings and HUD layout; not Shapes) and
+  Hotkeys has "Reset all keys". Both sit on the column-heading line and need a
+  second press to apply. The HUD layout editor keeps its per-element and
+  all-element resets.
+
 ## Keys
 
 - (Decided) There is no general default-key policy to design now; defaults are

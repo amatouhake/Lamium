@@ -30,7 +30,7 @@ L-item wins.
 2. **Camera requests from users:** L-45 (Ready, awaiting check), L-39 (Design).
 3. **High-priority new work:** L-40 Fake Sneak (Research).
 4. **Restriction redesign:** L-15 (Design; its resume bug is L-36).
-5. **Next features:** L-46, L-41 and L-42 (Design).
+5. **Next features:** L-46 (Ready, awaiting check), L-41 and L-42 (Design).
 6. **Run bounded native research in parallel:** L-30 and L-33.
 7. **Prepare the first release:** keep user-facing docs current, run a full
    runtime regression on the release build, verify a fresh install/package and
@@ -61,7 +61,6 @@ summary.
   as an option?
 - L-39: should Freelook starting in third person be an option, and what is the
   default?
-- L-46: how settings go back to their defaults (per row, per feature, all).
 
 HUD (docs/demos/hud.html), the settings key and the shape model are decided;
 see DESIGN.md.
@@ -471,7 +470,13 @@ or keep 1x; where and how the magnification is shown (next to the crosshair,
 as a toast, or an Info HUD line) and its default.
 
 ### L-46 Reset settings to defaults
-Kind: Design. Raised by the maintainer 2026-09-26. The demo
+Kind: Ready (decided 2026-09-26). Status: implemented, awaiting the batched
+in-game check. General shows "Reset all" and Hotkeys shows "Reset all keys" on
+the column-heading line; the first press arms the button (red, "Press again"),
+the second applies, any other click disarms it. "Reset all" restores every
+setting including key bindings and the HUD layout; Shapes are untouched. The
+HUD layout editor keeps its own per-element and all-element resets.
+Raised by the maintainer 2026-09-26. The demo
 (docs/demos/settings-reset.html) showed per-row and per-feature resets; the
 maintainer judged them excessive (vanilla Minecraft has no per-setting reset)
 and narrowed the scope to: reset everything, and reset key bindings only
