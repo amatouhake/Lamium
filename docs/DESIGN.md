@@ -190,6 +190,22 @@ Contents:
 - (Proposed) Overlays must not hide vanilla's block selection outline: skip or
   dim geometry on the targeted block.
 
+## Camera (Decided 2026-09-26 unless noted)
+
+- (Decided, BACKLOG L-38) Zoom goes up to 50x. The initial magnification
+  setting and the wheel share the 1x-50x range. A wheel notch multiplies or
+  divides the target magnification by a fixed ratio (about 1.15), so every
+  notch feels the same at 2x and at 40x. The shown magnification eases toward
+  the target over a short time instead of jumping; turn sensitivity follows
+  the shown magnification.
+- (Proposed, BACKLOG L-39) Freelook can start in third person (rear view) and
+  returns to the previous perspective on release. Whether this is an option
+  and its default are still open.
+- (Proposed, BACKLOG L-27) FreeCamera keeps its detached position through
+  inventory and other menus, the pause screen and focus loss. Death,
+  dimension change and leaving the world still end it. Whether this is always
+  on or an option is still open.
+
 ## Automatic attack and use (Decided 2026-09-25, revised the same day)
 
 One feature per mouse action, **Auto Attack** and **Auto Use**, each with

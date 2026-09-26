@@ -16,16 +16,24 @@ Each task has a **kind**, which decides who should pick it up:
 Ready tasks marked **(strong model)** are fully specified but visual or
 cross-cutting enough that a strong model should implement them.
 
+**Bugs** (something that ships behaves wrongly) are listed first in their own
+section and are fixed before new features. Each bug still has a kind that
+decides who picks it up.
+
 ## Current execution order
 
 Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins.
 
-1. **Fix observed day-to-day behavior:** L-15 (Design).
-2. **Run bounded native research in parallel:** L-14, L-17, L-30, L-33 and the
-   unresolved parts of L-16/L-15.
-3. **Prepare the first release:** keep user-facing docs current, run a full
+1. **Fix bugs:** L-35 (Ready) first, then L-27 (Design) and the bug research
+   L-36, L-37, L-14 and L-17.
+2. **Camera requests from users:** L-38 (Ready), L-39 (Design).
+3. **High-priority new work:** L-40 Fake Sneak (Research).
+4. **Restriction redesign:** L-15 (Design; its resume bug is L-36).
+5. **Next features:** L-41 and L-42 (Design), L-43 (Ready), L-44 (Research).
+6. **Run bounded native research in parallel:** L-30 and L-33.
+7. **Prepare the first release:** keep user-facing docs current, run a full
    runtime regression on the release build, verify a fresh install/package and
    finish the remaining distribution review. 0.1.1 is the current GitHub
    pre-release (tag v0.1.1; same code as the build verified for L-16) with the
@@ -50,8 +58,67 @@ summary.
 
 ## Open decisions
 
-None. HUD (docs/demos/hud.html), the settings key and the shape model are
-decided; see DESIGN.md.
+- L-27: keep the FreeCamera position through menus and focus loss always, or
+  as an option?
+- L-39: should Freelook starting in third person be an option, and what is the
+  default?
+
+HUD (docs/demos/hud.html), the settings key and the shape model are decided;
+see DESIGN.md.
+
+---
+
+## Bugs
+
+### L-35 Container previews play the item pickup animation
+Kind: Ready. Reported by a user 2026-09-26.
+Items shown in Shulker/Bundle previews play the vertical stretch that vanilla
+uses right after picking an item up. The preview draws stacks decoded from the
+container, which keep `ItemStackBase::mShowPickUp`; the Info HUD already clears
+it on its icon copies (`InfoHud.cpp`). Draw preview icons from copies with
+`mShowPickUp = false` (never touch the real inventory stack). Check in game with
+a Shulker Box of blocks right after picking it up, and with items that animate
+on their own (clock, compass) to make sure those still animate.
+
+### L-36 Breaking does not resume after a forbidden block
+Kind: Research. Split from L-15 on 2026-09-26.
+With Breaking Restriction on, once the crosshair passes over a forbidden block,
+breaking does not resume on an allowed block until the mouse button is released
+and pressed again. The forbidden block must still not break, but the held
+button must keep working: fix the input/session handoff, not the region
+predicate. Find which vanilla breaking-session state is left stopped after the
+rejected block and how a held attack normally restarts it. Listed in the
+README's known issues.
+
+### L-37 FreeCamera cannot see caves from underground
+Kind: Research. Reported by a user 2026-09-26.
+Flying FreeCamera into the ground does not show caves the way spectator mode
+does: chunk sections are missing or culled, so underground spaces cannot be
+looked at cleanly. Likely the render-chunk visibility/occlusion pass is seeded
+from the player rather than the detached camera, or spectator gets special
+handling. Find which pass decides visible sections and what spectator changes,
+then decide whether FreeCamera can use the same path without affecting the
+player's own rendering. Separate from L-28 (third-person collision judder).
+
+### L-14 Hidden offhand still shows a shield
+Kind: Research.
+With Hide Offhand on, totems disappear but a shield is drawn slightly lower.
+The shield likely goes through a path other than
+`ItemInHandRenderer::renderOffhandItem` (blocking pose or a shield-specific
+renderer). Needs a trace build to find which call draws it.
+
+
+### L-17 Hand Restock does not replenish
+Kind: Research.
+Consumption is detected, but the transfer through the HUD fails
+(`handlePlaceAmount` returns false). See HAND-RESTOCK.md and VALIDATION.md.
+Desired scope also includes **offhand auto-restock when a safe vanilla-backed
+path exists**, especially replacing a consumed Totem of Undying from inventory.
+Treat offhand consumption/slot mapping as a separate runtime path: do not assume
+the main-hand use observer or HUD indices apply, and do not synthesize stacks or
+forge inventory packets. Main-hand success is not required to prove feasibility,
+but each path needs independent runtime validation.
+
 
 ---
 
@@ -317,9 +384,71 @@ Implementation notes for later: add types through the registry in
 volume); extend `ShapeDocument` load/save; test against a brute-force volume
 surface for small sizes.
 
+### L-38 Zoom up to 50x with a proportional, smooth wheel
+Kind: Ready. Requested by a user 2026-09-26. DESIGN "Camera".
+- Raise the magnification range from 1x-10x to 1x-50x for both the initial
+  setting (Options.h, Settings normalize) and the wheel (`ZoomState`).
+- A wheel notch multiplies/divides the target magnification by about 1.15
+  (replace the fixed additive step; migrate or drop the `wheelStep` setting
+  and keep old settings files loading).
+- The shown magnification eases toward the target (frame-rate independent,
+  roughly 0.1-0.15 s); FOV and turn sensitivity use the shown value. Releasing
+  Zoom resets as today.
+- Keep the math in `ZoomState.h` with tests: range clamps, notch symmetry,
+  easing convergence, no overshoot, reset.
+- In game: 50x is reachable in a reasonable number of notches, zooming feels
+  smooth, aiming stays controllable at 50x.
+
+### L-43 Permanent Sprint
+Kind: Ready. Notion idea (Masa-style QoL), promoted 2026-09-26.
+Mirror Permanent Sneak: add `SprintDown` to a transient copy of the raw move
+input in the same `extractRawHIDInput` hook, with the same eligibility and
+cancellation (screens, settings, death, sleeping, riding, dimension change).
+Vanilla still decides whether sprinting is possible (hunger, blindness,
+moving forward, sneaking). Add the setting row, action and translations.
+Check in game that sprint starts when walking forward, stops when vanilla
+would, and that turning it off never leaves sprint stuck.
+
 ---
 
 ## Design
+
+### L-27 FreeCamera keeps its position through menus
+Kind: Design (small). Promoted from Later 2026-09-26 after user feedback.
+Opening the inventory or another menu, the pause screen, or switching windows
+currently ends FreeCamera and discards the flown position. Proposed direction
+(DESIGN "Camera"): keep the detached pose through these and resume on return;
+death, dimension change and leaving the world still end it. Open: always, or
+an option. The pose must not follow input while a screen owns input, and
+inventory interaction while detached stays a separate question (L-25).
+
+### L-39 Freelook starts in third person
+Kind: Design (small). Requested by a user 2026-09-26.
+Proposed: Freelook switches to the rear third-person view while active and
+returns to the previous perspective on release, reusing FreeCamera's
+perspective save/restore. Open: option or not, the default, and whether the
+front view is offered. Starting from third person keeps that view.
+
+### L-41 Inventory drag and wheel transfer
+Kind: Design. Notion idea (Item Scroller style), promoted 2026-09-26.
+Holding a click (or Shift+click) and sweeping over slots moves each passed
+stack to the other side; later, wheel moves one item or one stack. Reuse the
+sort infrastructure (screen tracking, hovered slot, vanilla container-controller
+transfers with response tracking); never write stacks directly. First target:
+player inventory and ordinary storage (chest, barrel, Shulker Box). To decide:
+the default gestures (Shift+LMB / LMB / RMB / wheel), how fast a sweep may queue
+transfers, and cancel rules (cursor item, text input, screen change, other
+players). Research the 26.51.5 quick-move / auto-place API before building.
+
+### L-42 Hide visual effects without changing game state
+Kind: Design. Notion ideas, promoted 2026-09-26.
+One group of render-only toggles: boss bars, rain/snow, all particles,
+carved-pumpkin overlay, spyglass overlay (zoom kept) and the nausea green
+vignette (vanilla Screen Distortion already removes the warp). Weather,
+effects, boss state and equipment are never changed. To decide: where the rows
+live and whether particles offer only All/None at first. Each item needs a small
+trace to find its render entry; ship them one by one. Status-effect-only
+particle filtering stays an idea until its source can be identified.
 
 ### L-15 Breaking/placement restriction redesign
 Review points: anchoring UX, height-band clearing, shape-linked limits,
@@ -331,9 +460,8 @@ Proposed direction to confirm:
 - Rejected blocks must not terminate the user's physical left-click hold.
   If the crosshair passes over a forbidden block and later reaches an allowed
   block while the button is still held, breaking should resume without a
-  release/re-press. The current implementation can leave vanilla's breaking
-  session stopped after the forbidden target; fix the input/session handoff,
-  not the region predicate.
+  release/re-press. This bug is tracked separately as L-36 and does not wait
+  for the redesign.
 - New modes: height band (blocks from the feet level up to N−1 above, for
   clearing 2-high tunnels/fields), inside a shape, on a shape's surface
   (linking to Shapes).
@@ -434,27 +562,29 @@ https://github.com/maruohon/tweakeroo/blob/ornithe/1.12.2/src/main/java/tweakero
 
 ## Research
 
-### L-14 Hidden offhand still shows a shield
-With Hide Offhand on, totems disappear but a shield is drawn slightly lower.
-The shield likely goes through a path other than
-`ItemInHandRenderer::renderOffhandItem` (blocking pose or a shield-specific
-renderer). Needs a trace build to find which call draws it.
+### L-40 Fake Sneak (edge protection without sneaking) — high priority
+Kind: Research. Notion idea, promoted as high priority 2026-09-26.
+Keep the player from walking off block edges like sneaking does, without
+actually sneaking: no speed loss, no sneak pose or network sneak state, no
+hitbox change. Separate from Permanent Sneak, which feeds real `SneakDown`.
+Find the vanilla edge-protection check in 26.51.5 (around `Actor::move` /
+movement collision) and whether only that check can see "sneaking". Prefer
+reusing that vanilla path over clamping movement ourselves (slabs, stairs,
+diagonal moves and scaffolding would need re-implementing). Runtime checks:
+full block edge, slab/stair, diagonal, sprint, jump, scaffolding, knockback,
+and that other players see a normal, non-sneaking player.
 
-### L-17 Hand Restock does not replenish
-Consumption is detected, but the transfer through the HUD fails
-(`handlePlaceAmount` returns false). See HAND-RESTOCK.md and VALIDATION.md.
-Desired scope also includes **offhand auto-restock when a safe vanilla-backed
-path exists**, especially replacing a consumed Totem of Undying from inventory.
-Treat offhand consumption/slot mapping as a separate runtime path: do not assume
-the main-hand use observer or HUD indices apply, and do not synthesize stacks or
-forge inventory packets. Main-hand success is not required to prove feasibility,
-but each path needs independent runtime validation.
+### L-44 Static FOV
+Kind: Research (small). Notion idea, promoted 2026-09-26.
+Keep FOV fixed when sprinting, speed/slowness effects or flying would change
+it. Find where 26.51.5 applies the dynamic FOV modifier; it should sit next to
+Zoom's FOV hook and must compose with Zoom.
 
 ### L-18 FreeCamera
 Status: done as an experiment (Pi, reviewed 2026-09-24). Flight, movement
 freeze, first-person lock and exits were verified in game; details and failed
-approaches are in docs/CAMERA.md. Follow-ups: L-25 to L-29 below and the
-L-10 note. Open polish: starting from third person begins at the head rather
+approaches are in docs/CAMERA.md. Follow-ups: L-25 to L-29 (L-27 is in
+Design), L-37 and the L-10 note. Open polish: starting from third person begins at the head rather
 than at the previous third-person eye; needs a new approach if wanted.
 
 ### L-20 Shape name text input adds stray characters
@@ -582,15 +712,9 @@ rather than polling arbitrary world state.
   2026-09-24, Tweakeroo-like: an option to hide the hotbar while FreeCamera
   is active (looking-only flight needs no hotbar). Find the vanilla hotbar
   render entry first; Freelook is out of scope unless trivially shared.
-- L-27 Detached menu behavior (parked, after L-18; small Design open).
-  Inventory/settings opening currently exits FreeCamera and discards the flown
-  position, which is safe but annoying. Desired: an option around inventory
-  rendering while detached (Java mods have similar), so looking-only flight
-  need not pass through inventory. Exits for death/dimension/world change
-  stay mandatory regardless of the option.
 - L-21 Shape color picker or more colors: only if the four colors prove
   insufficient.
-- Not started, not yet triaged: F3-style debug view, Scroll Transfer
-  (wheel transfers between inventories), Schematic subsystem (browser,
-  placement, projection, verifier, material list), Mass Craft. These need
-  a Design pass before they become tasks. (Fast Attack/Use became L-34.)
+- Not started, not yet triaged: F3-style debug view, Schematic subsystem
+  (browser, placement, projection, verifier, material list), Mass Craft. These
+  need a Design pass before they become tasks. (Fast Attack/Use became L-34;
+  Scroll Transfer became L-41.)
