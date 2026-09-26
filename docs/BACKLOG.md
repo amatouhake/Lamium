@@ -26,17 +26,14 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins.
 
-1. **Fix bugs:** L-17 (hotbar reserve done; inventory refill proposed to be
-   parked) and L-37 (proposed to be parked).
-2. **Camera requests from users:** L-39 (Design).
-3. **Restriction redesign:** L-15 (Design).
-4. **Next features:** L-41 and L-42 (Design).
-5. **Run bounded native research in parallel:** L-30 and L-33.
-6. **Prepare the first release:** keep user-facing docs current, run a full
+1. **Camera requests from users:** L-39 (Design).
+2. **Restriction redesign:** L-15 (Design).
+3. **Next features:** L-41 and L-42 (Design).
+4. **Run bounded native research in parallel:** L-30 and L-33.
+5. **Prepare the first release:** keep user-facing docs current, run a full
    runtime regression on the release build, verify a fresh install/package and
-   finish the remaining distribution review. 0.1.1 is the current GitHub
-   pre-release (tag v0.1.1; same code as the build verified for L-16) with the
-   known issues listed in the README; the version is set in `xmake.lua` and
+   finish the remaining distribution review. 0.1.2 is the current GitHub
+   pre-release (tag v0.1.2) with the known issues listed in the README; the version is set in `xmake.lua` and
    `tooth.json`. lip registration is not done yet.
 
 HUD/world presentation and the strong-model HUD/Target polish (L-04a/b/c,
@@ -107,6 +104,11 @@ its log before this step, so the call sequence is still to be recorded.
 
 ### L-17 Hand Restock does not replenish
 Kind: Research.
+Status: done as hotbar reserve selection (decided 2026-09-27). Refilling
+from the main inventory and restocking the offhand (e.g. a used totem)
+are parked: without an open screen there is no safe vanilla transfer path
+(HUD place and take both fail) and forging inventory requests is ruled
+out. Revisit only if such a path appears.
 Consumption is detected, but the transfer through the HUD fails
 (`handlePlaceAmount` returns false). See HAND-RESTOCK.md and VALIDATION.md.
 2026-09-27 trace: the HUD and screen controllers report the same transfer
@@ -131,6 +133,8 @@ validation.
 
 ### L-37 FreeCamera cannot see caves from underground
 Kind: Research. Reported by a user 2026-09-26.
+Status: parked as a known limitation 2026-09-27 (README known issues). No
+remaining approach without disassembly; see the traces below.
 Flying FreeCamera into the ground does not show caves the way spectator mode
 does: chunk sections are missing or culled, so underground spaces cannot be
 looked at cleanly. Likely the render-chunk visibility/occlusion pass is seeded

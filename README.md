@@ -5,7 +5,7 @@ No server plugin or companion protocol is required.
 
 ## Status
 
-Lamium 0.1.1 is a **pre-release**. The main settings, hotkey, HUD, target
+Lamium 0.1.2 is a **pre-release**. The main settings, hotkey, HUD, target
 card, camera and overlay flows have been exercised in Minecraft on a local
 single-player setup; multiplayer servers, controllers and broad
 resource-pack/graphics coverage are not verified yet. Some features are still
@@ -33,10 +33,14 @@ Settings are stored in `mods/Lamium/config/` and the log is written to
 Press `L` in a world to open Lamium Settings. The screen uses a dense
 Bedrock-fitting sidebar/table layout with search, English/Japanese text,
 immediate persistence and no Save/Cancel step. Hotkeys, Shapes and HUD layout
-are first-class views in the same UI.
+are first-class views in the same UI. Every feature has one switch that its
+key also toggles; "All", each category and Hotkeys can reset their settings
+to the defaults.
 
-- **Camera/visuals:** Zoom, Night Vision, Freelook, experimental FreeCamera
-  and Hide Offhand Item.
+- **Camera/visuals:** Zoom up to 50x with a smooth wheel and an optional
+  magnification readout, Night Vision, Freelook, experimental FreeCamera
+  (keeps its position through menus) and Hide Offhand Item (including
+  shields). Zoom and Freelook can be held or toggled.
 - **Information/HUD:** ordered Info HUD lines, a live HUD layout editor, a
   Target card with icons, hearts and bars, Debug View basics and toggle
   toasts.
@@ -44,9 +48,11 @@ are first-class views in the same UI.
   with per-world persistence, Java-style Chunk Borders, Hitboxes with eye/look
   markers and a light-level overlay.
 - **Inventory/inspection:** Shulker and Bundle previews, durability
-  information, inventory sorting, Tool Switch and experimental Hand Restock.
-- **Interaction:** Permanent Sneak, breaking restriction and Auto Attack/Use
-  (Periodic, Hold or Fast click).
+  information, inventory sorting, Tool Switch and experimental Hand Restock
+  (switches to a matching stack elsewhere on the hotbar).
+- **Interaction:** Permanent Sneak, Permanent Sprint, experimental Edge Guard
+  (stops at block edges without sneaking), breaking restriction and Auto
+  Attack/Use (Periodic, Hold or Fast click).
 
 Lamium owns its key bindings; they do not appear in Minecraft's keyboard
 settings. Bindings are edited under each feature or in the Hotkeys view.
@@ -57,13 +63,14 @@ Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
 
 ## Known issues
 
-- Hand Restock has not yet successfully replenished an item.
-- Hide Offhand Item still shows a held shield.
-- Breaking restriction: after the crosshair passes over a forbidden block,
-  breaking does not resume on an allowed block until the mouse button is
-  released and pressed again. The restriction modes will be redesigned.
+- Hand Restock only switches to another hotbar slot; it does not refill from
+  the main inventory or refill the offhand (for example a used totem).
 - FreeCamera is experimental; multiplayer, controllers and some dimension/menu
-  edges are untested.
+  edges are untested. Looking from inside solid blocks, distant caves can be
+  cut off along chunk lines (spectator mode does not have this).
+- Edge Guard works in local worlds; on multiplayer servers the server may
+  still move the player over the edge (untested).
+- The breaking restriction modes will be redesigned.
 - Auto Attack/Use: whether several clicks per tick land on servers is not
   verified.
 
