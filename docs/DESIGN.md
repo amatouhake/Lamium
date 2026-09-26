@@ -17,8 +17,10 @@ Decided rule without asking.
   save is reported.
 - A feature's toggle, key and options live together. There is no "Advanced"
   bucket; options have names that say what they do.
-- Press/Hold/Toggle is decided by the action, not chosen by the user. Only
-  Freelook exposes "Activation: Hold / Toggle" because both are useful.
+- Every feature has one on/off switch that its key toggles (BACKLOG L-47).
+  Zoom and Freelook also offer "Activation: Hold / Toggle"; Hold lights the
+  switch only while the key is held. Other Press/Hold/Toggle choices are made
+  by the action, not the user.
 - Uncertain, high-effort features (Mass Craft, profilers, Placement Assist) are
   experimental tracks and never block the roadmap.
 - Features restore vanilla behavior when disabled or when leaving a world.
@@ -208,10 +210,15 @@ Contents:
 - (Proposed, BACKLOG L-39) Freelook can start in third person (rear view) and
   returns to the previous perspective on release. Whether this is an option
   and its default are still open.
-- (Proposed, BACKLOG L-27) FreeCamera keeps its detached position through
-  inventory and other menus, the pause screen and focus loss. Death,
-  dimension change and leaving the world still end it. Whether this is always
-  on or an option is still open.
+- (Decided 2026-09-26, BACKLOG L-47 and L-27) Zoom, Freelook, FreeCamera,
+  Permanent Sneak and Permanent Sprint have no saved switch. Their switch
+  shows whether they are wanted; the key or a click on the switch flips it,
+  and the effect starts when gameplay allows (a click in settings takes
+  effect after closing them). Menus pause Zoom, Freelook, Sneak and Sprint
+  and they resume afterwards; FreeCamera keeps its position through menus,
+  settings and focus loss. Focus loss keeps them wanted; death, dimension
+  change and leaving the world turn them all off. Nothing is saved across
+  restarts.
 
 ## Automatic attack and use (Decided 2026-09-25, revised the same day)
 

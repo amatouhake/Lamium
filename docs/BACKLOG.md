@@ -26,11 +26,11 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins.
 
-1. **Fix bugs:** L-27 (Design) and the bug research L-37, L-14 and L-17.
-2. **Camera requests from users:** L-45 (Ready, awaiting check), L-39 (Design).
-3. **High-priority new work:** L-40 Fake Sneak (Research).
+1. **Awaiting the batched in-game check:** L-47 with L-27, L-40 (Edge Guard).
+2. **Fix bugs:** the bug research L-37, L-14 and L-17.
+3. **Camera requests from users:** L-39 (Design).
 4. **Restriction redesign:** L-15 (Design; its resume bug is L-36).
-5. **Next features:** L-47, L-41 and L-42 (Design).
+5. **Next features:** L-41 and L-42 (Design).
 6. **Run bounded native research in parallel:** L-30 and L-33.
 7. **Prepare the first release:** keep user-facing docs current, run a full
    runtime regression on the release build, verify a fresh install/package and
@@ -57,11 +57,8 @@ summary.
 
 ## Open decisions
 
-- L-27: keep the FreeCamera position through menus and focus loss always, or
-  as an option?
 - L-39: should Freelook starting in third person be an option, and what is the
   default?
-- L-47: momentary features enabled by their key alone (state column, Zoom's default key).
 
 HUD (docs/demos/hud.html), the settings key and the shape model are decided;
 see DESIGN.md.
@@ -459,6 +456,8 @@ would, and that turning it off never leaves sprint stuck.
 
 ### L-27 FreeCamera keeps its position through menus
 Kind: Design (small). Promoted from Later 2026-09-26 after user feedback.
+Status: implemented as part of L-47 (7183295), awaiting the batched in-game
+check. Movement input counts as zero while a screen owns input.
 Opening the inventory or another menu, the pause screen, or switching windows
 currently ends FreeCamera and discards the flown position. Proposed direction
 (DESIGN "Camera"): keep the detached pose through these and resume on return;
@@ -511,6 +510,9 @@ should probably be excluded).
 
 ### L-47 Enable momentary features by their key alone
 Kind: Design. Raised by the maintainer 2026-09-26.
+Status: implemented (7183295) with L-27, awaiting the batched in-game check;
+behavior as in DESIGN "Camera". The old Zoom/Freelook/FreeCamera enable
+settings are ignored on load.
 Night Vision and other persistent features have one switch that their key also
 toggles. Zoom, Freelook and FreeCamera instead have an enable switch plus a key
 that holds or toggles a session, so a bound key does nothing while the switch
@@ -676,6 +678,13 @@ and the L-36 block in `BreakingRestriction.cpp`).
 
 ### L-40 Fake Sneak (edge protection without sneaking) — high priority
 Kind: Research. Notion idea, promoted as high priority 2026-09-26.
+Status: implemented as "Edge Guard" (d2c59b2), awaiting the batched in-game
+check. A switch and an unbound toggle key in the Interaction category; the
+exported `MoveCollisionSystem::fetchCollisionShapes` hook shortens the local
+player's horizontal move (pure `guardEdge`, tested) until the feet keep
+ground within 0.6 blocks below, only when on the ground and not sneaking,
+flying, gliding, swimming, in water or riding. Server-side movement
+correction on multiplayer servers is untested.
 Keep the player from walking off block edges like sneaking does, without
 actually sneaking: no speed loss, no sneak pose or network sneak state, no
 hitbox change. Separate from Permanent Sneak, which feeds real `SneakDown`.
