@@ -15,9 +15,13 @@
 #include "mc/entity/components/MoveInputComponent.h"
 #include "mc/entity/components/RawMoveInputComponent.h"
 #include "mc/entity/components/SneakingComponent.h"
-#include "mc/entity/systems/sneak_movement_system/SneakMovementSystem.h"
+#include "mc/entity/systems/move_collision_system/MoveCollisionSystem.h"
+#include "mc/deps/vanilla_components/MoveRequestComponent.h"
+#include "mc/deps/ecs/gamerefs_entity/EntityRegistry.h"
+#include "mc/deps/ecs/strict/StrictEntityContext.h"
 #include "mc/world/actor/provider/PlayerMovement.h"
 #include "mc/world/phys/AABB.h"
+#include "mc/world/level/GameType.h"
 #include <Windows.h>
 #pragma comment(lib, "user32.lib") // GetAsyncKeyState, trace builds only
 #include <intrin.h>
@@ -61,61 +65,54 @@ struct Toggle {
     }
 };
 
-// L-40: SneakMovementSystem looks like vanilla edge protection and
-// PlayerMovement::calculateMoveVector takes the SneakingComponent (speed).
-// F9 gives the local player a SneakingComponent with a movement factor of 1
-// each input tick, without sneak input, to see whether edge protection
-// follows the component alone.
-Toggle fakeSneak{VK_F9, "L-40 fake SneakingComponent (factor 1)"};
-bool addedSneaking = false;
-std::atomic<unsigned> volumeCalls{0}, moveWithSneak{0}, moveWithout{0};
-float lastFactor = -1;
+// L-40: MoveCollisionSystem::fetchCollisionShapes receives the entity's
+// MoveRequestComponent, whose mSneaking flag likely drives vanilla edge
+// protection. F9 sets it for the local player only, without sneak input.
+Toggle fakeSneak{VK_F9, "L-40 move-request sneaking flag"};
+std::atomic<unsigned> localRequests{0}, sneakingRequests{0}, forcedRequests{0};
 Clock::time_point lastL40 = Clock::now();
 void dumpL40() {
     if (Clock::now() - lastL40 < std::chrono::seconds(2)) return;
     lastL40 = Clock::now();
-    unsigned volume = volumeCalls.exchange(0), with = moveWithSneak.exchange(0), without = moveWithout.exchange(0);
-    if (!volume && !with) return;
+    unsigned local = localRequests.exchange(0), sneaking = sneakingRequests.exchange(0), forced = forcedRequests.exchange(0);
+    if (!local) return;
     auto* player = localPlayer();
-    log("research L-40 per2s edgeVolumeCalls={} moveVector(sneakComponent)={} moveVector(none)={} factor={:.2f} "
-        "fake={} sneakingFlag={}", volume, with, without, lastFactor, fakeSneak.on.load(),
-        player ? player->isSneaking() : false);
+    log("research L-40 per2s localMoveRequests={} vanillaSneaking={} forced={} fake={} sneakingFlag={}",
+        local, sneaking, forced, fakeSneak.on.load(), player ? player->isSneaking() : false);
 }
-LL_STATIC_HOOK(SneakVolumeHook, ll::memory::HookPriority::Normal, &SneakMovementSystem::getMaxCollisionVolume, AABB,
-    Vec3 const& speed, MaxAutoStepComponent const& step, AABBShapeComponent const& shape) {
-    ++volumeCalls;
-    return origin(speed, step, shape);
+bool isLocalEntity(StrictEntityContext const& entity) {
+    auto* player = localPlayer();
+    if (!player) return false;
+    auto const& own = player->getEntityContext();
+    return static_cast<EntityId const&>(entity.mEntity) == own.mEntity
+        && static_cast<uint const&>(entity.mRegistryId) == static_cast<uint const&>(own.mRegistry.mId);
 }
-LL_STATIC_HOOK(MoveVectorHook, ll::memory::HookPriority::Normal, &PlayerMovement::calculateMoveVector, Vec2,
-    MoveInputState const& input, bool flying, ActorDataFlagComponent const& flags, bool water,
-    SneakingComponent const* sneaking) {
-    if (sneaking) { ++moveWithSneak; lastFactor = sneaking->mSneakingMovementFactor; }
-    else ++moveWithout;
-    return origin(input, flying, flags, water, sneaking);
-}
-LL_STATIC_HOOK(FakeSneakInputHook, ll::memory::HookPriority::Low, &ClientInputUpdateSystem::extractRawHIDInput, void,
-    MovementAbilitiesComponent const& abilities, MoveInputComponent const& input, ActorDataFlagComponent const& flags,
-    RawMoveInputComponent& raw, Optional<SneakingComponent const> sneaking, Optional<WasInWaterFlagComponent const> water) {
-    origin(abilities, input, flags, raw, sneaking, water);
+LL_STATIC_HOOK(MoveRequestHook, ll::memory::HookPriority::Normal, &MoveCollisionSystem::fetchCollisionShapes, void,
+    StrictEntityContext const& entity, AABBShapeComponent const& aabb, MaxAutoStepComponent const& autoStep,
+    Optional<CollidableMobNearFlagComponent const> collidableMobNear, MoveRequestComponent& request,
+    Optional<MinecartFlagComponent const> isMinecart,
+    ViewT<StrictEntityContext, Include<CollidableMobFlagComponent>, AABBShapeComponent const> const& collidableMobs,
+    ViewT<StrictEntityContext, AABBShapeComponent const, ActorDataFlagComponent const> const& stackableView,
+    ViewT<StrictEntityContext, Include<FallingBlockFlagComponent>> const& fallingBlocks, IConstBlockSource const& region,
+    LocalSpatialEntityFetcher& fetcher, GetCollisionShapeInterface const& collisionShape,
+    std::vector<BlockSourceVisitor::CollisionShape>& tempCollisionShapes,
+    std::vector<BlockSourceVisitor::CollisionShape>& scratchCollisionShapes, std::vector<AABB>& tempShapes) {
     try {
-        auto* player = localPlayer();
-        if (!player) return;
-        auto& context = player->getEntityContext();
-        if (fakeSneak.on.load()) {
-            if (!context.hasComponent<SneakingComponent>()) addedSneaking = true;
-            context.getOrAddComponent<SneakingComponent>().mSneakingMovementFactor = 1.0f;
-        } else if (addedSneaking) {
-            addedSneaking = false;
-            if (!player->isSneaking()) context.removeComponent<SneakingComponent>();
+        if (isLocalEntity(entity)) {
+            ++localRequests;
+            bool& sneaking = request.mSneaking;
+            if (sneaking) ++sneakingRequests;
+            else if (fakeSneak.on.load()) { sneaking = true; ++forcedRequests; }
         }
     } catch (...) {}
+    origin(entity, aabb, autoStep, collidableMobNear, request, isMinecart, collidableMobs, stackableView, fallingBlocks,
+        region, fetcher, collisionShape, tempCollisionShapes, scratchCollisionShapes, tempShapes);
 }
 
-// L-37: spectator switches the renderer to culler type 5. F10 makes
-// Actor::isSpectator answer true for the local player (all callers) so the
-// culler switch can be observed from FreeCamera; callers are logged so a
-// later build can limit the answer to the renderer's call site.
-Toggle fakeSpectator{VK_F10, "L-37 fake spectator"};
+// L-37: spectator switches the renderer to culler type 5, and isSpectator
+// alone did not (third trace). F10 now makes Player::getPlayerGameType answer
+// Spectator for the local player; callers are logged per answer.
+Toggle fakeSpectator{VK_F10, "L-37 fake spectator game type"};
 std::mutex spectatorMutex;
 std::map<std::pair<uintptr_t, bool>, unsigned> spectatorCallers;
 Clock::time_point lastL37 = Clock::now();
@@ -127,18 +124,17 @@ void dumpL37(bool force) {
     for (auto const& [key, count] : spectatorCallers) {
         if (l37Lines >= 1500) break;
         ++l37Lines;
-        log("research L-37 isSpectator caller=+0x{:x} answered={} calls={}", key.first, key.second, count);
+        log("research L-37 getPlayerGameType caller=+0x{:x} spectator={} calls={}", key.first, key.second, count);
     }
     spectatorCallers.clear();
 }
-LL_TYPE_INSTANCE_HOOK(SpectatorHook, ll::memory::HookPriority::Normal, Actor, &Actor::isSpectator, bool) {
-    bool result = origin();
-    auto* player = localPlayer();
-    if (player != static_cast<Actor const*>(this)) return result;
-    bool answer = result || fakeSpectator.on.load();
+LL_TYPE_INSTANCE_HOOK(GameTypeHook, ll::memory::HookPriority::Normal, Player, &Player::getPlayerGameType, GameType) {
+    GameType result = origin();
+    if (localPlayer() != static_cast<Player const*>(this)) return result;
+    GameType answer = fakeSpectator.on.load() ? GameType::Spectator : result;
     {
         std::lock_guard lock{spectatorMutex};
-        auto& count = spectatorCallers[{callerOffset(_ReturnAddress()), answer}];
+        auto& count = spectatorCallers[{callerOffset(_ReturnAddress()), answer == GameType::Spectator}];
         if (count < 1000000) ++count;
     }
     return answer;
@@ -200,29 +196,24 @@ LL_TYPE_INSTANCE_HOOK(FovSampleHook, ll::memory::HookPriority::Low, LevelRendere
     } catch (...) {}
     return result;
 }
-bool volumeInstalled = false, moveInstalled = false, inputInstalled = false, spectatorInstalled = false,
-     fovInstalled = false;
+bool requestInstalled = false, spectatorInstalled = false, fovInstalled = false;
 }
 void start() {
-    volumeInstalled = SneakVolumeHook::hook(true) == 0;
-    moveInstalled = MoveVectorHook::hook(true) == 0;
-    inputInstalled = FakeSneakInputHook::hook(true) == 0;
-    spectatorInstalled = SpectatorHook::hook(true) == 0;
+    requestInstalled = MoveRequestHook::hook(true) == 0;
+    spectatorInstalled = GameTypeHook::hook(true) == 0;
     fovInstalled = FovSampleHook::hook(true) == 0;
-    if (!volumeInstalled || !moveInstalled || !inputInstalled || !spectatorInstalled || !fovInstalled) {
+    if (!requestInstalled || !spectatorInstalled || !fovInstalled) {
         stop();
         throw std::runtime_error("Could not install research diagnostics");
     }
-    Runtime::instance().self().getLogger().warn("Research diagnostics enabled (L-37, L-40, L-44); F9 fake sneak component, F10 fake spectator");
+    Runtime::instance().self().getLogger().warn("Research diagnostics enabled (L-37, L-40, L-44); F9 move-request sneaking, F10 fake spectator game type");
 }
 void stop() {
     fakeSneak.on = false;
     fakeSpectator.on = false;
     if (fovInstalled && FovSampleHook::unhook(true)) fovInstalled = false;
-    if (spectatorInstalled && SpectatorHook::unhook(true)) spectatorInstalled = false;
-    if (inputInstalled && FakeSneakInputHook::unhook(true)) inputInstalled = false;
-    if (moveInstalled && MoveVectorHook::unhook(true)) moveInstalled = false;
-    if (volumeInstalled && SneakVolumeHook::unhook(true)) volumeInstalled = false;
+    if (spectatorInstalled && GameTypeHook::unhook(true)) spectatorInstalled = false;
+    if (requestInstalled && MoveRequestHook::unhook(true)) requestInstalled = false;
 }
 }
 #else
