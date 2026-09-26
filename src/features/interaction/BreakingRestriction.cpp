@@ -45,6 +45,10 @@ void traceBreak(char const* phase, Player& player, BlockPos const& pos, int allo
 #else
 void traceBreak(char const*, Player&, BlockPos const&, int, int) noexcept {}
 #endif
+bool gameplayInput() {
+    auto client = ll::service::getClientInstance();
+    return client && !ui::ownsInput() && gameplayScreen(client->getScreenName());
+}
 LL_TYPE_INSTANCE_HOOK(StartBreak, ll::memory::HookPriority::Highest, GameMode,
     &GameMode::$startDestroyBlock, bool, BlockPos const& pos, uchar face, bool& destroyed) {
     if (!allows(mPlayer,pos)) { destroyed = false; traceBreak("start", mPlayer, pos, 0, 0); return false; }
@@ -54,7 +58,16 @@ LL_TYPE_INSTANCE_HOOK(StartBreak, ll::memory::HookPriority::Highest, GameMode,
 }
 LL_TYPE_INSTANCE_HOOK(ContinueBreak, ll::memory::HookPriority::Highest, GameMode,
     &GameMode::$continueDestroyBlock, bool, BlockPos const& pos, uchar face, Vec3 const& playerPos, bool& destroyed) {
-    if (!allows(mPlayer,pos)) { destroyed = false; traceBreak("continue", mPlayer, pos, 0, 0); return false; }
+    // Returning false here makes vanilla stop the breaking session, and a held
+    // button never restarts it (L-36). Skip a block outside the region but keep
+    // the session alive, so an allowed block reached later continues breaking.
+    // A menu or settings screen still ends the session.
+    if (!allows(mPlayer,pos)) {
+        destroyed = false;
+        bool keep = gameplayInput();
+        traceBreak("continue", mPlayer, pos, 0, keep);
+        return keep;
+    }
     bool result = origin(pos,face,playerPos,destroyed);
     traceBreak("continue", mPlayer, pos, 1, result);
     return result;
