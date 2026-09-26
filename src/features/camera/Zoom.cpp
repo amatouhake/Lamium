@@ -783,10 +783,10 @@ bool Zoom::blocksPerspective() const {
     return look.snapshot().has_value();
 }
 void Zoom::releaseLookKey() {
-    // A Toggle-owned session (FreeCamera, or Freelook in toggle mode) ignores
-    // the key release; only a held Freelook ends here.
-    if (lookToggle || lookOwner.load() != DetachedOwner::Freelook) return;
-    releaseLook();
+    // Toggle mode ignores the key release; a held Freelook is no longer wanted.
+    if (lookToggle.load()) return;
+    wantLook = false;
+    reconcile();
 }
 void Zoom::consumeFreeCameraInput(MoveInputComponent const& input, RawMoveInputComponent& raw) {
     // Only the FreeCamera owner loses movement; Freelook keeps vanilla motion.
