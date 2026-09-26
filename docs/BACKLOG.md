@@ -514,8 +514,13 @@ Proposed: drop the enable switch for these momentary features; a bound key
 means the feature is available and "unbound" disables it. The state column
 shows whether the session is running (or stays empty). Experimental features
 ship unbound. Migration keeps existing bindings and ignores the old switch.
-Open: live state vs empty state column; whether Zoom keeps its default C
-(which replaces vanilla "copy coordinates"); whether to mock it first.
+Maintainer direction (2026-09-26): go further for consistency and drop the
+"momentary" category: every feature is a persistent on/off switch that its key
+toggles, as Tweakeroo does for most tweaks. This requires FreeCamera to keep
+its position through menus (inventory, settings, window switch), so L-27 is
+folded into this item. Open: whether Zoom and Freelook keep a hold option
+(the switch lit only while the key is held), whether session features such as
+FreeCamera are saved across restarts, and Zoom's default key.
 
 ### L-39 Freelook starts in third person
 Kind: Design (small). Requested by a user 2026-09-26.
@@ -678,6 +683,12 @@ parameter, not the sneak state; giving it factor 1.0 (F9) changed nothing. The
 edge check itself sits inside the unexported sneak movement system. Options:
 disassemble the caller of `getMaxCollisionVolume` to find which state it reads,
 or clamp horizontal movement at edges ourselves (the fallback noted above).
+Maintainer decision (2026-09-26): no disassembly; use only what LeviLamina
+exposes, otherwise implement the edge clamp ourselves. Candidate found: the
+exported `MoveCollisionSystem::fetchCollisionShapes` receives the entity's
+`MoveRequestComponent`, which carries an `mSneaking` flag; the fourth trace
+sets it for the local player only (F9) to test whether vanilla edge protection
+follows it without sneak pose, speed or network state.
 Find the vanilla edge-protection check in 26.51.5 (around `Actor::move` /
 movement collision) and whether only that check can see "sneaking". Prefer
 reusing that vanilla path over clamping movement ourselves (slabs, stairs,
