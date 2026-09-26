@@ -1,5 +1,6 @@
 #include "app/Runtime.h"
 #include "features/interaction/PermanentSneak.h"
+#include "features/research/ResearchTrace.h"
 #include "features/interaction/PeriodicInput.h"
 #include "features/interaction/AutomationTrace.h"
 #include "features/camera/Zoom.h"
@@ -77,9 +78,10 @@ bool Runtime::enable() {
         Zoom::instance().stop();
         return false;
     }
-    try { ui::start(); input::startCustomInput(); overlay::start(); visuals::start(); inventory::tools::start(); information::startFrameTiming(); interaction::breaking::start(); interaction::placementTrace::start(); }
+    try { ui::start(); input::startCustomInput(); overlay::start(); visuals::start(); inventory::tools::start(); information::startFrameTiming(); interaction::breaking::start(); interaction::placementTrace::start(); researchTrace::start(); }
     catch (std::exception const& error) {
         mod.getLogger().error("Client feature initialization failed: {}", error.what());
+        researchTrace::stop();
         interaction::placementTrace::stop();
         interaction::breaking::stop();
         information::stopFrameTiming();
@@ -109,6 +111,7 @@ bool Runtime::disable() {
     interaction::periodic::stop();
     interaction::automationTrace::stop();
     interaction::sneak::stop();
+    researchTrace::stop();
     interaction::placementTrace::stop();
     interaction::breaking::stop();
     information::stopFrameTiming();

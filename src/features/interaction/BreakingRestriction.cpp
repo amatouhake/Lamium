@@ -13,27 +13,63 @@
 #include "mc/world/phys/HitResult.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/block/Block.h"
+#include <format>
 #include <mutex>
+#include <string>
 
 namespace lamium::interaction::breaking {
 namespace {
 std::mutex mutex;
 std::optional<RestrictionRegion> anchor;
 ll::event::ListenerPtr exitListener;
+#ifdef LAMIUM_RESEARCH_TRACE
+// L-36: record how vanilla drives a held attack across a rejected block.
+// Repeated identical calls are collapsed; the first 400 changes are logged.
+std::mutex traceMutex;
+std::string lastTrace;
+unsigned traceLines = 0, traceRepeats = 0;
+void traceBreak(char const* phase, Player& player, BlockPos const& pos, int allowed, int result) noexcept {
+    try {
+        auto client = ll::service::getClientInstance();
+        if (!client || client->getLocalPlayer() != &player) return;
+        auto line = std::format("{} pos={},{},{} allowed={} result={}", phase, pos.x, pos.y, pos.z, allowed, result);
+        std::lock_guard lock(traceMutex);
+        if (line == lastTrace) { ++traceRepeats; return; }
+        if (traceLines >= 400) return;
+        ++traceLines;
+        Runtime::instance().self().getLogger().info("research L-36 {} (previous repeated {}x)", line, traceRepeats);
+        lastTrace = std::move(line);
+        traceRepeats = 0;
+    } catch (...) {} // Diagnostics must not replace the vanilla result.
+}
+#else
+void traceBreak(char const*, Player&, BlockPos const&, int, int) noexcept {}
+#endif
 LL_TYPE_INSTANCE_HOOK(StartBreak, ll::memory::HookPriority::Highest, GameMode,
     &GameMode::$startDestroyBlock, bool, BlockPos const& pos, uchar face, bool& destroyed) {
-    if (!allows(mPlayer,pos)) { destroyed = false; return false; }
-    return origin(pos,face,destroyed);
+    if (!allows(mPlayer,pos)) { destroyed = false; traceBreak("start", mPlayer, pos, 0, 0); return false; }
+    bool result = origin(pos,face,destroyed);
+    traceBreak("start", mPlayer, pos, 1, result);
+    return result;
 }
 LL_TYPE_INSTANCE_HOOK(ContinueBreak, ll::memory::HookPriority::Highest, GameMode,
     &GameMode::$continueDestroyBlock, bool, BlockPos const& pos, uchar face, Vec3 const& playerPos, bool& destroyed) {
-    if (!allows(mPlayer,pos)) { destroyed = false; return false; }
-    return origin(pos,face,playerPos,destroyed);
+    if (!allows(mPlayer,pos)) { destroyed = false; traceBreak("continue", mPlayer, pos, 0, 0); return false; }
+    bool result = origin(pos,face,playerPos,destroyed);
+    traceBreak("continue", mPlayer, pos, 1, result);
+    return result;
 }
 LL_TYPE_INSTANCE_HOOK(FinishBreak, ll::memory::HookPriority::Highest, GameMode,
     &GameMode::$destroyBlock, bool, BlockPos const& pos, uchar face) {
-    if (!allows(mPlayer,pos)) return false;
-    return origin(pos,face);
+    if (!allows(mPlayer,pos)) { traceBreak("destroy", mPlayer, pos, 0, 0); return false; }
+    bool result = origin(pos,face);
+    traceBreak("destroy", mPlayer, pos, 1, result);
+    return result;
+}
+LL_TYPE_INSTANCE_HOOK(StopBreak, ll::memory::HookPriority::Normal, GameMode,
+    &GameMode::$stopDestroyBlock, void, BlockPos const& pos) {
+    traceBreak("stop", mPlayer, pos, -1, -1);
+    origin(pos);
 }
 LL_TYPE_INSTANCE_HOOK(ChangeDimension, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::$onWillChangeDimension, void, Player& player) {
@@ -42,7 +78,11 @@ LL_TYPE_INSTANCE_HOOK(ChangeDimension, ll::memory::HookPriority::Normal, LevelRe
 }
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[]{{StartBreak::hook,StartBreak::unhook},{ContinueBreak::hook,ContinueBreak::unhook},
-             {FinishBreak::hook,FinishBreak::unhook},{ChangeDimension::hook,ChangeDimension::unhook}};
+             {FinishBreak::hook,FinishBreak::unhook},{ChangeDimension::hook,ChangeDimension::unhook},
+#ifdef LAMIUM_RESEARCH_TRACE
+             {StopBreak::hook,StopBreak::unhook},
+#endif
+};
 }
 void reset() { std::lock_guard lock(mutex); anchor.reset(); }
 std::optional<RestrictionRegion> region() { std::lock_guard lock(mutex); return anchor; }

@@ -24,6 +24,12 @@ option("automation_trace")
     set_description("Observe bounded vanilla button registration and dispatch diagnostics")
 option_end()
 
+option("research_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Enable bounded diagnostics for research items L-36, L-37, L-40 and L-44")
+option_end()
+
 option("placement_trace")
     set_default(false)
     set_showmenu(true)
@@ -72,6 +78,7 @@ target("Lamium")
     if has_config("camera_position_probe") then add_defines("LAMIUM_CAMERA_POSITION_PROBE") end
     if has_config("shape_trace") then add_defines("LAMIUM_SHAPE_TRACE") end
     if has_config("placement_trace") then add_defines("LAMIUM_PLACEMENT_TRACE") end
+    if has_config("research_trace") then add_defines("LAMIUM_RESEARCH_TRACE") end
     add_rules("@levibuildscript/linkrule")
     add_rules("@levibuildscript/modpacker", {modVersion = "0.1.1"})
     if is_plat("windows") then
