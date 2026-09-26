@@ -19,9 +19,11 @@ inline constexpr std::string_view featureSection(std::string_view id) {
     return "section.information";
 }
 inline constexpr auto features = std::to_array<FeatureInfo>({
-    {"zoom", "feature.zoom", "help.zoom", "camera.zoom"},
-    {"freelook", "feature.freelook", "help.freelook", "camera.freelook", true},
-    {"freecamera", "feature.freecamera", "help.freecamera", "camera.freecamera", true},
+    // Session features: no saved switch; the state column shows and flips
+    // whether they are wanted (input::sessionState, BACKLOG L-47).
+    {"zoom", "feature.zoom", "help.zoom", ""},
+    {"freelook", "feature.freelook", "help.freelook", "", true},
+    {"freecamera", "feature.freecamera", "help.freecamera", "", true},
     {"nightVision", "feature.nightVision", "help.nightVision", "lighting.nightVision"},
     {"hideOffhand", "feature.hideOffhand", "help.hideOffhand", "visuals.hideOffhand"},
     {"previews", "feature.previews", "help.previews", "inspection.containerPreviews"},

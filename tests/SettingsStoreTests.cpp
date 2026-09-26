@@ -73,9 +73,8 @@ void settingsStoreTests() {
     check(old.camera.magnification == 3.5f && !old.lighting.nightVision,
           "adding lighting must preserve existing camera settings");
     check(old.inventory.sorting && old.inventory.sortContainers, "old settings supply inventory defaults");
-    check(!old.camera.freelook, "existing installations keep experimental Freelook disabled");
     check(!old.camera.freelookToggle, "Freelook activation defaults to holding the key");
-    check(!old.camera.freecamera, "existing installations keep experimental FreeCamera disabled");
+    check(!old.camera.zoomToggle, "Zoom activation defaults to holding the key");
     {
         Settings toggled; toggled.camera.freelookToggle = true;
         check(decodeSettings(R"({"camera":{"freelookToggle":true}})").camera.freelookToggle, "Freelook activation is read from storage");
@@ -106,9 +105,9 @@ void settingsStoreTests() {
           "older files retain the existing preview behavior including empty containers");
     auto partial = decodeSettings(R"({"camera":{"magnification":6}})");
     check(!old.visuals.hideOffhand, "existing settings keep the offhand visible");
-    check(partial.camera.magnification == 6 && partial.camera.zoom, "missing fields use defaults");
+    check(partial.camera.magnification == 6 && !partial.camera.zoomToggle, "missing fields use defaults");
     for (auto invalid : {R"({"version":999})", R"({"version":4294967297})", R"({"version":1.5})",
-                         R"({"version":true})", R"({"camera":{"zoom":"yes"}})", "[]", "{"}) {
+                         R"({"version":true})", R"({"camera":{"zoomToggle":"yes"}})", "[]", "{"}) {
         bool rejected = false;
         try { (void)decodeSettings(invalid); } catch (...) { rejected = true; }
         check(rejected, "invalid or future settings must be rejected");

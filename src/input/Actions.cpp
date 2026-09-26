@@ -32,9 +32,13 @@ std::string toggleFeatureName(input::Action action) {
     return std::string(id);
 }
 bool toggleState(IClientInstance& client, Settings const& value, input::Action action) {
+    (void)client;
     if (action == input::Action::BreakingRestriction) return value.interaction.breaking;
-    if (action == input::Action::PermanentSneak) return interaction::sneak::active(client);
-    if (action == input::Action::PermanentSprint) return interaction::sprint::active(client);
+    if (action == input::Action::PermanentSneak) return interaction::sneak::armed();
+    if (action == input::Action::PermanentSprint) return interaction::sprint::armed();
+    if (action == input::Action::Zoom) return Zoom::instance().wanted(Zoom::Session::Zoom);
+    if (action == input::Action::Freelook) return Zoom::instance().wanted(Zoom::Session::Freelook);
+    if (action == input::Action::FreeCamera) return Zoom::instance().wanted(Zoom::Session::FreeCamera);
     auto id = input::actions[static_cast<size_t>(action)].feature;
     for (auto const& feature : ui::features) {
         if (feature.id != id || feature.toggle.empty()) continue;
@@ -50,6 +54,25 @@ void emitToggleToast(IClientInstance& client, input::Action action, Settings con
     if (auto mode = autoModeText(value, action)) name += ": " + *mode;
     ui::showToggleToast(name, toggleState(client, value, action));
 }
+}
+bool isSessionFeature(std::string_view feature) {
+    return feature == "zoom" || feature == "freelook" || feature == "freecamera"
+        || feature == "permanentSneak" || feature == "permanentSprint";
+}
+bool sessionState(std::string_view feature) {
+    if (feature == "zoom") return Zoom::instance().wanted(Zoom::Session::Zoom);
+    if (feature == "freelook") return Zoom::instance().wanted(Zoom::Session::Freelook);
+    if (feature == "freecamera") return Zoom::instance().wanted(Zoom::Session::FreeCamera);
+    if (feature == "permanentSneak") return interaction::sneak::armed();
+    if (feature == "permanentSprint") return interaction::sprint::armed();
+    return false;
+}
+void toggleSession(IClientInstance& client, std::string_view feature) {
+    if (feature == "zoom") Zoom::instance().toggleWanted(Zoom::Session::Zoom);
+    else if (feature == "freelook") Zoom::instance().toggleWanted(Zoom::Session::Freelook);
+    else if (feature == "freecamera") Zoom::instance().toggleWanted(Zoom::Session::FreeCamera);
+    else if (feature == "permanentSneak") interaction::sneak::toggle(client);
+    else if (feature == "permanentSprint") interaction::sprint::toggle(client);
 }
 std::string bindingChordName(IClientInstance& client, input::Chord const& chord) {
     auto layout = client.getOptions().getCurrentKeyboardRemapping();
@@ -88,9 +111,22 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::OpenShapes) { ui::openShapes(client); return; }
     if (action == input::Action::OpenHotkeys) { ui::openHotkeys(client); return; }
     if (action == input::Action::OpenHudLayout) { ui::openHudLayout(client); return; }
-    if (action == input::Action::Zoom) { Zoom::instance().press(client); return; }
-    if (action == input::Action::Freelook) { Zoom::instance().pressLook(client); return; }
-    if (action == input::Action::FreeCamera) { Zoom::instance().pressFreeCamera(client); return; }
+    // Toggle-style presses report the new state; held Zoom/Freelook do not.
+    if (action == input::Action::Zoom) {
+        Zoom::instance().press(client);
+        if (runtime.preferences().camera.zoomToggle) emitToggleToast(client, action, runtime.preferences());
+        return;
+    }
+    if (action == input::Action::Freelook) {
+        Zoom::instance().pressLook(client);
+        if (runtime.preferences().camera.freelookToggle) emitToggleToast(client, action, runtime.preferences());
+        return;
+    }
+    if (action == input::Action::FreeCamera) {
+        Zoom::instance().pressFreeCamera(client);
+        emitToggleToast(client, action, runtime.preferences());
+        return;
+    }
     auto value = runtime.preferences();
     if (action == input::Action::CycleAttackMode || action == input::Action::CycleUseMode) {
         settings::find(action == input::Action::CycleAttackMode ? "interaction.attackMode" : "interaction.useMode")->adjust(value,1);

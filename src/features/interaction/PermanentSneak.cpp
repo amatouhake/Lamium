@@ -37,13 +37,15 @@ LL_STATIC_HOOK(ExtractSneakInput, ll::memory::HookPriority::Normal,
     Optional<SneakingComponent const> sneaking, Optional<WasInWaterFlagComponent const> water) {
     auto client = ll::service::getClientInstance();
     if (intent.active() && observed < 1000) ++observed;
-    if (!client || !eligible(*client)) intent.cancel();
-    // Sprint survives menus and focus changes; it only pauses while ineligible
-    // and ends on death (dimension change and world exit cancel it elsewhere).
+    // Sneak and Sprint survive menus and focus changes; they only pause while
+    // ineligible and end on death (dimension change and world exit cancel
+    // them elsewhere).
     auto* player = client ? client->getLocalPlayer() : nullptr;
-    if (player && !player->isAlive()) sprintIntent.cancel();
-    bool sprint = sprintIntent.active() && client && eligible(*client);
-    if ((!intent.active() && !sprint) || !client
+    if (player && !player->isAlive()) { intent.cancel(); sprintIntent.cancel(); }
+    bool ready = client && eligible(*client);
+    bool sneak = intent.active() && ready;
+    bool sprint = sprintIntent.active() && ready;
+    if ((!sneak && !sprint) || !client
         || ClientMoveInputHandler::getMoveInput(*client) != &input) {
         origin(abilities, input, flags, raw, sneaking, water);
         return;
@@ -51,7 +53,7 @@ LL_STATIC_HOOK(ExtractSneakInput, ll::memory::HookPriority::Normal,
     // Feed vanilla a transient copy. Never leave synthetic bits in the user's
     // stored HID state, so cancelling cannot clear a physically held key.
     auto augmented = input;
-    if (intent.active()) {
+    if (sneak) {
         if (matched < 1000) ++matched;
         augmented.mRawInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown));
     }
@@ -73,13 +75,13 @@ void cancel() {
         "Permanent Sneak stopped: extractionCalls={} localMatches={} rawSneakSamples={}", observed, matched, rawSneak);
     intent.cancel();
 }
-void toggle(IClientInstance& client) {
-    if (!eligible(client)) { cancel(); return; }
+void toggle(IClientInstance&) {
     if (intent.active()) cancel();
     else { observed = matched = rawSneak = 0; intent.arm(); }
     Runtime::instance().self().getLogger().info("Permanent Sneak: {}", intent.active() ? "on" : "off");
 }
 bool active(IClientInstance& client) { return intent.active() && eligible(client); }
+bool armed() { return intent.active(); }
 void start() {
     try {
         if (!installed) {
@@ -104,11 +106,11 @@ void cancel() {
     if (sneak::sprintIntent.active()) Runtime::instance().self().getLogger().info("Permanent Sprint stopped");
     sneak::sprintIntent.cancel();
 }
-void toggle(IClientInstance& client) {
-    if (!sneak::eligible(client)) { cancel(); return; }
+void toggle(IClientInstance&) {
     if (sneak::sprintIntent.active()) cancel();
     else sneak::sprintIntent.arm();
     Runtime::instance().self().getLogger().info("Permanent Sprint: {}", sneak::sprintIntent.active() ? "on" : "off");
 }
 bool active(IClientInstance& client) { return sneak::sprintIntent.active() && sneak::eligible(client); }
+bool armed() { return sneak::sprintIntent.active(); }
 }

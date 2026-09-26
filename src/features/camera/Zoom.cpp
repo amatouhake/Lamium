@@ -13,6 +13,8 @@
 #include "mc/client/entity/systems/ClientInputUpdateSystem.h"
 #include "mc/client/game/ClientInputCallbacks.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/client/game/ClientInstance.h"
+#include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/options/IOptionRegistry.h"
 #include "mc/deps/shared_types/v1_21_100/camera/PlayerViewMode.h"
 #include "mc/client/game/MinecraftGame.h"
@@ -454,7 +456,7 @@ LL_TYPE_INSTANCE_HOOK(DimensionHook, ll::memory::HookPriority::Normal, LevelRend
 }
 LL_TYPE_INSTANCE_HOOK(FocusHook, ll::memory::HookPriority::Normal, MinecraftGame,
     &MinecraftGame::$onAppFocusLost, void) {
-    Zoom::instance().reset();
+    Zoom::instance().suspendForFocus();
     origin();
 }
 // Perspective is locked while FreeCamera owns the session. F5 would
@@ -549,30 +551,66 @@ std::optional<DetachedLookState::Angles> Zoom::lookAnglesFor(IClientInstance con
 #if defined(LAMIUM_CAMERA_PROBE) || defined(LAMIUM_CAMERA_POSITION_PROBE)
 bool Zoom::viewProbeActive() const {
     auto* current = client.load();
-    return running && allowed && state.held() && current && gameplayScreen(current->getScreenName());
+    return running && state.held() && current && gameplayScreen(current->getScreenName());
 }
 #endif
 void Zoom::configure(Settings const& settings) {
-    lookAllowed = settings.camera.freelook;
+    // Settings change while a session may run (FreeCamera survives menus),
+    // so only the modes are updated here.
     lookToggle = settings.camera.freelookToggle;
-    freeCameraAllowed = settings.camera.freecamera;
-    cancelLook();
-    allowed = settings.camera.zoom;
+    zoomToggle = settings.camera.zoomToggle;
     state.configure(settings.camera.magnification);
 }
-void Zoom::pressLook(IClientInstance& current) {
-    // Freelook and FreeCamera share one session and never run together.
-    if (lookOwner.load() == DetachedOwner::FreeCamera) return;
-    // Toggle activation: a press always ends an active session, and a new
-    // session never waits for a key release that this mode ignores.
-    if (lookToggle && look.snapshot()) { releaseLook(); return; }
-    if (!running || !lookAllowed || ui::ownsInput() || !gameplayScreen(current.getScreenName())
-        || !current.getLocalPlayer()) return;
+bool Zoom::wanted(Session session) const {
+    switch (session) {
+    case Session::Zoom: return wantZoom.load();
+    case Session::Freelook: return wantLook.load();
+    default: return wantFree.load();
+    }
+}
+void Zoom::toggleWanted(Session session) {
+    auto& flag = session == Session::Zoom ? wantZoom : session == Session::Freelook ? wantLook : wantFree;
+    flag = !flag.load();
+    reconcile();
+}
+void Zoom::suspendForFocus() {
+    state.release();
+    if (lookOwner.load() == DetachedOwner::Freelook) cancelLook();
+}
+void Zoom::reconcile() {
+    if (!running) return;
+    auto instance = ll::service::getClientInstance();
+    if (!instance) return;
+    IClientInstance& current = *instance;
     auto* player = current.getLocalPlayer();
-    if (!canDetachLook(*player)) return;
+    if (player && !player->isAlive()) { wantZoom = false; wantLook = false; wantFree = false; }
+    bool gameplay = player && !ui::ownsInput() && gameplayScreen(current.getScreenName());
+    bool zoomOn = wantZoom.load() && gameplay;
+    if (zoomOn && !state.held()) { client = &current; state.press(); }
+    else if (!zoomOn && state.held()) state.release();
+    auto owner = lookOwner.load();
+    if ((owner == DetachedOwner::Freelook && (!wantLook.load() || wantFree.load()))
+        || (owner == DetachedOwner::FreeCamera && !wantFree.load()))
+        releaseLook();
+    if (!wantFree.load() && pendingFreeCamera.load()) abortPendingTravel();
+    if (!gameplay || lookOwner.load() != DetachedOwner::None || pendingFreeCamera.load()) return;
+    if (wantFree.load()) startFreeCamera(current);
+    else if (wantLook.load()) beginLook(current);
+}
+void Zoom::pressLook(IClientInstance& current) {
+    if (!running) return;
+    client = &current;
+    // Toggle activation flips the wanted state; Hold wants it until release.
+    wantLook = lookToggle.load() ? !wantLook.load() : true;
+    reconcile();
+}
+bool Zoom::beginLook(IClientInstance& current) {
+    // Freelook and FreeCamera share one session and never run together.
+    auto* player = current.getLocalPlayer();
+    if (!player || !canDetachLook(*player)) return false;
     client = &current;
     if (lookToggle) look.release();
-    if (!look.begin(player->getRotation().x, player->getRotation().z, player->getRuntimeID().rawID)) return;
+    if (!look.begin(player->getRotation().x, player->getRotation().z, player->getRuntimeID().rawID)) return false;
     lookOwner.store(DetachedOwner::Freelook);
 #ifdef LAMIUM_CAMERA_TRACE
     traceLook(LookTraceStage::Begin, player->getRotation().x, player->getRotation().z);
@@ -583,8 +621,11 @@ void Zoom::pressLook(IClientInstance& current) {
         detachCameras(*player);
     } catch (...) {
         cancelLook();
+        wantLook = false;
         Runtime::instance().self().getLogger().error("Freelook could not detach the camera");
+        return false;
     }
+    return true;
 }
 bool findFirstPersonRig(LocalPlayer& player) {
     auto& registry = player.getEntityContext().getRegistry();
@@ -595,16 +636,21 @@ bool findFirstPersonRig(LocalPlayer& player) {
     return false;
 }
 void Zoom::pressFreeCamera(IClientInstance& current) {
-    // Always toggles: a press ends the FreeCamera session, the key release
-    // does nothing. A press during perspective travel aborts the travel.
-    if (lookOwner.load() == DetachedOwner::Freelook) return;
-    if (look.snapshot()) { releaseLook(); return; }
-    if (pendingFreeCamera.load()) { abortPendingTravel(); return; }
+    // Always toggles the wanted state; the key release does nothing. It
+    // takes over from Freelook and ends a pending perspective travel.
+    if (!running) return;
+    client = &current;
+    wantFree = !wantFree.load();
+    reconcile();
+}
+bool Zoom::startFreeCamera(IClientInstance& current) {
     auto* player = current.getLocalPlayer();
-    if (!player || !running || !freeCameraAllowed) return;
+    if (!player) return false;
     freePerspective.store(-1);
-    if (!ensureFirstPerson(current, *player)) return;
-    beginFreeCameraSession(current, *player);
+    if (!ensureFirstPerson(current, *player)) return true; // Travel completes it.
+    if (beginFreeCameraSession(current, *player)) return true;
+    wantFree = false;
+    return false;
 }
 bool Zoom::ensureFirstPerson(IClientInstance& current, LocalPlayer& player) {
     try {
@@ -668,16 +714,20 @@ void Zoom::pollFreeTravel() {
     if (now - start > std::chrono::seconds(3)) {
         // Blend never settled; begin anyway.
         pendingFreeCamera.store(false);
-        if (!beginFreeCameraSession(*current, *current->getLocalPlayer()))
+        if (!beginFreeCameraSession(*current, *current->getLocalPlayer())) {
+            wantFree = false;
             restoreFreePerspective(*current);
+        }
         return;
     }
     if (!settled) return;
     double dx = eye[0] - prev[0], dy = eye[1] - prev[1], dz = eye[2] - prev[2];
     if (dx * dx + dy * dy + dz * dz > 1e-6) return; // Blend still running.
     pendingFreeCamera.store(false);
-    if (!beginFreeCameraSession(*current, *current->getLocalPlayer()))
+    if (!beginFreeCameraSession(*current, *current->getLocalPlayer())) {
+        wantFree = false;
         restoreFreePerspective(*current);
+    }
 }
 void Zoom::abortPendingTravel() {
     if (!pendingFreeCamera.load()) return;
@@ -686,7 +736,7 @@ void Zoom::abortPendingTravel() {
     if (current) {
         try { restoreFreePerspective(*current); } catch (...) {}
     }
-    reset();
+    wantFree = false;
 }
 void Zoom::restoreFreePerspective(IClientInstance& current) {
     int saved = freePerspective.load();
@@ -695,7 +745,7 @@ void Zoom::restoreFreePerspective(IClientInstance& current) {
     try { current.getOptions().setPlayerViewPerspective(saved); } catch (...) {}
 }
 bool Zoom::beginFreeCameraSession(IClientInstance& current, LocalPlayer& player) {
-    if (!running || !freeCameraAllowed || ui::ownsInput() || !gameplayScreen(current.getScreenName()))
+    if (!running || ui::ownsInput() || !gameplayScreen(current.getScreenName()))
         return false;
     if (!canDetachLook(player)) return false;
     auto ownerId = player.getRuntimeID().rawID;
@@ -742,7 +792,7 @@ void Zoom::consumeFreeCameraInput(MoveInputComponent const& input, RawMoveInputC
     // Only the FreeCamera owner loses movement; Freelook keeps vanilla motion.
     if (lookOwner.load() != DetachedOwner::FreeCamera || !look.snapshot()) return;
     auto* current = client.load();
-    if (!running || !freeCameraAllowed || !current) return;
+    if (!running || !current) return;
     // The extraction runs once per local player; ignore other viewports.
     if (ClientMoveInputHandler::getMoveInput(*current) != &input) return;
     // Read the stash before consumption clears the extracted flags.
@@ -851,6 +901,10 @@ bool Zoom::freeCameraView(IClientInstance const& renderedClient, mce::Camera& ca
             return false;
         }
         input = freeCameraInput;
+        // FreeCamera stays through menus (L-27); it must not keep flying on
+        // the last movement keys while a screen owns input.
+        if (auto* current = client.load(); !current || ui::ownsInput() || !gameplayScreen(current->getScreenName()))
+            input = {};
         auto now = std::chrono::steady_clock::now();
         if (freeMotionTimed)
             seconds = std::chrono::duration<double>(now - freeMotionTime).count();
@@ -918,12 +972,15 @@ void Zoom::endLookCamera() {
 }
 std::optional<DetachedLookState::Angles> Zoom::lookAngles() {
     if (!look.snapshot()) return {};
-    // The owner decides which enable flag keeps the shared session alive, so
-    // disabling Freelook does not end FreeCamera and vice versa.
-    bool allowed = lookOwner.load() == DetachedOwner::FreeCamera ? freeCameraAllowed.load() : lookAllowed.load();
     auto* current = client.load();
-    if (!running || !allowed || !current || ui::ownsInput()
-        || !gameplayScreen(current->getScreenName()) || !current->getLocalPlayer()) {
+    if (!running || !current || !current->getLocalPlayer()) {
+        cancelLook();
+        return {};
+    }
+    // A menu pauses Freelook (it resumes when wanted); FreeCamera keeps its
+    // position through menus, settings and focus changes (L-27).
+    bool menu = ui::ownsInput() || !gameplayScreen(current->getScreenName());
+    if (menu && lookOwner.load() != DetachedOwner::FreeCamera) {
         cancelLook();
         return {};
     }
@@ -970,9 +1027,15 @@ bool Zoom::blocksLookInteraction(Player& player) {
     return current && current->getLocalPlayer() == &player && lookAngles().has_value();
 }
 void Zoom::press(IClientInstance& current) {
-    if (!running || !allowed || !gameplayScreen(current.getScreenName())) return;
+    if (!running) return;
     client = &current;
-    state.press();
+    wantZoom = zoomToggle.load() ? !wantZoom.load() : true;
+    reconcile();
+}
+void Zoom::release() {
+    if (zoomToggle.load()) return;
+    wantZoom = false;
+    reconcile();
 }
 bool Zoom::start() {
     if (running) return true;
@@ -992,7 +1055,7 @@ bool Zoom::start() {
         wheelListener = bus.emplaceListener<ll::event::input::MouseInputEvent>([this](auto& event) {
             if (!running || !state.held() || event.actionButtonId() != MouseAction::ActionWheel) return;
             auto* current = client.load();
-            if (!current || !gameplayScreen(current->getScreenName())) { release(); return; }
+            if (!current || !gameplayScreen(current->getScreenName())) return;
             if (event.buttonData() == 0) return;
             state.wheel(event.buttonData() > 0 ? 1 : -1);
             event.cancel();
@@ -1007,10 +1070,9 @@ bool Zoom::start() {
                     keepHead(*current->getLocalPlayer());
                 try { writeFreeCameraOffset(); } catch (...) {}
             }
+            try { reconcile(); } catch (...) {}
             if (!state.held()) return;
             state.advance(std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count());
-            auto* current = client.load();
-            if (!current || !gameplayScreen(current->getScreenName())) release();
         });
         exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([this](auto&) { reset(); });
         running = true;

@@ -366,8 +366,12 @@ void adjustOption(settings::Option const& option, int direction) {
         numberDirty = false;
     }
 }
+bool hasSwitch(FeatureInfo const& feature) {
+    return !feature.toggle.empty() || isSessionFeature(feature.id);
+}
 void toggleFeature(FeatureInfo const& feature) {
     if (auto option = settings::find(feature.toggle)) adjustOption(*option, 1);
+    else if (client && isSessionFeature(feature.id)) toggleSession(*client, feature.id);
 }
 void setExpanded(int row, bool open) {
     if (!valid(row) || !rows[row].heading() || !rows[row].children) return;
@@ -410,9 +414,9 @@ void activateRow(int row, bool space) {
     switch (entry.kind) {
     case RowKind::Section: return;
     case RowKind::Feature:
-        if (space && !entry.feature->toggle.empty()) { toggleFeature(*entry.feature); return; }
+        if (space && hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
         if (entry.children) { setExpanded(row, !entry.expanded); return; }
-        if (!entry.feature->toggle.empty()) { toggleFeature(*entry.feature); return; }
+        if (hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
         if (auto primary = primaryAction(*entry.feature)) startCapture(*primary);
         return;
     case RowKind::Option:
@@ -1502,6 +1506,9 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             if (auto option = settings::find(entry.feature->toggle))
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,
                     std::get<bool>(option->read(preferences)));
+            else if (isSessionFeature(entry.feature->id))
+                toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,
+                    sessionState(entry.feature->id));
             if (auto primary = primaryAction(*entry.feature)) drawKeyCell(context,current,y,*primary);
             break;
         }

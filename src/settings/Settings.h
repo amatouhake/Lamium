@@ -32,10 +32,10 @@ struct Settings {
         interaction::RestrictionMode placementMode = interaction::RestrictionMode::Plane;
     } interaction;
     struct Camera {
-        bool zoom = true;
-        bool freelook = false;
-        bool freelookToggle = false; // Activation: false = hold the key, true = press to switch
-        bool freecamera = false; // Experimental flying camera; shares Freelook's session
+        // Activation: false = hold the key, true = press to switch. Zoom,
+        // Freelook and FreeCamera have no saved on/off state (BACKLOG L-47).
+        bool zoomToggle = false;
+        bool freelookToggle = false;
         float magnification = 3.0f;
         bool showMagnification = true;
         bool operator==(Camera const&) const = default;

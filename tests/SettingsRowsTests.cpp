@@ -59,7 +59,7 @@ void settingsRowsTests() {
     check(layouts.size() == 5, "every HUD element is reachable from the settings list");
     {
         Settings changed;
-        changed.camera.zoom = false;
+        changed.camera.zoomToggle = true;
         changed.camera.magnification = 20;
         changed.camera.freelookToggle = true;
         changed.hud.magnification.dy = 90;
@@ -67,7 +67,7 @@ void settingsRowsTests() {
         changed.bindings[static_cast<size_t>(input::Action::Zoom)] = input::Chord{};
         ui::resetSection(changed, "section.camera");
         Settings defaults;
-        check(changed.camera.zoom == defaults.camera.zoom && changed.camera.magnification == defaults.camera.magnification
+        check(changed.camera.zoomToggle == defaults.camera.zoomToggle && changed.camera.magnification == defaults.camera.magnification
             && changed.camera.freelookToggle == defaults.camera.freelookToggle
             && changed.hud.magnification.dy == defaults.hud.magnification.dy,
             "a category reset restores its switches, numbers, choices and HUD placement");

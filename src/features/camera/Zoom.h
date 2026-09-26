@@ -23,9 +23,13 @@ class Zoom {
     // runs at a time; the owner decides which enable flag keeps it alive.
     enum class DetachedOwner { None, Freelook, FreeCamera };
     std::atomic<DetachedOwner> lookOwner{DetachedOwner::None};
-    std::atomic<bool> lookAllowed{false};
     std::atomic<bool> lookToggle{false};
-    std::atomic<bool> freeCameraAllowed{false};
+    // Wanted state of each session (BACKLOG L-47): keys and the settings
+    // switch flip these; reconcile() starts or ends the sessions when the
+    // game allows. Never saved; death, dimension change and leaving the
+    // world clear them.
+    std::atomic<bool> wantZoom{false}, wantLook{false}, wantFree{false};
+    std::atomic<bool> zoomToggle{false};
     // Latest extracted movement axes while FreeCamera owns the session.
     // Written by the input extraction hook, read by the render hook.
     std::mutex freeInputMutex;
@@ -53,18 +57,26 @@ class Zoom {
     std::atomic<int> freePerspective{-1}; // Perspective saved at activation.
     std::chrono::steady_clock::time_point freeTravelStart{};
     std::atomic<bool> running{false};
-    std::atomic<bool> allowed{true};
     std::atomic<IClientInstance*> client{nullptr};
     std::atomic<float> lockedHead{0.f};
     void endLookCamera();
     void logFreeCameraSamples();
     void endFreeCameraMotion(bool wasFreeCamera);
+    bool beginLook(IClientInstance&);
+    bool startFreeCamera(IClientInstance&);
     ll::event::ListenerPtr wheelListener, screenListener, exitListener;
 public:
     static Zoom& instance();
     bool start();
     void stop();
     void configure(Settings const&);
+    enum class Session { Zoom, Freelook, FreeCamera };
+    bool wanted(Session) const;
+    void toggleWanted(Session);
+    // Starts or ends sessions to match the wanted state; runs every frame.
+    void reconcile();
+    // Focus loss pauses Zoom and Freelook; FreeCamera keeps its position.
+    void suspendForFocus();
     void press(IClientInstance&);
     void pressLook(IClientInstance&);
     void pressFreeCamera(IClientInstance&); // Toggle: press again to return to the player
@@ -103,8 +115,11 @@ public:
     // for readouts that should follow the camera rather than the body.
     struct ViewRay { double x, y, z, dx, dy, dz; };
     std::optional<ViewRay> detachedViewRay(IClientInstance&);
-    void release() { state.release(); }
+    void release(); // Zoom key release: ends a held Zoom, ignored in toggle mode
     void reset() {
+        wantZoom = false;
+        wantLook = false;
+        wantFree = false;
         // A pending perspective travel restores first (it needs the client).
         if (pendingFreeCamera.load()) abortPendingTravel();
         state.reset();
