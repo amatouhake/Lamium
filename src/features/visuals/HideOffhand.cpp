@@ -5,6 +5,8 @@
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/actor/Actor.h"
+#include "mc/world/actor/player/Inventory.h"
+#include "mc/world/actor/player/PlayerInventory.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/client/renderer/game/ItemInHandRenderer.h"
 #include <array>
@@ -75,6 +77,40 @@ void traceDecision(char const* what, int a, int b) noexcept {
 }
 #else
 inline void traceDecision(char const*, int, int) noexcept {}
+#endif
+#ifdef LAMIUM_RESEARCH_TRACE
+// L-14: which stack flows through the cached-call builders? Bounded.
+void traceItemIdentity(char const* site, ItemStack const& item) noexcept {
+    try {
+        static std::atomic<unsigned> budget{};
+        if (budget.fetch_add(1) >= 24) return;
+        int off = 0, main = 0;
+        auto client = ll::service::getClientInstance();
+        auto* player = client ? client->getLocalPlayer() : nullptr;
+        if (player && !item.isNull()) {
+            auto const& offhand = player->getOffhandSlot();
+            off = !offhand.isNull() && item.matchesItem(offhand) ? 1 : 0;
+            int selected = player->mInventory->mSelected;
+            auto const& held = player->getInventory().getItem(selected);
+            main = !held.isNull() && item.matchesItem(held) ? 1 : 0;
+        }
+        Runtime::instance().self().getLogger().info("research L-14 item {} off={} main={}", site, off, main);
+    } catch (...) {}
+}
+LL_TYPE_INSTANCE_HOOK(OffhandGetCallTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
+    &ItemInHandRenderer::_getRenderCall, ItemRenderCall*, Mob* mob, ItemStack const& itemInstance,
+    int fallbackFrame) {
+    auto* call = origin(mob, itemInstance, fallbackFrame);
+    traceItemIdentity("getcall", itemInstance);
+    return call;
+}
+LL_TYPE_INSTANCE_HOOK(OffhandRebuildTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
+    &ItemInHandRenderer::_rebuildItem, ItemRenderCall&, BaseActorRenderContext& context, Mob* mob,
+    ItemStack const& item, int fallbackFrame) {
+    auto& call = origin(context, mob, item, fallbackFrame);
+    traceItemIdentity("rebuild", item);
+    return call;
+}
 #endif
 // L-14: 3D-model items (shield) reach renderObject, which carries neither the
 // item nor the hand. Map each frame's render calls back to their items in
@@ -196,7 +232,9 @@ struct TraceHook { int (*install)(bool); bool (*remove)(bool); };
 TraceHook traceHooks[] = {{OffhandFirstPersonTrace::hook, OffhandFirstPersonTrace::unhook},
     {OffhandItemTrace::hook, OffhandItemTrace::unhook}, {OffhandItemNewTrace::hook, OffhandItemNewTrace::unhook},
     {OffhandRenderObjectTrace::hook, OffhandRenderObjectTrace::unhook},
-    {OffhandTessellateTrace::hook, OffhandTessellateTrace::unhook}};
+    {OffhandTessellateTrace::hook, OffhandTessellateTrace::unhook},
+    {OffhandGetCallTrace::hook, OffhandGetCallTrace::unhook},
+    {OffhandRebuildTrace::hook, OffhandRebuildTrace::unhook}};
 #endif
 }
 struct Hook { int (*install)(bool); bool (*remove)(bool); };
