@@ -294,11 +294,12 @@ exactly one switch, one mode and one set of keys:
 
 ## Resetting settings (Decided 2026-09-26, BACKLOG L-46)
 
-- No per-setting or per-feature reset (vanilla has none either). General has
-  "Reset all" (every setting, key bindings and HUD layout; not Shapes) and
-  Hotkeys has "Reset all keys". Both sit on the column-heading line and need a
-  second press to apply. The HUD layout editor keeps its per-element and
-  all-element resets.
+- No per-setting or per-feature reset (vanilla has none either). "All" has
+  "Reset all" (every setting, key bindings and HUD layout; not Shapes), each
+  category (Camera & view, Inventory, ...) has "Reset category" (its features'
+  settings and HUD placement; not key bindings), and Hotkeys has "Reset all
+  keys". They sit on the column-heading line and need a second press to apply.
+  The HUD layout editor keeps its per-element and all-element resets.
 
 ## Keys
 

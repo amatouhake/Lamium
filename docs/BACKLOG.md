@@ -470,12 +470,16 @@ or keep 1x; where and how the magnification is shown (next to the crosshair,
 as a toast, or an Info HUD line) and its default.
 
 ### L-46 Reset settings to defaults
-Kind: Ready (decided 2026-09-26). Status: implemented, awaiting the batched
-in-game check. General shows "Reset all" and Hotkeys shows "Reset all keys" on
-the column-heading line; the first press arms the button (red, "Press again"),
-the second applies, any other click disarms it. "Reset all" restores every
-setting including key bindings and the HUD layout; Shapes are untouched. The
-HUD layout editor keeps its own per-element and all-element resets.
+Kind: Ready (decided 2026-09-26). Status: first build verified in game (General
+had "Reset all"); the maintainer then moved "Reset all" to All and asked for a
+reset per category. Since the follow-up commit: All shows "Reset all", each
+category shows "Reset category" (its features' settings and HUD placement, not
+key bindings) and Hotkeys shows "Reset all keys", all on the column-heading
+line; the first press arms the button (red, "Press again"), the second
+applies, any other click disarms it (awaiting re-check). Shapes are untouched.
+The HUD layout editor keeps its own per-element and all-element resets.
+Note from the check: after "Reset all", Freelook and FreeCamera are off again
+(their defaults), so their keys do nothing until the features are switched on.
 Raised by the maintainer 2026-09-26. The demo
 (docs/demos/settings-reset.html) showed per-row and per-feature resets; the
 maintainer judged them excessive (vanilla Minecraft has no per-setting reset)
@@ -647,6 +651,14 @@ hitbox change. Separate from Permanent Sneak, which feeds real `SneakDown`.
 entity on the client while walking, sneaking or at edges, so it is not the
 edge check. Next candidates: the movement/collision systems that read the
 sneaking state (`SneakingComponent`, actor sneaking flag or move-input state).
+Third trace (2026-09-26): `SneakMovementSystem::getMaxCollisionVolume` runs
+~120-150 times a second whether or not the player sneaks, and
+`PlayerMovement::calculateMoveVector` always receives a `SneakingComponent`
+(movement factor 0.30) even when not sneaking, so the component is a constant
+parameter, not the sneak state; giving it factor 1.0 (F9) changed nothing. The
+edge check itself sits inside the unexported sneak movement system. Options:
+disassemble the caller of `getMaxCollisionVolume` to find which state it reads,
+or clamp horizontal movement at edges ourselves (the fallback noted above).
 Find the vanilla edge-protection check in 26.51.5 (around `Actor::move` /
 movement collision) and whether only that check can see "sneaking". Prefer
 reusing that vanilla path over clamping movement ourselves (slabs, stairs,
