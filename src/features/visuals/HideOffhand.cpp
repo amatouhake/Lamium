@@ -118,11 +118,22 @@ void traceItemIdentity(char const* site, ItemStack const& item) noexcept {
             Runtime::instance().self().getLogger().info(
                 "research L-14 accessor offEmpty={} mainEmpty={}", offhand.isNull() ? 1 : 0, held.isNull() ? 1 : 0);
         }
-        if (item.isNull()) return;
+        // Always log: Item* is per-type singleton, so equal pointers mean the
+        // same item type even when matchesItem disagrees (count/components).
+        void const* type = nullptr;
+        int count = 0;
+        if (!item.isNull() && item.mItem) {
+            type = static_cast<void const*>(&*item.mItem);
+            count = item.mCount;
+        }
+        void const* offType = !offhand.isNull() && offhand.mItem
+            ? static_cast<void const*>(&*offhand.mItem) : nullptr;
+        void const* mainType = !held.isNull() && held.mItem
+            ? static_cast<void const*>(&*held.mItem) : nullptr;
         int off = !offhand.isNull() && item.matchesItem(offhand) ? 1 : 0;
         int main = !held.isNull() && item.matchesItem(held) ? 1 : 0;
-        if (off == 0 && main == 0) return; // UI icons and other stacks drown the log.
-        Runtime::instance().self().getLogger().info("research L-14 item {} off={} main={}", site, off, main);
+        Runtime::instance().self().getLogger().info("research L-14 item {} type={} count={} off={}/{} main={}/{}",
+            site, type, count, off, offType, main, mainType);
     } catch (...) {}
 }
 LL_TYPE_INSTANCE_HOOK(OffhandGetCallTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
