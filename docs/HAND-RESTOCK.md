@@ -8,9 +8,11 @@ See [VALIDATION.md](VALIDATION.md) for build hashes and runtime observations.
 
 ## Intended behavior
 
-Replenish consumed main-hand blocks, food and fireworks from compatible main
-inventory stacks using vanilla inventory operations. No server mod, inventory
-synthesis, packet forgery, or automatic retry loop is required or introduced.
+When the selected main-hand stack is consumed, select a compatible reserve
+from another hotbar slot through the proven `selectSlot` API (no stacks are
+rewritten, no packets forged, no retry loop). Main-inventory replenishment is
+an open issue: HUD-controller transfers through `ContainerManagerController`
+(place and take both verified false 2026-09-27) have no supported path.
 Bowls, buckets and other consumption replacements remain in the selected slot.
 
 The maintainer also wants an offhand extension if the client exposes a safe
@@ -43,33 +45,29 @@ The first unlocked compatible main-inventory stack in slots 9–35 is selected
 using vanilla item equivalence, including components. There is no fallback to
 another reserve after unrelated inventory mutation.
 
-## Replenishment and current failure
+## Replenishment: hotbar auto-select
 
-After revalidation the adapter acquires a separate transfer token and calls
-HUD handlePlaceAmount for the reserve's exact count into the empty selected
-slot. This replaces the unsuccessful handleSwap experiment. Successful
-replenishment still requires captured inventory request responses and a final
-source/destination check. Rejected, Untracked or TimedOut results stop without
-retrying.
+After depletion the adapter selects a compatible hotbar reserve through
+`PlayerInventory::selectSlot`, the same proven API Tool Switch uses, and
+confirms the selection moved. No stacks are rewritten and no transfer token
+is needed for the selection itself. Rejected, Untracked or TimedOut use
+results still stop without retrying.
+
+## Retired transfer approach and open issue
 
 The HUD exposes hotbar_items with 36 slots, whose occupied entries match the
-player inventory. Read access does not establish transfer capability. The
-latest local survival experiment reached plan-ready, but handlePlaceAmount
-returned false and generated no request. The selected slot remained empty.
-Do not keep alternating transfer methods or extending waits without evidence.
-
-The next investigation is the HUD controller's removal/placement permissions,
-container context and simulation mapping, compared with the ordinary inventory
-screen's working vanilla transfer path. Do not force-enable permissions or
-reuse a closed screen controller. Until a supported gameplay transfer path is
-established, keep this feature experimental and continue other roadmap work.
+player inventory. Read access does not establish transfer capability: the
+adapter reached plan-ready, but HUD `handlePlaceAmount` returned false and
+generated no request (replacing the earlier unsuccessful `handleSwap`).
 2026-09-27 trace: both controllers report `closed=false client=true
-simulation=false`, so the simulation flag does not explain the failure; place
-still returns false with no request. 2026-09-27 check: `handleTakeAmount`
-also returns false under the same token, so HUD-controller transfers through
-`ContainerManagerController` look unsupported without a screen. Totem consumption in the
-offhand fires no GameMode use/use-on/complete callback (passive damage path),
-so offhand restock needs a separate consumption observer.
+simulation=false`, so the simulation flag does not explain the failure;
+`handleTakeAmount` also returns false under the same token. HUD-controller
+transfers through `ContainerManagerController` have no supported path without
+a screen, so main-inventory replenishment stays an open issue. Do not
+force-enable permissions, reuse a closed screen controller, or alternate
+transfer methods without new evidence. Totem consumption in the offhand fires
+no GameMode use/use-on/complete callback (passive damage path), so offhand
+restock needs a separate consumption observer.
 
 ## Diagnostics and validation
 

@@ -14,7 +14,6 @@
 #include "mc/client/gui/screens/models/ClientInstanceScreenModel.h"
 #include "mc/world/containers/managers/controllers/HudContainerManagerController.h"
 #include "mc/world/containers/managers/models/ContainerManagerModel.h"
-#include "mc/world/containers/SlotData.h"
 #include "mc/world/actor/player/PlayerInventory.h"
 #include "mc/world/actor/player/Inventory.h"
 #include "mc/world/gamemode/GameMode.h"
@@ -46,9 +45,9 @@ struct Operation {
     RestockSnapshot before;
     std::vector<ItemStack> kinds;
     std::optional<RestockPlan> plan;
+    std::optional<HotbarSelectPlan> select;
     std::optional<game::TransferToken> token;
     bool useFinished = false;
-    bool replenishing = false;
     bool useSent = false;
     std::chrono::steady_clock::time_point useDeadline;
 };
@@ -180,7 +179,7 @@ void tick() noexcept {
         if (!op->useFinished) return; // A synchronous vanilla use is still on the stack.
         auto result = game::transferResult(*op->token);
         if (result == ResponseBarrier::Result::Waiting) return;
-        bool legacyUse = !op->replenishing && result == ResponseBarrier::Result::Untracked && op->useSent;
+        bool legacyUse = result == ResponseBarrier::Result::Untracked && op->useSent;
         if (result != ResponseBarrier::Result::Accepted && !legacyUse) {
             Runtime::instance().self().getLogger().info("Hand Restock stopped: inventory response {}",static_cast<int>(result));
             cancel(); return;
@@ -193,41 +192,31 @@ void tick() noexcept {
             if (now.slots != op->before.slots || std::chrono::steady_clock::now() >= op->useDeadline) cancel();
             return;
         }
-        if (!op->plan) {
+        if (!op->select && !op->plan) {
             trace(legacyUse ? "observed-use-count" : "accepted-use-count",now.slots[now.selected].count);
+            op->select = planHotbarSelect(op->before,now,true);
             op->plan = planRestock(op->before,now,true);
-            trace(op->plan ? "plan-ready" : "no-depletion-plan");
-            if (!op->plan) { cancel(); return; }
+            trace(op->select || op->plan ? "plan-ready" : "no-depletion-plan");
+            if (!op->select && !op->plan) { cancel(); return; }
         }
-        if (op->replenishing) {
-            auto const& destination = now.slots[op->plan->destination];
-            bool complete = destination == op->plan->expectedSource && now.slots[op->plan->source].empty();
-            Runtime::instance().self().getLogger().info("Hand Restock {}",complete ? "acknowledged" : "stopped: inventory changed");
+        if (op->select) {
+            // HUD-controller transfers are unsupported (L-17 open issue), so
+            // move the selection to the hotbar reserve through selectSlot,
+            // the same proven API Tool Switch uses. No stacks are rewritten.
+            if (!op->select->stillValid(now)) { cancel(); return; }
+            bool moved = false;
+            try { moved = player->mInventory->selectSlot(op->select->source,ContainerID::Inventory); }
+            catch (...) { failure(); return; }
+            if (pending != op) return; // Vanilla may synchronously leave the world.
+            bool confirmed = moved && player->mInventory->mSelected == op->select->source;
+            Runtime::instance().self().getLogger().info("Hand Restock {}",
+                confirmed ? "selected hotbar reserve" : "stopped: selection refused");
+            trace("hotbar-select-submitted",confirmed);
             cancel(); return;
         }
-        if (!op->plan->stillValid(now)) { cancel(); return; }
-        game::cancelTransfer(*op->token);
-        op->token = game::beginTransfer(*controller);
-        if (!op->token) { cancel(); return; }
-        op->replenishing = true;
-        // The destination is known empty: express the operation as a transfer
-        // of the reserve's exact count.
-        bool success = controller->handlePlaceAmount(SlotData{collection,op->plan->source},
-            op->plan->expectedSource.count,SlotData{collection,op->plan->destination});
-        trace("replenishment-submitted",success);
-#ifdef LAMIUM_RESTOCK_TRACE
-        // L-17 probe: place fails on the HUD controller while the same base
-        // class serves screen transfers. Try the take entry once under the
-        // same tracked token; the ack check below still decides completion.
-        if (!success) {
-            success = controller->handleTakeAmount(SlotData{collection,op->plan->destination},
-                op->plan->expectedSource.count,SlotData{collection,op->plan->source});
-            trace("replenishment-take-submitted",success);
-        }
-#endif
-        if (pending != op) return; // Vanilla may synchronously leave the screen/world.
-        game::endTransfer(*op->token);
-        if (!success) cancel();
+        // A main-inventory reserve exists but has no supported transfer path.
+        Runtime::instance().self().getLogger().info("Hand Restock stopped: inventory reserve has no transfer path");
+        cancel(); return;
     } catch (...) { failure(); }
 }
 LL_TYPE_INSTANCE_HOOK(CaptureHud, ll::memory::HookPriority::Normal, ClientInstanceScreenModel,
@@ -272,7 +261,7 @@ LL_TYPE_INSTANCE_HOOK(ComplexSend, ll::memory::HookPriority::Normal, LocalPlayer
         trace("complex-transaction-send-type",transaction ? static_cast<int>(transaction->mType) : -1);
         trace("complex-transaction-during-use",bool(pending && !pending->useFinished));
         auto op = pending;
-        if (op && !op->replenishing) {
+        if (op) {
             bool matches = false;
             if (transaction && transaction->mType == ComplexInventoryTransaction::Type::ItemUseTransaction) {
                 auto const& use = static_cast<ItemUseInventoryTransaction const&>(*transaction);

@@ -31,6 +31,8 @@ int main() try {
     edgeGuardTests();
     extern void restockPlanTests();
     restockPlanTests();
+    extern void restockHotbarSelectTests();
+    restockHotbarSelectTests();
     extern void textFitTests();
     textFitTests();
     extern void numberInputTests();

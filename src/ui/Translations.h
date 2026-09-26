@@ -415,7 +415,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"feature.toolSwitch", "Tool Switch", "道具の自動切り替え"},
     {"feature.handRestock", "Hand Restock", "手持ちの自動補充"},
     {"handRestock", "Hand Restock: {}", "手持ちの自動補充: {}"},
-    {"help.handRestock", "Replenish a consumed main-hand stack from inventory after vanilla acknowledgement.", "使い切ったメインハンドを、vanilla の応答後にインベントリから補充。"},
+    {"help.handRestock", "Select a matching hotbar reserve when the main-hand stack runs out. Inventory restock is unresolved.", "メインハンドを使い切ったら互換のホットバー予備を選択。インベントリからの補充は未解決。"},
     {"key.Lamium.handrestock", "Lamium: Toggle Hand Restock", "Lamium: 手持ちの自動補充を切替"},
     {"key.Lamium.toolswitch", "Lamium: Toggle tool switch", "Lamium: 道具の自動切り替えを切替"},
     {"toolSwitch", "Tool Switch: {}", "道具の自動切り替え: {}"},

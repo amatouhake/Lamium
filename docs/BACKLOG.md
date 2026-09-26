@@ -111,12 +111,10 @@ Consumption is detected, but the transfer through the HUD fails
 2026-09-27 trace: the HUD and screen controllers report the same transfer
 context (`closed=false client=true simulation=false`), so the simulation flag
 is not the differentiator; place still returns false with no request. The
-trace build now probes `handleTakeAmount` once under the same tracked token
-(`replenishment-take-submitted`). 2026-09-27 check: take also returns false,
-so HUD-controller transfers through this class look unsupported. Open:
-fall back to auto-selecting a compatible hotbar reserve via `selectSlot`
-(proven API, but a spec change: selection switch instead of replenish, and
-main-inventory reserves stay uncovered), or park the transfer approach.
+Decided 2026-09-27: auto-select a compatible hotbar reserve via `selectSlot`
+(the proven Tool Switch API) when the selected stack is consumed; no stacks
+are rewritten. Main-inventory replenishment stays an open issue (HUD
+transfers through this class are unsupported: place and take both fail).
 Offhand totem consumption fires no
 use/use-on/complete callback (passive damage path), so offhand restock needs
 a separate observer. Desired scope also includes **offhand auto-restock when
