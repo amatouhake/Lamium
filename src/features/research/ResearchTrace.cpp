@@ -65,31 +65,9 @@ struct Toggle {
     }
 };
 
-// L-37: spectator selects culler type 5; neither isSpectator nor the game
-// type drives it. F10 asks the renderer for type 5 through its virtual
-// updateLevelCullerType while the view is detached, and counts how often it
-// has to ask again (the renderer rebuilding type 3 each frame would show as
-// one request per frame).
-Toggle requestCuller{VK_F10, "L-37 request culler type 5"};
-std::atomic<unsigned> cullerRequests{0};
-Clock::time_point lastL37 = Clock::now();
-void requestCullerType(LevelRendererPlayer& renderer, bool detached) {
-    if (!requestCuller.on.load() || !detached) return;
-    auto current = static_cast<int>(static_cast<LevelCullerType const&>(renderer.mLastCullerType));
-    if (current == 5) return;
-    ++cullerRequests;
-    renderer.updateLevelCullerType(static_cast<LevelCullerType>(5));
-}
-void dumpL37() {
-    if (Clock::now() - lastL37 < std::chrono::seconds(2)) return;
-    lastL37 = Clock::now();
-    if (auto count = cullerRequests.exchange(0); count || requestCuller.on.load())
-        log("research L-37 per2s cullerRequests={} requesting={}", count, requestCuller.on.load());
-}
-void pollKeys() {
-    requestCuller.poll();
-    dumpL37();
-}
+// L-37 experiments ended 2026-09-26: requesting culler type 5 every frame
+// blanked the view (the renderer rebuilds its culler each frame).
+void pollKeys() {}
 
 // L-37 / L-44: sample the culler and FOV state once a change happens (and
 // every 10 s), next to spectator/detached-camera state.
@@ -136,10 +114,6 @@ LL_TYPE_INSTANCE_HOOK(FovSampleHook, ll::memory::HookPriority::Low, LevelRendere
     try {
         pollKeys();
         sample(*this, variable, result);
-        if (variable) {
-            auto instance = ll::service::getClientInstance();
-            requestCullerType(*this, instance && Zoom::instance().detachedViewRay(*instance).has_value());
-        }
     } catch (...) {}
     return result;
 }
@@ -151,10 +125,9 @@ void start() {
         stop();
         throw std::runtime_error("Could not install research diagnostics");
     }
-    Runtime::instance().self().getLogger().warn("Research diagnostics enabled (L-37); F10 requests culler type 5 while the view is detached");
+    Runtime::instance().self().getLogger().warn("Research diagnostics enabled (culler and FOV samples only)");
 }
 void stop() {
-    requestCuller.on = false;
     if (fovInstalled && FovSampleHook::unhook(true)) fovInstalled = false;
 }
 }

@@ -133,6 +133,11 @@ either; the renderer called it once in the whole session. Remaining option
 without disassembly: request culler type 5 through the camera's virtual
 `updateLevelCullerType` while FreeCamera is underground, and check whether the
 renderer keeps it or rebuilds type 3 every frame.
+Fifth trace (2026-09-26): the request had to be repeated every frame (~60/s)
+and the view went blank while it ran, so the renderer rebuilds its culler each
+frame and type 5 cannot be forced this way. No option is left without
+disassembly; proposed to park L-37 as a known limitation (awaiting the
+maintainer's answer).
 
 ### L-14 Hidden offhand still shows a shield
 Kind: Research.
