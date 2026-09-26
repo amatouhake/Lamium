@@ -31,7 +31,7 @@ L-item wins.
 2. **Camera requests from users:** L-45 (Ready, awaiting check), L-39 (Design).
 3. **High-priority new work:** L-40 Fake Sneak (Research).
 4. **Restriction redesign:** L-15 (Design; its resume bug is L-36).
-5. **Next features:** L-41 and L-42 (Design).
+5. **Next features:** L-46, L-41 and L-42 (Design).
 6. **Run bounded native research in parallel:** L-30 and L-33.
 7. **Prepare the first release:** keep user-facing docs current, run a full
    runtime regression on the release build, verify a fresh install/package and
@@ -62,6 +62,7 @@ summary.
   as an option?
 - L-39: should Freelook starting in third person be an option, and what is the
   default?
+- L-46: how settings go back to their defaults (per row, per feature, all).
 
 HUD (docs/demos/hud.html), the settings key and the shape model are decided;
 see DESIGN.md.
@@ -89,6 +90,10 @@ outside the region, vanilla calls `stopDestroyBlock` on the previous block and
 never calls `continueDestroyBlock` again while the button stays held. The
 hook now skips such a block but returns true (no progress, `destroyed` false)
 so the session survives; a menu or settings screen still ends it.
+Check 2026-09-26 (DLL d421e275): resuming works, but while an allowed block
+was cracking, resting the crosshair on a forbidden block kept cracking the
+allowed one. Since 8f2d38a the first forbidden target aborts the allowed
+block's progress through vanilla `stopDestroyBlock` (awaiting re-check).
 With Breaking Restriction on, once the crosshair passes over a forbidden block,
 breaking does not resume on an allowed block until the mouse button is released
 and pressed again. The forbidden block must still not break, but the held
@@ -450,13 +455,26 @@ inventory interaction while detached stays a separate question (L-25).
 
 ### L-45 Zoom level feedback
 Kind: Ready (decided 2026-09-26, no mockup). Maintainer feedback on L-38.
-Status: implemented, awaiting the batched in-game check: wheel floor 2x,
-"×12.5" below the crosshair, "Show magnification" setting (default on).
+Status: check 2026-09-26 (DLL d421e275) passed for the wheel floor, the readout
+and its setting. Feedback: the readout was too prominent and too close to the
+crosshair, and the HUD layout could not move it. Since cd3850a it is its own
+HUD element (75% scale, dimmed, 36 below center) with placement and look in
+the layout editor (awaiting re-check).
 With the wheel able to go down to 1x, Zoom can be held with no visible effect,
 so it is unclear whether it is on. Also wanted: an option to show the current
 magnification. Open: raise the wheel's lower bound (for example 1.5x or 2x)
 or keep 1x; where and how the magnification is shown (next to the crosshair,
 as a toast, or an Info HUD line) and its default.
+
+### L-46 Reset settings to defaults
+Kind: Design. Raised by the maintainer 2026-09-26.
+Only key bindings (Reset per action) and HUD elements (Reset in the layout
+editor) can go back to their defaults; ordinary settings cannot, short of
+deleting the settings file. To decide: per-row reset (for example a small
+reset control shown only when a row differs from its default), per-feature
+reset, a "reset all settings" action with confirmation, and whether the last
+two include key bindings, HUD layout and Shapes (Shapes are per-world data and
+should probably be excluded).
 
 ### L-39 Freelook starts in third person
 Kind: Design (small). Requested by a user 2026-09-26.
