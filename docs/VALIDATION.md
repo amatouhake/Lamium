@@ -512,6 +512,10 @@ been changed (L-43, re-check pending). An earlier build of the same batch
 crashed on world load because of a research-only culler hook; it was removed
 before this check.
 
+Second check the same day (DLL 1b6ba9eb, commit 7c4e5fa): Permanent Sprint now
+resumes after closing the inventory (L-43). Research results are recorded in
+BACKLOG L-36, L-37, L-40 and L-44.
+
 Current pre-release priorities are:
 
 - design and build the L-15 breaking/placement restriction redesign (L-32,

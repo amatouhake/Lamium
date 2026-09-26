@@ -31,7 +31,7 @@ L-item wins.
 2. **Camera requests from users:** L-39 and L-45 (Design).
 3. **High-priority new work:** L-40 Fake Sneak (Research).
 4. **Restriction redesign:** L-15 (Design; its resume bug is L-36).
-5. **Next features:** L-41 and L-42 (Design), L-44 (Research).
+5. **Next features:** L-41 and L-42 (Design).
 6. **Run bounded native research in parallel:** L-30 and L-33.
 7. **Prepare the first release:** keep user-facing docs current, run a full
    runtime regression on the release build, verify a fresh install/package and
@@ -84,6 +84,12 @@ on their own (clock, compass) to make sure those still animate.
 
 ### L-36 Breaking does not resume after a forbidden block
 Kind: Research. Split from L-15 on 2026-09-26.
+Status: cause found and fixed, awaiting the batched in-game check. The trace
+(2026-09-26) showed that when `continueDestroyBlock` returns false for a block
+outside the region, vanilla calls `stopDestroyBlock` on the previous block and
+never calls `continueDestroyBlock` again while the button stays held. The
+hook now skips such a block but returns true (no progress, `destroyed` false)
+so the session survives; a menu or settings screen still ends it.
 With Breaking Restriction on, once the crosshair passes over a forbidden block,
 breaking does not resume on an allowed block until the mouse button is released
 and pressed again. The forbidden block must still not break, but the held
@@ -108,6 +114,11 @@ distant caves along straight chunk lines, while spectator at the same spot
 shows them; from inside a cave FreeCamera looks normal. This fits an
 occlusion flood fill seeded from an opaque section. Survival samples show
 culler type 3; the spectator/FreeCamera samples were lost with the log.
+Second trace (2026-09-26): survival and FreeCamera use culler type 3 (the
+renderer camera position does follow FreeCamera underground), spectator
+switches to culler type 5. Next: find where the renderer picks the culler
+type (spectator, no-clip or camera-in-block check) and whether FreeCamera
+can select type 5 without making the player a spectator for game logic.
 
 ### L-14 Hidden offhand still shows a shield
 Kind: Research.
@@ -595,6 +606,10 @@ Kind: Research. Notion idea, promoted as high priority 2026-09-26.
 Keep the player from walking off block edges like sneaking does, without
 actually sneaking: no speed loss, no sneak pose or network sneak state, no
 hitbox change. Separate from Permanent Sneak, which feeds real `SneakDown`.
+2026-09-26 trace: `PlayerMoveInput::isSneakDown` is never called for any
+entity on the client while walking, sneaking or at edges, so it is not the
+edge check. Next candidates: the movement/collision systems that read the
+sneaking state (`SneakingComponent`, actor sneaking flag or move-input state).
 Find the vanilla edge-protection check in 26.51.5 (around `Actor::move` /
 movement collision) and whether only that check can see "sneaking". Prefer
 reusing that vanilla path over clamping movement ourselves (slabs, stairs,
@@ -604,6 +619,9 @@ and that other players see a normal, non-sneaking player.
 
 ### L-44 Static FOV
 Kind: Research (small). Notion idea, promoted 2026-09-26.
+Status: closed 2026-09-26, not needed. The video settings do have a vanilla
+option that keeps FOV fixed; with it on, sprinting kept `fovModifier` at 1.0
+and FOV at 90 in the trace (off: 1.28 and 115).
 Keep FOV fixed when sprinting, speed/slowness effects or flying would change
 it. Find where 26.51.5 applies the dynamic FOV modifier; it should sit next to
 Zoom's FOV hook and must compose with Zoom.
