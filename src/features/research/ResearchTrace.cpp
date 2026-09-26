@@ -65,87 +65,30 @@ struct Toggle {
     }
 };
 
-// L-40: MoveCollisionSystem::fetchCollisionShapes receives the entity's
-// MoveRequestComponent, whose mSneaking flag likely drives vanilla edge
-// protection. F9 sets it for the local player only, without sneak input.
-Toggle fakeSneak{VK_F9, "L-40 move-request sneaking flag"};
-std::atomic<unsigned> localRequests{0}, sneakingRequests{0}, forcedRequests{0};
-Clock::time_point lastL40 = Clock::now();
-void dumpL40() {
-    if (Clock::now() - lastL40 < std::chrono::seconds(2)) return;
-    lastL40 = Clock::now();
-    unsigned local = localRequests.exchange(0), sneaking = sneakingRequests.exchange(0), forced = forcedRequests.exchange(0);
-    if (!local) return;
-    auto* player = localPlayer();
-    log("research L-40 per2s localMoveRequests={} vanillaSneaking={} forced={} fake={} sneakingFlag={}",
-        local, sneaking, forced, fakeSneak.on.load(), player ? player->isSneaking() : false);
-}
-bool isLocalEntity(StrictEntityContext const& entity) {
-    auto* player = localPlayer();
-    if (!player) return false;
-    auto const& own = player->getEntityContext();
-    return static_cast<EntityId const&>(entity.mEntity) == own.mEntity
-        && static_cast<uint const&>(entity.mRegistryId) == static_cast<uint const&>(own.mRegistry.mId);
-}
-LL_STATIC_HOOK(MoveRequestHook, ll::memory::HookPriority::Normal, &MoveCollisionSystem::fetchCollisionShapes, void,
-    StrictEntityContext const& entity, AABBShapeComponent const& aabb, MaxAutoStepComponent const& autoStep,
-    Optional<CollidableMobNearFlagComponent const> collidableMobNear, MoveRequestComponent& request,
-    Optional<MinecartFlagComponent const> isMinecart,
-    ViewT<StrictEntityContext, Include<CollidableMobFlagComponent>, AABBShapeComponent const> const& collidableMobs,
-    ViewT<StrictEntityContext, AABBShapeComponent const, ActorDataFlagComponent const> const& stackableView,
-    ViewT<StrictEntityContext, Include<FallingBlockFlagComponent>> const& fallingBlocks, IConstBlockSource const& region,
-    LocalSpatialEntityFetcher& fetcher, GetCollisionShapeInterface const& collisionShape,
-    std::vector<BlockSourceVisitor::CollisionShape>& tempCollisionShapes,
-    std::vector<BlockSourceVisitor::CollisionShape>& scratchCollisionShapes, std::vector<AABB>& tempShapes) {
-    try {
-        if (isLocalEntity(entity)) {
-            ++localRequests;
-            bool& sneaking = request.mSneaking;
-            if (sneaking) ++sneakingRequests;
-            else if (fakeSneak.on.load()) { sneaking = true; ++forcedRequests; }
-        }
-    } catch (...) {}
-    origin(entity, aabb, autoStep, collidableMobNear, request, isMinecart, collidableMobs, stackableView, fallingBlocks,
-        region, fetcher, collisionShape, tempCollisionShapes, scratchCollisionShapes, tempShapes);
-}
-
-// L-37: spectator switches the renderer to culler type 5, and isSpectator
-// alone did not (third trace). F10 now makes Player::getPlayerGameType answer
-// Spectator for the local player; callers are logged per answer.
-Toggle fakeSpectator{VK_F10, "L-37 fake spectator game type"};
-std::mutex spectatorMutex;
-std::map<std::pair<uintptr_t, bool>, unsigned> spectatorCallers;
+// L-37: spectator selects culler type 5; neither isSpectator nor the game
+// type drives it. F10 asks the renderer for type 5 through its virtual
+// updateLevelCullerType while the view is detached, and counts how often it
+// has to ask again (the renderer rebuilding type 3 each frame would show as
+// one request per frame).
+Toggle requestCuller{VK_F10, "L-37 request culler type 5"};
+std::atomic<unsigned> cullerRequests{0};
 Clock::time_point lastL37 = Clock::now();
-unsigned l37Lines = 0;
-void dumpL37(bool force) {
-    std::lock_guard lock{spectatorMutex};
-    if (spectatorCallers.empty() || (!force && Clock::now() - lastL37 < std::chrono::seconds(10))) return;
-    lastL37 = Clock::now();
-    for (auto const& [key, count] : spectatorCallers) {
-        if (l37Lines >= 1500) break;
-        ++l37Lines;
-        log("research L-37 getPlayerGameType caller=+0x{:x} spectator={} calls={}", key.first, key.second, count);
-    }
-    spectatorCallers.clear();
+void requestCullerType(LevelRendererPlayer& renderer, bool detached) {
+    if (!requestCuller.on.load() || !detached) return;
+    auto current = static_cast<int>(static_cast<LevelCullerType const&>(renderer.mLastCullerType));
+    if (current == 5) return;
+    ++cullerRequests;
+    renderer.updateLevelCullerType(static_cast<LevelCullerType>(5));
 }
-LL_TYPE_INSTANCE_HOOK(GameTypeHook, ll::memory::HookPriority::Normal, Player, &Player::getPlayerGameType, GameType) {
-    GameType result = origin();
-    if (localPlayer() != static_cast<Player const*>(this)) return result;
-    GameType answer = fakeSpectator.on.load() ? GameType::Spectator : result;
-    {
-        std::lock_guard lock{spectatorMutex};
-        auto& count = spectatorCallers[{callerOffset(_ReturnAddress()), answer == GameType::Spectator}];
-        if (count < 1000000) ++count;
-    }
-    return answer;
+void dumpL37() {
+    if (Clock::now() - lastL37 < std::chrono::seconds(2)) return;
+    lastL37 = Clock::now();
+    if (auto count = cullerRequests.exchange(0); count || requestCuller.on.load())
+        log("research L-37 per2s cullerRequests={} requesting={}", count, requestCuller.on.load());
 }
 void pollKeys() {
-    bool before = fakeSpectator.on.load();
-    fakeSneak.poll();
-    fakeSpectator.poll();
-    if (before != fakeSpectator.on.load()) dumpL37(true);
-    dumpL37(false);
-    dumpL40();
+    requestCuller.poll();
+    dumpL37();
 }
 
 // L-37 / L-44: sample the culler and FOV state once a change happens (and
@@ -193,27 +136,26 @@ LL_TYPE_INSTANCE_HOOK(FovSampleHook, ll::memory::HookPriority::Low, LevelRendere
     try {
         pollKeys();
         sample(*this, variable, result);
+        if (variable) {
+            auto instance = ll::service::getClientInstance();
+            requestCullerType(*this, instance && Zoom::instance().detachedViewRay(*instance).has_value());
+        }
     } catch (...) {}
     return result;
 }
-bool requestInstalled = false, spectatorInstalled = false, fovInstalled = false;
+bool fovInstalled = false;
 }
 void start() {
-    requestInstalled = MoveRequestHook::hook(true) == 0;
-    spectatorInstalled = GameTypeHook::hook(true) == 0;
     fovInstalled = FovSampleHook::hook(true) == 0;
-    if (!requestInstalled || !spectatorInstalled || !fovInstalled) {
+    if (!fovInstalled) {
         stop();
         throw std::runtime_error("Could not install research diagnostics");
     }
-    Runtime::instance().self().getLogger().warn("Research diagnostics enabled (L-37, L-40, L-44); F9 move-request sneaking, F10 fake spectator game type");
+    Runtime::instance().self().getLogger().warn("Research diagnostics enabled (L-37); F10 requests culler type 5 while the view is detached");
 }
 void stop() {
-    fakeSneak.on = false;
-    fakeSpectator.on = false;
+    requestCuller.on = false;
     if (fovInstalled && FovSampleHook::unhook(true)) fovInstalled = false;
-    if (spectatorInstalled && GameTypeHook::unhook(true)) spectatorInstalled = false;
-    if (requestInstalled && MoveRequestHook::unhook(true)) requestInstalled = false;
 }
 }
 #else
