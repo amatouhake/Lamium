@@ -37,6 +37,7 @@ struct Settings {
         bool freelookToggle = false; // Activation: false = hold the key, true = press to switch
         bool freecamera = false; // Experimental flying camera; shares Freelook's session
         float magnification = 3.0f;
+        bool showMagnification = true;
         bool operator==(Camera const&) const = default;
     } camera;
     struct Lighting {

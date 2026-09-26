@@ -113,6 +113,8 @@ public:
     }
     float fov(IClientInstance const&, float base) const;
     float sensitivity(LocalPlayer const&) const;
+    // The shown magnification while Zoom is held for this client.
+    std::optional<float> magnification(IClientInstance const&) const;
 #if defined(LAMIUM_CAMERA_PROBE) || defined(LAMIUM_CAMERA_POSITION_PROBE)
     bool viewProbeActive() const;
 #endif

@@ -15,6 +15,9 @@ public:
     static constexpr float maxLevel = 50.0f;
     // One wheel notch scales the magnification by the same ratio at 2x and 40x.
     static constexpr float notch = 1.15f;
+    // The wheel stops at 2x so a held Zoom always visibly zooms; a lower
+    // configured magnification stays reachable.
+    static constexpr float wheelFloor = 2.0f;
     // Time constant of the easing toward the wheel target, in seconds.
     static constexpr double ease = 0.04;
 
@@ -39,7 +42,8 @@ public:
     float targetLevel() const { return target.load(); }
     void wheel(int direction) {
         if (held() && direction != 0)
-            target = std::clamp(direction > 0 ? target.load() * notch : target.load() / notch, minLevel, maxLevel);
+            target = std::clamp(direction > 0 ? target.load() * notch : target.load() / notch,
+                std::min(wheelFloor, initial.load()), maxLevel);
     }
     // Eases in log space so a notch looks alike at any magnification; frame-rate independent.
     void advance(double now) {

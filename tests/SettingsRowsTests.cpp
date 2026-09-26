@@ -72,8 +72,9 @@ void settingsRowsTests() {
     // Search spans all categories and opens features whose settings match.
     query.append("magnification");
     rows = ui::buildSettingsRows(false, "section.inventory", query, expanded, translate);
-    check(rows.size() == 3 && rows[0].kind == RowKind::Section && rows[1].feature->id == "zoom" && rows[1].expanded
-        && rows[2].option->id == "camera.magnification" && rows[2].lastChild, "search reveals a matching setting in any category");
+    check(rows.size() == 4 && rows[0].kind == RowKind::Section && rows[1].feature->id == "zoom" && rows[1].expanded
+        && rows[2].option->id == "camera.magnification" && rows[3].option->id == "camera.showMagnification"
+        && rows[3].lastChild, "search reveals matching settings in any category");
     query.clear(); query.append("Camera & view");
     rows = ui::buildSettingsRows(false, {}, query, expanded, translate);
     for (auto const& row : rows) check(row.section == "section.camera", "section search stays in matching group");

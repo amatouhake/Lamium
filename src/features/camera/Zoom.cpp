@@ -500,6 +500,10 @@ Zoom& Zoom::instance() { static Zoom value; return value; }
 float Zoom::fov(IClientInstance const& renderedClient, float base) const {
     return running && client.load() == &renderedClient ? state.fov(base) : base;
 }
+std::optional<float> Zoom::magnification(IClientInstance const& current) const {
+    if (!running || client.load() != &current || !state.held()) return {};
+    return state.level();
+}
 float Zoom::sensitivity(LocalPlayer const& player) const {
     auto* current = client.load();
     return running && current && current->getLocalPlayer() == &player ? state.sensitivity() : 1.f;

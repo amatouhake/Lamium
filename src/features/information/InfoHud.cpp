@@ -354,6 +354,15 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         if (target) box(ui::HudElementId::Target) = drawTargetCard(context, width, height, hud.target, *target, settings, !preview);
         else if (!preview) cardMorph = {};
     }
+    if (!preview && runtime.camera.showMagnification) {
+        if (auto level = Zoom::instance().magnification(context.mClient)) {
+            auto text = std::format("\u00d7{:.1f}", *level);
+            float textWidth = ui::textWidthScaled(context, text, 1.f) + 2;
+            ui::labelScaled(context, (width - textWidth) / 2, height / 2 + 10, textWidth, std::move(text), 1.f,
+                ui::palette::text, ui::Align::Center, true);
+            context.flushText(0, std::nullopt);
+        }
+    }
     if (preview || runtime.ui.toggleToasts) {
         auto toast = ui::currentToggleToast(ui::toastNow());
         if (!toast && preview) toast = ui::Toast::Visible{ui::translated("feature.toolSwitch"), true, 1.f};
