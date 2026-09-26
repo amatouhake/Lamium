@@ -72,6 +72,7 @@ see DESIGN.md.
 
 ### L-35 Container previews play the item pickup animation
 Kind: Ready. Reported by a user 2026-09-26.
+Status: implemented (1a04a4d), awaiting the batched in-game check.
 Items shown in Shulker/Bundle previews play the vertical stretch that vanilla
 uses right after picking an item up. The preview draws stacks decoded from the
 container, which keep `ItemStackBase::mShowPickUp`; the Info HUD already clears
@@ -386,6 +387,8 @@ surface for small sizes.
 
 ### L-38 Zoom up to 50x with a proportional, smooth wheel
 Kind: Ready. Requested by a user 2026-09-26. DESIGN "Camera".
+Status: implemented (921bf79), awaiting the batched in-game check. The Wheel
+step setting was removed; old settings files still load.
 - Raise the magnification range from 1x-10x to 1x-50x for both the initial
   setting (Options.h, Settings normalize) and the wheel (`ZoomState`).
 - A wheel notch multiplies/divides the target magnification by about 1.15
@@ -401,6 +404,8 @@ Kind: Ready. Requested by a user 2026-09-26. DESIGN "Camera".
 
 ### L-43 Permanent Sprint
 Kind: Ready. Notion idea (Masa-style QoL), promoted 2026-09-26.
+Status: implemented (e74a142), awaiting the batched in-game check. Shares
+Permanent Sneak's raw-input hook; unbound by default.
 Mirror Permanent Sneak: add `SprintDown` to a transient copy of the raw move
 input in the same `extractRawHIDInput` hook, with the same eligibility and
 cancellation (screens, settings, death, sleeping, riding, dimension change).
@@ -561,6 +566,10 @@ https://github.com/maruohon/tweakeroo/blob/ornithe/1.12.2/src/main/java/tweakero
 ---
 
 ## Research
+
+Diagnostics: `xmake f ... --research_trace=y` logs lines prefixed
+"research L-3x/L-4x" for L-36, L-37, L-40 and L-44 (see `src/features/research/`
+and the L-36 block in `BreakingRestriction.cpp`).
 
 ### L-40 Fake Sneak (edge protection without sneaking) — high priority
 Kind: Research. Notion idea, promoted as high priority 2026-09-26.
