@@ -30,7 +30,7 @@ L-item wins.
 2. **Camera requests from users:** L-45 (Ready, awaiting check), L-39 (Design).
 3. **High-priority new work:** L-40 Fake Sneak (Research).
 4. **Restriction redesign:** L-15 (Design; its resume bug is L-36).
-5. **Next features:** L-46 (Ready, awaiting check), L-41 and L-42 (Design).
+5. **Next features:** L-47, L-41 and L-42 (Design).
 6. **Run bounded native research in parallel:** L-30 and L-33.
 7. **Prepare the first release:** keep user-facing docs current, run a full
    runtime regression on the release build, verify a fresh install/package and
@@ -61,6 +61,7 @@ summary.
   as an option?
 - L-39: should Freelook starting in third person be an option, and what is the
   default?
+- L-47: momentary features enabled by their key alone (state column, Zoom's default key).
 
 HUD (docs/demos/hud.html), the settings key and the shape model are decided;
 see DESIGN.md.
@@ -126,6 +127,10 @@ renderer camera position does follow FreeCamera underground), spectator
 switches to culler type 5. Next: find where the renderer picks the culler
 type (spectator, no-clip or camera-in-block check) and whether FreeCamera
 can select type 5 without making the player a spectator for game logic.
+Third trace (2026-09-26): making `Actor::isSpectator` answer true for the local
+player during FreeCamera (F10) left the culler at type 3, so the renderer does
+not decide from `isSpectator`. Next candidates: the player's game type
+(`Player::getPlayerGameType`) or the no-clip ability.
 
 ### L-14 Hidden offhand still shows a shield
 Kind: Research.
@@ -470,13 +475,14 @@ or keep 1x; where and how the magnification is shown (next to the crosshair,
 as a toast, or an Info HUD line) and its default.
 
 ### L-46 Reset settings to defaults
-Kind: Ready (decided 2026-09-26). Status: first build verified in game (General
+Kind: Ready (decided 2026-09-26). Status: done. First build verified in game (General
 had "Reset all"); the maintainer then moved "Reset all" to All and asked for a
 reset per category. Since the follow-up commit: All shows "Reset all", each
 category shows "Reset category" (its features' settings and HUD placement, not
 key bindings) and Hotkeys shows "Reset all keys", all on the column-heading
 line; the first press arms the button (red, "Press again"), the second
-applies, any other click disarms it (awaiting re-check). Shapes are untouched.
+applies, any other click disarms it (verified in game 2026-09-26, DLL c5166d6b).
+Shapes are untouched.
 The HUD layout editor keeps its own per-element and all-element resets.
 Note from the check: after "Reset all", Freelook and FreeCamera are off again
 (their defaults), so their keys do nothing until the features are switched on.
@@ -497,6 +503,19 @@ reset control shown only when a row differs from its default), per-feature
 reset, a "reset all settings" action with confirmation, and whether the last
 two include key bindings, HUD layout and Shapes (Shapes are per-world data and
 should probably be excluded).
+
+### L-47 Enable momentary features by their key alone
+Kind: Design. Raised by the maintainer 2026-09-26.
+Night Vision and other persistent features have one switch that their key also
+toggles. Zoom, Freelook and FreeCamera instead have an enable switch plus a key
+that holds or toggles a session, so a bound key does nothing while the switch
+is off (noticed after "Reset all" turned Freelook and FreeCamera off).
+Proposed: drop the enable switch for these momentary features; a bound key
+means the feature is available and "unbound" disables it. The state column
+shows whether the session is running (or stays empty). Experimental features
+ship unbound. Migration keeps existing bindings and ignores the old switch.
+Open: live state vs empty state column; whether Zoom keeps its default C
+(which replaces vanilla "copy coordinates"); whether to mock it first.
 
 ### L-39 Freelook starts in third person
 Kind: Design (small). Requested by a user 2026-09-26.
