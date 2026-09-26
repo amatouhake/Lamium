@@ -131,6 +131,11 @@ Third trace (2026-09-26): making `Actor::isSpectator` answer true for the local
 player during FreeCamera (F10) left the culler at type 3, so the renderer does
 not decide from `isSpectator`. Next candidates: the player's game type
 (`Player::getPlayerGameType`) or the no-clip ability.
+Fourth trace: answering Spectator from `getPlayerGameType` (F10) did nothing
+either; the renderer called it once in the whole session. Remaining option
+without disassembly: request culler type 5 through the camera's virtual
+`updateLevelCullerType` while FreeCamera is underground, and check whether the
+renderer keeps it or rebuilds type 3 every frame.
 
 ### L-14 Hidden offhand still shows a shield
 Kind: Research.
@@ -518,9 +523,12 @@ Maintainer direction (2026-09-26): go further for consistency and drop the
 "momentary" category: every feature is a persistent on/off switch that its key
 toggles, as Tweakeroo does for most tweaks. This requires FreeCamera to keep
 its position through menus (inventory, settings, window switch), so L-27 is
-folded into this item. Open: whether Zoom and Freelook keep a hold option
-(the switch lit only while the key is held), whether session features such as
-FreeCamera are saved across restarts, and Zoom's default key.
+folded into this item. Decided 2026-09-26: Zoom and Freelook keep an
+"Activation: Hold / Toggle" option (Hold lights the switch only while the key
+is held); FreeCamera's on state is not saved across restarts; Zoom keeps its
+default key C (with Zoom unbound, C did not copy coordinates either, so the
+vanilla binding may no longer exist). Still open: what the switch does when
+clicked in the settings screen, and whether Zoom/Freelook resume after a menu.
 
 ### L-39 Freelook starts in third person
 Kind: Design (small). Requested by a user 2026-09-26.
@@ -689,6 +697,11 @@ exported `MoveCollisionSystem::fetchCollisionShapes` receives the entity's
 `MoveRequestComponent`, which carries an `mSneaking` flag; the fourth trace
 sets it for the local player only (F9) to test whether vanilla edge protection
 follows it without sneak pose, speed or network state.
+Fourth trace (2026-09-26): the flag was set on every local move request
+(20/s) with no effect on edges, so it is overwritten later or not the edge
+input. Next: implement the edge clamp ourselves in the same exported hook by
+shortening `MoveRequestComponent::mSpeed` before collision (Ready once the
+collision query is chosen).
 Find the vanilla edge-protection check in 26.51.5 (around `Actor::move` /
 movement collision) and whether only that check can see "sneaking". Prefer
 reusing that vanilla path over clamping movement ourselves (slabs, stairs,
