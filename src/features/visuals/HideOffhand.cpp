@@ -93,9 +93,32 @@ LL_TYPE_INSTANCE_HOOK(OffhandItemNewTrace, ll::memory::HookPriority::Low, ItemIn
     } catch (...) {}
     origin(context, entity, item, flags, lightEmission);
 }
+LL_TYPE_INSTANCE_HOOK(OffhandRenderObjectTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
+    &ItemInHandRenderer::renderObject, void, BaseActorRenderContext& context,
+    ItemRenderCall const& renderObject, dragon::RenderMetadata const& renderMetadata, ItemContextFlags flags) {
+    // L-14 follow-up: 3D-model items may bypass renderItem through cached
+    // render objects.
+    try {
+        auto& runtime = Runtime::instance();
+        if (runtime.enabled() && runtime.preferences().visuals.hideOffhand) logRenderSite(5, flags, -1);
+    } catch (...) {}
+    origin(context, renderObject, renderMetadata, flags);
+}
+LL_TYPE_INSTANCE_HOOK(OffhandTessellateTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
+    &ItemInHandRenderer::tessellateAtFrame, void, BaseActorRenderContext& context, Mob* mob,
+    ItemStack const& item, int frame) {
+    try {
+        auto& runtime = Runtime::instance();
+        if (runtime.enabled() && runtime.preferences().visuals.hideOffhand)
+            logRenderSite(6, ItemContextFlags::None, -1);
+    } catch (...) {}
+    origin(context, mob, item, frame);
+}
 struct TraceHook { int (*install)(bool); bool (*remove)(bool); };
 TraceHook traceHooks[] = {{OffhandFirstPersonTrace::hook, OffhandFirstPersonTrace::unhook},
-    {OffhandItemTrace::hook, OffhandItemTrace::unhook}, {OffhandItemNewTrace::hook, OffhandItemNewTrace::unhook}};
+    {OffhandItemTrace::hook, OffhandItemTrace::unhook}, {OffhandItemNewTrace::hook, OffhandItemNewTrace::unhook},
+    {OffhandRenderObjectTrace::hook, OffhandRenderObjectTrace::unhook},
+    {OffhandTessellateTrace::hook, OffhandTessellateTrace::unhook}};
 #endif
 }
 void start() {

@@ -113,8 +113,11 @@ context (`closed=false client=true simulation=false`), so the simulation flag
 is not the differentiator; place still returns false with no request. The
 Decided 2026-09-27: auto-select a compatible hotbar reserve via `selectSlot`
 (the proven Tool Switch API) when the selected stack is consumed; no stacks
-are rewritten. Main-inventory replenishment stays an open issue (HUD
-transfers through this class are unsupported: place and take both fail).
+are rewritten. Verified in game 2026-09-27 (DLL 1f1f7816): egg consumed with
+a hotbar reserve selects it (`selected hotbar reserve`), inventory-only
+reserve stops with `no transfer path`, no reserve does nothing. Main-inventory
+replenishment stays an open issue (HUD transfers through this class are
+unsupported: place and take both fail).
 Offhand totem consumption fires no
 use/use-on/complete callback (passive damage path), so offhand restock needs
 a separate observer. Desired scope also includes **offhand auto-restock when
