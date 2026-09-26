@@ -3,6 +3,7 @@
 #include "ll/api/memory/Hook.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
+#include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/actor/Actor.h"
 #include "mc/world/actor/player/Inventory.h"
@@ -32,6 +33,7 @@ struct RenderCounts {
     unsigned firstPerson = 0, offhand = 0, itemMH[2] = {}, itemNew = 0;
     unsigned objectFP = 0, objectWorld = 0, objectUI = 0;
     unsigned getcall = 0, rebuild = 0, applyTrans = 0, tessBlock = 0, frames = 0;
+    unsigned attachAsk = 0, attachAskOffhand = 0, attachDraw = 0, attachDrawOffhand = 0, attachSkip = 0;
 };
 inline RenderCounts renderCounts{};
 #endif
@@ -67,9 +69,43 @@ LL_STATIC_HOOK(OffhandAttachable, ll::memory::HookPriority::Normal, &DataDrivenM
     ItemStack const& item, AttachableSlotIndex const& slot, bool isSpectator, bool isFirstPerson, bool isRenderingOnMap,
     bool legacyVersion, bool hideArmor) {
     auto& runtime = Runtime::instance();
+#ifdef LAMIUM_RESEARCH_TRACE
+    ++renderCounts.attachAsk;
+    if (slot == AttachableSlotIndex::OffhandItem) ++renderCounts.attachAskOffhand;
+#endif
     if (isFirstPerson && slot == AttachableSlotIndex::OffhandItem && runtime.enabled()
         && runtime.preferences().visuals.hideOffhand) return false;
     return origin(item, slot, isSpectator, isFirstPerson, isRenderingOnMap, legacyVersion, hideArmor);
+}
+// The draw itself, for when the predicate above is not consulted: skip the
+// local player's offhand attachable while the view is first person.
+bool skipOffhandAttachable(AttachableSlotIndex slot, Actor& actor) {
+#ifdef LAMIUM_RESEARCH_TRACE
+    ++renderCounts.attachDraw;
+    if (slot == AttachableSlotIndex::OffhandItem) ++renderCounts.attachDrawOffhand;
+#endif
+    if (slot != AttachableSlotIndex::OffhandItem) return false;
+    auto& runtime = Runtime::instance();
+    if (!runtime.enabled() || !runtime.preferences().visuals.hideOffhand) return false;
+    auto client = ll::service::getClientInstance();
+    if (!client || client->getLocalPlayer() != &actor) return false;
+    try { if (client->getOptions().getPlayerViewPerspective() != 0) return false; } catch (...) { return false; }
+#ifdef LAMIUM_RESEARCH_TRACE
+    ++renderCounts.attachSkip;
+#endif
+    return true;
+}
+LL_TYPE_INSTANCE_HOOK(OffhandAttachableDraw, ll::memory::HookPriority::Normal, DataDrivenModel,
+    &DataDrivenModel::renderAttachable, void, ItemStack const& item, AttachableSlotIndex const& slot,
+    RenderParams& params, Actor& actor) {
+    if (skipOffhandAttachable(slot, actor)) return;
+    origin(item, slot, params, actor);
+}
+LL_TYPE_INSTANCE_HOOK(OffhandAttachableDrawNoChecks, ll::memory::HookPriority::Normal, DataDrivenModel,
+    &DataDrivenModel::renderAttachableNoChecks, void, ItemStack const& item, AttachableSlotIndex const& slot,
+    RenderParams& params, Actor& actor) {
+    if (skipOffhandAttachable(slot, actor)) return;
+    origin(item, slot, params, actor);
 }
 // L-14: a shield bypasses renderOffhandItem. The 2026-09-27 trace showed it
 // reaching renderItem with WorldPass|InHand and renderingMainHand=false while
@@ -110,9 +146,11 @@ void reportRenderCounts() {
     try {
         auto& c = renderCounts;
         Runtime::instance().self().getLogger().info(
-            "research L-14 counts fp={} off={} item={}/{}/{} obj={}/{}/{} get={} rebuild={} apply={} tess={}",
+            "research L-14 counts fp={} off={} item={}/{}/{} obj={}/{}/{} get={} rebuild={} apply={} tess={} "
+            "attachAsk={}/{} attachDraw={}/{} attachSkip={}",
             c.firstPerson, c.offhand, c.itemMH[0], c.itemMH[1], c.itemNew, c.objectFP, c.objectWorld, c.objectUI,
-            c.getcall, c.rebuild, c.applyTrans, c.tessBlock);
+            c.getcall, c.rebuild, c.applyTrans, c.tessBlock, c.attachAsk, c.attachAskOffhand, c.attachDraw,
+            c.attachDrawOffhand, c.attachSkip);
     } catch (...) {}
 }
 // L-14: which stack flows through the cached-call builders? Bounded.
@@ -319,6 +357,8 @@ TraceHook traceHooks[] = {{OffhandFirstPersonTrace::hook, OffhandFirstPersonTrac
 }
 struct Hook { int (*install)(bool); bool (*remove)(bool); };
 Hook hooks[] = {{OffhandVisibility::hook, OffhandVisibility::unhook}, {OffhandAttachable::hook, OffhandAttachable::unhook},
+    {OffhandAttachableDraw::hook, OffhandAttachableDraw::unhook},
+    {OffhandAttachableDrawNoChecks::hook, OffhandAttachableDrawNoChecks::unhook},
     {OffhandWorldItem::hook, OffhandWorldItem::unhook},
     {OffhandFrameReset::hook, OffhandFrameReset::unhook}, {OffhandCallMap::hook, OffhandCallMap::unhook},
     {OffhandRenderObject::hook, OffhandRenderObject::unhook}};
