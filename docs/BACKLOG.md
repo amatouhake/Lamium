@@ -26,13 +26,12 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins.
 
-1. **Awaiting the batched in-game check:** L-47 with L-27, L-40 (Edge Guard).
-2. **Fix bugs:** the bug research L-37, L-14 and L-17.
-3. **Camera requests from users:** L-39 (Design).
-4. **Restriction redesign:** L-15 (Design; its resume bug is L-36).
-5. **Next features:** L-41 and L-42 (Design).
-6. **Run bounded native research in parallel:** L-30 and L-33.
-7. **Prepare the first release:** keep user-facing docs current, run a full
+1. **Fix bugs:** the bug research L-14 and L-17 (L-37 is proposed to be parked).
+2. **Camera requests from users:** L-39 (Design).
+3. **Restriction redesign:** L-15 (Design).
+4. **Next features:** L-41 and L-42 (Design).
+5. **Run bounded native research in parallel:** L-30 and L-33.
+6. **Prepare the first release:** keep user-facing docs current, run a full
    runtime regression on the release build, verify a fresh install/package and
    finish the remaining distribution review. 0.1.1 is the current GitHub
    pre-release (tag v0.1.1; same code as the build verified for L-16) with the
@@ -461,8 +460,8 @@ would, and that turning it off never leaves sprint stuck.
 
 ### L-27 FreeCamera keeps its position through menus
 Kind: Design (small). Promoted from Later 2026-09-26 after user feedback.
-Status: implemented as part of L-47 (7183295), awaiting the batched in-game
-check. Movement input counts as zero while a screen owns input.
+Status: done as part of L-47 (verified in game 2026-09-26). Movement input
+counts as zero while a screen owns input.
 Opening the inventory or another menu, the pause screen, or switching windows
 currently ends FreeCamera and discards the flown position. Proposed direction
 (DESIGN "Camera"): keep the detached pose through these and resume on return;
@@ -515,9 +514,10 @@ should probably be excluded).
 
 ### L-47 Enable momentary features by their key alone
 Kind: Design. Raised by the maintainer 2026-09-26.
-Status: implemented (7183295) with L-27, awaiting the batched in-game check;
-behavior as in DESIGN "Camera". The old Zoom/Freelook/FreeCamera enable
-settings are ignored on load.
+Status: done (verified in game 2026-09-26, DLL 1db48ae3) with L-27; behavior
+as in DESIGN "Camera". The old Zoom/Freelook/FreeCamera enable settings are
+ignored on load. The first build left a held Freelook restarting after key
+release; fixed in eb2aaac.
 Night Vision and other persistent features have one switch that their key also
 toggles. Zoom, Freelook and FreeCamera instead have an enable switch plus a key
 that holds or toggles a session, so a bound key does nothing while the switch
@@ -683,13 +683,16 @@ and the L-36 block in `BreakingRestriction.cpp`).
 
 ### L-40 Fake Sneak (edge protection without sneaking) — high priority
 Kind: Research. Notion idea, promoted as high priority 2026-09-26.
-Status: implemented as "Edge Guard" (d2c59b2), awaiting the batched in-game
-check. A switch and an unbound toggle key in the Interaction category; the
+Status: done as "Edge Guard" (verified in a local world 2026-09-26, DLL
+1db48ae3). A switch and an unbound toggle key in the Interaction category; the
 exported `MoveCollisionSystem::fetchCollisionShapes` hook shortens the local
 player's horizontal move (pure `guardEdge`, tested) until the feet keep
 ground within 0.6 blocks below, only when on the ground and not sneaking,
-flying, gliding, swimming, in water or riding. Server-side movement
-correction on multiplayer servers is untested.
+flying, gliding, swimming, in water or riding. The first build stopped only
+for a moment: the integrated server moved its own copy of the player and
+corrected the client, so since 910d2eb the copy (the other registry's entity
+with the player's box) is guarded too. Multiplayer servers keep their own
+movement and will likely pull the player over the edge; untested.
 Keep the player from walking off block edges like sneaking does, without
 actually sneaking: no speed loss, no sneak pose or network sneak state, no
 hitbox change. Separate from Permanent Sneak, which feeds real `SneakDown`.

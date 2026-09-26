@@ -516,6 +516,16 @@ Second check the same day (DLL 1b6ba9eb, commit 7c4e5fa): Permanent Sprint now
 resumes after closing the inventory (L-43). Research results are recorded in
 BACKLOG L-36, L-37, L-40 and L-44.
 
+Later checks the same day (research-trace builds up to DLL 1db48ae3): Breaking
+Restriction resumes on allowed blocks after a forbidden one and stops cracking
+the allowed block while on a forbidden one (L-36); Zoom magnification readout
+as a HUD element and the raised toggle toast default (L-45); Reset all,
+category and key resets (L-46); Zoom/Freelook/FreeCamera as switch-driven
+sessions, FreeCamera keeping its position through inventory and settings, and
+Freelook Hold/Toggle (L-47, L-27); Edge Guard holding at block edges in a local
+world while stairs and slabs stay walkable and jumping still leaves the edge
+(L-40). Multiplayer servers were not tested.
+
 Current pre-release priorities are:
 
 - design and build the L-15 breaking/placement restriction redesign (L-32,
