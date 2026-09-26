@@ -19,6 +19,7 @@
 namespace lamium::interaction::sneak {
 namespace {
 AutomationInput intent;
+AutomationInput sprintIntent;
 bool installed = false;
 bool dimensionInstalled = false;
 unsigned observed = 0, matched = 0, rawSneak = 0;
@@ -36,22 +37,29 @@ LL_STATIC_HOOK(ExtractSneakInput, ll::memory::HookPriority::Normal,
     Optional<SneakingComponent const> sneaking, Optional<WasInWaterFlagComponent const> water) {
     auto client = ll::service::getClientInstance();
     if (intent.active() && observed < 1000) ++observed;
-    if (!client || !eligible(*client)) intent.cancel();
-    if (!intent.active() || !client || ClientMoveInputHandler::getMoveInput(*client) != &input) {
+    if (!client || !eligible(*client)) { intent.cancel(); sprintIntent.cancel(); }
+    if ((!intent.active() && !sprintIntent.active()) || !client
+        || ClientMoveInputHandler::getMoveInput(*client) != &input) {
         origin(abilities, input, flags, raw, sneaking, water);
         return;
     }
     // Feed vanilla a transient copy. Never leave synthetic bits in the user's
     // stored HID state, so cancelling cannot clear a physically held key.
     auto augmented = input;
-    if (matched < 1000) ++matched;
-    augmented.mRawInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown));
+    if (intent.active()) {
+        if (matched < 1000) ++matched;
+        augmented.mRawInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SneakDown));
+    }
+    // Vanilla still decides whether sprinting starts (forward input, food, blindness).
+    if (sprintIntent.active())
+        augmented.mRawInputState->mFlagValues->set(static_cast<size_t>(MoveInputState::Flag::SprintDown));
     origin(abilities, augmented, flags, raw, sneaking, water);
     if (rawSneak < 1000 && raw.mRawInput->mFlagValues->test(static_cast<size_t>(MoveInputState::Flag::SneakDown))) ++rawSneak;
 }
 LL_TYPE_INSTANCE_HOOK(SneakDimensionChange, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::$onWillChangeDimension, void, Player& player) {
     intent.cancel();
+    sprintIntent.cancel();
     origin(player);
 }
 }
@@ -81,7 +89,21 @@ void start() {
 }
 void stop() {
     cancel();
+    sprint::cancel();
     if (dimensionInstalled && SneakDimensionChange::unhook(true)) dimensionInstalled = false;
     if (installed && ExtractSneakInput::unhook(true)) installed = false;
 }
+}
+namespace lamium::interaction::sprint {
+void cancel() {
+    if (sneak::sprintIntent.active()) Runtime::instance().self().getLogger().info("Permanent Sprint stopped");
+    sneak::sprintIntent.cancel();
+}
+void toggle(IClientInstance& client) {
+    if (!sneak::eligible(client)) { cancel(); return; }
+    if (sneak::sprintIntent.active()) cancel();
+    else sneak::sprintIntent.arm();
+    Runtime::instance().self().getLogger().info("Permanent Sprint: {}", sneak::sprintIntent.active() ? "on" : "off");
+}
+bool active(IClientInstance& client) { return sneak::sprintIntent.active() && sneak::eligible(client); }
 }

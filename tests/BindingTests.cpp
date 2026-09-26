@@ -9,10 +9,10 @@ void bindingTests() {
         lamium::Settings value;
         auto action = static_cast<Action>(i);
         bool changed = toggleAction(value,action);
-        // Permanent Sneak toggles runtime intent, not a saved preference.
+        // Permanent Sneak/Sprint toggle runtime intent, not a saved preference.
         // FreeCamera toggles a detached-camera session, not a saved preference.
         bool persistentToggle = actions[i].behavior == Behavior::Toggle && action != Action::PermanentSneak
-            && action != Action::FreeCamera;
+            && action != Action::PermanentSprint            && action != Action::FreeCamera;
         check(changed == persistentToggle, "every persistent toggle action has one shared implementation");
         size_t count = 0;
         for (auto const& option : lamium::settings::options) {

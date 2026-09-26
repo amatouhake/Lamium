@@ -67,6 +67,7 @@ bool opensMenu(Action action) {
 void invalidate() {
     interaction::periodic::interrupt();
     interaction::sneak::cancel();
+    interaction::sprint::cancel();
     releaseStates();
     held.invalidate();
 }

@@ -34,6 +34,7 @@ std::string toggleFeatureName(input::Action action) {
 bool toggleState(IClientInstance& client, Settings const& value, input::Action action) {
     if (action == input::Action::BreakingRestriction) return value.interaction.breaking;
     if (action == input::Action::PermanentSneak) return interaction::sneak::active(client);
+    if (action == input::Action::PermanentSprint) return interaction::sprint::active(client);
     auto id = input::actions[static_cast<size_t>(action)].feature;
     for (auto const& feature : ui::features) {
         if (feature.id != id || feature.toggle.empty()) continue;
@@ -73,6 +74,11 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (!gameplayScreen(client.getScreenName())) return;
     if (action == input::Action::PermanentSneak) {
         interaction::sneak::toggle(client);
+        emitToggleToast(client, action, runtime.preferences());
+        return;
+    }
+    if (action == input::Action::PermanentSprint) {
+        interaction::sprint::toggle(client);
         emitToggleToast(client, action, runtime.preferences());
         return;
     }

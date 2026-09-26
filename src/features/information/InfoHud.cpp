@@ -311,6 +311,8 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             }
             if (interaction::sneak::active(context.mClient))
                 lines.push_back({ui::translated("status.permanentSneak"), ui::palette::accent});
+            if (interaction::sprint::active(context.mClient))
+                lines.push_back({ui::translated("status.permanentSprint"), ui::palette::accent});
         }
         if (runtime.interaction.breaking && context.mClient.getLocalPlayer()) {
             auto mode = runtime.interaction.breakingMode;
