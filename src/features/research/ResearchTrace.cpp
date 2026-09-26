@@ -62,7 +62,11 @@ void dumpCallers(bool force) {
 LL_STATIC_HOOK(SneakDownHook, ll::memory::HookPriority::Normal, &PlayerMoveInput::isSneakDown, bool,
     EntityContext const& entity) {
     bool result = origin(entity);
-    if (!isLocal(entity)) return result;
+    static std::atomic<bool> seenAny{false}, seenLocal{false};
+    bool local = isLocal(entity);
+    if (!seenAny.exchange(true)) log("research L-40 isSneakDown first call (local={})", local);
+    if (local && !seenLocal.exchange(true)) log("research L-40 isSneakDown first local call");
+    if (!local) return result;
     bool forced = forceSneak.load() && !result;
     {
         std::lock_guard lock{callerMutex};
@@ -74,6 +78,7 @@ LL_STATIC_HOOK(SneakDownHook, ll::memory::HookPriority::Normal, &PlayerMoveInput
 }
 void pollKeys() {
     bool down = (GetAsyncKeyState(VK_F9) & 0x8000) != 0;
+    if (down != f9Down) log("research L-40 F9 {}", down ? "down" : "up");
     if (down && !f9Down) {
         dumpCallers(true);
         forceSneak = !forceSneak.load();
@@ -90,8 +95,11 @@ struct Sample {
     int fov = 0, modifier = 0;
     bool operator==(Sample const&) const = default;
 };
-Sample previous;
-Clock::time_point lastSample = Clock::now() - std::chrono::hours(1);
+// getFov runs twice a frame (world with variable FOV, hand without), so each
+// kind keeps its own previous sample; the total is capped.
+Sample previous[2];
+Clock::time_point lastSample[2]{Clock::now() - std::chrono::hours(1), Clock::now() - std::chrono::hours(1)};
+unsigned sampleLines = 0;
 void sample(LevelRendererPlayer& renderer, bool variable, float fov) {
     auto& client = static_cast<IClientInstance&>(renderer.mClientInstance);
     auto* player = client.getLocalPlayer();
@@ -106,9 +114,12 @@ void sample(LevelRendererPlayer& renderer, bool variable, float fov) {
     now.zoom = Zoom::instance().sensitivity(*player) != 1.f;
     now.fov = static_cast<int>(std::lround(fov * 10));
     now.modifier = static_cast<int>(std::lround(player->getFieldOfViewModifier() * 1000));
-    if (now == previous && Clock::now() - lastSample < std::chrono::seconds(10)) return;
-    previous = now;
-    lastSample = Clock::now();
+    auto kind = variable ? 1 : 0;
+    if (now == previous[kind] && Clock::now() - lastSample[kind] < std::chrono::seconds(10)) return;
+    if (sampleLines >= 3000) return;
+    ++sampleLines;
+    previous[kind] = now;
+    lastSample[kind] = Clock::now();
     Vec3 const& camera = renderer.mCameraPos;
     log("research L-37/L-44 culler={} forceCulling={} spectator={} detached={} camera={:.1f},{:.1f},{:.1f} "
         "variableFov={} fov={:.1f} fovModifier={:.3f} sprinting={} zoom={}",
