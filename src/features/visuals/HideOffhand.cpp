@@ -34,6 +34,22 @@ LL_TYPE_INSTANCE_HOOK(OffhandVisibility, ll::memory::HookPriority::Normal, ItemI
     // Never change equipped stacks, item use, or renderer-owned cached items.
     origin(context, player, flags);
 }
+// L-14: a shield bypasses renderOffhandItem. The 2026-09-27 trace showed it
+// reaching renderItem with WorldPass|InHand and renderingMainHand=false while
+// the totem never does, so skip that world-anchored offhand render as well.
+// The main hand (renderingMainHand=true) and other passes are never skipped.
+LL_TYPE_INSTANCE_HOOK(OffhandWorldItem, ll::memory::HookPriority::Normal, ItemInHandRenderer,
+    &ItemInHandRenderer::renderItem, void, BaseActorRenderContext& context, Actor& entity,
+    ItemStack const& item, bool posAndRotSetByJSON, ItemContextFlags flags, bool useMatrixAsIs,
+    bool renderingMainHand) {
+    auto& runtime = Runtime::instance();
+    bool worldOnly = (static_cast<unsigned>(flags) & static_cast<unsigned>(ItemContextFlags::WorldPass)) != 0
+        && (static_cast<unsigned>(flags)
+            & (static_cast<unsigned>(ItemContextFlags::FirstPersonPass)
+                | static_cast<unsigned>(ItemContextFlags::UIPass))) == 0;
+    if (!renderingMainHand && worldOnly && runtime.enabled() && runtime.preferences().visuals.hideOffhand) return;
+    origin(context, entity, item, posAndRotSetByJSON, flags, useMatrixAsIs, renderingMainHand);
+}
 #ifdef LAMIUM_RESEARCH_TRACE
 // L-14: which ItemInHandRenderer call draws the shield while Hide Offhand is
 // on? Each (call site, flags, main-hand) combination is logged once, so the
@@ -73,6 +89,10 @@ void start() {
     if (installed) return;
     installed = OffhandVisibility::hook(true) == 0;
     if (!installed) throw std::runtime_error("Could not install offhand visibility hook");
+    if (OffhandWorldItem::hook(true) != 0) {
+        stop();
+        throw std::runtime_error("Could not install offhand world-item hook");
+    }
 #ifdef LAMIUM_RESEARCH_TRACE
     for (auto& hook : traceHooks)
         if (hook.install(true) != 0) throw std::runtime_error("Could not install offhand trace hook");
@@ -82,6 +102,7 @@ void stop() {
 #ifdef LAMIUM_RESEARCH_TRACE
     for (auto it = std::rbegin(traceHooks); it != std::rend(traceHooks); ++it) it->remove(true);
 #endif
+    OffhandWorldItem::unhook(true);
     if (installed && OffhandVisibility::unhook(true)) installed = false;
 }
 }

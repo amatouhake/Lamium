@@ -104,6 +104,24 @@ README's known issues. Reproduced again 2026-09-26 (allowed -> forbidden ->
 allowed: the second allowed block does not start); the first trace run lost
 its log before this step, so the call sequence is still to be recorded.
 
+### L-17 Hand Restock does not replenish
+Kind: Research.
+Consumption is detected, but the transfer through the HUD fails
+(`handlePlaceAmount` returns false). See HAND-RESTOCK.md and VALIDATION.md.
+2026-09-27 trace: the HUD and screen controllers report the same transfer
+context (`closed=false client=true simulation=false`), so the simulation flag
+is not the differentiator; place still returns false with no request. The
+trace build now probes `handleTakeAmount` once under the same tracked token
+(`replenishment-take-submitted`). Offhand totem consumption fires no
+use/use-on/complete callback (passive damage path), so offhand restock needs
+a separate observer. Desired scope also includes **offhand auto-restock when
+a safe vanilla-backed path exists**, especially replacing a consumed Totem of
+Undying from inventory. Treat offhand consumption/slot mapping as a separate
+runtime path: do not assume the main-hand use observer or HUD indices apply,
+and do not synthesize stacks or forge inventory packets. Main-hand success is
+not required to prove feasibility, but each path needs independent runtime
+validation.
+
 ### L-37 FreeCamera cannot see caves from underground
 Kind: Research. Reported by a user 2026-09-26.
 Flying FreeCamera into the ground does not show caves the way spectator mode
@@ -141,21 +159,12 @@ maintainer's answer).
 ### L-14 Hidden offhand still shows a shield
 Kind: Research.
 With Hide Offhand on, totems disappear but a shield is drawn slightly lower.
-The shield likely goes through a path other than
-`ItemInHandRenderer::renderOffhandItem` (blocking pose or a shield-specific
-renderer). Needs a trace build to find which call draws it.
-
-
-### L-17 Hand Restock does not replenish
-Kind: Research.
-Consumption is detected, but the transfer through the HUD fails
-(`handlePlaceAmount` returns false). See HAND-RESTOCK.md and VALIDATION.md.
-Desired scope also includes **offhand auto-restock when a safe vanilla-backed
-path exists**, especially replacing a consumed Totem of Undying from inventory.
-Treat offhand consumption/slot mapping as a separate runtime path: do not assume
-the main-hand use observer or HUD indices apply, and do not synthesize stacks or
-forge inventory packets. Main-hand success is not required to prove feasibility,
-but each path needs independent runtime validation.
+2026-09-27 trace: the shield reaches `ItemInHandRenderer::renderItem` with
+WorldPass|InHand and renderingMainHand=false (totem never does), bypassing
+the `renderOffhandItem` skip. The fix skips that world-anchored
+offhand render too (main hand and other passes untouched). Awaiting the
+in-game check: shield hidden (held and blocking), totem still hidden,
+main hand and third-person/paper-doll views unchanged.
 
 
 ---

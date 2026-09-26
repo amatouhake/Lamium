@@ -215,6 +215,16 @@ void tick() noexcept {
         bool success = controller->handlePlaceAmount(SlotData{collection,op->plan->source},
             op->plan->expectedSource.count,SlotData{collection,op->plan->destination});
         trace("replenishment-submitted",success);
+#ifdef LAMIUM_RESTOCK_TRACE
+        // L-17 probe: place fails on the HUD controller while the same base
+        // class serves screen transfers. Try the take entry once under the
+        // same tracked token; the ack check below still decides completion.
+        if (!success) {
+            success = controller->handleTakeAmount(SlotData{collection,op->plan->destination},
+                op->plan->expectedSource.count,SlotData{collection,op->plan->source});
+            trace("replenishment-take-submitted",success);
+        }
+#endif
         if (pending != op) return; // Vanilla may synchronously leave the screen/world.
         game::endTransfer(*op->token);
         if (!success) cancel();
