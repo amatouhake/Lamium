@@ -26,7 +26,8 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins.
 
-1. **Fix bugs:** the bug research L-14 and L-17 (L-37 is proposed to be parked).
+1. **Fix bugs:** L-17 (hotbar reserve done; inventory refill proposed to be
+   parked) and L-37 (proposed to be parked).
 2. **Camera requests from users:** L-39 (Design).
 3. **Restriction redesign:** L-15 (Design).
 4. **Next features:** L-41 and L-42 (Design).
@@ -164,6 +165,12 @@ maintainer's answer).
 
 ### L-14 Hidden offhand still shows a shield
 Kind: Research.
+Status: done (verified in game 2026-09-27, DLL ce07ac91). The shield is an
+attachable drawn by `DataDrivenModel::renderAttachable`, not by the
+item-in-hand renderer (`renderOffhandItem` was not called at all with a
+shield). Skipping that draw for the local player's `OffhandItem` slot in
+first person hides it; third person and blocking still work. The
+`shouldRenderAttachableOnActor` predicate is never consulted here. History:
 With Hide Offhand on, totems disappear but a shield is drawn slightly lower.
 2026-09-27 trace: the shield reaches `ItemInHandRenderer::renderItem` with
 WorldPass|InHand and renderingMainHand=false (totem never does), bypassing
