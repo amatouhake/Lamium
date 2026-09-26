@@ -79,6 +79,8 @@ The repository is the source of truth for development:
 - [Validation](docs/VALIDATION.md) separates compiled/tested behavior from
   behavior actually checked in Minecraft.
 - [Agent guide](AGENTS.md) is the working manual for coding agents.
+- [Provenance](docs/PROVENANCE.md) separates dependencies, incorporated source
+  and reference-only projects.
 
 Inventory sorting uses ordinary game operations, waits for matching responses
 between operations and revalidates the affected region before continuing.

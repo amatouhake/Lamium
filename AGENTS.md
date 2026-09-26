@@ -106,6 +106,8 @@ Rules the code already follows; keep them:
   called from `main` in `tests/CameraTests.cpp`.
 - Do not copy code, strings or assets from other mods (Litematica, MiniHUD,
   Tweakeroo, Flarial, LeviSchematic...). Behavior may be referenced; code may not.
+  [docs/PROVENANCE.md](docs/PROVENANCE.md) lists which projects are reference
+  only and what to record before any outside code is incorporated.
 
 ## Git
 
