@@ -1,7 +1,13 @@
 #include "features/visuals/HideOffhand.h"
 #include "app/Runtime.h"
 #include "ll/api/memory/Hook.h"
+#include "ll/api/service/TargetedBedrock.h"
+#include "mc/client/game/ClientInstance.h"
+#include "mc/client/player/LocalPlayer.h"
+#include "mc/world/actor/Actor.h"
+#include "mc/world/item/ItemStack.h"
 #include "mc/client/renderer/game/ItemInHandRenderer.h"
+#include <array>
 #include <stdexcept>
 #ifdef LAMIUM_RESEARCH_TRACE
 #include "mc/common/Brightness.h"
@@ -52,6 +58,56 @@ LL_TYPE_INSTANCE_HOOK(OffhandWorldItem, ll::memory::HookPriority::Normal, ItemIn
                 | static_cast<unsigned>(ItemContextFlags::UIPass))) == 0;
     if (!renderingMainHand && worldOnly && runtime.enabled() && runtime.preferences().visuals.hideOffhand) return;
     origin(context, entity, item, posAndRotSetByJSON, flags, useMatrixAsIs, renderingMainHand);
+}
+bool hideOn() noexcept {
+    try { return Runtime::instance().enabled() && Runtime::instance().preferences().visuals.hideOffhand; }
+    catch (...) { return false; }
+}
+// L-14: 3D-model items (shield) reach renderObject, which carries neither the
+// item nor the hand. Map each frame's render calls back to their items in
+// getRenderCallAtFrame, then skip the offhand one. Entries are rebuilt on
+// every renderFirstPerson entry; a call shared by both hands is never skipped.
+std::array<std::pair<ItemRenderCall const*, bool>, 4> frameCalls{};
+std::size_t frameCallCount = 0;
+bool isOffhandStack(ItemStack const& item) {
+    auto client = ll::service::getClientInstance();
+    auto* player = client ? client->getLocalPlayer() : nullptr;
+    if (!player || item.isNull()) return false;
+    auto const& offhand = player->getOffhandSlot();
+    return !offhand.isNull() && item.matchesItem(offhand);
+}
+LL_TYPE_INSTANCE_HOOK(OffhandFrameReset, ll::memory::HookPriority::Normal, ItemInHandRenderer,
+    &ItemInHandRenderer::renderFirstPerson, void, BaseActorRenderContext& context, Matrix const& prevProj,
+    ItemContextFlags flags) {
+    frameCallCount = 0;
+    origin(context, prevProj, flags);
+}
+LL_TYPE_INSTANCE_HOOK(OffhandCallMap, ll::memory::HookPriority::Normal, ItemInHandRenderer,
+    &ItemInHandRenderer::getRenderCallAtFrame, ItemRenderCall const&, BaseActorRenderContext& context,
+    ItemStack const& item, int frame) {
+    auto const& call = origin(context, item, frame);
+    try {
+        if (!hideOn()) return call;
+        bool offhand = isOffhandStack(item);
+        for (std::size_t i = 0; i < frameCallCount; ++i)
+            if (frameCalls[i].first == &call) {
+                frameCalls[i].second = frameCalls[i].second && offhand;
+                return call;
+            }
+        if (frameCallCount < frameCalls.size()) frameCalls[frameCallCount++] = {&call, offhand};
+    } catch (...) {}
+    return call;
+}
+LL_TYPE_INSTANCE_HOOK(OffhandRenderObject, ll::memory::HookPriority::Normal, ItemInHandRenderer,
+    &ItemInHandRenderer::renderObject, void, BaseActorRenderContext& context,
+    ItemRenderCall const& renderObject, dragon::RenderMetadata const& renderMetadata, ItemContextFlags flags) {
+    bool firstPerson = (static_cast<unsigned>(flags) & static_cast<unsigned>(ItemContextFlags::FirstPersonPass)) != 0;
+    bool otherPass = (static_cast<unsigned>(flags) & (static_cast<unsigned>(ItemContextFlags::WorldPass)
+        | static_cast<unsigned>(ItemContextFlags::UIPass))) != 0;
+    if (firstPerson && !otherPass && hideOn())
+        for (std::size_t i = 0; i < frameCallCount; ++i)
+            if (frameCalls[i].first == &renderObject && frameCalls[i].second) return;
+    origin(context, renderObject, renderMetadata, flags);
 }
 #ifdef LAMIUM_RESEARCH_TRACE
 // L-14: which ItemInHandRenderer call draws the shield while Hide Offhand is
@@ -121,14 +177,18 @@ TraceHook traceHooks[] = {{OffhandFirstPersonTrace::hook, OffhandFirstPersonTrac
     {OffhandTessellateTrace::hook, OffhandTessellateTrace::unhook}};
 #endif
 }
+struct Hook { int (*install)(bool); bool (*remove)(bool); };
+Hook hooks[] = {{OffhandVisibility::hook, OffhandVisibility::unhook}, {OffhandWorldItem::hook, OffhandWorldItem::unhook},
+    {OffhandFrameReset::hook, OffhandFrameReset::unhook}, {OffhandCallMap::hook, OffhandCallMap::unhook},
+    {OffhandRenderObject::hook, OffhandRenderObject::unhook}};
 void start() {
     if (installed) return;
-    installed = OffhandVisibility::hook(true) == 0;
-    if (!installed) throw std::runtime_error("Could not install offhand visibility hook");
-    if (OffhandWorldItem::hook(true) != 0) {
-        stop();
-        throw std::runtime_error("Could not install offhand world-item hook");
-    }
+    for (auto& hook : hooks)
+        if (hook.install(true) != 0) {
+            stop();
+            throw std::runtime_error("Could not install offhand visibility hook");
+        }
+    installed = true;
 #ifdef LAMIUM_RESEARCH_TRACE
     for (auto& hook : traceHooks)
         if (hook.install(true) != 0) throw std::runtime_error("Could not install offhand trace hook");
@@ -138,7 +198,7 @@ void stop() {
 #ifdef LAMIUM_RESEARCH_TRACE
     for (auto it = std::rbegin(traceHooks); it != std::rend(traceHooks); ++it) it->remove(true);
 #endif
-    OffhandWorldItem::unhook(true);
-    if (installed && OffhandVisibility::unhook(true)) installed = false;
+    for (auto it = std::rbegin(hooks); it != std::rend(hooks); ++it) it->remove(true);
+    installed = false;
 }
 }
