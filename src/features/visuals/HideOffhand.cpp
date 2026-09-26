@@ -63,6 +63,19 @@ bool hideOn() noexcept {
     try { return Runtime::instance().enabled() && Runtime::instance().preferences().visuals.hideOffhand; }
     catch (...) { return false; }
 }
+#ifdef LAMIUM_RESEARCH_TRACE
+#include <atomic>
+// L-14: bounded per-decision log (the combo-once log cannot show dynamics).
+void traceDecision(char const* what, int a, int b) noexcept {
+    try {
+        static std::atomic<unsigned> budget{};
+        if (budget.fetch_add(1) >= 24) return;
+        Runtime::instance().self().getLogger().info("research L-14 decision {} a={} b={}", what, a, b);
+    } catch (...) {}
+}
+#else
+inline void traceDecision(char const*, int, int) noexcept {}
+#endif
 // L-14: 3D-model items (shield) reach renderObject, which carries neither the
 // item nor the hand. Map each frame's render calls back to their items in
 // getRenderCallAtFrame, then skip the offhand one. Entries are rebuilt on
@@ -89,6 +102,7 @@ LL_TYPE_INSTANCE_HOOK(OffhandCallMap, ll::memory::HookPriority::Normal, ItemInHa
     try {
         if (!hideOn()) return call;
         bool offhand = isOffhandStack(item);
+        traceDecision("callmap", offhand ? 1 : 0, static_cast<int>(frameCallCount));
         for (std::size_t i = 0; i < frameCallCount; ++i)
             if (frameCalls[i].first == &call) {
                 frameCalls[i].second = frameCalls[i].second && offhand;
@@ -104,9 +118,17 @@ LL_TYPE_INSTANCE_HOOK(OffhandRenderObject, ll::memory::HookPriority::Normal, Ite
     bool firstPerson = (static_cast<unsigned>(flags) & static_cast<unsigned>(ItemContextFlags::FirstPersonPass)) != 0;
     bool otherPass = (static_cast<unsigned>(flags) & (static_cast<unsigned>(ItemContextFlags::WorldPass)
         | static_cast<unsigned>(ItemContextFlags::UIPass))) != 0;
-    if (firstPerson && !otherPass && hideOn())
+    if (firstPerson && !otherPass && hideOn()) {
+        bool known = false;
         for (std::size_t i = 0; i < frameCallCount; ++i)
-            if (frameCalls[i].first == &renderObject && frameCalls[i].second) return;
+            if (frameCalls[i].first == &renderObject) {
+                known = true;
+                traceDecision(frameCalls[i].second ? "robject-skip" : "robject-pass-main", 0, 0);
+                if (frameCalls[i].second) return;
+                break;
+            }
+        if (!known) traceDecision("robject-pass-unknown", 0, static_cast<int>(frameCallCount));
+    }
     origin(context, renderObject, renderMetadata, flags);
 }
 #ifdef LAMIUM_RESEARCH_TRACE
