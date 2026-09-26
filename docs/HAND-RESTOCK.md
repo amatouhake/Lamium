@@ -65,8 +65,9 @@ reuse a closed screen controller. Until a supported gameplay transfer path is
 established, keep this feature experimental and continue other roadmap work.
 2026-09-27 trace: both controllers report `closed=false client=true
 simulation=false`, so the simulation flag does not explain the failure; place
-still returns false with no request. The trace build now probes
-`handleTakeAmount` once under the same tracked token. Totem consumption in the
+still returns false with no request. 2026-09-27 check: `handleTakeAmount`
+also returns false under the same token, so HUD-controller transfers through
+`ContainerManagerController` look unsupported without a screen. Totem consumption in the
 offhand fires no GameMode use/use-on/complete callback (passive damage path),
 so offhand restock needs a separate consumption observer.
 

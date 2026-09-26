@@ -4,6 +4,7 @@
 #include "mc/client/renderer/game/ItemInHandRenderer.h"
 #include <stdexcept>
 #ifdef LAMIUM_RESEARCH_TRACE
+#include "mc/common/Brightness.h"
 #include <atomic>
 #include <utility>
 #include <vector>
@@ -12,6 +13,9 @@
 namespace lamium::visuals {
 namespace {
 bool installed = false;
+#ifdef LAMIUM_RESEARCH_TRACE
+void logRenderSite(int site, ItemContextFlags flags, int mainHand) noexcept;
+#endif
 LL_TYPE_INSTANCE_HOOK(OffhandVisibility, ll::memory::HookPriority::Normal, ItemInHandRenderer,
     &ItemInHandRenderer::renderOffhandItem, void, BaseActorRenderContext& context,
     Player& player, ItemContextFlags flags) {
@@ -21,16 +25,15 @@ LL_TYPE_INSTANCE_HOOK(OffhandVisibility, ll::memory::HookPriority::Normal, ItemI
         | static_cast<unsigned>(ItemContextFlags::UIPass))) != 0;
     if (firstPerson && !otherPass && runtime.enabled() && runtime.preferences().visuals.hideOffhand) {
 #ifdef LAMIUM_RESEARCH_TRACE
-        // L-14: a shield stays visible, so it must bypass this call. Log the
-        // skip once; the FirstPerson/Item/ItemNew hooks below show the real path.
-        static bool skipLogged = false;
-        if (!skipLogged) {
-            skipLogged = true;
-            try { runtime.self().getLogger().info("research L-14 offhand-render skipped"); } catch (...) {}
-        }
+        logRenderSite(0, flags, -1);
 #endif
         return;
     }
+#ifdef LAMIUM_RESEARCH_TRACE
+    // L-14 follow-up: log every renderOffhandItem call that is NOT skipped,
+    // to catch a shield drawn through this call with other flags.
+    logRenderSite(4, flags, -1);
+#endif
     // Never change equipped stacks, item use, or renderer-owned cached items.
     origin(context, player, flags);
 }
@@ -80,9 +83,19 @@ LL_TYPE_INSTANCE_HOOK(OffhandItemTrace, ll::memory::HookPriority::Low, ItemInHan
     logRenderSite(2, flags, renderingMainHand ? 1 : 0);
     origin(context, entity, item, posAndRotSetByJSON, flags, useMatrixAsIs, renderingMainHand);
 }
+LL_TYPE_INSTANCE_HOOK(OffhandItemNewTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
+    &ItemInHandRenderer::renderItemNew, void, BaseActorRenderContext& context, Actor& entity,
+    ItemStack const& item, ItemContextFlags flags, Brightness lightEmission) {
+    // L-14 follow-up: the blocking shield may use the new item pipeline.
+    try {
+        auto& runtime = Runtime::instance();
+        if (runtime.enabled() && runtime.preferences().visuals.hideOffhand) logRenderSite(3, flags, -1);
+    } catch (...) {}
+    origin(context, entity, item, flags, lightEmission);
+}
 struct TraceHook { int (*install)(bool); bool (*remove)(bool); };
 TraceHook traceHooks[] = {{OffhandFirstPersonTrace::hook, OffhandFirstPersonTrace::unhook},
-    {OffhandItemTrace::hook, OffhandItemTrace::unhook}};
+    {OffhandItemTrace::hook, OffhandItemTrace::unhook}, {OffhandItemNewTrace::hook, OffhandItemNewTrace::unhook}};
 #endif
 }
 void start() {

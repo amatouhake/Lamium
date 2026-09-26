@@ -112,7 +112,12 @@ Consumption is detected, but the transfer through the HUD fails
 context (`closed=false client=true simulation=false`), so the simulation flag
 is not the differentiator; place still returns false with no request. The
 trace build now probes `handleTakeAmount` once under the same tracked token
-(`replenishment-take-submitted`). Offhand totem consumption fires no
+(`replenishment-take-submitted`). 2026-09-27 check: take also returns false,
+so HUD-controller transfers through this class look unsupported. Open:
+fall back to auto-selecting a compatible hotbar reserve via `selectSlot`
+(proven API, but a spec change: selection switch instead of replenish, and
+main-inventory reserves stay uncovered), or park the transfer approach.
+Offhand totem consumption fires no
 use/use-on/complete callback (passive damage path), so offhand restock needs
 a separate observer. Desired scope also includes **offhand auto-restock when
 a safe vanilla-backed path exists**, especially replacing a consumed Totem of
@@ -162,9 +167,10 @@ With Hide Offhand on, totems disappear but a shield is drawn slightly lower.
 2026-09-27 trace: the shield reaches `ItemInHandRenderer::renderItem` with
 WorldPass|InHand and renderingMainHand=false (totem never does), bypassing
 the `renderOffhandItem` skip. The fix skips that world-anchored
-offhand render too (main hand and other passes untouched). Awaiting the
-in-game check: shield hidden (held and blocking), totem still hidden,
-main hand and third-person/paper-doll views unchanged.
+offhand render too (main hand and other passes untouched). 2026-09-27 check:
+the site=2/flags=34/mainhand=0 combo no longer logs (the skip works) but the
+shield is still visible, so a SECOND path draws it. The trace now logs every
+`renderOffhandItem` call with its flags plus `renderItemNew`, to catch it.
 
 
 ---
