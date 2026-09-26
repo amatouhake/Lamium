@@ -13,6 +13,9 @@
 #include "mc/client/gui/screens/ScreenController.h"
 #include "mc/client/gui/screens/ScreenView.h"
 #include "mc/client/gui/screens/controllers/ContainerScreenController.h"
+#ifdef LAMIUM_RESTOCK_TRACE
+#include "features/inventory/game/RestockTrace.h"
+#endif
 
 namespace lamium::inventory::game {
 
@@ -109,6 +112,14 @@ void ScreenTracker::onAfterUIRender(ll::event::AfterUIRenderEvent& event) {
         SortSession::cancel("container screen changed");
         mCurrent     = controller;
         mCurrentView = &event.screenView();
+#ifdef LAMIUM_RESTOCK_TRACE
+        // L-17: record the working screen path's transfer context for
+        // comparison with the HUD controller. Read-only.
+        try {
+            auto screen = std::static_pointer_cast<ContainerScreenController>(controller);
+            if (auto manager = screen->mContainerManagerController) restockTrace::inspectScreenController(*manager);
+        } catch (...) {}
+#endif
         // Do not erase text focus here: a search box may already have gained
         // focus before the first rendered frame. onLeave handles old views.
     }

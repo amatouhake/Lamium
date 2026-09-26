@@ -3,6 +3,11 @@
 #include "ll/api/memory/Hook.h"
 #include "mc/client/renderer/game/ItemInHandRenderer.h"
 #include <stdexcept>
+#ifdef LAMIUM_RESEARCH_TRACE
+#include <atomic>
+#include <utility>
+#include <vector>
+#endif
 
 namespace lamium::visuals {
 namespace {
@@ -14,17 +19,69 @@ LL_TYPE_INSTANCE_HOOK(OffhandVisibility, ll::memory::HookPriority::Normal, ItemI
     bool firstPerson = (static_cast<unsigned>(flags) & static_cast<unsigned>(ItemContextFlags::FirstPersonPass)) != 0;
     bool otherPass = (static_cast<unsigned>(flags) & (static_cast<unsigned>(ItemContextFlags::WorldPass)
         | static_cast<unsigned>(ItemContextFlags::UIPass))) != 0;
-    if (firstPerson && !otherPass && runtime.enabled() && runtime.preferences().visuals.hideOffhand) return;
+    if (firstPerson && !otherPass && runtime.enabled() && runtime.preferences().visuals.hideOffhand) {
+#ifdef LAMIUM_RESEARCH_TRACE
+        // L-14: a shield stays visible, so it must bypass this call. Log the
+        // skip once; the FirstPerson/Item/ItemNew hooks below show the real path.
+        static bool skipLogged = false;
+        if (!skipLogged) {
+            skipLogged = true;
+            try { runtime.self().getLogger().info("research L-14 offhand-render skipped"); } catch (...) {}
+        }
+#endif
+        return;
+    }
     // Never change equipped stacks, item use, or renderer-owned cached items.
     origin(context, player, flags);
 }
+#ifdef LAMIUM_RESEARCH_TRACE
+// L-14: which ItemInHandRenderer call draws the shield while Hide Offhand is
+// on? Each (call site, flags, main-hand) combination is logged once, so the
+// user compares the totem run against the blocking-shield run. Read-only.
+void logRenderSite(int site, ItemContextFlags flags, int mainHand) noexcept {
+    try {
+        auto& runtime = Runtime::instance();
+        if (!runtime.enabled() || !runtime.preferences().visuals.hideOffhand) return;
+        static std::vector<std::tuple<int, unsigned, int>> seen;
+        auto key = std::make_tuple(site, static_cast<unsigned>(flags), mainHand);
+        for (auto const& entry : seen) if (entry == key) return;
+        if (seen.size() >= 16) return;
+        seen.push_back(key);
+        runtime.self().getLogger().info(
+            "research L-14 render site={} flags={} mainhand={}", site, static_cast<unsigned>(flags), mainHand);
+    } catch (...) {}
+}
+LL_TYPE_INSTANCE_HOOK(OffhandFirstPersonTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
+    &ItemInHandRenderer::renderFirstPerson, void, BaseActorRenderContext& context, Matrix const& prevProj,
+    ItemContextFlags flags) {
+    logRenderSite(1, flags, -1);
+    origin(context, prevProj, flags);
+}
+LL_TYPE_INSTANCE_HOOK(OffhandItemTrace, ll::memory::HookPriority::Low, ItemInHandRenderer,
+    &ItemInHandRenderer::renderItem, void, BaseActorRenderContext& context, Actor& entity,
+    ItemStack const& item, bool posAndRotSetByJSON, ItemContextFlags flags, bool useMatrixAsIs,
+    bool renderingMainHand) {
+    logRenderSite(2, flags, renderingMainHand ? 1 : 0);
+    origin(context, entity, item, posAndRotSetByJSON, flags, useMatrixAsIs, renderingMainHand);
+}
+struct TraceHook { int (*install)(bool); bool (*remove)(bool); };
+TraceHook traceHooks[] = {{OffhandFirstPersonTrace::hook, OffhandFirstPersonTrace::unhook},
+    {OffhandItemTrace::hook, OffhandItemTrace::unhook}};
+#endif
 }
 void start() {
     if (installed) return;
     installed = OffhandVisibility::hook(true) == 0;
     if (!installed) throw std::runtime_error("Could not install offhand visibility hook");
+#ifdef LAMIUM_RESEARCH_TRACE
+    for (auto& hook : traceHooks)
+        if (hook.install(true) != 0) throw std::runtime_error("Could not install offhand trace hook");
+#endif
 }
 void stop() {
+#ifdef LAMIUM_RESEARCH_TRACE
+    for (auto it = std::rbegin(traceHooks); it != std::rend(traceHooks); ++it) it->remove(true);
+#endif
     if (installed && OffhandVisibility::unhook(true)) installed = false;
 }
 }

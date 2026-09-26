@@ -679,7 +679,8 @@ https://github.com/maruohon/tweakeroo/blob/ornithe/1.12.2/src/main/java/tweakero
 
 Diagnostics: `xmake f ... --research_trace=y` logs lines prefixed
 "research L-3x/L-4x" for L-36, L-37, L-40 and L-44 (see `src/features/research/`
-and the L-36 block in `BreakingRestriction.cpp`).
+and the L-36 block in `BreakingRestriction.cpp`), plus `research L-14` render
+call-site lines for the Hide Offhand shield path (see `HideOffhand.cpp`).
 
 ### L-40 Fake Sneak (edge protection without sneaking) — high priority
 Kind: Research. Notion idea, promoted as high priority 2026-09-26.

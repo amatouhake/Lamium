@@ -56,10 +56,29 @@ LL_TYPE_INSTANCE_HOOK(CreateHud, ll::memory::HookPriority::Normal, ClientInstanc
     inspect(result);
     return result;
 }
+// L-17: Sort's screen-backed transfers succeed while the HUD controller's
+// handlePlaceAmount returns false. Compare the two controllers' closed,
+// client-side and simulation flags without touching transfers.
+void inspectContext(char const* side, ContainerManagerController& controller, std::atomic<unsigned>& budget) noexcept {
+    try {
+        if (budget.fetch_add(1) >= 16) return;
+        auto model = controller.mContainerManagerModel.lock();
+        Runtime::instance().self().getLogger().info("Restock transfer context: side={} closed={} client={} simulation={}",
+            side, bool(controller.mContainersClosed), bool(model && model->isClientSide()),
+            bool(controller._isContainerSimulationEnabled()));
+    } catch (...) {} // Read-only diagnostics must never alter vanilla behavior.
+}
+std::atomic<unsigned> useSamples{}, screenSamples{};
+} // namespace
+void inspectUseController(ContainerManagerController& controller) noexcept { inspectContext("hud", controller, useSamples); }
+void inspectScreenController(ContainerManagerController& controller) noexcept {
+    inspectContext("screen", controller, screenSamples);
 }
 void start() {
     if (installed) return;
     samples = 0;
+    useSamples = 0;
+    screenSamples = 0;
     installed = CreateHud::hook(true) == 0;
     if (!installed) throw std::runtime_error("Could not install restock HUD diagnostics");
     Runtime::instance().self().getLogger().warn("Restock HUD diagnostics enabled: first 8 client controllers only; no transfers");
@@ -69,5 +88,10 @@ void stop() {
 }
 }
 #else
-namespace lamium::inventory::game::restockTrace { void start() {} void stop() {} }
+namespace lamium::inventory::game::restockTrace {
+void start() {}
+void stop() {}
+void inspectUseController(ContainerManagerController&) noexcept {}
+void inspectScreenController(ContainerManagerController&) noexcept {}
+}
 #endif

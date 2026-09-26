@@ -27,6 +27,7 @@
 #include <chrono>
 #include "mc/world/inventory/transaction/ItemUseInventoryTransaction.h"
 #ifdef LAMIUM_RESTOCK_TRACE
+#include "features/inventory/game/RestockTrace.h"
 #include "mc/client/network/LegacyClientNetworkHandler.h"
 #include "mc/network/packet/InventorySlotPacket.h"
 #include "mc/network/packet/InventoryContentPacket.h"
@@ -138,6 +139,9 @@ std::shared_ptr<Operation> beginUse(Player& actor, HandSlot hand) noexcept {
         if (!op->token) { trace("capture-unavailable"); return {}; }
         pending = op;
         trace("capture-started");
+#ifdef LAMIUM_RESTOCK_TRACE
+        game::restockTrace::inspectUseController(*controller);
+#endif
         return op;
     } catch (...) { failure(); return {}; }
 }
@@ -226,7 +230,7 @@ LL_TYPE_INSTANCE_HOOK(CaptureHud, ll::memory::HookPriority::Normal, ClientInstan
 }
 LL_TYPE_INSTANCE_HOOK(Use, ll::memory::HookPriority::Normal, GameMode,
     &GameMode::$useItem, bool, ItemStack& item, HandSlot hand) {
-    trace("use-item");
+    trace("use-item", static_cast<int>(hand));
     auto op = beginUse(mPlayer,hand);
     try { bool result = origin(item,hand); finishUse(op,result); return result; }
     catch (...) { if (pending == op) cancel(); throw; }
@@ -234,7 +238,7 @@ LL_TYPE_INSTANCE_HOOK(Use, ll::memory::HookPriority::Normal, GameMode,
 LL_TYPE_INSTANCE_HOOK(UseOn, ll::memory::HookPriority::Normal, GameMode,
     &GameMode::$useItemOn, InteractionResult, ItemStack& item, BlockPos const& pos, uchar face,
     Vec3 const& hit, HandSlot hand, Block const* target, bool first) {
-    trace("use-item-on");
+    trace("use-item-on", static_cast<int>(hand));
     auto op = beginUse(mPlayer,hand);
     try { auto result = origin(item,pos,face,hit,hand,target,first); finishUse(op,result.mSuccess); return result; }
     catch (...) { if (pending == op) cancel(); throw; }

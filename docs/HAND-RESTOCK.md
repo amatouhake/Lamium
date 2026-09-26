@@ -71,6 +71,11 @@ use stages and complex sends, legacy slot/content updates after vanilla applies
 them, capture boundaries, new-request counts and response counts. It logs no
 item contents, request IDs, player identities or world identifiers. Legacy
 updates and response counts are observations, not correlated use acceptance.
+It also logs the HUD controller's transfer context at use time and the
+container screen controller's context when a screen opens (closed, client-side
+and simulation flags, `Restock transfer context`), to compare the failing HUD
+path with the working screen path. Use callbacks now record the hand value,
+so offhand (totem) consumption timing can be mapped separately.
 
 Local egg tests establish callback-before-depletion ordering, complex send
 ordering and successful depletion planning. They do not validate actual
