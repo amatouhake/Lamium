@@ -28,7 +28,7 @@ L-item wins.
 
 1. **Fix bugs:** L-27 (Design) and the bug research L-36, L-37, L-14 and
    L-17.
-2. **Camera requests from users:** L-39 and L-45 (Design).
+2. **Camera requests from users:** L-45 (Ready, awaiting check), L-39 (Design).
 3. **High-priority new work:** L-40 Fake Sneak (Research).
 4. **Restriction redesign:** L-15 (Design; its resume bug is L-36).
 5. **Next features:** L-41 and L-42 (Design).
@@ -62,7 +62,6 @@ summary.
   as an option?
 - L-39: should Freelook starting in third person be an option, and what is the
   default?
-- L-45: Zoom's lowest wheel magnification and how the magnification is shown.
 
 HUD (docs/demos/hud.html), the settings key and the shape model are decided;
 see DESIGN.md.
@@ -423,11 +422,11 @@ setting was removed; old settings files still load. Follow-up: L-45.
 
 ### L-43 Permanent Sprint
 Kind: Ready. Notion idea (Masa-style QoL), promoted 2026-09-26.
-Status: verified in game 2026-09-26 (DLL 766d6fd6). The maintainer did not
+Status: done (verified in game 2026-09-26, DLL 766d6fd6). The maintainer did not
 want menus to cancel it: since 73d8afe it pauses while a menu is open and
 only death, dimension change, world exit or disabling Lamium end it
-(awaiting re-check). Shares Permanent Sneak's raw-input hook; unbound by
-default.
+(re-checked 2026-09-26: resumes after closing the inventory). Shares
+Permanent Sneak's raw-input hook; unbound by default.
 Mirror Permanent Sneak: add `SprintDown` to a transient copy of the raw move
 input in the same `extractRawHIDInput` hook, with the same eligibility and
 cancellation (screens, settings, death, sleeping, riding, dimension change).
@@ -450,7 +449,9 @@ an option. The pose must not follow input while a screen owns input, and
 inventory interaction while detached stays a separate question (L-25).
 
 ### L-45 Zoom level feedback
-Kind: Design (small). Maintainer feedback on L-38, 2026-09-26.
+Kind: Ready (decided 2026-09-26, no mockup). Maintainer feedback on L-38.
+Status: implemented, awaiting the batched in-game check: wheel floor 2x,
+"×12.5" below the crosshair, "Show magnification" setting (default on).
 With the wheel able to go down to 1x, Zoom can be held with no visible effect,
 so it is unclear whether it is on. Also wanted: an option to show the current
 magnification. Open: raise the wheel's lower bound (for example 1.5x or 2x)

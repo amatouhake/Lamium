@@ -198,6 +198,10 @@ Contents:
   notch feels the same at 2x and at 40x. The shown magnification eases toward
   the target over a short time instead of jumping; turn sensitivity follows
   the shown magnification.
+- (Decided, BACKLOG L-45) The wheel stops at 2x (or at the configured
+  magnification when that is lower), so a held Zoom always visibly zooms.
+  While zooming, the magnification is shown below the crosshair as "×12.5";
+  a Zoom setting turns it off (default on). Adjust after seeing it in game.
 - (Proposed, BACKLOG L-39) Freelook can start in third person (rear view) and
   returns to the previous perspective on release. Whether this is an option
   and its default are still open.
