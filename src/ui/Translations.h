@@ -220,6 +220,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"column.key", "Key", "キー"},
     {"reset.all", "Reset all", "すべて初期化"},
     {"reset.keys", "Reset all keys", "キーを初期化"},
+    {"reset.section", "Reset category", "この分類を初期化"},
     {"reset.confirm", "Press again", "もう一度押す"},
     {"column.action", "Action", "操作"},
     {"settingsTitle", "Settings", "設定"},

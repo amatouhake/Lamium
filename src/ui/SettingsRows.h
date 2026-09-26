@@ -222,4 +222,15 @@ inline std::string actionName(std::string label) {
     if (label.starts_with(prefix)) label.erase(0, prefix.size());
     return label;
 }
+// Reset a settings category: every option owned by its features and the HUD
+// placement of their elements. Key bindings stay; Hotkeys has its own reset.
+inline void resetSection(Settings& value, std::string_view section) {
+    Settings const defaults{};
+    for (auto const& option : settings::options)
+        if (featureSection(option.feature) == section) settings::resetOption(value, option, defaults);
+    for (auto const& feature : features)
+        if (featureSection(feature.id) == section)
+            if (auto element = layoutElement(feature.id))
+                settings::hudElement(value, *element) = settings::hudElement(defaults, *element);
+}
 }

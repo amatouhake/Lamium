@@ -219,4 +219,14 @@ inline Option const* find(std::string_view id) {
     for (auto const& option : options) if (option.id == id) return &option;
     return nullptr;
 }
+// Set one option back to its value in `defaults` through its own accessors:
+// numbers are written, switches and choices are stepped until they match.
+inline void resetOption(Settings& value, Option const& option, Settings const& defaults) {
+    auto target = option.read(defaults);
+    if (auto const* number = std::get_if<float>(&target)) {
+        if (option.numeric) option.numeric->write(value, *number);
+        return;
+    }
+    for (int i = 0; i < 16 && option.read(value) != target; ++i) option.adjust(value, 1);
+}
 }

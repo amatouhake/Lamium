@@ -95,7 +95,7 @@ bool shapePicking = false, shapeDeleteArmed = false;
 // L-46: General resets every setting, Hotkeys resets key bindings. The
 // first press arms the button; the second applies. Shapes are per-world
 // data and are never touched.
-enum class ResetScope { None, All, Keys };
+enum class ResetScope { None, All, Section, Keys };
 bool resetArmed = false;
 int shapeListFirst = 0, shapeFieldFirst = 0, shapeFieldSelected = -1, shapeLayer = 0;
 shape::Reference shapeReference = shape::Reference::StandingBlock;
@@ -433,15 +433,16 @@ void moveSelection(int step) {
 }
 ResetScope resetScope() {
     if (hotkeysView()) return ResetScope::Keys;
-    if (categoryKey() == "section.interface" && query.value().find_first_not_of(' ') == std::string::npos)
-        return ResetScope::All;
-    return ResetScope::None;
+    if (query.value().find_first_not_of(' ') != std::string::npos) return ResetScope::None;
+    if (navIndex == 0) return ResetScope::All;
+    return categoryKey().empty() ? ResetScope::None : ResetScope::Section;
 }
 void pressReset(ResetScope scope) {
     if (!resetArmed) { resetArmed = true; return; }
     resetArmed = false;
     auto value = Runtime::instance().preferences();
     if (scope == ResetScope::Keys) value.bindings = {};
+    else if (scope == ResetScope::Section) resetSection(value, categoryKey());
     else value = Settings{};
     error = Runtime::instance().save(value) ? std::string{} : translated("saveError");
     rebuild(false);
@@ -1471,7 +1472,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (auto scope = capturing ? ResetScope::None : resetScope(); scope != ResetScope::None) {
         bool keys = scope == ResetScope::Keys;
         drawSmallButton(context,t.headActionX(keys),t.theadTop,SettingsTable::headActionWidth,11,
-            translated(resetArmed ? "reset.confirm" : keys ? "reset.keys" : "reset.all"),
+            translated(resetArmed ? "reset.confirm" : keys ? "reset.keys"
+                : scope == ResetScope::Section ? "reset.section" : "reset.all"),
             t.headAction(hover.x,hover.y,keys),
             resetArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,resetArmed ? Rgb{.54f,.23f,.2f} : palette::keyEdge,
             resetArmed ? palette::text : palette::dim);

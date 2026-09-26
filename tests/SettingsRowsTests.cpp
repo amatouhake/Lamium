@@ -57,6 +57,23 @@ void settingsRowsTests() {
     for (auto const& option : settings::options) if (!option.id.starts_with("hud.")) ++listed;
     check(options.size() == listed && actions.size() == input::actions.size(), "all settings and actions are reachable");
     check(layouts.size() == 5, "every HUD element is reachable from the settings list");
+    {
+        Settings changed;
+        changed.camera.zoom = false;
+        changed.camera.magnification = 20;
+        changed.camera.freelookToggle = true;
+        changed.hud.magnification.dy = 90;
+        changed.inventory.sorting = !Settings{}.inventory.sorting;
+        changed.bindings[static_cast<size_t>(input::Action::Zoom)] = input::Chord{};
+        ui::resetSection(changed, "section.camera");
+        Settings defaults;
+        check(changed.camera.zoom == defaults.camera.zoom && changed.camera.magnification == defaults.camera.magnification
+            && changed.camera.freelookToggle == defaults.camera.freelookToggle
+            && changed.hud.magnification.dy == defaults.hud.magnification.dy,
+            "a category reset restores its switches, numbers, choices and HUD placement");
+        check(changed.inventory.sorting != defaults.inventory.sorting && changed.bindings[static_cast<size_t>(input::Action::Zoom)].has_value(),
+            "a category reset leaves other categories and key bindings alone");
+    }
 
     // Collapsed: only headings and features; child counts remain visible.
     expanded.clear();
