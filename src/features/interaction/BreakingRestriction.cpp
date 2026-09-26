@@ -45,6 +45,9 @@ void traceBreak(char const* phase, Player& player, BlockPos const& pos, int allo
 #else
 void traceBreak(char const*, Player&, BlockPos const&, int, int) noexcept {}
 #endif
+// Set when a forbidden target aborted the session; the next allowed target
+// starts afresh (like a new click) so the server gets a start action again.
+bool restartPending = false;
 bool gameplayInput() {
     auto client = ll::service::getClientInstance();
     return client && !ui::ownsInput() && gameplayScreen(client->getScreenName());
@@ -52,6 +55,7 @@ bool gameplayInput() {
 LL_TYPE_INSTANCE_HOOK(StartBreak, ll::memory::HookPriority::Highest, GameMode,
     &GameMode::$startDestroyBlock, bool, BlockPos const& pos, uchar face, bool& destroyed) {
     if (!allows(mPlayer,pos)) { destroyed = false; traceBreak("start", mPlayer, pos, 0, 0); return false; }
+    restartPending = false;
     bool result = origin(pos,face,destroyed);
     traceBreak("start", mPlayer, pos, 1, result);
     return result;
@@ -68,9 +72,15 @@ LL_TYPE_INSTANCE_HOOK(ContinueBreak, ll::memory::HookPriority::Highest, GameMode
         traceBreak("continue", mPlayer, pos, 0, keep);
         // Abort the allowed block's progress through vanilla's own stop, or it
         // keeps cracking while the crosshair rests on the forbidden block.
-        if (keep && static_cast<float const&>(mDestroyProgress) > 0.f)
+        if (keep && static_cast<float const&>(mDestroyProgress) > 0.f) {
             stopDestroyBlock(static_cast<BlockPos const&>(mDestroyBlockPos));
+            restartPending = true;
+        }
         return keep;
+    }
+    if (restartPending) {
+        traceBreak("restart", mPlayer, pos, 1, -1);
+        return startDestroyBlock(pos, face, destroyed);
     }
     bool result = origin(pos,face,playerPos,destroyed);
     traceBreak("continue", mPlayer, pos, 1, result);
