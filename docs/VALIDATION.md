@@ -502,6 +502,16 @@ instance's Lamium folder, keeping its config. A brief in-game check on
 2026-09-26 (settings screen, preserved settings, everyday features) found no
 problems. It was not the full regression or a fresh install listed below.
 
+Batched in-game check on 2026-09-26 (research-trace build, DLL 766d6fd6, commit
+1a0d568): container previews no longer play the pickup animation and animated
+items still animate (L-35); Zoom reaches 50x smoothly in about 20 notches, stays
+controllable at 50x, returns to 1x, and the settings row goes to 50 with the
+wheel-step row gone (L-38); Permanent Sprint starts, shows its status line,
+stops on its key and was cancelled by opening the inventory, which has since
+been changed (L-43, re-check pending). An earlier build of the same batch
+crashed on world load because of a research-only culler hook; it was removed
+before this check.
+
 Current pre-release priorities are:
 
 - design and build the L-15 breaking/placement restriction redesign (L-32,

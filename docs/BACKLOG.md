@@ -26,12 +26,12 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins.
 
-1. **Fix bugs:** L-35 (Ready) first, then L-27 (Design) and the bug research
-   L-36, L-37, L-14 and L-17.
-2. **Camera requests from users:** L-38 (Ready), L-39 (Design).
+1. **Fix bugs:** L-27 (Design) and the bug research L-36, L-37, L-14 and
+   L-17.
+2. **Camera requests from users:** L-39 and L-45 (Design).
 3. **High-priority new work:** L-40 Fake Sneak (Research).
 4. **Restriction redesign:** L-15 (Design; its resume bug is L-36).
-5. **Next features:** L-41 and L-42 (Design), L-43 (Ready), L-44 (Research).
+5. **Next features:** L-41 and L-42 (Design), L-44 (Research).
 6. **Run bounded native research in parallel:** L-30 and L-33.
 7. **Prepare the first release:** keep user-facing docs current, run a full
    runtime regression on the release build, verify a fresh install/package and
@@ -62,6 +62,7 @@ summary.
   as an option?
 - L-39: should Freelook starting in third person be an option, and what is the
   default?
+- L-45: Zoom's lowest wheel magnification and how the magnification is shown.
 
 HUD (docs/demos/hud.html), the settings key and the shape model are decided;
 see DESIGN.md.
@@ -72,7 +73,7 @@ see DESIGN.md.
 
 ### L-35 Container previews play the item pickup animation
 Kind: Ready. Reported by a user 2026-09-26.
-Status: implemented (1a04a4d), awaiting the batched in-game check.
+Status: done (verified in game 2026-09-26, DLL 766d6fd6).
 Items shown in Shulker/Bundle previews play the vertical stretch that vanilla
 uses right after picking an item up. The preview draws stacks decoded from the
 container, which keep `ItemStackBase::mShowPickUp`; the Info HUD already clears
@@ -89,7 +90,9 @@ and pressed again. The forbidden block must still not break, but the held
 button must keep working: fix the input/session handoff, not the region
 predicate. Find which vanilla breaking-session state is left stopped after the
 rejected block and how a held attack normally restarts it. Listed in the
-README's known issues.
+README's known issues. Reproduced again 2026-09-26 (allowed -> forbidden ->
+allowed: the second allowed block does not start); the first trace run lost
+its log before this step, so the call sequence is still to be recorded.
 
 ### L-37 FreeCamera cannot see caves from underground
 Kind: Research. Reported by a user 2026-09-26.
@@ -100,6 +103,11 @@ from the player rather than the detached camera, or spectator gets special
 handling. Find which pass decides visible sections and what spectator changes,
 then decide whether FreeCamera can use the same path without affecting the
 player's own rendering. Separate from L-28 (third-person collision judder).
+2026-09-26 observation: from inside solid ground FreeCamera stops drawing
+distant caves along straight chunk lines, while spectator at the same spot
+shows them; from inside a cave FreeCamera looks normal. This fits an
+occlusion flood fill seeded from an opaque section. Survival samples show
+culler type 3; the spectator/FreeCamera samples were lost with the log.
 
 ### L-14 Hidden offhand still shows a shield
 Kind: Research.
@@ -387,8 +395,8 @@ surface for small sizes.
 
 ### L-38 Zoom up to 50x with a proportional, smooth wheel
 Kind: Ready. Requested by a user 2026-09-26. DESIGN "Camera".
-Status: implemented (921bf79), awaiting the batched in-game check. The Wheel
-step setting was removed; old settings files still load.
+Status: done (verified in game 2026-09-26, DLL 766d6fd6). The Wheel step
+setting was removed; old settings files still load. Follow-up: L-45.
 - Raise the magnification range from 1x-10x to 1x-50x for both the initial
   setting (Options.h, Settings normalize) and the wheel (`ZoomState`).
 - A wheel notch multiplies/divides the target magnification by about 1.15
@@ -404,8 +412,11 @@ step setting was removed; old settings files still load.
 
 ### L-43 Permanent Sprint
 Kind: Ready. Notion idea (Masa-style QoL), promoted 2026-09-26.
-Status: implemented (e74a142), awaiting the batched in-game check. Shares
-Permanent Sneak's raw-input hook; unbound by default.
+Status: verified in game 2026-09-26 (DLL 766d6fd6). The maintainer did not
+want menus to cancel it: since 73d8afe it pauses while a menu is open and
+only death, dimension change, world exit or disabling Lamium end it
+(awaiting re-check). Shares Permanent Sneak's raw-input hook; unbound by
+default.
 Mirror Permanent Sneak: add `SprintDown` to a transient copy of the raw move
 input in the same `extractRawHIDInput` hook, with the same eligibility and
 cancellation (screens, settings, death, sleeping, riding, dimension change).
@@ -426,6 +437,14 @@ currently ends FreeCamera and discards the flown position. Proposed direction
 death, dimension change and leaving the world still end it. Open: always, or
 an option. The pose must not follow input while a screen owns input, and
 inventory interaction while detached stays a separate question (L-25).
+
+### L-45 Zoom level feedback
+Kind: Design (small). Maintainer feedback on L-38, 2026-09-26.
+With the wheel able to go down to 1x, Zoom can be held with no visible effect,
+so it is unclear whether it is on. Also wanted: an option to show the current
+magnification. Open: raise the wheel's lower bound (for example 1.5x or 2x)
+or keep 1x; where and how the magnification is shown (next to the crosshair,
+as a toast, or an Info HUD line) and its default.
 
 ### L-39 Freelook starts in third person
 Kind: Design (small). Requested by a user 2026-09-26.
@@ -588,6 +607,10 @@ Kind: Research (small). Notion idea, promoted 2026-09-26.
 Keep FOV fixed when sprinting, speed/slowness effects or flying would change
 it. Find where 26.51.5 applies the dynamic FOV modifier; it should sit next to
 Zoom's FOV hook and must compose with Zoom.
+2026-09-26: the video settings have no vanilla option for this.
+`LevelRendererPlayer::getFov` runs twice a frame: `variable=true` (world,
+99 with a 90 setting and modifier 1.1) and `variable=false` (70, likely the
+hand). Sprinting samples are still to be recorded.
 
 ### L-18 FreeCamera
 Status: done as an experiment (Pi, reviewed 2026-09-24). Flight, movement
