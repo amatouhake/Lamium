@@ -84,16 +84,22 @@ void traceItemIdentity(char const* site, ItemStack const& item) noexcept {
     try {
         static std::atomic<unsigned> budget{};
         if (budget.fetch_add(1) >= 24) return;
-        int off = 0, main = 0;
         auto client = ll::service::getClientInstance();
         auto* player = client ? client->getLocalPlayer() : nullptr;
-        if (player && !item.isNull()) {
-            auto const& offhand = player->getOffhandSlot();
-            off = !offhand.isNull() && item.matchesItem(offhand) ? 1 : 0;
-            int selected = player->mInventory->mSelected;
-            auto const& held = player->getInventory().getItem(selected);
-            main = !held.isNull() && item.matchesItem(held) ? 1 : 0;
+        if (!player) return;
+        static bool accessorLogged = false;
+        auto const& offhand = player->getOffhandSlot();
+        int selected = player->mInventory->mSelected;
+        auto const& held = player->getInventory().getItem(selected);
+        if (!accessorLogged) {
+            accessorLogged = true;
+            Runtime::instance().self().getLogger().info(
+                "research L-14 accessor offEmpty={} mainEmpty={}", offhand.isNull() ? 1 : 0, held.isNull() ? 1 : 0);
         }
+        if (item.isNull()) return;
+        int off = !offhand.isNull() && item.matchesItem(offhand) ? 1 : 0;
+        int main = !held.isNull() && item.matchesItem(held) ? 1 : 0;
+        if (off == 0 && main == 0) return; // UI icons and other stacks drown the log.
         Runtime::instance().self().getLogger().info("research L-14 item {} off={} main={}", site, off, main);
     } catch (...) {}
 }
