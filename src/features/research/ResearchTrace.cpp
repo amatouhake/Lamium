@@ -7,7 +7,6 @@
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
-#include "mc/client/renderer/game/LevelRendererCamera.h"
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
 #include "mc/deps/ecs/gamerefs_entity/EntityContext.h"
 #include "mc/deps/minecraft_renderer/game/LevelCullerType.h"
@@ -126,19 +125,12 @@ LL_TYPE_INSTANCE_HOOK(FovSampleHook, ll::memory::HookPriority::Low, LevelRendere
     } catch (...) {}
     return result;
 }
-LL_TYPE_INSTANCE_HOOK(CreateCullerHook, ll::memory::HookPriority::Normal, LevelRendererCamera,
-    &LevelRendererCamera::_createCuller, std::shared_ptr<LevelCullerBase>, LevelCullerType type,
-    std::weak_ptr<LevelRendererCamera> camera, LevelBuilder& builder) {
-    log("research L-37 createCuller type={}", static_cast<int>(type));
-    return origin(type, std::move(camera), builder);
-}
-bool sneakInstalled = false, fovInstalled = false, cullerInstalled = false;
+bool sneakInstalled = false, fovInstalled = false;
 }
 void start() {
     sneakInstalled = SneakDownHook::hook(true) == 0;
     fovInstalled = FovSampleHook::hook(true) == 0;
-    cullerInstalled = CreateCullerHook::hook(true) == 0;
-    if (!sneakInstalled || !fovInstalled || !cullerInstalled) {
+    if (!sneakInstalled || !fovInstalled) {
         stop();
         throw std::runtime_error("Could not install research diagnostics");
     }
@@ -146,7 +138,6 @@ void start() {
 }
 void stop() {
     forceSneak = false;
-    if (cullerInstalled && CreateCullerHook::unhook(true)) cullerInstalled = false;
     if (fovInstalled && FovSampleHook::unhook(true)) fovInstalled = false;
     if (sneakInstalled && SneakDownHook::unhook(true)) sneakInstalled = false;
 }
