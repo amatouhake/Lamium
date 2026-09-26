@@ -9,6 +9,8 @@
 #include "mc/world/actor/player/PlayerInventory.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/client/renderer/game/ItemInHandRenderer.h"
+#include "mc/client/model/models/DataDrivenModel.h"
+#include "mc/world/actor/animation/AttachableSlotIndex.h"
 #include <array>
 #include <stdexcept>
 #ifdef LAMIUM_RESEARCH_TRACE
@@ -56,6 +58,18 @@ LL_TYPE_INSTANCE_HOOK(OffhandVisibility, ll::memory::HookPriority::Normal, ItemI
 #endif
     // Never change equipped stacks, item use, or renderer-owned cached items.
     origin(context, player, flags);
+}
+// L-14: the shield is an attachable (a resource-pack 3D model), drawn by the
+// data-driven attachable path rather than the item-in-hand renderer. Vanilla
+// asks this predicate before drawing an attachable in a slot; in first person
+// the offhand slot answers "do not draw" while Hide Offhand is on.
+LL_STATIC_HOOK(OffhandAttachable, ll::memory::HookPriority::Normal, &DataDrivenModel::shouldRenderAttachableOnActor, bool,
+    ItemStack const& item, AttachableSlotIndex const& slot, bool isSpectator, bool isFirstPerson, bool isRenderingOnMap,
+    bool legacyVersion, bool hideArmor) {
+    auto& runtime = Runtime::instance();
+    if (isFirstPerson && slot == AttachableSlotIndex::OffhandItem && runtime.enabled()
+        && runtime.preferences().visuals.hideOffhand) return false;
+    return origin(item, slot, isSpectator, isFirstPerson, isRenderingOnMap, legacyVersion, hideArmor);
 }
 // L-14: a shield bypasses renderOffhandItem. The 2026-09-27 trace showed it
 // reaching renderItem with WorldPass|InHand and renderingMainHand=false while
@@ -304,7 +318,8 @@ TraceHook traceHooks[] = {{OffhandFirstPersonTrace::hook, OffhandFirstPersonTrac
 #endif
 }
 struct Hook { int (*install)(bool); bool (*remove)(bool); };
-Hook hooks[] = {{OffhandVisibility::hook, OffhandVisibility::unhook}, {OffhandWorldItem::hook, OffhandWorldItem::unhook},
+Hook hooks[] = {{OffhandVisibility::hook, OffhandVisibility::unhook}, {OffhandAttachable::hook, OffhandAttachable::unhook},
+    {OffhandWorldItem::hook, OffhandWorldItem::unhook},
     {OffhandFrameReset::hook, OffhandFrameReset::unhook}, {OffhandCallMap::hook, OffhandCallMap::unhook},
     {OffhandRenderObject::hook, OffhandRenderObject::unhook}};
 void start() {
