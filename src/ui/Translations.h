@@ -458,7 +458,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"on", "On", "オン"}, {"off", "Off", "オフ"},
     {"zoom", "Zoom: {}", "ズーム: {}"},
     {"magnification", "Magnification: {}x", "倍率: {}倍"},
-    {"wheelStep", "Wheel step: {}", "ホイールの調整幅: {}"},
     {"nightVision", "NightVision: {}", "暗視: {}"},
     {"previews", "Container previews: {}", "収納アイテムのプレビュー: {}"},
     {"shulkerPreviews", "Shulker previews: {}", "シュルカーのプレビュー: {}"},

@@ -554,7 +554,7 @@ void Zoom::configure(Settings const& settings) {
     freeCameraAllowed = settings.camera.freecamera;
     cancelLook();
     allowed = settings.camera.zoom;
-    state.configure(settings.camera.magnification, settings.camera.wheelStep);
+    state.configure(settings.camera.magnification);
 }
 void Zoom::pressLook(IClientInstance& current) {
     // Freelook and FreeCamera share one session and never run together.
@@ -1004,6 +1004,7 @@ bool Zoom::start() {
                 try { writeFreeCameraOffset(); } catch (...) {}
             }
             if (!state.held()) return;
+            state.advance(std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count());
             auto* current = client.load();
             if (!current || !gameplayScreen(current->getScreenName())) release();
         });

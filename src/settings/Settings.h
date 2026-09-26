@@ -37,7 +37,6 @@ struct Settings {
         bool freelookToggle = false; // Activation: false = hold the key, true = press to switch
         bool freecamera = false; // Experimental flying camera; shares Freelook's session
         float magnification = 3.0f;
-        float wheelStep = 0.5f;
         bool operator==(Camera const&) const = default;
     } camera;
     struct Lighting {
@@ -152,9 +151,7 @@ struct Settings {
         normalizeElement(hud.status, ui::defaultHudElement(ui::HudElementId::Status));
         normalizeElement(hud.toast, ui::defaultHudElement(ui::HudElementId::Toast));
         if (!std::isfinite(camera.magnification)) camera.magnification = 3.0f;
-        if (!std::isfinite(camera.wheelStep)) camera.wheelStep = 0.5f;
-        camera.magnification = std::clamp(camera.magnification, 1.0f, 10.0f);
-        camera.wheelStep = std::clamp(camera.wheelStep, 0.1f, 2.0f);
+        camera.magnification = std::clamp(camera.magnification, 1.0f, 50.0f);
     }
 };
 }
