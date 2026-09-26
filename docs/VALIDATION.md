@@ -497,6 +497,11 @@ native SDK-type tests and package validation. Earlier clean-checkout and
 isolated dependency-restore evidence below remains useful historical evidence;
 hosted CI itself is no longer an open gate.
 
+The 0.1.1 pre-release package (DLL db4af5cd) was installed over the existing
+instance's Lamium folder, keeping its config. A brief in-game check on
+2026-09-26 (settings screen, preserved settings, everyday features) found no
+problems. It was not the full regression or a fresh install listed below.
+
 Current pre-release priorities are:
 
 - design and build the L-15 breaking/placement restriction redesign (L-32,
