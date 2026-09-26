@@ -5,7 +5,7 @@ No server plugin or companion protocol is required.
 
 ## Status
 
-Lamium 0.1.0 is a **pre-release**. The main settings, hotkey, HUD, target
+Lamium 0.1.1 is a **pre-release**. The main settings, hotkey, HUD, target
 card, camera and overlay flows have been exercised in Minecraft on a local
 single-player setup; multiplayer servers, controllers and broad
 resource-pack/graphics coverage are not verified yet. Some features are still
