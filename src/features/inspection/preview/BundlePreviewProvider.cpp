@@ -135,6 +135,10 @@ BundlePreviewProvider::extract(ItemStackBase const& item, ContainerScreenControl
                         ++skipped;
                         continue;
                     }
+                    // A decoded stack counts as just picked up; the renderer
+                    // would keep playing the pickup squash on it.
+                    stack.mShowPickUp  = false;
+                    stack.mWasPickedUp = false;
                     decoded.push_back(DecodedEntry{slot, std::move(stack)});
                 } catch (...) {
                     ++skipped;

@@ -72,6 +72,10 @@ ShulkerPreviewProvider::extract(ItemStackBase const& item, ContainerScreenContro
             if (stack.isNull()) {
                 continue;
             }
+            // A decoded stack counts as just picked up; the renderer would
+            // keep playing the pickup squash on it.
+            stack.mShowPickUp  = false;
+            stack.mWasPickedUp = false;
             preview.slots[static_cast<size_t>(slot)] = stack;
         } catch (...) {
             ++preview.skippedSlotCount;
