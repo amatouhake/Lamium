@@ -66,6 +66,10 @@ LL_TYPE_INSTANCE_HOOK(ContinueBreak, ll::memory::HookPriority::Highest, GameMode
         destroyed = false;
         bool keep = gameplayInput();
         traceBreak("continue", mPlayer, pos, 0, keep);
+        // Abort the allowed block's progress through vanilla's own stop, or it
+        // keeps cracking while the crosshair rests on the forbidden block.
+        if (keep && static_cast<float const&>(mDestroyProgress) > 0.f)
+            stopDestroyBlock(static_cast<BlockPos const&>(mDestroyBlockPos));
         return keep;
     }
     bool result = origin(pos,face,playerPos,destroyed);
