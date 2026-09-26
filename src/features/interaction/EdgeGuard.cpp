@@ -14,6 +14,7 @@
 #include "mc/deps/vanilla_components/MoveRequestComponent.h"
 #include "mc/entity/systems/move_collision_system/MoveCollisionSystem.h"
 #include "mc/world/phys/AABB.h"
+#include <cmath>
 #include <stdexcept>
 #include <vector>
 
@@ -23,6 +24,7 @@ namespace {
 // vanilla sneaking.
 constexpr float stepHeight = 0.6f;
 bool installed = false;
+bool reportedServerCopy = false;
 
 bool isLocal(StrictEntityContext const& entity, LocalPlayer& player) {
     auto const& own = player.getEntityContext();
@@ -35,7 +37,21 @@ void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, M
     if (!runtime.enabled() || !runtime.preferences().interaction.edgeGuard) return;
     auto client = ll::service::getClientInstance();
     auto* player = client ? client->getLocalPlayer() : nullptr;
-    if (!player || !isLocal(entity, *player)) return;
+    if (!player) return;
+    // In a local world the integrated server moves its own copy of this
+    // player and corrects the client to it, so that copy is guarded too. It
+    // is the other registry's entity whose box sits where the player's does.
+    if (!isLocal(entity, *player)) {
+        auto const& own = player->getAABB();
+        auto const& other = shape.mAABB.get();
+        if (std::abs(own.min.x - other.min.x) > .3f || std::abs(own.min.y - other.min.y) > .3f
+            || std::abs(own.min.z - other.min.z) > .3f || std::abs((own.max.x - own.min.x) - (other.max.x - other.min.x)) > .05f)
+            return;
+        if (!reportedServerCopy) {
+            reportedServerCopy = true;
+            runtime.self().getLogger().info("Edge Guard: also guarding the local server's copy of the player");
+        }
+    }
     // Only walking on the ground; vanilla sneaking already guards edges.
     if (!player->isOnGround() || player->isSneaking() || player->isFlying() || player->isGliding()
         || player->isSwimming() || player->isInWater() || player->getVehicle()) return;
