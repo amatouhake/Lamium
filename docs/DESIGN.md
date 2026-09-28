@@ -29,7 +29,30 @@ Decided rule without asking.
   Experimental badge and never hold back a release (BACKLOG "Release
   policy", decided 2026-09-28).
 - Features restore vanilla behavior when disabled or when leaving a world.
-- Do not copy other mods' code, strings, assets or pixel-level UI.
+- External prior art may inform behavior and feasibility, but repository specs
+  describe Lamium's requirements rather than named comparison projects.
+  Reference-only code, strings, assets, distinctive constants and pixel-level
+  UI are not copied or translated.
+
+## Engineering behavior (Decided)
+
+These rules apply across feature areas, including large experimental
+subsystems:
+
+- Expensive scans, geometry work, uploads and broad enumeration are bounded per
+  frame/tick or moved to background work with an explicit publication budget.
+- Background results that depend on world or dimension state carry generation
+  identity. A completion is published only if its identity is still current;
+  stale work is discarded.
+- Gameplay-affecting actions use ordinary game semantics where possible and
+  do not treat a local return value, prediction or submitted transaction as
+  authoritative completion. Multi-step workflows revalidate resulting state.
+- Version-sensitive internal renderer/UI paths are capability-gated and fail
+  open: when the expected contract cannot be verified, Lamium leaves vanilla
+  behavior intact.
+- Presentation features keep observed game state separate from display state;
+  hiding or augmenting visuals must not silently mutate the underlying
+  gameplay state.
 
 ## Visual language (Decided)
 
@@ -214,8 +237,8 @@ Contents:
 
 ## World overlays (Decided unless noted)
 
-- Block-grid shapes show the blocks that form the shape (MiniHUD approach),
-  not smooth wireframes. Wireframes are for chunk borders and hitboxes.
+- Block-grid shapes show the blocks that form the shape rather than smooth
+  wireframes. Wireframes are for chunk borders and hitboxes.
 - Shape style: faces (default, faint outline) or lines. Faces are unlit,
   two-sided, inset 0.005 into their cell, and the whole shape is scaled 0.997
   toward the eye to avoid z-fighting. Do not widen the inset.
@@ -300,9 +323,9 @@ exactly one switch, one mode and one set of keys:
 - Help text warns that servers may treat very fast input as cheating.
 - Why: the first version had separate Periodic/Hold/Fast toggles plus a
   parent row without a switch, so it was unclear what was on, and stopping on
-  a manual click felt arbitrary (maintainer review 2026-09-25). Reference
-  behavior: Tweakeroo's periodic/hold attack and use and fast click (behavior
-  only, no code).
+  a manual click felt arbitrary (maintainer review 2026-09-25). The resulting
+  modes follow the maintainer's chosen behavior; named prior-art comparisons
+  are kept outside the repository.
 
 ## Light overlay (Decided 2026-09-25, docs/demos/light-overlay.html)
 
