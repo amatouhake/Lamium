@@ -9,6 +9,7 @@ Read it fully before changing code.
 - What to work on, in what order, and who should do it: [docs/BACKLOG.md](docs/BACKLOG.md)
   (finished items: [docs/BACKLOG-DONE.md](docs/BACKLOG-DONE.md); release rules: its "Release policy")
 - Per-feature technical notes: `docs/*.md` (CAMERA, OVERLAYS, RESTRICTIONS, ...)
+- Distribution/package contract: [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md)
 - UI mockups agreed with the maintainer: `docs/demos/` (see its README)
 - Machine-specific paths (instance folder etc.): `AGENTS.local.md` if present.
   It is gitignored; never copy its contents into tracked files.
@@ -98,6 +99,20 @@ Rules the code already follows; keep them:
    key. No Chinese unless requested.
 7. **UI** draws only rectangles and text through `src/ui/Widgets.h`. Use the
    palette and widgets there; do not invent colors or sizes. See DESIGN.md.
+8. **Bound expensive work.** World scans, geometry generation, texture uploads
+   and broad entity enumeration need an explicit per-frame/per-tick budget or
+   another proven bound. Large work must not silently move onto the render or
+   client thread.
+9. **Identify async results.** Background work that depends on a world,
+   dimension or feature generation carries owned identity values. Re-check
+   them before publishing a result and discard stale completions.
+10. **Confirm gameplay mutations authoritatively.** A successful function
+    return or submitted packet/transaction is not completion. Re-read the
+    authoritative client state or correlated response before continuing a
+    multi-step inventory/placement workflow.
+11. **Unstable integration fails open.** Version-sensitive internal render/UI
+    paths are capability-gated. If the expected symbol/state/contract cannot
+    be verified, keep vanilla behavior instead of guessing.
 
 ## Code style
 
@@ -105,10 +120,12 @@ Rules the code already follows; keep them:
 - C++20, no exceptions across hook boundaries (`noexcept` handlers catch).
 - Tests use `check(bool, "what must hold")` in `tests/*Tests.cpp`, declared and
   called from `main` in `tests/CameraTests.cpp`.
-- Do not copy code, strings or assets from other mods (Litematica, MiniHUD,
-  Tweakeroo, Flarial, LeviSchematic...). Behavior may be referenced; code may not.
-  [docs/PROVENANCE.md](docs/PROVENANCE.md) lists which projects are reference
-  only and what to record before any outside code is incorporated.
+- Do not copy code, strings, assets, distinctive constants or implementation
+  structure from reference-only external projects. Named prior-art research,
+  links and license notes stay in the maintainer's external research notes;
+  repository docs keep Lamium's resulting requirements instead.
+  [docs/PROVENANCE.md](docs/PROVENANCE.md) defines the boundary and what must
+  be recorded when outside source is actually incorporated.
 
 ## Git
 
