@@ -115,10 +115,13 @@ Rules the code already follows; keep them:
   structure from other mods. [docs/PROVENANCE.md](docs/PROVENANCE.md) lists
   the reference-only projects (do not open their source while writing Lamium
   code) and what to record before any outside code is incorporated.
-- Specs describe Lamium's behavior in Lamium's terms, not "like mod X". Name an
-  outside project only in PROVENANCE.md or as a one-line source link for a
-  Research hypothesis; comparisons and surveys stay out of the repository.
-  Do not rewrite historical records (BACKLOG-DONE.md, VALIDATION.md).
+- Specs describe Lamium's behavior in Lamium's terms, not "like mod X". Name
+  another mod or prior-art project only in PROVENANCE.md, as a one-line source
+  for a Research hypothesis, in a clean-room boundary ("do not open X"), or in
+  a dated decision record of what the maintainer referred to. Tools and
+  platforms Lamium depends on (LeviLamina, LIP, Bedrinth) are named freely.
+  Comparisons and surveys stay out of the repository. Do not rewrite
+  historical records (BACKLOG-DONE.md, VALIDATION.md).
 
 ## Git
 
