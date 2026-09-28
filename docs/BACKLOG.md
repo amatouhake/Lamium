@@ -407,8 +407,9 @@ Status: the already-retired HUD-controller path was reconfirmed in game
 (HAND-RESTOCK.md). The redundant spike was removed; its factual result stays
 in VALIDATION.md. No no-screen vanilla move or client-built transaction has
 been established. Do not substitute an automatically opened inventory screen.
-Research resumes after the reference-source policy is settled with the
-maintainer.
+Research resumes under PROVENANCE.md group 3b: add the required inspection
+record before reading Stipuleroo implementation files, then verify any API
+facts independently against the installed SDK.
 L-17 selects a compatible reserve in another hotbar slot. When the only
 reserve is in the main inventory, it stops with `no transfer path`. Goal:
 move that reserve into the selected slot, keeping L-17's use/depletion
@@ -419,11 +420,12 @@ on 26.51 with an inventory transaction built by the client.
 
 Steps:
 1. Research, in this order:
-   a. Look for a vanilla function that issues an inventory move without an
-      open screen (the sort and transfer code in
-      `src/features/inventory/sort` and `transfer` work only through an open
-      screen's controller; the HUD controller path is retired, see
-      HAND-RESTOCK.md). If one exists, use it.
+   a. Use the bounded group 3b source-inspection pass to identify only the
+      necessary SDK and transaction facts, then look for a vanilla function
+      that issues an inventory move without an open screen (the sort and
+      transfer code in `src/features/inventory/sort` and `transfer` works only
+      through an open screen's controller; the HUD controller path is retired,
+      see HAND-RESTOCK.md). If one exists, use it.
    b. Only if none exists: report back before sending a client-built
       inventory transaction. L-17 ruled out forging inventory requests
       (2026-09-27); whether a client-built transaction counts as that, and

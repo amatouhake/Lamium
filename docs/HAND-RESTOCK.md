@@ -23,9 +23,10 @@ existing use/depletion correlation has identified a stable source and
 destination, then wait for authoritative inventory state before declaring
 success. Submission alone is not success, and a mismatch, correction, timeout
 or unrelated mutation cancels without retrying. Hypothesis source: Stipuleroo
-(GPL-3.0, reference only; PROVENANCE.md group 3) restocks from the main
-inventory on 26.51 with an ordinary inventory transaction. Do not open its
-source while writing this.
+(GPL-3.0, reference only; PROVENANCE.md group 3b) restocks from the main
+inventory on 26.51 with an ordinary inventory transaction. Source inspection,
+if recorded under group 3b, is a separate Research pass and does not authorize
+sending that transaction.
 Bowls, buckets and other consumption replacements remain in the selected slot.
 
 The maintainer also wants an offhand extension if the client exposes a safe

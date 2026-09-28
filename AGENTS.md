@@ -112,14 +112,23 @@ Rules the code already follows; keep them:
 - Tests use `check(bool, "what must hold")` in `tests/*Tests.cpp`, declared and
   called from `main` in `tests/CameraTests.cpp`.
 - Do not copy code, strings, assets, distinctive constants or implementation
-  structure from other mods. [docs/PROVENANCE.md](docs/PROVENANCE.md) lists
-  the reference-only projects (do not open their source while writing Lamium
-  code) and what to record before any outside code is incorporated.
+  structure from other mods. [docs/PROVENANCE.md](docs/PROVENANCE.md) assigns
+  each reference project a behavior-only or source-inspected boundary. A
+  source-inspected Research pass records its exact upstream revision, license,
+  bounded question and planned scope before reading implementation files,
+  extracts only behavior and necessary API facts, then records the exact files
+  read and closes the source before Lamium implementation starts. Prefer a
+  separate agent or fresh context for implementation. Verbatim upstream source,
+  close paraphrases, source-derived pseudocode and source screenshots never
+  enter an implementation prompt or the repository unless the maintainer first
+  approves incorporation and records its license obligations in group 2. The
+  approved research note may provide only recorded behavior and necessary API
+  facts.
 - Specs describe Lamium's behavior in Lamium's terms, not "like mod X". Name
   another mod or prior-art project only in PROVENANCE.md, as a one-line source
-  for a Research hypothesis, in a clean-room boundary ("do not open X"), or in
-  a dated decision record of what the maintainer referred to. Tools and
-  platforms Lamium depends on (LeviLamina, LIP, Bedrinth) are named freely.
+  for a Research hypothesis, in a clean-room boundary, a source-inspection
+  record, or in a dated decision record of what the maintainer referred to.
+  Tools and platforms Lamium depends on (LeviLamina, LIP, Bedrinth) are named freely.
   Comparisons and surveys stay out of the repository. Do not rewrite
   historical records (BACKLOG-DONE.md, VALIDATION.md).
 
