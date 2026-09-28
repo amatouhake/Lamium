@@ -6,8 +6,9 @@ This document defines Lamium's packaging and update contract.
 
 Lamium is installable from GitHub Releases as a client-only Windows x64
 package. The repository carries a LIP v3 `tooth.json`, and Bedrinth already
-lists Lamium (seen 2026-09-28 with versions 0.1.1-0.1.3). Managed install and
-update behavior has not been validated yet.
+lists Lamium (seen 2026-09-28 with versions 0.1.1-0.1.3). One LeviLauncher
+update (0.1.2 -> 0.1.3) kept user settings (VALIDATION.md, 2026-09-28);
+uninstall and LIP CLI are not checked yet.
 
 How packages get listed (sources read 2026-09-28; the older
 `LiteLDev/bedrinth-api` is archived and no longer describes this):

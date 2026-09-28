@@ -383,7 +383,11 @@ the L-58 Target icon lines. Those items are in BACKLOG-DONE.md.
 
 ### L-65 Managed distribution and update-safe packaging
 Kind: Research, then Ready. Chosen by the maintainer 2026-09-28.
-Status: open.
+Status: open. Step 1's core check passed 2026-09-28: a LeviLauncher update
+0.1.2 -> 0.1.3 kept a key binding and a feature switch (VALIDATION.md).
+Uninstall behavior remains. Managed-update checks use a dedicated instance;
+never install Lamium from Bedrinth into the development instance, where
+copy deploys and LIP's file records would overwrite and delete each other.
 Make Bedrinth/LIP a supported discovery and managed install/update path without
 sacrificing user configuration. The package contract is
 [DISTRIBUTION.md](DISTRIBUTION.md).

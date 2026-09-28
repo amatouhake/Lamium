@@ -1954,3 +1954,19 @@ world). Commit 51a2ad0 then dropped the unused legacy fallback; its normal
 build is DLL CABB272FD84BA955356016CEEE9CF6370D154AFCFC8115C467628BE1263093FE,
 not re-checked in game separately since the resolution path it keeps is the
 one verified.
+
+### Managed update through LeviLauncher / LIP (2026-09-28, L-65 step 1)
+
+In a new LeviLauncher instance (1.26.51.01 + LeviLamina Client, separate from
+the development instance, where Lamium is deployed by copy and is not in the
+LIP lock file), the maintainer installed Lamium 0.1.2 from Bedrinth, bound
+FreeCamera to X and enabled the Info HUD, closed Minecraft, updated to 0.1.3
+in LeviLauncher and started again. Both settings were kept, and the Fake
+Offhand row that 0.1.2 does not have appeared in Settings, so 0.1.3 was
+running. Afterwards the instance's `tooth_lock.json` listed
+`github.com/amatouhake/Lamium` 0.1.3 (client) with 28 placed files, none
+under `config/` or `logs/`; `mods/Lamium/config/settings.json` was present;
+the installed DLL SHA-256
+351A1B82C2BB6F14B71700B563C7F48604BAFDD72ECB2B4A7EC25572161951ED matched
+the one in the v0.1.3 release ZIP. Not checked: uninstall, LIP CLI, and an
+update across a settings schema change.
