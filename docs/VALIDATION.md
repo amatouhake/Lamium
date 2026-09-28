@@ -822,9 +822,8 @@ instance after preserving the previous Lamium installation, including config.
 The deployed DLL SHA-256 matched the build output:
 `0FB005EFE678359D14D3DAA10A032661EEBB89B98E4A22E24A9F42BBBBCE49FB`.
 LeviLauncher started a fresh Minecraft process. The process module inventory
-contained Lamium.dll, LeviLamina.dll and the separately installed client-mod
-DLL, and reported responding. This establishes DLL loading only, not successful
-feature initialization.
+contained Lamium.dll, LeviLamina.dll and LeviSchematic.dll, and reported responding.
+This establishes DLL loading only, not successful feature initialization.
 
 Launcher screenshots worked, but Minecraft state capture failed twice with
 `foreground window did not report a process id`, including after fresh window
