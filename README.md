@@ -17,6 +17,9 @@ x64.
 
 ## Install
 
+Managed Bedrinth/LIP installation and update support is being validated. Until
+that work is complete, GitHub Releases are the documented install path:
+
 1. Install LeviLamina Client 26.51.x for Minecraft 1.26.51.01 (for example
    with LeviLauncher).
 2. Download `Lamium-<version>-client-windows-x64.zip` from the
@@ -26,7 +29,10 @@ x64.
 4. Start Minecraft, enter a world and press `L` to open Lamium Settings.
 
 Settings are stored in `mods/Lamium/config/` and the log is written to
-`mods/Lamium/logs/lamium.log`. To uninstall, delete the `mods/Lamium/` folder.
+`mods/Lamium/logs/lamium.log`. For a manual install, deleting the whole
+`mods/Lamium/` folder also deletes those runtime-created settings and logs.
+The managed-update ownership and preservation contract is documented in
+[Distribution](docs/DISTRIBUTION.md).
 
 ## Features
 
@@ -91,9 +97,11 @@ The repository is the source of truth for development:
 - [Backlog](docs/BACKLOG.md) defines current work, ordering and model class.
 - [Validation](docs/VALIDATION.md) separates compiled/tested behavior from
   behavior actually checked in Minecraft.
+- [Distribution](docs/DISTRIBUTION.md) defines packaging, managed updates and
+  settings-preservation requirements.
 - [Agent guide](AGENTS.md) is the working manual for coding agents.
 - [Provenance](docs/PROVENANCE.md) separates dependencies, incorporated source
-  and reference-only projects.
+  and reference-only research.
 
 Inventory sorting uses ordinary game operations, waits for matching responses
 between operations and revalidates the affected region before continuing.
