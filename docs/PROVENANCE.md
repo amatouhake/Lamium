@@ -40,24 +40,25 @@ copyright and license notices (including whether the license is "only" or "or
 later"). Keep the original notices. Do not present incorporated code as
 original Lamium code.
 
-LeviSchematic (LGPL-3.0) is a candidate for a future Schematic subsystem. It is
-not incorporated yet and stays in group 3 until it is.
+A future subsystem may incorporate compatible upstream source only after the
+maintainer chooses that path and the exact source/license scope is reviewed.
+Until then, candidate upstream implementations remain reference-only research.
 
 ## 3. Reference only
 
-Behavior, UX and feasibility research. Do not copy, translate or closely
-paraphrase their code, comments, distinctive constants, strings or assets.
-Lamium implements the behavior independently on Bedrock and LeviLamina APIs.
+Behavior, UX and feasibility research. Named research sources, URLs, license
+notes and comparisons are kept in the maintainer's external research notes,
+not in this repository.
 
-- ChiyanMap (GPL-3.0; repository no longer available). Recovered architecture
-  notes are kept outside this repository.
-- LeviSchematic, until incorporated as described above.
-- Java mods: MaLiLib, Tweakeroo, MiniHUD, Litematica, Item Scroller, Client
-  Sort and similar inventory sorters, Quark, Inventory Profiles Next, Mouse
-  Wheelie, Jade / WAILA, AppleSkin, Xaero's Minimap and World Map.
-- Bedrock client mods such as Flarial, iInfiniteNightVision and Stipuleroo.
-  Hooking the same SDK function is expected; the handler bodies must be
-  Lamium's own.
+Do not copy, translate or closely paraphrase reference-only code, comments,
+distinctive constants, strings, assets or implementation structure. Lamium
+implements the resulting requirements independently on Bedrock and LeviLamina
+APIs.
+
+If reference-only source later becomes incorporated source, move it to group 2
+in the same change that first imports code. Record the upstream repository and
+commit, files used, modifications, copyright notices and exact license scope
+before merging that code.
 
 ## Review rule
 
