@@ -422,6 +422,10 @@ Steps:
 3. Ready (may be done before steps 1-2): add CI/package checks for version
    agreement across `xmake.lua`, `tooth.json`, the expected `v<version>`
    tag/asset convention and package layout. Keep the manual ZIP path usable.
+   The release ZIP is built by hand today and the 0.1.1-0.1.3 archives store
+   entry names with `\` separators (`unzip` warns; LIP on Windows installed
+   0.1.3 correctly). Build the ZIP with a script that writes `/` separators
+   and have the check reject `\` in entry names.
 4. After the managed path passes, update the README install section so
    LeviLauncher/Bedrinth is recommended, LIP CLI is the advanced path and
    GitHub Releases is the manual fallback.

@@ -146,7 +146,9 @@ Before publishing a managed release:
 - build and tests pass;
 - `scripts/Check-Package.ps1` passes;
 - version sources agree;
-- the expected release asset exists with the expected directory layout;
+- the expected release asset exists with the expected directory layout, and
+  its ZIP entry names use `/` separators (the ZIP specification; archives
+  made by hand on Windows have used `\`);
 - `tooth.json` resolves that exact asset and compatible client runtime;
 - release notes call out settings-schema migrations when one exists;
 - a managed-update smoke test is repeated when packaging, installer behavior or
