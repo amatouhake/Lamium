@@ -17,8 +17,9 @@ x64.
 
 ## Install
 
-Managed Bedrinth/LIP installation and update support is being validated. Until
-that work is complete, GitHub Releases are the documented install path:
+Lamium also appears in Bedrinth and LeviLauncher, but installing and updating
+it that way (including whether settings survive an update) has not been
+verified yet. Until it is, GitHub Releases are the documented install path:
 
 1. Install LeviLamina Client 26.51.x for Minecraft 1.26.51.01 (for example
    with LeviLauncher).

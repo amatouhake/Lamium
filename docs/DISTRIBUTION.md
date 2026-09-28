@@ -1,14 +1,25 @@
 # Distribution and managed updates
 
-This document defines Lamium's packaging and update contract. It is about
-Lamium itself; research into other mods and named prior-art sources stays
-outside the repository unless source is actually incorporated.
+This document defines Lamium's packaging and update contract.
 
 ## Current status
 
-Lamium is currently installable from GitHub Releases as a client-only Windows
-x64 package. The repository already carries a LIP v3 `tooth.json`, but
-Bedrinth/LIP discovery and managed update behavior have not been validated yet.
+Lamium is installable from GitHub Releases as a client-only Windows x64
+package. The repository carries a LIP v3 `tooth.json`, and Bedrinth already
+lists Lamium (seen 2026-09-28 with versions 0.1.1-0.1.3). Managed install and
+update behavior has not been validated yet.
+
+How Bedrinth indexes packages (its bot source, `LiteLDev/bedrinth-api`,
+checked 2026-09-28):
+
+- It finds repositories by GitHub code search for a root `tooth.json`; there
+  is no registration step. Package metadata comes from `tooth.json` at `HEAD`.
+- Versions come from the Go module proxy's list of `v<semver>` tags, each read
+  with the `tooth.json` at that tag. The GitHub pre-release flag is ignored, so
+  every pushed version tag is offered to users.
+- The listed LeviLamina requirement is read from the exact dependency key
+  `github.com/LiteLDev/LeviLamina`; the `#client` key Lamium (like other
+  client mods) uses is not shown there. Display only.
 
 Until L-65 is complete, GitHub Releases remain the documented fallback and
 managed installation must not be described as verified.
@@ -51,6 +62,13 @@ rejects `config/` and `logs/`.
 Prefer leaving runtime-created files outside package ownership. Use explicit
 preservation metadata only if managed-update validation proves that the normal
 ownership model is insufficient.
+
+LIP (`futrime/lip`, source read 2026-09-28) records each file it places and
+uninstall deletes only those files, so runtime-created files are left alone.
+`preserve_files` only exempts package-placed files from that deletion and is
+matched against the file name, not the path. It is not a way to protect
+runtime-created settings. Whether an update is uninstall + install, and which
+LIP build LeviLauncher uses, is still to be checked in L-65.
 
 ## Version and asset contract
 

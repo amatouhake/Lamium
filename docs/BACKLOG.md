@@ -41,11 +41,16 @@ published for whoever wants it. There is no "first release" gate.
 - From 0.1.4 on, releases are ordinary GitHub releases, not marked
   pre-release: the 0.x version, the README status and the Experimental badges
   say what is unfinished. Mark a release as pre-release only when it is
-  published to ask for testing before it is ready.
+  published to ask for testing before it is ready. Bedrinth and LIP ignore
+  the GitHub pre-release flag: every pushed `v<version>` tag is listed and
+  offered as an ordinary version, so do not push a tag for a build that
+  should not reach LeviLauncher users.
 - The version is set in `xmake.lua` and `tooth.json`. The asset is
   `Lamium-<version>-client-windows-x64.zip` (matching `tooth.json`); the folder
   inside stays `Lamium/`, and release notes name the asset the same way.
-  Managed Bedrinth/LIP distribution is tracked by L-65 and
+  Bedrinth already lists Lamium (seen 2026-09-28 with versions 0.1.1-0.1.3):
+  it indexes public repositories with a root `tooth.json`, so there is no
+  separate registration step. Managed install/update is tracked by L-65 and
   [DISTRIBUTION.md](DISTRIBUTION.md); it is not described as verified until the
   install/update preservation matrix passes.
 - Large features may start at any time. They land on main in steps, default
@@ -383,26 +388,31 @@ sacrificing user configuration. The package contract is
 [DISTRIBUTION.md](DISTRIBUTION.md).
 
 Current state:
-- A LIP v3 `tooth.json` already exists at the repository root and declares a
-  Windows x64 client-only variant with the current LeviLamina Client range.
-- GitHub Releases remain the documented fallback until managed install/update
-  has been validated.
+- A LIP v3 `tooth.json` exists at the repository root and declares a Windows
+  x64 client-only variant with the current LeviLamina Client range.
+- Bedrinth already lists Lamium (0.1.1-0.1.3, install command
+  `lip install github.com/amatouhake/Lamium#client@0.1.3`), so LeviLauncher
+  users may already be installing and updating it through a path that has not
+  been checked. Settings loss on those updates is the main risk.
+- GitHub Releases remain the documented install path until managed
+  install/update has been validated.
 - Release archives intentionally exclude runtime-created `config/` and
   `logs/`; `scripts/Check-Package.ps1` enforces that boundary.
 
 Steps:
-1. Research the current Bedrinth/LIP registration/discovery path and run a real
+1. Research how LeviLauncher currently installs and updates Lamium from
+   Bedrinth (LIP or a plain ZIP overwrite of `mods/Lamium/`), then run a real
    clean install -> settings change -> managed update using two Lamium package
-   versions. Confirm `config/settings.json` and explicit key bindings survive,
+   versions (0.1.3 -> 0.1.4 is the natural pair). Confirm `config/settings.json` and explicit key bindings survive,
    while the DLL/manifest/notices update. Repeat through LIP CLI when it is an
    intended supported path. Record actual uninstall behavior rather than
    assuming whether user data is kept.
 2. If runtime-owned files survive naturally because they are not package
    assets, keep `preserve_files` empty. Add preservation metadata only if the
    real managed-update test proves it is required.
-3. Ready: add CI/package checks for version agreement across `xmake.lua`,
-   `tooth.json`, the expected `v<version>` tag/asset convention and package
-   layout. Keep the manual ZIP path usable.
+3. Ready (may be done before steps 1-2): add CI/package checks for version
+   agreement across `xmake.lua`, `tooth.json`, the expected `v<version>`
+   tag/asset convention and package layout. Keep the manual ZIP path usable.
 4. After the managed path passes, update the README install section so
    LeviLauncher/Bedrinth is recommended, LIP CLI is the advanced path and
    GitHub Releases is the manual fallback.
