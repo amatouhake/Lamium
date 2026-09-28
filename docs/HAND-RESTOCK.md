@@ -5,7 +5,10 @@ observation and hotbar reserve selection succeeded in local survival: after a
 one-item stack is consumed, Lamium selects the first compatible reserve in
 another hotbar slot. Main-inventory and offhand replenishment have not
 succeeded; HUD swap/count-transfer experiments produced no captured inventory
-request, and count transfer explicitly returned false.
+request, and count transfer explicitly returned false. This does not establish
+that main-inventory replenishment is impossible: a bounded follow-up may test
+the game's ordinary server-authoritative inventory transaction path while
+retaining Lamium's existing correlation and cancellation rules.
 See [VALIDATION.md](VALIDATION.md) for build hashes and runtime observations.
 
 ## Intended behavior
@@ -15,6 +18,11 @@ from another hotbar slot through the proven `selectSlot` API (no stacks are
 rewritten, no packets forged, no retry loop). Main-inventory replenishment is
 an open issue: HUD-controller transfers through `ContainerManagerController`
 (place and take both verified false 2026-09-27) have no supported path.
+A future research spike may submit one ordinary inventory swap only after the
+existing use/depletion correlation has identified a stable source and
+destination, then wait for authoritative inventory state before declaring
+success. Submission alone is not success, and a mismatch, correction, timeout
+or unrelated mutation cancels without retrying.
 Bowls, buckets and other consumption replacements remain in the selected slot.
 
 The maintainer also wants an offhand extension if the client exposes a safe
@@ -67,11 +75,12 @@ generated no request (replacing the earlier unsuccessful `handleSwap`).
 simulation=false`, so the simulation flag does not explain the failure;
 `handleTakeAmount` also returns false under the same token. HUD-controller
 transfers through `ContainerManagerController` have no supported path without
-a screen, so main-inventory replenishment stays an open issue. Do not
-force-enable permissions, reuse a closed screen controller, or alternate
-transfer methods without new evidence. Totem consumption in the offhand fires
-no GameMode use/use-on/complete callback (passive damage path), so offhand
-restock needs a separate consumption observer.
+a screen, so that specific approach stays retired. Main-inventory
+replenishment remains open to a separate bounded transaction-path experiment;
+do not force-enable permissions, reuse a closed screen controller, rewrite
+stacks locally, or treat a sent transaction as confirmation. Totem consumption
+in the offhand fires no GameMode use/use-on/complete callback (passive damage
+path), so offhand restock needs a separate consumption observer.
 
 ## Diagnostics and validation
 
