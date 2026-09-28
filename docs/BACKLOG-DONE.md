@@ -472,7 +472,8 @@ Status: done. First presets: box, cone, frustum, pyramid, ellipsoid, dome
 (plus axis X/Z for every round shape). Diamond/octagon sections arrive with
 their own presets; no octagon taper.
 
-Prior-art behavior research (kept by the maintainer outside this repository) covered: box, centered box, circle, square, rhombus,
+Prior art (behavior only, never code):
+- MiniHUD (current fork) ships: box, centered box, circle, square, rhombus,
   block line, blocky sphere, spawn/despawn spheres (several variants),
   ellipsoid spawn, cone, pyramid, diamond pyramid, octagon pyramid. Cones and
   pyramids share one "tapered" model: bottom radius, top radius, height,
@@ -489,7 +490,8 @@ Model (decided): a shape is a cross-section × a profile × an axis.
 - Axis: Y (default), X, Z.
 The type list still shows familiar names (Cone, Pyramid, Box, Ellipsoid,
 Dome...) as presets over these families, so users find "cone" by name while
-the generator stays small. Alternatives: a dedicated type per shape, or not supporting cones at all.
+the generator stays small. Alternatives: a dedicated type per shape (MiniHUD
+style), or not supporting cones at all.
 
 Range presets (numbers from minecraft.wiki, Bedrock):
 - Mob spawning: 24–44 blocks spherical at simulation distance 4; 24–128 at 6+,
@@ -631,7 +633,7 @@ shows whether the session is running (or stays empty). Experimental features
 ship unbound. Migration keeps existing bindings and ignores the old switch.
 Maintainer direction (2026-09-26): go further for consistency and drop the
 "momentary" category: every feature is a persistent on/off switch that its key
-toggles, matching the maintainer's chosen persistent-toggle model. This requires FreeCamera to keep
+toggles, as Tweakeroo does for most tweaks. This requires FreeCamera to keep
 its position through menus (inventory, settings, window switch), so L-27 is
 folded into this item. Decided 2026-09-26: Zoom and Freelook keep an
 "Activation: Hold / Toggle" option (Hold lights the switch only while the key
@@ -713,7 +715,7 @@ intervening left click is therefore a new, user-visible behavior instead of a
 repair: L-59.
 
 ### L-41 Inventory drag and wheel transfer
-Kind: Ready. Maintainer inventory-gesture idea, promoted 2026-09-26.
+Kind: Ready. Notion idea (Item Scroller style), promoted 2026-09-26.
 Status: done (maintainer confirmed the transfer gestures and gesture switches
 in game 2026-09-27, commit f038d76, DLL da76a373). Individual edge cases and
 multiplayer remain unverified.
@@ -831,7 +833,7 @@ Then the conflict display moved from the footer to warning key caps and a
 key-cell tooltip (DESIGN "Keys", docs/demos/hotkey-conflicts.html); verified
 in game 2026-09-25.
 2026-09-24 playtest finding: overlapping bindings do not behave like the
-maintainer expects from the chosen chord model. Concrete required case:
+maintainer expects from Java / Tweakeroo / MaLiLib. Concrete required case:
 if one action is bound to `B` and another to `F3 + B`, pressing **F3 then B**
 must trigger the `F3 + B` action and must **not** also trigger the `B`
 action.
@@ -843,8 +845,8 @@ set. It does not reject extra held inputs, so `{B}` remains a match while
 order-insensitive, and `CustomInput::process` evaluates every action
 independently, so overlapping matches can both fire.
 
-Implement the following small Lamium model without exposing a full advanced
-keybind-settings surface:
+Implement a small Lamium model inspired by MaLiLib/Tweakeroo behavior, without
+exposing their full advanced keybind settings:
 - Separate **ordinary action chords** from **modifier-like chords** internally;
   this matching mode is part of the action definition, not a user-facing
   advanced setting.
