@@ -13,17 +13,23 @@ How packages get listed (sources read 2026-09-28; the older
 `LiteLDev/bedrinth-api` is archived and no longer describes this):
 
 - The LIP registry `LiteLDev/lipr` runs a daily job that finds repositories by
-  GitHub code search for a root `tooth.json` (no registration step) and adds
-  one manifest per semver `v*` git tag, read from `tooth.json` at that tag.
-  Prerelease semver tags count; the GitHub pre-release flag is not consulted.
+  GitHub code search for a root `tooth.json` and, for each semver `v*` git tag
+  without a manifest yet, opens a registry PR with `tooth.json` from that tag.
+  After a registry maintainer merges it, the version appears in the indexes
+  (Lamium 0.1.1-0.1.3 came in through lipr PRs #867, #868 and #872). Authors
+  have no registration step. Prerelease semver tags count; the GitHub
+  pre-release flag is not consulted.
 - The Bedrinth site and LeviLauncher both read that registry
   (`lipr.levimc.org`). LeviLauncher recognizes the
   `github.com/LiteLDev/LeviLamina#client` dependency key and uses its range to
   judge compatibility with the instance and may refuse to install a version
   whose range does not match. The range in `tooth.json` therefore gates
   installs, not only display.
+- LeviLauncher installs, updates and uninstalls Bedrinth packages through the
+  LIP daemon (`internal/mcservice/lip_package.go`), not by overwriting the
+  mod folder.
 
-Until L-65 is complete, GitHub Releases remain the documented fallback and
+Until L-65 is complete, GitHub Releases remain the documented install path and
 managed installation must not be described as verified.
 
 ## Distribution channels

@@ -61,7 +61,7 @@ it) while doing so.
 - ChiyanMap (GPL-3.0; repository no longer available). Recovered source and
   notes are kept outside this repository.
 - LeviSchematic (LGPL-3.0), until incorporated as described in group 2.
-- Current LeviLamina client mods: Stipuleroo (GPL-3.0), LHolo (GPL-3.0),
+- Current LeviLamina client mods (licenses as checked 2026-09-28): Stipuleroo (GPL-3.0), LHolo (GPL-3.0),
   CoralFans and BedrockServerClientInterface (AGPL-3.0), Playback (AGPL-3.0),
   FastMiner (no license found), CoralMap and Dear-OreUI (CC0-1.0; permissive,
   but reference-only until the maintainer chooses to incorporate them).

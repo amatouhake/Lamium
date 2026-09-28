@@ -50,8 +50,8 @@ published for whoever wants it. There is no "first release" gate.
   `Lamium-<version>-client-windows-x64.zip` (matching `tooth.json`); the folder
   inside stays `Lamium/`, and release notes name the asset the same way.
   Bedrinth already lists Lamium (seen 2026-09-28 with versions 0.1.1-0.1.3):
-  it indexes public repositories with a root `tooth.json`, so there is no
-  separate registration step. Managed install/update is tracked by L-65 and
+  the LIP registry discovers repositories with a root `tooth.json` and adds
+  each `v*` tag through a registry PR, so authors have no registration step. Managed install/update is tracked by L-65 and
   [DISTRIBUTION.md](DISTRIBUTION.md); it is not described as verified until the
   install/update preservation matrix passes.
 - Large features may start at any time. They land on main in steps, default
@@ -393,22 +393,24 @@ Current state:
   x64 client-only variant with the current LeviLamina Client range.
 - Bedrinth already lists Lamium (0.1.1-0.1.3, install command
   `lip install github.com/amatouhake/Lamium#client@0.1.3`), so LeviLauncher
-  users may already be installing and updating it through a path that has not
-  been checked. Settings loss on those updates is the main risk.
+  users may already be installing and updating it through LeviLauncher's LIP
+  daemon. Whether settings survive those updates has not been checked in the
+  field yet; that is the main risk.
 - GitHub Releases remain the documented install path until managed
   install/update has been validated.
 - Release archives intentionally exclude runtime-created `config/` and
   `logs/`; `scripts/Check-Package.ps1` enforces that boundary.
 
 Steps:
-1. Research how LeviLauncher currently installs and updates Lamium from
-   Bedrinth (LIP or a plain ZIP overwrite of `mods/Lamium/`), then run a real
-   clean install -> settings change -> managed update using two Lamium package
-   versions (0.1.3 -> 0.1.4 is the natural pair). Confirm
+1. In LeviLauncher (which uses the LIP daemon), run a real clean install ->
+   settings change -> managed update with versions already in the registry:
+   0.1.2 -> 0.1.3. A new tag would already be public, so do not cut one just
+   to test. Confirm
    `config/settings.json` and explicit key bindings survive, while the
    DLL/manifest/notices update, and that LeviLauncher accepts the
-   `LeviLamina#client` range for the instance. Repeat through LIP CLI when it is an
-   intended supported path. Record actual uninstall behavior rather than
+   `LeviLamina#client` range for the instance. Repeat through LIP CLI when it
+   is an intended supported path. Repeat the smoke test on the next release
+   only when the package contract changes. Record actual uninstall behavior rather than
    assuming whether user data is kept.
 2. If runtime-owned files survive naturally because they are not package
    assets, keep `preserve_files` empty. Add preservation metadata only if the
