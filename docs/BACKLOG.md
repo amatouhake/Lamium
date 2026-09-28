@@ -168,9 +168,9 @@ items draw nothing, layout editor placement.
 ### L-53 More Info HUD lines (wave 1)
 Kind: Implemented; display refinements await an in-game recheck. Agreed with
 the maintainer 2026-09-27 during the Info & HUD review; a compact set of
-everyday information lines informed by prior-art behavior research. Named
-comparisons stay outside the repository. Default off for every new line, with
-only a small everyday set enabled by default.
+everyday information lines (behavior reference only: MiniHUD, PROVENANCE.md
+group 3). Default off for every new line, with only a small everyday set
+enabled by default.
 - Add providers and rows: real time (IRL clock), scaled coordinates (the
   Nether 1:8 conversion; only where it applies), yaw and pitch as separate
   lines, speed split into horizontal/vertical, a sprinting line shown only
@@ -242,8 +242,9 @@ hovered outside that direction may be ignored; the session may place into air
 in front of the last block while bridging; and it may place as soon as a new
 position is valid instead of on a fixed interval. The Java-like mode defined
 above places on the currently targeted face every 4 ticks and does nothing
-when no valid face is targeted. Named research sources stay outside the
-repository.
+when no valid face is targeted. Hypothesis sources (Java mods describing
+Bedrock, behavior only): modrinth.com/mod/pro-placer and
+github.com/squeeglii/BridgingMod/issues/13.
 
 1. Research: record Bedrock's held build session with the L-49 trace
    (`research_trace`, `FakeOffhandTrace.cpp`) and confirm or correct each
@@ -447,9 +448,13 @@ by an on-disk cache. It ships default off with the Experimental badge and
 grows on main in steps (Release policy above). Look agreed in
 [demos/minimap.html](demos/minimap.html).
 
-Prior-art research for map usability and implementation feasibility is kept
-outside the repository. Lamium's map is specified here and implemented on
-LeviLamina/Bedrock APIs; reference-only source is not copied or translated.
+Lamium's map is specified here and implemented independently on
+LeviLamina/Bedrock APIs. ChiyanMap (GPL-3.0) and the current LeviLamina map
+mods are reference-only (PROVENANCE.md group 3). The maintainer keeps
+ChiyanMap recovery material outside the repository (local path in
+`AGENTS.local.md`, when present); planning may use its notes, but whoever
+writes Lamium map code works from this spec and does not open the recovered
+source.
 The implementation should use a player-centered scan spread over frames with
 an explicit budget, retain owned height/color data for shading, partition
 persistent data by world and dimension, and build the world map from bounded

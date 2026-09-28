@@ -99,20 +99,11 @@ Rules the code already follows; keep them:
    key. No Chinese unless requested.
 7. **UI** draws only rectangles and text through `src/ui/Widgets.h`. Use the
    palette and widgets there; do not invent colors or sizes. See DESIGN.md.
-8. **Bound expensive work.** World scans, geometry generation, texture uploads
-   and broad entity enumeration need an explicit per-frame/per-tick budget or
-   another proven bound. Large work must not silently move onto the render or
-   client thread.
-9. **Identify async results.** Background work that depends on a world,
-   dimension or feature generation carries owned identity values. Re-check
-   them before publishing a result and discard stale completions.
-10. **Confirm gameplay mutations authoritatively.** A successful function
-    return or submitted packet/transaction is not completion. Re-read the
-    authoritative client state or correlated response before continuing a
-    multi-step inventory/placement workflow.
-11. **Unstable integration fails open.** Version-sensitive internal render/UI
-    paths are capability-gated. If the expected symbol/state/contract cannot
-    be verified, keep vanilla behavior instead of guessing.
+8. **Engineering behavior** (DESIGN.md, the authoritative wording): bound
+   expensive scans and uploads per frame/tick, discard stale async results by
+   world/dimension generation, confirm gameplay mutations from authoritative
+   state rather than a return value or sent transaction, and fail open to
+   vanilla when a version-sensitive path cannot be verified.
 
 ## Code style
 
@@ -121,11 +112,13 @@ Rules the code already follows; keep them:
 - Tests use `check(bool, "what must hold")` in `tests/*Tests.cpp`, declared and
   called from `main` in `tests/CameraTests.cpp`.
 - Do not copy code, strings, assets, distinctive constants or implementation
-  structure from reference-only external projects. Named prior-art research,
-  links and license notes stay in the maintainer's external research notes;
-  repository docs keep Lamium's resulting requirements instead.
-  [docs/PROVENANCE.md](docs/PROVENANCE.md) defines the boundary and what must
-  be recorded when outside source is actually incorporated.
+  structure from other mods. [docs/PROVENANCE.md](docs/PROVENANCE.md) lists
+  the reference-only projects (do not open their source while writing Lamium
+  code) and what to record before any outside code is incorporated.
+- Specs describe Lamium's behavior in Lamium's terms, not "like mod X". Name an
+  outside project only in PROVENANCE.md or as a one-line source link for a
+  Research hypothesis; comparisons and surveys stay out of the repository.
+  Do not rewrite historical records (BACKLOG-DONE.md, VALIDATION.md).
 
 ## Git
 

@@ -46,14 +46,29 @@ Until then, candidate upstream implementations remain reference-only research.
 
 ## 3. Reference only
 
-Behavior, UX and feasibility research. Named research sources, URLs, license
-notes and comparisons are kept in the maintainer's external research notes,
-not in this repository.
+Behavior, UX and feasibility research. Do not copy, translate or closely
+paraphrase their code, comments, distinctive constants, strings, assets or
+implementation structure. Lamium implements the resulting requirements
+independently on Bedrock and LeviLamina APIs. Hooking the same SDK function
+is expected; the handler bodies must be Lamium's own.
 
-Do not copy, translate or closely paraphrase reference-only code, comments,
-distinctive constants, strings, assets or implementation structure. Lamium
-implements the resulting requirements independently on Bedrock and LeviLamina
-APIs.
+This list names projects only so that contributors know what not to copy.
+Comparisons, feature surveys and license analyses stay in the maintainer's
+external research notes. Whoever writes Lamium code works from the specs in
+`docs/` and does not open reference-only source (or source recovered from
+it) while doing so.
+
+- ChiyanMap (GPL-3.0; repository no longer available). Recovered source and
+  notes are kept outside this repository.
+- LeviSchematic (LGPL-3.0), until incorporated as described in group 2.
+- Current LeviLamina client mods: Stipuleroo (GPL-3.0), LHolo (GPL-3.0),
+  CoralFans and BedrockServerClientInterface (AGPL-3.0), Playback (AGPL-3.0),
+  FastMiner (no license found), CoralMap and Dear-OreUI (CC0-1.0; permissive,
+  but reference-only until the maintainer chooses to incorporate them).
+- Other Bedrock client mods such as Flarial and iInfiniteNightVision.
+- Java mods: MaLiLib, Tweakeroo, MiniHUD, Litematica, Item Scroller, Client
+  Sort and similar inventory sorters, Quark, Inventory Profiles Next, Mouse
+  Wheelie, Jade / WAILA, AppleSkin, Xaero's Minimap and World Map.
 
 If reference-only source later becomes incorporated source, move it to group 2
 in the same change that first imports code. Record the upstream repository and

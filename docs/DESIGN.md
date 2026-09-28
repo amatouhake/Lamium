@@ -30,9 +30,9 @@ Decided rule without asking.
   policy", decided 2026-09-28).
 - Features restore vanilla behavior when disabled or when leaving a world.
 - External prior art may inform behavior and feasibility, but repository specs
-  describe Lamium's requirements rather than named comparison projects.
-  Reference-only code, strings, assets, distinctive constants and pixel-level
-  UI are not copied or translated.
+  describe Lamium's requirements rather than "like mod X". Reference-only
+  projects are listed in PROVENANCE.md; their code, strings, assets,
+  distinctive constants and pixel-level UI are not copied or translated.
 
 ## Engineering behavior (Decided)
 
@@ -323,9 +323,9 @@ exactly one switch, one mode and one set of keys:
 - Help text warns that servers may treat very fast input as cheating.
 - Why: the first version had separate Periodic/Hold/Fast toggles plus a
   parent row without a switch, so it was unclear what was on, and stopping on
-  a manual click felt arbitrary (maintainer review 2026-09-25). The resulting
-  modes follow the maintainer's chosen behavior; named prior-art comparisons
-  are kept outside the repository.
+  a manual click felt arbitrary (maintainer review 2026-09-25). Reference
+  behavior: Tweakeroo's periodic/hold attack and use and fast click (behavior
+  only, no code).
 
 ## Light overlay (Decided 2026-09-25, docs/demos/light-overlay.html)
 
