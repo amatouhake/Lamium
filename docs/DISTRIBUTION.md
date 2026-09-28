@@ -9,17 +9,19 @@ package. The repository carries a LIP v3 `tooth.json`, and Bedrinth already
 lists Lamium (seen 2026-09-28 with versions 0.1.1-0.1.3). Managed install and
 update behavior has not been validated yet.
 
-How Bedrinth indexes packages (its bot source, `LiteLDev/bedrinth-api`,
-checked 2026-09-28):
+How packages get listed (sources read 2026-09-28; the older
+`LiteLDev/bedrinth-api` is archived and no longer describes this):
 
-- It finds repositories by GitHub code search for a root `tooth.json`; there
-  is no registration step. Package metadata comes from `tooth.json` at `HEAD`.
-- Versions come from the Go module proxy's list of `v<semver>` tags, each read
-  with the `tooth.json` at that tag. The GitHub pre-release flag is ignored, so
-  every pushed version tag is offered to users.
-- The listed LeviLamina requirement is read from the exact dependency key
-  `github.com/LiteLDev/LeviLamina`; the `#client` key Lamium (like other
-  client mods) uses is not shown there. Display only.
+- The LIP registry `LiteLDev/lipr` runs a daily job that finds repositories by
+  GitHub code search for a root `tooth.json` (no registration step) and adds
+  one manifest per semver `v*` git tag, read from `tooth.json` at that tag.
+  Prerelease semver tags count; the GitHub pre-release flag is not consulted.
+- The Bedrinth site and LeviLauncher both read that registry
+  (`lipr.levimc.org`). LeviLauncher recognizes the
+  `github.com/LiteLDev/LeviLamina#client` dependency key and uses its range to
+  judge compatibility with the instance and may refuse to install a version
+  whose range does not match. The range in `tooth.json` therefore gates
+  installs, not only display.
 
 Until L-65 is complete, GitHub Releases remain the documented fallback and
 managed installation must not be described as verified.
@@ -63,12 +65,14 @@ Prefer leaving runtime-created files outside package ownership. Use explicit
 preservation metadata only if managed-update validation proves that the normal
 ownership model is insufficient.
 
-LIP (`futrime/lip`, source read 2026-09-28) records each file it places and
-uninstall deletes only those files, so runtime-created files are left alone.
-`preserve_files` only exempts package-placed files from that deletion and is
-matched against the file name, not the path. It is not a way to protect
-runtime-created settings. Whether an update is uninstall + install, and which
-LIP build LeviLauncher uses, is still to be checked in L-65.
+Current LIP (`futrime/lip`, source read 2026-09-28) records each file it
+places. An update uninstalls the old version and installs the new one, and
+uninstall deletes only the recorded files, so runtime-created `config/` and
+`logs/` survive by design. `preserve_files` only exempts package-placed files
+from that deletion and is matched against the file name, not the path; it is
+not a way to protect runtime-created settings. What L-65 still has to confirm
+is field behavior: the LIP build LeviLauncher ships, its instance workspace
+and its update action.
 
 ## Version and asset contract
 
