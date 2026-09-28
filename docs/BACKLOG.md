@@ -44,8 +44,10 @@ published for whoever wants it. There is no "first release" gate.
   published to ask for testing before it is ready.
 - The version is set in `xmake.lua` and `tooth.json`. The asset is
   `Lamium-<version>-client-windows-x64.zip` (matching `tooth.json`); the folder
-  inside stays `Lamium/`, and release notes name the asset the same way. lip
-  registration is not done yet.
+  inside stays `Lamium/`, and release notes name the asset the same way.
+  Managed Bedrinth/LIP distribution is tracked by L-65 and
+  [DISTRIBUTION.md](DISTRIBUTION.md); it is not described as verified until the
+  install/update preservation matrix passes.
 - Large features may start at any time. They land on main in steps, default
   off and with the Experimental badge, so main stays releasable while they
   grow. A step that is not usable yet stays out of the settings screen (or
@@ -83,11 +85,14 @@ L-item wins. Every entry names what the task is, not only its number.
 4. **Research when convenient:** L-57 client counters (entities, chunks,
    particles), L-30 Ender Dragon part hitboxes, L-33 mob growth and breeding
    timers.
+5. **Distribution — L-65:** validate Bedrinth/LIP discovery and managed
+   install/update with settings preserved, then tighten release/CI checks.
+   This can proceed independently of gameplay feature work.
 
 Ideas that are not yet chosen (for example swapping out almost broken tools,
 more inventory transfer gestures, Schematic and Mass Craft) stay in the maintainer's notes and enter this file once chosen.
-Schematic and Mass Craft rank below Map because LeviSchematic and resource
-packs already cover part of them.
+Schematic and Mass Craft rank below Map because existing standalone tooling
+and resource packs already cover part of them.
 
 Task-picking rule: bugs first; otherwise work on what the execution order
 names. Cheap models skip strong-model, Design and Research work. Follow the
@@ -162,10 +167,10 @@ items draw nothing, layout editor placement.
 
 ### L-53 More Info HUD lines (wave 1)
 Kind: Implemented; display refinements await an in-game recheck. Agreed with
-the maintainer 2026-09-27 during the Info & HUD review; a MiniHUD-style set
-of everyday lines. Behavior reference only
-(MiniHUD; PROVENANCE.md). Default off for every new line, like the current
-set ("like MiniHUD, only a few on by default").
+the maintainer 2026-09-27 during the Info & HUD review; a compact set of
+everyday information lines informed by prior-art behavior research. Named
+comparisons stay outside the repository. Default off for every new line, with
+only a small everyday set enabled by default.
 - Add providers and rows: real time (IRL clock), scaled coordinates (the
   Nether 1:8 conversion; only where it applies), yaw and pitch as separate
   lines, speed split into horizontal/vertical, a sprinting line shown only
@@ -230,25 +235,25 @@ keep vanilla behavior.
   Offhand and custom activation chords keep their current behavior.
 
 #### Steps
-Known descriptions (no official or wiki specification found, 2026-09-28;
-these come from Java mods that imitate Bedrock and are hypotheses to check,
-not facts): while the button is held, Bedrock locks the build direction set
-by the first placement; blocks hovered outside that direction are ignored
-(the maintainer's "aimed at a face but nothing is placed"); along the locked
-direction it also places into air in front of the last block, following the
-player's movement (the bridging aid, "places even when the crosshair is not
-on a face"); and it places as soon as a new position is valid instead of on
-a fixed interval. Java places on the targeted face every 4 ticks and nothing
-else. Sources: the Pro Placer mod page (modrinth.com/mod/pro-placer) and
-BridgingMod issue #13 (github.com/squeeglii/BridgingMod/issues/13).
+External behavior research suggests the following hypotheses, but they are
+not treated as facts until Lamium traces current Bedrock: while the button is
+held, Bedrock may lock the build direction set by the first placement; blocks
+hovered outside that direction may be ignored; the session may place into air
+in front of the last block while bridging; and it may place as soon as a new
+position is valid instead of on a fixed interval. The Java-like mode defined
+above places on the currently targeted face every 4 ticks and does nothing
+when no valid face is targeted. Named research sources stay outside the
+repository.
 
 1. Research: record Bedrock's held build session with the L-49 trace
    (`research_trace`, `FakeOffhandTrace.cpp`) and confirm or correct each
    point above: the direction lock (what sets it, which positions it
    accepts), placing into air along it, the timing, and what ends the
-   session.
-   Find how to issue one placement through the vanilla path (no synthesized
-   packets). Report before building.
+   session. Lamium already hooks `GameMode::buildBlock` and
+   `SurvivalMode::buildBlock` for detached-camera interaction; test whether a
+   discrete ordinary build action is sufficient for one server-authoritative
+   placement, and map any required start/stop lifecycle. Do not synthesize a
+   custom packet merely to imitate held input. Report before building.
 2. Java-like style (Ready after step 1), with tests for the interval and the
    left-click rule.
 3. Fast style with the per-tick cap; then combine both with L-15's placement
@@ -260,10 +265,13 @@ Status: planning; the user-visible choices are closed and nothing is built.
 One group of render-only toggles: boss bars, rain/snow, all particles,
 carved-pumpkin overlay, spyglass overlay (zoom kept) and the nausea green
 vignette (vanilla Screen Distortion already removes the warp). Weather,
-effects, boss state and equipment are never changed. To decide: where the rows
-live and whether particles offer only All/None at first. Each item needs a small
-trace to find its render entry; ship them one by one. Status-effect-only
-particle filtering stays an idea until its source can be identified.
+effects, boss state and equipment are never changed. Research each effect in
+its own backend category rather than looking for one universal hook: HUD
+overlays, weather, particles, camera/media overlays and post-processing may
+have separate paths. Version-sensitive renderer paths are capability-gated and
+leave vanilla behavior unchanged when the expected contract is unavailable.
+Ship effects one by one. Status-effect-only particle filtering stays an idea
+until its source can be identified.
 Decided 2026-09-28: a keyless group heading "Hide effects" under Camera &
 view (beside Hide offhand, which is the same kind of feature) with one switch
 per effect, each bindable without a default key. Particles start as a
@@ -341,11 +349,17 @@ Settings and ids
    (RESTRICTIONS.md); extend them and their tests. In game: every mode in
    survival and creative, held-button target changes, Tool Switch together,
    world exit and dimension change.
-2. Placement gate (Research): find a path that rejects a whole placement
-   before its first mutation for ordinary blocks, replaceable vegetation,
-   slabs/snow, doors/beds, signs and redstone, without touching container
-   use or buckets. RESTRICTIONS.md lists the candidates and the opt-in
-   placement trace. Stop and report if no such path exists.
+2. Placement gate (Research): Lamium already has cancellable
+   `GameMode::buildBlock` / `SurvivalMode::buildBlock` hooks in the
+   detached-camera interaction guard. Determine whether that boundary can
+   reject the whole placement before mutation and, separately, how to derive
+   the actual destination cell/state using vanilla placement semantics rather
+   than assuming clicked-block + face is always correct. Trace ordinary
+   blocks, replaceable vegetation, slabs/snow, doors/beds, signs, redstone,
+   waterlogged/merge cases and edge placements without touching container use
+   or buckets. Prefer a vanilla placement-prediction API when available.
+   RESTRICTIONS.md lists the existing trace candidates. Stop and report if no
+   safe path exists.
 3. Placement modes (Ready once step 2 finds a path): the four modes, anchor
    on the first placed block, faces and Status line.
 
@@ -359,6 +373,38 @@ Diagnostics: `xmake f ... --research_trace=y` logs lines prefixed
 `research L-14` render call-site lines for the Hide Offhand shield path
 (`HideOffhand.cpp`), the L-49 build-session trace (`FakeOffhandTrace.cpp`) and
 the L-58 Target icon lines. Those items are in BACKLOG-DONE.md.
+
+### L-65 Managed distribution and update-safe packaging
+Kind: Research, then Ready. Chosen by the maintainer 2026-09-28.
+Status: open.
+Make Bedrinth/LIP a supported discovery and managed install/update path without
+sacrificing user configuration. The package contract is
+[DISTRIBUTION.md](DISTRIBUTION.md).
+
+Current state:
+- A LIP v3 `tooth.json` already exists at the repository root and declares a
+  Windows x64 client-only variant with the current LeviLamina Client range.
+- GitHub Releases remain the documented fallback until managed install/update
+  has been validated.
+- Release archives intentionally exclude runtime-created `config/` and
+  `logs/`; `scripts/Check-Package.ps1` enforces that boundary.
+
+Steps:
+1. Research the current Bedrinth/LIP registration/discovery path and run a real
+   clean install -> settings change -> managed update using two Lamium package
+   versions. Confirm `config/settings.json` and explicit key bindings survive,
+   while the DLL/manifest/notices update. Repeat through LIP CLI when it is an
+   intended supported path. Record actual uninstall behavior rather than
+   assuming whether user data is kept.
+2. If runtime-owned files survive naturally because they are not package
+   assets, keep `preserve_files` empty. Add preservation metadata only if the
+   real managed-update test proves it is required.
+3. Ready: add CI/package checks for version agreement across `xmake.lua`,
+   `tooth.json`, the expected `v<version>` tag/asset convention and package
+   layout. Keep the manual ZIP path usable.
+4. After the managed path passes, update the README install section so
+   LeviLauncher/Bedrinth is recommended, LIP CLI is the advanced path and
+   GitHub Releases is the manual fallback.
 
 ### L-62 Stop held mining before the tool breaks
 Kind: Research, then Ready. The control point exists; the bounded runtime
@@ -401,19 +447,13 @@ by an on-disk cache. It ships default off with the Experimental badge and
 grows on main in steps (Release policy above). Look agreed in
 [demos/minimap.html](demos/minimap.html).
 
-Provenance: usability follows the widely used Java minimap and world map
-mods (Xaero's; behavior reference only, PROVENANCE.md group 3). ChiyanMap
-(GPL-3.0, repository gone) is behavior and architecture reference only; its
-recovered source must not be copied, translated or derived from, and Lamium's
-map is an independent implementation on LeviLamina/Bedrock APIs. The
-maintainer keeps the recovery material outside the repository (local path in
-`AGENTS.local.md`, when present): research notes on the scanner, cache format
-and rendering, plus recovered source fragments. Planning and specs may use
-the notes; whoever writes Lamium map code works from this spec and does not
-open the recovered source. Useful architecture from the notes: a
-player-centered scan spread over frames with a small time budget per frame,
-heights kept for shading, fixed-size regions per world and dimension, and a
-world map tiled from cached regions.
+Prior-art research for map usability and implementation feasibility is kept
+outside the repository. Lamium's map is specified here and implemented on
+LeviLamina/Bedrock APIs; reference-only source is not copied or translated.
+The implementation should use a player-centered scan spread over frames with
+an explicit budget, retain owned height/color data for shading, partition
+persistent data by world and dimension, and build the world map from bounded
+cached regions rather than a single unbounded texture.
 
 #### Minimap spec (decided with the maintainer, 2026-09-28)
 Map
@@ -486,9 +526,14 @@ in-game check by the maintainer. Pure logic goes in headers with tests.
    a per-frame time budget, keep owned colors and heights, shade and upload;
    the HUD element, frame, player arrow, zoom steps, rotating/round options,
    the text lines, the "Map" settings category and the Debug View hiding.
-   Tests: block/biome color and shading math, world-to-map transforms
-   (north-up and rotating), zoom steps, scan scheduling. First Experimental
-   release point.
+   Background scan/bake work carries world + dimension generation identity
+   and discards stale completions. Keep full-dirty data changes separate from
+   presentation-only refreshes where that avoids unnecessary work. Tests:
+   block/biome color and shading math, negative-coordinate chunk/region math,
+   world-to-map transforms (north-up and rotating), zoom steps, scan
+   scheduling and stale-result rejection. In game: include negative
+   coordinates, Nether, quick world re-entry and dimension changes. First
+   Experimental release point.
 3. Cave view: detect a ceiling, scan floors and walls around the player's
    height, the Nether always in cave view, the force key. Tests: ceiling
    detection and floor selection on synthetic columns.
@@ -529,9 +574,9 @@ Research first:
 - confirm the client receives saturation (single player and a server);
 - find where and how the vanilla HUD draws the hunger bar (render entry and
   icon positions) so the overlay follows GUI scale, hides with the hunger bar
-  (creative, riding) and survives resource/UI packs such as the maintainer's
-  Deesse UI; if a pack moves the bar, the overlay must move with it or stay
-  off, never float in the wrong place.
+  (creative, riding) and survives non-vanilla resource/UI layouts; if a pack
+  moves the bar, the overlay must move with it or stay off, never float in the
+  wrong place.
 Decided 2026-09-28: saturation is a gold outline on as many drumstick icons
 as the saturation level covers (the icons themselves stay readable); the
 held-food preview shows the gained icons translucent and still, with no
@@ -618,9 +663,9 @@ enough to show as a time.
   detached or document it as a limit; above-ground flight is unaffected.
   Moot while FreeCamera locks first person.
 - L-29 Hide the hotbar while detached (parked, after L-18). Requested
-  2026-09-24, Tweakeroo-like: an option to hide the hotbar while FreeCamera
-  is active (looking-only flight needs no hotbar). Find the vanilla hotbar
-  render entry first; Freelook is out of scope unless trivially shared.
+  2026-09-24: an option to hide the hotbar while FreeCamera is active
+  (looking-only flight needs no hotbar). Find the vanilla hotbar render entry
+  first; Freelook is out of scope unless trivially shared.
 - L-21 Shape color picker or more colors: only if the four colors prove
   insufficient.
 - L-37 FreeCamera cannot see caves from underground: parked as a known
