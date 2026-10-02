@@ -110,8 +110,13 @@ at most 640×380 and centered. New screens reuse these numbers.
 
 ### Text and languages (Decided)
 
-- English is the default; Japanese follows the game language. Every string
-  has both. Chinese only on request.
+- English is the default; Japanese follows the game language. English and
+  Japanese are the currently shipped locales and every current string has
+  both. Simplified Chinese (`zh_CN`) is the accepted third official UI locale
+  (L-90, decided 2026-10-02); add it through the shared translation system,
+  not as one-off strings. Once L-90 lands, every shipped user-facing key has
+  English, Japanese and Simplified Chinese. Traditional Chinese is not claimed
+  until it is separately translated and reviewed.
 - Japanese locale: Latin runs are raised 1.5 units to share the baseline, and
   text inside a frame starts `boxTextInset()` lower. Always draw through
   `ui::label`/`ui::paragraph`, never raw font calls.
@@ -184,7 +189,11 @@ Contents:
   background eases to its new size and position in 0.1 s; the content is
   always drawn at once (hiding it blanked the card while the view moved).
   Mobs use their spawn egg as the icon; hearts use the game's health-bar
-  sprites.
+  sprites. In Hearts mode, one full heart represents 2 HP and the number of
+  heart slots follows the target's maximum health (L-88, decided 2026-10-02);
+  current health fills those absolute slots, including half hearts, rather
+  than normalizing every target to the same fixed heart count. Bar and Number
+  modes keep their existing semantics.
   While Freelook or FreeCamera is active the card follows the camera: the
   nearest block or entity box along the rendered camera's forward, water and
   lava excluded.
