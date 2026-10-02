@@ -84,8 +84,9 @@ L-item wins. Every entry names what the task is, not only its number.
    world (servers not checked). The world map is built and checked in a
    local world (2026-10-01; servers and large worlds not checked). L-82
    ended as a link to an external seed map (done 2026-10-01); seed-based
-   biomes and structures are a non-goal. Open: server and large-world
-   checks, and the map UI in L-83.
+   biomes and structures are a non-goal. L-83's map/settings UI review is
+   done. Open: server and large-world checks, L-86 radar-face follow-ups and
+   L-89 distant-player position research.
 4. **Research when convenient:** L-37 FreeCamera seeing caves (wanted),
    L-79 carved pumpkin and spyglass frame draw path (cheap-model friendly
    trace/test steps), L-89 distant player positions for the map/radar via
@@ -168,15 +169,14 @@ Kind: Refactor (strong model). Review done 2026-09-30 on main 4d1790b
 (read-only); classification and order agreed with the maintainer the same
 day. No rewrite: pure logic in headers, feature docs and validation records
 are sound. One commit per step; build + LamiumTests after each.
-Status: steps 1-8 done 2026-09-30 (c894ae8..8d9ea21; camera trace and both
-probe builds compile). In-game checks 1 and 2 passed except Auto Attack/Use
-(fixed in 221edcb, rechecked the same day) and an occasional Breaking Restriction
-hold that stops breaking (cause unknown; carried into B and L-15). Step 9 is
-next. `Zoom.cpp` is now 752 lines with 5 `#if`
-(`CameraTrace.cpp`, `DetachedCameraRig.cpp`). Steps 10 (084b424, checked in game) done; 11 and 12 dropped (see D).
-Next is 13 with L-15. Step 9 decided 2026-09-30:
-no further split; `Zoom` was renamed `CameraSessions` (file and class)
-because it holds all three camera sessions.
+Status: steps 1-10 done 2026-09-30. In-game checks 1 and 2 passed except
+Auto Attack/Use (fixed in 221edcb, rechecked the same day) and an occasional
+Breaking Restriction hold that stops breaking (cause unknown; carried into B
+and L-15). Step 9 concluded that no further camera split was useful: `Zoom`
+was renamed `CameraSessions` (file and class), with trace/probe code and
+detached-camera state already separated; the main file is 752 lines with 5
+`#if`. Step 10 (084b424) was checked in game. Steps 11 and 12 were dropped
+after review (see D). The only remaining step is 13 with L-15.
 
 Fix (can cause wrong behavior)
 - A. Breaking Restriction and Tool Switch read and write their
@@ -921,8 +921,9 @@ every recommendation and built the same day (not checked in game yet):
 - The Waypoints screen opened from the map shows "< Map" instead of
   Close; it and Esc return to the map with its view kept.
 Checked in a local world 2026-10-01 on `e6781e5` (all points passed).
-Open (L-83): the settings and UI around the map may be discussed again,
-including the side panel overlapping the Waypoints screen.
+L-83 completed 2026-10-01 (see BACKLOG-DONE.md): the settings/UI consistency
+review covered the map and Waypoints screen. Further map UI changes are new
+work, not an open part of L-83.
 
 ### L-63 Saturation on the vanilla hunger bar
 Kind: Research, then Design. Chosen by the maintainer 2026-09-28.
