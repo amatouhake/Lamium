@@ -70,6 +70,10 @@ L-item wins. Every entry names what the task is, not only its number.
      marking).
    - L-67 Switch to the best weapon when attacking (Design first).
    - L-75 Offhand slot beside the hotbar (Design with a mockup, small).
+   - L-88 Target health hearts: show absolute health with one heart per two
+     HP instead of normalizing every target to the same heart count.
+   - L-90 Simplified Chinese localization: add `zh_CN` as the third official
+     UI locale and make the translation table ready for more locales.
 2. **Placement and breaking — L-15 restrictions and L-59 held placement
    style:** specs written after the 2026-09-28 discussion; building waits for
    the maintainer's go.
@@ -84,7 +88,8 @@ L-item wins. Every entry names what the task is, not only its number.
    checks, and the map UI in L-83.
 4. **Research when convenient:** L-37 FreeCamera seeing caves (wanted),
    L-79 carved pumpkin and spyglass frame draw path (cheap-model friendly
-   trace/test steps), L-71 starting a glide from the mod, L-57
+   trace/test steps), L-89 distant player positions for the map/radar via
+   the vanilla locator-player path, L-71 starting a glide from the mod, L-57
    client counters, L-30 Ender Dragon part hitboxes, L-33 mob growth and
    breeding timers.
 5. **L-73 architecture review:** agreed 2026-09-30, in progress step by
@@ -423,9 +428,83 @@ slot there changes the weapon used for that hit or only the next one, and
 how that looks on a server. When it exists, it gets the L-69 child option
 (fetch the weapon from the main inventory; see BACKLOG-DONE.md).
 
+### L-88 Target health hearts use absolute HP
+Kind: Design decided, then a small UI change. Chosen by the maintainer
+2026-10-02.
+Status: open.
+The Target card's Hearts mode currently fills a fixed number of hearts from
+`health / maxHealth`, so a 20-HP and a 40-HP mob can look equally healthy.
+Make the hearts encode Minecraft health units instead:
+- One full heart is 2 HP. The number of available heart slots comes from the
+  target's maximum health rather than a fixed normalized count.
+- Current health fills those slots in the same units; odd HP uses a half
+  heart. Examples: 20/20 -> 10/10 hearts, 10/20 -> 5/10, 20/40 -> 10/20,
+  19/20 -> 9.5/10.
+- Reuse the game's health-bar sprites already used by the Target card. The
+  Bar and Number modes do not change.
+- Do not silently clamp a high-health target back to a normalized 10-heart
+  display. If the current card layout cannot present a large derived count
+  cleanly, settle that narrow layout question before coding and keep the
+  absolute-health semantics.
+Tests should cover the examples above, half-heart handling and a maximum-health
+value above 20. Confirm in game on ordinary 20-HP and higher-health mobs.
+
+### L-90 Simplified Chinese localization
+Kind: Design decided, then implementation. Chosen by the maintainer
+2026-10-02.
+Status: open.
+Add Simplified Chinese (`zh_CN`) as Lamium's third official UI locale.
+English and Japanese remain supported; Traditional Chinese is not claimed
+until there is actual demand and a separately reviewed translation.
+Scope:
+- Translate user-facing Settings text, feature descriptions, editor/prompt
+  text and toasts. A full translated README is not required for this item.
+- Replace the fixed two-language `Entry { key, english, japanese }` shape
+  with a translation representation that can add another locale without
+  duplicating lookup logic at call sites.
+- Match the game locale to `zh_CN`; unsupported locales still fall back to
+  English.
+- Keep every locale complete. Tests must fail when a shipped translation key
+  is missing in English, Japanese or Simplified Chinese.
+- The first Chinese wording may be prepared by an agent, but Minecraft/mod
+  terminology corrections from native users are explicitly welcome. Add a
+  short contribution note when the locale ships.
+Do not generate Traditional Chinese by mechanical conversion and present it as
+official support.
+
 ---
 
 ## Research
+
+### L-89 Distant player positions for map and radar
+Kind: Research, then implementation if a typed authoritative path is viable.
+Chosen by the maintainer 2026-10-02.
+Status: open.
+The map radar currently obtains player positions from loaded Actor instances,
+so a player outside the normal entity-tracking range disappears even when
+vanilla's Locator Bar still knows where that player is.
+Desired behavior:
+- Keep using the loaded Actor's interpolated position while it exists.
+- Only for a player without a loaded Actor, supplement that position from the
+  same vanilla player-location state used by the Locator Bar. Do not infer
+  positions or bypass vanilla visibility/privacy decisions.
+- A vanilla HIDE update removes that player's supplemental marker immediately.
+  The same resolved player-position source should be usable by both the
+  minimap and world map.
+Research order:
+1. Inspect the current 1.26.51 / LeviLamina 26.51.5 SDK for a typed Locator
+   Bar/player-location cache that already owns the authoritative state.
+2. If that state is not exposed, inspect the typed receive path for
+   `PlayerLocationPacket` (ActorUniqueID + position/HIDE) and determine
+   whether a small Lamium cache can mirror only that public packet state.
+3. Establish how ActorUniqueID maps to the existing player marker/name/head
+   identity without keeping stale pointers. Clear supplemental state on
+   world/server/dimension generation changes and disconnect.
+4. Validate Actor -> locator fallback -> Actor transitions, HIDE, reconnect,
+   and at least one server before claiming multiplayer coverage.
+Prefer reading vanilla-owned state over adding a packet hook. If neither path
+can preserve HIDE and lifecycle semantics cleanly, leave distant players
+unshown rather than broadening visibility.
 
 ### L-79 Carved pumpkin and spyglass frame draw path
 Kind: Research. Cheap models may run the steps below and report; implementing
