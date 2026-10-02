@@ -103,8 +103,11 @@ Rules the code already follows; keep them:
 5. **Actions**: append to `enum Action` and `actions` in `Binding.h` (never
    reorder; ids are saved), map toggles in `ToggleAction.h`, handle presses in
    `Actions.cpp`. Behavior (Press/Hold/Toggle) is decided by the action.
-6. **Translations**: English is the default, Japanese is required for every
-   key. No Chinese unless requested.
+6. **Translations**: English is the default and Japanese is required for
+   every current key. L-90 adds Simplified Chinese (`zh_CN`) as the third
+   official UI locale; once it lands, every shipped user-facing key requires
+   all three. Until then, do not add isolated Chinese strings outside the
+   shared localization work. Traditional Chinese is not supported by L-90.
 7. **UI** draws only rectangles and text through `src/ui/Widgets.h`. Use the
    palette and widgets there; do not invent colors or sizes. See DESIGN.md.
 8. **Engineering behavior** (DESIGN.md, the authoritative wording): bound
