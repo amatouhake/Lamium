@@ -424,15 +424,14 @@ Proposed behavior (to confirm with the maintainer):
   slot.
 - A new action, unbound by default, in the Inventory group beside Fake
   Offhand (append to `enum Action`, never reorder).
+Bedrock has no built-in default offhand swap key (the maintainer's finding,
+2026-10-05, from a report; not yet checked in game), so this action is the only
+swap key and there is nothing to extend.
 Open questions:
-1. Does Bedrock have its own offhand swap key? Unknown on 2026-10-05: the
-   repository has no evidence. Check in game (Settings, Controls) before
-   designing. If it exists: extend it or add a separate action? If not, the
-   action above is the only swap key.
-2. When the selected slot is the Fake Offhand target slot, or the target slot
+1. When the selected slot is the Fake Offhand target slot, or the target slot
    is empty or holds the same stack, what happens and what is shown?
-3. Feedback when there is nothing to swap (toast, silence).
-4. Interaction with Hand Restock's offhand totem refill and Tool Protection.
+2. Feedback when there is nothing to swap (toast, silence).
+3. Interaction with Hand Restock's offhand totem refill and Tool Protection.
 Related, not decided: hotbar slot ownership. The Fake Offhand target slot is
 an ordinary slot, and other automation (Tool Switch, Weapon Switch, Hand
 Restock from the hotbar) may use it. Ideas: keep it empty and out of other
