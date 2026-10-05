@@ -36,6 +36,10 @@ Decided rule without asking.
   L-82): they would depend on keeping a generator current for every game
   version and would look as real as recorded terrain. The world map links
   to an external seed map instead.
+- Lamium targets Windows x64 with LeviLamina Client. Android is not planned
+  (decided 2026-10-05): it needs an ARM64 build, replacements for the
+  Windows-specific code and input, and new checks of every version-sensitive
+  hook. Reconsider only after the platform split and its upkeep are weighed.
 - External prior art may inform behavior and feasibility, but repository specs
   describe Lamium's requirements rather than "like mod X". Reference-only
   projects are listed in PROVENANCE.md; their code, strings, assets,
