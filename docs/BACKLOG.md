@@ -408,6 +408,40 @@ Scope:
 Do not generate Traditional Chinese by mechanical conversion and present it as
 official support.
 
+### L-94 Swap the held item with the offhand, including items the offhand cannot hold
+Kind: Design. Taken up by the maintainer 2026-10-05 after a public request.
+Status: open; nothing is built and no step starts until the maintainer says so.
+What it is for: one action that puts the selected item in the "second hand"
+and brings the second hand's item back, also for items Bedrock does not let
+the real offhand hold. Fake Offhand (L-49) only borrows a hotbar slot while a
+block is placed; it never touches the real offhand slot. `InventoryMove`
+already moves items between the inventory and the real offhand (L-68).
+
+Proposed behavior (to confirm with the maintainer):
+- An item the real offhand accepts is swapped with the real offhand. The game
+  and server stay authoritative; Lamium never forces an unsupported item in.
+- An item it does not accept is swapped with the Fake Offhand target hotbar
+  slot.
+- A new action, unbound by default, in the Inventory group beside Fake
+  Offhand (append to `enum Action`, never reorder).
+Open questions:
+1. Does Bedrock have its own offhand swap key? Unknown on 2026-10-05: the
+   repository has no evidence. Check in game (Settings, Controls) before
+   designing. If it exists: extend it or add a separate action? If not, the
+   action above is the only swap key.
+2. When the selected slot is the Fake Offhand target slot, or the target slot
+   is empty or holds the same stack, what happens and what is shown?
+3. Feedback when there is nothing to swap (toast, silence).
+4. Interaction with Hand Restock's offhand totem refill and Tool Protection.
+Related, not decided: hotbar slot ownership. The Fake Offhand target slot is
+an ordinary slot, and other automation (Tool Switch, Weapon Switch, Hand
+Restock from the hotbar) may use it. Ideas: keep it empty and out of other
+automation's reach; move a stray item into the main inventory after the
+server update when there is room, and do nothing when there is not; let
+"Fetch from inventory" use a fixed hotbar slot instead of the selected one.
+Settle the behavior in each feature first and share a helper only when two of
+them need the same rule; no reservation manager up front.
+
 ---
 
 ## Research
@@ -426,6 +460,49 @@ the same. `isGlint` is the right predicate (enchanted books, golden apples and
 lodestone compasses shine without enchantments); do not replace it with
 `isEnchanted`. Find how vanilla slots draw the glint for such icons and use
 the same pass in both places.
+
+### L-95 Fake Offhand beyond block placement
+Kind: Research **(strong model)**. Taken up 2026-10-05; related to L-94.
+Status: open.
+Fake Offhand selects its target hotbar slot only around a block placement. The
+request is to use other items the same way: use on a block, use in the air and
+hold-to-use items. Removing the placement guard is not enough: the temporary
+selection has to live through the vanilla use lifecycle (start, hold,
+completion or cancel) and the original slot must be restored afterwards.
+Hand Restock already follows that lifecycle and is the first place to look.
+Find out:
+- which game calls start, continue and finish a use, and when it is safe to
+  switch the slot back for a held use (eating, drawing a bow);
+- what the server sees and whether servers accept it (server authority; fail
+  open to vanilla when a step cannot be confirmed);
+- which items are worth supporting first, and which must stay vanilla
+  (containers, buckets, anything the real offhand already handles).
+Output: a short spec with the supported use kinds, then Ready steps.
+
+### L-96 Connected textures, starting with glass
+Kind: Research **(strong model)** first, then Design for the settings.
+Taken up 2026-10-05 after a public request.
+Status: open; default off and Experimental when it ships.
+What it is for: blocks next to a block of the same kind draw as one surface,
+without the border line between them. Start with glass, then stained glass of
+the same color, then glass panes; panes joined to blocks, different colors
+and border options come later.
+Approach to test (a feasibility hint is recorded in PROVENANCE.md): change how
+chunk faces are tessellated, look at the neighbor through the block source and
+crop the texture coordinates at the touching edge; changing the setting marks
+chunks dirty so they rebuild.
+Constraints:
+- This changes vanilla chunk tessellation, which is more version-sensitive
+  than the schematic ghosts' private tessellator. Capability-gated and fail
+  open: on an unverified game version do nothing.
+- Bound the neighbor lookups; a toggle rebuilds chunks.
+- Keep it general: one rule table (which blocks, what they connect to, which
+  edges are cropped) instead of glass-only branches. Resource-pack-defined
+  tile sets are not promised. Widen beyond glass only after surveying which
+  vanilla blocks have an inner border line.
+Research output: the function(s) that can be intercepted on this game
+version, whether the crop works for glass and panes, the cost on a large
+view distance, and how it behaves with Vibrant Visuals / Deferred rendering.
 
 ### L-79 Carved pumpkin and spyglass frame draw path
 Kind: Research. Cheap models may run the steps below and report; implementing

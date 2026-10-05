@@ -67,6 +67,9 @@ it) while doing so.
   CoralFans and BedrockServerClientInterface (AGPL-3.0), Playback (AGPL-3.0),
   FastMiner (no license found), CoralMap and Dear-OreUI (CC0-1.0; permissive,
   but reference-only until the maintainer chooses to incorporate them).
+- BedrockTools (an Android native mod; checked 2026-10-05: its root LICENSE
+  is MIT but its README says GPL-3.0): read only as the source of the L-96
+  feasibility hint. Reference-only until the project clarifies its license.
 - Other Bedrock client mods such as Flarial and iInfiniteNightVision.
 - GroupMountain FreeCamera (GPL-3.0; a BDS plugin): README read 2026-09-30
   as the source of the L-37 hypothesis; its source is not opened.
