@@ -424,9 +424,9 @@ Proposed behavior (to confirm with the maintainer):
   slot.
 - A new action, unbound by default, in the Inventory group beside Fake
   Offhand (append to `enum Action`, never reorder).
-Bedrock has no built-in default offhand swap key (the maintainer's finding,
-2026-10-05, from a report; not yet checked in game), so this action is the only
-swap key and there is nothing to extend.
+Bedrock has no built-in default offhand swap key (confirmed in game by the
+maintainer, 2026-10-05), so this action is the only swap key and there is
+nothing to extend.
 Open questions:
 1. When the selected slot is the Fake Offhand target slot, or the target slot
    is empty or holds the same stack, what happens and what is shown?
@@ -457,8 +457,8 @@ Open questions:
    itself a good tool or weapon?
 3. One destination slot for both features or one each; the setting shape and
    the default (today's behavior, selected slot).
-4. A slot that Fake Offhand targets (L-94) must not be a destination unless
-   the player chooses it; decide the conflict rule together with L-94.
+4. Decide how a fixed destination interacts with a Fake Offhand reserved slot
+   (L-94); the conflict policy is not decided.
 Keep the existing 150 ms pacing, the server confirmation and the "never one
 about to break" rule unchanged.
 
@@ -516,10 +516,11 @@ Constraints:
   than the schematic ghosts' private tessellator. Capability-gated and fail
   open: on an unverified game version do nothing.
 - Bound the neighbor lookups; a toggle rebuilds chunks.
-- Keep it general: one rule table (which blocks, what they connect to, which
-  edges are cropped) instead of glass-only branches. Resource-pack-defined
-  tile sets are not promised. Widen beyond glass only after surveying which
-  vanilla blocks have an inner border line.
+- Glass is the research target. If the approach extends cleanly, a
+  table-driven design (which blocks, what they connect to, which edges are
+  cropped) can be considered later; do not require one up front.
+  Resource-pack-defined tile sets are not promised. Widen beyond glass only
+  after surveying which vanilla blocks have an inner border line.
 Research output: the function(s) that can be intercepted on this game
 version, whether the crop works for glass and panes, the cost on a large
 view distance, and how it behaves with Vibrant Visuals / Deferred rendering.

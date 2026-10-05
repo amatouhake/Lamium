@@ -20,8 +20,8 @@ experimental in the settings are still settling (see
 remaining gaps are tracked in [validation status](docs/VALIDATION.md).
 
 Supported: Minecraft Bedrock 1.26.51.01, LeviLamina Client 26.51.x, Windows
-x64. Android is not planned: it would be a separate ARM64 port, not a
-repackaged build.
+x64. Android support is not currently planned: it would be a separate ARM64
+port, not a repackaged build.
 
 ## Install
 
