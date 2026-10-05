@@ -436,10 +436,31 @@ Related, not decided: hotbar slot ownership. The Fake Offhand target slot is
 an ordinary slot, and other automation (Tool Switch, Weapon Switch, Hand
 Restock from the hotbar) may use it. Ideas: keep it empty and out of other
 automation's reach; move a stray item into the main inventory after the
-server update when there is room, and do nothing when there is not; let
-"Fetch from inventory" use a fixed hotbar slot instead of the selected one.
-Settle the behavior in each feature first and share a helper only when two of
-them need the same rule; no reservation manager up front.
+server update when there is room, and do nothing when there is not. Settle the
+behavior here first and share a helper only when a second feature needs the
+same rule (L-97 is the likely one); no reservation manager up front.
+
+### L-97 Tool Switch and Weapon Switch: fetch into a fixed hotbar slot
+Kind: Design. Split from L-94 by the maintainer 2026-10-05.
+Status: open; nothing is built and no step starts until the maintainer says so.
+Today "Fetch from inventory" (L-69, EQUIPMENT.md) swaps the chosen inventory
+item with the selected slot, so it overwrites whatever the player held there.
+Idea: let the player name a hotbar slot as the destination, so the fetched
+tool or weapon always lands in that slot and the other hotbar slots keep their
+layout. Reuses the screenless `InventoryMove::movePair()` path.
+Open questions:
+1. The tool must be in hand to be used, so the fixed slot has to become the
+   selected one. Does the previous slot come back afterwards? Weapon Switch
+   has no switch back today, and Tool Switch keeps the tool selected.
+2. What happens to the item that was in the fixed slot (it goes to the
+   inventory slot the tool came from, as in a swap) and when that item is
+   itself a good tool or weapon?
+3. One destination slot for both features or one each; the setting shape and
+   the default (today's behavior, selected slot).
+4. A slot that Fake Offhand targets (L-94) must not be a destination unless
+   the player chooses it; decide the conflict rule together with L-94.
+Keep the existing 150 ms pacing, the server confirmation and the "never one
+about to break" rule unchanged.
 
 ---
 
