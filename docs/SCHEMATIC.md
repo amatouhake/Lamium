@@ -257,7 +257,11 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    `transformBlock`, not from neighbors. That check also showed the mirror
    axes swapped: the game's `Mirror::Z` flips east-west states, so
    Lamium's X maps to it and Z to `Mirror::X` (fixed after `0486186`).
-   Open: a door or bed whose partner lies outside the file draws nothing.
+   Checked on `54c6a8a`: X, Z and mirror plus 90 degrees match a structure
+   block for blocks. Open: a door or bed whose partner lies outside the
+   file draws nothing; under the X mirror an armor stand facing south stays
+   south in Lamium (`toWorldYaw`, a true reflection) but the structure block
+   turns it north (maintainer to choose which to follow).
 2. Render layers: build each section's ghosts into separate meshes by
    the block's render layer (opaque, alpha-test, blended) and draw the
    blended ones last, sorted back to front by section. This is the base

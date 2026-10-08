@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic mirror axes swapped for block states (2026-10-09)
+
+By the maintainer, local, deployed `54c6a8a`, DLL SHA-256
+`45192484611150f3771328bcd5ea62267291f588e79ba71d17e53057a799fe4d`.
+`mixture` placed by Lamium and by a vanilla structure block side by side
+with the same mirror. Before the fix (`9993c78`, Z mirror): stairs high on
+the wrong side, the glass pane joined toward the outside instead of the
+glass, chest and ender chest faced the other way, the fence joined the
+air instead of the spawner. After: Z mirror matches the structure block;
+X mirror and mirror plus 90 degrees match for every block. Placing blocks
+on mirrored and turned placements removes the right ghosts, and wrong
+blocks or states are marked as such. Unmirrored ghosts look as before.
+Not matching: under the X mirror the armor stand (stored yaw 0, facing
+south) faces the opposite way from the structure block's. Lamium keeps it
+facing south (a true east-west reflection); the structure block turns it
+north. Which one Lamium should follow is open.
+
 ## L-93 Schematic neighbors spike, B1 (2026-10-09)
 
 By the maintainer, local, deployed `9993c78`, DLL SHA-256
