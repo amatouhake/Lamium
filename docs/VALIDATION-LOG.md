@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-121 Night Vision shading with Smooth Lighting (2026-10-09)
+
+By the maintainer, Minecraft 1.26.51.01, local world, Smooth Lighting on,
+looking down at a floor with a one-block hole (screenshots in the
+conversation). The Lamium build was the deployed one of that day (hash not
+recorded). Seen: with Lamium's Night Vision on, the blocks around the hole
+turn dark blue in a wide ring; strong at Brightness 0%, weaker at 50%,
+almost gone at 100%. The vanilla Night Vision effect (Lamium's off) looks
+the same at 0%, and so does vanilla Minecraft without LeviLamina. So this
+is the game's own behavior, not a Lamium bug. Not checked: other Night
+Vision settings, light sources nearby, the Nether.
+
 ## L-114 shortened Check note and preview hint (2026-10-09)
 
 By the maintainer, deployed `511cb35`, DLL

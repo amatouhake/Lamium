@@ -222,37 +222,36 @@ unmet gates for versions already published:
 ## Bugs
 
 ### L-121 Night Vision deepens the dark corners with Smooth Lighting on
-Kind: Bug (Research first). Found by the maintainer 2026-10-09 (screenshots
-of a redstone grid from above, in the conversation).
-Status: open; cause unknown.
-With Smooth Lighting on, Night Vision brightens the tops of blocks while
-the gaps between them stay dark, so the shading looks stronger than
-without it. With Smooth Lighting off, Night Vision lights the gaps too and
-the picture is even. Whether light near light sources really drops is not
-established.
+Kind: Design (small). Found by the maintainer 2026-10-09 as a bug; the same
+day they showed it is the game's own behavior (VALIDATION-LOG).
+Status: open; waiting for the maintainer's choice.
+With Smooth Lighting on and Night Vision on, the corners and gaps that
+smooth lighting darkens turn dark blue, in a wide ring around a hole in a
+floor. The vanilla Night Vision effect does the same, also without
+LeviLamina. The game's Brightness setting decides how strong it is: strong
+at 0%, weaker at 50%, almost gone at 100%. With Smooth Lighting off the
+picture is even.
 
 | Smooth Lighting | Night Vision | Seen |
 | --- | --- | --- |
 | on | off | normal shading |
-| on | on | bright tops, gaps darker by contrast |
+| on | on | bright tops, gaps dark blue |
 | off | off | weaker shading in the gaps |
 | off | on | gaps lit too, even brightness |
 
 Lamium's Night Vision (`NightVision.cpp`) sets the game's own night vision
-fields in the light texture data (`mNightvisionActive`, scale 1, darkness
-cleared); it adds no effect and no shading of its own. So the first step is
-cheap: give the player the vanilla Night Vision effect
-(`/effect @s night_vision`) with Lamium's off and compare at the same spot
-with Smooth Lighting on. If vanilla looks the same, this is how the game
-combines the light texture with smooth lighting (ambient occlusion is not
-lightened by night vision), and any fix is a Lamium change beyond vanilla
-(Design with the maintainer). If vanilla looks better, find what the
-effect sets that Lamium does not.
+fields of the light texture data and adds nothing else, so it shows the
+vanilla look. Candidate fix within the same hook: while Lamium's Night
+Vision is on, raise the light texture's `BaseLightData::mGamma` toward
+what Brightness 100% gives, so the user's Brightness setting is not
+changed. To find out in a first round: whether `mGamma` is the Brightness
+slider's value and whether raising it removes the blue ring, and how much
+brighter everything else gets. Choices for the maintainer: always on with
+Night Vision, a child option (default on or off), or leave vanilla.
 Constraints (maintainer): do not turn Smooth Lighting off for the player;
-keep natural shading where possible; avoid deep render hooks. Done when, with
-Smooth Lighting on, gaps are no longer unnaturally dark, nothing changes
-with Night Vision off, and bright places, dark places, light sources and
-dense builds were checked in all four combinations.
+keep natural shading where possible; avoid deep render hooks. Check all four
+Smooth Lighting / Night Vision combinations, at Brightness 0, 50 and 100%,
+in bright and dark places, near light sources and on dense builds.
 
 ### L-119 Fence gates show no icon in the shulker box preview
 Kind: Bug. Reported by the maintainer 2026-10-08.
