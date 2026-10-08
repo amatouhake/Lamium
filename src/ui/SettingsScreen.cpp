@@ -3288,6 +3288,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         if (!checked) { paragraph(context,dx,l.detailTop+6,dw,translated("schematic.noSelection"),4,palette::faint); break; }
         label(context,dx,l.nameY+1+boxTextInset(),dw,checked->name);
         auto const& t = verification->visible;
+        float previewTop = l.previewY + 58;
         // The whole placement first, then the selected position, each under a heading.
         label(context,dx,l.previewY-2,dw,translated("schematic.check.whole", layersText(*checked)),palette::faint);
         if (unloadable) paragraph(context,dx,l.previewY+10,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
@@ -3332,6 +3333,54 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 vx += changeArrowWidth + 3;
                 label(context,vx,sy,dx+dw-vx,want.value,stateColor);
                 sy += 11;
+            }
+            previewTop = sy + 4;
+        }
+        // The placement in 3D, colored by what the check found; with a row
+        // selected, everything else dims so its block stands out (L-114).
+        if (!unloadable && !counting && l.actionsY - 6 - previewTop >= 40) {
+            float top = previewTop, bottom = l.actionsY - 6;
+            fill(context,dx,top,dw,bottom-top,Rgb{0,0,0},.25f);
+            frame(context,dx,top,dw,bottom-top,palette::white,.1f);
+            auto structure = schematic::session::structure(checked->file);
+            if (structure) {
+                schematic::Point here{INT_MIN, INT_MIN, INT_MIN};
+                if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size()) && !verifyRows[static_cast<size_t>(verifySelected)]->entity)
+                    here = verifyRows[static_cast<size_t>(verifySelected)]->position;
+                static std::map<std::tuple<int, int, int>, schematic::CellState> states;
+                static std::uint64_t statesKey = 0;
+                std::uint64_t key = reinterpret_cast<std::uintptr_t>(verification.get()) * 31 + static_cast<std::uint64_t>(here.x) * 7
+                    + static_cast<std::uint64_t>(here.y) * 13 + static_cast<std::uint64_t>(here.z) + 1;
+                if (key != statesKey) {
+                    statesKey = key;
+                    states.clear();
+                    for (auto const& m : verification->mismatches)
+                        if (!m.entity) states[{m.position.x, m.position.y, m.position.z}] = m.state;
+                }
+                bool focus = here.x != INT_MIN;
+                auto placement = checked->placement;
+                auto size = structure->size;
+                schematic::preview::Tint tint{key, [placement, size, here, focus](int x, int y, int z) -> std::uint32_t {
+                    auto world = schematic::toWorld(size, placement, {x, y, z});
+                    if (focus && world == here) return 0xffffffffu;
+                    auto found = states.find({world.x, world.y, world.z});
+                    std::uint32_t color = 0xffffffffu;
+                    if (found != states.end()) switch (found->second) {
+                    case schematic::CellState::Missing: color = 0xffffcc8cu; break; // light blue
+                    case schematic::CellState::Wrong: case schematic::CellState::Extra: color = 0xff5a64ffu; break; // red
+                    case schematic::CellState::State: color = 0xff5ad7ffu; break; // yellow
+                    default: break;
+                    }
+                    if (!focus) return color;
+                    // Dim the rest to 45%.
+                    auto dim = [&](int shift) { return ((((color >> shift) & 255) * 115 / 255) << shift); };
+                    return dim(0) | dim(8) | dim(16) | 0xff000000u;
+                }};
+                auto& t = previewTurn;
+                t.x = dx; t.y = top; t.w = dw; t.h = bottom - top;
+                if (!schematic::preview::draw(context, structure, dx + 1, top + 1, dw - 2, bottom - top - 2,
+                        schematic::preview::View{t.yaw, t.pitch}, &tint))
+                    t.w = 0;
             }
         }
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);

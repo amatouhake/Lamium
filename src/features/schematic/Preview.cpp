@@ -56,6 +56,7 @@ struct Ready {
     Order order;
     std::optional<mce::Mesh> mesh;
     std::uint32_t vertices = 0;
+    std::uint64_t tintKey = 0;
 };
 Ready ready;
 // The finished quads of the last built structure, unsorted.
@@ -71,6 +72,7 @@ struct Kept {
     std::array<bool, 15> enabled{};
     std::pair<glm::vec3, glm::vec3> aabb{};
     std::pair<glm::vec2, glm::vec2> uvAabb{};
+    std::vector<std::uint32_t> quadCells; // the cell each quad belongs to
 };
 Kept kept;
 // The mesh being built.
@@ -85,6 +87,7 @@ struct Job {
     bool failed = false; // too large or nothing to draw: not tried again
     int height = 320;    // the dimension's build limit
     std::vector<bool> covers; // per palette entry: hides the faces it touches
+    std::vector<std::uint32_t> quadCells;
 };
 std::optional<Job> job;
 
@@ -224,6 +227,7 @@ bool step() {
         j.blocks->tessellateInWorld(batch, *blockAt(j, x, y, z), spot, false);
         glm::vec3 move = at - glm::vec3(spot.x, spot.y, spot.z);
         for (size_t v = from; v < positions.size(); ++v) positions[v] += move;
+        j.quadCells.insert(j.quadCells.end(), (positions.size() - from) / 4, static_cast<std::uint32_t>(cell));
         // Faces lying on the cell's side against an occupied neighbor are
         // never seen: collapse them. Everything else stays (back faces too:
         // the near-to-far sort below puts them behind the front ones).
@@ -260,11 +264,13 @@ bool step() {
     kept.enabled = *data.mFieldEnabled;
     kept.aabb = *data.mAABB;
     kept.uvAabb = *data.mUVAABB;
+    kept.quadCells = std::move(j.quadCells);
     return true;
 }
 
 // Uploads the kept quads sorted for `order`.
-void upload(ScreenContext& screen, Order order) {
+void upload(ScreenContext& screen, Order order, Tint const* tint) {
+    ready.tintKey = tint ? tint->key : 0;
     ready.mesh.reset();
     ready.structure = kept.structure.get();
     ready.order = order;
@@ -277,6 +283,22 @@ void upload(ScreenContext& screen, Order order) {
     *data.mNormals = kept.normals;
     *data.mTangents = kept.tangents;
     *data.mColors = kept.colors;
+    if (tint && tint->color && kept.quadCells.size() * 4 == kept.colors.size()) {
+        auto const& s = *kept.structure;
+        auto& colors = *data.mColors;
+        for (size_t q = 0; q < kept.quadCells.size(); ++q) {
+            int cell = static_cast<int>(kept.quadCells[q]);
+            std::uint32_t m = tint->color(cell / (s.size.y * s.size.z), cell / s.size.z % s.size.y, cell % s.size.z);
+            if (m == 0xffffffffu) continue;
+            for (size_t k = 0; k < 4; ++k) {
+                auto& c = colors[q * 4 + k];
+                auto channel = [&](int shift) {
+                    return ((((c >> shift) & 255) * ((m >> shift) & 255) + 127) / 255) << shift;
+                };
+                c = channel(0) | channel(8) | channel(16) | (c & 0xff000000u);
+            }
+        }
+    }
     *data.mBoneId0s = kept.bones;
     for (int i = 0; i < 3; ++i) *data.mTextureUVs[i] = kept.uvs[i];
     *data.mPBRTextureIndices = kept.pbr;
@@ -299,7 +321,7 @@ void clear() {
 } // namespace
 
 bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> const& structure, float x, float y, float width, float height,
-          View view) {
+          View view, Tint const* tint) {
     if (!structure || width < 8 || height < 8) return false;
     IClientInstance& client = context.mClient;
     auto* region = client.getRegion();
@@ -307,15 +329,16 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
     auto& screen = static_cast<ScreenContext&>(context.mScreenContext);
     auto order = drawOrder(view);
     try {
-        bool current = ready.structure == structure.get() && ready.order == order && ready.mesh && ready.mesh->isValid();
+        std::uint64_t key = tint ? tint->key : 0;
+        bool current = ready.structure == structure.get() && ready.order == order && ready.tintKey == key && ready.mesh && ready.mesh->isValid();
         if (!current && kept.structure == structure) {
-            upload(screen, order);
+            upload(screen, order, tint);
         } else if (!current && (!job || job->structure != structure)) {
             start(screen, *region, structure, order);
         }
         if (job && !job->failed && step()) {
             job.reset();
-            upload(screen, order);
+            upload(screen, order, tint);
         }
         if (ready.structure != structure.get() || !ready.mesh || !ready.mesh->isValid()) return false;
         auto& dispatcher = client.getBlockEntityRenderDispatcher();
