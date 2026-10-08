@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic door halves and mirrored entity facing (2026-10-09)
+
+By the maintainer, local, deployed `a32a49f`, DLL SHA-256
+`3092a9d7ee32eca948e385d5f75f8ab62d57e4fe4df07ea1dab93f82fff454bb`.
+Every item of the checklist passed: in `submerged_lamium` the waterlogged
+jungle door whose upper half is outside the file now draws its half, also
+turned and mirrored, matching a structure block; doors with both halves
+draw as before, and placing the real lower half leaves no displaced ghost;
+the `mixture` armor stand matches the structure block under the X mirror,
+the Z mirror and mirror plus 90 degrees; unmirrored entity facing is
+unchanged; the Files/Check preview draws the door at the area's edge.
+Not checked: a bed with one half outside the file, redstone.
+
 ## L-93 Schematic mirror axes swapped for block states (2026-10-09)
 
 By the maintainer, local, deployed `54c6a8a`, DLL SHA-256

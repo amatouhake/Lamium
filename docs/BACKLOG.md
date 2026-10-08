@@ -661,7 +661,8 @@ Accepted follow-ups (2026-10-07; known gaps, not 0.1.7 blockers):
   honey blocks still drawing as outlines.
 - The Check tab's verifier-colored preview and the Files tab's rotatable
   3D preview.
-- Neighbor-dependent ghost shapes using schematic neighbors.
+- Neighbor-dependent ghost shapes using schematic neighbors (B1 done
+  2026-10-09; doors draw, connections come from file states).
 - The translucent ghost look.
 - Entity name-tag distance and quantity.
 
@@ -685,8 +686,9 @@ mockup", mock `docs/demos/schematic-screen.html`). Work order:
 
 0.1.8 rendering and compatibility work (plan 2026-10-09 in SCHEMATIC.md
 "Rendering and compatibility plan for 0.1.8"): A saved-file version and a
-vanilla-loader check, **done and checked in game 2026-10-09**; then B schematic
-neighbors, render layers, liquids (previews too) and block entity data, C
+vanilla-loader check, **done and checked in game 2026-10-09**; B1 schematic
+neighbors (doors and their missing halves, mirror axes for block states and
+entity facing), **done and checked in game 2026-10-09**; then B render layers, liquids (previews too) and block entity data, C
 event-driven rebuilds, D waterlogging in the check (the check stays
 strict). B-D: Research (strong model), approach left to the agent.
 

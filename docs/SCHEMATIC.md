@@ -274,6 +274,10 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    area's edge or under water draws its own half. Only the drawn half is
    shown; nothing is drawn outside the placement. Beds are drawn per half
    by the block-entity renderer against the real world and are unchanged.
+   Checked on `a32a49f` (VALIDATION-LOG): both changes pass; the armor
+   stand matched under X, Z and mirror plus 90 degrees, confirming the
+   axis-swap assumption for entity facing. B1 is done; left unchecked: a
+   bed with one half outside the file, redstone (no sample).
 2. Render layers: build each section's ghosts into separate meshes by
    the block's render layer (opaque, alpha-test, blended) and draw the
    blended ones last, sorted back to front by section. This is the base
