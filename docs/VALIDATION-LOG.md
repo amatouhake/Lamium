@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-114 preview zoom limit and layer peeling (2026-10-08)
+
+By the maintainer, deployed `771a84b` then `07937ed` (DLL
+`ee773a037554f20bccfc41d3aa203b59ad8a9eaad1f8ea458c77fed32f47ae4f`), Minecraft
+1.26.51.01, local world. Passed: zoom stops at the box from every side (the
+UI scissor never clipped the mesh: GUI units, pixels and a committing fill
+all failed); Shift+wheel peels from the side the view looks down on, the
+side stays fixed after turning (a height cut seen from the side), the top
+strip resets it without starting a drag; the Check tab keeps its colors;
+waiting after a peel on large builds is acceptable. On `771a84b` the side
+followed the view and the label click did nothing (both fixed).
+
 ## L-114 Check tab layout A and wheel zoom (2026-10-08)
 
 By the maintainer, deployed `cdebe56`, DLL
