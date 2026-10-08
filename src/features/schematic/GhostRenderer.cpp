@@ -432,10 +432,9 @@ bool ghostOpaqueAt(BlockSource& region, session::Shown const& shown, Resolved co
     bool drawn = static_cast<size_t>(index) >= blocks.meshless.size() || !blocks.meshless[static_cast<size_t>(index)];
     return ghost && drawn && ghost->getBlockType().mIsOpaqueFullBlock && region.getBlock(BlockPos{n.x, n.y, n.z}).isAir();
 }
-// A red or yellow mistake mark is drawn at `n` (a wrong or extra real block
-// in a shown layer). Its tinted box reaches 0.01 past the cell, so a ghost
-// face against it would share its plane (Depth.h rules 1 and 4).
-bool markedAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
+// A ghost is drawn at `n`: a block expected in a shown layer, nothing real
+// there yet.
+bool ghostDrawnAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
@@ -447,11 +446,7 @@ bool markedAt(BlockSource& region, session::Shown const& shown, Resolved const& 
     BlockPos pos{n.x, n.y, n.z};
     auto* chunk = region.getChunkAt(pos);
     if (!chunk || chunk->mLoadState->load() < ChunkState::Loaded) return false;
-    Block const& actual = region.getBlock(pos);
-    if (actual.isAir() || actual.getMaterial().mType == SharedTypes::v1_26_20::MaterialType::ClientRequestPlaceholder) return false;
-    if (structure.palette[static_cast<size_t>(index)].isAir()) return placement.countExtras;
-    Block const* expected = blocks.blocks[static_cast<size_t>(index)];
-    return expected && &actual != expected;
+    return blocks.blocks[static_cast<size_t>(index)] && region.getBlock(pos).isAir();
 }
 bool enclosed(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point at) {
     for (auto const& d : faces::offsets) {
@@ -465,8 +460,7 @@ bool enclosed(BlockSource& region, session::Shown const& shown, Resolved const& 
 // opaque ghost: unseen from outside, and they fought with the neighbor's own
 // face. Real opaque full neighbors hide the quad too: the tessellator culls
 // against them for most blocks, but not the honey block's outer cube, which
-// fought with the real face in the same plane. So do neighbors with a
-// mistake mark, whose box would share the plane. A dropped
+// fought with the real face in the same plane. A dropped
 // quad collapses to one point, so no other vertex data has to move.
 // Near the camera (this cell or the neighbor within one cell of it) the pair
 // keeps one face instead: the one facing the camera. Every such plane then
@@ -485,7 +479,7 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
         if (!known) {
             auto const& d = faces::offsets[side];
             Point n{at.x + d[0], at.y + d[1], at.z + d[2]};
-            if (region.getBlock(BlockPos{n.x, n.y, n.z}).getBlockType().mIsOpaqueFullBlock || markedAt(region, shown, blocks, n)) {
+            if (region.getBlock(BlockPos{n.x, n.y, n.z}).getBlockType().mIsOpaqueFullBlock) {
                 known = true;
             } else {
                 known = ghostOpaqueAt(region, shown, blocks, n);
@@ -719,6 +713,13 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
             int open = 0;
             for (int side = 0; side < 6; ++side) {
                 if (sameAt(cell, side, m.g)) continue;
+                // The box reaches 0.01 into the next cell: against a ghost its
+                // face would lie on (or just past) the ghost's own and fight
+                // with it at grazing angles (Depth.h rules 1 and 4). The
+                // ghost's face shows there instead.
+                auto const& d = faces::offsets[side];
+                if (ghostDrawnAt(region, shown, blocks, {std::get<0>(cell) + d[0], std::get<1>(cell) + d[1], std::get<2>(cell) + d[2]}))
+                    continue;
                 ++open;
                 auto const& f = sides[side];
                 for (int k = 0; k < 4; ++k) quads.vertex(c[f[k]].x, c[f[k]].y, c[f[k]].z);
