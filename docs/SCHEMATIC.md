@@ -217,8 +217,10 @@ A. File compatibility (Ready, chosen 2026-10-09):
   game's loader, placed correctly by the structure block (the first two)
   and read by the reference tool. A version 2 copy of the 122x39x203
   save that failed there before (only the version and the empty second
-  layer changed) loaded in it too, so the version was the likely cause.
-  Open: the game's own loader on a save that large.
+  layer changed) loaded in it and in the game's structure block, while
+  both version 1 originals still failed there: the version 1 header was
+  the cause, and the game's loader takes 122x39x203. A is done; files
+  saved before `d37bd6d` stay version 1 until saved again.
 
 B. Ghost drawing (Research, strong model; one runtime round per step):
 1. Schematic neighbors: `BlockTessellator` reads neighbors through

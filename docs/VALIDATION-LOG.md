@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Version 1 and 2 large saves side by side (2026-10-09)
+
+By the maintainer, local, same files as the entry below. LHolo failed on
+both version 1 Lamium saves, `terrain big` (122x39x203) and `terrain big 2`
+(276x14x232), with its message that the vanilla StructureTemplate could not
+load the structure (screenshot in the conversation). The version 2 copy
+`terrain big v2` loaded there (entry below) and also loaded through the
+game's structure block. So the version 1 header was the cause, and the
+game's loader takes a 122x39x203 file. Not checked: 276x14x232 as version
+2, servers.
+
 ## L-93 Large schematic as version 2 in another tool (2026-10-09)
 
 By the maintainer, local. The agent copied the Lamium save `terrain big`
