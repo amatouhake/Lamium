@@ -1282,9 +1282,13 @@ void drawNameTags(ScreenContext& screen, IClientInstance& client, BlockSource& r
         for (int k = 3; k >= 0; --k) plate.vertex(quad[k].x, quad[k].y, .01f);
         MeshHelpers::renderMeshImmediately(screen, plate, backgroundMaterial, OffscreenCaptureDescription{});
         mce::Color white{1.f, 1.f, 1.f, 1.f}, black{0.f, 0.f, 0.f, 1.f};
-        if (smooth) font.setTextConstantsInScreenContext(screen, sheet, 1.f, white, false);
-        // The smooth material shades toward its dark color; keep it white.
-        font.drawCached(screen, name, -width / 2, 0, white, false, false, false, smooth ? nullptr : &textMaterial, -1, false, 0, white, smooth ? white : black, 0, 0,
+        // The smooth sheet's edge softness follows the on-screen size of a
+        // font pixel (the UI passes its GUI scale): about nameTagScale times
+        // 1080 px over the view height at that distance (70 degrees). At 1
+        // the edges spread over the glyphs and darkened them.
+        float onScreen = nameTagScale * 1080.f / (2 * std::max(glm::length(offset), .5f) * .7f);
+        if (smooth) font.setTextConstantsInScreenContext(screen, sheet, std::clamp(onScreen, .5f, 8.f), white, false);
+        font.drawCached(screen, name, -width / 2, 0, white, false, false, false, smooth ? nullptr : &textMaterial, -1, false, 0, white, black, 0, 0,
             OffscreenCaptureDescription{}, false);
         ref.stack->_isDirty = true;
         if (ref.stack->sortOrigin->has_value() && (ref.stack->stack->size() - 1) <= ref.stack->sortOrigin->value())
