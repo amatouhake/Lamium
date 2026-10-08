@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-114 Check tab colored preview (2026-10-08)
+
+By the maintainer, deployed `1c0b8bc`, DLL
+`ace332d7fc5aceaae13254c0b4e0ca8ed1ef0eb9aa2a1769f05be9efc86c5ff2`, Minecraft
+1.26.51.01, local world, mixture and desert village placements. Passed:
+missing light blue, wrong red, wrong state yellow; the selected row's block
+stays lit and the rest dims, following the selection; drag turns it without
+other clicks; no flicker or hitch when colors change, also on the large
+placement. Found: a trapdoor drew behind the structure block beyond it
+(also in the Files preview; fixed after this check by sorting blocks
+first); the preview resizes whenever the text above it changes height;
+mistakes are hard to find in large or complex builds. The maintainer wants
+another mockup round for the Check tab and how mistakes are shown.
+
 ## L-114 Files tab 3D preview (2026-10-08)
 
 By the maintainer over seven rounds (`bd7f7f6` to `f2fbf49`, last DLL

@@ -702,7 +702,9 @@ checked in game against the block's look before it counts as verified.
 ### L-114 3D previews in the schematic screen
 Kind: Research **(strong model)**. Chosen 2026-10-08 (L-93 screen review).
 Status: Files preview built and checked in game 2026-10-08 (`f2fbf49`);
-Check tab colored preview built (`1c0b8bc`), not checked yet. Not drawn yet:
+Check tab colored preview built and checked (`1c0b8bc`); next: a mockup
+round for the Check tab layout (the preview resizes with the text above
+it) and how mistakes are shown in large builds (maintainer, 2026-10-08). Not drawn yet:
 entities, water, block entities (chest, ender chest, shulker box), honey
 block and others without an in-world mesh.
 How it works (`Preview.cpp`, pure parts in `PreviewView.h`): visible blocks
