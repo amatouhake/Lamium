@@ -97,6 +97,38 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
     job->batch->begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(std::min<size_t>(job->cells.size() * 24, 1 << 20)), false);
 }
 
+// Reorders the batch's quads near to far for a viewer in the order's octant
+// (the UI pass keeps the first fragment at a spot). Every per-vertex stream
+// moves with its positions.
+void sortQuads(Tessellator& batch, Order order) {
+    auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
+    auto& positions = *data.mPositions;
+    size_t quads = positions.size() / 4;
+    if (quads < 2) return;
+    glm::vec3 toward = glm::normalize(glm::vec3{order.x * .6f, order.y * .7f, order.z * .4f});
+    std::vector<std::pair<float, std::uint32_t>> keys(quads);
+    for (size_t q = 0; q < quads; ++q) {
+        auto c = (positions[q * 4] + positions[q * 4 + 1] + positions[q * 4 + 2] + positions[q * 4 + 3]) * .25f;
+        keys[q] = {-glm::dot(c, toward), static_cast<std::uint32_t>(q)};
+    }
+    std::stable_sort(keys.begin(), keys.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
+    auto permute = [&](auto& stream) {
+        if (stream.size() != quads * 4) return;
+        auto copy = stream;
+        for (size_t q = 0; q < quads; ++q)
+            for (size_t k = 0; k < 4; ++k) stream[q * 4 + k] = copy[keys[q].second * 4 + k];
+    };
+    permute(positions);
+    permute(*data.mNormals);
+    permute(*data.mTangents);
+    permute(*data.mColors);
+    permute(*data.mBoneId0s);
+    for (int i = 0; i < 3; ++i) permute(*data.mTextureUVs[i]);
+    permute(*data.mPBRTextureIndices);
+    permute(*data.mMERS);
+    permute(*data.mGeoType);
+}
+
 // Tessellates the next blocks of the job: each at its cell relative to the
 // structure's center, keeping only the faces turned to the viewer and not
 // covered by a neighbor. True when the job finished.
@@ -117,26 +149,24 @@ bool step() {
         static_cast<bool&>(batch.mApplyTransform) = true;
         static_cast<glm::mat4x4&>(batch.mTransformMatrix) = glm::translate(glm::mat4{1.f}, at);
         j.blocks->appendTessellatedBlock(batch, *blockAt(j, x, y, z));
+        // Faces lying on the cell's side against an occupied neighbor are
+        // never seen: collapse them. Everything else stays (back faces too:
+        // the near-to-far sort below puts them behind the front ones).
         for (size_t q = from; q + 4 <= positions.size(); q += 4) {
-            auto n = glm::cross(positions[q + 1] - positions[q], positions[q + 2] - positions[q]);
-            if (glm::length(n) < 1e-6f) continue;
-            n = glm::normalize(n);
-            int axis = std::abs(n.x) > .9f ? 0 : std::abs(n.y) > .9f ? 1 : std::abs(n.z) > .9f ? 2 : -1;
-            if (axis < 0) continue;
-            // Outward from the cell's middle, whatever the quad's winding;
-            // a quad through the middle (a slab's top) keeps its winding.
-            float middle = (positions[q][axis] + positions[q + 2][axis]) / 2 - at[axis] - .5f;
-            int sign = std::abs(middle) > .01f ? (middle > 0 ? 1 : -1) : (n[axis] > 0 ? 1 : -1);
-            int d[3]{0, 0, 0};
-            d[axis] = sign;
-            bool hide = !facesViewer(j.order, d[0], d[1], d[2]);
-            float local = positions[q][axis] - at[axis];
-            bool boundary = sign > 0 ? local > .999f : local < .001f;
-            if (!hide && boundary) hide = occupied(x + d[0], y + d[1], z + d[2]);
-            if (hide) for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
+            for (int axis = 0; axis < 3; ++axis) {
+                float a = positions[q][axis] - at[axis];
+                bool flat = true;
+                for (size_t k = 1; k < 4; ++k) flat = flat && std::abs(positions[q + k][axis] - positions[q][axis]) < 1e-4f;
+                if (!flat || (a > .001f && a < .999f)) continue;
+                int d[3]{0, 0, 0};
+                d[axis] = a >= .999f ? 1 : -1;
+                if (occupied(x + d[0], y + d[1], z + d[2])) for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
+                break;
+            }
         }
     }
     if (j.next < j.cells.size()) return false;
+    sortQuads(batch, j.order);
     ready.mesh.reset();
     ready.structure = j.structure.get();
     ready.order = j.order;
@@ -177,17 +207,15 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
 
         // Model (centered blocks) to UI: right, down and toward the viewer,
-        // scaled to fit. Depth: the UI pass tests it (it kept the first
-        // fragment at equal depth), so nearer gets a smaller z and the parts
-        // inside one block (stair steps, fence bars) sort too. Kept small to
-        // stay inside the UI's depth range.
+        // scaled to fit. Depth stays flat: the UI pass keeps the first
+        // fragment at a spot (a real z cut blocks apart), so quads are
+        // sorted near to far instead.
         auto r = project(view, 1, 0, 0), u = project(view, 0, 1, 0), f = project(view, 0, 0, 1);
         float scale = fitScale(structure->size.x, structure->size.y, structure->size.z, width, height);
         glm::mat4 model{1.f};
-        constexpr float depthPerBlock = .002f;
-        model[0] = {scale * r.right, scale * r.down, -depthPerBlock * r.toward, 0};
-        model[1] = {scale * u.right, scale * u.down, -depthPerBlock * u.toward, 0};
-        model[2] = {scale * f.right, scale * f.down, -depthPerBlock * f.toward, 0};
+        model[0] = {scale * r.right, scale * r.down, 0, 0};
+        model[1] = {scale * u.right, scale * u.down, 0, 0};
+        model[2] = {scale * f.right, scale * f.down, 0, 0};
         model[3] = {x + width / 2, y + height / 2, 0, 1};
         context.flushText(0, std::nullopt);
         context.enableScissorTest(RectangleArea{x, x + width, y, y + height});
