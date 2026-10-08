@@ -68,6 +68,7 @@ struct Job {
     std::unique_ptr<Tessellator> batch;
     bool failed = false; // too large or nothing to draw: not tried again
     int height = 320;    // the dimension's build limit
+    std::vector<bool> covers; // per palette entry: hides the faces it touches
 };
 std::optional<Job> job;
 
@@ -75,6 +76,13 @@ Block const* blockAt(Job const& j, int x, int y, int z) {
     auto const& s = *j.structure;
     auto index = s.blocks[static_cast<size_t>(s.cell(x, y, z))];
     return index >= 0 && static_cast<size_t>(index) < j.palette.size() ? j.palette[static_cast<size_t>(index)] : nullptr;
+}
+
+bool covers(Job const& j, int x, int y, int z) {
+    auto const& s = *j.structure;
+    if (x < 0 || y < 0 || z < 0 || x >= s.size.x || y >= s.size.y || z >= s.size.z) return false;
+    auto index = s.blocks[static_cast<size_t>(s.cell(x, y, z))];
+    return index >= 0 && static_cast<size_t>(index) < j.covers.size() && j.covers[static_cast<size_t>(index)];
 }
 
 void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure const> const& structure, Order order) {
@@ -85,17 +93,6 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
     job->palette.assign(s.palette.size(), nullptr);
     for (size_t i = 0; i < s.palette.size(); ++i)
         if (!s.palette[i].isAir()) job->palette[i] = ghosts::gameBlock(s.palette[i]);
-    // The UI pass keeps the first fragment drawn at a spot (its depth test
-    // rejects equal depth), so blocks go near to far: the reverse of the
-    // painter's order.
-    job->cells = visibleCells(s.size.x, s.size.y, s.size.z, order, [&](int x, int y, int z) { return blockAt(*job, x, y, z) != nullptr; },
-        [&](int x, int y, int z) { auto const* b = blockAt(*job, x, y, z); return b && b->getBlockType().mIsOpaqueFullBlock; });
-    std::reverse(job->cells.begin(), job->cells.end());
-    if (job->cells.empty() || job->cells.size() > maxBlocks) {
-        job->failed = true;
-        if (!job->cells.empty()) log(std::format("{} visible blocks, over the {} limit", job->cells.size(), maxBlocks));
-        return;
-    }
     job->height = region.getMaxHeight();
     job->blocks = std::make_unique<BlockTessellator>(&region);
     // Primed with one appended block: in-world tessellation on a fresh
@@ -104,6 +101,20 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
         Tessellator primer(screen.tessellator.mBufferResourceService);
         primer.begin({}, mce::PrimitiveMode::QuadList, 64, false);
         job->blocks->appendTessellatedBlock(primer, *stone);
+    }
+    job->covers.assign(job->palette.size(), false);
+    for (size_t i = 0; i < job->palette.size(); ++i)
+        if (job->palette[i]) job->covers[i] = ghosts::coversNeighbors(*job->palette[i], *job->blocks, screen);
+    // The UI pass keeps the first fragment drawn at a spot (its depth test
+    // rejects equal depth), so blocks go near to far: the reverse of the
+    // painter's order.
+    job->cells = visibleCells(s.size.x, s.size.y, s.size.z, order, [&](int x, int y, int z) { return blockAt(*job, x, y, z) != nullptr; },
+        [&](int x, int y, int z) { return covers(*job, x, y, z); });
+    std::reverse(job->cells.begin(), job->cells.end());
+    if (job->cells.empty() || job->cells.size() > maxBlocks) {
+        job->failed = true;
+        if (!job->cells.empty()) log(std::format("{} visible blocks, over the {} limit", job->cells.size(), maxBlocks));
+        return;
     }
     job->batch = std::make_unique<Tessellator>(screen.tessellator.mBufferResourceService);
     job->batch->begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(std::min<size_t>(job->cells.size() * 24, 1 << 20)), false);
@@ -182,11 +193,7 @@ bool step() {
     auto& positions = batch.mMeshData->mPositions.get();
     // Only an opaque full block hides the face it touches (a stair or a
     // trapdoor next to stone leaves the stone's face partly open).
-    auto occupied = [&](int x, int y, int z) {
-        if (x < 0 || y < 0 || z < 0 || x >= s.size.x || y >= s.size.y || z >= s.size.z) return false;
-        auto const* b = blockAt(j, x, y, z);
-        return b && b->getBlockType().mIsOpaqueFullBlock;
-    };
+    auto occupied = [&](int x, int y, int z) { return covers(j, x, y, z); };
     for (size_t done = 0; j.next < j.cells.size() && done < blocksPerFrame; ++j.next, ++done) {
         auto cell = static_cast<int>(j.cells[j.next]);
         int x = cell / (s.size.y * s.size.z), y = cell / s.size.z % s.size.y, z = cell % s.size.z;

@@ -125,6 +125,9 @@ struct Resolved {
     int rotation = 0;
     Mirror mirror = Mirror::None;
     std::vector<Block const*> blocks;
+    // Palette entries that are opaque full blocks with no mesh on the ghost
+    // path (honey block): they must not hide a neighbor's face.
+    std::vector<bool> meshless;
     std::vector<ItemInfo> items;
     std::vector<EntityGhost> entities;
     // Whether each entity stands at its spot; nullopt while it cannot be
@@ -385,7 +388,8 @@ bool ghostOpaqueAt(BlockSource& region, session::Shown const& shown, Resolved co
     auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
     if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size()) return false;
     Block const* ghost = blocks.blocks[static_cast<size_t>(index)];
-    return ghost && ghost->getBlockType().mIsOpaqueFullBlock && region.getBlock(BlockPos{n.x, n.y, n.z}).isAir();
+    bool drawn = static_cast<size_t>(index) >= blocks.meshless.size() || !blocks.meshless[static_cast<size_t>(index)];
+    return ghost && drawn && ghost->getBlockType().mIsOpaqueFullBlock && region.getBlock(BlockPos{n.x, n.y, n.z}).isAir();
 }
 bool enclosed(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point at) {
     for (auto const& d : faces::offsets) {
@@ -471,6 +475,12 @@ void buildSection(ScreenContext& screen, BlockSource& region, BlockTessellator& 
     out.signature = signatureOf(region, shown, key);
     out.complete = true;
 
+    if (blocks.meshless.size() != blocks.blocks.size()) {
+        auto& meshless = const_cast<Resolved&>(blocks).meshless;
+        meshless.assign(blocks.blocks.size(), false);
+        for (size_t i = 0; i < blocks.blocks.size(); ++i)
+            if (auto const* b = blocks.blocks[i]; b && b->getBlockType().mIsOpaqueFullBlock) meshless[i] = !coversNeighbors(*b, own, screen);
+    }
     Tessellator batch(screen.tessellator.mBufferResourceService);
     batch.begin({}, mce::PrimitiveMode::QuadList, 4096, false);
     // Mistakes also get tinted faces just outside the real block, so they
@@ -1618,6 +1628,16 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
 }
 
 Block const* gameBlock(PaletteBlock const& entry) { return lookup(entry); }
+bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen) {
+    if (!block.getBlockType().mIsOpaqueFullBlock) return false;
+    static std::map<Block const*, bool> drawn;
+    if (auto found = drawn.find(&block); found != drawn.end()) return found->second;
+    // Tessellated once above the build limit, where nothing culls it.
+    Tessellator scratch(screen.tessellator.mBufferResourceService);
+    scratch.begin({}, mce::PrimitiveMode::QuadList, 64, false);
+    tessellator.tessellateInWorld(scratch, block, BlockPos{0, 2000, 0}, false);
+    return drawn[&block] = !scratch.mMeshData->mPositions->empty();
+}
 void wantProgress() { progressWanted = steadyMs(); }
 std::optional<Tally> progress(SavedPlacement const& placement) {
     std::lock_guard lock(progressMutex);

@@ -13,9 +13,14 @@
 #include <utility>
 #include <vector>
 class Block;
+class BlockTessellator;
+class ScreenContext;
 namespace lamium::schematic::ghosts {
 // The game block for a palette entry (its name, states and version), or null.
 Block const* gameBlock(PaletteBlock const& entry);
+// Whether a block hides the neighbor faces it touches: an opaque full block
+// that the in-world tessellation draws (a honey block draws nothing there).
+bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen);
 void start();
 void stop();
 // The latest finished verification of the selected placement (never null).
