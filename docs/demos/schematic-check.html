@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schematic Check Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --panel:rgba(16,17,19,.86); --edge:rgba(255,255,255,.14); --alt:rgba(255,255,255,.025); --hover:rgba(255,255,255,.07);
+  --sel:rgba(108,195,73,.16); --text:#fff; --dim:#b4b8b6; --faint:#7f8583;
+  --key:#2b2c2d; --key-edge:#5a5b5c; --warn:#ffc24a; --bad:#ff5a4e; --state:#ffcc40; --miss:#8cccff;
+  --font:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:80ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.ctrl{display:grid;gap:8px;font-size:13px;color:var(--ink-2)}
+.ctrl .r{display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center}
+.ctrl .r>span:first-child{min-width:9em;color:var(--ink)}
+.grp{display:flex;gap:6px;flex-wrap:wrap}
+.grp button{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:12.5px;padding:3px 10px}
+.grp button[aria-pressed=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.stage-outer{border:1px solid var(--line);background:#0b0d0e}
+.fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--font);color:var(--text);overflow:hidden;
+  background:linear-gradient(160deg,#2c4b3c 0%,#46523f 35%,#6b6450 60%,#3b4a57 100%)}
+.screen{position:absolute;left:13px;top:10px;width:934px;height:521px;background:var(--panel);border:1px solid var(--edge);display:grid;
+  grid-template-columns:166px 384px 1fr;grid-template-rows:28px 1fr 64px}
+.top{grid-column:1/4;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid var(--edge);font-size:12px}
+.top .sp{flex:1}
+.btn{border:1px solid var(--key-edge);background:var(--key);padding:0 8px;height:16px;line-height:15px;font-size:11px;color:var(--dim);white-space:nowrap}
+.btn.on{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.side{border-right:1px solid var(--edge);padding:8px 0;font-size:12.5px}
+.side div{padding:3px 12px;display:flex;justify-content:space-between}
+.side div.cur{background:var(--sel);box-shadow:inset 3px 0 var(--accent)}
+.side .n{color:var(--dim)}
+.list{border-right:1px solid var(--edge);display:flex;flex-direction:column;min-height:0}
+.stabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px 8px}
+.stabs .btn{text-align:center;font-size:12px;height:17px;line-height:16px}
+.chips{display:flex;gap:4px;padding:3px 8px 4px}
+.chip{border:1px solid var(--key-edge);border-radius:7px;height:15px;line-height:14px;padding:0 6px;font-size:10.5px;color:var(--dim);cursor:pointer}
+.chip.on{border-color:var(--accent);color:var(--accent)}
+.rows{flex:1;overflow:hidden;font-size:12px;border-top:1px solid var(--edge)}
+.row{display:flex;align-items:center;gap:6px;height:21px;padding:0 9px;cursor:pointer;white-space:nowrap}
+.row:nth-child(even){background:var(--alt)}
+.row:hover{background:var(--hover)}
+.row.sel{background:var(--sel);outline:1px solid var(--accent);outline-offset:-1px}
+.row .k{width:44px} .row .p{width:96px;color:var(--dim)} .row .nm{flex:1;overflow:hidden;text-overflow:ellipsis} .row .m{color:var(--dim)}
+.sq{width:7px;height:7px;display:inline-block;margin-right:4px}
+.detail{padding:8px 12px;font-size:12px;display:flex;flex-direction:column;gap:3px;min-height:0;overflow:hidden;position:relative}
+.detail .title{font-size:13px}
+.d{color:var(--dim)} .f{color:var(--faint)}
+.pv{position:relative;border:1px solid var(--edge);background:rgba(0,0,0,.28);overflow:hidden;cursor:grab;flex:none}
+.pv svg{display:block;width:100%;height:100%}
+.pv .hint{position:absolute;left:5px;top:3px;font-size:10px;color:var(--faint)}
+.pv .tools{position:absolute;right:4px;top:3px;display:flex;gap:3px}
+.pv .tools .btn{font-size:10px;height:14px;line-height:13px;padding:0 5px;cursor:pointer}
+.card{position:absolute;left:6px;right:6px;bottom:6px;background:rgba(10,10,12,.88);border:1px solid var(--edge);padding:4px 7px;font-size:11px}
+.scroll{overflow:hidden;flex:1;min-height:0}
+.foot{grid-column:1/4;border-top:1px solid var(--edge);padding:5px 10px;font-size:12px;display:flex;flex-direction:column;gap:6px}
+.foot .h{color:var(--faint);font-size:11px}
+.qa{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px}
+.qa ol{margin:6px 0 0;padding-left:20px;color:var(--ink-2)} .qa li{margin:4px 0}
+.qa b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">BACKLOG L-114 · 設計図の画面 · 照合タブの見直し（2026-10-08）</div>
+  <h1>照合タブ：プレビューの置き方と、間違いの見せ方</h1>
+  <p class="lede">今の画面（UI Profile 75%、1920×1080）と同じ割合です。下の切り替えで案を比べられます。プレビューはドラッグで回転、ホイールで拡大・縮小、リストの行を選ぶとその場所を示します。ブロックは仮の色で、形も簡略化しています。</p>
+</header>
+
+<div class="ctrl" id="ctrl">
+  <div class="r"><span>右側の並べ方</span><div class="grp" data-k="layout">
+    <button data-v="top" aria-pressed="true">A: プレビュー固定・文字は下</button>
+    <button data-v="overlay">B: プレビュー大・詳細を重ねる</button></div></div>
+  <div class="r"><span>間違いの見せ方</span><div class="grp" data-k="look">
+    <button data-v="tint">1: 色を混ぜる（今）</button>
+    <button data-v="fade" aria-pressed="true">2: 正しいものを薄く</button>
+    <button data-v="mark">3: 間違いに枠と目印</button></div></div>
+  <div class="r"><span>選んだ間違い</span><div class="grp" data-k="focus">
+    <button data-v="none">強調だけ</button>
+    <button data-v="zoom" aria-pressed="true">寄る（ズーム）</button>
+    <button data-v="slice">その層で切る</button></div></div>
+  <div class="r"><span>種類の表示</span><div class="grp" data-k="chips">
+    <button data-v="link" aria-pressed="true">絞り込みと連動</button>
+    <button data-v="all">いつも全部</button></div></div>
+</div>
+
+<div class="stage-outer"><div class="fit" id="fit"><div class="stage" id="stage">
+  <div class="screen">
+    <div class="top"><span>Lamium</span><span class="f">0.1.7</span><span class="sp"></span><span class="btn">閉じる (Esc)</span></div>
+    <div class="side">
+      <div>すべて</div><div>カメラ・見た目</div><div>情報・オーバーレイ</div><div>マップ</div><div>設計図</div>
+      <div style="height:20px"></div><div>形状 <span class="n">0</span></div><div>ウェイポイント <span class="n">0</span></div>
+      <div class="cur">設計図 <span class="n">14</span></div><div>ワールドマップ</div>
+    </div>
+    <div class="list">
+      <div class="stabs"><span class="btn">ファイル</span><span class="btn">配置</span><span class="btn on">照合</span><span class="btn">資材</span></div>
+      <div class="chips" id="chips"></div>
+      <div class="rows" id="rows"></div>
+    </div>
+    <div class="detail" id="detail"></div>
+    <div class="foot"><span id="help">選んだ間違いをプレビューとワールドで示します。</span><span class="h">クリック: 選択 | ドラッグ: 回転 | ホイール: 拡大・縮小 | Esc: 閉じる</span></div>
+  </div>
+</div></div></div>
+
+<section class="qa">
+  <b>確認したいこと</b>
+  <ol>
+    <li><b>右側の並べ方</b>：A はプレビューの大きさが変わらず、文字が増えると下でスクロールします。B はプレビューが大きく、選んだ行の詳細をプレビューの下側に重ねます。どちらがよいか。</li>
+    <li><b>間違いの見せ方</b>：1 は今の色混ぜ。2 は正しいブロックを薄くして間違いだけを濃く残します（大きい建物で探しやすい）。3 は間違いに色の枠と上に伸びる目印を付けます（遠くからでも見える）。組み合わせも可能です（例: 2 + 3）。</li>
+    <li><b>選んだ間違い</b>：「寄る」はその場所を中心に拡大します（描く順は向きだけで決まるので、拡大・移動しても崩れません）。「その層で切る」はその高さより上を隠して、建物の中の間違いも見えるようにします。両方を併用することもできます。</li>
+    <li><b>ホイールでの拡大・縮小</b>：ファイルタブのプレビューにも同じ操作を入れる想定です。拡大したときの移動（右ドラッグなど）も要るか。</li>
+    <li><b>種類の表示</b>：リスト上の絞り込み（違う・余計 / 状態違い / 未設置）とプレビューの表示を連動させるか、プレビューはいつも全種類を出すか。</li>
+  </ol>
+</section>
+</div>
+
+<script>
+const state={layout:"top",look:"fade",focus:"zoom",chips:"link",filter:"all",sel:2,yaw:1,zoom:1};
+// A small house: floor, walls with a door and windows, a roof slab layer.
+const W=7,H=5,D=7,cells=[];
+for(let x=0;x<W;x++)for(let z=0;z<D;z++){cells.push({x,y:0,z,c:"#8a8f94"});}
+for(let y=1;y<=3;y++)for(let x=0;x<W;x++)for(let z=0;z<D;z++){
+  const edge=x==0||z==0||x==W-1||z==D-1; if(!edge)continue;
+  if(z==D-1&&x==3&&y<3)continue; if(y==2&&(x==1||x==5)&&(z==0||z==D-1))continue;
+  const corner=(x==0||x==W-1)&&(z==0||z==D-1); cells.push({x,y,z,c:corner?"#7a5a35":"#b08a55"});}
+for(let x=0;x<W;x++)for(let z=0;z<D;z++)cells.push({x,y:4,z,c:"#9a6a40"});
+// Results: state per cell key.
+const bad={"6,4,2":"wrong","2,2,0":"wrong","0,3,4":"state","3,0,3":"state"};
+const miss=[];for(const c of cells)if(c.y==4&&(c.x>=4))miss.push(`${c.x},${c.y},${c.z}`);
+for(const k of ["6,3,1","6,3,2","6,3,3"])miss.push(k);
+miss.forEach(k=>bad[k]=bad[k]||"miss");
+const kinds={wrong:["違う","var(--bad)","#ff5a4e"],state:["状態","var(--state)","#ffcc40"],miss:["未設置","var(--miss)","#8cccff"]};
+const list=Object.entries(bad).map(([k,v])=>{const [x,y,z]=k.split(",").map(Number);return{k,v,x,y,z};})
+  .sort((a,b)=>(a.v=="miss")-(b.v=="miss")||a.y-b.y||a.x-b.x);
+const names={wrong:["石","白色の色付きガラス"],state:["滑らかな石のハーフ","上半分 → 下半分"],miss:["トウヒの板材",""]};
+function shown(v){return state.chips!="link"||state.filter=="all"||state.filter==v||(state.filter=="mistake"&&v!="miss");}
+function rows(){
+  const counts={wrong:0,state:0,miss:0};list.forEach(r=>counts[r.v]++);
+  const chips=[["mistake","間違い "+(counts.wrong+counts.state)],["wrong","違う・余計 "+counts.wrong],["state","状態違い "+counts.state],["miss","未設置 "+counts.miss]];
+  document.getElementById("chips").innerHTML=chips.map(([v,t])=>`<span class="chip${state.filter==v?" on":""}" data-f="${v}">${t}</span>`).join("");
+  document.querySelectorAll(".chip").forEach(e=>e.onclick=()=>{state.filter=state.filter==e.dataset.f?"all":e.dataset.f;render();});
+  const vis=list.filter(r=>state.filter=="all"||r.v==state.filter||(state.filter=="mistake"&&r.v!="miss"));
+  document.getElementById("rows").innerHTML=vis.map((r,i)=>`<div class="row${list.indexOf(r)==state.sel?" sel":""}" data-i="${list.indexOf(r)}"><span class="k"><i class="sq" style="background:${kinds[r.v][1]}"></i>${kinds[r.v][0]}</span><span class="p">${-100+r.x}, ${84+r.y}, ${-43+r.z}</span><span class="nm">${names[r.v][0]}</span><span class="m">${2+i} m</span></div>`).join("");
+  document.querySelectorAll(".row").forEach(e=>e.onclick=()=>{state.sel=+e.dataset.i;render();});
+}
+function iso(x,y,z){
+  // Turn by quarter steps around the center.
+  let cx=x-W/2+.5,cz=z-D/2+.5;for(let i=0;i<state.yaw;i++){const t=cx;cx=-cz;cz=t;}
+  return{sx:(cx-cz)*13,sy:(cx+cz)*6.5-(y-H/2)*13,d:cx+cz+y*.01};
+}
+function preview(w,h){
+  const sel=list[state.sel];
+  let s=1.15*state.zoom,ox=w/2,oy=h/2+6;
+  if(state.focus=="zoom"&&sel){s*=1.9;const p=iso(sel.x,sel.y,sel.z);ox=w/2-p.sx*s;oy=h/2-p.sy*s;}
+  const vis=cells.filter(c=>!(state.focus=="slice"&&sel&&c.y>sel.y)).map(c=>({...c,...iso(c.x,c.y,c.z),r:bad[`${c.x},${c.y},${c.z}`]}))
+    .sort((a,b)=>a.d-b.d);
+  let out="";
+  for(const c of vis){
+    const kind=c.r&&shown(c.r)?c.r:null, isSel=sel&&sel.k==`${c.x},${c.y},${c.z}`;
+    let col=c.c,op=1;
+    if(kind=="miss"){col="#8cccff";op=state.look=="tint"?.55:.5;}
+    else if(kind&&state.look!="mark")col=mix(c.c,kinds[kind][2],state.look=="tint"?.55:.8);
+    if(!kind&&state.look=="fade")op=.22;
+    if(sel&&!isSel&&state.focus!="none"&&state.look!="fade")op*=.55;
+    const x=ox+c.sx*s,y=oy+c.sy*s,u=13*s,v=6.5*s;
+    const top=`${x},${y-v} ${x+u},${y} ${x},${y+v} ${x-u},${y}`,left=`${x-u},${y} ${x},${y+v} ${x},${y+v+u} ${x-u},${y+u}`,right=`${x+u},${y} ${x},${y+v} ${x},${y+v+u} ${x+u},${y+u}`;
+    out+=`<g opacity="${op}"><polygon points="${top}" fill="${col}"/><polygon points="${left}" fill="${shade(col,.8)}"/><polygon points="${right}" fill="${shade(col,.6)}"/></g>`;
+    if(kind&&state.look=="mark")out+=`<g fill="none" stroke="${kinds[kind][2]}" stroke-width="${isSel?2:1.2}"><polygon points="${top}"/><polyline points="${x-u},${y} ${x-u},${y+u} ${x},${y+v+u} ${x+u},${y+u} ${x+u},${y}"/><line x1="${x}" y1="${y+v}" x2="${x}" y2="${y+v+u}"/></g><line x1="${x}" y1="${y-v}" x2="${x}" y2="${y-v-28*s}" stroke="${kinds[kind][2]}" stroke-width="1.5" opacity=".8"/>`;
+    if(isSel)out+=`<polygon points="${top}" fill="none" stroke="#fff" stroke-width="2"/><polyline points="${x-u},${y} ${x-u},${y+u} ${x},${y+v+u} ${x+u},${y+u} ${x+u},${y}" fill="none" stroke="#fff" stroke-width="2"/>`;
+  }
+  return `<svg viewBox="0 0 ${w} ${h}">${out}</svg>`;
+}
+function mix(a,b,t){const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const A=p(a),B=p(b);return"#"+A.map((v,i)=>Math.round(v*(1-t)+B[i]*t).toString(16).padStart(2,"0")).join("");}
+function shade(c,f){const p=[1,3,5].map(i=>Math.round(parseInt(c.slice(i,i+2),16)*f));return"#"+p.map(v=>v.toString(16).padStart(2,"0")).join("");}
+function selInfo(){
+  const r=list[state.sel];if(!r)return"";
+  return `<div style="color:${kinds[r.v][1]}">この場所 ${-100+r.x}, ${84+r.y}, ${-43+r.z}　${kinds[r.v][0]}</div>
+    <div class="d">設計図では: ${names[r.v][0]}</div>${r.v=="wrong"?`<div class="d">ワールドでは: ${names.wrong[1]}</div>`:""}${r.v=="state"?`<div class="d">部分　<span style="color:var(--state)">${names.state[1]}</span></div>`:""}`;
+}
+function detail(){
+  const sum=`<div class="f" style="font-size:11px">配置全体・すべて</div><div style="color:var(--accent)">正しい: 128 / 160</div><div class="d">未設置: ${miss.length}</div><div style="color:var(--bad)">違う・余計: 2</div><div style="color:var(--state)">状態違い: 2</div>`;
+  const tools=`<div class="tools"><span class="btn">全体</span><span class="btn">−</span><span class="btn">＋</span></div>`;
+  const hint=`<span class="hint">ドラッグ: 回転 / ホイール: 拡大</span>`;
+  let html=`<div class="title">house</div>`;
+  if(state.layout=="top"){
+    html+=`<div class="pv" id="pv" style="height:210px">${preview(360,210)}${hint}${tools}</div>
+      <div class="scroll" style="display:flex;gap:14px;margin-top:4px"><div style="flex:1">${sum}</div><div style="flex:1.3">${selInfo()}</div></div>`;
+  }else{
+    html+=`<div style="display:flex;gap:14px;font-size:11px">${sum.replace(/<div/g,"<span").replace(/<\/div>/g,"</span>")}</div>
+      <div class="pv" id="pv" style="height:330px">${preview(360,330)}${hint}${tools}<div class="card">${selInfo()}</div></div>`;
+  }
+  html+=`<div style="margin-top:auto"><span class="btn on">ワールドで示す</span></div>`;
+  document.getElementById("detail").innerHTML=html;
+  const pv=document.getElementById("pv");let drag=null;
+  pv.onmousedown=e=>{drag=e.clientX;};
+  window.onmouseup=()=>drag=null;
+  pv.onmousemove=e=>{if(drag===null)return;if(Math.abs(e.clientX-drag)>40){state.yaw=(state.yaw+(e.clientX<drag?1:3))%4;drag=e.clientX;detail();}};
+  pv.onwheel=e=>{e.preventDefault();state.zoom=Math.min(3,Math.max(.5,state.zoom*(e.deltaY<0?1.15:.87)));detail();};
+  const [all,minus,plus]=pv.querySelectorAll(".tools .btn");
+  all.onclick=()=>{state.zoom=1;detail();};minus.onclick=()=>{state.zoom=Math.max(.5,state.zoom*.87);detail();};plus.onclick=()=>{state.zoom=Math.min(3,state.zoom*1.15);detail();};
+}
+function render(){rows();detail();}
+document.querySelectorAll(".grp").forEach(g=>g.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+  g.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x==b));state[g.dataset.k]=b.dataset.v;render();}));
+function fit(){const f=document.getElementById("fit"),s=document.getElementById("stage");const k=f.clientWidth/960;s.style.transform=`scale(${k})`;f.style.height=540*k+"px";}
+window.addEventListener("resize",fit);fit();render();
+</script>
+</body>
+</html>
