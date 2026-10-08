@@ -34,6 +34,7 @@
 #include "mc/world/level/block/actor/BlockActorRendererId.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
+#include <array>
 #include <optional>
 #include <variant>
 
@@ -57,6 +58,21 @@ struct Ready {
     std::uint32_t vertices = 0;
 };
 Ready ready;
+// The finished quads of the last built structure, unsorted.
+struct Kept {
+    std::shared_ptr<Structure const> structure;
+    mce::PrimitiveMode mode{};
+    std::vector<glm::vec3> positions;
+    std::vector<glm::vec4> normals, tangents;
+    std::vector<unsigned> colors, mers;
+    std::vector<unsigned short> bones, pbr;
+    std::vector<glm::vec2> uvs[3];
+    std::vector<unsigned char> geo;
+    std::array<bool, 15> enabled{};
+    std::pair<glm::vec3, glm::vec3> aabb{};
+    std::pair<glm::vec2, glm::vec2> uvAabb{};
+};
+Kept kept;
 // The mesh being built.
 struct Job {
     std::shared_ptr<Structure const> structure;
@@ -226,16 +242,55 @@ bool step() {
     }
     if (j.next < j.cells.size()) return false;
     shade(batch);
-    sortQuads(batch, j.order);
-    ready.mesh.reset();
-    ready.structure = j.structure.get();
-    ready.order = j.order;
-    ready.vertices = static_cast<std::uint32_t>(positions.size());
-    if (ready.vertices)
-        ready.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic preview", SupplementaryFieldAutoGenerationMode{}));
+    // The quads do not depend on the view, only their order: keep them so
+    // another view is a sort and an upload, not a new tessellation (the
+    // front vanished for a second while a large build was redone).
+    auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
+    kept.structure = j.structure;
+    kept.mode = data.mMode;
+    kept.positions = *data.mPositions;
+    kept.normals = *data.mNormals;
+    kept.tangents = *data.mTangents;
+    kept.colors = *data.mColors;
+    kept.bones = *data.mBoneId0s;
+    for (int i = 0; i < 3; ++i) kept.uvs[i] = *data.mTextureUVs[i];
+    kept.pbr = *data.mPBRTextureIndices;
+    kept.mers = *data.mMERS;
+    kept.geo = *data.mGeoType;
+    kept.enabled = *data.mFieldEnabled;
+    kept.aabb = *data.mAABB;
+    kept.uvAabb = *data.mUVAABB;
     return true;
 }
+
+// Uploads the kept quads sorted for `order`.
+void upload(ScreenContext& screen, Order order) {
+    ready.mesh.reset();
+    ready.structure = kept.structure.get();
+    ready.order = order;
+    ready.vertices = static_cast<std::uint32_t>(kept.positions.size());
+    if (!ready.vertices) return;
+    Tessellator batch(screen.tessellator.mBufferResourceService);
+    batch.begin({}, kept.mode, static_cast<int>(ready.vertices), false);
+    auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
+    *data.mPositions = kept.positions;
+    *data.mNormals = kept.normals;
+    *data.mTangents = kept.tangents;
+    *data.mColors = kept.colors;
+    *data.mBoneId0s = kept.bones;
+    for (int i = 0; i < 3; ++i) *data.mTextureUVs[i] = kept.uvs[i];
+    *data.mPBRTextureIndices = kept.pbr;
+    *data.mMERS = kept.mers;
+    *data.mGeoType = kept.geo;
+    *data.mFieldEnabled = kept.enabled;
+    *data.mAABB = kept.aabb;
+    *data.mUVAABB = kept.uvAabb;
+    static_cast<unsigned&>(batch.mCount) = ready.vertices;
+    sortQuads(batch, order);
+    ready.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic preview", SupplementaryFieldAutoGenerationMode{}));
+}
 void clear() {
+    kept = {};
     ready.mesh.reset();
     ready.structure = nullptr;
     ready.vertices = 0;
@@ -253,10 +308,15 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
     auto order = drawOrder(view);
     try {
         bool current = ready.structure == structure.get() && ready.order == order && ready.mesh && ready.mesh->isValid();
-        if (!current && (!job || job->structure != structure || !(job->order == order))) start(screen, *region, structure, order);
-        if (job && !job->failed && step()) job.reset();
-        // The last finished mesh of this structure stays up while another
-        // order builds.
+        if (!current && kept.structure == structure) {
+            upload(screen, order);
+        } else if (!current && (!job || job->structure != structure)) {
+            start(screen, *region, structure, order);
+        }
+        if (job && !job->failed && step()) {
+            job.reset();
+            upload(screen, order);
+        }
         if (ready.structure != structure.get() || !ready.mesh || !ready.mesh->isValid()) return false;
         auto& dispatcher = client.getBlockEntityRenderDispatcher();
         auto* moving = static_cast<MovingBlockActorRenderer*>(dispatcher.mRenderers.get()[BlockActorRendererId::MovingBlock].get());

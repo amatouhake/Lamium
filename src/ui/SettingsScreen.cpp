@@ -3274,7 +3274,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                     if (!schematic::preview::draw(context, schematic::session::structure(f.relative), dx + 1, top + 1, dw - 2, bottom - top - 2,
                             schematic::preview::View{yaw, t.pitch}))
                         t.w = 0;
-                    else if (!t.manual) label(context,dx+4,bottom-12,dw-8,translated("schematic.previewHint"),palette::faint);
+                    else if (!t.manual) label(context,dx+4,top+3,dw-8,translated("schematic.previewHint"),palette::faint); // above the model: the preview's depth hides text drawn over it
                 }
             }
             drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(waits ? "schematic.loadAnyway" : "schematic.place"),
@@ -4004,7 +4004,7 @@ void render(ll::event::UIRenderEvent& event) {
     } else if (!closing) {
         if (std::exchange(pendingRelease, false)) { sliderDrag = nullptr; scrollDragFirst = nullptr; previewTurn.dragging = false; }
         if (previewTurn.dragging) {
-            previewTurn.yaw = previewTurn.fromYaw + (lastPointer.x - previewTurn.from.x) * .7f;
+            previewTurn.yaw = previewTurn.fromYaw - (lastPointer.x - previewTurn.from.x) * .7f;
             previewTurn.pitch = std::clamp(previewTurn.fromPitch + (lastPointer.y - previewTurn.from.y) * .7f, -60.f, 89.f);
         }
         if (scrollDragFirst && scrollDragLayout) *scrollDragFirst = scrollDragLayout->firstAt(lastPointer.y);
