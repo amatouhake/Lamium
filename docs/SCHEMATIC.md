@@ -140,6 +140,76 @@ Against [demos/schematic-check.html](demos/schematic-check.html):
   depend on how blocks are drawn (the mistake look, see-through emphasis)
   wait for that rendering work.
 
+## Rendering and compatibility plan for 0.1.8 (proposed 2026-10-09)
+
+Research only; nothing below is built or chosen yet. Written from the
+reference project's public README, changelog and development notes (its
+source was not opened) and Lamium's code at `450d746`. The comparison itself
+is in the maintainer's notes. Order follows the maintainer's 2026-10-08
+priority: file compatibility, then ghost drawing; placing assistance and
+Java files later.
+
+A. File compatibility (small, Ready once chosen):
+- Saved files say `format_version` 1 (`Structure.h` default) but write
+  `block_indices` as `List<IntArray>`, the shape that goes with version 2;
+  the maintainer's vanilla export says 2. Write 2. A large area save
+  failed to load in another tool at the vanilla structure loader; confirm
+  the cause with a copy changed to 2 before calling it fixed.
+- After a save, hand the written NBT to the game's own loader
+  (`StructureTemplate::load(CompoundTag const&)`) and report failure in the
+  save prompt; keep the file either way. Check whether the loader has a
+  size limit for very large areas, apart from the version.
+- Reading already accepts one or two layers and an empty second layer.
+  Add: reject a layer whose length is not the volume (already) and a
+  second layer that names palette entries out of range, with a message.
+
+B. Ghost drawing (Research, strong model; one runtime round per step):
+1. Schematic neighbors: `BlockTessellator` reads neighbors through
+   `mRegion` (`setRegion(BlockSource&)`) and `BlockSource::getBlock` is
+   virtual. Spike: tessellate one door and one fence against a view that
+   answers from the placement (cells outside fall back to the real world
+   or air). If a subclass cannot be built safely, the fallback is a
+   thread-scoped hook on the region read, active only while Lamium
+   tessellates. Hypothesis to test: doors and beds draw half or nothing
+   because the partner half is not where the tessellator looks; fences
+   and panes take their connections from neighbors; walls also store
+   connection states, so the verifier must compare them after the same
+   recomputation (or ignore them).
+2. Render layers: build each section's ghosts into separate meshes by
+   the block's render layer (opaque, alpha-test, blended) and draw the
+   blended ones last, sorted back to front by section. This is the base
+   for the translucent look, honey and slime blocks, and real translucent
+   blocks behind ghosts.
+3. Liquids: water and lava from the second layer and from water/lava
+   cells drawn by Lamium as simple shells textured from the terrain atlas
+   (shared faces between same liquids dropped, faces against opaque
+   blocks dropped), blended; only where the liquid is missing.
+4. Block entities with their data: load the schematic's block entity
+   NBT into the created block actor before drawing (bed color and part,
+   skull type and rotation, sign text, banner pattern).
+5. Lighting regressions to keep in the check list: ghosts the same at
+   night, underground and looking straight down; Vibrant Visuals uses its
+   own material path or is named as unsupported.
+
+C. Updates (after B1-B2, measure first, L-105):
+- Rebuild on block change events (a section and its six neighbors) instead
+  of the 0.25 s / 2 s hash timers; fixes the known border-cell limit.
+  Moving a placement should move its meshes, not rebuild them.
+- A background mesh worker only if measurement shows tessellation is the
+  cost; results carry a world/dimension/placement generation and are
+  dropped when stale.
+
+D. Check accuracy (pure rules with tests, small):
+- States the game changes on its own are not mistakes: sapling and
+  bamboo growth, bamboo leaves, leaf decay bits, and similar, from one
+  table in `Verify.h`; bubble columns count as water.
+- Waterlogging: compare the second layer with the world's extra block.
+- One material identity for the material list, the check and later
+  placing assistance (already one pick-item rule; keep it that way).
+
+Later (not 0.1.8 unless chosen): placing assistance (looked-at missing
+block, area fill), Java `.litematic` files, layers by material.
+
 ## Technical entry points
 
 - `src/features/schematic/Nbt.*`, `Structure.*`: NBT and structure read/write.

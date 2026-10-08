@@ -610,6 +610,12 @@ mockup", mock `docs/demos/schematic-screen.html`). Work order:
 2. Research, after step 1 or alongside it: L-114 3D previews in the screen,
    L-115 entity models as ghosts, L-116 raw materials from the game's recipes.
 
+0.1.8 rendering and compatibility work: proposed plan (2026-10-09, not yet
+chosen) in SCHEMATIC.md "Rendering and compatibility plan for 0.1.8":
+A saved-file version and a vanilla-loader check, B schematic neighbors,
+render layers, liquids and block entity data, C event-driven rebuilds, D
+check rules for states the game changes on its own and waterlogging.
+
 Pick the next follow-up with the maintainer; the list is not an implementation
 order. Chosen 2026-10-07: placement markers on the minimap/world map,
 built the same day (look in SCHEMATIC.md) and checked in game 2026-10-08.
