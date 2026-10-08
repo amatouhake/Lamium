@@ -123,6 +123,15 @@ Against [demos/schematic-check.html](demos/schematic-check.html):
   preview ("up to layer N" along any axis), tried from several angles.
 - Wheel zoom in both previews (the draw order depends only on the view
   direction, so zoom and pan do not disturb it).
+- Preview scope for 0.1.8 (decided 2026-10-08): "view" (turn, zoom, move,
+  back to the whole, cut at a layer) and "inspect" (click a block in the
+  preview for its name, states and check result; in the Check tab it picks
+  the row and leads to "show in world"). Editing blocks in the preview is a
+  separate, later feature. None of the three layer-control variants of
+  schematic-preview-layers.html felt right; proposed instead: Shift+wheel
+  peels layers along the axis the view looks down, a small "layer n/m"
+  corner label resets it, the Check tab may cut at the selected mistake's
+  layer, right or middle drag moves the view.
 - Release plan (maintainer, 2026-10-08, also in their notes): 0.1.8
   finishes Schematics: the current screen work, then improving the
   schematic rendering with LHolo as a reference (GPL-3.0: behavior and the
