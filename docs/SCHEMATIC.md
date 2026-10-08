@@ -142,14 +142,16 @@ Against [demos/schematic-check.html](demos/schematic-check.html):
 
 ## Rendering and compatibility plan for 0.1.8 (proposed 2026-10-09)
 
-Research only; nothing below is built or chosen yet. Written from the
+Decided by the maintainer 2026-10-09: A is Ready; liquids are drawn in the
+screen previews too; the check stays strict (D); the internal approach is
+left to the agent. Nothing below is built yet. Written from the
 reference project's public README, changelog and development notes (its
 source was not opened) and Lamium's code at `450d746`. The comparison itself
 is in the maintainer's notes. Order follows the maintainer's 2026-10-08
 priority: file compatibility, then ghost drawing; placing assistance and
 Java files later.
 
-A. File compatibility (small, Ready once chosen):
+A. File compatibility (Ready, chosen 2026-10-09):
 - Saved files say `format_version` 1 (`Structure.h` default) but write
   `block_indices` as `List<IntArray>`, the shape that goes with version 2;
   the maintainer's vanilla export says 2. Write 2. A large area save
@@ -183,7 +185,9 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
 3. Liquids: water and lava from the second layer and from water/lava
    cells drawn by Lamium as simple shells textured from the terrain atlas
    (shared faces between same liquids dropped, faces against opaque
-   blocks dropped), blended; only where the liquid is missing.
+   blocks dropped), blended; only where the liquid is missing. The
+   Files and Check previews draw the file's liquids as well (decided
+   2026-10-09).
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).
@@ -200,9 +204,9 @@ C. Updates (after B1-B2, measure first, L-105):
   dropped when stale.
 
 D. Check accuracy (pure rules with tests, small):
-- States the game changes on its own are not mistakes: sapling and
-  bamboo growth, bamboo leaves, leaf decay bits, and similar, from one
-  table in `Verify.h`; bubble columns count as water.
+- Strict (maintainer, 2026-10-09): every differing state stays a
+  mistake, including states the game changes on its own (growth, leaf
+  decay bits); no ignore table.
 - Waterlogging: compare the second layer with the world's extra block.
 - One material identity for the material list, the check and later
   placing assistance (already one pick-item rule; keep it that way).

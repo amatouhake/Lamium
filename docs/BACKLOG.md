@@ -610,11 +610,12 @@ mockup", mock `docs/demos/schematic-screen.html`). Work order:
 2. Research, after step 1 or alongside it: L-114 3D previews in the screen,
    L-115 entity models as ghosts, L-116 raw materials from the game's recipes.
 
-0.1.8 rendering and compatibility work: proposed plan (2026-10-09, not yet
-chosen) in SCHEMATIC.md "Rendering and compatibility plan for 0.1.8":
-A saved-file version and a vanilla-loader check, B schematic neighbors,
-render layers, liquids and block entity data, C event-driven rebuilds, D
-check rules for states the game changes on its own and waterlogging.
+0.1.8 rendering and compatibility work (plan 2026-10-09 in SCHEMATIC.md
+"Rendering and compatibility plan for 0.1.8"): A saved-file version and a
+vanilla-loader check, **Ready (chosen 2026-10-09)**; then B schematic
+neighbors, render layers, liquids (previews too) and block entity data, C
+event-driven rebuilds, D waterlogging in the check (the check stays
+strict). B-D: Research (strong model), approach left to the agent.
 
 Pick the next follow-up with the maintainer; the list is not an implementation
 order. Chosen 2026-10-07: placement markers on the minimap/world map,
