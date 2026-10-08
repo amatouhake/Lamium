@@ -223,9 +223,14 @@ unmet gates for versions already published:
 ### L-117 Schematic entity name tags render badly in Japanese
 Kind: Bug. Reported by the maintainer 2026-10-08 (L-93 checks); present
 before the step 1 changes.
-Status: open. Decided 2026-10-08: world name tags stay only over entities
-drawn as dashed frames (no model, L-115); fix how they render before the
-next release.
+Status: mostly fixed 2026-10-08 (`47534d7`, checked in game); the rest is
+accepted for now. World name tags stay only over entities drawn as dashed
+frames (no model, L-115). Japanese glyphs come from glyph sheet 48 (type 3,
+scale 1.333): the plate is now measured per glyph at its sheet's scale, and
+non-ASCII sheets keep the font's own material with text constants scaled to
+the on-screen size of a font pixel, so the colored fringes are gone. Left:
+Japanese text draws dark gray instead of white (a white dark color brought
+the fringes back). Maintainer: acceptable for now, looks less like a bug.
 The world name tags over missing schematic entities show colored fringes and
 look broken with the Japanese locale (screenshot in the conversation). They
 are drawn in `GhostRenderer.cpp` `drawNameTags` with the "default" font and

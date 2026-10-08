@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Schematic entity follow-ups (2026-10-08)
+
+By the maintainer, deployed `553f339`..`47534d7` (last DLL
+`792fae30c673a3123c7eeb83ace993344f8a056a257c5897caea358be4ca6c00`, all
+trace options off), Minecraft 1.26.51.01, local world. Passed: a real entity
+of the same type on the next block no longer hides the ghost, one on the
+same block does; dropped items get a frame about their own size; name tags
+only over frames; Japanese name tags without colored fringes and with the
+plate matching the text; English tags unchanged. Left: Japanese tag text is
+dark gray (accepted for now, L-117). Not seen: Chinese after the last
+change.
+
 ## L-115 entity ghost models (2026-10-08)
 
 By the maintainer over about twenty probe and trace builds (`da315e7` to
