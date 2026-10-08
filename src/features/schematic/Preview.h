@@ -21,6 +21,13 @@ struct Tint {
 // unavailable); the caller keeps its text.
 bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> const& structure, float x, float y, float width, float height,
           View view, Tint const* tint = nullptr);
+// What the last draw used: the zoom it allowed (the preview cannot be
+// clipped, so it stays inside its box) and the layers along the peel axis.
+struct Last {
+    float maxZoom = 1;
+    int layers = 0, axis = -1;
+};
+Last last();
 // Forgets the built mesh (world exit, screen closed).
 void reset();
 } // namespace lamium::schematic::preview

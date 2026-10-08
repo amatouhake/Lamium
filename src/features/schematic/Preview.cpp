@@ -75,6 +75,7 @@ struct Kept {
     std::pair<glm::vec3, glm::vec3> aabb{};
     std::pair<glm::vec2, glm::vec2> uvAabb{};
     std::vector<std::uint32_t> quadCells; // the cell each quad belongs to
+    Cut cut;
 };
 Kept kept;
 // The mesh being built.
@@ -90,24 +91,28 @@ struct Job {
     int height = 320;    // the dimension's build limit
     std::vector<bool> covers; // per palette entry: hides the faces it touches
     std::vector<std::uint32_t> quadCells;
+    Cut cut;
 };
 std::optional<Job> job;
+Last lastDrawn;
 
 Block const* blockAt(Job const& j, int x, int y, int z) {
     auto const& s = *j.structure;
+    if (!j.cut.keeps(x, y, z)) return nullptr;
     auto index = s.blocks[static_cast<size_t>(s.cell(x, y, z))];
     return index >= 0 && static_cast<size_t>(index) < j.palette.size() ? j.palette[static_cast<size_t>(index)] : nullptr;
 }
 
 bool covers(Job const& j, int x, int y, int z) {
     auto const& s = *j.structure;
-    if (x < 0 || y < 0 || z < 0 || x >= s.size.x || y >= s.size.y || z >= s.size.z) return false;
+    if (x < 0 || y < 0 || z < 0 || x >= s.size.x || y >= s.size.y || z >= s.size.z || !j.cut.keeps(x, y, z)) return false;
     auto index = s.blocks[static_cast<size_t>(s.cell(x, y, z))];
     return index >= 0 && static_cast<size_t>(index) < j.covers.size() && j.covers[static_cast<size_t>(index)];
 }
 
-void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure const> const& structure, Order order) {
+void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure const> const& structure, Order order, Cut cut) {
     job.emplace();
+    job->cut = cut;
     job->structure = structure;
     job->order = order;
     auto const& s = *structure;
@@ -278,6 +283,7 @@ bool step() {
     kept.aabb = *data.mAABB;
     kept.uvAabb = *data.mUVAABB;
     kept.quadCells = std::move(j.quadCells);
+    kept.cut = j.cut;
     return true;
 }
 
@@ -341,13 +347,23 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
     if (!region) return false;
     auto& screen = static_cast<ScreenContext&>(context.mScreenContext);
     auto order = drawOrder(view);
+    auto const& size = structure->size;
+    Cut cut = cutFor(view, size.x, size.y, size.z, view.peel);
+    lastDrawn.maxZoom = maxZoom(view, size.x, size.y, size.z, width, height);
+    lastDrawn.axis = cut.axis;
+    lastDrawn.layers = layersAlong(cut, size.x, size.y, size.z);
+    view.zoom = std::clamp(view.zoom, .1f, lastDrawn.maxZoom);
     try {
         std::uint64_t key = tint ? tint->key : 0;
         bool current = ready.structure == structure.get() && ready.order == order && ready.tintKey == key && ready.mesh && ready.mesh->isValid();
-        if (!current && kept.structure == structure) {
+        // A new cut needs new quads (faces inside the build become visible);
+        // the last mesh stays up while they build.
+        if (kept.structure == structure && !(kept.cut == cut) && (!job || job->structure != structure || !(job->cut == cut)))
+            start(screen, *region, structure, order, cut);
+        else if (!current && kept.structure == structure && kept.cut == cut) {
             upload(screen, order, tint);
-        } else if (!current && (!job || job->structure != structure)) {
-            start(screen, *region, structure, order);
+        } else if (!current && kept.structure != structure && (!job || job->structure != structure || !(job->cut == cut))) {
+            start(screen, *region, structure, order, cut);
         }
         if (job && !job->failed && step()) {
             job.reset();
@@ -374,14 +390,9 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         model[2] = {scale * f.right, scale * f.down, 0, 0};
         model[3] = {x + width / 2, y + height / 2, 0, 1};
         context.flushText(0, std::nullopt);
-        // The UI applies its scissor when it draws, not when it is set, so a
-        // nearly invisible fill is drawn right after setting it (and after
-        // clearing it): the mesh drawn in between is clipped too. Neither GUI
-        // units nor pixels alone clipped a zoomed preview.
-        RectangleArea box{x, x + width, y, y + height};
-        auto commit = [&] { context.fillRectangle(box, mce::Color{0, 0, 0, 1}, .004f); };
-        context.enableScissorTest(box);
-        commit();
+        // No clipping: the UI scissor (in GUI units, in pixels, or committed
+        // by a UI draw) never reached this mesh, so the zoom is held at the
+        // size that fits the box (maxZoom).
         auto ref = screen.camera.worldMatrixStack->push(false);
         ref.stack->_isDirty = true;
         ref.mat->_m = ref.mat->_m.get() * model;
@@ -402,13 +413,9 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
             ready.mesh->renderMesh(screen, material, texture, 0, ready.vertices, OffscreenCaptureDescription{}, nullptr);
         } catch (...) {
             pop();
-            context.disableScissorTest();
-            commit();
             throw;
         }
         pop();
-        context.disableScissorTest();
-        commit();
         return true;
     } catch (std::exception const& error) {
         static bool reported = false;
@@ -420,4 +427,5 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
 }
 
 void reset() { clear(); }
+Last last() { return lastDrawn; }
 } // namespace lamium::schematic::preview

@@ -283,6 +283,18 @@ void previewRules() {
           "the hidden middle cell is left out and cells come far to near");
     check(fitScale(4, 4, 4, 100, 60) > 0 && fitScale(4, 4, 4, 100, 60) * std::sqrt(48.f) <= 60,
           "the preview fits the structure's diagonal in the smaller side");
+    float most = maxZoom(view, 10, 2, 10, 200, 120);
+    bool inside = true;
+    for (int k = 0; k < 8; ++k) {
+        auto p = project(view, k & 1 ? 5 : -5, k & 2 ? 1 : -1, k & 4 ? 5 : -5);
+        float s = fitScale(10, 2, 10, 200, 120) * most;
+        inside = inside && std::abs(p.right * s) <= 100 && std::abs(p.down * s) <= 60;
+    }
+    check(most >= 1 && inside, "the largest zoom keeps every corner inside the box");
+    auto top = cutFor(View{35, 60}, 5, 8, 5, 3), side = cutFor(View{90, 10}, 5, 8, 5, 2);
+    check(top == Cut{1, 1, 4} && top.keeps(0, 4, 0) && !top.keeps(0, 5, 0) && side.axis == 0 && side.keeps(2, 0, 0) && !side.keeps(3, 0, 0)
+          && cutFor(view, 5, 8, 5, 0).axis < 0 && cutFor(View{35, 60}, 5, 8, 5, 99).limit == 0,
+          "peeling takes layers off the side the view looks down on, never the last one");
 }
 
 void saveRules() {

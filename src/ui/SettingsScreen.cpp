@@ -123,10 +123,28 @@ ShapesLayout const* scrollDragLayout = nullptr;
 struct PreviewTurn {
     float x = 0, y = 0, w = 0, h = 0; // last drawn box, GUI units
     float yaw = 35, pitch = 30, zoom = 1;
+    int peel = 0;
+    std::string file; // the structure shown; a new one starts whole and fitted
     bool manual = false, dragging = false;
     glm::vec2 from{};
     float fromYaw = 0, fromPitch = 0;
 } previewTurn;
+// The preview's corner line: the hint while it turns by itself, then the
+// peeled layers ("layer n/m"), which a click resets. Kept at the top edge:
+// the preview's depth hides text drawn over the model.
+float previewLabelWidth = 0;
+void drawPreviewLabel(MinecraftUIRenderContext& context, float x, float y, float w) {
+    auto const& t = previewTurn;
+    previewLabelWidth = 0;
+    if (t.peel > 0) {
+        auto last = schematic::preview::last();
+        static constexpr std::array<std::string_view, 3> axes{"schematic.previewAxis.x", "schematic.previewAxis.y", "schematic.previewAxis.z"};
+        std::string text = translated("schematic.previewLayers", last.layers - t.peel, last.layers,
+            last.axis >= 0 ? translated(axes[static_cast<size_t>(last.axis)]) : std::string());
+        previewLabelWidth = std::min(w - 8, textWidth(context, text) + 4);
+        label(context,x+4,y+3,w-8,text,palette::warning);
+    } else if (!t.manual) label(context,x+4,y+3,w-8,translated("schematic.previewHint"),palette::faint);
+}
 // A press on a list's scrollbar moves the list there and starts a drag.
 bool pressScrollbar(ShapesLayout const& l, int& first, float x, float y) {
     if (!l.onScrollbar(x, y)) return false;
@@ -2735,6 +2753,7 @@ void handleSchematicClick(float x, float y, bool right) {
     finishNumber();
     if (!right && pressScrollbar(schematicsDisplayed, schematicListFirst, x, y)) return;
     auto& t = previewTurn;
+    if (!right && t.w > 0 && t.peel > 0 && x >= t.x && x < t.x + 4 + previewLabelWidth && y >= t.y && y < t.y + 14) { t.peel = 0; return; }
     if (!right && t.w > 0 && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h) {
         t.dragging = t.manual = true;
         t.from = {x, y};
@@ -3271,10 +3290,11 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                     float yaw = t.yaw;
                     if (!t.manual) yaw += std::fmod(static_cast<float>(std::chrono::duration<double>(
                         std::chrono::steady_clock::now().time_since_epoch()).count()) * 12.f, 360.f);
+                    if (t.file != f.relative) { t.file = f.relative; t.peel = 0; t.zoom = 1; }
                     if (!schematic::preview::draw(context, schematic::session::structure(f.relative), dx + 1, top + 1, dw - 2, bottom - top - 2,
-                            schematic::preview::View{yaw, t.pitch, t.zoom}))
+                            schematic::preview::View{yaw, t.pitch, t.zoom, t.peel}))
                         t.w = 0;
-                    else if (!t.manual) label(context,dx+4,top+3,dw-8,translated("schematic.previewHint"),palette::faint); // above the model: the preview's depth hides text drawn over it
+                    else drawPreviewLabel(context, dx, top, dw);
                 }
             }
             drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(waits ? "schematic.loadAnyway" : "schematic.place"),
@@ -3335,9 +3355,11 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 }};
                 auto& turn = previewTurn;
                 turn.x = dx; turn.y = pvTop; turn.w = dw; turn.h = pvHeight;
+                if (turn.file != checked->file) { turn.file = checked->file; turn.peel = 0; turn.zoom = 1; }
                 if (!schematic::preview::draw(context, structure, dx + 1, pvTop + 1, dw - 2, pvHeight - 2,
-                        schematic::preview::View{turn.yaw, turn.pitch, turn.zoom}, &tint))
+                        schematic::preview::View{turn.yaw, turn.pitch, turn.zoom, turn.peel}, &tint))
                     turn.w = 0;
+                else drawPreviewLabel(context, dx, pvTop, dw);
             }
         }
         // Counts on the left, the selected mistake on the right.
@@ -4291,7 +4313,12 @@ void start() {
             float px = lastPointer.x, py = lastPointer.y;
             // Over the 3D preview the wheel zooms it.
             if (auto& t = previewTurn; t.w > 0 && px >= t.x && px < t.x + t.w && py >= t.y && py < t.y + t.h) {
-                t.zoom = std::clamp(t.zoom * (step < 0 ? 1.2f : 1 / 1.2f), .5f, 12.f);
+                // Shift peels layers off the side the view looks down on.
+                if (heldShift()) {
+                    auto last = schematic::preview::last();
+                    int layers = std::max(1, last.layers ? last.layers : 256);
+                    t.peel = std::clamp(t.peel + (step < 0 ? 1 : -1), 0, layers - 1);
+                } else t.zoom = std::clamp(t.zoom * (step < 0 ? 1.2f : 1 / 1.2f), .5f, schematic::preview::last().maxZoom);
                 return;
             }
             bool overList = px >= l.listLeft && px < l.listLeft + l.listWidth && (!l.docked || py < l.detailTop);

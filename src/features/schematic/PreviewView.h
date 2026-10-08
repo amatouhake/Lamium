@@ -14,6 +14,7 @@ struct View {
     float yaw = 35;   // degrees around the vertical axis; 0 looks from the south (+z)
     float pitch = 30; // degrees above the horizon
     float zoom = 1;   // 1 fits the whole structure; draw order does not depend on it
+    int peel = 0;     // layers taken off from the viewer's side
 };
 struct Eye {
     float x = 0, y = 0, z = 0; // unit vector from the structure toward the viewer
@@ -71,9 +72,47 @@ inline Projected project(View view, float x, float y, float z) {
     float ux = e.y * rz, uy = e.z * rx - e.x * rz, uz = -e.y * rx; // eye x right
     return {x * rx + z * rz, -(x * ux + y * uy + z * uz), x * e.x + y * e.y + z * e.z};
 }
+// Layers peeled off from the side the view looks down on: from the top when
+// looking down steeply, else from the horizontal side nearest the viewer.
+// A cell stays when its coordinate on `axis` is <= limit (sign +1) or >=
+// limit (sign -1).
+struct Cut {
+    int axis = -1; // none
+    int sign = 1, limit = 0;
+    bool operator==(Cut const&) const = default;
+    bool keeps(int x, int y, int z) const {
+        if (axis < 0) return true;
+        int c = axis == 0 ? x : axis == 1 ? y : z;
+        return sign > 0 ? c <= limit : c >= limit;
+    }
+};
+inline Cut cutFor(View view, int sx, int sy, int sz, int peel) {
+    if (peel <= 0) return {};
+    auto e = eye(view);
+    int axis = std::abs(e.y) >= std::max(std::abs(e.x), std::abs(e.z)) * .9f ? 1 : std::abs(e.x) >= std::abs(e.z) ? 0 : 2;
+    int size = axis == 0 ? sx : axis == 1 ? sy : sz;
+    float toward = axis == 0 ? e.x : axis == 1 ? e.y : e.z;
+    peel = std::min(peel, size - 1);
+    // The viewer is on the + side: keep the low end.
+    return toward >= 0 ? Cut{axis, 1, size - 1 - peel} : Cut{axis, -1, peel};
+}
+inline int layersAlong(Cut cut, int sx, int sy, int sz) { return cut.axis == 0 ? sx : cut.axis == 1 ? sy : cut.axis == 2 ? sz : 0; }
 // Scale (UI units per block) fitting the structure's bounding sphere in a box.
 inline float fitScale(int sx, int sy, int sz, float width, float height) {
     float diagonal = std::sqrt(float(sx * sx + sy * sy + sz * sz));
     return diagonal > 0 ? std::min(width, height) * .92f / diagonal : 1.f;
+}
+// The largest zoom at which the structure, seen from `view`, still fits the
+// box: the preview cannot be clipped to its box, so it never grows past it.
+inline float maxZoom(View view, int sx, int sy, int sz, float width, float height) {
+    float right = 0, down = 0;
+    for (int k = 0; k < 8; ++k) {
+        auto p = project(view, (k & 1 ? sx : -sx) / 2.f, (k & 2 ? sy : -sy) / 2.f, (k & 4 ? sz : -sz) / 2.f);
+        right = std::max(right, std::abs(p.right));
+        down = std::max(down, std::abs(p.down));
+    }
+    float fit = fitScale(sx, sy, sz, width, height);
+    if (right <= 0 || down <= 0 || fit <= 0) return 1.f;
+    return std::max(1.f, std::min(width / (2 * right), height / (2 * down)) * .98f / fit);
 }
 } // namespace lamium::schematic::preview
