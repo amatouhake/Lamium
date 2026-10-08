@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 // The schematic screen's 3D preview (BACKLOG L-114): how a structure is seen
@@ -100,6 +101,28 @@ inline Cut cutFor(View view, int sx, int sy, int sz, int peel) {
     return toward >= 0 ? Cut{axis, 1, size - 1 - peel} : Cut{axis, -1, peel};
 }
 inline int layersAlong(Cut cut, int sx, int sy, int sz) { return cut.axis == 0 ? sx : cut.axis == 1 ? sy : cut.axis == 2 ? sz : 0; }
+// The cell under a point of the preview: `right`/`down` are the point's
+// offset from the box center in blocks. Walks the line of sight from the
+// viewer's side and returns the first occupied cell.
+struct Cell {
+    int x = 0, y = 0, z = 0;
+    bool operator==(Cell const&) const = default;
+};
+template <class Occupied>
+std::optional<Cell> pick(View view, int sx, int sy, int sz, float right, float down, Occupied&& occupied) {
+    auto e = eye(view);
+    float rx = e.z, rz = -e.x, length = std::sqrt(rx * rx + rz * rz);
+    if (length > 0) { rx /= length; rz /= length; } else rx = 1;
+    float ux = e.y * rz, uy = e.z * rx - e.x * rz, uz = -e.y * rx;
+    float px = rx * right - ux * down, py = -uy * down, pz = rz * right - uz * down;
+    float reach = std::sqrt(float(sx * sx + sy * sy + sz * sz)) / 2 + 1;
+    for (float t = reach; t >= -reach; t -= .05f) {
+        int x = static_cast<int>(std::floor(px + t * e.x + sx / 2.f)), y = static_cast<int>(std::floor(py + t * e.y + sy / 2.f)),
+            z = static_cast<int>(std::floor(pz + t * e.z + sz / 2.f));
+        if (x >= 0 && y >= 0 && z >= 0 && x < sx && y < sy && z < sz && occupied(x, y, z)) return Cell{x, y, z};
+    }
+    return std::nullopt;
+}
 // Scale (UI units per block) fitting the structure's bounding sphere in a box.
 inline float fitScale(int sx, int sy, int sz, float width, float height) {
     float diagonal = std::sqrt(float(sx * sx + sy * sy + sz * sz));

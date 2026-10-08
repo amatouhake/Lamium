@@ -318,6 +318,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.previewHint", "拖动以旋转，滚轮缩放，Shift+滚轮逐层剥离"},
     {"schematic.previewLayers", "第 {} / {} 层（{}），点击显示全部"},
     {"schematic.previewAxis.x", "东西"},
+    {"schematic.pick.at", "结构中的 {}"},
+    {"schematic.pick.noMistake", "此处没有显示的错误"},
     {"schematic.previewAxis.y", "高度"},
     {"schematic.previewAxis.z", "南北"},
     {"schematic.noMistakes", "这里没有要显示的内容。"},

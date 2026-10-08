@@ -28,6 +28,9 @@ struct Last {
     int layers = 0, axis = -1;
 };
 Last last();
+// The structure cell under a point of the last drawn preview (GUI units),
+// skipping air and peeled layers.
+std::optional<Cell> pickAt(float x, float y);
 // Forgets the built mesh (world exit, screen closed).
 void reset();
 } // namespace lamium::schematic::preview

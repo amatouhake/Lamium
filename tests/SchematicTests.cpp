@@ -298,6 +298,13 @@ void previewRules() {
     View turned{90, 10};
     turned.peelAxis = 1;
     check(cutFor(turned, 5, 8, 5, 3) == Cut{1, 1, 4}, "a cut started from above stays a height cut when the view turns to the side");
+    auto above = pick(View{0, 89}, 3, 3, 3, 0, 0, full);
+    auto front = pick(View{0, 0}, 3, 3, 3, 0, 0, full);
+    auto left = pick(View{0, 0}, 3, 3, 3, -1, 0, full);
+    auto none = pick(View{0, 0}, 3, 3, 3, 5, 0, full);
+    auto hollow = pick(View{0, 0}, 3, 3, 3, 0, 0, [](int, int, int z) { return z == 0; });
+    check(above == Cell{1, 2, 1} && front == Cell{1, 1, 2} && left == Cell{0, 1, 2} && !none && hollow == Cell{1, 1, 0},
+          "a click picks the nearest block along the line of sight, and nothing beside the build");
 }
 
 void saveRules() {

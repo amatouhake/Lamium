@@ -95,6 +95,13 @@ struct Job {
 };
 std::optional<Job> job;
 Last lastDrawn;
+// Where and how the last preview was drawn, for clicks.
+struct Placed {
+    std::shared_ptr<Structure const> structure;
+    View view;
+    Cut cut;
+    float scale = 0, cx = 0, cy = 0;
+} placed;
 
 Block const* blockAt(Job const& j, int x, int y, int z) {
     auto const& s = *j.structure;
@@ -331,6 +338,7 @@ void upload(ScreenContext& screen, Order order, Tint const* tint) {
     ready.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic preview", SupplementaryFieldAutoGenerationMode{}));
 }
 void clear() {
+    placed = {};
     kept = {};
     ready.mesh.reset();
     ready.structure = nullptr;
@@ -389,6 +397,7 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         model[1] = {scale * u.right, scale * u.down, 0, 0};
         model[2] = {scale * f.right, scale * f.down, 0, 0};
         model[3] = {x + width / 2, y + height / 2, 0, 1};
+        placed = {structure, view, cut, scale, x + width / 2, y + height / 2};
         context.flushText(0, std::nullopt);
         // No clipping: the UI scissor (in GUI units, in pixels, or committed
         // by a UI draw) never reached this mesh, so the zoom is held at the
@@ -428,4 +437,14 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
 
 void reset() { clear(); }
 Last last() { return lastDrawn; }
+std::optional<Cell> pickAt(float x, float y) {
+    if (!placed.structure || placed.scale <= 0) return std::nullopt;
+    auto const& s = *placed.structure;
+    auto occupied = [&](int cx, int cy, int cz) {
+        if (!placed.cut.keeps(cx, cy, cz)) return false;
+        auto index = s.blocks[static_cast<size_t>(s.cell(cx, cy, cz))];
+        return index >= 0 && static_cast<size_t>(index) < s.palette.size() && !s.palette[static_cast<size_t>(index)].isAir();
+    };
+    return pick(placed.view, s.size.x, s.size.y, s.size.z, (x - placed.cx) / placed.scale, (y - placed.cy) / placed.scale, occupied);
+}
 } // namespace lamium::schematic::preview

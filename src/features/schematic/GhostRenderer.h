@@ -18,6 +18,11 @@ class ScreenContext;
 namespace lamium::schematic::ghosts {
 // The game block for a palette entry (its name, states and version), or null.
 Block const* gameBlock(PaletteBlock const& entry);
+// What a palette entry is called and its item icon (binary NBT, "" if none).
+struct BlockLabel {
+    std::string name, icon;
+};
+BlockLabel blockLabel(PaletteBlock const& entry);
 // Whether a block hides the neighbor faces it touches: an opaque full block
 // that the in-world tessellation draws (a honey block draws nothing there).
 bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen);

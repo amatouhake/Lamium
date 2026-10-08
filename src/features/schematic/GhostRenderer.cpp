@@ -1628,6 +1628,11 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
 }
 
 Block const* gameBlock(PaletteBlock const& entry) { return lookup(entry); }
+BlockLabel blockLabel(PaletteBlock const& entry) {
+    auto const* block = lookup(entry);
+    auto info = block ? describe(*block, entry.name) : ItemInfo{"", entry.name, ""};
+    return {info.name, info.icon};
+}
 bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen) {
     if (!block.getBlockType().mIsOpaqueFullBlock) return false;
     static std::map<Block const*, bool> drawn;

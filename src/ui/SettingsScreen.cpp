@@ -124,6 +124,9 @@ struct PreviewTurn {
     float x = 0, y = 0, w = 0, h = 0; // last drawn box, GUI units
     float yaw = 35, pitch = 30, zoom = 1;
     int peel = 0, peelAxis = -1, peelSign = 1;
+    // The block clicked in the preview (structure cell) and its file.
+    std::optional<schematic::preview::Cell> picked;
+    std::string pickedFile;
     std::string file; // the structure shown; a new one starts whole and fitted
     bool manual = false, dragging = false;
     glm::vec2 from{};
@@ -142,6 +145,9 @@ void drawPreviewLabel(MinecraftUIRenderContext& context, float x, float y, float
         label(context,x+4,y+3,w-8,text,palette::warning);
     } else if (!t.manual) label(context,x+4,y+3,w-8,translated("schematic.previewHint"),palette::faint);
 }
+// Inspect: the clicked block is remembered for the Files pane; in the Check
+// tab its mistake row is selected (and scrolled to), if it has one.
+void pickInPreview(glm::vec2 at);
 // A press on a list's scrollbar moves the list there and starts a drag.
 bool pressScrollbar(ShapesLayout const& l, int& first, float x, float y) {
     if (!l.onScrollbar(x, y)) return false;
@@ -2746,6 +2752,24 @@ std::vector<Missing> missingMaterials() {
     }
     return out;
 }
+void pickInPreview(glm::vec2 at) {
+    auto& t = previewTurn;
+    t.picked = schematic::preview::pickAt(at.x, at.y);
+    t.pickedFile = t.file;
+    if (schematicTab != SchematicTab::Verify || !t.picked) return;
+    auto const* checked = checkedPlacement();
+    auto structure = checked ? schematic::session::structure(checked->file) : nullptr;
+    if (!structure) return;
+    auto world = schematic::toWorld(structure->size, checked->placement, {t.picked->x, t.picked->y, t.picked->z});
+    verifySelected = -1;
+    for (size_t i = 0; i < verifyRows.size(); ++i)
+        if (!verifyRows[i]->entity && verifyRows[i]->position == world) { verifySelected = static_cast<int>(i); break; }
+    if (verifySelected >= 0) {
+        int visible = std::max(1, schematicsDisplayed.listVisible);
+        if (verifySelected < schematicListFirst || verifySelected >= schematicListFirst + visible)
+            schematicListFirst = std::max(0, verifySelected - visible / 2);
+    }
+}
 void handleSchematicClick(float x, float y, bool right) {
     finishNumber();
     if (!right && pressScrollbar(schematicsDisplayed, schematicListFirst, x, y)) return;
@@ -3288,11 +3312,30 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                     float yaw = t.yaw;
                     if (!t.manual) yaw += std::fmod(static_cast<float>(std::chrono::duration<double>(
                         std::chrono::steady_clock::now().time_since_epoch()).count()) * 12.f, 360.f);
-                    if (t.file != f.relative) { t.file = f.relative; t.peel = 0; t.zoom = 1; }
-                    if (!schematic::preview::draw(context, schematic::session::structure(f.relative), dx + 1, top + 1, dw - 2, bottom - top - 2,
-                            schematic::preview::View{yaw, t.pitch, t.zoom, t.peel, t.peelAxis, t.peelSign}))
+                    if (t.file != f.relative) { t.file = f.relative; t.peel = 0; t.zoom = 1; t.picked.reset(); }
+                    auto structure = schematic::session::structure(f.relative);
+                    // The clicked block stays lit, the rest dims.
+                    std::optional<schematic::preview::Cell> pick = t.pickedFile == f.relative ? t.picked : std::nullopt;
+                    schematic::preview::Tint tint{pick ? static_cast<std::uint64_t>((pick->x * 4099 + pick->y) * 4099 + pick->z) + 7 : 0,
+                        [pick](int x, int y, int z) -> std::uint32_t { return pick && !(*pick == schematic::preview::Cell{x, y, z}) ? 0xff737373u : 0xffffffffu; }};
+                    if (!schematic::preview::draw(context, structure, dx + 1, top + 1, dw - 2, bottom - top - 2,
+                            schematic::preview::View{yaw, t.pitch, t.zoom, t.peel, t.peelAxis, t.peelSign}, pick ? &tint : nullptr))
                         t.w = 0;
                     else drawPreviewLabel(context, dx, top, dw);
+                    // What was clicked, beside the facts.
+                    if (pick && structure) {
+                        auto index = structure->blocks[static_cast<size_t>(structure->cell(pick->x, pick->y, pick->z))];
+                        if (index >= 0 && static_cast<size_t>(index) < structure->palette.size()) {
+                            static std::string labelFor;
+                            static schematic::ghosts::BlockLabel labelled;
+                            auto key = std::format("{}:{}", f.relative, index);
+                            if (key != labelFor) { labelFor = key; labelled = schematic::ghosts::blockLabel(structure->palette[static_cast<size_t>(index)]); }
+                            float px = dx + dw / 2, pw = dw / 2;
+                            drawItemIcon(context, labelled.icon, px, l.previewY - 1, 12);
+                            label(context,px+14,l.previewY,pw-14,labelled.name);
+                            label(context,px,l.previewY+11,pw,translated("schematic.pick.at", std::format("{}, {}, {}", pick->x, pick->y, pick->z)),palette::dim);
+                        }
+                    }
                 }
             }
             drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(waits ? "schematic.loadAnyway" : "schematic.place"),
@@ -3321,6 +3364,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 schematic::Point here{INT_MIN, INT_MIN, INT_MIN};
                 if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size()) && !verifyRows[static_cast<size_t>(verifySelected)]->entity)
                     here = verifyRows[static_cast<size_t>(verifySelected)]->position;
+                else if (previewTurn.picked && previewTurn.pickedFile == checked->file)
+                    here = schematic::toWorld(structure->size, checked->placement, {previewTurn.picked->x, previewTurn.picked->y, previewTurn.picked->z});
                 // Only the kinds the chips show are marked.
                 static std::map<std::tuple<int, int, int>, schematic::CellState> states;
                 static std::uint64_t statesKey = 0;
@@ -3353,7 +3398,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 }};
                 auto& turn = previewTurn;
                 turn.x = dx; turn.y = pvTop; turn.w = dw; turn.h = pvHeight;
-                if (turn.file != checked->file) { turn.file = checked->file; turn.peel = 0; turn.zoom = 1; }
+                if (turn.file != checked->file) { turn.file = checked->file; turn.peel = 0; turn.zoom = 1; turn.picked.reset(); }
                 if (!schematic::preview::draw(context, structure, dx + 1, pvTop + 1, dw - 2, pvHeight - 2,
                         schematic::preview::View{turn.yaw, turn.pitch, turn.zoom, turn.peel, turn.peelAxis, turn.peelSign}, &tint))
                     turn.w = 0;
@@ -3406,6 +3451,21 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 vx += changeArrowWidth + 3;
                 label(context,vx,sy,dx+dw-vx,want.value,stateColor);
                 sy += 11;
+            }
+        }
+        else if (auto structure = schematic::session::structure(checked->file);
+                 structure && previewTurn.picked && previewTurn.pickedFile == checked->file) {
+            // A clicked block without a shown mistake: what belongs there.
+            auto const& c = *previewTurn.picked;
+            auto world = schematic::toWorld(structure->size, checked->placement, {c.x, c.y, c.z});
+            auto index = structure->blocks[static_cast<size_t>(structure->cell(c.x, c.y, c.z))];
+            fill(context,rx-5,y,1,52,palette::white,.1f);
+            label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", world.x, world.y, world.z)),palette::text);
+            if (fits(y + 11)) label(context,rx,y+11,rw,translated("schematic.pick.noMistake"),palette::accent);
+            if (index >= 0 && static_cast<size_t>(index) < structure->palette.size() && fits(y + 24)) {
+                auto block = schematic::ghosts::blockLabel(structure->palette[static_cast<size_t>(index)]);
+                drawItemIcon(context, block.icon, rx, y + 23, 12);
+                label(context,rx+14,y+25,rw-14,translated("schematic.expected", block.name),palette::dim);
             }
         }
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
@@ -4076,7 +4136,12 @@ void render(ll::event::UIRenderEvent& event) {
             if (!exit) exit = hud_editor::key(key, heldShift()) == hud_editor::Result::Exit;
         if (exit) { hud_editor::reset(); selectNav(editorReturn); }
     } else if (!closing) {
-        if (std::exchange(pendingRelease, false)) { sliderDrag = nullptr; scrollDragFirst = nullptr; previewTurn.dragging = false; }
+        if (std::exchange(pendingRelease, false)) {
+            sliderDrag = nullptr;
+            scrollDragFirst = nullptr;
+            // A press that did not move is a click on a block (inspect).
+            if (std::exchange(previewTurn.dragging, false) && glm::length(lastPointer - previewTurn.from) < 3) pickInPreview(previewTurn.from);
+        }
         if (previewTurn.dragging) {
             previewTurn.yaw = previewTurn.fromYaw - (lastPointer.x - previewTurn.from.x) * .7f;
             previewTurn.pitch = std::clamp(previewTurn.fromPitch + (lastPointer.y - previewTurn.from.y) * .7f, -60.f, 89.f);
