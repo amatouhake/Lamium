@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-114 Check tab layout A and wheel zoom (2026-10-08)
+
+By the maintainer, deployed `cdebe56`, DLL
+`5f8b9b2c0af130a1aae045dbcba4a0a5831f98f11a5e56a542933f598ca6b625`, Minecraft
+1.26.51.01, local world. Passed: the Check preview keeps its size while
+rows and chips change; counts beside the selected mistake, readable, no
+overlap with the buttons; chips change which kinds are colored; the wheel
+zooms both previews with the order intact and still scrolls the list
+outside them. Found: a zoomed preview spills over the screen (scissor not
+applied to it). The maintainer finds every layer-control variant of
+schematic-preview-layers.html awkward and wants the preview's scope
+settled first (camera moves, layers, possibly a simple 3D editor).
+
 ## L-114 Check tab colored preview (2026-10-08)
 
 By the maintainer, deployed `1c0b8bc`, DLL
