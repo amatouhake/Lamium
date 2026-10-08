@@ -177,13 +177,17 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
 
         // Model (centered blocks) to UI: right, down and toward the viewer,
-        // scaled to fit; depth is flattened since blocks come far to near.
+        // scaled to fit. Depth: the UI pass tests it (it kept the first
+        // fragment at equal depth), so nearer gets a smaller z and the parts
+        // inside one block (stair steps, fence bars) sort too. Kept small to
+        // stay inside the UI's depth range.
         auto r = project(view, 1, 0, 0), u = project(view, 0, 1, 0), f = project(view, 0, 0, 1);
         float scale = fitScale(structure->size.x, structure->size.y, structure->size.z, width, height);
         glm::mat4 model{1.f};
-        model[0] = {scale * r.right, scale * r.down, 0, 0};
-        model[1] = {scale * u.right, scale * u.down, 0, 0};
-        model[2] = {scale * f.right, scale * f.down, 0, 0};
+        constexpr float depthPerBlock = .002f;
+        model[0] = {scale * r.right, scale * r.down, -depthPerBlock * r.toward, 0};
+        model[1] = {scale * u.right, scale * u.down, -depthPerBlock * u.toward, 0};
+        model[2] = {scale * f.right, scale * f.down, -depthPerBlock * f.toward, 0};
         model[3] = {x + width / 2, y + height / 2, 0, 1};
         context.flushText(0, std::nullopt);
         context.enableScissorTest(RectangleArea{x, x + width, y, y + height});
