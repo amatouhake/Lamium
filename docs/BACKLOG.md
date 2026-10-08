@@ -221,6 +221,39 @@ unmet gates for versions already published:
 
 ## Bugs
 
+### L-121 Night Vision deepens the dark corners with Smooth Lighting on
+Kind: Bug (Research first). Found by the maintainer 2026-10-09 (screenshots
+of a redstone grid from above, in the conversation).
+Status: open; cause unknown.
+With Smooth Lighting on, Night Vision brightens the tops of blocks while
+the gaps between them stay dark, so the shading looks stronger than
+without it. With Smooth Lighting off, Night Vision lights the gaps too and
+the picture is even. Whether light near light sources really drops is not
+established.
+
+| Smooth Lighting | Night Vision | Seen |
+| --- | --- | --- |
+| on | off | normal shading |
+| on | on | bright tops, gaps darker by contrast |
+| off | off | weaker shading in the gaps |
+| off | on | gaps lit too, even brightness |
+
+Lamium's Night Vision (`NightVision.cpp`) sets the game's own night vision
+fields in the light texture data (`mNightvisionActive`, scale 1, darkness
+cleared); it adds no effect and no shading of its own. So the first step is
+cheap: give the player the vanilla Night Vision effect
+(`/effect @s night_vision`) with Lamium's off and compare at the same spot
+with Smooth Lighting on. If vanilla looks the same, this is how the game
+combines the light texture with smooth lighting (ambient occlusion is not
+lightened by night vision), and any fix is a Lamium change beyond vanilla
+(Design with the maintainer). If vanilla looks better, find what the
+effect sets that Lamium does not.
+Constraints (maintainer): do not turn Smooth Lighting off for the player;
+keep natural shading where possible; avoid deep render hooks. Done when, with
+Smooth Lighting on, gaps are no longer unnaturally dark, nothing changes
+with Night Vision off, and bright places, dark places, light sources and
+dense builds were checked in all four combinations.
+
 ### L-119 Fence gates show no icon in the shulker box preview
 Kind: Bug. Reported by the maintainer 2026-10-08.
 Status: open, not investigated.
