@@ -15,6 +15,7 @@
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/deps/core_graphics/enums/PrimitiveMode.h"
 #include "mc/deps/input/RectangleArea.h"
+#include "mc/deps/core/math/Color.h"
 #include "mc/deps/minecraft_renderer/renderer/MaterialPtr.h"
 #include "mc/deps/minecraft_renderer/renderer/Mesh.h"
 #include "mc/deps/minecraft_renderer/renderer/MeshData.h"
@@ -373,11 +374,14 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         model[2] = {scale * f.right, scale * f.down, 0, 0};
         model[3] = {x + width / 2, y + height / 2, 0, 1};
         context.flushText(0, std::nullopt);
-        // The UI's scissor takes GUI units for its own batches; this mesh is
-        // drawn at once, so the rectangle goes in pixels (the first build
-        // let a zoomed preview spill over the screen).
-        float gui = screen.guiData->mGuiScale;
-        context.enableScissorTest(RectangleArea{x * gui, (x + width) * gui, y * gui, (y + height) * gui});
+        // The UI applies its scissor when it draws, not when it is set, so a
+        // nearly invisible fill is drawn right after setting it (and after
+        // clearing it): the mesh drawn in between is clipped too. Neither GUI
+        // units nor pixels alone clipped a zoomed preview.
+        RectangleArea box{x, x + width, y, y + height};
+        auto commit = [&] { context.fillRectangle(box, mce::Color{0, 0, 0, 1}, .004f); };
+        context.enableScissorTest(box);
+        commit();
         auto ref = screen.camera.worldMatrixStack->push(false);
         ref.stack->_isDirty = true;
         ref.mat->_m = ref.mat->_m.get() * model;
@@ -399,10 +403,12 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         } catch (...) {
             pop();
             context.disableScissorTest();
+            commit();
             throw;
         }
         pop();
         context.disableScissorTest();
+        commit();
         return true;
     } catch (std::exception const& error) {
         static bool reported = false;
