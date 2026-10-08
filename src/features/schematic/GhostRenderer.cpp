@@ -1244,6 +1244,21 @@ void drawNameTags(ScreenContext& screen, IClientInstance& client, BlockSource& r
             i += length;
         }
         bool smooth = smoothFont || sheet != 0;
+        // Glyphs of scaled sheets (Japanese: 1.333) are measured at their
+        // sheet's scale but drawn at 1, so the plate came out too wide.
+        if (sheet != 0) {
+            width = 0;
+            for (size_t i = 0; i < name.size();) {
+                auto c = static_cast<unsigned char>(name[i]);
+                size_t length = c < 0x80 ? 1 : c < 0xE0 ? 2 : c < 0xF0 ? 3 : 4;
+                length = std::min(length, name.size() - i);
+                int point = length == 1 ? c : length == 2 ? (c & 0x1F) : length == 3 ? (c & 0x0F) : (c & 0x07);
+                for (size_t k = 1; k < length; ++k) point = (point << 6) | (static_cast<unsigned char>(name[i + k]) & 0x3F);
+                float scale = font.getScaleFactor(point);
+                width += static_cast<float>(font.getLineLength(std::string_view(name).substr(i, length), 1.f, false)) / (scale > 0 ? scale : 1.f);
+                i += length;
+            }
+        }
         static std::set<int> described;
         if (described.insert(sheet).second) {
             auto shift = font.getTranslationFactor();
@@ -1268,7 +1283,8 @@ void drawNameTags(ScreenContext& screen, IClientInstance& client, BlockSource& r
         MeshHelpers::renderMeshImmediately(screen, plate, backgroundMaterial, OffscreenCaptureDescription{});
         mce::Color white{1.f, 1.f, 1.f, 1.f}, black{0.f, 0.f, 0.f, 1.f};
         if (smooth) font.setTextConstantsInScreenContext(screen, sheet, 1.f, white, false);
-        font.drawCached(screen, name, -width / 2, 0, white, false, false, false, smooth ? nullptr : &textMaterial, -1, false, 0, white, black, 0, 0,
+        // The smooth material shades toward its dark color; keep it white.
+        font.drawCached(screen, name, -width / 2, 0, white, false, false, false, smooth ? nullptr : &textMaterial, -1, false, 0, white, smooth ? white : black, 0, 0,
             OffscreenCaptureDescription{}, false);
         ref.stack->_isDirty = true;
         if (ref.stack->sortOrigin->has_value() && (ref.stack->stack->size() - 1) <= ref.stack->sortOrigin->value())
