@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic ghosts by render layer, B2 (2026-10-09)
+
+By the maintainer, local, rounds on `ba046d0` to `59fc02c` (last DLL
+SHA-256 `cfdfcaeee522f26127ef6f9f6133fa420b30ee2c2ab20faab8fdf60163817c69`),
+`mixture` and its mirrored copy. Honey blocks now draw their real look
+(opaque inner cube, blended outer) instead of an outline, brightness the
+same at night; nothing else changed look (ordinary blocks, glass, panes,
+doors, fences, inside view, mistake colors, previews). Found and fixed
+along the way: a smooth stone slab ghost drew full height after a honey
+block was tessellated (the tessellator's current shape carried over,
+`99b04f6`); the honey ghost's outer face fought with a neighbor's mistake
+mark (mark faces against a ghost that fills that side are left out,
+`e9a0285`, `59fc02c`) and swapped draw order with it from frame to frame
+(marks moved into the sorted blended mesh, `a90251d`); that move hid a
+real honey block placed by mistake inside its mark, and ghost faces
+against a real honey block were dropped (`59fc02c`: marks over real
+blended blocks keep the old material, honey and slime no longer count as
+hiding faces). Seen on `59fc02c`: marks show in full beside trapdoor
+ghosts; a real honey block placed by mistake shows with its mark and its
+neighbors' faces stay. Still flickering: a real honey, slime or glass
+block placed by mistake next to a honey ghost, whose mark (old material,
+separate draw) swaps order with the blended ghost. Ordinary and partial
+blocks next to honey ghosts are stable.
+
 ## L-93 Schematic door halves and mirrored entity facing (2026-10-09)
 
 By the maintainer, local, deployed `a32a49f`, DLL SHA-256

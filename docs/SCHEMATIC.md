@@ -301,6 +301,20 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    camera at the build (far sections are rebuilt rarely), and real
    translucent blocks behind ghosts may still vanish where ghosts write
    depth.
+   Checked 2026-10-09 (VALIDATION-LOG, final `59fc02c`): honey draws its
+   real look; no regressions. Follow-ups made in that round: the
+   tessellator's current shape is cleared around each call; ghost faces
+   against real opaque blocks are dropped unless the block is blended;
+   `coversNeighbors` needs the unblended mesh to reach all six sides
+   (`sidesReached`); mistake marks are white concrete boxes, recolored and
+   pushed 0.01 out, inside the sorted blended mesh (a separate translucent
+   draw swapped order with blended ghosts each frame), except over a real
+   blended block, where they keep the holo material without depth writes
+   so that block stays visible; a mark leaves out its face against a ghost
+   that fills that side (`Resolved::boxed`). Known limit: that last kind of
+   mark still swaps order with a blended ghost beside it. Removing it needs
+   a blended material without depth writes, the same research as real
+   translucent blocks behind ghosts. B2 done.
 3. Liquids: water and lava from the second layer and from water/lava
    cells drawn by Lamium as simple shells textured from the terrain atlas
    (shared faces between same liquids dropped, faces against opaque
