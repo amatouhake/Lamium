@@ -12,7 +12,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+class Block;
 namespace lamium::schematic::ghosts {
+// The game block for a palette entry (its name, states and version), or null.
+Block const* gameBlock(PaletteBlock const& entry);
 void start();
 void stop();
 // The latest finished verification of the selected placement (never null).

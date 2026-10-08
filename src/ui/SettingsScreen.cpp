@@ -12,6 +12,7 @@
 #include "ui/Toast.h"
 #include "features/map/WaypointSession.h"
 #include "features/schematic/SchematicSession.h"
+#include "features/schematic/Preview.h"
 #include "features/schematic/GhostRenderer.h"
 #include "ui/SchematicFiles.h"
 #include "features/schematic/MaterialAmount.h"
@@ -3240,7 +3241,19 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 auto text = translated("schematic.largeWarning", std::format("{:.1f}", static_cast<double>(f.bytes) / (1024 * 1024)));
                 int lines = static_cast<int>(paragraphLines(context, dw, text, 4));
                 paragraph(context,dx,std::max(l.previewY,l.actionsY-4-12.f*lines),dw,text,4,palette::warning);
-            } else info(f.relative, l.previewY);
+            } else {
+                info(f.relative, l.previewY);
+                // The 3D preview below the facts, turning slowly (L-114).
+                float top = l.previewY + 48, bottom = l.actionsY - 6;
+                if (bottom - top >= 24) {
+                    fill(context,dx,top,dw,bottom-top,Rgb{0,0,0},.25f);
+                    frame(context,dx,top,dw,bottom-top,palette::white,.1f);
+                    float turn = std::fmod(static_cast<float>(std::chrono::duration<double>(
+                        std::chrono::steady_clock::now().time_since_epoch()).count()) * 12.f, 360.f);
+                    schematic::preview::draw(context, schematic::session::structure(f.relative), dx + 1, top + 1, dw - 2, bottom - top - 2,
+                        schematic::preview::View{35 + turn, 30});
+                }
+            }
             drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(waits ? "schematic.loadAnyway" : "schematic.place"),
                 over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
         } else paragraph(context,dx,l.detailTop+6,dw,translated(schematicFiles.empty() ? "schematic.empty" : "schematic.fileSelectHint"),

@@ -1617,6 +1617,7 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
 }
 }
 
+Block const* gameBlock(PaletteBlock const& entry) { return lookup(entry); }
 void wantProgress() { progressWanted = steadyMs(); }
 std::optional<Tally> progress(SavedPlacement const& placement) {
     std::lock_guard lock(progressMutex);

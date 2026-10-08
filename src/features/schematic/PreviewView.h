@@ -1,0 +1,78 @@
+#pragma once
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <vector>
+
+// The schematic screen's 3D preview (BACKLOG L-114): how a structure is seen
+// and in which order its blocks are drawn. The UI pass has no usable depth
+// for meshes, so blocks are drawn far to near and every block keeps only the
+// faces turned to the viewer (orthographic view, unit cells: walking each
+// axis from its far end is a correct painter's order).
+namespace lamium::schematic::preview {
+struct View {
+    float yaw = 35;   // degrees around the vertical axis; 0 looks from the south (+z)
+    float pitch = 30; // degrees above the horizon
+};
+struct Eye {
+    float x = 0, y = 0, z = 0; // unit vector from the structure toward the viewer
+};
+inline Eye eye(View view) {
+    constexpr float toRadians = 3.14159265f / 180;
+    float yaw = view.yaw * toRadians, pitch = view.pitch * toRadians;
+    return {std::sin(yaw) * std::cos(pitch), std::sin(pitch), std::cos(yaw) * std::cos(pitch)};
+}
+// +1 walks an axis upward, -1 downward; the far end comes first.
+struct Order {
+    int x = 1, y = 1, z = 1;
+    bool operator==(Order const&) const = default;
+};
+inline Order drawOrder(View view) {
+    auto e = eye(view);
+    return {e.x >= 0 ? 1 : -1, e.y >= 0 ? 1 : -1, e.z >= 0 ? 1 : -1};
+}
+// A face with this outward axis normal is seen from the viewer.
+inline bool facesViewer(Order order, int nx, int ny, int nz) {
+    return nx * order.x + ny * order.y + nz * order.z > 0;
+}
+// The cells a viewer can see some face of: occupied, with at least one
+// unoccupied (or outside) neighbor. In draw order.
+template <class Occupied>
+std::vector<std::uint32_t> visibleCells(int sx, int sy, int sz, Order order, Occupied&& occupied) {
+    std::vector<std::uint32_t> out;
+    auto at = [&](int x, int y, int z) {
+        return x >= 0 && y >= 0 && z >= 0 && x < sx && y < sy && z < sz && occupied(x, y, z);
+    };
+    for (int i = 0; i < sx; ++i) {
+        int x = order.x > 0 ? i : sx - 1 - i;
+        for (int j = 0; j < sy; ++j) {
+            int y = order.y > 0 ? j : sy - 1 - j;
+            for (int k = 0; k < sz; ++k) {
+                int z = order.z > 0 ? k : sz - 1 - k;
+                if (!at(x, y, z)) continue;
+                if (at(x + 1, y, z) && at(x - 1, y, z) && at(x, y + 1, z) && at(x, y - 1, z) && at(x, y, z + 1) && at(x, y, z - 1)) continue;
+                out.push_back(static_cast<std::uint32_t>((x * sy + y) * sz + z));
+            }
+        }
+    }
+    return out;
+}
+// Where a model point lands: right, down (UI y) and toward the viewer, for a
+// structure point relative to its center.
+struct Projected {
+    float right = 0, down = 0, toward = 0;
+};
+inline Projected project(View view, float x, float y, float z) {
+    auto e = eye(view);
+    // Right is the horizontal axis perpendicular to the eye; up completes it.
+    float rx = e.z, rz = -e.x, length = std::sqrt(rx * rx + rz * rz);
+    if (length > 0) { rx /= length; rz /= length; }
+    float ux = e.y * rz, uy = e.z * rx - e.x * rz, uz = -e.y * rx; // eye x right
+    return {x * rx + z * rz, -(x * ux + y * uy + z * uz), x * e.x + y * e.y + z * e.z};
+}
+// Scale (UI units per block) fitting the structure's bounding sphere in a box.
+inline float fitScale(int sx, int sy, int sz, float width, float height) {
+    float diagonal = std::sqrt(float(sx * sx + sy * sy + sz * sz));
+    return diagonal > 0 ? std::min(width, height) * .92f / diagonal : 1.f;
+}
+} // namespace lamium::schematic::preview

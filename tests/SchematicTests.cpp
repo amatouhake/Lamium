@@ -10,6 +10,7 @@
 #include "features/schematic/MaterialAmount.h"
 #include "features/schematic/MenuModel.h"
 #include "features/schematic/RestPose.h"
+#include "features/schematic/PreviewView.h"
 #include "features/schematic/GhostFaces.h"
 #include <array>
 #include <set>
@@ -250,6 +251,36 @@ void placementTransforms() {
     check(!constantMolang("query.is_sitting ? 0 : 90") && !constantMolang("variable.tcos0 * 57.3") && !constantMolang("thisx")
           && !constantMolang("") && !constantMolang("1 / 0") && !constantMolang("(1"),
           "rest-pose Molang: anything needing the entity is not a constant");
+}
+
+void previewRules() {
+    using namespace lamium::schematic::preview;
+    View view{35, 30};
+    check(drawOrder(view) == Order{1, 1, 1} && drawOrder(View{-145, 30}) == Order{-1, 1, -1},
+          "the preview walks each axis from the end away from the viewer");
+    auto order = drawOrder(view);
+    check(facesViewer(order, 0, 1, 0) && !facesViewer(order, 0, -1, 0) && facesViewer(order, 1, 0, 0) && !facesViewer(order, 0, 0, -1),
+          "only faces turned to the viewer are kept");
+    auto e = eye(view);
+    auto center = project(view, e.x, e.y, e.z);
+    auto up = project(View{0, 0}, 0, 1, 0);
+    check(std::abs(center.right) < 1e-4f && std::abs(center.down) < 1e-4f && std::abs(center.toward - 1) < 1e-4f
+          && std::abs(up.down + 1) < 1e-4f && std::abs(up.right) < 1e-4f,
+          "the eye direction projects onto the middle, toward the viewer, and up is up on screen");
+    auto full = [](int, int, int) { return true; };
+    auto cells = visibleCells(3, 3, 3, order, full);
+    bool farFirst = true;
+    for (size_t i = 1; i < cells.size(); ++i) {
+        auto depth = [&](std::uint32_t c) { int x = int(c) / 9, y = int(c) / 3 % 3, z = int(c) % 3; return project(view, x, y, z).toward; };
+        // A later cell is never wholly behind an earlier one along all axes.
+        int a = int(cells[i - 1]), b = int(cells[i]);
+        bool behind = a / 9 >= b / 9 && a / 3 % 3 >= b / 3 % 3 && a % 3 >= b % 3 && a != b;
+        farFirst = farFirst && !(behind && depth(cells[i]) < depth(cells[i - 1]));
+    }
+    check(cells.size() == 26 && cells.front() == 0 && cells.back() == 26 && farFirst,
+          "the hidden middle cell is left out and cells come far to near");
+    check(fitScale(4, 4, 4, 100, 60) > 0 && fitScale(4, 4, 4, 100, 60) * std::sqrt(48.f) <= 60,
+          "the preview fits the structure's diagonal in the smaller side");
 }
 
 void saveRules() {
@@ -525,6 +556,7 @@ void schematicTests() {
     ghostFaces();
     placementTransforms();
     entityRules();
+    previewRules();
     saveRules();
     savePromptHits();
     layerRules();
