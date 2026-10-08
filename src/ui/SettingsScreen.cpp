@@ -145,6 +145,8 @@ void drawPreviewLabel(MinecraftUIRenderContext& context, float x, float y, float
         label(context,x+4,y+3,w-8,text,palette::warning);
     } else if (!t.manual) label(context,x+4,y+3,w-8,translated("schematic.previewHint"),palette::faint);
 }
+// Set when a pick selected a row: the next layout scrolls the list to it.
+bool scrollToSelected = false;
 // Inspect: the clicked block is remembered for the Files pane; in the Check
 // tab its mistake row is selected (and scrolled to), if it has one.
 void pickInPreview(glm::vec2 at);
@@ -2764,11 +2766,7 @@ void pickInPreview(glm::vec2 at) {
     verifySelected = -1;
     for (size_t i = 0; i < verifyRows.size(); ++i)
         if (!verifyRows[i]->entity && verifyRows[i]->position == world) { verifySelected = static_cast<int>(i); break; }
-    if (verifySelected >= 0) {
-        int visible = std::max(1, schematicsDisplayed.listVisible);
-        if (verifySelected < schematicListFirst || verifySelected >= schematicListFirst + visible)
-            schematicListFirst = std::max(0, verifySelected - visible / 2);
-    }
+    if (verifySelected >= 0) scrollToSelected = true;
 }
 void handleSchematicClick(float x, float y, bool right) {
     finishNumber();
@@ -2777,7 +2775,7 @@ void handleSchematicClick(float x, float y, bool right) {
     // The peel line across the top of the preview resets the cut.
     if (!right && t.w > 0 && t.peel > 0 && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + 16) { t.peel = 0; return; }
     if (!right && t.w > 0 && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h) {
-        t.dragging = t.manual = true;
+        t.dragging = true;
         t.from = {x, y};
         t.fromYaw = t.yaw;
         t.fromPitch = t.pitch;
@@ -3544,6 +3542,11 @@ ShapesLayout fitSchematics(SettingsTable const& t, glm::vec2 size, bool docked) 
     l.firstActionWidth = std::clamp(l.detailWidth - 2 * ShapesLayout::pad - ShapesLayout::deleteWidth - 4, 40.f, 96.f);
     // Materials has one action: the calculator link, readable across the pane.
     if (schematicTab == SchematicTab::Materials) l.firstActionWidth = std::max(40.f, l.detailWidth - 2 * ShapesLayout::pad);
+    if (std::exchange(scrollToSelected, false) && schematicTab == SchematicTab::Verify && verifySelected >= 0
+        && (verifySelected < l.listFirst || verifySelected >= l.listFirst + l.listVisible)) {
+        schematicListFirst = std::max(0, verifySelected - l.listVisible / 2);
+        return fitSchematics(t, size, docked);
+    }
     schematicsDisplayed = l;
     schematicListFirst = l.listFirst;
     schematicFieldFirst = l.fieldFirst;
@@ -4140,11 +4143,23 @@ void render(ll::event::UIRenderEvent& event) {
             sliderDrag = nullptr;
             scrollDragFirst = nullptr;
             // A press that did not move is a click on a block (inspect).
-            if (std::exchange(previewTurn.dragging, false) && glm::length(lastPointer - previewTurn.from) < 3) pickInPreview(previewTurn.from);
+            if (std::exchange(previewTurn.dragging, false) && glm::length(lastPointer - previewTurn.from) < 3) {
+                previewTurn.yaw = previewTurn.fromYaw;
+                previewTurn.pitch = previewTurn.fromPitch;
+                pickInPreview(previewTurn.from);
+            }
         }
-        if (previewTurn.dragging) {
-            previewTurn.yaw = previewTurn.fromYaw - (lastPointer.x - previewTurn.from.x) * .7f;
-            previewTurn.pitch = std::clamp(previewTurn.fromPitch + (lastPointer.y - previewTurn.from.y) * .7f, -60.f, 89.f);
+        // A drag turns only after the pointer moved a little, so a click on
+        // a block does not nudge the view.
+        if (auto& t = previewTurn; t.dragging && (t.manual || glm::length(lastPointer - t.from) >= 3)) {
+            if (!t.manual) {
+                // Pick up the turn the preview had while turning by itself.
+                t.fromYaw = t.yaw + std::fmod(static_cast<float>(std::chrono::duration<double>(
+                    std::chrono::steady_clock::now().time_since_epoch()).count()) * 12.f, 360.f);
+                t.manual = true;
+            }
+            t.yaw = t.fromYaw - (lastPointer.x - t.from.x) * .7f;
+            t.pitch = std::clamp(t.fromPitch + (lastPointer.y - t.from.y) * .7f, -60.f, 89.f);
         }
         if (scrollDragFirst && scrollDragLayout) *scrollDragFirst = scrollDragLayout->firstAt(lastPointer.y);
         if (shapesView()) {
