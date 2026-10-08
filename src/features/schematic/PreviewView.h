@@ -36,12 +36,12 @@ inline bool facesViewer(Order order, int nx, int ny, int nz) {
     return nx * order.x + ny * order.y + nz * order.z > 0;
 }
 // The cells a viewer can see some face of: occupied, with at least one
-// unoccupied (or outside) neighbor. In draw order.
-template <class Occupied>
-std::vector<std::uint32_t> visibleCells(int sx, int sy, int sz, Order order, Occupied&& occupied) {
+// neighbor (or the outside) that does not cover it. In draw order.
+template <class Occupied, class Covers>
+std::vector<std::uint32_t> visibleCells(int sx, int sy, int sz, Order order, Occupied&& occupied, Covers&& covers) {
     std::vector<std::uint32_t> out;
     auto at = [&](int x, int y, int z) {
-        return x >= 0 && y >= 0 && z >= 0 && x < sx && y < sy && z < sz && occupied(x, y, z);
+        return x >= 0 && y >= 0 && z >= 0 && x < sx && y < sy && z < sz && covers(x, y, z);
     };
     for (int i = 0; i < sx; ++i) {
         int x = order.x > 0 ? i : sx - 1 - i;
@@ -49,7 +49,7 @@ std::vector<std::uint32_t> visibleCells(int sx, int sy, int sz, Order order, Occ
             int y = order.y > 0 ? j : sy - 1 - j;
             for (int k = 0; k < sz; ++k) {
                 int z = order.z > 0 ? k : sz - 1 - k;
-                if (!at(x, y, z)) continue;
+                if (!occupied(x, y, z)) continue;
                 if (at(x + 1, y, z) && at(x - 1, y, z) && at(x, y + 1, z) && at(x, y - 1, z) && at(x, y, z + 1) && at(x, y, z - 1)) continue;
                 out.push_back(static_cast<std::uint32_t>((x * sy + y) * sz + z));
             }

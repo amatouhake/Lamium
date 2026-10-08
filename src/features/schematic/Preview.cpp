@@ -85,7 +85,8 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
     // The UI pass keeps the first fragment drawn at a spot (its depth test
     // rejects equal depth), so blocks go near to far: the reverse of the
     // painter's order.
-    job->cells = visibleCells(s.size.x, s.size.y, s.size.z, order, [&](int x, int y, int z) { return blockAt(*job, x, y, z) != nullptr; });
+    job->cells = visibleCells(s.size.x, s.size.y, s.size.z, order, [&](int x, int y, int z) { return blockAt(*job, x, y, z) != nullptr; },
+        [&](int x, int y, int z) { auto const* b = blockAt(*job, x, y, z); return b && b->getBlockType().mIsOpaqueFullBlock; });
     std::reverse(job->cells.begin(), job->cells.end());
     if (job->cells.empty() || job->cells.size() > maxBlocks) {
         job->failed = true;
@@ -95,6 +96,35 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
     job->blocks = std::make_unique<BlockTessellator>(&region);
     job->batch = std::make_unique<Tessellator>(screen.tessellator.mBufferResourceService);
     job->batch->begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(std::min<size_t>(job->cells.size() * 24, 1 << 20)), false);
+}
+
+// Lighting of its own: the UI pass lit faces by their normals through a
+// matrix that flattens depth, so faces flashed bright at some angles and
+// large builds lit half and half. All normals point up (one light for all)
+// and each face is darkened by its direction, like the world's shading:
+// top full, sides 80% and 60%, bottom 50%.
+void shade(Tessellator& batch) {
+    auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
+    auto const& positions = *data.mPositions;
+    auto& normals = *data.mNormals;
+    auto& colors = *data.mColors;
+    size_t vertices = positions.size();
+    if (colors.size() != vertices) colors.assign(vertices, 0xffffffffu);
+    for (size_t q = 0; q + 4 <= vertices; q += 4) {
+        glm::vec3 n = normals.size() == vertices ? glm::vec3(normals[q]) : glm::cross(positions[q + 1] - positions[q], positions[q + 2] - positions[q]);
+        float length = glm::length(n);
+        float factor = 1;
+        if (length > 1e-6f) {
+            n /= length;
+            factor = n.y > .5f ? 1.f : n.y < -.5f ? .5f : std::abs(n.x) > std::abs(n.z) ? .6f : .8f;
+        }
+        for (size_t k = 0; k < 4; ++k) {
+            auto& c = colors[q + k];
+            auto channel = [&](int shift) { return static_cast<std::uint32_t>(std::lround(((c >> shift) & 255) * factor)) << shift; };
+            c = channel(0) | channel(8) | channel(16) | (c & 0xff000000u);
+        }
+    }
+    if (normals.size() == vertices) for (auto& v : normals) v = glm::vec4{0, 1, 0, 0};
 }
 
 // Reorders the batch's quads near to far for a viewer in the order's octant
@@ -138,8 +168,12 @@ bool step() {
     auto& batch = *j.batch;
     glm::vec3 center{s.size.x / 2.f, s.size.y / 2.f, s.size.z / 2.f};
     auto& positions = batch.mMeshData->mPositions.get();
+    // Only an opaque full block hides the face it touches (a stair or a
+    // trapdoor next to stone leaves the stone's face partly open).
     auto occupied = [&](int x, int y, int z) {
-        return x >= 0 && y >= 0 && z >= 0 && x < s.size.x && y < s.size.y && z < s.size.z && blockAt(j, x, y, z) != nullptr;
+        if (x < 0 || y < 0 || z < 0 || x >= s.size.x || y >= s.size.y || z >= s.size.z) return false;
+        auto const* b = blockAt(j, x, y, z);
+        return b && b->getBlockType().mIsOpaqueFullBlock;
     };
     for (size_t done = 0; j.next < j.cells.size() && done < blocksPerFrame; ++j.next, ++done) {
         auto cell = static_cast<int>(j.cells[j.next]);
@@ -166,6 +200,7 @@ bool step() {
         }
     }
     if (j.next < j.cells.size()) return false;
+    shade(batch);
     sortQuads(batch, j.order);
     ready.mesh.reset();
     ready.structure = j.structure.get();

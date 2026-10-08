@@ -268,7 +268,9 @@ void previewRules() {
           && std::abs(up.down + 1) < 1e-4f && std::abs(up.right) < 1e-4f,
           "the eye direction projects onto the middle, toward the viewer, and up is up on screen");
     auto full = [](int, int, int) { return true; };
-    auto cells = visibleCells(3, 3, 3, order, full);
+    auto cells = visibleCells(3, 3, 3, order, full, full);
+    auto glassMiddle = visibleCells(3, 3, 3, order, full, [](int x, int y, int z) { return !(x == 1 && y == 1 && z == 2); });
+    check(glassMiddle.size() == 27, "a block that does not cover its neighbors (glass, stairs) shows the cell behind it");
     bool farFirst = true;
     for (size_t i = 1; i < cells.size(); ++i) {
         auto depth = [&](std::uint32_t c) { int x = int(c) / 9, y = int(c) / 3 % 3, z = int(c) % 3; return project(view, x, y, z).toward; };
