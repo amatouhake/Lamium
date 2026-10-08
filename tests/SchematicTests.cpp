@@ -295,6 +295,9 @@ void previewRules() {
     check(top == Cut{1, 1, 4} && top.keeps(0, 4, 0) && !top.keeps(0, 5, 0) && side.axis == 0 && side.keeps(2, 0, 0) && !side.keeps(3, 0, 0)
           && cutFor(view, 5, 8, 5, 0).axis < 0 && cutFor(View{35, 60}, 5, 8, 5, 99).limit == 0,
           "peeling takes layers off the side the view looks down on, never the last one");
+    View turned{90, 10};
+    turned.peelAxis = 1;
+    check(cutFor(turned, 5, 8, 5, 3) == Cut{1, 1, 4}, "a cut started from above stays a height cut when the view turns to the side");
 }
 
 void saveRules() {

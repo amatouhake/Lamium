@@ -15,6 +15,7 @@ struct View {
     float pitch = 30; // degrees above the horizon
     float zoom = 1;   // 1 fits the whole structure; draw order does not depend on it
     int peel = 0;     // layers taken off from the viewer's side
+    int peelAxis = -1, peelSign = 1; // the side peeled, fixed when peeling starts; -1 follows the view
 };
 struct Eye {
     float x = 0, y = 0, z = 0; // unit vector from the structure toward the viewer
@@ -90,8 +91,10 @@ inline Cut cutFor(View view, int sx, int sy, int sz, int peel) {
     if (peel <= 0) return {};
     auto e = eye(view);
     int axis = std::abs(e.y) >= std::max(std::abs(e.x), std::abs(e.z)) * .9f ? 1 : std::abs(e.x) >= std::abs(e.z) ? 0 : 2;
-    int size = axis == 0 ? sx : axis == 1 ? sy : sz;
     float toward = axis == 0 ? e.x : axis == 1 ? e.y : e.z;
+    // Fixed once peeling started, so turning to look at the cut keeps it.
+    if (view.peelAxis >= 0) { axis = view.peelAxis; toward = static_cast<float>(view.peelSign); }
+    int size = axis == 0 ? sx : axis == 1 ? sy : sz;
     peel = std::min(peel, size - 1);
     // The viewer is on the + side: keep the low end.
     return toward >= 0 ? Cut{axis, 1, size - 1 - peel} : Cut{axis, -1, peel};
