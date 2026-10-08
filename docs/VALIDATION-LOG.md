@@ -25,7 +25,7 @@ outside the list is checked on the spot and "show in world" marks it; a
 correct block says so; peeled cuts can be picked. Found on the way: the
 list kept the first 2000 found, so missing blocks filled it and wrong ones
 never listed (fixed); the note under the counts was cut off in Japanese at
-UI Profile 75% (shortened after this check, `3ffe2d9` or later).
+UI Profile 75% (shortened after this check in `511cb35`).
 
 ## L-114 preview zoom limit and layer peeling (2026-10-08)
 
