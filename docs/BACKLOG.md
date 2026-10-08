@@ -80,6 +80,7 @@ L-item wins. Every entry names what the task is, not only its number.
    maintainer decides scope, risks and order.
 3. **Small and medium features**, picked by the maintainer:
    - L-118 Hide distance fog (0.1.8).
+   - L-121 Night Vision without dark corners (child option, default on).
    - L-90 Simplified Chinese localization: built and checked in game; waits
      for a native review of the wording.
 4. **Placement and breaking — L-15 restrictions and L-59 held placement
@@ -222,9 +223,11 @@ unmet gates for versions already published:
 ## Bugs
 
 ### L-121 Night Vision deepens the dark corners with Smooth Lighting on
-Kind: Design (small). Found by the maintainer 2026-10-09 as a bug; the same
+Kind: Ready (small). Found by the maintainer 2026-10-09 as a bug; the same
 day they showed it is the game's own behavior (VALIDATION-LOG).
-Status: open; waiting for the maintainer's choice.
+Status: open. Decided 2026-10-09 (maintainer): a Night Vision child option
+that removes the dark corners, **default on**; Lamium's Night Vision should
+look fully bright by default. Off gives the vanilla look.
 With Smooth Lighting on and Night Vision on, the corners and gaps that
 smooth lighting darkens turn dark blue, in a wide ring around a hole in a
 floor. The vanilla Night Vision effect does the same, also without
@@ -246,8 +249,10 @@ Vision is on, raise the light texture's `BaseLightData::mGamma` toward
 what Brightness 100% gives, so the user's Brightness setting is not
 changed. To find out in a first round: whether `mGamma` is the Brightness
 slider's value and whether raising it removes the blue ring, and how much
-brighter everything else gets. Choices for the maintainer: always on with
-Night Vision, a child option (default on or off), or leave vanilla.
+brighter everything else gets. If `mGamma` does not do it, stop after two
+runtime rounds and report before trying a deeper path. The option follows
+the usual settings steps (Settings, Options, store, row, English, Japanese
+and Chinese strings) and only acts while Night Vision is on.
 Constraints (maintainer): do not turn Smooth Lighting off for the player;
 keep natural shading where possible; avoid deep render hooks. Check all four
 Smooth Lighting / Night Vision combinations, at Brightness 0, 50 and 100%,
