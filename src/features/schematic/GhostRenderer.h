@@ -35,6 +35,10 @@ std::optional<Mismatch> mismatchAt(BlockSource& region, Point world);
 // Whether a block hides the neighbor faces it touches: an opaque full block
 // that the in-world tessellation draws (a honey block draws nothing there).
 bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen);
+// Which sides of its cell a block's mesh reaches, as bits in faces::offsets
+// order (63: all six), within `epsilon` of the cell's planes; blended layers
+// count only with `blendedToo`.
+int sidesReached(Block const& block, BlockTessellator& tessellator, ScreenContext& screen, bool blendedToo, float epsilon);
 // Calls `visit` with each render layer a block draws in: its own, then its
 // extra ones (honey and slime blocks). Liquids get one call with nullopt
 // (the tessellator's default pass).

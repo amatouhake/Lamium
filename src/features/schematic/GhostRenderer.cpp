@@ -103,9 +103,10 @@ struct Section {
     glm::vec3 origin{};
     // faces: every render layer but the blended ones, drawn alpha-tested;
     // blend: blended layers (stained glass, honey, slime) and the mistake
-    // marks, drawn last.
-    std::optional<mce::Mesh> faces, blend, lines;
-    std::uint32_t faceVertices = 0, blendVertices = 0, lineVertices = 0;
+    // marks, drawn last; marks: mistake marks over a real blended block,
+    // which the blend mesh's depth would hide.
+    std::optional<mce::Mesh> faces, blend, lines, marks;
+    std::uint32_t faceVertices = 0, blendVertices = 0, lineVertices = 0, markVertices = 0;
     std::vector<EntityCell> entities;
     Clock::time_point built{}, checked{};
     std::optional<Clock::time_point> due; // An early rebuild after a looked-at block changed.
@@ -135,6 +136,10 @@ struct Resolved {
     // Palette entries that are opaque full blocks with no mesh on the ghost
     // path (honey block): they must not hide a neighbor's face.
     std::vector<bool> meshless;
+    // Palette entries whose mesh reaches all six sides of the cell (any
+    // layer, honey's slightly inset outer cube included): a mistake mark
+    // next to one leaves out its face there.
+    std::vector<bool> boxed;
     // Per palette entry: the other half of a two-block-tall block (turned
     // like `blocks`) and the step up (+1) or down (-1) to it; null and 0
     // for other blocks.
@@ -433,9 +438,9 @@ bool ghostOpaqueAt(BlockSource& region, session::Shown const& shown, Resolved co
     bool drawn = static_cast<size_t>(index) >= blocks.meshless.size() || !blocks.meshless[static_cast<size_t>(index)];
     return ghost && drawn && ghost->getBlockType().mIsOpaqueFullBlock && region.getBlock(BlockPos{n.x, n.y, n.z}).isAir();
 }
-// A ghost is drawn at `n`: a block expected in a shown layer, nothing real
-// there yet.
-bool ghostDrawnAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
+// A ghost that reaches all sides of its cell is drawn at `n`: a boxed block
+// expected in a shown layer, nothing real there yet.
+bool ghostBoxAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
@@ -447,7 +452,8 @@ bool ghostDrawnAt(BlockSource& region, session::Shown const& shown, Resolved con
     BlockPos pos{n.x, n.y, n.z};
     auto* chunk = region.getChunkAt(pos);
     if (!chunk || chunk->mLoadState->load() < ChunkState::Loaded) return false;
-    return blocks.blocks[static_cast<size_t>(index)] && region.getBlock(pos).isAir();
+    return blocks.blocks[static_cast<size_t>(index)] && static_cast<size_t>(index) < blocks.boxed.size()
+        && blocks.boxed[static_cast<size_t>(index)] && region.getBlock(pos).isAir();
 }
 bool enclosed(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point at) {
     for (auto const& d : faces::offsets) {
@@ -459,7 +465,7 @@ bool enclosed(BlockSource& region, session::Shown const& shown, Resolved const& 
 }
 // Drops the quads of a just tessellated ghost that lie on a side touching an
 // opaque ghost: unseen from outside, and they fought with the neighbor's own
-// face. Real opaque full neighbors hide the quad too: the tessellator culls
+// face. Real opaque full neighbors (not blended ones) hide the quad too: the tessellator culls
 // against them for most blocks, but not the honey block's outer cube, which
 // fought with the real face in the same plane. A dropped
 // quad collapses to one point, so no other vertex data has to move.
@@ -480,7 +486,10 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
         if (!known) {
             auto const& d = faces::offsets[side];
             Point n{at.x + d[0], at.y + d[1], at.z + d[2]};
-            if (region.getBlock(BlockPos{n.x, n.y, n.z}).getBlockType().mIsOpaqueFullBlock) {
+            BlockPos np{n.x, n.y, n.z};
+            Block const& real = region.getBlock(np);
+            // Honey and slime count as opaque full blocks but are see-through.
+            if (real.getBlockType().mIsOpaqueFullBlock && !blended(real.getBlockType().getRenderLayer(real, region, np))) {
                 known = true;
             } else {
                 known = ghostOpaqueAt(region, shown, blocks, n);
@@ -562,8 +571,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     auto [index, sx, sy, sz] = key;
     Point low{sx * sectionSize, sy * sectionSize, sz * sectionSize};
     // Reset in place: meshes cannot be copied or assigned.
-    out.faces.reset(); out.blend.reset(); out.lines.reset();
-    out.faceVertices = out.blendVertices = out.lineVertices = 0;
+    out.faces.reset(); out.blend.reset(); out.lines.reset(); out.marks.reset();
+    out.faceVertices = out.blendVertices = out.lineVertices = out.markVertices = 0;
     out.entities.clear();
     out.due.reset();
     out.origin = {static_cast<float>(low.x), static_cast<float>(low.y), static_cast<float>(low.z)};
@@ -576,6 +585,10 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         meshless.assign(blocks.blocks.size(), false);
         for (size_t i = 0; i < blocks.blocks.size(); ++i)
             if (auto const* b = blocks.blocks[i]; b && b->getBlockType().mIsOpaqueFullBlock) meshless[i] = !coversNeighbors(*b, own, screen);
+        auto& boxed = const_cast<Resolved&>(blocks).boxed;
+        boxed.assign(blocks.blocks.size(), false);
+        for (size_t i = 0; i < blocks.blocks.size(); ++i)
+            if (auto const* b = blocks.blocks[i]) boxed[i] = sidesReached(*b, own, screen, true, .02f) == 63;
     }
     Point drawing{};
     int drawn = -1;
@@ -687,10 +700,36 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         };
         auto white = Block::tryGetFromRegistry(HashedString{"minecraft:white_concrete"});
         drawn = -1;
+        // Over a real blended block (honey, stained glass) the box goes into
+        // a mesh without depth writes, or the world's translucent layer,
+        // drawn after the ghosts, would lose that block behind it.
+        Tessellator quads(screen.tessellator.mBufferResourceService);
+        quads.begin({}, mce::PrimitiveMode::QuadList, 48, false);
+        constexpr int sides[6][4] = {{0,2,6,4},{1,5,7,3},{0,4,5,1},{2,3,7,6},{0,1,3,2},{4,6,7,5}}; // as faces::offsets
         for (auto const& m : marks) {
-            if (!white) break;
             auto cell = cellOf(m);
             Point at{std::get<0>(cell), std::get<1>(cell), std::get<2>(cell)};
+            auto hidesBox = [&](int side) {
+                auto const& d = faces::offsets[side];
+                return sameAt(cell, side, m.g) || ghostBoxAt(region, shown, blocks, {at.x + d[0], at.y + d[1], at.z + d[2]});
+            };
+            BlockPos atPos{at.x, at.y, at.z};
+            Block const& real = region.getBlock(atPos);
+            if (!white || blended(real.getBlockType().getRenderLayer(real, region, atPos))) {
+                quads.color(m.r, m.g, m.b, .3f);
+                glm::vec3 a = m.min - glm::vec3{.01f} - out.origin, b = m.max + glm::vec3{.01f} - out.origin, c[8];
+                for (int i = 0; i < 8; ++i) c[i] = {i & 1 ? b.x : a.x, i & 2 ? b.y : a.y, i & 4 ? b.z : a.z};
+                int open = 0;
+                for (int side = 0; side < 6; ++side) {
+                    if (hidesBox(side)) continue;
+                    ++open;
+                    for (int k = 0; k < 4; ++k) quads.vertex(c[sides[side][k]].x, c[sides[side][k]].y, c[sides[side][k]].z);
+                    for (int k = 3; k >= 0; --k) quads.vertex(c[sides[side][k]].x, c[sides[side][k]].y, c[sides[side][k]].z);
+                    out.markVertices += 8;
+                }
+                if (open) outlines.push_back(m);
+                continue;
+            }
             drawing = at;
             size_t from = see.mMeshData->mPositions->size();
             tessellateLayer(own, see, *white, BlockPos{at.x, at.y, at.z}, std::nullopt);
@@ -707,15 +746,11 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 std::array<faces::Vertex, 4> quad;
                 for (size_t k = 0; k < 4; ++k) quad[k] = {positions[q + k].x, positions[q + k].y, positions[q + k].z};
                 int side = faces::sideOf(quad, at.x, at.y, at.z);
-                bool keep = side >= 0 && !sameAt(cell, side, m.g);
-                // The box reaches 0.01 into the next cell: against a ghost its
-                // face would lie on (or just past) the ghost's own and fight
-                // with it at grazing angles (Depth.h rules 1 and 4). The
-                // ghost's face shows there instead.
-                if (keep) {
-                    auto const& d = faces::offsets[side];
-                    keep = !ghostDrawnAt(region, shown, blocks, {at.x + d[0], at.y + d[1], at.z + d[2]});
-                }
+                // The box reaches 0.01 into the next cell: against a ghost that
+                // fills its side the face would lie on (or just past) the
+                // ghost's own and fight with it at grazing angles (Depth.h
+                // rules 1 and 4). The ghost's face shows there instead.
+                bool keep = side >= 0 && !hidesBox(side);
                 if (!keep) {
                     for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
                     continue;
@@ -733,6 +768,9 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
             }
             if (open) outlines.push_back(m);
         }
+        // Ended either way, so the tessellator never stays open.
+        auto mesh = quads.end(Tessellator::UploadMode::Buffered, "Lamium schematic mistakes", SupplementaryFieldAutoGenerationMode{});
+        if (out.markVertices) out.marks.emplace(std::move(mesh));
     }
     if (see.mCount) {
         // Blended quads far to near from where the camera was at the build;
@@ -1665,7 +1703,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             : std::chrono::duration_cast<Clock::duration>(refreshFar);
         bool stale = found == sections.end() || !found->second.complete || (found->second.due && now >= *found->second.due)
             || (found->second.faces && !found->second.faces->isValid()) || (found->second.blend && !found->second.blend->isValid())
-            || (found->second.lines && !found->second.lines->isValid());
+            || (found->second.lines && !found->second.lines->isValid())
+            || (found->second.marks && !found->second.marks->isValid());
         if (!stale && now - found->second.checked > refreshAfter && checks > 0) {
             --checks;
             auto const index = static_cast<size_t>(std::get<0>(w.key));
@@ -1715,6 +1754,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     };
     std::vector<std::pair<float, Section const*>> blendedSections;
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
+    // Vertex-colored and blended without depth writes, as shape faces use in Fancy graphics.
+    mce::MaterialPtr markMaterial(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
     std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{atlas};
     for (auto& [key, section] : sections) {
         if (!inView(std::get<1>(key), std::get<2>(key), std::get<3>(key))) continue;
@@ -1725,6 +1766,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                 fullBright();
                 section.faces->renderMesh(screen, faces, texture, 0, section.faceVertices, OffscreenCaptureDescription{}, nullptr);
             }
+            if (section.marks && markMaterial.mRenderMaterialInfoPtr)
+                section.marks->renderMesh(screen, markMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section.markVertices,
+                    OffscreenCaptureDescription{}, nullptr);
             if (section.lines && lineMaterial.mRenderMaterialInfoPtr)
                 section.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section.lineVertices,
                     OffscreenCaptureDescription{}, nullptr);
@@ -1903,20 +1947,32 @@ void reorderQuads(Tessellator& batch, std::vector<std::uint32_t> const& order) {
     permute(*data.mMERS);
     permute(*data.mGeoType);
 }
-bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen) {
-    if (!block.getBlockType().mIsOpaqueFullBlock) return false;
-    static std::map<Block const*, bool> drawn;
-    if (auto found = drawn.find(&block); found != drawn.end()) return found->second;
-    // Tessellated once above the build limit, where nothing culls it. Only
-    // the layers drawn alpha-tested hide a face: a blended block (honey)
-    // shows what is behind it.
+int sidesReached(Block const& block, BlockTessellator& tessellator, ScreenContext& screen, bool blendedToo, float epsilon) {
+    static std::map<std::tuple<Block const*, bool, float>, int> known;
+    auto key = std::tuple{&block, blendedToo, epsilon};
+    if (auto found = known.find(key); found != known.end()) return found->second;
+    // Tessellated once above the build limit, where nothing culls it.
     Tessellator scratch(screen.tessellator.mBufferResourceService);
     scratch.begin({}, mce::PrimitiveMode::QuadList, 64, false);
     BlockPos above{0, 2000, 0};
     eachLayer(block, *static_cast<BlockSource*&>(tessellator.mRegion), above, [&](std::optional<BlockRenderLayer> layer) {
-        if (!layer || !blended(*layer)) tessellateLayer(tessellator, scratch, block, above, layer);
+        if (blendedToo || !layer || !blended(*layer)) tessellateLayer(tessellator, scratch, block, above, layer);
     });
-    return drawn[&block] = !scratch.mMeshData->mPositions->empty();
+    auto const& positions = scratch.mMeshData->mPositions.get();
+    int sides = 0;
+    for (size_t q = 0; q + 4 <= positions.size(); q += 4) {
+        std::array<faces::Vertex, 4> quad;
+        for (size_t k = 0; k < 4; ++k) quad[k] = {positions[q + k].x, positions[q + k].y, positions[q + k].z};
+        if (int side = faces::sideOf(quad, above.x, above.y, above.z, epsilon); side >= 0) sides |= 1 << side;
+    }
+    scratch.end(Tessellator::UploadMode::Buffered, "Lamium schematic probe", SupplementaryFieldAutoGenerationMode{});
+    return known[key] = sides;
+}
+bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen) {
+    // Only the layers drawn alpha-tested hide a face, and only where they
+    // reach the side: a blended block (honey, whose opaque inner cube stops
+    // short of the sides) shows what is behind it.
+    return block.getBlockType().mIsOpaqueFullBlock && sidesReached(block, tessellator, screen, false, 1e-3f) == 63;
 }
 void wantProgress() { progressWanted = steadyMs(); }
 std::optional<Tally> progress(SavedPlacement const& placement) {
