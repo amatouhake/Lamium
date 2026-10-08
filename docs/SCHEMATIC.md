@@ -171,7 +171,23 @@ A. File compatibility (Ready, chosen 2026-10-09):
   2 and one layer; water and lava are ordinary palette entries in that
   layer (`minecraft:water` with `liquid_depth` 0-7 for the flow, lava 0, 2,
   4, 6 here), next to `minecraft:air`. So plain liquids need no second
-  layer; only waterlogged blocks are still unknown (that file has none). All three large saves are wider than the structure
+  layer; only waterlogged blocks are still unknown (that file has none).
+  Read 2026-10-09: `submerged` (7x2x10, vanilla structure block on the
+  maintainer's LeviLamina + Lamium instance, copied into the schematics
+  folder) settles it: version 2 with **two** IntArray layers when
+  something is waterlogged. The second layer is -1 everywhere except
+  waterlogged cells, which hold the palette index of
+  `minecraft:water` `liquid_depth` 0 (the same entry plain water uses in
+  the first layer). Waterlogged there: fence, fence gate, stairs,
+  trapdoor, iron bars, sign, copper golem statue, ladder, spawner, chest,
+  scaffolding, sea pickle, seagrass, rail, slab, glass pane; infested
+  stone is not. One first-layer air cell also has water in the second
+  layer, and the palette lists a jungle door that no cell uses (the door's
+  upper half was outside the area). So: write version 2; write the second
+  layer only when some cell has a liquid in it, with -1 elsewhere (what
+  `SaveArea` already fills); a palette entry no cell uses is valid. The
+  structure block's own preview did not draw the water around these
+  blocks. All three large saves are wider than the structure
   block's 64-block limit in X and Z, so also test a small Lamium save
   (`schematic`, 3x2x3) with version 2 to separate a version problem from a
   size limit.
