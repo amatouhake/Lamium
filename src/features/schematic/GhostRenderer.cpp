@@ -442,7 +442,9 @@ bool enclosed(BlockSource& region, session::Shown const& shown, Resolved const& 
 }
 // Drops the quads of a just tessellated ghost that lie on a side touching an
 // opaque ghost: unseen from outside, and they fought with the neighbor's own
-// face. Real neighbors are already culled by the tessellator. A dropped
+// face. Real opaque full neighbors hide the quad too: the tessellator culls
+// against them for most blocks, but not the honey block's outer cube, which
+// fought with the real face in the same plane. A dropped
 // quad collapses to one point, so no other vertex data has to move.
 // Near the camera (this cell or the neighbor within one cell of it) the pair
 // keeps one face instead: the one facing the camera. Every such plane then
@@ -461,9 +463,13 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
         if (!known) {
             auto const& d = faces::offsets[side];
             Point n{at.x + d[0], at.y + d[1], at.z + d[2]};
-            known = ghostOpaqueAt(region, shown, blocks, n);
-            if (*known && (nearCamera(at) || nearCamera(n)))
-                known = !faces::beyond(side, at.x, at.y, at.z, buildCamera.x, buildCamera.y, buildCamera.z);
+            if (region.getBlock(BlockPos{n.x, n.y, n.z}).getBlockType().mIsOpaqueFullBlock) {
+                known = true;
+            } else {
+                known = ghostOpaqueAt(region, shown, blocks, n);
+                if (*known && (nearCamera(at) || nearCamera(n)))
+                    known = !faces::beyond(side, at.x, at.y, at.z, buildCamera.x, buildCamera.y, buildCamera.z);
+            }
         }
         if (*known) for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
     }
