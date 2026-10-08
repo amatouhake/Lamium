@@ -12,6 +12,29 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic neighbors spike, B1 (2026-10-09)
+
+By the maintainer, local, deployed `9993c78`, DLL SHA-256
+`90652047eb491bf7e45ab11b9f424930b73ca11d01fc270d2c105340b2a8d659`
+(`SchematicRegion`, a `BlockSource` subclass the tessellator reads
+through). Samples `submerged`, `submerged_lamium`, `mixture`, `no_mesh`.
+Seen: the world loads and placing ghosts does not crash. Doors draw both
+halves with the right hinge side and open state; beds draw head and foot
+(color still not the file's, B4); fences connect to ghost fences and
+blocks and grow no arm toward empty cells; glass panes and iron bars
+connect to each other and a lone one is not a cross. No regressions:
+plain block faces, the filled look from inside, one-layer view (top faces
+kept), red/yellow mistake marks, Files/Check previews draw the same shapes.
+Not right: in `submerged_lamium` the waterlogged jungle door's cell is
+empty. The file holds only the lower half (2,1,5 in the top layer); the
+upper half is outside the area, so the tessellator finds no partner (not a
+water problem). With a mirror (Z in the screenshot), several blocks seemed
+to face the wrong way, stair corners included; whether this is new or the
+game's state transform (only stairs and chests were checked before,
+2026-10-03) is not known yet. Not checked: redstone (no sample), stair
+corners without a mirror in detail. Water and waterlogged blocks are drawn
+as before (B3).
+
 ## L-93 Version 1 and 2 large saves side by side (2026-10-09)
 
 By the maintainer, local, same files as the entry below. LHolo failed on
