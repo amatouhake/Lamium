@@ -67,6 +67,7 @@ struct Job {
     std::unique_ptr<BlockTessellator> blocks;
     std::unique_ptr<Tessellator> batch;
     bool failed = false; // too large or nothing to draw: not tried again
+    int height = 320;    // the dimension's build limit
 };
 std::optional<Job> job;
 
@@ -95,7 +96,15 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
         if (!job->cells.empty()) log(std::format("{} visible blocks, over the {} limit", job->cells.size(), maxBlocks));
         return;
     }
+    job->height = region.getMaxHeight();
     job->blocks = std::make_unique<BlockTessellator>(&region);
+    // Primed with one appended block: in-world tessellation on a fresh
+    // tessellator crashed in the ghost probe.
+    if (auto stone = Block::tryGetFromRegistry(HashedString{"minecraft:stone"})) {
+        Tessellator primer(screen.tessellator.mBufferResourceService);
+        primer.begin({}, mce::PrimitiveMode::QuadList, 64, false);
+        job->blocks->appendTessellatedBlock(primer, *stone);
+    }
     job->batch = std::make_unique<Tessellator>(screen.tessellator.mBufferResourceService);
     job->batch->begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(std::min<size_t>(job->cells.size() * 24, 1 << 20)), false);
 }
@@ -183,26 +192,15 @@ bool step() {
         int x = cell / (s.size.y * s.size.z), y = cell / s.size.z % s.size.y, z = cell % s.size.z;
         glm::vec3 at = glm::vec3(x, y, z) - center;
         size_t from = positions.size();
-        static_cast<bool&>(batch.mApplyTransform) = true;
-        static_cast<glm::mat4x4&>(batch.mTransformMatrix) = glm::translate(glm::mat4{1.f}, at);
-        auto const& block = *blockAt(j, x, y, z);
-        j.blocks->appendTessellatedBlock(batch, block);
-        // This tessellation centers partial blocks in their cell (a bottom
-        // slab or a closed trapdoor floated mid-height): move the mesh onto
-        // the block's own shape where the sizes agree.
-        if (positions.size() > from) {
-            glm::vec3 low{1e9f}, high{-1e9f};
-            for (size_t v = from; v < positions.size(); ++v) { low = glm::min(low, positions[v]); high = glm::max(high, positions[v]); }
-            AABB buffer;
-            auto const& shape = block.getBlockType().getVisualShape(block, buffer);
-            glm::vec3 shapeLow{shape.min.x, shape.min.y, shape.min.z}, shapeHigh{shape.max.x, shape.max.y, shape.max.z};
-            glm::vec3 shift{0};
-            for (int axis = 0; axis < 3; ++axis) {
-                float size = high[axis] - low[axis], want = shapeHigh[axis] - shapeLow[axis];
-                if (want > 0 && want < .99f && std::abs(size - want) < .02f) shift[axis] = at[axis] + shapeLow[axis] - low[axis];
-            }
-            if (glm::length(shift) > 1e-4f) for (size_t v = from; v < positions.size(); ++v) positions[v] += shift;
-        }
+        // Tessellated as in the world (block states place slabs, trapdoors and
+        // grindstones; the item-style path did not), at a spot above the
+        // build limit so no real neighbor or light changes it, then moved to
+        // its cell.
+        BlockPos spot{x, j.height + 64 + y, z};
+        static_cast<bool&>(batch.mApplyTransform) = false;
+        j.blocks->tessellateInWorld(batch, *blockAt(j, x, y, z), spot, false);
+        glm::vec3 move = at - glm::vec3(spot.x, spot.y, spot.z);
+        for (size_t v = from; v < positions.size(); ++v) positions[v] += move;
         // Faces lying on the cell's side against an occupied neighbor are
         // never seen: collapse them. Everything else stays (back faces too:
         // the near-to-far sort below puts them behind the front ones).
