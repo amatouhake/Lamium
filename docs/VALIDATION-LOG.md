@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Large schematic as version 2 in another tool (2026-10-09)
+
+By the maintainer, local. The agent copied the Lamium save `terrain big`
+(122x39x203, version 1, two layers with an all-void second layer) as
+`terrain big v2`: format_version 2 and the empty second layer removed,
+every other tag unchanged (3,863,500 bytes shorter, exactly that layer;
+both files pass the `LAMIUM_SAMPLE_STRUCTURES` round trip). LHolo read
+the version 2 copy; earlier the original failed there at the vanilla
+structure loader. So the version, not the size, was the likely cause.
+Not checked in this round: the original again, and the game's own loader
+on an area this large (it only runs right after a save).
+
 ## L-93 Schematic saves as version 2 with a vanilla-loader check (2026-10-09)
 
 By the maintainer, deployed `d37bd6d`, DLL

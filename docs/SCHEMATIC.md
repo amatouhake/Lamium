@@ -215,9 +215,10 @@ A. File compatibility (Ready, chosen 2026-10-09):
   and checks both layers, the version and the layer count. Seen in game:
   saves of 3x2x3, 7x2x10 (waterlogged) and 66x53x65 were accepted by the
   game's loader, placed correctly by the structure block (the first two)
-  and read by the reference tool. Open: saves of the size that failed
-  before (122x39x203 and larger) in the game's loader and the reference
-  tool, which separates a version problem from a size limit.
+  and read by the reference tool. A version 2 copy of the 122x39x203
+  save that failed there before (only the version and the empty second
+  layer changed) loaded in it too, so the version was the likely cause.
+  Open: the game's own loader on a save that large.
 
 B. Ghost drawing (Research, strong model; one runtime round per step):
 1. Schematic neighbors: `BlockTessellator` reads neighbors through
