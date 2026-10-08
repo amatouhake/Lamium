@@ -18,6 +18,7 @@
 #include "mc/client/renderer/BaseActorRenderer.h"
 #include "mc/client/game/IMinecraftGame.h"
 #include "mc/client/gui/Font.h"
+#include "mc/deps/minecraft_renderer/renderer/Type.h"
 #include "mc/client/gui/FontHandle.h"
 #include "mc/client/gui/FontRepository.h"
 #include "mc/client/renderer/BaseActorRenderContext.h"
@@ -1220,13 +1221,7 @@ void drawNameTags(ScreenContext& screen, IClientInstance& client, BlockSource& r
     // Smooth fonts (Japanese, Chinese) keep their own material, which reads
     // text constants the name tag material does not set: without them the
     // glyphs got colored fringes (L-117).
-    bool smooth = !font.materialCanBeOverridden();
-    static bool described = false;
-    if (!std::exchange(described, true)) {
-        auto shift = font.getTranslationFactor();
-        log(std::format("name tags: {} font, scale {:.3f}, shift {:.2f},{:.2f}, \"Item\" {} px", smooth ? "smooth" : "bitmap", font.getScaleFactor(),
-            shift.x, shift.y, font.getLineLength("Item", 1.f, false)));
-    }
+    bool smoothFont = !font.materialCanBeOverridden();
     for (auto const& [at, name] : labels) {
         // Not through walls: a block between the camera and the tag hides it.
         Vec3 to{static_cast<float>(at.x), static_cast<float>(at.y), static_cast<float>(at.z)};
@@ -1234,6 +1229,28 @@ void drawNameTags(ScreenContext& screen, IClientInstance& client, BlockSource& r
             [](BlockSource const&, Block const&, bool) { return true; }, false);
         if (hit.mType == HitResultType::Tile) continue;
         float width = static_cast<float>(font.getLineLength(name, 1.f, false));
+        // The glyph sheet of the first character past ASCII: its sheet may be
+        // a smooth (multi-channel) one whose material must not be replaced.
+        int sheet = 0, first = 0;
+        for (size_t i = 0; i < name.size();) {
+            auto c = static_cast<unsigned char>(name[i]);
+            int length = c < 0x80 ? 1 : c < 0xE0 ? 2 : c < 0xF0 ? 3 : 4;
+            if (c >= 0x80 && i + length <= name.size()) {
+                first = c < 0xE0 ? (c & 0x1F) : c < 0xF0 ? (c & 0x0F) : (c & 0x07);
+                for (int k = 1; k < length; ++k) first = (first << 6) | (static_cast<unsigned char>(name[i + k]) & 0x3F);
+                sheet = first >> 8;
+                break;
+            }
+            i += length;
+        }
+        bool smooth = smoothFont || sheet != 0;
+        static std::set<int> described;
+        if (described.insert(sheet).second) {
+            auto shift = font.getTranslationFactor();
+            log(std::format("name tags: sheet {} type {} overridable {} scale {:.3f} / char {:.3f}, shift {:.2f},{:.2f}, \"{}\" {} px", sheet,
+                static_cast<int>(font.getType(sheet)), font.materialCanBeOverridden(), font.getScaleFactor(), font.getScaleFactor(first), shift.x, shift.y,
+                name, width));
+        }
         glm::vec3 offset{static_cast<float>(at.x - camera.x), static_cast<float>(at.y - camera.y), static_cast<float>(at.z - camera.z)};
         // Font pixels: x to the camera's right, y downward.
         glm::mat4 model{glm::vec4(right * nameTagScale, 0), glm::vec4(-up * nameTagScale, 0), glm::vec4(across * nameTagScale, 0),
@@ -1250,7 +1267,7 @@ void drawNameTags(ScreenContext& screen, IClientInstance& client, BlockSource& r
         for (int k = 3; k >= 0; --k) plate.vertex(quad[k].x, quad[k].y, .01f);
         MeshHelpers::renderMeshImmediately(screen, plate, backgroundMaterial, OffscreenCaptureDescription{});
         mce::Color white{1.f, 1.f, 1.f, 1.f}, black{0.f, 0.f, 0.f, 1.f};
-        if (smooth) font.setTextConstantsInScreenContext(screen, 0, 1.f, white, false);
+        if (smooth) font.setTextConstantsInScreenContext(screen, sheet, 1.f, white, false);
         font.drawCached(screen, name, -width / 2, 0, white, false, false, false, smooth ? nullptr : &textMaterial, -1, false, 0, white, black, 0, 0,
             OffscreenCaptureDescription{}, false);
         ref.stack->_isDirty = true;
