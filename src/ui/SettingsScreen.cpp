@@ -3429,8 +3429,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         std::uint64_t kindTotal = verifyFilter == 1 ? t.wrong + t.extra : verifyFilter == 2 ? t.state : verifyFilter == 3 ? t.missing
             : t.wrong + t.extra + t.state;
         if (!counting && !unloadable && verifyRows.size() < kindTotal && fits(y + 57)) {
-            paragraph(context,dx,y+57,dw,translated("schematic.check.listCut", schematic::maxMismatches),2,palette::faint);
-            bottom = y + 57 + 12.f * paragraphLines(context, dw, translated("schematic.check.listCut", schematic::maxMismatches), 2) + 2;
+            paragraph(context,dx,y+57,dw,translated("schematic.check.listCut", schematic::maxMismatches),3,palette::faint);
+            bottom = y + 57 + 12.f * paragraphLines(context, dw, translated("schematic.check.listCut", schematic::maxMismatches), 3) + 2;
         }
         if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size())) {
             auto const& m = *verifyRows[static_cast<size_t>(verifySelected)];
