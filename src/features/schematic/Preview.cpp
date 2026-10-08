@@ -84,6 +84,11 @@ struct Job {
     std::shared_ptr<Structure const> structure;
     Order order;
     std::vector<Block const*> palette;
+    // Per palette entry: a two-block-tall block's other half and the step to it.
+    std::vector<Block const*> halves;
+    std::vector<int> halfSteps;
+    int drawn = -1;         // the palette entry being tessellated
+    BlockPos drawingAt{};   // and where
     std::vector<std::uint32_t> cells;
     size_t next = 0;
     std::unique_ptr<SchematicRegion> region; // outlives `blocks`, which reads through it
@@ -126,14 +131,24 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
     job->order = order;
     auto const& s = *structure;
     job->palette.assign(s.palette.size(), nullptr);
-    for (size_t i = 0; i < s.palette.size(); ++i)
-        if (!s.palette[i].isAir()) job->palette[i] = ghosts::gameBlock(s.palette[i]);
+    job->halves.assign(s.palette.size(), nullptr);
+    job->halfSteps.assign(s.palette.size(), 0);
+    for (size_t i = 0; i < s.palette.size(); ++i) {
+        if (s.palette[i].isAir()) continue;
+        job->palette[i] = ghosts::gameBlock(s.palette[i]);
+        if (auto half = otherHalf(s.palette[i]); half && job->palette[i])
+            if ((job->halves[i] = ghosts::gameBlock(half->block))) job->halfSteps[i] = half->step;
+    }
     job->height = region.getMaxHeight();
     // Blocks see the file's blocks as neighbors (doors, fences, panes),
     // at the spots step() draws them.
     job->region = std::make_unique<SchematicRegion>(region);
     job->region->answer = [](BlockPos const& p) -> Block const* {
         if (!job) return nullptr;
+        // A door's other half, also where the file has none (the area's edge).
+        if (job->drawn >= 0 && job->halfSteps[static_cast<size_t>(job->drawn)] && p.x == job->drawingAt.x && p.z == job->drawingAt.z
+            && p.y == job->drawingAt.y + job->halfSteps[static_cast<size_t>(job->drawn)])
+            return job->halves[static_cast<size_t>(job->drawn)];
         auto const& size = job->structure->size;
         int y = p.y - (job->height + 64);
         if (p.x < 0 || y < 0 || p.z < 0 || p.x >= size.x || y >= size.y || p.z >= size.z) return nullptr;
@@ -261,6 +276,8 @@ bool step() {
         // its cell.
         BlockPos spot{x, j.height + 64 + y, z};
         static_cast<bool&>(batch.mApplyTransform) = false;
+        j.drawn = s.blocks[static_cast<size_t>(cell)];
+        j.drawingAt = spot;
         j.blocks->tessellateInWorld(batch, *blockAt(j, x, y, z), spot, false);
         glm::vec3 move = at - glm::vec3(spot.x, spot.y, spot.z);
         for (size_t v = from; v < positions.size(); ++v) positions[v] += move;

@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -23,6 +24,21 @@ struct PaletteBlock {
     // equal keys mean the same block state.
     std::string key() const;
 };
+// The other half of a two-block-tall block (doors, tall plants): the same
+// entry with `upper_block_bit` flipped, and +1 (above) or -1 (below) to
+// reach it. Nothing for other blocks.
+struct OtherHalf {
+    PaletteBlock block;
+    int step = 0;
+};
+inline std::optional<OtherHalf> otherHalf(PaletteBlock const& entry) {
+    std::int64_t upper = 0;
+    auto const* bit = entry.states.find("upper_block_bit");
+    if (!bit || !bit->integer(upper)) return std::nullopt;
+    OtherHalf out{entry, upper ? -1 : 1};
+    out.block.states.set("upper_block_bit", {static_cast<std::int8_t>(upper ? 0 : 1)});
+    return out;
+}
 struct EntityRecord {
     std::string identifier;
     // Relative to the structure's lower north-west corner.

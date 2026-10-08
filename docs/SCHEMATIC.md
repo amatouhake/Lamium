@@ -262,6 +262,18 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    file draws nothing; under the X mirror an armor stand facing south stays
    south in Lamium (`toWorldYaw`, a true reflection) but the structure block
    turns it north (maintainer to choose which to follow).
+   Decided 2026-10-09 (maintainer): follow the structure block for entity
+   facing, and supply a missing other half. Built (not yet checked):
+   `toWorldYaw` mirrors on the other axis (a true mirror turned half
+   round; X: 180 - yaw, Z: -yaw), on the assumption that the game makes
+   the same axis swap for entities as for block states (one sample, yaw 0
+   under X). `otherHalf` (`Structure.h`) gives a two-block-tall block's
+   other half (`upper_block_bit` flipped, one step up or down); while a
+   ghost or a preview cell with one is tessellated, that cell answers the
+   other half unless the real half is placed there, so a door at the
+   area's edge or under water draws its own half. Only the drawn half is
+   shown; nothing is drawn outside the placement. Beds are drawn per half
+   by the block-entity renderer against the real world and are unchanged.
 2. Render layers: build each section's ghosts into separate meshes by
    the block's render layer (opaque, alpha-test, blended) and draw the
    blended ones last, sorted back to front by section. This is the base

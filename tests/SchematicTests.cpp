@@ -650,7 +650,24 @@ void verificationOrder() {
           && itemsPerBlock("minecraft:stone", false) == 1, "double slabs need two items; second halves none");
 }
 }
+void otherHalves() {
+    PaletteBlock door{"minecraft:jungle_door", {}, 18168865};
+    door.states.set("door_hinge_bit", {std::int8_t{0}});
+    door.states.set("upper_block_bit", {std::int8_t{0}});
+    auto upper = otherHalf(door);
+    check(upper && upper->step == 1 && upper->block.name == door.name && upper->block.version == door.version,
+          "a lower door half has its other half one block above");
+    std::int64_t bit = 0, hinge = 1;
+    check(upper && upper->block.states.find("upper_block_bit")->integer(bit) && bit == 1
+          && upper->block.states.find("door_hinge_bit")->integer(hinge) && hinge == 0
+          && upper->block.states.entries.size() == door.states.entries.size(),
+          "the other half flips only upper_block_bit");
+    auto lower = upper ? otherHalf(upper->block) : std::nullopt;
+    check(lower && lower->step == -1 && lower->block.key() == door.key(), "the upper half's other half is the lower half again");
+    check(!otherHalf(PaletteBlock{"minecraft:stone", {}, 0}), "a one-block-tall block has no other half");
+}
 void schematicTests() {
+    otherHalves();
     verificationOrder();
     placementDocuments();
     drawKeys();

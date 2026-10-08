@@ -131,6 +131,11 @@ struct Resolved {
     // Palette entries that are opaque full blocks with no mesh on the ghost
     // path (honey block): they must not hide a neighbor's face.
     std::vector<bool> meshless;
+    // Per palette entry: the other half of a two-block-tall block (turned
+    // like `blocks`) and the step up (+1) or down (-1) to it; null and 0
+    // for other blocks.
+    std::vector<Block const*> halves;
+    std::vector<int> halfSteps;
     std::vector<ItemInfo> items;
     std::vector<EntityGhost> entities;
     // Whether each entity stands at its spot; nullopt while it cannot be
@@ -345,14 +350,21 @@ Resolved resolve(Structure const& structure, SavedPlacement const& placement) {
     Resolved out{nullptr, &structure, placement.placement.rotation, placement.placement.mirror, {}};
     out.blocks.reserve(structure.palette.size());
     unsigned missing = 0;
+    auto turn = [&](Block const* block) {
+        if (block && (out.rotation || out.mirror != Mirror::None))
+            if (auto const* turned = VanillaBlockStateTransformUtils::transformBlock(*block, gameRotation(out.rotation), gameMirror(out.mirror)))
+                return turned;
+        return block;
+    };
     for (auto const& entry : structure.palette) {
         Block const* block = entry.isAir() ? nullptr : lookup(entry);
         if (!block && !entry.isAir()) ++missing;
         out.items.push_back(itemFor(entry, block));
-        if (block && (out.rotation || out.mirror != Mirror::None))
-            if (auto const* turned = VanillaBlockStateTransformUtils::transformBlock(*block, gameRotation(out.rotation), gameMirror(out.mirror)))
-                block = turned;
-        out.blocks.push_back(block);
+        out.blocks.push_back(turn(block));
+        auto half = block ? otherHalf(entry) : std::nullopt;
+        Block const* other = half ? turn(lookup(half->block)) : nullptr;
+        out.halves.push_back(other);
+        out.halfSteps.push_back(other ? half->step : 0);
     }
     if (missing) log(std::format("{}: {} palette entries are not known blocks", placement.file, missing));
     Size placed = placedSize(structure.size, placement.placement.rotation);
@@ -476,14 +488,21 @@ std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, Sect
     return hash;
 }
 
-// What the tessellator sees at `n` while it draws the ghost at `at`: the
-// placement's block where a ghost is drawn (shown layer, nothing real
-// there), so doors find their other half and fences and panes connect to
-// their schematic neighbors; the world elsewhere. An opaque full ghost that
+// What the tessellator sees at `n` while it draws the ghost at `at` (palette
+// entry `drawn`): the placement's block where a ghost is drawn (shown layer,
+// nothing real there), so doors find their other half and fences and panes
+// connect to their schematic neighbors; the world elsewhere. A door's other
+// half is supplied where the file has none or the world holds something
+// else there (water, the area's edge), unless the real half is placed. An opaque full ghost that
 // must not hide its neighbor's face (no mesh, or either cell next to the
 // camera, where cullAgainstGhosts keeps the face toward the camera) reads
 // as the world, so the tessellator keeps that face.
-Block const* ghostNeighbor(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n, Point at) {
+Block const* ghostNeighbor(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n, Point at, int drawn) {
+    if (drawn >= 0 && static_cast<size_t>(drawn) < blocks.halves.size() && blocks.halfSteps[static_cast<size_t>(drawn)]
+        && n.x == at.x && n.z == at.z && n.y == at.y + blocks.halfSteps[static_cast<size_t>(drawn)]) {
+        Block const* half = blocks.halves[static_cast<size_t>(drawn)];
+        if (&region.getBlock(BlockPos{n.x, n.y, n.z}).getBlockType() != &half->getBlockType()) return half;
+    }
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
@@ -526,7 +545,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
             if (auto const* b = blocks.blocks[i]; b && b->getBlockType().mIsOpaqueFullBlock) meshless[i] = !coversNeighbors(*b, own, screen);
     }
     Point drawing{};
-    view.answer = [&](BlockPos const& p) { return ghostNeighbor(region, shown, blocks, {p.x, p.y, p.z}, drawing); };
+    int drawn = -1;
+    view.answer = [&](BlockPos const& p) { return ghostNeighbor(region, shown, blocks, {p.x, p.y, p.z}, drawing, drawn); };
     struct Clear { SchematicRegion& view; ~Clear() { view.answer = nullptr; } } clear{view};
     Tessellator batch(screen.tessellator.mBufferResourceService);
     batch.begin({}, mce::PrimitiveMode::QuadList, 4096, false);
@@ -577,6 +597,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 if (!nearCamera({x, y, z}, 2) && enclosed(region, shown, blocks, {x, y, z})) continue;
                 size_t before = batch.mMeshData->mPositions->size();
                 drawing = {x, y, z};
+                drawn = paletteIndex;
                 own.tessellateInWorld(batch, *expected, pos, false);
                 cullAgainstGhosts(batch, before, region, shown, blocks, {x, y, z});
                 auto& positions = batch.mMeshData->mPositions.get();
