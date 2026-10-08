@@ -172,23 +172,34 @@ void shade(Tessellator& batch) {
 // Reorders the batch's quads near to far for a viewer in the order's octant
 // (the UI pass keeps the first fragment at a spot). Every per-vertex stream
 // moves with its positions.
-void sortQuads(Tessellator& batch, Order order) {
+// Blocks are ordered by their cell first and quads within a block by their
+// center: a large face's center can be nearer than a small block in front
+// of it (a trapdoor before a structure block drew behind it).
+void sortQuads(Tessellator& batch, Order order, std::vector<std::uint32_t> const& cells, Size size) {
     auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
     auto& positions = *data.mPositions;
     size_t quads = positions.size() / 4;
     if (quads < 2) return;
     glm::vec3 toward = glm::normalize(glm::vec3{order.x * .6f, order.y * .7f, order.z * .4f});
-    std::vector<std::pair<float, std::uint32_t>> keys(quads);
+    struct Key { float block, quad; std::uint32_t index; };
+    std::vector<Key> keys(quads);
+    bool byCell = cells.size() == quads;
     for (size_t q = 0; q < quads; ++q) {
         auto c = (positions[q * 4] + positions[q * 4 + 1] + positions[q * 4 + 2] + positions[q * 4 + 3]) * .25f;
-        keys[q] = {-glm::dot(c, toward), static_cast<std::uint32_t>(q)};
+        float block = 0;
+        if (byCell) {
+            int cell = static_cast<int>(cells[q]);
+            glm::vec3 at(cell / (size.y * size.z), cell / size.z % size.y, cell % size.z);
+            block = -glm::dot(at, toward);
+        }
+        keys[q] = {block, -glm::dot(c, toward), static_cast<std::uint32_t>(q)};
     }
-    std::stable_sort(keys.begin(), keys.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
+    std::stable_sort(keys.begin(), keys.end(), [](Key const& a, Key const& b) { return a.block != b.block ? a.block < b.block : a.quad < b.quad; });
     auto permute = [&](auto& stream) {
         if (stream.size() != quads * 4) return;
         auto copy = stream;
         for (size_t q = 0; q < quads; ++q)
-            for (size_t k = 0; k < 4; ++k) stream[q * 4 + k] = copy[keys[q].second * 4 + k];
+            for (size_t k = 0; k < 4; ++k) stream[q * 4 + k] = copy[keys[q].index * 4 + k];
     };
     permute(positions);
     permute(*data.mNormals);
@@ -308,7 +319,7 @@ void upload(ScreenContext& screen, Order order, Tint const* tint) {
     *data.mAABB = kept.aabb;
     *data.mUVAABB = kept.uvAabb;
     static_cast<unsigned&>(batch.mCount) = ready.vertices;
-    sortQuads(batch, order);
+    sortQuads(batch, order, kept.quadCells, kept.structure->size);
     ready.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic preview", SupplementaryFieldAutoGenerationMode{}));
 }
 void clear() {
