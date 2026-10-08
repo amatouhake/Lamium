@@ -2593,8 +2593,18 @@ void deleteSelectedPlacement() {
     else pickSchematic(SchematicPick::None, -1);
 }
 void showSelectedMismatch() {
-    if (verifySelected < 0 || verifySelected >= static_cast<int>(verifyRows.size())) return;
-    schematic::ghosts::point(verifyRows[static_cast<size_t>(verifySelected)]->position);
+    if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size())) {
+        schematic::ghosts::point(verifyRows[static_cast<size_t>(verifySelected)]->position);
+        close();
+        return;
+    }
+    // A block clicked in the preview that has no row (past the list's limit).
+    auto const& t = previewTurn;
+    auto const* checked = checkedPlacement();
+    if (!t.picked || !checked || t.pickedFile != checked->file) return;
+    auto structure = schematic::session::structure(checked->file);
+    if (!structure) return;
+    schematic::ghosts::point(schematic::toWorld(structure->size, checked->placement, {t.picked->x, t.picked->y, t.picked->z}));
     close();
 }
 int schematicFieldCount() {
@@ -3415,6 +3425,13 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             if (fits(y + 44)) label(context,dx,y+44,half,translated("schematic.summary.state", t.state),Rgb{1.f,.8f,.3f});
         }
         float bottom = y + 57;
+        // The list keeps the nearest of each kind; say so when it is cut.
+        std::uint64_t kindTotal = verifyFilter == 1 ? t.wrong + t.extra : verifyFilter == 2 ? t.state : verifyFilter == 3 ? t.missing
+            : t.wrong + t.extra + t.state;
+        if (!counting && !unloadable && verifyRows.size() < kindTotal && fits(y + 57)) {
+            paragraph(context,dx,y+57,dw,translated("schematic.check.listCut", schematic::maxMismatches),2,palette::faint);
+            bottom = y + 57 + 12.f * paragraphLines(context, dw, translated("schematic.check.listCut", schematic::maxMismatches), 2) + 2;
+        }
         if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size())) {
             auto const& m = *verifyRows[static_cast<size_t>(verifySelected)];
             fill(context,rx-5,y,1,52,palette::white,.1f);
@@ -3475,10 +3492,11 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 label(context,rx+14,y+39,rw-14,translated("schematic.actual", now->actualName),palette::dim);
             }
         }
+        bool canShow = verifySelected >= 0 || (previewTurn.picked && previewTurn.pickedFile == checked->file);
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
         drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("schematic.showInWorld"),
-            over(ShapeZone::Action,0),verifySelected >= 0 ? palette::accentDeep : palette::keyFill,
-            verifySelected >= 0 ? palette::accent : palette::keyEdge, verifySelected >= 0 ? palette::text : palette::faint);
+            over(ShapeZone::Action,0),canShow ? palette::accentDeep : palette::keyFill,
+            canShow ? palette::accent : palette::keyEdge, canShow ? palette::text : palette::faint);
         break;
     }
     case SchematicTab::Materials: {

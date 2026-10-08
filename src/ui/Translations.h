@@ -322,6 +322,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.previewAxis.x", "east-west", "東西"},
     {"schematic.pick.at", "At {} in the file", "設計図の中の {}"},
     {"schematic.pick.correct", "Placed correctly", "正しく置かれています"},
+    {"schematic.check.listCut", "The list shows the nearest {} of each kind; click the preview for any block.", "一覧は近い順に各種類 {} 件まで。プレビューをクリックすればどのブロックも調べられます。"},
     {"schematic.previewAxis.y", "height", "高さ"},
     {"schematic.previewAxis.z", "north-south", "南北"},
     {"schematic.noMistakes", "Nothing to show here.", "ここに表示するものはありません。"},

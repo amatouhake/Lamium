@@ -320,6 +320,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.previewAxis.x", "东西"},
     {"schematic.pick.at", "结构中的 {}"},
     {"schematic.pick.correct", "放置正确"},
+    {"schematic.check.listCut", "列表按距离每类最多显示 {} 项；点击预览可查看任意方块。"},
     {"schematic.previewAxis.y", "高度"},
     {"schematic.previewAxis.z", "南北"},
     {"schematic.noMistakes", "这里没有要显示的内容。"},

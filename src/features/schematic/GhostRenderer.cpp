@@ -164,6 +164,15 @@ std::vector<std::pair<Position, std::string>> labels;
 // Verification of the selected placement, a bounded number of cells per
 // frame; a finished pass is published and the next begins.
 constexpr std::uint64_t scanBudget = 16384;
+struct Cell {
+    bool inside = false;      // false: outside the structure or a structure void
+    CellState state = CellState::Unknown;
+    int palette = -1;
+    bool air = false, visible = false;
+    Point world, offset;
+    Block const* expected = nullptr;
+    Block const* actual = nullptr;
+};
 struct Scan {
     std::uint64_t revision = 0;
     std::string key; // drawKey of the placement being checked
@@ -171,7 +180,9 @@ struct Scan {
     std::uint64_t next = 0;
     Tally tally;
     std::vector<Mismatch> mismatches;
-    size_t listedMissing = 0, listedMistakes = 0;
+    // The nearest cells of each kind (missing, other mistakes), kept as
+    // max-heaps on distance; turned into rows when the pass ends.
+    std::vector<std::pair<double, Cell>> nearMissing, nearMistakes;
     std::map<std::string, MaterialLine> all, shown;
 };
 Scan scan;
@@ -687,15 +698,6 @@ void addEntityResults(Verification& result, session::Shown const& shown, Resolve
 
 // One cell of a placement, the n-th of its placed box (x, then y, then z
 // fastest), compared with the world.
-struct Cell {
-    bool inside = false;      // false: outside the structure or a structure void
-    CellState state = CellState::Unknown;
-    int palette = -1;
-    bool air = false, visible = false;
-    Point world, offset;
-    Block const* expected = nullptr;
-    Block const* actual = nullptr;
-};
 Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Size placed, std::uint64_t n) {
     Cell c;
     auto const& structure = *shown.structure;
@@ -848,12 +850,18 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
         scan.tally.add(state, !air);
         bool mistake = state == CellState::Missing || state == CellState::Wrong || state == CellState::State || state == CellState::Extra;
         if (!mistake) continue;
-        // Capped per kind: in a large build the missing blocks alone filled
-        // the list and the wrong ones counted but never showed.
-        auto& listed = state == CellState::Missing ? scan.listedMissing : scan.listedMistakes;
-        if (listed >= maxMismatches) continue;
-        ++listed;
-        scan.mismatches.push_back(mismatchFor(c, blocks));
+        // Capped per kind and nearest first: in a large build the missing
+        // blocks alone filled the list and the wrong ones never showed.
+        auto& near = state == CellState::Missing ? scan.nearMissing : scan.nearMistakes;
+        double dx = world.x + .5 - camera.x, dy = world.y + .5 - camera.y, dz = world.z + .5 - camera.z;
+        double distance = dx * dx + dy * dy + dz * dz;
+        auto farther = [](auto const& a, auto const& b) { return a.first < b.first; };
+        if (near.size() < maxMismatches) { near.push_back({distance, c}); std::push_heap(near.begin(), near.end(), farther); }
+        else if (distance < near.front().first) {
+            std::pop_heap(near.begin(), near.end(), farther);
+            near.back() = {distance, c};
+            std::push_heap(near.begin(), near.end(), farther);
+        }
     }
     if (scan.next < total) return;
     auto result = std::make_shared<Verification>();
@@ -862,6 +870,8 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
     result->complete = true;
     result->visible = scan.tally;
     recordProgress(drawKey(placement), scan.tally);
+    for (auto* near : {&scan.nearMistakes, &scan.nearMissing})
+        for (auto const& [distance, cell] : *near) scan.mismatches.push_back(mismatchFor(cell, blocks));
     result->mismatches = std::move(scan.mismatches);
     for (auto& [key, line] : scan.all) result->materials.push_back(std::move(line));
     for (auto& [key, line] : scan.shown) result->visibleMaterials.push_back(std::move(line));
@@ -874,7 +884,8 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
     scan.next = 0;
     scan.tally = {};
     scan.mismatches.clear();
-    scan.listedMissing = scan.listedMistakes = 0;
+    scan.nearMissing.clear();
+    scan.nearMistakes.clear();
     scan.all.clear();
     scan.shown.clear();
 }
