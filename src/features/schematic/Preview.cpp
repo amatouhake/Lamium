@@ -2,6 +2,7 @@
 #include "features/schematic/GhostRenderer.h"
 #include "app/Runtime.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/client/gui/GuiData.h"
 #include "mc/client/gui/screens/ScreenContext.h"
 #include "mc/client/renderer/ActorShaderManager.h"
 #include "mc/client/renderer/RenderMaterialGroup.h"
@@ -372,7 +373,11 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         model[2] = {scale * f.right, scale * f.down, 0, 0};
         model[3] = {x + width / 2, y + height / 2, 0, 1};
         context.flushText(0, std::nullopt);
-        context.enableScissorTest(RectangleArea{x, x + width, y, y + height});
+        // The UI's scissor takes GUI units for its own batches; this mesh is
+        // drawn at once, so the rectangle goes in pixels (the first build
+        // let a zoomed preview spill over the screen).
+        float gui = screen.guiData->mGuiScale;
+        context.enableScissorTest(RectangleArea{x * gui, (x + width) * gui, y * gui, (y + height) * gui});
         auto ref = screen.camera.worldMatrixStack->push(false);
         ref.stack->_isDirty = true;
         ref.mat->_m = ref.mat->_m.get() * model;
