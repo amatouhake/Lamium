@@ -321,6 +321,21 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    blocks dropped), blended; only where the liquid is missing. The
    Files and Check previews draw the file's liquids as well (decided
    2026-10-09).
+   Built 2026-10-09 (not yet checked in game): `liquidShell` tessellates a
+   white concrete cube at the cell (so every vertex stream is filled and
+   faces against opaque blocks are already culled), then leaves out faces
+   toward the same liquid (`liquidAt`: the file's either layer in shown
+   layers, or the world's block or extra block), lowers the top to 0.875
+   unless the same liquid is above, maps the faces' UVs onto the liquid's
+   own `BlockGraphics` textures (slot 0 bottom, 1 top, 2 sides) and colors
+   water blue at alpha 0.55, lava white at 0.75. Shells go into the sorted
+   blended mesh. World: a first-layer liquid cell where the world is air,
+   and a second-layer liquid where neither the world's block nor its extra
+   block is that liquid (also under a ghost or a real block). Liquid cells
+   get no outline. Previews: liquid cells and waterlogged cells get the
+   same shell against the file's neighbors. The log names the water
+   texture's UV rectangle once, to read if the texture comes out wrong.
+   Flow levels are not shaped (every shell is still water height).
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).

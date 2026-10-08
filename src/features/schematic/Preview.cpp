@@ -1,5 +1,6 @@
 #include "features/schematic/Preview.h"
 #include "features/schematic/GhostRenderer.h"
+#include "features/schematic/GhostFaces.h"
 #include "features/schematic/SchematicRegion.h"
 #include "app/Runtime.h"
 #include "mc/client/game/IClientInstance.h"
@@ -267,11 +268,39 @@ bool step() {
         static_cast<bool&>(batch.mApplyTransform) = false;
         j.drawn = s.blocks[static_cast<size_t>(cell)];
         j.drawingAt = spot;
-        // Every render layer of the block (honey and slime draw in two).
+        // The file's liquids (either layer) in a cell, as 1 water, 2 lava.
+        auto liquidIn = [&](int lx, int ly, int lz) {
+            if (lx < 0 || ly < 0 || lz < 0 || lx >= s.size.x || ly >= s.size.y || lz >= s.size.z || !j.cut.keeps(lx, ly, lz)) return 0;
+            auto c = static_cast<size_t>(s.cell(lx, ly, lz));
+            for (auto const* layer : {&s.blocks, &s.liquids}) {
+                if (c >= layer->size()) continue;
+                auto i = (*layer)[c];
+                if (i >= 0 && static_cast<size_t>(i) < j.palette.size() && j.palette[static_cast<size_t>(i)])
+                    if (int kind = ghosts::liquidKind(*j.palette[static_cast<size_t>(i)])) return kind;
+            }
+            return 0;
+        };
+        auto shell = [&](Block const& liquid) {
+            int kind = ghosts::liquidKind(liquid);
+            ghosts::liquidShell(*j.blocks, batch, spot, liquid, [&](int side) {
+                auto const& d = faces::offsets[side];
+                return liquidIn(x + d[0], y + d[1], z + d[2]) != kind;
+            }, liquidIn(x, y + 1, z) == kind ? 1.f : ghosts::liquidSurface);
+        };
+        // Every render layer of the block (honey and slime draw in two);
+        // liquids as shells, also the water of a waterlogged block.
         Block const& block = *blockAt(j, x, y, z);
-        ghosts::eachLayer(block, *j.region, spot, [&](std::optional<BlockRenderLayer> layer) {
-            ghosts::tessellateLayer(*j.blocks, batch, block, spot, layer);
-        });
+        if (ghosts::liquidKind(block)) {
+            shell(block);
+        } else {
+            ghosts::eachLayer(block, *j.region, spot, [&](std::optional<BlockRenderLayer> layer) {
+                ghosts::tessellateLayer(*j.blocks, batch, block, spot, layer);
+            });
+            if (static_cast<size_t>(cell) < s.liquids.size())
+                if (auto i = s.liquids[static_cast<size_t>(cell)]; i >= 0 && static_cast<size_t>(i) < j.palette.size() && j.palette[static_cast<size_t>(i)]
+                    && ghosts::liquidKind(*j.palette[static_cast<size_t>(i)]))
+                    shell(*j.palette[static_cast<size_t>(i)]);
+        }
         glm::vec3 move = at - glm::vec3(spot.x, spot.y, spot.z);
         for (size_t v = from; v < positions.size(); ++v) positions[v] += move;
         j.quadCells.insert(j.quadCells.end(), (positions.size() - from) / 4, static_cast<std::uint32_t>(cell));

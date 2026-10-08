@@ -27,6 +27,8 @@
 #include "mc/client/renderer/SupplementaryFieldAutoGenerationMode.h"
 #include "mc/client/renderer/Tessellator.h"
 #include "mc/client/renderer/block/BlockTessellator.h"
+#include "mc/client/renderer/block/BlockGraphics.h"
+#include "mc/client/renderer/texture/TextureUVCoordinateSet.h"
 #include "mc/client/renderer/blockactor/BlockActorRenderDispatcher.h"
 #include "mc/client/renderer/blockactor/MovingBlockActorRenderer.h"
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
@@ -455,6 +457,27 @@ bool ghostBoxAt(BlockSource& region, session::Shown const& shown, Resolved const
     return blocks.blocks[static_cast<size_t>(index)] && static_cast<size_t>(index) < blocks.boxed.size()
         && blocks.boxed[static_cast<size_t>(index)] && region.getBlock(pos).isAir();
 }
+// Which liquid the placement or the world has at `n` (shown layers of the
+// file, either layer; the world's block or its extra block).
+int liquidAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
+    BlockPos pos{n.x, n.y, n.z};
+    if (int kind = liquidKind(region.getBlock(pos))) return kind;
+    if (int kind = liquidKind(region.getBlock(pos, 1))) return kind;
+    auto const& structure = *shown.structure;
+    auto const& placement = shown.placement;
+    Size placed = placedSize(structure.size, placement.placement.rotation);
+    Point const& origin = placement.placement.origin;
+    auto local = toLocal(structure.size, placement.placement, n);
+    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return 0;
+    auto cell = static_cast<size_t>(structure.cell(local->x, local->y, local->z));
+    for (auto const* layer : {&structure.blocks, &structure.liquids}) {
+        if (cell >= layer->size()) continue;
+        auto index = (*layer)[cell];
+        if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size() || !blocks.blocks[static_cast<size_t>(index)]) continue;
+        if (int kind = liquidKind(*blocks.blocks[static_cast<size_t>(index)])) return kind;
+    }
+    return 0;
+}
 bool enclosed(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point at) {
     for (auto const& d : faces::offsets) {
         Point n{at.x + d[0], at.y + d[1], at.z + d[2]};
@@ -600,6 +623,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     // Mistakes also get tinted faces just outside the real block, so they
     // stay visible next to the vanilla selection outline.
     std::vector<Outline> outlines, marks;
+    std::vector<std::pair<Point, Block const*>> liquids; // cells missing their liquid
     auto cellBox = [](BlockPos p) { return std::pair{glm::vec3(p.x, p.y, p.z), glm::vec3(p.x + 1, p.y + 1, p.z + 1)}; };
     for (int x = std::max(low.x, origin.x); x < std::min(low.x + sectionSize, origin.x + placed.x); ++x)
         for (int y = std::max(low.y, origin.y); y < std::min(low.y + sectionSize, origin.y + placed.y); ++y)
@@ -637,6 +661,11 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     // Something else is there: red, or yellow when only the state differs.
                     Outline mark = sameType ? Outline{boxLow, boxHigh, 1.f, .8f, .2f} : Outline{boxLow, boxHigh, 1.f, .25f, .2f};
                     marks.push_back(mark);
+                    continue;
+                }
+                // A missing liquid: a shell, built after the blocks.
+                if (liquidKind(*expected)) {
+                    liquids.push_back({{x, y, z}, expected});
                     continue;
                 }
                 // Within two cells of the camera a ghost may own the face the
@@ -677,6 +706,36 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         out.faces.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic ghosts", SupplementaryFieldAutoGenerationMode{}));
     }
     finishColors(see, .62f, .85f, 1.f);
+    // The second layer: water in a waterlogged block, where neither the
+    // block nor its extra block in the world holds it.
+    if (!structure.liquids.empty())
+        for (int x = std::max(low.x, origin.x); x < std::min(low.x + sectionSize, origin.x + placed.x); ++x)
+            for (int y = std::max(low.y, origin.y); y < std::min(low.y + sectionSize, origin.y + placed.y); ++y)
+                for (int z = std::max(low.z, origin.z); z < std::min(low.z + sectionSize, origin.z + placed.z); ++z) {
+                    if (!layerShown(placement.layers, placed, {x - origin.x, y - origin.y, z - origin.z})) continue;
+                    auto local = toLocal(structure.size, placement.placement, {x, y, z});
+                    if (!local) continue;
+                    auto index = structure.liquids[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
+                    if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size()) continue;
+                    Block const* liquid = blocks.blocks[static_cast<size_t>(index)];
+                    int kind = liquid ? liquidKind(*liquid) : 0;
+                    if (!kind) continue;
+                    BlockPos pos{x, y, z};
+                    auto* chunk = region.getChunkAt(pos);
+                    if (!chunk || chunk->mLoadState->load() < ChunkState::Loaded) continue;
+                    if (liquidKind(region.getBlock(pos)) == kind || liquidKind(region.getBlock(pos, 1)) == kind) continue;
+                    liquids.push_back({{x, y, z}, liquid});
+                }
+    drawn = -1;
+    for (auto const& [at, liquid] : liquids) {
+        int kind = liquidKind(*liquid);
+        drawing = at;
+        bool covered = liquidAt(region, shown, blocks, {at.x, at.y + 1, at.z}) == kind;
+        liquidShell(own, see, BlockPos{at.x, at.y, at.z}, *liquid, [&](int side) {
+            auto const& d = faces::offsets[side];
+            return liquidAt(region, shown, blocks, {at.x + d[0], at.y + d[1], at.z + d[2]}) != kind;
+        }, covered ? 1.f : liquidSurface);
+    }
     if (!marks.empty()) {
         // Mistakes mark whole cells with a tinted box just outside the real
         // block. The boxes go into the blended mesh, sorted with the blended
@@ -1905,7 +1964,7 @@ BlockLabel blockLabel(PaletteBlock const& entry) {
     return {info.name, info.icon};
 }
 void eachLayer(Block const& block, BlockSource& region, BlockPos const& pos, std::function<void(std::optional<BlockRenderLayer>)> const& visit) {
-    // Liquids keep the single default pass until they get their own (B3).
+    // Liquids are drawn as shells (liquidShell), not through this path.
     if (block.getMaterial().mLiquid) { visit(std::nullopt); return; }
     auto const& type = block.getBlockType();
     auto own = type.getRenderLayer(block, region, pos);
@@ -1927,6 +1986,70 @@ void tessellateLayer(BlockTessellator& tessellator, Tessellator& batch, Block co
     tessellator.tessellateInWorld(batch, block, pos, false);
     shapeSet = false;
     current = was;
+}
+int liquidKind(Block const& block) {
+    if (!block.getMaterial().mLiquid) return 0;
+    auto type = block.getMaterial().mType;
+    return type == SharedTypes::v1_26_20::MaterialType::Water ? 1 : type == SharedTypes::v1_26_20::MaterialType::Lava ? 2 : 0;
+}
+bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos const& pos, Block const& liquid,
+                 std::function<bool(int side)> const& open, float height) {
+    // A white concrete cube tessellated at the cell gives quads with every
+    // vertex stream the mesh needs; its faces are then reshaped, retextured
+    // with the liquid's texture and recolored. The tessellator already
+    // leaves out faces against opaque blocks.
+    static auto const* white = [] {
+        auto block = Block::tryGetFromRegistry(HashedString{"minecraft:white_concrete"});
+        return block ? &*block : nullptr;
+    }();
+    auto const* cubeGraphics = white ? BlockGraphics::getForBlock(*white) : nullptr;
+    auto const* liquidGraphics = BlockGraphics::getForBlock(liquid);
+    if (!white || !cubeGraphics || !liquidGraphics) return false;
+    int kind = liquidKind(liquid);
+    size_t from = batch.mMeshData->mPositions->size();
+    tessellateLayer(tessellator, batch, *white, pos, std::nullopt);
+    auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
+    auto& positions = *data.mPositions;
+    auto& uvs = *data.mTextureUVs[0];
+    auto& colors = *data.mColors;
+    if (colors.size() != positions.size()) colors.resize(positions.size(), 0xffffffffu);
+    // Water's texture is gray and tinted by the biome; lava's is colored.
+    auto channel = [](float v, int shift) { return static_cast<std::uint32_t>(std::lround(std::clamp(v, 0.f, 1.f) * 255)) << shift; };
+    std::uint32_t tint = kind == 1 ? channel(.25f, 0) | channel(.45f, 8) | channel(.95f, 16) | channel(.55f, 24)
+                                   : channel(1.f, 0) | channel(1.f, 8) | channel(1.f, 16) | channel(.75f, 24);
+    TextureUVCoordinateSet const& cube = cubeGraphics->getTexture(1, 0);
+    float top = static_cast<float>(pos.y) + height;
+    bool any = false;
+    for (size_t q = from; q + 4 <= positions.size(); q += 4) {
+        std::array<faces::Vertex, 4> quad;
+        for (size_t k = 0; k < 4; ++k) quad[k] = {positions[q + k].x, positions[q + k].y, positions[q + k].z};
+        int side = faces::sideOf(quad, pos.x, pos.y, pos.z);
+        if (side < 0 || !open(side)) {
+            for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
+            continue;
+        }
+        any = true;
+        // Texture slots follow the faces: 0 down, 1 up, 2-5 the sides.
+        TextureUVCoordinateSet const& own = liquidGraphics->getTexture(side == 2 ? 0 : side == 3 ? 1 : 2, 0);
+        for (size_t k = 0; k < 4; ++k) {
+            auto& v = positions[q + k];
+            if (v.y > top) v.y = top;
+            colors[q + k] = tint;
+            if (uvs.size() != positions.size()) continue;
+            float du = cube._u1 - cube._u0, dv = cube._v1 - cube._v0;
+            float u = du != 0 ? (uvs[q + k].x - cube._u0) / du : 0, w = dv != 0 ? (uvs[q + k].y - cube._v0) / dv : 0;
+            uvs[q + k] = {own._u0 + u * (own._u1 - own._u0), own._v0 + w * (own._v1 - own._v0)};
+        }
+    }
+    static bool logged = false;
+    if (!logged) {
+        logged = true;
+        auto const& still = liquidGraphics->getTexture(1, 0);
+        log(std::format("liquid texture u {:.4f}-{:.4f} v {:.4f}-{:.4f} ({}x{}), cube u {:.4f}-{:.4f}", static_cast<float>(still._u0),
+            static_cast<float>(still._u1), static_cast<float>(still._v0), static_cast<float>(still._v1),
+            static_cast<int>(still._texSizeW), static_cast<int>(still._texSizeH), static_cast<float>(cube._u0), static_cast<float>(cube._u1)));
+    }
+    return any;
 }
 void reorderQuads(Tessellator& batch, std::vector<std::uint32_t> const& order) {
     auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
