@@ -118,6 +118,15 @@ glm::vec2 lastPointer{-1, -1};
 // A list scrollbar being dragged: the list's first row and its layout.
 int* scrollDragFirst = nullptr;
 ShapesLayout const* scrollDragLayout = nullptr;
+// The schematic preview (L-114): where it was drawn, how it is turned, and a
+// drag in progress. It turns by itself until the player first drags it.
+struct PreviewTurn {
+    float x = 0, y = 0, w = 0, h = 0; // last drawn box, GUI units
+    float yaw = 35, pitch = 30;
+    bool manual = false, dragging = false;
+    glm::vec2 from{};
+    float fromYaw = 0, fromPitch = 0;
+} previewTurn;
 // A press on a list's scrollbar moves the list there and starts a drag.
 bool pressScrollbar(ShapesLayout const& l, int& first, float x, float y) {
     if (!l.onScrollbar(x, y)) return false;
@@ -2725,6 +2734,14 @@ std::vector<Missing> missingMaterials() {
 void handleSchematicClick(float x, float y, bool right) {
     finishNumber();
     if (!right && pressScrollbar(schematicsDisplayed, schematicListFirst, x, y)) return;
+    auto& t = previewTurn;
+    if (!right && t.w > 0 && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h) {
+        t.dragging = t.manual = true;
+        t.from = {x, y};
+        t.fromYaw = t.yaw;
+        t.fromPitch = t.pitch;
+        return;
+    }
     if (!schematicsDocked) {
         auto nav = displayed.hit(x, y, navCount, displayedTabWidth);
         if (nav.zone == Zone::Nav) { selectNav(nav.index); return; }
@@ -3188,6 +3205,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         if (isSwitch) toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,on);
         else drawShapeStepper(context,l,y,false,std::move(value),false);
     };
+    previewTurn.w = 0; // set again where the preview is drawn this frame
     switch (schematicTab) {
     case SchematicTab::Placements:
         if (auto const* p = selectedPlacement()) {
@@ -3248,10 +3266,15 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 if (bottom - top >= 24) {
                     fill(context,dx,top,dw,bottom-top,Rgb{0,0,0},.25f);
                     frame(context,dx,top,dw,bottom-top,palette::white,.1f);
-                    float turn = std::fmod(static_cast<float>(std::chrono::duration<double>(
+                    auto& t = previewTurn;
+                    t.x = dx; t.y = top; t.w = dw; t.h = bottom - top;
+                    float yaw = t.yaw;
+                    if (!t.manual) yaw += std::fmod(static_cast<float>(std::chrono::duration<double>(
                         std::chrono::steady_clock::now().time_since_epoch()).count()) * 12.f, 360.f);
-                    schematic::preview::draw(context, schematic::session::structure(f.relative), dx + 1, top + 1, dw - 2, bottom - top - 2,
-                        schematic::preview::View{35 + turn, 30});
+                    if (!schematic::preview::draw(context, schematic::session::structure(f.relative), dx + 1, top + 1, dw - 2, bottom - top - 2,
+                            schematic::preview::View{yaw, t.pitch}))
+                        t.w = 0;
+                    else if (!t.manual) label(context,dx+4,bottom-12,dw-8,translated("schematic.previewHint"),palette::faint);
                 }
             }
             drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(waits ? "schematic.loadAnyway" : "schematic.place"),
@@ -3979,7 +4002,11 @@ void render(ll::event::UIRenderEvent& event) {
             if (!exit) exit = hud_editor::key(key, heldShift()) == hud_editor::Result::Exit;
         if (exit) { hud_editor::reset(); selectNav(editorReturn); }
     } else if (!closing) {
-        if (std::exchange(pendingRelease, false)) { sliderDrag = nullptr; scrollDragFirst = nullptr; }
+        if (std::exchange(pendingRelease, false)) { sliderDrag = nullptr; scrollDragFirst = nullptr; previewTurn.dragging = false; }
+        if (previewTurn.dragging) {
+            previewTurn.yaw = previewTurn.fromYaw + (lastPointer.x - previewTurn.from.x) * .7f;
+            previewTurn.pitch = std::clamp(previewTurn.fromPitch + (lastPointer.y - previewTurn.from.y) * .7f, -60.f, 89.f);
+        }
         if (scrollDragFirst && scrollDragLayout) *scrollDragFirst = scrollDragLayout->firstAt(lastPointer.y);
         if (shapesView()) {
             shapeList = overlay::shapes::list();
