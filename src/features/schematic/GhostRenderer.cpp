@@ -284,8 +284,12 @@ void release() {
     default: return ::Rotation::None;
     }
 }
+// The game names a mirror by the axis it reflects across: its Z mirror
+// flips east-west states, Lamium's X (seen in game with `mixture` mirrored
+// beside a structure block, 2026-10-09: chests, stairs, pane and fence
+// connections all faced the other way).
 ::Mirror gameMirror(Mirror mirror) {
-    return mirror == Mirror::X ? ::Mirror::X : mirror == Mirror::Z ? ::Mirror::Z : ::Mirror::None;
+    return mirror == Mirror::X ? ::Mirror::Z : mirror == Mirror::Z ? ::Mirror::X : ::Mirror::None;
 }
 // The palette entry as the NBT the game's block registry reads.
 Block const* lookup(PaletteBlock const& entry) {

@@ -250,6 +250,14 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    tessellated. Liquids (second layer) are untouched (B3). If the shapes
    stay wrong in game, the tessellator or the block code reads neighbors
    without the virtual call; then try the thread-scoped hook.
+   Checked 2026-10-09 (VALIDATION-LOG): doors and beds draw both halves;
+   no regressions. 26.51 files store fence/pane connections
+   (`minecraft:connection_*`) and stair corners (`minecraft:corner`) as
+   block states, so those shapes come from the file's states turned by
+   `transformBlock`, not from neighbors. That check also showed the mirror
+   axes swapped: the game's `Mirror::Z` flips east-west states, so
+   Lamium's X maps to it and Z to `Mirror::X` (fixed after `0486186`).
+   Open: a door or bed whose partner lies outside the file draws nothing.
 2. Render layers: build each section's ghosts into separate meshes by
    the block's render layer (opaque, alpha-test, blended) and draw the
    blended ones last, sorted back to front by section. This is the base
