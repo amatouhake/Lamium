@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preview Layers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab;
+  --accent:#6cc349; --accent-deep:#3c8527; --edge:rgba(255,255,255,.14); --panel:rgba(16,17,19,.9);
+  --dim:#b4b8b6; --faint:#7f8583; --key:#2b2c2d; --key-edge:#5a5b5c;
+  --font:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+.lede{color:var(--ink-2);max-width:80ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px}
+figure{margin:0;border:1px solid var(--line);background:#20262a;display:flex;flex-direction:column}
+figcaption{font-size:13px;color:var(--ink-2);padding:8px 12px}
+figcaption b{color:var(--ink)}
+.pane{font-family:var(--font);background:var(--panel);margin:10px;border:1px solid var(--edge);padding:8px;font-size:12px;color:#fff}
+.pv{position:relative;height:230px;border:1px solid var(--edge);background:rgba(0,0,0,.28);overflow:hidden;cursor:grab}
+.pv svg{display:block;width:100%;height:100%}
+.hint{position:absolute;left:5px;top:3px;font-size:10px;color:var(--faint)}
+.btn{border:1px solid var(--key-edge);background:var(--key);padding:0 6px;height:15px;line-height:14px;font-size:10.5px;color:var(--dim);cursor:pointer;white-space:nowrap}
+.btn.on{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.bar{position:absolute;left:4px;right:4px;bottom:4px;display:flex;gap:4px;align-items:center;font-size:10.5px;color:var(--dim)}
+.vslider{position:absolute;right:6px;top:22px;bottom:26px;width:14px;display:flex;flex-direction:column;align-items:center}
+.vslider .track{flex:1;width:3px;background:rgba(255,255,255,.15);position:relative}
+.vslider .knob{position:absolute;left:-5px;width:13px;height:7px;background:#ddd}
+.vslider .n{font-size:10px;color:var(--dim)}
+.fields{display:grid;gap:2px;margin-top:6px}
+.field{display:flex;justify-content:space-between;align-items:center;padding:2px 4px;background:rgba(255,255,255,.03)}
+.step{display:flex;gap:4px;align-items:center}
+.step .btn{width:15px;text-align:center;padding:0}
+.qa{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px}
+.qa ol{margin:6px 0 0;padding-left:20px;color:var(--ink-2)} .qa li{margin:4px 0}
+.qa b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">BACKLOG L-114 · 設計図のプレビュー · 層の表示（2026-10-08）</div>
+  <h1>プレビューで「ここまでの層」を見る：操作をどこに置くか</h1>
+  <p class="lede">3 つの案を並べています。どれもプレビューはドラッグで回転、ホイールで拡大・縮小できます。層は高さ（下から）だけでなく東西・南北にも切れます。ブロックは仮の色です。</p>
+</header>
+<div class="grid" id="grid"></div>
+<section class="qa">
+  <b>確認したいこと</b>
+  <ol>
+    <li><b>A 配置の層と同じ</b>：プレビューの層の操作は、配置タブの「層の向き・表示・層」をそのまま変えます。プレビューとワールドのゴーストがいつも同じになります。照合タブ向き。ファイルタブ（まだ配置していない）では使えません。</li>
+    <li><b>B プレビュー専用</b>：プレビューの端の縦スライダーと向きの切り替えで、プレビューだけを切ります。ワールドには影響しません。ファイルタブでも使えます。</li>
+    <li><b>C プレビュー専用＋ワールドへ反映</b>：B と同じ操作に「ワールドにも」ボタンを足し、気に入った切り方を配置に移せます。</li>
+    <li>スライダーの位置（プレビューの右端の縦、下端の横）と、軸の切り替え（ボタン 3 つ、または回している向きから自動で選ぶ）はどうか。</li>
+  </ol>
+</section>
+</div>
+<script>
+const W=7,H=6,D=7,cells=[];
+for(let x=0;x<W;x++)for(let z=0;z<D;z++)cells.push({x,y:0,z,c:"#8a8f94"});
+for(let y=1;y<=3;y++)for(let x=0;x<W;x++)for(let z=0;z<D;z++){
+  const edge=x==0||z==0||x==W-1||z==D-1; if(!edge)continue;
+  if(z==D-1&&x==3&&y<3)continue; if(y==2&&(x==1||x==5)&&(z==0||z==D-1))continue;
+  const corner=(x==0||x==W-1)&&(z==0||z==D-1); cells.push({x,y,z,c:corner?"#7a5a35":"#b08a55"});}
+cells.push({x:2,y:1,z:2,c:"#c0392b"},{x:4,y:1,z:4,c:"#d4a017"},{x:3,y:1,z:2,c:"#6b4f2a"});
+for(let x=0;x<W;x++)for(let z=0;z<D;z++)cells.push({x,y:4,z,c:"#9a6a40"});
+for(let x=1;x<W-1;x++)for(let z=1;z<D-1;z++)cells.push({x,y:5,z,c:"#9a6a40"});
+const axes={y:["高さ",H],x:["東西",W],z:["南北",D]};
+function make(kind){
+  const st={yaw:1,zoom:1,axis:"y",n:kind=="A"?2:H-1};
+  const fig=document.createElement("figure");
+  fig.innerHTML={A:"<figcaption><b>A 配置の層と同じ</b>：下の「層」の欄とプレビューの切り方が同じ値。ワールドのゴーストも同じだけ表示されます。</figcaption>",
+    B:"<figcaption><b>B プレビュー専用</b>：右端の縦スライダーと軸ボタン。ワールドはそのまま。</figcaption>",
+    C:"<figcaption><b>C プレビュー専用＋反映</b>：B と同じ操作に「ワールドにも」。</figcaption>"}[kind];
+  const pane=document.createElement("div");pane.className="pane";fig.appendChild(pane);
+  function iso(x,y,z){let cx=x-W/2+.5,cz=z-D/2+.5;for(let i=0;i<st.yaw;i++){const t=cx;cx=-cz;cz=t;}return{sx:(cx-cz)*12,sy:(cx+cz)*6-(y-H/2)*12,d:cx+cz+y*.01};}
+  function sh(c,f){return"#"+[1,3,5].map(i=>Math.round(parseInt(c.slice(i,i+2),16)*f).toString(16).padStart(2,"0")).join("");}
+  function draw(){
+    const w=330,h=230,s=st.zoom;
+    const vis=cells.filter(c=>c[st.axis]<=st.n).map(c=>({...c,...iso(c.x,c.y,c.z)})).sort((a,b)=>a.d-b.d);
+    let out="";
+    for(const c of vis){const x=w/2+c.sx*s,y=h/2+10+c.sy*s,u=12*s,v=6*s;
+      const cut=c[st.axis]==st.n?1:.0;
+      out+=`<polygon points="${x},${y-v} ${x+u},${y} ${x},${y+v} ${x-u},${y}" fill="${c.c}"/><polygon points="${x-u},${y} ${x},${y+v} ${x},${y+v+u} ${x-u},${y+u}" fill="${sh(c.c,.8)}"/><polygon points="${x+u},${y} ${x},${y+v} ${x},${y+v+u} ${x+u},${y+u}" fill="${sh(c.c,.6)}"/>`;
+      if(cut&&st.axis=="y")out+=`<polygon points="${x},${y-v} ${x+u},${y} ${x},${y+v} ${x-u},${y}" fill="none" stroke="rgba(108,195,73,.6)" stroke-width="1"/>`;}
+    const max=axes[st.axis][1]-1,knob=(1-st.n/max)*100;
+    const axisBtns=Object.entries(axes).map(([k,[t]])=>`<span class="btn${st.axis==k?" on":""}" data-a="${k}">${t}</span>`).join("");
+    let html=`<div class="pv"><svg viewBox="0 0 ${w} ${h}">${out}</svg><span class="hint">ドラッグ: 回転 / ホイール: 拡大</span>`;
+    if(kind!="A")html+=`<div class="vslider"><span class="n">${st.n+1}</span><div class="track"><div class="knob" style="top:calc(${knob}% - 3px)"></div></div><span class="n">1</span></div>
+      <div class="bar">${axisBtns}<span style="flex:1"></span><span class="btn" data-all>全部</span>${kind=="C"?'<span class="btn">ワールドにも</span>':""}</div>`;
+    html+=`</div>`;
+    if(kind=="A")html+=`<div class="fields"><div class="field"><span>層の向き</span><span class="step"><span class="btn" data-axis="-">‹</span><span>${axes[st.axis][0]}（下から）</span><span class="btn" data-axis="+">›</span></span></div>
+      <div class="field"><span>表示</span><span>ここまで</span></div>
+      <div class="field"><span>層</span><span class="step"><span class="btn" data-n="-">−</span><span>${st.n+1} / ${max+1}</span><span class="btn" data-n="+">＋</span></span></div></div>`;
+    pane.innerHTML=html;
+    const pv=pane.querySelector(".pv");let drag=null;
+    pv.onmousedown=e=>{if(e.target.closest(".btn,.vslider"))return;drag=e.clientX;};
+    window.addEventListener("mouseup",()=>drag=null);
+    pv.onmousemove=e=>{if(drag===null)return;if(Math.abs(e.clientX-drag)>40){st.yaw=(st.yaw+(e.clientX<drag?1:3))%4;drag=e.clientX;draw();}};
+    pv.onwheel=e=>{e.preventDefault();st.zoom=Math.min(2.5,Math.max(.5,st.zoom*(e.deltaY<0?1.12:.9)));draw();};
+    pane.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{st.axis=b.dataset.a;st.n=axes[st.axis][1]-1;draw();});
+    const all=pane.querySelector("[data-all]");if(all)all.onclick=()=>{st.n=axes[st.axis][1]-1;draw();};
+    const tr=pane.querySelector(".track");
+    if(tr){const set=e=>{const r=tr.getBoundingClientRect();st.n=Math.round((1-Math.min(1,Math.max(0,(e.clientY-r.top)/r.height)))*max);draw();};
+      tr.onmousedown=e=>{set(e);const mv=ev=>set(ev);window.addEventListener("mousemove",mv);window.addEventListener("mouseup",()=>window.removeEventListener("mousemove",mv),{once:true});};}
+    pane.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{st.n=Math.min(max,Math.max(0,st.n+(b.dataset.n=="+"?1:-1)));draw();});
+    pane.querySelectorAll("[data-axis]").forEach(b=>b.onclick=()=>{const k=Object.keys(axes);st.axis=k[(k.indexOf(st.axis)+(b.dataset.axis=="+"?1:2))%3];st.n=axes[st.axis][1]-1;draw();});
+  }
+  draw();return fig;
+}
+const g=document.getElementById("grid");["A","B","C"].forEach(k=>g.appendChild(make(k)));
+</script>
+</body>
+</html>
