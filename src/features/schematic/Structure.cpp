@@ -29,7 +29,7 @@ std::array<std::int64_t, 3> triple(nbt::Compound const& parent, char const* name
     return out;
 }
 // A layer is an int array (current exports) or a list of ints (older ones).
-std::vector<std::int32_t> layer(nbt::Tag const& values, std::uint64_t cells, size_t palette) {
+std::vector<std::int32_t> layer(nbt::Tag const& values, std::uint64_t cells, size_t palette, char const* which) {
     std::vector<std::int32_t> out;
     if (auto const* array = values.as<std::vector<std::int32_t>>()) out = *array;
     else if (auto const* list = values.as<nbt::List>()) {
@@ -39,20 +39,17 @@ std::vector<std::int32_t> layer(nbt::Tag const& values, std::uint64_t cells, siz
             if (!item.integer(index)) fail("block indices must be integers");
             out.push_back(static_cast<std::int32_t>(std::clamp<std::int64_t>(index, INT32_MIN, INT32_MAX)));
         }
-    } else fail("a block layer is neither an int array nor a list");
-    if (out.size() != cells) fail(std::format("a block layer has {} cells, expected {}", out.size(), cells));
+    } else fail(std::format("the {} block layer is neither an int array nor a list", which));
+    if (out.size() != cells) fail(std::format("the {} block layer has {} cells, expected {}", which, out.size(), cells));
     for (auto index : out)
-        if (index < voidCell || index >= static_cast<std::int64_t>(palette)) fail(std::format("block index {} outside the palette", index));
+        if (index < voidCell || index >= static_cast<std::int64_t>(palette))
+            fail(std::format("the {} block layer names palette entry {}, the palette has {}", which, index, palette));
     return out;
 }
 nbt::Tag intList(std::initializer_list<std::int32_t> values) {
     nbt::List out{nbt::Type::Int, {}};
     for (auto value : values) out.items.push_back({value});
     return {std::move(out)};
-}
-// Written as int arrays, like the game's own exports.
-nbt::Tag layerTag(std::vector<std::int32_t> const& values, std::uint64_t cells) {
-    return {values.empty() ? std::vector<std::int32_t>(cells, voidCell) : values};
 }
 }
 
@@ -101,7 +98,9 @@ Structure parseStructure(std::span<std::uint8_t const> bytes) {
     auto const& layers = list(structure, "block_indices");
     if (layers.items.empty() || layers.items.size() > 2) fail("block_indices must hold one or two layers");
     for (size_t i = 0; i < layers.items.size(); ++i) {
-        auto cells = layer(layers.items[i], out.cells(), out.palette.size());
+        // A second-layer cell over air (water in an air cell) and palette
+        // entries no cell uses are valid: vanilla exports have both.
+        auto cells = layer(layers.items[i], out.cells(), out.palette.size(), i == 0 ? "first" : "second");
         if (i == 0) out.blocks = std::move(cells);
         else if (std::any_of(cells.begin(), cells.end(), [](auto c) { return c != voidCell; })) out.liquids = std::move(cells);
     }
@@ -169,8 +168,9 @@ std::string writeStructure(Structure const& structure) {
     palettes.set("default", {std::move(paletteDefault)});
 
     nbt::List layers{nbt::Type::IntArray, {}};
-    layers.items.push_back(layerTag(structure.blocks, cells));
-    layers.items.push_back(layerTag(structure.liquids, cells));
+    layers.items.push_back({structure.blocks});
+    if (std::any_of(structure.liquids.begin(), structure.liquids.end(), [](auto c) { return c != voidCell; }))
+        layers.items.push_back({structure.liquids});
     nbt::List entities{nbt::Type::Compound, {}};
     for (auto const& entity : structure.entities) entities.items.push_back({entity.data});
 
@@ -180,7 +180,7 @@ std::string writeStructure(Structure const& structure) {
     body.set("palette", {std::move(palettes)});
 
     nbt::Root root;
-    root.compound.set("format_version", {structure.formatVersion});
+    root.compound.set("format_version", {writtenFormatVersion});
     root.compound.set("size", intList({structure.size.x, structure.size.y, structure.size.z}));
     root.compound.set("structure", {std::move(body)});
     root.compound.set("structure_world_origin",

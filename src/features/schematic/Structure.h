@@ -33,14 +33,17 @@ struct EntityRecord {
 inline constexpr std::int32_t voidCell = -1;
 // Guards against corrupt sizes; far above the vanilla 64x384x64 limit.
 inline constexpr std::uint64_t maxCells = 16ull * 1024 * 1024;
+// What writeStructure writes: int-array layers, as the game's own exports.
+inline constexpr std::int32_t writtenFormatVersion = 2;
 
 struct Structure {
     Size size;
     std::array<int, 3> worldOrigin{};
-    std::int32_t formatVersion = 1;
+    std::int32_t formatVersion = writtenFormatVersion; // as read; writing always uses writtenFormatVersion
     std::vector<PaletteBlock> palette;
     // Palette index per cell, or voidCell. `liquids` is the second layer
-    // (water in a waterlogged block) and is empty when it holds nothing.
+    // (water in a waterlogged block) and is empty when it holds nothing; it
+    // is written only when some cell has one, like the game's exports.
     std::vector<std::int32_t> blocks, liquids;
     std::map<std::int32_t, nbt::Compound> blockEntities; // cell index -> block_entity_data
     std::vector<EntityRecord> entities;

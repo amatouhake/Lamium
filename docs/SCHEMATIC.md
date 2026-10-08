@@ -198,6 +198,22 @@ A. File compatibility (Ready, chosen 2026-10-09):
 - Reading already accepts one or two layers and an empty second layer.
   Add: reject a layer whose length is not the volume (already) and a
   second layer that names palette entries out of range, with a message.
+- Built 2026-10-09, not yet checked in game: `writeStructure` always writes
+  version 2 (`writtenFormatVersion`; a version 1 file read in is written
+  back as 2) and the second layer only when some cell in it is not -1.
+  Layer errors name the layer ("the second block layer has N cells",
+  "... names palette entry N, the palette has M"); water over an air cell
+  and unused palette entries read as valid. After writing, the save hands
+  the same bytes to `StructureTemplate::load` on a throwaway template
+  (the level's unknown-block registry); a rejection keeps the file and the
+  prompt says "Saved ..., but the game's structure loader rejected it"
+  (`schematic.save.gameRejected`); the log line names the size, layer count
+  and result. Tests: `structureWrittenShape`, the layer rejections, and
+  `LAMIUM_SAMPLE_STRUCTURES` (a folder or `;`-separated files, e.g. the
+  vanilla `submerged` and `water_and_lava`) reads each file, writes it back
+  and checks both layers, the version and the layer count. Open: whether
+  the loader limits very large areas (the log line answers it per save),
+  and whether the earlier failure in another tool was the version.
 
 B. Ghost drawing (Research, strong model; one runtime round per step):
 1. Schematic neighbors: `BlockTessellator` reads neighbors through

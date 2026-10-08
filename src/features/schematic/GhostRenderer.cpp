@@ -56,6 +56,8 @@
 #include "features/schematic/Verification.h"
 #include <mutex>
 #include "mc/world/level/BlockSource.h"
+#include "mc/world/level/Level.h"
+#include "mc/world/level/levelgen/structure/StructureTemplate.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockRenderLayer.h"
 #include "mc/world/level/block/BlockType.h"
@@ -921,6 +923,16 @@ PaletteBlock paletteEntry(Block const& block) {
     if (out.name.empty()) out.name = block.getTypeName();
     return out;
 }
+bool vanillaLoads(std::string const& bytes, LocalPlayer& player) {
+    try {
+        auto tag = CompoundTag::fromBinaryNbt(bytes);
+        if (!tag) return false;
+        StructureTemplate probe("lamium:save_check", player.getLevel().getUnknownBlockTypeRegistry());
+        return probe.load(*tag);
+    } catch (...) {
+        return false;
+    }
+}
 void stepSave(BlockSource& region, LocalPlayer& player) {
     if (stopRequested.exchange(false)) { stopSave(); return; }
     if (!saveJob) {
@@ -1028,9 +1040,15 @@ void stepSave(BlockSource& region, LocalPlayer& player) {
     }
     try {
         std::filesystem::create_directories(job.request.path.parent_path());
-        writeFileReplacing(job.request.path, writeStructure(structure), "schematic");
+        auto bytes = writeStructure(structure);
+        writeFileReplacing(job.request.path, bytes, "schematic");
         auto sz = structure.size;
-        finishSave(ui::translated("schematic.save.done", job.request.file, sz.x, sz.y, sz.z));
+        // The game's own loader reads the file as written; the file stays
+        // either way, the prompt only says so.
+        bool loads = vanillaLoads(bytes, player);
+        log(std::format("saved schematic {} ({}x{}x{}, {} layer(s)); the game's structure loader {} it", job.request.file,
+                        sz.x, sz.y, sz.z, structure.liquids.empty() ? 1 : 2, loads ? "accepted" : "rejected"));
+        finishSave(ui::translated(loads ? "schematic.save.done" : "schematic.save.gameRejected", job.request.file, sz.x, sz.y, sz.z));
     } catch (std::exception const& error) {
         log(std::string("could not save an area: ") + error.what());
         finishSave(ui::translated("schematic.save.failed", job.request.file));

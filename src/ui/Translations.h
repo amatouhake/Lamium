@@ -511,6 +511,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.save.busy", "Another area is still being saved", "ほかの範囲を保存中です"},
     {"schematic.save.started", "Saving {}…", "{} を保存中…"},
     {"schematic.save.done", "Saved {} ({}×{}×{})", "{} を保存しました（{}×{}×{}）"},
+    {"schematic.save.gameRejected", "Saved {} ({}×{}×{}), but the game's structure loader rejected it", "{} を保存しました（{}×{}×{}）。ただしゲーム本体のストラクチャー読み込みでは読めませんでした"},
     {"schematic.save.otherDimension", "Not saved: you left the area's dimension", "保存できません: 範囲のディメンションを離れました"},
     {"schematic.save.failed", "Could not write {}", "{} を書き込めませんでした"},
     {"schematic.save.stopped", "Saving stopped", "保存を中止しました"},

@@ -12,6 +12,7 @@
 #include "features/schematic/RestPose.h"
 #include "features/schematic/PreviewView.h"
 #include "features/schematic/GhostFaces.h"
+#include <algorithm>
 #include <array>
 #include <set>
 #include <cstdlib>
@@ -31,6 +32,11 @@ std::span<std::uint8_t const> span(std::string const& bytes) {
 bool throws(std::string const& bytes) {
     try { parseStructure(span(bytes)); } catch (std::runtime_error const&) { return true; }
     return false;
+}
+
+nbt::List& layersOf(nbt::Root& root) {
+    auto& body = *const_cast<nbt::Tag*>(root.compound.find("structure"))->as<nbt::Compound>();
+    return *const_cast<nbt::Tag*>(body.find("block_indices"))->as<nbt::List>();
 }
 
 Structure sample() {
@@ -131,24 +137,94 @@ void structureRejects() {
     caught = false;
     try { writeStructure(mismatched); } catch (std::runtime_error const&) { caught = true; }
     check(caught, "writing a layer that does not match the size is refused");
+    auto badLiquid = sample();
+    badLiquid.liquids[0] = 7;
+    std::string reason;
+    try { parseStructure(span(writeStructure(badLiquid))); } catch (std::runtime_error const& error) { reason = error.what(); }
+    check(reason.find("second block layer") != std::string::npos, "a second layer naming a missing palette entry is rejected by name");
+    nbt::Root shortLayer = nbt::read(span(writeStructure(sample())));
+    auto& layers = *layersOf(shortLayer).items[1].as<std::vector<std::int32_t>>();
+    layers.pop_back();
+    reason.clear();
+    try { parseStructure(span(nbt::write(shortLayer))); } catch (std::runtime_error const& error) { reason = error.what(); }
+    check(reason.find("second block layer has") != std::string::npos, "a second layer shorter than the volume is rejected by name");
 }
 
-// Optional: LAMIUM_SAMPLE_STRUCTURES names a folder of real exports to parse.
+// The shape a save writes (SCHEMATIC.md A): version 2; the second layer only
+// when some cell holds a liquid, -1 elsewhere.
+void structureWrittenShape() {
+    auto wet = sample();
+    nbt::Root root = nbt::read(span(writeStructure(wet)));
+    std::int64_t version = 0;
+    check(root.compound.find("format_version")->integer(version) && version == 2, "saves say format_version 2");
+    check(layersOf(root).element == nbt::Type::IntArray && layersOf(root).items.size() == 2,
+          "a structure with a waterlogged cell writes two int-array layers");
+    auto const& second = *layersOf(root).items[1].as<std::vector<std::int32_t>>();
+    check(second[wet.cell(1, 2, 3)] == 4 && std::count(second.begin(), second.end(), voidCell) == static_cast<long long>(wet.cells()) - 1,
+          "the second layer is -1 except the waterlogged cell");
+
+    auto dry = sample();
+    dry.liquids.clear();
+    root = nbt::read(span(writeStructure(dry)));
+    check(layersOf(root).items.size() == 1, "a structure without liquids writes one layer");
+    dry.liquids.assign(dry.cells(), voidCell);
+    root = nbt::read(span(writeStructure(dry)));
+    check(layersOf(root).items.size() == 1, "an all-void second layer is not written");
+
+    auto old = sample();
+    old.formatVersion = 1;
+    root = nbt::read(span(writeStructure(old)));
+    check(root.compound.find("format_version")->integer(version) && version == 2, "a version 1 file read in is written back as 2");
+
+    // Vanilla exports hold water over an air cell and palette entries no cell uses.
+    auto odd = sample();
+    odd.palette.push_back({"minecraft:jungle_door", {}, 18168865});
+    odd.liquids[odd.cell(0, 0, 1)] = 4;
+    auto parsed = parseStructure(span(writeStructure(odd)));
+    check(parsed.palette.size() == 6 && parsed.blocks[odd.cell(0, 0, 1)] == 0 && parsed.liquids[odd.cell(0, 0, 1)] == 4,
+          "water in an air cell and an unused palette entry read as a valid file");
+}
+
+// Optional: LAMIUM_SAMPLE_STRUCTURES names real exports to read and write
+// back: a folder, or files separated by ';' (e.g. the vanilla
+// submerged.mcstructure and water_and_lava.mcstructure). Not in the repository.
 void sampleFiles() {
-    char* folder = nullptr;
+    char* value = nullptr;
     size_t length = 0;
-    if (_dupenv_s(&folder, &length, "LAMIUM_SAMPLE_STRUCTURES") || !folder) return;
-    std::unique_ptr<char, decltype(&std::free)> owned(folder, &std::free);
-    for (auto const& entry : std::filesystem::directory_iterator(folder)) {
-        if (entry.path().extension() != ".mcstructure") continue;
-        std::ifstream file(entry.path(), std::ios::binary);
+    if (_dupenv_s(&value, &length, "LAMIUM_SAMPLE_STRUCTURES") || !value) return;
+    std::unique_ptr<char, decltype(&std::free)> owned(value, &std::free);
+    std::vector<std::filesystem::path> files;
+    std::string list = value;
+    for (size_t start = 0; start <= list.size();) {
+        auto end = std::min(list.find(';', start), list.size());
+        std::filesystem::path path = list.substr(start, end - start);
+        start = end + 1;
+        if (path.empty()) continue;
+        if (std::filesystem::is_directory(path)) {
+            for (auto const& entry : std::filesystem::directory_iterator(path))
+                if (entry.path().extension() == ".mcstructure") files.push_back(entry.path());
+        } else files.push_back(path);
+    }
+    for (auto const& path : files) {
+        std::ifstream file(path, std::ios::binary);
+        check(file.good(), "a named sample file opens");
         std::string bytes{std::istreambuf_iterator<char>(file), {}};
         auto parsed = parseStructure(span(bytes));
         check(parsed.blocks.size() == parsed.cells() && !parsed.palette.empty(), "a real export parses");
-        auto again = parseStructure(span(writeStructure(parsed)));
-        check(again.blocks == parsed.blocks && again.palette.size() == parsed.palette.size()
+        auto written = writeStructure(parsed);
+        auto again = parseStructure(span(written));
+        check(again.blocks == parsed.blocks && again.liquids == parsed.liquids && again.palette.size() == parsed.palette.size()
               && again.blockEntities.size() == parsed.blockEntities.size() && again.entities.size() == parsed.entities.size(),
-              "a real export survives writing back");
+              "a real export survives writing back, both layers included");
+        nbt::Root root = nbt::read(span(written));
+        check(layersOf(root).items.size() == (parsed.liquids.empty() ? 1u : 2u), "a written export has a second layer only with liquids");
+        std::int64_t version = 0;
+        if (parsed.formatVersion == writtenFormatVersion) {
+            nbt::Root original = nbt::read(span(bytes));
+            check(layersOf(original).items.size() == layersOf(root).items.size(),
+                  "a version 2 export is written back with as many layers as it had");
+        }
+        check(root.compound.find("format_version")->integer(version) && version == writtenFormatVersion, "a written export says version 2");
     }
 }
 
@@ -588,5 +664,6 @@ void schematicTests() {
     nbtBasics();
     structureRoundTrip();
     structureRejects();
+    structureWrittenShape();
     sampleFiles();
 }

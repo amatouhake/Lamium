@@ -52,7 +52,7 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining, remaining));
             else if (entry.key == "schematic.toast.cornerArea")
                 rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining, remaining, remaining, remaining, remaining));
-            else if (entry.key == "schematic.save.done")
+            else if (entry.key == "schematic.save.done" || entry.key == "schematic.save.gameRejected")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining, remaining));
             else if (entry.key == "schematic.save.waiting")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining, key, remaining));

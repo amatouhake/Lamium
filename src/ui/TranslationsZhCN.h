@@ -509,6 +509,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.save.busy", "另一个范围仍在保存中"},
     {"schematic.save.started", "正在保存 {}…"},
     {"schematic.save.done", "已保存 {}（{}×{}×{}）"},
+    {"schematic.save.gameRejected", "已保存 {}（{}×{}×{}），但游戏自身的结构加载器无法读取它"},
     {"schematic.save.otherDimension", "未保存: 你离开了范围所在的维度"},
     {"schematic.save.failed", "无法写入 {}"},
     {"schematic.save.stopped", "保存已中止"},
