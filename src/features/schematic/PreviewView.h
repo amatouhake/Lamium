@@ -13,6 +13,7 @@ namespace lamium::schematic::preview {
 struct View {
     float yaw = 35;   // degrees around the vertical axis; 0 looks from the south (+z)
     float pitch = 30; // degrees above the horizon
+    float zoom = 1;   // 1 fits the whole structure; draw order does not depend on it
 };
 struct Eye {
     float x = 0, y = 0, z = 0; // unit vector from the structure toward the viewer

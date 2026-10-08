@@ -365,7 +365,7 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         // fragment at a spot (a real z cut blocks apart), so quads are
         // sorted near to far instead.
         auto r = project(view, 1, 0, 0), u = project(view, 0, 1, 0), f = project(view, 0, 0, 1);
-        float scale = fitScale(structure->size.x, structure->size.y, structure->size.z, width, height);
+        float scale = fitScale(structure->size.x, structure->size.y, structure->size.z, width, height) * std::max(view.zoom, .1f);
         glm::mat4 model{1.f};
         model[0] = {scale * r.right, scale * r.down, 0, 0};
         model[1] = {scale * u.right, scale * u.down, 0, 0};

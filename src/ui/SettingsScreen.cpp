@@ -122,7 +122,7 @@ ShapesLayout const* scrollDragLayout = nullptr;
 // drag in progress. It turns by itself until the player first drags it.
 struct PreviewTurn {
     float x = 0, y = 0, w = 0, h = 0; // last drawn box, GUI units
-    float yaw = 35, pitch = 30;
+    float yaw = 35, pitch = 30, zoom = 1;
     bool manual = false, dragging = false;
     glm::vec2 from{};
     float fromYaw = 0, fromPitch = 0;
@@ -3272,7 +3272,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                     if (!t.manual) yaw += std::fmod(static_cast<float>(std::chrono::duration<double>(
                         std::chrono::steady_clock::now().time_since_epoch()).count()) * 12.f, 360.f);
                     if (!schematic::preview::draw(context, schematic::session::structure(f.relative), dx + 1, top + 1, dw - 2, bottom - top - 2,
-                            schematic::preview::View{yaw, t.pitch}))
+                            schematic::preview::View{yaw, t.pitch, t.zoom}))
                         t.w = 0;
                     else if (!t.manual) label(context,dx+4,top+3,dw-8,translated("schematic.previewHint"),palette::faint); // above the model: the preview's depth hides text drawn over it
                 }
@@ -3288,74 +3288,31 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         if (!checked) { paragraph(context,dx,l.detailTop+6,dw,translated("schematic.noSelection"),4,palette::faint); break; }
         label(context,dx,l.nameY+1+boxTextInset(),dw,checked->name);
         auto const& t = verification->visible;
-        float previewTop = l.previewY + 58;
-        // The whole placement first, then the selected position, each under a heading.
-        label(context,dx,l.previewY-2,dw,translated("schematic.check.whole", layersText(*checked)),palette::faint);
-        if (unloadable) paragraph(context,dx,l.previewY+10,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
-        else if (counting) label(context,dx,l.previewY+10,dw,translated("schematic.counting"),palette::dim);
+        // Layout A (Check tab review): the preview at a fixed size on top,
+        // then the counts beside the selected mistake, then its states.
+        // Lines that do not fit above the buttons are left out.
+        float pvTop = l.previewY - 2, pvHeight = std::clamp((l.actionsY - pvTop) * .55f, 60.f, 240.f);
+        float textTop = pvTop + pvHeight + 5, textEnd = l.actionsY - 6;
+        auto fits = [&](float y) { return y + 10 <= textEnd; };
+        if (unloadable) paragraph(context,dx,pvTop,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
         else {
-            label(context,dx,l.previewY+10,dw,translated("schematic.summary.correct", t.correct, t.total()),palette::accent);
-            label(context,dx,l.previewY+21,dw,translated("schematic.summary.missing", t.missing),palette::dim);
-            label(context,dx,l.previewY+32,dw,translated("schematic.summary.wrong", t.wrong + t.extra),Rgb{1.f,.45f,.4f});
-            label(context,dx,l.previewY+43,dw,translated("schematic.summary.state", t.state),Rgb{1.f,.8f,.3f});
-        }
-        if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size())) {
-            auto const& m = *verifyRows[static_cast<size_t>(verifySelected)];
-            float y = l.previewY + 60;
-            fill(context,dx,y-3,dw,1,palette::white,.1f);
-            label(context,dx,y,dw,translated("schematic.check.here", std::format("{}, {}, {}", m.position.x, m.position.y, m.position.z))
-                + "  " + mismatchKind(m.state),mismatchColor(m.state));
-            if (!m.expectedName.empty()) {
-                drawItemIcon(context, m.expected, dx, y + 12, 12);
-                label(context,dx+14,y+14,dw-14,translated("schematic.expected", m.expectedName),palette::dim);
-            }
-            if (!m.actualName.empty()) {
-                drawItemIcon(context, m.actual, dx, y + 27, 12);
-                label(context,dx+14,y+29,dw-14,translated("schematic.actual", m.actualName),palette::dim);
-            }
-            // Every differing state: "<state>  <now> -> <should be>", named like the target card's.
-            float sy = y + 45;
-            if (!m.states.empty()) { label(context,dx,sy,dw,translated("schematic.check.states"),palette::faint); sy += 11; }
-            Rgb stateColor{1.f, .8f, .25f};
-            auto const& identifier = m.identifier;
-            for (auto const& d : m.states) {
-                auto translate = [](std::string_view key) { return translated(key); };
-                auto now = information::stateName(d.key, d.actual, identifier, translate);
-                auto want = information::stateName(d.key, d.expected, identifier, translate);
-                auto const& named = now.labelIsKey ? now : want;
-                std::string name = named.labelIsKey ? translated(named.label) : named.label;
-                float half = dw * .45f;
-                label(context,dx,sy,half-4,name,palette::dim);
-                float vx = dx + half, nowW = textWidth(context, now.value);
-                label(context,vx,sy,nowW+2,now.value,stateColor);
-                vx += nowW + 3;
-                changeArrow(context,vx,sy+1.5f+shapeTextDrop(),1,stateColor);
-                vx += changeArrowWidth + 3;
-                label(context,vx,sy,dx+dw-vx,want.value,stateColor);
-                sy += 11;
-            }
-            previewTop = sy + 4;
-        }
-        // The placement in 3D, colored by what the check found; with a row
-        // selected, everything else dims so its block stands out (L-114).
-        if (!unloadable && !counting && l.actionsY - 6 - previewTop >= 40) {
-            float top = previewTop, bottom = l.actionsY - 6;
-            fill(context,dx,top,dw,bottom-top,Rgb{0,0,0},.25f);
-            frame(context,dx,top,dw,bottom-top,palette::white,.1f);
-            auto structure = schematic::session::structure(checked->file);
-            if (structure) {
+            fill(context,dx,pvTop,dw,pvHeight,Rgb{0,0,0},.25f);
+            frame(context,dx,pvTop,dw,pvHeight,palette::white,.1f);
+            if (counting) label(context,dx+4,pvTop+3,dw-8,translated("schematic.counting"),palette::dim);
+            else if (auto structure = schematic::session::structure(checked->file)) {
                 schematic::Point here{INT_MIN, INT_MIN, INT_MIN};
                 if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size()) && !verifyRows[static_cast<size_t>(verifySelected)]->entity)
                     here = verifyRows[static_cast<size_t>(verifySelected)]->position;
+                // Only the kinds the chips show are marked.
                 static std::map<std::tuple<int, int, int>, schematic::CellState> states;
                 static std::uint64_t statesKey = 0;
                 std::uint64_t key = reinterpret_cast<std::uintptr_t>(verification.get()) * 31 + static_cast<std::uint64_t>(here.x) * 7
-                    + static_cast<std::uint64_t>(here.y) * 13 + static_cast<std::uint64_t>(here.z) + 1;
+                    + static_cast<std::uint64_t>(here.y) * 13 + static_cast<std::uint64_t>(here.z) + static_cast<std::uint64_t>(verifyFilter) * 1000003 + 1;
                 if (key != statesKey) {
                     statesKey = key;
                     states.clear();
                     for (auto const& m : verification->mismatches)
-                        if (!m.entity) states[{m.position.x, m.position.y, m.position.z}] = m.state;
+                        if (!m.entity && verifyMatches(m)) states[{m.position.x, m.position.y, m.position.z}] = m.state;
                 }
                 bool focus = here.x != INT_MIN;
                 auto placement = checked->placement;
@@ -3376,11 +3333,59 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                     auto dim = [&](int shift) { return ((((color >> shift) & 255) * 115 / 255) << shift); };
                     return dim(0) | dim(8) | dim(16) | 0xff000000u;
                 }};
-                auto& t = previewTurn;
-                t.x = dx; t.y = top; t.w = dw; t.h = bottom - top;
-                if (!schematic::preview::draw(context, structure, dx + 1, top + 1, dw - 2, bottom - top - 2,
-                        schematic::preview::View{t.yaw, t.pitch}, &tint))
-                    t.w = 0;
+                auto& turn = previewTurn;
+                turn.x = dx; turn.y = pvTop; turn.w = dw; turn.h = pvHeight;
+                if (!schematic::preview::draw(context, structure, dx + 1, pvTop + 1, dw - 2, pvHeight - 2,
+                        schematic::preview::View{turn.yaw, turn.pitch, turn.zoom}, &tint))
+                    turn.w = 0;
+            }
+        }
+        // Counts on the left, the selected mistake on the right.
+        float half = std::floor(dw * .42f), rx = dx + half + 8, rw = dw - half - 8;
+        float y = textTop;
+        label(context,dx,y,half,translated("schematic.check.whole", layersText(*checked)),palette::faint);
+        if (!counting && !unloadable) {
+            if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.summary.correct", t.correct, t.total()),palette::accent);
+            if (fits(y + 22)) label(context,dx,y+22,half,translated("schematic.summary.missing", t.missing),palette::dim);
+            if (fits(y + 33)) label(context,dx,y+33,half,translated("schematic.summary.wrong", t.wrong + t.extra),Rgb{1.f,.45f,.4f});
+            if (fits(y + 44)) label(context,dx,y+44,half,translated("schematic.summary.state", t.state),Rgb{1.f,.8f,.3f});
+        }
+        float bottom = y + 57;
+        if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size())) {
+            auto const& m = *verifyRows[static_cast<size_t>(verifySelected)];
+            fill(context,rx-5,y,1,52,palette::white,.1f);
+            label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", m.position.x, m.position.y, m.position.z)),mismatchColor(m.state));
+            if (fits(y + 11)) label(context,rx,y+11,rw,mismatchKind(m.state),mismatchColor(m.state));
+            // What was confused with what: the expected block above the one in the world.
+            if (!m.expectedName.empty() && fits(y + 24)) {
+                drawItemIcon(context, m.expected, rx, y + 23, 12);
+                label(context,rx+14,y+25,rw-14,translated("schematic.expected", m.expectedName),palette::dim);
+            }
+            if (!m.actualName.empty() && fits(y + 38)) {
+                drawItemIcon(context, m.actual, rx, y + 37, 12);
+                label(context,rx+14,y+39,rw-14,translated("schematic.actual", m.actualName),palette::dim);
+            }
+            // Every differing state: "<state>  <now> -> <should be>", full width below.
+            float sy = bottom;
+            if (!m.states.empty() && fits(sy)) { fill(context,dx,sy-3,dw,1,palette::white,.1f); label(context,dx,sy,dw,translated("schematic.check.states"),palette::faint); sy += 11; }
+            Rgb stateColor{1.f, .8f, .25f};
+            auto const& identifier = m.identifier;
+            for (auto const& d : m.states) {
+                if (!fits(sy)) break;
+                auto translate = [](std::string_view key) { return translated(key); };
+                auto now = information::stateName(d.key, d.actual, identifier, translate);
+                auto want = information::stateName(d.key, d.expected, identifier, translate);
+                auto const& named = now.labelIsKey ? now : want;
+                std::string name = named.labelIsKey ? translated(named.label) : named.label;
+                float nameW = dw * .45f;
+                label(context,dx,sy,nameW-4,name,palette::dim);
+                float vx = dx + nameW, nowW = textWidth(context, now.value);
+                label(context,vx,sy,nowW+2,now.value,stateColor);
+                vx += nowW + 3;
+                changeArrow(context,vx,sy+1.5f+shapeTextDrop(),1,stateColor);
+                vx += changeArrowWidth + 3;
+                label(context,vx,sy,dx+dw-vx,want.value,stateColor);
+                sy += 11;
             }
         }
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
@@ -4284,6 +4289,11 @@ void start() {
             int step = event.buttonData() > 0 ? -3 : 3;
             auto const& l = schematicsDisplayed;
             float px = lastPointer.x, py = lastPointer.y;
+            // Over the 3D preview the wheel zooms it.
+            if (auto& t = previewTurn; t.w > 0 && px >= t.x && px < t.x + t.w && py >= t.y && py < t.y + t.h) {
+                t.zoom = std::clamp(t.zoom * (step < 0 ? 1.2f : 1 / 1.2f), .5f, 12.f);
+                return;
+            }
             bool overList = px >= l.listLeft && px < l.listLeft + l.listWidth && (!l.docked || py < l.detailTop);
             if (overList) schematicListFirst = std::max(0, schematicListFirst + step);
             else schematicFieldFirst = std::max(0, schematicFieldFirst + step);

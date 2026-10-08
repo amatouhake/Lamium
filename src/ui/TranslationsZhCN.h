@@ -315,7 +315,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.fileSelectHint", "请在左侧列表中选择一个文件。"},
     {"schematic.noSelection", "请先在「放置」标签中选择一个放置。"},
     {"schematic.counting", "统计中…"},
-    {"schematic.previewHint", "拖动以旋转"},
+    {"schematic.previewHint", "拖动以旋转，滚轮缩放"},
     {"schematic.noMistakes", "这里没有要显示的内容。"},
     {"schematic.noMaterials", "不需要材料。"},
     {"schematic.verifyHint", "将所选放置在显示的层中与世界对照的结果。「在世界中标出」会标记所选位置。"},
