@@ -102,9 +102,10 @@ struct EntityCell { BlockPos pos; Block const* block; };
 struct Section {
     glm::vec3 origin{};
     // faces: every render layer but the blended ones, drawn alpha-tested;
-    // blend: blended layers (stained glass, honey, slime), drawn last.
-    std::optional<mce::Mesh> faces, blend, lines, marks;
-    std::uint32_t faceVertices = 0, blendVertices = 0, lineVertices = 0, markVertices = 0;
+    // blend: blended layers (stained glass, honey, slime) and the mistake
+    // marks, drawn last.
+    std::optional<mce::Mesh> faces, blend, lines;
+    std::uint32_t faceVertices = 0, blendVertices = 0, lineVertices = 0;
     std::vector<EntityCell> entities;
     Clock::time_point built{}, checked{};
     std::optional<Clock::time_point> due; // An early rebuild after a looked-at block changed.
@@ -561,8 +562,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     auto [index, sx, sy, sz] = key;
     Point low{sx * sectionSize, sy * sectionSize, sz * sectionSize};
     // Reset in place: meshes cannot be copied or assigned.
-    out.faces.reset(); out.blend.reset(); out.lines.reset(); out.marks.reset();
-    out.faceVertices = out.blendVertices = out.lineVertices = out.markVertices = 0;
+    out.faces.reset(); out.blend.reset(); out.lines.reset();
+    out.faceVertices = out.blendVertices = out.lineVertices = 0;
     out.entities.clear();
     out.due.reset();
     out.origin = {static_cast<float>(low.x), static_cast<float>(low.y), static_cast<float>(low.z)};
@@ -662,6 +663,77 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         out.faceVertices = batch.mCount;
         out.faces.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic ghosts", SupplementaryFieldAutoGenerationMode{}));
     }
+    finishColors(see, .62f, .85f, 1.f);
+    if (!marks.empty()) {
+        // Mistakes mark whole cells with a tinted box just outside the real
+        // block. The boxes go into the blended mesh, sorted with the blended
+        // ghosts: as a separate translucent draw the engine ordered them
+        // against those ghosts differently from frame to frame (flicker).
+        // Each box is a white concrete block tessellated at the cell, its
+        // faces recolored, moved 0.01 out and textured with one texel.
+        // Where marks of one color touch, the faces between them and the
+        // outlines of cells inside a run are left out: dense wrong or extra
+        // areas drew every one of them.
+        auto cellOf = [](Outline const& m) {
+            return std::tuple<int, int, int>{static_cast<int>(std::floor(m.min.x)), static_cast<int>(std::floor(m.min.y)),
+                                             static_cast<int>(std::floor(m.min.z))};
+        };
+        std::map<std::tuple<int, int, int>, float> colorAt; // keyed cell -> green channel, which tells red from yellow
+        for (auto const& m : marks) colorAt[cellOf(m)] = m.g;
+        auto sameAt = [&](std::tuple<int, int, int> cell, int side, float g) {
+            auto const& d = faces::offsets[side];
+            auto found = colorAt.find({std::get<0>(cell) + d[0], std::get<1>(cell) + d[1], std::get<2>(cell) + d[2]});
+            return found != colorAt.end() && found->second == g;
+        };
+        auto white = Block::tryGetFromRegistry(HashedString{"minecraft:white_concrete"});
+        drawn = -1;
+        for (auto const& m : marks) {
+            if (!white) break;
+            auto cell = cellOf(m);
+            Point at{std::get<0>(cell), std::get<1>(cell), std::get<2>(cell)};
+            drawing = at;
+            size_t from = see.mMeshData->mPositions->size();
+            tessellateLayer(own, see, *white, BlockPos{at.x, at.y, at.z}, std::nullopt);
+            auto& data = static_cast<mce::MeshData&>(see.mMeshData);
+            auto& positions = *data.mPositions;
+            auto& uvs = *data.mTextureUVs[0];
+            auto& colors = *data.mColors;
+            if (colors.size() != positions.size()) colors.resize(positions.size(), 0xffffffffu);
+            auto channel = [](float v, int shift) { return static_cast<std::uint32_t>(std::lround(std::clamp(v, 0.f, 1.f) * 255)) << shift; };
+            std::uint32_t tint = channel(m.r, 0) | channel(m.g, 8) | channel(m.b, 16) | channel(.3f, 24);
+            glm::vec3 center = glm::vec3(at.x, at.y, at.z) + glm::vec3(.5f);
+            int open = 0;
+            for (size_t q = from; q + 4 <= positions.size(); q += 4) {
+                std::array<faces::Vertex, 4> quad;
+                for (size_t k = 0; k < 4; ++k) quad[k] = {positions[q + k].x, positions[q + k].y, positions[q + k].z};
+                int side = faces::sideOf(quad, at.x, at.y, at.z);
+                bool keep = side >= 0 && !sameAt(cell, side, m.g);
+                // The box reaches 0.01 into the next cell: against a ghost its
+                // face would lie on (or just past) the ghost's own and fight
+                // with it at grazing angles (Depth.h rules 1 and 4). The
+                // ghost's face shows there instead.
+                if (keep) {
+                    auto const& d = faces::offsets[side];
+                    keep = !ghostDrawnAt(region, shown, blocks, {at.x + d[0], at.y + d[1], at.z + d[2]});
+                }
+                if (!keep) {
+                    for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
+                    continue;
+                }
+                ++open;
+                glm::vec2 texel{0.f};
+                if (uvs.size() == positions.size()) {
+                    for (size_t k = 0; k < 4; ++k) texel += uvs[q + k] * .25f;
+                    for (size_t k = 0; k < 4; ++k) uvs[q + k] = texel;
+                }
+                for (size_t k = 0; k < 4; ++k) {
+                    positions[q + k] = center + (positions[q + k] - center) * 1.02f;
+                    colors[q + k] = tint;
+                }
+            }
+            if (open) outlines.push_back(m);
+        }
+    }
     if (see.mCount) {
         // Blended quads far to near from where the camera was at the build;
         // sections themselves are ordered when drawn.
@@ -677,61 +749,11 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         for (auto const& f : far) order.push_back(f.second);
         reorderQuads(see, order);
         for (auto& p : see.mMeshData->mPositions.get()) p -= out.origin;
-        finishColors(see, .62f, .85f, 1.f);
         out.blendVertices = see.mCount;
         out.blend.emplace(see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{}));
     } else {
         // Ended either way, so the tessellator never stays open.
         see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{});
-    }
-    if (!marks.empty()) {
-        // Mistakes mark whole cells. Where marks of one color touch, the
-        // faces between them and the outlines of cells inside a run are
-        // left out: dense wrong or extra areas drew every one of them.
-        auto cellOf = [](Outline const& m) {
-            return std::tuple<int, int, int>{static_cast<int>(std::floor(m.min.x)), static_cast<int>(std::floor(m.min.y)),
-                                             static_cast<int>(std::floor(m.min.z))};
-        };
-        std::map<std::tuple<int, int, int>, float> colorAt; // keyed cell -> green channel, which tells red from yellow
-        for (auto const& m : marks) colorAt[cellOf(m)] = m.g;
-        auto sameAt = [&](std::tuple<int, int, int> cell, int side, float g) {
-            auto const& d = faces::offsets[side];
-            auto found = colorAt.find({std::get<0>(cell) + d[0], std::get<1>(cell) + d[1], std::get<2>(cell) + d[2]});
-            return found != colorAt.end() && found->second == g;
-        };
-        Tessellator quads(screen.tessellator.mBufferResourceService);
-        quads.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(marks.size() * 48), false);
-        std::uint32_t vertices = 0;
-        // Same order as faces::offsets: -x, +x, -y, +y, -z, +z.
-        constexpr int sides[6][4] = {{0,2,6,4},{1,5,7,3},{0,4,5,1},{2,3,7,6},{0,1,3,2},{4,6,7,5}};
-        for (auto const& m : marks) {
-            auto cell = cellOf(m);
-            quads.color(m.r, m.g, m.b, .3f);
-            glm::vec3 a = m.min - glm::vec3{.01f} - out.origin, b = m.max + glm::vec3{.01f} - out.origin;
-            glm::vec3 c[8];
-            for (int i = 0; i < 8; ++i) c[i] = {i & 1 ? b.x : a.x, i & 2 ? b.y : a.y, i & 4 ? b.z : a.z};
-            int open = 0;
-            for (int side = 0; side < 6; ++side) {
-                if (sameAt(cell, side, m.g)) continue;
-                // The box reaches 0.01 into the next cell: against a ghost its
-                // face would lie on (or just past) the ghost's own and fight
-                // with it at grazing angles (Depth.h rules 1 and 4). The
-                // ghost's face shows there instead.
-                auto const& d = faces::offsets[side];
-                if (ghostDrawnAt(region, shown, blocks, {std::get<0>(cell) + d[0], std::get<1>(cell) + d[1], std::get<2>(cell) + d[2]}))
-                    continue;
-                ++open;
-                auto const& f = sides[side];
-                for (int k = 0; k < 4; ++k) quads.vertex(c[f[k]].x, c[f[k]].y, c[f[k]].z);
-                for (int k = 3; k >= 0; --k) quads.vertex(c[f[k]].x, c[f[k]].y, c[f[k]].z);
-                vertices += 8;
-            }
-            if (open) outlines.push_back(m);
-        }
-        out.markVertices = vertices;
-        // Ended either way, so the tessellator never stays open.
-        auto mesh = quads.end(Tessellator::UploadMode::Buffered, "Lamium schematic mistakes", SupplementaryFieldAutoGenerationMode{});
-        if (vertices) out.marks.emplace(std::move(mesh));
     }
     if (!outlines.empty()) {
         Tessellator lines(screen.tessellator.mBufferResourceService);
@@ -1643,8 +1665,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             : std::chrono::duration_cast<Clock::duration>(refreshFar);
         bool stale = found == sections.end() || !found->second.complete || (found->second.due && now >= *found->second.due)
             || (found->second.faces && !found->second.faces->isValid()) || (found->second.blend && !found->second.blend->isValid())
-            || (found->second.lines && !found->second.lines->isValid())
-            || (found->second.marks && !found->second.marks->isValid());
+            || (found->second.lines && !found->second.lines->isValid());
         if (!stale && now - found->second.checked > refreshAfter && checks > 0) {
             --checks;
             auto const index = static_cast<size_t>(std::get<0>(w.key));
@@ -1694,8 +1715,6 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     };
     std::vector<std::pair<float, Section const*>> blendedSections;
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
-    // Vertex-colored and blended, as shape faces use in Fancy graphics.
-    mce::MaterialPtr markMaterial(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
     std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{atlas};
     for (auto& [key, section] : sections) {
         if (!inView(std::get<1>(key), std::get<2>(key), std::get<3>(key))) continue;
@@ -1706,9 +1725,6 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                 fullBright();
                 section.faces->renderMesh(screen, faces, texture, 0, section.faceVertices, OffscreenCaptureDescription{}, nullptr);
             }
-            if (section.marks && markMaterial.mRenderMaterialInfoPtr)
-                section.marks->renderMesh(screen, markMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section.markVertices,
-                    OffscreenCaptureDescription{}, nullptr);
             if (section.lines && lineMaterial.mRenderMaterialInfoPtr)
                 section.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section.lineVertices,
                     OffscreenCaptureDescription{}, nullptr);
