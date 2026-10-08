@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-114 preview inspect and the Check list on large builds (2026-10-09)
+
+By the maintainer, deployed `ccaf63b` to `7b490be` (DLL
+`cb84422196519deb670803fd2cdb30158fa5fb114bb225ecb35427b0638342c4`), Minecraft
+1.26.51.01, local world, mixture and terrain big. Passed on `7b490be`: a
+click in the Files preview lights the block and names it with its place; a
+drag only turns; a click never turns the view, also after earlier drags;
+the Check list keeps the nearest 2000 of each kind (wrong rows show on
+terrain big), a picked mistake in the list is selected and scrolled to, one
+outside the list is checked on the spot and "show in world" marks it; a
+correct block says so; peeled cuts can be picked. Found on the way: the
+list kept the first 2000 found, so missing blocks filled it and wrong ones
+never listed (fixed); the note under the counts was cut off in Japanese at
+UI Profile 75% (shortened after this check, `3ffe2d9` or later).
+
 ## L-114 preview zoom limit and layer peeling (2026-10-08)
 
 By the maintainer, deployed `771a84b` then `07937ed` (DLL
