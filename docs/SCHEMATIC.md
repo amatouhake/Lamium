@@ -106,6 +106,31 @@ Built 2026-10-08 (not yet checked in game):
 - Entities: solid light-blue box with faint faces (both windings, the face
   material culls); every missing entity within the draw distance is named.
 
+## Check tab review (decided 2026-10-08)
+
+Against [demos/schematic-check.html](demos/schematic-check.html):
+- Layout A: the 3D preview sits at a fixed size at the top of the right
+  pane; the counts and the selected mistake's details go below it (they
+  scroll when long), so the preview no longer resizes with the text.
+- The preview follows the kind chips above the list (only the filtered
+  kinds are marked).
+- How mistakes are drawn is open: the translucent looks were doubtful in
+  the world ghosts. The selected mistake must be findable even underground
+  or inside a build: candidates are cutting the view at its layer, drawing
+  it through other blocks, or a beam like the nearest-mistake marker.
+- Wanted besides the mockup: what was confused with what (expected vs the
+  block in the world) readable at the selected mistake; layers in the
+  preview ("up to layer N" along any axis), tried from several angles.
+- Wheel zoom in both previews (the draw order depends only on the view
+  direction, so zoom and pan do not disturb it).
+- Release plan (maintainer, 2026-10-08, also in their notes): 0.1.8
+  finishes Schematics: the current screen work, then improving the
+  schematic rendering with LHolo as a reference (GPL-3.0: behavior and the
+  maintainer's notes only; its source is not opened while writing Lamium
+  code, see PROVENANCE.md), then small features and polish. Parts that
+  depend on how blocks are drawn (the mistake look, see-through emphasis)
+  wait for that rendering work.
+
 ## Technical entry points
 
 - `src/features/schematic/Nbt.*`, `Structure.*`: NBT and structure read/write.
