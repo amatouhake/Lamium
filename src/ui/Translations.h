@@ -321,7 +321,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.previewLayers", "{} of {} layers ({}), click for all", "層 {} / {}（{}）クリックで全部"},
     {"schematic.previewAxis.x", "east-west", "東西"},
     {"schematic.pick.at", "At {} in the file", "設計図の中の {}"},
-    {"schematic.pick.noMistake", "No shown mistake here", "表示中の間違いはありません"},
+    {"schematic.pick.correct", "Placed correctly", "正しく置かれています"},
     {"schematic.previewAxis.y", "height", "高さ"},
     {"schematic.previewAxis.z", "north-south", "南北"},
     {"schematic.noMistakes", "Nothing to show here.", "ここに表示するものはありません。"},

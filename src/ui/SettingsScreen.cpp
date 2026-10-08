@@ -128,7 +128,7 @@ struct PreviewTurn {
     std::optional<schematic::preview::Cell> picked;
     std::string pickedFile;
     std::string file; // the structure shown; a new one starts whole and fitted
-    bool manual = false, dragging = false;
+    bool manual = false, dragging = false, turning = false; // turning: this drag moved far enough to turn
     glm::vec2 from{};
     float fromYaw = 0, fromPitch = 0;
 } previewTurn;
@@ -2776,6 +2776,7 @@ void handleSchematicClick(float x, float y, bool right) {
     if (!right && t.w > 0 && t.peel > 0 && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + 16) { t.peel = 0; return; }
     if (!right && t.w > 0 && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h) {
         t.dragging = true;
+        t.turning = false;
         t.from = {x, y};
         t.fromYaw = t.yaw;
         t.fromPitch = t.pitch;
@@ -3453,17 +3454,25 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         }
         else if (auto structure = schematic::session::structure(checked->file);
                  structure && previewTurn.picked && previewTurn.pickedFile == checked->file) {
-            // A clicked block without a shown mistake: what belongs there.
+            // A clicked block without a row (correct, filtered out, or past
+            // the list's limit): checked again right now.
             auto const& c = *previewTurn.picked;
             auto world = schematic::toWorld(structure->size, checked->placement, {c.x, c.y, c.z});
-            auto index = structure->blocks[static_cast<size_t>(structure->cell(c.x, c.y, c.z))];
+            auto* region = context.mClient.getRegion();
+            auto now = region ? schematic::ghosts::mismatchAt(*region, world) : std::nullopt;
             fill(context,rx-5,y,1,52,palette::white,.1f);
-            label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", world.x, world.y, world.z)),palette::text);
-            if (fits(y + 11)) label(context,rx,y+11,rw,translated("schematic.pick.noMistake"),palette::accent);
-            if (index >= 0 && static_cast<size_t>(index) < structure->palette.size() && fits(y + 24)) {
-                auto block = schematic::ghosts::blockLabel(structure->palette[static_cast<size_t>(index)]);
-                drawItemIcon(context, block.icon, rx, y + 23, 12);
-                label(context,rx+14,y+25,rw-14,translated("schematic.expected", block.name),palette::dim);
+            bool correct = !now || now->state == schematic::CellState::Correct;
+            label(context,rx,y,rw,translated("schematic.check.here", std::format("{}, {}, {}", world.x, world.y, world.z)),
+                correct ? palette::text : mismatchColor(now->state));
+            if (fits(y + 11)) label(context,rx,y+11,rw,correct ? translated("schematic.pick.correct") : mismatchKind(now->state),
+                correct ? palette::accent : mismatchColor(now->state));
+            if (now && !now->expectedName.empty() && fits(y + 24)) {
+                drawItemIcon(context, now->expected, rx, y + 23, 12);
+                label(context,rx+14,y+25,rw-14,translated("schematic.expected", now->expectedName),palette::dim);
+            }
+            if (now && !correct && !now->actualName.empty() && fits(y + 38)) {
+                drawItemIcon(context, now->actual, rx, y + 37, 12);
+                label(context,rx+14,y+39,rw-14,translated("schematic.actual", now->actualName),palette::dim);
             }
         }
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
@@ -4143,7 +4152,7 @@ void render(ll::event::UIRenderEvent& event) {
             sliderDrag = nullptr;
             scrollDragFirst = nullptr;
             // A press that did not move is a click on a block (inspect).
-            if (std::exchange(previewTurn.dragging, false) && glm::length(lastPointer - previewTurn.from) < 3) {
+            if (std::exchange(previewTurn.dragging, false) && !previewTurn.turning) {
                 previewTurn.yaw = previewTurn.fromYaw;
                 previewTurn.pitch = previewTurn.fromPitch;
                 pickInPreview(previewTurn.from);
@@ -4151,7 +4160,8 @@ void render(ll::event::UIRenderEvent& event) {
         }
         // A drag turns only after the pointer moved a little, so a click on
         // a block does not nudge the view.
-        if (auto& t = previewTurn; t.dragging && (t.manual || glm::length(lastPointer - t.from) >= 3)) {
+        if (auto& t = previewTurn; t.dragging && (t.turning || glm::length(lastPointer - t.from) >= 6)) {
+            t.turning = true;
             if (!t.manual) {
                 // Pick up the turn the preview had while turning by itself.
                 t.fromYaw = t.yaw + std::fmod(static_cast<float>(std::chrono::duration<double>(

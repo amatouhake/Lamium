@@ -171,6 +171,7 @@ struct Scan {
     std::uint64_t next = 0;
     Tally tally;
     std::vector<Mismatch> mismatches;
+    size_t listedMissing = 0, listedMistakes = 0;
     std::map<std::string, MaterialLine> all, shown;
 };
 Scan scan;
@@ -727,6 +728,25 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
     else c.state = &actual->getBlockType() == &expected->getBlockType() ? CellState::State : CellState::Wrong;
     return c;
 }
+// A classified cell as a row of the Check list.
+Mismatch mismatchFor(Cell const& c, Resolved const& blocks) {
+    Mismatch m{c.state, c.world, {}, {}, {}, {}};
+    if (!c.air && c.palette >= 0) {
+        auto const& info = blocks.items[static_cast<size_t>(c.palette)];
+        m.expected = info.icon;
+        m.expectedName = info.name;
+    }
+    if (c.actual && !c.actual->isAir()) {
+        auto info = describe(*c.actual, c.actual->getTypeName());
+        m.actual = info.icon;
+        m.actualName = info.name;
+        if (c.state == CellState::State && c.expected) {
+            m.states = stateDifferences(blockStates(*c.expected), blockStates(*c.actual));
+            m.identifier = c.expected->getTypeName();
+        }
+    }
+    return m;
+}
 // Progress of every placement for the Placed list: correct / total in its
 // shown layers, counted in the background only while the list is on screen.
 // The selected placement takes its numbers from the full check instead.
@@ -827,23 +847,13 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
         if (!visible) continue;
         scan.tally.add(state, !air);
         bool mistake = state == CellState::Missing || state == CellState::Wrong || state == CellState::State || state == CellState::Extra;
-        if (!mistake || scan.mismatches.size() >= maxMismatches) continue;
-        Mismatch m{state, world, {}, {}, {}, {}};
-        if (!air) {
-            auto const& info = blocks.items[static_cast<size_t>(paletteIndex)];
-            m.expected = info.icon;
-            m.expectedName = info.name;
-        }
-        if (actual && !actual->isAir()) {
-            auto info = describe(*actual, actual->getTypeName());
-            m.actual = info.icon;
-            m.actualName = info.name;
-            if (state == CellState::State && expected) {
-                m.states = stateDifferences(blockStates(*expected), blockStates(*actual));
-                m.identifier = expected->getTypeName();
-            }
-        }
-        scan.mismatches.push_back(std::move(m));
+        if (!mistake) continue;
+        // Capped per kind: in a large build the missing blocks alone filled
+        // the list and the wrong ones counted but never showed.
+        auto& listed = state == CellState::Missing ? scan.listedMissing : scan.listedMistakes;
+        if (listed >= maxMismatches) continue;
+        ++listed;
+        scan.mismatches.push_back(mismatchFor(c, blocks));
     }
     if (scan.next < total) return;
     auto result = std::make_shared<Verification>();
@@ -864,6 +874,7 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
     scan.next = 0;
     scan.tally = {};
     scan.mismatches.clear();
+    scan.listedMissing = scan.listedMistakes = 0;
     scan.all.clear();
     scan.shown.clear();
 }
@@ -1628,6 +1639,26 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
 }
 
 Block const* gameBlock(PaletteBlock const& entry) { return lookup(entry); }
+std::optional<Mismatch> mismatchAt(BlockSource& region, Point world) {
+    std::shared_ptr<Verification const> result;
+    {
+        std::lock_guard lock(resultMutex);
+        result = published;
+    }
+    auto snapshot = session::snapshot();
+    int index = result->placement;
+    if (index < 0 || static_cast<size_t>(index) >= snapshot.placements.size() || static_cast<size_t>(index) >= resolved.size()) return std::nullopt;
+    auto const& shown = snapshot.placements[static_cast<size_t>(index)];
+    if (!shown.structure || resolved[static_cast<size_t>(index)].structure != shown.structure.get()) return std::nullopt;
+    Size placed = placedSize(shown.structure->size, shown.placement.placement.rotation);
+    auto const& o = shown.placement.placement.origin;
+    int ox = world.x - o.x, oy = world.y - o.y, oz = world.z - o.z;
+    if (ox < 0 || oy < 0 || oz < 0 || ox >= placed.x || oy >= placed.y || oz >= placed.z) return std::nullopt;
+    auto n = (static_cast<std::uint64_t>(ox) * placed.y + static_cast<std::uint64_t>(oy)) * placed.z + static_cast<std::uint64_t>(oz);
+    auto c = classifyCell(region, shown, resolved[static_cast<size_t>(index)], placed, n);
+    if (!c.inside) return std::nullopt;
+    return mismatchFor(c, resolved[static_cast<size_t>(index)]);
+}
 BlockLabel blockLabel(PaletteBlock const& entry) {
     auto const* block = lookup(entry);
     auto info = block ? describe(*block, entry.name) : ItemInfo{"", entry.name, ""};

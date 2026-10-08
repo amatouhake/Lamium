@@ -13,6 +13,7 @@
 #include <utility>
 #include <vector>
 class Block;
+class BlockSource;
 class BlockTessellator;
 class ScreenContext;
 namespace lamium::schematic::ghosts {
@@ -23,6 +24,9 @@ struct BlockLabel {
     std::string name, icon;
 };
 BlockLabel blockLabel(PaletteBlock const& entry);
+// The checked placement's cell at `world` as it is now (any state, Correct
+// included); nullopt outside it or before the first check.
+std::optional<Mismatch> mismatchAt(BlockSource& region, Point world);
 // Whether a block hides the neighbor faces it touches: an opaque full block
 // that the in-world tessellation draws (a honey block draws nothing there).
 bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen);
