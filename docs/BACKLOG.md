@@ -685,7 +685,8 @@ mockup", mock `docs/demos/schematic-screen.html`). Work order:
 
 0.1.8 rendering and compatibility work (plan 2026-10-09 in SCHEMATIC.md
 "Rendering and compatibility plan for 0.1.8"): A saved-file version and a
-vanilla-loader check, **built 2026-10-09, not yet checked in game**; then B schematic
+vanilla-loader check, **built and checked in game 2026-10-09** (open: a
+save as large as 122x39x203); then B schematic
 neighbors, render layers, liquids (previews too) and block entity data, C
 event-driven rebuilds, D waterlogging in the check (the check stays
 strict). B-D: Research (strong model), approach left to the agent.

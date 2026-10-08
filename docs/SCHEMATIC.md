@@ -198,7 +198,8 @@ A. File compatibility (Ready, chosen 2026-10-09):
 - Reading already accepts one or two layers and an empty second layer.
   Add: reject a layer whose length is not the volume (already) and a
   second layer that names palette entries out of range, with a message.
-- Built 2026-10-09, not yet checked in game: `writeStructure` always writes
+- Built 2026-10-09 (`d37bd6d`) and checked in game the same day (VALIDATION-LOG):
+  `writeStructure` always writes
   version 2 (`writtenFormatVersion`; a version 1 file read in is written
   back as 2) and the second layer only when some cell in it is not -1.
   Layer errors name the layer ("the second block layer has N cells",
@@ -211,9 +212,12 @@ A. File compatibility (Ready, chosen 2026-10-09):
   and result. Tests: `structureWrittenShape`, the layer rejections, and
   `LAMIUM_SAMPLE_STRUCTURES` (a folder or `;`-separated files, e.g. the
   vanilla `submerged` and `water_and_lava`) reads each file, writes it back
-  and checks both layers, the version and the layer count. Open: whether
-  the loader limits very large areas (the log line answers it per save),
-  and whether the earlier failure in another tool was the version.
+  and checks both layers, the version and the layer count. Seen in game:
+  saves of 3x2x3, 7x2x10 (waterlogged) and 66x53x65 were accepted by the
+  game's loader, placed correctly by the structure block (the first two)
+  and read by the reference tool. Open: saves of the size that failed
+  before (122x39x203 and larger) in the game's loader and the reference
+  tool, which separates a version problem from a size limit.
 
 B. Ghost drawing (Research, strong model; one runtime round per step):
 1. Schematic neighbors: `BlockTessellator` reads neighbors through

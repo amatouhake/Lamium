@@ -12,6 +12,27 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic saves as version 2 with a vanilla-loader check (2026-10-09)
+
+By the maintainer, deployed `d37bd6d`, DLL
+`b697e13e49e45305c3f87794a6786d824d0a3bdd24dd1d6523a6be2b5d21d798`, Minecraft
+1.26.51.01, local world. Three area saves; the log line and the file
+headers agree:
+- `stone_patch` 3x2x3, no liquid: version 2, one layer; "accepted".
+- `submerged_lamium` 7x2x10 with waterlogged blocks: version 2, two
+  layers (17 cells in the second); "accepted". Loaded in Lamium, the ghosts
+  draw as before.
+- `terrain_water_lamium` 66x53x65 (just over 64 in X and Z, 227,370
+  cells, 720 waterlogged): version 2, two layers; "accepted". No pause
+  noticed at the end of the save.
+The game's structure block (load mode) placed the first two correctly,
+waterlogged blocks with water and sign facing included; a door whose upper
+half was outside the area broke, as expected. LHolo read all three; it
+drew doors and water in a simplified way. Not checked: a save of the size
+that failed in LHolo before (122x39x203 and larger), so whether that
+failure was the version or the size is still open, and whether the game's
+loader has a size limit; servers.
+
 ## L-121 Night Vision shading with Smooth Lighting (2026-10-09)
 
 By the maintainer, Minecraft 1.26.51.01, local world, Smooth Lighting on,
