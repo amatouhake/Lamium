@@ -84,19 +84,21 @@ struct Tally {
 };
 
 // Entities are checked by type and place only: one of the same type standing
-// near the spot counts, and each entity in the world counts for one spot.
+// at the spot counts, and each entity in the world counts for one spot.
+// "At" is within half a block across (a neighbor on the next block is
+// another spot) and a block up or down (slabs, carpets).
 struct EntitySpot {
     std::string_view identifier;
     double x = 0, y = 0, z = 0;
 };
-inline constexpr double entityReach = 1.0;
+inline constexpr double entityReach = 1.0, entityReachAcross = .5;
 inline std::vector<bool> matchEntities(std::span<EntitySpot const> expected, std::span<EntitySpot const> actual,
                                        double reach = entityReach) {
     std::vector<bool> placed(expected.size()), used(actual.size());
     for (size_t i = 0; i < expected.size(); ++i) {
         auto const& want = expected[i];
         size_t best = actual.size();
-        double bestDistance = reach * reach;
+        double bestDistance = entityReachAcross * entityReachAcross;
         for (size_t j = 0; j < actual.size(); ++j) {
             auto const& have = actual[j];
             if (used[j] || have.identifier != want.identifier || std::abs(have.y - want.y) > reach) continue;

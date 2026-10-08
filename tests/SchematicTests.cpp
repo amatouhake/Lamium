@@ -324,6 +324,9 @@ void entityRules() {
     check(placed == std::vector<bool>{true, false, false}, "an entity counts near its spot, by type, and only once");
     std::vector<EntitySpot> high{{"minecraft:pig", 5.5, 66, 5.5}};
     check(matchEntities(std::span(expected).subspan(2), high) == std::vector<bool>{false}, "an entity two blocks up is not near");
+    std::vector<EntitySpot> beside{{"minecraft:armor_stand", 2.5, 64, 1.5}};
+    check(matchEntities(std::span(expected).first(1), beside) == std::vector<bool>{false},
+          "an entity of the same type on the next block does not fill the spot");
     check(entityNameKey("minecraft:armor_stand") == "entity.armor_stand.name" && entityNameKey("mod:thing") == "entity.mod:thing.name",
           "entity name keys drop the vanilla namespace only");
 
