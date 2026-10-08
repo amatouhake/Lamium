@@ -1,5 +1,6 @@
 #include "features/schematic/Preview.h"
 #include "features/schematic/GhostRenderer.h"
+#include "features/schematic/SchematicRegion.h"
 #include "app/Runtime.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/gui/GuiData.h"
@@ -85,6 +86,7 @@ struct Job {
     std::vector<Block const*> palette;
     std::vector<std::uint32_t> cells;
     size_t next = 0;
+    std::unique_ptr<SchematicRegion> region; // outlives `blocks`, which reads through it
     std::unique_ptr<BlockTessellator> blocks;
     std::unique_ptr<Tessellator> batch;
     bool failed = false; // too large or nothing to draw: not tried again
@@ -127,7 +129,17 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
     for (size_t i = 0; i < s.palette.size(); ++i)
         if (!s.palette[i].isAir()) job->palette[i] = ghosts::gameBlock(s.palette[i]);
     job->height = region.getMaxHeight();
-    job->blocks = std::make_unique<BlockTessellator>(&region);
+    // Blocks see the file's blocks as neighbors (doors, fences, panes),
+    // at the spots step() draws them.
+    job->region = std::make_unique<SchematicRegion>(region);
+    job->region->answer = [](BlockPos const& p) -> Block const* {
+        if (!job) return nullptr;
+        auto const& size = job->structure->size;
+        int y = p.y - (job->height + 64);
+        if (p.x < 0 || y < 0 || p.z < 0 || p.x >= size.x || y >= size.y || p.z >= size.z) return nullptr;
+        return blockAt(*job, p.x, y, p.z);
+    };
+    job->blocks = std::make_unique<BlockTessellator>(job->region.get());
     // Primed with one appended block: in-world tessellation on a fresh
     // tessellator crashed in the ghost probe.
     if (auto stone = Block::tryGetFromRegistry(HashedString{"minecraft:stone"})) {

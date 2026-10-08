@@ -234,6 +234,22 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    and panes take their connections from neighbors; walls also store
    connection states, so the verifier must compare them after the same
    recomputation (or ignore them).
+   Spike built 2026-10-09 (not yet checked in game): `SchematicRegion`
+   derives from `BlockSource` (built with the exported constructor on the
+   world's level, dimension and chunk source, not public) and overrides
+   both `getBlock` overloads and `getMaterial`; links and loads with the
+   SDK's prelink. Ghosts: the private tessellator reads through it; a cell
+   answers the placement's (rotated/mirrored) block where a ghost is drawn
+   (shown layer, real cell air), else the world. Opaque full ghosts that
+   must not hide a neighbor's face (no mesh, or the cell or the drawn cell
+   next to the camera) read as the world, so the camera rule in
+   `cullAgainstGhosts` still decides those faces. Ghost-to-ghost face
+   culling now also happens in the tessellator (glass next to glass may
+   lose the shared face). Files/Check previews: the view answers the
+   file's block at the spot above the build limit where each cell is
+   tessellated. Liquids (second layer) are untouched (B3). If the shapes
+   stay wrong in game, the tessellator or the block code reads neighbors
+   without the virtual call; then try the thread-scoped hook.
 2. Render layers: build each section's ghosts into separate meshes by
    the block's render layer (opaque, alpha-test, blended) and draw the
    blended ones last, sorted back to front by section. This is the base
@@ -277,7 +293,8 @@ block, area fill), Java `.litematic` files, layers by material.
 - `Placement.h`: transforms/layers; `Verify.h`, `Verification.h`: pure rules
   and progressive checking/material publication.
 - `GhostRenderer.cpp`: section caches, culling, private tessellation and
-  shared-face removal. Neighbor-dependent meshes use real-world neighbors.
+  shared-face removal. Neighbor-dependent meshes read schematic neighbors
+  through `SchematicRegion` (B1 spike, unchecked).
 - `MenuModel.h`, `src/ui/RadialLayout.h`: menu operations and geometry.
 - `tests/SchematicTests.cpp`: pure logic; `LAMIUM_SAMPLE_STRUCTURES` optionally
   supplies real exports.

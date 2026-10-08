@@ -4,6 +4,7 @@
 #include "features/schematic/Selection.h"
 #include "features/schematic/GhostFaces.h"
 #include "features/schematic/EntityModels.h"
+#include "features/schematic/SchematicRegion.h"
 #include "overlay/Depth.h"
 #include "app/AtomicFile.h"
 #include "ui/Localization.h"
@@ -471,8 +472,33 @@ std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, Sect
     return hash;
 }
 
-void buildSection(ScreenContext& screen, BlockSource& region, BlockTessellator& own, session::Shown const& shown,
-                  Resolved const& blocks, SectionKey key, Section& out) {
+// What the tessellator sees at `n` while it draws the ghost at `at`: the
+// placement's block where a ghost is drawn (shown layer, nothing real
+// there), so doors find their other half and fences and panes connect to
+// their schematic neighbors; the world elsewhere. An opaque full ghost that
+// must not hide its neighbor's face (no mesh, or either cell next to the
+// camera, where cullAgainstGhosts keeps the face toward the camera) reads
+// as the world, so the tessellator keeps that face.
+Block const* ghostNeighbor(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n, Point at) {
+    auto const& structure = *shown.structure;
+    auto const& placement = shown.placement;
+    Size placed = placedSize(structure.size, placement.placement.rotation);
+    Point const& origin = placement.placement.origin;
+    auto local = toLocal(structure.size, placement.placement, n);
+    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return nullptr;
+    auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
+    if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size()) return nullptr;
+    Block const* ghost = blocks.blocks[static_cast<size_t>(index)];
+    if (!ghost || !region.getBlock(BlockPos{n.x, n.y, n.z}).isAir()) return nullptr;
+    if (ghost->getBlockType().mIsOpaqueFullBlock) {
+        bool meshless = static_cast<size_t>(index) < blocks.meshless.size() && blocks.meshless[static_cast<size_t>(index)];
+        if (meshless || nearCamera(n) || nearCamera(at)) return nullptr;
+    }
+    return ghost;
+}
+
+void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& view, BlockTessellator& own,
+                  session::Shown const& shown, Resolved const& blocks, SectionKey key, Section& out) {
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
@@ -495,6 +521,9 @@ void buildSection(ScreenContext& screen, BlockSource& region, BlockTessellator& 
         for (size_t i = 0; i < blocks.blocks.size(); ++i)
             if (auto const* b = blocks.blocks[i]; b && b->getBlockType().mIsOpaqueFullBlock) meshless[i] = !coversNeighbors(*b, own, screen);
     }
+    Point drawing{};
+    view.answer = [&](BlockPos const& p) { return ghostNeighbor(region, shown, blocks, {p.x, p.y, p.z}, drawing); };
+    struct Clear { SchematicRegion& view; ~Clear() { view.answer = nullptr; } } clear{view};
     Tessellator batch(screen.tessellator.mBufferResourceService);
     batch.begin({}, mce::PrimitiveMode::QuadList, 4096, false);
     // Mistakes also get tinted faces just outside the real block, so they
@@ -543,6 +572,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, BlockTessellator& 
                 // camera sees, so it is never skipped as enclosed.
                 if (!nearCamera({x, y, z}, 2) && enclosed(region, shown, blocks, {x, y, z})) continue;
                 size_t before = batch.mMeshData->mPositions->size();
+                drawing = {x, y, z};
                 own.tessellateInWorld(batch, *expected, pos, false);
                 cullAgainstGhosts(batch, before, region, shown, blocks, {x, y, z});
                 auto& positions = batch.mMeshData->mPositions.get();
@@ -1509,6 +1539,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     // Build missing sections and rebuild changed ones, in view and nearest
     // first, within the budgets.
     int budget = sectionBudget, checks = checkBudget;
+    // The view outlives the tessellator that reads through it.
+    std::unique_ptr<SchematicRegion> view;
     std::unique_ptr<BlockTessellator> own;
     auto now = Clock::now();
     for (auto const& w : wanted) {
@@ -1529,7 +1561,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         if (!own) {
             // A private tessellator, primed with one appended block: in-world
             // tessellation on a fresh one crashed in the probe.
-            own = std::make_unique<BlockTessellator>(&region);
+            view = std::make_unique<SchematicRegion>(region);
+            own = std::make_unique<BlockTessellator>(view.get());
             if (auto stone = Block::tryGetFromRegistry(HashedString{"minecraft:stone"})) {
                 Tessellator primer(screen.tessellator.mBufferResourceService);
                 primer.begin({}, mce::PrimitiveMode::QuadList, 64, false);
@@ -1537,7 +1570,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             }
         }
         auto const index = static_cast<size_t>(std::get<0>(w.key));
-        buildSection(screen, region, *own, snapshot.placements[index], resolved[index], w.key, sections[w.key]);
+        buildSection(screen, region, *view, *own, snapshot.placements[index], resolved[index], w.key, sections[w.key]);
         --budget;
     }
 
