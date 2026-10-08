@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-114 Files tab 3D preview (2026-10-08)
+
+By the maintainer over seven rounds (`bd7f7f6` to `f2fbf49`, last DLL
+`f7ee2e5512972ac1d858d849a5bb14fbc20ec110725bb2909f8755a7dfacdb9e`), Minecraft
+1.26.51.01, local world, schematics from 3x3x3 to 122x69x112 (screenshots in
+the conversation). On `f2fbf49`: real block textures, near and far right
+from every side and from above and below, slabs, trapdoors and grindstones
+where the world ghosts put them, fences as in the schematic, campfire flame
+bright, brightness the same whether the world behind is dark or light,
+shading by face direction, a slab next to a honey block not missing a face
+(also fixed in the world ghosts), large builds shown within a second and
+turning without the back showing through, drag turns the way the pointer
+moves, "Drag to turn" hint at the top until the first drag. Not drawn:
+entities, water, chest/ender chest/shulker box, honey block.
+
 ## Schematic entity follow-ups (2026-10-08)
 
 By the maintainer, deployed `553f339`..`47534d7` (last DLL

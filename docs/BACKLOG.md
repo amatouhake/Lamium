@@ -701,7 +701,21 @@ checked in game against the block's look before it counts as verified.
 
 ### L-114 3D previews in the schematic screen
 Kind: Research **(strong model)**. Chosen 2026-10-08 (L-93 screen review).
-Status: open; after or alongside L-93 step 1.
+Status: Files preview built and checked in game 2026-10-08 (`f2fbf49`);
+Check tab colored preview built (`1c0b8bc`), not checked yet. Not drawn yet:
+entities, water, block entities (chest, ender chest, shulker box), honey
+block and others without an in-world mesh.
+How it works (`Preview.cpp`, pure parts in `PreviewView.h`): visible blocks
+are tessellated in-world at a spot above the build limit (no real
+neighbor or light), moved to their cell, and drawn with the ghosts' block
+material into a scissored box. The UI pass keeps the first fragment at a
+spot and has no usable depth (giving vertices depth cut blocks apart), so
+every quad is sorted near to far for the view's octant; the quads are kept
+and only re-sorted when the view turns or recolored when the check
+changes. Faces touching a block that covers them (opaque, drawn on this
+path) are dropped. Normals all point up and faces are darkened by
+direction (lighting through the flattening matrix flashed). Builds 3000
+blocks a frame, up to 120000 visible blocks. Drag turns it.
 Goal: a rotatable 3D preview of a file in the Files tab and of the selected
 placement colored by verifier state in the Check tab (the selected row lit).
 Vanilla draws 3D inside UI (the structure block screen), so find that path
