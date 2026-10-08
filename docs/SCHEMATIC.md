@@ -283,6 +283,24 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    blended ones last, sorted back to front by section. This is the base
    for the translucent look, honey and slime blocks, and real translucent
    blocks behind ghosts.
+   Built 2026-10-09 (not yet checked in game): each ghost is tessellated
+   once per render layer it draws in (`BlockType::getRenderLayer`, then
+   each bit of `getExtraRenderLayers` as a further layer), with the
+   tessellator's `mRenderingLayer` set for that call and restored. Blend
+   and blend-to-opaque layers go into a second mesh per section (`blend`),
+   its quads sorted far to near from the camera at build time; the other
+   layers stay in the alpha-tested mesh as before. Blended sections are
+   drawn after everything else, far to near, with the moving-block
+   renderer's blend material, fully bright and tinted like the rest.
+   `coversNeighbors` counts only non-blended layers, so a honey block no
+   longer hides its neighbors' faces. Liquids keep the single default pass
+   (B3). The Files/Check previews tessellate every layer into their one
+   mesh. The log names the tessellator's default layer and each palette
+   entry with extra layers, to read if honey or slime still draw wrong.
+   Expected limits: quads inside one blended section are ordered for the
+   camera at the build (far sections are rebuilt rarely), and real
+   translucent blocks behind ghosts may still vanish where ghosts write
+   depth.
 3. Liquids: water and lava from the second layer and from water/lava
    cells drawn by Lamium as simple shells textured from the terrain atlas
    (shared faces between same liquids dropped, faces against opaque

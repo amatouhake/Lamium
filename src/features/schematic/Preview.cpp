@@ -236,21 +236,10 @@ void sortQuads(Tessellator& batch, Order order, std::vector<std::uint32_t> const
         keys[q] = {block, -glm::dot(c, toward), static_cast<std::uint32_t>(q)};
     }
     std::stable_sort(keys.begin(), keys.end(), [](Key const& a, Key const& b) { return a.block != b.block ? a.block < b.block : a.quad < b.quad; });
-    auto permute = [&](auto& stream) {
-        if (stream.size() != quads * 4) return;
-        auto copy = stream;
-        for (size_t q = 0; q < quads; ++q)
-            for (size_t k = 0; k < 4; ++k) stream[q * 4 + k] = copy[keys[q].index * 4 + k];
-    };
-    permute(positions);
-    permute(*data.mNormals);
-    permute(*data.mTangents);
-    permute(*data.mColors);
-    permute(*data.mBoneId0s);
-    for (int i = 0; i < 3; ++i) permute(*data.mTextureUVs[i]);
-    permute(*data.mPBRTextureIndices);
-    permute(*data.mMERS);
-    permute(*data.mGeoType);
+    std::vector<std::uint32_t> sorted;
+    sorted.reserve(quads);
+    for (auto const& key : keys) sorted.push_back(key.index);
+    ghosts::reorderQuads(batch, sorted);
 }
 
 // Tessellates the next blocks of the job: each at its cell relative to the
@@ -278,7 +267,11 @@ bool step() {
         static_cast<bool&>(batch.mApplyTransform) = false;
         j.drawn = s.blocks[static_cast<size_t>(cell)];
         j.drawingAt = spot;
-        j.blocks->tessellateInWorld(batch, *blockAt(j, x, y, z), spot, false);
+        // Every render layer of the block (honey and slime draw in two).
+        Block const& block = *blockAt(j, x, y, z);
+        ghosts::eachLayer(block, *j.region, spot, [&](std::optional<BlockRenderLayer> layer) {
+            ghosts::tessellateLayer(*j.blocks, batch, block, spot, layer);
+        });
         glm::vec3 move = at - glm::vec3(spot.x, spot.y, spot.z);
         for (size_t v = from; v < positions.size(); ++v) positions[v] += move;
         j.quadCells.insert(j.quadCells.end(), (positions.size() - from) / 4, static_cast<std::uint32_t>(cell));

@@ -36,6 +36,7 @@
 #include "mc/deps/minecraft_renderer/framebuilder/dragon/RenderMetadata.h"
 #include "mc/deps/minecraft_renderer/renderer/MaterialPtr.h"
 #include "mc/deps/minecraft_renderer/renderer/Mesh.h"
+#include "mc/deps/minecraft_renderer/renderer/MeshData.h"
 #include "mc/deps/minecraft_renderer/renderer/TexturePtr.h"
 #include "mc/deps/minecraft_renderer/resources/ClientTexture.h"
 #include "mc/deps/minecraft_renderer/resources/OffscreenCaptureDescription.h"
@@ -100,8 +101,10 @@ struct Outline { glm::vec3 min, max; float r, g, b; };
 struct EntityCell { BlockPos pos; Block const* block; };
 struct Section {
     glm::vec3 origin{};
-    std::optional<mce::Mesh> faces, lines, marks;
-    std::uint32_t faceVertices = 0, lineVertices = 0, markVertices = 0;
+    // faces: every render layer but the blended ones, drawn alpha-tested;
+    // blend: blended layers (stained glass, honey, slime), drawn last.
+    std::optional<mce::Mesh> faces, blend, lines, marks;
+    std::uint32_t faceVertices = 0, blendVertices = 0, lineVertices = 0, markVertices = 0;
     std::vector<EntityCell> entities;
     Clock::time_point built{}, checked{};
     std::optional<Clock::time_point> due; // An early rebuild after a looked-at block changed.
@@ -365,6 +368,10 @@ Resolved resolve(Structure const& structure, SavedPlacement const& placement) {
         Block const* other = half ? turn(lookup(half->block)) : nullptr;
         out.halves.push_back(other);
         out.halfSteps.push_back(other ? half->step : 0);
+        if (block)
+            if (int extra = block->getBlockType().getExtraRenderLayers())
+                log(std::format("{}: render layer {}, extra layers {:#x}", entry.name,
+                    static_cast<int>(static_cast<BlockRenderLayer>(block->getBlockType().mRenderLayer)), extra));
     }
     if (missing) log(std::format("{}: {} palette entries are not known blocks", placement.file, missing));
     Size placed = placedSize(structure.size, placement.placement.rotation);
@@ -391,6 +398,9 @@ Resolved resolve(Structure const& structure, SavedPlacement const& placement) {
     return out;
 }
 
+bool blended(BlockRenderLayer layer) {
+    return layer == BlockRenderLayer::RenderlayerBlend || layer == BlockRenderLayer::RenderlayerBlendToOpaque;
+}
 // Light UVs and colors: the in-world mesh carries both, but fill when absent.
 void finishColors(Tessellator& batch, float r, float g, float b) {
     auto& data = batch.mMeshData.get();
@@ -529,8 +539,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     auto [index, sx, sy, sz] = key;
     Point low{sx * sectionSize, sy * sectionSize, sz * sectionSize};
     // Reset in place: meshes cannot be copied or assigned.
-    out.faces.reset(); out.lines.reset(); out.marks.reset();
-    out.faceVertices = out.lineVertices = out.markVertices = 0;
+    out.faces.reset(); out.blend.reset(); out.lines.reset(); out.marks.reset();
+    out.faceVertices = out.blendVertices = out.lineVertices = out.markVertices = 0;
     out.entities.clear();
     out.due.reset();
     out.origin = {static_cast<float>(low.x), static_cast<float>(low.y), static_cast<float>(low.z)};
@@ -548,8 +558,9 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     int drawn = -1;
     view.answer = [&](BlockPos const& p) { return ghostNeighbor(region, shown, blocks, {p.x, p.y, p.z}, drawing, drawn); };
     struct Clear { SchematicRegion& view; ~Clear() { view.answer = nullptr; } } clear{view};
-    Tessellator batch(screen.tessellator.mBufferResourceService);
+    Tessellator batch(screen.tessellator.mBufferResourceService), see(screen.tessellator.mBufferResourceService);
     batch.begin({}, mce::PrimitiveMode::QuadList, 4096, false);
+    see.begin({}, mce::PrimitiveMode::QuadList, 256, false);
     // Mistakes also get tinted faces just outside the real block, so they
     // stay visible next to the vanilla selection outline.
     std::vector<Outline> outlines, marks;
@@ -595,23 +606,29 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 // Within two cells of the camera a ghost may own the face the
                 // camera sees, so it is never skipped as enclosed.
                 if (!nearCamera({x, y, z}, 2) && enclosed(region, shown, blocks, {x, y, z})) continue;
-                size_t before = batch.mMeshData->mPositions->size();
                 drawing = {x, y, z};
                 drawn = paletteIndex;
-                own.tessellateInWorld(batch, *expected, pos, false);
-                cullAgainstGhosts(batch, before, region, shown, blocks, {x, y, z});
-                auto& positions = batch.mMeshData->mPositions.get();
-                if (positions.size() == before) {
+                glm::vec3 shapeLow{1e9f}, shapeHigh{-1e9f};
+                bool meshed = false;
+                // Each render layer the block draws in, into the mesh of its kind.
+                eachLayer(*expected, region, pos, [&](std::optional<BlockRenderLayer> layer) {
+                    Tessellator& target = layer && blended(*layer) ? see : batch;
+                    size_t before = target.mMeshData->mPositions->size();
+                    tessellateLayer(own, target, *expected, pos, layer);
+                    cullAgainstGhosts(target, before, region, shown, blocks, {x, y, z});
+                    auto const& positions = target.mMeshData->mPositions.get();
+                    for (size_t v = before; v < positions.size(); ++v) {
+                        shapeLow = glm::min(shapeLow, positions[v]);
+                        shapeHigh = glm::max(shapeHigh, positions[v]);
+                    }
+                    meshed = meshed || positions.size() > before;
+                });
+                if (!meshed) {
                     // No block mesh: block entities draw through their renderer;
-                    // others (honey block, door) keep the outline alone for now.
+                    // others keep the outline alone.
                     out.entities.push_back({pos, expected});
                     outlines.push_back({boxLow, boxHigh, .35f, .85f, 1.f});
                     continue;
-                }
-                glm::vec3 shapeLow{1e9f}, shapeHigh{-1e9f};
-                for (size_t v = before; v < positions.size(); ++v) {
-                    shapeLow = glm::min(shapeLow, positions[v]);
-                    shapeHigh = glm::max(shapeHigh, positions[v]);
                 }
                 outlines.push_back({shapeLow, shapeHigh, .35f, .85f, 1.f});
             }
@@ -622,6 +639,28 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         finishColors(batch, .62f, .85f, 1.f);
         out.faceVertices = batch.mCount;
         out.faces.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic ghosts", SupplementaryFieldAutoGenerationMode{}));
+    }
+    if (see.mCount) {
+        // Blended quads far to near from where the camera was at the build;
+        // sections themselves are ordered when drawn.
+        auto const& positions = see.mMeshData->mPositions.get();
+        glm::vec3 eye{static_cast<float>(buildCamera.x), static_cast<float>(buildCamera.y), static_cast<float>(buildCamera.z)};
+        std::vector<std::pair<float, std::uint32_t>> far;
+        for (size_t q = 0; q + 4 <= positions.size(); q += 4) {
+            glm::vec3 c = (positions[q] + positions[q + 1] + positions[q + 2] + positions[q + 3]) * .25f;
+            far.push_back({-glm::dot(c - eye, c - eye), static_cast<std::uint32_t>(q / 4)});
+        }
+        std::stable_sort(far.begin(), far.end());
+        std::vector<std::uint32_t> order;
+        for (auto const& f : far) order.push_back(f.second);
+        reorderQuads(see, order);
+        for (auto& p : see.mMeshData->mPositions.get()) p -= out.origin;
+        finishColors(see, .62f, .85f, 1.f);
+        out.blendVertices = see.mCount;
+        out.blend.emplace(see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{}));
+    } else {
+        // Ended either way, so the tessellator never stays open.
+        see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{});
     }
     if (!marks.empty()) {
         // Mistakes mark whole cells. Where marks of one color touch, the
@@ -1574,7 +1613,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         auto refreshAfter = w.distance <= nearDistance ? std::chrono::duration_cast<Clock::duration>(refreshNear)
             : std::chrono::duration_cast<Clock::duration>(refreshFar);
         bool stale = found == sections.end() || !found->second.complete || (found->second.due && now >= *found->second.due)
-            || (found->second.faces && !found->second.faces->isValid()) || (found->second.lines && !found->second.lines->isValid())
+            || (found->second.faces && !found->second.faces->isValid()) || (found->second.blend && !found->second.blend->isValid())
+            || (found->second.lines && !found->second.lines->isValid())
             || (found->second.marks && !found->second.marks->isValid());
         if (!stale && now - found->second.checked > refreshAfter && checks > 0) {
             --checks;
@@ -1588,6 +1628,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             // tessellation on a fresh one crashed in the probe.
             view = std::make_unique<SchematicRegion>(region);
             own = std::make_unique<BlockTessellator>(view.get());
+            static bool logged = false;
+            if (!logged) log(std::format("tessellator default render layer {}", static_cast<int&>(own->mRenderingLayer)));
+            logged = true;
             if (auto stone = Block::tryGetFromRegistry(HashedString{"minecraft:stone"})) {
                 Tessellator primer(screen.tessellator.mBufferResourceService);
                 primer.begin({}, mce::PrimitiveMode::QuadList, 64, false);
@@ -1604,16 +1647,26 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     stepProgress(region, snapshot, dimension);
 
     // Draw: alpha-tested ghost faces (empty texels let water and glass show
-    // through), then outlines, then block-entity models.
+    // through), then outlines, then block-entity models; blended ghosts
+    // last, sections far to near.
     auto& dispatcher = client.getBlockEntityRenderDispatcher();
     auto* moving = static_cast<MovingBlockActorRenderer*>(dispatcher.mRenderers.get()[BlockActorRendererId::MovingBlock].get());
     if (!moving) return;
     mce::TexturePtr const& atlas = moving->mAtlasTexture.get();
+    auto* lightTexture = client.getLightTexture();
     mce::MaterialPtr const& faces = moving->mBlockMaterials[static_cast<int>(BlockRenderLayer::RenderlayerAlphatest)].get();
+    mce::MaterialPtr const& blendFaces = moving->mBlockMaterials[static_cast<int>(BlockRenderLayer::RenderlayerBlend)].get();
+    auto fullBright = [&] {
+        BrightnessPair full;
+        full.sky->mValue = 15;
+        full.block->mValue = 15;
+        ActorShaderManager::setupShaderParameters(screen, region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture,
+            Vec2{1, 1}, Vec4{0, 0, 1, 1});
+    };
+    std::vector<std::pair<float, Section const*>> blendedSections;
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
     // Vertex-colored and blended, as shape faces use in Fancy graphics.
     mce::MaterialPtr markMaterial(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
-    auto* lightTexture = client.getLightTexture();
     std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{atlas};
     for (auto& [key, section] : sections) {
         if (!inView(std::get<1>(key), std::get<2>(key), std::get<3>(key))) continue;
@@ -1621,11 +1674,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                          static_cast<float>(section.origin.z - camera.z)};
         translated(screen, offset, [&] {
             if (section.faces && faces.mRenderMaterialInfoPtr && lightTexture) {
-                BrightnessPair full;
-                full.sky->mValue = 15;
-                full.block->mValue = 15;
-                ActorShaderManager::setupShaderParameters(screen, region, full, glm::vec4{1, 1, 1, 1}, 1.f, true,
-                    *lightTexture, Vec2{1, 1}, Vec4{0, 0, 1, 1});
+                fullBright();
                 section.faces->renderMesh(screen, faces, texture, 0, section.faceVertices, OffscreenCaptureDescription{}, nullptr);
             }
             if (section.marks && markMaterial.mRenderMaterialInfoPtr)
@@ -1635,6 +1684,10 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                 section.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section.lineVertices,
                     OffscreenCaptureDescription{}, nullptr);
         });
+        if (section.blend) {
+            glm::vec3 center = offset + glm::vec3(sectionSize / 2.f);
+            blendedSections.push_back({glm::dot(center, center), &section});
+        }
         for (auto const& [pos, block] : section.entities) {
             auto& actor = actors[{pos.x, pos.y, pos.z, block}];
             if (!actor) actor = VanillaBlockActorFactory::createBlockActor(pos, block->getBlockType());
@@ -1643,6 +1696,17 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             Vec3 renderPos{static_cast<float>(pos.x - camera.x), static_cast<float>(pos.y - camera.y), static_cast<float>(pos.z - camera.z)};
             mce::MaterialPtr none(mce::RenderMaterialGroup::common(), HashedString{"lamium_no_forced_material"});
             dispatcher.render(context, region, *component, *block, renderPos, pos, false, none, nullptr, 0, std::nullopt);
+        }
+    }
+    if (blendFaces.mRenderMaterialInfoPtr && lightTexture) {
+        std::sort(blendedSections.begin(), blendedSections.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
+        for (auto const& [distance, section] : blendedSections) {
+            glm::vec3 offset{static_cast<float>(section->origin.x - camera.x), static_cast<float>(section->origin.y - camera.y),
+                             static_cast<float>(section->origin.z - camera.z)};
+            translated(screen, offset, [&] {
+                fullBright();
+                section->blend->renderMesh(screen, blendFaces, texture, 0, section->blendVertices, OffscreenCaptureDescription{}, nullptr);
+            });
         }
     }
     drawPlacementFrames(screen, snapshot, dimension, camera);
@@ -1751,14 +1815,57 @@ BlockLabel blockLabel(PaletteBlock const& entry) {
     auto info = block ? describe(*block, entry.name) : ItemInfo{"", entry.name, ""};
     return {info.name, info.icon};
 }
+void eachLayer(Block const& block, BlockSource& region, BlockPos const& pos, std::function<void(std::optional<BlockRenderLayer>)> const& visit) {
+    // Liquids keep the single default pass until they get their own (B3).
+    if (block.getMaterial().mLiquid) { visit(std::nullopt); return; }
+    auto const& type = block.getBlockType();
+    auto own = type.getRenderLayer(block, region, pos);
+    visit(own);
+    // Extra layers as a bit per layer (the honey and slime blocks' other cube).
+    int extra = type.getExtraRenderLayers();
+    for (int layer = 0; layer < static_cast<int>(BlockRenderLayer::RenderlayerCount); ++layer)
+        if ((extra >> layer & 1) && layer != static_cast<int>(own)) visit(static_cast<BlockRenderLayer>(layer));
+}
+void tessellateLayer(BlockTessellator& tessellator, Tessellator& batch, Block const& block, BlockPos const& pos,
+                     std::optional<BlockRenderLayer> layer) {
+    auto& current = static_cast<int&>(tessellator.mRenderingLayer);
+    int was = current;
+    if (layer) current = static_cast<int>(*layer);
+    tessellator.tessellateInWorld(batch, block, pos, false);
+    current = was;
+}
+void reorderQuads(Tessellator& batch, std::vector<std::uint32_t> const& order) {
+    auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
+    size_t quads = order.size();
+    auto permute = [&](auto& stream) {
+        if (stream.size() != quads * 4) return;
+        auto copy = stream;
+        for (size_t q = 0; q < quads; ++q)
+            for (size_t k = 0; k < 4; ++k) stream[q * 4 + k] = copy[order[q] * 4 + k];
+    };
+    permute(*data.mPositions);
+    permute(*data.mNormals);
+    permute(*data.mTangents);
+    permute(*data.mColors);
+    permute(*data.mBoneId0s);
+    for (int i = 0; i < 3; ++i) permute(*data.mTextureUVs[i]);
+    permute(*data.mPBRTextureIndices);
+    permute(*data.mMERS);
+    permute(*data.mGeoType);
+}
 bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen) {
     if (!block.getBlockType().mIsOpaqueFullBlock) return false;
     static std::map<Block const*, bool> drawn;
     if (auto found = drawn.find(&block); found != drawn.end()) return found->second;
-    // Tessellated once above the build limit, where nothing culls it.
+    // Tessellated once above the build limit, where nothing culls it. Only
+    // the layers drawn alpha-tested hide a face: a blended block (honey)
+    // shows what is behind it.
     Tessellator scratch(screen.tessellator.mBufferResourceService);
     scratch.begin({}, mce::PrimitiveMode::QuadList, 64, false);
-    tessellator.tessellateInWorld(scratch, block, BlockPos{0, 2000, 0}, false);
+    BlockPos above{0, 2000, 0};
+    eachLayer(block, *static_cast<BlockSource*&>(tessellator.mRegion), above, [&](std::optional<BlockRenderLayer> layer) {
+        if (!layer || !blended(*layer)) tessellateLayer(tessellator, scratch, block, above, layer);
+    });
     return drawn[&block] = !scratch.mMeshData->mPositions->empty();
 }
 void wantProgress() { progressWanted = steadyMs(); }

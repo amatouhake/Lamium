@@ -6,7 +6,9 @@
 #include "features/schematic/SaveArea.h"
 #include "features/schematic/PlacementStore.h"
 #include "features/schematic/Verification.h"
+#include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -14,8 +16,11 @@
 #include <vector>
 class Block;
 class BlockSource;
+class BlockPos;
 class BlockTessellator;
 class ScreenContext;
+class Tessellator;
+enum class BlockRenderLayer : unsigned char;
 namespace lamium::schematic::ghosts {
 // The game block for a palette entry (its name, states and version), or null.
 Block const* gameBlock(PaletteBlock const& entry);
@@ -30,6 +35,18 @@ std::optional<Mismatch> mismatchAt(BlockSource& region, Point world);
 // Whether a block hides the neighbor faces it touches: an opaque full block
 // that the in-world tessellation draws (a honey block draws nothing there).
 bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen);
+// Calls `visit` with each render layer a block draws in: its own, then its
+// extra ones (honey and slime blocks). Liquids get one call with nullopt
+// (the tessellator's default pass).
+void eachLayer(Block const& block, BlockSource& region, BlockPos const& pos,
+               std::function<void(std::optional<BlockRenderLayer>)> const& visit);
+// Tessellates the block's geometry for one render layer (nullopt: the
+// tessellator's current one) in the world at `pos`.
+void tessellateLayer(BlockTessellator& tessellator, Tessellator& batch, Block const& block, BlockPos const& pos,
+                     std::optional<BlockRenderLayer> layer);
+// Puts a quad-list batch's quads in `order` (indices of the current quads),
+// moving every vertex stream with its positions.
+void reorderQuads(Tessellator& batch, std::vector<std::uint32_t> const& order);
 void start();
 void stop();
 // The latest finished verification of the selected placement (never null).
