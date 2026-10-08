@@ -66,10 +66,12 @@ inline Position toWorldPosition(Size size, Placement const& placement, Position 
     return {placement.origin.x + x, placement.origin.y + local.y, placement.origin.z + z};
 }
 // An entity's facing (yaw in degrees: 0 faces south, 90 west) after the same
-// mirror and turns as its position.
+// mirror and turns as its position. Mirrored as the game's structure block
+// does: on the other axis, which is a true mirror turned half round (seen
+// in game: a south-facing armor stand faces north under the X mirror).
 inline float toWorldYaw(float yaw, Placement const& placement) {
-    if (placement.mirror == Mirror::X) yaw = -yaw;
-    if (placement.mirror == Mirror::Z) yaw = 180 - yaw;
+    if (placement.mirror == Mirror::X) yaw = 180 - yaw;
+    if (placement.mirror == Mirror::Z) yaw = -yaw;
     yaw += 90.f * quarterTurns(placement.rotation);
     while (yaw >= 180) yaw -= 360;
     while (yaw < -180) yaw += 360;
