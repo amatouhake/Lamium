@@ -1837,7 +1837,12 @@ void tessellateLayer(BlockTessellator& tessellator, Tessellator& batch, Block co
     auto& current = static_cast<int&>(tessellator.mRenderingLayer);
     int was = current;
     if (layer) current = static_cast<int>(*layer);
+    // A shape set by the previous block (the honey block's two cubes) must
+    // not carry over: a slab drawn next drew full height.
+    auto& shapeSet = static_cast<bool&>(tessellator.mCurrentShapeSet);
+    shapeSet = false;
     tessellator.tessellateInWorld(batch, block, pos, false);
+    shapeSet = false;
     current = was;
 }
 void reorderQuads(Tessellator& batch, std::vector<std::uint32_t> const& order) {
