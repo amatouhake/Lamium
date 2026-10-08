@@ -157,6 +157,19 @@ A. File compatibility (Ready, chosen 2026-10-09):
   the maintainer's vanilla export says 2. Write 2. A large area save
   failed to load in another tool at the vanilla structure loader; confirm
   the cause with a copy changed to 2 before calling it fixed.
+- Headers read 2026-10-09 (files in the instance's schematics folder):
+  vanilla exports `mixture` (4x2x4) and `broken_village_house` (10x5x8)
+  have version 2 and one IntArray layer; every Lamium save (`schematic`,
+  `terrain big` 122x39x203, `terrain big 2` 276x14x232, `desert village`
+  122x69x112) has version 1 and two layers, the second all void when
+  nothing is waterlogged. So also write the second layer only when a cell
+  holds a liquid. How vanilla 26.51 writes a waterlogged block (a second
+  layer, or something else) is not known yet: the maintainer exports a
+  small structure with waterlogged stairs from a structure block for the
+  agent to read. All three large saves are wider than the structure
+  block's 64-block limit in X and Z, so also test a small Lamium save
+  (`schematic`, 3x2x3) with version 2 to separate a version problem from a
+  size limit.
 - After a save, hand the written NBT to the game's own loader
   (`StructureTemplate::load(CompoundTag const&)`) and report failure in the
   save prompt; keep the file either way. Check whether the loader has a

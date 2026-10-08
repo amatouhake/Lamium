@@ -79,6 +79,7 @@ L-item wins. Every entry names what the task is, not only its number.
    features:** the agent drafts a proposal in the current batch; the
    maintainer decides scope, risks and order.
 3. **Small and medium features**, picked by the maintainer:
+   - L-118 Hide distance fog (0.1.8).
    - L-90 Simplified Chinese localization: built and checked in game; waits
      for a native review of the wording.
 4. **Placement and breaking — L-15 restrictions and L-59 held placement
@@ -220,6 +221,15 @@ unmet gates for versions already published:
 
 ## Bugs
 
+### L-119 Fence gates show no icon in the shulker box preview
+Kind: Bug. Reported by the maintainer 2026-10-08.
+Status: open, not investigated.
+A fence gate inside a shulker box shows only its count in Shulker Box
+Preview, without the item icon. Expected: icon and count. Find out whether
+every fence gate kind does it and whether other special block items (doors,
+signs, beds...) do too, then compare with how the inventory slot draws the
+same item (see also L-91 for icons that differ from vanilla slots).
+
 ### L-117 Schematic entity name tags render badly in Japanese
 Kind: Bug. Reported by the maintainer 2026-10-08 (L-93 checks); present
 before the step 1 changes.
@@ -254,6 +264,32 @@ check stepper values, sliders, the key cells and the Info HUD lines.
 ---
 
 ## Feature work and research
+
+### L-118 Hide distance fog
+Kind: Ready. Chosen for 0.1.8 (maintainer, 2026-10-08), from a user
+request ("no fog").
+Status: open.
+A new Hide effects child, "Distance fog", for the ordinary fog on land, in
+the Nether and the End. The existing underwater, lava and powder snow
+children stay separate, so either can be hidden alone. After vanilla
+resolves the fog in `LevelRendererPlayer::setupFog` (already hooked in
+`HideEffects.cpp`), move the distance fog's start and end far beyond the
+render distance; use a safe finite distance, not a huge integer, because of
+float precision in the shaders. Render distance itself does not change; the
+chunk edge becoming visible is expected. Restores vanilla when off. Check in
+game: overworld day/night and rain, Nether, End, with Vibrant Visuals on
+and off (fail open if its path differs).
+
+### L-120 Entity counts by kind in Debug View
+Kind: Design. From the maintainer's notes (2026-10-09); extends L-57.
+Status: open.
+Keep the `E:` total and optionally break it down without double counting,
+in this order: players, dropped items, hostile, passive, other, so the parts
+add up to `E:`; optionally per identifier (`getTypeName()`, add-on entities
+included). Same source and cadence as the L-57 count (the client's actor
+list for the player's dimension, once a second). Dropped items count
+entities, not stack sizes; block entities are not actors. Open: a separate
+small panel or lines inside Debug View, sorting and how many identifiers.
 
 ### L-59 Held placement style: vanilla, Java-like or fast
 Kind: Design done (discussion with the maintainer, 2026-09-28); Research
