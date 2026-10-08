@@ -705,7 +705,14 @@ Status: Files preview built and checked in game 2026-10-08 (`f2fbf49`);
 Check tab colored preview built and checked (`1c0b8bc`). Check tab review
 decided 2026-10-08 (SCHEMATIC.md "Check tab review"): layout A, chips drive
 the preview, wheel zoom, layers in the preview; the mistake look and
-see-through emphasis wait for the 0.1.8 rendering work. Not drawn yet:
+see-through emphasis wait for the 0.1.8 rendering work.
+Built and checked 2026-10-09 (`511cb35`): layout A, chips drive the
+preview, wheel zoom held at the size that fits the box (the UI scissor
+does not clip the mesh), Shift+wheel peels layers from the side chosen when
+peeling starts, click to inspect (Files names the block; Check selects its
+row or checks the cell on the spot), the Check list keeps the nearest 2000
+of each kind. Left for later: moving the zoomed view, entities, water and
+block entities in the preview, the mistake look and see-through emphasis. Not drawn yet:
 entities, water, block entities (chest, ender chest, shulker box), honey
 block and others without an in-world mesh.
 How it works (`Preview.cpp`, pure parts in `PreviewView.h`): visible blocks

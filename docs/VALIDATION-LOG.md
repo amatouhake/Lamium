@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-114 shortened Check note and preview hint (2026-10-09)
+
+By the maintainer, deployed `511cb35`, DLL
+`911cbf65ce73288ebe9de38aa834b510cd210abd106157faa18f887e7e569db9`, Minecraft
+1.26.51.01. Passed: the note under the Check counts and the preview hint
+are readable at UI Profile 75% in Japanese, English and Chinese. At UI
+Profile 100% they are cut off; the maintainer accepts that.
+
 ## L-114 preview inspect and the Check list on large builds (2026-10-09)
 
 By the maintainer, deployed `ccaf63b` to `7b490be` (DLL
