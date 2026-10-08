@@ -27,6 +27,8 @@
 #include "mc/deps/core/math/Vec4.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/block/Block.h"
+#include "mc/world/level/block/BlockType.h"
+#include "mc/world/phys/AABB.h"
 #include "mc/world/level/block/BlockRenderLayer.h"
 #include "mc/world/level/block/BrightnessPair.h"
 #include "mc/world/level/block/actor/BlockActorRendererId.h"
@@ -116,7 +118,8 @@ void shade(Tessellator& batch) {
         float factor = 1;
         if (length > 1e-6f) {
             n /= length;
-            factor = n.y > .5f ? 1.f : n.y < -.5f ? .5f : std::abs(n.x) > std::abs(n.z) ? .6f : .8f;
+            // Slanted quads (flames, plants) stay as they are.
+            factor = n.y > .5f ? 1.f : n.y < -.5f ? .5f : std::abs(n.x) > .9f ? .6f : std::abs(n.z) > .9f ? .8f : 1.f;
         }
         for (size_t k = 0; k < 4; ++k) {
             auto& c = colors[q + k];
@@ -182,7 +185,24 @@ bool step() {
         size_t from = positions.size();
         static_cast<bool&>(batch.mApplyTransform) = true;
         static_cast<glm::mat4x4&>(batch.mTransformMatrix) = glm::translate(glm::mat4{1.f}, at);
-        j.blocks->appendTessellatedBlock(batch, *blockAt(j, x, y, z));
+        auto const& block = *blockAt(j, x, y, z);
+        j.blocks->appendTessellatedBlock(batch, block);
+        // This tessellation centers partial blocks in their cell (a bottom
+        // slab or a closed trapdoor floated mid-height): move the mesh onto
+        // the block's own shape where the sizes agree.
+        if (positions.size() > from) {
+            glm::vec3 low{1e9f}, high{-1e9f};
+            for (size_t v = from; v < positions.size(); ++v) { low = glm::min(low, positions[v]); high = glm::max(high, positions[v]); }
+            AABB buffer;
+            auto const& shape = block.getBlockType().getVisualShape(block, buffer);
+            glm::vec3 shapeLow{shape.min.x, shape.min.y, shape.min.z}, shapeHigh{shape.max.x, shape.max.y, shape.max.z};
+            glm::vec3 shift{0};
+            for (int axis = 0; axis < 3; ++axis) {
+                float size = high[axis] - low[axis], want = shapeHigh[axis] - shapeLow[axis];
+                if (want > 0 && want < .99f && std::abs(size - want) < .02f) shift[axis] = at[axis] + shapeLow[axis] - low[axis];
+            }
+            if (glm::length(shift) > 1e-4f) for (size_t v = from; v < positions.size(); ++v) positions[v] += shift;
+        }
         // Faces lying on the cell's side against an occupied neighbor are
         // never seen: collapse them. Everything else stays (back faces too:
         // the near-to-far sort below puts them behind the front ones).
