@@ -144,7 +144,13 @@ std::vector<std::pair<BlockPos, Block const*>> watched; // Recently looked-at ce
 constexpr std::chrono::milliseconds entityRefresh{250};
 constexpr double entityRange = 48;
 constexpr size_t maxEntities = 512; // per placement
-constexpr float entityFrameWidth = .8f, entityFrameHeight = 1.8f;
+// The dashed frame of an entity without a model: mob-sized, except for
+// dropped items and experience orbs, whose real box is a quarter block.
+struct FrameSize { float width, height; };
+FrameSize entityFrame(std::string_view identifier) {
+    if (identifier == "minecraft:item" || identifier == "minecraft:xp_orb") return {.25f, .25f};
+    return {.8f, 1.8f};
+}
 constexpr float nameTagScale = .025f; // blocks per font pixel
 Clock::time_point entitiesChecked{};
 // Names over missing entities' frames, collected with the frames and drawn
@@ -1162,24 +1168,25 @@ void drawEntities(ScreenContext& screen, IClientInstance& client, session::Snaps
     for (auto& [index, name] : names) {
         if (modelled[index] || named.size() >= 64) continue;
         auto const& at = spots[index].at;
-        named.push_back({{at.x, at.y + entityFrameHeight + .3, at.z}, std::move(name)});
+        named.push_back({{at.x, at.y + entityFrame(spots[index].identifier).height + .3, at.z}, std::move(name)});
     }
     labels = std::move(named);
-    std::vector<Position> frames;
+    std::vector<std::pair<Position, FrameSize>> frames;
     for (size_t i = 0; i < spots.size(); ++i)
-        if (!modelled[i]) frames.push_back(spots[i].at);
+        if (!modelled[i]) frames.push_back({spots[i].at, entityFrame(spots[i].identifier)});
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
     if (frames.empty() || !lineMaterial.mRenderMaterialInfoPtr) return;
-    // Each edge as dashes. The frame has one size: it does not claim the
-    // entity's real size, which the client cannot know without the entity.
-    constexpr float dash = .2f, gap = .15f, half = entityFrameWidth / 2;
+    // Each edge as dashes. The frame does not claim the entity's real size,
+    // which the client cannot know without the entity.
     constexpr int edges[12][2] = {{0,1},{2,3},{4,5},{6,7},{0,2},{1,3},{4,6},{5,7},{0,4},{1,5},{2,6},{3,7}};
     Tessellator lines(screen.tessellator.mBufferResourceService);
     lines.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(frames.size() * 12 * 12), false);
     lines.color(.35f, .85f, 1.f, 1.f);
-    for (auto const& at : frames) {
+    for (auto const& [at, size] : frames) {
+        // Shorter dashes on small frames so every edge still shows a dash.
+        float dash = size.height < 1 ? .06f : .2f, gap = size.height < 1 ? .04f : .15f, half = size.width / 2;
         glm::vec3 base{static_cast<float>(at.x - camera.x), static_cast<float>(at.y - camera.y), static_cast<float>(at.z - camera.z)};
-        glm::vec3 a = base + glm::vec3{-half, 0, -half}, b = base + glm::vec3{half, entityFrameHeight, half}, c[8];
+        glm::vec3 a = base + glm::vec3{-half, 0, -half}, b = base + glm::vec3{half, size.height, half}, c[8];
         for (int k = 0; k < 8; ++k) c[k] = {k & 1 ? b.x : a.x, k & 2 ? b.y : a.y, k & 4 ? b.z : a.z};
         for (auto [p, q] : edges) {
             glm::vec3 from = c[p], to = c[q];
@@ -1210,6 +1217,16 @@ void drawNameTags(ScreenContext& screen, IClientInstance& client, BlockSource& r
     glm::vec3 across = glm::cross(right, -up);
     auto& font = client.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default").getFont();
     auto background = BaseActorRenderer::NAME_TAG_BACKGROUND_COLOR();
+    // Smooth fonts (Japanese, Chinese) keep their own material, which reads
+    // text constants the name tag material does not set: without them the
+    // glyphs got colored fringes (L-117).
+    bool smooth = !font.materialCanBeOverridden();
+    static bool described = false;
+    if (!std::exchange(described, true)) {
+        auto shift = font.getTranslationFactor();
+        log(std::format("name tags: {} font, scale {:.3f}, shift {:.2f},{:.2f}, \"Item\" {} px", smooth ? "smooth" : "bitmap", font.getScaleFactor(),
+            shift.x, shift.y, font.getLineLength("Item", 1.f, false)));
+    }
     for (auto const& [at, name] : labels) {
         // Not through walls: a block between the camera and the tag hides it.
         Vec3 to{static_cast<float>(at.x), static_cast<float>(at.y), static_cast<float>(at.z)};
@@ -1233,7 +1250,8 @@ void drawNameTags(ScreenContext& screen, IClientInstance& client, BlockSource& r
         for (int k = 3; k >= 0; --k) plate.vertex(quad[k].x, quad[k].y, .01f);
         MeshHelpers::renderMeshImmediately(screen, plate, backgroundMaterial, OffscreenCaptureDescription{});
         mce::Color white{1.f, 1.f, 1.f, 1.f}, black{0.f, 0.f, 0.f, 1.f};
-        font.drawCached(screen, name, -width / 2, 0, white, false, false, false, &textMaterial, -1, false, 0, white, black, 0, 0,
+        if (smooth) font.setTextConstantsInScreenContext(screen, 0, 1.f, white, false);
+        font.drawCached(screen, name, -width / 2, 0, white, false, false, false, smooth ? nullptr : &textMaterial, -1, false, 0, white, black, 0, 0,
             OffscreenCaptureDescription{}, false);
         ref.stack->_isDirty = true;
         if (ref.stack->sortOrigin->has_value() && (ref.stack->stack->size() - 1) <= ref.stack->sortOrigin->value())
