@@ -166,7 +166,12 @@ A. File compatibility (Ready, chosen 2026-10-09):
   holds a liquid. How vanilla 26.51 writes a waterlogged block (a second
   layer, or something else) is not known yet: the maintainer exports a
   small structure with waterlogged stairs from a structure block for the
-  agent to read. All three large saves are wider than the structure
+  agent to read. Read 2026-10-09: the maintainer's vanilla export
+  `water_and_lava` (7x2x10, copied into the schematics folder) has version
+  2 and one layer; water and lava are ordinary palette entries in that
+  layer (`minecraft:water` with `liquid_depth` 0-7 for the flow, lava 0, 2,
+  4, 6 here), next to `minecraft:air`. So plain liquids need no second
+  layer; only waterlogged blocks are still unknown (that file has none). All three large saves are wider than the structure
   block's 64-block limit in X and Z, so also test a small Lamium save
   (`schematic`, 3x2x3) with version 2 to separate a version problem from a
   size limit.
