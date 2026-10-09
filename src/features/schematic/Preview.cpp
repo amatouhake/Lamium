@@ -467,7 +467,14 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         auto* moving = static_cast<MovingBlockActorRenderer*>(dispatcher.mRenderers.get()[BlockActorRendererId::MovingBlock].get());
         auto* lightTexture = client.getLightTexture();
         if (!moving || !lightTexture) return false;
-        mce::MaterialPtr const& material = moving->mBlockMaterials[static_cast<int>(BlockRenderLayer::RenderlayerBlend)].get();
+        // Blended without depth writes (the beacon beam's material, as the
+        // world's blended ghosts use): the far-to-near order alone decides
+        // what covers what, so the empty texels of seagrass hid neither its
+        // other quad nor the water behind (the block blend material writes
+        // depth for them).
+        mce::MaterialPtr material(mce::RenderMaterialGroup::switchable(), HashedString{"beacon_beam_transparent"});
+        if (!material.mRenderMaterialInfoPtr) material = mce::MaterialPtr(mce::RenderMaterialGroup::common(), HashedString{"beacon_beam_transparent"});
+        if (!material.mRenderMaterialInfoPtr) material = moving->mBlockMaterials[static_cast<int>(BlockRenderLayer::RenderlayerBlend)].get();
         if (!material.mRenderMaterialInfoPtr) return false;
         std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
 
