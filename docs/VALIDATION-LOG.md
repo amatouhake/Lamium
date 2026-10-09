@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic liquids, B3 (2026-10-09)
+
+By the maintainer, local, rounds on `0f164ee`, `e1a74a2` and `6fbaa3a`
+with `water_and_lava`, `submerged` and `submerged_lamium`, on land and in
+real water. Seen: water and lava shells whole and textured from the
+atlas, no gaps; waterlogged ghosts show their water; no shell where the
+real water already is; flowing water and lava slope like the real ones
+(`e1a74a2`); sloped tops, including sources beside a flow, switch to the
+flowing texture over exactly the right cells, still pools keep the still
+texture (`6fbaa3a`). That build sampled only half the flowing texture (it
+looked 8x8 and fast); the fix, `96fe71f`, is not yet checked. Previews: liquids
+and waterlogged blocks draw, but the preview's single pass keeps the
+first fragment at a spot, so near water hides parts of waterlogged blocks
+and the floor behind it (deferred, with the blended-material depth
+question).
+
 ## L-93 Schematic ghosts by render layer, B2 (2026-10-09)
 
 By the maintainer, local, rounds on `ba046d0` to `59fc02c` (last DLL

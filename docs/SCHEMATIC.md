@@ -347,6 +347,16 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    block shows. Known preview limit: its one pass keeps the first
    fragment at a spot, so water is opaque there and hides what lies under
    it (a floor); translucency there needs another depth approach.
+   Checked 2026-10-09 (VALIDATION-LOG): shapes and slopes match the real
+   liquids; sloped tops (sources beside a flow too) take the side slot's
+   flowing texture turned downhill, still pools the still texture. The
+   flowing texture's atlas cell is one block's texture (16x16): sampling
+   its middle half looked 8x8 and fast, so `96fe71f` maps it whole
+   (scaled down only for diagonal flow). B3 done apart from the preview
+   limit, deferred (maintainer, 2026-10-09) into one research item with
+   B2's leftover: a translucent path that does not hide what is behind it
+   (a blended material without depth writes in the world pass; real depth
+   or another order in the preview pass).
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).

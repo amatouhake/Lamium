@@ -689,8 +689,11 @@ mockup", mock `docs/demos/schematic-screen.html`). Work order:
 vanilla-loader check, **done and checked in game 2026-10-09**; B1 schematic
 neighbors (doors and their missing halves, mirror axes for block states and
 entity facing), **done and checked in game 2026-10-09**; B2 render layers
-(honey and slime drawn, blended ghosts and marks sorted), **done 2026-10-09**,
-left: a blended material without depth writes; then B liquids (previews too) and block entity data, C
+(honey and slime drawn, blended ghosts and marks sorted), **done 2026-10-09**;
+B3 liquids (sloped, flowing, waterlogged; previews too), **done 2026-10-09**;
+deferred research (one item, maintainer 2026-10-09): translucency that does not
+hide what is behind it, in the world pass (a blended material without depth
+writes) and in the previews (water there is opaque); then B4 block entity data, C
 event-driven rebuilds, D waterlogging in the check (the check stays
 strict). B-D: Research (strong model), approach left to the agent.
 
