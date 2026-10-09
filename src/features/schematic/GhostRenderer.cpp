@@ -5,6 +5,8 @@
 #include "features/schematic/GhostFaces.h"
 #include "features/schematic/EntityModels.h"
 #include "features/schematic/SchematicRegion.h"
+#include "features/schematic/LiquidShape.h"
+#include "mc/world/level/block/VanillaStates.h"
 #include "overlay/Depth.h"
 #include "app/AtomicFile.h"
 #include "ui/Localization.h"
@@ -457,26 +459,31 @@ bool ghostBoxAt(BlockSource& region, session::Shown const& shown, Resolved const
     return blocks.blocks[static_cast<size_t>(index)] && static_cast<size_t>(index) < blocks.boxed.size()
         && blocks.boxed[static_cast<size_t>(index)] && region.getBlock(pos).isAir();
 }
-// Which liquid the placement or the world has at `n` (shown layers of the
-// file, either layer; the world's block or its extra block).
-int liquidAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
+// What the world, or where it is air the placement (shown layers, either
+// layer), has at `n`, for a liquid shell's faces and slope.
+liquids::Cell liquidAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
     BlockPos pos{n.x, n.y, n.z};
-    if (int kind = liquidKind(region.getBlock(pos))) return kind;
-    if (int kind = liquidKind(region.getBlock(pos, 1))) return kind;
+    Block const& real = region.getBlock(pos);
+    if (int kind = liquidKind(real)) return {kind, liquidDepth(real), false};
+    if (int kind = liquidKind(region.getBlock(pos, 1))) return {kind, 0, false};
+    if (!real.isAir()) return {0, 0, static_cast<bool>(real.getMaterial().mSolid)};
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto local = toLocal(structure.size, placement.placement, n);
-    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return 0;
+    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return {};
     auto cell = static_cast<size_t>(structure.cell(local->x, local->y, local->z));
+    bool solid = false;
     for (auto const* layer : {&structure.blocks, &structure.liquids}) {
         if (cell >= layer->size()) continue;
         auto index = (*layer)[cell];
         if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size() || !blocks.blocks[static_cast<size_t>(index)]) continue;
-        if (int kind = liquidKind(*blocks.blocks[static_cast<size_t>(index)])) return kind;
+        Block const& block = *blocks.blocks[static_cast<size_t>(index)];
+        if (int kind = liquidKind(block)) return {kind, layer == &structure.blocks ? liquidDepth(block) : 0, false};
+        solid = solid || block.getMaterial().mSolid;
     }
-    return 0;
+    return {0, 0, solid};
 }
 bool enclosed(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point at) {
     for (auto const& d : faces::offsets) {
@@ -730,11 +737,11 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     for (auto const& [at, liquid] : liquids) {
         int kind = liquidKind(*liquid);
         drawing = at;
-        bool covered = liquidAt(region, shown, blocks, {at.x, at.y + 1, at.z}) == kind;
+        auto around = [&](int dx, int dy, int dz) { return liquidAt(region, shown, blocks, {at.x + dx, at.y + dy, at.z + dz}); };
         liquidShell(own, see, BlockPos{at.x, at.y, at.z}, *liquid, [&](int side) {
             auto const& d = faces::offsets[side];
-            return liquidAt(region, shown, blocks, {at.x + d[0], at.y + d[1], at.z + d[2]}) != kind;
-        }, covered ? 1.f : liquidSurface);
+            return around(d[0], d[1], d[2]).kind != kind;
+        }, [&](int cx, int cz) { return liquids::corner(kind, around, cx, cz); });
     }
     if (!marks.empty()) {
         // Mistakes mark whole cells with a tinted box just outside the real
@@ -1992,8 +1999,11 @@ int liquidKind(Block const& block) {
     auto type = block.getMaterial().mType;
     return type == SharedTypes::v1_26_20::MaterialType::Water ? 1 : type == SharedTypes::v1_26_20::MaterialType::Lava ? 2 : 0;
 }
+int liquidDepth(Block const& block) {
+    return liquidKind(block) ? block.getState<int>(VanillaStates::LiquidDepth()).value_or(0) : 0;
+}
 bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos const& pos, Block const& liquid,
-                 std::function<bool(int side)> const& open, float height) {
+                 std::function<bool(int side)> const& open, std::function<float(int cx, int cz)> const& corner) {
     // A white concrete cube tessellated at the cell gives quads with every
     // vertex stream the mesh needs; its faces are then reshaped, retextured
     // with the liquid's texture and recolored. The tessellator already
@@ -2018,7 +2028,9 @@ bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos con
     std::uint32_t tint = kind == 1 ? channel(.25f, 0) | channel(.45f, 8) | channel(.95f, 16) | channel(.55f, 24)
                                    : channel(1.f, 0) | channel(1.f, 8) | channel(1.f, 16) | channel(.75f, 24);
     TextureUVCoordinateSet const& cube = cubeGraphics->getTexture(1, 0);
-    float top = static_cast<float>(pos.y) + height;
+    float heights[2][2];
+    for (int cx = 0; cx < 2; ++cx)
+        for (int cz = 0; cz < 2; ++cz) heights[cx][cz] = corner(cx, cz);
     bool any = false;
     for (size_t q = from; q + 4 <= positions.size(); q += 4) {
         std::array<faces::Vertex, 4> quad;
@@ -2032,8 +2044,10 @@ bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos con
         // Texture slots follow the faces: 0 down, 1 up, 2-5 the sides.
         TextureUVCoordinateSet const& own = liquidGraphics->getTexture(side == 2 ? 0 : side == 3 ? 1 : 2, 0);
         for (size_t k = 0; k < 4; ++k) {
+            // Top vertices go to their corner's height.
             auto& v = positions[q + k];
-            if (v.y > top) v.y = top;
+            if (v.y > static_cast<float>(pos.y) + .5f)
+                v.y = static_cast<float>(pos.y) + heights[v.x > static_cast<float>(pos.x) + .5f][v.z > static_cast<float>(pos.z) + .5f];
             colors[q + k] = tint;
             if (uvs.size() != positions.size()) continue;
             float du = cube._u1 - cube._u0, dv = cube._v1 - cube._v0;

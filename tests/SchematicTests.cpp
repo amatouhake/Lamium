@@ -1,4 +1,5 @@
 #include <cmath>
+#include "features/schematic/LiquidShape.h"
 #include "features/schematic/Structure.h"
 #include "features/schematic/Verify.h"
 #include "features/schematic/PlacementStore.h"
@@ -666,8 +667,33 @@ void otherHalves() {
     check(lower && lower->step == -1 && lower->block.key() == door.key(), "the upper half's other half is the lower half again");
     check(!otherHalf(PaletteBlock{"minecraft:stone", {}, 0}), "a one-block-tall block has no other half");
 }
+void liquidCorners() {
+    using liquids::Cell;
+    auto near = [](float a, float b) { return std::abs(a - b) < 1e-4f; };
+    check(near(liquids::surface(0), 8.f / 9) && near(liquids::surface(7), 1.f / 9) && near(liquids::surface(8), 8.f / 9),
+          "a liquid's surface: source 8/9, depth 7 one ninth, falling like a source");
+    // A pool of sources walled in on every side: flat at the source height.
+    auto pool = [](int dx, int dy, int dz) {
+        if (dy != 0) return Cell{};
+        return dx == 0 && dz == 0 ? Cell{1, 0, false} : Cell{0, 0, true};
+    };
+    check(near(liquids::corner(1, pool, 0, 0), 8.f / 9) && near(liquids::corner(1, pool, 1, 1), 8.f / 9),
+          "a source between solid walls keeps its height at every corner");
+    auto under = [](int dx, int dy, int dz) { return dy == 1 && dx == 0 && dz == 0 ? Cell{1, 0, false} : Cell{1, 3, false}; };
+    check(near(liquids::corner(1, under, 0, 0), 1.f), "the same liquid above raises the corner to the full block");
+    // Flowing water (depth 3) next to open air on the -x side: lower there.
+    auto flow = [](int dx, int dy, int dz) {
+        if (dy != 0) return Cell{};
+        return dx < 0 ? Cell{0, 0, false} : Cell{1, 3, false};
+    };
+    check(liquids::corner(1, flow, 0, 0) < liquids::corner(1, flow, 1, 0) && near(liquids::corner(1, flow, 1, 0), liquids::surface(3)),
+          "a flowing liquid slopes down toward open air");
+    auto lava = [](int dx, int dy, int dz) { return dy == 0 && dx == 0 && dz == 0 ? Cell{2, 0, false} : Cell{1, 0, false}; };
+    check(near(liquids::corner(2, lava, 0, 0), 8.f / 9 * 10 / 13), "another liquid around counts as open, not as the same liquid");
+}
 void schematicTests() {
     otherHalves();
+    liquidCorners();
     verificationOrder();
     placementDocuments();
     drawKeys();

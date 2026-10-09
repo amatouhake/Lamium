@@ -335,7 +335,18 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    get no outline. Previews: liquid cells and waterlogged cells get the
    same shell against the file's neighbors. The log names the water
    texture's UV rectangle once, to read if the texture comes out wrong.
-   Flow levels are not shaped (every shell is still water height).
+   First check 2026-10-09 (`0f164ee`): water and lava draw textured and
+   whole, waterlogged ghosts show their water, no shell in real water; the
+   preview drew liquids but hid waterlogged blocks and the floor under
+   water, and no flow was shaped. Then: each top corner is set by
+   `liquids::corner` (`LiquidShape.h`, tested): the four cells around it,
+   the same liquid above any of them making it full, sources weighing ten
+   times flowing cells (surface `1 - (depth + 1) / 9`, falling as a
+   source), open cells pulling it down, solid ones ignored. In the
+   preview a cell's liquid quads sort after its block's, so a waterlogged
+   block shows. Known preview limit: its one pass keeps the first
+   fragment at a spot, so water is opaque there and hides what lies under
+   it (a floor); translucency there needs another depth approach.
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).

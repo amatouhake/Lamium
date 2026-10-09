@@ -1,6 +1,7 @@
 #include "features/schematic/Preview.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/GhostFaces.h"
+#include "features/schematic/LiquidShape.h"
 #include "features/schematic/SchematicRegion.h"
 #include "app/Runtime.h"
 #include "mc/client/game/IClientInstance.h"
@@ -32,12 +33,14 @@
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
+#include "mc/world/level/material/Material.h"
 #include "mc/world/phys/AABB.h"
 #include "mc/world/level/block/BlockRenderLayer.h"
 #include "mc/world/level/block/BrightnessPair.h"
 #include "mc/world/level/block/actor/BlockActorRendererId.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
+#include <limits>
 #include <array>
 #include <optional>
 #include <variant>
@@ -77,6 +80,7 @@ struct Kept {
     std::pair<glm::vec3, glm::vec3> aabb{};
     std::pair<glm::vec2, glm::vec2> uvAabb{};
     std::vector<std::uint32_t> quadCells; // the cell each quad belongs to
+    std::vector<bool> quadLiquid;         // whether each quad is a liquid's
     Cut cut;
 };
 Kept kept;
@@ -99,6 +103,7 @@ struct Job {
     int height = 320;    // the dimension's build limit
     std::vector<bool> covers; // per palette entry: hides the faces it touches
     std::vector<std::uint32_t> quadCells;
+    std::vector<bool> quadLiquid;
     Cut cut;
 };
 std::optional<Job> job;
@@ -217,7 +222,9 @@ void shade(Tessellator& batch) {
 // Blocks are ordered by their cell first and quads within a block by their
 // center: a large face's center can be nearer than a small block in front
 // of it (a trapdoor before a structure block drew behind it).
-void sortQuads(Tessellator& batch, Order order, std::vector<std::uint32_t> const& cells, Size size) {
+// A liquid's quads go after the block's in the same cell, so a waterlogged
+// block is not hidden by its own water.
+void sortQuads(Tessellator& batch, Order order, std::vector<std::uint32_t> const& cells, std::vector<bool> const& liquid, Size size) {
     auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
     auto& positions = *data.mPositions;
     size_t quads = positions.size() / 4;
@@ -233,6 +240,7 @@ void sortQuads(Tessellator& batch, Order order, std::vector<std::uint32_t> const
             int cell = static_cast<int>(cells[q]);
             glm::vec3 at(cell / (size.y * size.z), cell / size.z % size.y, cell % size.z);
             block = -glm::dot(at, toward);
+            if (liquid.size() == quads && liquid[q]) block += .01f;
         }
         keys[q] = {block, -glm::dot(c, toward), static_cast<std::uint32_t>(q)};
     }
@@ -268,24 +276,31 @@ bool step() {
         static_cast<bool&>(batch.mApplyTransform) = false;
         j.drawn = s.blocks[static_cast<size_t>(cell)];
         j.drawingAt = spot;
-        // The file's liquids (either layer) in a cell, as 1 water, 2 lava.
+        // What the file has in a cell for a liquid surface (either layer).
         auto liquidIn = [&](int lx, int ly, int lz) {
-            if (lx < 0 || ly < 0 || lz < 0 || lx >= s.size.x || ly >= s.size.y || lz >= s.size.z || !j.cut.keeps(lx, ly, lz)) return 0;
+            if (lx < 0 || ly < 0 || lz < 0 || lx >= s.size.x || ly >= s.size.y || lz >= s.size.z || !j.cut.keeps(lx, ly, lz))
+                return liquids::Cell{};
             auto c = static_cast<size_t>(s.cell(lx, ly, lz));
+            bool solid = false;
             for (auto const* layer : {&s.blocks, &s.liquids}) {
                 if (c >= layer->size()) continue;
                 auto i = (*layer)[c];
-                if (i >= 0 && static_cast<size_t>(i) < j.palette.size() && j.palette[static_cast<size_t>(i)])
-                    if (int kind = ghosts::liquidKind(*j.palette[static_cast<size_t>(i)])) return kind;
+                if (i < 0 || static_cast<size_t>(i) >= j.palette.size() || !j.palette[static_cast<size_t>(i)]) continue;
+                Block const& b = *j.palette[static_cast<size_t>(i)];
+                if (int kind = ghosts::liquidKind(b)) return liquids::Cell{kind, layer == &s.blocks ? ghosts::liquidDepth(b) : 0, false};
+                solid = solid || b.getMaterial().mSolid;
             }
-            return 0;
+            return liquids::Cell{0, 0, solid};
         };
+        size_t shellFrom = std::numeric_limits<size_t>::max(); // where the liquid quads start, if any
         auto shell = [&](Block const& liquid) {
             int kind = ghosts::liquidKind(liquid);
+            auto around = [&](int dx, int dy, int dz) { return liquidIn(x + dx, y + dy, z + dz); };
+            shellFrom = positions.size();
             ghosts::liquidShell(*j.blocks, batch, spot, liquid, [&](int side) {
                 auto const& d = faces::offsets[side];
-                return liquidIn(x + d[0], y + d[1], z + d[2]) != kind;
-            }, liquidIn(x, y + 1, z) == kind ? 1.f : ghosts::liquidSurface);
+                return around(d[0], d[1], d[2]).kind != kind;
+            }, [&](int cx, int cz) { return liquids::corner(kind, around, cx, cz); });
         };
         // Every render layer of the block (honey and slime draw in two);
         // liquids as shells, also the water of a waterlogged block.
@@ -304,6 +319,9 @@ bool step() {
         glm::vec3 move = at - glm::vec3(spot.x, spot.y, spot.z);
         for (size_t v = from; v < positions.size(); ++v) positions[v] += move;
         j.quadCells.insert(j.quadCells.end(), (positions.size() - from) / 4, static_cast<std::uint32_t>(cell));
+        size_t liquidFrom = std::clamp(shellFrom, from, positions.size());
+        j.quadLiquid.insert(j.quadLiquid.end(), (liquidFrom - from) / 4, false);
+        j.quadLiquid.insert(j.quadLiquid.end(), (positions.size() - liquidFrom) / 4, true);
         // Faces lying on the cell's side against an occupied neighbor are
         // never seen: collapse them. Everything else stays (back faces too:
         // the near-to-far sort below puts them behind the front ones).
@@ -341,6 +359,7 @@ bool step() {
     kept.aabb = *data.mAABB;
     kept.uvAabb = *data.mUVAABB;
     kept.quadCells = std::move(j.quadCells);
+    kept.quadLiquid = std::move(j.quadLiquid);
     kept.cut = j.cut;
     return true;
 }
@@ -385,7 +404,7 @@ void upload(ScreenContext& screen, Order order, Tint const* tint) {
     *data.mAABB = kept.aabb;
     *data.mUVAABB = kept.uvAabb;
     static_cast<unsigned&>(batch.mCount) = ready.vertices;
-    sortQuads(batch, order, kept.quadCells, kept.structure->size);
+    sortQuads(batch, order, kept.quadCells, kept.quadLiquid, kept.structure->size);
     ready.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic preview", SupplementaryFieldAutoGenerationMode{}));
 }
 void clear() {

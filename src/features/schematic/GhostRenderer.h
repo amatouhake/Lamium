@@ -48,17 +48,18 @@ void eachLayer(Block const& block, BlockSource& region, BlockPos const& pos,
 // tessellator's current one) in the world at `pos`.
 void tessellateLayer(BlockTessellator& tessellator, Tessellator& batch, Block const& block, BlockPos const& pos,
                      std::optional<BlockRenderLayer> layer);
-// A liquid shell's top without the same liquid above it.
-inline constexpr float liquidSurface = .875f;
 // 1 for water, 2 for lava, 0 for anything else.
 int liquidKind(Block const& block);
+// A liquid block's liquid_depth (0 for a source or anything else).
+int liquidDepth(Block const& block);
 // Appends a missing liquid at `pos` as a simple shell: the faces where
 // `open(side)` holds (faces::offsets order) and that no opaque neighbor
-// hides, its top `height` above the cell's floor, textured with the
-// liquid's own atlas texture and colored (water blue, both translucent).
-// False when nothing was added.
+// hides, each top corner (cx, cz: 0 or 1) at `corner(cx, cz)` above the
+// cell's floor (LiquidShape.h), textured with the liquid's own atlas
+// texture and colored (water blue, both translucent). False when nothing
+// was added.
 bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos const& pos, Block const& liquid,
-                 std::function<bool(int side)> const& open, float height);
+                 std::function<bool(int side)> const& open, std::function<float(int cx, int cz)> const& corner);
 // Puts a quad-list batch's quads in `order` (indices of the current quads),
 // moving every vertex stream with its positions.
 void reorderQuads(Tessellator& batch, std::vector<std::uint32_t> const& order);
