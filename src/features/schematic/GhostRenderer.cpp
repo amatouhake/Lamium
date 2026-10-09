@@ -116,7 +116,6 @@ struct PerfTimer {
 };
 void perfReport();
 #endif
-constexpr int sectionBudget = 3;      // Sections rebuilt per frame.
 constexpr int checkBudget = 8;        // Sections whose blocks are compared per frame.
 // Look at the world this often: quickly near the camera, where blocks are
 // being placed, slowly elsewhere. A section is rebuilt only when its blocks
@@ -125,6 +124,11 @@ constexpr std::chrono::milliseconds refreshNear{250}, refreshFar{2000};
 constexpr double nearDistance = 24;
 constexpr std::chrono::milliseconds lookedDelay{100};
 constexpr double drawDistance = 192;  // Sections farther than this are not built or drawn.
+constexpr float lineDistance = 48;    // Ghost outlines farther than this are not drawn.
+// Section rebuilds per frame stop once this much time went into them (a
+// count of 3 made 20-30 ms frames when large sections came together).
+constexpr std::chrono::microseconds buildTimeBudget{3000};
+constexpr int sectionLimit = 8;
 constexpr float towardEye = overlay::depth::ghostPull; // Depth rules: overlay/Depth.h.
 
 struct Outline { glm::vec3 min, max; float r, g, b; };
@@ -1908,13 +1912,14 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
 
     // Build missing sections and rebuild changed ones, in view and nearest
     // first, within the budgets.
-    int budget = sectionBudget, checks = checkBudget;
+    int budget = sectionLimit, checks = checkBudget;
+    auto buildsStart = std::chrono::steady_clock::now();
     // The view outlives the tessellator that reads through it.
     std::unique_ptr<SchematicRegion> view;
     std::unique_ptr<BlockTessellator> own;
     auto now = Clock::now();
     for (auto const& w : wanted) {
-        if (!budget) break;
+        if (!budget || (budget < sectionLimit && std::chrono::steady_clock::now() - buildsStart >= buildTimeBudget)) break;
         auto found = sections.find(w.key);
         auto refreshAfter = w.distance <= nearDistance ? std::chrono::duration_cast<Clock::duration>(refreshNear)
             : std::chrono::duration_cast<Clock::duration>(refreshFar);
@@ -2014,22 +2019,43 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     mce::MaterialPtr markMaterial(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
     std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{atlas};
     std::unique_ptr<SchematicRegion> actorView;
-    for (auto& [key, section] : sections) {
-        if (!inView(std::get<1>(key), std::get<2>(key), std::get<3>(key))) continue;
-        glm::vec3 offset{static_cast<float>(section.origin.x - camera.x), static_cast<float>(section.origin.y - camera.y),
+    // In three passes, so the light is set up once for all faces (block
+    // actors set up their own after): the per-section setups and draws were
+    // the largest fixed cost with many large placements (C, measured).
+    std::vector<std::pair<SectionKey const*, Section*>> shown;
+    for (auto& [key, section] : sections)
+        if (inView(std::get<1>(key), std::get<2>(key), std::get<3>(key))) shown.push_back({&key, &section});
+    auto offsetOf = [&](Section const& section) {
+        return glm::vec3{static_cast<float>(section.origin.x - camera.x), static_cast<float>(section.origin.y - camera.y),
                          static_cast<float>(section.origin.z - camera.z)};
+    };
+    if (faces.mRenderMaterialInfoPtr && lightTexture) {
+        fullBright();
+        for (auto [key, section] : shown)
+            if (section->faces)
+                translated(screen, offsetOf(*section), [&] {
+                    section->faces->renderMesh(screen, faces, texture, 0, section->faceVertices, OffscreenCaptureDescription{}, nullptr);
+                });
+    }
+    for (auto [key, section] : shown) {
+        // Outlines only near the camera: far away they are a few pixels of
+        // noise, and a draw each.
+        glm::vec3 offset = offsetOf(*section);
+        glm::vec3 nearest = glm::clamp(glm::vec3{0.f}, offset, offset + glm::vec3(static_cast<float>(sectionSize)));
+        bool lined = section->lines && glm::length(nearest) <= lineDistance;
+        if (!lined && !section->marks) continue;
         translated(screen, offset, [&] {
-            if (section.faces && faces.mRenderMaterialInfoPtr && lightTexture) {
-                fullBright();
-                section.faces->renderMesh(screen, faces, texture, 0, section.faceVertices, OffscreenCaptureDescription{}, nullptr);
-            }
-            if (section.marks && markMaterial.mRenderMaterialInfoPtr)
-                section.marks->renderMesh(screen, markMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section.markVertices,
+            if (section->marks && markMaterial.mRenderMaterialInfoPtr)
+                section->marks->renderMesh(screen, markMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section->markVertices,
                     OffscreenCaptureDescription{}, nullptr);
-            if (section.lines && lineMaterial.mRenderMaterialInfoPtr)
-                section.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section.lineVertices,
+            if (lined && lineMaterial.mRenderMaterialInfoPtr)
+                section->lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section->lineVertices,
                     OffscreenCaptureDescription{}, nullptr);
         });
+    }
+    for (auto [keyPtr, sectionPtr] : shown) {
+        auto const& key = *keyPtr;
+        auto& section = *sectionPtr;
         for (auto const& [pos, block, data] : section.entities) {
             // The renderer reads the block at the cell (wall or standing
             // banner, which head, facing): the ghost's, not the world's air.
@@ -2135,15 +2161,16 @@ void drawBlended(BaseActorRenderContext& context) {
         order.push_back({cx * cx + cy * cy + cz * cz, &section});
     }
     std::sort(order.begin(), order.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
+    if (order.empty()) return;
+    BrightnessPair full;
+    full.sky->mValue = 15;
+    full.block->mValue = 15;
+    ActorShaderManager::setupShaderParameters(screen, region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture, Vec2{1, 1},
+        Vec4{0, 0, 1, 1});
     for (auto const& [distance, section] : order) {
         glm::vec3 offset{static_cast<float>(section->origin.x - camera.x), static_cast<float>(section->origin.y - camera.y),
                          static_cast<float>(section->origin.z - camera.z)};
         translated(screen, offset, [&] {
-            BrightnessPair full;
-            full.sky->mValue = 15;
-            full.block->mValue = 15;
-            ActorShaderManager::setupShaderParameters(screen, region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture,
-                Vec2{1, 1}, Vec4{0, 0, 1, 1});
             section->blend->renderMesh(screen, material, texture, 0, section->blendVertices, OffscreenCaptureDescription{}, nullptr);
         });
     }

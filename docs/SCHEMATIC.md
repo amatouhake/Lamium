@@ -461,6 +461,16 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    view) instead of the whole cell, checked on `417ccd1`.
 
 C. Updates (after B1-B2, measure first, L-105):
+- Measured 2026-10-09 (perf trace `schematic_perf_trace`, several large
+  placements, about 730 sections; VALIDATION-LOG): 30-50 fps against 60
+  with them hidden. The ghost pass took 5-6 ms a frame with nothing
+  changing (about 4 ms of it drawing: faces, lines and a light setup per
+  section), 7-12 ms while building or flying (rebuilds 2-7.5 ms, single
+  sections up to 21 ms, frames up to 36 ms); hash checks only 0.4 ms,
+  verification scan about 1 ms. Built next (not yet checked): faces drawn
+  in one pass with one light setup (the blended pass too), outlines only
+  within 48 blocks, rebuilds limited by time (3 ms a frame, at most 8
+  sections) instead of 3 sections.
 - Rebuild on block change events (a section and its six neighbors) instead
   of the 0.25 s / 2 s hash timers; fixes the known border-cell limit.
   Moving a placement should move its meshes, not rebuild them.
