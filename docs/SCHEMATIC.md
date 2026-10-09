@@ -366,6 +366,16 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    no shell, so a thin real flow there shows almost nothing of the
    file's surface; drawing the file's shell inside such marks too would
    show it.
+   Deferred research, world part, done 2026-10-09 (VALIDATION-LOG): the
+   blended mesh, with every mistake mark in it, is drawn from a hook on
+   `LevelRendererCamera::$renderBlockEntities` when `renderAlphaLayer` is
+   set (once a frame, after the world's translucent blocks; the player
+   override is MCFOLD and not hooked) with `beacon_beam_transparent`
+   (blended, no depth writes, both sides). Real water, honey and glass stay
+   visible inside and behind marks and ghosts, and one sorted mesh fixes
+   their order, so the flicker of marks over real see-through blocks is
+   gone. Liquid shells never keep a face against an opaque block. Left:
+   the previews' translucency.
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).

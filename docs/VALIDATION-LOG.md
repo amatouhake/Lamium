@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic blended ghosts after the world's translucent blocks (2026-10-09)
+
+By the maintainer, local, `a926f09` then `eb0a99b` (DLL SHA-256
+`5fb26a8c726d4eaf974c96a0f5110c7f2692f12a1e5e7613cbd29f91d59519aa`). The
+blended mesh (stained glass, honey, slime, liquid shells, every mistake
+mark) is drawn in the block entities' alpha pass with the beacon beam's
+material, without depth writes. Log: the pass runs once a frame (599 of
+600 frames), `beacon_beam_transparent` found. Seen: yellow marks over real
+water no longer flicker and the real water inside shows; real honey,
+slime or glass placed by mistake beside a honey ghost no longer flickers;
+blended ghosts keep their strength; ghost liquids inside and beyond real
+water still show. `a926f09` made ghost water above a ghost floor flicker
+near the camera (the shell's faces against opaque ghosts were kept there);
+fixed and checked on `eb0a99b`. Reported then, older: from inside a
+non-full ghost (door, spawner), its faces and a neighboring non-full
+ghost's in the same plane fought; `361a0f6` keeps one face of any such
+pair near the camera (not yet checked).
+
 ## L-93 Schematic liquids, B3 (2026-10-09)
 
 By the maintainer, local, rounds on `0f164ee`, `e1a74a2` and `6fbaa3a`
