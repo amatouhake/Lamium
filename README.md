@@ -11,7 +11,7 @@
 
 ## Status
 
-Lamium 0.1.7 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.1.8 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -74,8 +74,9 @@ to the defaults.
   position through menus, adjustable speed with a sprint boost, and a
   player- or world-fixed position), Hide Offhand Item (including shields) and
   experimental Hide effects (rain and snow, particles, boss bars, the nausea
-  color, and underwater, lava and powder snow fog; one main switch turns the
-  selected effects on). Zoom, Freelook and FreeCamera can be held or toggled.
+  color, underwater, lava and powder snow fog, and the distance fog on land,
+  in the Nether and in the End; one main switch turns the selected effects
+  on). Zoom, Freelook and FreeCamera can be held or toggled.
 - **Information/HUD:** ordered Info HUD lines (now including scaled
   coordinates, biome ids, difficulty, yaw/pitch, sprinting, horizontal and
   vertical speed and real time), a Durability HUD for the held item, offhand
@@ -98,12 +99,15 @@ to the defaults.
   offhand) and experimental Hand Restock (tops up consumed items in the same
   hand slot from the inventory or hotbar, with a threshold and a source order,
   swaps container remainders, and refills an offhand totem after it saves
-  you).
+  you), and experimental Death layout restore (picking up your dropped items
+  puts the hotbar, armor and offhand, optionally the whole inventory, back
+  the way they were when you died).
 - **Interaction:** Permanent Sneak, Permanent Sprint, experimental Edge Guard
   (stops at block edges without sneaking), experimental Tool Protection (on by
   default: at 1 durability a tool or worn elytra is swapped for a spare, or
   mining stops), experimental Auto Elytra (a key or a firework jump puts an
-  elytra on; the chestplate returns after landing), breaking restriction and
+  elytra on; the chestplate returns after landing), breaking restriction
+  (modes anchored where you start breaking, including a height band) and
   Auto Attack/Use (Periodic, Hold or Fast click).
 - **Map (experimental, off by default):** a minimap HUD element (size,
   range, north or heading up, round or square, compass, coordinates and
@@ -117,11 +121,16 @@ to the defaults.
 - **Schematics (experimental, off by default):** place `.mcstructure` files
   from `mods/Lamium/schematics/` as ghost blocks (move, turn, mirror, show
   layers along any axis), see what is missing, wrong or in the wrong state
-  in the world, the target card, a Check list and a HUD, count the
-  materials left against what you carry (Shulker Boxes included), save an
-  area of the world as a schematic (also larger than the render distance,
-  by walking along it), and work with all of it during play from a radial
-  schematic menu and a key that repeats the last adjustment with the wheel.
+  in the world, the target card (with the expected block and what to change),
+  a Check list and a HUD, count the materials left against what you carry
+  (Shulker Boxes included, in chests and stacks), save an area of the world
+  as a schematic (also larger than the render distance, by walking along it),
+  and work with all of it during play from a radial schematic menu and a key
+  that repeats the last adjustment with the wheel. Ghosts draw doors, beds,
+  honey, water and lava, block entities with their saved data and entities as
+  their models; the Files and Check tabs have a turnable 3D preview; placements
+  show on the minimap and world map. Saved files use the game's current
+  format and load in a structure block.
 
 Lamium owns its key bindings; they do not appear in Minecraft's keyboard
 settings. Bindings are edited under each feature or in the Hotkeys view.
@@ -146,6 +155,7 @@ Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
 - Hide effects cannot hide the carved pumpkin overlay or the spyglass frame
   yet. Water, lava and powder snow fog hiding is checked with the vanilla
   resources in Fancy graphics; other packs and graphics modes are unverified.
+  Distance fog hiding and Night Vision have no effect under Vibrant Visuals.
 - FreeCamera is experimental. Underground terrain drawing is checked in a
   local world and on BDS; Hold/Toggle operation, menus, focus loss and dimension
   travel are also checked. Other players' view of the body, controllers and
@@ -164,14 +174,18 @@ Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
   players through walls as unfair. A few mob faces are not right yet (silverfish and tadpoles stay
   dots; camel and hoglin faces may look off), and skins with custom head
   models are untested.
-- Schematics are experimental and checked in local worlds only; servers and
-  other dimensions, very large files and block entity contents (chest items,
-  sign text) from files are not verified. Heads, doors and honey blocks show
-  as an outline instead of a ghost block, and some beds draw only one half.
-  Entities show as a dashed frame of one size and are checked by type near
-  their spot. Saving an area keeps blocks and their states but no block data
-  (container contents, sign text), and entities only by type, position and
-  facing.
+- Schematics are experimental and checked in local worlds only; servers,
+  other dimensions and very large files are not verified. Under Vibrant
+  Visuals ghosts lose their light-blue tint and the honey ghost is black.
+  Entity models stay in their rest pose (a wolf's tail, zombie arms) with
+  the default skin, sheep wool is not drawn, and entities without a model
+  show as a dashed frame. Entities are checked by type near their spot and
+  saved only by type, position and facing. In the 3D previews parts behind
+  some cut-out blocks (seagrass, a spawner) can be missing, and grass and
+  leaves take the biome you stand in.
+- Death layout restore is checked in local worlds; with instant respawn the
+  inventory may be read as kept and nothing is restored. Servers with
+  latency are untested.
 
 Reports, questions and translation fixes are welcome as GitHub issues; see
 [Contributing](CONTRIBUTING.md) for what helps in a report and how pull
