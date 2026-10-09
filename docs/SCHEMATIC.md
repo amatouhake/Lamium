@@ -491,7 +491,13 @@ C. Updates (after B1-B2, measure first, L-105):
   (faces up to 1.9 ms, lines 0.8, blended 0.6) and filled in slower after
   placing; frames 1.3 ms (dashed frames rebuilt each frame), entity models
   0.3, name tags 0. The frames are now one mesh built again only on a new
-  revision, selection or dimension.
+  revision, selection or dimension. Result (VALIDATION-LOG): 45-60 fps,
+  dips to about 40 (was 30-50). C stops here (maintainer, 2026-10-09):
+  rebuilding on block-change events instead of the hash checks was the
+  plan, but the checks measured only 0.35 ms; the looked-at rebuilds
+  already react to placing and breaking. Left if more is wanted: the face
+  draws (a section size between 8 and 16), the verification scan (a time
+  budget), the per-frame view split of the wanted list.
 - Rebuild on block change events (a section and its six neighbors) instead
   of the 0.25 s / 2 s hash timers; fixes the known border-cell limit.
   Moving a placement should move its meshes, not rebuild them.

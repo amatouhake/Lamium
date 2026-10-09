@@ -698,7 +698,8 @@ writes) and in the previews (water there is opaque), **done 2026-10-09**
 blocks; previews: shallow real depth, water translucent, cut-out limits
 accepted); B4 block entity data (and Lamium saves keep it), **done and
 checked in game 2026-10-09**; D waterlogging in the check, **done and checked
-in game 2026-10-09**; left: C event-driven rebuilds (measure first, L-105)
+in game 2026-10-09**; C measured and tuned (30-50 -> 45-60 fps with several
+large placements), **done 2026-10-09**
 (B5's block-entity ghost lighting **done and checked 2026-10-09**; looking
 straight down and Vibrant Visuals stay on the check list).
 Reported 2026-10-09: in the Files/Check previews biome-tinted blocks

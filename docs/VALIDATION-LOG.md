@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic ghost performance, C (2026-10-09)
+
+By the maintainer, local, several large placements (`desert village`,
+`terrain big`...), standing, placing blocks and flying inside them, with
+the `schematic_perf_trace` builds (F3 for fps; 60 fps cap). Schematics off:
+a steady 60. Start (`3b247fb`): 30-50 fps; the ghost pass took 5-6 ms a
+frame with nothing changing and 7-12 ms while building or flying, single
+16-block sections up to 21 ms. `8835802` (faces in one pass with one light
+setup, outlines within 48 blocks, rebuilds limited to 3 ms): 40-55 fps.
+`2345212`/`8efd52f`: the outline distance is a setting; changing it
+crashed once (a static block pointer, fixed), then 0 and 192 drew far
+outlines without crashing. `2521ec2` (8-block sections, kept wanted
+list): 35-55 fps, fewer dips, rebuilds at most 2-5 ms. `0cffb83` (DLL
+SHA-256 `54073603ec98fdd8db8b125a222ec97271552965633e36174363ef421adff348`,
+frames kept as one mesh): 45-60 fps, dips to about 40; the ghost pass about
+8 ms a frame while working inside placements (faces 1.0-1.8, prepare 1,
+verification scan 1, blended 0.6, outlines 0.5, hash checks 0.35); frames
+follow moves, selection and hiding correctly. No visual change seen from
+the 8-block sections. Not measured: servers, a single huge placement only.
+
 ## L-93 Schematic previews with block entities and entities (2026-10-09)
 
 By the maintainer, local, Files tab. `d07d158`: in `mixture` and
