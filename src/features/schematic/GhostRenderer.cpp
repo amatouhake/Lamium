@@ -99,6 +99,23 @@ namespace lamium::schematic::ghosts {
 namespace {
 using Clock = std::chrono::steady_clock;
 constexpr int sectionSize = 16;
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+// Measurement for the update plan (SCHEMATIC.md C): where the ghost pass
+// spends its time and why sections are rebuilt, logged every 5 s.
+struct Perf {
+    std::chrono::steady_clock::time_point since = std::chrono::steady_clock::now();
+    std::uint64_t frames = 0, frameNs = 0, maxFrameNs = 0, buildNs = 0, maxBuildNs = 0, builds = 0, checkNs = 0, checks = 0,
+                  scanNs = 0, blendNs = 0, waiting = 0, maxWaiting = 0, dueLatencyNs = 0, dueCount = 0, maxDueLatencyNs = 0;
+    std::uint64_t reasons[5]{}; // new, looked-at change, signature changed, mesh gone, chunk incomplete
+    std::size_t sections = 0;
+} perf;
+struct PerfTimer {
+    std::uint64_t& into;
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    ~PerfTimer() { into += static_cast<std::uint64_t>((std::chrono::steady_clock::now() - start).count()); }
+};
+void perfReport();
+#endif
 constexpr int sectionBudget = 3;      // Sections rebuilt per frame.
 constexpr int checkBudget = 8;        // Sections whose blocks are compared per frame.
 // Look at the world this often: quickly near the camera, where blocks are
@@ -1905,13 +1922,30 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             || (found->second.faces && !found->second.faces->isValid()) || (found->second.blend && !found->second.blend->isValid())
             || (found->second.lines && !found->second.lines->isValid())
             || (found->second.marks && !found->second.marks->isValid());
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+        int reason = found == sections.end() ? 0 : !found->second.complete ? 4 : (found->second.due && now >= *found->second.due) ? 1 : 3;
+        if (stale && reason == 1) {
+            auto late = static_cast<std::uint64_t>((now - *found->second.due).count()) + static_cast<std::uint64_t>(std::chrono::nanoseconds(lookedDelay).count());
+            perf.dueLatencyNs += late;
+            ++perf.dueCount;
+            perf.maxDueLatencyNs = std::max(perf.maxDueLatencyNs, late);
+        }
+#endif
         if (!stale && now - found->second.checked > refreshAfter && checks > 0) {
             --checks;
             auto const index = static_cast<size_t>(std::get<0>(w.key));
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+            PerfTimer timer{perf.checkNs};
+            ++perf.checks;
+            reason = 2;
+#endif
             stale = signatureOf(region, snapshot.placements[index], w.key) != found->second.signature;
             found->second.checked = now;
         }
         if (!stale) continue;
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+        ++perf.reasons[reason];
+#endif
         if (!own) {
             // A private tessellator, primed with one appended block: in-world
             // tessellation on a fresh one crashed in the probe.
@@ -1927,13 +1961,37 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             }
         }
         auto const index = static_cast<size_t>(std::get<0>(w.key));
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+        auto buildStart = std::chrono::steady_clock::now();
+#endif
         buildSection(screen, region, *view, *own, snapshot.placements[index], resolved[index], w.key, sections[w.key]);
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+        auto took = static_cast<std::uint64_t>((std::chrono::steady_clock::now() - buildStart).count());
+        perf.buildNs += took;
+        perf.maxBuildNs = std::max(perf.maxBuildNs, took);
+        ++perf.builds;
+#endif
         --budget;
     }
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+    {
+        // Sections in range that have never been built: what the budget left waiting.
+        std::uint64_t waiting = 0;
+        for (auto const& w : wanted) waiting += sections.find(w.key) == sections.end();
+        perf.waiting += waiting;
+        perf.maxWaiting = std::max(perf.maxWaiting, waiting);
+        perf.sections = sections.size();
+    }
+#endif
 
-    checkEntities(region, player, snapshot, dimension);
-    stepScan(region, snapshot, dimension, camera);
-    stepProgress(region, snapshot, dimension);
+    {
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+        PerfTimer timer{perf.scanNs};
+#endif
+        checkEntities(region, player, snapshot, dimension);
+        stepScan(region, snapshot, dimension, camera);
+        stepProgress(region, snapshot, dimension);
+    }
 
     // Draw: alpha-tested ghost faces (empty texels let water and glass show
     // through), then outlines, then block-entity models. Blended ghosts,
@@ -2101,6 +2159,9 @@ LL_TYPE_INSTANCE_HOOK(GhostBlendPass, ll::memory::HookPriority::Normal, LevelRen
     auto& runtime = Runtime::instance();
     if (!runtime.enabled() || !runtime.snapshot()->schematic.enabled) return;
     try {
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+        PerfTimer timer{perf.blendNs};
+#endif
         drawBlended(context);
     } catch (std::exception const& error) {
         static bool reported = false;
@@ -2140,10 +2201,40 @@ LL_TYPE_STATIC_HOOK(GhostActorLightPair, ll::memory::HookPriority::Normal, Actor
     origin(screen, source, light, blockLightColor, a, ignoreLighting, lightTexture, uvScale, uvAnim);
 }
 
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+void perfReport() {
+    auto now = std::chrono::steady_clock::now();
+    if (now - perf.since < std::chrono::seconds(5) || !perf.frames) return;
+    auto ms = [](std::uint64_t ns) { return static_cast<double>(ns) / 1e6; };
+    auto per = [&](std::uint64_t ns) { return ms(ns) / static_cast<double>(perf.frames); };
+    log(std::format("perf {} frames: ghost pass {:.3f} ms/frame (max {:.2f}), builds {} ({:.3f} ms/frame, max {:.2f} ms each; "
+                    "new {} looked-at {} changed {} mesh-gone {} incomplete {}), checks {} ({:.3f} ms/frame), check/scan {:.3f} ms/frame, "
+                    "blended pass {:.3f} ms/frame, sections {}, never-built waiting avg {:.1f} max {}, looked-at latency avg {:.0f} ms max {:.0f} ms",
+                    perf.frames, per(perf.frameNs), ms(perf.maxFrameNs), perf.builds, per(perf.buildNs), ms(perf.maxBuildNs), perf.reasons[0],
+                    perf.reasons[1], perf.reasons[2], perf.reasons[3], perf.reasons[4], perf.checks, per(perf.checkNs), per(perf.scanNs),
+                    per(perf.blendNs), perf.sections, static_cast<double>(perf.waiting) / static_cast<double>(perf.frames), perf.maxWaiting,
+                    perf.dueCount ? ms(perf.dueLatencyNs) / static_cast<double>(perf.dueCount) : 0., ms(perf.maxDueLatencyNs)));
+    perf = Perf{};
+}
+#endif
+
 LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::$renderEntityEffects, void, BaseActorRenderContext& context) {
     origin(context);
     if (++ghostFrame == 600) log(std::format("block entity alpha pass ran {} times in 600 frames", alphaCalls));
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+    auto frameStart = std::chrono::steady_clock::now();
+    struct FrameEnd {
+        std::chrono::steady_clock::time_point start;
+        ~FrameEnd() {
+            auto took = static_cast<std::uint64_t>((std::chrono::steady_clock::now() - start).count());
+            perf.frameNs += took;
+            perf.maxFrameNs = std::max(perf.maxFrameNs, took);
+            ++perf.frames;
+            perfReport();
+        }
+    } frameEnd{frameStart};
+#endif
     auto& runtime = Runtime::instance();
     if (releaseRequested.exchange(false)) { release(); stopSave(); }
     if (!runtime.enabled() || !runtime.snapshot()->schematic.enabled || !context.mImpl) {

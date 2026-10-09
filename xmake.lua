@@ -99,6 +99,12 @@ option("radar_icon_probe")
     set_description("L-85 research: log each radar face built and write them all to logs/radar-faces.bmp")
 option_end()
 
+option("schematic_perf_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Schematic C: log ghost frame time, section rebuilds and their reasons every 5 s")
+option_end()
+
 option("schematic_model_trace")
     set_default(false)
     set_showmenu(true)
@@ -140,6 +146,7 @@ target("Lamium")
     if has_config("research_trace") then add_defines("LAMIUM_RESEARCH_TRACE") end
     if has_config("ghost_probe") then add_defines("LAMIUM_GHOST_PROBE") end
     if has_config("schematic_model_trace") then add_defines("LAMIUM_SCHEMATIC_MODEL_TRACE") end
+    if has_config("schematic_perf_trace") then add_defines("LAMIUM_SCHEMATIC_PERF_TRACE") end
     if has_config("consumption_trace") then add_defines("LAMIUM_CONSUMPTION_TRACE") end
     if has_config("offhand_trace") then add_defines("LAMIUM_OFFHAND_TRACE") end
     if has_config("transfer_trace") then add_defines("LAMIUM_TRANSFER_TRACE") end
