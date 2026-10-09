@@ -2031,6 +2031,9 @@ bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos con
     float heights[2][2];
     for (int cx = 0; cx < 2; ++cx)
         for (int cz = 0; cz < 2; ++cz) heights[cx][cz] = corner(cx, cz);
+    // Which way the surface falls (x, z): toward its lower corners.
+    glm::vec2 downhill{(heights[0][0] + heights[0][1]) - (heights[1][0] + heights[1][1]),
+                       (heights[0][0] + heights[1][0]) - (heights[0][1] + heights[1][1])};
     bool any = false;
     for (size_t q = from; q + 4 <= positions.size(); q += 4) {
         std::array<faces::Vertex, 4> quad;
@@ -2041,17 +2044,30 @@ bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos con
             continue;
         }
         any = true;
-        // Texture slots follow the faces: 0 down, 1 up, 2-5 the sides.
-        TextureUVCoordinateSet const& own = liquidGraphics->getTexture(side == 2 ? 0 : side == 3 ? 1 : 2, 0);
+        // Texture slots follow the faces: 0 down, 1 up (still), 2-5 the
+        // sides (flowing). A sloped top flows: the flowing texture, turned
+        // downhill and sampled from its middle half, as the game draws it.
+        bool flows = side == 3 && std::hypot(downhill.x, downhill.y) > 1e-4f;
+        TextureUVCoordinateSet const& own = liquidGraphics->getTexture(side == 2 ? 0 : side == 3 && !flows ? 1 : 2, 0);
         for (size_t k = 0; k < 4; ++k) {
             // Top vertices go to their corner's height.
             auto& v = positions[q + k];
-            if (v.y > static_cast<float>(pos.y) + .5f)
-                v.y = static_cast<float>(pos.y) + heights[v.x > static_cast<float>(pos.x) + .5f][v.z > static_cast<float>(pos.z) + .5f];
+            float fx = v.x - static_cast<float>(pos.x), fz = v.z - static_cast<float>(pos.z);
+            if (v.y > static_cast<float>(pos.y) + .5f) v.y = static_cast<float>(pos.y) + heights[fx > .5f][fz > .5f];
             colors[q + k] = tint;
             if (uvs.size() != positions.size()) continue;
-            float du = cube._u1 - cube._u0, dv = cube._v1 - cube._v0;
-            float u = du != 0 ? (uvs[q + k].x - cube._u0) / du : 0, w = dv != 0 ? (uvs[q + k].y - cube._v0) / dv : 0;
+            float u = 0, w = 0;
+            if (flows) {
+                // The texture's v axis along the flow.
+                glm::vec2 along = glm::normalize(downhill), across{-along.y, along.x};
+                glm::vec2 offset{fx - .5f, fz - .5f};
+                u = .5f + glm::dot(offset, across) * .5f;
+                w = .5f + glm::dot(offset, along) * .5f;
+            } else {
+                float du = cube._u1 - cube._u0, dv = cube._v1 - cube._v0;
+                u = du != 0 ? (uvs[q + k].x - cube._u0) / du : 0;
+                w = dv != 0 ? (uvs[q + k].y - cube._v0) / dv : 0;
+            }
             uvs[q + k] = {own._u0 + u * (own._u1 - own._u0), own._v0 + w * (own._v1 - own._v0)};
         }
     }
