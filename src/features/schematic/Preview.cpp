@@ -497,14 +497,13 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         auto* moving = static_cast<MovingBlockActorRenderer*>(dispatcher.mRenderers.get()[BlockActorRendererId::MovingBlock].get());
         auto* lightTexture = client.getLightTexture();
         if (!moving || !lightTexture) return false;
-        // Blended without depth writes (the beacon beam's material, as the
-        // world's blended ghosts use): the far-to-near order alone decides
-        // what covers what, so the empty texels of seagrass hid neither its
-        // other quad nor the water behind (the block blend material writes
-        // depth for them).
-        mce::MaterialPtr material(mce::RenderMaterialGroup::switchable(), HashedString{"beacon_beam_transparent"});
-        if (!material.mRenderMaterialInfoPtr) material = mce::MaterialPtr(mce::RenderMaterialGroup::common(), HashedString{"beacon_beam_transparent"});
-        if (!material.mRenderMaterialInfoPtr) material = moving->mBlockMaterials[static_cast<int>(BlockRenderLayer::RenderlayerBlend)].get();
+        // The block blend material, which writes depth: depth corrects what
+        // the far-to-near order gets wrong inside a cell (without depth
+        // writes, a stair's top above the water looked submerged). Its
+        // cost, accepted (maintainer, 2026-10-09): empty texels write depth
+        // too, so of seagrass's two crossing quads the one drawn first can
+        // hide part of the other.
+        mce::MaterialPtr const& material = moving->mBlockMaterials[static_cast<int>(BlockRenderLayer::RenderlayerBlend)].get();
         if (!material.mRenderMaterialInfoPtr) return false;
         std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
 
