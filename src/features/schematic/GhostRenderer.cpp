@@ -268,6 +268,14 @@ std::uint64_t builtRevision = 0;
 // inside a schematic, or with the camera at a cell border, what is around
 // the player then shows as blocks instead of hollow space.
 std::array<std::optional<Point>, 2> cameraCells;
+// Near the camera, a pair of ghost faces in one plane keeps only the face
+// toward the camera for every pair (true), or only for pairs of opaque full
+// blocks (false). True: no flicker where a see-through block (a spawner)
+// meets another, but from just outside the spawner's face there is gone
+// while it shows from afar. False: the same faces near and far, flickering
+// a little there like real blocks do (decided 2026-10-09: true, ghosts
+// flickered more than real blocks).
+constexpr bool pairAllGhostFaces = true;
 bool nearCamera(Point p, int reach = 1) {
     return std::any_of(cameraCells.begin(), cameraCells.end(), [&](auto const& c) {
         return c && std::abs(c->x - p.x) <= reach && std::abs(c->y - p.y) <= reach && std::abs(c->z - p.z) <= reach;
@@ -534,11 +542,9 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
             if (real.getBlockType().mIsOpaqueFullBlock && !blended(real.getBlockType().getRenderLayer(real, region, np))) {
                 known = true;
             } else {
-                // Only opaque pairs: seen from outside, both faces of a pair
-                // of other blocks stay, as from far away (inside a block,
-                // dropBackFaces keeps them apart).
                 known = ghostOpaqueAt(region, shown, blocks, n);
-                if (*known && (nearCamera(at) || nearCamera(n)))
+                bool pair = *known || (pairAllGhostFaces && (ghostSidesAt(region, shown, blocks, n) >> (side ^ 1) & 1));
+                if (pair && (nearCamera(at) || nearCamera(n)))
                     known = !faces::beyond(side, at.x, at.y, at.z, buildCamera.x, buildCamera.y, buildCamera.z);
             }
         }

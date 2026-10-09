@@ -376,6 +376,19 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    their order, so the flicker of marks over real see-through blocks is
    gone. Liquid shells never keep a face against an opaque block. Left:
    the previews' translucency.
+   Faces seen from inside and near ghosts (checked 2026-10-09): in a cell
+   the camera is in, a ghost keeps only faces turned toward the camera
+   (`dropBackFaces`, like real blocks: from inside a door, spawner or stair
+   the block is not drawn), which ended the flicker there, the stair's two
+   half-height faces included. Near the camera, a pair of ghost faces in
+   one plane keeps only the face toward the camera; for pairs other than
+   opaque full blocks this is a choice (`pairAllGhostFaces`): on, no
+   flicker where a see-through block such as a spawner meets another, but
+   from just outside that spawner face is missing while it shows from
+   afar; off, the same faces near and far with a little flicker there,
+   as real blocks have. Decided 2026-10-09 (maintainer): on, because the
+   ghosts flickered more often than real blocks; keep the switch so it
+   can be turned off quickly.
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).

@@ -28,7 +28,14 @@ near the camera (the shell's faces against opaque ghosts were kept there);
 fixed and checked on `eb0a99b`. Reported then, older: from inside a
 non-full ghost (door, spawner), its faces and a neighboring non-full
 ghost's in the same plane fought; `361a0f6` keeps one face of any such
-pair near the camera (not yet checked).
+pair near the camera: no flicker, but a door or spawner lost some of its
+own faces seen from inside, and a stair still flickered from inside (its
+two half-height faces). `d20d0aa` draws only front faces in the camera's
+cell: both checked fine. With `361a0f6`'s pairs, a spawner's face beside
+a half block was missing from just outside but shown from afar; with only
+opaque pairs (`064eef2`) it showed but flickered there, as real blocks
+also do (a little, less often). The maintainer chose the pairs back on,
+behind a switch.
 
 ## L-93 Schematic liquids, B3 (2026-10-09)
 
