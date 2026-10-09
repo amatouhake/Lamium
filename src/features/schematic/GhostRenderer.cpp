@@ -2117,10 +2117,11 @@ bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos con
     auto& uvs = *data.mTextureUVs[0];
     auto& colors = *data.mColors;
     if (colors.size() != positions.size()) colors.resize(positions.size(), 0xffffffffu);
-    // Water's texture is gray and tinted by the biome; lava's is colored.
+    // Water's texture is gray and tinted by the biome; lava's is colored,
+    // and lava is not see-through.
     auto channel = [](float v, int shift) { return static_cast<std::uint32_t>(std::lround(std::clamp(v, 0.f, 1.f) * 255)) << shift; };
     std::uint32_t tint = kind == 1 ? channel(.25f, 0) | channel(.45f, 8) | channel(.95f, 16) | channel(.55f, 24)
-                                   : channel(1.f, 0) | channel(1.f, 8) | channel(1.f, 16) | channel(.75f, 24);
+                                   : channel(1.f, 0) | channel(1.f, 8) | channel(1.f, 16) | channel(1.f, 24);
     TextureUVCoordinateSet const& cube = cubeGraphics->getTexture(1, 0);
     float heights[2][2];
     for (int cx = 0; cx < 2; ++cx)

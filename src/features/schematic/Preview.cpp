@@ -65,10 +65,10 @@ void log(std::string const& text) {
 struct Ready {
     Structure const* structure = nullptr;
     Order order;
-    std::optional<mce::Mesh> mesh, liquid; // solid quads near to far; liquid quads far to near
-    std::uint32_t vertices = 0, liquidVertices = 0;
+    std::optional<mce::Mesh> mesh;
+    std::uint32_t vertices = 0;
     std::uint64_t tintKey = 0;
-    bool valid() const { return (mesh && mesh->isValid()) || (liquid && liquid->isValid()); }
+    bool valid() const { return mesh && mesh->isValid(); }
 };
 Ready ready;
 // The finished quads of the last built structure, unsorted.
@@ -85,7 +85,6 @@ struct Kept {
     std::pair<glm::vec3, glm::vec3> aabb{};
     std::pair<glm::vec2, glm::vec2> uvAabb{};
     std::vector<std::uint32_t> quadCells; // the cell each quad belongs to
-    std::vector<bool> quadLiquid;         // whether each quad is a liquid's
     Cut cut;
 };
 Kept kept;
@@ -108,7 +107,6 @@ struct Job {
     int height = 320;    // the dimension's build limit
     std::vector<bool> covers; // per palette entry: hides the faces it touches
     std::vector<std::uint32_t> quadCells;
-    std::vector<bool> quadLiquid;
     Cut cut;
 };
 std::optional<Job> job;
@@ -296,11 +294,9 @@ bool step() {
             }
             return liquids::Cell{0, 0, solid};
         };
-        size_t shellFrom = std::numeric_limits<size_t>::max(); // where the liquid quads start, if any
         auto shell = [&](Block const& liquid) {
             int kind = ghosts::liquidKind(liquid);
             auto around = [&](int dx, int dy, int dz) { return liquidIn(x + dx, y + dy, z + dz); };
-            shellFrom = positions.size();
             ghosts::liquidShell(*j.blocks, batch, spot, liquid, [&](int side) {
                 auto const& d = faces::offsets[side];
                 return around(d[0], d[1], d[2]).kind != kind;
@@ -323,9 +319,6 @@ bool step() {
         glm::vec3 move = at - glm::vec3(spot.x, spot.y, spot.z);
         for (size_t v = from; v < positions.size(); ++v) positions[v] += move;
         j.quadCells.insert(j.quadCells.end(), (positions.size() - from) / 4, static_cast<std::uint32_t>(cell));
-        size_t liquidFrom = std::clamp(shellFrom, from, positions.size());
-        j.quadLiquid.insert(j.quadLiquid.end(), (liquidFrom - from) / 4, false);
-        j.quadLiquid.insert(j.quadLiquid.end(), (positions.size() - liquidFrom) / 4, true);
         // Faces lying on the cell's side against an occupied neighbor are
         // never seen: collapse them. Everything else stays (back faces too:
         // the near-to-far sort below puts them behind the front ones).
@@ -363,7 +356,6 @@ bool step() {
     kept.aabb = *data.mAABB;
     kept.uvAabb = *data.mUVAABB;
     kept.quadCells = std::move(j.quadCells);
-    kept.quadLiquid = std::move(j.quadLiquid);
     kept.cut = j.cut;
     return true;
 }
@@ -414,33 +406,28 @@ void meshFrom(ScreenContext& screen, std::vector<std::uint32_t> const& quads, Ti
     static_cast<unsigned&>(batch.mCount) = static_cast<unsigned>(quads.size() * 4);
     out.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic preview", SupplementaryFieldAutoGenerationMode{}));
 }
-// Uploads the kept quads sorted for `order`: solid quads near to far (the
-// first fragment at a spot stays), liquid quads far to near in a second
-// mesh, blended over what lies behind them (the preview has real depth).
+// Uploads the kept quads sorted far to near for `order`, as one mesh drawn
+// blended over real depth: nearer quads cover farther ones, water lets them
+// show through. Two meshes (solids, then liquids) swapped order from frame
+// to frame (a rail under water flickered).
 void upload(ScreenContext& screen, Order order, Tint const* tint) {
     ready.tintKey = tint ? tint->key : 0;
     ready.mesh.reset();
-    ready.liquid.reset();
     ready.structure = kept.structure.get();
     ready.order = order;
-    ready.vertices = ready.liquidVertices = 0;
+    ready.vertices = 0;
     if (kept.positions.empty()) return;
-    std::vector<std::uint32_t> solid, liquid;
-    for (auto q : quadOrder(kept.positions, order, kept.quadCells, kept.structure->size))
-        (q < kept.quadLiquid.size() && kept.quadLiquid[q] ? liquid : solid).push_back(q);
-    std::reverse(liquid.begin(), liquid.end());
-    meshFrom(screen, solid, tint, ready.mesh);
-    ready.vertices = static_cast<std::uint32_t>(solid.size() * 4);
-    meshFrom(screen, liquid, tint, ready.liquid);
-    ready.liquidVertices = static_cast<std::uint32_t>(liquid.size() * 4);
+    auto sorted = quadOrder(kept.positions, order, kept.quadCells, kept.structure->size);
+    std::reverse(sorted.begin(), sorted.end());
+    meshFrom(screen, sorted, tint, ready.mesh);
+    ready.vertices = static_cast<std::uint32_t>(sorted.size() * 4);
 }
 void clear() {
     placed = {};
     kept = {};
     ready.mesh.reset();
-    ready.liquid.reset();
     ready.structure = nullptr;
-    ready.vertices = ready.liquidVertices = 0;
+    ready.vertices = 0;
     job.reset();
 }
 } // namespace
@@ -480,7 +467,7 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         auto* moving = static_cast<MovingBlockActorRenderer*>(dispatcher.mRenderers.get()[BlockActorRendererId::MovingBlock].get());
         auto* lightTexture = client.getLightTexture();
         if (!moving || !lightTexture) return false;
-        mce::MaterialPtr const& material = moving->mBlockMaterials[static_cast<int>(BlockRenderLayer::RenderlayerAlphatest)].get();
+        mce::MaterialPtr const& material = moving->mBlockMaterials[static_cast<int>(BlockRenderLayer::RenderlayerBlend)].get();
         if (!material.mRenderMaterialInfoPtr) return false;
         std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
 
@@ -489,10 +476,8 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         // range: read from the current matrices, the build spans normalized
         // depth 0.25 (nearest) to 0.75 (a depth as deep as the build is wide
         // fell outside it and cut blocks apart; a fixed 0.5 UI units drew
-        // nothing). Solid quads are still sorted near to far (the UI pass
-        // keeps the first fragment at a spot); the liquid mesh drawn after
-        // them is hidden behind solids in front and blended over those
-        // behind.
+        // nothing). Quads are sorted far to near and blended, so water
+        // shows what lies behind it.
         auto r = project(view, 1, 0, 0), u = project(view, 0, 1, 0), f = project(view, 0, 0, 1);
         float scale = fitScale(structure->size.x, structure->size.y, structure->size.z, width, height) * std::max(view.zoom, .1f);
         float depth = 0, middle = 0; // UI z per block toward the viewer, and the build center's z
@@ -542,11 +527,7 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
             full.block->mValue = 15;
             ActorShaderManager::setupShaderParameters(screen, *region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture, Vec2{1, 1},
                 Vec4{0, 0, 1, 1});
-            if (ready.mesh && ready.mesh->isValid())
-                ready.mesh->renderMesh(screen, material, texture, 0, ready.vertices, OffscreenCaptureDescription{}, nullptr);
-            mce::MaterialPtr const& blend = moving->mBlockMaterials[static_cast<int>(BlockRenderLayer::RenderlayerBlend)].get();
-            if (ready.liquid && ready.liquid->isValid() && blend.mRenderMaterialInfoPtr)
-                ready.liquid->renderMesh(screen, blend, texture, 0, ready.liquidVertices, OffscreenCaptureDescription{}, nullptr);
+            ready.mesh->renderMesh(screen, material, texture, 0, ready.vertices, OffscreenCaptureDescription{}, nullptr);
         } catch (...) {
             pop();
             throw;
