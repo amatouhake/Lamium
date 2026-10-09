@@ -5,6 +5,10 @@
 #include "features/schematic/GhostFaces.h"
 #include "features/schematic/EntityModels.h"
 #include "features/schematic/SchematicRegion.h"
+#include "features/schematic/LineColor.h"
+#include "overlay/FaceMaterial.h"
+#include "mc/options/GraphicsMode.h"
+#include "mc/client/options/IOptionRegistry.h"
 #include "features/schematic/LiquidShape.h"
 #include "mc/world/level/block/VanillaStates.h"
 #include "mc/world/level/biome/biome_color_sampling/BiomeColorSampling.h"
@@ -144,8 +148,15 @@ struct Section {
     // blend: blended layers (stained glass, honey, slime) and the mistake
     // marks, drawn last; marks: mistake marks over a real blended block,
     // which the blend mesh's depth would hide.
-    std::optional<mce::Mesh> faces, blend, lines, marks;
-    std::uint32_t faceVertices = 0, blendVertices = 0, lineVertices = 0, markVertices = 0;
+    std::optional<mce::Mesh> faces, blend, marks;
+    std::uint32_t faceVertices = 0, blendVertices = 0, markVertices = 0;
+    // Outlines, one mesh per color (lines::colored draws one color at a time).
+    struct ColorLines {
+        glm::vec3 color{};
+        std::optional<mce::Mesh> mesh;
+        std::uint32_t vertices = 0;
+    };
+    std::vector<std::unique_ptr<ColorLines>> lines;
     std::vector<EntityCell> entities;
     Clock::time_point built{}, checked{};
     std::optional<Clock::time_point> due; // An early rebuild after a looked-at block changed.
@@ -321,6 +332,12 @@ struct WantedCache {
     Clock::time_point at{};
     std::vector<Wanted> list;
 } wantedCache;
+// Vibrant Visuals (or ray tracing): mistake faces are plain quads drawn with
+// the overlay face material, which keeps its color there; the blended mesh
+// and the hologram material drew them colorless. Sections are rebuilt when
+// the graphics mode changes.
+bool vibrantGhosts = false;
+int lastGraphicsMode = -1;
 // The placement frames as one mesh, built again only when the placements,
 // the selection or the dimension change: built each frame, the dashed
 // frames of large placements took about 1.3 ms (C, measured). Vertices are
@@ -724,8 +741,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     auto [index, sx, sy, sz] = key;
     Point low{sx * sectionSize, sy * sectionSize, sz * sectionSize};
     // Reset in place: meshes cannot be copied or assigned.
-    out.faces.reset(); out.blend.reset(); out.lines.reset(); out.marks.reset();
-    out.faceVertices = out.blendVertices = out.lineVertices = out.markVertices = 0;
+    out.faces.reset(); out.blend.reset(); out.lines.clear(); out.marks.reset();
+    out.faceVertices = out.blendVertices = out.markVertices = 0;
     out.entities.clear();
     out.due.reset();
     out.origin = {static_cast<float>(low.x), static_cast<float>(low.y), static_cast<float>(low.z)};
@@ -936,7 +953,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 auto const& d = faces::offsets[side];
                 return sameAt(cell, side, m.g) || ghostBoxAt(region, shown, blocks, {at.x + d[0], at.y + d[1], at.z + d[2]});
             };
-            if (!white) {
+            if (!white || vibrantGhosts) {
                 quads.color(m.r, m.g, m.b, .3f);
                 glm::vec3 a = m.min - glm::vec3{.01f} - out.origin, b = m.max + glm::vec3{.01f} - out.origin, c[8];
                 for (int i = 0; i < 8; ++i) c[i] = {i & 1 ? b.x : a.x, i & 2 ? b.y : a.y, i & 4 ? b.z : a.z};
@@ -1015,17 +1032,25 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{});
     }
     if (!outlines.empty()) {
-        Tessellator lines(screen.tessellator.mBufferResourceService);
-        lines.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(outlines.size() * 24), false);
+        std::map<std::tuple<float, float, float>, std::vector<Outline const*>> byColor;
+        for (auto const& o : outlines) byColor[{o.r, o.g, o.b}].push_back(&o);
         constexpr int edges[12][2] = {{0,1},{2,3},{4,5},{6,7},{0,2},{1,3},{4,6},{5,7},{0,4},{1,5},{2,6},{3,7}};
-        for (auto const& o : outlines) {
-            lines.color(o.r, o.g, o.b, 1.f);
-            glm::vec3 a = o.min - glm::vec3{.002f} - out.origin, b = o.max + glm::vec3{.002f} - out.origin, c[8];
-            for (int i = 0; i < 8; ++i) c[i] = {i & 1 ? b.x : a.x, i & 2 ? b.y : a.y, i & 4 ? b.z : a.z};
-            for (auto [i, j] : edges) { lines.vertex(c[i].x, c[i].y, c[i].z); lines.vertex(c[j].x, c[j].y, c[j].z); }
+        for (auto const& [color, group] : byColor) {
+            Tessellator lines(screen.tessellator.mBufferResourceService);
+            lines.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(group.size() * 24), false);
+            auto [r, g, b] = color;
+            lines.color(r, g, b, 1.f);
+            for (auto const* o : group) {
+                glm::vec3 low = o->min - glm::vec3{.002f} - out.origin, high = o->max + glm::vec3{.002f} - out.origin, c[8];
+                for (int i = 0; i < 8; ++i) c[i] = {i & 1 ? high.x : low.x, i & 2 ? high.y : low.y, i & 4 ? high.z : low.z};
+                for (auto [i, j] : edges) { lines.vertex(c[i].x, c[i].y, c[i].z); lines.vertex(c[j].x, c[j].y, c[j].z); }
+            }
+            auto entry = std::make_unique<Section::ColorLines>();
+            entry->color = {r, g, b};
+            entry->vertices = static_cast<std::uint32_t>(group.size() * 24);
+            entry->mesh.emplace(lines.end(Tessellator::UploadMode::Buffered, "Lamium schematic outlines", SupplementaryFieldAutoGenerationMode{}));
+            out.lines.push_back(std::move(entry));
         }
-        out.lineVertices = static_cast<std::uint32_t>(outlines.size() * 24);
-        out.lines.emplace(lines.end(Tessellator::UploadMode::Buffered, "Lamium schematic outlines", SupplementaryFieldAutoGenerationMode{}));
     }
 }
 
@@ -1488,12 +1513,11 @@ void stepSave(BlockSource& region, LocalPlayer& player) {
 // The area chosen for saving: a white frame; corner 1 outlined red and
 // corner 2 blue on the block's own edges, with tinted faces just outside so
 // a full block still shows which corner it is.
-void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension) {
+void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, mce::MaterialPtr const& faceMaterial) {
     auto state = selection::current();
     if (state.dimension != dimension || (!state.first && !state.second)) return;
     Area area = state.area().value_or(Area{state.first ? *state.first : *state.second, state.first ? *state.first : *state.second});
-    mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
-    mce::MaterialPtr faceMaterial(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
+    mce::MaterialPtr lineMaterial = schematic::lines::material();
     if (!lineMaterial.mRenderMaterialInfoPtr) return;
     Point low = area.low();
     Size size = area.size();
@@ -1501,26 +1525,31 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension) {
     auto corners = [](glm::vec3 a, glm::vec3 b, glm::vec3 (&c)[8]) {
         for (int k = 0; k < 8; ++k) c[k] = {k & 1 ? b.x : a.x, k & 2 ? b.y : a.y, k & 4 ? b.z : a.z};
     };
-    Tessellator lines(screen.tessellator.mBufferResourceService);
-    lines.begin({}, mce::PrimitiveMode::LineList, 72, false);
-    auto box = [&](glm::vec3 a, glm::vec3 b) {
+    // One line batch per color: the area white, each corner its own.
+    Tessellator areaLines(screen.tessellator.mBufferResourceService), cornerLines[2]{Tessellator(screen.tessellator.mBufferResourceService),
+                                                                                     Tessellator(screen.tessellator.mBufferResourceService)};
+    auto box = [&](Tessellator& lines, glm::vec3 a, glm::vec3 b) {
         glm::vec3 c[8];
         corners(a, b, c);
         for (auto [p, q] : edges) { lines.vertex(c[p].x, c[p].y, c[p].z); lines.vertex(c[q].x, c[q].y, c[q].z); }
     };
     glm::vec3 base{static_cast<float>(low.x - camera.x), static_cast<float>(low.y - camera.y), static_cast<float>(low.z - camera.z)};
-    lines.color(1.f, 1.f, 1.f, 1.f);
-    box(base - glm::vec3{.03f}, base + glm::vec3{static_cast<float>(size.x), static_cast<float>(size.y), static_cast<float>(size.z)} + glm::vec3{.03f});
+    areaLines.begin({}, mce::PrimitiveMode::LineList, 24, false);
+    areaLines.color(1.f, 1.f, 1.f, 1.f);
+    box(areaLines, base - glm::vec3{.03f},
+        base + glm::vec3{static_cast<float>(size.x), static_cast<float>(size.y), static_cast<float>(size.z)} + glm::vec3{.03f});
+    glm::vec3 cornerColors[2]{{1.f, .25f, .2f}, {.25f, .5f, 1.f}};
     Tessellator faces(screen.tessellator.mBufferResourceService);
     faces.begin({}, mce::PrimitiveMode::QuadList, 96, false);
     constexpr int sides[6][4] = {{0,2,6,4},{1,5,7,3},{0,4,5,1},{2,3,7,6},{0,1,3,2},{4,6,7,5}};
     for (int i = 0; i < 2; ++i) {
         auto const& corner = i == 0 ? state.first : state.second;
         if (!corner) continue;
-        glm::vec3 color = i == 0 ? glm::vec3{1.f, .25f, .2f} : glm::vec3{.25f, .5f, 1.f};
+        glm::vec3 color = cornerColors[i];
         glm::vec3 at{static_cast<float>(corner->x - camera.x), static_cast<float>(corner->y - camera.y), static_cast<float>(corner->z - camera.z)};
-        lines.color(color.r, color.g, color.b, 1.f);
-        box(at - glm::vec3{.005f}, at + glm::vec3{1.005f});
+        cornerLines[i].begin({}, mce::PrimitiveMode::LineList, 24, false);
+        cornerLines[i].color(color.r, color.g, color.b, 1.f);
+        box(cornerLines[i], at - glm::vec3{.005f}, at + glm::vec3{1.005f});
         faces.color(color.r, color.g, color.b, .25f);
         glm::vec3 c[8];
         corners(at - glm::vec3{.01f}, at + glm::vec3{1.01f}, c);
@@ -1532,13 +1561,18 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension) {
     translated(screen, glm::vec3{0}, [&] {
         if (faceMaterial.mRenderMaterialInfoPtr && faces.mCount)
             MeshHelpers::renderMeshImmediately(screen, faces, faceMaterial, OffscreenCaptureDescription{});
-        MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{});
+        schematic::lines::colored(screen, 1.f, 1.f, 1.f, [&] { MeshHelpers::renderMeshImmediately(screen, areaLines, lineMaterial, OffscreenCaptureDescription{}); });
+        for (int i = 0; i < 2; ++i)
+            if ((i == 0 ? state.first : state.second))
+                schematic::lines::colored(screen, cornerColors[i].r, cornerColors[i].g, cornerColors[i].b, [&] {
+                    MeshHelpers::renderMeshImmediately(screen, cornerLines[i], lineMaterial, OffscreenCaptureDescription{});
+                });
     });
 }
 
 // While a save waits, the chunk columns it still has to read: yellow frames
 // standing on the area's floor, nearest first.
-void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera) {
+void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const& faceMaterial) {
     if (!saveJob) return;
     auto const& job = *saveJob;
     int height = job.builder.structure().size.y;
@@ -1553,8 +1587,7 @@ void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera) {
     if (waiting.empty()) return;
     std::sort(waiting.begin(), waiting.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
     if (waiting.size() > 256) waiting.resize(256);
-    mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
-    mce::MaterialPtr faceMaterial(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
+    mce::MaterialPtr lineMaterial = schematic::lines::material();
     if (!lineMaterial.mRenderMaterialInfoPtr) return;
     Tessellator lines(screen.tessellator.mBufferResourceService), faces(screen.tessellator.mBufferResourceService);
     lines.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(waiting.size() * 24), false);
@@ -1577,7 +1610,7 @@ void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera) {
     }
     translated(screen, glm::vec3{0}, [&] {
         if (faceMaterial.mRenderMaterialInfoPtr) MeshHelpers::renderMeshImmediately(screen, faces, faceMaterial, OffscreenCaptureDescription{});
-        MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{});
+        schematic::lines::colored(screen, 1.f, .8f, .25f, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
     });
 }
 
@@ -1587,13 +1620,7 @@ void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera) {
 // selected one solid, the others dashed. The line material ignores alpha
 // (checked 2026-10-08), so the shape tells them apart.
 void drawPlacementFrames(ScreenContext& screen, session::Snapshot const& snapshot, int dimension, Vec3 const& camera) {
-    // Spike (Vibrant Visuals): the block selection outline's material, colored
-    // by the current shader color instead of vertex colors, which Vibrant
-    // Visuals drew black on the debug material.
-    mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"selection_box"});
-    static bool named = false;
-    if (!std::exchange(named, true)) log(lineMaterial.mRenderMaterialInfoPtr ? "frames use selection_box" : "selection_box not found");
-    if (!lineMaterial.mRenderMaterialInfoPtr) lineMaterial = mce::MaterialPtr(mce::RenderMaterialGroup::common(), HashedString{"debug"});
+    mce::MaterialPtr lineMaterial = schematic::lines::material();
     if (!lineMaterial.mRenderMaterialInfoPtr) return;
     bool stale = !frameMesh.mesh || !frameMesh.mesh->isValid() || frameMesh.revision != snapshot.revision
         || frameMesh.selected != snapshot.selected || frameMesh.dimension != dimension;
@@ -1650,16 +1677,12 @@ void drawPlacementFrames(ScreenContext& screen, session::Snapshot const& snapsho
     if (!frameMesh.mesh) return;
     glm::vec3 offset{static_cast<float>(frameMesh.anchor.x - camera.x), static_cast<float>(frameMesh.anchor.y - camera.y),
                      static_cast<float>(frameMesh.anchor.z - camera.z)};
-    auto& shaderColor = static_cast<ShaderColor&>(screen.currentShaderColor);
-    mce::Color was = shaderColor.color;
-    shaderColor.color = mce::Color{.35f, .85f, 1.f, 1.f};
-    shaderColor.dirty = true;
     translated(screen, offset, [&] {
-        frameMesh.mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, frameMesh.vertices,
-            OffscreenCaptureDescription{}, nullptr);
+        schematic::lines::colored(screen, .35f, .85f, 1.f, [&] {
+            frameMesh.mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, frameMesh.vertices,
+                OffscreenCaptureDescription{}, nullptr);
+        });
     });
-    shaderColor.color = was;
-    shaderColor.dirty = true;
 }
 // Missing entities: their game model with part outlines (L-115), or a dashed
 // frame when the entity has no model.
@@ -1692,7 +1715,7 @@ void drawEntities(ScreenContext& screen, IClientInstance& client, session::Snaps
     std::vector<std::pair<Position, FrameSize>> frames;
     for (size_t i = 0; i < spots.size(); ++i)
         if (!modelled[i]) frames.push_back({spots[i].at, entityFrame(spots[i].identifier)});
-    mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
+    mce::MaterialPtr lineMaterial = schematic::lines::material();
     if (frames.empty() || !lineMaterial.mRenderMaterialInfoPtr) return;
     // Each edge as dashes. The frame does not claim the entity's real size,
     // which the client cannot know without the entity.
@@ -1717,7 +1740,9 @@ void drawEntities(ScreenContext& screen, IClientInstance& client, session::Snaps
             }
         }
     }
-    translated(screen, glm::vec3{0}, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
+    translated(screen, glm::vec3{0}, [&] {
+        schematic::lines::colored(screen, .35f, .85f, 1.f, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
+    });
 }
 
 // The names of missing entities like a named entity's tag: a dark plate with
@@ -2020,7 +2045,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             : std::chrono::duration_cast<Clock::duration>(refreshFar);
         bool stale = found == sections.end() || !found->second.complete || (found->second.due && now >= *found->second.due)
             || (found->second.faces && !found->second.faces->isValid()) || (found->second.blend && !found->second.blend->isValid())
-            || (found->second.lines && !found->second.lines->isValid())
+            || std::any_of(found->second.lines.begin(), found->second.lines.end(), [](auto const& l) { return !l->mesh || !l->mesh->isValid(); })
             || (found->second.marks && !found->second.marks->isValid());
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
         int reason = found == sections.end() ? 0 : !found->second.complete ? 4 : (found->second.due && now >= *found->second.due) ? 1 : 3;
@@ -2109,9 +2134,11 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         ActorShaderManager::setupShaderParameters(screen, region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture,
             Vec2{1, 1}, Vec4{0, 0, 1, 1});
     };
-    mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
-    // Vertex-colored and blended without depth writes, as shape faces use in Fancy graphics.
-    mce::MaterialPtr markMaterial(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
+    mce::MaterialPtr lineMaterial = schematic::lines::material();
+    // Vertex-colored and blended without depth writes, as shape faces use in
+    // Fancy graphics; under Vibrant Visuals the overlay face material.
+    mce::MaterialPtr markMaterial = vibrantGhosts ? overlay::faceMaterial(client).material
+                                                  : mce::MaterialPtr(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
     std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{atlas};
     std::unique_ptr<SchematicRegion> actorView;
     // In three passes, so the light is set up once for all faces (block
@@ -2142,15 +2169,18 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         // noise, and a draw each.
         glm::vec3 offset = offsetOf(*section);
         glm::vec3 nearest = glm::clamp(glm::vec3{0.f}, offset, offset + glm::vec3(static_cast<float>(sectionSize)));
-        bool lined = section->lines && (lineDistance <= 0 || glm::length(nearest) <= lineDistance);
+        bool lined = !section->lines.empty() && (lineDistance <= 0 || glm::length(nearest) <= lineDistance);
         if (!lined && !section->marks) continue;
         translated(screen, offset, [&] {
             if (section->marks && markMaterial.mRenderMaterialInfoPtr)
                 section->marks->renderMesh(screen, markMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section->markVertices,
                     OffscreenCaptureDescription{}, nullptr);
             if (lined && lineMaterial.mRenderMaterialInfoPtr)
-                section->lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section->lineVertices,
-                    OffscreenCaptureDescription{}, nullptr);
+                for (auto const& l : section->lines)
+                    schematic::lines::colored(screen, l->color.r, l->color.g, l->color.b, [&] {
+                        l->mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, l->vertices,
+                            OffscreenCaptureDescription{}, nullptr);
+                    });
         });
     }
     LAMIUM_PERF_LAP(linesNs);
@@ -2187,7 +2217,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
 
 // The cell chosen with "Show in world": a pulsing tinted box with outlines
 // and a tall beam of crossed faces above it, readable from far away.
-void drawPoint(ScreenContext& screen, Vec3 const& camera) {
+void drawPoint(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const& faceMaterial) {
     std::optional<Point> at;
     {
         std::lock_guard lock(pointMutex);
@@ -2195,8 +2225,7 @@ void drawPoint(ScreenContext& screen, Vec3 const& camera) {
         at = pointAt;
     }
     if (!at) return;
-    mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
-    mce::MaterialPtr faceMaterial(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
+    mce::MaterialPtr lineMaterial = schematic::lines::material();
     float pulse = .5f + .5f * std::sin(std::chrono::duration<float>(Clock::now().time_since_epoch()).count() * 6.f);
     glm::vec3 offset{static_cast<float>(at->x - camera.x), static_cast<float>(at->y - camera.y), static_cast<float>(at->z - camera.z)};
     constexpr float grow = .04f, beam = 64.f, half = .12f;
@@ -2231,7 +2260,9 @@ void drawPoint(ScreenContext& screen, Vec3 const& camera) {
     for (auto [i, j] : edges) { lines.vertex(c[i].x, c[i].y, c[i].z); lines.vertex(c[j].x, c[j].y, c[j].z); }
     lines.vertex(.5f, 1.f, .5f);
     lines.vertex(.5f, beam, .5f);
-    translated(screen, offset, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
+    translated(screen, offset, [&] {
+        schematic::lines::colored(screen, 1.f, 1.f, 1.f, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
+    });
 }
 
 // The blended meshes (stained glass, honey, slime, liquids, mistake marks),
@@ -2382,11 +2413,21 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
     auto* player = client.getLocalPlayer();
     if (!player) return;
     try {
+        // A new graphics mode rebuilds the sections (mistake faces differ).
+        if (int mode = static_cast<int>(client.getOptions().getGraphicsMode()); mode != lastGraphicsMode) {
+            if (lastGraphicsMode >= 0) release();
+            lastGraphicsMode = mode;
+            vibrantGhosts = mode >= static_cast<int>(GraphicsMode::Advanced);
+        }
         drawPlacements(context, client, *player);
-        drawPoint(context.mScreenContext, context.mImpl->mCameraPosition);
+        // Faces of the point, the selection and waiting columns: the overlay's
+        // face material for the graphics mode (the hologram one is not shown
+        // under Vibrant Visuals or in Simple).
+        auto faces = overlay::faceMaterial(client).material;
+        drawPoint(context.mScreenContext, context.mImpl->mCameraPosition, faces);
         stepSave(player->getDimensionBlockSource(), *player);
-        drawSelection(context.mScreenContext, context.mImpl->mCameraPosition, static_cast<int>(player->getDimensionId()));
-        drawWaitingColumns(context.mScreenContext, context.mImpl->mCameraPosition);
+        drawSelection(context.mScreenContext, context.mImpl->mCameraPosition, static_cast<int>(player->getDimensionId()), faces);
+        drawWaitingColumns(context.mScreenContext, context.mImpl->mCameraPosition, faces);
     } catch (std::exception const& error) {
         static bool reported = false;
         if (!std::exchange(reported, true)) log(std::string("drawing failed: ") + error.what());

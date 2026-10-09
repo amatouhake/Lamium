@@ -448,6 +448,18 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    outlines thin and black, the honey ghost black. The structure block's
    outline keeps its color and width there, so a material path for it
    exists; finding it is a later research item (BACKLOG).
+   Started 2026-10-09: the placement frames on `selection_box` (the block
+   selection outline's material, colored by the current shader color) kept
+   their light blue under Vibrant Visuals, same width (`fce6057`). Built
+   next (not yet checked): every schematic line goes through
+   `LineColor.h` (selection_box, one color per draw: section outlines are
+   one mesh per color; selection corners, waiting columns, entity frames,
+   the shown point and entity model outlines likewise); under Vibrant
+   Visuals (graphics mode Advanced or ray traced) mistake faces are plain
+   quads on the overlay face material, which shapes already use there, and
+   the selection, waiting-column and point faces use that material in every
+   mode; a graphics mode change rebuilds the sections. Ghost face tint and
+   the black honey ghost remain.
    Seen 2026-10-09: ghosts drawn by block-entity renderers (chest, bed,
    banner, sign, head) follow the world's light. A hook on
    `BlockSource::getLightColor` crashed the game at start twice (its
