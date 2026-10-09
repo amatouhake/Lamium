@@ -449,9 +449,11 @@ D. Check accuracy (pure rules with tests, small):
   both sides included (`withLiquid`, tested); a difference is a state
   mistake whose row reads `waterlogged: true -> false` (or the reverse).
   A first-layer air cell with water in the second layer expects water
-  standing there. In the world, a placed block waterlogged where the file
-  has no water gets a yellow mark; missing water already shows as a
-  liquid shell, so it gets no mark.
+  standing there. In the world, a placed block whose waterlogging differs
+  from the file's either way gets a yellow mark; liquid shells for the
+  second layer are drawn only under ghosts (the world's cell empty), since
+  a shell around a placed block looked like real water (maintainer,
+  2026-10-09).
 - One material identity for the material list, the check and later
   placing assistance (already one pick-item rule; keep it that way).
 

@@ -728,12 +728,14 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 }
                 if (!expected) { outlines.push_back({boxLow, boxHigh, 1.f, .55f, .1f}); continue; } // unknown block name
                 if (&actual == expected) {
-                    // Placed, but waterlogged where the file has no water: a
-                    // state mistake (missing water shows as a liquid shell).
-                    bool fileWater = false;
+                    // Placed, but waterlogged where the file has no water, or
+                    // not where it has: a state mistake (yellow).
+                    Block const* fileLiquid = nullptr;
                     if (auto cellIndex = static_cast<size_t>(structure.cell(local->x, local->y, local->z)); cellIndex < structure.liquids.size())
-                        fileWater = structure.liquids[cellIndex] != voidCell;
-                    if (!fileWater && !region.getExtraBlock(pos).isAir()) marks.push_back({boxLow, boxHigh, 1.f, .8f, .2f});
+                        if (auto index = structure.liquids[cellIndex]; index != voidCell && static_cast<size_t>(index) < blocks.blocks.size())
+                            fileLiquid = blocks.blocks[static_cast<size_t>(index)];
+                    Block const& extra = region.getExtraBlock(pos);
+                    if (fileLiquid != (extra.isAir() ? nullptr : &extra)) marks.push_back({boxLow, boxHigh, 1.f, .8f, .2f});
                     continue;
                 }
                 if (!actual.isAir()) {
@@ -792,8 +794,9 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         out.faces.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic ghosts", SupplementaryFieldAutoGenerationMode{}));
     }
     finishColors(see, .62f, .85f, 1.f);
-    // The second layer: water in a waterlogged block, where neither the
-    // block nor its extra block in the world holds it.
+    // The second layer: water in a waterlogged block, under its ghost (the
+    // world's cell still empty). A placed block missing its water gets a
+    // yellow mark instead: a shell there looked like real water.
     if (!structure.liquids.empty())
         for (int x = std::max(low.x, origin.x); x < std::min(low.x + sectionSize, origin.x + placed.x); ++x)
             for (int y = std::max(low.y, origin.y); y < std::min(low.y + sectionSize, origin.y + placed.y); ++y)
@@ -809,7 +812,10 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     BlockPos pos{x, y, z};
                     auto* chunk = region.getChunkAt(pos);
                     if (!chunk || chunk->mLoadState->load() < ChunkState::Loaded) continue;
-                    if (liquidKind(region.getBlock(pos)) == kind || liquidKind(region.getBlock(pos, 1)) == kind) continue;
+                    Block const& real = region.getBlock(pos);
+                    if (liquidKind(real) == kind || liquidKind(region.getBlock(pos, 1)) == kind) continue;
+                    // A real block there: placed (yellow if unwaterlogged) or wrong (red).
+                    if (!real.isAir()) continue;
                     liquids.push_back({{x, y, z}, liquid});
                 }
     drawn = -1;
