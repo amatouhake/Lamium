@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic preview translucency (2026-10-09)
+
+By the maintainer, local, Files tab with `water_and_lava`,
+`submerged_lamium`, `stone_patch`. `d583e71` (fixed 0.5 UI units of depth)
+drew nothing; the log then showed the UI pass maps UI z 0 to normalized
+depth -1 and z -1000 to +1, so `fd22671` reads the matrices and places the
+build between 0.25 (nearest) and 0.75: the preview drew again with
+translucent water over the floor and waterlogged blocks. Two meshes
+(solids, then liquids) made a rail under water flicker (draw order);
+one blended mesh far to near (`b5a6db5`) fixed it, lava made opaque.
+The block blend material wrote depth for seagrass's empty texels (its
+other quad and the water behind went missing); the beacon beam material
+without depth writes (`7ae2b4e`) fixed that. Still wrong: in
+`submerged_lamium` parts above the water (stair top, fence, spawner top)
+look submerged in the preview, unlike the world. Not the cause: ordering
+a waterlogged cell's quads around the surface (`485d829`, no change) and
+vertex alpha (logged 255 everywhere; `91036fc` reverted). Stopped after
+these two rounds to report.
+
 ## L-93 Schematic blended ghosts after the world's translucent blocks (2026-10-09)
 
 By the maintainer, local, `a926f09` then `eb0a99b` (DLL SHA-256

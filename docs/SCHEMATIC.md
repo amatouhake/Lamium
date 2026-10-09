@@ -389,6 +389,17 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    as real blocks have. Decided 2026-10-09 (maintainer): on, because the
    ghosts flickered more often than real blocks; keep the switch so it
    can be turned off quickly.
+   Previews (2026-10-09, VALIDATION-LOG): real but shallow depth read from
+   the UI pass's matrices (UI z 0 is normalized -1 there; the build spans
+   0.25-0.75), one mesh sorted far to near, drawn with
+   `beacon_beam_transparent` (no depth writes), lava opaque, a liquid
+   cell's quads ordered around its surface. Water now shows the floor and
+   waterlogged blocks. Open: in `submerged_lamium` parts above the water
+   look submerged; neither the in-cell order nor vertex alpha (255) is the
+   cause. Next guesses: compare one block close up with the world to name
+   the wrong faces; check whether a neighboring water cell's quads are
+   ordered after a taller block's top (the cell order uses the view's
+   octant, not the exact direction).
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).
