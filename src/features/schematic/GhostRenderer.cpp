@@ -2223,15 +2223,24 @@ void tessellateLayer(BlockTessellator& tessellator, Tessellator& batch, Block co
     tessellator.tessellateInWorld(batch, block, pos, false);
     shapeSet = false;
     current = was;
-    // Leaves draw in the seasons layers, which the world colors from a
-    // seasons texture in its own shader; the ghost and preview materials do
-    // not, so they stayed gray. Their quads take the biome tint the world's
-    // tessellation uses (as the minimap does), read at `pos`.
-    bool seasons = layer && (*layer == BlockRenderLayer::RenderlayerSeasonsOpaque
-                             || *layer == BlockRenderLayer::RenderlayerSeasonsAlphatestToOpaque);
+    // Leaves come out of the tessellation gray: the world colors them in
+    // its own shader (they stayed gray on the ghost and preview materials,
+    // also when only the seasons layers were tinted). A block with a biome
+    // tint method takes the tint the world's tessellation uses (as the
+    // minimap), read at `pos`, on the vertices still gray. Only the foliage
+    // methods (leaves, vines): grass tops come out tinted already, and
+    // tinting a grass block's gray sides would turn its dirt green.
     auto tint = block.getBlockType().mTintMethod;
-    if (!seasons || tint == TintMethod::None || tint >= TintMethod::Size) return;
+    if (tint != TintMethod::DefaultFoliage && tint != TintMethod::BirchFoliage && tint != TintMethod::EvergreenFoliage
+        && tint != TintMethod::DryFoliage)
+        return;
     auto value = BiomeColorSampling::getTessellationPolicy(tint).get(block, *static_cast<BlockSource*&>(tessellator.mRegion), pos, nullptr);
+    static int logged = 0;
+    if (logged < 6) {
+        ++logged;
+        log(std::format("tint {} for {} in layer {}: {:.2f} {:.2f} {:.2f}", static_cast<int>(tint), block.getTypeName(),
+            layer ? static_cast<int>(*layer) : -1, value.r, value.g, value.b));
+    }
     if (!map::usableTint(value.r, value.g, value.b)) return;
     auto& colors = batch.mMeshData->mColors.get();
     if (colors.size() != batch.mMeshData->mPositions->size()) return;
@@ -2240,6 +2249,8 @@ void tessellateLayer(BlockTessellator& tessellator, Tessellator& batch, Block co
     };
     for (size_t v = from; v < colors.size(); ++v) {
         auto& c = colors[v];
+        int r = static_cast<int>(c & 255), g = static_cast<int>(c >> 8 & 255), b = static_cast<int>(c >> 16 & 255);
+        if (std::abs(r - g) > 4 || std::abs(g - b) > 4) continue; // already tinted
         c = scale(c, 0, value.r) | scale(c, 8, value.g) | scale(c, 16, value.b) | (c & 0xff000000u);
     }
 }

@@ -707,9 +707,11 @@ build limit where no biome answered. Fixed and checked the same day: cells
 are tessellated at the top of the world around the player, so they take the
 player's biome (chosen over a fixed tint). Leaves stayed gray (a real
 mangrove leaf beside them was green): they draw in the seasons layers, which
-the world colors in its own shader; built (not yet checked): quads drawn in
-those layers take the renderer's biome tint (`BiomeColorSampling`, as the
-minimap), in previews and world ghosts alike.
+the world colors in its own shader. Tinting only the seasons layers changed
+nothing (`b02aea7`); built (not yet checked): blocks with a foliage tint
+method (leaves, vines) take the renderer's biome tint (`BiomeColorSampling`,
+as the minimap) on their still-gray vertices, in previews and world ghosts
+alike; the log names the first few with their layer and tint.
 B-D: Research (strong model), approach left to the agent.
 
 Pick the next follow-up with the maintainer; the list is not an implementation
