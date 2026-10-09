@@ -1516,8 +1516,9 @@ void stepSave(BlockSource& region, LocalPlayer& player) {
 // The area chosen for saving: a white frame; corner 1 outlined red and
 // corner 2 blue on the block's own edges, with tinted faces just outside so
 // a full block still shows which corner it is.
-// `twoSided`: the face material draws both sides, so each face is one quad
-// (a second, reversed one in the same plane flickered).
+// `twoSided` (overlay::FaceMaterial): the material culls, so each face also
+// gets its reversed quad; when it draws both sides itself (lightning, under
+// Vibrant Visuals) a second quad in the same plane flickered.
 void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, mce::MaterialPtr const& faceMaterial, bool twoSided) {
     auto state = selection::current();
     if (state.dimension != dimension || (!state.first && !state.second)) return;
@@ -1562,7 +1563,7 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, mce
         corners(at - glm::vec3{.025f}, at + glm::vec3{1.025f}, c);
         for (auto const& side : sides) {
             for (int k = 0; k < 4; ++k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
-            if (!twoSided) for (int k = 3; k >= 0; --k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
+            if (twoSided) for (int k = 3; k >= 0; --k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
         }
     }
     translated(screen, glm::vec3{0}, [&] {
@@ -1613,7 +1614,7 @@ void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera, mce::Material
         // The floor, seen from both sides, so the column reads from above too.
         glm::vec3 floor[4]{c[0], c[1], c[5], c[4]};
         for (int k = 0; k < 4; ++k) faces.vertex(floor[k].x, floor[k].y + .02f, floor[k].z);
-        if (!twoSided) for (int k = 3; k >= 0; --k) faces.vertex(floor[k].x, floor[k].y + .02f, floor[k].z);
+        if (twoSided) for (int k = 3; k >= 0; --k) faces.vertex(floor[k].x, floor[k].y + .02f, floor[k].z);
     }
     translated(screen, glm::vec3{0}, [&] {
         if (faceMaterial.mRenderMaterialInfoPtr) MeshHelpers::renderMeshImmediately(screen, faces, faceMaterial, OffscreenCaptureDescription{});
@@ -2245,7 +2246,7 @@ void drawPoint(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const
         constexpr int sides[6][4] = {{0,2,6,4},{1,5,7,3},{0,4,5,1},{2,3,7,6},{0,1,3,2},{4,6,7,5}};
         for (auto const& side : sides) {
             for (int k = 0; k < 4; ++k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
-            if (!twoSided) for (int k = 3; k >= 0; --k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
+            if (twoSided) for (int k = 3; k >= 0; --k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
         }
         faces.color(1.f, 1.f, 1.f, .45f);
         // Two crossed faces make the beam visible from every side.
@@ -2253,7 +2254,7 @@ void drawPoint(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const
                                      {{.5f, 1, .5f - half}, {.5f, 1, .5f + half}, {.5f, beam, .5f + half}, {.5f, beam, .5f - half}}};
         for (auto const& quad : beamQuads) {
             for (int k = 0; k < 4; ++k) faces.vertex(quad[k].x, quad[k].y, quad[k].z);
-            if (!twoSided) for (int k = 3; k >= 0; --k) faces.vertex(quad[k].x, quad[k].y, quad[k].z);
+            if (twoSided) for (int k = 3; k >= 0; --k) faces.vertex(quad[k].x, quad[k].y, quad[k].z);
         }
         translated(screen, offset, [&] { MeshHelpers::renderMeshImmediately(screen, faces, faceMaterial, OffscreenCaptureDescription{}); });
     }
