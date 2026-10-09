@@ -1891,6 +1891,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     // Vertex-colored and blended without depth writes, as shape faces use in Fancy graphics.
     mce::MaterialPtr markMaterial(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
     std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{atlas};
+    std::unique_ptr<SchematicRegion> actorView;
     for (auto& [key, section] : sections) {
         if (!inView(std::get<1>(key), std::get<2>(key), std::get<3>(key))) continue;
         glm::vec3 offset{static_cast<float>(section.origin.x - camera.x), static_cast<float>(section.origin.y - camera.y),
@@ -1908,6 +1909,10 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                     OffscreenCaptureDescription{}, nullptr);
         });
         for (auto const& [pos, block, data] : section.entities) {
+            // The renderer reads the block at the cell (wall or standing
+            // banner, which head, facing): the ghost's, not the world's air.
+            if (!actorView) actorView = std::make_unique<SchematicRegion>(region);
+            actorView->answer = [&](BlockPos const& at) { return at == pos ? block : nullptr; };
             auto& actor = actors[{pos.x, pos.y, pos.z, block}];
             if (!actor) {
                 actor = VanillaBlockActorFactory::createBlockActor(pos, block->getBlockType());
@@ -1918,9 +1923,10 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             if (!component) continue;
             Vec3 renderPos{static_cast<float>(pos.x - camera.x), static_cast<float>(pos.y - camera.y), static_cast<float>(pos.z - camera.z)};
             mce::MaterialPtr none(mce::RenderMaterialGroup::common(), HashedString{"lamium_no_forced_material"});
-            dispatcher.render(context, region, *component, *block, renderPos, pos, false, none, nullptr, 0, std::nullopt);
+            dispatcher.render(context, *actorView, *component, *block, renderPos, pos, false, none, nullptr, 0, std::nullopt);
         }
     }
+    if (actorView) actorView->answer = nullptr;
     drawPlacementFrames(screen, snapshot, dimension, camera);
     drawEntities(screen, client, snapshot, dimension, camera);
     drawNameTags(screen, client, region, *moving, camera);
