@@ -470,7 +470,15 @@ C. Updates (after B1-B2, measure first, L-105):
   verification scan about 1 ms. Built next (not yet checked): faces drawn
   in one pass with one light setup (the blended pass too), outlines only
   within 48 blocks, rebuilds limited by time (3 ms a frame, at most 8
-  sections) instead of 3 sections.
+  sections) instead of 3 sections. Then 40-55 fps (35 flying fast inside a
+  placement); the outline distance became a setting (default 48, 0 all).
+  Finer trace with nothing rebuilt (4.8 ms a frame): frames, entity
+  models and name tags 1.6 ms, verification scan 1.0, prepare (wanted
+  sections) 0.6, hash checks 0.45, block actors 0.34, blended 0.2, faces
+  and lines 0.23. While placing blocks, rebuilds add 3-6 ms a frame: one
+  changed block re-tessellates a whole 16x16x16 section (4-12 ms).
+  A crash when changing a setting came from a `static` block pointer in
+  `liquidShell` kept across a registry reload; it is looked up each time.
 - Rebuild on block change events (a section and its six neighbors) instead
   of the 0.25 s / 2 s hash timers; fixes the known border-cell limit.
   Moving a placement should move its meshes, not rebuild them.

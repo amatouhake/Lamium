@@ -2420,10 +2420,10 @@ bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos con
     // vertex stream the mesh needs; its faces are then reshaped, retextured
     // with the liquid's texture and recolored. The tessellator already
     // leaves out faces against opaque blocks.
-    static auto const* white = [] {
-        auto block = Block::tryGetFromRegistry(HashedString{"minecraft:white_concrete"});
-        return block ? &*block : nullptr;
-    }();
+    // Looked up each time: a block pointer kept across a registry reload
+    // (changing a setting) crashed here.
+    auto found = Block::tryGetFromRegistry(HashedString{"minecraft:white_concrete"});
+    Block const* white = found ? &*found : nullptr;
     auto const* cubeGraphics = white ? BlockGraphics::getForBlock(*white) : nullptr;
     auto const* liquidGraphics = BlockGraphics::getForBlock(liquid);
     if (!white || !cubeGraphics || !liquidGraphics) return false;
