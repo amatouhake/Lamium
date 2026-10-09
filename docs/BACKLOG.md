@@ -703,10 +703,10 @@ in game 2026-10-09**; left: C event-driven rebuilds (measure first, L-105)
 straight down and Vibrant Visuals stay on the check list).
 Reported 2026-10-09: in the Files/Check previews biome-tinted blocks
 (grass tops, leaves, vines) stayed untinted gray, tessellated above the
-build limit near the world origin where no chunk answered. Built the same
-day (not yet checked): cells are tessellated above the build limit around
-the player instead, so they take the player's biome (chosen over a fixed
-tint).
+build limit where no biome answered. Fixed and checked the same day: cells
+are tessellated at the top of the world around the player, so they take the
+player's biome (chosen over a fixed tint). Open: whether gray mangrove
+leaves match a real one in the same biome.
 B-D: Research (strong model), approach left to the agent.
 
 Pick the next follow-up with the maintainer; the list is not an implementation

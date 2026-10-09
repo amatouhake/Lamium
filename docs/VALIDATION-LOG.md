@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic preview biome tints (2026-10-09)
+
+By the maintainer, local. `9b4699d` (cells tessellated above the build
+limit around the player): no change, grass tops still gray. `d536c30`
+(DLL SHA-256
+`a5ff1d107922e61025a6b911efbebe27a6bd595507c4ace316fc139396cc64b9`,
+cells at the top of the world inside its height, around the player):
+grass tops and grass plants take the player's biome color in
+`broken_village_house`, `terrain_water_lamium` (66x53x65) and `desert
+village`; other previews unchanged. Unclear: mangrove leaves in `desert
+village` look gray, not yet compared with a real mangrove leaf in the
+same biome. Tints follow where the player stands, not where the file was
+saved.
+
 ## L-93 Schematic block-entity ghost outlines (2026-10-09)
 
 By the maintainer, local, `417ccd1` (DLL SHA-256
