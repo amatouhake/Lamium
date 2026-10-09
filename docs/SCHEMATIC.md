@@ -439,7 +439,10 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    `ActorShaderManager::setupShaderParameters(screen, source, pos, ...)`
    (references and scalars only) replaces it with the fully bright setup
    the other ghosts use when the source is the ghost actors' view; their
-   SchematicRegion also answers `getBrightness` 1.
+   SchematicRegion also answers `getBrightness` 1. Checked: banners, signs
+   and heads lit fully at night and underground; chests and beds stayed
+   dark (they compute their light and pass it in), so the overload taking
+   a `BrightnessPair const&` is hooked the same way (not yet checked).
 
 C. Updates (after B1-B2, measure first, L-105):
 - Rebuild on block change events (a section and its six neighbors) instead

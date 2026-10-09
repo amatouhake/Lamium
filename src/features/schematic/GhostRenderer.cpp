@@ -2122,6 +2122,16 @@ LL_TYPE_STATIC_HOOK(GhostActorShader, ll::memory::HookPriority::Normal, ActorSha
     }
     origin(screen, source, pos, a, ignoreLighting, lightTexture, lightVolumes, uvScale, uvAnim);
 }
+// Chests and beds compute their light first and pass it in.
+LL_TYPE_STATIC_HOOK(GhostActorLightPair, ll::memory::HookPriority::Normal, ActorShaderManager, &ActorShaderManager::setupShaderParameters,
+                    void, ScreenContext& screen, BlockSource& source, BrightnessPair const& light, glm::vec4 const& blockLightColor,
+                    float a, bool ignoreLighting, LightTexture& lightTexture, Vec2 const& uvScale, Vec4 const& uvAnim) {
+    if (&source == ghostActorSource.load(std::memory_order_relaxed)) {
+        origin(screen, source, fullBrightness(), glm::vec4{1, 1, 1, 1}, 1.f, true, lightTexture, uvScale, uvAnim);
+        return;
+    }
+    origin(screen, source, light, blockLightColor, a, ignoreLighting, lightTexture, uvScale, uvAnim);
+}
 
 LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::$renderEntityEffects, void, BaseActorRenderContext& context) {
@@ -2373,7 +2383,7 @@ void start() {
     installed = GhostPass::hook(true) == 0;
     if (!installed) throw std::runtime_error("Could not install the schematic ghost pass");
     if (GhostBlendPass::hook(true) != 0) log("could not install the blended ghost pass");
-    if (GhostActorShader::hook(true) != 0) log("could not install the ghost actor light hook");
+    if (GhostActorShader::hook(true) != 0 || GhostActorLightPair::hook(true) != 0) log("could not install the ghost actor light hooks");
     exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
         [](auto&) { releaseRequested = true; items::forget(); selection::clear(); });
 }
@@ -2384,6 +2394,7 @@ void stop() {
     }
     GhostBlendPass::unhook(true);
     GhostActorShader::unhook(true);
+    GhostActorLightPair::unhook(true);
     if (installed && GhostPass::unhook(true)) installed = false;
     releaseRequested = true;
 }
