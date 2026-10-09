@@ -698,9 +698,9 @@ writes) and in the previews (water there is opaque), **done 2026-10-09**
 blocks; previews: shallow real depth, water translucent, cut-out limits
 accepted); B4 block entity data (and Lamium saves keep it), **done and
 checked in game 2026-10-09**; D waterlogging in the check, **done and checked
-in game 2026-10-09**; then C
-event-driven rebuilds, D waterlogging in the check (the check stays
-strict). B-D: Research (strong model), approach left to the agent.
+in game 2026-10-09**; left: C event-driven rebuilds (measure first, L-105)
+and B5's lighting check (block-entity ghosts follow the world's light).
+B-D: Research (strong model), approach left to the agent.
 
 Pick the next follow-up with the maintainer; the list is not an implementation
 order. Chosen 2026-10-07: placement markers on the minimap/world map,
