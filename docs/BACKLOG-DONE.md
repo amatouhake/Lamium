@@ -10,6 +10,20 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-113 Numbers sit higher than Japanese text in the settings screen
+Kind: Bug. Reported by the maintainer 2026-10-08 while checking the change
+arrow.
+Status: closed 2026-10-10 (maintainer): no longer seen where checked; the
+Latin raise fixes already cover it. No change made under this item.
+With the Japanese locale, Lamium raises Latin runs (letters and digits) by
+1.5 units (`latinRaise()` in `Widgets.cpp`, DESIGN.md) so they share the line
+with kana and kanji. In the settings screen the numbers now read as higher
+than the Japanese text beside them, which suggests the raise is too large
+there (the change arrow, placed for Latin text, sat about 0.8 units above
+the kanji). Changing the raise moves every Japanese label, so measure it on a
+screenshot of the settings screen (and the HUD) before choosing a new value;
+check stepper values, sliders, the key cells and the Info HUD lines.
+
 ### L-122 Fake Offhand fires a firework when placing blocks or opening doors
 Kind: Bug, high priority. Reported from use 2026-10-09 (maintainer's notes).
 Status: fixed and checked in game 2026-10-09 (`77e698e`, checked on

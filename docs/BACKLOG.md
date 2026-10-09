@@ -81,9 +81,8 @@ L-item wins. Every entry names what the task is, not only its number.
      used/free slot counter; L-128 hold a key to list the world's players;
      L-129 show a villager's locked higher-level trades; L-130 search
      recipes/items by English names while playing in another language.
-   - Bugs needing input: L-123 elytra stretched on the inventory model after
-     FreeCamera (repro known); L-113 Latin raise in Japanese settings
-     (waiting for a screenshot).
+   - Bug: L-123 elytra stretched on the inventory model after FreeCamera
+     (repro known).
 2. **Schematic screen review — L-93 step 1** (decided 2026-10-08): placement
    frames, Placed/Files/Check/Materials list changes, chest/stack amounts,
    missing items and the ResourceCalculator button, entity ghosts as outline
@@ -322,19 +321,6 @@ the game's name tag materials. Starting points: compare with how vanilla
 draws a named entity's tag in Japanese (font type, glyph texture filtering,
 the text material) and with Lamium's waypoint labels in the world.
 
-### L-113 Numbers sit higher than Japanese text in the settings screen
-Kind: Bug. Reported by the maintainer 2026-10-08 while checking the change
-arrow.
-Status: open; waiting for a screenshot of where it shows.
-With the Japanese locale, Lamium raises Latin runs (letters and digits) by
-1.5 units (`latinRaise()` in `Widgets.cpp`, DESIGN.md) so they share the line
-with kana and kanji. In the settings screen the numbers now read as higher
-than the Japanese text beside them, which suggests the raise is too large
-there (the change arrow, placed for Latin text, sat about 0.8 units above
-the kanji). Changing the raise moves every Japanese label, so measure it on a
-screenshot of the settings screen (and the HUD) before choosing a new value;
-check stepper values, sliders, the key cells and the Info HUD lines.
-
 ---
 
 ## Feature work and research
@@ -367,8 +353,9 @@ values (health, inventory) never follow the camera.
 ### L-125 Waypoints at the current position use the camera during FreeCamera
 Kind: Ready (small). From use 2026-10-09 (maintainer's notes).
 Status: open. Decided 2026-10-10 (maintainer): during FreeCamera, a waypoint
-added "at the current position" uses the camera's position; no extra prompt
-text or choice. Otherwise the body's position as today; a position picked
+added "at the current position" uses the camera's position. The waypoint
+creation screen opens as usual (name, color...); only the position it is
+filled with changes, and nothing is added to say which one. Otherwise the body's position as today; a position picked
 explicitly on the map wins. FreeCamera ends on dimension travel, so the
 camera and body share a dimension. Separate from L-124 (what the HUD shows).
 
@@ -378,12 +365,12 @@ notes).
 Status: open. Decided 2026-10-10 (maintainer): an option, **default off**,
 that ends FreeCamera and returns to the body's view when the body is hit,
 including hits that cost no health (a snowball counts). Being off by
-default, a wide trigger is fine. Off keeps FreeCamera through damage as
-today. Research first: which client-side signal fires for every hit
-(the hurt event the server sends for the local player, hurt time or
-animation) and works on servers, not a health drop alone. Open for the
-agent to report: whether continuous damage (fire, hunger, poison) also
-fires it on every tick, which with this rule would end FreeCamera at once.
+default, a wide trigger is fine: any damage counts, continuous damage
+(fire, hunger, poison) included, even though it ends FreeCamera at once;
+a player who minds turns the option off. Off keeps FreeCamera through
+damage as today. Research first: which client-side signal fires for every
+hit (the hurt event the server sends for the local player, hurt time or
+animation) and works on servers, not a health drop alone.
 
 ### L-127 Inventory HUD and slot counter
 Kind: Design. From the maintainer's notes (2026-10-09); not chosen for
