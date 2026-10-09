@@ -83,6 +83,10 @@ L-item wins. Every entry names what the task is, not only its number.
    - L-121 Night Vision without dark corners (child option, default on).
    - L-90 Simplified Chinese localization: built and checked in game; waits
      for a native review of the wording.
+   - Registered 2026-10-09 from use and the maintainer's notes, not ordered
+     or chosen yet: L-124 to L-126 FreeCamera coordinates, waypoints and
+     damage exit; L-127 Inventory HUD; L-128 player list; L-129 villager
+     trades; L-130 English-name search.
 4. **Placement and breaking — L-15 restrictions and L-59 held placement
    style:** L-15 breaking built and checked; the restriction plan is reopened
    for Design before placement. L-59 waits for the maintainer's go.
@@ -258,6 +262,25 @@ keep natural shading where possible; avoid deep render hooks. Check all four
 Smooth Lighting / Night Vision combinations, at Brightness 0, 50 and 100%,
 in bright and dark places, near light sources and on dense builds.
 
+### L-122 Fake Offhand fires a firework when placing blocks or opening doors
+Kind: Bug, high priority. Reported from use 2026-10-09 (maintainer's notes).
+Status: open, not reproduced yet.
+With a firework set as the Fake Offhand item, an action that is not meant to
+use it (placing a block, opening or closing a door) sometimes launches a
+firework. Expected: the placement or door works as usual and a firework
+launches only on an intended use (gliding, or a block target with nothing
+else to do there; FAKE-OFFHAND.md). First find the reproduction: which
+blocks, held items and targets, singleplayer or server. Then check the order
+of the slot borrowing, the use-target decision and the right-click handling.
+
+### L-123 FreeCamera stretches the worn elytra on the inventory player model
+Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
+Status: open, not investigated; reproduction rate unknown.
+After flying around with FreeCamera, the elytra worn by the player's 3D model
+in the inventory screen draws flat and stretched long. The elytra slot icon
+is not affected. Whether pose, animation state or the render context left by
+FreeCamera causes it is unknown; collect reproduction conditions first.
+
 ### L-119 Fence gates show no icon in the shulker box preview
 Kind: Bug. Reported by the maintainer 2026-10-08.
 Status: open, not investigated.
@@ -327,6 +350,88 @@ included). Same source and cadence as the L-57 count (the client's actor
 list for the player's dimension, once a second). Dropped items count
 entities, not stack sizes; block entities are not actors. Open: a separate
 small panel or lines inside Debug View, sorting and how many identifiers.
+
+### L-124 Camera and player coordinates during FreeCamera
+Kind: Design. From use 2026-10-09 (maintainer's notes); not chosen for
+building yet.
+Status: open.
+During FreeCamera, Info HUD and Debug View show the body's coordinates.
+Knowing where the body is stays useful, so the camera's position is added,
+not swapped in: where there is room (Debug View first) show both Camera XYZ
+and Player XYZ, labeled. Open: how the compact Info HUD shows it (both lines,
+a switch, density-dependent), and which position facing, chunk and biome
+follow. Body-only values (health, inventory) never follow the camera.
+
+### L-125 Waypoints at the current position use the camera during FreeCamera
+Kind: Design. From use 2026-10-09 (maintainer's notes); not chosen for
+building yet.
+Status: open.
+Adding a waypoint "at the current position" during FreeCamera uses the body's
+position today. Proposed: during FreeCamera it uses the camera's position
+(the place the player went to look at), otherwise the body's; a position
+picked explicitly on the map wins. Separate from L-124 (what the HUD shows).
+Open: whether the prompt should show which position it uses, and the
+dimension when the camera and body could disagree.
+
+### L-126 Leave FreeCamera when the body takes damage (option)
+Kind: Design. From use 2026-10-09 (maintainer's notes); not chosen for
+building yet.
+Status: open.
+An option, **default off**, that ends FreeCamera and returns to the body's
+view when the body actually takes damage, so the player notices danger while
+looking elsewhere. Off keeps FreeCamera through damage as today. Open: what
+counts as damage (a health drop, not a hurt effect or a contact alone),
+whether small damage (hunger, poison) counts, and server behavior.
+
+### L-127 Inventory HUD and slot counter
+Kind: Design. From the maintainer's notes (2026-10-09); not chosen for
+building yet.
+Status: open.
+Show the inventory during play: a grid of icons with stack counts (the main
+27 slots, optionally with the hotbar, 36) and a compact counter of used and
+free slots (for example "12/36 used, 24 free"), each switched on and off on
+its own. Open: what the grid includes, layout and placement in the HUD
+layout editor. Icons share the special-item drawing problems of Shulker Box
+Preview (L-119, L-91).
+
+### L-128 Player list while a key is held
+Kind: Design. From the maintainer's notes and a user request ("tab for the
+player list", 2026-10-09); not chosen for building yet.
+Status: open.
+While a key is held, show the players currently in the world. Default key
+candidate Tab, freely rebindable through Lamium's key settings (never fixed);
+check conflicts with vanilla and Lamium keys. Names first; head icons or
+latency if the client has them. Source: the player list the server sends the
+client (`Level::getPlayerList()`, already read by the minimap), not the
+entities in render distance; do not guess missing data. Open: layout, wrap or
+scroll for many players, what singleplayer and different servers provide.
+
+### L-129 Villager trades of every level
+Kind: Research, then Design. From the maintainer's notes (2026-10-09); not
+chosen for building yet.
+Status: open.
+Show a level 1 villager's trades up to level 5, the locked ones marked and
+not usable. First find out whether the client receives the future trades at
+all: trace `UpdateTradePacket`, the trade NBT and the UI collection when the
+trade screen opens. If they are not sent, an exact client-only display is
+not possible and the idea is reconsidered. Open: fitting it into the vanilla
+trade screen without a separate feature.
+
+### L-130 Search recipes and items by English names too
+Kind: Research, then Design. Promoted by the maintainer 2026-10-09 from
+their notes; scope and release not decided.
+Status: open.
+Keep the game's display language but let recipe and item search also match
+English names. Candidate modes: Game language (vanilla), English, Both; the
+modes are a proposal, not a decision. First target: crafting screen and
+recipe book. Research first: where the search filters
+(`CraftingContainerManagerModel::setSearchString()` / `_filterByText()`, the
+OreUI recipe book search), whether the `en_US` names can be read
+(`I18n::getLocaleFor("en_US")`, item description ids) with resource packs,
+reload on language or pack change, and items whose description id does not
+match the shown name (potions, custom names). Prefer adding English matches
+at the filter over reimplementing the game's search. Open: UI, modes and
+furnace-type screens.
 
 ### L-59 Held placement style: vanilla, Java-like or fast
 Kind: Design done (discussion with the maintainer, 2026-09-28); Research
