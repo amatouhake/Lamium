@@ -442,7 +442,10 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    SchematicRegion also answers `getBrightness` 1. Checked: banners, signs
    and heads lit fully at night and underground; chests and beds stayed
    dark (they compute their light and pass it in), so the overload taking
-   a `BrightnessPair const&` is hooked the same way (not yet checked).
+   a `BrightnessPair const&` is hooked the same way: checked on `9e9178b`,
+   all block-entity ghosts lit as by day. Then: their light-blue outline
+   follows the block's own selection outline (`getOutline` through the
+   view) instead of the whole cell (not yet checked).
 
 C. Updates (after B1-B2, measure first, L-105):
 - Rebuild on block change events (a section and its six neighbors) instead

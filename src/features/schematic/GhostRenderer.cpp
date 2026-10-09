@@ -786,7 +786,16 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                         found != structure.blockEntities.end())
                         data = found->second;
                     out.entities.push_back({pos, expected, std::move(data)});
-                    outlines.push_back({boxLow, boxHigh, .35f, .85f, 1.f});
+                    // The block's own selection outline (chest, bed, banner...),
+                    // read through the view so the ghost is at the cell.
+                    AABB buffer;
+                    AABB const& shape = expected->getBlockType().getOutline(*expected, view, pos, buffer);
+                    glm::vec3 low{shape.min.x, shape.min.y, shape.min.z}, high{shape.max.x, shape.max.y, shape.max.z};
+                    glm::vec3 cell{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)};
+                    // Some outlines come relative to the cell.
+                    if (glm::any(glm::greaterThan(glm::abs(low - cell), glm::vec3{2.f}))) { low += cell; high += cell; }
+                    bool usable = glm::all(glm::greaterThan(high - low, glm::vec3{1e-3f})) && glm::all(glm::lessThan(high - low, glm::vec3{3.f}));
+                    outlines.push_back(usable ? Outline{low, high, .35f, .85f, 1.f} : Outline{boxLow, boxHigh, .35f, .85f, 1.f});
                     continue;
                 }
                 outlines.push_back({shapeLow, shapeHigh, .35f, .85f, 1.f});

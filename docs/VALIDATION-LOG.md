@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic block-entity ghosts at full brightness, B5 (2026-10-09)
+
+By the maintainer, local, `block-like` at night and underground. `b245aae`
+and `e6b6872` crashed the game at start inside the hook on
+`BlockSource::getLightColor` (reading its `Brightness` argument: passed by
+value in the game, by reference in this SDK's type). `c0cc930`, hooking
+only `getBrightnessPair`, started but changed nothing. `ae1716d` (hook on
+the position overload of `ActorShaderManager::setupShaderParameters`):
+banners, signs and heads lit as by day, chests and beds still dark.
+`9e9178b` (DLL SHA-256
+`044f3bf2b23d88955590b87b50b20fa0d4cb1a0631fce96d28be68c5f29f9359`, also
+the `BrightnessPair` overload): chests and beds lit as by day too; real
+chests and beds still follow the world's light; start and world entry
+fine. Not checked: looking straight down, Vibrant Visuals.
+
 ## L-93 Schematic waterlogging check, D (2026-10-09)
 
 By the maintainer, local, `56c9921` then `edbd7f5` (DLL SHA-256

@@ -699,7 +699,8 @@ blocks; previews: shallow real depth, water translucent, cut-out limits
 accepted); B4 block entity data (and Lamium saves keep it), **done and
 checked in game 2026-10-09**; D waterlogging in the check, **done and checked
 in game 2026-10-09**; left: C event-driven rebuilds (measure first, L-105)
-and B5's lighting check (block-entity ghosts follow the world's light).
+(B5's block-entity ghost lighting **done and checked 2026-10-09**; looking
+straight down and Vibrant Visuals stay on the check list).
 Reported 2026-10-09, not yet scheduled: in the Files/Check previews
 biome-tinted blocks (grass tops, leaves, vines) stay untinted gray, as they
 are tessellated above the build limit where no biome answers; candidates:
