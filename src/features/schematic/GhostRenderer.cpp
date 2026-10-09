@@ -72,6 +72,8 @@
 #include "mc/world/level/block/actor/BlockActor.h"
 #include "mc/world/level/block/actor/BlockActorRendererId.h"
 #include "mc/world/level/block/actor/VanillaBlockActorFactory.h"
+#include "mc/dataloadhelper/DefaultDataLoadHelper.h"
+#include "mc/world/level/ILevel.h"
 #include "mc/world/level/block/states/VanillaBlockStateTransformUtils.h"
 #include "mc/world/level/chunk/ChunkState.h"
 #include "mc/world/level/chunk/LevelChunk.h"
@@ -103,7 +105,9 @@ constexpr double drawDistance = 192;  // Sections farther than this are not buil
 constexpr float towardEye = overlay::depth::ghostPull; // Depth rules: overlay/Depth.h.
 
 struct Outline { glm::vec3 min, max; float r, g, b; };
-struct EntityCell { BlockPos pos; Block const* block; };
+// A ghost drawn by its block-entity renderer, with the file's block entity
+// data for it (bed color, skull type and rotation, sign text, banner).
+struct EntityCell { BlockPos pos; Block const* block; std::optional<nbt::Compound> data; };
 struct Section {
     glm::vec3 origin{};
     // faces: every render layer but the blended ones, drawn alpha-tested;
@@ -418,6 +422,22 @@ Resolved resolve(Structure const& structure, SavedPlacement const& placement) {
     return out;
 }
 
+// Loads the file's block entity data into a ghost's block actor: at its
+// world cell, a skull's rotation turned with the placement (bed parts and
+// standing banners and signs turn through their block states).
+void loadBlockEntity(BlockActor& actor, nbt::Compound data, BlockPos const& pos, Placement const& placement, BlockSource& region) {
+    data.set("x", {std::int32_t{pos.x}});
+    data.set("y", {std::int32_t{pos.y}});
+    data.set("z", {std::int32_t{pos.z}});
+    if (auto* rotation = data.find("Rotation"); rotation && rotation->as<float>())
+        data.set("Rotation", {toWorldYaw(*rotation->as<float>(), placement)});
+    nbt::Root root;
+    root.compound = std::move(data);
+    auto tag = CompoundTag::fromBinaryNbt(nbt::write(root));
+    if (!tag) return;
+    DefaultDataLoadHelper helper;
+    actor.load(region.getILevel(), *tag, helper);
+}
 bool blended(BlockRenderLayer layer) {
     return layer == BlockRenderLayer::RenderlayerBlend || layer == BlockRenderLayer::RenderlayerBlendToOpaque;
 }
@@ -741,7 +761,11 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 if (!meshed) {
                     // No block mesh: block entities draw through their renderer;
                     // others keep the outline alone.
-                    out.entities.push_back({pos, expected});
+                    std::optional<nbt::Compound> data;
+                    if (auto found = structure.blockEntities.find(structure.cell(local->x, local->y, local->z));
+                        found != structure.blockEntities.end())
+                        data = found->second;
+                    out.entities.push_back({pos, expected, std::move(data)});
                     outlines.push_back({boxLow, boxHigh, .35f, .85f, 1.f});
                     continue;
                 }
@@ -1883,9 +1907,13 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                 section.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section.lineVertices,
                     OffscreenCaptureDescription{}, nullptr);
         });
-        for (auto const& [pos, block] : section.entities) {
+        for (auto const& [pos, block, data] : section.entities) {
             auto& actor = actors[{pos.x, pos.y, pos.z, block}];
-            if (!actor) actor = VanillaBlockActorFactory::createBlockActor(pos, block->getBlockType());
+            if (!actor) {
+                actor = VanillaBlockActorFactory::createBlockActor(pos, block->getBlockType());
+                if (*actor && data) loadBlockEntity(**actor, *data, pos, snapshot.placements[static_cast<size_t>(std::get<0>(key))].placement.placement,
+                                                    region);
+            }
             auto* component = *actor ? (*actor)->_getRenderComponent() : nullptr;
             if (!component) continue;
             Vec3 renderPos{static_cast<float>(pos.x - camera.x), static_cast<float>(pos.y - camera.y), static_cast<float>(pos.z - camera.z)};

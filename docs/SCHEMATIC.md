@@ -407,6 +407,14 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).
+   Built 2026-10-09 (not yet checked in game): a ghost drawn by its
+   block-entity renderer keeps a copy of its cell's `block_entity_data`;
+   when its actor is created (`VanillaBlockActorFactory`), the data gets
+   the world cell as x/y/z, a `Rotation` float turned like entity facing
+   (`toWorldYaw`), and is loaded with `BlockActor::load` and a
+   `DefaultDataLoadHelper`. Only files that carry the data show it:
+   vanilla structure block exports do, Lamium's own area saves do not
+   (they store blocks, states and water only).
 5. Lighting regressions to keep in the check list: ghosts the same at
    night, underground and looking straight down; Vibrant Visuals uses its
    own material path or is named as unsupported.
