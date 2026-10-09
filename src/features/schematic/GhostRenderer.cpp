@@ -34,6 +34,7 @@
 #include "mc/client/renderer/blockactor/BlockActorRenderDispatcher.h"
 #include "mc/client/renderer/blockactor/MovingBlockActorRenderer.h"
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
+#include "mc/client/renderer/game/LevelRendererCamera.h"
 #include "mc/client/renderer/ptexture/LightTexture.h"
 #include "mc/deps/core/math/Color.h"
 #include "mc/deps/core_graphics/enums/PrimitiveMode.h"
@@ -784,9 +785,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 auto const& d = faces::offsets[side];
                 return sameAt(cell, side, m.g) || ghostBoxAt(region, shown, blocks, {at.x + d[0], at.y + d[1], at.z + d[2]});
             };
-            BlockPos atPos{at.x, at.y, at.z};
-            Block const& real = region.getBlock(atPos);
-            if (!white || blended(real.getBlockType().getRenderLayer(real, region, atPos))) {
+            if (!white) {
                 quads.color(m.r, m.g, m.b, .3f);
                 glm::vec3 a = m.min - glm::vec3{.01f} - out.origin, b = m.max + glm::vec3{.01f} - out.origin, c[8];
                 for (int i = 0; i < 8; ++i) c[i] = {i & 1 ? b.x : a.x, i & 2 ? b.y : a.y, i & 4 ? b.z : a.z};
@@ -1807,15 +1806,14 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     stepProgress(region, snapshot, dimension);
 
     // Draw: alpha-tested ghost faces (empty texels let water and glass show
-    // through), then outlines, then block-entity models; blended ghosts
-    // last, sections far to near.
+    // through), then outlines, then block-entity models. Blended ghosts,
+    // liquids and mistake marks are drawn later (drawBlended).
     auto& dispatcher = client.getBlockEntityRenderDispatcher();
     auto* moving = static_cast<MovingBlockActorRenderer*>(dispatcher.mRenderers.get()[BlockActorRendererId::MovingBlock].get());
     if (!moving) return;
     mce::TexturePtr const& atlas = moving->mAtlasTexture.get();
     auto* lightTexture = client.getLightTexture();
     mce::MaterialPtr const& faces = moving->mBlockMaterials[static_cast<int>(BlockRenderLayer::RenderlayerAlphatest)].get();
-    mce::MaterialPtr const& blendFaces = moving->mBlockMaterials[static_cast<int>(BlockRenderLayer::RenderlayerBlend)].get();
     auto fullBright = [&] {
         BrightnessPair full;
         full.sky->mValue = 15;
@@ -1823,7 +1821,6 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         ActorShaderManager::setupShaderParameters(screen, region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture,
             Vec2{1, 1}, Vec4{0, 0, 1, 1});
     };
-    std::vector<std::pair<float, Section const*>> blendedSections;
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
     // Vertex-colored and blended without depth writes, as shape faces use in Fancy graphics.
     mce::MaterialPtr markMaterial(mce::RenderMaterialGroup::switchable(), HashedString{"holo_hand_pointer"});
@@ -1844,10 +1841,6 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                 section.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, section.lineVertices,
                     OffscreenCaptureDescription{}, nullptr);
         });
-        if (section.blend) {
-            glm::vec3 center = offset + glm::vec3(sectionSize / 2.f);
-            blendedSections.push_back({glm::dot(center, center), &section});
-        }
         for (auto const& [pos, block] : section.entities) {
             auto& actor = actors[{pos.x, pos.y, pos.z, block}];
             if (!actor) actor = VanillaBlockActorFactory::createBlockActor(pos, block->getBlockType());
@@ -1856,17 +1849,6 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             Vec3 renderPos{static_cast<float>(pos.x - camera.x), static_cast<float>(pos.y - camera.y), static_cast<float>(pos.z - camera.z)};
             mce::MaterialPtr none(mce::RenderMaterialGroup::common(), HashedString{"lamium_no_forced_material"});
             dispatcher.render(context, region, *component, *block, renderPos, pos, false, none, nullptr, 0, std::nullopt);
-        }
-    }
-    if (blendFaces.mRenderMaterialInfoPtr && lightTexture) {
-        std::sort(blendedSections.begin(), blendedSections.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
-        for (auto const& [distance, section] : blendedSections) {
-            glm::vec3 offset{static_cast<float>(section->origin.x - camera.x), static_cast<float>(section->origin.y - camera.y),
-                             static_cast<float>(section->origin.z - camera.z)};
-            translated(screen, offset, [&] {
-                fullBright();
-                section->blend->renderMesh(screen, blendFaces, texture, 0, section->blendVertices, OffscreenCaptureDescription{}, nullptr);
-            });
         }
     }
     drawPlacementFrames(screen, snapshot, dimension, camera);
@@ -1923,9 +1905,74 @@ void drawPoint(ScreenContext& screen, Vec3 const& camera) {
     translated(screen, offset, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
 }
 
+// The blended meshes (stained glass, honey, slime, liquids, mistake marks),
+// sections far to near, in the block entities' alpha pass: after the
+// world's own translucent blocks, so those are not lost behind a ghost's
+// depth, and without depth writes (a beacon beam's material), so one
+// sorted mesh decides what lies over what. Drawn as separate passes before,
+// marks and blended ghosts swapped order from frame to frame.
+std::uint64_t ghostFrame = 0, blendedFrame = 0;
+void drawBlended(BaseActorRenderContext& context) {
+    if (sections.empty() || !context.mImpl || blendedFrame == ghostFrame) return;
+    blendedFrame = ghostFrame;
+    IClientInstance& client = context.mClientInstance;
+    auto* player = client.getLocalPlayer();
+    auto* lightTexture = client.getLightTexture();
+    auto& dispatcher = client.getBlockEntityRenderDispatcher();
+    auto* moving = static_cast<MovingBlockActorRenderer*>(dispatcher.mRenderers.get()[BlockActorRendererId::MovingBlock].get());
+    if (!player || !lightTexture || !moving) return;
+    mce::MaterialPtr material(mce::RenderMaterialGroup::switchable(), HashedString{"beacon_beam_transparent"});
+    if (!material.mRenderMaterialInfoPtr) material = mce::MaterialPtr(mce::RenderMaterialGroup::common(), HashedString{"beacon_beam_transparent"});
+    static bool named = false;
+    if (!std::exchange(named, true)) log(material.mRenderMaterialInfoPtr ? "blended ghosts use beacon_beam_transparent" : "beacon_beam_transparent not found");
+    if (!material.mRenderMaterialInfoPtr) return;
+    ScreenContext& screen = context.mScreenContext;
+    Vec3 const camera = context.mImpl->mCameraPosition;
+    auto& region = player->getDimensionBlockSource();
+    std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
+    std::vector<std::pair<double, Section const*>> order;
+    for (auto const& [key, section] : sections) {
+        if (!section.blend) continue;
+        double cx = section.origin.x + sectionSize / 2. - camera.x, cy = section.origin.y + sectionSize / 2. - camera.y,
+               cz = section.origin.z + sectionSize / 2. - camera.z;
+        order.push_back({cx * cx + cy * cy + cz * cz, &section});
+    }
+    std::sort(order.begin(), order.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
+    for (auto const& [distance, section] : order) {
+        glm::vec3 offset{static_cast<float>(section->origin.x - camera.x), static_cast<float>(section->origin.y - camera.y),
+                         static_cast<float>(section->origin.z - camera.z)};
+        translated(screen, offset, [&] {
+            BrightnessPair full;
+            full.sky->mValue = 15;
+            full.block->mValue = 15;
+            ActorShaderManager::setupShaderParameters(screen, region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture,
+                Vec2{1, 1}, Vec4{0, 0, 1, 1});
+            section->blend->renderMesh(screen, material, texture, 0, section->blendVertices, OffscreenCaptureDescription{}, nullptr);
+        });
+    }
+}
+// Calls of the alpha pass per ghost frame, logged once (spike: is it once a frame?).
+int alphaCalls = 0;
+
+LL_TYPE_INSTANCE_HOOK(GhostBlendPass, ll::memory::HookPriority::Normal, LevelRendererCamera,
+    &LevelRendererCamera::$renderBlockEntities, void, BaseActorRenderContext& context, bool renderAlphaLayer) {
+    origin(context, renderAlphaLayer);
+    if (!renderAlphaLayer) return;
+    ++alphaCalls;
+    auto& runtime = Runtime::instance();
+    if (!runtime.enabled() || !runtime.snapshot()->schematic.enabled) return;
+    try {
+        drawBlended(context);
+    } catch (std::exception const& error) {
+        static bool reported = false;
+        if (!std::exchange(reported, true)) log(std::string("drawing blended ghosts failed: ") + error.what());
+    }
+}
+
 LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::$renderEntityEffects, void, BaseActorRenderContext& context) {
     origin(context);
+    if (++ghostFrame == 600) log(std::format("block entity alpha pass ran {} times in 600 frames", alphaCalls));
     auto& runtime = Runtime::instance();
     if (releaseRequested.exchange(false)) { release(); stopSave(); }
     if (!runtime.enabled() || !runtime.snapshot()->schematic.enabled || !context.mImpl) {
@@ -2170,6 +2217,7 @@ void start() {
     if (installed) return;
     installed = GhostPass::hook(true) == 0;
     if (!installed) throw std::runtime_error("Could not install the schematic ghost pass");
+    if (GhostBlendPass::hook(true) != 0) log("could not install the blended ghost pass");
     exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
         [](auto&) { releaseRequested = true; items::forget(); selection::clear(); });
 }
@@ -2178,6 +2226,7 @@ void stop() {
         ll::event::EventBus::getInstance().removeListener(exitListener);
         exitListener.reset();
     }
+    GhostBlendPass::unhook(true);
     if (installed && GhostPass::unhook(true)) installed = false;
     releaseRequested = true;
 }
