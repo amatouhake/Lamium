@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic block entity data, B4 (2026-10-09)
+
+By the maintainer, local, `79198e1` then `438e24a` (DLL SHA-256
+`4879826ce38a8baf1ea7bbf57c862df66f4b21dbfbddeb01f321ab3119a30e22`), the
+vanilla export `block-like` (banners standing and on a wall, six head
+kinds at angles, colored beds, standing, wall and hanging signs with text,
+chests). On `79198e1` beds and signs showed color, text and angle; banners
+the pattern but the wrong mount and facing; heads nothing. On `438e24a`:
+banners mounted and facing right, every head kind drawn and turned right,
+also rotated, mirrored and both; beds and signs unchanged. A copy of the
+same things saved by Lamium and placed as ghosts looks the same as that
+save loaded by a structure block (colors, text, patterns). The structure
+block itself breaks signs and banners with nothing to stand on, and
+handles beds with one half missing on its own way (top half only: drawn
+whole without the lower half's collision; lower half only: not drawn).
+Not seen: a container's items, the "cushion" color the maintainer
+mentioned on `79198e1` (not identified).
+
 ## L-93 Schematic preview translucency, closed (2026-10-09)
 
 By the maintainer, local, `fe82509` (DLL SHA-256

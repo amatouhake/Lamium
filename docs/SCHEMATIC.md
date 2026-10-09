@@ -425,6 +425,8 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    context, as the client knows it: a container's items only if synced).
    Reported, unclear: a "cushion" whose color is wrong. Vanilla exports
    leave a bed's or door's other half blank (outside the area).
+   Checked on `438e24a` (VALIDATION-LOG): banners and heads right, also
+   turned and mirrored; Lamium saves carry the data. B4 done.
 5. Lighting regressions to keep in the check list: ghosts the same at
    night, underground and looking straight down; Vibrant Visuals uses its
    own material path or is named as unsupported.
