@@ -2045,8 +2045,9 @@ bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos con
         }
         any = true;
         // Texture slots follow the faces: 0 down, 1 up (still), 2-5 the
-        // sides (flowing). A sloped top flows: the flowing texture, turned
-        // downhill and sampled from its middle half, as the game draws it.
+        // sides (flowing). A sloped top flows: the flowing texture turned
+        // downhill, one texture per block (scaled down only as far as a
+        // diagonal turn needs to stay inside its atlas cell).
         bool flows = side == 3 && std::hypot(downhill.x, downhill.y) > 1e-4f;
         TextureUVCoordinateSet const& own = liquidGraphics->getTexture(side == 2 ? 0 : side == 3 && !flows ? 1 : 2, 0);
         for (size_t k = 0; k < 4; ++k) {
@@ -2061,8 +2062,9 @@ bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos con
                 // The texture's v axis along the flow.
                 glm::vec2 along = glm::normalize(downhill), across{-along.y, along.x};
                 glm::vec2 offset{fx - .5f, fz - .5f};
-                u = .5f + glm::dot(offset, across) * .5f;
-                w = .5f + glm::dot(offset, along) * .5f;
+                float fit = 1.f / (std::abs(along.x) + std::abs(along.y));
+                u = .5f + glm::dot(offset, across) * fit;
+                w = .5f + glm::dot(offset, along) * fit;
             } else {
                 float du = cube._u1 - cube._u0, dv = cube._v1 - cube._v0;
                 u = du != 0 ? (uvs[q + k].x - cube._u0) / du : 0;
