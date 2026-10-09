@@ -83,34 +83,27 @@ L-item wins. Every entry names what the task is, not only its number.
      recipes/items by English names while playing in another language.
    - Bug: L-123 elytra stretched on the inventory model after FreeCamera
      (repro known).
-2. **Schematic screen review — L-93 step 1** (decided 2026-10-08): placement
-   frames, Placed/Files/Check/Materials list changes, chest/stack amounts,
-   missing items and the ResourceCalculator button, entity ghosts as outline
-   and faces. Then the research items L-114 3D previews, L-115 entity models,
-   L-116 raw materials from the game's recipes.
-3. **Before the next release or 0.2.0 — L-111 integration between
-   features:** the agent drafts a proposal; the maintainer decides scope,
-   risks and order.
-4. **Placement and breaking — L-15 restrictions and L-59 held placement
-   style:** L-15 breaking built and checked; the restriction plan is reopened
-   for Design before placement. L-59 waits for the maintainer's go.
-5. **Map — L-60 minimap, waypoints and world map:**
-   core built and checked locally and on an external BDS. Runs in parallel
-   with the small/medium features; neither ranks above the other. Open:
-   waypoint server storage checks and L-86 radar-face follow-ups. Details
-   are in the L-item and MAP.md.
-6. **Schematic — L-93 load, place, project, verify and list materials:**
-   included in 0.1.7 and checked locally. Choose the next accepted follow-up
-   with the maintainer; the L-item lists them and SCHEMATIC.md retains the
-   contract and build record. Server/broader coverage remains open.
-7. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
+2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
+   rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
+   mistake look and see-through emphasis, L-115 entity models beyond the
+   light-blue compromise (real skins, details such as cushion colors),
+   L-116 raw materials from the game's recipes, L-117 Japanese name tags.
+   Choose with the maintainer; SCHEMATIC.md retains the contract and build
+   record. Server/broader coverage remains open.
+3. **Placement and breaking — L-15 restrictions and L-59 held placement
+   style:** L-15 breaking shipped in 0.1.8; the maintainer will redesign
+   it, and placement waits for that Design. L-59 waits for the maintainer's
+   go.
+4. **L-111 integration between features:** proposal in INTEGRATION.md;
+   the maintainer reviews it when it becomes needed.
+5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
-   trace/test steps), L-71 starting a glide from the mod, L-57
-   client counters, L-30 Ender Dragon part hitboxes, L-33 mob growth and
+   trace/test steps), L-71 starting a glide from the mod, L-30 Ender Dragon
+   part hitboxes, L-33 mob growth and
    breeding timers, L-96 Connected Textures (glass first; step 1 is the
    tessellator spike), L-105 performance profiling (measure before any
    optimization).
-8. **Before a release:** the pre-release checks below. 0.1.8 was released
+6. **Before a release:** the pre-release checks below. 0.1.8 was released
    on 2026-10-10; server checks stay listed below as known gaps (Release policy does not require a full
    regression).
 
@@ -304,22 +297,14 @@ signs, beds...) do too, then compare with how the inventory slot draws the
 same item (see also L-91 for icons that differ from vanilla slots).
 
 ### L-117 Schematic entity name tags render badly in Japanese
-Kind: Bug. Reported by the maintainer 2026-10-08 (L-93 checks); present
-before the step 1 changes.
-Status: mostly fixed 2026-10-08 (`47534d7`, checked in game); the rest is
-accepted for now. World name tags stay only over entities drawn as dashed
-frames (no model, L-115). Japanese glyphs come from glyph sheet 48 (type 3,
-scale 1.333): the plate is now measured per glyph at its sheet's scale, and
-non-ASCII sheets keep the font's own material with text constants scaled to
-the on-screen size of a font pixel, so the colored fringes are gone. Left:
-Japanese text draws dark gray instead of white (a white dark color brought
-the fringes back). Maintainer: acceptable for now, looks less like a bug.
-The world name tags over missing schematic entities show colored fringes and
-look broken with the Japanese locale (screenshot in the conversation). They
-are drawn in `GhostRenderer.cpp` `drawNameTags` with the "default" font and
-the game's name tag materials. Starting points: compare with how vanilla
-draws a named entity's tag in Japanese (font type, glyph texture filtering,
-the text material) and with Lamium's waypoint labels in the world.
+Kind: Bug, low priority. Reported by the maintainer 2026-10-08 (L-93 checks).
+Status: partly fixed (`47534d7`, checked in game 2026-10-08): the colored
+fringes are gone. Not solved: Japanese text in these tags draws dark gray
+instead of white; a white dark color brought the fringes back. The
+maintainer accepts it for now but keeps the item open. World name tags
+appear only over entities drawn as dashed frames (no model, L-115); they are
+drawn in `GhostRenderer.cpp` `drawNameTags` (Japanese glyphs from sheet 48,
+type 3, scale 1.333, with the font's own material).
 
 ---
 
@@ -479,10 +464,9 @@ github.com/squeeglii/BridgingMod/issues/13.
    restriction once that exists.
 
 ### L-15 Breaking and placement restrictions
-Kind: Design done (discussion with the maintainer, 2026-09-28); breaking is
-then Ready **(strong model)**, placement needs Research first. Replaces the
-current Breaking Restriction (capture/reset keys) and the unimplemented
-placement mode.
+Kind: Design (reopened). Breaking shipped in 0.1.8 and will be redesigned;
+placement waits for that Design and then needs Research. The 2026-09-28
+plan below replaced the old Breaking Restriction (capture/reset keys).
 Status: step 1 (breaking) built 2026-10-07 with L-73 step 13 and checked in
 game 2026-10-08 (VALIDATION-LOG). Implementation notes: RESTRICTIONS.md.
 Shipped in 0.1.8; the maintainer is not yet satisfied with it and expects to
@@ -688,22 +672,6 @@ start-glide auth input action, equipment sync) and whether the client can
 start a glide right after the swap. No faked flags or packets: only a
 vanilla path that the server accepts.
 
-### L-60 Map: minimap, waypoints and world map (experimental)
-Kind: Design completed; implementation built. Remaining work is validation
-and the separately listed radar follow-ups.
-Status: minimap, radar, waypoints and world map built and checked locally
-(2026-10-01); minimap/radar/world map also checked on an external BDS with a
-large explored area (2026-10-02). L-89 distant players and L-104 map
-follow-ups are done.
-Requirements, technical notes and the retained decision/build record:
-[MAP.md](MAP.md). Runtime coverage: [VALIDATION.md](VALIDATION.md).
-Open:
-- Waypoint storage per server address/port: in-game validation.
-- L-86 radar-face follow-ups (Later / parked).
-- Dedicated-server/release coverage for distant players and server checks
-  of L-104: see Pre-release checks.
-Seed-based terrain, biomes and structures remain a non-goal (L-82).
-
 ### L-93 Schematic: load, place, project, verify and list materials (experimental)
 Kind: First scope completed; follow-ups are Ready **(strong model)** or
 Research where a new renderer path or behavior needs investigation.
@@ -743,7 +711,9 @@ mockup", mock `docs/demos/schematic-screen.html`). Work order:
    chest/stack amounts, missing items as slots and the ResourceCalculator
    button; entity ghosts as light-blue outline and faces, name tags without
    limits.
-   Built 2026-10-08, not yet checked in game: placement frames (`273fb39`),
+   Built 2026-10-08 and checked in game the same day (VALIDATION-LOG "L-93
+   screen review step 1" and "refinements"); shipped in 0.1.8. Commits:
+   placement frames (`273fb39`),
    the Placed progress column and selection bar, Files folders and columns
    (`e183d46`), Check filter counts and differing states (`926c9f6`),
    Materials sections, HUD switch, chest amounts, missing slots and the
@@ -808,32 +778,6 @@ Deeper map integration (toggling and editing placements from the map) is
 part of L-111. Runtime
 gaps stay under Pre-release checks and VALIDATION.
 
-### L-57 Client info counters
-Kind: Research. Split from L-53 on 2026-09-27 (wave 2).
-Status: first version built 2026-10-08 and checked in game the same day
-(local; servers unchecked). Debug View
-shows one line after the fps line, read once a second (`ClientCounters.cpp`;
-line model in `DebugLines.h`, tested): entities = `Level::getRuntimeActorList`
-filtered to the player's dimension; chunks = the size of the dimension chunk
-source's `getStorage()` map (never walked, other threads fill it); particles
-= the sum of `ParticleEngine::particleCount` plus
-`ParticleSystemEngine::mTotalParticleCount`. Each count fails open (left out).
-The help text names what stays out. In game, check that the numbers are
-plausible (entities against what is around, chunks against render distance,
-particles rising with rain/torches/explosions), in a local world and on a
-server, and that the frame time does not change.
-- Candidate lines: loaded entity count, loaded chunk count and particle
-  count. The SDK exposes `Level::getRuntimeActorList()` and
-  `Level::getEntities()`, chunk tracking under `LevelChunkViewTracker`, and
-  `ParticleEngine`'s per-type `particleCount`; it is not yet known what each
-  returns on the client (whole level vs. focused dimension, cost per frame).
-- Establish what one cheap call gives, then decide the lines and their read
-  cadence (not per frame if expensive). Keep it read-only.
-- Not available on the Bedrock client and must stay out: slime chunk (no
-  seed), server TPS/mob caps, Java heap memory, region files, chunk
-  section/update stats, the effect list and local difficulty. Record this in
-  the help text where users would look for them.
-
 ### L-30 Ender Dragon multipart hitboxes on Bedrock
 Status: research.
 The maintainer wants the hitbox overlay to distinguish the dragon's damageable
@@ -875,24 +819,15 @@ breeding cooldown. The client SDK has `AgeableComponent::mAge` and
 Estimating from observed events (feeding speeds growth up) is not accurate
 enough to show as a time.
 
-### L-112 Readable block state names in the target card
-Kind: Ready. Chosen 2026-10-08 with the L-93 target-card redesign.
-Status: built 2026-10-08 (`interpretBlockState`, tested) and checked in game
-the same day (stairs, trapdoors, slabs, logs, doors). Other blocks with
-directions stay raw until named. Text directions (cardinal, facing, block face) now show translated
-direction names instead of the raw English word.
-Show common block states by name instead of their internal keys and values,
-for the card's own state rows and the schematic differences: stairs facing
-(`weirdo_direction`), upside down (`upside_down_bit`), slab half
-(`minecraft:vertical_half`, `top_slot_bit`), axis (`pillar_axis`),
-trapdoor facing (`direction`), alongside the existing facing, open, half and
-hinge rows. Unknown states keep their internal name and value. The value
-mappings come from the game's documented state values; each new one is
-checked in game against the block's look before it counts as verified.
-
 ### L-114 3D previews in the schematic screen
 Kind: Research **(strong model)**. Chosen 2026-10-08 (L-93 screen review).
-Status: Files preview built and checked in game 2026-10-08 (`f2fbf49`);
+Status: open for the Check tab. The Files preview and the Check tab's
+colored preview are built, checked and shipped in 0.1.8. Not done: the Check
+tab preview's mistake look and see-through emphasis (decided in the Check
+tab review below, then deferred to the 0.1.8 rendering work, which shipped
+without them), plus moving the zoomed view and drawing entities, water and
+block entities in the previews.
+History: Files preview built and checked in game 2026-10-08 (`f2fbf49`);
 Check tab colored preview built and checked (`1c0b8bc`). Check tab review
 decided 2026-10-08 (SCHEMATIC.md "Check tab review"): layout A, chips drive
 the preview, wheel zoom, layers in the preview; the mistake look and
@@ -925,9 +860,11 @@ report after two runtime rounds without a working path.
 
 ### L-115 Entity ghosts drawn as models
 Kind: Research **(strong model)**. Chosen 2026-10-08 (L-93 screen review).
-Status: built and checked in game 2026-10-08 (`EntityModels.cpp`, rounds on
-trace builds up to `ef9bc54`); move to BACKLOG-DONE when the known limits
-below are accepted or split off.
+Status: open. A first version is built, checked in game 2026-10-08
+(`EntityModels.cpp`, rounds on trace builds up to `ef9bc54`) and shipped in
+0.1.8, but it is a compromise (maintainer 2026-10-10): many entities draw
+light-blue faces instead of their skin, and details such as cushion
+colors are not drawn. Known limits are listed below.
 Draw missing schematic entities as their models with the light-blue outline,
 not translucent, without a live entity.
 
@@ -1018,66 +955,6 @@ Status: agent's proposal written 2026-10-08 in [INTEGRATION.md](INTEGRATION.md)
 (shared parts features register into: face drawing, map layers, a Lamium
 radial menu, looked-at selection, settings cross-links; suggested order and
 open questions). Waiting for the maintainer.
-
-### L-109 Restore the death-time hotbar and inventory layout on pickup
-Kind: Design decided 2026-10-08, then Ready **(strong model)**. Idea from the
-maintainer 2026-10-07; chosen for building 2026-10-08.
-Status: built 2026-10-08 (default off, Experimental); checked in game the
-same day except two failures, fixed after (VALIDATION-LOG): rejoining read
-the player as not alive and dropped the layout (now `LifeWatch`: only a
-player seen alive in the world can die), and removing the death point
-before the first pickup went unnoticed (now watched every tick). Restore
-scope (maintainer, 2026-10-08): the hotbar, armor and offhand by default; a
-switch "Also restore the inventory" (off) adds the rest, which takes a
-while. A hotbar-only choice was dropped as unneeded, and the two-choice
-setting ("Hotbar & equipment" / "Everything", checked on `89950fc`) became
-the switch because the English value was cut off and read awkwardly. The
-fixes passed the recheck on `1bd1102`. Planner `DeathLayout.h` (one move at a time: swap, or move part of a
-stack; equipment never emptied; tested, including 2000 random inventories
-for termination and conservation), document `DeathLayoutStore.cpp`
-(`death-layout.json` beside the waypoints), glue `DeathRestore.cpp`: the
-inventory is snapshotted every tick while alive and the last one becomes the
-layout on death; a pickup of a layout item arms a run that starts 1 s after
-the last pickup, moves every 250 ms in gameplay only, re-reads the inventory
-before each move, and stops after the same move three times or 100 moves
-until the next pickup. Known risk: with instant respawn the inventory may
-still read full at respawn and be taken for keepInventory.
-When the player picks up the items dropped at their death point, rearrange the
-inventory to be as close as possible to the layout at death: the same items
-back in the same hotbar, inventory, armor and offhand slots. When the feature
-is on, the rearrangement runs automatically.
-Requirements stated by the maintainer:
-- Never drop or destroy an item. Anything that cannot go back to its old slot
-  stays in the inventory.
-- Items picked up since death and items that were lost (burned, despawned,
-  taken by others) are handled by priorities so the result looks close to the
-  original to a person, not only by slot count.
-Decided 2026-10-08 (agent's proposal, maintainer chose the trigger and armor):
-- Trigger: automatic. After an item pickup, once about one second passes
-  without another pickup, rearrange; later pickups trigger again.
-- Lifetime (corrected by the maintainer 2026-10-08): no real-time expiry.
-  Dropped items despawn only while their chunk is loaded and ticking, so a
-  long trip back must still restore. The death layout lasts until the next
-  death, until everything in it is back, or until the death point is
-  removed; it is saved per world with the death point, so it survives
-  leaving and rejoining.
-- Order: armor and offhand, then hotbar, then the main inventory, each back
-  in its death-time slot. Armor is put back on; a slot already wearing
-  something else is left alone.
-- Matching: the same item with the same enchantments and durability first,
-  otherwise the same item. A stack goes back up to its death-time count.
-- Items gained since death stay where they are unless they block a target
-  slot; then they move to a free slot. Nothing is ever dropped or destroyed;
-  a move that needs a free slot and finds none is skipped.
-- keepInventory: if the inventory is not empty at respawn, that death is not
-  restored.
-- Servers: a bounded number of moves per tick, each confirmed from the
-  authoritative inventory before the next.
-- Default off, Experimental.
-Builds on the death-point tracking in L-60 (waypoints) and the inventory
-transaction path used by inventory transfer (DESIGN.md "Inventory transfer").
-Rearrangements must be confirmed from the authoritative inventory, never
-from sent transactions (DESIGN.md Engineering behavior).
 
 ### L-105 Performance: find the real bottleneck before optimizing
 Kind: Research **(strong model)**. Chosen by the maintainer 2026-10-07 from

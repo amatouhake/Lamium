@@ -148,6 +148,125 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-60 Map: minimap, waypoints and world map (experimental)
+Kind: Design completed; implementation built. Remaining work is validation
+and the separately listed radar follow-ups.
+Status: done 2026-10-10 (maintainer: the remaining checks, including
+waypoint storage per server, are fine). L-86 stays under Later / parked.
+History: minimap, radar, waypoints and world map built and checked locally
+(2026-10-01); minimap/radar/world map also checked on an external BDS with a
+large explored area (2026-10-02). L-89 distant players and L-104 map
+follow-ups are done.
+Requirements, technical notes and the retained decision/build record:
+[MAP.md](MAP.md). Runtime coverage: [VALIDATION.md](VALIDATION.md).
+Open:
+- Waypoint storage per server address/port: in-game validation.
+- L-86 radar-face follow-ups (Later / parked).
+- Dedicated-server/release coverage for distant players and server checks
+  of L-104: see Pre-release checks.
+Seed-based terrain, biomes and structures remain a non-goal (L-82).
+
+### L-57 Client info counters
+Kind: Research, then built. Split from L-53 on 2026-09-27 (wave 2).
+Status: done. Built 2026-10-08 and checked in game the same day locally;
+the maintainer reported the server check fine on 2026-10-10. Debug View
+shows one line after the fps line, read once a second (`ClientCounters.cpp`;
+line model in `DebugLines.h`, tested): entities = `Level::getRuntimeActorList`
+filtered to the player's dimension; chunks = the size of the dimension chunk
+source's `getStorage()` map (never walked, other threads fill it); particles
+= the sum of `ParticleEngine::particleCount` plus
+`ParticleSystemEngine::mTotalParticleCount`. Each count fails open (left out).
+The help text names what stays out. In game, check that the numbers are
+plausible (entities against what is around, chunks against render distance,
+particles rising with rain/torches/explosions), in a local world and on a
+server, and that the frame time does not change.
+- Candidate lines: loaded entity count, loaded chunk count and particle
+  count. The SDK exposes `Level::getRuntimeActorList()` and
+  `Level::getEntities()`, chunk tracking under `LevelChunkViewTracker`, and
+  `ParticleEngine`'s per-type `particleCount`; it is not yet known what each
+  returns on the client (whole level vs. focused dimension, cost per frame).
+- Establish what one cheap call gives, then decide the lines and their read
+  cadence (not per frame if expensive). Keep it read-only.
+- Not available on the Bedrock client and must stay out: slime chunk (no
+  seed), server TPS/mob caps, Java heap memory, region files, chunk
+  section/update stats, the effect list and local difficulty. Record this in
+  the help text where users would look for them.
+
+### L-109 Restore the death-time hotbar and inventory layout on pickup
+Kind: Design decided 2026-10-08, then Ready **(strong model)**. Idea from the
+maintainer 2026-10-07; chosen for building 2026-10-08.
+Status: done; shipped in 0.1.8. Built 2026-10-08 (default off, Experimental); checked in game the
+same day except two failures, fixed after (VALIDATION-LOG): rejoining read
+the player as not alive and dropped the layout (now `LifeWatch`: only a
+player seen alive in the world can die), and removing the death point
+before the first pickup went unnoticed (now watched every tick). Restore
+scope (maintainer, 2026-10-08): the hotbar, armor and offhand by default; a
+switch "Also restore the inventory" (off) adds the rest, which takes a
+while. A hotbar-only choice was dropped as unneeded, and the two-choice
+setting ("Hotbar & equipment" / "Everything", checked on `89950fc`) became
+the switch because the English value was cut off and read awkwardly. The
+fixes passed the recheck on `1bd1102`. Planner `DeathLayout.h` (one move at a time: swap, or move part of a
+stack; equipment never emptied; tested, including 2000 random inventories
+for termination and conservation), document `DeathLayoutStore.cpp`
+(`death-layout.json` beside the waypoints), glue `DeathRestore.cpp`: the
+inventory is snapshotted every tick while alive and the last one becomes the
+layout on death; a pickup of a layout item arms a run that starts 1 s after
+the last pickup, moves every 250 ms in gameplay only, re-reads the inventory
+before each move, and stops after the same move three times or 100 moves
+until the next pickup. Known risk: with instant respawn the inventory may
+still read full at respawn and be taken for keepInventory.
+When the player picks up the items dropped at their death point, rearrange the
+inventory to be as close as possible to the layout at death: the same items
+back in the same hotbar, inventory, armor and offhand slots. When the feature
+is on, the rearrangement runs automatically.
+Requirements stated by the maintainer:
+- Never drop or destroy an item. Anything that cannot go back to its old slot
+  stays in the inventory.
+- Items picked up since death and items that were lost (burned, despawned,
+  taken by others) are handled by priorities so the result looks close to the
+  original to a person, not only by slot count.
+Decided 2026-10-08 (agent's proposal, maintainer chose the trigger and armor):
+- Trigger: automatic. After an item pickup, once about one second passes
+  without another pickup, rearrange; later pickups trigger again.
+- Lifetime (corrected by the maintainer 2026-10-08): no real-time expiry.
+  Dropped items despawn only while their chunk is loaded and ticking, so a
+  long trip back must still restore. The death layout lasts until the next
+  death, until everything in it is back, or until the death point is
+  removed; it is saved per world with the death point, so it survives
+  leaving and rejoining.
+- Order: armor and offhand, then hotbar, then the main inventory, each back
+  in its death-time slot. Armor is put back on; a slot already wearing
+  something else is left alone.
+- Matching: the same item with the same enchantments and durability first,
+  otherwise the same item. A stack goes back up to its death-time count.
+- Items gained since death stay where they are unless they block a target
+  slot; then they move to a free slot. Nothing is ever dropped or destroyed;
+  a move that needs a free slot and finds none is skipped.
+- keepInventory: if the inventory is not empty at respawn, that death is not
+  restored.
+- Servers: a bounded number of moves per tick, each confirmed from the
+  authoritative inventory before the next.
+- Default off, Experimental.
+Builds on the death-point tracking in L-60 (waypoints) and the inventory
+transaction path used by inventory transfer (DESIGN.md "Inventory transfer").
+Rearrangements must be confirmed from the authoritative inventory, never
+from sent transactions (DESIGN.md Engineering behavior).
+
+### L-112 Readable block state names in the target card
+Kind: Ready. Chosen 2026-10-08 with the L-93 target-card redesign.
+Status: done. Built 2026-10-08 (`interpretBlockState`, tested) and checked in game
+the same day (stairs, trapdoors, slabs, logs, doors). Other blocks with
+directions stay raw until named. Text directions (cardinal, facing, block face) now show translated
+direction names instead of the raw English word.
+Show common block states by name instead of their internal keys and values,
+for the card's own state rows and the schematic differences: stairs facing
+(`weirdo_direction`), upside down (`upside_down_bit`), slab half
+(`minecraft:vertical_half`, `top_slot_bit`), axis (`pillar_axis`),
+trapdoor facing (`direction`), alongside the existing facing, open, half and
+hinge rows. Unknown states keep their internal name and value. The value
+mappings come from the game's documented state values; each new one is
+checked in game against the block's look before it counts as verified.
+
 ### L-90 Simplified Chinese localization
 Kind: Design decided, then implementation. Chosen by the maintainer
 2026-10-02.

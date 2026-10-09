@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-57 counters and L-60 waypoints on a server (reported 2026-10-10)
+
+By the maintainer, reported in chat while tidying the backlog; build, hash
+and server not recorded. Debug View's entity, chunk and particle counts
+looked fine on a server (L-57). The map's remaining checks, including
+waypoint storage per server address and port, were fine (L-60). No details
+beyond "no problem" were given.
+
 ## 0.1.8 release smoke test (2026-10-10)
 
 By the maintainer, local, the 1.26.51.01 instance without LIP, on the DLL
