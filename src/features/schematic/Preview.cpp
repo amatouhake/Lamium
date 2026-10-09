@@ -107,12 +107,13 @@ struct Job {
     std::unique_ptr<BlockTessellator> blocks;
     std::unique_ptr<Tessellator> batch;
     bool failed = false; // too large or nothing to draw: not tried again
-    int height = 320;    // the dimension's build limit
-    // Where cells are tessellated across: around the player, above the build
-    // limit, so biome-tinted blocks (grass tops, leaves, vines, water) take
-    // the player's biome. Around the world origin no chunk answered and
-    // they stayed untinted gray.
-    int baseX = 0, baseZ = 0;
+    // Where cell (0, 0, 0) is tessellated: around the player at the top of
+    // the world, inside the build height, so biome-tinted blocks (grass
+    // tops, leaves, vines) take the player's biome. Above the build limit
+    // no biome answered and they stayed untinted gray; up there the sky
+    // light is full and the world is nearly always air. Builds taller than
+    // the world go above the limit as before.
+    int baseX = 0, baseY = 384, baseZ = 0;
     std::vector<bool> covers; // per palette entry: hides the faces it touches
     std::vector<std::uint32_t> quadCells;
     std::vector<bool> quadLiquid;
@@ -158,7 +159,10 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
         if (auto half = otherHalf(s.palette[i]); half && job->palette[i])
             if ((job->halves[i] = ghosts::gameBlock(half->block))) job->halfSteps[i] = half->step;
     }
-    job->height = region.getMaxHeight();
+    {
+        int top = region.getMaxHeight(), bottom = region.getMinHeight();
+        job->baseY = s.size.y <= top - bottom ? top - s.size.y : top + 64;
+    }
     job->baseX = baseX;
     job->baseZ = baseZ;
     // Blocks see the file's blocks as neighbors (doors, fences, panes),
@@ -171,7 +175,7 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
             && p.y == job->drawingAt.y + job->halfSteps[static_cast<size_t>(job->drawn)])
             return job->halves[static_cast<size_t>(job->drawn)];
         auto const& size = job->structure->size;
-        int x = p.x - job->baseX, y = p.y - (job->height + 64), z = p.z - job->baseZ;
+        int x = p.x - job->baseX, y = p.y - job->baseY, z = p.z - job->baseZ;
         if (x < 0 || y < 0 || z < 0 || x >= size.x || y >= size.y || z >= size.z) return nullptr;
         return blockAt(*job, x, y, z);
     };
@@ -304,10 +308,9 @@ bool step() {
         glm::vec3 at = glm::vec3(x, y, z) - center;
         size_t from = positions.size();
         // Tessellated as in the world (block states place slabs, trapdoors and
-        // grindstones; the item-style path did not), at a spot above the
-        // build limit so no real neighbor or light changes it, then moved to
-        // its cell.
-        BlockPos spot{j.baseX + x, j.height + 64 + y, j.baseZ + z};
+        // grindstones; the item-style path did not), at the top of the world
+        // above the player (see Job::baseY), then moved to its cell.
+        BlockPos spot{j.baseX + x, j.baseY + y, j.baseZ + z};
         static_cast<bool&>(batch.mApplyTransform) = false;
         j.drawn = s.blocks[static_cast<size_t>(cell)];
         j.drawingAt = spot;
