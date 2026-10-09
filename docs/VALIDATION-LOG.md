@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Waterlogged ghost stairs, crops and farmland beside water (2026-10-10)
+
+By the maintainer, local, the 1.26.51.01 instance without LIP. `62bff77`:
+water in waterlogged ghost stairs no longer shows through the stairs'
+covered sides; ghost beetroots no longer flicker; distance fog starts
+selected without saved settings. Left there: the pool inside the stairs
+still showed the flowing texture, and farmland beside schematic water
+flickered on its side. `b40c543` (DLL SHA-256
+`77a9f13dfb74295bf4ee6f32abd603b6ad77ef79dc44200db051cd6daca1d4d8`): the
+pool shows the still texture (its edge slope kept), a source at a drop
+still shows the flowing one, and the farmland side no longer flickers.
+
 ## L-122 Fake Offhand fireworks and L-118 distance fog (2026-10-09)
 
 By the maintainer, local, `34c3593` (DLL SHA-256

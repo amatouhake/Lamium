@@ -788,12 +788,13 @@ not drawn on sides its own ghost covers entirely (`sidesCovered`, area of
 the side's quads), and quads a ghost repeats (a face in both windings, as
 crop planes are suspected to be) are dropped.
 Checked 2026-10-10 on `62bff77`: no water through the stairs' sides, no
-beetroot flicker. Left then, built `b40c543`, not yet checked: the pool
+beetroot flicker. Left then, built `b40c543`: the pool
 inside waterlogged stairs still showed the flowing texture (the texture
 followed the slope; now it follows the flow, `liquids::flow`, tested: a
 still pool leaning toward its walls keeps the still texture, a source at a
 drop still flows); farmland beside schematic water flickered on its side
 (a water face is no longer drawn against a ghost face in the same plane).
+Both checked in game 2026-10-10 on `b40c543`.
 Vibrant Visuals (2026-10-09): lines and mistake/selection faces keep their
 colors there (done and checked); left, not scheduled: ghost faces untinted,
 the honey ghost black, line width (the structure block's outline is wider).
