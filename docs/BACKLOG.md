@@ -264,7 +264,14 @@ in bright and dark places, near light sources and on dense builds.
 
 ### L-122 Fake Offhand fires a firework when placing blocks or opening doors
 Kind: Bug, high priority. Reported from use 2026-10-09 (maintainer's notes).
-Status: open, not reproduced yet.
+Status: fix built 2026-10-09 (`77e698e`), not yet checked in game. Cause
+found in the code: with the right-click binding, the native click handler
+and the queued press both decided the same click. When the native handler
+let vanilla act (open a door, place the last block of a stack), the later
+queued press saw the changed world (aim through the opened door onto a
+plain block, an empty hand) and borrowed the firework too. Now the first
+of the two decides the click (`queuedPressDecides`, tested). If a firework
+still fires on a placement, note the held item and stack size.
 With a firework set as the Fake Offhand item, an action that is not meant to
 use it (placing a block, opening or closing a door) sometimes launches a
 firework. Expected: the placement or door works as usual and a firework
@@ -328,7 +335,16 @@ check stepper values, sliders, the key cells and the Info HUD lines.
 ### L-118 Hide distance fog
 Kind: Ready. Chosen for 0.1.8 (maintainer, 2026-10-08), from a user
 request ("no fog").
-Status: open.
+Status: built 2026-10-09 (`34c3593`), not yet checked in game. Child
+"Distance fog", **default off** (agent's choice, to confirm: it shows the
+render distance edge, and a master already on for rain would otherwise
+change the view after the update). After vanilla `setupFog`, the resolved
+`mCurrentDistanceFog` (416/512 blocks on land in the 2026-09-30 trace) moves
+to 16384/32768; vanilla's value is put back before the next setup so its
+blending is undisturbed. Applies only where no medium fog is shown (with
+Underwater fog hidden, under water too). Whether the renderer reads the
+value after setup is the open runtime question: if nothing changes, the
+fog constants are written inside setup and another route is needed.
 A new Hide effects child, "Distance fog", for the ordinary fog on land, in
 the Nether and the End. The existing underwater, lava and powder snow
 children stay separate, so either can be hidden alone. After vanilla
