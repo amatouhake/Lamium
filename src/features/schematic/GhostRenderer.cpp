@@ -47,6 +47,7 @@
 #include "mc/deps/minecraft_renderer/resources/OffscreenCaptureDescription.h"
 #include "mc/deps/minecraft_renderer/resources/ServerTexture.h"
 #include "mc/deps/nbt/CompoundTag.h"
+#include "mc/world/item/SaveContextFactory.h"
 #include "mc/deps/renderer/Camera.h"
 #include "mc/deps/renderer/MatrixStack.h"
 #include "mc/locale/I18n.h"
@@ -1305,6 +1306,18 @@ void stepSave(BlockSource& region, LocalPlayer& player) {
             job.builder.setBlock(cell, entry(block));
             Block const& extra = region.getExtraBlock(pos);
             if (!extra.isAir()) job.builder.setLiquid(cell, entry(extra));
+            // Block entity data as the client knows it (bed color, sign
+            // text, banner, skull; a container's items only if synced).
+            if (auto const* actor = region.getBlockEntity(pos)) {
+                CompoundTag tag;
+                if (auto context = SaveContextFactory::createCloneSaveContext(); context && actor->save(tag, *context)) {
+                    try {
+                        auto bytes = tag.toBinaryNbt();
+                        auto read = nbt::read({reinterpret_cast<std::uint8_t const*>(bytes.data()), bytes.size()});
+                        job.builder.setBlockEntity(cell, std::move(read.compound));
+                    } catch (...) {}
+                }
+            }
             ++job.done;
             wasRead = read + 1 >= cells;
         }

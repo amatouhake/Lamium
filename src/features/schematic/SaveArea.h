@@ -95,6 +95,8 @@ public:
         out.liquids[static_cast<size_t>(cell)] = paletteIndex(block);
     }
     void addEntity(EntityRecord entity) { out.entities.push_back(std::move(entity)); }
+    // A cell's block entity data (bed color, sign text, banner, skull).
+    void setBlockEntity(std::int32_t cell, nbt::Compound data) { out.blockEntities[cell] = std::move(data); }
     Structure const& structure() const { return out; }
 
 private:

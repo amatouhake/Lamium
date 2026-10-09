@@ -691,8 +691,22 @@ void liquidCorners() {
     auto lava = [](int dx, int dy, int dz) { return dy == 0 && dx == 0 && dz == 0 ? Cell{2, 0, false} : Cell{1, 0, false}; };
     check(near(liquids::corner(2, lava, 0, 0), 8.f / 9 * 10 / 13), "another liquid around counts as open, not as the same liquid");
 }
+void blockEntitySaves() {
+    StructureBuilder builder(Size{2, 1, 1}, Point{0, 0, 0});
+    nbt::Compound bed;
+    bed.set("id", {std::string("Bed")});
+    bed.set("color", {std::int8_t{13}});
+    builder.setBlockEntity(1, bed);
+    auto bytes = writeStructure(builder.structure());
+    auto back = parseStructure({reinterpret_cast<std::uint8_t const*>(bytes.data()), bytes.size()});
+    std::int64_t color = 0;
+    auto found = back.blockEntities.find(1);
+    check(found != back.blockEntities.end() && found->second.find("color") && found->second.find("color")->integer(color) && color == 13
+          && back.blockEntities.size() == 1, "a saved area keeps a cell's block entity data through write and read");
+}
 void schematicTests() {
     otherHalves();
+    blockEntitySaves();
     liquidCorners();
     verificationOrder();
     placementDocuments();
