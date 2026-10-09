@@ -140,7 +140,9 @@ unmet gates for versions already published:
   entity data, performance), L-114 3D previews, L-115 entity models, the
   screen review, map markers and target-card rows; L-118 distance fog
   (selected by default); L-109 death layout restore; L-15 step 1 breaking
-  (to be redesigned, maintainer 2026-10-10); L-122 Fake Offhand fireworks;
+  (to be redesigned, maintainer 2026-10-10); L-37 FreeCamera underground
+  terrain (landed after the 0.1.7 tag; added to the notes after
+  publishing); L-122 Fake Offhand fireworks;
   L-106/L-107 F1; L-108. The maintainer's smoke test passed on the
   release-ZIP DLL `1e2f4e6f...37ae55a2c`. No settings migration. After
   tagging: check that the registry PR picks up `v0.1.8` and that
