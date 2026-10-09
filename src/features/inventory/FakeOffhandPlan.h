@@ -97,6 +97,13 @@ inline bool undoesRestore(int before, int after, int borrowed, int previous, boo
     return recent && borrowed >= 0 && borrowed < 9 && previous >= 0 && previous < 9
         && borrowed != previous && before == previous && after == borrowed;
 }
+// A right-click activation is decided once, by whichever of the native handler
+// and the queued press comes first. A queued press after the native handler
+// would see the world that click already changed (an opened door, a placed
+// last block) and could fire the secondary item as well (L-122).
+inline bool queuedPressDecides(bool rightClickBinding, bool nativeDecided) {
+    return !rightClickBinding || !nativeDecided;
+}
 inline bool ownsInstantHold(int primary, int target, int selected, int configured, bool eligible) {
     return eligible && primary >= 0 && primary < 9 && target >= 0 && target < 9
         && primary != target && selected == primary && configured == target;

@@ -51,6 +51,9 @@ std::atomic_int targetSlot = 8;
 // Set from the window procedure as the dispatcher decides it, so a right-click
 // chord is already active when vanilla receives the same click.
 std::atomic_bool rightChordHeld = false;
+// The native right-click handler already decided this hold; vanilla may have
+// acted on it, so a later queued press must not decide again (L-122).
+std::atomic_bool nativeDecided = false;
 // A non-mouse trigger replays vanilla use edges; only the thread that sent
 // the down edge may send the matching up edge.
 std::atomic_bool synthetic = false;
@@ -395,7 +398,10 @@ void configure(Settings const& value) {
     enabled.store(value.inventory.fakeOffhand);
     targetSlot.store(value.inventory.fakeOffhandSlot - 1);
 }
-void rightChord(bool held) { rightChordHeld.store(held); }
+void rightChord(bool held) {
+    rightChordHeld.store(held);
+    if (!held) nativeDecided.store(false);
+}
 bool rightChordActive() { return rightChordHeld.load(); }
 bool instantPress(IClientInstance& client) noexcept {
     if (!enabled.load() || !rightChordHeld.load()) return false;
@@ -419,6 +425,7 @@ bool instantPress(IClientInstance& client) noexcept {
     }
 }
 void nativeDown(IClientInstance& client, std::function<void()> const& vanilla) {
+    if (enabled.load() && rightChordHeld.load()) nativeDecided.store(true);
     if (instantPress(client)) return;
     // Vanilla acts on the first press inside this handler, before any build
     // tick; e.g. an empty hand opens a chest even while sneaking. Borrow the
@@ -450,6 +457,10 @@ void press(IClientInstance& client) {
         traceChoice("press-already-held", client, -1, {}, false);
         return;
     }
+    if (!queuedPressDecides(endsOnRightClick(value), nativeDecided.load())) {
+        traceChoice("press-native-decided", client, -1, {}, false);
+        return;
+    }
     try {
         if (!Runtime::instance().enabled() || !client.getLocalPlayer() || !client.isInGameInputEnabled()
             || ui::ownsInput() || !gameplayScreen(client.getScreenName())) return;
@@ -468,6 +479,7 @@ void press(IClientInstance& client) {
     synthetic.store(interaction::periodic::sendUseEdge(client, true));
 }
 void release() {
+    nativeDecided.store(false);
     instantPrimary.store(-1);
     instantTarget.store(-1);
     if (!synthetic.exchange(false)) return;

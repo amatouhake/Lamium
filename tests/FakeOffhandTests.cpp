@@ -102,6 +102,11 @@ void fakeOffhandTests() {
             && !ownsInstantHold(0,invalid,0,invalid,true),
             "released and invalid slot identities cannot own a repeat session");
     }
+    using lamium::inventory::fakeOffhand::queuedPressDecides;
+    check(queuedPressDecides(true,false) && !queuedPressDecides(true,true),
+        "a queued right-click press decides only when the native handler has not yet");
+    check(queuedPressDecides(false,false) && queuedPressDecides(false,true),
+        "other activation bindings always decide in the queued press");
     check(!ownsInstantHold(8,8,8,8,true),
         "an ordinary selected target never becomes a borrowed repeat session");
     check(instantUseSlot(true,true,0,8,true,true,false,false,false) == 8,
