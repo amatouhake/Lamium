@@ -40,6 +40,7 @@
 #include "mc/world/level/block/actor/BlockActorRendererId.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
+#include <unordered_map>
 #include <limits>
 #include <array>
 #include <optional>
@@ -85,6 +86,7 @@ struct Kept {
     std::pair<glm::vec3, glm::vec3> aabb{};
     std::pair<glm::vec2, glm::vec2> uvAabb{};
     std::vector<std::uint32_t> quadCells; // the cell each quad belongs to
+    std::vector<bool> quadLiquid;         // whether each quad is a liquid's
     Cut cut;
 };
 Kept kept;
@@ -107,6 +109,7 @@ struct Job {
     int height = 320;    // the dimension's build limit
     std::vector<bool> covers; // per palette entry: hides the faces it touches
     std::vector<std::uint32_t> quadCells;
+    std::vector<bool> quadLiquid;
     Cut cut;
 };
 std::optional<Job> job;
@@ -225,17 +228,30 @@ void shade(Tessellator& batch) {
 // Blocks are ordered by their cell first and quads within a block by their
 // center: a large face's center can be nearer than a small block in front
 // of it (a trapdoor before a structure block drew behind it).
-// The kept quads near to far for a viewer in the order's octant (the UI
-// pass keeps the first fragment at a spot).
+// The kept quads near to far for a viewer in the order's octant.
 // Blocks are ordered by their cell first and quads within a block by their
 // center: a large face's center can be nearer than a small block in front
-// of it (a trapdoor before a structure block drew behind it).
-std::vector<std::uint32_t> quadOrder(std::vector<glm::vec3> const& positions, Order order, std::vector<std::uint32_t> const& cells, Size size) {
+// of it (a trapdoor before a structure block drew behind it). In a cell
+// with a liquid, its surface splits the block: the part on the viewer's
+// side of the surface is nearer than the liquid, the rest farther (a
+// stair's top above the water looked submerged when sorted by centers).
+std::vector<std::uint32_t> quadOrder(std::vector<glm::vec3> const& positions, Order order, std::vector<std::uint32_t> const& cells,
+                                     std::vector<bool> const& liquid, Size size) {
     size_t quads = positions.size() / 4;
     glm::vec3 toward = glm::normalize(glm::vec3{order.x * .6f, order.y * .7f, order.z * .4f});
-    struct Key { float block, quad; std::uint32_t index; };
+    struct Key { float block; int rank; float quad; std::uint32_t index; };
     std::vector<Key> keys(quads);
     bool byCell = cells.size() == quads;
+    bool liquids = byCell && liquid.size() == quads;
+    // Each liquid cell's surface: the highest point of its liquid's quads.
+    std::unordered_map<std::uint32_t, float> surface;
+    if (liquids)
+        for (size_t q = 0; q < quads; ++q)
+            if (liquid[q]) {
+                float top = std::max({positions[q * 4].y, positions[q * 4 + 1].y, positions[q * 4 + 2].y, positions[q * 4 + 3].y});
+                auto [at, added] = surface.try_emplace(cells[q], top);
+                if (!added) at->second = std::max(at->second, top);
+            }
     for (size_t q = 0; q < quads; ++q) {
         auto c = (positions[q * 4] + positions[q * 4 + 1] + positions[q * 4 + 2] + positions[q * 4 + 3]) * .25f;
         float block = 0;
@@ -244,9 +260,17 @@ std::vector<std::uint32_t> quadOrder(std::vector<glm::vec3> const& positions, Or
             glm::vec3 at(cell / (size.y * size.z), cell / size.z % size.y, cell % size.z);
             block = -glm::dot(at, toward);
         }
-        keys[q] = {block, -glm::dot(c, toward), static_cast<std::uint32_t>(q)};
+        // Near to far within a cell: 0 the block's part on the viewer's side
+        // of the surface, 1 the liquid, 2 the block's part beyond it.
+        int rank = 0;
+        if (liquids)
+            if (auto found = surface.find(cells[q]); found != surface.end())
+                rank = liquid[q] ? 1 : (c.y > found->second) == (toward.y > 0) ? 0 : 2;
+        keys[q] = {block, rank, -glm::dot(c, toward), static_cast<std::uint32_t>(q)};
     }
-    std::stable_sort(keys.begin(), keys.end(), [](Key const& a, Key const& b) { return a.block != b.block ? a.block < b.block : a.quad < b.quad; });
+    std::stable_sort(keys.begin(), keys.end(), [](Key const& a, Key const& b) {
+        return a.block != b.block ? a.block < b.block : a.rank != b.rank ? a.rank < b.rank : a.quad < b.quad;
+    });
     std::vector<std::uint32_t> sorted;
     sorted.reserve(quads);
     for (auto const& key : keys) sorted.push_back(key.index);
@@ -294,8 +318,10 @@ bool step() {
             }
             return liquids::Cell{0, 0, solid};
         };
+        size_t shellFrom = std::numeric_limits<size_t>::max(); // where the liquid quads start, if any
         auto shell = [&](Block const& liquid) {
             int kind = ghosts::liquidKind(liquid);
+            shellFrom = positions.size();
             auto around = [&](int dx, int dy, int dz) { return liquidIn(x + dx, y + dy, z + dz); };
             ghosts::liquidShell(*j.blocks, batch, spot, liquid, [&](int side) {
                 auto const& d = faces::offsets[side];
@@ -319,6 +345,9 @@ bool step() {
         glm::vec3 move = at - glm::vec3(spot.x, spot.y, spot.z);
         for (size_t v = from; v < positions.size(); ++v) positions[v] += move;
         j.quadCells.insert(j.quadCells.end(), (positions.size() - from) / 4, static_cast<std::uint32_t>(cell));
+        size_t liquidFrom = std::clamp(shellFrom, from, positions.size());
+        j.quadLiquid.insert(j.quadLiquid.end(), (liquidFrom - from) / 4, false);
+        j.quadLiquid.insert(j.quadLiquid.end(), (positions.size() - liquidFrom) / 4, true);
         // Faces lying on the cell's side against an occupied neighbor are
         // never seen: collapse them. Everything else stays (back faces too:
         // the near-to-far sort below puts them behind the front ones).
@@ -356,6 +385,7 @@ bool step() {
     kept.aabb = *data.mAABB;
     kept.uvAabb = *data.mUVAABB;
     kept.quadCells = std::move(j.quadCells);
+    kept.quadLiquid = std::move(j.quadLiquid);
     kept.cut = j.cut;
     return true;
 }
@@ -417,7 +447,7 @@ void upload(ScreenContext& screen, Order order, Tint const* tint) {
     ready.order = order;
     ready.vertices = 0;
     if (kept.positions.empty()) return;
-    auto sorted = quadOrder(kept.positions, order, kept.quadCells, kept.structure->size);
+    auto sorted = quadOrder(kept.positions, order, kept.quadCells, kept.quadLiquid, kept.structure->size);
     std::reverse(sorted.begin(), sorted.end());
     meshFrom(screen, sorted, tint, ready.mesh);
     ready.vertices = static_cast<std::uint32_t>(sorted.size() * 4);
