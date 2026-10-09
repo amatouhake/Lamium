@@ -693,9 +693,10 @@ entity facing), **done and checked in game 2026-10-09**; B2 render layers
 B3 liquids (sloped, flowing, waterlogged; previews too), **done 2026-10-09**;
 deferred research (one item, maintainer 2026-10-09): translucency that does not
 hide what is behind it, in the world pass (a blended material without depth
-writes) and in the previews (water there is opaque); the world part is
-**done 2026-10-09** (blended ghosts and marks drawn after the world's
-translucent blocks), the previews remain; then B4 block entity data, C
+writes) and in the previews (water there is opaque), **done 2026-10-09**
+(world: blended ghosts and marks drawn after the world's translucent
+blocks; previews: shallow real depth, water translucent, cut-out limits
+accepted); then B4 block entity data, C
 event-driven rebuilds, D waterlogging in the check (the check stays
 strict). B-D: Research (strong model), approach left to the agent.
 

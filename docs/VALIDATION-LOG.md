@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic preview translucency, closed (2026-10-09)
+
+By the maintainer, local, `fe82509` (DLL SHA-256
+`fa7f0af30193cf9ad6e39dd75605bcf8ca9dd655af1516345968de49c194b1c0`),
+`submerged_lamium` compared with the world placement. With the
+depth-writing block blend material back (and a liquid cell's quads still
+ordered around its surface), stair tops, fences and the spawner's top
+stand above the water as in the world. Accepted limits, all from empty
+texels writing depth when the far-to-near order is off: seagrass shows
+two of its four quad sides depending on the angle, the water behind it
+can be missing, and the stone behind a spawner is not drawn while the
+spawner looks dry. The maintainer chose to stop here and move on.
+
 ## L-93 Schematic preview translucency (2026-10-09)
 
 By the maintainer, local, Files tab with `water_and_lava`,

@@ -396,10 +396,14 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    cell's quads ordered around its surface. Water now shows the floor and
    waterlogged blocks. Open: in `submerged_lamium` parts above the water
    look submerged; neither the in-cell order nor vertex alpha (255) is the
-   cause. Next guesses: compare one block close up with the world to name
-   the wrong faces; check whether a neighboring water cell's quads are
-   ordered after a taller block's top (the cell order uses the view's
-   octant, not the exact direction).
+   cause. Closed 2026-10-09 (`fe82509`): the cause was the beacon
+   material, which writes no depth, so the far-to-near order alone decided
+   and erred inside cells; the depth-writing block blend material is back.
+   Accepted limits (maintainer): its empty texels write depth, so through
+   seagrass or a spawner's cage parts behind can be missing (seagrass
+   shows two of its quad sides by angle). Possible later: sort by the exact
+   view direction instead of the octant, or two materials if their draw
+   order can be fixed. The deferred research item is closed.
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).
