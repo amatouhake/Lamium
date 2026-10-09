@@ -75,6 +75,9 @@ struct Ready {
     std::uint32_t vertices = 0;
     std::uint64_t tintKey = 0;
     bool valid() const { return mesh && mesh->isValid(); }
+    // Something to draw: the mesh, or block entities and entities alone
+    // (a file of only chests and signs has no mesh at all).
+    bool drawable() const;
 };
 Ready ready;
 // The finished quads of the last built structure, unsorted.
@@ -101,6 +104,9 @@ struct Kept {
     int baseX = 0, baseY = 0, baseZ = 0; // where cell (0, 0, 0) was tessellated
 };
 Kept kept;
+bool Ready::drawable() const {
+    return valid() || (structure && kept.structure.get() == structure && (!kept.actorCells.empty() || !structure->entities.empty()));
+}
 // The mesh being built.
 struct Job {
     std::shared_ptr<Structure const> structure;
@@ -512,7 +518,7 @@ void drawActors(MinecraftUIRenderContext& context, BlockSource& region, Structur
             if (auto const* v = turn->as<nbt::List>()->items.front().as<float>()) yaw = *v;
         spots.push_back({{entity.x - center.x, entity.y - center.y, entity.z - center.z}, entity.identifier, yaw});
     }
-    if (!spots.empty()) models::draw(screen, client, Vec3{0, 0, 0}, spots, [](std::function<void()> const& draw) { draw(); });
+    if (!spots.empty()) models::draw(screen, client, Vec3{0, 0, 0}, spots, [](std::function<void()> const& draw) { draw(); }, false);
 }
 // Uploads the kept quads sorted far to near for `order`, as one mesh drawn
 // blended over real depth: nearer quads cover farther ones, water lets them
@@ -562,7 +568,7 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
     view.zoom = std::clamp(view.zoom, .1f, lastDrawn.maxZoom);
     try {
         std::uint64_t key = tint ? tint->key : 0;
-        bool current = ready.structure == structure.get() && ready.order == order && ready.tintKey == key && ready.valid();
+        bool current = ready.structure == structure.get() && ready.order == order && ready.tintKey == key && ready.drawable();
         // A new cut needs new quads (faces inside the build become visible);
         // the last mesh stays up while they build.
         if (kept.structure == structure && !(kept.cut == cut) && (!job || job->structure != structure || !(job->cut == cut)))
@@ -576,7 +582,7 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
             job.reset();
             upload(screen, order, tint);
         }
-        if (ready.structure != structure.get() || !ready.valid()) return false;
+        if (ready.structure != structure.get() || !ready.drawable()) return false;
         auto& dispatcher = client.getBlockEntityRenderDispatcher();
         auto* moving = static_cast<MovingBlockActorRenderer*>(dispatcher.mRenderers.get()[BlockActorRendererId::MovingBlock].get());
         auto* lightTexture = client.getLightTexture();
@@ -647,7 +653,7 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
             full.block->mValue = 15;
             ActorShaderManager::setupShaderParameters(screen, *region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture, Vec2{1, 1},
                 Vec4{0, 0, 1, 1});
-            ready.mesh->renderMesh(screen, material, texture, 0, ready.vertices, OffscreenCaptureDescription{}, nullptr);
+            if (ready.valid()) ready.mesh->renderMesh(screen, material, texture, 0, ready.vertices, OffscreenCaptureDescription{}, nullptr);
             drawActors(context, *region, *structure);
         } catch (...) {
             pop();

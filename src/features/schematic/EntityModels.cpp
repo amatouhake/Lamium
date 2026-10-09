@@ -346,7 +346,7 @@ Entry& entry(IClientInstance& client, std::string const& id) {
 } // namespace
 
 std::vector<bool> draw(ScreenContext& screen, IClientInstance& client, Vec3 const& camera, std::vector<Spot> const& spots,
-                       std::function<void(std::function<void()> const&)> const& inWorld) {
+                       std::function<void(std::function<void()> const&)> const& inWorld, bool outlines) {
     std::vector<bool> drawn(spots.size(), false);
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
     // The faces of skinless models use the overlay's face material, which
@@ -384,7 +384,8 @@ std::vector<bool> draw(ScreenContext& screen, IClientInstance& client, Vec3 cons
         inWorld([&] {
             if (model.tinted) MeshHelpers::renderMeshImmediately(screen, faces, tintMaterial, OffscreenCaptureDescription{});
             else MeshHelpers::renderMeshImmediately(screen, faces, material, texture, OffscreenCaptureDescription{});
-            if (lineMaterial.mRenderMaterialInfoPtr) MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{});
+            if (outlines && lineMaterial.mRenderMaterialInfoPtr)
+                MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{});
         });
         drawn[i] = true;
         ++count;
