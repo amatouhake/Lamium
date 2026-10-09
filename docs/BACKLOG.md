@@ -69,23 +69,29 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins. Every entry names what the task is, not only its number.
 
-1. **Schematic screen review — L-93 step 1** (decided 2026-10-08): placement
+1. **Small and medium features and fixes** (maintainer 2026-10-10: these
+   come before large features and L-111 integration for now):
+   - Ready: L-121 Night Vision without the darkening around light sources
+     at low Brightness (child option, default on); L-119 fence gate icons
+     missing in Lamium-drawn item icons; L-125 FreeCamera waypoints at the
+     camera position; L-126 leave FreeCamera when the body is hit (option,
+     short research first).
+   - Design first: L-124 camera and body position/facing in the HUD during
+     FreeCamera. Not ordered or chosen yet: L-127 inventory grid HUD and
+     used/free slot counter; L-128 hold a key to list the world's players;
+     L-129 show a villager's locked higher-level trades; L-130 search
+     recipes/items by English names while playing in another language.
+   - Bugs needing input: L-123 elytra stretched on the inventory model after
+     FreeCamera (repro known); L-113 Latin raise in Japanese settings
+     (waiting for a screenshot).
+2. **Schematic screen review — L-93 step 1** (decided 2026-10-08): placement
    frames, Placed/Files/Check/Materials list changes, chest/stack amounts,
    missing items and the ResourceCalculator button, entity ghosts as outline
    and faces. Then the research items L-114 3D previews, L-115 entity models,
-   L-116 raw materials from the game's recipes. The L-111 integration
-   proposal waits for the maintainer.
-2. **Before the next release or 0.2.0 — L-111 integration between
-   features:** the agent drafts a proposal in the current batch; the
-   maintainer decides scope, risks and order.
-3. **Small and medium features**, picked by the maintainer:
-   - L-121 Night Vision without dark corners (child option, default on).
-   - L-90 Simplified Chinese localization: built and checked in game; waits
-     for a native review of the wording.
-   - Registered 2026-10-09 from use and the maintainer's notes, not ordered
-     or chosen yet: L-124 to L-126 FreeCamera coordinates, waypoints and
-     damage exit; L-127 Inventory HUD; L-128 player list; L-129 villager
-     trades; L-130 English-name search.
+   L-116 raw materials from the game's recipes.
+3. **Before the next release or 0.2.0 — L-111 integration between
+   features:** the agent drafts a proposal; the maintainer decides scope,
+   risks and order.
 4. **Placement and breaking — L-15 restrictions and L-59 held placement
    style:** L-15 breaking built and checked; the restriction plan is reopened
    for Design before placement. L-59 waits for the maintainer's go.
@@ -237,15 +243,17 @@ unmet gates for versions already published:
 
 ## Bugs
 
-### L-121 Night Vision deepens the dark corners with Smooth Lighting on
+### L-121 Night Vision darkens areas around light sources at low Brightness
 Kind: Ready (small). Found by the maintainer 2026-10-09 as a bug; the same
 day they showed it is the game's own behavior (VALIDATION-LOG).
 Status: open. Decided 2026-10-09 (maintainer): a Night Vision child option
-that removes the dark corners, **default on**; Lamium's Night Vision should
+that removes the darkening, **default on**; Lamium's Night Vision should
 look fully bright by default. Off gives the vanilla look.
-With Smooth Lighting on and Night Vision on, the corners and gaps that
-smooth lighting darkens turn dark blue, in a wide ring around a hole in a
-floor. The vanilla Night Vision effect does the same, also without
+Restated by the maintainer 2026-10-10: with a low game Brightness, Night
+Vision makes the area around light sources darker than the rest; Smooth
+Lighting widens that area. In the first report this showed as the corners
+and gaps that smooth lighting darkens turning dark blue, in a wide ring
+around a hole in a floor. The vanilla Night Vision effect does the same, also without
 LeviLamina. The game's Brightness setting decides how strong it is: strong
 at 0%, weaker at 50%, almost gone at 100%. With Smooth Lighting off the
 picture is even.
@@ -275,18 +283,24 @@ in bright and dark places, near light sources and on dense builds.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
-Status: open, not investigated; reproduction rate unknown.
-After flying around with FreeCamera, the elytra worn by the player's 3D model
-in the inventory screen draws flat and stretched long. The elytra slot icon
-is not affected. Whether pose, animation state or the render context left by
-FreeCamera causes it is unknown; collect reproduction conditions first.
+Status: open, not investigated.
+Reproduction (maintainer 2026-10-10): wear an elytra, turn FreeCamera on,
+move the camera away from the body, open the inventory. The elytra on the
+player's 3D model in the inventory screen draws simplified and stretched
+downward. The elytra slot icon is not affected. Whether pose, animation
+state, level of detail by camera distance or the render context left by
+FreeCamera causes it is unknown; a first check is whether the distance
+matters (camera near the body vs far).
 
-### L-119 Fence gates show no icon in the shulker box preview
-Kind: Bug. Reported by the maintainer 2026-10-08.
+### L-119 Fence gates show no icon where Lamium draws item icons
+Kind: Bug. Reported by the maintainer 2026-10-08; widened 2026-10-10.
 Status: open, not investigated.
 A fence gate inside a shulker box shows only its count in Shulker Box
-Preview, without the item icon. Expected: icon and count. Find out whether
-every fence gate kind does it and whether other special block items (doors,
+Preview, without the item icon. The maintainer saw the same in the other
+places that draw icons the same way (Lamium's own `renderGuiItemNew` calls,
+for example the Info HUD item lines), so this is the shared icon path, not
+the preview. Expected: icon and count everywhere. Find out whether every
+fence gate kind does it and whether other special block items (doors,
 signs, beds...) do too, then compare with how the inventory slot draws the
 same item (see also L-91 for icons that differ from vanilla slots).
 
@@ -336,37 +350,40 @@ list for the player's dimension, once a second). Dropped items count
 entities, not stack sizes; block entities are not actors. Open: a separate
 small panel or lines inside Debug View, sorting and how many identifiers.
 
-### L-124 Camera and player coordinates during FreeCamera
+### L-124 Camera and player position and facing during FreeCamera
 Kind: Design. From use 2026-10-09 (maintainer's notes); not chosen for
-building yet.
+building yet. Maintainer 2026-10-10: start from the display design.
 Status: open.
-During FreeCamera, Info HUD and Debug View show the body's coordinates.
-Knowing where the body is stays useful, so the camera's position is added,
-not swapped in: where there is room (Debug View first) show both Camera XYZ
-and Player XYZ, labeled. Open: how the compact Info HUD shows it (both lines,
-a switch, density-dependent), and which position facing, chunk and biome
-follow. Body-only values (health, inventory) never follow the camera.
+During FreeCamera, Info HUD and Debug View show the body's coordinates and
+the body's facing (yaw/pitch, direction). The camera has its own position
+and its own facing, and neither is shown. Knowing where the body is and
+where it faces stays useful, so the camera's values are added, not swapped
+in: where there is room (Debug View first) show Camera and Player position
+and facing, labeled. Open (Design): how the compact Info HUD shows it (both
+lines, a switch, density-dependent), whether position and facing are paired
+per owner or per kind, and which owner chunk and biome follow. Body-only
+values (health, inventory) never follow the camera.
 
 ### L-125 Waypoints at the current position use the camera during FreeCamera
-Kind: Design. From use 2026-10-09 (maintainer's notes); not chosen for
-building yet.
-Status: open.
-Adding a waypoint "at the current position" during FreeCamera uses the body's
-position today. Proposed: during FreeCamera it uses the camera's position
-(the place the player went to look at), otherwise the body's; a position
-picked explicitly on the map wins. Separate from L-124 (what the HUD shows).
-Open: whether the prompt should show which position it uses, and the
-dimension when the camera and body could disagree.
+Kind: Ready (small). From use 2026-10-09 (maintainer's notes).
+Status: open. Decided 2026-10-10 (maintainer): during FreeCamera, a waypoint
+added "at the current position" uses the camera's position; no extra prompt
+text or choice. Otherwise the body's position as today; a position picked
+explicitly on the map wins. FreeCamera ends on dimension travel, so the
+camera and body share a dimension. Separate from L-124 (what the HUD shows).
 
-### L-126 Leave FreeCamera when the body takes damage (option)
-Kind: Design. From use 2026-10-09 (maintainer's notes); not chosen for
-building yet.
-Status: open.
-An option, **default off**, that ends FreeCamera and returns to the body's
-view when the body actually takes damage, so the player notices danger while
-looking elsewhere. Off keeps FreeCamera through damage as today. Open: what
-counts as damage (a health drop, not a hurt effect or a contact alone),
-whether small damage (hunger, poison) counts, and server behavior.
+### L-126 Leave FreeCamera when the body is hit (option)
+Kind: Ready after a short Research step. From use 2026-10-09 (maintainer's
+notes).
+Status: open. Decided 2026-10-10 (maintainer): an option, **default off**,
+that ends FreeCamera and returns to the body's view when the body is hit,
+including hits that cost no health (a snowball counts). Being off by
+default, a wide trigger is fine. Off keeps FreeCamera through damage as
+today. Research first: which client-side signal fires for every hit
+(the hurt event the server sends for the local player, hurt time or
+animation) and works on servers, not a health drop alone. Open for the
+agent to report: whether continuous damage (fire, hunger, poison) also
+fires it on every tick, which with this rule would end FreeCamera at once.
 
 ### L-127 Inventory HUD and slot counter
 Kind: Design. From the maintainer's notes (2026-10-09); not chosen for
@@ -550,34 +567,6 @@ Settings and ids
    safe path exists.
 3. Placement modes (Ready once step 2 finds a path): the four modes, anchor
    on the first placed block, faces and Status line.
-
-### L-90 Simplified Chinese localization
-Kind: Design decided, then implementation. Chosen by the maintainer
-2026-10-02.
-Status: built 2026-10-02 (agent-drafted text for all keys, `TranslationsZhCN.h`
-with a build-time order check, docs/TRANSLATING.md). Checked in game on
-`ca25c2c` (fit, baseline and behavior fine; no Latin raise needed). Open: a
-native review of the wording, invited from FeixiangTMC as a PR. It shipped
-in 0.1.6 as a first AI-assisted translation with corrections welcome; the
-native review remains open and is not a release gate.
-Add Simplified Chinese (`zh_CN`) as Lamium's third official UI locale.
-English and Japanese remain supported; Traditional Chinese is not claimed
-until there is actual demand and a separately reviewed translation.
-Scope:
-- Translate user-facing Settings text, feature descriptions, editor/prompt
-  text and toasts. A full translated README is not required for this item.
-- Replace the fixed two-language `Entry { key, english, japanese }` shape
-  with a translation representation that can add another locale without
-  duplicating lookup logic at call sites.
-- Match the game locale to `zh_CN`; unsupported locales still fall back to
-  English.
-- Keep every locale complete. Tests must fail when a shipped translation key
-  is missing in English, Japanese or Simplified Chinese.
-- The first Chinese wording may be prepared by an agent, but Minecraft/mod
-  terminology corrections from native users are explicitly welcome. Add a
-  short contribution note when the locale ships.
-Do not generate Traditional Chinese by mechanical conversion and present it as
-official support.
 
 ### L-91 Icons Lamium draws differ from vanilla slots (shield glint, leather)
 Kind: Research. Found by the maintainer 2026-10-02 while checking L-75;

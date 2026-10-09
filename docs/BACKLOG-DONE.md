@@ -134,6 +134,36 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-90 Simplified Chinese localization
+Kind: Design decided, then implementation. Chosen by the maintainer
+2026-10-02.
+Status: built 2026-10-02 (agent-drafted text for all keys, `TranslationsZhCN.h`
+with a build-time order check, docs/TRANSLATING.md). Checked in game on
+`ca25c2c` (fit, baseline and behavior fine; no Latin raise needed). Open: a
+native review of the wording, invited from FeixiangTMC as a PR. It shipped
+in 0.1.6 as a first AI-assisted translation with corrections welcome; the
+native review remains open and is not a release gate.
+Closed 2026-10-10 (maintainer): a native review is unlikely to come; wording
+corrections are handled one by one if they arrive.
+Add Simplified Chinese (`zh_CN`) as Lamium's third official UI locale.
+English and Japanese remain supported; Traditional Chinese is not claimed
+until there is actual demand and a separately reviewed translation.
+Scope:
+- Translate user-facing Settings text, feature descriptions, editor/prompt
+  text and toasts. A full translated README is not required for this item.
+- Replace the fixed two-language `Entry { key, english, japanese }` shape
+  with a translation representation that can add another locale without
+  duplicating lookup logic at call sites.
+- Match the game locale to `zh_CN`; unsupported locales still fall back to
+  English.
+- Keep every locale complete. Tests must fail when a shipped translation key
+  is missing in English, Japanese or Simplified Chinese.
+- The first Chinese wording may be prepared by an agent, but Minecraft/mod
+  terminology corrections from native users are explicitly welcome. Add a
+  short contribution note when the locale ships.
+Do not generate Traditional Chinese by mechanical conversion and present it as
+official support.
+
 ### L-118 Hide distance fog
 Kind: Ready. Chosen for 0.1.8 (maintainer, 2026-10-08), from a user
 request ("no fog").
