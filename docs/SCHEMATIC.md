@@ -486,6 +486,12 @@ C. Updates (after B1-B2, measure first, L-105):
   every 0.5 s; per frame only split by view), section lookups by key
   instead of scans of all sections, checks 32 and at most 32 rebuilds a
   frame (still 3 ms). The trace now splits frames, entities and name tags.
+  Measured on `2521ec2`: single rebuilds at most 2-5 ms and frames at most
+  14-21 ms (were 22 and 25-36), but about 4900 sections cost more to draw
+  (faces up to 1.9 ms, lines 0.8, blended 0.6) and filled in slower after
+  placing; frames 1.3 ms (dashed frames rebuilt each frame), entity models
+  0.3, name tags 0. The frames are now one mesh built again only on a new
+  revision, selection or dimension.
 - Rebuild on block change events (a section and its six neighbors) instead
   of the 0.25 s / 2 s hash timers; fixes the known border-cell limit.
   Moving a placement should move its meshes, not rebuild them.

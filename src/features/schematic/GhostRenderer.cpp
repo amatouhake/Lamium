@@ -320,6 +320,17 @@ struct WantedCache {
     Clock::time_point at{};
     std::vector<Wanted> list;
 } wantedCache;
+// The placement frames as one mesh, built again only when the placements,
+// the selection or the dimension change: built each frame, the dashed
+// frames of large placements took about 1.3 ms (C, measured). Vertices are
+// relative to `anchor`, a placement corner, for float precision.
+struct FrameMesh {
+    std::optional<mce::Mesh> mesh;
+    std::uint32_t vertices = 0;
+    glm::dvec3 anchor{};
+    std::uint64_t revision = 0;
+    int selected = -2, dimension = -1;
+} frameMesh;
 // Near the camera, a pair of ghost faces in one plane keeps only the face
 // toward the camera for every pair (true), or only for pairs of opaque full
 // blocks (false). True: no flicker where a see-through block (a spawner)
@@ -345,6 +356,7 @@ void log(std::string const& text) {
 void release() {
     sections.clear();
     wantedCache.valid = false;
+    frameMesh.mesh.reset();
     resolved.clear();
     models::reset();
     builtKeys.clear();
@@ -1576,40 +1588,64 @@ void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera) {
 void drawPlacementFrames(ScreenContext& screen, session::Snapshot const& snapshot, int dimension, Vec3 const& camera) {
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
     if (!lineMaterial.mRenderMaterialInfoPtr) return;
-    constexpr int edges[12][2] = {{0,1},{2,3},{4,5},{6,7},{0,2},{1,3},{4,6},{5,7},{0,4},{1,5},{2,6},{3,7}};
-    Tessellator lines(screen.tessellator.mBufferResourceService);
-    int count = 0;
-    for (size_t i = 0; i < snapshot.placements.size(); ++i) {
-        auto const& shown = snapshot.placements[i];
-        bool selected = static_cast<int>(i) == snapshot.selected;
-        if (!shown.structure || shown.placement.dimension != dimension || (!shown.placement.visible && !selected)) continue;
-        if (!count) lines.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(snapshot.placements.size() * 24 * 8), false);
-        ++count;
-        Size size = placedSize(shown.structure->size, shown.placement.placement.rotation);
-        auto const& o = shown.placement.placement.origin;
-        glm::vec3 a{static_cast<float>(o.x - camera.x) - .02f, static_cast<float>(o.y - camera.y) - .02f,
-                    static_cast<float>(o.z - camera.z) - .02f};
-        glm::vec3 b = a + glm::vec3{static_cast<float>(size.x) + .04f, static_cast<float>(size.y) + .04f,
-                                    static_cast<float>(size.z) + .04f};
-        lines.color(.35f, .85f, 1.f, 1.f);
-        glm::vec3 c[8];
-        for (int k = 0; k < 8; ++k) c[k] = {k & 1 ? b.x : a.x, k & 2 ? b.y : a.y, k & 4 ? b.z : a.z};
-        for (auto [p, q] : edges) {
-            if (selected) { lines.vertex(c[p].x, c[p].y, c[p].z); lines.vertex(c[q].x, c[q].y, c[q].z); continue; }
-            constexpr float dash = .5f, gap = .5f;
-            glm::vec3 from = c[p], to = c[q];
-            float length = glm::length(to - from);
-            glm::vec3 step = (to - from) / length;
-            for (float t = 0; t < length; t += dash + gap) {
-                glm::vec3 s0 = from + step * t, s1 = from + step * std::min(length, t + dash);
-                lines.vertex(s0.x, s0.y, s0.z);
-                lines.vertex(s1.x, s1.y, s1.z);
+    bool stale = !frameMesh.mesh || !frameMesh.mesh->isValid() || frameMesh.revision != snapshot.revision
+        || frameMesh.selected != snapshot.selected || frameMesh.dimension != dimension;
+    if (stale) {
+        frameMesh.mesh.reset();
+        frameMesh.vertices = 0;
+        frameMesh.revision = snapshot.revision;
+        frameMesh.selected = snapshot.selected;
+        frameMesh.dimension = dimension;
+        constexpr int edges[12][2] = {{0,1},{2,3},{4,5},{6,7},{0,2},{1,3},{4,6},{5,7},{0,4},{1,5},{2,6},{3,7}};
+        Tessellator lines(screen.tessellator.mBufferResourceService);
+        bool begun = false;
+        for (size_t i = 0; i < snapshot.placements.size(); ++i) {
+            auto const& shown = snapshot.placements[i];
+            bool selected = static_cast<int>(i) == snapshot.selected;
+            if (!shown.structure || shown.placement.dimension != dimension || (!shown.placement.visible && !selected)) continue;
+            Size size = placedSize(shown.structure->size, shown.placement.placement.rotation);
+            auto const& o = shown.placement.placement.origin;
+            if (!begun) {
+                frameMesh.anchor = {o.x, o.y, o.z};
+                lines.begin({}, mce::PrimitiveMode::LineList, 4096, false);
+                lines.color(.35f, .85f, 1.f, 1.f);
+                begun = true;
+            }
+            glm::vec3 a{static_cast<float>(o.x - frameMesh.anchor.x) - .02f, static_cast<float>(o.y - frameMesh.anchor.y) - .02f,
+                        static_cast<float>(o.z - frameMesh.anchor.z) - .02f};
+            glm::vec3 b = a + glm::vec3{static_cast<float>(size.x) + .04f, static_cast<float>(size.y) + .04f,
+                                        static_cast<float>(size.z) + .04f};
+            glm::vec3 c[8];
+            for (int k = 0; k < 8; ++k) c[k] = {k & 1 ? b.x : a.x, k & 2 ? b.y : a.y, k & 4 ? b.z : a.z};
+            for (auto [p, q] : edges) {
+                if (selected) {
+                    lines.vertex(c[p].x, c[p].y, c[p].z);
+                    lines.vertex(c[q].x, c[q].y, c[q].z);
+                    frameMesh.vertices += 2;
+                    continue;
+                }
+                constexpr float dash = .5f, gap = .5f;
+                glm::vec3 from = c[p], to = c[q];
+                float length = glm::length(to - from);
+                glm::vec3 step = (to - from) / length;
+                for (float t = 0; t < length; t += dash + gap) {
+                    glm::vec3 s0 = from + step * t, s1 = from + step * std::min(length, t + dash);
+                    lines.vertex(s0.x, s0.y, s0.z);
+                    lines.vertex(s1.x, s1.y, s1.z);
+                    frameMesh.vertices += 2;
+                }
             }
         }
+        if (!begun) return;
+        auto mesh = lines.end(Tessellator::UploadMode::Buffered, "Lamium schematic frames", SupplementaryFieldAutoGenerationMode{});
+        if (frameMesh.vertices) frameMesh.mesh.emplace(std::move(mesh));
     }
-    if (!count) return;
-    translated(screen, glm::vec3{0}, [&] {
-        MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{});
+    if (!frameMesh.mesh) return;
+    glm::vec3 offset{static_cast<float>(frameMesh.anchor.x - camera.x), static_cast<float>(frameMesh.anchor.y - camera.y),
+                     static_cast<float>(frameMesh.anchor.z - camera.z)};
+    translated(screen, offset, [&] {
+        frameMesh.mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, frameMesh.vertices,
+            OffscreenCaptureDescription{}, nullptr);
     });
 }
 // Missing entities: their game model with part outlines (L-115), or a dashed
