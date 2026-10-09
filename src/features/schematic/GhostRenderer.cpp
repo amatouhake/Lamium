@@ -534,12 +534,11 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
             if (real.getBlockType().mIsOpaqueFullBlock && !blended(real.getBlockType().getRenderLayer(real, region, np))) {
                 known = true;
             } else {
+                // Only opaque pairs: seen from outside, both faces of a pair
+                // of other blocks stay, as from far away (inside a block,
+                // dropBackFaces keeps them apart).
                 known = ghostOpaqueAt(region, shown, blocks, n);
-                // Near the camera any two ghost faces in one plane keep the
-                // one toward the camera: seen from inside a door or a
-                // spawner, its face and a stair's beside it fought there.
-                bool pair = *known || (ghostSidesAt(region, shown, blocks, n) >> (side ^ 1) & 1);
-                if (pair && (nearCamera(at) || nearCamera(n)))
+                if (*known && (nearCamera(at) || nearCamera(n)))
                     known = !faces::beyond(side, at.x, at.y, at.z, buildCamera.x, buildCamera.y, buildCamera.z);
             }
         }
