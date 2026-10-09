@@ -459,31 +459,36 @@ bool ghostBoxAt(BlockSource& region, session::Shown const& shown, Resolved const
     return blocks.blocks[static_cast<size_t>(index)] && static_cast<size_t>(index) < blocks.boxed.size()
         && blocks.boxed[static_cast<size_t>(index)] && region.getBlock(pos).isAir();
 }
-// What the world, or where it is air the placement (shown layers, either
-// layer), has at `n`, for a liquid shell's faces and slope.
+// What the placement has at `n` (shown layers, either layer), or the world
+// where the placement says nothing (outside it, hidden layers, structure
+// void), for a liquid shell's faces and slope. The file decides inside, so
+// real liquids nearby do not bend a ghost liquid's surface.
 liquids::Cell liquidAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
-    BlockPos pos{n.x, n.y, n.z};
-    Block const& real = region.getBlock(pos);
-    if (int kind = liquidKind(real)) return {kind, liquidDepth(real), false};
-    if (int kind = liquidKind(region.getBlock(pos, 1))) return {kind, 0, false};
-    if (!real.isAir()) return {0, 0, static_cast<bool>(real.getMaterial().mSolid)};
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto local = toLocal(structure.size, placement.placement, n);
-    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return {};
-    auto cell = static_cast<size_t>(structure.cell(local->x, local->y, local->z));
-    bool solid = false;
-    for (auto const* layer : {&structure.blocks, &structure.liquids}) {
-        if (cell >= layer->size()) continue;
-        auto index = (*layer)[cell];
-        if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size() || !blocks.blocks[static_cast<size_t>(index)]) continue;
-        Block const& block = *blocks.blocks[static_cast<size_t>(index)];
-        if (int kind = liquidKind(block)) return {kind, layer == &structure.blocks ? liquidDepth(block) : 0, false};
-        solid = solid || block.getMaterial().mSolid;
+    if (local && layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) {
+        auto cell = static_cast<size_t>(structure.cell(local->x, local->y, local->z));
+        bool said = false, solid = false;
+        for (auto const* layer : {&structure.blocks, &structure.liquids}) {
+            if (cell >= layer->size()) continue;
+            auto index = (*layer)[cell];
+            if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size()) continue;
+            said = true;
+            Block const* block = blocks.blocks[static_cast<size_t>(index)];
+            if (!block) continue;
+            if (int kind = liquidKind(*block)) return {kind, layer == &structure.blocks ? liquidDepth(*block) : 0, false};
+            solid = solid || block->getMaterial().mSolid;
+        }
+        if (said) return {0, 0, solid};
     }
-    return {0, 0, solid};
+    BlockPos pos{n.x, n.y, n.z};
+    Block const& real = region.getBlock(pos);
+    if (int kind = liquidKind(real)) return {kind, liquidDepth(real), false};
+    if (int kind = liquidKind(region.getBlock(pos, 1))) return {kind, 0, false};
+    return {0, 0, static_cast<bool>(real.getMaterial().mSolid)};
 }
 bool enclosed(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point at) {
     for (auto const& d : faces::offsets) {
