@@ -88,6 +88,7 @@
 #include <optional>
 #include <set>
 #include <tuple>
+#include <thread>
 #include <vector>
 
 namespace lamium::schematic::ghosts {
@@ -170,11 +171,13 @@ std::vector<std::string> builtKeys; // drawKey of each resolved placement
 // Keyed by the block as well: two placements may want different block
 // entities in one cell.
 std::map<std::tuple<int, int, int, Block const*>, std::optional<std::shared_ptr<BlockActor>>> actors;
-// Set on the render thread while ghost block actors draw: light queries
+// The thread drawing ghost block actors, while it does: its light queries
 // then answer full brightness (GhostLight hooks), so a ghost chest or bed
 // reads the same at night and underground as the other ghosts. Their
-// renderers read light through non-virtual BlockSource calls.
-thread_local bool ghostActorLight = false;
+// renderers read light through non-virtual BlockSource calls. Not a
+// thread_local: threads that existed before the mod loaded had no slot
+// for it, and reading it in the hook crashed at start.
+std::atomic<std::thread::id> ghostActorLight{};
 std::vector<std::pair<BlockPos, Block const*>> watched; // Recently looked-at cells and what was there.
 // Entities are looked up this often, and only this close to the player: the
 // client does not know entities beyond its tracking range.
@@ -1976,8 +1979,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             if (!component) continue;
             Vec3 renderPos{static_cast<float>(pos.x - camera.x), static_cast<float>(pos.y - camera.y), static_cast<float>(pos.z - camera.z)};
             mce::MaterialPtr none(mce::RenderMaterialGroup::common(), HashedString{"lamium_no_forced_material"});
-            ghostActorLight = true;
-            struct Restore { ~Restore() { ghostActorLight = false; } } restore;
+            ghostActorLight.store(std::this_thread::get_id(), std::memory_order_relaxed);
+            struct Restore { ~Restore() { ghostActorLight.store({}, std::memory_order_relaxed); } } restore;
             dispatcher.render(context, *actorView, *component, *block, renderPos, pos, false, none, nullptr, 0, std::nullopt);
         }
     }
@@ -2108,11 +2111,11 @@ BrightnessPair fullBrightness() {
 }
 LL_TYPE_INSTANCE_HOOK(GhostLightColor, ll::memory::HookPriority::Normal, BlockSource, &BlockSource::getLightColor, BrightnessPair,
                       BlockPos const& pos, Brightness minBlockLight) {
-    return ghostActorLight ? fullBrightness() : origin(pos, minBlockLight);
+    return ghostActorLight.load(std::memory_order_relaxed) == std::this_thread::get_id() ? fullBrightness() : origin(pos, minBlockLight);
 }
 LL_TYPE_INSTANCE_HOOK(GhostBrightnessPair, ll::memory::HookPriority::Normal, BlockSource, &BlockSource::getBrightnessPair, BrightnessPair,
                       BlockPos const& pos) {
-    return ghostActorLight ? fullBrightness() : origin(pos);
+    return ghostActorLight.load(std::memory_order_relaxed) == std::this_thread::get_id() ? fullBrightness() : origin(pos);
 }
 
 LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRendererPlayer,
