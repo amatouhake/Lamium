@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic block-entity ghost outlines (2026-10-09)
+
+By the maintainer, local, `417ccd1` (DLL SHA-256
+`b25c527133c839e7c2714f48b34a8928b4a6ca2be1b434dd4e552e9b84814514`),
+`block-like`: the light-blue outlines of chest, bed, banner, sign and head
+ghosts follow each block's own selection outline instead of the whole
+cell, also turned and mirrored.
+
 ## L-93 Schematic block-entity ghosts at full brightness, B5 (2026-10-09)
 
 By the maintainer, local, `block-like` at night and underground. `b245aae`

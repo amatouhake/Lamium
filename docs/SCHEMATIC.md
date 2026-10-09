@@ -445,7 +445,7 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    a `BrightnessPair const&` is hooked the same way: checked on `9e9178b`,
    all block-entity ghosts lit as by day. Then: their light-blue outline
    follows the block's own selection outline (`getOutline` through the
-   view) instead of the whole cell (not yet checked).
+   view) instead of the whole cell, checked on `417ccd1`.
 
 C. Updates (after B1-B2, measure first, L-105):
 - Rebuild on block change events (a section and its six neighbors) instead
