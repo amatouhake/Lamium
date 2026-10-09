@@ -404,6 +404,14 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    shows two of its quad sides by angle). Possible later: sort by the exact
    view direction instead of the octant, or two materials if their draw
    order can be fixed. The deferred research item is closed.
+   Block entities and entities in the previews, spike 2026-10-09 (`d07d158`,
+   not yet checked): cells whose block draws no mesh are kept with their
+   block; after the mesh, inside the preview's model matrix, each gets a
+   block actor with the file's data (`ghosts::makeBlockActor`) drawn by its
+   renderer (`ghosts::renderBlockActor`, full brightness) against a
+   SchematicRegion answering the file's blocks where the cells were
+   tessellated; the file's entities go through `models::draw` in model
+   space. The world ghosts use the same two helpers.
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).
