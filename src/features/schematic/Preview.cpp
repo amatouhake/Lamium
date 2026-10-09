@@ -653,8 +653,15 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
             full.block->mValue = 15;
             ActorShaderManager::setupShaderParameters(screen, *region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture, Vec2{1, 1},
                 Vec4{0, 0, 1, 1});
-            if (ready.valid()) ready.mesh->renderMesh(screen, material, texture, 0, ready.vertices, OffscreenCaptureDescription{}, nullptr);
+            // Block entities and entities first: the mesh's empty texels write
+            // depth (a campfire's flames hid what stood behind them), and the
+            // mesh drawn after still covers them where blocks are in front.
             drawActors(context, *region, *structure);
+            if (ready.valid()) {
+                ActorShaderManager::setupShaderParameters(screen, *region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture, Vec2{1, 1},
+                    Vec4{0, 0, 1, 1});
+                ready.mesh->renderMesh(screen, material, texture, 0, ready.vertices, OffscreenCaptureDescription{}, nullptr);
+            }
         } catch (...) {
             pop();
             throw;
