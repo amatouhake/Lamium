@@ -1557,7 +1557,9 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, mce
         box(cornerLines[i], at - glm::vec3{.005f}, at + glm::vec3{1.005f});
         faces.color(color.r, color.g, color.b, .25f);
         glm::vec3 c[8];
-        corners(at - glm::vec3{.01f}, at + glm::vec3{1.01f}, c);
+        // 0.025 out: at 0.01 the faces flickered against the block under
+        // Vibrant Visuals.
+        corners(at - glm::vec3{.025f}, at + glm::vec3{1.025f}, c);
         for (auto const& side : sides) {
             for (int k = 0; k < 4; ++k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
             if (!twoSided) for (int k = 3; k >= 0; --k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
