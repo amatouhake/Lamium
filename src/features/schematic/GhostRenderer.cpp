@@ -962,8 +962,11 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     if (hidesBox(side)) continue;
                     ++open;
                     for (int k = 0; k < 4; ++k) quads.vertex(c[sides[side][k]].x, c[sides[side][k]].y, c[sides[side][k]].z);
-                    for (int k = 3; k >= 0; --k) quads.vertex(c[sides[side][k]].x, c[sides[side][k]].y, c[sides[side][k]].z);
-                    out.markVertices += 8;
+                    // The overlay face material under Vibrant Visuals draws both
+                    // sides; a second, reversed quad in the same plane flickered.
+                    if (!vibrantGhosts)
+                        for (int k = 3; k >= 0; --k) quads.vertex(c[sides[side][k]].x, c[sides[side][k]].y, c[sides[side][k]].z);
+                    out.markVertices += vibrantGhosts ? 4 : 8;
                 }
                 if (open) outlines.push_back(m);
                 continue;
@@ -1513,7 +1516,9 @@ void stepSave(BlockSource& region, LocalPlayer& player) {
 // The area chosen for saving: a white frame; corner 1 outlined red and
 // corner 2 blue on the block's own edges, with tinted faces just outside so
 // a full block still shows which corner it is.
-void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, mce::MaterialPtr const& faceMaterial) {
+// `twoSided`: the face material draws both sides, so each face is one quad
+// (a second, reversed one in the same plane flickered).
+void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, mce::MaterialPtr const& faceMaterial, bool twoSided) {
     auto state = selection::current();
     if (state.dimension != dimension || (!state.first && !state.second)) return;
     Area area = state.area().value_or(Area{state.first ? *state.first : *state.second, state.first ? *state.first : *state.second});
@@ -1555,7 +1560,7 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, mce
         corners(at - glm::vec3{.01f}, at + glm::vec3{1.01f}, c);
         for (auto const& side : sides) {
             for (int k = 0; k < 4; ++k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
-            for (int k = 3; k >= 0; --k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
+            if (!twoSided) for (int k = 3; k >= 0; --k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
         }
     }
     translated(screen, glm::vec3{0}, [&] {
@@ -1572,7 +1577,7 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, mce
 
 // While a save waits, the chunk columns it still has to read: yellow frames
 // standing on the area's floor, nearest first.
-void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const& faceMaterial) {
+void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const& faceMaterial, bool twoSided) {
     if (!saveJob) return;
     auto const& job = *saveJob;
     int height = job.builder.structure().size.y;
@@ -1606,7 +1611,7 @@ void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera, mce::Material
         // The floor, seen from both sides, so the column reads from above too.
         glm::vec3 floor[4]{c[0], c[1], c[5], c[4]};
         for (int k = 0; k < 4; ++k) faces.vertex(floor[k].x, floor[k].y + .02f, floor[k].z);
-        for (int k = 3; k >= 0; --k) faces.vertex(floor[k].x, floor[k].y + .02f, floor[k].z);
+        if (!twoSided) for (int k = 3; k >= 0; --k) faces.vertex(floor[k].x, floor[k].y + .02f, floor[k].z);
     }
     translated(screen, glm::vec3{0}, [&] {
         if (faceMaterial.mRenderMaterialInfoPtr) MeshHelpers::renderMeshImmediately(screen, faces, faceMaterial, OffscreenCaptureDescription{});
@@ -2217,7 +2222,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
 
 // The cell chosen with "Show in world": a pulsing tinted box with outlines
 // and a tall beam of crossed faces above it, readable from far away.
-void drawPoint(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const& faceMaterial) {
+void drawPoint(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const& faceMaterial, bool twoSided) {
     std::optional<Point> at;
     {
         std::lock_guard lock(pointMutex);
@@ -2238,7 +2243,7 @@ void drawPoint(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const
         constexpr int sides[6][4] = {{0,2,6,4},{1,5,7,3},{0,4,5,1},{2,3,7,6},{0,1,3,2},{4,6,7,5}};
         for (auto const& side : sides) {
             for (int k = 0; k < 4; ++k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
-            for (int k = 3; k >= 0; --k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
+            if (!twoSided) for (int k = 3; k >= 0; --k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
         }
         faces.color(1.f, 1.f, 1.f, .45f);
         // Two crossed faces make the beam visible from every side.
@@ -2246,7 +2251,7 @@ void drawPoint(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const
                                      {{.5f, 1, .5f - half}, {.5f, 1, .5f + half}, {.5f, beam, .5f + half}, {.5f, beam, .5f - half}}};
         for (auto const& quad : beamQuads) {
             for (int k = 0; k < 4; ++k) faces.vertex(quad[k].x, quad[k].y, quad[k].z);
-            for (int k = 3; k >= 0; --k) faces.vertex(quad[k].x, quad[k].y, quad[k].z);
+            if (!twoSided) for (int k = 3; k >= 0; --k) faces.vertex(quad[k].x, quad[k].y, quad[k].z);
         }
         translated(screen, offset, [&] { MeshHelpers::renderMeshImmediately(screen, faces, faceMaterial, OffscreenCaptureDescription{}); });
     }
@@ -2423,11 +2428,11 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
         // Faces of the point, the selection and waiting columns: the overlay's
         // face material for the graphics mode (the hologram one is not shown
         // under Vibrant Visuals or in Simple).
-        auto faces = overlay::faceMaterial(client).material;
-        drawPoint(context.mScreenContext, context.mImpl->mCameraPosition, faces);
+        auto faces = overlay::faceMaterial(client);
+        drawPoint(context.mScreenContext, context.mImpl->mCameraPosition, faces.material, faces.twoSided);
         stepSave(player->getDimensionBlockSource(), *player);
-        drawSelection(context.mScreenContext, context.mImpl->mCameraPosition, static_cast<int>(player->getDimensionId()), faces);
-        drawWaitingColumns(context.mScreenContext, context.mImpl->mCameraPosition, faces);
+        drawSelection(context.mScreenContext, context.mImpl->mCameraPosition, static_cast<int>(player->getDimensionId()), faces.material, faces.twoSided);
+        drawWaitingColumns(context.mScreenContext, context.mImpl->mCameraPosition, faces.material, faces.twoSided);
     } catch (std::exception const& error) {
         static bool reported = false;
         if (!std::exchange(reported, true)) log(std::string("drawing failed: ") + error.what());

@@ -460,6 +460,13 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    the selection, waiting-column and point faces use that material in every
    mode; a graphics mode change rebuilds the sections. Ghost face tint and
    the black honey ghost remain.
+   Checked on `3995e2a`: normal mode unchanged; under Vibrant Visuals every
+   line keeps its color and mistake faces are colored; switching modes is
+   safe. But the faces flickered: the overlay material there draws both
+   sides, and each face also had a reversed twin in its plane; now one quad
+   a face when the material is two-sided (not yet checked). Faces and
+   lines glow after closing the inventory until the player moves; shapes
+   do the same, so it is left as a Vibrant Visuals limit.
    Seen 2026-10-09: ghosts drawn by block-entity renderers (chest, bed,
    banner, sign, head) follow the world's light. A hook on
    `BlockSource::getLightColor` crashed the game at start twice (its
