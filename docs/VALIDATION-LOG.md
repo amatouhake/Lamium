@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-122 Fake Offhand fireworks and L-118 distance fog (2026-10-09)
+
+By the maintainer, local, `34c3593` (DLL SHA-256
+`39d27e14a3ae4273d9a846cba9fe193d609ff3702e03f9abf7d034cd418aac2b`, the
+1.26.51.01 instance without LIP). L-122: with a firework in the Fake Offhand
+slot and the right-click binding, opening and closing doors and placing
+blocks (the last one of a stack too) launched no firework; fireworks while
+gliding and aimed at a block still launched. L-118: with Hide effects on and
+Distance fog selected, the fog went away on land (day, night, rain), in the
+Nether and in the End, and came back when switched off, in the normal
+graphics modes. Under Vibrant Visuals it had no effect (as Night Vision
+there); left for later. No problems found. Seen in the same session, in the
+LIP instance on `c48e59c`: water in waterlogged schematic stairs showed
+through the ghost stairs' sides and looked flowing; ghost beetroots
+flickered (both addressed in `62bff77`, not yet checked).
+
 ## L-93 Schematic lines and mistake faces under Vibrant Visuals (2026-10-09)
 
 By the maintainer, local, switching between Fancy, Simple and Vibrant

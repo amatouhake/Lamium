@@ -15,16 +15,16 @@ implementation history, not current status.
 
 ## Distance fog (L-118, 2026-10-09)
 
-A child "Distance fog" (default off, unbound key) moves the air and weather
+A child "Distance fog" (selected by default like the others, unbound key) moves the air and weather
 fog far away where no medium fog is shown: on land, in the Nether and the
 End, and in a medium whose own fog is hidden. After vanilla
 `LevelRendererPlayer::$setupFog`, `mCurrentDistanceFog` start/end become
 16384/32768 (`farFog`, tested; values already farther or not finite stay
 vanilla). Vanilla blends from that field next frame, so its own value is
 written back before the next setup (the renderer address is kept only as an
-identity). Render distance is unchanged. Not yet checked in game: whether
-the renderer reads the field after setup, Vibrant Visuals (volumetric fog),
-sky and horizon color, and the switch-off transition.
+identity). Render distance is unchanged. Checked in game on `34c3593`:
+land (day, night, rain), Nether and End, and restoration. No effect under
+Vibrant Visuals (its fog is volumetric); left for later.
 
 ## First implementation step, 2026-09-30
 

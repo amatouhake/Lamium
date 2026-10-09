@@ -10,6 +10,24 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-122 Fake Offhand fires a firework when placing blocks or opening doors
+Kind: Bug, high priority. Reported from use 2026-10-09 (maintainer's notes).
+Status: fixed and checked in game 2026-10-09 (`77e698e`, checked on
+`34c3593`): doors and block placement, the last of a stack too, launch no
+firework; gliding and block-target fireworks still do. Cause: with the
+right-click binding, the native click handler and the queued press both
+decided the same click; after vanilla acted (a door opened, the last block
+placed), the queued press saw the changed world and borrowed the firework
+too. Now the first of the two decides (`queuedPressDecides`, tested).
+With a firework set as the Fake Offhand item, an action that is not meant to
+use it (placing a block, opening or closing a door) sometimes launches a
+firework. Expected: the placement or door works as usual and a firework
+launches only on an intended use (gliding, or a block target with nothing
+else to do there; FAKE-OFFHAND.md). First find the reproduction: which
+blocks, held items and targets, singleplayer or server. Then check the order
+of the slot borrowing, the use-target decision and the right-click handling.
+
+
 ### L-110 Overlay faces z-fight with the blocks they cover
 Kind: Bug **(strong model)**. Reported by the maintainer 2026-10-08 while
 checking L-15 step 1.
@@ -115,6 +133,27 @@ result is only the converted text; Latin typing and Backspace unchanged.
 ---
 
 ## Ready
+
+### L-118 Hide distance fog
+Kind: Ready. Chosen for 0.1.8 (maintainer, 2026-10-08), from a user
+request ("no fog").
+Status: done for 0.1.8; checked in game 2026-10-09 on `34c3593` (land
+day/night/rain, Nether, End, restoration). Child "Distance fog", selected by
+default like the other effects (maintainer, 2026-10-09; `f336be7`). After
+vanilla `setupFog` the resolved `mCurrentDistanceFog` moves to 16384/32768
+and vanilla's value is put back before the next setup. No effect under
+Vibrant Visuals (like Night Vision there): left for later with it.
+A new Hide effects child, "Distance fog", for the ordinary fog on land, in
+the Nether and the End. The existing underwater, lava and powder snow
+children stay separate, so either can be hidden alone. After vanilla
+resolves the fog in `LevelRendererPlayer::setupFog` (already hooked in
+`HideEffects.cpp`), move the distance fog's start and end far beyond the
+render distance; use a safe finite distance, not a huge integer, because of
+float precision in the shaders. Render distance itself does not change; the
+chunk edge becoming visible is expected. Restores vanilla when off. Check in
+game: overworld day/night and rain, Nether, End, with Vibrant Visuals on
+and off (fail open if its path differs).
+
 
 ### L-104 Map follow-ups: biome foliage, relief and teleport
 Kind: Ready (decided with the maintainer 2026-10-07). Status: done

@@ -79,7 +79,6 @@ L-item wins. Every entry names what the task is, not only its number.
    features:** the agent drafts a proposal in the current batch; the
    maintainer decides scope, risks and order.
 3. **Small and medium features**, picked by the maintainer:
-   - L-118 Hide distance fog (0.1.8).
    - L-121 Night Vision without dark corners (child option, default on).
    - L-90 Simplified Chinese localization: built and checked in game; waits
      for a native review of the wording.
@@ -262,24 +261,6 @@ keep natural shading where possible; avoid deep render hooks. Check all four
 Smooth Lighting / Night Vision combinations, at Brightness 0, 50 and 100%,
 in bright and dark places, near light sources and on dense builds.
 
-### L-122 Fake Offhand fires a firework when placing blocks or opening doors
-Kind: Bug, high priority. Reported from use 2026-10-09 (maintainer's notes).
-Status: fix built 2026-10-09 (`77e698e`), not yet checked in game. Cause
-found in the code: with the right-click binding, the native click handler
-and the queued press both decided the same click. When the native handler
-let vanilla act (open a door, place the last block of a stack), the later
-queued press saw the changed world (aim through the opened door onto a
-plain block, an empty hand) and borrowed the firework too. Now the first
-of the two decides the click (`queuedPressDecides`, tested). If a firework
-still fires on a placement, note the held item and stack size.
-With a firework set as the Fake Offhand item, an action that is not meant to
-use it (placing a block, opening or closing a door) sometimes launches a
-firework. Expected: the placement or door works as usual and a firework
-launches only on an intended use (gliding, or a block target with nothing
-else to do there; FAKE-OFFHAND.md). First find the reproduction: which
-blocks, held items and targets, singleplayer or server. Then check the order
-of the slot borrowing, the use-target decision and the right-click handling.
-
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
 Status: open, not investigated; reproduction rate unknown.
@@ -331,30 +312,6 @@ check stepper values, sliders, the key cells and the Info HUD lines.
 ---
 
 ## Feature work and research
-
-### L-118 Hide distance fog
-Kind: Ready. Chosen for 0.1.8 (maintainer, 2026-10-08), from a user
-request ("no fog").
-Status: built 2026-10-09 (`34c3593`), not yet checked in game. Child
-"Distance fog", **default off** (agent's choice, to confirm: it shows the
-render distance edge, and a master already on for rain would otherwise
-change the view after the update). After vanilla `setupFog`, the resolved
-`mCurrentDistanceFog` (416/512 blocks on land in the 2026-09-30 trace) moves
-to 16384/32768; vanilla's value is put back before the next setup so its
-blending is undisturbed. Applies only where no medium fog is shown (with
-Underwater fog hidden, under water too). Whether the renderer reads the
-value after setup is the open runtime question: if nothing changes, the
-fog constants are written inside setup and another route is needed.
-A new Hide effects child, "Distance fog", for the ordinary fog on land, in
-the Nether and the End. The existing underwater, lava and powder snow
-children stay separate, so either can be hidden alone. After vanilla
-resolves the fog in `LevelRendererPlayer::setupFog` (already hooked in
-`HideEffects.cpp`), move the distance fog's start and end far beyond the
-render distance; use a safe finite distance, not a huge integer, because of
-float precision in the shaders. Render distance itself does not change; the
-chunk edge becoming visible is expected. Restores vanilla when off. Check in
-game: overworld day/night and rain, Nether, End, with Vibrant Visuals on
-and off (fail open if its path differs).
 
 ### L-120 Entity counts by kind in Debug View
 Kind: Design. From the maintainer's notes (2026-10-09); extends L-57.
@@ -823,6 +780,13 @@ in game 2026-10-09**; C measured and tuned (30-50 -> 45-60 fps with several
 large placements), **done 2026-10-09**
 (B5's block-entity ghost lighting **done and checked 2026-10-09**; looking
 straight down and Vibrant Visuals stay on the check list).
+Reported 2026-10-09 (maintainer, `c48e59c`): water in waterlogged ghost
+stairs showed through the stairs' covered sides (the ghost is translucent,
+the real block is not) and its edge cells looked flowing; ghost beetroots
+flickered. Built `62bff77`, not yet checked: a waterlogged cell's water is
+not drawn on sides its own ghost covers entirely (`sidesCovered`, area of
+the side's quads), and quads a ghost repeats (a face in both windings, as
+crop planes are suspected to be) are dropped.
 Vibrant Visuals (2026-10-09): lines and mistake/selection faces keep their
 colors there (done and checked); left, not scheduled: ghost faces untinted,
 the honey ghost black, line width (the structure block's outline is wider).
