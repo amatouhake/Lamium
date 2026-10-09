@@ -337,22 +337,6 @@ bool step() {
             ghosts::eachLayer(block, *j.region, spot, [&](std::optional<BlockRenderLayer> layer) {
                 ghosts::tessellateLayer(*j.blocks, batch, block, spot, layer);
             });
-            // Opaque vertex colors: the blended preview material reads their
-            // alpha, which the in-world mesh does not use as opacity (blocks
-            // above the water looked submerged). Gaps come from the texture.
-            if (auto& colors = batch.mMeshData->mColors.get(); colors.size() == positions.size()) {
-                static int logged = 0;
-                if (colors.size() > from && logged < 3) {
-                    ++logged;
-                    std::uint32_t low = 255, high = 0;
-                    for (size_t v = from; v < colors.size(); ++v) {
-                        low = std::min(low, colors[v] >> 24);
-                        high = std::max(high, colors[v] >> 24);
-                    }
-                    log(std::format("vertex alpha {}-{} before the override", low, high));
-                }
-                for (size_t v = from; v < colors.size(); ++v) colors[v] |= 0xff000000u;
-            }
             if (static_cast<size_t>(cell) < s.liquids.size())
                 if (auto i = s.liquids[static_cast<size_t>(cell)]; i >= 0 && static_cast<size_t>(i) < j.palette.size() && j.palette[static_cast<size_t>(i)]
                     && ghosts::liquidKind(*j.palette[static_cast<size_t>(i)]))
