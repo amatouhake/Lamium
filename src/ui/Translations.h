@@ -415,6 +415,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.schematic.menuSmall", "Shows the schematic menu smaller in the lower right, so the view around the crosshair stays free.", "設計図メニューを右下に小さく出し、照準のまわりを見えるままにします。"},
     {"schematicMenuReopen", "Reopen where it was closed: {}", "閉じたときの画面で開く: {}"},
     {"help.schematic.menuReopen", "Off: the menu opens at its category list. On: it opens at the level shown when it was closed.", "オフ: メニューは分類の一覧から開きます。オン: 閉じたときに表示していた段で開きます。"},
+    {"schematicOutlineDistance", "Ghost outlines up to: {:.0f} blocks", "ゴーストの枠線を描く距離: {:.0f} ブロック"},
+    {"help.schematic.outlineDistance", "Light-blue ghost outlines farther than this are not drawn, which saves time with large placements. 0 draws them at any distance.", "これより遠いゴーストの水色の枠線は描きません。大きな配置で処理が軽くなります。0 ではすべて描きます。"},
     {"schematic.menu.title", "Schematics", "設計図"},
     {"schematic.menu.target", "Target: {}", "対象: {}"},
     {"schematic.target.placement", "Selected placement", "選択中の配置"},

@@ -105,7 +105,8 @@ constexpr int sectionSize = 16;
 struct Perf {
     std::chrono::steady_clock::time_point since = std::chrono::steady_clock::now();
     std::uint64_t frames = 0, frameNs = 0, maxFrameNs = 0, buildNs = 0, maxBuildNs = 0, builds = 0, checkNs = 0, checks = 0,
-                  scanNs = 0, blendNs = 0, waiting = 0, maxWaiting = 0, dueLatencyNs = 0, dueCount = 0, maxDueLatencyNs = 0;
+                  scanNs = 0, blendNs = 0, waiting = 0, maxWaiting = 0, dueLatencyNs = 0, dueCount = 0, maxDueLatencyNs = 0,
+                  prepareNs = 0, facesNs = 0, linesNs = 0, actorsNs = 0, extrasNs = 0;
     std::uint64_t reasons[5]{}; // new, looked-at change, signature changed, mesh gone, chunk incomplete
     std::size_t sections = 0;
 } perf;
@@ -124,7 +125,6 @@ constexpr std::chrono::milliseconds refreshNear{250}, refreshFar{2000};
 constexpr double nearDistance = 24;
 constexpr std::chrono::milliseconds lookedDelay{100};
 constexpr double drawDistance = 192;  // Sections farther than this are not built or drawn.
-constexpr float lineDistance = 48;    // Ghost outlines farther than this are not drawn.
 // Section rebuilds per frame stop once this much time went into them (a
 // count of 3 made 20-30 ms frames when large sections came together).
 constexpr std::chrono::microseconds buildTimeBudget{3000};
@@ -1754,6 +1754,17 @@ void drawNameTags(ScreenContext& screen, IClientInstance& client, BlockSource& r
 }
 
 void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, LocalPlayer& player) {
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+    auto stage = std::chrono::steady_clock::now();
+    auto lap = [&](std::uint64_t& into) {
+        auto now = std::chrono::steady_clock::now();
+        into += static_cast<std::uint64_t>((now - stage).count());
+        stage = now;
+    };
+#define LAMIUM_PERF_LAP(field) lap(perf.field)
+#else
+#define LAMIUM_PERF_LAP(field)
+#endif
     auto snapshot = session::snapshot();
     int dimension = static_cast<int>(player.getDimensionId());
     // A file replaced on disk loads as a new structure without a new
@@ -1910,6 +1921,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             next.push_back({pos, &region.getBlock(pos)});
     watched = std::move(next);
 
+    LAMIUM_PERF_LAP(prepareNs);
     // Build missing sections and rebuild changed ones, in view and nearest
     // first, within the budgets.
     int budget = sectionLimit, checks = checkBudget;
@@ -2022,6 +2034,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     // In three passes, so the light is set up once for all faces (block
     // actors set up their own after): the per-section setups and draws were
     // the largest fixed cost with many large placements (C, measured).
+    float const lineDistance = Runtime::instance().snapshot()->schematic.outlineDistance; // 0: no limit
     std::vector<std::pair<SectionKey const*, Section*>> shown;
     for (auto& [key, section] : sections)
         if (inView(std::get<1>(key), std::get<2>(key), std::get<3>(key))) shown.push_back({&key, &section});
@@ -2029,6 +2042,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         return glm::vec3{static_cast<float>(section.origin.x - camera.x), static_cast<float>(section.origin.y - camera.y),
                          static_cast<float>(section.origin.z - camera.z)};
     };
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+    stage = std::chrono::steady_clock::now();
+#endif
     if (faces.mRenderMaterialInfoPtr && lightTexture) {
         fullBright();
         for (auto [key, section] : shown)
@@ -2037,12 +2053,13 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                     section->faces->renderMesh(screen, faces, texture, 0, section->faceVertices, OffscreenCaptureDescription{}, nullptr);
                 });
     }
+    LAMIUM_PERF_LAP(facesNs);
     for (auto [key, section] : shown) {
         // Outlines only near the camera: far away they are a few pixels of
         // noise, and a draw each.
         glm::vec3 offset = offsetOf(*section);
         glm::vec3 nearest = glm::clamp(glm::vec3{0.f}, offset, offset + glm::vec3(static_cast<float>(sectionSize)));
-        bool lined = section->lines && glm::length(nearest) <= lineDistance;
+        bool lined = section->lines && (lineDistance <= 0 || glm::length(nearest) <= lineDistance);
         if (!lined && !section->marks) continue;
         translated(screen, offset, [&] {
             if (section->marks && markMaterial.mRenderMaterialInfoPtr)
@@ -2053,6 +2070,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                     OffscreenCaptureDescription{}, nullptr);
         });
     }
+    LAMIUM_PERF_LAP(linesNs);
     for (auto [keyPtr, sectionPtr] : shown) {
         auto const& key = *keyPtr;
         auto& section = *sectionPtr;
@@ -2074,9 +2092,12 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         }
     }
     if (actorView) actorView->answer = nullptr;
+    LAMIUM_PERF_LAP(actorsNs);
     drawPlacementFrames(screen, snapshot, dimension, camera);
     drawEntities(screen, client, snapshot, dimension, camera);
     drawNameTags(screen, client, region, *moving, camera);
+    LAMIUM_PERF_LAP(extrasNs);
+#undef LAMIUM_PERF_LAP
 }
 
 // The cell chosen with "Show in world": a pulsing tinted box with outlines
@@ -2236,11 +2257,13 @@ void perfReport() {
     auto per = [&](std::uint64_t ns) { return ms(ns) / static_cast<double>(perf.frames); };
     log(std::format("perf {} frames: ghost pass {:.3f} ms/frame (max {:.2f}), builds {} ({:.3f} ms/frame, max {:.2f} ms each; "
                     "new {} looked-at {} changed {} mesh-gone {} incomplete {}), checks {} ({:.3f} ms/frame), check/scan {:.3f} ms/frame, "
-                    "blended pass {:.3f} ms/frame, sections {}, never-built waiting avg {:.1f} max {}, looked-at latency avg {:.0f} ms max {:.0f} ms",
+                    "blended pass {:.3f} ms/frame, sections {}, never-built waiting avg {:.1f} max {}, looked-at latency avg {:.0f} ms max {:.0f} ms; "
+                    "prepare {:.3f}, faces {:.3f}, lines {:.3f}, block actors {:.3f}, frames/entities/tags {:.3f} ms/frame",
                     perf.frames, per(perf.frameNs), ms(perf.maxFrameNs), perf.builds, per(perf.buildNs), ms(perf.maxBuildNs), perf.reasons[0],
                     perf.reasons[1], perf.reasons[2], perf.reasons[3], perf.reasons[4], perf.checks, per(perf.checkNs), per(perf.scanNs),
                     per(perf.blendNs), perf.sections, static_cast<double>(perf.waiting) / static_cast<double>(perf.frames), perf.maxWaiting,
-                    perf.dueCount ? ms(perf.dueLatencyNs) / static_cast<double>(perf.dueCount) : 0., ms(perf.maxDueLatencyNs)));
+                    perf.dueCount ? ms(perf.dueLatencyNs) / static_cast<double>(perf.dueCount) : 0., ms(perf.maxDueLatencyNs),
+                    per(perf.prepareNs), per(perf.facesNs), per(perf.linesNs), per(perf.actorsNs), per(perf.extrasNs)));
     perf = Perf{};
 }
 #endif

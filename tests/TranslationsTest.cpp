@@ -66,7 +66,7 @@ void translationTests() {
             }
             else if (entry.key == "shape.x" || entry.key == "shape.y" || entry.key == "shape.z"
                 || entry.key == "magnification" || entry.key == "hitboxDistance" || entry.key == "freeCameraSpeed"
-                || entry.key == "mapSize" || entry.key == "mapWaypointDistance")
+                || entry.key == "mapSize" || entry.key == "mapWaypointDistance" || entry.key == "schematicOutlineDistance")
                 rendered = std::vformat(pattern, std::make_format_args(number));
             else if (pattern.find("{}") != std::string_view::npos)
                 rendered = std::vformat(pattern, std::make_format_args(on));

@@ -144,6 +144,7 @@ struct Settings {
         int menuBackground = 1;   // The menu's dimming: 0 none, 1 light, 2 dark.
         bool menuSmall = false;   // Small in the lower right instead of centered.
         bool menuReopen = false;  // Reopen where it was closed instead of at the list.
+        float outlineDistance = 48; // Ghost outlines up to this many blocks away; 0 draws them all.
     } schematic;
     struct Overlays {
         bool chunkBorders = false;
@@ -243,6 +244,8 @@ struct Settings {
         information.targetArmor = std::clamp(information.targetArmor, 0, 2);
         information.debugLabels = std::clamp(information.debugLabels, 0, 1);
         schematic.menuBackground = std::clamp(schematic.menuBackground, 0, 2);
+        if (!std::isfinite(schematic.outlineDistance)) schematic.outlineDistance = 48;
+        schematic.outlineDistance = std::clamp(std::round(schematic.outlineDistance / 16) * 16, 0.f, 192.f);
         information.debugBackground = std::clamp(information.debugBackground, 0, 1);
         ui.hudRowHeight = std::clamp(ui.hudRowHeight, 9, 16);
         ui.hudBackgroundOpacity = std::clamp(ui.hudBackgroundOpacity, 0, 100);

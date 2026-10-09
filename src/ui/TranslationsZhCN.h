@@ -413,6 +413,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"help.schematic.menuSmall", "在右下角缩小显示蓝图菜单，保持准星周围可见。"},
     {"schematicMenuReopen", "在关闭时的位置打开: {}"},
     {"help.schematic.menuReopen", "关: 菜单从分类列表打开。开: 在关闭时显示的那一层打开。"},
+    {"schematicOutlineDistance", "幽灵轮廓线绘制范围: {:.0f} 格以内"},
+    {"help.schematic.outlineDistance", "超过此距离的浅蓝色幽灵轮廓线不绘制，大型放置时可减轻负担。0 表示无论距离多远都绘制。"},
     {"schematic.menu.title", "蓝图"},
     {"schematic.menu.target", "对象: {}"},
     {"schematic.target.placement", "所选放置"},
