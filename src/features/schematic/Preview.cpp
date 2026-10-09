@@ -5,6 +5,7 @@
 #include "features/schematic/SchematicRegion.h"
 #include "app/Runtime.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/client/player/LocalPlayer.h"
 #include "mc/client/gui/GuiData.h"
 #include "mc/client/gui/screens/ScreenContext.h"
 #include "mc/client/renderer/ActorShaderManager.h"
@@ -107,6 +108,11 @@ struct Job {
     std::unique_ptr<Tessellator> batch;
     bool failed = false; // too large or nothing to draw: not tried again
     int height = 320;    // the dimension's build limit
+    // Where cells are tessellated across: around the player, above the build
+    // limit, so biome-tinted blocks (grass tops, leaves, vines, water) take
+    // the player's biome. Around the world origin no chunk answered and
+    // they stayed untinted gray.
+    int baseX = 0, baseZ = 0;
     std::vector<bool> covers; // per palette entry: hides the faces it touches
     std::vector<std::uint32_t> quadCells;
     std::vector<bool> quadLiquid;
@@ -136,7 +142,8 @@ bool covers(Job const& j, int x, int y, int z) {
     return index >= 0 && static_cast<size_t>(index) < j.covers.size() && j.covers[static_cast<size_t>(index)];
 }
 
-void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure const> const& structure, Order order, Cut cut) {
+void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure const> const& structure, Order order, Cut cut,
+           int baseX, int baseZ) {
     job.emplace();
     job->cut = cut;
     job->structure = structure;
@@ -152,6 +159,8 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
             if ((job->halves[i] = ghosts::gameBlock(half->block))) job->halfSteps[i] = half->step;
     }
     job->height = region.getMaxHeight();
+    job->baseX = baseX;
+    job->baseZ = baseZ;
     // Blocks see the file's blocks as neighbors (doors, fences, panes),
     // at the spots step() draws them.
     job->region = std::make_unique<SchematicRegion>(region);
@@ -162,9 +171,9 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
             && p.y == job->drawingAt.y + job->halfSteps[static_cast<size_t>(job->drawn)])
             return job->halves[static_cast<size_t>(job->drawn)];
         auto const& size = job->structure->size;
-        int y = p.y - (job->height + 64);
-        if (p.x < 0 || y < 0 || p.z < 0 || p.x >= size.x || y >= size.y || p.z >= size.z) return nullptr;
-        return blockAt(*job, p.x, y, p.z);
+        int x = p.x - job->baseX, y = p.y - (job->height + 64), z = p.z - job->baseZ;
+        if (x < 0 || y < 0 || z < 0 || x >= size.x || y >= size.y || z >= size.z) return nullptr;
+        return blockAt(*job, x, y, z);
     };
     job->blocks = std::make_unique<BlockTessellator>(job->region.get());
     // Primed with one appended block: in-world tessellation on a fresh
@@ -298,7 +307,7 @@ bool step() {
         // grindstones; the item-style path did not), at a spot above the
         // build limit so no real neighbor or light changes it, then moved to
         // its cell.
-        BlockPos spot{x, j.height + 64 + y, z};
+        BlockPos spot{j.baseX + x, j.height + 64 + y, j.baseZ + z};
         static_cast<bool&>(batch.mApplyTransform) = false;
         j.drawn = s.blocks[static_cast<size_t>(cell)];
         j.drawingAt = spot;
@@ -471,6 +480,12 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
     auto& screen = static_cast<ScreenContext&>(context.mScreenContext);
     auto order = drawOrder(view);
     auto const& size = structure->size;
+    int baseX = -size.x / 2, baseZ = -size.z / 2;
+    if (auto* player = client.getLocalPlayer()) {
+        auto at = player->getPosition();
+        baseX += static_cast<int>(std::floor(at.x));
+        baseZ += static_cast<int>(std::floor(at.z));
+    }
     Cut cut = cutFor(view, size.x, size.y, size.z, view.peel);
     lastDrawn.maxZoom = maxZoom(view, size.x, size.y, size.z, width, height);
     lastDrawn.axis = cut.axis;
@@ -482,11 +497,11 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         // A new cut needs new quads (faces inside the build become visible);
         // the last mesh stays up while they build.
         if (kept.structure == structure && !(kept.cut == cut) && (!job || job->structure != structure || !(job->cut == cut)))
-            start(screen, *region, structure, order, cut);
+            start(screen, *region, structure, order, cut, baseX, baseZ);
         else if (!current && kept.structure == structure && kept.cut == cut) {
             upload(screen, order, tint);
         } else if (!current && kept.structure != structure && (!job || job->structure != structure || !(job->cut == cut))) {
-            start(screen, *region, structure, order, cut);
+            start(screen, *region, structure, order, cut, baseX, baseZ);
         }
         if (job && !job->failed && step()) {
             job.reset();

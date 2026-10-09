@@ -701,10 +701,12 @@ checked in game 2026-10-09**; D waterlogging in the check, **done and checked
 in game 2026-10-09**; left: C event-driven rebuilds (measure first, L-105)
 (B5's block-entity ghost lighting **done and checked 2026-10-09**; looking
 straight down and Vibrant Visuals stay on the check list).
-Reported 2026-10-09, not yet scheduled: in the Files/Check previews
-biome-tinted blocks (grass tops, leaves, vines) stay untinted gray, as they
-are tessellated above the build limit where no biome answers; candidates:
-a fixed tint, or the player's biome.
+Reported 2026-10-09: in the Files/Check previews biome-tinted blocks
+(grass tops, leaves, vines) stayed untinted gray, tessellated above the
+build limit near the world origin where no chunk answered. Built the same
+day (not yet checked): cells are tessellated above the build limit around
+the player instead, so they take the player's biome (chosen over a fixed
+tint).
 B-D: Research (strong model), approach left to the agent.
 
 Pick the next follow-up with the maintainer; the list is not an implementation
