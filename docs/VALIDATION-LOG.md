@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic foliage tints (2026-10-09)
+
+By the maintainer, local. A real mangrove leaf placed beside the preview
+was green while the preview's mangrove leaves were gray; world ghosts of
+mangrove leaves and vines were gray too. `b02aea7` (tint only the seasons
+layers): no change. `dac35cb` (DLL SHA-256
+`5131c4c4fee63e8e682cdea398b2bc9036f52dc752b5801a2372dffb39b341cf`,
+foliage tint methods on still-gray vertices): mangrove leaves and vines
+green in the world ghosts and the previews; grass sides not turned green,
+grass tops unchanged. Log: vines tint method 1 in layer 11 sampled
+0.44/0.65/0.30; mangrove leaves tint method 1 in layer 10 (a seasons
+layer) sampled 0.69/0/0. Not understood: why the mangrove leaves now look
+green (likely their seasons vertex colors are not gray, so this pass
+leaves them, and the earlier seasons-only pass did not color them
+usefully).
+
 ## L-93 Schematic preview biome tints (2026-10-09)
 
 By the maintainer, local. `9b4699d` (cells tessellated above the build

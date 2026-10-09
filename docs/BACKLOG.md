@@ -711,7 +711,7 @@ the world colors in its own shader. Tinting only the seasons layers changed
 nothing (`b02aea7`); built (not yet checked): blocks with a foliage tint
 method (leaves, vines) take the renderer's biome tint (`BiomeColorSampling`,
 as the minimap) on their still-gray vertices, in previews and world ghosts
-alike; the log names the first few with their layer and tint.
+alike: checked green (`dac35cb`, VALIDATION-LOG, one oddity noted there).
 B-D: Research (strong model), approach left to the agent.
 
 Pick the next follow-up with the maintainer; the list is not an implementation
