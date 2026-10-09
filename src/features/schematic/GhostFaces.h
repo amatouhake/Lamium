@@ -34,4 +34,37 @@ inline int sideOf(std::span<Vertex const> quad, int x, int y, int z, float epsil
     }
     return -1;
 }
+// The area of a quad flat on `side`, measured in that side's plane. Quads on
+// one side add up to 1 where a block covers the side entirely.
+inline float sideArea(std::span<Vertex const> quad, int side) {
+    int axis = side / 2;
+    auto at = [&](Vertex const& v, int a) { return a == 0 ? v.x : a == 1 ? v.y : v.z; };
+    int u = axis == 0 ? 1 : 0, w = axis == 2 ? 1 : 2;
+    float twice = 0;
+    for (size_t k = 0; k < quad.size(); ++k) {
+        auto const& p = quad[k];
+        auto const& q = quad[(k + 1) % quad.size()];
+        twice += at(p, u) * at(q, w) - at(q, u) * at(p, w);
+    }
+    return std::abs(twice) * .5f;
+}
+inline bool coveredBy(float area) { return area >= 1.f - 1e-3f; }
+// Whether two quads have the same corners, in any order or winding: the
+// same face emitted twice (front and back), which a material drawing both
+// sides shows as two faces fighting in one plane.
+inline bool sameQuad(std::span<Vertex const> a, std::span<Vertex const> b, float epsilon = 1e-4f) {
+    if (a.size() != b.size()) return false;
+    auto near = [&](Vertex const& p, Vertex const& q) {
+        return std::abs(p.x - q.x) <= epsilon && std::abs(p.y - q.y) <= epsilon && std::abs(p.z - q.z) <= epsilon;
+    };
+    for (auto const* from : {&a, &b}) {
+        auto const& other = from == &a ? b : a;
+        for (auto const& p : *from) {
+            bool found = false;
+            for (auto const& q : other) found = found || near(p, q);
+            if (!found) return false;
+        }
+    }
+    return true;
+}
 }

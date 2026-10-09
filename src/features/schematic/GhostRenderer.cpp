@@ -192,6 +192,9 @@ struct Resolved {
     // mistake mark next to a block reaching all six leaves out its face
     // there, and near the camera a pair of faces in one plane keeps one.
     std::vector<int> sideMasks;
+    // Per palette entry, the sides its mesh covers entirely (sidesCovered):
+    // water in a waterlogged cell is not drawn there, as the block hides it.
+    std::vector<int> coverMasks;
     // Per palette entry: the other half of a two-block-tall block (turned
     // like `blocks`) and the step up (+1) or down (-1) to it; null and 0
     // for other blocks.
@@ -650,6 +653,26 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
         if (*known) for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
     }
 }
+// Collapses quads that repeat an earlier quad of the same ghost: a face the
+// tessellator emits in both windings (crop planes) is drawn twice by the
+// two-sided ghost material, and the two fight in one plane (flicker).
+void dropDuplicateQuads(Tessellator& batch, size_t from) {
+    auto& positions = batch.mMeshData->mPositions.get();
+    auto quadAt = [&](size_t q) {
+        std::array<faces::Vertex, 4> quad;
+        for (size_t k = 0; k < 4; ++k) quad[k] = {positions[q + k].x, positions[q + k].y, positions[q + k].z};
+        return quad;
+    };
+    for (size_t q = from + 4; q + 4 <= positions.size(); q += 4) {
+        if (positions[q] == positions[q + 1] && positions[q] == positions[q + 2]) continue;
+        auto quad = quadAt(q);
+        for (size_t p = from; p < q; p += 4)
+            if (faces::sameQuad(quad, quadAt(p))) {
+                for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
+                break;
+            }
+    }
+}
 // In a cell the camera is in, a ghost keeps only the faces turned toward
 // the camera, as the game draws blocks: seen from inside, the block is not
 // there. The ghost material draws both sides, so from inside a door or a
@@ -759,6 +782,10 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         masks.assign(blocks.blocks.size(), 0);
         for (size_t i = 0; i < blocks.blocks.size(); ++i)
             if (auto const* b = blocks.blocks[i]) masks[i] = sidesReached(*b, own, screen, true, .02f);
+        auto& covers = const_cast<Resolved&>(blocks).coverMasks;
+        covers.assign(blocks.blocks.size(), 0);
+        for (size_t i = 0; i < blocks.blocks.size(); ++i)
+            if (auto const* b = blocks.blocks[i]; b && !liquidKind(*b)) covers[i] = sidesCovered(*b, own, screen);
     }
     Point drawing{};
     int drawn = -1;
@@ -832,6 +859,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 drawn = paletteIndex;
                 glm::vec3 shapeLow{1e9f}, shapeHigh{-1e9f};
                 bool meshed = false;
+                size_t batchFrom = batch.mMeshData->mPositions->size(), seeFrom = see.mMeshData->mPositions->size();
                 // Each render layer the block draws in, into the mesh of its kind.
                 eachLayer(*expected, region, pos, [&](std::optional<BlockRenderLayer> layer) {
                     Tessellator& target = layer && blended(*layer) ? see : batch;
@@ -847,6 +875,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     }
                     meshed = meshed || positions.size() > before;
                 });
+                dropDuplicateQuads(batch, batchFrom);
+                dropDuplicateQuads(see, seeFrom);
                 if (!meshed) {
                     // No block mesh: block entities draw through their renderer;
                     // others keep the outline alone.
@@ -907,13 +937,21 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         int kind = liquidKind(*liquid);
         drawing = at;
         auto around = [&](int dx, int dy, int dz) { return liquidAt(region, shown, blocks, {at.x + dx, at.y + dy, at.z + dz}); };
+        // In a waterlogged cell the ghost hides its water where it covers a
+        // side (a stair's back): drawn there, the water showed through the
+        // translucent ghost, unlike the opaque real block.
+        int covered = 0;
+        if (auto local = toLocal(structure.size, placement.placement, at)) {
+            auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
+            if (index != voidCell && static_cast<size_t>(index) < blocks.coverMasks.size()) covered = blocks.coverMasks[static_cast<size_t>(index)];
+        }
         liquidShell(own, see, BlockPos{at.x, at.y, at.z}, *liquid, [&](int side) {
             // Never against an opaque block, ghost or real: near the camera
             // the tessellator keeps such faces (see ghostNeighbor), and the
             // shell's face then shared a plane with the block's.
             auto const& d = faces::offsets[side];
             Point n{at.x + d[0], at.y + d[1], at.z + d[2]};
-            return around(d[0], d[1], d[2]).kind != kind && !ghostOpaqueAt(region, shown, blocks, n)
+            return !(covered >> side & 1) && around(d[0], d[1], d[2]).kind != kind && !ghostOpaqueAt(region, shown, blocks, n)
                 && !region.getBlock(BlockPos{n.x, n.y, n.z}).getBlockType().mIsOpaqueFullBlock;
         }, [&](int cx, int cz) { return liquids::corner(kind, around, cx, cz); });
     }
@@ -2650,26 +2688,44 @@ void reorderQuads(Tessellator& batch, std::vector<std::uint32_t> const& order) {
     permute(*data.mMERS);
     permute(*data.mGeoType);
 }
-int sidesReached(Block const& block, BlockTessellator& tessellator, ScreenContext& screen, bool blendedToo, float epsilon) {
-    static std::map<std::tuple<Block const*, bool, float>, int> known;
-    auto key = std::tuple{&block, blendedToo, epsilon};
-    if (auto found = known.find(key); found != known.end()) return found->second;
-    // Tessellated once above the build limit, where nothing culls it.
+// A block's quads, tessellated once above the build limit, where nothing
+// culls them.
+constexpr int probeY = 2000;
+std::vector<std::array<faces::Vertex, 4>> probeQuads(Block const& block, BlockTessellator& tessellator, ScreenContext& screen, bool blendedToo) {
     Tessellator scratch(screen.tessellator.mBufferResourceService);
     scratch.begin({}, mce::PrimitiveMode::QuadList, 64, false);
-    BlockPos above{0, 2000, 0};
+    BlockPos above{0, probeY, 0};
     eachLayer(block, *static_cast<BlockSource*&>(tessellator.mRegion), above, [&](std::optional<BlockRenderLayer> layer) {
         if (blendedToo || !layer || !blended(*layer)) tessellateLayer(tessellator, scratch, block, above, layer);
     });
     auto const& positions = scratch.mMeshData->mPositions.get();
-    int sides = 0;
+    std::vector<std::array<faces::Vertex, 4>> quads;
     for (size_t q = 0; q + 4 <= positions.size(); q += 4) {
-        std::array<faces::Vertex, 4> quad;
+        auto& quad = quads.emplace_back();
         for (size_t k = 0; k < 4; ++k) quad[k] = {positions[q + k].x, positions[q + k].y, positions[q + k].z};
-        if (int side = faces::sideOf(quad, above.x, above.y, above.z, epsilon); side >= 0) sides |= 1 << side;
     }
     scratch.end(Tessellator::UploadMode::Buffered, "Lamium schematic probe", SupplementaryFieldAutoGenerationMode{});
+    return quads;
+}
+int sidesReached(Block const& block, BlockTessellator& tessellator, ScreenContext& screen, bool blendedToo, float epsilon) {
+    static std::map<std::tuple<Block const*, bool, float>, int> known;
+    auto key = std::tuple{&block, blendedToo, epsilon};
+    if (auto found = known.find(key); found != known.end()) return found->second;
+    int sides = 0;
+    for (auto const& quad : probeQuads(block, tessellator, screen, blendedToo))
+        if (int side = faces::sideOf(quad, 0, probeY, 0, epsilon); side >= 0) sides |= 1 << side;
     return known[key] = sides;
+}
+int sidesCovered(Block const& block, BlockTessellator& tessellator, ScreenContext& screen) {
+    static std::map<Block const*, int> known;
+    if (auto found = known.find(&block); found != known.end()) return found->second;
+    std::array<float, 6> area{};
+    for (auto const& quad : probeQuads(block, tessellator, screen, true))
+        if (int side = faces::sideOf(quad, 0, probeY, 0); side >= 0) area[static_cast<size_t>(side)] += faces::sideArea(quad, side);
+    int sides = 0;
+    for (int side = 0; side < 6; ++side)
+        if (faces::coveredBy(area[static_cast<size_t>(side)])) sides |= 1 << side;
+    return known[&block] = sides;
 }
 bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen) {
     // Only the layers drawn alpha-tested hide a face, and only where they

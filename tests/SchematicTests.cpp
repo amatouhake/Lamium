@@ -547,6 +547,17 @@ void ghostFaces() {
     // Cells 4 and 5 touch at x = 5; the camera at x 3.5 sees cell 5's west face, not cell 4's east face.
     check(beyond(0, 5, 2, 3, 3.5, 2.5, 3.5) && !beyond(1, 4, 2, 3, 3.5, 2.5, 3.5) && beyond(1, 4, 2, 3, 6.2, 2.5, 3.5),
           "of two touching faces only the one facing the camera has it beyond");
+    using lamium::schematic::faces::sideArea;
+    using lamium::schematic::faces::coveredBy;
+    // An upside-down stair's back: the upper and the lower box each half the side.
+    std::array<Vertex, 4> upperBack{{{5, 2.5f, 3}, {5, 3, 3}, {5, 3, 4}, {5, 2.5f, 4}}};
+    check(coveredBy(sideArea(slab, 0) + sideArea(upperBack, 0)) && !coveredBy(sideArea(slab, 0))
+          && coveredBy(sideArea(top, 3)) && std::abs(sideArea(slab, 0) - .5f) < 1e-5f,
+          "quads on one side add up to the part of it they cover");
+    using lamium::schematic::faces::sameQuad;
+    std::array<Vertex, 4> westBack{{{5, 2, 4}, {5, 3, 4}, {5, 3, 3}, {5, 2, 3}}};
+    check(sameQuad(west, westBack) && sameQuad(west, west) && !sameQuad(west, slab) && !sameQuad(west, top),
+          "a face emitted again with the other winding is the same quad; other faces are not");
 }
 
 void menuRules() {

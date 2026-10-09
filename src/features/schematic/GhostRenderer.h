@@ -43,6 +43,9 @@ bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenCo
 // order (63: all six), within `epsilon` of the cell's planes; blended layers
 // count only with `blendedToo`.
 int sidesReached(Block const& block, BlockTessellator& tessellator, ScreenContext& screen, bool blendedToo, float epsilon);
+// The sides of its cell a block's mesh covers entirely (any layer), as bits
+// like sidesReached: a stair's back, not its partly open sides.
+int sidesCovered(Block const& block, BlockTessellator& tessellator, ScreenContext& screen);
 // Calls `visit` with each render layer a block draws in: its own, then its
 // extra ones (honey and slime blocks). Liquids get one call with nullopt
 // (the tessellator's default pass).
