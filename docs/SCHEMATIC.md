@@ -25,8 +25,8 @@ dashed frames and are checked by type near their recorded spot, within client
 observation range; pose, equipment and contents are not verified.
 
 Area save reads bounded chunk columns and waits for unloaded ones as the
-player approaches; it can be stopped. Blocks, states and the water layer are
-saved, without block entity contents. Optional entities retain type, position
+player approaches; it can be stopped. Blocks, states, the water layer and
+block entity data as the client knows it are saved (since 2026-10-09). Optional entities retain type, position
 and facing. Existing files require a second press to overwrite.
 
 Known rendering gaps include half-drawn beds and outlines for heads, doors
@@ -413,8 +413,18 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    the world cell as x/y/z, a `Rotation` float turned like entity facing
    (`toWorldYaw`), and is loaded with `BlockActor::load` and a
    `DefaultDataLoadHelper`. Only files that carry the data show it:
-   vanilla structure block exports do, Lamium's own area saves do not
-   (they store blocks, states and water only).
+   vanilla structure block exports do; Lamium's own area saves did not
+   until `438e24a` (decided 2026-10-09: save it).
+   First check 2026-10-09 (`79198e1`, a vanilla export `block-like`): beds
+   and signs (standing, wall, hanging) show their color, text and angle;
+   banners showed their pattern but the wrong mount and facing, and heads
+   drew nothing: the renderer reads the block at the cell, which was the
+   world's air. `8ba47e6` renders each ghost actor against a
+   SchematicRegion answering the ghost's block at its cell. Saves now
+   store each cell's block entity (`BlockActor::save` with a clone save
+   context, as the client knows it: a container's items only if synced).
+   Reported, unclear: a "cushion" whose color is wrong. Vanilla exports
+   leave a bed's or door's other half blank (outside the area).
 5. Lighting regressions to keep in the check list: ghosts the same at
    night, underground and looking straight down; Vibrant Visuals uses its
    own material path or is named as unsupported.
