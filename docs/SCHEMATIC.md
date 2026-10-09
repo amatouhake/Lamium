@@ -443,6 +443,11 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
 5. Lighting regressions to keep in the check list: ghosts the same at
    night, underground and looking straight down; Vibrant Visuals uses its
    own material path or is named as unsupported.
+   Checked 2026-10-09 (`b55aa03`): straight down fine. Vibrant Visuals is
+   named as supported with limits: ghosts draw but without their tint,
+   outlines thin and black, the honey ghost black. The structure block's
+   outline keeps its color and width there, so a material path for it
+   exists; finding it is a later research item (BACKLOG).
    Seen 2026-10-09: ghosts drawn by block-entity renderers (chest, bed,
    banner, sign, head) follow the world's light. A hook on
    `BlockSource::getLightColor` crashed the game at start twice (its

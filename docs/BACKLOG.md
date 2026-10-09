@@ -702,6 +702,10 @@ in game 2026-10-09**; C measured and tuned (30-50 -> 45-60 fps with several
 large placements), **done 2026-10-09**
 (B5's block-entity ghost lighting **done and checked 2026-10-09**; looking
 straight down and Vibrant Visuals stay on the check list).
+Later research (not scheduled): ghosts under Vibrant Visuals lose their tint
+and draw black outlines and a black honey ghost; the structure block's own
+outline keeps its color and width there, so look for the material path it
+uses (SCHEMATIC.md B5).
 Reported 2026-10-09: in the Files/Check previews biome-tinted blocks
 (grass tops, leaves, vines) stayed untinted gray, tessellated above the
 build limit where no biome answered. Fixed and checked the same day: cells

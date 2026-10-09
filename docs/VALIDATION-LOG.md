@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic ghosts looking straight down and under Vibrant Visuals, B5 (2026-10-09)
+
+By the maintainer, local, `b55aa03` (DLL SHA-256
+`eb26e5995c06a6c7d2ec26492a2537cfe87cf22a1d9cda569f146a181394bce6`).
+Looking straight down onto and from inside ghosts: no change in brightness
+or color, nothing missing or flickering. Vibrant Visuals: no crash; ghost
+blocks, entities and block entities draw with their shapes, but without
+the light-blue tint (they read almost like real blocks), Lamium's outlines
+are thin black lines, and the honey ghost is black. The structure block's
+own outline keeps its color and width there. Also seen: Lamium's Night
+Vision changes nothing under Vibrant Visuals.
+
 ## L-93 Schematic ghost performance, C (2026-10-09)
 
 By the maintainer, local, several large placements (`desert village`,
