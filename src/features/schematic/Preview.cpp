@@ -1,6 +1,10 @@
 #include "features/schematic/Preview.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/GhostFaces.h"
+#include "features/schematic/EntityModels.h"
+#include "features/schematic/SchematicRegion.h"
+#include "mc/client/renderer/BaseActorRenderContext.h"
+#include "mc/world/level/block/actor/BlockActor.h"
 #include "features/schematic/LiquidShape.h"
 #include "features/schematic/SchematicRegion.h"
 #include "app/Runtime.h"
@@ -89,6 +93,12 @@ struct Kept {
     std::vector<std::uint32_t> quadCells; // the cell each quad belongs to
     std::vector<bool> quadLiquid;         // whether each quad is a liquid's
     Cut cut;
+    // Drawn by their block-entity renderers after the mesh: cell index and
+    // block, with their actors made on first draw.
+    std::vector<std::pair<std::uint32_t, Block const*>> actorCells;
+    std::vector<std::shared_ptr<BlockActor>> actors;
+    std::vector<Block const*> palette; // the file's game blocks, for the actors' view
+    int baseX = 0, baseY = 0, baseZ = 0; // where cell (0, 0, 0) was tessellated
 };
 Kept kept;
 // The mesh being built.
@@ -117,6 +127,7 @@ struct Job {
     std::vector<bool> covers; // per palette entry: hides the faces it touches
     std::vector<std::uint32_t> quadCells;
     std::vector<bool> quadLiquid;
+    std::vector<std::pair<std::uint32_t, Block const*>> actorCells;
     Cut cut;
 };
 std::optional<Job> job;
@@ -349,6 +360,8 @@ bool step() {
             ghosts::eachLayer(block, *j.region, spot, [&](std::optional<BlockRenderLayer> layer) {
                 ghosts::tessellateLayer(*j.blocks, batch, block, spot, layer);
             });
+            // No mesh: a block entity, drawn by its renderer after the mesh.
+            if (positions.size() == from) j.actorCells.push_back({static_cast<std::uint32_t>(cell), &block});
             if (static_cast<size_t>(cell) < s.liquids.size())
                 if (auto i = s.liquids[static_cast<size_t>(cell)]; i >= 0 && static_cast<size_t>(i) < j.palette.size() && j.palette[static_cast<size_t>(i)]
                     && ghosts::liquidKind(*j.palette[static_cast<size_t>(i)]))
@@ -398,6 +411,12 @@ bool step() {
     kept.uvAabb = *data.mUVAABB;
     kept.quadCells = std::move(j.quadCells);
     kept.quadLiquid = std::move(j.quadLiquid);
+    kept.actorCells = std::move(j.actorCells);
+    kept.actors.assign(kept.actorCells.size(), nullptr);
+    kept.palette = j.palette;
+    kept.baseX = j.baseX;
+    kept.baseY = j.baseY;
+    kept.baseZ = j.baseZ;
     kept.cut = j.cut;
     return true;
 }
@@ -447,6 +466,53 @@ void meshFrom(ScreenContext& screen, std::vector<std::uint32_t> const& quads, Ti
     *data.mUVAABB = kept.uvAabb;
     static_cast<unsigned&>(batch.mCount) = static_cast<unsigned>(quads.size() * 4);
     out.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic preview", SupplementaryFieldAutoGenerationMode{}));
+}
+// Block entities and entities of the kept structure, in the preview's model
+// space (cell corners at their cell minus the center), inside the pushed
+// model matrix: block entities by their renderers against a view answering
+// the file's blocks where the cells were tessellated, entities as the
+// world's entity ghosts draw them.
+void drawActors(MinecraftUIRenderContext& context, BlockSource& region, Structure const& s) {
+    if (kept.structure.get() != &s) return;
+    glm::vec3 center{s.size.x / 2.f, s.size.y / 2.f, s.size.z / 2.f};
+    auto& screen = static_cast<ScreenContext&>(context.mScreenContext);
+    IClientInstance& client = context.mClient;
+    if (!kept.actorCells.empty()) {
+        BaseActorRenderContext actorContext(screen, client, client.getMinecraftGame_DEPRECATED());
+        SchematicRegion view(region);
+        view.fullLight = true;
+        view.answer = [&](BlockPos const& p) -> Block const* {
+            int x = p.x - kept.baseX, y = p.y - kept.baseY, z = p.z - kept.baseZ;
+            if (x < 0 || y < 0 || z < 0 || x >= s.size.x || y >= s.size.y || z >= s.size.z || !kept.cut.keeps(x, y, z)) return nullptr;
+            auto index = s.blocks[static_cast<size_t>(s.cell(x, y, z))];
+            return index >= 0 && static_cast<size_t>(index) < kept.palette.size() ? kept.palette[static_cast<size_t>(index)] : nullptr;
+        };
+        for (size_t i = 0; i < kept.actorCells.size(); ++i) {
+            auto [cell, block] = kept.actorCells[i];
+            int x = static_cast<int>(cell) / (s.size.y * s.size.z), y = static_cast<int>(cell) / s.size.z % s.size.y, z = static_cast<int>(cell) % s.size.z;
+            if (!kept.cut.keeps(x, y, z)) continue;
+            BlockPos worldPos{kept.baseX + x, kept.baseY + y, kept.baseZ + z};
+            if (!kept.actors[i]) {
+                auto found = s.blockEntities.find(static_cast<std::int32_t>(cell));
+                kept.actors[i] = ghosts::makeBlockActor(*block, worldPos, found != s.blockEntities.end() ? &found->second : nullptr,
+                                                        Placement{}, region);
+                if (!kept.actors[i]) continue;
+            }
+            Vec3 renderPos{x - center.x, y - center.y, z - center.z};
+            ghosts::renderBlockActor(actorContext, view, *kept.actors[i], *block, renderPos, worldPos);
+        }
+    }
+    std::vector<models::Spot> spots;
+    for (auto const& entity : s.entities) {
+        if (entity.identifier.empty() || spots.size() >= 256) continue;
+        if (!kept.cut.keeps(static_cast<int>(std::floor(entity.x)), static_cast<int>(std::floor(entity.y)), static_cast<int>(std::floor(entity.z))))
+            continue;
+        float yaw = 0;
+        if (auto const* turn = entity.data.find("Rotation"); turn && turn->as<nbt::List>() && !turn->as<nbt::List>()->items.empty())
+            if (auto const* v = turn->as<nbt::List>()->items.front().as<float>()) yaw = *v;
+        spots.push_back({{entity.x - center.x, entity.y - center.y, entity.z - center.z}, entity.identifier, yaw});
+    }
+    if (!spots.empty()) models::draw(screen, client, Vec3{0, 0, 0}, spots, [](std::function<void()> const& draw) { draw(); });
 }
 // Uploads the kept quads sorted far to near for `order`, as one mesh drawn
 // blended over real depth: nearer quads cover farther ones, water lets them
@@ -582,6 +648,7 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
             ActorShaderManager::setupShaderParameters(screen, *region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture, Vec2{1, 1},
                 Vec4{0, 0, 1, 1});
             ready.mesh->renderMesh(screen, material, texture, 0, ready.vertices, OffscreenCaptureDescription{}, nullptr);
+            drawActors(context, *region, *structure);
         } catch (...) {
             pop();
             throw;

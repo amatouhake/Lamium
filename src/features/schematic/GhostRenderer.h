@@ -16,11 +16,15 @@
 #include <vector>
 class Block;
 class BlockSource;
+class BaseActorRenderContext;
+class BlockActor;
 class BlockPos;
+class Vec3;
 class BlockTessellator;
 class ScreenContext;
 class Tessellator;
 enum class BlockRenderLayer : unsigned char;
+namespace lamium::schematic { class SchematicRegion; }
 namespace lamium::schematic::ghosts {
 // The game block for a palette entry (its name, states and version), or null.
 Block const* gameBlock(PaletteBlock const& entry);
@@ -48,6 +52,14 @@ void eachLayer(Block const& block, BlockSource& region, BlockPos const& pos,
 // tessellator's current one) in the world at `pos`.
 void tessellateLayer(BlockTessellator& tessellator, Tessellator& batch, Block const& block, BlockPos const& pos,
                      std::optional<BlockRenderLayer> layer);
+// A block actor for a ghost of `block` at `pos`, with the file's block
+// entity data when there is some (a skull's rotation turned by `placement`).
+std::shared_ptr<BlockActor> makeBlockActor(Block const& block, BlockPos const& pos, nbt::Compound const* data,
+                                           Placement const& placement, BlockSource& region);
+// Draws a ghost block actor at full brightness, against `view`, which must
+// answer the ghost's block at `worldPos` (a banner's mount, a head's kind).
+void renderBlockActor(BaseActorRenderContext& context, SchematicRegion& view, BlockActor& actor, Block const& block,
+                      Vec3 const& renderPos, BlockPos const& worldPos);
 // 1 for water, 2 for lava, 0 for anything else.
 int liquidKind(Block const& block);
 // A liquid block's liquid_depth (0 for a source or anything else).

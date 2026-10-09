@@ -1981,18 +1981,12 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             }
             actorView->answer = [&](BlockPos const& at) { return at == pos ? block : nullptr; };
             auto& actor = actors[{pos.x, pos.y, pos.z, block}];
-            if (!actor) {
-                actor = VanillaBlockActorFactory::createBlockActor(pos, block->getBlockType());
-                if (*actor && data) loadBlockEntity(**actor, *data, pos, snapshot.placements[static_cast<size_t>(std::get<0>(key))].placement.placement,
-                                                    region);
-            }
-            auto* component = *actor ? (*actor)->_getRenderComponent() : nullptr;
-            if (!component) continue;
+            if (!actor)
+                actor = makeBlockActor(*block, pos, data ? &*data : nullptr,
+                                       snapshot.placements[static_cast<size_t>(std::get<0>(key))].placement.placement, region);
+            if (!*actor) continue;
             Vec3 renderPos{static_cast<float>(pos.x - camera.x), static_cast<float>(pos.y - camera.y), static_cast<float>(pos.z - camera.z)};
-            mce::MaterialPtr none(mce::RenderMaterialGroup::common(), HashedString{"lamium_no_forced_material"});
-            ghostActorSource.store(actorView.get(), std::memory_order_relaxed);
-            struct Restore { ~Restore() { ghostActorSource.store(nullptr, std::memory_order_relaxed); } } restore;
-            dispatcher.render(context, *actorView, *component, *block, renderPos, pos, false, none, nullptr, 0, std::nullopt);
+            renderBlockActor(context, *actorView, **actor, *block, renderPos, pos);
         }
     }
     if (actorView) actorView->answer = nullptr;
@@ -2198,6 +2192,23 @@ BlockLabel blockLabel(PaletteBlock const& entry) {
     auto const* block = lookup(entry);
     auto info = block ? describe(*block, entry.name) : ItemInfo{"", entry.name, ""};
     return {info.name, info.icon};
+}
+std::shared_ptr<BlockActor> makeBlockActor(Block const& block, BlockPos const& pos, nbt::Compound const* data, Placement const& placement,
+                                           BlockSource& region) {
+    auto actor = VanillaBlockActorFactory::createBlockActor(pos, block.getBlockType());
+    if (actor && data) loadBlockEntity(*actor, *data, pos, placement, region);
+    return actor;
+}
+void renderBlockActor(BaseActorRenderContext& context, SchematicRegion& view, BlockActor& actor, Block const& block, Vec3 const& renderPos,
+                      BlockPos const& worldPos) {
+    auto* component = actor._getRenderComponent();
+    if (!component) return;
+    auto& dispatcher = context.mClientInstance.getBlockEntityRenderDispatcher();
+    mce::MaterialPtr none(mce::RenderMaterialGroup::common(), HashedString{"lamium_no_forced_material"});
+    // Its renderer lights it from this source: full brightness (GhostActorShader).
+    ghostActorSource.store(&view, std::memory_order_relaxed);
+    struct Restore { ~Restore() { ghostActorSource.store(nullptr, std::memory_order_relaxed); } } restore;
+    dispatcher.render(context, view, *component, block, renderPos, worldPos, false, none, nullptr, 0, std::nullopt);
 }
 void eachLayer(Block const& block, BlockSource& region, BlockPos const& pos, std::function<void(std::optional<BlockRenderLayer>)> const& visit) {
     // Liquids are drawn as shells (liquidShell), not through this path.
