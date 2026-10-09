@@ -54,6 +54,7 @@
 #include "mc/world/item/SaveContextFactory.h"
 #include "mc/deps/renderer/Camera.h"
 #include "mc/deps/renderer/MatrixStack.h"
+#include "mc/deps/renderer/ShaderColor.h"
 #include "mc/locale/I18n.h"
 #include "mc/world/actor/Actor.h"
 #include "mc/world/actor/ActorType.h"
@@ -1586,7 +1587,13 @@ void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera) {
 // selected one solid, the others dashed. The line material ignores alpha
 // (checked 2026-10-08), so the shape tells them apart.
 void drawPlacementFrames(ScreenContext& screen, session::Snapshot const& snapshot, int dimension, Vec3 const& camera) {
-    mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
+    // Spike (Vibrant Visuals): the block selection outline's material, colored
+    // by the current shader color instead of vertex colors, which Vibrant
+    // Visuals drew black on the debug material.
+    mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"selection_box"});
+    static bool named = false;
+    if (!std::exchange(named, true)) log(lineMaterial.mRenderMaterialInfoPtr ? "frames use selection_box" : "selection_box not found");
+    if (!lineMaterial.mRenderMaterialInfoPtr) lineMaterial = mce::MaterialPtr(mce::RenderMaterialGroup::common(), HashedString{"debug"});
     if (!lineMaterial.mRenderMaterialInfoPtr) return;
     bool stale = !frameMesh.mesh || !frameMesh.mesh->isValid() || frameMesh.revision != snapshot.revision
         || frameMesh.selected != snapshot.selected || frameMesh.dimension != dimension;
@@ -1643,10 +1650,16 @@ void drawPlacementFrames(ScreenContext& screen, session::Snapshot const& snapsho
     if (!frameMesh.mesh) return;
     glm::vec3 offset{static_cast<float>(frameMesh.anchor.x - camera.x), static_cast<float>(frameMesh.anchor.y - camera.y),
                      static_cast<float>(frameMesh.anchor.z - camera.z)};
+    auto& shaderColor = static_cast<ShaderColor&>(screen.currentShaderColor);
+    mce::Color was = shaderColor.color;
+    shaderColor.color = mce::Color{.35f, .85f, 1.f, 1.f};
+    shaderColor.dirty = true;
     translated(screen, offset, [&] {
         frameMesh.mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, frameMesh.vertices,
             OffscreenCaptureDescription{}, nullptr);
     });
+    shaderColor.color = was;
+    shaderColor.dirty = true;
 }
 // Missing entities: their game model with part outlines (L-115), or a dashed
 // frame when the entity has no model.
