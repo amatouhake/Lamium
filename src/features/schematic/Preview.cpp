@@ -47,8 +47,10 @@
 
 namespace lamium::schematic::preview {
 namespace {
-// How deep the whole build is in the UI pass, in UI units (see draw()).
-constexpr float previewDepth = .5f;
+// The normalized depth of the build's nearest and farthest points in the UI
+// pass (see draw()): inside both 0..1 and -1..1, nearer smaller (the pass
+// keeps the first fragment, so its test is "less").
+constexpr float previewNear = .25f, previewFar = .75f;
 // More visible blocks than this are not previewed; the box keeps its text.
 constexpr size_t maxBlocks = 120000;
 // Blocks tessellated per frame: large previews build over several frames
@@ -483,20 +485,41 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
 
         // Model (centered blocks) to UI: right, down and toward the viewer,
-        // scaled to fit. Depth is real but shallow: the whole build spans
-        // previewDepth UI units, nearer the viewer smaller (a depth as deep
-        // as the build is wide cut blocks apart). Solid quads are still
-        // sorted near to far (the UI pass keeps the first fragment at a
-        // spot); the liquid mesh drawn after them is hidden behind solids in
-        // front and blended over those behind.
+        // scaled to fit. Depth is real but kept inside the pass's depth
+        // range: read from the current matrices, the build spans normalized
+        // depth 0.25 (nearest) to 0.75 (a depth as deep as the build is wide
+        // fell outside it and cut blocks apart; a fixed 0.5 UI units drew
+        // nothing). Solid quads are still sorted near to far (the UI pass
+        // keeps the first fragment at a spot); the liquid mesh drawn after
+        // them is hidden behind solids in front and blended over those
+        // behind.
         auto r = project(view, 1, 0, 0), u = project(view, 0, 1, 0), f = project(view, 0, 0, 1);
         float scale = fitScale(structure->size.x, structure->size.y, structure->size.z, width, height) * std::max(view.zoom, .1f);
-        float depth = previewDepth / static_cast<float>(std::max({structure->size.x, structure->size.y, structure->size.z, 1})) / 1.8f;
+        float depth = 0, middle = 0; // UI z per block toward the viewer, and the build center's z
+        if (!screen.camera.viewMatrixStack->stack->empty() && !screen.camera.projectionMatrixStack->stack->empty()
+            && !screen.camera.worldMatrixStack->stack->empty()) {
+            glm::mat4 clip = *screen.camera.projectionMatrixStack->top()._m * *screen.camera.viewMatrixStack->top()._m
+                * *screen.camera.worldMatrixStack->top()._m;
+            glm::vec4 base = clip * glm::vec4(x + width / 2, y + height / 2, 0, 1);
+            glm::vec4 step = clip * glm::vec4(x + width / 2, y + height / 2, 1, 1) - base;
+            float half = .5f * std::sqrt(static_cast<float>(structure->size.x * structure->size.x + structure->size.y * structure->size.y
+                                                            + structure->size.z * structure->size.z));
+            if (std::abs(step.z) > 1e-12f && std::abs(step.w) < 1e-6f && std::abs(base.w) > 1e-6f && half > 0) {
+                auto at = [&](float ndc) { return (ndc * base.w - base.z) / step.z; };
+                float nearest = at(previewNear), farthest = at(previewFar);
+                middle = (nearest + farthest) / 2;
+                depth = (farthest - nearest) / (2 * half);
+            }
+            static bool logged = false;
+            if (!std::exchange(logged, true))
+                log(std::format("depth: z at UI z 0 is {:.6g}/{:.6g}, per UI unit {:.6g}/{:.6g}; build middle z {:.6g}, {:.6g} per block",
+                    base.z, base.w, step.z, step.w, middle, depth));
+        }
         glm::mat4 model{1.f};
         model[0] = {scale * r.right, scale * r.down, -depth * r.toward, 0};
         model[1] = {scale * u.right, scale * u.down, -depth * u.toward, 0};
         model[2] = {scale * f.right, scale * f.down, -depth * f.toward, 0};
-        model[3] = {x + width / 2, y + height / 2, previewDepth / 2, 1};
+        model[3] = {x + width / 2, y + height / 2, middle, 1};
         placed = {structure, view, cut, scale, x + width / 2, y + height / 2};
         context.flushText(0, std::nullopt);
         // No clipping: the UI scissor (in GUI units, in pixels, or committed
