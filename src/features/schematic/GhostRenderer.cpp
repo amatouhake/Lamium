@@ -2109,10 +2109,9 @@ BrightnessPair fullBrightness() {
     full.block->mValue = 15;
     return full;
 }
-LL_TYPE_INSTANCE_HOOK(GhostLightColor, ll::memory::HookPriority::Normal, BlockSource, &BlockSource::getLightColor, BrightnessPair,
-                      BlockPos const& pos, Brightness minBlockLight) {
-    return ghostActorLight.load(std::memory_order_relaxed) == std::this_thread::get_id() ? fullBrightness() : origin(pos, minBlockLight);
-}
+// Not BlockSource::getLightColor: its Brightness argument travels by value
+// in the game but by reference in this SDK's type, and the hook crashed at
+// start reading it.
 LL_TYPE_INSTANCE_HOOK(GhostBrightnessPair, ll::memory::HookPriority::Normal, BlockSource, &BlockSource::getBrightnessPair, BrightnessPair,
                       BlockPos const& pos) {
     return ghostActorLight.load(std::memory_order_relaxed) == std::this_thread::get_id() ? fullBrightness() : origin(pos);
@@ -2368,7 +2367,7 @@ void start() {
     installed = GhostPass::hook(true) == 0;
     if (!installed) throw std::runtime_error("Could not install the schematic ghost pass");
     if (GhostBlendPass::hook(true) != 0) log("could not install the blended ghost pass");
-    if (GhostLightColor::hook(true) != 0 || GhostBrightnessPair::hook(true) != 0) log("could not install the ghost light hooks");
+    if (GhostBrightnessPair::hook(true) != 0) log("could not install the ghost light hook");
     exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
         [](auto&) { releaseRequested = true; items::forget(); selection::clear(); });
 }
@@ -2378,7 +2377,6 @@ void stop() {
         exitListener.reset();
     }
     GhostBlendPass::unhook(true);
-    GhostLightColor::unhook(true);
     GhostBrightnessPair::unhook(true);
     if (installed && GhostPass::unhook(true)) installed = false;
     releaseRequested = true;
