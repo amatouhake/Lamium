@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic lines and mistake faces under Vibrant Visuals (2026-10-09)
+
+By the maintainer, local, switching between Fancy, Simple and Vibrant
+Visuals. `fce6057`: placement frames on `selection_box` with the current
+shader color stay light blue under Vibrant Visuals (same width). `3995e2a`:
+every schematic line keeps its color there (shapes, red, yellow, orange,
+selection, entity frames); mistake faces colored; normal modes unchanged;
+mode switches safe; but faces flickered, and after closing the inventory
+faces and lines glow until the player moves (shapes too). `c363475`
+fixed the mistake faces' flicker, but read the overlay material's
+`twoSided` the wrong way round: selection corners kept flickering under
+Vibrant Visuals and showed only lines on opaque blocks in Fancy and
+Simple. `b7e24c2` (DLL SHA-256
+`da26fa54ad58d658944b89bd2dca9074067a4d42143330af097bbeaa88648bcd`): corner
+faces visible in Fancy and Simple on any block, flickering under Vibrant
+Visuals no more than the mistake faces (about like shapes); waiting-column
+floors and the shown point's faces visible in both. Still: ghost faces
+untinted and the honey ghost black under Vibrant Visuals.
+
 ## L-93 Schematic ghosts looking straight down and under Vibrant Visuals, B5 (2026-10-09)
 
 By the maintainer, local, `b55aa03` (DLL SHA-256
