@@ -453,7 +453,7 @@ D. Check accuracy (pure rules with tests, small):
   from the file's either way gets a yellow mark; liquid shells for the
   second layer are drawn only under ghosts (the world's cell empty), since
   a shell around a placed block looked like real water (maintainer,
-  2026-10-09).
+  2026-10-09). Checked in game on `edbd7f5` (VALIDATION-LOG).
 - One material identity for the material list, the check and later
   placing assistance (already one pick-item rule; keep it that way).
 

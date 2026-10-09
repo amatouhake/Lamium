@@ -697,7 +697,8 @@ writes) and in the previews (water there is opaque), **done 2026-10-09**
 (world: blended ghosts and marks drawn after the world's translucent
 blocks; previews: shallow real depth, water translucent, cut-out limits
 accepted); B4 block entity data (and Lamium saves keep it), **done and
-checked in game 2026-10-09**; then C
+checked in game 2026-10-09**; D waterlogging in the check, **done and checked
+in game 2026-10-09**; then C
 event-driven rebuilds, D waterlogging in the check (the check stays
 strict). B-D: Research (strong model), approach left to the agent.
 

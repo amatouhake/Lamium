@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic waterlogging check, D (2026-10-09)
+
+By the maintainer, local, `56c9921` then `edbd7f5` (DLL SHA-256
+`31d0042ccb13ca51a5e75bd0994b6eb795ce0a6cdcfa9e45456989288b07b4ed`),
+`submerged_lamium` on land. On `56c9921`: a fence or stair placed without
+its water is listed as a state mistake and its target card reads
+`waterlogged: false -> true` (now -> should be); a waterlogged block where
+the file has none gets a yellow mark; placing it right clears both. But a
+placed block missing its water got no mark and kept a ghost water shell,
+which looked like real water. On `edbd7f5` it gets a yellow mark and no
+shell; ghosts not yet placed still show their water; the other cases are
+unchanged.
+
 ## L-93 Schematic block entity data, B4 (2026-10-09)
 
 By the maintainer, local, `79198e1` then `438e24a` (DLL SHA-256
