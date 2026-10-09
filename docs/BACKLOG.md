@@ -105,9 +105,8 @@ L-item wins. Every entry names what the task is, not only its number.
    breeding timers, L-96 Connected Textures (glass first; step 1 is the
    tessellator spike), L-105 performance profiling (measure before any
    optimization).
-8. **Before a release:** the pre-release checks below. 0.1.7 was released
-   on 2026-10-07; server checks of the 2026-10-06/07 work stay listed
-   below as known gaps (Release policy does not require a full
+8. **Before a release:** the pre-release checks below. 0.1.8 was released
+   on 2026-10-10; server checks stay listed below as known gaps (Release policy does not require a full
    regression).
 
 Ideas that are not yet chosen (for example more inventory transfer gestures,
@@ -135,6 +134,17 @@ every server gap before a release.
 The following are released-build checkpoints and listing follow-ups, not
 unmet gates for versions already published:
 
+- 0.1.8 was released on 2026-10-10 (`v0.1.8` at `e175eed`, tag CI passed;
+  asset SHA-256 `b99f9f27...e300da4b`): L-93 Schematics rendering and
+  compatibility (version 2 saves, neighbors, render layers, liquids, block
+  entity data, performance), L-114 3D previews, L-115 entity models, the
+  screen review, map markers and target-card rows; L-118 distance fog
+  (selected by default); L-109 death layout restore; L-15 step 1 breaking
+  (to be redesigned, maintainer 2026-10-10); L-122 Fake Offhand fireworks;
+  L-106/L-107 F1; L-108. The maintainer's smoke test passed on the
+  release-ZIP DLL `1e2f4e6f...37ae55a2c`. No settings migration. After
+  tagging: check that the registry PR picks up `v0.1.8` and that
+  LeviLauncher/Bedrinth offer it.
 - 0.1.7 was released on 2026-10-07 (`v0.1.7`, tag CI passed; asset SHA-256
   `2e0926e0...93b013b5`): L-93 Schematics (experimental), L-67 Weapon
   Switch, L-97 fixed fetch slot, L-94 offhand swap (`F`), L-95 Fake Offhand
@@ -469,6 +479,8 @@ current Breaking Restriction (capture/reset keys) and the unimplemented
 placement mode.
 Status: step 1 (breaking) built 2026-10-07 with L-73 step 13 and checked in
 game 2026-10-08 (VALIDATION-LOG). Implementation notes: RESTRICTIONS.md.
+Shipped in 0.1.8; the maintainer is not yet satisfied with it and expects to
+redesign breaking too (2026-10-10).
 Reopened for Design (maintainer, 2026-10-08): the plan dates from 2026-09-28
 and should be rethought before placement is built. Problems seen: too many
 modes to cycle through, and the placement mode has no key (and does nothing

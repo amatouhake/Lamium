@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.1.8 release smoke test (2026-10-10)
+
+By the maintainer, local, the 1.26.51.01 instance without LIP, on the DLL
+from `Lamium-0.1.8-client-windows-x64.zip` (`e175eed`, DLL SHA-256
+`1e2f4e6fe6f4657a8a1f7f18a3d067a32f9a100e3875deaa45886b537ae55a2c`, ZIP
+`b99f9f2798da94745ab8e6c863ebf397856617f1f722febb13b4c810e300da4b`): the
+mod loads, settings open with 0.1.8, and distance fog, Fake Offhand
+fireworks and the schematic ghost fixes work. Not a full regression.
+
 ## L-93 Waterlogged ghost stairs, crops and farmland beside water (2026-10-10)
 
 By the maintainer, local, the 1.26.51.01 instance without LIP. `62bff77`:
