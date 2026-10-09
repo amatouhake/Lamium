@@ -360,7 +360,12 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    mark over real water of another flow level (holo material, its own
    draw) flickers against ghost liquid shells. `liquidAt` takes the file's
    cells inside the placement (shown layers, not structure void) and the
-   world only elsewhere, so real liquids beside a ghost do not bend it.
+   world only elsewhere, so real liquids beside a ghost do not bend it
+   (checked on `be48f75`). B3 done. Open question for the maintainer: a
+   cell whose real liquid has another flow level gets a yellow mark and
+   no shell, so a thin real flow there shows almost nothing of the
+   file's surface; drawing the file's shell inside such marks too would
+   show it.
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).

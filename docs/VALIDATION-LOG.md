@@ -25,7 +25,8 @@ texture (`6fbaa3a`). That build sampled only half the flowing texture (it
 looked 8x8 and fast); the fix, `96fe71f`, was checked the same day:
 16x16, the real speed, the real direction. Also seen then: real water or
 lava placed beside a ghost flow bent its slope and flow direction (fixed
-next, the file now decides inside the placement, not yet checked), and a
+in `be48f75`, checked the same day: real liquids beside a ghost flow no
+longer change it, and no shell appears in real water), and a
 yellow mark over real water (a different flow level than the file's)
 flickered against a ghost liquid shell, swapping draw order each frame
 like the marks over real honey or glass. Previews: liquids
