@@ -171,13 +171,11 @@ std::vector<std::string> builtKeys; // drawKey of each resolved placement
 // Keyed by the block as well: two placements may want different block
 // entities in one cell.
 std::map<std::tuple<int, int, int, Block const*>, std::optional<std::shared_ptr<BlockActor>>> actors;
-// The thread drawing ghost block actors, while it does: its light queries
-// then answer full brightness (GhostLight hooks), so a ghost chest or bed
-// reads the same at night and underground as the other ghosts. Their
-// renderers read light through non-virtual BlockSource calls. Not a
-// thread_local: threads that existed before the mod loaded had no slot
-// for it, and reading it in the hook crashed at start.
-std::atomic<std::thread::id> ghostActorLight{};
+// The block source ghost block actors draw against, while they draw: their
+// renderers light themselves from it (GhostActorShader turns that into full
+// brightness), so a ghost chest or bed reads the same at night and
+// underground as the other ghosts.
+std::atomic<BlockSource const*> ghostActorSource{nullptr};
 std::vector<std::pair<BlockPos, Block const*>> watched; // Recently looked-at cells and what was there.
 // Entities are looked up this often, and only this close to the player: the
 // client does not know entities beyond its tracking range.
@@ -1979,8 +1977,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             if (!component) continue;
             Vec3 renderPos{static_cast<float>(pos.x - camera.x), static_cast<float>(pos.y - camera.y), static_cast<float>(pos.z - camera.z)};
             mce::MaterialPtr none(mce::RenderMaterialGroup::common(), HashedString{"lamium_no_forced_material"});
-            ghostActorLight.store(std::this_thread::get_id(), std::memory_order_relaxed);
-            struct Restore { ~Restore() { ghostActorLight.store({}, std::memory_order_relaxed); } } restore;
+            ghostActorSource.store(actorView.get(), std::memory_order_relaxed);
+            struct Restore { ~Restore() { ghostActorSource.store(nullptr, std::memory_order_relaxed); } } restore;
             dispatcher.render(context, *actorView, *component, *block, renderPos, pos, false, none, nullptr, 0, std::nullopt);
         }
     }
@@ -2109,12 +2107,20 @@ BrightnessPair fullBrightness() {
     full.block->mValue = 15;
     return full;
 }
-// Not BlockSource::getLightColor: its Brightness argument travels by value
-// in the game but by reference in this SDK's type, and the hook crashed at
-// start reading it.
-LL_TYPE_INSTANCE_HOOK(GhostBrightnessPair, ll::memory::HookPriority::Normal, BlockSource, &BlockSource::getBrightnessPair, BrightnessPair,
-                      BlockPos const& pos) {
-    return ghostActorLight.load(std::memory_order_relaxed) == std::this_thread::get_id() ? fullBrightness() : origin(pos);
+// Block-actor renderers set up their light from the block source and cell;
+// for a ghost's source, the fully bright setup the other ghosts use. (Not a
+// hook on BlockSource::getLightColor: its Brightness argument travels by
+// value in the game but by reference in this SDK's type, and that hook
+// crashed at start; getBrightnessPair is not what these renderers read.)
+LL_TYPE_STATIC_HOOK(GhostActorShader, ll::memory::HookPriority::Normal, ActorShaderManager, &ActorShaderManager::setupShaderParameters,
+                    void, ScreenContext& screen, BlockSource& source, BlockPos const& pos, float a, bool ignoreLighting,
+                    LightTexture& lightTexture, std::weak_ptr<LightPropagation::LightVolumeManager> const& lightVolumes,
+                    Vec2 const& uvScale, Vec4 const& uvAnim) {
+    if (&source == ghostActorSource.load(std::memory_order_relaxed)) {
+        ActorShaderManager::setupShaderParameters(screen, source, fullBrightness(), glm::vec4{1, 1, 1, 1}, 1.f, true, lightTexture, uvScale, uvAnim);
+        return;
+    }
+    origin(screen, source, pos, a, ignoreLighting, lightTexture, lightVolumes, uvScale, uvAnim);
 }
 
 LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRendererPlayer,
@@ -2367,7 +2373,7 @@ void start() {
     installed = GhostPass::hook(true) == 0;
     if (!installed) throw std::runtime_error("Could not install the schematic ghost pass");
     if (GhostBlendPass::hook(true) != 0) log("could not install the blended ghost pass");
-    if (GhostBrightnessPair::hook(true) != 0) log("could not install the ghost light hook");
+    if (GhostActorShader::hook(true) != 0) log("could not install the ghost actor light hook");
     exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
         [](auto&) { releaseRequested = true; items::forget(); selection::clear(); });
 }
@@ -2377,7 +2383,7 @@ void stop() {
         exitListener.reset();
     }
     GhostBlendPass::unhook(true);
-    GhostBrightnessPair::unhook(true);
+    GhostActorShader::unhook(true);
     if (installed && GhostPass::unhook(true)) installed = false;
     releaseRequested = true;
 }
