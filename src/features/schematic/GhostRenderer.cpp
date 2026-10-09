@@ -745,8 +745,13 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         drawing = at;
         auto around = [&](int dx, int dy, int dz) { return liquidAt(region, shown, blocks, {at.x + dx, at.y + dy, at.z + dz}); };
         liquidShell(own, see, BlockPos{at.x, at.y, at.z}, *liquid, [&](int side) {
+            // Never against an opaque block, ghost or real: near the camera
+            // the tessellator keeps such faces (see ghostNeighbor), and the
+            // shell's face then shared a plane with the block's.
             auto const& d = faces::offsets[side];
-            return around(d[0], d[1], d[2]).kind != kind;
+            Point n{at.x + d[0], at.y + d[1], at.z + d[2]};
+            return around(d[0], d[1], d[2]).kind != kind && !ghostOpaqueAt(region, shown, blocks, n)
+                && !region.getBlock(BlockPos{n.x, n.y, n.z}).getBlockType().mIsOpaqueFullBlock;
         }, [&](int cx, int cz) { return liquids::corner(kind, around, cx, cz); });
     }
     if (!marks.empty()) {
