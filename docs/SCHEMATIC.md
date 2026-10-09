@@ -411,7 +411,12 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    renderer (`ghosts::renderBlockActor`, full brightness) against a
    SchematicRegion answering the file's blocks where the cells were
    tessellated; the file's entities go through `models::draw` in model
-   space. The world ghosts use the same two helpers.
+   space. The world ghosts use the same two helpers. Checked 2026-10-09
+   (`3889c2a`, VALIDATION-LOG): files without any mesh preview too; no
+   entity outlines in previews (`models::draw(..., outlines)`); block
+   entities and entities are drawn before the mesh, so a mesh's empty
+   texels (campfire flames) no longer hide them, with no draw order
+   flicker seen.
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).

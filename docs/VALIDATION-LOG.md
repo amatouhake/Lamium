@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-93 Schematic previews with block entities and entities (2026-10-09)
+
+By the maintainer, local, Files tab. `d07d158`: in `mixture` and
+`entities` the block entities (chests, ender chest, spawner contents
+aside) and the entities drew in place, facing right, moving with turn,
+zoom and layer peeling (peeled ones gone); entities carried the world
+ghosts' light-blue outlines; `block-like` (block entities only) drew
+nothing. `4b98908`: `block-like` draws its chests, beds, banners, signs,
+heads and its two entities; previews draw no entity outlines; world
+ghost entities keep theirs. A campfire's flames hid the block entities
+and entities behind them (empty texels write depth); `3889c2a` (DLL
+SHA-256 `a086c5ade2779faf6d38e759d7d9d69c93513c45e56f7a3468d5637aea0d5899`)
+draws them before the mesh: visible behind the flames, stable (no draw
+order flicker), still hidden by blocks in front, block brightness
+unchanged.
+
 ## L-93 Schematic foliage tints (2026-10-09)
 
 By the maintainer, local. A real mangrove leaf placed beside the preview
