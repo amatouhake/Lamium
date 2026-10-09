@@ -130,7 +130,8 @@ every server gap before a release.
 ### Released builds and registry follow-up
 
 The following are released-build checkpoints and listing follow-ups, not
-unmet gates for versions already published:
+unmet gates for versions already published. Registry pickup for 0.1.4 to
+0.1.7 is confirmed (maintainer 2026-10-10).
 
 - 0.1.8 was released on 2026-10-10 (`v0.1.8` at `e175eed`, tag CI passed;
   asset SHA-256 `b99f9f27...e300da4b`): L-93 Schematics rendering and
@@ -152,8 +153,7 @@ unmet gates for versions already published:
   transfer, L-104 map follow-ups, L-89 distant players, L-98 HUD density,
   L-99 Zoom below 2x, L-101 version display. The maintainer's smoke test
   passed on the release-ZIP DLL `2c3e7546...fd903806b` (`b3c6555`). No
-  settings migration. After tagging: check that the registry PR picks up
-  `v0.1.7` and that LeviLauncher/Bedrinth offer it. Schematic gaps (servers,
+  settings migration. Schematic gaps (servers,
   other dimensions, large files, block entities from files, half-drawn beds)
   are in VALIDATION.md and the README's Known issues.
 - 0.1.6 was released on 2026-10-02 (`v0.1.6`, tag CI passed; asset SHA-256
@@ -161,15 +161,11 @@ unmet gates for versions already published:
   translation, corrections welcome), L-88 target hearts, L-75 offhand slot,
   L-63 saturation, L-64/L-92 food values and durability inside the vanilla
   tooltip. The maintainer's smoke test passed on the release-ZIP DLL
-  `86f5baf0...2587883f` (`b71c9f8`). No settings migration. After tagging:
-  check that the registry PR picks up `v0.1.6` and that LeviLauncher/Bedrinth
-  offer it.
+  `86f5baf0...2587883f` (`b71c9f8`). No settings migration.
 - 0.1.5 was released on 2026-10-02 (`v0.1.5`, tag CI passed) at the maintainer's request,
   with the map (L-60, L-85, L-87) as its main change. The release build
   `6add9b9` (DLL `0fae1c58...dc657614c`, from the release ZIP) was deployed
   for a smoke test; no separate result was reported before tagging.
-  After tagging: check that the registry PR picks up `v0.1.5` and that
-  LeviLauncher/Bedrinth offer it.
 - 0.1.4 was released on 2026-09-30 (`v0.1.4`, tag CI passed). Its smoke test
   passed on the release build `4d25424`: the 0.1.4 version, Hand Restock
   (L-66) and offhand totems (L-68), Tool Protection (L-62), Tool Switch fetch
@@ -209,9 +205,6 @@ unmet gates for versions already published:
   effect/icon/vanilla preference passed on normal build `b239eb9`. Remaining:
   restart persistence, additional packs/modes and lifecycle/owner cases.
 - If possible, a server with real latency for Hand Restock.
-- Distant players on the map (L-89) and opaque player markers at any
-  height: checked on phone/PC-hosted worlds with a trace build; check on the
-  release build and a dedicated server.
 - Weapon Switch (L-67, after 0.1.6): checked locally on `7b702da`; check on a
   server (the same-hit equipment packet) and on the release build.
 - Offhand swap (L-94, F): checked locally on `856d79c`/`ed288b6`/`c7bb827`
@@ -224,9 +217,6 @@ unmet gates for versions already published:
 - Hand Restock threshold/order (L-102) and inventory-screen transfer
   (L-103): checked locally (`bd30648`, `97c44c6`, trace `163bb96`); check
   on a server with latency and on the release build.
-- Map follow-ups (L-104): checked locally up to `ea70c4d`; check on a server
-  (missing-section requests and their load, teleport through the command
-  list) and on the release build.
 - Fixed-slot fetch (L-97) and the stronger-weapon fetch: checked locally on
   `c7bb827`; check on a server (the same-hit selection report) and on the
   release build.

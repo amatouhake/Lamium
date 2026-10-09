@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-89 distant players and L-104 map follow-ups on a server (reported 2026-10-10)
+
+By the maintainer, reported in chat; build, hash and server not recorded.
+Distant players from the Locator Bar state (L-89) and the L-104 follow-ups
+(black areas within render distance filled by the client's missing-section
+requests; teleport from the map) were already checked and fine. No details
+beyond that were given.
+
 ## L-57 counters and L-60 waypoints on a server (reported 2026-10-10)
 
 By the maintainer, reported in chat while tidying the backlog; build, hash
