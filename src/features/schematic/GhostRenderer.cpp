@@ -141,10 +141,11 @@ struct Resolved {
     // Palette entries that are opaque full blocks with no mesh on the ghost
     // path (honey block): they must not hide a neighbor's face.
     std::vector<bool> meshless;
-    // Palette entries whose mesh reaches all six sides of the cell (any
-    // layer, honey's slightly inset outer cube included): a mistake mark
-    // next to one leaves out its face there.
-    std::vector<bool> boxed;
+    // Per palette entry, the sides of the cell its mesh reaches (any layer,
+    // honey's slightly inset outer cube included), as sidesReached bits: a
+    // mistake mark next to a block reaching all six leaves out its face
+    // there, and near the camera a pair of faces in one plane keeps one.
+    std::vector<int> sideMasks;
     // Per palette entry: the other half of a two-block-tall block (turned
     // like `blocks`) and the step up (+1) or down (-1) to it; null and 0
     // for other blocks.
@@ -443,22 +444,27 @@ bool ghostOpaqueAt(BlockSource& region, session::Shown const& shown, Resolved co
     bool drawn = static_cast<size_t>(index) >= blocks.meshless.size() || !blocks.meshless[static_cast<size_t>(index)];
     return ghost && drawn && ghost->getBlockType().mIsOpaqueFullBlock && region.getBlock(BlockPos{n.x, n.y, n.z}).isAir();
 }
-// A ghost that reaches all sides of its cell is drawn at `n`: a boxed block
-// expected in a shown layer, nothing real there yet.
-bool ghostBoxAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
+// The sides of its cell that the ghost drawn at `n` reaches (sidesReached
+// bits), 0 where no ghost is drawn (nothing expected in a shown layer,
+// something real there, a liquid).
+int ghostSidesAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto local = toLocal(structure.size, placement.placement, n);
-    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return false;
+    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return 0;
     auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
-    if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size()) return false;
+    if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size() || static_cast<size_t>(index) >= blocks.sideMasks.size()) return 0;
+    Block const* block = blocks.blocks[static_cast<size_t>(index)];
+    if (!block || liquidKind(*block)) return 0;
     BlockPos pos{n.x, n.y, n.z};
     auto* chunk = region.getChunkAt(pos);
-    if (!chunk || chunk->mLoadState->load() < ChunkState::Loaded) return false;
-    return blocks.blocks[static_cast<size_t>(index)] && static_cast<size_t>(index) < blocks.boxed.size()
-        && blocks.boxed[static_cast<size_t>(index)] && region.getBlock(pos).isAir();
+    if (!chunk || chunk->mLoadState->load() < ChunkState::Loaded || !region.getBlock(pos).isAir()) return 0;
+    return blocks.sideMasks[static_cast<size_t>(index)];
+}
+bool ghostBoxAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
+    return ghostSidesAt(region, shown, blocks, n) == 63;
 }
 // What the placement has at `n` (shown layers, either layer), or the world
 // where the placement says nothing (outside it, hidden layers, structure
@@ -529,7 +535,11 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
                 known = true;
             } else {
                 known = ghostOpaqueAt(region, shown, blocks, n);
-                if (*known && (nearCamera(at) || nearCamera(n)))
+                // Near the camera any two ghost faces in one plane keep the
+                // one toward the camera: seen from inside a door or a
+                // spawner, its face and a stair's beside it fought there.
+                bool pair = *known || (ghostSidesAt(region, shown, blocks, n) >> (side ^ 1) & 1);
+                if (pair && (nearCamera(at) || nearCamera(n)))
                     known = !faces::beyond(side, at.x, at.y, at.z, buildCamera.x, buildCamera.y, buildCamera.z);
             }
         }
@@ -621,10 +631,10 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         meshless.assign(blocks.blocks.size(), false);
         for (size_t i = 0; i < blocks.blocks.size(); ++i)
             if (auto const* b = blocks.blocks[i]; b && b->getBlockType().mIsOpaqueFullBlock) meshless[i] = !coversNeighbors(*b, own, screen);
-        auto& boxed = const_cast<Resolved&>(blocks).boxed;
-        boxed.assign(blocks.blocks.size(), false);
+        auto& masks = const_cast<Resolved&>(blocks).sideMasks;
+        masks.assign(blocks.blocks.size(), 0);
         for (size_t i = 0; i < blocks.blocks.size(); ++i)
-            if (auto const* b = blocks.blocks[i]) boxed[i] = sidesReached(*b, own, screen, true, .02f) == 63;
+            if (auto const* b = blocks.blocks[i]) masks[i] = sidesReached(*b, own, screen, true, .02f);
     }
     Point drawing{};
     int drawn = -1;
