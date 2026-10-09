@@ -27,8 +27,11 @@ save loaded by a structure block (colors, text, patterns). The structure
 block itself breaks signs and banners with nothing to stand on, and
 handles beds with one half missing on its own way (top half only: drawn
 whole without the lower half's collision; lower half only: not drawn).
-Not seen: a container's items, the "cushion" color the maintainer
-mentioned on `79198e1` (not identified).
+Not seen: a container's items. The "cushion" mentioned on `79198e1` is
+an entity (entity saving was off), not a block entity. Also seen that
+day: block-entity ghosts (chest, bed, banner, sign, head) follow the
+world's light at night and underground (B5; their brightness is read
+through non-virtual light queries).
 
 ## L-93 Schematic preview translucency, closed (2026-10-09)
 

@@ -704,8 +704,17 @@ void blockEntitySaves() {
     check(found != back.blockEntities.end() && found->second.find("color") && found->second.find("color")->integer(color) && color == 13
           && back.blockEntities.size() == 1, "a saved area keeps a cell's block entity data through write and read");
 }
+void liquidChecks() {
+    check(withLiquid(CellState::Correct, true) == CellState::Correct && withLiquid(CellState::Correct, false) == CellState::State,
+          "a right block with the wrong waterlogging is a state mistake");
+    check(withLiquid(CellState::Wrong, false) == CellState::Wrong && withLiquid(CellState::Missing, false) == CellState::Missing,
+          "waterlogging is judged only once the block itself is right");
+    auto row = liquidDifference(true, false);
+    check(row.key == "waterlogged" && row.expected == "true" && row.actual == "false", "the waterlogging row names both sides");
+}
 void schematicTests() {
     otherHalves();
+    liquidChecks();
     blockEntitySaves();
     liquidCorners();
     verificationOrder();

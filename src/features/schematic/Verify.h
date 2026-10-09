@@ -41,6 +41,14 @@ inline CellState classify(PaletteBlock const* expected, std::string_view expecte
     return world->key == expectedKey ? CellState::Correct : CellState::State;
 }
 
+// The second layer (water in a waterlogged block), judged once the block
+// itself is right: the file's liquid there and the world's must be the same
+// (none on both sides included). Any difference is a state mistake, like
+// any other differing state (strict check, decided 2026-10-09).
+inline CellState withLiquid(CellState block, bool liquidMatches) {
+    return block == CellState::Correct && !liquidMatches ? CellState::State : block;
+}
+
 // For a block of the right kind in the wrong state: which states differ, in
 // key order, at most `limit` of them. A state only one side has shows "-".
 struct StateDifference {
@@ -63,6 +71,11 @@ inline std::vector<StateDifference> stateDifferences(std::map<std::string, std::
         }
     }
     return result;
+}
+
+// The row naming a waterlogging difference in a mistake's state list.
+inline StateDifference liquidDifference(bool expected, bool actual) {
+    return {"waterlogged", expected ? "true" : "false", actual ? "true" : "false"};
 }
 
 struct Tally {

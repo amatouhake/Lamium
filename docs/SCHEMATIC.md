@@ -444,6 +444,14 @@ D. Check accuracy (pure rules with tests, small):
   mistake, including states the game changes on its own (growth, leaf
   decay bits); no ignore table.
 - Waterlogging: compare the second layer with the world's extra block.
+  Built 2026-10-09 (not yet checked in game): once a cell's block is
+  right, its second layer must match the world's extra block, none on
+  both sides included (`withLiquid`, tested); a difference is a state
+  mistake whose row reads `waterlogged: true -> false` (or the reverse).
+  A first-layer air cell with water in the second layer expects water
+  standing there. In the world, a placed block waterlogged where the file
+  has no water gets a yellow mark; missing water already shows as a
+  liquid shell, so it gets no mark.
 - One material identity for the material list, the check and later
   placing assistance (already one pick-item rule; keep it that way).
 

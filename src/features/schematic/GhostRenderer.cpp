@@ -200,6 +200,9 @@ struct Cell {
     Point world, offset;
     Block const* expected = nullptr;
     Block const* actual = nullptr;
+    // The second layer: the file's liquid and the world's extra block (null: none).
+    Block const* expectedLiquid = nullptr;
+    Block const* actualLiquid = nullptr;
 };
 struct Scan {
     std::uint64_t revision = 0;
@@ -724,7 +727,15 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     continue;
                 }
                 if (!expected) { outlines.push_back({boxLow, boxHigh, 1.f, .55f, .1f}); continue; } // unknown block name
-                if (&actual == expected) continue; // placed correctly
+                if (&actual == expected) {
+                    // Placed, but waterlogged where the file has no water: a
+                    // state mistake (missing water shows as a liquid shell).
+                    bool fileWater = false;
+                    if (auto cellIndex = static_cast<size_t>(structure.cell(local->x, local->y, local->z)); cellIndex < structure.liquids.size())
+                        fileWater = structure.liquids[cellIndex] != voidCell;
+                    if (!fileWater && !region.getExtraBlock(pos).isAir()) marks.push_back({boxLow, boxHigh, 1.f, .8f, .2f});
+                    continue;
+                }
                 if (!actual.isAir()) {
                     bool sameType = &actual.getBlockType() == &expected->getBlockType();
                     // Something else is there: red, or yellow when only the state differs.
@@ -1044,12 +1055,25 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
     c.actual = &region.getBlock(pos);
     auto const* actual = c.actual;
     auto const* expected = c.expected;
+    auto cellIndex = static_cast<size_t>(structure.cell(local->x, local->y, local->z));
+    if (cellIndex < structure.liquids.size())
+        if (auto index = structure.liquids[cellIndex]; index != voidCell && static_cast<size_t>(index) < blocks.blocks.size())
+            if (auto const* liquid = blocks.blocks[static_cast<size_t>(index)]; liquid && liquidKind(*liquid)) c.expectedLiquid = liquid;
+    if (Block const& extra = region.getExtraBlock(pos); !extra.isAir()) c.actualLiquid = &extra;
     if (actual->getMaterial().mType == SharedTypes::v1_26_20::MaterialType::ClientRequestPlaceholder) c.state = CellState::Unknown;
+    else if (c.air && c.expectedLiquid) {
+        // Air with water in the second layer: water standing there.
+        auto const* liquid = c.expectedLiquid;
+        c.state = actual == liquid ? CellState::Correct : actual->isAir() ? CellState::Missing
+            : &actual->getBlockType() == &liquid->getBlockType() ? CellState::State : CellState::Wrong;
+        return c;
+    }
     else if (c.air) c.state = actual->isAir() ? CellState::Correct : placement.countExtras ? CellState::Extra : CellState::Ignored;
     else if (!expected) c.state = CellState::Unknown;
     else if (actual == expected) c.state = CellState::Correct;
     else if (actual->isAir()) c.state = CellState::Missing;
     else c.state = &actual->getBlockType() == &expected->getBlockType() ? CellState::State : CellState::Wrong;
+    if (!c.air) c.state = withLiquid(c.state, c.expectedLiquid == c.actualLiquid);
     return c;
 }
 // A classified cell as a row of the Check list.
@@ -1066,6 +1090,8 @@ Mismatch mismatchFor(Cell const& c, Resolved const& blocks) {
         m.actualName = info.name;
         if (c.state == CellState::State && c.expected) {
             m.states = stateDifferences(blockStates(*c.expected), blockStates(*c.actual));
+            if (m.states.empty() && c.expectedLiquid != c.actualLiquid)
+                m.states.push_back(liquidDifference(c.expectedLiquid, c.actualLiquid));
             m.identifier = c.expected->getTypeName();
         }
     }
