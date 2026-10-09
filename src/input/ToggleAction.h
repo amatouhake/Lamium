@@ -19,6 +19,7 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::HideWater: field = &value.visuals.hideWater; break;
     case Action::HideLava: field = &value.visuals.hideLava; break;
     case Action::HidePowderSnow: field = &value.visuals.hidePowderSnow; break;
+    case Action::HideDistanceFog: field = &value.visuals.hideDistanceFog; break;
     case Action::EdgeGuard: field = &value.interaction.edgeGuard; break;
     case Action::ToolGuard: field = &value.interaction.toolGuard; break;
     case Action::ElytraSwap: field = &value.interaction.elytraSwap; break;

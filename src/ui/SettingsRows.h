@@ -119,6 +119,7 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "visuals.hideWater") return input::Action::HideWater;
     if (option == "visuals.hideLava") return input::Action::HideLava;
     if (option == "visuals.hidePowderSnow") return input::Action::HidePowderSnow;
+    if (option == "visuals.hideDistanceFog") return input::Action::HideDistanceFog;
     if (option == "interaction.breaking") return input::Action::BreakingRestriction;
     if (option == "interaction.attackMode") return input::Action::CycleAttackMode;
     if (option == "interaction.useMode") return input::Action::CycleUseMode;

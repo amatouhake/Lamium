@@ -86,6 +86,22 @@ void settingsStoreTests() {
         check(visibleMedium(CameraMedium{true, true, true, false}, waterBit) == CameraMedium{false, true, true, false},
               "a liquid that stays selected keeps the liquid flag");
         check(visibleMedium(CameraMedium{}, mediumBits) == CameraMedium{}, "outside any medium nothing changes");
+        check(!decodeSettings("{}").visuals.hideDistanceFog && input::defaultChord(input::Action::HideDistanceFog).empty(),
+              "distance fog starts unselected with an unbound key");
+        check(effectMask(true, EffectSelection{.distanceFog = true}) == distanceFogBit
+              && (effectMask(true, all) & distanceFogBit) == 0,
+              "distance fog has its own bit, apart from the medium fogs");
+        check(hidesDistanceFog(distanceFogBit, CameraMedium{})
+              && hidesDistanceFog(distanceFogBit | waterBit, visibleMedium(water, waterBit))
+              && !hidesDistanceFog(distanceFogBit, water) && !hidesDistanceFog(distanceFogBit, snow)
+              && !hidesDistanceFog(mediumBits, CameraMedium{}),
+              "distance fog hides only where no medium fog is shown, and only for its own switch");
+        check(farFog(FogRange{416, 512}) == FogRange{farFogStart, farFogEnd}
+              && farFog(FogRange{0, 24}) == FogRange{farFogStart, farFogEnd},
+              "air and weather fog move far beyond any render distance");
+        check(!farFog(FogRange{0, 40000}) && !farFog(FogRange{std::numeric_limits<float>::quiet_NaN(), 512})
+              && !farFog(FogRange{0, std::numeric_limits<float>::infinity()}),
+              "fog already farther away and unreadable values stay vanilla");
     }
     {
         check(decodeSettings("{}").visuals.hideBossBars

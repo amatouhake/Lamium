@@ -25,6 +25,7 @@
 #include "mc/deps/minecraft_renderer/framebuilder/dragon/RenderMetadata.h"
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -187,6 +188,24 @@ LL_TYPE_INSTANCE_HOOK(RainEmitterVisibility, ll::memory::HookPriority::Normal, P
     }
     origin(particles,alpha);
 }
+// Vanilla blends its distance fog from last frame's resolved value, so the far
+// value written after setup is swapped back for vanilla's before the next one.
+// The owner is an identity only and is never dereferenced.
+struct HeldFog { std::uintptr_t owner = 0; FogRange vanilla; };
+HeldFog heldFog;
+void hideDistanceFog(LevelRendererPlayer& self, unsigned mask, CameraMedium shown) noexcept {
+    try {
+        if (!hidesDistanceFog(mask, shown)) return;
+        auto& fog = *self.mCurrentDistanceFog;
+        FogRange vanilla{fog.mStart, fog.mEnd};
+        auto far = farFog(vanilla);
+        if (!far) return;
+        heldFog = {reinterpret_cast<std::uintptr_t>(&self), vanilla};
+        fog.mStart = far->start;
+        fog.mEnd = far->end;
+        reportReached(distanceFogBit, "distance fog");
+    } catch (...) {}
+}
 // Fog setup reads the camera-medium flags; for a hidden medium it sees the
 // camera outside it, so vanilla resolves its own air or weather fog. The flags
 // are restored before anything else can read them.
@@ -195,12 +214,20 @@ LL_TYPE_INSTANCE_HOOK(MediumFogVisibility, ll::memory::HookPriority::Normal, Lev
     unsigned mask = 0;
     CameraMedium before{};
     try {
+        if (heldFog.owner == reinterpret_cast<std::uintptr_t>(this)) {
+            mCurrentDistanceFog->mStart = heldFog.vanilla.start;
+            mCurrentDistanceFog->mEnd = heldFog.vanilla.end;
+        }
+        heldFog.owner = 0;
         before = {mCameraUnderWater, mCameraUnderLiquid, mCameraUnderLava, mCameraUnderPowderSnow};
-        if ((before.water || before.lava || before.powderSnow) && ll::service::getClientInstance() == &mClientInstance)
-            mask = active() & mediumBits;
+        if (ll::service::getClientInstance() == &mClientInstance) mask = active();
     } catch (...) { mask = 0; }
-    auto shown = visibleMedium(before, mask);
-    if (!mask || shown == before) { origin(context, intensity); return; }
+    auto shown = visibleMedium(before, mask & mediumBits);
+    if (!(mask & mediumBits) || shown == before) {
+        origin(context, intensity);
+        hideDistanceFog(*this, mask, shown);
+        return;
+    }
     mCameraUnderWater = shown.water;
     mCameraUnderLiquid = shown.liquid;
     mCameraUnderLava = shown.lava;
@@ -217,6 +244,7 @@ LL_TYPE_INSTANCE_HOOK(MediumFogVisibility, ll::memory::HookPriority::Normal, Lev
     reportReached((before.water && !shown.water ? waterBit : 0) | (before.lava && !shown.lava ? lavaBit : 0)
         | (before.powderSnow && !shown.powderSnow ? powderSnowBit : 0) , "fog medium");
     origin(context, intensity);
+    hideDistanceFog(*this, mask, shown);
 }
 LL_TYPE_INSTANCE_HOOK(WeatherVisibility, ll::memory::HookPriority::Normal, LevelRendererPlayer,
     &LevelRendererPlayer::createViewRenderObject, ViewRenderObject, ScreenContext& context, SubClientId id) {
@@ -245,7 +273,7 @@ LL_TYPE_INSTANCE_HOOK(WeatherVisibility, ll::memory::HookPriority::Normal, Level
 void configure(Settings const& settings) {
     auto const& v = settings.visuals;
     configured = effectMask(v.hideEffects, EffectSelection{v.hideWeather, v.hideParticles, v.hideBossBars,
-        v.hideNausea, v.hideWater, v.hideLava, v.hidePowderSnow});
+        v.hideNausea, v.hideWater, v.hideLava, v.hidePowderSnow, v.hideDistanceFog});
 }
 void start() noexcept {
     try {
@@ -267,7 +295,7 @@ void start() noexcept {
             | (weatherInstalled && legacyInstalled && dataInstalled ? particlesBit : 0)
             | (bossSpriteInstalled && bossTextInstalled ? bossBarsBit : 0)
             | (nauseaReady ? nauseaBit : 0)
-            | (fogInstalled ? waterBit | lavaBit : 0)
+            | (fogInstalled ? waterBit | lavaBit | distanceFogBit : 0)
             // Powder snow hides both its fog and its freezing overlay, or neither.
             | (fogInstalled && nauseaReady ? powderSnowBit : 0);
         if (!weatherReady || !legacyInstalled || !dataInstalled || !bossSpriteInstalled || !bossTextInstalled || !nauseaReady
@@ -278,6 +306,7 @@ void start() noexcept {
 void stop() {
     available = 0;
     rainEffectName.store(nullptr);
+    heldFog = {};
     if (fogInstalled && MediumFogVisibility::unhook(true)) fogInstalled = false;
     if (nauseaMetadataInstalled && NauseaMetadataVisibility::unhook(true)) nauseaMetadataInstalled = false;
     if (nauseaMeshInstalled && NauseaMeshVisibility::unhook(true)) nauseaMeshInstalled = false;
