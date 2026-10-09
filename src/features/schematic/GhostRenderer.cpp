@@ -7,6 +7,10 @@
 #include "features/schematic/SchematicRegion.h"
 #include "features/schematic/LiquidShape.h"
 #include "mc/world/level/block/VanillaStates.h"
+#include "mc/world/level/biome/biome_color_sampling/BiomeColorSampling.h"
+#include "mc/client/world/level/biome/biome_color_sampling/TessellationPolicy.h"
+#include "mc/world/level/block/TintMethod.h"
+#include "features/map/MapColors.h"
 #include "overlay/Depth.h"
 #include "app/AtomicFile.h"
 #include "ui/Localization.h"
@@ -2215,9 +2219,29 @@ void tessellateLayer(BlockTessellator& tessellator, Tessellator& batch, Block co
     // not carry over: a slab drawn next drew full height.
     auto& shapeSet = static_cast<bool&>(tessellator.mCurrentShapeSet);
     shapeSet = false;
+    size_t from = batch.mMeshData->mPositions->size();
     tessellator.tessellateInWorld(batch, block, pos, false);
     shapeSet = false;
     current = was;
+    // Leaves draw in the seasons layers, which the world colors from a
+    // seasons texture in its own shader; the ghost and preview materials do
+    // not, so they stayed gray. Their quads take the biome tint the world's
+    // tessellation uses (as the minimap does), read at `pos`.
+    bool seasons = layer && (*layer == BlockRenderLayer::RenderlayerSeasonsOpaque
+                             || *layer == BlockRenderLayer::RenderlayerSeasonsAlphatestToOpaque);
+    auto tint = block.getBlockType().mTintMethod;
+    if (!seasons || tint == TintMethod::None || tint >= TintMethod::Size) return;
+    auto value = BiomeColorSampling::getTessellationPolicy(tint).get(block, *static_cast<BlockSource*&>(tessellator.mRegion), pos, nullptr);
+    if (!map::usableTint(value.r, value.g, value.b)) return;
+    auto& colors = batch.mMeshData->mColors.get();
+    if (colors.size() != batch.mMeshData->mPositions->size()) return;
+    auto scale = [](std::uint32_t c, int shift, float factor) {
+        return static_cast<std::uint32_t>(std::lround(std::clamp(((c >> shift) & 255) * factor, 0.f, 255.f))) << shift;
+    };
+    for (size_t v = from; v < colors.size(); ++v) {
+        auto& c = colors[v];
+        c = scale(c, 0, value.r) | scale(c, 8, value.g) | scale(c, 16, value.b) | (c & 0xff000000u);
+    }
 }
 int liquidKind(Block const& block) {
     if (!block.getMaterial().mLiquid) return 0;

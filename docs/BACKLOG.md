@@ -705,8 +705,11 @@ Reported 2026-10-09: in the Files/Check previews biome-tinted blocks
 (grass tops, leaves, vines) stayed untinted gray, tessellated above the
 build limit where no biome answered. Fixed and checked the same day: cells
 are tessellated at the top of the world around the player, so they take the
-player's biome (chosen over a fixed tint). Open: whether gray mangrove
-leaves match a real one in the same biome.
+player's biome (chosen over a fixed tint). Leaves stayed gray (a real
+mangrove leaf beside them was green): they draw in the seasons layers, which
+the world colors in its own shader; built (not yet checked): quads drawn in
+those layers take the renderer's biome tint (`BiomeColorSampling`, as the
+minimap), in previews and world ghosts alike.
 B-D: Research (strong model), approach left to the agent.
 
 Pick the next follow-up with the maintainer; the list is not an implementation
