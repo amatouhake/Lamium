@@ -479,6 +479,13 @@ C. Updates (after B1-B2, measure first, L-105):
   changed block re-tessellates a whole 16x16x16 section (4-12 ms).
   A crash when changing a setting came from a `static` block pointer in
   `liquidShell` kept across a registry reload; it is looked up each time.
+  Checked: changing the outline distance no longer crashes; 0 and 192 draw
+  far outlines. Built next (not yet checked): 8-block sections (a changed
+  block re-tessellates an eighth of the cells), the wanted list kept
+  between frames (listed again on a new camera cell, new placements or
+  every 0.5 s; per frame only split by view), section lookups by key
+  instead of scans of all sections, checks 32 and at most 32 rebuilds a
+  frame (still 3 ms). The trace now splits frames, entities and name tags.
 - Rebuild on block change events (a section and its six neighbors) instead
   of the 0.25 s / 2 s hash timers; fixes the known border-cell limit.
   Moving a placement should move its meshes, not rebuild them.

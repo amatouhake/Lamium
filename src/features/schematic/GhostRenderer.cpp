@@ -98,7 +98,9 @@
 namespace lamium::schematic::ghosts {
 namespace {
 using Clock = std::chrono::steady_clock;
-constexpr int sectionSize = 16;
+// Ghost meshes are built per section of this many blocks a side: one
+// changed block re-tessellates its section, which took 4-12 ms at 16.
+constexpr int sectionSize = 8;
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
 // Measurement for the update plan (SCHEMATIC.md C): where the ghost pass
 // spends its time and why sections are rebuilt, logged every 5 s.
@@ -106,7 +108,7 @@ struct Perf {
     std::chrono::steady_clock::time_point since = std::chrono::steady_clock::now();
     std::uint64_t frames = 0, frameNs = 0, maxFrameNs = 0, buildNs = 0, maxBuildNs = 0, builds = 0, checkNs = 0, checks = 0,
                   scanNs = 0, blendNs = 0, waiting = 0, maxWaiting = 0, dueLatencyNs = 0, dueCount = 0, maxDueLatencyNs = 0,
-                  prepareNs = 0, facesNs = 0, linesNs = 0, actorsNs = 0, extrasNs = 0;
+                  prepareNs = 0, facesNs = 0, linesNs = 0, actorsNs = 0, framesNs = 0, entitiesNs = 0, extrasNs = 0;
     std::uint64_t reasons[5]{}; // new, looked-at change, signature changed, mesh gone, chunk incomplete
     std::size_t sections = 0;
 } perf;
@@ -117,7 +119,7 @@ struct PerfTimer {
 };
 void perfReport();
 #endif
-constexpr int checkBudget = 8;        // Sections whose blocks are compared per frame.
+constexpr int checkBudget = 32;       // Sections whose blocks are compared per frame.
 // Look at the world this often: quickly near the camera, where blocks are
 // being placed, slowly elsewhere. A section is rebuilt only when its blocks
 // changed since it was built.
@@ -128,7 +130,7 @@ constexpr double drawDistance = 192;  // Sections farther than this are not buil
 // Section rebuilds per frame stop once this much time went into them (a
 // count of 3 made 20-30 ms frames when large sections came together).
 constexpr std::chrono::microseconds buildTimeBudget{3000};
-constexpr int sectionLimit = 8;
+constexpr int sectionLimit = 32;
 constexpr float towardEye = overlay::depth::ghostPull; // Depth rules: overlay/Depth.h.
 
 struct Outline { glm::vec3 min, max; float r, g, b; };
@@ -148,6 +150,7 @@ struct Section {
     std::optional<Clock::time_point> due; // An early rebuild after a looked-at block changed.
     std::uint64_t signature = 0;          // the world's blocks in the section when built
     bool complete = false; // false while some chunk was not loaded
+    std::uint64_t wantedStamp = 0; // the wanted list that last included it
 };
 using SectionKey = std::tuple<int, int, int, int>; // placement, section x, y, z
 // Game blocks for a placement's palette, turned by the game's own transform.
@@ -307,6 +310,16 @@ std::uint64_t builtRevision = 0;
 // inside a schematic, or with the camera at a cell border, what is around
 // the player then shows as blocks instead of hollow space.
 std::array<std::optional<Point>, 2> cameraCells;
+struct Wanted { std::tuple<int, int, int, int> key; double distance; bool seen; };
+// The wanted sections of the last listing (drawPlacements).
+struct WantedCache {
+    bool valid = false;
+    Point cell;
+    std::uint64_t revision = 0, stamp = 0;
+    int dimension = -1;
+    Clock::time_point at{};
+    std::vector<Wanted> list;
+} wantedCache;
 // Near the camera, a pair of ghost faces in one plane keeps only the face
 // toward the camera for every pair (true), or only for pairs of opaque full
 // blocks (false). True: no flicker where a see-through block (a spawner)
@@ -331,6 +344,7 @@ void log(std::string const& text) {
 }
 void release() {
     sections.clear();
+    wantedCache.valid = false;
     resolved.clear();
     models::reset();
     builtKeys.clear();
@@ -1825,10 +1839,10 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             auto section = [](int v) { return static_cast<int>(std::floor(v / static_cast<double>(sectionSize))); };
             auto mark = [&](std::optional<Point> const& c) {
                 if (!c) return;
-                for (int dx = -2; dx <= 2; dx += 2) for (int dy = -2; dy <= 2; dy += 2) for (int dz = -2; dz <= 2; dz += 2)
-                    for (auto& [key, built] : sections)
-                        if (std::get<1>(key) == section(c->x + dx) && std::get<2>(key) == section(c->y + dy) && std::get<3>(key) == section(c->z + dz))
-                            built.due = Clock::now();
+                for (int i = 0; i < static_cast<int>(snapshot.placements.size()); ++i)
+                    for (int dx = -2; dx <= 2; dx += 2) for (int dy = -2; dy <= 2; dy += 2) for (int dz = -2; dz <= 2; dz += 2)
+                        if (auto found = sections.find({i, section(c->x + dx), section(c->y + dy), section(c->z + dz)}); found != sections.end())
+                            found->second.due = Clock::now();
             };
             for (auto const& c : cameraCells) mark(c);
             for (auto const& c : now) mark(c);
@@ -1856,8 +1870,14 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         }
         return std::none_of(std::begin(outside), std::end(outside), [](int n) { return n == 8; });
     };
-    // Sections near the camera, for visible placements in this dimension.
-    struct Wanted { SectionKey key; double distance; bool seen; };
+    // Sections near the camera, for visible placements in this dimension,
+    // nearest first. Listed again when the camera enters another cell, the
+    // placements change or half a second passed; each frame they are only
+    // split by whether they are in view (with 8-block sections the full list
+    // runs to thousands).
+    Point cameraCell{static_cast<int>(std::floor(camera.x)), static_cast<int>(std::floor(camera.y)), static_cast<int>(std::floor(camera.z))};
+    if (!wantedCache.valid || !(wantedCache.cell == cameraCell) || wantedCache.revision != snapshot.revision
+        || wantedCache.dimension != dimension || Clock::now() - wantedCache.at > std::chrono::milliseconds(500)) {
     std::vector<Wanted> wanted;
     for (int i = 0; i < static_cast<int>(snapshot.placements.size()); ++i) {
         auto const& shown = snapshot.placements[static_cast<size_t>(i)];
@@ -1875,15 +1895,30 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                     double cx = (sx + .5) * sectionSize - camera.x, cy = (sy + .5) * sectionSize - camera.y,
                            cz = (sz + .5) * sectionSize - camera.z;
                     double distance = std::sqrt(cx * cx + cy * cy + cz * cz);
-                    if (distance <= drawDistance) wanted.push_back({{i, sx, sy, sz}, distance, inView(sx, sy, sz)});
+                    if (distance <= drawDistance) wanted.push_back({{i, sx, sy, sz}, distance, false});
                 }
     }
-    std::sort(wanted.begin(), wanted.end(), [](auto const& a, auto const& b) {
-        return a.seen != b.seen ? a.seen : a.distance < b.distance;
-    });
-    std::set<SectionKey> keep;
-    for (auto const& w : wanted) keep.insert(w.key);
-    std::erase_if(sections, [&](auto const& entry) { return !keep.contains(entry.first); });
+    std::sort(wanted.begin(), wanted.end(), [](auto const& a, auto const& b) { return a.distance < b.distance; });
+    // Sections no longer wanted go.
+    std::uint64_t stamp = ++wantedCache.stamp;
+    for (auto const& w : wanted)
+        if (auto found = sections.find(w.key); found != sections.end()) found->second.wantedStamp = stamp;
+    std::erase_if(sections, [&](auto const& entry) { return entry.second.wantedStamp != stamp; });
+    wantedCache.list = std::move(wanted);
+    wantedCache.cell = cameraCell;
+    wantedCache.revision = snapshot.revision;
+    wantedCache.dimension = dimension;
+    wantedCache.at = Clock::now();
+    wantedCache.valid = true;
+    }
+    // In view first, each part nearest first.
+    std::vector<Wanted> wanted;
+    wanted.reserve(wantedCache.list.size());
+    for (int pass = 0; pass < 2; ++pass)
+        for (auto w : wantedCache.list) {
+            w.seen = inView(std::get<1>(w.key), std::get<2>(w.key), std::get<3>(w.key));
+            if (w.seen == (pass == 0)) wanted.push_back(w);
+        }
 
     // The block in the crosshair and the cell against its face are where a
     // block is broken or placed next: when either changes, rebuild its
@@ -1905,13 +1940,12 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         auto due = Clock::now() + (current.isAir() ? Clock::duration{} : std::chrono::duration_cast<Clock::duration>(lookedDelay));
         auto section = [](int v) { return static_cast<int>(std::floor(v / static_cast<double>(sectionSize))); };
         // The cell's own section and any section across a face of it.
-        for (auto& [key, built] : sections)
-            if (std::abs(std::get<1>(key) - section(pos.x)) <= 1 && std::abs(std::get<2>(key) - section(pos.y)) <= 1
-                && std::abs(std::get<3>(key) - section(pos.z)) <= 1
-                && section(pos.x - 1) <= std::get<1>(key) && std::get<1>(key) <= section(pos.x + 1)
-                && section(pos.y - 1) <= std::get<2>(key) && std::get<2>(key) <= section(pos.y + 1)
-                && section(pos.z - 1) <= std::get<3>(key) && std::get<3>(key) <= section(pos.z + 1))
-                if (!built.due || due < *built.due) built.due = due;
+        for (int i = 0; i < static_cast<int>(snapshot.placements.size()); ++i)
+            for (int sx = section(pos.x - 1); sx <= section(pos.x + 1); ++sx)
+                for (int sy = section(pos.y - 1); sy <= section(pos.y + 1); ++sy)
+                    for (int sz = section(pos.z - 1); sz <= section(pos.z + 1); ++sz)
+                        if (auto found = sections.find({i, sx, sy, sz}); found != sections.end())
+                            if (!found->second.due || due < *found->second.due) found->second.due = due;
     }
     // Keep the previous positions one more frame: placing moves the crosshair.
     std::vector<std::pair<BlockPos, Block const*>> next;
@@ -2094,7 +2128,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     if (actorView) actorView->answer = nullptr;
     LAMIUM_PERF_LAP(actorsNs);
     drawPlacementFrames(screen, snapshot, dimension, camera);
+    LAMIUM_PERF_LAP(framesNs);
     drawEntities(screen, client, snapshot, dimension, camera);
+    LAMIUM_PERF_LAP(entitiesNs);
     drawNameTags(screen, client, region, *moving, camera);
     LAMIUM_PERF_LAP(extrasNs);
 #undef LAMIUM_PERF_LAP
@@ -2258,12 +2294,13 @@ void perfReport() {
     log(std::format("perf {} frames: ghost pass {:.3f} ms/frame (max {:.2f}), builds {} ({:.3f} ms/frame, max {:.2f} ms each; "
                     "new {} looked-at {} changed {} mesh-gone {} incomplete {}), checks {} ({:.3f} ms/frame), check/scan {:.3f} ms/frame, "
                     "blended pass {:.3f} ms/frame, sections {}, never-built waiting avg {:.1f} max {}, looked-at latency avg {:.0f} ms max {:.0f} ms; "
-                    "prepare {:.3f}, faces {:.3f}, lines {:.3f}, block actors {:.3f}, frames/entities/tags {:.3f} ms/frame",
+                    "prepare {:.3f}, faces {:.3f}, lines {:.3f}, block actors {:.3f}, frames {:.3f}, entities {:.3f}, name tags {:.3f} ms/frame",
                     perf.frames, per(perf.frameNs), ms(perf.maxFrameNs), perf.builds, per(perf.buildNs), ms(perf.maxBuildNs), perf.reasons[0],
                     perf.reasons[1], perf.reasons[2], perf.reasons[3], perf.reasons[4], perf.checks, per(perf.checkNs), per(perf.scanNs),
                     per(perf.blendNs), perf.sections, static_cast<double>(perf.waiting) / static_cast<double>(perf.frames), perf.maxWaiting,
                     perf.dueCount ? ms(perf.dueLatencyNs) / static_cast<double>(perf.dueCount) : 0., ms(perf.maxDueLatencyNs),
-                    per(perf.prepareNs), per(perf.facesNs), per(perf.linesNs), per(perf.actorsNs), per(perf.extrasNs)));
+                    per(perf.prepareNs), per(perf.facesNs), per(perf.linesNs), per(perf.actorsNs), per(perf.framesNs), per(perf.entitiesNs),
+                    per(perf.extrasNs)));
     perf = Perf{};
 }
 #endif
