@@ -546,6 +546,26 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
         if (*known) for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
     }
 }
+// In a cell the camera is in, a ghost keeps only the faces turned toward
+// the camera, as the game draws blocks: seen from inside, the block is not
+// there. The ghost material draws both sides, so from inside a door or a
+// spawner its own faces fought with a neighbor's in the same plane, and a
+// stair's two faces at half height (the lower half's top, the step's
+// bottom) fought with each other.
+void dropBackFaces(Tessellator& batch, size_t from) {
+    auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
+    auto& positions = *data.mPositions;
+    auto const& normals = *data.mNormals;
+    glm::vec3 eye{static_cast<float>(buildCamera.x), static_cast<float>(buildCamera.y), static_cast<float>(buildCamera.z)};
+    for (size_t q = from; q + 4 <= positions.size(); q += 4) {
+        glm::vec3 n = normals.size() == positions.size() ? glm::vec3(normals[q])
+                                                          : glm::cross(positions[q + 1] - positions[q], positions[q + 2] - positions[q]);
+        if (glm::dot(n, n) < 1e-12f) continue;
+        glm::vec3 center = (positions[q] + positions[q + 1] + positions[q + 2] + positions[q + 3]) * .25f;
+        if (glm::dot(eye - center, n) < 0)
+            for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
+    }
+}
 // The cells of one section inside a placement's box.
 // `halo` widens the section by that many cells on every side.
 template <class Visit>
@@ -704,6 +724,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     size_t before = target.mMeshData->mPositions->size();
                     tessellateLayer(own, target, *expected, pos, layer);
                     cullAgainstGhosts(target, before, region, shown, blocks, {x, y, z});
+                    if (std::any_of(cameraCells.begin(), cameraCells.end(), [&](auto const& c) { return c == Point{x, y, z}; }))
+                        dropBackFaces(target, before);
                     auto const& positions = target.mMeshData->mPositions.get();
                     for (size_t v = before; v < positions.size(); ++v) {
                         shapeLow = glm::min(shapeLow, positions[v]);
