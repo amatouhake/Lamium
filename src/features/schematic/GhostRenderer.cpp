@@ -951,9 +951,12 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
             // shell's face then shared a plane with the block's.
             auto const& d = faces::offsets[side];
             Point n{at.x + d[0], at.y + d[1], at.z + d[2]};
+            // Nor where a neighbor ghost has a face in the same plane
+            // (farmland, a slab's side): the two fought there.
             return !(covered >> side & 1) && around(d[0], d[1], d[2]).kind != kind && !ghostOpaqueAt(region, shown, blocks, n)
+                && !(ghostSidesAt(region, shown, blocks, n) >> (side ^ 1) & 1)
                 && !region.getBlock(BlockPos{n.x, n.y, n.z}).getBlockType().mIsOpaqueFullBlock;
-        }, [&](int cx, int cz) { return liquids::corner(kind, around, cx, cz); });
+        }, [&](int cx, int cz) { return liquids::corner(kind, around, cx, cz); }, liquids::flow(kind, around));
     }
     if (!marks.empty()) {
         // Mistakes mark whole cells with a tinted box just outside the real
@@ -2588,7 +2591,8 @@ int liquidDepth(Block const& block) {
     return liquidKind(block) ? block.getState<int>(VanillaStates::LiquidDepth()).value_or(0) : 0;
 }
 bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos const& pos, Block const& liquid,
-                 std::function<bool(int side)> const& open, std::function<float(int cx, int cz)> const& corner) {
+                 std::function<bool(int side)> const& open, std::function<float(int cx, int cz)> const& corner,
+                 liquids::Flow flow) {
     // A white concrete cube tessellated at the cell gives quads with every
     // vertex stream the mesh needs; its faces are then reshaped, retextured
     // with the liquid's texture and recolored. The tessellator already
@@ -2617,9 +2621,8 @@ bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos con
     float heights[2][2];
     for (int cx = 0; cx < 2; ++cx)
         for (int cz = 0; cz < 2; ++cz) heights[cx][cz] = corner(cx, cz);
-    // Which way the surface falls (x, z): toward its lower corners.
-    glm::vec2 downhill{(heights[0][0] + heights[0][1]) - (heights[1][0] + heights[1][1]),
-                       (heights[0][0] + heights[1][0]) - (heights[0][1] + heights[1][1])};
+    // Which way the liquid moves; a sloped edge of a still pool does not.
+    glm::vec2 downhill{flow.x, flow.z};
     bool any = false;
     for (size_t q = from; q + 4 <= positions.size(); q += 4) {
         std::array<faces::Vertex, 4> quad;
@@ -2631,8 +2634,8 @@ bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos con
         }
         any = true;
         // Texture slots follow the faces: 0 down, 1 up (still), 2-5 the
-        // sides (flowing). A sloped top flows: the flowing texture turned
-        // downhill, one texture per block (scaled down only as far as a
+        // sides (flowing). A moving liquid's top flows: the flowing texture
+        // turned along the flow, one texture per block (scaled down only as far as a
         // diagonal turn needs to stay inside its atlas cell).
         bool flows = side == 3 && std::hypot(downhill.x, downhill.y) > 1e-4f;
         TextureUVCoordinateSet const& own = liquidGraphics->getTexture(side == 2 ? 0 : side == 3 && !flows ? 1 : 2, 0);

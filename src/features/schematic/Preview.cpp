@@ -355,7 +355,7 @@ bool step() {
             ghosts::liquidShell(*j.blocks, batch, spot, liquid, [&](int side) {
                 auto const& d = faces::offsets[side];
                 return around(d[0], d[1], d[2]).kind != kind;
-            }, [&](int cx, int cz) { return liquids::corner(kind, around, cx, cz); });
+            }, [&](int cx, int cz) { return liquids::corner(kind, around, cx, cz); }, liquids::flow(kind, around));
         };
         // Every render layer of the block (honey and slime draw in two);
         // liquids as shells, also the water of a waterlogged block.

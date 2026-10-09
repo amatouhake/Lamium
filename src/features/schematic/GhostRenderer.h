@@ -6,6 +6,7 @@
 #include "features/schematic/SaveArea.h"
 #include "features/schematic/PlacementStore.h"
 #include "features/schematic/Verification.h"
+#include "features/schematic/LiquidShape.h"
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -71,10 +72,12 @@ int liquidDepth(Block const& block);
 // `open(side)` holds (faces::offsets order) and that no opaque neighbor
 // hides, each top corner (cx, cz: 0 or 1) at `corner(cx, cz)` above the
 // cell's floor (LiquidShape.h), textured with the liquid's own atlas
-// texture and colored (water blue, both translucent). False when nothing
-// was added.
+// texture and colored (water blue, both translucent); the top shows the
+// flowing texture along `flow` when the liquid moves, else the still one.
+// False when nothing was added.
 bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos const& pos, Block const& liquid,
-                 std::function<bool(int side)> const& open, std::function<float(int cx, int cz)> const& corner);
+                 std::function<bool(int side)> const& open, std::function<float(int cx, int cz)> const& corner,
+                 liquids::Flow flow);
 // Puts a quad-list batch's quads in `order` (indices of the current quads),
 // moving every vertex stream with its positions.
 void reorderQuads(Tessellator& batch, std::vector<std::uint32_t> const& order);

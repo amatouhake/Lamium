@@ -701,6 +701,27 @@ void liquidCorners() {
           "a flowing liquid slopes down toward open air");
     auto lava = [](int dx, int dy, int dz) { return dy == 0 && dx == 0 && dz == 0 ? Cell{2, 0, false} : Cell{1, 0, false}; };
     check(near(liquids::corner(2, lava, 0, 0), 8.f / 9 * 10 / 13), "another liquid around counts as open, not as the same liquid");
+    auto still = [](liquids::Flow f) { return std::abs(f.x) < 1e-4f && std::abs(f.z) < 1e-4f; };
+    check(still(liquids::flow(1, pool)), "a source between walls does not flow");
+    // A pool of sources edged by solid stairs on +x and open ground (no water below) on -x.
+    auto edged = [](int dx, int dy, int dz) {
+        if (dy != 0) return Cell{0, 0, true};
+        return dx > 0 ? Cell{0, 0, true} : dx < 0 ? Cell{0, 0, false} : Cell{1, 0, false};
+    };
+    check(still(liquids::flow(1, edged)) && liquids::corner(1, edged, 0, 0) < 8.f / 9,
+          "a source sloping toward open ground still does not flow");
+    // A source at the edge of a hole: open on -x with water below it.
+    auto ledge = [](int dx, int dy, int dz) {
+        if (dx < 0 && dy == -1) return Cell{1, 0, false};
+        if (dy != 0) return Cell{0, 0, true};
+        return dx < 0 ? Cell{0, 0, false} : dx == 0 && dz == 0 ? Cell{1, 0, false} : Cell{0, 0, true};
+    };
+    check(liquids::flow(1, ledge).x < 0, "a source flows toward an open cell with water below it");
+    auto stream = [](int dx, int dy, int dz) {
+        if (dy != 0) return Cell{0, 0, true};
+        return dz != 0 ? Cell{0, 0, true} : Cell{1, dx + 2, false};
+    };
+    check(liquids::flow(1, stream).x > 0, "water flows toward its deeper (lower) neighbor");
 }
 void blockEntitySaves() {
     StructureBuilder builder(Size{2, 1, 1}, Point{0, 0, 0});
