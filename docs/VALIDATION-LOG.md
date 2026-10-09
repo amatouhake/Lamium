@@ -22,7 +22,13 @@ real water already is; flowing water and lava slope like the real ones
 (`e1a74a2`); sloped tops, including sources beside a flow, switch to the
 flowing texture over exactly the right cells, still pools keep the still
 texture (`6fbaa3a`). That build sampled only half the flowing texture (it
-looked 8x8 and fast); the fix, `96fe71f`, is not yet checked. Previews: liquids
+looked 8x8 and fast); the fix, `96fe71f`, was checked the same day:
+16x16, the real speed, the real direction. Also seen then: real water or
+lava placed beside a ghost flow bent its slope and flow direction (fixed
+next, the file now decides inside the placement, not yet checked), and a
+yellow mark over real water (a different flow level than the file's)
+flickered against a ghost liquid shell, swapping draw order each frame
+like the marks over real honey or glass. Previews: liquids
 and waterlogged blocks draw, but the preview's single pass keeps the
 first fragment at a spot, so near water hides parts of waterlogged blocks
 and the floor behind it (deferred, with the blended-material depth

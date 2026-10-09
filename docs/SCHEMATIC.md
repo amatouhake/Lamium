@@ -356,7 +356,11 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    limit, deferred (maintainer, 2026-10-09) into one research item with
    B2's leftover: a translucent path that does not hide what is behind it
    (a blended material without depth writes in the world pass; real depth
-   or another order in the preview pass).
+   or another order in the preview pass). Its most visible case: a yellow
+   mark over real water of another flow level (holo material, its own
+   draw) flickers against ghost liquid shells. `liquidAt` takes the file's
+   cells inside the placement (shown layers, not structure void) and the
+   world only elsewhere, so real liquids beside a ghost do not bend it.
 4. Block entities with their data: load the schematic's block entity
    NBT into the created block actor before drawing (bed color and part,
    skull type and rotation, sign text, banner pattern).
