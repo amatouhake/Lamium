@@ -168,9 +168,7 @@ struct Settings {
         bool hideWater = true;
         bool hideLava = true;
         bool hidePowderSnow = true;
-        // Off unlike the others: it reveals the render distance edge, and a
-        // master already on for rain would otherwise change the view (L-118).
-        bool hideDistanceFog = false;
+        bool hideDistanceFog = true;
     } visuals;
     struct Information {
         bool debug = false;

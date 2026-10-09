@@ -86,8 +86,8 @@ void settingsStoreTests() {
         check(visibleMedium(CameraMedium{true, true, true, false}, waterBit) == CameraMedium{false, true, true, false},
               "a liquid that stays selected keeps the liquid flag");
         check(visibleMedium(CameraMedium{}, mediumBits) == CameraMedium{}, "outside any medium nothing changes");
-        check(!decodeSettings("{}").visuals.hideDistanceFog && input::defaultChord(input::Action::HideDistanceFog).empty(),
-              "distance fog starts unselected with an unbound key");
+        check(decodeSettings("{}").visuals.hideDistanceFog && input::defaultChord(input::Action::HideDistanceFog).empty(),
+              "distance fog is selected by default like the other effects, with an unbound key");
         check(effectMask(true, EffectSelection{.distanceFog = true}) == distanceFogBit
               && (effectMask(true, all) & distanceFogBit) == 0,
               "distance fog has its own bit, apart from the medium fogs");
