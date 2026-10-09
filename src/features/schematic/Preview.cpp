@@ -47,6 +47,8 @@
 
 namespace lamium::schematic::preview {
 namespace {
+// How deep the whole build is in the UI pass, in UI units (see draw()).
+constexpr float previewDepth = .5f;
 // More visible blocks than this are not previewed; the box keeps its text.
 constexpr size_t maxBlocks = 120000;
 // Blocks tessellated per frame: large previews build over several frames
@@ -61,9 +63,10 @@ void log(std::string const& text) {
 struct Ready {
     Structure const* structure = nullptr;
     Order order;
-    std::optional<mce::Mesh> mesh;
-    std::uint32_t vertices = 0;
+    std::optional<mce::Mesh> mesh, liquid; // solid quads near to far; liquid quads far to near
+    std::uint32_t vertices = 0, liquidVertices = 0;
     std::uint64_t tintKey = 0;
+    bool valid() const { return (mesh && mesh->isValid()) || (liquid && liquid->isValid()); }
 };
 Ready ready;
 // The finished quads of the last built structure, unsorted.
@@ -222,13 +225,13 @@ void shade(Tessellator& batch) {
 // Blocks are ordered by their cell first and quads within a block by their
 // center: a large face's center can be nearer than a small block in front
 // of it (a trapdoor before a structure block drew behind it).
-// A liquid's quads go after the block's in the same cell, so a waterlogged
-// block is not hidden by its own water.
-void sortQuads(Tessellator& batch, Order order, std::vector<std::uint32_t> const& cells, std::vector<bool> const& liquid, Size size) {
-    auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
-    auto& positions = *data.mPositions;
+// The kept quads near to far for a viewer in the order's octant (the UI
+// pass keeps the first fragment at a spot).
+// Blocks are ordered by their cell first and quads within a block by their
+// center: a large face's center can be nearer than a small block in front
+// of it (a trapdoor before a structure block drew behind it).
+std::vector<std::uint32_t> quadOrder(std::vector<glm::vec3> const& positions, Order order, std::vector<std::uint32_t> const& cells, Size size) {
     size_t quads = positions.size() / 4;
-    if (quads < 2) return;
     glm::vec3 toward = glm::normalize(glm::vec3{order.x * .6f, order.y * .7f, order.z * .4f});
     struct Key { float block, quad; std::uint32_t index; };
     std::vector<Key> keys(quads);
@@ -240,7 +243,6 @@ void sortQuads(Tessellator& batch, Order order, std::vector<std::uint32_t> const
             int cell = static_cast<int>(cells[q]);
             glm::vec3 at(cell / (size.y * size.z), cell / size.z % size.y, cell % size.z);
             block = -glm::dot(at, toward);
-            if (liquid.size() == quads && liquid[q]) block += .01f;
         }
         keys[q] = {block, -glm::dot(c, toward), static_cast<std::uint32_t>(q)};
     }
@@ -248,7 +250,7 @@ void sortQuads(Tessellator& batch, Order order, std::vector<std::uint32_t> const
     std::vector<std::uint32_t> sorted;
     sorted.reserve(quads);
     for (auto const& key : keys) sorted.push_back(key.index);
-    ghosts::reorderQuads(batch, sorted);
+    return sorted;
 }
 
 // Tessellates the next blocks of the job: each at its cell relative to the
@@ -364,30 +366,39 @@ bool step() {
     return true;
 }
 
-// Uploads the kept quads sorted for `order`.
-void upload(ScreenContext& screen, Order order, Tint const* tint) {
-    ready.tintKey = tint ? tint->key : 0;
-    ready.mesh.reset();
-    ready.structure = kept.structure.get();
-    ready.order = order;
-    ready.vertices = static_cast<std::uint32_t>(kept.positions.size());
-    if (!ready.vertices) return;
+// One mesh from the kept quads in `quads`, tinted, built in `out`
+// (meshes cannot be assigned).
+void meshFrom(ScreenContext& screen, std::vector<std::uint32_t> const& quads, Tint const* tint, std::optional<mce::Mesh>& out) {
+    if (quads.empty()) return;
+    size_t total = kept.positions.size();
     Tessellator batch(screen.tessellator.mBufferResourceService);
-    batch.begin({}, kept.mode, static_cast<int>(ready.vertices), false);
+    batch.begin({}, kept.mode, static_cast<int>(quads.size() * 4), false);
     auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
-    *data.mPositions = kept.positions;
-    *data.mNormals = kept.normals;
-    *data.mTangents = kept.tangents;
-    *data.mColors = kept.colors;
-    if (tint && tint->color && kept.quadCells.size() * 4 == kept.colors.size()) {
+    auto pick = [&](auto const& from, auto& to) {
+        to.clear();
+        if (from.size() != total) return;
+        to.reserve(quads.size() * 4);
+        for (auto q : quads)
+            for (size_t k = 0; k < 4; ++k) to.push_back(from[q * 4 + k]);
+    };
+    pick(kept.positions, *data.mPositions);
+    pick(kept.normals, *data.mNormals);
+    pick(kept.tangents, *data.mTangents);
+    pick(kept.colors, *data.mColors);
+    pick(kept.bones, *data.mBoneId0s);
+    for (int i = 0; i < 3; ++i) pick(kept.uvs[i], *data.mTextureUVs[i]);
+    pick(kept.pbr, *data.mPBRTextureIndices);
+    pick(kept.mers, *data.mMERS);
+    pick(kept.geo, *data.mGeoType);
+    if (tint && tint->color && kept.quadCells.size() * 4 == total && data.mColors->size() == quads.size() * 4) {
         auto const& s = *kept.structure;
         auto& colors = *data.mColors;
-        for (size_t q = 0; q < kept.quadCells.size(); ++q) {
-            int cell = static_cast<int>(kept.quadCells[q]);
+        for (size_t i = 0; i < quads.size(); ++i) {
+            int cell = static_cast<int>(kept.quadCells[quads[i]]);
             std::uint32_t m = tint->color(cell / (s.size.y * s.size.z), cell / s.size.z % s.size.y, cell % s.size.z);
             if (m == 0xffffffffu) continue;
             for (size_t k = 0; k < 4; ++k) {
-                auto& c = colors[q * 4 + k];
+                auto& c = colors[i * 4 + k];
                 auto channel = [&](int shift) {
                     return ((((c >> shift) & 255) * ((m >> shift) & 255) + 127) / 255) << shift;
                 };
@@ -395,24 +406,39 @@ void upload(ScreenContext& screen, Order order, Tint const* tint) {
             }
         }
     }
-    *data.mBoneId0s = kept.bones;
-    for (int i = 0; i < 3; ++i) *data.mTextureUVs[i] = kept.uvs[i];
-    *data.mPBRTextureIndices = kept.pbr;
-    *data.mMERS = kept.mers;
-    *data.mGeoType = kept.geo;
     *data.mFieldEnabled = kept.enabled;
     *data.mAABB = kept.aabb;
     *data.mUVAABB = kept.uvAabb;
-    static_cast<unsigned&>(batch.mCount) = ready.vertices;
-    sortQuads(batch, order, kept.quadCells, kept.quadLiquid, kept.structure->size);
-    ready.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic preview", SupplementaryFieldAutoGenerationMode{}));
+    static_cast<unsigned&>(batch.mCount) = static_cast<unsigned>(quads.size() * 4);
+    out.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic preview", SupplementaryFieldAutoGenerationMode{}));
+}
+// Uploads the kept quads sorted for `order`: solid quads near to far (the
+// first fragment at a spot stays), liquid quads far to near in a second
+// mesh, blended over what lies behind them (the preview has real depth).
+void upload(ScreenContext& screen, Order order, Tint const* tint) {
+    ready.tintKey = tint ? tint->key : 0;
+    ready.mesh.reset();
+    ready.liquid.reset();
+    ready.structure = kept.structure.get();
+    ready.order = order;
+    ready.vertices = ready.liquidVertices = 0;
+    if (kept.positions.empty()) return;
+    std::vector<std::uint32_t> solid, liquid;
+    for (auto q : quadOrder(kept.positions, order, kept.quadCells, kept.structure->size))
+        (q < kept.quadLiquid.size() && kept.quadLiquid[q] ? liquid : solid).push_back(q);
+    std::reverse(liquid.begin(), liquid.end());
+    meshFrom(screen, solid, tint, ready.mesh);
+    ready.vertices = static_cast<std::uint32_t>(solid.size() * 4);
+    meshFrom(screen, liquid, tint, ready.liquid);
+    ready.liquidVertices = static_cast<std::uint32_t>(liquid.size() * 4);
 }
 void clear() {
     placed = {};
     kept = {};
     ready.mesh.reset();
+    ready.liquid.reset();
     ready.structure = nullptr;
-    ready.vertices = 0;
+    ready.vertices = ready.liquidVertices = 0;
     job.reset();
 }
 } // namespace
@@ -433,7 +459,7 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
     view.zoom = std::clamp(view.zoom, .1f, lastDrawn.maxZoom);
     try {
         std::uint64_t key = tint ? tint->key : 0;
-        bool current = ready.structure == structure.get() && ready.order == order && ready.tintKey == key && ready.mesh && ready.mesh->isValid();
+        bool current = ready.structure == structure.get() && ready.order == order && ready.tintKey == key && ready.valid();
         // A new cut needs new quads (faces inside the build become visible);
         // the last mesh stays up while they build.
         if (kept.structure == structure && !(kept.cut == cut) && (!job || job->structure != structure || !(job->cut == cut)))
@@ -447,7 +473,7 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
             job.reset();
             upload(screen, order, tint);
         }
-        if (ready.structure != structure.get() || !ready.mesh || !ready.mesh->isValid()) return false;
+        if (ready.structure != structure.get() || !ready.valid()) return false;
         auto& dispatcher = client.getBlockEntityRenderDispatcher();
         auto* moving = static_cast<MovingBlockActorRenderer*>(dispatcher.mRenderers.get()[BlockActorRendererId::MovingBlock].get());
         auto* lightTexture = client.getLightTexture();
@@ -457,16 +483,20 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
         std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
 
         // Model (centered blocks) to UI: right, down and toward the viewer,
-        // scaled to fit. Depth stays flat: the UI pass keeps the first
-        // fragment at a spot (a real z cut blocks apart), so quads are
-        // sorted near to far instead.
+        // scaled to fit. Depth is real but shallow: the whole build spans
+        // previewDepth UI units, nearer the viewer smaller (a depth as deep
+        // as the build is wide cut blocks apart). Solid quads are still
+        // sorted near to far (the UI pass keeps the first fragment at a
+        // spot); the liquid mesh drawn after them is hidden behind solids in
+        // front and blended over those behind.
         auto r = project(view, 1, 0, 0), u = project(view, 0, 1, 0), f = project(view, 0, 0, 1);
         float scale = fitScale(structure->size.x, structure->size.y, structure->size.z, width, height) * std::max(view.zoom, .1f);
+        float depth = previewDepth / static_cast<float>(std::max({structure->size.x, structure->size.y, structure->size.z, 1})) / 1.8f;
         glm::mat4 model{1.f};
-        model[0] = {scale * r.right, scale * r.down, 0, 0};
-        model[1] = {scale * u.right, scale * u.down, 0, 0};
-        model[2] = {scale * f.right, scale * f.down, 0, 0};
-        model[3] = {x + width / 2, y + height / 2, 0, 1};
+        model[0] = {scale * r.right, scale * r.down, -depth * r.toward, 0};
+        model[1] = {scale * u.right, scale * u.down, -depth * u.toward, 0};
+        model[2] = {scale * f.right, scale * f.down, -depth * f.toward, 0};
+        model[3] = {x + width / 2, y + height / 2, previewDepth / 2, 1};
         placed = {structure, view, cut, scale, x + width / 2, y + height / 2};
         context.flushText(0, std::nullopt);
         // No clipping: the UI scissor (in GUI units, in pixels, or committed
@@ -489,7 +519,11 @@ bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> co
             full.block->mValue = 15;
             ActorShaderManager::setupShaderParameters(screen, *region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture, Vec2{1, 1},
                 Vec4{0, 0, 1, 1});
-            ready.mesh->renderMesh(screen, material, texture, 0, ready.vertices, OffscreenCaptureDescription{}, nullptr);
+            if (ready.mesh && ready.mesh->isValid())
+                ready.mesh->renderMesh(screen, material, texture, 0, ready.vertices, OffscreenCaptureDescription{}, nullptr);
+            mce::MaterialPtr const& blend = moving->mBlockMaterials[static_cast<int>(BlockRenderLayer::RenderlayerBlend)].get();
+            if (ready.liquid && ready.liquid->isValid() && blend.mRenderMaterialInfoPtr)
+                ready.liquid->renderMesh(screen, blend, texture, 0, ready.liquidVertices, OffscreenCaptureDescription{}, nullptr);
         } catch (...) {
             pop();
             throw;
