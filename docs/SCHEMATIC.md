@@ -430,6 +430,11 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
 5. Lighting regressions to keep in the check list: ghosts the same at
    night, underground and looking straight down; Vibrant Visuals uses its
    own material path or is named as unsupported.
+   Seen 2026-10-09: ghosts drawn by block-entity renderers (chest, bed,
+   banner, sign, head) follow the world's light. Built (not yet checked):
+   while they draw, a thread-local flag makes hooks on the non-virtual
+   `BlockSource::getLightColor` and `getBrightnessPair` answer full
+   brightness, and their SchematicRegion answers `getBrightness` 1.
 
 C. Updates (after B1-B2, measure first, L-105):
 - Rebuild on block change events (a section and its six neighbors) instead

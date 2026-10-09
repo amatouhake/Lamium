@@ -16,11 +16,14 @@ public:
     ~SchematicRegion() override;
 
     Answer answer;
+    // Full brightness everywhere (ghost block actors), instead of the world's.
+    bool fullLight = false;
 
     ::Block const& getBlock(::BlockPos const& pos) const override;
     ::Block const& getBlock(::BlockPos const& pos, uint layer) const override;
     ::Material const& getMaterial(::BlockPos const& pos) const override;
     ::Material const& getMaterial(int x, int y, int z) const override;
+    float getBrightness(::BlockPos const& pos) const override;
 
 private:
     ::BlockSource& world;

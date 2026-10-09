@@ -28,4 +28,6 @@ SchematicRegion::~SchematicRegion() = default;
 
 ::Material const& SchematicRegion::getMaterial(int x, int y, int z) const { return getBlock(::BlockPos{x, y, z}).getMaterial(); }
 
+float SchematicRegion::getBrightness(::BlockPos const& pos) const { return fullLight ? 1.f : world.getBrightness(pos); }
+
 } // namespace lamium::schematic

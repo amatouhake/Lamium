@@ -700,6 +700,10 @@ accepted); B4 block entity data (and Lamium saves keep it), **done and
 checked in game 2026-10-09**; D waterlogging in the check, **done and checked
 in game 2026-10-09**; left: C event-driven rebuilds (measure first, L-105)
 and B5's lighting check (block-entity ghosts follow the world's light).
+Reported 2026-10-09, not yet scheduled: in the Files/Check previews
+biome-tinted blocks (grass tops, leaves, vines) stay untinted gray, as they
+are tessellated above the build limit where no biome answers; candidates:
+a fixed tint, or the player's biome.
 B-D: Research (strong model), approach left to the agent.
 
 Pick the next follow-up with the maintainer; the list is not an implementation

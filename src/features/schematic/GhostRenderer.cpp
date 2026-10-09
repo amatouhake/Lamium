@@ -170,6 +170,11 @@ std::vector<std::string> builtKeys; // drawKey of each resolved placement
 // Keyed by the block as well: two placements may want different block
 // entities in one cell.
 std::map<std::tuple<int, int, int, Block const*>, std::optional<std::shared_ptr<BlockActor>>> actors;
+// Set on the render thread while ghost block actors draw: light queries
+// then answer full brightness (GhostLight hooks), so a ghost chest or bed
+// reads the same at night and underground as the other ghosts. Their
+// renderers read light through non-virtual BlockSource calls.
+thread_local bool ghostActorLight = false;
 std::vector<std::pair<BlockPos, Block const*>> watched; // Recently looked-at cells and what was there.
 // Entities are looked up this often, and only this close to the player: the
 // client does not know entities beyond its tracking range.
@@ -1956,7 +1961,10 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         for (auto const& [pos, block, data] : section.entities) {
             // The renderer reads the block at the cell (wall or standing
             // banner, which head, facing): the ghost's, not the world's air.
-            if (!actorView) actorView = std::make_unique<SchematicRegion>(region);
+            if (!actorView) {
+                actorView = std::make_unique<SchematicRegion>(region);
+                actorView->fullLight = true;
+            }
             actorView->answer = [&](BlockPos const& at) { return at == pos ? block : nullptr; };
             auto& actor = actors[{pos.x, pos.y, pos.z, block}];
             if (!actor) {
@@ -1968,6 +1976,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             if (!component) continue;
             Vec3 renderPos{static_cast<float>(pos.x - camera.x), static_cast<float>(pos.y - camera.y), static_cast<float>(pos.z - camera.z)};
             mce::MaterialPtr none(mce::RenderMaterialGroup::common(), HashedString{"lamium_no_forced_material"});
+            ghostActorLight = true;
+            struct Restore { ~Restore() { ghostActorLight = false; } } restore;
             dispatcher.render(context, *actorView, *component, *block, renderPos, pos, false, none, nullptr, 0, std::nullopt);
         }
     }
@@ -2088,6 +2098,21 @@ LL_TYPE_INSTANCE_HOOK(GhostBlendPass, ll::memory::HookPriority::Normal, LevelRen
         static bool reported = false;
         if (!std::exchange(reported, true)) log(std::string("drawing blended ghosts failed: ") + error.what());
     }
+}
+
+BrightnessPair fullBrightness() {
+    BrightnessPair full;
+    full.sky->mValue = 15;
+    full.block->mValue = 15;
+    return full;
+}
+LL_TYPE_INSTANCE_HOOK(GhostLightColor, ll::memory::HookPriority::Normal, BlockSource, &BlockSource::getLightColor, BrightnessPair,
+                      BlockPos const& pos, Brightness minBlockLight) {
+    return ghostActorLight ? fullBrightness() : origin(pos, minBlockLight);
+}
+LL_TYPE_INSTANCE_HOOK(GhostBrightnessPair, ll::memory::HookPriority::Normal, BlockSource, &BlockSource::getBrightnessPair, BrightnessPair,
+                      BlockPos const& pos) {
+    return ghostActorLight ? fullBrightness() : origin(pos);
 }
 
 LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRendererPlayer,
@@ -2340,6 +2365,7 @@ void start() {
     installed = GhostPass::hook(true) == 0;
     if (!installed) throw std::runtime_error("Could not install the schematic ghost pass");
     if (GhostBlendPass::hook(true) != 0) log("could not install the blended ghost pass");
+    if (GhostLightColor::hook(true) != 0 || GhostBrightnessPair::hook(true) != 0) log("could not install the ghost light hooks");
     exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
         [](auto&) { releaseRequested = true; items::forget(); selection::clear(); });
 }
@@ -2349,6 +2375,8 @@ void stop() {
         exitListener.reset();
     }
     GhostBlendPass::unhook(true);
+    GhostLightColor::unhook(true);
+    GhostBrightnessPair::unhook(true);
     if (installed && GhostPass::unhook(true)) installed = false;
     releaseRequested = true;
 }
