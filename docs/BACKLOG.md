@@ -71,8 +71,8 @@ L-item wins. Every entry names what the task is, not only its number.
 
 1. **L-96 Connected Textures** (maintainer 2026-10-11: higher demand than
    the Schematic follow-ups and the restriction redesign): glass blocks
-   shipped behind the Experimental switch and passed in game (`8c3d21a`);
-   next glass panes (step 5).
+   and panes shipped behind the Experimental switch and passed in game
+   (`8c3d21a`, `3e76e7a`); next: decide whether to go beyond glass.
 2. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
@@ -477,7 +477,17 @@ Status: open. Steps 1-4 done for glass blocks (2026-10-11, `8c3d21a`,
 checked in game): the "Connected Textures" switch (つながるテクスチャ,
 visuals.connectedTextures, default off, Experimental, toggle key) trims clear,
 same-color stained and tinted glass, rebuilds loaded chunks on toggle and
-stays vanilla on an unverified game executable. Next: step 5, panes. Moved ahead of the Schematic follow-ups and the
+stays vanilla on an unverified game executable. Step 5 done for glass panes
+(2026-10-11, `3e76e7a`, checked in game): panes share one glass texture
+between the center post and the arms, so they are adjusted per part on the
+mesh vanilla built (`tessellateDoubleThinFenceInWorld`; the glass rectangle
+from `BlockGraphics::getTexture` slot 0, the thin edge is slot 5): a glass
+face's side border moves inward where its block edge touches the same pane;
+its top (bottom) border and the thin top (bottom) face go where the pane above
+(below) has the same part (center post, or the arm in that direction, from
+`ThinFenceBlock::addAABBs`; an L's boxes leave out the drawn center). Trimming
+the shared texture, and folding by collision boxes, failed in game first
+(trial rounds 1-9, `52fb6eb`..`473b4f2`). Open: step 6 and other blocks. Moved ahead of the Schematic follow-ups and the
 restriction redesign (maintainer 2026-10-11: higher demand).
 What it is for: blocks next to a block of the same kind draw as one surface,
 without the border line between them. Start with glass, then stained glass of

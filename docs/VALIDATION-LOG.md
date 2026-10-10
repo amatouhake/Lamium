@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-96 Connected Textures for glass panes (2026-10-11)
+
+By the maintainer, local. Trial rounds `52fb6eb`..`dbc16e0` (`--ctm_trace=y`)
+found the method: whole-texture trimming joined east-west rows only, cut
+borders on arms with nothing above, and folding the thin faces by collision
+boxes left gaps and squares; per-part adjustment on the built mesh
+(`dbc16e0`) passed. Feature build `3e76e7a` (DLL
+`21b8e049b28eb94bd2a0751d1b14af8ab8087bda7701035e913caa01d756618f`): rows in
+both directions, stacked walls, an L under a single pane and the reverse,
+crosses and T shapes, and panes against blocks look as in the trial; off
+restores vanilla panes and glass; stained panes join only the same color.
+Not seen: Vibrant Visuals, resource packs, servers.
+
 ## L-96 Connected Textures for glass (2026-10-11)
 
 By the maintainer, local. `8c3d21a` (DLL
