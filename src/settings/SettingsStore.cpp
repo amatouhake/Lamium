@@ -131,6 +131,7 @@ Json encode(Settings const& settings) {
                     {"freelookStartPerspective", settings.camera.freelookStartPerspective}, {"freeCameraToggle", settings.camera.freeCameraToggle},
                     {"freeCameraSpeed", settings.camera.freeCameraSpeed},
                     {"freeCameraWorldFixed", settings.camera.freeCameraWorldFixed},
+                    {"freeCameraLeaveOnHit", settings.camera.freeCameraLeaveOnHit},
                     {"magnification", settings.camera.magnification},
                     {"showMagnification", settings.camera.showMagnification}}},
         {"lighting", {{"nightVision", settings.lighting.nightVision}}},
@@ -363,6 +364,7 @@ Settings decodeSettings(std::string_view text) {
         value.camera.freelookStartPerspective = camera.value("freelookStartPerspective", value.camera.freelookStartPerspective);
         value.camera.freeCameraToggle = camera.value("freeCameraToggle", value.camera.freeCameraToggle);
         value.camera.freeCameraWorldFixed = camera.value("freeCameraWorldFixed", value.camera.freeCameraWorldFixed);
+        value.camera.freeCameraLeaveOnHit = camera.value("freeCameraLeaveOnHit", value.camera.freeCameraLeaveOnHit);
         value.camera.freeCameraSpeed = camera.value("freeCameraSpeed", value.camera.freeCameraSpeed);
         value.camera.zoomToggle = camera.value("zoomToggle", value.camera.zoomToggle);
         value.camera.magnification = camera.value("magnification", value.camera.magnification);

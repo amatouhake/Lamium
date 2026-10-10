@@ -48,6 +48,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"help.camera.freeCameraSpeed", "基础飞行速度，以 5 为单位调整。向前移动时按下游戏的疾跑键，水平速度变为两倍，直到停止向前移动为止；垂直速度不变。"},
     {"freeCameraSpeedUp", "提高速度"},
     {"freeCameraReference", "位置基准"},
+    {"freeCameraLeaveOnHit", "身体受到攻击时返回"},
+    {"help.camera.freeCameraLeaveOnHit", "身体受到攻击时结束自由摄像机并回到身体视角，即使是不造成伤害的雪球也会。着火、中毒或饥饿等持续伤害也会结束它。"},
     {"cameraReference.player", "玩家"},
     {"cameraReference.world", "世界"},
     {"help.camera.freeCameraWorldFixed", "玩家: 跟随身体的移动。世界: 即使玩家掉落或被推动，摄像机也保持在世界中的位置。飞行中更改此项会保留当前摄像机位置。"},

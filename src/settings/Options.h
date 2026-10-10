@@ -293,6 +293,7 @@ inline constexpr auto options = std::to_array<Option>({
     choice<&Settings::camera, &Settings::Camera::freelookStartPerspective, perspectiveLabels>("camera.freelookStartPerspective", "freelook", "freelookStartPerspective"),
     choice<&Settings::camera, &Settings::Camera::freeCameraToggle, activationLabels>("camera.freecameraActivation", "freecamera", "freecameraActivation"),
     choice<&Settings::camera, &Settings::Camera::freeCameraWorldFixed, cameraReferenceLabels>("camera.freeCameraWorldFixed", "freecamera", "freeCameraReference"),
+    toggle<&Settings::camera, &Settings::Camera::freeCameraLeaveOnHit>("camera.freeCameraLeaveOnHit", "freecamera", "freeCameraLeaveOnHit"),
     {"camera.freeCameraSpeed", "freecamera", "freeCameraSpeed",
         [](Settings const& s) -> OptionValue { return s.camera.freeCameraSpeed; },
         [](Settings& s, int direction) { s.camera.freeCameraSpeed = camera::adjustFlightSpeed(s.camera.freeCameraSpeed, direction); },

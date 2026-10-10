@@ -50,6 +50,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.camera.freeCameraSpeed", "Base flight speed, in steps of 5. Press the game's sprint key while moving forward for twice the horizontal speed. It lasts until forward movement stops; vertical speed stays unchanged.", "基本の移動速度を5刻みで設定します。前進中にゲームのダッシュキーを押すと水平速度が2倍になり、キーを離しても前進をやめるまで続きます。上下速度は変わりません。"},
     {"freeCameraSpeedUp", "Increase speed", "速度を上げる"},
     {"freeCameraReference", "Position reference", "位置の基準"},
+    {"freeCameraLeaveOnHit", "Leave when the body is hit", "本体が攻撃を受けたら戻る"},
+    {"help.camera.freeCameraLeaveOnHit", "Ends FreeCamera and returns to the body's view whenever the body is hit, even by a snowball that does no damage. Ongoing damage such as fire, poison or hunger ends it too.", "本体が攻撃を受けると FreeCamera を終了して本体の視点に戻ります。ダメージのない雪玉でも戻ります。炎上・毒・空腹などの継続ダメージでも戻ります。"},
     {"cameraReference.player", "Player", "プレイヤー"},
     {"cameraReference.world", "World", "ワールド"},
     {"help.camera.freeCameraWorldFixed", "Player follows the body's movement. World keeps the camera at its world position even when the player falls or is pushed. Changing this during flight keeps the current camera position.", "プレイヤー基準では体の移動に追従します。ワールド基準では、落下やノックバックで体が動いてもカメラの位置を保ちます。飛行中に切り替えても、その時点のカメラ位置を引き継ぎます。"},

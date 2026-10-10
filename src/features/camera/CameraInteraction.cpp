@@ -5,6 +5,8 @@
 #include "mc/world/gamemode/GameMode.h"
 #include "mc/world/gamemode/SurvivalMode.h"
 #include "mc/world/gamemode/InteractionResult.h"
+#include "mc/client/player/LocalPlayer.h"
+#include "mc/world/actor/ActorEvent.h"
 #include <stdexcept>
 
 namespace lamium::camera {
@@ -113,6 +115,14 @@ LL_TYPE_INSTANCE_HOOK(SurvivalAttack, ll::memory::HookPriority::Highest, Surviva
     if (blocked(mPlayer)) return false;
     return origin(entity, hit);
 }
+// Every hit on the local player, also one without damage (a snowball),
+// arrives as a hurt event from the server (L-126).
+LL_TYPE_INSTANCE_HOOK(BodyHit, ll::memory::HookPriority::Normal, LocalPlayer,
+    &LocalPlayer::$handleEntityEvent, void, ::ActorEvent id, int data) {
+    if (id == ::ActorEvent::Hurt || id == ::ActorEvent::HurtWithoutReceivingDamage)
+        CameraSessions::instance().bodyHit(static_cast<int>(id));
+    origin(id, data);
+}
 // Stop/release operations must still reach vanilla to clean up existing actions.
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[] = {
@@ -128,7 +138,7 @@ Hook hooks[] = {
     {SurvivalBuild::hook, SurvivalBuild::unhook}, {SurvivalUse::hook, SurvivalUse::unhook},
     {SurvivalUseAttack::hook, SurvivalUseAttack::unhook},
     {SurvivalUseOn::hook, SurvivalUseOn::unhook}, {SurvivalInteract::hook, SurvivalInteract::unhook},
-    {SurvivalAttack::hook, SurvivalAttack::unhook}
+    {SurvivalAttack::hook, SurvivalAttack::unhook}, {BodyHit::hook, BodyHit::unhook}
 };
 }
 void startInteractionGuard() {

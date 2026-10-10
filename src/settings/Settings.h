@@ -48,6 +48,7 @@ struct Settings {
         int freelookStartPerspective = 1; // First person, rear third, front third.
         bool freeCameraToggle = true;
         bool freeCameraWorldFixed = false;
+        bool freeCameraLeaveOnHit = false; // L-126: any hit, even without damage, ends FreeCamera.
         float freeCameraSpeed = 20.f;
         float magnification = 3.0f;
         bool showMagnification = true;

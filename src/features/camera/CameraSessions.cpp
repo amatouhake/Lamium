@@ -217,6 +217,7 @@ void CameraSessions::configure(Settings const& settings) {
     freeToggle = settings.camera.freeCameraToggle;
     freeSpeed = camera::normalizeFlightSpeed(settings.camera.freeCameraSpeed);
     freeWorldFixed = settings.camera.freeCameraWorldFixed;
+    freeLeaveOnHit = settings.camera.freeCameraLeaveOnHit;
     zoomToggle = settings.camera.zoomToggle;
     state.configure(settings.camera.magnification);
 }
@@ -313,6 +314,11 @@ void CameraSessions::releaseFreeCameraKey() {
     if (freeToggle.load()) return;
     wantFree = false;
     reconcile();
+}
+void CameraSessions::bodyHit(int event) {
+    if (!running || !freeLeaveOnHit.load() || !wantFree.load()) return;
+    wantFree = false;
+    try { Runtime::instance().self().getLogger().info("FreeCamera left: the body was hit (event {})", event); } catch (...) {}
 }
 bool CameraSessions::startFreeCamera(IClientInstance& current) {
     auto* player = current.getLocalPlayer();
