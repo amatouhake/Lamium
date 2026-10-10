@@ -36,6 +36,7 @@
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/level/Level.h"
 #include <array>
+#include <cmath>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -163,7 +164,7 @@ void drawTip(MinecraftUIRenderContext& context, glm::vec2 pointer, glm::vec2 scr
     CaretMeasureData const caret{-1, false};
     glm::vec2 size = context.getMeasureStrategy().measureText(fontRef, text, 1000, 1000, textData, caret).mSize;
     constexpr float pad = 4;
-    float w = size.x + 2 * pad, h = size.y + 2 * pad;
+    float w = std::ceil(size.x) + 2 * pad, h = std::ceil(size.y) + 2 * pad;
     auto at = tipBox(pointer.x, pointer.y, w, h, screen.x, screen.y);
     RectangleArea frame{at.x, at.x + w, at.y, at.y + h};
     context.fillRectangle(frame, mce::Color{0.10f, 0.10f, 0.10f, 1.0f}, 0.92f);

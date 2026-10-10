@@ -12,4 +12,6 @@ void lockedTradesTests() {
     check(right.x == 108 && right.y == 72, "the tip sits right of and above the pointer");
     auto flipped = tipBox(620, 10, 50, 20, 640, 360);
     check(flipped.x == 562 && flipped.y == 0, "near the right edge it flips left and stays on screen");
+    auto moved = tipBox(100.6f, 100.3f, 50.5f, 20, 640, 360);
+    check(moved.x == 108 && moved.y == 72, "a fractional pointer gives whole-unit positions");
 }

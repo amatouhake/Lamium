@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <optional>
 #include <vector>
@@ -17,6 +18,8 @@ inline std::optional<std::size_t> recipeAt(std::vector<int> const& recipeTiers, 
 }
 // A tooltip beside the pointer, as the game places hover text: to the right
 // and above, flipped left when it would leave the screen, kept on screen.
+// Whole units: the frame and the text snap to pixels differently, so a
+// fractional pointer made them shift apart while it moved.
 struct TipBox { float x, y; };
 inline TipBox tipBox(float pointerX, float pointerY, float w, float h, float screenW, float screenH) {
     constexpr float gap = 8;
@@ -24,6 +27,6 @@ inline TipBox tipBox(float pointerX, float pointerY, float w, float h, float scr
     if (x + w > screenW) x = pointerX - gap - w;
     x = std::clamp(x, 0.f, std::max(0.f, screenW - w));
     y = std::clamp(y, 0.f, std::max(0.f, screenH - h));
-    return {x, y};
+    return {std::floor(x), std::floor(y)};
 }
 }
