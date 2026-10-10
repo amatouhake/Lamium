@@ -4,6 +4,7 @@
 #include "app/Versions.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/renderer/Tessellator.h"
+#include "mc/client/renderer/TessellatorQuadInfo.h"
 #include "mc/client/renderer/block/BlockGraphics.h"
 #include "mc/client/renderer/block/BlockTessellator.h"
 #include "mc/client/renderer/block/TextureItem.h"
@@ -143,6 +144,49 @@ void reshape(Tessellator& tessellator, size_t src, size_t dst, Cell const& c, Te
             }
         uvs[v].x = tex.u0 + du * (high[i] ? c.su1 : c.su0);
         uvs[v].y = tex.v0 + dv * (low[i] ? c.tv1 : c.tv0);
+    }
+    // Everything else per vertex comes from the first draw as well: a repeat
+    // call need not write the same normal or material data (dark patches on
+    // split faces at night, 2026-10-11).
+    if (dst == src) return;
+    auto& mesh = *tessellator.mMeshData;
+    // Bounded: whether repeat draws differed from the first (dark patches).
+    static std::atomic<int> differences{0};
+    if (differences < 12) try {
+        auto& normals = *mesh.mNormals;
+        auto& quadsSeen = *tessellator.mQuadInfoList;
+        bool normal = normals.size() >= dst + 4 && normals[dst] != normals[src];
+        bool facing = quadsSeen.size() > dst / 4 && quadsSeen[dst / 4].facing != quadsSeen[src / 4].facing;
+        if (normal || facing) {
+            ++differences;
+            Runtime::instance().self().getLogger().info(
+                "Connected Textures: a repeat draw differed: normal {} ({:.2f} {:.2f} {:.2f} vs {:.2f} {:.2f} {:.2f}), facing {} ({} vs {})",
+                normal, normals.size() > dst ? normals[dst].x : 0.f, normals.size() > dst ? normals[dst].y : 0.f,
+                normals.size() > dst ? normals[dst].z : 0.f, normals.size() > src ? normals[src].x : 0.f,
+                normals.size() > src ? normals[src].y : 0.f, normals.size() > src ? normals[src].z : 0.f, facing,
+                quadsSeen.size() > dst / 4 ? static_cast<int>(quadsSeen[dst / 4].facing) : -1,
+                quadsSeen.size() > src / 4 ? static_cast<int>(quadsSeen[src / 4].facing) : -1);
+        }
+    } catch (...) {}
+    auto copyFrom = [&](auto& values) {
+        if (values.size() >= dst + 4 && values.size() >= src + 4)
+            for (size_t i = 0; i < 4; ++i) values[dst + i] = values[src + i];
+    };
+    copyFrom(*mesh.mNormals);
+    copyFrom(*mesh.mTangents);
+    copyFrom(*mesh.mBoneId0s);
+    copyFrom(*mesh.mPBRTextureIndices);
+    copyFrom(*mesh.mMERS);
+    copyFrom(*mesh.mGeoType);
+    // The quad's facing (per-direction shading) and center follow too.
+    auto& quads = *tessellator.mQuadInfoList;
+    if (src % 4 == 0 && dst % 4 == 0 && quads.size() > dst / 4 && quads.size() > src / 4) {
+        auto& info = quads[dst / 4];
+        info.facing = quads[src / 4].facing;
+        info.twoFace = quads[src / 4].twoFace;
+        auto& positions = *mesh.mPositions;
+        glm::vec3 center = (positions[dst] + positions[dst + 1] + positions[dst + 2] + positions[dst + 3]) * 0.25f;
+        info.centroid = Vec3{center.x, center.y, center.z};
     }
 }
 // After a block face was drawn once per cell, give each copy its cell; the
