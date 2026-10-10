@@ -382,9 +382,13 @@ scroll for many players, what singleplayer and different servers provide.
 ### L-129 Villager trades of every level
 Kind: Research, then Design. From the maintainer's notes (2026-10-09); not
 chosen for building yet.
-Status: tracing 2026-10-10 (`d2f288c`, `trade_trace`): each
-`UpdateTradePacket` is logged and its offer NBT saved to
-`logs/trade-<n>.snbt`.
+Status: research answered 2026-10-10 (trace `6e29917`, local world): the
+client receives every trade. A level 1 weaponsmith's `UpdateTradePacket`
+carried 9 recipes with `tier` 0 to 4 (3/2/1/2/1), each with buy/sell items,
+counts, uses and `traderExp`, plus `TierExpRequirements` (0, 10, 70, 150,
+250) and the trader tier. An exact client-only display of locked trades is
+possible; servers send the same packet but were not traced. Next: Design
+(where locked trades show in the trade screen).
 Show a level 1 villager's trades up to level 5, the locked ones marked and
 not usable. First find out whether the client receives the future trades at
 all: trace `UpdateTradePacket`, the trade NBT and the UI collection when the

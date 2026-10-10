@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 2026-10-10 follow-up: camera angles, block chunk icons, trade dump
+
+By the maintainer, local, trace build `6e29917` (DLL
+`6f706dd728b423b072887745a705909f7ba58a666a057ef322266dbf735f55ea`).
+- L-124: camera angles follow the camera in the Info HUD and Debug View;
+  the label reads "Camera".
+- L-119: the shulker preview drawing block items as chunk type 0 with the
+  slot's alpha 0 showed no block icons at all (gates, fences, stairs,
+  blocks); the door (item route) still showed. Next try: alpha 1.
+- L-129: the SNBT dump of a level 1 weaponsmith held 9 recipes, tiers 0-4,
+  and `TierExpRequirements`.
+
 ## 2026-10-10 batch: FreeCamera readouts, hit exit, Night Vision, icon and trade traces
 
 By the maintainer, local, the 1.26.51.01 instance without LIP, on the trace
