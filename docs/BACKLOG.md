@@ -264,8 +264,8 @@ small panel or lines inside Debug View, sorting and how many identifiers.
 Kind: Feature; Design done (maintainer 2026-10-10), revised after the first
 in-game use (2026-10-11).
 Status: built (1789bee, 603ca1b); first build checked in game 2026-10-11.
-Open: the counter's wording and whether the hotbar switch splits.
-Mockup: [demos/inventory-hud.html](demos/inventory-hud.html) (version 2).
+Open: the slot look and the counter's wording (mockup version 3).
+Mockup: [demos/inventory-hud.html](demos/inventory-hud.html) (version 3).
 Two HUD layout elements, each with its own switch (both default off) and a
 toggle hotkey (unbound by default):
 - Inventory grid: the main 27 slots as 9x3 in the vanilla inventory screen's
@@ -283,11 +283,13 @@ toggle hotkey (unbound by default):
 - Shown whenever switched on, hidden while any screen is open.
 - Default position: bottom right, the counter in the corner and the grid
   just above it (chosen in game 2026-10-11; clear of the hotbar).
-- Under review (2026-10-11): one shared "include the hotbar" switch makes
-  the grid 36 when the counter should count 36 by default; proposal: one
-  switch each, grid off and counter on by default. Counter wording A-E in
-  the mockup; recommended D, the faint slot frame as a mark plus the number,
-  no word and no total.
+- Hotbar: one "include the hotbar" switch per element; the grid shows the
+  main 27 by default, the counter counts all 36 (decided 2026-10-11).
+- Under review (2026-10-11): the slot look (the frame on the icon's edge
+  felt cramped; recommended: the frame around the whole 18-unit cell) and
+  the counter (recommended: used/total such as "13/36", renamed to the
+  inventory usage, warning color when full; or one of the free-count
+  forms A-E).
 
 ### L-132 Move while the inventory screen is open
 Kind: Research, then Feature. Requested by the maintainer 2026-10-10;

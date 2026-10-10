@@ -38,10 +38,17 @@ p{margin:0}
 .el.card{background:rgba(var(--panel),.6);padding:calc(var(--u)*3*var(--s))}
 .el.line .gridrow{background:rgba(var(--panel),.6)}
 .gridrow{display:flex}
-.slot{position:relative;width:calc(var(--u)*18*var(--s));height:calc(var(--u)*18*var(--s))}
-.frames .slot:before{content:"";position:absolute;inset:calc(var(--u)*.5*var(--s));box-shadow:inset 0 0 0 calc(var(--u)*.5) rgba(255,255,255,.18)}
-.hotbar .slot{--s:1}
-.slot canvas{position:absolute;left:calc(var(--u)*1*var(--s));top:calc(var(--u)*1*var(--s));width:calc(var(--u)*16*var(--s));height:calc(var(--u)*16*var(--s));image-rendering:pixelated}
+.slot{--c:18;position:relative;width:calc(var(--u)*var(--c)*var(--s));height:calc(var(--u)*var(--c)*var(--s))}
+.big .slot{--c:20}
+/* a: a frame on the icon's edge (the current build), b: empty slots only,
+   d/e: a frame around the whole cell, c: lines between cells. */
+.look-a .slot:before,.look-b .slot.empty:before{content:"";position:absolute;inset:calc(var(--u)*1*var(--s));box-shadow:inset 0 0 0 calc(var(--u)*1*var(--s)) rgba(255,255,255,.18)}
+.look-d .slot:before,.look-e .slot:before{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 calc(var(--u)*1*var(--s)) rgba(255,255,255,.18)}
+.look-c .slot.rgt{box-shadow:inset calc(var(--u)*-1*var(--s)) 0 0 rgba(255,255,255,.18)}
+.look-c .slot.btm{box-shadow:inset 0 calc(var(--u)*-1*var(--s)) 0 rgba(255,255,255,.18)}
+.look-c .slot.rgt.btm{box-shadow:inset calc(var(--u)*-1*var(--s)) 0 0 rgba(255,255,255,.18),inset 0 calc(var(--u)*-1*var(--s)) 0 rgba(255,255,255,.18)}
+.hotbar .slot{--s:1;--c:18}
+.slot canvas{position:absolute;left:calc(var(--u)*(var(--c) - 16)/2*var(--s));top:calc(var(--u)*(var(--c) - 16)/2*var(--s));width:calc(var(--u)*16*var(--s));height:calc(var(--u)*16*var(--s));image-rendering:pixelated}
 .slot b{position:absolute;right:0;bottom:calc(var(--u)*-.5*var(--s));font:400 calc(var(--u)*8*var(--s))/1 var(--mc-font);color:#fff;text-shadow:calc(var(--u)*1*var(--s)) calc(var(--u)*1*var(--s)) 0 #3f3f3f}
 .slot .dur{position:absolute;left:calc(var(--u)*3*var(--s));bottom:calc(var(--u)*2*var(--s));width:calc(var(--u)*13*var(--s));height:calc(var(--u)*2*var(--s));background:#000}
 .slot .dur i{display:block;height:50%}
@@ -64,7 +71,7 @@ p{margin:0}
 </style>
 <div class="wrap">
   <header>
-    <div class="eyebrow">BACKLOG L-127 · インベントリ HUD · 確認用モック 第 2 版</div>
+    <div class="eyebrow">BACKLOG L-127 · インベントリ HUD · 確認用モック 第 3 版</div>
     <h1>プレイ中のインベントリ表示と空き枠の数</h1>
     <p class="lede">インベントリの中身（上の 27 枠、設定で 36 枠）を 9×3 の枠で、空き枠の数を別の小さな要素で出します。どちらも HUD レイアウト編集で動かせ、大きさは 75〜150 %。第 2 版（2026-10-11）：ゲームで使ってみた結果、右下に空き枠の数・その上にインベントリ、アイテムのある枠にも薄い枠、背景はカード / なしのみ。空き枠の数の文言とホットバーの扱いを比べる。<b>アイテムの絵は仮のもの</b>で、実物はホットバーと同じゲームのアイコン（Lamium の ItemIcon）です。</p>
   </header>
@@ -73,6 +80,7 @@ p{margin:0}
     <div class="seg" id="fill"><span>中身</span></div>
     <div class="seg" id="gridHot"><span>インベントリ HUD のホットバー</span></div>
     <div class="seg" id="countHot"><span>空き枠の数のホットバー</span></div>
+    <div class="seg" id="look"><span>枠の描き方</span></div>
     <div class="seg" id="fmt"><span>空き枠の数の文言</span></div>
     <div class="seg" id="bg"><span>背景</span></div>
     <div class="seg" id="scale"><span>大きさ</span></div>
@@ -94,10 +102,11 @@ p{margin:0}
   </section>
 
   <section class="note">
-    <h2 style="margin:0">確認したいこと（2026-10-11）</h2>
+    <h2 style="margin:0">確認したいこと（2026-10-11、第 3 版）</h2>
     <ul>
-      <li><b>ホットバーの設定を分けるか</b>：空き枠の数は既定でホットバー込み（36）にしたい。今は 2 つで共通の設定なので、インベントリ HUD も 36 枠になってしまう。案：設定を分けて、インベントリ HUD は既定オフ、空き枠の数は既定オン（推奨）。</li>
-      <li><b>空き枠の数の文言</b>：A「空き 20」（今）、B「空き 20/36」、C「20/36」、D 枠の印＋「20」、E 枠の印＋「20/36」。総数を出すと数えている範囲（27 か 36 か）が分かるが、「20/36」は使用数と読まれやすい。慣れれば言葉は要らないので、言葉の代わりに空き枠と同じ薄い枠の印を付ける D を推奨（範囲は自分で選んだ設定なので総数は出さない）。範囲も見たいなら E。</li>
+      <li><b>枠の描き方</b>（大きさ 150 % で見比べやすい）。A 今のビルド：枠がアイコンの縁に重なり窮屈。B 空き枠だけ（第 1 ビルド）。C 枠の間に線（横 2 本・縦 8 本）：表のようで軽いが、外側の縁がない。D 枠を 1 枠（18）いっぱいに描く：アイコンとの間に 1 単位の余白ができ、隣の枠と接して 2 単位の線に見える。大きさは変わらない（推奨）。E D を 1 枠 20 にする：バニラに近いゆとりだが全体が 1 割大きくなる（大きさ設定でも代わりになる）。</li>
+      <li><b>空き枠の数の文言</b>：「使用 13/36」（推奨）は「どれだけ埋まっているか」が一目で分かり、数え方（27 か 36 か）も見え、機能が伝わりやすい。空きは 36−13 で分かり、満杯（36/36）で黄色になる。数字は使用数で、要素の名前は「空き枠の数」から「インベントリの使用数」に変える。空きを直接知りたいなら A〜E。</li>
+      <li><b>ホットバーの設定</b>：分ける（決定、2026-10-11）。インベントリ HUD は既定オフ、空き枠の数は既定オン。</li>
     </ul>
   </section>
 
@@ -113,12 +122,13 @@ p{margin:0}
 </div>
 <script>
 const $=s=>document.querySelector(s);
-const state={fill:"mid",gridHot:"off",countHot:"on",fmt:"d",bg:"card",scale:"100",lang:"ja"};
+const state={fill:"mid",gridHot:"off",countHot:"on",look:"d",fmt:"u",bg:"card",scale:"150",lang:"ja"};
 const opts={
   fill:[["mid","ふつう"],["full","満杯"],["few","ほぼ空"]],
   gridHot:[["off","含めない（既定）"],["on","含める"]],
   countHot:[["on","含める（案の既定）"],["off","含めない"]],
-  fmt:[["a","A 空き 20"],["b","B 空き 20/36"],["c","C 20/36"],["d","D 枠＋20（推奨）"],["e","E 枠＋20/36"]],
+  look:[["a","A 今（アイコンの縁）"],["b","B 空き枠だけ"],["c","C 線で区切る"],["d","D 枠を 1 枠いっぱいに（推奨）"],["e","E D を 20 単位に広げる"]],
+  fmt:[["u","使用 13/36（推奨）"],["a","A 空き 20"],["b","B 空き 20/36"],["c","C 空き 20/36（言葉なし）"],["d","D 枠＋20"],["e","E 枠＋20/36"]],
   bg:[["card","カード"],["none","なし"]],
   scale:[["75","75 %"],["100","100 %"],["150","150 %"]],
   lang:[["ja","日本語"],["en","English"]],
@@ -163,16 +173,18 @@ function render(){
   const {main,hot}=contents();
   const hb=$("#hotbar");hb.innerHTML="";hot.forEach(it=>hb.appendChild(slotEl(it,1)));
   const s=+state.scale/100;
-  const grid=document.createElement("div");grid.className=`el grid ${state.bg} frames`;grid.style.setProperty("--s",s);
-  const addRow=items=>{const row=document.createElement("div");row.className="gridrow";items.forEach(it=>row.appendChild(slotEl(it,s)));grid.appendChild(row)};
-  for(let r=0;r<3;r++)addRow(main.slice(r*9,r*9+9));
-  if(state.gridHot==="on"){const sp=document.createElement("div");sp.className="split";grid.appendChild(sp);addRow(hot)}
+  const grid=document.createElement("div");grid.className=`el grid ${state.bg} look-${state.look==="e"?"d":state.look} ${state.look==="e"?"big":""}`;grid.style.setProperty("--s",s);
+  // Lines (C) run between cells: right edges but the last column, bottoms but the last row of a block.
+  const addRow=(items,lastRow)=>{const row=document.createElement("div");row.className="gridrow";items.forEach((it,c)=>{const e=slotEl(it,s);
+    if(!it)e.classList.add("empty");if(c<8)e.classList.add("rgt");if(!lastRow)e.classList.add("btm");row.appendChild(e)});grid.appendChild(row)};
+  for(let r=0;r<3;r++)addRow(main.slice(r*9,r*9+9),r===2);
+  if(state.gridHot==="on"){const sp=document.createElement("div");sp.className="split";grid.appendChild(sp);addRow(hot,true)}
   const slots=state.countHot==="on"?main.concat(hot):main;
   const free=slots.filter(x=>!x).length,total=slots.length;
   const count=document.createElement("div");count.className=`el count ${state.bg} ${free===0?"full":""}`;count.style.setProperty("--s",s);
   if(state.bg==="card")count.style.background="rgba(16,17,19,.6)";
   const ja=state.lang==="ja",box='<span class="box"></span>',tot=`<span class="tot">/${total}</span>`;
-  count.innerHTML={a:ja?`空き ${free}`:`${free} free`,b:(ja?`空き ${free}`:`${free} free `)+(ja?tot:`<span class="tot">of ${total}</span>`),
+  count.innerHTML={u:`${total-free}${tot}`,a:ja?`空き ${free}`:`${free} free`,b:(ja?`空き ${free}`:`${free} free `)+(ja?tot:`<span class="tot">of ${total}</span>`),
     c:`${free}${tot}`,d:`${box}${free}`,e:`${box}${free}${tot}`}[state.fmt];
   scr.append(grid,count);
   // Bottom right: the counter in the corner, the grid just above it.
