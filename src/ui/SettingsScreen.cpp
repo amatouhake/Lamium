@@ -5,6 +5,10 @@
 #include "ui/SettingsTable.h"
 #include "ui/ShapeEditor.h"
 #include "ui/ShapesLayout.h"
+#include "ui/ShapesView.h"
+#include "ui/WaypointsView.h"
+#include "ui/ScreenParts.h"
+#include "ui/ListViewWidgets.h"
 #include "ui/WaypointPromptLayout.h"
 #include "ui/SavePromptLayout.h"
 #include "ui/RadialLayout.h"
@@ -172,44 +176,13 @@ settings::Option const* editingNumber = nullptr;
 NumberInput numberInput;
 bool numberDirty = false;
 
-// Shapes view. The collection lives in the overlay session; this is only what
-// the editor shows: the selected shape or an unsaved draft, and scroll state.
-using ShapeZone = ShapesLayout::Zone;
-bool shapesDocked = false;
-std::optional<overlay::ShapeId> shapeSelected;
-std::optional<overlay::ShapeDefinition> shapeDraft;
-bool shapePicking = false, shapeDeleteArmed = false;
+using ShapeZone = ShapesLayout::Zone; // the list-and-detail layout's zones (Schematics view)
 // L-46: General resets every setting, Hotkeys resets key bindings. The
 // first press arms the button; the second applies. Shapes are per-world
 // data and are never touched.
 enum class ResetScope { None, All, Section, Keys };
 bool resetArmed = false;
-int shapeListFirst = 0, shapeFieldFirst = 0, shapeFieldSelected = -1, shapeLayer = 0;
-shape::Reference shapeReference = shape::Reference::StandingBlock;
-std::vector<overlay::shapes::Summary> shapeList;
-ShapesLayout shapesDisplayed;
-int editingShapeField = -1;
-bool editingShapeName = false;
-SearchQuery shapeNameInput;
-bool shapeNameDirty = false;
-// Waypoints view (L-60 step 5c): built like Shapes, from a copy of the
-// current world's waypoints taken each frame.
-bool waypointsDocked = false;
-std::optional<map::MarkKey> waypointSelected; // the death point or a waypoint, by its session id
-map::WaypointSet waypointSet;
-std::vector<size_t> waypointList; // Display order, indices into the set.
-ShapesLayout waypointsDisplayed;
-int waypointListFirst = 0, waypointFieldFirst = 0, waypointFieldSelected = -1;
-bool waypointDeleteArmed = false;
-int editingWaypointField = -1;
-bool editingWaypointName = false, waypointNameDirty = false;
-SearchQuery waypointNameInput;
-void applyWaypointName();
-void drawEditText(MinecraftUIRenderContext&, float x, float top, float height, float width, SearchQuery const&);
-map::Waypoint const* selectedWaypoint();
-void changeSelected(std::function<void(map::Waypoint&)> const& apply);
 void copyVersion();
-void renderWaypointsContent(MinecraftUIRenderContext&, glm::vec2 size, glm::vec2 pointer, SettingsTable const&);
 void renderSchematicsContent(MinecraftUIRenderContext&, glm::vec2 size, glm::vec2 pointer, SettingsTable const&);
 // Schematics view (L-93): placements of this world above the files in the
 // schematics folder, built like Waypoints. The file list is scanned when the
@@ -240,7 +213,9 @@ ShapesLayout schematicsDisplayed;
 int schematicListFirst = 0, schematicFieldFirst = 0, schematicFieldSelected = -1;
 bool schematicDeleteArmed = false;
 int editingSchematicField = -1;
-bool numericEditing() { return editingNumber || editingShapeField >= 0 || editingWaypointField >= 0 || editingSchematicField >= 0; }
+bool numericEditing() {
+    return editingNumber || shapes_view::editingNumber() || waypoints_view::editingNumber() || editingSchematicField >= 0;
+}
 void changeSchematic(std::function<void(schematic::SavedPlacement&)> const& apply);
 // Waypoint add prompt (L-60 step 5): replaces the whole panel while open.
 struct WaypointPrompt { map::Waypoint draft; SearchQuery name; };
@@ -269,7 +244,6 @@ int schematicMenuClosedAt = -1; // the level shown when it last closed
 // returns to it.
 bool worldMapOpen = false, promptOnMap = false;
 bool mapFromSettings = false;  // Closing the map returns to the settings.
-bool waypointsFromMap = false; // The Waypoints screen's close returns to the map.
 void enterWorldMap(bool fromSettings, bool resume);
 struct Wheel { float x, y; int direction; };
 std::vector<Wheel> pendingWheels;
@@ -322,9 +296,9 @@ void selectNav(int index, bool temporary = false) {
     query.clear();
     searchCollapsed.clear();
     resetArmed = false;
-    if (navigation.current == shapesNav && index != shapesNav) { shapeDraft.reset(); shapePicking = false; overlay::shapes::setDraft({}); }
+    if (navigation.current == shapesNav && index != shapesNav) shapes_view::leave();
     index = std::clamp(index, 0, navCount - 1);
-    waypointsFromMap = false;
+    waypoints_view::setFromMap(false);
     if (index == worldMapNav) { enterWorldMap(true, false); return; }
     if (index == hudNav && navigation.current != hudNav) {
         editorReturn = navigation.current;
@@ -375,7 +349,7 @@ void releaseTextKeyboard() {
     }
 }
 void syncTextKeyboard(float x, float y) {
-    bool wanted = !closing && !capturing && (searchFocused || numericEditing() || editingShapeName || editingWaypointName || prompt
+    bool wanted = !closing && !capturing && (searchFocused || numericEditing() || shapes_view::editingName() || waypoints_view::editingName() || prompt
         || savePrompt
         || (worldMapOpen && map::world::editingName()));
     bool number = numericEditing();
@@ -445,36 +419,6 @@ LL_TYPE_INSTANCE_HOOK(SettingsSceneEntrance, ll::memory::HookPriority::Normal, U
     }
     origin(revisiting, owned ? false : transitions);
 }
-// Applies an edited definition: a draft only updates its world preview; an
-// existing shape is saved through the session, reporting failures in the footer.
-void applyShape(overlay::ShapeDefinition definition) {
-    try {
-        if (shapeDraft) { overlay::shapes::setDraft(definition); shapeDraft = std::move(definition); }
-        else if (shapeSelected) overlay::shapes::edit(*shapeSelected, std::move(definition));
-        error.clear();
-    } catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
-    catch (std::exception const&) { error = translated("shape.editError"); }
-}
-std::optional<overlay::ShapeDefinition> currentShape() {
-    if (shapeDraft) return shapeDraft;
-    if (shapeSelected) return overlay::shapes::find(*shapeSelected);
-    return {};
-}
-void applyShapeName() {
-    if (!editingShapeName || !std::exchange(shapeNameDirty, false)) return;
-    try {
-        if (shapeDraft) {
-            auto definition = *shapeDraft;
-            definition.name = shapeNameInput.value();
-            overlay::ShapeCollection{}.add(definition); // Validates the name only.
-            shapeDraft = std::move(definition);
-            overlay::shapes::setDraft(shapeDraft);
-        } else if (shapeSelected) overlay::shapes::rename(*shapeSelected, shapeNameInput.value());
-        error.clear();
-    }
-    catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
-    catch (std::exception const&) { error = translated("shape.nameError"); }
-}
 void queryChanged() { searchCollapsed.clear(); first = 0; rebuild(false); }
 // The first native text events carrying control characters, for checking
 // how an IME rewrites its composition (bounded).
@@ -496,8 +440,8 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
         if (prompt) { prompt->name.type(text); return; }
         if (savePrompt) { if (savePrompt->name.type(text)) savePrompt->overwrite = false; return; }
         if (worldMapOpen && map::world::editingName()) { map::world::typeText(text); return; }
-        if (editingWaypointName) { if (waypointNameInput.type(text)) waypointNameDirty = true; return; }
-        if (editingShapeName) { if (shapeNameInput.type(text)) shapeNameDirty = true; return; }
+        if (waypoints_view::editingName()) { waypoints_view::type(text); return; }
+        if (shapes_view::editingName()) { shapes_view::type(text); return; }
         if (numericEditing()) { if (numberInput.append(text)) numberDirty = true; return; }
         if (!capturing && searchFocused && query.type(text)) queryChanged();
         return;
@@ -506,20 +450,19 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
 }
 void clear() {
     sliderDrag = nullptr;
-    releaseTextKeyboard(); editingNumber = nullptr; editingShapeField = -1; editingShapeName = false; shapeNameDirty = false;
+    releaseTextKeyboard(); editingNumber = nullptr;
     numberDirty = false; uiHeld.clear(); capturing.reset(); bindingEdit.reset(); capture.clear(); client = nullptr;
     scene.reset(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
     // A draft is never kept once the screen is gone.
-    if (shapeDraft) { shapeDraft.reset(); overlay::shapes::setDraft({}); }
-    shapePicking = false; shapeDeleteArmed = false;
+    shapes_view::reset();
     prompt.reset();
     savePrompt.reset();
     if (schematicMenu) schematicMenuClosedAt = schematicMenu->category;
     schematicMenu.reset();
     if (worldMapOpen) map::world::close();
     worldMapOpen = false; promptOnMap = false; pendingWheels.clear(); mapCacheArmed = false;
-    mapFromSettings = false; waypointsFromMap = false;
-    editingWaypointField = -1; editingWaypointName = false; waypointNameDirty = false; waypointDeleteArmed = false;
+    mapFromSettings = false;
+    waypoints_view::reset();
     editingSchematicField = -1; schematicDeleteArmed = false;
 }
 // L-81: an out-of-range warning belongs to where it was raised. It goes once
@@ -531,7 +474,7 @@ struct WarningPlace {
     bool operator==(WarningPlace const&) const = default;
 };
 std::optional<std::pair<WarningPlace, std::string>> rangeWarning;
-WarningPlace warningPlace() { return {navigation.current, selected, shapeFieldSelected, shapeSelected}; }
+WarningPlace warningPlace() { return {navigation.current, selected, shapes_view::fieldSelected(), shapes_view::selected()}; }
 void warnRange(std::string text) {
     error = std::move(text);
     rangeWarning = {warningPlace(), error};
@@ -544,15 +487,7 @@ void dropMovedWarning() {
 void applyNumber() {
     if (!numericEditing() || !numberDirty) return;
     numberDirty = false;
-    if (editingWaypointField >= 0) {
-        auto parsed = numberInput.parsedPrecise(-map::coordinateLimit, map::coordinateLimit, true);
-        if (!parsed) { warnRange(translated("integerRange", -map::coordinateLimit, map::coordinateLimit)); return; }
-        int field = editingWaypointField, value = static_cast<int>(*parsed);
-        auto const* w = selectedWaypoint();
-        if (!w || (field == 0 ? w->x : field == 1 ? w->y : w->z) == value) { error.clear(); return; }
-        changeSelected([&](map::Waypoint& t) { (field == 0 ? t.x : field == 1 ? t.y : t.z) = value; });
-        return;
-    }
+    if (waypoints_view::editingNumber()) { waypoints_view::applyNumber(); return; }
     if (editingSchematicField >= 0) {
         int field = editingSchematicField;
         int limit = field == 9 ? 4096 : 30'000'000, low = field == 9 ? 1 : -limit;
@@ -565,22 +500,7 @@ void applyNumber() {
         });
         return;
     }
-    if (editingShapeField >= 0) {
-        auto definition = currentShape();
-        auto fields = definition ? shape::rows(*definition, shapeDraft.has_value()) : std::vector<shape::Row>{};
-        if (!definition || editingShapeField >= static_cast<int>(fields.size())) { editingShapeField = -1; return; }
-        auto field = fields[editingShapeField].field;
-        auto range = shape::numeric(*definition, field);
-        if (!range) { editingShapeField = -1; return; }
-        auto parsed = numberInput.parsedPrecise(range->minimum,range->maximum,range->integer);
-        if (!parsed) {
-            warnRange(translated(range->integer ? "integerRange" : "numberRange",range->minimum,range->maximum));
-            return;
-        }
-        if (*parsed == range->value) { error.clear(); return; }
-        applyShape(shape::setNumber(*definition, field, *parsed));
-        return;
-    }
+    if (shapes_view::editingNumber()) { shapes_view::applyNumber(); return; }
     auto const& range = *editingNumber->numeric;
     auto parsed = numberInput.parsed(range.minimum, range.maximum);
     if (!parsed) { warnRange(translated("numberRange", range.minimum, range.maximum)); return; }
@@ -591,11 +511,12 @@ void applyNumber() {
 }
 void finishNumber() {
     applyNumber();
-    applyShapeName();
-    applyWaypointName();
+    shapes_view::applyName();
+    waypoints_view::applyName();
     releaseTextKeyboard();
-    editingNumber = nullptr; editingShapeField = -1; editingShapeName = false; numberDirty = false;
-    editingWaypointField = -1; editingWaypointName = false;
+    editingNumber = nullptr; numberDirty = false;
+    shapes_view::endEditing();
+    waypoints_view::endEditing();
     editingSchematicField = -1;
 }
 void close() {
@@ -1013,593 +934,28 @@ std::string description() {
     default: return {};
     }
 }
-// ---- Shapes view ----
-// Reference point for new or moved shapes, and the reference actually used: a
-// missing target falls back to the standing block with a notice.
-std::optional<std::pair<overlay::Point, shape::Reference>> referencePoint() {
-    auto* player = client ? client->getLocalPlayer() : nullptr;
-    if (!player) return {};
-    if (shapeReference == shape::Reference::TargetBlock) {
-        auto const& hit = client->getLatestHitResult();
-        if (hit.mType == HitResultType::Tile)
-            return std::pair{overlay::Point{hit.mBlock.x + .5, hit.mBlock.y + .5, hit.mBlock.z + .5}, shapeReference};
-        error = translated("shape.targetMissing");
-        auto feet = player->getFeetPos();
-        return std::pair{overlay::Point{feet.x, feet.y, feet.z}, shape::Reference::StandingBlock};
-    }
-    auto feet = player->getFeetPos();
-    return std::pair{overlay::Point{feet.x, feet.y, feet.z}, shapeReference};
-}
+// ---- Where the player stands ----
 int playerDimension() {
     auto* player = client ? client->getLocalPlayer() : nullptr;
     return player ? static_cast<int>(player->getDimensionId()) : 0;
 }
-overlay::Point centerOf(overlay::ShapeDefinition const& definition) {
-    if (auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry)) return spec->center;
-    auto const& origin = std::get<overlay::PlaneSpec>(definition.geometry).origin;
-    return {double(origin.x), double(origin.y), double(origin.z)};
+using screen::Place;
+std::optional<Place> standingPlace() {
+    auto* player = client ? client->getLocalPlayer() : nullptr;
+    if (!player) return std::nullopt;
+    auto feet = player->getFeetPos();
+    if (!std::isfinite(feet.x) || !std::isfinite(feet.y) || !std::isfinite(feet.z)) return std::nullopt;
+    return Place{static_cast<int>(std::floor(feet.x)), static_cast<int>(std::floor(feet.y)),
+                 static_cast<int>(std::floor(feet.z)), playerDimension()};
 }
-void resetShapeEditor() { shapeFieldFirst = 0; shapeFieldSelected = -1; shapeLayer = 0; shapeDeleteArmed = false; }
-void cancelDraft() {
-    if (shapeDraft) { shapeDraft.reset(); overlay::shapes::setDraft({}); }
-    shapePicking = false;
+std::string dimensionName(int dimension) {
+    return translated(dimension == 1 ? "dimension.nether" : dimension == 2 ? "dimension.end" : "dimension.overworld");
 }
-void beginDraft(int type) {
-    auto point = referencePoint();
-    if (!point) return;
-    overlay::ShapeDefinition definition;
-    definition.name = translated(shape::types[type].name);
-    definition.dimension = playerDimension();
-    shapeDraft = shape::withType(std::move(definition), type, point->first, point->second);
-    shapePicking = false;
-    shapeSelected.reset();
-    resetShapeEditor();
-    try { overlay::shapes::setDraft(shapeDraft); }
-    catch (std::exception const&) { error = translated("shape.editError"); }
-}
-void createDraft() {
-    if (!shapeDraft) return;
-    try {
-        auto id = overlay::shapes::add(*shapeDraft);
-        cancelDraft();
-        shapeSelected = id;
-        resetShapeEditor();
-        error.clear();
-    } catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
-    catch (std::exception const&) { error = translated("shape.editError"); }
-}
-void selectShape(std::optional<overlay::ShapeId> id) {
-    cancelDraft();
-    shapeSelected = id;
-    resetShapeEditor();
-}
-// Click or key activation of an editor row. part: -1/1 step, 0 value, 2 label.
-void activateShapeField(int index, int part) {
-    auto definition = currentShape();
-    if (!definition) return;
-    auto fields = shape::rows(*definition, shapeDraft.has_value());
-    if (index < 0 || index >= static_cast<int>(fields.size()) || fields[index].kind == shape::Row::Kind::Group) return;
-    shapeFieldSelected = index;
-    if (part == 2) return;
-    int direction = part == -1 ? -1 : 1;
-    auto const& row = fields[index];
-    switch (row.field) {
-    case shape::Field::Type: {
-        if (!shapeDraft) return;
-        int count = static_cast<int>(shape::types.size());
-        int old = shape::typeIndex(*shapeDraft), type = (old + direction + count) % count;
-        auto next = shape::withType(*shapeDraft, type, centerOf(*shapeDraft), shapeReference);
-        if (next.name == translated(shape::types[old].name)) next.name = translated(shape::types[type].name);
-        applyShape(std::move(next));
-        return;
-    }
-    case shape::Field::Reference: {
-        shapeReference = static_cast<shape::Reference>((static_cast<int>(shapeReference) + direction + 3) % 3);
-        if (shapeDraft) if (auto point = referencePoint()) {
-            auto moved = *shapeDraft;
-            shape::place(moved, point->first, point->second);
-            applyShape(std::move(moved));
-        }
-        return;
-    }
-    case shape::Field::MoveHere: {
-        if (auto point = referencePoint()) {
-            auto moved = *definition;
-            shape::place(moved, point->first, point->second);
-            moved.dimension = playerDimension();
-            applyShape(std::move(moved));
-        }
-        return;
-    }
-    default: break;
-    }
-    if (auto range = shape::numeric(*definition, row.field); range && part == 0) {
-        editingShapeField = index;
-        numberInput.beginPrecise(range->value);
-        error.clear();
-        return;
-    }
-    applyShape(shape::adjust(*definition, row.field, direction));
-}
-void moveShapeField(int step) {
-    auto definition = currentShape();
-    if (!definition) return;
-    auto fields = shape::rows(*definition, shapeDraft.has_value());
-    int index = shapeFieldSelected;
-    for (size_t tries = 0; tries < fields.size(); ++tries) {
-        index = std::clamp(index + step, 0, static_cast<int>(fields.size()) - 1);
-        if (fields[index].kind != shape::Row::Kind::Group) break;
-        if (index == 0 || index == static_cast<int>(fields.size()) - 1) step = -step;
-    }
-    shapeFieldSelected = index;
-    int visible = shapesDisplayed.fieldVisible;
-    if (visible > 0) {
-        if (index < shapeFieldFirst) shapeFieldFirst = index;
-        if (index >= shapeFieldFirst + visible) shapeFieldFirst = index - visible + 1;
-    }
-}
-void openShapeKeySettings() {
-    // Show the Shape rendering row, expanded, in its category.
-    cancelDraft();
-    int category = 0;
-    for (size_t i = 0; i < sections.size(); ++i) if (sections[i] == featureSection("shapes")) category = static_cast<int>(i) + 1;
-    expanded.insert("shapes");
-    selectNav(category);
-    for (size_t i = 0; i < rows.size(); ++i)
-        if (rows[i].heading() && rows[i].feature->id == "shapes") { selected = static_cast<int>(i); break; }
-    first = SettingsTable::reveal(first, selected, displayed.visible);
-}
-void handleShapeClick(float x, float y, bool right) {
-    finishNumber();
-    if (!right && pressScrollbar(shapesDisplayed, shapeListFirst, x, y)) return;
-    if (!shapesDocked) {
-        auto nav = displayed.hit(x, y, navCount, displayedTabWidth);
-        if (nav.zone == Zone::Nav) { selectNav(nav.index); return; }
-        if (nav.zone == Zone::Version) { copyVersion(); return; }
-    }
-    auto hit = shapesDisplayed.hit(x, y);
-    if (!(hit.zone == ShapeZone::Action && hit.index == 1 && !shapeDraft)) shapeDeleteArmed = false;
-    switch (hit.zone) {
-    case ShapeZone::Close: close(); return;
-    case ShapeZone::Dock: shapesDocked = !shapesDocked; return;
-    case ShapeZone::Keys: openShapeKeySettings(); return;
-    case ShapeZone::DrawAll:
-        if (auto option = settings::find("overlays.shapes")) adjustOption(*option, 1);
-        return;
-    case ShapeZone::NewShape:
-        cancelDraft();
-        shapeSelected.reset();
-        shapePicking = true;
-        resetShapeEditor();
-        return;
-    case ShapeZone::ListRow: {
-        int index = hit.index - (shapeDraft ? 1 : 0);
-        if (index < 0 || index >= static_cast<int>(shapeList.size())) return;
-        auto const& item = shapeList[index];
-        auto const& l = shapesDisplayed;
-        if (x >= l.listLeft + l.listWidth - ShapesLayout::pad - switchWidth - 2) {
-            try { overlay::shapes::setVisible(item.id, !item.definition.visible); error.clear(); }
-            catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
-            catch (std::exception const&) { error = translated("shape.editError"); }
-            return;
-        }
-        if (shapeSelected != item.id || shapeDraft) selectShape(item.id);
-        return;
-    }
-    case ShapeZone::Name:
-        if (auto definition = currentShape()) {
-            editingShapeName = true;
-            shapeNameInput.clear();
-            shapeNameInput.append(definition->name);
-            shapeNameInput.selectAll();
-            error.clear();
-        }
-        return;
-    case ShapeZone::LayerDown: --shapeLayer; return;
-    case ShapeZone::LayerUp: ++shapeLayer; return;
-    case ShapeZone::Field:
-        if (!right && hit.part != 2) if (auto definition = currentShape()) {
-            auto fields = shape::rows(*definition, shapeDraft.has_value());
-            if (hit.index >= 0 && hit.index < static_cast<int>(fields.size()) && fields[hit.index].field == shape::Field::Color) {
-                shapeFieldSelected = hit.index;
-                if (int swatch = shapesDisplayed.swatchAt(x, 4); swatch >= 0) {
-                    definition->color = static_cast<overlay::ShapeColor>(swatch);
-                    applyShape(std::move(*definition));
-                }
-                return;
-            }
-        }
-        activateShapeField(hit.index, right ? -1 : hit.part);
-        return;
-    case ShapeZone::Pick: beginDraft(hit.index); return;
-    case ShapeZone::Action:
-        if (shapeDraft) { if (hit.index == 0) createDraft(); else cancelDraft(); return; }
-        if (!shapeSelected) return;
-        if (hit.index == 0) {
-            if (auto definition = currentShape()) {
-                definition->name = translated("shape.copyName", definition->name);
-                if (definition->name.size() > 128) definition->name.resize(128);
-                try { selectShape(overlay::shapes::add(*definition)); error.clear(); }
-                catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
-                catch (std::exception const&) { error = translated("shape.editError"); }
-            }
-            return;
-        }
-        if (!shapeDeleteArmed) { shapeDeleteArmed = true; return; }
-        try {
-            size_t position = 0;
-            for (; position < shapeList.size() && shapeList[position].id != *shapeSelected; ++position) {}
-            overlay::shapes::remove(*shapeSelected);
-            auto remaining = overlay::shapes::list();
-            selectShape(remaining.empty() ? std::nullopt
-                : std::optional(remaining[std::min(position, remaining.size() - 1)].id));
-            error.clear();
-        } catch (overlay::ShapeSaveError const&) { error = translated("shape.saveError"); }
-        catch (std::exception const&) { error = translated("shape.editError"); }
-        return;
-    default: return;
-    }
-}
-void handleShapeKey(int key) {
-    if (editingShapeName) {
-        switch (key) {
-        case 0x08: if (shapeNameInput.backspace()) shapeNameDirty = true; break;
-        case 0x41: if (heldCtrl()) shapeNameInput.selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: finishNumber(); break;
-        }
-        return;
-    }
-    if (editingShapeField >= 0) {
-        switch (key) {
-        case 0x08: if (numberInput.backspace()) numberDirty = true; break;
-        case 0x41: if (heldCtrl()) numberInput.selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: finishNumber(); break;
-        }
-        return;
-    }
-    switch (key) {
-    case 0x1b:
-        if (shapePicking || shapeDraft) cancelDraft();
-        else close();
-        break;
-    case 0x26: moveShapeField(-1); break;
-    case 0x28: moveShapeField(1); break;
-    case 0x25: activateShapeField(shapeFieldSelected, -1); break;
-    case 0x27: activateShapeField(shapeFieldSelected, 1); break;
-    case 0x0d: case 0x20: activateShapeField(shapeFieldSelected, 0); break;
-    case 0x21: case 0x22: {
-        // Previous / next shape in the list.
-        if (shapeList.empty()) break;
-        int index = 0;
-        for (size_t i = 0; i < shapeList.size(); ++i) if (shapeSelected == shapeList[i].id) index = static_cast<int>(i);
-        index = std::clamp(index + (key == 0x22 ? 1 : -1), 0, static_cast<int>(shapeList.size()) - 1);
-        selectShape(shapeList[index].id);
-        break;
-    }
-    case 0x09: selectNav((navigation.current + (heldShift() ? worldMapNav - 1 : 1)) % worldMapNav); break;
-    }
-}
-
-// Preview is regenerated only when the geometry or layer changes.
-struct PreviewCache {
-    std::optional<overlay::ShapeDefinition> definition;
-    int layer = 0;
-    std::optional<shape::Preview> preview;
-} previewCache;
-bool sameGeometry(overlay::ShapeDefinition const& a, overlay::ShapeDefinition const& b) {
-    auto sa = std::get_if<overlay::ShapeSpec>(&a.geometry), sb = std::get_if<overlay::ShapeSpec>(&b.geometry);
-    if (sa && sb) return sa->shape == sb->shape && sa->center == sb->center && sa->snap == sb->snap
-        && sa->radius == sb->radius && sa->height == sb->height;
-    auto pa = std::get_if<overlay::PlaneSpec>(&a.geometry), pb = std::get_if<overlay::PlaneSpec>(&b.geometry);
-    return pa && pb && pa->origin == pb->origin && pa->width == pb->width && pa->depth == pb->depth
-        && pa->spacing == pb->spacing && pa->plane == pb->plane;
-}
-shape::Preview const* previewFor(overlay::ShapeDefinition const& definition) {
-    if (!previewCache.definition || !sameGeometry(*previewCache.definition, definition) || previewCache.layer != shapeLayer) {
-        previewCache.definition = definition;
-        previewCache.layer = shapeLayer;
-        try { previewCache.preview = shape::preview(definition, shapeLayer); }
-        catch (std::exception const&) { previewCache.preview.reset(); }
-        if (previewCache.preview) {
-            // Keep the shown layer inside the shape, then rebuild once for it.
-            int layer = std::clamp(shapeLayer, previewCache.preview->lowLayer, previewCache.preview->highLayer);
-            if (layer != shapeLayer) {
-                shapeLayer = previewCache.layer = layer;
-                try { previewCache.preview = shape::preview(definition, shapeLayer); }
-                catch (std::exception const&) { previewCache.preview.reset(); }
-            }
-        }
-    }
-    return previewCache.preview ? &*previewCache.preview : nullptr;
-}
-Rgb shapeRgb(overlay::ShapeColor color) {
-    switch (color) {
-    case overlay::ShapeColor::Yellow: return {.95f,.8f,.24f};
-    case overlay::ShapeColor::Pink: return {.94f,.5f,.75f};
-    case overlay::ShapeColor::White: return {.95f,.95f,.95f};
-    default: return {.25f,.82f,.88f};
-    }
-}
-constexpr Rgb draftRgb{.62f,.83f,1.f};
-void drawTypeIcon(MinecraftUIRenderContext& context, float x, float y, int type, Rgb color) {
-    auto pattern = shape::typeGlyphs[static_cast<size_t>(std::clamp(type, 0, static_cast<int>(shape::typeGlyphs.size()) - 1))];
-    for (int i = 0; i < 25 && i < static_cast<int>(pattern.size()); ++i)
-        if (pattern[i] == '#') fill(context, x + (i % 5) * 2, y + (i / 5) * 2, 2, 2, color);
-}
-void drawSmallButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
-                     bool hovered, Rgb fillColor = palette::keyFill, Rgb edge = palette::keyEdge, Rgb textColor = palette::text) {
-    fill(context,x,y,w,h,fillColor);
-    if (hovered) fill(context,x,y,w,h,palette::white,.1f);
-    frame(context,x,y,w,h,edge);
-    label(context,x,y+(h-10)/2+boxTextInset()-1,w,std::move(text),textColor,Align::Center);
-}
-void drawShapeStepper(MinecraftUIRenderContext& context, ShapesLayout const& l, float y, bool numeric, std::string text,
-                      bool editing) {
-    float x = l.stepperX(), w = l.stepperWidth(), aw = ShapesLayout::arrowWidth, h = ShapesLayout::rowHeight - 2;
-    fill(context,x,y+1,aw,h,palette::keyFill);
-    fill(context,x+w-aw,y+1,aw,h,palette::keyFill);
-    frame(context,x,y+1,w,h,editing ? palette::accent : palette::keyEdge);
-    if (numeric) {
-        label(context,x,y+2+boxTextInset(),aw,"-",palette::dim,Align::Center);
-        label(context,x+w-aw,y+2+boxTextInset(),aw,"+",palette::dim,Align::Center);
-    } else {
-        arrow(context,x+4,y+4,true);
-        arrow(context,x+w-aw+4,y+4,false);
-    }
-    if (editing) text = numberInput.selectedAll() ? "[" + numberInput.value() + "]" : numberInput.value() + "_";
-    label(context,x+aw+1,y+2+boxTextInset(),w-2*aw-2,std::move(text),palette::text,Align::Center);
-}
-// A row of color swatches in the editor's value column; the chosen one framed.
-template<class ColorOf>
-void drawSwatchRow(MinecraftUIRenderContext& context, ShapesLayout const& l, float y, int count, int chosen, ColorOf colorOf) {
-    float size = l.swatchSize(count), top = y + (ShapesLayout::rowHeight - size) / 2;
-    for (int i = 0; i < count; ++i) {
-        float x = l.swatchX(i, count);
-        if (i == chosen) frame(context,x-2,top-2,size+4,size+4,palette::white);
-        fill(context,x,top,size,size,colorOf(i));
-        frame(context,x,top,size,size,Rgb{0,0,0},.6f);
-    }
-}
-std::string shapeDescription(std::optional<overlay::ShapeDefinition> const& definition) {
-    if (shapePicking) return translated("shape.pickType");
-    if (!definition) return translated(shapeList.empty() ? "shape.empty" : "shape.selectHint");
-    if (shapeDraft) return translated("shape.draftNote");
-    if (definition->dimension != playerDimension()) return definition->name + ": " + translated("shape.elsewhere");
-    if (editingShapeField >= 0) {
-        auto fields = shape::rows(*definition, false);
-        if (editingShapeField < static_cast<int>(fields.size()))
-            if (auto range = shape::numeric(*definition, fields[editingShapeField].field))
-                return translated(range->integer ? "integerRange" : "numberRange", range->minimum, range->maximum);
-    }
-    return definition->name + ": " + translated(definition->visible ? "shape.shownState" : "shape.hiddenState");
-}
-// List, editor, header controls and footer of the Shapes view.
-void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, glm::vec2 pointer,
-                    std::optional<overlay::ShapeDefinition> const& definition) {
-    auto const preferences = Runtime::instance().preferences();
-    auto hover = l.hit(pointer.x, pointer.y);
-    auto over = [&](ShapeZone zone, int index = -1) { return hover.zone == zone && (index < 0 || hover.index == index); };
-    float top = l.top + 4;
-    // Header controls.
-    label(context,l.drawAllX,l.drawAllY+1+boxTextInset(),l.drawAllWidth-switchWidth-4,translated("shape.drawAll"),
-        over(ShapeZone::DrawAll) ? palette::text : palette::dim,Align::Right);
-    toggleSwitch(context,l.drawAllX+l.drawAllWidth-switchWidth,l.drawAllY+2,preferences.overlays.shapes);
-    label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),
-        over(ShapeZone::Keys) ? palette::text : palette::accent,Align::Center);
-    fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,over(ShapeZone::Keys) ? 1.f : .5f);
-    drawSmallButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(shapesDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
-
-    // List pane.
-    float listRight = l.listLeft + l.listWidth;
-    drawSmallButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("shape.new"),
-        over(ShapeZone::NewShape),shapePicking ? palette::accent : palette::accentDeep,palette::accent);
-    fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
-    float nameX = l.listLeft + ShapesLayout::pad + 14;
-    float shownX = listRight - ShapesLayout::pad - switchWidth - 2;
-    float typeX = shownX - 50;
-    label(context,nameX,l.theadTop+2,typeX-nameX-4,translated("shape.columnName"),palette::faint);
-    label(context,typeX,l.theadTop+2,48,translated("shape.columnType"),palette::faint);
-    label(context,shownX-6,l.theadTop+2,switchWidth+12,translated("shape.columnShown"),palette::faint,Align::Center);
-    fill(context,l.listLeft,l.rowsTop-1,l.listWidth,1,palette::white,.14f);
-    int draftOffset = shapeDraft ? 1 : 0;
-    if (l.listCount == 0)
-        paragraph(context,l.listLeft+ShapesLayout::pad,l.rowsTop+3,l.listWidth-2*ShapesLayout::pad,translated("shape.empty"),3,palette::faint);
-    for (int i = l.listFirst; i < l.listFirst + l.listVisible && i < l.listCount; ++i) {
-        float y = l.listRowY(i);
-        bool isDraft = shapeDraft && i == 0;
-        auto const* item = isDraft ? nullptr : &shapeList[i - draftOffset];
-        auto const& shown = isDraft ? *shapeDraft : item->definition;
-        bool chosen = isDraft || (!shapeDraft && item && shapeSelected == item->id);
-        if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
-        rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,chosen && !isDraft,over(ShapeZone::ListRow,i));
-        if (isDraft) frame(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,draftRgb);
-        bool elsewhere = shown.dimension != playerDimension();
-        // The same type glyph and color as the opened shape; dimmed when hidden or elsewhere.
-        Rgb glyph = isDraft ? draftRgb : shapeRgb(shown.color);
-        if (!shown.visible || elsewhere) glyph = {glyph.r * .4f, glyph.g * .4f, glyph.b * .4f};
-        drawTypeIcon(context,l.listLeft+ShapesLayout::pad,y+2,shape::typeIndex(shown),glyph);
-        std::string suffix = isDraft ? translated("shape.draftTag") : elsewhere ? translated("shape.otherDimension", shown.dimension) : "";
-        float suffixWidth = suffix.empty() ? 0 : textWidth(context, suffix) + 6;
-        label(context,nameX,y+3,typeX-nameX-4-suffixWidth,shown.name,isDraft ? draftRgb : elsewhere ? palette::faint : palette::text);
-        if (!suffix.empty())
-            label(context,typeX-4-suffixWidth+2,y+3,suffixWidth,suffix,isDraft ? draftRgb : palette::faint);
-        label(context,typeX,y+3,48,translated(shape::types[shape::typeIndex(shown)].name),palette::dim);
-        if (!isDraft) toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,shown.visible);
-    }
-    if (l.listCount > l.listVisible) {
-        float track = l.listVisible * ShapesLayout::rowHeight;
-        float thumb = std::max(8.0f, track * l.listVisible / l.listCount);
-        float thumbY = l.rowsTop + (track - thumb) * l.listFirst / (l.listCount - l.listVisible);
-        fill(context,listRight-3,l.rowsTop,2,track,palette::white,.08f);
-        fill(context,listRight-3,thumbY,2,thumb,palette::keyEdge);
-    }
-    // Divider between list and editor.
-    if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
-    else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
-
-    // Editor pane.
-    float dx = l.detailLeft + ShapesLayout::pad, dw = l.detailWidth - 2 * ShapesLayout::pad;
-    if (shapePicking) {
-        label(context,dx,l.nameY+2,dw,translated("shape.group.basic"),palette::accent);
-        for (int i = l.fieldFirst; i < l.fieldFirst + l.fieldVisible && i < static_cast<int>(shape::types.size()); ++i) {
-            float y = l.fieldY(i);
-            if (over(ShapeZone::Pick, i)) fill(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::pickHeight,palette::white,.07f);
-            drawTypeIcon(context,dx+1,y+6,i,palette::dim);
-            label(context,dx+16,y+2,dw-16,translated(shape::types[i].name));
-            label(context,dx+16,y+11,dw-16,translated(shape::types[i].description),palette::faint);
-        }
-    } else if (!definition) {
-        paragraph(context,dx,l.detailTop+6,dw,translated(shapeList.empty() ? "shape.empty" : "shape.selectHint"),3,palette::faint);
-    } else {
-        if (shapeDraft) label(context,dx,l.detailTop+4,dw,translated("shape.draftNote"),draftRgb);
-        // Name field.
-        fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,Rgb{0,0,0},.4f);
-        frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingShapeName ? palette::accent : palette::keyEdge);
-        drawTypeIcon(context,dx+3,l.nameY+1.5f,shape::typeIndex(*definition),shapeDraft ? draftRgb : shapeRgb(definition->color));
-        if (editingShapeName) drawEditText(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,shapeNameInput);
-        else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,definition->name);
-        // Preview: one layer seen from above; plane seen along its normal.
-        float px = dx, py = l.previewY, size = ShapesLayout::previewSize;
-        fill(context,px,py,size,size,Rgb{0,0,0},.35f);
-        frame(context,px,py,size,size,palette::white,.14f);
-        auto const* preview = previewFor(*definition);
-        if (preview) {
-            float spanU = float(preview->maxU - preview->minU + 1), spanV = float(preview->maxV - preview->minV + 1);
-            float scale = std::min((size - 4) / spanU, (size - 4) / spanV);
-            float ox = px + (size - spanU * scale) / 2 - preview->minU * scale;
-            float oy = py + (size - spanV * scale) / 2 - preview->minV * scale;
-            Rgb color = shapeDraft ? draftRgb : shapeRgb(definition->color);
-            for (auto const& run : preview->runs)
-                fill(context,ox + run.u * scale,oy + run.v * scale,std::max(1.0f, run.length * scale),std::max(1.0f, scale),color,.9f);
-            fill(context,ox,oy,std::max(1.0f, scale),std::max(1.0f, scale),palette::accent);
-        }
-        float ix = px + size + 8, iw = dw - size - 8;
-        label(context,ix,py+1,iw,translated(shape::types[shape::typeIndex(*definition)].name));
-        if (preview) label(context,ix,py+12,iw,translated("shape.cellCount",preview->cells),palette::dim);
-        if (auto* player = client ? client->getLocalPlayer() : nullptr) {
-            auto feet = player->getFeetPos();
-            auto center = centerOf(*definition);
-            int distance = static_cast<int>(std::round(std::hypot(center.x - feet.x, center.z - feet.z)));
-            label(context,ix,py+22,iw,translated("shape.distance",distance),palette::dim);
-        }
-        if (preview && preview->lowLayer != preview->highLayer) {
-            float lx = l.layerStepperX(), ly = l.layerY(), lw = 64, aw = ShapesLayout::arrowWidth;
-            fill(context,lx,ly+1,aw,ShapesLayout::rowHeight-2,palette::keyFill);
-            fill(context,lx+lw-aw,ly+1,aw,ShapesLayout::rowHeight-2,palette::keyFill);
-            frame(context,lx,ly+1,lw,ShapesLayout::rowHeight-2,palette::keyEdge);
-            label(context,lx,ly+2+boxTextInset(),aw,"-",palette::dim,Align::Center);
-            label(context,lx+lw-aw,ly+2+boxTextInset(),aw,"+",palette::dim,Align::Center);
-            label(context,lx+aw,ly+2+boxTextInset(),lw-2*aw,translated("shape.layer",(shapeLayer >= 0 ? "+" : "") + std::to_string(shapeLayer)),palette::text,Align::Center);
-        }
-        paragraph(context,ix,py+45,iw,translated("shape.previewHint"),1,palette::faint);
-        // Fields.
-        auto fields = shape::rows(*definition, shapeDraft.has_value());
-        for (int i = l.fieldFirst; i < l.fieldFirst + l.fieldVisible && i < static_cast<int>(fields.size()); ++i) {
-            float y = l.fieldY(i);
-            auto const& row = fields[i];
-            if (row.kind == shape::Row::Kind::Group) {
-                label(context,dx,y+4,dw,translated(row.label),palette::faint);
-                continue;
-            }
-            rowBackground(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::rowHeight,shapeFieldSelected == i,over(ShapeZone::Field,i));
-            label(context,dx,y+3,l.stepperX()-dx-4,translated(row.label),palette::dim);
-            switch (row.kind) {
-            case shape::Row::Kind::Switch:
-                toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,definition->visible);
-                break;
-            case shape::Row::Kind::Button:
-                drawSmallButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated(row.label),over(ShapeZone::Field,i));
-                break;
-            default: {
-                if (row.field == shape::Field::Color) {
-                    drawSwatchRow(context,l,y,4,static_cast<int>(definition->color),
-                        [](int c) { return shapeRgb(static_cast<overlay::ShapeColor>(c)); });
-                    break;
-                }
-                auto range = shape::numeric(*definition, row.field);
-                std::string value;
-                if (range) {
-                    value = range->integer ? std::to_string(static_cast<long long>(range->value)) : std::format("{:.3g}", range->value);
-                    if (row.field == shape::Field::X || row.field == shape::Field::Y || row.field == shape::Field::Z)
-                        value = range->integer ? value : std::format("{:.3f}", range->value);
-                    else value = translated("shape.blocks", value);
-                } else value = translated(shape::choiceLabel(*definition, row.field, shapeReference));
-                drawShapeStepper(context,l,y,range.has_value(),std::move(value),editingShapeField == i);
-                break;
-            }
-            }
-        }
-        // Actions.
-        fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        if (shapeDraft) {
-            drawSmallButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.create"),
-                over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
-            drawSmallButton(context,l.actionX(1),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.cancel"),over(ShapeZone::Action,1));
-        } else {
-            drawSmallButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.duplicateShort"),over(ShapeZone::Action,0));
-            drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-                translated(shapeDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1),
-                shapeDeleteArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,Rgb{.54f,.23f,.2f},
-                shapeDeleteArmed ? palette::text : Rgb{1.f,.7f,.68f});
-        }
-    }
-
-    // Footer.
-    fill(context,l.left,l.footerTop,l.width,1,palette::white,.14f);
-    float textLeft = l.left + ShapesLayout::pad, available = l.width - 2 * ShapesLayout::pad;
-    bool shortFooter = l.docked || displayed.shortFooter;
-    // Simple graphics draw faces poorly (additive, order dependent); say so
-    // rather than tuning that mode further.
-    bool simple = client && client->getOptions().getGraphicsMode() == GraphicsMode::Simple;
-    bool warn = !error.empty() || simple;
-    std::string text = !error.empty() ? error : simple && shortFooter ? translated("shape.simpleWarning") : shapeDescription(definition);
-    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),warn ? palette::warning : palette::text);
-    else {
-        paragraph(context,textLeft,l.footerTop+3,available,text,2,error.empty() ? palette::text : palette::warning);
-        label(context,textLeft,l.footerTop+30,available,translated(simple ? "shape.simpleWarning"
-            : editingShapeName || editingShapeField >= 0 ? "shape.numberHint" : "shape.hint"),simple ? palette::warning : palette::faint);
-    }
-}
-std::optional<overlay::ShapeDefinition> visibleShape() {
-    auto definition = currentShape();
-    if (!definition && shapeSelected) shapeSelected.reset(); // Removed elsewhere.
-    return definition;
-}
-void renderShapesContent(MinecraftUIRenderContext& context, IClientInstance&, glm::vec2 size, glm::vec2 pointer,
-                         SettingsTable const& t) {
-    auto definition = visibleShape();
-    int fieldCount = shapePicking ? static_cast<int>(shape::types.size())
-        : definition ? static_cast<int>(shape::rows(*definition, shapeDraft.has_value()).size()) : 0;
-    auto l = ShapesLayout::fit(t, size.x, size.y, false, static_cast<int>(shapeList.size()) + (shapeDraft ? 1 : 0),
-        shapeListFirst, fieldCount, shapeFieldFirst, shapeDraft.has_value(), shapePicking);
-    shapesDisplayed = l;
-    shapeListFirst = l.listFirst; shapeFieldFirst = l.fieldFirst;
-    if (l.usable()) drawShapesBody(context, l, pointer, definition);
-    context.flushText(0,std::nullopt);
-}
-void renderShapesDocked(MinecraftUIRenderContext& context, IClientInstance&, glm::vec2 size, glm::vec2 pointer) {
-    auto definition = visibleShape();
-    int fieldCount = shapePicking ? static_cast<int>(shape::types.size())
-        : definition ? static_cast<int>(shape::rows(*definition, shapeDraft.has_value()).size()) : 0;
-    auto l = ShapesLayout::fit(displayed, size.x, size.y, true, static_cast<int>(shapeList.size()) + (shapeDraft ? 1 : 0),
-        shapeListFirst, fieldCount, shapeFieldFirst, shapeDraft.has_value(), shapePicking);
-    shapesDisplayed = l;
-    shapeListFirst = l.listFirst; shapeFieldFirst = l.fieldFirst;
-    if (!l.usable()) {
-        label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
-        context.flushText(0, std::nullopt);
-        return;
-    }
-    // Docked: the world stays visible; only the panel is drawn.
-    panel(context,l.left,l.top,l.width,l.height,.82f);
-    frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
-    label(context,l.left+ShapesLayout::pad,l.top+6,l.drawAllX-l.left-10,translated("nav.shapes"));
-    bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
-    drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),closeHover,
-        palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
-    fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
-    drawShapesBody(context, l, pointer, definition);
-    context.flushText(0,std::nullopt);
+int distanceTo(int x, int z) {
+    auto* player = client ? client->getLocalPlayer() : nullptr;
+    if (!player) return 0;
+    auto feet = player->getFeetPos();
+    return static_cast<int>(std::lround(std::hypot(x + .5 - feet.x, z + .5 - feet.z)));
 }
 
 // The action whose key cell gets the conflict tooltip: the hovered key cell,
@@ -1756,7 +1112,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (closeHover) fill(context,t.closeX,t.top+4,SettingsTable::closeWidth,12,palette::white,.07f);
     frame(context,t.closeX,t.top+4,SettingsTable::closeWidth,12,palette::keyEdge);
     label(context,t.closeX,t.top+5+boxTextInset(),SettingsTable::closeWidth,
-        translated(waypointsView() && waypointsFromMap ? "worldMap.back" : "closeButton"),
+        translated(waypointsView() && waypoints_view::fromMap() ? "worldMap.back" : "closeButton"),
         closeHover ? palette::text : palette::dim,Align::Center);
     fill(context,t.left,t.top+SettingsTable::headerHeight-1,t.width,1,palette::white,.14f);
 
@@ -1797,8 +1153,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     }
 
     if (shapesView() || waypointsView() || schematicsView()) {
-        if (shapesView()) renderShapesContent(context, current, size, pointer, t);
-        else if (waypointsView()) renderWaypointsContent(context, size, pointer, t);
+        if (shapesView()) shapes_view::renderContent(context, size, pointer, t);
+        else if (waypointsView()) waypoints_view::renderContent(context, size, pointer, t);
         else renderSchematicsContent(context, size, pointer, t);
         drawVersionTip(context, t, hover);
         return;
@@ -1955,497 +1311,6 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (!capturing)
         if (auto target = tipTarget(t, hover)) drawConflictTip(context,current,t,target->first,target->second);
     drawVersionTip(context, t, hover);
-    context.flushText(0,std::nullopt);
-}
-
-// ---- Waypoints view ----
-void refreshWaypoints() {
-    waypointSet = map::waypoints::current();
-    double x = 0, z = 0;
-    if (auto* player = client ? client->getLocalPlayer() : nullptr) {
-        auto feet = player->getFeetPos();
-        x = feet.x;
-        z = feet.z;
-    }
-    waypointList = map::waypointOrder(waypointSet.waypoints, playerDimension(), x, z);
-    if (waypointSelected && (waypointSelected->layer == map::MarkLayer::Death ? !waypointSet.death
-                                 : indexOfId(waypointSet.waypoints, waypointSelected->id) < 0))
-        waypointSelected.reset();
-}
-int waypointRowCount() { return static_cast<int>(waypointList.size()) + (waypointSet.death ? 1 : 0); }
-// The selection a list row stands for: the death point first, if any.
-std::optional<map::MarkKey> waypointAtRow(int row) {
-    if (waypointSet.death) {
-        if (row == 0) return map::deathKey;
-        --row;
-    }
-    if (row < 0 || row >= static_cast<int>(waypointList.size())) return std::nullopt;
-    return map::waypointKey(waypointSet.waypoints[waypointList[static_cast<size_t>(row)]].id);
-}
-bool deathSelected() { return waypointSelected == map::deathKey; }
-map::Waypoint const* selectedWaypoint() {
-    if (!waypointSelected || waypointSelected->layer != map::MarkLayer::Waypoint) return nullptr;
-    int index = indexOfId(waypointSet.waypoints, waypointSelected->id);
-    return index < 0 ? nullptr : &waypointSet.waypoints[static_cast<size_t>(index)];
-}
-// A change to one waypoint, found by its id when the change runs.
-bool changeWaypoint(std::optional<map::MarkKey> mark, std::function<void(map::Waypoint&)> const& apply) {
-    return mark && mark->layer == map::MarkLayer::Waypoint && map::waypoints::change([&](map::WaypointSet& set) {
-        int index = indexOfId(set.waypoints, mark->id);
-        if (index < 0) return false;
-        apply(set.waypoints[static_cast<size_t>(index)]);
-        return true;
-    });
-}
-void selectWaypoint(std::optional<map::MarkKey> value) {
-    finishNumber();
-    waypointSelected = value;
-    waypointFieldFirst = 0;
-    waypointFieldSelected = -1;
-    waypointDeleteArmed = false;
-}
-void applyWaypointName() {
-    if (!editingWaypointName || !std::exchange(waypointNameDirty, false)) return;
-    auto name = waypointNameInput.value();
-    if (name.find_first_not_of(' ') == std::string::npos) return; // An empty name keeps the old one.
-    if (!changeWaypoint(waypointSelected, [&](map::Waypoint& w) { w.name = name; })) error = translated("waypoint.saveError");
-    refreshWaypoints();
-}
-struct Place { int x, y, z, dimension; };
-std::optional<Place> standingPlace() {
-    auto* player = client ? client->getLocalPlayer() : nullptr;
-    if (!player) return std::nullopt;
-    auto feet = player->getFeetPos();
-    if (!std::isfinite(feet.x) || !std::isfinite(feet.y) || !std::isfinite(feet.z)) return std::nullopt;
-    return Place{static_cast<int>(std::floor(feet.x)), static_cast<int>(std::floor(feet.y)),
-                 static_cast<int>(std::floor(feet.z)), playerDimension()};
-}
-// Waypoints placed "here" follow FreeCamera's position; schematics keep the body's.
-std::optional<Place> waypointPlace() {
-    auto place = standingPlace();
-    if (!place || !client) return place;
-    if (auto feet = CameraSessions::instance().freeCameraPose(*client);
-        feet && std::isfinite(feet->x) && std::isfinite(feet->y) && std::isfinite(feet->z))
-        return Place{static_cast<int>(std::floor(feet->x)), static_cast<int>(std::floor(feet->y)),
-                     static_cast<int>(std::floor(feet->z)), place->dimension};
-    return place;
-}
-void addWaypointHere() {
-    auto place = waypointPlace();
-    if (!place) return;
-    map::Waypoint w;
-    w.x = place->x; w.y = place->y; w.z = place->z; w.dimension = place->dimension;
-    w.color = map::nextColor(waypointSet.lastColor);
-    w.name = map::defaultWaypointName(waypointSet.waypoints, [](int n) { return translated("waypoint.defaultName", n); });
-    if (auto id = map::waypoints::add(w)) {
-        refreshWaypoints();
-        selectWaypoint(map::waypointKey(id));
-        error.clear();
-    } else error = translated("waypoint.saveError");
-}
-// A change to the selected waypoint; reports only a failed save.
-void changeSelected(std::function<void(map::Waypoint&)> const& apply) {
-    if (!changeWaypoint(waypointSelected, apply)) error = translated("waypoint.saveError");
-    else error.clear();
-    refreshWaypoints();
-}
-// Click or key activation of an editor row. part: -1/1 step, 0 value, 2 label.
-void activateWaypointField(int index, int part) {
-    auto const* w = selectedWaypoint();
-    if (!w || index < 0 || index >= static_cast<int>(map::waypointFields.size())) return;
-    waypointFieldSelected = index;
-    if (part == 2) return;
-    int direction = part == -1 ? -1 : 1;
-    switch (map::waypointFields[static_cast<size_t>(index)]) {
-    case map::WaypointField::X: case map::WaypointField::Y: case map::WaypointField::Z: {
-        int value = index == 0 ? w->x : index == 1 ? w->y : w->z;
-        if (part == 0) {
-            editingWaypointField = index;
-            numberInput.beginPrecise(value);
-            error.clear();
-            return;
-        }
-        changeSelected([&](map::Waypoint& t) {
-            int& c = index == 0 ? t.x : index == 1 ? t.y : t.z;
-            c = std::clamp(c + direction, -map::coordinateLimit, map::coordinateLimit);
-        });
-        return;
-    }
-    case map::WaypointField::MoveHere:
-        if (auto place = waypointPlace())
-            changeSelected([&](map::Waypoint& t) { t.x = place->x; t.y = place->y; t.z = place->z; t.dimension = place->dimension; });
-        return;
-    case map::WaypointField::Visible: changeSelected([](map::Waypoint& t) { t.visible = !t.visible; }); return;
-    case map::WaypointField::Color: {
-        int count = static_cast<int>(map::waypointColors.size());
-        changeSelected([&](map::Waypoint& t) { t.color = (map::clampColor(t.color) + direction + count) % count; });
-        return;
-    }
-    }
-}
-void moveWaypointField(int step) {
-    if (!selectedWaypoint()) return;
-    int count = static_cast<int>(map::waypointFields.size());
-    waypointFieldSelected = std::clamp(waypointFieldSelected + step, 0, count - 1);
-    int visible = waypointsDisplayed.fieldVisible;
-    if (visible > 0) {
-        if (waypointFieldSelected < waypointFieldFirst) waypointFieldFirst = waypointFieldSelected;
-        if (waypointFieldSelected >= waypointFieldFirst + visible) waypointFieldFirst = waypointFieldSelected - visible + 1;
-    }
-}
-void openWaypointKeySettings() {
-    int category = 0;
-    for (size_t i = 0; i < sections.size(); ++i) if (sections[i] == featureSection("waypoints")) category = static_cast<int>(i) + 1;
-    expanded.insert("waypoints");
-    selectNav(category);
-    for (size_t i = 0; i < rows.size(); ++i)
-        if (rows[i].heading() && rows[i].feature->id == "waypoints") { selected = static_cast<int>(i); break; }
-    first = SettingsTable::reveal(first, selected, displayed.visible);
-}
-void deleteSelectedWaypoint() {
-    auto selection = waypointSelected;
-    if (!selection) return;
-    int row = 0;
-    for (int i = 0; i < waypointRowCount(); ++i) if (waypointAtRow(i) == selection) row = i;
-    bool saved = map::waypoints::change([&](map::WaypointSet& set) {
-        if (selection->layer == map::MarkLayer::Death) { set.death.reset(); return true; }
-        int index = indexOfId(set.waypoints, selection->id);
-        if (index < 0) return false;
-        set.waypoints.erase(set.waypoints.begin() + index);
-        return true;
-    });
-    if (!saved) { error = translated("waypoint.saveError"); return; }
-    error.clear();
-    refreshWaypoints();
-    int rowsLeft = waypointRowCount();
-    selectWaypoint(rowsLeft ? waypointAtRow(std::min(row, rowsLeft - 1)) : std::nullopt);
-}
-void keepDeathPoint() {
-    if (!waypointSet.death) return;
-    auto death = *waypointSet.death;
-    map::Waypoint w{translated("waypoint.deathName"), map::nextColor(waypointSet.lastColor), death.x, death.y, death.z,
-                    death.dimension, true};
-    bool saved = map::waypoints::change([&](map::WaypointSet& set) {
-        set.waypoints.push_back(w);
-        set.lastColor = w.color;
-        set.death.reset();
-        return true;
-    });
-    if (!saved) { error = translated("waypoint.saveError"); return; }
-    error.clear();
-    refreshWaypoints();
-    if (!waypointSet.waypoints.empty()) selectWaypoint(map::waypointKey(waypointSet.waypoints.back().id));
-}
-void handleWaypointClick(float x, float y, bool right) {
-    finishNumber();
-    if (!right && pressScrollbar(waypointsDisplayed, waypointListFirst, x, y)) return;
-    if (!waypointsDocked) {
-        auto nav = displayed.hit(x, y, navCount, displayedTabWidth);
-        if (nav.zone == Zone::Nav) { selectNav(nav.index); return; }
-        if (nav.zone == Zone::Version) { copyVersion(); return; }
-    }
-    auto hit = waypointsDisplayed.hit(x, y);
-    if (!(hit.zone == ShapeZone::Action && hit.index == 1)) waypointDeleteArmed = false;
-    switch (hit.zone) {
-    case ShapeZone::Close: if (waypointsFromMap) enterWorldMap(mapFromSettings, true); else close(); return;
-    case ShapeZone::Dock: waypointsDocked = !waypointsDocked; return;
-    case ShapeZone::Keys: openWaypointKeySettings(); return;
-    case ShapeZone::DrawAll:
-        if (auto option = settings::find("map.waypoints")) adjustOption(*option, 1);
-        return;
-    case ShapeZone::NewShape: addWaypointHere(); return;
-    case ShapeZone::ListRow: {
-        auto value = waypointAtRow(hit.index);
-        auto const& l = waypointsDisplayed;
-        if (value && value->layer == map::MarkLayer::Waypoint && x >= l.listLeft + l.listWidth - ShapesLayout::pad - switchWidth - 2) {
-            if (!changeWaypoint(value, [](map::Waypoint& t) { t.visible = !t.visible; })) error = translated("waypoint.saveError");
-            else error.clear();
-            refreshWaypoints();
-            return;
-        }
-        if (value && value != waypointSelected) selectWaypoint(value);
-        return;
-    }
-    case ShapeZone::Name:
-        if (auto const* w = selectedWaypoint()) {
-            editingWaypointName = true;
-            waypointNameInput.clear();
-            waypointNameInput.append(w->name);
-            waypointNameInput.selectAll();
-            error.clear();
-        }
-        return;
-    case ShapeZone::Field:
-        if (!right && hit.part != 2 && hit.index >= 0 && hit.index < static_cast<int>(map::waypointFields.size())
-            && map::waypointFields[static_cast<size_t>(hit.index)] == map::WaypointField::Color) {
-            waypointFieldSelected = hit.index;
-            int count = static_cast<int>(map::waypointColors.size());
-            if (int swatch = waypointsDisplayed.swatchAt(x, count); swatch >= 0)
-                changeSelected([&](map::Waypoint& t) { t.color = swatch; });
-            return;
-        }
-        activateWaypointField(hit.index, right ? -1 : hit.part);
-        return;
-    case ShapeZone::Action:
-        if (hit.index == 0) { if (deathSelected()) keepDeathPoint(); return; }
-        if (!waypointSelected) return;
-        if (!waypointDeleteArmed) { waypointDeleteArmed = true; return; }
-        deleteSelectedWaypoint();
-        return;
-    default: return;
-    }
-}
-void handleSchematicKey(int key);
-void handleSchematicClick(float x, float y, bool right);
-void renderSchematicsDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer);
-void handleWaypointKey(int key) {
-    if (editingWaypointName) {
-        switch (key) {
-        case 0x08: if (waypointNameInput.backspace()) waypointNameDirty = true; break;
-        case 0x41: if (heldCtrl()) waypointNameInput.selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: finishNumber(); break;
-        }
-        return;
-    }
-    if (editingWaypointField >= 0) {
-        switch (key) {
-        case 0x08: if (numberInput.backspace()) numberDirty = true; break;
-        case 0x41: if (heldCtrl()) numberInput.selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: finishNumber(); break;
-        }
-        return;
-    }
-    switch (key) {
-    case 0x1b: if (waypointsFromMap) enterWorldMap(mapFromSettings, true); else close(); break;
-    case 0x26: moveWaypointField(-1); break;
-    case 0x28: moveWaypointField(1); break;
-    case 0x25: activateWaypointField(waypointFieldSelected, -1); break;
-    case 0x27: activateWaypointField(waypointFieldSelected, 1); break;
-    case 0x0d: case 0x20: activateWaypointField(waypointFieldSelected, 0); break;
-    case 0x21: case 0x22: {
-        int count = waypointRowCount();
-        if (!count) break;
-        int row = 0;
-        for (int i = 0; i < count; ++i) if (waypointSelected && waypointAtRow(i) == waypointSelected) row = i;
-        row = std::clamp(row + (key == 0x22 ? 1 : -1), 0, count - 1);
-        selectWaypoint(waypointAtRow(row));
-        break;
-    }
-    case 0x09: selectNav((navigation.current + (heldShift() ? worldMapNav - 1 : 1)) % worldMapNav); break;
-    }
-}
-Rgb waypointRgb(int color) {
-    auto c = map::waypointColors[static_cast<size_t>(map::clampColor(color))];
-    return {map::channel(c, 0) / 255.f, map::channel(c, 1) / 255.f, map::channel(c, 2) / 255.f};
-}
-constexpr Rgb deathRgb{230 / 255.f, 46 / 255.f, 46 / 255.f};
-// Small pixel glyphs for list rows and the editor.
-void drawDiamondGlyph(MinecraftUIRenderContext& context, float cx, float cy, int size, Rgb color, float opacity = 1) {
-    auto rows = map::diamondRows(size);
-    float top = cy - static_cast<float>(rows.size()) / 2;
-    for (size_t i = 0; i < rows.size(); ++i)
-        fill(context, cx - rows[i] - .5f, top + i, 2.f * rows[i] + 1, 1, color, opacity);
-}
-void drawCrossGlyph(MinecraftUIRenderContext& context, float cx, float cy, Rgb color) {
-    for (int i = -2; i <= 2; ++i) {
-        fill(context, cx + i - .5f, cy + i - .5f, 1, 1, color);
-        fill(context, cx + i - .5f, cy - i - .5f, 1, 1, color);
-    }
-}
-std::string dimensionName(int dimension) {
-    return translated(dimension == 1 ? "dimension.nether" : dimension == 2 ? "dimension.end" : "dimension.overworld");
-}
-int distanceTo(int x, int z) {
-    auto* player = client ? client->getLocalPlayer() : nullptr;
-    if (!player) return 0;
-    auto feet = player->getFeetPos();
-    return static_cast<int>(std::lround(std::hypot(x + .5 - feet.x, z + .5 - feet.z)));
-}
-std::string waypointDescription() {
-    if (deathSelected() && waypointSet.death) return translated("waypoint.deathNote");
-    auto const* w = selectedWaypoint();
-    if (!w) return translated(waypointSet.waypoints.empty() && !waypointSet.death ? "waypoint.empty" : "waypoint.selectHint");
-    if (editingWaypointField >= 0) return translated("integerRange", -map::coordinateLimit, map::coordinateLimit);
-    if (w->dimension != playerDimension()) return w->name + ": " + translated("waypoint.elsewhere");
-    return w->name + ": " + translated(w->visible ? "waypoint.shownState" : "waypoint.hiddenState");
-}
-void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l, glm::vec2 pointer) {
-    auto const preferences = Runtime::instance().preferences();
-    auto hover = l.hit(pointer.x, pointer.y);
-    auto over = [&](ShapeZone zone, int index = -1) { return hover.zone == zone && (index < 0 || hover.index == index); };
-    float top = l.top + 4;
-    label(context,l.drawAllX,l.drawAllY+1+boxTextInset(),l.drawAllWidth-switchWidth-4,translated("waypoint.showAll"),
-        over(ShapeZone::DrawAll) ? palette::text : palette::dim,Align::Right);
-    toggleSwitch(context,l.drawAllX+l.drawAllWidth-switchWidth,l.drawAllY+2,preferences.map.waypoints);
-    label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),
-        over(ShapeZone::Keys) ? palette::text : palette::accent,Align::Center);
-    fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,over(ShapeZone::Keys) ? 1.f : .5f);
-    drawSmallButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(waypointsDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
-
-    // List pane.
-    float listRight = l.listLeft + l.listWidth;
-    drawSmallButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("waypoint.addHere"),
-        over(ShapeZone::NewShape),palette::accentDeep,palette::accent);
-    fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
-    float nameX = l.listLeft + ShapesLayout::pad + 14;
-    float shownX = listRight - ShapesLayout::pad - switchWidth - 2;
-    float distanceX = shownX - 56;
-    label(context,nameX,l.theadTop+2,distanceX-nameX-4,translated("shape.columnName"),palette::faint);
-    label(context,distanceX,l.theadTop+2,52,translated("waypoint.columnDistance"),palette::faint,Align::Right);
-    label(context,shownX-6,l.theadTop+2,switchWidth+12,translated("shape.columnShown"),palette::faint,Align::Center);
-    fill(context,l.listLeft,l.rowsTop-1,l.listWidth,1,palette::white,.14f);
-    if (l.listCount == 0)
-        paragraph(context,l.listLeft+ShapesLayout::pad,l.rowsTop+3,l.listWidth-2*ShapesLayout::pad,translated("waypoint.empty"),3,palette::faint);
-    for (int i = l.listFirst; i < l.listFirst + l.listVisible && i < l.listCount; ++i) {
-        float y = l.listRowY(i);
-        auto value = waypointAtRow(i);
-        if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
-        rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,value && value == waypointSelected,over(ShapeZone::ListRow,i));
-        float gx = l.listLeft + ShapesLayout::pad + 4, gy = y + ShapesLayout::rowHeight / 2;
-        if (value == map::deathKey) {
-            auto const& d = *waypointSet.death;
-            bool here = d.dimension == playerDimension();
-            drawCrossGlyph(context, gx, gy, deathRgb);
-            label(context,nameX,y+3,distanceX-nameX-4,translated("waypoint.death"),here ? palette::text : palette::faint);
-            label(context,distanceX,y+3,52,here ? translated("waypoint.meters", distanceTo(d.x, d.z)) : dimensionName(d.dimension),
-                palette::dim,Align::Right);
-            continue;
-        }
-        int index = value ? indexOfId(waypointSet.waypoints, value->id) : -1;
-        if (index < 0) continue;
-        auto const& w = waypointSet.waypoints[static_cast<size_t>(index)];
-        bool here = w.dimension == playerDimension();
-        drawDiamondGlyph(context, gx, gy, 7, waypointRgb(w.color), w.visible && here ? 1.f : .35f);
-        label(context,nameX,y+3,distanceX-nameX-4,w.name,here ? palette::text : palette::faint);
-        label(context,distanceX,y+3,52,here ? translated("waypoint.meters", distanceTo(w.x, w.z)) : dimensionName(w.dimension),
-            palette::dim,Align::Right);
-        toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,w.visible);
-    }
-    if (l.listCount > l.listVisible) {
-        float track = l.listVisible * ShapesLayout::rowHeight;
-        float thumb = std::max(8.0f, track * l.listVisible / l.listCount);
-        float thumbY = l.rowsTop + (track - thumb) * l.listFirst / (l.listCount - l.listVisible);
-        fill(context,listRight-3,l.rowsTop,2,track,palette::white,.08f);
-        fill(context,listRight-3,thumbY,2,thumb,palette::keyEdge);
-    }
-    if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
-    else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
-
-    // Editor pane.
-    float dx = l.detailLeft + ShapesLayout::pad, dw = l.detailWidth - 2 * ShapesLayout::pad;
-    auto const* w = selectedWaypoint();
-    if (deathSelected() && waypointSet.death) {
-        auto const& d = *waypointSet.death;
-        drawCrossGlyph(context, dx + 5, l.nameY + 7, deathRgb);
-        label(context,dx+14,l.nameY+1+boxTextInset(),dw-14,translated("waypoint.death"));
-        label(context,dx,l.previewY+1,dw,std::format("{}, {}, {}", d.x, d.y, d.z));
-        label(context,dx,l.previewY+12,dw,dimensionName(d.dimension),palette::dim);
-        if (d.dimension == playerDimension())
-            label(context,dx,l.previewY+23,dw,translated("waypoint.distance", distanceTo(d.x, d.z)),palette::dim);
-        paragraph(context,dx,l.previewY+36,dw,translated("waypoint.deathNote"),3,palette::faint);
-        fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("waypoint.keep"),
-            over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
-    } else if (!w) {
-        paragraph(context,dx,l.detailTop+6,dw,translated(waypointSet.waypoints.empty() && !waypointSet.death ? "waypoint.empty"
-            : "waypoint.selectHint"),3,palette::faint);
-    } else {
-        // Name field with the waypoint's diamond.
-        fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,Rgb{0,0,0},.4f);
-        frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingWaypointName ? palette::accent : palette::keyEdge);
-        drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, 7, waypointRgb(w->color));
-        if (editingWaypointName) drawEditText(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,waypointNameInput);
-        else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,w->name);
-        // The preview area: a large diamond and where the waypoint is.
-        float size = ShapesLayout::previewSize;
-        fill(context,dx,l.previewY,size,size,Rgb{0,0,0},.35f);
-        frame(context,dx,l.previewY,size,size,palette::white,.14f);
-        drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 31, Rgb{0,0,0}, .8f);
-        drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 25, waypointRgb(w->color));
-        float ix = dx + size + 8, iw = dw - size - 8;
-        label(context,ix,l.previewY+1,iw,std::format("{}, {}, {}", w->x, w->y, w->z));
-        label(context,ix,l.previewY+12,iw,dimensionName(w->dimension),palette::dim);
-        if (w->dimension == playerDimension())
-            label(context,ix,l.previewY+23,iw,translated("waypoint.distance", distanceTo(w->x, w->z)),palette::dim);
-        // Fields.
-        for (int i = l.fieldFirst; i < l.fieldFirst + l.fieldVisible && i < static_cast<int>(map::waypointFields.size()); ++i) {
-            float y = l.fieldY(i);
-            auto field = map::waypointFields[static_cast<size_t>(i)];
-            rowBackground(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::rowHeight,waypointFieldSelected == i,over(ShapeZone::Field,i));
-            static constexpr std::array<std::string_view, 6> labels{"X", "Y", "Z", "waypoint.moveHere", "waypoint.shown", "waypoint.color"};
-            std::string text = i < 3 ? std::string(labels[static_cast<size_t>(i)]) : translated(labels[static_cast<size_t>(i)]);
-            label(context,dx,y+3,l.stepperX()-dx-4,text,palette::dim);
-            switch (field) {
-            case map::WaypointField::Visible:
-                toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,w->visible);
-                break;
-            case map::WaypointField::MoveHere:
-                drawSmallButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated("waypoint.moveHere"),
-                    over(ShapeZone::Field,i));
-                break;
-            case map::WaypointField::Color:
-                drawSwatchRow(context,l,y,static_cast<int>(map::waypointColors.size()),map::clampColor(w->color),
-                    [](int c) { return waypointRgb(c); });
-                break;
-            default: {
-                int value = i == 0 ? w->x : i == 1 ? w->y : w->z;
-                drawShapeStepper(context,l,y,true,std::to_string(value),editingWaypointField == i);
-                break;
-            }
-            }
-        }
-        fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-    }
-    if (waypointSelected) {
-        drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-            translated(waypointDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1),
-            waypointDeleteArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,Rgb{.54f,.23f,.2f},
-            waypointDeleteArmed ? palette::text : Rgb{1.f,.7f,.68f});
-    }
-
-    // Footer.
-    fill(context,l.left,l.footerTop,l.width,1,palette::white,.14f);
-    float textLeft = l.left + ShapesLayout::pad, available = l.width - 2 * ShapesLayout::pad;
-    bool shortFooter = l.docked || displayed.shortFooter;
-    std::string text = !error.empty() ? error : waypointDescription();
-    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),error.empty() ? palette::text : palette::warning);
-    else {
-        paragraph(context,textLeft,l.footerTop+3,available,text,2,error.empty() ? palette::text : palette::warning);
-        label(context,textLeft,l.footerTop+30,available,translated(editingWaypointName || editingWaypointField >= 0
-            ? "shape.numberHint" : "waypoint.screenHint"),palette::faint);
-    }
-}
-ShapesLayout fitWaypoints(SettingsTable const& t, glm::vec2 size, bool docked) {
-    int fieldCount = selectedWaypoint() ? static_cast<int>(map::waypointFields.size()) : 0;
-    auto l = ShapesLayout::fit(t, size.x, size.y, docked, waypointRowCount(), waypointListFirst, fieldCount,
-        waypointFieldFirst, false, false);
-    // Keeping the death point needs a wider first button.
-    if (deathSelected()) l.firstActionWidth = 110;
-    waypointsDisplayed = l;
-    waypointListFirst = l.listFirst;
-    waypointFieldFirst = l.fieldFirst;
-    return l;
-}
-void renderWaypointsContent(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer, SettingsTable const& t) {
-    auto l = fitWaypoints(t, size, false);
-    if (l.width > 0) drawWaypointsBody(context, l, pointer);
-    context.flushText(0,std::nullopt);
-}
-void renderWaypointsDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer) {
-    auto l = fitWaypoints(displayed, size, true);
-    if (l.width <= 0) {
-        label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
-        context.flushText(0, std::nullopt);
-        return;
-    }
-    panel(context,l.left,l.top,l.width,l.height,.82f);
-    frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
-    label(context,l.left+ShapesLayout::pad,l.top+6,l.drawAllX-l.left-10,translated("nav.waypoints"));
-    bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
-    drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated(waypointsFromMap ? "worldMap.back" : "closeButton"),
-        closeHover,palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
-    fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
-    drawWaypointsBody(context, l, pointer);
     context.flushText(0,std::nullopt);
 }
 
@@ -3268,7 +2133,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         rowBackground(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::rowHeight,schematicFieldSelected == i,over(ShapeZone::Field,i));
         label(context,dx,y+3,l.stepperX()-dx-4,translated(key),palette::dim);
         if (isSwitch) toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,on);
-        else drawShapeStepper(context,l,y,false,std::move(value),false);
+        else drawShapeStepper(context,l,y,false,std::move(value),nullptr);
     };
     previewTurn.w = 0; // set again where the preview is drawn this frame
     switch (schematicTab) {
@@ -3301,7 +2166,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 default: {
                     bool numeric = field == SchematicField::X || field == SchematicField::Y || field == SchematicField::Z
                         || field == SchematicField::Layer;
-                    drawShapeStepper(context,l,y,numeric,fieldValue(*p, field),editingSchematicField == i);
+                    drawShapeStepper(context,l,y,numeric,fieldValue(*p, field),editingSchematicField == i ? &numberInput : nullptr);
                     break;
                 }
                 }
@@ -3686,18 +2551,6 @@ void renderPrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 p
     label(context, x, l.hintY(), l.inner(), translated("waypoint.hint"), palette::faint);
     context.flushText(0, std::nullopt);
 }
-// Text being typed in a field of `height` from `top`: the selection as a
-// highlight, otherwise a blinking bar after the text, so a typed "_" never
-// looks like the caret. Both keep the same margin above and below.
-void drawEditText(MinecraftUIRenderContext& context, float x, float top, float height, float width, SearchQuery const& input) {
-    auto const& value = input.value();
-    float w = std::min(textWidth(context, value), width - 2);
-    float markTop = top + 2, markHeight = height - 4;
-    if (input.selectedAll() && !value.empty()) fill(context, x - 1, markTop, w + 2, markHeight, palette::accentDeep);
-    label(context, x, top + 1 + boxTextInset(), width, value);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-    if (!input.selectedAll() && ms / 530 % 2 == 0) fill(context, x + w + 1, markTop, 1, markHeight, palette::text);
-}
 // ---- Schematic menu ----
 // The ring is sized from the widest name and the widest center line of
 // every level, measured when drawn, so it keeps its size and place while
@@ -4030,7 +2883,7 @@ void enterWorldMap(bool fromSettings, bool resume) {
     finishNumber();
     worldMapOpen = true;
     mapFromSettings = fromSettings;
-    waypointsFromMap = false;
+    waypoints_view::setFromMap(false);
     map::world::open(*client, resume);
 }
 bool isWorldMapKey(int key) {
@@ -4059,9 +2912,9 @@ void handleMapRequest(map::world::Request const& request) {
         worldMapOpen = false;
         selectNav(waypointsNav, !fromSettings);
         mapFromSettings = fromSettings;
-        waypointsFromMap = true;
-        refreshWaypoints();
-        if (request.mark) selectWaypoint(request.mark);
+        waypoints_view::setFromMap(true);
+        waypoints_view::refresh();
+        if (request.mark) waypoints_view::select(request.mark);
         break;
     }
     default: break;
@@ -4099,7 +2952,7 @@ void render(ll::event::UIRenderEvent& event) {
     seen = true;
     lastPointer = view.mPointerLocationPrevious;
     applyNumber();
-    applyShapeName();
+    shapes_view::applyName();
     if (bindingEdit) {
         auto value = Runtime::instance().preferences();
         value.bindings[static_cast<size_t>(bindingEdit->action)] = bindingEdit->binding;
@@ -4206,13 +3059,13 @@ void render(ll::event::UIRenderEvent& event) {
         }
         if (scrollDragFirst && scrollDragLayout) *scrollDragFirst = scrollDragLayout->firstAt(lastPointer.y);
         if (shapesView()) {
-            shapeList = overlay::shapes::list();
-            if (auto click = std::exchange(pendingClick, std::nullopt)) handleShapeClick(click->x, click->y, click->right);
-            for (int key : std::exchange(pendingKeys, {})) handleShapeKey(key);
+            shapes_view::refresh();
+            if (auto click = std::exchange(pendingClick, std::nullopt)) shapes_view::click(click->x, click->y, click->right);
+            for (int key : std::exchange(pendingKeys, {})) shapes_view::key(key);
         } else if (waypointsView()) {
-            refreshWaypoints();
-            if (auto click = std::exchange(pendingClick, std::nullopt)) handleWaypointClick(click->x, click->y, click->right);
-            for (int key : std::exchange(pendingKeys, {})) handleWaypointKey(key);
+            waypoints_view::refresh();
+            if (auto click = std::exchange(pendingClick, std::nullopt)) waypoints_view::click(click->x, click->y, click->right);
+            for (int key : std::exchange(pendingKeys, {})) waypoints_view::key(key);
         } else if (schematicsView()) {
             refreshSchematics(false);
             if (auto click = std::exchange(pendingClick, std::nullopt)) handleSchematicClick(click->x, click->y, click->right);
@@ -4235,15 +3088,16 @@ void render(ll::event::UIRenderEvent& event) {
         return;
     }
     if (shapesView()) {
-        shapeList = overlay::shapes::list();
-        syncTextKeyboard(shapesDisplayed.stepperX(), editingShapeName ? shapesDisplayed.nameY : shapesDisplayed.fieldY(std::max(0, editingShapeField)));
-        if (shapesDocked) renderShapesDocked(context, current, size, pointer);
+        shapes_view::refresh();
+        auto caret = shapes_view::caret();
+        syncTextKeyboard(caret.x, caret.y);
+        if (shapes_view::docked()) shapes_view::renderDocked(context, size, pointer);
         else renderTable(context, current, size, pointer);
     } else if (waypointsView()) {
-        refreshWaypoints();
-        syncTextKeyboard(waypointsDisplayed.stepperX(), editingWaypointName ? waypointsDisplayed.nameY
-            : waypointsDisplayed.fieldY(std::max(0, editingWaypointField)));
-        if (waypointsDocked) renderWaypointsDocked(context, size, pointer);
+        waypoints_view::refresh();
+        auto caret = waypoints_view::caret();
+        syncTextKeyboard(caret.x, caret.y);
+        if (waypoints_view::docked()) waypoints_view::renderDocked(context, size, pointer);
         else renderTable(context, current, size, pointer);
     } else if (schematicsView()) {
         refreshSchematics(false);
@@ -4257,12 +3111,52 @@ void render(ll::event::UIRenderEvent& event) {
     }
 }
 }
+namespace screen {
+IClientInstance* client() { return ui::client; }
+std::string const& message() { return error; }
+void setMessage(std::string text) { error = std::move(text); }
+void clearMessage() { error.clear(); }
+void warnRange(std::string text) { ui::warnRange(std::move(text)); }
+NumberInput& number() { return numberInput; }
+void numberTyped() { numberDirty = true; }
+void finishEditing() { finishNumber(); }
+bool heldCtrl() { return ui::heldCtrl(); }
+bool heldShift() { return ui::heldShift(); }
+void close() { ui::close(); }
+void nextNav(bool back) { selectNav((navigation.current + (back ? worldMapNav - 1 : 1)) % worldMapNav); }
+bool navClick(float x, float y) {
+    auto nav = displayed.hit(x, y, navCount, displayedTabWidth);
+    if (nav.zone == Zone::Nav) { selectNav(nav.index); return true; }
+    if (nav.zone == Zone::Version) { copyVersion(); return true; }
+    return false;
+}
+bool pressScrollbar(ShapesLayout const& layout, int& first, float x, float y) { return ui::pressScrollbar(layout, first, x, y); }
+void toggleOption(std::string_view id) {
+    if (auto option = settings::find(id)) adjustOption(*option, 1);
+}
+void showFeatureKeys(std::string_view featureId) {
+    int category = 0;
+    for (size_t i = 0; i < sections.size(); ++i) if (sections[i] == featureSection(featureId)) category = static_cast<int>(i) + 1;
+    for (auto const& feature : features) if (feature.id == featureId) expanded.insert(feature.id);
+    selectNav(category);
+    for (size_t i = 0; i < rows.size(); ++i)
+        if (rows[i].heading() && rows[i].feature->id == featureId) { selected = static_cast<int>(i); break; }
+    first = SettingsTable::reveal(first, selected, displayed.visible);
+}
+SettingsTable const& table() { return displayed; }
+std::optional<Place> standingPlace() { return ui::standingPlace(); }
+int playerDimension() { return ui::playerDimension(); }
+std::string dimensionName(int dimension) { return ui::dimensionName(dimension); }
+int distanceTo(int x, int z) { return ui::distanceTo(x, z); }
+void returnToMap() { enterWorldMap(mapFromSettings, true); }
+}
 void open(IClientInstance& current) {
     std::lock_guard lock(mutex);
     if (scene || !gameplayScreen(current.getScreenName())) return;
     CameraSessions::instance().suspendInput();
     error.clear(); rangeWarning.reset(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
-    editingNumber = nullptr; editingShapeField = -1; editingShapeName = false; shapeNameDirty = false; numberDirty = false;
+    editingNumber = nullptr; numberDirty = false;
+    shapes_view::endEditing();
     query.clear(); searchCollapsed.clear(); uiHeld.clear(); searchFocused = false; capturing.reset(); bindingEdit.reset();
     // Category, expansion and scroll persist between openings in a session.
     navigation.reopenNormal();
@@ -4456,22 +3350,12 @@ void start() {
             return;
         }
         if (waypointsView() && wheel) {
-            int step = event.buttonData() > 0 ? -3 : 3;
-            auto const& l = waypointsDisplayed;
-            float px = lastPointer.x, py = lastPointer.y;
-            bool overList = px >= l.listLeft && px < l.listLeft + l.listWidth && (!l.docked || py < l.detailTop);
-            if (overList) waypointListFirst = std::max(0, waypointListFirst + step);
-            else waypointFieldFirst = std::max(0, waypointFieldFirst + step);
+            waypoints_view::wheel(event.buttonData() > 0 ? -3 : 3, lastPointer);
             return;
         }
         if (shapesView() && wheel) {
             // Scroll whichever pane is under the pointer; selection stays put.
-            int step = event.buttonData() > 0 ? -3 : 3;
-            auto const& l = shapesDisplayed;
-            float px = lastPointer.x, py = lastPointer.y;
-            bool overList = px >= l.listLeft && px < l.listLeft + l.listWidth && (!l.docked || py < l.detailTop);
-            if (overList) shapeListFirst = std::max(0, shapeListFirst + step);
-            else shapeFieldFirst = std::max(0, shapeFieldFirst + step);
+            shapes_view::wheel(event.buttonData() > 0 ? -3 : 3, lastPointer);
             return;
         }
         if (wheel) {
@@ -4542,7 +3426,7 @@ void start() {
         // Native text generation happens after HID onKeyDown. Keep editing
         // commands here, but let the focused native keyboard process the other
         // keys (including layout/IME input) while our modal scene owns gameplay.
-        if (textKeyboardOwned && (searchFocused || numericEditing() || editingShapeName || editingWaypointName)) {
+        if (textKeyboardOwned && (searchFocused || numericEditing() || shapes_view::editingName() || waypoints_view::editingName())) {
             auto key = event.keyCode();
             bool commandKey = key == 0x08 || key == 0x1b || key == 0x0d || key == 0x09
                 || (searchFocused && key == 0x28);
@@ -4556,14 +3440,14 @@ void start() {
         // input event.
         auto key = event.keyCode();
         bool tool = shapesView() || waypointsView() || schematicsView();
-        bool editing = shapesView() ? (editingShapeName || editingShapeField >= 0)
-            : waypointsView() ? (editingWaypointName || editingWaypointField >= 0)
+        bool editing = shapesView() ? (shapes_view::editingName() || shapes_view::editingNumber())
+            : waypointsView() ? (waypoints_view::editingName() || waypoints_view::editingNumber())
             : schematicsView() ? editingSchematicField >= 0
             : (searchFocused || editingNumber != nullptr);
         bool finishes = (key == 0x1b || key == 0x0d || key == 0x09) && (tool || !searchFocused);
         if (editing && !finishes) {
-            if (shapesView()) handleShapeKey(key);
-            else if (waypointsView()) handleWaypointKey(key);
+            if (shapesView()) shapes_view::key(key);
+            else if (waypointsView()) waypoints_view::key(key);
             else if (schematicsView()) handleSchematicKey(key);
             else handleKey(key);
             return;
