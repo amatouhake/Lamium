@@ -27,7 +27,17 @@ bool renderInstalled = false, cullerInstalled = false, bodyInstalled = false;
 // reuses the pose (worn elytra) that only the world render of the body updates.
 std::mutex bodyMutex;
 std::optional<AABB> bodyBox;
-std::atomic<bool> bodyLogged{false};
+std::atomic<bool> bodyLogged{false}, pointLogged{false}, statsLogged{false};
+std::atomic<int> boxCalls{0}, boxOverlaps{0}, pointCalls{0}, pointOverlaps{0};
+// Round 2 (2026-10-10): which visibility test the body goes through, once.
+void logStats() {
+    if (boxCalls + pointCalls < 2000 || statsLogged.exchange(true)) return;
+    try {
+        Runtime::instance().self().getLogger().info(
+            "FreeCamera body: isAABBVisible {} calls ({} near the body), cullerIsVisible {} calls ({} near the body)",
+            boxCalls.load(), boxOverlaps.load(), pointCalls.load(), pointOverlaps.load());
+    } catch (...) {}
+}
 std::atomic<bool> warned{false}, appliedLogged{false};
 
 void unavailable(char const* reason) noexcept {
@@ -118,15 +128,37 @@ bool bindCuller(LevelRendererPlayer& camera) {
 LL_TYPE_INSTANCE_HOOK(BodyVisibility, ll::memory::HookPriority::Normal, LevelRendererCamera,
     &LevelRendererCamera::isAABBVisible, bool, AABB const& box, bool useFastCulling) {
     bool visible = origin(box, useFastCulling);
-    if (visible || GetCurrentThreadId() != rendererThread.load()) return visible;
+    // Any thread: entity queuing may run off the render thread.
     std::lock_guard lock{bodyMutex};
     if (!bodyBox) return visible;
     auto const& body = *bodyBox;
     bool overlaps = box.min.x <= body.max.x && box.max.x >= body.min.x && box.min.y <= body.max.y
         && box.max.y >= body.min.y && box.min.z <= body.max.z && box.max.z >= body.min.z;
-    if (overlaps && !bodyLogged.exchange(true))
-        try { Runtime::instance().self().getLogger().info("FreeCamera body: kept visible to culling off screen"); } catch (...) {}
-    return visible || overlaps;
+    ++boxCalls;
+    if (overlaps) ++boxOverlaps;
+    logStats();
+    if (visible || !overlaps) return visible;
+    if (!bodyLogged.exchange(true))
+        try { Runtime::instance().self().getLogger().info("FreeCamera body: kept visible to culling off screen (box)"); } catch (...) {}
+    return true;
+}
+LL_TYPE_INSTANCE_HOOK(BodyPointVisibility, ll::memory::HookPriority::Normal, LevelRendererCamera,
+    &LevelRendererCamera::cullerIsVisible, bool, Vec3 const& point, float radius) {
+    bool visible = origin(point, radius);
+    std::lock_guard lock{bodyMutex};
+    if (!bodyBox) return visible;
+    auto const& body = *bodyBox;
+    auto clamp = [](float v, float lo, float hi) { return v < lo ? lo : v > hi ? hi : v; };
+    float dx = point.x - clamp(point.x, body.min.x, body.max.x), dy = point.y - clamp(point.y, body.min.y, body.max.y),
+          dz = point.z - clamp(point.z, body.min.z, body.max.z);
+    bool overlaps = dx * dx + dy * dy + dz * dz <= radius * radius;
+    ++pointCalls;
+    if (overlaps) ++pointOverlaps;
+    logStats();
+    if (visible || !overlaps) return visible;
+    if (!pointLogged.exchange(true))
+        try { Runtime::instance().self().getLogger().info("FreeCamera body: kept visible to culling off screen (point)"); } catch (...) {}
+    return true;
 }
 
 LL_TYPE_INSTANCE_HOOK(TerrainPreRender, ll::memory::HookPriority::Normal, LevelRenderer,
@@ -168,7 +200,9 @@ void startTerrainCulling() noexcept {
         if (TerrainPreRender::hook(true) != 0) { unavailable("pre-render hook unavailable"); return; }
         renderInstalled = true;
         bodyLogged = false;
-        bodyInstalled = BodyVisibility::hook(true) == 0;
+        pointLogged = false;
+        statsLogged = false;
+        bodyInstalled = BodyVisibility::hook(true) == 0 && BodyPointVisibility::hook(true) == 0;
         if (!bodyInstalled) Runtime::instance().self().getLogger().warn("FreeCamera body: culling hook unavailable");
         enabled = true;
         Runtime::instance().self().getLogger().info("FreeCamera terrain: adapter armed; awaiting FreeCamera renderer");
@@ -183,7 +217,7 @@ void stopTerrainCulling() noexcept {
         bodyBox.reset();
     }
     try {
-        if (bodyInstalled && BodyVisibility::unhook(true)) bodyInstalled = false;
+        if (bodyInstalled && BodyVisibility::unhook(true) && BodyPointVisibility::unhook(true)) bodyInstalled = false;
     } catch (...) {}
     try {
         if (renderInstalled) {
