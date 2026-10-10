@@ -449,8 +449,18 @@ Built and checked 2026-10-10 (`0a41937`): option "All trader levels"
 turns vanilla's `#tier_visible` on for every entry of `trade_tiers`; the
 locked look and non-selection stay vanilla's. Open (maintainer): hovering a
 locked trade's items should show their description like unlocked ones.
-Hover trace `af4f6f4` (round 3) checks whether vanilla binds `#hover_text`
-for locked rows.
+Hover trace `af4f6f4` (round 3, 2026-10-10): unlocked rows bind
+`#hover_text` on hover with the full description ("Iron Sword / Looting I /
+Bane of Arthropods II / +6 Attack Damage / Durability"); locked rows bind
+nothing. The locked toggle (`#trade_toggle_enabled` false, vanilla's
+`toggle_locked` state) does not pass the hover to the item buttons inside,
+so vanilla never asks for their text. Options for the maintainer: (A) keep
+the locked look and have Lamium draw the item's tooltip when the pointer is
+over a locked trade's item (find the item controls in the screen's control
+tree, as the offhand slot finds the hotbar; text from the item itself); (B)
+enable the locked rows' toggles so vanilla hovers work, block their
+selection, and lose the locked look on the rows (the level header stays
+grey).
 Show a level 1 villager's trades up to level 5, the locked ones marked and
 not usable. First find out whether the client receives the future trades at
 all: trace `UpdateTradePacket`, the trade NBT and the UI collection when the
