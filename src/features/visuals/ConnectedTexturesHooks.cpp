@@ -28,6 +28,7 @@ std::atomic<bool> active{false};
 bool supported = false, installed = false;
 // The connecting block being tessellated on this (chunk-build) thread.
 struct Current {
+    Rule rule;
     Block const* block = nullptr;
     BlockPos pos{};
     BlockSource const* region = nullptr;
@@ -45,9 +46,11 @@ bool sameAt(Block const& block, Offset offset) {
 TextureUVCoordinateSet faceTexture(Face face, Block const& block, TextureUVCoordinateSet const& tex) {
     TextureUVCoordinateSet out = tex;
     if (current.block != &block || !current.region) return out;
+    if (current.rule.sidesOnly && (face == Face::Up || face == Face::Down)) return out;
     auto s = sides(face);
     auto uv = trim({tex._u0, tex._v0, tex._u1, tex._v1}, tex._sourceImageWidth, tex._sourceImageHeight,
-                   {sameAt(block, s.left), sameAt(block, s.right), sameAt(block, s.top), sameAt(block, s.bottom)});
+                   {sameAt(block, s.left), sameAt(block, s.right), sameAt(block, s.top), sameAt(block, s.bottom)},
+                   current.rule);
     out._u0 = uv.u0;
     out._v0 = uv.v0;
     out._u1 = uv.u1;
@@ -58,11 +61,11 @@ TextureUVCoordinateSet faceTexture(Face face, Block const& block, TextureUVCoord
 LL_TYPE_INSTANCE_HOOK(ConnectedBlock, ll::memory::HookPriority::Normal, BlockTessellator,
     &BlockTessellator::tessellateBlockInWorld, bool, Tessellator& tessellator, Block const& block, BlockPos const& pos,
     std::bitset<6> const faces, AirAndSimpleBlockBits const* simple) {
-    bool connecting = false;
-    try { connecting = active.load(std::memory_order_relaxed) && mRegion && connects(block.getTypeName()); } catch (...) {}
-    if (!connecting) return origin(tessellator, block, pos, faces, simple);
+    std::optional<Rule> rule;
+    try { if (active.load(std::memory_order_relaxed) && mRegion) rule = ruleFor(block.getTypeName()); } catch (...) {}
+    if (!rule) return origin(tessellator, block, pos, faces, simple);
     auto saved = current;
-    current = {&block, pos, mRegion};
+    current = {*rule, &block, pos, mRegion};
     bool result = origin(tessellator, block, pos, faces, simple);
     current = saved;
     return result;

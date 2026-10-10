@@ -27,7 +27,16 @@ void connectedTexturesTests() {
     auto mirrored = trim({0.5f, 0.75f, 0.25f, 0.5f}, 16, 16, {true, false, true, false});
     check(near(mirrored.u0, 0.5f - 0.25f / 16) && near(mirrored.v0, 0.75f - 0.25f / 16), "a reversed rectangle is cut inward");
     auto big = trim(glass, 32, 32, {true, false, false, false});
-    check(near(big.u0, 0.25f + 0.25f / 32), "a 32-pixel texture loses one of its own texels");
+    check(near(big.u0, 0.25f + 0.25f / 32 * 2), "a 32-pixel texture loses the same share of the face");
+    check(ruleFor("minecraft:glass") && !ruleFor("minecraft:glass")->sidesOnly && ruleFor("minecraft:bookshelf")
+              && ruleFor("minecraft:bookshelf")->sidesOnly && ruleFor("minecraft:bookshelf")->top == 0
+              && ruleFor("minecraft:sandstone")->top == 4 && ruleFor("minecraft:sandstone")->left == 0
+              && !ruleFor("minecraft:stone") && !ruleFor("minecraft:chiseled_sandstone"),
+          "rules per block");
+    auto shelf = trim(glass, 16, 16, {true, true, true, true}, *ruleFor("minecraft:bookshelf"));
+    check(near(shelf.u0, 0.25f + 0.25f / 16) && near(shelf.v0, 0.5f) && near(shelf.v1, 0.75f), "bookshelves only lose side columns");
+    auto rock = trim(glass, 16, 16, {false, false, true, true}, *ruleFor("minecraft:sandstone"));
+    check(near(rock.v0, 0.5f + 0.25f / 4) && near(rock.v1, 0.75f), "sandstone drops its top band under another"); 
     // Panes (geometry dumped in game 2026-10-11).
     check(connectsPane("minecraft:glass_pane") && connectsPane("minecraft:lime_stained_glass_pane") && !connectsPane("minecraft:glass"),
           "panes take the pane path");

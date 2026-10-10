@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <string_view>
 
 namespace lamium::visuals::connected {
@@ -34,14 +35,31 @@ inline bool connectsPane(std::string_view identifier) {
 // side. The rectangle may run either way; the cut always moves inward.
 struct Uv { float u0 = 0, v0 = 0, u1 = 0, v1 = 0; };
 struct Joined { bool left = false, right = false, top = false, bottom = false; };
-inline Uv trim(Uv uv, int imageWidth, int imageHeight, Joined joined) {
-    float du = (uv.u1 - uv.u0) / static_cast<float>(imageWidth > 0 ? imageWidth : 16);
-    float dv = (uv.v1 - uv.v0) / static_cast<float>(imageHeight > 0 ? imageHeight : 16);
+// How many source texels a block drops on each joined side of a face, out of
+// 16 (scaled for larger textures). Glass loses its 1-texel frame on every
+// face; other blocks only on their side faces (L-96 trial, 2026-10-11:
+// bookshelves lose the plank column between side-by-side shelves, sandstone
+// the light band on top when another sits on it).
+struct Rule {
+    int left = 1, right = 1, top = 1, bottom = 1;
+    bool sidesOnly = false;
+};
+inline std::optional<Rule> ruleFor(std::string_view identifier) {
+    if (connects(identifier)) return Rule{};
+    if (identifier == "minecraft:bookshelf") return Rule{1, 1, 0, 0, true};
+    if (identifier == "minecraft:sandstone" || identifier == "minecraft:red_sandstone") return Rule{0, 0, 4, 0, true};
+    return std::nullopt;
+}
+inline Uv trim(Uv uv, int imageWidth, int imageHeight, Joined joined, Rule rule = {}) {
+    int width = imageWidth > 0 ? imageWidth : 16, height = imageHeight > 0 ? imageHeight : 16;
+    float du = (uv.u1 - uv.u0) / static_cast<float>(width), dv = (uv.v1 - uv.v0) / static_cast<float>(height);
+    float sx = width / 16.f, sy = height / 16.f;
+    auto scaled = [](int texels, float scale) { return texels > 0 && scale > 1 ? texels * scale : static_cast<float>(texels); };
     Uv out = uv;
-    if (joined.left) out.u0 += du;
-    if (joined.right) out.u1 -= du;
-    if (joined.top) out.v0 += dv;
-    if (joined.bottom) out.v1 -= dv;
+    if (joined.left) out.u0 += du * scaled(rule.left, sx);
+    if (joined.right) out.u1 -= du * scaled(rule.right, sx);
+    if (joined.top) out.v0 += dv * scaled(rule.top, sy);
+    if (joined.bottom) out.v1 -= dv * scaled(rule.bottom, sy);
     return out;
 }
 
