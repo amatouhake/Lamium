@@ -180,16 +180,12 @@ void reshape(Tessellator& tessellator, size_t src, size_t dst, Cell const& c, Te
     copyFrom(*mesh.mPBRTextureIndices);
     copyFrom(*mesh.mMERS);
     copyFrom(*mesh.mGeoType);
-    // The quad's facing (per-direction shading) and center follow too.
+    // The quad info follows too, center included: translucent faces are drawn
+    // sorted by their centers, and a pane's front and back are 2 texels apart,
+    // so cells with their own centers swapped order with the view direction
+    // and blended dark on one half (2026-10-11). Every cell sorts as its face.
     auto& quads = *tessellator.mQuadInfoList;
-    if (src % 4 == 0 && dst % 4 == 0 && quads.size() > dst / 4 && quads.size() > src / 4) {
-        auto& info = quads[dst / 4];
-        info.facing = quads[src / 4].facing;
-        info.twoFace = quads[src / 4].twoFace;
-        auto& positions = *mesh.mPositions;
-        glm::vec3 center = (positions[dst] + positions[dst + 1] + positions[dst + 2] + positions[dst + 3]) * 0.25f;
-        info.centroid = Vec3{center.x, center.y, center.z};
-    }
+    if (src % 4 == 0 && dst % 4 == 0 && quads.size() > dst / 4 && quads.size() > src / 4) quads[dst / 4] = quads[src / 4];
 }
 // After a block face was drawn once per cell, give each copy its cell; the
 // first copy is the source, so it goes last.
