@@ -48,13 +48,17 @@ struct Rule {
     // border replaced by the texels next to it, instead of stretching the rest
     // (trial 2026-10-11, sandstone first).
     bool split = false;
+    // The texel row the top strip copies from; -1 is the rows right below
+    // the band. Sandstone copies rock from the middle so the copy does not
+    // sit next to its source (chosen in game 2026-10-11).
+    int topFrom = -1;
 };
 inline std::optional<Rule> ruleFor(std::string_view identifier) {
     // Every rule draws split since 2026-10-11: cropping stretched the texture,
     // which showed while a block was being placed.
     if (connects(identifier)) return Rule{1, 1, 1, 1, false, true};
     if (identifier == "minecraft:bookshelf") return Rule{1, 1, 0, 0, true, true};
-    if (identifier == "minecraft:sandstone" || identifier == "minecraft:red_sandstone") return Rule{0, 0, 4, 0, true, true};
+    if (identifier == "minecraft:sandstone" || identifier == "minecraft:red_sandstone") return Rule{0, 0, 4, 0, true, true, 8};
     return std::nullopt;
 }
 inline Uv trim(Uv uv, int imageWidth, int imageHeight, Joined joined, Rule rule = {}) {
@@ -76,10 +80,11 @@ inline Uv trim(Uv uv, int imageWidth, int imageHeight, Joined joined, Rule rule 
 // the dropped border; the rest of the face keeps its own texels.
 struct Cell { float s0 = 0, s1 = 1, t0 = 0, t1 = 1, su0 = 0, su1 = 1, tv0 = 0, tv1 = 1; };
 struct Span { float at0, at1, from0, from1; };
-inline std::vector<Span> spans(bool lowJoined, int low, bool highJoined, int high) {
+inline std::vector<Span> spans(bool lowJoined, int low, bool highJoined, int high, int lowFrom = -1) {
     float a = lowJoined && low > 0 ? low / 16.f : 0, b = highJoined && high > 0 ? high / 16.f : 0;
     std::vector<Span> out;
-    if (a > 0) out.push_back({0, a, a, 2 * a});
+    float from = lowFrom >= 0 ? lowFrom / 16.f : a;
+    if (a > 0) out.push_back({0, a, from, from + a});
     out.push_back({a, 1 - b, a, 1 - b});
     if (b > 0) out.push_back({1 - b, 1, 1 - 2 * b, 1 - b});
     return out;
@@ -87,7 +92,7 @@ inline std::vector<Span> spans(bool lowJoined, int low, bool highJoined, int hig
 inline std::vector<Cell> splitCells(Joined joined, Rule rule) {
     std::vector<Cell> cells;
     for (auto const& across : spans(joined.left, rule.left, joined.right, rule.right))
-        for (auto const& down : spans(joined.top, rule.top, joined.bottom, rule.bottom))
+        for (auto const& down : spans(joined.top, rule.top, joined.bottom, rule.bottom, rule.topFrom))
             cells.push_back({across.at0, across.at1, down.at0, down.at1, across.from0, across.from1, down.from0, down.from1});
     return cells;
 }

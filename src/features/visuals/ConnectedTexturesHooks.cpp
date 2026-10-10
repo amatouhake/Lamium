@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <atomic>
 #include <cmath>
+#include <unordered_map>
 #include <vector>
 
 namespace lamium::visuals::connected {
@@ -272,15 +273,22 @@ LL_TYPE_INSTANCE_HOOK(ConnectedPaneGlass, ll::memory::HookPriority::Normal, Bloc
                       tex._sourceImageHeight ? tex._sourceImageHeight : 16, true};
     return tex;
 }
-// Each dimension's coordinator ticks on the client thread: when the switch
-// changed, rebuild its chunks so glass redraws either way.
+// Each dimension's coordinator ticks on the client thread. Chunks keep the
+// look they were built with, so every coordinator rebuilds its chunks when
+// its last state differs from the switch, and once when first seen while the
+// switch is on: chunks built before that first tick (joining a world) may
+// have missed it, and far ones were only rebuilt when approached (2026-10-11).
+// Client thread only.
+std::unordered_map<RenderChunkCoordinator const*, bool> built;
 LL_TYPE_INSTANCE_HOOK(ConnectedRebuild, ll::memory::HookPriority::Normal, RenderChunkCoordinator,
     &RenderChunkCoordinator::tick, void) {
     origin();
     try {
         bool want = wanted();
-        if (want != active.load()) {
-            active = want;
+        active = want;
+        auto [state, first] = built.try_emplace(this, false);
+        if (first ? want : state->second != want) {
+            state->second = want;
             _setAllDirty(false, false);
         }
     } catch (...) {}
@@ -300,6 +308,8 @@ bool start() {
         Runtime::instance().self().getLogger().warn("Connected Textures: vanilla glass retained (unverified game version)");
         return true;
     }
+    // Chunks built on joining a world already follow the switch.
+    try { active = Runtime::instance().snapshot()->visuals.connectedTextures; } catch (...) {}
     for (auto& hook : hooks)
         if (hook.install(true) != 0) {
             for (auto& undo : hooks) undo.remove(true);
@@ -313,6 +323,7 @@ void stop() {
     if (!installed) return;
     active = false;
     for (auto& hook : hooks) hook.remove(true);
+    built.clear();
     installed = false;
 }
 }
