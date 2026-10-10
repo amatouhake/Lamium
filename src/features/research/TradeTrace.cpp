@@ -23,7 +23,8 @@ std::atomic<int> count{0};
 std::mutex seenMutex;
 std::set<std::string> seen;
 bool tradeBinding(std::string const& name) {
-    return name.find("tier") != std::string::npos || name.find("trade") != std::string::npos;
+    return name.find("tier") != std::string::npos || name.find("trade") != std::string::npos
+        || name.find("hover") != std::string::npos; // Round 3: hover text of locked trades.
 }
 void logBinding(std::string const& collection, int index, std::string const& name, std::string const& override,
                 UIPropertyBag& bag) {
@@ -33,10 +34,12 @@ void logBinding(std::string const& collection, int index, std::string const& nam
         auto const& key = override.empty() ? name : override;
         value = json.isMember(key) ? json[key].toStyledString() : "(unset)";
         while (!value.empty() && (value.back() == '\n' || value.back() == ' ')) value.pop_back();
+        for (auto& c : value) if (c == '\n') c = '|';
+        if (value.size() > 120) value = value.substr(0, 120) + "...";
     } catch (...) {}
     auto line = std::format("bind [{}:{}] {} -> {} = {}", collection, index, name, override, value);
     std::lock_guard lock{seenMutex};
-    if (seen.size() < 400 && seen.insert(line).second)
+    if (seen.size() < 1000 && seen.insert(line).second)
         Runtime::instance().self().getLogger().info("L-129 {}", line);
 }
 using CollectionBind = bool (ScreenController::*)(std::string const&, uint, int, std::string const&, uint,
