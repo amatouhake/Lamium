@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lamium Entity Counts Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{color-scheme:dark;--ground:#15181a;--ground-2:#1c2124;--line:#2c3337;--ink:#e6ebe8;--ink-2:#a6b0ab;--ink-3:#77827c;--accent:#6cc349;--accent-deep:#3c8527;--mc-font:"DotGothic16","MS Gothic",monospace;--dim:#b4b8b6}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:24px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:82ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:10px}
+.controls{display:grid;gap:10px}
+.seg{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.seg button{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:13px;padding:5px 12px}
+.seg button[aria-pressed=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.seg span{font-size:12.5px;color:var(--ink-3);margin-right:4px;min-width:10em}
+.screen{position:relative;width:100%;max-width:1152px;aspect-ratio:16/9;overflow:hidden;border:1px solid var(--line);
+  background:linear-gradient(#8fb6e8 0 46%,#6d9a52 46% 62%,#5b7f43 62%);font-family:var(--mc-font);font-size:clamp(9px,1.15vw,14px);color:#fff}
+.col{position:absolute;top:1%;display:flex;flex-direction:column;align-items:flex-start;gap:0}
+.col.left{left:.6%}
+.col.right{right:.6%;align-items:flex-end}
+.col div{background:rgba(16,17,19,.55);padding:0 .25em;line-height:1.35;text-shadow:1px 1px 0 #3f3f3f;white-space:nowrap}
+.col div.new{box-shadow:inset 3px 0 0 var(--accent)}
+.col div.dim{color:var(--dim)}
+.el{position:absolute;right:1%;top:40%;background:rgba(16,17,19,.6);padding:.4em .6em;line-height:1.4;text-shadow:1px 1px 0 #3f3f3f}
+.el .h{color:var(--dim)}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px;display:grid;gap:6px}
+.note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:4px}
+.note b{color:var(--ink)}
+</style>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">BACKLOG L-120 · Debug View のエンティティ数 · 確認用モック 第 1 版</div>
+    <h1>エンティティ数の内訳と種類別の数</h1>
+    <p class="lede">Debug View の「エンティティ」（Java 形式では <code>E:</code>）の合計はそのままに、内訳（プレイヤー・落ちているアイテム・敵対・友好・その他）と、種類ごとの数を足します。数えるものは今の合計と同じ：自分のディメンションでクライアントが持っているエンティティ（サーバーでは近くのものだけ）を 1 秒に 1 回。<b>数はすべて例</b>です。緑の印の行が増える行。</p>
+  </header>
+
+  <section class="controls">
+    <div class="seg" id="place"><span>内訳の置き場所</span></div>
+    <div class="seg" id="kinds"><span>種類別の数</span></div>
+    <div class="seg" id="labels"><span>Debug View の表記</span></div>
+  </section>
+
+  <div class="screen" id="screen"><div class="col left" id="left"></div><div class="col right" id="right"></div></div>
+
+  <section class="note">
+    <h2 style="margin:0">確認したいこと</h2>
+    <ul>
+      <li><b>内訳の置き場所</b>：A 合計の行のすぐ下に 1 行（推奨。Debug View を開いたときだけ見えればよく、行が 1 つ増えるだけ）。B 合計の行に括弧で続ける（行は増えないが長くなり、ほかの数と混ざる）。C Debug View とは別の HUD 要素（Debug View なしでも出せるが、要素と設定が増える）。</li>
+      <li><b>分け方</b>：プレイヤー → 落ちているアイテム → 敵対 → 友好 → その他 の順。重ならないように上から順に当てはめるので、5 つを足すと合計と一致する。敵対はゲームの「モンスター」分類、友好はそれ以外の生き物（動物・村人・ゴーレム・魚・コウモリなど）、その他は生き物でないもの（経験値オーブ、矢などの飛び道具、トロッコ、ボート、防具立て、額縁など）。アイテムはスタックの個数ではなくエンティティの数。</li>
+      <li><b>種類別の数</b>：多い順に上位 5 つまたは 10 つ、残りは「ほか N 種類 M」（推奨：オフ / 上位 5 / 上位 10 の選択、既定は上位 5）。置き場所は右の列の下（左の列は座標などで長いため）。名前は Debug View の表記に合わせ、ゲーム標準ではゲーム内の名前、Java 形式では ID（<code>minecraft:</code> は省く）。アドオンのエンティティは名前がなければ ID。</li>
+      <li><b>初期値</b>：内訳は Debug View をオンにすれば出る（既定オン、設定でオフにできる）。種類別は既定で上位 5。</li>
+      <li>分類が実際のゲームで正しく取れるか（サーバーから来たエンティティにも分類が付いているか）は、作ってから確かめる。</li>
+    </ul>
+  </section>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const state={place:"a",kinds:"5",labels:"game"};
+const opts={
+  place:[["a","A 合計の下に 1 行（推奨）"],["b","B 合計の行に括弧で"],["c","C 別の HUD 要素"]],
+  kinds:[["off","オフ"],["5","上位 5（推奨の既定）"],["10","上位 10"]],
+  labels:[["game","ゲーム標準"],["java","Java F3 形式"]],
+};
+for(const [k,list] of Object.entries(opts)){
+  const seg=$("#"+k);
+  for(const [v,label] of list){
+    const b=document.createElement("button");b.textContent=label;b.dataset.v=v;
+    b.onclick=()=>{state[k]=v;render()};seg.appendChild(b);
+  }
+}
+// Example counts only.
+const parts={players:2,items:41,hostile:28,passive:37,other:15};
+const total=Object.values(parts).reduce((a,b)=>a+b,0);
+const kinds=[["zombie","ゾンビ",11],["item","アイテム",41],["cow","ウシ",14],["skeleton","スケルトン",9],["sheep","ヒツジ",8],["xp_orb","経験値オーブ",7],["creeper","クリーパー",5],["arrow","矢",5],["chicken","ニワトリ",6],["villager_v2","村人",5],["spider","クモ",3],["player","プレイヤー",2],["minecart","トロッコ",2],["bat","コウモリ",4],["armor_stand","防具立て",1]];
+kinds.sort((a,b)=>b[2]-a[2]);
+function render(){
+  document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",state[b.parentElement.id]===b.dataset.v));
+  const java=state.labels==="java";
+  const L=[],R=[];
+  const line=(arr,text,cls="")=>arr.push(`<div class="${cls}">${text}</div>`);
+  line(L,java?"Minecraft 1.26.51 (Lamium)":"Minecraft 1.26.51");
+  line(L,java?"60 fps | Ping: 24 ms | RD: 12 / 16":"FPS: 60 | Ping: 24 ms | 描画距離: 12 / 16");
+  const breakdownGame=`プレイヤー ${parts.players} | アイテム ${parts.items} | 敵対 ${parts.hostile} | 友好 ${parts.passive} | その他 ${parts.other}`;
+  const breakdownJava=`Players ${parts.players}, Items ${parts.items}, Hostile ${parts.hostile}, Passive ${parts.passive}, Other ${parts.other}`;
+  let counts=java?`E: ${total} | C: 625 | P: 312`:`エンティティ: ${total} | チャンク: 625 | パーティクル: 312`;
+  if(state.place==="b"){
+    counts=java?`E: ${total} (${parts.players} P, ${parts.items} I, ${parts.hostile} H, ${parts.passive} A, ${parts.other} O) | C: 625 | P: 312`
+      :`エンティティ: ${total}（${breakdownGame}） | チャンク: 625 | パーティクル: 312`;
+    line(L,counts,"new");
+  } else {
+    line(L,counts);
+    if(state.place==="a")line(L,java?`E: ${breakdownJava}`:`内訳: ${breakdownGame}`,"new");
+  }
+  line(L,java?"XYZ: -79.4 / 92.0 / -24.1":"XYZ: -79.4, 92.0, -24.1");
+  line(L,java?"Block: -80 92 -25 | Chunk: -5, -2":"ブロック: -80, 92, -25 | チャンク: -5, -2 (0, 7)");
+  line(L,java?"Facing: north (towards negative Z) | Yaw/Pitch: -179.0 / -11.1":"向き: 北 (-Z) | 回転: -179.0 / -11.1");
+  line(L,java?"Client Light: 15 (sky 15, block 0)":"明るさ: 空 15 / ブロック 0");
+  line(L,java?"Biome: minecraft:desert":"バイオーム: 砂漠");
+  line(R,java?"Java: Windows x64":"Windows x64");
+  line(R,"CPU: 12 コア");
+  line(R,"GPU: Example GPU");
+  line(R,"画面: 1920x1080");
+  if(state.kinds!=="off"){
+    const n=+state.kinds,top=kinds.slice(0,n),rest=kinds.slice(n);
+    line(R,"","");
+    line(R,java?"Entities by type":"種類別のエンティティ","new dim");
+    for(const [id,name,c] of top)line(R,java?`${id}: ${c}`:`${name} ${c}`,"new");
+    if(rest.length){const m=rest.reduce((a,k)=>a+k[2],0);line(R,java?`${rest.length} more types: ${m}`:`ほか ${rest.length} 種類 ${m}`,"new dim")}
+  }
+  $("#left").innerHTML=L.join("");$("#right").innerHTML=R.join("");
+  $("#screen").querySelectorAll(".el").forEach(e=>e.remove());
+  if(state.place==="c"){
+    const el=document.createElement("div");el.className="el";
+    el.innerHTML=java?`<div class="h">E: ${total}</div>`+Object.entries({Players:parts.players,Items:parts.items,Hostile:parts.hostile,Passive:parts.passive,Other:parts.other}).map(([k,v])=>`<div>${k} ${v}</div>`).join("")
+      :`<div class="h">エンティティ ${total}</div>`+Object.entries({プレイヤー:parts.players,アイテム:parts.items,敵対:parts.hostile,友好:parts.passive,その他:parts.other}).map(([k,v])=>`<div>${k} ${v}</div>`).join("");
+    $("#screen").appendChild(el);
+  }
+}
+render();
+</script>
