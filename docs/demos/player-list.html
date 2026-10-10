@@ -34,16 +34,20 @@ code{font-size:12.5px;color:var(--ink)}
 .list.card{background:rgba(var(--panel),.6);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);padding:.55em .7em .6em}
 .list .head{display:flex;justify-content:space-between;gap:1.5em;color:var(--dim);padding:0 .1em .45em;text-shadow:1px 1px 0 #3f3f3f}
 .list .cols{display:flex;gap:1.1em;align-items:flex-start}
-.list .col{display:grid;gap:2px}
-.row{display:grid;align-items:center;column-gap:.5em;height:1.45em;padding:0 .3em;text-shadow:1px 1px 0 #3f3f3f;white-space:nowrap}
-.list.line .row{background:rgba(var(--panel),.6)}
-.row canvas,.row img{image-rendering:pixelated;display:block}
-.row .face{width:1.05em;height:1.05em}
-.row .me{color:var(--accent)}
-.row .ic{width:1.05em;height:1.05em;display:grid;place-items:center}
-.row .ic img,.row .ic canvas{max-width:100%;max-height:100%}
-.row .sub{color:var(--dim);text-align:right}
-.row .na{color:var(--faint);text-align:right}
+.list .col{display:grid;row-gap:2px;column-gap:.5em;align-items:center}
+.row{display:contents}
+.cell{height:1.45em;display:flex;align-items:center;text-shadow:1px 1px 0 #3f3f3f;white-space:nowrap}
+.cell.first{padding-left:.3em}.cell.last{padding-right:.3em}
+.list.line .cell{background:rgba(var(--panel),.6);margin-right:-.5em;padding-right:.5em}.list.line .cell.last{margin-right:0}
+.cell.name{overflow:hidden;max-width:var(--name-max)}.cell.name span{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cell.dist{justify-content:flex-end}
+.list canvas,.list img{image-rendering:pixelated;display:block}
+.face{width:1.05em;height:1.05em}
+.me{color:var(--accent)}
+.ic{width:1.05em;justify-content:center}
+.ic img,.ic canvas{max-width:100%;max-height:1.05em}
+.sub{color:var(--dim)}
+.na{color:var(--faint)}
 .list .more{color:var(--dim);padding:.35em .3em 0;text-shadow:1px 1px 0 #3f3f3f}
 .note{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px;display:grid;gap:6px}
 .note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:3px}
@@ -62,15 +66,15 @@ code{font-size:12.5px;color:var(--ink)}
 </style>
 <div class="wrap">
   <header>
-    <div class="eyebrow">BACKLOG L-128 · プレイヤー一覧 · 確認用モック 第 2 版</div>
+    <div class="eyebrow">BACKLOG L-128 · プレイヤー一覧 · 確認用モック 第 3 版</div>
     <h1>キーを押している間のプレイヤー一覧</h1>
-    <p class="lede">サーバーがクライアントに送るプレイヤー一覧（描画距離の外の人も含む）を、キーを押している間だけ画面上部に出します。第 2 版（2026-10-10）：ホストは王冠、機種とディメンションはアイコンで幅を詰め、情報は既定ですべて表示し、アイコンの列を揃えます。<b>このモックの顔とアイコンは仮の絵</b>で、実物はスキンの顔とゲームのテクスチャ（下の表）です。</p>
+    <p class="lede">サーバーがクライアントに送るプレイヤー一覧（描画距離の外の人も含む）を、キーを押している間だけ画面上部に出します。第 3 版（2026-10-10）：機種は Lamium 独自の単色アイコン、別ディメンションの人はディメンションのアイコンだけで距離は出さない、列は表全体で揃え、長い名前は省略。<b>このモックの顔とアイコンは仮の絵</b>で、実物はスキンの顔とゲームのテクスチャ（下の表）です。</p>
   </header>
 
   <section class="controls">
     <div class="seg" id="count"><span>人数</span></div>
     <div class="seg" id="extras"><span>表示する列</span></div>
-    <div class="seg" id="otherdim"><span>別ディメンションの距離</span></div>
+    <div class="seg" id="longname"><span>名前</span></div>
     <div class="seg" id="bg"><span>背景</span></div>
     <div class="seg" id="lang"><span>言語</span></div>
   </section>
@@ -81,7 +85,8 @@ code{font-size:12.5px;color:var(--ink)}
     <h2 style="margin:0">きまり（案）</h2>
     <ul>
       <li>キーは既定で <span class="cap">Tab</span>、押している間だけ表示（キー設定で変更可）。チャットや画面を開いている間は出さない。</li>
-      <li>1 行は 顔・名前・ホストの王冠・機種・ディメンション・距離。アイコンは決まった幅の列に置き、ないときも幅を空けて縦を揃える。距離は右揃え。</li>
+      <li>1 行は 顔・名前・ホストの王冠・機種・ディメンション・距離。列ごとに幅を揃える（名前の列はその列でいちばん長い名前の幅）。アイコンがないときも幅を空ける。距離は右揃え。</li>
+      <li>名前の列は最大 16 文字分（ゲーム内の単位で約 96）。超える名前は末尾を「…」で省略。画面に入らないときは、まず列（人数の列）を減らし、1 列でも入らなければ名前の最大幅を 10 文字分まで縮める。</li>
       <li>自分は先頭で緑。並びは自分のあと名前順（大文字小文字は区別しない）。</li>
       <li>見出しは人数。1 列 20 人まで、画面に入るだけ列を足す。入らない分は「ほか N 人」。スクロールはしない。</li>
       <li>位置は画面上部の中央。HUD レイアウト編集で動かせる要素にする。背景は カード（既定・決定）/ 行ごと / なし。</li>
@@ -93,9 +98,9 @@ code{font-size:12.5px;color:var(--ink)}
     <h2 style="margin:0">アイコンの出どころ（ゲームのテクスチャ）</h2>
     <ul>
       <li><b>ホスト</b>：<code>textures/ui/permissions_op_crown</code>（権限画面のオペレーターの王冠）。一覧が教えてくれるのはホストかどうかだけで、他の人がオペレーターかは分からない（要調査）。<code>permissions_member_star</code>・<code>permissions_visitor_hand</code> もあり、権限が分かれば同じ列で出せる。</li>
-      <li><b>機種</b>：機種ごとのロゴはゲームに一部しかない（Android・Apple はあるが Windows・PlayStation・Switch はない）。そこで 3 つにまとめて入力のアイコンで出す：PC（Windows・macOS・Linux）は <code>keyboard_and_mouse_glyph</code>、スマホ・タブレット（Android・iOS・Fire）は <code>generic_touchpad</code>、ゲーム機（Xbox・PlayStation・Switch）は <code>controller_glyph</code>。</li>
+      <li><b>機種</b>：3 つにまとめる（PC：Windows・macOS・Linux ／ スマホ・タブレット：Android・iOS・Fire ／ ゲーム機：Xbox・PlayStation・Switch）。ゲームのテクスチャは機種ロゴが一部しかなく、入力アイコンは大きさも線の太さもばらばらで見づらかった（第 2 版の確認）。候補：<b>A</b> Lamium 独自の 8×8 単色アイコン（モニター・スマホ・ゲームパッド。このモックの絵、Lamium の描画部品で四角の組み合わせとして描ける）／ <b>B</b> 外部のピクセルアイコン集（使う前にライセンスと出どころの記録が要る。docs/PROVENANCE.md）。</li>
       <li><b>ディメンション</b>：ブロックのアイテムアイコン（草ブロック・ネザーラック・エンドストーン）をインベントリと同じ描き方で出す。分からない人は空欄。どこまで分かるかは要調査。</li>
-      <li><b>距離</b>：同じディメンションの人だけ「123 m」。分からない人は「—」。</li>
+      <li><b>距離</b>：同じディメンションの人だけ「123 m」。分からない人は「—」。別ディメンションの人はディメンションのアイコンだけで距離は空欄（換算はスコープ外、2026-10-10）。</li>
       <li><b>Ping</b>：ゲームに Ping のアイコンはあるが、サーバーがプレイヤーごとの値を送らないため出せない。</li>
     </ul>
   </section>
@@ -112,19 +117,19 @@ code{font-size:12.5px;color:var(--ink)}
   </section>
 
   <section class="ask">
-    <h2 style="margin:0">決めてほしいこと（第 2 版）</h2>
+    <h2 style="margin:0">決めてほしいこと（第 3 版）</h2>
     <ol>
-      <li><b>機種の出し方</b>：入力の 3 種アイコン（PC・スマホ・ゲーム機）<span class="rec">推奨</span> ／ 機種名を小さな文字で。</li>
-      <li><b>別ディメンションにいる人の距離</b>：空欄でディメンションのアイコンだけ<span class="rec">推奨</span> ／ ネザーとオーバーワールドは 8 倍換算で「≈ 120 m」。上の切り替えで見比べられる。</li>
-      <li><b>ディメンションが分からない人</b>：空欄<span class="rec">推奨</span> ／ 「?」の印。</li>
+      <li><b>機種のアイコン</b>：A Lamium 独自の単色アイコン<span class="rec">推奨</span> ／ B 外部のアイコン集（候補を探して出どころを記録してから）。</li>
+      <li><b>名前の最大幅</b>：16 文字分で省略<span class="rec">推奨</span> ／ 省略しない（列が足りなければ人数の列を減らすだけ）。上の「名前」で長い名前を混ぜて見比べられる。</li>
     </ol>
+    <p style="font-size:13px;color:var(--ink-2)">決まったこと：背景の既定はカード。ディメンションが分からない人は空欄。別ディメンションの距離は出さない（換算はスコープ外）。</p>
   </section>
 </div>
 <script>
 const names=["Steve_Builder","Birch_Baron","alex2026","MossyCobble","Creeper_Hugger","sakura_miner","NetherNomad","pixelpanda","IronGolemFan","sky_walker","RedstoneRin","oak_and_ash","BeaconBob","tanuki_tunnel","LapisLazuli","FrostWalker9","mushroom_isle","ElytraEmi","QuartzQueen","VillagerVic","ender_eyes","HoneyBee88","deepslate_dan","coral_reef","Totem_Tom","snowgolem","AmethystAmy","shulker_shu","piglin_pal","WardenWatch"];
 const platforms=["Windows","Android","iOS","Switch","PlayStation","Xbox"];
 const platformClass={Windows:"pc",Android:"mobile",iOS:"mobile",Switch:"console",PlayStation:"console",Xbox:"console"};
-let count=5, bg="card", lang="ja", otherDim="blank";
+let count=5, bg="card", lang="ja", longNames=false;
 const extras={platform:true,dimension:true,distance:true,ping:false};
 // Real textures can be dropped in here as data URIs for a local review copy.
 const ICONS={};
@@ -132,14 +137,13 @@ function pix(rows,colors){const c=document.createElement("canvas");c.width=rows[
   rows.forEach((r,y)=>[...r].forEach((ch,x)=>{if(ch!=="."){g.fillStyle=colors[ch];g.fillRect(x,y,1,1)}}));return c}
 const ART={
  crown:()=>pix(["........","y..y..y.","yy.yy.yy","yyyyyyyy","yryybyyy","yyyyyyyy","dddddddd"],{y:"#f2c230",r:"#d83c3c",b:"#3c78d8",d:"#a07818"}),
- pc:()=>pix(["wwwwwwwww.www","w.w.w.w.w.w.w","wwwwwwwww.www","w.w.w.w.w.w.w","wwwwwwwww.www"],{w:"#e6e6e6"}),
- mobile:()=>pix([".wwww.","w....w","w....w","w....w","w....w","w....w","w.ww.w",".wwww."],{w:"#e6e6e6"}),
- console:()=>pix([".wwwwwww.","ww.wwwbww","w...wbwbw","ww.wwwbww","wwwwwwwww","ww.....ww"],{w:"#e6e6e6",b:"#555"}),
+ pc:()=>pix(["wwwwwwww","w......w","w......w","w......w","wwwwwwww","...ww...","..wwww..","........"],{w:"#e6e6e6"}),
+ mobile:()=>pix(["..wwww..","..w..w..","..w..w..","..w..w..","..w..w..","..w..w..","..wwww..","........"],{w:"#e6e6e6"}),
+ console:()=>pix(["........",".wwwwww.","ww.ww.ww","w...w.ww","ww.wwwww","wwwwwwww","ww....ww","........"],{w:"#e6e6e6"}),
  overworld:()=>pix(["gggggggg","gGggGggg","dgdddgdd","dddddddd","ddDddddd","dddddDdd","dDdddddd","dddddddd"],{g:"#6aa84f",G:"#4f8a3c",d:"#8b5e3c",D:"#6b4630"}),
  nether:()=>pix(["rrRrrrRr","rRrrRrrr","rrrRrrrr","RrrrrRrr","rrRrrrrR","rrrrRrrr","rRrrrrRr","rrrRrrrr"],{r:"#7a2a2a",R:"#5a1e1e"}),
  end:()=>pix(["yyyYyyyy","yYyyyyYy","yyyyYyyy","yyYyyyyy","Yyyyyyyy","yyyyyYyy","yYyyyyyy","yyyyYyyY"],{y:"#e6e2a8",Y:"#c8c38a"})};
-function icon(name){const cell=document.createElement("span");cell.className="ic";if(!name)return cell;
-  if(ICONS[name]){const im=new Image();im.src=ICONS[name];cell.append(im)}else cell.append(ART[name]());return cell}
+function iconNode(name){if(!name)return null;if(ICONS[name]){const im=new Image();im.src=ICONS[name];return im}return ART[name]()}
 function rng(seed){return()=>{seed=(seed*16807)%2147483647;return seed/2147483647}}
 function face(i){
   const c=document.createElement("canvas");c.width=8;c.height=8;c.className="face";const g=c.getContext("2d"),r=rng(i*977+13);
@@ -148,14 +152,19 @@ function face(i){
   g.fillStyle="#fff";g.fillRect(1,4,2,1);g.fillRect(5,4,2,1);g.fillStyle=["#3d6bd6","#3a8a3a","#6a3a1a","#222"][i%4];g.fillRect(2,4,1,1);g.fillRect(5,4,1,1);
   g.fillStyle="#8a5236";g.fillRect(3,6,2,1);if(r()>.6){g.fillStyle="rgba(0,0,0,.15)";g.fillRect(0,5,8,3)}return c}
 // Nearby players share your dimension; distant ones are known only from the locator bar, sometimes not at all.
-function player(i){const r=rng(i*31+7);const near=i===0||r()<.45,locator=r()<.6;
-  return{i,name:i===0?"kenkenhagi":names[i%names.length]+(i>=names.length?"_"+i:""),me:i===0,host:i===1,
-    platform:platforms[Math.floor(r()*platforms.length)],
-    dim:i===0||near?0:(locator?Math.floor(r()*3):null),
-    distance:i===0?0:(near?Math.floor(r()*90+3):locator?Math.floor(r()*2400+120):null)}}
-function render(){for(let cols=3;cols>=1;cols--){renderWith(cols);const l=document.getElementById("list"),sc=document.querySelector(".screen");if(l.getBoundingClientRect().width<=sc.getBoundingClientRect().width-8)return}}
-function renderWith(maxCols){
-  const list=document.getElementById("list");list.className="list "+bg;list.innerHTML="";
+// Fixed mix for the first players so every case shows: same dimension near and far,
+// Nether, End, and unknown (no locator data). Later players vary.
+const fixed=[[0,0],[0,12],[1,600],[2,1800],[null,null],[0,240],[0,null]];
+const long=["Very_Long_Server_Nickname_2026","ThisNameIsTooLongToFitAnyColumn"];
+function player(i){const r=rng(i*31+7);const near=r()<.45,locator=r()<.6;
+  let [dim,distance]=i<fixed.length?fixed[i]:[near?0:(locator?Math.floor(r()*3):null),near?Math.floor(r()*90+3):locator?Math.floor(r()*2400+120):null];
+  let name=i===0?"kenkenhagi":names[i%names.length]+(i>=names.length?"_"+i:"");
+  if(longNames&&(i===2||i===4))name=long[i===2?0:1];
+  return{i,name,me:i===0,host:i===1,platform:platforms[(i*5+3)%platforms.length],dim,distance:dim!==0?null:distance}}
+function render(){const l=()=>document.getElementById("list"),sc=document.querySelector(".screen");
+  for(const nameMax of ["16ch","10ch"])for(let cols=3;cols>=1;cols--){renderWith(cols,nameMax);if(l().getBoundingClientRect().width<=sc.getBoundingClientRect().width-8)return}}
+function renderWith(maxCols,nameMax){
+  const list=document.getElementById("list");list.className="list "+bg;list.innerHTML="";list.style.setProperty("--name-max",nameMax);
   const players=[...Array(count)].map((_,i)=>player(i));
   const others=players.slice(1).sort((a,b)=>a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
   const ordered=[players[0],...others];
@@ -163,18 +172,20 @@ function renderWith(maxCols){
   head.innerHTML=`<span>${lang==="ja"?"プレイヤー":"Players"}: ${count}</span>`;list.append(head);
   const cols=document.createElement("div");cols.className="cols";list.append(cols);
   const perCol=20,shown=Math.min(ordered.length,perCol*maxCols);
-  const template=["1.05em","minmax(6.5em,max-content)","1.05em"];
-  if(extras.platform)template.push("1.05em");if(extras.dimension)template.push("1.05em");if(extras.distance)template.push("4.6em");
-  for(let c=0;c*perCol<shown;c++){const col=document.createElement("div");col.className="col";cols.append(col);
-    for(const p of ordered.slice(c*perCol,Math.min(shown,(c+1)*perCol))){const row=document.createElement("div");row.className="row";row.style.gridTemplateColumns=template.join(" ");
-      row.append(face(p.i));const n=document.createElement("span");n.className=p.me?"me":"";n.textContent=p.name;row.append(n);
-      row.append(icon(p.host?"crown":null));
-      if(extras.platform)row.append(icon(platformClass[p.platform]));
-      if(extras.dimension)row.append(icon(p.dim==null?null:["overworld","nether","end"][p.dim]));
-      if(extras.distance){const s=document.createElement("span");let text=p.me?"":p.distance==null?"—":p.distance+" m";
-        if(!p.me&&p.dim!=null&&p.dim!==0&&p.distance!=null)text=otherDim==="scaled"&&p.dim===1?"≈ "+p.distance*8+" m":"";
-        s.className=p.distance==null&&!p.me?"na":"sub";s.textContent=text;row.append(s)}
-      col.append(row)}}
+  const template=["1.05em","minmax(4em,max-content)","1.05em"];
+  if(extras.platform)template.push("1.05em");if(extras.dimension)template.push("1.05em");if(extras.distance)template.push("max-content");
+  for(let c=0;c*perCol<shown;c++){const col=document.createElement("div");col.className="col";col.style.gridTemplateColumns=template.join(" ");cols.append(col);
+    for(const p of ordered.slice(c*perCol,Math.min(shown,(c+1)*perCol))){const row=document.createElement("div");row.className="row";
+      const cells=[];const cell=(cls,child)=>{const d=document.createElement("span");d.className="cell "+cls;if(child)d.append(child);cells.push(d);return d};
+      cell("ic face-cell",face(p.i));
+      const n=document.createElement("span");n.className=p.me?"me":"";n.textContent=p.name;cell("name",n);
+      cell("ic",iconNode(p.host?"crown":null));
+      if(extras.platform)cell("ic",iconNode(platformClass[p.platform]));
+      if(extras.dimension)cell("ic",iconNode(p.dim==null?null:["overworld","nether","end"][p.dim]));
+      if(extras.distance){const t=document.createElement("span");t.className=p.distance==null&&!p.me&&p.dim===0||p.dim==null?"na":"sub";
+        t.textContent=p.me||p.dim!==0&&p.dim!=null?"":p.distance==null?"—":p.distance+" m";cell("dist",t)}
+      cells[0].classList.add("first");cells[cells.length-1].classList.add("last");
+      row.append(...cells);col.append(row)}}
   if(ordered.length>shown){const m=document.createElement("div");m.className="more";m.textContent=lang==="ja"?`ほか ${ordered.length-shown} 人`:`and ${ordered.length-shown} more`;list.append(m)}
 }
 function seg(id,items,get,set){const el=document.getElementById(id);
@@ -183,7 +194,7 @@ function seg(id,items,get,set){const el=document.getElementById(id);
   function sync(){for(const b of el.querySelectorAll("button"))b.setAttribute("aria-pressed",String(get(b.dataset.v)))}sync()}
 seg("count",[[1,"1 人（一人プレイ）"],[5,"5 人"],[18,"18 人"],[34,"34 人"],[75,"75 人"]],v=>+v===count,v=>count=+v);
 seg("extras",[["platform","機種"],["dimension","ディメンション"],["distance","距離"],["ping","Ping（出せない）",true]],v=>extras[v],v=>extras[v]=!extras[v]);
-seg("otherdim",[["blank","空欄（アイコンだけ）"],["scaled","ネザーは 8 倍換算"]],v=>v===otherDim,v=>otherDim=v);
+seg("longname",[["0","ふつうの名前"],["1","長い名前を混ぜる"]],v=>(v==="1")===longNames,v=>longNames=v==="1");
 seg("bg",[["card","カード"],["line","行ごと"],["none","なし"]],v=>v===bg,v=>bg=v);
 seg("lang",[["ja","日本語"],["en","English"]],v=>v===lang,v=>lang=v);
 render();
