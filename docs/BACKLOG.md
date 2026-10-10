@@ -286,6 +286,14 @@ scroll for many players, what singleplayer and different servers provide.
 ### L-130 Search recipes and items by English names too
 Kind: Research, then Design. Promoted by the maintainer 2026-10-09 from
 their notes; scope and release not decided.
+Spec (decided 2026-10-10, maintainer accepted the agent's proposal): one
+switch "Search English names too", default on; it only adds matches, never
+hides what vanilla finds. A query matches when every word appears in the
+item's English display name (the game's en_US strings, resource packs
+included) or its identifier without the namespace (`oak_planks`, with `_`
+read as a space), ignoring case. First scope: the crafting screen's recipe
+book, crafting table and creative search (one filter); furnace-type screens
+later. Not included: kana readings, names given in an anvil.
 Status: open. SDK findings 2026-10-10 (headers only, nothing run): the
 crafting screen filters each item through
 `CraftingContainerManagerModel::_filterByText(ItemInstance const&,

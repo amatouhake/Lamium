@@ -8,6 +8,7 @@
 #include "features/inspection/render/IconTrace.h"
 #include "features/research/TradeTrace.h"
 #include "features/inspection/LockedTrades.h"
+#include "features/inspection/EnglishSearch.h"
 #include "features/interaction/EdgeGuard.h"
 #include "features/interaction/ToolGuard.h"
 #include "features/interaction/MiningSessionHooks.h"
@@ -107,6 +108,7 @@ Feature const features[] = {
     {"Lighting", [] { return NightVision::instance().start(); }, [] { NightVision::instance().stop(); }},
     {"Inspection", inspection::start, inspection::stop},
     {"Locked trades", inspection::lockedTrades::start, inspection::lockedTrades::stop},
+    {"English search", inspection::englishSearch::start, inspection::englishSearch::stop},
     {"Inventory", inventory::start, inventory::stop},
     {"Settings screen", started<ui::start>, ui::stop},
     {"Custom input", started<input::startCustomInput>, input::stopCustomInput},

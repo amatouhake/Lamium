@@ -21,7 +21,7 @@ inline constexpr auto sections = std::to_array<std::string_view>({
     "section.interaction", "section.interface"});
 inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand" || id == "hideEffects") return "section.camera";
-    if (id == "previews" || id == "durability" || id == "foodValues" || id == "lockedTrades" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore") return "section.inventory";
+    if (id == "previews" || id == "durability" || id == "foodValues" || id == "lockedTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore") return "section.inventory";
     if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
     if (id == "settings" || id == "toasts" || id == "hudText") return "section.interface";
     if (id.starts_with("schematic")) return "section.schematic";
@@ -41,6 +41,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"durability", "feature.durability", "help.durability", "inspection.durability", false, input::Action::ToggleDurability},
     {"foodValues", "feature.foodValues", "help.foodValues", "inspection.foodValues", false, input::Action::ToggleFoodValues},
     {"lockedTrades", "feature.lockedTrades", "help.lockedTrades", "inspection.lockedTrades", false, input::Action::ToggleLockedTrades},
+    {"englishSearch", "feature.englishSearch", "help.englishSearch", "inspection.englishSearch", false, input::Action::ToggleEnglishSearch},
     {"sorting", "feature.sorting", "help.sorting", "inventory.sorting", false, input::Action::ToggleSorting},
     {"transfer", "feature.transfer", "help.transfer", "inventory.transfer", true, input::Action::Transfer},
     {"toolSwitch", "feature.toolSwitch", "help.toolSwitch", "inventory.toolSwitch", false, input::Action::ToolSwitch},
