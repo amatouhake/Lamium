@@ -125,7 +125,9 @@ every server gap before a release.
 
 The following are released-build checkpoints and listing follow-ups, not
 unmet gates for versions already published. Registry pickup for 0.1.4 to
-0.1.7 is confirmed (maintainer 2026-10-10).
+0.1.7 is confirmed (maintainer 2026-10-10); 0.1.8's registry PR
+(LiteLDev/lipr, "add github.com/amatouhake/Lamium@0.1.8") was merged
+2026-10-09 UTC.
 
 - 0.1.9 was released on 2026-10-11 (`v0.1.9` at `8bf28c0`; asset SHA-256
   `c0bbc358...a4b`): L-96 Connected Textures (panes with the one-texel
@@ -265,9 +267,14 @@ L-111 integration and other 0.2.0 clean-up, not before.
 far, and changed in 131 commits since 2026-09-01. It mixes the settings rows
 and navigation, key capture and the Hotkeys view, text and number editing,
 the Shapes editor (drafts, swatches, docked rendering), the waypoint list,
-the map cache controls and the version tip. Split it by those parts into
-files that keep behavior unchanged; pure layout and state logic moves into
-headers with tests where it can (AGENTS.md rule 1). Plan the cut with the
+the map cache controls and the version tip. L-73 (BACKLOG-DONE, item D)
+dropped this split on 2026-09-30 at 1,878 lines: the Shapes view and the
+input listeners shared 20+ screen-wide variables, so a file split would only
+have moved text behind a header of shared variables ("split it when the
+screen grows again, after grouping its state first"). Group the state
+first, then split by those parts into files that keep behavior unchanged;
+pure layout and state logic moves into headers with tests where it can
+(AGENTS.md rule 1). Plan the cut with the
 maintainer before moving code: the split should match how L-111 regroups
 features.
 
@@ -278,9 +285,10 @@ Kind: Distribution. Decided by the maintainer 2026-10-11.
 1.8 MB). No crash report has arrived, and a description of the situation is
 expected to be enough to reproduce one. From 0.2.0 the ZIP ships without the
 PDB (`scripts/New-ReleaseArchive.ps1`, `Check-Package.ps1`, DISTRIBUTION.md,
-the LIP package contents). Open: whether each release's PDB is attached to
-the GitHub release as a separate asset or only kept by the maintainer/CI for
-matching crash addresses later.
+the LIP package contents). The PDB is attached to the GitHub release as a
+separate asset (`Lamium-<version>-client-windows-x64.pdb` or similar,
+decided 2026-10-11), so LIP and LeviLauncher install only the DLL while the
+symbols stay available for crash addresses.
 
 ### L-133 Connected Textures: split glass panes without dark halves
 Kind: Research. Opened 2026-10-11 from L-96.
@@ -498,7 +506,7 @@ Settings and ids
 3. Placement modes (Ready once step 2 finds a path): the four modes, anchor
    on the first placed block, faces and Status line.
 
-### L-91 Icons Lamium draws differ from vanilla slots (shield glint, leather)
+### L-91 Shield glint missing in Lamium's item icons
 Kind: Research. Found by the maintainer 2026-10-02 while checking L-75;
 leather added 2026-10-06 (found under L-61).
 Status: parked 2026-10-06 after a trace and three in-game experiments; the
@@ -835,7 +843,7 @@ how ingredients with several choices (any log, tags) and multi-step chains
 which recipe to prefer when several make the same item. The calculation is
 pure logic with tests.
 
-### L-111 Integration between features (before the next release or 0.2.0)
+### L-111 Integration between features (0.2.0)
 Kind: Design. Raised by the maintainer 2026-10-08 after checking the
 2026-10-07 batch; not chosen for building yet.
 Why: the features have matured on their own, and the links between them have
