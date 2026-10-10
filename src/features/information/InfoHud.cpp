@@ -956,7 +956,8 @@ void drawOffhandSlot(MinecraftUIRenderContext& context, ScreenView const& view, 
     if (auto* renderer = context.mClient.getItemRenderer()) {
         BaseActorRenderContext renderContext(context.mScreenContext, context.mClient,
                                              context.mClient.getMinecraftGame_DEPRECATED());
-        float x = std::round(icon.x), y = std::round(icon.y);
+        // Unrounded like the hotbar's own icons (see iconBox).
+        float x = icon.x, y = icon.y;
         // Compasses and clocks pick their frame as in an inventory slot.
         int frame = stack.mItem->getAnimationFrameFor(player, false, &stack, true);
         inspection::render::drawItemIcon(context, {&stack, x, y, unit, frame}, 17);

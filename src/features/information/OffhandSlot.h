@@ -24,11 +24,11 @@ inline std::optional<Box> slotBox(Box hotbar, float screenW, float screenH) {
     return slot;
 }
 // The 16x16 icon sits where the hotbar puts it: one cap unit, then the
-// 18x18 cell in the 20x22 slot image. Vertically the hotbar's icons sit one
-// unit above center (seen against the hotbar, 2026-10-10).
+// 18x18 cell centered in the 20x22 slot image. Not rounded: the hotbar can
+// sit on a half unit (y 336.5 on a 360-unit screen) and its icons do too.
 inline Box iconBox(Box slot) {
     float unit = slot.h / slotUnits;
-    return {slot.x + 3 * unit, slot.y + 2 * unit, 16 * unit, 16 * unit};
+    return {slot.x + 3 * unit, slot.y + 3 * unit, 16 * unit, 16 * unit};
 }
 inline bool shown(bool enabled, bool holding, bool emptyFrame) { return enabled && (holding || emptyFrame); }
 }

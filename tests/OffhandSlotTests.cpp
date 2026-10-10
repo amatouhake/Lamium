@@ -9,7 +9,7 @@ void offhandSlotTests() {
     check(slot && slot->x == 149 - 28 && slot->y == 248 && slot->w == 22 && slot->h == 22,
           "the slot sits left of the hotbar with a six-unit gap, on its line");
     auto icon = iconBox(*slot);
-    check(icon.x == slot->x + 3 && icon.y == 250 && icon.w == 16, "the icon sits where the hotbar puts one");
+    check(icon.x == slot->x + 3 && icon.y == 251 && icon.w == 16, "the icon sits where the hotbar puts one");
     auto tall = slotBox({200, 200, 300, 44}, 800, 300);
     check(tall && tall->w == 44 && tall->x == 200 - 56, "a taller hotbar scales the slot and the gap");
     check(!slotBox({10, 248, 182, 22}, 480, 270), "no slot when it would leave the screen");
