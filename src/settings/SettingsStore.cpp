@@ -125,6 +125,7 @@ Json encode(Settings const& settings) {
                          {"dimension", settings.information.dimension}}},
         {"visuals", {{"hideOffhand", settings.visuals.hideOffhand},
                      {"hideEffects", settings.visuals.hideEffects},
+                     {"connectedTextures", settings.visuals.connectedTextures},
                      {"hideWeather", settings.visuals.hideWeather}, {"hideParticles", settings.visuals.hideParticles},
                      {"hideBossBars", settings.visuals.hideBossBars}, {"hideNausea", settings.visuals.hideNausea},
                      {"hideWater", settings.visuals.hideWater}, {"hideLava", settings.visuals.hideLava},
@@ -328,6 +329,7 @@ Settings decodeSettings(std::string_view text) {
         auto const& visuals = data.at("visuals");
         value.visuals.hideOffhand = visuals.value("hideOffhand", value.visuals.hideOffhand);
         value.visuals.hideEffects = visuals.value("hideEffects", value.visuals.hideEffects);
+        value.visuals.connectedTextures = visuals.value("connectedTextures", value.visuals.connectedTextures);
         value.visuals.hideWeather = visuals.value("hideWeather", value.visuals.hideWeather);
         value.visuals.hideParticles = visuals.value("hideParticles", value.visuals.hideParticles);
         value.visuals.hideBossBars = visuals.value("hideBossBars", value.visuals.hideBossBars);

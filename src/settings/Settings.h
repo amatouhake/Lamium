@@ -168,6 +168,7 @@ struct Settings {
         // Master off, every effect selected: one switch turns them all on
         // (maintainer, 2026-09-30).
         bool hideEffects = false;
+        bool connectedTextures = false; // Glass without inner borders (L-96), Experimental
         bool hideWeather = true;
         bool hideParticles = true;
         bool hideBossBars = true;

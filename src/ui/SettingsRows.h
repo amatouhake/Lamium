@@ -20,7 +20,7 @@ inline constexpr auto sections = std::to_array<std::string_view>({
     "section.camera", "section.information", "section.map", "section.schematic", "section.inventory",
     "section.interaction", "section.interface"});
 inline constexpr std::string_view featureSection(std::string_view id) {
-    if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand" || id == "hideEffects") return "section.camera";
+    if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand" || id == "hideEffects" || id == "connectedTextures") return "section.camera";
     if (id == "previews" || id == "durability" || id == "foodValues" || id == "lockedTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore") return "section.inventory";
     if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
     if (id == "settings" || id == "toasts" || id == "hudText") return "section.interface";
@@ -37,6 +37,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"nightVision", "feature.nightVision", "help.nightVision", "lighting.nightVision", false, input::Action::NightVision},
     {"hideOffhand", "feature.hideOffhand", "help.hideOffhand", "visuals.hideOffhand", false, input::Action::HideOffhand},
     {"hideEffects", "feature.hideEffects", "help.hideEffects", "visuals.hideEffects", true, input::Action::ToggleHideEffects},
+    {"connectedTextures", "feature.connectedTextures", "help.connectedTextures", "visuals.connectedTextures", true, input::Action::ToggleConnectedTextures},
     {"previews", "feature.previews", "help.previews", "inspection.containerPreviews", false, input::Action::TogglePreviews},
     {"durability", "feature.durability", "help.durability", "inspection.durability", false, input::Action::ToggleDurability},
     {"foodValues", "feature.foodValues", "help.foodValues", "inspection.foodValues", false, input::Action::ToggleFoodValues},

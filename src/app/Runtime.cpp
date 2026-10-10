@@ -9,6 +9,7 @@
 #include "features/research/TradeTrace.h"
 #include "features/interaction/InventoryMoveTrace.h"
 #include "features/visuals/ConnectedTexturesTrace.h"
+#include "features/visuals/ConnectedTexturesHooks.h"
 #include "features/inspection/LockedTrades.h"
 #include "features/inspection/EnglishSearch.h"
 #include "features/interaction/EdgeGuard.h"
@@ -116,6 +117,7 @@ Feature const features[] = {
     {"Custom input", started<input::startCustomInput>, input::stopCustomInput},
     {"World overlay", started<overlay::start>, overlay::stop},
     {"Offhand visibility", started<visuals::start>, visuals::stop},
+    {"Connected Textures", visuals::connected::start, visuals::connected::stop},
     {"Tool Switch", started<inventory::tools::start>, inventory::tools::stop},
     {"Weapon Switch", started<inventory::weapons::start>, inventory::weapons::stop},
     {"Death layout", started<inventory::death::start>, inventory::death::stop},

@@ -9,6 +9,9 @@ namespace lamium::ui::translations {
 inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"feature.hideEffects", "隐藏视觉效果"},
     {"hideEffects", "隐藏视觉效果"},
+    {"feature.connectedTextures", "连接纹理"},
+    {"connectedTextures", "连接纹理: {}"},
+    {"help.connectedTextures", "相邻的同种玻璃会绘制成一个整面，不显示它们之间的边框线。染色玻璃只与同色相连。暂不支持玻璃板。实验性功能。"},
     {"help.hideEffects", "隐藏所选的视觉效果。关闭总开关会恢复所有绘制，并保留你的选择。声音和游戏玩法不受影响。实验性功能。"},
     {"effectsPaused", "总开关已关闭"},
     {"help.effectsPaused", "“隐藏视觉效果”总开关已关闭。在打开总开关之前，各个开关和按键只会更改保存的选择。"},

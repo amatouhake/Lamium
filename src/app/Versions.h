@@ -14,4 +14,7 @@ std::string lamiumVersion();
 std::string runningGameVersion();
 std::string runningLoaderVersion();
 std::string runningVersionLine();
+// The game executable is the build Lamium's version-sensitive render hooks
+// were checked on (1.26.51.01); those features stay vanilla otherwise.
+bool verifiedGameExecutable();
 }

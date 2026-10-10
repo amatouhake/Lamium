@@ -295,6 +295,7 @@ inline constexpr auto options = std::to_array<Option>({
         NumericOption{8, 128, [](Settings& s, float v) { s.overlays.hitboxDistance = v; }, 8}},
     toggle<&Settings::visuals, &Settings::Visuals::hideOffhand>("visuals.hideOffhand", "hideOffhand", "hideOffhand"),
     toggle<&Settings::visuals, &Settings::Visuals::hideEffects>("visuals.hideEffects", "hideEffects", "hideEffects"),
+    toggle<&Settings::visuals, &Settings::Visuals::connectedTextures>("visuals.connectedTextures", "connectedTextures", "connectedTextures"),
     toggle<&Settings::visuals, &Settings::Visuals::hideBossBars>("visuals.hideBossBars", "hideEffects", "hideBossBars"),
     toggle<&Settings::visuals, &Settings::Visuals::hideNausea>("visuals.hideNausea", "hideEffects", "hideNausea"),
     toggle<&Settings::visuals, &Settings::Visuals::hideWeather>("visuals.hideWeather", "hideEffects", "hideWeather"),
