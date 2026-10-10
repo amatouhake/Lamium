@@ -261,27 +261,33 @@ entities, not stack sizes; block entities are not actors. Open: a separate
 small panel or lines inside Debug View, sorting and how many identifiers.
 
 ### L-127 Inventory HUD and slot counter
-Kind: Feature; Design done (maintainer 2026-10-10).
-Status: open. Mockup: [demos/inventory-hud.html](demos/inventory-hud.html).
+Kind: Feature; Design done (maintainer 2026-10-10), revised after the first
+in-game use (2026-10-11).
+Status: built (1789bee, 603ca1b); first build checked in game 2026-10-11.
+Open: the counter's wording and whether the hotbar switch splits.
+Mockup: [demos/inventory-hud.html](demos/inventory-hud.html) (version 2).
 Two HUD layout elements, each with its own switch (both default off) and a
 toggle hotkey (unbound by default):
 - Inventory grid: the main 27 slots as 9x3 in the vanilla inventory screen's
-  order; a setting adds the hotbar (36) as one more row below a divider.
-  Armor and offhand are not included (equipment has its own display). Empty
-  slots draw a faint frame. Items use the shared vanilla-like icon path
-  (`inspection/render/ItemIcon`) with stack counts and durability bars; the
-  shield glint is still missing there (L-91).
-- Free-slot counter: a separate small element, "空き 24" / "24 free"
-  (no total), drawn in the palette's warning color at 0 free. It works on
-  its own with the grid off, for players who only want the free count; the
-  "include the hotbar" setting is shared and sets the range of both.
+  order; a setting adds the hotbar (36) as one more row below a gap.
+  Armor and offhand are not included (equipment has its own display). Every
+  slot has a faint frame; empty slots show only that. Items use the shared
+  vanilla-like icon path (`inspection/render/ItemIcon`) with stack counts,
+  durability bars and glint; the shield glint is still missing (L-91).
+- Free-slot counter: a separate small element, "空き 24" / "24 free", in
+  the palette's warning color at 0 free. It works with the grid off, for
+  players who only want the free count.
 - Size: one slot is 18 units like the hotbar at 100 %; the layout editor's
-  75-150 % scale applies. Backgrounds: card / per line / none like the other
-  HUD elements.
-- Shown whenever switched on, hidden while any screen (inventory, chat,
-  menus) is open.
-- Default position: middle right, the counter just above the grid
-  (bottom right overlaps the hotbar on ~480-unit-wide screens).
+  75-150 % scale applies. Backgrounds: card / none (per line looked the same
+  and was dropped, 2026-10-11).
+- Shown whenever switched on, hidden while any screen is open.
+- Default position: bottom right, the counter in the corner and the grid
+  just above it (chosen in game 2026-10-11; clear of the hotbar).
+- Under review (2026-10-11): one shared "include the hotbar" switch makes
+  the grid 36 when the counter should count 36 by default; proposal: one
+  switch each, grid off and counter on by default. Counter wording A-E in
+  the mockup; recommended D, the faint slot frame as a mark plus the number,
+  no word and no total.
 
 ### L-132 Move while the inventory screen is open
 Kind: Research, then Feature. Requested by the maintainer 2026-10-10;

@@ -48,6 +48,8 @@ p{margin:0}
 .split{border-top:calc(var(--u)*1) solid rgba(255,255,255,.25);margin:calc(var(--u)*1.5*var(--s)) 0}
 .count{font:400 calc(var(--u)*8*var(--s))/1 var(--mc-font);color:#fff;text-shadow:calc(var(--u)*1*var(--s)) calc(var(--u)*1*var(--s)) 0 #3f3f3f;padding:calc(var(--u)*2*var(--s)) calc(var(--u)*3*var(--s));white-space:nowrap}
 .count.full{color:var(--warn)}
+.count .box{display:inline-block;width:.8em;height:.8em;margin-right:.35em;vertical-align:-.05em;box-shadow:inset 0 0 0 calc(var(--u)*1) currentColor;opacity:.75}
+.count .tot{color:var(--dim)}
 .el.line.count{background:rgba(var(--panel),.6)}
 .note{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px;display:grid;gap:6px}
 .note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:3px}
@@ -62,58 +64,63 @@ p{margin:0}
 </style>
 <div class="wrap">
   <header>
-    <div class="eyebrow">BACKLOG L-127 · インベントリ HUD · 確認用モック 第 1 版</div>
+    <div class="eyebrow">BACKLOG L-127 · インベントリ HUD · 確認用モック 第 2 版</div>
     <h1>プレイ中のインベントリ表示と空き枠の数</h1>
-    <p class="lede">インベントリの中身（上の 27 枠、設定で 36 枠）を 9×3 の枠で、空き枠の数を別の小さな要素で出します。どちらも HUD レイアウト編集で動かせ、大きさは 75〜150 %。<b>アイテムの絵は仮のもの</b>で、実物はホットバーと同じゲームのアイコン（Lamium の ItemIcon）です。</p>
+    <p class="lede">インベントリの中身（上の 27 枠、設定で 36 枠）を 9×3 の枠で、空き枠の数を別の小さな要素で出します。どちらも HUD レイアウト編集で動かせ、大きさは 75〜150 %。第 2 版（2026-10-11）：ゲームで使ってみた結果、右下に空き枠の数・その上にインベントリ、アイテムのある枠にも薄い枠、背景はカード / なしのみ。空き枠の数の文言とホットバーの扱いを比べる。<b>アイテムの絵は仮のもの</b>で、実物はホットバーと同じゲームのアイコン（Lamium の ItemIcon）です。</p>
   </header>
 
   <section class="controls">
     <div class="seg" id="fill"><span>中身</span></div>
-    <div class="seg" id="range"><span>並べる枠</span></div>
-    <div class="seg" id="frames"><span>空き枠</span></div>
+    <div class="seg" id="gridHot"><span>インベントリ HUD のホットバー</span></div>
+    <div class="seg" id="countHot"><span>空き枠の数のホットバー</span></div>
+    <div class="seg" id="fmt"><span>空き枠の数の文言</span></div>
     <div class="seg" id="bg"><span>背景</span></div>
     <div class="seg" id="scale"><span>大きさ</span></div>
-    <div class="seg" id="place"><span>位置</span></div>
     <div class="seg" id="lang"><span>言語</span></div>
   </section>
 
   <div class="screen u" id="screen"><div class="cross"></div><div class="vital"><i></i><i></i></div><div class="hotbar" id="hotbar"></div></div>
 
   <section class="note">
-    <h2 style="margin:0">決定事項（2026-10-10）</h2>
+    <h2 style="margin:0">決定事項</h2>
     <ul>
-      <li>並べる枠は上の 27 枠が既定。設定でホットバーを足した 36 枠（ホットバーは下に区切り線を挟んで 1 段）。防具とオフハンドは入れない（装備は別の表示がある）。</li>
-      <li>並び順はバニラのインベントリ画面と同じ 9×3。空いた枠は薄い枠だけ描く。</li>
-      <li>アイテムはホットバーと同じ絵に個数と耐久値のバー（盾の光沢はまだ出ない、L-91）。</li>
-      <li>大きさはホットバーと同じ 1 枠 18 を 100 % として、HUD レイアウト編集で 75〜150 %。</li>
-      <li>空き枠の数は別の要素「空き 24」（総数は出さない）。空きが 0 なら注意色（警告の黄）。</li>
-      <li>オンの間は常に表示し、何かの画面（インベントリ、チャット、メニュー）を開いている間は隠す。表示を切り替えるホットキーを用意（既定は割り当てなし）。</li>
-      <li>どちらも初期状態はオフ。背景はほかの HUD と同じ カード / 行ごと / なし。</li>
-      <li>既定の位置は右の中央、空き枠の数はそのすぐ上（右下は画面の幅によってホットバーと重なる）。</li>
-      <li>空き枠の数だけを出す使い方もできる（インベントリの表示はオフのまま）。「ホットバーも含める」は両方に共通の設定。</li>
+      <li>並べる枠は上の 27 枠が既定。設定でホットバーを足した 36 枠（区切りを挟んで 1 段）。防具とオフハンドは入れない。</li>
+      <li>並び順はバニラのインベントリ画面と同じ 9×3。どの枠にも薄い枠を描き、空いた枠はそれだけ（2026-10-11）。</li>
+      <li>アイテムはホットバーと同じ絵に個数と耐久値のバー。大きさは 1 枠 18 を 100 % として 75〜150 %。</li>
+      <li>空きが 0 なら注意色（警告の黄）。何かの画面を開いている間は隠す。どちらも初期状態はオフ、ホットキーは割り当てなし。</li>
+      <li>既定の位置は右下：空き枠の数が角、インベントリ HUD がそのすぐ上（ゲームで確認、2026-10-11）。空き枠の数だけでも使える。</li>
+      <li>背景はカード / なしのみ。行ごとはほぼ見た目が変わらないので出さない（2026-10-11）。</li>
     </ul>
   </section>
 
+  <section class="note">
+    <h2 style="margin:0">確認したいこと（2026-10-11）</h2>
+    <ul>
+      <li><b>ホットバーの設定を分けるか</b>：空き枠の数は既定でホットバー込み（36）にしたい。今は 2 つで共通の設定なので、インベントリ HUD も 36 枠になってしまう。案：設定を分けて、インベントリ HUD は既定オフ、空き枠の数は既定オン（推奨）。</li>
+      <li><b>空き枠の数の文言</b>：A「空き 20」（今）、B「空き 20/36」、C「20/36」、D 枠の印＋「20」、E 枠の印＋「20/36」。総数を出すと数えている範囲（27 か 36 か）が分かるが、「20/36」は使用数と読まれやすい。慣れれば言葉は要らないので、言葉の代わりに空き枠と同じ薄い枠の印を付ける D を推奨（範囲は自分で選んだ設定なので総数は出さない）。範囲も見たいなら E。</li>
+    </ul>
+  </section>
 
   <section>
     <h2>設定の行（案）</h2>
     <div class="tbl">
       <div class="r"><span>インベントリ HUD</span><span><span class="cap">－</span></span><span class="sw off"></span></div>
-      <div class="r c"><span>ホットバーも並べる</span><span></span><span class="sw off"></span></div>
+      <div class="r c"><span>ホットバーも含める</span><span></span><span class="sw off"></span></div>
       <div class="r"><span>空き枠の数</span><span><span class="cap">－</span></span><span class="sw off"></span></div>
+      <div class="r c"><span>ホットバーも含める（案：別の設定、既定オン）</span><span></span><span class="sw"></span></div>
     </div>
   </section>
 </div>
 <script>
 const $=s=>document.querySelector(s);
-const state={fill:"mid",range:"27",frames:"on",bg:"card",scale:"100",place:"mr",lang:"ja"};
+const state={fill:"mid",gridHot:"off",countHot:"on",fmt:"d",bg:"card",scale:"100",lang:"ja"};
 const opts={
   fill:[["mid","ふつう"],["full","満杯"],["few","ほぼ空"]],
-  range:[["27","上の 27 枠（既定）"],["36","ホットバーも（36）"]],
-  frames:[["on","薄い枠を描く（決定）"],["off","描かない"]],
-  bg:[["card","カード"],["line","行ごと"],["none","なし"]],
+  gridHot:[["off","含めない（既定）"],["on","含める"]],
+  countHot:[["on","含める（案の既定）"],["off","含めない"]],
+  fmt:[["a","A 空き 20"],["b","B 空き 20/36"],["c","C 20/36"],["d","D 枠＋20（推奨）"],["e","E 枠＋20/36"]],
+  bg:[["card","カード"],["none","なし"]],
   scale:[["75","75 %"],["100","100 %"],["150","150 %"]],
-  place:[["mr","右の中央（推奨）"],["br","右下"],["tl","左上"]],
   lang:[["ja","日本語"],["en","English"]],
 };
 for(const [k,list] of Object.entries(opts)){
@@ -156,22 +163,21 @@ function render(){
   const {main,hot}=contents();
   const hb=$("#hotbar");hb.innerHTML="";hot.forEach(it=>hb.appendChild(slotEl(it,1)));
   const s=+state.scale/100;
-  const grid=document.createElement("div");grid.className=`el grid ${state.bg} ${state.frames==="on"?"frames":""}`;grid.style.setProperty("--s",s);
+  const grid=document.createElement("div");grid.className=`el grid ${state.bg} frames`;grid.style.setProperty("--s",s);
   const addRow=items=>{const row=document.createElement("div");row.className="gridrow";items.forEach(it=>row.appendChild(slotEl(it,s)));grid.appendChild(row)};
   for(let r=0;r<3;r++)addRow(main.slice(r*9,r*9+9));
-  if(state.range==="36"){const sp=document.createElement("div");sp.className="split";grid.appendChild(sp);addRow(hot)}
-  const slots=state.range==="36"?main.concat(hot):main;
-  const free=slots.filter(x=>!x).length;
+  if(state.gridHot==="on"){const sp=document.createElement("div");sp.className="split";grid.appendChild(sp);addRow(hot)}
+  const slots=state.countHot==="on"?main.concat(hot):main;
+  const free=slots.filter(x=>!x).length,total=slots.length;
   const count=document.createElement("div");count.className=`el count ${state.bg} ${free===0?"full":""}`;count.style.setProperty("--s",s);
   if(state.bg==="card")count.style.background="rgba(16,17,19,.6)";
-  count.textContent=state.lang==="ja"?`空き ${free}`:`${free} free`;
+  const ja=state.lang==="ja",box='<span class="box"></span>',tot=`<span class="tot">/${total}</span>`;
+  count.innerHTML={a:ja?`空き ${free}`:`${free} free`,b:(ja?`空き ${free}`:`${free} free `)+(ja?tot:`<span class="tot">of ${total}</span>`),
+    c:`${free}${tot}`,d:`${box}${free}`,e:`${box}${free}${tot}`}[state.fmt];
   scr.append(grid,count);
-  // Place: the grid at the anchor with a 2-unit margin, the counter above it.
-  const u=scr.clientWidth/480,m=2*u,gh=grid.offsetHeight,ch=count.offsetHeight;
-  for(const e of [grid,count]){e.style.left=e.style.right=e.style.top=e.style.bottom=""}
-  if(state.place==="br"){grid.style.right=m+"px";grid.style.bottom=m+"px";count.style.right=m+"px";count.style.bottom=(m+gh+u)+"px"}
-  if(state.place==="mr"){const top=(scr.clientHeight-gh)/2;grid.style.right=m+"px";grid.style.top=top+"px";count.style.right=m+"px";count.style.top=(top-ch-u)+"px"}
-  if(state.place==="tl"){grid.style.left=m+"px";grid.style.top=(m+ch+u)+"px";count.style.left=m+"px";count.style.top=m+"px"}
+  // Bottom right: the counter in the corner, the grid just above it.
+  const u=scr.clientWidth/480,m=4*u,ch=count.offsetHeight;
+  count.style.right=m+"px";count.style.bottom=m+"px";grid.style.right=m+"px";grid.style.bottom=(m+ch+2*u)+"px";
 }
 render();addEventListener("resize",render);
 </script>
