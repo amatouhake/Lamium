@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Shared-mesh item icons everywhere (2026-10-10)
+
+By the maintainer, local, normal build `cbaacfc` (DLL
+`e71d9e3cf3ad34ebbdcec9cbbd54106431cb98c84a1dcebdf6199deb31cefb2d`). Fence
+gates and leather armor's undyeable layer show in the shulker preview;
+leather in the durability HUD looks like the vanilla slot; offhand slot,
+target card and other icons unchanged in place and size; no flicker, no
+crash. Noted: the offhand slot's item may sit about 1 px lower than the
+hotbar's (not known whether this build caused it). Shield glint not
+addressed.
+
 ## L-119 shared-mesh batch in the shulker preview (2026-10-10)
 
 By the maintainer, local, normal build `6a32266` (DLL

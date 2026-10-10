@@ -308,6 +308,11 @@ textures), first for block items in the shulker preview only. Risk: the
 context's persistent mesh list is indexed per frame
 (`mCurrentPersistentMeshItemIdx`); adding batches outside the UI pass may
 disturb vanilla's, so the round watches for flicker and crashes.
+Done 2026-10-10 for block and flat items (`cbaacfc`, checked in game):
+`inspection/render/ItemIcon` batches chunk types 0 (`atlas.terrain`, alpha
+0) and 2 (`atlas.items`, alpha 1) with UI material 13 for every Lamium icon;
+fence gates and leather layers now match vanilla. Left: the shield glint
+(default batch, passes 9/5/7) and the offhand icon possibly 1 px low.
 A fence gate inside a shulker box shows only its count in Shulker Box
 Preview, without the item icon. The maintainer saw the same in the other
 places that draw icons the same way (Lamium's own `renderGuiItemNew` calls,
