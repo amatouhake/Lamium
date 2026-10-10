@@ -8,6 +8,7 @@
 #include "features/inspection/render/IconTrace.h"
 #include "features/research/TradeTrace.h"
 #include "features/interaction/InventoryMoveTrace.h"
+#include "features/visuals/ConnectedTexturesTrace.h"
 #include "features/inspection/LockedTrades.h"
 #include "features/inspection/EnglishSearch.h"
 #include "features/interaction/EdgeGuard.h"
@@ -141,6 +142,7 @@ Feature const features[] = {
     {"Icon diagnostics", started<inspection::iconTrace::start>, inspection::iconTrace::stop},
     {"Trade diagnostics", started<researchTrace::trade::start>, researchTrace::trade::stop},
     {"Inventory move diagnostics", started<interaction::inventoryMoveTrace::start>, interaction::inventoryMoveTrace::stop},
+    {"Connected textures spike", started<visuals::connectedTexturesTrace::start>, visuals::connectedTexturesTrace::stop},
     {"Legacy flow diagnostics", started<inventory::game::legacyFlowTrace::start>, inventory::game::legacyFlowTrace::stop},
     {"Consumption diagnostics", started<inventory::game::consumptionTrace::start>, inventory::game::consumptionTrace::stop},
     {"Sneak", started<interaction::sneak::start>, interaction::sneak::stop},
