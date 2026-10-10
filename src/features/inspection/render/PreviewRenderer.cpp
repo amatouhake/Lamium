@@ -137,14 +137,6 @@ void PreviewRenderer::render(
             icons.push_back({&stack, icon.x0, icon.y0, 1.0f, frames[static_cast<size_t>(slot)]});
         }
         drawItemIcons(context, icons, kItemZOrder);
-#ifdef LAMIUM_ICON_TRACE
-        // L-91 glint experiment: the first slot's item again in row 2, one variant per column.
-        if (preview.slotCount() > 11 && !preview.slots[0].isNull() && preview.slots[0].mItem)
-            for (int variant = 1; variant <= 3; ++variant) {
-                Rect const cell = layout.icon(8 + variant);
-                glintExperiment(context, preview.slots[0], cell.x0, cell.y0, variant, kItemZOrder);
-            }
-#endif
         for (int slot = 0; slot < preview.slotCount(); ++slot) {
             ItemStack const& stack = preview.slots[static_cast<size_t>(slot)];
             if (stack.isNull() || !stack.mItem) {
