@@ -98,12 +98,16 @@ TextureUVCoordinateSet const& paneTexture(char const* via, TextureUVCoordinateSe
     if (!pane.block) return tex;
     ++pane.lookups;
     try {
+        // Round 3: the slot is a texture slot, not a face. Slot 0 is the glass
+        // used on both sides of the pane, slot 5 the thin edge strip (left
+        // alone). Left/right follow the pane's run: X neighbors as seen in
+        // round 2, Z neighbors guessed the same way the east face reads;
+        // top/bottom are the panes above and below.
         Joined joined{};
-        if (slot >= 0 && slot < 6) {
-            auto s = sides(static_cast<Face>(slot));
-            joined = {sameAt(*pane.block, s.left), sameAt(*pane.block, s.right), sameAt(*pane.block, s.top),
-                      sameAt(*pane.block, s.bottom)};
-        }
+        auto* b = pane.block;
+        if (slot == 0)
+            joined = {sameAt(*b, {-1, 0, 0}) || sameAt(*b, {0, 0, 1}), sameAt(*b, {1, 0, 0}) || sameAt(*b, {0, 0, -1}),
+                      sameAt(*b, {0, 1, 0}), sameAt(*b, {0, -1, 0})};
         if (graphicsLogs < 80) {
             ++graphicsLogs;
             log("L-96 pane {} slot {} at {} (pane {} {} {}): uv {:.5f},{:.5f} - {:.5f},{:.5f} image {}x{} joined L{} R{} T{} B{}",
@@ -111,7 +115,7 @@ TextureUVCoordinateSet const& paneTexture(char const* via, TextureUVCoordinateSe
                 pane.pos.z, tex._u0, tex._v0, tex._u1, tex._v1, tex._sourceImageWidth, tex._sourceImageHeight, joined.left,
                 joined.right, joined.top, joined.bottom);
         }
-        if (slot < 0 || slot >= 6) return tex;
+        if (slot != 0) return tex;
         auto uv = trim({tex._u0, tex._v0, tex._u1, tex._v1}, tex._sourceImageWidth, tex._sourceImageHeight, joined);
         trimmedSet = tex;
         trimmedSet._u0 = uv.u0;
