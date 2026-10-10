@@ -31,6 +31,8 @@ int main() try {
     frameRateTests();
     extern void debugLinesTests();
     debugLinesTests();
+    extern void lockedTradesTests();
+    lockedTradesTests();
     extern void toolChoiceTests();
     toolChoiceTests();
     extern void weaponChoiceTests();
