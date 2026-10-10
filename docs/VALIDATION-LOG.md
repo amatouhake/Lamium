@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-96 glass panes drawn split (2026-10-11)
+
+By the maintainer, local. `17cedc6` (DLL
+`f18bfc6feaa192754da56be3f24aa7139a2d5d455a15212a01cc7c3731918125`): rows,
+stacked walls, mixed shapes stacked, crosses and T shapes and panes against
+blocks look right in detail; no stretch while placing; joints unnoticeable
+from afar; about ten crossing 61x61 pane walls in several directions caused
+no felt slowdown and almost no FPS change.
+
 ## L-96 bookshelves, sandstone and the split method (2026-10-11)
 
 By the maintainer, local. Crop trial `ac3198c`: bookshelf dividers and the

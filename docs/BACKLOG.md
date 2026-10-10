@@ -69,37 +69,33 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins. Every entry names what the task is, not only its number.
 
-1. **L-96 Connected Textures** (maintainer 2026-10-11: higher demand than
-   the Schematic follow-ups and the restriction redesign): glass blocks
-   and panes shipped behind the Experimental switch and passed in game
-   (`8c3d21a`, `3e76e7a`); next: decide whether to go beyond glass.
-2. **Small and medium features and fixes** (maintainer 2026-10-10: these
+1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
      glint in Lamium's icons (parked after one round; leather fixed).
    - Paused: L-132 move while the inventory screen is open (research
      paused after eight trial rounds).
-3. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
+2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
    light-blue compromise (real skins, details such as cushion colors),
    L-116 raw materials from the game's recipes, L-117 Japanese name tags.
    Choose with the maintainer; SCHEMATIC.md retains the contract and build
    record. Server/broader coverage remains open.
-4. **Placement and breaking — L-15 restrictions and L-59 held placement
+3. **Placement and breaking — L-15 restrictions and L-59 held placement
    style:** L-15 breaking shipped in 0.1.8; the maintainer will redesign
    it, and placement waits for that Design. L-59 waits for the maintainer's
    go.
-5. **L-111 integration between features:** proposal in INTEGRATION.md;
+4. **L-111 integration between features:** proposal in INTEGRATION.md;
    the maintainer reviews it when it becomes needed.
-6. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
+5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
    trace/test steps), L-71 starting a glide from the mod, L-30 Ender Dragon
    part hitboxes, L-33 mob growth and
    breeding timers, L-105 performance profiling (measure before any
    optimization).
-7. **Before a release:** the pre-release checks below. 0.1.8 was released
+6. **Before a release:** the pre-release checks below. 0.1.8 was released
    on 2026-10-10; server checks stay listed below as known gaps (Release policy does not require a full
    regression).
 
@@ -469,109 +465,6 @@ Next step if resumed (a larger change, maintainer's call): draw these icons
 through the slot path, e.g. drive an `InventoryItemRenderer` (or its pass
 setup) from Lamium, which could fix the shield glint too. Keep `isGlint` as
 the glint predicate; do not replace it with `isEnchanted`.
-
-### L-96 Connected textures, starting with glass
-Kind: Research **(strong model)** first, then Design for the settings.
-Taken up 2026-10-05 after a public request.
-Status: open. Steps 1-4 done for glass blocks (2026-10-11, `8c3d21a`,
-checked in game): the "Connected Textures" switch (つながるテクスチャ,
-visuals.connectedTextures, default off, Experimental, toggle key) trims clear,
-same-color stained and tinted glass, rebuilds loaded chunks on toggle and
-stays vanilla on an unverified game executable. Step 5 done for glass panes
-(2026-10-11, `3e76e7a`, checked in game): panes share one glass texture
-between the center post and the arms, so they are adjusted per part on the
-mesh vanilla built (`tessellateDoubleThinFenceInWorld`; the glass rectangle
-from `BlockGraphics::getTexture` slot 0, the thin edge is slot 5): a glass
-face's side border moves inward where its block edge touches the same pane;
-its top (bottom) border and the thin top (bottom) face go where the pane above
-(below) has the same part (center post, or the arm in that direction, from
-`ThinFenceBlock::addAABBs`; an L's boxes leave out the drawn center). Trimming
-the shared texture, and folding by collision boxes, failed in game first
-(trial rounds 1-9, `52fb6eb`..`473b4f2`).
-Bookshelves and sandstone, and the split method (2026-10-11, maintainer:
-connected bookshelves lose the divider between side-by-side shelves, stacked
-sandstone loses the band between blocks). Cropping stretched the texture,
-which showed while a block was placed and looked wrong on sandstone, so every
-block rule now draws split (`ec5aa69`..`a339a6d`): the face is drawn once per
-cell and each copy reshaped, the dropped border becoming a strip of other
-texels at the texture's own scale, with the face's corner color and light
-interpolated per cell. Rules: glass drops 2 texels on joined sides filled
-from the middle (texels 7-8) because a 1-texel strip next to the frame let
-far, mipmapped glass show the frame again; bookshelves drop the 1-texel side
-column, filled from the column next to it (books stay aligned up close);
-sandstone and red sandstone drop the 4-texel top band under another one,
-filled from the middle rock (rows 8-11). Open: panes still move their glass
-UVs inward (a slight stretch); more blocks only on request. Moved ahead of the Schematic follow-ups and the
-restriction redesign (maintainer 2026-10-11: higher demand).
-What it is for: blocks next to a block of the same kind draw as one surface,
-without the border line between them. Start with glass, then stained glass of
-the same color, then glass panes; panes joined to blocks, different colors
-and border options come later.
-Approach to test (a feasibility hint is recorded in PROVENANCE.md): change how
-chunk faces are tessellated, look at the neighbor through the block source and
-crop the texture coordinates at the touching edge; changing the setting marks
-chunks dirty so they rebuild. The schematic ghosts already drive
-`BlockTessellator::tessellateInWorld`, `Tessellator` and render materials, so
-the feasibility is high; the difference is that this changes vanilla's chunk
-meshes.
-Constraints:
-- This changes vanilla chunk tessellation, which is more version-sensitive
-  than the schematic ghosts' private tessellator. Capability-gated and fail
-  open: on an unverified game version do nothing.
-- Bound the neighbor lookups; a toggle rebuilds chunks.
-- Glass is the research target. Resource-pack-defined tile sets are not
-  promised. Widen beyond glass only after surveying which vanilla blocks have
-  an inner border line.
-Layering (proposed 2026-10-07, from the maintainer's notes): the first
-user-visible feature stays glass, but the code is split so it can grow
-without a glass-only hack that mixes rendering and connection rules.
-1. Render backend: from `BlockTessellator` / `Tessellator`, get the block,
-   position, face, original texture and block source. Everything
-   version-sensitive stays here.
-2. Connection core, pure and tested (`tests/`): does this neighbor connect
-   (first: the same block; stained glass only with the same color), and the
-   face-neighbor mask in the face's plane (up/down/left/right, and the four
-   corners for later methods).
-3. Method: only "edge trim" at first, cropping the border UVs on connected
-   sides of the loaded (vanilla or resource-pack) texture. No extra
-   textures and no properties parser.
-4. Later methods (a 47-tile set chosen from the 8-neighbor mask, horizontal,
-   vertical) only when a block that needs another sprite is wanted
-   (bookshelf, sandstone). No compatibility with other connected-texture
-   formats is claimed until it is built.
-5. Pane geometry and hidden inner faces are a separate backend from the
-   texture choice; do not force them into the cube-face path.
-Settings name: "Connected Textures", with glass as its first target. No
-rule table or resource-pack format is published at first.
-Order:
-1. Research spike: on one face of plain glass, get block, position, face,
-   texture and block source reliably from the tessellator.
-2. Connection core and edge trim as pure logic with tests.
-3. Glass blocks: clear glass, then stained glass (same color only by
-   default; different colors connecting is not the default).
-4. Lifecycle: block updates, chunk and subchunk borders, chunk load, setting
-   on/off, resource-pack reload, world and dimension change (the setting
-   marks render chunks dirty).
-5. Glass panes through their own tessellation backend.
-6. Optional 47-tile spike after glass is stable: the pure 8-neighbor to
-   47-pattern mapping and a replacement-texture path, to decide whether
-   Lamium should grow a general connected-texture engine.
-Spike result (2026-10-11, `xmake f --ctm_trace=y`,
-`src/features/visuals/ConnectedTexturesTrace.cpp`, `b3d93c7`): hooking
-`BlockTessellator::tessellateBlockInWorld` (world `BlockPos`, `mRegion`, the
-block) and the six face calls `tessellateFaceDown/FaceUp/North/South/West/East`
-(the face's `TextureUVCoordinateSet`, `p` = the world position) and passing a
-copy of the UV set with one texel cut on each side whose in-plane neighbor is
-the same block type removes the inner lines of glass and same-color stained
-glass; the outer frame stays and different colors keep their line. The
-in-plane side guesses held on all six faces (seen from outside: north left
-+X, south left -X, east left +Z, west left -Z, top of side faces +Y; up face
-left -X top -Z, down face left -X top +Z). About 50x50 glass showed no
-slowdown. Not yet: a setting and chunk rebuild on toggle, panes, Vibrant
-Visuals, resource packs with other border widths, servers.
-Research output: the function(s) that can be intercepted on this game
-version, whether the crop works for glass and panes, the cost on a large
-view distance, and how it behaves with Vibrant Visuals / Deferred rendering.
 
 ### L-79 Carved pumpkin and spyglass frame draw path
 Kind: Research. Cheap models may run the steps below and report; implementing
