@@ -19,6 +19,11 @@
 #include "mc/entity/components/ActorOwnerComponent.h"
 #include "mc/client/network/ClientNetworkHandler.h"
 #include "mc/client/gui/screens/UIScene.h"
+#include "mc/client/input/ClientInputMappingFactory.h"
+#include "mc/deps/input/InputMapping.h"
+#include "mc/deps/input/KeyboardInputMapping.h"
+#include "mc/deps/input/KeyboardKeyBinding.h"
+#include <unordered_set>
 #include "mc/network/LoopbackPacketSender.h"
 #include "mc/network/MinecraftPacketIds.h"
 #include "mc/network/packet/CorrectPlayerMovePredictionPacket.h"
@@ -68,6 +73,10 @@ constexpr bool injectLater = false;
 // Round 7: let the inventory screen pass input on instead of feeding keys.
 constexpr bool feedRaw = false;
 unsigned absorbLogs = 0;
+constexpr bool passInput = false; // Round 7 had no effect.
+// Round 8: copy the gameplay mapping's movement key bindings into the
+// other (screen) mappings once, and log what each mapping binds.
+bool mappingsPatched = false;
 unsigned lastComponentFlags = 0xFFFFFFFF, flagLogs = 0;
 std::string lastPacket;
 std::string lastUpdate;
@@ -312,7 +321,7 @@ LL_TYPE_INSTANCE_HOOK(InventoryMoveCorrection, ll::memory::HookPriority::Normal,
 LL_TYPE_INSTANCE_HOOK(InventoryMoveAbsorb, ll::memory::HookPriority::Normal, UIScene, &UIScene::$absorbsInput, bool) {
     bool absorbs = origin();
     try {
-        if (absorbs && getScreenName().starts_with("inventory_screen")) {
+        if (passInput && absorbs && getScreenName().starts_with("inventory_screen")) {
             if (absorbLogs < 3) {
                 ++absorbLogs;
                 log("L-132 inventory_screen absorbsInput {} -> false", absorbs);
@@ -322,6 +331,42 @@ LL_TYPE_INSTANCE_HOOK(InventoryMoveAbsorb, ll::memory::HookPriority::Normal, UIS
     } catch (...) {}
     return absorbs;
 }
+LL_TYPE_INSTANCE_HOOK(InventoryMoveMapping, ll::memory::HookPriority::Normal, ClientInputMappingFactory,
+    &ClientInputMappingFactory::$getMapping, InputMapping const*, std::string const& name) {
+    if (!mappingsPatched && !mActiveInputMappings->empty()) try {
+        mappingsPatched = true;
+        constexpr std::array movementKeys{87, 83, 65, 68, 32, 17};
+        auto isMovementKey = [&](int key) { return std::find(movementKeys.begin(), movementKeys.end(), key) != movementKeys.end(); };
+        auto& mappings = *mActiveInputMappings;
+        log("L-132 first mapping request '{}' with {} active mappings", name, mappings.size());
+        InputMapping const* source = nullptr;
+        for (auto& [mappingName, mapping] : mappings) {
+            std::string text;
+            for (auto& binding : *mapping.keyboardMapping->keyBindings)
+                if (isMovementKey(binding.keyNum)) text += std::format("{}={} ", *binding.buttonName, binding.keyNum);
+            log("L-132 mapping '{}': {} key bindings; movement keys: {}", mappingName, mapping.keyboardMapping->keyBindings->size(), text);
+            for (auto& binding : *mapping.keyboardMapping->keyBindings)
+                if (binding.keyNum == 87 && binding.buttonName->find("forward") != std::string::npos) source = &mapping;
+        }
+        if (!source) {
+            log("L-132 no mapping binds W to a forward button");
+        } else {
+            std::vector<KeyboardKeyBinding> movement;
+            for (auto& binding : *source->keyboardMapping->keyBindings)
+                if (isMovementKey(binding.keyNum)) movement.push_back(binding);
+            for (auto& [mappingName, mapping] : mappings) {
+                if (&mapping == source) continue;
+                auto& bindings = *mapping.keyboardMapping->keyBindings;
+                bool hasForward = std::any_of(bindings.begin(), bindings.end(),
+                    [](KeyboardKeyBinding const& b) { return b.buttonName->find("forward") != std::string::npos; });
+                if (hasForward) continue;
+                for (auto& binding : movement) bindings.push_back(binding);
+                log("L-132 added {} movement bindings to mapping '{}'", movement.size(), mappingName);
+            }
+        }
+    } catch (...) { log("L-132 mapping patch failed"); }
+    return origin(name);
+}
 void start() {
     InventoryMoveExtract::hook();
     InventoryMoveClear::hook();
@@ -330,6 +375,7 @@ void start() {
     InventoryMoveUpdate::hook();
     InventoryMoveSend::hook();
     InventoryMoveAbsorb::hook();
+    InventoryMoveMapping::hook();
     InventoryMoveCorrection::hook();
     Runtime::instance().self().getLogger().warn("Inventory move diagnostics enabled (L-132)");
 }
@@ -341,6 +387,7 @@ void stop() {
     InventoryMoveUpdate::unhook(true);
     InventoryMoveSend::unhook(true);
     InventoryMoveAbsorb::unhook(true);
+    InventoryMoveMapping::unhook(true);
     InventoryMoveCorrection::unhook(true);
 }
 }
