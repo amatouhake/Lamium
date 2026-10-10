@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-127 inventory HUD and used slots (2026-10-11)
+
+By the maintainer, local. First build `1789bee` (DLL
+`48afd205db4d55a05515df14f330e723236638389eafab26de243388efbff563`): grid
+contents, counts, durability bars, the hotbar row and the counter matched the
+inventory; the warning color at 0 free; layout editor moves, scale and
+backgrounds; the offhand slot unchanged after sharing its glint, bar and
+count drawing. Review changes followed (bottom-right defaults, frames on
+every slot, card / none, even card padding: `603ca1b`, DLL
+`7affe07e892cfb9b56d5be9354bd7bd3e91ca3237d9da5527d5b9f350ac53ce5`, checked;
+one hotbar switch per element: `6a58268`, DLL
+`fbd0a68fde281a8ceea8fcca2a0a601f027a7ae00049252dba0ba21d807c0e8e`). Final
+build `7906581` (DLL
+`2c8c3f949dbebe51453aad1415fdf7fd9aa23a12a600374536e4b82b906a3b38`): "Used
+slots" shows used/total such as 13/36 at the bottom right and turns the
+warning color when full; slot frames around the whole cell leave room around
+the icons; the new names read naturally in Japanese and English. Not seen:
+servers, Simplified Chinese text, 75 % and 150 % after the frame change.
+
 ## L-131 player list dimensions and permission marks (2026-10-10)
 
 By the maintainer, `4ad4e18` (DLL

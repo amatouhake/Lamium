@@ -1701,6 +1701,36 @@ two new sprite paths load (icons appear at all).
 
 ## Design
 
+### L-127 Inventory HUD and slot counter
+Done 2026-10-11: built (`1789bee` to `7906581`) and checked in game by the maintainer (VALIDATION-LOG).
+Kind: Feature; Design done (maintainer 2026-10-10), revised after the first
+in-game use (2026-10-11).
+Status: built (1789bee, 603ca1b); first build checked in game 2026-10-11.
+Design settled 2026-10-11 (mockup version 3); the latest build is unchecked.
+Mockup: [demos/inventory-hud.html](demos/inventory-hud.html) (version 3).
+Two HUD layout elements, each with its own switch (both default off) and a
+toggle hotkey (unbound by default):
+- Inventory grid: the main 27 slots as 9x3 in the vanilla inventory screen's
+  order; a setting adds the hotbar (36) as one more row below a gap.
+  Armor and offhand are not included (equipment has its own display). Every
+  slot has a faint frame around the whole 18-unit cell, clear of the icon
+  (look D; a frame on the icon's edge felt cramped); empty slots show only
+  that. Items use the shared
+  vanilla-like icon path (`inspection/render/ItemIcon`) with stack counts,
+  durability bars and glint; the shield glint is still missing (L-91).
+- Used slots (使用中の枠, 已用格子): a separate small element showing
+  used/total such as "13/36", in the palette's warning color when full. The
+  total shows the counted range and makes the purpose plain (chosen over a
+  free count, 2026-10-11). It works with the grid off.
+- Size: one slot is 18 units like the hotbar at 100 %; the layout editor's
+  75-150 % scale applies. Backgrounds: card / none (per line looked the same
+  and was dropped, 2026-10-11).
+- Shown whenever switched on, hidden while any screen is open.
+- Default position: bottom right, the used-slot counter in the corner and the grid
+  just above it (chosen in game 2026-10-11; clear of the hotbar).
+- Hotbar: one "include the hotbar" switch per element; the grid shows the
+  main 27 by default, the counter counts all 36 (decided 2026-10-11).
+
 ### L-95 Fake Offhand beyond block placement
 Kind: Research (strong model). Resumed by the maintainer 2026-10-06.
 Closed 2026-10-07 by the maintainer after the property-based eligibility,
