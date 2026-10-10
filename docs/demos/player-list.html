@@ -34,17 +34,18 @@ code{font-size:12.5px;color:var(--ink)}
 .list.card{background:rgba(var(--panel),.6);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);padding:.55em .7em .6em}
 .list .head{display:flex;justify-content:space-between;gap:1.5em;color:var(--dim);padding:0 .1em .45em;text-shadow:1px 1px 0 #3f3f3f}
 .list .cols{display:flex;gap:1.1em;align-items:flex-start}
-.list .col{display:grid;row-gap:2px;column-gap:.5em;align-items:center}
+.list .col{display:grid;row-gap:2px;column-gap:.5em;align-items:center;padding:0 .3em}
 .row{display:contents}
 .cell{height:1.45em;display:flex;align-items:center;text-shadow:1px 1px 0 #3f3f3f;white-space:nowrap}
-.cell.first{padding-left:.3em}.cell.last{padding-right:.3em}
-.list.line .cell{background:rgba(var(--panel),.6);margin-right:-.5em;padding-right:.5em}.list.line .cell.last{margin-right:0}
+.band{grid-column:1/-1;align-self:stretch;margin:0 -.3em;z-index:0}
+.list.line .band{background:rgba(var(--panel),.6)}
+.cell{position:relative;z-index:1}
 .cell.name{overflow:hidden;max-width:var(--name-max)}.cell.name span{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .cell.dist{justify-content:flex-end}
 .list canvas,.list img{image-rendering:pixelated;display:block}
 .face{width:1.05em;height:1.05em}
 .me{color:var(--accent)}
-.ic{width:1.05em;justify-content:center}
+.ic{width:1.05em;justify-content:center;flex:none}
 .ic img,.ic canvas{max-width:100%;max-height:1.05em}
 .sub{color:var(--dim)}
 .na{color:var(--faint)}
@@ -66,9 +67,9 @@ code{font-size:12.5px;color:var(--ink)}
 </style>
 <div class="wrap">
   <header>
-    <div class="eyebrow">BACKLOG L-128 · プレイヤー一覧 · 確認用モック 第 3 版</div>
+    <div class="eyebrow">BACKLOG L-128 · プレイヤー一覧 · 確認用モック 第 4 版</div>
     <h1>キーを押している間のプレイヤー一覧</h1>
-    <p class="lede">サーバーがクライアントに送るプレイヤー一覧（描画距離の外の人も含む）を、キーを押している間だけ画面上部に出します。第 3 版（2026-10-10）：機種は Lamium 独自の単色アイコン、別ディメンションの人はディメンションのアイコンだけで距離は出さない、列は表全体で揃え、長い名前は省略。<b>このモックの顔とアイコンは仮の絵</b>で、実物はスキンの顔とゲームのテクスチャ（下の表）です。</p>
+    <p class="lede">サーバーがクライアントに送るプレイヤー一覧（描画距離の外の人も含む）を、キーを押している間だけ画面上部に出します。第 4 版（2026-10-10）：機種はゲームが受け取る 11 種類を Lamium 独自のアイコンで描き分け（形で端末の種類、色で機種。ロゴは描かない）、行ごとの背景は 1 本の帯に。<b>このモックの顔とアイコンは仮の絵</b>で、実物はスキンの顔とゲームのテクスチャ（下の表）です。</p>
   </header>
 
   <section class="controls">
@@ -98,13 +99,18 @@ code{font-size:12.5px;color:var(--ink)}
     <h2 style="margin:0">アイコンの出どころ（ゲームのテクスチャ）</h2>
     <ul>
       <li><b>ホスト</b>：<code>textures/ui/permissions_op_crown</code>（権限画面のオペレーターの王冠）。一覧が教えてくれるのはホストかどうかだけで、他の人がオペレーターかは分からない（要調査）。<code>permissions_member_star</code>・<code>permissions_visitor_hand</code> もあり、権限が分かれば同じ列で出せる。</li>
-      <li><b>機種</b>：3 つにまとめる（PC：Windows・macOS・Linux ／ スマホ・タブレット：Android・iOS・Fire ／ ゲーム機：Xbox・PlayStation・Switch）。ゲームのテクスチャは機種ロゴが一部しかなく、入力アイコンは大きさも線の太さもばらばらで見づらかった（第 2 版の確認）。候補：<b>A</b> Lamium 独自の 8×8 単色アイコン（モニター・スマホ・ゲームパッド。このモックの絵、Lamium の描画部品で四角の組み合わせとして描ける）／ <b>B</b> 外部のピクセルアイコン集（使う前にライセンスと出どころの記録が要る。docs/PROVENANCE.md）。</li>
+      <li><b>機種</b>：一覧と一緒に届く機種は 11 種類（Windows・macOS・Linux・Android・iOS・Fire・PlayStation・Switch・Xbox・専用サーバー・不明）。iPhone と iPad、スマホとタブレットは区別できない。Lamium 独自の 8×8 アイコンで描き分ける：<b>形</b>で端末の種類（モニター・スマホ・タブレット・ゲームパッド・サーバー）、<b>色や小さな印</b>で機種。各社のロゴは描かない。プロキシや改造クライアントでは違う値や不明が届くことがある（要調査）。</li>
       <li><b>ディメンション</b>：ブロックのアイテムアイコン（草ブロック・ネザーラック・エンドストーン）をインベントリと同じ描き方で出す。分からない人は空欄。どこまで分かるかは要調査。</li>
       <li><b>距離</b>：同じディメンションの人だけ「123 m」。分からない人は「—」。別ディメンションの人はディメンションのアイコンだけで距離は空欄（換算はスコープ外、2026-10-10）。</li>
       <li><b>Ping</b>：ゲームに Ping のアイコンはあるが、サーバーがプレイヤーごとの値を送らないため出せない。</li>
     </ul>
   </section>
 
+
+  <section class="note">
+    <h2 style="margin:0">機種アイコン（案）</h2>
+    <div id="legend" style="display:flex;flex-wrap:wrap;gap:10px 18px;font-size:13px;color:var(--ink-2)"></div>
+  </section>
   <section>
     <h2>設定の行（案）</h2>
     <div class="tbl">
@@ -117,18 +123,18 @@ code{font-size:12.5px;color:var(--ink)}
   </section>
 
   <section class="ask">
-    <h2 style="margin:0">決めてほしいこと（第 3 版）</h2>
+    <h2 style="margin:0">決めてほしいこと（第 4 版）</h2>
     <ol>
-      <li><b>機種のアイコン</b>：A Lamium 独自の単色アイコン<span class="rec">推奨</span> ／ B 外部のアイコン集（候補を探して出どころを記録してから）。</li>
-      <li><b>名前の最大幅</b>：16 文字分で省略<span class="rec">推奨</span> ／ 省略しない（列が足りなければ人数の列を減らすだけ）。上の「名前」で長い名前を混ぜて見比べられる。</li>
+      <li><b>機種アイコンの描き分け方</b>：形で端末の種類、色や印で機種（このモック）<span class="rec">推奨</span> ／ 形だけ（PC・スマホ・タブレット・ゲーム機・サーバー）で色は付けない。</li>
+      <li>見分けにくいアイコンがあれば、どれかを教えてください（例：Android と iOS、PlayStation と Xbox）。</li>
     </ol>
-    <p style="font-size:13px;color:var(--ink-2)">決まったこと：背景の既定はカード。ディメンションが分からない人は空欄。別ディメンションの距離は出さない（換算はスコープ外）。</p>
+    <p style="font-size:13px;color:var(--ink-2)">決まったこと：機種は Lamium 独自のアイコン。名前の最大幅は 16 文字分で省略。背景の既定はカード。ディメンションが分からない人は空欄。別ディメンションの距離は出さない。</p>
   </section>
 </div>
 <script>
 const names=["Steve_Builder","Birch_Baron","alex2026","MossyCobble","Creeper_Hugger","sakura_miner","NetherNomad","pixelpanda","IronGolemFan","sky_walker","RedstoneRin","oak_and_ash","BeaconBob","tanuki_tunnel","LapisLazuli","FrostWalker9","mushroom_isle","ElytraEmi","QuartzQueen","VillagerVic","ender_eyes","HoneyBee88","deepslate_dan","coral_reef","Totem_Tom","snowgolem","AmethystAmy","shulker_shu","piglin_pal","WardenWatch"];
-const platforms=["Windows","Android","iOS","Switch","PlayStation","Xbox"];
-const platformClass={Windows:"pc",Android:"mobile",iOS:"mobile",Switch:"console",PlayStation:"console",Xbox:"console"};
+const platforms=["Windows","Android","iOS","Switch","PlayStation","Xbox","macOS","Linux","Fire","Server","Unknown"];
+const platformLabel={Windows:"Windows",macOS:"macOS",Linux:"Linux",Android:"Android",iOS:"iOS / iPadOS",Fire:"Fire（Amazon）",PlayStation:"PlayStation",Switch:"Switch",Xbox:"Xbox",Server:"専用サーバー",Unknown:"不明"};
 let count=5, bg="card", lang="ja", longNames=false;
 const extras={platform:true,dimension:true,distance:true,ping:false};
 // Real textures can be dropped in here as data URIs for a local review copy.
@@ -137,9 +143,17 @@ function pix(rows,colors){const c=document.createElement("canvas");c.width=rows[
   rows.forEach((r,y)=>[...r].forEach((ch,x)=>{if(ch!=="."){g.fillStyle=colors[ch];g.fillRect(x,y,1,1)}}));return c}
 const ART={
  crown:()=>pix(["........","y..y..y.","yy.yy.yy","yyyyyyyy","yryybyyy","yyyyyyyy","dddddddd"],{y:"#f2c230",r:"#d83c3c",b:"#3c78d8",d:"#a07818"}),
- pc:()=>pix(["wwwwwwww","w......w","w......w","w......w","wwwwwwww","...ww...","..wwww..","........"],{w:"#e6e6e6"}),
- mobile:()=>pix(["..wwww..","..w..w..","..w..w..","..w..w..","..w..w..","..w..w..","..wwww..","........"],{w:"#e6e6e6"}),
- console:()=>pix(["........",".wwwwww.","ww.ww.ww","w...w.ww","ww.wwwww","wwwwwwww","ww....ww","........"],{w:"#e6e6e6"}),
+ Windows:()=>pix(["wwwwwwww","wbbbbbbw","wbbbbbbw","wbbbbbbw","wwwwwwww","...ww...","..wwww..","........"],{w:"#e6e6e6",b:"#3a7bd5"}),
+ macOS:()=>pix(["........",".wwwwww.",".wkkkkw.",".wkkkkw.",".wwwwww.","wwwwwwww","wwwwwwww","........"],{w:"#c8ccd0",k:"#2b2f33"}),
+ Linux:()=>pix(["wwwwwwww","wkkkkkkw","wkgkkkkw","wkkggkkw","wwwwwwww","...ww...","..wwww..","........"],{w:"#e6e6e6",k:"#1b1d1f",g:"#6cc349"}),
+ Android:()=>pix(["..wwww..","..wggw..","..wggw..","..wggw..","..wggw..","..wwww..","..w..w..","..wwww.."],{w:"#e6e6e6",g:"#7bc96f"}),
+ iOS:()=>pix(["..wwww..","..wkkw..","..wkkw..","..wkkw..","..wkkw..","..wkkw..","..wwww..","...ww..."],{w:"#e6e6e6",k:"#3a3f45"}),
+ Fire:()=>pix(["........","wwwwwwww","woooooow","woooooow","woooooow","woooooow","wwwwwwww","........"],{w:"#e6e6e6",o:"#f0a03a"}),
+ PlayStation:()=>pix(["........",".bbbbbb.","bb.bb.bb","b...b.bb","bb.bbbbb","bbbbbbbb","bb....bb","........"],{b:"#4f7fd9"}),
+ Switch:()=>pix(["........","rrwwwwbb","r.wkkw.b","rrwkkwbb","rrwkkwbb","r.wwww.b","rr....bb","........"],{r:"#e0453a",b:"#2fb7e0",w:"#e6e6e6",k:"#2b2f33"}),
+ Xbox:()=>pix(["........",".gggggg.","gg.gg.gg","g...g.gg","gg.ggggg","gggggggg","gg....gg","........"],{g:"#4caf50"}),
+ Server:()=>pix(["wwwwwwww","w.g....w","wwwwwwww","w.g....w","wwwwwwww","w.g....w","wwwwwwww","........"],{w:"#e6e6e6",g:"#6cc349"}),
+ Unknown:()=>pix(["..wwww..",".ww..ww.",".....ww.","....ww..","...ww...","...ww...","........","...ww..."],{w:"#a6b0ab"}),
  overworld:()=>pix(["gggggggg","gGggGggg","dgdddgdd","dddddddd","ddDddddd","dddddDdd","dDdddddd","dddddddd"],{g:"#6aa84f",G:"#4f8a3c",d:"#8b5e3c",D:"#6b4630"}),
  nether:()=>pix(["rrRrrrRr","rRrrRrrr","rrrRrrrr","RrrrrRrr","rrRrrrrR","rrrrRrrr","rRrrrrRr","rrrRrrrr"],{r:"#7a2a2a",R:"#5a1e1e"}),
  end:()=>pix(["yyyYyyyy","yYyyyyYy","yyyyYyyy","yyYyyyyy","Yyyyyyyy","yyyyyYyy","yYyyyyyy","yyyyYyyY"],{y:"#e6e2a8",Y:"#c8c38a"})};
@@ -160,7 +174,7 @@ function player(i){const r=rng(i*31+7);const near=r()<.45,locator=r()<.6;
   let [dim,distance]=i<fixed.length?fixed[i]:[near?0:(locator?Math.floor(r()*3):null),near?Math.floor(r()*90+3):locator?Math.floor(r()*2400+120):null];
   let name=i===0?"kenkenhagi":names[i%names.length]+(i>=names.length?"_"+i:"");
   if(longNames&&(i===2||i===4))name=long[i===2?0:1];
-  return{i,name,me:i===0,host:i===1,platform:platforms[(i*5+3)%platforms.length],dim,distance:dim!==0?null:distance}}
+  return{i,name,me:i===0,host:i===1,platform:platforms[(i*4)%platforms.length],dim,distance:dim!==0?null:distance}}
 function render(){const l=()=>document.getElementById("list"),sc=document.querySelector(".screen");
   for(const nameMax of ["16ch","10ch"])for(let cols=3;cols>=1;cols--){renderWith(cols,nameMax);if(l().getBoundingClientRect().width<=sc.getBoundingClientRect().width-8)return}}
 function renderWith(maxCols,nameMax){
@@ -175,16 +189,18 @@ function renderWith(maxCols,nameMax){
   const template=["1.05em","minmax(4em,max-content)","1.05em"];
   if(extras.platform)template.push("1.05em");if(extras.dimension)template.push("1.05em");if(extras.distance)template.push("max-content");
   for(let c=0;c*perCol<shown;c++){const col=document.createElement("div");col.className="col";col.style.gridTemplateColumns=template.join(" ");cols.append(col);
-    for(const p of ordered.slice(c*perCol,Math.min(shown,(c+1)*perCol))){const row=document.createElement("div");row.className="row";
+    let line=0;
+    for(const p of ordered.slice(c*perCol,Math.min(shown,(c+1)*perCol))){const row=document.createElement("div");row.className="row";line++;
+      const band=document.createElement("span");band.className="band";band.style.gridRow=String(line);row.append(band);
       const cells=[];const cell=(cls,child)=>{const d=document.createElement("span");d.className="cell "+cls;if(child)d.append(child);cells.push(d);return d};
       cell("ic face-cell",face(p.i));
       const n=document.createElement("span");n.className=p.me?"me":"";n.textContent=p.name;cell("name",n);
       cell("ic",iconNode(p.host?"crown":null));
-      if(extras.platform)cell("ic",iconNode(platformClass[p.platform]));
+      if(extras.platform)cell("ic",iconNode(p.platform));
       if(extras.dimension)cell("ic",iconNode(p.dim==null?null:["overworld","nether","end"][p.dim]));
       if(extras.distance){const t=document.createElement("span");t.className=p.distance==null&&!p.me&&p.dim===0||p.dim==null?"na":"sub";
         t.textContent=p.me||p.dim!==0&&p.dim!=null?"":p.distance==null?"—":p.distance+" m";cell("dist",t)}
-      cells[0].classList.add("first");cells[cells.length-1].classList.add("last");
+      cells.forEach(c=>c.style.gridRow=String(line));
       row.append(...cells);col.append(row)}}
   if(ordered.length>shown){const m=document.createElement("div");m.className="more";m.textContent=lang==="ja"?`ほか ${ordered.length-shown} 人`:`and ${ordered.length-shown} more`;list.append(m)}
 }
@@ -198,4 +214,7 @@ seg("longname",[["0","ふつうの名前"],["1","長い名前を混ぜる"]],v=>
 seg("bg",[["card","カード"],["line","行ごと"],["none","なし"]],v=>v===bg,v=>bg=v);
 seg("lang",[["ja","日本語"],["en","English"]],v=>v===lang,v=>lang=v);
 render();
+const legend=document.getElementById("legend");
+for(const k of platforms){const item=document.createElement("span");item.style.cssText="display:flex;align-items:center;gap:6px";
+  const c=ART[k]();c.style.cssText="width:24px;height:24px;image-rendering:pixelated;background:rgba(16,17,19,.6);padding:3px";item.append(c,document.createTextNode(platformLabel[k]));legend.append(item)}
 </script>
