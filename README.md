@@ -77,7 +77,8 @@ to the defaults.
   when your body is hit), Night Vision that can light everything evenly (no
   dark rings by light sources), experimental Connected Textures (glass, glass
   panes, bookshelves and sandstone next to the same block draw as one
-  surface, without seams, at the texture's own scale), Hide Offhand Item
+  surface, without seams; glass, bookshelves and sandstone at the texture's
+  own scale), Hide Offhand Item
   (including shields) and
   experimental Hide effects (rain and snow, particles, boss bars, the nausea
   color, underwater, lava and powder snow fog, and the distance fog on land,
@@ -198,7 +199,9 @@ Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
 - Connected Textures is experimental and checked in local worlds with the
   vanilla resources in Fancy graphics; Vibrant Visuals, resource packs (other
   border widths) and servers are unverified. Only glass, glass panes,
-  bookshelves and sandstone connect.
+  bookshelves and sandstone connect. Joined glass panes stretch their glass
+  by one texel at the joins instead of keeping the texture's own scale (drawn
+  that way, panes shaded dark on one half).
 - The player list knows where other players are only while they share your
   dimension: elsewhere it shows the dimension they were last seen in, faded,
   without a distance. The player list is checked locally, on BDS and in a

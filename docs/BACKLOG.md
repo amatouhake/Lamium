@@ -248,7 +248,7 @@ type 3, scale 1.333, with the font's own material).
 
 ### L-133 Connected Textures: split glass panes without dark halves
 Kind: Research. Opened 2026-10-11 from L-96.
-Status: open; not scheduled.
+Status: parked 2026-10-11 after four trial rounds; panes ship with the stretch.
 Panes draw joined glass by moving the texture inward (a 1-texel stretch,
 `4ef3d51`); glass blocks, bookshelves and sandstone draw split at the
 texture's scale. Split panes (`17cedc6`..`20b9059`) looked right up close but
@@ -264,6 +264,20 @@ bit, `RenderChunkGeometry` face sorting metadata); its inputs are not
 visible in the SDK headers. Stained glass blocks, also split and blended,
 show nothing. A stained pane cross shows seams to its arms even with the
 feature off: vanilla, not Lamium's.
+Trials 2026-10-11 (`99a3089`..`84f4335`, split panes restored, then reverted):
+the dark half is the arm whose glass is cut at a joined edge (west arm of
+east-west panes, south arm of north-south ones). Reversing the quads inside
+the appended copies, keeping the largest cell in the first draw's place, and
+showing every cell its own texels all stayed dark; appended copies folded to
+a point with unsplit glass did not. Every quad has `facing` 6 and `twoFace`
+0. Up close the dark band is a smooth gradient, darkest at the seam about
+two texels from the joined edge, as if a value interpolated from the seam
+vertices. So splitting a pane's glass face into quads is the trigger, not
+the copies, their order, sort data or texels; the vertex data Lamium writes
+matches vanilla. Hypothesis, unchecked: the game derives per-vertex lighting
+from vertex positions after tessellation (the `uv1` values are near 0 in
+daylight), and the new mid-face vertices get dark values. Parked: the gain
+over the one-texel stretch is small.
 
 ### L-132 Move while the inventory screen is open
 Kind: Research, then Feature. Requested by the maintainer 2026-10-10;
