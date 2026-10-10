@@ -399,7 +399,13 @@ LL_TYPE_INSTANCE_HOOK(ConnectedPane, ll::memory::HookPriority::Normal, BlockTess
             origin(tessellator, block, p, singleSide);
             same = tessellator.mMeshData->mPositions->size() - start == count;
         }
-        bool dump = paneDumps < 3 && copies > 1;
+        // Only panes with an arm toward the south or west (dark there, 2026-10-11).
+        bool southOrWest = false;
+        try {
+            auto parts = partsAt(block, p);
+            southOrWest = parts.has(Part::South) || parts.has(Part::West);
+        } catch (...) {}
+        bool dump = paneDumps < 3 && copies > 1 && southOrWest;
         std::string text;
         if (dump) {
             text = std::format("Connected Textures pane dump at {} {} {}: {} quads x {} copies, same {}", p.x, p.y, p.z, count / 4, copies, same);
