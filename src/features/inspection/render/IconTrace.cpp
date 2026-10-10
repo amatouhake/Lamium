@@ -6,6 +6,13 @@
 #include "mc/client/gui/controls/RenderableComponent.h"
 #include "mc/client/gui/controls/renderers/InventoryItemRenderer.h"
 #include "mc/client/renderer/actor/ItemRenderer.h"
+#include "mc/client/gui/geometry_atlas/ItemRenderContextImpl.h"
+#include "mc/client/gui/geometry_atlas/RenderContextImpl.h"
+#include "mc/client/gui/geometry_atlas/ItemData.h"
+#include "mc/client/gui/screens/BatchKey.h"
+#include "mc/client/gui/screens/ComponentRenderBatch.h"
+#include "mc/client/gui/screens/UIItemRenderInfo.h"
+#include "mc/client/gui/controls/renderers/InventoryItemRenderOwnerData.h"
 #include "mc/client/renderer/BaseActorRenderContext.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/deps/core/resource/ResourceLocation.h"
@@ -23,12 +30,14 @@
 // without an icon, with other special block items and with vanilla slots.
 namespace lamium::inspection::iconTrace {
 namespace {
-bool watched(ItemStack const& item) {
-    if (item.isNull() || !item.mItem) return false;
-    auto name = item.getTypeName();
+bool watchedName(std::string const& name) {
     for (char const* part : {"fence", "door", "sign", "_bed", "stairs", "wall", "leather", "shield"})
         if (name.find(part) != std::string::npos) return true;
     return false;
+}
+bool watched(ItemStack const& item) {
+    if (item.isNull() || !item.mItem) return false;
+    return watchedName(item.getTypeName());
 }
 std::mutex seenMutex;
 std::set<std::string> seen;
@@ -63,9 +72,10 @@ LL_TYPE_INSTANCE_HOOK(SlotRenderHook, ll::memory::HookPriority::Normal, Inventor
         for (int p = 0; p < passes && p < 8; ++p)
             materials += std::format(" p{}=m{}[{} | {}]", p, static_cast<int>(this->getUIMaterialType(p)),
                 location(this->getResourceLocation(0, p)), location(this->getResourceLocation(1, p)));
-        auto key = std::format("slot {} pass={} of {} itemMaterial={} renderType={} texture={} enchanted={}{}",
+        auto key = std::format("slot {} pass={} of {} itemMaterial={} renderType={} texture={} enchanted={} info={} batch={} preRender={}{}",
             name, pass, passes, static_cast<int>(this->mUIMaterialType), static_cast<int>(this->mItemRenderType),
-            *this->mTextureName, this->mIsEnchanted, materials);
+            *this->mTextureName, this->mIsEnchanted, static_cast<int>(InventoryItemRenderer::getItemRenderInfo(item).info),
+            static_cast<int>(this->getBatchType()), this->getRequiresPreRenderSetup(pass), materials);
         if (firstTime(key)) traceLog(passBudget, 200, "L-119 {}", key);
     } catch (...) {}
     auto previous = std::exchange(current, std::format("slot {} pass={}", name, pass));
@@ -108,8 +118,8 @@ LL_TYPE_INSTANCE_HOOK(NewHook, ll::memory::HookPriority::Normal, ItemRenderer, &
     try {
         if (auto const* b = item.getBlockForRendering()) block = b->getTypeName();
     } catch (...) { block = "?"; }
-    auto key = std::format("new {} block={} frame={} foil={} transparency={:.2f} light={:.2f} scale={:.2f} z={}", name,
-        block, frame, foil, transparency, light, scale, zOrder);
+    auto key = std::format("new {} block={} info={} frame={} foil={} transparency={:.2f} light={:.2f} scale={:.2f} z={}", name,
+        block, static_cast<int>(InventoryItemRenderer::getItemRenderInfo(item).info), frame, foil, transparency, light, scale, zOrder);
     if (firstTime(key)) traceLog(newBudget, 150, "L-119 {}", key);
     auto previous = std::exchange(current, std::format("new {} foil={}", name, foil));
     origin(context, item, frame, x, y, foil, transparency, light, scale, zOrder);
@@ -137,6 +147,56 @@ LL_TYPE_INSTANCE_HOOK(EntityBlockHook, ll::memory::HookPriority::Normal, ItemRen
     route(std::format("entityBlock type={} drawn={} scale={:.2f}", static_cast<int>(type), drawn, scale));
     return drawn;
 }
+// Vanilla's shared-mesh item batch (round 4, 2026-10-10): whether slots go
+// through it or the geometry atlas, and the batch key per pass.
+std::string rendererItem(InventoryItemRenderer& renderer) {
+    try { return renderer.mItemInstance->getTypeName(); } catch (...) { return "?"; }
+}
+LL_TYPE_INSTANCE_HOOK(BatchKeyHook, ll::memory::HookPriority::Normal, GeometryAtlas::ItemRenderContextImpl,
+    &GeometryAtlas::ItemRenderContextImpl::$createBatchKey, BatchKey, int pass) {
+    auto key = origin(pass);
+    try {
+        auto name = rendererItem(this->mRenderer);
+        if (watchedName(name)) {
+            auto line = std::format("batchKey {} pass={} type={} material={} info={} depth={} alpha={:.2f} tex=[{} | {}]",
+                name, pass, static_cast<int>(key.mBatchType), static_cast<int>(key.mUIMaterialType),
+                static_cast<int>(key.mUIItemRenderInfo->info), static_cast<int>(key.mDepth), static_cast<float>(key.mAlpha),
+                location((*key.mResourceLocations)[0]), location((*key.mResourceLocations)[1]));
+            if (firstTime(line)) traceLog(routeBudget, 200, "L-119 {}", line);
+        }
+    } catch (...) {}
+    return key;
+}
+LL_TYPE_INSTANCE_HOOK(ContextRenderHook, ll::memory::HookPriority::Normal, GeometryAtlas::ItemRenderContextImpl,
+    &GeometryAtlas::ItemRenderContextImpl::$render, void, InventoryItemRenderOwnerData const& data, int pass, float alpha) {
+    std::string name = rendererItem(this->mRenderer);
+    bool watch = watchedName(name);
+    if (watch) {
+        auto line = std::format("contextRender {} pass={} alpha={:.2f} scale={:.2f} z={}", name, pass, alpha, static_cast<float>(data.mScale), static_cast<int>(data.mZOrder));
+        if (firstTime(line)) traceLog(routeBudget, 200, "L-119 {}", line);
+    }
+    auto previous = watch ? std::exchange(current, std::format("context {} pass={}", name, pass)) : current;
+    origin(data, pass, alpha);
+    current = std::move(previous);
+}
+LL_TYPE_INSTANCE_HOOK(SharedBatchHook, ll::memory::HookPriority::Normal, GeometryAtlas::ItemRenderContextImpl,
+    &GeometryAtlas::ItemRenderContextImpl::$beginSharedMeshBatch, void, ComponentRenderBatch const& batch) {
+    auto name = rendererItem(this->mRenderer);
+    if (watchedName(name)) {
+        auto line = std::format("sharedBatch {} pass={} preRender={} instances={}", name, static_cast<int>(batch.mRenderPass),
+            static_cast<bool>(batch.mRequiresPreRenderSetup), batch.mCustomRenderInstances->size());
+        if (firstTime(line)) traceLog(routeBudget, 200, "L-119 {}", line);
+    }
+    origin(batch);
+}
+LL_TYPE_INSTANCE_HOOK(TileHook, ll::memory::HookPriority::Normal, GeometryAtlas::RenderContextImpl,
+    &GeometryAtlas::RenderContextImpl::$renderItemToTile, bool, dragon::atlas::AtlasTileHandle const& tile,
+    GeometryAtlas::ItemData const& data) {
+    bool drawn = origin(tile, data);
+    auto line = std::format("atlasTile drawn={} scale={:.2f}", drawn, static_cast<float>(data.mScale));
+    if (firstTime(line)) traceLog(routeBudget, 50, "L-119 {}", line);
+    return drawn;
+}
 LL_TYPE_INSTANCE_HOOK(BlitHook, ll::memory::HookPriority::Normal, ItemRenderer, &ItemRenderer::iconBlit, void,
     BaseActorRenderContext& context, mce::TexturePtr const& texture, float x, float y, float z,
     TextureUVCoordinateSet const& uv, float w, float h, float light, float alpha, int color, int secondaryColor,
@@ -155,7 +215,8 @@ bool hooked = false;
 void start() {
     if (SlotRenderHook::hook(true) != 0 || RenderTypeHook::hook(true) != 0 || ChunkHook::hook(true) != 0
         || NewHook::hook(true) != 0 || BlockTypeHook::hook(true) != 0 || DataDrivenHook::hook(true) != 0
-        || EntityBlockHook::hook(true) != 0 || BlitHook::hook(true) != 0) {
+        || EntityBlockHook::hook(true) != 0 || BlitHook::hook(true) != 0 || BatchKeyHook::hook(true) != 0
+        || ContextRenderHook::hook(true) != 0 || SharedBatchHook::hook(true) != 0 || TileHook::hook(true) != 0) {
         stop();
         throw std::runtime_error("Could not install icon diagnostics");
     }
@@ -165,6 +226,7 @@ void start() {
 void stop() {
     SlotRenderHook::unhook(true); RenderTypeHook::unhook(true); ChunkHook::unhook(true); NewHook::unhook(true);
     BlockTypeHook::unhook(true); DataDrivenHook::unhook(true); EntityBlockHook::unhook(true); BlitHook::unhook(true);
+    BatchKeyHook::unhook(true); ContextRenderHook::unhook(true); SharedBatchHook::unhook(true); TileHook::unhook(true);
     hooked = false;
 }
 }
