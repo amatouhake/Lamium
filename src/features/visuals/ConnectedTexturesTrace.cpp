@@ -4,6 +4,8 @@
 #include "app/Runtime.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/renderer/Tessellator.h"
+#include "mc/deps/minecraft_renderer/renderer/MeshData.h"
+#include <algorithm>
 #include "mc/client/renderer/block/BlockTessellator.h"
 #include "mc/client/renderer/block/BlockGraphics.h"
 #include "mc/client/renderer/block/TextureItem.h"
@@ -35,7 +37,7 @@ struct Pane {
 };
 thread_local Pane pane;
 thread_local TextureUVCoordinateSet trimmedSet;
-std::atomic<int> paneLogs{0}, lookupLogs{0}, uvLogs{0}, graphicsLogs{0};
+std::atomic<int> paneLogs{0}, lookupLogs{0}, uvLogs{0}, graphicsLogs{0}, foldLogs{0};
 
 bool isPane(Block const& block) { return block.getTypeName().ends_with("glass_pane"); }
 bool sameAt(Block const& block, Offset o) {
@@ -56,7 +58,40 @@ LL_TYPE_INSTANCE_HOOK(PaneFence, ll::memory::HookPriority::Normal, BlockTessella
     if (!watch) return origin(tessellator, block, p, singleSide);
     auto saved = pane;
     pane = {&block, p, mRegion};
+    auto& positions = *tessellator.mMeshData->mPositions;
+    size_t before = positions.size();
     bool result = origin(tessellator, block, p, singleSide);
+    // Round 5: fold the pane's top faces when a pane sits on it, and its
+    // bottom faces when it sits on a pane: quads whose four corners all lie
+    // at the pane's highest (lowest) height.
+    try {
+        size_t after = positions.size();
+        bool above = sameAt(block, {0, 1, 0}), below = sameAt(block, {0, -1, 0});
+        if ((above || below) && before % 4 == 0 && after > before && (after - before) % 4 == 0) {
+            float top = positions[before].y, bottom = top;
+            for (size_t i = before; i < after; ++i) {
+                top = std::max(top, positions[i].y);
+                bottom = std::min(bottom, positions[i].y);
+            }
+            int folded = 0;
+            for (size_t q = before; q < after; q += 4) {
+                bool atTop = true, atBottom = true;
+                for (size_t i = q; i < q + 4; ++i) {
+                    atTop = atTop && positions[i].y == top;
+                    atBottom = atBottom && positions[i].y == bottom;
+                }
+                if ((above && atTop) || (below && atBottom)) {
+                    for (size_t i = q + 1; i < q + 4; ++i) positions[i] = positions[q];
+                    ++folded;
+                }
+            }
+            if (foldLogs < 20) {
+                ++foldLogs;
+                log("L-96 pane at {} {} {}: {} vertices (from {}), y {:.3f}..{:.3f}, above {} below {}, folded {} quads", p.x, p.y,
+                    p.z, after - before, before, bottom, top, above, below, folded);
+            }
+        }
+    } catch (...) {}
     if (paneLogs < 12) {
         ++paneLogs;
         log("L-96 pane {} at {} {} {} singleSide {}: {} texture lookups, {} uv calls", block.getTypeName(), p.x, p.y, p.z,
