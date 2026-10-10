@@ -390,6 +390,7 @@ inline constexpr auto options = std::to_array<Option>({
         NumericOption{10, 50, [](Settings& s, float v) { s.map.size = v; }, 1}},
     toggle<&Settings::map, &Settings::Map::rotate>("map.rotate", "minimap", "mapRotate"),
     toggle<&Settings::map, &Settings::Map::round>("map.round", "minimap", "mapRound"),
+    toggle<&Settings::map, &Settings::Map::daylightTint>("map.daylightTint", "minimap", "mapDaylightTint"),
     toggle<&Settings::map, &Settings::Map::compass>("map.compass", "mapText", "mapCompass"),
     toggle<&Settings::map, &Settings::Map::coordinates>("map.coordinates", "mapText", "mapCoordinates"),
     toggle<&Settings::map, &Settings::Map::biome>("map.biome", "mapText", "mapBiome"),

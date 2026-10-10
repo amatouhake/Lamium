@@ -125,6 +125,7 @@ struct Settings {
         float size = 20; // Map side, percent of the screen height; text follows the HUD layout scale.
         bool rotate = false; // Heading up instead of north up.
         bool round = false;
+        bool daylightTint = false; // Ambient day/night lighting cycle in Overworld.
         bool coordinates = false;
         bool biome = false;
         bool compass = false;

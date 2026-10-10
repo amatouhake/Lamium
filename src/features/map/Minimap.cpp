@@ -10,6 +10,7 @@
 #include "features/map/WaypointSession.h"
 #include "features/map/Waypoints.h"
 #include "features/map/MapTiles.h"
+#include "features/map/MapLighting.h"
 #include "features/map/MapView.h"
 #include "features/information/InfoHud.h"
 #include "features/camera/CameraSessions.h"
@@ -516,6 +517,7 @@ struct Snapshot {
     bool covered = false;
     int skyLight = 15;
     std::string biome;
+    int worldTime = -1;
 };
 std::optional<Snapshot> snapshot(IClientInstance& client, bool biome) {
     auto* player = client.getLocalPlayer();
@@ -525,6 +527,7 @@ std::optional<Snapshot> snapshot(IClientInstance& client, bool biome) {
     if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) return std::nullopt;
     float yaw = std::isfinite(rotation.z) ? rotation.z : 0.f;
     Snapshot value{p.x, p.y, p.z, yaw, p.x, p.y, p.z, yaw, static_cast<int>(player->getDimensionId())};
+    value.worldTime = player->getLevel().getTime();
     auto& sessions = CameraSessions::instance();
     if (sessions.blocksPerspective())
         if (auto ray = sessions.detachedViewRay(client)) {
@@ -765,7 +768,8 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         auto placement = ui::placeElement(width, height, boxW, boxH, element);
         if (card) ui::card(context, placement.x, placement.y, boxW, boxH, cardOpacity);
         float mapX = placement.x + pad + (contentW - size) / 2, mapY = placement.y + pad + margin;
-        if (state.uploaded && !ui::runtimeImage(context, textureLocation(), {mapX, mapY, size, size})) {
+        auto mapTint = daylightTint(view->worldTime, view->dimension, cave, settings.daylightTint);
+        if (state.uploaded && !ui::runtimeImage(context, textureLocation(), {mapX, mapY, size, size}, 1.f, mapTint)) {
             // Resource reloads drop runtime textures; upload again next frame.
             state.uploaded = false;
             state.diagnostics.log("texture missing at draw; uploading again");

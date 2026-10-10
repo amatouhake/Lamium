@@ -64,10 +64,11 @@ void imageUv(MinecraftUIRenderContext&, std::string_view texture, ImageRect rect
              float v1, float opacity = 1);
 // A texture Lamium uploaded at runtime (the minimap). False when the texture
 // group does not have it, so the caller can upload it again.
-bool runtimeImage(MinecraftUIRenderContext&, ResourceLocation const& texture, ImageRect rect, float opacity = 1);
+bool runtimeImage(MinecraftUIRenderContext&, ResourceLocation const& texture, ImageRect rect, float opacity = 1,
+                  Rgb tint = palette::white);
 // Part of it: u, v is the top-left corner and `span` the side, both 0-1.
 bool runtimeImage(MinecraftUIRenderContext&, ResourceLocation const& texture, ImageRect rect, float u, float v,
-                  float uSpan, float vSpan, float opacity = 1);
+                  float uSpan, float vSpan, float opacity = 1, Rgb tint = palette::white);
 constexpr float switchWidth = 18, switchHeight = 9;
 // Bedrock-style slider in the switch's colors: filled track, square knob.
 // `fraction` is 0-1 along the track; the knob stays inside x..x+width.

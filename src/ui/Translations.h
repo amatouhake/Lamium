@@ -1,5 +1,6 @@
 #pragma once
 #include "ui/TranslationsZhCN.h"
+#include "ui/TranslationsEs.h"
 #include <array>
 #include <cstddef>
 #include <string_view>
@@ -189,6 +190,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"key.Lamium.minimapenlarge", "Enlarge the minimap while held", "押している間ミニマップを拡大"},
     {"help.map.rotate", "Keep the direction you face at the top. Off: north stays at the top and the arrow turns.", "向いている方向を常に上にします。オフでは北が上のままで、矢印が回ります。"},
     {"mapRound", "Round: {}", "円形: {}"},
+    {"mapDaylightTint", "Day/night lighting: {}", "昼夜の明るさ変化: {}"},
+    {"help.map.daylightTint", "Darkens the map slightly during night and smoothly transitions at sunrise and sunset in the Overworld.", "オーバーワールドで夜間に地図を少し暗くし、日の出と日の入りに合わせて滑らかに明るさを変化させます。"},
     {"mapCoordinates", "Coordinates below the map: {}", "地図の下に座標: {}"},
     {"mapBiome", "Biome below the map: {}", "地図の下にバイオーム: {}"},
     {"mapCompass", "Compass letters: {}", "方角の文字: {}"},
@@ -1347,8 +1350,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"key.Lamium.settings", "Lamium: Open settings", "Lamium: 設定を開く"},
     {"key.Lamium.zoom", "Lamium: Hold to zoom", "Lamium: 長押しでズーム"},
 });
-enum class Locale { English, Japanese, SimplifiedChinese };
-inline constexpr std::array locales{Locale::English, Locale::Japanese, Locale::SimplifiedChinese};
+enum class Locale { English, Japanese, SimplifiedChinese, Spanish };
+inline constexpr std::array locales{Locale::English, Locale::Japanese, Locale::SimplifiedChinese, Locale::Spanish};
 
 inline constexpr bool alignedWithEntries(auto const& table) {
     if (table.size() != entries.size()) return false;
@@ -1357,6 +1360,7 @@ inline constexpr bool alignedWithEntries(auto const& table) {
     return true;
 }
 static_assert(alignedWithEntries(simplifiedChinese), "TranslationsZhCN.h must list every key in entry order");
+static_assert(alignedWithEntries(spanish), "TranslationsEs.h must list every key in entry order");
 
 inline constexpr bool japanese(std::string_view locale) {
     return locale == "ja" || locale.starts_with("ja_") || locale.starts_with("ja-");
@@ -1365,15 +1369,21 @@ inline constexpr bool japanese(std::string_view locale) {
 inline constexpr bool simplifiedChineseLocale(std::string_view locale) {
     return locale == "zh_CN" || locale == "zh-CN" || locale == "zh-Hans" || locale.starts_with("zh-Hans-");
 }
+inline constexpr bool spanishLocale(std::string_view locale) {
+    return locale == "es_ES" || locale == "es_MX" || locale == "es-ES" || locale == "es-MX"
+        || locale == "es" || locale.starts_with("es_") || locale.starts_with("es-");
+}
 inline constexpr Locale localeFor(std::string_view code) {
     if (japanese(code)) return Locale::Japanese;
     if (simplifiedChineseLocale(code)) return Locale::SimplifiedChinese;
+    if (spanishLocale(code)) return Locale::Spanish;
     return Locale::English;
 }
 inline constexpr std::string_view text(std::size_t index, Locale locale) {
     switch (locale) {
     case Locale::Japanese: return entries[index].japanese;
     case Locale::SimplifiedChinese: return simplifiedChinese[index].text;
+    case Locale::Spanish: return spanish[index].text;
     case Locale::English: break;
     }
     return entries[index].english;

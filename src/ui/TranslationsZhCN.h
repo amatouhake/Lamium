@@ -187,6 +187,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"key.Lamium.minimapenlarge", "按住时放大小地图"},
     {"help.map.rotate", "让你面朝的方向始终在上方。关: 北方保持在上方，箭头随之转动。"},
     {"mapRound", "圆形: {}"},
+    {"mapDaylightTint", "昼夜光照: {}"},
+    {"help.map.daylightTint", "在主世界夜间适度调暗地图，并在日出和日落时平滑过渡。"},
     {"mapCoordinates", "在地图下方显示坐标: {}"},
     {"mapBiome", "在地图下方显示生物群系: {}"},
     {"mapCompass", "方位字母: {}"},

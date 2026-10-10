@@ -1,5 +1,6 @@
 #include "features/map/WorldMap.h"
 #include "features/map/MapImage.h"
+#include "features/map/MapLighting.h"
 #include "features/map/MapRadar.h"
 #include "features/map/MapStore.h"
 #include "features/map/RadarFaces.h"
@@ -602,7 +603,7 @@ bool hovering(float x, float y, float w, float h) {
 }
 
 void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsPerUnit, MapLayer layer, int& empty,
-               int& shown) {
+               int& shown, Rgb mapTint) {
     auto& client = context.mClient;
     auto& view = state.view;
     int lod = lodFor(view.scale(), pixelsPerUnit);
@@ -629,7 +630,7 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
         auto& slot = slots[static_cast<size_t>(index)];
         slot.used = time;
         usedNow[static_cast<size_t>(index)] = true;
-        if (!ui::runtimeImage(context, slotLocation(index), rect, u, v, span, span)) slot.uploaded = false;
+        if (!ui::runtimeImage(context, slotLocation(index), rect, u, v, span, span, 1.f, mapTint)) slot.uploaded = false;
     };
     for (auto tile : tiles) {
         auto image = store::image(layer, tile);
@@ -1213,7 +1214,15 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     state.hits.clear();
     ui::fill(context, 0, 0, size.x, size.y, ground);
     int empty = 0, shown = 0;
-    drawTiles(context, size, pixelsPerUnit, layer, empty, shown);
+    int worldTime = -1;
+    if (auto* player = client.getLocalPlayer()) {
+        try {
+            worldTime = player->getLevel().getTime();
+        } catch (...) {}
+    }
+    bool isCave = (layer.dimension != 0);
+    auto mapTint = daylightTint(worldTime, layer.dimension, isCave, settings.daylightTint);
+    drawTiles(context, size, pixelsPerUnit, layer, empty, shown, mapTint);
     size_t pending = store::pending();
     drawMarkers(context, settings);
     // Text is batched: flush each layer so the bars and the menu cover it.

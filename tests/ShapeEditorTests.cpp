@@ -25,7 +25,7 @@ void shapeEditorTests() {
         check(ui::shape::typeIndex(definition) == static_cast<int>(type), "type index follows the created type");
         overlay::ShapeCollection collection;
         check(collection.add(definition) > 0, "every offered type produces valid geometry");
-        for (auto locale : {"en_US", "ja_JP", "zh_CN"}) {
+        for (auto locale : {"en_US", "ja_JP", "zh_CN", "es_ES"}) {
             check(!ui::translations::find(ui::shape::types[type].name, locale).empty()
                 && !ui::translations::find(ui::shape::types[type].description, locale).empty(), "type names and descriptions are localized");
         }
@@ -40,7 +40,7 @@ void shapeEditorTests() {
                 if (row.kind == ui::shape::Row::Kind::Value && !ui::shape::numeric(definition, row.field))
                     check(!ui::shape::choiceLabel(definition, row.field, Reference::StandingBlock).empty(),
                         "every non-numeric value has a choice label");
-                if (row.label.size() > 1) for (auto locale : {"en_US", "ja_JP", "zh_CN"})
+                if (row.label.size() > 1) for (auto locale : {"en_US", "ja_JP", "zh_CN", "es_ES"})
                     check(!ui::translations::find(row.label, locale).empty(), "editor labels are localized");
             }
             check(hasType == draft && hasCoordinates != draft && hasMove != draft,
