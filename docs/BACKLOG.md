@@ -281,10 +281,15 @@ graphics present. Drawing the preview as chunk type 0 with the slot's alpha 0
 showed no block icons; with alpha 1 it looked exactly like
 `renderGuiItemNew` (fences and blocks drawn, gates missing). So the call
 route is not the cause: the gate mesh itself does not show outside a
-vanilla slot. Hypotheses for the next round (not started): the gate's GUI
-transform puts its mesh at a depth the UI pass hides behind the slot
-background or clips (test: icons without the background, other z values);
-or the slot batch prepares state the gate mesh needs.
+vanilla slot. Third round (`1e46a3e`, reverted): without a slot background
+and at z 40 the gates stayed missing; drawn at scale -1 (flipped winding,
+the snow block then showed its inside faces) they stayed missing too. So
+neither depth nor face culling hides them: outside the slot batch the gate
+mesh draws nothing at all. Stopped after three rounds (2026-10-10). The fix
+that remains is the one parked under L-91: draw icons through the vanilla
+slot path (drive an `InventoryItemRenderer` or its pass setup), which
+could fix gates, the shield glint and leather layers together. A larger
+change; the maintainer decides whether to start it.
 A fence gate inside a shulker box shows only its count in Shulker Box
 Preview, without the item icon. The maintainer saw the same in the other
 places that draw icons the same way (Lamium's own `renderGuiItemNew` calls,

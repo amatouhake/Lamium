@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-119 depth and winding experiment (2026-10-10)
+
+By the maintainer, local, trace build `1e46a3e` (DLL
+`64178dd7ca464aad8126e8470a039df465311b9eeb6dfd9468cf0d20530f27b0`). In the
+shulker preview, the oak and bamboo fence gates were missing in all three
+rows: normal; without a slot background at z 40; at scale -1. Fences, snow
+block, sandstone and door showed in every row; at scale -1 the blocks showed
+their inside faces. Reverted.
+
 ## L-119 block chunk with alpha 1 (2026-10-10)
 
 By the maintainer, local, trace build `696a11c` (DLL
