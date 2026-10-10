@@ -76,9 +76,10 @@ LL_TYPE_INSTANCE_HOOK(PaneFence, ll::memory::HookPriority::Normal, BlockTessella
                 top = std::max(top, positions[i].y);
                 bottom = std::min(bottom, positions[i].y);
             }
-            // Round 6: only where the neighboring pane's own shape (center and
-            // the arms it connects) covers the face; an L under a single post
-            // keeps the top of its arms.
+            // Round 8: fold only between panes of the same shape (the boxes of
+            // their center and arms match); mixed stacks keep the vanilla
+            // faces and their line. Partial folds and shortening (rounds 6-7)
+            // left odd gaps where the shapes differ.
             auto shapeOf = [&](BlockPos at) {
                 std::vector<AABB> boxes;
                 auto const& other = pane.region->getBlock(at);
@@ -89,64 +90,17 @@ LL_TYPE_INSTANCE_HOOK(PaneFence, ll::memory::HookPriority::Normal, BlockTessella
                 }
                 return boxes;
             };
-            auto upper = above ? shapeOf({p.x, p.y + 1, p.z}) : std::vector<AABB>{};
-            auto lower = below ? shapeOf({p.x, p.y - 1, p.z}) : std::vector<AABB>{};
-            float baseX = positions[before].x, baseZ = positions[before].z;
-            for (size_t i = before; i < after; ++i) {
-                baseX = std::min(baseX, positions[i].x);
-                baseZ = std::min(baseZ, positions[i].z);
-            }
-            baseX = std::floor(baseX);
-            baseZ = std::floor(baseZ);
-            // Round 7: coverage by the union of the neighbor's boxes; a face
-            // covered only at one end along its length is shortened instead.
-            constexpr float e = 0.001f;
-            auto inside = [&](float x, float z, std::vector<AABB> const& boxes) {
-                for (auto const& box : boxes)
-                    if (box.min.x <= x + e && box.max.x >= x - e && box.min.z <= z + e && box.max.z >= z - e) return true;
-                return false;
+            auto sameShape = [](std::vector<AABB> const& a, std::vector<AABB> const& b) {
+                if (a.size() != b.size()) return false;
+                constexpr float e = 0.001f;
+                for (size_t i = 0; i < a.size(); ++i)
+                    if (std::abs(a[i].min.x - b[i].min.x) > e || std::abs(a[i].max.x - b[i].max.x) > e
+                        || std::abs(a[i].min.z - b[i].min.z) > e || std::abs(a[i].max.z - b[i].max.z) > e) return false;
+                return true;
             };
-            // 0 untouched, 1 folded, 2 shortened.
-            auto apply = [&](size_t q, std::vector<AABB> const& boxes) {
-                float x0 = 2, x1 = -1, z0 = 2, z1 = -1;
-                for (size_t i = q; i < q + 4; ++i) {
-                    x0 = std::min(x0, positions[i].x - baseX);
-                    x1 = std::max(x1, positions[i].x - baseX);
-                    z0 = std::min(z0, positions[i].z - baseZ);
-                    z1 = std::max(z1, positions[i].z - baseZ);
-                }
-                bool alongX = x1 - x0 >= z1 - z0;
-                float a0 = alongX ? x0 : z0, a1 = alongX ? x1 : z1, c0 = alongX ? z0 : x0, c1 = alongX ? z1 : x1;
-                // Sample the face along its length (1/32 steps) and across it.
-                constexpr int steps = 32;
-                std::vector<bool> hit(steps + 1);
-                for (int k = 0; k <= steps; ++k) {
-                    float a = a0 + (a1 - a0) * k / steps;
-                    bool all = true;
-                    for (float c : {c0 + e, (c0 + c1) / 2, c1 - e})
-                        all = all && (alongX ? inside(a, c, boxes) : inside(c, a, boxes));
-                    hit[k] = all;
-                }
-                if (std::all_of(hit.begin(), hit.end(), [](bool h) { return h; })) {
-                    for (size_t i = q + 1; i < q + 4; ++i) positions[i] = positions[q];
-                    return 1;
-                }
-                // Covered from one end only: move that end to where coverage stops.
-                int lead = 0, tail = 0;
-                while (lead <= steps && hit[lead]) ++lead;
-                while (tail <= steps && hit[steps - tail]) ++tail;
-                float from = a0, to = a1;
-                if (lead > 1) from = a0 + (a1 - a0) * (lead - 1) / steps;
-                if (tail > 1) to = a1 - (a1 - a0) * (tail - 1) / steps;
-                if (from == a0 && to == a1) return 0;
-                for (size_t i = q; i < q + 4; ++i) {
-                    float& v = alongX ? positions[i].x : positions[i].z;
-                    float base = alongX ? baseX : baseZ;
-                    if (std::abs(v - base - a0) < e) v = base + from;
-                    else if (std::abs(v - base - a1) < e) v = base + to;
-                }
-                return 2;
-            };
+            auto own = shapeOf(p);
+            bool foldTop = above && sameShape(own, shapeOf({p.x, p.y + 1, p.z}));
+            bool foldBottom = below && sameShape(own, shapeOf({p.x, p.y - 1, p.z}));
             int folded = 0, shortened = 0;
             for (size_t q = before; q < after; q += 4) {
                 bool atTop = true, atBottom = true;
@@ -154,11 +108,10 @@ LL_TYPE_INSTANCE_HOOK(PaneFence, ll::memory::HookPriority::Normal, BlockTessella
                     atTop = atTop && positions[i].y == top;
                     atBottom = atBottom && positions[i].y == bottom;
                 }
-                int done = 0;
-                if (above && atTop) done = apply(q, upper);
-                else if (below && atBottom) done = apply(q, lower);
-                folded += done == 1;
-                shortened += done == 2;
+                if ((foldTop && atTop) || (foldBottom && atBottom)) {
+                    for (size_t i = q + 1; i < q + 4; ++i) positions[i] = positions[q];
+                    ++folded;
+                }
             }
             if (foldLogs < 20) {
                 ++foldLogs;
