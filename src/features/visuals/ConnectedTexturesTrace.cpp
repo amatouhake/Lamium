@@ -15,6 +15,9 @@
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
+#include "mc/world/phys/AABB.h"
+#include <cmath>
+#include <vector>
 #include <atomic>
 #include <format>
 #include <string>
@@ -73,6 +76,41 @@ LL_TYPE_INSTANCE_HOOK(PaneFence, ll::memory::HookPriority::Normal, BlockTessella
                 top = std::max(top, positions[i].y);
                 bottom = std::min(bottom, positions[i].y);
             }
+            // Round 6: only where the neighboring pane's own shape (center and
+            // the arms it connects) covers the face; an L under a single post
+            // keeps the top of its arms.
+            auto shapeOf = [&](BlockPos at) {
+                std::vector<AABB> boxes;
+                auto const& other = pane.region->getBlock(at);
+                other.getBlockType().addAABBs(other, *pane.region, at, nullptr, boxes);
+                for (auto& box : boxes) {
+                    box.min.x -= at.x; box.max.x -= at.x;
+                    box.min.z -= at.z; box.max.z -= at.z;
+                }
+                return boxes;
+            };
+            auto upper = above ? shapeOf({p.x, p.y + 1, p.z}) : std::vector<AABB>{};
+            auto lower = below ? shapeOf({p.x, p.y - 1, p.z}) : std::vector<AABB>{};
+            float baseX = positions[before].x, baseZ = positions[before].z;
+            for (size_t i = before; i < after; ++i) {
+                baseX = std::min(baseX, positions[i].x);
+                baseZ = std::min(baseZ, positions[i].z);
+            }
+            baseX = std::floor(baseX);
+            baseZ = std::floor(baseZ);
+            auto covered = [&](size_t q, std::vector<AABB> const& boxes) {
+                float x0 = 2, x1 = -1, z0 = 2, z1 = -1;
+                for (size_t i = q; i < q + 4; ++i) {
+                    x0 = std::min(x0, positions[i].x - baseX);
+                    x1 = std::max(x1, positions[i].x - baseX);
+                    z0 = std::min(z0, positions[i].z - baseZ);
+                    z1 = std::max(z1, positions[i].z - baseZ);
+                }
+                constexpr float e = 0.001f;
+                for (auto const& box : boxes)
+                    if (box.min.x <= x0 + e && box.max.x >= x1 - e && box.min.z <= z0 + e && box.max.z >= z1 - e) return true;
+                return false;
+            };
             int folded = 0;
             for (size_t q = before; q < after; q += 4) {
                 bool atTop = true, atBottom = true;
@@ -80,7 +118,7 @@ LL_TYPE_INSTANCE_HOOK(PaneFence, ll::memory::HookPriority::Normal, BlockTessella
                     atTop = atTop && positions[i].y == top;
                     atBottom = atBottom && positions[i].y == bottom;
                 }
-                if ((above && atTop) || (below && atBottom)) {
+                if ((above && atTop && covered(q, upper)) || (below && atBottom && covered(q, lower))) {
                     for (size_t i = q + 1; i < q + 4; ++i) positions[i] = positions[q];
                     ++folded;
                 }
