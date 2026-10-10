@@ -1003,7 +1003,7 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
         if (settings.playerListPlatform) platformWidth = std::max(platformWidth, measure(std::string(list::platformText(row.platform))));
         if (settings.playerListDistance && row.distance && !row.self)
             distanceWidth = std::max(distanceWidth, measure(list::distanceText(*row.distance)));
-        else if (settings.playerListDistance && !row.self && !row.distance && row.dimension)
+        else if (settings.playerListDistance && !row.self && !row.distance && row.dimensionCurrent)
             distanceWidth = std::max(distanceWidth, measure("-"));
     }
     if (settings.playerListDistance) distanceWidth = std::max(distanceWidth, measure("-"));
@@ -1055,7 +1055,8 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
         ui::labelScaled(context, x, textTop(y), nameWidth + 2, name, zoom, row.self ? ui::palette::accent : ui::palette::text,
                         ui::Align::Left, element.shadow);
         x += nameWidth + gap;
-        if (row.host) ui::images(context, "textures/ui/permissions_op_crown", {{x, iconTop, icon, icon}});
+        if (auto mark = list::permissionTexture(row.permission, settings.playerListMembers); !mark.empty())
+            ui::images(context, mark, {{x, iconTop, icon, icon}});
         x += icon;
         if (settings.playerListPlatform) {
             x += gap;
@@ -1070,14 +1071,16 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
                 try { stack.reinit(dimensionBlocks[*row.dimension], 1, 0); } catch (...) { stack = ItemStack(); }
                 stack.mShowPickUp = false;
                 stack.mWasPickedUp = false;
-                if (!stack.isNull()) inspection::render::drawItemIcon(context, {&stack, x, iconTop, icon / 16}, 17);
+                // Faded: where they were last seen, not where they are now.
+                if (!stack.isNull())
+                    inspection::render::drawItemIcon(context, {&stack, x, iconTop, icon / 16, 0, row.dimensionCurrent ? 1.f : .4f}, 17);
             }
             x += icon;
         }
         if (settings.playerListDistance && !row.self) {
             x += gap;
             // Players in another dimension or unknown ones: no distance, a dash only in yours.
-            std::string text = row.distance ? list::distanceText(*row.distance) : row.dimension ? std::string("-") : std::string();
+            std::string text = row.distance ? list::distanceText(*row.distance) : row.dimensionCurrent ? std::string("-") : std::string();
             if (!text.empty())
                 ui::labelScaled(context, x, textTop(y), distanceWidth, text, zoom,
                                 row.distance ? ui::palette::dim : ui::palette::faint, ui::Align::Right, element.shadow);

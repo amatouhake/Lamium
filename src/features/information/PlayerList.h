@@ -16,8 +16,10 @@ struct Row {
     std::string name;
     bool self = false, host = false;
     int platform = -1;             // BuildPlatform value
-    std::optional<int> dimension;  // 0 Overworld, 1 Nether, 2 End; empty when not known
+    std::optional<int> dimension;  // 0 Overworld, 1 Nether, 2 End; empty when never seen
+    bool dimensionCurrent = false; // In your dimension now; otherwise where they were last seen (L-131)
     std::optional<double> distance; // Blocks, only for players known to share your dimension
+    std::optional<int> permission; // PlayerPermissionLevel: 0 visitor, 1 member, 2 operator, 3 custom
     int face = -1;                 // Radar face atlas index, -1 without one
 };
 
@@ -35,6 +37,17 @@ inline std::string_view platformText(int buildPlatform) {
     case 13: return "Xbox";
     case 15: return "Linux";
     default: return "?";
+    }
+}
+// The vanilla permission mark for a level; members only when asked (L-131).
+inline std::string_view permissionTexture(std::optional<int> level, bool members) {
+    if (!level) return {};
+    switch (*level) {
+    case 0: return "textures/ui/permissions_visitor_hand";
+    case 1: return members ? "textures/ui/permissions_member_star" : std::string_view{};
+    case 2: return "textures/ui/permissions_op_crown";
+    case 3: return "textures/ui/permissions_custom_dots";
+    default: return {};
     }
 }
 inline std::string distanceText(double blocks) {

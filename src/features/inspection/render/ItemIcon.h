@@ -13,6 +13,7 @@ struct IconAt {
     float x, y;
     float scale = 1.f; // 1 draws a 16x16 icon
     int frame = 0;
+    float alpha = 1.f; // Whole-icon opacity (a faded player list dimension, L-131)
 };
 void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> icons, int zOrder);
 inline void drawItemIcon(MinecraftUIRenderContext& context, IconAt const& icon, int zOrder) {

@@ -199,6 +199,7 @@ struct Settings {
         bool offhandSlotEmpty = false; // Keep the empty frame when nothing is held
         // Player list columns (L-128), all shown by default.
         bool playerListPlatform = true, playerListDimension = true, playerListDistance = true;
+        bool playerListMembers = false; // Mark members too, not only operators, visitors and custom (L-131)
         bool saturation = true;        // Gold outlines on the hunger bar (L-63)
         bool saturationPreview = true; // What the held food would add
         bool hud = false;

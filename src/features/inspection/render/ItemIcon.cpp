@@ -34,11 +34,11 @@ constexpr UIMaterialType itemMaterial = static_cast<UIMaterialType>(13);
 class SharedItemBatch {
     alignas(ComponentRenderBatch) std::byte bytes[sizeof(ComponentRenderBatch)];
 public:
-    SharedItemBatch(int depth, char const* atlas) {
+    SharedItemBatch(int depth, char const* atlas, float alpha = 1.0f) {
         std::memset(bytes, 0, sizeof bytes);
         auto& batch = get();
         alignas(BatchClippingState) std::byte clipBytes[sizeof(BatchClippingState)]{};
-        auto& key = *::new (&*batch.mBatchKey) BatchKey(depth, 1.0f, *reinterpret_cast<BatchClippingState*>(clipBytes));
+        auto& key = *::new (&*batch.mBatchKey) BatchKey(depth, alpha, *reinterpret_cast<BatchClippingState*>(clipBytes));
         key.mBatchType = UIBatchType::SharedMesh;
         key.mUIMaterialType = itemMaterial;
         auto& textures = *key.mResourceLocations;
@@ -69,12 +69,18 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
     std::vector<int> chunks;
     chunks.reserve(icons.size());
     for (auto const& icon : icons) chunks.push_back(drawable(icon) ? chunkOf(*icon.stack) : -1);
+    // One batch per chunk type and opacity: the batch key carries the alpha.
+    std::vector<float> alphas;
+    for (auto const& icon : icons) if (std::find(alphas.begin(), alphas.end(), icon.alpha) == alphas.end()) alphas.push_back(icon.alpha);
+    for (float alpha : alphas)
     for (int chunk : {blockChunk, flatChunk}) {
-        if (std::find(chunks.begin(), chunks.end(), chunk) == chunks.end()) continue;
-        SharedItemBatch batch{zOrder, chunk == blockChunk ? "atlas.terrain" : "atlas.items"};
+        bool any = false;
+        for (size_t i = 0; i < icons.size(); ++i) any = any || (chunks[i] == chunk && icons[i].alpha == alpha);
+        if (!any) continue;
+        SharedItemBatch batch{zOrder, chunk == blockChunk ? "atlas.terrain" : "atlas.items", alpha};
         context.beginSharedMeshBatch(batch.get());
         for (size_t i = 0; i < icons.size(); ++i) {
-            if (chunks[i] != chunk) continue;
+            if (chunks[i] != chunk || icons[i].alpha != alpha) continue;
             auto const& icon = icons[i];
             renderer->renderGuiItemInChunk(renderContext, static_cast<ItemRenderChunkType>(chunk), *icon.stack, icon.x,
                 icon.y, 1.0f, chunk == blockChunk ? 0.0f : 1.0f, icon.scale, icon.frame, false, zOrder, std::nullopt);
@@ -84,7 +90,7 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
     for (size_t i = 0; i < icons.size(); ++i) {
         if (chunks[i] < 0 || chunks[i] == blockChunk || chunks[i] == flatChunk) continue;
         auto const& icon = icons[i];
-        renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, false, 1.0f, 1.0f, icon.scale,
+        renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, false, icon.alpha, 1.0f, icon.scale,
             zOrder);
     }
 }

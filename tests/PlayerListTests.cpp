@@ -26,5 +26,12 @@ void playerListTests() {
     };
     check(fitName("\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a\xe3\x81\x8b", 5, glyphs) == "\xe3\x81\x82\xe3\x81\x84...",
           "cutting keeps whole UTF-8 characters");
+    check(permissionTexture(2, false) == "textures/ui/permissions_op_crown"
+              && permissionTexture(0, false) == "textures/ui/permissions_visitor_hand"
+              && permissionTexture(3, false) == "textures/ui/permissions_custom_dots",
+          "operators, visitors and custom permissions are always marked");
+    check(permissionTexture(1, false).empty() && permissionTexture(1, true) == "textures/ui/permissions_member_star"
+              && permissionTexture(std::nullopt, true).empty(),
+          "members are marked only when asked; unknown levels never");
     check(distanceText(12.4) == "12 m" && distanceText(12.6) == "13 m" && distanceText(-1) == "-", "distance in whole meters");
 }

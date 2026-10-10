@@ -260,6 +260,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"playerListPlatform", "Platform: {}", "機種: {}"},
     {"playerListDimension", "Dimension: {}", "ディメンション: {}"},
     {"playerListDistance", "Distance: {}", "距離: {}"},
+    {"playerListMembers", "Member marks: {}", "メンバーの印: {}"},
     {"playerList.count", "Players: {}", "プレイヤー: {}"},
     {"playerList.more", "and {} more", "ほか {} 人"},
     {"key.Lamium.foodvalues", "Toggle food values", "食べ物の回復量の切り替え"},

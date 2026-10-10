@@ -258,6 +258,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"playerListPlatform", "平台: {}"},
     {"playerListDimension", "维度: {}"},
     {"playerListDistance", "距离: {}"},
+    {"playerListMembers", "成员标记: {}"},
     {"playerList.count", "玩家: {}"},
     {"playerList.more", "另有 {} 人"},
     {"key.Lamium.foodvalues", "切换食物恢复量"},

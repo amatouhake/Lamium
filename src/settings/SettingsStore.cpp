@@ -96,6 +96,7 @@ Json encode(Settings const& settings) {
                          {"playerListPlatform", settings.information.playerListPlatform},
                          {"playerListDimension", settings.information.playerListDimension},
                          {"playerListDistance", settings.information.playerListDistance},
+                         {"playerListMembers", settings.information.playerListMembers},
                          {"saturation", settings.information.saturation},
                          {"saturationPreview", settings.information.saturationPreview},
                          {"lineOrder", settings.information.lineOrder},
@@ -273,6 +274,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.playerListPlatform = info.value("playerListPlatform", value.information.playerListPlatform);
         value.information.playerListDimension = info.value("playerListDimension", value.information.playerListDimension);
         value.information.playerListDistance = info.value("playerListDistance", value.information.playerListDistance);
+        value.information.playerListMembers = info.value("playerListMembers", value.information.playerListMembers);
         value.information.saturation = info.value("saturation", value.information.saturation);
         value.information.saturationPreview = info.value("saturationPreview", value.information.saturationPreview);
         value.information.hud = info.value("hud", value.information.hud);

@@ -282,6 +282,16 @@ when they leave), and whether it knows other players' permission level
 (operator, member, visitor) for the vanilla `permissions_op_crown`,
 `permissions_member_star` and `permissions_visitor_hand` marks. Today only the
 host is marked (singleplayer: you; a dedicated server: nobody).
+Trace 2026-10-10 (`3adc21c`, BDS, the maintainer changing dimension): the
+client holds every listed player's permission (all members there, you too);
+Locator Bar data gives a position for players in your dimension and turns to
+"hidden" when either side leaves it ("absent" for players never seen). So the
+current dimension of others is unknowable, but where they were last seen is.
+Decided (maintainer): show the last-seen dimension faded, without distance;
+mark operators (crown), visitors (hand) and custom (dots), members only with
+the "Member marks" option (default off); no separate host mark. Built
+2026-10-10; permission changes not yet traced (a LAN world with a phone can
+do it).
 
 ### L-59 Held placement style: vanilla, Java-like or fast
 Kind: Design done (discussion with the maintainer, 2026-09-28); Research
