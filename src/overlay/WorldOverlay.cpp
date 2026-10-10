@@ -1,5 +1,6 @@
 #include "overlay/WorldOverlay.h"
 #include "overlay/FaceMaterial.h"
+#include "overlay/CellMesh.h"
 #include "overlay/ChunkBorders.h"
 #include "overlay/Hitboxes.h"
 #include "overlay/Depth.h"
@@ -116,16 +117,6 @@ bool hasShapes() {
     return !shapeCollection.entries().empty() || !draftCollection.entries().empty();
 }
 
-// Uploaded shape meshes, owned by the render thread. Vertices are relative to
-// the shape's first block so the mesh is reused while the camera moves; only a
-// revision change rebuilds it. World exit asks the next frame to release them.
-struct ShapeMesh {
-    uint64_t revision = 0;
-    Cell origin{};
-    std::optional<mce::Mesh> faces, lines;
-    uint32_t faceVertices = 0, lineVertices = 0;
-    int variant = -1; // The FaceMaterial variant the mesh was built for.
-};
 } // namespace
 FaceMaterial faceMaterial(IClientInstance& client) {
     auto mode = client.getOptions().getGraphicsMode();
@@ -145,7 +136,9 @@ FaceMaterial faceMaterial(IClientInstance& client) {
     return {std::move(lightning), 2, false, .13f, true};
 }
 namespace {
-std::map<ShapeId, ShapeMesh> shapeMeshes;
+// Uploaded shape meshes (CellMesh), owned by the render thread: only a
+// revision change rebuilds one. World exit asks the next frame to release them.
+std::map<ShapeId, CellMesh> shapeMeshes;
 std::atomic<bool> releaseMeshes{false};
 struct EyeTrack { EyeOffsetInterpolator offset; uint64_t seenFrame = 0; };
 thread_local std::unordered_map<ActorRuntimeID, EyeTrack> eyeTracks;
@@ -160,86 +153,28 @@ std::array<float,3> shapeColor(ShapeColor color, bool draft) {
     default: return {.25f,.82f,.88f};
     }
 }
-void buildShapeMesh(ScreenContext& screen, ShapeMesh& mesh, ManagedShape const& shape, bool draft, FaceMaterial const& material) {
-    bool twoSided = material.twoSided;
-    mesh.faces.reset(); mesh.lines.reset();
-    mesh.faceVertices = mesh.lineVertices = 0;
-    mesh.revision = shape.revision;
-    mesh.variant = material.variant;
-    if (!shape.faces.empty()) mesh.origin = shape.faces.front().cell;
-    else if (!shape.lines.empty()) mesh.origin = {static_cast<int>(shape.lines.front().from.x),
-        static_cast<int>(shape.lines.front().from.y), static_cast<int>(shape.lines.front().from.z)};
-    auto [r, g, b] = shapeColor(shape.definition.color, draft);
-    bool faces = !draft && shape.definition.style == ShapeStyle::Face;
-    auto relative = [&](Tessellator& batch, Point p) {
-        batch.vertex(static_cast<float>(p.x - mesh.origin.x), static_cast<float>(p.y - mesh.origin.y),
-            static_cast<float>(p.z - mesh.origin.z));
-    };
-    if (faces && !shape.faces.empty()) {
-        Tessellator batch(screen.tessellator.mBufferResourceService);
-        int sides = twoSided ? 2 : 1;
-        batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(shape.faces.size()*4*sides), false);
-        batch.color(r, g, b, material.alpha);
-        for (auto const& face : shape.faces) {
-            // On the cell's own plane: the pull toward the eye keeps it in
-            // front of the block face there (depth rules, Depth.h).
-            auto corners = faceVertices(face);
-            for (auto p : corners) relative(batch, p);
-            // The reverse winding keeps faces visible from inside the shape.
-            if (twoSided) for (auto it = corners.rbegin(); it != corners.rend(); ++it) relative(batch, *it);
-        }
-        mesh.faces.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium shape faces", SupplementaryFieldAutoGenerationMode{}));
-        mesh.faceVertices = static_cast<uint32_t>(shape.faces.size()*4*sides);
-    }
-    if (!shape.lines.empty()) {
-        Tessellator batch(screen.tessellator.mBufferResourceService);
-        batch.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(shape.lines.size()*2), false);
-        // Faces carry a faint outline so the block grid stays readable.
-        batch.color(r, g, b, faces && !material.strongLines ? .45f : 1.f);
-        for (auto const& line : shape.lines) { relative(batch, line.from); relative(batch, line.to); }
-        mesh.lines.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium shape lines", SupplementaryFieldAutoGenerationMode{}));
-        mesh.lineVertices = static_cast<uint32_t>(shape.lines.size()*2);
-    }
-}
 // Draws a mesh built relative to `origin`, scaled toward the eye. The
 // projection is unchanged, but depth moves slightly nearer in proportion to
 // distance, so faces that run along or through existing blocks stay in front
 // of those blocks' own faces instead of flickering against them.
 template <class Draw>
 void withTowardEye(BaseActorRenderContext& context, Cell origin, Draw&& draw, float towardEye = depth::facePull) {
-    ScreenContext& screen = context.mScreenContext;
     Vec3 const camera = context.mImpl->mCameraPosition;
-    auto ref = screen.camera.worldMatrixStack->push(false);
-    ref.stack->_isDirty = true;
     glm::vec3 offset{static_cast<float>(origin.x - camera.x), static_cast<float>(origin.y - camera.y),
         static_cast<float>(origin.z - camera.z)};
-    ref.mat->_m = glm::scale(glm::translate(ref.mat->_m.get(), offset * towardEye), glm::vec3{towardEye});
-    draw();
-    // Pop manually, matching the proven LeviSchematic pattern for this stack.
-    ref.stack->_isDirty = true;
-    if (ref.stack->sortOrigin->has_value() && (ref.stack->stack->size() - 1) <= ref.stack->sortOrigin->value())
-        ref.stack->sortOrigin->reset();
-    ref.stack->stack->pop_back();
-    ref.mat = nullptr;
-    ref.stack = nullptr;
+    drawPulled(context.mScreenContext, offset, towardEye, draw);
 }
+// A shape (or a draft, or the breaking region) as a cell overlay: faces in
+// its color with a faint outline, or lines alone.
 void drawShape(BaseActorRenderContext& context, FaceMaterial const& faceMaterial, ShapeId id,
                ManagedShape const& shape, bool draft) {
     if (!context.mImpl) return;
-    ScreenContext& screen = context.mScreenContext;
+    auto [r, g, b] = shapeColor(shape.definition.color, draft);
+    CellStyle style{r, g, b, !draft && shape.definition.style == ShapeStyle::Face};
     auto& mesh = shapeMeshes[id];
-    if (mesh.revision != shape.revision || mesh.variant != faceMaterial.variant
-        || (mesh.faces && !mesh.faces->isValid()) || (mesh.lines && !mesh.lines->isValid()))
-        buildShapeMesh(screen, mesh, shape, draft, faceMaterial);
-    mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
-    withTowardEye(context, mesh.origin, [&] {
-        if (mesh.faces && faceMaterial.material.mRenderMaterialInfoPtr)
-            mesh.faces->renderMesh(screen, faceMaterial.material, gsl::span<mce::ClientTexture const*>{}, 0, mesh.faceVertices,
-                OffscreenCaptureDescription{}, nullptr);
-        if (mesh.lines && lineMaterial.mRenderMaterialInfoPtr)
-            mesh.lines->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, mesh.lineVertices,
-                OffscreenCaptureDescription{}, nullptr);
-    });
+    if (mesh.stale(shape.revision, style, faceMaterial))
+        buildCellMesh(context.mScreenContext, mesh, shape.faces, shape.lines, style, faceMaterial, shape.revision);
+    drawCellMesh(context.mScreenContext, context.mImpl->mCameraPosition, mesh, faceMaterial);
 }
 // Per-batch colors so one frame can carry Java-style color coding.
 struct LineBatch { std::span<Line const> lines; float r, g, b, a = 1; };

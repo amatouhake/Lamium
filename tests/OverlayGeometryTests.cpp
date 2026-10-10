@@ -2,8 +2,31 @@
 #include "overlay/ChunkBorders.h"
 #include "overlay/Hitboxes.h"
 #include "overlay/Depth.h"
+#include "overlay/CellSurface.h"
 void check(bool, char const*);
 void overlayGeometryTests() {
+    {
+        using namespace lamium::overlay;
+        auto one = cellSurface({{2, 3, 4}});
+        check(one.faces.size() == 6 && one.lines.size() == 12, "one cell's surface is six faces and twelve edges");
+        auto two = cellSurface({{0, 0, 0}, {1, 0, 0}});
+        check(two.faces.size() == 10 && two.lines.size() == 20, "touching cells drop the faces between them but keep the grid seam");
+        auto corners = faceCorners(one.faces, false);
+        bool onPlanes = true;
+        for (auto p : corners) onPlanes = onPlanes && p.x >= 2 && p.x <= 3 && p.y >= 3 && p.y <= 4 && p.z >= 4 && p.z <= 5;
+        check(corners.size() == 24 && onPlanes, "faces lie on the cell's own planes, never inset or pushed out");
+        auto both = faceCorners(one.faces, true);
+        check(both.size() == 48 && both[4] == both[3] && both[7] == both[0], "a culling material gets each face again reversed");
+        auto box = boxOutline({0, 0, 0}, {4, 1, 2});
+        check(box.size() == 12 && box.front().from == Point{0, 0, 0}, "an area's outline is its box's twelve edges");
+        bool reaches = false;
+        for (auto const& line : box) reaches = reaches || (line.to == Point{5, 2, 3});
+        check(reaches, "the box outline reaches past the high cell");
+        check(surfaceOrigin(one.faces, one.lines) == Cell{2, 3, 4} && surfaceOrigin({}, box) == Cell{0, 0, 0},
+              "meshes are built relative to the first face, else the first line");
+        check(outlineAlpha(true, false) < 1 && outlineAlpha(false, false) == 1 && outlineAlpha(true, true) == 1,
+              "outlines are faint only over faces that show");
+    }
     using namespace lamium::overlay;
     auto offset = hitboxRenderOffset({4,2,-1}, {4.25,2.5,-1.75});
     auto min = moveHitboxPoint({3,1,-2}, offset);
