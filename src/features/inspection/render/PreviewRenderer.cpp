@@ -19,6 +19,7 @@
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/client/renderer/BaseActorRenderContext.h"
 #include "mc/client/renderer/actor/ItemRenderer.h"
+#include "mc/client/gui/controls/renderers/InventoryItemRenderer.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/deps/core/math/Color.h"
 #include "mc/deps/core/string/HashedString.h"
@@ -135,8 +136,15 @@ void PreviewRenderer::render(
 
             // renderEnchantmentFoil selects the pass: false draws the item
             // icon itself, true draws only the additive glint overlay.
-            itemRenderer
-                ->renderGuiItemNew(renderContext, stack, frame, icon.x0, icon.y0, false, 1.0f, 1.0f, 1.0f, kItemZOrder);
+            // Block items (fence gates among them) lose their mesh on
+            // renderGuiItemNew's combined chunk; vanilla slots draw them as
+            // the block chunk with these arguments (L-119 trace, 2026-10-10).
+            if (InventoryItemRenderer::getRenderTypeFromItem(stack) == ItemRenderChunkType{})
+                itemRenderer->renderGuiItemInChunk(renderContext, ItemRenderChunkType{}, stack, icon.x0, icon.y0, 1.0f,
+                    0.0f, 1.0f, frame, false, kItemZOrder, std::nullopt);
+            else
+                itemRenderer
+                    ->renderGuiItemNew(renderContext, stack, frame, icon.x0, icon.y0, false, 1.0f, 1.0f, 1.0f, kItemZOrder);
             // Vanilla's glint predicate: Item::isGlint, which items override
             // (enchanted books, enchanted golden apples, ...), not raw
             // enchantment NBT.
