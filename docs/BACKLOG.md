@@ -87,10 +87,12 @@ L-item wins. Every entry names what the task is, not only its number.
    style:** L-15 breaking shipped in 0.1.8; the maintainer will redesign
    it, and placement waits for that Design. L-59 waits for the maintainer's
    go.
-4. **L-111 integration between features:** proposal in INTEGRATION.md;
-   the maintainer reviews it when it becomes needed. Planned for 0.2.0
-   together with L-134 splitting SettingsScreen.cpp, L-136 splitting
-   GhostRenderer.cpp and L-135 leaving the PDB out of the release ZIP.
+4. **0.2.0: clean-up and integration (L-111 integration between
+   features, decided 2026-10-11):** L-136 GhostRenderer.cpp split first,
+   then face drawing, WorldMap.cpp tidy-up and map layers, L-134
+   SettingsScreen.cpp split, L-137 game update readiness alongside, L-135
+   PDB as a separate release asset. The radial menu and the smaller links
+   are optional. Order and boundary: L-111.
 5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
    trace/test steps), L-71 starting a glide from the mod, L-30 Ender Dragon
@@ -309,6 +311,30 @@ the L-93 rendering checks (doors, beds, panes, liquids, honey/slime, block
 entities, entity models, large placements' frame rate). WorldMap.cpp
 (~1,240 lines) and InfoHud.cpp (~1,400) are worth a look in the same pass;
 Translations.h is data and stays as it is.
+
+### L-137 Game update readiness (with 0.2.0)
+Kind: Refactor, then Research for each new game version. Chosen by the
+maintainer 2026-10-11 as part of the 0.2.0 clean-up.
+Lamium depends on the game in three ways, with different failure modes:
+functions it hooks (205 hooks in 45 files, 2026-10-11; a missing or changed
+function fails at hook install, which already fails open), game structures
+it reads or writes by member (`mMeshData`, `mQuadInfoList` and similar via
+SDK `TypedStorage` layouts; a changed layout still compiles and starts, then
+reads the wrong memory), and game behavior it relies on (the Vibrant Visuals
+fog change; nothing structural prevents it). 88 of 308 source files include
+game headers; GhostRenderer.cpp alone includes 70. `verifiedGameExecutable()`
+gates only four render paths. The 26.51.3 -> 26.51.5 loader update needed
+no code change, but a new Minecraft version will move layouts.
+1. Inventory: per feature, its hooks and the structures it reads by member,
+   in a doc next to the code (generated or checked by a script where
+   possible so it cannot drift).
+2. Gate: every feature that reads or writes game structures by member stays
+   vanilla on an unverified game executable, like the render paths.
+3. Splits: L-134 and L-136 separate game glue from pure logic so an update
+   touches the glue only and the tests still vouch for the logic.
+4. Playbook: what to do when Minecraft or LeviLamina updates (SDK bump,
+   build, inventory-driven in-game checks, widening the verified version),
+   in DISTRIBUTION.md or a new doc.
 
 ### L-133 Connected Textures: split glass panes without dark halves
 Kind: Research. Opened 2026-10-11 from L-96.
@@ -884,7 +910,27 @@ items.
 Status: agent's proposal written 2026-10-08 in [INTEGRATION.md](INTEGRATION.md)
 (shared parts features register into: face drawing, map layers, a Lamium
 radial menu, looked-at selection, settings cross-links; suggested order and
-open questions). Waiting for the maintainer.
+open questions).
+Decided 2026-10-11 (maintainer, on the agent's recommendation): 0.2.0's
+theme is clean-up and integration together.
+- Boundary: shared parts that features register into (INTEGRATION.md
+  principle); no feature merges outright.
+- Order: tidy the place an integration touches right before it, in separate
+  commits from the integration itself (a behavior change must be traceable to
+  one of them, as the L-73 periodic-input regression showed). L-136
+  GhostRenderer.cpp split comes first on its own; then A face drawing; then
+  WorldMap.cpp tidy-up and B map layers; then L-134 SettingsScreen.cpp split
+  (its Shapes view and waypoint list may move with B); L-137 game update
+  readiness alongside; L-135 PDB as a separate asset at release time.
+- Required for 0.2.0: A, B, L-134, L-135, L-136, L-137. C radial menu, D
+  looked-at selection and E settings cross-links go in when the maintainer
+  feels like it, in 0.2.0 or later (C needs a demo first).
+- Shared parts follow the same version gate and per-feature fail-open as
+  features: a shared part that cannot be verified leaves every registered
+  feature vanilla, and a feature that fails leaves the shared part working.
+- Still open, decided when the step comes: Shapes on the minimap or only on
+  the world map (B); one Lamium menu key or per-feature keys into the same
+  menu (C).
 
 ### L-105 Performance: find the real bottleneck before optimizing
 Kind: Research **(strong model)**. Chosen by the maintainer 2026-10-07 from

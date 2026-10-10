@@ -4,6 +4,10 @@ Draft for [BACKLOG L-111](BACKLOG.md), written by an agent on 2026-10-08
 for the maintainer to decide on. Nothing here is decided until it moves into
 BACKLOG.md or DESIGN.md.
 
+Decided 2026-10-11: the boundary, order and 0.2.0 scope are in L-111 in
+BACKLOG.md (A and B required, C to E optional); the questions below about
+Shapes on the minimap and the menu key stay open until their step.
+
 ## Why
 
 Most features are mature on their own, but the links between them have
