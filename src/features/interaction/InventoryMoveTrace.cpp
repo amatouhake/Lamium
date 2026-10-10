@@ -18,6 +18,7 @@
 #include "mc/world/actor/provider/PlayerMovement.h"
 #include "mc/entity/components/ActorOwnerComponent.h"
 #include "mc/client/network/ClientNetworkHandler.h"
+#include "mc/client/gui/screens/UIScene.h"
 #include "mc/network/LoopbackPacketSender.h"
 #include "mc/network/MinecraftPacketIds.h"
 #include "mc/network/packet/CorrectPlayerMovePredictionPacket.h"
@@ -64,6 +65,9 @@ unsigned corrections = 0, packetLogs = 0;
 // Round 6: only feed the raw keys and lift MoveInputStateLocked; the later
 // injections of rounds 3-5 stay off (they left flags stuck after closing).
 constexpr bool injectLater = false;
+// Round 7: let the inventory screen pass input on instead of feeding keys.
+constexpr bool feedRaw = false;
+unsigned absorbLogs = 0;
 unsigned lastComponentFlags = 0xFFFFFFFF, flagLogs = 0;
 std::string lastPacket;
 std::string lastUpdate;
@@ -130,7 +134,7 @@ LL_STATIC_HOOK(InventoryMoveExtract, ll::memory::HookPriority::Normal,
         fedBits = 0;
         if (!inventoryOpen) return;
         ++extractCalls;
-        if (!focused()) return;
+        if (!feedRaw || !focused()) return;
         rawComponentState = &*raw.mRawInput;
         auto& bits = *raw.mRawInput->mFlagValues;
         auto set = [&](Flag flag, bool on) {
@@ -305,6 +309,19 @@ LL_TYPE_INSTANCE_HOOK(InventoryMoveCorrection, ll::memory::HookPriority::Normal,
     if (inventoryOpen) ++corrections;
     origin(source, packet);
 }
+LL_TYPE_INSTANCE_HOOK(InventoryMoveAbsorb, ll::memory::HookPriority::Normal, UIScene, &UIScene::$absorbsInput, bool) {
+    bool absorbs = origin();
+    try {
+        if (absorbs && getScreenName().starts_with("inventory_screen")) {
+            if (absorbLogs < 3) {
+                ++absorbLogs;
+                log("L-132 inventory_screen absorbsInput {} -> false", absorbs);
+            }
+            return false;
+        }
+    } catch (...) {}
+    return absorbs;
+}
 void start() {
     InventoryMoveExtract::hook();
     InventoryMoveClear::hook();
@@ -312,6 +329,7 @@ void start() {
     InventoryMoveCalc::hook();
     InventoryMoveUpdate::hook();
     InventoryMoveSend::hook();
+    InventoryMoveAbsorb::hook();
     InventoryMoveCorrection::hook();
     Runtime::instance().self().getLogger().warn("Inventory move diagnostics enabled (L-132)");
 }
@@ -322,6 +340,7 @@ void stop() {
     InventoryMoveCalc::unhook(true);
     InventoryMoveUpdate::unhook(true);
     InventoryMoveSend::unhook(true);
+    InventoryMoveAbsorb::unhook(true);
     InventoryMoveCorrection::unhook(true);
 }
 }
