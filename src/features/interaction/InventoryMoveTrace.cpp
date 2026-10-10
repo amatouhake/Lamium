@@ -61,6 +61,10 @@ uintptr_t const moduleBase = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullpt
 unsigned calcLogs = 0;
 // Round 5: the auth input packet and the server's corrections.
 unsigned corrections = 0, packetLogs = 0;
+// Round 6: only feed the raw keys and lift MoveInputStateLocked; the later
+// injections of rounds 3-5 stay off (they left flags stuck after closing).
+constexpr bool injectLater = false;
+unsigned lastComponentFlags = 0xFFFFFFFF, flagLogs = 0;
 std::string lastPacket;
 std::string lastUpdate;
 float feedX = 0, feedZ = 0;
@@ -98,6 +102,18 @@ LL_STATIC_HOOK(InventoryMoveExtract, ll::memory::HookPriority::Normal,
     MovementAbilitiesComponent const& abilities, MoveInputComponent const& input,
     ActorDataFlagComponent const& flags, RawMoveInputComponent& raw,
     Optional<SneakingComponent const> sneaking, Optional<WasInWaterFlagComponent const> water) {
+    if (inventoryOpen) try {
+        auto& component = const_cast<MoveInputComponent&>(input);
+        unsigned bits = 0;
+        for (size_t i = 0; i < 11; ++i)
+            if (component.mFlagValues->test(i)) bits |= 1u << i;
+        if (bits != lastComponentFlags && flagLogs < 60) {
+            ++flagLogs;
+            lastComponentFlags = bits;
+            log("L-132 MoveInputComponent flags {:#05x} (locked {})", bits, (bits >> 6) & 1);
+        }
+        component.mFlagValues->set(static_cast<size_t>(MoveInputComponent::Flag::MoveInputStateLocked), false);
+    } catch (...) {}
     origin(abilities, input, flags, raw, sneaking, water);
     try {
         auto client = ll::service::getClientInstance();
@@ -182,7 +198,7 @@ LL_STATIC_HOOK(InventoryMoveCalc, ll::memory::HookPriority::Normal, &PlayerMovem
     ++calcs;
     auto before = bitsOf(state);
     // Round 4: put the fed keys into whichever state is read.
-    if (feeding || fedBits) {
+    if (injectLater && (feeding || fedBits)) {
         auto& writable = const_cast<MoveInputState&>(state);
         for (int i = 0; i < 27; ++i)
             if (fedBits & (1u << i)) writable.mFlagValues->set(static_cast<size_t>(i), true);
@@ -224,12 +240,12 @@ LL_STATIC_HOOK(InventoryMoveUpdate, ll::memory::HookPriority::Normal,
             lastUpdate = text;
             log("L-132 inputHandlerUpdatePlayerState after: {} (updates {})", text, updates);
         }
-        for (int i = 0; i < 27; ++i)
+        if (injectLater) for (int i = 0; i < 27; ++i)
             if (fedBits & (1u << i)) {
                 input.mInputState->mFlagValues->set(static_cast<size_t>(i), true);
                 input.mRawInputState->mFlagValues->set(static_cast<size_t>(i), true);
             }
-        if (feeding) {
+        if (injectLater && feeding) {
             *input.mInputState->mAnalogMoveVector = Vec2{feedX, feedZ};
             *input.mRawInputState->mAnalogMoveVector = Vec2{feedX, feedZ};
         }
@@ -261,6 +277,7 @@ LL_TYPE_INSTANCE_HOOK(InventoryMoveSend, ll::memory::HookPriority::Normal, Loopb
                 log("L-132 PlayerAuthInput as built: {} (fed {:#09x})", text, fedBits);
             }
             // Put the fed keys into the packet when the game left them out.
+            if (!injectLater) { origin(packet); return; }
             if (feeding) {
                 if (auth.mMove->x == 0 && auth.mMove->z == 0) *auth.mMove = Vec2{feedX, feedZ};
                 if (auth.mRawMoveVector->x == 0 && auth.mRawMoveVector->z == 0) *auth.mRawMoveVector = Vec2{feedX, feedZ};
