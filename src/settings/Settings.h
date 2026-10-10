@@ -115,6 +115,7 @@ struct Settings {
         ui::HudElement durability = ui::defaultHudElement(ui::HudElementId::Durability);
         ui::HudElement minimap = ui::defaultHudElement(ui::HudElementId::Minimap);
         ui::HudElement schematic = ui::defaultHudElement(ui::HudElementId::Schematic);
+        ui::HudElement playerList = ui::defaultHudElement(ui::HudElementId::PlayerList);
     } hud;
     struct Map {
         bool minimap = false;
@@ -196,6 +197,8 @@ struct Settings {
         bool durabilityArmor = true;
         bool offhandSlot = false;      // Offhand item beside the hotbar (L-75)
         bool offhandSlotEmpty = false; // Keep the empty frame when nothing is held
+        // Player list columns (L-128), all shown by default.
+        bool playerListPlatform = true, playerListDimension = true, playerListDistance = true;
         bool saturation = true;        // Gold outlines on the hunger bar (L-63)
         bool saturationPreview = true; // What the held food would add
         bool hud = false;
@@ -293,6 +296,7 @@ struct Settings {
         normalizeElement(hud.durability, ui::defaultHudElement(ui::HudElementId::Durability));
         normalizeElement(hud.minimap, ui::defaultHudElement(ui::HudElementId::Minimap));
         normalizeElement(hud.schematic, ui::defaultHudElement(ui::HudElementId::Schematic));
+        normalizeElement(hud.playerList, ui::defaultHudElement(ui::HudElementId::PlayerList));
         map.zoom = map::clampZoomIndex(map.zoom);
         if (!std::isfinite(map.size)) map.size = 20;
         map.size = std::clamp(std::round(map.size), 10.f, 50.f);

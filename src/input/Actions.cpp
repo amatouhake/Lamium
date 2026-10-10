@@ -10,6 +10,7 @@
 #include "app/Runtime.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "features/camera/CameraSessions.h"
+#include "features/information/PlayerList.h"
 #include "features/inventory/Inventory.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/map/MapView.h"
@@ -215,6 +216,7 @@ void executeAction(IClientInstance& client, input::Action action) {
         return;
     }
     if (action == input::Action::MinimapEnlarge) { map::setEnlarged(true); return; }
+    if (action == input::Action::PlayerList) { information::playerList::setHeld(true); return; }
     if (action == input::Action::RadarFaces) { map::setFacesHeld(true); return; }
     if (action == input::Action::HideWaypoints) { map::markers::setHidden(true); return; }
     if (action == input::Action::AddWaypoint) {
@@ -268,6 +270,7 @@ void releaseAction(input::Action action) {
     if (action == input::Action::FreeCamera) CameraSessions::instance().releaseFreeCameraKey();
     if (action == input::Action::FakeOffhandUse) inventory::fakeOffhand::release();
     if (action == input::Action::MinimapEnlarge) map::setEnlarged(false);
+    if (action == input::Action::PlayerList) information::playerList::setHeld(false);
     if (action == input::Action::RadarFaces) map::setFacesHeld(false);
     if (action == input::Action::HideWaypoints) map::markers::setHidden(false);
     if (action == input::Action::AdjustSchematic) schematic::actions::setAdjustHeld(false);

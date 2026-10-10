@@ -45,6 +45,7 @@ std::string_view elementName(HudElementId id) {
     case HudElementId::Durability: return "feature.durabilityHud";
     case HudElementId::Minimap: return "feature.minimap";
     case HudElementId::Schematic: return "feature.schematicHud";
+    case HudElementId::PlayerList: return "feature.playerList";
     default: return "hudEditor.toast";
     }
 }
@@ -57,6 +58,7 @@ HudElement& layoutElement(Settings::Hud& hud, HudElementId id) {
     case HudElementId::Durability: return hud.durability;
     case HudElementId::Minimap: return hud.minimap;
     case HudElementId::Schematic: return hud.schematic;
+    case HudElementId::PlayerList: return hud.playerList;
     default: return hud.toast;
     }
 }

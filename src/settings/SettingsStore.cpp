@@ -93,6 +93,9 @@ Json encode(Settings const& settings) {
                          {"durabilityArmor", settings.information.durabilityArmor},
                          {"offhandSlot", settings.information.offhandSlot},
                          {"offhandSlotEmpty", settings.information.offhandSlotEmpty},
+                         {"playerListPlatform", settings.information.playerListPlatform},
+                         {"playerListDimension", settings.information.playerListDimension},
+                         {"playerListDistance", settings.information.playerListDistance},
                          {"saturation", settings.information.saturation},
                          {"saturationPreview", settings.information.saturationPreview},
                          {"lineOrder", settings.information.lineOrder},
@@ -174,7 +177,8 @@ Json encode(Settings const& settings) {
                    {"magnification", encodeHudElement(settings.hud.magnification)},
                    {"durability", encodeHudElement(settings.hud.durability)},
                    {"minimap", encodeHudElement(settings.hud.minimap)},
-                   {"schematic", encodeHudElement(settings.hud.schematic)}}},
+                   {"schematic", encodeHudElement(settings.hud.schematic)},
+                   {"playerList", encodeHudElement(settings.hud.playerList)}}},
         {"map", {{"minimap", settings.map.minimap}, {"range", map::blocksAcross(settings.map.zoom)}, {"size", settings.map.size},
                  {"rotate", settings.map.rotate},
                  {"round", settings.map.round}, {"coordinates", settings.map.coordinates},
@@ -266,6 +270,9 @@ Settings decodeSettings(std::string_view text) {
         value.information.durabilityArmor = info.value("durabilityArmor", value.information.durabilityArmor);
         value.information.offhandSlot = info.value("offhandSlot", value.information.offhandSlot);
         value.information.offhandSlotEmpty = info.value("offhandSlotEmpty", value.information.offhandSlotEmpty);
+        value.information.playerListPlatform = info.value("playerListPlatform", value.information.playerListPlatform);
+        value.information.playerListDimension = info.value("playerListDimension", value.information.playerListDimension);
+        value.information.playerListDistance = info.value("playerListDistance", value.information.playerListDistance);
         value.information.saturation = info.value("saturation", value.information.saturation);
         value.information.saturationPreview = info.value("saturationPreview", value.information.saturationPreview);
         value.information.hud = info.value("hud", value.information.hud);
@@ -483,6 +490,7 @@ Settings decodeSettings(std::string_view text) {
         element("durability", value.hud.durability, ui::HudElementId::Durability);
         element("minimap", value.hud.minimap, ui::HudElementId::Minimap);
         element("schematic", value.hud.schematic, ui::HudElementId::Schematic);
+        element("playerList", value.hud.playerList, ui::HudElementId::PlayerList);
     }
     value.normalize();
     return value;

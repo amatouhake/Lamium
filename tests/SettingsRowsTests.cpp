@@ -35,7 +35,7 @@ void settingsRowsTests() {
         if (auto primary = ui::primaryAction(feature))
             check(input::actions[static_cast<size_t>(*primary)].feature == feature.id
                 && (!feature.toggle.empty() || sessions.contains(feature.id) || feature.id == "settings"
-                    || feature.id == "caveView" || feature.id == "schematicMenu"), // Named commands: a key without a switch.
+                    || feature.id == "caveView" || feature.id == "schematicMenu" || feature.id == "playerList"), // Named commands: a key without a switch.
                 "a parent key belongs to the feature's own state or screen opener");
     for (auto id : {"restrictions", "mapText"}) {
         auto found = std::find_if(ui::features.begin(), ui::features.end(),
@@ -129,7 +129,7 @@ void settingsRowsTests() {
     check(options.size() == listed && actions.size() == live, "all settings and actions are reachable");
     check(input::retired(input::Action::CaptureBreaking) && input::retired(input::Action::ResetBreaking)
           && !input::retired(input::Action::CycleBreakingMode), "only the L-15 capture and reset actions are retired");
-    check(layouts.size() == 8, "every HUD element is reachable from the settings list");
+    check(layouts.size() == 9, "every HUD element is reachable from the settings list");
     {
         auto sort = std::find_if(rows.begin(), rows.end(), [](auto const& row) {
             return row.heading() && row.feature->id == "sorting";

@@ -15,11 +15,11 @@ struct Box {
     bool contains(float px, float py) const { return px >= x && px < x + w && py >= y && py < y + h; }
     bool overlaps(Box const& o) const { return x < o.x + o.w && o.x < x + w && y < o.y + o.h && o.y < y + h; }
 };
-using Boxes = std::array<std::optional<Box>, 8>; // Indexed by HudElementId.
+using Boxes = std::array<std::optional<Box>, 9>; // Indexed by HudElementId.
 // InfoHud draws the minimap, durability, magnification, status, target, toast, then info; later ones are on top.
-inline constexpr std::array<HudElementId, 8> drawOrder{
+inline constexpr std::array<HudElementId, 9> drawOrder{
     HudElementId::Minimap, HudElementId::Schematic, HudElementId::Durability, HudElementId::Magnification, HudElementId::Status, HudElementId::Target, HudElementId::Toast,
-    HudElementId::Info};
+    HudElementId::Info, HudElementId::PlayerList};
 
 // The anchor point on the screen (anchors sit on the screen edge).
 inline Point anchorPoint(Anchor anchor, float screenW, float screenH) {

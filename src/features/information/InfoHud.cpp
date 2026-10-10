@@ -50,6 +50,8 @@
 #include "mc/deps/input/RectangleArea.h"
 #include "features/inspection/render/DurabilityBar.h"
 #include "features/inspection/render/ItemIcon.h"
+#include "features/information/PlayerList.h"
+#include "features/map/RadarFaces.h"
 #include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/level/Level.h"
@@ -981,6 +983,111 @@ void drawOffhandSlot(MinecraftUIRenderContext& context, ScreenView const& view, 
     if (stack.mCount > 1) slotCount(context, icon, unit, stack.mCount);
 }
 std::string biomeName(std::string const& identifier) { return localizedBiomeName(identifier); }
+// ---- Player list (L-128, docs/demos/player-list.html) ----
+// Face, name, host crown, platform, dimension and distance in aligned columns:
+// each list column is laid out once from its widest cells.
+std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& context, float width, float height,
+                                                  ui::HudElement const& element, Settings::Information const& settings,
+                                                  float rowUnits) {
+    namespace list = playerList;
+    auto rows = list::collect(context.mClient);
+    if (rows.empty()) return std::nullopt;
+    float zoom = elementZoom(element);
+    float rowHeight = std::max(rowUnits, 10.f) * zoom, icon = 8 * zoom, gap = 3 * zoom, columnGap = 10 * zoom;
+    bool card = element.background == ui::ElementBackground::Card, band = element.background == ui::ElementBackground::Line;
+    float padX = card ? 5 : band ? ui::lineSidePadding * zoom : 0, padY = card ? 3 : 0;
+    auto measure = [&](std::string const& text) { return ui::labelWidth(context, text, zoom); };
+    float platformWidth = 0, distanceWidth = 0, longestName = 0;
+    for (auto const& row : rows) {
+        longestName = std::max(longestName, measure(row.name));
+        if (settings.playerListPlatform) platformWidth = std::max(platformWidth, measure(std::string(list::platformText(row.platform))));
+        if (settings.playerListDistance && row.distance && !row.self)
+            distanceWidth = std::max(distanceWidth, measure(list::distanceText(*row.distance)));
+        else if (settings.playerListDistance && !row.self && !row.distance && row.dimension)
+            distanceWidth = std::max(distanceWidth, measure("-"));
+    }
+    if (settings.playerListDistance) distanceWidth = std::max(distanceWidth, measure("-"));
+    auto columnWidth = [&](float nameWidth) {
+        float w = icon + gap + nameWidth + gap + icon;
+        if (settings.playerListPlatform) w += gap + platformWidth;
+        if (settings.playerListDimension) w += gap + icon;
+        if (settings.playerListDistance) w += gap + distanceWidth;
+        return w;
+    };
+    // Names stop at about 16 characters; 10 when even one column does not fit.
+    float available = std::max(0.f, width - 8 - 2 * padX);
+    float nameWidth = std::min(longestName, 96 * zoom);
+    auto grid = list::plan(static_cast<int>(rows.size()), columnWidth(nameWidth), columnGap, available);
+    if (grid.columns == 1 && columnWidth(nameWidth) > available) {
+        nameWidth = std::min(longestName, 60 * zoom);
+        grid = list::plan(static_cast<int>(rows.size()), columnWidth(nameWidth), columnGap, available);
+    }
+    float colWidth = columnWidth(nameWidth);
+    int firstColumnRows = std::min(grid.shown, grid.perColumn);
+    bool more = grid.shown < static_cast<int>(rows.size());
+    auto header = ui::translated("playerList.count", static_cast<int>(rows.size()));
+    float contentWidth = std::max(grid.columns * colWidth + (grid.columns - 1) * columnGap, measure(header));
+    float boxWidth = contentWidth + 2 * padX;
+    float boxHeight = (1 + firstColumnRows + (more ? 1 : 0)) * rowHeight + 2 * padY;
+    auto at = ui::placeElement(width, height, boxWidth, boxHeight, element);
+    if (card) ui::card(context, at.x, at.y, boxWidth, boxHeight, cardOpacity);
+    float left = at.x + padX, top = at.y + padY;
+    auto textTop = [&](float y) { return ui::lineTextTop(y, rowHeight, zoom, band); };
+    auto bandAt = [&](float x, float y, float w) {
+        if (!band) return;
+        auto line = ui::lineBox(x, y, w, rowHeight, zoom);
+        ui::fill(context, line.x, line.y, line.width, line.height, ui::palette::panel, cardOpacity);
+    };
+    bandAt(left, top, measure(header));
+    ui::labelScaled(context, left, textTop(top), measure(header) + 2, header, zoom, ui::palette::dim, ui::Align::Left,
+                    element.shadow);
+    static char const* const dimensionBlocks[] = {"minecraft:grass_block", "minecraft:netherrack", "minecraft:end_stone"};
+    for (int i = 0; i < grid.shown; ++i) {
+        auto const& row = rows[static_cast<size_t>(i)];
+        float x = left + (i / grid.perColumn) * (colWidth + columnGap);
+        float y = top + (1 + i % grid.perColumn) * rowHeight;
+        float iconTop = y + (rowHeight - icon) / 2;
+        bandAt(x, y, colWidth);
+        if (row.face >= 0) map::faces::draw(context, row.face, x + icon / 2, y + rowHeight / 2, icon, 1);
+        x += icon + gap;
+        auto name = list::fitName(row.name, nameWidth, measure);
+        ui::labelScaled(context, x, textTop(y), nameWidth + 2, name, zoom, row.self ? ui::palette::accent : ui::palette::text,
+                        ui::Align::Left, element.shadow);
+        x += nameWidth + gap;
+        if (row.host) ui::images(context, "textures/ui/permissions_op_crown", {{x, iconTop, icon, icon}});
+        x += icon;
+        if (settings.playerListPlatform) {
+            x += gap;
+            ui::labelScaled(context, x, textTop(y), platformWidth + 2, std::string(list::platformText(row.platform)), zoom,
+                            row.platform < 0 ? ui::palette::faint : ui::palette::dim, ui::Align::Left, element.shadow);
+            x += platformWidth;
+        }
+        if (settings.playerListDimension) {
+            x += gap;
+            if (row.dimension && *row.dimension >= 0 && *row.dimension < 3)
+                if (auto const* stack = schematic::items::iconStack(dimensionBlocks[*row.dimension]))
+                    inspection::render::drawItemIcon(context, {stack, x, iconTop, icon / 16}, 17);
+            x += icon;
+        }
+        if (settings.playerListDistance && !row.self) {
+            x += gap;
+            // Players in another dimension or unknown ones: no distance, a dash only in yours.
+            std::string text = row.distance ? list::distanceText(*row.distance) : row.dimension ? std::string("-") : std::string();
+            if (!text.empty())
+                ui::labelScaled(context, x, textTop(y), distanceWidth, text, zoom,
+                                row.distance ? ui::palette::dim : ui::palette::faint, ui::Align::Right, element.shadow);
+        }
+    }
+    if (more) {
+        auto rest = ui::translated("playerList.more", static_cast<int>(rows.size()) - grid.shown);
+        float y = top + (1 + firstColumnRows) * rowHeight;
+        bandAt(left, y, measure(rest));
+        ui::labelScaled(context, left, textTop(y), measure(rest) + 2, rest, zoom, ui::palette::dim, ui::Align::Left,
+                        element.shadow);
+    }
+    context.flushText(0, std::nullopt);
+    return ui::hud_editor::Box{at.x, at.y, boxWidth, boxHeight};
+}
 ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, float height,
                               Settings::Information const& preferences, HudPreview const* preview) {
     ui::hud_editor::Boxes boxes;
@@ -1082,6 +1189,9 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         box(ui::HudElementId::Durability) = drawDurability(context, width, height, hud.durability, settings, preview != nullptr);
     if (preview || (runtime.schematic.enabled && runtime.schematic.hud))
         box(ui::HudElementId::Schematic) = drawSchematicHud(context, width, height, hud.schematic, runtime.schematic, preview != nullptr);
+    if (preview || playerList::held())
+        box(ui::HudElementId::PlayerList) = drawPlayerList(context, width, height, hud.playerList, settings,
+                                                           static_cast<float>(runtime.ui.hudRowHeight));
     if (preview || runtime.camera.showMagnification) {
         auto level = CameraSessions::instance().magnification(context.mClient);
         if (!level && preview) level = runtime.camera.magnification;

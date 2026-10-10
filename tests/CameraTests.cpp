@@ -35,6 +35,8 @@ int main() try {
     lockedTradesTests();
     extern void englishSearchTests();
     englishSearchTests();
+    extern void playerListTests();
+    playerListTests();
     extern void toolChoiceTests();
     toolChoiceTests();
     extern void weaponChoiceTests();

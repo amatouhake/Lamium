@@ -60,6 +60,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"periodicUse", "feature.periodicUse", "help.periodicInput", "interaction.autoUse", false, input::Action::PeriodicUse},
     {"infoHud", "feature.infoHud", "help.infoHud", "information.hud", false, input::Action::InfoHud},
     {"targetInfo", "feature.targetInfo", "help.targetInfo", "information.target", false, input::Action::TargetInfo},
+    {"playerList", "feature.playerList", "help.playerList", "", false, input::Action::PlayerList},
     {"durabilityHud", "feature.durabilityHud", "help.durabilityHud", "information.durabilityHud", false, input::Action::ToggleDurabilityHud},
     {"offhandSlot", "feature.offhandSlot", "help.offhandSlot", "information.offhandSlot", false, input::Action::ToggleOffhandSlot},
     {"saturation", "feature.saturation", "help.saturation", "information.saturation", false, input::Action::ToggleSaturation},
@@ -166,6 +167,7 @@ inline std::optional<HudElementId> layoutElement(std::string_view feature) {
     if (feature == "durabilityHud") return HudElementId::Durability;
     if (feature == "minimap") return HudElementId::Minimap;
     if (feature == "schematicHud") return HudElementId::Schematic;
+    if (feature == "playerList") return HudElementId::PlayerList;
     return std::nullopt;
 }
 inline constexpr std::string_view layoutLinkLabel(HudElementId id) {

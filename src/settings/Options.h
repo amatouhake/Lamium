@@ -88,6 +88,7 @@ inline ui::HudElement const& hudElement(Settings const& value, ui::HudElementId 
     case ui::HudElementId::Durability: return value.hud.durability;
     case ui::HudElementId::Minimap: return value.hud.minimap;
     case ui::HudElementId::Schematic: return value.hud.schematic;
+    case ui::HudElementId::PlayerList: return value.hud.playerList;
     default: return value.hud.toast;
     }
 }
@@ -100,6 +101,7 @@ inline ui::HudElement& hudElement(Settings& value, ui::HudElementId id) {
     case ui::HudElementId::Durability: return value.hud.durability;
     case ui::HudElementId::Minimap: return value.hud.minimap;
     case ui::HudElementId::Schematic: return value.hud.schematic;
+    case ui::HudElementId::PlayerList: return value.hud.playerList;
     default: return value.hud.toast;
     }
 }
@@ -190,6 +192,12 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::durabilityArmor>("information.durabilityArmor", "durabilityHud", "durabilityArmor"),
     toggle<&Settings::information, &Settings::Information::offhandSlot>("information.offhandSlot", "offhandSlot", "offhandSlot"),
     toggle<&Settings::information, &Settings::Information::offhandSlotEmpty>("information.offhandSlotEmpty", "offhandSlot", "offhandSlotEmpty"),
+    toggle<&Settings::information, &Settings::Information::playerListPlatform>("information.playerListPlatform", "playerList", "playerListPlatform"),
+    toggle<&Settings::information, &Settings::Information::playerListDimension>("information.playerListDimension", "playerList", "playerListDimension"),
+    toggle<&Settings::information, &Settings::Information::playerListDistance>("information.playerListDistance", "playerList", "playerListDistance"),
+    hudNumeric<ui::HudElementId::PlayerList, &ui::HudElement::scale, 25>("hud.playerList.scale", "playerList", "hudScale", 75, 150),
+    hudChoice<ui::HudElementId::PlayerList, &ui::HudElement::background, elementBackgroundLabels>("hud.playerList.background", "playerList", "hudBackground"),
+    hudToggle<ui::HudElementId::PlayerList, &ui::HudElement::shadow>("hud.playerList.shadow", "playerList", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::saturation>("information.saturation", "saturation", "saturation"),
     toggle<&Settings::information, &Settings::Information::saturationPreview>("information.saturationPreview", "saturation", "saturationPreview"),
     toggle<&Settings::information, &Settings::Information::hud>("information.hud", "infoHud", "infoHud"),
