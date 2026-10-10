@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Vibrant Visuals regression: distance fog (2026-10-11)
+
+By the maintainer. With Vibrant Visuals the world flickered and turned magenta
+on 0.1.8 (not on 0.1.7, not in vanilla; other instance 1.26.51.01 LIP), with
+Connected Textures off. Feature-skip diagnostics (`b1777e9`,
+`--feature_skip=y`) narrowed it to Effect visibility, and turning off only its
+distance fog child fixed it live. `c9f579b` (DLL
+`9951ca5d9eaddafe4736960fd318cb883a223c715ac2a7e3ebaaebbaedc58fe0`) keeps
+vanilla distance fog at graphics mode Advanced and up: no magenta or flicker
+under Vibrant Visuals with the child on; in normal graphics distance fog still
+hides.
+
 ## L-96 glass panes drawn split (2026-10-11)
 
 By the maintainer, local. `17cedc6` (DLL
