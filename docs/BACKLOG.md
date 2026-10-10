@@ -89,8 +89,8 @@ L-item wins. Every entry names what the task is, not only its number.
    go.
 4. **L-111 integration between features:** proposal in INTEGRATION.md;
    the maintainer reviews it when it becomes needed. Planned for 0.2.0
-   together with L-134 splitting SettingsScreen.cpp and L-135 leaving the
-   PDB out of the release ZIP.
+   together with L-134 splitting SettingsScreen.cpp, L-136 splitting
+   GhostRenderer.cpp and L-135 leaving the PDB out of the release ZIP.
 5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
    trace/test steps), L-71 starting a glide from the mod, L-30 Ender Dragon
@@ -289,6 +289,26 @@ the LIP package contents). The PDB is attached to the GitHub release as a
 separate asset (`Lamium-<version>-client-windows-x64.pdb` or similar,
 decided 2026-10-11), so LIP and LeviLauncher install only the DLL while the
 symbols stay available for crash addresses.
+
+### L-136 Split GhostRenderer.cpp by responsibility (with 0.2.0)
+Kind: Refactor **(strong model)**. Chosen by the maintainer 2026-10-11 after
+an outside size review (SettingsScreen.cpp, GhostRenderer.cpp, WorldMap.cpp,
+InfoHud.cpp, Translations.h); planned with L-134 and L-111.
+`src/features/schematic/GhostRenderer.cpp` is 2,792 lines (701 on
+2026-10-05, 1,693 on 2026-10-08) and changed in 107 commits since
+2026-10-01. Despite its name it holds more than drawing: the ghost mesh
+build (neighbors, culling against ghosts, back faces, duplicate quads,
+liquids, layers and quad order), the verification scan and progress
+(cell classification, entity checks, mismatches), the area save (stepped
+save, vanilla load self-check), block entity loading, the in-world drawing
+(selection, placement frames, waiting columns, entities, name tags) and
+the performance report. Split along those lines into files that keep
+behavior unchanged, with the pure parts (classification, culling rules,
+quad ordering) in headers with tests. Every step is checked in game against
+the L-93 rendering checks (doors, beds, panes, liquids, honey/slime, block
+entities, entity models, large placements' frame rate). WorldMap.cpp
+(~1,240 lines) and InfoHud.cpp (~1,400) are worth a look in the same pass;
+Translations.h is data and stays as it is.
 
 ### L-133 Connected Textures: split glass panes without dark halves
 Kind: Research. Opened 2026-10-11 from L-96.
@@ -939,6 +959,11 @@ micro-optimizations.
   seen); decide whether faces become the default once they hold up.
 - L-21 Shape color picker or more colors: only if the four colors prove
   insufficient.
+- External PR #10 (Spanish localization and map daylight tint, opened
+  2026-10-07): the maintainer asked on 2026-10-08 for one PR per feature,
+  translations updated to the latest main, Night Vision and unaffected
+  markers for the map tint, and the provenance statement. Nothing is
+  discussed further until it is split.
 - Not started, not yet triaged: Mass Craft. It needs a Design pass before
   it becomes a task (Schematic became L-93). (Fast Attack/Use became L-34;
   Scroll Transfer became L-41.)
