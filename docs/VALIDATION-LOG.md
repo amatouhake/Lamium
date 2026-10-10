@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Inventory and hand features on a server (reported 2026-10-10)
+
+By the maintainer, reported in chat; build, hash and server not recorded.
+Weapon Switch (L-67), offhand swap (L-94), Fake Offhand item use (L-95),
+Hand Restock threshold/order and inventory-screen transfer (L-102, L-103)
+and fixed-slot fetch (L-97) worked correctly in everyday use on a server.
+Every feature was used, but not along the detailed check steps; the
+maintainer accepts that some cases may be missed and will report them.
+
 ## L-89 distant players and L-104 map follow-ups on a server (reported 2026-10-10)
 
 By the maintainer, reported in chat; build, hash and server not recorded.

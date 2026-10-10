@@ -175,6 +175,11 @@ unmet gates for versions already published. Registry pickup for 0.1.4 to
 
 ### Pending feature checks
 
+Server use of Weapon Switch, offhand swap, Fake Offhand, Hand Restock
+(threshold/order, inventory-screen transfer) and fixed-slot fetch was
+reported working on 2026-10-10 (everyday use, not every listed step); gaps
+found later are handled as bugs.
+
 - FreeCamera underground visibility (L-37): the 2026-10-07 native-request
   adapter passed cave drawing in a local world and on BDS on `d56b81e`;
   the log confirms the native 3 -> 5 replacement. Normal-view and player
@@ -204,22 +209,6 @@ unmet gates for versions already published. Registry pickup for 0.1.4 to
 - Nausea color (L-42): child/key/master hiding/restoration and unchanged
   effect/icon/vanilla preference passed on normal build `b239eb9`. Remaining:
   restart persistence, additional packs/modes and lifecycle/owner cases.
-- If possible, a server with real latency for Hand Restock.
-- Weapon Switch (L-67, after 0.1.6): checked locally on `7b702da`; check on a
-  server (the same-hit equipment packet) and on the release build.
-- Offhand swap (L-94, F): checked locally on `856d79c`/`ed288b6`/`c7bb827`
-  (every game mode with hands); check on a server that the screenless swap is
-  not rolled back, and on the release build.
-- Fake Offhand item use (L-95): checked locally up to `d93f04d`; check on a
-  server (borrowed-slot reports, the firework hotbar echo correction with
-  latency, no rollback), eggs, a non-mouse activation binding and the
-  release build.
-- Hand Restock threshold/order (L-102) and inventory-screen transfer
-  (L-103): checked locally (`bd30648`, `97c44c6`, trace `163bb96`); check
-  on a server with latency and on the release build.
-- Fixed-slot fetch (L-97) and the stronger-weapon fetch: checked locally on
-  `c7bb827`; check on a server (the same-hit selection report) and on the
-  release build.
 
 ---
 
