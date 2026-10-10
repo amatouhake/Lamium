@@ -1,4 +1,9 @@
 #include "app/Runtime.h"
+#ifdef LAMIUM_FEATURE_SKIP
+#include <filesystem>
+#include <fstream>
+#include <set>
+#endif
 #include "features/interaction/PermanentSneak.h"
 #include "features/research/ResearchTrace.h"
 #include "features/schematic/GhostProbe.h"
@@ -150,9 +155,35 @@ Feature const features[] = {
     {"Effect diagnostics", started<visuals::effectTrace::start>, visuals::effectTrace::stop},
 };
 }
+#ifdef LAMIUM_FEATURE_SKIP
+// Diagnostics (Vibrant Visuals regression, 2026-10-11): features named one per
+// line in mods/Lamium/skip-features.txt are not started, to narrow down which
+// one changes the game without a rebuild. Never in a normal build.
+std::set<std::string> skippedFeatures(std::filesystem::path const& file) {
+    std::set<std::string> names;
+    std::ifstream in(file);
+    for (std::string line; std::getline(in, line);) {
+        while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
+        if (!line.empty() && line.front() != '#') names.insert(line);
+    }
+    return names;
+}
+#endif
 bool Runtime::enable() {
     if (running) return true;
+#ifdef LAMIUM_FEATURE_SKIP
+    auto skipped = skippedFeatures(mod.getModDir() / "skip-features.txt");
+    std::string all;
+    for (auto const& feature : features) all += std::string("\n  ") + feature.name;
+    mod.getLogger().warn("Feature skip diagnostics: {} skipped; feature names:{}", skipped.size(), all);
+#endif
     for (auto feature = std::begin(features); feature != std::end(features); ++feature) {
+#ifdef LAMIUM_FEATURE_SKIP
+        if (skipped.contains(feature->name)) {
+            mod.getLogger().warn("Skipped feature: {}", feature->name);
+            continue;
+        }
+#endif
         bool ok = false;
         std::string reason = "failed";
         try { ok = feature->start(); }
