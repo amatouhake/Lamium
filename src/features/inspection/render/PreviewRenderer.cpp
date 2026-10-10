@@ -111,9 +111,6 @@ void PreviewRenderer::render(
     //    keep the grid visible even when the box is empty.
     context.fillRectangle(toArea(layout.frame), kFrameBackground, kFrameAlpha);
     for (int slot = 0; slot < preview.slotCount(); ++slot) {
-#ifdef LAMIUM_ICON_TRACE
-        if (slot >= 9) continue; // L-119 experiment rows stay without slot backgrounds.
-#endif
         context.fillRectangle(toArea(layout.icon(slot)), kSlotBackground, kSlotAlpha);
     }
     context.drawRectangle(toArea(layout.frame), kFrameBorder, 1.0f, 1);
@@ -158,19 +155,6 @@ void PreviewRenderer::render(
                 );
             }
         }
-#ifdef LAMIUM_ICON_TRACE
-        // L-119 experiment: the first row again, row 2 without a slot
-        // background and at another z order (depth), row 3 drawn at scale -1
-        // (flipped face winding).
-        for (int slot = 0; slot < 9 && slot + 18 < preview.slotCount(); ++slot) {
-            ItemStack const& stack = preview.slots[static_cast<size_t>(slot)];
-            if (stack.isNull() || !stack.mItem) continue;
-            Rect const depth = layout.icon(slot + 9), flipped = layout.icon(slot + 18);
-            itemRenderer->renderGuiItemNew(renderContext, stack, 0, depth.x0, depth.y0, false, 1.0f, 1.0f, 1.0f, 40);
-            itemRenderer->renderGuiItemNew(renderContext, stack, 0, flipped.x0 + 16, flipped.y0 + 16, false, 1.0f, 1.0f,
-                -1.0f, kItemZOrder);
-        }
-#endif
     }
 
     // 3. Durability bars, drawn after the icons and glint (as in vanilla, the
