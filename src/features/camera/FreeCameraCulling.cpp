@@ -8,9 +8,6 @@
 #include "mc/client/renderer/game/LevelRenderer.h"
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
 #include "mc/legacy/ActorRuntimeID.h"
-#include "mc/world/phys/AABB.h"
-#include <mutex>
-#include <optional>
 #include <Windows.h>
 #include <atomic>
 #include <vector>
@@ -21,13 +18,7 @@ namespace {
 std::atomic<bool> enabled{false}, verified{false};
 std::atomic<DWORD> rendererThread{0};
 std::uintptr_t cullerTarget = 0;
-bool renderInstalled = false, cullerInstalled = false, bodyInstalled = false;
-// The body's box while FreeCamera runs (L-123). Kept visible to the camera's
-// culling so the body still renders off screen: the inventory's player model
-// reuses the pose (worn elytra) that only the world render of the body updates.
-std::mutex bodyMutex;
-std::optional<AABB> bodyBox;
-std::atomic<bool> bodyLogged{false};
+bool renderInstalled = false, cullerInstalled = false;
 std::atomic<bool> warned{false}, appliedLogged{false};
 
 void unavailable(char const* reason) noexcept {
@@ -115,20 +106,6 @@ bool bindCuller(LevelRendererPlayer& camera) {
     return true;
 }
 
-LL_TYPE_INSTANCE_HOOK(BodyVisibility, ll::memory::HookPriority::Normal, LevelRendererCamera,
-    &LevelRendererCamera::isAABBVisible, bool, AABB const& box, bool useFastCulling) {
-    bool visible = origin(box, useFastCulling);
-    if (visible || GetCurrentThreadId() != rendererThread.load()) return visible;
-    std::lock_guard lock{bodyMutex};
-    if (!bodyBox) return visible;
-    auto const& body = *bodyBox;
-    bool overlaps = box.min.x <= body.max.x && box.max.x >= body.min.x && box.min.y <= body.max.y
-        && box.max.y >= body.min.y && box.min.z <= body.max.z && box.max.z >= body.min.z;
-    if (overlaps && !bodyLogged.exchange(true))
-        try { Runtime::instance().self().getLogger().info("FreeCamera body: kept visible to culling off screen"); } catch (...) {}
-    return visible || overlaps;
-}
-
 LL_TYPE_INSTANCE_HOOK(TerrainPreRender, ll::memory::HookPriority::Normal, LevelRenderer,
     &LevelRenderer::preRenderUpdate, void,
     ScreenContext& context, LevelRenderPreRenderUpdateParameters& parameters) {
@@ -138,15 +115,11 @@ LL_TYPE_INSTANCE_HOOK(TerrainPreRender, ll::memory::HookPriority::Normal, LevelR
         std::shared_ptr<LevelRendererPlayer> const& camera = mLevelRendererPlayer;
         auto& client = static_cast<IClientInstance&>(mClientInstance);
         auto* player = client.getLocalPlayer();
-        bool free = enabled && camera && player && player->hasRuntimeID()
-            && CameraSessions::instance().freeCameraFor(client, player->getRuntimeID().rawID);
-        if (free) {
+        if (enabled && camera && player && player->hasRuntimeID()
+            && CameraSessions::instance().freeCameraFor(client, player->getRuntimeID().rawID)) {
             rendererThread = GetCurrentThreadId();
             bindCuller(*camera);
         }
-        std::lock_guard lock{bodyMutex};
-        if (free) bodyBox = player->getAABB();
-        else bodyBox.reset();
     } catch (...) { unavailable("renderer binding failed"); }
     origin(context, parameters);
 }
@@ -167,9 +140,6 @@ void startTerrainCulling() noexcept {
         if (!supportedGameVersion()) { unavailable("unverified game executable version"); return; }
         if (TerrainPreRender::hook(true) != 0) { unavailable("pre-render hook unavailable"); return; }
         renderInstalled = true;
-        bodyLogged = false;
-        bodyInstalled = BodyVisibility::hook(true) == 0;
-        if (!bodyInstalled) Runtime::instance().self().getLogger().warn("FreeCamera body: culling hook unavailable");
         enabled = true;
         Runtime::instance().self().getLogger().info("FreeCamera terrain: adapter armed; awaiting FreeCamera renderer");
     } catch (...) { unavailable("initialization failed"); }
@@ -178,13 +148,6 @@ void startTerrainCulling() noexcept {
 void stopTerrainCulling() noexcept {
     enabled = false;
     rendererThread = 0;
-    {
-        std::lock_guard lock{bodyMutex};
-        bodyBox.reset();
-    }
-    try {
-        if (bodyInstalled && BodyVisibility::unhook(true)) bodyInstalled = false;
-    } catch (...) {}
     try {
         if (renderInstalled) {
             if (TerrainPreRender::unhook(true)) renderInstalled = false;
