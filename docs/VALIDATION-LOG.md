@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-119 shared-mesh batch in the shulker preview (2026-10-10)
+
+By the maintainer, local, normal build `6a32266` (DLL
+`9c532aa3baf4ebc3b3ab740194088354922c9d2a65dbf910d84c856603dde39d`). With
+block items drawn through a shared-mesh batch built like a slot's, the oak
+and bamboo fence gates show in the shulker preview, next to the fences,
+snow block and sandstone. No flicker in the inventory and no crash while
+opening the preview repeatedly. Shield glint and leather layers not changed
+by this build.
+
 ## L-91/L-119 icon route trace (2026-10-10)
 
 By the maintainer, local, trace build `e329b55` crashed when hovering a
