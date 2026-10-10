@@ -72,10 +72,11 @@ LL_TYPE_INSTANCE_HOOK(SlotRenderHook, ll::memory::HookPriority::Normal, Inventor
         for (int p = 0; p < passes && p < 8; ++p)
             materials += std::format(" p{}=m{}[{} | {}]", p, static_cast<int>(this->getUIMaterialType(p)),
                 location(this->getResourceLocation(0, p)), location(this->getResourceLocation(1, p)));
-        auto key = std::format("slot {} pass={} of {} itemMaterial={} renderType={} texture={} enchanted={} info={} batch={} preRender={}{}",
+        // getItemRenderInfo crashed when called from here (2026-10-10); the batch key carries the same flags.
+        auto key = std::format("slot {} pass={} of {} itemMaterial={} renderType={} texture={} enchanted={} batch={} preRender={}{}",
             name, pass, passes, static_cast<int>(this->mUIMaterialType), static_cast<int>(this->mItemRenderType),
-            *this->mTextureName, this->mIsEnchanted, static_cast<int>(InventoryItemRenderer::getItemRenderInfo(item).info),
-            static_cast<int>(this->getBatchType()), this->getRequiresPreRenderSetup(pass), materials);
+            *this->mTextureName, this->mIsEnchanted, static_cast<int>(this->getBatchType()),
+            this->getRequiresPreRenderSetup(pass), materials);
         if (firstTime(key)) traceLog(passBudget, 200, "L-119 {}", key);
     } catch (...) {}
     auto previous = std::exchange(current, std::format("slot {} pass={}", name, pass));
@@ -118,8 +119,8 @@ LL_TYPE_INSTANCE_HOOK(NewHook, ll::memory::HookPriority::Normal, ItemRenderer, &
     try {
         if (auto const* b = item.getBlockForRendering()) block = b->getTypeName();
     } catch (...) { block = "?"; }
-    auto key = std::format("new {} block={} info={} frame={} foil={} transparency={:.2f} light={:.2f} scale={:.2f} z={}", name,
-        block, static_cast<int>(InventoryItemRenderer::getItemRenderInfo(item).info), frame, foil, transparency, light, scale, zOrder);
+    auto key = std::format("new {} block={} frame={} foil={} transparency={:.2f} light={:.2f} scale={:.2f} z={}", name,
+        block, frame, foil, transparency, light, scale, zOrder);
     if (firstTime(key)) traceLog(newBudget, 150, "L-119 {}", key);
     auto previous = std::exchange(current, std::format("new {} foil={}", name, foil));
     origin(context, item, frame, x, y, foil, transparency, light, scale, zOrder);
