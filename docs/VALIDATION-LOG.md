@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-120 Debug View entity counts by kind (2026-10-11)
+
+By the maintainer, local and a server. `75620ed` (DLL
+`9b5c42ab33a131dbbfeea8a3b91b4c8b4f3f81948e78a67ee595d543ebb51c67`): the
+breakdown line under the entity count adds up to the total; zombies count as
+hostile, cows and villagers as passive, dropped items as items, arrows and
+experience orbs as other, and the server's entities looked right too. The
+type list closes the left column with the top 5; Top 10 and Off switch it;
+the Java F3 label style shows identifiers.
+
 ## L-127 inventory HUD and used slots (2026-10-11)
 
 By the maintainer, local. First build `1789bee` (DLL

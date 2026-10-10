@@ -76,7 +76,6 @@ L-item wins. Every entry names what the task is, not only its number.
      glint in Lamium's icons (parked after one round; leather fixed).
    - Paused: L-132 move while the inventory screen is open (research
      paused after eight trial rounds).
-   - Design first, not chosen yet: L-120 Debug View entity counts by kind.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -247,24 +246,6 @@ type 3, scale 1.333, with the font's own material).
 ---
 
 ## Feature work and research
-
-### L-120 Entity counts by kind in Debug View
-Kind: Design. From the maintainer's notes (2026-10-09); extends L-57.
-Status: built (`75620ed`), unchecked in game. Decided 2026-10-11 with the
-mockup [demos/entity-counts.html](demos/entity-counts.html): the breakdown
-is one line under the total (setting, default on); the most common types,
-top 5 by default (off / 5 / 10), close the left column (the maintainer
-preferred the left over the right column), with game names in the game
-standard labels and identifiers without `minecraft:` in the Java F3 style.
-Kinds come from the actor's categories: Player, ItemEntity, Monster, Mob,
-else other. A Java-like pie chart was judged too much for now.
-Keep the `E:` total and optionally break it down without double counting,
-in this order: players, dropped items, hostile, passive, other, so the parts
-add up to `E:`; optionally per identifier (`getTypeName()`, add-on entities
-included). Same source and cadence as the L-57 count (the client's actor
-list for the player's dimension, once a second). Dropped items count
-entities, not stack sizes; block entities are not actors. Open: a separate
-small panel or lines inside Debug View, sorting and how many identifiers.
 
 ### L-132 Move while the inventory screen is open
 Kind: Research, then Feature. Requested by the maintainer 2026-10-10;

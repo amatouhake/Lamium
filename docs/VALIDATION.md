@@ -75,6 +75,7 @@ game result.
 | Offhand slot (L-75) | 2026-10-02, local: placement, count, empty frame, UI size, Pocket UI, F1 and inventory on `bb9cdb5`; 2026-10-10: icon on the hotbar's half unit (`4f4bb20`) | Glint on shields (L-91); servers |
 | Debug View client counts (L-57) | 2026-10-08, local (`8180fe2`): plausible values, no frame-rate drop; 2026-10-10: server reported fine by the maintainer (build not recorded) | None known |
 | Target card (L-08, L-55, L-58, L-88) | 2026-09-28, local; absolute-HP hearts, five-line limit and boss bar fallback on `c6378e8` (2026-10-02); hides with F1 (L-107, `18e2cc8`, 2026-10-07); no text outside the card while it resizes (L-108, `178dc00`, 2026-10-08) | |
+| Debug View entity breakdown and types (L-120) | 2026-10-11, local and a server (`75620ed`): breakdown adds up to the total, kinds plausible (hostile, passive, items, other), top 5 / 10 / off, game names or identifiers per label style | Add-on entities; very many types |
 | Debug View and F3 keys (L-54, L-52) | 2026-09-28, local; 2026-10-06: LeviLamina in the first line, right column on screen at UI Profile 50/75/100% (`38373e9`) | |
 | Chunk Borders (L-10), Hitboxes (L-11, L-51) | 2026-09-27, local | Exact border shades side by side |
 | Light Level Overlay (L-16) | 2026-09-26, local | |
