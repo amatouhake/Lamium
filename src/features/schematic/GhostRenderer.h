@@ -2,7 +2,9 @@
 // Draws schematic placements as ghost blocks in the world (BACKLOG L-93),
 // using the path found by the ghost probe: a private BlockTessellator,
 // in-world tessellation per section, tinted vertex colors and the
-// moving-block renderer's materials, lit as if fully bright.
+// moving-block renderer's materials, lit as if fully bright. The public face
+// of the ghost files (L-136): GhostRenderer.cpp runs the pass, GhostBlocks,
+// GhostActors, GhostMesh, GhostVerify, AreaSave and GhostMarks hold the parts.
 #include "features/schematic/SaveArea.h"
 #include "features/schematic/PlacementStore.h"
 #include "features/schematic/Verification.h"
