@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-91/L-119 icon route trace (2026-10-10)
+
+By the maintainer, local, trace build `e329b55` crashed when hovering a
+shulker box: `InventoryItemRenderer::getItemRenderInfo` called from the
+`renderGuiItemNew` trace hook on a preview stack (access violation, crash
+trace `trace_2026-10-10_16-54-18.log`). Trace build `7dac7d5` (DLL
+`c2c2d434a46c66279802bc0d1750d1c6a2fdcbf1087f22b9f1979ece00bd3ad8`) without
+that call ran: the inventory slots showed gates, the shield glint and
+leather layers; the shulker preview still lacked all three. The log showed
+no geometry atlas calls, block items in shared-mesh batches (type 1) and
+shields in default batches with up to three passes.
+
 ## L-119 depth and winding experiment (2026-10-10)
 
 By the maintainer, local, trace build `1e46a3e` (DLL

@@ -290,6 +290,24 @@ that remains is the one parked under L-91: draw icons through the vanilla
 slot path (drive an `InventoryItemRenderer` or its pass setup), which
 could fix gates, the shield glint and leather layers together. A larger
 change; the maintainer decides whether to start it.
+Started 2026-10-10 together with L-91 (maintainer). Round 4 (trace
+`7dac7d5`, VALIDATION-LOG): vanilla slots do not use the geometry atlas
+(`GeometryAtlas::ItemRenderContextImpl` and `renderItemToTile` never ran).
+Block items (fences, gates, stairs) are a shared-mesh batch (`UIBatchType`
+1, UI material 13, `atlas.terrain`): inside a slot `renderGuiItemInChunk`
+adds the block to a mesh the batch draws afterwards with its material,
+which is why the slot passes alpha 0. Shields and leather are default
+batches (type 0); an enchanted shield has three passes (materials 9, 5 with
+`enchanted_item_glint`, 7). Calling `InventoryItemRenderer::getItemRenderInfo`
+on a preview stack crashed the game; do not call it again.
+Next round (proposal): wrap Lamium's icon in the vanilla flow,
+`MinecraftUIRenderContext::beginSharedMeshBatch(batch)` ->
+`renderGuiItemInChunk` -> `endSharedMeshBatch(batch)` with a
+`ComponentRenderBatch` built like the slot's (key: batch type, material 13,
+textures), first for block items in the shulker preview only. Risk: the
+context's persistent mesh list is indexed per frame
+(`mCurrentPersistentMeshItemIdx`); adding batches outside the UI pass may
+disturb vanilla's, so the round watches for flicker and crashes.
 A fence gate inside a shulker box shows only its count in Shulker Box
 Preview, without the item icon. The maintainer saw the same in the other
 places that draw icons the same way (Lamium's own `renderGuiItemNew` calls,
