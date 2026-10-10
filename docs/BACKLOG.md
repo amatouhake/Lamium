@@ -74,9 +74,10 @@ L-item wins. Every entry names what the task is, not only its number.
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
      glint in Lamium's icons (parked after one round; leather fixed).
-   - Design first, not ordered or chosen yet: L-127 inventory grid HUD and
-     used/free slot counter; L-128 hold a key to list the world's players;
-     L-120 Debug View entity counts by kind.
+   - Next: L-127 inventory grid HUD and free-slot counter (design agreed,
+     default position open); L-132 move while the inventory screen is open
+     (research first).
+   - Design first, not chosen yet: L-120 Debug View entity counts by kind.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -260,15 +261,48 @@ entities, not stack sizes; block entities are not actors. Open: a separate
 small panel or lines inside Debug View, sorting and how many identifiers.
 
 ### L-127 Inventory HUD and slot counter
-Kind: Design. From the maintainer's notes (2026-10-09); not chosen for
-building yet.
+Kind: Feature; Design done (maintainer 2026-10-10), default position open.
+Status: open. Mockup: [demos/inventory-hud.html](demos/inventory-hud.html).
+Two HUD layout elements, each with its own switch (both default off) and a
+toggle hotkey (unbound by default):
+- Inventory grid: the main 27 slots as 9x3 in the vanilla inventory screen's
+  order; a setting adds the hotbar (36) as one more row below a divider.
+  Armor and offhand are not included (equipment has its own display). Empty
+  slots draw a faint frame. Items use the shared vanilla-like icon path
+  (`inspection/render/ItemIcon`) with stack counts and durability bars; the
+  shield glint is still missing there (L-91).
+- Free-slot counter: a separate small element, "空き 24" / "24 free",
+  counting the same range as the grid setting; drawn in the palette's
+  warning color at 0 free.
+- Size: one slot is 18 units like the hotbar at 100 %; the layout editor's
+  75-150 % scale applies. Backgrounds: card / per line / none like the other
+  HUD elements.
+- Shown whenever switched on, hidden while any screen (inventory, chat,
+  menus) is open.
+- Open: the default position. Recommended middle right with the counter
+  above the grid; bottom right overlaps the hotbar on ~480-unit-wide
+  screens.
+
+### L-132 Move while the inventory screen is open
+Kind: Research, then Feature. Requested by the maintainer 2026-10-10;
+direction agreed the same day.
 Status: open.
-Show the inventory during play: a grid of icons with stack counts (the main
-27 slots, optionally with the hotbar, 36) and a compact counter of used and
-free slots (for example "12/36 used, 24 free"), each switched on and off on
-its own. Open: what the grid includes, layout and placement in the HUD
-layout editor. Icons share the special-item drawing problems of Shulker Box
-Preview (L-119, L-91).
+While the player's own inventory screen is open, keep walking, jumping and
+sprinting from the bound movement keys so items and armor can be arranged
+on the move. The camera cannot turn (the mouse belongs to the screen).
+- Only the player inventory screen at first; containers (chests etc.) and
+  other block screens come later, if at all.
+- Sneak is not passed through: Shift is shift-click (quick move) in the
+  inventory.
+- Paused while a text field has focus (creative search, recipe book search)
+  and on focus loss.
+- Default off; the help text warns that some servers may treat moving with
+  an open inventory as cheating (like Auto Attack's warning).
+- Research first: where the game stops reading movement input while a screen
+  is open (`ClientInputHandler`, `ClientMoveInputHandler`,
+  `ClientInputMappingFactory::_createScreen*Mapping`, `MoveInputComponent`)
+  and the least invasive place to feed the movement keys back in, without
+  touching game state from the window procedure (AGENTS.md rule 2).
 
 ### L-59 Held placement style: vanilla, Java-like or fast
 Kind: Design done (discussion with the maintainer, 2026-09-28); Research
