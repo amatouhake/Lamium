@@ -41,6 +41,9 @@ void translationTests() {
             else if (entry.key == "worldMap.layer" || entry.key == "schematic.layerValue" || entry.key == "schematic.summary.correct"
                 || entry.key == "schematic.materials.left")
                 rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
+            else if (entry.key == "debugEntityKinds.line")
+                rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining, remaining, remaining));
+            else if (entry.key == "debugEntityTypes.more") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
             else if (entry.key == "schematic.size") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining));
             else if (entry.key == "schematic.toast.moved")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining, remaining));

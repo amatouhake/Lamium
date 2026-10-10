@@ -715,6 +715,14 @@ GameText debugGameText(DebugValues const& value) {
     if (value.entities) appendPart(text.counts, ui::translated("debugEntities", *value.entities), " | ");
     if (value.chunks) appendPart(text.counts, ui::translated("debugChunks", *value.chunks), " | ");
     if (value.particles) appendPart(text.counts, ui::translated("debugParticles", *value.particles), " | ");
+    if (auto const& k = value.entityKinds)
+        text.entityKinds = ui::translated("debugEntityKinds.line", (*k)[0], (*k)[1], (*k)[2], (*k)[3], (*k)[4]);
+    if (auto const& types = value.entityTypes; types && !types->top.empty()) {
+        text.entityTypes.push_back(ui::translated("debugEntityTypes.head"));
+        for (auto const& type : types->top)
+            text.entityTypes.push_back(std::format("{} {}", type.name.empty() ? std::string(shortIdentifier(type.id)) : type.name, type.count));
+        if (types->moreTypes) text.entityTypes.push_back(ui::translated("debugEntityTypes.more", types->moreTypes, types->moreCount));
+    }
     if (value.x && value.y && value.z) {
         text.coordinates = ui::translated("hudXYZ", *value.x, *value.y, *value.z);
         text.blockChunk = ui::translated("hudBlock", static_cast<int>(std::floor(*value.x)),
@@ -1213,6 +1221,10 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     if (settings.debug && !hidden && !preview) {
         // No player, no panel: invented values would read as real ones.
         if (auto values = collectDebugValues(context.mClient, viewRay(settings.targetDistance))) {
+            auto counts = clientCounters(context.mClient);
+            if (settings.debugEntityKinds) values->entityKinds = counts.entityKinds;
+            if (size_t limit = settings.debugEntityTypes == 2 ? 10 : settings.debugEntityTypes == 1 ? 5 : 0; limit)
+                values->entityTypes = summarizeTypes(counts.entityTypes, limit);
             auto style = settings.debugLabels == 1 ? DebugLabel::JavaF3 : DebugLabel::GameStandard;
             auto columns = buildDebugColumns(*values, style, debugGameText(*values));
             drawDebugColumns(context, width, height, columns.left, columns.right, settings.debugShadow,

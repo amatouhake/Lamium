@@ -3,6 +3,7 @@
 #include "features/information/InfoLines.h"
 #include "features/information/PlayerInfo.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <format>
@@ -17,6 +18,46 @@ namespace lamium::information {
 // owned values and supplies the game-standard text (translations); this decides
 // the two columns, the Java-F3 literals, omission and the look-at truncation.
 enum class DebugLabel { GameStandard, JavaF3 };
+// Entity counts by kind (L-120, docs/demos/entity-counts.html): each entity
+// lands in the first kind that fits, so the parts add up to the total.
+enum class EntityKind { Player, Item, Hostile, Passive, Other };
+using EntityKinds = std::array<int, 5>;
+inline EntityKind entityKind(bool player, bool item, bool monster, bool mob) {
+    if (player) return EntityKind::Player;
+    if (item) return EntityKind::Item;
+    if (monster) return EntityKind::Hostile;
+    if (mob) return EntityKind::Passive;
+    return EntityKind::Other;
+}
+struct TypeCount {
+    std::string id, name; // name: the localized type name, or empty
+    int count = 0;
+};
+// The most common types, most first (ties by identifier), and the rest summed.
+struct TypeSummary {
+    std::vector<TypeCount> top;
+    int moreTypes = 0, moreCount = 0;
+};
+inline TypeSummary summarizeTypes(std::vector<TypeCount> all, size_t limit) {
+    std::sort(all.begin(), all.end(), [](TypeCount const& a, TypeCount const& b) {
+        return a.count != b.count ? a.count > b.count : a.id < b.id;
+    });
+    TypeSummary summary;
+    for (size_t i = 0; i < all.size(); ++i) {
+        if (i < limit) {
+            summary.top.push_back(std::move(all[i]));
+        } else {
+            ++summary.moreTypes;
+            summary.moreCount += all[i].count;
+        }
+    }
+    return summary;
+}
+// Identifiers without the vanilla namespace; add-on namespaces stay.
+inline std::string_view shortIdentifier(std::string_view id) {
+    constexpr std::string_view vanilla = "minecraft:";
+    return id.starts_with(vanilla) ? id.substr(vanilla.size()) : id;
+}
 struct DebugTarget {
     std::string identifier;
     std::vector<std::string> javaLines; // "Health: 20 / 20 | Armor: 2" or the raw block states.
@@ -28,6 +69,8 @@ struct DebugValues {
     std::optional<std::int64_t> ping;
     std::optional<int> renderDistance, maxRenderDistance;
     std::optional<int> entities, chunks, particles; // Client counts (L-57)
+    std::optional<EntityKinds> entityKinds;          // The entity total by kind (L-120)
+    std::optional<TypeSummary> entityTypes;          // The most common entity types (L-120)
     std::optional<double> x, y, z;
     std::optional<float> yaw, pitch;
     // FreeCamera (L-124): x..pitch, block, chunk, light and biome are the
@@ -51,6 +94,8 @@ struct DebugColumns { std::vector<DebugLine> left, right; };
 struct GameText {
     std::string perf, counts, coordinates, bodyCoordinates, blockChunk, facing, bodyFacing, light, biome, time, lookAt, dimension,
         renderDistance, visuals, screen, client, system, memory, cpu, gpu, display, os;
+    std::string entityKinds;              // "内訳: プレイヤー 2 | ..." (L-120)
+    std::vector<std::string> entityTypes; // Heading, "ゾンビ 11" lines and the rest (L-120)
 };
 // Same quarter mapping as facingKey: yaw 0 faces south (+Z), 90 west (-X).
 inline std::string_view javaFacingWord(double yaw) {
@@ -128,8 +173,12 @@ inline DebugColumns buildDebugColumns(DebugValues const& value, DebugLabel style
         if (value.chunks) joinPart(counts, std::format("C: {}", *value.chunks));
         if (value.particles) joinPart(counts, std::format("P: {}", *value.particles));
         if (!counts.empty()) left.push_back({std::move(counts)});
-    } else if (!game.counts.empty()) {
-        left.push_back({game.counts});
+        if (auto const& k = value.entityKinds)
+            left.push_back({std::format("E: Players {}, Items {}, Hostile {}, Passive {}, Other {}", (*k)[0], (*k)[1], (*k)[2],
+                                        (*k)[3], (*k)[4])});
+    } else {
+        if (!game.counts.empty()) left.push_back({game.counts});
+        if (!game.entityKinds.empty()) left.push_back({game.entityKinds});
     }
     if (style == DebugLabel::JavaF3) {
         std::string_view camera = value.body ? "Camera " : "";
@@ -174,6 +223,18 @@ inline DebugColumns buildDebugColumns(DebugValues const& value, DebugLabel style
         if (!game.time.empty()) left.push_back({game.time});
     }
     addLookAt(left, value, style, game);
+    // The type list closes the left column (maintainer 2026-10-11).
+    if (style == DebugLabel::JavaF3) {
+        if (auto const& types = value.entityTypes; types && !types->top.empty()) {
+            left.push_back({" "});
+            left.push_back({"Entities by type"});
+            for (auto const& type : types->top) left.push_back({std::format("{}: {}", shortIdentifier(type.id), type.count)});
+            if (types->moreTypes) left.push_back({std::format("{} more types: {}", types->moreTypes, types->moreCount)});
+        }
+    } else if (!game.entityTypes.empty()) {
+        left.push_back({" "});
+        for (auto const& line : game.entityTypes) left.push_back({line});
+    }
     std::string clientHead = style == DebugLabel::JavaF3 ? "Client" : game.client;
     std::string systemHead = style == DebugLabel::JavaF3 ? "System" : game.system;
     std::string dimension, distance, visuals, screen;

@@ -184,6 +184,8 @@ struct Settings {
         bool debugHideTarget = true; // Hide the Target card while Debug is on
         bool debugShadow = true;     // Text shadow on the debug panel
         int debugBackground = 1;     // 0 none, 1 a background behind each line (L-98, default per line)
+        bool debugEntityKinds = true; // The entity total by kind under it (L-120)
+        int debugEntityTypes = 1;     // Most common entity types: 0 off, 1 top 5, 2 top 10 (L-120)
         bool target = false;
         bool targetIdentifier = true;
         bool targetIcon = true;
@@ -261,6 +263,7 @@ struct Settings {
         if (!std::isfinite(schematic.outlineDistance)) schematic.outlineDistance = 48;
         schematic.outlineDistance = std::clamp(std::round(schematic.outlineDistance / 16) * 16, 0.f, 192.f);
         information.debugBackground = std::clamp(information.debugBackground, 0, 1);
+        information.debugEntityTypes = std::clamp(information.debugEntityTypes, 0, 2);
         ui.hudRowHeight = std::clamp(ui.hudRowHeight, 9, 16);
         ui.hudBackgroundOpacity = std::clamp(ui.hudBackgroundOpacity, 0, 100);
         information.durabilityLook = std::clamp(information.durabilityLook, 0, 2);

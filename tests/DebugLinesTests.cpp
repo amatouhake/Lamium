@@ -136,4 +136,38 @@ void debugLinesTests() {
     check(rightColumnOffset({250, 250, 50}, {80}, 300, 12) == 2, "the column moves past every long left line");
     check(rightColumnOffset({250, 250}, {80, 80}, 300, 12) == 2, "below the left column the right column always fits");
     check(rightColumnOffset({}, {80}, 300, 12) == 0, "no left column, no offset");
+    // L-120: each entity has one kind, the first that fits.
+    check(entityKind(true, false, false, true) == EntityKind::Player, "players first");
+    check(entityKind(false, true, false, false) == EntityKind::Item, "then dropped items");
+    check(entityKind(false, false, true, true) == EntityKind::Hostile, "then monsters");
+    check(entityKind(false, false, false, true) == EntityKind::Passive, "then other mobs");
+    check(entityKind(false, false, false, false) == EntityKind::Other, "everything else");
+    {
+        auto summary = summarizeTypes({{"minecraft:cow", "", 3}, {"minecraft:zombie", "", 7}, {"minecraft:arrow", "", 3},
+                                       {"addon:robot", "", 1}, {"minecraft:bat", "", 2}}, 3);
+        check(summary.top.size() == 3 && summary.top[0].id == "minecraft:zombie" && summary.top[1].id == "minecraft:arrow"
+                  && summary.top[2].id == "minecraft:cow",
+              "types by count, ties by identifier");
+        check(summary.moreTypes == 2 && summary.moreCount == 3, "the rest is summed");
+        check(summarizeTypes({}, 5).top.empty() && summarizeTypes({}, 5).moreTypes == 0, "no entities, no list");
+        check(shortIdentifier("minecraft:zombie") == "zombie" && shortIdentifier("addon:robot") == "addon:robot",
+              "the vanilla namespace is dropped");
+        DebugValues value;
+        value.entities = 16;
+        value.entityKinds = EntityKinds{2, 4, 3, 5, 2};
+        value.entityTypes = summary;
+        auto java = buildDebugColumns(value, DebugLabel::JavaF3, {});
+        check(java.left.size() == 8 && java.left[0].text == "E: 16"
+                  && java.left[1].text == "E: Players 2, Items 4, Hostile 3, Passive 5, Other 2"
+                  && java.left[3].text == "Entities by type" && java.left[4].text == "zombie: 7"
+                  && java.left[7].text == "2 more types: 3",
+              "java style breakdown under the total and types at the end of the left column");
+        GameText game;
+        game.counts = "Entities: 16";
+        game.entityKinds = "Breakdown";
+        game.entityTypes = {"By type", "Zombie 7"};
+        auto standard = buildDebugColumns(value, DebugLabel::GameStandard, game);
+        check(standard.left.size() == 5 && standard.left[1].text == "Breakdown" && standard.left[3].text == "By type",
+              "game standard uses the caller's lines");
+    }
 }

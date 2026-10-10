@@ -55,6 +55,7 @@ inline constexpr std::array<std::string_view,3> durabilityLookLabels{"durability
 inline constexpr std::array<std::string_view,3> armorMeterLabels{"meter.icons","meter.bar","meter.number"};
 inline constexpr std::array<std::string_view,2> restockOrderLabels{"restockOrder.largest","restockOrder.smallest"};
 inline constexpr std::array<std::string_view,2> debugLabelLabels{"debugLabels.game","debugLabels.java"};
+inline constexpr std::array<std::string_view,3> debugEntityTypeLabels{"debugEntityTypes.off","debugEntityTypes.top5","debugEntityTypes.top10"};
 inline constexpr std::array<std::string_view,3> animationLabels{"animations.follow","animations.on","animations.off"};
 inline constexpr std::array<std::string_view,3> biomeDisplayLabels{
     "biomeDisplay.name", "biomeDisplay.nameAndId", "biomeDisplay.id"};
@@ -178,6 +179,8 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::debugHideTarget>("information.debugHideTarget", "debugView", "debugHideTarget"),
     toggle<&Settings::information, &Settings::Information::debugShadow>("information.debugShadow", "debugView", "hudShadow"),
     choice<&Settings::information, &Settings::Information::debugBackground, debugBackgroundLabels>("information.debugBackground", "debugView", "hudBackground"),
+    toggle<&Settings::information, &Settings::Information::debugEntityKinds>("information.debugEntityKinds", "debugView", "debugEntityKinds"),
+    choice<&Settings::information, &Settings::Information::debugEntityTypes, debugEntityTypeLabels>("information.debugEntityTypes", "debugView", "debugEntityTypes"),
     toggle<&Settings::information, &Settings::Information::target>("information.target", "targetInfo", "targetInfo"),
     toggle<&Settings::information, &Settings::Information::targetIdentifier>("information.targetIdentifier", "targetInfo", "targetIdentifier"),
     toggle<&Settings::information, &Settings::Information::targetIcon>("information.targetIcon", "targetInfo", "targetIcon"),
