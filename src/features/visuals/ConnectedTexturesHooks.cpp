@@ -108,20 +108,25 @@ void reshape(Tessellator& tessellator, size_t src, size_t dst, Cell const& c, Te
     bool hasColors = colors.size() >= dst + 4;
     std::array<bool, 2> hasLight{};
     for (size_t set = 0; set < 2; ++set) hasLight[set] = tessellator.mMeshData->mTextureUVs[set + 1]->size() >= dst + 4;
+    // Positions by corner (the face is flat); shading by emitted vertex, as
+    // the quad's two triangles blend it.
+    std::array<float, 4> S{}, T{};
     for (size_t i = 0; i < 4; ++i) {
         high[i] = fu[i] > midU;
         low[i] = fv[i] > midV;
-        size_t k = (high[i] ? 1 : 0) + (low[i] ? 2 : 0);
-        corner[k] = positions[src + i];
-        if (hasColors) cornerColor[k] = colors[src + i];
+        S[i] = high[i] ? 1.f : 0.f;
+        T[i] = low[i] ? 1.f : 0.f;
+        corner[(high[i] ? 1 : 0) + (low[i] ? 2 : 0)] = positions[src + i];
+        if (hasColors) cornerColor[i] = colors[src + i];
         for (size_t set = 0; set < 2; ++set)
-            if (hasLight[set]) cornerLight[set][k] = (*tessellator.mMeshData->mTextureUVs[set + 1])[src + i];
+            if (hasLight[set]) cornerLight[set][i] = (*tessellator.mMeshData->mTextureUVs[set + 1])[src + i];
     }
     for (size_t i = 0; i < 4; ++i) {
         size_t v = dst + i;
         float s = high[i] ? c.s1 : c.s0, t = low[i] ? c.t1 : c.t0;
-        std::array<float, 4> w{(1 - s) * (1 - t), s * (1 - t), (1 - s) * t, s * t};
-        positions[v] = corner[0] * w[0] + corner[1] * w[1] + corner[2] * w[2] + corner[3] * w[3];
+        std::array<float, 4> p{(1 - s) * (1 - t), s * (1 - t), (1 - s) * t, s * t};
+        positions[v] = corner[0] * p[0] + corner[1] * p[1] + corner[2] * p[2] + corner[3] * p[3];
+        auto w = triangleWeights(S, T, s, t);
         if (hasColors) {
             std::uint32_t out = 0;
             for (int shift = 0; shift < 32; shift += 8) {

@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <optional>
 #include <vector>
 #include <string_view>
@@ -114,6 +115,30 @@ inline std::vector<Span> clip(std::vector<Span> const& all, float low, float hig
                        span.from0 + (c1 - span.at0)});
     }
     return out;
+}
+// Shading at (s, t) of a quad whose corners, in the order they were emitted,
+// sit at (S[i], T[i]) on the unit square: the quad is drawn as the triangles
+// (0, 1, 2) and (0, 2, 3), each blending its corners linearly, so cells take
+// their corner shading the same way (a bilinear blend showed dark smudges at
+// night, 2026-10-11). Returns the weight of each emitted corner.
+inline std::array<float, 4> triangleWeights(std::array<float, 4> const& S, std::array<float, 4> const& T, float s, float t) {
+    auto inTriangle = [&](int a, int b, int c, std::array<float, 4>& w) {
+        float det = (T[b] - T[c]) * (S[a] - S[c]) + (S[c] - S[b]) * (T[a] - T[c]);
+        if (det == 0) return false;
+        float wa = ((T[b] - T[c]) * (s - S[c]) + (S[c] - S[b]) * (t - T[c])) / det;
+        float wb = ((T[c] - T[a]) * (s - S[c]) + (S[a] - S[c]) * (t - T[c])) / det;
+        float wc = 1 - wa - wb;
+        constexpr float e = -1e-4f;
+        if (wa < e || wb < e || wc < e) return false;
+        w = {};
+        w[a] = wa;
+        w[b] = wb;
+        w[c] = wc;
+        return true;
+    };
+    std::array<float, 4> w{};
+    if (inTriangle(0, 1, 2, w) || inTriangle(0, 2, 3, w)) return w;
+    return {(1 - s) * (1 - t), s * (1 - t), s * t, (1 - s) * t}; // Not a square: fall back.
 }
 inline std::vector<Cell> splitCells(Joined joined, Rule rule) {
     std::vector<Cell> cells;

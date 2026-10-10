@@ -61,6 +61,16 @@ void connectedTexturesTests() {
               && near(arm[1].at0, (14 / 16.f - 0.53f) / 0.47f),
           "a pane arm keeps the spans on its part of the texture");
     check(clip(spans(false, 2, false, 2), 0.2f, 0.2f).empty(), "a quad with no width has no spans");
+    // Corners emitted around the square: (0,0) (1,0) (1,1) (0,1); the
+    // diagonal 0-2 splits it.
+    std::array<float, 4> S{0, 1, 1, 0}, T{0, 0, 1, 1};
+    auto atCorner = triangleWeights(S, T, 1, 0);
+    check(near(atCorner[1], 1) && near(atCorner[0] + atCorner[2] + atCorner[3], 0), "a corner takes its own shading");
+    auto onDiagonal = triangleWeights(S, T, 0.5f, 0.5f);
+    check(near(onDiagonal[0], 0.5f) && near(onDiagonal[2], 0.5f) && near(onDiagonal[1], 0) && near(onDiagonal[3], 0),
+          "the middle lies on the drawn diagonal, between its two corners only");
+    auto lower = triangleWeights(S, T, 0.75f, 0.25f), upper = triangleWeights(S, T, 0.25f, 0.75f);
+    check(near(lower[3], 0) && near(upper[1], 0) && near(lower[0] + lower[1] + lower[2], 1), "each half blends only its triangle");
     for (auto const& cell : framed)
         check(near(cell.s1 - cell.s0, cell.su1 - cell.su0) && near(cell.t1 - cell.t0, cell.tv1 - cell.tv0), "cells never stretch"); 
     // Panes (geometry dumped in game 2026-10-11).
