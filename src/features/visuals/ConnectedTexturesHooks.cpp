@@ -346,6 +346,12 @@ std::vector<PaneQuad> planPane(Tessellator& tessellator, Block const& block, siz
         auto down = clip(spans(vLow, rule.top, vHigh, rule.bottom, rule.topFrom, rule.bottomFrom), quad.fv0, quad.fv1);
         for (auto const& a : across)
             for (auto const& d : down) quad.cells.push_back({a.at0, a.at1, d.at0, d.at1, a.from0, a.from1, d.from0, d.from1});
+        // L-133 trial: the largest cell stays in the first draw's place; only
+        // thin strips go to the appended copies.
+        auto area = [](Cell const& c) { return (c.s1 - c.s0) * (c.t1 - c.t0); };
+        auto largest = std::max_element(quad.cells.begin(), quad.cells.end(),
+                                        [&](Cell const& a, Cell const& b) { return area(a) < area(b); });
+        if (largest != quad.cells.end()) std::iter_swap(quad.cells.begin(), largest);
         plan.push_back(std::move(quad));
     }
     return plan;
@@ -434,25 +440,7 @@ void appendQuad(Tessellator& tessellator, size_t src) {
     }
     if (tessellator.mCount == n) tessellator.mCount = static_cast<unsigned>(n + 4);
 }
-// Swaps two whole quads in every vertex array and the quad info; the index
-// list repeats the same pattern per quad, so it stays valid.
-void swapQuads(Tessellator& tessellator, size_t a, size_t b) {
-    auto& mesh = *tessellator.mMeshData;
-    size_t n = mesh.mPositions->size();
-    eachVertexArray(mesh, [&](auto& values) {
-        if (values.size() != n) return;
-        for (size_t i = 0; i < 4; ++i) std::swap(values[a + i], values[b + i]);
-    });
-    auto& quads = *tessellator.mQuadInfoList;
-    if (quads.size() > a / 4 && quads.size() > b / 4) std::swap(quads[a / 4], quads[b / 4]);
-}
-void reverseCopies(Tessellator& tessellator, size_t before, size_t count, size_t copies) {
-    size_t quads = count / 4;
-    for (size_t k = 1; k < copies; ++k)
-        for (size_t j = 0; j < quads / 2; ++j)
-            swapQuads(tessellator, before + k * count + 4 * j, before + k * count + 4 * (quads - 1 - j));
-}
-LL_TYPE_INSTANCE_HOOK(ConnectedPane,ll::memory::HookPriority::Normal, BlockTessellator,
+LL_TYPE_INSTANCE_HOOK(ConnectedPane, ll::memory::HookPriority::Normal, BlockTessellator,
     &BlockTessellator::tessellateDoubleThinFenceInWorld, bool, Tessellator& tessellator, Block const& block,
     BlockPos const& p, bool singleSide) {
     bool connecting = false;
@@ -487,15 +475,16 @@ LL_TYPE_INSTANCE_HOOK(ConnectedPane,ll::memory::HookPriority::Normal, BlockTesse
         std::string text;
         if (dump) {
             text = std::format("Connected Textures pane dump at {} {} {}: {} quads x {} copies, same {}", p.x, p.y, p.z, count / 4, copies, same);
-            for (size_t j = 0; j < plan.size(); ++j)
-                text += std::format("\n  quad {} thin {} fold {} glass {} f {:.3f}..{:.3f} x {:.3f}..{:.3f} cells {}", j, plan[j].thin,
-                                    plan[j].fold, plan[j].glass, plan[j].fu0, plan[j].fu1, plan[j].fv0, plan[j].fv1, plan[j].cells.size());
+            auto const& infos = *tessellator.mQuadInfoList;
+            for (size_t j = 0; j < plan.size(); ++j) {
+                size_t q = before / 4 + j;
+                text += std::format("\n  quad {} thin {} fold {} glass {} f {:.3f}..{:.3f} x {:.3f}..{:.3f} cells {} facing {} twoFace {}", j,
+                                    plan[j].thin, plan[j].fold, plan[j].glass, plan[j].fu0, plan[j].fu1, plan[j].fv0, plan[j].fv1,
+                                    plan[j].cells.size(), infos.size() > q ? static_cast<int>(infos[q].facing) : -1,
+                                    infos.size() > q ? static_cast<int>(infos[q].twoFace) : -1);
+            }
         }
         if (!plan.empty() && same) applyPane(tessellator, before, count, copies, plan);
-        // L-133 trial: reverse the quad order inside each appended copy, so a
-        // face pair there is emitted back to front. If the dark half moves to
-        // the opposite view direction, copies are drawn in emission order.
-        if (copies > 1 && same) reverseCopies(tessellator, before, count, copies);
         // Bounded: vertices whose light differs from the pane's first vertex
         // (edges darkening in daylight, 2026-10-11).
         if (outlierLogs < 40) try {
