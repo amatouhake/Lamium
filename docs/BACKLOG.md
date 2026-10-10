@@ -72,7 +72,7 @@ L-item wins. Every entry names what the task is, not only its number.
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
-     (the body being culled is the cause; fix needs Research); L-91 shield
+     (parked 2026-10-10 after two rounds); L-91 shield
      glint in Lamium's icons (parked after one round; leather fixed).
    - Design first, not ordered or chosen yet: L-127 inventory grid HUD and
      used/free slot counter; L-128 hold a key to list the world's players;
@@ -211,6 +211,7 @@ found later are handled as bugs.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
+Parked 2026-10-10 (maintainer) after two culling rounds; resume from the next ideas below.
 Status: open. Checked 2026-10-10 (VALIDATION-LOG): wrong when the body is
 out of view (camera near), right when the body is in view (camera far), so
 the inventory model reuses pose state that only the world render of the
