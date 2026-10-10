@@ -88,7 +88,9 @@ L-item wins. Every entry names what the task is, not only its number.
    it, and placement waits for that Design. L-59 waits for the maintainer's
    go.
 4. **L-111 integration between features:** proposal in INTEGRATION.md;
-   the maintainer reviews it when it becomes needed.
+   the maintainer reviews it when it becomes needed. Planned for 0.2.0
+   together with L-134 splitting SettingsScreen.cpp and L-135 leaving the
+   PDB out of the release ZIP.
 5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
    trace/test steps), L-71 starting a glide from the mod, L-30 Ender Dragon
@@ -255,6 +257,30 @@ type 3, scale 1.333, with the font's own material).
 ---
 
 ## Feature work and research
+
+### L-134 Split SettingsScreen.cpp (with 0.2.0)
+Kind: Refactor. Raised by the maintainer 2026-10-11; planned together with
+L-111 integration and other 0.2.0 clean-up, not before.
+`src/ui/SettingsScreen.cpp` is 4585 lines (2026-10-11), the largest file by
+far, and changed in 131 commits since 2026-09-01. It mixes the settings rows
+and navigation, key capture and the Hotkeys view, text and number editing,
+the Shapes editor (drafts, swatches, docked rendering), the waypoint list,
+the map cache controls and the version tip. Split it by those parts into
+files that keep behavior unchanged; pure layout and state logic moves into
+headers with tests where it can (AGENTS.md rule 1). Plan the cut with the
+maintainer before moving code: the split should match how L-111 regroups
+features.
+
+### L-135 Leave the PDB out of the release ZIP (with 0.2.0)
+Kind: Distribution. Decided by the maintainer 2026-10-11.
+`Lamium.pdb` is about 90% of the release ZIP and grows each release
+(compressed 13.2 MB in 0.1.7, 15.6 MB in 0.1.8, 17.3 MB in 0.1.9; the DLL is
+1.8 MB). No crash report has arrived, and a description of the situation is
+expected to be enough to reproduce one. From 0.2.0 the ZIP ships without the
+PDB (`scripts/New-ReleaseArchive.ps1`, `Check-Package.ps1`, DISTRIBUTION.md,
+the LIP package contents). Open: whether each release's PDB is attached to
+the GitHub release as a separate asset or only kept by the maintainer/CI for
+matching crash addresses later.
 
 ### L-133 Connected Textures: split glass panes without dark halves
 Kind: Research. Opened 2026-10-11 from L-96.
