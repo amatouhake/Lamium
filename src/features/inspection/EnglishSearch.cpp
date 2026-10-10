@@ -29,7 +29,9 @@ std::string englishName(ItemInstance const& item) {
     if (auto found = names.find(id); found != names.end()) return found->second;
     if (!english) english = getI18n().getLocaleFor("en_US");
     std::string name;
-    if (!english || !english->get(id + ".name", name, {})) name.clear();
+    // The description id already ends in ".name" (tile.bamboo_mosaic.name).
+    auto key = id.ends_with(".name") ? id : id + ".name";
+    if (!english || !english->get(key, name, {})) name.clear();
     if (!english && !unavailableLogged.exchange(true))
         Runtime::instance().self().getLogger().warn("English search: no en_US strings; identifiers only");
     if (samplesLogged.fetch_add(1) < 5)

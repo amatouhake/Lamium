@@ -251,7 +251,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"lockedTrades", "All trader levels: {}", "村人の全レベルの取引: {}"},
     {"key.Lamium.lockedtrades", "Toggle all trader levels", "村人の全レベルの取引の切り替え"},
     {"feature.englishSearch", "Search English names too", "英語名でも検索"},
-    {"help.englishSearch", "Recipe book, crafting table and creative searches also find items by their English name or ID (for example plank or oak_planks), while the game stays in your language. It only adds results.", "レシピブック・作業台・クリエイティブの検索で、英語名や ID（例: plank、oak_planks）でもアイテムが見つかるようにします。ゲームの表示言語はそのままです。検索結果が増えるだけで、減ることはありません。"},
+    {"help.englishSearch", "Recipe and creative search also find items by English name or ID.", "レシピとクリエイティブの検索で、英語名や ID でも見つかるようにします。"},
     {"englishSearch", "Search English names too: {}", "英語名でも検索: {}"},
     {"key.Lamium.englishsearch", "Toggle English name search", "英語名でも検索の切り替え"},
     {"key.Lamium.foodvalues", "Toggle food values", "食べ物の回復量の切り替え"},

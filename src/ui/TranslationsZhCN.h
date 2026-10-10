@@ -249,7 +249,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"lockedTrades", "村民全部等级的交易: {}"},
     {"key.Lamium.lockedtrades", "切换村民全部等级的交易"},
     {"feature.englishSearch", "也按英文名称搜索"},
-    {"help.englishSearch", "配方书、工作台和创造模式的搜索也能按英文名称或 ID（例如 plank、oak_planks）找到物品，游戏显示语言保持不变。只会增加结果，不会减少。"},
+    {"help.englishSearch", "配方和创造模式搜索也能按英文名称或 ID 找到物品。"},
     {"englishSearch", "也按英文名称搜索: {}"},
     {"key.Lamium.englishsearch", "切换按英文名称搜索"},
     {"key.Lamium.foodvalues", "切换食物恢复量"},
