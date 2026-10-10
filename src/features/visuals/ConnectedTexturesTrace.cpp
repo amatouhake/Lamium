@@ -47,7 +47,12 @@ LL_TYPE_INSTANCE_HOOK(PaneFence, ll::memory::HookPriority::Normal, BlockTessella
     &BlockTessellator::tessellateDoubleThinFenceInWorld, bool, Tessellator& tessellator, Block const& block,
     BlockPos const& p, bool singleSide) {
     bool watch = false;
-    try { watch = isPane(block) && mRegion; } catch (...) {}
+    // Round 4: follow the Connected Textures switch so panes can be compared
+    // on and off (the switch already rebuilds the chunks).
+    try {
+        auto& runtime = Runtime::instance();
+        watch = runtime.enabled() && runtime.snapshot()->visuals.connectedTextures && isPane(block) && mRegion;
+    } catch (...) {}
     if (!watch) return origin(tessellator, block, p, singleSide);
     auto saved = pane;
     pane = {&block, p, mRegion};
