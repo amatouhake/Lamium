@@ -98,7 +98,16 @@ LL_TYPE_INSTANCE_HOOK(PaneFence, ll::memory::HookPriority::Normal, BlockTessella
             }
             baseX = std::floor(baseX);
             baseZ = std::floor(baseZ);
-            auto covered = [&](size_t q, std::vector<AABB> const& boxes) {
+            // Round 7: coverage by the union of the neighbor's boxes; a face
+            // covered only at one end along its length is shortened instead.
+            constexpr float e = 0.001f;
+            auto inside = [&](float x, float z, std::vector<AABB> const& boxes) {
+                for (auto const& box : boxes)
+                    if (box.min.x <= x + e && box.max.x >= x - e && box.min.z <= z + e && box.max.z >= z - e) return true;
+                return false;
+            };
+            // 0 untouched, 1 folded, 2 shortened.
+            auto apply = [&](size_t q, std::vector<AABB> const& boxes) {
                 float x0 = 2, x1 = -1, z0 = 2, z1 = -1;
                 for (size_t i = q; i < q + 4; ++i) {
                     x0 = std::min(x0, positions[i].x - baseX);
@@ -106,27 +115,55 @@ LL_TYPE_INSTANCE_HOOK(PaneFence, ll::memory::HookPriority::Normal, BlockTessella
                     z0 = std::min(z0, positions[i].z - baseZ);
                     z1 = std::max(z1, positions[i].z - baseZ);
                 }
-                constexpr float e = 0.001f;
-                for (auto const& box : boxes)
-                    if (box.min.x <= x0 + e && box.max.x >= x1 - e && box.min.z <= z0 + e && box.max.z >= z1 - e) return true;
-                return false;
+                bool alongX = x1 - x0 >= z1 - z0;
+                float a0 = alongX ? x0 : z0, a1 = alongX ? x1 : z1, c0 = alongX ? z0 : x0, c1 = alongX ? z1 : x1;
+                // Sample the face along its length (1/32 steps) and across it.
+                constexpr int steps = 32;
+                std::vector<bool> hit(steps + 1);
+                for (int k = 0; k <= steps; ++k) {
+                    float a = a0 + (a1 - a0) * k / steps;
+                    bool all = true;
+                    for (float c : {c0 + e, (c0 + c1) / 2, c1 - e})
+                        all = all && (alongX ? inside(a, c, boxes) : inside(c, a, boxes));
+                    hit[k] = all;
+                }
+                if (std::all_of(hit.begin(), hit.end(), [](bool h) { return h; })) {
+                    for (size_t i = q + 1; i < q + 4; ++i) positions[i] = positions[q];
+                    return 1;
+                }
+                // Covered from one end only: move that end to where coverage stops.
+                int lead = 0, tail = 0;
+                while (lead <= steps && hit[lead]) ++lead;
+                while (tail <= steps && hit[steps - tail]) ++tail;
+                float from = a0, to = a1;
+                if (lead > 1) from = a0 + (a1 - a0) * (lead - 1) / steps;
+                if (tail > 1) to = a1 - (a1 - a0) * (tail - 1) / steps;
+                if (from == a0 && to == a1) return 0;
+                for (size_t i = q; i < q + 4; ++i) {
+                    float& v = alongX ? positions[i].x : positions[i].z;
+                    float base = alongX ? baseX : baseZ;
+                    if (std::abs(v - base - a0) < e) v = base + from;
+                    else if (std::abs(v - base - a1) < e) v = base + to;
+                }
+                return 2;
             };
-            int folded = 0;
+            int folded = 0, shortened = 0;
             for (size_t q = before; q < after; q += 4) {
                 bool atTop = true, atBottom = true;
                 for (size_t i = q; i < q + 4; ++i) {
                     atTop = atTop && positions[i].y == top;
                     atBottom = atBottom && positions[i].y == bottom;
                 }
-                if ((above && atTop && covered(q, upper)) || (below && atBottom && covered(q, lower))) {
-                    for (size_t i = q + 1; i < q + 4; ++i) positions[i] = positions[q];
-                    ++folded;
-                }
+                int done = 0;
+                if (above && atTop) done = apply(q, upper);
+                else if (below && atBottom) done = apply(q, lower);
+                folded += done == 1;
+                shortened += done == 2;
             }
             if (foldLogs < 20) {
                 ++foldLogs;
-                log("L-96 pane at {} {} {}: {} vertices (from {}), y {:.3f}..{:.3f}, above {} below {}, folded {} quads", p.x, p.y,
-                    p.z, after - before, before, bottom, top, above, below, folded);
+                log("L-96 pane at {} {} {}: {} vertices (from {}), y {:.3f}..{:.3f}, above {} below {}, folded {} shortened {}", p.x, p.y,
+                    p.z, after - before, before, bottom, top, above, below, folded, shortened);
             }
         }
     } catch (...) {}
