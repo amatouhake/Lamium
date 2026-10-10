@@ -352,6 +352,14 @@ std::vector<PaneQuad> planPane(Tessellator& tessellator, Block const& block, siz
         auto largest = std::max_element(quad.cells.begin(), quad.cells.end(),
                                         [&](Cell const& a, Cell const& b) { return area(a) < area(b); });
         if (largest != quad.cells.end()) std::iter_swap(quad.cells.begin(), largest);
+        // L-133 trial: every cell shows the texels at its own place (vanilla
+        // look, seams kept), to tell the cell geometry from the moved texels.
+        for (auto& c : quad.cells) {
+            c.su0 = quad.fu0 + c.s0 * (quad.fu1 - quad.fu0);
+            c.su1 = quad.fu0 + c.s1 * (quad.fu1 - quad.fu0);
+            c.tv0 = quad.fv0 + c.t0 * (quad.fv1 - quad.fv0);
+            c.tv1 = quad.fv0 + c.t1 * (quad.fv1 - quad.fv0);
+        }
         plan.push_back(std::move(quad));
     }
     return plan;
@@ -371,8 +379,7 @@ void applyPane(Tessellator& tessellator, size_t before, size_t count, size_t cop
             size_t dst = before + k * count + 4 * j;
             if (quad.thin) {
                 if (k > 0 || quad.fold) fold(dst);
-            } else if (false && quad.glass && k < quad.cells.size() && quad.cells.size() > 1 && copies >= quad.cells.size()) {
-                // L-133 trial: copies appended and folded, glass left as vanilla.
+            } else if (quad.glass && k < quad.cells.size() && quad.cells.size() > 1 && copies >= quad.cells.size()) {
                 reshape(tessellator, src, dst, quad.cells[k], rect);
             } else if (k > 0) {
                 fold(dst);
