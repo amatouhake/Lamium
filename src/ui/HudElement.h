@@ -11,7 +11,7 @@ namespace lamium::ui {
 // Elements are info lines, target, status, toast and the zoom magnification.
 // The debug view is not an element: it is fixed to the screen edges. Pure
 // math; InfoHud draws. Append new ids: they index saved boxes.
-enum class HudElementId { Info, Target, Status, Toast, Magnification, Durability, Minimap, Schematic, PlayerList, Inventory, FreeSlots };
+enum class HudElementId { Info, Target, Status, Toast, Magnification, Durability, Minimap, Schematic, PlayerList, Inventory, UsedSlots };
 enum class Anchor {
     TopLeft, TopCenter, TopRight,
     MiddleLeft, Center, MiddleRight,
@@ -59,10 +59,10 @@ inline constexpr HudElement defaultHudElement(HudElementId id) {
     case HudElementId::Schematic: return {Anchor::MiddleLeft, hudInset, 0, 100, ElementBackground::Card, false};
     // Top center while its key is held (docs/demos/player-list.html).
     case HudElementId::PlayerList: return {Anchor::TopCenter, 0, hudInset, 100, ElementBackground::Card, true};
-    // Bottom right: the free-slot counter in the corner and the grid above it,
+    // Bottom right: the used-slot counter in the corner and the grid above it,
     // clear of the hotbar (chosen in game 2026-10-11).
     case HudElementId::Inventory: return {Anchor::BottomRight, -hudInset, -hudInset - 17, 100, ElementBackground::Card, true};
-    case HudElementId::FreeSlots: return {Anchor::BottomRight, -hudInset, -hudInset, 100, ElementBackground::Card, true};
+    case HudElementId::UsedSlots: return {Anchor::BottomRight, -hudInset, -hudInset, 100, ElementBackground::Card, true};
     // Above the armor and absorption rows over the hotbar.
     default: return {Anchor::BottomCenter, 0, -72, 100, ElementBackground::Card, false};
     }
@@ -78,7 +78,7 @@ inline constexpr std::string_view hudElementKey(HudElementId id) {
     case HudElementId::Schematic: return "schematic";
     case HudElementId::PlayerList: return "playerList";
     case HudElementId::Inventory: return "inventory";
-    case HudElementId::FreeSlots: return "freeSlots";
+    case HudElementId::UsedSlots: return "usedSlots";
     default: return "toast";
     }
 }

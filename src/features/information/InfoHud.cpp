@@ -994,7 +994,7 @@ void drawOffhandSlot(MinecraftUIRenderContext& context, ScreenView const& view, 
     slotDecorations(context, stack, icon, unit);
 }
 std::string biomeName(std::string const& identifier) { return localizedBiomeName(identifier); }
-// ---- Inventory grid and free-slot counter (L-127, docs/demos/inventory-hud.html) ----
+// ---- Inventory grid and used-slot counter (L-127, docs/demos/inventory-hud.html) ----
 // Copies for this frame only: the renderer must not replay a pickup squash.
 struct InventorySample {
     std::array<ItemStack, inventoryHud::slotCount> stacks;
@@ -1051,8 +1051,9 @@ std::optional<ui::hud_editor::Box> drawInventoryGrid(MinecraftUIRenderContext& c
         for (size_t column = 0; column < rows[row].size(); ++column) {
             auto i = static_cast<size_t>(rows[row][column]);
             float x = left + column * cell, y = top + inv::rowTop(static_cast<int>(row), cell);
-            // Every slot has a faint frame; empty ones show only that.
-            ui::frame(context, x + z, y + z, cell - 2 * z, cell - 2 * z, ui::palette::text, .18f);
+            // Every slot has a faint frame around the whole cell, clear of the
+            // icon; empty ones show only that (look D, 2026-10-11).
+            ui::frame(context, x, y, cell, cell, ui::palette::text, .18f);
             if (!sample.occupied[i]) continue;
             offhand::Box icon{std::round(x + z), std::round(y + z), 16 * z, 16 * z};
             icons.push_back({&sample.stacks[i], icon.x, icon.y, z});
@@ -1066,12 +1067,13 @@ std::optional<ui::hud_editor::Box> drawInventoryGrid(MinecraftUIRenderContext& c
     context.flushText(0, std::nullopt);
     return ui::hud_editor::Box{placement.x, placement.y, boxW, boxH};
 }
-std::optional<ui::hud_editor::Box> drawFreeSlots(MinecraftUIRenderContext& context, float width, float height,
+std::optional<ui::hud_editor::Box> drawUsedSlots(MinecraftUIRenderContext& context, float width, float height,
     ui::HudElement const& element, InventorySample const& sample, bool hotbar) {
-    int free = inventoryHud::freeSlots(sample.occupied, hotbar);
+    auto usage = inventoryHud::usedSlots(sample.occupied, hotbar);
+    bool full = usage.used >= usage.total;
     // One line: a row as tall as the text keeps the card's padding even.
     return drawElement(context, width, height, element,
-                       {{ui::translated("freeSlots.count", free), std::nullopt, free == 0 ? ui::palette::warning : ui::palette::text}},
+                       {{std::format("{}/{}", usage.used, usage.total), std::nullopt, full ? ui::palette::warning : ui::palette::text}},
                        ui::lineGlyphHeight + 1);
 }
 // ---- Player list (L-128, docs/demos/player-list.html) ----
@@ -1294,12 +1296,12 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     }
     if (preview || settings.durabilityHud)
         box(ui::HudElementId::Durability) = drawDurability(context, width, height, hud.durability, settings, preview != nullptr);
-    if (preview || settings.inventoryHud || settings.freeSlots) {
+    if (preview || settings.inventoryHud || settings.usedSlots) {
         if (auto sample = sampleInventory(context.mClient, preview != nullptr)) {
             if (preview || settings.inventoryHud)
                 box(ui::HudElementId::Inventory) = drawInventoryGrid(context, width, height, hud.inventory, *sample, settings.inventoryHotbar);
-            if (preview || settings.freeSlots)
-                box(ui::HudElementId::FreeSlots) = drawFreeSlots(context, width, height, hud.freeSlots, *sample, settings.freeSlotsHotbar);
+            if (preview || settings.usedSlots)
+                box(ui::HudElementId::UsedSlots) = drawUsedSlots(context, width, height, hud.usedSlots, *sample, settings.usedSlotsHotbar);
         }
     }
     if (preview || (runtime.schematic.enabled && runtime.schematic.hud))

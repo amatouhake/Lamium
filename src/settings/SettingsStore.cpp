@@ -98,9 +98,9 @@ Json encode(Settings const& settings) {
                          {"playerListDistance", settings.information.playerListDistance},
                          {"playerListMembers", settings.information.playerListMembers},
                          {"inventoryHud", settings.information.inventoryHud},
-                         {"freeSlots", settings.information.freeSlots},
+                         {"usedSlots", settings.information.usedSlots},
                          {"inventoryHotbar", settings.information.inventoryHotbar},
-                         {"freeSlotsHotbar", settings.information.freeSlotsHotbar},
+                         {"usedSlotsHotbar", settings.information.usedSlotsHotbar},
                          {"saturation", settings.information.saturation},
                          {"saturationPreview", settings.information.saturationPreview},
                          {"lineOrder", settings.information.lineOrder},
@@ -185,7 +185,7 @@ Json encode(Settings const& settings) {
                    {"schematic", encodeHudElement(settings.hud.schematic)},
                    {"playerList", encodeHudElement(settings.hud.playerList)},
                    {"inventory", encodeHudElement(settings.hud.inventory)},
-                   {"freeSlots", encodeHudElement(settings.hud.freeSlots)}}},
+                   {"usedSlots", encodeHudElement(settings.hud.usedSlots)}}},
         {"map", {{"minimap", settings.map.minimap}, {"range", map::blocksAcross(settings.map.zoom)}, {"size", settings.map.size},
                  {"rotate", settings.map.rotate},
                  {"round", settings.map.round}, {"coordinates", settings.map.coordinates},
@@ -282,9 +282,9 @@ Settings decodeSettings(std::string_view text) {
         value.information.playerListDistance = info.value("playerListDistance", value.information.playerListDistance);
         value.information.playerListMembers = info.value("playerListMembers", value.information.playerListMembers);
         value.information.inventoryHud = info.value("inventoryHud", value.information.inventoryHud);
-        value.information.freeSlots = info.value("freeSlots", value.information.freeSlots);
+        value.information.usedSlots = info.value("usedSlots", value.information.usedSlots);
         value.information.inventoryHotbar = info.value("inventoryHotbar", value.information.inventoryHotbar);
-        value.information.freeSlotsHotbar = info.value("freeSlotsHotbar", value.information.freeSlotsHotbar);
+        value.information.usedSlotsHotbar = info.value("usedSlotsHotbar", value.information.usedSlotsHotbar);
         value.information.saturation = info.value("saturation", value.information.saturation);
         value.information.saturationPreview = info.value("saturationPreview", value.information.saturationPreview);
         value.information.hud = info.value("hud", value.information.hud);
@@ -504,7 +504,7 @@ Settings decodeSettings(std::string_view text) {
         element("schematic", value.hud.schematic, ui::HudElementId::Schematic);
         element("playerList", value.hud.playerList, ui::HudElementId::PlayerList);
         element("inventory", value.hud.inventory, ui::HudElementId::Inventory);
-        element("freeSlots", value.hud.freeSlots, ui::HudElementId::FreeSlots);
+        element("usedSlots", value.hud.usedSlots, ui::HudElementId::UsedSlots);
     }
     value.normalize();
     return value;

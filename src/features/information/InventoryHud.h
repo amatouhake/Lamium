@@ -5,7 +5,7 @@
 #include <vector>
 
 namespace lamium::information::inventoryHud {
-// The inventory grid and free-slot counter (BACKLOG L-127,
+// The inventory grid and used-slot counter (BACKLOG L-127,
 // docs/demos/inventory-hud.html). Pure parts; InfoHud draws.
 inline constexpr int slotCount = 36;      // Player inventory: 0-8 hotbar, 9-35 main.
 inline constexpr float slotSize = 18;     // One slot, as the hotbar at 100 %.
@@ -25,11 +25,15 @@ inline std::vector<std::vector<int>> gridRows(bool hotbar) {
     }
     return rows;
 }
-// Empty slots in the range the grid shows.
-inline int freeSlots(std::array<bool, slotCount> const& occupied, bool hotbar) {
-    int free = 0;
-    for (int slot = hotbar ? 0 : 9; slot < slotCount; ++slot) free += !occupied[static_cast<size_t>(slot)];
-    return free;
+// Occupied slots and the size of the counted range: the main 27, or all 36.
+struct Usage { int used = 0, total = 0; };
+inline Usage usedSlots(std::array<bool, slotCount> const& occupied, bool hotbar) {
+    Usage usage;
+    for (int slot = hotbar ? 0 : 9; slot < slotCount; ++slot) {
+        ++usage.total;
+        usage.used += occupied[static_cast<size_t>(slot)];
+    }
+    return usage;
 }
 // The top of each row inside the grid, in slots of `cell` units; the hotbar
 // row sits one gap further down.

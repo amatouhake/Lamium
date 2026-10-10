@@ -18,7 +18,7 @@ struct Box {
 using Boxes = std::array<std::optional<Box>, 11>; // Indexed by HudElementId.
 // InfoHud draws the minimap, durability, magnification, status, target, toast, then info; later ones are on top.
 inline constexpr std::array<HudElementId, 11> drawOrder{
-    HudElementId::Minimap, HudElementId::Schematic, HudElementId::Inventory, HudElementId::FreeSlots, HudElementId::Durability, HudElementId::Magnification, HudElementId::Status, HudElementId::Target, HudElementId::Toast,
+    HudElementId::Minimap, HudElementId::Schematic, HudElementId::Inventory, HudElementId::UsedSlots, HudElementId::Durability, HudElementId::Magnification, HudElementId::Status, HudElementId::Target, HudElementId::Toast,
     HudElementId::Info, HudElementId::PlayerList};
 
 // The anchor point on the screen (anchors sit on the screen edge).

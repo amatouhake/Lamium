@@ -39,7 +39,7 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleHideEffects: field = &value.visuals.hideEffects; break;
     case Action::ToggleDurabilityHud: field = &value.information.durabilityHud; break;
     case Action::ToggleInventoryHud: field = &value.information.inventoryHud; break;
-    case Action::ToggleFreeSlots: field = &value.information.freeSlots; break;
+    case Action::ToggleUsedSlots: field = &value.information.usedSlots; break;
     case Action::ToggleOffhandSlot: field = &value.information.offhandSlot; break;
     case Action::ToggleSaturation: field = &value.information.saturation; break;
     case Action::ToggleFoodValues: field = &value.inspection.foodValues; break;
