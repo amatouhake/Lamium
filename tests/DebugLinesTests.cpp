@@ -18,6 +18,28 @@ void debugLinesTests() {
         check(buildDebugColumns(none, DebugLabel::JavaF3, {}).left.empty(), "no counts line without counts");
     }
     {
+        // L-124: during FreeCamera the camera's lines are labeled and the player's follow them.
+        DebugValues value;
+        value.x = 10; value.y = 70; value.z = -5;
+        value.yaw = 90.f; value.pitch = 0.f;
+        value.body = DebugValues::Body{1, 64, 2, 0.f, 10.f};
+        auto java = buildDebugColumns(value, DebugLabel::JavaF3, {});
+        check(java.left.size() == 5 && java.left[0].text == "Camera XYZ: 10.0 / 70.0 / -5.0"
+                  && java.left[1].text == "Player XYZ: 1.0 / 64.0 / 2.0" && java.left[2].text.starts_with("Block: 10 70 -5")
+                  && java.left[3].text.starts_with("Camera Facing: west")
+                  && java.left[4].text == "Player Facing: south (towards +Z) | Yaw/Pitch: 0.0 / 10.0",
+              "java style shows camera then player position and facing");
+        GameText game;
+        game.coordinates = "Cam XYZ"; game.bodyCoordinates = "Player XYZ";
+        game.facing = "Cam Facing"; game.bodyFacing = "Player Facing";
+        auto standard = buildDebugColumns(value, DebugLabel::GameStandard, game);
+        check(standard.left.size() == 4 && standard.left[1].text == "Player XYZ" && standard.left[3].text == "Player Facing",
+              "game style puts each player line after the camera's");
+        value.body.reset();
+        check(buildDebugColumns(value, DebugLabel::JavaF3, {}).left[0].text == "XYZ: 10.0 / 70.0 / -5.0",
+              "no camera label outside FreeCamera");
+    }
+    {
         DebugValues value;
         value.header = "Minecraft 1.26.51 · Lamium 0.1.3";
         value.timing = FrameStatistics{120.0, 8.3};

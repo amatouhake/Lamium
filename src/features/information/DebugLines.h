@@ -30,6 +30,10 @@ struct DebugValues {
     std::optional<int> entities, chunks, particles; // Client counts (L-57)
     std::optional<double> x, y, z;
     std::optional<float> yaw, pitch;
+    // FreeCamera (L-124): x..pitch, block, chunk, light and biome are the
+    // camera's; body is the player's own position and angles.
+    struct Body { double x, y, z; float yaw, pitch; };
+    std::optional<Body> body;
     std::string dimension, biome;
     std::optional<int> skyLight, blockLight;
     std::optional<int> difficulty; // 0 peaceful, 1 easy, 2 normal, 3 hard
@@ -45,7 +49,7 @@ struct DebugColumns { std::vector<DebugLine> left, right; };
 // Game-standard lines: the caller formats with ui::translated and passes only
 // the lines it can build; an empty string omits that line.
 struct GameText {
-    std::string perf, counts, coordinates, blockChunk, facing, light, biome, time, lookAt, dimension,
+    std::string perf, counts, coordinates, bodyCoordinates, blockChunk, facing, bodyFacing, light, biome, time, lookAt, dimension,
         renderDistance, visuals, screen, client, system, memory, cpu, gpu, display, os;
 };
 // Same quarter mapping as facingKey: yaw 0 faces south (+Z), 90 west (-X).
@@ -128,8 +132,11 @@ inline DebugColumns buildDebugColumns(DebugValues const& value, DebugLabel style
         left.push_back({game.counts});
     }
     if (style == DebugLabel::JavaF3) {
+        std::string_view camera = value.body ? "Camera " : "";
         if (value.x && value.y && value.z)
-            left.push_back({std::format("XYZ: {:.1f} / {:.1f} / {:.1f}", *value.x, *value.y, *value.z)});
+            left.push_back({std::format("{}XYZ: {:.1f} / {:.1f} / {:.1f}", camera, *value.x, *value.y, *value.z)});
+        if (auto const& b = value.body)
+            left.push_back({std::format("Player XYZ: {:.1f} / {:.1f} / {:.1f}", b->x, b->y, b->z)});
         if (value.x && value.z) {
             auto chunk = chunkPosition(*value.x, *value.z);
             left.push_back({std::format("Block: {} {} {} | Chunk: {}, {}",
@@ -137,8 +144,11 @@ inline DebugColumns buildDebugColumns(DebugValues const& value, DebugLabel style
                 static_cast<int>(std::floor(*value.z)), chunk.chunkX, chunk.chunkZ)});
         }
         if (value.yaw && value.pitch)
-            left.push_back({std::format("Facing: {} (towards {}) | Yaw/Pitch: {:.1f} / {:.1f}",
+            left.push_back({std::format("{}Facing: {} (towards {}) | Yaw/Pitch: {:.1f} / {:.1f}", camera,
                 javaFacingWord(*value.yaw), javaFacingAxis(*value.yaw), *value.yaw, *value.pitch)});
+        if (auto const& b = value.body)
+            left.push_back({std::format("Player Facing: {} (towards {}) | Yaw/Pitch: {:.1f} / {:.1f}",
+                javaFacingWord(b->yaw), javaFacingAxis(b->yaw), b->yaw, b->pitch)});
         if (value.skyLight && value.blockLight)
             left.push_back({std::format("Client Light: {} (sky {}, block {})",
                 std::max(*value.skyLight, *value.blockLight), *value.skyLight, *value.blockLight)});
@@ -155,8 +165,10 @@ inline DebugColumns buildDebugColumns(DebugValues const& value, DebugLabel style
         }
     } else {
         if (!game.coordinates.empty()) left.push_back({game.coordinates});
+        if (!game.bodyCoordinates.empty()) left.push_back({game.bodyCoordinates});
         if (!game.blockChunk.empty()) left.push_back({game.blockChunk});
         if (!game.facing.empty()) left.push_back({game.facing});
+        if (!game.bodyFacing.empty()) left.push_back({game.bodyFacing});
         if (!game.light.empty()) left.push_back({game.light});
         if (!game.biome.empty()) left.push_back({game.biome});
         if (!game.time.empty()) left.push_back({game.time});

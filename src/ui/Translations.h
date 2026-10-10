@@ -930,6 +930,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"durabilityArmor", "Armor: {}", "防具: {}"},
     {"help.information.durabilityArmor", "Helmet, chestplate or elytra, leggings and boots.", "ヘルメット、チェストプレートかエリトラ、レギンス、ブーツ。"},
     {"hudCoordinates", "Coordinates: {}", "座標: {}"},
+    {"hudCameraTag", "Cam", "カメラ"},
+    {"hudPlayerTag", "Player", "本体"},
     {"hudScaledCoordinatesRow", "Scaled coordinates: {}", "換算座標: {}"},
     {"hudScaledCoordinates", "{} coordinates: {:.1f}, {:.1f}, {:.1f}", "{}換算座標: {:.1f}, {:.1f}, {:.1f}"},
     {"dimension.overworld", "Overworld", "オーバーワールド"},

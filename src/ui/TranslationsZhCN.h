@@ -917,6 +917,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"durabilityArmor", "盔甲: {}"},
     {"help.information.durabilityArmor", "头盔、胸甲或鞘翅、护腿和靴子。"},
     {"hudCoordinates", "坐标: {}"},
+    {"hudCameraTag", "相机"},
+    {"hudPlayerTag", "玩家"},
     {"hudScaledCoordinatesRow", "换算坐标: {}"},
     {"hudScaledCoordinates", "{}坐标: {:.1f}, {:.1f}, {:.1f}"},
     {"dimension.overworld", "主世界"},

@@ -652,6 +652,12 @@ void appendPart(std::string& line, std::string part, std::string_view separator)
     if (!line.empty()) line += separator;
     line += part;
 }
+// FreeCamera's pose for readouts that follow the camera (L-124).
+std::optional<CameraPose> cameraPose(IClientInstance& client) {
+    auto pose = CameraSessions::instance().freeCameraPose(client);
+    if (!pose) return {};
+    return CameraPose{pose->x, pose->y, pose->z, pose->yaw, pose->pitch};
+}
 std::optional<DebugValues> collectDebugValues(IClientInstance& client, std::optional<ViewRay> const& ray) {
     auto* player = client.getLocalPlayer();
     if (!player) return std::nullopt;
@@ -672,8 +678,11 @@ std::optional<DebugValues> collectDebugValues(IClientInstance& client, std::opti
     value.fancySkies = options.getFancySkies();
     value.fullscreen = options.getFullscreen();
     if (int maxFps = options.getDeferredTargetFrameRate(); maxFps > 0) value.maxFps = maxFps;
-    auto info = collectPlayerInfo(client, {true, true, true, true, true, true, true, true});
+    auto info = collectPlayerInfo(client, {true, true, true, true, true, true, true, true}, cameraPose(client));
     if (info.present) {
+        if (info.camera && info.bodyPosition && info.bodyYaw && info.bodyPitch)
+            value.body = DebugValues::Body{info.bodyPosition->x, info.bodyPosition->y, info.bodyPosition->z,
+                                           *info.bodyYaw, *info.bodyPitch};
         if (info.position) {
             value.x = info.position->x;
             value.y = info.position->y;
@@ -721,10 +730,18 @@ GameText debugGameText(DebugValues const& value) {
                              static_cast<int>(std::floor(*value.y)), static_cast<int>(std::floor(*value.z)))
             + " | " + ui::translated("hudChunk", formatChunk(chunkPosition(*value.x, *value.z)));
     }
-    if (value.yaw && value.pitch) {
-        auto key = facingKey(*value.yaw);
-        text.facing = ui::translated("hudFacing", key ? ui::translated(*key) : ui::translated("unavailable"))
-            + " | " + ui::translated("hudRotation", formatRotation(*value.yaw, *value.pitch));
+    auto facing = [](float yaw, float pitch) {
+        auto key = facingKey(yaw);
+        return ui::translated("hudFacing", key ? ui::translated(*key) : ui::translated("unavailable"))
+            + " | " + ui::translated("hudRotation", formatRotation(yaw, pitch));
+    };
+    if (value.yaw && value.pitch) text.facing = facing(*value.yaw, *value.pitch);
+    if (auto const& b = value.body) {
+        auto camera = ui::translated("hudCameraTag") + " ", player = ui::translated("hudPlayerTag") + " ";
+        if (!text.coordinates.empty()) text.coordinates = camera + text.coordinates;
+        if (!text.facing.empty()) text.facing = camera + text.facing;
+        text.bodyCoordinates = player + ui::translated("hudXYZ", b->x, b->y, b->z);
+        text.bodyFacing = player + facing(b->yaw, b->pitch);
     }
     if (value.skyLight && value.blockLight)
         text.light = ui::translated("hudLight", ui::translated("hudLightValues", *value.skyLight, *value.blockLight));
@@ -833,6 +850,13 @@ bool infoLineEnabled(Settings::Information const& settings, std::string_view id)
     if (id == "realTime") return settings.realTime;
     if (id == "weather") return settings.weather;
     if (id == "moon") return settings.moon;
+    return false;
+}
+// Lines that read the camera's place and angles during FreeCamera (L-124).
+bool followsCamera(std::string_view id) {
+    for (std::string_view line : {"coordinates", "scaledCoordinates", "block", "chunk", "facing", "yaw", "pitch",
+                                  "rotation", "biome", "light", "weather"})
+        if (id == line) return true;
     return false;
 }
 std::optional<std::string> infoLineText(std::string_view id, PlayerInfo const& info,
@@ -1122,13 +1146,14 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     request.weather = settings.weather;
     request.difficulty = settings.difficulty;
     request.sprinting = settings.sprinting;
-    auto info = collectPlayerInfo(context.mClient, request);
+    auto info = collectPlayerInfo(context.mClient, request, cameraPose(context.mClient));
     if (!info.present) return boxes;
     auto timing = (settings.fps || settings.frameTime) ? frameStatistics() : std::optional<FrameStatistics>{};
     auto ping = settings.ping ? connectionPing(context.mClient) : std::optional<std::int64_t>{};
     bool anySpeed = settings.speed || settings.horizontalSpeed || settings.verticalSpeed;
-    if (anySpeed && info.position)
-        speedSampler.sample(info.position->x, info.position->y, info.position->z, ui::toastNow());
+    // Speed stays the body's; during FreeCamera position is the camera's.
+    if (anySpeed && info.bodyPosition)
+        speedSampler.sample(info.bodyPosition->x, info.bodyPosition->y, info.bodyPosition->z, ui::toastNow());
     else if (!anySpeed)
         speedSampler.reset();
     auto speed = anySpeed ? speedSampler.read() : std::optional<SpeedValues>{};
@@ -1138,8 +1163,10 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     for (auto const& id : settings.lineOrder) {
         if (static_cast<int>(lines.size()) >= capacity) break;
         if (!infoLineEnabled(settings, id)) continue;
-        if (auto text = infoLineText(id, info, timing, ping, speed, realTime, biomeDisplay(settings)))
+        if (auto text = infoLineText(id, info, timing, ping, speed, realTime, biomeDisplay(settings))) {
+            if (info.camera && followsCamera(id)) *text = ui::translated("hudCameraTag") + " " + *text;
             lines.push_back({std::move(*text), {}});
+        }
     }
     if (preview && lines.empty()) lines.push_back({ui::translated("feature.infoHud"), {}});
     box(ui::HudElementId::Info) = drawElement(context, width, height, hud.info, lines, runtime.ui.hudRowHeight);
