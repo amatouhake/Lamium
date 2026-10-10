@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-96 bookshelves, sandstone and the split method (2026-10-11)
+
+By the maintainer, local. Crop trial `ac3198c`: bookshelf dividers and the
+sandstone band went away, but sandstone looked stretched and placing glass or
+bookshelves showed the stretch. Split method: `ec5aa69` joined sandstone
+without stretching but darkened the first block's band area (corner shading
+not interpolated), fixed in `b430199`, which also split glass and
+bookshelves (no stretch while placing, no gaps or steps, no slowdown near a
+50x50 wall). Far glass still showed its joints (back when moving away);
+`4789cb1` rebuilt every dimension's chunks and changed nothing there;
+`a339a6d` (DLL `390ab3f08faa059059693bd9aac2ae26cb2ff2cf131eeb55bb3c9e56eb49f4ba`)
+filled joined glass edges from the middle and the far joints faded. Sandstone
+copying middle rock (`4789cb1`) was judged unnoticeable; bookshelves stay
+with the adjacent column (aligned books up close; fine at a distance).
+
 ## L-96 Connected Textures for glass panes (2026-10-11)
 
 By the maintainer, local. Trial rounds `52fb6eb`..`dbc16e0` (`--ctm_trace=y`)

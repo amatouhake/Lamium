@@ -487,7 +487,21 @@ its top (bottom) border and the thin top (bottom) face go where the pane above
 (below) has the same part (center post, or the arm in that direction, from
 `ThinFenceBlock::addAABBs`; an L's boxes leave out the drawn center). Trimming
 the shared texture, and folding by collision boxes, failed in game first
-(trial rounds 1-9, `52fb6eb`..`473b4f2`). Open: step 6 and other blocks. Moved ahead of the Schematic follow-ups and the
+(trial rounds 1-9, `52fb6eb`..`473b4f2`).
+Bookshelves and sandstone, and the split method (2026-10-11, maintainer:
+connected bookshelves lose the divider between side-by-side shelves, stacked
+sandstone loses the band between blocks). Cropping stretched the texture,
+which showed while a block was placed and looked wrong on sandstone, so every
+block rule now draws split (`ec5aa69`..`a339a6d`): the face is drawn once per
+cell and each copy reshaped, the dropped border becoming a strip of other
+texels at the texture's own scale, with the face's corner color and light
+interpolated per cell. Rules: glass drops 2 texels on joined sides filled
+from the middle (texels 7-8) because a 1-texel strip next to the frame let
+far, mipmapped glass show the frame again; bookshelves drop the 1-texel side
+column, filled from the column next to it (books stay aligned up close);
+sandstone and red sandstone drop the 4-texel top band under another one,
+filled from the middle rock (rows 8-11). Open: panes still move their glass
+UVs inward (a slight stretch); more blocks only on request. Moved ahead of the Schematic follow-ups and the
 restriction redesign (maintainer 2026-10-11: higher demand).
 What it is for: blocks next to a block of the same kind draw as one surface,
 without the border line between them. Start with glass, then stained glass of
