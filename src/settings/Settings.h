@@ -116,6 +116,8 @@ struct Settings {
         ui::HudElement minimap = ui::defaultHudElement(ui::HudElementId::Minimap);
         ui::HudElement schematic = ui::defaultHudElement(ui::HudElementId::Schematic);
         ui::HudElement playerList = ui::defaultHudElement(ui::HudElementId::PlayerList);
+        ui::HudElement inventory = ui::defaultHudElement(ui::HudElementId::Inventory);
+        ui::HudElement freeSlots = ui::defaultHudElement(ui::HudElementId::FreeSlots);
     } hud;
     struct Map {
         bool minimap = false;
@@ -200,6 +202,8 @@ struct Settings {
         // Player list columns (L-128), all shown by default.
         bool playerListPlatform = true, playerListDimension = true, playerListDistance = true;
         bool playerListMembers = false; // Mark members too, not only operators, visitors and custom (L-131)
+        // Inventory grid and free-slot counter (L-127); the hotbar switch sets both ranges.
+        bool inventoryHud = false, freeSlots = false, inventoryHotbar = false;
         bool saturation = true;        // Gold outlines on the hunger bar (L-63)
         bool saturationPreview = true; // What the held food would add
         bool hud = false;
@@ -298,6 +302,8 @@ struct Settings {
         normalizeElement(hud.minimap, ui::defaultHudElement(ui::HudElementId::Minimap));
         normalizeElement(hud.schematic, ui::defaultHudElement(ui::HudElementId::Schematic));
         normalizeElement(hud.playerList, ui::defaultHudElement(ui::HudElementId::PlayerList), true);
+        normalizeElement(hud.inventory, ui::defaultHudElement(ui::HudElementId::Inventory), true);
+        normalizeElement(hud.freeSlots, ui::defaultHudElement(ui::HudElementId::FreeSlots), true);
         map.zoom = map::clampZoomIndex(map.zoom);
         if (!std::isfinite(map.size)) map.size = 20;
         map.size = std::clamp(std::round(map.size), 10.f, 50.f);

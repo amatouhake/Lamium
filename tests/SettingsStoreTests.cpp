@@ -471,8 +471,13 @@ void settingsStoreTests() {
         Settings edited;
         option.adjust(edited, 1);
         check(option.read(edited) != option.read(Settings{}), "editing changes the target value");
+        // The inventory HUD and the free-slot counter show one hotbar switch (L-127).
+        auto mirrors = [](std::string_view a, std::string_view b) {
+            auto hotbar = [](std::string_view id) { return id == "information.inventoryHotbar" || id == "information.freeSlotsHotbar"; };
+            return hotbar(a) && hotbar(b);
+        };
         for (auto const& other : settings::options)
-            if (other.id != option.id)
+            if (other.id != option.id && !mirrors(other.id, option.id))
                 check(other.read(edited) == other.read(Settings{}), "editing preserves unrelated options");
         writeSettings(path, edited);
         auto restored = readSettings(path);

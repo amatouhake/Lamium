@@ -62,6 +62,8 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"targetInfo", "feature.targetInfo", "help.targetInfo", "information.target", false, input::Action::TargetInfo},
     {"playerList", "feature.playerList", "help.playerList", "", false, input::Action::PlayerList},
     {"durabilityHud", "feature.durabilityHud", "help.durabilityHud", "information.durabilityHud", false, input::Action::ToggleDurabilityHud},
+    {"inventoryHud", "feature.inventoryHud", "help.inventoryHud", "information.inventoryHud", false, input::Action::ToggleInventoryHud},
+    {"freeSlots", "feature.freeSlots", "help.freeSlots", "information.freeSlots", false, input::Action::ToggleFreeSlots},
     {"offhandSlot", "feature.offhandSlot", "help.offhandSlot", "information.offhandSlot", false, input::Action::ToggleOffhandSlot},
     {"saturation", "feature.saturation", "help.saturation", "information.saturation", false, input::Action::ToggleSaturation},
     {"debugView", "feature.debugView", "help.debugView", "information.debug", false, input::Action::DebugView},
@@ -168,6 +170,8 @@ inline std::optional<HudElementId> layoutElement(std::string_view feature) {
     if (feature == "minimap") return HudElementId::Minimap;
     if (feature == "schematicHud") return HudElementId::Schematic;
     if (feature == "playerList") return HudElementId::PlayerList;
+    if (feature == "inventoryHud") return HudElementId::Inventory;
+    if (feature == "freeSlots") return HudElementId::FreeSlots;
     return std::nullopt;
 }
 inline constexpr std::string_view layoutLinkLabel(HudElementId id) {

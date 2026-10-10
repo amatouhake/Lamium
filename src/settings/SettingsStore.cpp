@@ -97,6 +97,9 @@ Json encode(Settings const& settings) {
                          {"playerListDimension", settings.information.playerListDimension},
                          {"playerListDistance", settings.information.playerListDistance},
                          {"playerListMembers", settings.information.playerListMembers},
+                         {"inventoryHud", settings.information.inventoryHud},
+                         {"freeSlots", settings.information.freeSlots},
+                         {"inventoryHotbar", settings.information.inventoryHotbar},
                          {"saturation", settings.information.saturation},
                          {"saturationPreview", settings.information.saturationPreview},
                          {"lineOrder", settings.information.lineOrder},
@@ -179,7 +182,9 @@ Json encode(Settings const& settings) {
                    {"durability", encodeHudElement(settings.hud.durability)},
                    {"minimap", encodeHudElement(settings.hud.minimap)},
                    {"schematic", encodeHudElement(settings.hud.schematic)},
-                   {"playerList", encodeHudElement(settings.hud.playerList)}}},
+                   {"playerList", encodeHudElement(settings.hud.playerList)},
+                   {"inventory", encodeHudElement(settings.hud.inventory)},
+                   {"freeSlots", encodeHudElement(settings.hud.freeSlots)}}},
         {"map", {{"minimap", settings.map.minimap}, {"range", map::blocksAcross(settings.map.zoom)}, {"size", settings.map.size},
                  {"rotate", settings.map.rotate},
                  {"round", settings.map.round}, {"coordinates", settings.map.coordinates},
@@ -275,6 +280,9 @@ Settings decodeSettings(std::string_view text) {
         value.information.playerListDimension = info.value("playerListDimension", value.information.playerListDimension);
         value.information.playerListDistance = info.value("playerListDistance", value.information.playerListDistance);
         value.information.playerListMembers = info.value("playerListMembers", value.information.playerListMembers);
+        value.information.inventoryHud = info.value("inventoryHud", value.information.inventoryHud);
+        value.information.freeSlots = info.value("freeSlots", value.information.freeSlots);
+        value.information.inventoryHotbar = info.value("inventoryHotbar", value.information.inventoryHotbar);
         value.information.saturation = info.value("saturation", value.information.saturation);
         value.information.saturationPreview = info.value("saturationPreview", value.information.saturationPreview);
         value.information.hud = info.value("hud", value.information.hud);
@@ -493,6 +501,8 @@ Settings decodeSettings(std::string_view text) {
         element("minimap", value.hud.minimap, ui::HudElementId::Minimap);
         element("schematic", value.hud.schematic, ui::HudElementId::Schematic);
         element("playerList", value.hud.playerList, ui::HudElementId::PlayerList);
+        element("inventory", value.hud.inventory, ui::HudElementId::Inventory);
+        element("freeSlots", value.hud.freeSlots, ui::HudElementId::FreeSlots);
     }
     value.normalize();
     return value;

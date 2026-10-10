@@ -37,6 +37,8 @@ int main() try {
     englishSearchTests();
     extern void playerListTests();
     playerListTests();
+    extern void inventoryHudTests();
+    inventoryHudTests();
     extern void toolChoiceTests();
     toolChoiceTests();
     extern void weaponChoiceTests();

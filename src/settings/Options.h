@@ -71,7 +71,7 @@ inline constexpr std::array<std::string_view,3> worldMarkerLabels{
     "worldMarkers.always", "worldMarkers.whileHeld", "worldMarkers.off"};
 inline constexpr auto elementBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard"});
-// Info, Status and the player list also offer a background behind each line (L-98, L-128).
+// Info, Status, the player list and the inventory HUD also offer a background behind each line (L-98, L-128, L-127).
 inline constexpr auto lineBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard", "hudBackgroundLine"});
 inline constexpr std::array<std::string_view,2> debugBackgroundLabels{"hudBackgroundNone","hudBackgroundLine"};
@@ -89,6 +89,8 @@ inline ui::HudElement const& hudElement(Settings const& value, ui::HudElementId 
     case ui::HudElementId::Minimap: return value.hud.minimap;
     case ui::HudElementId::Schematic: return value.hud.schematic;
     case ui::HudElementId::PlayerList: return value.hud.playerList;
+    case ui::HudElementId::Inventory: return value.hud.inventory;
+    case ui::HudElementId::FreeSlots: return value.hud.freeSlots;
     default: return value.hud.toast;
     }
 }
@@ -102,6 +104,8 @@ inline ui::HudElement& hudElement(Settings& value, ui::HudElementId id) {
     case ui::HudElementId::Minimap: return value.hud.minimap;
     case ui::HudElementId::Schematic: return value.hud.schematic;
     case ui::HudElementId::PlayerList: return value.hud.playerList;
+    case ui::HudElementId::Inventory: return value.hud.inventory;
+    case ui::HudElementId::FreeSlots: return value.hud.freeSlots;
     default: return value.hud.toast;
     }
 }
@@ -199,6 +203,17 @@ inline constexpr auto options = std::to_array<Option>({
     hudNumeric<ui::HudElementId::PlayerList, &ui::HudElement::scale, 25>("hud.playerList.scale", "playerList", "hudScale", 75, 150),
     hudChoice<ui::HudElementId::PlayerList, &ui::HudElement::background, lineBackgroundLabels>("hud.playerList.background", "playerList", "hudBackground"),
     hudToggle<ui::HudElementId::PlayerList, &ui::HudElement::shadow>("hud.playerList.shadow", "playerList", "hudShadow"),
+    // One hotbar switch shown under both elements: the counter counts what the grid shows (L-127).
+    toggle<&Settings::information, &Settings::Information::inventoryHud>("information.inventoryHud", "inventoryHud", "inventoryHud"),
+    toggle<&Settings::information, &Settings::Information::inventoryHotbar>("information.inventoryHotbar", "inventoryHud", "inventoryHotbar"),
+    hudNumeric<ui::HudElementId::Inventory, &ui::HudElement::scale, 25>("hud.inventory.scale", "inventoryHud", "hudScale", 75, 150),
+    hudChoice<ui::HudElementId::Inventory, &ui::HudElement::background, lineBackgroundLabels>("hud.inventory.background", "inventoryHud", "hudBackground"),
+    hudToggle<ui::HudElementId::Inventory, &ui::HudElement::shadow>("hud.inventory.shadow", "inventoryHud", "hudShadow"),
+    toggle<&Settings::information, &Settings::Information::freeSlots>("information.freeSlots", "freeSlots", "freeSlots"),
+    toggle<&Settings::information, &Settings::Information::inventoryHotbar>("information.freeSlotsHotbar", "freeSlots", "inventoryHotbar"),
+    hudNumeric<ui::HudElementId::FreeSlots, &ui::HudElement::scale, 25>("hud.freeSlots.scale", "freeSlots", "hudScale", 75, 150),
+    hudChoice<ui::HudElementId::FreeSlots, &ui::HudElement::background, lineBackgroundLabels>("hud.freeSlots.background", "freeSlots", "hudBackground"),
+    hudToggle<ui::HudElementId::FreeSlots, &ui::HudElement::shadow>("hud.freeSlots.shadow", "freeSlots", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::saturation>("information.saturation", "saturation", "saturation"),
     toggle<&Settings::information, &Settings::Information::saturationPreview>("information.saturationPreview", "saturation", "saturationPreview"),
     toggle<&Settings::information, &Settings::Information::hud>("information.hud", "infoHud", "infoHud"),

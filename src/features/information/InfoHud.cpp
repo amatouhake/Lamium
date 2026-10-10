@@ -51,6 +51,9 @@
 #include "features/inspection/render/DurabilityBar.h"
 #include "features/inspection/render/ItemIcon.h"
 #include "features/information/PlayerList.h"
+#include "features/information/InventoryHud.h"
+#include "mc/world/actor/player/Inventory.h"
+#include "mc/world/actor/player/PlayerInventory.h"
 #include "features/map/RadarFaces.h"
 #include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
@@ -932,6 +935,31 @@ std::optional<std::string> infoLineText(std::string_view id, PlayerInfo const& i
     return {};
 }
 }
+// The glint pass and its strength as in container previews.
+void slotGlint(MinecraftUIRenderContext& context, ItemRenderer& renderer, ItemStack const& stack, int frame, float x, float y,
+               float unit) {
+    if (!stack.mItem || !stack.mItem->isGlint(stack)) return;
+    BaseActorRenderContext renderContext(context.mScreenContext, context.mClient, context.mClient.getMinecraftGame_DEPRECATED());
+    renderer.renderGuiItemNew(renderContext, stack, frame, x, y, true, 1.35f, 1.f, unit, 17);
+}
+// The durability bar and stack count over a slot icon, as in inventory slots.
+void slotDecorations(MinecraftUIRenderContext& context, ItemStack const& stack, offhand::Box icon, float unit) {
+    if (!stack.mItem) return;
+    int maxDamage = static_cast<int>(stack.mItem->getMaxDamage());
+    if (inspection::render::shouldShowDurabilityBar(stack.isDamageableItem(), stack.getDamageValue(), maxDamage)) {
+        // Vanilla's bar geometry in icon units, scaled with the slot.
+        float ratio = inspection::render::durabilityRatio(stack.getDamageValue(), maxDamage);
+        auto back = inspection::render::durabilityBackground({0, 0, 16, 16});
+        auto front = inspection::render::durabilityForeground(back, ratio);
+        auto color = inspection::render::durabilityColor(ratio);
+        ui::fill(context, icon.x + back.x0 * unit, icon.y + back.y0 * unit, back.width() * unit, back.height() * unit,
+                 ui::Rgb{0, 0, 0});
+        if (front.width() > 0)
+            ui::fill(context, icon.x + front.x0 * unit, icon.y + front.y0 * unit, front.width() * unit,
+                     front.height() * unit, ui::Rgb{color.r, color.g, color.b});
+    }
+    if (stack.mCount > 1) slotCount(context, icon, unit, stack.mCount);
+}
 void drawOffhandSlot(MinecraftUIRenderContext& context, ScreenView const& view, Settings::Information const& settings) {
     if (!settings.offhandSlot) return;
     auto* player = context.mClient.getLocalPlayer();
@@ -956,33 +984,105 @@ void drawOffhandSlot(MinecraftUIRenderContext& context, ScreenView const& view, 
     stack.mWasPickedUp = false;
     auto icon = offhand::iconBox(*slot);
     if (auto* renderer = context.mClient.getItemRenderer()) {
-        BaseActorRenderContext renderContext(context.mScreenContext, context.mClient,
-                                             context.mClient.getMinecraftGame_DEPRECATED());
         // Unrounded like the hotbar's own icons (see iconBox).
         float x = icon.x, y = icon.y;
         // Compasses and clocks pick their frame as in an inventory slot.
         int frame = stack.mItem->getAnimationFrameFor(player, false, &stack, true);
         inspection::render::drawItemIcon(context, {&stack, x, y, unit, frame}, 17);
-        // The glint pass and its strength as in container previews.
-        if (stack.mItem->isGlint(stack))
-            renderer->renderGuiItemNew(renderContext, stack, frame, x, y, true, 1.35f, 1.f, unit, 17);
+        slotGlint(context, *renderer, stack, frame, x, y, unit);
     }
-    int maxDamage = static_cast<int>(stack.mItem->getMaxDamage());
-    if (inspection::render::shouldShowDurabilityBar(stack.isDamageableItem(), stack.getDamageValue(), maxDamage)) {
-        // Vanilla's bar geometry in icon units, scaled with the slot.
-        float ratio = inspection::render::durabilityRatio(stack.getDamageValue(), maxDamage);
-        auto back = inspection::render::durabilityBackground({0, 0, 16, 16});
-        auto front = inspection::render::durabilityForeground(back, ratio);
-        auto color = inspection::render::durabilityColor(ratio);
-        ui::fill(context, icon.x + back.x0 * unit, icon.y + back.y0 * unit, back.width() * unit, back.height() * unit,
-                 ui::Rgb{0, 0, 0});
-        if (front.width() > 0)
-            ui::fill(context, icon.x + front.x0 * unit, icon.y + front.y0 * unit, front.width() * unit,
-                     front.height() * unit, ui::Rgb{color.r, color.g, color.b});
-    }
-    if (stack.mCount > 1) slotCount(context, icon, unit, stack.mCount);
+    slotDecorations(context, stack, icon, unit);
 }
 std::string biomeName(std::string const& identifier) { return localizedBiomeName(identifier); }
+// ---- Inventory grid and free-slot counter (L-127, docs/demos/inventory-hud.html) ----
+// Copies for this frame only: the renderer must not replay a pickup squash.
+struct InventorySample {
+    std::array<ItemStack, inventoryHud::slotCount> stacks;
+    std::array<bool, inventoryHud::slotCount> occupied{};
+};
+std::optional<InventorySample> sampleInventory(IClientInstance& client, bool preview) {
+    auto* player = client.getLocalPlayer();
+    if (!player && !preview) return std::nullopt;
+    InventorySample sample;
+    if (player) {
+        auto& inventory = player->getInventory();
+        for (int slot = 0; slot < inventoryHud::slotCount; ++slot) {
+            auto const& stack = inventory.getItem(slot);
+            if (stack.isNull() || stack.mCount <= 0 || !stack.mItem) continue;
+            auto i = static_cast<size_t>(slot);
+            sample.stacks[i] = stack;
+            sample.stacks[i].mShowPickUp = false;
+            sample.stacks[i].mWasPickedUp = false;
+            sample.occupied[i] = true;
+        }
+    }
+    if (preview && std::none_of(sample.occupied.begin(), sample.occupied.end(), [](bool b) { return b; })) {
+        // The layout editor needs something to place with an empty inventory.
+        std::pair<char const*, int> examples[]{{"minecraft:cobblestone", 64}, {"minecraft:oak_log", 23}, {"minecraft:torch", 40},
+                                                {"minecraft:diamond_pickaxe", 1}, {"minecraft:bread", 9}};
+        int slot = 9;
+        for (auto [name, count] : examples) {
+            auto i = static_cast<size_t>(slot);
+            try { sample.stacks[i].reinit(name, count, 0); } catch (...) { continue; }
+            sample.occupied[i] = !sample.stacks[i].isNull();
+            slot += 4;
+        }
+    }
+    return sample;
+}
+std::optional<ui::hud_editor::Box> drawInventoryGrid(MinecraftUIRenderContext& context, float width, float height,
+    ui::HudElement const& element, InventorySample const& sample, bool hotbar) {
+    namespace inv = inventoryHud;
+    float z = elementZoom(element);
+    bool card = element.background == ui::ElementBackground::Card, band = element.background == ui::ElementBackground::Line;
+    float pad = card || band ? 3 * z : 0;
+    float cell = inv::slotSize * z;
+    float gridW = 9 * cell, gridH = inv::gridHeight(hotbar, cell);
+    float boxW = gridW + 2 * pad, boxH = gridH + 2 * pad;
+    auto placement = ui::placeElement(width, height, boxW, boxH, element);
+    auto rows = inv::gridRows(hotbar);
+    if (card) ui::card(context, placement.x, placement.y, boxW, boxH, cardOpacity);
+    // Whole GUI units, as in inventory slots: layered icons (dyed leather)
+    // show seams between their layers at fractional positions.
+    float left = std::round(placement.x + pad), top = std::round(placement.y + pad);
+    // Per line: one band per row; touching rows must not overlap, so only
+    // the first and last band reach into the padding.
+    if (band)
+        for (size_t row = 0; row < rows.size(); ++row) {
+            float y = top + inv::rowTop(static_cast<int>(row), cell), h = cell;
+            if (row == 0 || row == 3) { y -= pad; h += pad; }
+            if (row + 1 == rows.size() || row == 2) h += pad;
+            ui::fill(context, placement.x, y, boxW, h, ui::palette::panel, cardOpacity);
+        }
+    std::vector<inspection::render::IconAt> icons;
+    std::vector<std::pair<ItemStack const*, offhand::Box>> drawn;
+    for (size_t row = 0; row < rows.size(); ++row)
+        for (size_t column = 0; column < rows[row].size(); ++column) {
+            auto i = static_cast<size_t>(rows[row][column]);
+            float x = left + column * cell, y = top + inv::rowTop(static_cast<int>(row), cell);
+            if (!sample.occupied[i]) {
+                // Empty: a faint frame only.
+                ui::frame(context, x + z, y + z, cell - 2 * z, cell - 2 * z, ui::palette::text, .18f);
+                continue;
+            }
+            offhand::Box icon{std::round(x + z), std::round(y + z), 16 * z, 16 * z};
+            icons.push_back({&sample.stacks[i], icon.x, icon.y, z});
+            drawn.push_back({&sample.stacks[i], icon});
+        }
+    if (auto* renderer = context.mClient.getItemRenderer()) {
+        inspection::render::drawItemIcons(context, icons, 17);
+        for (auto [stack, icon] : drawn) slotGlint(context, *renderer, *stack, 0, icon.x, icon.y, z);
+    }
+    for (auto [stack, icon] : drawn) slotDecorations(context, *stack, icon, z);
+    context.flushText(0, std::nullopt);
+    return ui::hud_editor::Box{placement.x, placement.y, boxW, boxH};
+}
+std::optional<ui::hud_editor::Box> drawFreeSlots(MinecraftUIRenderContext& context, float width, float height,
+    ui::HudElement const& element, InventorySample const& sample, bool hotbar) {
+    int free = inventoryHud::freeSlots(sample.occupied, hotbar);
+    return drawElement(context, width, height, element,
+                       {{ui::translated("freeSlots.count", free), std::nullopt, free == 0 ? ui::palette::warning : ui::palette::text}});
+}
 // ---- Player list (L-128, docs/demos/player-list.html) ----
 // Face, name, host crown, platform, dimension and distance in aligned columns:
 // each list column is laid out once from its widest cells.
@@ -1203,6 +1303,14 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     }
     if (preview || settings.durabilityHud)
         box(ui::HudElementId::Durability) = drawDurability(context, width, height, hud.durability, settings, preview != nullptr);
+    if (preview || settings.inventoryHud || settings.freeSlots) {
+        if (auto sample = sampleInventory(context.mClient, preview != nullptr)) {
+            if (preview || settings.inventoryHud)
+                box(ui::HudElementId::Inventory) = drawInventoryGrid(context, width, height, hud.inventory, *sample, settings.inventoryHotbar);
+            if (preview || settings.freeSlots)
+                box(ui::HudElementId::FreeSlots) = drawFreeSlots(context, width, height, hud.freeSlots, *sample, settings.inventoryHotbar);
+        }
+    }
     if (preview || (runtime.schematic.enabled && runtime.schematic.hud))
         box(ui::HudElementId::Schematic) = drawSchematicHud(context, width, height, hud.schematic, runtime.schematic, preview != nullptr);
     if (preview || runtime.camera.showMagnification) {

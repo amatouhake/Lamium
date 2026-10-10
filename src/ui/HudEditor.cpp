@@ -46,6 +46,8 @@ std::string_view elementName(HudElementId id) {
     case HudElementId::Minimap: return "feature.minimap";
     case HudElementId::Schematic: return "feature.schematicHud";
     case HudElementId::PlayerList: return "feature.playerList";
+    case HudElementId::Inventory: return "feature.inventoryHud";
+    case HudElementId::FreeSlots: return "feature.freeSlots";
     default: return "hudEditor.toast";
     }
 }
@@ -59,6 +61,8 @@ HudElement& layoutElement(Settings::Hud& hud, HudElementId id) {
     case HudElementId::Minimap: return hud.minimap;
     case HudElementId::Schematic: return hud.schematic;
     case HudElementId::PlayerList: return hud.playerList;
+    case HudElementId::Inventory: return hud.inventory;
+    case HudElementId::FreeSlots: return hud.freeSlots;
     default: return hud.toast;
     }
 }
