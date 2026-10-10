@@ -50,8 +50,10 @@ struct Rule {
     bool split = false;
 };
 inline std::optional<Rule> ruleFor(std::string_view identifier) {
-    if (connects(identifier)) return Rule{};
-    if (identifier == "minecraft:bookshelf") return Rule{1, 1, 0, 0, true};
+    // Every rule draws split since 2026-10-11: cropping stretched the texture,
+    // which showed while a block was being placed.
+    if (connects(identifier)) return Rule{1, 1, 1, 1, false, true};
+    if (identifier == "minecraft:bookshelf") return Rule{1, 1, 0, 0, true, true};
     if (identifier == "minecraft:sandstone" || identifier == "minecraft:red_sandstone") return Rule{0, 0, 4, 0, true, true};
     return std::nullopt;
 }

@@ -18,6 +18,7 @@
 #include "mc/world/level/block/BlockType.h"
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <atomic>
 #include <cmath>
 #include <vector>
@@ -81,7 +82,8 @@ std::vector<Cell> faceCells(Face face, Block const& block) {
 }
 // After the face was drawn once per cell, give each copy its cell: the
 // position from the face's corners and the texels the cell shows, at the
-// texture's own scale. Vanilla's lighting per corner is kept.
+// texture's own scale. Vanilla's corner shading (color and light) is
+// interpolated to the cell's corners, so strips keep the face's gradient.
 void shapeCells(Tessellator& tessellator, TextureUVCoordinateSet const& tex, size_t before, std::vector<Cell> const& cells) {
     auto& positions = *tessellator.mMeshData->mPositions;
     auto& uvs = *tessellator.mMeshData->mTextureUVs[0];
@@ -98,11 +100,45 @@ void shapeCells(Tessellator& tessellator, TextureUVCoordinateSet const& tex, siz
     auto at = [&](float s, float t) {
         return corner[0] * ((1 - s) * (1 - t)) + corner[1] * (s * (1 - t)) + corner[2] * ((1 - s) * t) + corner[3] * (s * t);
     };
+    auto weights = [](float s, float t) {
+        return std::array<float, 4>{(1 - s) * (1 - t), s * (1 - t), (1 - s) * t, s * t};
+    };
+    // Per-corner colors (RGBA bytes) and the other UV sets (light), when present.
+    auto& colors = *tessellator.mMeshData->mColors;
+    bool hasColors = colors.size() >= before + 4 * cells.size();
+    std::array<std::uint32_t, 4> cornerColor{};
+    std::array<std::array<glm::vec2, 4>, 2> cornerLight{};
+    std::array<bool, 2> hasLight{};
+    for (size_t set = 0; set < 2; ++set)
+        hasLight[set] = tessellator.mMeshData->mTextureUVs[set + 1]->size() >= before + 4 * cells.size();
+    for (size_t i = 0; i < 4; ++i) {
+        size_t c = (high[i] ? 1 : 0) + (low[i] ? 2 : 0);
+        if (hasColors) cornerColor[c] = colors[before + i];
+        for (size_t set = 0; set < 2; ++set)
+            if (hasLight[set]) cornerLight[set][c] = (*tessellator.mMeshData->mTextureUVs[set + 1])[before + i];
+    }
+    auto mixColor = [&](std::array<float, 4> const& w) {
+        std::uint32_t out = 0;
+        for (int shift = 0; shift < 32; shift += 8) {
+            float channel = 0;
+            for (size_t c = 0; c < 4; ++c) channel += w[c] * static_cast<float>((cornerColor[c] >> shift) & 0xFFu);
+            out |= static_cast<std::uint32_t>(std::clamp(std::lround(channel), 0L, 255L)) << shift;
+        }
+        return out;
+    };
     for (size_t k = 0; k < cells.size(); ++k) {
         auto const& c = cells[k];
         for (size_t i = 0; i < 4; ++i) {
             size_t v = before + 4 * k + i;
-            positions[v] = at(high[i] ? c.s1 : c.s0, low[i] ? c.t1 : c.t0);
+            float s = high[i] ? c.s1 : c.s0, t = low[i] ? c.t1 : c.t0;
+            positions[v] = at(s, t);
+            auto w = weights(s, t);
+            if (hasColors) colors[v] = mixColor(w);
+            for (size_t set = 0; set < 2; ++set)
+                if (hasLight[set]) {
+                    auto const& l = cornerLight[set];
+                    (*tessellator.mMeshData->mTextureUVs[set + 1])[v] = l[0] * w[0] + l[1] * w[1] + l[2] * w[2] + l[3] * w[3];
+                }
             uvs[v].x = tex._u0 + du * (high[i] ? c.su1 : c.su0);
             uvs[v].y = tex._v0 + dv * (low[i] ? c.tv1 : c.tv0);
         }

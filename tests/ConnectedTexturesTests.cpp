@@ -35,7 +35,8 @@ void connectedTexturesTests() {
           "rules per block");
     auto shelf = trim(glass, 16, 16, {true, true, true, true}, *ruleFor("minecraft:bookshelf"));
     check(near(shelf.u0, 0.25f + 0.25f / 16) && near(shelf.v0, 0.5f) && near(shelf.v1, 0.75f), "bookshelves only lose side columns");
-    check(ruleFor("minecraft:sandstone")->split && !ruleFor("minecraft:bookshelf")->split, "sandstone is drawn split");
+    check(ruleFor("minecraft:sandstone")->split && ruleFor("minecraft:bookshelf")->split && ruleFor("minecraft:glass")->split,
+          "every rule is drawn split");
     auto lone = splitCells({}, *ruleFor("minecraft:sandstone"));
     check(lone.size() == 1 && lone[0].s0 == 0 && lone[0].t1 == 1 && lone[0].tv0 == 0 && lone[0].tv1 == 1,
           "a face with nothing joined stays one cell with its own texels");
