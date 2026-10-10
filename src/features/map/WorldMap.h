@@ -13,9 +13,9 @@ namespace lamium::map::world {
 // cursor and forwards its queued input here; every call runs on the client
 // thread from its render.
 struct Request {
-    enum class Kind { None, Close, AddWaypoint, OpenWaypoints } kind = Kind::None;
+    enum class Kind { None, Close, AddWaypoint, OpenWaypoints, OpenSchematic, OpenShape } kind = Kind::None;
     Waypoint draft; // AddWaypoint
-    std::optional<MarkKey> mark; // OpenWaypoints: the waypoint or death point to show, if any.
+    std::optional<MarkKey> mark; // Open...: the waypoint, death point, placement or shape to show, if any.
 };
 // `resume` keeps the view and selection (back from the Waypoints screen).
 void open(IClientInstance&, bool resume = false);

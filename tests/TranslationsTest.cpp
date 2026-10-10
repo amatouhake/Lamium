@@ -43,7 +43,8 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
             else if (entry.key == "debugEntityKinds.line")
                 rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining, remaining, remaining));
-            else if (entry.key == "debugEntityTypes.more") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
+            else if (entry.key == "debugEntityTypes.more" || entry.key == "worldMap.areaSize")
+                rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
             else if (entry.key == "schematic.size") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining));
             else if (entry.key == "schematic.toast.moved")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining, remaining));

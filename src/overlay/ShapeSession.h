@@ -14,6 +14,16 @@ void setVisible(ShapeId, bool);
 void rename(ShapeId, std::string);
 bool remove(ShapeId);
 void clear();
+// The shapes of a dimension seen from above (the maps, L-139), each box
+// computed when its shape changes and kept until then.
+struct Footprint {
+    ShapeId id;
+    std::string name;
+    ShapeColor color;
+    bool visible;
+    ShapeFootprint area;
+};
+std::vector<Footprint> footprints(int dimension);
 // Previews a definition that is not yet part of the collection; nullopt ends it.
 void setDraft(std::optional<ShapeDefinition>);
 enum class Storage { Session, LocalWorld, LoadFailed };

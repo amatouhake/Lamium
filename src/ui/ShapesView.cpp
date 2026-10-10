@@ -604,6 +604,9 @@ void renderShapesDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::
 void refresh() { shapeList = overlay::shapes::list(); }
 void click(float x, float y, bool right) { handleShapeClick(x, y, right); }
 void key(int key) { handleShapeKey(key); }
+void select(overlay::ShapeId id) {
+    if (overlay::shapes::find(id)) selectShape(id);
+}
 void wheel(int step, glm::vec2 pointer) {
     auto const& l = shapesDisplayed;
     bool overList = pointer.x >= l.listLeft && pointer.x < l.listLeft + l.listWidth && (!l.docked || pointer.y < l.detailTop);

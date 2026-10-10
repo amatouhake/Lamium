@@ -129,6 +129,7 @@ struct Settings {
         bool biome = false;
         bool compass = false;
         bool debugHide = true; // Hide while Debug View is shown.
+        bool minimapShapes = false; // Shapes as outlines (L-139); many would crowd a small map.
         bool radar = true;
         bool radarPlayers = true, radarHostile = true, radarPassive = true, radarItems = false;
         bool radarInvisible = false; // Also show players and mobs that are invisible.

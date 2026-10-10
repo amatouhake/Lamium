@@ -6,7 +6,7 @@
 #include "features/map/Minimap.h"
 #include "features/map/WaypointSession.h"
 #include "app/SessionIds.h"
-#include "features/map/SchematicMarks.h"
+#include "features/map/MapLayers.h"
 #include "features/map/WorldMapView.h"
 #include "features/map/SeedLink.h"
 #include "features/map/Teleport.h"
@@ -116,26 +116,31 @@ struct Hit {
     int item = -1;
     MarkKey mark{}; // List rows and their switches: the entry they stand for.
 };
-enum class MenuKind { Ground, Waypoint, Death };
+enum class MenuKind { Ground, Waypoint, Death, Placement, Shape };
 struct Menu {
     MenuKind kind;
     float x, y;    // Screen, where it was opened.
-    MarkKey mark{}; // Waypoint or death point: the mark it was opened on.
+    MarkKey mark{}; // Any but Ground: the mark it was opened on.
     int worldX = 0, worldY = 0, worldZ = 0;
     bool known = false; // Ground: the height came from the saved map.
     bool armed = false; // Delete pressed once.
 };
-struct Marker {
-    float x, y;
-    MarkKey mark;
-};
-MenuKind menuKind(MarkKey mark) { return mark.layer == MarkLayer::Death ? MenuKind::Death : MenuKind::Waypoint; }
+MenuKind menuKind(MarkKey mark) {
+    switch (mark.layer) {
+    case MarkLayer::Death: return MenuKind::Death;
+    case MarkLayer::Placement: return MenuKind::Placement;
+    case MarkLayer::Shape: return MenuKind::Shape;
+    default: return MenuKind::Waypoint;
+    }
+}
 // The waypoint a key names, or null when it is gone (or not a waypoint).
 Waypoint const* waypointOf(WaypointSet const& set, MarkKey mark) {
     if (mark.layer != MarkLayer::Waypoint) return nullptr;
     int index = indexOfId(set.waypoints, mark.id);
     return index < 0 ? nullptr : &set.waypoints[static_cast<size_t>(index)];
 }
+// The footprint a key names in this dimension, or null when it is gone.
+AreaMark const* areaOf(MarkKey mark);
 struct State {
     bool open = false;
     IClientInstance* client = nullptr;
@@ -145,19 +150,20 @@ struct State {
         float x, y;
         double centerX, centerZ;
         bool moved = false;
-        std::optional<Marker> marker; // Pressed on a marker: a click selects it.
+        std::optional<MarkKey> marker; // Pressed on a mark: a click selects it.
     };
     std::optional<Drag> drag;
     std::optional<Menu> menu;
     std::vector<Hit> hits;
-    std::vector<Marker> markers;
+    std::vector<ScreenMark> markers; // every mark as last drawn, for the cursor
+    std::vector<AreaMark> areas;     // placements and shapes in this dimension (L-139)
     glm::vec2 pointer{};
     std::string notice;
     double noticeAt = 0, openedAt = 0;
     float top = rowHeight; // The top bar, one or two rows.
     double pixelsPerUnit = 1; // Screen pixels per GUI unit, as last drawn.
     float panelWidth = 0;  // The side panel as last drawn; 0 when closed.
-    std::optional<MarkKey> selected; // Side panel: the death point or a waypoint.
+    std::optional<MarkKey> selected; // Side panel: the death point, a waypoint, a placement or a shape.
     int listFirst = 0;
     bool deleteArmed = false;
     bool editingName = false;
@@ -269,8 +275,14 @@ void select(std::optional<MarkKey> mark, bool move) {
     if (!move || !mark) return;
     auto set = waypoints::current();
     if (mark->layer == MarkLayer::Death && set.death) focus(set.death->x + .5, set.death->z + .5);
-    else if (auto const* w = waypointOf(set, *mark))
+    else if (auto const* w = waypointOf(set, *mark)) {
         if (auto at = shownPosition(w->x, w->y, w->z, w->dimension, state.dimension, true)) focus(at->x, at->z);
+    } else if (auto const* area = areaOf(*mark))
+        focus((area->area.x0 + area->area.x1) / 2.0, (area->area.z0 + area->area.z1) / 2.0);
+}
+AreaMark const* areaOf(MarkKey mark) {
+    for (auto const& area : state.areas) if (area.key == mark) return &area;
+    return nullptr;
 }
 // A change to one waypoint, found by its id when the change runs: an
 // entry added or removed meanwhile cannot redirect it.
@@ -334,7 +346,10 @@ Request panelAction(Hit const& hit) {
         break;
     }
     case Target::Row: select(hit.mark, true); break;
-    case Target::RowVisible: changeWaypoint(hit.mark, [](Waypoint& w) { w.visible = !w.visible; }); break;
+    case Target::RowVisible:
+        if (pointLayer(hit.mark.layer)) changeWaypoint(hit.mark, [](Waypoint& w) { w.visible = !w.visible; });
+        else toggleVisible(hit.mark);
+        break;
     case Target::Name:
         if (auto const* w = state.selected ? waypointOf(set, *state.selected) : nullptr; w && !state.editingName) {
             state.editingName = true;
@@ -371,7 +386,8 @@ Request panelAction(Hit const& hit) {
         break;
     }
     case Target::OpenScreen:
-        request.kind = Request::Kind::OpenWaypoints;
+        request.kind = !state.selected || pointLayer(state.selected->layer) ? Request::Kind::OpenWaypoints
+            : state.selected->layer == MarkLayer::Placement ? Request::Kind::OpenSchematic : Request::Kind::OpenShape;
         request.mark = state.selected;
         break;
     default: break;
@@ -406,7 +422,7 @@ void copySeed() {
 struct TeleportTarget { int x, y, z; };
 std::optional<TeleportTarget> teleportTarget(Menu const& menu, WaypointSet const& set) {
     auto* player = state.client ? state.client->getLocalPlayer() : nullptr;
-    if (!player) return std::nullopt;
+    if (!player || menu.kind == MenuKind::Placement || menu.kind == MenuKind::Shape) return std::nullopt;
     int dimension = state.dimension, x = menu.worldX, y = menu.worldY, z = menu.worldZ;
     if (menu.kind == MenuKind::Death) {
         if (!set.death) return std::nullopt;
@@ -458,6 +474,11 @@ std::vector<std::string> menuItems(Menu const& menu, WaypointSet const& set) {
         }
     } else if (menu.kind == MenuKind::Death) {
         items = {ui::translated("waypoint.keep"), ui::translated(menu.armed ? "worldMap.deleteArmed" : "worldMap.delete")};
+    } else if (menu.kind == MenuKind::Placement || menu.kind == MenuKind::Shape) {
+        auto const* area = areaOf(menu.mark);
+        auto visibility = ui::translated(area && area->visible ? "worldMap.hide" : "worldMap.show");
+        if (menu.kind == MenuKind::Placement) items = {ui::translated("worldMap.select"), visibility, ui::translated("worldMap.openPlaced")};
+        else items = {visibility, ui::translated("worldMap.openShapes")};
     } else {
         auto const* w = waypointOf(set, menu.mark);
         bool visible = w && w->visible;
@@ -492,6 +513,22 @@ Request chooseMenu(int item) {
         d.dimension = state.dimension;
         d.color = nextColor(set.lastColor);
         d.name = defaultWaypointName(set.waypoints, [](int n) { return ui::translated("waypoint.defaultName", n); });
+        return request;
+    }
+    if (menu.kind == MenuKind::Placement || menu.kind == MenuKind::Shape) {
+        state.menu.reset();
+        if (!areaOf(menu.mark)) return request; // Gone meanwhile: nothing to act on.
+        int action = menu.kind == MenuKind::Shape ? item + 1 : item; // 0 select, 1 show/hide, 2 open
+        if (action == 0) {
+            selectPlacement(menu.mark);
+            setPanelOpen(true);
+            select(menu.mark, false);
+        } else if (action == 1) {
+            toggleVisible(menu.mark);
+        } else {
+            request.kind = menu.kind == MenuKind::Placement ? Request::Kind::OpenSchematic : Request::Kind::OpenShape;
+            request.mark = menu.mark;
+        }
         return request;
     }
     if (menu.kind == MenuKind::Death) {
@@ -530,18 +567,10 @@ Hit const* hitAt(float x, float y) {
         if (x >= it->x && y >= it->y && x < it->x + it->w && y < it->y + it->h) return &*it;
     return nullptr;
 }
-std::optional<Marker> markerAt(float x, float y) {
-    std::optional<Marker> best;
-    float bestDistance = 6;
-    for (auto const& m : state.markers) {
-        float d = std::hypot(m.x - x, m.y - y);
-        if (d < bestDistance) { bestDistance = d; best = m; }
-    }
-    return best;
-}
+std::optional<MarkKey> markerAt(float x, float y) { return markAt(state.markers, x, y); }
 void openMenu(float x, float y) {
-    if (auto marker = markerAt(x, y)) {
-        state.menu = Menu{menuKind(marker->mark), x, y, marker->mark};
+    if (auto mark = markerAt(x, y)) {
+        state.menu = Menu{menuKind(*mark), x, y, *mark};
         return;
     }
     int wx = blockFloor(state.view.worldX(x)), wz = blockFloor(state.view.worldZ(y));
@@ -674,12 +703,15 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
     (void)size;
 }
 
-// Schematic placements (L-93): footprint, faint fill and name, under the
-// other markers. Hidden ones stay faint, like hidden waypoints.
-void drawPlacements(MinecraftUIRenderContext& context) {
+// Footprints (L-139): shapes, then schematic placements over them, each a
+// faint fill, a frame and its name, under the other markers. Hidden ones
+// stay faint, like hidden waypoints; the selected one is framed white.
+void drawAreas(MinecraftUIRenderContext& context) {
     auto& view = state.view;
-    auto color = rgb(placementColor);
-    for (auto const& mark : placementMarks(state.dimension)) {
+    state.areas = shapeMarks(state.dimension);
+    auto placements = placementMarks(state.dimension);
+    state.areas.insert(state.areas.end(), placements.begin(), placements.end());
+    for (auto const& mark : state.areas) {
         auto const& a = mark.area;
         float x0 = std::round(static_cast<float>(view.screenX(a.x0))), y0 = std::round(static_cast<float>(view.screenY(a.z0)));
         float x1 = std::round(static_cast<float>(view.screenX(a.x1))), y1 = std::round(static_cast<float>(view.screenY(a.z1)));
@@ -688,18 +720,26 @@ void drawPlacements(MinecraftUIRenderContext& context) {
         float w = std::max(x1 - x0, 4.f), h = std::max(y1 - y0, 4.f);
         x0 = cx - w / 2; y0 = cy - h / 2;
         if (x0 + w < -20 || y0 + h < -20 || x0 > view.width + 20 || y0 > view.height + 20) continue;
+        auto color = rgb(mark.color);
+        bool chosen = mark.selected || (state.panelWidth > 0 && state.selected == mark.key);
         float opacity = mark.visible ? 1.f : .35f;
         ui::fill(context, x0, y0, w, h, color, .16f * opacity);
         ui::frame(context, x0 - 1, y0 - 1, w + 2, h + 2, Rgb{0, 0, 0}, .6f * opacity);
-        ui::frame(context, x0, y0, w, h, mark.selected ? ui::palette::white : color, opacity);
+        ui::frame(context, x0, y0, w, h, chosen ? ui::palette::white : color, opacity);
         auto name = mark.visible ? mark.name : mark.name + " " + ui::translated("worldMap.hidden");
         smallLabel(context, cx, y0 + h + 2, name, mark.visible ? ui::palette::text : ui::palette::faint);
+        state.markers.push_back({mark.key, x0, y0, x0 + w, y0 + h});
     }
 }
 void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& settings) {
     auto& view = state.view;
     state.markers.clear();
-    drawPlacements(context);
+    drawAreas(context);
+    // A footprint whose provider turned off, or whose entry is gone, takes
+    // its selection and menu with it.
+    if (state.selected && !pointLayer(state.selected->layer) && !areaOf(*state.selected)) state.selected.reset();
+    if (state.menu && (state.menu->kind == MenuKind::Placement || state.menu->kind == MenuKind::Shape) && !areaOf(state.menu->mark))
+        state.menu.reset();
     auto spot = playerSpot();
     if (settings.radar && settings.radarPlayers && spot && spot->dimension == state.dimension) {
         faces::frame();
@@ -732,7 +772,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
             diamond(context, x, y, 9, rgb(waypointColors[static_cast<size_t>(clampColor(w.color))]), opacity);
             auto name = w.visible ? w.name : w.name + " " + ui::translated("worldMap.hidden");
             smallLabel(context, x, y + 6, name, w.visible ? ui::palette::text : ui::palette::faint);
-            state.markers.push_back({x, y, waypointKey(w.id)});
+            state.markers.push_back({waypointKey(w.id), x, y, x, y});
         }
         if (set.death && set.death->dimension == state.dimension) {
             float x = std::round(static_cast<float>(view.screenX(set.death->x + .5)));
@@ -740,7 +780,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
             if (state.panelWidth > 0 && state.selected == deathKey) ui::frame(context, x - 5, y - 5, 10, 10, ui::palette::white);
             cross(context, x, y);
             if (hovering(x - 5, y - 5, 10, 10)) smallLabel(context, x, y + 5, ui::translated("waypoint.death"), ui::palette::text);
-            state.markers.push_back({x, y, deathKey});
+            state.markers.push_back({deathKey, x, y, x, y});
         }
     }
     if (spot && spot->dimension == state.dimension) {
@@ -915,7 +955,8 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     };
     std::stable_sort(listed.begin(), listed.end(), [&](int a, int b) { return distance(a) < distance(b); });
     entries.insert(entries.end(), listed.begin(), listed.end());
-    if (state.selected && (state.selected->layer == MarkLayer::Death ? !set.death : !waypointOf(set, *state.selected)))
+    if (state.selected && pointLayer(state.selected->layer)
+        && (state.selected->layer == MarkLayer::Death ? !set.death : !waypointOf(set, *state.selected)))
         state.selected.reset();
 
     auto title = ui::translated("nav.waypoints");
@@ -982,6 +1023,27 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         y += 10;
         float used = small(x, y, inner, ui::translated("waypoint.keep"), Target::Keep, 0);
         small(x + used + 3, y, inner - used - 3, deleteText, Target::Delete, 0, true);
+        return;
+    }
+    if (auto const* area = state.selected ? areaOf(*state.selected) : nullptr) {
+        // A placement or a shape: what it covers, shown or not, and its own screen.
+        ui::label(context, x, y + inset, inner, area->name);
+        y += 12;
+        auto const& a = area->area;
+        ui::labelScaled(context, x, y, inner, std::format("X {}..{}  Z {}..{}", a.x0, a.x1 - 1, a.z0, a.z1 - 1), .75f, ui::palette::dim);
+        y += 9;
+        ui::labelScaled(context, x, y, inner, ui::translated("worldMap.areaSize", a.x1 - a.x0, a.z1 - a.z0), .75f, ui::palette::dim);
+        y += 11;
+        if (y + 12 < bottom) {
+            ui::label(context, x, y + inset, inner - 24, ui::translated("waypoint.shown"), ui::palette::dim);
+            float sx = x0 + w - pad - ui::switchWidth;
+            ui::toggleSwitch(context, sx, y + 1, area->visible);
+            state.hits.push_back({sx - 1, y, ui::switchWidth + 2, rowH, Target::RowVisible, 0, area->key});
+            y += 14;
+        }
+        if (y + 12 < bottom)
+            small(x, y, inner, ui::translated(area->key.layer == MarkLayer::Placement ? "worldMap.openPlaced" : "worldMap.openShapes"),
+                  Target::OpenScreen, 0);
         return;
     }
     auto const* selectedWaypoint = state.selected ? waypointOf(set, *state.selected) : nullptr;
@@ -1051,7 +1113,11 @@ void drawMenu(MinecraftUIRenderContext& context, glm::vec2 size) {
     if (m.kind == MenuKind::Ground)
         head = m.known ? std::format("{}, {}, {}", m.worldX, m.worldY, m.worldZ)
                        : std::format("{}, ?, {}  {}", m.worldX, m.worldZ, ui::translated("worldMap.unrecorded"));
-    else if (m.kind == MenuKind::Death) {
+    else if (m.kind == MenuKind::Placement || m.kind == MenuKind::Shape) {
+        auto const* area = areaOf(m.mark);
+        if (!area) { state.menu.reset(); return; }
+        head = area->name + "  " + ui::translated("worldMap.areaSize", area->area.x1 - area->area.x0, area->area.z1 - area->area.z0);
+    } else if (m.kind == MenuKind::Death) {
         if (!set.death) { state.menu.reset(); return; }
         head = ui::translated("waypoint.death") + std::format("  {}, {}, {}", set.death->x, set.death->y, set.death->z);
     } else {
@@ -1148,7 +1214,9 @@ void release() {
     // A click on a marker (no drag) selects it in the side panel.
     if (state.drag && !state.drag->moved && state.drag->marker) {
         setPanelOpen(true);
-        select(state.drag->marker->mark, false);
+        auto mark = *state.drag->marker;
+        if (mark.layer == MarkLayer::Placement) selectPlacement(mark);
+        select(mark, false);
     }
     state.drag.reset();
 }

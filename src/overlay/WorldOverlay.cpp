@@ -550,6 +550,21 @@ bool remove(ShapeId id) {
     std::lock_guard lock(shapeMutex);
     return shapeWorkspace.change([&](auto& values) { return values.remove(id); });
 }
+std::vector<Footprint> footprints(int dimension) {
+    std::lock_guard lock(shapeMutex);
+    // Boxes by shape and the revision they were computed for.
+    static std::map<ShapeId, std::pair<uint64_t, std::optional<ShapeFootprint>>> cache;
+    std::erase_if(cache, [](auto const& entry) { return !shapeCollection.find(entry.first); });
+    std::vector<Footprint> result;
+    for (auto const& [id, shape] : shapeCollection.entries()) {
+        if (shape.definition.dimension != dimension) continue;
+        auto& cached = cache[id];
+        if (cached.first != shape.revision || !cached.first) cached = {shape.revision, shapeFootprint(shape)};
+        if (cached.second)
+            result.push_back({id, shape.definition.name, shape.definition.color, shape.definition.visible, *cached.second});
+    }
+    return result;
+}
 void setDraft(std::optional<ShapeDefinition> definition) {
     std::lock_guard lock(shapeMutex);
     draftCollection.clear();

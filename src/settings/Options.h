@@ -394,6 +394,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::map, &Settings::Map::coordinates>("map.coordinates", "mapText", "mapCoordinates"),
     toggle<&Settings::map, &Settings::Map::biome>("map.biome", "mapText", "mapBiome"),
     toggle<&Settings::map, &Settings::Map::debugHide>("map.debugHide", "minimap", "mapDebugHide"),
+    toggle<&Settings::map, &Settings::Map::minimapShapes>("map.minimapShapes", "minimap", "mapMinimapShapes"),
     toggle<&Settings::map, &Settings::Map::radar>("map.radar", "radar", "mapRadar"),
     toggle<&Settings::map, &Settings::Map::radarFaces>("map.radarFaces", "radar", "mapRadarFaces"),
     toggle<&Settings::map, &Settings::Map::radarPlayers>("map.radarPlayers", "radar", "mapRadarPlayers"),

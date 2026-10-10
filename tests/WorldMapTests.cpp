@@ -3,6 +3,7 @@
 #include "features/map/SeedLink.h"
 #include "features/map/MapFaces.h"
 #include "features/map/SkinGeometry.h"
+#include "features/map/MapMarks.h"
 #include <cmath>
 #include <format>
 void check(bool, char const*);
@@ -12,6 +13,20 @@ std::array<Column, 256> chunkOf(std::uint32_t color, std::int16_t height) {
     std::array<Column, 256> columns{};
     for (auto& c : columns) c = {color, height};
     return columns;
+}
+void mapMarks() {
+    using namespace lamium::map;
+    // L-139: a waypoint over a placement over a shape; a small placement inside a large one.
+    std::vector<ScreenMark> marks{{shapeKey(7), 0, 0, 100, 100}, {placementKey(3), 10, 10, 90, 90},
+                                  {placementKey(4), 40, 40, 60, 60}, {waypointKey(9), 50, 50, 50, 50}, {deathKey, 80, 80, 80, 80}};
+    check(markAt(marks, 52, 51) == waypointKey(9), "a waypoint over placements and shapes takes the cursor");
+    check(markAt(marks, 45, 45) == placementKey(4), "of overlapping placements the smaller one is reached");
+    check(markAt(marks, 20, 20) == placementKey(3) && markAt(marks, 5, 5) == shapeKey(7), "placements come before shapes");
+    check(markAt(marks, 82, 81) == deathKey && !markAt(marks, 150, 150), "the death point is a point too; empty map is nothing");
+    std::vector<ScreenMark> twins{{waypointKey(1), 10, 10, 10, 10}, {waypointKey(2), 10, 10, 10, 10}};
+    check(markAt(twins, 10, 10) == waypointKey(1), "two waypoints in one place stay apart by id; the first drawn wins");
+    check(present(marks, placementKey(4)) && !present(marks, placementKey(5)) && !present(marks, shapeKey(3)),
+          "a selection on a mark that is gone is dropped");
 }
 void regions() {
     check(regionOfChunk({15, -1}) == RegionKey{0, -1} && regionOfChunk({16, -16}) == RegionKey{1, -1}
@@ -270,6 +285,7 @@ void worldMapTests() {
     skinGeometry();
     seedLinks();
     regions();
+    mapMarks();
     images();
     view();
 }

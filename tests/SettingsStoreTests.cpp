@@ -327,6 +327,8 @@ void settingsStoreTests() {
           "offhand restock and tool protection default on; inventory tool fetch and auto elytra off");
     check(!old.map.minimap && old.map.zoom == map::defaultZoomIndex && !old.map.rotate && !old.map.round && old.map.debugHide
           && old.hud.minimap.anchor == ui::Anchor::TopRight, "the minimap starts off, at 128 blocks, top right");
+    check(!old.map.minimapShapes, "shapes stay off the minimap until turned on (L-139)");
+    check(decodeSettings(R"({"map":{"minimapShapes":true}})").map.minimapShapes, "shapes on the minimap load when saved on");
     {
         auto loaded = decodeSettings(R"({"map":{"zoom":9,"rotate":true},"hud":{"minimap":{"dx":-30}}})");
         loaded.normalize();

@@ -6,7 +6,7 @@
 #include "features/map/MapRegion.h"
 #include "features/map/MapStore.h"
 #include "features/map/RadarFaces.h"
-#include "features/map/SchematicMarks.h"
+#include "features/map/MapLayers.h"
 #include "features/map/WaypointSession.h"
 #include "features/map/Waypoints.h"
 #include "features/map/MapTiles.h"
@@ -184,7 +184,7 @@ struct State {
         std::vector<Mark> marks;
         struct Outline {
             std::array<Point, 4> corners;
-            bool selected;
+            std::uint32_t color;
             bool operator==(Outline const&) const = default;
         };
         std::vector<Outline> outlines;
@@ -704,10 +704,15 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
             }
             if (set.death && set.death->dimension == view->dimension) place(set.death->x + .5, set.death->z + .5, -1);
         }
-        for (auto const& mark : placementMarks(view->dimension)) {
+        // Footprints (L-139): shapes under placements, shapes only when asked
+        // for (many would crowd the map); hidden ones are left out.
+        auto areas = settings.minimapShapes ? shapeMarks(view->dimension) : std::vector<AreaMark>{};
+        auto placements = placementMarks(view->dimension);
+        areas.insert(areas.end(), placements.begin(), placements.end());
+        for (auto const& mark : areas) {
             if (!mark.visible) continue;
             auto const& a = mark.area;
-            State::Overlay::Outline outline{{}, mark.selected};
+            State::Overlay::Outline outline{{}, mark.selected ? packColor(255, 255, 255) : mark.color};
             std::array<std::array<int, 2>, 4> world{{{a.x0, a.z0}, {a.x1, a.z0}, {a.x1, a.z1}, {a.x0, a.z1}}};
             for (size_t i = 0; i < 4; ++i) {
                 auto p = worldToPixel(transform, centerX, centerZ, world[i][0], world[i][1], blocks, pixels);
@@ -726,8 +731,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
             // The look agreed in docs/demos/minimap.html, smaller on wide maps.
             double unit = marker * dotScale(blocksAcross(zoom));
             for (auto const& outline : overlay.outlines)
-                drawOutline(state.image, pixels, outline.corners, outline.selected ? packColor(255, 255, 255) : placementColor,
-                            std::max(1.0, 1.5 * marker), settings.round);
+                drawOutline(state.image, pixels, outline.corners, outline.color, std::max(1.0, 1.5 * marker), settings.round);
             // Faces are drawn over the map on screen pixels, below.
             for (auto const& dot : overlay.dots)
                 if (dot.face < 0)

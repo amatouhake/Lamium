@@ -14,6 +14,8 @@ namespace lamium::ui::shapes_view {
 void refresh();
 void click(float x, float y, bool right);
 void key(int key);
+// Shows a shape (from the world map); nothing if it is gone.
+void select(overlay::ShapeId id);
 // Scrolls the pane under the pointer; the selection stays.
 void wheel(int step, glm::vec2 pointer);
 

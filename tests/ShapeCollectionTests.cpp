@@ -3,6 +3,14 @@
 #include <tuple>
 void check(bool, char const*);
 void shapeCollectionTests() {
+    {
+        // L-139: a shape's footprint on the maps is the box around its cells.
+        lamium::overlay::ManagedShape shape;
+        check(!lamium::overlay::shapeFootprint(shape), "an empty shape has no footprint");
+        shape.faces = lamium::overlay::boundaryFaces({{2, 5, -3}, {4, 6, 1}});
+        auto box = lamium::overlay::shapeFootprint(shape);
+        check(box && *box == lamium::overlay::ShapeFootprint{2, -3, 5, 2}, "a footprint covers every cell, high ends exclusive");
+    }
     using namespace lamium::overlay;
     ShapeCollection collection(3, 40);
     ShapeDefinition block{"First", 0, true, ShapeSpec{Shape::Sphere, {-.1,5,2}, Snap::BlockCenter, 0, 1}};

@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include "overlay/Geometry.h"
 #include <map>
 #include <string>
@@ -32,6 +33,22 @@ struct ManagedShape {
     // renderer can keep uploaded meshes until then.
     uint64_t revision = 0;
 };
+// A shape seen from above (the maps, L-139): the box around its cells in
+// world blocks, [x0, x1) by [z0, z1); nothing for an empty shape.
+struct ShapeFootprint {
+    int x0 = 0, z0 = 0, x1 = 0, z1 = 0;
+    bool operator==(ShapeFootprint const&) const = default;
+};
+inline std::optional<ShapeFootprint> shapeFootprint(ManagedShape const& shape) {
+    if (shape.faces.empty()) return std::nullopt;
+    ShapeFootprint box{shape.faces.front().cell.x, shape.faces.front().cell.z, shape.faces.front().cell.x + 1,
+                       shape.faces.front().cell.z + 1};
+    for (auto const& face : shape.faces) {
+        box.x0 = std::min(box.x0, face.cell.x); box.x1 = std::max(box.x1, face.cell.x + 1);
+        box.z0 = std::min(box.z0, face.cell.z); box.z1 = std::max(box.z1, face.cell.z + 1);
+    }
+    return box;
+}
 // Display blocks for any definition: rings, sphere volume or plane grid.
 inline std::set<Cell> shapeCells(ShapeDefinition const& definition) {
     return std::visit([](auto const& spec) {

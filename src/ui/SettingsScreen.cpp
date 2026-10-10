@@ -2917,6 +2917,29 @@ void handleMapRequest(map::world::Request const& request) {
         if (request.mark) waypoints_view::select(request.mark);
         break;
     }
+    case Kind::OpenSchematic: {
+        // The Placed tab with the placement chosen on the map, if it is still there.
+        bool fromSettings = mapFromSettings;
+        map::world::close();
+        worldMapOpen = false;
+        selectNav(schematicsNav, !fromSettings);
+        mapFromSettings = fromSettings;
+        refreshSchematics(true);
+        selectSchematicTab(SchematicTab::Placements);
+        if (request.mark)
+            if (int index = indexOfId(schematicSet.placements, request.mark->id); index >= 0) pickSchematic(SchematicPick::Placement, index);
+        break;
+    }
+    case Kind::OpenShape: {
+        bool fromSettings = mapFromSettings;
+        map::world::close();
+        worldMapOpen = false;
+        selectNav(shapesNav, !fromSettings);
+        mapFromSettings = fromSettings;
+        shapes_view::refresh();
+        if (request.mark) shapes_view::select(request.mark->id);
+        break;
+    }
     default: break;
     }
 }
