@@ -258,9 +258,11 @@ in bright and dark places, near light sources and on dense builds.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
-Status: open. First check without code (2026-10-10): camera near the body
-but the body out of view, and camera far with the body in view, to tell
-render culling of the body from camera distance.
+Status: open. Checked 2026-10-10 (VALIDATION-LOG): wrong when the body is
+out of view (camera near), right when the body is in view (camera far), so
+the inventory model reuses pose state that only the world render of the
+body updates. Next: Research which state (elytra wing animation) is left
+stale and whether it can be refreshed for the inventory model alone.
 Reproduction (maintainer 2026-10-10): wear an elytra, turn FreeCamera on,
 move the camera away from the body, open the inventory. The elytra on the
 player's 3D model in the inventory screen draws simplified and stretched

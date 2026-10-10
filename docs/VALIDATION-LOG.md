@@ -12,6 +12,33 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 2026-10-10 batch: FreeCamera readouts, hit exit, Night Vision, icon and trade traces
+
+By the maintainer, local, the 1.26.51.01 instance without LIP, on the trace
+build `d2f288c` (`icon_trace`, `trade_trace`; DLL
+`4647a9688a41c8113a8d6ba527f7ea06cde94cb2f2da80020f91426ff188f632`).
+- L-125: during FreeCamera the Add waypoint key filled the camera's position.
+- L-124: Camera and Player lines showed with correct positions; the camera's
+  angles still showed the body's (the session angles stay at the start
+  pose). The English "Cam" label read oddly. Both changed after this check.
+- L-126: hits ended FreeCamera ("FreeCamera left: the body was hit (event 2)"
+  in the log, four times).
+- L-121: at Brightness 0 % with Night Vision, the option removed the dark
+  area around light sources and Off gave the vanilla look. The log showed
+  the game's light gamma as 1 at that time, so whether `mGamma` is the
+  Brightness value is not confirmed by the log.
+- L-119: in the shulker preview the oak and bamboo fence gates showed no
+  icon while the bamboo and cherry fences did. Vanilla slots draw fences,
+  gates, stairs, walls and trapdoors as chunk type 0 (alpha argument 0) into
+  `_renderGuiBlockTypeItem`; Lamium's `renderGuiItemNew` uses chunk type 12
+  (alpha 1) into the same function for gates and fences alike.
+- L-129: one villager trade screen; `UpdateTradePacket` tier 0, size 0, new
+  screen, economy trade. The dump used `toString`, which only printed
+  "2 entries"; changed to SNBT after this check.
+- L-123: elytra on the inventory model drawn wrong with the camera near the
+  body but the body out of view; drawn right with the camera far and the
+  body in view. The body being culled, not the distance, matters.
+
 ## Inventory and hand features on a server (reported 2026-10-10)
 
 By the maintainer, reported in chat; build, hash and server not recorded.
