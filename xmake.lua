@@ -36,7 +36,13 @@ option_end()
 option("icon_trace")
     set_default(false)
     set_showmenu(true)
-    set_description("Enable bounded diagnostics for L-91 (vanilla slot icon passes vs Lamium's icon calls)")
+    set_description("Enable bounded diagnostics for L-91/L-119 (vanilla slot icon routes vs Lamium's icon calls)")
+option_end()
+
+option("trade_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Enable L-129 diagnostics: dump the trade data the server sends when a trade screen opens")
 option_end()
 
 option("hunger_trace")
@@ -152,6 +158,7 @@ target("Lamium")
     if has_config("transfer_trace") then add_defines("LAMIUM_TRANSFER_TRACE") end
     if has_config("hunger_trace") then add_defines("LAMIUM_HUNGER_TRACE") end
     if has_config("icon_trace") then add_defines("LAMIUM_ICON_TRACE") end
+    if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end
     add_rules("@levibuildscript/linkrule")
     add_rules("@levibuildscript/modpacker", {modVersion = lamiumVersion})
     add_defines('LAMIUM_VERSION="' .. lamiumVersion .. '"')
