@@ -1276,6 +1276,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"magnification", "Magnification: {}x", "倍率: {}倍"},
     {"showMagnification", "Show magnification: {}", "倍率を表示: {}"},
     {"nightVision", "Night Vision: {}", "暗視: {}"},
+    {"nightVisionEven", "Even brightness", "明るさを均一にする"},
+    {"help.lighting.nightVisionEven", "On: Night Vision lights everything as if the game's Brightness were at 100%, so the area around light sources no longer turns darker at low Brightness. Your Brightness setting is not changed. Off: the vanilla Night Vision look.", "オン: 暗視中はゲームの明るさ設定が 100% のときと同じ明るさで表示し、明るさが低いときに光源の周りが暗くなるのを防ぎます。明るさ設定そのものは変えません。オフ: バニラの暗視と同じ見た目です。"},
     {"previews", "Container previews: {}", "収納アイテムのプレビュー: {}"},
     {"shulkerPreviews", "Shulker previews: {}", "シュルカーのプレビュー: {}"},
     {"emptyShulkerPreviews", "Show empty Shulkers: {}", "空のシュルカーを表示: {}"},

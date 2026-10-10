@@ -56,6 +56,7 @@ struct Settings {
     } camera;
     struct Lighting {
         bool nightVision = false;
+        bool nightVisionEven = true; // L-121: full Brightness while Night Vision is on.
     } lighting;
     struct Inspection {
         bool containerPreviews = true;

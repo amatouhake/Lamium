@@ -134,7 +134,7 @@ Json encode(Settings const& settings) {
                     {"freeCameraLeaveOnHit", settings.camera.freeCameraLeaveOnHit},
                     {"magnification", settings.camera.magnification},
                     {"showMagnification", settings.camera.showMagnification}}},
-        {"lighting", {{"nightVision", settings.lighting.nightVision}}},
+        {"lighting", {{"nightVision", settings.lighting.nightVision}, {"nightVisionEven", settings.lighting.nightVisionEven}}},
         {"inspection", {{"containerPreviews", settings.inspection.containerPreviews},
                         {"shulkerPreviews", settings.inspection.shulkerPreviews},
                         {"emptyShulkerPreviews", settings.inspection.emptyShulkerPreviews},
@@ -419,6 +419,7 @@ Settings decodeSettings(std::string_view text) {
     }
     if (data.contains("lighting")) {
         value.lighting.nightVision = data.at("lighting").value("nightVision", value.lighting.nightVision);
+        value.lighting.nightVisionEven = data.at("lighting").value("nightVisionEven", value.lighting.nightVisionEven);
     }
     if (data.contains("inspection")) {
         value.inspection.containerPreviews = data.at("inspection").value("containerPreviews", value.inspection.containerPreviews);

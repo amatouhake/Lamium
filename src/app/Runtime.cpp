@@ -83,7 +83,7 @@ bool Runtime::load() {
         mod.getLogger().warn("Automation diagnostics unavailable: {}", error.what());
     }
     CameraSessions::instance().configure(settings);
-    NightVision::instance().configure(settings.lighting.nightVision);
+    NightVision::instance().configure(settings.lighting.nightVision, settings.lighting.nightVisionEven);
     inventory::fakeOffhand::configure(settings);
     visuals::effects::configure(settings);
     return true;
@@ -179,7 +179,7 @@ bool Runtime::save(Settings value) {
         settings = value;
         published.store(std::make_shared<Settings const>(settings));
         if (cameraChanged) CameraSessions::instance().configure(settings);
-        NightVision::instance().configure(settings.lighting.nightVision);
+        NightVision::instance().configure(settings.lighting.nightVision, settings.lighting.nightVisionEven);
         inventory::fakeOffhand::configure(settings);
         visuals::effects::configure(settings);
         return true;

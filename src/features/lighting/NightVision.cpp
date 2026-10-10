@@ -58,5 +58,12 @@ void NightVision::apply(BaseLightData* data) const {
     data->mPreviousDarkenWorldAmount = 0.0f;
     data->mDarknessFactor = 0.0f;
     data->mDarknessFactorPreviousFrame = 0.0f;
+    // A low Brightness darkens the light curve's low end, which Night Vision
+    // shows as dark rings around light sources (L-121). The texture is built
+    // with full gamma; the Brightness option itself stays as the player set it.
+    float gamma = data->mGamma;
+    if (gamma != loggedGamma.exchange(gamma))
+        try { Runtime::instance().self().getLogger().info("Night Vision: light gamma {} ({})", gamma, even.load() ? "even -> 1" : "vanilla"); } catch (...) {}
+    if (even.load() && gamma < 1.0f) data->mGamma = 1.0f;
 }
 }

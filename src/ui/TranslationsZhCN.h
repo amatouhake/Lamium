@@ -1252,6 +1252,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"magnification", "倍率: {}x"},
     {"showMagnification", "显示倍率: {}"},
     {"nightVision", "夜视: {}"},
+    {"nightVisionEven", "均匀亮度"},
+    {"help.lighting.nightVisionEven", "开: 夜视期间按游戏亮度为 100% 时的效果显示，避免亮度较低时光源周围变暗。不会更改你的亮度设置。关: 与原版夜视效果相同。"},
     {"previews", "容器预览: {}"},
     {"shulkerPreviews", "潜影盒预览: {}"},
     {"emptyShulkerPreviews", "显示空潜影盒: {}"},

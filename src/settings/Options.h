@@ -304,6 +304,7 @@ inline constexpr auto options = std::to_array<Option>({
         NumericOption{2, 50, [](Settings& s, float v) { s.camera.magnification = v; }, .5f}},
     toggle<&Settings::camera, &Settings::Camera::showMagnification>("camera.showMagnification", "zoom", "showMagnification"),
     toggle<&Settings::lighting, &Settings::Lighting::nightVision>("lighting.nightVision", "nightVision", "nightVision"),
+    toggle<&Settings::lighting, &Settings::Lighting::nightVisionEven>("lighting.nightVisionEven", "nightVision", "nightVisionEven"),
     toggle<&Settings::inspection, &Settings::Inspection::containerPreviews>("inspection.containerPreviews", "previews", "previews"),
     toggle<&Settings::inspection, &Settings::Inspection::shulkerPreviews>("inspection.shulkerPreviews", "previews", "shulkerPreviews"),
     toggle<&Settings::inspection, &Settings::Inspection::emptyShulkerPreviews>("inspection.emptyShulkerPreviews", "previews", "emptyShulkerPreviews"),
