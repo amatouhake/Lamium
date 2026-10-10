@@ -5,7 +5,7 @@
 #include "features/schematic/GhostMarks.h"
 #include "features/schematic/GhostMesh.h"
 #include "features/schematic/GhostVerify.h"
-#include "features/schematic/LineColor.h"
+#include "overlay/LineColor.h"
 #include "features/schematic/SchematicItems.h"
 #include "features/schematic/SchematicRegion.h"
 #include "features/schematic/SchematicSession.h"
@@ -428,7 +428,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         ActorShaderManager::setupShaderParameters(screen, region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture,
             Vec2{1, 1}, Vec4{0, 0, 1, 1});
     };
-    mce::MaterialPtr lineMaterial = schematic::lines::material();
+    mce::MaterialPtr lineMaterial = overlay::lines::material();
     // Vertex-colored and blended without depth writes, as shape faces use in
     // Fancy graphics; under Vibrant Visuals the overlay face material.
     mce::MaterialPtr markMaterial = buildCamera.vibrant ? overlay::faceMaterial(client).material
@@ -471,7 +471,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                     OffscreenCaptureDescription{}, nullptr);
             if (lined && lineMaterial.mRenderMaterialInfoPtr)
                 for (auto const& l : section->lines)
-                    schematic::lines::colored(screen, l->color.r, l->color.g, l->color.b, [&] {
+                    overlay::lines::colored(screen, l->color.r, l->color.g, l->color.b, [&] {
                         l->mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, l->vertices,
                             OffscreenCaptureDescription{}, nullptr);
                     });

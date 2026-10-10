@@ -1,5 +1,5 @@
 #include "features/schematic/EntityModels.h"
-#include "features/schematic/LineColor.h"
+#include "overlay/LineColor.h"
 #include "features/schematic/RestPose.h"
 #include "overlay/FaceMaterial.h"
 #include "app/Runtime.h"
@@ -349,7 +349,7 @@ Entry& entry(IClientInstance& client, std::string const& id) {
 std::vector<bool> draw(ScreenContext& screen, IClientInstance& client, Vec3 const& camera, std::vector<Spot> const& spots,
                        std::function<void(std::function<void()> const&)> const& inWorld, bool outlines) {
     std::vector<bool> drawn(spots.size(), false);
-    mce::MaterialPtr lineMaterial = schematic::lines::material();
+    mce::MaterialPtr lineMaterial = overlay::lines::material();
     // The faces of skinless models use the overlay's face material, which
     // changes with the graphics mode (the hologram one draws nothing in Simple).
     auto tint = overlay::faceMaterial(client);
@@ -386,7 +386,7 @@ std::vector<bool> draw(ScreenContext& screen, IClientInstance& client, Vec3 cons
             if (model.tinted) MeshHelpers::renderMeshImmediately(screen, faces, tintMaterial, OffscreenCaptureDescription{});
             else MeshHelpers::renderMeshImmediately(screen, faces, material, texture, OffscreenCaptureDescription{});
             if (outlines && lineMaterial.mRenderMaterialInfoPtr)
-                schematic::lines::colored(screen, .35f, .85f, 1.f, [&] {
+                overlay::lines::colored(screen, .35f, .85f, 1.f, [&] {
                     MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{});
                 });
         });

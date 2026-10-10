@@ -2,7 +2,7 @@
 #include "features/schematic/AreaSave.h"
 #include "features/schematic/EntityModels.h"
 #include "features/schematic/GhostRenderer.h"
-#include "features/schematic/LineColor.h"
+#include "overlay/LineColor.h"
 #include "features/schematic/Selection.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/game/IMinecraftGame.h"
@@ -93,7 +93,7 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, mce
     auto state = selection::current();
     if (state.dimension != dimension || (!state.first && !state.second)) return;
     Area area = state.area().value_or(Area{state.first ? *state.first : *state.second, state.first ? *state.first : *state.second});
-    mce::MaterialPtr lineMaterial = schematic::lines::material();
+    mce::MaterialPtr lineMaterial = overlay::lines::material();
     if (!lineMaterial.mRenderMaterialInfoPtr) return;
     Point low = area.low();
     Size size = area.size();
@@ -139,10 +139,10 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, mce
     translated(screen, glm::vec3{0}, [&] {
         if (faceMaterial.mRenderMaterialInfoPtr && faces.mCount)
             MeshHelpers::renderMeshImmediately(screen, faces, faceMaterial, OffscreenCaptureDescription{});
-        schematic::lines::colored(screen, 1.f, 1.f, 1.f, [&] { MeshHelpers::renderMeshImmediately(screen, areaLines, lineMaterial, OffscreenCaptureDescription{}); });
+        overlay::lines::colored(screen, 1.f, 1.f, 1.f, [&] { MeshHelpers::renderMeshImmediately(screen, areaLines, lineMaterial, OffscreenCaptureDescription{}); });
         for (int i = 0; i < 2; ++i)
             if ((i == 0 ? state.first : state.second))
-                schematic::lines::colored(screen, cornerColors[i].r, cornerColors[i].g, cornerColors[i].b, [&] {
+                overlay::lines::colored(screen, cornerColors[i].r, cornerColors[i].g, cornerColors[i].b, [&] {
                     MeshHelpers::renderMeshImmediately(screen, cornerLines[i], lineMaterial, OffscreenCaptureDescription{});
                 });
     });
@@ -155,7 +155,7 @@ void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera, mce::Material
     auto const& waiting = columns.nearest;
     if (waiting.empty()) return;
     int height = columns.height, lowY = columns.lowY;
-    mce::MaterialPtr lineMaterial = schematic::lines::material();
+    mce::MaterialPtr lineMaterial = overlay::lines::material();
     if (!lineMaterial.mRenderMaterialInfoPtr) return;
     Tessellator lines(screen.tessellator.mBufferResourceService), faces(screen.tessellator.mBufferResourceService);
     lines.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(waiting.size() * 24), false);
@@ -178,7 +178,7 @@ void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera, mce::Material
     }
     translated(screen, glm::vec3{0}, [&] {
         if (faceMaterial.mRenderMaterialInfoPtr) MeshHelpers::renderMeshImmediately(screen, faces, faceMaterial, OffscreenCaptureDescription{});
-        schematic::lines::colored(screen, 1.f, .8f, .25f, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
+        overlay::lines::colored(screen, 1.f, .8f, .25f, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
     });
 }
 
@@ -188,7 +188,7 @@ void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera, mce::Material
 // selected one solid, the others dashed. The line material ignores alpha
 // (checked 2026-10-08), so the shape tells them apart.
 void drawPlacementFrames(ScreenContext& screen, session::Snapshot const& snapshot, int dimension, Vec3 const& camera) {
-    mce::MaterialPtr lineMaterial = schematic::lines::material();
+    mce::MaterialPtr lineMaterial = overlay::lines::material();
     if (!lineMaterial.mRenderMaterialInfoPtr) return;
     bool stale = !frameMesh.mesh || !frameMesh.mesh->isValid() || frameMesh.revision != snapshot.revision
         || frameMesh.selected != snapshot.selected || frameMesh.dimension != dimension;
@@ -246,7 +246,7 @@ void drawPlacementFrames(ScreenContext& screen, session::Snapshot const& snapsho
     glm::vec3 offset{static_cast<float>(frameMesh.anchor.x - camera.x), static_cast<float>(frameMesh.anchor.y - camera.y),
                      static_cast<float>(frameMesh.anchor.z - camera.z)};
     translated(screen, offset, [&] {
-        schematic::lines::colored(screen, .35f, .85f, 1.f, [&] {
+        overlay::lines::colored(screen, .35f, .85f, 1.f, [&] {
             frameMesh.mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, frameMesh.vertices,
                 OffscreenCaptureDescription{}, nullptr);
         });
@@ -284,7 +284,7 @@ void drawEntities(ScreenContext& screen, IClientInstance& client, session::Snaps
     std::vector<std::pair<Position, FrameSize>> frames;
     for (size_t i = 0; i < spots.size(); ++i)
         if (!modelled[i]) frames.push_back({spots[i].at, entityFrame(spots[i].identifier)});
-    mce::MaterialPtr lineMaterial = schematic::lines::material();
+    mce::MaterialPtr lineMaterial = overlay::lines::material();
     if (frames.empty() || !lineMaterial.mRenderMaterialInfoPtr) return;
     // Each edge as dashes. The frame does not claim the entity's real size,
     // which the client cannot know without the entity.
@@ -310,7 +310,7 @@ void drawEntities(ScreenContext& screen, IClientInstance& client, session::Snaps
         }
     }
     translated(screen, glm::vec3{0}, [&] {
-        schematic::lines::colored(screen, .35f, .85f, 1.f, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
+        overlay::lines::colored(screen, .35f, .85f, 1.f, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
     });
 }
 
@@ -419,7 +419,7 @@ void drawPoint(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const
         at = pointAt;
     }
     if (!at) return;
-    mce::MaterialPtr lineMaterial = schematic::lines::material();
+    mce::MaterialPtr lineMaterial = overlay::lines::material();
     float pulse = .5f + .5f * std::sin(std::chrono::duration<float>(Clock::now().time_since_epoch()).count() * 6.f);
     glm::vec3 offset{static_cast<float>(at->x - camera.x), static_cast<float>(at->y - camera.y), static_cast<float>(at->z - camera.z)};
     constexpr float grow = .04f, beam = 64.f, half = .12f;
@@ -455,7 +455,7 @@ void drawPoint(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const
     lines.vertex(.5f, 1.f, .5f);
     lines.vertex(.5f, beam, .5f);
     translated(screen, offset, [&] {
-        schematic::lines::colored(screen, 1.f, 1.f, 1.f, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
+        overlay::lines::colored(screen, 1.f, 1.f, 1.f, [&] { MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{}); });
     });
 }
 void point(Point cell) {
