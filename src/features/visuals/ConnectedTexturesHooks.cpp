@@ -18,6 +18,8 @@
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
 #include <algorithm>
+#include <format>
+#include <string>
 #include <array>
 #include <cstdint>
 #include <atomic>
@@ -191,9 +193,36 @@ void reshape(Tessellator& tessellator, size_t src, size_t dst, Cell const& c, Te
 }
 // After a block face was drawn once per cell, give each copy its cell; the
 // first copy is the source, so it goes last.
+// Bounded dump of a split face's vertex data before and after (dark patches
+// at night, 2026-10-11).
+std::atomic<int> dumps{0};
+std::string vertexText(Tessellator& tessellator, size_t from, size_t count) {
+    auto& mesh = *tessellator.mMeshData;
+    std::string out;
+    for (size_t v = from; v < from + count; ++v) {
+        auto const& p = (*mesh.mPositions)[v];
+        out += std::format("\n    v{} pos {:.3f} {:.3f} {:.3f} uv {:.4f} {:.4f}", v - from, p.x, p.y, p.z, (*mesh.mTextureUVs[0])[v].x,
+                           (*mesh.mTextureUVs[0])[v].y);
+        if (mesh.mColors->size() > v) out += std::format(" color {:08x}", (*mesh.mColors)[v]);
+        for (size_t set = 1; set < 3; ++set)
+            if (mesh.mTextureUVs[set]->size() > v)
+                out += std::format(" uv{} {:.4f} {:.4f}", set, (*mesh.mTextureUVs[set])[v].x, (*mesh.mTextureUVs[set])[v].y);
+        if (mesh.mNormals->size() > v) out += std::format(" n {:.2f} {:.2f} {:.2f} {:.2f}", (*mesh.mNormals)[v].x, (*mesh.mNormals)[v].y,
+                                                         (*mesh.mNormals)[v].z, (*mesh.mNormals)[v].w);
+    }
+    return out;
+}
 void shapeCells(Tessellator& tessellator, TextureUVCoordinateSet const& tex, size_t before, std::vector<Cell> const& cells) {
     TexRect rect{tex._u0, tex._v0, tex._u1, tex._v1};
+    bool dump = dumps < 4;
+    std::string text;
+    if (dump) text = std::format("Connected Textures dump: {} cells, drawn{}", cells.size(), vertexText(tessellator, before, 4 * cells.size()));
     for (size_t k = cells.size(); k-- > 0;) reshape(tessellator, before, before + 4 * k, cells[k], rect);
+    if (dump) {
+        ++dumps;
+        text += "\n  shaped" + vertexText(tessellator, before, 4 * cells.size());
+        try { Runtime::instance().self().getLogger().info("{}", text); } catch (...) {}
+    }
 }
 #define LAMIUM_CONNECTED_FACE(Name, Function, FaceId)                                                                        \
     LL_TYPE_INSTANCE_HOOK(Name, ll::memory::HookPriority::Normal, BlockTessellator, &BlockTessellator::Function, void,     \
