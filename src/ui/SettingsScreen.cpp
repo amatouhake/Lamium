@@ -11,6 +11,7 @@
 #include "ui/Animations.h"
 #include "ui/Toast.h"
 #include "features/map/WaypointSession.h"
+#include "app/SessionIds.h"
 #include "features/schematic/SchematicSession.h"
 #include "features/schematic/Preview.h"
 #include "features/schematic/GhostRenderer.h"
@@ -194,7 +195,7 @@ bool shapeNameDirty = false;
 // Waypoints view (L-60 step 5c): built like Shapes, from a copy of the
 // current world's waypoints taken each frame.
 bool waypointsDocked = false;
-int waypointSelected = -2; // -2 none, -1 the death point, else an index into the set.
+std::optional<map::MarkKey> waypointSelected; // the death point or a waypoint, by its session id
 map::WaypointSet waypointSet;
 std::vector<size_t> waypointList; // Display order, indices into the set.
 ShapesLayout waypointsDisplayed;
@@ -1967,23 +1968,36 @@ void refreshWaypoints() {
         z = feet.z;
     }
     waypointList = map::waypointOrder(waypointSet.waypoints, playerDimension(), x, z);
-    if (waypointSelected >= static_cast<int>(waypointSet.waypoints.size()) || (waypointSelected == -1 && !waypointSet.death))
-        waypointSelected = -2;
+    if (waypointSelected && (waypointSelected->layer == map::MarkLayer::Death ? !waypointSet.death
+                                 : indexOfId(waypointSet.waypoints, waypointSelected->id) < 0))
+        waypointSelected.reset();
 }
 int waypointRowCount() { return static_cast<int>(waypointList.size()) + (waypointSet.death ? 1 : 0); }
-// The selection a list row stands for: -1 the death point, else an index.
-int waypointAtRow(int row) {
+// The selection a list row stands for: the death point first, if any.
+std::optional<map::MarkKey> waypointAtRow(int row) {
     if (waypointSet.death) {
-        if (row == 0) return -1;
+        if (row == 0) return map::deathKey;
         --row;
     }
-    return row >= 0 && row < static_cast<int>(waypointList.size()) ? static_cast<int>(waypointList[static_cast<size_t>(row)]) : -2;
+    if (row < 0 || row >= static_cast<int>(waypointList.size())) return std::nullopt;
+    return map::waypointKey(waypointSet.waypoints[waypointList[static_cast<size_t>(row)]].id);
 }
+bool deathSelected() { return waypointSelected == map::deathKey; }
 map::Waypoint const* selectedWaypoint() {
-    return waypointSelected >= 0 && waypointSelected < static_cast<int>(waypointSet.waypoints.size())
-        ? &waypointSet.waypoints[static_cast<size_t>(waypointSelected)] : nullptr;
+    if (!waypointSelected || waypointSelected->layer != map::MarkLayer::Waypoint) return nullptr;
+    int index = indexOfId(waypointSet.waypoints, waypointSelected->id);
+    return index < 0 ? nullptr : &waypointSet.waypoints[static_cast<size_t>(index)];
 }
-void selectWaypoint(int value) {
+// A change to one waypoint, found by its id when the change runs.
+bool changeWaypoint(std::optional<map::MarkKey> mark, std::function<void(map::Waypoint&)> const& apply) {
+    return mark && mark->layer == map::MarkLayer::Waypoint && map::waypoints::change([&](map::WaypointSet& set) {
+        int index = indexOfId(set.waypoints, mark->id);
+        if (index < 0) return false;
+        apply(set.waypoints[static_cast<size_t>(index)]);
+        return true;
+    });
+}
+void selectWaypoint(std::optional<map::MarkKey> value) {
     finishNumber();
     waypointSelected = value;
     waypointFieldFirst = 0;
@@ -1992,14 +2006,9 @@ void selectWaypoint(int value) {
 }
 void applyWaypointName() {
     if (!editingWaypointName || !std::exchange(waypointNameDirty, false)) return;
-    int index = waypointSelected;
     auto name = waypointNameInput.value();
     if (name.find_first_not_of(' ') == std::string::npos) return; // An empty name keeps the old one.
-    if (!map::waypoints::change([&](map::WaypointSet& set) {
-            if (index < 0 || index >= static_cast<int>(set.waypoints.size())) return false;
-            set.waypoints[static_cast<size_t>(index)].name = name;
-            return true;
-        })) error = translated("waypoint.saveError");
+    if (!changeWaypoint(waypointSelected, [&](map::Waypoint& w) { w.name = name; })) error = translated("waypoint.saveError");
     refreshWaypoints();
 }
 struct Place { int x, y, z, dimension; };
@@ -2028,20 +2037,15 @@ void addWaypointHere() {
     w.x = place->x; w.y = place->y; w.z = place->z; w.dimension = place->dimension;
     w.color = map::nextColor(waypointSet.lastColor);
     w.name = map::defaultWaypointName(waypointSet.waypoints, [](int n) { return translated("waypoint.defaultName", n); });
-    if (map::waypoints::add(w)) {
+    if (auto id = map::waypoints::add(w)) {
         refreshWaypoints();
-        selectWaypoint(static_cast<int>(waypointSet.waypoints.size()) - 1);
+        selectWaypoint(map::waypointKey(id));
         error.clear();
     } else error = translated("waypoint.saveError");
 }
 // A change to the selected waypoint; reports only a failed save.
 void changeSelected(std::function<void(map::Waypoint&)> const& apply) {
-    int index = waypointSelected;
-    if (!map::waypoints::change([&](map::WaypointSet& set) {
-            if (index < 0 || index >= static_cast<int>(set.waypoints.size())) return false;
-            apply(set.waypoints[static_cast<size_t>(index)]);
-            return true;
-        })) error = translated("waypoint.saveError");
+    if (!changeWaypoint(waypointSelected, apply)) error = translated("waypoint.saveError");
     else error.clear();
     refreshWaypoints();
 }
@@ -2099,20 +2103,22 @@ void openWaypointKeySettings() {
     first = SettingsTable::reveal(first, selected, displayed.visible);
 }
 void deleteSelectedWaypoint() {
-    int selection = waypointSelected;
+    auto selection = waypointSelected;
+    if (!selection) return;
     int row = 0;
     for (int i = 0; i < waypointRowCount(); ++i) if (waypointAtRow(i) == selection) row = i;
     bool saved = map::waypoints::change([&](map::WaypointSet& set) {
-        if (selection == -1) { set.death.reset(); return true; }
-        if (selection < 0 || selection >= static_cast<int>(set.waypoints.size())) return false;
-        set.waypoints.erase(set.waypoints.begin() + selection);
+        if (selection->layer == map::MarkLayer::Death) { set.death.reset(); return true; }
+        int index = indexOfId(set.waypoints, selection->id);
+        if (index < 0) return false;
+        set.waypoints.erase(set.waypoints.begin() + index);
         return true;
     });
     if (!saved) { error = translated("waypoint.saveError"); return; }
     error.clear();
     refreshWaypoints();
     int rowsLeft = waypointRowCount();
-    selectWaypoint(rowsLeft ? waypointAtRow(std::min(row, rowsLeft - 1)) : -2);
+    selectWaypoint(rowsLeft ? waypointAtRow(std::min(row, rowsLeft - 1)) : std::nullopt);
 }
 void keepDeathPoint() {
     if (!waypointSet.death) return;
@@ -2128,7 +2134,7 @@ void keepDeathPoint() {
     if (!saved) { error = translated("waypoint.saveError"); return; }
     error.clear();
     refreshWaypoints();
-    selectWaypoint(static_cast<int>(waypointSet.waypoints.size()) - 1);
+    if (!waypointSet.waypoints.empty()) selectWaypoint(map::waypointKey(waypointSet.waypoints.back().id));
 }
 void handleWaypointClick(float x, float y, bool right) {
     finishNumber();
@@ -2149,16 +2155,15 @@ void handleWaypointClick(float x, float y, bool right) {
         return;
     case ShapeZone::NewShape: addWaypointHere(); return;
     case ShapeZone::ListRow: {
-        int value = waypointAtRow(hit.index);
+        auto value = waypointAtRow(hit.index);
         auto const& l = waypointsDisplayed;
-        if (value >= 0 && x >= l.listLeft + l.listWidth - ShapesLayout::pad - switchWidth - 2) {
-            int keep = waypointSelected;
-            waypointSelected = value;
-            changeSelected([](map::Waypoint& t) { t.visible = !t.visible; });
-            waypointSelected = keep;
+        if (value && value->layer == map::MarkLayer::Waypoint && x >= l.listLeft + l.listWidth - ShapesLayout::pad - switchWidth - 2) {
+            if (!changeWaypoint(value, [](map::Waypoint& t) { t.visible = !t.visible; })) error = translated("waypoint.saveError");
+            else error.clear();
+            refreshWaypoints();
             return;
         }
-        if (value != waypointSelected) selectWaypoint(value);
+        if (value && value != waypointSelected) selectWaypoint(value);
         return;
     }
     case ShapeZone::Name:
@@ -2182,8 +2187,8 @@ void handleWaypointClick(float x, float y, bool right) {
         activateWaypointField(hit.index, right ? -1 : hit.part);
         return;
     case ShapeZone::Action:
-        if (hit.index == 0) { if (waypointSelected == -1) keepDeathPoint(); return; }
-        if (waypointSelected == -2) return;
+        if (hit.index == 0) { if (deathSelected()) keepDeathPoint(); return; }
+        if (!waypointSelected) return;
         if (!waypointDeleteArmed) { waypointDeleteArmed = true; return; }
         deleteSelectedWaypoint();
         return;
@@ -2221,7 +2226,7 @@ void handleWaypointKey(int key) {
         int count = waypointRowCount();
         if (!count) break;
         int row = 0;
-        for (int i = 0; i < count; ++i) if (waypointAtRow(i) == waypointSelected) row = i;
+        for (int i = 0; i < count; ++i) if (waypointSelected && waypointAtRow(i) == waypointSelected) row = i;
         row = std::clamp(row + (key == 0x22 ? 1 : -1), 0, count - 1);
         selectWaypoint(waypointAtRow(row));
         break;
@@ -2257,7 +2262,7 @@ int distanceTo(int x, int z) {
     return static_cast<int>(std::lround(std::hypot(x + .5 - feet.x, z + .5 - feet.z)));
 }
 std::string waypointDescription() {
-    if (waypointSelected == -1 && waypointSet.death) return translated("waypoint.deathNote");
+    if (deathSelected() && waypointSet.death) return translated("waypoint.deathNote");
     auto const* w = selectedWaypoint();
     if (!w) return translated(waypointSet.waypoints.empty() && !waypointSet.death ? "waypoint.empty" : "waypoint.selectHint");
     if (editingWaypointField >= 0) return translated("integerRange", -map::coordinateLimit, map::coordinateLimit);
@@ -2293,11 +2298,11 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         paragraph(context,l.listLeft+ShapesLayout::pad,l.rowsTop+3,l.listWidth-2*ShapesLayout::pad,translated("waypoint.empty"),3,palette::faint);
     for (int i = l.listFirst; i < l.listFirst + l.listVisible && i < l.listCount; ++i) {
         float y = l.listRowY(i);
-        int value = waypointAtRow(i);
+        auto value = waypointAtRow(i);
         if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
-        rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,value == waypointSelected,over(ShapeZone::ListRow,i));
+        rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,value && value == waypointSelected,over(ShapeZone::ListRow,i));
         float gx = l.listLeft + ShapesLayout::pad + 4, gy = y + ShapesLayout::rowHeight / 2;
-        if (value == -1) {
+        if (value == map::deathKey) {
             auto const& d = *waypointSet.death;
             bool here = d.dimension == playerDimension();
             drawCrossGlyph(context, gx, gy, deathRgb);
@@ -2306,8 +2311,9 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
                 palette::dim,Align::Right);
             continue;
         }
-        if (value < 0) continue;
-        auto const& w = waypointSet.waypoints[static_cast<size_t>(value)];
+        int index = value ? indexOfId(waypointSet.waypoints, value->id) : -1;
+        if (index < 0) continue;
+        auto const& w = waypointSet.waypoints[static_cast<size_t>(index)];
         bool here = w.dimension == playerDimension();
         drawDiamondGlyph(context, gx, gy, 7, waypointRgb(w.color), w.visible && here ? 1.f : .35f);
         label(context,nameX,y+3,distanceX-nameX-4,w.name,here ? palette::text : palette::faint);
@@ -2328,7 +2334,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     // Editor pane.
     float dx = l.detailLeft + ShapesLayout::pad, dw = l.detailWidth - 2 * ShapesLayout::pad;
     auto const* w = selectedWaypoint();
-    if (waypointSelected == -1 && waypointSet.death) {
+    if (deathSelected() && waypointSet.death) {
         auto const& d = *waypointSet.death;
         drawCrossGlyph(context, dx + 5, l.nameY + 7, deathRgb);
         label(context,dx+14,l.nameY+1+boxTextInset(),dw-14,translated("waypoint.death"));
@@ -2390,7 +2396,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         }
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
     }
-    if (waypointSelected != -2) {
+    if (waypointSelected) {
         drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
             translated(waypointDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1),
             waypointDeleteArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,Rgb{.54f,.23f,.2f},
@@ -2414,7 +2420,7 @@ ShapesLayout fitWaypoints(SettingsTable const& t, glm::vec2 size, bool docked) {
     auto l = ShapesLayout::fit(t, size.x, size.y, docked, waypointRowCount(), waypointListFirst, fieldCount,
         waypointFieldFirst, false, false);
     // Keeping the death point needs a wider first button.
-    if (waypointSelected == -1) l.firstActionWidth = 110;
+    if (deathSelected()) l.firstActionWidth = 110;
     waypointsDisplayed = l;
     waypointListFirst = l.listFirst;
     waypointFieldFirst = l.fieldFirst;
@@ -4055,7 +4061,7 @@ void handleMapRequest(map::world::Request const& request) {
         mapFromSettings = fromSettings;
         waypointsFromMap = true;
         refreshWaypoints();
-        if (request.index >= -1) selectWaypoint(request.index);
+        if (request.mark) selectWaypoint(request.mark);
         break;
     }
     default: break;

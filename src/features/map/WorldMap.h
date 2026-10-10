@@ -1,4 +1,5 @@
 #pragma once
+#include "features/map/MapMarks.h"
 #include "features/map/Waypoints.h"
 #include "settings/Settings.h"
 #include <glm/vec2.hpp>
@@ -14,7 +15,7 @@ namespace lamium::map::world {
 struct Request {
     enum class Kind { None, Close, AddWaypoint, OpenWaypoints } kind = Kind::None;
     Waypoint draft; // AddWaypoint
-    int index = -1; // OpenWaypoints: into waypoints::current(); -1 the death point, -2 none.
+    std::optional<MarkKey> mark; // OpenWaypoints: the waypoint or death point to show, if any.
 };
 // `resume` keeps the view and selection (back from the Waypoints screen).
 void open(IClientInstance&, bool resume = false);
