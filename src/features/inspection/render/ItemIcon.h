@@ -18,4 +18,7 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
 inline void drawItemIcon(MinecraftUIRenderContext& context, IconAt const& icon, int zOrder) {
     drawItemIcons(context, std::span<IconAt const>{&icon, 1}, zOrder);
 }
+#ifdef LAMIUM_ICON_TRACE
+void glintExperiment(MinecraftUIRenderContext& context, ItemStack const& stack, float x, float y, int variant, int zOrder);
+#endif
 }

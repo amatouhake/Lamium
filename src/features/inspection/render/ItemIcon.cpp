@@ -34,18 +34,19 @@ constexpr UIMaterialType itemMaterial = static_cast<UIMaterialType>(13);
 class SharedItemBatch {
     alignas(ComponentRenderBatch) std::byte bytes[sizeof(ComponentRenderBatch)];
 public:
-    SharedItemBatch(int depth, char const* atlas) {
+    SharedItemBatch(int depth, char const* atlas, UIMaterialType material = itemMaterial,
+                    char const* second = "textures/entity/banner/banner") {
         std::memset(bytes, 0, sizeof bytes);
         auto& batch = get();
         alignas(BatchClippingState) std::byte clipBytes[sizeof(BatchClippingState)]{};
         auto& key = *::new (&*batch.mBatchKey) BatchKey(depth, 1.0f, *reinterpret_cast<BatchClippingState*>(clipBytes));
         key.mBatchType = UIBatchType::SharedMesh;
-        key.mUIMaterialType = itemMaterial;
+        key.mUIMaterialType = material;
         auto& textures = *key.mResourceLocations;
         std::destroy_at(&textures[0]);
         ::new (&textures[0]) ResourceLocation(Core::PathView(atlas));
         std::destroy_at(&textures[1]);
-        ::new (&textures[1]) ResourceLocation(Core::PathView("textures/entity/banner/banner"));
+        ::new (&textures[1]) ResourceLocation(Core::PathView(second));
         batch.mIsDirty = true; // Rebuilt every frame: Lamium's icons change freely.
         batch.mRequiresPreRenderSetup = false;
         batch.mRenderPass = 0;
@@ -88,4 +89,35 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
             zOrder);
     }
 }
+#ifdef LAMIUM_ICON_TRACE
+// Shield glint research (L-91, 2026-10-10). Vanilla's enchanted shield slot
+// draws passes with UI materials 9 (chunk 7), 5 with the glint texture
+// (chunk 4) and 7 (chunk 5). Variant 1: chunks 4 and 5 drawn directly after
+// the icon. Variant 2: chunk 4 inside a batch with material 5 and the glint
+// texture in the second slot, as the slot's pass 1 lists it. Variant 3: the
+// same with the glint texture in the first slot.
+void glintExperiment(MinecraftUIRenderContext& context, ItemStack const& stack, float x, float y, int variant, int zOrder) {
+    auto& client = context.mClient;
+    auto* renderer = client.getItemRenderer();
+    if (!renderer) return;
+    BaseActorRenderContext renderContext(context.mScreenContext, client, client.getMinecraftGame_DEPRECATED());
+    renderer->renderGuiItemNew(renderContext, stack, 0, x, y, false, 1.0f, 1.0f, 1.0f, zOrder);
+    auto chunk = [&](int type) {
+        renderer->renderGuiItemInChunk(renderContext, static_cast<ItemRenderChunkType>(type), stack, x, y, 1.0f, 1.0f, 1.0f,
+            0, false, zOrder, std::nullopt);
+    };
+    if (variant == 1) {
+        chunk(4);
+    } else {
+        constexpr auto glintMaterial = static_cast<UIMaterialType>(5);
+        SharedItemBatch batch = variant == 2
+            ? SharedItemBatch{zOrder, "", glintMaterial, "textures/misc/enchanted_item_glint"}
+            : SharedItemBatch{zOrder, "textures/misc/enchanted_item_glint", glintMaterial, ""};
+        context.beginSharedMeshBatch(batch.get());
+        chunk(4);
+        context.endSharedMeshBatch(batch.get());
+    }
+    chunk(5);
+}
+#endif
 }
