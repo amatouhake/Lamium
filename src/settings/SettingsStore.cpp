@@ -100,6 +100,7 @@ Json encode(Settings const& settings) {
                          {"inventoryHud", settings.information.inventoryHud},
                          {"freeSlots", settings.information.freeSlots},
                          {"inventoryHotbar", settings.information.inventoryHotbar},
+                         {"freeSlotsHotbar", settings.information.freeSlotsHotbar},
                          {"saturation", settings.information.saturation},
                          {"saturationPreview", settings.information.saturationPreview},
                          {"lineOrder", settings.information.lineOrder},
@@ -283,6 +284,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.inventoryHud = info.value("inventoryHud", value.information.inventoryHud);
         value.information.freeSlots = info.value("freeSlots", value.information.freeSlots);
         value.information.inventoryHotbar = info.value("inventoryHotbar", value.information.inventoryHotbar);
+        value.information.freeSlotsHotbar = info.value("freeSlotsHotbar", value.information.freeSlotsHotbar);
         value.information.saturation = info.value("saturation", value.information.saturation);
         value.information.saturationPreview = info.value("saturationPreview", value.information.saturationPreview);
         value.information.hud = info.value("hud", value.information.hud);

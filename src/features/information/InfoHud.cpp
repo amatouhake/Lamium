@@ -1299,7 +1299,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             if (preview || settings.inventoryHud)
                 box(ui::HudElementId::Inventory) = drawInventoryGrid(context, width, height, hud.inventory, *sample, settings.inventoryHotbar);
             if (preview || settings.freeSlots)
-                box(ui::HudElementId::FreeSlots) = drawFreeSlots(context, width, height, hud.freeSlots, *sample, settings.inventoryHotbar);
+                box(ui::HudElementId::FreeSlots) = drawFreeSlots(context, width, height, hud.freeSlots, *sample, settings.freeSlotsHotbar);
         }
     }
     if (preview || (runtime.schematic.enabled && runtime.schematic.hud))
