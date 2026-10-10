@@ -53,6 +53,14 @@ void connectedTexturesTests() {
     check(framed.size() == 9 && near(framed[0].s1, 1 / 16.f) && near(framed[0].su0, 1 / 16.f) && near(framed[0].su1, 2 / 16.f)
               && near(framed[8].s0, 15 / 16.f) && near(framed[8].su0, 14 / 16.f) && near(framed[8].su1, 15 / 16.f),
           "a face joined all round becomes nine cells, each the size of what it shows");
+    // A pane arm shows the texture from about its middle (0.53) to its edge;
+    // joined at the edge, only that part's spans remain, relative to the arm.
+    auto arm = clip(spans(false, 2, true, 2, 7, 7), 0.53f, 1.f);
+    check(arm.size() == 2 && near(arm[0].at0, 0) && near(arm[0].from0, 0.53f) && near(arm[1].at1, 1)
+              && near(arm[1].from0, 7 / 16.f) && near(arm[1].from1, 9 / 16.f)
+              && near(arm[1].at0, (14 / 16.f - 0.53f) / 0.47f),
+          "a pane arm keeps the spans on its part of the texture");
+    check(clip(spans(false, 2, false, 2), 0.2f, 0.2f).empty(), "a quad with no width has no spans");
     for (auto const& cell : framed)
         check(near(cell.s1 - cell.s0, cell.su1 - cell.su0) && near(cell.t1 - cell.t0, cell.tv1 - cell.tv0), "cells never stretch"); 
     // Panes (geometry dumped in game 2026-10-11).

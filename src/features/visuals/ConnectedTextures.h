@@ -101,6 +101,20 @@ inline std::vector<Span> spans(bool lowJoined, int low, bool highJoined, int hig
     if (b > 0) out.push_back({1 - b, 1, fromHigh, fromHigh + b});
     return out;
 }
+// The spans that fall on the part [low, high] of the texture a quad shows
+// (pane faces show only part of it), with `at` made relative to that part
+// (0..1 across the quad) and `from` kept in texture fractions.
+inline std::vector<Span> clip(std::vector<Span> const& all, float low, float high) {
+    std::vector<Span> out;
+    if (!(high - low > 1e-6f)) return out;
+    for (auto const& span : all) {
+        float c0 = span.at0 > low ? span.at0 : low, c1 = span.at1 < high ? span.at1 : high;
+        if (c1 - c0 <= 1e-6f) continue;
+        out.push_back({(c0 - low) / (high - low), (c1 - low) / (high - low), span.from0 + (c0 - span.at0),
+                       span.from0 + (c1 - span.at0)});
+    }
+    return out;
+}
 inline std::vector<Cell> splitCells(Joined joined, Rule rule) {
     std::vector<Cell> cells;
     for (auto const& across : spans(joined.left, rule.left, joined.right, rule.right, rule.leftFrom, rule.rightFrom))

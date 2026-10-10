@@ -81,69 +81,70 @@ std::vector<Cell> faceCells(Face face, Block const& block) {
     return splitCells({sameAt(block, s.left), sameAt(block, s.right), sameAt(block, s.top), sameAt(block, s.bottom)},
                       current.rule);
 }
-// After the face was drawn once per cell, give each copy its cell: the
-// position from the face's corners and the texels the cell shows, at the
-// texture's own scale. Vanilla's corner shading (color and light) is
-// interpolated to the cell's corners, so strips keep the face's gradient.
-void shapeCells(Tessellator& tessellator, TextureUVCoordinateSet const& tex, size_t before, std::vector<Cell> const& cells) {
+// Gives the quad at `dst` (a copy of the quad at `src`) the cell's part of
+// it: corners placed across the source quad (s, t from its u0/v0 corner) and
+// texels from the texture's fractions (su, tv) of `tex`. Vanilla's corner
+// shading (color and light) is interpolated to the cell's corners, so strips
+// keep the face's gradient. Reads all of `src` before writing `dst`.
+struct TexRect { float u0, v0, u1, v1; };
+void reshape(Tessellator& tessellator, size_t src, size_t dst, Cell const& c, TexRect tex) {
     auto& positions = *tessellator.mMeshData->mPositions;
     auto& uvs = *tessellator.mMeshData->mTextureUVs[0];
-    float du = tex._u1 - tex._u0, dv = tex._v1 - tex._v0;
-    if (du == 0 || dv == 0) return;
-    // The first copy's corners by where they sit on the texture.
+    auto& colors = *tessellator.mMeshData->mColors;
+    float du = tex.u1 - tex.u0, dv = tex.v1 - tex.v0;
+    if (du == 0 || dv == 0 || positions.size() < dst + 4 || uvs.size() < dst + 4) return;
+    // The source corners by where they sit on its part of the texture.
+    std::array<float, 4> fu{}, fv{};
+    for (size_t i = 0; i < 4; ++i) {
+        fu[i] = (uvs[src + i].x - tex.u0) / du;
+        fv[i] = (uvs[src + i].y - tex.v0) / dv;
+    }
+    float midU = (*std::min_element(fu.begin(), fu.end()) + *std::max_element(fu.begin(), fu.end())) / 2;
+    float midV = (*std::min_element(fv.begin(), fv.end()) + *std::max_element(fv.begin(), fv.end())) / 2;
     std::array<bool, 4> high{}, low{};
     std::array<glm::vec3, 4> corner{};
-    for (size_t i = 0; i < 4; ++i) {
-        high[i] = (uvs[before + i].x - tex._u0) / du > 0.5f;
-        low[i] = (uvs[before + i].y - tex._v0) / dv > 0.5f;
-        corner[(high[i] ? 1 : 0) + (low[i] ? 2 : 0)] = positions[before + i];
-    }
-    auto at = [&](float s, float t) {
-        return corner[0] * ((1 - s) * (1 - t)) + corner[1] * (s * (1 - t)) + corner[2] * ((1 - s) * t) + corner[3] * (s * t);
-    };
-    auto weights = [](float s, float t) {
-        return std::array<float, 4>{(1 - s) * (1 - t), s * (1 - t), (1 - s) * t, s * t};
-    };
-    // Per-corner colors (RGBA bytes) and the other UV sets (light), when present.
-    auto& colors = *tessellator.mMeshData->mColors;
-    bool hasColors = colors.size() >= before + 4 * cells.size();
     std::array<std::uint32_t, 4> cornerColor{};
     std::array<std::array<glm::vec2, 4>, 2> cornerLight{};
+    bool hasColors = colors.size() >= dst + 4;
     std::array<bool, 2> hasLight{};
-    for (size_t set = 0; set < 2; ++set)
-        hasLight[set] = tessellator.mMeshData->mTextureUVs[set + 1]->size() >= before + 4 * cells.size();
+    for (size_t set = 0; set < 2; ++set) hasLight[set] = tessellator.mMeshData->mTextureUVs[set + 1]->size() >= dst + 4;
     for (size_t i = 0; i < 4; ++i) {
-        size_t c = (high[i] ? 1 : 0) + (low[i] ? 2 : 0);
-        if (hasColors) cornerColor[c] = colors[before + i];
+        high[i] = fu[i] > midU;
+        low[i] = fv[i] > midV;
+        size_t k = (high[i] ? 1 : 0) + (low[i] ? 2 : 0);
+        corner[k] = positions[src + i];
+        if (hasColors) cornerColor[k] = colors[src + i];
         for (size_t set = 0; set < 2; ++set)
-            if (hasLight[set]) cornerLight[set][c] = (*tessellator.mMeshData->mTextureUVs[set + 1])[before + i];
+            if (hasLight[set]) cornerLight[set][k] = (*tessellator.mMeshData->mTextureUVs[set + 1])[src + i];
     }
-    auto mixColor = [&](std::array<float, 4> const& w) {
-        std::uint32_t out = 0;
-        for (int shift = 0; shift < 32; shift += 8) {
-            float channel = 0;
-            for (size_t c = 0; c < 4; ++c) channel += w[c] * static_cast<float>((cornerColor[c] >> shift) & 0xFFu);
-            out |= static_cast<std::uint32_t>(std::clamp(std::lround(channel), 0L, 255L)) << shift;
+    for (size_t i = 0; i < 4; ++i) {
+        size_t v = dst + i;
+        float s = high[i] ? c.s1 : c.s0, t = low[i] ? c.t1 : c.t0;
+        std::array<float, 4> w{(1 - s) * (1 - t), s * (1 - t), (1 - s) * t, s * t};
+        positions[v] = corner[0] * w[0] + corner[1] * w[1] + corner[2] * w[2] + corner[3] * w[3];
+        if (hasColors) {
+            std::uint32_t out = 0;
+            for (int shift = 0; shift < 32; shift += 8) {
+                float channel = 0;
+                for (size_t k = 0; k < 4; ++k) channel += w[k] * static_cast<float>((cornerColor[k] >> shift) & 0xFFu);
+                out |= static_cast<std::uint32_t>(std::clamp(std::lround(channel), 0L, 255L)) << shift;
+            }
+            colors[v] = out;
         }
-        return out;
-    };
-    for (size_t k = 0; k < cells.size(); ++k) {
-        auto const& c = cells[k];
-        for (size_t i = 0; i < 4; ++i) {
-            size_t v = before + 4 * k + i;
-            float s = high[i] ? c.s1 : c.s0, t = low[i] ? c.t1 : c.t0;
-            positions[v] = at(s, t);
-            auto w = weights(s, t);
-            if (hasColors) colors[v] = mixColor(w);
-            for (size_t set = 0; set < 2; ++set)
-                if (hasLight[set]) {
-                    auto const& l = cornerLight[set];
-                    (*tessellator.mMeshData->mTextureUVs[set + 1])[v] = l[0] * w[0] + l[1] * w[1] + l[2] * w[2] + l[3] * w[3];
-                }
-            uvs[v].x = tex._u0 + du * (high[i] ? c.su1 : c.su0);
-            uvs[v].y = tex._v0 + dv * (low[i] ? c.tv1 : c.tv0);
-        }
+        for (size_t set = 0; set < 2; ++set)
+            if (hasLight[set]) {
+                auto const& l = cornerLight[set];
+                (*tessellator.mMeshData->mTextureUVs[set + 1])[v] = l[0] * w[0] + l[1] * w[1] + l[2] * w[2] + l[3] * w[3];
+            }
+        uvs[v].x = tex.u0 + du * (high[i] ? c.su1 : c.su0);
+        uvs[v].y = tex.v0 + dv * (low[i] ? c.tv1 : c.tv0);
     }
+}
+// After a block face was drawn once per cell, give each copy its cell; the
+// first copy is the source, so it goes last.
+void shapeCells(Tessellator& tessellator, TextureUVCoordinateSet const& tex, size_t before, std::vector<Cell> const& cells) {
+    TexRect rect{tex._u0, tex._v0, tex._u1, tex._v1};
+    for (size_t k = cells.size(); k-- > 0;) reshape(tessellator, before, before + 4 * k, cells[k], rect);
 }
 #define LAMIUM_CONNECTED_FACE(Name, Function, FaceId)                                                                        \
     LL_TYPE_INSTANCE_HOOK(Name, ll::memory::HookPriority::Normal, BlockTessellator, &BlockTessellator::Function, void,     \
@@ -195,12 +196,20 @@ Parts partsAt(Block const& block, BlockPos at) {
 bool paneAt(Block const& block, int dx, int dz) {
     return &pane.region->getBlock({pane.pos.x + dx, pane.pos.y, pane.pos.z + dz}).getBlockType() == &block.getBlockType();
 }
-// Adjusts the quads vanilla just added for this pane (positions from `before`).
-void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
+// What to do with each quad of a pane, planned from vanilla's first draw:
+// thin top/bottom faces fold where the neighbor above/below has the part;
+// glass faces split into cells along their joined edges (as glass blocks:
+// two texels filled from the middle), every other quad stays.
+struct PaneQuad {
+    bool thin = false, fold = false, glass = false;
+    float fu0 = 0, fu1 = 1, fv0 = 0, fv1 = 1; // the part of the glass texture it shows
+    std::vector<Cell> cells;
+};
+std::vector<PaneQuad> planPane(Tessellator& tessellator, Block const& block, size_t before, size_t after) {
     auto& positions = *tessellator.mMeshData->mPositions;
     auto& uvs = *tessellator.mMeshData->mTextureUVs[0];
-    size_t after = positions.size();
-    if (after <= before || before % 4 || (after - before) % 4 || uvs.size() < after || !pane.glass.known) return;
+    std::vector<PaneQuad> plan;
+    if (after <= before || before % 4 || (after - before) % 4 || uvs.size() < after || !pane.glass.known) return plan;
     // Block coordinates: the mesh is offset from the world by whole blocks.
     float bx = positions[before].x, by = positions[before].y, bz = positions[before].z;
     for (size_t i = before; i < after; ++i) {
@@ -215,37 +224,78 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
     auto below = partsAt(block, {pane.pos.x, pane.pos.y - 1, pane.pos.z});
     bool east = paneAt(block, 1, 0), west = paneAt(block, -1, 0), south = paneAt(block, 0, 1), north = paneAt(block, 0, -1);
     auto const& g = pane.glass;
-    float du = (g.u1 - g.u0) / g.width, dv = (g.v1 - g.v0) / g.height;
-    constexpr float e = 1e-5f;
+    float du = g.u1 - g.u0, dv = g.v1 - g.v0;
+    if (du == 0 || dv == 0) return plan;
+    Rule rule = *ruleFor("minecraft:glass");
+    constexpr float e = 1e-4f;
     for (size_t q = before; q < after; q += 4) {
+        PaneQuad quad;
         float x0 = 2, x1 = -1, y0 = 2, y1 = -1, z0 = 2, z1 = -1;
-        for (size_t i = q; i < q + 4; ++i) {
-            float x = positions[i].x - bx, y = positions[i].y - by, z = positions[i].z - bz;
+        std::array<float, 4> fu{}, fv{};
+        for (size_t i = 0; i < 4; ++i) {
+            float x = positions[q + i].x - bx, y = positions[q + i].y - by, z = positions[q + i].z - bz;
             x0 = std::min(x0, x); x1 = std::max(x1, x);
             y0 = std::min(y0, y); y1 = std::max(y1, y);
             z0 = std::min(z0, z); z1 = std::max(z1, z);
+            fu[i] = (uvs[q + i].x - g.u0) / du;
+            fv[i] = (uvs[q + i].y - g.v0) / dv;
         }
         auto part = partOf(x0, x1, z0, z1);
         if (y1 - y0 < 0.01f) {
-            // A thin top or bottom face: fold it to a point under (over) the same part.
+            quad.thin = true;
             bool top = y0 > 0.5f;
-            if ((top && above.has(part)) || (!top && below.has(part)))
-                for (size_t i = q + 1; i < q + 4; ++i) positions[i] = positions[q];
+            quad.fold = (top && above.has(part)) || (!top && below.has(part));
+            plan.push_back(std::move(quad));
             continue;
         }
-        bool glass = uvs[q].x >= std::min(g.u0, g.u1) - e && uvs[q].x <= std::max(g.u0, g.u1) + e
-            && uvs[q].y >= std::min(g.v0, g.v1) - e && uvs[q].y <= std::max(g.v0, g.v1) + e;
-        if (!glass) continue;
-        float uMin = uvs[q].x, uMax = uMin, vMin = uvs[q].y, vMax = vMin;
-        for (size_t i = q; i < q + 4; ++i) {
-            uMin = std::min(uMin, uvs[i].x); uMax = std::max(uMax, uvs[i].x);
-            vMin = std::min(vMin, uvs[i].y); vMax = std::max(vMax, uvs[i].y);
+        quad.fu0 = *std::min_element(fu.begin(), fu.end());
+        quad.fu1 = *std::max_element(fu.begin(), fu.end());
+        quad.fv0 = *std::min_element(fv.begin(), fv.end());
+        quad.fv1 = *std::max_element(fv.begin(), fv.end());
+        quad.glass = quad.fu0 > -e && quad.fu1 < 1 + e && quad.fv0 > -e && quad.fv1 < 1 + e;
+        if (!quad.glass) {
+            plan.push_back(std::move(quad));
+            continue;
         }
-        for (size_t i = q; i < q + 4; ++i) {
-            float x = positions[i].x - bx, y = positions[i].y - by, z = positions[i].z - bz;
-            if ((x > 0.99f && east) || (x < 0.01f && west) || (z > 0.99f && south) || (z < 0.01f && north))
-                uvs[i].x = inward(uvs[i].x, uMin, uMax, du);
-            if ((y > 0.9f && above.has(part)) || (y < 0.1f && below.has(part))) uvs[i].y = inward(uvs[i].y, vMin, vMax, dv);
+        // Which ends of the texture this face joins: a corner on a block
+        // edge next to the same pane, or at the top/bottom under (over) the
+        // same part.
+        bool uLow = false, uHigh = false, vLow = false, vHigh = false;
+        for (size_t i = 0; i < 4; ++i) {
+            float x = positions[q + i].x - bx, y = positions[q + i].y - by, z = positions[q + i].z - bz;
+            bool side = (x > 0.99f && east) || (x < 0.01f && west) || (z > 0.99f && south) || (z < 0.01f && north);
+            bool vertical = (y > 0.9f && above.has(part)) || (y < 0.1f && below.has(part));
+            if (side) (fu[i] < 0.5f ? uLow : uHigh) = true;
+            if (vertical) (fv[i] < 0.5f ? vLow : vHigh) = true;
+        }
+        auto across = clip(spans(uLow, rule.left, uHigh, rule.right, rule.leftFrom, rule.rightFrom), quad.fu0, quad.fu1);
+        auto down = clip(spans(vLow, rule.top, vHigh, rule.bottom, rule.topFrom, rule.bottomFrom), quad.fv0, quad.fv1);
+        for (auto const& a : across)
+            for (auto const& d : down) quad.cells.push_back({a.at0, a.at1, d.at0, d.at1, a.from0, a.from1, d.from0, d.from1});
+        plan.push_back(std::move(quad));
+    }
+    return plan;
+}
+// Copies of the pane follow the first draw (`count` vertices each). Each
+// quad keeps its first copy unless planned otherwise; its further copies
+// become its extra cells, the rest fold to a point.
+void applyPane(Tessellator& tessellator, size_t before, size_t count, size_t copies, std::vector<PaneQuad> const& plan) {
+    auto& positions = *tessellator.mMeshData->mPositions;
+    if (positions.size() < before + count * copies) return;
+    auto fold = [&](size_t q) { for (size_t i = q + 1; i < q + 4; ++i) positions[i] = positions[q]; };
+    TexRect rect{pane.glass.u0, pane.glass.v0, pane.glass.u1, pane.glass.v1};
+    for (size_t j = 0; j < plan.size(); ++j) {
+        auto const& quad = plan[j];
+        size_t src = before + 4 * j;
+        for (size_t k = copies; k-- > 0;) {
+            size_t dst = before + k * count + 4 * j;
+            if (quad.thin) {
+                if (k > 0 || quad.fold) fold(dst);
+            } else if (quad.glass && k < quad.cells.size() && quad.cells.size() > 1) {
+                reshape(tessellator, src, dst, quad.cells[k], rect);
+            } else if (k > 0) {
+                fold(dst);
+            }
         }
     }
 }
@@ -259,7 +309,20 @@ LL_TYPE_INSTANCE_HOOK(ConnectedPane, ll::memory::HookPriority::Normal, BlockTess
     pane = {&block, p, mRegion};
     size_t before = tessellator.mMeshData->mPositions->size();
     bool result = origin(tessellator, block, p, singleSide);
-    try { adjustPane(tessellator, block, before); } catch (...) {}
+    try {
+        size_t count = tessellator.mMeshData->mPositions->size() - before;
+        auto plan = planPane(tessellator, block, before, before + count);
+        size_t copies = 1;
+        for (auto const& quad : plan) copies = std::max(copies, quad.cells.size());
+        // Draw the pane again for each extra cell; only identical draws can be shaped.
+        bool same = true;
+        for (size_t k = 1; k < copies && same; ++k) {
+            size_t start = tessellator.mMeshData->mPositions->size();
+            origin(tessellator, block, p, singleSide);
+            same = tessellator.mMeshData->mPositions->size() - start == count;
+        }
+        if (!plan.empty() && same) applyPane(tessellator, before, count, copies, plan);
+    } catch (...) {}
     pane = saved;
     return result;
 }
