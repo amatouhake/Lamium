@@ -1,4 +1,5 @@
 #include "features/camera/CameraSessions.h"
+#include <algorithm>
 #include <numbers>
 #include "features/camera/CameraInteraction.h"
 #include "features/camera/FreeCameraCulling.h"
@@ -191,12 +192,15 @@ std::optional<CameraSessions::ViewRay> CameraSessions::detachedViewRay(IClientIn
 std::optional<CameraSessions::Pose> CameraSessions::freeCameraPose(IClientInstance& current) {
     if (!blocksPerspective()) return {};
     auto ray = detachedViewRay(current);
-    auto angles = lookAnglesFor(current);
     auto* player = current.getLocalPlayer();
-    if (!ray || !angles || !player) return {};
+    if (!ray || !player) return {};
     double feet = player->getFeetPos().y - player->getEyePos().y;
-    if (!std::isfinite(feet)) return {};
-    return Pose{ray->x, ray->y + feet, ray->z, angles->yaw, angles->pitch};
+    double length = std::sqrt(ray->dx * ray->dx + ray->dy * ray->dy + ray->dz * ray->dz);
+    if (!std::isfinite(feet) || !(length > 0)) return {};
+    // Angles from the drawn view direction (yaw 0 faces +Z, positive pitch looks down).
+    auto yaw = static_cast<float>(std::atan2(-ray->dx, ray->dz) * 180 / std::numbers::pi);
+    auto pitch = static_cast<float>(-std::asin(std::clamp(ray->dy / length, -1.0, 1.0)) * 180 / std::numbers::pi);
+    return Pose{ray->x, ray->y + feet, ray->z, yaw, pitch};
 }
 std::optional<DetachedLookState::Angles> CameraSessions::lookAnglesFor(IClientInstance const& renderedClient) {
     // A different viewport must neither consume nor cancel the owner's session.
