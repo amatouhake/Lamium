@@ -48,7 +48,7 @@ option_end()
 option("ctm_trace")
     set_default(false)
     set_showmenu(true)
-    set_description("Enable the L-96 spike: trim glass borders on connected sides from the block tessellator, with a log")
+    set_description("Enable the L-96 pane spike: log glass pane texture lookups and trim them on connected sides")
 option_end()
 
 option("inventorymove_trace")

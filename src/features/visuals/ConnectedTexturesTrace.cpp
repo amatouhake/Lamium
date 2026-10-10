@@ -1,10 +1,12 @@
 #include "features/visuals/ConnectedTexturesTrace.h"
 #ifdef LAMIUM_CTM_TRACE
+#include "features/visuals/ConnectedTextures.h"
 #include "app/Runtime.h"
 #include "ll/api/memory/Hook.h"
+#include "mc/client/renderer/Tessellator.h"
 #include "mc/client/renderer/block/BlockTessellator.h"
 #include "mc/client/renderer/texture/TextureUVCoordinateSet.h"
-#include "mc/deps/core/math/Vec3.h"
+#include "mc/deps/core/math/Vec2.h"
 #include "mc/world/level/BlockPos.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/block/Block.h"
@@ -13,120 +15,103 @@
 #include <format>
 #include <string>
 
+// Round 2 (2026-10-11): glass panes. Glass blocks are the shipped feature;
+// this spike only watches pane tessellation: which texture lookups and UV
+// calls it makes, and whether a trimmed lookup joins neighboring panes.
 namespace lamium::visuals::connectedTexturesTrace {
 namespace {
+using namespace connected;
 template <class... Args>
 void log(std::format_string<Args...> format, Args&&... args) noexcept {
     try { Runtime::instance().self().getLogger().info(std::format(format, std::forward<Args>(args)...)); } catch (...) {}
 }
-// The block being tessellated on this (chunk-build) thread.
-struct Current {
+struct Pane {
     Block const* block = nullptr;
     BlockPos pos{};
     BlockSource const* region = nullptr;
+    int lookups = 0, uvs = 0;
 };
-thread_local Current current;
-std::atomic<int> faceLogs{0}, blockLogs{0}, glassBlocks{0}, glassFaces{0};
+thread_local Pane pane;
+thread_local TextureUVCoordinateSet trimmedSet;
+std::atomic<int> paneLogs{0}, lookupLogs{0}, uvLogs{0};
 
-bool glass(Block const& block) {
-    auto const& name = block.getTypeName();
-    return name.ends_with("glass") && !name.ends_with("_pane");
-}
-bool same(Block const& block, BlockPos const& at) {
-    try { return &current.region->getBlock(at).getBlockType() == &block.getBlockType(); } catch (...) { return false; }
-}
-enum Face { Down, Up, North, South, West, East };
-constexpr char const* faceNames[]{"down", "up", "north", "south", "west", "east"};
-// Neighbors in the face's plane, seen from outside: the block to the left
-// (toward u0), right (u1), above (v0) and below (v1). Guesses for the spike;
-// the log and the screen tell whether a side is mirrored.
-struct Plane { BlockPos left, right, top, bottom; };
-Plane plane(Face face, BlockPos p) {
-    auto at = [&](int dx, int dy, int dz) { return BlockPos{p.x + dx, p.y + dy, p.z + dz}; };
-    switch (face) {
-    case North: return {at(1, 0, 0), at(-1, 0, 0), at(0, 1, 0), at(0, -1, 0)};
-    case South: return {at(-1, 0, 0), at(1, 0, 0), at(0, 1, 0), at(0, -1, 0)};
-    case East: return {at(0, 0, 1), at(0, 0, -1), at(0, 1, 0), at(0, -1, 0)};
-    case West: return {at(0, 0, -1), at(0, 0, 1), at(0, 1, 0), at(0, -1, 0)};
-    case Up: return {at(-1, 0, 0), at(1, 0, 0), at(0, 0, -1), at(0, 0, 1)};
-    default: return {at(-1, 0, 0), at(1, 0, 0), at(0, 0, 1), at(0, 0, -1)};
-    }
-}
-// A copy of the face's texture with the border texel cut on connected sides.
-TextureUVCoordinateSet trimmed(Face face, Block const& block, Vec3 const& p, TextureUVCoordinateSet const& tex) {
-    TextureUVCoordinateSet out = tex;
-    if (!current.region || current.block != &block || !glass(block)) return out;
-    auto sides = plane(face, current.pos);
-    bool left = same(block, sides.left), right = same(block, sides.right), top = same(block, sides.top),
-         bottom = same(block, sides.bottom);
-    int width = tex._sourceImageWidth ? tex._sourceImageWidth : 16, height = tex._sourceImageHeight ? tex._sourceImageHeight : 16;
-    float du = (tex._u1 - tex._u0) / width, dv = (tex._v1 - tex._v0) / height;
-    if (left) out._u0 = tex._u0 + du;
-    if (right) out._u1 = tex._u1 - du;
-    if (top) out._v0 = tex._v0 + dv;
-    if (bottom) out._v1 = tex._v1 - dv;
-    ++glassFaces;
-    if (faceLogs < 40) {
-        ++faceLogs;
-        log("L-96 {} face of {} at {} {} {} (p {:.2f} {:.2f} {:.2f}): uv {:.5f},{:.5f} - {:.5f},{:.5f} image {}x{}; "
-            "connected left {} right {} top {} bottom {}",
-            faceNames[face], block.getTypeName(), current.pos.x, current.pos.y, current.pos.z, p.x, p.y, p.z, tex._u0, tex._v0,
-            tex._u1, tex._v1, width, height, left, right, top, bottom);
-    }
-    return out;
+bool isPane(Block const& block) { return block.getTypeName().ends_with("glass_pane"); }
+bool sameAt(Block const& block, Offset o) {
+    BlockPos at{pane.pos.x + o.x, pane.pos.y + o.y, pane.pos.z + o.z};
+    return &pane.region->getBlock(at).getBlockType() == &block.getBlockType();
 }
 
-LL_TYPE_INSTANCE_HOOK(CtmBlock, ll::memory::HookPriority::Normal, BlockTessellator, &BlockTessellator::tessellateBlockInWorld,
-    bool, Tessellator& tessellator, Block const& block, BlockPos const& pos, std::bitset<6> const faces,
-    AirAndSimpleBlockBits const* simple) {
-    auto saved = current;
-    current = {&block, pos, mRegion};
-    bool isGlass = false;
-    try { isGlass = glass(block); } catch (...) {}
-    if (isGlass) {
-        ++glassBlocks;
-        if (blockLogs < 10) {
-            ++blockLogs;
-            log("L-96 tessellateBlockInWorld {} at {} {} {} faces {}", block.getTypeName(), pos.x, pos.y, pos.z, faces.to_string());
-        }
+LL_TYPE_INSTANCE_HOOK(PaneFence, ll::memory::HookPriority::Normal, BlockTessellator,
+    &BlockTessellator::tessellateDoubleThinFenceInWorld, bool, Tessellator& tessellator, Block const& block,
+    BlockPos const& p, bool singleSide) {
+    bool watch = false;
+    try { watch = isPane(block) && mRegion; } catch (...) {}
+    if (!watch) return origin(tessellator, block, p, singleSide);
+    auto saved = pane;
+    pane = {&block, p, mRegion};
+    bool result = origin(tessellator, block, p, singleSide);
+    if (paneLogs < 12) {
+        ++paneLogs;
+        log("L-96 pane {} at {} {} {} singleSide {}: {} texture lookups, {} uv calls", block.getTypeName(), p.x, p.y, p.z,
+            singleSide, pane.lookups, pane.uvs);
     }
-    bool result = origin(tessellator, block, pos, faces, simple);
-    current = saved;
+    pane = saved;
     return result;
 }
-#define LAMIUM_CTM_FACE(Name, Function, FaceId)                                                                              \
-    LL_TYPE_INSTANCE_HOOK(Name, ll::memory::HookPriority::Normal, BlockTessellator, &BlockTessellator::Function, void,     \
-        Tessellator& tessellator, Block const& block, Vec3 const& p, TextureUVCoordinateSet const& tex) {                   \
-        TextureUVCoordinateSet copy = tex;                                                                                  \
-        try { copy = trimmed(FaceId, block, p, tex); } catch (...) {}                                                       \
-        origin(tessellator, block, p, copy);                                                                                \
+LL_TYPE_INSTANCE_HOOK(PaneTexture, ll::memory::HookPriority::Normal, BlockTessellator, &BlockTessellator::_getTexture,
+    TextureUVCoordinateSet const&, BlockPos const& pos, Block const& block, uchar face, int forcedVariant,
+    BlockGraphics const* hint) {
+    auto const& tex = origin(pos, block, face, forcedVariant, hint);
+    if (!pane.block) return tex;
+    ++pane.lookups;
+    try {
+        bool own = &block == pane.block && face < 6;
+        Joined joined{};
+        if (own) {
+            auto s = sides(static_cast<Face>(face));
+            joined = {sameAt(block, s.left), sameAt(block, s.right), sameAt(block, s.top), sameAt(block, s.bottom)};
+        }
+        if (lookupLogs < 60) {
+            ++lookupLogs;
+            log("L-96 pane lookup face {} of {} at {} {} {} (pane at {} {} {}): uv {:.5f},{:.5f} - {:.5f},{:.5f} "
+                "image {}x{} joined L{} R{} T{} B{}",
+                face, block.getTypeName(), pos.x, pos.y, pos.z, pane.pos.x, pane.pos.y, pane.pos.z, tex._u0, tex._v0,
+                tex._u1, tex._v1, tex._sourceImageWidth, tex._sourceImageHeight, joined.left, joined.right, joined.top,
+                joined.bottom);
+        }
+        if (!own) return tex;
+        auto uv = trim({tex._u0, tex._v0, tex._u1, tex._v1}, tex._sourceImageWidth, tex._sourceImageHeight, joined);
+        trimmedSet = tex;
+        trimmedSet._u0 = uv.u0;
+        trimmedSet._v0 = uv.v0;
+        trimmedSet._u1 = uv.u1;
+        trimmedSet._v1 = uv.v1;
+        return trimmedSet;
+    } catch (...) {}
+    return tex;
+}
+LL_TYPE_INSTANCE_HOOK(PaneUv, ll::memory::HookPriority::Normal, BlockTessellator, &BlockTessellator::_tex1, void,
+    Tessellator& tessellator, Vec2 const& uv) {
+    if (pane.block) {
+        ++pane.uvs;
+        if (uvLogs < 40) {
+            ++uvLogs;
+            log("L-96 pane _tex1 {:.5f},{:.5f}", uv.x, uv.y);
+        }
     }
-LAMIUM_CTM_FACE(CtmDown, tessellateFaceDown, Down)
-LAMIUM_CTM_FACE(CtmUp, tessellateFaceUp, Up)
-LAMIUM_CTM_FACE(CtmNorth, tessellateNorth, North)
-LAMIUM_CTM_FACE(CtmSouth, tessellateSouth, South)
-LAMIUM_CTM_FACE(CtmWest, tessellateWest, West)
-LAMIUM_CTM_FACE(CtmEast, tessellateEast, East)
+    origin(tessellator, uv);
+}
 }
 void start() {
-    CtmBlock::hook();
-    CtmDown::hook();
-    CtmUp::hook();
-    CtmNorth::hook();
-    CtmSouth::hook();
-    CtmWest::hook();
-    CtmEast::hook();
-    Runtime::instance().self().getLogger().warn("Connected textures spike enabled (L-96)");
+    PaneFence::hook();
+    PaneTexture::hook();
+    PaneUv::hook();
+    Runtime::instance().self().getLogger().warn("Connected textures pane spike enabled (L-96)");
 }
 void stop() {
-    CtmBlock::unhook(true);
-    CtmDown::unhook(true);
-    CtmUp::unhook(true);
-    CtmNorth::unhook(true);
-    CtmSouth::unhook(true);
-    CtmWest::unhook(true);
-    CtmEast::unhook(true);
-    log("L-96 totals: glass blocks {}, glass faces {}", glassBlocks.load(), glassFaces.load());
+    PaneFence::unhook(true);
+    PaneTexture::unhook(true);
+    PaneUv::unhook(true);
 }
 }
 #else
