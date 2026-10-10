@@ -10,6 +10,109 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-119 Fence gates show no icon where Lamium draws item icons
+Done 2026-10-10: fence gates fixed by the shared-mesh icon path (`cbaacfc`, checked). The shield glint stays under L-91.
+Kind: Bug. Reported by the maintainer 2026-10-08; widened 2026-10-10.
+Status: open after two runtime rounds (2026-10-10, VALIDATION-LOG), both
+reverted. Trace: vanilla slots draw fences, gates, stairs and walls as chunk
+type 0 into `_renderGuiBlockTypeItem`; Lamium's `renderGuiItemNew` uses chunk
+type 12 into the same function, for gates and fences alike, with block
+graphics present. Drawing the preview as chunk type 0 with the slot's alpha 0
+showed no block icons; with alpha 1 it looked exactly like
+`renderGuiItemNew` (fences and blocks drawn, gates missing). So the call
+route is not the cause: the gate mesh itself does not show outside a
+vanilla slot. Third round (`1e46a3e`, reverted): without a slot background
+and at z 40 the gates stayed missing; drawn at scale -1 (flipped winding,
+the snow block then showed its inside faces) they stayed missing too. So
+neither depth nor face culling hides them: outside the slot batch the gate
+mesh draws nothing at all. Stopped after three rounds (2026-10-10). The fix
+that remains is the one parked under L-91: draw icons through the vanilla
+slot path (drive an `InventoryItemRenderer` or its pass setup), which
+could fix gates, the shield glint and leather layers together. A larger
+change; the maintainer decides whether to start it.
+Started 2026-10-10 together with L-91 (maintainer). Round 4 (trace
+`7dac7d5`, VALIDATION-LOG): vanilla slots do not use the geometry atlas
+(`GeometryAtlas::ItemRenderContextImpl` and `renderItemToTile` never ran).
+Block items (fences, gates, stairs) are a shared-mesh batch (`UIBatchType`
+1, UI material 13, `atlas.terrain`): inside a slot `renderGuiItemInChunk`
+adds the block to a mesh the batch draws afterwards with its material,
+which is why the slot passes alpha 0. Shields and leather are default
+batches (type 0); an enchanted shield has three passes (materials 9, 5 with
+`enchanted_item_glint`, 7). Calling `InventoryItemRenderer::getItemRenderInfo`
+on a preview stack crashed the game; do not call it again.
+Next round (proposal): wrap Lamium's icon in the vanilla flow,
+`MinecraftUIRenderContext::beginSharedMeshBatch(batch)` ->
+`renderGuiItemInChunk` -> `endSharedMeshBatch(batch)` with a
+`ComponentRenderBatch` built like the slot's (key: batch type, material 13,
+textures), first for block items in the shulker preview only. Risk: the
+context's persistent mesh list is indexed per frame
+(`mCurrentPersistentMeshItemIdx`); adding batches outside the UI pass may
+disturb vanilla's, so the round watches for flicker and crashes.
+Done 2026-10-10 for block and flat items (`cbaacfc`, checked in game):
+`inspection/render/ItemIcon` batches chunk types 0 (`atlas.terrain`, alpha
+0) and 2 (`atlas.items`, alpha 1) with UI material 13 for every Lamium icon;
+fence gates and leather layers now match vanilla. Left: the shield glint
+(default batch, passes 9/5/7); the offhand icon was 1 px low (fixed
+2026-10-10, icon one unit higher). Shield glint round (`75433f6`,
+reverted): drawing chunk 4 then 5 directly after the icon, and chunk 4 inside
+a batch with UI material 5 and the glint texture in either texture slot,
+all showed no glint. The slot's glint pass needs
+`InventoryItemRenderer::preRenderSetup` and the default batch's per-pass
+material, neither reachable without a vanilla renderer instance. Parked
+until the maintainer wants it; a next try would clone a slot's
+`InventoryItemRenderer` and drive its `_render` passes.
+A fence gate inside a shulker box shows only its count in Shulker Box
+Preview, without the item icon. The maintainer saw the same in the other
+places that draw icons the same way (Lamium's own `renderGuiItemNew` calls,
+for example the Info HUD item lines), so this is the shared icon path, not
+the preview. Expected: icon and count everywhere. Find out whether every
+fence gate kind does it and whether other special block items (doors,
+signs, beds...) do too, then compare with how the inventory slot draws the
+same item (see also L-91 for icons that differ from vanilla slots).
+
+### L-121 Night Vision darkens areas around light sources at low Brightness
+Done 2026-10-10: checked in game on the batch build (VALIDATION-LOG).
+Kind: Ready (small). Found by the maintainer 2026-10-09 as a bug; the same
+day they showed it is the game's own behavior (VALIDATION-LOG).
+Status: built 2026-10-10 (`2e29216`, not yet checked in game): child option
+"Even brightness" (`lighting.nightVisionEven`, default on) raises
+`BaseLightData::mGamma` to 1 while Night Vision is on; the log prints the
+game's gamma once per change ("Night Vision: light gamma ..."), to confirm
+it is the Brightness value. Decided 2026-10-09 (maintainer): a Night Vision child option
+that removes the darkening, **default on**; Lamium's Night Vision should
+look fully bright by default. Off gives the vanilla look.
+Restated by the maintainer 2026-10-10: with a low game Brightness, Night
+Vision makes the area around light sources darker than the rest; Smooth
+Lighting widens that area. In the first report this showed as the corners
+and gaps that smooth lighting darkens turning dark blue, in a wide ring
+around a hole in a floor. The vanilla Night Vision effect does the same, also without
+LeviLamina. The game's Brightness setting decides how strong it is: strong
+at 0%, weaker at 50%, almost gone at 100%. With Smooth Lighting off the
+picture is even.
+
+| Smooth Lighting | Night Vision | Seen |
+| --- | --- | --- |
+| on | off | normal shading |
+| on | on | bright tops, gaps dark blue |
+| off | off | weaker shading in the gaps |
+| off | on | gaps lit too, even brightness |
+
+Lamium's Night Vision (`NightVision.cpp`) sets the game's own night vision
+fields of the light texture data and adds nothing else, so it shows the
+vanilla look. Candidate fix within the same hook: while Lamium's Night
+Vision is on, raise the light texture's `BaseLightData::mGamma` toward
+what Brightness 100% gives, so the user's Brightness setting is not
+changed. To find out in a first round: whether `mGamma` is the Brightness
+slider's value and whether raising it removes the blue ring, and how much
+brighter everything else gets. If `mGamma` does not do it, stop after two
+runtime rounds and report before trying a deeper path. The option follows
+the usual settings steps (Settings, Options, store, row, English, Japanese
+and Chinese strings) and only acts while Night Vision is on.
+Constraints (maintainer): do not turn Smooth Lighting off for the player;
+keep natural shading where possible; avoid deep render hooks. Check all four
+Smooth Lighting / Night Vision combinations, at Brightness 0, 50 and 100%,
+in bright and dark places, near light sources and on dense builds.
+
 ### L-113 Numbers sit higher than Japanese text in the settings screen
 Kind: Bug. Reported by the maintainer 2026-10-08 while checking the change
 arrow.
@@ -147,6 +250,105 @@ result is only the converted text; Latin typing and Backspace unchanged.
 ---
 
 ## Ready
+
+### L-129 Villager trades of every level
+Done 2026-10-10: all levels and locked tooltips checked (`0a41937`, `c7beed9`, `3cffc44`). Servers unchecked (VALIDATION).
+Kind: Research, then Design. From the maintainer's notes (2026-10-09); not
+chosen for building yet.
+Status: research answered 2026-10-10 (trace `6e29917`, local world): the
+client receives every trade. A level 1 weaponsmith's `UpdateTradePacket`
+carried 9 recipes with `tier` 0 to 4 (3/2/1/2/1), each with buy/sell items,
+counts, uses and `traderExp`, plus `TierExpRequirements` (0, 10, 70, 150,
+250) and the trader tier. An exact client-only display of locked trades is
+possible; servers send the same packet but were not traced.
+Design direction (maintainer 2026-10-10): blend into the vanilla trade screen
+as far as possible. Agent's proposal: the higher levels appear in the
+vanilla trade list under their usual level headers, below the unlocked
+ones, with the look vanilla uses for unavailable trades plus a lock, not
+selectable; hovering says which level unlocks it and how much trader XP is
+missing. Research first: the list comes from `Trade2ScreenController`
+(per-tier collections, `Trade2ContainerManagerModel::getEntityTradeTier`,
+`getNumberOfTradesByTier`); find whether the client already holds the
+locked recipes there and only stops at the trader's tier, and whether
+showing them can stay display-only (no trade request for a locked row).
+Fallback if the vanilla list cannot take them: a panel beside the screen in
+vanilla's look.
+Built and checked 2026-10-10 (`0a41937`): option "All trader levels"
+(`inspection.lockedTrades`, default on, toggle action `lockedtrades`)
+turns vanilla's `#tier_visible` on for every entry of `trade_tiers`; the
+locked look and non-selection stay vanilla's. Open (maintainer): hovering a
+locked trade's items should show their description like unlocked ones.
+Hover trace `af4f6f4` (round 3, 2026-10-10): unlocked rows bind
+`#hover_text` on hover with the full description ("Iron Sword / Looting I /
+Bane of Arthropods II / +6 Attack Damage / Durability"); locked rows bind
+nothing. The locked toggle (`#trade_toggle_enabled` false, vanilla's
+`toggle_locked` state) does not pass the hover to the item buttons inside,
+so vanilla never asks for their text. Options for the maintainer: (A) keep
+the locked look and have Lamium draw the item's tooltip when the pointer is
+over a locked trade's item (find the item controls in the screen's control
+tree, as the offhand slot finds the hotbar; text from the item itself); (B)
+enable the locked rows' toggles so vanilla hovers work, block their
+selection, and lose the locked look on the rows (the level header stays
+grey). Maintainer chose (A). Built and checked 2026-10-10 (`c7beed9`):
+`LockedTrades.cpp` keeps the offer's items from `UpdateTradePacket`, finds
+the locked item under the pointer in `trade_selector_stack_panel`
+(tier panels, rows, `trade_item_1`/`trade_item_2`/`sell_item`) and draws
+`getFormattedHovertext` in the preview frame; pure parts in
+`LockedTradeIndex.h`. Jitter fix `3cffc44` not yet checked.
+Show a level 1 villager's trades up to level 5, the locked ones marked and
+not usable. First find out whether the client receives the future trades at
+all: trace `UpdateTradePacket`, the trade NBT and the UI collection when the
+trade screen opens. If they are not sent, an exact client-only display is
+not possible and the idea is reconsidered. Open: fitting it into the vanilla
+trade screen without a separate feature.
+
+### L-126 Leave FreeCamera when the body is hit (option)
+Done 2026-10-10: checked in game on `d2f288c` (hits ended FreeCamera, event 2).
+Kind: Ready. From use 2026-10-09 (maintainer's notes).
+Status: built 2026-10-10 (`792c931`, not yet checked in game): option
+"Leave when the body is hit" (`camera.freeCameraLeaveOnHit`, default off);
+`LocalPlayer::handleEntityEvent` with `Hurt` or
+`HurtWithoutReceivingDamage` ends FreeCamera and logs "FreeCamera left: the
+body was hit". Decided 2026-10-10 (maintainer): an option, **default off**,
+that ends FreeCamera and returns to the body's view when the body is hit,
+including hits that cost no health (a snowball counts). Being off by
+default, a wide trigger is fine: any damage counts, continuous damage
+(fire, hunger, poison) included, even though it ends FreeCamera at once;
+a player who minds turns the option off. Off keeps FreeCamera through
+damage as today. Research first: which client-side signal fires for every
+hit (the hurt event the server sends for the local player, hurt time or
+animation) and works on servers, not a health drop alone.
+
+### L-125 Waypoints at the current position use the camera during FreeCamera
+Done 2026-10-10: checked in game on `d2f288c`.
+Kind: Ready (small). From use 2026-10-09 (maintainer's notes).
+Status: built 2026-10-10 (`7a19fc0`, not yet checked in game): the Add
+waypoint key, the Waypoints screen's add and Move here. Schematic "here"
+stays the body's. Decided 2026-10-10 (maintainer): during FreeCamera, a waypoint
+added "at the current position" uses the camera's position. The waypoint
+creation screen opens as usual (name, color...); only the position it is
+filled with changes, and nothing is added to say which one. Otherwise the body's position as today; a position picked
+explicitly on the map wins. FreeCamera ends on dimension travel, so the
+camera and body share a dimension. Separate from L-124 (what the HUD shows).
+
+### L-124 Camera and player position and facing during FreeCamera
+Done 2026-10-10: checked in game after the angle fix `3c17f84`.
+Kind: Ready. From use 2026-10-09 (maintainer's notes).
+Status: built 2026-10-10 (`af7479f`, not yet checked in game). Decided
+2026-10-10 (maintainer chose the agent's proposal): Debug View shows Camera
+and Player position and facing lines; block, chunk, light and biome follow
+the camera. The Info HUD switches its place and angle lines (coordinates,
+scaled coordinates, block, chunk, facing, yaw, pitch, rotation, biome,
+light, weather) to the camera with a "Cam" label; speed stays the body's.
+During FreeCamera, Info HUD and Debug View show the body's coordinates and
+the body's facing (yaw/pitch, direction). The camera has its own position
+and its own facing, and neither is shown. Knowing where the body is and
+where it faces stays useful, so the camera's values are added, not swapped
+in: where there is room (Debug View first) show Camera and Player position
+and facing, labeled. Open (Design): how the compact Info HUD shows it (both
+lines, a switch, density-dependent), whether position and facing are paired
+per owner or per kind, and which owner chunk and biome follow. Body-only
+values (health, inventory) never follow the camera.
 
 ### L-60 Map: minimap, waypoints and world map (experimental)
 Kind: Design completed; implementation built. Remaining work is validation
