@@ -3,6 +3,7 @@
 #include "app/Runtime.h"
 #include "features/inspection/preview/ContainerPreview.h"
 #include "features/inspection/render/DurabilityBar.h"
+#include "features/inspection/render/ItemIcon.h"
 #include "features/inspection/render/PreviewLayout.h"
 
 #include "mc/client/game/IClientInstance.h"
@@ -19,14 +20,6 @@
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/client/renderer/BaseActorRenderContext.h"
 #include "mc/client/renderer/actor/ItemRenderer.h"
-#include "mc/client/gui/controls/UIMaterialType.h"
-#include "mc/client/gui/controls/renderers/InventoryItemRenderer.h"
-#include "mc/client/gui/screens/BatchClippingState.h"
-#include "mc/client/gui/screens/BatchKey.h"
-#include "mc/client/gui/screens/ComponentRenderBatch.h"
-#include "mc/client/gui/screens/UIBatchType.h"
-#include "mc/deps/core/file/PathView.h"
-#include "mc/deps/core/resource/ResourceLocation.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/deps/core/math/Color.h"
 #include "mc/deps/core/string/HashedString.h"
@@ -34,11 +27,8 @@
 #include "mc/deps/input/RectangleArea.h"
 #include "mc/world/item/Item.h"
 
-#include <cstddef>
-#include <cstring>
-#include <memory>
-#include <new>
 #include <optional>
+#include <vector>
 #include <string>
 
 namespace lamium::inspection::render {
@@ -78,42 +68,6 @@ constexpr float kCountOffsetY      = 1.0f;
 constexpr int   kCountMeasureLimit = 1000; // no wrapping/clipping for a few digits
 
 RectangleArea toArea(Rect const& r) { return RectangleArea{r.x0, r.x1, r.y0, r.y1}; }
-
-// Vanilla slots draw block items (fences, gates, stairs) into a shared-mesh
-// batch that the UI then draws with its item material (UI material 13 on
-// atlas.terrain); drawn on their own, fence gates show nothing (L-119). This
-// batch is built like a slot's. ComponentRenderBatch and BatchKey have no
-// usable default constructors, so the batch lives in raw storage.
-class SharedItemBatch {
-    alignas(ComponentRenderBatch) std::byte bytes[sizeof(ComponentRenderBatch)];
-public:
-    explicit SharedItemBatch(int depth) {
-        std::memset(bytes, 0, sizeof bytes);
-        auto& batch = get();
-        alignas(BatchClippingState) std::byte clipBytes[sizeof(BatchClippingState)]{};
-        auto& key = *::new (&*batch.mBatchKey) BatchKey(depth, 1.0f, *reinterpret_cast<BatchClippingState*>(clipBytes));
-        key.mBatchType = UIBatchType::SharedMesh;
-        key.mUIMaterialType = static_cast<UIMaterialType>(13);
-        auto& textures = *key.mResourceLocations;
-        std::destroy_at(&textures[0]);
-        ::new (&textures[0]) ResourceLocation(Core::PathView("atlas.terrain"));
-        std::destroy_at(&textures[1]);
-        ::new (&textures[1]) ResourceLocation(Core::PathView("textures/entity/banner/banner"));
-        batch.mIsDirty = true; // Rebuilt every frame: the preview's contents change with the hovered box.
-        batch.mRequiresPreRenderSetup = false;
-        batch.mRenderPass = 0;
-        ::new (&*batch.mCustomRenderInstances) std::vector<CustomRenderComponent*>();
-        ::new (&*batch.mSpriteInstances) std::vector<SpriteComponent*>();
-        ::new (&*batch.mTextInstances) std::vector<TextComponent*>();
-    }
-    ~SharedItemBatch() { std::destroy_at(&get()); }
-    SharedItemBatch(SharedItemBatch const&) = delete;
-    SharedItemBatch& operator=(SharedItemBatch const&) = delete;
-    ComponentRenderBatch& get() { return *std::launder(reinterpret_cast<ComponentRenderBatch*>(bytes)); }
-};
-bool blockItem(ItemStack const& stack) {
-    return InventoryItemRenderer::getRenderTypeFromItem(stack) == ItemRenderChunkType{};
-}
 
 } // namespace
 
@@ -164,47 +118,33 @@ void PreviewRenderer::render(
     context.drawRectangle(toArea(layout.frame), kFrameBorder, 1.0f, 1);
     context.flushImages(kWhite, 1.0f, kFillMaterial);
 
-    // 2. Item icons, drawn immediately by the game's item renderer.
+    // 2. Item icons, drawn the way vanilla slots draw them, then the glint
+    //    overlay on top.
     IClientInstance& client       = context.mClient;
     ItemRenderer*    itemRenderer = client.getItemRenderer();
     if (itemRenderer) {
         BaseActorRenderContext renderContext(context.mScreenContext, client, client.getMinecraftGame_DEPRECATED());
         Mob* const             holder = client.getLocalPlayer();
-        bool anyBlock = false;
-        for (int slot = 0; slot < preview.slotCount() && !anyBlock; ++slot) {
+        std::vector<IconAt>    icons;
+        std::vector<int>       frames(static_cast<size_t>(preview.slotCount()), 0);
+        for (int slot = 0; slot < preview.slotCount(); ++slot) {
             ItemStack const& stack = preview.slots[static_cast<size_t>(slot)];
-            anyBlock = !stack.isNull() && stack.mItem && blockItem(stack);
+            if (stack.isNull() || !stack.mItem) continue;
+            // Same frame source as a vanilla inventory slot: the item decides
+            // (clock, compass, crossbow, ...); static items return 0.
+            frames[static_cast<size_t>(slot)] = stack.mItem->getAnimationFrameFor(holder, false, &stack, true);
+            Rect const icon = layout.icon(slot);
+            icons.push_back({&stack, icon.x0, icon.y0, 1.0f, frames[static_cast<size_t>(slot)]});
         }
-        if (anyBlock) {
-            SharedItemBatch batch{kItemZOrder};
-            context.beginSharedMeshBatch(batch.get());
-            for (int slot = 0; slot < preview.slotCount(); ++slot) {
-                ItemStack const& stack = preview.slots[static_cast<size_t>(slot)];
-                if (stack.isNull() || !stack.mItem || !blockItem(stack)) continue;
-                Rect const icon = layout.icon(slot);
-                // The slot's arguments: alpha 0, the batch's material draws the mesh.
-                itemRenderer->renderGuiItemInChunk(renderContext, ItemRenderChunkType{}, stack, icon.x0, icon.y0, 1.0f,
-                    0.0f, 1.0f, 0, false, kItemZOrder, std::nullopt);
-            }
-            context.endSharedMeshBatch(batch.get());
-        }
+        drawItemIcons(context, icons, kItemZOrder);
         for (int slot = 0; slot < preview.slotCount(); ++slot) {
             ItemStack const& stack = preview.slots[static_cast<size_t>(slot)];
             if (stack.isNull() || !stack.mItem) {
                 continue;
             }
-            bool const batched = blockItem(stack); // Drawn by the shared batch above.
             Item const& item = *stack.mItem;
             Rect const  icon = layout.icon(slot);
-            // Same frame source as a vanilla inventory slot: the item decides
-            // (clock, compass, crossbow, ...); static items return 0.
-            int const frame = item.getAnimationFrameFor(holder, false, &stack, true);
-
-            // renderEnchantmentFoil selects the pass: false draws the item
-            // icon itself, true draws only the additive glint overlay.
-            if (!batched)
-                itemRenderer
-                    ->renderGuiItemNew(renderContext, stack, frame, icon.x0, icon.y0, false, 1.0f, 1.0f, 1.0f, kItemZOrder);
+            int const   frame = frames[static_cast<size_t>(slot)];
             // Vanilla's glint predicate: Item::isGlint, which items override
             // (enchanted books, enchanted golden apples, ...), not raw
             // enchantment NBT.

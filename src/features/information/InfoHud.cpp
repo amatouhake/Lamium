@@ -49,6 +49,7 @@
 #include "mc/deps/core/utility/NonOwnerPointer.h"
 #include "mc/deps/input/RectangleArea.h"
 #include "features/inspection/render/DurabilityBar.h"
+#include "features/inspection/render/ItemIcon.h"
 #include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/level/Level.h"
@@ -345,10 +346,8 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
         y += rowH;
         auto* renderer = context.mClient.getItemRenderer();
         for (auto const& m : materials) {
-            if (auto const* stack = schematic::items::iconStack(m.icon); stack && renderer) {
-                BaseActorRenderContext renderContext(context.mScreenContext, context.mClient, context.mClient.getMinecraftGame_DEPRECATED());
-                renderer->renderGuiItemNew(renderContext, *stack, 0, std::round(x), std::round(y), false, 1.f, 1.f, icon / 16, 17);
-            }
+            if (auto const* stack = schematic::items::iconStack(m.icon); stack && renderer)
+                inspection::render::drawItemIcon(context, {stack, std::round(x), std::round(y), icon / 16}, 17);
             text(x + icon + 2 * z, y, leftX - x - icon - 4 * z, m.name, ui::palette::text, small);
             text(leftX, y, numW, std::to_string(m.left), ui::palette::text, small, ui::Align::Right);
             text(haveX, y, numW, m.unknown ? "-" : std::to_string(m.have),
@@ -415,14 +414,10 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     for (size_t i = 0; i < rows.size(); ++i) {
         auto const& row = rows[i];
         float x = placement.x + padX + z, y = placement.y + padY + i * rowH;
-        if (renderer) {
-            BaseActorRenderContext renderContext(context.mScreenContext, context.mClient,
-                                                 context.mClient.getMinecraftGame_DEPRECATED());
-            // Whole GUI units, as in inventory slots: layered icons (dyed
-            // leather) show seams between their layers at fractional positions.
-            renderer->renderGuiItemNew(renderContext, stacks[static_cast<size_t>(row.slot)], 0, std::round(x),
-                                       std::round(y + z), false, 1.f, 1.f, z, 17);
-        }
+        // Whole GUI units, as in inventory slots: layered icons (dyed
+        // leather) show seams between their layers at fractional positions.
+        if (renderer)
+            inspection::render::drawItemIcon(context, {&stacks[static_cast<size_t>(row.slot)], std::round(x), std::round(y + z), z}, 17);
         float cx = x + icon;
         if (dur::showsBar(look)) {
             cx += gap;
@@ -525,11 +520,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         return finalBox;
     float left = finalBox.x + padX, top = finalBox.y + padY;
     if (icon) {
-        if (auto* renderer = context.mClient.getItemRenderer()) {
-            BaseActorRenderContext renderContext(context.mScreenContext, context.mClient,
-                                                 context.mClient.getMinecraftGame_DEPRECATED());
-            renderer->renderGuiItemNew(renderContext, stack, 0, left, top + (headerH - iconSize) / 2, false, 1.f, 1.f, z, 17);
-        }
+        inspection::render::drawItemIcon(context, {&stack, left, top + (headerH - iconSize) / 2, z}, 17);
     } else if (texture) {
         ui::imageUv(context, target.icon.name, {left, top + (headerH - iconSize) / 2, iconSize, iconSize},
                     target.icon.u0, target.icon.v0, target.icon.u1, target.icon.v1);
@@ -562,12 +553,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
             x += (10 * 8 + 1 + 4) * z;
         }
         if (auto const* stack = rowStack(row)) {
-            if (auto* renderer = context.mClient.getItemRenderer()) {
-                BaseActorRenderContext renderContext(context.mScreenContext, context.mClient,
-                                                     context.mClient.getMinecraftGame_DEPRECATED());
-                renderer->renderGuiItemNew(renderContext, *stack, 0, std::round(x), std::round(y), false, 1.f, 1.f,
-                                           rowIcon / 16, 17);
-            }
+            inspection::render::drawItemIcon(context, {stack, std::round(x), std::round(y), rowIcon / 16}, 17);
             x += rowIcon + 2 * z;
         }
         // Schematic rows in the verifier's colors (the HUD and Check tab use the same).
@@ -973,7 +959,7 @@ void drawOffhandSlot(MinecraftUIRenderContext& context, ScreenView const& view, 
         float x = std::round(icon.x), y = std::round(icon.y);
         // Compasses and clocks pick their frame as in an inventory slot.
         int frame = stack.mItem->getAnimationFrameFor(player, false, &stack, true);
-        renderer->renderGuiItemNew(renderContext, stack, frame, x, y, false, 1.f, 1.f, unit, 17);
+        inspection::render::drawItemIcon(context, {&stack, x, y, unit, frame}, 17);
         // The glint pass and its strength as in container previews.
         if (stack.mItem->isGlint(stack))
             renderer->renderGuiItemNew(renderContext, stack, frame, x, y, true, 1.35f, 1.f, unit, 17);
