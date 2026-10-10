@@ -250,7 +250,14 @@ type 3, scale 1.333, with the font's own material).
 
 ### L-120 Entity counts by kind in Debug View
 Kind: Design. From the maintainer's notes (2026-10-09); extends L-57.
-Status: open.
+Status: built (`75620ed`), unchecked in game. Decided 2026-10-11 with the
+mockup [demos/entity-counts.html](demos/entity-counts.html): the breakdown
+is one line under the total (setting, default on); the most common types,
+top 5 by default (off / 5 / 10), close the left column (the maintainer
+preferred the left over the right column), with game names in the game
+standard labels and identifiers without `minecraft:` in the Java F3 style.
+Kinds come from the actor's categories: Player, ItemEntity, Monster, Mob,
+else other. A Java-like pie chart was judged too much for now.
 Keep the `E:` total and optionally break it down without double counting,
 in this order: players, dropped items, hostile, passive, other, so the parts
 add up to `E:`; optionally per identifier (`getTypeName()`, add-on entities
