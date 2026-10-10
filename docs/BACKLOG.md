@@ -76,7 +76,7 @@ L-item wins. Every entry names what the task is, not only its number.
      glint in Lamium's icons (parked after one round; leather fixed).
    - Next: L-127 inventory grid HUD and free-slot counter (design agreed);
      L-132 move while the inventory screen is open
-     (research first).
+     (research paused after eight trial rounds).
    - Design first, not chosen yet: L-120 Debug View entity counts by kind.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
@@ -286,7 +286,8 @@ toggle hotkey (unbound by default):
 ### L-132 Move while the inventory screen is open
 Kind: Research, then Feature. Requested by the maintainer 2026-10-10;
 direction agreed the same day.
-Status: open.
+Status: open; paused 2026-10-10 after eight trial rounds without smooth
+movement (findings below).
 While the player's own inventory screen is open, keep walking, jumping and
 sprinting from the bound movement keys so items and armor can be arranged
 on the move. The camera cannot turn (the mouse belongs to the screen).
@@ -303,6 +304,35 @@ on the move. The camera cannot turn (the mouse belongs to the screen).
   `ClientInputMappingFactory::_createScreen*Mapping`, `MoveInputComponent`)
   and the least invasive place to feed the movement keys back in, without
   touching game state from the window procedure (AGENTS.md rule 2).
+- Trial record (2026-10-10, `xmake f --inventorymove_trace=y`,
+  `src/features/interaction/InventoryMoveTrace.cpp`, single player on
+  1.26.51.01; commits 7e56cc8..40de3e3, last DLL 9edd5c65...):
+  - `ClientInputUpdateSystem::extractRawHIDInput` keeps running (~20/s)
+    with `inventory_screen` open; vanilla's bindings read from
+    `getOptions().getCurrentKeyboardRemapping()` (`key.forward` = 87, ...,
+    `key.sprint` = 17). Bedrock's move x is positive to the left.
+  - Raw flags written after extraction are gone again by
+    `PlayerMovement::calculateMoveVector` (two calls per tick: the
+    `RawMoveInputComponent` state and a second state, likely the local
+    server's). No movement.
+  - Writing the flags into `MoveInputComponent`'s states after
+    `inputHandlerUpdatePlayerState` (and forcing the vector) reaches
+    `calculateMoveVector`, yet `MoveInputComponent::mMove` and the built
+    `PlayerAuthInputPacket` stay zero: the player moved only through server
+    corrections (~2/s), in jerks; no jump. The injected state flags also
+    persisted after closing the screen (kept walking). Patching the auth
+    packet's move vector and input flags did not smooth it.
+  - Not the cause: `MoveInputComponent::Flag::MoveInputStateLocked` and the
+    client input locks are clear; `UIScene::absorbsInput` forced false for
+    the inventory changes nothing; copying the gameplay key bindings
+    (`button.up/down/left/right/jump/sprint` from `gamePlayNormal`) into the
+    `screen*` input mappings changes nothing.
+  - Next guesses: find where `mMove` is zeroed while a non-play screen is
+    on top (inside `ClientInputUpdateSystemInternal::tickUpdateClientInputView`,
+    perhaps via `VanillaClientGameplayComponent` or a play-screen check);
+    or whether the input handler only routes movement button events to
+    `ClientMoveInputHandler` while the gameplay mapping is the active one
+    (`ClientInputMappingFactory::_activateMapping`).
 
 ### L-59 Held placement style: vanilla, Java-like or fast
 Kind: Design done (discussion with the maintainer, 2026-09-28); Research
