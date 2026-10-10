@@ -296,7 +296,7 @@ struct Settings {
         normalizeElement(hud.durability, ui::defaultHudElement(ui::HudElementId::Durability));
         normalizeElement(hud.minimap, ui::defaultHudElement(ui::HudElementId::Minimap));
         normalizeElement(hud.schematic, ui::defaultHudElement(ui::HudElementId::Schematic));
-        normalizeElement(hud.playerList, ui::defaultHudElement(ui::HudElementId::PlayerList));
+        normalizeElement(hud.playerList, ui::defaultHudElement(ui::HudElementId::PlayerList), true);
         map.zoom = map::clampZoomIndex(map.zoom);
         if (!std::isfinite(map.size)) map.size = 20;
         map.size = std::clamp(std::round(map.size), 10.f, 50.f);

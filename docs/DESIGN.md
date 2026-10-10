@@ -236,7 +236,7 @@ Contents:
 - **Line height and per-line backgrounds** (BACKLOG L-98, decided
   2026-10-06): the Info HUD, Status and Debug View share one "HUD line
   height" setting, 9-16 GUI units (default 12, chosen in game; it was 14
-  before; 9 is Java's debug screen). Info and Status add "Per line" to their
+  before; 9 is Java's debug screen). Info, Status and the player list (L-128) add "Per line" to their
   Background choice, and the Debug View gets "Background: None / Per line":
   each line gets a band of its text width plus 1 unit each side, rows touch,
   text centered in the band. On an element anchored to the right side the

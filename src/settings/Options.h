@@ -71,7 +71,7 @@ inline constexpr std::array<std::string_view,3> worldMarkerLabels{
     "worldMarkers.always", "worldMarkers.whileHeld", "worldMarkers.off"};
 inline constexpr auto elementBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard"});
-// Info and Status also offer a background behind each line (L-98).
+// Info, Status and the player list also offer a background behind each line (L-98, L-128).
 inline constexpr auto lineBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard", "hudBackgroundLine"});
 inline constexpr std::array<std::string_view,2> debugBackgroundLabels{"hudBackgroundNone","hudBackgroundLine"};
@@ -196,7 +196,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::playerListDimension>("information.playerListDimension", "playerList", "playerListDimension"),
     toggle<&Settings::information, &Settings::Information::playerListDistance>("information.playerListDistance", "playerList", "playerListDistance"),
     hudNumeric<ui::HudElementId::PlayerList, &ui::HudElement::scale, 25>("hud.playerList.scale", "playerList", "hudScale", 75, 150),
-    hudChoice<ui::HudElementId::PlayerList, &ui::HudElement::background, elementBackgroundLabels>("hud.playerList.background", "playerList", "hudBackground"),
+    hudChoice<ui::HudElementId::PlayerList, &ui::HudElement::background, lineBackgroundLabels>("hud.playerList.background", "playerList", "hudBackground"),
     hudToggle<ui::HudElementId::PlayerList, &ui::HudElement::shadow>("hud.playerList.shadow", "playerList", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::saturation>("information.saturation", "saturation", "saturation"),
     toggle<&Settings::information, &Settings::Information::saturationPreview>("information.saturationPreview", "saturation", "saturationPreview"),
