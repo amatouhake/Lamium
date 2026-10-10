@@ -59,10 +59,10 @@ inline constexpr HudElement defaultHudElement(HudElementId id) {
     case HudElementId::Schematic: return {Anchor::MiddleLeft, hudInset, 0, 100, ElementBackground::Card, false};
     // Top center while its key is held (docs/demos/player-list.html).
     case HudElementId::PlayerList: return {Anchor::TopCenter, 0, hudInset, 100, ElementBackground::Card, true};
-    // Middle right, below the Status card, with the free-slot counter just
-    // above the grid (docs/demos/inventory-hud.html).
-    case HudElementId::Inventory: return {Anchor::MiddleRight, -hudInset, 36, 100, ElementBackground::Card, true};
-    case HudElementId::FreeSlots: return {Anchor::MiddleRight, -hudInset, -2, 100, ElementBackground::Card, true};
+    // Bottom right: the free-slot counter in the corner and the grid above it,
+    // clear of the hotbar (chosen in game 2026-10-11).
+    case HudElementId::Inventory: return {Anchor::BottomRight, -hudInset, -hudInset - 17, 100, ElementBackground::Card, true};
+    case HudElementId::FreeSlots: return {Anchor::BottomRight, -hudInset, -hudInset, 100, ElementBackground::Card, true};
     // Above the armor and absorption rows over the hotbar.
     default: return {Anchor::BottomCenter, 0, -72, 100, ElementBackground::Card, false};
     }

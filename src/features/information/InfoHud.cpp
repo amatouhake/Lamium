@@ -1034,8 +1034,8 @@ std::optional<ui::hud_editor::Box> drawInventoryGrid(MinecraftUIRenderContext& c
     ui::HudElement const& element, InventorySample const& sample, bool hotbar) {
     namespace inv = inventoryHud;
     float z = elementZoom(element);
-    bool card = element.background == ui::ElementBackground::Card, band = element.background == ui::ElementBackground::Line;
-    float pad = card || band ? 3 * z : 0;
+    bool card = element.background == ui::ElementBackground::Card;
+    float pad = card ? 3 * z : 0;
     float cell = inv::slotSize * z;
     float gridW = 9 * cell, gridH = inv::gridHeight(hotbar, cell);
     float boxW = gridW + 2 * pad, boxH = gridH + 2 * pad;
@@ -1045,26 +1045,15 @@ std::optional<ui::hud_editor::Box> drawInventoryGrid(MinecraftUIRenderContext& c
     // Whole GUI units, as in inventory slots: layered icons (dyed leather)
     // show seams between their layers at fractional positions.
     float left = std::round(placement.x + pad), top = std::round(placement.y + pad);
-    // Per line: one band per row; touching rows must not overlap, so only
-    // the first and last band reach into the padding.
-    if (band)
-        for (size_t row = 0; row < rows.size(); ++row) {
-            float y = top + inv::rowTop(static_cast<int>(row), cell), h = cell;
-            if (row == 0 || row == 3) { y -= pad; h += pad; }
-            if (row + 1 == rows.size() || row == 2) h += pad;
-            ui::fill(context, placement.x, y, boxW, h, ui::palette::panel, cardOpacity);
-        }
     std::vector<inspection::render::IconAt> icons;
     std::vector<std::pair<ItemStack const*, offhand::Box>> drawn;
     for (size_t row = 0; row < rows.size(); ++row)
         for (size_t column = 0; column < rows[row].size(); ++column) {
             auto i = static_cast<size_t>(rows[row][column]);
             float x = left + column * cell, y = top + inv::rowTop(static_cast<int>(row), cell);
-            if (!sample.occupied[i]) {
-                // Empty: a faint frame only.
-                ui::frame(context, x + z, y + z, cell - 2 * z, cell - 2 * z, ui::palette::text, .18f);
-                continue;
-            }
+            // Every slot has a faint frame; empty ones show only that.
+            ui::frame(context, x + z, y + z, cell - 2 * z, cell - 2 * z, ui::palette::text, .18f);
+            if (!sample.occupied[i]) continue;
             offhand::Box icon{std::round(x + z), std::round(y + z), 16 * z, 16 * z};
             icons.push_back({&sample.stacks[i], icon.x, icon.y, z});
             drawn.push_back({&sample.stacks[i], icon});
@@ -1080,8 +1069,10 @@ std::optional<ui::hud_editor::Box> drawInventoryGrid(MinecraftUIRenderContext& c
 std::optional<ui::hud_editor::Box> drawFreeSlots(MinecraftUIRenderContext& context, float width, float height,
     ui::HudElement const& element, InventorySample const& sample, bool hotbar) {
     int free = inventoryHud::freeSlots(sample.occupied, hotbar);
+    // One line: a row as tall as the text keeps the card's padding even.
     return drawElement(context, width, height, element,
-                       {{ui::translated("freeSlots.count", free), std::nullopt, free == 0 ? ui::palette::warning : ui::palette::text}});
+                       {{ui::translated("freeSlots.count", free), std::nullopt, free == 0 ? ui::palette::warning : ui::palette::text}},
+                       ui::lineGlyphHeight + 1);
 }
 // ---- Player list (L-128, docs/demos/player-list.html) ----
 // Face, name, host crown, platform, dimension and distance in aligned columns:

@@ -71,7 +71,7 @@ inline constexpr std::array<std::string_view,3> worldMarkerLabels{
     "worldMarkers.always", "worldMarkers.whileHeld", "worldMarkers.off"};
 inline constexpr auto elementBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard"});
-// Info, Status, the player list and the inventory HUD also offer a background behind each line (L-98, L-128, L-127).
+// Info, Status and the player list also offer a background behind each line (L-98, L-128).
 inline constexpr auto lineBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard", "hudBackgroundLine"});
 inline constexpr std::array<std::string_view,2> debugBackgroundLabels{"hudBackgroundNone","hudBackgroundLine"};
@@ -207,12 +207,12 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::inventoryHud>("information.inventoryHud", "inventoryHud", "inventoryHud"),
     toggle<&Settings::information, &Settings::Information::inventoryHotbar>("information.inventoryHotbar", "inventoryHud", "inventoryHotbar"),
     hudNumeric<ui::HudElementId::Inventory, &ui::HudElement::scale, 25>("hud.inventory.scale", "inventoryHud", "hudScale", 75, 150),
-    hudChoice<ui::HudElementId::Inventory, &ui::HudElement::background, lineBackgroundLabels>("hud.inventory.background", "inventoryHud", "hudBackground"),
+    hudChoice<ui::HudElementId::Inventory, &ui::HudElement::background, elementBackgroundLabels>("hud.inventory.background", "inventoryHud", "hudBackground"),
     hudToggle<ui::HudElementId::Inventory, &ui::HudElement::shadow>("hud.inventory.shadow", "inventoryHud", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::freeSlots>("information.freeSlots", "freeSlots", "freeSlots"),
     toggle<&Settings::information, &Settings::Information::inventoryHotbar>("information.freeSlotsHotbar", "freeSlots", "inventoryHotbar"),
     hudNumeric<ui::HudElementId::FreeSlots, &ui::HudElement::scale, 25>("hud.freeSlots.scale", "freeSlots", "hudScale", 75, 150),
-    hudChoice<ui::HudElementId::FreeSlots, &ui::HudElement::background, lineBackgroundLabels>("hud.freeSlots.background", "freeSlots", "hudBackground"),
+    hudChoice<ui::HudElementId::FreeSlots, &ui::HudElement::background, elementBackgroundLabels>("hud.freeSlots.background", "freeSlots", "hudBackground"),
     hudToggle<ui::HudElementId::FreeSlots, &ui::HudElement::shadow>("hud.freeSlots.shadow", "freeSlots", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::saturation>("information.saturation", "saturation", "saturation"),
     toggle<&Settings::information, &Settings::Information::saturationPreview>("information.saturationPreview", "saturation", "saturationPreview"),

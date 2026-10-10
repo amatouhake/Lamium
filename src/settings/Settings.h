@@ -302,8 +302,8 @@ struct Settings {
         normalizeElement(hud.minimap, ui::defaultHudElement(ui::HudElementId::Minimap));
         normalizeElement(hud.schematic, ui::defaultHudElement(ui::HudElementId::Schematic));
         normalizeElement(hud.playerList, ui::defaultHudElement(ui::HudElementId::PlayerList), true);
-        normalizeElement(hud.inventory, ui::defaultHudElement(ui::HudElementId::Inventory), true);
-        normalizeElement(hud.freeSlots, ui::defaultHudElement(ui::HudElementId::FreeSlots), true);
+        normalizeElement(hud.inventory, ui::defaultHudElement(ui::HudElementId::Inventory));
+        normalizeElement(hud.freeSlots, ui::defaultHudElement(ui::HudElementId::FreeSlots));
         map.zoom = map::clampZoomIndex(map.zoom);
         if (!std::isfinite(map.size)) map.size = 20;
         map.size = std::clamp(std::round(map.size), 10.f, 50.f);
