@@ -37,6 +37,13 @@ struct CellMesh {
     CellStyle style{};
     // Built from something else, for another material, or its upload was lost.
     bool stale(std::uint64_t key, CellStyle const& style, FaceMaterial const& material) const;
+    // Drops the uploads (meshes cannot be assigned); the next draw rebuilds.
+    void release() {
+        faces.reset(); lines.reset();
+        faceVertices = lineVertices = 0;
+        key = 0;
+        variant = -1;
+    }
 };
 void buildCellMesh(ScreenContext& screen, CellMesh& mesh, std::span<CellFace const> faces, std::span<Line const> lines,
                    CellStyle const& style, FaceMaterial const& material, std::uint64_t key);

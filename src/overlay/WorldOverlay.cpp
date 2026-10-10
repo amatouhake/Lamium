@@ -110,8 +110,6 @@ void joinWorld(ll::event::ClientJoinLevelEvent& event) noexcept {
 // A shape being created is previewed as lines and never persisted.
 ShapeCollection draftCollection(1);
 constexpr ShapeId draftKey = ~ShapeId{0};
-// The breaking region of the press in progress (L-15), drawn like a shape.
-constexpr ShapeId restrictionKey = draftKey - 1;
 bool hasShapes() {
     std::lock_guard lock(shapeMutex);
     return !shapeCollection.entries().empty() || !draftCollection.entries().empty();
@@ -139,6 +137,9 @@ namespace {
 // Uploaded shape meshes (CellMesh), owned by the render thread: only a
 // revision change rebuilds one. World exit asks the next frame to release them.
 std::map<ShapeId, CellMesh> shapeMeshes;
+// The breaking region of the press in progress (L-15): white faces with a
+// faint grid, like a face-style shape.
+CellMesh restrictionMesh;
 std::atomic<bool> releaseMeshes{false};
 struct EyeTrack { EyeOffsetInterpolator offset; uint64_t seenFrame = 0; };
 thread_local std::unordered_map<ActorRuntimeID, EyeTrack> eyeTracks;
@@ -393,7 +394,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     auto const settings = runtime.snapshot();
     auto const& preferences = settings->overlays;
     bool breaking = settings->interaction.breaking;
-    if (releaseMeshes.exchange(false)) { shapeMeshes.clear(); releaseLight(); eyeTracks.clear(); }
+    if (releaseMeshes.exchange(false)) { shapeMeshes.clear(); restrictionMesh.release(); releaseLight(); eyeTracks.clear(); }
     if (!preferences.hitboxes) eyeTracks.clear();
     if (!preferences.light && !lightChunks.empty()) releaseLight();
     bool shapesShown = preferences.shapes && hasShapes();
@@ -413,7 +414,6 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
             // Release meshes of removed shapes.
             if (shapeMeshes.size() > shapeCollection.entries().size() + draftCollection.entries().size())
                 std::erase_if(shapeMeshes, [&](auto const& entry) {
-                    if (entry.first == restrictionKey) return false;
                     return entry.first == draftKey ? draftCollection.entries().empty() : !shapeCollection.find(entry.first);
                 });
         }
@@ -428,19 +428,23 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
                 if (hit.mType == HitResultType::Tile) target = Cell{hit.mBlock.x, hit.mBlock.y, hit.mBlock.z};
                 thread_local std::optional<interaction::RestrictionRegion> cachedRegion;
                 thread_local std::optional<Cell> cachedTarget;
-                thread_local ManagedShape restriction;
-                if (cachedRegion != region || cachedTarget != target || !restriction.revision) {
+                thread_local CellSurface restriction;
+                thread_local uint64_t restrictionRevision = 0;
+                if (cachedRegion != region || cachedTarget != target || !restrictionRevision) {
                     auto cells = region->preview(4);
                     if (target) cells.erase(*target);
-                    restriction.definition.style = ShapeStyle::Face;
-                    restriction.definition.color = ShapeColor::White;
-                    restriction.faces = boundaryFaces(cells);
-                    restriction.lines = gridSurfaceLines(cells);
-                    ++restriction.revision;
+                    restriction = cellSurface(cells);
+                    ++restrictionRevision;
                     cachedRegion = region;
                     cachedTarget = target;
                 }
-                drawShape(context, faceMaterial(client), restrictionKey, restriction, false);
+                auto const material = faceMaterial(client);
+                auto [r, g, b] = shapeColor(ShapeColor::White, false);
+                CellStyle style{r, g, b, true};
+                if (restrictionMesh.stale(restrictionRevision, style, material))
+                    buildCellMesh(context.mScreenContext, restrictionMesh, restriction.faces, restriction.lines, style, material,
+                                  restrictionRevision);
+                if (context.mImpl) drawCellMesh(context.mScreenContext, context.mImpl->mCameraPosition, restrictionMesh, material);
             }
         }
         auto& dimension = player->getDimension();
