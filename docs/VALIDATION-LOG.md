@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Shield glint variants and offhand offset (2026-10-10)
+
+By the maintainer, local, trace build `75433f6` (DLL
+`953bf3e4f07429554e3a5ff0100d42ed5fd28d27771767b905702bfc054b9396`). Three
+glint variants for an enchanted shield in the shulker preview (chunk 4/5
+directly; chunk 4 in a material-5 batch with the glint texture in the second
+or the first texture slot) all drew the shield without glint. Screenshot:
+a totem in the offhand slot sits about 1 px lower than in the hotbar.
+
 ## Shared-mesh item icons everywhere (2026-10-10)
 
 By the maintainer, local, normal build `cbaacfc` (DLL

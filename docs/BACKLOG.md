@@ -312,7 +312,15 @@ Done 2026-10-10 for block and flat items (`cbaacfc`, checked in game):
 `inspection/render/ItemIcon` batches chunk types 0 (`atlas.terrain`, alpha
 0) and 2 (`atlas.items`, alpha 1) with UI material 13 for every Lamium icon;
 fence gates and leather layers now match vanilla. Left: the shield glint
-(default batch, passes 9/5/7) and the offhand icon possibly 1 px low.
+(default batch, passes 9/5/7); the offhand icon was 1 px low (fixed
+2026-10-10, icon one unit higher). Shield glint round (`75433f6`,
+reverted): drawing chunk 4 then 5 directly after the icon, and chunk 4 inside
+a batch with UI material 5 and the glint texture in either texture slot,
+all showed no glint. The slot's glint pass needs
+`InventoryItemRenderer::preRenderSetup` and the default batch's per-pass
+material, neither reachable without a vanilla renderer instance. Parked
+until the maintainer wants it; a next try would clone a slot's
+`InventoryItemRenderer` and drive its `_render` passes.
 A fence gate inside a shulker box shows only its count in Shulker Box
 Preview, without the item icon. The maintainer saw the same in the other
 places that draw icons the same way (Lamium's own `renderGuiItemNew` calls,
