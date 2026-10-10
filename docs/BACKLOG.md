@@ -431,8 +431,19 @@ client receives every trade. A level 1 weaponsmith's `UpdateTradePacket`
 carried 9 recipes with `tier` 0 to 4 (3/2/1/2/1), each with buy/sell items,
 counts, uses and `traderExp`, plus `TierExpRequirements` (0, 10, 70, 150,
 250) and the trader tier. An exact client-only display of locked trades is
-possible; servers send the same packet but were not traced. Next: Design
-(where locked trades show in the trade screen).
+possible; servers send the same packet but were not traced.
+Design direction (maintainer 2026-10-10): blend into the vanilla trade screen
+as far as possible. Agent's proposal: the higher levels appear in the
+vanilla trade list under their usual level headers, below the unlocked
+ones, with the look vanilla uses for unavailable trades plus a lock, not
+selectable; hovering says which level unlocks it and how much trader XP is
+missing. Research first: the list comes from `Trade2ScreenController`
+(per-tier collections, `Trade2ContainerManagerModel::getEntityTradeTier`,
+`getNumberOfTradesByTier`); find whether the client already holds the
+locked recipes there and only stops at the trader's tier, and whether
+showing them can stay display-only (no trade request for a locked row).
+Fallback if the vanilla list cannot take them: a panel beside the screen in
+vanilla's look.
 Show a level 1 villager's trades up to level 5, the locked ones marked and
 not usable. First find out whether the client receives the future trades at
 all: trace `UpdateTradePacket`, the trade NBT and the UI collection when the
