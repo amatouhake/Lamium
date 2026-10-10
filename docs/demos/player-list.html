@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lamium Player List Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{color-scheme:dark;--ground:#15181a;--ground-2:#1c2124;--line:#2c3337;--ink:#e6ebe8;--ink-2:#a6b0ab;--ink-3:#77827c;--accent:#6cc349;--accent-deep:#3c8527;--warning:#ffc24a;--mc-font:"DotGothic16","MS Gothic",monospace;
+  --panel:16,17,19;--dim:#b4b8b6;--faint:#7f8583}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:24px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:80ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:10px}
+.controls{display:grid;gap:10px}
+.seg{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.seg button{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:13px;padding:5px 12px}
+.seg button[aria-pressed=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.seg button[disabled]{opacity:.45;cursor:not-allowed}
+.seg span{font-size:12.5px;color:var(--ink-3);margin-right:4px;min-width:7em}
+/* The game screen: a 640x360 GUI scaled by 2 in the page. */
+.screen{position:relative;width:100%;max-width:1152px;aspect-ratio:16/9;overflow:hidden;border:1px solid var(--line);
+  background:linear-gradient(#8fb6e8 0 46%,#6d9a52 46% 62%,#5b7f43 62%);image-rendering:pixelated}
+.screen .hotbar{position:absolute;left:50%;bottom:1.5%;transform:translateX(-50%);width:31.6%;height:6.1%;background:rgba(0,0,0,.45);box-shadow:inset 0 0 0 2px #2b2b2b}
+.screen .cross{position:absolute;left:50%;top:50%;width:14px;height:14px;transform:translate(-50%,-50%)}
+.screen .cross:before,.screen .cross:after{content:"";position:absolute;background:#fff;opacity:.85}
+.screen .cross:before{left:6px;top:0;width:2px;height:14px}.screen .cross:after{top:6px;left:0;width:14px;height:2px}
+.list{position:absolute;top:3%;left:50%;transform:translateX(-50%);font-family:var(--mc-font);color:#fff;font-size:clamp(9px,1.25vw,14px);line-height:1}
+.list.card{background:rgba(var(--panel),.6);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);padding:.55em .7em .6em}
+.list .head{display:flex;justify-content:space-between;gap:1.5em;color:var(--dim);padding:0 .1em .45em;text-shadow:1px 1px 0 #3f3f3f}
+.list .cols{display:flex;gap:1.1em;align-items:flex-start}
+.list .col{display:grid;gap:2px}
+.row{display:grid;align-items:center;column-gap:.55em;height:1.45em;padding:0 .3em;text-shadow:1px 1px 0 #3f3f3f;white-space:nowrap}
+.list.line .row{background:rgba(var(--panel),.6)}
+.row canvas{width:1.05em;height:1.05em;display:block}
+.row .name{overflow:hidden;text-overflow:clip}
+.row .me{color:var(--accent)}
+.row .host{color:var(--warning);margin-left:.35em}
+.row .sub{color:var(--dim);text-align:right}
+.row .na{color:var(--faint);text-align:right}
+.list .more{color:var(--dim);padding:.35em .3em 0;text-shadow:1px 1px 0 #3f3f3f}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px;display:grid;gap:6px}
+.note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:3px}
+.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.ask ol{margin:0;padding-left:1.3em;color:var(--ink-2);font-size:13.5px;display:grid;gap:6px}
+.ask b{color:var(--ink)}
+.rec{font-size:11px;color:#fff;background:var(--accent-deep);padding:1px 6px;margin-left:6px;vertical-align:2px}
+.tbl{font-family:var(--mc-font);font-size:13px;background:rgba(16,17,19,.95);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);max-width:680px}
+.tbl .r{display:grid;grid-template-columns:minmax(0,1fr) 170px 70px;gap:10px;align-items:center;height:26px;padding:0 10px;color:#fff}
+.tbl .r.c{color:#b4b8b6;padding-left:30px}
+.tbl .sw{justify-self:start;width:28px;height:14px;background:#6cc349;position:relative}
+.tbl .sw.off{background:#48494a}
+.tbl .sw:after{content:"";position:absolute;top:2px;width:10px;height:10px;background:#fff;right:2px}
+.tbl .sw.off:after{left:2px;right:auto;background:#d0d1d4}
+.cap{display:inline-block;height:16px;line-height:16px;padding:0 6px;font-size:11px;background:#2b2c2d;box-shadow:inset 0 0 0 1px #5a5b5c}
+</style>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">BACKLOG L-128 · プレイヤー一覧 · 確認用モック</div>
+    <h1>キーを押している間のプレイヤー一覧</h1>
+    <p class="lede">サーバーがクライアントに送るプレイヤー一覧（描画距離の外の人も含む）を、キーを押している間だけ画面上部に出します。<b>顔はスキンから切り抜く想定で、このモックの顔は仮に描いたもの</b>です。追加の列（機種・距離・ディメンション）は、それぞれ設定で出し入れできる案です。</p>
+  </header>
+
+  <section class="controls">
+    <div class="seg" id="count"><span>人数</span></div>
+    <div class="seg" id="extras"><span>追加の列</span></div>
+    <div class="seg" id="bg"><span>背景</span></div>
+    <div class="seg" id="lang"><span>言語</span></div>
+  </section>
+
+  <div class="screen"><div class="cross"></div><div class="hotbar"></div><div class="list card" id="list"></div></div>
+
+  <section class="note">
+    <h2 style="margin:0">きまり（案）</h2>
+    <ul>
+      <li>キーは既定で <span class="cap">Tab</span>、押している間だけ表示（キー設定で変更可）。チャットや画面を開いている間は出さない。</li>
+      <li>1 行は顔＋名前。自分は先頭で緑、ホストには ★。並びは自分のあと名前順（大文字小文字は区別しない）。</li>
+      <li>見出しは人数。1 列 20 人まで、超えたら列を足す。画面に入らない分は「ほか N 人」。スクロールはしない。</li>
+      <li>位置は画面上部の中央。HUD レイアウト編集で動かせる要素にする。背景は他の HUD 要素と同じく カード / 行ごと / なし から選べる。</li>
+      <li>一人プレイでも自分 1 人を表示。</li>
+    </ul>
+  </section>
+
+  <section class="note">
+    <h2 style="margin:0">追加の列（オプション）で出せるもの・出せないもの</h2>
+    <ul>
+      <li><b>機種</b>：サーバーが一覧と一緒に送る（Windows、Android、iOS、Switch、PlayStation、Xbox など）。全員分わかる。</li>
+      <li><b>距離</b>：その人がエンティティとして近くにいるときと、ロケーターバーの位置情報があるときだけわかる。わからない人は「—」。サーバーがロケーターバーを無効にしていると近くの人しか出ない。</li>
+      <li><b>ディメンション</b>：近くにいる人は自分と同じ。遠くの人はロケーターバーの情報が別ディメンションを示すときだけ分かる見込み（要調査）。わからないときは「—」。</li>
+      <li><b>Ping</b>：Bedrock のサーバーはプレイヤーごとの通信遅延を送らないため<b>表示できない</b>（自分の Ping は Info HUD にある）。モックでは押せない状態にしている。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>設定の行（案）</h2>
+    <div class="tbl">
+      <div class="r"><span>プレイヤー一覧</span><span><span class="cap">Tab</span></span><span></span></div>
+      <div class="r c"><span>機種を表示</span><span></span><span class="sw off"></span></div>
+      <div class="r c"><span>距離を表示</span><span></span><span class="sw off"></span></div>
+      <div class="r c"><span>ディメンションを表示</span><span></span><span class="sw off"></span></div>
+    </div>
+    <p class="lede" style="font-size:13px">保存するスイッチがない「押している間だけ」の機能なので、親の行はキーだけ（ズームと同じ形）。見た目（位置・背景）は HUD レイアウト編集で変える。</p>
+  </section>
+
+  <section class="ask">
+    <h2 style="margin:0">決めてほしいこと</h2>
+    <ol>
+      <li><b>追加の列の既定</b>：すべてオフで始める<span class="rec">推奨</span> ／ 機種だけオン。</li>
+      <li><b>距離の出し方</b>：「123 m」だけ<span class="rec">推奨</span> ／ 方角も付ける（「123 m 北東」）。</li>
+      <li><b>ディメンション</b>：列として残す（調査してから作る）<span class="rec">推奨</span> ／ 今回は入れない。</li>
+      <li><b>背景の既定</b>：カード<span class="rec">推奨</span>（Info HUD と同じ） ／ 行ごと。</li>
+    </ol>
+  </section>
+</div>
+<script>
+const names=["Steve_Builder","Birch_Baron","alex2026","MossyCobble","Creeper_Hugger","sakura_miner","NetherNomad","pixelpanda","IronGolemFan","sky_walker","RedstoneRin","oak_and_ash","BeaconBob","tanuki_tunnel","LapisLazuli","FrostWalker9","mushroom_isle","ElytraEmi","QuartzQueen","VillagerVic","ender_eyes","HoneyBee88","deepslate_dan","coral_reef","Totem_Tom","snowgolem","AmethystAmy","shulker_shu","piglin_pal","WardenWatch"];
+const platforms=["Windows","Android","iOS","Switch","PlayStation","Xbox"];
+const dims=["オーバーワールド","ネザー","ジ・エンド"], dimsEn=["Overworld","Nether","The End"];
+let count=5, bg="card", lang="ja";
+const extras={platform:false,distance:false,dimension:false,ping:false};
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return seed/2147483647}}
+function face(i){
+  const c=document.createElement("canvas");c.width=8;c.height=8;const g=c.getContext("2d"),r=rng(i*977+13);
+  const skin=["#c79a74","#e2b48f","#8d5a3b","#f1c9a5","#6b4a33"][i%5],hair=["#3a2a1a","#d8b24a","#7a3b1c","#1c1c1c","#9c9c9c","#5a3b7a"][i%6];
+  g.fillStyle=skin;g.fillRect(0,0,8,8);g.fillStyle=hair;g.fillRect(0,0,8,2+(i%2));g.fillRect(0,0,1,4);g.fillRect(7,0,1,4);
+  g.fillStyle="#fff";g.fillRect(1,4,2,1);g.fillRect(5,4,2,1);g.fillStyle=["#3d6bd6","#3a8a3a","#6a3a1a","#222"][i%4];g.fillRect(2,4,1,1);g.fillRect(5,4,1,1);
+  g.fillStyle="#8a5236";g.fillRect(3,6,2,1);if(r()>.6){g.fillStyle="rgba(0,0,0,.15)";g.fillRect(0,5,8,3)}return c}
+function player(i){const r=rng(i*31+7);const near=i===0||r()<.45,locator=r()<.5;
+  return{i,name:i===0?"kenkenhagi":names[i%names.length]+(i>=names.length?"_"+i:""),me:i===0,host:i===1,
+    platform:platforms[Math.floor(r()*platforms.length)],distance:i===0?0:(near?Math.floor(r()*90+3):locator?Math.floor(r()*2400+120):null),
+    dim:i===0?0:(near?0:(locator?Math.floor(r()*3):null))}}
+function render(){for(let cols=3;cols>=1;cols--){renderWith(cols);const l=document.getElementById("list"),sc=document.querySelector(".screen");if(l.getBoundingClientRect().width<=sc.getBoundingClientRect().width-8)return}}
+function renderWith(maxCols){
+  const list=document.getElementById("list");list.className="list "+bg;list.innerHTML="";
+  const players=[...Array(count)].map((_,i)=>player(i));
+  const others=players.slice(1).sort((a,b)=>a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+  const ordered=[players[0],...others];
+  const head=document.createElement("div");head.className="head";
+  head.innerHTML=`<span>${lang==="ja"?"プレイヤー":"Players"}: ${count}</span>`;list.append(head);
+  const cols=document.createElement("div");cols.className="cols";list.append(cols);
+  const perCol=20,shown=Math.min(ordered.length,perCol*maxCols);
+  const template=["1.05em","minmax(6.5em,max-content)"];
+  if(extras.platform)template.push("max-content");if(extras.dimension)template.push("max-content");if(extras.distance)template.push("4.2em");
+  for(let c=0;c*perCol<shown;c++){const col=document.createElement("div");col.className="col";cols.append(col);
+    for(const p of ordered.slice(c*perCol,Math.min(shown,(c+1)*perCol))){const row=document.createElement("div");row.className="row";row.style.gridTemplateColumns=template.join(" ");
+      row.append(face(p.i));const n=document.createElement("span");n.className="name"+(p.me?" me":"");n.textContent=p.name;
+      if(p.host){const h=document.createElement("span");h.className="host";h.textContent="★";n.append(h)}row.append(n);
+      if(extras.platform){const s=document.createElement("span");s.className="sub";s.textContent=p.platform;row.append(s)}
+      if(extras.dimension){const s=document.createElement("span");s.className=p.dim==null?"na":"sub";s.textContent=p.dim==null?"—":(lang==="ja"?dims:dimsEn)[p.dim];row.append(s)}
+      if(extras.distance){const s=document.createElement("span");s.className=p.distance==null?"na":"sub";s.textContent=p.me?"":p.distance==null?"—":p.distance+" m";row.append(s)}
+      col.append(row)}}
+  if(ordered.length>shown){const m=document.createElement("div");m.className="more";m.textContent=lang==="ja"?`ほか ${ordered.length-shown} 人`:`and ${ordered.length-shown} more`;list.append(m)}
+}
+function seg(id,items,get,set){const el=document.getElementById(id);
+  for(const [v,label,disabled] of items){const b=document.createElement("button");b.textContent=label;if(disabled)b.disabled=true;
+    b.onclick=()=>{set(v);sync();render()};b.dataset.v=v;el.append(b)}
+  function sync(){for(const b of el.querySelectorAll("button"))b.setAttribute("aria-pressed",String(get(b.dataset.v)))}sync()}
+seg("count",[[1,"1 人（一人プレイ）"],[5,"5 人"],[18,"18 人"],[34,"34 人"],[75,"75 人"]],v=>+v===count,v=>count=+v);
+seg("extras",[["platform","機種"],["distance","距離"],["dimension","ディメンション"],["ping","Ping（表示できない）",true]],v=>extras[v],v=>extras[v]=!extras[v]);
+seg("bg",[["card","カード"],["line","行ごと"],["none","なし"]],v=>v===bg,v=>bg=v);
+seg("lang",[["ja","日本語"],["en","English"]],v=>v===lang,v=>lang=v);
+render();
+</script>
