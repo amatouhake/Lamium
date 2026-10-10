@@ -18,6 +18,7 @@
 #include "mc/world/actor/provider/PlayerMovement.h"
 #include "mc/entity/components/ActorOwnerComponent.h"
 #include <cstring>
+#include <intrin.h>
 #include <Windows.h>
 #include <array>
 #include <chrono>
@@ -47,6 +48,12 @@ bool feeding = false;
 // Round 3: the flags fed this tick, OR-ed into the move input component too.
 unsigned fedBits = 0;
 unsigned updates = 0;
+// Round 4: which states the two calculateMoveVector calls per tick read.
+void const* componentState = nullptr;
+void const* componentRaw = nullptr;
+void const* rawComponentState = nullptr;
+uintptr_t const moduleBase = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+unsigned calcLogs = 0;
 std::string lastUpdate;
 float feedX = 0, feedZ = 0;
 unsigned clears = 0, calcs = 0, locksSeen = 0;
@@ -100,6 +107,7 @@ LL_STATIC_HOOK(InventoryMoveExtract, ll::memory::HookPriority::Normal,
         if (!inventoryOpen) return;
         ++extractCalls;
         if (!focused()) return;
+        rawComponentState = &*raw.mRawInput;
         auto& bits = *raw.mRawInput->mFlagValues;
         auto set = [&](Flag flag, bool on) {
             if (!on) return;
@@ -152,20 +160,32 @@ LL_STATIC_HOOK(InventoryMoveLocks, ll::memory::HookPriority::Normal, &PlayerMove
         }
     } catch (...) {}
 }
+unsigned bitsOf(MoveInputState const& state);
+std::string_view stateName(void const* state) {
+    if (state == componentState) return "MoveInputComponent.mInputState";
+    if (state == componentRaw) return "MoveInputComponent.mRawInputState";
+    if (state == rawComponentState) return "RawMoveInputComponent.mRawInput";
+    return "other";
+}
 LL_STATIC_HOOK(InventoryMoveCalc, ll::memory::HookPriority::Normal, &PlayerMovement::calculateMoveVector, Vec2,
     MoveInputState const& state, bool flying, ActorDataFlagComponent const& data, bool water, SneakingComponent const* sneak) {
-    auto result = origin(state, flying, data, water, sneak);
-    if (!inventoryOpen) return result;
+    if (!inventoryOpen) return origin(state, flying, data, water, sneak);
     ++calcs;
+    auto before = bitsOf(state);
+    // Round 4: put the fed keys into whichever state is read.
+    if (feeding || fedBits) {
+        auto& writable = const_cast<MoveInputState&>(state);
+        for (int i = 0; i < 27; ++i)
+            if (fedBits & (1u << i)) writable.mFlagValues->set(static_cast<size_t>(i), true);
+        if (feeding) *writable.mAnalogMoveVector = Vec2{feedX, feedZ};
+    }
+    auto result = origin(state, flying, data, water, sneak);
     try {
-        unsigned bits = 0;
-        for (size_t i = 0; i < 27; ++i)
-            if (state.mFlagValues->test(i)) bits |= 1u << i;
-        auto text = std::format("flags {:#09x} analog {:.2f},{:.2f} -> {:.2f},{:.2f}", bits,
-                                state.mAnalogMoveVector->x, state.mAnalogMoveVector->z, result.x, result.z);
-        if (text != lastCalc) {
-            lastCalc = text;
-            log("L-132 calculateMoveVector {} (feeding {})", text, feeding);
+        if (calcLogs < 60 && fedBits) {
+            ++calcLogs;
+            log("L-132 calculateMoveVector #{} state {} ({}) caller +{:#x} flags before {:#09x} -> move {:.2f},{:.2f}", calcs,
+                stateName(&state), static_cast<void const*>(&state),
+                reinterpret_cast<uintptr_t>(_ReturnAddress()) - moduleBase, before, result.x, result.z);
         }
     } catch (...) {}
     return result;
@@ -185,6 +205,8 @@ LL_STATIC_HOOK(InventoryMoveUpdate, ll::memory::HookPriority::Normal,
     Optional<WasInWaterFlagComponent const> water) {
     origin(abilities, effects, data, owner, input, riding, water);
     if (!inventoryOpen) return;
+    componentState = &*input.mInputState;
+    componentRaw = &*input.mRawInputState;
     try {
         ++updates;
         auto text = std::format("state {:#09x} raw {:#09x} move {:.2f},{:.2f} fed {:#09x}", bitsOf(*input.mInputState),
