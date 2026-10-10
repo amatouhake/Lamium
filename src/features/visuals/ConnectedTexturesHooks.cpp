@@ -369,13 +369,74 @@ void applyPane(Tessellator& tessellator, size_t before, size_t count, size_t cop
             size_t dst = before + k * count + 4 * j;
             if (quad.thin) {
                 if (k > 0 || quad.fold) fold(dst);
-            } else if (quad.glass && k < quad.cells.size() && quad.cells.size() > 1) {
+            } else if (quad.glass && k < quad.cells.size() && quad.cells.size() > 1 && copies >= quad.cells.size()) {
                 reshape(tessellator, src, dst, quad.cells[k], rect);
             } else if (k > 0) {
                 fold(dst);
             }
         }
     }
+}
+// Copies of quads appended straight to the tessellator's arrays. Drawing a
+// pane again for its extra cells also drew again a part the pane writes
+// elsewhere, unfolded, which stacked translucent glass dark (2026-10-11).
+// Every per-vertex array in use, the per-quad info, the index list and the
+// vertex count must agree before anything is appended.
+template <class Visit>
+void eachVertexArray(mce::MeshData& mesh, Visit&& visit) {
+    visit(*mesh.mPositions);
+    visit(*mesh.mNormals);
+    visit(*mesh.mTangents);
+    visit(*mesh.mColors);
+    visit(*mesh.mBoneId0s);
+    for (size_t set = 0; set < 3; ++set) visit(*mesh.mTextureUVs[set]);
+    visit(*mesh.mPBRTextureIndices);
+    visit(*mesh.mMERS);
+    visit(*mesh.mGeoType);
+}
+std::atomic<int> appendLogs{0};
+bool canAppend(Tessellator& tessellator) {
+    auto& mesh = *tessellator.mMeshData;
+    size_t n = mesh.mPositions->size();
+    bool ok = n % 4 == 0;
+    eachVertexArray(mesh, [&](auto const& values) { ok = ok && (values.empty() || values.size() == n); });
+    size_t quads = tessellator.mQuadInfoList->size(), indices = mesh.mIndices->size();
+    ok = ok && (quads == 0 || quads * 4 == n) && (indices == 0 || indices == n / 4 * 6);
+    if (appendLogs < 2) {
+        ++appendLogs;
+        try {
+            Runtime::instance().self().getLogger().info(
+                "Connected Textures: pane copies by appending {}: {} vertices, {} quad infos, {} indices, count {}", ok, n, quads,
+                indices, static_cast<unsigned>(tessellator.mCount));
+        } catch (...) {}
+    }
+    return ok;
+}
+// Appends a copy of the quad starting at vertex `src` (checked by canAppend).
+void appendQuad(Tessellator& tessellator, size_t src) {
+    auto& mesh = *tessellator.mMeshData;
+    size_t n = mesh.mPositions->size();
+    eachVertexArray(mesh, [&](auto& values) {
+        if (values.size() != n) return;
+        for (size_t i = 0; i < 4; ++i) {
+            auto value = values[src + i];
+            values.push_back(value);
+        }
+    });
+    auto& quads = *tessellator.mQuadInfoList;
+    if (!quads.empty()) {
+        auto info = quads[src / 4];
+        quads.push_back(info);
+    }
+    auto& indices = *mesh.mIndices;
+    if (!indices.empty()) {
+        size_t from = src / 4 * 6;
+        for (size_t m = 0; m < 6; ++m) {
+            unsigned index = static_cast<unsigned>(indices[from + m] - src + n);
+            indices.push_back(index);
+        }
+    }
+    if (tessellator.mCount == n) tessellator.mCount = static_cast<unsigned>(n + 4);
 }
 LL_TYPE_INSTANCE_HOOK(ConnectedPane, ll::memory::HookPriority::Normal, BlockTessellator,
     &BlockTessellator::tessellateDoubleThinFenceInWorld, bool, Tessellator& tessellator, Block const& block,
@@ -392,12 +453,15 @@ LL_TYPE_INSTANCE_HOOK(ConnectedPane, ll::memory::HookPriority::Normal, BlockTess
         auto plan = planPane(tessellator, block, before, before + count);
         size_t copies = 1;
         for (auto const& quad : plan) copies = std::max(copies, quad.cells.size());
-        // Draw the pane again for each extra cell; only identical draws can be shaped.
-        bool same = true;
-        for (size_t k = 1; k < copies && same; ++k) {
-            size_t start = tessellator.mMeshData->mPositions->size();
-            origin(tessellator, block, p, singleSide);
-            same = tessellator.mMeshData->mPositions->size() - start == count;
+        // Copy the pane's quads once per extra cell, in draw order, so copy k of
+        // quad j sits at before + k * count + 4 * j; without consistent arrays,
+        // only fold.
+        bool same = tessellator.mMeshData->mPositions->size() == before + count;
+        if (copies > 1 && same && canAppend(tessellator)) {
+            for (size_t k = 1; k < copies; ++k)
+                for (size_t j = 0; j < count / 4; ++j) appendQuad(tessellator, before + 4 * j);
+        } else {
+            copies = 1;
         }
         // Only panes with an arm toward the south or west (dark there, 2026-10-11).
         bool southOrWest = false;
