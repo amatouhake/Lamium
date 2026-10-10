@@ -371,7 +371,8 @@ void applyPane(Tessellator& tessellator, size_t before, size_t count, size_t cop
             size_t dst = before + k * count + 4 * j;
             if (quad.thin) {
                 if (k > 0 || quad.fold) fold(dst);
-            } else if (quad.glass && k < quad.cells.size() && quad.cells.size() > 1 && copies >= quad.cells.size()) {
+            } else if (false && quad.glass && k < quad.cells.size() && quad.cells.size() > 1 && copies >= quad.cells.size()) {
+                // L-133 trial: copies appended and folded, glass left as vanilla.
                 reshape(tessellator, src, dst, quad.cells[k], rect);
             } else if (k > 0) {
                 fold(dst);
