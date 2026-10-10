@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-130 English name search (2026-10-10)
+
+By the maintainer, local. `8488e3b` (DLL
+`b099a9e319e9fc7e4ec402114c590459b0ba79df8e8b889b09d6d09ec2d06a32`): with
+the game in Japanese, `plank` in the recipe book, `diamond sword` and
+`oak_log` in creative search found their items; Japanese search unchanged;
+Off removed the English matches. The help text was cut off in the settings
+screen, and the log showed every English name empty (the description id
+already ends in ".name"), so only identifiers had matched. `3646a11` (DLL
+`23a30e587fd59e8c8fffcc5c6b9e83fa2698284518a8311a08bec84c1b650b0a`): short
+help fits; English display names found (`granite wall`, `bamboo mosaic`,
+`smooth stone`); log "tile.planks.oak.name -> 'Oak Planks'". Worked with the
+game in Japanese and in Simplified Chinese.
+
 ## L-123 body culling rounds (2026-10-10)
 
 By the maintainer, local. Round 1 `8946d65` (DLL

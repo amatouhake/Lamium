@@ -76,8 +76,7 @@ L-item wins. Every entry names what the task is, not only its number.
      glint in Lamium's icons (parked after one round; leather fixed).
    - Design first, not ordered or chosen yet: L-127 inventory grid HUD and
      used/free slot counter; L-128 hold a key to list the world's players;
-     L-120 Debug View entity counts by kind; L-130 search recipes/items by
-     English names while playing in another language (SDK findings noted).
+     L-120 Debug View entity counts by kind.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -282,40 +281,6 @@ latency if the client has them. Source: the player list the server sends the
 client (`Level::getPlayerList()`, already read by the minimap), not the
 entities in render distance; do not guess missing data. Open: layout, wrap or
 scroll for many players, what singleplayer and different servers provide.
-
-### L-130 Search recipes and items by English names too
-Kind: Research, then Design. Promoted by the maintainer 2026-10-09 from
-their notes; scope and release not decided.
-Spec (decided 2026-10-10, maintainer accepted the agent's proposal): one
-switch "Search English names too", default on; it only adds matches, never
-hides what vanilla finds. A query matches when every word appears in the
-item's English display name (the game's en_US strings, resource packs
-included) or its identifier without the namespace (`oak_planks`, with `_`
-read as a space), ignoring case. First scope: the crafting screen's recipe
-book, crafting table and creative search (one filter); furnace-type screens
-later. Not included: kana readings, names given in an anvil.
-Status: open. SDK findings 2026-10-10 (headers only, nothing run): the
-crafting screen filters each item through
-`CraftingContainerManagerModel::_filterByText(ItemInstance const&,
-TextSearchMode)` returning `FilterResult` (Show/Hide...), with the typed
-text in `mSearchString`/`mCaseFoldedSearchString`; a hook could retry a
-hidden item against its English name. English strings:
-`getI18n().getLocaleFor("en_US")` gives a `Localization` whose `get(id,
-out, params)` looks up a key (the item's description id + ".name").
-`FurnaceContainerManagerModel` has its own search string. The OreUI recipe
-book is not covered by this path. Next: a trace build to check that the
-en_US locale is loaded while another language is active.
-Keep the game's display language but let recipe and item search also match
-English names. Candidate modes: Game language (vanilla), English, Both; the
-modes are a proposal, not a decision. First target: crafting screen and
-recipe book. Research first: where the search filters
-(`CraftingContainerManagerModel::setSearchString()` / `_filterByText()`, the
-OreUI recipe book search), whether the `en_US` names can be read
-(`I18n::getLocaleFor("en_US")`, item description ids) with resource packs,
-reload on language or pack change, and items whose description id does not
-match the shown name (potions, custom names). Prefer adding English matches
-at the filter over reimplementing the game's search. Open: UI, modes and
-furnace-type screens.
 
 ### L-59 Held placement style: vanilla, Java-like or fast
 Kind: Design done (discussion with the maintainer, 2026-09-28); Research

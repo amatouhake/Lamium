@@ -251,6 +251,41 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-130 Search recipes and items by English names too
+Done 2026-10-10: built (`8488e3b`, fix `3646a11`) and checked in game. Furnace-type screens stay out of this item.
+Kind: Research, then Design. Promoted by the maintainer 2026-10-09 from
+their notes; scope and release not decided.
+Spec (decided 2026-10-10, maintainer accepted the agent's proposal): one
+switch "Search English names too", default on; it only adds matches, never
+hides what vanilla finds. A query matches when every word appears in the
+item's English display name (the game's en_US strings, resource packs
+included) or its identifier without the namespace (`oak_planks`, with `_`
+read as a space), ignoring case. First scope: the crafting screen's recipe
+book, crafting table and creative search (one filter); furnace-type screens
+later. Not included: kana readings, names given in an anvil.
+Status: open. SDK findings 2026-10-10 (headers only, nothing run): the
+crafting screen filters each item through
+`CraftingContainerManagerModel::_filterByText(ItemInstance const&,
+TextSearchMode)` returning `FilterResult` (Show/Hide...), with the typed
+text in `mSearchString`/`mCaseFoldedSearchString`; a hook could retry a
+hidden item against its English name. English strings:
+`getI18n().getLocaleFor("en_US")` gives a `Localization` whose `get(id,
+out, params)` looks up a key (the item's description id + ".name").
+`FurnaceContainerManagerModel` has its own search string. The OreUI recipe
+book is not covered by this path. Next: a trace build to check that the
+en_US locale is loaded while another language is active.
+Keep the game's display language but let recipe and item search also match
+English names. Candidate modes: Game language (vanilla), English, Both; the
+modes are a proposal, not a decision. First target: crafting screen and
+recipe book. Research first: where the search filters
+(`CraftingContainerManagerModel::setSearchString()` / `_filterByText()`, the
+OreUI recipe book search), whether the `en_US` names can be read
+(`I18n::getLocaleFor("en_US")`, item description ids) with resource packs,
+reload on language or pack change, and items whose description id does not
+match the shown name (potions, custom names). Prefer adding English matches
+at the filter over reimplementing the game's search. Open: UI, modes and
+furnace-type screens.
+
 ### L-129 Villager trades of every level
 Done 2026-10-10: all levels and locked tooltips checked (`0a41937`, `c7beed9`, `3cffc44`). Servers unchecked (VALIDATION).
 Kind: Research, then Design. From the maintainer's notes (2026-10-09); not
