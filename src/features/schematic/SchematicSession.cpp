@@ -1,6 +1,7 @@
 #include "features/schematic/SchematicSession.h"
 #include "features/map/WaypointSession.h"
 #include "app/Runtime.h"
+#include "app/SessionIds.h"
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -19,6 +20,7 @@ std::optional<std::filesystem::path> destination;
 unsigned world = 0;
 bool loadFailed = false; // Never overwrite a file that could not be read.
 std::uint64_t revision = 1;
+std::uint64_t nextId = 1; // never reset: ids are not reused within the session
 struct Cached {
     std::filesystem::file_time_type modified;
     std::chrono::steady_clock::time_point checked;
@@ -43,7 +45,10 @@ void follow() {
     if (!place.active) return;
     destination = place.schematicFile;
     if (!destination || !std::filesystem::exists(*destination)) return;
-    try { set = readPlacements(*destination); }
+    try {
+        set = readPlacements(*destination);
+        assignSessionIds(set.placements, nextId);
+    }
     catch (std::exception const& error) {
         loadFailed = true;
         log(std::string("could not load placements: ") + error.what());
@@ -52,6 +57,7 @@ void follow() {
 bool commit(PlacementSet candidate) {
     if (loadFailed) return false;
     normalize(candidate);
+    assignSessionIds(candidate.placements, nextId);
     if (destination) {
         try { writePlacements(*destination, candidate); }
         catch (std::exception const& error) { log(std::string("could not save placements: ") + error.what()); return false; }

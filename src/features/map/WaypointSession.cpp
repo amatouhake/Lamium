@@ -2,6 +2,7 @@
 #include "features/map/WaypointStore.h"
 #include "overlay/LocalShapePath.h"
 #include "app/Runtime.h"
+#include "app/SessionIds.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/client/ClientJoinLevelEvent.h"
@@ -26,6 +27,7 @@ bool loadFailed = false; // Never overwrite a file that could not be read.
 std::optional<DeathPoint> pendingDeath;
 DeathWatch deathWatch;
 std::atomic<bool> joiningLocal{false};
+std::uint64_t nextId = 1; // never reset: ids are not reused within the session
 ll::event::ListenerPtr startJoinListener, joinListener, exitListener;
 
 void log(std::string const& text) {
@@ -68,6 +70,7 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
         try {
             destination = resolve(event, "waypoints.json", "waypoints", true);
             if (destination && std::filesystem::exists(*destination)) set = readWaypoints(*destination);
+            assignSessionIds(set.waypoints, nextId);
         } catch (std::exception const& error) {
             loadFailed = true;
             log(std::string("could not load: ") + error.what());
@@ -90,6 +93,7 @@ bool commit(WaypointSet candidate) {
         try { writeWaypoints(*destination, candidate); }
         catch (std::exception const& error) { log(std::string("could not save: ") + error.what()); return false; }
     }
+    assignSessionIds(candidate.waypoints, nextId);
     set = std::move(candidate);
     return true;
 }
@@ -102,15 +106,17 @@ WaypointSet current() {
     std::lock_guard lock(mutex);
     return set;
 }
-bool add(Waypoint waypoint) {
+std::uint64_t add(Waypoint waypoint) {
     std::lock_guard lock(mutex);
-    if (set.waypoints.size() >= maxWaypoints) return false;
+    if (set.waypoints.size() >= maxWaypoints) return 0;
     auto candidate = set;
     waypoint.color = clampColor(waypoint.color);
     if (waypoint.name.size() > maxNameBytes) waypoint.name.resize(maxNameBytes);
+    waypoint.id = 0;
     candidate.lastColor = waypoint.color;
     candidate.waypoints.push_back(std::move(waypoint));
-    return commit(std::move(candidate));
+    if (!commit(std::move(candidate))) return 0;
+    return set.waypoints.back().id;
 }
 bool change(std::function<bool(WaypointSet&)> const& mutation) {
     std::lock_guard lock(mutex);

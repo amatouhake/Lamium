@@ -33,6 +33,7 @@ struct Waypoint {
     int x = 0, y = 0, z = 0;
     int dimension = 0; // 0 Overworld, 1 Nether, 2 End.
     bool visible = true;
+    std::uint64_t id = 0; // session id (app/SessionIds.h, L-139); not saved
     bool operator==(Waypoint const&) const = default;
 };
 struct DeathPoint {

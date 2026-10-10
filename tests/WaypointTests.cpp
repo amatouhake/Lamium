@@ -1,6 +1,8 @@
 #include "features/map/WaypointStore.h"
 #include "features/map/Waypoints.h"
+#include "app/SessionIds.h"
 #include "ui/WaypointPromptLayout.h"
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -114,6 +116,32 @@ void order() {
     check(order[2] == 4 && order[3] == 3 && order[4] == 1, "then the others by name");
 }
 void waypointTests() {
+
+    {
+        // Session ids (L-139): same names and places stay apart; deleting or
+        // reordering others keeps an entry's id; copies get their own.
+        using lamium::map::Waypoint;
+        std::uint64_t next = 1;
+        std::vector<Waypoint> list{{"Home", 0, 1, 2, 3}, {"Home", 0, 1, 2, 3}, {"Mine", 1, 9, 9, 9}};
+        lamium::assignSessionIds(list, next);
+        check(list[0].id && list[1].id && list[0].id != list[1].id && list[2].id != list[1].id,
+              "entries with the same name and place get different ids");
+        auto mine = list[2].id;
+        list.erase(list.begin());
+        std::swap(list[0], list[1]);
+        lamium::assignSessionIds(list, next);
+        check(lamium::indexOfId(list, mine) == 0 && list[0].id == mine, "deleting and reordering others keeps an entry's id");
+        list.push_back(list[0]);
+        list.push_back({"New", 0, 0, 0, 0});
+        lamium::assignSessionIds(list, next);
+        check(list[2].id != mine && list[3].id && list[3].id != list[2].id && list[0].id == mine,
+              "a copy and a new entry get new ids; the original keeps its own");
+        check(lamium::indexOfId(list, 999) == -1 && lamium::indexOfId(list, 0) == -1, "an id that no longer exists finds nothing");
+        auto decoded = lamium::map::decodeWaypoints(lamium::map::encodeWaypoints({list, std::nullopt, -1}));
+        check(decoded.waypoints.size() == list.size()
+              && std::all_of(decoded.waypoints.begin(), decoded.waypoints.end(), [](Waypoint const& w) { return w.id == 0; }),
+              "ids are not saved");
+    }
     order();
     prompt();
     basics();

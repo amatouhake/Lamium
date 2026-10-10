@@ -20,6 +20,7 @@ struct SavedPlacement {
     bool visible = true;
     bool countExtras = true; // Extra blocks show red (decided default); off ignores them.
     bool entities = true;
+    std::uint64_t id = 0; // session id (app/SessionIds.h, L-139); not saved
 };
 struct PlacementSet {
     std::vector<SavedPlacement> placements;
