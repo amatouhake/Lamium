@@ -45,12 +45,6 @@ option("playerlist_trace")
     set_description("Enable L-131 diagnostics: what the client knows about each listed player (permission, locator, loaded)")
 option_end()
 
-option("ctm_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("Enable the L-96 pane spike: log glass pane texture lookups and trim them on connected sides")
-option_end()
-
 option("inventorymove_trace")
     set_default(false)
     set_showmenu(true)
@@ -179,7 +173,6 @@ target("Lamium")
     if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end
     if has_config("playerlist_trace") then add_defines("LAMIUM_PLAYERLIST_TRACE") end
     if has_config("inventorymove_trace") then add_defines("LAMIUM_INVENTORYMOVE_TRACE") end
-    if has_config("ctm_trace") then add_defines("LAMIUM_CTM_TRACE") end
     add_rules("@levibuildscript/linkrule")
     add_rules("@levibuildscript/modpacker", {modVersion = lamiumVersion})
     add_defines('LAMIUM_VERSION="' .. lamiumVersion .. '"')

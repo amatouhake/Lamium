@@ -13,7 +13,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"hideEffects", "Hide effects", "視覚効果を隠す"},
     {"feature.connectedTextures", "Connected Textures", "つながるテクスチャ"},
     {"connectedTextures", "Connected Textures: {}", "つながるテクスチャ: {}"},
-    {"help.connectedTextures", "Glass blocks next to the same glass draw as one surface, without the border line between them. Stained glass joins only the same color. Panes are not covered yet. Experimental.", "隣り合う同じガラスを、境目の枠線なしの 1 枚の面として描きます。色付きガラスは同じ色どうしだけつながります。板ガラスはまだ対象外です。実験的な機能です。"},
+    {"help.connectedTextures", "Glass blocks and glass panes next to the same glass draw as one surface, without the border line between them. Stained glass joins only the same color. Experimental.", "隣り合う同じガラスや板ガラスを、境目の枠線なしの 1 枚の面として描きます。色付きガラスは同じ色どうしだけつながります。実験的な機能です。"},
     {"help.hideEffects", "Hide the selected visual effects. Turning the main switch off restores all drawing and keeps your selections. Sound and gameplay stay unchanged. Experimental.", "選んだ視覚効果を隠します。全体をオフにするとすべて通常表示に戻り、個別の選択は保持されます。音やゲームの状態は変わりません。実験的な機能です。"},
     {"effectsPaused", "Main switch off", "全体OFF"},
     {"help.effectsPaused", "The main Hide effects switch is off. Individual switches and keys only change the saved selections until it is turned on.", "「視覚効果を隠す」全体がオフです。個別のスイッチやキーは選択だけを変更し、全体をオンにするまで非表示にはなりません。"},
