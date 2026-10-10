@@ -460,7 +460,12 @@ over a locked trade's item (find the item controls in the screen's control
 tree, as the offhand slot finds the hotbar; text from the item itself); (B)
 enable the locked rows' toggles so vanilla hovers work, block their
 selection, and lose the locked look on the rows (the level header stays
-grey).
+grey). Maintainer chose (A). Built and checked 2026-10-10 (`c7beed9`):
+`LockedTrades.cpp` keeps the offer's items from `UpdateTradePacket`, finds
+the locked item under the pointer in `trade_selector_stack_panel`
+(tier panels, rows, `trade_item_1`/`trade_item_2`/`sell_item`) and draws
+`getFormattedHovertext` in the preview frame; pure parts in
+`LockedTradeIndex.h`. Jitter fix `3cffc44` not yet checked.
 Show a level 1 villager's trades up to level 5, the locked ones marked and
 not usable. First find out whether the client receives the future trades at
 all: trace `UpdateTradePacket`, the trade NBT and the UI collection when the

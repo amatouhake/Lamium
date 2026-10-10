@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-129 locked trade tooltips (2026-10-10)
+
+By the maintainer, local, normal build `c7beed9` (DLL
+`ffa939332776622f9c5cf44ef604b90b23e9929018fb4b8f36e75b1182f998d4`). Hovering
+a locked level's sword, axe or enchanted book shows its description
+(enchantments), payment items too; it disappears when the pointer leaves;
+unlocked trades keep vanilla's hover text with no Lamium frame on top.
+Found: while the pointer jitters over a locked item the frame and the text
+shift apart; positions rounded to whole units after this check (`3cffc44`).
+
 ## L-129 all trader levels (2026-10-10)
 
 By the maintainer, local, normal build `0a41937` (DLL
