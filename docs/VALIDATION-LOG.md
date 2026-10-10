@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-119 block chunk with alpha 1 (2026-10-10)
+
+By the maintainer, local, trace build `696a11c` (DLL
+`128d2591b1502a07959440c1dce8d43b0c44b9ab1cc1f5e4bc31415059811df4`). The
+shulker preview drawing block items as chunk type 0 with alpha 1 showed the
+fences, snow block, sandstone and door, but not the oak and bamboo fence
+gates: the same as `renderGuiItemNew`. Both preview experiments reverted.
+
 ## 2026-10-10 follow-up: camera angles, block chunk icons, trade dump
 
 By the maintainer, local, trace build `6e29917` (DLL

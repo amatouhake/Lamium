@@ -273,10 +273,18 @@ matters (camera near the body vs far).
 
 ### L-119 Fence gates show no icon where Lamium draws item icons
 Kind: Bug. Reported by the maintainer 2026-10-08; widened 2026-10-10.
-Status: tracing 2026-10-10 (`d2f288c`, `icon_trace`): logs the route each
-watched item (fences, gates, doors, signs, beds, stairs, walls) takes in a
-vanilla slot and in Lamium's `renderGuiItemNew` call (block-type,
-data-driven or entity-block drawing, icon blits).
+Status: open after two runtime rounds (2026-10-10, VALIDATION-LOG), both
+reverted. Trace: vanilla slots draw fences, gates, stairs and walls as chunk
+type 0 into `_renderGuiBlockTypeItem`; Lamium's `renderGuiItemNew` uses chunk
+type 12 into the same function, for gates and fences alike, with block
+graphics present. Drawing the preview as chunk type 0 with the slot's alpha 0
+showed no block icons; with alpha 1 it looked exactly like
+`renderGuiItemNew` (fences and blocks drawn, gates missing). So the call
+route is not the cause: the gate mesh itself does not show outside a
+vanilla slot. Hypotheses for the next round (not started): the gate's GUI
+transform puts its mesh at a depth the UI pass hides behind the slot
+background or clips (test: icons without the background, other z values);
+or the slot batch prepares state the gate mesh needs.
 A fence gate inside a shulker box shows only its count in Shulker Box
 Preview, without the item icon. The maintainer saw the same in the other
 places that draw icons the same way (Lamium's own `renderGuiItemNew` calls,
