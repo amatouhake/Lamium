@@ -17,6 +17,7 @@
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <vector>
@@ -45,7 +46,7 @@ bool sameAt(Block const& block, Offset offset) {
 }
 TextureUVCoordinateSet faceTexture(Face face, Block const& block, TextureUVCoordinateSet const& tex) {
     TextureUVCoordinateSet out = tex;
-    if (current.block != &block || !current.region) return out;
+    if (current.block != &block || !current.region || current.rule.split) return out;
     if (current.rule.sidesOnly && (face == Face::Up || face == Face::Down)) return out;
     auto s = sides(face);
     auto uv = trim({tex._u0, tex._v0, tex._u1, tex._v1}, tex._sourceImageWidth, tex._sourceImageHeight,
@@ -70,10 +71,58 @@ LL_TYPE_INSTANCE_HOOK(ConnectedBlock, ll::memory::HookPriority::Normal, BlockTes
     current = saved;
     return result;
 }
+// The cells a split rule draws this face as; one cell means draw it as is.
+std::vector<Cell> faceCells(Face face, Block const& block) {
+    if (current.block != &block || !current.region || !current.rule.split) return {};
+    if (current.rule.sidesOnly && (face == Face::Up || face == Face::Down)) return {};
+    auto s = sides(face);
+    return splitCells({sameAt(block, s.left), sameAt(block, s.right), sameAt(block, s.top), sameAt(block, s.bottom)},
+                      current.rule);
+}
+// After the face was drawn once per cell, give each copy its cell: the
+// position from the face's corners and the texels the cell shows, at the
+// texture's own scale. Vanilla's lighting per corner is kept.
+void shapeCells(Tessellator& tessellator, TextureUVCoordinateSet const& tex, size_t before, std::vector<Cell> const& cells) {
+    auto& positions = *tessellator.mMeshData->mPositions;
+    auto& uvs = *tessellator.mMeshData->mTextureUVs[0];
+    float du = tex._u1 - tex._u0, dv = tex._v1 - tex._v0;
+    if (du == 0 || dv == 0) return;
+    // The first copy's corners by where they sit on the texture.
+    std::array<bool, 4> high{}, low{};
+    std::array<glm::vec3, 4> corner{};
+    for (size_t i = 0; i < 4; ++i) {
+        high[i] = (uvs[before + i].x - tex._u0) / du > 0.5f;
+        low[i] = (uvs[before + i].y - tex._v0) / dv > 0.5f;
+        corner[(high[i] ? 1 : 0) + (low[i] ? 2 : 0)] = positions[before + i];
+    }
+    auto at = [&](float s, float t) {
+        return corner[0] * ((1 - s) * (1 - t)) + corner[1] * (s * (1 - t)) + corner[2] * ((1 - s) * t) + corner[3] * (s * t);
+    };
+    for (size_t k = 0; k < cells.size(); ++k) {
+        auto const& c = cells[k];
+        for (size_t i = 0; i < 4; ++i) {
+            size_t v = before + 4 * k + i;
+            positions[v] = at(high[i] ? c.s1 : c.s0, low[i] ? c.t1 : c.t0);
+            uvs[v].x = tex._u0 + du * (high[i] ? c.su1 : c.su0);
+            uvs[v].y = tex._v0 + dv * (low[i] ? c.tv1 : c.tv0);
+        }
+    }
+}
 #define LAMIUM_CONNECTED_FACE(Name, Function, FaceId)                                                                        \
     LL_TYPE_INSTANCE_HOOK(Name, ll::memory::HookPriority::Normal, BlockTessellator, &BlockTessellator::Function, void,     \
         Tessellator& tessellator, Block const& block, Vec3 const& p, TextureUVCoordinateSet const& tex) {                   \
         if (current.block != &block) return origin(tessellator, block, p, tex);                                             \
+        std::vector<Cell> cells;                                                                                            \
+        try { cells = faceCells(FaceId, block); } catch (...) {}                                                            \
+        if (cells.size() > 1) {                                                                                             \
+            size_t before = tessellator.mMeshData->mPositions->size();                                                     \
+            origin(tessellator, block, p, tex);                                                                             \
+            /* Only a plain four-corner face can be split. */                                                               \
+            if (tessellator.mMeshData->mPositions->size() != before + 4) return;                                           \
+            for (size_t k = 1; k < cells.size(); ++k) origin(tessellator, block, p, tex);                                  \
+            try { shapeCells(tessellator, tex, before, cells); } catch (...) {}                                             \
+            return;                                                                                                         \
+        }                                                                                                                   \
         TextureUVCoordinateSet copy = tex;                                                                                  \
         try { copy = faceTexture(FaceId, block, tex); } catch (...) {}                                                      \
         origin(tessellator, block, p, copy);                                                                                \

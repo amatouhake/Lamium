@@ -1,5 +1,6 @@
 #pragma once
 #include <optional>
+#include <vector>
 #include <string_view>
 
 namespace lamium::visuals::connected {
@@ -43,11 +44,15 @@ struct Joined { bool left = false, right = false, top = false, bottom = false; }
 struct Rule {
     int left = 1, right = 1, top = 1, bottom = 1;
     bool sidesOnly = false;
+    // Split: draw the face as strips at the texture's own scale, the dropped
+    // border replaced by the texels next to it, instead of stretching the rest
+    // (trial 2026-10-11, sandstone first).
+    bool split = false;
 };
 inline std::optional<Rule> ruleFor(std::string_view identifier) {
     if (connects(identifier)) return Rule{};
     if (identifier == "minecraft:bookshelf") return Rule{1, 1, 0, 0, true};
-    if (identifier == "minecraft:sandstone" || identifier == "minecraft:red_sandstone") return Rule{0, 0, 4, 0, true};
+    if (identifier == "minecraft:sandstone" || identifier == "minecraft:red_sandstone") return Rule{0, 0, 4, 0, true, true};
     return std::nullopt;
 }
 inline Uv trim(Uv uv, int imageWidth, int imageHeight, Joined joined, Rule rule = {}) {
@@ -61,6 +66,28 @@ inline Uv trim(Uv uv, int imageWidth, int imageHeight, Joined joined, Rule rule 
     if (joined.top) out.v0 += dv * scaled(rule.top, sy);
     if (joined.bottom) out.v1 -= dv * scaled(rule.bottom, sy);
     return out;
+}
+
+// A face split into cells for a split rule. s/t run across the face from its
+// u0/v0 corner (0) to its u1/v1 corner (1); su/tv are the texture fractions the
+// cell shows. A joined side becomes a strip that shows the texels just inside
+// the dropped border; the rest of the face keeps its own texels.
+struct Cell { float s0 = 0, s1 = 1, t0 = 0, t1 = 1, su0 = 0, su1 = 1, tv0 = 0, tv1 = 1; };
+struct Span { float at0, at1, from0, from1; };
+inline std::vector<Span> spans(bool lowJoined, int low, bool highJoined, int high) {
+    float a = lowJoined && low > 0 ? low / 16.f : 0, b = highJoined && high > 0 ? high / 16.f : 0;
+    std::vector<Span> out;
+    if (a > 0) out.push_back({0, a, a, 2 * a});
+    out.push_back({a, 1 - b, a, 1 - b});
+    if (b > 0) out.push_back({1 - b, 1, 1 - 2 * b, 1 - b});
+    return out;
+}
+inline std::vector<Cell> splitCells(Joined joined, Rule rule) {
+    std::vector<Cell> cells;
+    for (auto const& across : spans(joined.left, rule.left, joined.right, rule.right))
+        for (auto const& down : spans(joined.top, rule.top, joined.bottom, rule.bottom))
+            cells.push_back({across.at0, across.at1, down.at0, down.at1, across.from0, across.from1, down.from0, down.from1});
+    return cells;
 }
 
 // ---- Glass panes (checked in game 2026-10-11) ----

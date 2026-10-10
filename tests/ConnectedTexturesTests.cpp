@@ -35,8 +35,21 @@ void connectedTexturesTests() {
           "rules per block");
     auto shelf = trim(glass, 16, 16, {true, true, true, true}, *ruleFor("minecraft:bookshelf"));
     check(near(shelf.u0, 0.25f + 0.25f / 16) && near(shelf.v0, 0.5f) && near(shelf.v1, 0.75f), "bookshelves only lose side columns");
-    auto rock = trim(glass, 16, 16, {false, false, true, true}, *ruleFor("minecraft:sandstone"));
-    check(near(rock.v0, 0.5f + 0.25f / 4) && near(rock.v1, 0.75f), "sandstone drops its top band under another"); 
+    check(ruleFor("minecraft:sandstone")->split && !ruleFor("minecraft:bookshelf")->split, "sandstone is drawn split");
+    auto lone = splitCells({}, *ruleFor("minecraft:sandstone"));
+    check(lone.size() == 1 && lone[0].s0 == 0 && lone[0].t1 == 1 && lone[0].tv0 == 0 && lone[0].tv1 == 1,
+          "a face with nothing joined stays one cell with its own texels");
+    auto stacked = splitCells({false, false, true, true}, *ruleFor("minecraft:sandstone"));
+    check(stacked.size() == 2 && near(stacked[0].t0, 0) && near(stacked[0].t1, 0.25f) && near(stacked[0].tv0, 0.25f)
+              && near(stacked[0].tv1, 0.5f) && near(stacked[1].t0, 0.25f) && near(stacked[1].t1, 1) && near(stacked[1].tv0, 0.25f)
+              && near(stacked[1].tv1, 1),
+          "under another sandstone the band strip shows the rock just below it, at the same scale");
+    auto framed = splitCells({true, true, true, true}, Rule{1, 1, 1, 1, false, true});
+    check(framed.size() == 9 && near(framed[0].s1, 1 / 16.f) && near(framed[0].su0, 1 / 16.f) && near(framed[0].su1, 2 / 16.f)
+              && near(framed[8].s0, 15 / 16.f) && near(framed[8].su0, 14 / 16.f) && near(framed[8].su1, 15 / 16.f),
+          "a face joined all round becomes nine cells, each the size of what it shows");
+    for (auto const& cell : framed)
+        check(near(cell.s1 - cell.s0, cell.su1 - cell.su0) && near(cell.t1 - cell.t0, cell.tv1 - cell.tv0), "cells never stretch"); 
     // Panes (geometry dumped in game 2026-10-11).
     check(connectsPane("minecraft:glass_pane") && connectsPane("minecraft:lime_stained_glass_pane") && !connectsPane("minecraft:glass"),
           "panes take the pane path");
