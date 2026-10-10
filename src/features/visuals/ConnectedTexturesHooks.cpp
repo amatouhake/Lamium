@@ -195,7 +195,7 @@ void reshape(Tessellator& tessellator, size_t src, size_t dst, Cell const& c, Te
 // first copy is the source, so it goes last.
 // Bounded dump of a split face's vertex data before and after (dark patches
 // at night, 2026-10-11).
-std::atomic<int> dumps{0};
+std::atomic<int> dumps{0}, paneDumps{0};
 std::string vertexText(Tessellator& tessellator, size_t from, size_t count) {
     auto& mesh = *tessellator.mMeshData;
     std::string out;
@@ -399,7 +399,20 @@ LL_TYPE_INSTANCE_HOOK(ConnectedPane, ll::memory::HookPriority::Normal, BlockTess
             origin(tessellator, block, p, singleSide);
             same = tessellator.mMeshData->mPositions->size() - start == count;
         }
+        bool dump = paneDumps < 3 && copies > 1;
+        std::string text;
+        if (dump) {
+            text = std::format("Connected Textures pane dump at {} {} {}: {} quads x {} copies, same {}", p.x, p.y, p.z, count / 4, copies, same);
+            for (size_t j = 0; j < plan.size(); ++j)
+                text += std::format("\n  quad {} thin {} fold {} glass {} f {:.3f}..{:.3f} x {:.3f}..{:.3f} cells {}", j, plan[j].thin,
+                                    plan[j].fold, plan[j].glass, plan[j].fu0, plan[j].fu1, plan[j].fv0, plan[j].fv1, plan[j].cells.size());
+        }
         if (!plan.empty() && same) applyPane(tessellator, before, count, copies, plan);
+        if (dump) {
+            ++paneDumps;
+            text += "\n  after" + vertexText(tessellator, before, count * copies);
+            try { Runtime::instance().self().getLogger().info("{}", text); } catch (...) {}
+        }
     } catch (...) {}
     pane = saved;
     return result;
