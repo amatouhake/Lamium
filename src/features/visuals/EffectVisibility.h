@@ -54,9 +54,11 @@ inline constexpr CameraMedium visibleMedium(CameraMedium medium, unsigned mask) 
 }
 // Distance fog is the air or weather fog left once no medium fog is shown
 // (land, Nether, End). It moves far beyond any render distance; a finite value
-// keeps the shaders' fog division well defined (L-118).
-inline constexpr bool hidesDistanceFog(unsigned mask, CameraMedium shown) {
-    return (mask & distanceFogBit) && !shown.water && !shown.lava && !shown.powderSnow;
+// keeps the shaders' fog division well defined (L-118). Not under Vibrant
+// Visuals: it hid nothing there, and the far values turned the world magenta
+// and flickering (regression in 0.1.8, found 2026-10-11).
+inline constexpr bool hidesDistanceFog(unsigned mask, CameraMedium shown, bool vibrantVisuals = false) {
+    return !vibrantVisuals && (mask & distanceFogBit) && !shown.water && !shown.lava && !shown.powderSnow;
 }
 struct FogRange {
     float start = 0, end = 0;

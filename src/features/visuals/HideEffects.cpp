@@ -4,6 +4,8 @@
 #include "ll/api/memory/Hook.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
+#include "mc/client/options/IOptionRegistry.h"
+#include "mc/options/GraphicsMode.h"
 #include "mc/client/gui/controls/SpriteComponent.h"
 #include "mc/client/gui/controls/TextComponent.h"
 #include "mc/client/gui/controls/UIControl.h"
@@ -195,7 +197,10 @@ struct HeldFog { std::uintptr_t owner = 0; FogRange vanilla; };
 HeldFog heldFog;
 void hideDistanceFog(LevelRendererPlayer& self, unsigned mask, CameraMedium shown) noexcept {
     try {
-        if (!hidesDistanceFog(mask, shown)) return;
+        // Vibrant Visuals (graphics mode Advanced and up) keeps vanilla fog.
+        bool vibrant = static_cast<int>(self.mClientInstance.getOptions().getGraphicsMode())
+            >= static_cast<int>(GraphicsMode::Advanced);
+        if (!hidesDistanceFog(mask, shown, vibrant)) return;
         auto& fog = *self.mCurrentDistanceFog;
         FogRange vanilla{fog.mStart, fog.mEnd};
         auto far = farFog(vanilla);

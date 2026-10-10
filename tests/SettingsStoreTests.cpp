@@ -96,6 +96,7 @@ void settingsStoreTests() {
               && !hidesDistanceFog(distanceFogBit, water) && !hidesDistanceFog(distanceFogBit, snow)
               && !hidesDistanceFog(mediumBits, CameraMedium{}),
               "distance fog hides only where no medium fog is shown, and only for its own switch");
+        check(!hidesDistanceFog(distanceFogBit, CameraMedium{}, true), "distance fog stays vanilla under Vibrant Visuals");
         check(farFog(FogRange{416, 512}) == FogRange{farFogStart, farFogEnd}
               && farFog(FogRange{0, 24}) == FogRange{farFogStart, farFogEnd},
               "air and weather fog move far beyond any render distance");
