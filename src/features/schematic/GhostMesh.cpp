@@ -158,14 +158,13 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
             BlockPos np{n.x, n.y, n.z};
             Block const& real = region.getBlock(np);
             // Honey and slime count as opaque full blocks but are see-through.
-            if (real.getBlockType().mIsOpaqueFullBlock && !blended(real.getBlockType().getRenderLayer(real, region, np))) {
-                known = true;
-            } else {
-                known = ghostOpaqueAt(region, shown, blocks, n);
-                bool pair = *known || (pairAllGhostFaces && (ghostSidesAt(region, shown, blocks, n) >> (side ^ 1) & 1));
-                if (pair && (camera.near(at) || camera.near(n)))
-                    known = !faces::beyond(side, at.x, at.y, at.z, camera.eye.x, camera.eye.y, camera.eye.z);
-            }
+            bool realOpaque = real.getBlockType().mIsOpaqueFullBlock && !blended(real.getBlockType().getRenderLayer(real, region, np));
+            bool ghostOpaque = !realOpaque && ghostOpaqueAt(region, shown, blocks, n);
+            bool shared = !realOpaque
+                && (ghostOpaque || (pairAllGhostFaces && (ghostSidesAt(region, shown, blocks, n) >> (side ^ 1) & 1)));
+            bool nearCamera = shared && (camera.near(at) || camera.near(n));
+            bool beyond = nearCamera && faces::beyond(side, at.x, at.y, at.z, camera.eye.x, camera.eye.y, camera.eye.z);
+            known = faces::dropFace(realOpaque, ghostOpaque, shared, nearCamera, beyond);
         }
         if (*known) for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
     }
@@ -204,9 +203,8 @@ void dropBackFaces(Tessellator& batch, size_t from, BuildCamera const& camera) {
     for (size_t q = from; q + 4 <= positions.size(); q += 4) {
         glm::vec3 n = normals.size() == positions.size() ? glm::vec3(normals[q])
                                                           : glm::cross(positions[q + 1] - positions[q], positions[q + 2] - positions[q]);
-        if (glm::dot(n, n) < 1e-12f) continue;
         glm::vec3 center = (positions[q] + positions[q + 1] + positions[q + 2] + positions[q + 3]) * .25f;
-        if (glm::dot(eye - center, n) < 0)
+        if (faces::facesAway(n, center, eye))
             for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
     }
 }
@@ -583,15 +581,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         // sections themselves are ordered when drawn.
         auto const& positions = see.mMeshData->mPositions.get();
         glm::vec3 eye{static_cast<float>(camera.eye.x), static_cast<float>(camera.eye.y), static_cast<float>(camera.eye.z)};
-        std::vector<std::pair<float, std::uint32_t>> far;
-        for (size_t q = 0; q + 4 <= positions.size(); q += 4) {
-            glm::vec3 c = (positions[q] + positions[q + 1] + positions[q + 2] + positions[q + 3]) * .25f;
-            far.push_back({-glm::dot(c - eye, c - eye), static_cast<std::uint32_t>(q / 4)});
-        }
-        std::stable_sort(far.begin(), far.end());
-        std::vector<std::uint32_t> order;
-        for (auto const& f : far) order.push_back(f.second);
-        reorderQuads(see, order);
+        reorderQuads(see, faces::farToNear(std::span<glm::vec3 const>(positions), eye));
         for (auto& p : see.mMeshData->mPositions.get()) p -= out.origin;
         out.blendVertices = see.mCount;
         out.blend.emplace(see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{}));

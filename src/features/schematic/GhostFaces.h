@@ -1,6 +1,10 @@
 #pragma once
+#include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <span>
+#include <utility>
+#include <vector>
 
 // Which side of its cell a ghost quad lies on (BACKLOG L-93). A quad flat on
 // a cell side that touches an opaque ghost is never seen from outside, and
@@ -47,6 +51,41 @@ inline float sideArea(std::span<Vertex const> quad, int side) {
         twice += at(p, u) * at(q, w) - at(q, u) * at(p, w);
     }
     return std::abs(twice) * .5f;
+}
+// Whether a ghost's quad on a side shared with a neighbor is left out. A
+// real opaque full block there hides it. Where the neighbor ghost has a face
+// in the same plane (`shared`: an opaque full ghost, or one reaching that
+// side) and either cell is next to the camera, only the face toward the
+// camera stays (`cameraBeyond`: the camera lies past this side), so the
+// plane keeps exactly one face; elsewhere an opaque full ghost hides it.
+inline bool dropFace(bool realOpaque, bool ghostOpaque, bool shared, bool nearCamera, bool cameraBeyond) {
+    if (realOpaque) return true;
+    if (shared && nearCamera) return !cameraBeyond;
+    return ghostOpaque;
+}
+// Whether a quad with normal `n` at `center` is seen from behind from `eye`;
+// never for a quad without a usable normal. P: any point with x, y, z.
+template <class P>
+bool facesAway(P const& n, P const& center, P const& eye) {
+    if (n.x * n.x + n.y * n.y + n.z * n.z < 1e-12f) return false;
+    return (eye.x - center.x) * n.x + (eye.y - center.y) * n.y + (eye.z - center.z) * n.z < 0;
+}
+// The order to draw a quad list's quads in for blending: farthest from
+// `eye` first, by their centers; equally far quads keep their order.
+template <class P>
+std::vector<std::uint32_t> farToNear(std::span<P const> positions, P const& eye) {
+    std::vector<std::pair<float, std::uint32_t>> far;
+    for (size_t q = 0; q + 4 <= positions.size(); q += 4) {
+        auto const &a = positions[q], &b = positions[q + 1], &c = positions[q + 2], &d = positions[q + 3];
+        float dx = (a.x + b.x + c.x + d.x) * .25f - eye.x, dy = (a.y + b.y + c.y + d.y) * .25f - eye.y,
+              dz = (a.z + b.z + c.z + d.z) * .25f - eye.z;
+        far.push_back({-(dx * dx + dy * dy + dz * dz), static_cast<std::uint32_t>(q / 4)});
+    }
+    std::stable_sort(far.begin(), far.end());
+    std::vector<std::uint32_t> order;
+    order.reserve(far.size());
+    for (auto const& f : far) order.push_back(f.second);
+    return order;
 }
 inline bool coveredBy(float area) { return area >= 1.f - 1e-3f; }
 // Whether two quads have the same corners, in any order or winding: the

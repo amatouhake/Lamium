@@ -49,6 +49,32 @@ inline CellState withLiquid(CellState block, bool liquidMatches) {
     return block == CellState::Correct && !liquidMatches ? CellState::State : block;
 }
 
+// What the client reads at a placement's cell, compared by the glue: `same`
+// and `sameType` against the expected block, or against the file's liquid
+// where the file has air with a liquid in the second layer.
+struct CellReading {
+    bool placeholder = false; // the client's stand-in block while a chunk arrives
+    bool expectsAir = false, expectsLiquid = false;
+    bool known = true;        // the expected block is a known game block
+    bool same = false, sameType = false, actualAir = false;
+    bool liquidsMatch = true; // the file's liquid and the world's are the same (none on both included)
+};
+// A loaded cell's state. Air with a liquid in the second layer is water
+// standing there, judged against the liquid; any other block is judged
+// first, then its waterlogging (withLiquid).
+inline CellState classifyReading(CellReading const& r, bool countExtras) {
+    CellState state;
+    if (r.placeholder) state = CellState::Unknown;
+    else if (r.expectsAir && r.expectsLiquid)
+        return r.same ? CellState::Correct : r.actualAir ? CellState::Missing : r.sameType ? CellState::State : CellState::Wrong;
+    else if (r.expectsAir) state = r.actualAir ? CellState::Correct : countExtras ? CellState::Extra : CellState::Ignored;
+    else if (!r.known) state = CellState::Unknown;
+    else if (r.same) state = CellState::Correct;
+    else if (r.actualAir) state = CellState::Missing;
+    else state = r.sameType ? CellState::State : CellState::Wrong;
+    return r.expectsAir ? state : withLiquid(state, r.liquidsMatch);
+}
+
 // For a block of the right kind in the wrong state: which states differ, in
 // key order, at most `limit` of them. A state only one side has shows "-".
 struct StateDifference {

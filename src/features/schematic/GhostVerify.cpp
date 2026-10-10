@@ -158,26 +158,22 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
     if (!chunk || chunk->mLoadState->load() < ChunkState::Loaded) { c.state = CellState::Unknown; return c; }
     c.actual = &region.getBlock(pos);
     auto const* actual = c.actual;
-    auto const* expected = c.expected;
     auto cellIndex = static_cast<size_t>(structure.cell(local->x, local->y, local->z));
     if (cellIndex < structure.liquids.size())
         if (auto index = structure.liquids[cellIndex]; index != voidCell && static_cast<size_t>(index) < blocks.blocks.size())
             if (auto const* liquid = blocks.blocks[static_cast<size_t>(index)]; liquid && liquidKind(*liquid)) c.expectedLiquid = liquid;
     if (Block const& extra = region.getExtraBlock(pos); !extra.isAir()) c.actualLiquid = &extra;
-    if (actual->getMaterial().mType == SharedTypes::v1_26_20::MaterialType::ClientRequestPlaceholder) c.state = CellState::Unknown;
-    else if (c.air && c.expectedLiquid) {
-        // Air with water in the second layer: water standing there.
-        auto const* liquid = c.expectedLiquid;
-        c.state = actual == liquid ? CellState::Correct : actual->isAir() ? CellState::Missing
-            : &actual->getBlockType() == &liquid->getBlockType() ? CellState::State : CellState::Wrong;
-        return c;
-    }
-    else if (c.air) c.state = actual->isAir() ? CellState::Correct : placement.countExtras ? CellState::Extra : CellState::Ignored;
-    else if (!expected) c.state = CellState::Unknown;
-    else if (actual == expected) c.state = CellState::Correct;
-    else if (actual->isAir()) c.state = CellState::Missing;
-    else c.state = &actual->getBlockType() == &expected->getBlockType() ? CellState::State : CellState::Wrong;
-    if (!c.air) c.state = withLiquid(c.state, c.expectedLiquid == c.actualLiquid);
+    // Air with water in the second layer is judged against the water.
+    Block const* against = c.air ? c.expectedLiquid : c.expected;
+    c.state = classifyReading({.placeholder = actual->getMaterial().mType == SharedTypes::v1_26_20::MaterialType::ClientRequestPlaceholder,
+                               .expectsAir = c.air,
+                               .expectsLiquid = c.expectedLiquid != nullptr,
+                               .known = c.expected != nullptr,
+                               .same = against && actual == against,
+                               .sameType = against && &actual->getBlockType() == &against->getBlockType(),
+                               .actualAir = actual->isAir(),
+                               .liquidsMatch = c.expectedLiquid == c.actualLiquid},
+                              placement.countExtras);
     return c;
 }
 // A classified cell as a row of the Check list.
@@ -293,8 +289,6 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
         auto paletteIndex = c.palette;
         bool visible = c.visible, air = c.air;
         CellState state = c.state;
-        Block const* actual = c.actual;
-        Block const* expected = c.expected;
         Point world = c.world;
         if (!air) {
             auto const& info = blocks.items[static_cast<size_t>(paletteIndex)];

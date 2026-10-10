@@ -558,6 +558,23 @@ void ghostFaces() {
     std::array<Vertex, 4> westBack{{{5, 2, 4}, {5, 3, 4}, {5, 3, 3}, {5, 2, 3}}};
     check(sameQuad(west, westBack) && sameQuad(west, west) && !sameQuad(west, slab) && !sameQuad(west, top),
           "a face emitted again with the other winding is the same quad; other faces are not");
+    using lamium::schematic::faces::dropFace;
+    check(dropFace(true, false, false, true, true) && dropFace(false, true, true, false, true),
+          "a real opaque block, or far from the camera an opaque ghost, hides the face against it");
+    check(!dropFace(false, true, true, true, true) && dropFace(false, true, true, true, false),
+          "next to the camera a shared plane keeps only the face the camera sees");
+    check(!dropFace(false, false, true, false, false) && dropFace(false, false, true, true, false)
+          && !dropFace(false, false, false, true, false), "a see-through ghost's shared plane is paired only next to the camera");
+    using lamium::schematic::faces::facesAway;
+    Vertex up{0, 1, 0}, center{0, 0, 0};
+    check(facesAway(up, center, Vertex{0, -1, 0}) && !facesAway(up, center, Vertex{0, 1, 0})
+          && !facesAway(Vertex{0, 0, 0}, center, Vertex{0, -1, 0}), "a face is seen from behind only past its plane, and only with a normal");
+    using lamium::schematic::faces::farToNear;
+    std::array<Vertex, 12> three{{{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0},     // near
+                                  {0, 0, 9}, {1, 0, 9}, {1, 1, 9}, {0, 1, 9},     // far
+                                  {0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}}};  // as near as the first
+    auto order = farToNear(std::span<Vertex const>(three), Vertex{.5f, .5f, -1});
+    check(order == std::vector<std::uint32_t>{1, 0, 2}, "blended quads are drawn far to near, equally far ones in their order");
 }
 
 void menuRules() {
@@ -741,6 +758,25 @@ void liquidChecks() {
           "a right block with the wrong waterlogging is a state mistake");
     check(withLiquid(CellState::Wrong, false) == CellState::Wrong && withLiquid(CellState::Missing, false) == CellState::Missing,
           "waterlogging is judged only once the block itself is right");
+    using lamium::schematic::classifyReading;
+    using lamium::schematic::CellReading;
+    check(classifyReading({.placeholder = true}, true) == CellState::Unknown
+          && classifyReading({.placeholder = true, .expectsAir = true}, true) == CellState::Unknown,
+          "a placeholder block while the chunk arrives is never judged");
+    check(classifyReading({.same = true}, false) == CellState::Correct && classifyReading({.actualAir = true}, false) == CellState::Missing
+          && classifyReading({.sameType = true}, false) == CellState::State && classifyReading({}, false) == CellState::Wrong,
+          "a block is correct, missing, in another state or wrong");
+    check(classifyReading({.same = true, .liquidsMatch = false}, false) == CellState::State
+          && classifyReading({.known = false, .liquidsMatch = false}, false) == CellState::Unknown,
+          "a right block with the wrong water is a state mistake; an unknown block stays unknown");
+    check(classifyReading({.expectsAir = true, .actualAir = true}, true) == CellState::Correct
+          && classifyReading({.expectsAir = true}, true) == CellState::Extra && classifyReading({.expectsAir = true}, false) == CellState::Ignored,
+          "air is correct when empty; something there is extra only when extras count");
+    check(classifyReading({.expectsAir = true, .expectsLiquid = true, .same = true}, false) == CellState::Correct
+          && classifyReading({.expectsAir = true, .expectsLiquid = true, .actualAir = true}, false) == CellState::Missing
+          && classifyReading({.expectsAir = true, .expectsLiquid = true, .sameType = true}, false) == CellState::State
+          && classifyReading({.expectsAir = true, .expectsLiquid = true, .liquidsMatch = false}, true) == CellState::Wrong,
+          "air with water in the second layer is judged against the water");
     auto row = liquidDifference(true, false);
     check(row.key == "waterlogged" && row.expected == "true" && row.actual == "false", "the waterlogging row names both sides");
 }
