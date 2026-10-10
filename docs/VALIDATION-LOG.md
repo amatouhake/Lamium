@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-128 player list (2026-10-10)
+
+By the maintainer, local and BDS. `d8c16d2` (DLL
+`624ba34f416bf4c9ab5d6aa7f2dc185f81cae539419a5d3a886d6904c092cb03`): Tab shows
+the list and hides it on release; singleplayer lists you with face, green
+name, platform and a host crown; the dimension icon was missing and the crown
+sat slightly low; on BDS other players listed by name with distances for
+nearby ones and no crown (the server is the host); hidden while chat is open;
+movable in the layout editor; overlaps the target card and Debug View.
+`f7e6f87` (DLL `4d8b92f592ee57c37b14c31344317e49d22cc2637fbd4f79c7fe9361ec9e253a`):
+dimension icon shown, icons on the text line, the list drawn over Debug View
+and the target card hidden while Tab is held; the per-line background was not
+offered. `ea0ade4` (DLL
+`cddf9ab04b647bcdd879829c359bbfe0f89a15f036e3cd10246d5579734655ef`): per-line
+background offered, one band per player and on the header; no problems found.
+
 ## L-130 English name search (2026-10-10)
 
 By the maintainer, local. `8488e3b` (DLL

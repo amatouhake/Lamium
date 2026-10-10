@@ -251,6 +251,44 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-128 Player list while a key is held
+Done 2026-10-10: built (`d8c16d2`, fixes `f7e6f87`, `ea0ade4`) and checked in
+game (VALIDATION-LOG). Dimensions and distances are known only for players
+in your dimension (loaded or Locator Bar); the rest went to L-131.
+Kind: Design. From the maintainer's notes and a user request ("tab for the
+player list", 2026-10-09); not chosen for building yet.
+Status: spec decided 2026-10-10 (mockup `docs/demos/player-list.html`, fifth
+version); building.
+Spec (maintainer, 2026-10-10):
+- Hold a key (default Tab, rebindable) to show the players the server lists
+  (`Level::getPlayerList()`), not only those in render distance. Hidden while
+  chat or a screen is open. The parent row has only the key (like Zoom).
+- One row per player: face from the skin, name, host crown
+  (`textures/ui/permissions_op_crown`, loaded at runtime), platform, dimension,
+  distance. Platform, dimension and distance are child switches, all on by
+  default. Columns are aligned across the list; an empty value keeps its
+  column width; distance is right-aligned.
+- Platform as short text from `BuildPlatform`: Win, Mac, Linux, Android,
+  iOS, Fire, PS, Switch, Xbox, Server, ? (logos are not drawn).
+- Dimension as the item icon of grass block / netherrack / end stone through
+  the shared icon path; unknown stays blank (how far it is known: Research).
+- Distance "123 m" for players in your dimension when known (loaded entity
+  or locator data), "—" when unknown; players in another dimension show no
+  distance (conversion out of scope).
+- Self first in the accent color, then names case-insensitively. Names cut
+  with an ellipsis at 16 characters' width (10 when one column does not fit).
+  Count header. Up to 20 rows per column, as many columns as fit, then "and
+  N more"; no scrolling. Works in singleplayer.
+- HUD layout element at the top center; background card by default (card /
+  per line / none). No Minecraft texture is copied into the repository.
+While a key is held, show the players currently in the world. Default key
+candidate Tab, freely rebindable through Lamium's key settings (never fixed);
+check conflicts with vanilla and Lamium keys. Names first; head icons or
+latency if the client has them. Source: the player list the server sends the
+client (`Level::getPlayerList()`, already read by the minimap), not the
+entities in render distance; do not guess missing data. Open: layout, wrap or
+scroll for many players, what singleplayer and different servers provide.
+
 ### L-130 Search recipes and items by English names too
 Done 2026-10-10: built (`8488e3b`, fix `3646a11`) and checked in game. Furnace-type screens stay out of this item.
 Kind: Research, then Design. Promoted by the maintainer 2026-10-09 from

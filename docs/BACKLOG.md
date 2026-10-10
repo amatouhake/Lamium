@@ -76,7 +76,8 @@ L-item wins. Every entry names what the task is, not only its number.
      glint in Lamium's icons (parked after one round; leather fixed).
    - Design first, not ordered or chosen yet: L-127 inventory grid HUD and
      used/free slot counter; L-128 hold a key to list the world's players;
-     L-120 Debug View entity counts by kind.
+     L-120 Debug View entity counts by kind. Research: L-131 player list
+     dimensions elsewhere and permission marks.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -270,40 +271,17 @@ its own. Open: what the grid includes, layout and placement in the HUD
 layout editor. Icons share the special-item drawing problems of Shulker Box
 Preview (L-119, L-91).
 
-### L-128 Player list while a key is held
-Kind: Design. From the maintainer's notes and a user request ("tab for the
-player list", 2026-10-09); not chosen for building yet.
-Status: spec decided 2026-10-10 (mockup `docs/demos/player-list.html`, fifth
-version); building.
-Spec (maintainer, 2026-10-10):
-- Hold a key (default Tab, rebindable) to show the players the server lists
-  (`Level::getPlayerList()`), not only those in render distance. Hidden while
-  chat or a screen is open. The parent row has only the key (like Zoom).
-- One row per player: face from the skin, name, host crown
-  (`textures/ui/permissions_op_crown`, loaded at runtime), platform, dimension,
-  distance. Platform, dimension and distance are child switches, all on by
-  default. Columns are aligned across the list; an empty value keeps its
-  column width; distance is right-aligned.
-- Platform as short text from `BuildPlatform`: Win, Mac, Linux, Android,
-  iOS, Fire, PS, Switch, Xbox, Server, ? (logos are not drawn).
-- Dimension as the item icon of grass block / netherrack / end stone through
-  the shared icon path; unknown stays blank (how far it is known: Research).
-- Distance "123 m" for players in your dimension when known (loaded entity
-  or locator data), "—" when unknown; players in another dimension show no
-  distance (conversion out of scope).
-- Self first in the accent color, then names case-insensitively. Names cut
-  with an ellipsis at 16 characters' width (10 when one column does not fit).
-  Count header. Up to 20 rows per column, as many columns as fit, then "and
-  N more"; no scrolling. Works in singleplayer.
-- HUD layout element at the top center; background card by default (card /
-  per line / none). No Minecraft texture is copied into the repository.
-While a key is held, show the players currently in the world. Default key
-candidate Tab, freely rebindable through Lamium's key settings (never fixed);
-check conflicts with vanilla and Lamium keys. Names first; head icons or
-latency if the client has them. Source: the player list the server sends the
-client (`Level::getPlayerList()`, already read by the minimap), not the
-entities in render distance; do not guess missing data. Open: layout, wrap or
-scroll for many players, what singleplayer and different servers provide.
+### L-131 Player list: players in other dimensions and permission marks
+Kind: Research. Split from L-128 on 2026-10-10 (maintainer: later, but find out).
+Status: open.
+The player list shows dimension and distance only for players known to share
+your dimension: loaded players and Locator Bar positions, which the server
+sends only for your dimension. Find out whether the client can tell which
+dimension other players are in (packets, the player list, Locator Bar data
+when they leave), and whether it knows other players' permission level
+(operator, member, visitor) for the vanilla `permissions_op_crown`,
+`permissions_member_star` and `permissions_visitor_hand` marks. Today only the
+host is marked (singleplayer: you; a dedicated server: nobody).
 
 ### L-59 Held placement style: vanilla, Java-like or fast
 Kind: Design done (discussion with the maintainer, 2026-09-28); Research
