@@ -17,6 +17,11 @@
 #include "mc/entity/components/ClientInputLockComponent.h"
 #include "mc/world/actor/provider/PlayerMovement.h"
 #include "mc/entity/components/ActorOwnerComponent.h"
+#include "mc/client/network/ClientNetworkHandler.h"
+#include "mc/network/LoopbackPacketSender.h"
+#include "mc/network/MinecraftPacketIds.h"
+#include "mc/network/packet/CorrectPlayerMovePredictionPacket.h"
+#include "mc/network/packet/PlayerAuthInputPacket.h"
 #include <cstring>
 #include <intrin.h>
 #include <Windows.h>
@@ -54,6 +59,9 @@ void const* componentRaw = nullptr;
 void const* rawComponentState = nullptr;
 uintptr_t const moduleBase = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
 unsigned calcLogs = 0;
+// Round 5: the auth input packet and the server's corrections.
+unsigned corrections = 0, packetLogs = 0;
+std::string lastPacket;
 std::string lastUpdate;
 float feedX = 0, feedZ = 0;
 unsigned clears = 0, calcs = 0, locksSeen = 0;
@@ -135,6 +143,7 @@ LL_STATIC_HOOK(InventoryMoveExtract, ll::memory::HookPriority::Normal,
             lastReport = now;
             log("L-132 inventory open: extract calls {}, fed {}, keys F{} B{} L{} R{} J{} S{}, rawMove {:.2f},{:.2f}; clears {}, calcs {}",
                 extractCalls, fedTicks, f, b, l, r, j, s, raw.mRawMove->x, raw.mRawMove->z, clears, calcs);
+            log("L-132 corrections from the server so far: {}", corrections);
         }
     } catch (...) {}
 }
@@ -181,7 +190,7 @@ LL_STATIC_HOOK(InventoryMoveCalc, ll::memory::HookPriority::Normal, &PlayerMovem
     }
     auto result = origin(state, flying, data, water, sneak);
     try {
-        if (calcLogs < 60 && fedBits) {
+        if (calcLogs < 6 && fedBits) {
             ++calcLogs;
             log("L-132 calculateMoveVector #{} state {} ({}) caller +{:#x} flags before {:#09x} -> move {:.2f},{:.2f}", calcs,
                 stateName(&state), static_cast<void const*>(&state),
@@ -227,12 +236,66 @@ LL_STATIC_HOOK(InventoryMoveUpdate, ll::memory::HookPriority::Normal,
     } catch (...) {}
 }
 }
+using Input = PlayerAuthInputPacketPayload::InputData;
+LL_TYPE_INSTANCE_HOOK(InventoryMoveSend, ll::memory::HookPriority::Normal, LoopbackPacketSender,
+    &LoopbackPacketSender::$sendToServer, void, Packet& packet) {
+    if (inventoryOpen) try {
+        if (packet.getId() == MinecraftPacketIds::PlayerAuthInputPacket) {
+            auto& auth = static_cast<PlayerAuthInputPacket&>(packet);
+            auto& data = *auth.mInputData;
+            auto flagText = [&] {
+                std::string out;
+                for (auto [flag, name] : {std::pair{Input::Up, "Up"}, {Input::Down, "Down"}, {Input::Left, "Left"}, {Input::Right, "Right"},
+                                          {Input::JumpDown, "JumpDown"}, {Input::Jumping, "Jumping"}, {Input::StartJumping, "StartJumping"},
+                                          {Input::JumpCurrentRaw, "JumpCurrentRaw"}, {Input::SprintDown, "SprintDown"},
+                                          {Input::Sprinting, "Sprinting"}, {Input::StartSprinting, "StartSprinting"}})
+                    if (data.contains(flag)) { out += name; out += ' '; }
+                return out;
+            };
+            auto text = std::format("move {:.2f},{:.2f} raw {:.2f},{:.2f} analog {:.2f},{:.2f} delta {:.3f},{:.3f},{:.3f} flags [{}]",
+                auth.mMove->x, auth.mMove->z, auth.mRawMoveVector->x, auth.mRawMoveVector->z, auth.mAnalogMoveVector->x,
+                auth.mAnalogMoveVector->z, auth.mPosDelta->x, auth.mPosDelta->y, auth.mPosDelta->z, flagText());
+            if (text != lastPacket && packetLogs < 120) {
+                ++packetLogs;
+                lastPacket = text;
+                log("L-132 PlayerAuthInput as built: {} (fed {:#09x})", text, fedBits);
+            }
+            // Put the fed keys into the packet when the game left them out.
+            if (feeding) {
+                if (auth.mMove->x == 0 && auth.mMove->z == 0) *auth.mMove = Vec2{feedX, feedZ};
+                if (auth.mRawMoveVector->x == 0 && auth.mRawMoveVector->z == 0) *auth.mRawMoveVector = Vec2{feedX, feedZ};
+                if (auth.mAnalogMoveVector->x == 0 && auth.mAnalogMoveVector->z == 0) *auth.mAnalogMoveVector = Vec2{feedX, feedZ};
+            }
+            auto fed = [&](Flag flag) { return (fedBits & (1u << static_cast<int>(flag))) != 0; };
+            if (fed(Flag::Up)) data.insert(Input::Up);
+            if (fed(Flag::Down)) data.insert(Input::Down);
+            if (fed(Flag::Left)) data.insert(Input::Left);
+            if (fed(Flag::Right)) data.insert(Input::Right);
+            if (fed(Flag::SprintDown)) data.insert(Input::SprintDown);
+            if (fed(Flag::JumpDown)) {
+                data.insert(Input::JumpDown);
+                data.insert(Input::JumpCurrentRaw);
+            }
+            if (fed(Flag::JumpInputWasPressed)) data.insert(Input::JumpPressedRaw);
+        }
+    } catch (...) {}
+    origin(packet);
+}
+LL_TYPE_INSTANCE_HOOK(InventoryMoveCorrection, ll::memory::HookPriority::Normal, ClientNetworkHandler,
+    static_cast<void (ClientNetworkHandler::*)(NetworkIdentifier const&, CorrectPlayerMovePredictionPacket const&)>(
+        &ClientNetworkHandler::$handle),
+    void, NetworkIdentifier const& source, CorrectPlayerMovePredictionPacket const& packet) {
+    if (inventoryOpen) ++corrections;
+    origin(source, packet);
+}
 void start() {
     InventoryMoveExtract::hook();
     InventoryMoveClear::hook();
     InventoryMoveLocks::hook();
     InventoryMoveCalc::hook();
     InventoryMoveUpdate::hook();
+    InventoryMoveSend::hook();
+    InventoryMoveCorrection::hook();
     Runtime::instance().self().getLogger().warn("Inventory move diagnostics enabled (L-132)");
 }
 void stop() {
@@ -241,6 +304,8 @@ void stop() {
     InventoryMoveLocks::unhook(true);
     InventoryMoveCalc::unhook(true);
     InventoryMoveUpdate::unhook(true);
+    InventoryMoveSend::unhook(true);
+    InventoryMoveCorrection::unhook(true);
 }
 }
 #else
