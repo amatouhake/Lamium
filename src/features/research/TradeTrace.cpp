@@ -8,6 +8,11 @@
 #include "mc/client/gui/screens/controllers/Trade2ScreenController.h"
 #include "mc/client/gui/controls/UIPropertyBag.h"
 #include "mc/deps/json/Value.h"
+#include "ll/api/event/EventBus.h"
+#include "ll/api/event/render/UIRenderEvent.h"
+#include "mc/client/gui/controls/UIControl.h"
+#include "mc/client/gui/controls/VisualTree.h"
+#include "mc/client/gui/screens/ScreenView.h"
 #include <mutex>
 #include <set>
 #include <atomic>
@@ -68,6 +73,32 @@ LL_TYPE_INSTANCE_HOOK(GlobalBindHook, ll::memory::HookPriority::Normal, ScreenCo
     } catch (...) {}
     return result;
 }
+// Round 4 (2026-10-10): the trade list's control tree once per screen, to
+// find locked trade items and their tier/trade indexes.
+ll::event::ListenerPtr treeListener;
+UIControl const* dumpedRoot = nullptr;
+void dumpControl(UIControl const& control, int depth, std::string& out, int& lines) {
+    if (lines > 400 || depth > 14) return;
+    ++lines;
+    std::string bag;
+    try {
+        if (auto const& owned = control.mPropertyBag; owned) {
+            auto const& json = *owned->mJsonValue;
+            for (char const* key : {"#collection_index", "#collection_name", "$collection_name", "collection_index"})
+                if (json.isMember(key)) {
+                    auto value = json[key].toStyledString();
+                    while (!value.empty() && (value.back() == '\n' || value.back() == ' ')) value.pop_back();
+                    bag += std::format(" {}={}", key, value);
+                }
+        }
+    } catch (...) { bag = " bag?"; }
+    glm::vec2 position = *control.mCachedPosition, size = *control.mSize;
+    out += std::format("\n{}{} en={} anc={} hover={} vis={} at {:.1f},{:.1f} size {:.1f}x{:.1f}{}", std::string(depth * 2, ' '),
+        *control.mName, control.mEnabled, control.mAllAncestorsEnabled, control.mHover,
+        static_cast<int>(control.mVisible), position.x, position.y, size.x, size.y, bag);
+    for (auto const& child : *control.mChildren)
+        if (child) dumpControl(*child, depth + 1, out, lines);
+}
 LL_TYPE_INSTANCE_HOOK(TradeHook, ll::memory::HookPriority::Normal, ClientNetworkHandler,
     &ClientNetworkHandler::$handle, void, NetworkIdentifier const& source, UpdateTradePacket const& packet) {
     try {
@@ -89,9 +120,28 @@ LL_TYPE_INSTANCE_HOOK(TradeHook, ll::memory::HookPriority::Normal, ClientNetwork
 void start() {
     if (TradeHook::hook(true) != 0 || CollectionBindHook::hook(true) != 0 || GlobalBindHook::hook(true) != 0)
         throw std::runtime_error("Could not install trade diagnostics");
+    treeListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
+        try {
+            auto* tree = event.screenView().mVisualTree.get();
+            if (!tree) return;
+            auto root = tree->getControlByName("trade_selector_stack_panel", true);
+            if (!root || root.get() == dumpedRoot || root->mCachedPositionDirty) return;
+            static int frames = 0;
+            if (++frames < 30) return; // Let the list lay out first.
+            frames = 0;
+            dumpedRoot = root.get();
+            std::string out;
+            int lines = 0;
+            dumpControl(*root, 0, out, lines);
+            Runtime::instance().self().getLogger().info("L-129 trade list tree:{}", out);
+        } catch (...) {}
+    });
     Runtime::instance().self().getLogger().warn("Trade diagnostics enabled (L-129)");
 }
-void stop() { TradeHook::unhook(true); CollectionBindHook::unhook(true); GlobalBindHook::unhook(true); }
+void stop() {
+    if (treeListener) ll::event::EventBus::getInstance().removeListener(treeListener);
+    treeListener.reset();
+    TradeHook::unhook(true); CollectionBindHook::unhook(true); GlobalBindHook::unhook(true); }
 }
 #else
 namespace lamium::researchTrace::trade { void start() {} void stop() {} }
