@@ -138,10 +138,11 @@ void PreviewRenderer::render(
             // icon itself, true draws only the additive glint overlay.
             // Block items (fence gates among them) lose their mesh on
             // renderGuiItemNew's combined chunk; vanilla slots draw them as
-            // the block chunk with these arguments (L-119 trace, 2026-10-10).
+            // the block chunk (L-119 trace, 2026-10-10). Their alpha argument
+            // 0 drew nothing here (the slot batch sets it), so pass 1.
             if (InventoryItemRenderer::getRenderTypeFromItem(stack) == ItemRenderChunkType{})
                 itemRenderer->renderGuiItemInChunk(renderContext, ItemRenderChunkType{}, stack, icon.x0, icon.y0, 1.0f,
-                    0.0f, 1.0f, frame, false, kItemZOrder, std::nullopt);
+                    1.0f, 1.0f, frame, false, kItemZOrder, std::nullopt);
             else
                 itemRenderer
                     ->renderGuiItemNew(renderContext, stack, frame, icon.x0, icon.y0, false, 1.0f, 1.0f, 1.0f, kItemZOrder);
