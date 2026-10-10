@@ -246,6 +246,25 @@ type 3, scale 1.333, with the font's own material).
 
 ## Feature work and research
 
+### L-133 Connected Textures: split glass panes without dark halves
+Kind: Research. Opened 2026-10-11 from L-96.
+Status: open; not scheduled.
+Panes draw joined glass by moving the texture inward (a 1-texel stretch,
+`4ef3d51`); glass blocks, bookshelves and sandstone draw split at the
+texture's scale. Split panes (`17cedc6`..`20b9059`) looked right up close but
+translucent panes blended dark on one half of each block depending on the
+view: facing south at an east-west pane the west half, facing east at a
+north-south pane the south half; facing north or west nothing. Night Vision
+hid it. Ruled out with dumps and trial builds: the split values (positions,
+UVs, colors, light, normals, facing), redrawing the pane versus appending
+copies to the tessellator, and giving every cell its face's quad info
+(center included). The likely cause is the translucent face sorting and
+culling (`RenderChunkSorter::sortAndCullFaces`, `FaceInfo` with a `reverse`
+bit, `RenderChunkGeometry` face sorting metadata); its inputs are not
+visible in the SDK headers. Stained glass blocks, also split and blended,
+show nothing. A stained pane cross shows seams to its arms even with the
+feature off: vanilla, not Lamium's.
+
 ### L-132 Move while the inventory screen is open
 Kind: Research, then Feature. Requested by the maintainer 2026-10-10;
 direction agreed the same day.

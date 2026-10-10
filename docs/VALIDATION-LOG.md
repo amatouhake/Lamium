@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-96 shading on split faces before 0.1.9 (2026-10-11)
+
+By the maintainer, during the 0.1.9 smoke test. Split faces showed dark
+smudges at night (gone with Night Vision): first on stacked sandstone and
+bookshelves near glass, later only on glass panes. Bilinear corner shading
+was replaced by the drawn triangles' blend (`21cff69`) and copies took the
+first draw's normals, material data and facing (`7cc3d50`); sandstone and
+bookshelves stopped showing it. Panes kept a darker half of each block,
+depending on the view direction (facing south at east-west panes: west half;
+facing east at north-south panes: south half; facing north or west: none),
+also in daylight; appending copies instead of redrawing (`f530e1a`) and one
+quad info per face (`20b9059`) did not help. `4ef3d51` (DLL
+`8ddf70b6e122ad2b448a3f527509da1dc15c1221d5e67b2629be5fd88d8741da`) draws
+panes with the inward texture again: no dark halves; stained glass blocks
+show none from any side; joins correct. Stained pane crosses show seams to
+their arms with the feature off too (vanilla). Follow-up: L-133.
+
 ## Vibrant Visuals regression: distance fog (2026-10-11)
 
 By the maintainer. With Vibrant Visuals the world flickered and turned magenta
