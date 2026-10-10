@@ -48,17 +48,29 @@ struct Rule {
     // border replaced by the texels next to it, instead of stretching the rest
     // (trial 2026-10-11, sandstone first).
     bool split = false;
-    // The texel row the top strip copies from; -1 is the rows right below
-    // the band. Sandstone copies rock from the middle so the copy does not
-    // sit next to its source (chosen in game 2026-10-11).
-    int topFrom = -1;
+    // The texel column or row each side's strip copies from; -1 is the texels
+    // right inside the border. Sandstone copies rock from the middle so the
+    // copy does not sit next to its source (chosen in game 2026-10-11).
+    int leftFrom = -1, rightFrom = -1, topFrom = -1, bottomFrom = -1;
 };
 inline std::optional<Rule> ruleFor(std::string_view identifier) {
     // Every rule draws split since 2026-10-11: cropping stretched the texture,
     // which showed while a block was being placed.
-    if (connects(identifier)) return Rule{1, 1, 1, 1, false, true};
+    if (connects(identifier)) {
+        // Far away the game samples shrunk copies of the texture that average
+        // neighboring texels, so a strip right next to the frame let it show
+        // again at a distance (2026-10-11). Glass drops two texels on joined
+        // sides and fills them from the middle of the texture.
+        Rule glass{2, 2, 2, 2, false, true};
+        glass.leftFrom = glass.rightFrom = glass.topFrom = glass.bottomFrom = 7;
+        return glass;
+    }
     if (identifier == "minecraft:bookshelf") return Rule{1, 1, 0, 0, true, true};
-    if (identifier == "minecraft:sandstone" || identifier == "minecraft:red_sandstone") return Rule{0, 0, 4, 0, true, true, 8};
+    if (identifier == "minecraft:sandstone" || identifier == "minecraft:red_sandstone") {
+        Rule sandstone{0, 0, 4, 0, true, true};
+        sandstone.topFrom = 8;
+        return sandstone;
+    }
     return std::nullopt;
 }
 inline Uv trim(Uv uv, int imageWidth, int imageHeight, Joined joined, Rule rule = {}) {
@@ -80,19 +92,19 @@ inline Uv trim(Uv uv, int imageWidth, int imageHeight, Joined joined, Rule rule 
 // the dropped border; the rest of the face keeps its own texels.
 struct Cell { float s0 = 0, s1 = 1, t0 = 0, t1 = 1, su0 = 0, su1 = 1, tv0 = 0, tv1 = 1; };
 struct Span { float at0, at1, from0, from1; };
-inline std::vector<Span> spans(bool lowJoined, int low, bool highJoined, int high, int lowFrom = -1) {
+inline std::vector<Span> spans(bool lowJoined, int low, bool highJoined, int high, int lowFrom = -1, int highFrom = -1) {
     float a = lowJoined && low > 0 ? low / 16.f : 0, b = highJoined && high > 0 ? high / 16.f : 0;
     std::vector<Span> out;
-    float from = lowFrom >= 0 ? lowFrom / 16.f : a;
-    if (a > 0) out.push_back({0, a, from, from + a});
+    float fromLow = lowFrom >= 0 ? lowFrom / 16.f : a, fromHigh = highFrom >= 0 ? highFrom / 16.f : 1 - 2 * b;
+    if (a > 0) out.push_back({0, a, fromLow, fromLow + a});
     out.push_back({a, 1 - b, a, 1 - b});
-    if (b > 0) out.push_back({1 - b, 1, 1 - 2 * b, 1 - b});
+    if (b > 0) out.push_back({1 - b, 1, fromHigh, fromHigh + b});
     return out;
 }
 inline std::vector<Cell> splitCells(Joined joined, Rule rule) {
     std::vector<Cell> cells;
-    for (auto const& across : spans(joined.left, rule.left, joined.right, rule.right))
-        for (auto const& down : spans(joined.top, rule.top, joined.bottom, rule.bottom, rule.topFrom))
+    for (auto const& across : spans(joined.left, rule.left, joined.right, rule.right, rule.leftFrom, rule.rightFrom))
+        for (auto const& down : spans(joined.top, rule.top, joined.bottom, rule.bottom, rule.topFrom, rule.bottomFrom))
             cells.push_back({across.at0, across.at1, down.at0, down.at1, across.from0, across.from1, down.from0, down.from1});
     return cells;
 }

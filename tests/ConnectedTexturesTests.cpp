@@ -45,6 +45,10 @@ void connectedTexturesTests() {
               && near(stacked[0].tv1, 0.75f) && near(stacked[1].t0, 0.25f) && near(stacked[1].t1, 1) && near(stacked[1].tv0, 0.25f)
               && near(stacked[1].tv1, 1),
           "under another sandstone the band strip shows rock from the middle, at the same scale");
+    auto glassCells = splitCells({true, false, false, false}, *ruleFor("minecraft:glass"));
+    check(glassCells.size() == 2 && near(glassCells[0].s1, 2 / 16.f) && near(glassCells[0].su0, 7 / 16.f)
+              && near(glassCells[0].su1, 9 / 16.f) && near(glassCells[1].s0, 2 / 16.f) && near(glassCells[1].su0, 2 / 16.f),
+          "glass fills a two-texel strip from the middle, away from the frame");
     auto framed = splitCells({true, true, true, true}, Rule{1, 1, 1, 1, false, true});
     check(framed.size() == 9 && near(framed[0].s1, 1 / 16.f) && near(framed[0].su0, 1 / 16.f) && near(framed[0].su1, 2 / 16.f)
               && near(framed[8].s0, 15 / 16.f) && near(framed[8].su0, 14 / 16.f) && near(framed[8].su1, 15 / 16.f),
