@@ -251,6 +251,29 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-131 Player list: players in other dimensions and permission marks
+Done 2026-10-10: built (`4ad4e18`) and checked in game on BDS and a PC-hosted LAN world with a phone (VALIDATION-LOG).
+Kind: Research. Split from L-128 on 2026-10-10 (maintainer: later, but find out).
+Status: open.
+The player list shows dimension and distance only for players known to share
+your dimension: loaded players and Locator Bar positions, which the server
+sends only for your dimension. Find out whether the client can tell which
+dimension other players are in (packets, the player list, Locator Bar data
+when they leave), and whether it knows other players' permission level
+(operator, member, visitor) for the vanilla `permissions_op_crown`,
+`permissions_member_star` and `permissions_visitor_hand` marks. Today only the
+host is marked (singleplayer: you; a dedicated server: nobody).
+Trace 2026-10-10 (`3adc21c`, BDS, the maintainer changing dimension): the
+client holds every listed player's permission (all members there, you too);
+Locator Bar data gives a position for players in your dimension and turns to
+"hidden" when either side leaves it ("absent" for players never seen). So the
+current dimension of others is unknowable, but where they were last seen is.
+Decided (maintainer): show the last-seen dimension faded, without distance;
+mark operators (crown), visitors (hand) and custom (dots), members only with
+the "Member marks" option (default off); no separate host mark. Built
+2026-10-10; permission changes not yet traced (a LAN world with a phone can
+do it).
+
 ### L-128 Player list while a key is held
 Done 2026-10-10: built (`d8c16d2`, fixes `f7e6f87`, `ea0ade4`) and checked in
 game (VALIDATION-LOG). Dimensions and distances are known only for players

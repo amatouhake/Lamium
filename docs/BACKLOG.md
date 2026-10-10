@@ -76,8 +76,7 @@ L-item wins. Every entry names what the task is, not only its number.
      glint in Lamium's icons (parked after one round; leather fixed).
    - Design first, not ordered or chosen yet: L-127 inventory grid HUD and
      used/free slot counter; L-128 hold a key to list the world's players;
-     L-120 Debug View entity counts by kind. Research: L-131 player list
-     dimensions elsewhere and permission marks.
+     L-120 Debug View entity counts by kind.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -270,28 +269,6 @@ free slots (for example "12/36 used, 24 free"), each switched on and off on
 its own. Open: what the grid includes, layout and placement in the HUD
 layout editor. Icons share the special-item drawing problems of Shulker Box
 Preview (L-119, L-91).
-
-### L-131 Player list: players in other dimensions and permission marks
-Kind: Research. Split from L-128 on 2026-10-10 (maintainer: later, but find out).
-Status: open.
-The player list shows dimension and distance only for players known to share
-your dimension: loaded players and Locator Bar positions, which the server
-sends only for your dimension. Find out whether the client can tell which
-dimension other players are in (packets, the player list, Locator Bar data
-when they leave), and whether it knows other players' permission level
-(operator, member, visitor) for the vanilla `permissions_op_crown`,
-`permissions_member_star` and `permissions_visitor_hand` marks. Today only the
-host is marked (singleplayer: you; a dedicated server: nobody).
-Trace 2026-10-10 (`3adc21c`, BDS, the maintainer changing dimension): the
-client holds every listed player's permission (all members there, you too);
-Locator Bar data gives a position for players in your dimension and turns to
-"hidden" when either side leaves it ("absent" for players never seen). So the
-current dimension of others is unknowable, but where they were last seen is.
-Decided (maintainer): show the last-seen dimension faded, without distance;
-mark operators (crown), visitors (hand) and custom (dots), members only with
-the "Member marks" option (default off); no separate host mark. Built
-2026-10-10; permission changes not yet traced (a LAN world with a phone can
-do it).
 
 ### L-59 Held placement style: vanilla, Java-like or fast
 Kind: Design done (discussion with the maintainer, 2026-09-28); Research

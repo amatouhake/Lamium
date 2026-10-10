@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-131 player list dimensions and permission marks (2026-10-10)
+
+By the maintainer, `4ad4e18` (DLL
+`bc4c9cf0eb309d0bca6843b7b5b32f703aac84d2e79a042c58eadff70a65a30c`). BDS,
+the maintainer moving between dimensions: players in the same dimension show
+the dimension icon and distance; a never-seen player stays blank; after
+moving, players last seen elsewhere show that dimension faded without a
+distance (Overworld, Nether, End). Everyone is a member there, so no marks;
+with "Member marks" on, every row has the star. Singleplayer: your crown.
+PC-hosted LAN world with a phone: changing the phone player to visitor,
+operator, member and custom drew the matching marks.
+
 ## L-128 player list (2026-10-10)
 
 By the maintainer, local and BDS. `d8c16d2` (DLL
