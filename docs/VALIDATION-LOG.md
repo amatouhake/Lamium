@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-96 Connected Textures for glass (2026-10-11)
+
+By the maintainer, local. `8c3d21a` (DLL
+`c9ee183914f0293401c3d45e38fa509eeb08335b8d2d86d3e82bc4f6df7a1058`): off at
+first with vanilla glass; turning it on from the settings or the hotkey joined
+glass at once without a rejoin, and off brought the borders back; rejoining
+with it on, the Nether and placing and breaking glass kept the joins right;
+switching caused no hitch and no terrain flicker. Not seen: panes (not
+covered), Vibrant Visuals, resource packs, servers, an unverified game
+version (the gate itself).
+
 ## L-96 connected glass spike (2026-10-11)
 
 By the maintainer, local. Trace build `b3d93c7` (`--ctm_trace=y`, DLL

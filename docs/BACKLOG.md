@@ -70,9 +70,9 @@ live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins. Every entry names what the task is, not only its number.
 
 1. **L-96 Connected Textures** (maintainer 2026-10-11: higher demand than
-   the Schematic follow-ups and the restriction redesign): the glass spike
-   passed; next the pure connection core, the setting with chunk rebuild,
-   then panes.
+   the Schematic follow-ups and the restriction redesign): glass blocks
+   shipped behind the Experimental switch and passed in game (`8c3d21a`);
+   next glass panes (step 5).
 2. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
@@ -473,8 +473,11 @@ the glint predicate; do not replace it with `isEnchanted`.
 ### L-96 Connected textures, starting with glass
 Kind: Research **(strong model)** first, then Design for the settings.
 Taken up 2026-10-05 after a public request.
-Status: open; step 1 spike passed in game 2026-10-11 (below); default off and
-Experimental when it ships. Moved ahead of the Schematic follow-ups and the
+Status: open. Steps 1-4 done for glass blocks (2026-10-11, `8c3d21a`,
+checked in game): the "Connected Textures" switch (つながるテクスチャ,
+visuals.connectedTextures, default off, Experimental, toggle key) trims clear,
+same-color stained and tinted glass, rebuilds loaded chunks on toggle and
+stays vanilla on an unverified game executable. Next: step 5, panes. Moved ahead of the Schematic follow-ups and the
 restriction redesign (maintainer 2026-10-11: higher demand).
 What it is for: blocks next to a block of the same kind draw as one surface,
 without the border line between them. Start with glass, then stained glass of
