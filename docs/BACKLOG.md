@@ -69,34 +69,37 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins. Every entry names what the task is, not only its number.
 
-1. **Small and medium features and fixes** (maintainer 2026-10-10: these
+1. **L-96 Connected Textures** (maintainer 2026-10-11: higher demand than
+   the Schematic follow-ups and the restriction redesign): the glass spike
+   passed; next the pure connection core, the setting with chunk rebuild,
+   then panes.
+2. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
      glint in Lamium's icons (parked after one round; leather fixed).
    - Paused: L-132 move while the inventory screen is open (research
      paused after eight trial rounds).
-2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
+3. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
    light-blue compromise (real skins, details such as cushion colors),
    L-116 raw materials from the game's recipes, L-117 Japanese name tags.
    Choose with the maintainer; SCHEMATIC.md retains the contract and build
    record. Server/broader coverage remains open.
-3. **Placement and breaking — L-15 restrictions and L-59 held placement
+4. **Placement and breaking — L-15 restrictions and L-59 held placement
    style:** L-15 breaking shipped in 0.1.8; the maintainer will redesign
    it, and placement waits for that Design. L-59 waits for the maintainer's
    go.
-4. **L-111 integration between features:** proposal in INTEGRATION.md;
+5. **L-111 integration between features:** proposal in INTEGRATION.md;
    the maintainer reviews it when it becomes needed.
-5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
+6. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
    trace/test steps), L-71 starting a glide from the mod, L-30 Ender Dragon
    part hitboxes, L-33 mob growth and
-   breeding timers, L-96 Connected Textures (glass first; step 1 is the
-   tessellator spike), L-105 performance profiling (measure before any
+   breeding timers, L-105 performance profiling (measure before any
    optimization).
-6. **Before a release:** the pre-release checks below. 0.1.8 was released
+7. **Before a release:** the pre-release checks below. 0.1.8 was released
    on 2026-10-10; server checks stay listed below as known gaps (Release policy does not require a full
    regression).
 
@@ -470,7 +473,9 @@ the glint predicate; do not replace it with `isEnchanted`.
 ### L-96 Connected textures, starting with glass
 Kind: Research **(strong model)** first, then Design for the settings.
 Taken up 2026-10-05 after a public request.
-Status: open; default off and Experimental when it ships.
+Status: open; step 1 spike passed in game 2026-10-11 (below); default off and
+Experimental when it ships. Moved ahead of the Schematic follow-ups and the
+restriction redesign (maintainer 2026-10-11: higher demand).
 What it is for: blocks next to a block of the same kind draw as one surface,
 without the border line between them. Start with glass, then stained glass of
 the same color, then glass panes; panes joined to blocks, different colors
@@ -524,6 +529,19 @@ Order:
 6. Optional 47-tile spike after glass is stable: the pure 8-neighbor to
    47-pattern mapping and a replacement-texture path, to decide whether
    Lamium should grow a general connected-texture engine.
+Spike result (2026-10-11, `xmake f --ctm_trace=y`,
+`src/features/visuals/ConnectedTexturesTrace.cpp`, `b3d93c7`): hooking
+`BlockTessellator::tessellateBlockInWorld` (world `BlockPos`, `mRegion`, the
+block) and the six face calls `tessellateFaceDown/FaceUp/North/South/West/East`
+(the face's `TextureUVCoordinateSet`, `p` = the world position) and passing a
+copy of the UV set with one texel cut on each side whose in-plane neighbor is
+the same block type removes the inner lines of glass and same-color stained
+glass; the outer frame stays and different colors keep their line. The
+in-plane side guesses held on all six faces (seen from outside: north left
++X, south left -X, east left +Z, west left -Z, top of side faces +Y; up face
+left -X top -Z, down face left -X top +Z). About 50x50 glass showed no
+slowdown. Not yet: a setting and chunk rebuild on toggle, panes, Vibrant
+Visuals, resource packs with other border widths, servers.
 Research output: the function(s) that can be intercepted on this game
 version, whether the crop works for glass and panes, the cost on a large
 view distance, and how it behaves with Vibrant Visuals / Deferred rendering.

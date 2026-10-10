@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-96 connected glass spike (2026-10-11)
+
+By the maintainer, local. Trace build `b3d93c7` (`--ctm_trace=y`, DLL
+`24414651ebab05ad2318505e159a9dd7e7865746197f6f5d2c1fbcecc69397b7`), after
+rejoining the world: the inner lines between glass blocks disappeared and the
+outer frame stayed, in walls, floors and other arrangements; same-color stained
+glass joined and different colors kept their line; about 50x50 glass caused no
+noticeable slowdown. The log showed the face position equal to the world
+position and 16x16 source images. Not seen: panes, toggling without a rejoin,
+Vibrant Visuals, resource packs, servers.
+
 ## L-120 Debug View entity counts by kind (2026-10-11)
 
 By the maintainer, local and a server. `75620ed` (DLL
