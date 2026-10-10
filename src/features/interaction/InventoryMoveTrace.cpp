@@ -346,19 +346,20 @@ LL_TYPE_INSTANCE_HOOK(InventoryMoveMapping, ll::memory::HookPriority::Normal, Cl
                 if (isMovementKey(binding.keyNum)) text += std::format("{}={} ", *binding.buttonName, binding.keyNum);
             log("L-132 mapping '{}': {} key bindings; movement keys: {}", mappingName, mapping.keyboardMapping->keyBindings->size(), text);
             for (auto& binding : *mapping.keyboardMapping->keyBindings)
-                if (binding.keyNum == 87 && binding.buttonName->find("forward") != std::string::npos) source = &mapping;
+                if (mappingName == "gamePlayNormal" && *binding.buttonName == "button.up") source = &mapping;
         }
         if (!source) {
-            log("L-132 no mapping binds W to a forward button");
+            log("L-132 gamePlayNormal has no button.up");
         } else {
             std::vector<KeyboardKeyBinding> movement;
+            // The moves only: button.control is already in the screen mappings.
             for (auto& binding : *source->keyboardMapping->keyBindings)
-                if (isMovementKey(binding.keyNum)) movement.push_back(binding);
+                if (isMovementKey(binding.keyNum) && *binding.buttonName != "button.control") movement.push_back(binding);
             for (auto& [mappingName, mapping] : mappings) {
-                if (&mapping == source) continue;
+                if (!mappingName.starts_with("screen")) continue;
                 auto& bindings = *mapping.keyboardMapping->keyBindings;
                 bool hasForward = std::any_of(bindings.begin(), bindings.end(),
-                    [](KeyboardKeyBinding const& b) { return b.buttonName->find("forward") != std::string::npos; });
+                    [](KeyboardKeyBinding const& b) { return *b.buttonName == "button.up"; });
                 if (hasForward) continue;
                 for (auto& binding : movement) bindings.push_back(binding);
                 log("L-132 added {} movement bindings to mapping '{}'", movement.size(), mappingName);
