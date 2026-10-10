@@ -195,7 +195,7 @@ void reshape(Tessellator& tessellator, size_t src, size_t dst, Cell const& c, Te
 // first copy is the source, so it goes last.
 // Bounded dump of a split face's vertex data before and after (dark patches
 // at night, 2026-10-11).
-std::atomic<int> dumps{0}, paneDumps{0};
+std::atomic<int> dumps{0}, paneDumps{0}, outlierLogs{0};
 std::string vertexText(Tessellator& tessellator, size_t from, size_t count) {
     auto& mesh = *tessellator.mMeshData;
     std::string out;
@@ -478,6 +478,27 @@ LL_TYPE_INSTANCE_HOOK(ConnectedPane, ll::memory::HookPriority::Normal, BlockTess
                                     plan[j].fold, plan[j].glass, plan[j].fu0, plan[j].fu1, plan[j].fv0, plan[j].fv1, plan[j].cells.size());
         }
         if (!plan.empty() && same) applyPane(tessellator, before, count, copies, plan);
+        // Bounded: vertices whose light differs from the pane's first vertex
+        // (edges darkening in daylight, 2026-10-11).
+        if (outlierLogs < 40) try {
+            auto& mesh = *tessellator.mMeshData;
+            auto& light = *mesh.mTextureUVs[1];
+            auto& colors = *mesh.mColors;
+            size_t end = mesh.mPositions->size();
+            if (light.size() >= end && end > before) {
+                auto base = light[before];
+                for (size_t v = before; v < end && outlierLogs < 40; ++v) {
+                    if (std::abs(light[v].x - base.x) < 1e-5f && std::abs(light[v].y - base.y) < 1e-5f) continue;
+                    ++outlierLogs;
+                    size_t local = v - before;
+                    auto const& pos = (*mesh.mPositions)[v];
+                    Runtime::instance().self().getLogger().info(
+                        "Connected Textures light outlier at pane {} {} {}: vertex {} (copy {}, quad {}) pos {:.3f} {:.3f} {:.3f} light {:.4f} {:.4f} vs {:.4f} {:.4f} color {:08x} copies {} count {}",
+                        p.x, p.y, p.z, local, local / std::max<size_t>(count, 1), local % std::max<size_t>(count, 1) / 4, pos.x, pos.y,
+                        pos.z, light[v].x, light[v].y, base.x, base.y, colors.size() > v ? colors[v] : 0u, copies, count);
+                }
+            }
+        } catch (...) {}
         if (dump) {
             ++paneDumps;
             text += "\n  after" + vertexText(tessellator, before, count * copies);
