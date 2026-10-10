@@ -444,6 +444,13 @@ locked recipes there and only stops at the trader's tier, and whether
 showing them can stay display-only (no trade request for a locked row).
 Fallback if the vanilla list cannot take them: a panel beside the screen in
 vanilla's look.
+Built and checked 2026-10-10 (`0a41937`): option "All trader levels"
+(`inspection.lockedTrades`, default on, toggle action `lockedtrades`)
+turns vanilla's `#tier_visible` on for every entry of `trade_tiers`; the
+locked look and non-selection stay vanilla's. Open (maintainer): hovering a
+locked trade's items should show their description like unlocked ones.
+Hover trace `af4f6f4` (round 3) checks whether vanilla binds `#hover_text`
+for locked rows.
 Show a level 1 villager's trades up to level 5, the locked ones marked and
 not usable. First find out whether the client receives the future trades at
 all: trace `UpdateTradePacket`, the trade NBT and the UI collection when the

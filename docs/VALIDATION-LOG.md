@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-129 all trader levels (2026-10-10)
+
+By the maintainer, local, normal build `0a41937` (DLL
+`75ada29991e5914e7de833b5df034b1586639de070fe282a3e8d652cc4166fc4`). A level 1
+villager's trade screen lists levels 1 to 5; levels above the trader's show
+vanilla's locked look and cannot be selected; Off restores vanilla's list.
+Also checked on the same day: the offhand icon on the hotbar's half unit
+(`4f4bb20`) lines up with the hotbar. Requested: hovering a locked trade's
+items should show their description (enchantments) as unlocked ones do;
+vanilla shows none there.
+
 ## Shield glint variants and offhand offset (2026-10-10)
 
 By the maintainer, local, trace build `75433f6` (DLL
