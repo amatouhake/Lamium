@@ -216,6 +216,16 @@ out of view (camera near), right when the body is in view (camera far), so
 the inventory model reuses pose state that only the world render of the
 body updates. Next: Research which state (elytra wing animation) is left
 stale and whether it can be refreshed for the inventory model alone.
+Two rounds 2026-10-10, both reverted: keeping the body "visible" to the
+camera's `LevelRendererCamera::isAABBVisible` (round 1: never matched on the
+render thread) and to both `isAABBVisible` and `cullerIsVisible` on any
+thread (round 2: 1751/249 calls, 10/22 near the body, the point test was
+overridden) left the elytra stretched. So these camera tests are not what
+skips the body's pose update. Stopped after two rounds. Next ideas (not
+started): find the entity render queue's own visibility step
+(`LevelRendererCamera::queueRenderEntities` and what it calls), or refresh
+the pose on the inventory model's side (the paper doll render path,
+`GeometryAtlas::DollRenderContextImpl::update`, `PaperDollData`).
 Reproduction (maintainer 2026-10-10): wear an elytra, turn FreeCamera on,
 move the camera away from the body, open the inventory. The elytra on the
 player's 3D model in the inventory screen draws simplified and stretched

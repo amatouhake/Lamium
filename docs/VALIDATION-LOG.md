@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-123 body culling rounds (2026-10-10)
+
+By the maintainer, local. Round 1 `8946d65` (DLL
+`a730d876582eadf6bce4f728729e25fcd8369cf1e3b8da7c9e2b6324fcc4aea5`): elytra
+still stretched with the body off screen near the camera; no change seen
+elsewhere; the override log line never appeared. Round 2 `bae4bc9` (DLL
+`1903410bcc703d62a6a53882d899ec10d5d6ea39b2a729e652c5660ecacb1462`): log
+"isAABBVisible 1751 calls (10 near the body), cullerIsVisible 249 calls (22
+near the body)" and "kept visible ... (point)"; elytra still stretched.
+Both reverted.
+
 ## L-129 tooltip alignment (2026-10-10)
 
 By the maintainer, local, normal build `3cffc44` (DLL
