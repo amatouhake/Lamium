@@ -40,7 +40,7 @@ struct Pane {
 };
 thread_local Pane pane;
 thread_local TextureUVCoordinateSet trimmedSet;
-std::atomic<int> paneLogs{0}, lookupLogs{0}, uvLogs{0}, graphicsLogs{0}, foldLogs{0};
+std::atomic<int> paneLogs{0}, lookupLogs{0}, uvLogs{0}, graphicsLogs{0}, foldLogs{0}, dumpLogs{0};
 
 bool isPane(Block const& block) { return block.getTypeName().ends_with("glass_pane"); }
 bool sameAt(Block const& block, Offset o) {
@@ -112,6 +112,38 @@ LL_TYPE_INSTANCE_HOOK(PaneFence, ll::memory::HookPriority::Normal, BlockTessella
                     for (size_t i = q + 1; i < q + 4; ++i) positions[i] = positions[q];
                     ++folded;
                 }
+            }
+            // Round 9: dump the geometry of stacked panes (first 12): every
+            // quad's corners relative to the block and its first UV, and the
+            // boxes the game reports for the pane and its vertical neighbors.
+            if (dumpLogs < 12) {
+                ++dumpLogs;
+                std::string text = std::format("L-96 dump pane {} {} {} (above {} below {}):", p.x, p.y, p.z, above, below);
+                float bx = positions[before].x, by = positions[before].y, bz = positions[before].z;
+                for (size_t i = before; i < after; ++i) {
+                    bx = std::min(bx, positions[i].x);
+                    by = std::min(by, positions[i].y);
+                    bz = std::min(bz, positions[i].z);
+                }
+                bx = std::floor(bx); by = std::floor(by); bz = std::floor(bz);
+                auto const& uvs = *tessellator.mMeshData->mTextureUVs[0];
+                for (size_t q = before; q < after; q += 4) {
+                    text += std::format("\n  quad {}:", (q - before) / 4);
+                    for (size_t i = q; i < q + 4; ++i)
+                        text += std::format(" ({:.3f} {:.3f} {:.3f})", positions[i].x - bx, positions[i].y - by, positions[i].z - bz);
+                    if (q < uvs.size()) text += std::format(" uv {:.5f},{:.5f}", uvs[q].x, uvs[q].y);
+                    if (q + 2 < uvs.size()) text += std::format(" .. {:.5f},{:.5f}", uvs[q + 2].x, uvs[q + 2].y);
+                }
+                auto boxes = [&](BlockPos at) {
+                    std::string out;
+                    for (auto const& box : shapeOf(at))
+                        out += std::format(" [{:.3f}..{:.3f} x {:.3f}..{:.3f}]", box.min.x, box.max.x, box.min.z, box.max.z);
+                    return out;
+                };
+                text += "\n  own boxes:" + boxes(p);
+                if (above) text += "\n  above boxes:" + boxes({p.x, p.y + 1, p.z});
+                if (below) text += "\n  below boxes:" + boxes({p.x, p.y - 1, p.z});
+                log("{}", text);
             }
             if (foldLogs < 20) {
                 ++foldLogs;
