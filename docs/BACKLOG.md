@@ -217,7 +217,11 @@ found later are handled as bugs.
 ### L-121 Night Vision darkens areas around light sources at low Brightness
 Kind: Ready (small). Found by the maintainer 2026-10-09 as a bug; the same
 day they showed it is the game's own behavior (VALIDATION-LOG).
-Status: open. Decided 2026-10-09 (maintainer): a Night Vision child option
+Status: built 2026-10-10 (`2e29216`, not yet checked in game): child option
+"Even brightness" (`lighting.nightVisionEven`, default on) raises
+`BaseLightData::mGamma` to 1 while Night Vision is on; the log prints the
+game's gamma once per change ("Night Vision: light gamma ..."), to confirm
+it is the Brightness value. Decided 2026-10-09 (maintainer): a Night Vision child option
 that removes the darkening, **default on**; Lamium's Night Vision should
 look fully bright by default. Off gives the vanilla look.
 Restated by the maintainer 2026-10-10: with a low game Brightness, Night
@@ -254,7 +258,9 @@ in bright and dark places, near light sources and on dense builds.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
-Status: open, not investigated.
+Status: open. First check without code (2026-10-10): camera near the body
+but the body out of view, and camera far with the body in view, to tell
+render culling of the body from camera distance.
 Reproduction (maintainer 2026-10-10): wear an elytra, turn FreeCamera on,
 move the camera away from the body, open the inventory. The elytra on the
 player's 3D model in the inventory screen draws simplified and stretched
@@ -265,7 +271,10 @@ matters (camera near the body vs far).
 
 ### L-119 Fence gates show no icon where Lamium draws item icons
 Kind: Bug. Reported by the maintainer 2026-10-08; widened 2026-10-10.
-Status: open, not investigated.
+Status: tracing 2026-10-10 (`d2f288c`, `icon_trace`): logs the route each
+watched item (fences, gates, doors, signs, beds, stairs, walls) takes in a
+vanilla slot and in Lamium's `renderGuiItemNew` call (block-type,
+data-driven or entity-block drawing, icon blits).
 A fence gate inside a shulker box shows only its count in Shulker Box
 Preview, without the item icon. The maintainer saw the same in the other
 places that draw icons the same way (Lamium's own `renderGuiItemNew` calls,
@@ -301,9 +310,13 @@ entities, not stack sizes; block entities are not actors. Open: a separate
 small panel or lines inside Debug View, sorting and how many identifiers.
 
 ### L-124 Camera and player position and facing during FreeCamera
-Kind: Design. From use 2026-10-09 (maintainer's notes); not chosen for
-building yet. Maintainer 2026-10-10: start from the display design.
-Status: open.
+Kind: Ready. From use 2026-10-09 (maintainer's notes).
+Status: built 2026-10-10 (`af7479f`, not yet checked in game). Decided
+2026-10-10 (maintainer chose the agent's proposal): Debug View shows Camera
+and Player position and facing lines; block, chunk, light and biome follow
+the camera. The Info HUD switches its place and angle lines (coordinates,
+scaled coordinates, block, chunk, facing, yaw, pitch, rotation, biome,
+light, weather) to the camera with a "Cam" label; speed stays the body's.
 During FreeCamera, Info HUD and Debug View show the body's coordinates and
 the body's facing (yaw/pitch, direction). The camera has its own position
 and its own facing, and neither is shown. Knowing where the body is and
@@ -316,7 +329,9 @@ values (health, inventory) never follow the camera.
 
 ### L-125 Waypoints at the current position use the camera during FreeCamera
 Kind: Ready (small). From use 2026-10-09 (maintainer's notes).
-Status: open. Decided 2026-10-10 (maintainer): during FreeCamera, a waypoint
+Status: built 2026-10-10 (`7a19fc0`, not yet checked in game): the Add
+waypoint key, the Waypoints screen's add and Move here. Schematic "here"
+stays the body's. Decided 2026-10-10 (maintainer): during FreeCamera, a waypoint
 added "at the current position" uses the camera's position. The waypoint
 creation screen opens as usual (name, color...); only the position it is
 filled with changes, and nothing is added to say which one. Otherwise the body's position as today; a position picked
@@ -324,9 +339,12 @@ explicitly on the map wins. FreeCamera ends on dimension travel, so the
 camera and body share a dimension. Separate from L-124 (what the HUD shows).
 
 ### L-126 Leave FreeCamera when the body is hit (option)
-Kind: Ready after a short Research step. From use 2026-10-09 (maintainer's
-notes).
-Status: open. Decided 2026-10-10 (maintainer): an option, **default off**,
+Kind: Ready. From use 2026-10-09 (maintainer's notes).
+Status: built 2026-10-10 (`792c931`, not yet checked in game): option
+"Leave when the body is hit" (`camera.freeCameraLeaveOnHit`, default off);
+`LocalPlayer::handleEntityEvent` with `Hurt` or
+`HurtWithoutReceivingDamage` ends FreeCamera and logs "FreeCamera left: the
+body was hit". Decided 2026-10-10 (maintainer): an option, **default off**,
 that ends FreeCamera and returns to the body's view when the body is hit,
 including hits that cost no health (a snowball counts). Being off by
 default, a wide trigger is fine: any damage counts, continuous damage
@@ -362,7 +380,9 @@ scroll for many players, what singleplayer and different servers provide.
 ### L-129 Villager trades of every level
 Kind: Research, then Design. From the maintainer's notes (2026-10-09); not
 chosen for building yet.
-Status: open.
+Status: tracing 2026-10-10 (`d2f288c`, `trade_trace`): each
+`UpdateTradePacket` is logged and its offer NBT saved to
+`logs/trade-<n>.snbt`.
 Show a level 1 villager's trades up to level 5, the locked ones marked and
 not usable. First find out whether the client receives the future trades at
 all: trace `UpdateTradePacket`, the trade NBT and the UI collection when the
@@ -373,7 +393,17 @@ trade screen without a separate feature.
 ### L-130 Search recipes and items by English names too
 Kind: Research, then Design. Promoted by the maintainer 2026-10-09 from
 their notes; scope and release not decided.
-Status: open.
+Status: open. SDK findings 2026-10-10 (headers only, nothing run): the
+crafting screen filters each item through
+`CraftingContainerManagerModel::_filterByText(ItemInstance const&,
+TextSearchMode)` returning `FilterResult` (Show/Hide...), with the typed
+text in `mSearchString`/`mCaseFoldedSearchString`; a hook could retry a
+hidden item against its English name. English strings:
+`getI18n().getLocaleFor("en_US")` gives a `Localization` whose `get(id,
+out, params)` looks up a key (the item's description id + ".name").
+`FurnaceContainerManagerModel` has its own search string. The OreUI recipe
+book is not covered by this path. Next: a trace build to check that the
+en_US locale is loaded while another language is active.
 Keep the game's display language but let recipe and item search also match
 English names. Candidate modes: Game language (vanilla), English, Both; the
 modes are a proposal, not a decision. First target: crafting screen and
