@@ -18,7 +18,7 @@ LL_TYPE_INSTANCE_HOOK(TradeHook, ll::memory::HookPriority::Normal, ClientNetwork
         int n = ++count;
         if (n <= 20) {
             auto const& p = static_cast<UpdateTradePacketPayload const&>(packet);
-            auto data = p.mData->toSnbt();
+            auto data = p.mData->toString();
             auto path = Runtime::instance().self().getModDir() / "logs" / std::format("trade-{}.snbt", n);
             std::ofstream{path, std::ios::binary} << data;
             Runtime::instance().self().getLogger().info(
