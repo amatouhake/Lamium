@@ -197,8 +197,8 @@ covers (added 2026-10-11 from an outside review):
   resources.
 - Settings input after the L-134 split: editing, saving, key capture and
   returning behave as before.
-- The gated risky paths fail open on an unverified executable without a
-  crash (L-137).
+- The gated risky paths fail open without a crash on a build that forces
+  the version check to fail (L-137).
 - The release's PDB matches its DLL (L-135).
 
 ### Pending feature checks
@@ -372,6 +372,9 @@ Required for 0.2.0:
    memory or relies on an unchecked meaning checks the verified version at
    that path and fails open there, so safe parts of the same feature keep
    working.
+4. A way to test the gates without an unsupported game: a build option
+   (like `--feature_skip`) that makes the version check fail, so the
+   fail-open branches can be run and checked in game.
 Later, per game version: run the playbook and extend the gates as the
 inventory shows.
 L-134 and L-136 help by separating game glue from pure logic, so an update
@@ -400,13 +403,27 @@ share one way of selecting and acting (show/hide, select, the feature's own
 actions); the minimap only draws.
 Design points to settle in the step (outside review 2026-10-11):
 - Marks are identified by a stable id from their provider, never by list
-  index, so adding or removing one cannot retarget a selection.
+  index, so adding or removing one cannot retarget a selection. Today only
+  Shapes have one (`ShapeId`, in memory, not saved); `Waypoint` and
+  `SavedPlacement` are plain vector entries (`PlacementSet::selected` is an
+  index) and the death point is a single optional. Proposed: each provider
+  assigns a session id when an entry is loaded or added, never reused within
+  the session and unchanged by reordering, edits or other deletions; the
+  death point uses a fixed key. Ids are not saved (selections reset on world
+  exit anyway), so no file format changes; saving them is a separate
+  decision if a cross-session reference is ever needed. Tests: two
+  waypoints or placements with the same name and position; deleting another
+  entry while one is selected; editing a map-selected placement from the
+  schematic screen; world exit and rejoin clear the selection; an action on
+  an id that no longer exists does nothing.
 - A fixed priority when marks of different layers overlap under the cursor.
 - When a provider turns off (feature disabled, world exit, dimension
   change), its marks, selection and open actions are dropped.
 - What the minimap and world map share (marks, hit tests) and what stays
   apart (the world map's panel and menus).
-- Drawing cost with many placements or shapes: bounded per frame.
+- Drawing cost with many placements or shapes: footprints are computed when
+  an entry changes and cached, not rebuilt every frame; drawing uses the
+  visible range and is bounded per frame.
 - Shapes on the minimap: a setting (decided 2026-10-11), since many shapes
   would crowd it.
 Does not share: storage (waypoints, placements and shapes keep their own
@@ -1013,9 +1030,13 @@ theme is clean-up and integration together.
   in when the maintainer feels like it, in 0.2.0 or later (C needs a demo
   first). Effort is not a reason to cut scope (maintainer 2026-10-11:
   agents make it cheap); behavior risk is what the order and checks guard.
-- Shared parts follow the same version gate and per-feature fail-open as
-  features: a shared part that cannot be verified leaves every registered
-  feature vanilla, and a feature that fails leaves the shared part working.
+- Fail-open is per risky capability, the same rule as L-137, for features
+  and shared parts alike: a native path that cannot be verified stops for
+  every feature that uses it, while pure data handling and unrelated paths
+  keep working (a map layer's data does not stop because a render path
+  failed). A feature that fails leaves the shared part working for others.
+- Each step is checked in game and recorded (VALIDATION-LOG) before the next
+  starts, so a regression is bounded to one step's commits.
 - Shapes on the minimap are an option (maintainer 2026-10-11): many shapes
   would crowd it. Still open, decided when the step comes: one Lamium menu
   key or per-feature keys into the same menu (C).
