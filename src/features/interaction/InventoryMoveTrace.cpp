@@ -16,6 +16,7 @@
 #include "mc/input/MoveInputState.h"
 #include "mc/entity/components/ClientInputLockComponent.h"
 #include "mc/world/actor/provider/PlayerMovement.h"
+#include "mc/entity/components/ActorOwnerComponent.h"
 #include <cstring>
 #include <Windows.h>
 #include <array>
@@ -43,6 +44,10 @@ std::string lastScreen;
 bool wasJump = false;
 // Round 2: the keys fed this tick, for the later stages to re-apply.
 bool feeding = false;
+// Round 3: the flags fed this tick, OR-ed into the move input component too.
+unsigned fedBits = 0;
+unsigned updates = 0;
+std::string lastUpdate;
 float feedX = 0, feedZ = 0;
 unsigned clears = 0, calcs = 0, locksSeen = 0;
 unsigned lastLocks = 0xFFFFFFFF;
@@ -91,13 +96,18 @@ LL_STATIC_HOOK(InventoryMoveExtract, ll::memory::HookPriority::Normal,
         }
         inventoryOpen = inventoryScreen(screen);
         feeding = false;
+        fedBits = 0;
         if (!inventoryOpen) return;
         ++extractCalls;
         if (!focused()) return;
         auto& bits = *raw.mRawInput->mFlagValues;
-        auto set = [&](Flag flag, bool on) { if (on) bits.set(static_cast<size_t>(flag), true); };
+        auto set = [&](Flag flag, bool on) {
+            if (!on) return;
+            bits.set(static_cast<size_t>(flag), true);
+            fedBits |= 1u << static_cast<int>(flag);
+        };
         bool f = down(Forward), b = down(Back), l = down(Left), r = down(Right), j = down(Jump), s = down(Sprint);
-        float x = static_cast<float>(r) - static_cast<float>(l), z = static_cast<float>(f) - static_cast<float>(b);
+        float x = static_cast<float>(l) - static_cast<float>(r), z = static_cast<float>(f) - static_cast<float>(b);
         if (x != 0 || z != 0) {
             set(Flag::Up, f); set(Flag::Down, b); set(Flag::Left, l); set(Flag::Right, r);
             if (x != 0 && z != 0) { float n = 0.70710678f; x *= n; z *= n; }
@@ -158,9 +168,41 @@ LL_STATIC_HOOK(InventoryMoveCalc, ll::memory::HookPriority::Normal, &PlayerMovem
             log("L-132 calculateMoveVector {} (feeding {})", text, feeding);
         }
     } catch (...) {}
-    // Force: when the flags arrived empty, use what we fed.
-    if (feeding && result.x == 0 && result.z == 0) return Vec2{feedX, feedZ};
     return result;
+}
+unsigned bitsOf(MoveInputState const& state) {
+    unsigned bits = 0;
+    for (size_t i = 0; i < 27; ++i)
+        if (state.mFlagValues->test(i)) bits |= 1u << i;
+    return bits;
+}
+// Round 3: the step that fills the move input component from the input
+// handler; put the fed flags into its states after it.
+LL_STATIC_HOOK(InventoryMoveUpdate, ll::memory::HookPriority::Normal,
+    &ClientInputUpdateSystem::inputHandlerUpdatePlayerState, void,
+    MovementAbilitiesComponent const& abilities, MobEffectsComponent const& effects, ActorDataFlagComponent const& data,
+    ActorOwnerComponent& owner, MoveInputComponent& input, Optional<PassengerComponent const> riding,
+    Optional<WasInWaterFlagComponent const> water) {
+    origin(abilities, effects, data, owner, input, riding, water);
+    if (!inventoryOpen) return;
+    try {
+        ++updates;
+        auto text = std::format("state {:#09x} raw {:#09x} move {:.2f},{:.2f} fed {:#09x}", bitsOf(*input.mInputState),
+                                bitsOf(*input.mRawInputState), input.mMove->x, input.mMove->z, fedBits);
+        if (text != lastUpdate) {
+            lastUpdate = text;
+            log("L-132 inputHandlerUpdatePlayerState after: {} (updates {})", text, updates);
+        }
+        for (int i = 0; i < 27; ++i)
+            if (fedBits & (1u << i)) {
+                input.mInputState->mFlagValues->set(static_cast<size_t>(i), true);
+                input.mRawInputState->mFlagValues->set(static_cast<size_t>(i), true);
+            }
+        if (feeding) {
+            *input.mInputState->mAnalogMoveVector = Vec2{feedX, feedZ};
+            *input.mRawInputState->mAnalogMoveVector = Vec2{feedX, feedZ};
+        }
+    } catch (...) {}
 }
 }
 void start() {
@@ -168,6 +210,7 @@ void start() {
     InventoryMoveClear::hook();
     InventoryMoveLocks::hook();
     InventoryMoveCalc::hook();
+    InventoryMoveUpdate::hook();
     Runtime::instance().self().getLogger().warn("Inventory move diagnostics enabled (L-132)");
 }
 void stop() {
@@ -175,6 +218,7 @@ void stop() {
     InventoryMoveClear::unhook(true);
     InventoryMoveLocks::unhook(true);
     InventoryMoveCalc::unhook(true);
+    InventoryMoveUpdate::unhook(true);
 }
 }
 #else
