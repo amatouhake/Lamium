@@ -1046,9 +1046,10 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
         auto const& row = rows[static_cast<size_t>(i)];
         float x = left + (i / grid.perColumn) * (colWidth + columnGap);
         float y = top + (1 + i % grid.perColumn) * rowHeight;
-        float iconTop = y + (rowHeight - icon) / 2;
+        // Icons share the text's line (8 units tall), not the row's middle.
+        float iconTop = textTop(y);
         bandAt(x, y, colWidth);
-        if (row.face >= 0) map::faces::draw(context, row.face, x + icon / 2, y + rowHeight / 2, icon, 1);
+        if (row.face >= 0) map::faces::draw(context, row.face, x + icon / 2, iconTop + icon / 2, icon, 1);
         x += icon + gap;
         auto name = list::fitName(row.name, nameWidth, measure);
         ui::labelScaled(context, x, textTop(y), nameWidth + 2, name, zoom, row.self ? ui::palette::accent : ui::palette::text,
@@ -1064,9 +1065,13 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
         }
         if (settings.playerListDimension) {
             x += gap;
-            if (row.dimension && *row.dimension >= 0 && *row.dimension < 3)
-                if (auto const* stack = schematic::items::iconStack(dimensionBlocks[*row.dimension]))
-                    inspection::render::drawItemIcon(context, {stack, x, iconTop, icon / 16}, 17);
+            if (row.dimension && *row.dimension >= 0 && *row.dimension < 3) {
+                ItemStack stack;
+                try { stack.reinit(dimensionBlocks[*row.dimension], 1, 0); } catch (...) { stack = ItemStack(); }
+                stack.mShowPickUp = false;
+                stack.mWasPickedUp = false;
+                if (!stack.isNull()) inspection::render::drawItemIcon(context, {&stack, x, iconTop, icon / 16}, 17);
+            }
             x += icon;
         }
         if (settings.playerListDistance && !row.self) {
@@ -1172,7 +1177,15 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         if (preview && lines.empty()) lines.push_back({ui::translated("status.permanentSneak"), ui::palette::accent});
         box(ui::HudElementId::Status) = drawElement(context, width, height, hud.status, lines, runtime.ui.hudRowHeight);
     }
-    if (preview || (settings.target && !(settings.debug && settings.debugHideTarget))) {
+    // The player list shares the top center with the target card and is drawn
+    // over everything (L-128); the card waits while the list is held.
+    bool listHeld = !preview && playerList::held();
+    auto drawList = [&] {
+        if (preview || listHeld)
+            box(ui::HudElementId::PlayerList) = drawPlayerList(context, width, height, hud.playerList, settings,
+                                                               static_cast<float>(runtime.ui.hudRowHeight));
+    };
+    if (preview || (settings.target && !listHeld && !(settings.debug && settings.debugHideTarget))) {
         // One distance for every viewpoint: the body normally, the camera
         // during Freelook and FreeCamera (it looks elsewhere than the body).
         auto ray = viewRay(settings.targetDistance);
@@ -1189,9 +1202,6 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         box(ui::HudElementId::Durability) = drawDurability(context, width, height, hud.durability, settings, preview != nullptr);
     if (preview || (runtime.schematic.enabled && runtime.schematic.hud))
         box(ui::HudElementId::Schematic) = drawSchematicHud(context, width, height, hud.schematic, runtime.schematic, preview != nullptr);
-    if (preview || playerList::held())
-        box(ui::HudElementId::PlayerList) = drawPlayerList(context, width, height, hud.playerList, settings,
-                                                           static_cast<float>(runtime.ui.hudRowHeight));
     if (preview || runtime.camera.showMagnification) {
         auto level = CameraSessions::instance().magnification(context.mClient);
         if (!level && preview) level = runtime.camera.magnification;
@@ -1230,7 +1240,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             context.flushText(0, std::nullopt);
         }
     }
-    if (!preview && (!settings.hud || (settings.debug && settings.debugHideHud))) return boxes;
+    if (!preview && (!settings.hud || (settings.debug && settings.debugHideHud))) { drawList(); return boxes; }
     PlayerInfoRequest request;
     request.coordinates = settings.coordinates || settings.scaledCoordinates || settings.block || settings.chunk
         || settings.speed || settings.horizontalSpeed || settings.verticalSpeed;
@@ -1244,7 +1254,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     request.difficulty = settings.difficulty;
     request.sprinting = settings.sprinting;
     auto info = collectPlayerInfo(context.mClient, request, cameraPose(context.mClient));
-    if (!info.present) return boxes;
+    if (!info.present) { drawList(); return boxes; }
     auto timing = (settings.fps || settings.frameTime) ? frameStatistics() : std::optional<FrameStatistics>{};
     auto ping = settings.ping ? connectionPing(context.mClient) : std::optional<std::int64_t>{};
     bool anySpeed = settings.speed || settings.horizontalSpeed || settings.verticalSpeed;
@@ -1267,6 +1277,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     }
     if (preview && lines.empty()) lines.push_back({ui::translated("feature.infoHud"), {}});
     box(ui::HudElementId::Info) = drawElement(context, width, height, hud.info, lines, runtime.ui.hudRowHeight);
+    drawList();
     return boxes;
 }
 }
