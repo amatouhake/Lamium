@@ -2010,8 +2010,18 @@ std::optional<Place> standingPlace() {
     return Place{static_cast<int>(std::floor(feet.x)), static_cast<int>(std::floor(feet.y)),
                  static_cast<int>(std::floor(feet.z)), playerDimension()};
 }
-void addWaypointHere() {
+// Waypoints placed "here" follow FreeCamera's position; schematics keep the body's.
+std::optional<Place> waypointPlace() {
     auto place = standingPlace();
+    if (!place || !client) return place;
+    if (auto feet = CameraSessions::instance().freeCameraPose(*client);
+        feet && std::isfinite(feet->x) && std::isfinite(feet->y) && std::isfinite(feet->z))
+        return Place{static_cast<int>(std::floor(feet->x)), static_cast<int>(std::floor(feet->y)),
+                     static_cast<int>(std::floor(feet->z)), place->dimension};
+    return place;
+}
+void addWaypointHere() {
+    auto place = waypointPlace();
     if (!place) return;
     map::Waypoint w;
     w.x = place->x; w.y = place->y; w.z = place->z; w.dimension = place->dimension;
@@ -2057,7 +2067,7 @@ void activateWaypointField(int index, int part) {
         return;
     }
     case map::WaypointField::MoveHere:
-        if (auto place = standingPlace())
+        if (auto place = waypointPlace())
             changeSelected([&](map::Waypoint& t) { t.x = place->x; t.y = place->y; t.z = place->z; t.dimension = place->dimension; });
         return;
     case map::WaypointField::Visible: changeSelected([](map::Waypoint& t) { t.visible = !t.visible; }); return;

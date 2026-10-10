@@ -221,7 +221,9 @@ void executeAction(IClientInstance& client, input::Action action) {
         if (!value.map.waypoints) return;
         auto* player = client.getLocalPlayer();
         if (!player) return;
-        auto feet = player->getFeetPos();
+        auto body = player->getFeetPos();
+        // During FreeCamera "here" is where the camera went to look.
+        auto feet = CameraSessions::instance().freeCameraPose(client).value_or(CameraSessions::Pose{body.x, body.y, body.z, 0, 0});
         if (!std::isfinite(feet.x) || !std::isfinite(feet.y) || !std::isfinite(feet.z)) return;
         // The place is fixed when the key is pressed, before any typing.
         map::Waypoint draft;

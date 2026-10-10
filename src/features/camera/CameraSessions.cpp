@@ -188,6 +188,16 @@ std::optional<CameraSessions::ViewRay> CameraSessions::detachedViewRay(IClientIn
     if (!std::isfinite(ray.x + ray.y + ray.z + ray.dx + ray.dy + ray.dz)) return {};
     return ray;
 }
+std::optional<CameraSessions::Pose> CameraSessions::freeCameraPose(IClientInstance& current) {
+    if (!blocksPerspective()) return {};
+    auto ray = detachedViewRay(current);
+    auto angles = lookAnglesFor(current);
+    auto* player = current.getLocalPlayer();
+    if (!ray || !angles || !player) return {};
+    double feet = player->getFeetPos().y - player->getEyePos().y;
+    if (!std::isfinite(feet)) return {};
+    return Pose{ray->x, ray->y + feet, ray->z, angles->yaw, angles->pitch};
+}
 std::optional<DetachedLookState::Angles> CameraSessions::lookAnglesFor(IClientInstance const& renderedClient) {
     // A different viewport must neither consume nor cancel the owner's session.
     if (client.load() != &renderedClient) return {};

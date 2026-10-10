@@ -135,6 +135,10 @@ public:
     // for readouts that should follow the camera rather than the body.
     struct ViewRay { double x, y, z, dx, dy, dz; };
     std::optional<ViewRay> detachedViewRay(IClientInstance&);
+    // FreeCamera's position as the feet of a player whose eyes stand at the
+    // camera, and its angles; empty unless FreeCamera owns the view.
+    struct Pose { double x, y, z; float yaw, pitch; };
+    std::optional<Pose> freeCameraPose(IClientInstance&);
     // Zoom key release: ends a held Zoom; in toggle mode, true when it switched Zoom off.
     bool release();
     // keepZoomLevel: a dimension change ends Zoom but keeps its wheel level.
