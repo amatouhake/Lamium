@@ -11,7 +11,7 @@
 
 ## Status
 
-Lamium 0.1.8 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.1.9 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -71,8 +71,14 @@ to the defaults.
 - **Camera/visuals:** Zoom up to 50x with a smooth wheel and an optional
   magnification readout, Night Vision, Freelook (rear third person by
   default, restoring your previous view), experimental FreeCamera (keeps its
-  position through menus, adjustable speed with a sprint boost, and a
-  player- or world-fixed position), Hide Offhand Item (including shields) and
+  position through menus, adjustable speed with a sprint boost, a player- or
+  world-fixed position, the camera's own position and facing in the Info HUD
+  and Debug View, waypoints added where the camera is, and optionally leaving
+  when your body is hit), Night Vision that can light everything evenly (no
+  dark rings by light sources), experimental Connected Textures (glass, glass
+  panes, bookshelves and sandstone next to the same block draw as one
+  surface, without seams, at the texture's own scale), Hide Offhand Item
+  (including shields) and
   experimental Hide effects (rain and snow, particles, boss bars, the nausea
   color, underwater, lava and powder snow fog, and the distance fog on land,
   in the Nether and in the End; one main switch turns the selected effects
@@ -85,13 +91,18 @@ to the defaults.
   food previews what eating it would add), a live HUD layout editor, a
   Target card with icons, hearts in real health units (one heart per 2 HP),
   armor and bars, a Java F3-style Debug View (game, world, look-at and PC
-  details) and toggle toasts.
+  details, entity counts by kind and the most common entity types), a player
+  list while `Tab` is held (faces, platform, dimension, distance and
+  permission marks), an inventory HUD (your inventory as a 9x3 grid) and a
+  used-slots counter such as 13/36, and toggle toasts.
 - **World overlays:** Shapes (box, cone, pyramid, ellipsoid, dome and more)
   with per-world persistence, Java-style Chunk Borders, Hitboxes with eye/look
   markers and a light-level overlay.
 - **Inventory/inspection:** Shulker and Bundle previews, durability and
   food values (hunger and saturation as hunger-bar icons) inside the game's
-  item tooltip, inventory sorting, experimental drag and wheel transfer between
+  item tooltip, every trader level in the trade screen (locked trades shown
+  dimmed, with their items' names on hover), English names and IDs found by
+  the recipe book and creative search in any game language, inventory sorting, experimental drag and wheel transfer between
   your inventory and storage (also from the inventory screen), Tool Switch and
   Weapon Switch (optionally fetching a tool or weapon from the inventory, into
   the selected slot or a fixed one), an offhand swap key (`F`, as in Java),
@@ -136,7 +147,7 @@ Lamium owns its key bindings; they do not appear in Minecraft's keyboard
 settings. Bindings are edited under each feature or in the Hotkeys view.
 Clear unbinds an action and Reset restores its default. The Settings action
 cannot be cleared, so the UI cannot be locked out. New actions start unbound.
-Default keys: `L` settings, `M` world map,
+Default keys: `L` settings, `M` world map, `Tab` player list (hold),
 `C` zoom (hold), `R` sort (in a container), `F` offhand swap, `F3` Debug
 View, `F3+B` Hitboxes and `F3+G` Chunk Borders. `C` replaces
 Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
@@ -146,16 +157,17 @@ Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
 - Hand Restock is checked in local worlds; server timing and very fast use or
   ambiguous inventory changes may skip a refill. It does not refill tools
   (Tool Protection swaps a tool before it breaks).
-- Leather armor icons miss their undyeable part in the Durability HUD and in
-  Shulker/Bundle previews.
-- Enchanted shields show no glint in the offhand slot and in Shulker/Bundle
-  previews (enchanted golden apples and other flat icons do).
+- Enchanted shields show no glint in Lamium's item icons (offhand slot,
+  Shulker/Bundle previews, the inventory HUD); enchanted golden apples and
+  other flat icons do.
 - The Simplified Chinese text is a first, AI-assisted translation;
   corrections are welcome (see [Translating](docs/TRANSLATING.md)).
 - Hide effects cannot hide the carved pumpkin overlay or the spyglass frame
   yet. Water, lava and powder snow fog hiding is checked with the vanilla
   resources in Fancy graphics; other packs and graphics modes are unverified.
-  Distance fog hiding and Night Vision have no effect under Vibrant Visuals.
+  Under Vibrant Visuals the distance fog stays vanilla (in 0.1.8 hiding it
+  turned the world magenta and flickering there) and Night Vision has no
+  effect.
 - FreeCamera is experimental. Underground terrain drawing is checked in a
   local world and on BDS; Hold/Toggle operation, menus, focus loss and dimension
   travel are also checked. Other players' view of the body, controllers and
@@ -183,6 +195,14 @@ Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
   saved only by type, position and facing. In the 3D previews parts behind
   some cut-out blocks (seagrass, a spawner) can be missing, and grass and
   leaves take the biome you stand in.
+- Connected Textures is experimental and checked in local worlds with the
+  vanilla resources in Fancy graphics; Vibrant Visuals, resource packs (other
+  border widths) and servers are unverified. Only glass, glass panes,
+  bookshelves and sandstone connect.
+- The player list knows where other players are only while they share your
+  dimension: elsewhere it shows the dimension they were last seen in, faded,
+  without a distance. The player list is checked locally, on BDS and in a
+  LAN world; the locked trades only in local worlds.
 - Death layout restore is checked in local worlds; with instant respawn the
   inventory may be read as kept and nothing is restored. Servers with
   latency are untested.
