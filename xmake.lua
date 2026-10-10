@@ -45,6 +45,12 @@ option("playerlist_trace")
     set_description("Enable L-131 diagnostics: what the client knows about each listed player (permission, locator, loaded)")
 option_end()
 
+option("inventorymove_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Enable L-132 trial: feed the movement keys while the inventory screen is open, with a log")
+option_end()
+
 option("trade_trace")
     set_default(false)
     set_showmenu(true)
@@ -166,6 +172,7 @@ target("Lamium")
     if has_config("icon_trace") then add_defines("LAMIUM_ICON_TRACE") end
     if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end
     if has_config("playerlist_trace") then add_defines("LAMIUM_PLAYERLIST_TRACE") end
+    if has_config("inventorymove_trace") then add_defines("LAMIUM_INVENTORYMOVE_TRACE") end
     add_rules("@levibuildscript/linkrule")
     add_rules("@levibuildscript/modpacker", {modVersion = lamiumVersion})
     add_defines('LAMIUM_VERSION="' .. lamiumVersion .. '"')
