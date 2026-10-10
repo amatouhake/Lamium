@@ -95,8 +95,8 @@ L-item wins. Every entry names what the task is, not only its number.
    part hitboxes, L-33 mob growth and
    breeding timers, L-105 performance profiling (measure before any
    optimization).
-6. **Before a release:** the pre-release checks below. 0.1.8 was released
-   on 2026-10-10; server checks stay listed below as known gaps (Release policy does not require a full
+6. **Before a release:** the pre-release checks below. 0.1.9 was released
+   on 2026-10-11; server checks stay listed below as known gaps (Release policy does not require a full
    regression).
 
 Ideas that are not yet chosen (for example more inventory transfer gestures,
@@ -125,6 +125,16 @@ The following are released-build checkpoints and listing follow-ups, not
 unmet gates for versions already published. Registry pickup for 0.1.4 to
 0.1.7 is confirmed (maintainer 2026-10-10).
 
+- 0.1.9 was released on 2026-10-11 (`v0.1.9` at `8bf28c0`; asset SHA-256
+  `c0bbc358...a4b`): L-96 Connected Textures (panes with the one-texel
+  stretch; split panes parked as L-133), L-128 player list, L-127 inventory
+  HUD and used-slots counter, L-129 locked trades, L-130 English search,
+  L-120 entity counts, L-125/L-126 FreeCamera readouts, waypoints and leave
+  on hit, L-121 even Night Vision, the Vibrant Visuals distance fog fix and
+  vanilla-batched item icons. The maintainer's smoke test passed on the
+  release-ZIP DLL `0bc5eac6...079`. No settings migration. Tag CI was
+  running when this was written. After tagging: check that the registry PR
+  picks up `v0.1.9` and that LeviLauncher/Bedrinth offer it.
 - 0.1.8 was released on 2026-10-10 (`v0.1.8` at `e175eed`, tag CI passed;
   asset SHA-256 `b99f9f27...e300da4b`): L-93 Schematics rendering and
   compatibility (version 2 saves, neighbors, render layers, liquids, block
