@@ -2,6 +2,7 @@
 #include "features/schematic/AreaSave.h"
 #include "features/schematic/EntityModels.h"
 #include "features/schematic/GhostRenderer.h"
+#include "overlay/CellMesh.h"
 #include "overlay/LineColor.h"
 #include "features/schematic/Selection.h"
 #include "mc/client/game/IClientInstance.h"
@@ -64,88 +65,47 @@ struct FrameMesh {
     std::uint64_t revision = 0;
     int selected = -2, dimension = -1;
 } frameMesh;
+// The save area's outline and corners, rebuilt when the selection changes.
+selection::State drawnSelection;
+std::uint64_t selectionRevision = 1;
+overlay::CellMesh areaMesh, cornerMeshes[2];
 }
 
 void translated(ScreenContext& screen, glm::vec3 offset, std::function<void()> const& draw) {
-    auto ref = screen.camera.worldMatrixStack->push(false);
-    ref.stack->_isDirty = true;
-    ref.mat->_m = glm::scale(glm::translate(ref.mat->_m.get(), offset * towardEye), glm::vec3{towardEye});
-    // Pop manually, as the world overlay does for this stack, also when the
-    // draw throws: a pushed matrix left behind would shift the whole world.
-    auto pop = [&] {
-        ref.stack->_isDirty = true;
-        if (ref.stack->sortOrigin->has_value() && (ref.stack->stack->size() - 1) <= ref.stack->sortOrigin->value())
-            ref.stack->sortOrigin->reset();
-        ref.stack->stack->pop_back();
-        ref.mat = nullptr;
-        ref.stack = nullptr;
-    };
-    try { draw(); } catch (...) { pop(); throw; }
-    pop();
+    overlay::drawPulled(screen, offset, towardEye, draw);
 }
-// The area chosen for saving: a white frame; corner 1 outlined red and
-// corner 2 blue on the block's own edges, with tinted faces just outside so
-// a full block still shows which corner it is.
-// `twoSided` (overlay::FaceMaterial): the material culls, so each face also
-// gets its reversed quad; when it draws both sides itself (lightning, under
-// Vibrant Visuals) a second quad in the same plane flickered.
-void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, mce::MaterialPtr const& faceMaterial, bool twoSided) {
+// The area chosen for saving: a white outline, and corner 1 red and corner
+// 2 blue as tinted cells with their outline, drawn over it with a nearer
+// pull (Depth.h rule 3) so a full block still shows which corner it is.
+void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, overlay::FaceMaterial const& material) {
     auto state = selection::current();
     if (state.dimension != dimension || (!state.first && !state.second)) return;
+    if (state.first != drawnSelection.first || state.second != drawnSelection.second || state.dimension != drawnSelection.dimension) {
+        drawnSelection = state;
+        ++selectionRevision;
+    }
     Area area = state.area().value_or(Area{state.first ? *state.first : *state.second, state.first ? *state.first : *state.second});
-    mce::MaterialPtr lineMaterial = overlay::lines::material();
-    if (!lineMaterial.mRenderMaterialInfoPtr) return;
+    auto cell = [](Point p) { return overlay::Cell{p.x, p.y, p.z}; };
     Point low = area.low();
     Size size = area.size();
-    constexpr int edges[12][2] = {{0,1},{2,3},{4,5},{6,7},{0,2},{1,3},{4,6},{5,7},{0,4},{1,5},{2,6},{3,7}};
-    auto corners = [](glm::vec3 a, glm::vec3 b, glm::vec3 (&c)[8]) {
-        for (int k = 0; k < 8; ++k) c[k] = {k & 1 ? b.x : a.x, k & 2 ? b.y : a.y, k & 4 ? b.z : a.z};
-    };
-    // One line batch per color: the area white, each corner its own.
-    Tessellator areaLines(screen.tessellator.mBufferResourceService), cornerLines[2]{Tessellator(screen.tessellator.mBufferResourceService),
-                                                                                     Tessellator(screen.tessellator.mBufferResourceService)};
-    auto box = [&](Tessellator& lines, glm::vec3 a, glm::vec3 b) {
-        glm::vec3 c[8];
-        corners(a, b, c);
-        for (auto [p, q] : edges) { lines.vertex(c[p].x, c[p].y, c[p].z); lines.vertex(c[q].x, c[q].y, c[q].z); }
-    };
-    glm::vec3 base{static_cast<float>(low.x - camera.x), static_cast<float>(low.y - camera.y), static_cast<float>(low.z - camera.z)};
-    areaLines.begin({}, mce::PrimitiveMode::LineList, 24, false);
-    areaLines.color(1.f, 1.f, 1.f, 1.f);
-    box(areaLines, base - glm::vec3{.03f},
-        base + glm::vec3{static_cast<float>(size.x), static_cast<float>(size.y), static_cast<float>(size.z)} + glm::vec3{.03f});
-    glm::vec3 cornerColors[2]{{1.f, .25f, .2f}, {.25f, .5f, 1.f}};
-    Tessellator faces(screen.tessellator.mBufferResourceService);
-    faces.begin({}, mce::PrimitiveMode::QuadList, 96, false);
-    constexpr int sides[6][4] = {{0,2,6,4},{1,5,7,3},{0,4,5,1},{2,3,7,6},{0,1,3,2},{4,6,7,5}};
+    overlay::CellStyle white{1.f, 1.f, 1.f, false, overlay::LineColoring::Shader};
+    if (areaMesh.stale(selectionRevision, white, material)) {
+        auto outline = overlay::boxOutline(cell(low), {low.x + size.x - 1, low.y + size.y - 1, low.z + size.z - 1});
+        overlay::buildCellMesh(screen, areaMesh, {}, outline, white, material, selectionRevision);
+    }
+    overlay::drawCellMesh(screen, camera, areaMesh, material, overlay::depth::facePull);
+    constexpr float cornerColors[2][3]{{1.f, .25f, .2f}, {.25f, .5f, 1.f}};
     for (int i = 0; i < 2; ++i) {
         auto const& corner = i == 0 ? state.first : state.second;
         if (!corner) continue;
-        glm::vec3 color = cornerColors[i];
-        glm::vec3 at{static_cast<float>(corner->x - camera.x), static_cast<float>(corner->y - camera.y), static_cast<float>(corner->z - camera.z)};
-        cornerLines[i].begin({}, mce::PrimitiveMode::LineList, 24, false);
-        cornerLines[i].color(color.r, color.g, color.b, 1.f);
-        box(cornerLines[i], at - glm::vec3{.005f}, at + glm::vec3{1.005f});
-        faces.color(color.r, color.g, color.b, .25f);
-        glm::vec3 c[8];
-        // 0.025 out: at 0.01 the faces flickered against the block under
-        // Vibrant Visuals.
-        corners(at - glm::vec3{.025f}, at + glm::vec3{1.025f}, c);
-        for (auto const& side : sides) {
-            for (int k = 0; k < 4; ++k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
-            if (twoSided) for (int k = 3; k >= 0; --k) faces.vertex(c[side[k]].x, c[side[k]].y, c[side[k]].z);
+        overlay::CellStyle style{cornerColors[i][0], cornerColors[i][1], cornerColors[i][2], true, overlay::LineColoring::Shader};
+        auto& mesh = cornerMeshes[i];
+        if (mesh.stale(selectionRevision, style, material)) {
+            auto surface = overlay::cellSurface({cell(*corner)});
+            overlay::buildCellMesh(screen, mesh, surface.faces, surface.lines, style, material, selectionRevision);
         }
+        overlay::drawCellMesh(screen, camera, mesh, material, overlay::depth::markPull);
     }
-    translated(screen, glm::vec3{0}, [&] {
-        if (faceMaterial.mRenderMaterialInfoPtr && faces.mCount)
-            MeshHelpers::renderMeshImmediately(screen, faces, faceMaterial, OffscreenCaptureDescription{});
-        overlay::lines::colored(screen, 1.f, 1.f, 1.f, [&] { MeshHelpers::renderMeshImmediately(screen, areaLines, lineMaterial, OffscreenCaptureDescription{}); });
-        for (int i = 0; i < 2; ++i)
-            if ((i == 0 ? state.first : state.second))
-                overlay::lines::colored(screen, cornerColors[i].r, cornerColors[i].g, cornerColors[i].b, [&] {
-                    MeshHelpers::renderMeshImmediately(screen, cornerLines[i], lineMaterial, OffscreenCaptureDescription{});
-                });
-    });
 }
 
 // While a save waits, the chunk columns it still has to read: yellow frames
@@ -465,6 +425,8 @@ void point(Point cell) {
 }
 void resetMarks() {
     frameMesh.mesh.reset();
+    areaMesh.release();
+    for (auto& mesh : cornerMeshes) mesh.release();
     labels.clear();
 }
 }

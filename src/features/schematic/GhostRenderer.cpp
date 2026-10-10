@@ -636,7 +636,7 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
         auto faces = overlay::faceMaterial(client);
         drawPoint(context.mScreenContext, context.mImpl->mCameraPosition, faces.material, faces.twoSided);
         stepSave(player->getDimensionBlockSource(), *player);
-        drawSelection(context.mScreenContext, context.mImpl->mCameraPosition, static_cast<int>(player->getDimensionId()), faces.material, faces.twoSided);
+        drawSelection(context.mScreenContext, context.mImpl->mCameraPosition, static_cast<int>(player->getDimensionId()), faces);
         drawWaitingColumns(context.mScreenContext, context.mImpl->mCameraPosition, faces.material, faces.twoSided);
     } catch (std::exception const& error) {
         static bool reported = false;
