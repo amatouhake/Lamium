@@ -22,6 +22,12 @@ overlay shutdown release session state/resources. Local-world joins bind the
 workspace to `lamium/shapes.json` under the resolved world directory; unsupported
 or remote identities remain session-only.
 
+Cell overlays (L-138, built 2026-10-11): Shapes, the breaking region and
+the schematic save area draw through one builder: `CellSurface.h` (faces on
+the cells' own planes and the outline, pure and tested) and `CellMesh`
+(upload, face material, outline coloring, pull toward the eye by the
+Depth.h rules). Each keeps its own colors and decides when it shows.
+
 ## Shapes view and rendering
 
 Shapes open from the pinned settings sidebar entry or the initially unbound

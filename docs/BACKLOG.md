@@ -88,12 +88,13 @@ L-item wins. Every entry names what the task is, not only its number.
    it, and placement waits for that Design. L-59 waits for the maintainer's
    go.
 4. **0.2.0: clean-up and integration (L-111 integration between
-   features, decided 2026-10-11):** L-136 GhostRenderer.cpp split, L-138
-   shared face drawing, the map and settings tidy-up, L-139 map layers, the
-   rest of L-134 SettingsScreen.cpp split, then the 0.2.0 regression checks,
-   L-137 game update readiness (inventory alongside from the start) and
-   L-135 PDB as a separate release asset. The radial menu and the smaller
-   links are optional. Order and boundary: L-111.
+   features, decided 2026-10-11):** all required items are built on main
+   (2026-10-11, `1a2c231`..`d274227`): L-136 GhostRenderer.cpp split, L-138
+   shared face drawing, the map and settings tidy-up, L-139 map layers,
+   L-134 SettingsScreen.cpp split, L-137's required part and L-135 PDB as a
+   separate asset. Next: the 0.2.0 regression checks in game (Pre-release
+   checks), step by step; then the release. The radial menu and the
+   smaller links are optional. Order and boundary: L-111.
 5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
    trace/test steps), L-71 starting a glide from the mod, L-30 Ender Dragon
@@ -185,7 +186,28 @@ unmet gates for versions already published. Registry pickup for 0.1.4 to
 ### 0.2.0 regression checks
 
 0.2.0 changes shared parts under existing features, so its smoke test also
-covers (added 2026-10-11 from an outside review):
+covers (added 2026-10-11 from an outside review). Built on main 2026-10-11;
+first deployed build `d274227` (DLL `c7163916...e084c468`). The steps were
+built back to back without an in-game check in between, so each check names
+the commits a regression would sit in (L-111 rule: one step's commits):
+- L-136 (`1a2c231`, `3ec2498`): schematic ghosts look and behave as on
+  0.1.9 (doors, beds, panes, liquids, honey/slime, block entities, entity
+  models, mistakes, large placements' frame rate), saving an area, the
+  Check list and progress.
+- L-138 (`261c0e4`, `d4a83d1`, `dd1f58c`, `8a4c71a`): Shapes and the
+  breaking region look as before; the save area's corners now sit on the
+  block's own planes, drawn over the white outline (no longer 0.025 out),
+  with the overlay face alpha (look change to judge).
+- L-139 groundwork (`534134f`, `7f85e7d`): waypoint editing, hiding,
+  deleting and keeping the death point from the world map and the
+  Waypoints screen act on the right entry, also with two waypoints of the
+  same name and place.
+- L-134 (`097d32a`, `b612e94`, `22b081a`): the settings screen after the
+  split (below).
+- L-137 (`44f48a8`): the gated paths behave as before on the verified game
+  (Night Vision even brightness, Edge Guard, fog/medium/weather/nausea
+  hiding, Connected Textures, FreeCamera terrain, schematic ghosts and
+  entity models).
 - Overlapping Shapes, breaking restriction and schematic frames: no missing
   faces, flicker or depth inversions (L-138).
 - Map layers stay in sync with the data of the features that own them;
@@ -198,7 +220,8 @@ covers (added 2026-10-11 from an outside review):
 - Settings input after the L-134 split: editing, saving, key capture and
   returning behave as before.
 - The gated risky paths fail open without a crash on a build that forces
-  the version check to fail (L-137).
+  the version check to fail (L-137): `xmake f ... --unverified_game=y`,
+  each capability in GAME-UPDATES.md logs "stays vanilla" once.
 - The release's PDB matches its DLL (L-135).
 
 ### Pending feature checks
@@ -285,6 +308,16 @@ type 3, scale 1.333, with the font's own material).
 ### L-134 Split SettingsScreen.cpp (with 0.2.0)
 Kind: Refactor. Raised by the maintainer 2026-10-11; planned together with
 L-111 integration and other 0.2.0 clean-up, not before.
+Status: built 2026-10-11, in-game check pending (0.2.0 regression checks).
+Part 1 (`097d32a`): ShapesView and WaypointsView; part 2: SchematicsView
+(`b612e94`), SettingsTableView with Hotkeys and key capture (`22b081a`).
+SettingsScreen.cpp keeps the scene, input queues, prompts, the schematic
+menu and the world map hand-over (1,371 lines). Each view owns its state;
+what the core offers them is ScreenParts.h (footer message, the number
+being typed, navigation, closing, where the player stands); navigation item
+ids are in SettingsNavigation.h; shared list widgets in ListViewWidgets.
+The cut was made by the agent without a separate plan with the
+maintainer (the goal set on 2026-10-11 asked for 0.2.0's required items).
 `src/ui/SettingsScreen.cpp` is 4585 lines (2026-10-11), the largest file by
 far, and changed in 131 commits since 2026-09-01. It mixes the settings rows
 and navigation, key capture and the Hotkeys view, text and number editing,
@@ -309,6 +342,10 @@ area).
 
 ### L-135 Leave the PDB out of the release ZIP (with 0.2.0)
 Kind: Distribution. Decided by the maintainer 2026-10-11.
+Status: built 2026-10-11 (`d274227`); the first release made this way is
+the check. The symbols asset is `Lamium-<version>-client-windows-x64.pdb.zip`
+(the PDB compressed: 17.6 MB instead of 170 MB for 0.1.9's); the identity
+check is `scripts/PdbIdentity.ps1`.
 `Lamium.pdb` is about 90% of the release ZIP and grows each release
 (compressed 13.2 MB in 0.1.7, 15.6 MB in 0.1.8, 17.3 MB in 0.1.9; the DLL is
 1.8 MB). No crash report has arrived, and a description of the situation is
@@ -324,6 +361,14 @@ to the same build as the DLL in the ZIP (matching debug GUID and age).
 Kind: Refactor **(strong model)**. Chosen by the maintainer 2026-10-11 after
 an outside size review (SettingsScreen.cpp, GhostRenderer.cpp, WorldMap.cpp,
 InfoHud.cpp, Translations.h); planned with L-134 and L-111.
+Status: built 2026-10-11, in-game check pending (0.2.0 regression checks).
+`1a2c231`: GhostRenderer.cpp (the pass, 668 lines), GhostMesh, GhostVerify,
+AreaSave, GhostMarks, GhostBlocks, GhostActors, ResolvedPlacement; the pass
+owns the sections and resolved placements and hands them to the parts.
+`3ec2498`: classification (`classifyReading`, Verify.h), face culling
+(`dropFace`), back faces and blend order (`facesAway`, `farToNear`,
+GhostFaces.h) in tested headers. WorldMap.cpp and InfoHud.cpp were not
+split (the map got its layer model in L-139 instead).
 `src/features/schematic/GhostRenderer.cpp` is 2,792 lines (701 on
 2026-10-05, 1,693 on 2026-10-08) and changed in 107 commits since
 2026-10-01. Despite its name it holds more than drawing: the ghost mesh
@@ -361,6 +406,12 @@ What actually breaks on an update (checked 2026-10-11):
   the Vibrant Visuals fog), SDK header mistakes, and a different game
   executable under the same loader.
 `verifiedGameExecutable()` gates four render paths today.
+Status (2026-10-11): the required part is built; its in-game check (the
+fail-open build) is in the 0.2.0 regression checks. Inventory and
+playbook: [GAME-UPDATES.md](GAME-UPDATES.md), checked by
+`scripts/Check-GameInventory.ps1` in CI. Gates: `versionSensitiveAllowed()`
+(`app/Versions.h`, `44f48a8`) on nine capabilities; test build
+`--unverified_game=y`.
 Required for 0.2.0:
 1. Inventory, kept next to the code (script-checked where possible): per
    feature, its hooks and the game meanings it relies on (vertex fields,
@@ -382,6 +433,13 @@ touches the glue and the tests still vouch for the logic.
 
 ### L-138 Shared face drawing for cell overlays (0.2.0, L-111 A)
 Kind: Refactor **(strong model)**. Step 2 of the 0.2.0 order (L-111).
+Status: built 2026-10-11, in-game check pending (0.2.0 regression checks).
+`overlay/CellSurface.h` (pure, tested) builds the faces on the cells' own
+planes and the outline; `overlay/CellMesh` uploads and draws them with the
+face material, the outline coloring (vertex or shader color) and the pull.
+One feature per commit: Shapes (`d4a83d1`), the breaking region
+(`dd1f58c`), the schematic save area (`8a4c71a`; corners now on the block's
+planes with a nearer pull than its outline, `depth::markPull`).
 `overlay/Depth.h` already holds the depth rules every face overlay follows
 (L-110). Add one builder for the faces and outline of a set of cells that
 Shapes, the breaking restriction and the schematic area frame call.
@@ -396,6 +454,22 @@ in-game check of overlapping Shapes, restriction and schematic frames.
 ### L-139 Map layers (0.2.0, L-111 B)
 Kind: Feature **(strong model)**. Step 4 of the 0.2.0 order (L-111), after
 the WorldMap.cpp and SettingsScreen.cpp tidy-up (step 3).
+Status: built 2026-10-11, in-game check pending (0.2.0 regression checks).
+Session ids (`534134f`, app/SessionIds.h), selection and menus by mark key
+(`7f85e7d`), layers (`cf54db8`). Settled in the step: marks are
+`MarkKey{layer, id}` (MapMarks.h); under the cursor waypoints and the death
+point come first, then placements, then shapes, the smallest footprint
+first within a layer (`markAt`, tested); a provider that turns off
+(Schematics off, shapes not drawn) returns no marks, and a selection or
+menu on a mark that is gone is dropped; the minimap only draws, the world
+map hit-tests and acts. World map actions: placements select (also the
+schematic's selected placement), show/hide, open in the Placed tab; shapes
+show/hide, open in the Shapes view; the side panel shows the selected
+footprint's extent, a Show switch and the open button. Shape boxes are
+cached by the overlay until a shape changes; placements (at most 64) are
+listed per frame. Shapes on the minimap: map option "Shapes", off by
+default. Not done: one combined side-panel list per layer (the list stays
+waypoints; placements and shapes are selected on the map).
 One list of things drawn on the minimap and the world map, filled by the
 features that own them (INTEGRATION.md B): waypoints and the death point
 (as today), schematic placements first, then Shapes. On the world map they
@@ -1001,7 +1075,9 @@ fail-open per feature, smaller blast radius). Decide with the maintainer
 what to integrate, the risks of each step and the order, before any
 implementation. Output: a short plan (possibly a demo) that turns into Ready
 items.
-Status: agent's proposal written 2026-10-08 in [INTEGRATION.md](INTEGRATION.md)
+Status 2026-10-11: steps 1-6 built on main (see the 0.2.0 regression
+checks); the in-game checks per step are what is left before the release.
+Earlier status: agent's proposal written 2026-10-08 in [INTEGRATION.md](INTEGRATION.md)
 (shared parts features register into: face drawing, map layers, a Lamium
 radial menu, looked-at selection, settings cross-links; suggested order and
 open questions).

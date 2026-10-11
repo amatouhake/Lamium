@@ -555,9 +555,15 @@ block, area fill), Java `.litematic` files, layers by material.
 - `src/features/schematic/Nbt.*`, `Structure.*`: NBT and structure read/write.
 - `Placement.h`: transforms/layers; `Verify.h`, `Verification.h`: pure rules
   and progressive checking/material publication.
-- `GhostRenderer.cpp`: section caches, culling, private tessellation and
-  shared-face removal. Neighbor-dependent meshes read schematic neighbors
-  through `SchematicRegion` (B1 spike, unchecked).
+- `GhostRenderer.cpp`: the ghost pass (L-136 split, 2026-10-11): which
+  sections to build and draw, lifecycle. `GhostMesh.*`: section meshes,
+  culling, private tessellation and shared-face removal (neighbor-dependent
+  meshes read schematic neighbors through `SchematicRegion`). `GhostVerify.*`:
+  the check, progress and entity spots. `AreaSave.*`: saving an area.
+  `GhostMarks.*`: frames, the save area, missing entities, name tags, the
+  point. `GhostBlocks.cpp`, `GhostActors.*`, `ResolvedPlacement.*`: shared
+  block helpers, ghost block actors, a placement's resolved palette.
+  `GhostFaces.h`, `Verify.h`: their pure rules.
 - `MenuModel.h`, `src/ui/RadialLayout.h`: menu operations and geometry.
 - `tests/SchematicTests.cpp`: pure logic; `LAMIUM_SAMPLE_STRUCTURES` optionally
   supplies real exports.

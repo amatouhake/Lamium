@@ -34,8 +34,19 @@ parts and hiding during FreeCamera on `775c8c0` (2026-10-07).
 The minimap and other Lamium HUD elements also follow F1 (L-107); map
 recording and death tracking continue while hidden (checked on `18e2cc8`).
 
+Map layers (L-139, built 2026-10-11, unchecked in game): schematic
+placements and shapes are marks from the features that own them
+(`MapLayers.cpp`), keyed by layer and session id (`MapMarks.h`). The world
+map selects and acts on them (placements: select, show/hide, open in the
+Placed tab; shapes: show/hide, open in the Shapes view); the minimap draws
+placements, and shapes with the minimap's Shapes option (off by default).
+Overlapping marks take the cursor in a fixed order: waypoints and the death
+point, placements, shapes, the smallest footprint first.
+
 ## Technical entry points
 
+- `MapMarks.h`, `MapLayers.cpp`: mark keys, hit order and the footprint
+  providers with their shared actions (L-139).
 - `src/features/map/Minimap.cpp`: bounded scanning, terrain colors, cave
   tiles, radar and runtime texture composition.
 - `MapStore.cpp`, `MapRegion.h`: region/image cache, disk worker and format.

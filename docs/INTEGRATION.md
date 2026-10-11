@@ -6,6 +6,8 @@ BACKLOG.md or DESIGN.md.
 
 Decided 2026-10-11: the boundary, order and 0.2.0 scope are in L-111 in
 BACKLOG.md; A is L-138 and B is L-139 (required), C to E are optional.
+Built 2026-10-11: A and B (in-game checks pending, BACKLOG 0.2.0 regression
+checks).
 Shapes on the minimap are a setting; the menu key question stays open until
 C.
 
