@@ -2,7 +2,7 @@ add_rules("mode.debug", "mode.release")
 set_license("LGPL-3.0")
 
 -- Single source for the manifest version and the string the Debug View shows.
-local lamiumVersion = "0.1.9"
+local lamiumVersion = "0.2.0"
 set_policy("package.requires_lock", true)
 
 add_repositories("levimc-repo https://github.com/LiteLDev/xmake-repo.git")

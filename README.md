@@ -11,7 +11,7 @@
 
 ## Status
 
-Lamium 0.1.9 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.2.0 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
