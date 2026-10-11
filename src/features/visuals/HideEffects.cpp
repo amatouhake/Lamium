@@ -1,6 +1,7 @@
 #include "features/visuals/HideEffects.h"
 #include "features/visuals/EffectVisibility.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "ll/api/memory/Hook.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
@@ -103,14 +104,14 @@ LL_TYPE_INSTANCE_HOOK(NauseaMeshVisibility, ll::memory::HookPriority::Normal, mc
     static_cast<MeshRender>(&mce::Mesh::renderMesh), void, mce::MeshContext& context,
     mce::MaterialPtr const& material, MeshTexture const& texture, uint startOffset, uint count,
     OffscreenCaptureDescription const& capture, mce::IndexBufferContainer const* indices) {
-    if (overlayMesh(material,texture)) return;
+    if (overlayMesh(material,texture) && versionSensitiveAllowed("Hide nausea (overlay mesh)")) return;
     origin(context,material,texture,startOffset,count,capture,indices);
 }
 LL_TYPE_INSTANCE_HOOK(NauseaMetadataVisibility, ll::memory::HookPriority::Normal, mce::Mesh,
     static_cast<MetadataMeshRender>(&mce::Mesh::renderMesh), void, mce::MeshContext& context,
     dragon::RenderMetadata const& metadata, mce::MaterialPtr const& material, MeshTexture const& texture,
     uint startOffset, uint count, mce::IndexBufferContainer const* indices) {
-    if (overlayMesh(material,texture)) return;
+    if (overlayMesh(material,texture) && versionSensitiveAllowed("Hide nausea (overlay mesh)")) return;
     origin(context,metadata,material,texture,startOffset,count,indices);
 }
 bool bossControl(UIControl& owner) noexcept {
@@ -226,6 +227,8 @@ LL_TYPE_INSTANCE_HOOK(MediumFogVisibility, ll::memory::HookPriority::Normal, Lev
         heldFog.owner = 0;
         before = {mCameraUnderWater, mCameraUnderLiquid, mCameraUnderLava, mCameraUnderPowderSnow};
         if (ll::service::getClientInstance() == &mClientInstance) mask = active();
+        // Fog values and the camera-medium flags are written in place.
+        if (mask && !versionSensitiveAllowed("Hide effects (fog and camera medium)")) mask = 0;
     } catch (...) { mask = 0; }
     auto shown = visibleMedium(before, mask & mediumBits);
     if (!(mask & mediumBits) || shown == before) {
@@ -257,6 +260,7 @@ LL_TYPE_INSTANCE_HOOK(WeatherVisibility, ll::memory::HookPriority::Normal, Level
     try {
         unsigned mask = active();
         if (!mask || ll::service::getClientInstance() != &mClientInstance) return view;
+        if (!versionSensitiveAllowed("Hide effects (weather densities)")) return view;
         auto& weather = *view.mWeatherState;
         float* densities[] = {&weather.mDensityRain, &weather.mDensitySnow, &weather.mDensityPlankton,
             &weather.mDensityRedSpores, &weather.mDensityBlueSpores, &weather.mDensityAsh, &weather.mDensityWhiteAsh};

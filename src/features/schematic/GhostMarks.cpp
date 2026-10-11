@@ -5,6 +5,7 @@
 #include "overlay/CellMesh.h"
 #include "overlay/LineColor.h"
 #include "features/schematic/Selection.h"
+#include "app/Versions.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/game/IMinecraftGame.h"
 #include "mc/client/gui/Font.h"
@@ -232,7 +233,11 @@ void drawEntities(ScreenContext& screen, IClientInstance& client, session::Snaps
             if (distance < 32 * 32) names.push_back({spots.size() - 1, r.entities[e].name});
         }
     }
-    auto modelled = models::draw(screen, client, camera, spots, [&](std::function<void()> const& draw) { translated(screen, glm::vec3{0}, draw); });
+    // Entity models come from the game's actor renderers; without them every
+    // missing entity is a dashed frame.
+    auto modelled = versionSensitiveAllowed("Schematic entity models (actor renderers)")
+        ? models::draw(screen, client, camera, spots, [&](std::function<void()> const& draw) { translated(screen, glm::vec3{0}, draw); })
+        : std::vector<bool>(spots.size(), false);
     // A model says what the entity is; only the frames get name tags.
     std::vector<std::pair<Position, std::string>> named;
     for (auto& [index, name] : names) {

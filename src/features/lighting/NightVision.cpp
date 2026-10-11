@@ -1,5 +1,6 @@
 #include "features/lighting/NightVision.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/renderer/ptexture/BaseLightData.h"
 #include "mc/client/renderer/ptexture/BaseLightTextureImageBuilder.h"
@@ -48,7 +49,7 @@ void NightVision::stop() {
         Runtime::instance().self().getLogger().error("Could not remove a lighting hook");
 }
 void NightVision::apply(BaseLightData* data) const {
-    if (!data || !enabled()) return;
+    if (!data || !enabled() || !versionSensitiveAllowed("Night Vision (light texture data)")) return;
     // Modify newly produced render data so the game's light-texture cache sees
     // the change on both enable and disable. No player effect is added.
     data->mNightvisionActive = true;

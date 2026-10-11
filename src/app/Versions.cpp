@@ -1,8 +1,11 @@
 #include "app/Versions.h"
+#include "app/Runtime.h"
 
 #include "ll/api/Versions.h"
 #include <Windows.h>
 #include <cstddef>
+#include <mutex>
+#include <set>
 #include <vector>
 #pragma comment(lib, "version.lib")
 
@@ -21,7 +24,11 @@ std::string runningLoaderVersion() {
 std::string runningVersionLine() {
     return versionLine(LAMIUM_VERSION, runningGameVersion(), runningLoaderVersion());
 }
-bool verifiedGameExecutable() {
+namespace {
+bool readVerified() {
+#ifdef LAMIUM_UNVERIFIED_GAME
+    return false;
+#else
     wchar_t path[32768];
     DWORD length = GetModuleFileNameW(nullptr, path, 32768);
     if (!length || length == 32768) return false;
@@ -35,5 +42,29 @@ bool verifiedGameExecutable() {
         || size < sizeof(*info) || info->dwSignature != 0xfeef04bd) return false;
     return info->dwFileVersionMS == ((1u << 16) | 26u)
         && info->dwFileVersionLS == ((51u << 16) | 1u);
+#endif
+}
+}
+bool verifiedGameExecutable() {
+    static bool const verified = readVerified();
+    return verified;
+}
+bool versionSensitiveAllowed(std::string_view capability) {
+    if (verifiedGameExecutable()) return true;
+    static std::mutex mutex;
+    static std::set<std::string, std::less<>> logged;
+    std::lock_guard lock(mutex);
+    if (logged.find(capability) == logged.end()) {
+        logged.emplace(capability);
+        try {
+#ifdef LAMIUM_UNVERIFIED_GAME
+            constexpr char const* why = "forced by the unverified_game build option";
+#else
+            constexpr char const* why = "the game executable is not the verified version";
+#endif
+            Runtime::instance().self().getLogger().warn("{} stays vanilla: {} (version {})", capability, why, runningGameVersion());
+        } catch (...) {}
+    }
+    return false;
 }
 }

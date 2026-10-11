@@ -29,7 +29,7 @@ void unavailable(char const* reason) noexcept {
     catch (...) {}
 }
 
-bool supportedGameVersion() { return verifiedGameExecutable(); }
+bool supportedGameVersion() { return versionSensitiveAllowed("FreeCamera terrain (native culler request)"); }
 
 bool gameCode(void* address) {
     MEMORY_BASIC_INFORMATION page{};

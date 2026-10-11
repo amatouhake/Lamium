@@ -337,11 +337,8 @@ Hook hooks[] = {{ConnectedBlock::hook, ConnectedBlock::unhook}, {ConnectedDown::
 bool start() {
     if (installed) return true;
     // Chunk meshes are version-sensitive: on an unverified game, stay vanilla.
-    supported = verifiedGameExecutable();
-    if (!supported) {
-        Runtime::instance().self().getLogger().warn("Connected Textures: vanilla glass retained (unverified game version)");
-        return true;
-    }
+    supported = versionSensitiveAllowed("Connected Textures (chunk mesh vertices)");
+    if (!supported) return true;
     // Chunks built on joining a world already follow the switch.
     try { active = Runtime::instance().snapshot()->visuals.connectedTextures; } catch (...) {}
     for (auto& hook : hooks)

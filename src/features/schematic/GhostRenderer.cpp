@@ -12,6 +12,7 @@
 #include "features/schematic/Selection.h"
 #include "overlay/FaceMaterial.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/memory/Hook.h"
@@ -332,7 +333,11 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     std::unique_ptr<SchematicRegion> view;
     std::unique_ptr<BlockTessellator> own;
     auto now = Clock::now();
+    // Ghost blocks come from the game's block tessellator and mesh streams;
+    // frames, marks and the check do not, and keep working without them.
+    bool tessellate = versionSensitiveAllowed("Schematic ghost blocks (block tessellation)");
     for (auto const& w : wanted) {
+        if (!tessellate) break;
         if (!budget || (budget < sectionLimit && std::chrono::steady_clock::now() - buildsStart >= buildTimeBudget)) break;
         auto found = sections.find(w.key);
         auto refreshAfter = w.distance <= nearDistance ? std::chrono::duration_cast<Clock::duration>(refreshNear)

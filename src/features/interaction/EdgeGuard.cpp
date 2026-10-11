@@ -1,6 +1,7 @@
 #include "features/interaction/EdgeGuard.h"
 #include "features/interaction/EdgeGuardPlan.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "ll/api/memory/Hook.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
@@ -81,7 +82,9 @@ LL_STATIC_HOOK(EdgeGuardHook, ll::memory::HookPriority::Normal, &MoveCollisionSy
     LocalSpatialEntityFetcher& fetcher, GetCollisionShapeInterface const& collisionShape,
     std::vector<BlockSourceVisitor::CollisionShape>& tempCollisionShapes,
     std::vector<BlockSourceVisitor::CollisionShape>& scratchCollisionShapes, std::vector<AABB>& tempShapes) {
-    try { guard(entity, aabb, request, region, collisionShape); } catch (...) {}
+    try {
+        if (versionSensitiveAllowed("Edge Guard (movement request)")) guard(entity, aabb, request, region, collisionShape);
+    } catch (...) {}
     origin(entity, aabb, autoStep, collidableMobNear, request, isMinecart, collidableMobs, stackableView, fallingBlocks,
         region, fetcher, collisionShape, tempCollisionShapes, scratchCollisionShapes, tempShapes);
 }
