@@ -5,6 +5,7 @@
 // own state in its own file (ShapesView, WaypointsView, ...) and reaches the
 // rest of the screen only through these. Everything runs on the client
 // thread under the screen's lock.
+#include "input/Binding.h"
 #include "ui/NumberInput.h"
 #include "ui/SettingsTable.h"
 #include "ui/ShapesLayout.h"
@@ -29,14 +30,21 @@ void warnRange(std::string text);
 NumberInput& number();
 // The typed number changed: the core asks the editing view to apply it.
 void numberTyped();
+// The number shows the stored value again: nothing to apply.
+void numberReset();
 // Applies and ends any typing (a number or a name) in every view.
 void finishEditing();
 
 bool heldCtrl();
 bool heldShift();
+// The keys and buttons held now (a binding being captured starts from them).
+input::Chord const& heldKeys();
 void close();
 // Back to the world map the view was opened from.
 void returnToMap();
+// The navigation item shown (SettingsNavigation.h nav::), and choosing one.
+int currentNav();
+void selectNav(int index);
 // Tab / Shift+Tab: the next or previous navigation item.
 void nextNav(bool back);
 // A click on the sidebar or the version in an undocked view; true if it
