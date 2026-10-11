@@ -44,7 +44,10 @@ Only the LeviLauncher path has been tested by the maintainer.
    [Releases](https://github.com/amatouhake/Lamium/releases) page.
 3. Extract it so that `Lamium.dll` and `manifest.json` end up in
    `<instance>/mods/Lamium/`. Extracting over an older install keeps
-   `config/`; do not delete the folder first.
+   `config/`; do not delete the folder first. From 0.2.0 the ZIP holds no
+   `Lamium.pdb`; the symbols are a separate asset
+   (`Lamium-<version>-client-windows-x64.pdb.zip`), only needed to read a
+   crash address.
 4. Start Minecraft, enter a world and press `L` to open Lamium Settings.
 
 Do not mix the two: a manual copy into a LeviLauncher-managed Lamium folder
@@ -129,7 +132,10 @@ to the defaults.
   heads; waypoints with the last death point, shown on the minimap and in
   the world, edited in a Waypoints screen; and a world map (`M`) of the
   areas you have visited, recorded per world, with a waypoint side panel and
-  a link that opens the same place in ChunkBase's seed map.
+  a link that opens the same place in ChunkBase's seed map. Schematic
+  placements and shapes show on the world map, where a click selects one and
+  its menu shows or hides it or opens it in its own screen; shapes can also
+  show on the minimap (an option, off by default).
 - **Schematics (experimental, off by default):** place `.mcstructure` files
   from `mods/Lamium/schematics/` as ghost blocks (move, turn, mirror, show
   layers along any axis), see what is missing, wrong or in the wrong state
@@ -141,8 +147,9 @@ to the defaults.
   that repeats the last adjustment with the wheel. Ghosts draw doors, beds,
   honey, water and lava, block entities with their saved data and entities as
   their models; the Files and Check tabs have a turnable 3D preview; placements
-  show on the minimap and world map. Saved files use the game's current
-  format and load in a structure block.
+  show on the minimap and world map, and can be selected, shown or hidden
+  there. Saved files use the game's current format and load in a structure
+  block.
 
 Lamium owns its key bindings; they do not appear in Minecraft's keyboard
 settings. Bindings are edited under each feature or in the Hotkeys view.
