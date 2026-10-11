@@ -2,6 +2,7 @@ param(
     [string]$PackageDirectory = (Join-Path $PSScriptRoot '../bin/Lamium')
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'PdbIdentity.ps1')
 $projectDirectory = Split-Path $PSScriptRoot -Parent
 $package = (Resolve-Path -LiteralPath $PackageDirectory).Path
 $manifest = Get-Content -LiteralPath (Join-Path $package 'manifest.json') -Raw | ConvertFrom-Json
@@ -45,5 +46,9 @@ foreach ($binary in Get-ChildItem -LiteralPath $package -File -Recurse) {
         $binary.Extension -iin @('.lib', '.exp')) {
         throw "Dependency runtime or build link input must not be packaged: $relative"
     }
+}
+$pdb = Join-Path $package 'Lamium.pdb'
+if (Test-Path -LiteralPath $pdb) {
+    Assert-PdbMatchesDll ([IO.File]::ReadAllBytes((Join-Path $package 'Lamium.dll'))) $pdb 'Package symbols'
 }
 Write-Output 'Lamium client package and license copies verified.'

@@ -4,6 +4,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression
+. (Join-Path $PSScriptRoot 'PdbIdentity.ps1')
 $projectDirectory = Split-Path $PSScriptRoot -Parent
 $package = (Resolve-Path -LiteralPath $PackageDirectory).Path
 
@@ -22,6 +23,9 @@ if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
 }
 
 $assetName = "Lamium-$version-client-windows-x64.zip"
+# The symbols are a separate release asset (L-135): LIP and LeviLauncher
+# install the ZIP only, and the PDB stays available for crash addresses.
+$symbolsName = "Lamium-$version-client-windows-x64.pdb.zip"
 if ($tooth.tooth -ne 'github.com/amatouhake/Lamium' -or $tooth.variants.Count -ne 1) {
     throw 'tooth.json must describe the single Lamium package variant.'
 }
@@ -48,6 +52,7 @@ try {
     $archive = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Create)
     try {
         foreach ($file in Get-ChildItem -LiteralPath $package -File -Recurse | Sort-Object FullName) {
+            if ($file.Extension -ieq '.pdb') { continue }
             $relative = [IO.Path]::GetRelativePath($package, $file.FullName).Replace('\', '/')
             $entry = $archive.CreateEntry("Lamium/$relative", [IO.Compression.CompressionLevel]::Optimal)
             $entryStream = $entry.Open()
@@ -62,13 +67,40 @@ try {
 $read = [IO.Compression.ZipFile]::OpenRead($archivePath)
 try {
     $names = @($read.Entries | ForEach-Object FullName)
+    # The DLL as shipped, to check the symbols against.
+    $dllStream = $read.GetEntry('Lamium/Lamium.dll').Open()
+    try {
+        $buffer = [IO.MemoryStream]::new()
+        $dllStream.CopyTo($buffer)
+        $shippedDll = $buffer.ToArray()
+    } finally { $dllStream.Dispose() }
 } finally { $read.Dispose() }
 foreach ($name in $names) {
     if ($name.Contains('\')) { throw "Archive entry uses '\': $name" }
     if (-not $name.StartsWith('Lamium/')) { throw "Archive entry outside Lamium/: $name" }
     if ($name -match '^Lamium/(config|logs)/') { throw "Runtime state must not be archived: $name" }
+    if ($name -match '\.pdb$') { throw "Symbols ship as their own asset, not in the archive: $name" }
 }
 foreach ($required in @('Lamium/Lamium.dll', 'Lamium/manifest.json', 'Lamium/COPYING', 'Lamium/COPYING.LESSER')) {
     if ($names -notcontains $required) { throw "Archive is missing $required" }
 }
 Write-Output "Release archive $assetName verified ($($names.Count) entries, version $version)."
+
+$pdb = Join-Path $package 'Lamium.pdb'
+if (-not (Test-Path -LiteralPath $pdb)) { throw 'Lamium.pdb is missing from the package; it is released beside the archive.' }
+Assert-PdbMatchesDll $shippedDll $pdb "Release symbols $symbolsName"
+# Compressed: the PDB is about ten times the size of its ZIP.
+$symbolsPath = Join-Path (Split-Path $archivePath -Parent) $symbolsName
+if (Test-Path -LiteralPath $symbolsPath) { Remove-Item -LiteralPath $symbolsPath }
+$stream = [IO.File]::Open($symbolsPath, [IO.FileMode]::CreateNew)
+try {
+    $archive = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Create)
+    try {
+        $entryStream = $archive.CreateEntry('Lamium.pdb', [IO.Compression.CompressionLevel]::Optimal).Open()
+        try {
+            $source = [IO.File]::OpenRead($pdb)
+            try { $source.CopyTo($entryStream) } finally { $source.Dispose() }
+        } finally { $entryStream.Dispose() }
+    } finally { $archive.Dispose() }
+} finally { $stream.Dispose() }
+Write-Output "Release symbols $symbolsName written."

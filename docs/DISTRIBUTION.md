@@ -55,7 +55,6 @@ must not be replaced by an ordinary update.
 Package-owned examples:
 
 - `Lamium.dll`
-- `Lamium.pdb` when included
 - `manifest.json`
 - `COPYING`, `COPYING.LESSER`
 - `THIRD_PARTY_NOTICES.md` and bundled license texts
@@ -97,10 +96,15 @@ A release is valid only when these agree:
 - `tooth.json` version
 - Git tag `v<version>`
 - release asset `Lamium-<version>-client-windows-x64.zip`
+- symbols asset `Lamium-<version>-client-windows-x64.pdb.zip`
 - the version shown by the built mod
 
 The archive contains a top-level `Lamium/` directory that installs to
-`mods/Lamium/`.
+`mods/Lamium/`. From 0.2.0 it holds no `Lamium.pdb` (L-135, decided
+2026-10-11): the symbols were about 90% of the archive and only matter for
+crash addresses, so LIP, LeviLauncher and a manual install get the DLL alone,
+and `Lamium.pdb` is released beside it, compressed, in the symbols asset. To
+read a crash address, unzip it next to the DLL of the same version.
 
 `tooth.json` declares Lamium as a Windows x64, client-only package and pins
 the supported LeviLamina Client range. Compatibility changes must update the
@@ -109,8 +113,11 @@ manifest and user-facing support text together.
 `scripts/New-ReleaseArchive.ps1` checks these (the tag only when CI runs on a
 tag push), checks the `tooth.json` asset URL and placement, and builds the
 release asset into `bin/release/` with `/` entry separators, the top-level
-`Lamium/` directory and no runtime state. CI runs it on every push, so drift
-fails before or at the tag.
+`Lamium/` directory, no runtime state and no PDB. It then checks that the
+package's `Lamium.pdb` belongs to the DLL inside the archive (the same debug
+GUID and age, `scripts/PdbIdentity.ps1`) and writes the symbols asset beside
+it. CI runs it on every push, so drift fails before or at the tag.
+`scripts/Check-Package.ps1` checks the same for the package folder.
 
 ## Managed update requirements
 
@@ -159,9 +166,10 @@ Before publishing a managed release:
 
 - build and tests pass;
 - `scripts/Check-Package.ps1` passes;
-- `scripts/New-ReleaseArchive.ps1` passes, and the ZIP it writes to
-  `bin/release/` is the asset attached to the GitHub release (do not zip by
-  hand: hand-made Windows archives, 0.1.1-0.1.3, stored `\` separators);
+- `scripts/New-ReleaseArchive.ps1` passes, and the ZIP and the symbols ZIP
+  it writes to `bin/release/` are the two assets attached to the GitHub
+  release (do not zip by hand: hand-made Windows archives, 0.1.1-0.1.3,
+  stored `\` separators);
 - the pushed tag is `v<version>`, and its CI run passes;
 - release notes call out settings-schema migrations when one exists;
 - a managed-update smoke test is repeated when packaging, installer behavior or
