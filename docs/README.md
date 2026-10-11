@@ -15,6 +15,7 @@ The [agent guide](../AGENTS.md) is the working manual and the
 | Which build and observation support a result? | [VALIDATION-LOG.md](VALIDATION-LOG.md): append-only evidence, newest first |
 | What happened to a finished or closed L-item? | [BACKLOG-DONE.md](BACKLOG-DONE.md): retained task history |
 | How is Lamium packaged, updated and released? | [DISTRIBUTION.md](DISTRIBUTION.md): package contract and release checklist |
+| What does Lamium rely on in the game, and what to do on a game update? | [GAME-UPDATES.md](GAME-UPDATES.md): gated capabilities, update playbook and the hook inventory (script-checked) |
 | How are contributions and translations handled? | [CONTRIBUTING.md](../CONTRIBUTING.md), [TRANSLATING.md](TRANSLATING.md) |
 | Which outside sources may be used? | [PROVENANCE.md](PROVENANCE.md): dependencies and source-use boundaries |
 | Which mockup was adopted? | [demos/README.md](demos/README.md): demo status and links |

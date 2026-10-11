@@ -116,7 +116,12 @@ Rules the code already follows; keep them:
    Chinese is not supported. Contributor notes: docs/TRANSLATING.md.
 7. **UI** draws only rectangles and text through `src/ui/Widgets.h`. Use the
    palette and widgets there; do not invent colors or sizes. See DESIGN.md.
-8. **Engineering behavior** (DESIGN.md, the authoritative wording): bound
+8. **Game dependencies**: a new hook gets an entry in
+   [docs/GAME-UPDATES.md](docs/GAME-UPDATES.md) (CI runs
+   `scripts/Check-GameInventory.ps1`). A path that writes game memory or
+   relies on a meaning a rebuild cannot check asks
+   `versionSensitiveAllowed()` (`app/Versions.h`) at that path.
+9. **Engineering behavior** (DESIGN.md, the authoritative wording): bound
    expensive scans and uploads per frame/tick, discard stale async results by
    world/dimension generation, confirm gameplay mutations from authoritative
    state rather than a return value or sent transaction, and fail open to
