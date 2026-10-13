@@ -329,7 +329,8 @@ void settingsStoreTests() {
           && old.interaction.toolGuard && old.interaction.toolGuardStrict && !old.interaction.elytraSwap
           && old.interaction.elytraFireworkJump && old.interaction.elytraReturnSeconds == 3,
           "offhand restock and tool protection default on; inventory tool fetch and auto elytra off");
-    check(!old.map.minimap && old.map.zoom == map::defaultZoomIndex && !old.map.rotate && !old.map.round && old.map.debugHide
+    check(!old.map.minimap && old.map.zoom == map::defaultZoomIndex && !old.map.rotate && !old.map.round
+          && !old.map.daylightTint && old.map.debugHide
           && old.hud.minimap.anchor == ui::Anchor::TopRight, "the minimap starts off, at 128 blocks, top right");
     check(!old.map.minimapShapes, "shapes stay off the minimap until turned on (L-139)");
     check(decodeSettings(R"({"map":{"minimapShapes":true}})").map.minimapShapes, "shapes on the minimap load when saved on");
@@ -367,9 +368,9 @@ void settingsStoreTests() {
               "repeated trades are named and fully paused on unverified games");
     }
     {
-        auto loaded = decodeSettings(R"({"map":{"zoom":9,"rotate":true},"hud":{"minimap":{"dx":-30}}})");
+        auto loaded = decodeSettings(R"({"map":{"zoom":9,"rotate":true,"daylightTint":true},"hud":{"minimap":{"dx":-30}}})");
         loaded.normalize();
-        check(map::blocksAcross(loaded.map.zoom) == 512 && loaded.map.rotate && loaded.hud.minimap.dx == -30,
+        check(map::blocksAcross(loaded.map.zoom) == 512 && loaded.map.rotate && loaded.map.daylightTint && loaded.hud.minimap.dx == -30,
               "map settings load; an old out-of-range zoom index is clamped");
         check(map::blocksAcross(decodeSettings(R"({"map":{"zoom":1}})").map.zoom) == 64
               && map::blocksAcross(decodeSettings(R"({"map":{"range":96,"zoom":4}})").map.zoom) == 96,

@@ -3,6 +3,7 @@
 #include "features/map/MapImage.h"
 #include "features/map/MapRadar.h"
 #include "features/map/MapTiles.h"
+#include "features/map/MapLighting.h"
 #include "features/map/MapView.h"
 #include "features/map/Teleport.h"
 #include <cmath>
@@ -273,8 +274,35 @@ void teleport() {
     check(teleportCommand(10, 64, -6) == "/tp @s 10.5 64 -5.5" && teleportCommand(-1, -59, 0) == "/tp @s -0.5 -59 0.5",
           "teleport targets the block center, also for negative coordinates");
 }
+void lighting() {
+    check(daylightFactor(6000) == 1.f && daylightFactor(1000) == 1.f && daylightFactor(11000) == 1.f,
+          "full day returns factor 1.0");
+    check(daylightFactor(18000) == minDaylightFactor && daylightFactor(13500) == minDaylightFactor
+          && daylightFactor(22500) == minDaylightFactor,
+          "deep night returns minDaylightFactor");
+    check(near(daylightFactor(12250), 0.775f, 1e-3) && near(daylightFactor(23750), 0.775f, 1e-3),
+          "sunset and sunrise midpoints transition smoothly");
+    check(daylightFactor(30000) == 1.f && daylightFactor(-1) == 1.f,
+          "ticks wrap across 24000 and negative ticks default to 1.0");
+    check(daylightFactor(18000, 1) == 1.f && daylightFactor(18000, 2) == 1.f,
+          "Nether and The End bypass daylight cycle");
+    check(daylightFactor(18000, 0, true) == 1.f,
+          "cave view bypasses daylight cycle");
+    auto day = daylightTint(6000);
+    check(near(day.r, 1.f) && near(day.g, 1.f) && near(day.b, 1.f), "daytime tint is white");
+    auto night = daylightTint(18000);
+    check(near(night.r, 0.50f) && near(night.g, 0.54f) && near(night.b, 0.62f),
+          "nighttime tint has cool moonlight tone");
+    auto disabled = daylightTint(18000, 0, false, false);
+    check(near(disabled.r, 1.f) && near(disabled.g, 1.f) && near(disabled.b, 1.f),
+          "disabled daylight tint returns white");
+    auto netherTint = daylightTint(18000, 1, false, true);
+    check(near(netherTint.r, 1.f) && near(netherTint.g, 1.f) && near(netherTint.b, 1.f),
+          "Nether tint remains white at night");
+}
 }
 void mapTests() {
+    lighting();
     teleport();
     colors();
     cave();

@@ -207,7 +207,8 @@ Json encode(Settings const& settings) {
                    {"chat", encodeHudElement(settings.hud.chat)}}},
         {"map", {{"minimap", settings.map.minimap}, {"range", map::blocksAcross(settings.map.zoom)}, {"size", settings.map.size},
                  {"rotate", settings.map.rotate},
-                 {"round", settings.map.round}, {"coordinates", settings.map.coordinates},
+                 {"round", settings.map.round}, {"daylightTint", settings.map.daylightTint},
+                 {"coordinates", settings.map.coordinates},
                  {"biome", settings.map.biome}, {"compass", settings.map.compass},
                  {"debugHide", settings.map.debugHide}, {"minimapShapes", settings.map.minimapShapes}, {"radar", settings.map.radar},
                  {"radarPlayers", settings.map.radarPlayers}, {"radarHostile", settings.map.radarHostile},
@@ -436,6 +437,7 @@ Settings decodeSettings(std::string_view text) {
         value.map.size = map.value("size", value.map.size);
         value.map.rotate = map.value("rotate", value.map.rotate);
         value.map.round = map.value("round", value.map.round);
+        value.map.daylightTint = map.value("daylightTint", value.map.daylightTint);
         value.map.coordinates = map.value("coordinates", value.map.coordinates);
         value.map.biome = map.value("biome", value.map.biome);
         value.map.compass = map.value("compass", value.map.compass);
