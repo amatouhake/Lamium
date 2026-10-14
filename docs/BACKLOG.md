@@ -125,6 +125,10 @@ L-item wins. Every entry names what the task is, not only its number.
    hurry). Server checks stay listed below as known gaps (the Release
    policy does not require a full regression).
 
+The 2026-10-14 player-feedback triage is recorded as L-177 through L-189:
+reported problems are unverified and proposed behavior is still Design/Research.
+These entries do not select an implementation, priority or release.
+
 Ideas that are not yet chosen (for example a fall-rescue elytra) stay in
 the maintainer's notes (the Notion idea inbox) and enter
 this file once chosen. The candidates imported on 2026-10-12 are now
@@ -375,6 +379,66 @@ found later are handled as bugs.
 
 ## Bugs
 
+### L-177 Schematic mismatch highlight appears at the wrong position
+Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
+Status: open. A highlighted discrepancy in a placed schematic can appear at
+a different world position from the corresponding incorrect block.
+Investigate the check result's cell coordinates, placement translation,
+rotation/mirroring, layer filters and overlay transform separately; do not
+assume the check data itself is wrong. Compare Check rows, world-space
+highlights and targeted blocks across transformed placements. Record a
+reproduction before choosing a fix. [SCHEMATIC.md](SCHEMATIC.md).
+
+### L-178 Schematic piston face texture does not match geometry
+Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
+Status: open. A piston ghost can show the texture intended for its extending
+face on a face that does not extend. The rendered shape and face texture
+disagree; this is not yet evidence that the stored facing/state is wrong.
+Compare retracted/extended, facing and rotation/mirror combinations with the
+file's states and an actual block. Keep mesh/state and texture/UV diagnosis
+separate. [SCHEMATIC.md](SCHEMATIC.md).
+
+### L-179 Schematic ghost orientation for shulker boxes and similar blocks
+Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
+Status: open. Shulker boxes in a schematic can be rendered without their
+recorded orientation. Determine whether the file contains the expected
+BlockState/NBT and where the placement rotation/mirror, block actor or mesh
+draw path loses it. Test all six shulker directions and transformed placements;
+audit other orientation-sensitive blocks without assuming they share the
+cause. [SCHEMATIC.md](SCHEMATIC.md).
+
+### L-180 Auto Elytra does not trigger on Riptide travel
+Kind: Bug / Research. User report 2026-10-14; scope of expected trigger
+needs confirmation. Status: open, unverified.
+Auto Elytra is reported not to respond when a Riptide trident launches the
+player. The current documented trigger is jumping with fireworks in the main
+hand (L-70), so first establish the intended Riptide trigger and the observable
+transition into flight, rather than treating every trident use as an existing
+guarantee. Test whether an elytra is available, whether launch occurs in
+water/rain, and whether any attempted equip/glide is authorized by the
+server. Do not change vanilla movement without an agreed rule.
+[EQUIPMENT.md](EQUIPMENT.md).
+
+### L-181 FreeCamera trident interaction affects the player unexpectedly
+Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
+Status: open. Using FreeCamera with a trident held was reported to leave the
+player struck by the trident. Capture the exact sequence (enter camera,
+held/used/thrown trident, Riptide or ordinary throw, local/server) and
+distinguish blocked input, borrowed camera position and server-authoritative
+projectile behavior. In FreeCamera, player interaction suppression and
+restoration must remain intact. [CAMERA.md](CAMERA.md).
+
+### L-182 Intermittent settings crash during schematic checking
+Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
+Status: open. Pressing the settings key (default L) while a schematic is
+being checked/used can occasionally crash. Capture crash log/stack and
+placement, Check-tab, background work and world-exit state; look for
+lifetime/reentrancy, UI ownership and stale pointers without assuming a
+specific cause. Test repeated open/close with active checking and after
+world/dimension changes. No release target; crashing is a priority when
+reproducible. [SCHEMATIC.md](SCHEMATIC.md).
+
+
 ### L-176 Preserve Chunk Borders and Hitboxes line colors in Vibrant Visuals
 Kind: Bug / Research (strong model). Imported from the maintainer's Notion
 idea inbox and chosen for the backlog 2026-10-14; no implementation or
@@ -455,6 +519,100 @@ type 3, scale 1.333, with the font's own material).
 ---
 
 ## Feature work and research
+
+### L-183 Temporarily disregard selected schematic check mismatches
+Kind: Design, then Ready/Research depending on the chosen check state.
+User feedback clarified 2026-10-14; not chosen for implementation or a release.
+Goal: while building redstone and other stateful structures, temporarily
+exclude selected expected-vs-actual discrepancies from the check results.
+A block with a temporarily different powered/open/extended state can be
+intentional during construction; the schematic file and physical blocks do
+not change. This is **check-result suppression**, not hiding the ghost or
+automatically relaxing every BlockState comparison.
+Open: scope (one world cell, selected group, or a state key), persistence
+(until manual reset, reload, or session end), whether ignored rows contribute
+to completion totals/HUD/nearest-mistake, and how to unignore/review them.
+Keep the original strict comparison available. [SCHEMATIC.md](SCHEMATIC.md).
+
+### L-184 Inspect ghost block data and schematic container contents
+Kind: Design / Research. User feedback clarified 2026-10-14; no
+implementation or release approved.
+Goal: inspect the ghost under the crosshair: expected block name, facing,
+BlockState and available saved Block Entity data. Provide a way to
+understand inventory contents of barrels/hoppers and other data relevant
+to redstone output (for example comparator signal), without assuming an
+on-world text overlay is the right presentation for all of it.
+Open: compact target-card details versus an expanded inspection view;
+how to display inventory slots, NBT fields and signal values; what is
+derivable from the saved file versus current world state; absent or
+unsupported data and transform-aware directions. Do not promise data that
+the client/schematic never stored. [SCHEMATIC.md](SCHEMATIC.md).
+
+### L-185 Instantly load a schematic into the world when cheats allow it
+Kind: Design, then Research (strong model). User feedback 2026-10-14;
+not approved for implementation or release.
+Goal: explicitly materialize an entire chosen placed schematic in the
+world, analogous to the game's structure-block Load action, rather than
+manually building ghost cells.
+Open: exact permission/capability checks for local and server worlds,
+world/block replacement policy, entities, block entities and inventory data,
+size/loaded-chunk limits, placement transformations and failure/undo UX.
+Never silently modify the world, use a client-side visual as proof of server
+acceptance or bypass permission checks. [SCHEMATIC.md](SCHEMATIC.md).
+
+### L-186 Improve schematic ghost legibility and reconsider translucency
+Kind: Design / Research (strong model). User feedback 2026-10-14;
+no renderer or release choice yet.
+Goal: distinguish ghost blocks from real blocks while keeping their native
+colors readable. In the reported screenshot a pink concrete ghost overlapped
+a light-blue overlay enough that the pink color, and even whether it was a
+ghost, became unclear. Investigate the **current** light-blue outline/tint,
+line density, face shading, overlap/occlusion and depth behavior first;
+compare with translucent ghosts (previously not selected) as an optional
+alternative rather than presuming translucency is better.
+Evaluate dense redstone builds, ghost-on-ghost overlap, real/ghost boundaries,
+opaque/cut-out/blended/water blocks and ordinary/Vibrant Visuals graphics.
+Consider mode/opacity controls only after comparison; avoid changing the
+existing default without the maintainer's decision. Related but distinct:
+L-114's Check-tab 3D preview mistake styling.
+[SCHEMATIC.md](SCHEMATIC.md).
+
+### L-187 Increase the world map's maximum zoom-out
+Kind: Design, then Ready/Research if map sampling must change.
+User feedback clarified 2026-10-14; no implementation or release chosen.
+Raise the **world map zoom-out limit** so a larger area fits on screen at
+once. This request is not to generate or retain more unexplored terrain.
+Choose a useful new range, stepping/scroll behavior, waypoint readability,
+tile/resampling cost and treatment of sparse data before implementation.
+Preserve current map data boundaries. [MAP.md](MAP.md).
+
+### L-188 Let the settings key toggle the settings screen closed
+Kind: Design, then Ready after input/ownership behavior is agreed.
+User feedback 2026-10-14; not approved for implementation/release.
+The default L shortcut should close Lamium Settings as well as open it.
+Clarify keybind changes and whether the key is consumed by focused text
+fields, key-capture dialogs, nested pages and modal prompts; Esc and
+other screens must retain their existing behavior. Test open/close, focus
+loss, remapped keys, and no input leaking into gameplay. Do not fold the
+separate crash report (L-182) into a mere UX toggle fix.
+
+### L-189 Fake Offhand fallback when primary right-click has no useful action
+Kind: Research, then Design (strong model). User feedback clarified
+2026-10-14; no implementation or release approved.
+Goal: if the main-hand right-click has no meaningful applicable action,
+allow the configured Fake Offhand item to receive that use. Reported
+examples are fireworks that cannot be used while the player is full or is
+holding a shovel/axe; this is a generalized input priority rule, not a
+firework-only exception.
+Research the native action/result and target-interaction outcomes: a
+non-mutating or nominally successful primary callback may not be a real
+use; conversely a false return does not prove that trying the other hand
+is safe. Never double-use, break valid block/entity interactions, fire
+accidentally, overwrite the selected slot or assume server success.
+Settle what counts as a genuine no-op before defining exact fallback order;
+check air, blocks, entities, cooldowns and server correction.
+[FAKE-OFFHAND.md](FAKE-OFFHAND.md).
+
 
 ### L-173 Quick shapes: a beacon's range at a glance, shapes that are not saved
 Kind: Design. From the maintainer's notes (2026-10-13); not chosen for
@@ -1099,6 +1257,13 @@ start a glide right after the swap. No faked flags or packets: only a
 vanilla path that the server accepts.
 
 ### L-93 Schematic: load, place, project, verify and list materials (experimental)
+2026-10-14 player-feedback follow-ups: mismatch highlight position (L-177),
+piston texture/geometry (L-178), shulker facing (L-179), crash on opening
+settings during checks (L-182), mismatch suppression (L-183), ghost data
+inspection (L-184), permission-gated world load (L-185) and ghost
+legibility/translucency comparison (L-186). All are open; no implementation
+or release is selected by this documentation update.
+
 Kind: First scope completed; follow-ups are Ready **(strong model)** or
 Research where a new renderer path or behavior needs investigation.
 Status: included in 0.1.7 (released 2026-10-07). Loading/placing, ghosts,
