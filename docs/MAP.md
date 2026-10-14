@@ -48,6 +48,15 @@ cursor order picks), for the selected one and for the one with a menu
 open, on a dark plate; the world map option "Always show names" (off by
 default) shows them all. Player names from the radar stay always shown.
 
+## World map zoom-out feedback (2026-10-14)
+
+[L-187](BACKLOG.md) proposes increasing the world map's maximum zoom-out.
+This means **show more of the already recorded world at once**, not extend
+exploration, cache radius or data collection. The new scale range,
+wheel-step curve, label/waypoint legibility and large-area sampling cost
+remain Design questions. Existing pan/zoom and sparse/unexplored map
+semantics must be retained. No new limit or release chosen.
+
 ## Technical entry points
 
 - `MapMarks.h`, `MapLayers.cpp`: mark keys, hit order and the footprint
