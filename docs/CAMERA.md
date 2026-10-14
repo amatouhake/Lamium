@@ -183,6 +183,15 @@ rotation center felt wrong, so FreeCamera locks first person instead.
 Continuing flight from the previous third-person eye (31323b8) did not pass
 verification and was removed: starting from third person begins at the head.
 
+## Trident interaction report (2026-10-14)
+
+[L-181](BACKLOG.md) tracks an unverified report of a trident striking the
+player when used with FreeCamera active. Establish whether the trident was
+thrown, used for Riptide or merely held, and whether the behavior occurs
+on a server. Keep interaction blocking, camera/body position and
+server-authoritative projectile behavior separate during diagnosis.
+No fix or change to the camera contract is selected.
+
 ## Underground terrain visibility (L-37; implemented 2026-10-07)
 
 Runtime status: **underground terrain checked in a local world and on BDS**
