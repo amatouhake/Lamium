@@ -89,6 +89,15 @@ Experimental, off by default, under Interaction.
   hand is followed once it glides. A key press on the ground waits for the key.
 - Only the jump flag is read every tick; the held item is checked on a jump.
 
+## Auto Elytra feedback (2026-10-14)
+
+[L-180](BACKLOG.md) tracks a report that Auto Elytra does not respond to
+Riptide trident launches. The shipped L-70 contract documents jumping
+while holding fireworks, not a general Riptide activation. First decide
+what the user expects (equip, enter glide or both), then reproduce the
+Riptide sequence and verify client/server behavior. This is an open report,
+not proof that the existing firework trigger regressed.
+
 ## Verification
 
 Pure tests (`tests/EquipmentPlanTests.cpp`) cover durability limits, enchantment
