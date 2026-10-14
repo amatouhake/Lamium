@@ -46,6 +46,22 @@ uses sneak rather than ordinary use (official platform behavior reference:
 [Taking Inventory: Shield](https://www.minecraft.net/en-us/article/taking-inventory--shield)).
 No external mod implementation is used.
 
+## Right-click fallback feedback (2026-10-14)
+
+[L-189](BACKLOG.md) records a request to invoke the configured Fake Offhand
+item when a primary-hand right-click has no **meaningful applicable effect**.
+Reported examples include fireworks while full or when holding a shovel/axe.
+This is **not** a firework-specific binding and is not implemented here.
+
+The existing target-priority rule already distinguishes a primary-hand
+pass from a failure, but the newly requested no-op cases may be reported
+as handled or otherwise consume input without a useful action. Research
+the actual game result and state-change boundary, including air/block/entity
+targets, before deciding when to fall through. A negative bool alone is
+not permission to double-use. Preserve a genuine primary use, prevent
+accidental activation, and validate server-authoritative outcomes. No
+choice of dispatch strategy, default or release is made yet.
+
 ## First instant-use adapter (2026-10-06, single clicks checked)
 
 Eligibility is classified from item properties (2026-10-07), replacing the
