@@ -75,6 +75,15 @@ were confirmed together in game on 2026-09-28.
 Do not add a second advanced keybind-settings system; matching mode remains an
 action property.
 
+## Settings key feedback (2026-10-14)
+
+[L-188](BACKLOG.md) proposes making the configured settings shortcut
+(default L) a close/open toggle rather than open-only. Resolve focus in
+text fields, key capture, nested dialogs and remapped bindings before
+changing behavior. Separately, [L-182](BACKLOG.md) tracks an intermittent
+crash when opening settings while checking a schematic; it needs an actual
+reproduction and is not solved merely by changing the toggle.
+
 ## Remaining UI/runtime gaps
 
 These are not reasons to redesign the shared settings UI:
