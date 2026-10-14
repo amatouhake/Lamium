@@ -34,6 +34,44 @@ and honey blocks. Schematic neighbors, the translucent look, the Check tab's
 colored preview and the Files tab's rotatable 3D preview remain follow-ups.
 Local checks do not establish server, other-dimension or large-file coverage.
 
+## Player feedback to investigate (2026-10-14)
+
+The following are reports and design requests, **not verified fixes** or
+approval to build. Current status and questions live in
+[BACKLOG.md](BACKLOG.md); the original chat included screenshots but those
+images are not embedded in this repository.
+
+- **L-177, L-178, L-179 (bugs):** a world-space mismatch highlight can point
+  at the wrong cell; a piston ghost's face texture can imply an extending
+  surface where the mesh does not extend; shulker-box ghosts can ignore their
+  saved facing. Treat overlay transforms, mesh texture mapping and saved
+  orientation as separate hypotheses. Check original and rotated/mirrored
+  placements.
+- **L-182 (crash):** settings opened with the default L key can sometimes
+  crash while working with an active schematic check. Reproduce with
+  logs/stack before attributing cause to the check or settings screen.
+- **L-183 (Design):** let builders temporarily suppress selected strict
+  check mismatches, especially transient redstone states during construction.
+  Do not mutate the file, physical world or global block-state rules.
+- **L-184 (Design/Research):** inspect the ghost under the crosshair,
+  including expected name, state/facing and retained Block Entity data.
+  Containers (barrels, hoppers) and data relevant to comparator output should
+  be understandable. Choose a compact/expanded presentation based on the
+  available data, not an assumed always-on HUD.
+- **L-185 (Design/Research):** an explicit, permission-gated action loads a
+  placed schematic's blocks into the world like structure-block Load. Server
+  permissions, replacements, entities, contents and confirmation are open.
+- **L-186 (Design/Research):** the pink concrete example was hard to
+  distinguish from the light-blue ghost overlay; both its native color and
+  whether it was a ghost were unclear. Compare improvements to the current
+  outline/tint/depth treatment against **translucent rendering reconsidered**
+  as a potential mode. Translucency was previously not chosen as the default;
+  dense transparent layers might instead increase clutter. Test real/ghost
+  separation and graphics modes before settling on opacity or display modes.
+
+These requests complement L-93 and L-114. The world ghost's appearance is
+not the same question as the Check-tab 3D preview's missing-block styling.
+
 ## Screen review against the mockup (decided 2026-10-08)
 
 The agent compared `docs/demos/schematic.html` with the screen code and drew
