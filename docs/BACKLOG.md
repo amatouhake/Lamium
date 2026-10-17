@@ -431,12 +431,12 @@ found later are handled as bugs.
 
 ### L-205 Carpets do not draw with their colors on the world map
 Kind: Bug / Research. User report 2026-10-17.
-Status: unverified; no reproduction yet.
-A build made of wool carpet appears on the world map without the colors the
-carpets should draw (screenshots in the report). Reproduce locally with a
-small patch of each carpet color; if it does not reproduce, ask the reporter
-to keep the world. Check where the color is lost (recording or drawing) and
-which carpets are affected. [MAP.md](MAP.md)
+Status: reproduces 2026-10-18 (maintainer, in game and from the saved
+regions): the recorded column keeps the block under the carpet - the
+heightmap level and its color - so carpets are still looked through. The
+covering-block test (a thin block whose visual shape spans the column) is
+not firing for carpets; probe the BlockGraphics values (material, shape) in
+game next. [MAP.md](MAP.md)
 
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
@@ -616,6 +616,35 @@ a pixel diff between the two states changes only at the corner (43 px,
 peak 97) while straight runs and controls show none.
 Open: corner poses of three- and four-side joins; the generated-sprite
 cost of corner variants.
+
+### L-209 Glass panes: the L-208 corner post stretches its texture
+Kind: Bug. In-game check 2026-10-18 (maintainer): an L-shaped pane's corner
+post shows a wide stretched band instead of the post's two-texel slice; the
+aspect leaves the 16 px grid.
+Current: `paneCornerU` (L-208) moved only the corner-end vertices onto the
+tile border, widening the face's u window.
+Status: fixed 2026-10-18. The whole face now slides by one delta, so the
+window keeps its width and the border shows at the corner end; tests cover
+both leanings (with the width asserted) and the untouched mask path.
+
+### L-210 World map: black gaps inside the recorded area
+Kind: Research. User report 2026-10-18 (maintainer): the map shows black
+(unrecorded) wedges and thin cracks; reported as places not visible from the
+viewpoint (suspected occlusion). Rendering the saved regions shows the black
+is mostly the boundary of the per-visit recording ranges (arcs and wedges,
+which follow the current view distance since L-206) plus thin cracks and
+specks inside recorded terrain (columns the client never received stay
+unknown and are retried).
+Investigated from the saved regions (2026-10-18): 56.3% of the file span
+is recorded; inside it 978 chunks are fully unrecorded ("holes", the biggest
+127 chunks, ~180x180 blocks) and ~15k blocks form thin (1-5 block) cracks,
+concentrated in one zone (x 1500..2900, z -2600..-200) whose fringe chunks
+are partial - the shape of a fast-visit area where the incremental ring
+walk did not finish before the player left. The normally played core has no
+holes. Open: favor unseen chunks in the walk (or accept the holes as a
+byproduct), and a diagnostic run around one crack to split range geometry
+from unloaded sections; forcing sections to load would cost fps (2026-10-18,
+maintainer) and is not a fix. [MAP.md](MAP.md)
 
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.

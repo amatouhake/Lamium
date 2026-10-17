@@ -127,14 +127,17 @@ void connectedTexturesTests() {
         pz = {0.437f, 0.437f, 0.437f, 0.437f};
         pu = {nearU, farU, nearU, farU};
     };
-    postFace(0.437f, 0.9f, 0.1f);
-    check(paneCornerU(px, pz, pu, 0.437f, 0.437f, 0.25f, 0.75f, turned) && turned[0] == 0.75f && turned[2] == 0.75f
-              && turned[1] == 0.1f && turned[3] == 0.1f,
-          "the corner-end vertices reach the border their u leans to");
-    postFace(0.562f, 0.1f, 0.9f);
-    check(paneCornerU(px, pz, pu, 0.562f, 0.437f, 0.25f, 0.75f, turned) && turned[0] == 0.25f && turned[2] == 0.25f
-              && turned[1] == 0.9f && turned[3] == 0.9f,
-          "a corner leaning to the low border takes uLow");
+    // The post face's u window is two texels (0.4375..0.5625 of the tile); the
+    // slide keeps that width, only moving it onto the border the corner leans
+    // to - no stretching.
+    postFace(0.437f, 0.5625f, 0.4375f);
+    check(paneCornerU(px, pz, pu, 0.437f, 0.437f, 0.0f, 1.0f, turned) && turned[0] == 1.0f && turned[2] == 1.0f
+              && turned[1] == 0.875f && turned[3] == 0.875f && turned[1] - turned[0] == pu[1] - pu[0],
+          "the face slides onto the high border and keeps its two-texel width");
+    postFace(0.562f, 0.4375f, 0.5625f);
+    check(paneCornerU(px, pz, pu, 0.562f, 0.437f, 0.0f, 1.0f, turned) && turned[0] == 0.0f && turned[2] == 0.0f
+              && turned[1] == 0.125f && turned[3] == 0.125f && turned[1] - turned[0] == pu[1] - pu[0],
+          "a corner leaning to the low border slides there with its width kept");
     postFace(0.562f, 0.9f, 0.1f);
     check(!paneCornerU(px, pz, pu, 0.562f, 0.562f, 0.25f, 0.75f, turned),
           "a quad that does not sit at the corner is left to the mask path");
