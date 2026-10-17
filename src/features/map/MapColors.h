@@ -47,4 +47,10 @@ inline std::uint32_t tinted(std::uint32_t color, float r, float g, float b) {
 inline constexpr bool columnBlockWins(bool skip, bool cover, int y, int heightmapY) {
     return !skip && (cover || y < heightmapY);
 }
+// A block covers its column when its footprint spans it: thin blocks that
+// still cover the ground (snow layers, carpets) count on the map, plants
+// and partial blocks do not.
+inline constexpr bool coversColumn(bool plant, float spanX, float spanZ) {
+    return !plant && spanX > .99f && spanZ > .99f;
+}
 }

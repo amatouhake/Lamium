@@ -291,7 +291,15 @@ BlockLook const* blockLook(IClientInstance& client, Block const& block) {
     else if (material == Material::ClientRequestPlaceholder) look.pending = true;
     else if (auto const* graphics = BlockGraphics::getForBlock(block)) {
         auto const& shape = *graphics->mVisualShape;
-        look.cover = material != Material::Plant && shape.max.x - shape.min.x > .99f && shape.max.z - shape.min.z > .99f;
+        AABB buffer{};
+        auto const& visual = type.getVisualShape(block, buffer);
+        // Either shape may span the column: a carpet's graphics shape reads
+        // as its center only ((0.4,0.4)-(0.6,0.6)) while the block type's
+        // own shape is the full footprint (found in game, 2026-10-18).
+        bool const plant = material == Material::Plant;
+        auto covers = [&](float x0, float x1, float z0, float z1) { return coversColumn(plant, x1 - x0, z1 - z0); };
+        look.cover = covers(shape.min.x, shape.max.x, shape.min.z, shape.max.z)
+                     || covers(visual.min.x, visual.max.x, visual.min.z, visual.max.z);
         auto const& uv = graphics->getTexture(static_cast<std::uint64_t>(FacingID::Up), type.getVariant(block));
         auto const& path = uv.sourceFileLocation->mPath->value;
         if (auto cached = textureColors.find(path); cached != textureColors.end()) look.color = cached->second;

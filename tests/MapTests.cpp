@@ -489,6 +489,8 @@ void surface() {
           "plants and other non-covering blocks above the heightmap are looked through");
     check(!columnBlockWins(true, true, 101, 100) && !columnBlockWins(true, false, 99, 100),
           "skipped blocks never win");
+    check(coversColumn(false, 1.f, 1.f) && !coversColumn(true, 1.f, 1.f) && !coversColumn(false, .5f, 1.f),
+          "a covering shape spans the column and plants never cover");
 }
 void teleport() {
     check(canTeleport(true, false, 0, 0, 0),

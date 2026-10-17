@@ -431,12 +431,15 @@ found later are handled as bugs.
 
 ### L-205 Carpets do not draw with their colors on the world map
 Kind: Bug / Research. User report 2026-10-17.
-Status: unverified; no reproduction yet.
-A build made of wool carpet appears on the world map without the colors the
-carpets should draw (screenshots in the report). Reproduce locally with a
-small patch of each carpet color; if it does not reproduce, ask the reporter
-to keep the world. Check where the color is lost (recording or drawing) and
-which carpets are affected. [MAP.md](MAP.md)
+Status: fixed 2026-10-18 (verified in game from the saved regions). A build
+made of wool carpet appeared on the world map without the carpets' colors.
+Cause: a carpet's block-graphics visual shape reads as its center only
+((0.4,0.4)-(0.6,0.6)), so the covering-block test never fired and the
+surface scan kept the block below it; the heightmap already returns the
+carpet's position. The scan now also takes the block type's own
+getVisualShape (the full (0,0)-(1,1) footprint) as a second source. The
+region data after the fix shows carpet columns at the carpet level with
+their colors. [MAP.md](MAP.md)
 
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
