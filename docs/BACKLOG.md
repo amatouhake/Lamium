@@ -635,8 +635,15 @@ is mostly the boundary of the per-visit recording ranges (arcs and wedges,
 which follow the current view distance since L-206) plus thin cracks and
 specks inside recorded terrain (columns the client never received stay
 unknown and are retried).
-Open: a diagnostic run around one crack to split range geometry from
-unloaded sections; forcing sections to load would cost fps (2026-10-18,
+Investigated from the saved regions (2026-10-18): 56.3% of the file span
+is recorded; inside it 978 chunks are fully unrecorded ("holes", the biggest
+127 chunks, ~180x180 blocks) and ~15k blocks form thin (1-5 block) cracks,
+concentrated in one zone (x 1500..2900, z -2600..-200) whose fringe chunks
+are partial - the shape of a fast-visit area where the incremental ring
+walk did not finish before the player left. The normally played core has no
+holes. Open: favor unseen chunks in the walk (or accept the holes as a
+byproduct), and a diagnostic run around one crack to split range geometry
+from unloaded sections; forcing sections to load would cost fps (2026-10-18,
 maintainer) and is not a fix. [MAP.md](MAP.md)
 
 ### L-196 Review license notices, source access and provenance classification
