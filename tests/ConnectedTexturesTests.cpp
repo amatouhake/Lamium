@@ -35,9 +35,12 @@ void connectedTexturesTests() {
     check(ruleForTexture("textures/blocks/bookshelf")->left == ruleFor("minecraft:bookshelf")->left
               && ruleForTexture("textures/blocks/sandstone_normal")->top == ruleFor("minecraft:sandstone")->top,
           "a texture is baked with its block's rule");
-    check(variantMasks(glassRule()).size() == 19 && variantMasks(bookshelfRule()).size() == 3
+    check(variantMasks(glassRule()).size() == 46 && variantMasks(bookshelfRule()).size() == 3
               && variantMasks(sandstoneRule()).size() == 1 && variantMasks(sandstoneRule())[0] == Top,
-          "one sprite per joined combination a rule can show, and a two-side corner pose twice");
+          "one sprite per joined combination a rule can show, glass also per kept corner");
+    check(validMask(Left | Bottom | BottomLeft) && !validMask(Left | BottomLeft) && !validMask(Left | Right | TopLeft)
+              && validMask(15 | TopLeft | TopRight | BottomLeft | BottomRight),
+          "a corner is kept only between two joined sides");
     check(spriteName("textures/blocks/glass_red", Left | Top) == "lamium_ct_glass_red_5"
               && spritePath("textures/blocks/glass", 15) == "textures/blocks/lamium_ct_glass_15"
               && spriteName("textures/blocks/bookshelf", 0) == "lamium_ct_bookshelf_0",
@@ -63,14 +66,55 @@ void connectedTexturesTests() {
     auto sandstone = bake(image.data(), 16, 16, sandstoneRule(), Top);
     check(at(sandstone, 4, 0) == 804 && at(sandstone, 4, 3) == 1104 && at(sandstone, 4, 4) == 404,
           "sandstone under another shows rock rows 8-11 for its band");
-    check(cornerPose(Left | Bottom) && cornerPose(Right | Top) && !cornerPose(Left | Right) && !cornerPose(Top)
-              && !cornerPose(Left | Right | Top | Bottom),
-          "only two joined sides on different axes take a corner variant");
-    auto turn = bake(image.data(), 16, 16, glassRule(), Left | Bottom | Corner);
-    check(at(turn, 0, 15) == 1500 && at(turn, 1, 14) == 1401 && at(turn, 0, 0) == 7,
-          "a corner variant keeps its own texels at the joined corner");
-    check(at(turn, 0, 5) == 507 && at(turn, 5, 15) == 805,
+    auto turn = bake(image.data(), 16, 16, glassRule(), Left | Bottom | BottomLeft);
+    check(at(turn, 0, 15) == 1500, "a kept corner shows the frame's corner texel");
+    check(at(turn, 1, 15) == 808 && at(turn, 0, 14) == 707 && at(turn, 1, 14) == 708,
+          "only that one texel: the neighbors' borders end beside it, so more would stick out");
+    check(at(turn, 0, 5) == 507 && at(turn, 5, 15) == 805 && at(turn, 0, 0) == 7,
           "the joined strips still refill away from the corner");
+    auto field = bake(image.data(), 16, 16, glassRule(), 15 | TopRight | BottomLeft);
+    check(at(field, 15, 0) == 15 && at(field, 0, 15) == 1500 && at(field, 0, 0) == 707 && at(field, 15, 15) == 808,
+          "a surrounded face keeps exactly the corners asked for");
+    std::vector<std::uint32_t> large(32 * 32);
+    for (int y = 0; y < 32; ++y)
+        for (int x = 0; x < 32; ++x) large[y * 32 + x] = static_cast<std::uint32_t>(y * 100 + x);
+    auto largeTurn = bake(large.data(), 32, 32, glassRule(), Right | Top | TopRight);
+    check(largeTurn[0 * 32 + 31] == 31 && largeTurn[1 * 32 + 30] == 130 && largeTurn[2 * 32 + 31] != 231,
+          "larger textures keep a corner of one 16th");
+    // Which sides and corners a face joins, in a small world of the same block.
+    auto world = [](std::vector<Offset> blocks) {
+        return [blocks](Offset o) {
+            if (o.x == 0 && o.y == 0 && o.z == 0) return true;
+            for (auto b : blocks)
+                if (b.x == o.x && b.y == o.y && b.z == o.z) return true;
+            return false;
+        };
+    };
+    // Top faces of a flat L: this block joins west (image left) and south
+    // (image bottom); the south-west diagonal is the notch.
+    auto flatL = world({{-1, 0, 0}, {0, 0, 1}});
+    check(faceMask(Face::Up, glassRule(), false, false, false, flatL) == (Left | Bottom | BottomLeft),
+          "a flat L keeps the frame texel in its notch");
+    check(faceMask(Face::Up, glassRule(), false, false, false, world({{-1, 0, 0}, {0, 0, 1}, {-1, 0, 1}})) == (Left | Bottom),
+          "a filled square has no notch");
+    check(faceMask(Face::Up, glassRule(), false, false, false, world({{-1, 0, 0}, {1, 0, 0}, {0, 0, 1}, {1, 0, 1}}))
+              == (Left | Right | Bottom | BottomLeft),
+          "three joined sides keep the corner whose diagonal is missing");
+    check(faceMask(Face::Up, bookshelfRule(), false, false, false, flatL) == Left, "rules without corners never keep one");
+    // Walls in an L seen from above: this block is east of the corner block
+    // (-1,0,0), the other wall runs south from it (-1,0,1). Its south face looks
+    // into the turn; the corner block's south face is hidden by the other wall.
+    auto wallL = world({{-1, 0, 0}, {-1, 0, 1}});
+    check(faceMask(Face::South, glassRule(), false, false, false, wallL) == Left,
+          "by default the inside of a turn joins like a straight wall");
+    check(faceMask(Face::South, glassRule(), false, false, true, wallL) == 0,
+          "with inside corners on, the turn keeps its edge");
+    check(faceMask(Face::North, glassRule(), false, false, true, wallL) == Right
+              && faceMask(Face::South, glassRule(), false, false, true, world({{-1, 0, 0}})) == Left,
+          "the outside of the turn and straight walls still join");
+    check(faceMask(Face::South, glassRule(), true, false, true, wallL) == 0
+              && faceMask(Face::South, glassRule(), true, false, false, wallL) == Right,
+          "a backwards texture joins the image's other side");
     check(sourceTexel(1, 32, true, 2, 7, false, 0, -1) == 15 && sourceTexel(4, 32, true, 2, 7, false, 0, -1) == 4,
           "larger textures scale the strips");
     // Orientation.
@@ -127,14 +171,17 @@ void connectedTexturesTests() {
         pz = {0.437f, 0.437f, 0.437f, 0.437f};
         pu = {nearU, farU, nearU, farU};
     };
-    postFace(0.437f, 0.9f, 0.1f);
-    check(paneCornerU(px, pz, pu, 0.437f, 0.437f, 0.25f, 0.75f, turned) && turned[0] == 0.75f && turned[2] == 0.75f
-              && turned[1] == 0.1f && turned[3] == 0.1f,
-          "the corner-end vertices reach the border their u leans to");
-    postFace(0.562f, 0.1f, 0.9f);
-    check(paneCornerU(px, pz, pu, 0.562f, 0.437f, 0.25f, 0.75f, turned) && turned[0] == 0.25f && turned[2] == 0.25f
-              && turned[1] == 0.9f && turned[3] == 0.9f,
-          "a corner leaning to the low border takes uLow");
+    // The post face's u window is two texels (0.4375..0.5625 of the tile); the
+    // slide keeps that width, only moving it onto the border the corner leans
+    // to - no stretching.
+    postFace(0.437f, 0.5625f, 0.4375f);
+    check(paneCornerU(px, pz, pu, 0.437f, 0.437f, 0.0f, 1.0f, turned) && turned[0] == 1.0f && turned[2] == 1.0f
+              && turned[1] == 0.875f && turned[3] == 0.875f && turned[1] - turned[0] == pu[1] - pu[0],
+          "the face slides onto the high border and keeps its two-texel width");
+    postFace(0.562f, 0.4375f, 0.5625f);
+    check(paneCornerU(px, pz, pu, 0.562f, 0.437f, 0.0f, 1.0f, turned) && turned[0] == 0.0f && turned[2] == 0.0f
+              && turned[1] == 0.125f && turned[3] == 0.125f && turned[1] - turned[0] == pu[1] - pu[0],
+          "a corner leaning to the low border slides there with its width kept");
     postFace(0.562f, 0.9f, 0.1f);
     check(!paneCornerU(px, pz, pu, 0.562f, 0.562f, 0.25f, 0.75f, turned),
           "a quad that does not sit at the corner is left to the mask path");

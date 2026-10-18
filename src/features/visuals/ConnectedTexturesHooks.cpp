@@ -29,8 +29,9 @@ namespace lamium::visuals::connected {
 namespace {
 // Read by chunk-build threads; written once per coordinator tick.
 std::atomic<bool> active{false};
-// The corner edges option (L-208), same lifetime as `active`.
-std::atomic<bool> corners{false};
+// The L-208 corner options, same lifetime as `active`: edges where glass
+// blocks turn inward, and at the outside of an L-shaped pane.
+std::atomic<bool> insideCorners{false}, paneCorners{false};
 bool installed = false;
 bool drawingEnabled() {
     return active.load(std::memory_order_relaxed)
@@ -59,23 +60,13 @@ bool sameAt(Block const& block, Offset offset) {
 TextureUVCoordinateSet faceTexture(Face face, Block const& block, TextureUVCoordinateSet const& tex) {
     if (current.block != &block || !current.region) return tex;
     if (current.rule.sidesOnly && (face == Face::Up || face == Face::Down)) return tex;
-    auto s = sides(face);
     bool reversedU = tex._u0 > tex._u1, reversedV = tex._v0 > tex._v1;
-    auto mask = imageMask(sameAt(block, s.left), sameAt(block, s.right), sameAt(block, s.top), sameAt(block, s.bottom),
-                          reversedU, reversedV)
-        & ruleSides(current.rule);
-    // L-208: with the option on, a two-side corner whose diagonal block is
-    // not the same glass keeps its border there - the edge where the glass
-    // turns. A diagonal of the same block is the inside of a field: no edge.
-    if (current.rule.corners && corners.load() && cornerPose(mask)) {
-        auto combined = [](Offset first, Offset second) {
-            return Offset{first.x + second.x, first.y + second.y, first.z + second.z};
-        };
-        Offset u = (mask & Left) ? (reversedU ? s.right : s.left) : (reversedU ? s.left : s.right);
-        Offset v = (mask & Top) ? (reversedV ? s.bottom : s.top) : (reversedV ? s.top : s.bottom);
-        if (!sameAt(block, combined(u, v))) mask |= Corner;
-    }
+    auto mask = faceMask(face, current.rule, reversedU, reversedV, insideCorners.load(std::memory_order_relaxed),
+                         [&](Offset offset) { return sameAt(block, offset); });
+    if (!mask) return tex;
+    // A missing corner sprite falls back to the plain joined one, not vanilla.
     auto moved = sprites::shift(std::min(tex._u0, tex._u1), std::min(tex._v0, tex._v1), mask);
+    if (!moved && mask > 15) moved = sprites::shift(std::min(tex._u0, tex._u1), std::min(tex._v0, tex._v1), mask & 15);
     if (!moved) return tex;
     TextureUVCoordinateSet out = tex;
     out._u0 += moved->u;
@@ -160,10 +151,11 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
     bool east = paneAt(block, 1, 0), west = paneAt(block, -1, 0), south = paneAt(block, 0, 1), north = paneAt(block, 0, -1);
     // L-208: an L-shaped pane (arms on two adjacent sides) keeps vanilla's
     // fully merged corner post; with the option on, the post's outside faces
-    // reach the tile border at their corner ends, so the turn keeps an edge.
-    // With the option off no pane geometry is computed at all.
+    // reach the tile border at their corner ends, so the turn keeps an edge
+    // on the outside. The inside stays merged (maintainer, 2026-10-18). With
+    // the option off no pane geometry is computed at all.
     std::optional<std::pair<float, float>> postCorner;
-    if (corners.load()) postCorner = paneCornerPoint(partsAt(block, pane.pos));
+    if (paneCorners.load()) postCorner = paneCornerPoint(partsAt(block, pane.pos));
     auto const& g = pane.glass;
     float uLow = std::min(g.u0, g.u1), uHigh = std::max(g.u0, g.u1), vLow = std::min(g.v0, g.v1), vHigh = std::max(g.v0, g.v1);
     float du = (uHigh - uLow) / g.width, dv = (vHigh - vLow) / g.height;
@@ -242,7 +234,7 @@ LL_TYPE_INSTANCE_HOOK(ConnectedPaneGlass, ll::memory::HookPriority::Normal, Bloc
 // have missed it, and far ones were only rebuilt when approached (2026-10-11).
 // A new sprite lookup (after the terrain atlas was rebuilt) rebuilds them too.
 // Client thread only.
-struct Built { bool on = false; bool corners = false; int sprites = 0; };
+struct Built { bool on = false; bool inside = false, pane = false; int sprites = 0; };
 std::unordered_map<RenderChunkCoordinator const*, Built> built;
 int spriteVersion = 0;
 LL_TYPE_INSTANCE_HOOK(ConnectedRebuild, ll::memory::HookPriority::Normal, RenderChunkCoordinator,
@@ -252,12 +244,14 @@ LL_TYPE_INSTANCE_HOOK(ConnectedRebuild, ll::memory::HookPriority::Normal, Render
         if (capabilities::registry().status(capabilities::Id::ConnectedTextures).available() && sprites::refresh()) ++spriteVersion;
         bool want = wanted();
         active = want;
-        bool wantCorners = want && Runtime::instance().snapshot()->visuals.connectedCorners;
-        corners = wantCorners;
-        auto [state, first] = built.try_emplace(this, Built{false, false, spriteVersion});
-        if (first ? want : (state->second.on != want || state->second.corners != wantCorners
+        auto const& visuals = Runtime::instance().snapshot()->visuals;
+        bool wantInside = want && visuals.connectedCorners, wantPane = want && visuals.connectedPaneCorners;
+        insideCorners = wantInside;
+        paneCorners = wantPane;
+        auto [state, first] = built.try_emplace(this, Built{false, false, false, spriteVersion});
+        if (first ? want : (state->second.on != want || state->second.inside != wantInside || state->second.pane != wantPane
                 || (want && state->second.sprites != spriteVersion))) {
-            state->second = {want, wantCorners, spriteVersion};
+            state->second = {want, wantInside, wantPane, spriteVersion};
             _setAllDirty(false, false);
         }
     } catch (...) {}

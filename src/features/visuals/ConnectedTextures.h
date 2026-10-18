@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -33,6 +34,18 @@ inline constexpr Sides sides(Face face) {
     default: return {{-1, 0, 0}, {1, 0, 0}, {0, 0, 1}, {0, 0, -1}};
     }
 }
+// The block a face looks out at.
+inline constexpr Offset normal(Face face) {
+    switch (face) {
+    case Face::Down: return {0, -1, 0};
+    case Face::Up: return {0, 1, 0};
+    case Face::North: return {0, 0, -1};
+    case Face::South: return {0, 0, 1};
+    case Face::West: return {-1, 0, 0};
+    default: return {1, 0, 0};
+    }
+}
+inline constexpr Offset plus(Offset a, Offset b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
 // Glass blocks: clear, stained (each color is its own block, so only the same
 // color connects) and tinted. Panes take the pane path below.
 inline bool connects(std::string_view identifier) {
@@ -45,13 +58,18 @@ inline bool connectsPane(std::string_view identifier) {
 // Joined sides in the texture image's own orientation (x to the right, y down).
 enum Side : unsigned { Left = 1, Right = 2, Top = 4, Bottom = 8 };
 using Mask = unsigned;
-// L-208: a corner variant of a two-side mask (one joined side on each axis),
-// drawn with the source's own texels kept at the joined corner.
-inline constexpr Mask Corner = 16;
-inline bool cornerPose(Mask mask) {
-    Mask sided = mask & 15;
-    bool left = (sided & Left) != 0, right = (sided & Right) != 0;
-    return (left != right) && ((sided & Top) != 0) != ((sided & Bottom) != 0);
+// Corners of a face whose two sides are joined but whose diagonal neighbor is
+// not the same block: the borders of the two neighbors meet there, and the
+// face keeps the frame's corner texel so the border turns without a gap
+// (L-208, maintainer 2026-10-18: always, no option).
+enum CornerBit : unsigned { TopLeft = 16, TopRight = 32, BottomLeft = 64, BottomRight = 128 };
+inline constexpr std::array<std::pair<CornerBit, Mask>, 4> cornerSides{{
+    {TopLeft, Top | Left}, {TopRight, Top | Right}, {BottomLeft, Bottom | Left}, {BottomRight, Bottom | Right}}};
+// A corner bit is only meaningful with both of its sides joined.
+inline bool validMask(Mask mask) {
+    for (auto [bit, both] : cornerSides)
+        if ((mask & bit) && (mask & both) != both) return false;
+    return mask < 256;
 }
 // How many source texels a block drops on each joined side of a face, out of
 // 16 (scaled for larger textures), and the texel each refilled strip starts
@@ -63,7 +81,7 @@ struct Rule {
     int left = 1, right = 1, top = 1, bottom = 1;
     bool sidesOnly = false;
     int leftFrom = -1, rightFrom = -1, topFrom = -1, bottomFrom = -1;
-    // L-208: the rule also gets sprites that keep a border at a two-side corner.
+    // L-208: the rule also gets sprites that keep the frame's corner texels.
     bool corners = false;
 };
 // Far away the game samples shrunk copies of the texture that average
@@ -100,11 +118,8 @@ inline Mask ruleSides(Rule const& rule) {
 inline std::vector<Mask> variantMasks(Rule const& rule) {
     std::vector<Mask> out;
     Mask all = ruleSides(rule);
-    for (Mask mask = 1; mask < 16; ++mask)
-        if ((mask & all) == mask) {
-            out.push_back(mask);
-            if (rule.corners && cornerPose(mask)) out.push_back(mask | Corner);
-        }
+    for (Mask mask = 1; mask < (rule.corners ? 256u : 16u); ++mask)
+        if ((mask & 15 & all) == (mask & 15) && (mask & 15) && validMask(mask)) out.push_back(mask);
     return out;
 }
 // The source column (row) texel `i` of a joined face shows.
@@ -117,28 +132,23 @@ inline int sourceTexel(int i, int size, bool lowJoined, int low, int lowFrom, bo
 // The sprite for `mask`, from RGBA pixels in rows.
 inline std::vector<std::uint32_t> bake(std::uint32_t const* pixels, int width, int height, Rule const& rule, Mask mask) {
     std::vector<std::uint32_t> out(static_cast<size_t>(width) * height);
-    // A corner variant (L-208) keeps the source's own texels where the two
-    // joined strips meet, so the border bends around the turn on the face.
     Mask sided = mask & 15;
-    bool corner = (mask & Corner) != 0;
-    int cornerLowX = 0, cornerX = 0, cornerLowY = 0, cornerY = 0;
-    if (corner) {
-        if (sided & Left) cornerX = width * rule.left / 16;
-        else { cornerLowX = width - width * rule.right / 16; cornerX = width; }
-        if (sided & Top) cornerY = height * rule.top / 16;
-        else { cornerLowY = height - height * rule.bottom / 16; cornerY = height; }
-    }
     for (int y = 0; y < height; ++y) {
         int sy = sourceTexel(y, height, sided & Top, rule.top, rule.topFrom, sided & Bottom, rule.bottom, rule.bottomFrom);
-        bool cornerRow = corner && y >= cornerLowY && y < cornerY;
         for (int x = 0; x < width; ++x) {
-            if (cornerRow && x >= cornerLowX && x < cornerX) {
-                out[static_cast<size_t>(y) * width + x] = pixels[static_cast<size_t>(y) * width + x];
-                continue;
-            }
             int sx = sourceTexel(x, width, sided & Left, rule.left, rule.leftFrom, sided & Right, rule.right, rule.rightFrom);
             out[static_cast<size_t>(y) * width + x] = pixels[static_cast<size_t>(sy) * width + sx];
         }
+    }
+    // One frame texel (one 16th) per kept corner: the neighbors' borders end
+    // right beside it, so a wider patch stuck out along both (2026-10-18).
+    int cw = std::max(1, width / 16), ch = std::max(1, height / 16);
+    for (auto [bit, both] : cornerSides) {
+        if (!(mask & bit)) continue;
+        int x0 = (both & Left) ? 0 : width - cw, y0 = (both & Top) ? 0 : height - ch;
+        for (int y = y0; y < y0 + ch; ++y)
+            for (int x = x0; x < x0 + cw; ++x)
+                out[static_cast<size_t>(y) * width + x] = pixels[static_cast<size_t>(y) * width + x];
     }
     return out;
 }
@@ -165,6 +175,38 @@ inline Mask imageMask(bool towardU0, bool towardU1, bool towardV0, bool towardV1
     if (towardU1) mask |= reversedU ? Left : Right;
     if (towardV0) mask |= reversedV ? Bottom : Top;
     if (towardV1) mask |= reversedV ? Top : Bottom;
+    return mask;
+}
+// The neighbor toward an image side: imageMask's inverse.
+inline Offset imageOffset(Sides const& s, Mask side, bool reversedU, bool reversedV) {
+    if (side == Left) return reversedU ? s.right : s.left;
+    if (side == Right) return reversedU ? s.left : s.right;
+    if (side == Top) return reversedV ? s.bottom : s.top;
+    return reversedV ? s.top : s.bottom;
+}
+// The sprite a face shows: the image sides whose neighbor is the same block,
+// plus the corners between two joined sides whose diagonal is not. With
+// `insideCorners` (L-208 option) a side joins only while the neighbor's own
+// face shows: where glass turns inward, that face is hidden behind the other
+// wall, and the border stays as the edge of the turn. `same(offset)`: the
+// block at that offset from this one is the same block.
+template <class Same>
+Mask faceMask(Face face, Rule const& rule, bool reversedU, bool reversedV, bool insideCorners, Same&& same) {
+    auto s = sides(face);
+    Offset out = normal(face);
+    Mask mask = 0;
+    for (Mask side : {Left, Right, Top, Bottom}) {
+        if (!(ruleSides(rule) & side)) continue;
+        Offset at = imageOffset(s, side, reversedU, reversedV);
+        if (same(at) && !(insideCorners && same(plus(at, out)))) mask |= side;
+    }
+    if (rule.corners)
+        for (auto [bit, both] : cornerSides) {
+            if ((mask & both) != both) continue;
+            Offset diagonal = plus(imageOffset(s, both & (Left | Right), reversedU, reversedV),
+                                   imageOffset(s, both & (Top | Bottom), reversedU, reversedV));
+            if (!same(diagonal)) mask |= bit;
+        }
     return mask;
 }
 // Which image side a texture coordinate on a joined edge lies on: the tile's
@@ -226,11 +268,13 @@ inline std::optional<std::pair<float, float>> paneCornerPoint(Parts const& parts
 inline bool panePostQuad(Part part, float x0, float x1, float z0, float z1) {
     return part == Part::Center && x0 > 0.4f && x1 < 0.6f && z0 > 0.4f && z1 < 0.6f;
 }
-// The u the post face's corner-end vertices take: the tile border at the pane
-// corner they sit on, chosen by the side their own u leans to. Away vertices
-// keep their u; false when no vertex sits at the corner (then the quad is the
-// mask path's). Only u moves - the border the vertical joins shift on v is
-// never touched here.
+// The post face with a corner end slides onto the tile border there: the whole
+// face moves by one delta, so the window keeps its width (16 px stays 16 px)
+// and the border shows at the corner end. Moving only the corner vertices
+// stretched the post (review, 2026-10-18). Away vertices keep their distance
+// to the corner ones; false when no vertex sits at the corner (then the quad
+// is the mask path's). Only u moves - the border the vertical joins shift on
+// v is never touched here.
 inline bool paneCornerU(std::array<float, 4> const& x, std::array<float, 4> const& z, std::array<float, 4> const& u,
                         float cornerX, float cornerZ, float uLow, float uHigh, std::array<float, 4>& out) {
     bool any = false, away = false;
@@ -245,10 +289,8 @@ inline bool paneCornerU(std::array<float, 4> const& x, std::array<float, 4> cons
         }
     }
     if (!any) return false;
-    float target = !away || atU > awayU ? uHigh : uLow;
-    out = u;
-    for (size_t i = 0; i < u.size(); ++i)
-        if (std::abs(x[i] - cornerX) < 0.06f && std::abs(z[i] - cornerZ) < 0.06f) out[i] = target;
+    float delta = (!away || atU > awayU ? uHigh : uLow) - atU;
+    for (size_t i = 0; i < u.size(); ++i) out[i] = u[i] + delta;
     return true;
 }
 }

@@ -63,7 +63,7 @@ std::mutex mutex;
 Baked baked;                              // guarded by mutex
 std::unordered_set<std::string> served;   // guarded by mutex; sprite paths loaded since the last atlas
 struct Table {
-    std::unordered_map<std::uint64_t, std::array<std::optional<Shift>, 32>> tiles;
+    std::unordered_map<std::uint64_t, std::array<std::optional<Shift>, 256>> tiles;
 };
 std::atomic<std::shared_ptr<Table const>> table;
 // Raised by each terrain atlas build and when it finishes; the client thread
@@ -288,7 +288,7 @@ Shift lowCorner(TextureUVCoordinateSet const& set) { return {std::min(set._u0, s
 }
 
 std::optional<Shift> shift(float u, float v, Mask mask) {
-    if (mask == 0 || mask > 31) return std::nullopt;
+    if (mask == 0 || mask > 255) return std::nullopt;
     auto current = table.load(std::memory_order_acquire);
     if (!current) return std::nullopt;
     auto found = current->tiles.find(key(u, v));

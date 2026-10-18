@@ -597,25 +597,33 @@ Remaining: in-game recording coverage and frame times at 32/64/96 chunks,
 with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
 
-### L-208 Connected Textures: an option to keep an edge where glass does not continue straight
-Kind: Design. User suggestion 2026-10-17; maintainer 2026-10-17: try the display option.
-Goal: an option to draw an edge/border where glass does not continue
-straight (at corners), for glass blocks and glass panes.
-Current: a face drops its border on the sides where the neighbor in the
-face's plane is the same block; a pane's L-corner post merges completely
-(screenshots in the report).
-Status: built 2026-10-18. `visuals.connectedCorners` ("Corner edges",
-default on, under the experimental switch) keeps the border at a glass
-block's two-side corner (a corner-variant sprite with the source texels
-kept where the joined strips meet) and makes an L-shaped pane's corner
-post reach the tile border at its two outside faces. Straight and fully
-surrounded poses are unchanged.
-Checked in game 2026-10-18 (local world): with the option on the border
-bridges the turn and with it off the lines stop short at the same corner;
-a pixel diff between the two states changes only at the corner (43 px,
-peak 97) while straight runs and controls show none.
-Open: corner poses of three- and four-side joins; the generated-sprite
-cost of corner variants.
+### L-208 Connected Textures: edges where glass turns a corner
+Kind: Ready. User suggestion 2026-10-17; maintainer 2026-10-17: try the display option.
+Decided with the maintainer 2026-10-18 (three separate cases):
+1. Flat notch (always on, no option): where a face joins two sides but its
+   diagonal neighbor is not the same block (a flat L seen from above, also
+   with three or four joined sides), the face keeps the frame's one corner
+   texel (one 16th), so the neighbors' borders meet without a gap. The first
+   build (PR #16) kept a two-texel patch, which stuck out one texel along
+   both borders.
+2. Inside corner of glass blocks (option `visuals.connectedCorners`, "Edges
+   at inside corners", default off): a side joins only while the neighbor's
+   own face shows. Where walls turn inward that face is hidden behind the
+   other wall, so both walls keep their border at the turn (a vertical line
+   on each side of the inside corner). Straight runs and the outside of the
+   turn are unchanged. Only the same block counts as hiding the face.
+3. Glass panes (option `visuals.connectedPaneCorners`, "Edges at glass pane
+   corners", default off): vanilla has no edge at an L-shaped pane either.
+   The post's outside faces slide onto the tile border at their corner end
+   (the whole two-texel window moves, so nothing stretches; the first build
+   moved only the corner vertices and stretched it, found in game
+   2026-10-18). The inside of the pane corner stays merged: an edge there
+   was judged too much (maintainer 2026-10-18).
+Cost: glass textures get 46 sprites each instead of 15 (corner variants).
+Status: built 2026-10-18 on `l208-glass-corners`; not checked in game.
+Check in game: the flat-L notch shows one texel; inside-corner lines with
+the option on and none with it off; pane L outside edge with its option,
+straight panes unchanged; 64 px resource packs still get sprites.
 
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
