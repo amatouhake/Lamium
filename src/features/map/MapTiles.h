@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <optional>
 #include <unordered_map>
+#include <vector>
 
 namespace lamium::map {
 // Owned per-column map data (BACKLOG L-60): the surface color and height of
@@ -70,125 +71,154 @@ public:
     }
 };
 
+// What a scan path last saw of a chunk: nothing yet, no chunk on the client
+// (and nothing saved), a chunk with blocks not received yet or only saved
+// colors, or the whole chunk.
+enum class Seen : std::uint8_t { Never, Missing, Partial, Complete };
+inline Seen seenOf(Tile const& tile) {
+    if (!tile.loaded) return Seen::Missing;
+    return tile.partial || tile.stored ? Seen::Partial : Seen::Complete;
+}
 // When a chunk should be scanned again: chunks near the player change most
-// (the player builds and digs there); missing chunks are retried soon, since
-// the client may load them any moment.
-inline double rescanAfter(int chebyshev, bool loaded) {
-    if (!loaded) return 0.5;
-    if (chebyshev <= 1) return 1.0;
-    if (chebyshev <= 4) return 4.0;
+// (the player builds and digs there); incomplete chunks are retried soon,
+// since the client may send the rest any moment, far ones less often: the
+// edge of the range can hold many that the client fills slowly or never,
+// and each retry scans the whole chunk.
+inline double rescanAfter(int ring, Seen seen) {
+    if (seen != Seen::Complete) return ring <= 4 ? 0.5 : 3.0;
+    if (ring <= 1) return 1.0;
+    if (ring <= 4) return 4.0;
     return 15.0;
 }
-// Scans walk the rings around the player from the middle out (L-206 review).
-// The walk is a cursor: it remembers the cell its last call stopped on and
-// resumes there, so a call looks at a bounded number of cells instead of
-// re-walking every ring from the center (the old order cost up to about
-// 38,000 tile lookups per frame once the recorded area reached 96 chunks),
-// and the progress is the walk's own, not the tiles': the display cache
-// evicts the rings beyond `keepChunks`, and eviction made those chunks look
-// unseen again, so the nearest of them were rescanned over and over and the
-// recording never reached the far edge while the player stood still. The
-// walk is per scan path (display, recording), so the two cannot rewind each
-// other's place.
-struct ScanWalk {
-    ChunkKey center{};
-    int ring = 0, step = 0; // The cell walked within the ring; see walkCell.
+inline constexpr int nearScanRadius = 4;
+// How urgent a chunk is for a scan path (L-210): 0 first - never seen,
+// scanned at another cave layer, incomplete and due a retry, or stale near
+// the player; 1 after those - stale complete chunks out to `staleRadius`;
+// -1 not due. `next` lowers to when a waiting chunk becomes due.
+struct ScanCell {
+    Seen seen = Seen::Never;
+    int layer = 0;
+    double at = 0;
 };
-// The cell the walk is on now: ring 0 is the center, ring r has 8r cells in
-// the old order (corners first, then edges).
-inline ChunkKey walkCell(ScanWalk const& walk) {
-    if (walk.ring == 0) return walk.center;
-    int i = walk.step / 4 - walk.ring;
-    switch (walk.step % 4) {
-    case 0: return {walk.center.x + i, walk.center.z - walk.ring};
-    case 1: return {walk.center.x + walk.ring, walk.center.z + i};
-    case 2: return {walk.center.x - i, walk.center.z + walk.ring};
-    default: return {walk.center.x - walk.ring, walk.center.z - i};
+inline int dueTier(ScanCell const& cell, int ring, double now, int layer, int tolerance, int staleRadius, double& next) {
+    if (cell.seen == Seen::Never || std::abs(cell.layer - layer) > tolerance) return 0;
+    bool complete = cell.seen == Seen::Complete;
+    if (complete && ring > nearScanRadius && ring > staleRadius) return -1;
+    double due = cell.at + rescanAfter(ring, cell.seen);
+    if (now < due) {
+        next = std::min(next, due);
+        return -1;
     }
+    return complete && ring > nearScanRadius ? 1 : 0;
 }
-// Steps to the next cell; false when the pass is over and the walk is back
-// at the center. The caller scans the cell's chunk before stepping past it
-// (a scan that has to wait leaves the walk on the cell for a retry), so a
-// chunk that needs scanning is never skipped over, and nearer rings come
-// first.
-inline bool walkStep(ScanWalk& walk, int radius) {
-    if (walk.ring == 0) {
-        if (radius < 1) return false;
-        walk.ring = 1, walk.step = 0;
-        return true;
+// Per scan path (display surface, display caves, recording), the state of
+// every chunk in range around the player, in a grid that moves with the
+// player (L-210). Every call picks the nearest due chunks from scratch, so
+// moving never leaves a chunk behind the way a resumable ring walk did
+// (one-chunk arcs and wedges left unrecorded inside the view distance), and
+// what the path has seen does not depend on the display cache, which evicts
+// far tiles (L-206 review). The grid is dense, so a pass over even the
+// widest recording range (97 chunks) costs array reads, not tile lookups.
+class ScanGrid {
+public:
+    // Points the grid at `center`; chunks still in range keep their state.
+    // `round`: a disc (what the client loads around the player) instead of
+    // the square a map view shows.
+    void follow(ChunkKey center, int radius, bool round) {
+        radius = std::max(0, radius);
+        if (center == center_ && radius == radius_ && round == round_) return;
+        int side = 2 * radius + 1;
+        std::vector<ScanCell> cells(static_cast<size_t>(side) * side);
+        if (radius_ >= 0)
+            for (int dz = -radius; dz <= radius; ++dz)
+                for (int dx = -radius; dx <= radius; ++dx)
+                    if (auto const* old = find({center.x + dx, center.z + dz}))
+                        cells[static_cast<size_t>(dz + radius) * side + (dx + radius)] = *old;
+        if (radius != radius_ || round != round_) {
+            order_.clear();
+            for (int dz = -radius; dz <= radius; ++dz)
+                for (int dx = -radius; dx <= radius; ++dx)
+                    if (!round || dx * dx + dz * dz <= radius * radius + radius) order_.push_back({dx, dz});
+            std::stable_sort(order_.begin(), order_.end(), [](ChunkKey a, ChunkKey b) {
+                return a.x * a.x + a.z * a.z < b.x * b.x + b.z * b.z;
+            });
+        }
+        cells_ = std::move(cells);
+        center_ = center;
+        radius_ = radius;
+        round_ = round;
+        quietUntil_ = -1e300;
     }
-    if (++walk.step < 8 * walk.ring) return true;
-    if (walk.ring >= radius) {
-        walk.ring = 0, walk.step = 0;
-        return false;
+    ScanCell const* find(ChunkKey key) const {
+        auto i = index(key);
+        return i ? &cells_[*i] : nullptr;
     }
-    ++walk.ring, walk.step = 0;
-    return true;
-}
-// Points the walk at the player. Cells are relative to the center, so
-// ordinary walking keeps the walk's ring and step (the sweep shifts with the
-// player); a jump farther than this (a teleport, a fast ride) or a radius
-// that no longer holds the walk starts it over at the center, covering the
-// new area from the middle out.
-inline constexpr int walkRestartChunks = 32;
-inline void walkAt(ScanWalk& walk, ChunkKey center, int radius) {
-    if (std::abs(center.x - walk.center.x) > walkRestartChunks
-        || std::abs(center.z - walk.center.z) > walkRestartChunks || walk.ring > radius)
-        walk.ring = walk.step = 0;
-    walk.center = center;
-}
-// Whether the walk should stop at this cell: the chunk is unseen, scanned
-// around another height than `layer` (more than `tolerance` away), or its
-// rescan window passed. Only cells that fail this are skipped: skipping is
-// the bounded part, scanning is bounded by the caller's time budget.
-inline bool scanDue(Tile const* tile, int ring, double now, int layer = 0, int tolerance = 1 << 20) {
-    if (!tile || std::abs(tile->layer - layer) > tolerance) return true;
-    return now - tile->scannedAt >= rescanAfter(ring, tile->loaded && !tile->partial && !tile->stored);
-}
+    void saw(ChunkKey key, Seen seen, int layer, double now) {
+        if (auto i = index(key)) cells_[*i] = {seen, layer, now};
+        quietUntil_ = -1e300;
+    }
+    void clear() { *this = {}; }
+    // Up to `limit` due chunks: tier 0 nearest first, then tier 1. A pass that
+    // finds nothing remembers when the next chunk becomes due and skips
+    // until then, unless the grid moves or the layer changes.
+    std::vector<ChunkKey> due(double now, int layer, int tolerance, int staleRadius, size_t limit) {
+        if (layer != layer_) {
+            layer_ = layer;
+            quietUntil_ = -1e300;
+        }
+        std::vector<ChunkKey> first, later;
+        if (now < quietUntil_) return first;
+        double next = 1e300;
+        for (auto offset : order_) {
+            ChunkKey key{center_.x + offset.x, center_.z + offset.z};
+            int ring = std::max(std::abs(offset.x), std::abs(offset.z));
+            int tier = dueTier(*find(key), ring, now, layer, tolerance, staleRadius, next);
+            if (tier == 0) {
+                first.push_back(key);
+                if (first.size() >= limit) return first;
+            } else if (tier == 1 && later.size() < limit) later.push_back(key);
+        }
+        if (first.empty() && later.empty()) quietUntil_ = next;
+        for (auto key : later)
+            if (first.size() < limit) first.push_back(key);
+        return first;
+    }
+    ChunkKey center() const { return center_; }
+    // Chunks in range by what was seen (Never, Missing, Partial, Complete).
+    std::array<int, 4> counts() const {
+        std::array<int, 4> out{};
+        for (auto offset : order_) ++out[static_cast<size_t>(find({center_.x + offset.x, center_.z + offset.z})->seen)];
+        return out;
+    }
 
-struct ScanSchedule {
-    ScanWalk sweep;
-    bool nearNext = true;
+private:
+    std::optional<size_t> index(ChunkKey key) const {
+        int dx = key.x - center_.x, dz = key.z - center_.z;
+        if (radius_ < 0 || std::abs(dx) > radius_ || std::abs(dz) > radius_) return std::nullopt;
+        return static_cast<size_t>(dz + radius_) * (2 * radius_ + 1) + (dx + radius_);
+    }
+    ChunkKey center_{};
+    int radius_ = -1, layer_ = 0;
+    bool round_ = false;
+    std::vector<ScanCell> cells_;
+    std::vector<ChunkKey> order_; // Offsets in range, nearest first.
+    double quietUntil_ = -1e300;
 };
-inline constexpr int nearScanRadius = 4, scanCellsPerCall = 512;
-// Start the near search at the player every call, but keep the wide sweep's
-// place. Alternating due chunks lets both progress even if one scan uses the
-// whole frame's budget. The shared cell cap also bounds fresh-tile lookups.
-// scan returns false while waiting for resources; stop checks the time budget.
+inline constexpr size_t scanChunksPerCall = 64;
+// One call of a scan path: the due chunks, nearest first, until the time
+// budget runs out. `scan` returns what it saw, or nothing while it waits for
+// resources (that chunk stays due and comes first next call); `stop` checks
+// the time budget.
 template <class Scan, class Stop>
-int scanBatch(TileCache const& cache, ScanSchedule& schedule, ChunkKey center, int radius, double now,
-              int layer, int tolerance, Scan&& scan, Stop&& stop) {
-    walkAt(schedule.sweep, center, radius);
-    ScanWalk near{center};
-    int const nearRadius = std::min(radius, nearScanRadius);
-    bool nearDone = false, sweepDone = false;
-    int examined = 0, completed = 0;
-    auto next = [&](bool local) -> std::optional<ChunkKey> {
-        auto& walk = local ? near : schedule.sweep;
-        auto& done = local ? nearDone : sweepDone;
-        int limit = local ? nearRadius : radius;
-        while (!done && examined < scanCellsPerCall) {
-            ++examined;
-            auto key = walkCell(walk);
-            if (scanDue(cache.find(key), walk.ring, now, layer, tolerance)) return key;
-            if (!walkStep(walk, limit)) done = true;
-        }
-        return std::nullopt;
-    };
-    while (examined < scanCellsPerCall) {
-        bool local = schedule.nearNext;
-        auto key = next(local);
-        if (!key) {
-            local = !local;
-            key = next(local);
-        }
-        if (!key) break;
-        schedule.nearNext = !local;
-        if (!scan(*key)) break;
+int scanBatch(ScanGrid& grid, ChunkKey center, int radius, bool round, double now, int layer, int tolerance,
+              int staleRadius, Scan&& scan, Stop&& stop) {
+    grid.follow(center, radius, round);
+    int completed = 0;
+    for (auto key : grid.due(now, layer, tolerance, staleRadius, scanChunksPerCall)) {
+        std::optional<Seen> seen = scan(key);
+        if (!seen) break;
+        grid.saw(key, *seen, layer, now);
         ++completed;
-        if (local) {
-            if (!walkStep(near, nearRadius)) nearDone = true;
-        } else if (!walkStep(schedule.sweep, radius)) sweepDone = true;
         if (stop()) break;
     }
     return completed;

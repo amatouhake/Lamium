@@ -8,6 +8,27 @@ runtime coverage is in [VALIDATION.md](VALIDATION.md), with evidence in
 
 ## Current implementation
 
+Scan grid (2026-10-18, L-210): the resumable ring walk of the L-206 review
+left one-chunk arcs and wedges unrecorded inside the view distance when the
+player moved during a pass (seen in the saved regions: whole chunks missing
+along arcs even over ocean). Each scan path (display surface, display caves,
+recording) now keeps a dense grid of what it saw of every chunk in range
+(never, missing, partial, complete), moved with the player, and every call
+picks the due chunks nearest first from scratch: never-seen, incomplete and
+near stale chunks first, then stale complete chunks out to a stale radius
+(the recording rescans complete chunks only within 16 chunks; farther ones
+are recorded once per visit). The recording range is the disc the client
+loads, not its square. Incomplete chunks beyond four chunks retry every
+3 s, so the range edge cannot keep the budget busy. A pass that finds
+nothing skips until the next chunk is due. The 30 s diagnostics line counts
+the recording range by state, to tell unvisited chunks from blocks the
+client never received. A pure test walks a player through the world and
+requires every chunk that was well inside the range to have been scanned.
+Not checked in game yet. The other kind of gap in the saved regions, land
+inside the edge chunks of a visit drawn as contour-shaped blobs (sections
+the client had not received), is not addressed by this and needs the
+diagnostics first.
+
 Recording-range update (2026-10-17, L-206): recording follows the client's
 view distance with the previous 384-block width as its floor and the game's
 reported maximum (capped at 96 chunks) as its ceiling. Each scan path keeps
@@ -445,11 +466,10 @@ an LRU of about 40 MB, and is joined on world exit and mod stop; damaged
 files count as missing), `Minimap.cpp` `record()` (scans out to the view
 distance around the player, never below 384 blocks and never above the
 game's own view-distance maximum, with its own 1 ms budget whenever the
-world map is on; the display and recording scans walk the rings with a
-cursor that resumes where it stopped, alternates with nearby refreshes and
-looks at a bounded number of cells per frame, so a mostly scanned wide area
-costs bounded tile lookups and display-cache eviction cannot rewind the
-recording's progress (L-206 review); chunks the client has not loaded are
+world map is on; each scan path keeps a grid of what it saw around the
+player and picks due chunks nearest first every call (L-210), so moving
+leaves nothing behind and display-cache eviction cannot make the recording
+rescan what it already took; chunks the client has not loaded are
 filled from the saved regions, Overworld
 caves are not recorded), `WorldMap.cpp` (the screen: a pool of 96 runtime
 textures, at most 6 uploads per frame, 16 in the first second, a coarser

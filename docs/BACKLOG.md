@@ -617,6 +617,25 @@ peak 97) while straight runs and controls show none.
 Open: corner poses of three- and four-side joins; the generated-sprite
 cost of corner variants.
 
+### L-210 World map: black gaps inside the recorded area
+Kind: Bug. Maintainer 2026-10-18: places inside the view distance stay black
+on the world map; to a player that reads as a bug, not as a limit. Goal:
+where the player went, the map fills; the logic stays bounded.
+Found from the saved regions (2026-10-18, LamiumTest): two kinds of gaps.
+(a) Whole chunks missing along one-chunk arcs and wedges, also over ocean:
+the L-206 ring walk resumed relative to a moving player and skipped cells.
+(b) Contour-shaped blobs inside partial chunks at the edge of a visit, on
+land only: sections the client had not received when the chunk was
+scanned, never completed because the player left.
+Status: (a) fixed 2026-10-18 on `l210-map-scan-grid` (scan grid, see
+MAP.md); not checked in game. (b) open: the 30 s diagnostics line now counts
+the recording range as unseen / missing / partial / complete. Check whether
+partial edge chunks complete while standing still before deciding anything;
+forcing sections to load costs frame rate and is not a fix (maintainer).
+Check in game: fly a straight line at 32+ chunks view distance, stop, open
+the world map: no arcs or wedges of black inside the range; the partial
+count in the log drops while standing; frame time unchanged.
+
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
 Imported at the maintainer's request on 2026-10-15 from the current-tree

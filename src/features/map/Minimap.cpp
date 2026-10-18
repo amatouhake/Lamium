@@ -83,6 +83,9 @@ constexpr double scanBudgetSeconds = .0015, recordBudgetSeconds = .001;
 // A display bound only: the recording walk carries its progress out to the
 // view distance itself (L-206 review), so this can stay small.
 int const keepChunks = chunkRadius(zoomSteps.back() * 2, true) + 4;
+// How far the recording rescans complete chunks for changes; farther ones
+// are taken once per visit, so a wide range does not keep the budget busy.
+int const recordStaleRadius = 16;
 
 std::atomic<unsigned> worldGeneration{0};
 // How far the frame is between two ticks, as the world was drawn. The map
@@ -147,22 +150,25 @@ struct Diagnostics {
         ++lines;
         try { Runtime::instance().self().getLogger().info("Minimap: {}", text); } catch (...) {}
     }
-    void report(double time, size_t tiles) {
+    // `recorded`: the recording range by what was seen (never, missing,
+    // partial, complete), to tell unvisited chunks from unreceived blocks.
+    void report(double time, size_t tiles, std::array<int, 4> recorded) {
         if (windowStart == 0) { windowStart = time; return; }
         if (time - windowStart < 30) return;
-        log(std::format("{} composes avg {:.2f} ms, {} uploads avg {:.2f} ms, {} chunks scanned avg {:.3f} ms, {} tiles kept",
+        log(std::format("{} composes avg {:.2f} ms, {} uploads avg {:.2f} ms, {} chunks scanned avg {:.3f} ms, {} tiles kept, "
+                        "recording range {} unseen / {} missing / {} partial / {} complete",
             composes, composes ? composeSeconds * 1000 / composes : 0., uploads, uploads ? uploadSeconds * 1000 / uploads : 0.,
-            chunks, chunks ? scanSeconds * 1000 / chunks : 0., tiles));
+            chunks, chunks ? scanSeconds * 1000 / chunks : 0., tiles, recorded[0], recorded[1], recorded[2], recorded[3]));
         *this = Diagnostics{lines, time};
     }
 };
 
 struct State {
     TileCache surface, cave; // Each view keeps its own data, so switching is instant.
-    // Each path keeps its sweep despite display eviction, and alternates it
-    // with near updates so a wide recording pass cannot hold up the player.
-    ScanSchedule surfaceWalk, caveWalk; // The minimap's display scans.
-    ScanSchedule recordWalk;            // The recording scan; the current dimension only.
+    // What each scan path has seen around the player, apart from the display
+    // cache and its eviction (L-206 review, L-210).
+    ScanGrid surfaceGrid, caveGrid; // The minimap's display scans.
+    ScanGrid recordGrid;            // The recording scan; the current dimension only.
     unsigned generation = ~0u, storeEpoch = ~0u;
     int dimension = -1;
     unsigned revision = 0;
@@ -222,10 +228,10 @@ void forget() {
     state.surface.clear();
     state.cave.clear();
     // Every chunk is scanned (and recorded) again in a new world, dimension
-    // or after the saved map changed: the walks start over at the center.
-    state.surfaceWalk = {};
-    state.caveWalk = {};
-    state.recordWalk = {};
+    // or after the saved map changed.
+    state.surfaceGrid.clear();
+    state.caveGrid.clear();
+    state.recordGrid.clear();
     state.automatic = {};
     state.layer.reset();
     viewForce = ViewForce::Auto;
@@ -460,18 +466,26 @@ Scan scanChunk(IClientInstance& client, BlockSource& region, TileCache& cache, C
     ++state.revision;
     return Scan::Done;
 }
-// Near updates and the persistent sweep share the cell and time budgets.
-// A scan waiting for texture resources retries on its path's next turn.
-void scan(IClientInstance& client, LocalPlayer& player, TileCache& cache, ScanSchedule& walk, double centerX, double centerZ,
-          bool cave, int layer, double blocks, bool rotate, double time, Saved saved, double budget = scanBudgetSeconds) {
+// The due chunks nearest first, until the time budget runs out. A scan
+// waiting for texture resources is tried first on the path's next call.
+// `round`: the range is the disc the client loads (recording), not the
+// square a view shows; `staleRadius`: how far complete chunks are rescanned
+// for changes - the recording takes a far chunk once per visit.
+void scan(IClientInstance& client, LocalPlayer& player, TileCache& cache, ScanGrid& grid, double centerX, double centerZ,
+          bool cave, int layer, double blocks, bool rotate, double time, Saved saved, double budget = scanBudgetSeconds,
+          bool round = false, int staleRadius = 1 << 20) {
     auto& region = player.getDimensionBlockSource();
     auto center = chunkOf(blockFloor(centerX), blockFloor(centerZ));
     auto start = now();
     textureLoadsLeft = textureLoadsPerFrame;
     if (!cave) layer = 0;
     int const radius = chunkRadius(static_cast<int>(blocks), rotate), tolerance = cave ? 0 : 1 << 20;
-    state.diagnostics.chunks += scanBatch(cache, walk, center, radius, time, layer, tolerance,
-        [&](ChunkKey key) { return scanChunk(client, region, cache, key, cave, layer, time, saved) == Scan::Done; },
+    state.diagnostics.chunks += scanBatch(grid, center, radius, round, time, layer, tolerance, staleRadius,
+        [&](ChunkKey key) -> std::optional<Seen> {
+            if (scanChunk(client, region, cache, key, cave, layer, time, saved) == Scan::Waiting) return std::nullopt;
+            auto const* tile = cache.find(key);
+            return tile ? seenOf(*tile) : Seen::Missing;
+        },
         [&] { return now() - start >= budget; });
     state.diagnostics.scanSeconds += now() - start;
     if (time - state.evictedAt > 1) {
@@ -654,7 +668,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         double marker = pixels / 216.0 * baseSize / size; // A mockup pixel, in texture pixels.
         Saved saved{settings.worldMap && cave == (view->dimension == 1), mapLayer(view->dimension, layer)};
         if (auto* player = client.getLocalPlayer())
-            scan(client, *player, cache, cave ? state.caveWalk : state.surfaceWalk, view->x, view->z, cave, layer, blocks,
+            scan(client, *player, cache, cave ? state.caveGrid : state.surfaceGrid, view->x, view->z, cave, layer, blocks,
                  settings.rotate, time, saved);
 
         auto transform = settings.rotate ? ViewTransform::headingUp(view->yaw) : ViewTransform::northUp();
@@ -751,7 +765,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
             drawFrame(state.image, pixels, settings.round, pixels / std::max(16.f, size));
             if (upload(client, pixels)) state.shown = overlay;
         }
-        state.diagnostics.report(time, state.surface.size() + state.cave.size());
+        state.diagnostics.report(time, state.surface.size() + state.cave.size(), state.recordGrid.counts());
 
         // Layout: the map, compass letters straddling its frame, then the
         // optional lines centered under it.
@@ -845,13 +859,13 @@ void record(IClientInstance& client, Settings::Map const& settings, bool scannin
         if (!scanning || !settings.worldMap) return;
         // Recording follows the view distance (L-206): what the client keeps
         // loaded around the player, from the old fixed range up to the game's
-        // own view-distance maximum. The walk carries the progress out to
-        // that range on its own; the display cache evicting the far tiles
-        // (keepChunks) does not rewind it (L-206 review).
+        // own view-distance maximum. Its grid keeps what it saw while the
+        // display cache evicts far tiles (keepChunks); complete chunks
+        // beyond the display's reach are recorded once per visit.
         auto const& options = client.getOptions();
         double blocks = recordingBlocks(options.getViewDistanceChunks(), options.getMaxViewDistanceChunksRaw());
-        scan(client, *player, cave ? state.cave : state.surface, state.recordWalk, view->playerX, view->playerZ, cave, layer,
-             blocks, false, time, saved, recordBudgetSeconds);
+        scan(client, *player, cave ? state.cave : state.surface, state.recordGrid, view->playerX, view->playerZ, cave, layer,
+             blocks, false, time, saved, recordBudgetSeconds, true, recordStaleRadius);
     } catch (std::exception const& error) {
         state.failed = true;
         state.diagnostics.log(std::format("recording stopped after an error: {}", error.what()));
