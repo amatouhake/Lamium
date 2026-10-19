@@ -404,7 +404,7 @@ Files to inspect: `src/input/Binding.h`, `src/ui/SettingsRows.h`, menu/input
 code and three-language help; [SCHEMATIC.md](SCHEMATIC.md) owns the contract.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
-Kind: Design (where it shows), then Ready for the pure helper. Reported
+Kind: Ready (HUD lines only; map and overlay deferred). Reported
 2026-10-19 as issue #30 (the reporter offers a PR: HUD line first, overlay
 separately). Chosen 2026-10-19; nothing built.
 Premise: a Bedrock chunk's slime status is a function of its chunk
@@ -420,18 +420,20 @@ chunks in x,z in [-5,5] are (-4,-1) (-4,2) (-3,-2) (-3,-1) (-1,0) (0,-5)
 Minecraft Wiki says independent; a finder site implies a seed), so **the rule
 is unverified in game**. Slimes spawn below roughly Y 40 (wiki; one source
 says 39) at any light level; verify the boundary before drawing a column.
-Step 1 (Ready once agreed): pure `isSlimeChunk(x, z)` in a header with tests
-using the list above, plus one HUD/Debug View line. Do not ship a line until
-the maintainer has seen it match real slime spawns in game.
-Open (maintainer): which surfaces get the line (Info HUD, Debug View or
-both; an Info HUD line must be opt-in and cheap), whether it states only
-"slime chunk: yes/no" for the current chunk or also the Y limit, whether the
-world map (L-205 family) or minimap marks slime chunks (a per-chunk tint
-over the scanned area; needs the Design agreed with MAP.md), and whether a
-world overlay like Chunk Borders is wanted at all. Check Experimental badge
-and default off for any overlay. Record the formula's source in
-[PROVENANCE.md](PROVENANCE.md) before using it; do not copy the reporter's
-code verbatim.
+Decision (maintainer, 2026-10-19): first scope is the Info HUD and the Debug
+View only; the issue reporter may open a PR for that. The world map and
+minimap, and any world overlay, are out of scope for now: the map design is
+still undecided and changing, so revisit them later as a separate item.
+Step 1 (Ready): pure `isSlimeChunk(x, z)` in a header with tests using the
+list above, plus one line in each of the two HUDs (the Info HUD line is
+opt-in, default off, and cheap; follow Settings/Translations rules in
+AGENTS.md, three languages). Also correct the `help.debugView` text. Do not
+ship the lines until the maintainer has seen the rule match real slime
+spawns in game.
+Open (maintainer): the line wording (yes/no only, or with the Y limit), and
+whether the Y limit text is worth showing before the boundary (40 vs 39) is
+verified. Record the formula's source in [PROVENANCE.md](PROVENANCE.md)
+before using it; do not copy the reporter's code verbatim.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready, implementation built; runtime coverage pending. User report
