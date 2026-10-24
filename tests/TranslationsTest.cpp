@@ -10,6 +10,7 @@ void translationTests() {
     auto check = [](bool ok) { if (!ok) throw std::runtime_error("translation catalog invariant"); };
     std::unordered_set<std::string_view> keys;
     check(alignedWithEntries(simplifiedChinese));
+    check(alignedWithEntries(traditionalChinese));
     for (auto const& d : lamium::capabilities::definitions)
         if (!d.feature.empty()) for (auto locale : locales) check(!find(d.nameKey,locale).empty());
     for (auto reason : {lamium::capabilities::Reason::UnverifiedGame,lamium::capabilities::Reason::UnsupportedLoader,
@@ -20,14 +21,14 @@ void translationTests() {
     for (std::size_t i = 0; i < entries.size(); ++i) {
         auto const& entry = entries[i];
         check(find(entry.key, "zh_CN") == simplifiedChinese[i].text);
+        check(find(entry.key, "zh_TW") == traditionalChinese[i].text);
         check(keys.insert(entry.key).second);
         for (auto locale : locales) check(!find(entry.key, locale).empty());
         check(find(entry.key, "de_DE") == entry.english);
-        check(find(entry.key, "zh_TW") == entry.english);
         check(find(entry.key, "ja-JP") == entry.japanese);
         // Validate dynamic format strings with the same argument types used by
         // the UI. A malformed translation must not crash the render callback.
-        for (auto locale : {"en_US", "ja_JP", "zh_CN"}) {
+        for (auto locale : {"en_US", "ja_JP", "zh_CN", "zh_TW"}) {
             std::string key = "F8", zoom = "C", light = "J", on = "On";
             float number = 3.5f;
             int remaining = 123, maximum = 1561;
@@ -107,9 +108,10 @@ void translationTests() {
     }
     check(japanese("ja") && japanese("ja_JP") && !japanese("jargon"));
     check(localeFor("zh_CN") == Locale::SimplifiedChinese && localeFor("zh-Hans-CN") == Locale::SimplifiedChinese
-          && localeFor("zh_TW") == Locale::English && localeFor("zh") == Locale::English);
+          && localeFor("zh_TW") == Locale::TraditionalChinese && localeFor("zh-Hant-HK") == Locale::TraditionalChinese
+          && localeFor("zh") == Locale::English);
     check(find("biome.beach.name", "ja_JP") == "ビーチ"
           && find("biome.plains.name", "en_US") == "Plains");
-    check(find("biome.plains.name", "zh_CN") == "平原");
-    check(find("key.jump", "ja_JP").empty() && find("key.jump", "zh_CN").empty());
+    check(find("biome.plains.name", "zh_CN") == "平原" && find("biome.plains.name", "zh_TW") == "平原");
+    check(find("key.jump", "ja_JP").empty() && find("key.jump", "zh_CN").empty() && find("key.jump", "zh_TW").empty());
 }

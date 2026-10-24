@@ -163,12 +163,12 @@ menu and HUD editor keep GUI units.
   languages use the same behavior. This replaces the in-place expansion
   and the earlier separate-panel contracts of the same date.
 
-- English is the default; Japanese and Simplified Chinese (`zh_CN`, L-90)
-  follow the game language, and other languages show English. Every
-  user-facing key has all three. Settings labels keep an ASCII ": " between
+- English is the default; Japanese, Simplified Chinese (`zh_CN`, L-90) and
+  Traditional Chinese (`zh_TW`) follow the game language, and other languages
+  show English. Every user-facing key has all four. Settings labels keep an ASCII ": " between
   name and value in every locale (the settings table splits there).
-  Traditional Chinese is not claimed until it is separately translated and
-  reviewed. Contributor notes: [TRANSLATING.md](TRANSLATING.md).
+  Traditional Chinese is translated from English on its own, not converted
+  from Simplified Chinese. Contributor notes: [TRANSLATING.md](TRANSLATING.md).
 - Japanese locale: Latin runs are raised 1.5 units to share the baseline, and
   text inside a frame starts `boxTextInset()` lower, and a shape drawn beside
   text (the change arrow) moves `shapeTextDrop()` lower to meet the glyphs. Always draw through

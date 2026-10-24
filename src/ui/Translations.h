@@ -1,5 +1,6 @@
 #pragma once
 #include "ui/TranslationsZhCN.h"
+#include "ui/TranslationsZhTW.h"
 #include <array>
 #include <cstddef>
 #include <string_view>
@@ -1656,8 +1657,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.toast.cut", "{}: cut {}/{} (axis {})", "{}: 切断 {}/{}（軸 {}）"},
     {"schematic.toast.cutHere", "{}: cut here {}/{} (axis {})", "{}: 視点の位置で切断 {}/{}（軸 {}）"},
 });
-enum class Locale { English, Japanese, SimplifiedChinese };
-inline constexpr std::array locales{Locale::English, Locale::Japanese, Locale::SimplifiedChinese};
+enum class Locale { English, Japanese, SimplifiedChinese, TraditionalChinese };
+inline constexpr std::array locales{Locale::English, Locale::Japanese, Locale::SimplifiedChinese, Locale::TraditionalChinese};
 
 inline constexpr bool alignedWithEntries(auto const& table) {
     if (table.size() != entries.size()) return false;
@@ -1666,23 +1667,28 @@ inline constexpr bool alignedWithEntries(auto const& table) {
     return true;
 }
 static_assert(alignedWithEntries(simplifiedChinese), "TranslationsZhCN.h must list every key in entry order");
+static_assert(alignedWithEntries(traditionalChinese), "TranslationsZhTW.h must list every key in entry order");
 
 inline constexpr bool japanese(std::string_view locale) {
     return locale == "ja" || locale.starts_with("ja_") || locale.starts_with("ja-");
 }
-// Only Simplified Chinese is shipped; Traditional Chinese falls back to English.
 inline constexpr bool simplifiedChineseLocale(std::string_view locale) {
     return locale == "zh_CN" || locale == "zh-CN" || locale == "zh-Hans" || locale.starts_with("zh-Hans-");
+}
+inline constexpr bool traditionalChineseLocale(std::string_view locale) {
+    return locale == "zh_TW" || locale == "zh-TW" || locale == "zh-Hant" || locale.starts_with("zh-Hant-");
 }
 inline constexpr Locale localeFor(std::string_view code) {
     if (japanese(code)) return Locale::Japanese;
     if (simplifiedChineseLocale(code)) return Locale::SimplifiedChinese;
+    if (traditionalChineseLocale(code)) return Locale::TraditionalChinese;
     return Locale::English;
 }
 inline constexpr std::string_view text(std::size_t index, Locale locale) {
     switch (locale) {
     case Locale::Japanese: return entries[index].japanese;
     case Locale::SimplifiedChinese: return simplifiedChinese[index].text;
+    case Locale::TraditionalChinese: return traditionalChinese[index].text;
     case Locale::English: break;
     }
     return entries[index].english;

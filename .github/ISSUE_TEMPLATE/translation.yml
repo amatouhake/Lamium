@@ -12,6 +12,7 @@ body:
       label: Language
       options:
         - Simplified Chinese (zh_CN)
+        - Traditional Chinese (zh_TW)
         - Japanese
         - English
     validations:
