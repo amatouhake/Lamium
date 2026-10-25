@@ -670,11 +670,13 @@ No release target selected.
 ### L-256 Schematic ghosts: lower the in-world drawing cost
 Kind: Research, then Ready steps. Maintainer note 2026-10-26 after 0.3.0:
 drawing ghosts in the world is heavy, and seems heavier with many check
-mistakes. The last measurement (SCHEMATIC.md C, 2026-10-09) predates the
-bar outlines of L-186, the camera-sorted blended mesh of L-192/L-193 and
-mistake boxes joining that mesh, so its numbers no longer describe the
-current cost. Candidates below come from reading the code, not from a
-measurement.
+mistakes. The last measurements (SCHEMATIC.md C, 2026-10-09; L-105 and
+VALIDATION-LOG "Perf trace of `2965ec8`", 2026-10-14: 3086 sections, 4-6
+ms a frame standing still, mostly per-section draws) predate the bar
+outlines of L-186 and the later blended-mesh changes (L-192/L-193, mistake
+boxes in that mesh), so they no longer describe the current cost. The
+candidates below come from reading the code, not from a measurement.
+Related: L-105 (whole-game profiling), L-236 (rebuilds when the cut moves).
 Step 1 (first, Research): measure again with `xmake f
 --schematic_perf_trace=y` on current main: a large placement with no
 mistakes, one with many mistakes (red/yellow areas), and both with Outline
