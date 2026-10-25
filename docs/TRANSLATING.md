@@ -26,10 +26,9 @@ Minecraft and mod terminology. Send them as a pull request that edits
   screen splits the name from the value there. Hotkey names keep the
   `Lamium: ` prefix.
 - Prefer the terms the game itself uses in `zh_CN` (for example 物品栏, 潜影盒,
-  收纳袋, 鞘翅, 区块), and in `zh_TW` (物品欄, 界伏蚌盒, 鞘翅, 區塊).
+  收纳袋, 鞘翅, 区块), and in `zh_TW` (物品欄, 界伏蚌盒, 組合包, 鞘翅, 區塊).
   Feature names in `zh_TW` follow what Taiwanese players call them (for
-  example 靈魂出竅 for FreeCamera, 環顧四周 for Freelook). Bundle is 束口袋,
-  the Java Edition name, rather than Bedrock's 組合包.
+  example 靈魂出竅 for FreeCamera, 環顧四周 for Freelook).
 - Traditional Chinese corrections edit `TranslationsZhTW.h` the same way.
 
 If you would rather not open a pull request, open an issue with the
