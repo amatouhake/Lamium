@@ -667,6 +667,42 @@ languages (it says the inside stays joined). Check in game: L corners in
 both directions, T and cross junctions, stained panes, option off.
 No release target selected.
 
+### L-256 Schematic ghosts: lower the in-world drawing cost
+Kind: Research, then Ready steps. Maintainer note 2026-10-26 after 0.3.0:
+drawing ghosts in the world is heavy, and seems heavier with many check
+mistakes. The last measurement (SCHEMATIC.md C, 2026-10-09) predates the
+bar outlines of L-186, the camera-sorted blended mesh of L-192/L-193 and
+mistake boxes joining that mesh, so its numbers no longer describe the
+current cost. Candidates below come from reading the code, not from a
+measurement.
+Step 1 (first, Research): measure again with `xmake f
+--schematic_perf_trace=y` on current main: a large placement with no
+mistakes, one with many mistakes (red/yellow areas), and both with Outline
+width Thin. Record frame time per stage (faces, lines, blended, check/scan,
+rebuilds, re-sorts) in VALIDATION-LOG, then pick the steps below by cost.
+Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
+1. Outlines: Normal/Thick width draws each edge as 32 vertices
+   (`faces::barQuads`, four double-sided quads), 384 per outlined cell,
+   and an edge shared by adjacent ghosts is drawn once per ghost (only a
+   weaker color rank is skipped). Draw each edge once.
+2. Mistake boxes: faces hidden between touching marks are collapsed to a
+   point, not removed, so dense mistake areas still sort, merge and upload
+   them in the blended mesh; above 20000 quads that mesh re-sorts and
+   uploads every 0.25 s while moving. Remove collapsed quads and merge
+   same-color runs into larger faces (marks use one texel); every mark
+   with an open face also adds an outline (candidate 1 applies).
+3. Collapsed quads elsewhere (`dropDuplicateQuads`, ghost-to-ghost culling)
+   stay in the face and blended meshes: compact them before upload,
+   keeping every vertex stream aligned.
+4. Draw calls: one face draw per 8-block section (about 4900 sections cost
+   1.9 ms on 2026-10-09). Keep 8-block rebuilds but draw static sections
+   in larger groups.
+5. The verification scan (about 1 ms on 2026-10-09) is limited by count,
+   not time: give it a time budget.
+Constraints: no visible change (outline look, mistake colors, blended
+order must not flicker again, L-192/L-193); fail open as today. Validate
+each step in game against the step 1 numbers. No release target selected.
+
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported
 2026-10-19 as issue #30 (the reporter offers a PR: HUD line first, overlay
