@@ -211,6 +211,21 @@ snapping and dimension changes. Validate new shapes and Move here in game
 with FreeCamera detached and with ordinary player view. No release target
 selected.
 
+### L-250 Edge Guard makes the game feel very heavy
+Kind: Bug / Research. User report 2026-10-23 after 0.3.0: turning Edge Guard
+on makes the game very heavy. Not reproduced or measured yet; the report
+does not say whether frame rate drops, input lags or the server corrects
+the position (rubber-banding). Edge Guard (`src/features/interaction/
+EdgeGuard*.cpp`, plans in `EdgeGuard*Plan.h`) runs per tick and keeps a
+correction history for replays; VALIDATION records only the rare drop under
+heavy lag, not a cost.
+Goal: find whether Edge Guard costs frame time or tick time, and bound it
+(DESIGN.md engineering behavior) without weakening the edge stop.
+Open: ask the reporter for single-player vs server, what feels heavy and the
+settings; compare frame times with Edge Guard on/off locally and on a test
+BDS; check the history and replay paths for unbounded work. No release
+target selected.
+
 ### L-243 Large terrain gaps that only reload when the player comes near
 Kind: Bug / Research, not reproduced; watch item. Maintainer report
 2026-10-22 on `fca2ef9` (0.3.0), local world, after dimension
@@ -572,6 +587,85 @@ missing/empty rocket stacks and other trigger restrictions. This is an
 equipment trigger, not automatic firework use or guaranteed glide start
 (see L-71). Choose the settings behavior with the maintainer first, then
 test main-hand/Fake Offhand combinations and verify in game.
+
+### L-249 Show the chunks within simulation distance
+Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which
+chunks are within the simulation distance (where mobs, crops and redstone
+tick). Chunk Borders (`src/overlay/ChunkBorders.h`) draws only the borders
+around the player; nothing shows the simulated area.
+Goal: let the player see which chunks are simulated, without implying more
+than the game guarantees.
+Open: where the simulation distance comes from (the world setting is known
+locally; on servers it may not reach the client) and whether the client can
+read it from game state; how to show it (Chunk Borders option, minimap
+overlay or world map layer); behavior on servers where it is unknown.
+Research the source first, then agree the presentation with the maintainer.
+No release target selected.
+
+### L-251 Choose whether Hand Restock refills shulker boxes and buckets
+Kind: Design. User request 2026-10-23 after 0.3.0: a setting to choose
+whether Hand Restock also refills shulker boxes and buckets. Today a placed
+shulker box is refilled like any block, and a last water/lava/milk/powder
+snow bucket that empties is exchanged with a reserve
+([HAND-RESTOCK.md](HAND-RESTOCK.md)); neither can be excluded.
+Goal: let the player keep these items out of Hand Restock when refilling
+them gets in the way.
+Open: one switch per kind or a single exclusion switch; defaults (current
+behavior on); whether other kinds (potions, stews, honey bottles) belong in
+the same choice; how the help text names them in all four languages.
+No release target selected.
+
+### L-252 Turn the schematic check on and off
+Kind: Design. User request 2026-10-24 after 0.3.0: an on/off for the
+schematic check (照合). Today the check runs whenever Schematics is on and
+its mistake marks are drawn in the world (`GhostVerify.cpp`, `Verify.h`);
+the only related setting is the Schematic HUD's check counts
+(`schematic.hudVerify`).
+Goal: let the player build from the ghosts without the check's marks (or
+work) when they do not want it.
+Open: confirm with the reporter whether they mean the marks in the world,
+the check work itself, or both; what the Check tab and HUD show while it is
+off; per placement or global; default on. No release target selected.
+
+### L-253 Option to fix the minimap to surface or cave view
+Kind: Design. Maintainer note 2026-10-24 after 0.3.0: make the minimap's
+surface/underground view an option. Today the minimap switches between the
+surface and the cave view by itself (a roof over the followed point,
+[MAP.md](MAP.md), L-228); only the world map has a manual cave on/off.
+Goal: let the player keep the minimap on the surface (or cave) view instead
+of the automatic switch.
+Open: choices (automatic, surface, cave) and default (automatic); whether
+the cave height follows the player as today; whether a key toggles it; how
+it interacts with FreeCamera's camera reference and cave recording. No
+release target selected.
+
+### L-254 Turn the light-blue schematic ghost outlines off
+Kind: Design. User request 2026-10-24 after 0.3.0: an on/off for the
+light-blue ghost outlines. The outline distance setting
+(`schematic.outlineDistance`, 0-192 in steps of 16, default 48) is the only
+control, and 0 means no limit, so the outlines cannot be turned off; the
+smallest limit is 16 blocks (maintainer reply 2026-10-24: worth a look).
+Goal: allow ghosts without outlines while keeping the distance limit.
+Open: an "Off" step on the distance setting, a separate switch, or changing
+what 0 means (a saved 0 must keep drawing all; settings format); what tells
+a ghost apart from a real block with no outline and a low tint (L-186).
+No release target selected.
+
+### L-255 Connected Textures: edges on the inside of glass pane corners
+Kind: Ready. User report 2026-10-23 after 0.3.0, with a screenshot: at an
+L-shaped glass pane corner the outside has its edge but the inside has no
+seam. L-208 (2026-10-18) kept the inside merged on purpose. Maintainer
+2026-10-26: the inside edge looks good enough to offer; put it under the
+existing "Edges at glass pane corners" option
+(`visuals.connectedPaneCorners`, default off), no new setting.
+Goal: with that option on, an L-shaped pane corner draws a border on the
+inside of the turn as well as the outside; with it off, nothing changes.
+Notes: `ConnectedTexturesHooks.cpp` (`wantPane`) and `ConnectedSprites.cpp`;
+the inside faces must not stretch (the L-208 outside fix moved the whole
+two-texel window). Rewrite `help.visuals.connectedPaneCorners` in all four
+languages (it says the inside stays joined). Check in game: L corners in
+both directions, T and cross junctions, stained panes, option off.
+No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported
