@@ -76,8 +76,10 @@ choices live in the L-items. An L-item wins if a summary drifts.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
+   Decided and Ready (2026-10-26): L-244, L-247, L-248.
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10): L-196 license/provenance evidence; L-236 is a follow-up;
+   2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
+   L-253, L-254, L-255. L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -150,32 +152,38 @@ validation checkpoints" (snapshot 2026-10-20).
 ## Bugs
 
 ### L-247 Status effects HUD reorders rapidly under beacon effects
-Kind: Bug / Design. Maintainer note 2026-10-22 after 0.3.0; not fixed in
+Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in
 that release. `statusEffects::order()` in
 `src/features/information/StatusEffects.h` sorts by remaining ticks each
 update. Beacon effects regularly refresh their durations, so their rows
 repeatedly trade places and the HUD is hard to read.
 Goal: keep rows visually stable across duration refreshes, without hiding
 new effects, expiry or changing countdown values.
-Open: settle an ordering rule with the maintainer (fixed effect-ID order,
-preserve order while active, or a rule that treats beacon/ambient effects
-separately); decide how ordinary potion effects should be ordered. Test
-beacon renewals mixed with normal effects, new/removed effects and server
-updates; confirm in game at a beacon. No release target selected.
+Decided (maintainer 2026-10-26): a new effect enters at its place by remaining
+time; after that each row keeps its place until the effect ends, so a
+duration refresh (beacons) never moves it. Rows that end are removed and the
+rest close up. Put the rule in `StatusEffects.h` as a pure function of the
+previous order and the current effects, with tests (beacon renewals mixed
+with normal effects, new/removed effects, a longer potion replacing a
+shorter one). Check in game at a beacon with a potion running. No release
+target selected.
 
 ### L-248 Shapes creation uses the body instead of the active camera
-Kind: Bug / Design. Maintainer note 2026-10-22 after 0.3.0; not fixed in
+Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in
 that release. `referencePoint()` in `src/ui/ShapesView.cpp` takes
 `LocalPlayer::getFeetPos()` for Standing block and Exact position. With
 FreeCamera detached from the player, creating a shape (and Move here)
 therefore uses the body's position rather than the location being viewed.
-Goal: use the active camera's position when FreeCamera owns the view,
-preserving normal player-relative behavior outside FreeCamera.
-Open: confirm which other camera modes, if any, should be view-relative;
-check Target block picking and its missing-target fallback as well as
-snapping and dimension changes. Validate new shapes and Move here in game
-with FreeCamera detached and with ordinary player view. No release target
-selected.
+Decided (maintainer 2026-10-26): use the same view reference as the schematic
+placement actions: the camera's virtual feet (camera position minus the
+player's eye height) whenever Freelook or FreeCamera detaches the view, the
+player's feet otherwise. Reuse `viewFeet()` from
+`src/features/schematic/SchematicActions.cpp` (move it to a shared header
+if needed) rather than a second rule. Applies to creating a shape and Move
+here with Standing block and Exact position; check Target block picking and
+its missing-target fallback, snapping and dimension changes. Validate in
+game with FreeCamera detached, in Freelook and with the ordinary view. No
+release target selected.
 
 ### L-250 Edge Guard makes the game feel very heavy
 Kind: Bug / Research. User report 2026-10-23 after 0.3.0: turning Edge Guard
@@ -219,11 +227,18 @@ moving alone generates nothing, which with fog hidden looks like missing
 terrain. Chunk generation follows the body; not a Lamium change.
 
 ### L-244 FreeCamera keeps the inside-a-block view after starting in a block
-Kind: Bug. Maintainer report 2026-10-22: start FreeCamera while the body's
+Kind: Bug / Ready. Maintainer report 2026-10-22: start FreeCamera while the body's
 head is inside a block (buried in the ground); the camera then shows the
 inside-a-block screen effect the whole time, also while flying in the air.
 The effect should follow the camera, not the body, or be suppressed while
 FreeCamera owns the view. Not a 0.3.0 blocker (leave the block first).
+Decided (maintainer 2026-10-26): while FreeCamera owns the view, the
+inside-a-block screen effect is not drawn; outside FreeCamera it stays
+vanilla. Find the game path that draws it (record it in GAME-UPDATES.md),
+gate the suppression with `versionSensitiveAllowed()` and fail open to
+vanilla. Check in game: start FreeCamera with the head buried and fly out;
+leave FreeCamera while still buried (the effect returns); Freelook and the
+ordinary view unchanged. No release target selected.
 
 ### L-245 Ghost face disappears next to real glass or a beacon from some angles
 Kind: Bug / Research, low priority. Maintainer report 2026-10-22 (0.3.0,
@@ -407,7 +422,7 @@ chunk, or draw the faces with a material that does not write depth.
 ## Feature work and research
 
 ### L-246 Option to trigger Auto Elytra with Fake Offhand fireworks
-Kind: Design. Maintainer idea 2026-10-22 after 0.3.0; no implementation
+Kind: Ready. Maintainer idea 2026-10-22 after 0.3.0; no implementation
 or release selected. The existing firework-jump trigger in
 `src/features/interaction/ElytraSwap.cpp` checks only the selected
 main-hand hotbar slot (`holdingFireworks()`). A firework rocket assigned
@@ -415,12 +430,13 @@ to Fake Offhand does not qualify.
 Goal: optionally equip an elytra on jump when Fake Offhand holds fireworks,
 even if the main hand holds another item. Preserve the existing behavior
 when fireworks are in the main hand and the chestplate return after landing.
-Open: extend the existing Firework jump setting or add a separate opt-in
-setting (and decide its default); how to handle disabled Fake Offhand,
-missing/empty rocket stacks and other trigger restrictions. This is an
-equipment trigger, not automatic firework use or guaranteed glide start
-(see L-71). Choose the settings behavior with the maintainer first, then
-test main-hand/Fake Offhand combinations and verify in game.
+Decided (maintainer 2026-10-26): no new setting. The existing Firework jump
+trigger also fires when Fake Offhand is on and its slot holds firework
+rockets, whatever the main hand holds. With Fake Offhand off, or its slot
+empty or not rockets, nothing changes. This is an equipment trigger only,
+not automatic firework use or a guaranteed glide start (see L-71). Update
+the Firework jump help text in all four languages. Test main-hand and Fake
+Offhand combinations and verify in game. No release target selected.
 
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which
@@ -437,53 +453,72 @@ Research the source first, then agree the presentation with the maintainer.
 No release target selected.
 
 ### L-251 Choose whether Hand Restock refills shulker boxes and buckets
-Kind: Design. User request 2026-10-23 after 0.3.0: a setting to choose
+Kind: Ready. User request 2026-10-23 after 0.3.0: a setting to choose
 whether Hand Restock also refills shulker boxes and buckets. Today a placed
 shulker box is refilled like any block, and a last water/lava/milk/powder
 snow bucket that empties is exchanged with a reserve
 ([HAND-RESTOCK.md](HAND-RESTOCK.md)); neither can be excluded.
 Goal: let the player keep these items out of Hand Restock when refilling
 them gets in the way.
-Open: one switch per kind or a single exclusion switch; defaults (current
-behavior on); whether other kinds (potions, stews, honey bottles) belong in
-the same choice; how the help text names them in all four languages.
+Decided (maintainer 2026-10-26): two child switches under Hand Restock,
+"Shulker boxes" and "Buckets", both on by default (today's behavior). Off
+for shulker boxes: a placed or used shulker box is not refilled. Off for
+buckets: a bucket that empties (water, lava, milk, powder snow) is not
+exchanged with a reserve. Other remainders (potions, stews, honey bottles)
+are unchanged. Settings, option rows and help in all four languages; pure
+planner tests in `RestockPlan.h`; check in game. No release target
+selected.
+
+### L-252 Hide the schematic mistake marks in the world
+Kind: Ready. User request 2026-10-24 after 0.3.0: an on/off for the
+schematic check (照合). Today the check runs whenever Schematics is on and
+its mistake marks (red/yellow boxes and outlines) are drawn in the world
+(`GhostMesh.cpp`, `GhostVerify.cpp`); the only related setting is the
+Schematic HUD's check counts (`schematic.hudVerify`).
+Decided (maintainer 2026-10-26): first a switch "Show mistake marks" under
+Schematics, on by default. Off: the red/yellow boxes and their outlines are
+not built or drawn; the check itself still runs, so the Check tab, the HUD
+counts and the materials are unchanged. The reporter is being asked about a
+fuller check on/off, which is tracked separately (L-258). Settings, option
+row and help in all four languages; check in game with mistakes in view.
 No release target selected.
 
-### L-252 Turn the schematic check on and off
-Kind: Design. User request 2026-10-24 after 0.3.0: an on/off for the
-schematic check (照合). Today the check runs whenever Schematics is on and
-its mistake marks are drawn in the world (`GhostVerify.cpp`, `Verify.h`);
-the only related setting is the Schematic HUD's check counts
-(`schematic.hudVerify`).
-Goal: let the player build from the ghosts without the check's marks (or
-work) when they do not want it.
-Open: confirm with the reporter whether they mean the marks in the world,
-the check work itself, or both; what the Check tab and HUD show while it is
-off; per placement or global; default on. No release target selected.
+### L-258 Fuller schematic check controls (reporter's request)
+Kind: Design, waiting for the reporter. Split from L-252 on 2026-10-26: the
+reporter of L-252 appears to want more than hiding the marks (the maintainer
+is asking them for details). Record their answer here before any design;
+L-183 (temporarily disregard selected mismatches) may overlap.
 
 ### L-253 Option to fix the minimap to surface or cave view
-Kind: Design. Maintainer note 2026-10-24 after 0.3.0: make the minimap's
+Kind: Ready. Maintainer note 2026-10-24 after 0.3.0: make the minimap's
 surface/underground view an option. Today the minimap switches between the
 surface and the cave view by itself (a roof over the followed point,
 [MAP.md](MAP.md), L-228); only the world map has a manual cave on/off.
 Goal: let the player keep the minimap on the surface (or cave) view instead
 of the automatic switch.
-Open: choices (automatic, surface, cave) and default (automatic); whether
-the cave height follows the player as today; whether a key toggles it; how
-it interacts with FreeCamera's camera reference and cave recording. No
-release target selected.
+Decided (maintainer 2026-10-26): a three-way minimap setting, Automatic /
+Surface / Cave, default Automatic (today's behavior). No key. Surface keeps
+the surface view under a roof; Cave keeps the cave view at the height the
+automatic mode would use in a cave. The world map and cave recording are
+unchanged; FreeCamera's camera reference still decides the followed point.
+Settings, option row and help in all four languages; check in game above
+and below ground in the Overworld and in the Nether. No release target
+selected.
 
 ### L-254 Turn the light-blue schematic ghost outlines off
-Kind: Design. User request 2026-10-24 after 0.3.0: an on/off for the
+Kind: Ready. User request 2026-10-24 after 0.3.0: an on/off for the
 light-blue ghost outlines. The outline distance setting
 (`schematic.outlineDistance`, 0-192 in steps of 16, default 48) is the only
 control, and 0 means no limit, so the outlines cannot be turned off; the
 smallest limit is 16 blocks (maintainer reply 2026-10-24: worth a look).
 Goal: allow ghosts without outlines while keeping the distance limit.
-Open: an "Off" step on the distance setting, a separate switch, or changing
-what 0 means (a saved 0 must keep drawing all; settings format); what tells
-a ghost apart from a real block with no outline and a low tint (L-186).
-No release target selected.
+Decided (maintainer 2026-10-26): add "None" to the existing outline width
+choice (`schematic.ghostLines`: thin, normal, thick), so no new setting.
+Saved values keep their meaning (append the new value; settings format
+stays compatible). With None, the light-blue ghost outlines are not built
+or drawn; the red/yellow mistake marks and their outlines stay. The outline
+distance row stays as it is. Labels and help in all four languages; check
+in game. No release target selected.
 
 ### L-255 Connected Textures: edges on the inside of glass pane corners
 Kind: Ready. User report 2026-10-23 after 0.3.0, with a screenshot: at an
