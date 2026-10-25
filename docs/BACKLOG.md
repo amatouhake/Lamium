@@ -84,7 +84,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
-   L-163 a Lamium inventory screen. Agree open choices before building.
+   L-163 a Lamium inventory screen, L-259 book paste overflow (decided;
+   trace build next). Agree open choices before building.
    L-165 Mass Craft remains below Map and needs a scope
    conversation; existing packs already cover part of that need.
 3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,
@@ -488,6 +489,64 @@ Kind: Design, waiting for the reporter. Split from L-252 on 2026-10-26: the
 reporter of L-252 appears to want more than hiding the marks (the maintainer
 is asking them for details). Record their answer here before any design;
 L-183 (temporarily disregard selected mismatches) may overlap.
+
+### L-259 Book and quill: paste overflow into new pages
+Kind: Research (behavior decided; the switch's name and settings group
+are still open). Maintainer request 2026-10-25: pasting into a book and quill page
+is refused outright when the result would exceed the page limit, which gets
+in the way of copying text into books.
+Goal: a paste that does not fit on the current page fills it and continues
+on new pages, staying within the vanilla per-page and 50-page limits so the
+edit is sent as ordinary page edits and any server accepts it. Raising the
+limits themselves is out of scope: whether a server keeps a page longer than
+the client allows is unknown, and a rejected edit would lose text.
+
+What limits a page (from SDK headers and the vanilla `ui/book_screen.json`,
+not yet seen at runtime): the page text box uses `max_length:
+"$max_page_length"`, a variable the JSON does not define, so it presumably
+comes from `BookScreenController::addStaticScreenVars`. The box's
+`TextEditComponent` also has `mConstrainToRect` and
+`_textFitsInControl(text)`, which presumably make the visible-lines limit.
+Edits go to the server as `BookEditPacket` (replace/add/delete/swap/
+finalize).
+
+Decided (maintainer 2026-10-25, accepting the proposals):
+- Only a paste into a page of an editable book and quill. Typing at a full
+  page, the title box and everything else stay vanilla. A paste that fits is
+  left to vanilla.
+- The pasted text is inserted at the caret, replacing a selection. The
+  current page keeps the text before the insertion point plus as much of
+  the pasted text as fits. The rest, followed by the text that came after
+  the caret, goes onto new pages **inserted** after the current page;
+  existing later pages move back and are never overwritten.
+- If the result needs more pages than the 50-page limit leaves, nothing is
+  pasted and a short message says how many pages it needs and how many are
+  free. No partial paste.
+- Page break: within the part that fits, break after the last line break,
+  else after the last space, unless that leaves the page less than half
+  full; otherwise break at the last character that fits (never inside a
+  UTF-8 sequence). The break's line break or space is dropped so a new page
+  does not start blank. Japanese text without spaces breaks by character.
+- "Fits" is the game's own test: the page's length limit and
+  `_textFitsInControl`, so wrapping and fonts need no copy in Lamium.
+- One switch (name and settings group to be agreed), on by default; off is
+  the vanilla refusal.
+
+Research before building (trace build, Windows):
+1. Which path a paste takes (`TextEditContext::feedAction(Paste)`,
+   `feedText`, `TextEditComponent::handleTextCharEvent`) and on which
+   thread; where the caret and selection can be read (`TextEditContext`
+   `mCaret`, `mSelection`).
+2. The page limit's unit: bytes or characters. Japanese is 3 bytes per
+   character in UTF-8, so a byte limit fits about 85 characters.
+3. Whether `BookScreenController::_setPageText`/`_addPageAt` send the edit
+   to the server or `BookScreenManager::editPage`/`addPageAt` must be called,
+   and when: apply the overflow on the next `BookScreenController::tick`
+   from owned strings, without keeping the controller pointer.
+Pure part with tests: splitting text into pages given a fits-predicate.
+New hooks go into GAME-UPDATES.md. Verify on a local world and on a server
+that the pages survive closing and reopening the book.
+No release target selected.
 
 ### L-253 Option to fix the minimap to surface or cave view
 Kind: Ready. Maintainer note 2026-10-24 after 0.3.0: make the minimap's
