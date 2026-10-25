@@ -21,6 +21,18 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## PR #38 and #39 checked in game (2026-10-26)
+
+`main` (`ffd6409b`), deployed DLL SHA-256
+`6B2844486A05CCBDE1BDB7766DBD9CCE6AC9F71D4FC5FE2C0697066C0C145CFD`, default
+release build, local `1.26.51.01` LIP deployment, Windows x64. Maintainer
+report: checklist passed: (1) holding Freelook (Hold), pressing Escape,
+closing the menu, releasing and pressing again starts Freelook each time
+(PR #38); (2) with the game language set to Traditional Chinese the settings
+screen shows Traditional Chinese, with 界伏蚌盒 and 組合包 for the Shulker
+Box and Bundle (PR #39). Not seen: Freelook after other cancels (item use,
+focus loss); zh_TW in views other than the settings screen.
+
 ## Traditional Chinese UI reported by its translator (PR #39, 2026-10-24)
 
 Contributor report, not a maintainer check: Minecraft 1.26.51.01, LeviLamina
