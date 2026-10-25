@@ -84,8 +84,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
-   L-163 a Lamium inventory screen, L-259 book paste overflow (proposals
-   to confirm, then a trace build). Agree open choices before building.
+   L-163 a Lamium inventory screen, L-259 book paste overflow (decided;
+   trace build next). Agree open choices before building.
    L-165 Mass Craft remains below Map and needs a scope
    conversation; existing packs already cover part of that need.
 3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,
@@ -491,8 +491,8 @@ is asking them for details). Record their answer here before any design;
 L-183 (temporarily disregard selected mismatches) may overlap.
 
 ### L-259 Book and quill: paste overflow into new pages
-Kind: Design (proposals below await the maintainer's confirmation), then
-Research. Maintainer request 2026-10-25: pasting into a book and quill page
+Kind: Research (behavior decided; the switch's name and settings group
+are still open). Maintainer request 2026-10-25: pasting into a book and quill page
 is refused outright when the result would exceed the page limit, which gets
 in the way of copying text into books.
 Goal: a paste that does not fit on the current page fills it and continues
@@ -510,7 +510,7 @@ comes from `BookScreenController::addStaticScreenVars`. The box's
 Edits go to the server as `BookEditPacket` (replace/add/delete/swap/
 finalize).
 
-Proposed behavior (maintainer to confirm):
+Decided (maintainer 2026-10-25, accepting the proposals):
 - Only a paste into a page of an editable book and quill. Typing at a full
   page, the title box and everything else stay vanilla. A paste that fits is
   left to vanilla.
