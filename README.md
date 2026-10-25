@@ -9,6 +9,10 @@
   No server plugin or companion protocol is required.
 </p>
 
+<p align="center">
+  English | <a href="README.zh-TW.md">繁體中文</a>
+</p>
+
 > [!NOTE]
 > Not an official LeviMC product. Not approved by LeviMC and not associated
 > with LeviMC. Lamium is an independent community project, published and

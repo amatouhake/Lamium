@@ -14,7 +14,7 @@ one world's data, such as waypoints, open only in a world. `L` closes it
 again.
 
 - A sidebar/table layout fitted to Bedrock, with search.
-- English, Japanese and Simplified Chinese text, following the game language.
+- English, Japanese, Simplified and Traditional Chinese text, following the game language.
 - Changes are saved at once; there is no Save/Cancel step.
 - Hotkeys, Shapes and HUD layout are views of the same screen.
 - On a small window the whole screen shrinks to fit; long descriptions scroll

@@ -80,7 +80,7 @@ void settingsRowsTests() {
     }
     // Every name the UI resolves from the catalogs exists in all three
     // languages (L-158): checked from the catalogs, not the tables.
-    for (auto locale : {"en_US", "ja_JP", "zh_CN"}) {
+    for (auto locale : {"en_US", "ja_JP", "zh_CN", "zh_TW"}) {
         auto has = [&](std::string_view key, std::string_view what) {
             check(!key.empty() && !ui::translations::find(key, locale).empty(),
                   std::format("{} has a {} label ({})", what, locale, key).c_str());
@@ -394,7 +394,7 @@ void settingsRowsTests() {
     }
 
     // Every option label splits into a column name and a formattable value.
-    for (auto locale : {"en_US", "ja_JP", "zh_CN"}) {
+    for (auto locale : {"en_US", "ja_JP", "zh_CN", "zh_TW"}) {
         for (auto const& option : settings::options) {
             auto parts = ui::splitLabel(ui::translations::find(option.label, locale));
             check(!parts.name.empty() && parts.name.find('{') == std::string::npos, "option name has no placeholder");

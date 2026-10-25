@@ -109,11 +109,12 @@ Rules the code already follows; keep them:
 5. **Actions**: append to `enum Action` and `actions` in `Binding.h` (never
    reorder; ids are saved), map toggles in `ToggleAction.h`, handle presses in
    `Actions.cpp`. Behavior (Press/Hold/Toggle) is decided by the action.
-6. **Translations**: English is the default; Japanese and Simplified Chinese
-   (`zh_CN`) are required for every key. Chinese rows live in
-   `src/ui/TranslationsZhCN.h` in the same order as `Translations.h` (the
-   build checks it). Keep `Name: {}` labels with an ASCII ": ". Traditional
-   Chinese is not supported. Contributor notes: docs/TRANSLATING.md.
+6. **Translations**: English is the default; Japanese, Simplified Chinese
+   (`zh_CN`) and Traditional Chinese (`zh_TW`) are required for every key.
+   Chinese rows live in `src/ui/TranslationsZhCN.h` and
+   `src/ui/TranslationsZhTW.h` in the same order as `Translations.h` (the
+   build checks it). Keep `Name: {}` labels with an ASCII ": ". Contributor
+   notes: docs/TRANSLATING.md.
 7. **UI** draws only rectangles and text through `src/ui/Widgets.h`. Use the
    palette and widgets there; do not invent colors or sizes. See DESIGN.md.
 8. **Game dependencies**: a new hook gets an entry in

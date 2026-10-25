@@ -183,6 +183,34 @@ validation checkpoints" (snapshot 2026-10-20).
 
 ## Bugs
 
+### L-247 Status effects HUD reorders rapidly under beacon effects
+Kind: Bug / Design. Maintainer note 2026-10-22 after 0.3.0; not fixed in
+that release. `statusEffects::order()` in
+`src/features/information/StatusEffects.h` sorts by remaining ticks each
+update. Beacon effects regularly refresh their durations, so their rows
+repeatedly trade places and the HUD is hard to read.
+Goal: keep rows visually stable across duration refreshes, without hiding
+new effects, expiry or changing countdown values.
+Open: settle an ordering rule with the maintainer (fixed effect-ID order,
+preserve order while active, or a rule that treats beacon/ambient effects
+separately); decide how ordinary potion effects should be ordered. Test
+beacon renewals mixed with normal effects, new/removed effects and server
+updates; confirm in game at a beacon. No release target selected.
+
+### L-248 Shapes creation uses the body instead of the active camera
+Kind: Bug / Design. Maintainer note 2026-10-22 after 0.3.0; not fixed in
+that release. `referencePoint()` in `src/ui/ShapesView.cpp` takes
+`LocalPlayer::getFeetPos()` for Standing block and Exact position. With
+FreeCamera detached from the player, creating a shape (and Move here)
+therefore uses the body's position rather than the location being viewed.
+Goal: use the active camera's position when FreeCamera owns the view,
+preserving normal player-relative behavior outside FreeCamera.
+Open: confirm which other camera modes, if any, should be view-relative;
+check Target block picking and its missing-target fallback as well as
+snapping and dimension changes. Validate new shapes and Move here in game
+with FreeCamera detached and with ordinary player view. No release target
+selected.
+
 ### L-243 Large terrain gaps that only reload when the player comes near
 Kind: Bug / Research, not reproduced; watch item. Maintainer report
 2026-10-22 on `fca2ef9` (0.3.0), local world, after dimension
@@ -528,6 +556,22 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
+
+### L-246 Option to trigger Auto Elytra with Fake Offhand fireworks
+Kind: Design. Maintainer idea 2026-10-22 after 0.3.0; no implementation
+or release selected. The existing firework-jump trigger in
+`src/features/interaction/ElytraSwap.cpp` checks only the selected
+main-hand hotbar slot (`holdingFireworks()`). A firework rocket assigned
+to Fake Offhand does not qualify.
+Goal: optionally equip an elytra on jump when Fake Offhand holds fireworks,
+even if the main hand holds another item. Preserve the existing behavior
+when fireworks are in the main hand and the chestplate return after landing.
+Open: extend the existing Firework jump setting or add a separate opt-in
+setting (and decide its default); how to handle disabled Fake Offhand,
+missing/empty rocket stacks and other trigger restrictions. This is an
+equipment trigger, not automatic firework use or guaranteed glide start
+(see L-71). Choose the settings behavior with the maintainer first, then
+test main-hand/Fake Offhand combinations and verify in game.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported
