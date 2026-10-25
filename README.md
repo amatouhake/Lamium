@@ -9,10 +9,6 @@
   No server plugin or companion protocol is required.
 </p>
 
-<p align="center">
-  English | <a href="README.zh-TW.md">繁體中文</a>
-</p>
-
 > [!NOTE]
 > Not an official LeviMC product. Not approved by LeviMC and not associated
 > with LeviMC. Lamium is an independent community project, published and
@@ -290,8 +286,6 @@ requests are handled. What has been checked in game, per feature, is in
   Servers whose packs add blocks, items, entities or menus will show those
   wrong. On a server that requires its packs, the game itself turns off your
   global resource packs, so the look is vanilla, not your own packs.
-- **Simplified Chinese:** the text is a first, AI-assisted translation;
-  corrections are welcome (see [Translating](docs/TRANSLATING.md)).
 
 ## Development
 
