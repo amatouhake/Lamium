@@ -1308,6 +1308,166 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-241 Pre-0.3.0 review: settings, map and schematic fixes
+Closed 2026-10-26 (backlog cleanup): A1 and A2 implemented and checked in
+game; check (c) moved to BACKLOG's Pre-release checks (Gaps carried).
+Kind: Ready (strong model; decided with the maintainer 2026-10-22). A1 and A2
+implemented and checked in game on `fca2ef9` (2026-10-22). Two
+independent reviews of `v0.2.3...main` before 0.3.0; every finding below
+was checked against the code. Implement in two Codex batches (A1 settings
+and map, then A2 schematics and docs), each with tests and docs, then the
+maintainer's in-game check. L-242 follows after this item.
+
+Status: A1 implemented (items 1-5); in-game checks (a) and (b) passed on
+`fca2ef9`, (c) not checked. A2 implemented (items 6-14); in-game checks
+(d)-(f) passed. Build, `LamiumTests` and `LamiumNativeTests` pass.
+
+**A1. Settings and map**
+
+1. **Settings type errors wipe every setting** (since before 0.2.3).
+   `decodeSettings` (`src/settings/SettingsStore.cpp`) reads sections with
+   `data.at(...)`/`value(...)` and no type checks, so `{"camera":true}` or a
+   string where a number belongs throws; `Runtime.cpp` then loads defaults
+   and the next save's `merge_patch` overwrites bindings and the HUD layout.
+   Fix: a section that is not an object is skipped; a field of the wrong
+   type keeps its default (a small helper, no exceptions); other sections
+   and fields still load. If the file cannot be parsed at all, rename it to
+   `settings.json.broken` (replacing an older one) before writing defaults,
+   and log it. Tests in `SettingsStoreTests`: wrong-type section, wrong-type
+   field, the rest kept, bindings kept.
+2. **World map empty optional read** (`WorldMap.cpp`, the
+   `index >= 0 && ... == image->version` line): require `image` before
+   reading it; drop a slot whose image is gone.
+3. **FreeCamera cave recording** (`Minimap.cpp` `record()`; decided: follow
+   the **camera**): the band and the cave/surface choice already use the
+   followed point (`view->y`, the camera while FreeCamera owns the view);
+   make the recording centre the same point (`view->x/z`, not
+   `playerX/Z`) so band and area agree. Never record a cave band outside
+   the dimension's build range (Overworld -64..319, Nether 0..127; End
+   none): `caveLayer`/`layerFolder` callers skip it, and `layerOfFolder`
+   rejects out-of-range folders. Tests for the range rule. Docs: MAP.md says
+   the recording follows the camera while FreeCamera owns the view.
+4. **Session-only worlds spill to a temporary folder** (decided): a world
+   without a map folder (`root` empty in `MapStore.cpp`) saves its regions
+   like any other world, but under a per-session temporary folder inside
+   the mod's data folder (for example `maps/.session/<n>/`), so far
+   residents are evicted as elsewhere and reloaded on return. The folder is
+   deleted on world exit, and leftover `.session` folders are deleted at
+   start. Listing, the settings' size and clearing treat it as that world's
+   map.
+5. **Save failures by kind** (decided): `encodeRegion2`'s section-limit
+   error, Refused files and invalid data are permanent: log once per region
+   per session, do not requeue the conversion, do not retry the save, and
+   let the region be evicted (its file untouched). I/O failures are
+   transient: retry with a growing delay (10 s, 20 s, 40 s, ... up to
+   5 min). A resident that is dirty only because of a permanent failure no
+   longer blocks eviction. Tests for the classification and the backoff.
+
+**A2. Schematics and docs**
+
+6. **Move-target choice ignores the dimension**: `actions::setTarget`
+   (`SchematicActions.cpp`) checks only existence; use the same
+   `validity(player)` as the target cycle (same dimension) and toast
+   `schematic.toast.targetUnset` when the target is not valid.
+7. **A transient schematic read failure never recovers** (from L-237):
+   `load()` caches a failure with the file time, so a file another program
+   held open stays failed until its time changes. Cache read, size and I/O
+   failures without the time (retried on the next two-second check); keep
+   the time only for parse failures. A `file_size` error says "could not
+   read the file", not "file too large".
+8. **Schematic HUD shows stale counts** after a layer or move change:
+   `drawSchematicHud` (`InfoHud.cpp`) treats a `stale` result as ready;
+   show it as counting, like the Check tab.
+9. **Menu "previous placement" from no selection** skips one (the
+   Placement stepper in `SchematicActions.cpp`): reuse the key path's start
+   rule (from none, Previous starts at the last placement).
+10. **Look-select rewrites schematics.json** even when the placement is
+    already selected: the `session::change` callback returns whether the
+    selection changed.
+11. **Menu key line**: `schematic.menu.key` reads "Key: A / B"; use
+    "Keys: {}" / "キー: {}" / "按键: {}" (one placeholder each).
+12. **Chinese Edge Guard help** names the margin row differently from the
+    row itself (`TranslationsZhCN.h`): use the row's own name.
+13. **Docs and help after the badge review**: FreeCamera's help still
+    starts with "Experimental:" in en/ja/zh: remove the prefix. DESIGN.md:
+    the transfer contract line says on by default (now off for new
+    installs; a saved on stays on); the badge note's "no Experimental
+    feature is on by default" is wrong (Radar and Waypoints are on inside
+    the Experimental Map): narrow it to the features changed in 0.3.0.
+    Remove leftover "experimental" wording for the five un-badged features
+    in CAMERA.md, HAND-RESTOCK.md and EQUIPMENT.md. Default keys: add
+    Alt+Wheel (move target away/closer) to SETTINGS-KEYMAP.md, FEATURES.md
+    and README where they say no schematic key is bound; fix SCHEMATIC.md's
+    "centered at full size by default" (menuSmall is on) and "all keys
+    unbound". docs/README.md: SCHEMATIC-CONTROLS.md is implemented, not a
+    design-only note.
+14. **Version**: 0.3.0 in `xmake.lua`, `tooth.json` and the README (the
+    release itself stays the maintainer's step).
+
+Done when: build, `LamiumTests` and `LamiumNativeTests` pass per batch.
+In-game check by the maintainer: (a) a settings file with `"camera": true`
+loads every other setting and keeps the bindings; (b) FreeCamera flown high
+above the Nether creates no `nether/y*` folders outside 0..127, and caves
+under the camera are recorded; (c) a server without map storage keeps its
+map while moving far and back, and the temporary folder is gone after
+leaving; (d) "Move area →" with corners in another dimension says there is
+no target; (e) a schematic file held open by another program loads once it
+is released; (f) the Schematic HUD shows counting right after a cut change.
+
+### L-242 Map and minor follow-ups from the pre-0.3.0 review
+Closed 2026-10-26 (backlog cleanup): implemented and checked in game on
+`2900d1dc`; the render-thread `BlockSource` read became L-257.
+Kind: Ready, after L-241 (maintainer 2026-10-22: fix these too, after
+L-241's map changes). Lower-risk findings: cave image focus keyed by exact
+height (`MapStore.cpp`/`WorldMap.cpp`; quantize to the focus slack so
+FreeCamera does not rebuild every LOD per block); the world map worker
+keeps rebuilding the last view after the map closes (`close()` clears
+`wanted`); `recordCaveGrid` missing from the minimap eviction centres; a
+data race on `logged` in `MapStore.cpp` (make it atomic or worker-owned);
+cave folders for dimension 3+ written but not listed (`layerOfFolder`);
+`surfaceColumn` reading above `maxY`; `Lmr2Fixture.py` always writes the
+COLR high plane (wrong for palettes of 256 or fewer) and CI does not run
+it (add a CI step); `spectatorTerrainWanted` is tested but is not the gate
+in use (test the real gate); untested `TargetPick.h` branches; the Target
+block HUD line missing the camera tag in Freelook/FreeCamera, and the
+target card and that line running the same ray twice; the default
+Alt+Wheel binding drawn as one clipped key cap in the key settings; opener
+chords not seeded for the screen-opening schematic keys. Docs: MAP.md's
+L-60 link, `L-232` comments that mean L-235 (`KeyLabel.h`), VALIDATION.md's
+stale "Check tab layout to be redesigned". Research, not a blind fix: the
+FreeCamera culler hook now reads `BlockSource::getBlock` on the render
+thread; confirm its thread safety before changing it.
+
+Status: implemented 2026-10-22 (all listed code and docs fixes except the
+culler research). The LMR2 cross-check now runs as a C++ raw-section
+comparison against the Python golden file, so CI needs no Python dependency;
+the Python verifier stays manual. Build, `LamiumTests` and
+`LamiumNativeTests` pass. In-game checklist 2026-10-22 (`2900d1dc`, DLL
+`E4847CC5…`): keycap display, map open/pan/zoom/close and the Target block
+line/camera tag passed. The legacy unavailable display, unknown mode and
+map-clear/session edges were not in the shortened check. The renderer-thread
+`BlockSource` read remains the open research item; it was not changed
+without runtime proof.
+
+### L-206 World map recording range is a fixed radius instead of the view distance
+Closed 2026-10-26 (backlog cleanup): implemented; the remaining runtime
+coverage is tracked under BACKLOG's Pre-release checks (Gaps carried).
+Kind: Ready, implementation built; runtime coverage pending. User report
+2026-10-17; maintainer 2026-10-17: fix it, then
+approved PR #13's range rule and merging after review fixes and main sync.
+Implemented: `record()` follows the client's view distance, retaining the
+384-block width as a floor and the reported maximum (at most 96 chunks) as
+a ceiling. No new settings rows. Display retention and time budgets stay
+bounded. L-210 replaced the earlier resumable ring sweep with a dense scan
+grid, bounded picking and alternating near/never-seen/retry work; L-225 and
+L-226 fix whole-rescan retries and cache retention around a far FreeCamera.
+The scheduler is pure and tested, including small budgets and resource
+waits. Current implementation and the 96-chunk local results: MAP.md and
+VALIDATION.md; the older ring-sweep description is superseded.
+Remaining: in-game recording coverage and frame times at 32/64/96 chunks,
+with the minimap off as well as on; near changes and movement during a wide
+pass. Build/tests alone do not establish these runtime results.
+
 ### L-239 Leaving "All" returns to the last layer mode
 Kind: Ready. Closed 2026-10-22: the revision was implemented by Codex,
 reviewed and checked in game on `fce4b99` (DLL `743C0B2C…`). The first
@@ -6692,6 +6852,54 @@ check); 13 B with L-15 (in-game check). In-game check 1 follows step 1.
 ---
 
 ## Archived release and validation checkpoints
+
+### 0.3.0 pre-release checks — retained 2026-10-26
+
+Moved from BACKLOG.md after the 0.3.0 release; the remaining gaps are
+rows in BACKLOG's "Gaps carried from released builds" table.
+
+- **Maps (L-205/L-206/L-210/L-211/L-215/L-225/L-226):** local scan/image
+  fixes and the 96-chunk scan-grid checks are recorded in VALIDATION.
+  Remaining: compare frame times with recording off/on at 32/64/96 chunks,
+  minimap off/on, nearby edits and movement during a wide pass, and broader
+  servers. Only client-received terrain can be recorded; unreceived terrain
+  is not a promise to fill the entire configured radius.
+- **L-228 cave/Nether map:** final checklist passed on `7e0e2f9`;
+  band/body follow-up `c67054d` and height-follow fix `07f0dc1` passed on
+  2026-10-20. Remaining: measured frame times, broader servers and a live
+  check of pending images/per-band coverage if the footprint difference
+  recurs. Completed implementation is in BACKLOG-DONE.md.
+- **L-216 LMR2 regions:** file/log checks on `6ff0610` confirmed all 1,563
+  old LamiumTest regions migrated without recorded-column loss, including
+  unrescanned regions, with about 83% less disk use. Maintainer local
+  appearance, opening/zoom, cave/Nether and rejoin smoke found no abnormality
+  attributed to L-216. Still open in game: older-build fill-only merges,
+  refusal without overwrite, damaged-file recovery, 10 s failed-save retry,
+  broader servers and measured frame times. Review follow-ups (corrected
+  save batching, separate legacy warnings, cave provisional tint/revision-2)
+  need a focused live check; the reported smoke was for `6ff0610`.
+- **FreeCamera (L-207/L-213/L-214):** open-ground culler cost, switching
+  stability and underground-hold behavior have local results. Frame times
+  per hold choice, servers and broader graphics/resource/lifecycle cases
+  remain open. The sky-only loaded-area boundary failure is open bug L-227.
+- **Connected Textures corner edges (L-208):** local options/help checks
+  passed; resource packs, live resource reload and servers remain open.
+- **Target/HUD/settings (L-217 to L-224):** recorded local checks cover the
+  target ray/ghost-edge fixes, coordinate wording/descriptions, HUD-editor
+  chat/list fixes and calculator entry. Use VALIDATION's remaining language,
+  size, input and server gaps for the changed-feature smoke.
+
+### Notion reconciliation — 2026-10-20
+
+Moved from BACKLOG's execution order on 2026-10-26.
+
+Notion reconciliation, 2026-10-20: four current schematic notes from the
+[idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a)
+are tracked as L-229/L-230/L-231 (the two controls-UX notes share L-231).
+The item/edit-mode proposal still waits for feedback; unchosen ideas such
+as fall-rescue elytra, effect-only particles, rain sound, distortion
+presets, reserved Fake Offhand slots and advanced subtitles stay in Notion.
+This reconciliation selects no new implementation or release.
 
 ### BACKLOG pre-release snapshot — 2026-10-20
 

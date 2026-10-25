@@ -8,7 +8,8 @@ runtime coverage is in [VALIDATION.md](VALIDATION.md), with evidence in
 
 ## Current implementation
 
-L-241 A1 (2026-10-22, implemented; build/tests and in-game checks pending):
+L-241 A1 (2026-10-22, checked in game on `fca2ef9` except the server map
+storage case):
 recording follows the camera's X/Y/Z while FreeCamera owns the view; otherwise
 it follows the player. The recording center, cave/surface decision and stable
 cave band use that same reference. Cave recording is limited to Overworld
