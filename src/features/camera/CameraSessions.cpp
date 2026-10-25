@@ -658,8 +658,9 @@ std::optional<DetachedLookState::Angles> CameraSessions::lookAngles() {
         cancelLook();
         return {};
     }
-    // A menu pauses Freelook (it resumes when wanted); FreeCamera keeps its
-    // position through menus, settings and focus changes (L-27).
+    // A menu cancels Freelook: Toggle resumes after it, Hold needs a new press
+    // (the held key stays latched). FreeCamera keeps its position through
+    // menus, settings and focus changes (L-27).
     bool menu = ui::ownsInput() || !gameplayScreen(current->getScreenName());
     if (menu && lookOwner.load() != DetachedOwner::FreeCamera) {
         cancelLook();
