@@ -477,6 +477,11 @@ void CameraSessions::releaseLookKey() {
     if (lookToggle.load()) return;
     wantLook = false;
     reconcile();
+    // A menu (Escape, a Lamium view) cancels a held Freelook without releasing
+    // it, so the look state still waits for this key's release. reconcile()
+    // only releases a session it still owns, so release it here, or no later
+    // press could ever begin one. FreeCamera's session is not this key's.
+    if (lookOwner.load() == DetachedOwner::None) look.release();
 }
 void CameraSessions::consumeFreeCameraInput(MoveInputComponent const& input, RawMoveInputComponent& raw) {
     // Only the FreeCamera owner loses movement; Freelook keeps vanilla motion.
