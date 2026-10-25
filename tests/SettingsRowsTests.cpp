@@ -78,8 +78,8 @@ void settingsRowsTests() {
                   std::format("option {} keeps {} after normalization", option.id, chosen).c_str());
         }
     }
-    // Every name the UI resolves from the catalogs exists in all three
-    // languages (L-158): checked from the catalogs, not the tables.
+    // Every name the UI resolves from the catalogs exists in every language
+    // (L-158): checked from the catalogs, not the tables.
     for (auto locale : {"en_US", "ja_JP", "zh_CN", "zh_TW"}) {
         auto has = [&](std::string_view key, std::string_view what) {
             check(!key.empty() && !ui::translations::find(key, locale).empty(),

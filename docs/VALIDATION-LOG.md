@@ -21,6 +21,16 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## Traditional Chinese UI reported by its translator (PR #39, 2026-10-24)
+
+Contributor report, not a maintainer check: Minecraft 1.26.51.01, LeviLamina
+26.51.7, Lamium 0.3.0 with the `zh_TW` table from PR #39 (branch `zh-tw`,
+`76cebe2d`; no DLL hash given). The settings and schematics screens showed
+Traditional Chinese, and the wording was reviewed in game by the translator,
+a native speaker. Not seen: other views, narrow windows. After the merge the
+Shulker Box and Bundle names were switched back to the game's own `zh_TW`
+text (界伏蚌盒, 組合包); that build was not run in game.
+
 ## L-242 follow-ups checked in game (2026-10-22)
 
 `main` (`2900d1dc`, version 0.3.0), deployed DLL SHA-256

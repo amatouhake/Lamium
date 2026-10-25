@@ -13,12 +13,11 @@ its own translation from English, not converted from Simplified Chinese.
   in the same order as `Translations.h`. The build fails if a key is missing
   or out of order.
 
-## Correcting the Chinese text
+## Correcting the text
 
-The first Simplified Chinese text was drafted by a coding agent and has not
-been reviewed by a native speaker yet. Corrections are welcome, especially
-Minecraft and mod terminology. Send them as a pull request that edits
-`TranslationsZhCN.h`:
+Corrections are welcome in every language, especially Minecraft and mod
+terminology. Send them as a pull request that edits the language's file
+(`Translations.h` for English and Japanese):
 
 - Change only the text, never the key or the row order.
 - Keep every placeholder (`{}`, `{:.1f}`, ...) in its original order.
@@ -28,8 +27,8 @@ Minecraft and mod terminology. Send them as a pull request that edits
 - Prefer the terms the game itself uses in `zh_CN` (for example 物品栏, 潜影盒,
   收纳袋, 鞘翅, 区块), and in `zh_TW` (物品欄, 界伏蚌盒, 組合包, 鞘翅, 區塊).
   Feature names in `zh_TW` follow what Taiwanese players call them (for
-  example 靈魂出竅 for FreeCamera, 環顧四周 for Freelook).
-- Traditional Chinese corrections edit `TranslationsZhTW.h` the same way.
+  example 靈魂出竅 for FreeCamera, 環顧四周 for Freelook). Item, block and
+  biome names always use the game's own text.
 
 If you would rather not open a pull request, open an issue with the
 language, where the text appears, the current text and your wording

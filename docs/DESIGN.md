@@ -159,16 +159,19 @@ menu and HUD editor keep GUI units.
   same row's text keeps the place. Wheel input over the list scrolls the
   list. Numeric descriptions include their own help and range (white);
   their controls replace the faint footer hint while the row is selected
-  (white says what a setting is, faint says how to operate it). All three
+  (white says what a setting is, faint says how to operate it). All
   languages use the same behavior. This replaces the in-place expansion
   and the earlier separate-panel contracts of the same date.
 
 - English is the default; Japanese, Simplified Chinese (`zh_CN`, L-90) and
-  Traditional Chinese (`zh_TW`) follow the game language, and other languages
-  show English. Every user-facing key has all four. Settings labels keep an ASCII ": " between
-  name and value in every locale (the settings table splits there).
-  Traditional Chinese is translated from English on its own, not converted
-  from Simplified Chinese. Contributor notes: [TRANSLATING.md](TRANSLATING.md).
+  Traditional Chinese (`zh_TW`, PR #39) follow the game language, and other
+  languages show English. Every user-facing key has all four (maintainer
+  decision, 2026-10-26); no language is marked as more provisional than
+  another. Settings labels keep an ASCII ": " between name and value in every
+  locale (the settings table splits there). Traditional Chinese is translated
+  from English on its own, not converted from Simplified Chinese; game terms
+  (items, blocks, biomes) follow the game's own text in each language.
+  Contributor notes: [TRANSLATING.md](TRANSLATING.md).
 - Japanese locale: Latin runs are raised 1.5 units to share the baseline, and
   text inside a frame starts `boxTextInset()` lower, and a shape drawn beside
   text (the change arrow) moves `shapeTextDrop()` lower to meet the glyphs. Always draw through
