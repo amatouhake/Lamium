@@ -223,7 +223,7 @@ target is five or six per category.
 | Move | Forward/back, Left/right, Up/down, To feet, Move target, Select what you look at |
 | Placement | Selected placement (stepper), Rotate, Mirror, Reset rotation and mirror, Move placement → |
 | Layers | Axis, Cut, Mode, Keep, Cut here |
-| Show and check | Schematics on/off, Mistake marks, Show selected placement, Entities, Extra blocks, Nearest mistake |
+| Show and check | Schematics on/off, Show selected placement, Entities, Extra blocks, Mistake marks, Nearest mistake |
 | Area | Corner 1 at the looked block, Corner 2 at the looked block, Move area →, Save, Clear |
 | Screen | Place from a file…, Placed list…, Check tab, Materials tab, Schematic HUD, Key settings |
 

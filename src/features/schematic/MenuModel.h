@@ -59,12 +59,14 @@ inline constexpr std::array<Item, 5> layers{{
     {"schematic.menu.layerKeep", S::LayerKeep, A::ToggleLayerKeep},
     {"schematic.menu.layerHere", C::LayerHere, A::LayerHere}}};
 // L-266: the HUD moved to Screen to make room for the mistake marks.
+// Clockwise from the top: the feature, the selected placement's display on
+// the right, the check on the left (maintainer 2026-10-26).
 inline constexpr std::array<Item, 6> show{{
     {"schematic.menu.toggleFeature", C::ToggleFeature, A::ToggleSchematic},
-    {"schematic.menu.toggleMarks", C::ToggleMarks, A::ToggleMistakeMarks},
     {"schematic.menu.toggleShown", C::ToggleShown, A::TogglePlacementShown},
     {"schematic.menu.toggleEntities", C::ToggleEntities, A::TogglePlacementEntities},
     {"schematic.menu.toggleExtras", C::ToggleExtras, A::TogglePlacementExtras},
+    {"schematic.menu.toggleMarks", C::ToggleMarks, A::ToggleMistakeMarks},
     {"schematic.menu.nearestMistake", C::NearestMistake, A::NearestMistake}}};
 inline constexpr std::array<Item, 5> area{{
     {"schematic.menu.corner1Here", C::Corner1Here, A::SchematicCorner1},
