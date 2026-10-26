@@ -21,6 +21,14 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-256 review follow-up on a release build (2026-10-26)
+
+PR #41 head with `ce28673` (copied outline vertices fall back to
+`vertex()`, one reused point buffer), release build with the trace off,
+`1.26.51.01` LIP, maintainer; DLL SHA-256 not recorded. Walking inside
+and around ghosts: outlines (Normal, Thin, mistake colors) looked as
+before and nothing felt slower. No numbers taken (trace off).
+
 ## L-256 eighth perf trace: main's camera rebuilds with bulk outlines (2026-10-26)
 
 `cbf1742` (the near mesh dropped, `main`'s camera rebuilds, outline
