@@ -1362,6 +1362,44 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-261 Temporary waypoints
+Done 2026-10-26: `daba6e9b` (prompt switch, arrival removal, one-click
+delete, hollow marks, `map.waypointArrival` setting) and `03695bda`
+(Temporary switch in the Waypoints screen and world map panel, one hollow
+size rule for every view) passed in game the same day. Added beyond the
+decisions: a temporary waypoint the player is already near counts only
+after the player has moved away, so it does not vanish where it is
+added. Servers and old waypoint files are unchecked.
+
+Kind: Ready. Maintainer request 2026-10-26:
+waypoints today are long-lived marks; add throwaway ones that disappear on
+arrival or can be removed without the usual confirmation.
+Decided (maintainer 2026-10-26):
+- A waypoint is either normal or temporary. The existing add prompt gets a
+  normal/temporary switch; it opens with the kind chosen last time (kept
+  per world beside `lastColor` in the waypoint set), so placing several
+  temporary ones in a row needs no switching. No separate add key.
+- A temporary waypoint is removed when the player comes within a set 3D
+  distance of it (height included). The distance is a setting; 0 turns
+  automatic removal off.
+- Deleting a temporary waypoint in the list takes one click; normal ones
+  keep the two-click confirmation.
+- Temporary waypoints are saved with the world like normal ones until they
+  are removed. The waypoint file gains one field; files without it load as
+  normal waypoints.
+Also decided (maintainer 2026-10-26): arrival distance default 6 blocks
+(about the reach distance), range 0-32;
+temporary marks drawn so they are told apart from normal ones (in the
+world, on the minimap and map, and in the list) with the existing palette;
+only waypoints in the current dimension are removed by arrival; FreeCamera
+does not count as arriving (the body's position is used).
+Notes: `features/map/Waypoints.h` (data, pure arrival test with tests),
+`WaypointStore.cpp`, `WaypointSession.cpp`, `ui/WaypointsView.cpp`,
+`WaypointPromptLayout.h`; setting row and help in all four languages.
+Check in game: add both kinds, the prompt remembering the kind, arrival
+removal, one-click delete, rejoin keeps temporary ones, an old waypoint
+file. No release target selected.
+
 ### L-241 Pre-0.3.0 review: settings, map and schematic fixes
 Closed 2026-10-26 (backlog cleanup): A1 and A2 implemented and checked in
 game; check (c) moved to BACKLOG's Pre-release checks (Gaps carried).

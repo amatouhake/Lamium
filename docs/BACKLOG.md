@@ -79,7 +79,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    Decided and Ready (2026-10-26): L-244, L-247, L-248.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
-   L-253, L-254, L-255, L-261 temporary waypoints (2026-10-26).
+   L-253, L-254, L-255.
    L-262 schematic check relaxations and L-263 ghost pick block (decided,
    research first). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
@@ -549,36 +549,6 @@ Pure part with tests: splitting text into pages given a fits-predicate.
 New hooks go into GAME-UPDATES.md. Verify on a local world and on a server
 that the pages survive closing and reopening the book.
 No release target selected.
-
-### L-261 Temporary waypoints
-Kind: Ready. Maintainer request 2026-10-26:
-waypoints today are long-lived marks; add throwaway ones that disappear on
-arrival or can be removed without the usual confirmation.
-Decided (maintainer 2026-10-26):
-- A waypoint is either normal or temporary. The existing add prompt gets a
-  normal/temporary switch; it opens with the kind chosen last time (kept
-  per world beside `lastColor` in the waypoint set), so placing several
-  temporary ones in a row needs no switching. No separate add key.
-- A temporary waypoint is removed when the player comes within a set 3D
-  distance of it (height included). The distance is a setting; 0 turns
-  automatic removal off.
-- Deleting a temporary waypoint in the list takes one click; normal ones
-  keep the two-click confirmation.
-- Temporary waypoints are saved with the world like normal ones until they
-  are removed. The waypoint file gains one field; files without it load as
-  normal waypoints.
-Also decided (maintainer 2026-10-26): arrival distance default 6 blocks
-(about the reach distance), range 0-32;
-temporary marks drawn so they are told apart from normal ones (in the
-world, on the minimap and map, and in the list) with the existing palette;
-only waypoints in the current dimension are removed by arrival; FreeCamera
-does not count as arriving (the body's position is used).
-Notes: `features/map/Waypoints.h` (data, pure arrival test with tests),
-`WaypointStore.cpp`, `WaypointSession.cpp`, `ui/WaypointsView.cpp`,
-`WaypointPromptLayout.h`; setting row and help in all four languages.
-Check in game: add both kinds, the prompt remembering the kind, arrival
-removal, one-click delete, rejoin keeps temporary ones, an old waypoint
-file. No release target selected.
 
 ### L-262 Schematic check: ignore redstone signal, lit/unlit variants and plant growth
 Kind: Research (state lists), then Ready. User feedback 2026-10-26 (Discord

@@ -21,6 +21,27 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-261 temporary waypoints checked in game (2026-10-26)
+
+Local `1.26.51.01` LIP deployment, LeviLamina Client 26.51.7, Windows x64,
+local world, maintainer.
+`daba6e9b` (DLL SHA-256
+`D83565AE5F24E6C7D5D9A05DFE63868E2FD117F54CE4469014F5BD16949DA1DB`):
+checklist passed: the add prompt's Temporary switch, reopened with the
+last choice; a temporary waypoint drawn hollow; removed with the arrival
+notice after moving about 10 blocks away and coming back within 6; one
+click deletes a temporary one, two a normal one; kept across leaving and
+rejoining the world. The maintainer noted that the editors had no
+Temporary switch and that the hollow marks looked different on the world
+map.
+`03695bda` (DLL SHA-256
+`A206CB88F2E0D5D057C199B566420AFE2985BCDD4647BE07F5BB6A23C08C565A`):
+checklist passed: the Temporary switch in the Waypoints screen and the
+world map panel flips the mark between hollow and filled; the world map
+marks and the list glyphs show the same hollow shape.
+Not seen: servers, an old waypoint file without the new fields, arrival
+distance 0 or other values, other dimensions.
+
 ## L-260 Connected Textures across pack changes checked in game (2026-10-26)
 
 Local `1.26.51.01` LIP deployment, LeviLamina Client 26.51.7, Windows x64,
