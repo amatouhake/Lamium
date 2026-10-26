@@ -3,7 +3,6 @@
 // private tessellator against the schematic's own neighbors, faces culled
 // against ghosts, liquids as shells, mistake marks and outlines. Built by
 // the ghost pass (GhostRenderer.cpp), which owns the sections.
-#include "features/schematic/NearCells.h"
 #include "features/schematic/ResolvedPlacement.h"
 #include "features/schematic/SchematicSession.h"
 #include "features/schematic/Nbt.h"
@@ -47,9 +46,6 @@ struct BlendQuads {
     std::vector<glm::vec2> uvs[3];
     std::vector<unsigned char> geo;
     std::array<bool, 15> enabled{};
-    // Each quad's ghost cell (L-256), none for mistake marks, which do not
-    // depend on the camera; the near cells' quads are left out when sorted.
-    std::vector<std::optional<Point>> cells;
 };
 struct Section {
     glm::vec3 origin{};
@@ -62,16 +58,11 @@ struct Section {
     // is far, and kept for the camera-sorted mesh of the near sections.
     std::shared_ptr<BlendQuads const> blend;
     std::uint32_t faceVertices = 0, blendVertices = 0, markVertices = 0;
-    // Each drawn cell's first face vertex (L-256): drawn in runs that leave
-    // out the cells next to the camera.
-    std::vector<nearcells::CellStart> faceCells;
     // Outlines, one mesh per color (lines::colored draws one color at a time).
     struct ColorLines {
         glm::vec3 color{};
         std::optional<mce::Mesh> mesh;
         std::uint32_t vertices = 0;
-        std::vector<nearcells::CellStart> cells; // as faceCells
-        bool quads = false; // bars (a quad list), not game lines
     };
     std::vector<std::unique_ptr<ColorLines>> lines;
     std::vector<EntityCell> entities;
@@ -88,9 +79,7 @@ struct BuildCamera {
     // The cells the camera is in (eye and feet). Ghosts within one cell of
     // them are drawn whole: no face dropped, none skipped as enclosed. From
     // inside a schematic, or with the camera at a cell border, what is around
-    // the player then shows as blocks instead of hollow space. Only cells
-    // within nearcells::reach depend on them: sections are built without
-    // them, the near mesh (buildNear) with them (L-256).
+    // the player then shows as blocks instead of hollow space.
     std::array<std::optional<Point>, 2> cells;
     Vec3 eye{};
     // Vibrant Visuals (or ray tracing): mistake faces are plain quads drawn
@@ -120,22 +109,4 @@ NeighborGhost ghostDrawnAt(BlockSource& region, session::Shown const& shown, Res
 void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& view, BlockTessellator& own,
                   session::Shown const& shown, Resolved const& blocks, SectionKey key, BuildCamera const& camera,
                   std::function<bool(Point)> const& owned, std::function<NeighborGhost(Point)> const& others, Section& out);
-#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-// L-256: where the near rebuilds' time goes, summed over every buildNear
-// until the trace resets it. `loopNs` holds tessellateNs and cullNs; the
-// rest of it is the per-cell lookups.
-struct NearTrace {
-    std::uint64_t cells = 0, halo = 0, drawn = 0, faceQuads = 0, blendQuads = 0, ranked = 0;
-    // The camera's own cells drawn, their quads and those dropped as back faces.
-    std::uint64_t cameraCells = 0, cameraQuads = 0, cameraDropped = 0;
-    std::uint64_t totalNs = 0, loopNs = 0, tessellateNs = 0, cullNs = 0, liquidNs = 0, marksNs = 0, uploadNs = 0, linesNs = 0;
-};
-NearTrace& nearTrace();
-#endif
-// The cells of `box` (L-256) built like a section's, with the camera: their
-// faces, blended quads, ghost outlines and block entities, no mistake marks
-// (the sections draw those). The sections leave these cells out.
-void buildNear(ScreenContext& screen, BlockSource& region, SchematicRegion& view, BlockTessellator& own,
-               session::Shown const& shown, Resolved const& blocks, nearcells::Box const& box, BuildCamera const& camera,
-               std::function<bool(Point)> const& owned, std::function<NeighborGhost(Point)> const& others, Section& out);
 }

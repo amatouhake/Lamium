@@ -34,9 +34,7 @@
 
 namespace lamium::schematic::ghosts {
 namespace {
-// `cell`: the ghost cell a ghost outline belongs to (L-256); none for
-// mistake and unknown-block outlines, which do not depend on the camera.
-struct Outline { glm::vec3 min, max; float r, g, b; std::optional<Point> cell; };
+struct Outline { glm::vec3 min, max; float r, g, b; };
 // Near the camera, a pair of ghost faces in one plane keeps only the face
 // toward the camera for every pair (true), or only for pairs of opaque full
 // blocks (false). True: no flicker where a see-through block (a spawner)
@@ -63,7 +61,8 @@ void finishColors(Tessellator& batch, float r, float g, float b) {
 // batch's current color: the first `lead` (one primitive) through vertex(),
 // which sets up the vertex streams, the rest copied into the streams like
 // the sorted blended mesh. L-256: a vertex() call cost about 0.3 us, and
-// normal-width outlines (32 per edge) took 20 ms of a 25 ms near rebuild.
+// normal-width outlines (32 per edge) took 20 ms of a 25 ms rebuild of the
+// ghosts around the camera.
 void drawSameColor(Tessellator& batch, std::vector<glm::vec3> const& points, size_t lead) {
     lead = std::min(lead, points.size());
     for (size_t k = 0; k < lead; ++k) batch.vertex(points[k].x, points[k].y, points[k].z);
@@ -258,22 +257,18 @@ void dropDuplicateQuads(Tessellator& batch, size_t from) {
 // spawner its own faces fought with a neighbor's in the same plane, and a
 // stair's two faces at half height (the lower half's top, the step's
 // bottom) fought with each other.
-size_t dropBackFaces(Tessellator& batch, size_t from, BuildCamera const& camera) {
+void dropBackFaces(Tessellator& batch, size_t from, BuildCamera const& camera) {
     auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
     auto& positions = *data.mPositions;
     auto const& normals = *data.mNormals;
     glm::vec3 eye{static_cast<float>(camera.eye.x), static_cast<float>(camera.eye.y), static_cast<float>(camera.eye.z)};
-    size_t dropped = 0;
     for (size_t q = from; q + 4 <= positions.size(); q += 4) {
         glm::vec3 n = normals.size() == positions.size() ? glm::vec3(normals[q])
                                                           : glm::cross(positions[q + 1] - positions[q], positions[q + 2] - positions[q]);
         glm::vec3 center = (positions[q] + positions[q + 1] + positions[q + 2] + positions[q + 3]) * .25f;
-        if (faces::facesAway(n, center, eye)) {
+        if (faces::facesAway(n, center, eye))
             for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
-            ++dropped;
-        }
     }
-    return dropped;
 }
 // The cells of one section inside a placement's box.
 // `halo` widens the section by that many cells on every side.
@@ -367,56 +362,24 @@ NeighborGhost ghostDrawnAt(BlockSource& region, session::Shown const& shown, Res
     return ghostAt(region, shown, blocks, n);
 }
 
-#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-NearTrace& nearTrace() {
-    static NearTrace trace;
-    return trace;
-}
-#endif
-namespace {
-#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-// Adds the time since the last lap (or since made) to a NearTrace field,
-// for near builds only.
-struct NearLap {
-    bool on;
-    std::chrono::steady_clock::time_point at = std::chrono::steady_clock::now();
-    void operator()(std::uint64_t NearTrace::* field) {
-        auto now = std::chrono::steady_clock::now();
-        if (on) nearTrace().*field += static_cast<std::uint64_t>((now - at).count());
-        at = now;
-    }
-};
-#define LAMIUM_NEAR_LAP(field) lap(&NearTrace::field)
-#define LAMIUM_NEAR_ADD(field, n) if (only) nearTrace().field += static_cast<std::uint64_t>(n)
-#else
-#define LAMIUM_NEAR_LAP(field)
-#define LAMIUM_NEAR_ADD(field, n)
-#endif
-// A section's cells, [low, high), or with `only` just the near box's cells
-// (low and high then bound the box and one cell around it). The near mesh
-// draws no mistake marks, mistake or unknown-block outlines (its sections
-// do); it only ranks its ghost outlines against those in the box and one
-// cell around it, as a section ranks its own.
-void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, BlockTessellator& own, session::Shown const& shown,
-           Resolved const& blocks, Point low, Point high, nearcells::Box const* only, BuildCamera const& camera,
-           std::function<bool(Point)> const& owned, std::function<NeighborGhost(Point)> const& others, Section& out) {
-#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-    NearLap lap{only != nullptr}, whole{only != nullptr};
-    struct Whole { NearLap& lap; ~Whole() { lap(&NearTrace::totalNs); } } wholeAtEnd{whole};
-#endif
+void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& view, BlockTessellator& own,
+                  session::Shown const& shown, Resolved const& blocks, SectionKey key, BuildCamera const& camera,
+                  std::function<bool(Point)> const& owned, std::function<NeighborGhost(Point)> const& others, Section& out) {
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto const slab = placedSlab(placement.layers, structure.size, placement.placement);
+    auto [index, sx, sy, sz] = key;
+    Point low{sx * sectionSize, sy * sectionSize, sz * sectionSize};
     // Reset in place: meshes cannot be copied or assigned.
     out.faces.reset(); out.blend.reset(); out.blendMesh.reset(); out.lines.clear(); out.marks.reset();
     out.faceVertices = out.blendVertices = out.markVertices = 0;
-    out.faceCells.clear();
     out.entities.clear();
     out.due.reset();
     out.origin = {static_cast<float>(low.x), static_cast<float>(low.y), static_cast<float>(low.z)};
     out.built = out.checked = Clock::now();
+    out.signature = signatureOf(region, shown, key);
     out.complete = true;
     auto const tint = faces::ghostTint(Runtime::instance().snapshot()->schematic.ghostTint);
     // L-252: without marks a mistake is drawn like a correct cell (nothing).
@@ -434,19 +397,11 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
     // Mistakes also get tinted faces just outside the real block, so they
     // stay visible next to the vanilla selection outline.
     std::vector<Outline> outlines, marks;
-    std::vector<Outline> ranked; // outlines only ranked against, not drawn (near)
     std::vector<std::pair<Point, Block const*>> liquids; // cells missing their liquid
-    // Each blended quad's cell, tagged after each block, shell and mark.
-    std::vector<std::optional<Point>> seeCells;
-    auto tagSee = [&](std::optional<Point> cell) { seeCells.resize(see.mMeshData->mPositions->size() / 4, cell); };
     auto cellBox = [](BlockPos p) { return std::pair{glm::vec3(p.x, p.y, p.z), glm::vec3(p.x + 1, p.y + 1, p.z + 1)}; };
-    for (int x = std::max(low.x, origin.x); x < std::min(high.x, origin.x + placed.x); ++x)
-        for (int y = std::max(low.y, origin.y); y < std::min(high.y, origin.y + placed.y); ++y)
-            for (int z = std::max(low.z, origin.z); z < std::min(high.z, origin.z + placed.z); ++z) {
-                bool const core = !only || only->contains({x, y, z});
-                if (!core && !only->contains({x, y, z}, 1)) continue;
-                LAMIUM_NEAR_ADD(cells, core);
-                LAMIUM_NEAR_ADD(halo, !core);
+    for (int x = std::max(low.x, origin.x); x < std::min(low.x + sectionSize, origin.x + placed.x); ++x)
+        for (int y = std::max(low.y, origin.y); y < std::min(low.y + sectionSize, origin.y + placed.y); ++y)
+            for (int z = std::max(low.z, origin.z); z < std::min(low.z + sectionSize, origin.z + placed.z); ++z) {
                 if (!slab.shown({x - origin.x, y - origin.y, z - origin.z})) continue;
                 auto local = toLocal(structure.size, placement.placement, {x, y, z});
                 if (!local) continue;
@@ -473,10 +428,7 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
                     }
                     continue;
                 }
-                if (!expected) { // unknown block name
-                    (only ? ranked : outlines).push_back({boxLow, boxHigh, 1.f, .55f, .1f});
-                    continue;
-                }
+                if (!expected) { outlines.push_back({boxLow, boxHigh, 1.f, .55f, .1f}); continue; } // unknown block name
                 // A block the relaxations accept is judged like the file's own.
                 bool const accepted = &actual == expected || (relax && !actual.isAir() && relaxedSame(*expected, actual, relax));
                 if (accepted) {
@@ -501,7 +453,6 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
                     if (showMarks) marks.push_back(mark);
                     continue;
                 }
-                if (!core) continue;
                 // A missing liquid: a shell, built after the blocks.
                 if (liquidKind(*expected)) {
                     liquids.push_back({{x, y, z}, expected});
@@ -515,31 +466,14 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
                 glm::vec3 shapeLow{1e9f}, shapeHigh{-1e9f};
                 bool meshed = false;
                 size_t batchFrom = batch.mMeshData->mPositions->size(), seeFrom = see.mMeshData->mPositions->size();
-                out.faceCells.push_back({Point{x, y, z}, static_cast<std::uint32_t>(batchFrom)});
-                LAMIUM_NEAR_ADD(drawn, 1);
-                LAMIUM_NEAR_ADD(cameraCells, std::count(camera.cells.begin(), camera.cells.end(), Point{x, y, z}));
                 // Each render layer the block draws in, into the mesh of its kind.
                 eachLayer(*expected, region, pos, [&](std::optional<BlockRenderLayer> layer) {
                     Tessellator& target = layer && blended(*layer) ? see : batch;
                     size_t before = target.mMeshData->mPositions->size();
-                    {
-#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-                        NearLap part{only != nullptr};
-#endif
-                        tessellateLayer(own, target, *expected, pos, layer);
-#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-                        part(&NearTrace::tessellateNs);
-#endif
-                        cullAgainstGhosts(target, before, region, shown, blocks, {x, y, z}, camera, *expected, &target == &see, others);
-                        if (std::any_of(camera.cells.begin(), camera.cells.end(), [&](auto const& c) { return c == Point{x, y, z}; })) {
-                            [[maybe_unused]] size_t dropped = dropBackFaces(target, before, camera);
-                            LAMIUM_NEAR_ADD(cameraQuads, (target.mMeshData->mPositions->size() - before) / 4);
-                            LAMIUM_NEAR_ADD(cameraDropped, dropped);
-                        }
-#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-                        part(&NearTrace::cullNs);
-#endif
-                    }
+                    tessellateLayer(own, target, *expected, pos, layer);
+                    cullAgainstGhosts(target, before, region, shown, blocks, {x, y, z}, camera, *expected, &target == &see, others);
+                    if (std::any_of(camera.cells.begin(), camera.cells.end(), [&](auto const& c) { return c == Point{x, y, z}; }))
+                        dropBackFaces(target, before, camera);
                     auto const& positions = target.mMeshData->mPositions.get();
                     for (size_t v = before; v < positions.size(); ++v) {
                         shapeLow = glm::min(shapeLow, positions[v]);
@@ -547,17 +481,8 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
                     }
                     meshed = meshed || positions.size() > before;
                 });
-                {
-#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-                    NearLap part{only != nullptr};
-#endif
-                    dropDuplicateQuads(batch, batchFrom);
-                    dropDuplicateQuads(see, seeFrom);
-#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-                    part(&NearTrace::cullNs);
-#endif
-                }
-                tagSee(Point{x, y, z});
+                dropDuplicateQuads(batch, batchFrom);
+                dropDuplicateQuads(see, seeFrom);
                 // A piston's mesh is its base; the head and arm are its block
                 // actor's to draw (L-178), with the file's progress and state.
                 if (meshed && expected->getBlockType().mBlockEntityType == BlockActorType::PistonArm) {
@@ -584,16 +509,12 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
                     // Some outlines come relative to the cell.
                     if (glm::any(glm::greaterThan(glm::abs(low - cell), glm::vec3{2.f}))) { low += cell; high += cell; }
                     bool usable = glm::all(glm::greaterThan(high - low, glm::vec3{1e-3f})) && glm::all(glm::lessThan(high - low, glm::vec3{3.f}));
-                    outlines.push_back(usable ? Outline{low, high, .35f, .85f, 1.f, Point{x, y, z}}
-                                              : Outline{boxLow, boxHigh, .35f, .85f, 1.f, Point{x, y, z}});
+                    outlines.push_back(usable ? Outline{low, high, .35f, .85f, 1.f} : Outline{boxLow, boxHigh, .35f, .85f, 1.f});
                     continue;
                 }
-                outlines.push_back({shapeLow, shapeHigh, .35f, .85f, 1.f, Point{x, y, z}});
+                outlines.push_back({shapeLow, shapeHigh, .35f, .85f, 1.f});
             }
 
-    LAMIUM_NEAR_LAP(loopNs);
-    LAMIUM_NEAR_ADD(faceQuads, batch.mMeshData->mPositions->size() / 4);
-    LAMIUM_NEAR_ADD(blendQuads, see.mMeshData->mPositions->size() / 4);
     if (batch.mCount) {
         // Section-relative vertices keep float precision far from the origin.
         for (auto& p : batch.mMeshData->mPositions.get()) p -= out.origin;
@@ -605,12 +526,10 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
     // The second layer: water in a waterlogged block, under its ghost (the
     // world's cell still empty). A placed block missing its water gets a
     // yellow mark instead: a shell there looked like real water.
-    LAMIUM_NEAR_LAP(uploadNs);
     if (!structure.liquids.empty())
-        for (int x = std::max(low.x, origin.x); x < std::min(high.x, origin.x + placed.x); ++x)
-            for (int y = std::max(low.y, origin.y); y < std::min(high.y, origin.y + placed.y); ++y)
-                for (int z = std::max(low.z, origin.z); z < std::min(high.z, origin.z + placed.z); ++z) {
-                    if (only && !only->contains({x, y, z})) continue;
+        for (int x = std::max(low.x, origin.x); x < std::min(low.x + sectionSize, origin.x + placed.x); ++x)
+            for (int y = std::max(low.y, origin.y); y < std::min(low.y + sectionSize, origin.y + placed.y); ++y)
+                for (int z = std::max(low.z, origin.z); z < std::min(low.z + sectionSize, origin.z + placed.z); ++z) {
                     if (!slab.shown({x - origin.x, y - origin.y, z - origin.z})) continue;
                     if (owned && owned({x, y, z})) continue;
                     auto local = toLocal(structure.size, placement.placement, {x, y, z});
@@ -654,9 +573,7 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
                 && !(ghostSidesAt(region, shown, blocks, n) >> (side ^ 1) & 1)
                 && !region.getBlock(BlockPos{n.x, n.y, n.z}).getBlockType().mIsOpaqueFullBlock;
         }, [&](int cx, int cz) { return liquids::corner(kind, around, cx, cz); }, liquids::flow(kind, around));
-        tagSee(at);
     }
-    LAMIUM_NEAR_LAP(liquidNs);
     if (!marks.empty()) {
         // Mistakes mark whole cells with a tinted box just outside the real
         // block. The boxes go into the blended mesh, sorted with the blended
@@ -693,11 +610,6 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
                 auto const& d = faces::offsets[side];
                 return sameAt(cell, side, m.g) || ghostBoxAt(region, shown, blocks, {at.x + d[0], at.y + d[1], at.z + d[2]});
             };
-            if (only) {
-                for (int side = 0; side < 6; ++side)
-                    if (!hidesBox(side)) { ranked.push_back(m); break; }
-                continue;
-            }
             if (!white || camera.vibrant) {
                 quads.color(m.r, m.g, m.b, .3f);
                 glm::vec3 a = m.min - glm::vec3{.01f} - out.origin, b = m.max + glm::vec3{.01f} - out.origin, c[8];
@@ -753,20 +665,17 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
                 }
             }
             if (open) outlines.push_back(m);
-            tagSee(std::nullopt);
         }
         // Ended either way, so the tessellator never stays open.
         auto mesh = quads.end(Tessellator::UploadMode::Buffered, "Lamium schematic mistakes", SupplementaryFieldAutoGenerationMode{});
         if (out.markVertices) out.marks.emplace(std::move(mesh));
     }
-    LAMIUM_NEAR_LAP(marksNs);
     if (see.mCount) {
         // Blended quads far to near from where the camera was at the build;
         // sections themselves are ordered when drawn.
         auto const& positions = see.mMeshData->mPositions.get();
         glm::vec3 eye{static_cast<float>(camera.eye.x), static_cast<float>(camera.eye.y), static_cast<float>(camera.eye.z)};
-        auto order = faces::farToNear(std::span<glm::vec3 const>(positions), eye);
-        reorderQuads(see, order);
+        reorderQuads(see, faces::farToNear(std::span<glm::vec3 const>(positions), eye));
         for (auto& p : see.mMeshData->mPositions.get()) p -= out.origin;
         auto& data = static_cast<mce::MeshData&>(see.mMeshData);
         auto kept = std::make_shared<BlendQuads>();
@@ -781,9 +690,6 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
         for (int i = 0; i < 3; ++i) kept->uvs[i] = *data.mTextureUVs[i];
         kept->geo = *data.mGeoType;
         kept->enabled = *data.mFieldEnabled;
-        tagSee(std::nullopt);
-        kept->cells.reserve(order.size());
-        for (auto q : order) kept->cells.push_back(q < seeCells.size() ? seeCells[q] : std::nullopt);
         out.blendVertices = see.mCount;
         out.blend = std::move(kept);
         out.blendMesh.emplace(see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{}));
@@ -793,8 +699,6 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
     }
     // "None" (L-254) leaves out the light-blue ghost outlines; mistake and
     // unknown-block outlines stay, thin.
-    LAMIUM_NEAR_LAP(uploadNs);
-    LAMIUM_NEAR_ADD(ranked, ranked.size());
     int const lineChoice = Runtime::instance().snapshot()->schematic.ghostLines;
     if (lineChoice == 3)
         std::erase_if(outlines, [](Outline const& o) { return o.r == .35f && o.g == .85f && o.b == 1.f; });
@@ -811,16 +715,15 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
         };
         auto key = [](glm::vec3 const& p, glm::vec3 const& q) { return faces::edgeKey({p.x, p.y, p.z}, {q.x, q.y, q.z}); };
         std::map<std::array<int, 6>, int> strongest;
-        for (auto const* list : {&outlines, &ranked})
-            for (auto const& o : *list) {
-                glm::vec3 c[8];
-                corners(o, glm::vec3{0.f}, glm::vec3{0.f}, c);
-                int rank = faces::outlineRank(o.r, o.g, o.b);
-                for (auto [i, j] : edges) {
-                    auto [found, added] = strongest.try_emplace(key(c[i], c[j]), rank);
-                    if (!added) found->second = std::max(found->second, rank);
-                }
+        for (auto const& o : outlines) {
+            glm::vec3 c[8];
+            corners(o, glm::vec3{0.f}, glm::vec3{0.f}, c);
+            int rank = faces::outlineRank(o.r, o.g, o.b);
+            for (auto [i, j] : edges) {
+                auto [found, added] = strongest.try_emplace(key(c[i], c[j]), rank);
+                if (!added) found->second = std::max(found->second, rank);
             }
+        }
         for (auto const& [color, group] : byColor) {
             int const rank = faces::outlineRank(std::get<0>(color), std::get<1>(color), std::get<2>(color));
             float const half = faces::rankedBarHalfWidth(width, rank);
@@ -832,11 +735,9 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
             auto [r, g, b] = color;
             lines.color(r, g, b, 1.f);
             std::uint32_t drawn = 0;
-            std::vector<nearcells::CellStart> starts;
             std::vector<glm::vec3> points;
             points.reserve(group.size() * 12 * static_cast<size_t>(perEdge));
             for (auto const* o : group) {
-                starts.push_back({o->cell, drawn});
                 glm::vec3 c[8], world[8];
                 corners(*o, grow, out.origin, c);
                 corners(*o, glm::vec3{0.f}, glm::vec3{0.f}, world);
@@ -858,30 +759,9 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
             auto entry = std::make_unique<Section::ColorLines>();
             entry->color = {r, g, b};
             entry->vertices = drawn;
-            entry->cells = std::move(starts);
-            entry->quads = half > 0;
             entry->mesh.emplace(std::move(mesh));
             out.lines.push_back(std::move(entry));
         }
     }
-    LAMIUM_NEAR_LAP(linesNs);
-}
-}
-
-void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& view, BlockTessellator& own,
-                  session::Shown const& shown, Resolved const& blocks, SectionKey key, BuildCamera const& camera,
-                  std::function<bool(Point)> const& owned, std::function<NeighborGhost(Point)> const& others, Section& out) {
-    auto [index, sx, sy, sz] = key;
-    Point low{sx * sectionSize, sy * sectionSize, sz * sectionSize};
-    build(screen, region, view, own, shown, blocks, low, {low.x + sectionSize, low.y + sectionSize, low.z + sectionSize}, nullptr,
-          camera, owned, others, out);
-    out.signature = signatureOf(region, shown, key);
-}
-void buildNear(ScreenContext& screen, BlockSource& region, SchematicRegion& view, BlockTessellator& own,
-               session::Shown const& shown, Resolved const& blocks, nearcells::Box const& box, BuildCamera const& camera,
-               std::function<bool(Point)> const& owned, std::function<NeighborGhost(Point)> const& others, Section& out) {
-    auto [low, high] = box.bounds();
-    build(screen, region, view, own, shown, blocks, {low.x - 1, low.y - 1, low.z - 1}, {high.x + 1, high.y + 1, high.z + 1}, &box,
-          camera, owned, others, out);
 }
 }

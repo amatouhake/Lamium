@@ -82,9 +82,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-253, L-254, L-255.
    **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
    checked except L-263 creative and L-264 waterlogged; L-256 item 7 (a)
-   built and measured: inside ghosts 3.7-5.0 ms ghost pass, worst
-   frames 11-15 ms; z-fighting A/B against `main` and waterlogged blocks
-   left); L-267 door halves (Bug); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   dropped (runs could not leave the near cells out); `main`'s camera
+   rebuilds kept with outlines copied in bulk, to be measured inside
+   ghosts); L-267 door halves (Bug); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -807,8 +807,14 @@ Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
    near meshes' counts are right. So a section cannot be drawn in parts
    with `renderMesh`'s start and count as used here (how the engine reads
    them is unknown); runs do not work and the near cells need another way
-   out of the sections, or item 7 (a) is dropped (open, maintainer).
-   Waterlogged blocks still to check. Not done: caching outlines
+   out of the sections, or item 7 (a) is dropped.
+   Decided 2026-10-26 (maintainer): drop 7 (a) and keep `main`'s camera
+   rebuilds (`7c0a7cb2`) with the outlines copied in bulk, which were most
+   of a rebuild's cost; measure inside ghosts again. The near mesh, the
+   runs, `NearCells.h` and the probe option were removed; the design notes
+   above stay as the record. If walking inside is still heavy, the next
+   ideas are copies of the touching sections without the near cells
+   (needs their vertex data kept) or 7 (b). Not done: caching outlines
    per cell (their bounds come from the camera-dependent tessellation),
    dropping the reversed bar quads (the material may cull either winding),
    a wider box with hysteresis (the rules inside the box change with every

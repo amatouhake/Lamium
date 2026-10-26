@@ -478,12 +478,8 @@ Hooks: `GhostBlendPass`, `GhostPass`
 Meaning: the block tessellator's private fields Lamium sets on its own
 tessellator (render layer, shape set, region), the mesh data streams
 (positions, colors, light UVs) it edits or fills directly (the sorted
-blended mesh; outlines after their first primitive), the alpha pass order, the
-material names `beacon_beam_transparent`, `holo_hand_pointer`, and that
-`Mesh::renderMesh`'s count is vertices and its start offset is an index
-(six per quad) in a quad list and a vertex in a line list (sections drawn
-in runs around the near-camera cells, L-256; the index reading is being
-checked). Gated
+blended mesh; outlines after their first primitive), the alpha pass order,
+and the material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 (Schematic ghost blocks; entity models in `GhostMarks.cpp`).
 
 ### `src/features/visuals/ConnectedSprites.cpp`
