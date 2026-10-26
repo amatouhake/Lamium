@@ -166,7 +166,7 @@ option("schematic_perf_trace")
 option_end()
 
 option("schematic_quad_trace")
-    set_default(true)
+    set_default(false)
     set_showmenu(true)
     set_description("L-268: log the quads one ghost of each non-cube block draws, and which were dropped")
 option_end()
