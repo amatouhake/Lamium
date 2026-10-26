@@ -165,6 +165,12 @@ option("schematic_perf_trace")
     set_description("Schematic C: log ghost frame time, section rebuilds and their reasons every 5 s")
 option_end()
 
+option("schematic_near_probe")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-256: leave out the ghost sections touching the near-camera box (diagnosis)")
+option_end()
+
 option("schematic_model_trace")
     set_default(false)
     set_showmenu(true)
@@ -210,6 +216,7 @@ target("Lamium")
     if has_config("ghost_probe") then add_defines("LAMIUM_GHOST_PROBE") end
     if has_config("schematic_model_trace") then add_defines("LAMIUM_SCHEMATIC_MODEL_TRACE") end
     if has_config("schematic_perf_trace") then add_defines("LAMIUM_SCHEMATIC_PERF_TRACE") end
+    if has_config("schematic_near_probe") then add_defines("LAMIUM_SCHEMATIC_NEAR_PROBE") end
     if has_config("consumption_trace") then add_defines("LAMIUM_CONSUMPTION_TRACE") end
     if has_config("offhand_trace") then add_defines("LAMIUM_OFFHAND_TRACE") end
     if has_config("transfer_trace") then add_defines("LAMIUM_TRANSFER_TRACE") end

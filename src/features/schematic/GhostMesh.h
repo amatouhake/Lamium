@@ -126,6 +126,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
 // rest of it is the per-cell lookups.
 struct NearTrace {
     std::uint64_t cells = 0, halo = 0, drawn = 0, faceQuads = 0, blendQuads = 0, ranked = 0;
+    // The camera's own cells drawn, their quads and those dropped as back faces.
+    std::uint64_t cameraCells = 0, cameraQuads = 0, cameraDropped = 0;
     std::uint64_t totalNs = 0, loopNs = 0, tessellateNs = 0, cullNs = 0, liquidNs = 0, marksNs = 0, uploadNs = 0, linesNs = 0;
 };
 NearTrace& nearTrace();

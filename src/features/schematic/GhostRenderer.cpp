@@ -616,6 +616,10 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             else if (section->faces)
                 translated(screen, offsetOf(*section), [&] {
                     // Without the cells the near meshes draw (L-256).
+#ifdef LAMIUM_SCHEMATIC_NEAR_PROBE
+                    // Diagnosis: sections touching the near box are left out whole.
+                    if (nearbyTouches(*key)) return;
+#endif
                     if (!nearbyTouches(*key)) {
                         section->faces->renderMesh(screen, faces, texture, 0, section->faceVertices, OffscreenCaptureDescription{}, nullptr);
                         return;
@@ -651,6 +655,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             if (lined && lineMaterial.mRenderMaterialInfoPtr)
                 for (auto const& l : section->lines)
                     overlay::lines::colored(screen, l->color.r, l->color.g, l->color.b, [&] {
+#ifdef LAMIUM_SCHEMATIC_NEAR_PROBE
+                        if (nearbyTouches(*key)) return;
+#endif
                         if (!nearbyTouches(*key)) {
                             l->mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, l->vertices,
                                 OffscreenCaptureDescription{}, nullptr);
@@ -968,11 +975,13 @@ void perfReport() {
         auto inner = t.tessellateNs + t.cullNs;
         log(std::format("near per rebuild: {:.2f} ms = build {:.2f} (lookups {:.2f}, tessellate {:.2f}, face drops {:.2f}, liquids {:.2f}, "
                         "mistake ranking {:.2f}, upload {:.2f}, lines {:.2f}) + other {:.2f}; cells {:.0f} halo {:.0f} drawn {:.0f}, "
-                        "quads faces {:.0f} blended {:.0f}, ranked outlines {:.0f}",
+                        "quads faces {:.0f} blended {:.0f}, ranked outlines {:.0f}; camera cells drawn {:.2f}, their quads {:.1f}, "
+                        "dropped as back faces {:.1f}",
                         each(perf.nearNs), each(t.totalNs), each(t.loopNs > inner ? t.loopNs - inner : 0), each(t.tessellateNs),
                         each(t.cullNs), each(t.liquidNs), each(t.marksNs), each(t.uploadNs), each(t.linesNs),
                         each(perf.nearNs > t.totalNs ? perf.nearNs - t.totalNs : 0), count(t.cells), count(t.halo), count(t.drawn),
-                        count(t.faceQuads), count(t.blendQuads), count(t.ranked)));
+                        count(t.faceQuads), count(t.blendQuads), count(t.ranked), count(t.cameraCells), count(t.cameraQuads),
+                        count(t.cameraDropped)));
     }
     nearTrace() = NearTrace{};
     perf = Perf{};

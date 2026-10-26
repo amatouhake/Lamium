@@ -258,18 +258,22 @@ void dropDuplicateQuads(Tessellator& batch, size_t from) {
 // spawner its own faces fought with a neighbor's in the same plane, and a
 // stair's two faces at half height (the lower half's top, the step's
 // bottom) fought with each other.
-void dropBackFaces(Tessellator& batch, size_t from, BuildCamera const& camera) {
+size_t dropBackFaces(Tessellator& batch, size_t from, BuildCamera const& camera) {
     auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
     auto& positions = *data.mPositions;
     auto const& normals = *data.mNormals;
     glm::vec3 eye{static_cast<float>(camera.eye.x), static_cast<float>(camera.eye.y), static_cast<float>(camera.eye.z)};
+    size_t dropped = 0;
     for (size_t q = from; q + 4 <= positions.size(); q += 4) {
         glm::vec3 n = normals.size() == positions.size() ? glm::vec3(normals[q])
                                                           : glm::cross(positions[q + 1] - positions[q], positions[q + 2] - positions[q]);
         glm::vec3 center = (positions[q] + positions[q + 1] + positions[q + 2] + positions[q + 3]) * .25f;
-        if (faces::facesAway(n, center, eye))
+        if (faces::facesAway(n, center, eye)) {
             for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
+            ++dropped;
+        }
     }
+    return dropped;
 }
 // The cells of one section inside a placement's box.
 // `halo` widens the section by that many cells on every side.
@@ -513,6 +517,7 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
                 size_t batchFrom = batch.mMeshData->mPositions->size(), seeFrom = see.mMeshData->mPositions->size();
                 out.faceCells.push_back({Point{x, y, z}, static_cast<std::uint32_t>(batchFrom)});
                 LAMIUM_NEAR_ADD(drawn, 1);
+                LAMIUM_NEAR_ADD(cameraCells, std::count(camera.cells.begin(), camera.cells.end(), Point{x, y, z}));
                 // Each render layer the block draws in, into the mesh of its kind.
                 eachLayer(*expected, region, pos, [&](std::optional<BlockRenderLayer> layer) {
                     Tessellator& target = layer && blended(*layer) ? see : batch;
@@ -526,8 +531,11 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
                         part(&NearTrace::tessellateNs);
 #endif
                         cullAgainstGhosts(target, before, region, shown, blocks, {x, y, z}, camera, *expected, &target == &see, others);
-                        if (std::any_of(camera.cells.begin(), camera.cells.end(), [&](auto const& c) { return c == Point{x, y, z}; }))
-                            dropBackFaces(target, before, camera);
+                        if (std::any_of(camera.cells.begin(), camera.cells.end(), [&](auto const& c) { return c == Point{x, y, z}; })) {
+                            [[maybe_unused]] size_t dropped = dropBackFaces(target, before, camera);
+                            LAMIUM_NEAR_ADD(cameraQuads, (target.mMeshData->mPositions->size() - before) / 4);
+                            LAMIUM_NEAR_ADD(cameraDropped, dropped);
+                        }
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
                         part(&NearTrace::cullNs);
 #endif
