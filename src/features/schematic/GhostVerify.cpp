@@ -32,6 +32,10 @@ Clock::time_point entitiesChecked{};
 // Verification of the selected placement, a bounded number of cells per
 // frame; a finished pass is published and the next begins.
 constexpr std::uint64_t scanBudget = 16384;
+// L-256: the scan also stops after this long in a frame (it took about 1.1
+// ms of 4-5 ms with 2428 sections, 2026-10-26); a pass then takes more
+// frames. Looked at every 256 cells.
+constexpr std::chrono::microseconds scanTime{500}, progressTime{250};
 struct Cell {
     bool inside = false;      // false: outside the structure or a structure void
     CellState state = CellState::Unknown;
@@ -271,6 +275,7 @@ void stepProgress(BlockSource& region, session::Snapshot const& snapshot, int di
     if (steadyMs() - progressWanted.load() > 1000) return;
     size_t count = snapshot.placements.size();
     if (!count || resolved.size() != count) return;
+    auto const progressUntil = Clock::now() + progressTime;
     for (std::uint64_t budget = progressBudget, tries = 0; budget && tries <= count; ) {
         if (progressScan.index >= count) progressScan.index = 0;
         auto const& shown = snapshot.placements[progressScan.index];
@@ -282,6 +287,7 @@ void stepProgress(BlockSource& region, session::Snapshot const& snapshot, int di
         Size placed = placedSize(shown.structure->size, shown.placement.placement.rotation);
         std::uint64_t total = static_cast<std::uint64_t>(placed.x) * placed.y * placed.z;
         for (; progressScan.next < total && budget; ++progressScan.next, --budget) {
+            if ((budget & 255) == 0 && Clock::now() >= progressUntil) return;
             auto c = classifyCell(region, shown, resolved[progressScan.index], placed, progressScan.next);
             if (c.inside && c.visible) progressScan.tally.add(c.state, !c.air);
         }
@@ -337,7 +343,9 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
         line.needed += static_cast<std::uint64_t>(info.perBlock);
         if (correct) line.placed += static_cast<std::uint64_t>(info.perBlock);
     };
+    auto const scanUntil = Clock::now() + scanTime;
     for (std::uint64_t budget = scanBudget; scan.next < total && budget; ++scan.next, --budget) {
+        if ((budget & 255) == 0 && Clock::now() >= scanUntil) break;
         auto c = classifyCell(region, shown, blocks, placed, scan.next);
         if (!c.inside) continue;
         auto paletteIndex = c.palette;

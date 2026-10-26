@@ -82,6 +82,10 @@ struct Perf {
     std::uint64_t frames = 0, frameNs = 0, maxFrameNs = 0, buildNs = 0, maxBuildNs = 0, builds = 0, checkNs = 0, checks = 0,
                   scanNs = 0, blendNs = 0, waiting = 0, maxWaiting = 0, dueLatencyNs = 0, dueCount = 0, maxDueLatencyNs = 0,
                   prepareNs = 0, facesNs = 0, linesNs = 0, actorsNs = 0, framesNs = 0, entitiesNs = 0, extrasNs = 0;
+    // L-256: the parts no stage above covered (about 1 ms on 2026-10-26):
+    // the build loop's walk (builds included), the trace's own count, the
+    // in-view list for drawing, and what the pass draws after the placements.
+    std::uint64_t walkNs = 0, traceNs = 0, shownNs = 0, afterNs = 0;
     std::uint64_t reasons[5]{}; // new, looked-at change, signature changed, mesh gone, chunk incomplete
     std::size_t sections = 0;
     // L-193: blended re-sorts, and frames whose camera position differs from
@@ -461,6 +465,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
 #endif
         --budget;
     }
+    LAMIUM_PERF_LAP(walkNs);
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
     {
         // Sections in range that have never been built: what the budget left waiting.
@@ -471,6 +476,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         perf.sections = sections.size();
     }
 #endif
+    LAMIUM_PERF_LAP(traceNs);
 
     {
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
@@ -480,6 +486,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         stepScan(region, snapshot, dimension, camera, resolved);
         stepProgress(region, snapshot, dimension, resolved);
     }
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+    stage = std::chrono::steady_clock::now(); // the scan has its own timer
+#endif
 
     // Draw: alpha-tested ghost faces (empty texels let water and glass show
     // through), then outlines, then block-entity models. Blended ghosts,
@@ -515,9 +524,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         return glm::vec3{static_cast<float>(section.origin.x - camera.x), static_cast<float>(section.origin.y - camera.y),
                          static_cast<float>(section.origin.z - camera.z)};
     };
-#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-    stage = std::chrono::steady_clock::now();
-#endif
+    LAMIUM_PERF_LAP(shownNs);
     if (faces.mRenderMaterialInfoPtr && lightTexture) {
         fullBright();
         for (auto [key, section] : shown)
@@ -790,14 +797,16 @@ void perfReport() {
                     "new {} looked-at {} changed {} mesh-gone {} incomplete {}), checks {} ({:.3f} ms/frame), check/scan {:.3f} ms/frame, "
                     "blended pass {:.3f} ms/frame, sections {}, never-built waiting avg {:.1f} max {}, looked-at latency avg {:.0f} ms max {:.0f} ms; "
                     "prepare {:.3f}, faces {:.3f}, lines {:.3f}, block actors {:.3f}, frames {:.3f}, entities {:.3f}, name tags {:.3f} ms/frame; "
-                    "blended frames {}, re-sorts {}, camera moves {}; vertices faces {} blended {} marks {}, line meshes {}",
+                    "blended frames {}, re-sorts {}, camera moves {}; vertices faces {} blended {} marks {}, line meshes {}; "
+                    "walk {:.3f} (builds and checks excluded), trace {:.3f}, in-view list {:.3f}, after placements {:.3f} ms/frame",
                     perf.frames, per(perf.frameNs), ms(perf.maxFrameNs), perf.builds, per(perf.buildNs), ms(perf.maxBuildNs), perf.reasons[0],
                     perf.reasons[1], perf.reasons[2], perf.reasons[3], perf.reasons[4], perf.checks, per(perf.checkNs), per(perf.scanNs),
                     per(perf.blendNs), perf.sections, static_cast<double>(perf.waiting) / static_cast<double>(perf.frames), perf.maxWaiting,
                     perf.dueCount ? ms(perf.dueLatencyNs) / static_cast<double>(perf.dueCount) : 0., ms(perf.maxDueLatencyNs),
                     per(perf.prepareNs), per(perf.facesNs), per(perf.linesNs), per(perf.actorsNs), per(perf.framesNs), per(perf.entitiesNs),
                     per(perf.extrasNs), perf.blendedFrames, perf.orderChanges, perf.cameraMoves, faceVertices, blendVertices,
-                    markVertices, lineMeshes));
+                    markVertices, lineMeshes, per(perf.walkNs > perf.buildNs + perf.checkNs ? perf.walkNs - perf.buildNs - perf.checkNs : 0), per(perf.traceNs),
+                    per(perf.shownNs), per(perf.afterNs)));
     perf = Perf{};
 }
 #endif
@@ -845,6 +854,9 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
             buildCamera.vibrant = graphics >= static_cast<int>(GraphicsMode::Advanced);
         }
         drawPlacements(context, client, *player);
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+        PerfTimer after{perf.afterNs};
+#endif
         // Faces of the point, the selection and waiting columns: the overlay's
         // face material for the graphics mode (the hologram one is not shown
         // under Vibrant Visuals or in Simple).
