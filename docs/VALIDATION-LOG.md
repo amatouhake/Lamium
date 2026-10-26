@@ -21,6 +21,19 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## SDK 26.51.8 build checked in game (2026-10-26)
+
+`main` (`9372daf4`, built against LeviLamina Client SDK 26.51.8), deployed
+DLL SHA-256
+`6053BF77DB8C8AC40F2D16D9FA38583673D01066704E4935AD75E31FF58E0CB8`, default
+release build, local `1.26.51.01` LIP deployment with LeviLamina Client
+26.51.7, Windows x64. Maintainer report: checklist passed: (1) Lamium loads
+and a world can be joined; (2) Freelook, the effect-time HUD and edge guard
+work as before (these read entity components through entt, whose sparse
+page size the new SDK corrects). Not seen: loader 26.51.5, 26.51.6 or
+26.51.8 (26.51.5 is covered only by the import check in GAME-UPDATES.md);
+other features beyond this smoke check.
+
 ## PR #38 and #39 checked in game (2026-10-26)
 
 `main` (`ffd6409b`), deployed DLL SHA-256

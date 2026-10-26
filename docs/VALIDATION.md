@@ -9,7 +9,8 @@ reading it whole.
 Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.5, Windows x64.
 "Local" is a single-player world, "BDS" a same-machine dedicated server
 1.26.51.1. Results before the 26.51.5 update (commit 4a5b975) were re-checked
-only briefly after it.
+only briefly after it. Since `9372daf4` (2026-10-26) Lamium is built against
+SDK 26.51.8; that build passed a smoke check on loader 26.51.7.
 
 ## Recording a result
 
