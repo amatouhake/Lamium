@@ -5679,6 +5679,195 @@ https://github.com/maruohon/tweakeroo/blob/ornithe/1.12.2/src/main/java/tweakero
 
 ## Research
 
+### L-256 Schematic ghosts: lower the in-world drawing cost
+Kind: Research, then Ready steps. Maintainer note 2026-10-26 after 0.3.0:
+drawing ghosts in the world is heavy, and seems heavier with many check
+mistakes. The last measurements (SCHEMATIC.md C, 2026-10-09; L-105 and
+VALIDATION-LOG "Perf trace of `2965ec8`", 2026-10-14: 3086 sections, 4-6
+ms a frame standing still, mostly per-section draws) predate the bar
+outlines of L-186 and the later blended-mesh changes (L-192/L-193, mistake
+boxes in that mesh), so they no longer describe the current cost. The
+candidates below come from reading the code, not from a measurement.
+Related: L-105 (whole-game profiling), L-236 (rebuilds when the cut moves).
+Step 1 (first, Research): measure again with `xmake f
+--schematic_perf_trace=y` on current main: a large placement with no
+mistakes, one with many mistakes (red/yellow areas), and both with Outline
+width Thin. Record frame time per stage (faces, lines, blended, check/scan,
+rebuilds, re-sorts) in VALIDATION-LOG, then pick the steps below by cost.
+Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
+1. Outlines: Normal/Thick width draws each edge as 32 vertices
+   (`faces::barQuads`, four double-sided quads), 384 per outlined cell,
+   and an edge shared by adjacent ghosts is drawn once per ghost (only a
+   weaker color rank is skipped). Draw each edge once.
+2. Mistake boxes: faces hidden between touching marks are collapsed to a
+   point, not removed, so dense mistake areas still sort, merge and upload
+   them in the blended mesh; above 20000 quads that mesh re-sorts and
+   uploads every 0.25 s while moving. Remove collapsed quads and merge
+   same-color runs into larger faces (marks use one texel); every mark
+   with an open face also adds an outline (candidate 1 applies).
+3. Collapsed quads elsewhere (`dropDuplicateQuads`, ghost-to-ghost culling)
+   stay in the face and blended meshes: compact them before upload,
+   keeping every vertex stream aligned.
+4. Draw calls: one face draw per 8-block section (about 4900 sections cost
+   1.9 ms on 2026-10-09). Keep 8-block rebuilds but draw static sections
+   in larger groups.
+5. The verification scan (about 1 ms on 2026-10-09) is limited by count,
+   not time: give it a time budget. (Done, `bd10d7d4`.)
+6. Rebuilds around the camera while walking (found 2026-10-26): each
+   new camera cell made every section within two cells due. Done for
+   walking outside ghosts (`7c0a7cb2`: only sections with a ghost drawn
+   within two cells; about 280 rebuilds per 5 s down to 0-15).
+7. Walking inside ghost blocks (found 2026-10-26, long-standing): each
+   cell crossed still rebuilds 1-8 dense sections at 15-35 ms each. Ideas:
+   (a) build the camera-dependent cells (within two cells of the camera)
+   as a small mesh of their own and keep sections camera-independent,
+   which needs the camera cell's ghost left out of its section without a
+   rebuild (Research); (b) wait until the camera has stayed in a cell for
+   a moment before rebuilding (cheap, but faces near the camera may look
+   wrong briefly while moving).
+   Chosen 2026-10-26 (maintainer): (a). Research done the same day, from
+   `GhostMesh.cpp`/`GhostRenderer.cpp` at `28e43baf`:
+   - Every camera effect is confined to ghost cells within two cells (per
+     axis) of the eye or feet cell (`BuildCamera::cells`): the enclosed
+     skip (`camera.near(cell, 2)`), `cullAgainstGhosts` (`nearCamera`,
+     `beyond` from the eye), the tessellator's neighbor answers
+     (`ghostNeighbor`, reach 1), `dropBackFaces` in the camera cells, and
+     the liquid shells through those neighbor answers. Lines and mistake
+     marks do not depend on the camera.
+   - Plan: build sections with an empty `BuildCamera` (no cells), so they
+     never depend on the camera, and record each cell's first vertex in
+     the face mesh (cells are appended x, y, z with z fastest; liquids go
+     to the blended tessellator). A section touching the near box (the
+     union of the two 5x5x5 boxes) is drawn in vertex ranges that skip the
+     box's cells (`renderMesh` takes a start and count; at most about 30
+     runs, for at most 8 sections).
+   - A near mesh per placement holds the box's ghost cells built with the
+     real camera (about 150 cells instead of up to 8 dense sections of 512),
+     rebuilt when the camera cell changes, drawn after the sections.
+   - Blended quads are re-sorted far to near at build time, which loses
+     the cell order: give `BlendQuads` a cell index per quad, leave the
+     near box's quads out when combining/sorting (and draw a section's
+     own blended mesh from the filtered CPU quads when it touches the
+     box), and add the near mesh's blended quads.
+   - Then the camera-cell marking in `drawPlacements` (`7c0a7cb2`) goes.
+   - Check in game against L-192/L-193 (no flicker between sections or
+     placements), inside doors/stairs/spawners (L-178 back faces), glass,
+     waterlogged blocks, and the trace numbers while walking inside
+     ghosts (16-38 ms frames now).
+   Built 2026-10-26, not yet checked in game: `NearCells.h` (box and
+   vertex runs, tested); sections are built with no camera cells and
+   record each cell's first face and ghost-outline vertex and each blended
+   quad's cell; `buildNear` builds the near box per placement with the
+   camera (faces, blended quads, ghost outlines ranked against mistake
+   outlines in and one cell around the box, block entities; no marks),
+   rebuilt on a new camera cell, when a section it covers is rebuilt, or
+   while a chunk there was incomplete. Sections touching the box draw
+   faces and ghost outlines in runs (assumes `renderMesh`'s start offset
+   counts vertices: if near ghosts look scrambled, missing or doubled,
+   that is the first suspect) and leave out the box's entities and blended
+   quads; the sorted blended mesh re-sorts at once on a new box. The trace
+   logs "near rebuilds". The camera-cell marking of `7c0a7cb2` is gone.
+   Checked 2026-10-26 (VALIDATION-LOG "L-256 fifth perf trace"): no
+   section rebuilds inside ghosts, but one near rebuild costs 24-27 ms in
+   dense interiors (0.1-0.5 ms in open air), 11-17 a second when flying
+   fast, so frame rate inside is unchanged (41-66 fps); standing and
+   outside unchanged. That is about 150 us per box cell against about 30
+   us per cell in a section build, where enclosed cells are skipped and
+   opaque ghost neighbors make the tessellator leave faces out; in the box
+   every cell is drawn with all its faces and each face goes through
+   `cullAgainstGhosts`. Maintainer candidates, with notes from the code:
+   (1) rebuild only the slab that enters: not enough on its own, because
+   one cell of camera movement changes the rules for most of the box (the
+   pairs within one cell, which face is beyond, the camera cells' back
+   faces), only the enclosed skip moves slab by slab; (2) keep each cell's
+   camera-independent work between near rebuilds (lookups, shapes, or the
+   cell tessellated once in the near form, with only the face drops
+   redone per camera cell; cells at the box edge must still look the
+   same as today); (3) rank against mistake outlines only when they
+   change; (4) a time budget per frame, drawing the old near meshes and
+   box until the new ones are complete (no holes; near cells briefly keep
+   the old camera's rules when flying fast: a visible trade-off for the
+   maintainer). Next: time the parts of a near rebuild in the trace
+   (halo and ranking, tessellation, face drops, upload, cells drawn) and
+   choose from that.
+   Measured 2026-10-26 (VALIDATION-LOG "L-256 sixth perf trace"): of a
+   24-26 ms near rebuild inside, 21-24 ms are outlines at Normal width
+   (1.7-1.8 ms at Thin), 2-3 ms tessellation, the rest under 0.3 ms.
+   Outline vertices went through `Tessellator::vertex` one by one (about
+   0.3 us each, 32 per edge for bars). Built next (not yet checked): only
+   the first primitive goes through `vertex()`, the rest are copied into
+   the vertex streams (`drawSameColor`, the way the sorted blended mesh is
+   made); this also speeds up section builds. Checked 2026-10-26
+   (VALIDATION-LOG "L-256 seventh perf trace", `6e7b96e`): a near rebuild
+   inside is 3.1-4.1 ms (was 24-26), outlines about 1 ms, tessellation
+   1.9-2.8 ms; ghost pass inside 3.7-5.0 ms, worst frames 11-15 ms (31-32);
+   section builds while loading at most 7 ms (35); outline look unchanged
+   in every width and graphics mode. A/B against `main` (`86723d2e`) the
+   same day: the z-fighting seen from inside a sandstone wall, a stair and
+   farmland (and the next block's faces) is new on this branch; the cross
+   plants' flicker is not (L-268). Suspect: `renderMesh` reads the start
+   of a run in a quad list as an index (six per quad), so runs began
+   early and the near cells' faces were drawn by both the sections and
+   the near meshes, at different origins. Built next (not yet checked):
+   runs in quad lists start at `quadStart` (first vertex / 4 * 6); the
+   count stays vertices. If that is wrong, faces near the camera go
+   missing or doubled elsewhere in the sections touching the box.
+   Checked the same day (VALIDATION-LOG "L-256 near-box z-fighting"):
+   unchanged with `quadStart`; with the probe build (sections touching
+   the box not drawn) the camera's block is hidden as on `main` and the
+   near meshes' counts are right. So a section cannot be drawn in parts
+   with `renderMesh`'s start and count as used here (how the engine reads
+   them is unknown); runs do not work and the near cells need another way
+   out of the sections, or item 7 (a) is dropped.
+   Decided 2026-10-26 (maintainer): drop 7 (a) and keep `main`'s camera
+   rebuilds (`7c0a7cb2`) with the outlines copied in bulk, which were most
+   of a rebuild's cost; measure inside ghosts again. The near mesh, the
+   runs, `NearCells.h` and the probe option were removed; the design notes
+   above stay as the record. If walking inside is still heavy, the next
+   ideas are copies of the touching sections without the near cells
+   (needs their vertex data kept) or 7 (b). Checked 2026-10-26
+   (VALIDATION-LOG "L-256 eighth perf trace", `cbf1742`): inside ghosts a
+   section build is 1.4 ms on average (was 7-16), at most 4-5.7 ms (was
+   17-39); ghost pass 3.8 ms median (6.5-15.6), worst frame 15.3 ms
+   (42.8), 86 fps median (42-69); no z-fighting, outlines and waterlogged
+   blocks unchanged. Item 7 is done this way. Not done: caching outlines
+   per cell (their bounds come from the camera-dependent tessellation),
+   dropping the reversed bar quads (the material may cull either winding),
+   a wider box with hysteresis (the rules inside the box change with every
+   camera cell, so a larger box does not need fewer rebuilds). Tessellation
+   (about 2.4 ms) is the next part if more is needed.
+   Visual issues seen on that build, not yet compared with `main`:
+   z-fighting or unstable order inside a stair block, at a door seen from
+   inside a block, on cross-shaped plants (dead bush).
+Constraints: no visible change (outline look, mistake colors, blended
+order must not flicker again, L-192/L-193); fail open as today. Validate
+each step in game against the step 1 numbers.
+Step 1 done 2026-10-26 (VALIDATION-LOG "L-256 schematic ghost perf
+trace"): 2428 sections, ghost pass 3.7-4.8 ms standing still. By cost:
+the check/scan about 1.05-1.25 ms every frame (candidate 5); about 1 ms
+outside every measured stage (find it first: per-section bookkeeping over
+all sections is the suspect); faces 1.0-1.5 ms (candidate 4); lines
+0.3-0.7 ms, the same for Thin and Normal, so it is the number of line
+meshes, not candidate 1's vertex count; many mistakes add 0.25 ms standing
+and re-sort the blended mesh every frame while walking (candidate 2).
+Proposed order: account for the missing 1 ms, give the scan a time
+budget, then fewer draws for faces and lines, then the mistake boxes.
+Candidate 1 drops to last.
+Done 2026-10-26: the scan is capped at 0.5 ms a frame (`bd10d7d4`, about
+-0.5 ms) and the missing millisecond was the per-frame walk over every
+section, now 0.07 ms (`697c2475`). Standing still the pass is about 3.05
+ms (was 4.5). New finding: while walking, rebuilding the sections around
+the camera's old and new cells costs 3-5 ms a frame with 25-30 ms peaks,
+more than any drawing stage (6. below). No release target selected.
+Closed 2026-10-26 (maintainer): done. Kept from the work: the scan's time
+cap (`bd10d7d4`), the walk fix (`697c2475`), the narrowed camera rebuilds
+(`7c0a7cb2`) and outline vertices copied in bulk (`6e7b96e`); the near
+mesh of item 7 (a) was built, measured and dropped (`cbf1742`). Result on
+`cbf1742`: standing still about 3 ms ghost pass, inside ghosts 3.8 ms and
+86 fps, section builds at most about 5 ms. Candidates 1, 2 and 4 were not
+needed; reopen as a new item if a later measurement asks for them.
+
+
 ### L-166 Villager trade helpers: part 1
 Done 2026-10-13: `0193c02` implements the Shift + right-click row trigger;
 `481dc7d` prevents native refill from dropping existing ingredient overflow.
