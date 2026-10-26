@@ -260,13 +260,16 @@ Parts partsOf(Boxes const& boxes) {
     }
     return parts;
 }
-// L-208: the corner an L-shaped pane turns around - one arm on each axis - in
-// block coordinates, or none for straight, lone or absent panes.
-inline std::optional<std::pair<float, float>> paneCornerPoint(Parts const& parts) {
+// L-208/L-255: the post corner an L-shaped pane turns around - one arm on each
+// axis - in block coordinates, or none for straight, lone or absent panes.
+// The outside corner is away from both arms; `inside` gives the one between
+// them, which the post's other two faces reach.
+inline std::optional<std::pair<float, float>> paneCornerPoint(Parts const& parts, bool inside = false) {
     if (!parts.present) return std::nullopt;
     if (parts.has(Part::West) == parts.has(Part::East) || parts.has(Part::North) == parts.has(Part::South))
         return std::nullopt;
-    return std::pair{parts.has(Part::East) ? 0.437f : 0.562f, parts.has(Part::North) ? 0.562f : 0.437f};
+    bool lowX = parts.has(Part::East) != inside, highZ = parts.has(Part::North) != inside;
+    return std::pair{lowX ? 0.437f : 0.562f, highZ ? 0.562f : 0.437f};
 }
 // The post faces the corner rewrite applies to: the center part's own quads.
 inline bool panePostQuad(Part part, float x0, float x1, float z0, float z1) {
@@ -278,7 +281,7 @@ inline bool panePostQuad(Part part, float x0, float x1, float z0, float z1) {
 // stretched the post (review, 2026-10-18). Away vertices keep their distance
 // to the corner ones; false when no vertex sits at the corner (then the quad
 // is the mask path's). Only u moves - the border the vertical joins shift on
-// v is never touched here.
+// v is never touched here. L-255 slides the post's inside faces the same way.
 inline bool paneCornerU(std::array<float, 4> const& x, std::array<float, 4> const& z, std::array<float, 4> const& u,
                         float cornerX, float cornerZ, float uLow, float uHigh, std::array<float, 4>& out) {
     bool any = false, away = false;

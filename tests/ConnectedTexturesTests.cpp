@@ -163,6 +163,17 @@ void connectedTexturesTests() {
     check(!paneCornerPoint(arms(true, true, false, false)) && !paneCornerPoint(arms(false, false, true, true))
               && !paneCornerPoint(arms(true, false, false, false)) && !paneCornerPoint(arms(false, false, false, false)),
           "straight, lone and absent panes have no corner to turn around");
+    // L-255: the same turn has a second corner on its inside, between the arms.
+    auto esIn = paneCornerPoint(arms(true, false, true, false), true);
+    auto enIn = paneCornerPoint(arms(true, false, false, true), true);
+    auto wnIn = paneCornerPoint(arms(false, true, false, true), true);
+    auto wsIn = paneCornerPoint(arms(false, true, true, false), true);
+    check(esIn && esIn->first == 0.562f && esIn->second == 0.562f && enIn && enIn->first == 0.562f
+              && enIn->second == 0.437f && wnIn && wnIn->first == 0.437f && wnIn->second == 0.437f && wsIn
+              && wsIn->first == 0.437f && wsIn->second == 0.562f,
+          "the inside corner of each L lies between its two arms");
+    check(!paneCornerPoint(arms(true, true, false, false), true) && !paneCornerPoint(arms(true, false, false, false), true),
+          "straight and lone panes have no inside corner either");
     check(panePostQuad(Part::Center, 0.437f, 0.563f, 0.437f, 0.563f)
               && !panePostQuad(Part::East, 0.437f, 1.f, 0.437f, 0.563f) && !panePostQuad(Part::Center, 0.f, 0.437f, 0.437f, 0.563f),
           "only the post's own faces carry the corner");
@@ -187,4 +198,16 @@ void connectedTexturesTests() {
     postFace(0.562f, 0.9f, 0.1f);
     check(!paneCornerU(px, pz, pu, 0.562f, 0.562f, 0.25f, 0.75f, turned),
           "a quad that does not sit at the corner is left to the mask path");
+    // L-255: the post's two inside faces reach the other corner and slide onto
+    // the border the same way, so they keep their two-texel width as well.
+    std::array<float, 4> ix{0.437f, 0.437f, 0.437f, 0.437f}, iz{0.437f, 0.562f, 0.437f, 0.562f};
+    std::array<float, 4> iu{0.5625f, 0.4375f, 0.5625f, 0.4375f};
+    check(paneCornerU(ix, iz, iu, 0.437f, 0.437f, 0.0f, 1.0f, turned) && turned[0] == 1.0f && turned[2] == 1.0f
+              && turned[1] == 0.875f && turned[1] - turned[0] == iu[1] - iu[0],
+          "an inside face slides onto the border with its two-texel width kept");
+    std::array<float, 4> ox{0.437f, 0.562f, 0.562f, 0.437f}, oz{0.562f, 0.562f, 0.562f, 0.562f};
+    std::array<float, 4> ou{0.4375f, 0.5625f, 0.4375f, 0.5625f};
+    check(!paneCornerU(ox, oz, ou, 0.437f, 0.437f, 0.0f, 1.0f, turned)
+              && paneCornerU(ox, oz, ou, 0.562f, 0.562f, 0.0f, 1.0f, turned),
+          "an outside face takes the outside corner, not the inside one");
 }

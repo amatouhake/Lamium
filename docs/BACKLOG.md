@@ -665,6 +665,16 @@ the inside faces must not stretch (the L-208 outside fix moved the whole
 two-texel window). Rewrite `help.visuals.connectedPaneCorners` in all four
 languages (it says the inside stays joined). Check in game: L corners in
 both directions, T and cross junctions, stained panes, option off.
+Built 2026-10-27, not yet checked in game: with the option on, the post's two
+inside faces slide onto the tile border at their corner end the same way as
+the outside ones, so the turn shows an edge on both sides. The inside corner
+is `paneCornerPoint(parts, true)`; the slide moves the whole two-texel
+window, so the inside faces do not stretch, and each of the post's four faces
+takes the corner it sits at. With the option off nothing changes.
+`help.visuals.connectedPaneCorners` now says both sides are drawn, in all
+four languages. The slide only touches the center post's own quads, so a turn
+the game builds without a post face there would draw nothing; if only one
+side of the turn gains an edge, that is the thing to look at.
 No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
