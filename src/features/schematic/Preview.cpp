@@ -133,6 +133,7 @@ struct Job {
     // the world go above the limit as before.
     int baseX = 0, baseY = 384, baseZ = 0;
     std::vector<bool> covers; // per palette entry: hides the faces it touches
+    std::vector<int> coverMasks; // per palette entry: the sides of its cell it covers entirely
     std::vector<std::uint32_t> quadCells;
     std::vector<bool> quadLiquid;
     std::vector<std::pair<std::uint32_t, Block const*>> actorCells;
@@ -214,6 +215,13 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
     job->covers.assign(job->palette.size(), false);
     for (size_t i = 0; i < job->palette.size(); ++i)
         if (job->palette[i]) job->covers[i] = ghosts::coversNeighbors(*job->palette[i], *job->blocks, screen);
+    // A waterlogged block hides its water where it covers a side (a
+    // stair's back), as in the world's ghosts: drawn there, the water's face
+    // fought with the block's.
+    job->coverMasks.assign(job->palette.size(), 0);
+    for (size_t i = 0; i < job->palette.size(); ++i)
+        if (job->palette[i] && !ghosts::liquidKind(*job->palette[i]))
+            job->coverMasks[i] = ghosts::sidesCovered(*job->palette[i], *job->blocks, screen);
     // The UI pass keeps the first fragment drawn at a spot (its depth test
     // rejects equal depth), so blocks go near to far: the reverse of the
     // painter's order.
@@ -355,20 +363,20 @@ bool step() {
             return liquids::Cell{0, 0, solid};
         };
         size_t shellFrom = std::numeric_limits<size_t>::max(); // where the liquid quads start, if any
-        auto shell = [&](Block const& liquid) {
+        auto shell = [&](Block const& liquid, int covered) {
             int kind = ghosts::liquidKind(liquid);
             shellFrom = positions.size();
             auto around = [&](int dx, int dy, int dz) { return liquidIn(x + dx, y + dy, z + dz); };
             ghosts::liquidShell(*j.blocks, batch, spot, liquid, [&](int side) {
                 auto const& d = faces::offsets[side];
-                return around(d[0], d[1], d[2]).kind != kind;
+                return !(covered >> side & 1) && around(d[0], d[1], d[2]).kind != kind;
             }, [&](int cx, int cz) { return liquids::corner(kind, around, cx, cz); }, liquids::flow(kind, around));
         };
         // Every render layer of the block (honey and slime draw in two);
         // liquids as shells, also the water of a waterlogged block.
         Block const& block = *blockAt(j, x, y, z);
         if (ghosts::liquidKind(block)) {
-            shell(block);
+            shell(block, 0);
         } else {
             ghosts::eachLayer(block, *j.region, spot, [&](std::optional<BlockRenderLayer> layer) {
                 ghosts::tessellateLayer(*j.blocks, batch, block, spot, layer);
@@ -380,7 +388,8 @@ bool step() {
             if (static_cast<size_t>(cell) < s.liquids.size())
                 if (auto i = s.liquids[static_cast<size_t>(cell)]; i >= 0 && static_cast<size_t>(i) < j.palette.size() && j.palette[static_cast<size_t>(i)]
                     && ghosts::liquidKind(*j.palette[static_cast<size_t>(i)]))
-                    shell(*j.palette[static_cast<size_t>(i)]);
+                    shell(*j.palette[static_cast<size_t>(i)],
+                          j.drawn >= 0 && static_cast<size_t>(j.drawn) < j.coverMasks.size() ? j.coverMasks[static_cast<size_t>(j.drawn)] : 0);
         }
         glm::vec3 move = at - glm::vec3(spot.x, spot.y, spot.z);
         for (size_t v = from; v < positions.size(); ++v) positions[v] += move;

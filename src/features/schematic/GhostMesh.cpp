@@ -246,6 +246,10 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
 // Collapses quads that repeat an earlier quad of the same ghost: a face the
 // tessellator emits in both windings (crop planes) is drawn twice by the
 // two-sided ghost material, and the two fight in one plane (flicker).
+// Cross plants' back copies sit 0.0002 from the front (L-268, seen in the
+// quad trace), so corners within 0.001 match; real parts of one block lie
+// at least 1/16 apart.
+constexpr float sameQuadEpsilon = 1e-3f;
 void dropDuplicateQuads(Tessellator& batch, size_t from) {
     auto& positions = batch.mMeshData->mPositions.get();
     auto quadAt = [&](size_t q) {
@@ -257,7 +261,7 @@ void dropDuplicateQuads(Tessellator& batch, size_t from) {
         if (positions[q] == positions[q + 1] && positions[q] == positions[q + 2]) continue;
         auto quad = quadAt(q);
         for (size_t p = from; p < q; p += 4)
-            if (faces::sameQuad(quad, quadAt(p))) {
+            if (faces::sameQuad(quad, quadAt(p), sameQuadEpsilon)) {
                 for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
                 break;
             }
