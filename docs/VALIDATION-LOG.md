@@ -21,6 +21,19 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-256 second perf trace: the untimed millisecond (2026-10-26)
+
+`main` (`bd10d7d4`) with `--schematic_perf_trace=y` (DLL SHA-256
+`15C641A67EFDC5150411711C970470FA1EC0577D52108B5B2664A0C2D4B9D336`), same
+setup and placement (2428 sections), normal outlines, few mistakes,
+maintainer. Standing still, ms per frame: ghost pass 3.3-3.76 (4.45-4.69
+before); check/scan 0.52-0.56 with the new 0.5 ms cap (1.02-1.08 before);
+the build loop's walk over every section 0.80-0.93 (builds and checks
+excluded), the trace's own count 0.17-0.18 (trace builds only), the
+in-view list 0.09, drawing after the placements 0.003. The stages now add
+up to the pass. Faces 0.95-1.27 and lines 0.39-0.64 vary with the view.
+The Check tab still filled in without a noticeable delay.
+
 ## L-256 schematic ghost perf trace (2026-10-26)
 
 `main` (`a0c7a77a`) built with `--schematic_perf_trace=y` (DLL SHA-256

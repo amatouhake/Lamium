@@ -123,7 +123,11 @@ std::uint64_t builtRevision = 0;
 // The camera's cells and position the sections near it are built for, and
 // the graphics mode they are built in (sections are rebuilt when it changes).
 BuildCamera buildCamera;
-struct Wanted { std::tuple<int, int, int, int> key; double distance; bool seen; };
+// `section`: the built section, kept so the per-frame walk need not look it
+// up (L-256: the walk over every section cost about 0.85 ms a frame with
+// 2428 of them). Map entries stay put; the list is made again whenever
+// sections are dropped. `slot`: the entry's place in the cached list.
+struct Wanted { std::tuple<int, int, int, int> key; double distance; bool seen; Section* section = nullptr; std::uint32_t slot = 0; };
 // The wanted sections of the last listing (drawPlacements).
 struct WantedCache {
     bool valid = false;
@@ -238,6 +242,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         resolved = std::move(nextResolved);
         builtKeys = std::move(nextKeys);
         sections = std::move(nextSections);
+        wantedCache.valid = false; // its section pointers name the old map
         actors.clear();
         builtRevision = snapshot.revision;
         builtDimension = dimension;
@@ -313,15 +318,19 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                     double cx = (sx + .5) * sectionSize - camera.x, cy = (sy + .5) * sectionSize - camera.y,
                            cz = (sz + .5) * sectionSize - camera.z;
                     double distance = std::sqrt(cx * cx + cy * cy + cz * cz);
-                    if (distance <= drawDistance) wanted.push_back({{i, sx, sy, sz}, distance, false});
+                    if (distance <= drawDistance) wanted.push_back({{i, sx, sy, sz}, distance, false, nullptr});
                 }
     }
     std::sort(wanted.begin(), wanted.end(), [](auto const& a, auto const& b) { return a.distance < b.distance; });
     // Sections no longer wanted go.
     std::uint64_t stamp = ++wantedCache.stamp;
-    for (auto const& w : wanted)
-        if (auto found = sections.find(w.key); found != sections.end()) found->second.wantedStamp = stamp;
+    for (auto& w : wanted)
+        if (auto found = sections.find(w.key); found != sections.end()) {
+            found->second.wantedStamp = stamp;
+            w.section = &found->second;
+        }
     std::erase_if(sections, [&](auto const& entry) { return entry.second.wantedStamp != stamp; });
+    for (size_t slot = 0; slot < wanted.size(); ++slot) wanted[slot].slot = static_cast<std::uint32_t>(slot);
     wantedCache.list = std::move(wanted);
     wantedCache.cell = cameraCell;
     wantedCache.revision = snapshot.revision;
@@ -390,24 +399,25 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     for (auto const& w : wanted) {
         if (!tessellate) break;
         if (!budget || (budget < sectionLimit && std::chrono::steady_clock::now() - buildsStart >= buildTimeBudget)) break;
-        auto found = sections.find(w.key);
+        Section* found = w.section;
+        if (!found)
+            if (auto it = sections.find(w.key); it != sections.end()) found = wantedCache.list[w.slot].section = &it->second;
         auto refreshAfter = w.distance <= nearDistance ? std::chrono::duration_cast<Clock::duration>(refreshNear)
             : std::chrono::duration_cast<Clock::duration>(refreshFar);
-        bool stale = found == sections.end() || !found->second.complete || (found->second.due && now >= *found->second.due)
-            || (found->second.faces && !found->second.faces->isValid())
-            || (found->second.blendMesh && !found->second.blendMesh->isValid())
-            || std::any_of(found->second.lines.begin(), found->second.lines.end(), [](auto const& l) { return !l->mesh || !l->mesh->isValid(); })
-            || (found->second.marks && !found->second.marks->isValid());
+        // A mesh the renderer dropped is found where it is drawn, which
+        // makes its section due (L-256: checked here for every section, it
+        // cost a call per mesh each frame).
+        bool stale = !found || !found->complete || (found->due && now >= *found->due);
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-        int reason = found == sections.end() ? 0 : !found->second.complete ? 4 : (found->second.due && now >= *found->second.due) ? 1 : 3;
+        int reason = !found ? 0 : !found->complete ? 4 : (found->due && now >= *found->due) ? 1 : 3;
         if (stale && reason == 1) {
-            auto late = static_cast<std::uint64_t>((now - *found->second.due).count()) + static_cast<std::uint64_t>(std::chrono::nanoseconds(lookedDelay).count());
+            auto late = static_cast<std::uint64_t>((now - *found->due).count()) + static_cast<std::uint64_t>(std::chrono::nanoseconds(lookedDelay).count());
             perf.dueLatencyNs += late;
             ++perf.dueCount;
             perf.maxDueLatencyNs = std::max(perf.maxDueLatencyNs, late);
         }
 #endif
-        if (!stale && now - found->second.checked > refreshAfter && checks > 0) {
+        if (!stale && now - found->checked > refreshAfter && checks > 0) {
             --checks;
             auto const index = static_cast<size_t>(std::get<0>(w.key));
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
@@ -415,8 +425,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             ++perf.checks;
             reason = 2;
 #endif
-            stale = signatureOf(region, snapshot.placements[index], w.key) != found->second.signature;
-            found->second.checked = now;
+            stale = signatureOf(region, snapshot.placements[index], w.key) != found->signature;
+            found->checked = now;
         }
         if (!stale) continue;
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
@@ -455,8 +465,10 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                 return NeighborGhost{};
             };
         }
+        auto& built = sections[w.key];
+        wantedCache.list[w.slot].section = &built;
         buildSection(screen, region, *view, *own, snapshot.placements[index], resolved[index], w.key, buildCamera, owned,
-                     others, sections[w.key]);
+                     others, built);
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
         auto took = static_cast<std::uint64_t>((std::chrono::steady_clock::now() - buildStart).count());
         perf.buildNs += took;
@@ -528,7 +540,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     if (faces.mRenderMaterialInfoPtr && lightTexture) {
         fullBright();
         for (auto [key, section] : shown)
-            if (section->faces)
+            if (section->faces && !section->faces->isValid()) section->due = now;
+            else if (section->faces)
                 translated(screen, offsetOf(*section), [&] {
                     section->faces->renderMesh(screen, faces, texture, 0, section->faceVertices, OffscreenCaptureDescription{}, nullptr);
                 });
@@ -540,6 +553,11 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         glm::vec3 offset = offsetOf(*section);
         glm::vec3 nearest = glm::clamp(glm::vec3{0.f}, offset, offset + glm::vec3(static_cast<float>(sectionSize)));
         bool lined = !section->lines.empty() && (lineDistance <= 0 || glm::length(nearest) <= lineDistance);
+        if (section->marks && !section->marks->isValid()) { section->due = now; continue; }
+        if (lined && std::any_of(section->lines.begin(), section->lines.end(), [](auto const& l) { return !l->mesh || !l->mesh->isValid(); })) {
+            section->due = now;
+            continue;
+        }
         if (!lined && !section->marks) continue;
         translated(screen, offset, [&] {
             if (section->marks && markMaterial.mRenderMaterialInfoPtr)
@@ -617,9 +635,9 @@ void drawBlended(BaseActorRenderContext& context) {
     Vec3 const camera = context.mImpl->mCameraPosition;
     auto& region = player->getDimensionBlockSource();
     std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
-    struct Blended { double gap; SectionKey key; Section const* section; };
+    struct Blended { double gap; SectionKey key; Section* section; };
     std::vector<Blended> blendedSections;
-    for (auto const& [sectionKey, section] : sections) {
+    for (auto& [sectionKey, section] : sections) {
         if (!section.blend || section.blend->positions.empty()) continue;
         auto gap = [](double v, double low) { return std::max({low - v, 0., v - (low + sectionSize)}); };
         double gx = gap(camera.x, section.origin.x), gy = gap(camera.y, section.origin.y), gz = gap(camera.z, section.origin.z);
@@ -739,6 +757,7 @@ void drawBlended(BaseActorRenderContext& context) {
     std::vector<std::pair<double, Section const*>> far;
     for (auto const& b : blendedSections) {
         if (combined.members.contains(b.key) || !b.section->blendMesh) continue;
+        if (!b.section->blendMesh->isValid()) { b.section->due = now; continue; }
         double cx = b.section->origin.x + sectionSize / 2. - camera.x, cy = b.section->origin.y + sectionSize / 2. - camera.y,
                cz = b.section->origin.z + sectionSize / 2. - camera.z;
         far.push_back({cx * cx + cy * cy + cz * cz, b.section});
