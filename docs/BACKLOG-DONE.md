@@ -10,6 +10,34 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-267 Schematic door ghosts: upper and lower halves face different ways
+Kind: Bug. Reported 2026-10-26 by the maintainer while checking L-256 on
+`291fcd4`: some door ghosts face correctly, others draw their upper and
+lower halves facing different ways; one of the two may be ignoring the
+open state. Seen again 2026-10-26 by the maintainer on the PR #41 build
+(code as `cbf1742`, no near mesh, faces built as on `main`), so it is not
+from the L-256 experiment; not a blocker for that PR.
+Hypothesis from the code (not checked): while a door half is drawn, the
+tessellator's answer for the other half's cell is always the half Lamium
+makes from the drawn entry with `upper_block_bit` flipped
+(`ghostNeighbor`, `Resolved::halves`), unless the real block there is a
+door, even when the file has its own other half there. The game draws a
+door's upper half from the lower half's states, so an upper entry whose
+saved direction or open state differs from its lower half's would draw
+the upper ghost with the upper entry's own states. Possible fix: answer
+with the file's ghost at that cell when it is the same block type, and
+make a half only where the file has none. Check in game: closed and open
+doors in all four facings, both hinges, rotated and mirrored placements,
+a door with one half placed for real.
+Built 2026-10-26 (not yet checked): while a half is drawn, the other
+half's cell answers the file's own block there when it is the same block
+type, else the made half as before (the area's edge, a different block);
+the same in the 3D preview (`Preview.cpp`).
+No release target selected.
+Done 2026-10-26: checked by the maintainer on `0a2e0a9` (VALIDATION-LOG
+"L-267 door halves and the L-268 quad trace"): four facings, open on and
+off, rotations, mirrors, a half placed for real, the 3D preview.
+
 ### L-260 Connected Textures: missing-texture checkerboard with a ray tracing pack
 Closed 2026-10-26: reproduced locally with the reporter's pack by disabling
 or re-enabling it on the title screen and joining; the next atlas build
