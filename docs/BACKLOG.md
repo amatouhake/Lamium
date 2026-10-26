@@ -81,8 +81,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
    L-253, L-254, L-255.
    **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
-   checked; L-264 and stage 4, L-256, done 2026-10-26; left: L-263's
-   creative pick (Research), then the batch's closing check). Before 0.3.1
+   checked; L-264 and stage 4, L-256, done 2026-10-26; L-263's creative
+   pick built, to check with the 0.3.1 pre-release round, then the
+   batch closes). Before 0.3.1
    as well (maintainer 2026-10-26): L-247, L-248, L-244 and L-255; L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
@@ -150,6 +151,7 @@ validation checkpoints" (snapshot 2026-10-20).
 | Effects/ammo HUD, L-147/L-150 | Beacon effects, server updates/counts, Pocket UI, layout sample, F1/inventory interplay. |
 | In-world language/server packs, L-167 | English Search and schematic ghosts after a change, broader servers/packs, rapid switching/hang risk and the 10 s interval. Cosmetic BDS evidence does not establish all pack types. See LANGUAGE.md. |
 | Camera and visual effects | FreeCamera world-exit/death/controller/body-view and hold-input cases, speed restart persistence; Hide effects restart/keys/master, ambient layers, packs, graphics modes and lifecycle. Detailed coverage is in VALIDATION.md, CAMERA.md and VISUAL-EFFECTS.md. |
+| Schematic ghost pick in creative, L-263 | A block not carried is given into the hotbar (empty selected slot, another empty slot, full hotbar), unlisted items (water, lava, structure block) do nothing, carried and survival picks unchanged; also on a server. |
 | Distribution listings | 0.1.4–0.1.8 registry pickup is recorded; LeviLauncher 0.2.0 was seen. Later registry/LeviLauncher/Bedrinth checks remain unrecorded here. Verify the version being released using DISTRIBUTION.md rather than reopening old release gates. |
 
 ---
@@ -637,9 +639,12 @@ the transaction is sent; the log adds the slot selected before and the
 time to the check. Servers not tried yet.
 Checked 2026-10-26 on `7d41160` (VALIDATION-LOG "L-263 creative pick,
 second check"): every give went through at once, unlisted items were not
-sent; the log now says "skipped" for those. Left: a server, and moving
-the experiment out of its build option (a capability gate, no log lines
-in normal builds).
+sent; the log now says "skipped" for those.
+Made a normal part of the pick the same day (maintainer: in-game checks go
+to the 0.3.1 pre-release round): the build option and the log lines are
+gone; the give is gated by the direct capability "Schematic pick
+(creative inventory give)" (GAME-UPDATES.md), off on an unverified game
+build. Left: the pre-release check of this build and a server.
 Research: where pick block is handled in the SDK and how the inventory
 move is confirmed from authoritative state (reuse the existing inventory
 transfer paths). New hooks go into GAME-UPDATES.md. No release target

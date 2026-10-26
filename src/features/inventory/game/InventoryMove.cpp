@@ -73,7 +73,6 @@ ItemStack const& itemAt(LocalPlayer& player, Location at) {
     }
 }
 bool moving() { return active; }
-#ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
 bool giveCreative(LocalPlayer& player, int slot, ItemStack const& item) {
     if (active || !hookInstalled || !player.isCreative() || slot < 0 || slot >= 9 || item.isNull()) return false;
     auto& manager = player.mTransactionManager.get();
@@ -107,7 +106,6 @@ bool giveCreative(LocalPlayer& player, int slot, ItemStack const& item) {
     trace("creative-sent",slot);
     return true;
 }
-#endif
 bool movePair(LocalPlayer& player, Location a, ItemStack const& newA, Location b, ItemStack const& newB) {
     if (active || !hookInstalled) return false;
     auto& manager = player.mTransactionManager.get();

@@ -6,13 +6,11 @@
 #include "mc/world/actor/player/PlayerInventory.h"
 #include "mc/world/item/Item.h"
 #include "mc/world/item/ItemStack.h"
-#ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
 #include "mc/world/item/ItemInstance.h"
 #include "mc/world/item/registry/CreativeItemEntry.h"
 #include "mc/world/item/registry/CreativeItemRegistry.h"
 #include "mc/world/item/registry/ItemRegistryRef.h"
 #include "mc/world/level/Level.h"
-#endif
 
 namespace lamium::inventory {
 bool bringToHand(LocalPlayer& player, std::string_view item) {
@@ -33,7 +31,6 @@ bool bringToHand(LocalPlayer& player, std::string_view item) {
     ItemStack held = player.getInventory().getItem(selected), wanted = player.getInventory().getItem(pick.slot);
     return game::movePair(player, {game::Place::Inventory, selected}, wanted, {game::Place::Inventory, pick.slot}, held);
 }
-#ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
 namespace {
 bool listedInCreative(CreativeItemRegistry const& registry, ItemStack const& item) {
     auto const& name = item.getTypeName();
@@ -64,5 +61,4 @@ int giveToHand(LocalPlayer& player, ItemStack const& item) {
     if (slot != supplies->mSelected) supplies->selectSlot(slot, ContainerID::Inventory);
     return game::giveCreative(player, slot, item) ? slot : notSent;
 }
-#endif
 }
