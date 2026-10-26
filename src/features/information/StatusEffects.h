@@ -32,6 +32,9 @@ inline bool earlier(Effect const& a, Effect const& b) {
 // until its effect ends, so a beacon renewing the duration does not move it. A
 // new effect enters above the first row with a longer time; an ended effect's
 // row closes up. `previous` is the last frame's row ids, top to bottom.
+// Pure on purpose (the L-247 decision), so its few short vectors are rebuilt
+// per frame: a handful of effects, under the caller's own per-row strings and
+// width measurements.
 inline std::vector<Effect> arrange(std::vector<unsigned> const& previous, std::vector<Effect> const& current) {
     std::vector<Effect> rows;
     rows.reserve(current.size());
