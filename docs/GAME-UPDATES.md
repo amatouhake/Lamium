@@ -471,7 +471,10 @@ Hooks: `GhostPickHook`
 Meaning: `LocalPlayer::pickBlock` is the client's pick block input, called
 on the client thread with the game's own hit (start, direction, position),
 and asks the server for the block at the hit; Lamium handles a ghost in
-front of the hit itself through `movePair` (L-263).
+front of the hit itself through `movePair` (L-263). The creative pick
+experiment (build option `schematic_creative_pick`, off) also relies on a
+legacy transaction with `InventorySourceType::CreativeInventory` actions
+(slot 1 create, slot 0 delete) being accepted.
 
 ### `src/features/schematic/GhostRenderer.cpp`
 Hooks: `GhostBlendPass`, `GhostPass`

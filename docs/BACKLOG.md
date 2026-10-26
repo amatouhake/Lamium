@@ -614,6 +614,19 @@ never build item stack requests. Next: a trace build that logs the
 request the creative screen sends when a block is taken into the hotbar,
 then the same request built by Lamium, confirmed from the slot's
 authoritative contents; gated, with a GAME-UPDATES entry.
+Correction the same day: building an item stack request is not possible
+with the SDK (`ItemStackNetManagerClient::_beginRequest`,
+`addRequestAction`, `trySendBatch` are all `MCNAPI`, as L-66 found).
+Experiment built instead (`xmake f --schematic_creative_pick=y`, off by
+default, not in release builds): in creative mode, a ghost pick of a block
+that is not carried puts it into the hotbar (`creativeSlotFor`: the
+selected slot when empty, else the first empty one, else the selected one
+replaced) through the same legacy transaction as `movePair`, balanced by
+creative-inventory actions (slot 1 gives the item, slot 0 takes back the
+replaced one). The log line "creative pick: slot N sent X, now holds Y",
+written at the next pick, shows whether the server kept it. To check: a
+local world and a server, an empty and a full hotbar, then whether the
+item stays after reopening the inventory or the world.
 Research: where pick block is handled in the SDK and how the inventory
 move is confirmed from authoritative state (reuse the existing inventory
 transfer paths). New hooks go into GAME-UPDATES.md. No release target

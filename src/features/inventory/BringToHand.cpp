@@ -5,6 +5,7 @@
 #include "mc/world/actor/player/Inventory.h"
 #include "mc/world/actor/player/PlayerInventory.h"
 #include "mc/world/item/Item.h"
+#include "mc/world/item/ItemStack.h"
 
 namespace lamium::inventory {
 bool bringToHand(LocalPlayer& player, std::string_view item) {
@@ -25,4 +26,19 @@ bool bringToHand(LocalPlayer& player, std::string_view item) {
     ItemStack held = player.getInventory().getItem(selected), wanted = player.getInventory().getItem(pick.slot);
     return game::movePair(player, {game::Place::Inventory, selected}, wanted, {game::Place::Inventory, pick.slot}, held);
 }
+#ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
+int giveToHand(LocalPlayer& player, ItemStack const& item) {
+    auto* supplies = player.mInventory.get();
+    if (!supplies || supplies->mSelectedContainerId != ContainerID::Inventory) return -1;
+    std::array<std::string, 36> names;
+    for (int slot = 0; slot < 36; ++slot) {
+        auto const& stack = player.getInventory().getItem(slot);
+        if (!stack.isNull() && stack.mItem) names[static_cast<size_t>(slot)] = stack.getTypeName();
+    }
+    int slot = creativeSlotFor(names, supplies->mSelected);
+    if (slot < 0 || !game::giveCreative(player, slot, item)) return -1;
+    if (slot != supplies->mSelected) supplies->selectSlot(slot, ContainerID::Inventory);
+    return slot;
+}
+#endif
 }

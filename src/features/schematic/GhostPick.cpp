@@ -8,6 +8,14 @@
 #include "mc/world/level/block/Block.h"
 #include "mc/world/phys/HitResult.h"
 #include <cmath>
+#ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
+#include "mc/world/actor/player/Inventory.h"
+#include "mc/world/item/ItemInstance.h"
+#include "mc/world/item/ItemStack.h"
+#include "mc/world/level/block/BlockType.h"
+#include <format>
+#include <string>
+#endif
 #include <optional>
 #include <stdexcept>
 
@@ -35,15 +43,53 @@ std::optional<GhostAt> pickedGhost(LocalPlayer& player, HitResult const& hit) {
     return ghostAlong(player.getDimensionBlockSource(), static_cast<int>(player.getDimensionId()), from.x, from.y, from.z,
                       way.x / length, way.y / length, way.z / length, reach, onHit);
 }
+#ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
+// L-263 experiment: the last creative give, looked at again on the next
+// pick so the log shows whether the server kept it.
+struct Given { int slot = -1; std::string item; };
+Given lastGiven;
+void reportGiven(LocalPlayer& player) {
+    if (lastGiven.slot < 0) return;
+    auto const& now = player.getInventory().getItem(lastGiven.slot);
+    log(std::format("creative pick: slot {} sent {}, now holds {}", lastGiven.slot, lastGiven.item,
+                    now.isNull() || !now.mItem ? std::string("nothing") : now.getTypeName()));
+    lastGiven = {};
+}
+// The ghost's block as one item, as the game's own pick would give it.
+ItemStack pickedStack(Block const& block) {
+    ItemStack stack;
+    auto item = block.getBlockType().asItemInstance(block, nullptr);
+    if (item.isNull()) return stack;
+    try { stack.reinit(item.getTypeName(), 1, item.getAuxValue()); } catch (...) { stack = ItemStack(); }
+    return stack;
+}
+#endif
 LL_TYPE_INSTANCE_HOOK(GhostPickHook, ll::memory::HookPriority::Normal, LocalPlayer, &LocalPlayer::pickBlock, void,
                       HitResult const& hit, bool withData) {
     try {
+#ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
+        reportGiven(*this);
+#endif
         if (auto ghost = pickedGhost(*this, hit); ghost && ghost->block)
             if (auto item = describe(*ghost->block, "").item; !item.empty()) {
                 // The ghost's block or nothing: never the real block behind it.
+#ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
+                // Creative mode gives it when it is not carried, like vanilla.
+                if (!inventory::bringToHand(*this, item) && isCreative())
+                    if (auto stack = pickedStack(*ghost->block); !stack.isNull()) {
+                        int slot = inventory::giveToHand(*this, stack);
+                        log(std::format("creative pick: {} to slot {}", item, slot));
+                        if (slot >= 0) lastGiven = {slot, item};
+                    }
+#else
                 inventory::bringToHand(*this, item);
+#endif
                 return;
             }
+#ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
+    } catch (std::exception const& error) {
+        log(std::string("creative pick failed: ") + error.what());
+#endif
     } catch (...) {}
     origin(hit, withData);
 }

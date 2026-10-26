@@ -38,4 +38,11 @@ void fetchSlotTests() {
     check(pickFor(names, 0, "minecraft:dirt").kind == HandPick::None && pickFor(names, 0, "").kind == HandPick::None
               && pickFor(names, 9, "minecraft:stone").kind == HandPick::None,
           "nothing when it is not carried or no hotbar slot is selected");
+    using lamium::inventory::creativeSlotFor;
+    check(creativeSlotFor(names, 4) == 4, "creative: an empty selected slot takes the block");
+    check(creativeSlotFor(names, 2) == 0, "creative: else the first empty hotbar slot");
+    std::array<std::string, 36> full{};
+    for (int slot = 0; slot < 9; ++slot) full[static_cast<size_t>(slot)] = "minecraft:dirt";
+    check(creativeSlotFor(full, 3) == 3 && creativeSlotFor(full, 9) == -1,
+          "creative: a full hotbar replaces the selected slot; nothing without a selected hotbar slot");
 }

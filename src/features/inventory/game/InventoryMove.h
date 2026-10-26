@@ -13,6 +13,15 @@ ItemStack const& itemAt(LocalPlayer& player, Location at);
 // Returns false, changing nothing, when another transaction or request is
 // in progress. Throws if the transaction stays unbalanced after mutation.
 bool movePair(LocalPlayer& player, Location a, ItemStack const& newA, Location b, ItemStack const& newB);
+#ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
+// L-263 experiment: puts `item` into hotbar slot `slot` from the creative
+// inventory, like movePair: the slot's setter under a legacy request scope,
+// plus creative-inventory actions giving `item` and taking back what the
+// slot held. Whether servers accept such a transaction is not known yet.
+// False, changing nothing, when not in creative mode or another
+// transaction or request is in progress.
+bool giveCreative(LocalPlayer& player, int slot, ItemStack const& item);
+#endif
 // True while movePair is changing slots, so observers ignore its own effects.
 bool moving();
 // Installs the action observer movePair relies on; without it moves refuse.
