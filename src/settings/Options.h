@@ -483,7 +483,7 @@ inline constexpr auto options = std::to_array<Option>({
         NumericOption{0, 192, [](Settings& s, float v) { s.schematic.outlineDistance = v; }, 16}},
     toggle<&Settings::schematic, &Settings::Schematic::mistakeMarks>("schematic.mistakeMarks", "schematicCheck", "schematicMistakeMarks"),
     toggle<&Settings::schematic, &Settings::Schematic::ignoreSignal>("schematic.ignoreSignal", "schematicCheck", "schematicIgnoreSignal"),
-    toggle<&Settings::schematic, &Settings::Schematic::sameLit>("schematic.sameLit", "schematicCheck", "schematicSameLit"),
+    toggle<&Settings::schematic, &Settings::Schematic::litAsState>("schematic.litAsState", "schematicCheck", "schematicLitAsState"),
     toggle<&Settings::schematic, &Settings::Schematic::ignoreGrowth>("schematic.ignoreGrowth", "schematicCheck", "schematicIgnoreGrowth"),
     toggle<&Settings::schematic, &Settings::Schematic::hud>("schematic.hud", "schematicHud", "schematicHud"),
     toggle<&Settings::schematic, &Settings::Schematic::hudVerify>("schematic.hudVerify", "schematicHud", "schematicHudVerify"),

@@ -1,15 +1,18 @@
 #pragma once
 #include <array>
+#include <optional>
 #include <map>
 #include <string>
 #include <string_view>
 #include <vector>
 
-// What the check may leave out (L-262): a table of rules, each in a
-// category the settings turn on. A state rule stops one state from being
-// compared; a name rule makes two block names the same block. A new
-// category or a missed state is a table row, not new code. Names and states
-// are the game's (VanillaBlockTypeIds.h, VanillaStates.h, SDK 26.51.8).
+// How the check may relax (L-262): a table of rules, each in a category the
+// settings turn on. A state rule stops one state from being compared. A
+// name rule makes a block's off and on forms one kind of block, so the
+// other form is a state mistake (yellow) instead of a wrong block (red);
+// they never pass as the same block (maintainer 2026-10-26). A new category
+// or a missed state is a table row, not new code. Names and states are the
+// game's (VanillaBlockTypeIds.h, VanillaStates.h, SDK 26.51.8).
 namespace lamium::schematic::rules {
 enum Category : unsigned { Signal = 1, Lit = 2, Growth = 4 };
 
@@ -24,13 +27,12 @@ inline constexpr std::array<StateRule, 17> stateRules{{
     {"growing_plant_age", Growth}, {"twisting_vines_age", Growth}, {"weeping_vines_age", Growth},
     {"propagule_stage", Growth}, {"bamboo_leaf_size", Growth}, {"bamboo_stalk_thickness", Growth},
 }};
-// The first name is the one both compare as.
-struct NameRule { std::string_view name, other; Category category; };
+struct NameRule { std::string_view off, on; Category category; };
 inline constexpr std::array<NameRule, 4> nameRules{{
     {"minecraft:redstone_lamp", "minecraft:lit_redstone_lamp", Lit},
     {"minecraft:unpowered_repeater", "minecraft:powered_repeater", Lit},
     {"minecraft:unpowered_comparator", "minecraft:powered_comparator", Lit},
-    {"minecraft:redstone_torch", "minecraft:unlit_redstone_torch", Lit},
+    {"minecraft:unlit_redstone_torch", "minecraft:redstone_torch", Lit},
 }};
 
 inline bool ignoredState(std::string_view state, unsigned on) {
@@ -40,18 +42,26 @@ inline bool ignoredState(std::string_view state, unsigned on) {
 }
 inline std::string_view canonicalName(std::string_view name, unsigned on) {
     for (auto const& r : nameRules)
-        if ((on & r.category) && (r.name == name || r.other == name)) return r.name;
+        if ((on & r.category) && (r.off == name || r.on == name)) return r.off;
     return name;
+}
+// Whether a name is the on form of a name rule's pair; nothing for others.
+inline std::optional<bool> switchedOn(std::string_view name) {
+    for (auto const& r : nameRules) {
+        if (r.on == name) return true;
+        if (r.off == name) return false;
+    }
+    return std::nullopt;
 }
 // Same kind of block once the name rules apply.
 inline bool sameType(std::string_view expected, std::string_view actual, unsigned on) {
     return canonicalName(expected, on) == canonicalName(actual, on);
 }
-// Same block once the rules apply: same kind and every compared state equal.
-// A state only one side has still counts.
+// Same block once the state rules apply: the same name and every compared
+// state equal. A state only one side has still counts.
 inline bool sameBlock(std::string_view expectedName, std::map<std::string, std::string> const& expected,
                       std::string_view actualName, std::map<std::string, std::string> const& actual, unsigned on) {
-    if (!sameType(expectedName, actualName, on)) return false;
+    if (expectedName != actualName) return false;
     auto compared = [&](std::map<std::string, std::string> const& a, std::map<std::string, std::string> const& b) {
         for (auto const& [key, value] : a) {
             if (ignoredState(key, on)) continue;

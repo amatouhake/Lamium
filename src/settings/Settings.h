@@ -187,8 +187,9 @@ struct Settings {
         int ghostTint = 70;
         int ghostLines = 1;
         bool mistakeMarks = true; // L-252: red/yellow boxes in the world; the check runs either way.
-        // L-262: what the check leaves out (features/schematic/CheckRules.h).
-        bool ignoreSignal = false, sameLit = false, ignoreGrowth = false;
+        // L-262: how the check relaxes (features/schematic/CheckRules.h); the
+        // off and on forms of a redstone block are a state mistake, not a wrong block.
+        bool ignoreSignal = false, litAsState = false, ignoreGrowth = false;
     } schematic;
     struct Overlays {
         bool chunkBorders = false;

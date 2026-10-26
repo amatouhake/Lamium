@@ -61,8 +61,10 @@ inline std::optional<int> growthMax(std::string_view identifier, bool age) {
 }
 // Interpret one raw block state into a readable detail row. Nullopt for states
 // with no readable form; those stay in the raw states list.
+// `nether`: lava there flows seven blocks one depth step at a time; elsewhere
+// three, two depth steps at a time (0, 2, 4, 6).
 inline std::optional<TargetInfo::DetailRow> interpretBlockState(std::string_view key, StateKind kind,
-        long long number, std::string_view text, std::string_view identifier) {
+        long long number, std::string_view text, std::string_view identifier, bool nether = false) {
     using DetailRow = TargetInfo::DetailRow;
     if ((key == "growth" || key == "age") && kind == StateKind::Integer && number >= 0) {
         auto max = growthMax(identifier, key == "age");
@@ -79,8 +81,14 @@ inline std::optional<TargetInfo::DetailRow> interpretBlockState(std::string_view
     if (key == "liquid_depth" && kind == StateKind::Integer && number >= 0) {
         if (number == 0) return DetailRow{"target.flow", "target.flowSource", true, {}};
         if (number >= 8) return DetailRow{"target.flow", "target.flowFalling", true, {}};
-        return DetailRow{"target.flowSteps", std::to_string(number) + " / 7", false, 1.f - static_cast<float>(number) / 8};
+        bool slowLava = identifier.find("lava") != std::string_view::npos && !nether;
+        long long steps = slowLava ? (number + 1) / 2 : number, most = slowLava ? 3 : 7;
+        return DetailRow{"target.flowSteps", std::to_string(steps) + " / " + std::to_string(most), false,
+                         1.f - static_cast<float>(steps) / (most + 1)};
     }
+    // A candle's or copper bulb's state, and the on/off forms of L-262.
+    if (key == "lit" && kind == StateKind::Integer && (number == 0 || number == 1))
+        return DetailRow{"target.lit", number ? "target.yes" : "target.no", true, {}};
     if (key == "redstone_signal" && kind == StateKind::Integer && number >= 0 && number <= 15)
         return DetailRow{"target.power", std::to_string(number), false, static_cast<float>(number) / 15};
     if (key == "facing_direction" && kind == StateKind::Integer) {

@@ -229,6 +229,12 @@ Mismatch mismatchFor(Cell const& c, Resolved const& blocks) {
             auto expected = blockStates(*c.expected), actual = blockStates(*c.actual);
             if (unsigned on = checkRules())
                 for (auto* states : {&expected, &actual}) std::erase_if(*states, [on](auto const& s) { return rules::ignoredState(s.first, on); });
+            // An off/on pair (L-262) differs by name: say which is on.
+            auto shouldBe = rules::switchedOn(c.expected->getTypeName()), now = rules::switchedOn(c.actual->getTypeName());
+            if (shouldBe && now && *shouldBe != *now) {
+                expected["lit"] = *shouldBe ? "1" : "0";
+                actual["lit"] = *now ? "1" : "0";
+            }
             m.states = stateDifferences(expected, actual);
             if (c.expectedFace >= 0 && c.actualFace >= 0 && c.expectedFace != c.actualFace)
                 m.states.push_back(faceDifference(c.expectedFace, c.actualFace));

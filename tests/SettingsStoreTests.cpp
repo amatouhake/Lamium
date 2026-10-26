@@ -366,9 +366,9 @@ void settingsStoreTests() {
               "None is the fourth outline width, after the saved three (L-254)");
         check(old.schematic.mistakeMarks && !decodeSettings(R"({"schematic":{"mistakeMarks":false}})").schematic.mistakeMarks,
               "mistake marks show by default and can be turned off (L-252)");
-        auto relaxed = decodeSettings(R"({"schematic":{"ignoreSignal":true,"sameLit":true,"ignoreGrowth":true}})").schematic;
-        check(!old.schematic.ignoreSignal && !old.schematic.sameLit && !old.schematic.ignoreGrowth
-                  && relaxed.ignoreSignal && relaxed.sameLit && relaxed.ignoreGrowth,
+        auto relaxed = decodeSettings(R"({"schematic":{"ignoreSignal":true,"litAsState":true,"ignoreGrowth":true}})").schematic;
+        check(!old.schematic.ignoreSignal && !old.schematic.litAsState && !old.schematic.ignoreGrowth
+                  && relaxed.ignoreSignal && relaxed.litAsState && relaxed.ignoreGrowth,
               "the check is strict by default and the relaxations load (L-262)");
         check(decodeSettings(R"({"schematic":{"ghostTint":0}})").schematic.ghostTint == 100
               && decodeSettings(R"({"schematic":{"ghostTint":1}})").schematic.ghostTint == 40

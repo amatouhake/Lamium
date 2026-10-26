@@ -573,10 +573,25 @@ the Check list's state rows and the mistake marks), L-264 `0f06b820` (ghost
 search passes through real water and lava; flow rows; "Target water and
 lava" under Target Info, off), L-263 `a1e629e7` (`GhostPick.cpp` hooks
 `LocalPlayer::pickBlock`; `inventory::bringToHand` is the shared part).
-Left open by these: L-263 in creative does the same as survival (only
-what is carried); L-264 does not yet show a ghost's waterlogged second
+Left open by these: L-264 does not yet show a ghost's waterlogged second
 layer. Stage 4 waits for a `--schematic_perf_trace=y` measurement after the
 normal checks pass.
+In-game check 2026-10-26 (maintainer, `887ae23a`): the Check heading, mistake
+marks, None outlines, the signal switch, ghost water, real liquids and the
+ghost pick passed; plant growth not checked (no way to set a cactus's age
+was at hand: `/setblock ~ ~ ~ cactus ["age"=5]` sets one). Follow-ups
+decided the same day:
+- The on/off switch no longer accepts the other form as correct: off it is
+  a wrong block (red, as before), on it is a wrong state (yellow) with an
+  "On" row; there is no ignore for it (L-262).
+- Lava rows count its own steps: three blocks outside the Nether
+  (liquid_depth 0, 2, 4, 6), seven in it (L-264).
+- In creative, picking a ghost whose block is not carried gives the block
+  like vanilla, always (no setting); how to do that so servers accept it
+  is Research (L-263).
+Open (maintainer, still discussing): whether the Check switches also get
+schematic menu entries and/or bindable actions. Menu categories are kept to
+six items each.
 
 ### L-262 Schematic check: ignore redstone signal, lit/unlit variants and plant growth
 Kind: Research (state lists), then Ready. User feedback 2026-10-26 (Discord
@@ -587,9 +602,10 @@ Decided (maintainer 2026-10-26): three separate switches in Lamium
 Settings under Schematics, global (not per placement), all off by default:
 1. Ignore redstone signal: differences only in signal/power states are not
    mistakes.
-2. Treat lit and unlit forms as the same block: block pairs that differ only
-   by being on (redstone lamp, repeater, comparator, redstone torch) compare
-   as the same block; their other states still count.
+2. On and off forms as a wrong state (changed 2026-10-26 after the in-game
+   check): block pairs that differ only by being on (redstone lamp,
+   repeater, comparator, redstone torch) are a wrong state (yellow, with an
+   "On" row) instead of a wrong block (red); never correct.
 3. Ignore plant growth: growth/age states (crops, saplings, cocoa, sugar
    cane, cactus, bamboo, kelp, vines, nether wart and the like) are not
    compared.

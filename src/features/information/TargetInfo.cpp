@@ -239,7 +239,7 @@ TargetIcon fallingIcon(Actor& entity, LocalPlayer& player) {
 // The block's states as card rows (named where L-112 knows them) and the
 // rest as raw "key: value" lines, leaving out `fixed` (shown by the
 // schematic rows instead).
-void appendStates(TargetInfo& result, Block const& block, std::set<std::string> const& fixedStates) {
+void appendStates(TargetInfo& result, Block const& block, std::set<std::string> const& fixedStates, bool nether) {
     auto const& tags = block.mSerializationId->mTags;
     auto found = tags.find("states");
     if (found != tags.end()) {
@@ -248,11 +248,11 @@ void appendStates(TargetInfo& result, Block const& block, std::set<std::string> 
                 if (fixedStates.contains(key)) continue;
                 std::optional<TargetInfo::DetailRow> detail;
                 if (auto* v = std::get_if<ByteTag>(&value.mTagStorage))
-                    detail = interpretBlockState(key, StateKind::Integer, v->data, {}, result.identifier);
+                    detail = interpretBlockState(key, StateKind::Integer, v->data, {}, result.identifier, nether);
                 else if (auto* v = std::get_if<IntTag>(&value.mTagStorage))
-                    detail = interpretBlockState(key, StateKind::Integer, v->data, {}, result.identifier);
+                    detail = interpretBlockState(key, StateKind::Integer, v->data, {}, result.identifier, nether);
                 else if (auto* v = std::get_if<StringTag>(&value.mTagStorage))
-                    detail = interpretBlockState(key, StateKind::Text, 0, *v, result.identifier);
+                    detail = interpretBlockState(key, StateKind::Text, 0, *v, result.identifier, nether);
                 if (detail) {
                     result.details.push_back(std::move(*detail));
                     continue;
@@ -287,13 +287,13 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
     if (result.name.empty()) result.name = result.identifier;
     result.blockPosition = TargetInfo::BlockPosition{pos.x, pos.y, pos.z};
     result.icon = blockIcon(source, pos, block);
-    if (includeStates) appendStates(result, block, {});
+    if (includeStates) appendStates(result, block, {}, static_cast<int>(player.getDimensionId()) == 1);
     result.details.push_back(ghostRow());
     result.ghost = true;
     return result;
 }
 // The first real water or lava along the ray, before any other block (L-264).
-std::optional<TargetInfo> liquidTarget(BlockSource& source, bool includeStates, ViewRay const& ray) {
+std::optional<TargetInfo> liquidTarget(BlockSource& source, bool includeStates, ViewRay const& ray, bool nether) {
     for (auto const& cell : schematic::cellsAlong(ray.x, ray.y, ray.z, ray.dx, ray.dy, ray.dz, ray.reach)) {
         BlockPos pos{cell.x, cell.y, cell.z};
         if (!source.getChunkAt(pos)) return std::nullopt;
@@ -306,7 +306,7 @@ std::optional<TargetInfo> liquidTarget(BlockSource& source, bool includeStates, 
         if (result.name.empty()) result.name = result.identifier;
         result.blockPosition = TargetInfo::BlockPosition{pos.x, pos.y, pos.z};
         result.icon = blockIcon(source, pos, block);
-        if (includeStates) appendStates(result, block, {});
+        if (includeStates) appendStates(result, block, {}, nether);
         return result;
     }
     return std::nullopt;
@@ -364,7 +364,8 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ghostRay, onGameLine))
             return ghost;
     if (includeLiquids && ghostRay && (hit.mType != HitResultType::Entity || onGameLine))
-        if (auto liquid = liquidTarget(player->getDimensionBlockSource(), includeStates, *ghostRay)) return liquid;
+        if (auto liquid = liquidTarget(player->getDimensionBlockSource(), includeStates, *ghostRay,
+                                         static_cast<int>(player->getDimensionId()) == 1)) return liquid;
     if (hit.mType == HitResultType::Entity) {
         auto* entity = pick.entity;
         if (!entity || entity == player || entity->mRemoved
@@ -444,7 +445,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
             }
         }
     }
-    if (includeStates) appendStates(result, block, fixedStates);
+    if (includeStates) appendStates(result, block, fixedStates, static_cast<int>(player->getDimensionId()) == 1);
     for (auto& row : schematicDetails) result.details.push_back(std::move(row));
     return result;
 }

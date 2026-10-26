@@ -1486,10 +1486,14 @@ void checkRelaxations() {
           "a signal difference counts only while signals are compared");
     States repeater{{"direction", "1"}, {"repeater_delay", "2"}}, faced{{"direction", "3"}, {"repeater_delay", "2"}};
     check(!r::sameType("minecraft:unpowered_repeater", "minecraft:powered_repeater", 0)
-              && r::sameBlock("minecraft:unpowered_repeater", repeater, "minecraft:powered_repeater", repeater, r::Lit)
+              && r::sameType("minecraft:unpowered_repeater", "minecraft:powered_repeater", r::Lit)
+              && !r::sameBlock("minecraft:unpowered_repeater", repeater, "minecraft:powered_repeater", repeater, r::Lit | r::Signal)
               && r::sameType("minecraft:redstone_torch", "minecraft:unlit_redstone_torch", r::Lit)
               && r::sameType("minecraft:lit_redstone_lamp", "minecraft:redstone_lamp", r::Lit),
-          "on and off forms are one block when the lit rule is on");
+          "on and off forms are one kind (a state mistake) with the rule on, never the same block");
+    check(r::switchedOn("minecraft:redstone_torch") == true && r::switchedOn("minecraft:unlit_redstone_torch") == false
+              && r::switchedOn("minecraft:lit_redstone_lamp") == true && !r::switchedOn("minecraft:stone"),
+          "which form of a pair is on");
     check(!r::sameBlock("minecraft:unpowered_repeater", repeater, "minecraft:powered_repeater", faced, r::Lit | r::Signal)
               && !r::sameType("minecraft:redstone_lamp", "minecraft:glowstone", r::Lit),
           "other states and other blocks still count");

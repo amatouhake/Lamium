@@ -68,7 +68,7 @@ std::map<std::string, std::string> blockStates(Block const& block) {
 }
 unsigned checkRules() {
     auto const& s = Runtime::instance().snapshot()->schematic;
-    return (s.ignoreSignal ? rules::Signal : 0u) | (s.sameLit ? rules::Lit : 0u) | (s.ignoreGrowth ? rules::Growth : 0u);
+    return (s.ignoreSignal ? rules::Signal : 0u) | (s.litAsState ? rules::Lit : 0u) | (s.ignoreGrowth ? rules::Growth : 0u);
 }
 bool relaxedSame(Block const& expected, Block const& actual, unsigned on) {
     if (&expected == &actual) return true;

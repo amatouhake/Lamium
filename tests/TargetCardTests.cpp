@@ -149,6 +149,12 @@ void targetCardTests() {
         check(source && source->value == "target.flowSource" && flowing && flowing->label == "target.flowSteps"
                   && flowing->value == "3 / 7" && falling && falling->value == "target.flowFalling",
               "water reads as a source, steps from one, or falling (L-264)");
+        auto lava = interpretBlockState("liquid_depth", StateKind::Integer, 4, {}, "minecraft:flowing_lava");
+        auto netherLava = interpretBlockState("liquid_depth", StateKind::Integer, 4, {}, "minecraft:flowing_lava", true);
+        check(lava && lava->value == "2 / 3" && netherLava && netherLava->value == "4 / 7",
+              "lava flows three blocks in two-step depths, seven in the Nether");
+        auto lit = interpretBlockState("lit", StateKind::Integer, 1, {}, "minecraft:candle");
+        check(lit && lit->label == "target.lit" && lit->value == "target.yes", "lit reads as On: yes");
         // L-93: schematic rows say what to do.
         auto translate = [](std::string_view key) { return "<" + std::string(key) + ">"; };
         using lamium::schematic::CellState;
