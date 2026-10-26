@@ -47,7 +47,7 @@ bool listedInCreative(CreativeItemRegistry const& registry, ItemStack const& ite
 }
 int giveToHand(LocalPlayer& player, ItemStack const& item) {
     auto* supplies = player.mInventory.get();
-    if (!supplies || supplies->mSelectedContainerId != ContainerID::Inventory) return -1;
+    if (!supplies || supplies->mSelectedContainerId != ContainerID::Inventory) return notSent;
     std::array<std::string, 36> names;
     for (int slot = 0; slot < 36; ++slot) {
         auto const& stack = player.getInventory().getItem(slot);
@@ -56,13 +56,13 @@ int giveToHand(LocalPlayer& player, ItemStack const& item) {
     // Only what the creative inventory lists: the server refused others
     // (water, lava, a structure block) and the slot went back.
     CreativeItemRegistry const* registry = player.getLevel().getItemRegistry().getCreativeItemRegistry().get();
-    if (!registry || !listedInCreative(*registry, item)) return -1;
+    if (!registry || !listedInCreative(*registry, item)) return notListed;
     int slot = creativeSlotFor(names, supplies->mSelected);
-    if (slot < 0) return -1;
+    if (slot < 0) return notSent;
     // Selected first, as the game's own pick does: a give into another
     // hotbar slot was refused twice before the slot was selected.
     if (slot != supplies->mSelected) supplies->selectSlot(slot, ContainerID::Inventory);
-    return game::giveCreative(player, slot, item) ? slot : -1;
+    return game::giveCreative(player, slot, item) ? slot : notSent;
 }
 #endif
 }

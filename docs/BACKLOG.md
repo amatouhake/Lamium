@@ -635,6 +635,11 @@ a give into an empty hotbar slot that was not yet selected. Changed next
 (`CreativeItemRegistry`, as sorting uses), and the slot is selected before
 the transaction is sent; the log adds the slot selected before and the
 time to the check. Servers not tried yet.
+Checked 2026-10-26 on `7d41160` (VALIDATION-LOG "L-263 creative pick,
+second check"): every give went through at once, unlisted items were not
+sent; the log now says "skipped" for those. Left: a server, and moving
+the experiment out of its build option (a capability gate, no log lines
+in normal builds).
 Research: where pick block is handled in the SDK and how the inventory
 move is confirmed from authoritative state (reuse the existing inventory
 transfer paths). New hooks go into GAME-UPDATES.md. No release target

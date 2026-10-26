@@ -83,7 +83,9 @@ LL_TYPE_INSTANCE_HOOK(GhostPickHook, ll::memory::HookPriority::Normal, LocalPlay
                         auto* supplies = mInventory.get();
                         int before = supplies ? supplies->mSelected : -1;
                         int slot = inventory::giveToHand(*this, stack);
-                        log(std::format("creative pick: {} to slot {} (selected before: {})", item, slot, before));
+                        if (slot == inventory::notListed) log(std::format("creative pick: {} skipped: not in the creative inventory", item));
+                        else if (slot < 0) log(std::format("creative pick: {} not sent (no slot, or another move in progress)", item));
+                        else log(std::format("creative pick: {} to slot {} (selected before: {})", item, slot, before));
                         if (slot >= 0) lastGiven = {slot, item, std::chrono::steady_clock::now()};
                     }
 #else

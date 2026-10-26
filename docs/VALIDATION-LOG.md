@@ -21,6 +21,20 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-263 creative pick, second check (2026-10-26)
+
+`7d41160` (code as `7150546`) with `--schematic_creative_pick=y` (DLL
+SHA-256 `E848F638A520A08716B833FAFAF0095DBC856419ECC73B36E1E5475B7DE453B4`),
+`1.26.51.01` LIP, local world, creative mode, maintainer.
+- Every give went through at once and was still there at the next pick:
+  waxed_exposed_cut_copper to slot 1 (selected before 1, checked 0.8 s
+  later), blue_ice to 3 (before 2, 0.8 s), light_blue_concrete to 4
+  (before 3, 0.7 s), oak_log to 5 (before 3, 2.0 s). Selecting the slot
+  first fixed the refused gives into an unselected empty slot.
+- structure_block, water and lava were not sent (no flash in the hand).
+- Empty selected slot, full hotbar, carried blocks and survival picks as
+  before. Servers not tried.
+
 ## L-263 creative pick experiment (2026-10-26)
 
 `b2bde4f` with `--schematic_creative_pick=y` (DLL SHA-256
