@@ -181,10 +181,12 @@ struct Settings {
         float outlineDistance = 48; // Ghost outlines up to this many blocks away; 0 draws them all.
         // L-186: the light-blue tint over ghost textures in percent (100 is
         // the look before 2026-10-15, 0 none); and the outline width, 0 thin
-        // (one pixel), 1 normal, 2 thick.
+        // (one pixel), 1 normal, 2 thick, 3 none (L-254: mistake outlines
+        // stay, thin).
         // Defaults chosen by the maintainer 2026-10-15: the block and that it is a ghost both read well.
         int ghostTint = 70;
         int ghostLines = 1;
+        bool mistakeMarks = true; // L-252: red/yellow boxes in the world; the check runs either way.
     } schematic;
     struct Overlays {
         bool chunkBorders = false;
@@ -311,7 +313,7 @@ struct Settings {
         camera.freeCameraHide = std::clamp(camera.freeCameraHide, 0, 3);
         camera.freeCameraUndergroundHold = std::clamp(camera.freeCameraUndergroundHold, 0, 6);
         schematic.ghostTint = std::clamp(schematic.ghostTint, 0, 100);
-        schematic.ghostLines = std::clamp(schematic.ghostLines, 0, 2);
+        schematic.ghostLines = std::clamp(schematic.ghostLines, 0, 3);
         if (!std::isfinite(schematic.outlineDistance)) schematic.outlineDistance = 48;
         schematic.outlineDistance = std::clamp(std::round(schematic.outlineDistance / 16) * 16, 0.f, 192.f);
         information.debugBackground = std::clamp(information.debugBackground, 0, 1);

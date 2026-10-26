@@ -347,6 +347,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     out.signature = signatureOf(region, shown, key);
     out.complete = true;
     auto const tint = faces::ghostTint(Runtime::instance().snapshot()->schematic.ghostTint);
+    // L-252: without marks a mistake is drawn like a correct cell (nothing).
+    bool const showMarks = Runtime::instance().snapshot()->schematic.mistakeMarks;
 
     prepareShapes(screen, own, blocks);
     Point drawing{};
@@ -385,7 +387,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 auto [boxLow, boxHigh] = cellBox(pos);
                 if (expectsAir) {
                     // An extra block: red outline (the real block hides any ghost).
-                    if (placement.countExtras && !actual.isAir()) {
+                    if (showMarks && placement.countExtras && !actual.isAir()) {
                         marks.push_back({boxLow, boxHigh, 1.f, .25f, .2f});
                     }
                     continue;
@@ -402,7 +404,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     // A shulker box opening another way is a state mistake too.
                     int face = expectedShulkerFace(structure, structure.cell(local->x, local->y, local->z), placement.placement);
                     int placedFace = face >= 0 ? actualShulkerFace(region, {x, y, z}) : -1;
-                    if (fileLiquid != (extra.isAir() ? nullptr : &extra) || (placedFace >= 0 && placedFace != face))
+                    if (showMarks && (fileLiquid != (extra.isAir() ? nullptr : &extra) || (placedFace >= 0 && placedFace != face)))
                         marks.push_back({boxLow, boxHigh, 1.f, .8f, .2f});
                     continue;
                 }
@@ -410,7 +412,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     bool sameType = &actual.getBlockType() == &expected->getBlockType();
                     // Something else is there: red, or yellow when only the state differs.
                     Outline mark = sameType ? Outline{boxLow, boxHigh, 1.f, .8f, .2f} : Outline{boxLow, boxHigh, 1.f, .25f, .2f};
-                    marks.push_back(mark);
+                    if (showMarks) marks.push_back(mark);
                     continue;
                 }
                 // A missing liquid: a shell, built after the blocks.
@@ -657,11 +659,16 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         // Ended either way, so the tessellator never stays open.
         see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{});
     }
+    // "None" (L-254) leaves out the light-blue ghost outlines; mistake and
+    // unknown-block outlines stay, thin.
+    int const lineChoice = Runtime::instance().snapshot()->schematic.ghostLines;
+    if (lineChoice == 3)
+        std::erase_if(outlines, [](Outline const& o) { return o.r == .35f && o.g == .85f && o.b == 1.f; });
     if (!outlines.empty()) {
         std::map<std::tuple<float, float, float>, std::vector<Outline const*>> byColor;
         for (auto const& o : outlines) byColor[{o.r, o.g, o.b}].push_back(&o);
         constexpr int edges[12][2] = {{0,1},{2,3},{4,5},{6,7},{0,2},{1,3},{4,6},{5,7},{0,4},{1,5},{2,6},{3,7}};
-        int const width = Runtime::instance().snapshot()->schematic.ghostLines;
+        int const width = lineChoice == 3 ? 0 : lineChoice;
         // Thin: game lines; wider: bars as quads, drawn with the same material.
         int const perEdge = width > 0 ? 32 : 2;
         auto corners = [](Outline const& o, glm::vec3 grow, glm::vec3 shift, glm::vec3 (&c)[8]) {

@@ -361,6 +361,11 @@ void settingsStoreTests() {
         auto wild = decodeSettings(R"({"schematic":{"ghostTintPercent":190,"ghostLines":-3}})").schematic;
         check(look.ghostTint == 65 && look.ghostLines == 2 && wild.ghostTint == 100 && wild.ghostLines == 0,
               "the ghost tint and outline width load and are clamped");
+        check(decodeSettings(R"({"schematic":{"ghostLines":3}})").schematic.ghostLines == 3
+                  && decodeSettings(R"({"schematic":{"ghostLines":9}})").schematic.ghostLines == 3,
+              "None is the fourth outline width, after the saved three (L-254)");
+        check(old.schematic.mistakeMarks && !decodeSettings(R"({"schematic":{"mistakeMarks":false}})").schematic.mistakeMarks,
+              "mistake marks show by default and can be turned off (L-252)");
         check(decodeSettings(R"({"schematic":{"ghostTint":0}})").schematic.ghostTint == 100
               && decodeSettings(R"({"schematic":{"ghostTint":1}})").schematic.ghostTint == 40
               && decodeSettings(R"({"schematic":{"ghostTint":2}})").schematic.ghostTint == 0

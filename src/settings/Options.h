@@ -80,7 +80,7 @@ inline constexpr std::array<std::string_view,3> menuBackgroundLabels{"menuBackgr
 inline constexpr std::array<std::string_view,4> freeCameraHideLabels{"freeCameraHide.nothing", "freeCameraHide.hand", "freeCameraHide.hotbar", "freeCameraHide.hud"};
 inline constexpr std::array<std::string_view,7> undergroundHoldLabels{"undergroundHold.0", "undergroundHold.1", "undergroundHold.3",
     "undergroundHold.5", "undergroundHold.10", "undergroundHold.30", "undergroundHold.always"};
-inline constexpr std::array<std::string_view,3> ghostLinesLabels{"ghostLines.thin", "ghostLines.normal", "ghostLines.thick"};
+inline constexpr std::array<std::string_view,4> ghostLinesLabels{"ghostLines.thin", "ghostLines.normal", "ghostLines.thick", "ghostLines.none"};
 // L-97: the selected slot, then hotbar slots 1-9.
 inline constexpr std::array<std::string_view,10> fetchSlotLabels{"fetchSlot.selected", "hotbarSlot.1", "hotbarSlot.2",
     "hotbarSlot.3", "hotbarSlot.4", "hotbarSlot.5", "hotbarSlot.6", "hotbarSlot.7", "hotbarSlot.8", "hotbarSlot.9"};
@@ -480,6 +480,7 @@ inline constexpr auto options = std::to_array<Option>({
         [](Settings const& s) -> OptionValue { return s.schematic.outlineDistance; },
         [](Settings& s, int direction) { s.schematic.outlineDistance += direction * 16.f; s.normalize(); },
         NumericOption{0, 192, [](Settings& s, float v) { s.schematic.outlineDistance = v; }, 16}},
+    toggle<&Settings::schematic, &Settings::Schematic::mistakeMarks>("schematic.mistakeMarks", "schematicCheck", "schematicMistakeMarks"),
     toggle<&Settings::schematic, &Settings::Schematic::hud>("schematic.hud", "schematicHud", "schematicHud"),
     toggle<&Settings::schematic, &Settings::Schematic::hudVerify>("schematic.hudVerify", "schematicHud", "schematicHudVerify"),
     toggle<&Settings::schematic, &Settings::Schematic::hudMaterials>("schematic.hudMaterials", "schematicHud", "schematicHudMaterials"),

@@ -821,11 +821,11 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
     if (!player) return;
     try {
         // A new graphics mode rebuilds the sections (mistake faces differ).
-        // The graphics mode, the ghost tint and the outline width are built
-        // into the sections: a change rebuilds them.
+        // The graphics mode, the ghost tint, the outline width and the
+        // mistake marks are built into the sections: a change rebuilds them.
         auto const& look = runtime.snapshot()->schematic;
         int graphics = static_cast<int>(client.getOptions().getGraphicsMode());
-        if (int mode = (graphics * 101 + look.ghostTint) * 4 + look.ghostLines; mode != lastGraphicsMode) {
+        if (int mode = ((graphics * 101 + look.ghostTint) * 4 + look.ghostLines) * 2 + look.mistakeMarks; mode != lastGraphicsMode) {
             if (lastGraphicsMode >= 0) release();
             lastGraphicsMode = mode;
             // The graphics mode alone: the combined key made every mode look

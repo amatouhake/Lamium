@@ -87,6 +87,8 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     // The menu and the adjust key first: where to start (L-93, 2026-10-07).
     {"schematicMenu", "feature.schematicMenu", "help.schematicMenu", "", false, input::Action::SchematicMenu},
     {"schematicRepeat", "key.Lamium.adjustschematic", "help.key.adjustschematic", "", false, input::Action::AdjustSchematic},
+    // What counts as a mistake and how it shows (L-266), without a switch of its own.
+    {"schematicCheck", "feature.schematicCheck", "help.schematicCheck", ""},
     {"schematicHud", "feature.schematicHud", "help.schematicHud", "schematic.hud", true, input::Action::ToggleSchematicHud},
     // Key groups without a switch of their own (DESIGN: a keyless group
     // heading), named and ordered like the menu's categories (L-238).
