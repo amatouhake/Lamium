@@ -80,8 +80,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
    L-253, L-254, L-255.
-   **L-266 schematic follow-up batch for 0.3.1** (stages: L-252/L-254,
-   L-262, L-264/L-263, L-256 research); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
+   checked except L-263 creative and L-264 waterlogged; next: L-256 research); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -472,20 +472,6 @@ are unchanged. Settings, option rows and help in all four languages; pure
 planner tests in `RestockPlan.h`; check in game. No release target
 selected.
 
-### L-252 Hide the schematic mistake marks in the world
-Kind: Ready. User request 2026-10-24 after 0.3.0: an on/off for the
-schematic check (照合). Today the check runs whenever Schematics is on and
-its mistake marks (red/yellow boxes and outlines) are drawn in the world
-(`GhostMesh.cpp`, `GhostVerify.cpp`); the only related setting is the
-Schematic HUD's check counts (`schematic.hudVerify`).
-Decided (maintainer 2026-10-26): first a switch "Show mistake marks" under
-Schematics, on by default. Off: the red/yellow boxes and their outlines are
-not built or drawn; the check itself still runs, so the Check tab, the HUD
-counts and the materials are unchanged. The reporter is being asked about a
-fuller check on/off, which was tracked as L-258 (closed 2026-10-26, answered by L-262 to L-264). Settings, option
-row and help in all four languages; check in game with mistakes in view.
-Release target: 0.3.1, batch L-266.
-
 ### L-259 Book and quill: paste overflow into new pages
 Kind: Research (behavior decided; the switch's name and settings group
 are still open). Maintainer request 2026-10-25: pasting into a book and quill page
@@ -589,43 +575,16 @@ decided the same day:
 - In creative, picking a ghost whose block is not carried gives the block
   like vanilla, always (no setting); how to do that so servers accept it
   is Research (L-263).
+Checked in game 2026-10-26 (VALIDATION-LOG "L-266 schematic batch"):
+L-252, L-254 and L-262 done and moved to BACKLOG-DONE; L-263 (creative
+pick of a block not carried) and L-264 (waterlogged ghosts) keep their open
+parts; stage 4 is next.
 Decided later the same day (maintainer): Mistake marks goes into the
 menu's Show category, and the HUD switch moves to Screen (both stay at six
 items); every Check switch gets a bindable action, unbound by default; the
 three rules stay out of the menu (an L-238 exception). The on/off rows are
 named after the Java Edition states: "Lit" for lamps and torches,
 "Powered" for repeaters and comparators.
-
-### L-262 Schematic check: ignore redstone signal, lit/unlit variants and plant growth
-Kind: Research (state lists), then Ready. User feedback 2026-10-26 (Discord
-thread by びー; taken as the L-252/L-258 reporter):
-the check should be able to ignore signal state and plant age, and redstone
-blocks whose on and off forms are different blocks count as wrong blocks.
-Decided (maintainer 2026-10-26): three separate switches in Lamium
-Settings under Schematics, global (not per placement), all off by default:
-1. Ignore redstone signal: differences only in signal/power states are not
-   mistakes.
-2. On and off forms as a wrong state (changed 2026-10-26 after the in-game
-   check): block pairs that differ only by being on (redstone lamp,
-   repeater, comparator, redstone torch) are a wrong state (yellow, with an
-   "On" row) instead of a wrong block (red); never correct.
-3. Ignore plant growth: growth/age states (crops, saplings, cocoa, sugar
-   cane, cactus, bamboo, kelp, vines, nether wart and the like) are not
-   compared.
-An ignored difference counts as correct everywhere: Check list, HUD counts,
-nearest mistake and the red/yellow marks. The strict comparison stays the
-default. This is not L-183 (suppressing chosen mismatches); L-258 was
-closed as answered by this report.
-Decided (maintainer 2026-10-26, granularity): one general mechanism, a
-pure rule table of "state keys not compared" and "block names that compare
-as the same block", each rule belonging to a category; the three switches
-turn categories on. A later category is a table entry, not new code. No
-user-editable rule list until there is a need for one.
-Research first: the exact state keys and block-name pairs from the SDK /
-block data (pure tables in `features/schematic/`, with tests), and whether
-open/extended states (doors, trapdoors, pistons) count as "signal" (ask the
-maintainer before including them). Settings rows and help in all four
-languages. Release target: 0.3.1, batch L-266.
 
 ### L-263 Pick the aimed ghost block from the inventory
 Kind: Research (pick-block hook), then Ready. Same feedback as L-262:
@@ -689,21 +648,6 @@ unchanged; FreeCamera's camera reference still decides the followed point.
 Settings, option row and help in all four languages; check in game above
 and below ground in the Overworld and in the Nether. No release target
 selected.
-
-### L-254 Turn the light-blue schematic ghost outlines off
-Kind: Ready. User request 2026-10-24 after 0.3.0: an on/off for the
-light-blue ghost outlines. The outline distance setting
-(`schematic.outlineDistance`, 0-192 in steps of 16, default 48) is the only
-control, and 0 means no limit, so the outlines cannot be turned off; the
-smallest limit is 16 blocks (maintainer reply 2026-10-24: worth a look).
-Goal: allow ghosts without outlines while keeping the distance limit.
-Decided (maintainer 2026-10-26): add "None" to the existing outline width
-choice (`schematic.ghostLines`: thin, normal, thick), so no new setting.
-Saved values keep their meaning (append the new value; settings format
-stays compatible). With None, the light-blue ghost outlines are not built
-or drawn; the red/yellow mistake marks and their outlines stay. The outline
-distance row stays as it is. Labels and help in all four languages; check
-in game. Release target: 0.3.1, batch L-266.
 
 ### L-255 Connected Textures: edges on the inside of glass pane corners
 Kind: Ready. User report 2026-10-23 after 0.3.0, with a screenshot: at an

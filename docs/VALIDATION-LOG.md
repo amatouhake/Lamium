@@ -21,6 +21,40 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-266 schematic batch, stages 1 to 3, checked in game (2026-10-26)
+
+Local `1.26.51.01` LIP deployment, LeviLamina Client 26.51.7, Windows x64,
+local world, maintainer. Four builds on the same day, each checked with
+its own short list:
+- `887ae23a` (DLL SHA-256
+  `887AE23AAC438098C917821222DE8C16F0CC27206599E306EA5DA08B902AB062`,
+  stages 1-3): the Check heading under Schematics; mistake marks off hide
+  the red/yellow boxes with the Check tab and HUD counts unchanged; None
+  outline width drops the light-blue outlines and keeps mistake outlines;
+  ignore redstone signal; ghost water shows source and flow steps, ghosts
+  inside real water can be targeted; "Target water and lava"; middle
+  click on a ghost brings its block from the hotbar or inventory, nothing
+  when not carried, real blocks stay vanilla. Plant growth not checked.
+  Notes: on/off redstone forms should be a wrong state, not ignored;
+  Overworld lava read 6 / 7; creative should give the block.
+- `c4532b08` (DLL SHA-256
+  `C4532B08BB5AB718FF2B6E0E3CE3175FB19A614B24B544C500255E29A2CEB962`):
+  on/off forms red with the switch off and yellow with it on; lava reads
+  n / 3 outside the Nether; a cactus set with `/setblock ~ ~ ~ cactus
+  ["age"=5]` counts as correct with plant growth ignored. Note: the "On:
+  yes/no" row should use the Java Edition state names.
+- `48ef893b` (DLL SHA-256
+  `48EF893B5B82C3281E07B99E8A80A88EE5FF62C59B49026D03CBC651755B08EC`):
+  Mistake marks in the menu's Show category and the HUD switch in Screen;
+  the four Check switches take keys and toast their state; rows read Lit
+  for lamps and Powered for repeaters. Note: reorder the Show items.
+- `d9c46e45` (DLL SHA-256
+  `D9C46E4591D4B26F3D3051A3A54599BD36B111A230064F643048D394F6DAD702`):
+  Show reads, clockwise from the top: Schematics, Show placement, Entities,
+  Extra blocks, Mistake marks, Nearest mistake.
+Not seen: servers, Nether lava rows, waterlogged ghosts, creative with a
+block not carried (not built), comparators and torches individually.
+
 ## L-261 temporary waypoints checked in game (2026-10-26)
 
 Local `1.26.51.01` LIP deployment, LeviLamina Client 26.51.7, Windows x64,
