@@ -21,6 +21,19 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-256 fourth perf trace: camera rebuilds narrowed (2026-10-26)
+
+`main` (`7c0a7cb2`) with `--schematic_perf_trace=y` (DLL SHA-256
+`8A9F3971776F0D21931EBCF9AEFF30088C585C0AF1C00FE9E9BE26C582AE9B30`), same
+setup and placement, maintainer. Standing still: ghost pass 2.45-2.54 ms
+(trace included). Walking around the placement: rebuilds 0-15 per 5 s
+(about 280 before), ghost pass 2.9-3.7 ms; the maintainer felt less
+stutter. Walking inside ghost blocks: 130-263 rebuilds per 5 s for camera
+cells, about 16 ms each on average with 27-38 ms peaks, ghost pass 7.5-15.6
+ms; looks right, but the maintainer notes it has always dropped FPS there.
+A dense section (up to 512 ghost blocks) costs 15-35 ms to build, and the
+frame budget always lets one build run.
+
 ## L-256 third perf trace: walk fix (2026-10-26)
 
 `main` (`697c2475`) with `--schematic_perf_trace=y` (DLL SHA-256

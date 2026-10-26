@@ -700,10 +700,17 @@ Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
 5. The verification scan (about 1 ms on 2026-10-09) is limited by count,
    not time: give it a time budget. (Done, `bd10d7d4`.)
 6. Rebuilds around the camera while walking (found 2026-10-26): each
-   new camera cell makes up to 27 sections around the old and the new
-   cell due, so walking rebuilds constantly. Only the cells the camera can
-   actually be inside need their ghosts drawn whole; rebuild fewer or
-   cheaper (for example only the section holding the cell).
+   new camera cell made every section within two cells due. Done for
+   walking outside ghosts (`7c0a7cb2`: only sections with a ghost drawn
+   within two cells; about 280 rebuilds per 5 s down to 0-15).
+7. Walking inside ghost blocks (found 2026-10-26, long-standing): each
+   cell crossed still rebuilds 1-8 dense sections at 15-35 ms each. Ideas:
+   (a) build the camera-dependent cells (within two cells of the camera)
+   as a small mesh of their own and keep sections camera-independent,
+   which needs the camera cell's ghost left out of its section without a
+   rebuild (Research); (b) wait until the camera has stayed in a cell for
+   a moment before rebuilding (cheap, but faces near the camera may look
+   wrong briefly while moving).
 Constraints: no visible change (outline look, mistake colors, blended
 order must not flicker again, L-192/L-193); fail open as today. Validate
 each step in game against the step 1 numbers.
