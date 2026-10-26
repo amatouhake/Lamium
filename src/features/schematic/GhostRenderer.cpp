@@ -860,8 +860,9 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
         BlockPos pos{cell.x, cell.y, cell.z};
         if (!region.getChunkAt(pos)) return std::nullopt;
         // A real block hides the ghosts behind it; one standing in its own
-        // cell is the card's ordinary schematic line.
-        if (!region.getBlock(pos).isAir()) {
+        // cell is the card's ordinary schematic line. Real water and lava do
+        // not: the game's ray passes through them too (L-264).
+        if (Block const& real = region.getBlock(pos); !real.isAir() && !liquidKind(real)) {
             if (throughBlocks) continue;
             return std::nullopt;
         }

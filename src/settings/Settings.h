@@ -240,6 +240,7 @@ struct Settings {
         bool targetStates = false; // Other details
         bool targetCoordinates = false;
         bool targetSchematic = true; // Ghosts and schematic differences on the card
+        bool targetLiquids = false; // Real water and lava as the target (L-264); ghosts' always are.
         bool durabilityHud = false;
         int durabilityLook = 0; // 0 bar and number, 1 number, 2 bar (number below a quarter)
         bool durabilityOffhand = true;

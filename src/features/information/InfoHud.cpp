@@ -1525,7 +1525,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     if (cardRan) {
         // One distance for every viewpoint: the body normally, the camera
         // during Freelook and FreeCamera (it looks elsewhere than the body).
-        cardTarget = collectTargetInfo(context.mClient, true, targetRay, settings.targetSchematic);
+        cardTarget = collectTargetInfo(context.mClient, true, targetRay, settings.targetSchematic, settings.targetLiquids);
         if (!cardTarget && preview) {
             TargetInfo sample{ui::translated("feature.targetInfo"), "minecraft:grass_block"};
             sample.icon = {IconKind::Item, "minecraft:grass_block", 0};

@@ -203,6 +203,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::targetStates>("information.targetStates", "targetInfo", "targetStates"),
     toggle<&Settings::information, &Settings::Information::targetCoordinates>("information.targetCoordinates", "targetInfo", "targetCoordinates"),
     toggle<&Settings::information, &Settings::Information::targetSchematic>("information.targetSchematic", "targetInfo", "targetSchematic"),
+    toggle<&Settings::information, &Settings::Information::targetLiquids>("information.targetLiquids", "targetInfo", "targetLiquids"),
     toggle<&Settings::information, &Settings::Information::durabilityHud>("information.durabilityHud", "durabilityHud", "durabilityHud"),
     choice<&Settings::information, &Settings::Information::durabilityLook, durabilityLookLabels>("information.durabilityLook", "durabilityHud", "durabilityLook"),
     toggle<&Settings::information, &Settings::Information::durabilityOffhand>("information.durabilityOffhand", "durabilityHud", "durabilityOffhand"),

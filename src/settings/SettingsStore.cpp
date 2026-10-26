@@ -106,6 +106,7 @@ Json encode(Settings const& settings) {
                          {"targetStates", settings.information.targetStates},
                          {"targetCoordinates", settings.information.targetCoordinates},
                          {"targetSchematic", settings.information.targetSchematic},
+                         {"targetLiquids", settings.information.targetLiquids},
                          {"durabilityHud", settings.information.durabilityHud},
                          {"durabilityLook", settings.information.durabilityLook},
                          {"durabilityOffhand", settings.information.durabilityOffhand},
@@ -338,6 +339,7 @@ Settings decodeSettings(std::string_view text) {
         if (auto found = info.find("targetSchematic"); found != info.end())
             value.information.targetSchematic = found->is_number() ? found->get<double>() != 0
                 : found->is_boolean() ? found->get<bool>() : value.information.targetSchematic;
+        value.information.targetLiquids = settingsValue(info, "targetLiquids", value.information.targetLiquids);
         value.information.durabilityHud = settingsValue(info, "durabilityHud", value.information.durabilityHud);
         value.information.durabilityLook = settingsValue(info, "durabilityLook", value.information.durabilityLook);
         value.information.durabilityOffhand = settingsValue(info, "durabilityOffhand", value.information.durabilityOffhand);

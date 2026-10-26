@@ -143,6 +143,12 @@ void targetCardTests() {
               "slab half, axis and upside down are named");
         check(!interpretBlockState("minecraft:corner", StateKind::Text, 0, "none", "minecraft:stone_stairs"),
               "unknown states keep their raw rows");
+        auto source = interpretBlockState("liquid_depth", StateKind::Integer, 0, {}, "minecraft:water");
+        auto flowing = interpretBlockState("liquid_depth", StateKind::Integer, 3, {}, "minecraft:flowing_water");
+        auto falling = interpretBlockState("liquid_depth", StateKind::Integer, 9, {}, "minecraft:flowing_water");
+        check(source && source->value == "target.flowSource" && flowing && flowing->label == "target.flowSteps"
+                  && flowing->value == "3 / 7" && falling && falling->value == "target.flowFalling",
+              "water reads as a source, steps from one, or falling (L-264)");
         // L-93: schematic rows say what to do.
         auto translate = [](std::string_view key) { return "<" + std::string(key) + ">"; };
         using lamium::schematic::CellState;

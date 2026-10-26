@@ -2,6 +2,7 @@
 #include "features/information/SchematicTarget.h"
 #include "features/information/TargetPick.h"
 #include "features/schematic/GhostRenderer.h"
+#include "features/schematic/RayCells.h"
 #include "features/schematic/SchematicSession.h"
 #include "app/Runtime.h"
 #include "ui/Localization.h"
@@ -291,8 +292,27 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
     result.ghost = true;
     return result;
 }
+// The first real water or lava along the ray, before any other block (L-264).
+std::optional<TargetInfo> liquidTarget(BlockSource& source, bool includeStates, ViewRay const& ray) {
+    for (auto const& cell : schematic::cellsAlong(ray.x, ray.y, ray.z, ray.dx, ray.dy, ray.dz, ray.reach)) {
+        BlockPos pos{cell.x, cell.y, cell.z};
+        if (!source.getChunkAt(pos)) return std::nullopt;
+        Block const& block = source.getBlock(pos);
+        if (!schematic::ghosts::liquidKind(block)) {
+            if (block.isAir()) continue;
+            return std::nullopt;
+        }
+        TargetInfo result{block.buildDescriptionName(), block.getTypeName()};
+        if (result.name.empty()) result.name = result.identifier;
+        result.blockPosition = TargetInfo::BlockPosition{pos.x, pos.y, pos.z};
+        result.icon = blockIcon(source, pos, block);
+        if (includeStates) appendStates(result, block, {});
+        return result;
+    }
+    return std::nullopt;
+}
 std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates, std::optional<ViewRay> ray,
-                                            bool includeSchematic) {
+                                            bool includeSchematic, bool includeLiquids) {
     auto* player = client.getLocalPlayer();
     if (!player) return {};
     Pick pick;
@@ -343,6 +363,8 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     if (includeSchematic && (hit.mType != HitResultType::Entity || onGameLine))
         if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ghostRay, onGameLine))
             return ghost;
+    if (includeLiquids && ghostRay && (hit.mType != HitResultType::Entity || onGameLine))
+        if (auto liquid = liquidTarget(player->getDimensionBlockSource(), includeStates, *ghostRay)) return liquid;
     if (hit.mType == HitResultType::Entity) {
         auto* entity = pick.entity;
         if (!entity || entity == player || entity->mRemoved

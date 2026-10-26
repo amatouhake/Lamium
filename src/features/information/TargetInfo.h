@@ -75,6 +75,12 @@ inline std::optional<TargetInfo::DetailRow> interpretBlockState(std::string_view
         return DetailRow{key == "age" ? "target.age" : "target.growth", std::move(value), false, progress,
                          DetailKind::Growth};
     }
+    // Water and lava (L-264): 0 a source, 1-7 steps away from one, 8 and up falling.
+    if (key == "liquid_depth" && kind == StateKind::Integer && number >= 0) {
+        if (number == 0) return DetailRow{"target.flow", "target.flowSource", true, {}};
+        if (number >= 8) return DetailRow{"target.flow", "target.flowFalling", true, {}};
+        return DetailRow{"target.flowSteps", std::to_string(number) + " / 7", false, 1.f - static_cast<float>(number) / 8};
+    }
     if (key == "redstone_signal" && kind == StateKind::Integer && number >= 0 && number <= 15)
         return DetailRow{"target.power", std::to_string(number), false, static_cast<float>(number) / 15};
     if (key == "facing_direction" && kind == StateKind::Integer) {
@@ -121,8 +127,10 @@ inline std::optional<TargetInfo::DetailRow> interpretBlockState(std::string_view
 // hit wins within the reach: it is the block the outline shows, and a ray
 // from the eye position can differ from it at a block's edge (L-217).
 struct ViewRay { double x, y, z, dx, dy, dz; double reach; bool detached = false; };
+// `includeLiquids`: real water and lava the ray meets are the target (L-264).
 std::optional<TargetInfo> collectTargetInfo(IClientInstance&, bool includeStates = false,
-                                            std::optional<ViewRay> ray = std::nullopt, bool includeSchematic = true);
+                                            std::optional<ViewRay> ray = std::nullopt, bool includeSchematic = true,
+                                            bool includeLiquids = false);
 // Drops per-world icon lookups on world exit.
 void startTargetIcons();
 void stopTargetIcons();
