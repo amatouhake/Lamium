@@ -29,6 +29,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"capability.ChatPosition", "聊天位置"},
     {"capability.FreeCameraHand", "隐藏手部"},
     {"capability.FreeCameraHud", "隐藏整个HUD"},
+    {"capability.FreeCameraInsideBlock", "方块内的画面"},
     {"capability.HideParticles", "粒子的隐藏"},
     {"capability.HideBossBars", "Boss血条的隐藏"},
     {"capability.SchematicBlend", "原理图半透明投影"},

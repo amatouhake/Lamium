@@ -10,7 +10,7 @@ enum class Id {
     RepeatedTrades, TransferRoutes, HideFog, HideWeather, HidePortal, HideNausea,
     SchematicBlocks, SchematicPiston, SchematicShulker, SchematicEntities, GameLanguage,
     SkipServerPacks, FreeCameraHotbar, FakeOffhandTargets, ChatPosition,
-    FreeCameraHand, FreeCameraHud, HideParticles, HideBossBars,
+    FreeCameraHand, FreeCameraHud, FreeCameraInsideBlock, HideParticles, HideBossBars,
     SchematicBlend, SchematicActorLight,
     InventoryDiagnostics, LanguageDiagnostics, Count
 };
@@ -52,6 +52,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::ChatPosition, "Chat position (HUD control positions)", "chatPosition", "capability.ChatPosition", Impact::Fully},
     {Id::FreeCameraHand, "FreeCamera hide (hand pass)", "freecamera", "capability.FreeCameraHand", Impact::Partly, false},
     {Id::FreeCameraHud, "FreeCamera hide (HUD pass)", "freecamera", "capability.FreeCameraHud", Impact::Partly, false},
+    {Id::FreeCameraInsideBlock, "FreeCamera view (inside-a-block screen effect)", "freecamera", "capability.FreeCameraInsideBlock", Impact::Partly},
     {Id::HideParticles, "Hide effects (particle passes)", "hideEffects", "capability.HideParticles", Impact::Partly, false},
     {Id::HideBossBars, "Hide effects (boss bar passes)", "hideEffects", "capability.HideBossBars", Impact::Partly, false},
     {Id::SchematicBlend, "Schematic ghosts (blended pass)", "schematic", "capability.SchematicBlend", Impact::Partly},
