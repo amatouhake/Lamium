@@ -84,17 +84,23 @@ std::optional<overlay::Point> viewPoint() {
     return overlay::Point{point->x, point->y, point->z};
 }
 // Reference point for new or moved shapes, and the reference actually used: a
-// missing target falls back to the standing block with a notice.
+// missing target falls back to the standing block with a notice. A targeted
+// block is taken before the view point is asked for, so a frame without a
+// usable pose does not drop the block the crosshair picked.
 std::optional<std::pair<overlay::Point, shape::Reference>> referencePoint() {
-    auto point = viewPoint();
-    if (!point) return {};
     if (shapeReference == shape::Reference::TargetBlock) {
-        auto const& hit = screen::client()->getLatestHitResult();
-        if (hit.mType == HitResultType::Tile)
-            return std::pair{overlay::Point{hit.mBlock.x + .5, hit.mBlock.y + .5, hit.mBlock.z + .5}, shapeReference};
+        if (auto* client = screen::client()) {
+            auto const& hit = client->getLatestHitResult();
+            if (hit.mType == HitResultType::Tile)
+                return std::pair{overlay::Point{hit.mBlock.x + .5, hit.mBlock.y + .5, hit.mBlock.z + .5}, shapeReference};
+        }
+        auto point = viewPoint();
+        if (!point) return {};
         screen::setMessage(translated("shape.targetMissing"));
         return std::pair{*point, shape::Reference::StandingBlock};
     }
+    auto point = viewPoint();
+    if (!point) return {};
     return std::pair{*point, shapeReference};
 }
 overlay::Point centerOf(overlay::ShapeDefinition const& definition) {
