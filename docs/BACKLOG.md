@@ -76,6 +76,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
+   L-260 Connected Textures missing textures with a ray tracing pack
+   waits for the reporter's log.
    Decided and Ready (2026-10-26): L-244, L-247, L-248.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
@@ -546,6 +548,28 @@ Research before building (trace build, Windows):
 Pure part with tests: splitting text into pages given a fits-predicate.
 New hooks go into GAME-UPDATES.md. Verify on a local world and on a server
 that the pages survive closing and reopening the book.
+No release target selected.
+
+### L-260 Connected Textures: missing-texture checkerboard with a ray tracing pack
+Kind: Research (bug). User report 2026-10-26 after 0.3.0, two screenshots:
+after installing the ray tracing resource pack "COMPLETELY NORMAL RTX pack",
+joined glass faces and sandstone show the magenta/black missing-texture
+checkerboard, with ray tracing on and off. Both are Connected Textures
+targets, so a joined face is most likely shifted onto a sprite tile the
+atlas could not build.
+Suspects, in `ConnectedSprites.cpp`: the derived `.texture_set.json` (color
+renamed to the sprite, maps baked only when 16-64 px square, otherwise the
+base's map is kept, so the color and its maps can differ in size); maps the
+pack ships as `.tga` or as uniform values; a sprite counted as placed
+because its color PNG was served although the atlas rejected its texture
+set.
+Next: ask the reporter for `mods/Lamium/logs/lamium.log` (the "Connected
+Textures:" lines: sprite and texture-set counts, the bookshelf texture set
+sample, "N of M sprites in place"), whether turning Connected Textures off
+clears it, and a pack link. Then reproduce with the pack locally (ray
+tracing is not needed if it also happens with it off). Whatever the cause,
+a sprite whose texture set cannot be matched must fall back to the vanilla
+face, never to the missing texture.
 No release target selected.
 
 ### L-253 Option to fix the minimap to surface or cave view
