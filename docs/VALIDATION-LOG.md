@@ -21,6 +21,129 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-256 review follow-up on a release build (2026-10-26)
+
+PR #41 head with `ce28673` (copied outline vertices fall back to
+`vertex()`, one reused point buffer), release build with the trace off,
+`1.26.51.01` LIP, maintainer; DLL SHA-256 not recorded. Walking inside
+and around ghosts: outlines (Normal, Thin, mistake colors) looked as
+before and nothing felt slower. No numbers taken (trace off).
+
+## L-256 eighth perf trace: main's camera rebuilds with bulk outlines (2026-10-26)
+
+`cbf1742` (the near mesh dropped, `main`'s camera rebuilds, outline
+vertices copied in bulk) with `--schematic_perf_trace=y` (DLL SHA-256
+`19FAA46E84FAD1C816B35B37A682CDFF5AF49DA8C4A6673A8AD765BC857B078E`),
+`1.26.51.01` LIP, Normal outlines, maintainer; 41 windows of 5 s, 2428
+sections.
+- Loading: about 2390 builds per window (at most 2517), 0.29 ms each on
+  average, at most 4.6 ms (6.6 in the worst window); ghost pass 4.95 ms,
+  92 fps.
+- Flying inside ghost blocks (25 windows): 86 builds per window (median,
+  at most 530), 1.43 ms each on average (0.43-2.80), at most 4.02 ms
+  (median) and 5.66 (worst); ghost pass 3.84 ms median, 5.14 worst; 86
+  fps median; worst frame 15.3 ms (28.7 once, just after starting).
+  The `main` trace of the same area (fourth trace): builds 7-16 ms each
+  on average, at most 17.4-38.6, ghost pass 6.46-15.61 ms, worst frame
+  42.8 ms, 42-69 fps.
+- Look: inside sandstone wall, stair and farmland ghosts the camera's
+  block is hidden as on `main` and nothing z-fights; Normal, Thick, Thin
+  and None outlines and the red, yellow and orange mistake outlines as
+  before; waterlogged blocks fine.
+
+## L-256 near-box z-fighting: quad starts and the probe (2026-10-26)
+
+Local `1.26.51.01` LIP, Normal outlines, maintainer.
+- A/B of `main` (`86723d2e`, DLL SHA-256 `b7357f50…9c04`) against `6e7b96e`
+  in the same places: from inside a sandstone wall, a stair and farmland
+  (and looking at the next block) the branch z-fights and still shows the
+  ghost block the camera is in; `main` hides that block and does not
+  z-fight. Cross plants (dead bush) flicker on both (L-268).
+- `97c74de` (DLL SHA-256
+  `546CF7D0F902951F967BFBA18A06FF91253A8E3D31E9CF5002BF59F18672AD40`,
+  quad-list runs started at index first / 4 * 6): unchanged, the camera's
+  block still shows and z-fights.
+- `4383b0b` with `--schematic_perf_trace=y --schematic_near_probe=y`
+  (DLL SHA-256
+  `9F552D62D4F0CA5F92472886760888B5DE591CD6C2D816CBD53F4BB869AA32C6`;
+  sections touching the near box not drawn at all): the camera's block is
+  hidden as on `main`; around it only the near box's cells show, with
+  holes out to the section borders (expected). Per near rebuild inside a
+  sandstone wall: camera cells drawn 1.00-1.80, their quads 6.0-13.2,
+  dropped as back faces 1.0-4.5, 38-101 cells drawn.
+Result: the near meshes are right; the extra faces came from the
+sections, so `renderMesh` with a start and count did not leave the near
+cells out under either reading of the start.
+
+## L-256 seventh perf trace: outlines copied in bulk (2026-10-26)
+
+`6e7b96e` with `--schematic_perf_trace=y` (DLL SHA-256
+`92E912D59A42F7C89304C7DFB9D4008542521047D9B72C1C29529D04E2397502`),
+`1.26.51.01` LIP, Normal outlines, maintainer. Route: wait above the
+placement, fly around, wait inside, fly around inside; 15 windows of 5 s.
+Inside (149-166 cells drawn, 891-996 face quads), per near rebuild:
+3.11-4.12 ms (23.66-25.96 on `0431c2d`), of which outlines 0.93-1.03
+(20.63-23.59), tessellation 1.86-2.77, lookups 0.08-0.09, face drops
+0.11-0.13, upload 0.04-0.05, mistake ranking 0.00; 16-78 rebuilds per 5 s
+(14-16 a second when flying), ghost pass 3.71-4.97 ms (6.67-8.00), worst
+frames 11-15 ms (31-32), 72-97 fps. Loading: section builds at most 7.0 ms
+each (35.3 before), 2091 and 420 builds in the first windows.
+Look checked with no change: Normal, Thick, Thin and None outlines;
+Simple, Fancy and Vibrant Visuals; red, yellow and orange mistake
+outlines; no missing outlines and none vanishing at a distance.
+Not checked: the z-fighting seen on `291fcd4` against `main`, waterlogged
+blocks, the door halves (L-267).
+
+## L-256 sixth perf trace: parts of a near rebuild (2026-10-26)
+
+`0431c2d` (near rebuild split from `0b00d03`) with `--schematic_perf_trace=y`
+(DLL SHA-256
+`0DDFC472B49D77348205710003E459B79FDBE5193C4782ED30EA75FEE0B8992E`),
+`1.26.51.01` LIP, maintainer. Two runs of the same route (wait after
+entering, fly over the placement, wait inside, fly around inside), Normal
+outlines then Thin; during the Normal run another Minecraft and Discord
+were open, so fps differs between runs, the per-rebuild split does not.
+Inside (150-172 cells drawn), per near rebuild:
+- Normal: 23.66-25.96 ms, of which outlines 20.63-23.59, tessellation
+  2.04-2.90, lookups 0.08, face drops 0.12-0.13, mistake ranking 0.00,
+  upload 0.04, other 0.06; 175 cells, 266 halo cells, 900-1031 face quads;
+  14-53 rebuilds per 5 s, ghost pass 4.42-8.00 ms, 58-93 fps.
+- Thin: 4.37-4.63 ms, of which outlines 1.68-1.82, tessellation
+  2.36-2.45; 75-84 rebuilds per 5 s, ghost pass 4.56-4.59 ms, 71-75 fps.
+Outside or standing: 0.11-2.08 ms per rebuild (0-18 cells drawn).
+Section builds inside: 0 (2134, 616, 387 while loading only).
+Outlines cost about 0.137 ms per cell at Normal width and 0.011 at Thin
+(12.4 times, matching 32 against 2 vertices per edge): the cost is per
+vertex added through the tessellator.
+
+## L-256 fifth perf trace: near mesh (2026-10-26)
+
+`claude/intelligent-hopper-yhi2ze` (`291fcd4`) with `--schematic_perf_trace=y`
+(DLL SHA-256
+`1E2502E04A581C4DA5F41299DF296FCE33D738871E793EAEE73C0A608F2903DD`),
+`1.26.51.01`, same placement (2428 sections), maintainer. Two sessions, a
+visual pass and a measurement pass (16 windows of 5 s); no errors or
+exceptions in the log, no incomplete sections. Per 5 s window:
+- Loading and arrival: ghost pass 27.90, 12.91, 12.68, 4.26 ms; builds 1,
+  469, 1091, 870.
+- Standing and outside: ghost pass 2.65-3.54 ms (mean 3.17), builds 0-12,
+  near rebuilds 34-105 at 0.1-0.3 ms each, 80-107 fps.
+- Flying inside ghost blocks: ghost pass 2.97-15.19 ms, builds 0 (12 once),
+  near rebuilds 12-85 at 10.1-26.6 ms each (24-27 ms in dense interiors,
+  0.1-0.5 ms in open air), 113 then 66, 56, 41 fps, worst frame 34.9 ms.
+  On the previous build in the same area: ghost pass 6.46-15.61 ms, builds
+  77-274 at 7-16 ms each, 42-69 fps.
+- The walk stayed 0.053-0.062 ms a frame throughout.
+Result: inside ghosts the section rebuilds are gone, but the near mesh
+costs as much (a new camera cell every 2-3 frames when flying fast), so
+frame rate there did not improve; outside and standing unchanged.
+Visual: walking around the ghost looks right and updates as expected.
+Seen, not yet compared with `main`: z-fighting or unstable order inside a
+stair block, at a door seen from inside a block, and on cross-shaped
+plants (dead bush). Also seen: some door ghosts face correctly, others
+have upper and lower halves facing different ways (L-267). Waterlogged
+blocks not checked.
+
 ## L-256 fourth perf trace: camera rebuilds narrowed (2026-10-26)
 
 `main` (`7c0a7cb2`) with `--schematic_perf_trace=y` (DLL SHA-256

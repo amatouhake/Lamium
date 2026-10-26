@@ -57,6 +57,50 @@ void finishColors(Tessellator& batch, float r, float g, float b) {
     for (auto& c : colors) c = scale(c, 0, r) | scale(c, 8, g) | scale(c, 16, b) | (c & 0xff000000u);
 }
 
+// Draws `points` into a begun batch that holds nothing yet, all in the
+// batch's current color: the first `lead` (one primitive, lead > 0) through
+// vertex(), which sets up the vertex streams, the rest copied into the
+// streams like the sorted blended mesh. L-256: a vertex() call cost about
+// 0.3 us, and normal-width outlines (32 per edge) took 20 ms of a 25 ms
+// rebuild of the ghosts around the camera. Copying is the same as calling
+// vertex() only while every vertex differs in position alone: one color,
+// no normal, UV or transform set, and no face data (begun with
+// buildFaceData false). If the first vertices did not land one for one in
+// the positions, the rest go through vertex() too.
+void drawSameColor(Tessellator& batch, std::vector<glm::vec3> const& points, size_t lead) {
+    auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
+    auto& positions = *data.mPositions;
+    size_t const drawn = std::min(lead, points.size());
+    for (size_t k = 0; k < drawn; ++k) batch.vertex(points[k].x, points[k].y, points[k].z);
+    if (points.size() <= drawn) return;
+    if (!drawn || positions.size() != drawn) {
+        for (size_t k = drawn; k < points.size(); ++k) batch.vertex(points[k].x, points[k].y, points[k].z);
+        return;
+    }
+    // Every stream the first vertices filled, as theirs.
+    auto extend = [&](auto& stream) {
+        if (stream.size() == drawn) stream.resize(points.size(), stream.front());
+    };
+    extend(*data.mNormals);
+    extend(*data.mTangents);
+    extend(*data.mColors);
+    extend(*data.mMERS);
+    extend(*data.mBoneId0s);
+    extend(*data.mPBRTextureIndices);
+    extend(*data.mGeoType);
+    for (int i = 0; i < 3; ++i) extend(*data.mTextureUVs[i]);
+    positions.insert(positions.end(), points.begin() + static_cast<std::ptrdiff_t>(drawn), points.end());
+    // The bounds as vertex() keeps them; set by hand like the sorted blended
+    // mesh's (whether end() would compute them is not known).
+    glm::vec3 low{1e9f}, high{-1e9f};
+    for (auto const& p : positions) {
+        low = glm::min(low, p);
+        high = glm::max(high, p);
+    }
+    *data.mAABB = {low, high};
+    static_cast<unsigned&>(batch.mCount) = static_cast<unsigned>(positions.size());
+}
+
 // A ghost with an opaque full block on all six sides cannot be seen: real
 // ones, or ghosts that will be drawn there (shown layers, nothing placed).
 // An opaque full ghost will be drawn at `n`: nothing real is there, the
@@ -689,6 +733,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 if (!added) found->second = std::max(found->second, rank);
             }
         }
+        std::vector<glm::vec3> points; // one color's vertices, reused across colors
         for (auto const& [color, group] : byColor) {
             int const rank = faces::outlineRank(std::get<0>(color), std::get<1>(color), std::get<2>(color));
             float const half = faces::rankedBarHalfWidth(width, rank);
@@ -700,6 +745,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
             auto [r, g, b] = color;
             lines.color(r, g, b, 1.f);
             std::uint32_t drawn = 0;
+            points.clear();
+            points.reserve(group.size() * 12 * static_cast<size_t>(perEdge));
             for (auto const* o : group) {
                 glm::vec3 c[8], world[8];
                 corners(*o, grow, out.origin, c);
@@ -708,14 +755,17 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     if (strongest[key(world[i], world[j])] > rank) continue;
                     drawn += static_cast<std::uint32_t>(perEdge);
                     if (half <= 0) {
-                        lines.vertex(c[i].x, c[i].y, c[i].z);
-                        lines.vertex(c[j].x, c[j].y, c[j].z);
+                        points.push_back(c[i]);
+                        points.push_back(c[j]);
                         continue;
                     }
                     for (auto const& v : faces::barQuads({c[i].x, c[i].y, c[i].z}, {c[j].x, c[j].y, c[j].z}, half))
-                        lines.vertex(v[0], v[1], v[2]);
+                        points.push_back({v[0], v[1], v[2]});
                 }
             }
+            // One primitive first: a quad of a bar (barQuads, 8 quads per
+            // edge) or a game line.
+            drawSameColor(lines, points, half > 0 ? 4 : 2);
             auto mesh = lines.end(Tessellator::UploadMode::Buffered, "Lamium schematic outlines", SupplementaryFieldAutoGenerationMode{});
             if (!drawn) continue;
             auto entry = std::make_unique<Section::ColorLines>();

@@ -81,7 +81,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
    L-253, L-254, L-255.
    **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
-   checked except L-263 creative and L-264 waterlogged; next: L-256 research); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   checked except L-263 creative and L-264 waterlogged; stage 4, L-256,
+   done 2026-10-26); L-267 door halves (Bug); L-268 cross-plant flicker (Bug); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -546,7 +547,8 @@ Stages, in order:
 3. The aimed ghost: L-264 schematic water in Target View, L-263 pick the
    aimed ghost's block.
 4. Performance, research only: L-256 measure and find the cost; whether to
-   change anything is decided from the results (L-236 is related).
+   change anything is decided from the results (L-236 is related). Done
+   2026-10-26 (BACKLOG-DONE).
 Out of the batch: L-183 (reconsider after L-262), L-184, L-185, L-186,
 L-265, L-114 to L-116, and the parked or waiting bugs (L-177, L-192, L-193,
 L-245).
@@ -665,101 +667,34 @@ languages (it says the inside stays joined). Check in game: L corners in
 both directions, T and cross junctions, stained panes, option off.
 No release target selected.
 
-### L-256 Schematic ghosts: lower the in-world drawing cost
-Kind: Research, then Ready steps. Maintainer note 2026-10-26 after 0.3.0:
-drawing ghosts in the world is heavy, and seems heavier with many check
-mistakes. The last measurements (SCHEMATIC.md C, 2026-10-09; L-105 and
-VALIDATION-LOG "Perf trace of `2965ec8`", 2026-10-14: 3086 sections, 4-6
-ms a frame standing still, mostly per-section draws) predate the bar
-outlines of L-186 and the later blended-mesh changes (L-192/L-193, mistake
-boxes in that mesh), so they no longer describe the current cost. The
-candidates below come from reading the code, not from a measurement.
-Related: L-105 (whole-game profiling), L-236 (rebuilds when the cut moves).
-Step 1 (first, Research): measure again with `xmake f
---schematic_perf_trace=y` on current main: a large placement with no
-mistakes, one with many mistakes (red/yellow areas), and both with Outline
-width Thin. Record frame time per stage (faces, lines, blended, check/scan,
-rebuilds, re-sorts) in VALIDATION-LOG, then pick the steps below by cost.
-Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
-1. Outlines: Normal/Thick width draws each edge as 32 vertices
-   (`faces::barQuads`, four double-sided quads), 384 per outlined cell,
-   and an edge shared by adjacent ghosts is drawn once per ghost (only a
-   weaker color rank is skipped). Draw each edge once.
-2. Mistake boxes: faces hidden between touching marks are collapsed to a
-   point, not removed, so dense mistake areas still sort, merge and upload
-   them in the blended mesh; above 20000 quads that mesh re-sorts and
-   uploads every 0.25 s while moving. Remove collapsed quads and merge
-   same-color runs into larger faces (marks use one texel); every mark
-   with an open face also adds an outline (candidate 1 applies).
-3. Collapsed quads elsewhere (`dropDuplicateQuads`, ghost-to-ghost culling)
-   stay in the face and blended meshes: compact them before upload,
-   keeping every vertex stream aligned.
-4. Draw calls: one face draw per 8-block section (about 4900 sections cost
-   1.9 ms on 2026-10-09). Keep 8-block rebuilds but draw static sections
-   in larger groups.
-5. The verification scan (about 1 ms on 2026-10-09) is limited by count,
-   not time: give it a time budget. (Done, `bd10d7d4`.)
-6. Rebuilds around the camera while walking (found 2026-10-26): each
-   new camera cell made every section within two cells due. Done for
-   walking outside ghosts (`7c0a7cb2`: only sections with a ghost drawn
-   within two cells; about 280 rebuilds per 5 s down to 0-15).
-7. Walking inside ghost blocks (found 2026-10-26, long-standing): each
-   cell crossed still rebuilds 1-8 dense sections at 15-35 ms each. Ideas:
-   (a) build the camera-dependent cells (within two cells of the camera)
-   as a small mesh of their own and keep sections camera-independent,
-   which needs the camera cell's ghost left out of its section without a
-   rebuild (Research); (b) wait until the camera has stayed in a cell for
-   a moment before rebuilding (cheap, but faces near the camera may look
-   wrong briefly while moving).
-   Chosen 2026-10-26 (maintainer): (a). Research done the same day, from
-   `GhostMesh.cpp`/`GhostRenderer.cpp` at `28e43baf`:
-   - Every camera effect is confined to ghost cells within two cells (per
-     axis) of the eye or feet cell (`BuildCamera::cells`): the enclosed
-     skip (`camera.near(cell, 2)`), `cullAgainstGhosts` (`nearCamera`,
-     `beyond` from the eye), the tessellator's neighbor answers
-     (`ghostNeighbor`, reach 1), `dropBackFaces` in the camera cells, and
-     the liquid shells through those neighbor answers. Lines and mistake
-     marks do not depend on the camera.
-   - Plan: build sections with an empty `BuildCamera` (no cells), so they
-     never depend on the camera, and record each cell's first vertex in
-     the face mesh (cells are appended x, y, z with z fastest; liquids go
-     to the blended tessellator). A section touching the near box (the
-     union of the two 5x5x5 boxes) is drawn in vertex ranges that skip the
-     box's cells (`renderMesh` takes a start and count; at most about 30
-     runs, for at most 8 sections).
-   - A near mesh per placement holds the box's ghost cells built with the
-     real camera (about 150 cells instead of up to 8 dense sections of 512),
-     rebuilt when the camera cell changes, drawn after the sections.
-   - Blended quads are re-sorted far to near at build time, which loses
-     the cell order: give `BlendQuads` a cell index per quad, leave the
-     near box's quads out when combining/sorting (and draw a section's
-     own blended mesh from the filtered CPU quads when it touches the
-     box), and add the near mesh's blended quads.
-   - Then the camera-cell marking in `drawPlacements` (`7c0a7cb2`) goes.
-   - Check in game against L-192/L-193 (no flicker between sections or
-     placements), inside doors/stairs/spawners (L-178 back faces), glass,
-     waterlogged blocks, and the trace numbers while walking inside
-     ghosts (16-38 ms frames now).
-Constraints: no visible change (outline look, mistake colors, blended
-order must not flicker again, L-192/L-193); fail open as today. Validate
-each step in game against the step 1 numbers.
-Step 1 done 2026-10-26 (VALIDATION-LOG "L-256 schematic ghost perf
-trace"): 2428 sections, ghost pass 3.7-4.8 ms standing still. By cost:
-the check/scan about 1.05-1.25 ms every frame (candidate 5); about 1 ms
-outside every measured stage (find it first: per-section bookkeeping over
-all sections is the suspect); faces 1.0-1.5 ms (candidate 4); lines
-0.3-0.7 ms, the same for Thin and Normal, so it is the number of line
-meshes, not candidate 1's vertex count; many mistakes add 0.25 ms standing
-and re-sort the blended mesh every frame while walking (candidate 2).
-Proposed order: account for the missing 1 ms, give the scan a time
-budget, then fewer draws for faces and lines, then the mistake boxes.
-Candidate 1 drops to last.
-Done 2026-10-26: the scan is capped at 0.5 ms a frame (`bd10d7d4`, about
--0.5 ms) and the missing millisecond was the per-frame walk over every
-section, now 0.07 ms (`697c2475`). Standing still the pass is about 3.05
-ms (was 4.5). New finding: while walking, rebuilding the sections around
-the camera's old and new cells costs 3-5 ms a frame with 25-30 ms peaks,
-more than any drawing stage (6. below). No release target selected.
+### L-267 Schematic door ghosts: upper and lower halves face different ways
+Kind: Bug. Reported 2026-10-26 by the maintainer while checking L-256 on
+`291fcd4`: some door ghosts face correctly, others draw their upper and
+lower halves facing different ways; one of the two may be ignoring the
+open state. Seen again 2026-10-26 by the maintainer on the PR #41 build
+(code as `cbf1742`, no near mesh, faces built as on `main`), so it is not
+from the L-256 experiment; not a blocker for that PR.
+Hypothesis from the code (not checked): while a door half is drawn, the
+tessellator's answer for the other half's cell is always the half Lamium
+makes from the drawn entry with `upper_block_bit` flipped
+(`ghostNeighbor`, `Resolved::halves`), unless the real block there is a
+door, even when the file has its own other half there. The game draws a
+door's upper half from the lower half's states, so an upper entry whose
+saved direction or open state differs from its lower half's would draw
+the upper ghost with the upper entry's own states. Possible fix: answer
+with the file's ghost at that cell when it is the same block type, and
+make a half only where the file has none. Check in game: closed and open
+doors in all four facings, both hinges, rotated and mirrored placements,
+a door with one half placed for real.
+No release target selected.
+
+### L-268 Schematic cross-plant ghosts flicker
+Kind: Bug. Seen 2026-10-26 by the maintainer on `main` (`86723d2e`) and
+on the L-256 branch alike: ghosts of cross-shaped plants (dead bush and
+similar) flicker. Suspect (not checked): the cross planes are drawn twice
+in one place, for example in both windings or in two render layers, and
+`dropDuplicateQuads` does not catch the pair. Find which quads the
+tessellator emits for one such ghost first. No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported
