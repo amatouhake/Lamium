@@ -21,6 +21,28 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-256 eighth perf trace: main's camera rebuilds with bulk outlines (2026-10-26)
+
+`cbf1742` (the near mesh dropped, `main`'s camera rebuilds, outline
+vertices copied in bulk) with `--schematic_perf_trace=y` (DLL SHA-256
+`19FAA46E84FAD1C816B35B37A682CDFF5AF49DA8C4A6673A8AD765BC857B078E`),
+`1.26.51.01` LIP, Normal outlines, maintainer; 41 windows of 5 s, 2428
+sections.
+- Loading: about 2390 builds per window (at most 2517), 0.29 ms each on
+  average, at most 4.6 ms (6.6 in the worst window); ghost pass 4.95 ms,
+  92 fps.
+- Flying inside ghost blocks (25 windows): 86 builds per window (median,
+  at most 530), 1.43 ms each on average (0.43-2.80), at most 4.02 ms
+  (median) and 5.66 (worst); ghost pass 3.84 ms median, 5.14 worst; 86
+  fps median; worst frame 15.3 ms (28.7 once, just after starting).
+  The `main` trace of the same area (fourth trace): builds 7-16 ms each
+  on average, at most 17.4-38.6, ghost pass 6.46-15.61 ms, worst frame
+  42.8 ms, 42-69 fps.
+- Look: inside sandstone wall, stair and farmland ghosts the camera's
+  block is hidden as on `main` and nothing z-fights; Normal, Thick, Thin
+  and None outlines and the red, yellow and orange mistake outlines as
+  before; waterlogged blocks fine.
+
 ## L-256 near-box z-fighting: quad starts and the probe (2026-10-26)
 
 Local `1.26.51.01` LIP, Normal outlines, maintainer.

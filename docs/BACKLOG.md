@@ -82,9 +82,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-253, L-254, L-255.
    **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
    checked except L-263 creative and L-264 waterlogged; L-256 item 7 (a)
-   dropped (runs could not leave the near cells out); `main`'s camera
-   rebuilds kept with outlines copied in bulk, to be measured inside
-   ghosts); L-267 door halves (Bug); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   dropped; outlines copied in bulk instead: inside ghosts 3.8 ms ghost
+   pass, 86 fps, checked `cbf1742`); L-267 door halves (Bug); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -814,7 +813,12 @@ Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
    runs, `NearCells.h` and the probe option were removed; the design notes
    above stay as the record. If walking inside is still heavy, the next
    ideas are copies of the touching sections without the near cells
-   (needs their vertex data kept) or 7 (b). Not done: caching outlines
+   (needs their vertex data kept) or 7 (b). Checked 2026-10-26
+   (VALIDATION-LOG "L-256 eighth perf trace", `cbf1742`): inside ghosts a
+   section build is 1.4 ms on average (was 7-16), at most 4-5.7 ms (was
+   17-39); ghost pass 3.8 ms median (6.5-15.6), worst frame 15.3 ms
+   (42.8), 86 fps median (42-69); no z-fighting, outlines and waterlogged
+   blocks unchanged. Item 7 is done this way. Not done: caching outlines
    per cell (their bounds come from the camera-dependent tessellation),
    dropping the reversed bar quads (the material may cull either winding),
    a wider box with hysteresis (the rules inside the box change with every
