@@ -251,7 +251,9 @@ carries `ViewRenderData::mDrawInsideCubes`; while FreeCamera owns the view
 `InsideBlockEffect` declarations are empty, so this flag is the only
 reachable path (GAME-UPDATES.md). One log line "FreeCamera view:
 inside-a-block effect not drawn" marks the first frame suppression reached;
-the four checks above remain.
+the four checks above remain. The hook returns `ViewRenderObject` by value
+(13 KB, `MCAPI`), so the game has to pass the sret through on every call: a
+crash on world entry would point at that return path first.
 
 ### L-245 Ghost face disappears next to real glass or a beacon from some angles
 Kind: Bug / Research, low priority. Maintainer report 2026-10-22 (0.3.0,
