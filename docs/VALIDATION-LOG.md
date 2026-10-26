@@ -21,6 +21,20 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-256 third perf trace: walk fix (2026-10-26)
+
+`main` (`697c2475`) with `--schematic_perf_trace=y` (DLL SHA-256
+`5CC418E36FBFE925739A6E65503EDF117510CBAE86E45C90C1BE50AB5FF9AC6C`), same
+setup and placement, normal outlines, maintainer. Standing still, ms per
+frame: ghost pass 3.27-3.32, of which the trace's own count 0.23-0.24
+(about 3.05 in a normal build; 4.45-4.69 in the first trace); the walk
+0.06-0.07 (0.80-0.93 before); check/scan 0.54; faces 1.36; lines 0.52.
+Walking: section rebuilds 2.9-5.2 ms a frame with 25-30 ms peaks, the
+largest cost while moving (the second trace showed the same, 2.2-6.4 ms):
+crossing into another block cell makes the sections around the old and
+new camera cells due. Faces 0.73-1.24, lines 0.57-0.86.
+Ghost look and placing/breaking were not reported as changed.
+
 ## L-256 second perf trace: the untimed millisecond (2026-10-26)
 
 `main` (`bd10d7d4`) with `--schematic_perf_trace=y` (DLL SHA-256

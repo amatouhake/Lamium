@@ -698,7 +698,12 @@ Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
    1.9 ms on 2026-10-09). Keep 8-block rebuilds but draw static sections
    in larger groups.
 5. The verification scan (about 1 ms on 2026-10-09) is limited by count,
-   not time: give it a time budget.
+   not time: give it a time budget. (Done, `bd10d7d4`.)
+6. Rebuilds around the camera while walking (found 2026-10-26): each
+   new camera cell makes up to 27 sections around the old and the new
+   cell due, so walking rebuilds constantly. Only the cells the camera can
+   actually be inside need their ghosts drawn whole; rebuild fewer or
+   cheaper (for example only the section holding the cell).
 Constraints: no visible change (outline look, mistake colors, blended
 order must not flicker again, L-192/L-193); fail open as today. Validate
 each step in game against the step 1 numbers.
@@ -712,7 +717,13 @@ meshes, not candidate 1's vertex count; many mistakes add 0.25 ms standing
 and re-sort the blended mesh every frame while walking (candidate 2).
 Proposed order: account for the missing 1 ms, give the scan a time
 budget, then fewer draws for faces and lines, then the mistake boxes.
-Candidate 1 drops to last. No release target selected.
+Candidate 1 drops to last.
+Done 2026-10-26: the scan is capped at 0.5 ms a frame (`bd10d7d4`, about
+-0.5 ms) and the missing millisecond was the per-frame walk over every
+section, now 0.07 ms (`697c2475`). Standing still the pass is about 3.05
+ms (was 4.5). New finding: while walking, rebuilding the sections around
+the camera's old and new cells costs 3-5 ms a frame with 25-30 ms peaks,
+more than any drawing stage (6. below). No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported
