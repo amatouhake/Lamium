@@ -243,6 +243,15 @@ gate the suppression with `versionSensitiveAllowed()` and fail open to
 vanilla. Check in game: start FreeCamera with the head buried and fly out;
 leave FreeCamera while still buried (the effect returns); Freelook and the
 ordinary view unchanged. No release target selected.
+Built 2026-10-27 (`29022178`), not yet checked in game: the view the game
+builds for the local player (`LevelRendererPlayer::createViewRenderObject`)
+carries `ViewRenderData::mDrawInsideCubes`; while FreeCamera owns the view
+`FreeCameraInsideBlock.cpp` clears that flag on the frame's own copy, gated
+(FreeCamera view) and fail-open. The SDK's `InsideCubeRenderer` and
+`InsideBlockEffect` declarations are empty, so this flag is the only
+reachable path (GAME-UPDATES.md). One log line "FreeCamera view:
+inside-a-block effect not drawn" marks the first frame suppression reached;
+the four checks above remain.
 
 ### L-245 Ghost face disappears next to real glass or a beacon from some angles
 Kind: Bug / Research, low priority. Maintainer report 2026-10-22 (0.3.0,
