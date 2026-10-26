@@ -79,7 +79,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    Decided and Ready (2026-10-26): L-244, L-247, L-248.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
-   L-253, L-254, L-255. L-196 license/provenance evidence; L-236 is a follow-up;
+   L-253, L-254, L-255, L-261 temporary waypoints (2026-10-26).
+   L-262 schematic check relaxations and L-263 ghost pick block (decided,
+   research first). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -547,6 +549,76 @@ Pure part with tests: splitting text into pages given a fits-predicate.
 New hooks go into GAME-UPDATES.md. Verify on a local world and on a server
 that the pages survive closing and reopening the book.
 No release target selected.
+
+### L-261 Temporary waypoints
+Kind: Ready (small defaults open below). Maintainer request 2026-10-26:
+waypoints today are long-lived marks; add throwaway ones that disappear on
+arrival or can be removed without the usual confirmation.
+Decided (maintainer 2026-10-26):
+- A waypoint is either normal or temporary. The existing add prompt gets a
+  normal/temporary switch; it opens with the kind chosen last time (kept
+  per world beside `lastColor` in the waypoint set), so placing several
+  temporary ones in a row needs no switching. No separate add key.
+- A temporary waypoint is removed when the player comes within a set 3D
+  distance of it (height included). The distance is a setting; 0 turns
+  automatic removal off.
+- Deleting a temporary waypoint in the list takes one click; normal ones
+  keep the two-click confirmation.
+- Temporary waypoints are saved with the world like normal ones until they
+  are removed. The waypoint file gains one field; files without it load as
+  normal waypoints.
+Proposed, confirm on review: arrival distance default 3 blocks, range 0-32;
+temporary marks drawn so they are told apart from normal ones (in the
+world, on the minimap and map, and in the list) with the existing palette;
+only waypoints in the current dimension are removed by arrival; FreeCamera
+does not count as arriving (the body's position is used).
+Notes: `features/map/Waypoints.h` (data, pure arrival test with tests),
+`WaypointStore.cpp`, `WaypointSession.cpp`, `ui/WaypointsView.cpp`,
+`WaypointPromptLayout.h`; setting row and help in all four languages.
+Check in game: add both kinds, the prompt remembering the kind, arrival
+removal, one-click delete, rejoin keeps temporary ones, an old waypoint
+file. No release target selected.
+
+### L-262 Schematic check: ignore redstone signal, lit/unlit variants and plant growth
+Kind: Research (state lists), then Ready. User feedback 2026-10-26 (Discord
+thread by びー; possibly the L-252/L-258 reporter, maintainer to confirm):
+the check should be able to ignore signal state and plant age, and redstone
+blocks whose on and off forms are different blocks count as wrong blocks.
+Decided (maintainer 2026-10-26): three separate switches in Lamium
+Settings under Schematics, global (not per placement), all off by default:
+1. Ignore redstone signal: differences only in signal/power states are not
+   mistakes.
+2. Treat lit and unlit forms as the same block: block pairs that differ only
+   by being on (redstone lamp, repeater, comparator, redstone torch) compare
+   as the same block; their other states still count.
+3. Ignore plant growth: growth/age states (crops, saplings, cocoa, sugar
+   cane, cactus, bamboo, kelp, vines, nether wart and the like) are not
+   compared.
+An ignored difference counts as correct everywhere: Check list, HUD counts,
+nearest mistake and the red/yellow marks. The strict comparison stays the
+default. This is not L-183 (suppressing chosen mismatches); L-258 may be
+answered by this report.
+Research first: the exact state keys and block-name pairs from the SDK /
+block data (pure tables in `features/schematic/`, with tests), and whether
+open/extended states (doors, trapdoors, pistons) count as "signal" (ask the
+maintainer before including them). Settings rows and help in all four
+languages. No release target selected.
+
+### L-263 Pick the aimed ghost block from the inventory
+Kind: Research (pick-block hook), then Ready. Same feedback as L-262:
+take the block of the schematic ghost under the crosshair from the
+inventory.
+Decided (maintainer 2026-10-26): the vanilla pick-block input (middle
+click by default) does it when the crosshair is on a ghost and not on a
+real block; on a real block it stays vanilla. Like vanilla pick block:
+select the hotbar slot that holds it, else bring it from the inventory
+into the hotbar; nothing happens when it is not carried.
+Open: creative mode (vanilla gives the item; whether a ghost pick should
+too), and a ghost behind a wrong real block (vanilla wins as decided).
+Research: where pick block is handled in the SDK and how the inventory
+move is confirmed from authoritative state (reuse the existing inventory
+transfer paths). New hooks go into GAME-UPDATES.md. No release target
+selected.
 
 ### L-253 Option to fix the minimap to surface or cave view
 Kind: Ready. Maintainer note 2026-10-24 after 0.3.0: make the minimap's
