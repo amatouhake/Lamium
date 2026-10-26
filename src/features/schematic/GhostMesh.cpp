@@ -349,6 +349,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     auto const tint = faces::ghostTint(Runtime::instance().snapshot()->schematic.ghostTint);
     // L-252: without marks a mistake is drawn like a correct cell (nothing).
     bool const showMarks = Runtime::instance().snapshot()->schematic.mistakeMarks;
+    unsigned const relax = checkRules(); // L-262
 
     prepareShapes(screen, own, blocks);
     Point drawing{};
@@ -393,7 +394,9 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     continue;
                 }
                 if (!expected) { outlines.push_back({boxLow, boxHigh, 1.f, .55f, .1f}); continue; } // unknown block name
-                if (&actual == expected) {
+                // A block the relaxations accept is judged like the file's own.
+                bool const accepted = &actual == expected || (relax && !actual.isAir() && relaxedSame(*expected, actual, relax));
+                if (accepted) {
                     // Placed, but waterlogged where the file has no water, or
                     // not where it has: a state mistake (yellow).
                     Block const* fileLiquid = nullptr;
@@ -409,7 +412,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     continue;
                 }
                 if (!actual.isAir()) {
-                    bool sameType = &actual.getBlockType() == &expected->getBlockType();
+                    bool sameType = relaxedSameType(*expected, actual, relax);
                     // Something else is there: red, or yellow when only the state differs.
                     Outline mark = sameType ? Outline{boxLow, boxHigh, 1.f, .8f, .2f} : Outline{boxLow, boxHigh, 1.f, .25f, .2f};
                     if (showMarks) marks.push_back(mark);

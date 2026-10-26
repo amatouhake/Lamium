@@ -257,7 +257,8 @@ Json encode(Settings const& settings) {
                        {"repeatAllSteps", settings.schematic.repeatAllSteps},
                        {"ghostTintPercent", settings.schematic.ghostTint}, {"ghostLines", settings.schematic.ghostLines},
                        {"menuReopen", settings.schematic.menuReopen}, {"outlineDistance", settings.schematic.outlineDistance},
-                       {"mistakeMarks", settings.schematic.mistakeMarks}}}
+                       {"mistakeMarks", settings.schematic.mistakeMarks}, {"ignoreSignal", settings.schematic.ignoreSignal},
+                       {"sameLit", settings.schematic.sameLit}, {"ignoreGrowth", settings.schematic.ignoreGrowth}}}
     };
 }
 }
@@ -534,6 +535,9 @@ Settings decodeSettings(std::string_view text) {
         value.schematic.menuReopen = settingsValue(schematic, "menuReopen", value.schematic.menuReopen);
         value.schematic.outlineDistance = settingsValue(schematic, "outlineDistance", value.schematic.outlineDistance);
         value.schematic.mistakeMarks = settingsValue(schematic, "mistakeMarks", value.schematic.mistakeMarks);
+        value.schematic.ignoreSignal = settingsValue(schematic, "ignoreSignal", value.schematic.ignoreSignal);
+        value.schematic.sameLit = settingsValue(schematic, "sameLit", value.schematic.sameLit);
+        value.schematic.ignoreGrowth = settingsValue(schematic, "ignoreGrowth", value.schematic.ignoreGrowth);
     }
     if (data.contains("lighting") && data.at("lighting").is_object()) {
         value.lighting.nightVision = settingsValue(data.at("lighting"), "nightVision", value.lighting.nightVision);

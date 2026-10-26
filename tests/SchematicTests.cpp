@@ -3,6 +3,7 @@
 #include "features/schematic/LiquidShape.h"
 #include "features/schematic/Structure.h"
 #include "features/schematic/Verify.h"
+#include "features/schematic/CheckRules.h"
 #include "features/schematic/PlacementStore.h"
 #include "features/schematic/Verification.h"
 #include "features/schematic/SaveArea.h"
@@ -1475,7 +1476,35 @@ void verificationReadiness() {
     result.stale = false;
     check(result.ready(2), "a fresh completed pass makes counts ready again");
 }
+void checkRelaxations() {
+    namespace r = lamium::schematic::rules;
+    using States = std::map<std::string, std::string>;
+    States wire{{"redstone_signal", "15"}}, wireOff{{"redstone_signal", "0"}};
+    check(!r::sameBlock("minecraft:redstone_wire", wire, "minecraft:redstone_wire", wireOff, 0)
+              && r::sameBlock("minecraft:redstone_wire", wire, "minecraft:redstone_wire", wireOff, r::Signal)
+              && !r::sameBlock("minecraft:redstone_wire", wire, "minecraft:redstone_wire", wireOff, r::Growth),
+          "a signal difference counts only while signals are compared");
+    States repeater{{"direction", "1"}, {"repeater_delay", "2"}}, faced{{"direction", "3"}, {"repeater_delay", "2"}};
+    check(!r::sameType("minecraft:unpowered_repeater", "minecraft:powered_repeater", 0)
+              && r::sameBlock("minecraft:unpowered_repeater", repeater, "minecraft:powered_repeater", repeater, r::Lit)
+              && r::sameType("minecraft:redstone_torch", "minecraft:unlit_redstone_torch", r::Lit)
+              && r::sameType("minecraft:lit_redstone_lamp", "minecraft:redstone_lamp", r::Lit),
+          "on and off forms are one block when the lit rule is on");
+    check(!r::sameBlock("minecraft:unpowered_repeater", repeater, "minecraft:powered_repeater", faced, r::Lit | r::Signal)
+              && !r::sameType("minecraft:redstone_lamp", "minecraft:glowstone", r::Lit),
+          "other states and other blocks still count");
+    States young{{"growth", "1"}}, grown{{"growth", "7"}}, sapling{{"age_bit", "0"}, {"sapling_type", "oak"}},
+        grownSapling{{"age_bit", "1"}, {"sapling_type", "oak"}}, birch{{"age_bit", "1"}, {"sapling_type", "birch"}};
+    check(r::sameBlock("minecraft:wheat", young, "minecraft:wheat", grown, r::Growth)
+              && r::sameBlock("minecraft:sapling", sapling, "minecraft:sapling", grownSapling, r::Growth)
+              && !r::sameBlock("minecraft:sapling", sapling, "minecraft:sapling", birch, r::Growth),
+          "growth stages are ignored, the kind of plant is not");
+    check(!r::sameBlock("minecraft:wheat", young, "minecraft:wheat", States{}, 0) && r::ignoredState("kelp_age", r::Growth)
+              && !r::ignoredState("open_bit", r::Signal | r::Lit | r::Growth),
+          "a state only one side has still counts; doors' open state is not a signal");
+}
 void schematicTests() {
+    checkRelaxations();
     placementSteps();
     verificationReadiness();
     unreadableNoticeRules();

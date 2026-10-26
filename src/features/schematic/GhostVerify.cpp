@@ -1,5 +1,6 @@
 #include "features/schematic/GhostVerify.h"
 #include "features/schematic/GhostRenderer.h"
+#include "features/schematic/CheckRules.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/actor/Actor.h"
 #include "mc/world/level/BlockPos.h"
@@ -187,6 +188,13 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
     // Air with water in the second layer is judged against the water.
     Block const* against = c.air ? c.expectedLiquid : c.expected;
     bool same = against && actual == against;
+    bool sameType = against && &actual->getBlockType() == &against->getBlockType();
+    // L-262: the relaxations the settings turn on, for blocks only.
+    if (against && !same && !c.air && !actual->isAir())
+        if (unsigned on = checkRules()) {
+            same = relaxedSame(*against, *actual, on);
+            sameType = relaxedSameType(*against, *actual, on);
+        }
     if (same && !c.air) {
         c.expectedFace = expectedShulkerFace(structure, static_cast<std::int32_t>(cellIndex), placement.placement);
         if (c.expectedFace >= 0) c.actualFace = actualShulkerFace(region, c.world);
@@ -198,7 +206,7 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
                                .expectsLiquid = c.expectedLiquid != nullptr,
                                .known = c.expected != nullptr,
                                .same = same,
-                               .sameType = against && &actual->getBlockType() == &against->getBlockType(),
+                               .sameType = sameType,
                                .actualAir = actual->isAir(),
                                .liquidsMatch = c.expectedLiquid == c.actualLiquid},
                               placement.countExtras);
@@ -217,7 +225,11 @@ Mismatch mismatchFor(Cell const& c, Resolved const& blocks) {
         m.actual = info.icon;
         m.actualName = info.name;
         if (c.state == CellState::State && c.expected) {
-            m.states = stateDifferences(blockStates(*c.expected), blockStates(*c.actual));
+            // States the settings leave out are not listed (L-262).
+            auto expected = blockStates(*c.expected), actual = blockStates(*c.actual);
+            if (unsigned on = checkRules())
+                for (auto* states : {&expected, &actual}) std::erase_if(*states, [on](auto const& s) { return rules::ignoredState(s.first, on); });
+            m.states = stateDifferences(expected, actual);
             if (c.expectedFace >= 0 && c.actualFace >= 0 && c.expectedFace != c.actualFace)
                 m.states.push_back(faceDifference(c.expectedFace, c.actualFace));
             if (m.states.empty() && c.expectedLiquid != c.actualLiquid)

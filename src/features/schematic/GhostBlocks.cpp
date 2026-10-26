@@ -1,6 +1,7 @@
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/GhostCommon.h"
 #include "features/schematic/GhostFaces.h"
+#include "features/schematic/CheckRules.h"
 #include "features/map/MapColors.h"
 #include "app/Runtime.h"
 #include "mc/client/gui/screens/ScreenContext.h"
@@ -64,6 +65,19 @@ std::map<std::string, std::string> blockStates(Block const& block) {
         else if (auto* v = std::get_if<StringTag>(&value.mTagStorage)) out[key] = *v;
     }
     return out;
+}
+unsigned checkRules() {
+    auto const& s = Runtime::instance().snapshot()->schematic;
+    return (s.ignoreSignal ? rules::Signal : 0u) | (s.sameLit ? rules::Lit : 0u) | (s.ignoreGrowth ? rules::Growth : 0u);
+}
+bool relaxedSame(Block const& expected, Block const& actual, unsigned on) {
+    if (&expected == &actual) return true;
+    if (!on) return false;
+    return rules::sameBlock(expected.getTypeName(), blockStates(expected), actual.getTypeName(), blockStates(actual), on);
+}
+bool relaxedSameType(Block const& expected, Block const& actual, unsigned on) {
+    if (&expected.getBlockType() == &actual.getBlockType()) return true;
+    return on && rules::sameType(expected.getTypeName(), actual.getTypeName(), on);
 }
 ItemInfo describe(Block const& block, std::string_view fallback) {
     ItemInfo out;

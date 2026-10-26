@@ -187,6 +187,8 @@ struct Settings {
         int ghostTint = 70;
         int ghostLines = 1;
         bool mistakeMarks = true; // L-252: red/yellow boxes in the world; the check runs either way.
+        // L-262: what the check leaves out (features/schematic/CheckRules.h).
+        bool ignoreSignal = false, sameLit = false, ignoreGrowth = false;
     } schematic;
     struct Overlays {
         bool chunkBorders = false;
