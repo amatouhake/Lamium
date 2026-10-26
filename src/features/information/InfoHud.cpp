@@ -97,7 +97,10 @@ namespace {
 float cardOpacity = .72f;
 SpeedSampler speedSampler;
 // Ids of the status effect rows shown last frame, top to bottom: a row keeps
-// its place until its effect ends (L-247). Cleared whenever none are shown.
+// its place until its effect ends (L-247). Cleared when a successful read
+// shows no effects, when the effects feature stops and on world exit; kept
+// while the HUD is simply not drawn, so turning it off and on again does not
+// reshuffle the rows.
 std::vector<unsigned> shownEffects;
 // One element row: text with an optional leading marker square.
 struct ElementLine { std::string text; std::optional<ui::Rgb> marker; ui::Rgb color = ui::palette::text; };
@@ -1653,4 +1656,5 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     drawList();
     return boxes;
 }
+void forgetEffectRows() { shownEffects.clear(); }
 }

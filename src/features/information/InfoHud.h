@@ -23,4 +23,8 @@ void noteCoveredVanilla(ScreenView const& view, ui::hud_editor::Boxes const& dra
 HotbarPlace editorHotbar(float width, float height);
 // A biome's name in the game's language, or its id when it has none.
 std::string biomeName(std::string const& identifier);
+// Forget the status effect row order (L-247): the next frame sorts afresh.
+// Called when the effects feature stops and on world exit, so an effect in a
+// new world cannot inherit a row order kept from the old one.
+void forgetEffectRows();
 }
