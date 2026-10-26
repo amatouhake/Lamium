@@ -671,7 +671,9 @@ No release target selected.
 Kind: Bug. Reported 2026-10-26 by the maintainer while checking L-256 on
 `291fcd4`: some door ghosts face correctly, others draw their upper and
 lower halves facing different ways; one of the two may be ignoring the
-open state. Not yet known whether it predates that build.
+open state. Seen again 2026-10-26 by the maintainer on the PR #41 build
+(code as `cbf1742`, no near mesh, faces built as on `main`), so it is not
+from the L-256 experiment; not a blocker for that PR.
 Hypothesis from the code (not checked): while a door half is drawn, the
 tessellator's answer for the other half's cell is always the half Lamium
 makes from the drawn entry with `upper_block_bit` flipped

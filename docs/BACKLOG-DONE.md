@@ -5867,7 +5867,6 @@ mesh of item 7 (a) was built, measured and dropped (`cbf1742`). Result on
 86 fps, section builds at most about 5 ms. Candidates 1, 2 and 4 were not
 needed; reopen as a new item if a later measurement asks for them.
 
-
 ### L-166 Villager trade helpers: part 1
 Done 2026-10-13: `0193c02` implements the Shift + right-click row trigger;
 `481dc7d` prevents native refill from dropping existing ingredient overflow.
