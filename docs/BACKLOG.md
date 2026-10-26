@@ -801,6 +801,13 @@ Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
    runs in quad lists start at `quadStart` (first vertex / 4 * 6); the
    count stays vertices. If that is wrong, faces near the camera go
    missing or doubled elsewhere in the sections touching the box.
+   Checked the same day (VALIDATION-LOG "L-256 near-box z-fighting"):
+   unchanged with `quadStart`; with the probe build (sections touching
+   the box not drawn) the camera's block is hidden as on `main` and the
+   near meshes' counts are right. So a section cannot be drawn in parts
+   with `renderMesh`'s start and count as used here (how the engine reads
+   them is unknown); runs do not work and the near cells need another way
+   out of the sections, or item 7 (a) is dropped (open, maintainer).
    Waterlogged blocks still to check. Not done: caching outlines
    per cell (their bounds come from the camera-dependent tessellation),
    dropping the reversed bar quads (the material may cull either winding),

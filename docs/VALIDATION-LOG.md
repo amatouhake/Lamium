@@ -21,6 +21,30 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-256 near-box z-fighting: quad starts and the probe (2026-10-26)
+
+Local `1.26.51.01` LIP, Normal outlines, maintainer.
+- A/B of `main` (`86723d2e`, DLL SHA-256 `b7357f50…9c04`) against `6e7b96e`
+  in the same places: from inside a sandstone wall, a stair and farmland
+  (and looking at the next block) the branch z-fights and still shows the
+  ghost block the camera is in; `main` hides that block and does not
+  z-fight. Cross plants (dead bush) flicker on both (L-268).
+- `97c74de` (DLL SHA-256
+  `546CF7D0F902951F967BFBA18A06FF91253A8E3D31E9CF5002BF59F18672AD40`,
+  quad-list runs started at index first / 4 * 6): unchanged, the camera's
+  block still shows and z-fights.
+- `4383b0b` with `--schematic_perf_trace=y --schematic_near_probe=y`
+  (DLL SHA-256
+  `9F552D62D4F0CA5F92472886760888B5DE591CD6C2D816CBD53F4BB869AA32C6`;
+  sections touching the near box not drawn at all): the camera's block is
+  hidden as on `main`; around it only the near box's cells show, with
+  holes out to the section borders (expected). Per near rebuild inside a
+  sandstone wall: camera cells drawn 1.00-1.80, their quads 6.0-13.2,
+  dropped as back faces 1.0-4.5, 38-101 cells drawn.
+Result: the near meshes are right; the extra faces came from the
+sections, so `renderMesh` with a start and count did not leave the near
+cells out under either reading of the start.
+
 ## L-256 seventh perf trace: outlines copied in bulk (2026-10-26)
 
 `6e7b96e` with `--schematic_perf_trace=y` (DLL SHA-256
