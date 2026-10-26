@@ -686,6 +686,10 @@ with the file's ghost at that cell when it is the same block type, and
 make a half only where the file has none. Check in game: closed and open
 doors in all four facings, both hinges, rotated and mirrored placements,
 a door with one half placed for real.
+Built 2026-10-26 (not yet checked): while a half is drawn, the other
+half's cell answers the file's own block there when it is the same block
+type, else the made half as before (the area's edge, a different block);
+the same in the 3D preview (`Preview.cpp`).
 No release target selected.
 
 ### L-268 Schematic cross-plant ghosts flicker
@@ -694,7 +698,15 @@ on the L-256 branch alike: ghosts of cross-shaped plants (dead bush and
 similar) flicker. Suspect (not checked): the cross planes are drawn twice
 in one place, for example in both windings or in two render layers, and
 `dropDuplicateQuads` does not catch the pair. Find which quads the
-tessellator emits for one such ghost first. No release target selected.
+tessellator emits for one such ghost first. Note from the code:
+`faces::sameQuad` ignores winding, so a plane drawn in both windings at the
+same corners is already dropped; a pair a little apart would not be.
+Trace built 2026-10-26: `xmake f --schematic_quad_trace=y` logs, once per
+block whose quads are not all on its cell's sides, every quad one ghost
+drew (corners relative to the cell, normal, first UV, render layer) and
+whether it was dropped. Also to check: other cross plants (grass, ferns,
+flowers, saplings) and whether they flicker too.
+No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported
