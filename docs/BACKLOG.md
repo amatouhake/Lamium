@@ -81,8 +81,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
    L-253, L-254, L-255.
    **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
-   checked except L-263 creative and L-264 waterlogged; stage 4, L-256,
-   done 2026-10-26); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   checked; L-264 and stage 4, L-256, done 2026-10-26; left: L-263's
+   creative pick (Research), then the batch's closing check). Before 0.3.1
+   as well (maintainer 2026-10-26): L-247, L-248, L-244 and L-255; L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -601,25 +602,22 @@ select the hotbar slot that holds it, else bring it from the inventory
 into the hotbar; nothing happens when it is not carried.
 Open: creative mode (vanilla gives the item; whether a ghost pick should
 too), and a ghost behind a wrong real block (vanilla wins as decided).
+Decided 2026-10-26 (maintainer): in creative mode a ghost pick gives the
+block even when it is not carried, like vanilla. Research (2026-10-26,
+SDK 26.51.8): vanilla's creative pick asks the server for the block at
+the hit (`BlockPickRequestPacket`), which cannot name a ghost; the
+creative inventory screen takes items with an item stack request whose
+action is `CraftCreative` (`ItemStackRequestActionType` 14, a
+`CreativeItemNetId` from `CreativeItemRegistry`) followed by a move into
+a slot. Lamium's moves use legacy transactions (`game::movePair`) and
+never build item stack requests. Next: a trace build that logs the
+request the creative screen sends when a block is taken into the hotbar,
+then the same request built by Lamium, confirmed from the slot's
+authoritative contents; gated, with a GAME-UPDATES entry.
 Research: where pick block is handled in the SDK and how the inventory
 move is confirmed from authoritative state (reuse the existing inventory
 transfer paths). New hooks go into GAME-UPDATES.md. No release target
 selected.
-Release target: 0.3.1, batch L-266.
-
-### L-264 Target View: schematic water and flowing water
-Kind: Design details, then Research. User feedback 2026-10-26 (same thread
-as L-262): show in Target View whether a schematic cell holds a water
-source or flowing water, and how far it flows.
-Decided (maintainer 2026-10-26): ghost liquids are always targetable when
-the crosshair meets them (the card shows the liquid and source/flow level
-from `liquid_depth`). Targeting real water and lava is a separate option,
-off by default; with it off the crosshair passes through real liquids as in
-vanilla.
-Open: how a ghost liquid in front of a real block or another ghost is
-chosen, the waterlogged second layer (a ghost block that should also hold
-water), what "flow level" reads as in all four languages, and the new
-option's place and help. Research: the liquid ray test for real liquids.
 Release target: 0.3.1, batch L-266.
 
 ### L-265 Schematic placement assist: place the ghost's block in its state
