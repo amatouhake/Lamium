@@ -82,8 +82,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-253, L-254, L-255.
    **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
    checked except L-263 creative and L-264 waterlogged; L-256 item 7 (a)
-   built and measured: no gain inside ghosts yet, the near rebuild is
-   the cost; next: time its parts); L-267 door halves (Bug); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   built; near rebuilds were mostly outline vertices, now copied in
+   bulk, awaiting the in-game check); L-267 door halves (Bug); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -778,6 +778,19 @@ Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
    maintainer). Next: time the parts of a near rebuild in the trace
    (halo and ranking, tessellation, face drops, upload, cells drawn) and
    choose from that.
+   Measured 2026-10-26 (VALIDATION-LOG "L-256 sixth perf trace"): of a
+   24-26 ms near rebuild inside, 21-24 ms are outlines at Normal width
+   (1.7-1.8 ms at Thin), 2-3 ms tessellation, the rest under 0.3 ms.
+   Outline vertices went through `Tessellator::vertex` one by one (about
+   0.3 us each, 32 per edge for bars). Built next (not yet checked): only
+   the first primitive goes through `vertex()`, the rest are copied into
+   the vertex streams (`drawSameColor`, the way the sorted blended mesh is
+   made); this also speeds up section builds. Not done: caching outlines
+   per cell (their bounds come from the camera-dependent tessellation),
+   dropping the reversed bar quads (the material may cull either winding),
+   a wider box with hysteresis (the rules inside the box change with every
+   camera cell, so a larger box does not need fewer rebuilds). Tessellation
+   (about 2.4 ms) is the next part if more is needed.
    Visual issues seen on that build, not yet compared with `main`:
    z-fighting or unstable order inside a stair block, at a door seen from
    inside a block, on cross-shaped plants (dead bush).

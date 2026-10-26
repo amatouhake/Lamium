@@ -21,6 +21,28 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-256 sixth perf trace: parts of a near rebuild (2026-10-26)
+
+`0431c2d` (near rebuild split from `0b00d03`) with `--schematic_perf_trace=y`
+(DLL SHA-256
+`0DDFC472B49D77348205710003E459B79FDBE5193C4782ED30EA75FEE0B8992E`),
+`1.26.51.01` LIP, maintainer. Two runs of the same route (wait after
+entering, fly over the placement, wait inside, fly around inside), Normal
+outlines then Thin; during the Normal run another Minecraft and Discord
+were open, so fps differs between runs, the per-rebuild split does not.
+Inside (150-172 cells drawn), per near rebuild:
+- Normal: 23.66-25.96 ms, of which outlines 20.63-23.59, tessellation
+  2.04-2.90, lookups 0.08, face drops 0.12-0.13, mistake ranking 0.00,
+  upload 0.04, other 0.06; 175 cells, 266 halo cells, 900-1031 face quads;
+  14-53 rebuilds per 5 s, ghost pass 4.42-8.00 ms, 58-93 fps.
+- Thin: 4.37-4.63 ms, of which outlines 1.68-1.82, tessellation
+  2.36-2.45; 75-84 rebuilds per 5 s, ghost pass 4.56-4.59 ms, 71-75 fps.
+Outside or standing: 0.11-2.08 ms per rebuild (0-18 cells drawn).
+Section builds inside: 0 (2134, 616, 387 while loading only).
+Outlines cost about 0.137 ms per cell at Normal width and 0.011 at Thin
+(12.4 times, matching 32 against 2 vertices per edge): the cost is per
+vertex added through the tessellator.
+
 ## L-256 fifth perf trace: near mesh (2026-10-26)
 
 `claude/intelligent-hopper-yhi2ze` (`291fcd4`) with `--schematic_perf_trace=y`

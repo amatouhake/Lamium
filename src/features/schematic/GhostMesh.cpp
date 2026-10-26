@@ -59,6 +59,40 @@ void finishColors(Tessellator& batch, float r, float g, float b) {
     for (auto& c : colors) c = scale(c, 0, r) | scale(c, 8, g) | scale(c, 16, b) | (c & 0xff000000u);
 }
 
+// Draws `points` into a begun batch that holds nothing yet, all in the
+// batch's current color: the first `lead` (one primitive) through vertex(),
+// which sets up the vertex streams, the rest copied into the streams like
+// the sorted blended mesh. L-256: a vertex() call cost about 0.3 us, and
+// normal-width outlines (32 per edge) took 20 ms of a 25 ms near rebuild.
+void drawSameColor(Tessellator& batch, std::vector<glm::vec3> const& points, size_t lead) {
+    lead = std::min(lead, points.size());
+    for (size_t k = 0; k < lead; ++k) batch.vertex(points[k].x, points[k].y, points[k].z);
+    if (points.size() <= lead) return;
+    auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
+    auto& positions = *data.mPositions;
+    size_t const before = positions.size();
+    // Every stream the first vertices filled, as theirs.
+    auto extend = [&](auto& stream) {
+        if (before && stream.size() == before) stream.resize(points.size() - lead + before, stream.front());
+    };
+    extend(*data.mNormals);
+    extend(*data.mTangents);
+    extend(*data.mColors);
+    extend(*data.mMERS);
+    extend(*data.mBoneId0s);
+    extend(*data.mPBRTextureIndices);
+    extend(*data.mGeoType);
+    for (int i = 0; i < 3; ++i) extend(*data.mTextureUVs[i]);
+    positions.insert(positions.end(), points.begin() + static_cast<std::ptrdiff_t>(lead), points.end());
+    glm::vec3 low{1e9f}, high{-1e9f};
+    for (auto const& p : positions) {
+        low = glm::min(low, p);
+        high = glm::max(high, p);
+    }
+    *data.mAABB = {low, high};
+    static_cast<unsigned&>(batch.mCount) = static_cast<unsigned>(positions.size());
+}
+
 // A ghost with an opaque full block on all six sides cannot be seen: real
 // ones, or ghosts that will be drawn there (shown layers, nothing placed).
 // An opaque full ghost will be drawn at `n`: nothing real is there, the
@@ -791,6 +825,8 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
             lines.color(r, g, b, 1.f);
             std::uint32_t drawn = 0;
             std::vector<nearcells::CellStart> starts;
+            std::vector<glm::vec3> points;
+            points.reserve(group.size() * 12 * static_cast<size_t>(perEdge));
             for (auto const* o : group) {
                 starts.push_back({o->cell, drawn});
                 glm::vec3 c[8], world[8];
@@ -800,14 +836,15 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
                     if (strongest[key(world[i], world[j])] > rank) continue;
                     drawn += static_cast<std::uint32_t>(perEdge);
                     if (half <= 0) {
-                        lines.vertex(c[i].x, c[i].y, c[i].z);
-                        lines.vertex(c[j].x, c[j].y, c[j].z);
+                        points.push_back(c[i]);
+                        points.push_back(c[j]);
                         continue;
                     }
                     for (auto const& v : faces::barQuads({c[i].x, c[i].y, c[i].z}, {c[j].x, c[j].y, c[j].z}, half))
-                        lines.vertex(v[0], v[1], v[2]);
+                        points.push_back({v[0], v[1], v[2]});
                 }
             }
+            drawSameColor(lines, points, half > 0 ? 4 : 2);
             auto mesh = lines.end(Tessellator::UploadMode::Buffered, "Lamium schematic outlines", SupplementaryFieldAutoGenerationMode{});
             if (!drawn) continue;
             auto entry = std::make_unique<Section::ColorLines>();
