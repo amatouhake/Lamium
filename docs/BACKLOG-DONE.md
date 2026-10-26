@@ -10,6 +10,43 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-269 3D preview: a waterlogged block's water fights with its faces
+Kind: Bug. Seen 2026-10-26 by the maintainer in the Files tab's 3D
+preview: a waterlogged stair shows its water where the stair covers the
+side, and the water's face fights with the stair's back. The world's
+ghosts already hide a waterlogged block's water on the sides the block
+covers (`coverMasks`, `sidesCovered`); the preview did not.
+Built 2026-10-26 (not yet checked): the preview keeps each palette
+entry's covered sides and leaves the water's faces there out. Check
+waterlogged stairs, slabs, fences and trapdoors in the preview.
+No release target selected.
+Done 2026-10-26: checked by the maintainer on `e2ec2d6` (same entry).
+
+### L-268 Schematic cross-plant ghosts flicker
+Kind: Bug. Seen 2026-10-26 by the maintainer on `main` (`86723d2e`) and
+on the L-256 branch alike: ghosts of cross-shaped plants (dead bush and
+similar) flicker. Suspect (not checked): the cross planes are drawn twice
+in one place, for example in both windings or in two render layers, and
+`dropDuplicateQuads` does not catch the pair. Find which quads the
+tessellator emits for one such ghost first. Note from the code:
+`faces::sameQuad` ignores winding, so a plane drawn in both windings at the
+same corners is already dropped; a pair a little apart would not be.
+Trace built 2026-10-26: `xmake f --schematic_quad_trace=y` logs, once per
+block whose quads are not all on its cell's sides, every quad one ghost
+drew (corners relative to the cell, normal, first UV, render layer) and
+whether it was dropped. Also to check: other cross plants (grass, ferns,
+flowers, saplings) and whether they flicker too.
+Found 2026-10-26 with the trace (VALIDATION-LOG "L-267 door halves and the
+L-268 quad trace"): every cross plant draws each plane twice, the copy
+reversed and 0.0002 off, beyond `sameQuad`'s default 0.0001, so neither
+was dropped. Built (not yet checked): duplicate quads now match within
+0.001 (real parts of a block lie 1/16 apart). Check every cross plant and
+the stonecutter (it has the same pair).
+No release target selected.
+Done 2026-10-26: checked by the maintainer on `e2ec2d6` (VALIDATION-LOG
+"L-268 cross plants and L-269 preview water checked"): every traced cross
+plant and the stonecutter, other ghosts unchanged.
+
 ### L-267 Schematic door ghosts: upper and lower halves face different ways
 Kind: Bug. Reported 2026-10-26 by the maintainer while checking L-256 on
 `291fcd4`: some door ghosts face correctly, others draw their upper and

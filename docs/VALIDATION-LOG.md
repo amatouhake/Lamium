@@ -21,6 +21,22 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-268 cross plants and L-269 preview water checked (2026-10-26)
+
+`e2ec2d6` release build, trace off (DLL SHA-256
+`F996AC85FE4CB059A2207DC6249CD627F6CD766AC6DB6159441E21D77092E1A5`),
+`1.26.51.01` LIP, maintainer.
+- L-268: no z-fighting left on deadbush, short_grass, tall_grass,
+  short_dry_grass, tall_dry_grass, poppy, dandelion, cornflower,
+  azure_bluet, oxeye_daisy, peony, oak_sapling, pale_oak_sapling, fern,
+  large_fern, bush, cactus_flower, open_eyeblossom, reeds and the
+  stonecutter; plants show from both sides, none missing. Stairs, slabs,
+  trapdoors, fences, doors and crops look as before (no wrongly merged
+  faces from the 0.001 match).
+- L-269: in the 3D preview waterlogged stairs, slabs, fences and
+  trapdoors show no water on the sides they cover and nothing fights;
+  water on open sides shows as before.
+
 ## L-267 door halves and the L-268 quad trace (2026-10-26)
 
 `0a2e0a9` with `--schematic_quad_trace=y` (DLL SHA-256
