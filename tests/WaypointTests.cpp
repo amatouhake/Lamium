@@ -62,6 +62,8 @@ void markers() {
     auto rows = diamondRows(7);
     check(rows.size() == 7 && rows[0] == 0 && rows[3] == 3 && rows[6] == 0 && diamondRows(6).size() == 7,
           "a diamond is odd-sized, widest in the middle");
+    check(hollowSize(5) == 3 && hollowSize(7) == 3 && hollowSize(25) == 13 && hollowSize(1) == 1,
+          "a temporary mark's middle is about half the colored diamond, odd-sized");
     DeathWatch watch;
     check(!watch.update(true) && watch.update(false) && !watch.update(false) && !watch.update(true) && watch.update(false),
           "a death is noticed once per death");

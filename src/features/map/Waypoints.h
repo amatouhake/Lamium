@@ -194,6 +194,9 @@ inline bool worldMarkersShown(int mode, bool held) {
 inline bool nearCrosshair(double sx, double sy, double width, double height) {
     return std::abs(sx - width / 2) < 20 && std::abs(sy - height / 2) < 30;
 }
+// A temporary waypoint's mark is hollow (L-261): a black middle half as wide
+// as the colored diamond, the same in every view.
+inline int hollowSize(int colored) { return std::max(1, colored / 2) | 1; }
 // Pixel rows of a diamond `size` units across (odd): half-width per row.
 inline std::vector<int> diamondRows(int size) {
     size = std::max(1, size | 1);
@@ -220,9 +223,9 @@ inline std::vector<size_t> waypointOrder(std::vector<Waypoint> const& waypoints,
     return order;
 }
 // Editor rows of a selected waypoint, top to bottom.
-enum class WaypointField { X, Y, Z, MoveHere, Visible, Color };
-inline constexpr std::array<WaypointField, 6> waypointFields{
-    WaypointField::X, WaypointField::Y, WaypointField::Z, WaypointField::MoveHere, WaypointField::Visible, WaypointField::Color};
+enum class WaypointField { X, Y, Z, MoveHere, Visible, Temporary, Color };
+inline constexpr std::array<WaypointField, 7> waypointFields{WaypointField::X, WaypointField::Y, WaypointField::Z,
+    WaypointField::MoveHere, WaypointField::Visible, WaypointField::Temporary, WaypointField::Color};
 // Coordinates the editor accepts.
 inline constexpr int coordinateLimit = 30000000;
 

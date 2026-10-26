@@ -122,7 +122,7 @@ enum class Target {
     Center, Waypoints, Close, Menu,
     LayerWaypoints, LayerSchematics, LayerShapes, // The layer switches (L-146).
     // The side panel: its background, header buttons, list and editor.
-    Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Swatch, Keep, Delete, OpenScreen,
+    Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Temporary, Swatch, Keep, Delete, OpenScreen,
     PanelKind, PanelKindItem // The list's layer menu (L-204) and its items.
 };
 struct Hit {
@@ -564,6 +564,7 @@ Request panelAction(Hit const& hit) {
                 w.dimension = spot->dimension;
             });
         break;
+    case Target::Temporary: changeSelected([](Waypoint& w) { w.temporary = !w.temporary; }); break;
     case Target::Swatch: changeSelected([&](Waypoint& w) { w.color = clampColor(hit.item); }); break;
     case Target::Keep:
         if (auto kept = keepDeath(set)) select(kept, false);
@@ -778,7 +779,7 @@ void openMenu(float x, float y) {
 
 // ---- Drawing ----
 Rgb rgb(std::uint32_t color) { return {channel(color, 0) / 255.f, channel(color, 1) / 255.f, channel(color, 2) / 255.f}; }
-// Hollow for a temporary waypoint (L-261): black again two units further in.
+// Hollow for a temporary waypoint (L-261): a black middle.
 void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, Rgb color, float opacity, bool hollow = false) {
     auto rows = diamondRows(size);
     float top = cy - static_cast<float>(rows.size()) / 2;
@@ -793,7 +794,7 @@ void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, Rg
         ui::fill(context, cx - half, top + i, 2 * half, 1, color, opacity);
     }
     if (!hollow) return;
-    auto hole = diamondRows(size - 4);
+    auto hole = diamondRows(hollowSize(size - 2));
     top = cy - static_cast<float>(hole.size()) / 2;
     for (size_t i = 0; i < hole.size(); ++i) {
         float half = static_cast<float>(hole[i]) + .5f;
@@ -1589,6 +1590,13 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         float sx = x0 + w - pad - ui::switchWidth;
         ui::toggleSwitch(context, sx, y + 1, p.visible);
         state.hits.push_back({sx - 1, y, ui::switchWidth + 2, rowH, Target::RowVisible, 0, *state.selected});
+        y += 12;
+    }
+    if (y + 12 < bottom) {
+        ui::label(context, x, y + inset, inner - 24, ui::translated("waypoint.temporary"), ui::palette::dim);
+        float sx = x0 + w - pad - ui::switchWidth;
+        ui::toggleSwitch(context, sx, y + 1, p.temporary);
+        state.hits.push_back({sx - 1, y, ui::switchWidth + 2, rowH, Target::Temporary, 0});
         y += 12;
     }
     if (y + 10 < bottom) {

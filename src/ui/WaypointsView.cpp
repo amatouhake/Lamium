@@ -147,6 +147,7 @@ void activateWaypointField(int index, int part) {
             changeSelected([&](map::Waypoint& t) { t.x = place->x; t.y = place->y; t.z = place->z; t.dimension = place->dimension; });
         return;
     case map::WaypointField::Visible: changeSelected([](map::Waypoint& t) { t.visible = !t.visible; }); return;
+    case map::WaypointField::Temporary: changeSelected([](map::Waypoint& t) { t.temporary = !t.temporary; }); return;
     case map::WaypointField::Color: {
         int count = static_cast<int>(map::waypointColors.size());
         changeSelected([&](map::Waypoint& t) { t.color = (map::clampColor(t.color) + direction + count) % count; });
@@ -364,7 +365,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         auto const& w = waypointSet.waypoints[static_cast<size_t>(index)];
         bool here = w.dimension == screen::playerDimension();
         drawDiamondGlyph(context, gx, gy, 7, waypointRgb(w.color), w.visible && here ? 1.f : .35f);
-        if (w.temporary) drawDiamondGlyph(context, gx, gy, 3, Rgb{0,0,0}, .85f); // hollow: temporary (L-261)
+        if (w.temporary) drawDiamondGlyph(context, gx, gy, map::hollowSize(7), Rgb{0,0,0}, .85f); // hollow: temporary (L-261)
         label(context,nameX,y+3,distanceX-nameX-4,w.name,here ? palette::text : palette::faint);
         label(context,distanceX,y+3,52,here ? translated("waypoint.meters", screen::distanceTo(w.x, w.z)) : screen::dimensionName(w.dimension),
             palette::dim,Align::Right);
@@ -397,7 +398,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,Rgb{0,0,0},.4f);
         frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingWaypointName ? palette::accent : palette::keyEdge);
         drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, 7, waypointRgb(w->color));
-        if (w->temporary) drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, 3, Rgb{0,0,0}, .85f);
+        if (w->temporary) drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, map::hollowSize(7), Rgb{0,0,0}, .85f);
         if (editingWaypointName) drawEditField(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,waypointNameInput);
         else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,w->name);
         // The preview area: a large diamond and where the waypoint is.
@@ -406,7 +407,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         frame(context,dx,l.previewY,size,size,palette::white,.14f);
         drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 31, Rgb{0,0,0}, .8f);
         drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 25, waypointRgb(w->color));
-        if (w->temporary) drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 13, Rgb{0,0,0}, .85f);
+        if (w->temporary) drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, map::hollowSize(25), Rgb{0,0,0}, .85f);
         float ix = dx + size + 8, iw = dw - size - 8;
         label(context,ix,l.previewY+1,iw,std::format("{}, {}, {}", w->x, w->y, w->z));
         label(context,ix,l.previewY+12,iw,screen::dimensionName(w->dimension),palette::dim);
@@ -418,12 +419,16 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
             float y = l.fieldY(i);
             auto field = map::waypointFields[static_cast<size_t>(i)];
             rowBackground(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::rowHeight,waypointFieldSelected == i,over(ShapeZone::Field,i));
-            static constexpr std::array<std::string_view, 6> labels{"X", "Y", "Z", "waypoint.moveHere", "waypoint.shown", "waypoint.color"};
+            static constexpr std::array<std::string_view, 7> labels{"X", "Y", "Z", "waypoint.moveHere", "waypoint.shown",
+                                                                   "waypoint.temporary", "waypoint.color"};
             std::string text = i < 3 ? std::string(labels[static_cast<size_t>(i)]) : translated(labels[static_cast<size_t>(i)]);
             label(context,dx,y+3,l.stepperX()-dx-4,text,palette::dim);
             switch (field) {
             case map::WaypointField::Visible:
                 toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,w->visible);
+                break;
+            case map::WaypointField::Temporary:
+                toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,w->temporary);
                 break;
             case map::WaypointField::MoveHere:
                 drawSmallButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated("waypoint.moveHere"),

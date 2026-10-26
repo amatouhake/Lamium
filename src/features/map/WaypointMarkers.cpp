@@ -82,7 +82,7 @@ LL_TYPE_INSTANCE_HOOK(CameraPositionHook, ll::memory::HookPriority::Normal, Leve
 bool positionHooked = false;
 ui::Rgb rgb(std::uint32_t color) { return {channel(color, 0) / 255.f, channel(color, 1) / 255.f, channel(color, 2) / 255.f}; }
 // A diamond from rows of rectangles: black, then the color one unit inside;
-// hollow (a temporary waypoint, L-261) with black again two units further in.
+// hollow (a temporary waypoint, L-261) with a black middle.
 void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, ui::Rgb color, bool hollow = false) {
     auto rows = diamondRows(size);
     float top = cy - static_cast<float>(rows.size()) / 2;
@@ -97,7 +97,7 @@ void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, ui
         ui::fill(context, cx - half, top + i, 2 * half, 1, color);
     }
     if (!hollow) return;
-    auto hole = diamondRows(size - 4);
+    auto hole = diamondRows(hollowSize(size - 2));
     top = cy - static_cast<float>(hole.size()) / 2;
     for (size_t i = 0; i < hole.size(); ++i) {
         float half = static_cast<float>(hole[i]) + .5f;
