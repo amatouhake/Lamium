@@ -119,6 +119,16 @@ NeighborGhost ghostDrawnAt(BlockSource& region, session::Shown const& shown, Res
 void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& view, BlockTessellator& own,
                   session::Shown const& shown, Resolved const& blocks, SectionKey key, BuildCamera const& camera,
                   std::function<bool(Point)> const& owned, std::function<NeighborGhost(Point)> const& others, Section& out);
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+// L-256: where the near rebuilds' time goes, summed over every buildNear
+// until the trace resets it. `loopNs` holds tessellateNs and cullNs; the
+// rest of it is the per-cell lookups.
+struct NearTrace {
+    std::uint64_t cells = 0, halo = 0, drawn = 0, faceQuads = 0, blendQuads = 0, ranked = 0;
+    std::uint64_t totalNs = 0, loopNs = 0, tessellateNs = 0, cullNs = 0, liquidNs = 0, marksNs = 0, uploadNs = 0, linesNs = 0;
+};
+NearTrace& nearTrace();
+#endif
 // The cells of `box` (L-256) built like a section's, with the camera: their
 // faces, blended quads, ghost outlines and block entities, no mistake marks
 // (the sections draw those). The sections leave these cells out.

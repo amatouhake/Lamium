@@ -957,6 +957,22 @@ void perfReport() {
                     per(perf.extrasNs), perf.blendedFrames, perf.orderChanges, perf.cameraMoves, faceVertices, blendVertices,
                     markVertices, lineMeshes, per(perf.walkNs > perf.buildNs + perf.checkNs ? perf.walkNs - perf.buildNs - perf.checkNs : 0), per(perf.traceNs),
                     per(perf.shownNs), per(perf.afterNs), perf.nearBuilds, per(perf.nearNs), ms(perf.maxNearNs)));
+    // L-256: one near rebuild on average, by part (buildNear for every
+    // placement in the box; "other" is clearing the old meshes and setup).
+    if (perf.nearBuilds) {
+        auto& t = nearTrace();
+        auto each = [&](std::uint64_t ns) { return ms(ns) / static_cast<double>(perf.nearBuilds); };
+        auto count = [&](std::uint64_t n) { return static_cast<double>(n) / static_cast<double>(perf.nearBuilds); };
+        auto inner = t.tessellateNs + t.cullNs;
+        log(std::format("near per rebuild: {:.2f} ms = build {:.2f} (lookups {:.2f}, tessellate {:.2f}, face drops {:.2f}, liquids {:.2f}, "
+                        "mistake ranking {:.2f}, upload {:.2f}, lines {:.2f}) + other {:.2f}; cells {:.0f} halo {:.0f} drawn {:.0f}, "
+                        "quads faces {:.0f} blended {:.0f}, ranked outlines {:.0f}",
+                        each(perf.nearNs), each(t.totalNs), each(t.loopNs > inner ? t.loopNs - inner : 0), each(t.tessellateNs),
+                        each(t.cullNs), each(t.liquidNs), each(t.marksNs), each(t.uploadNs), each(t.linesNs),
+                        each(perf.nearNs > t.totalNs ? perf.nearNs - t.totalNs : 0), count(t.cells), count(t.halo), count(t.drawn),
+                        count(t.faceQuads), count(t.blendQuads), count(t.ranked)));
+    }
+    nearTrace() = NearTrace{};
     perf = Perf{};
 }
 #endif
