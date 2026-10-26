@@ -172,7 +172,7 @@ option("schematic_quad_trace")
 option_end()
 
 option("schematic_creative_pick")
-    set_default(true)
+    set_default(false)
     set_showmenu(true)
     set_description("L-263 experiment: creative pick of a ghost gives its block from the creative inventory")
 option_end()
