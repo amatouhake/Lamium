@@ -160,7 +160,7 @@ option("radar_icon_probe")
 option_end()
 
 option("schematic_perf_trace")
-    set_default(true)
+    set_default(false)
     set_showmenu(true)
     set_description("Schematic C: log ghost frame time, section rebuilds and their reasons every 5 s")
 option_end()
