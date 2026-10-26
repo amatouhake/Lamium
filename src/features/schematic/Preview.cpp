@@ -189,13 +189,18 @@ void start(ScreenContext& screen, BlockSource& region, std::shared_ptr<Structure
     job->region = std::make_unique<SchematicRegion>(region);
     job->region->answer = [](BlockPos const& p) -> Block const* {
         if (!job) return nullptr;
-        // A door's other half, also where the file has none (the area's edge).
-        if (job->drawn >= 0 && job->halfSteps[static_cast<size_t>(job->drawn)] && p.x == job->drawingAt.x && p.z == job->drawingAt.z
-            && p.y == job->drawingAt.y + job->halfSteps[static_cast<size_t>(job->drawn)])
-            return job->halves[static_cast<size_t>(job->drawn)];
         auto const& size = job->structure->size;
         int x = p.x - job->baseX, y = p.y - job->baseY, z = p.z - job->baseZ;
-        if (x < 0 || y < 0 || z < 0 || x >= size.x || y >= size.y || z >= size.z) return nullptr;
+        bool inside = x >= 0 && y >= 0 && z >= 0 && x < size.x && y < size.y && z < size.z;
+        // A door's other half: the file's own (L-267, the halves' states
+        // differ), else one made from the drawn half (the area's edge).
+        if (job->drawn >= 0 && job->halfSteps[static_cast<size_t>(job->drawn)] && p.x == job->drawingAt.x && p.z == job->drawingAt.z
+            && p.y == job->drawingAt.y + job->halfSteps[static_cast<size_t>(job->drawn)]) {
+            Block const* half = job->halves[static_cast<size_t>(job->drawn)];
+            Block const* own = inside ? blockAt(*job, x, y, z) : nullptr;
+            return own && half && &own->getBlockType() == &half->getBlockType() ? own : half;
+        }
+        if (!inside) return nullptr;
         return blockAt(*job, x, y, z);
     };
     job->blocks = std::make_unique<BlockTessellator>(job->region.get());
