@@ -82,8 +82,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-253, L-254, L-255.
    **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
    checked except L-263 creative and L-264 waterlogged; L-256 item 7 (a)
-   built; near rebuilds were mostly outline vertices, now copied in
-   bulk, awaiting the in-game check); L-267 door halves (Bug); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   built and measured: inside ghosts 3.7-5.0 ms ghost pass, worst
+   frames 11-15 ms; z-fighting A/B against `main` and waterlogged blocks
+   left); L-267 door halves (Bug); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -785,7 +786,14 @@ Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
    0.3 us each, 32 per edge for bars). Built next (not yet checked): only
    the first primitive goes through `vertex()`, the rest are copied into
    the vertex streams (`drawSameColor`, the way the sorted blended mesh is
-   made); this also speeds up section builds. Not done: caching outlines
+   made); this also speeds up section builds. Checked 2026-10-26
+   (VALIDATION-LOG "L-256 seventh perf trace", `6e7b96e`): a near rebuild
+   inside is 3.1-4.1 ms (was 24-26), outlines about 1 ms, tessellation
+   1.9-2.8 ms; ghost pass inside 3.7-5.0 ms, worst frames 11-15 ms (31-32);
+   section builds while loading at most 7 ms (35); outline look unchanged
+   in every width and graphics mode. Still to check for item 7: the
+   z-fighting seen inside a stair, at a door from inside a block and on
+   cross plants (compare with `main`), waterlogged blocks. Not done: caching outlines
    per cell (their bounds come from the camera-dependent tessellation),
    dropping the reversed bar quads (the material may cull either winding),
    a wider box with hysteresis (the rules inside the box change with every

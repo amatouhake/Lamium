@@ -21,6 +21,25 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-256 seventh perf trace: outlines copied in bulk (2026-10-26)
+
+`6e7b96e` with `--schematic_perf_trace=y` (DLL SHA-256
+`92E912D59A42F7C89304C7DFB9D4008542521047D9B72C1C29529D04E2397502`),
+`1.26.51.01` LIP, Normal outlines, maintainer. Route: wait above the
+placement, fly around, wait inside, fly around inside; 15 windows of 5 s.
+Inside (149-166 cells drawn, 891-996 face quads), per near rebuild:
+3.11-4.12 ms (23.66-25.96 on `0431c2d`), of which outlines 0.93-1.03
+(20.63-23.59), tessellation 1.86-2.77, lookups 0.08-0.09, face drops
+0.11-0.13, upload 0.04-0.05, mistake ranking 0.00; 16-78 rebuilds per 5 s
+(14-16 a second when flying), ghost pass 3.71-4.97 ms (6.67-8.00), worst
+frames 11-15 ms (31-32), 72-97 fps. Loading: section builds at most 7.0 ms
+each (35.3 before), 2091 and 420 builds in the first windows.
+Look checked with no change: Normal, Thick, Thin and None outlines;
+Simple, Fancy and Vibrant Visuals; red, yellow and orange mistake
+outlines; no missing outlines and none vanishing at a distance.
+Not checked: the z-fighting seen on `291fcd4` against `main`, waterlogged
+blocks, the door halves (L-267).
+
 ## L-256 sixth perf trace: parts of a near rebuild (2026-10-26)
 
 `0431c2d` (near rebuild split from `0b00d03`) with `--schematic_perf_trace=y`
