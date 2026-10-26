@@ -604,14 +604,17 @@ std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& c
         try { read = readEffects(*player); } catch (...) { read.reset(); }
     }
     fx::covers(!preview && read && settings.effectsHideVanilla);
-    std::vector<fx::Effect> effects = read ? *read : std::vector<fx::Effect>{};
+    std::vector<fx::Effect> effects = read ? std::move(*read) : std::vector<fx::Effect>{};
     if (effects.empty() && preview) {
         // The layout editor needs something to place without active effects.
         for (auto [id, ticks, amplifier] : {std::tuple{1u, 3300, 1}, std::tuple{19u, 80, 0}, std::tuple{16u, -1, 0}})
             if (auto effect = effectFor(id, ticks, amplifier, false)) effects.push_back(std::move(*effect));
     }
     if (effects.empty()) {
-        if (!preview) shownEffects.clear();
+        // Only a read that succeeded ends the row order: an unreadable frame
+        // draws nothing and keeps the rows, so a single failed read cannot
+        // fall back to a fresh time sort (L-247).
+        if (fx::endsRowOrder(read.has_value(), preview)) shownEffects.clear();
         return std::nullopt;
     }
     // Rows keep their place across frames (L-247); the layout editor's sample

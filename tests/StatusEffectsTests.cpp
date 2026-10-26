@@ -36,6 +36,12 @@ void statusEffectsTests() {
           "a new effect enters by remaining time, an ended one closes up and an infinite one goes last");
     check(rowIds(arrange(Ids{19, 3}, {Effect{19, 40, 0, false, true, "Poison"}})) == Ids{19},
           "an effect that ended takes its row with it");
+    // L-247 review: a frame whose effects could not be read draws nothing but
+    // must keep the order; only a successful read with no effect ends it, and
+    // the layout editor's samples never touch it.
+    check(endsRowOrder(true, false) && !endsRowOrder(false, false) && !endsRowOrder(true, true)
+              && !endsRowOrder(false, true),
+          "only a successful read with no effect ends the row order");
     check(timeText(3300) == "2:45" && timeText(80) == "0:04" && timeText(1) == "0:01" && timeText(0) == "0:00",
           "times read M:SS and round up while active");
     check(timeText(20 * 3725) == "1:02:05", "an hour or more reads H:MM:SS");

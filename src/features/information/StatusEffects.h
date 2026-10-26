@@ -57,6 +57,10 @@ inline std::vector<unsigned> rowIds(std::vector<Effect> const& rows) {
     for (auto const& row : rows) ids.push_back(row.id);
     return ids;
 }
+// Whether a frame that draws no rows ends the row order (L-247). Only a read
+// that succeeded does: an unreadable frame must keep the rows, and the layout
+// editor's samples never set them.
+inline bool endsRowOrder(bool readSucceeded, bool preview) { return readSucceeded && !preview; }
 // M:SS, H:MM:SS from an hour, rounded up so an active effect never reads 0:00.
 // Empty for an infinite effect: the caller writes a translated word (the
 // game font has no infinity sign in Japanese, checked 2026-10-12).
