@@ -777,17 +777,27 @@ void perfReport() {
     if (now - perf.since < std::chrono::seconds(5) || !perf.frames) return;
     auto ms = [](std::uint64_t ns) { return static_cast<double>(ns) / 1e6; };
     auto per = [&](std::uint64_t ns) { return ms(ns) / static_cast<double>(perf.frames); };
+    // L-256: how much the built meshes hold now, for the mistake-box and
+    // collapsed-quad candidates.
+    std::uint64_t faceVertices = 0, blendVertices = 0, markVertices = 0, lineMeshes = 0;
+    for (auto const& [key, section] : sections) {
+        faceVertices += section.faceVertices;
+        blendVertices += section.blendVertices;
+        markVertices += section.markVertices;
+        lineMeshes += section.lines.size();
+    }
     log(std::format("perf {} frames: ghost pass {:.3f} ms/frame (max {:.2f}), builds {} ({:.3f} ms/frame, max {:.2f} ms each; "
                     "new {} looked-at {} changed {} mesh-gone {} incomplete {}), checks {} ({:.3f} ms/frame), check/scan {:.3f} ms/frame, "
                     "blended pass {:.3f} ms/frame, sections {}, never-built waiting avg {:.1f} max {}, looked-at latency avg {:.0f} ms max {:.0f} ms; "
                     "prepare {:.3f}, faces {:.3f}, lines {:.3f}, block actors {:.3f}, frames {:.3f}, entities {:.3f}, name tags {:.3f} ms/frame; "
-                    "blended frames {}, re-sorts {}, camera moves {}",
+                    "blended frames {}, re-sorts {}, camera moves {}; vertices faces {} blended {} marks {}, line meshes {}",
                     perf.frames, per(perf.frameNs), ms(perf.maxFrameNs), perf.builds, per(perf.buildNs), ms(perf.maxBuildNs), perf.reasons[0],
                     perf.reasons[1], perf.reasons[2], perf.reasons[3], perf.reasons[4], perf.checks, per(perf.checkNs), per(perf.scanNs),
                     per(perf.blendNs), perf.sections, static_cast<double>(perf.waiting) / static_cast<double>(perf.frames), perf.maxWaiting,
                     perf.dueCount ? ms(perf.dueLatencyNs) / static_cast<double>(perf.dueCount) : 0., ms(perf.maxDueLatencyNs),
                     per(perf.prepareNs), per(perf.facesNs), per(perf.linesNs), per(perf.actorsNs), per(perf.framesNs), per(perf.entitiesNs),
-                    per(perf.extrasNs), perf.blendedFrames, perf.orderChanges, perf.cameraMoves));
+                    per(perf.extrasNs), perf.blendedFrames, perf.orderChanges, perf.cameraMoves, faceVertices, blendVertices,
+                    markVertices, lineMeshes));
     perf = Perf{};
 }
 #endif
