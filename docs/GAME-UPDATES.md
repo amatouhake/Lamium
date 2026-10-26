@@ -477,8 +477,9 @@ front of the hit itself through `movePair` (L-263).
 Hooks: `GhostBlendPass`, `GhostPass`
 Meaning: the block tessellator's private fields Lamium sets on its own
 tessellator (render layer, shape set, region), the mesh data streams
-(positions, colors, light UVs) it edits or fills directly (the sorted
-blended mesh; outlines after their first primitive), the alpha pass order,
+(positions, colors, light UVs) it edits, the vertex streams, bounds and
+count it fills directly (the sorted blended mesh; outlines after their
+first primitive), the alpha pass order,
 and the material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 (Schematic ghost blocks; entity models in `GhostMarks.cpp`).
 
