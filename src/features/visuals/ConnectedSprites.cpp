@@ -49,6 +49,7 @@ struct Source {
     std::string path; // the base texture
     Rule rule;
     std::vector<Mask> masks;
+    unsigned generation = 0; // the atlas build that named its sprites
 };
 struct Baked {
     std::vector<Source> sources;
@@ -69,6 +70,7 @@ std::atomic<std::shared_ptr<Table const>> table;
 // Raised by each terrain atlas build and when it finishes; the client thread
 // rebuilds the lookup, and retries a while if sprites were still missing.
 std::atomic<bool> dirty{false};
+std::atomic<unsigned> builds{0}; // terrain atlas builds, for sprite names
 // Client thread: retries left, ticks until the next one, sprites placed last time.
 int retries = 0, wait = 0;
 size_t lastPlaced = 0;
@@ -130,7 +132,7 @@ int bakeTextureSets(ResourcePackManager& packs, Source const& source, Baked& nex
     for (auto mask : source.masks) {
         auto derived = json;
         auto& set = derived["minecraft:texture_set"];
-        auto name = spriteName(source.path, mask);
+        auto name = spriteName(source.path, mask, source.generation);
         set["color"] = name;
         for (auto& [layer, value] : set.items()) {
             if (layer == "color" || !value.is_string()) continue;
@@ -147,7 +149,7 @@ int bakeTextureSets(ResourcePackManager& packs, Source const& source, Baked& nex
             value = layerName;
             ++layers;
         }
-        next.textureSet[spritePath(source.path, mask)] = derived.dump();
+        next.textureSet[spritePath(source.path, mask, source.generation)] = derived.dump();
     }
     return layers;
 }
@@ -157,6 +159,7 @@ void prepare(Json::Value const& root, Json::Value& copy, mce::TextureGroup& grou
     auto const& data = root["texture_data"];
     for (auto const& name : data.getMemberNames()) textures(data[name], paths);
     Baked next;
+    unsigned generation = ++builds;
     int skipped = 0, layers = 0;
     for (auto const& path : paths) {
         auto rule = ruleForTexture(path);
@@ -166,22 +169,22 @@ void prepare(Json::Value const& root, Json::Value& copy, mce::TextureGroup& grou
         int width = image->width, height = image->height;
         if (!bakeable(width, height)) { ++skipped; continue; }
         auto const* pixels = reinterpret_cast<std::uint32_t const*>(image->rgba.data());
-        Source source{path, *rule, variantMasks(*rule)};
+        Source source{path, *rule, variantMasks(*rule), generation};
         for (auto mask : source.masks) {
-            auto sprite = spritePath(path, mask);
+            auto sprite = spritePath(path, mask, generation);
             next.png[sprite] = encode(bake(pixels, width, height, *rule, mask), width, height);
             next.basePath[sprite] = path;
-            copy["texture_data"][spriteName(path, mask)]["textures"] = Json::Value(sprite);
+            copy["texture_data"][spriteName(path, mask, generation)]["textures"] = Json::Value(sprite);
         }
         // An entry for the base itself: the atlas places a file once, so its
         // place is the tile vanilla faces use (checked against "glass" below).
-        copy["texture_data"][spriteName(path, 0)]["textures"] = Json::Value(path);
+        copy["texture_data"][spriteName(path, 0, generation)]["textures"] = Json::Value(path);
         try { layers += bakeTextureSets(packs, source, next, fileName(path) == "bookshelf"); } catch (...) {}
         next.sources.push_back(std::move(source));
     }
-    log(std::format("terrain atlas: {} sprites for {} textures, {} texture sets with {} baked maps ({} skipped: missing, "
+    log(std::format("terrain atlas {}: {} sprites for {} textures, {} texture sets with {} baked maps ({} skipped: missing, "
                     "not RGBA or larger than 64 px)",
-                    next.png.size() - layers, next.sources.size(), next.textureSet.size(), layers, skipped));
+                    generation, next.png.size() - layers, next.sources.size(), next.textureSet.size(), layers, skipped));
     std::lock_guard lock(mutex);
     baked = std::move(next);
     served.clear();
@@ -316,7 +319,7 @@ bool refresh() {
     std::string check;
     try {
         for (auto const& source : snapshot.sources) {
-            auto base = BlockGraphics::getTextureUVCoordinateSet(spriteName(source.path, 0), 0, 0);
+            auto base = BlockGraphics::getTextureUVCoordinateSet(spriteName(source.path, 0, source.generation), 0, 0);
             auto low = lowCorner(base);
             if (fileName(source.path) == "glass") {
                 auto vanilla = lowCorner(BlockGraphics::getTextureUVCoordinateSet("glass", 0, 0));
@@ -325,9 +328,9 @@ bool refresh() {
             auto& tile = next->tiles[key(low.u, low.v)];
             for (auto mask : source.masks) {
                 ++expected;
-                auto sprite = spritePath(source.path, mask);
+                auto sprite = spritePath(source.path, mask, source.generation);
                 if (!loaded.contains(sprite)) continue;
-                auto place = lowCorner(BlockGraphics::getTextureUVCoordinateSet(spriteName(source.path, mask), 0, 0));
+                auto place = lowCorner(BlockGraphics::getTextureUVCoordinateSet(spriteName(source.path, mask, source.generation), 0, 0));
                 if (key(place.u, place.v) == key(low.u, low.v)) continue;
                 tile[mask] = Shift{place.u - low.u, place.v - low.v};
                 ++placed;

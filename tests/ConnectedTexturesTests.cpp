@@ -41,10 +41,12 @@ void connectedTexturesTests() {
     check(validMask(Left | Bottom | BottomLeft) && !validMask(Left | BottomLeft) && !validMask(Left | Right | TopLeft)
               && validMask(15 | TopLeft | TopRight | BottomLeft | BottomRight),
           "a corner is kept only between two joined sides");
-    check(spriteName("textures/blocks/glass_red", Left | Top) == "lamium_ct_glass_red_5"
-              && spritePath("textures/blocks/glass", 15) == "textures/blocks/lamium_ct_glass_15"
-              && spriteName("textures/blocks/bookshelf", 0) == "lamium_ct_bookshelf_0",
-          "sprite names carry the file and the joined sides");
+    check(spriteName("textures/blocks/glass_red", Left | Top, 1) == "lamium_ct1_glass_red_5"
+              && spritePath("textures/blocks/glass", 15, 1) == "textures/blocks/lamium_ct1_glass_15"
+              && spriteName("textures/blocks/bookshelf", 0, 12) == "lamium_ct12_bookshelf_0",
+          "sprite names carry the atlas build, the file and the joined sides");
+    check(spritePath("textures/blocks/glass", 15, 1) != spritePath("textures/blocks/glass", 15, 2),
+          "each atlas build names its sprites anew");
     check(bakeable(16, 16) && bakeable(64, 64) && !bakeable(128, 128) && !bakeable(16, 32) && !bakeable(8, 8),
           "only square textures up to 64 px get sprites");
     // Baking: a 16x16 image whose texel is its own column/row number.

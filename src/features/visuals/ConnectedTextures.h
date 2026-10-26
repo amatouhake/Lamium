@@ -154,8 +154,12 @@ inline std::vector<std::uint32_t> bake(std::uint32_t const* pixels, int width, i
 }
 // Larger textures draw vanilla: their sprites would cost too much atlas space.
 inline bool bakeable(int width, int height) { return width >= 16 && width == height && width <= 64; }
-inline std::string spriteName(std::string_view path, Mask mask) {
-    return "lamium_ct_" + std::string(fileName(path)) + "_" + std::to_string(mask);
+// `generation` counts terrain atlas builds. A new name per build keeps the
+// game from reusing a sprite image cached by the previous pack stack: after
+// a pack change the old one came back at the wrong size or as the missing
+// texture (L-260, 2026-10-26).
+inline std::string spriteName(std::string_view path, Mask mask, unsigned generation) {
+    return "lamium_ct" + std::to_string(generation) + "_" + std::string(fileName(path)) + "_" + std::to_string(mask);
 }
 // Sprites sit beside their base texture, so a texture set's relative names
 // resolve the same way.
@@ -163,9 +167,9 @@ inline std::string_view directoryOf(std::string_view path) {
     auto slash = path.find_last_of('/');
     return slash == std::string_view::npos ? std::string_view{} : path.substr(0, slash);
 }
-inline std::string spritePath(std::string_view path, Mask mask) {
+inline std::string spritePath(std::string_view path, Mask mask, unsigned generation) {
     auto directory = directoryOf(path);
-    return (directory.empty() ? std::string{} : std::string(directory) + "/") + spriteName(path, mask);
+    return (directory.empty() ? std::string{} : std::string(directory) + "/") + spriteName(path, mask, generation);
 }
 // A face's joined sides (toward u0, u1, v0, v1) in image orientation: a face
 // whose texture runs backwards shows its u0 side at the image's right.
