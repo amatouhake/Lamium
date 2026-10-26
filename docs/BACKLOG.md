@@ -80,9 +80,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
    L-253, L-254, L-255.
-   L-262 schematic check relaxations and L-263 ghost pick block (decided,
-   research first); L-264 schematic water in Target View (details open);
-   L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   **L-266 schematic follow-up batch for 0.3.1** (stages: L-252/L-254,
+   L-262, L-264/L-263, L-256 research); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -485,7 +484,7 @@ not built or drawn; the check itself still runs, so the Check tab, the HUD
 counts and the materials are unchanged. The reporter is being asked about a
 fuller check on/off, which was tracked as L-258 (closed 2026-10-26, answered by L-262 to L-264). Settings, option
 row and help in all four languages; check in game with mistakes in view.
-No release target selected.
+Release target: 0.3.1, batch L-266.
 
 ### L-259 Book and quill: paste overflow into new pages
 Kind: Research (behavior decided; the switch's name and settings group
@@ -545,6 +544,29 @@ New hooks go into GAME-UPDATES.md. Verify on a local world and on a server
 that the pages survive closing and reopening the book.
 No release target selected.
 
+### L-266 Schematic follow-up batch (0.3.1)
+Kind: Ready (umbrella). Maintainer decision 2026-10-26: the schematic
+requests that piled up after 0.3.0 are done together instead of one by one,
+so the Schematics settings and the four languages are reviewed once. The
+L-items stay the specifications; this item holds the order and the scope.
+Release: 0.3.1, together with other work chosen later (for example L-255
+pane corner inside edges and the other requests from the same Discord
+thread); 0.3.1 ships only after more of that is done.
+Stages, in order:
+1. Settings and ghost drawing: L-252 hide the mistake marks, L-254 "None"
+   ghost outline width.
+2. Check rules: L-262 rule table with the signal, lit/unlit and growth
+   switches.
+3. The aimed ghost: L-264 schematic water in Target View, L-263 pick the
+   aimed ghost's block.
+4. Performance, research only: L-256 measure and find the cost; whether to
+   change anything is decided from the results (L-236 is related).
+Out of the batch: L-183 (reconsider after L-262), L-184, L-185, L-186,
+L-265, L-114 to L-116, and the parked or waiting bugs (L-177, L-192, L-193,
+L-245).
+In-game checks are collected into one checklist at the end of the batch
+where possible.
+
 ### L-262 Schematic check: ignore redstone signal, lit/unlit variants and plant growth
 Kind: Research (state lists), then Ready. User feedback 2026-10-26 (Discord
 thread by びー; taken as the L-252/L-258 reporter):
@@ -573,7 +595,7 @@ Research first: the exact state keys and block-name pairs from the SDK /
 block data (pure tables in `features/schematic/`, with tests), and whether
 open/extended states (doors, trapdoors, pistons) count as "signal" (ask the
 maintainer before including them). Settings rows and help in all four
-languages. No release target selected.
+languages. Release target: 0.3.1, batch L-266.
 
 ### L-263 Pick the aimed ghost block from the inventory
 Kind: Research (pick-block hook), then Ready. Same feedback as L-262:
@@ -592,6 +614,7 @@ Research: where pick block is handled in the SDK and how the inventory
 move is confirmed from authoritative state (reuse the existing inventory
 transfer paths). New hooks go into GAME-UPDATES.md. No release target
 selected.
+Release target: 0.3.1, batch L-266.
 
 ### L-264 Target View: schematic water and flowing water
 Kind: Design details, then Research. User feedback 2026-10-26 (same thread
@@ -606,7 +629,7 @@ Open: how a ghost liquid in front of a real block or another ghost is
 chosen, the waterlogged second layer (a ghost block that should also hold
 water), what "flow level" reads as in all four languages, and the new
 option's place and help. Research: the liquid ray test for real liquids.
-No release target selected.
+Release target: 0.3.1, batch L-266.
 
 ### L-265 Schematic placement assist: place the ghost's block in its state
 Kind: Design / Research (strong model). Maintainer note 2026-10-26 while
@@ -650,7 +673,7 @@ Saved values keep their meaning (append the new value; settings format
 stays compatible). With None, the light-blue ghost outlines are not built
 or drawn; the red/yellow mistake marks and their outlines stay. The outline
 distance row stays as it is. Labels and help in all four languages; check
-in game. No release target selected.
+in game. Release target: 0.3.1, batch L-266.
 
 ### L-255 Connected Textures: edges on the inside of glass pane corners
 Kind: Ready. User report 2026-10-23 after 0.3.0, with a screenshot: at an
