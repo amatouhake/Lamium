@@ -551,7 +551,7 @@ that the pages survive closing and reopening the book.
 No release target selected.
 
 ### L-261 Temporary waypoints
-Kind: Ready (small defaults open below). Maintainer request 2026-10-26:
+Kind: Ready. Maintainer request 2026-10-26:
 waypoints today are long-lived marks; add throwaway ones that disappear on
 arrival or can be removed without the usual confirmation.
 Decided (maintainer 2026-10-26):
@@ -567,7 +567,8 @@ Decided (maintainer 2026-10-26):
 - Temporary waypoints are saved with the world like normal ones until they
   are removed. The waypoint file gains one field; files without it load as
   normal waypoints.
-Proposed, confirm on review: arrival distance default 3 blocks, range 0-32;
+Also decided (maintainer 2026-10-26): arrival distance default 6 blocks
+(about the reach distance), range 0-32;
 temporary marks drawn so they are told apart from normal ones (in the
 world, on the minimap and map, and in the list) with the existing palette;
 only waypoints in the current dimension are removed by arrival; FreeCamera
