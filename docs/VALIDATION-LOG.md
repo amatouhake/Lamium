@@ -21,6 +21,34 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-256 schematic ghost perf trace (2026-10-26)
+
+`main` (`a0c7a77a`) built with `--schematic_perf_trace=y` (DLL SHA-256
+`B8E69BA82272A962E6AC28951BA1D4BF1E34DB808EAD9FF162E379C2D3F3FBFC`), local
+`1.26.51.01` LIP deployment, LeviLamina Client 26.51.7, Windows x64,
+graphics mode 1, maintainer. One large placement: 2428 sections, about
+740k face vertices. Cases were told apart in the log by the full rebuilds
+at each setting change, the line mesh count and the blended vertex count.
+Standing still, ms per frame (ghost pass = whole pass; stages below it):
+
+| Case | Ghost pass | Faces | Lines | Check/scan | Checks | Blended | Prepare |
+|---|---|---|---|---|---|---|---|
+| Normal outlines, few mistakes | 4.45-4.69 | 1.35-1.50 | 0.33-0.38 | 1.02-1.08 | 0.19-0.21 | 0.06 | 0.14 |
+| Thin outlines | 4.48-4.50 | 1.35 | 0.46 | 1.04-1.07 | 0.19-0.23 | 0.06 | 0.14 |
+| No outlines | 3.73-3.75 | 1.30 | 0.01 | 1.08-1.09 | 0.17-0.19 | 0.06 | 0.14 |
+| Many mistakes (645k blended vertices) | 4.64-4.77 | 1.00-1.03 | 0.67 | 1.24 | 0.22-0.26 | 0.32 | 0.16 |
+| Many mistakes, marks off | 4.23-4.45 | 0.98 | 0.47 | 1.22 | 0.21 | 0.06 | 0.14 |
+
+Walking: with many mistakes the blended mesh re-sorted almost every frame
+(re-sorts = frames), blended 0.5-0.64 ms, ghost pass up to 5.8 ms average
+and 16.9 ms peaks; without mistakes walking costs about 1 ms more than
+standing (checks and prepare). The listed stages add up to 2.7-3.4 ms of
+the 3.7-4.8 ms pass: about 1 ms a frame is spent outside them. Thin and
+Normal outlines cost the same (601 line meshes either way): the outline
+cost is per mesh drawn, not per vertex. `marks` vertices read 0 because the
+mistake boxes are in the blended mesh in this mode.
+Not measured: Vibrant Visuals, other placement sizes, a second run.
+
 ## L-266 schematic batch, stages 1 to 3, checked in game (2026-10-26)
 
 Local `1.26.51.01` LIP deployment, LeviLamina Client 26.51.7, Windows x64,

@@ -701,7 +701,18 @@ Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
    not time: give it a time budget.
 Constraints: no visible change (outline look, mistake colors, blended
 order must not flicker again, L-192/L-193); fail open as today. Validate
-each step in game against the step 1 numbers. No release target selected.
+each step in game against the step 1 numbers.
+Step 1 done 2026-10-26 (VALIDATION-LOG "L-256 schematic ghost perf
+trace"): 2428 sections, ghost pass 3.7-4.8 ms standing still. By cost:
+the check/scan about 1.05-1.25 ms every frame (candidate 5); about 1 ms
+outside every measured stage (find it first: per-section bookkeeping over
+all sections is the suspect); faces 1.0-1.5 ms (candidate 4); lines
+0.3-0.7 ms, the same for Thin and Normal, so it is the number of line
+meshes, not candidate 1's vertex count; many mistakes add 0.25 ms standing
+and re-sort the blended mesh every frame while walking (candidate 2).
+Proposed order: account for the missing 1 ms, give the scan a time
+budget, then fewer draws for faces and lines, then the mistake boxes.
+Candidate 1 drops to last. No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported
