@@ -46,7 +46,8 @@ struct GhostAt {
     Block const* block = nullptr;
     std::string placement;
 };
-// The first ghost along a ray. A real block stops the search, unless
+// The first ghost along a ray. Real water and lava do not stop the search
+// (L-264); another real block does, unless
 // `throughBlocks`: the caller knows nothing solid lies within `reach` (the
 // game's own pick) and a block cell met there is only the walk grazing an
 // edge (L-224).

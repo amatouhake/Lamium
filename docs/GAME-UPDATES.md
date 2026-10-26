@@ -466,6 +466,13 @@ overloads. Used only for ghost block actors (gated with ghost blocks).
 Hooks: `EffectsPassHook`
 Trace (ghost probe).
 
+### `src/features/schematic/GhostPick.cpp`
+Hooks: `GhostPickHook`
+Meaning: `LocalPlayer::pickBlock` is the client's pick block input, called
+on the client thread with the game's own hit (start, direction, position),
+and asks the server for the block at the hit; Lamium handles a ghost in
+front of the hit itself through `movePair` (L-263).
+
 ### `src/features/schematic/GhostRenderer.cpp`
 Hooks: `GhostBlendPass`, `GhostPass`
 Meaning: the block tessellator's private fields Lamium sets on its own

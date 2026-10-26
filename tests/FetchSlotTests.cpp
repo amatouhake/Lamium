@@ -1,4 +1,5 @@
 #include "features/inventory/FetchSlot.h"
+#include "features/inventory/HandPick.h"
 #include "ui/SettingsRows.h"
 void check(bool, char const*);
 void fetchSlotTests() {
@@ -23,4 +24,18 @@ void fetchSlotTests() {
     value.inventory.fakeOffhand = true;
     value.inventory.toolSwitchInventory = false;
     check(!optionWarning("inventory.toolSwitchSlot", value), "no warning while the fetch is off");
+    // L-263: where a ghost's block is picked from.
+    using lamium::inventory::HandPick;
+    using lamium::inventory::pickFor;
+    std::array<std::string, 36> names{};
+    names[2] = names[5] = "minecraft:stone";
+    names[20] = "minecraft:glass";
+    check(pickFor(names, 5, "minecraft:stone").kind == HandPick::Select && pickFor(names, 5, "minecraft:stone").slot == 5,
+          "the selected slot wins when it holds the block");
+    check(pickFor(names, 0, "minecraft:stone").slot == 2, "otherwise the first hotbar slot holding it is selected");
+    auto swap = pickFor(names, 0, "minecraft:glass");
+    check(swap.kind == HandPick::Swap && swap.slot == 20, "from the inventory it is swapped into the hand");
+    check(pickFor(names, 0, "minecraft:dirt").kind == HandPick::None && pickFor(names, 0, "").kind == HandPick::None
+              && pickFor(names, 9, "minecraft:stone").kind == HandPick::None,
+          "nothing when it is not carried or no hotbar slot is selected");
 }
