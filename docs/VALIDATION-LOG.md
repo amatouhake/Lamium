@@ -21,6 +21,34 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-256 fifth perf trace: near mesh (2026-10-26)
+
+`claude/intelligent-hopper-yhi2ze` (`291fcd4`) with `--schematic_perf_trace=y`
+(DLL SHA-256
+`1E2502E04A581C4DA5F41299DF296FCE33D738871E793EAEE73C0A608F2903DD`),
+`1.26.51.01`, same placement (2428 sections), maintainer. Two sessions, a
+visual pass and a measurement pass (16 windows of 5 s); no errors or
+exceptions in the log, no incomplete sections. Per 5 s window:
+- Loading and arrival: ghost pass 27.90, 12.91, 12.68, 4.26 ms; builds 1,
+  469, 1091, 870.
+- Standing and outside: ghost pass 2.65-3.54 ms (mean 3.17), builds 0-12,
+  near rebuilds 34-105 at 0.1-0.3 ms each, 80-107 fps.
+- Flying inside ghost blocks: ghost pass 2.97-15.19 ms, builds 0 (12 once),
+  near rebuilds 12-85 at 10.1-26.6 ms each (24-27 ms in dense interiors,
+  0.1-0.5 ms in open air), 113 then 66, 56, 41 fps, worst frame 34.9 ms.
+  On the previous build in the same area: ghost pass 6.46-15.61 ms, builds
+  77-274 at 7-16 ms each, 42-69 fps.
+- The walk stayed 0.053-0.062 ms a frame throughout.
+Result: inside ghosts the section rebuilds are gone, but the near mesh
+costs as much (a new camera cell every 2-3 frames when flying fast), so
+frame rate there did not improve; outside and standing unchanged.
+Visual: walking around the ghost looks right and updates as expected.
+Seen, not yet compared with `main`: z-fighting or unstable order inside a
+stair block, at a door seen from inside a block, and on cross-shaped
+plants (dead bush). Also seen: some door ghosts face correctly, others
+have upper and lower halves facing different ways (L-267). Waterlogged
+blocks not checked.
+
 ## L-256 fourth perf trace: camera rebuilds narrowed (2026-10-26)
 
 `main` (`7c0a7cb2`) with `--schematic_perf_trace=y` (DLL SHA-256

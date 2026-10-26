@@ -82,7 +82,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-253, L-254, L-255.
    **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
    checked except L-263 creative and L-264 waterlogged; L-256 item 7 (a)
-   built, awaiting the in-game check); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   built and measured: no gain inside ghosts yet, the near rebuild is
+   the cost; next: time its parts); L-267 door halves (Bug); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -754,6 +755,32 @@ Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
    that is the first suspect) and leave out the box's entities and blended
    quads; the sorted blended mesh re-sorts at once on a new box. The trace
    logs "near rebuilds". The camera-cell marking of `7c0a7cb2` is gone.
+   Checked 2026-10-26 (VALIDATION-LOG "L-256 fifth perf trace"): no
+   section rebuilds inside ghosts, but one near rebuild costs 24-27 ms in
+   dense interiors (0.1-0.5 ms in open air), 11-17 a second when flying
+   fast, so frame rate inside is unchanged (41-66 fps); standing and
+   outside unchanged. That is about 150 us per box cell against about 30
+   us per cell in a section build, where enclosed cells are skipped and
+   opaque ghost neighbors make the tessellator leave faces out; in the box
+   every cell is drawn with all its faces and each face goes through
+   `cullAgainstGhosts`. Maintainer candidates, with notes from the code:
+   (1) rebuild only the slab that enters: not enough on its own, because
+   one cell of camera movement changes the rules for most of the box (the
+   pairs within one cell, which face is beyond, the camera cells' back
+   faces), only the enclosed skip moves slab by slab; (2) keep each cell's
+   camera-independent work between near rebuilds (lookups, shapes, or the
+   cell tessellated once in the near form, with only the face drops
+   redone per camera cell; cells at the box edge must still look the
+   same as today); (3) rank against mistake outlines only when they
+   change; (4) a time budget per frame, drawing the old near meshes and
+   box until the new ones are complete (no holes; near cells briefly keep
+   the old camera's rules when flying fast: a visible trade-off for the
+   maintainer). Next: time the parts of a near rebuild in the trace
+   (halo and ranking, tessellation, face drops, upload, cells drawn) and
+   choose from that.
+   Visual issues seen on that build, not yet compared with `main`:
+   z-fighting or unstable order inside a stair block, at a door seen from
+   inside a block, on cross-shaped plants (dead bush).
 Constraints: no visible change (outline look, mistake colors, blended
 order must not flicker again, L-192/L-193); fail open as today. Validate
 each step in game against the step 1 numbers.
@@ -774,6 +801,25 @@ section, now 0.07 ms (`697c2475`). Standing still the pass is about 3.05
 ms (was 4.5). New finding: while walking, rebuilding the sections around
 the camera's old and new cells costs 3-5 ms a frame with 25-30 ms peaks,
 more than any drawing stage (6. below). No release target selected.
+
+### L-267 Schematic door ghosts: upper and lower halves face different ways
+Kind: Bug. Reported 2026-10-26 by the maintainer while checking L-256 on
+`291fcd4`: some door ghosts face correctly, others draw their upper and
+lower halves facing different ways; one of the two may be ignoring the
+open state. Not yet known whether it predates that build.
+Hypothesis from the code (not checked): while a door half is drawn, the
+tessellator's answer for the other half's cell is always the half Lamium
+makes from the drawn entry with `upper_block_bit` flipped
+(`ghostNeighbor`, `Resolved::halves`), unless the real block there is a
+door, even when the file has its own other half there. The game draws a
+door's upper half from the lower half's states, so an upper entry whose
+saved direction or open state differs from its lower half's would draw
+the upper ghost with the upper entry's own states. Possible fix: answer
+with the file's ghost at that cell when it is the same block type, and
+make a half only where the file has none. Check in game: closed and open
+doors in all four facings, both hinges, rotated and mirrored placements,
+a door with one half placed for real.
+No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported
