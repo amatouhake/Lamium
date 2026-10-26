@@ -26,6 +26,7 @@ Place joined;
 bool loadFailed = false; // Never overwrite a file that could not be read.
 std::optional<DeathPoint> pendingDeath;
 DeathWatch deathWatch;
+ArrivalWatch arrivalWatch;
 std::atomic<bool> joiningLocal{false};
 std::uint64_t nextId = 1; // never reset: ids are not reused within the session
 ll::event::ListenerPtr startJoinListener, joinListener, exitListener;
@@ -60,6 +61,7 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
         loadFailed = false;
         pendingDeath.reset();
         deathWatch.reset();
+        arrivalWatch.reset();
         joined = {joined.world + 1, true, std::nullopt};
         try { joined.mapFolder = resolve(event, "map", "map", false); }
         catch (std::exception const& error) { log(std::string("no folder for the world map: ") + error.what()); }
@@ -85,6 +87,7 @@ void leave() {
     loadFailed = false;
     pendingDeath.reset();
     deathWatch.reset();
+    arrivalWatch.reset();
 }
 // Saves a candidate, then publishes it; the caller holds the lock.
 bool commit(WaypointSet candidate) {
@@ -106,7 +109,7 @@ WaypointSet current() {
     std::lock_guard lock(mutex);
     return set;
 }
-std::uint64_t add(Waypoint waypoint) {
+std::uint64_t add(Waypoint waypoint, bool rememberKind) {
     std::lock_guard lock(mutex);
     if (set.waypoints.size() >= maxWaypoints) return 0;
     auto candidate = set;
@@ -114,6 +117,7 @@ std::uint64_t add(Waypoint waypoint) {
     if (waypoint.name.size() > maxNameBytes) waypoint.name.resize(maxNameBytes);
     waypoint.id = 0;
     candidate.lastColor = waypoint.color;
+    if (rememberKind) candidate.lastTemporary = waypoint.temporary;
     candidate.waypoints.push_back(std::move(waypoint));
     if (!commit(std::move(candidate))) return 0;
     return set.waypoints.back().id;
@@ -147,6 +151,20 @@ void frame(bool recordDeath) {
     auto candidate = set;
     candidate.death = death;
     commit(std::move(candidate));
+}
+std::vector<std::string> arrive(int dimension, double x, double y, double z, double distance) {
+    std::lock_guard lock(mutex);
+    auto reached = arrivalWatch.update(set.waypoints, dimension, x, y, z, distance);
+    if (reached.empty()) return {};
+    auto candidate = set;
+    std::vector<std::string> names;
+    std::erase_if(candidate.waypoints, [&](Waypoint const& w) {
+        bool gone = std::find(reached.begin(), reached.end(), w.id) != reached.end();
+        if (gone) names.push_back(w.name);
+        return gone;
+    });
+    if (!commit(std::move(candidate))) return {};
+    return names;
 }
 void start() {
     auto& bus = ll::event::EventBus::getInstance();

@@ -569,7 +569,8 @@ Request panelAction(Hit const& hit) {
         if (auto kept = keepDeath(set)) select(kept, false);
         break;
     case Target::Delete: {
-        if (!state.deleteArmed) { state.deleteArmed = true; break; }
+        auto const* chosen = state.selected ? waypointOf(set, *state.selected) : nullptr;
+        if (!state.deleteArmed && !(chosen && chosen->temporary)) { state.deleteArmed = true; break; }
         state.deleteArmed = false;
         if (!state.selected) break;
         if (!deleteMark(*state.selected)) say(ui::translated("waypoint.saveError"));
@@ -745,7 +746,7 @@ Request chooseMenu(int item) {
         state.menu.reset();
         changeWaypoint(menu.mark, [](Waypoint& v) { v.visible = !v.visible; });
     } else if (item == 2) {
-        if (!menu.armed) { state.menu->armed = true; return request; }
+        if (!menu.armed && !w->temporary) { state.menu->armed = true; return request; }
         state.menu.reset();
         bool saved = deleteMark(menu.mark);
         say(ui::translated(saved ? "worldMap.deleted" : "waypoint.saveError", name));
@@ -777,7 +778,8 @@ void openMenu(float x, float y) {
 
 // ---- Drawing ----
 Rgb rgb(std::uint32_t color) { return {channel(color, 0) / 255.f, channel(color, 1) / 255.f, channel(color, 2) / 255.f}; }
-void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, Rgb color, float opacity) {
+// Hollow for a temporary waypoint (L-261): black again two units further in.
+void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, Rgb color, float opacity, bool hollow = false) {
     auto rows = diamondRows(size);
     float top = cy - static_cast<float>(rows.size()) / 2;
     for (size_t i = 0; i < rows.size(); ++i) {
@@ -789,6 +791,13 @@ void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, Rg
     for (size_t i = 0; i < inner.size(); ++i) {
         float half = static_cast<float>(inner[i]) + .5f;
         ui::fill(context, cx - half, top + i, 2 * half, 1, color, opacity);
+    }
+    if (!hollow) return;
+    auto hole = diamondRows(size - 4);
+    top = cy - static_cast<float>(hole.size()) / 2;
+    for (size_t i = 0; i < hole.size(); ++i) {
+        float half = static_cast<float>(hole[i]) + .5f;
+        ui::fill(context, cx - half, top + i, 2 * half, 1, Rgb{0, 0, 0}, .85f * opacity);
     }
 }
 void cross(MinecraftUIRenderContext& context, float cx, float cy) {
@@ -1036,7 +1045,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
             // Hidden ones stay faint here so they can be shown again.
             float opacity = w.visible ? 1.f : .35f;
             if (state.panelWidth > 0 && state.selected == waypointKey(w.id)) diamond(context, x, y, 13, ui::palette::white, 1);
-            diamond(context, x, y, 9, rgb(waypointColors[static_cast<size_t>(clampColor(w.color))]), opacity);
+            diamond(context, x, y, 9, rgb(waypointColors[static_cast<size_t>(clampColor(w.color))]), opacity, w.temporary);
             auto name = w.visible ? w.name : w.name + " " + ui::translated("worldMap.hidden");
             names.push_back({waypointKey(w.id), x, y + 6, std::move(name), w.visible ? ui::palette::text : ui::palette::faint});
             state.markers.push_back({waypointKey(w.id), x, y, x, y});
@@ -1479,7 +1488,8 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
             continue;
         }
         auto const& p = set.waypoints[static_cast<size_t>(index)];
-        diamond(context, x + 4, ry + rowH / 2, 7, rgb(waypointColors[static_cast<size_t>(clampColor(p.color))]), p.visible ? 1.f : .4f);
+        diamond(context, x + 4, ry + rowH / 2, 7, rgb(waypointColors[static_cast<size_t>(clampColor(p.color))]), p.visible ? 1.f : .4f,
+                p.temporary);
         float switchX = x0 + w - pad - ui::switchWidth;
         std::string far;
         if (spot && spot->dimension == state.dimension) far = ui::translated("waypoint.meters", static_cast<int>(std::lround(distance(index))));

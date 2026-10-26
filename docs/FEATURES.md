@@ -194,6 +194,10 @@ as mob faces and player skin heads.
 Waypoints with the last death point, shown on the minimap and in the world,
 edited in a Waypoints screen.
 
+- Temporary waypoints (a switch in the add prompt, which remembers the
+  last choice) are drawn hollow, disappear when you get within a set
+  distance (6 blocks by default) and are deleted with one click.
+
 ### World map
 
 A full-screen map (`M`) of the areas you have visited, recorded per world.

@@ -497,7 +497,7 @@ void commitPrompt() {
     auto waypoint = prompt->draft;
     auto const& typed = prompt->name.value();
     if (typed.find_first_not_of(' ') != std::string::npos) waypoint.name = typed;
-    bool saved = map::waypoints::add(waypoint);
+    bool saved = map::waypoints::add(waypoint, true);
     showMessageToast(saved ? translated("waypoint.added", waypoint.name) : translated("waypoint.saveError"));
     endPrompt();
 }
@@ -519,6 +519,7 @@ void handlePromptClick(float x, float y, glm::vec2 size) {
     auto hit = WaypointPromptLayout::at(size.x, size.y).hit(x, y);
     using Part = WaypointPromptLayout::Part;
     if (hit.part == Part::Swatch) prompt->draft.color = hit.swatch;
+    else if (hit.part == Part::Temporary) prompt->draft.temporary = !prompt->draft.temporary;
     else if (hit.part == Part::Add) commitPrompt();
     else if (hit.part == Part::Cancel) endPrompt();
 }
@@ -543,6 +544,9 @@ void renderPrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 p
         frame(context, sx, sy, L::swatch, L::swatch, Rgb{0, 0, 0}, .6f);
     }
     auto hover = l.hit(pointer.x, pointer.y).part;
+    label(context, x, l.temporaryY() + boxTextInset(), l.inner() - L::switchWidth - 4, translated("waypoint.temporary"),
+        hover == L::Part::Temporary ? palette::text : palette::dim);
+    toggleSwitch(context, l.switchX(), l.temporaryY() + (L::rowHeight - switchHeight) / 2, d.temporary);
     auto button = [&](float bx, std::string text, bool primary, bool over) {
         fill(context, bx, l.buttonY(), L::buttonWidth, L::buttonHeight,
              primary ? palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : palette::keyFill);
@@ -935,6 +939,7 @@ void handleMapRequest(map::world::Request const& request) {
         break;
     case Kind::AddWaypoint:
         prompt = WaypointPrompt{request.draft, {}};
+        prompt->draft.temporary = map::waypoints::current().lastTemporary;
         prompt->name.append(prompt->draft.name);
         prompt->name.selectAll();
         promptOnMap = true;
@@ -1311,6 +1316,7 @@ void openWaypointPrompt(IClientInstance& current, map::Waypoint draft) {
     if (!scene) return;
     seedOpener(input::Action::AddWaypoint);
     prompt = WaypointPrompt{std::move(draft), {}};
+    prompt->draft.temporary = map::waypoints::current().lastTemporary;
     prompt->name.append(prompt->draft.name);
     prompt->name.selectAll();
 }

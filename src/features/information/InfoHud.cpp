@@ -1450,6 +1450,14 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     if (!preview) {
         map::record(context.mClient, runtime.map);
         map::waypoints::frame(runtime.map.waypointsDeath);
+        // The body arrives, not FreeCamera's view.
+        if (auto* player = context.mClient.getLocalPlayer(); player && player->isAlive()) {
+            auto feet = player->getFeetPos();
+            if (std::isfinite(feet.x) && std::isfinite(feet.y) && std::isfinite(feet.z))
+                for (auto& name : map::waypoints::arrive(static_cast<int>(player->getDimensionId()), feet.x, feet.y, feet.z,
+                                                         runtime.map.waypointArrival))
+                    ui::showMessageToast(ui::translated("waypoint.reached", name));
+        }
         // Under every HUD element: they point into the world.
         map::markers::draw(context, width, height, runtime.map);
         if (auto message = schematic::ghosts::takeSaveMessage()) ui::showMessageToast(std::move(*message));

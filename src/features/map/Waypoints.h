@@ -33,6 +33,7 @@ struct Waypoint {
     int x = 0, y = 0, z = 0;
     int dimension = 0; // 0 Overworld, 1 Nether, 2 End.
     bool visible = true;
+    bool temporary = false; // removed on arrival, deleted without confirmation (L-261)
     std::uint64_t id = 0; // session id (app/SessionIds.h, L-139); not saved
     bool operator==(Waypoint const&) const = default;
 };
@@ -44,7 +45,33 @@ struct WaypointSet {
     std::vector<Waypoint> waypoints;
     std::optional<DeathPoint> death;
     int lastColor = -1; // The next waypoint starts at color 0.
+    bool lastTemporary = false; // The add prompt opens with the kind chosen last.
     bool operator==(WaypointSet const&) const = default;
+};
+// Temporary waypoints go once the player arrives: within `distance` blocks
+// in 3D of the marked block's bottom middle. One that starts within reach
+// (added where the player stands, or loaded there) counts only after the
+// player has left it, or it would vanish on the spot. 0 never removes.
+class ArrivalWatch {
+    std::vector<std::uint64_t> armed;
+    bool isArmed(std::uint64_t id) const { return std::find(armed.begin(), armed.end(), id) != armed.end(); }
+public:
+    void reset() { armed.clear(); }
+    // The ids of the temporary waypoints reached this frame.
+    std::vector<std::uint64_t> update(std::vector<Waypoint> const& waypoints, int dimension, double x, double y, double z,
+                                      double distance) {
+        std::vector<std::uint64_t> reached, kept;
+        for (auto const& w : waypoints) {
+            if (!w.temporary || !w.id) continue;
+            bool was = isArmed(w.id);
+            if (w.dimension != dimension || !(distance > 0)) { if (was) kept.push_back(w.id); continue; }
+            double d = std::hypot(w.x + .5 - x, w.y - y, w.z + .5 - z);
+            if (d > distance) kept.push_back(w.id);
+            else if (was) reached.push_back(w.id);
+        }
+        armed = std::move(kept);
+        return reached;
+    }
 };
 inline constexpr size_t maxWaypoints = 1000;
 inline constexpr size_t maxNameBytes = 128;
@@ -87,9 +114,11 @@ inline EdgeMarker mapMarker(ViewTransform const& view, double centerX, double ce
     if (m <= reach) return {p.x, p.y, true};
     return {half + dx / m * reach, half + dy / m * reach, false};
 }
-// A waypoint diamond: black edge, colored inside.
-inline void drawDiamond(std::vector<std::uint32_t>& pixels, int n, double cx, double cy, double size, std::uint32_t color) {
-    double outer = size / 2, inner = outer * .72;
+// A waypoint diamond: black edge, colored inside. A temporary waypoint's
+// (L-261) is hollow: a colored ring around a black middle.
+inline void drawDiamond(std::vector<std::uint32_t>& pixels, int n, double cx, double cy, double size, std::uint32_t color,
+                        bool hollow = false) {
+    double outer = size / 2, inner = outer * .72, hole = outer * .36;
     int x0 = std::max(0, int(std::floor(cx - outer - 1))), x1 = std::min(n - 1, int(std::ceil(cx + outer + 1)));
     int y0 = std::max(0, int(std::floor(cy - outer - 1))), y1 = std::min(n - 1, int(std::ceil(cy + outer + 1)));
     for (int y = y0; y <= y1; ++y)
@@ -101,6 +130,8 @@ inline void drawDiamond(std::vector<std::uint32_t>& pixels, int n, double cx, do
             pixel = over(pixel, 0, 0, 0, edge);
             float fill = static_cast<float>(std::clamp(inner + .5 - d, 0.0, 1.0));
             if (fill > 0) pixel = over(pixel, channel(color, 0), channel(color, 1), channel(color, 2), fill);
+            float middle = hollow ? static_cast<float>(std::clamp(hole + .5 - d, 0.0, 1.0)) : 0.f;
+            if (middle > 0) pixel = over(pixel, 0, 0, 0, middle);
         }
 }
 // The death point's cross is red: white read as a passive mob's dot

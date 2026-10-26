@@ -248,7 +248,8 @@ void handleWaypointClick(float x, float y, bool right) {
     case ShapeZone::Action:
         if (hit.index == 0) { if (deathSelected()) keepDeathPoint(); return; }
         if (!waypointSelected) return;
-        if (!waypointDeleteArmed) { waypointDeleteArmed = true; return; }
+        // A temporary waypoint goes on the first click (L-261).
+        if (auto const* w = selectedWaypoint(); !waypointDeleteArmed && !(w && w->temporary)) { waypointDeleteArmed = true; return; }
         deleteSelectedWaypoint();
         return;
     default: return;
@@ -363,6 +364,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         auto const& w = waypointSet.waypoints[static_cast<size_t>(index)];
         bool here = w.dimension == screen::playerDimension();
         drawDiamondGlyph(context, gx, gy, 7, waypointRgb(w.color), w.visible && here ? 1.f : .35f);
+        if (w.temporary) drawDiamondGlyph(context, gx, gy, 3, Rgb{0,0,0}, .85f); // hollow: temporary (L-261)
         label(context,nameX,y+3,distanceX-nameX-4,w.name,here ? palette::text : palette::faint);
         label(context,distanceX,y+3,52,here ? translated("waypoint.meters", screen::distanceTo(w.x, w.z)) : screen::dimensionName(w.dimension),
             palette::dim,Align::Right);
@@ -395,6 +397,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,Rgb{0,0,0},.4f);
         frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingWaypointName ? palette::accent : palette::keyEdge);
         drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, 7, waypointRgb(w->color));
+        if (w->temporary) drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, 3, Rgb{0,0,0}, .85f);
         if (editingWaypointName) drawEditField(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,waypointNameInput);
         else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,w->name);
         // The preview area: a large diamond and where the waypoint is.
@@ -403,11 +406,13 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         frame(context,dx,l.previewY,size,size,palette::white,.14f);
         drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 31, Rgb{0,0,0}, .8f);
         drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 25, waypointRgb(w->color));
+        if (w->temporary) drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 13, Rgb{0,0,0}, .85f);
         float ix = dx + size + 8, iw = dw - size - 8;
         label(context,ix,l.previewY+1,iw,std::format("{}, {}, {}", w->x, w->y, w->z));
         label(context,ix,l.previewY+12,iw,screen::dimensionName(w->dimension),palette::dim);
         if (w->dimension == screen::playerDimension())
             label(context,ix,l.previewY+23,iw,translated("waypoint.distance", screen::distanceTo(w->x, w->z)),palette::dim);
+        if (w->temporary) paragraph(context,ix,l.previewY+36,iw,translated("waypoint.temporaryNote"),2,palette::faint);
         // Fields.
         for (int i = l.fieldFirst; i < l.fieldFirst + l.fieldVisible && i < static_cast<int>(map::waypointFields.size()); ++i) {
             float y = l.fieldY(i);

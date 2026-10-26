@@ -24,9 +24,11 @@ std::string encodeWaypoints(WaypointSet const& set) {
         entry["name"] = w.name;
         entry["color"] = w.color;
         entry["visible"] = w.visible;
+        if (w.temporary) entry["temporary"] = true;
         list.push_back(std::move(entry));
     }
     Json root{{"version", 1}, {"waypoints", std::move(list)}, {"lastColor", set.lastColor}};
+    if (set.lastTemporary) root["lastTemporary"] = true;
     if (set.death) root["death"] = point(set.death->x, set.death->y, set.death->z, set.death->dimension);
     return root.dump(2);
 }
@@ -37,6 +39,8 @@ WaypointSet decodeWaypoints(std::string_view text) {
         throw std::invalid_argument("Unsupported waypoint document");
     WaypointSet set;
     set.lastColor = std::clamp(integer(root.value("lastColor", Json()), -1), -1, static_cast<int>(waypointColors.size()) - 1);
+    auto lastTemporary = root.value("lastTemporary", Json());
+    set.lastTemporary = lastTemporary.is_boolean() && lastTemporary.get<bool>();
     if (auto found = root.find("waypoints"); found != root.end() && found->is_array())
         for (auto const& entry : *found) {
             if (!entry.is_object() || set.waypoints.size() >= maxWaypoints) continue;
@@ -51,6 +55,8 @@ WaypointSet decodeWaypoints(std::string_view text) {
             w.dimension = std::clamp(integer(entry.value("dimension", Json()), 0), 0, 2);
             auto visible = entry.value("visible", Json());
             w.visible = !visible.is_boolean() || visible.get<bool>();
+            auto temporary = entry.value("temporary", Json());
+            w.temporary = temporary.is_boolean() && temporary.get<bool>();
             set.waypoints.push_back(std::move(w));
         }
     if (auto found = root.find("death"); found != root.end() && found->is_object())

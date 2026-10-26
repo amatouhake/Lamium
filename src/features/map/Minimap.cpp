@@ -197,6 +197,7 @@ struct State {
         struct Mark {
             double x, y;
             int color; // -1: the death point.
+            bool temporary = false;
             bool operator==(Mark const&) const = default;
         };
         std::vector<Mark> marks;
@@ -820,14 +821,14 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         if (settings.waypoints && settings.waypointsMinimap) {
             auto set = waypoints::current();
             double margin = 6 * marker;
-            auto place = [&](double x, double z, int color) {
+            auto place = [&](double x, double z, int color, bool temporary = false) {
                 auto m = mapMarker(transform, centerX, centerZ, x, z, blocks, pixels, settings.round, margin);
-                overlay.marks.push_back({std::round(m.x), std::round(m.y), color});
+                overlay.marks.push_back({std::round(m.x), std::round(m.y), color, temporary});
             };
             for (auto const& w : set.waypoints) {
                 if (!w.visible) continue;
                 if (auto at = shownPosition(w.x, w.y, w.z, w.dimension, view->dimension, settings.waypointsCrossScale))
-                    place(at->x, at->z, w.color);
+                    place(at->x, at->z, w.color, w.temporary);
             }
             if (set.death && set.death->dimension == view->dimension) place(set.death->x + .5, set.death->z + .5, -1);
         }
@@ -866,7 +867,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
             for (auto const& mark : overlay.marks) {
                 if (mark.color < 0) drawCross(state.image, pixels, mark.x + .5, mark.y + .5, 11 * marker);
                 else drawDiamond(state.image, pixels, mark.x + .5, mark.y + .5, 12 * marker,
-                                 waypointColors[static_cast<size_t>(clampColor(mark.color))]);
+                                 waypointColors[static_cast<size_t>(clampColor(mark.color))], mark.temporary);
             }
             if (overlay.visible) drawArrow(state.image, pixels, overlay.x, overlay.y, overlay.angle, 16 * marker);
             drawFrame(state.image, pixels, settings.round, pixels / std::max(16.f, size));

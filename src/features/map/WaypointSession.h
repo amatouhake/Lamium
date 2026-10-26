@@ -14,8 +14,9 @@ void start();
 void stop();
 WaypointSet current();
 // Persists first and publishes only on success; the new waypoint's session
-// id, or 0 when saving failed.
-std::uint64_t add(Waypoint waypoint);
+// id, or 0 when saving failed. `rememberKind`: the add prompt keeps its
+// normal/temporary choice for next time.
+std::uint64_t add(Waypoint waypoint, bool rememberKind = false);
 // Applies a change to a copy, saves it and publishes it. False when the
 // change declined (returned false) or saving failed. Waypoints it adds get
 // session ids.
@@ -25,6 +26,9 @@ bool change(std::function<bool(WaypointSet&)> const& mutation);
 void watchDeath(IClientInstance&);
 // Called every HUD frame on the client thread: saves a pending death point.
 void frame(bool recordDeath);
+// Called every HUD frame with the player's body (not FreeCamera's view):
+// removes the temporary waypoints reached (L-261) and returns their names.
+std::vector<std::string> arrive(int dimension, double x, double y, double z, double distance);
 // The joined world, for the world map's saved regions: `world` changes with
 // every join; `mapFolder` is the world's Lamium folder "map" (local) or a
 // per-server folder in the config, none when kept for the session only.

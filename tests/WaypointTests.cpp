@@ -66,6 +66,26 @@ void markers() {
     check(!watch.update(true) && watch.update(false) && !watch.update(false) && !watch.update(true) && watch.update(false),
           "a death is noticed once per death");
 }
+void arrival() {
+    std::vector<Waypoint> list{{"here", 0, 0, 64, 0, 0, true, true, 1}, {"far", 0, 100, 64, 0, 0, true, true, 2},
+                               {"kept", 0, 3, 64, 0, 0, true, false, 3}, {"nether", 0, 0, 64, 0, 1, true, true, 4}};
+    ArrivalWatch watch;
+    check(watch.update(list, 0, .5, 64, .5, 6).empty(), "nothing is reached where it was added");
+    check(watch.update(list, 0, 50.5, 64, .5, 6).empty(), "one already near counts only after leaving it");
+    auto reached = watch.update(list, 0, .5, 64, .5, 6);
+    check(reached.size() == 1 && reached[0] == 1, "coming back within reach removes it");
+    ArrivalWatch high;
+    high.update(list, 0, 50, 64, 0, 6);
+    check(high.update(list, 0, 100.5, 74, .5, 6).empty() && high.update(list, 0, 100.5, 69, .5, 6).size() == 1,
+          "height counts: 10 blocks above is not there, 5 is");
+    ArrivalWatch off;
+    off.update(list, 0, 50, 64, 0, 0);
+    check(off.update(list, 0, .5, 64, .5, 0).empty(), "0 never removes");
+    ArrivalWatch others;
+    others.update(list, 0, 50, 64, 0, 6);
+    auto near = others.update(list, 0, 3.5, 64, .5, 6);
+    check(near.size() == 1 && near[0] == 1, "normal waypoints and other dimensions are never reached");
+}
 void storage() {
     check(serverFileName("Play.Example.com", 19132) == "play.example.com_19132.json", "server files use host and port");
     check(serverFileName("::1", 19132) == "__1_19132.json" || serverFileName("::1", 19132).empty(),
@@ -76,11 +96,15 @@ void storage() {
     set.waypoints.push_back({"家", 6, -60, 70, 40, 0, true});
     set.waypoints.push_back({"Fortress", 0, 30, 72, -140, 1, false});
     set.death = DeathPoint{118, 61, -48, 0};
+    set.waypoints.push_back({"Trip", 3, 5, 64, 5, 0, true, true});
     set.lastColor = 6;
-    check(decodeWaypoints(encodeWaypoints(set)) == set, "waypoints, the death point and the last color round-trip");
+    set.lastTemporary = true;
+    check(decodeWaypoints(encodeWaypoints(set)) == set,
+          "waypoints, temporary ones, the death point and the last color and kind round-trip");
     auto partial = decodeWaypoints(R"({"version":1,"waypoints":[{"name":"a","x":1},{"x":2},{"name":"b","color":99,"dimension":7}]})");
     check(partial.waypoints.size() == 2 && partial.waypoints[0].visible && partial.waypoints[0].x == 1
-          && partial.waypoints[1].color == 11 && partial.waypoints[1].dimension == 2 && !partial.death,
+          && partial.waypoints[1].color == 11 && partial.waypoints[1].dimension == 2 && !partial.death
+          && !partial.waypoints[0].temporary && !partial.lastTemporary,
           "missing fields take defaults, entries without a name are dropped, values are clamped");
     bool rejected = false;
     try { decodeWaypoints(R"({"version":2})"); } catch (...) { rejected = true; }
@@ -96,12 +120,16 @@ void storage() {
 void prompt() {
     using lamium::ui::WaypointPromptLayout;
     auto l = WaypointPromptLayout::at(400, 240);
-    check(l.left == 93 && l.top == 72, "the prompt is centered");
+    check(l.left == 93 && l.top == 64.5f, "the prompt is centered");
     check(l.hit(l.left + 20, l.fieldY() + 5).part == WaypointPromptLayout::Part::Field, "the name field");
     auto swatch = l.hit(l.swatchX(5) + 3, l.swatchY() + 3);
     check(swatch.part == WaypointPromptLayout::Part::Swatch && swatch.swatch == 5, "the sixth color");
     check(l.hit(l.addX() + 5, l.buttonY() + 5).part == WaypointPromptLayout::Part::Add
           && l.hit(l.cancelX() + 5, l.buttonY() + 5).part == WaypointPromptLayout::Part::Cancel, "the two buttons");
+    check(l.hit(l.left + 20, l.temporaryY() + 5).part == WaypointPromptLayout::Part::Temporary
+          && l.hit(l.switchX() + 5, l.temporaryY() + 5).part == WaypointPromptLayout::Part::Temporary, "the temporary switch row");
+    check(l.temporaryY() > l.swatchY() + WaypointPromptLayout::swatch && l.buttonY() >= l.temporaryY() + WaypointPromptLayout::rowHeight
+          && l.hintY() + 10 <= l.top + WaypointPromptLayout::height, "rows do not overlap and the hint fits");
     check(l.hit(l.left - 5, l.top - 5).part == WaypointPromptLayout::Part::None, "outside hits nothing");
     check(l.swatchX(11) + WaypointPromptLayout::swatch <= l.left + WaypointPromptLayout::width - WaypointPromptLayout::pad
           && l.addX() > l.left + WaypointPromptLayout::pad, "colors and buttons fit inside the panel");
@@ -146,5 +174,6 @@ void waypointTests() {
     prompt();
     basics();
     markers();
+    arrival();
     storage();
 }

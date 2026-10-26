@@ -160,6 +160,7 @@ struct Settings {
         bool waypointsMinimap = true;
         bool waypointsDeath = true; // Record the last death point.
         bool waypointsCrossScale = false; // Overworld ones in the Nether at 1/8, Nether ones at 8x.
+        float waypointArrival = 6; // Temporary waypoints go within this many blocks (L-261); 0 keeps them.
         bool worldMap = false; // Recording and the world map screen.
         bool worldMapNetherAuto = true; // Kept for settings compatibility; the map now opens at the player's height.
         bool seedLink = true; // World map menu: open an external seed map here, copy the seed.
@@ -373,6 +374,8 @@ struct Settings {
         map.waypointsWorld = std::clamp(map.waypointsWorld, 0, 2);
         if (!std::isfinite(map.waypointDistance)) map.waypointDistance = 0;
         map.waypointDistance = std::clamp(std::round(map.waypointDistance / 100) * 100, 0.f, 10000.f);
+        if (!std::isfinite(map.waypointArrival)) map.waypointArrival = 6;
+        map.waypointArrival = std::clamp(std::round(map.waypointArrival), 0.f, 32.f);
         camera.freeCameraSpeed = camera::normalizeFlightSpeed(camera.freeCameraSpeed);
         if (!std::isfinite(camera.magnification)) camera.magnification = 3.0f;
         camera.magnification = std::clamp(camera.magnification, 2.0f, 50.0f);

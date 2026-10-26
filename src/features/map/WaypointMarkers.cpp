@@ -81,8 +81,9 @@ LL_TYPE_INSTANCE_HOOK(CameraPositionHook, ll::memory::HookPriority::Normal, Leve
 }
 bool positionHooked = false;
 ui::Rgb rgb(std::uint32_t color) { return {channel(color, 0) / 255.f, channel(color, 1) / 255.f, channel(color, 2) / 255.f}; }
-// A diamond from rows of rectangles: black, then the color one unit inside.
-void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, ui::Rgb color) {
+// A diamond from rows of rectangles: black, then the color one unit inside;
+// hollow (a temporary waypoint, L-261) with black again two units further in.
+void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, ui::Rgb color, bool hollow = false) {
     auto rows = diamondRows(size);
     float top = cy - static_cast<float>(rows.size()) / 2;
     for (size_t i = 0; i < rows.size(); ++i) {
@@ -94,6 +95,13 @@ void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, ui
     for (size_t i = 0; i < inner.size(); ++i) {
         float half = static_cast<float>(inner[i]) + .5f;
         ui::fill(context, cx - half, top + i, 2 * half, 1, color);
+    }
+    if (!hollow) return;
+    auto hole = diamondRows(size - 4);
+    top = cy - static_cast<float>(hole.size()) / 2;
+    for (size_t i = 0; i < hole.size(); ++i) {
+        float half = static_cast<float>(hole[i]) + .5f;
+        ui::fill(context, cx - half, top + i, 2 * half, 1, ui::Rgb{0, 0, 0}, .85f);
     }
 }
 void cross(MinecraftUIRenderContext& context, float cx, float cy) {
@@ -128,19 +136,19 @@ void draw(MinecraftUIRenderContext& context, float width, float height, Settings
     double distanceX = free ? view->x : feet.x, distanceZ = free ? view->z : feet.z;
     int dimension = static_cast<int>(player->getDimensionId());
     auto set = waypoints::current();
-    struct Marker { double sx, sy, distance; std::string name; int color; };
+    struct Marker { double sx, sy, distance; std::string name; int color; bool temporary; };
     std::vector<Marker> shownMarkers;
-    auto consider = [&](double x, double y, double z, std::string name, int color) {
+    auto consider = [&](double x, double y, double z, std::string name, int color, bool temporary = false) {
         double distance = std::hypot(x - distanceX, z - distanceZ);
         if (settings.waypointDistance > 0 && distance > settings.waypointDistance) return;
         // Aim at the middle of the block above the marked one, at eye level.
         if (auto p = project(*view, x, y + 1.5, z, width, height, 12))
-            shownMarkers.push_back({p->x, p->y, distance, std::move(name), color});
+            shownMarkers.push_back({p->x, p->y, distance, std::move(name), color, temporary});
     };
     for (auto const& w : set.waypoints) {
         if (!w.visible) continue;
         if (auto at = shownPosition(w.x, w.y, w.z, w.dimension, dimension, settings.waypointsCrossScale))
-            consider(at->x, at->y, at->z, w.name, w.color);
+            consider(at->x, at->y, at->z, w.name, w.color, w.temporary);
     }
     if (set.death && set.death->dimension == dimension)
         consider(set.death->x + .5, set.death->y, set.death->z + .5, ui::translated("waypoint.death"), -1);
@@ -155,7 +163,7 @@ void draw(MinecraftUIRenderContext& context, float width, float height, Settings
         // rounding to it made markers jump while the player moved.
         float x = snap(static_cast<float>(m.sx)), y = snap(static_cast<float>(m.sy));
         if (m.color < 0) cross(context, x, y);
-        else diamond(context, x, y, 7, rgb(waypointColors[static_cast<size_t>(clampColor(m.color))]));
+        else diamond(context, x, y, 7, rgb(waypointColors[static_cast<size_t>(clampColor(m.color))]), m.temporary);
         float below = y + 5;
         if (nearCrosshair(m.sx, m.sy, width, height)) {
             float w = ui::textWidthScaled(context, m.name, textScale);
