@@ -566,6 +566,17 @@ L-265, L-114 to L-116, and the parked or waiting bugs (L-177, L-192, L-193,
 L-245).
 In-game checks are collected into one checklist at the end of the batch
 where possible.
+Status 2026-10-26: stages 1-3 built and pushed, not yet checked in game:
+L-252/L-254 `d70676e4` (a "Check" heading under Schematics holds the new
+switches), L-262 `53035913` (`CheckRules.h`; the rules apply to the check,
+the Check list's state rows and the mistake marks), L-264 `0f06b820` (ghost
+search passes through real water and lava; flow rows; "Target water and
+lava" under Target Info, off), L-263 `a1e629e7` (`GhostPick.cpp` hooks
+`LocalPlayer::pickBlock`; `inventory::bringToHand` is the shared part).
+Left open by these: L-263 in creative does the same as survival (only
+what is carried); L-264 does not yet show a ghost's waterlogged second
+layer. Stage 4 waits for a `--schematic_perf_trace=y` measurement after the
+normal checks pass.
 
 ### L-262 Schematic check: ignore redstone signal, lit/unlit variants and plant growth
 Kind: Research (state lists), then Ready. User feedback 2026-10-26 (Discord
