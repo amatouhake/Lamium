@@ -3995,6 +3995,16 @@ two new sprite paths load (icons appear at all).
 
 ## Design
 
+### L-258 Fuller schematic check controls (reporter's request)
+Closed 2026-10-26: answered by the reporter's thread (びー, 2026-10-26):
+ignore signal state, plant growth and lit/unlit forms (L-262), pick the
+aimed ghost's block (L-263), schematic water in Target View (L-264).
+
+Kind: Design, waiting for the reporter. Split from L-252 on 2026-10-26: the
+reporter of L-252 appears to want more than hiding the marks (the maintainer
+is asking them for details). Record their answer here before any design;
+L-183 (temporarily disregard selected mismatches) may overlap.
+
 ### L-238 One set of schematic operations for the menu and the keys
 Kind: Design (strong model). Maintainer 2026-10-22: make the complex
 schematic operations easy to understand and use whether the player works

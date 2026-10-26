@@ -81,7 +81,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
    L-253, L-254, L-255.
    L-262 schematic check relaxations and L-263 ghost pick block (decided,
-   research first). L-196 license/provenance evidence; L-236 is a follow-up;
+   research first); L-264 schematic water in Target View (details open);
+   L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -482,15 +483,9 @@ Decided (maintainer 2026-10-26): first a switch "Show mistake marks" under
 Schematics, on by default. Off: the red/yellow boxes and their outlines are
 not built or drawn; the check itself still runs, so the Check tab, the HUD
 counts and the materials are unchanged. The reporter is being asked about a
-fuller check on/off, which is tracked separately (L-258). Settings, option
+fuller check on/off, which was tracked as L-258 (closed 2026-10-26, answered by L-262 to L-264). Settings, option
 row and help in all four languages; check in game with mistakes in view.
 No release target selected.
-
-### L-258 Fuller schematic check controls (reporter's request)
-Kind: Design, waiting for the reporter. Split from L-252 on 2026-10-26: the
-reporter of L-252 appears to want more than hiding the marks (the maintainer
-is asking them for details). Record their answer here before any design;
-L-183 (temporarily disregard selected mismatches) may overlap.
 
 ### L-259 Book and quill: paste overflow into new pages
 Kind: Research (behavior decided; the switch's name and settings group
@@ -552,7 +547,7 @@ No release target selected.
 
 ### L-262 Schematic check: ignore redstone signal, lit/unlit variants and plant growth
 Kind: Research (state lists), then Ready. User feedback 2026-10-26 (Discord
-thread by びー; possibly the L-252/L-258 reporter, maintainer to confirm):
+thread by びー; taken as the L-252/L-258 reporter):
 the check should be able to ignore signal state and plant age, and redstone
 blocks whose on and off forms are different blocks count as wrong blocks.
 Decided (maintainer 2026-10-26): three separate switches in Lamium
@@ -567,8 +562,13 @@ Settings under Schematics, global (not per placement), all off by default:
    compared.
 An ignored difference counts as correct everywhere: Check list, HUD counts,
 nearest mistake and the red/yellow marks. The strict comparison stays the
-default. This is not L-183 (suppressing chosen mismatches); L-258 may be
-answered by this report.
+default. This is not L-183 (suppressing chosen mismatches); L-258 was
+closed as answered by this report.
+Decided (maintainer 2026-10-26, granularity): one general mechanism, a
+pure rule table of "state keys not compared" and "block names that compare
+as the same block", each rule belonging to a category; the three switches
+turn categories on. A later category is a table entry, not new code. No
+user-editable rule list until there is a need for one.
 Research first: the exact state keys and block-name pairs from the SDK /
 block data (pure tables in `features/schematic/`, with tests), and whether
 open/extended states (doors, trapdoors, pistons) count as "signal" (ask the
@@ -579,7 +579,9 @@ languages. No release target selected.
 Kind: Research (pick-block hook), then Ready. Same feedback as L-262:
 take the block of the schematic ghost under the crosshair from the
 inventory.
-Decided (maintainer 2026-10-26): the vanilla pick-block input (middle
+Decided (maintainer 2026-10-26): build this first, with the "bring this
+block from the inventory into the hand" step as a shared part that a later
+placement assist (L-265) can reuse. The vanilla pick-block input (middle
 click by default) does it when the crosshair is on a ghost and not on a
 real block; on a real block it stays vanilla. Like vanilla pick block:
 select the hotbar slot that holds it, else bring it from the inventory
@@ -590,6 +592,34 @@ Research: where pick block is handled in the SDK and how the inventory
 move is confirmed from authoritative state (reuse the existing inventory
 transfer paths). New hooks go into GAME-UPDATES.md. No release target
 selected.
+
+### L-264 Target View: schematic water and flowing water
+Kind: Design details, then Research. User feedback 2026-10-26 (same thread
+as L-262): show in Target View whether a schematic cell holds a water
+source or flowing water, and how far it flows.
+Decided (maintainer 2026-10-26): ghost liquids are always targetable when
+the crosshair meets them (the card shows the liquid and source/flow level
+from `liquid_depth`). Targeting real water and lava is a separate option,
+off by default; with it off the crosshair passes through real liquids as in
+vanilla.
+Open: how a ghost liquid in front of a real block or another ghost is
+chosen, the waterlogged second layer (a ghost block that should also hold
+water), what "flow level" reads as in all four languages, and the new
+option's place and help. Research: the liquid ray test for real liquids.
+No release target selected.
+
+### L-265 Schematic placement assist: place the ghost's block in its state
+Kind: Design / Research (strong model). Maintainer note 2026-10-26 while
+deciding L-263: a mode in which using a block on a ghost cell places the
+schematic's block there with the schematic's facing and states.
+Open: whether to do it at all; which states can be produced by the
+player's own placement (facing from look direction, half, slab type) and
+which would need a faked look or a server-visible trick; what servers and
+anti-cheat accept; how it relates to the vanilla place input and to L-263
+(it reuses L-263's "bring the block into the hand" step); refusal when the
+block is not carried. Do not change gameplay packets beyond what the
+player could do by hand without a separate decision.
+No release target selected.
 
 ### L-253 Option to fix the minimap to surface or cave view
 Kind: Ready. Maintainer note 2026-10-24 after 0.3.0: make the minimap's
