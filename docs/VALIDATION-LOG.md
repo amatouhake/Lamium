@@ -21,6 +21,24 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-263 creative pick experiment (2026-10-26)
+
+`b2bde4f` with `--schematic_creative_pick=y` (DLL SHA-256
+`4431A9A8C6C033CA029014664B56CB7D395B82CB022649253F66BD5403FF7A1F`),
+`1.26.51.01` LIP, local world, creative mode, maintainer.
+- A ghost pick of a block not carried, empty hotbar slot: the block went
+  in and was selected (diamond_block, short_grass); full hotbar: the
+  selected slot was replaced. Kept after another pick and after reopening
+  the inventory and the world. Picks of carried blocks and survival picks
+  unchanged.
+- Refused (the slot went back to short_grass after showing the block for
+  a moment): structure_block, water, lava.
+- One run: diamond_block sent to empty slot 1 at 08:08:17, the check found
+  slot 1 empty at 08:08:33 and 08:08:37, and holding the block at
+  08:09:50; whether two sends were refused or the answer was late cannot
+  be told from the log.
+- Servers not tried.
+
 ## L-268 cross plants and L-269 preview water checked (2026-10-26)
 
 `e2ec2d6` release build, trace off (DLL SHA-256

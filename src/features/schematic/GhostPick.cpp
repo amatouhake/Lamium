@@ -13,6 +13,8 @@
 #include "mc/world/item/ItemInstance.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/level/block/BlockType.h"
+#include "mc/world/actor/player/PlayerInventory.h"
+#include <chrono>
 #include <format>
 #include <string>
 #endif
@@ -46,13 +48,14 @@ std::optional<GhostAt> pickedGhost(LocalPlayer& player, HitResult const& hit) {
 #ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
 // L-263 experiment: the last creative give, looked at again on the next
 // pick so the log shows whether the server kept it.
-struct Given { int slot = -1; std::string item; };
+struct Given { int slot = -1; std::string item; std::chrono::steady_clock::time_point at; };
 Given lastGiven;
 void reportGiven(LocalPlayer& player) {
     if (lastGiven.slot < 0) return;
     auto const& now = player.getInventory().getItem(lastGiven.slot);
-    log(std::format("creative pick: slot {} sent {}, now holds {}", lastGiven.slot, lastGiven.item,
-                    now.isNull() || !now.mItem ? std::string("nothing") : now.getTypeName()));
+    auto seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - lastGiven.at).count();
+    log(std::format("creative pick: slot {} sent {}, now holds {} ({:.1f} s later)", lastGiven.slot, lastGiven.item,
+                    now.isNull() || !now.mItem ? std::string("nothing") : now.getTypeName(), seconds));
     lastGiven = {};
 }
 // The ghost's block as one item, as the game's own pick would give it.
@@ -77,9 +80,11 @@ LL_TYPE_INSTANCE_HOOK(GhostPickHook, ll::memory::HookPriority::Normal, LocalPlay
                 // Creative mode gives it when it is not carried, like vanilla.
                 if (!inventory::bringToHand(*this, item) && isCreative())
                     if (auto stack = pickedStack(*ghost->block); !stack.isNull()) {
+                        auto* supplies = mInventory.get();
+                        int before = supplies ? supplies->mSelected : -1;
                         int slot = inventory::giveToHand(*this, stack);
-                        log(std::format("creative pick: {} to slot {}", item, slot));
-                        if (slot >= 0) lastGiven = {slot, item};
+                        log(std::format("creative pick: {} to slot {} (selected before: {})", item, slot, before));
+                        if (slot >= 0) lastGiven = {slot, item, std::chrono::steady_clock::now()};
                     }
 #else
                 inventory::bringToHand(*this, item);

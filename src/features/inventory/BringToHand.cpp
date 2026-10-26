@@ -6,6 +6,13 @@
 #include "mc/world/actor/player/PlayerInventory.h"
 #include "mc/world/item/Item.h"
 #include "mc/world/item/ItemStack.h"
+#ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
+#include "mc/world/item/ItemInstance.h"
+#include "mc/world/item/registry/CreativeItemEntry.h"
+#include "mc/world/item/registry/CreativeItemRegistry.h"
+#include "mc/world/item/registry/ItemRegistryRef.h"
+#include "mc/world/level/Level.h"
+#endif
 
 namespace lamium::inventory {
 bool bringToHand(LocalPlayer& player, std::string_view item) {
@@ -27,6 +34,17 @@ bool bringToHand(LocalPlayer& player, std::string_view item) {
     return game::movePair(player, {game::Place::Inventory, selected}, wanted, {game::Place::Inventory, pick.slot}, held);
 }
 #ifdef LAMIUM_SCHEMATIC_CREATIVE_PICK
+namespace {
+bool listedInCreative(CreativeItemRegistry const& registry, ItemStack const& item) {
+    auto const& name = item.getTypeName();
+    short aux = item.getAuxValue();
+    for (auto const& entry : registry.mCreativeItems.get()) {
+        auto const& listed = entry.mItemInstance.get();
+        if (!listed.isNull() && listed.getTypeName() == name && listed.getAuxValue() == aux) return true;
+    }
+    return false;
+}
+}
 int giveToHand(LocalPlayer& player, ItemStack const& item) {
     auto* supplies = player.mInventory.get();
     if (!supplies || supplies->mSelectedContainerId != ContainerID::Inventory) return -1;
@@ -35,10 +53,16 @@ int giveToHand(LocalPlayer& player, ItemStack const& item) {
         auto const& stack = player.getInventory().getItem(slot);
         if (!stack.isNull() && stack.mItem) names[static_cast<size_t>(slot)] = stack.getTypeName();
     }
+    // Only what the creative inventory lists: the server refused others
+    // (water, lava, a structure block) and the slot went back.
+    CreativeItemRegistry const* registry = player.getLevel().getItemRegistry().getCreativeItemRegistry().get();
+    if (!registry || !listedInCreative(*registry, item)) return -1;
     int slot = creativeSlotFor(names, supplies->mSelected);
-    if (slot < 0 || !game::giveCreative(player, slot, item)) return -1;
+    if (slot < 0) return -1;
+    // Selected first, as the game's own pick does: a give into another
+    // hotbar slot was refused twice before the slot was selected.
     if (slot != supplies->mSelected) supplies->selectSlot(slot, ContainerID::Inventory);
-    return slot;
+    return game::giveCreative(player, slot, item) ? slot : -1;
 }
 #endif
 }

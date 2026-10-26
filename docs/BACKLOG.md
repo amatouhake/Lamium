@@ -627,6 +627,14 @@ replaced one). The log line "creative pick: slot N sent X, now holds Y",
 written at the next pick, shows whether the server kept it. To check: a
 local world and a server, an empty and a full hotbar, then whether the
 item stays after reopening the inventory or the world.
+Checked 2026-10-26 on `b2bde4f` (VALIDATION-LOG "L-263 creative pick
+experiment"): accepted in a local world (empty and full hotbar, kept after
+reopening); refused for water, lava and a structure block, and twice for
+a give into an empty hotbar slot that was not yet selected. Changed next
+(not yet checked): only items the creative inventory lists are given
+(`CreativeItemRegistry`, as sorting uses), and the slot is selected before
+the transaction is sent; the log adds the slot selected before and the
+time to the check. Servers not tried yet.
 Research: where pick block is handled in the SDK and how the inventory
 move is confirmed from authoritative state (reuse the existing inventory
 transfer paths). New hooks go into GAME-UPDATES.md. No release target
