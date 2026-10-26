@@ -45,6 +45,9 @@ void viewFeetTests() {
     check(spec.snap == Snap::Off && spec.center == lamium::overlay::Point{at.x, at.y, at.z},
         "an exact-reference shape starts at the view's precise point");
     lamium::ui::shape::place(exact, {at.x, at.y, at.z}, Reference::StandingBlock);
-    check(std::get<lamium::overlay::ShapeSpec>(exact.geometry).snap == Snap::BlockCenter,
-        "a standing-block shape snaps to the block holding the view");
+    auto placed = std::get<lamium::overlay::ShapeSpec>(exact.geometry);
+    check(placed.snap == Snap::BlockCenter, "a standing-block reference selects block-center snapping");
+    // The view stands at y 78.38, x 100.25, z 200.75: block (100, 78, 200) centered.
+    check(lamium::overlay::snapped(placed.center, placed.snap) == lamium::overlay::Point{100.5, 78.5, 200.5},
+        "a standing-block shape centers on the block holding the view");
 }
