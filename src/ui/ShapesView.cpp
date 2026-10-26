@@ -6,6 +6,8 @@
 #include "ui/ShapeEditor.h"
 #include "ui/ShapesLayout.h"
 #include "overlay/ShapeSession.h"
+#include "features/camera/CameraSessions.h"
+#include "features/camera/ViewFeet.h"
 #include "app/Runtime.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/options/IOptionRegistry.h"
@@ -65,21 +67,35 @@ void applyShapeName() {
     catch (std::exception const&) { screen::setMessage(translated("shape.nameError")); }
 }
 // ---- Shapes view ----
+// Where the drawn view stands: the body's feet, or the camera's virtual feet
+// while Freelook or FreeCamera detaches it (L-248). The schematic placement
+// actions use the same rule, so a shape lands where the crosshair is drawn.
+std::optional<overlay::Point> viewPoint() {
+    auto* client = screen::client();
+    auto* player = client ? client->getLocalPlayer() : nullptr;
+    if (!player) return {};
+    auto ray = CameraSessions::instance().detachedViewRay(*client);
+    std::optional<camera::Position> detached;
+    if (ray) detached = camera::Position{ray->x, ray->y, ray->z};
+    auto eye = player->getEyePos();
+    auto body = player->getFeetPos();
+    auto point = camera::viewFeet(detached, {body.x, body.y, body.z}, {eye.x, eye.y, eye.z});
+    if (!point) return {};
+    return overlay::Point{point->x, point->y, point->z};
+}
 // Reference point for new or moved shapes, and the reference actually used: a
 // missing target falls back to the standing block with a notice.
 std::optional<std::pair<overlay::Point, shape::Reference>> referencePoint() {
-    auto* player = screen::client() ? screen::client()->getLocalPlayer() : nullptr;
-    if (!player) return {};
+    auto point = viewPoint();
+    if (!point) return {};
     if (shapeReference == shape::Reference::TargetBlock) {
         auto const& hit = screen::client()->getLatestHitResult();
         if (hit.mType == HitResultType::Tile)
             return std::pair{overlay::Point{hit.mBlock.x + .5, hit.mBlock.y + .5, hit.mBlock.z + .5}, shapeReference};
         screen::setMessage(translated("shape.targetMissing"));
-        auto feet = player->getFeetPos();
-        return std::pair{overlay::Point{feet.x, feet.y, feet.z}, shape::Reference::StandingBlock};
+        return std::pair{*point, shape::Reference::StandingBlock};
     }
-    auto feet = player->getFeetPos();
-    return std::pair{overlay::Point{feet.x, feet.y, feet.z}, shapeReference};
+    return std::pair{*point, shapeReference};
 }
 overlay::Point centerOf(overlay::ShapeDefinition const& definition) {
     if (auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry)) return spec->center;

@@ -188,6 +188,16 @@ here with Standing block and Exact position; check Target block picking and
 its missing-target fallback, snapping and dimension changes. Validate in
 game with FreeCamera detached, in Freelook and with the ordinary view. No
 release target selected.
+Built 2026-10-27, not yet checked in game: the rule now lives once in
+`features/camera/ViewFeet.h` (`camera::viewFeet()`); the schematic actions
+floor its point to a cell, the shapes view keeps it precise. Creating a shape,
+a draft's reference change and Move here use it, including the missing-target
+fallback, which now stands under the camera rather than the body. Pure tests
+cover the body, Freelook, FreeCamera, sneaking and unusable poses. In game:
+create a shape and Move here with Standing block and Exact position while
+FreeCamera is detached, repeat in Freelook and with the ordinary view, and
+confirm a Target block shape with nothing under the crosshair falls back to
+the block the camera stands in.
 
 ### L-250 Edge Guard makes the game feel very heavy
 Kind: Bug / Research. User report 2026-10-23 after 0.3.0: turning Edge Guard

@@ -1,5 +1,6 @@
 #include "features/schematic/SchematicActions.h"
 #include "features/camera/CameraSessions.h"
+#include "features/camera/ViewFeet.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/MoveDirection.h"
 #include "features/schematic/MoveTarget.h"
@@ -55,24 +56,20 @@ void syncLifecycle(IClientInstance& client) {
         resetState();
     }
 }
-std::optional<Point> feet(LocalPlayer& player) {
-    auto p = player.getFeetPos();
-    if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) return std::nullopt;
+std::optional<Point> cellAt(camera::Position p) {
     return Point{static_cast<int>(std::floor(p.x)), static_cast<int>(std::floor(p.y)), static_cast<int>(std::floor(p.z))};
 }
 // The block the view stands in: the player's feet, or the camera's virtual
 // feet (its position minus the player's eye height) in Freelook / FreeCamera.
 std::optional<Point> viewFeet(IClientInstance& client, LocalPlayer& player) {
-    if (auto ray = CameraSessions::instance().detachedViewRay(client)) {
-        if (!std::isfinite(ray->x) || !std::isfinite(ray->y) || !std::isfinite(ray->z)) return std::nullopt;
-        auto eye = player.getEyePos();
-        auto feet = player.getFeetPos();
-        double eyeHeight = eye.y - feet.y;
-        if (!(eyeHeight > 0)) eyeHeight = 1.62;
-        return Point{static_cast<int>(std::floor(ray->x)), static_cast<int>(std::floor(ray->y - eyeHeight)),
-            static_cast<int>(std::floor(ray->z))};
-    }
-    return feet(player);
+    auto ray = CameraSessions::instance().detachedViewRay(client);
+    std::optional<camera::Position> detached;
+    if (ray) detached = camera::Position{ray->x, ray->y, ray->z};
+    auto eye = player.getEyePos();
+    auto body = player.getFeetPos();
+    auto point = camera::viewFeet(detached, {body.x, body.y, body.z}, {eye.x, eye.y, eye.z});
+    if (!point) return std::nullopt;
+    return cellAt(*point);
 }
 // The drawn view's axes: a detached Freelook or FreeCamera view owns the
 // crosshair, so a step follows it rather than the body (L-230).
