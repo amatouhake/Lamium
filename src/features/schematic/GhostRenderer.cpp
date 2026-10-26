@@ -251,7 +251,10 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     Vec3 const camera = context.mImpl->mCameraPosition;
     auto& region = player.getDimensionBlockSource();
     // When the camera moves to another cell, rebuild the sections around
-    // the old and the new cells (which ghosts are drawn whole changes).
+    // the old and the new cells (which ghosts are drawn whole changes). Only
+    // a ghost drawn within two cells depends on the camera, so only sections
+    // holding one are rebuilt (L-256: marking every section within two
+    // cells rebuilt 3-5 ms a frame while walking).
     {
         auto cellAt = [](double x, double y, double z) {
             return Point{static_cast<int>(std::floor(x)), static_cast<int>(std::floor(y)), static_cast<int>(std::floor(z))};
@@ -260,12 +263,19 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         buildCamera.eye = camera;
         if (now != buildCamera.cells) {
             auto section = [](int v) { return static_cast<int>(std::floor(v / static_cast<double>(sectionSize))); };
+            auto const at = Clock::now();
             auto mark = [&](std::optional<Point> const& c) {
                 if (!c) return;
-                for (int i = 0; i < static_cast<int>(snapshot.placements.size()); ++i)
-                    for (int dx = -2; dx <= 2; dx += 2) for (int dy = -2; dy <= 2; dy += 2) for (int dz = -2; dz <= 2; dz += 2)
-                        if (auto found = sections.find({i, section(c->x + dx), section(c->y + dy), section(c->z + dz)}); found != sections.end())
-                            found->second.due = Clock::now();
+                for (int i = 0; i < static_cast<int>(snapshot.placements.size()) && i < static_cast<int>(resolved.size()); ++i) {
+                    auto const& shown = snapshot.placements[static_cast<size_t>(i)];
+                    if (!shown.structure || resolved[static_cast<size_t>(i)].structure != shown.structure.get()) continue;
+                    for (int dx = -2; dx <= 2; ++dx) for (int dy = -2; dy <= 2; ++dy) for (int dz = -2; dz <= 2; ++dz) {
+                        Point cell{c->x + dx, c->y + dy, c->z + dz};
+                        auto found = sections.find({i, section(cell.x), section(cell.y), section(cell.z)});
+                        if (found == sections.end() || (found->second.due && *found->second.due <= at)) continue;
+                        if (ghostDrawnAt(region, shown, resolved[static_cast<size_t>(i)], cell).block) found->second.due = at;
+                    }
+                }
             };
             for (auto const& c : buildCamera.cells) mark(c);
             for (auto const& c : now) mark(c);
