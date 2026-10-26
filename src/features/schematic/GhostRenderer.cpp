@@ -86,6 +86,8 @@ struct Perf {
     // the build loop's walk (builds included), the trace's own count, the
     // in-view list for drawing, and what the pass draws after the placements.
     std::uint64_t walkNs = 0, traceNs = 0, shownNs = 0, afterNs = 0;
+    // L-256 item 7: the near meshes' rebuilds (the cells next to the camera).
+    std::uint64_t nearNs = 0, maxNearNs = 0, nearBuilds = 0;
     std::uint64_t reasons[5]{}; // new, looked-at change, signature changed, mesh gone, chunk incomplete
     std::size_t sections = 0;
     // L-193: blended re-sorts, and frames whose camera position differs from
@@ -123,6 +125,25 @@ std::uint64_t builtRevision = 0;
 // The camera's cells and position the sections near it are built for, and
 // the graphics mode they are built in (sections are rebuilt when it changes).
 BuildCamera buildCamera;
+// The cells next to the camera, built with it, one mesh per placement
+// (L-256 item 7). Sections are built without the camera and drawn without
+// the cells of `box`, the box these meshes were built for; an empty box (no
+// meshes yet) leaves the sections whole.
+struct Nearby {
+    nearcells::Box box;
+    std::map<int, Section> meshes;
+    bool dirty = true;
+    Clock::time_point built{};
+} nearby;
+bool nearbyTouches(SectionKey const& key) {
+    return nearby.box.touches({std::get<1>(key) * sectionSize, std::get<2>(key) * sectionSize, std::get<3>(key) * sectionSize},
+                              sectionSize);
+}
+void forgetNearby() {
+    nearby.meshes.clear();
+    nearby.box = {};
+    nearby.dirty = true;
+}
 // `section`: the built section, kept so the per-frame walk need not look it
 // up (L-256: the walk over every section cost about 0.85 ms a frame with
 // 2428 of them). Map entries stay put; the list is made again whenever
@@ -157,6 +178,9 @@ struct Combined {
     // sort, so one entering the budget meanwhile is not lost (water ghosts
     // blinked out by section between sorts) and one leaving is not doubled.
     std::set<SectionKey> members;
+    // The near box whose cells the sections' quads left out (the near
+    // meshes' quads are in the mesh instead).
+    nearcells::Box box;
 } combined;
 // Meshes cannot be assigned: cleared member by member.
 void forgetCombined() {
@@ -164,6 +188,7 @@ void forgetCombined() {
     combined.vertices = 0;
     combined.key = 0;
     combined.members.clear();
+    combined.box = {};
 }
 constexpr std::chrono::milliseconds resortEvery{50};
 constexpr float resortDistance = .25f;
@@ -177,6 +202,7 @@ constexpr size_t sortedBlendedQuads = 30000;
 void release() {
     forgetCombined();
     sections.clear();
+    forgetNearby();
     wantedCache.valid = false;
     resetMarks();
     resolved.clear();
@@ -242,6 +268,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         resolved = std::move(nextResolved);
         builtKeys = std::move(nextKeys);
         sections = std::move(nextSections);
+        forgetNearby(); // keyed by the old placement indices
         wantedCache.valid = false; // its section pointers name the old map
         actors.clear();
         builtRevision = snapshot.revision;
@@ -250,11 +277,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     ScreenContext& screen = context.mScreenContext;
     Vec3 const camera = context.mImpl->mCameraPosition;
     auto& region = player.getDimensionBlockSource();
-    // When the camera moves to another cell, rebuild the sections around
-    // the old and the new cells (which ghosts are drawn whole changes). Only
-    // a ghost drawn within two cells depends on the camera, so only sections
-    // holding one are rebuilt (L-256: marking every section within two
-    // cells rebuilt 3-5 ms a frame while walking).
+    // Only the near meshes depend on the camera's cells: a new cell rebuilds
+    // them, not the sections (L-256: the sections around each cell crossed
+    // took 15-35 ms each to rebuild inside dense ghosts).
     {
         auto cellAt = [](double x, double y, double z) {
             return Point{static_cast<int>(std::floor(x)), static_cast<int>(std::floor(y)), static_cast<int>(std::floor(z))};
@@ -262,24 +287,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         std::array<std::optional<Point>, 2> now{cellAt(camera.x, camera.y, camera.z), cellAt(camera.x, camera.y - 1.62, camera.z)};
         buildCamera.eye = camera;
         if (now != buildCamera.cells) {
-            auto section = [](int v) { return static_cast<int>(std::floor(v / static_cast<double>(sectionSize))); };
-            auto const at = Clock::now();
-            auto mark = [&](std::optional<Point> const& c) {
-                if (!c) return;
-                for (int i = 0; i < static_cast<int>(snapshot.placements.size()) && i < static_cast<int>(resolved.size()); ++i) {
-                    auto const& shown = snapshot.placements[static_cast<size_t>(i)];
-                    if (!shown.structure || resolved[static_cast<size_t>(i)].structure != shown.structure.get()) continue;
-                    for (int dx = -2; dx <= 2; ++dx) for (int dy = -2; dy <= 2; ++dy) for (int dz = -2; dz <= 2; ++dz) {
-                        Point cell{c->x + dx, c->y + dy, c->z + dz};
-                        auto found = sections.find({i, section(cell.x), section(cell.y), section(cell.z)});
-                        if (found == sections.end() || (found->second.due && *found->second.due <= at)) continue;
-                        if (ghostDrawnAt(region, shown, resolved[static_cast<size_t>(i)], cell).block) found->second.due = at;
-                    }
-                }
-            };
-            for (auto const& c : buildCamera.cells) mark(c);
-            for (auto const& c : now) mark(c);
             buildCamera.cells = now;
+            nearby.dirty = true;
         }
     }
 
@@ -406,6 +415,44 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     // them. The in-world mistake outlines are built with the sections, so
     // they stop too.
     bool tessellate = versionSensitiveAllowed(capabilities::Id::SchematicBlocks);
+    auto ensureTessellator = [&] {
+        if (own) return;
+        // A private tessellator, primed with one appended block: in-world
+        // tessellation on a fresh one crashed in the probe.
+        view = std::make_unique<SchematicRegion>(region);
+        own = std::make_unique<BlockTessellator>(view.get());
+        static bool logged = false;
+        if (!logged) log(std::format("tessellator default render layer {}", static_cast<int&>(own->mRenderingLayer)));
+        logged = true;
+        if (auto stone = Block::tryGetFromRegistry(HashedString{"minecraft:stone"})) {
+            Tessellator primer(screen.tessellator.mBufferResourceService);
+            primer.begin({}, mce::PrimitiveMode::QuadList, 64, false);
+            own->appendTessellatedBlock(primer, *stone);
+        }
+    };
+    // Calls `build` with the cells earlier placements draw and the touching
+    // placements' ghosts, for placement `index`.
+    auto withNeighbors = [&](size_t index, auto&& build) {
+        auto earlier = overlap::earlierMeeting(snapshot.placements, index);
+        std::function<bool(Point)> owned;
+        if (!earlier.empty())
+            owned = [&](Point cell) { return overlap::ownedEarlier(snapshot.placements, earlier, dimension, cell); };
+        auto neighbors = overlap::touching(snapshot.placements, index);
+        std::function<NeighborGhost(Point)> others;
+        if (!neighbors.empty()) {
+            for (size_t j : neighbors) if (j < resolved.size()) prepareShapes(screen, *own, resolved[j]);
+            others = [&](Point cell) {
+                for (size_t j : neighbors)
+                    if (j < resolved.size())
+                        if (auto ghost = ghostDrawnAt(region, snapshot.placements[j], resolved[j], cell); ghost.block) return ghost;
+                return NeighborGhost{};
+            };
+        }
+        build(owned, others);
+    };
+    BuildCamera sectionCamera = buildCamera;
+    sectionCamera.cells = {};
+    nearcells::Box const nearBox{buildCamera.cells};
     for (auto const& w : wanted) {
         if (!tessellate) break;
         if (!budget || (budget < sectionLimit && std::chrono::steady_clock::now() - buildsStart >= buildTimeBudget)) break;
@@ -442,43 +489,21 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
         ++perf.reasons[reason];
 #endif
-        if (!own) {
-            // A private tessellator, primed with one appended block: in-world
-            // tessellation on a fresh one crashed in the probe.
-            view = std::make_unique<SchematicRegion>(region);
-            own = std::make_unique<BlockTessellator>(view.get());
-            static bool logged = false;
-            if (!logged) log(std::format("tessellator default render layer {}", static_cast<int&>(own->mRenderingLayer)));
-            logged = true;
-            if (auto stone = Block::tryGetFromRegistry(HashedString{"minecraft:stone"})) {
-                Tessellator primer(screen.tessellator.mBufferResourceService);
-                primer.begin({}, mce::PrimitiveMode::QuadList, 64, false);
-                own->appendTessellatedBlock(primer, *stone);
-            }
-        }
+        ensureTessellator();
         auto const index = static_cast<size_t>(std::get<0>(w.key));
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
         auto buildStart = std::chrono::steady_clock::now();
 #endif
-        auto earlier = overlap::earlierMeeting(snapshot.placements, index);
-        std::function<bool(Point)> owned;
-        if (!earlier.empty())
-            owned = [&](Point cell) { return overlap::ownedEarlier(snapshot.placements, earlier, dimension, cell); };
-        auto neighbors = overlap::touching(snapshot.placements, index);
-        std::function<NeighborGhost(Point)> others;
-        if (!neighbors.empty()) {
-            for (size_t j : neighbors) if (j < resolved.size()) prepareShapes(screen, *own, resolved[j]);
-            others = [&](Point cell) {
-                for (size_t j : neighbors)
-                    if (j < resolved.size())
-                        if (auto ghost = ghostDrawnAt(region, snapshot.placements[j], resolved[j], cell); ghost.block) return ghost;
-                return NeighborGhost{};
-            };
-        }
         auto& built = sections[w.key];
         wantedCache.list[w.slot].section = &built;
-        buildSection(screen, region, *view, *own, snapshot.placements[index], resolved[index], w.key, buildCamera, owned,
-                     others, built);
+        withNeighbors(index, [&](auto const& owned, auto const& others) {
+            buildSection(screen, region, *view, *own, snapshot.placements[index], resolved[index], w.key, sectionCamera, owned,
+                         others, built);
+        });
+        // The near meshes show this section's cells next to the camera.
+        if (nearBox.touches({std::get<1>(w.key) * sectionSize, std::get<2>(w.key) * sectionSize, std::get<3>(w.key) * sectionSize},
+                            sectionSize))
+            nearby.dirty = true;
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
         auto took = static_cast<std::uint64_t>((std::chrono::steady_clock::now() - buildStart).count());
         perf.buildNs += took;
@@ -488,7 +513,44 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         --budget;
     }
     LAMIUM_PERF_LAP(walkNs);
+    // The near meshes: when the camera entered another cell or a section
+    // they cover was rebuilt, and like a near section while a chunk there
+    // was still arriving. Outside every build budget: the sections leave
+    // these cells out, so a late near mesh would show the old cells.
+    if (tessellate && !nearby.dirty && now - nearby.built > refreshNear)
+        nearby.dirty = std::any_of(nearby.meshes.begin(), nearby.meshes.end(), [](auto const& m) { return !m.second.complete; });
+    if (tessellate && nearby.dirty) {
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+        auto nearStart = std::chrono::steady_clock::now();
+#endif
+        nearby.meshes.clear();
+        auto [low, high] = nearBox.bounds();
+        for (int i = 0; i < static_cast<int>(snapshot.placements.size()) && i < static_cast<int>(resolved.size()); ++i) {
+            auto const& shown = snapshot.placements[static_cast<size_t>(i)];
+            if (!shown.structure || !shown.placement.visible || shown.placement.dimension != dimension) continue;
+            Size placed = placedSize(shown.structure->size, shown.placement.placement.rotation);
+            Point const& o = shown.placement.placement.origin;
+            if (o.x >= high.x || o.x + placed.x <= low.x || o.y >= high.y || o.y + placed.y <= low.y || o.z >= high.z
+                || o.z + placed.z <= low.z)
+                continue;
+            ensureTessellator();
+            withNeighbors(static_cast<size_t>(i), [&](auto const& owned, auto const& others) {
+                buildNear(screen, region, *view, *own, shown, resolved[static_cast<size_t>(i)], nearBox, buildCamera, owned, others,
+                          nearby.meshes[i]);
+            });
+        }
+        nearby.box = nearBox;
+        nearby.dirty = false;
+        nearby.built = now;
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+        auto took = static_cast<std::uint64_t>((std::chrono::steady_clock::now() - nearStart).count());
+        perf.nearNs += took;
+        perf.maxNearNs = std::max(perf.maxNearNs, took);
+        ++perf.nearBuilds;
+#endif
+    }
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+    stage = std::chrono::steady_clock::now(); // the near meshes have their own timer
     {
         // Sections in range that have never been built: what the budget left waiting.
         std::uint64_t waiting = 0;
@@ -553,7 +615,19 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             if (section->faces && !section->faces->isValid()) section->due = now;
             else if (section->faces)
                 translated(screen, offsetOf(*section), [&] {
-                    section->faces->renderMesh(screen, faces, texture, 0, section->faceVertices, OffscreenCaptureDescription{}, nullptr);
+                    // Without the cells the near meshes draw (L-256).
+                    if (!nearbyTouches(*key)) {
+                        section->faces->renderMesh(screen, faces, texture, 0, section->faceVertices, OffscreenCaptureDescription{}, nullptr);
+                        return;
+                    }
+                    for (auto run : nearcells::runs(section->faceCells, section->faceVertices, nearby.box))
+                        section->faces->renderMesh(screen, faces, texture, run.first, run.count, OffscreenCaptureDescription{}, nullptr);
+                });
+        for (auto& [index, mesh] : nearby.meshes)
+            if (mesh.faces && !mesh.faces->isValid()) nearby.dirty = true;
+            else if (mesh.faces)
+                translated(screen, offsetOf(mesh), [&] {
+                    mesh.faces->renderMesh(screen, faces, texture, 0, mesh.faceVertices, OffscreenCaptureDescription{}, nullptr);
                 });
     }
     LAMIUM_PERF_LAP(facesNs);
@@ -576,16 +650,37 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             if (lined && lineMaterial.mRenderMaterialInfoPtr)
                 for (auto const& l : section->lines)
                     overlay::lines::colored(screen, l->color.r, l->color.g, l->color.b, [&] {
-                        l->mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, l->vertices,
-                            OffscreenCaptureDescription{}, nullptr);
+                        if (!nearbyTouches(*key)) {
+                            l->mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, l->vertices,
+                                OffscreenCaptureDescription{}, nullptr);
+                            return;
+                        }
+                        for (auto run : nearcells::runs(l->cells, l->vertices, nearby.box))
+                            l->mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, run.first, run.count,
+                                OffscreenCaptureDescription{}, nullptr);
                     });
         });
     }
+    // The near meshes hold ghost outlines only; the camera is inside them,
+    // so the outline distance never leaves them out.
+    for (auto& [index, mesh] : nearby.meshes) {
+        if (std::any_of(mesh.lines.begin(), mesh.lines.end(), [](auto const& l) { return !l->mesh || !l->mesh->isValid(); })) {
+            nearby.dirty = true;
+            continue;
+        }
+        if (mesh.lines.empty() || !lineMaterial.mRenderMaterialInfoPtr) continue;
+        translated(screen, offsetOf(mesh), [&] {
+            for (auto const& l : mesh.lines)
+                overlay::lines::colored(screen, l->color.r, l->color.g, l->color.b, [&] {
+                    l->mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0, l->vertices,
+                        OffscreenCaptureDescription{}, nullptr);
+                });
+        });
+    }
     LAMIUM_PERF_LAP(linesNs);
-    for (auto [keyPtr, sectionPtr] : shown) {
-        auto const& key = *keyPtr;
-        auto& section = *sectionPtr;
+    auto drawActors = [&](size_t placementIndex, Section const& section, bool trimmed) {
         for (auto const& [pos, block, data] : section.entities) {
+            if (trimmed && nearby.box.contains({pos.x, pos.y, pos.z})) continue; // the near mesh's (L-256)
             // The renderer reads the block at the cell (wall or standing
             // banner, which head, facing): the ghost's, not the world's air.
             if (!actorView) {
@@ -595,7 +690,6 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             // A piston's renderer may also look at its head's cell: the
             // placement's ghost there (the arm block), not the world's air.
             bool piston = block->getBlockType().mBlockEntityType == BlockActorType::PistonArm;
-            auto placementIndex = static_cast<size_t>(std::get<0>(key));
             actorView->answer = [&, piston, placementIndex](BlockPos const& at) -> Block const* {
                 if (at == pos) return block;
                 if (!piston || placementIndex >= resolved.size()) return nullptr;
@@ -603,13 +697,15 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             };
             auto& actor = actors[{pos.x, pos.y, pos.z, block}];
             if (!actor)
-                actor = makeBlockActor(*block, pos, data ? &*data : nullptr,
-                                       snapshot.placements[static_cast<size_t>(std::get<0>(key))].placement.placement, region);
+                actor = makeBlockActor(*block, pos, data ? &*data : nullptr, snapshot.placements[placementIndex].placement.placement, region);
             if (!*actor) continue;
             Vec3 renderPos{static_cast<float>(pos.x - camera.x), static_cast<float>(pos.y - camera.y), static_cast<float>(pos.z - camera.z)};
             renderBlockActor(context, *actorView, **actor, *block, renderPos, pos);
         }
-    }
+    };
+    for (auto [key, section] : shown) drawActors(static_cast<size_t>(std::get<0>(*key)), *section, nearbyTouches(*key));
+    for (auto const& [index, mesh] : nearby.meshes)
+        if (static_cast<size_t>(index) < snapshot.placements.size()) drawActors(static_cast<size_t>(index), mesh, false);
     if (actorView) actorView->answer = nullptr;
     LAMIUM_PERF_LAP(actorsNs);
     drawPlacementFrames(screen, snapshot, dimension, camera);
@@ -654,21 +750,39 @@ void drawBlended(BaseActorRenderContext& context) {
         blendedSections.push_back({gx * gx + gy * gy + gz * gz, sectionKey, &section});
     }
     std::stable_sort(blendedSections.begin(), blendedSections.end(), [](auto const& a, auto const& b) { return a.gap < b.gap; });
+    // `trimmed`: a section's quads in the near box are left out; the near
+    // meshes' quads (always sorted) stand in for them (L-256).
     std::vector<BlendQuads const*> parts;
+    std::vector<bool> trimmed;
     std::vector<SectionKey> partKeys;
     std::uint64_t key = 1469598103934665603ull;
+    for (auto const& [index, mesh] : nearby.meshes)
+        if (mesh.blend && !mesh.blend->positions.empty()) {
+            parts.push_back(mesh.blend.get());
+            trimmed.push_back(false);
+            key = (key ^ reinterpret_cast<std::uintptr_t>(mesh.blend.get())) * 1099511628211ull;
+        }
+    // The box is part of the order too: it decides which quads are left out.
+    if (auto [low, high] = nearby.box.bounds(); !nearby.box.empty())
+        for (int v : {low.x, low.y, low.z, high.x, high.y, high.z}) key = (key ^ static_cast<std::uint32_t>(v)) * 1099511628211ull;
     size_t sorted = 0;
+    bool unsorted = false; // a section in the near box that the sorted mesh lacks
     for (auto const& b : blendedSections) {
         size_t quads = b.section->blend->positions.size() / 4;
-        if (parts.empty() || sorted + quads <= sortedBlendedQuads || !b.section->blendMesh) {
+        bool touching = nearbyTouches(b.key);
+        if (partKeys.empty() || sorted + quads <= sortedBlendedQuads || !b.section->blendMesh || touching) {
             parts.push_back(b.section->blend.get());
+            trimmed.push_back(touching);
             partKeys.push_back(b.key);
             sorted += quads;
             key = (key ^ reinterpret_cast<std::uintptr_t>(b.section->blend.get())) * 1099511628211ull;
+            unsorted = unsorted || (touching && !combined.members.contains(b.key));
         }
     }
-    if (parts.empty()) forgetCombined();
-    if (blendedSections.empty()) return;
+    if (parts.empty()) {
+        forgetCombined();
+        return;
+    }
     auto now = Clock::now();
     float moved = std::max({std::abs(camera.x - combined.sortedFrom.x), std::abs(camera.y - combined.sortedFrom.y),
                             std::abs(camera.z - combined.sortedFrom.z)});
@@ -679,9 +793,10 @@ void drawBlended(BaseActorRenderContext& context) {
     // A new set of sections waits for the interval too: while walking, the
     // last section in the budget changed nearly every frame, and the sort and
     // upload ran each frame (6-7 ms with a large liquid ghost).
-    bool resort = !parts.empty()
-        && (!combined.mesh || !combined.mesh->isValid()
-            || ((key != combined.key || moved >= resortDistance) && now - combined.sortedAt >= every));
+    // A new near box sorts at once: a section's own mesh would draw its near
+    // cells over the near meshes', and the old box leaves holes.
+    bool resort = !combined.key || (combined.mesh && !combined.mesh->isValid()) || combined.box != nearby.box || unsorted
+        || ((key != combined.key || moved >= resortDistance) && now - combined.sortedAt >= every);
     if (resort) {
         combined.mesh.reset();
         combined.anchor = {std::floor(camera.x), std::floor(camera.y), std::floor(camera.z)};
@@ -691,6 +806,7 @@ void drawBlended(BaseActorRenderContext& context) {
         for (std::uint32_t p = 0; p < parts.size(); ++p) {
             auto const& b = *parts[p];
             for (std::uint32_t q = 0; q < b.positions.size() / 4; ++q) {
+                if (trimmed[p] && q < b.cells.size() && b.cells[q] && nearby.box.contains(*b.cells[q])) continue;
                 glm::vec3 c = (b.positions[q * 4] + b.positions[q * 4 + 1] + b.positions[q * 4 + 2] + b.positions[q * 4 + 3]) * .25f
                     + b.origin;
                 float dx = c.x - camera.x, dy = c.y - camera.y, dz = c.z - camera.z;
@@ -698,60 +814,64 @@ void drawBlended(BaseActorRenderContext& context) {
             }
         }
         std::stable_sort(quads.begin(), quads.end(), [](Quad const& a, Quad const& b) { return a.distance > b.distance; });
-        Tessellator batch(screen.tessellator.mBufferResourceService);
-        batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(quads.size() * 4), false);
-        auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
-        // A stream is kept only when every part has it for every vertex.
-        auto merge = [&](auto member, auto& to) {
-            to.clear();
-            for (auto const* b : parts)
-                if ((b->*member).size() != b->positions.size()) return;
-            to.reserve(quads.size() * 4);
-            for (auto const& q : quads)
-                for (std::uint32_t k = 0; k < 4; ++k) to.push_back((parts[q.part]->*member)[q.index * 4 + k]);
-        };
-        auto& positions = *data.mPositions;
-        positions.clear();
-        positions.reserve(quads.size() * 4);
-        glm::vec3 low{1e9f}, high{-1e9f};
-        for (auto const& q : quads) {
-            auto const& b = *parts[q.part];
-            glm::dvec3 shift = glm::dvec3(b.origin) - combined.anchor;
-            for (std::uint32_t k = 0; k < 4; ++k) {
-                glm::vec3 v = glm::vec3(glm::dvec3(b.positions[q.index * 4 + k]) + shift);
-                positions.push_back(v);
-                low = glm::min(low, v);
-                high = glm::max(high, v);
-            }
-        }
-        merge(&BlendQuads::normals, *data.mNormals);
-        merge(&BlendQuads::tangents, *data.mTangents);
-        merge(&BlendQuads::colors, *data.mColors);
-        merge(&BlendQuads::mers, *data.mMERS);
-        merge(&BlendQuads::bones, *data.mBoneId0s);
-        merge(&BlendQuads::pbr, *data.mPBRTextureIndices);
-        merge(&BlendQuads::geo, *data.mGeoType);
-        for (int i = 0; i < 3; ++i) {
-            auto& to = *data.mTextureUVs[i];
-            to.clear();
-            bool all = std::all_of(parts.begin(), parts.end(), [&](auto const* b) { return b->uvs[i].size() == b->positions.size(); });
-            if (!all) continue;
-            to.reserve(quads.size() * 4);
-            for (auto const& q : quads)
-                for (std::uint32_t k = 0; k < 4; ++k) to.push_back(parts[q.part]->uvs[i][q.index * 4 + k]);
-        }
-        *data.mFieldEnabled = parts.front()->enabled;
-        *data.mAABB = {low, high};
-        static_cast<unsigned&>(batch.mCount) = static_cast<unsigned>(quads.size() * 4);
-        combined.vertices = static_cast<std::uint32_t>(quads.size() * 4);
-        combined.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{}));
         combined.key = key;
         combined.members = {partKeys.begin(), partKeys.end()};
+        combined.box = nearby.box;
         combined.sortedFrom = camera;
         combined.sortedAt = now;
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
         ++perf.orderChanges;
 #endif
+        if (quads.empty()) combined.vertices = 0; // every quad was a near cell's
+        else {
+            Tessellator batch(screen.tessellator.mBufferResourceService);
+            batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(quads.size() * 4), false);
+            auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
+            // A stream is kept only when every part has it for every vertex.
+            auto merge = [&](auto member, auto& to) {
+                to.clear();
+                for (auto const* b : parts)
+                    if ((b->*member).size() != b->positions.size()) return;
+                to.reserve(quads.size() * 4);
+                for (auto const& q : quads)
+                    for (std::uint32_t k = 0; k < 4; ++k) to.push_back((parts[q.part]->*member)[q.index * 4 + k]);
+            };
+            auto& positions = *data.mPositions;
+            positions.clear();
+            positions.reserve(quads.size() * 4);
+            glm::vec3 low{1e9f}, high{-1e9f};
+            for (auto const& q : quads) {
+                auto const& b = *parts[q.part];
+                glm::dvec3 shift = glm::dvec3(b.origin) - combined.anchor;
+                for (std::uint32_t k = 0; k < 4; ++k) {
+                    glm::vec3 v = glm::vec3(glm::dvec3(b.positions[q.index * 4 + k]) + shift);
+                    positions.push_back(v);
+                    low = glm::min(low, v);
+                    high = glm::max(high, v);
+                }
+            }
+            merge(&BlendQuads::normals, *data.mNormals);
+            merge(&BlendQuads::tangents, *data.mTangents);
+            merge(&BlendQuads::colors, *data.mColors);
+            merge(&BlendQuads::mers, *data.mMERS);
+            merge(&BlendQuads::bones, *data.mBoneId0s);
+            merge(&BlendQuads::pbr, *data.mPBRTextureIndices);
+            merge(&BlendQuads::geo, *data.mGeoType);
+            for (int i = 0; i < 3; ++i) {
+                auto& to = *data.mTextureUVs[i];
+                to.clear();
+                bool all = std::all_of(parts.begin(), parts.end(), [&](auto const* b) { return b->uvs[i].size() == b->positions.size(); });
+                if (!all) continue;
+                to.reserve(quads.size() * 4);
+                for (auto const& q : quads)
+                    for (std::uint32_t k = 0; k < 4; ++k) to.push_back(parts[q.part]->uvs[i][q.index * 4 + k]);
+            }
+            *data.mFieldEnabled = parts.front()->enabled;
+            *data.mAABB = {low, high};
+            static_cast<unsigned&>(batch.mCount) = static_cast<unsigned>(quads.size() * 4);
+            combined.vertices = static_cast<std::uint32_t>(quads.size() * 4);
+            combined.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{}));
+        }
     }
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
     ++perf.blendedFrames;
@@ -827,7 +947,8 @@ void perfReport() {
                     "blended pass {:.3f} ms/frame, sections {}, never-built waiting avg {:.1f} max {}, looked-at latency avg {:.0f} ms max {:.0f} ms; "
                     "prepare {:.3f}, faces {:.3f}, lines {:.3f}, block actors {:.3f}, frames {:.3f}, entities {:.3f}, name tags {:.3f} ms/frame; "
                     "blended frames {}, re-sorts {}, camera moves {}; vertices faces {} blended {} marks {}, line meshes {}; "
-                    "walk {:.3f} (builds and checks excluded), trace {:.3f}, in-view list {:.3f}, after placements {:.3f} ms/frame",
+                    "walk {:.3f} (builds and checks excluded), trace {:.3f}, in-view list {:.3f}, after placements {:.3f} ms/frame; "
+                    "near rebuilds {} ({:.3f} ms/frame, max {:.2f} ms each)",
                     perf.frames, per(perf.frameNs), ms(perf.maxFrameNs), perf.builds, per(perf.buildNs), ms(perf.maxBuildNs), perf.reasons[0],
                     perf.reasons[1], perf.reasons[2], perf.reasons[3], perf.reasons[4], perf.checks, per(perf.checkNs), per(perf.scanNs),
                     per(perf.blendNs), perf.sections, static_cast<double>(perf.waiting) / static_cast<double>(perf.frames), perf.maxWaiting,
@@ -835,7 +956,7 @@ void perfReport() {
                     per(perf.prepareNs), per(perf.facesNs), per(perf.linesNs), per(perf.actorsNs), per(perf.framesNs), per(perf.entitiesNs),
                     per(perf.extrasNs), perf.blendedFrames, perf.orderChanges, perf.cameraMoves, faceVertices, blendVertices,
                     markVertices, lineMeshes, per(perf.walkNs > perf.buildNs + perf.checkNs ? perf.walkNs - perf.buildNs - perf.checkNs : 0), per(perf.traceNs),
-                    per(perf.shownNs), per(perf.afterNs)));
+                    per(perf.shownNs), per(perf.afterNs), perf.nearBuilds, per(perf.nearNs), ms(perf.maxNearNs)));
     perf = Perf{};
 }
 #endif

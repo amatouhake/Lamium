@@ -81,7 +81,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
    L-253, L-254, L-255.
    **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
-   checked except L-263 creative and L-264 waterlogged; next: L-256 research); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   checked except L-263 creative and L-264 waterlogged; L-256 item 7 (a)
+   built, awaiting the in-game check); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -740,6 +741,19 @@ Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
      placements), inside doors/stairs/spawners (L-178 back faces), glass,
      waterlogged blocks, and the trace numbers while walking inside
      ghosts (16-38 ms frames now).
+   Built 2026-10-26, not yet checked in game: `NearCells.h` (box and
+   vertex runs, tested); sections are built with no camera cells and
+   record each cell's first face and ghost-outline vertex and each blended
+   quad's cell; `buildNear` builds the near box per placement with the
+   camera (faces, blended quads, ghost outlines ranked against mistake
+   outlines in and one cell around the box, block entities; no marks),
+   rebuilt on a new camera cell, when a section it covers is rebuilt, or
+   while a chunk there was incomplete. Sections touching the box draw
+   faces and ghost outlines in runs (assumes `renderMesh`'s start offset
+   counts vertices: if near ghosts look scrambled, missing or doubled,
+   that is the first suspect) and leave out the box's entities and blended
+   quads; the sorted blended mesh re-sorts at once on a new box. The trace
+   logs "near rebuilds". The camera-cell marking of `7c0a7cb2` is gone.
 Constraints: no visible change (outline look, mistake colors, blended
 order must not flicker again, L-192/L-193); fail open as today. Validate
 each step in game against the step 1 numbers.

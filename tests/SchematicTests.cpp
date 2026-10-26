@@ -20,6 +20,7 @@
 #include "features/schematic/RestPose.h"
 #include "features/schematic/PreviewView.h"
 #include "features/schematic/GhostFaces.h"
+#include "features/schematic/NearCells.h"
 #include "features/schematic/PlacementOverlap.h"
 #include <algorithm>
 #include <array>
@@ -1509,6 +1510,29 @@ void checkRelaxations() {
               && !r::ignoredState("open_bit", r::Signal | r::Lit | r::Growth),
           "a state only one side has still counts; doors' open state is not a signal");
 }
+void nearCellRuns() {
+    namespace n = lamium::schematic::nearcells;
+    using lamium::schematic::Point;
+    n::Box box{{Point{10, 65, 10}, Point{10, 64, 10}}};
+    check(box.contains({12, 62, 8}) && box.contains({8, 67, 12}) && !box.contains({13, 64, 10}) && !box.contains({10, 68, 10})
+              && !n::Box{}.contains({0, 0, 0}),
+          "the near box holds the cells within two of the eye or feet cell");
+    check(box.touches({8, 64, 8}, 8) && box.touches({5, 60, 5}, 8) && !box.touches({0, 56, 16}, 8) && !box.touches({13, 64, 12}, 8)
+              && box.touches({12, 60, 12}, 8) && !n::Box{}.touches({8, 64, 8}, 8),
+          "a section touches the near box when any of its cells is in it");
+    auto [low, high] = box.bounds();
+    check(low == Point{8, 62, 8} && high == Point{13, 68, 13}, "the near box's bounds cover both cubes");
+    // Cells 0..3 along z, 4 vertices each, then a mistake outline (no cell).
+    std::vector<n::CellStart> starts{{Point{0, 64, 7}, 0}, {Point{0, 64, 8}, 4}, {Point{0, 64, 9}, 8}, {Point{0, 64, 14}, 12},
+                                     {std::nullopt, 16}};
+    n::Box at{{Point{0, 64, 10}, std::nullopt}};
+    check(n::runs(starts, 20, at) == std::vector<n::Run>{{0, 4}, {12, 8}}, "runs leave out the near cells and keep the rest");
+    check(n::runs(starts, 20, n::Box{}) == std::vector<n::Run>{{0, 20}}, "with no near box the whole mesh is one run");
+    n::Box all{{Point{0, 64, 12}, Point{0, 64, 9}}};
+    check(n::runs(std::span<n::CellStart const>(starts).first(4), 16, all).empty(), "a mesh whose cells are all near draws nothing");
+    std::vector<n::CellStart> skipped{{Point{0, 64, 9}, 0}, {Point{0, 64, 9}, 0}, {Point{5, 64, 9}, 4}};
+    check(n::runs(skipped, 6, at) == std::vector<n::Run>{{4, 2}}, "empty and repeated cells do not break the runs");
+}
 void schematicTests() {
     checkRelaxations();
     placementSteps();
@@ -1529,6 +1553,7 @@ void schematicTests() {
     moveTargetRules();
     targetRayRules();
     ghostFaces();
+    nearCellRuns();
     placementTransforms();
     entityRules();
     previewRules();
