@@ -5,8 +5,8 @@
 // the view the effect is not drawn; it is back as soon as the session ends
 // and vanilla is untouched in every other frame.
 namespace lamium::camera::insideBlock {
-// The view keeps the game's own answer unless this frame draws FreeCamera's
-// view; a false never becomes true here.
+// The flag keeps the game's own answer unless FreeCamera owns this frame;
+// a false never becomes true here.
 inline constexpr bool drawsInsideCubes(bool vanilla, bool suppress) noexcept { return vanilla && !suppress; }
 // Only the primary client's own FreeCamera frame is suppressed. Split screen
 // and every camera Lamium does not own keep what the game decided.

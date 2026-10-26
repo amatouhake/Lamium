@@ -33,6 +33,8 @@ LL_TYPE_INSTANCE_HOOK(InsideBlockView, ll::memory::HookPriority::Normal, LevelRe
     try {
         auto current = ll::service::getClientInstance();
         auto* player = current ? current->getLocalPlayer() : nullptr;
+        // Compares the current client with this hook's own: suppression stays
+        // on the primary view only.
         bool primary = current && static_cast<IClientInstance*>(current.as_ptr()) == &mClientInstance;
         bool free = current && player && player->hasRuntimeID()
             && CameraSessions::instance().freeCameraFor(*current, player->getRuntimeID().rawID);
@@ -55,7 +57,7 @@ void start() noexcept {
         capabilities::attachHook<InsideBlockView>(installed, {capability});
         capabilities::hooks(capability, installed);
         if (!installed)
-            Runtime::instance().self().getLogger().warn("FreeCamera keeps the inside-a-block view; the effect stays drawn");
+            Runtime::instance().self().getLogger().warn("FreeCamera view hook is not installed; the inside-a-block view stays vanilla");
     } catch (...) { capabilities::fail(capability, capabilities::Reason::OperationFailed, "initialization failed"); }
 }
 void stop() noexcept {
