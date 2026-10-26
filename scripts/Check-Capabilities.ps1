@@ -30,8 +30,18 @@ foreach ($part in 1..2) {
         throw 'The shared loader series/minimum must match the SDK baseline; review both on an update.'
     }
 }
-if ([int]$policy.Groups[3].Value -lt [int]$sdk.Groups[3].Value) {
-    throw 'The minimum supported loader patch is older than the compiled SDK baseline.'
+$minimumPatch = [int]$policy.Groups[3].Value
+$sdkPatch = [int]$sdk.Groups[3].Value
+if ($minimumPatch -gt $sdkPatch) {
+    throw 'The minimum supported loader patch is newer than the compiled SDK baseline.'
+}
+if ($minimumPatch -lt $sdkPatch) {
+    # An older minimum needs a recorded Check-LoaderImports.ps1 run for this SDK.
+    $series = "$($sdk.Groups[1].Value).$($sdk.Groups[2].Value)"
+    $record = "SDK $series.$sdkPatch imports checked against loader $series.$minimumPatch"
+    if ($inventoryText -notmatch [regex]::Escape($record)) {
+        throw "The minimum loader patch is older than the SDK; run Check-LoaderImports.ps1 and record '$record' in GAME-UPDATES.md."
+    }
 }
 $tooth = Get-Content -LiteralPath (Join-Path $projectDirectory 'tooth.json') -Raw | ConvertFrom-Json
 $expectedSeries = "$($policy.Groups[1].Value).$($policy.Groups[2].Value).*"

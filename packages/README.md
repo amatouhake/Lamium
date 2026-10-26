@@ -1,7 +1,7 @@
 # Client SDK recipe
 
 `levilamina-client-sdk.lua` prepares the SDK for Windows x64, LeviLamina Client
-26.51.5. Both the source archive and the official release archive have pinned
+26.51.8. Both the source archive and the official release archive have pinned
 SHA-256 checksums. The release DLL is used only to generate an import library;
 it is not copied into Lamium's package or installed into a game instance.
 

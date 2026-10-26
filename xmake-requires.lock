@@ -3,12 +3,12 @@
         version = "1.0"
     },
     ["windows|x64"] = {
-        ["bedrockdata v26.51.1-client.6#f56260b5"] = {
+        ["bedrockdata v26.51.1-client.11#f56260b5"] = {
             repo = {
-                commit = "a48ba86e7500ad7cff7f4ec87d27be5ad8446218",
+                commit = "56f390b260799fe11e1aee0745c2f3777943d40a",
                 url = "https://github.com/LiteLDev/xmake-repo.git"
             },
-            version = "v26.51.1-client.6"
+            version = "v26.51.1-client.11"
         },
         ["cmake#f56260b5"] = {
             repo = {
@@ -88,8 +88,8 @@
             },
             version = "0.6.1"
         },
-        ["levilamina-client-sdk 26.51.5#16fb575b"] = {
-            version = "26.51.5"
+        ["levilamina-client-sdk 26.51.8#16fb575b"] = {
+            version = "26.51.8"
         },
         ["magic_enum v0.9.7#f56260b5"] = {
             repo = {
@@ -115,13 +115,13 @@
             },
             version = "v3.12.0"
         },
-        ["parallel-hashmap v1.3.12#f56260b5"] = {
+        ["parallel-hashmap v2.0.0#f56260b5"] = {
             repo = {
                 branch = "master",
-                commit = "7e595f3d0db8964cbcfab0882233be1a8b0d5d79",
+                commit = "378a3b71e14db2f37f0837d55807fa188d3e84c2",
                 url = "https://github.com/xmake-io/xmake-repo.git"
             },
-            version = "v1.3.12"
+            version = "v2.0.0"
         },
         ["pcg_cpp v1.0.0#f56260b5"] = {
             repo = {
@@ -137,12 +137,12 @@
             },
             version = "2.1.1"
         },
-        ["prelink v0.8.6#f56260b5"] = {
+        ["prelink v0.8.7#f56260b5"] = {
             repo = {
-                commit = "a48ba86e7500ad7cff7f4ec87d27be5ad8446218",
+                commit = "56f390b260799fe11e1aee0745c2f3777943d40a",
                 url = "https://github.com/LiteLDev/xmake-repo.git"
             },
-            version = "v0.8.6"
+            version = "v0.8.7"
         },
         ["rapidjson 2025.02.05#f56260b5"] = {
             repo = {
@@ -186,7 +186,7 @@
         ["zstd 1.5.7#a0c24696"] = {
             repo = {
                 branch = "master",
-                commit = "e96d4103633e161d259aa307e02a4d0842207651",
+                commit = "378a3b71e14db2f37f0837d55807fa188d3e84c2",
                 url = "https://github.com/xmake-io/xmake-repo.git"
             },
             version = "v1.5.7"

@@ -34,6 +34,16 @@ loader policy: series 26.51, minimum patch 5; later patches do not need an
 allowlist edit. This is not a promise that a patch cannot break an ABI: each
 adapter retains its target, ownership and contract checks.
 
+The minimum may stay below the SDK the DLL is built against only while every
+LeviLamina symbol Lamium imports exists in that older loader:
+`scripts/Check-LoaderImports.ps1 -Loader <LeviLamina.dll> ...` compares
+them, and `Check-Capabilities.ps1` requires the record below for the current
+SDK and minimum. The check covers symbol names, not the layout of
+LeviLamina's own types.
+
+- 2026-10-26: SDK 26.51.8 imports checked against loader 26.51.5, and
+  26.51.7 (official client release DLLs; 68 imports, none missing).
+
 The shared verified Minecraft executable remains 1.26.51.01. An unverified
 executable or unsupported loader prevents probing and use of sensitive paths.
 The catalog can name a separately reviewed executable build per capability,
@@ -112,7 +122,9 @@ the package/SDK loader-policy alignment in CI.
    `LamiumNativeTests`. Fix compile errors: they are the removed or retyped
    functions and members. Run `scripts/Check-GameInventory.ps1` and
    `scripts/Check-Capabilities.ps1`. Update the shared loader series/minimum
-   together with the SDK and package, never a feature-local patch list.
+   together with the SDK and package, never a feature-local patch list; to
+   keep an older minimum, run `scripts/Check-LoaderImports.ps1` against that
+   loader's DLL and record the result under the gates above.
 3. **Fail-open first.** Before widening anything, run the new game with the
    normal build: every gated capability must log "stays vanilla" and the
    game must not crash. Smoke-test the features without gates (the inventory
