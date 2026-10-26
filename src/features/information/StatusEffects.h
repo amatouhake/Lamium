@@ -23,12 +23,39 @@ inline bool runningOut(Effect const& effect) {
     return !effect.ambient && !infinite(effect) && effect.ticks < runningOutTicks;
 }
 // Shortest first so the next to run out is on top; infinite ones last.
-inline void order(std::vector<Effect>& effects) {
-    std::stable_sort(effects.begin(), effects.end(), [](Effect const& a, Effect const& b) {
-        if (infinite(a) != infinite(b)) return infinite(b);
-        if (a.ticks != b.ticks) return a.ticks < b.ticks;
-        return a.id < b.id;
-    });
+inline bool earlier(Effect const& a, Effect const& b) {
+    if (infinite(a) != infinite(b)) return infinite(b);
+    if (a.ticks != b.ticks) return a.ticks < b.ticks;
+    return a.id < b.id;
+}
+// The HUD's rows for this frame (L-247). A row keeps the place it entered with
+// until its effect ends, so a beacon renewing the duration does not move it. A
+// new effect enters above the first row with a longer time; an ended effect's
+// row closes up. `previous` is the last frame's row ids, top to bottom.
+inline std::vector<Effect> arrange(std::vector<unsigned> const& previous, std::vector<Effect> const& current) {
+    std::vector<Effect> rows;
+    rows.reserve(current.size());
+    for (unsigned id : previous) {
+        bool placed = std::any_of(rows.begin(), rows.end(), [id](Effect const& row) { return row.id == id; });
+        auto effect = std::find_if(current.begin(), current.end(), [id](Effect const& e) { return e.id == id; });
+        if (!placed && effect != current.end()) rows.push_back(*effect);
+    }
+    std::vector<Effect> entering;
+    for (auto const& effect : current)
+        if (std::find(previous.begin(), previous.end(), effect.id) == previous.end()) entering.push_back(effect);
+    std::stable_sort(entering.begin(), entering.end(), earlier);
+    for (auto const& effect : entering) {
+        auto at = std::find_if(rows.begin(), rows.end(), [&](Effect const& row) { return earlier(effect, row); });
+        rows.insert(at, effect);
+    }
+    return rows;
+}
+// `arrange`'s rows as the ids to hand back as `previous` next frame.
+inline std::vector<unsigned> rowIds(std::vector<Effect> const& rows) {
+    std::vector<unsigned> ids;
+    ids.reserve(rows.size());
+    for (auto const& row : rows) ids.push_back(row.id);
+    return ids;
 }
 // M:SS, H:MM:SS from an hour, rounded up so an active effect never reads 0:00.
 // Empty for an infinite effect: the caller writes a translated word (the

@@ -96,6 +96,9 @@ namespace {
 // HUD background opacity for this frame (settings, L-98); set by drawHud.
 float cardOpacity = .72f;
 SpeedSampler speedSampler;
+// Ids of the status effect rows shown last frame, top to bottom: a row keeps
+// its place until its effect ends (L-247). Cleared whenever none are shown.
+std::vector<unsigned> shownEffects;
 // One element row: text with an optional leading marker square.
 struct ElementLine { std::string text; std::optional<ui::Rgb> marker; ui::Rgb color = ui::palette::text; };
 float elementZoom(ui::HudElement const& element) {
@@ -607,8 +610,14 @@ std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& c
         for (auto [id, ticks, amplifier] : {std::tuple{1u, 3300, 1}, std::tuple{19u, 80, 0}, std::tuple{16u, -1, 0}})
             if (auto effect = effectFor(id, ticks, amplifier, false)) effects.push_back(std::move(*effect));
     }
-    if (effects.empty()) return std::nullopt;
-    fx::order(effects);
+    if (effects.empty()) {
+        if (!preview) shownEffects.clear();
+        return std::nullopt;
+    }
+    // Rows keep their place across frames (L-247); the layout editor's sample
+    // effects must not set the order the game HUD shows.
+    effects = fx::arrange(preview ? std::vector<unsigned>{} : shownEffects, effects);
+    if (!preview) shownEffects = fx::rowIds(effects);
     float z = elementZoom(element);
     bool card = element.background == ui::ElementBackground::Card;
     bool band = element.background == ui::ElementBackground::Line;
