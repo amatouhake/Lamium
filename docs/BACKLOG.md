@@ -82,7 +82,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-253, L-254, L-255.
    **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
    checked except L-263 creative and L-264 waterlogged; stage 4, L-256,
-   done 2026-10-26); L-267 door halves (Bug); L-268 cross-plant flicker (Bug); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   done 2026-10-26); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -666,35 +666,6 @@ two-texel window). Rewrite `help.visuals.connectedPaneCorners` in all four
 languages (it says the inside stays joined). Check in game: L corners in
 both directions, T and cross junctions, stained panes, option off.
 No release target selected.
-
-### L-267 Schematic door ghosts: upper and lower halves face different ways
-Kind: Bug. Reported 2026-10-26 by the maintainer while checking L-256 on
-`291fcd4`: some door ghosts face correctly, others draw their upper and
-lower halves facing different ways; one of the two may be ignoring the
-open state. Seen again 2026-10-26 by the maintainer on the PR #41 build
-(code as `cbf1742`, no near mesh, faces built as on `main`), so it is not
-from the L-256 experiment; not a blocker for that PR.
-Hypothesis from the code (not checked): while a door half is drawn, the
-tessellator's answer for the other half's cell is always the half Lamium
-makes from the drawn entry with `upper_block_bit` flipped
-(`ghostNeighbor`, `Resolved::halves`), unless the real block there is a
-door, even when the file has its own other half there. The game draws a
-door's upper half from the lower half's states, so an upper entry whose
-saved direction or open state differs from its lower half's would draw
-the upper ghost with the upper entry's own states. Possible fix: answer
-with the file's ghost at that cell when it is the same block type, and
-make a half only where the file has none. Check in game: closed and open
-doors in all four facings, both hinges, rotated and mirrored placements,
-a door with one half placed for real.
-No release target selected.
-
-### L-268 Schematic cross-plant ghosts flicker
-Kind: Bug. Seen 2026-10-26 by the maintainer on `main` (`86723d2e`) and
-on the L-256 branch alike: ghosts of cross-shaped plants (dead bush and
-similar) flicker. Suspect (not checked): the cross planes are drawn twice
-in one place, for example in both windings or in two render layers, and
-`dropDuplicateQuads` does not catch the pair. Find which quads the
-tessellator emits for one such ghost first. No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported

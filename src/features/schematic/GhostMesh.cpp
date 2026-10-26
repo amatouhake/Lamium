@@ -29,6 +29,9 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
+#ifdef LAMIUM_SCHEMATIC_QUAD_TRACE
+#include <set>
+#endif
 #include <map>
 #include <tuple>
 
@@ -243,6 +246,10 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
 // Collapses quads that repeat an earlier quad of the same ghost: a face the
 // tessellator emits in both windings (crop planes) is drawn twice by the
 // two-sided ghost material, and the two fight in one plane (flicker).
+// Cross plants' back copies sit 0.0002 from the front (L-268, seen in the
+// quad trace), so corners within 0.001 match; real parts of one block lie
+// at least 1/16 apart.
+constexpr float sameQuadEpsilon = 1e-3f;
 void dropDuplicateQuads(Tessellator& batch, size_t from) {
     auto& positions = batch.mMeshData->mPositions.get();
     auto quadAt = [&](size_t q) {
@@ -254,7 +261,7 @@ void dropDuplicateQuads(Tessellator& batch, size_t from) {
         if (positions[q] == positions[q + 1] && positions[q] == positions[q + 2]) continue;
         auto quad = quadAt(q);
         for (size_t p = from; p < q; p += 4)
-            if (faces::sameQuad(quad, quadAt(p))) {
+            if (faces::sameQuad(quad, quadAt(p), sameQuadEpsilon)) {
                 for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
                 break;
             }
@@ -294,6 +301,56 @@ void eachCell(session::Shown const& shown, SectionKey key, int halo, Visit&& vis
             for (int z = std::max(low.z, origin.z - halo); z < std::min(low.z + span, origin.z + placed.z + halo); ++z)
                 visit(x, y, z);
 }
+#ifdef LAMIUM_SCHEMATIC_QUAD_TRACE
+// L-268: the quads the tessellator drew for one ghost of each block whose
+// quads are not all on its cell's sides (cross plants, crops), as drawn
+// and whether the ghost rules dropped them, logged once per block.
+struct TracedQuads { Tessellator* target; size_t from, to; int layer; };
+void traceQuads(Block const& block, Point at, std::vector<TracedQuads> const& parts) {
+    static std::set<Block const*> seen;
+    if (seen.contains(&block)) return;
+    auto quadAt = [](std::vector<glm::vec3> const& positions, size_t q) {
+        std::array<faces::Vertex, 4> quad;
+        for (size_t k = 0; k < 4; ++k) quad[k] = {positions[q + k].x, positions[q + k].y, positions[q + k].z};
+        return quad;
+    };
+    bool inner = false;
+    for (auto const& part : parts) {
+        auto const& positions = part.target->mMeshData->mPositions.get();
+        for (size_t q = part.from; q + 4 <= part.to && q + 4 <= positions.size(); q += 4)
+            inner = inner || faces::sideOf(quadAt(positions, q), at.x, at.y, at.z) < 0;
+    }
+    if (!inner) return;
+    seen.insert(&block);
+    std::string text = std::format("quads of {} at {} {} {}:", block.getTypeName(), at.x, at.y, at.z);
+    for (auto const& part : parts) {
+        auto& data = static_cast<mce::MeshData&>(part.target->mMeshData);
+        auto const& positions = *data.mPositions;
+        auto const& normals = *data.mNormals;
+        auto const& uvs = *data.mTextureUVs[0];
+        text += std::format("\n  layer {}: {} quads", part.layer, (part.to - part.from) / 4);
+        for (size_t q = part.from; q + 4 <= part.to && q + 4 <= positions.size(); q += 4) {
+            bool dropped = positions[q] == positions[q + 1] && positions[q] == positions[q + 2];
+            text += std::format("\n    {}", dropped ? "dropped" : "kept   ");
+            for (size_t k = 0; k < 4; ++k)
+                text += std::format(" ({:.4f} {:.4f} {:.4f})", positions[q + k].x - at.x, positions[q + k].y - at.y, positions[q + k].z - at.z);
+            if (normals.size() == positions.size())
+                text += std::format(" n ({:.2f} {:.2f} {:.2f})", normals[q].x, normals[q].y, normals[q].z);
+            if (uvs.size() == positions.size()) text += std::format(" uv ({:.4f} {:.4f})", uvs[q].x, uvs[q].y);
+        }
+    }
+    log(text);
+}
+#endif
+// The file's block at a world cell, shown or not and whatever is there.
+Block const* fileBlockAt(session::Shown const& shown, Resolved const& blocks, Point n) {
+    auto const& structure = *shown.structure;
+    auto local = toLocal(structure.size, shown.placement.placement, n);
+    if (!local) return nullptr;
+    auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
+    if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size()) return nullptr;
+    return blocks.blocks[static_cast<size_t>(index)];
+}
 // What the tessellator sees at `n` while it draws the ghost at `at` (palette
 // entry `drawn`): the placement's block where a ghost is drawn (shown layer,
 // nothing real there), so doors find their other half and fences and panes
@@ -308,7 +365,14 @@ Block const* ghostNeighbor(BlockSource& region, session::Shown const& shown, Res
     if (drawn >= 0 && static_cast<size_t>(drawn) < blocks.halves.size() && blocks.halfSteps[static_cast<size_t>(drawn)]
         && n.x == at.x && n.z == at.z && n.y == at.y + blocks.halfSteps[static_cast<size_t>(drawn)]) {
         Block const* half = blocks.halves[static_cast<size_t>(drawn)];
-        if (&region.getBlock(BlockPos{n.x, n.y, n.z}).getBlockType() != &half->getBlockType()) return half;
+        if (&region.getBlock(BlockPos{n.x, n.y, n.z}).getBlockType() != &half->getBlockType()) {
+            // The file's own other half where it has one (L-267): the game
+            // draws a door's halves from each other's states (the lower
+            // half's facing and open state, the upper's hinge), and a half
+            // made from the drawn one carried its stale copies of those.
+            Block const* own = fileBlockAt(shown, blocks, n);
+            return own && &own->getBlockType() == &half->getBlockType() ? own : half;
+        }
     }
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
@@ -476,10 +540,16 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 bool meshed = false;
                 size_t batchFrom = batch.mMeshData->mPositions->size(), seeFrom = see.mMeshData->mPositions->size();
                 // Each render layer the block draws in, into the mesh of its kind.
+#ifdef LAMIUM_SCHEMATIC_QUAD_TRACE
+                std::vector<TracedQuads> traced;
+#endif
                 eachLayer(*expected, region, pos, [&](std::optional<BlockRenderLayer> layer) {
                     Tessellator& target = layer && blended(*layer) ? see : batch;
                     size_t before = target.mMeshData->mPositions->size();
                     tessellateLayer(own, target, *expected, pos, layer);
+#ifdef LAMIUM_SCHEMATIC_QUAD_TRACE
+                    traced.push_back({&target, before, target.mMeshData->mPositions->size(), layer ? static_cast<int>(*layer) : -1});
+#endif
                     cullAgainstGhosts(target, before, region, shown, blocks, {x, y, z}, camera, *expected, &target == &see, others);
                     if (std::any_of(camera.cells.begin(), camera.cells.end(), [&](auto const& c) { return c == Point{x, y, z}; }))
                         dropBackFaces(target, before, camera);
@@ -492,6 +562,9 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 });
                 dropDuplicateQuads(batch, batchFrom);
                 dropDuplicateQuads(see, seeFrom);
+#ifdef LAMIUM_SCHEMATIC_QUAD_TRACE
+                traceQuads(*expected, {x, y, z}, traced);
+#endif
                 // A piston's mesh is its base; the head and arm are its block
                 // actor's to draw (L-178), with the file's progress and state.
                 if (meshed && expected->getBlockType().mBlockEntityType == BlockActorType::PistonArm) {
