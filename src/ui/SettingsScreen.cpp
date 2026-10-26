@@ -604,12 +604,14 @@ void runMenuItem(schematic::menu::Item const& item, int amount) {
     }
     auto toggle = [](char const* id, char const* name) {
         table_view::adjustOption(id, 1);
-        bool on = id == std::string_view("schematic.hud") ? Runtime::instance().preferences().schematic.hud
-            : Runtime::instance().preferences().schematic.enabled;
+        auto const& now = Runtime::instance().preferences().schematic;
+        bool on = id == std::string_view("schematic.hud") ? now.hud : id == std::string_view("schematic.mistakeMarks") ? now.mistakeMarks
+            : now.enabled;
         showMessageToast(translated(name) + ": " + translated(on ? "on" : "off"));
     };
     switch (command) {
     case C::ToggleHud: toggle("schematic.hud", "schematic.menu.toggleHud"); return;
+    case C::ToggleMarks: toggle("schematic.mistakeMarks", "schematic.menu.toggleMarks"); return;
     case C::ToggleFeature: toggle("schematic.enabled", "schematic.menu.toggleFeature"); return;
     case C::SaveArea: {
         auto state = schematic::selection::current();
@@ -665,6 +667,7 @@ std::string menuValue(schematic::menu::Item const& item) {
         ? &set.placements[static_cast<size_t>(set.selected)] : nullptr;
     switch (std::get<menu::Command>(item.what)) {
     case menu::Command::ToggleHud: return translated(preferences.schematic.hud ? "on" : "off");
+    case menu::Command::ToggleMarks: return translated(preferences.schematic.mistakeMarks ? "on" : "off");
     case menu::Command::ToggleFeature: return translated(preferences.schematic.enabled ? "on" : "off");
     case menu::Command::ToggleShown: return p ? translated(p->visible ? "on" : "off") : std::string{};
     case menu::Command::ToggleEntities: return p ? translated(p->entities ? "on" : "off") : std::string{};

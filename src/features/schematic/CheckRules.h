@@ -27,12 +27,14 @@ inline constexpr std::array<StateRule, 17> stateRules{{
     {"growing_plant_age", Growth}, {"twisting_vines_age", Growth}, {"weeping_vines_age", Growth},
     {"propagule_stage", Growth}, {"bamboo_leaf_size", Growth}, {"bamboo_stalk_thickness", Growth},
 }};
-struct NameRule { std::string_view off, on; Category category; };
+// `state`: what the difference is called, as the block's state in Java
+// Edition, where the two forms are one block (maintainer 2026-10-26).
+struct NameRule { std::string_view off, on, state; Category category; };
 inline constexpr std::array<NameRule, 4> nameRules{{
-    {"minecraft:redstone_lamp", "minecraft:lit_redstone_lamp", Lit},
-    {"minecraft:unpowered_repeater", "minecraft:powered_repeater", Lit},
-    {"minecraft:unpowered_comparator", "minecraft:powered_comparator", Lit},
-    {"minecraft:unlit_redstone_torch", "minecraft:redstone_torch", Lit},
+    {"minecraft:redstone_lamp", "minecraft:lit_redstone_lamp", "lit", Lit},
+    {"minecraft:unpowered_repeater", "minecraft:powered_repeater", "powered", Lit},
+    {"minecraft:unpowered_comparator", "minecraft:powered_comparator", "powered", Lit},
+    {"minecraft:unlit_redstone_torch", "minecraft:redstone_torch", "lit", Lit},
 }};
 
 inline bool ignoredState(std::string_view state, unsigned on) {
@@ -45,11 +47,13 @@ inline std::string_view canonicalName(std::string_view name, unsigned on) {
         if ((on & r.category) && (r.off == name || r.on == name)) return r.off;
     return name;
 }
-// Whether a name is the on form of a name rule's pair; nothing for others.
-inline std::optional<bool> switchedOn(std::string_view name) {
+// For a name in a name rule's pair: whether it is the on form, and the
+// state that names the difference; nothing for other names.
+struct Switched { bool on; std::string_view state; };
+inline std::optional<Switched> switchedOn(std::string_view name) {
     for (auto const& r : nameRules) {
-        if (r.on == name) return true;
-        if (r.off == name) return false;
+        if (r.on == name) return Switched{true, r.state};
+        if (r.off == name) return Switched{false, r.state};
     }
     return std::nullopt;
 }

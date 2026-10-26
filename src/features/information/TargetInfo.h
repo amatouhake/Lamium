@@ -86,9 +86,10 @@ inline std::optional<TargetInfo::DetailRow> interpretBlockState(std::string_view
         return DetailRow{"target.flowSteps", std::to_string(steps) + " / " + std::to_string(most), false,
                          1.f - static_cast<float>(steps) / (most + 1)};
     }
-    // A candle's or copper bulb's state, and the on/off forms of L-262.
-    if (key == "lit" && kind == StateKind::Integer && (number == 0 || number == 1))
-        return DetailRow{"target.lit", number ? "target.yes" : "target.no", true, {}};
+    // A candle's or copper bulb's state, and the on/off forms of L-262
+    // under their Java Edition state names.
+    if ((key == "lit" || key == "powered") && kind == StateKind::Integer && (number == 0 || number == 1))
+        return DetailRow{key == "lit" ? "target.lit" : "target.powered", number ? "target.yes" : "target.no", true, {}};
     if (key == "redstone_signal" && kind == StateKind::Integer && number >= 0 && number <= 15)
         return DetailRow{"target.power", std::to_string(number), false, static_cast<float>(number) / 15};
     if (key == "facing_direction" && kind == StateKind::Integer) {

@@ -57,6 +57,10 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleWorldMap: field = &value.map.worldMap; break;
     case Action::ToggleSchematic: field = &value.schematic.enabled; break;
     case Action::ToggleSchematicHud: field = &value.schematic.hud; break;
+    case Action::ToggleMistakeMarks: field = &value.schematic.mistakeMarks; break;
+    case Action::ToggleIgnoreSignal: field = &value.schematic.ignoreSignal; break;
+    case Action::ToggleLitAsState: field = &value.schematic.litAsState; break;
+    case Action::ToggleIgnoreGrowth: field = &value.schematic.ignoreGrowth; break;
     case Action::PeriodicAttack: field = &value.interaction.autoAttack; break;
     case Action::PeriodicUse: field = &value.interaction.autoUse; break;
     case Action::AttackHeldOnly: field = &value.interaction.attackHeldOnly; break;

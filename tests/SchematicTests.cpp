@@ -1491,9 +1491,11 @@ void checkRelaxations() {
               && r::sameType("minecraft:redstone_torch", "minecraft:unlit_redstone_torch", r::Lit)
               && r::sameType("minecraft:lit_redstone_lamp", "minecraft:redstone_lamp", r::Lit),
           "on and off forms are one kind (a state mistake) with the rule on, never the same block");
-    check(r::switchedOn("minecraft:redstone_torch") == true && r::switchedOn("minecraft:unlit_redstone_torch") == false
-              && r::switchedOn("minecraft:lit_redstone_lamp") == true && !r::switchedOn("minecraft:stone"),
-          "which form of a pair is on");
+    auto torch = r::switchedOn("minecraft:redstone_torch"), unlit = r::switchedOn("minecraft:unlit_redstone_torch");
+    auto repeaterOn = r::switchedOn("minecraft:powered_repeater");
+    check(torch && torch->on && torch->state == "lit" && unlit && !unlit->on && repeaterOn && repeaterOn->state == "powered"
+              && !r::switchedOn("minecraft:stone"),
+          "which form of a pair is on, named lit or powered as in Java Edition");
     check(!r::sameBlock("minecraft:unpowered_repeater", repeater, "minecraft:powered_repeater", faced, r::Lit | r::Signal)
               && !r::sameType("minecraft:redstone_lamp", "minecraft:glowstone", r::Lit),
           "other states and other blocks still count");

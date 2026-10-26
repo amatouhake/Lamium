@@ -14,7 +14,7 @@
 namespace lamium::schematic::menu {
 enum class Stepper : std::uint8_t { ForwardBack, LeftRight, UpDown, Rotate, Mirror, LayerAxis, LayerMode, Layer, LayerKeep, Placement, Target };
 enum class Command : std::uint8_t {
-    ToFeet, ResetTurn, LayerHere, ToggleShown, ToggleExtras, ToggleEntities, ToggleHud, ToggleFeature,
+    ToFeet, ResetTurn, LayerHere, ToggleShown, ToggleExtras, ToggleEntities, ToggleHud, ToggleFeature, ToggleMarks,
     Corner1Here, Corner2Here, MoveArea, MovePlacement, SaveArea, ClearArea,
     SelectLooked, PlaceFile, PlacedList, NearestMistake, CheckTab, MaterialsTab, KeySettings,
 };
@@ -58,9 +58,10 @@ inline constexpr std::array<Item, 5> layers{{
     {"schematic.menu.layerMode", S::LayerMode, A::CycleLayerMode},
     {"schematic.menu.layerKeep", S::LayerKeep, A::ToggleLayerKeep},
     {"schematic.menu.layerHere", C::LayerHere, A::LayerHere}}};
+// L-266: the HUD moved to Screen to make room for the mistake marks.
 inline constexpr std::array<Item, 6> show{{
     {"schematic.menu.toggleFeature", C::ToggleFeature, A::ToggleSchematic},
-    {"schematic.menu.toggleHud", C::ToggleHud, A::ToggleSchematicHud},
+    {"schematic.menu.toggleMarks", C::ToggleMarks, A::ToggleMistakeMarks},
     {"schematic.menu.toggleShown", C::ToggleShown, A::TogglePlacementShown},
     {"schematic.menu.toggleEntities", C::ToggleEntities, A::TogglePlacementEntities},
     {"schematic.menu.toggleExtras", C::ToggleExtras, A::TogglePlacementExtras},
@@ -71,11 +72,12 @@ inline constexpr std::array<Item, 5> area{{
     {"schematic.menu.moveArea", C::MoveArea},
     {"schematic.menu.saveArea", C::SaveArea, A::SaveSchematicArea},
     {"schematic.menu.clearArea", C::ClearArea, A::ClearSchematicArea}}};
-inline constexpr std::array<Item, 5> screen{{
+inline constexpr std::array<Item, 6> screen{{
     {"schematic.menu.placeFile", C::PlaceFile, A::OpenSchematicFiles},
     {"schematic.menu.placedList", C::PlacedList, A::OpenSchematicPlaced},
     {"schematic.menu.checkTab", C::CheckTab, A::OpenSchematicCheck},
     {"schematic.menu.materialsTab", C::MaterialsTab, A::OpenSchematicMaterials},
+    {"schematic.menu.toggleHud", C::ToggleHud, A::ToggleSchematicHud},
     {"schematic.menu.keySettings", C::KeySettings, A::OpenSchematicKeys}}};
 }
 inline constexpr int moveCategory = 0;
@@ -97,9 +99,12 @@ inline constexpr std::array<Category, 6> categories{{
     {"schematic.menu.cat.area", detail::area}, {"schematic.menu.cat.screen", detail::screen},
 }};
 // Keys that only speed up one path and need no menu item (L-238): opening
-// the menu or the screen, and Repeat (it repeats menu steps).
+// the menu or the screen, and Repeat (it repeats menu steps). Also the
+// Check rules (L-266): set once rather than while building, they stay in
+// the settings, with an optional key (maintainer 2026-10-26).
 inline constexpr bool keyOnlyAccelerator(Action action) {
-    return action == Action::SchematicMenu || action == Action::AdjustSchematic || action == Action::OpenSchematics;
+    return action == Action::SchematicMenu || action == Action::AdjustSchematic || action == Action::OpenSchematics
+        || action == Action::ToggleIgnoreSignal || action == Action::ToggleLitAsState || action == Action::ToggleIgnoreGrowth;
 }
 // The "move ... ->" commands: which target they choose before opening Move.
 inline constexpr bool choosesTarget(Command command, Target& target) {

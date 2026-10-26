@@ -170,6 +170,10 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "interaction.breakingMode") return input::Action::CycleBreakingMode;
     if (option == "map.waypointsWorld") return input::Action::HideWaypoints;
     if (option == "map.radarFaces") return input::Action::RadarFaces;
+    if (option == "schematic.mistakeMarks") return input::Action::ToggleMistakeMarks;
+    if (option == "schematic.ignoreSignal") return input::Action::ToggleIgnoreSignal;
+    if (option == "schematic.litAsState") return input::Action::ToggleLitAsState;
+    if (option == "schematic.ignoreGrowth") return input::Action::ToggleIgnoreGrowth;
     return {};
 }
 inline bool shownOnOption(input::Action action) {
@@ -247,6 +251,10 @@ inline std::string_view toggleToastKey(input::Action action) {
     case Action::HidePowderSnow: return "toast.hidePowderSnow";
     case Action::HideDistanceFog: return "toast.hideDistanceFog";
     case Action::HidePortal: return "toast.hidePortal";
+    case Action::ToggleMistakeMarks: return "schematic.menu.toggleMarks";
+    case Action::ToggleIgnoreSignal: return "toast.ignoreSignal";
+    case Action::ToggleLitAsState: return "toast.litAsState";
+    case Action::ToggleIgnoreGrowth: return "toast.ignoreGrowth";
     default: return featureNameKey(input::actions[static_cast<size_t>(action)].feature);
     }
 }

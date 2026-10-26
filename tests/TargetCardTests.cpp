@@ -154,7 +154,9 @@ void targetCardTests() {
         check(lava && lava->value == "2 / 3" && netherLava && netherLava->value == "4 / 7",
               "lava flows three blocks in two-step depths, seven in the Nether");
         auto lit = interpretBlockState("lit", StateKind::Integer, 1, {}, "minecraft:candle");
-        check(lit && lit->label == "target.lit" && lit->value == "target.yes", "lit reads as On: yes");
+        auto powered = interpretBlockState("powered", StateKind::Integer, 0, {}, "minecraft:unpowered_repeater");
+        check(lit && lit->label == "target.lit" && lit->value == "target.yes" && powered && powered->label == "target.powered"
+                  && powered->value == "target.no", "lit and powered read as Lit / Powered: yes or no");
         // L-93: schematic rows say what to do.
         auto translate = [](std::string_view key) { return "<" + std::string(key) + ">"; };
         using lamium::schematic::CellState;

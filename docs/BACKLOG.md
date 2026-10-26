@@ -589,9 +589,12 @@ decided the same day:
 - In creative, picking a ghost whose block is not carried gives the block
   like vanilla, always (no setting); how to do that so servers accept it
   is Research (L-263).
-Open (maintainer, still discussing): whether the Check switches also get
-schematic menu entries and/or bindable actions. Menu categories are kept to
-six items each.
+Decided later the same day (maintainer): Mistake marks goes into the
+menu's Show category, and the HUD switch moves to Screen (both stay at six
+items); every Check switch gets a bindable action, unbound by default; the
+three rules stay out of the menu (an L-238 exception). The on/off rows are
+named after the Java Edition states: "Lit" for lamps and torches,
+"Powered" for repeaters and comparators.
 
 ### L-262 Schematic check: ignore redstone signal, lit/unlit variants and plant growth
 Kind: Research (state lists), then Ready. User feedback 2026-10-26 (Discord

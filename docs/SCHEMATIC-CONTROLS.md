@@ -223,9 +223,14 @@ target is five or six per category.
 | Move | Forward/back, Left/right, Up/down, To feet, Move target, Select what you look at |
 | Placement | Selected placement (stepper), Rotate, Mirror, Reset rotation and mirror, Move placement → |
 | Layers | Axis, Cut, Mode, Keep, Cut here |
-| Show and check | Schematics on/off, HUD, Show selected placement, Entities, Extra blocks, Nearest mistake |
+| Show and check | Schematics on/off, Mistake marks, Show selected placement, Entities, Extra blocks, Nearest mistake |
 | Area | Corner 1 at the looked block, Corner 2 at the looked block, Move area →, Save, Clear |
-| Screen | Place from a file…, Placed list…, Check tab, Materials tab, Key settings |
+| Screen | Place from a file…, Placed list…, Check tab, Materials tab, Schematic HUD, Key settings |
+
+L-266 (2026-10-26): the HUD switch moved from Show and check to Screen to
+make room for Mistake marks; the three Check rules (signal, on/off as a
+wrong state, plant growth) stay out of the menu, in the settings with an
+optional key.
 
 - Turn merges into Placement: rotation and mirror are settings of the
   selected placement.
