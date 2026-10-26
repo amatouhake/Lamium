@@ -711,6 +711,35 @@ Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
    rebuild (Research); (b) wait until the camera has stayed in a cell for
    a moment before rebuilding (cheap, but faces near the camera may look
    wrong briefly while moving).
+   Chosen 2026-10-26 (maintainer): (a). Research done the same day, from
+   `GhostMesh.cpp`/`GhostRenderer.cpp` at `28e43baf`:
+   - Every camera effect is confined to ghost cells within two cells (per
+     axis) of the eye or feet cell (`BuildCamera::cells`): the enclosed
+     skip (`camera.near(cell, 2)`), `cullAgainstGhosts` (`nearCamera`,
+     `beyond` from the eye), the tessellator's neighbor answers
+     (`ghostNeighbor`, reach 1), `dropBackFaces` in the camera cells, and
+     the liquid shells through those neighbor answers. Lines and mistake
+     marks do not depend on the camera.
+   - Plan: build sections with an empty `BuildCamera` (no cells), so they
+     never depend on the camera, and record each cell's first vertex in
+     the face mesh (cells are appended x, y, z with z fastest; liquids go
+     to the blended tessellator). A section touching the near box (the
+     union of the two 5x5x5 boxes) is drawn in vertex ranges that skip the
+     box's cells (`renderMesh` takes a start and count; at most about 30
+     runs, for at most 8 sections).
+   - A near mesh per placement holds the box's ghost cells built with the
+     real camera (about 150 cells instead of up to 8 dense sections of 512),
+     rebuilt when the camera cell changes, drawn after the sections.
+   - Blended quads are re-sorted far to near at build time, which loses
+     the cell order: give `BlendQuads` a cell index per quad, leave the
+     near box's quads out when combining/sorting (and draw a section's
+     own blended mesh from the filtered CPU quads when it touches the
+     box), and add the near mesh's blended quads.
+   - Then the camera-cell marking in `drawPlacements` (`7c0a7cb2`) goes.
+   - Check in game against L-192/L-193 (no flicker between sections or
+     placements), inside doors/stairs/spawners (L-178 back faces), glass,
+     waterlogged blocks, and the trace numbers while walking inside
+     ghosts (16-38 ms frames now).
 Constraints: no visible change (outline look, mistake colors, blended
 order must not flicker again, L-192/L-193); fail open as today. Validate
 each step in game against the step 1 numbers.
