@@ -21,6 +21,27 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-260 Connected Textures across pack changes checked in game (2026-10-26)
+
+Local `1.26.51.01` LIP deployment, LeviLamina Client 26.51.7, Windows x64,
+resource pack "Mr.Atlaz's COMPLETELY NORMAL RTX" (16 px colors, 32 px
+normal maps), maintainer.
+Before the fix (`9372daf4`, DLL SHA-256
+`6053BF77DB8C8AC40F2D16D9FA38583673D01066704E4935AD75E31FF58E0CB8`):
+switching the graphics mode between Fancy, Vibrant Visuals and Ray Traced,
+rejoining and Connected Textures off/on did not reproduce the report. With
+the pack disabled on the title screen and the world joined, joined faces
+showed their sprites at twice the size; with it enabled again, sprites
+were drawn at half size next to missing-texture squares. Connected
+Textures off cleared both. The log showed a new atlas build each time,
+"833 of 833 sprites in place".
+After the fix (`bb49043d`, DLL SHA-256
+`FE7A6DCB0A1B8E93E980B460C62C559379B0643917DCF540ABE3C46B37DE6190`):
+checklist passed: pack disabled then enabled on the title screen, joining
+each time and repeated, joined glass, bookshelves and sandstone drawn
+normally. Not seen: the reporter's own setup (Amethyst launcher,
+LeviLamina 26.51.8, world add-ons); other packs; servers.
+
 ## SDK 26.51.8 build checked in game (2026-10-26)
 
 `main` (`9372daf4`, built against LeviLamina Client SDK 26.51.8), deployed
