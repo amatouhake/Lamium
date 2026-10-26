@@ -621,7 +621,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                         return;
                     }
                     for (auto run : nearcells::runs(section->faceCells, section->faceVertices, nearby.box))
-                        section->faces->renderMesh(screen, faces, texture, run.first, run.count, OffscreenCaptureDescription{}, nullptr);
+                        section->faces->renderMesh(screen, faces, texture, nearcells::quadStart(run.first), run.count,
+                                                   OffscreenCaptureDescription{}, nullptr);
                 });
         for (auto& [index, mesh] : nearby.meshes)
             if (mesh.faces && !mesh.faces->isValid()) nearby.dirty = true;
@@ -656,7 +657,8 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                             return;
                         }
                         for (auto run : nearcells::runs(l->cells, l->vertices, nearby.box))
-                            l->mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, run.first, run.count,
+                            l->mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{},
+                                               l->quads ? nearcells::quadStart(run.first) : run.first, run.count,
                                 OffscreenCaptureDescription{}, nullptr);
                     });
         });

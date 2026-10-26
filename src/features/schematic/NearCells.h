@@ -62,6 +62,13 @@ struct Run {
     std::uint32_t first = 0, count = 0;
     bool operator==(Run const&) const = default;
 };
+// Where a run starts for Mesh::renderMesh in a quad-list mesh. Tried on
+// 2026-10-26 because runs from the vertex alone left the near cells' faces
+// in the sections too (they z-fought with the near meshes' own, seen from
+// inside blocks): the start is read as an index into the six indices per
+// quad, while the count is still vertices (whole meshes draw with their
+// vertex count).
+inline std::uint32_t quadStart(std::uint32_t firstVertex) { return firstVertex / 4 * 6; }
 // The vertex runs to draw of a mesh of `total` vertices, leaving out the
 // cells `box` holds. Vertices before the first start are kept.
 inline std::vector<Run> runs(std::span<CellStart const> starts, std::uint32_t total, Box const& box) {

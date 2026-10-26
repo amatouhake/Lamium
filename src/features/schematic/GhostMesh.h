@@ -71,6 +71,7 @@ struct Section {
         std::optional<mce::Mesh> mesh;
         std::uint32_t vertices = 0;
         std::vector<nearcells::CellStart> cells; // as faceCells
+        bool quads = false; // bars (a quad list), not game lines
     };
     std::vector<std::unique_ptr<ColorLines>> lines;
     std::vector<EntityCell> entities;

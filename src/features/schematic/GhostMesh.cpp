@@ -851,6 +851,7 @@ void build(ScreenContext& screen, BlockSource& region, SchematicRegion& view, Bl
             entry->color = {r, g, b};
             entry->vertices = drawn;
             entry->cells = std::move(starts);
+            entry->quads = half > 0;
             entry->mesh.emplace(std::move(mesh));
             out.lines.push_back(std::move(entry));
         }

@@ -1532,6 +1532,7 @@ void nearCellRuns() {
     check(n::runs(std::span<n::CellStart const>(starts).first(4), 16, all).empty(), "a mesh whose cells are all near draws nothing");
     std::vector<n::CellStart> skipped{{Point{0, 64, 9}, 0}, {Point{0, 64, 9}, 0}, {Point{5, 64, 9}, 4}};
     check(n::runs(skipped, 6, at) == std::vector<n::Run>{{4, 2}}, "empty and repeated cells do not break the runs");
+    check(n::quadStart(0) == 0 && n::quadStart(8) == 12 && n::quadStart(400) == 600, "a quad list's run starts at its quads' indices");
 }
 void schematicTests() {
     checkRelaxations();

@@ -791,9 +791,17 @@ Candidates (`GhostMesh.cpp`, `GhostRenderer.cpp`):
    inside is 3.1-4.1 ms (was 24-26), outlines about 1 ms, tessellation
    1.9-2.8 ms; ghost pass inside 3.7-5.0 ms, worst frames 11-15 ms (31-32);
    section builds while loading at most 7 ms (35); outline look unchanged
-   in every width and graphics mode. Still to check for item 7: the
-   z-fighting seen inside a stair, at a door from inside a block and on
-   cross plants (compare with `main`), waterlogged blocks. Not done: caching outlines
+   in every width and graphics mode. A/B against `main` (`86723d2e`) the
+   same day: the z-fighting seen from inside a sandstone wall, a stair and
+   farmland (and the next block's faces) is new on this branch; the cross
+   plants' flicker is not (L-268). Suspect: `renderMesh` reads the start
+   of a run in a quad list as an index (six per quad), so runs began
+   early and the near cells' faces were drawn by both the sections and
+   the near meshes, at different origins. Built next (not yet checked):
+   runs in quad lists start at `quadStart` (first vertex / 4 * 6); the
+   count stays vertices. If that is wrong, faces near the camera go
+   missing or doubled elsewhere in the sections touching the box.
+   Waterlogged blocks still to check. Not done: caching outlines
    per cell (their bounds come from the camera-dependent tessellation),
    dropping the reversed bar quads (the material may cull either winding),
    a wider box with hysteresis (the rules inside the box change with every
@@ -841,6 +849,14 @@ make a half only where the file has none. Check in game: closed and open
 doors in all four facings, both hinges, rotated and mirrored placements,
 a door with one half placed for real.
 No release target selected.
+
+### L-268 Schematic cross-plant ghosts flicker
+Kind: Bug. Seen 2026-10-26 by the maintainer on `main` (`86723d2e`) and
+on the L-256 branch alike: ghosts of cross-shaped plants (dead bush and
+similar) flicker. Suspect (not checked): the cross planes are drawn twice
+in one place, for example in both windings or in two render layers, and
+`dropDuplicateQuads` does not catch the pair. Find which quads the
+tessellator emits for one such ghost first. No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported
