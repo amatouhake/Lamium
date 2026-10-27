@@ -185,6 +185,19 @@ validation checkpoints" (snapshot 2026-10-20).
 
 ## Bugs
 
+### L-279 "None" outlines still drew the entity ghosts' outlines
+
+Kind: Bug. Review finding 2026-10-27: the "None" outline width removed only the
+block ghosts' light-blue outlines (`GhostMesh.cpp`), while entity ghosts kept
+theirs (`EntityModels.cpp`), contradicting the help text "None draws no light-blue
+outlines". Maintainer decision 2026-10-27: hide the entity ghosts' outlines too.
+
+`EntityModels.cpp` now decides once per model whether to outline at all, fills no
+line mesh and renders none when the width is None, instead of building a mesh it
+does not draw.
+
+Status 2026-10-27: built, not yet checked in game.
+
 ### L-278 Real liquids come before a ghost when the target option is on
 
 Kind: Bug / decided. Review finding 2026-10-27: `TargetInfo::target()` checked a
@@ -201,20 +214,69 @@ as the intended rule rather than a defect.
 
 Status 2026-10-27: built, not yet checked in game.
 
-### L-279 "None" outlines still drew the entity ghosts' outlines
+### L-275 A ghost without an item lets vanilla pick the real block behind it
+Kind: Bug. Review of L-263, 2026-10-27. In `GhostPick.cpp` the ghost branch
+returned only when `describe(...).item` was not empty. For fire, water and
+other item-less ghosts the call fell through to `origin(hit, withData)` and
+picked the real block behind the ghost, contradicting the comment "The
+ghost's block or nothing: never the real block behind it". The same
+fall-through happened when the ghost path threw, so a failed pick also
+handed the real block to vanilla.
+Decided: once a ghost is detected, `origin` is never called. A ghost without
+an item does nothing (nothing to select or give), and an exception after that
+point is swallowed inside the ghost branch. `origin` stays for the no-ghost
+path, which includes the feature being off (`ghostAlong` returns nothing
+then).
+Status 2026-10-27: built, not yet checked in game. In game: middle-click a
+fire or water ghost standing in front of a real block and the hand must stay
+as it was.
 
-Kind: Bug. Review finding 2026-10-27: the "None" outline width removed only the
-block ghosts' light-blue outlines (`GhostMesh.cpp`), while entity ghosts kept
-theirs (`EntityModels.cpp`), contradicting the help text "None draws no light-blue
-outlines". Maintainer decision 2026-10-27: hide the entity ghosts' outlines too.
+### L-274 Ghost pick cannot tell a refused pick from an accepted one
+Kind: Bug. Review of L-263, 2026-10-27. `game::movePair` and
+`game::giveCreative` returning true only means the transaction was sent, and
+`GhostPick.cpp` discarded the result: a server that refused the move looked
+exactly like an accepted pick.
+Decided: confirm from authoritative state on a later frame. The pick is
+remembered as `PickPending` (slot, wanted name and data value, the frame it
+was sent on) in `src/features/inventory/PickConfirm.h`; `pickConfirmed()`
+compares the slot's contents with the wanted item and data value. The read
+waits `pickConfirmFrames` frames first, because the slot holds the predicted
+contents right after the send and only the server's answer replaces them.
+`stepPick(LocalPlayer&)` in `GhostPick.cpp` runs from the ghost pass's
+per-frame hook (`LevelRendererPlayer::$renderEntityEffects`, the entry the
+ghost drawing already uses, no new hook), reads the slot once, logs one
+`pick not confirmed: slot N wanted <item> <aux> holds <item> <aux>` line (`holds
+nothing` when the slot is empty) when the contents differ, and forgets the
+pick. A newer pick replaces the waiting one and stopping the feature clears
+it.
+Status 2026-10-27: built, not yet checked in game. Tests in
+`tests/FetchSlotTests.cpp` for `pickConfirmed` (name, data value, empty slot,
+empty pick) and for `PickPending::due` (the frame itself, the frame after,
+the last frame before the read, after it, cleared and item-less picks).
+In game: a pick the server refuses must log that line instead of passing
+silently; an accepted pick must log nothing.
 
-`EntityModels.cpp` now decides once per model whether to outline at all, fills no
-line mesh and renders none when the width is None, instead of building a mesh it
-does not draw.
-
-Status 2026-10-27: built, not yet checked in game.
-
-
+### L-273 Ghost pick ignores the data value and picks another variant
+Kind: Bug. Review of L-263, 2026-10-27. `pickFor` in
+`src/features/inventory/HandPick.h` compared the 36 slots by item name only,
+and `bringToHand` in `src/features/inventory/BringToHand.cpp` filled those
+names from `stack.getTypeName()`. The creative give path already compared the
+data value (`pickedStack` and `listedInCreative`). For blocks whose variants
+share a name (skull, monster egg) the owned path therefore selected or
+swapped a different variant and reported success.
+Decided: the pure slot description carries both. `HandSlot` (name + aux) and
+`HandSlots` describe the 36 slots; `pickFor(slots, selected, name, aux)`
+compares name and data value, `creativeSlotFor` takes the same description,
+and `bringToHand` takes name + aux, fills them from the stack and returns the
+slot that now holds the item. `GhostPick.cpp` passes the ghost block's item
+name and aux, the values `pickedStack` builds with `reinit(name, 1, aux)`, so
+both paths ask for the same item.
+Status 2026-10-27: built, not yet checked in game. Tests in
+`tests/FetchSlotTests.cpp`: skull and monster egg variants (another variant
+is swapped instead of the one in the hotbar, the carried variant is selected,
+a variant that is not carried is nothing).
+In game: a skull and a monster egg in another variant must be swapped in, and
+a variant that is not carried must do nothing (not select its sibling).
 
 ### L-247 Status effects HUD reorders rapidly under beacon effects
 Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in
@@ -735,6 +797,13 @@ to the 0.3.1 pre-release round): the build option and the log lines are
 gone; the give is gated by the direct capability "Schematic pick
 (creative inventory give)" (GAME-UPDATES.md), off on an unverified game
 build. Left: the pre-release check of this build and a server.
+Status 2026-10-27 (review of this implementation, L-273 to L-275): the
+owned-item path compares the data value as the creative path does, so a skull
+or monster egg variant is no longer picked or swapped for another one; the
+pick is read back from the slot on a later frame, and one the server did not
+make logs `pick not confirmed`; and a ghost without an item (fire, water) no
+longer falls through to vanilla's pick of the real block behind it. Built,
+not yet checked in game.
 Research: where pick block is handled in the SDK and how the inventory
 move is confirmed from authoritative state (reuse the existing inventory
 transfer paths). New hooks go into GAME-UPDATES.md. No release target

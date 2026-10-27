@@ -3,10 +3,13 @@
 class ItemStack;
 class LocalPlayer;
 namespace lamium::inventory {
-// Puts the item named `item` in the hand from the player's own inventory
-// (HandPick.h decides the slot). Client thread only. False when it is not
-// carried or another inventory move is in progress.
-bool bringToHand(LocalPlayer& player, std::string_view item);
+// Puts the item named `item` with the data value `aux` into the hand from
+// the player's own inventory (HandPick.h decides the slot, comparing both).
+// Client thread only. The slot that holds it now (selected, or the selected
+// slot after a swap), or notCarried when it is not carried or another
+// inventory move is in progress.
+inline constexpr int notCarried = -1;
+int bringToHand(LocalPlayer& player, std::string_view item, short aux);
 // Creative mode, `item` not carried (L-263): gives it from the
 // creative inventory into the hotbar slot creativeSlotFor chooses and
 // selects that slot. The slot it went to, or notSent / notListed.
