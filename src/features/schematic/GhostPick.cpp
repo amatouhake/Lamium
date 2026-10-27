@@ -62,19 +62,26 @@ int pickFrame = 0;
 LL_TYPE_INSTANCE_HOOK(GhostPickHook, ll::memory::HookPriority::Normal, LocalPlayer, &LocalPlayer::pickBlock, void,
                       HitResult const& hit, bool withData) {
     try {
-        if (auto ghost = pickedGhost(*this, hit); ghost && ghost->block)
-            if (auto stack = pickedStack(*ghost->block); !stack.isNull()) {
-                // The ghost's block or nothing: never the real block behind it.
-                // Creative mode gives it when it is not carried, like vanilla
-                // (L-263); not on a game build whose transaction is unchecked.
-                std::string name = stack.getTypeName();
-                short aux = stack.getAuxValue();
-                int slot = inventory::bringToHand(*this, name, aux);
-                if (slot < 0 && isCreative() && versionSensitiveAllowed(capabilities::Id::SchematicCreativePick))
-                    slot = inventory::giveToHand(*this, stack);
-                if (slot >= 0) pendingPick = inventory::PickPending{slot, pickFrame, std::move(name), aux};
-                return;
-            }
+        if (auto ghost = pickedGhost(*this, hit); ghost && ghost->block) {
+            // The ghost's block or nothing: never the real block behind it.
+            // A ghost without an item (fire, water) does nothing, and a
+            // failure past this point cannot hand the pick back to vanilla.
+            try {
+                ItemStack stack = pickedStack(*ghost->block);
+                if (!stack.isNull()) {
+                    std::string name = stack.getTypeName();
+                    short aux = stack.getAuxValue();
+                    int slot = inventory::bringToHand(*this, name, aux);
+                    // Creative mode gives it when it is not carried, like
+                    // vanilla (L-263); not on a game build whose transaction
+                    // is unchecked.
+                    if (slot < 0 && isCreative() && versionSensitiveAllowed(capabilities::Id::SchematicCreativePick))
+                        slot = inventory::giveToHand(*this, stack);
+                    if (slot >= 0) pendingPick = inventory::PickPending{slot, pickFrame, std::move(name), aux};
+                }
+            } catch (...) {}
+            return;
+        }
     } catch (...) {}
     origin(hit, withData);
 }
@@ -104,8 +111,8 @@ void stepPick(LocalPlayer& player) {
             }
         }
         if (!inventory::pickConfirmed(held, aux, pendingPick.name, pendingPick.aux))
-            log(std::format("pick not confirmed: slot {} wanted {} {} holds {} {}", slot, pendingPick.name,
-                            pendingPick.aux, held.empty() ? "nothing" : held, aux));
+            log(std::format("pick not confirmed: slot {} wanted {} {} holds {}", slot, pendingPick.name, pendingPick.aux,
+                            held.empty() ? "nothing" : std::format("{} {}", held, aux)));
     } catch (...) {}
     pendingPick.clear();
 }
