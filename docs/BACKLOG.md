@@ -174,6 +174,19 @@ previous order and the current effects, with tests (beacon renewals mixed
 with normal effects, new/removed effects, a longer potion replacing a
 shorter one). Check in game at a beacon with a potion running. No release
 target selected.
+Status 2026-10-27: built, not yet checked in game: `arrange()` replaces
+`order()` in `StatusEffects.h`; it takes the last frame's row ids and keeps
+each row in place until its effect ends, so a beacon refresh only changes the
+time shown, a new effect enters above the first row with a longer time and an
+ended row closes up. `InfoHud.cpp` holds the ids in `shownEffects`: only a
+read that succeeded and found no effects ends the order, so one unreadable
+frame cannot cost the rows their places; it is kept while the HUD is not
+drawn (turning it off and on does not reshuffle) and forgotten on world exit
+and when the feature stops, so a new world starts fresh. The layout editor's
+samples do not set it. Tests: beacon renewals, new and ended effects, a longer
+potion, the infinite-last rule, the read-failed case. In game: the rows must
+stay put with a beacon running, a new effect must still land by its remaining
+time and an ending one must be removed.
 
 ### L-248 Shapes creation uses the body instead of the active camera
 Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in
