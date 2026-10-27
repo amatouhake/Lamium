@@ -286,6 +286,8 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inventory, &Settings::Inventory::handRestock>("inventory.handRestock", "handRestock", "handRestock"),
     toggle<&Settings::inventory, &Settings::Inventory::restockFromHotbar>("inventory.restockFromHotbar", "handRestock", "restockFromHotbar"),
     toggle<&Settings::inventory, &Settings::Inventory::restockOffhand>("inventory.restockOffhand", "handRestock", "restockOffhand"),
+    toggle<&Settings::inventory, &Settings::Inventory::restockShulkerBoxes>("inventory.restockShulkerBoxes", "handRestock", "restockShulkerBoxes"),
+    toggle<&Settings::inventory, &Settings::Inventory::restockBuckets>("inventory.restockBuckets", "handRestock", "restockBuckets"),
     {"inventory.restockThreshold", "handRestock", "restockThreshold",
         [](Settings const& s) -> OptionValue { return static_cast<float>(s.inventory.restockThreshold); },
         [](Settings& s, int direction) { s.inventory.restockThreshold += direction; s.normalize(); },

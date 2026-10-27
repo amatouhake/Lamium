@@ -167,12 +167,13 @@ void settingsRowsTests() {
         check(child != rows.end() && child->feature->id == "hideEffects" && ui::optionAction(id).has_value(),
               "each effect has a switch and key on the same child row");
     }
-    auto restockSource = std::find_if(rows.begin(), rows.end(), [](auto const& row) {
-        return row.option && row.option->id == "inventory.restockFromHotbar";
-    });
-    check(restockSource != rows.end() && restockSource->child()
-          && restockSource->feature->id == "handRestock" && !restockSource->action,
-          "hotbar sourcing is a child of Hand Restock without an extra key binding");
+    for (auto id : {"inventory.restockFromHotbar", "inventory.restockShulkerBoxes", "inventory.restockBuckets"}) {
+        auto child = std::find_if(rows.begin(), rows.end(), [=](auto const& row) {
+            return row.option && row.option->id == id;
+        });
+        check(child != rows.end() && child->child() && child->feature->id == "handRestock" && !child->action,
+              "hotbar sourcing, shulker boxes and buckets are Hand Restock children without extra keys");
+    }
     std::set<std::string_view> options, features, sectionsSeen;
     std::set<input::Action> actions;
     std::set<ui::HudElementId> layouts;
