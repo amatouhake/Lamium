@@ -183,7 +183,7 @@ Feature const features[] = {
     {"Effect diagnostics", started<visuals::effectTrace::start>, visuals::effectTrace::stop},
     {"Portal diagnostics", started<visuals::portalTrace::start>, visuals::portalTrace::stop},
     {"Language diagnostics", started<researchTrace::language::start>, researchTrace::language::stop},
-    {"Book paste diagnostics", started<inventory::bookPaste::startBookPaste>, inventory::bookPaste::stopBookPaste},
+    {"Book paste", inventory::bookPaste::start, inventory::bookPaste::stop},
 };
 }
 #ifdef LAMIUM_FEATURE_SKIP
