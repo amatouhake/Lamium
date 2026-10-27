@@ -89,8 +89,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
-   L-163 a Lamium inventory screen, L-259 book paste overflow (decided;
-   trace build next). Agree open choices before building.
+   L-163 a Lamium inventory screen, L-259 book paste overflow (built; in-game
+   checks next). Agree open choices before building.
    L-165 Mass Craft remains below Map and needs a scope
    conversation; existing packs already cover part of that need.
 3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,
@@ -561,10 +561,10 @@ No release target selected.
 
 
 ### L-259 Book and quill: paste overflow into new pages
-Kind: Research (behavior decided; the switch's name and settings group
-are still open). Maintainer request 2026-10-25: pasting into a book and quill page
-is refused outright when the result would exceed the page limit, which gets
-in the way of copying text into books.
+Kind: Ready (behavior and the switch decided; built, waiting for the in-game
+checks below). Maintainer request 2026-10-25: pasting into a book and quill
+page is refused outright when the result would exceed the page limit, which
+gets in the way of copying text into books.
 Goal: a paste that does not fit on the current page fills it and continues
 on new pages, staying within the vanilla per-page and 50-page limits so the
 edit is sent as ordinary page edits and any server accepts it. Raising the
@@ -599,8 +599,10 @@ Decided (maintainer 2026-10-25, accepting the proposals):
   does not start blank. Japanese text without spaces breaks by character.
 - "Fits" is the game's own test: the page's length limit and
   `_textFitsInControl`, so wrapping and fonts need no copy in Lamium.
-- One switch (name and settings group to be agreed), on by default; off is
-  the vanilla refusal.
+- One switch, on by default; off is the vanilla refusal. Decided 2026-10-27:
+  `interface.bookPaste` on feature `bookPaste`, Settings::Interface group,
+  named "Book paste across pages" (「本への貼り付けをページまたぎ」), the switch
+  labelled "Paste across pages: {}" (「ページまたぎの貼り付け: {}」).
 
 Research before building (trace build, Windows):
 1. Which path a paste takes (`TextEditContext::feedAction(Paste)`,
@@ -616,25 +618,41 @@ Research before building (trace build, Windows):
 Pure part with tests: splitting text into pages given a fits-predicate.
 New hooks go into GAME-UPDATES.md. Verify on a local world and on a server
 that the pages survive closing and reopening the book.
-Status 2026-10-27: trace build only, no behavior change (`--book_paste_trace=y`,
-branch `l259-book-paste-trace`, `eb42d2c9`, `src/features/inventory/BookPaste.cpp`
-plus a "Book paste diagnostics" entry in `Runtime.cpp`). Hooks, all read-only,
-always calling the original: `BookScreenOpen` (`$addStaticScreenVars`: editable,
-page count, page index, view), `TextCharKey` (`handleTextCharEvent`: input
-bytes/chars and the result), `TextTrySet`, `TextFits` (`_textFitsInControl`),
-`ContextAction`/`ContextText` (`feedAction`/`feedText`: action, caret,
-selection, `mMaxLength`, text length), `PageParse`/`PageSetText`/`PageAddAt`
-(page index, page count, text bytes/chars), `ManagerEditPage`/`ManagerAddPage`
-(`BookScreenManager::editPage`/`addPageAt`), and `BookEditSend`/
-`BookEditSendToServer` (BookEdit action, page, book slot, text bytes/chars).
-Lines start with `book paste trace: ` and are capped at 300 per five seconds;
-each carries `tid=` so the paste's thread can be read off. The vanilla JSON's
-`$max_page_length` is not readable through the SDK (`Json::Value` is forward
-declared only), so the page limit is logged from the text box and the text edit
-context instead. Evidence and the three answers come from an in-game run:
-open a book and quill in a world, paste a short text, paste a long text (more
-than one page), paste Japanese text, then close and reopen the book;
-`logs/lamium.log` holds the `book paste trace: ` lines.
+Status 2026-10-27: built, not yet checked in game (branch
+`l259-book-paste-trace`). The trace build (`eb42d2c9`, `--book_paste_trace=y`,
+`src/features/inventory/BookPaste.cpp` plus a "Book paste diagnostics" entry in
+`Runtime.cpp`) answered the three research questions in a real game:
+- A paste is `TextEditContext::feedAction(Paste)` then one
+  `TextEditContext::feedText(clipboardText)`, which inserts what fits and
+  silently drops the rest: 4,631 characters offered on a page holding 69 left
+  exactly 256, with no message, and nothing on a page already at 256.
+- 256 counts characters, not bytes: a page held 602 bytes / 256 characters, and
+  519 bytes / 173 Japanese characters were accepted.
+- The page box is `mMaxLength = 256` with `mConstrainToRect = true`; the title
+  box takes 512 and does not constrain, so the page is identifiable by its
+  limit. Edits reach the server as `BookEditPacket(replace)` after
+  `_setPageText` -> `_parsePageText`/`BookScreenManager::editPage`, sent by both
+  `$send` and `$sendToServer`, so `_setPageText` and `_addPageAt` are enough to
+  write pages.
+Built in `src/features/inventory/BookPaste.{h,cpp}`: the split is pure
+(`splitPaste`, `chooseBreak`, `byteOffset` in the header, covered by
+`tests/BookPasteTests.cpp`) and `TextEditContext::feedText` is the interception
+point. It runs only when the switch is on, a book screen was seen this frame
+(`BookScreenController::$preFrameTick`), the book is `mEditable`, the view is
+Viewing, the context's limit is the page's 256 characters, and the page box was
+seen by its own focus or text calls; any other text field goes to the game
+untouched. Fits is the game's own test (`_textFitsInControl` plus the
+256-character limit). A split writes `context._setText` and `box->trySetText`
+for the visible page, then `_setPageText(index)` and `_addPageAt(index + k)` for
+each following page in order, so later pages move back and are never
+overwritten; the game turns that into one replace packet and one add packet per
+page. A paste that needs more pages than the 50-page limit leaves is refused
+whole, with a toast saying how many pages it needs and how many are free; the
+HUD is not drawn over the book screen, so the message is repeated when the book
+closes.
+In-game checks still to do: a book that already has later pages, a paste that
+replaces a selection, a paste into a nearly full page, Japanese text, and a
+server (the pages must survive closing and reopening the book).
 No release target selected.
 
 ### L-266 Schematic follow-up batch (0.3.1)
