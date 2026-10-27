@@ -11,7 +11,7 @@ enum class Id {
     SchematicBlocks, SchematicPiston, SchematicShulker, SchematicEntities, GameLanguage,
     SkipServerPacks, FreeCameraHotbar, FakeOffhandTargets, ChatPosition,
     FreeCameraHand, FreeCameraHud, FreeCameraInsideBlock, HideParticles, HideBossBars,
-    SchematicBlend, SchematicActorLight,
+    SchematicBlend, SchematicActorLight, SchematicCreativePick,
     InventoryDiagnostics, LanguageDiagnostics, Count
 };
 enum class Impact { None, Partly, Fully };
@@ -57,6 +57,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::HideBossBars, "Hide effects (boss bar passes)", "hideEffects", "capability.HideBossBars", Impact::Partly, false},
     {Id::SchematicBlend, "Schematic ghosts (blended pass)", "schematic", "capability.SchematicBlend", Impact::Partly},
     {Id::SchematicActorLight, "Schematic ghosts (actor lighting)", "schematic", "capability.SchematicActorLight", Impact::Partly},
+    {Id::SchematicCreativePick, "Schematic pick (creative inventory give)", "schematic", "capability.SchematicCreativePick", Impact::Partly, true, true},
     {Id::InventoryDiagnostics, "Inventory transfer diagnostics", "", "", Impact::None, true, true},
     {Id::LanguageDiagnostics, "Language diagnostics", "", "", Impact::None, true, true},
 });

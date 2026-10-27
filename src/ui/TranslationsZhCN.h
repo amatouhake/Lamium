@@ -34,6 +34,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"capability.HideBossBars", "Boss血条的隐藏"},
     {"capability.SchematicBlend", "原理图半透明投影"},
     {"capability.SchematicActorLight", "原理图方块实体亮度"},
+    {"capability.SchematicCreativePick", "创造模式下选取原理图虚影方块"},
     {"capability.reason.game", "此Minecraft版本尚未验证"},
     {"capability.reason.loader", "此LeviLamina版本不在支持范围内"},
     {"capability.reason.hook", "无法连接所需的游戏处理"},

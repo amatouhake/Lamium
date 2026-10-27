@@ -4,14 +4,44 @@
 void check(bool, char const*);
 void statusEffectsTests() {
     using namespace lamium::information::statusEffects;
+    using Ids = std::vector<unsigned>;
     Effect speed{1, 3300, 1, false, false, "Speed"}, poison{19, 80, 0, false, true, "Poison"},
         vision{16, -1, 0, false, false, "Night Vision"}, beacon{3, 150, 1, true, false, "Haste"},
         regen{10, 160, 0, false, false, "Regeneration"};
-    std::vector<Effect> effects{vision, speed, poison, beacon, regen};
-    order(effects);
-    std::vector<unsigned> ids;
-    for (auto const& effect : effects) ids.push_back(effect.id);
-    check(ids == std::vector<unsigned>{19, 3, 10, 1, 16}, "effects run shortest first with infinite ones last");
+    // A fresh HUD: shortest first so the next to run out is on top.
+    check(rowIds(arrange({}, {vision, speed, poison, beacon, regen})) == Ids{19, 3, 10, 1, 16},
+          "a new row list runs shortest first with infinite ones last");
+    // L-247: beacon renewals must not trade rows. Poison 80 -> 40 and the
+    // beacon's 150 -> 300 would put the beacon below regeneration's 160.
+    std::vector<Effect> renewed = arrange(Ids{19, 3, 10},
+        {Effect{19, 40, 0, false, true, "Poison"}, Effect{3, 300, 1, true, false, "Haste"},
+         Effect{10, 160, 0, false, false, "Regeneration"}});
+    check(rowIds(renewed) == Ids{19, 3, 10}, "a beacon's renewed duration keeps every row in place");
+    check(renewed.size() == 3u && renewed[1].ticks == 300 && renewed[1].name == "Haste",
+          "a row keeps its place and still shows the current countdown");
+    check(rowIds(arrange(rowIds(renewed), renewed)) == Ids{19, 3, 10}, "arranging the same effects again moves nothing");
+    // A longer potion of an effect already on screen replaces the time, not
+    // the row, even when it now outlasts a row above it.
+    check(rowIds(arrange(Ids{10, 1},
+                  {Effect{1, 3300, 1, false, false, "Speed"}, Effect{10, 6000, 0, false, false, "Regeneration"}}))
+              == Ids{10, 1},
+          "a longer potion replaces the time but not the row");
+    // New effects enter above the first row with a longer time, an ended
+    // effect closes up, an infinite one goes last and nothing is hidden.
+    std::vector<Effect> mixed = arrange(Ids{19, 3, 10, 1},
+        {Effect{19, 40, 0, false, true, "Poison"}, Effect{3, 300, 1, true, false, "Haste"},
+         Effect{10, 160, 0, false, false, "Regeneration"}, Effect{2, 120, 0, false, true, "Slowness"},
+         Effect{16, -1, 0, false, false, "Night Vision"}});
+    check(rowIds(mixed) == Ids{19, 2, 3, 10, 16} && mixed.size() == 5u,
+          "a new effect enters by remaining time, an ended one closes up and an infinite one goes last");
+    check(rowIds(arrange(Ids{19, 3}, {Effect{19, 40, 0, false, true, "Poison"}})) == Ids{19},
+          "an effect that ended takes its row with it");
+    // L-247 review: a frame whose effects could not be read draws nothing but
+    // must keep the order; only a successful read with no effect ends it, and
+    // the layout editor's samples never touch it.
+    check(endsRowOrder(true, false) && !endsRowOrder(false, false) && !endsRowOrder(true, true)
+              && !endsRowOrder(false, true),
+          "only a successful read with no effect ends the row order");
     check(timeText(3300) == "2:45" && timeText(80) == "0:04" && timeText(1) == "0:01" && timeText(0) == "0:00",
           "times read M:SS and round up while active");
     check(timeText(20 * 3725) == "1:02:05", "an hour or more reads H:MM:SS");

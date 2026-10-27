@@ -37,6 +37,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"capability.HideBossBars", "Boss bar visibility", "ボスバーの非表示"},
     {"capability.SchematicBlend", "Transparent schematic ghosts", "設計図の半透明表示"},
     {"capability.SchematicActorLight", "Schematic block-entity lighting", "設計図のチェストなどの明るさ"},
+    {"capability.SchematicCreativePick", "Creative pick of schematic ghosts", "設計図のゴーストのクリエイティブでのピック"},
     {"capability.reason.game", "This Minecraft build has not been verified", "このMinecraftのビルドは未検証です"},
     {"capability.reason.loader", "This LeviLamina version is outside the supported range", "このLeviLaminaのバージョンは対応範囲外です"},
     {"capability.reason.hook", "Could not attach to the required game operation", "必要なゲーム処理に接続できません"},

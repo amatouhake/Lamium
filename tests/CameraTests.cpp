@@ -27,6 +27,8 @@ int main() try {
     freeCameraCullingTests();
     extern void freeCameraInsideBlockTests();
     freeCameraInsideBlockTests();
+    extern void viewFeetTests();
+    viewFeetTests();
     extern void restrictionRegionTests();
     restrictionRegionTests();
     extern void deathLayoutTests();
