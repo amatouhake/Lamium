@@ -287,6 +287,24 @@ inside-a-block effect not drawn" marks the first frame suppression reached;
 the four checks above remain. The hook returns `ViewRenderObject` by value
 (13 KB, `MCAPI`), so the game has to pass the sret through on every call: a
 crash on world entry would point at that return path first.
+Checked in game 2026-10-27 (merged line `3ac38a3a`, DLL `81006cda`): the
+effect stayed after flying out of the block, so the shipped clear did not
+work. A probe build (`e88bb2a7`) logged once per 60 frames whether FreeCamera
+owned the view, the incoming flag and whether it was cleared: while FreeCamera
+flew in the open the answer was `suppress true, vanilla true, cleared true`
+every line - the flag was cleared on every frame and the effect still drew -
+and the actor answered `getInsideBlock()` = air. `mDrawInsideCubes` is
+therefore not what drives the effect. A second probe (`68e32ba3`) returned
+null from `Actor::getInsideBlock()` while FreeCamera owned the view: the game
+crashed at once (0xC0000005, `mov rax, [rax+0x68]`, RAX = 0;
+`logs/crash/trace_2026-10-27_10-13-33.log`), so that answer is dereferenced
+without a null check elsewhere and cannot be suppressed.
+Parked 2026-10-27 (maintainer): not fixable through the exposed SDK paths -
+the flag is not the driver and the actor answer may not be nulled - without
+reverse-engineering the renderer that consumes it. Left vanilla, not a
+release blocker (leaving FreeCamera once restores the view). The hook from
+`29022178` stays but is a no-op in practice, and its "effect not drawn" log
+line can be read as success; removing the hook is a follow-up decision.
 
 ### L-245 Ghost face disappears next to real glass or a beacon from some angles
 Kind: Bug / Research, low priority. Maintainer report 2026-10-22 (0.3.0,
