@@ -10,6 +10,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 namespace lamium::map {
@@ -52,27 +53,56 @@ struct WaypointSet {
 // in 3D of the marked block's bottom middle. One that starts within reach
 // (added where the player stands, or loaded there) counts only after the
 // player has left it, or it would vanish on the spot. 0 never removes.
+// A frame is planned before anything is saved: the reached ids, and the state
+// that goes with them. The caller applies it only once the removal is saved,
+// so a failed save leaves the waypoint armed and announced again (L-276).
+struct ArrivalPlan {
+    std::vector<std::uint64_t> reached; // Temporary waypoints reached this frame.
+    std::unordered_set<std::uint64_t> armed; // Left behind since they were added.
+};
 class ArrivalWatch {
-    std::vector<std::uint64_t> armed;
-    bool isArmed(std::uint64_t id) const { return std::find(armed.begin(), armed.end(), id) != armed.end(); }
+    // A set, not a list: every HUD frame looks each temporary waypoint up in it.
+    std::unordered_set<std::uint64_t> armed;
 public:
     void reset() { armed.clear(); }
-    // The ids of the temporary waypoints reached this frame.
-    std::vector<std::uint64_t> update(std::vector<Waypoint> const& waypoints, int dimension, double x, double y, double z,
-                                      double distance) {
-        std::vector<std::uint64_t> reached, kept;
+    ArrivalPlan plan(std::vector<Waypoint> const& waypoints, int dimension, double x, double y, double z,
+                     double distance) const {
+        ArrivalPlan result;
         for (auto const& w : waypoints) {
             if (!w.temporary || !w.id) continue;
-            bool was = isArmed(w.id);
-            if (w.dimension != dimension || !(distance > 0)) { if (was) kept.push_back(w.id); continue; }
+            bool was = armed.contains(w.id);
+            if (w.dimension != dimension || !(distance > 0)) { if (was) result.armed.insert(w.id); continue; }
             double d = std::hypot(w.x + .5 - x, w.y - y, w.z + .5 - z);
-            if (d > distance) kept.push_back(w.id);
-            else if (was) reached.push_back(w.id);
+            if (d > distance) result.armed.insert(w.id);
+            else if (was) result.reached.push_back(w.id);
         }
-        armed = std::move(kept);
-        return reached;
+        return result;
     }
+    // Keeps the planned state; call it after the reached waypoints are saved.
+    void apply(ArrivalPlan plan) { armed = std::move(plan.armed); }
 };
+// One frame of arrival removal (L-261): the reached temporary waypoints leave
+// the set and their names come back to announce. `save` stands for the store
+// and reports whether it wrote the copy; only then does the watch keep the
+// planned state, so a failed save leaves the waypoint armed and announced
+// again on a later frame instead of never (L-276).
+template<class Save>
+std::vector<std::string> arrivalStep(ArrivalWatch& watch, WaypointSet const& set, int dimension, double x, double y,
+                                     double z, double distance, Save&& save) {
+    auto plan = watch.plan(set.waypoints, dimension, x, y, z, distance);
+    std::vector<std::string> names;
+    if (!plan.reached.empty()) {
+        auto candidate = set;
+        std::erase_if(candidate.waypoints, [&](Waypoint const& w) {
+            bool gone = std::find(plan.reached.begin(), plan.reached.end(), w.id) != plan.reached.end();
+            if (gone) names.push_back(w.name);
+            return gone;
+        });
+        if (!save(candidate)) return {};
+    }
+    watch.apply(std::move(plan));
+    return names;
+}
 inline constexpr size_t maxWaypoints = 1000;
 inline constexpr size_t maxNameBytes = 128;
 // The name a new waypoint gets: the lowest "N" not used yet.
