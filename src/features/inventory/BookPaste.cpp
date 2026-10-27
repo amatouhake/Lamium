@@ -381,8 +381,14 @@ LL_TYPE_INSTANCE_HOOK(ContextText, ll::memory::HookPriority::Normal, TextEditCon
         case Outcome::Kind::Insert:
             if (!outcome.insert.empty()) origin(outcome.insert);
             // The text after the caret belongs to the last new page, so the page
-            // box keeps only the first page's text.
-            if (outcome.trim) _setText(outcome.head);
+            // and its box keep only the first page's text. The box is what the
+            // screen writes into the page model, so setting the context alone
+            // left the tail at the end of the pasted page (seen in game
+            // 2026-10-27).
+            if (outcome.trim) {
+                _setText(outcome.head);
+                if (auto at = current(); at && at->box) at->box->trySetText(outcome.head);
+            }
             break;
         case Outcome::Kind::Refused: break;
         }

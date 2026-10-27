@@ -224,6 +224,20 @@ void bookPasteTests() {
         check(!planDue(13, 12), "a plan never applies on an earlier frame");
     }
 
+    // A paste that ends exactly on a page boundary adds no empty page: the
+    // game showed a blank page between the pasted pages and the pages that
+    // already followed (2026-10-27).
+    {
+        auto narrow = [](std::string const& text) { return text.size() <= 5; };
+        auto split = splitPaste("", "", "aaaaabbbbb\n", 10, 5, narrow);
+        check(split.kind == SplitKind::Pages && split.pages.size() == 2, "a paste ending at a page break adds no blank page");
+        check(split.pages.size() == 2 && split.pages[1] == "bbbbb", "the last page holds the last characters without the break");
+        // The text after the caret rides on the last planned page.
+        auto tail = splitPaste("", "ABC", "aaaaabbbbb", 10, 5, narrow);
+        check(tail.kind == SplitKind::Pages && tail.pages.size() == 3 && tail.pages.back() == "ABC",
+              "the text after the caret follows the paste onto its own page when it does not fit");
+    }
+
     // The page a paste belongs to, from the text the box holds: the spread's
     // idea of the current page can name the half the player just left.
     {

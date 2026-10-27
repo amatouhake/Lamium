@@ -156,6 +156,11 @@ SplitResult splitPaste(std::string_view before, std::string_view after, std::str
     for (;;) {
         std::string both(rest);
         both.append(tail);
+        // Nothing left to place: the paste ended on the page before this one, so
+        // no page is added. Without this the book gained an empty page between
+        // the pasted pages and the pages that already followed (seen in game
+        // 2026-10-27).
+        if (both.empty()) break;
         if (fitsPage(both)) {
             result.pages.push_back(std::move(both));
             break;
