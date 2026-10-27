@@ -214,6 +214,41 @@ as the intended rule rather than a defect.
 
 Status 2026-10-27: built, not yet checked in game.
 
+### L-277 Flowing lava reads "4 / 3" from an out-of-range depth
+Kind: Bug. Review finding 2026-10-27: `interpretBlockState()` in
+`src/features/information/TargetInfo.h` halved a slow lava depth
+(`(depth + 1) / 2`) against a maximum of three, so a lava `liquid_depth` of 7
+outside the Nether printed "4 / 3" and its progress sat at 0. The step count
+is clamped to the liquid's own maximum: that row reads "3 / 3", and every
+in-range row is unchanged (L-264: three steps outside the Nether, seven in it).
+Status 2026-10-27: built, not yet checked in game: the table test in
+`tests/TargetDetailTests.cpp` covers `liquid_depth` 0-9 for water, Overworld
+lava and Nether lava. In game: aim at flowing lava in the Overworld and in the
+Nether (the flow row is unchanged), then set a lava block's depth to 7 outside
+the Nether (a `/setblock` with that state) and read "3 / 3".
+
+### L-276 A temporary waypoint whose removal cannot be saved is never announced again
+Kind: Bug. Review finding 2026-10-27 on `08da0c47`: `waypoints::arrive()`
+in `src/features/map/WaypointSession.cpp` called `ArrivalWatch::update()`
+before it saved the set with the reached waypoints erased, so a failed write
+left them in place but no longer armed: standing still never announced them
+again until the player left and came back.
+Fixed in `src/features/map/Waypoints.h`: `ArrivalWatch::plan()` returns the
+reached ids and the state that goes with them, and `arrivalStep()` erases the
+reached waypoints from a copy, hands it to the store and applies the plan only
+once the store reports the copy written. A failed save announces nothing and
+leaves the waypoint armed, so the announcement comes on the frame the write
+succeeds; the announce rules themselves are unchanged. The armed ids are an
+`std::unordered_set` instead of a list, because every HUD frame looked each
+temporary waypoint up in it (`isArmed`) with up to 1000 entries.
+Status 2026-10-27: built, not yet checked in game: table test in
+`tests/WaypointTests.cpp` (`arrivalSave`) covers a save that fails first (the
+waypoint stays and a later frame announces it) and one that works (announced
+once, the other waypoint kept). In game: add a temporary waypoint, walk away
+and back (announced once, removed); then make the waypoint file read-only, add
+and reach another (nothing announced, it stays), make the file writable again
+and stand there (announced and removed).
+
 ### L-275 A ghost without an item lets vanilla pick the real block behind it
 Kind: Bug. Review of L-263, 2026-10-27. In `GhostPick.cpp` the ghost branch
 returned only when `describe(...).item` was not empty. For fire, water and

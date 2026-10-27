@@ -154,17 +154,8 @@ void frame(bool recordDeath) {
 }
 std::vector<std::string> arrive(int dimension, double x, double y, double z, double distance) {
     std::lock_guard lock(mutex);
-    auto reached = arrivalWatch.update(set.waypoints, dimension, x, y, z, distance);
-    if (reached.empty()) return {};
-    auto candidate = set;
-    std::vector<std::string> names;
-    std::erase_if(candidate.waypoints, [&](Waypoint const& w) {
-        bool gone = std::find(reached.begin(), reached.end(), w.id) != reached.end();
-        if (gone) names.push_back(w.name);
-        return gone;
-    });
-    if (!commit(std::move(candidate))) return {};
-    return names;
+    return arrivalStep(arrivalWatch, set, dimension, x, y, z, distance,
+                       [](WaypointSet const& candidate) { return commit(candidate); });
 }
 void start() {
     auto& bus = ll::event::EventBus::getInstance();

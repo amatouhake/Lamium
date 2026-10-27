@@ -82,7 +82,10 @@ inline std::optional<TargetInfo::DetailRow> interpretBlockState(std::string_view
         if (number == 0) return DetailRow{"target.flow", "target.flowSource", true, {}};
         if (number >= 8) return DetailRow{"target.flow", "target.flowFalling", true, {}};
         bool slowLava = identifier.find("lava") != std::string_view::npos && !nether;
-        long long steps = slowLava ? (number + 1) / 2 : number, most = slowLava ? 3 : 7;
+        long long most = slowLava ? 3 : 7;
+        // A depth past the liquid's own spread keeps the last step: lava reads
+        // 7 in the Overworld too, never "4 / 3" (L-277).
+        long long steps = std::min(slowLava ? (number + 1) / 2 : number, most);
         return DetailRow{"target.flowSteps", std::to_string(steps) + " / " + std::to_string(most), false,
                          1.f - static_cast<float>(steps) / (most + 1)};
     }

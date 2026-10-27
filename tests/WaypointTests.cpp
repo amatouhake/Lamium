@@ -71,22 +71,54 @@ void markers() {
 void arrival() {
     std::vector<Waypoint> list{{"here", 0, 0, 64, 0, 0, true, true, 1}, {"far", 0, 100, 64, 0, 0, true, true, 2},
                                {"kept", 0, 3, 64, 0, 0, true, false, 3}, {"nether", 0, 0, 64, 0, 1, true, true, 4}};
+    // One frame as arrival removal runs it: plan, then keep the state.
+    auto step = [](ArrivalWatch& watch, std::vector<Waypoint> const& waypoints, int dimension, double x, double y,
+                   double z, double distance) {
+        auto plan = watch.plan(waypoints, dimension, x, y, z, distance);
+        auto reached = plan.reached;
+        watch.apply(std::move(plan));
+        return reached;
+    };
     ArrivalWatch watch;
-    check(watch.update(list, 0, .5, 64, .5, 6).empty(), "nothing is reached where it was added");
-    check(watch.update(list, 0, 50.5, 64, .5, 6).empty(), "one already near counts only after leaving it");
-    auto reached = watch.update(list, 0, .5, 64, .5, 6);
+    check(step(watch, list, 0, .5, 64, .5, 6).empty(), "nothing is reached where it was added");
+    check(step(watch, list, 0, 50.5, 64, .5, 6).empty(), "one already near counts only after leaving it");
+    auto reached = step(watch, list, 0, .5, 64, .5, 6);
     check(reached.size() == 1 && reached[0] == 1, "coming back within reach removes it");
     ArrivalWatch high;
-    high.update(list, 0, 50, 64, 0, 6);
-    check(high.update(list, 0, 100.5, 74, .5, 6).empty() && high.update(list, 0, 100.5, 69, .5, 6).size() == 1,
+    step(high, list, 0, 50, 64, 0, 6);
+    check(step(high, list, 0, 100.5, 74, .5, 6).empty() && step(high, list, 0, 100.5, 69, .5, 6).size() == 1,
           "height counts: 10 blocks above is not there, 5 is");
     ArrivalWatch off;
-    off.update(list, 0, 50, 64, 0, 0);
-    check(off.update(list, 0, .5, 64, .5, 0).empty(), "0 never removes");
+    step(off, list, 0, 50, 64, 0, 0);
+    check(step(off, list, 0, .5, 64, .5, 0).empty(), "0 never removes");
     ArrivalWatch others;
-    others.update(list, 0, 50, 64, 0, 6);
-    auto near = others.update(list, 0, 3.5, 64, .5, 6);
+    step(others, list, 0, 50, 64, 0, 6);
+    auto near = step(others, list, 0, 3.5, 64, .5, 6);
     check(near.size() == 1 && near[0] == 1, "normal waypoints and other dimensions are never reached");
+}
+// L-276: the watch keeps a reached waypoint armed until its removal is saved.
+void arrivalSave() {
+    WaypointSet set;
+    set.waypoints = {{"here", 0, 0, 64, 0, 0, true, true, 7}, {"far", 0, 40, 64, 0, 0, true, true, 8}};
+    // A save that fails first must not lose the waypoint: a later frame tries
+    // again and announces it once the store works.
+    struct Case { bool firstSave; size_t firstAnnounced; size_t keptAfterFirst; char const* what; };
+    for (auto c : {Case{false, 0, 2, "a failed save keeps the waypoint, so a later frame announces it"},
+                   Case{true, 1, 1, "a saved removal announces the waypoint once and keeps the other one"}}) {
+        ArrivalWatch watch;
+        WaypointSet live = set;
+        bool saves = c.firstSave;
+        auto save = [&](WaypointSet const& candidate) {
+            if (saves) live = candidate;
+            return saves;
+        };
+        auto step = [&](double x) { return arrivalStep(watch, live, 0, x, 64, .5, 6, save); };
+        check(step(50.5).empty(), "nothing is reached while away, and leaving arms it");
+        check(step(.5).size() == c.firstAnnounced && live.waypoints.size() == c.keptAfterFirst, c.what);
+        saves = true; // The store works from now on.
+        check(step(.5).size() == (c.firstSave ? 0u : 1u), "it is announced on the frame its removal is saved");
+        check(live.waypoints.size() == 1 && live.waypoints[0].id == 8, "the waypoint that was not reached stays");
+    }
 }
 void storage() {
     check(serverFileName("Play.Example.com", 19132) == "play.example.com_19132.json", "server files use host and port");
@@ -177,5 +209,6 @@ void waypointTests() {
     basics();
     markers();
     arrival();
+    arrivalSave();
     storage();
 }
