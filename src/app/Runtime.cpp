@@ -30,6 +30,7 @@
 #include "features/inventory/DeathRestore.h"
 #include "features/interaction/ElytraSwap.h"
 #include "features/camera/FreeCameraHide.h"
+#include "features/camera/FreeCameraInsideBlock.h"
 #include "features/interaction/PeriodicInput.h"
 #include "features/interaction/AutomationTrace.h"
 #include "features/camera/CameraSessions.h"
@@ -142,6 +143,7 @@ Feature const features[] = {
     {"World overlay", started<overlay::start>, overlay::stop},
     {"Offhand visibility", started<visuals::start>, visuals::stop},
     {"FreeCamera hiding", started<camera::freeCameraHide::start>, camera::freeCameraHide::stop},
+    {"FreeCamera inside-block view", started<camera::insideBlock::start>, camera::insideBlock::stop, capabilities::Id::FreeCameraInsideBlock},
     {"Connected Textures", visuals::connected::start, visuals::connected::stop, capabilities::Id::ConnectedTextures},
     {"Server resource packs", visuals::serverPacks::start, visuals::serverPacks::stop, capabilities::Id::SkipServerPacks},
     {"Tool Switch", started<inventory::tools::start>, inventory::tools::stop},

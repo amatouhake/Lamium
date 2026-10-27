@@ -575,3 +575,27 @@ control (`desktop_hotbar`, `pocket_hotbar`, `hotbar_panel`) for each draw
 only and restores it right after (gated). Only while FreeCamera owns the
 view; nothing in the game's options changes. What FreeCamera allows the
 player to do is unchanged (L-25).
+
+## The inside-a-block view while flying (L-244, 2026-10-27)
+
+Decided by the maintainer 2026-10-26 and built 2026-10-27, not yet checked in
+game. Vanilla decides the inside-a-block screen effect from where the body's
+head is, so starting FreeCamera while buried kept the effect after the camera
+flew out into the open. While FreeCamera owns the view the effect is not
+drawn; it is back the moment the session ends, and every other frame and
+client stays vanilla. The game builds the local player's view in
+`LevelRendererPlayer::createViewRenderObject`, so `FreeCameraInsideBlock.cpp`
+clears `ViewRenderData::mDrawInsideCubes` on that frame's own copy: nothing is
+written to the renderer, the body or the options, and the next frame is built
+from scratch. The path is gated as the FreeCamera view capability and fails
+open, so an unverified game, a missing hook or a changed flag meaning leaves
+the effect as vanilla draws it. One log line, `FreeCamera view:
+inside-a-block effect not drawn`, marks the first frame suppression actually
+reached. The SDK's `InsideCubeRenderer` and `InsideBlockEffect` declarations
+are empty, so this view flag is the only reachable path; a changed meaning
+only brings the effect back.
+
+To check: start FreeCamera with the head buried and fly out (no effect);
+leave FreeCamera while still buried (it returns); Freelook, Zoom and the
+ordinary first/third-person view unchanged; hand, hotbar and terrain hiding
+unchanged.

@@ -29,6 +29,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"capability.ChatPosition", "聊天位置"},
     {"capability.FreeCameraHand", "隱藏手部"},
     {"capability.FreeCameraHud", "隱藏整個 HUD"},
+    {"capability.FreeCameraInsideBlock", "方塊內的畫面"},
     {"capability.HideParticles", "粒子的隱藏"},
     {"capability.HideBossBars", "Boss 血條的隱藏"},
     {"capability.SchematicBlend", "半透明藍圖虛影"},
