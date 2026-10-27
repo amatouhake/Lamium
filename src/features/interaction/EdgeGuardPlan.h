@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <numbers>
 #include <optional>
 #include <utility>
@@ -97,6 +98,16 @@ std::pair<double, double> guardInput(double x, double z, double vx, double vz, d
     double length = std::hypot(gx, gz);
     if (length > 1) { gx /= length; gz /= length; }
     return {gx, gz};
+}
+
+// The replay target behind the move-vector hook is verified before the hook is
+// attached. Re-deriving it on every own move-vector call cost several
+// milliseconds each and ran about forty times a second (L-250), so once the
+// hook is held the check only runs once every `targetCheckPeriod` calls: often
+// enough to notice a changed native contract, cheap enough to keep.
+inline constexpr std::uint32_t targetCheckPeriod = 200;
+inline bool checkReplayTarget(bool installed, std::uint32_t calls) {
+    return !installed || calls % targetCheckPeriod == 0;
 }
 
 // A slab placed onto a slab merges into a full block in that cell. With the

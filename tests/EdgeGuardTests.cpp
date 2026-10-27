@@ -75,6 +75,13 @@ void edgeGuardTests() {
     auto back = stepBack(touching);
     check(back && back->first < 0 && back->second == 0, "feet only touching an edge step back onto the block");
     check(!stepBack([](double, double) { return false; }), "no support nearby gives no step back");
+    using lamium::interaction::checkReplayTarget, lamium::interaction::targetCheckPeriod;
+    check(checkReplayTarget(false, 1) && checkReplayTarget(false, targetCheckPeriod - 1),
+        "the replay target is derived on every call until the hook is attached");
+    check(!checkReplayTarget(true, 1) && !checkReplayTarget(true, targetCheckPeriod - 1),
+        "an attached replay hook is not re-derived on every call");
+    check(checkReplayTarget(true, targetCheckPeriod) && checkReplayTarget(true, 2 * targetCheckPeriod),
+        "the attached replay hook is re-derived once every period");
     using lamium::interaction::mergePushesOff, lamium::interaction::Box;
     // Feet at 67.5 on a bottom slab in cell (-84, 67, 81), overlapping it by
     // 0.03 in x (seen on BDS): a merge pushes the player off.

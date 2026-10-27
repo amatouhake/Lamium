@@ -1,4 +1,5 @@
 #include "features/interaction/EdgeGuardHistory.h"
+#include "features/interaction/EdgeGuardPlan.h"
 #include "features/interaction/EdgeGuardReplayPlan.h"
 #include "features/interaction/EdgeGuardTracePlan.h"
 #include "app/Runtime.h"
@@ -102,9 +103,16 @@ std::optional<std::array<std::uintptr_t, 3>> inputTargets(IReplayableActorInput&
     }
     return targets;
 }
+std::uint32_t checks = 0;
 void observe() noexcept {
     try {
         if (!enabled()) return;
+        // The hook is attached once and the target it was verified against
+        // cannot change while it is held. Re-deriving the replay targets on
+        // every own move-vector call cost milliseconds each (L-250), so after
+        // the first attach the check only runs now and then to notice a
+        // changed native contract.
+        if (!checkReplayTarget(installed, ++checks)) return;
         auto client = ll::service::getClientInstance();
         auto* player = client ? client->getLocalPlayer() : nullptr;
         auto replay = player ? player->getEntityContext().tryGetComponent<ReplayStateComponent>() : nullptr;
@@ -136,6 +144,7 @@ bool stop() noexcept {
     }
     installed = reported = false;
     captureTarget = 0;
+    checks = 0;
     return true;
 }
 }
