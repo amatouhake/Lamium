@@ -272,6 +272,16 @@ inline std::optional<std::pair<float, float>> paneCornerPoint(Parts const& parts
     bool east = parts.has(Part::East), north = parts.has(Part::North);
     return std::pair{east == inside ? 0.562f : 0.437f, north == inside ? 0.437f : 0.562f};
 }
+// Which corner edges a pane draws (L-270, maintainer 2026-10-27). The outside
+// edge of the turn is the pane option's alone (L-208); the inside edge is the
+// inside-corner policy, so it needs that option as well as the pane one. With
+// the pane option off nothing is computed.
+struct PaneEdges {
+    bool outside = false, inside = false;
+};
+inline constexpr PaneEdges paneEdgeKinds(bool paneCorners, bool insideCorners) {
+    return {paneCorners, paneCorners && insideCorners};
+}
 // The corner of the turn a quad slides onto: the post's outside faces keep
 // their edge there (L-208), the arm faces beside the inside corner gain one
 // (L-255).

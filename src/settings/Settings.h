@@ -207,8 +207,8 @@ struct Settings {
         // (maintainer, 2026-09-30).
         bool hideEffects = false;
         bool connectedTextures = false; // Glass without inner borders (L-96), Experimental
-        bool connectedCorners = false; // Keep an edge where glass blocks turn inward (L-208), Experimental
-        bool connectedPaneCorners = false; // Keep an edge on both sides of an L-shaped glass pane corner (L-208, L-255), Experimental
+        bool connectedCorners = false; // Keep an edge where glass blocks turn inward, and inside an L-shaped pane (L-208, L-270), Experimental
+        bool connectedPaneCorners = false; // Keep an edge at an L-shaped glass pane corner; the inside edge needs connectedCorners too (L-208, L-255, L-270), Experimental
         bool hideWeather = true;
         bool hideParticles = true;
         bool hideBossBars = true;

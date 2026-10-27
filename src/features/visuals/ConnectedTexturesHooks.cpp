@@ -29,8 +29,9 @@ namespace lamium::visuals::connected {
 namespace {
 // Read by chunk-build threads; written once per coordinator tick.
 std::atomic<bool> active{false};
-// The L-208 corner options, same lifetime as `active`: edges where glass
-// blocks turn inward, and at the outside of an L-shaped pane.
+// The L-208/L-270 corner options, same lifetime as `active`: edges where glass
+// blocks turn inward, and - with `paneCorners` - the inside edge of an
+// L-shaped pane, whose outside edge needs `paneCorners` alone.
 std::atomic<bool> insideCorners{false}, paneCorners{false};
 bool installed = false;
 bool drawingEnabled() {
@@ -149,20 +150,22 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
     auto above = partsAt(block, {pane.pos.x, pane.pos.y + 1, pane.pos.z});
     auto below = partsAt(block, {pane.pos.x, pane.pos.y - 1, pane.pos.z});
     bool east = paneAt(block, 1, 0), west = paneAt(block, -1, 0), south = paneAt(block, 0, 1), north = paneAt(block, 0, -1);
-    // L-208/L-255: an L-shaped pane (arms on two adjacent sides) keeps
-    // vanilla's fully merged corner post; with the option on, the faces a
-    // player sees around the turn reach the tile border at their corner ends -
-    // the post's outside faces (L-208) and the arm faces beside the inside
-    // corner (L-255, whose post faces sit inside the arms' boxes and are never
-    // seen). With the option off no pane geometry is computed at all.
-    bool cornerEdges = paneCorners.load();
+    // L-208/L-255/L-270: an L-shaped pane (arms on two adjacent sides) keeps
+    // vanilla's fully merged corner post; with the pane option on, the post's
+    // outside faces reach the tile border at the corners of the turn (L-208).
+    // The arm faces beside the inside corner (L-255, whose post faces sit
+    // inside the arms' boxes and are never seen) gain one only with the
+    // inside-corner option too, so the pane option alone leaves the turn
+    // looking as L-208 left it (maintainer 2026-10-27). With the pane option
+    // off no pane geometry is computed at all.
+    auto edges = paneEdgeKinds(paneCorners.load(), insideCorners.load());
     Parts parts;
     std::optional<std::pair<float, float>> outside, inside;
-    if (cornerEdges) {
+    if (edges.outside) {
         parts = partsAt(block, pane.pos);
         outside = paneCornerPoint(parts);
-        inside = paneCornerPoint(parts, true);
     }
+    if (edges.inside) inside = paneCornerPoint(parts, true);
     auto const& g = pane.glass;
     float uLow = std::min(g.u0, g.u1), uHigh = std::max(g.u0, g.u1), vLow = std::min(g.v0, g.v1), vHigh = std::max(g.v0, g.v1);
     float du = (uHigh - uLow) / g.width, dv = (vHigh - vLow) / g.height;
@@ -185,7 +188,7 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
         }
         bool glass = uvs[q].x >= uLow - e && uvs[q].x <= uHigh + e && uvs[q].y >= vLow - e && uvs[q].y <= vHigh + e;
         if (!glass) continue;
-        if (cornerEdges) {
+        if (edges.outside) {
             auto corner = paneCornerFor(part, x0, x1, z0, z1, parts);
             auto const& point = corner == PaneCorner::Inside ? inside : outside;
             if (corner != PaneCorner::None && point) {
