@@ -181,6 +181,19 @@ and back (announced once, removed); then make the waypoint file read-only, add
 and reach another (nothing announced, it stays), make the file writable again
 and stand there (announced and removed).
 
+### L-277 Flowing lava reads "4 / 3" from an out-of-range depth
+Kind: Bug. Review finding 2026-10-27: `interpretBlockState()` in
+`src/features/information/TargetInfo.h` halved a slow lava depth
+(`(depth + 1) / 2`) against a maximum of three, so a lava `liquid_depth` of 7
+outside the Nether printed "4 / 3" and its progress sat at 0. The step count
+is clamped to the liquid's own maximum: that row reads "3 / 3", and every
+in-range row is unchanged (L-264: three steps outside the Nether, seven in it).
+Status 2026-10-27: built, not yet checked in game: the table test in
+`tests/TargetDetailTests.cpp` covers `liquid_depth` 0-9 for water, Overworld
+lava and Nether lava. In game: aim at flowing lava in the Overworld and in the
+Nether (the flow row is unchanged), then set a lava block's depth to 7 outside
+the Nether (a `/setblock` with that state) and read "3 / 3".
+
 ### L-247 Status effects HUD reorders rapidly under beacon effects
 Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in
 that release. `statusEffects::order()` in

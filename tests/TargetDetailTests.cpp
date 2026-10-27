@@ -1,5 +1,7 @@
 #include "features/information/TargetInfo.h"
 #include "features/information/TargetRows.h"
+#include <array>
+#include <string_view>
 void check(bool, char const*);
 void targetDetailTests() {
     using namespace lamium::information;
@@ -39,6 +41,32 @@ void targetDetailTests() {
     check(!integer("unknown_state", 1, "minecraft:stone"), "unknown states stay raw");
     check(!growthMax("minecraft:torchflower", false) && growthMax("minecraft:cocoa", true) == 2,
           "growth maxima cover common crops only");
+    {
+        // L-264/L-277: liquid depth 0..9 reads as a source, its steps from one,
+        // or falling. A depth past a liquid's own spread keeps its last step:
+        // the Overworld's lava never reads "4 / 3".
+        struct Liquid { std::string_view identifier; bool nether; std::array<std::string_view, 10> values; };
+        for (auto const& liquid : {
+                 Liquid{"minecraft:flowing_water", false,
+                        {"target.flowSource", "1 / 7", "2 / 7", "3 / 7", "4 / 7", "5 / 7", "6 / 7", "7 / 7",
+                         "target.flowFalling", "target.flowFalling"}},
+                 Liquid{"minecraft:flowing_lava", false,
+                        {"target.flowSource", "1 / 3", "1 / 3", "2 / 3", "2 / 3", "3 / 3", "3 / 3", "3 / 3",
+                         "target.flowFalling", "target.flowFalling"}},
+                 Liquid{"minecraft:flowing_lava", true,
+                        {"target.flowSource", "1 / 7", "2 / 7", "3 / 7", "4 / 7", "5 / 7", "6 / 7", "7 / 7",
+                         "target.flowFalling", "target.flowFalling"}}})
+            for (long long depth = 0; depth <= 9; ++depth) {
+                bool ranged = depth > 0 && depth < 8;
+                auto row = interpretBlockState("liquid_depth", StateKind::Integer, depth, {}, liquid.identifier,
+                                               liquid.nether);
+                check(row && row->value == liquid.values[depth] && row->valueIsKey == !ranged
+                          && row->label == (ranged ? "target.flowSteps" : "target.flow")
+                          && (ranged ? row->progress && *row->progress >= 0.f && *row->progress <= 1.f
+                                     : !row->progress),
+                      "a liquid depth reads a source, its own steps, or falling");
+            }
+    }
     TargetInfo target;
     target.name = "Zombie";
     target.identifier = "minecraft:zombie";
