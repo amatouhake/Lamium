@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -176,6 +177,115 @@ SplitResult splitPaste(std::string_view before, std::string_view after, std::str
     if (result.needed > result.free) {
         result.kind = SplitKind::Refused;
         result.pages.clear();
+    }
+    return result;
+}
+
+// The page box's text and the page model's text can differ for a frame after
+// typing (the model is parsed from the box later). A stored page that is a
+// prefix of the live text is that state: the extra tail is pending typing, and
+// the caret and the selection count the live text. Unrelated text means the
+// caret cannot be predicted, so the game keeps the paste.
+struct TextGate {
+    bool pass = false;
+    bool pending = false;      // the live text extends the stored page
+    char const* reason = "text-unrelated";
+    std::string_view text{};   // the text the caret and the selection count
+};
+inline TextGate pageTextGate(std::string_view stored, std::string_view live) noexcept {
+    if (!live.starts_with(stored)) return TextGate{};
+    bool const pending = stored.size() != live.size();
+    return TextGate{true, pending, pending ? "pending-typing" : "ok", live};
+}
+
+// The book screen a deferred paste belongs to: the controller address plus the
+// generation the frame hook bumps when the controller changes, so a new screen
+// at the same address is not the old one.
+struct ScreenId {
+    std::uintptr_t controller = 0;
+    unsigned long long generation = 0;
+    bool operator==(ScreenId const&) const = default;
+};
+
+// A paste's overflow, held as owned text until the book screen's next frame.
+// `index` is the page the first chunk went to, `head` the text that page must
+// hold, `old` the page text when the paste happened (the page model is parsed
+// a frame later, so it can still hold that or a prefix of it), `frame` the frame
+// the paste arrived on, and `extra` the pages to insert after `index` in order.
+struct DeferredPages {
+    ScreenId screen{};
+    unsigned long long frame = 0;
+    int index = 0;
+    std::string head;
+    std::string old;
+    std::vector<std::string> extra;
+};
+
+// A deferred paste or its refusal waits for a frame after the paste: writing the
+// page model inside the text edit's own call is what crashed L-259.
+inline bool planDue(unsigned long long queuedFrame, unsigned long long frame) noexcept {
+    return frame > queuedFrame;
+}
+
+// Whether the page still holds what the paste left on it: the new text, or the
+// text it had when the paste happened. The page model is parsed from the box a
+// frame later, so the old text, or a prefix of it while typing is pending, is
+// that lag and not a different page.
+inline bool pageUnchanged(DeferredPages const& plan, std::string_view pageText) noexcept {
+    return pageText == plan.head || plan.old.starts_with(pageText);
+}
+
+enum class ApplySkip {
+    None,
+    Empty,    // nothing to add
+    Screen,   // another book screen
+    Editable, // the book is no longer editable
+    Page,     // the index is not a page any more
+    Moved,    // the page holds text the paste did not write
+    Room,     // the 50-page limit would be passed
+};
+// The word the trace prints for a skipped application.
+inline char const* applySkipReason(ApplySkip skip) noexcept {
+    switch (skip) {
+    case ApplySkip::None: return "none";
+    case ApplySkip::Empty: return "empty";
+    case ApplySkip::Screen: return "screen";
+    case ApplySkip::Editable: return "not-editable";
+    case ApplySkip::Page: return "page";
+    case ApplySkip::Moved: return "page-moved";
+    case ApplySkip::Room: return "no-room";
+    }
+    return "unknown";
+}
+struct ApplyPlan {
+    ApplySkip skip = ApplySkip::None;
+    int index = 0; // where the pages go
+    int add = 0;   // pages to insert, in order
+    bool apply() const noexcept { return skip == ApplySkip::None; }
+};
+// Whether the pages kept for a paste may be inserted now: the same book screen,
+// still editable, the page still holding what the paste left there, and room
+// under the 50-page limit. Decided from owned values and the caller's live
+// readings only.
+inline ApplyPlan planApply(DeferredPages const& plan, ScreenId const& current, bool editable,
+                           std::string_view pageText, int pageCount) noexcept {
+    ApplyPlan result;
+    int const extra = static_cast<int>(plan.extra.size());
+    if (extra <= 0) {
+        result.skip = ApplySkip::Empty;
+    } else if (!(current == plan.screen)) {
+        result.skip = ApplySkip::Screen;
+    } else if (!editable) {
+        result.skip = ApplySkip::Editable;
+    } else if (plan.index < 0 || plan.index >= pageCount) {
+        result.skip = ApplySkip::Page;
+    } else if (!pageUnchanged(plan, pageText)) {
+        result.skip = ApplySkip::Moved;
+    } else if (pageCount + extra > maxPages) {
+        result.skip = ApplySkip::Room;
+    } else {
+        result.index = plan.index;
+        result.add = extra;
     }
     return result;
 }

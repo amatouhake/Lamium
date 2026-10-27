@@ -148,4 +148,79 @@ void bookPasteTests() {
         };
         check(compact(joined) == compact(before + paste + after), "no other character of the paste is lost");
     }
+
+    // The page-text gate: typing reaches the page model a frame later, so a
+    // stored page that is a prefix of the live text is pending typing.
+    {
+        auto pending = pageTextGate("hello", "hello world");
+        check(pending.pass && pending.pending && pending.text == "hello world",
+              "a stored page that the live text extends passes the gate as pending typing");
+        check(std::string(pending.reason) == "pending-typing", "pending typing names itself in the trace");
+        auto same = pageTextGate("hello", "hello");
+        check(same.pass && !same.pending && same.text == "hello", "equal page texts pass the gate unchanged");
+        auto empty = pageTextGate("", "typed");
+        check(empty.pass && empty.pending && empty.text == "typed",
+              "an empty page model is a prefix, so the first typed characters pass");
+        auto both = pageTextGate("", "");
+        check(both.pass && !both.pending, "an empty page and an empty box pass");
+        auto unrelated = pageTextGate("hello", "goodbye");
+        check(!unrelated.pass && std::string(unrelated.reason) == "text-unrelated",
+              "unrelated page text is refused and says why");
+        check(!pageTextGate("hello", "").pass, "a live text shorter than the page is refused");
+        check(!pageTextGate("hello world", "hello").pass, "a live text that is a prefix of the stored page is refused");
+        check(!pageTextGate("hello", "xhello").pass, "text inserted before the stored page is unrelated");
+        check(!pageTextGate("hello", "helo world").pass, "text typed inside the stored page is unrelated");
+    }
+
+    // The deferred plan: what to add, and when it may be applied.
+    {
+        DeferredPages plan;
+        plan.screen = ScreenId{0x1000, 7};
+        plan.frame = 40;
+        plan.index = 2;
+        plan.head = "hello world";
+        plan.old = "hello";
+        plan.extra = {"abc", "def"};
+
+        auto applied = planApply(plan, ScreenId{0x1000, 7}, true, "hello world", 5);
+        check(applied.apply() && applied.index == 2 && applied.add == 2,
+              "the same screen, still editable, adds every kept page after the index");
+
+        auto changed = planApply(plan, ScreenId{0x2000, 7}, true, "hello world", 5);
+        check(!changed.apply() && std::string(applySkipReason(changed.skip)) == "screen",
+              "apply refused when the screen changed");
+        auto reused = planApply(plan, ScreenId{0x1000, 8}, true, "hello world", 5);
+        check(!reused.apply() && std::string(applySkipReason(reused.skip)) == "screen",
+              "apply refused when a new screen reuses the controller address");
+        auto readOnly = planApply(plan, ScreenId{0x1000, 7}, false, "hello world", 5);
+        check(!readOnly.apply() && std::string(applySkipReason(readOnly.skip)) == "not-editable",
+              "apply refused when the book stopped being editable");
+        auto moved = planApply(plan, ScreenId{0x1000, 7}, true, "goodbye", 5);
+        check(!moved.apply() && std::string(applySkipReason(moved.skip)) == "page-moved",
+              "apply refused when the page text moved");
+        auto lagging = planApply(plan, ScreenId{0x1000, 7}, true, "hello", 5);
+        check(lagging.apply(), "apply allowed while the page model is one parse behind");
+        auto laggingPrefix = planApply(plan, ScreenId{0x1000, 7}, true, "help", 5);
+        check(!laggingPrefix.apply(), "a page text that is not a prefix of the old page is refused");
+        auto gone = planApply(plan, ScreenId{0x1000, 7}, true, "hello world", 2);
+        check(!gone.apply() && std::string(applySkipReason(gone.skip)) == "page",
+              "apply refused when the index is no longer a page");
+        auto full = planApply(plan, ScreenId{0x1000, 7}, true, "hello world", 49);
+        check(!full.apply() && std::string(applySkipReason(full.skip)) == "no-room",
+              "apply refused when 50 pages would be exceeded");
+        auto exactly = planApply(plan, ScreenId{0x1000, 7}, true, "hello world", 48);
+        check(exactly.apply() && exactly.add == 2, "apply allowed when the pages land on exactly 50");
+        DeferredPages none;
+        none.head = "hello world";
+        check(!planApply(none, ScreenId{}, true, "hello world", 1).apply(),
+              "a plan with no kept pages is not applied");
+        check(std::string(applySkipReason(ApplySkip::Empty)) == "empty", "an empty plan says so");
+    }
+
+    // A deferred plan (and its refusal) waits for a frame after the paste.
+    {
+        check(!planDue(12, 12), "a plan queued this frame does not apply in it");
+        check(planDue(12, 13), "a plan applies on the next frame");
+        check(!planDue(13, 12), "a plan never applies on an earlier frame");
+    }
 }

@@ -424,31 +424,47 @@ Trace (`Name` is the macro that makes several hooks).
 Hooks: `BookScreenTick`, `BookScreenValid`, `PageBoxFocus`, `TextTrySet`, `ContextText`, `BookScreenOpen`, `TextCharKey`, `TextFits`, `ContextAction`, `PageParse`, `PageSetText`, `PageAddAt`, `ManagerEditPage`, `ManagerAddPage`, `BookEditSend`, `BookEditSendToServer`
 Meaning (L-259): `ContextText` is `TextEditContext::feedText`, where a paste
 arrives after `feedAction(Paste)`. A paste into the page box of an editable book
-and quill that does not fit is split and written through that controller:
-`_setPageText` for the current page, then `_addPageAt` for each new page in
-order, which the game sends as `BookEditPacket(replace)` and one `(add)` per
-page. It only runs while `BookScreenTick` (`$preFrameTick`) has just named the
-screen, the book is editable, the view is Viewing, the text edit context's limit
-is the page's 256 characters, and `PageBoxFocus` (`handleFocusSet`) or
-`TextTrySet` (`trySetText`) has named the 256-character constrained page box;
-every other text field, and any gate that fails, goes to the game untouched.
-`BookScreenValid` (`$_isStillValid`) drops the remembered screen when it closes.
-The page's size test is the game's own (`_textFitsInControl` plus the
-256-character limit), so a game update that changes page wrapping or the page
-length shows up as wrong page breaks. Verify after an update by pasting a short
-text (vanilla refuses nothing), a text longer than one page (new pages after the
-current one, later pages moved back), Japanese text (whole characters, no
-split sequences) and a selection replaced by a paste.
+and quill that does not fit is split; the detour inserts only the part that fits
+through the game's own `origin`, and the kept pages are written on the book's
+next frame: `_addPageAt` for each new page in order, which the game sends as one
+`BookEditPacket(add)` per page and moves later pages back. Nothing writes the
+page model inside `feedText`: `_setPageText`/`_addPageAt` there rebuilt the page
+UI and invalidated the text edit context being edited, which crashed the game on
+the 2026-10-27 merged build. `BookScreenTick` (`$preFrameTick`) names the screen,
+bumps its generation and applies the kept pages from owned strings only (same
+controller address and generation, still editable, the page still holding what
+the paste left, and room under the 50-page limit); `BookScreenValid`
+(`$_isStillValid`) drops the remembered screen and its plan when the book closes.
+It only intercepts while the book is editable, the view is Viewing, the text edit
+context's limit is the page's 256 characters, and `PageBoxFocus`
+(`handleFocusSet`) or `TextTrySet` (`trySetText`) has named the 256-character
+constrained page box; every other text field, and any gate that fails, goes to
+the game untouched. The page text gate accepts a stored page that is a prefix of
+the live text (typing reaches the page model a frame later) and counts the caret
+against the live text. The page's size test is the game's own
+(`_textFitsInControl` plus the 256-character limit), so a game update that
+changes page wrapping or the page length shows up as wrong page breaks. Verify
+after an update by pasting a short text (vanilla refuses nothing), a text longer
+than one page (new pages after the current one, later pages moved back),
+Japanese text (whole characters, no split sequences), a selection replaced by a
+paste, and a paste one frame after typing.
 Trace (`book_paste_trace`): read-only observations of the paste path, plus the
-new path's decision, split plan and pages written. The text box's character
-event and text-fit test, the text edit context's actions, caret, selection and
-limit, the book controller's page parse, set and add, the screen manager's page
-edit and add, and BookEdit packets on both send routes (`$send`,
-`$sendToServer`). `BookScreenOpen` is `$addStaticScreenVars`: the vanilla JSON's
-`$max_page_length` is not readable through the SDK (`Json::Value` is forward
-declared only), so the page limit is logged from the text box and the text edit
-context instead. Re-trace after a game update by pasting short, long and
-Japanese text into a book and quill page and closing the book.
+new path's gate verdict, split plan, kept plan and deferred write. The text box's
+character event and text-fit test, the text edit context's actions, caret,
+selection and limit, the book controller's page parse, set and add, the screen
+manager's page edit and add, and BookEdit packets on both send routes (`$send`,
+`$sendToServer`). This path's own lines are `paste gate=<reason>` (the verdict
+word: `ok`, `pending-typing`, `text-unrelated`, `option`, `limit`, `box`,
+`not-editable`, `view`, `page-index`, `photo`, `caret`, `empty`, `split`),
+`paste defer index= frame= extra= head= trim=` (what was kept for the next
+frame), and `paste apply index= added= pages=->` or
+`paste apply skipped=<reason>` (`screen`, `not-editable`, `page`, `page-moved`,
+`no-room`, `empty`). `BookScreenOpen` is `$addStaticScreenVars`: the vanilla
+JSON's `$max_page_length` is not readable through the SDK (`Json::Value` is
+forward declared only), so the page limit is logged from the text box and the
+text edit context instead. Re-trace after a game update by pasting short, long
+and Japanese text into a book and quill page, pasting once right after typing,
+and closing the book.
 
 ### `src/features/inventory/WeaponSwitch.cpp`
 Hooks: `WeaponAttack`, `WeaponSurvivalAttack`
