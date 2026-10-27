@@ -25,6 +25,10 @@ Off by default, toggle action unbound.
   or honey bottle that turns into its empty container is exchanged with a
   reserve; the container takes the reserve's slot. Unknown transformations
   fail open.
+- Child "Shulker boxes" and "Buckets" (on by default, L-251): off keeps a
+  placed or used shulker box out of Hand Restock, and off keeps an emptied
+  bucket instead of exchanging it with a reserve. The other remainders and
+  filling a bucket from a source are unchanged.
 - Totems (L-68): a totem that saved the player is refilled in its slot, the
   selected hand always, the offhand with the child "Restock offhand totems"
   (on by default).
@@ -92,11 +96,11 @@ move stops Hand Restock until the next context reset.
 
 ## Verification
 
-Pure tests cover thresholds, depletion, remainders, 1/16/64 stacks, component
-kinds, locks, source order, hotbar sources, the offhand target, full
-inventories, revalidation, context changes, placement dedup, held-use
-counting, timed completion and the quiet period; settings tests cover
-defaults, round trips and translations.
+Pure tests cover thresholds, depletion, remainders, the shulker and bucket
+switches, 1/16/64 stacks, component kinds, locks, source order, hotbar
+sources, the offhand target, full inventories, revalidation, context
+changes, placement dedup, held-use counting, timed completion and the quiet
+period; settings tests cover defaults, round trips and translations.
 
 In game (release build, local world then a server):
 1. Place from 7 blocks with a 32 and a 64 reserve: 38, then 64 with 6 left at

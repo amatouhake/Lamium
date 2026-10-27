@@ -213,6 +213,8 @@ Json encode(Settings const& settings) {
                        {"toolSwitch", settings.inventory.toolSwitch}, {"handRestock", settings.inventory.handRestock},
                        {"restockFromHotbar", settings.inventory.restockFromHotbar},
                        {"restockOffhand", settings.inventory.restockOffhand},
+                       {"restockShulkerBoxes", settings.inventory.restockShulkerBoxes},
+                       {"restockBuckets", settings.inventory.restockBuckets},
                        {"restockThreshold", settings.inventory.restockThreshold},
                        {"restockOrder", settings.inventory.restockOrder},
                        {"toolSwitchInventory", settings.inventory.toolSwitchInventory},
@@ -584,6 +586,8 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.handRestock = settingsValue(data.at("inventory"), "handRestock", value.inventory.handRestock);
         value.inventory.restockFromHotbar = settingsValue(data.at("inventory"), "restockFromHotbar", value.inventory.restockFromHotbar);
         value.inventory.restockOffhand = settingsValue(data.at("inventory"), "restockOffhand", value.inventory.restockOffhand);
+        value.inventory.restockShulkerBoxes = settingsValue(data.at("inventory"), "restockShulkerBoxes", value.inventory.restockShulkerBoxes);
+        value.inventory.restockBuckets = settingsValue(data.at("inventory"), "restockBuckets", value.inventory.restockBuckets);
         value.inventory.restockThreshold = settingsValue(data.at("inventory"), "restockThreshold", value.inventory.restockThreshold);
         value.inventory.restockOrder = settingsValue(data.at("inventory"), "restockOrder", value.inventory.restockOrder);
         value.inventory.toolSwitchInventory = settingsValue(data.at("inventory"), "toolSwitchInventory", value.inventory.toolSwitchInventory);

@@ -54,6 +54,26 @@ inline std::string_view restockRemainder(std::string_view item) {
     if (item == "minecraft:potion" || item == "minecraft:honey_bottle") return "minecraft:glass_bottle";
     return {};
 }
+// L-251: the item Hand Restock would refill decides whether it may touch it.
+// Shulker boxes and buckets have a switch each; every other item is planned
+// exactly as before. Names outside the vanilla namespace keep their behavior,
+// so an add-on item that only ends in _bucket is never silently excluded.
+enum class RestockFamily { Other, ShulkerBox, Bucket };
+inline RestockFamily restockFamily(std::string_view item) {
+    if (!item.starts_with("minecraft:")) return RestockFamily::Other;
+    auto name = item.substr(10);
+    if (name == "shulker_box" || name.ends_with("_shulker_box")) return RestockFamily::ShulkerBox;
+    if (name == "bucket" || name.ends_with("_bucket")) return RestockFamily::Bucket;
+    return RestockFamily::Other;
+}
+struct RestockSwitches { bool master = true, shulkerBoxes = true, buckets = true; };
+inline bool restockFamilyEnabled(RestockFamily family, RestockSwitches switches) {
+    switch (family) {
+    case RestockFamily::ShulkerBox: return switches.master && switches.shulkerBoxes;
+    case RestockFamily::Bucket: return switches.master && switches.buckets;
+    default: return switches.master;
+    }
+}
 struct RestockPlan {
     int source;
     int destination;
@@ -79,8 +99,12 @@ struct RestockPlan {
 inline std::optional<RestockPlan> planRestock(
     RestockSnapshot const& before, RestockSnapshot const& after, bool consumed,
     int maxStack, bool hotbarSources = false, int remainderKind = -1,
-    int threshold = restockThreshold, int uses = 1, int target = -1, bool smallestFirst = false
+    int threshold = restockThreshold, int uses = 1, int target = -1, bool smallestFirst = false,
+    RestockFamily family = RestockFamily::Other, RestockSwitches switches = {}
 ) {
+    // An excluded family is refused before any snapshot work, so the switch
+    // being off costs one comparison and never searches for a source.
+    if (!restockFamilyEnabled(family,switches)) return {};
     // The target is the selected hand slot unless the offhand is named (L-68).
     if (target < 0) target = before.selected;
     if (target != before.selected && target != offhandSlot) return {};

@@ -133,6 +133,56 @@ void restockPlanTests() {
           && restockRemainder("minecraft:diamond_pickaxe").empty(),
           "only explicitly supported remainder transformations qualify");
 
+    // L-251: a shulker box or a bucket can stay out of Hand Restock. The
+    // caller names the refilled item's family and passes the three switches.
+    auto exchange = [](std::string_view used, RestockSwitches switches) {
+        RestockSnapshot b; b.context = 11; b.selected = 2;
+        b.slots[2] = {1,1}; b.slots[14] = {1,1};
+        auto a = b; a.slots[2] = {2,1}; // The last item turned into its container.
+        return planRestock(b,a,true,1,false,2,restockThreshold,1,-1,false,
+            restockFamily(used),switches).has_value();
+    };
+    auto refill = [](std::string_view used, RestockSwitches switches) {
+        RestockSnapshot b; b.context = 12; b.selected = 2;
+        b.slots[2] = {1,1}; b.slots[14] = {1,1};
+        auto a = b; a.slots[2] = {};
+        return planRestock(b,a,true,1,false,-1,restockThreshold,1,-1,false,
+            restockFamily(used),switches).has_value();
+    };
+    check(restockFamily("minecraft:shulker_box") == RestockFamily::ShulkerBox
+          && restockFamily("minecraft:undyed_shulker_box") == RestockFamily::ShulkerBox
+          && restockFamily("minecraft:white_shulker_box") == RestockFamily::ShulkerBox
+          && restockFamily("minecraft:bucket") == RestockFamily::Bucket
+          && restockFamily("minecraft:water_bucket") == RestockFamily::Bucket
+          && restockFamily("minecraft:cod_bucket") == RestockFamily::Bucket
+          && restockFamily("minecraft:potion") == RestockFamily::Other
+          && restockFamily("") == RestockFamily::Other
+          && restockFamily("addon:shulker_box") == RestockFamily::Other
+          && restockFamily("addon:fake_bucket") == RestockFamily::Other,
+          "only vanilla shulker boxes and buckets belong to an excluded family");
+    for (auto used : {"minecraft:water_bucket","minecraft:lava_bucket","minecraft:milk_bucket","minecraft:powder_snow_bucket"}) {
+        check(exchange(used,{}) && exchange(used,{.shulkerBoxes = false}),
+              "an emptied water, lava, milk or powder snow bucket is exchanged while the bucket switch is on");
+        check(!exchange(used,{.buckets = false}),
+              "the bucket switch off leaves the empty bucket in place");
+    }
+    check(refill("minecraft:white_shulker_box",{}) && !refill("minecraft:white_shulker_box",{.shulkerBoxes = false})
+          && refill("minecraft:white_shulker_box",{.buckets = false}),
+          "a placed or used shulker box is refilled only while its own switch is on");
+    for (bool shulkerBoxes : {true,false}) for (bool buckets : {true,false})
+        for (auto used : {"minecraft:potion","minecraft:honey_bottle","minecraft:mushroom_stew",
+                          "minecraft:rabbit_stew","minecraft:beetroot_soup"})
+            check(exchange(used,{.shulkerBoxes = shulkerBoxes,.buckets = buckets}),
+                  "the other remainders are exchanged whatever the two switches say");
+    check(refill("minecraft:diamond_pickaxe",{})
+          && refill("minecraft:diamond_pickaxe",{.shulkerBoxes = false,.buckets = false}),
+          "an ordinary item is refilled whatever the two switches say");
+    for (auto used : {"minecraft:water_bucket","minecraft:potion","minecraft:honey_bottle","minecraft:mushroom_stew"})
+        check(!exchange(used,{.master = false}), "the master switch still refuses every remainder exchange");
+    check(!refill("minecraft:diamond_pickaxe",{.master = false}), "the master switch still refuses an ordinary refill");
+    check(!refill("minecraft:water_bucket",{.buckets = false}),
+          "a bucket that leaves no container is refused by the bucket switch too");
+
     RestockUseEvidence evidence{42,true};
     check(evidence.observe(RestockUseSend::Place,42,true) && evidence.ready(), "placement has one matching use send");
     check(evidence.observe(RestockUseSend::Use,42,true), "one same-tick secondary Use belongs to placement");

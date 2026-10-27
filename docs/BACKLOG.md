@@ -516,6 +516,18 @@ exchanged with a reserve. Other remainders (potions, stews, honey bottles)
 are unchanged. Settings, option rows and help in all four languages; pure
 planner tests in `RestockPlan.h`; check in game. No release target
 selected.
+Built 2026-10-27, not yet checked in game: two child switches under Hand
+Restock, "Shulker boxes" (`inventory.restockShulkerBoxes`) and "Buckets"
+(`inventory.restockBuckets`), both on by default. Off for shulker boxes keeps a
+placed or used shulker box out of Hand Restock; off for buckets keeps an emptied
+water/lava/milk/powder-snow bucket instead of exchanging it with a reserve.
+Filling a bucket from a source, the other remainders (potions, stews, honey
+bottles) and the master switch are unchanged. The decision is
+`restockFamily`/`restockFamilyEnabled` beside `planRestock` in `RestockPlan.h`,
+table-tested per family and per switch combination. To check: place a shulker
+box and pour a water bucket with each switch on (both refill as before), then
+with "Shulker boxes" off (no refill) and "Buckets" off (the empty bucket
+stays); a potion or stew still swaps its container with either switch off.
 
 ### L-259 Book and quill: paste overflow into new pages
 Kind: Research (behavior decided; the switch's name and settings group

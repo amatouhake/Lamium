@@ -59,6 +59,7 @@ struct Operation {
     bool hotbarSources = false;
     int maxStack = 0;
     std::string remainder;
+    RestockFamily family = RestockFamily::Other;
     RestockSnapshot expected;
     bool serverConfirmed = false;
     int duration = 0;
@@ -105,6 +106,10 @@ void failure() noexcept {
         try { Runtime::instance().self().getLogger().error("Hand Restock stopped after an inventory error"); }
         catch (...) {}
     }
+}
+RestockSwitches restockSwitches() {
+    auto const& prefs = Runtime::instance().preferences().inventory;
+    return {prefs.handRestock,prefs.restockShulkerBoxes,prefs.restockBuckets};
 }
 LocalPlayer* eligible() {
     auto& runtime = Runtime::instance();
@@ -217,6 +222,10 @@ std::shared_ptr<Operation> beginUse(Player& actor, HandSlot hand, bool placement
         trace("held-count",held.mCount);
         trace("held-max-damage",held.mItem->getMaxDamage());
         if (held.mItem->getMaxDamage() > 0) return {};
+        // L-251: an excluded family stops here, before any snapshot or
+        // transfer token, so its switch being off costs one name check.
+        auto family = restockFamily(held.getTypeName());
+        if (!restockFamilyEnabled(family,restockSwitches())) { trace("begin-family-off",static_cast<int>(family)); return {}; }
         auto op = std::make_shared<Operation>();
         op->controller = controller;
         op->playerId = player->getRuntimeID().rawID;
@@ -225,6 +234,7 @@ std::shared_ptr<Operation> beginUse(Player& actor, HandSlot hand, bool placement
         if (op->before.slots[op->before.selected].locked) { trace("begin-locked"); return {}; }
         op->maxStack = held.getMaxStackSize();
         op->remainder = restockRemainder(held.getTypeName());
+        op->family = family;
         op->hotbarSources = Runtime::instance().preferences().inventory.restockFromHotbar;
         op->evidence.tick = tickSerial;
         op->evidence.placement = placement;
@@ -375,12 +385,14 @@ void tick() noexcept {
         if (!left.empty() && !op->remainder.empty()
             && op->kinds[left.kind].getTypeName() == op->remainder) remainderKind = left.kind;
         auto const& prefs = Runtime::instance().preferences().inventory;
+        auto switches = restockSwitches(); // A switch turned off cancels this operation.
         auto plan = planRestock(op->before,now,true,op->maxStack,op->hotbarSources,remainderKind,
-            prefs.restockThreshold,op->uses,-1,prefs.restockOrder == 1);
+            prefs.restockThreshold,op->uses,-1,prefs.restockOrder == 1,op->family,switches);
         if (!plan) {
             trace("plan-held-before",op->before.slots[op->before.selected].count);
             trace("plan-held-after",left.count);
             trace("plan-max-stack",op->maxStack);
+            trace("plan-family",static_cast<int>(op->family));
             cancel("no-plan"); return;
         }
         trace("plan-source",plan->source);

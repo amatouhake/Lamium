@@ -106,6 +106,8 @@ struct Settings {
         bool handRestock = false;
         bool restockFromHotbar = true;
         bool restockOffhand = true; // Totems, fireworks and arrows (L-68).
+        bool restockShulkerBoxes = true; // Refill a placed or used shulker box (L-251).
+        bool restockBuckets = true; // Exchange an emptied bucket with a reserve (L-251).
         int restockThreshold = 6; // Refill when the held count is at or below this; 0 only when empty.
         int restockOrder = 1; // Within a source region: 0 largest stack first, 1 smallest first (default, 2026-10-07).
         bool toolSwitchInventory = false; // Fetch a tool from the main inventory (L-69).

@@ -440,6 +440,9 @@ void settingsStoreTests() {
     auto restock = decodeSettings(R"({"inventory":{"handRestock":true,"restockFromHotbar":false}})");
     check(restock.inventory.handRestock && !restock.inventory.restockFromHotbar,
           "restock switch and hotbar source preference load independently");
+    auto olderRestock = decodeSettings(R"({"inventory":{"handRestock":true}})").inventory;
+    check(olderRestock.restockShulkerBoxes && olderRestock.restockBuckets,
+          "a file written before the shulker and bucket switches defaults both on");
     auto olderTransfer = decodeSettings(R"({"inventory":{"transfer":false}})");
     check(!olderTransfer.inventory.transfer && olderTransfer.inventory.transferWheelOne
           && olderTransfer.inventory.transferWheelStack && olderTransfer.inventory.transferDragStack
