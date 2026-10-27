@@ -158,6 +158,34 @@ validation checkpoints" (snapshot 2026-10-20).
 
 ## Bugs
 
+### L-270 Glass pane inside edge ignores the inside-corner option
+Kind: Bug / Ready. Maintainer report 2026-10-27, right after L-255 landed
+(`3ac38a3a`): with only "Edges at glass pane corners"
+(`visuals.connectedPaneCorners`) on and "Edges at inside corners"
+(`visuals.connectedCorners`) off, an L-shaped pane still draws an inside edge,
+and he judged that wrong - the inside edge belongs to the inside-corner
+policy, which has its own option.
+Decided (maintainer 2026-10-27): a pane's inside edge needs both options. Its
+outside edge stays on `visuals.connectedPaneCorners` alone, exactly as L-208
+left it. Pane option on and inside-corner option off must look like L-208
+(outside edge only, inside merged); both on, both edges as L-255 draws them;
+pane option off, nothing is computed.
+Built 2026-10-27, not yet checked in game: `paneEdgeKinds(paneCorners,
+insideCorners)` in `ConnectedTextures.h` gates the two edges (pure, tested for
+all four combinations and for an L's outside corner coming out the same either
+way); `ConnectedTexturesHooks.cpp` computes and slides the inside corner only
+when it allows it, so with the inside-corner option off the arm faces keep the
+merged corner post L-208 left. `help.visuals.connectedPaneCorners` now says the
+outside edge is this option's and the inside edge needs "Edges at inside
+corners" too, in all four languages.
+In-game check still owed: pane option on and inside-corner option off, an
+east+north and an east+south L seen from inside the turn must show no inside
+line and the same outside edge as with L-208; then turn the inside-corner
+option on and both lines must appear as L-255 drew them; pane option off must
+leave the corner vanilla. Check glass and stained panes, and that the
+glass-block inside corners this option also draws are unchanged.
+No release target selected.
+
 ### L-247 Status effects HUD reorders rapidly under beacon effects
 Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in
 that release. `statusEffects::order()` in
@@ -762,6 +790,11 @@ inside shows no line. The inside line is the tile's own one-texel frame at
 the corner end, while the outside edge fills the post's two texels; if the
 inside line reads too thin, or a face shows the border at its far end
 instead of at the corner, that is the thing to look at.
+Note 2026-10-27 (L-270): the inside half now also follows the inside-corner
+option (`visuals.connectedCorners`), so the line described here needs both
+options on; the outside half still needs only the pane option. The inside
+checks above assume both are on, and with the inside-corner option off the
+corner must look as L-208 left it.
 No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)

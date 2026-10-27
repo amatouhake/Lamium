@@ -244,6 +244,30 @@ void connectedTexturesTests() {
               && paneCornerFor(Part::East, p1, 1.f, p0, p0, arms(true, true, false, false)) == PaneCorner::None
               && paneCornerFor(Part::East, p1, 1.f, p0, p0, arms(true, true, false, true)) == PaneCorner::None,
           "straight panes and T junctions turn no corner, so nothing slides");
+    // L-270: the pane option owns the outside edge; the inside edge follows the
+    // inside-corner policy, so it needs that option too (maintainer 2026-10-27).
+    auto off = paneEdgeKinds(false, false), paneOnly = paneEdgeKinds(true, false);
+    auto both = paneEdgeKinds(true, true), insideOnly = paneEdgeKinds(false, true);
+    check(!off.outside && !off.inside && paneOnly.outside && !paneOnly.inside && both.outside && both.inside
+              && !insideOnly.outside && !insideOnly.inside,
+          "the pane option alone draws the outside edge; the inside edge needs both options");
+    // The corner point a quad would slide to, chosen the way the hook does it.
+    auto pointFor = [](Parts const& pane, PaneCorner corner, PaneEdges edges) -> std::optional<std::pair<float, float>> {
+        if (!edges.outside) return std::nullopt;
+        if (corner == PaneCorner::Inside) return edges.inside ? paneCornerPoint(pane, true) : std::nullopt;
+        return paneCornerPoint(pane);
+    };
+    auto enPane = arms(true, false, false, true);
+    auto enOutside = paneCornerPoint(enPane);
+    check(enOutside && pointFor(enPane, PaneCorner::Outside, paneOnly) == enOutside
+              && pointFor(enPane, PaneCorner::Outside, both) == enOutside,
+          "an L's outside corner is the same with the inside-corner option off or on");
+    check(!pointFor(enPane, PaneCorner::Inside, paneOnly) && pointFor(enPane, PaneCorner::Inside, both)
+              && *pointFor(enPane, PaneCorner::Inside, both) == *paneCornerPoint(enPane, true),
+          "an L's inside corner is drawn only with the inside-corner option too");
+    check(!pointFor(enPane, PaneCorner::Outside, off) && !pointFor(enPane, PaneCorner::Inside, insideOnly)
+              && !pointFor(enPane, PaneCorner::Outside, insideOnly),
+          "no pane corner without the pane option, whatever the inside-corner option says");
     std::array<float, 4> px{}, pz{}, pu{}, turned{};
     auto postFace = [&](float cornerX, float nearU, float farU) {
         float other = cornerX < 0.5f ? 0.562f : 0.437f;
