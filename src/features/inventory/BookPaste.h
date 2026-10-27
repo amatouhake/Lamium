@@ -1,6 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -196,6 +197,45 @@ inline TextGate pageTextGate(std::string_view stored, std::string_view live) noe
     if (!live.starts_with(stored)) return TextGate{};
     bool const pending = stored.size() != live.size();
     return TextGate{true, pending, pending ? "pending-typing" : "ok", live};
+}
+
+// Which page the text box belongs to. A two-page spread keeps its own idea of
+// the current page, and after the player edits the other half of the spread it
+// can still name the page they just left (seen in game 2026-10-27: a paste on
+// the left page after editing the right one fell back to vanilla). The page is
+// therefore found from the text the box holds: the preferred page when it
+// matches, otherwise the page whose stored text matches, exactly or as pending
+// typing, nearest to the preferred one and longest first.
+struct PageChoice {
+    int index = -1;
+    char const* reason = "page-text";
+    bool ok() const { return index >= 0; }
+};
+inline PageChoice choosePastedPage(std::string_view live, int preferred,
+                                   std::vector<std::string_view> const& stored) noexcept {
+    auto const count = static_cast<int>(stored.size());
+    auto const matches = [&](int i, bool exactOnly) {
+        return pageTextGate(stored[static_cast<std::size_t>(i)], live).pass
+            && (!exactOnly || stored[static_cast<std::size_t>(i)].size() == live.size());
+    };
+    if (preferred >= 0 && preferred < count && matches(preferred, false)) return PageChoice{preferred, "ok"};
+    auto const closest = [&](bool exactOnly) {
+        int best = -1;
+        std::size_t bestLength = 0;
+        for (int i = 0; i < count; ++i) {
+            if (!matches(i, exactOnly)) continue;
+            std::size_t const length = stored[static_cast<std::size_t>(i)].size();
+            bool const better = best < 0 || length > bestLength
+                || (length == bestLength && std::abs(i - preferred) < std::abs(best - preferred));
+            if (better) { best = i; bestLength = length; }
+        }
+        return best;
+    };
+    int const exact = closest(true);
+    if (exact >= 0) return PageChoice{exact, "page-text"};
+    int const prefix = closest(false);
+    if (prefix >= 0) return PageChoice{prefix, "pending-typing"};
+    return PageChoice{};
 }
 
 // The book screen a deferred paste belongs to: the controller address plus the

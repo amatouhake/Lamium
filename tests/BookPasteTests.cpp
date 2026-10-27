@@ -223,4 +223,31 @@ void bookPasteTests() {
         check(planDue(12, 13), "a plan applies on the next frame");
         check(!planDue(13, 12), "a plan never applies on an earlier frame");
     }
+
+    // The page a paste belongs to, from the text the box holds: the spread's
+    // idea of the current page can name the half the player just left.
+    {
+        using lamium::inventory::bookPaste::choosePastedPage;
+        std::vector<std::string_view> two{"left page", "right page"};
+        auto preferred = choosePastedPage("right page", 1, two);
+        check(preferred.ok() && preferred.index == 1, "the page the spread names is used when its text matches");
+        // Edited the right page, moved back to the left one: the spread still
+        // names page 1, the box holds page 0's text (seen in game 2026-10-27).
+        auto found = choosePastedPage("left page", 1, two);
+        check(found.ok() && found.index == 0, "a page whose stored text matches is found when the spread names another");
+        auto typed = choosePastedPage("left pageX", 1, two);
+        check(typed.ok() && typed.index == 0 && std::string(typed.reason) == "pending-typing",
+              "a page the live text extends is found the same way");
+        std::vector<std::string_view> blanks{"", ""};
+        auto empty = choosePastedPage("", 1, blanks);
+        check(empty.ok() && empty.index == 1, "an empty box on an empty page stays with the spread's page");
+        std::vector<std::string_view> growing{"ab", "abcd"};
+        auto longest = choosePastedPage("abcdX", -1, growing);
+        check(longest.ok() && longest.index == 1, "the longest matching page wins when nothing is preferred");
+        std::vector<std::string_view> unrelated{"one", "two"};
+        check(!choosePastedPage("three", 0, unrelated).ok(), "a box holding another page's text selects no page");
+        std::vector<std::string_view> photo{"", "\x01"};
+        auto skipped = choosePastedPage("", 0, photo);
+        check(skipped.ok() && skipped.index == 0, "a photo page is never taken for the text page beside it");
+    }
 }

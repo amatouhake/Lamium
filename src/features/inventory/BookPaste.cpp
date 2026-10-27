@@ -159,15 +159,23 @@ Outcome handlePaste(TextEditContext& context, std::string_view paste) {
     if (!controller.mEditable) return reject("not-editable");
     if (controller.mCurrentView != BookScreenController::BookView::Viewing) return reject("view");
     auto& pages = controller.mPages.get();
-    int const index = controller.mCurrentPageIndex;
-    if (index < 0 || index >= static_cast<int>(pages.size())) return reject("page-index");
+    // The spread does not always name the page the box belongs to, so the page
+    // is found from the text it holds (choosePastedPage). A photo page holds no
+    // text and can never be the one being edited.
+    std::string_view const live = context.mCurrentUtf8Text.get();
+    std::vector<std::string_view> texts;
+    texts.reserve(pages.size());
+    for (auto const& stored : pages) texts.push_back(stored.mPhotoName.get().empty() ? stored.mText.get() : std::string_view{"\x01"});
+    PageChoice const choice = choosePastedPage(live, controller.mCurrentPageIndex, texts);
+    if (!choice.ok()) return reject(choice.reason);
+    int const index = choice.index;
     PageContent& page = pages[static_cast<std::size_t>(index)];
     if (!page.mPhotoName.get().empty()) return reject("photo"); // photo pages hold no text
     // The caret and the selection count characters of the box's text. Typing
     // reaches the page model a frame later, so a stored page that is a prefix of
     // the live text is pending typing, and the live text is what the caret
     // counts; unrelated text means the paste goes to the game untouched.
-    TextGate const gate = pageTextGate(page.mText.get(), context.mCurrentUtf8Text.get());
+    TextGate const gate = pageTextGate(page.mText.get(), live);
     if (!gate.pass) return reject(gate.reason);
     std::string_view const text = gate.text;
     int const chars = codePointCount(text);
@@ -278,6 +286,14 @@ void applyPages(BookScreenController& controller) noexcept {
             controller._addPageAt(decision.index + static_cast<int>(k),
                                   PageContent(std::string(plan->extra[k]), std::nullopt));
         }
+        // The pages hold their text, but the screen shows a page from its
+        // parsed form and only redraws when it is told to: without the parse
+        // and the refresh the added pages stay blank until the player puts the
+        // caret on them or reopens the book (seen in game 2026-10-27).
+        for (std::size_t k = 0; k < plan->extra.size(); ++k)
+            controller._parsePageText(decision.index + static_cast<int>(k));
+        controller.mForceUIRefresh = true;
+        controller.mShouldRefreshText = true;
         BOOK_PASTE_TRACE("paste apply index={} added={} pages={}->{}", decision.index, decision.add, count,
                          static_cast<int>(controller.mPages.get().size()));
     } catch (std::exception const& error) {
