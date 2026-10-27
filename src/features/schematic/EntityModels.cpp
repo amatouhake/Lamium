@@ -250,6 +250,7 @@ struct Build {
     bool tinted;
     std::string const& id;
     bool traceParts;
+    bool outline;
 };
 void addPart(Build& build, ModelPart& part, glm::mat4 const& parent, int depth) {
     // The part's mRot is not used: the game writes a live entity's pose into
@@ -303,14 +304,15 @@ void addPart(Build& build, ModelPart& part, glm::mat4 const& parent, int depth) 
         static_cast<glm::mat4x4&>(build.faces.mTransformMatrix) = frame;
         part.compileCubes(build.faces);
     }
-    for (size_t q = 0; q + 3 < mesh.size(); q += 4) {
-        glm::vec3 c[4];
-        for (int k = 0; k < 4; ++k) c[k] = glm::vec3(frame * glm::vec4{mesh[q + k], 1.f});
-        for (int k = 0; k < 4; ++k) {
-            build.lines.vertex(c[k].x, c[k].y, c[k].z);
-            build.lines.vertex(c[(k + 1) % 4].x, c[(k + 1) % 4].y, c[(k + 1) % 4].z);
+    if (build.outline)
+        for (size_t q = 0; q + 3 < mesh.size(); q += 4) {
+            glm::vec3 c[4];
+            for (int k = 0; k < 4; ++k) c[k] = glm::vec3(frame * glm::vec4{mesh[q + k], 1.f});
+            for (int k = 0; k < 4; ++k) {
+                build.lines.vertex(c[k].x, c[k].y, c[k].z);
+                build.lines.vertex(c[(k + 1) % 4].x, c[(k + 1) % 4].y, c[(k + 1) % 4].z);
+            }
         }
-    }
     for (auto* child : *part.mChildren) if (child) addPart(build, *child, world, depth + 1);
 }
 
@@ -371,12 +373,18 @@ std::vector<bool> draw(ScreenContext& screen, IClientInstance& client, Vec3 cons
         // Geometry x is mirrored in the world: the game draws the compiled
         // (y-flipped) cubes with a proper transform, so x flips too.
         base = glm::scale(glm::rotate(base, glm::radians(180.f - spot.yaw), glm::vec3{0, 1, 0}), glm::vec3{-1.f / 16, 1.f / 16, 1.f / 16});
+        // "None" (L-254) draws no light-blue ghost outlines, entity ghosts
+        // included: the help text promises none (L-279).
+        bool const outlineGhost = outlines && Runtime::instance().snapshot()->schematic.ghostLines != 3;
         Tessellator faces(screen.tessellator.mBufferResourceService), lines(screen.tessellator.mBufferResourceService);
         faces.begin({}, mce::PrimitiveMode::QuadList, cubes * 48, false);
-        lines.begin({}, mce::PrimitiveMode::LineList, cubes * 48, false);
-        lines.color(.35f, .85f, 1.f, 1.f);
+        if (outlineGhost) {
+            lines.begin({}, mce::PrimitiveMode::LineList, cubes * 48, false);
+            lines.color(.35f, .85f, 1.f, 1.f);
+        }
         if (model.tinted) faces.color(.35f, .85f, 1.f, tint.alpha);
-        Build build{screen, *model.geometry, model.pose, faces, lines, model.tinted, spot.identifier, !model.traced};
+        Build build{screen, *model.geometry, model.pose, faces, lines, model.tinted, spot.identifier, !model.traced,
+                    outlineGhost};
         model.traced = true;
         for (auto root : *model.geometry->mRootModelParts)
             if (root < parts.size()) addPart(build, parts[root], base, 0);
@@ -385,7 +393,7 @@ std::vector<bool> draw(ScreenContext& screen, IClientInstance& client, Vec3 cons
         inWorld([&] {
             if (model.tinted) MeshHelpers::renderMeshImmediately(screen, faces, tintMaterial, OffscreenCaptureDescription{});
             else MeshHelpers::renderMeshImmediately(screen, faces, material, texture, OffscreenCaptureDescription{});
-            if (outlines && lineMaterial.mRenderMaterialInfoPtr)
+            if (outlineGhost && lineMaterial.mRenderMaterialInfoPtr)
                 overlay::lines::colored(screen, .35f, .85f, 1.f, [&] {
                     MeshHelpers::renderMeshImmediately(screen, lines, lineMaterial, OffscreenCaptureDescription{});
                 });

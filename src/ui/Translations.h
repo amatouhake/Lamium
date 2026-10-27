@@ -1164,7 +1164,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"targetSchematic", "Show schematic information: {}", "設計図の情報を表示: {}"},
     {"help.information.targetSchematic", "Show the ghost under the crosshair as the target, and what differs from the selected schematic in the block you look at.", "照準先のゴーストを対象として表示し、見ているブロックと選択中の設計図との違いも表示します。"},
     {"targetLiquids", "Target water and lava: {}", "水と溶岩を対象にする: {}"},
-    {"help.information.targetLiquids", "Show the water or lava under the crosshair, with its source or flow, instead of looking through it as the game does. A schematic's water is shown either way.", "ゲームのように素通しせず、照準先の水や溶岩を、水源か流れかと一緒に表示します。設計図の水はこの設定に関係なく表示します。"},
+    {"help.information.targetLiquids", "Show the water or lava under the crosshair, with its source or flow, instead of looking through it as the game does. With this on, real water or lava in front of a schematic's ghost is what the target shows. A schematic's water is shown either way.", "ゲームのように素通しせず、照準先の水や溶岩を、水源か流れかと一緒に表示します。これを ON にすると、設計図のゴーストの手前に実物の水や溶岩があるときはそちらを表示します。設計図の水はこの設定に関係なく表示します。"},
     {"targetBlockPosition", "Block: {} / {} / {}", "ブロック: {} / {} / {}"},
     {"targetMore", "+{} more states", "ほか {} 項目"},
     {"key.Lamium.targetinfo", "Lamium: Toggle target info", "Lamium: 照準先情報の切り替え"},

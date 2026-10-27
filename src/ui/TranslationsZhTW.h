@@ -1141,7 +1141,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"targetSchematic", "顯示藍圖資訊: {}"},
     {"help.information.targetSchematic", "把準心下的虛影當作目標顯示，並顯示你看著的方塊與所選藍圖的差異。"},
     {"targetLiquids", "以水和岩漿為目標: {}"},
-    {"help.information.targetLiquids", "不像遊戲那樣穿過，而是顯示準星所指的水或岩漿，以及它是源頭還是流動。藍圖中的水不論此設定如何都會顯示。"},
+    {"help.information.targetLiquids", "不像遊戲那樣穿過，而是顯示準星所指的水或岩漿，以及它是源頭還是流動。開啟後，藍圖幽靈前方若有真實的水或岩漿，則顯示它們。藍圖中的水不論此設定如何都會顯示。"},
     {"targetBlockPosition", "方塊: {} / {} / {}"},
     {"targetMore", "還有 {} 個狀態"},
     {"key.Lamium.targetinfo", "Lamium: 切換高亮顯示"},
