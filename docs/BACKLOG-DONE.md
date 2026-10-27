@@ -10,6 +10,22 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-250 Edge Guard makes the game feel very heavy
+Kind: Bug / Research. User report 2026-10-23 after 0.3.0: turning Edge Guard
+on makes the game very heavy. Not reproduced or measured yet; the report
+does not say whether frame rate drops, input lags or the server corrects
+the position (rubber-banding). Edge Guard (`src/features/interaction/
+EdgeGuard*.cpp`, plans in `EdgeGuard*Plan.h`) runs per tick and keeps a
+correction history for replays; VALIDATION records only the rare drop under
+heavy lag, not a cost.
+Goal: find whether Edge Guard costs frame time or tick time, and bound it
+(DESIGN.md engineering behavior) without weakening the edge stop.
+Open: ask the reporter for single-player vs server, what feels heavy and the
+settings; compare frame times with Edge Guard on/off locally and on a test
+BDS; check the history and replay paths for unbounded work. No release
+target selected.
+Done 2026-10-27: measured with `--edge_guard_perf=y` (probe build `2e5f6441`) and fixed. Before, `history::observe()` re-derived the replay vtable targets on every own move-vector call - about forty times a second at 4.1-6.9 ms each, 688-1043 ms per five seconds, 14-21% of wall time, and paid even while standing still; the guard itself was cheap (4-19 collision queries per call, 1.4-3.9 ms per five seconds). After limiting the target check to once every 200 calls (`checkReplayTarget`, `EdgeGuardPlan.h`, tested): observe 31-43 us per call, 6-9 ms per five seconds, about 0.15% of wall time, with the guard unchanged. Release build `15d23d7a` deployed and walked (standing, straight walking, at edges) with no behaviour change.
+
 ### L-271 Glass pane inside edge stops at a T or cross junction
 Kind: Bug / Ready. Maintainer decision 2026-10-27, option (c): a pane's inside
 corner edge must also appear at T and cross junctions, not only at an L.

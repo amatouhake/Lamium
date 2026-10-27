@@ -225,20 +225,6 @@ with the ordinary view, confirm a Target block shape with nothing under the
 crosshair falls back to the block the camera stands in, and compare the
 coordinate readout with a shape's center while detached.
 
-### L-250 Edge Guard makes the game feel very heavy
-Kind: Bug / Research. User report 2026-10-23 after 0.3.0: turning Edge Guard
-on makes the game very heavy. Not reproduced or measured yet; the report
-does not say whether frame rate drops, input lags or the server corrects
-the position (rubber-banding). Edge Guard (`src/features/interaction/
-EdgeGuard*.cpp`, plans in `EdgeGuard*Plan.h`) runs per tick and keeps a
-correction history for replays; VALIDATION records only the rare drop under
-heavy lag, not a cost.
-Goal: find whether Edge Guard costs frame time or tick time, and bound it
-(DESIGN.md engineering behavior) without weakening the edge stop.
-Open: ask the reporter for single-player vs server, what feels heavy and the
-settings; compare frame times with Edge Guard on/off locally and on a test
-BDS; check the history and replay paths for unbounded work. No release
-target selected.
 
 ### L-243 Large terrain gaps that only reload when the player comes near
 Kind: Bug / Research, not reproduced; watch item. Maintainer report

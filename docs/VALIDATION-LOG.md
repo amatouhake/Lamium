@@ -36,6 +36,22 @@ LIP, local world, release build with no trace options, maintainer.
   capability list no longer shows "Inside-a-block view", and FreeCamera's
   hand, HUD and culling features are unchanged.
 
+## Edge Guard cost (L-250), 2026-10-27
+
+Probe build `--edge_guard_perf=y` (DLL SHA-256 `2E5F6441435EE276A7DA5A5A446AB25760D2687595F475AE479A8CD727FCCBAD`),
+`1.26.51.01` LIP, local world, Edge Guard on, maintainer: standing still, walking on flat ground, walking at
+edges and in dense areas.
+
+- Before: `history::observe()` 4.1-6.9 ms per call, about 40 calls a second, 688-1043 ms per five-second
+  window - 14-21% of wall time, unchanged while standing still. `guard()` 0.76-3.87 ms and its probes
+  0.96-4.44 ms per window (0.02-0.09%), 4-19 collision queries per full guard; the move-request guard
+  0.46-1.77 ms per window.
+- Cause: the replay target was re-derived from three `VirtualQuery` reads plus the captured input on every own
+  move-vector call, although the hook attached once at world entry.
+- After (`checkReplayTarget`, once every 200 calls): observe 6.2-8.6 ms per window (31-43 us per call,
+  0.12-0.17%), guard 1.4-3.2 ms, probes 1.8-4.4 ms, move-request guard 0.8-1.6 ms.
+- Release build (no probe options) deployed and walked with no change in behaviour on 2026-10-27.
+
 ## Rebase note for the 2026-10-20 entries
 
 The local commits named in the 2026-10-20 entries below were rebased onto
