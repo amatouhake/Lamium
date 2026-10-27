@@ -123,6 +123,12 @@ option("transfer_trace")
     set_description("Observe Inventory Transfer input, queue and requests")
 option_end()
 
+option("book_paste_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-259: record the book and quill paste path (no behavior change)")
+option_end()
+
 option("placement_trace")
     set_default(false)
     set_showmenu(true)
@@ -227,6 +233,7 @@ target("Lamium")
     if has_config("consumption_trace") then add_defines("LAMIUM_CONSUMPTION_TRACE") end
     if has_config("offhand_trace") then add_defines("LAMIUM_OFFHAND_TRACE") end
     if has_config("transfer_trace") then add_defines("LAMIUM_TRANSFER_TRACE") end
+    if has_config("book_paste_trace") then add_defines("LAMIUM_BOOK_PASTE_TRACE") end
     if has_config("hunger_trace") then add_defines("LAMIUM_HUNGER_TRACE") end
     if has_config("icon_trace") then add_defines("LAMIUM_ICON_TRACE") end
     if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end

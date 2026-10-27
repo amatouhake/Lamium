@@ -420,6 +420,19 @@ confirmed from the inventory, not from these events alone.
 Hooks: `Build`, `HandleBuild`, `Name`, `StartUse`
 Trace (`Name` is the macro that makes several hooks).
 
+### `src/features/inventory/BookPaste.cpp`
+Hooks: `BookScreenOpen`, `TextCharKey`, `TextTrySet`, `TextFits`, `ContextAction`, `ContextText`, `PageParse`, `PageSetText`, `PageAddAt`, `ManagerEditPage`, `ManagerAddPage`, `BookEditSend`, `BookEditSendToServer`
+Trace (`book_paste_trace`, L-259): read-only observations of the paste path.
+The text box's character event and text-fit test, the text edit context's
+actions, caret, selection and limit, the book controller's page parse, set and
+add, the screen manager's page edit and add, and BookEdit packets on both send
+routes (`$send`, `$sendToServer`). `BookScreenOpen` is
+`$addStaticScreenVars`: the vanilla JSON's `$max_page_length` is not readable
+through the SDK (`Json::Value` is forward declared only), so the page limit is
+logged from the text box and the text edit context instead. Nothing is
+filtered or changed. Re-trace after a game update by pasting short, long and
+Japanese text into a book and quill page and closing the book.
+
 ### `src/features/inventory/WeaponSwitch.cpp`
 Hooks: `WeaponAttack`, `WeaponSurvivalAttack`
 Meaning: an attack runs `GameMode::attack` before the swing reaches the server.
