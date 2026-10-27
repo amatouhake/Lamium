@@ -76,8 +76,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
-   L-247 and L-248 are merged and checked (2026-10-27); L-244 is parked
-   (see its item).
+   L-247 and L-248 are merged (2026-10-27) and still await their in-game
+   check, as their items say; L-244 is parked (see its item).
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): decided and Ready (2026-10-26): L-246, L-252, L-253,
    L-254.
@@ -126,7 +126,33 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.3.0
 
-No changed features recorded yet.
+Changed features in the unreleased 0.3.1 batch (L-266 and its neighbours):
+
+- Traditional Chinese (zh_TW) UI, with Java Edition terms for the shulker box and
+  the bundle.
+- Temporary waypoints that disappear when reached (L-261), in the map and the
+  waypoint editors.
+- Schematic check: ignore redstone signal, on/off forms and growth (L-262); a
+  switch for mistake marks; a "None" outline width (L-254) that now also drops the
+  entity ghosts' outlines (L-279).
+- Target View: a schematic's water is shown, and real water and lava optionally,
+  now in front of a ghost when that option is on (L-264, L-278).
+- Ghost pick: the aimed ghost's block is picked from the inventory, and given in
+  creative mode (L-263).
+- Connected Textures: an inside edge at pane corners (L-255), gated by the
+  inside-corner option (L-270) and drawn at T and cross junctions too (L-271);
+  sprites named per atlas build so a reload cannot keep an old atlas (L-260).
+- Hand Restock: switches for shulker boxes and buckets (L-251).
+- Status effect rows stay in place while their durations refresh (L-247).
+- New shapes are placed at the camera's feet when the view is detached (L-248).
+- Edge Guard no longer re-derives its replay target on every move vector call,
+  which made the game feel heavy with it on (L-250).
+- Built against LeviLamina Client 26.51.8.
+- Ghost drawing: nearby sections rebuild only around the camera, outline vertices
+  are copied in bulk, and the check scan is capped per frame (L-256).
+- Fixed: schematic door halves, cross-plant flicker and preview water (L-268,
+  L-269); the FreeCamera inside-a-block hook was removed as it did not drive the
+  effect (L-244).
 
 ### Gaps carried from released builds
 
@@ -158,6 +184,35 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
+
+### L-278 Real liquids come before a ghost when the target option is on
+
+Kind: Bug / decided. Review finding 2026-10-27: `TargetInfo::target()` checked a
+schematic ghost before real water and lava, so with "Target water and lava" on a
+liquid in front and a ghost behind showed the ghost, the opposite of what the
+option promises. Maintainer decision 2026-10-27: with the option on, real water
+and lava come first; with it off, the ghost keeps the target as before.
+
+The liquid scan now runs before the ghost scan (`TargetInfo.cpp`), and the
+option's help text in four languages says a real liquid in front of a ghost is
+what the target shows. The scan still stops at the first non-liquid, non-air
+block, so tall grass or a snow layer hides water behind it; that is recorded here
+as the intended rule rather than a defect.
+
+Status 2026-10-27: built, not yet checked in game.
+
+### L-279 "None" outlines still drew the entity ghosts' outlines
+
+Kind: Bug. Review finding 2026-10-27: the "None" outline width removed only the
+block ghosts' light-blue outlines (`GhostMesh.cpp`), while entity ghosts kept
+theirs (`EntityModels.cpp`), contradicting the help text "None draws no light-blue
+outlines". Maintainer decision 2026-10-27: hide the entity ghosts' outlines too.
+
+`EntityModels.cpp` now decides once per model whether to outline at all, fills no
+line mesh and renders none when the width is None, instead of building a mesh it
+does not draw.
+
+Status 2026-10-27: built, not yet checked in game.
 
 
 
