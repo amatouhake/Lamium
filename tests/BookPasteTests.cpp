@@ -232,6 +232,12 @@ void bookPasteTests() {
         auto split = splitPaste("", "", "aaaaabbbbb\n", 10, 5, narrow);
         check(split.kind == SplitKind::Pages && split.pages.size() == 2, "a paste ending at a page break adds no blank page");
         check(split.pages.size() == 2 && split.pages[1] == "bbbbb", "the last page holds the last characters without the break");
+        // A pasted text that ends with line breaks must not leave a page holding
+        // only them (the blank page seen in game 2026-10-27).
+        auto trailing = splitPaste("", "", "aaaaabbbbb\n\n", 10, 5, narrow);
+        check(trailing.kind == SplitKind::Pages && trailing.pages.size() == 2,
+              "trailing line breaks add no page of their own");
+        check(trailing.pages.size() == 2 && trailing.pages[1] == "bbbbb", "the trailing line breaks are dropped, not a page");
         // The text after the caret rides on the last planned page.
         auto tail = splitPaste("", "ABC", "aaaaabbbbb", 10, 5, narrow);
         check(tail.kind == SplitKind::Pages && tail.pages.size() == 3 && tail.pages.back() == "ABC",
