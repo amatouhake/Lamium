@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-251, L-270, L-271 and the L-244 hook removal (2026-10-27)
+
+Merged `main` `c5dcb63c` (PRs #48, #49, #50, #51; DLL SHA-256
+`8B3CF63DA8173317A99EA3DBD1011069CF4172DB667E0A6EAEA1A84DAD70FFE2`), `1.26.51.01`
+LIP, local world, release build with no trace options, maintainer.
+
+- L-270 glass panes: with only "Edges at glass pane corners" on, an L's
+  inside stays merged (outside edge only, as L-208); with "Edges at inside
+  corners" also on, both edges draw; pane option off, vanilla. As specified.
+- L-271 T and cross junctions: both options on, a T (east+west+north and
+  east+west+south) and a cross show the inside edge on every face meeting a
+  concave corner and none on the faces that meet none; an L unchanged, the
+  outside edge unchanged, straight and lone panes unchanged, and stained
+  panes, resource packs and Vibrant Visuals showed no missing, flickering or
+  unshaded faces.
+- L-251 Hand Restock: both switches on behave as before; "Shulker boxes" off
+  stops the refill of a placed or used shulker box; "Buckets" off leaves the
+  empty bucket after water, lava, milk and powder snow, while filling from a
+  source is unchanged; potions and stews still swap their container with
+  either switch off; both settings survive a world reload.
+- L-244 hook removal: the world loads and entry does not crash; the
+  capability list no longer shows "Inside-a-block view", and FreeCamera's
+  hand, HUD and culling features are unchanged.
+
 ## Rebase note for the 2026-10-20 entries
 
 The local commits named in the 2026-10-20 entries below were rebased onto

@@ -76,15 +76,16 @@ choices live in the L-items. An L-item wins if a summary drifts.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
-   Decided and Ready (2026-10-26): L-244, L-247, L-248.
+   L-247 and L-248 are merged and checked (2026-10-27); L-244 is parked
+   (see its item).
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
-   L-253, L-254, L-255.
+   2026-10-10): decided and Ready (2026-10-26): L-246, L-252, L-253,
+   L-254.
    **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
    checked; L-264 and stage 4, L-256, done 2026-10-26; L-263's creative
    pick built, to check with the 0.3.1 pre-release round, then the
    batch closes). Before 0.3.1
-   as well (maintainer 2026-10-26): L-247, L-248, L-244 and L-255; L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   as well (maintainer 2026-10-26): L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -158,78 +159,7 @@ validation checkpoints" (snapshot 2026-10-20).
 
 ## Bugs
 
-### L-271 Glass pane inside edge stops at a T or cross junction
-Kind: Bug / Ready. Maintainer decision 2026-10-27, option (c): a pane's inside
-corner edge must also appear at T and cross junctions, not only at an L.
-`paneCornerPoint` returns a corner only when a cell has one arm per axis, so a
-T or a cross drew no inside edge at all.
-Goal: an inside edge at every junction where a pane turns inward - one corner
-at an L, two at a T, four at a cross - with the outside edge still an L's alone
-(L-208) and the option gate as L-270 left it: outside on
-`visuals.connectedPaneCorners`, inside on that and `visuals.connectedCorners`,
-nothing computed with the pane option off.
-Built 2026-10-27, not yet checked in game: `paneConcaveCorners(parts)` derives
-the cell's concave corners from its arms - an east (west) arm at x = 9/16
-(7/16), a north (south) arm at z = 7/16 (9/16), the coordinates
-`paneCornerPoint` already gives for an L's inside, and a test says the two
-agree for all four L rotations. `paneSlidePlan(part, extents, parts)` finds
-which of a quad's ends sit at one of those corners: none, one (the whole u
-window slides there, as L-255 draws it) or both. `panePieces` cuts a both-ends
-face into a corner slice, the untouched middle and a corner slice - a slice is
-two texels, the tile border's width, or half a narrower face - so each end
-reaches its border with no texel stretched; `ConnectedTexturesHooks.cpp` asks
-`Tessellator::vertex` for the extra quads, so the tessellator's own vertex
-count, quad info and index phase stay its own, and copies every per-vertex
-stream from the face, changing only the axis coordinate and u. Two corners of
-one cell are always two texels apart, so no single-cell shape gives a both-ends
-face wider than that: the split shows up as two one-texel slices, and the three
-pieces are what a wider face would take. What splits is the post face between
-two junctions; the post's single-corner faces are still the joints the arm
-boxes cover (L-255), so an L looks exactly as it did. `paneCornerFor` now says
-which corner a quad takes at a T and at a cross too, and its outside branch is
-unchanged. Tests: the corners of L, T, cross, straight and lone; a table of
-none / one end / both ends for post and arm faces at every junction; the pieces
-of a split; a sliced window keeping its two texels.
-`help.visuals.connectedPaneCorners` now names L, T and cross in all four
-languages.
-In-game check still owed: on a pane row with a stem (a T) and on a cross, both
-options on, every face that meets a concave corner must show its inside line at
-that corner and the faces that meet none must stay plain; an L must look as
-L-255 drew it and the L-208 outside edge must not change; straight and lone
-panes must not change. With "Edges at inside corners" off, T and cross must
-look as before (merged inside); with the pane option off nothing is drawn.
-Watch the split quads with resource packs and Vibrant Visuals: a face of the
-bar must not disappear, flicker at the joint or lose its shading, and stained
-panes must behave like clear ones.
-No release target selected.
 
-### L-270 Glass pane inside edge ignores the inside-corner option
-Kind: Bug / Ready. Maintainer report 2026-10-27, right after L-255 landed
-(`3ac38a3a`): with only "Edges at glass pane corners"
-(`visuals.connectedPaneCorners`) on and "Edges at inside corners"
-(`visuals.connectedCorners`) off, an L-shaped pane still draws an inside edge,
-and he judged that wrong - the inside edge belongs to the inside-corner
-policy, which has its own option.
-Decided (maintainer 2026-10-27): a pane's inside edge needs both options. Its
-outside edge stays on `visuals.connectedPaneCorners` alone, exactly as L-208
-left it. Pane option on and inside-corner option off must look like L-208
-(outside edge only, inside merged); both on, both edges as L-255 draws them;
-pane option off, nothing is computed.
-Built 2026-10-27, not yet checked in game: `paneEdgeKinds(paneCorners,
-insideCorners)` in `ConnectedTextures.h` gates the two edges (pure, tested for
-all four combinations and for an L's outside corner coming out the same either
-way); `ConnectedTexturesHooks.cpp` computes and slides the inside corner only
-when it allows it, so with the inside-corner option off the arm faces keep the
-merged corner post L-208 left. `help.visuals.connectedPaneCorners` now says the
-outside edge is this option's and the inside edge needs "Edges at inside
-corners" too, in all four languages.
-In-game check still owed: pane option on and inside-corner option off, an
-east+north and an east+south L seen from inside the turn must show no inside
-line and the same outside edge as with L-208; then turn the inside-corner
-option on and both lines must appear as L-255 drew them; pane option off must
-leave the corner vanilla. Check glass and stained panes, and that the
-glass-block inside corners this option also draws are unchanged.
-No release target selected.
 
 ### L-247 Status effects HUD reorders rapidly under beacon effects
 Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in
@@ -594,34 +524,6 @@ overlay or world map layer); behavior on servers where it is unknown.
 Research the source first, then agree the presentation with the maintainer.
 No release target selected.
 
-### L-251 Choose whether Hand Restock refills shulker boxes and buckets
-Kind: Ready. User request 2026-10-23 after 0.3.0: a setting to choose
-whether Hand Restock also refills shulker boxes and buckets. Today a placed
-shulker box is refilled like any block, and a last water/lava/milk/powder
-snow bucket that empties is exchanged with a reserve
-([HAND-RESTOCK.md](HAND-RESTOCK.md)); neither can be excluded.
-Goal: let the player keep these items out of Hand Restock when refilling
-them gets in the way.
-Decided (maintainer 2026-10-26): two child switches under Hand Restock,
-"Shulker boxes" and "Buckets", both on by default (today's behavior). Off
-for shulker boxes: a placed or used shulker box is not refilled. Off for
-buckets: a bucket that empties (water, lava, milk, powder snow) is not
-exchanged with a reserve. Other remainders (potions, stews, honey bottles)
-are unchanged. Settings, option rows and help in all four languages; pure
-planner tests in `RestockPlan.h`; check in game. No release target
-selected.
-Built 2026-10-27, not yet checked in game: two child switches under Hand
-Restock, "Shulker boxes" (`inventory.restockShulkerBoxes`) and "Buckets"
-(`inventory.restockBuckets`), both on by default. Off for shulker boxes keeps a
-placed or used shulker box out of Hand Restock; off for buckets keeps an emptied
-water/lava/milk/powder-snow bucket instead of exchanging it with a reserve.
-Filling a bucket from a source, the other remainders (potions, stews, honey
-bottles) and the master switch are unchanged. The decision is
-`restockFamily`/`restockFamilyEnabled` beside `planRestock` in `RestockPlan.h`,
-table-tested per family and per switch combination. To check: place a shulker
-box and pour a water bucket with each switch on (both refill as before), then
-with "Shulker boxes" off (no refill) and "Buckets" off (the empty bucket
-stays); a potion or stew still swaps its container with either switch off.
 
 ### L-259 Book and quill: paste overflow into new pages
 Kind: Research (behavior decided; the switch's name and settings group
@@ -827,53 +729,6 @@ Settings, option row and help in all four languages; check in game above
 and below ground in the Overworld and in the Nether. No release target
 selected.
 
-### L-255 Connected Textures: edges on the inside of glass pane corners
-Kind: Ready. User report 2026-10-23 after 0.3.0, with a screenshot: at an
-L-shaped glass pane corner the outside has its edge but the inside has no
-seam. L-208 (2026-10-18) kept the inside merged on purpose. Maintainer
-2026-10-26: the inside edge looks good enough to offer; put it under the
-existing "Edges at glass pane corners" option
-(`visuals.connectedPaneCorners`, default off), no new setting.
-Goal: with that option on, an L-shaped pane corner draws a border on the
-inside of the turn as well as the outside; with it off, nothing changes.
-Notes: `ConnectedTexturesHooks.cpp` (`wantPane`) and `ConnectedSprites.cpp`;
-the inside faces must not stretch (the L-208 outside fix moved the whole
-two-texel window). Rewrite `help.visuals.connectedPaneCorners` in all four
-languages (it says the inside stays joined). Check in game: L corners in
-both directions, T and cross junctions, stained panes, option off.
-Built 2026-10-27, not yet checked in game: with the option on, the post's
-outside faces keep their edge (L-208) and the faces on the inside of the turn
-gain one, so the turn shows an edge on both sides. The inside faces are the
-arms', not the post's: in an east+north L the post's east face (x = 9/16,
-z in 7/16..9/16) and north face (z = 7/16, x in 7/16..9/16) are exactly the
-joints the arm boxes cover, so sliding them changed nothing on screen
-(review, 2026-10-27). What a player sees from inside the turn is the east
-arm's north face (z = 7/16, x > 9/16) and the north arm's east face
-(x = 9/16, z < 7/16), which belong to the arm parts. `paneCornerFor(part,
-x0, x1, z0, z1, parts)` now decides which corner a quad takes - outside for
-the post's own faces, inside for the arm face at the corner on the axis the
-arm does not run along, nothing otherwise - and is tested for all four L
-orientations and every part, so a test says which face takes which corner.
-The slide still moves one quad's whole u window by one delta: a post face
-keeps its two texels and an arm face its own slice of the tile (seven texels
-here), so nothing stretches. The post's four faces now take only the outside
-corner, which leaves the L-208 look as it was. With the option off no parts
-or corner geometry is computed. `help.visuals.connectedPaneCorners` says
-both sides are drawn, in all four languages.
-In-game check still owed: an east+north L and an east+south L seen from
-inside the turn must each show a vertical border line at the corner on both
-faces; the outside of each turn must look as it did with L-208; a straight
-run, a lone pane, a T and a cross must not change; with the option off the
-inside shows no line. The inside line is the tile's own one-texel frame at
-the corner end, while the outside edge fills the post's two texels; if the
-inside line reads too thin, or a face shows the border at its far end
-instead of at the corner, that is the thing to look at.
-Note 2026-10-27 (L-270): the inside half now also follows the inside-corner
-option (`visuals.connectedCorners`), so the line described here needs both
-options on; the outside half still needs only the pane option. The inside
-checks above assume both are on, and with the inside-corner option off the
-corner must look as L-208 left it.
-No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported
