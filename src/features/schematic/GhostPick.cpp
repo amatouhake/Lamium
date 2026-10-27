@@ -7,6 +7,10 @@
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/phys/HitResult.h"
+#include "app/Versions.h"
+#include "mc/world/item/ItemInstance.h"
+#include "mc/world/item/ItemStack.h"
+#include "mc/world/level/block/BlockType.h"
 #include <cmath>
 #include <optional>
 #include <stdexcept>
@@ -35,13 +39,25 @@ std::optional<GhostAt> pickedGhost(LocalPlayer& player, HitResult const& hit) {
     return ghostAlong(player.getDimensionBlockSource(), static_cast<int>(player.getDimensionId()), from.x, from.y, from.z,
                       way.x / length, way.y / length, way.z / length, reach, onHit);
 }
+// The ghost's block as one item, as the game's own pick would give it.
+ItemStack pickedStack(Block const& block) {
+    ItemStack stack;
+    auto item = block.getBlockType().asItemInstance(block, nullptr);
+    if (item.isNull()) return stack;
+    try { stack.reinit(item.getTypeName(), 1, item.getAuxValue()); } catch (...) { stack = ItemStack(); }
+    return stack;
+}
 LL_TYPE_INSTANCE_HOOK(GhostPickHook, ll::memory::HookPriority::Normal, LocalPlayer, &LocalPlayer::pickBlock, void,
                       HitResult const& hit, bool withData) {
     try {
         if (auto ghost = pickedGhost(*this, hit); ghost && ghost->block)
             if (auto item = describe(*ghost->block, "").item; !item.empty()) {
                 // The ghost's block or nothing: never the real block behind it.
-                inventory::bringToHand(*this, item);
+                // Creative mode gives it when it is not carried, like vanilla
+                // (L-263); not on a game build whose transaction is unchecked.
+                if (!inventory::bringToHand(*this, item) && isCreative()
+                    && versionSensitiveAllowed(capabilities::Id::SchematicCreativePick))
+                    if (auto stack = pickedStack(*ghost->block); !stack.isNull()) inventory::giveToHand(*this, stack);
                 return;
             }
     } catch (...) {}

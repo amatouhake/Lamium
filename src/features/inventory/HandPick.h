@@ -21,4 +21,15 @@ inline HandPick pickFor(std::array<std::string, 36> const& names, int selected, 
         if (names[static_cast<size_t>(slot)] == item) return {HandPick::Swap, slot};
     return {};
 }
+// L-263, creative mode: the hotbar slot a picked item that is not carried
+// goes to, like the game's creative pick: the selected slot when empty,
+// else the first empty hotbar slot, else the selected slot (its item is
+// replaced). -1 when no hotbar slot is selected. Empty names are empty slots.
+inline int creativeSlotFor(std::array<std::string, 36> const& names, int selected) {
+    if (selected < 0 || selected >= 9) return -1;
+    if (names[static_cast<size_t>(selected)].empty()) return selected;
+    for (int slot = 0; slot < 9; ++slot)
+        if (names[static_cast<size_t>(slot)].empty()) return slot;
+    return selected;
+}
 }

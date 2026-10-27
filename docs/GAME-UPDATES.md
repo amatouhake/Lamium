@@ -110,6 +110,7 @@ the package/SDK loader-policy alignment in CI.
 | Hide effects (boss bar passes) | `HideEffects.cpp` | boss bars drawn | independent hide selections |
 | Schematic ghosts (blended pass) | `GhostRenderer.cpp` | no blended ghost pass | ordinary ghosts and checking |
 | Schematic ghosts (actor lighting) | `GhostActors.cpp` | vanilla ghost actor lighting | ghost rendering and checking |
+| Schematic pick (creative inventory give) | `GhostPick.cpp`, `InventoryMove.cpp` (`giveCreative`) | a creative ghost pick of a block not carried does nothing | picks of carried blocks, survival picks |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
@@ -471,7 +472,11 @@ Hooks: `GhostPickHook`
 Meaning: `LocalPlayer::pickBlock` is the client's pick block input, called
 on the client thread with the game's own hit (start, direction, position),
 and asks the server for the block at the hit; Lamium handles a ghost in
-front of the hit itself through `movePair` (L-263).
+front of the hit itself through `movePair` (L-263). In creative mode a
+block not carried is given through a legacy transaction with
+`InventorySourceType::CreativeInventory` actions (slot 1 create, slot 0
+delete), only for items `CreativeItemRegistry` lists (gated: Schematic
+pick, creative inventory give).
 
 ### `src/features/schematic/GhostRenderer.cpp`
 Hooks: `GhostBlendPass`, `GhostPass`
