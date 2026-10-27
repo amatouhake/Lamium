@@ -262,26 +262,51 @@ Parts partsOf(Boxes const& boxes) {
 }
 // L-208/L-255: the post corner an L-shaped pane turns around - one arm on each
 // axis - in block coordinates, or none for straight, lone or absent panes.
-// The outside corner is away from both arms; `inside` gives the one between
-// them, which the post's other two faces reach.
+// An east arm attaches on the post's high-x side, a north arm on its low-z
+// side; `inside` gives the corner those two sides meet at, false the opposite
+// corner the rest of the turn bends around.
 inline std::optional<std::pair<float, float>> paneCornerPoint(Parts const& parts, bool inside = false) {
     if (!parts.present) return std::nullopt;
     if (parts.has(Part::West) == parts.has(Part::East) || parts.has(Part::North) == parts.has(Part::South))
         return std::nullopt;
-    bool lowX = parts.has(Part::East) != inside, highZ = parts.has(Part::North) != inside;
-    return std::pair{lowX ? 0.437f : 0.562f, highZ ? 0.562f : 0.437f};
+    bool east = parts.has(Part::East), north = parts.has(Part::North);
+    return std::pair{east == inside ? 0.562f : 0.437f, north == inside ? 0.437f : 0.562f};
 }
-// The post faces the corner rewrite applies to: the center part's own quads.
-inline bool panePostQuad(Part part, float x0, float x1, float z0, float z1) {
-    return part == Part::Center && x0 > 0.4f && x1 < 0.6f && z0 > 0.4f && z1 < 0.6f;
+// The corner of the turn a quad slides onto: the post's outside faces keep
+// their edge there (L-208), the arm faces beside the inside corner gain one
+// (L-255).
+enum class PaneCorner { None, Outside, Inside };
+// A quad that spans no distance in one axis sits on a plane at `value`; mesh
+// coordinates land on 1/16 steps, so a fraction of a texel is enough.
+inline bool paneOnPlane(float low, float high, float value) {
+    return std::abs(low - value) < 0.02f && std::abs(high - value) < 0.02f;
 }
-// The post face with a corner end slides onto the tile border there: the whole
-// face moves by one delta, so the window keeps its width (16 px stays 16 px)
-// and the border shows at the corner end. Moving only the corner vertices
+// L-208/L-255: the corner a quad takes, from its own extents and the pane's
+// parts. The post's own faces take the outside corner. Its two faces at the
+// inside corner are the joints the arms' boxes cover, so they are never seen;
+// the inside edge belongs to the arm faces that meet there instead - for each
+// arm, the face at the corner's coordinate on the axis it does not run along.
+// A quad that takes no corner is left to the mask path.
+inline PaneCorner paneCornerFor(Part part, float x0, float x1, float z0, float z1, Parts const& parts) {
+    auto outside = paneCornerPoint(parts);
+    if (!outside) return PaneCorner::None;
+    if (part == Part::Center) {
+        bool onOutside = paneOnPlane(x0, x1, outside->first) || paneOnPlane(z0, z1, outside->second);
+        return onOutside ? PaneCorner::Outside : PaneCorner::None;
+    }
+    auto inside = paneCornerPoint(parts, true);
+    if (!inside) return PaneCorner::None;
+    bool alongX = part == Part::East || part == Part::West;
+    bool across = alongX ? paneOnPlane(z0, z1, inside->second) : paneOnPlane(x0, x1, inside->first);
+    return across ? PaneCorner::Inside : PaneCorner::None;
+}
+// A face with a corner end slides onto the tile border there: the whole face
+// moves by one delta, so the window keeps its width (16 px stays 16 px) and
+// the border shows at the corner end. Moving only the corner vertices
 // stretched the post (review, 2026-10-18). Away vertices keep their distance
 // to the corner ones; false when no vertex sits at the corner (then the quad
 // is the mask path's). Only u moves - the border the vertical joins shift on
-// v is never touched here. L-255 slides the post's inside faces the same way.
+// v is never touched here.
 inline bool paneCornerU(std::array<float, 4> const& x, std::array<float, 4> const& z, std::array<float, 4> const& u,
                         float cornerX, float cornerZ, float uLow, float uHigh, std::array<float, 4>& out) {
     bool any = false, away = false;

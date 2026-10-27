@@ -174,9 +174,76 @@ void connectedTexturesTests() {
           "the inside corner of each L lies between its two arms");
     check(!paneCornerPoint(arms(true, true, false, false), true) && !paneCornerPoint(arms(true, false, false, false), true),
           "straight and lone panes have no inside corner either");
-    check(panePostQuad(Part::Center, 0.437f, 0.563f, 0.437f, 0.563f)
-              && !panePostQuad(Part::East, 0.437f, 1.f, 0.437f, 0.563f) && !panePostQuad(Part::Center, 0.f, 0.437f, 0.437f, 0.563f),
-          "only the post's own faces carry the corner");
+    // L-208/L-255: which face takes which corner, for every part and all four
+    // L orientations. The post's own faces take the outside corner; the inside
+    // corner goes to the arm faces that meet there, because the post's two
+    // inside faces are the joints the arms' boxes cover (review, 2026-10-27).
+    constexpr float p0 = 0.4375f, p1 = 0.5625f;
+    struct Quad {
+        char const* what;
+        Part part;
+        float x0, x1, z0, z1;
+        PaneCorner corner;
+    };
+    auto ask = [](Parts const& pane, Quad const& q) { return paneCornerFor(q.part, q.x0, q.x1, q.z0, q.z1, pane); };
+    // East and north arms: the turn bends around the post's south-west corner
+    // and the arms meet at its north-east one.
+    Quad const eastNorth[] = {
+        {"east+north: the post's west face keeps the outside edge", Part::Center, p0, p0, p0, p1, PaneCorner::Outside},
+        {"east+north: the post's south face keeps the outside edge", Part::Center, p0, p1, p1, p1, PaneCorner::Outside},
+        {"east+north: the post's east face is buried in the east arm", Part::Center, p1, p1, p0, p1, PaneCorner::None},
+        {"east+north: the post's north face is buried in the north arm", Part::Center, p0, p1, p0, p0, PaneCorner::None},
+        {"east+north: the east arm's north face takes the inside edge", Part::East, p1, 1.f, p0, p0, PaneCorner::Inside},
+        {"east+north: the north arm's east face takes the inside edge", Part::North, p1, p1, 0.f, p0, PaneCorner::Inside},
+        {"east+north: the east arm's south face takes nothing", Part::East, p1, 1.f, p1, p1, PaneCorner::None},
+        {"east+north: the north arm's west face takes nothing", Part::North, p0, p0, 0.f, p0, PaneCorner::None},
+    };
+    // (An arm's inner end face lies exactly on the post face it buries, so the
+    // two are one quad's worth of extents and both take nothing.)
+    // East and south arms: outside at the north-west corner, inside at the
+    // south-east one.
+    Quad const eastSouth[] = {
+        {"east+south: the post's west face keeps the outside edge", Part::Center, p0, p0, p0, p1, PaneCorner::Outside},
+        {"east+south: the post's north face keeps the outside edge", Part::Center, p0, p1, p0, p0, PaneCorner::Outside},
+        {"east+south: the post's east face is buried in the east arm", Part::Center, p1, p1, p0, p1, PaneCorner::None},
+        {"east+south: the post's south face is buried in the south arm", Part::Center, p0, p1, p1, p1, PaneCorner::None},
+        {"east+south: the east arm's south face takes the inside edge", Part::East, p1, 1.f, p1, p1, PaneCorner::Inside},
+        {"east+south: the south arm's east face takes the inside edge", Part::South, p1, p1, p1, 1.f, PaneCorner::Inside},
+        {"east+south: the east arm's north face takes nothing", Part::East, p1, 1.f, p0, p0, PaneCorner::None},
+        {"east+south: the south arm's west face takes nothing", Part::South, p0, p0, p1, 1.f, PaneCorner::None},
+    };
+    // West and north arms: outside at the south-east corner, inside at the
+    // north-west one.
+    Quad const westNorth[] = {
+        {"west+north: the post's east face keeps the outside edge", Part::Center, p1, p1, p0, p1, PaneCorner::Outside},
+        {"west+north: the post's south face keeps the outside edge", Part::Center, p0, p1, p1, p1, PaneCorner::Outside},
+        {"west+north: the post's west face is buried in the west arm", Part::Center, p0, p0, p0, p1, PaneCorner::None},
+        {"west+north: the post's north face is buried in the north arm", Part::Center, p0, p1, p0, p0, PaneCorner::None},
+        {"west+north: the west arm's north face takes the inside edge", Part::West, 0.f, p0, p0, p0, PaneCorner::Inside},
+        {"west+north: the north arm's west face takes the inside edge", Part::North, p0, p0, 0.f, p0, PaneCorner::Inside},
+        {"west+north: the west arm's south face takes nothing", Part::West, 0.f, p0, p1, p1, PaneCorner::None},
+        {"west+north: the north arm's east face takes nothing", Part::North, p1, p1, 0.f, p0, PaneCorner::None},
+    };
+    // West and south arms: outside at the north-east corner, inside at the
+    // south-west one.
+    Quad const westSouth[] = {
+        {"west+south: the post's east face keeps the outside edge", Part::Center, p1, p1, p0, p1, PaneCorner::Outside},
+        {"west+south: the post's north face keeps the outside edge", Part::Center, p0, p1, p0, p0, PaneCorner::Outside},
+        {"west+south: the post's west face is buried in the west arm", Part::Center, p0, p0, p0, p1, PaneCorner::None},
+        {"west+south: the post's south face is buried in the south arm", Part::Center, p0, p1, p1, p1, PaneCorner::None},
+        {"west+south: the west arm's south face takes the inside edge", Part::West, 0.f, p0, p1, p1, PaneCorner::Inside},
+        {"west+south: the south arm's west face takes the inside edge", Part::South, p0, p0, p1, 1.f, PaneCorner::Inside},
+        {"west+south: the west arm's north face takes nothing", Part::West, 0.f, p0, p0, p0, PaneCorner::None},
+        {"west+south: the south arm's east face takes nothing", Part::South, p1, p1, p1, 1.f, PaneCorner::None},
+    };
+    for (auto const& q : eastNorth) check(ask(arms(true, false, false, true), q) == q.corner, q.what);
+    for (auto const& q : eastSouth) check(ask(arms(true, false, true, false), q) == q.corner, q.what);
+    for (auto const& q : westNorth) check(ask(arms(false, true, false, true), q) == q.corner, q.what);
+    for (auto const& q : westSouth) check(ask(arms(false, true, true, false), q) == q.corner, q.what);
+    check(paneCornerFor(Part::Center, p0, p0, p0, p1, arms(true, true, false, false)) == PaneCorner::None
+              && paneCornerFor(Part::East, p1, 1.f, p0, p0, arms(true, true, false, false)) == PaneCorner::None
+              && paneCornerFor(Part::East, p1, 1.f, p0, p0, arms(true, true, false, true)) == PaneCorner::None,
+          "straight panes and T junctions turn no corner, so nothing slides");
     std::array<float, 4> px{}, pz{}, pu{}, turned{};
     auto postFace = [&](float cornerX, float nearU, float farU) {
         float other = cornerX < 0.5f ? 0.562f : 0.437f;
@@ -198,13 +265,17 @@ void connectedTexturesTests() {
     postFace(0.562f, 0.9f, 0.1f);
     check(!paneCornerU(px, pz, pu, 0.562f, 0.562f, 0.25f, 0.75f, turned),
           "a quad that does not sit at the corner is left to the mask path");
-    // L-255: the post's two inside faces reach the other corner and slide onto
-    // the border the same way, so they keep their two-texel width as well.
-    std::array<float, 4> ix{0.437f, 0.437f, 0.437f, 0.437f}, iz{0.437f, 0.562f, 0.437f, 0.562f};
-    std::array<float, 4> iu{0.5625f, 0.4375f, 0.5625f, 0.4375f};
-    check(paneCornerU(ix, iz, iu, 0.437f, 0.437f, 0.0f, 1.0f, turned) && turned[0] == 1.0f && turned[2] == 1.0f
-              && turned[1] == 0.875f && turned[1] - turned[0] == iu[1] - iu[0],
-          "an inside face slides onto the border with its two-texel width kept");
+    // L-255: the inside faces are the arms' own, so their u window is a longer
+    // slice of the tile (seven texels here); the slide moves all of it, which
+    // brings the tile's border to the corner end and keeps the slice's width.
+    std::array<float, 4> ax{p1, 1.f, p1, 1.f}, az{p0, p0, p0, p0}, au{0.4375f, 0.f, 0.4375f, 0.f};
+    check(paneCornerU(ax, az, au, p1, p0, 0.f, 1.f, turned) && turned[0] == 1.f && turned[2] == 1.f
+              && turned[1] == 0.5625f && turned[3] == 0.5625f && turned[0] - turned[1] == au[0] - au[1],
+          "the east arm's north face slides its whole window onto the inside border");
+    std::array<float, 4> bx{p1, p1, p1, p1}, bz{0.f, p0, 0.f, p0}, bu{1.f, 0.5625f, 1.f, 0.5625f};
+    check(paneCornerU(bx, bz, bu, p1, p0, 0.f, 1.f, turned) && turned[1] == 0.f && turned[3] == 0.f
+              && turned[0] == 0.4375f && turned[2] == 0.4375f && turned[1] - turned[0] == bu[1] - bu[0],
+          "the north arm's east face slides onto the low border the same way");
     std::array<float, 4> ox{0.437f, 0.562f, 0.562f, 0.437f}, oz{0.562f, 0.562f, 0.562f, 0.562f};
     std::array<float, 4> ou{0.4375f, 0.5625f, 0.4375f, 0.5625f};
     check(!paneCornerU(ox, oz, ou, 0.437f, 0.437f, 0.0f, 1.0f, turned)

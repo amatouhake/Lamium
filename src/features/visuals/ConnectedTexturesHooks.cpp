@@ -149,16 +149,19 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
     auto above = partsAt(block, {pane.pos.x, pane.pos.y + 1, pane.pos.z});
     auto below = partsAt(block, {pane.pos.x, pane.pos.y - 1, pane.pos.z});
     bool east = paneAt(block, 1, 0), west = paneAt(block, -1, 0), south = paneAt(block, 0, 1), north = paneAt(block, 0, -1);
-    // L-208: an L-shaped pane (arms on two adjacent sides) keeps vanilla's
-    // fully merged corner post; with the option on, the post's faces reach the
-    // tile border at their corner ends, so the turn keeps an edge on its
-    // outside (L-208) and on its inside (L-255). With the option off no pane
-    // geometry is computed at all.
-    std::optional<std::pair<float, float>> postCorner, postInside;
-    if (paneCorners.load()) {
-        auto parts = partsAt(block, pane.pos);
-        postCorner = paneCornerPoint(parts);
-        postInside = paneCornerPoint(parts, true);
+    // L-208/L-255: an L-shaped pane (arms on two adjacent sides) keeps
+    // vanilla's fully merged corner post; with the option on, the faces a
+    // player sees around the turn reach the tile border at their corner ends -
+    // the post's outside faces (L-208) and the arm faces beside the inside
+    // corner (L-255, whose post faces sit inside the arms' boxes and are never
+    // seen). With the option off no pane geometry is computed at all.
+    bool cornerEdges = paneCorners.load();
+    Parts parts;
+    std::optional<std::pair<float, float>> outside, inside;
+    if (cornerEdges) {
+        parts = partsAt(block, pane.pos);
+        outside = paneCornerPoint(parts);
+        inside = paneCornerPoint(parts, true);
     }
     auto const& g = pane.glass;
     float uLow = std::min(g.u0, g.u1), uHigh = std::max(g.u0, g.u1), vLow = std::min(g.v0, g.v1), vHigh = std::max(g.v0, g.v1);
@@ -182,20 +185,19 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
         }
         bool glass = uvs[q].x >= uLow - e && uvs[q].x <= uHigh + e && uvs[q].y >= vLow - e && uvs[q].y <= vHigh + e;
         if (!glass) continue;
-        if (postCorner && panePostQuad(part, x0, x1, z0, z1)) {
-            std::array<float, 4> x{}, z{}, u{}, turned{};
-            for (size_t i = 0; i < 4; ++i) {
-                x[i] = positions[q + i].x - bx;
-                z[i] = positions[q + i].z - bz;
-                u[i] = uvs[q + i].x;
+        if (cornerEdges) {
+            auto corner = paneCornerFor(part, x0, x1, z0, z1, parts);
+            auto const& point = corner == PaneCorner::Inside ? inside : outside;
+            if (corner != PaneCorner::None && point) {
+                std::array<float, 4> x{}, z{}, u{}, turned{};
+                for (size_t i = 0; i < 4; ++i) {
+                    x[i] = positions[q + i].x - bx;
+                    z[i] = positions[q + i].z - bz;
+                    u[i] = uvs[q + i].x;
+                }
+                if (paneCornerU(x, z, u, point->first, point->second, uLow, uHigh, turned))
+                    for (size_t i = 0; i < 4; ++i) uvs[q + i].x = turned[i];
             }
-            // One of the post's four faces reaches each of the two corners; the
-            // slide only takes the one it sits at.
-            bool slid = paneCornerU(x, z, u, postCorner->first, postCorner->second, uLow, uHigh, turned);
-            if (!slid && postInside)
-                slid = paneCornerU(x, z, u, postInside->first, postInside->second, uLow, uHigh, turned);
-            if (slid)
-                for (size_t i = 0; i < 4; ++i) uvs[q + i].x = turned[i];
         }
         Mask mask = 0;
         for (size_t i = q; i < q + 4; ++i) {
