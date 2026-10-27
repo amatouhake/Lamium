@@ -616,6 +616,22 @@ Research before building (trace build, Windows):
 Pure part with tests: splitting text into pages given a fits-predicate.
 New hooks go into GAME-UPDATES.md. Verify on a local world and on a server
 that the pages survive closing and reopening the book.
+Status 2026-10-27: trace build only, no behavior change (`--book_paste_trace=y`,
+branch `l259-book-paste-trace`, `eb42d2c9`, `src/features/inventory/BookPaste.cpp`
+plus a "Book paste diagnostics" entry in `Runtime.cpp`). Hooks, all read-only,
+always calling the original: `BookScreenOpen` (`$addStaticScreenVars`: editable,
+page count, page index, view), `TextCharKey` (`handleTextCharEvent`: input
+bytes/chars and the result), `TextTrySet`, `TextFits` (`_textFitsInControl`),
+`ContextAction`/`ContextText` (`feedAction`/`feedText`: action, caret,
+selection, `mMaxLength`, text length), `PageParse`/`PageSetText`/`PageAddAt`
+(page index, page count, text bytes/chars), `ManagerEditPage`/`ManagerAddPage`
+(`BookScreenManager::editPage`/`addPageAt`), and `BookEditSend`/
+`BookEditSendToServer` (BookEdit action, page, book slot, text bytes/chars).
+Lines start with `book paste trace: ` and are capped at 300 per five seconds;
+each carries `tid=` so the paste's thread can be read off. The vanilla JSON's
+`$max_page_length` is not readable through the SDK (`Json::Value` is forward
+declared only), so the page limit is logged from the text box and the text edit
+context instead. Evidence and the three answers come from an in-game run.
 No release target selected.
 
 ### L-266 Schematic follow-up batch (0.3.1)
