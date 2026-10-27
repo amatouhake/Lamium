@@ -4126,6 +4126,26 @@ two new sprite paths load (icons appear at all).
 
 ## Design
 
+### L-264 Target View: schematic water and flowing water
+Kind: Design details, then Research. User feedback 2026-10-26 (same thread
+as L-262): show in Target View whether a schematic cell holds a water
+source or flowing water, and how far it flows.
+Decided (maintainer 2026-10-26): ghost liquids are always targetable when
+the crosshair meets them (the card shows the liquid and source/flow level
+from `liquid_depth`). Targeting real water and lava is a separate option,
+off by default; with it off the crosshair passes through real liquids as in
+vanilla.
+Open: how a ghost liquid in front of a real block or another ghost is
+chosen, the waterlogged second layer (a ghost block that should also hold
+water), what "flow level" reads as in all four languages, and the new
+option's place and help. Research: the liquid ray test for real liquids.
+Release target: 0.3.1, batch L-266.
+Closed 2026-10-26 (maintainer): the waterlogged second layer gets no
+Target View display of its own; the check's `waterlogged` state row
+already tells whether a cell's water is right, without more on the card.
+The rest was built and checked in the L-266 batch (`0f06b820`, VALIDATION-LOG
+"L-266 schematic batch, stages 1 to 3").
+
 ### L-258 Fuller schematic check controls (reporter's request)
 Closed 2026-10-26: answered by the reporter's thread (びー, 2026-10-26):
 ignore signal state, plant growth and lit/unlit forms (L-262), pick the

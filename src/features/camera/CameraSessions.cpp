@@ -6,6 +6,7 @@
 #include "features/camera/CameraTrace.h"
 #include "features/camera/DetachedCameraRig.h"
 #include "features/camera/CameraMovementInput.h"
+#include "features/camera/ViewFeet.h"
 #include "settings/Settings.h"
 #include "input/Actions.h"
 #include "app/Runtime.h"
@@ -194,13 +195,18 @@ std::optional<CameraSessions::Pose> CameraSessions::freeCameraPose(IClientInstan
     auto ray = detachedViewRay(current);
     auto* player = current.getLocalPlayer();
     if (!ray || !player) return {};
-    double feet = player->getFeetPos().y - player->getEyePos().y;
     double length = std::sqrt(ray->dx * ray->dx + ray->dy * ray->dy + ray->dz * ray->dz);
-    if (!std::isfinite(feet) || !(length > 0)) return {};
+    if (!(length > 0)) return {};
+    // The same virtual feet the shapes reference uses, so a readout, a
+    // waypoint and a shape placed here agree on where the drawn view stands.
+    auto eye = player->getEyePos(), body = player->getFeetPos();
+    auto feet = camera::viewFeet(camera::Position{ray->x, ray->y, ray->z},
+        {body.x, body.y, body.z}, {eye.x, eye.y, eye.z});
+    if (!feet) return {};
     // Angles from the drawn view direction (yaw 0 faces +Z, positive pitch looks down).
     auto yaw = static_cast<float>(std::atan2(-ray->dx, ray->dz) * 180 / std::numbers::pi);
     auto pitch = static_cast<float>(-std::asin(std::clamp(ray->dy / length, -1.0, 1.0)) * 180 / std::numbers::pi);
-    return Pose{ray->x, ray->y + feet, ray->z, yaw, pitch};
+    return Pose{feet->x, feet->y, feet->z, yaw, pitch};
 }
 std::optional<DetachedLookState::Angles> CameraSessions::lookAnglesFor(IClientInstance const& renderedClient) {
     // A different viewport must neither consume nor cancel the owner's session.

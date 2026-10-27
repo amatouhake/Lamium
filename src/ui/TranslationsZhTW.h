@@ -33,6 +33,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"capability.HideBossBars", "Boss 血條的隱藏"},
     {"capability.SchematicBlend", "半透明藍圖虛影"},
     {"capability.SchematicActorLight", "藍圖方塊實體亮度"},
+    {"capability.SchematicCreativePick", "創造模式下選取藍圖虛影方塊"},
     {"capability.reason.game", "此 Minecraft 版本尚未驗證"},
     {"capability.reason.loader", "此 LeviLamina 版本不在支援範圍內"},
     {"capability.reason.hook", "無法連接所需的遊戲處理"},

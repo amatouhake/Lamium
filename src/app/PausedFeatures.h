@@ -61,7 +61,7 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::HideParticles: return v.hideEffects && v.hideParticles;
     case Id::HideBossBars: return v.hideEffects && v.hideBossBars;
     case Id::SchematicBlocks: case Id::SchematicPiston: case Id::SchematicShulker: case Id::SchematicEntities:
-    case Id::SchematicBlend: case Id::SchematicActorLight: return s.schematic.enabled;
+    case Id::SchematicBlend: case Id::SchematicActorLight: case Id::SchematicCreativePick: return s.schematic.enabled;
     case Id::FakeOffhandTargets: return s.inventory.fakeOffhand;
     default: return false;
     }

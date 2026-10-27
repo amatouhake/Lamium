@@ -96,6 +96,12 @@ namespace {
 // HUD background opacity for this frame (settings, L-98); set by drawHud.
 float cardOpacity = .72f;
 SpeedSampler speedSampler;
+// Ids of the status effect rows shown last frame, top to bottom: a row keeps
+// its place until its effect ends (L-247). Cleared when a successful read
+// shows no effects, when the effects feature stops and on world exit; kept
+// while the HUD is simply not drawn, so turning it off and on again does not
+// reshuffle the rows.
+std::vector<unsigned> shownEffects;
 // One element row: text with an optional leading marker square.
 struct ElementLine { std::string text; std::optional<ui::Rgb> marker; ui::Rgb color = ui::palette::text; };
 float elementZoom(ui::HudElement const& element) {
@@ -601,14 +607,23 @@ std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& c
         try { read = readEffects(*player); } catch (...) { read.reset(); }
     }
     fx::covers(!preview && read && settings.effectsHideVanilla);
-    std::vector<fx::Effect> effects = read ? *read : std::vector<fx::Effect>{};
+    std::vector<fx::Effect> effects = read ? std::move(*read) : std::vector<fx::Effect>{};
     if (effects.empty() && preview) {
         // The layout editor needs something to place without active effects.
         for (auto [id, ticks, amplifier] : {std::tuple{1u, 3300, 1}, std::tuple{19u, 80, 0}, std::tuple{16u, -1, 0}})
             if (auto effect = effectFor(id, ticks, amplifier, false)) effects.push_back(std::move(*effect));
     }
-    if (effects.empty()) return std::nullopt;
-    fx::order(effects);
+    if (effects.empty()) {
+        // Only a read that succeeded ends the row order: an unreadable frame
+        // draws nothing and keeps the rows, so a single failed read cannot
+        // fall back to a fresh time sort (L-247).
+        if (fx::endsRowOrder(read.has_value(), preview)) shownEffects.clear();
+        return std::nullopt;
+    }
+    // Rows keep their place across frames (L-247); the layout editor's sample
+    // effects must not set the order the game HUD shows.
+    effects = fx::arrange(preview ? std::vector<unsigned>{} : shownEffects, effects);
+    if (!preview) shownEffects = fx::rowIds(effects);
     float z = elementZoom(element);
     bool card = element.background == ui::ElementBackground::Card;
     bool band = element.background == ui::ElementBackground::Line;
@@ -1641,4 +1656,5 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     drawList();
     return boxes;
 }
+void forgetEffectRows() { shownEffects.clear(); }
 }

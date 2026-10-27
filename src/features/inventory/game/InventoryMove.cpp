@@ -73,6 +73,39 @@ ItemStack const& itemAt(LocalPlayer& player, Location at) {
     }
 }
 bool moving() { return active; }
+bool giveCreative(LocalPlayer& player, int slot, ItemStack const& item) {
+    if (active || !hookInstalled || !player.isCreative() || slot < 0 || slot >= 9 || item.isNull()) return false;
+    auto& manager = player.mTransactionManager.get();
+    auto* base = player.mItemStackNetManager.get();
+    if (manager.mCurrentTransaction.get()) { trace("transaction-busy",0); return false; }
+    if (!base || !base->mIsEnabled || !base->mIsClientSide) { trace("manager-unavailable",0); return false; }
+    if (static_cast<ItemStackNetManagerClient*>(base)->mRequest) { trace("request-busy",0); return false; }
+    ItemStack old = player.getInventory().getItem(slot);
+    struct Active { Active() { active = true; } ~Active() { active = false; } } guard;
+    recordedInventory = false;
+    auto scope = ItemStackNetManagerBase::_tryBeginClientLegacyTransactionRequest(&player);
+    if (!base->mLegacyTransactionRequestId->mRawId) { trace("no-legacy-scope",0); return false; }
+    player.getInventory().$setItem(slot,item);
+    if (manager.mCurrentTransaction.get()) {
+        InventorySource inventory;
+        inventory.mType = InventorySourceType::ContainerInventory;
+        inventory.mContainerId = ContainerID::Inventory;
+        inventory.mFlags = InventorySource::InventorySourceFlags::NoFlag;
+        if (!recordedInventory) manager.addAction(InventoryAction{inventory,static_cast<uint>(slot),old,item},false);
+        // The creative inventory gives the item (slot 1: create) and takes
+        // the replaced one (slot 0: delete), so the transaction balances.
+        InventorySource creative;
+        creative.mType = InventorySourceType::CreativeInventory;
+        creative.mContainerId = ContainerID::None;
+        creative.mFlags = InventorySource::InventorySourceFlags::NoFlag;
+        manager.addAction(InventoryAction{creative,1,item,ItemStack()},false);
+        if (!old.isNull()) manager.addAction(InventoryAction{creative,0,ItemStack(),old},false);
+    } else trace("recorded-nothing-pending",0);
+    if (manager.mCurrentTransaction.get()) player.updateInventoryTransactions();
+    if (manager.mCurrentTransaction.get()) throw std::runtime_error("Creative pick transaction remained unbalanced");
+    trace("creative-sent",slot);
+    return true;
+}
 bool movePair(LocalPlayer& player, Location a, ItemStack const& newA, Location b, ItemStack const& newB) {
     if (active || !hookInstalled) return false;
     auto& manager = player.mTransactionManager.get();

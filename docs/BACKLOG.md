@@ -81,8 +81,10 @@ choices live in the L-items. An L-item wins if a summary drifts.
    2026-10-10): decided and Ready (2026-10-26): L-246, L-251, L-252,
    L-253, L-254, L-255.
    **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
-   checked except L-263 creative and L-264 waterlogged; stage 4, L-256,
-   done 2026-10-26); L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   checked; L-264 and stage 4, L-256, done 2026-10-26; L-263's creative
+   pick built, to check with the 0.3.1 pre-release round, then the
+   batch closes). Before 0.3.1
+   as well (maintainer 2026-10-26): L-247, L-248, L-244 and L-255; L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -149,6 +151,7 @@ validation checkpoints" (snapshot 2026-10-20).
 | Effects/ammo HUD, L-147/L-150 | Beacon effects, server updates/counts, Pocket UI, layout sample, F1/inventory interplay. |
 | In-world language/server packs, L-167 | English Search and schematic ghosts after a change, broader servers/packs, rapid switching/hang risk and the 10 s interval. Cosmetic BDS evidence does not establish all pack types. See LANGUAGE.md. |
 | Camera and visual effects | FreeCamera world-exit/death/controller/body-view and hold-input cases, speed restart persistence; Hide effects restart/keys/master, ambient layers, packs, graphics modes and lifecycle. Detailed coverage is in VALIDATION.md, CAMERA.md and VISUAL-EFFECTS.md. |
+| Schematic ghost pick in creative, L-263 | A block not carried is given into the hotbar (empty selected slot, another empty slot, full hotbar), unlisted items (water, lava, structure block) do nothing, carried and survival picks unchanged; also on a server. |
 | Distribution listings | 0.1.4–0.1.8 registry pickup is recorded; LeviLauncher 0.2.0 was seen. Later registry/LeviLauncher/Bedrinth checks remain unrecorded here. Verify the version being released using DISTRIBUTION.md rather than reopening old release gates. |
 
 ---
@@ -171,6 +174,19 @@ previous order and the current effects, with tests (beacon renewals mixed
 with normal effects, new/removed effects, a longer potion replacing a
 shorter one). Check in game at a beacon with a potion running. No release
 target selected.
+Status 2026-10-27: built, not yet checked in game: `arrange()` replaces
+`order()` in `StatusEffects.h`; it takes the last frame's row ids and keeps
+each row in place until its effect ends, so a beacon refresh only changes the
+time shown, a new effect enters above the first row with a longer time and an
+ended row closes up. `InfoHud.cpp` holds the ids in `shownEffects`: only a
+read that succeeded and found no effects ends the order, so one unreadable
+frame cannot cost the rows their places; it is kept while the HUD is not
+drawn (turning it off and on does not reshuffle) and forgotten on world exit
+and when the feature stops, so a new world starts fresh. The layout editor's
+samples do not set it. Tests: beacon renewals, new and ended effects, a longer
+potion, the infinite-last rule, the read-failed case. In game: the rows must
+stay put with a beacon running, a new effect must still land by its remaining
+time and an ending one must be removed.
 
 ### L-248 Shapes creation uses the body instead of the active camera
 Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in
@@ -188,6 +204,23 @@ here with Standing block and Exact position; check Target block picking and
 its missing-target fallback, snapping and dimension changes. Validate in
 game with FreeCamera detached, in Freelook and with the ordinary view. No
 release target selected.
+Built 2026-10-27, not yet checked in game: the rule now lives once in
+`features/camera/ViewFeet.h` (`camera::viewFeet()`); the schematic actions
+floor its point to a cell, the shapes view keeps it precise. Creating a shape,
+a draft's reference change and Move here use it, including the missing-target
+fallback, which now stands under the camera rather than the body. A targeted
+block is taken from the hit before the view point is asked for, so a frame
+with an unusable pose still uses the block under the crosshair and only a
+missing target falls back. `CameraSessions::freeCameraPose()` (debug readout,
+map centre, "add waypoint here") calls the same helper, so those agree with a
+shape placed at the same view and a mid-teleport pose falls back to the
+standing eye height there too. Pure tests cover the body, Freelook,
+FreeCamera, sneaking and unusable poses, and check the standing-block center
+as well as its snap mode. In game: create a shape and Move here with Standing
+block and Exact position while FreeCamera is detached, repeat in Freelook and
+with the ordinary view, confirm a Target block shape with nothing under the
+crosshair falls back to the block the camera stands in, and compare the
+coordinate readout with a shape's center while detached.
 
 ### L-250 Edge Guard makes the game feel very heavy
 Kind: Bug / Research. User report 2026-10-23 after 0.3.0: turning Edge Guard
@@ -601,25 +634,51 @@ select the hotbar slot that holds it, else bring it from the inventory
 into the hotbar; nothing happens when it is not carried.
 Open: creative mode (vanilla gives the item; whether a ghost pick should
 too), and a ghost behind a wrong real block (vanilla wins as decided).
+Decided 2026-10-26 (maintainer): in creative mode a ghost pick gives the
+block even when it is not carried, like vanilla. Research (2026-10-26,
+SDK 26.51.8): vanilla's creative pick asks the server for the block at
+the hit (`BlockPickRequestPacket`), which cannot name a ghost; the
+creative inventory screen takes items with an item stack request whose
+action is `CraftCreative` (`ItemStackRequestActionType` 14, a
+`CreativeItemNetId` from `CreativeItemRegistry`) followed by a move into
+a slot. Lamium's moves use legacy transactions (`game::movePair`) and
+never build item stack requests. Next: a trace build that logs the
+request the creative screen sends when a block is taken into the hotbar,
+then the same request built by Lamium, confirmed from the slot's
+authoritative contents; gated, with a GAME-UPDATES entry.
+Correction the same day: building an item stack request is not possible
+with the SDK (`ItemStackNetManagerClient::_beginRequest`,
+`addRequestAction`, `trySendBatch` are all `MCNAPI`, as L-66 found).
+Experiment built instead (`xmake f --schematic_creative_pick=y`, off by
+default, not in release builds): in creative mode, a ghost pick of a block
+that is not carried puts it into the hotbar (`creativeSlotFor`: the
+selected slot when empty, else the first empty one, else the selected one
+replaced) through the same legacy transaction as `movePair`, balanced by
+creative-inventory actions (slot 1 gives the item, slot 0 takes back the
+replaced one). The log line "creative pick: slot N sent X, now holds Y",
+written at the next pick, shows whether the server kept it. To check: a
+local world and a server, an empty and a full hotbar, then whether the
+item stays after reopening the inventory or the world.
+Checked 2026-10-26 on `b2bde4f` (VALIDATION-LOG "L-263 creative pick
+experiment"): accepted in a local world (empty and full hotbar, kept after
+reopening); refused for water, lava and a structure block, and twice for
+a give into an empty hotbar slot that was not yet selected. Changed next
+(not yet checked): only items the creative inventory lists are given
+(`CreativeItemRegistry`, as sorting uses), and the slot is selected before
+the transaction is sent; the log adds the slot selected before and the
+time to the check. Servers not tried yet.
+Checked 2026-10-26 on `7d41160` (VALIDATION-LOG "L-263 creative pick,
+second check"): every give went through at once, unlisted items were not
+sent; the log now says "skipped" for those.
+Made a normal part of the pick the same day (maintainer: in-game checks go
+to the 0.3.1 pre-release round): the build option and the log lines are
+gone; the give is gated by the direct capability "Schematic pick
+(creative inventory give)" (GAME-UPDATES.md), off on an unverified game
+build. Left: the pre-release check of this build and a server.
 Research: where pick block is handled in the SDK and how the inventory
 move is confirmed from authoritative state (reuse the existing inventory
 transfer paths). New hooks go into GAME-UPDATES.md. No release target
 selected.
-Release target: 0.3.1, batch L-266.
-
-### L-264 Target View: schematic water and flowing water
-Kind: Design details, then Research. User feedback 2026-10-26 (same thread
-as L-262): show in Target View whether a schematic cell holds a water
-source or flowing water, and how far it flows.
-Decided (maintainer 2026-10-26): ghost liquids are always targetable when
-the crosshair meets them (the card shows the liquid and source/flow level
-from `liquid_depth`). Targeting real water and lava is a separate option,
-off by default; with it off the crosshair passes through real liquids as in
-vanilla.
-Open: how a ghost liquid in front of a real block or another ghost is
-chosen, the waterlogged second layer (a ghost block that should also hold
-water), what "flow level" reads as in all four languages, and the new
-option's place and help. Research: the liquid ray test for real liquids.
 Release target: 0.3.1, batch L-266.
 
 ### L-265 Schematic placement assist: place the ghost's block in its state

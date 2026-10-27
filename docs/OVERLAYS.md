@@ -48,9 +48,13 @@ toolbar). Editing keeps both scroll positions.
 "New shape" first asks for a type, then opens a draft that is previewed in the
 world as light-blue lines but not saved. The center reference is the standing
 block (snapped to its center), the exact position (no snapping) or the
-targeted block; "Move here" uses the same reference for existing shapes. Create
-adds the draft; Cancel or leaving the view discards it. Delete requires a
-second press.
+targeted block; "Move here" uses the same reference for existing shapes. The
+standing and exact references follow the drawn view (L-248): while Freelook
+or FreeCamera detaches it, they use the camera's virtual feet (its position
+minus the player's eye height) instead of the body, the same reference the
+schematic placement actions use. A targeted block comes from the hit alone,
+so it does not depend on a usable view pose. Create adds the draft; Cancel or
+leaving the view discards it. Delete requires a second press.
 
 Shapes are drawn from the blocks that form them, not as smooth wireframes.
 The current presets include circle, cylinder, sphere, box, cone, frustum,
