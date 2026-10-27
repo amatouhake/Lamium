@@ -242,8 +242,8 @@ void connectedTexturesTests() {
     for (auto const& q : westSouth) check(ask(arms(false, true, true, false), q) == q.corner, q.what);
     check(paneCornerFor(Part::Center, p0, p0, p0, p1, arms(true, true, false, false)) == PaneCorner::None
               && paneCornerFor(Part::East, p1, 1.f, p0, p0, arms(true, true, false, false)) == PaneCorner::None
-              && paneCornerFor(Part::East, p1, 1.f, p0, p0, arms(true, true, false, true)) == PaneCorner::None,
-          "straight panes and T junctions turn no corner, so nothing slides");
+              && paneCornerFor(Part::East, p1, 1.f, p0, p0, arms(true, true, false, true)) == PaneCorner::Inside,
+          "a straight pane turns no corner, so nothing slides; a T's arm face takes the inside edge (L-271)");
     // L-270: the pane option owns the outside edge; the inside edge follows the
     // inside-corner policy, so it needs that option too (maintainer 2026-10-27).
     auto off = paneEdgeKinds(false, false), paneOnly = paneEdgeKinds(true, false);
@@ -305,4 +305,98 @@ void connectedTexturesTests() {
     check(!paneCornerU(ox, oz, ou, 0.437f, 0.437f, 0.0f, 1.0f, turned)
               && paneCornerU(ox, oz, ou, 0.562f, 0.562f, 0.0f, 1.0f, turned),
           "an outside face takes the outside corner, not the inside one");
+    // L-271: a T and a cross have no outside corner, and their inside corners
+    // come from the arms. Every adjacent arm pair makes one: an east (west) arm
+    // at x = 9/16 (7/16), a north (south) arm at z = 7/16 (9/16), which is the
+    // corner L-255 already slides an L's arm faces to.
+    for (auto pane : {arms(true, false, false, true), arms(true, false, true, false), arms(false, true, false, true),
+                      arms(false, true, true, false)}) {
+        auto corners = paneConcaveCorners(pane);
+        auto inside = paneCornerPoint(pane, true);
+        check(corners.size() == 1 && inside && corners[0] == *inside,
+              "an L's one concave corner is the inside corner it already slides to");
+    }
+    auto stemWest = paneConcaveCorners(arms(true, true, false, true));
+    check(stemWest.size() == 2 && stemWest[0] == std::pair{0.562f, 0.437f} && stemWest[1] == std::pair{0.437f, 0.437f},
+          "a T turns inward at the two sides of its stem");
+    auto stemSouth = paneConcaveCorners(arms(true, true, true, false));
+    check(stemSouth.size() == 2 && stemSouth[0] == std::pair{0.562f, 0.562f} && stemSouth[1] == std::pair{0.437f, 0.562f},
+          "a T with a south stem turns inward on the other side");
+    auto cross = paneConcaveCorners(arms(true, true, true, true));
+    check(cross.size() == 4 && cross[0] == std::pair{0.562f, 0.437f} && cross[1] == std::pair{0.562f, 0.562f}
+              && cross[2] == std::pair{0.437f, 0.437f} && cross[3] == std::pair{0.437f, 0.562f},
+          "a cross turns inward at all four corners between its arms");
+    check(paneConcaveCorners(arms(true, true, false, false)).empty() && paneConcaveCorners(arms(false, false, true, true)).empty()
+              && paneConcaveCorners(arms(true, false, false, false)).empty()
+              && paneConcaveCorners(arms(false, false, false, false)).empty() && paneConcaveCorners(Parts{}).empty(),
+          "straight, lone and absent panes turn inward nowhere");
+    check(!paneCornerPoint(arms(true, true, false, true)) && !paneCornerPoint(arms(true, true, true, true)),
+          "a T and a cross keep no outside edge: that one stays an L's (L-208 unchanged)");
+    // Which faces a junction gives an inside edge to, and how: no corner, one
+    // corner end (the whole window slides, L-255), or a corner at both ends (the
+    // face is cut, since one window cannot hold two borders without pressing
+    // the texture). The cuts are the corner slices' ends, 0..1 along the face.
+    struct Case {
+        char const* what;
+        Parts pane;
+        Part part;
+        float x0, x1, z0, z1;
+        int ends;
+        float cutLow, cutHigh;
+    };
+    Case const cases[] = {
+        {"L: the post's outside face takes no inside edge", arms(true, false, false, true), Part::Center, p0, p0, p0, p1, 0, 0.f, 1.f},
+        {"L: the post's east face is one joint, not a split", arms(true, false, false, true), Part::Center, p1, p1, p0, p1, 0, 0.f, 1.f},
+        {"L: the east arm's north face slides its one corner end", arms(true, false, false, true), Part::East, p1, 1.f, p0, p0, 1, 0.f, 1.f},
+        {"L: the north arm's east face slides its one corner end", arms(true, false, false, true), Part::North, p1, p1, 0.f, p0, 1, 0.f, 1.f},
+        {"L: the east arm's south face has no corner", arms(true, false, false, true), Part::East, p1, 1.f, p1, p1, 0, 0.f, 1.f},
+        {"T: the post face between the two junctions splits", arms(true, true, false, true), Part::Center, p0, p1, p0, p0, 2, 0.5f, 0.5f},
+        {"T: the east arm's north face slides its corner end", arms(true, true, false, true), Part::East, p1, 1.f, p0, p0, 1, 0.f, 1.f},
+        {"T: the west arm's north face slides its corner end", arms(true, true, false, true), Part::West, 0.f, p0, p0, p0, 1, 0.f, 1.f},
+        {"T: the north arm's east face slides its corner end", arms(true, true, false, true), Part::North, p1, p1, 0.f, p0, 1, 0.f, 1.f},
+        {"T: the bar's free south face has no corner", arms(true, true, false, true), Part::Center, p0, p1, p1, p1, 0, 0.f, 1.f},
+        {"cross: the post's north face splits", arms(true, true, true, true), Part::Center, p0, p1, p0, p0, 2, 0.5f, 0.5f},
+        {"cross: the post's west face splits", arms(true, true, true, true), Part::Center, p0, p0, p0, p1, 2, 0.5f, 0.5f},
+        {"cross: the east arm's north face slides its corner end", arms(true, true, true, true), Part::East, p1, 1.f, p0, p0, 1, 0.f, 1.f},
+        {"cross: the south arm's west face slides its corner end", arms(true, true, true, true), Part::South, p0, p0, p1, 1.f, 1, 0.f, 1.f},
+        {"straight: the east arm's north face has no corner", arms(true, true, false, false), Part::East, p1, 1.f, p0, p0, 0, 0.f, 1.f},
+        {"straight: the post keeps vanilla", arms(true, true, false, false), Part::Center, p0, p1, p0, p0, 0, 0.f, 1.f},
+        {"lone: nothing to slide", arms(false, false, false, false), Part::Center, p0, p1, p0, p0, 0, 0.f, 1.f},
+    };
+    for (auto const& c : cases) {
+        auto plan = paneSlidePlan(c.part, c.x0, c.x1, c.z0, c.z1, c.pane);
+        int ends = (plan.low ? 1 : 0) + (plan.high ? 1 : 0);
+        check(ends == c.ends && plan.split() == (c.ends == 2) && std::abs(plan.cutLow - c.cutLow) < 1e-4f
+                  && std::abs(plan.cutHigh - c.cutHigh) < 1e-4f,
+              c.what);
+    }
+    check(paneCornerFor(Part::Center, p0, p1, p0, p0, arms(true, true, false, true)) == PaneCorner::Inside
+              && paneCornerFor(Part::Center, p0, p1, p1, p1, arms(true, true, false, true)) == PaneCorner::None,
+          "a T's post face between the junctions takes the inside edge; the bar's free face does not");
+    // The pieces: one that slides, or a corner slice, the untouched middle and
+    // a corner slice. A slice is two texels wide, so a two-texel face has no
+    // middle and becomes two one-texel slices instead of one squeezed one.
+    auto tPost = panePieces(paneSlidePlan(Part::Center, p0, p1, p0, p0, arms(true, true, false, true)));
+    check(tPost.size() == 2 && tPost[0].from == 0.f && tPost[0].to == 0.5f && tPost[0].lowCorner && !tPost[0].highCorner
+              && tPost[1].from == 0.5f && tPost[1].to == 1.f && tPost[1].highCorner && !tPost[1].lowCorner,
+          "a two-texel post face becomes two one-texel corner slices, so both ends still show a border");
+    auto lArm = panePieces(paneSlidePlan(Part::East, p1, 1.f, p0, p0, arms(true, false, false, true)));
+    check(lArm.size() == 1 && lArm[0].from == 0.f && lArm[0].to == 1.f && lArm[0].lowCorner && !lArm[0].highCorner,
+          "an arm face with one corner end stays one piece and slides whole");
+    check(panePieces(PaneSlidePlan{}).empty(), "a face with no corner end is not touched");
+    PaneSlidePlan wide;
+    wide.low = wide.high = true;
+    wide.cutLow = 2.f / 7;
+    wide.cutHigh = 5.f / 7;
+    auto widePieces = panePieces(wide);
+    check(widePieces.size() == 3 && widePieces[0].to == widePieces[1].from && widePieces[1].to == widePieces[2].from
+              && !widePieces[1].lowCorner && !widePieces[1].highCorner && widePieces[2].to == 1.f,
+          "a wider face keeps an untouched middle between its two corner slices");
+    // A corner slice is the tile border's own width, so sliding it costs no
+    // texel of texture: two texels of geometry keep showing two.
+    std::array<float, 4> sx{0.5625f, 0.6875f, 0.5625f, 0.6875f}, sz{p0, p0, p0, p0};
+    std::array<float, 4> su{0.4375f, 0.3125f, 0.4375f, 0.3125f};
+    check(paneCornerU(sx, sz, su, p1, p0, 0.f, 1.f, turned) && turned[0] == 1.f && turned[1] == 0.875f
+              && turned[1] - turned[0] == su[1] - su[0],
+          "a corner slice slides onto the tile border and keeps its two texels");
 }

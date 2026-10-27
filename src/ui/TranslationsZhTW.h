@@ -55,7 +55,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"connectedCorners", "內側轉角保留邊框"},
     {"connectedPaneCorners", "玻璃片轉角加上邊框"},
     {"help.visuals.connectedCorners", "玻璃方塊牆轉彎時，在轉角內側保留兩面牆的邊框，讓轉角看起來像轉角，而不是連成一整片。直牆和轉角外側不受影響。"},
-    {"help.visuals.connectedPaneCorners", "在 L 形玻璃片轉角的外側繪製邊框。轉彎內側的邊框還需要同時開啟同一功能中的「內側轉角保留邊框」。原版玻璃片兩側都沒有邊框，轉角看起來是一整片。"},
+    {"help.visuals.connectedPaneCorners", "在 L 形玻璃片轉角的外側繪製邊框。玻璃片向內轉彎處（L 形、T 形和十字形）內側的邊框，還需要同時開啟同一功能中的「內側轉角保留邊框」。原版玻璃片兩側都沒有邊框，轉角看起來是一整片。"},
     {"help.connectedTextures", "相鄰的同種玻璃、玻璃片、書架和沙岩會繪製成一整面：玻璃之間沒有邊框，並排的書架之間沒有隔板，疊放的沙岩之間沒有橫紋。染色玻璃只與同色相連。實驗性功能。"},
     {"help.hideEffects", "隱藏所選的視覺效果。關閉總開關會恢復所有繪製，並保留你的選擇。聲音和遊戲玩法不受影響。實驗性功能。"},
     {"effectsPaused", "總開關已關閉"},

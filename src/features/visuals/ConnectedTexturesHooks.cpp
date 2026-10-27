@@ -128,6 +128,79 @@ Parts partsAt(Block const& block, BlockPos at) {
 bool paneAt(Block const& block, int dx, int dz) {
     return &pane.region->getBlock({pane.pos.x + dx, pane.pos.y, pane.pos.z + dz}).getBlockType() == &block.getBlockType();
 }
+// L-271: cut a face whose two ends sit at concave corners into a corner slice,
+// the unchanged middle and a corner slice. Each piece keeps its own share of
+// the face's u window, so a slice that slides onto the tile border keeps its
+// width and only the texels it replaces change. The extra quads are asked of
+// the tessellator itself, so its vertex count, quad info and index phase stay
+// its own; every per-vertex stream is then copied from the face and only the
+// axis coordinate and u change. Returns the first quad it added, 0 when the
+// mesh cannot take them (the face is then left as it is).
+size_t splitPaneFace(Tessellator& tessellator, size_t q, PaneSlidePlan const& plan, float bx, float by, float bz,
+                     float x0, float x1, float z0, float z1, float uLow, float uHigh) {
+    auto& data = *tessellator.mMeshData;
+    size_t count = data.mPositions->size();
+    if (!data.mIndices->empty() || count % 4 || q + 4 > count || data.mTextureUVs[0]->size() < count) return 0;
+    std::array<float, 4> vx{}, vy{}, vz{}, vu{};
+    for (size_t k = 0; k < 4; ++k) {
+        vx[k] = (*data.mPositions)[q + k].x - bx;
+        vy[k] = (*data.mPositions)[q + k].y - by;
+        vz[k] = (*data.mPositions)[q + k].z - bz;
+        vu[k] = (*data.mTextureUVs[0])[q + k].x;
+    }
+    bool alongX = x1 - x0 > z1 - z0;
+    float axisLow = alongX ? x0 : z0, axisHigh = alongX ? x1 : z1;
+    if (axisHigh - axisLow < 0.02f) return 0;
+    // The u each end of the face shows, from the vertices sitting there.
+    float endU[2]{0.f, 0.f};
+    int ends[2]{0, 0};
+    for (size_t k = 0; k < 4; ++k) {
+        float along = alongX ? vx[k] : vz[k];
+        if (std::abs(along - axisLow) < 0.02f) { endU[0] += vu[k]; ++ends[0]; }
+        else if (std::abs(along - axisHigh) < 0.02f) { endU[1] += vu[k]; ++ends[1]; }
+        else return 0;
+    }
+    if (!ends[0] || !ends[1]) return 0;
+    float uAtLow = endU[0] / static_cast<float>(ends[0]), uAtHigh = endU[1] / static_cast<float>(ends[1]);
+    auto pieces = panePieces(plan);
+    if (pieces.size() < 2) return 0;
+    size_t extra = pieces.size() - 1;
+    for (size_t i = 0; i < extra * 4; ++i) tessellator.vertex(vx[0] + bx, vy[0] + by, vz[0] + bz);
+    if (data.mPositions->size() != count + extra * 4) return 0;
+    auto carry = [&](auto& values) {
+        if (values.size() < count + extra * 4) return;
+        for (size_t i = 0; i < extra * 4; ++i) values[count + i] = values[q + (i % 4)];
+    };
+    carry(*data.mPositions);
+    carry(*data.mNormals);
+    carry(*data.mTangents);
+    carry(*data.mColors);
+    carry(*data.mBoneId0s);
+    for (int i = 0; i < 3; ++i) carry(*data.mTextureUVs[i]);
+    carry(*data.mPBRTextureIndices);
+    carry(*data.mMERS);
+    carry(*data.mGeoType);
+    for (size_t i = 0; i <= extra; ++i) {
+        // The face's own vertex order, so the winding stays the one vanilla made.
+        size_t slot = i == 0 ? q : count + (i - 1) * 4;
+        std::array<float, 4> px{}, pz{}, pu{}, turned{};
+        for (size_t k = 0; k < 4; ++k) {
+            float t = std::abs((alongX ? vx[k] : vz[k]) - axisLow) < 0.02f ? pieces[i].from : pieces[i].to;
+            float moved = axisLow + (axisHigh - axisLow) * t;
+            auto& position = (*data.mPositions)[slot + k];
+            if (alongX) position.x = moved + bx;
+            else position.z = moved + bz;
+            px[k] = position.x - bx;
+            pz[k] = position.z - bz;
+            pu[k] = uAtLow + (uAtHigh - uAtLow) * t;
+        }
+        turned = pu;
+        if (pieces[i].lowCorner) paneCornerU(px, pz, pu, plan.atLow.first, plan.atLow.second, uLow, uHigh, turned);
+        else if (pieces[i].highCorner) paneCornerU(px, pz, pu, plan.atHigh.first, plan.atHigh.second, uLow, uHigh, turned);
+        for (size_t k = 0; k < 4; ++k) (*data.mTextureUVs[0])[slot + k].x = turned[k];
+    }
+    return count;
+}
 // Panes keep vanilla's quads: each glass quad moves onto the glass sprite for
 // the tile edges it has on joined block edges (an arm shows part of the tile;
 // its joined edge is a tile edge). Adjusts the quads vanilla just added for
@@ -150,26 +223,52 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
     auto above = partsAt(block, {pane.pos.x, pane.pos.y + 1, pane.pos.z});
     auto below = partsAt(block, {pane.pos.x, pane.pos.y - 1, pane.pos.z});
     bool east = paneAt(block, 1, 0), west = paneAt(block, -1, 0), south = paneAt(block, 0, 1), north = paneAt(block, 0, -1);
-    // L-208/L-255/L-270: an L-shaped pane (arms on two adjacent sides) keeps
-    // vanilla's fully merged corner post; with the pane option on, the post's
-    // outside faces reach the tile border at the corners of the turn (L-208).
-    // The arm faces beside the inside corner (L-255, whose post faces sit
-    // inside the arms' boxes and are never seen) gain one only with the
-    // inside-corner option too, so the pane option alone leaves the turn
-    // looking as L-208 left it (maintainer 2026-10-27). With the pane option
-    // off no pane geometry is computed at all.
+    // L-208/L-255/L-270/L-271: an L-shaped pane (arms on two adjacent sides)
+    // keeps vanilla's fully merged corner post; with the pane option on, the
+    // post's outside faces reach the tile border at the corners of the turn
+    // (L-208). The faces beside a concave corner - one for an L, two for a T,
+    // four for a cross - gain an inside edge only with the inside-corner option
+    // too, so the pane option alone leaves the turn looking as L-208 left it
+    // (maintainer 2026-10-27). With the pane option off no pane geometry is
+    // computed at all.
     auto edges = paneEdgeKinds(paneCorners.load(), insideCorners.load());
     Parts parts;
-    std::optional<std::pair<float, float>> outside, inside;
+    std::optional<std::pair<float, float>> outside;
     if (edges.outside) {
         parts = partsAt(block, pane.pos);
         outside = paneCornerPoint(parts);
     }
-    if (edges.inside) inside = paneCornerPoint(parts, true);
     auto const& g = pane.glass;
     float uLow = std::min(g.u0, g.u1), uHigh = std::max(g.u0, g.u1), vLow = std::min(g.v0, g.v1), vHigh = std::max(g.v0, g.v1);
     float du = (uHigh - uLow) / g.width, dv = (vHigh - vLow) / g.height;
     constexpr float e = 1e-5f;
+    // A corner end slides its whole u window onto the tile border there (L-255).
+    auto slide = [&](size_t q, std::pair<float, float> const& corner) {
+        std::array<float, 4> x{}, z{}, u{}, turned{};
+        for (size_t i = 0; i < 4; ++i) {
+            x[i] = positions[q + i].x - bx;
+            z[i] = positions[q + i].z - bz;
+            u[i] = uvs[q + i].x;
+        }
+        if (!paneCornerU(x, z, u, corner.first, corner.second, uLow, uHigh, turned)) return;
+        for (size_t i = 0; i < 4; ++i) uvs[q + i].x = turned[i];
+    };
+    // Vanilla's sprite for the tile edges the quad has on joined block edges.
+    auto shade = [&](size_t q, Part part) {
+        Mask mask = 0;
+        for (size_t i = q; i < q + 4; ++i) {
+            float x = positions[i].x - bx, y = positions[i].y - by, z = positions[i].z - bz;
+            if ((x > 0.99f && east) || (x < 0.01f && west) || (z > 0.99f && south) || (z < 0.01f && north))
+                mask |= edgeSide(uvs[i].x, uLow, uHigh, du, Left, Right);
+            if ((y > 0.9f && above.has(part)) || (y < 0.1f && below.has(part))) mask |= edgeSide(uvs[i].y, vLow, vHigh, dv, Top, Bottom);
+        }
+        auto moved = sprites::shift(uLow, vLow, mask & ruleSides(glassRule()));
+        if (!moved) return;
+        for (size_t i = q; i < q + 4; ++i) {
+            uvs[i].x += moved->u;
+            uvs[i].y += moved->v;
+        }
+    };
     for (size_t q = before; q < after; q += 4) {
         float x0 = 2, x1 = -1, y0 = 2, y1 = -1, z0 = 2, z1 = -1;
         for (size_t i = q; i < q + 4; ++i) {
@@ -188,33 +287,25 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
         }
         bool glass = uvs[q].x >= uLow - e && uvs[q].x <= uHigh + e && uvs[q].y >= vLow - e && uvs[q].y <= vHigh + e;
         if (!glass) continue;
+        // L-208: the post's own faces take the outside corner of an L. L-255/
+        // L-271: a face that ends at a concave corner takes the inside edge -
+        // one end slides, two ends split so neither end compresses the texture.
         if (edges.outside) {
             auto corner = paneCornerFor(part, x0, x1, z0, z1, parts);
-            auto const& point = corner == PaneCorner::Inside ? inside : outside;
-            if (corner != PaneCorner::None && point) {
-                std::array<float, 4> x{}, z{}, u{}, turned{};
-                for (size_t i = 0; i < 4; ++i) {
-                    x[i] = positions[q + i].x - bx;
-                    z[i] = positions[q + i].z - bz;
-                    u[i] = uvs[q + i].x;
+            if (corner == PaneCorner::Outside && outside) {
+                slide(q, *outside);
+            } else if (corner == PaneCorner::Inside && edges.inside) {
+                auto plan = paneSlidePlan(part, x0, x1, z0, z1, parts);
+                auto pieces = panePieces(plan);
+                if (pieces.size() > 1) {
+                    size_t first = splitPaneFace(tessellator, q, plan, bx, by, bz, x0, x1, z0, z1, uLow, uHigh);
+                    for (size_t s = first; s && s + 4 <= positions.size(); s += 4) shade(s, part);
+                } else if (pieces.size() == 1) {
+                    slide(q, pieces[0].lowCorner ? plan.atLow : plan.atHigh);
                 }
-                if (paneCornerU(x, z, u, point->first, point->second, uLow, uHigh, turned))
-                    for (size_t i = 0; i < 4; ++i) uvs[q + i].x = turned[i];
             }
         }
-        Mask mask = 0;
-        for (size_t i = q; i < q + 4; ++i) {
-            float x = positions[i].x - bx, y = positions[i].y - by, z = positions[i].z - bz;
-            if ((x > 0.99f && east) || (x < 0.01f && west) || (z > 0.99f && south) || (z < 0.01f && north))
-                mask |= edgeSide(uvs[i].x, uLow, uHigh, du, Left, Right);
-            if ((y > 0.9f && above.has(part)) || (y < 0.1f && below.has(part))) mask |= edgeSide(uvs[i].y, vLow, vHigh, dv, Top, Bottom);
-        }
-        auto moved = sprites::shift(uLow, vLow, mask & ruleSides(glassRule()));
-        if (!moved) continue;
-        for (size_t i = q; i < q + 4; ++i) {
-            uvs[i].x += moved->u;
-            uvs[i].y += moved->v;
-        }
+        shade(q, part);
     }
 }
 LL_TYPE_INSTANCE_HOOK(ConnectedPane, ll::memory::HookPriority::Normal, BlockTessellator,
