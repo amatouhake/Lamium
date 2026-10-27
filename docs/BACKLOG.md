@@ -631,7 +631,10 @@ Lines start with `book paste trace: ` and are capped at 300 per five seconds;
 each carries `tid=` so the paste's thread can be read off. The vanilla JSON's
 `$max_page_length` is not readable through the SDK (`Json::Value` is forward
 declared only), so the page limit is logged from the text box and the text edit
-context instead. Evidence and the three answers come from an in-game run.
+context instead. Evidence and the three answers come from an in-game run:
+open a book and quill in a world, paste a short text, paste a long text (more
+than one page), paste Japanese text, then close and reopen the book;
+`logs/lamium.log` holds the `book paste trace: ` lines.
 No release target selected.
 
 ### L-266 Schematic follow-up batch (0.3.1)
