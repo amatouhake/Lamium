@@ -1,5 +1,6 @@
 #include "features/inventory/FetchSlot.h"
 #include "features/inventory/HandPick.h"
+#include "features/inventory/PickConfirm.h"
 #include "ui/SettingsRows.h"
 #include <cstddef>
 void check(bool, char const*);
@@ -77,4 +78,41 @@ void fetchSlotTests() {
     for (int slot = 0; slot < 9; ++slot) full[static_cast<size_t>(slot)].name = "minecraft:dirt";
     check(creativeSlotFor(full, 3) == 3 && creativeSlotFor(full, 9) == -1,
           "creative: a full hotbar replaces the selected slot; nothing without a selected hotbar slot");
+    // L-274: a pick is confirmed from the slot on a later frame, not from the
+    // transaction being sent.
+    using lamium::inventory::PickPending;
+    using lamium::inventory::pickConfirmFrames;
+    using lamium::inventory::pickConfirmed;
+    struct ConfirmCase {
+        char const* held;
+        short heldAux;
+        char const* wanted;
+        short wantedAux;
+        bool confirmed;
+        char const* why;
+    };
+    ConfirmCase const confirmCases[] = {
+        {"minecraft:skull", 1, "minecraft:skull", 1, true, "the asked item and its variant confirm"},
+        {"minecraft:skull", 0, "minecraft:skull", 1, false, "another variant of the same name does not confirm"},
+        {"minecraft:stone", 0, "minecraft:skull", 0, false, "another item does not confirm"},
+        {"", 0, "minecraft:skull", 0, false, "a slot the server left empty does not confirm"},
+        {"minecraft:stone", 0, "", 0, false, "a pick without an item does not confirm"},
+    };
+    for (auto const& item : confirmCases) check(pickConfirmed(item.held, item.heldAux, item.wanted, item.wantedAux) == item.confirmed, item.why);
+
+    PickPending pending;
+    check(!pending.waiting() && !pending.due(1000), "no pick waits at first");
+    pending = PickPending{3, 100, "minecraft:skull", 1};
+    check(pending.waiting(), "a sent pick waits for its read");
+    check(!pending.due(101), "the frame after the pick is too early for the server's answer");
+    check(!pending.due(100 + pickConfirmFrames - 1), "one frame before the wait ends is still too early");
+    check(pending.due(100 + pickConfirmFrames), "the pick is read once the wait is over");
+    check(pending.due(100 + pickConfirmFrames + 5), "and it stays due if a frame was missed");
+    pending.slot = -1;
+    check(!pending.due(1000), "a pick without a slot is never due");
+    pending = PickPending{3, 100, "", 0};
+    check(!pending.due(1000), "a pick without an item is never due");
+    PickPending cleared{3, 100, "minecraft:skull", 1};
+    cleared.clear();
+    check(!cleared.waiting() && !cleared.due(1000), "clearing forgets the pick");
 }
