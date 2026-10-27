@@ -158,6 +158,51 @@ validation checkpoints" (snapshot 2026-10-20).
 
 ## Bugs
 
+### L-271 Glass pane inside edge stops at a T or cross junction
+Kind: Bug / Ready. Maintainer decision 2026-10-27, option (c): a pane's inside
+corner edge must also appear at T and cross junctions, not only at an L.
+`paneCornerPoint` returns a corner only when a cell has one arm per axis, so a
+T or a cross drew no inside edge at all.
+Goal: an inside edge at every junction where a pane turns inward - one corner
+at an L, two at a T, four at a cross - with the outside edge still an L's alone
+(L-208) and the option gate as L-270 left it: outside on
+`visuals.connectedPaneCorners`, inside on that and `visuals.connectedCorners`,
+nothing computed with the pane option off.
+Built 2026-10-27, not yet checked in game: `paneConcaveCorners(parts)` derives
+the cell's concave corners from its arms - an east (west) arm at x = 9/16
+(7/16), a north (south) arm at z = 7/16 (9/16), the coordinates
+`paneCornerPoint` already gives for an L's inside, and a test says the two
+agree for all four L rotations. `paneSlidePlan(part, extents, parts)` finds
+which of a quad's ends sit at one of those corners: none, one (the whole u
+window slides there, as L-255 draws it) or both. `panePieces` cuts a both-ends
+face into a corner slice, the untouched middle and a corner slice - a slice is
+two texels, the tile border's width, or half a narrower face - so each end
+reaches its border with no texel stretched; `ConnectedTexturesHooks.cpp` asks
+`Tessellator::vertex` for the extra quads, so the tessellator's own vertex
+count, quad info and index phase stay its own, and copies every per-vertex
+stream from the face, changing only the axis coordinate and u. Two corners of
+one cell are always two texels apart, so no single-cell shape gives a both-ends
+face wider than that: the split shows up as two one-texel slices, and the three
+pieces are what a wider face would take. What splits is the post face between
+two junctions; the post's single-corner faces are still the joints the arm
+boxes cover (L-255), so an L looks exactly as it did. `paneCornerFor` now says
+which corner a quad takes at a T and at a cross too, and its outside branch is
+unchanged. Tests: the corners of L, T, cross, straight and lone; a table of
+none / one end / both ends for post and arm faces at every junction; the pieces
+of a split; a sliced window keeping its two texels.
+`help.visuals.connectedPaneCorners` now names L, T and cross in all four
+languages.
+In-game check still owed: on a pane row with a stem (a T) and on a cross, both
+options on, every face that meets a concave corner must show its inside line at
+that corner and the faces that meet none must stay plain; an L must look as
+L-255 drew it and the L-208 outside edge must not change; straight and lone
+panes must not change. With "Edges at inside corners" off, T and cross must
+look as before (merged inside); with the pane option off nothing is drawn.
+Watch the split quads with resource packs and Vibrant Visuals: a face of the
+bar must not disappear, flicker at the joint or lose its shading, and stained
+panes must behave like clear ones.
+No release target selected.
+
 ### L-270 Glass pane inside edge ignores the inside-corner option
 Kind: Bug / Ready. Maintainer report 2026-10-27, right after L-255 landed
 (`3ac38a3a`): with only "Edges at glass pane corners"
