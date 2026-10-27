@@ -185,47 +185,8 @@ validation checkpoints" (snapshot 2026-10-20).
 
 ## Bugs
 
-### L-279 "None" outlines still drew the entity ghosts' outlines
 
-Kind: Bug. Review finding 2026-10-27: the "None" outline width removed only the
-block ghosts' light-blue outlines (`GhostMesh.cpp`), while entity ghosts kept
-theirs (`EntityModels.cpp`), contradicting the help text "None draws no light-blue
-outlines". Maintainer decision 2026-10-27: hide the entity ghosts' outlines too.
 
-`EntityModels.cpp` now decides once per model whether to outline at all, fills no
-line mesh and renders none when the width is None, instead of building a mesh it
-does not draw.
-
-Status 2026-10-27: built, not yet checked in game.
-
-### L-278 Real liquids come before a ghost when the target option is on
-
-Kind: Bug / decided. Review finding 2026-10-27: `TargetInfo::target()` checked a
-schematic ghost before real water and lava, so with "Target water and lava" on a
-liquid in front and a ghost behind showed the ghost, the opposite of what the
-option promises. Maintainer decision 2026-10-27: with the option on, real water
-and lava come first; with it off, the ghost keeps the target as before.
-
-The liquid scan now runs before the ghost scan (`TargetInfo.cpp`), and the
-option's help text in four languages says a real liquid in front of a ghost is
-what the target shows. The scan still stops at the first non-liquid, non-air
-block, so tall grass or a snow layer hides water behind it; that is recorded here
-as the intended rule rather than a defect.
-
-Status 2026-10-27: built, not yet checked in game.
-
-### L-277 Flowing lava reads "4 / 3" from an out-of-range depth
-Kind: Bug. Review finding 2026-10-27: `interpretBlockState()` in
-`src/features/information/TargetInfo.h` halved a slow lava depth
-(`(depth + 1) / 2`) against a maximum of three, so a lava `liquid_depth` of 7
-outside the Nether printed "4 / 3" and its progress sat at 0. The step count
-is clamped to the liquid's own maximum: that row reads "3 / 3", and every
-in-range row is unchanged (L-264: three steps outside the Nether, seven in it).
-Status 2026-10-27: built, not yet checked in game: the table test in
-`tests/TargetDetailTests.cpp` covers `liquid_depth` 0-9 for water, Overworld
-lava and Nether lava. In game: aim at flowing lava in the Overworld and in the
-Nether (the flow row is unchanged), then set a lava block's depth to 7 outside
-the Nether (a `/setblock` with that state) and read "3 / 3".
 
 ### L-276 A temporary waypoint whose removal cannot be saved is never announced again
 Kind: Bug. Review finding 2026-10-27 on `08da0c47`: `waypoints::arrive()`
@@ -241,7 +202,7 @@ leaves the waypoint armed, so the announcement comes on the frame the write
 succeeds; the announce rules themselves are unchanged. The armed ids are an
 `std::unordered_set` instead of a list, because every HUD frame looked each
 temporary waypoint up in it (`isArmed`) with up to 1000 entries.
-Status 2026-10-27: built, not yet checked in game: table test in
+Status 2026-10-27: the normal path is checked in game on `9006c175` (one toast, the waypoint removed); the save-failure path - read-only `waypoints.json`, no toast and the waypoint kept, removed only once writes work again - is still to check. Table test in
 `tests/WaypointTests.cpp` (`arrivalSave`) covers a save that fails first (the
 waypoint stays and a later frame announces it) and one that works (announced
 once, the other waypoint kept). In game: add a temporary waypoint, walk away
@@ -249,22 +210,6 @@ and back (announced once, removed); then make the waypoint file read-only, add
 and reach another (nothing announced, it stays), make the file writable again
 and stand there (announced and removed).
 
-### L-275 A ghost without an item lets vanilla pick the real block behind it
-Kind: Bug. Review of L-263, 2026-10-27. In `GhostPick.cpp` the ghost branch
-returned only when `describe(...).item` was not empty. For fire, water and
-other item-less ghosts the call fell through to `origin(hit, withData)` and
-picked the real block behind the ghost, contradicting the comment "The
-ghost's block or nothing: never the real block behind it". The same
-fall-through happened when the ghost path threw, so a failed pick also
-handed the real block to vanilla.
-Decided: once a ghost is detected, `origin` is never called. A ghost without
-an item does nothing (nothing to select or give), and an exception after that
-point is swallowed inside the ghost branch. `origin` stays for the no-ghost
-path, which includes the feature being off (`ghostAlong` returns nothing
-then).
-Status 2026-10-27: built, not yet checked in game. In game: middle-click a
-fire or water ghost standing in front of a real block and the hand must stay
-as it was.
 
 ### L-274 Ghost pick cannot tell a refused pick from an accepted one
 Kind: Bug. Review of L-263, 2026-10-27. `game::movePair` and
@@ -284,34 +229,13 @@ ghost drawing already uses, no new hook), reads the slot once, logs one
 nothing` when the slot is empty) when the contents differ, and forgets the
 pick. A newer pick replaces the waiting one and stopping the feature clears
 it.
-Status 2026-10-27: built, not yet checked in game. Tests in
+Status 2026-10-27: the accepted path is checked in game on `9006c175` (a successful pick logs nothing); the refused path - one `pick not confirmed` line - still needs a server that refuses the give or the move. Tests in
 `tests/FetchSlotTests.cpp` for `pickConfirmed` (name, data value, empty slot,
 empty pick) and for `PickPending::due` (the frame itself, the frame after,
 the last frame before the read, after it, cleared and item-less picks).
 In game: a pick the server refuses must log that line instead of passing
 silently; an accepted pick must log nothing.
 
-### L-273 Ghost pick ignores the data value and picks another variant
-Kind: Bug. Review of L-263, 2026-10-27. `pickFor` in
-`src/features/inventory/HandPick.h` compared the 36 slots by item name only,
-and `bringToHand` in `src/features/inventory/BringToHand.cpp` filled those
-names from `stack.getTypeName()`. The creative give path already compared the
-data value (`pickedStack` and `listedInCreative`). For blocks whose variants
-share a name (skull, monster egg) the owned path therefore selected or
-swapped a different variant and reported success.
-Decided: the pure slot description carries both. `HandSlot` (name + aux) and
-`HandSlots` describe the 36 slots; `pickFor(slots, selected, name, aux)`
-compares name and data value, `creativeSlotFor` takes the same description,
-and `bringToHand` takes name + aux, fills them from the stack and returns the
-slot that now holds the item. `GhostPick.cpp` passes the ghost block's item
-name and aux, the values `pickedStack` builds with `reinit(name, 1, aux)`, so
-both paths ask for the same item.
-Status 2026-10-27: built, not yet checked in game. Tests in
-`tests/FetchSlotTests.cpp`: skull and monster egg variants (another variant
-is swapped instead of the one in the hotbar, the carried variant is selected,
-a variant that is not carried is nothing).
-In game: a skull and a monster egg in another variant must be swapped in, and
-a variant that is not carried must do nothing (not select its sibling).
 
 ### L-247 Status effects HUD reorders rapidly under beacon effects
 Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in

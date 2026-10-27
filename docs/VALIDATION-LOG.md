@@ -52,6 +52,24 @@ edges and in dense areas.
   0.12-0.17%), guard 1.4-3.2 ms, probes 1.8-4.4 ms, move-request guard 0.8-1.6 ms.
 - Release build (no probe options) deployed and walked with no change in behaviour on 2026-10-27.
 
+## Review round of 2026-10-27, ghost pick, waypoints, liquids and outlines (2026-10-27)
+
+Merged `main` `9006c175` (PRs #52, #53 plus the direct commits a3becc6d and 83958ad9; DLL SHA-256
+`6FA2A242B5B3DA96E66EE3021F3196C8814D5465A3BFF9A66607C959B84C0B15`), `1.26.51.01` LIP, local world,
+release build with no trace options, maintainer.
+
+- L-273 ghost pick data value: a skull and a monster egg ghost of a variant that is not carried is given in
+  creative and does nothing in survival; a carried variant is still selected.
+- L-275 item-less ghosts: a fire and a water ghost in front of a real block pick nothing.
+- L-277 liquid steps: flowing water n / 7, overworld lava n / 3, Nether lava n / 7, and an overworld lava
+  block with depth 7 as 3 / 3.
+- L-278 liquid priority: with "Target water and lava" on, water in front of a ghost is the target; off, the
+  ghost is.
+- L-279 None outlines: the entity ghosts' light-blue outlines go with the blocks', mistake outlines stay.
+- Not seen (still open in BACKLOG): the refused-pick line of L-274 (needs a server that refuses the give or
+  move) and the save-failure path of L-276 (read-only `waypoints.json`). No server checks were made, so the
+  server half of L-273 to L-275 stays open too.
+
 ## Rebase note for the 2026-10-20 entries
 
 The local commits named in the 2026-10-20 entries below were rebased onto
