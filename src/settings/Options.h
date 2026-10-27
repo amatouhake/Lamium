@@ -414,6 +414,7 @@ inline constexpr auto options = std::to_array<Option>({
         [](Settings& s, int direction) { s.ui.hudBackgroundOpacity += direction * 4; s.normalize(); },
         NumericOption{0, 100, [](Settings& s, float v) { s.ui.hudBackgroundOpacity = static_cast<int>(std::lround(v)); }, 4}},
     toggle<&Settings::ui, &Settings::Interface::automationStatus>("interface.automationStatus", "automationStatus", "automationStatus"),
+    toggle<&Settings::ui, &Settings::Interface::bookPaste>("interface.bookPaste", "bookPaste", "bookPaste"),
     hudNumeric<ui::HudElementId::Info, &ui::HudElement::scale, 25>("hud.info.scale", "infoHud", "hudScale", 75, 150),
     hudChoice<ui::HudElementId::Info, &ui::HudElement::background, lineBackgroundLabels>("hud.info.background", "infoHud", "hudBackground"),
     hudToggle<ui::HudElementId::Info, &ui::HudElement::shadow>("hud.info.shadow", "infoHud", "hudShadow"),

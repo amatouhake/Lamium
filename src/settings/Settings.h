@@ -123,6 +123,8 @@ struct Settings {
         int animations = 0; // 0 follow Minecraft's Screen Animations, 1 on, 2 off
         bool toggleToasts = true;
         bool automationStatus = true;
+        // L-259: a paste that does not fit the page continues on new pages.
+        bool bookPaste = true;
         int hudRowHeight = 12; // Line height of the Info HUD, Status and Debug View, 9-16 (L-98)
         int hudBackgroundOpacity = 60; // Percent, HUD cards and line backgrounds (L-98)
     } ui;

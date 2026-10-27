@@ -23,7 +23,7 @@ inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand" || id == "hideEffects" || id == "connectedTextures") return "section.camera";
     if (id == "previews" || id == "durability" || id == "foodValues" || id == "lockedTrades" || id == "repeatTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore") return "section.inventory";
     if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
-    if (id == "settings" || id == "gameLanguage" || id == "skipServerPacks" || id == "calculator" || id == "toasts" || id == "hudText") return "section.interface";
+    if (id == "settings" || id == "gameLanguage" || id == "skipServerPacks" || id == "calculator" || id == "toasts" || id == "hudText" || id == "bookPaste") return "section.interface";
     if (id.starts_with("schematic")) return "section.schematic";
     if (id == "minimap" || id == "mapText" || id == "caveView" || id == "radar" || id == "waypoints" || id == "worldMap") return "section.map";
     return "section.information";
@@ -105,6 +105,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"calculator", "feature.calculator", "help.calculator", "", false, input::Action::OpenCalculator},
     // Headings without a switch: their first row is the switch (no key of its own).
     {"toasts", "feature.toasts", "help.toasts", ""},
+    {"bookPaste", "feature.bookPaste", "help.bookPaste", ""},
     // Text of the line elements (Info HUD, Status, Debug View) and HUD backgrounds.
     {"hudText", "feature.hudText", "help.hudText", ""},
 });
