@@ -283,32 +283,101 @@ inline constexpr PaneEdges paneEdgeKinds(bool paneCorners, bool insideCorners) {
     return {paneCorners, paneCorners && insideCorners};
 }
 // The corner of the turn a quad slides onto: the post's outside faces keep
-// their edge there (L-208), the arm faces beside the inside corner gain one
-// (L-255).
+// their edge there (L-208), the faces beside a concave corner gain one
+// (L-255, L-271).
 enum class PaneCorner { None, Outside, Inside };
 // A quad that spans no distance in one axis sits on a plane at `value`; mesh
 // coordinates land on 1/16 steps, so a fraction of a texel is enough.
 inline bool paneOnPlane(float low, float high, float value) {
     return std::abs(low - value) < 0.02f && std::abs(high - value) < 0.02f;
 }
-// L-208/L-255: the corner a quad takes, from its own extents and the pane's
-// parts. The post's own faces take the outside corner. Its two faces at the
-// inside corner are the joints the arms' boxes cover, so they are never seen;
-// the inside edge belongs to the arm faces that meet there instead - for each
-// arm, the face at the corner's coordinate on the axis it does not run along.
-// A quad that takes no corner is left to the mask path.
-inline PaneCorner paneCornerFor(Part part, float x0, float x1, float z0, float z1, Parts const& parts) {
-    auto outside = paneCornerPoint(parts);
-    if (!outside) return PaneCorner::None;
-    if (part == Part::Center) {
-        bool onOutside = paneOnPlane(x0, x1, outside->first) || paneOnPlane(z0, z1, outside->second);
-        return onOutside ? PaneCorner::Outside : PaneCorner::None;
+// L-271: the concave (inside) corners of a cell's arms, where the pane turns
+// inward. Every pair of adjacent arms makes one - one for an L, two for a T,
+// four for a cross, none for a straight or lone pane - and they are exactly
+// the corners paneCornerPoint calls the inside of an L: an east (west) arm at
+// x = 9/16 (7/16), a north (south) arm at z = 7/16 (9/16).
+inline std::vector<std::pair<float, float>> paneConcaveCorners(Parts const& parts) {
+    std::vector<std::pair<float, float>> corners;
+    if (!parts.present) return corners;
+    for (bool east : {true, false})
+        for (bool north : {true, false})
+            if (parts.has(east ? Part::East : Part::West) && parts.has(north ? Part::North : Part::South))
+                corners.push_back({east ? 0.562f : 0.437f, north ? 0.437f : 0.562f});
+    return corners;
+}
+// L-271: which of a quad's ends sit at one of those corners. A quad on a side
+// plane has two ends, and an end is a corner when both of its coordinates are
+// one, to the tolerance paneCornerU uses. `cutLow`/`cutHigh` say where the
+// corner slices end when both ends are corners: a slice is two texels wide,
+// the width of the tile border it slides onto, or half a narrower quad (which
+// then has no middle).
+struct PaneSlidePlan {
+    bool low = false, high = false;
+    std::pair<float, float> atLow{}, atHigh{};
+    float cutLow = 0.f, cutHigh = 1.f;
+    bool any() const { return low || high; }
+    bool split() const { return low && high; }
+};
+inline PaneSlidePlan paneSlidePlan(Part part, float x0, float x1, float z0, float z1, Parts const& parts) {
+    PaneSlidePlan plan;
+    bool alongX = x1 - x0 > z1 - z0;
+    float axisLow = alongX ? x0 : z0, axisHigh = alongX ? x1 : z1;
+    float plane = alongX ? z0 : x0;
+    if (axisHigh - axisLow < 0.02f) return plan;
+    for (auto const& corner : paneConcaveCorners(parts)) {
+        if (std::abs((alongX ? corner.second : corner.first) - plane) > 0.06f) continue;
+        float at = alongX ? corner.first : corner.second;
+        if (std::abs(at - axisLow) < 0.06f) {
+            plan.low = true;
+            plan.atLow = corner;
+        } else if (std::abs(at - axisHigh) < 0.06f) {
+            plan.high = true;
+            plan.atHigh = corner;
+        }
     }
-    auto inside = paneCornerPoint(parts, true);
-    if (!inside) return PaneCorner::None;
-    bool alongX = part == Part::East || part == Part::West;
-    bool across = alongX ? paneOnPlane(z0, z1, inside->second) : paneOnPlane(x0, x1, inside->first);
-    return across ? PaneCorner::Inside : PaneCorner::None;
+    // A post face that ends at a single concave corner is one of the joints the
+    // arms' boxes cover (L-255), so it takes nothing; between two junctions it
+    // is the one post face that can show, and it splits.
+    if (part == Part::Center && !plan.split()) return {};
+    if (plan.split()) {
+        float slice = std::min(2.f / 16.f, (axisHigh - axisLow) / 2);
+        plan.cutLow = slice / (axisHigh - axisLow);
+        plan.cutHigh = 1.f - plan.cutLow;
+    }
+    return plan;
+}
+// L-208/L-255/L-271: the corner a quad takes, from its own extents and the
+// pane's parts. The post's own faces take the outside corner of an L. Where
+// the pane has no outside corner (a T or a cross), the post face between two
+// concave corners takes the inside edge instead. An arm face takes the inside
+// edge when one of its ends sits at a concave corner; for each arm that is the
+// face at the corner's coordinate on the axis it does not run along. A quad
+// that takes no corner is left to the mask path.
+inline PaneCorner paneCornerFor(Part part, float x0, float x1, float z0, float z1, Parts const& parts) {
+    if (part == Part::Center) {
+        if (auto outside = paneCornerPoint(parts))
+            return paneOnPlane(x0, x1, outside->first) || paneOnPlane(z0, z1, outside->second) ? PaneCorner::Outside
+                                                                                              : PaneCorner::None;
+        return paneSlidePlan(part, x0, x1, z0, z1, parts).split() ? PaneCorner::Inside : PaneCorner::None;
+    }
+    return paneSlidePlan(part, x0, x1, z0, z1, parts).any() ? PaneCorner::Inside : PaneCorner::None;
+}
+// The pieces a quad is cut into (L-271): one when at most one of its ends is a
+// corner, else a corner slice at each end and the unchanged middle between
+// them. A middle of no width is dropped, so a two-texel face becomes two
+// one-texel slices. Each piece's u window is its own share of the original one,
+// so a slice that slides keeps its width and nothing stretches.
+struct PanePiece {
+    float from = 0.f, to = 1.f;
+    bool lowCorner = false, highCorner = false;
+};
+inline std::vector<PanePiece> panePieces(PaneSlidePlan const& plan) {
+    if (!plan.any()) return {};
+    if (!plan.split()) return {{0.f, 1.f, plan.low, plan.high}};
+    std::vector<PanePiece> pieces{{0.f, plan.cutLow, true, false}};
+    if (plan.cutHigh > plan.cutLow + 1e-4f) pieces.push_back({plan.cutLow, plan.cutHigh, false, false});
+    pieces.push_back({plan.cutHigh, 1.f, false, true});
+    return pieces;
 }
 // A face with a corner end slides onto the tile border there: the whole face
 // moves by one delta, so the window keeps its width (16 px stays 16 px) and
