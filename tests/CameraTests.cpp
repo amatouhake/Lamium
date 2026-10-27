@@ -25,8 +25,6 @@ int main() try {
     detachedCameraMotionTests();
     extern void freeCameraCullingTests();
     freeCameraCullingTests();
-    extern void freeCameraInsideBlockTests();
-    freeCameraInsideBlockTests();
     extern void viewFeetTests();
     viewFeetTests();
     extern void restrictionRegionTests();

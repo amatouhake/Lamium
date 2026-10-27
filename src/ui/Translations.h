@@ -32,7 +32,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"capability.ChatPosition", "Chat placement", "チャットの配置"},
     {"capability.FreeCameraHand", "Hide the hand", "手の非表示"},
     {"capability.FreeCameraHud", "Hide the whole HUD", "HUD全体の非表示"},
-    {"capability.FreeCameraInsideBlock", "Inside-a-block view", "ブロック内の表示"},
     {"capability.HideParticles", "Particle visibility", "パーティクルの非表示"},
     {"capability.HideBossBars", "Boss bar visibility", "ボスバーの非表示"},
     {"capability.SchematicBlend", "Transparent schematic ghosts", "設計図の半透明表示"},

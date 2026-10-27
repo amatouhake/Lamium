@@ -85,7 +85,6 @@ the package/SDK loader-policy alignment in CI.
 | Capability (log name) | Where | Stays vanilla | Still works |
 |---|---|---|---|
 | FreeCamera terrain (native culler request) | `FreeCameraCulling.cpp` | underground terrain hidden as vanilla culls it | FreeCamera itself |
-| FreeCamera view (inside-a-block screen effect) | `FreeCameraInsideBlock.cpp` (the view's inside-cube flag) | the effect the body asks for, drawn as vanilla decides | FreeCamera itself |
 | Connected Textures (chunk mesh vertices) | `ConnectedTexturesHooks.cpp`, `ConnectedSprites.cpp` | glass with borders | the setting (no effect) |
 | Night Vision (light texture data) | `NightVision.cpp` | vanilla light | the key and setting (no effect) |
 | Edge Guard (movement request) | `EdgeGuard.cpp` (movement request and move vector), `EdgeGuardHistory.cpp` (replay input capture) | vanilla movement and history capture | the setting (no effect) |
@@ -187,19 +186,6 @@ and the HUD screen's draw (`ScreenView::render`, the `.hud_screen` root
 name, the hotbar control names `desktop_hotbar`, `pocket_hotbar`,
 `hotbar_panel` and their `mVisible` flag, set back after the draw). The
 hotbar part is gated (FreeCamera hide).
-
-### `src/features/camera/FreeCameraInsideBlock.cpp`
-Hooks: `InsideBlockView`
-Meaning: `LevelRendererPlayer::createViewRenderObject` builds the local
-player's view, and `ViewRenderData::mDrawInsideCubes` on it decides the
-inside-a-block screen effect (the cube the game draws around a camera that is
-inside a block). The game answers from the body, which is why a FreeCamera
-started with the head buried kept the effect while flying in the air. The view
-is this frame's own copy, so only its flag is cleared, and only while
-FreeCamera owns the primary view; the next frame is vanilla again. Gated
-(FreeCamera view). The SDK's `InsideCubeRenderer` and `InsideBlockEffect`
-declarations are empty, so this flag is the only reachable path; a changed
-meaning only brings the effect back (L-244). Checked in game: not yet.
 
 ### `src/features/information/DebugVanillaHud.cpp`
 Hooks: `DebugPositionSprite`, `DebugPositionText`, `DebugPaperDoll`
