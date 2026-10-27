@@ -39,7 +39,9 @@ std::optional<GhostAt> pickedGhost(LocalPlayer& player, HitResult const& hit) {
     return ghostAlong(player.getDimensionBlockSource(), static_cast<int>(player.getDimensionId()), from.x, from.y, from.z,
                       way.x / length, way.y / length, way.z / length, reach, onHit);
 }
-// The ghost's block as one item, as the game's own pick would give it.
+// The ghost's block as one item, as the game's own pick would give it: the
+// name and data value both paths use (skull kinds and monster eggs differ
+// only in the data value).
 ItemStack pickedStack(Block const& block) {
     ItemStack stack;
     auto item = block.getBlockType().asItemInstance(block, nullptr);
@@ -51,13 +53,13 @@ LL_TYPE_INSTANCE_HOOK(GhostPickHook, ll::memory::HookPriority::Normal, LocalPlay
                       HitResult const& hit, bool withData) {
     try {
         if (auto ghost = pickedGhost(*this, hit); ghost && ghost->block)
-            if (auto item = describe(*ghost->block, "").item; !item.empty()) {
+            if (auto stack = pickedStack(*ghost->block); !stack.isNull()) {
                 // The ghost's block or nothing: never the real block behind it.
                 // Creative mode gives it when it is not carried, like vanilla
                 // (L-263); not on a game build whose transaction is unchecked.
-                if (!inventory::bringToHand(*this, item) && isCreative()
+                if (inventory::bringToHand(*this, stack.getTypeName(), stack.getAuxValue()) < 0 && isCreative()
                     && versionSensitiveAllowed(capabilities::Id::SchematicCreativePick))
-                    if (auto stack = pickedStack(*ghost->block); !stack.isNull()) inventory::giveToHand(*this, stack);
+                    inventory::giveToHand(*this, stack);
                 return;
             }
     } catch (...) {}

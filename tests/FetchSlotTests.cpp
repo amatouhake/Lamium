@@ -1,6 +1,7 @@
 #include "features/inventory/FetchSlot.h"
 #include "features/inventory/HandPick.h"
 #include "ui/SettingsRows.h"
+#include <cstddef>
 void check(bool, char const*);
 void fetchSlotTests() {
     using lamium::inventory::fetchSlot;
@@ -26,23 +27,54 @@ void fetchSlotTests() {
     check(!optionWarning("inventory.toolSwitchSlot", value), "no warning while the fetch is off");
     // L-263: where a ghost's block is picked from.
     using lamium::inventory::HandPick;
+    using lamium::inventory::HandSlots;
     using lamium::inventory::pickFor;
-    std::array<std::string, 36> names{};
-    names[2] = names[5] = "minecraft:stone";
-    names[20] = "minecraft:glass";
-    check(pickFor(names, 5, "minecraft:stone").kind == HandPick::Select && pickFor(names, 5, "minecraft:stone").slot == 5,
+    HandSlots slots{};
+    auto hold = [&slots](int slot, char const* name, short aux = 0) {
+        slots[static_cast<size_t>(slot)].name = name;
+        slots[static_cast<size_t>(slot)].aux = aux;
+    };
+    hold(2, "minecraft:stone");
+    hold(5, "minecraft:stone");
+    hold(20, "minecraft:glass");
+    check(pickFor(slots, 5, "minecraft:stone", 0).kind == HandPick::Select && pickFor(slots, 5, "minecraft:stone", 0).slot == 5,
           "the selected slot wins when it holds the block");
-    check(pickFor(names, 0, "minecraft:stone").slot == 2, "otherwise the first hotbar slot holding it is selected");
-    auto swap = pickFor(names, 0, "minecraft:glass");
+    check(pickFor(slots, 0, "minecraft:stone", 0).slot == 2, "otherwise the first hotbar slot holding it is selected");
+    auto swap = pickFor(slots, 0, "minecraft:glass", 0);
     check(swap.kind == HandPick::Swap && swap.slot == 20, "from the inventory it is swapped into the hand");
-    check(pickFor(names, 0, "minecraft:dirt").kind == HandPick::None && pickFor(names, 0, "").kind == HandPick::None
-              && pickFor(names, 9, "minecraft:stone").kind == HandPick::None,
+    check(pickFor(slots, 0, "minecraft:dirt", 0).kind == HandPick::None && pickFor(slots, 0, "", 0).kind == HandPick::None
+              && pickFor(slots, 9, "minecraft:stone", 0).kind == HandPick::None,
           "nothing when it is not carried or no hotbar slot is selected");
+    // L-273: a variant shares the item name, so the data value has to match
+    // as well or the pick selects or swaps a different variant.
+    HandSlots variants{};
+    variants[1] = {"minecraft:skull", 0};        // skeleton
+    variants[4] = {"minecraft:monster_egg", 0};  // stone
+    variants[13] = {"minecraft:skull", 1};       // wither skeleton
+    struct AuxCase {
+        int selected;
+        char const* item;
+        short aux;
+        HandPick::Kind kind;
+        int slot;
+        char const* why;
+    };
+    AuxCase const auxCases[] = {
+        {0, "minecraft:skull", 1, HandPick::Swap, 13, "another variant is swapped, never the one in the hotbar"},
+        {1, "minecraft:skull", 0, HandPick::Select, 1, "the variant already in the selected slot is kept"},
+        {0, "minecraft:skull", 2, HandPick::None, -1, "a variant that is not carried is nothing"},
+        {0, "minecraft:monster_egg", 1, HandPick::None, -1, "a name carried only in another variant is nothing"},
+        {0, "minecraft:monster_egg", 0, HandPick::Select, 4, "the carried variant is selected"},
+    };
+    for (auto const& item : auxCases) {
+        auto pick = pickFor(variants, item.selected, item.item, item.aux);
+        check(pick.kind == item.kind && pick.slot == item.slot, item.why);
+    }
     using lamium::inventory::creativeSlotFor;
-    check(creativeSlotFor(names, 4) == 4, "creative: an empty selected slot takes the block");
-    check(creativeSlotFor(names, 2) == 0, "creative: else the first empty hotbar slot");
-    std::array<std::string, 36> full{};
-    for (int slot = 0; slot < 9; ++slot) full[static_cast<size_t>(slot)] = "minecraft:dirt";
+    check(creativeSlotFor(slots, 4) == 4, "creative: an empty selected slot takes the block");
+    check(creativeSlotFor(slots, 2) == 0, "creative: else the first empty hotbar slot");
+    HandSlots full{};
+    for (int slot = 0; slot < 9; ++slot) full[static_cast<size_t>(slot)].name = "minecraft:dirt";
     check(creativeSlotFor(full, 3) == 3 && creativeSlotFor(full, 9) == -1,
           "creative: a full hotbar replaces the selected slot; nothing without a selected hotbar slot");
 }
