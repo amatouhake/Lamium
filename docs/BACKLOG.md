@@ -302,9 +302,12 @@ without a null check elsewhere and cannot be suppressed.
 Parked 2026-10-27 (maintainer): not fixable through the exposed SDK paths -
 the flag is not the driver and the actor answer may not be nulled - without
 reverse-engineering the renderer that consumes it. Left vanilla, not a
-release blocker (leaving FreeCamera once restores the view). The hook from
-`29022178` stays but is a no-op in practice, and its "effect not drawn" log
-line can be read as success; removing the hook is a follow-up decision.
+release blocker (leaving FreeCamera once restores the view). The hook and its
+`FreeCamera view` capability, all four translations, the test and the docs
+were removed 2026-10-27 (`73584825`): it was a no-op in practice and its
+"effect not drawn" log line could be read as success. The item stays parked
+as research; the crash evidence above still stands as the reason the actor
+path is closed.
 
 ### L-245 Ghost face disappears next to real glass or a beacon from some angles
 Kind: Bug / Research, low priority. Maintainer report 2026-10-22 (0.3.0,
