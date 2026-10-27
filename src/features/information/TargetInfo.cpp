@@ -359,13 +359,16 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         if (latest.mType == HitResultType::Entity) pick.entity = latest.getEntity();
     }
     struct { HitResultType mType; BlockPos mBlock; } hit{pick.type, pick.block};
+    // Real water and lava, when the option is on, come before the ghost: with
+    // it on the player wants the liquid they are aiming at, even when a ghost
+    // stands behind it (L-278). Off, the ghost keeps the target as before.
+    if (includeLiquids && ghostRay && (hit.mType != HitResultType::Entity || onGameLine))
+        if (auto liquid = liquidTarget(player->getDimensionBlockSource(), includeStates, *ghostRay,
+                                         static_cast<int>(player->getDimensionId()) == 1)) return liquid;
     // A ghost in front of the aimed block (or in the air) is the target.
     if (includeSchematic && (hit.mType != HitResultType::Entity || onGameLine))
         if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ghostRay, onGameLine))
             return ghost;
-    if (includeLiquids && ghostRay && (hit.mType != HitResultType::Entity || onGameLine))
-        if (auto liquid = liquidTarget(player->getDimensionBlockSource(), includeStates, *ghostRay,
-                                         static_cast<int>(player->getDimensionId()) == 1)) return liquid;
     if (hit.mType == HitResultType::Entity) {
         auto* entity = pick.entity;
         if (!entity || entity == player || entity->mRemoved

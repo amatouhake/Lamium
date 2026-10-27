@@ -6,6 +6,7 @@
 #include "features/schematic/GhostActors.h"
 #include "features/schematic/GhostMarks.h"
 #include "features/schematic/GhostMesh.h"
+#include "features/schematic/GhostPick.h"
 #include "features/schematic/RayCells.h"
 #include "features/schematic/GhostVerify.h"
 #include "overlay/LineColor.h"
@@ -867,6 +868,7 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
     IClientInstance& client = context.mClientInstance;
     auto* player = client.getLocalPlayer();
     if (!player) return;
+    stepPick(*player);
     try {
         // A new graphics mode rebuilds the sections (mistake faces differ).
         // The graphics mode, the ghost tint, the outline width, the mistake
