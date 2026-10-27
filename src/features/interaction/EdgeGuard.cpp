@@ -50,6 +50,7 @@
 #include <array>
 #endif
 #include <atomic>
+#include <chrono>
 #include <stdexcept>
 #include <thread>
 #include <tuple>
@@ -73,6 +74,74 @@ float overlapMargin() { return Runtime::instance().snapshot()->interaction.edgeM
 bool installed = false;
 bool reportedServerCopy = false;
 bool reportedInput = false;
+#ifdef LAMIUM_EDGE_PERF
+// L-250: what Edge Guard costs. Every world query the guards make is counted
+// and timed, and a window is logged every five seconds.
+namespace perf {
+inline int64_t nowNs() {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+struct Counters {
+    std::atomic<uint64_t> calc{0}, owned{0}, full{0}, probes{0}, observeCalls{0}, systemCalls{0}, systemFull{0};
+    std::atomic<int64_t> guardNs{0}, probeNs{0}, observeNs{0}, systemNs{0}, maxFullNs{0}, maxProbeNs{0};
+};
+Counters counters;
+std::atomic<int64_t> windowStart{0};
+void addMax(std::atomic<int64_t>& slot, int64_t value) noexcept {
+    auto current = slot.load(std::memory_order_relaxed);
+    while (value > current && !slot.compare_exchange_weak(current, value, std::memory_order_relaxed)) {}
+}
+// Times a scope into one total, optionally keeping the longest.
+struct Timer {
+    explicit Timer(std::atomic<int64_t>& totalNs, std::atomic<int64_t>* maxNs = nullptr) : total(totalNs), max(maxNs) {}
+    ~Timer() {
+        auto const elapsed = nowNs() - start;
+        total.fetch_add(elapsed, std::memory_order_relaxed);
+        if (max) addMax(*max, elapsed);
+    }
+    int64_t start = nowNs();
+    std::atomic<int64_t>& total;
+    std::atomic<int64_t>* max;
+};
+// Times one collision query and counts it.
+inline void probe(void const* region, auto&& fetch) {
+    auto const started = nowNs();
+    fetch();
+    counters.probes.fetch_add(1, std::memory_order_relaxed);
+    counters.probeNs.fetch_add(nowNs() - started, std::memory_order_relaxed);
+    (void)region;
+}
+void flush() noexcept {
+    try {
+        auto const now = nowNs();
+        auto window = windowStart.load(std::memory_order_relaxed);
+        if (window == 0) {
+            windowStart.store(now, std::memory_order_relaxed);
+            return;
+        }
+        if (now - window < 5'000'000'000LL) return;
+        if (!windowStart.compare_exchange_strong(window, now, std::memory_order_relaxed)) return;
+        auto take = [](std::atomic<uint64_t>& c) { return c.exchange(0, std::memory_order_relaxed); };
+        auto ns = [](std::atomic<int64_t>& c) { return c.exchange(0, std::memory_order_relaxed); };
+        auto const calc = take(counters.calc), owned = take(counters.owned), full = take(counters.full),
+                   probes = take(counters.probes), observeCalls = take(counters.observeCalls),
+                   systemCalls = take(counters.systemCalls), systemFull = take(counters.systemFull);
+        auto const guard = ns(counters.guardNs), probe = ns(counters.probeNs), observe = ns(counters.observeNs),
+                   system = ns(counters.systemNs), maxFull = ns(counters.maxFullNs), maxProbe = ns(counters.maxProbeNs);
+        auto const ms = [](int64_t value) { return static_cast<double>(value) / 1e6; };
+        auto const each = [](double total, uint64_t count) { return count ? total * 1e3 / static_cast<double>(count) : 0.0; };
+        Runtime::instance().self().getLogger().info(
+            "L-250 perf 5 s: calc {} (owned {}, full {}); probes {} ({:.1f} per full guard); guard {:.2f} ms "
+            "({:.0f} us per full, max {:.0f} us); probe {:.2f} ms ({:.0f} us each, max {:.0f}); observe {:.2f} ms "
+            "({:.0f} us per call); move system {} calls, {} full, {:.2f} ms ({:.0f} us per full)",
+            calc, owned, full, probes, full ? static_cast<double>(probes) / static_cast<double>(full) : 0.0, ms(guard),
+            each(ms(guard), full), static_cast<double>(maxFull) / 1e3, ms(probe), each(ms(probe), probes),
+            static_cast<double>(maxProbe) / 1e3, ms(observe), each(ms(observe), observeCalls), systemCalls, systemFull,
+            ms(system), each(ms(system), systemFull));
+    } catch (...) {}
+}
+}
+#endif
 bool reportedPacket = false;
 // A local world's server computes move vectors on its own thread; only the
 // client's are guarded there, and client state is read only on its thread.
@@ -301,6 +370,9 @@ bool walking(LocalPlayer& player, bool sneakingToo = false) {
 }
 void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, MoveRequestComponent& request,
            IConstBlockSource const& region, GetCollisionShapeInterface const& collisionShape) {
+#ifdef LAMIUM_EDGE_PERF
+    perf::counters.systemCalls.fetch_add(1, std::memory_order_relaxed);
+#endif
     auto& runtime = Runtime::instance();
     if (!runtime.enabled() || !runtime.snapshot()->interaction.edgeGuard) return;
     auto client = ll::service::getClientInstance();
@@ -323,6 +395,10 @@ void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, M
     // Walking on the ground, sneaking too: vanilla sneaking stops with the box
     // only touching an edge, which a server treats as no support (L-160).
     if (!walking(*player, true)) return;
+#ifdef LAMIUM_EDGE_PERF
+    perf::counters.systemFull.fetch_add(1, std::memory_order_relaxed);
+    perf::Timer guardTimer{perf::counters.systemNs};
+#endif
     Vec3& speed = request.mSpeed;
     if (speed.y > 0) return; // A jump may leave the edge on purpose.
     AABB const& box = shape.mAABB;
@@ -336,7 +412,11 @@ void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, M
                    Vec3{box.max.x - margin + static_cast<float>(dx), box.min.y,
                         box.max.z - margin + static_cast<float>(dz)}};
         shapes.clear();
+#ifdef LAMIUM_EDGE_PERF
+        perf::probe(&region, [&] { region.fetchCollisionShapes(shapes, probe, false, collisionShape, nullptr); });
+#else
         region.fetchCollisionShapes(shapes, probe, false, collisionShape, nullptr);
+#endif
         return !shapes.empty();
     };
     if (!supported(0, 0)) return; // Already over a drop: do not freeze in the air.
@@ -405,8 +485,21 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
     // Sneaking too: the guard then keeps the margin, so letting go of sneak
     // at an edge does not leave the player only touching it.
     if (!own) return;
+#ifdef LAMIUM_EDGE_PERF
+    perf::counters.owned.fetch_add(1, std::memory_order_relaxed);
+    {
+        perf::Timer observeTimer{perf::counters.observeNs};
+        perf::counters.observeCalls.fetch_add(1, std::memory_order_relaxed);
+        history::observe();
+    }
+#else
     history::observe();
+#endif
     if (!walking(*player, true)) return;
+#ifdef LAMIUM_EDGE_PERF
+    perf::counters.full.fetch_add(1, std::memory_order_relaxed);
+    perf::Timer guardTimer{perf::counters.guardNs, &perf::counters.maxFullNs};
+#endif
     if (state.mFlagValues->test(static_cast<size_t>(MoveInputState::Flag::JumpDown))) return; // May leave on purpose.
     auto const& box = player->getAABB();
     auto const& region = player->getDimensionBlockSourceConst();
@@ -418,7 +511,11 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
                    Vec3{box.max.x - margin + static_cast<float>(dx), box.min.y,
                         box.max.z - margin + static_cast<float>(dz)}};
         shapes.clear();
+#ifdef LAMIUM_EDGE_PERF
+        perf::probe(&region, [&] { region.fetchCollisionShapes(shapes, probe, false, nullptr, nullptr); });
+#else
         region.fetchCollisionShapes(shapes, probe, false, nullptr, nullptr);
+#endif
         return !shapes.empty();
     };
     double yaw = player->getRotation().y;
@@ -546,10 +643,16 @@ LL_TYPE_INSTANCE_HOOK(EdgeGuardSurvivalPlaceHook, ll::memory::HookPriority::Norm
 LL_STATIC_HOOK(EdgeGuardInputHook, ll::memory::HookPriority::Normal, &PlayerMovement::calculateMoveVector, Vec2,
     MoveInputState const& inputState, bool playerIsFlying, ActorDataFlagComponent const& playerData, bool playerIsInWater,
     SneakingComponent const* sneakComponent) {
+#ifdef LAMIUM_EDGE_PERF
+    perf::counters.calc.fetch_add(1, std::memory_order_relaxed);
+#endif
     auto move = origin(inputState, playerIsFlying, playerData, playerIsInWater, sneakComponent);
     try {
         if (versionSensitiveAllowed(capabilities::Id::EdgeGuardMovement)) guardMoveVector(inputState, move);
     } catch (...) {}
+#ifdef LAMIUM_EDGE_PERF
+    perf::flush();
+#endif
     return move;
 }
 LL_TYPE_INSTANCE_HOOK(EdgeGuardSendHook, ll::memory::HookPriority::High, LoopbackPacketSender,
