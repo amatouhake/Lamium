@@ -81,11 +81,10 @@ choices live in the L-items. An L-item wins if a summary drifts.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): decided and Ready (2026-10-26): L-246, L-252, L-253,
    L-254.
-   **L-266 schematic follow-up batch for 0.3.1** (stages 1-3 done and
-   checked; L-264 and stage 4, L-256, done 2026-10-26; L-263's creative
-   pick built, to check with the 0.3.1 pre-release round, then the
-   batch closes). Before 0.3.1
-   as well (maintainer 2026-10-26): L-265 placement assist (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   **L-266 schematic follow-up batch** closed with the 0.3.1 release
+   (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
+   pick are all checked. Still open from it: L-265 placement assist
+   (Design). L-196 license/provenance evidence; L-236 is a follow-up;
    L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -105,7 +104,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    initiation, L-30 dragon hitboxes, L-33 mob timers, L-105 profiling.
    L-151/L-152/L-153 and the previously parked work remain later.
 7. **Before the next release:** changed-feature smoke and the relevant
-   Pre-release checks below. Latest release: 0.3.0, 2026-10-22 (`v0.3.0`).
+   Pre-release checks below. Latest release: 0.3.1, 2026-10-27 (`v0.3.1`).
    No next date is selected; a full regression is not a release gate.
 
 Task-picking rule: bugs first, then this order; follow each item's model,
@@ -124,35 +123,9 @@ server case are not release gates. [VALIDATION.md](VALIDATION.md) owns
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
-### Since 0.3.0
+### Since 0.3.1
 
-Changed features in the unreleased 0.3.1 batch (L-266 and its neighbours):
-
-- Traditional Chinese (zh_TW) UI, with Java Edition terms for the shulker box and
-  the bundle.
-- Temporary waypoints that disappear when reached (L-261), in the map and the
-  waypoint editors.
-- Schematic check: ignore redstone signal, on/off forms and growth (L-262); a
-  switch for mistake marks; a "None" outline width (L-254) that now also drops the
-  entity ghosts' outlines (L-279).
-- Target View: a schematic's water is shown, and real water and lava optionally,
-  now in front of a ghost when that option is on (L-264, L-278).
-- Ghost pick: the aimed ghost's block is picked from the inventory, and given in
-  creative mode (L-263).
-- Connected Textures: an inside edge at pane corners (L-255), gated by the
-  inside-corner option (L-270) and drawn at T and cross junctions too (L-271);
-  sprites named per atlas build so a reload cannot keep an old atlas (L-260).
-- Hand Restock: switches for shulker boxes and buckets (L-251).
-- Status effect rows stay in place while their durations refresh (L-247).
-- New shapes are placed at the camera's feet when the view is detached (L-248).
-- Edge Guard no longer re-derives its replay target on every move vector call,
-  which made the game feel heavy with it on (L-250).
-- Built against LeviLamina Client 26.51.8.
-- Ghost drawing: nearby sections rebuild only around the camera, outline vertices
-  are copied in bulk, and the check scan is capped per frame (L-256).
-- Fixed: schematic door halves, cross-plant flicker and preview water (L-268,
-  L-269); the FreeCamera inside-a-block hook was removed as it did not drive the
-  effect (L-244).
+No changed features recorded yet.
 
 ### Gaps carried from released builds
 

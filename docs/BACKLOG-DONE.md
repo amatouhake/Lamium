@@ -7550,6 +7550,11 @@ check); 13 B with L-15 (in-game check). In-game check 1 follows step 1.
 
 ## Archived release and validation checkpoints
 
+0.3.1 released 2026-10-27 (`v0.3.1`, asset SHA-256 `D2BA64271645CA4910123C4C8655441ADFCEFABF8AE5DF3D412C257F3E1C00F7`, 28 entries, `manifest.json` 0.3.1).
+Its user-facing changes are the release notes; the checks still owed are L-274's refused-pick line (a
+server that refuses the give or the move) and L-276's save-failure path (read-only `waypoints.json`).
+No server checks were made for this release.
+
 ### 0.3.0 pre-release checks — retained 2026-10-26
 
 Moved from BACKLOG.md after the 0.3.0 release; the remaining gaps are
