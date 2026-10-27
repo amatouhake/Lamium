@@ -420,6 +420,36 @@ confirmed from the inventory, not from these events alone.
 Hooks: `Build`, `HandleBuild`, `Name`, `StartUse`
 Trace (`Name` is the macro that makes several hooks).
 
+### `src/features/inventory/BookPaste.cpp`
+Hooks: `BookScreenTick`, `BookScreenValid`, `PageBoxFocus`, `TextTrySet`, `ContextText`, `BookScreenOpen`, `TextCharKey`, `TextFits`, `ContextAction`, `PageParse`, `PageSetText`, `PageAddAt`, `ManagerEditPage`, `ManagerAddPage`, `BookEditSend`, `BookEditSendToServer`
+Meaning (L-259): `ContextText` is `TextEditContext::feedText`, where a paste
+arrives after `feedAction(Paste)`. A paste into the page box of an editable book
+and quill that does not fit is split and written through that controller:
+`_setPageText` for the current page, then `_addPageAt` for each new page in
+order, which the game sends as `BookEditPacket(replace)` and one `(add)` per
+page. It only runs while `BookScreenTick` (`$preFrameTick`) has just named the
+screen, the book is editable, the view is Viewing, the text edit context's limit
+is the page's 256 characters, and `PageBoxFocus` (`handleFocusSet`) or
+`TextTrySet` (`trySetText`) has named the 256-character constrained page box;
+every other text field, and any gate that fails, goes to the game untouched.
+`BookScreenValid` (`$_isStillValid`) drops the remembered screen when it closes.
+The page's size test is the game's own (`_textFitsInControl` plus the
+256-character limit), so a game update that changes page wrapping or the page
+length shows up as wrong page breaks. Verify after an update by pasting a short
+text (vanilla refuses nothing), a text longer than one page (new pages after the
+current one, later pages moved back), Japanese text (whole characters, no
+split sequences) and a selection replaced by a paste.
+Trace (`book_paste_trace`): read-only observations of the paste path, plus the
+new path's decision, split plan and pages written. The text box's character
+event and text-fit test, the text edit context's actions, caret, selection and
+limit, the book controller's page parse, set and add, the screen manager's page
+edit and add, and BookEdit packets on both send routes (`$send`,
+`$sendToServer`). `BookScreenOpen` is `$addStaticScreenVars`: the vanilla JSON's
+`$max_page_length` is not readable through the SDK (`Json::Value` is forward
+declared only), so the page limit is logged from the text box and the text edit
+context instead. Re-trace after a game update by pasting short, long and
+Japanese text into a book and quill page and closing the book.
+
 ### `src/features/inventory/WeaponSwitch.cpp`
 Hooks: `WeaponAttack`, `WeaponSurvivalAttack`
 Meaning: an attack runs `GameMode::attack` before the swing reaches the server.

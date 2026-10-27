@@ -224,6 +224,7 @@ Json encode(Settings const& settings) {
                        {"weaponSwitchSlot", settings.inventory.weaponSwitchSlot},
                        {"fakeOffhand", settings.inventory.fakeOffhand}, {"fakeOffhandSlot", settings.inventory.fakeOffhandSlot}}},
         {"interface", {{"toggleToasts", settings.ui.toggleToasts}, {"automationStatus", settings.ui.automationStatus},
+                       {"bookPaste", settings.ui.bookPaste},
                        {"animations", settings.ui.animations}, {"hudRowHeight", settings.ui.hudRowHeight},
                        {"hudBackgroundOpacity", settings.ui.hudBackgroundOpacity}}},
         {"hud", {{"info", encodeHudElement(settings.hud.info)}, {"target", encodeHudElement(settings.hud.target)},
@@ -602,6 +603,7 @@ Settings decodeSettings(std::string_view text) {
         value.ui.toggleToasts = settingsValue(data.at("interface"), "toggleToasts", value.ui.toggleToasts);
         value.ui.animations = settingsValue(data.at("interface"), "animations", value.ui.animations);
         value.ui.automationStatus = settingsValue(data.at("interface"), "automationStatus", value.ui.automationStatus);
+        value.ui.bookPaste = settingsValue(data.at("interface"), "bookPaste", value.ui.bookPaste);
         value.ui.hudRowHeight = settingsValue(data.at("interface"), "hudRowHeight", value.ui.hudRowHeight);
         value.ui.hudBackgroundOpacity = settingsValue(data.at("interface"), "hudBackgroundOpacity", value.ui.hudBackgroundOpacity);
     }

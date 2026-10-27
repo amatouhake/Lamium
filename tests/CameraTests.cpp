@@ -67,6 +67,8 @@ int main() try {
     equipmentPlanTests();
     extern void textFitTests();
     textFitTests();
+    extern void bookPasteTests();
+    bookPasteTests();
     extern void numberInputTests();
     numberInputTests();
     extern void overlayGeometryTests();

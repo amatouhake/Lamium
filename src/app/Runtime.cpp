@@ -42,6 +42,7 @@
 #include "features/inventory/game/LegacyFlowTrace.h"
 #include "features/inventory/ToolSwitch.h"
 #include "features/inventory/WeaponSwitch.h"
+#include "features/inventory/BookPaste.h"
 #include "features/inventory/FakeOffhand.h"
 #include "features/inventory/FakeOffhandTrace.h"
 #include "features/inventory/OffhandUseTrace.h"
@@ -182,6 +183,7 @@ Feature const features[] = {
     {"Effect diagnostics", started<visuals::effectTrace::start>, visuals::effectTrace::stop},
     {"Portal diagnostics", started<visuals::portalTrace::start>, visuals::portalTrace::stop},
     {"Language diagnostics", started<researchTrace::language::start>, researchTrace::language::stop},
+    {"Book paste", inventory::bookPaste::start, inventory::bookPaste::stop},
 };
 }
 #ifdef LAMIUM_FEATURE_SKIP
