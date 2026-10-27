@@ -665,16 +665,33 @@ the inside faces must not stretch (the L-208 outside fix moved the whole
 two-texel window). Rewrite `help.visuals.connectedPaneCorners` in all four
 languages (it says the inside stays joined). Check in game: L corners in
 both directions, T and cross junctions, stained panes, option off.
-Built 2026-10-27, not yet checked in game: with the option on, the post's two
-inside faces slide onto the tile border at their corner end the same way as
-the outside ones, so the turn shows an edge on both sides. The inside corner
-is `paneCornerPoint(parts, true)`; the slide moves the whole two-texel
-window, so the inside faces do not stretch, and each of the post's four faces
-takes the corner it sits at. With the option off nothing changes.
-`help.visuals.connectedPaneCorners` now says both sides are drawn, in all
-four languages. The slide only touches the center post's own quads, so a turn
-the game builds without a post face there would draw nothing; if only one
-side of the turn gains an edge, that is the thing to look at.
+Built 2026-10-27, not yet checked in game: with the option on, the post's
+outside faces keep their edge (L-208) and the faces on the inside of the turn
+gain one, so the turn shows an edge on both sides. The inside faces are the
+arms', not the post's: in an east+north L the post's east face (x = 9/16,
+z in 7/16..9/16) and north face (z = 7/16, x in 7/16..9/16) are exactly the
+joints the arm boxes cover, so sliding them changed nothing on screen
+(review, 2026-10-27). What a player sees from inside the turn is the east
+arm's north face (z = 7/16, x > 9/16) and the north arm's east face
+(x = 9/16, z < 7/16), which belong to the arm parts. `paneCornerFor(part,
+x0, x1, z0, z1, parts)` now decides which corner a quad takes - outside for
+the post's own faces, inside for the arm face at the corner on the axis the
+arm does not run along, nothing otherwise - and is tested for all four L
+orientations and every part, so a test says which face takes which corner.
+The slide still moves one quad's whole u window by one delta: a post face
+keeps its two texels and an arm face its own slice of the tile (seven texels
+here), so nothing stretches. The post's four faces now take only the outside
+corner, which leaves the L-208 look as it was. With the option off no parts
+or corner geometry is computed. `help.visuals.connectedPaneCorners` says
+both sides are drawn, in all four languages.
+In-game check still owed: an east+north L and an east+south L seen from
+inside the turn must each show a vertical border line at the corner on both
+faces; the outside of each turn must look as it did with L-208; a straight
+run, a lone pane, a T and a cross must not change; with the option off the
+inside shows no line. The inside line is the tile's own one-texel frame at
+the corner end, while the outside edge fills the post's two texels; if the
+inside line reads too thin, or a face shows the border at its far end
+instead of at the corner, that is the thing to look at.
 No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
