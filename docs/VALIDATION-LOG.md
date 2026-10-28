@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-259 book paste as a plain switch with a toggle key (2026-10-28)
+
+`main` `1c845919` (DLL SHA-256
+`F01550BCF5814A605AB31A7CBD6846FA857D3B8884AB1B048C374323984734DE`), `1.26.51.01`
+LIP, local world, release build with no trace options, maintainer.
+
+- Settings > Interface > "Book paste across pages" shows and flips its state on
+  the feature row itself, with no nested row.
+- A key bound to "Toggle book paste across pages" shows the toggle toast and the
+  settings row follows.
+- Not checked: Chinese wording on screen.
+
 ## L-259 book paste page order fix (2026-10-28)
 
 `main` `fa6cc2f4` (DLL SHA-256
