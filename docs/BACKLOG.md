@@ -704,6 +704,13 @@ or freshly typed box and the overflow went in after that page. A second paste
 while kept pages wait for the next frame pastes nothing (`gate=busy`) instead
 of replacing them, and a CRLF whose CR is the first character past a page drops
 its LF so the next page does not open with a blank line.
+Fix 2026-10-28 (not yet seen in game): the maintainer saw text missing between
+the pasted page and the next one. The trace of a 7,687-character paste showed
+the book holding planned pages 0, 2, 3, ... and an empty page after the last:
+`_addPageAt(i)` inserts before page i, so the new pages went in front of the
+pasted page (whose model still held the old empty text), and the box then wrote
+the pasted page's text over the first new page. New pages now go in from
+index + 1.
 No release target selected.
 
 ### L-266 Schematic follow-up batch (0.3.1)

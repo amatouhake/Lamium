@@ -306,7 +306,7 @@ inline char const* applySkipReason(ApplySkip skip) noexcept {
 }
 struct ApplyPlan {
     ApplySkip skip = ApplySkip::None;
-    int index = 0; // where the pages go
+    int index = 0; // where the first new page goes: right after the pasted page
     int add = 0;   // pages to insert, in order
     bool apply() const noexcept { return skip == ApplySkip::None; }
 };
@@ -331,7 +331,10 @@ inline ApplyPlan planApply(DeferredPages const& plan, ScreenId const& current, b
     } else if (pageCount + extra > maxPages) {
         result.skip = ApplySkip::Room;
     } else {
-        result.index = plan.index;
+        // _addPageAt(i) inserts before page i. Inserting at the pasted page put
+        // the new pages in front of it, and the box then wrote its text over the
+        // first of them, so that page's text was lost (seen in game 2026-10-28).
+        result.index = plan.index + 1;
         result.add = extra;
     }
     return result;

@@ -185,7 +185,7 @@ void bookPasteTests() {
         plan.extra = {"abc", "def"};
 
         auto applied = planApply(plan, ScreenId{0x1000, 7}, true, "hello world", 5);
-        check(applied.apply() && applied.index == 2 && applied.add == 2,
+        check(applied.apply() && applied.index == 3 && applied.add == 2,
               "the same screen, still editable, adds every kept page after the index");
 
         auto changed = planApply(plan, ScreenId{0x2000, 7}, true, "hello world", 5);
