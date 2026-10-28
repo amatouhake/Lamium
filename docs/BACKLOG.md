@@ -711,6 +711,12 @@ the book holding planned pages 0, 2, 3, ... and an empty page after the last:
 pasted page (whose model still held the old empty text), and the box then wrote
 the pasted page's text over the first new page. New pages now go in from
 index + 1.
+Settings change 2026-10-28 (maintainer): a single switch nested under a
+heading made no sense and could not take a key. Book paste is now a plain
+feature row whose state column is `interface.bookPaste` (like Skip server
+resource packs), with the unbound toggle action `bookpaste`
+(`ToggleBookPaste`); the details that were the nested row's help moved into
+the feature's help.
 No release target selected.
 
 ### L-266 Schematic follow-up batch (0.3.1)
