@@ -1,7 +1,6 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -54,11 +53,13 @@ inline Break chooseBreak(std::string_view text, int maxFit) noexcept {
     if (maxFit <= 0) return result;
     int lineBreak = -1, space = -1, index = 0, previous = 0;
     bool lineBreakEndsPair = false;
+    std::size_t lineBreakAt = 0;
     for (std::size_t i = 0; i < text.size() && index <= maxFit; ++i) {
         unsigned char const byte = static_cast<unsigned char>(text[i]);
         if ((byte & 0xc0) == 0x80) continue; // a continuation byte is not a character
         if (byte == '\n' || byte == '\r') {
             lineBreak = index;
+            lineBreakAt = i;
             lineBreakEndsPair = byte == '\n' && previous == '\r';
         } else if (byte == ' ') {
             space = index;
@@ -71,6 +72,10 @@ inline Break chooseBreak(std::string_view text, int maxFit) noexcept {
         keep = lineBreak, drop = 1;
         if (lineBreakEndsPair && lineBreak > 0) {
             keep = lineBreak - 1;
+            drop = 2;
+        } else if (text[lineBreakAt] == '\r' && lineBreakAt + 1 < text.size() && text[lineBreakAt + 1] == '\n') {
+            // A CRLF whose CR is the last character scanned: the LF must not
+            // open the next page as a blank line.
             drop = 2;
         }
     } else if (space >= 0) {
@@ -209,9 +214,13 @@ inline TextGate pageTextGate(std::string_view stored, std::string_view live) noe
 // the current page, and after the player edits the other half of the spread it
 // can still name the page they just left (seen in game 2026-10-27: a paste on
 // the left page after editing the right one fell back to vanilla). The page is
-// therefore found from the text the box holds: the preferred page when it
-// matches, otherwise the page whose stored text matches, exactly or as pending
-// typing, nearest to the preferred one and longest first.
+// therefore found from the text the box holds, among the preferred page and the
+// pages either side of it (the spread's other half is one of them): an exact
+// match before pending typing, a longer stored text before a shorter one, and
+// the preferred page on a tie. Searching the whole book let an empty page
+// anywhere match an empty or freshly typed box, and the overflow went in after
+// that page. Two neighbours that match equally well cannot be told apart, so
+// the game keeps the paste.
 struct PageChoice {
     int index = -1;
     char const* reason = "page-text";
@@ -220,28 +229,20 @@ struct PageChoice {
 inline PageChoice choosePastedPage(std::string_view live, int preferred,
                                    std::vector<std::string_view> const& stored) noexcept {
     auto const count = static_cast<int>(stored.size());
-    auto const matches = [&](int i, bool exactOnly) {
-        return pageTextGate(stored[static_cast<std::size_t>(i)], live).pass
-            && (!exactOnly || stored[static_cast<std::size_t>(i)].size() == live.size());
+    if (preferred < 0 || preferred >= count) return PageChoice{-1, "page-index"};
+    // 0 = no match; otherwise exact matches outrank pending typing, then length.
+    auto const score = [&](int i) -> std::size_t {
+        if (i < 0 || i >= count) return 0;
+        std::string_view const page = stored[static_cast<std::size_t>(i)];
+        if (!pageTextGate(page, live).pass) return 0;
+        return (page.size() == live.size() ? live.size() + 2 : 1) + page.size();
     };
-    if (preferred >= 0 && preferred < count && matches(preferred, false)) return PageChoice{preferred, "ok"};
-    auto const closest = [&](bool exactOnly) {
-        int best = -1;
-        std::size_t bestLength = 0;
-        for (int i = 0; i < count; ++i) {
-            if (!matches(i, exactOnly)) continue;
-            std::size_t const length = stored[static_cast<std::size_t>(i)].size();
-            bool const better = best < 0 || length > bestLength
-                || (length == bestLength && std::abs(i - preferred) < std::abs(best - preferred));
-            if (better) { best = i; bestLength = length; }
-        }
-        return best;
-    };
-    int const exact = closest(true);
-    if (exact >= 0) return PageChoice{exact, "page-text"};
-    int const prefix = closest(false);
-    if (prefix >= 0) return PageChoice{prefix, "pending-typing"};
-    return PageChoice{};
+    std::size_t const own = score(preferred), left = score(preferred - 1), right = score(preferred + 1);
+    if (own > 0 && own >= left && own >= right) return PageChoice{preferred, "ok"};
+    if (left == right) return PageChoice{-1, left > 0 ? "page-ambiguous" : "page-text"};
+    int const index = left > right ? preferred - 1 : preferred + 1;
+    bool const exact = stored[static_cast<std::size_t>(index)].size() == live.size();
+    return PageChoice{index, exact ? "page-text" : "pending-typing"};
 }
 
 // The book screen a deferred paste belongs to: the controller address plus the

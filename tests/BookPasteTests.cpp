@@ -53,6 +53,8 @@ void bookPasteTests() {
         check(both.keep == 5 && both.drop == 1, "the last line break wins over an earlier space");
         Break windows = chooseBreak("ab\r\ncd", 3);
         check(windows.keep == 2 && windows.drop == 2, "a CRLF line break drops both characters");
+        Break edge = chooseBreak("abc\r\nd", 3);
+        check(edge.keep == 3 && edge.drop == 2, "a CRLF whose CR is the first character past the page drops its LF too");
         Break carriage = chooseBreak("ab\rcd", 3);
         check(carriage.keep == 2 && carriage.drop == 1, "a lone carriage return ends the page");
         Break none = chooseBreak("本の栞です", 3);
@@ -262,8 +264,19 @@ void bookPasteTests() {
         auto empty = choosePastedPage("", 1, blanks);
         check(empty.ok() && empty.index == 1, "an empty box on an empty page stays with the spread's page");
         std::vector<std::string_view> growing{"ab", "abcd"};
-        auto longest = choosePastedPage("abcdX", -1, growing);
-        check(longest.ok() && longest.index == 1, "the longest matching page wins when nothing is preferred");
+        auto longest = choosePastedPage("abcdX", 0, growing);
+        check(longest.ok() && longest.index == 1, "the longest matching neighbour wins over a shorter preferred page");
+        check(!choosePastedPage("abcdX", -1, growing).ok(), "no preferred page selects no page");
+        // An empty or freshly typed box matches every empty page; only the
+        // spread around the preferred page may take the overflow.
+        std::vector<std::string_view> book{"", "text", "", "", "more", "end"};
+        auto near = choosePastedPage("", 4, book);
+        check(near.ok() && near.index == 3, "an empty box finds the empty page beside the preferred one");
+        check(!choosePastedPage("", 1, book).ok(), "two empty neighbours of the preferred page cannot be told apart");
+        check(!choosePastedPage("", 4, std::vector<std::string_view>{"", "a", "b", "c", "more"}).ok(),
+              "an empty page far from the spread is never chosen");
+        auto exactFirst = choosePastedPage("left", 1, std::vector<std::string_view>{"left", ""});
+        check(exactFirst.ok() && exactFirst.index == 0, "an exact neighbour wins over a preferred page that only prefixes");
         std::vector<std::string_view> unrelated{"one", "two"};
         check(!choosePastedPage("three", 0, unrelated).ok(), "a box holding another page's text selects no page");
         std::vector<std::string_view> photo{"", "\x01"};

@@ -157,6 +157,16 @@ Outcome handlePaste(TextEditContext& context, std::string_view paste) {
     auto& controller = *at->controller;
     if (!at->box) return reject("box");
     if (!controller.mEditable) return reject("not-editable");
+    {
+        // A second paste before the next book frame would replace the first
+        // one's kept pages, and its first part would already be on the page:
+        // paste nothing until those pages are in.
+        std::lock_guard lock(stateMutex);
+        if (pending && !pending->pages.extra.empty()) {
+            BOOK_PASTE_TRACE("paste gate=busy extra={}", pending->pages.extra.size());
+            return Outcome{Outcome::Kind::Refused};
+        }
+    }
     if (controller.mCurrentView != BookScreenController::BookView::Viewing) return reject("view");
     auto& pages = controller.mPages.get();
     // The spread does not always name the page the box belongs to, so the page

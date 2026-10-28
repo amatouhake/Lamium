@@ -695,6 +695,15 @@ In-game checks still to do: a book that already has later pages, a paste that
 replaces a selection, a paste into a nearly full page, Japanese text, a paste at
 a mid-page caret, typing one character and pasting immediately, and a server
 (the pages must survive closing and reopening the book).
+Review fixes 2026-10-28 (after the in-game rounds, not yet seen in game): the
+pasted page is searched only among the preferred page and its two neighbours
+(an exact match before pending typing, longer before shorter, the preferred
+page on a tie; two equal neighbours give `gate=page-ambiguous` and the game
+keeps the paste), because a book-wide search let any empty page match an empty
+or freshly typed box and the overflow went in after that page. A second paste
+while kept pages wait for the next frame pastes nothing (`gate=busy`) instead
+of replacing them, and a CRLF whose CR is the first character past a page drops
+its LF so the next page does not open with a blank line.
 No release target selected.
 
 ### L-266 Schematic follow-up batch (0.3.1)
