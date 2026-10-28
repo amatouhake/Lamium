@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-259 book paste page order fix (2026-10-28)
+
+`main` `fa6cc2f4` (DLL SHA-256
+`37B4794B7F487CD8464D72C1BF60A5FC27B3E7036A128004AC8DCEF9D33188C4`), `1.26.51.01`
+LIP, local world, release build with no trace options, maintainer.
+
+- Before the fix (trace build of the same day): a 7,687-character paste left
+  the first new page out (the book held planned pages 0, 2, 3, ... and an
+  empty page after the last), seen as text missing between the pasted page
+  and the next.
+- After the fix: a long paste into an empty page continues from the first page
+  onto the second without a gap; a paste in the middle of a page with text
+  puts the text after the caret at the end of the last new page, nothing
+  missing or doubled; closing and reopening the book keeps the pages.
+- Not checked: a server, Japanese text, the right page of a spread, a
+  selection replaced by a paste, and the 50-page refusal on this build.
+
 ## L-251, L-270, L-271 and the L-244 hook removal (2026-10-27)
 
 Merged `main` `c5dcb63c` (PRs #48, #49, #50, #51; DLL SHA-256
