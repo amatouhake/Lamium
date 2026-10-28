@@ -642,17 +642,68 @@ point. It runs only when the switch is on, a book screen was seen this frame
 Viewing, the context's limit is the page's 256 characters, and the page box was
 seen by its own focus or text calls; any other text field goes to the game
 untouched. Fits is the game's own test (`_textFitsInControl` plus the
-256-character limit). A split writes `context._setText` and `box->trySetText`
-for the visible page, then `_setPageText(index)` and `_addPageAt(index + k)` for
-each following page in order, so later pages move back and are never
-overwritten; the game turns that into one replace packet and one add packet per
-page. A paste that needs more pages than the 50-page limit leaves is refused
-whole, with a toast saying how many pages it needs and how many are free; the
-HUD is not drawn over the book screen, so the message is repeated when the book
-closes.
+256-character limit). A paste that needs more pages than the 50-page limit
+leaves is refused whole, with a toast saying how many pages it needs and how
+many are free; the HUD is not drawn over the book screen, so the message is
+repeated when the book closes.
+Crash 2026-10-27, first in-game run of the merged build `1d2c341a` with the
+switch on: `0xC0000005` on `mov dword ptr [0x0000000000000000], 0xDEADC0DE`
+inside `ContextText::detour+0x802` (`BookPaste.cpp:266L`), the line that called
+`origin()` after the paste had been written, with the game's own frames above
+it. The cause was that write: `_setPageText` and `_addPageAt` ran inside
+`feedText`, i.e. with the text edit's own call on the stack, and the page
+rebuild they trigger invalidates the `TextEditContext` being edited - the detour
+then returned into memory the screen had already freed, which is what the dump's
+poison value marks. The same window explains pastes that did nothing.
+Fixed in `80d6dfb8`: `feedText` writes no page model at all. When the gate
+passes and the split yields pages, the detour calls the game's own
+`origin(<the part of the paste that fits>)` - plus `context._setText(<first
+page>)` when the caret had text after it, so that tail belongs to the last new
+page - and keeps the remaining page texts as owned strings in `DeferredPages`:
+the page index, the text that page must hold, the page text from before the
+paste, the paste's frame number and the screen identity (controller address plus
+a generation the `$preFrameTick` hook bumps whenever the controller changes, so
+a heap reuse at one address is not the old screen). The existing `$preFrameTick`
+hook applies them on the next frame, and only if the same screen is current and
+still `mEditable`, the page still holds what the paste left (or the text from
+before it, or a prefix of that while the model is one parse behind) and
+`pages + kept <= 50`; the kept pages go in with `_addPageAt(index + k,
+PageContent(text))` ascending, so later pages move back and are never
+overwritten, wrapped so a throw drops the plan. Any other verdict drops the plan
+with a reason, and the screen going away clears it. The refusal toast is queued
+the same way and shown from the book's own frame, never from inside the paste,
+and again when the book closes.
+Page-text gate relaxed in the same commit: a stored page that is a prefix of the
+live text is a page whose typing has not reached the model yet, so it passes and
+the caret counts the live text; unrelated text still goes to the game untouched.
+The old rule rejected any difference, which is why a paste right after typing
+did nothing.
+The pure part now carries the gate and the deferred plan (`pageTextGate`,
+`ScreenId`, `DeferredPages`, `pageUnchanged`, `planApply`, `applySkipReason`,
+`planDue`), with table tests in `tests/BookPasteTests.cpp` for pending typing,
+unrelated text, the same screen, a reused address, a moved page, the 50-page
+room and the next-frame rule; each rule was mutated once and its test failed.
+Trace lines for the retry (`--book_paste_trace=y`, DLL SHA-256
+`7775e0b839d7fa979795419384aeed698f76235c3f2538768a68c5fd27821170`): `paste
+gate=<reason>` names the verdict (`ok`, `pending-typing`, `text-unrelated`,
+`option`, `limit`, `box`, `not-editable`, `view`, `page-index`, `photo`,
+`caret`, `empty`, `split`), `paste defer index= frame= extra= head trim=` what
+was kept, and `paste apply index= added= pages=->` or `paste apply
+skipped=<reason>` (`screen`, `not-editable`, `page`, `page-moved`, `no-room`,
+`empty`) the deferred write.
 In-game checks still to do: a book that already has later pages, a paste that
-replaces a selection, a paste into a nearly full page, Japanese text, and a
-server (the pages must survive closing and reopening the book).
+replaces a selection, a paste into a nearly full page, Japanese text, a paste at
+a mid-page caret, typing one character and pasting immediately, and a server
+(the pages must survive closing and reopening the book).
+Review fixes 2026-10-28 (after the in-game rounds, not yet seen in game): the
+pasted page is searched only among the preferred page and its two neighbours
+(an exact match before pending typing, longer before shorter, the preferred
+page on a tie; two equal neighbours give `gate=page-ambiguous` and the game
+keeps the paste), because a book-wide search let any empty page match an empty
+or freshly typed box and the overflow went in after that page. A second paste
+while kept pages wait for the next frame pastes nothing (`gate=busy`) instead
+of replacing them, and a CRLF whose CR is the first character past a page drops
+its LF so the next page does not open with a blank line.
 No release target selected.
 
 ### L-266 Schematic follow-up batch (0.3.1)

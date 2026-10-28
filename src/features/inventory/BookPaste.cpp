@@ -11,7 +11,9 @@
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <exception>
+#include <iterator>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -39,24 +41,36 @@ using Clock = std::chrono::steady_clock;
 // A book screen's controller and page box live as long as the screen. The
 // controller is remembered from the screen's own frame call and the box from
 // the box's own focus and text calls, so no game pointer outlives its screen:
-// the screen keeps refreshing the stamp, and losing it drops both.
+// the screen keeps refreshing the stamp, and losing it drops both. The
+// generation tells two screens apart that a heap reuse put at one address.
 struct Screen {
     BookScreenController* controller = nullptr;
     TextEditComponent* box = nullptr;
     Clock::time_point seen{};
+    unsigned long long generation = 0;
+    unsigned long long frame = 0;
 };
-// The refusal's message, held until it can be drawn: the HUD is not drawn while
-// the book is open, so it is repeated when the screen goes away.
-struct Refusal {
-    int needed = 0, free = 0;
+// What the paste left for the book's next frame: the pages of its overflow and
+// a refusal to show. Owned copies only; the screen it belongs to comes from the
+// page plan's identity.
+struct Pending {
+    DeferredPages pages;
+    unsigned long long frame = 0; // the frame the paste arrived on
+    int needed = 0, free = 0;     // refusal message
+    bool refused = false;
     bool shown = false;
 };
 std::mutex stateMutex;
 Screen screen;
-std::optional<Refusal> refusal;
+std::optional<Pending> pending;
+// A generation that only ever grows, so a screen that reuses a closed
+// controller's address is not mistaken for that controller.
+unsigned long long generations = 0;
 // One book frame or two; a paste after a stall into a forgotten screen must fall
 // through to the game instead of writing into a stale controller.
 constexpr auto screenAlive = std::chrono::milliseconds(250);
+// Our own text writes must not be taken for a new paste.
+thread_local bool insidePaste = false;
 #ifdef LAMIUM_BOOK_PASTE_TRACE
 // Defined with the trace hooks further down; the new path's own trace lines
 // come first in this file.
@@ -75,8 +89,11 @@ void rememberController(BookScreenController& controller) noexcept {
     std::lock_guard lock(stateMutex);
     if (screen.controller != &controller) {
         screen.controller = &controller;
-        screen.box = nullptr; // another screen's box
+        screen.box = nullptr;      // another screen's box
+        screen.generation = ++generations;
+        pending.reset();           // a paste belongs to the screen that made it
     }
+    ++screen.frame;
     screen.seen = Clock::now();
 }
 void rememberBox(TextEditComponent& box) noexcept {
@@ -87,60 +104,90 @@ void rememberBox(TextEditComponent& box) noexcept {
 struct Current {
     BookScreenController* controller = nullptr;
     TextEditComponent* box = nullptr;
+    unsigned long long generation = 0;
+    unsigned long long frame = 0;
 };
 std::optional<Current> current() {
     std::lock_guard lock(stateMutex);
     if (!screen.controller || Clock::now() - screen.seen > screenAlive) return std::nullopt;
-    return Current{screen.controller, screen.box};
+    return Current{screen.controller, screen.box, screen.generation, screen.frame};
 }
-void showRefusal(Refusal const& message) noexcept {
-    try { ui::showWarningToast(ui::translated("bookPaste.tooManyPages", message.needed, message.free)); } catch (...) {}
+void showRefusal(int needed, int free) noexcept {
+    try { ui::showWarningToast(ui::translated("bookPaste.tooManyPages", needed, free)); } catch (...) {}
 }
 void forget(BookScreenController& controller) noexcept {
-    std::optional<Refusal> message;
+    std::optional<Pending> left;
     {
         std::lock_guard lock(stateMutex);
         if (screen.controller != &controller) return;
         screen = {};
-        message = refusal;
-        refusal.reset();
+        left = pending;
+        pending.reset();
     }
-    if (message) showRefusal(*message);
+    if (left && left->refused) showRefusal(left->needed, left->free);
 }
 
-// Splits a paste that does not fit the current page and writes the pages. False
-// means the paste must reach the game untouched: the switch is off, this is not
-// an editable book and quill page, or the result fits.
-bool handlePaste(TextEditContext& context, std::string_view paste) {
-    thread_local bool inside = false;
-    if (inside || paste.empty()) return false;
-    auto settings = Runtime::instance().snapshot();
-    if (!settings->ui.bookPaste) return false;
-    if (context.mMaxLength != pageLimit) return false; // not the page box L-259 knows
+// What the paste detour must do: leave the paste to the game, insert the part
+// that fits and let the next book frame add the rest, or paste nothing and say
+// how many pages it needed.
+struct Outcome {
+    enum class Kind { Vanilla, Insert, Refused } kind = Kind::Vanilla;
+    std::string insert; // the shortened text the game's own insert gets
+    std::string head;   // the text the first page must hold afterwards
+    bool trim = false;  // the text after the caret moved, so the box must hold head
+};
+
+// Decides a paste and keeps the overflow for the next book frame. The page model
+// is never written here: this runs inside the text edit's own call, and adding
+// pages rebuilds the page UI, which invalidates the context being edited (the
+// L-259 crash at origin()).
+Outcome handlePaste(TextEditContext& context, std::string_view paste) {
     auto at = current();
-    if (!at) return false;
+    auto reject = [&](char const* reason) {
+        BOOK_PASTE_TRACE("paste gate={} limit={} box={} editable={} view={}", reason, context.mMaxLength,
+                         at && at->box, at ? static_cast<bool>(at->controller->mEditable) : false,
+                         at ? static_cast<int>(at->controller->mCurrentView) : -1);
+        return Outcome{};
+    };
+    if (paste.empty()) return reject("empty");
+    auto settings = Runtime::instance().snapshot();
+    if (!settings->ui.bookPaste) return reject("option");
+    if (context.mMaxLength != pageLimit) return reject("limit"); // not the page box L-259 knows
+    if (!at) return reject("screen");
     auto& controller = *at->controller;
-    BOOK_PASTE_TRACE("paste gate limit={} box={} editable={} view={} page={}/{}", context.mMaxLength, at->box != nullptr,
-                     static_cast<bool>(controller.mEditable), static_cast<int>(controller.mCurrentView),
-                     controller.mCurrentPageIndex, controller.mPages.get().size());
-    if (!at->box) return false;
-    if (!controller.mEditable) return false;
-    if (controller.mCurrentView != BookScreenController::BookView::Viewing) return false;
-    auto& pages = controller.mPages.get();
-    int const index = controller.mCurrentPageIndex;
-    if (index < 0 || index >= static_cast<int>(pages.size())) return false;
-    PageContent& page = pages[static_cast<std::size_t>(index)];
-    if (!page.mPhotoName.get().empty()) return false; // photo pages hold no text
-    std::string const& live = context.mCurrentUtf8Text.get();
-    std::string const& stored = page.mText.get();
-    // The caret and the selection count characters of the text the page box
-    // holds. If that is not the page's text, this is not the state L-259 was
-    // built for and the game keeps the paste.
-    if (!stored.empty() && stored != live) {
-        BOOK_PASTE_TRACE("paste gate=text-mismatch stored {} live {}", sizes(stored), sizes(live));
-        return false;
+    if (!at->box) return reject("box");
+    if (!controller.mEditable) return reject("not-editable");
+    {
+        // A second paste before the next book frame would replace the first
+        // one's kept pages, and its first part would already be on the page:
+        // paste nothing until those pages are in.
+        std::lock_guard lock(stateMutex);
+        if (pending && !pending->pages.extra.empty()) {
+            BOOK_PASTE_TRACE("paste gate=busy extra={}", pending->pages.extra.size());
+            return Outcome{Outcome::Kind::Refused};
+        }
     }
-    std::string_view const text = stored.empty() ? std::string_view(live) : std::string_view(stored);
+    if (controller.mCurrentView != BookScreenController::BookView::Viewing) return reject("view");
+    auto& pages = controller.mPages.get();
+    // The spread does not always name the page the box belongs to, so the page
+    // is found from the text it holds (choosePastedPage). A photo page holds no
+    // text and can never be the one being edited.
+    std::string_view const live = context.mCurrentUtf8Text.get();
+    std::vector<std::string_view> texts;
+    texts.reserve(pages.size());
+    for (auto const& stored : pages) texts.push_back(stored.mPhotoName.get().empty() ? stored.mText.get() : std::string_view{"\x01"});
+    PageChoice const choice = choosePastedPage(live, controller.mCurrentPageIndex, texts);
+    if (!choice.ok()) return reject(choice.reason);
+    int const index = choice.index;
+    PageContent& page = pages[static_cast<std::size_t>(index)];
+    if (!page.mPhotoName.get().empty()) return reject("photo"); // photo pages hold no text
+    // The caret and the selection count characters of the box's text. Typing
+    // reaches the page model a frame later, so a stored page that is a prefix of
+    // the live text is pending typing, and the live text is what the caret
+    // counts; unrelated text means the paste goes to the game untouched.
+    TextGate const gate = pageTextGate(page.mText.get(), live);
+    if (!gate.pass) return reject(gate.reason);
+    std::string_view const text = gate.text;
     int const chars = codePointCount(text);
     auto const& selection = context.mSelection.get();
     // The game counts characters; a caret past the end means the units or the
@@ -149,7 +196,7 @@ bool handlePaste(TextEditContext& context, std::string_view paste) {
         || selection.mEndCaretPos > chars) {
         BOOK_PASTE_TRACE("paste gate=caret caret={} sel={}:{} chars={}", context.mCaret, selection.mStartCaretPos,
                          selection.mEndCaretPos, chars);
-        return false;
+        return Outcome{};
     }
     int caret = context.mCaret;
     int start = caret, end = caret;
@@ -168,43 +215,118 @@ bool handlePaste(TextEditContext& context, std::string_view paste) {
         return codePointCount(candidate) <= pageLimit && at->box->_textFitsInControl(candidate);
     };
     auto split = splitPaste(before, after, paste, free, pageLimit, fits);
+    BOOK_PASTE_TRACE("paste gate={}{} page={} caret={} sel={}:{}", gate.reason, gate.pending ? " (typed tail)" : "",
+                     index, caret, from, to);
     if (split.kind == SplitKind::Vanilla) {
         BOOK_PASTE_TRACE("paste decision=vanilla page={} caret={} sel={}:{} paste {}", index, caret, from, to,
                          sizes(paste));
-        return false;
+        return Outcome{};
     }
     if (split.kind == SplitKind::Refused) {
         {
             std::lock_guard lock(stateMutex);
-            refusal = Refusal{split.needed, split.free, false};
+            Pending item;
+            item.frame = at->frame;
+            item.needed = split.needed;
+            item.free = split.free;
+            item.refused = true;
+            pending = std::move(item);
         }
+        // Shown from the next book frame, never from the paste's own call.
         BOOK_PASTE_TRACE("paste decision=refused needed={} free={} paste {}", split.needed, split.free, sizes(paste));
-        return true;
+        return Outcome{Outcome::Kind::Refused};
     }
+    // The page keeps the text before the caret plus the part of the paste that
+    // fits; everything else becomes pages the next book frame inserts. Only
+    // owned text survives this call.
+    Outcome outcome;
+    outcome.kind = Outcome::Kind::Insert;
+    outcome.head = split.pages[0];
+    if (!outcome.head.starts_with(before)) return reject("split"); // the split must keep the page's head
+    outcome.insert = outcome.head.substr(before.size());
+    outcome.trim = !after.empty();
+    DeferredPages plan;
+    plan.screen = ScreenId{reinterpret_cast<std::uintptr_t>(at->controller), at->generation};
+    plan.frame = at->frame;
+    plan.index = index;
+    plan.head = outcome.head;
+    plan.old = std::string(text);
+    plan.extra.assign(std::make_move_iterator(split.pages.begin() + 1), std::make_move_iterator(split.pages.end()));
     BOOK_PASTE_TRACE("paste decision=split page={} caret={} sel={}:{} pages={} needed={} free={} paste {}", index,
                      caret, from, to, split.pages.size(), split.needed, split.free, sizes(paste));
-    // The edit context and the box first, so the screen's own text change
-    // carries the new first page, then the page model: replace the current page,
-    // then insert the rest after it in order, which moves later pages back.
-    inside = true;
+    BOOK_PASTE_TRACE("paste defer index={} frame={} extra={} head {} trim={}", plan.index, plan.frame, plan.extra.size(),
+                     sizes(plan.head), outcome.trim);
+    {
+        std::lock_guard lock(stateMutex);
+        Pending item;
+        item.pages = std::move(plan);
+        item.frame = at->frame;
+        pending = std::move(item);
+    }
+    return outcome;
+}
+
+// Applies the pages a paste kept, from the book screen's own frame. This is the
+// only place the page model is written: a page add rebuilds the page UI, so
+// doing it inside the text edit's call freed the context the paste was running
+// in (the L-259 crash).
+void applyPages(BookScreenController& controller) noexcept {
+    std::optional<DeferredPages> plan;
+    ScreenId id;
+    {
+        std::lock_guard lock(stateMutex);
+        if (!pending || pending->pages.extra.empty()) return;
+        if (!planDue(pending->pages.frame, screen.frame)) return; // queued this frame
+        plan = pending->pages;
+        pending->pages.extra.clear(); // one attempt only
+        id = ScreenId{reinterpret_cast<std::uintptr_t>(&controller), screen.generation};
+    }
+    auto& pages = controller.mPages.get();
+    int const count = static_cast<int>(pages.size());
+    std::string_view pageText;
+    if (plan->index >= 0 && plan->index < count) pageText = pages[static_cast<std::size_t>(plan->index)].mText.get();
+    ApplyPlan const decision = planApply(*plan, id, static_cast<bool>(controller.mEditable), pageText, count);
+    if (!decision.apply()) {
+        BOOK_PASTE_TRACE("paste apply skipped={} index={} extra={} pages={} text {}", applySkipReason(decision.skip),
+                         plan->index, plan->extra.size(), count, sizes(pageText));
+        return;
+    }
     try {
-        if (split.pages[0] != text) {
-            context._setText(split.pages[0]);
-            at->box->trySetText(split.pages[0]);
-            controller._setPageText(index, split.pages[0]);
-            BOOK_PASTE_TRACE("paste wrote page={} {}", index, sizes(split.pages[0]));
+        for (std::size_t k = 0; k < plan->extra.size(); ++k) {
+            controller._addPageAt(decision.index + static_cast<int>(k),
+                                  PageContent(std::string(plan->extra[k]), std::nullopt));
         }
-        BOOK_PASTE_TRACE("paste added={}", split.pages.size() - 1);
-        for (std::size_t k = 1; k < split.pages.size(); ++k) {
-            int const added = index + static_cast<int>(k);
-            BOOK_PASTE_TRACE("paste add page={} {}", added, sizes(split.pages[k]));
-            controller._addPageAt(added, PageContent(std::move(split.pages[k]), std::nullopt));
-        }
+        // The pages hold their text, but the screen shows a page from its
+        // parsed form and only redraws when it is told to: without the parse
+        // and the refresh the added pages stay blank until the player puts the
+        // caret on them or reopens the book (seen in game 2026-10-27).
+        for (std::size_t k = 0; k < plan->extra.size(); ++k)
+            controller._parsePageText(decision.index + static_cast<int>(k));
+        controller.mForceUIRefresh = true;
+        controller.mShouldRefreshText = true;
+        BOOK_PASTE_TRACE("paste apply index={} added={} pages={}->{}", decision.index, decision.add, count,
+                         static_cast<int>(controller.mPages.get().size()));
     } catch (std::exception const& error) {
-        BOOK_PASTE_TRACE("paste write failed: {}", error.what());
-    } catch (...) { BOOK_PASTE_TRACE("paste write failed"); }
-    inside = false;
-    return true;
+        BOOK_PASTE_TRACE("paste apply failed: {}", error.what());
+    } catch (...) { BOOK_PASTE_TRACE("paste apply failed"); }
+}
+// The refusal's toast waits for the book's next frame too: the HUD is not drawn
+// while the book is open, so it is shown again when the screen goes away.
+void showPendingRefusal() noexcept {
+    int needed = 0, free = 0;
+    {
+        std::lock_guard lock(stateMutex);
+        if (!pending || !pending->refused || pending->shown) return;
+        if (!planDue(pending->frame, screen.frame)) return;
+        pending->shown = true;
+        needed = pending->needed;
+        free = pending->free;
+    }
+    showRefusal(needed, free);
+}
+void cancelPending() noexcept {
+    std::lock_guard lock(stateMutex);
+    pending.reset();
 }
 
 LL_TYPE_INSTANCE_HOOK(BookScreenTick, ll::memory::HookPriority::Normal, BookScreenController,
@@ -212,15 +334,8 @@ LL_TYPE_INSTANCE_HOOK(BookScreenTick, ll::memory::HookPriority::Normal, BookScre
     origin();
     try {
         rememberController(*this);
-        std::optional<Refusal> message;
-        {
-            std::lock_guard lock(stateMutex);
-            if (refusal && !refusal->shown) {
-                refusal->shown = true;
-                message = refusal;
-            }
-        }
-        if (message) showRefusal(*message);
+        applyPages(*this);
+        showPendingRefusal();
     } catch (...) {}
 }
 LL_TYPE_INSTANCE_HOOK(BookScreenValid, ll::memory::HookPriority::Normal, BookScreenController,
@@ -262,9 +377,38 @@ LL_TYPE_INSTANCE_HOOK(ContextText, ll::memory::HookPriority::Normal, TextEditCon
                         selection.mStartCaretPos, selection.mEndCaretPos, mMaxLength, sizes(mCurrentUtf8Text.get())));
     } catch (...) {}
 #endif
-    bool handled = false;
-    try { handled = handlePaste(*this, utf8Text); } catch (...) { handled = false; }
-    if (!handled) origin(utf8Text);
+    Outcome outcome;
+    if (!insidePaste) {
+        try { outcome = handlePaste(*this, utf8Text); } catch (...) { outcome = Outcome{}; }
+    }
+    // The paste's own insert runs the game's call with the shortened text; the
+    // page model is left to the book screen's next frame (applyPages). A paste
+    // that fits, a gate that fails and a refusal keep the game's own path.
+    insidePaste = true;
+    try {
+        switch (outcome.kind) {
+        case Outcome::Kind::Vanilla: origin(utf8Text); break;
+        case Outcome::Kind::Insert:
+            if (!outcome.insert.empty()) origin(outcome.insert);
+            // The text after the caret belongs to the last new page, so the page
+            // and its box keep only the first page's text. The box is what the
+            // screen writes into the page model, so setting the context alone
+            // left the tail at the end of the pasted page (seen in game
+            // 2026-10-27).
+            if (outcome.trim) {
+                _setText(outcome.head);
+                if (auto at = current(); at && at->box) at->box->trySetText(outcome.head);
+            }
+            break;
+        case Outcome::Kind::Refused: break;
+        }
+    } catch (...) {
+        cancelPending();
+#ifdef LAMIUM_BOOK_PASTE_TRACE
+        try { log("paste insert failed"); } catch (...) {}
+#endif
+    }
+    insidePaste = false;
 #ifdef LAMIUM_BOOK_PASTE_TRACE
     try {
         auto const& selection = mSelection.get();
@@ -526,7 +670,7 @@ void stop() {
     {
         std::lock_guard lock(stateMutex);
         screen = {};
-        refusal.reset();
+        pending.reset();
     }
     for (auto it = std::rbegin(hooks); it != std::rend(hooks); ++it) {
         if (!it->installed) continue;

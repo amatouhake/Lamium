@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -52,11 +53,13 @@ inline Break chooseBreak(std::string_view text, int maxFit) noexcept {
     if (maxFit <= 0) return result;
     int lineBreak = -1, space = -1, index = 0, previous = 0;
     bool lineBreakEndsPair = false;
+    std::size_t lineBreakAt = 0;
     for (std::size_t i = 0; i < text.size() && index <= maxFit; ++i) {
         unsigned char const byte = static_cast<unsigned char>(text[i]);
         if ((byte & 0xc0) == 0x80) continue; // a continuation byte is not a character
         if (byte == '\n' || byte == '\r') {
             lineBreak = index;
+            lineBreakAt = i;
             lineBreakEndsPair = byte == '\n' && previous == '\r';
         } else if (byte == ' ') {
             space = index;
@@ -69,6 +72,10 @@ inline Break chooseBreak(std::string_view text, int maxFit) noexcept {
         keep = lineBreak, drop = 1;
         if (lineBreakEndsPair && lineBreak > 0) {
             keep = lineBreak - 1;
+            drop = 2;
+        } else if (text[lineBreakAt] == '\r' && lineBreakAt + 1 < text.size() && text[lineBreakAt + 1] == '\n') {
+            // A CRLF whose CR is the last character scanned: the LF must not
+            // open the next page as a blank line.
             drop = 2;
         }
     } else if (space >= 0) {
@@ -154,6 +161,12 @@ SplitResult splitPaste(std::string_view before, std::string_view after, std::str
     for (;;) {
         std::string both(rest);
         both.append(tail);
+        // Nothing worth a page is left: the paste ended on the page before this
+        // one, or only line breaks and spaces remain (a pasted text usually ends
+        // with a line break). Both used to add a page that looks blank between
+        // the pasted pages and the pages that already followed (seen in game
+        // 2026-10-27).
+        if (both.find_first_not_of(" \t\r\n") == std::string::npos) break;
         if (fitsPage(both)) {
             result.pages.push_back(std::move(both));
             break;
@@ -176,6 +189,150 @@ SplitResult splitPaste(std::string_view before, std::string_view after, std::str
     if (result.needed > result.free) {
         result.kind = SplitKind::Refused;
         result.pages.clear();
+    }
+    return result;
+}
+
+// The page box's text and the page model's text can differ for a frame after
+// typing (the model is parsed from the box later). A stored page that is a
+// prefix of the live text is that state: the extra tail is pending typing, and
+// the caret and the selection count the live text. Unrelated text means the
+// caret cannot be predicted, so the game keeps the paste.
+struct TextGate {
+    bool pass = false;
+    bool pending = false;      // the live text extends the stored page
+    char const* reason = "text-unrelated";
+    std::string_view text{};   // the text the caret and the selection count
+};
+inline TextGate pageTextGate(std::string_view stored, std::string_view live) noexcept {
+    if (!live.starts_with(stored)) return TextGate{};
+    bool const pending = stored.size() != live.size();
+    return TextGate{true, pending, pending ? "pending-typing" : "ok", live};
+}
+
+// Which page the text box belongs to. A two-page spread keeps its own idea of
+// the current page, and after the player edits the other half of the spread it
+// can still name the page they just left (seen in game 2026-10-27: a paste on
+// the left page after editing the right one fell back to vanilla). The page is
+// therefore found from the text the box holds, among the preferred page and the
+// pages either side of it (the spread's other half is one of them): an exact
+// match before pending typing, a longer stored text before a shorter one, and
+// the preferred page on a tie. Searching the whole book let an empty page
+// anywhere match an empty or freshly typed box, and the overflow went in after
+// that page. Two neighbours that match equally well cannot be told apart, so
+// the game keeps the paste.
+struct PageChoice {
+    int index = -1;
+    char const* reason = "page-text";
+    bool ok() const { return index >= 0; }
+};
+inline PageChoice choosePastedPage(std::string_view live, int preferred,
+                                   std::vector<std::string_view> const& stored) noexcept {
+    auto const count = static_cast<int>(stored.size());
+    if (preferred < 0 || preferred >= count) return PageChoice{-1, "page-index"};
+    // 0 = no match; otherwise exact matches outrank pending typing, then length.
+    auto const score = [&](int i) -> std::size_t {
+        if (i < 0 || i >= count) return 0;
+        std::string_view const page = stored[static_cast<std::size_t>(i)];
+        if (!pageTextGate(page, live).pass) return 0;
+        return (page.size() == live.size() ? live.size() + 2 : 1) + page.size();
+    };
+    std::size_t const own = score(preferred), left = score(preferred - 1), right = score(preferred + 1);
+    if (own > 0 && own >= left && own >= right) return PageChoice{preferred, "ok"};
+    if (left == right) return PageChoice{-1, left > 0 ? "page-ambiguous" : "page-text"};
+    int const index = left > right ? preferred - 1 : preferred + 1;
+    bool const exact = stored[static_cast<std::size_t>(index)].size() == live.size();
+    return PageChoice{index, exact ? "page-text" : "pending-typing"};
+}
+
+// The book screen a deferred paste belongs to: the controller address plus the
+// generation the frame hook bumps when the controller changes, so a new screen
+// at the same address is not the old one.
+struct ScreenId {
+    std::uintptr_t controller = 0;
+    unsigned long long generation = 0;
+    bool operator==(ScreenId const&) const = default;
+};
+
+// A paste's overflow, held as owned text until the book screen's next frame.
+// `index` is the page the first chunk went to, `head` the text that page must
+// hold, `old` the page text when the paste happened (the page model is parsed
+// a frame later, so it can still hold that or a prefix of it), `frame` the frame
+// the paste arrived on, and `extra` the pages to insert after `index` in order.
+struct DeferredPages {
+    ScreenId screen{};
+    unsigned long long frame = 0;
+    int index = 0;
+    std::string head;
+    std::string old;
+    std::vector<std::string> extra;
+};
+
+// A deferred paste or its refusal waits for a frame after the paste: writing the
+// page model inside the text edit's own call is what crashed L-259.
+inline bool planDue(unsigned long long queuedFrame, unsigned long long frame) noexcept {
+    return frame > queuedFrame;
+}
+
+// Whether the page still holds what the paste left on it: the new text, or the
+// text it had when the paste happened. The page model is parsed from the box a
+// frame later, so the old text, or a prefix of it while typing is pending, is
+// that lag and not a different page.
+inline bool pageUnchanged(DeferredPages const& plan, std::string_view pageText) noexcept {
+    return pageText == plan.head || plan.old.starts_with(pageText);
+}
+
+enum class ApplySkip {
+    None,
+    Empty,    // nothing to add
+    Screen,   // another book screen
+    Editable, // the book is no longer editable
+    Page,     // the index is not a page any more
+    Moved,    // the page holds text the paste did not write
+    Room,     // the 50-page limit would be passed
+};
+// The word the trace prints for a skipped application.
+inline char const* applySkipReason(ApplySkip skip) noexcept {
+    switch (skip) {
+    case ApplySkip::None: return "none";
+    case ApplySkip::Empty: return "empty";
+    case ApplySkip::Screen: return "screen";
+    case ApplySkip::Editable: return "not-editable";
+    case ApplySkip::Page: return "page";
+    case ApplySkip::Moved: return "page-moved";
+    case ApplySkip::Room: return "no-room";
+    }
+    return "unknown";
+}
+struct ApplyPlan {
+    ApplySkip skip = ApplySkip::None;
+    int index = 0; // where the pages go
+    int add = 0;   // pages to insert, in order
+    bool apply() const noexcept { return skip == ApplySkip::None; }
+};
+// Whether the pages kept for a paste may be inserted now: the same book screen,
+// still editable, the page still holding what the paste left there, and room
+// under the 50-page limit. Decided from owned values and the caller's live
+// readings only.
+inline ApplyPlan planApply(DeferredPages const& plan, ScreenId const& current, bool editable,
+                           std::string_view pageText, int pageCount) noexcept {
+    ApplyPlan result;
+    int const extra = static_cast<int>(plan.extra.size());
+    if (extra <= 0) {
+        result.skip = ApplySkip::Empty;
+    } else if (!(current == plan.screen)) {
+        result.skip = ApplySkip::Screen;
+    } else if (!editable) {
+        result.skip = ApplySkip::Editable;
+    } else if (plan.index < 0 || plan.index >= pageCount) {
+        result.skip = ApplySkip::Page;
+    } else if (!pageUnchanged(plan, pageText)) {
+        result.skip = ApplySkip::Moved;
+    } else if (pageCount + extra > maxPages) {
+        result.skip = ApplySkip::Room;
+    } else {
+        result.index = plan.index;
+        result.add = extra;
     }
     return result;
 }
