@@ -379,10 +379,14 @@ void image() {
     drawArrow(right, 64, 32, 32, northUpArrowAngle(-90), 16);
     check(right[32 * 64 + 38] != 0 && right[32 * 64 + 26] == 0, "facing east points right");
     std::vector<std::uint32_t> green(64 * 64, 0);
-    drawArrow(green, 64, 32, 32, 0, 16, packColor(108, 195, 73));
+    drawArrow(green, 64, 32, 32, 0, 16, cameraArrowColor);
     auto greenPixel = green[32 * 64 + 32];
     check(channel(greenPixel, 1) > channel(greenPixel, 0) && channel(greenPixel, 3) > 200,
-          "the camera arrow uses the requested green fill");
+          "the camera arrow uses the shared green fill");
+    // The minimap draws it at the map center, where the map follows the camera;
+    // a heading-up map turns the camera's own direction to the top (L-286).
+    auto turned = ViewTransform::headingUp(-90).toMap(heading(-90).x, heading(-90).z);
+    check(near(std::atan2(turned.x, -turned.z), 0, 1e-9), "the camera angle points up while the map turns with it");
     check(near(northUpArrowAngle(180), 0, 1e-9) && near(std::abs(northUpArrowAngle(0)), 3.14159265358979, 1e-9),
           "north is up, south down");
 

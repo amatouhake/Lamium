@@ -1089,7 +1089,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
             float angle = static_cast<float>(northUpArrowAngle(camera->yaw));
             if (!state.cameraArrowUploaded || !(std::abs(angle - state.cameraArrowAngle) < .01f)) {
                 std::vector<std::uint32_t> pixels(side * side, 0);
-                drawArrow(pixels, side, side / 2.0, side / 2.0, angle, 22, packColor(108, 195, 73));
+                drawArrow(pixels, side, side / 2.0, side / 2.0, angle, 22, cameraArrowColor);
                 try {
                     if (upload(context.mClient, slotLocation(slotCount + 1), pixels, side, state.cameraArrowUploaded)) {
                         state.cameraArrowUploaded = true;

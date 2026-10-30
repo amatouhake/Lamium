@@ -821,7 +821,9 @@ Waypoints
 Following (decided 2026-10-01)
 - While FreeCamera flies, the map's center and heading follow the camera,
   and the player's arrow is drawn where the player is (hidden when off the
-  map). No setting. Freelook keeps following the player.
+  map). No setting. Freelook keeps following the player. The camera's own
+  heading is the world map's green arrow at the center, turned with the map
+  (L-286).
 Text, placement and settings
 - Optional lines below the map with a shadow, all default off: coordinates,
   biome, compass letters (N E S W). No clock. Decided 2026-10-01 after the

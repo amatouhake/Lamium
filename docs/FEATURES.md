@@ -181,6 +181,8 @@ A HUD element colored from your block textures.
 - Size, range, north or heading up, round or square.
 - Compass, coordinates and biome lines.
 - Hold a key to enlarge it.
+- While FreeCamera flies it follows the camera, with a green arrow showing
+  where the camera looks.
 - Cave view: under a roof and in the Nether it shows the floors around your
   height. The Cave view row, or its key, fixes the surface or cave view, or
   returns to switching on its own.

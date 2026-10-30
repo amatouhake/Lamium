@@ -193,6 +193,10 @@ struct State {
         unsigned composes = ~0u;
         double angle = NAN, x = NAN, y = NAN;
         bool visible = false;
+        // The FreeCamera arrow at the map center: the map follows the camera,
+        // so its heading needs a marker of its own (L-286).
+        bool camera = false;
+        double cameraAngle = 0;
         std::vector<PlacedDot> dots;
         struct Mark {
             double x, y;
@@ -611,6 +615,7 @@ struct Snapshot {
     double playerX, playerY, playerZ;
     float playerYaw;
     int dimension;
+    bool camera = false; // The followed point is FreeCamera's camera, not the body.
     bool covered = false;
     int skyLight = 15;
     std::string biome;
@@ -632,6 +637,7 @@ std::optional<Snapshot> snapshot(IClientInstance& client, bool biome) {
                 value.x = ray->x;
                 value.y = ray->y + feet;
                 value.z = ray->z;
+                value.camera = true;
                 if (ray->dx != 0 || ray->dz != 0)
                     value.yaw = static_cast<float>(std::atan2(-ray->dx, ray->dz) * 180 / 3.14159265358979323846);
             }
@@ -796,6 +802,12 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         auto facing = heading(view->playerYaw);
         auto onMap = transform.toMap(facing.x, facing.z);
         State::Overlay overlay{state.composes, std::atan2(onMap.x, -onMap.z), at.x, at.y, at.inside};
+        overlay.camera = view->camera;
+        if (overlay.camera) {
+            auto cameraFacing = heading(view->yaw);
+            auto cameraOnMap = transform.toMap(cameraFacing.x, cameraFacing.z);
+            overlay.cameraAngle = std::atan2(cameraOnMap.x, -cameraOnMap.z);
+        }
         if (settings.radar) {
             RadarSwitches switches{settings.radarPlayers, settings.radarHostile, settings.radarPassive, settings.radarItems};
             faces::frame();
@@ -841,7 +853,9 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         auto const& shown = state.shown;
         bool redraw = !state.uploaded || overlay.composes != shown.composes || overlay.visible != shown.visible
             || !(std::abs(overlay.angle - shown.angle) < .004) || !(std::abs(overlay.x - shown.x) < .25)
-            || !(std::abs(overlay.y - shown.y) < .25) || overlay.dots != shown.dots || overlay.marks != shown.marks
+            || !(std::abs(overlay.y - shown.y) < .25) || overlay.camera != shown.camera
+            || !(std::abs(overlay.cameraAngle - shown.cameraAngle) < .004)
+            || overlay.dots != shown.dots || overlay.marks != shown.marks
             || overlay.outlines != shown.outlines;
         if (redraw && !state.terrain.empty()) {
             state.image = state.terrain;
@@ -859,6 +873,11 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
                                  waypointColors[static_cast<size_t>(clampColor(mark.color))], mark.temporary);
             }
             if (overlay.visible) drawArrow(state.image, pixels, overlay.x, overlay.y, overlay.angle, 16 * marker);
+            // The camera is the followed point, so it sits at the center; the
+            // same green marker the world map uses (L-286).
+            if (overlay.camera)
+                drawArrow(state.image, pixels, pixels / 2.0, pixels / 2.0, overlay.cameraAngle, 16 * marker,
+                          cameraArrowColor);
             drawFrame(state.image, pixels, settings.round, pixels / std::max(16.f, size));
             if (upload(client, pixels)) state.shown = overlay;
         }
