@@ -2049,6 +2049,68 @@ remapped keys, controllers, permanent movement and detached cameras.
 Model event sequences in pure logic before touching gameplay input; menus
 and focus changes must not leave stale held inputs. Not implemented.
 
+### L-282 Toggle Vibrant Visuals with a key
+
+Kind: Research, then Design. Requested on the Discord server
+2026-10-28: is there a Vibrant Visuals toggle key; if not, can one
+be added.
+Maintainer note 2026-10-30: the motive, as reported, is weak PCs —
+turning Vibrant Visuals off from a key instead of opening the vanilla
+settings screen, which is heavy on such machines. The value is mostly
+in the quick exit; turning it back on is the same key press.
+Research first: whether the client can change the vanilla graphics
+mode outside the settings screen (an options path the client owns),
+what a switch costs mid-world (resource or shader reload, hitch,
+screen flash), whether the vanilla setting itself persists the
+change, and how version-sensitive the path is (Vibrant Visuals is
+still changing; a new hook needs a GAME-UPDATES entry and the
+capability gate). Priority is not high: this is a convenience proxy
+for a vanilla setting, not information Lamium adds. Decide whether to
+build it only once the research prices the switch.
+No release target selected.
+
+### L-283 Stronger block outline and a crosshair face highlight
+
+Kind: Design. Requested on the Discord server 2026-10-29: a
+customizable block outline (color, thickness, a see-through mode
+showing all the cuboid's edges instead of only the visible ones) and
+a highlight of the face the crosshair points at. The vanilla outline
+is "way too inconspicuous"; the face highlight is for operations that
+rely on precise angles.
+Maintainer priority note 2026-10-30: tools outrank visual
+enhancement, and Lamium's visual features mostly make more
+information readable. Split this request the same way: the face
+highlight and the outline's legibility are information and are the
+point of the item; free color/thickness choice is aesthetics and
+carries less weight, so decide the customization scope against the
+existing discipline (palette colors; the four shape colors) rather
+than assuming a free picker.
+Open: the rendering path for the targeted block and its version
+sensitivity (capability gate, GAME-UPDATES entry); the depth order
+against the vanilla outline under the DESIGN world-overlay rule
+(position markers win, guides yield); replace the vanilla outline or
+draw alongside it; non-cuboid blocks (slabs, stairs, fences) whose
+selection shape is not the full cube; what see-through edges may
+draw over. Settings shape is one feature switch with only the child
+options the design actually decides.
+No release target selected.
+
+### L-284 Custom crosshair
+
+Kind: Design. Requested on the Discord server (maintainer's
+recollection 2026-10-30; the requester and the date were not
+recorded): let the player change the crosshair's appearance instead
+of keeping the vanilla one.
+Open: what is customizable within the UI discipline — style/shape,
+size, color from the palette; the drawing is rectangles and text
+only. A Lamium-drawn crosshair needs the vanilla one hidden and must
+follow the vanilla crosshair's contexts (hidden with Hide HUD, the
+states where vanilla changes or drops it). Related to L-283 (both
+are about reading the aim point); decide whether they share a
+settings home. Priority: low as pure appearance unless the design
+ties it to visibility; nothing decided yet.
+No release target selected.
+
 ### Previously parked work
 
 - L-19 Freelook in multiplayer, riding, dimension change, controller: runtime
