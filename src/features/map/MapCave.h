@@ -37,18 +37,25 @@ struct ViewSwitch {
 // Covered when most of the 3x3 columns around the player have a roof: a
 // single overhang or a leaf above the head does not make a cave.
 inline bool coveredByMost(int coveredColumns) { return coveredColumns >= 5; }
-// A forced view from the key; Auto follows chooseView.
-enum class ViewForce { Auto, Cave, Surface };
+// The view the player chose; Auto follows chooseView. The saved setting is
+// this enum's index, so the order is the settings row's order (L-253).
+enum class ViewForce { Auto, Surface, Cave };
+// A corrupt saved value reads as Auto rather than as an accidental view.
+inline ViewForce viewForceOf(int saved) {
+    return saved >= 0 && saved <= static_cast<int>(ViewForce::Cave) ? static_cast<ViewForce>(saved) : ViewForce::Auto;
+}
 inline ViewMode applyForce(ViewForce force, ViewMode automatic) {
     if (force == ViewForce::Cave) return ViewMode::Cave;
     if (force == ViewForce::Surface) return ViewMode::Surface;
     return automatic;
 }
-// The key forces the view that is not shown; pressed again it returns to
-// the automatic choice.
-inline ViewForce pressForce(ViewForce force, ViewMode shown) {
-    if (force != ViewForce::Auto) return ViewForce::Auto;
-    return shown == ViewMode::Cave ? ViewForce::Surface : ViewForce::Cave;
+// The key and the settings stepper walk Automatic -> Surface -> Cave.
+inline ViewForce cycleForce(ViewForce force) {
+    switch (force) {
+    case ViewForce::Auto: return ViewForce::Surface;
+    case ViewForce::Surface: return ViewForce::Cave;
+    default: return ViewForce::Auto;
+    }
 }
 
 // The height the cave view is drawn around. It stays put while the player

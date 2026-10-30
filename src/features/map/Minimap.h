@@ -17,8 +17,6 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext&, float 
 // `scan` false only keeps the saved map attached (the world map screen with
 // the feature off): nothing new is recorded.
 void record(IClientInstance&, Settings::Map const&, bool scan = true);
-// The cave/surface key: forces the view not shown, or returns to automatic.
-ViewForce pressViewKey();
 // The automatic cave/surface view at the player, independent of a forced
 // HUD view; the world map uses it for its opening choice (L-228).
 ViewMode automaticView();

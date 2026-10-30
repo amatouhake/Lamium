@@ -217,10 +217,6 @@ struct State {
     Diagnostics diagnostics;
 };
 State state;
-// The key's forced view and the view shown last; the key runs from the
-// input queue, the map from the HUD draw.
-std::atomic<ViewForce> viewForce{ViewForce::Auto};
-std::atomic<ViewMode> shownView{ViewMode::Surface};
 // The automatic view at the player's place, for the world map's initial
 // cave/surface choice (L-228). A forced HUD view does not change it.
 std::atomic<ViewMode> playerView{ViewMode::Surface};
@@ -248,7 +244,6 @@ void forget() {
     state.automatic = {};
     playerView = ViewMode::Surface;
     state.layer.reset();
-    viewForce = ViewForce::Auto;
     state.terrain.clear();
     state.image.clear();
     state.composed = {};
@@ -710,11 +705,6 @@ std::vector<Dot> collectDots(IClientInstance& client, double centerX, double cen
     distantPlayers(*player, loadedPlayers, dots, centerX, centerZ, reach, playerY, withFaces);
     return dots;
 }
-ViewForce pressViewKey() {
-    auto next = pressForce(viewForce.load(), shownView.load());
-    viewForce = next;
-    return next;
-}
 ViewMode automaticView() { return playerView.load(); }
 std::optional<int> caveLayerY() { return state.layer; }
 bool bodyCave(IClientInstance& client) {
@@ -754,8 +744,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         follow(view->dimension);
         int zoom = clampZoomIndex(settings.zoom);
         auto wanted = chooseView(state.automatic.mode, view->dimension == 1, view->covered, view->skyLight);
-        auto mode = applyForce(viewForce.load(), state.automatic.update(wanted, time));
-        shownView = mode;
+        auto mode = applyForce(viewForceOf(settings.caveView), state.automatic.update(wanted, time));
         playerView = state.automatic.mode;
         bool cave = mode == ViewMode::Cave;
         auto& cache = cave ? state.cave : state.surface;

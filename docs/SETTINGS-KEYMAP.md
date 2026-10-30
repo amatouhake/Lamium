@@ -9,9 +9,9 @@ layout below; where they differ, these win.
 |---|---|---|---|
 | 1. Feature with a saved switch | Night Vision, Minimap, Sorting, Waypoints | Toggles that switch. **Always provided**, unbound by default | The feature's commands (row 4) |
 | 2. Session feature (no saved state) | Zoom, Freelook, FreeCamera, permanent sneak | Starts/stops it (hold or toggle, per its Activation) | Commands such as speed |
-| 3. Named command without a switch | Settings screen, Cave view | Runs that command | none |
+| 3. Named command without a switch | Settings screen, Schematic menu | Runs that command | none |
 | 4. Command inside a feature | Sort now, Add here, open its screen, cycle a mode, hold-to-do | never on the parent | one row per command |
-| 5. Child switch | Hide rain and snow, Breaking restriction, Show in the world | none | on the same row, only when switching during play is useful |
+| 5. Child switch or choice | Hide rain and snow, Breaking restriction, Show in the world, Cave view | none | on the same row, only when changing during play is useful |
 | 6. Heading only | Map text, Block restrictions | none | none |
 
 - A key that opens a screen belongs to the feature that owns the screen

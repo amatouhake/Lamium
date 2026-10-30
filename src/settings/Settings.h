@@ -149,6 +149,8 @@ struct Settings {
         float size = 20; // Map side, percent of the screen height; text follows the HUD layout scale.
         bool rotate = false; // Heading up instead of north up.
         bool round = false;
+        // map::ViewForce: 0 automatic, 1 surface, 2 cave; the key cycles it (L-253).
+        int caveView = 0;
         bool coordinates = false;
         bool biome = false;
         bool compass = false;
@@ -382,6 +384,7 @@ struct Settings {
         if (!std::isfinite(map.size)) map.size = 20;
         map.size = std::clamp(std::round(map.size), 10.f, 50.f);
         map.waypointsWorld = std::clamp(map.waypointsWorld, 0, 2);
+        map.caveView = std::clamp(map.caveView, 0, 2);
         if (!std::isfinite(map.waypointDistance)) map.waypointDistance = 0;
         map.waypointDistance = std::clamp(std::round(map.waypointDistance / 100) * 100, 0.f, 10000.f);
         if (!std::isfinite(map.waypointArrival)) map.waypointArrival = 6;

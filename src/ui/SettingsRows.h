@@ -25,7 +25,7 @@ inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
     if (id == "settings" || id == "gameLanguage" || id == "skipServerPacks" || id == "calculator" || id == "toasts" || id == "hudText" || id == "bookPaste") return "section.interface";
     if (id.starts_with("schematic")) return "section.schematic";
-    if (id == "minimap" || id == "mapText" || id == "caveView" || id == "radar" || id == "waypoints" || id == "worldMap") return "section.map";
+    if (id == "minimap" || id == "mapText" || id == "radar" || id == "waypoints" || id == "worldMap") return "section.map";
     return "section.information";
 }
 inline constexpr auto features = std::to_array<FeatureInfo>({
@@ -78,8 +78,6 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"minimap", "feature.minimap", "help.minimap", "map.minimap", true, input::Action::Minimap},
     // A heading for the minimap's text, without a switch of its own.
     {"mapText", "feature.mapText", "help.mapText", ""},
-    // Automatic; the key forces the other view.
-    {"caveView", "feature.caveView", "help.caveView", "", false, input::Action::MinimapView},
     {"radar", "feature.radar", "help.radar", "map.radar", true, input::Action::ToggleRadar},
     {"waypoints", "feature.waypoints", "help.waypoints", "map.waypoints", true, input::Action::ToggleWaypoints},
     {"worldMap", "feature.worldMap", "help.worldMap", "map.worldMap", true, input::Action::ToggleWorldMap},
@@ -171,6 +169,7 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "interaction.breakingMode") return input::Action::CycleBreakingMode;
     if (option == "map.waypointsWorld") return input::Action::HideWaypoints;
     if (option == "map.radarFaces") return input::Action::RadarFaces;
+    if (option == "map.caveView") return input::Action::MinimapView;
     if (option == "schematic.mistakeMarks") return input::Action::ToggleMistakeMarks;
     if (option == "schematic.ignoreSignal") return input::Action::ToggleIgnoreSignal;
     if (option == "schematic.litAsState") return input::Action::ToggleLitAsState;

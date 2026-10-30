@@ -419,10 +419,16 @@ void cave() {
     check(chooseView(ViewMode::Surface, false, true, 8) == ViewMode::Surface
           && chooseView(ViewMode::Cave, false, true, 8) == ViewMode::Cave, "the view holds between the thresholds");
     check(applyForce(ViewForce::Surface, ViewMode::Cave) == ViewMode::Surface
-          && applyForce(ViewForce::Auto, ViewMode::Cave) == ViewMode::Cave, "a forced view wins");
-    check(pressForce(ViewForce::Auto, ViewMode::Cave) == ViewForce::Surface
-          && pressForce(ViewForce::Auto, ViewMode::Surface) == ViewForce::Cave
-          && pressForce(ViewForce::Cave, ViewMode::Cave) == ViewForce::Auto, "the key flips the view, then returns to auto");
+          && applyForce(ViewForce::Cave, ViewMode::Surface) == ViewMode::Cave
+          && applyForce(ViewForce::Auto, ViewMode::Cave) == ViewMode::Cave, "a chosen view wins");
+    check(static_cast<int>(ViewForce::Auto) == 0 && static_cast<int>(ViewForce::Surface) == 1
+          && static_cast<int>(ViewForce::Cave) == 2, "the saved view mode is the enum's index");
+    check(cycleForce(ViewForce::Auto) == ViewForce::Surface
+          && cycleForce(ViewForce::Surface) == ViewForce::Cave
+          && cycleForce(ViewForce::Cave) == ViewForce::Auto, "the key cycles automatic, surface, cave");
+    check(viewForceOf(-1) == ViewForce::Auto && viewForceOf(3) == ViewForce::Auto
+          && viewForceOf(0) == ViewForce::Auto && viewForceOf(1) == ViewForce::Surface
+          && viewForceOf(2) == ViewForce::Cave, "a corrupt saved mode reads as automatic");
     ViewSwitch view;
     check(view.update(ViewMode::Cave, 10) == ViewMode::Cave, "the first switch is immediate");
     check(view.update(ViewMode::Surface, 10.5) == ViewMode::Cave && view.update(ViewMode::Surface, 11) == ViewMode::Surface,

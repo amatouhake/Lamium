@@ -70,6 +70,9 @@ inline constexpr std::array<std::string_view,11> mapZoomLabels{
 static_assert(mapZoomLabels.size() == map::zoomSteps.size());
 inline constexpr std::array<std::string_view,3> worldMarkerLabels{
     "worldMarkers.always", "worldMarkers.whileHeld", "worldMarkers.off"};
+// L-253: the minimap's chosen view, in map::ViewForce order.
+inline constexpr std::array<std::string_view,3> caveViewLabels{
+    "caveView.auto", "caveView.surface", "caveView.cave"};
 inline constexpr auto elementBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard"});
 // Info, Status, the player list and Durability also offer a background behind each line (L-98, L-128).
@@ -442,6 +445,7 @@ inline constexpr auto options = std::to_array<Option>({
         NumericOption{10, 50, [](Settings& s, float v) { s.map.size = v; }, 1}},
     toggle<&Settings::map, &Settings::Map::rotate>("map.rotate", "minimap", "mapRotate"),
     toggle<&Settings::map, &Settings::Map::round>("map.round", "minimap", "mapRound"),
+    choice<&Settings::map, &Settings::Map::caveView, caveViewLabels>("map.caveView", "minimap", "mapCaveView"),
     toggle<&Settings::map, &Settings::Map::compass>("map.compass", "mapText", "mapCompass"),
     toggle<&Settings::map, &Settings::Map::coordinates>("map.coordinates", "mapText", "mapCoordinates"),
     toggle<&Settings::map, &Settings::Map::biome>("map.biome", "mapText", "mapBiome"),

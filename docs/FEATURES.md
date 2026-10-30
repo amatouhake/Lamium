@@ -182,7 +182,8 @@ A HUD element colored from your block textures.
 - Compass, coordinates and biome lines.
 - Hold a key to enlarge it.
 - Cave view: under a roof and in the Nether it shows the floors around your
-  height.
+  height. The Cave view row, or its key, fixes the surface or cave view, or
+  returns to switching on its own.
 
 ### Radar
 

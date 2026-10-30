@@ -276,9 +276,11 @@ void executeAction(IClientInstance& client, input::Action action) {
     }
     if (action == input::Action::MinimapView) {
         if (!value.map.minimap) return;
-        auto force = map::pressViewKey();
-        ui::showMessageToast(ui::translated(force == map::ViewForce::Cave ? "mapView.cave"
-            : force == map::ViewForce::Surface ? "mapView.surface" : "mapView.auto"));
+        auto next = map::cycleForce(map::viewForceOf(value.map.caveView));
+        value.map.caveView = static_cast<int>(next);
+        if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save minimap view"); return; }
+        ui::showMessageToast(ui::translated(next == map::ViewForce::Cave ? "mapView.cave"
+            : next == map::ViewForce::Surface ? "mapView.surface" : "mapView.auto"));
         return;
     }
     if (action == input::Action::CycleBreakingMode) {

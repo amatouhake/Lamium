@@ -122,7 +122,7 @@ void settingsRowsTests() {
         if (auto primary = ui::primaryAction(feature))
             check(input::actions[static_cast<size_t>(*primary)].feature == feature.id
                 && (!feature.toggle.empty() || sessions.contains(feature.id) || feature.id == "settings"
-                    || feature.id == "caveView" || feature.id == "schematicMenu" || feature.id == "schematicRepeat"
+                    || feature.id == "schematicMenu" || feature.id == "schematicRepeat"
                     || feature.id == "playerList"
                     || feature.id == "calculator"), // Named commands: a key without a switch.
                 "a parent key belongs to the feature's own state or screen opener");
@@ -235,6 +235,18 @@ void settingsRowsTests() {
         });
         check(breaking != rows.end() && ui::optionAction(breaking->option->id) == input::Action::BreakingRestriction,
             "breaking restriction key appears beside its own switch");
+        auto minimap = std::find_if(rows.begin(), rows.end(), [](auto const& row) {
+            return row.heading() && row.feature->id == "minimap";
+        });
+        std::vector<std::string_view> minimapOptions;
+        if (minimap != rows.end())
+            for (auto it = minimap + 1; it != rows.end() && it->child() && it->feature == minimap->feature; ++it)
+                if (it->option) minimapOptions.push_back(it->option->id);
+        auto optionAt = [&](std::string_view id) { return std::ranges::find(minimapOptions, id) - minimapOptions.begin(); };
+        check(minimap != rows.end() && ui::optionAction("map.caveView") == input::Action::MinimapView
+              && optionAt("map.caveView") == optionAt("map.round") + 1
+              && optionAt("map.debugHide") == optionAt("map.caveView") + 1,
+              "the cave view choice follows Round, precedes Debug View hiding and carries the view key");
     }
     for (auto id : {"inventory.transferWheelOne", "inventory.transferWheelStack",
                     "inventory.transferDragStack", "inventory.transferDragOne", "inventory.transferWheelMatching",

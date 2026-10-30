@@ -75,7 +75,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"minimap", "minimap", Behavior::Toggle},
     {"minimapzoomin", "minimap", Behavior::Press},
     {"minimapzoomout", "minimap", Behavior::Press},
-    {"minimapview", "caveView", Behavior::Press},
+    {"minimapview", "minimap", Behavior::Press},
     {"minimapenlarge", "minimap", Behavior::Hold},
     {"addwaypoint", "waypoints", Behavior::Press},
     {"hidewaypoints", "waypoints", Behavior::Hold},

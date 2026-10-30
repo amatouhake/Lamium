@@ -784,8 +784,9 @@ Terrain
   the first build used that palette and looked unlike the world), and height shading against the north and west neighbors, at the
   strength shown in the mockup. No day/night darkening.
 - Under a ceiling the map switches to a cave view on its own: floors near
-  the player's height bright, walls dark. The Nether always uses it. A key
-  can force the cave or surface view.
+  the player's height bright, walls dark. The Nether always uses it. The
+  Cave view setting, or its key, keeps the surface or cave view, or returns
+  to switching on its own (L-253).
 - The cave view must stay calm (2026-10-01, after the first cave build
   redrew on every one-block height change): it is drawn around a held
   height that moves only when the player is more than 3 blocks from it,
@@ -837,13 +838,12 @@ Text, placement and settings
   options (and later the world map), with the Waypoints screen pinned at the
   bottom of the sidebar. Decided 2026-10-01 (first build had one feature
   with 19 children): the category lists features of their own: "Minimap"
-  (switch, key; range, size, turning, round, Debug View hiding, zoom and
-  enlarge keys, layout link), "Map text" (a heading without a switch:
-  compass letters, coordinates, biome), "Cave view" (no switch, its key
-  forces the other view), "Radar" (switch; one row per kind and the
-  invisible option), and later "Waypoints".
+  (switch, key; range, size, turning, round, cave view, Debug View hiding,
+  zoom and enlarge keys, layout link), "Map text" (a heading without a
+  switch: compass letters, coordinates, biome), "Radar" (switch; one row per
+  kind and the invisible option), and later "Waypoints".
 - Bindable actions without default keys: minimap zoom in/out, minimap
-  show/hide, add a waypoint, force the cave/surface view, and (2026-10-01)
+  show/hide, add a waypoint, cycle the cave/surface view, and (2026-10-01)
   enlarge while held: twice the side and twice the area at the same scale,
   at most 85 % of the screen height. New actions are
   appended to `enum Action`.
