@@ -1922,7 +1922,7 @@ in game. Release target: 0.3.1, batch L-266.
 Done 2026-10-26 (L-266 batch): `53035913`, on/off forms as a wrong state `0ce689e6`, Lit/Powered rows and keys `c37f6937`; passed in game, cactus growth included.
 
 Kind: Research (state lists), then Ready. User feedback 2026-10-26 (Discord
-thread by びー; taken as the L-252/L-258 reporter):
+thread by the L-252/L-258 reporter):
 the check should be able to ignore signal state and plant age, and redstone
 blocks whose on and off forms are different blocks count as wrong blocks.
 Decided (maintainer 2026-10-26): three separate switches in Lamium
@@ -4605,7 +4605,7 @@ The rest was built and checked in the L-266 batch (`0f06b820`, VALIDATION-LOG
 "L-266 schematic batch, stages 1 to 3").
 
 ### L-258 Fuller schematic check controls (reporter's request)
-Closed 2026-10-26: answered by the reporter's thread (びー, 2026-10-26):
+Closed 2026-10-26: answered by the reporter on 2026-10-26:
 ignore signal state, plant growth and lit/unlit forms (L-262), pick the
 aimed ghost's block (L-263), schematic water in Target View (L-264).
 
