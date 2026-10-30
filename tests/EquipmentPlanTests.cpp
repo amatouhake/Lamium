@@ -71,6 +71,15 @@ void equipmentPlanTests() {
           && chooseChestplate({{10,8,3,1,10},{20,8,3,0,500}}) == 10 && !chooseChestplate({}),
           "the chestplate with the highest protection is chosen");
 
+    check(jumpHasFireworks(true,false,false) && jumpHasFireworks(true,false,true)
+              && jumpHasFireworks(true,true,false) && jumpHasFireworks(true,true,true),
+          "rockets in the main hand always drive the firework jump");
+    check(jumpHasFireworks(false,true,true),
+          "L-246: with Fake Offhand on, its rockets drive the jump with any main-hand item");
+    check(!jumpHasFireworks(false,false,false) && !jumpHasFireworks(false,false,true)
+              && !jumpHasFireworks(false,true,false),
+          "with Fake Offhand off or its slot empty, only the main hand counts");
+
     RestockSnapshot before; before.context = 3; before.selected = 2;
     before.slots[offhandSlot] = {1,1}; before.slots[20] = {1,1}; before.slots[25] = {1,1}; before.slots[2] = {2,10};
     auto after = before; after.slots[offhandSlot] = {};
