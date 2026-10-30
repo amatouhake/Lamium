@@ -73,6 +73,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    outside loaded terrain (Research; new native experiment needs the
    maintainer's go-ahead). L-177 mismatch-highlight fix is built and awaits
    the reporter's next schematic session, not another implementation.
+   L-285 ghost pick losing to the block at the player's feet is the newest
+   report (Research, pick path; not built).
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -161,6 +163,42 @@ validation checkpoints" (snapshot 2026-10-20).
 
 
 
+### L-285 Ghost pick loses to the block at the player's feet
+
+Kind: Research (pick path), then Ready. Maintainer report
+2026-10-30: with a block at the player's feet, middle-clicking the
+ghost next to that block to pick the ghost's item brings the feet
+block into the hand instead; the ghost under the crosshair is not
+picked. With schematics off the same middle-click also brings the
+feet block, so the immediate cause is vanilla's own pick result in
+this geometry (middle-click toward an empty cell still picks a
+block), not a Lamium fall-through.
+Under L-263's decided rule the ghost pick applies when the crosshair
+is on a ghost and not on a real block, and a real block stays
+vanilla. If vanilla's hit here is the feet block, that rule reads
+the situation as "on a real block" and lets vanilla win — but the
+player was aiming at the ghost, so the outcome misreads the aim.
+Goal (maintainer 2026-10-30): when the crosshair is on a ghost and
+vanilla's pick is only the feet block, pick the ghost's block
+instead; that is the natural reading of the aim. A real block
+genuinely between the camera and the ghost still wins, as L-263
+decided, and with schematics off nothing changes.
+Research: what the pick path can see in this geometry — whether
+vanilla reports the feet block as its hit or falls back to it on a
+miss, and where GhostPick.cpp takes its "on a real block" decision
+from. Prefer ray order (the first ghost cell the view ray reaches
+versus the hit block's position) over adjacency or distance to the
+feet, which would misfire when the feet block is honestly aimed at.
+Open: a ghost in the feet cell itself; which reference the pick uses
+while FreeCamera owns the view; the creative give path (L-263)
+inheriting the same precedence.
+Check in game: the reported setup (feet block, adjacent ghost, pick
+brings the ghost's item), a real block in front of a ghost (vanilla
+still wins), a ghost with no feet block nearby (unchanged), and
+schematics off (pure vanilla, unchanged).
+No release target selected.
+
+
 ### L-276 A temporary waypoint whose removal cannot be saved is never announced again
 Kind: Bug. Review finding 2026-10-27 on `08da0c47`: `waypoints::arrive()`
 in `src/features/map/WaypointSession.cpp` called `ArrivalWatch::update()`
@@ -208,42 +246,6 @@ empty pick) and for `PickPending::due` (the frame itself, the frame after,
 the last frame before the read, after it, cleared and item-less picks).
 In game: a pick the server refuses must log that line instead of passing
 silently; an accepted pick must log nothing.
-
-
-### L-285 Ghost pick loses to the block at the player's feet
-
-Kind: Research (pick path), then Ready. Maintainer report
-2026-10-30: with a block at the player's feet, middle-clicking the
-ghost next to that block to pick the ghost's item brings the feet
-block into the hand instead; the ghost under the crosshair is not
-picked. With schematics off the same middle-click also brings the
-feet block, so the immediate cause is vanilla's own pick result in
-this geometry (middle-click toward an empty cell still picks a
-block), not a Lamium fall-through.
-Under L-263's decided rule the ghost pick applies when the crosshair
-is on a ghost and not on a real block, and a real block stays
-vanilla. If vanilla's hit here is the feet block, that rule reads
-the situation as "on a real block" and lets vanilla win — but the
-player was aiming at the ghost, so the outcome misreads the aim.
-Goal (maintainer 2026-10-30): when the crosshair is on a ghost and
-vanilla's pick is only the feet block, pick the ghost's block
-instead; that is the natural reading of the aim. A real block
-genuinely between the camera and the ghost still wins, as L-263
-decided, and with schematics off nothing changes.
-Research: what the pick path can see in this geometry — whether
-vanilla reports the feet block as its hit or falls back to it on a
-miss, and where GhostPick.cpp takes its "on a real block" decision
-from. Prefer ray order (the first ghost cell the view ray reaches
-versus the hit block's position) over adjacency or distance to the
-feet, which would misfire when the feet block is honestly aimed at.
-Open: a ghost in the feet cell itself; which reference the pick uses
-while FreeCamera owns the view; the creative give path (L-263)
-inheriting the same precedence.
-Check in game: the reported setup (feet block, adjacent ghost, pick
-brings the ghost's item), a real block in front of a ghost (vanilla
-still wins), a ghost with no feet block nearby (unchanged), and
-schematics off (pure vanilla, unchanged).
-No release target selected.
 
 
 ### L-243 Large terrain gaps that only reload when the player comes near
