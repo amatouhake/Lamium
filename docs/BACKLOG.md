@@ -76,8 +76,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
-   L-247 and L-248 are merged (2026-10-27) and still await their in-game
-   check, as their items say; L-244 is parked (see its item).
+   L-247 and L-248 are merged (2026-10-27), checked in game and closed
+   2026-10-31 (BACKLOG-DONE); L-244 is parked (see its item).
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): decided and Ready (2026-10-26): L-253. L-246, L-252 and
    L-254 are done.
@@ -246,71 +246,6 @@ schematics off (pure vanilla, unchanged).
 No release target selected.
 
 
-### L-247 Status effects HUD reorders rapidly under beacon effects
-Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in
-that release. `statusEffects::order()` in
-`src/features/information/StatusEffects.h` sorts by remaining ticks each
-update. Beacon effects regularly refresh their durations, so their rows
-repeatedly trade places and the HUD is hard to read.
-Goal: keep rows visually stable across duration refreshes, without hiding
-new effects, expiry or changing countdown values.
-Decided (maintainer 2026-10-26): a new effect enters at its place by remaining
-time; after that each row keeps its place until the effect ends, so a
-duration refresh (beacons) never moves it. Rows that end are removed and the
-rest close up. Put the rule in `StatusEffects.h` as a pure function of the
-previous order and the current effects, with tests (beacon renewals mixed
-with normal effects, new/removed effects, a longer potion replacing a
-shorter one). Check in game at a beacon with a potion running. No release
-target selected.
-Status 2026-10-27: built, not yet checked in game: `arrange()` replaces
-`order()` in `StatusEffects.h`; it takes the last frame's row ids and keeps
-each row in place until its effect ends, so a beacon refresh only changes the
-time shown, a new effect enters above the first row with a longer time and an
-ended row closes up. `InfoHud.cpp` holds the ids in `shownEffects`: only a
-read that succeeded and found no effects ends the order, so one unreadable
-frame cannot cost the rows their places; it is kept while the HUD is not
-drawn (turning it off and on does not reshuffle) and forgotten on world exit
-and when the feature stops, so a new world starts fresh. The layout editor's
-samples do not set it. Tests: beacon renewals, new and ended effects, a longer
-potion, the infinite-last rule, the read-failed case. In game: the rows must
-stay put with a beacon running, a new effect must still land by its remaining
-time and an ending one must be removed.
-
-### L-248 Shapes creation uses the body instead of the active camera
-Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in
-that release. `referencePoint()` in `src/ui/ShapesView.cpp` takes
-`LocalPlayer::getFeetPos()` for Standing block and Exact position. With
-FreeCamera detached from the player, creating a shape (and Move here)
-therefore uses the body's position rather than the location being viewed.
-Decided (maintainer 2026-10-26): use the same view reference as the schematic
-placement actions: the camera's virtual feet (camera position minus the
-player's eye height) whenever Freelook or FreeCamera detaches the view, the
-player's feet otherwise. Reuse `viewFeet()` from
-`src/features/schematic/SchematicActions.cpp` (move it to a shared header
-if needed) rather than a second rule. Applies to creating a shape and Move
-here with Standing block and Exact position; check Target block picking and
-its missing-target fallback, snapping and dimension changes. Validate in
-game with FreeCamera detached, in Freelook and with the ordinary view. No
-release target selected.
-Built 2026-10-27, not yet checked in game: the rule now lives once in
-`features/camera/ViewFeet.h` (`camera::viewFeet()`); the schematic actions
-floor its point to a cell, the shapes view keeps it precise. Creating a shape,
-a draft's reference change and Move here use it, including the missing-target
-fallback, which now stands under the camera rather than the body. A targeted
-block is taken from the hit before the view point is asked for, so a frame
-with an unusable pose still uses the block under the crosshair and only a
-missing target falls back. `CameraSessions::freeCameraPose()` (debug readout,
-map centre, "add waypoint here") calls the same helper, so those agree with a
-shape placed at the same view and a mid-teleport pose falls back to the
-standing eye height there too. Pure tests cover the body, Freelook,
-FreeCamera, sneaking and unusable poses, and check the standing-block center
-as well as its snap mode. In game: create a shape and Move here with Standing
-block and Exact position while FreeCamera is detached, repeat in Freelook and
-with the ordinary view, confirm a Target block shape with nothing under the
-crosshair falls back to the block the camera stands in, and compare the
-coordinate readout with a shape's center while detached.
-
-
 ### L-243 Large terrain gaps that only reload when the player comes near
 Kind: Bug / Research, not reproduced; watch item. Maintainer report
 2026-10-22 on `fca2ef9` (0.3.0), local world, after dimension
@@ -338,7 +273,7 @@ moving alone generates nothing, which with fog hidden looks like missing
 terrain. Chunk generation follows the body; not a Lamium change.
 
 ### L-244 FreeCamera keeps the inside-a-block view after starting in a block
-Kind: Bug / Ready. Maintainer report 2026-10-22: start FreeCamera while the body's
+Kind: Bug, parked as research 2026-10-27 (see the end of this item). Maintainer report 2026-10-22: start FreeCamera while the body's
 head is inside a block (buried in the ground); the camera then shows the
 inside-a-block screen effect the whole time, also while flying in the air.
 The effect should follow the camera, not the body, or be suppressed while
@@ -737,63 +672,6 @@ resource packs), with the unbound toggle action `bookpaste`
 (`ToggleBookPaste`); the details that were the nested row's help moved into
 the feature's help.
 No release target selected.
-
-### L-266 Schematic follow-up batch (0.3.1)
-Kind: Ready (umbrella). Maintainer decision 2026-10-26: the schematic
-requests that piled up after 0.3.0 are done together instead of one by one,
-so the Schematics settings and the four languages are reviewed once. The
-L-items stay the specifications; this item holds the order and the scope.
-Release: 0.3.1, together with other work chosen later (for example L-255
-pane corner inside edges and the other requests from the same Discord
-thread); 0.3.1 ships only after more of that is done.
-Stages, in order:
-1. Settings and ghost drawing: L-252 hide the mistake marks, L-254 "None"
-   ghost outline width.
-2. Check rules: L-262 rule table with the signal, lit/unlit and growth
-   switches.
-3. The aimed ghost: L-264 schematic water in Target View, L-263 pick the
-   aimed ghost's block.
-4. Performance, research only: L-256 measure and find the cost; whether to
-   change anything is decided from the results (L-236 is related). Done
-   2026-10-26 (BACKLOG-DONE).
-Out of the batch: L-183 (reconsider after L-262), L-184, L-185, L-186,
-L-265, L-114 to L-116, and the parked or waiting bugs (L-177, L-192, L-193,
-L-245).
-In-game checks are collected into one checklist at the end of the batch
-where possible.
-Status 2026-10-26: stages 1-3 built and pushed, not yet checked in game:
-L-252/L-254 `d70676e4` (a "Check" heading under Schematics holds the new
-switches), L-262 `53035913` (`CheckRules.h`; the rules apply to the check,
-the Check list's state rows and the mistake marks), L-264 `0f06b820` (ghost
-search passes through real water and lava; flow rows; "Target water and
-lava" under Target Info, off), L-263 `a1e629e7` (`GhostPick.cpp` hooks
-`LocalPlayer::pickBlock`; `inventory::bringToHand` is the shared part).
-Left open by these: L-264 does not yet show a ghost's waterlogged second
-layer. Stage 4 waits for a `--schematic_perf_trace=y` measurement after the
-normal checks pass.
-In-game check 2026-10-26 (maintainer, `887ae23a`): the Check heading, mistake
-marks, None outlines, the signal switch, ghost water, real liquids and the
-ghost pick passed; plant growth not checked (no way to set a cactus's age
-was at hand: `/setblock ~ ~ ~ cactus ["age"=5]` sets one). Follow-ups
-decided the same day:
-- The on/off switch no longer accepts the other form as correct: off it is
-  a wrong block (red, as before), on it is a wrong state (yellow) with an
-  "On" row; there is no ignore for it (L-262).
-- Lava rows count its own steps: three blocks outside the Nether
-  (liquid_depth 0, 2, 4, 6), seven in it (L-264).
-- In creative, picking a ghost whose block is not carried gives the block
-  like vanilla, always (no setting); how to do that so servers accept it
-  is Research (L-263).
-Checked in game 2026-10-26 (VALIDATION-LOG "L-266 schematic batch"):
-L-252, L-254 and L-262 done and moved to BACKLOG-DONE; L-263 (creative
-pick of a block not carried) and L-264 (waterlogged ghosts) keep their open
-parts; stage 4 is next.
-Decided later the same day (maintainer): Mistake marks goes into the
-menu's Show category, and the HUD switch moves to Screen (both stay at six
-items); every Check switch gets a bindable action, unbound by default; the
-three rules stay out of the menu (an L-238 exception). The on/off rows are
-named after the Java Edition states: "Lit" for lamps and torches,
-"Powered" for repeaters and comparators.
 
 ### L-263 Pick the aimed ghost block from the inventory
 Kind: Research (pick-block hook), then Ready. Same feedback as L-262:
