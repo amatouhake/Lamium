@@ -6,6 +6,21 @@ Timed secondary use was excluded on 2026-10-07; the broader extension scope
 below is the earlier research record, not a promise of support. Confirmed
 runtime coverage and remaining checks are in [VALIDATION.md](VALIDATION.md).
 
+## Auto Elytra fireworks (L-246, decided 2026-10-26)
+
+Auto Elytra's firework jump reads this feature's target slot too: while Fake
+Offhand is on and that slot holds firework rockets, a jump puts the elytra on
+whatever the main hand holds. It is an equipment trigger only, so no firework
+is used and no glide is started; a later jump glides as in vanilla. With Fake
+Offhand off, or its slot empty or not rockets, the trigger reads the main hand
+as before.
+
+The trigger follows the setting, not the `FakeOffhandTargets` capability. That
+capability pauses only the target-specific main-hand checks in `targetUse()`;
+the slot's own instant uses, fireworks while gliding among them, stay available
+on an unverified game. Counting the slot while its fireworks still work is the
+consistent reading of "Fake Offhand is on" (reviewed 2026-10-30).
+
 ## Primary-use regressions (L-198, 2026-10-15)
 
 The maintainer reported three cases: a primary block prevented fireworks

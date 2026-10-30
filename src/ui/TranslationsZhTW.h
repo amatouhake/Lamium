@@ -1501,7 +1501,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"help.elytraSwap", "按下它的按鍵，或拿著煙火跳躍時，從物品欄穿上鞘翅；落地幾秒後會換回胸甲。"},
     {"key.Lamium.elytraswap", "Lamium: 開關自動切換鞘翅"},
     {"elytraFireworkJump", "拿著煙火跳躍: {}"},
-    {"help.interaction.elytraFireworkJump", "拿著煙火火箭跳躍時穿上鞘翅。關：只有按鍵會穿上。"},
+    {"help.interaction.elytraFireworkJump", "拿著煙火火箭跳躍時穿上鞘翅；開啟虛擬副手時，其欄位中的煙火火箭也算。關：只有按鍵會穿上。"},
     {"elytraRiptide", "激流發射: {}"},
     {"help.interaction.elytraRiptide", "激流三叉戟把你發射出去時穿上鞘翅。在空中跳躍即可滑翔；落地後會像煙火跳躍一樣脫下。"},
     {"elytraReturnSeconds", "落地後換回胸甲: {} 秒"},

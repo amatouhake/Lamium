@@ -1537,7 +1537,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.elytraSwap", "Press its key, or jump holding fireworks, to put on an elytra from the inventory; a chestplate goes back on a few seconds after landing.", "キー、または花火を持ってジャンプで、インベントリのエリトラを着ます。着地して数秒後にチェストプレートに戻します。"},
     {"key.Lamium.elytraswap", "Lamium: Toggle Auto Elytra", "Lamium: エリトラ自動装備の切り替え"},
     {"elytraFireworkJump", "Jump with fireworks: {}", "花火を持ってジャンプで着る: {}"},
-    {"help.interaction.elytraFireworkJump", "Put the elytra on when you jump holding firework rockets. Off: only its key does.", "ロケット花火を持ってジャンプしたときにエリトラを着ます。オフではキーだけで着ます。"},
+    {"help.interaction.elytraFireworkJump", "Put the elytra on when you jump holding firework rockets; with Fake Offhand on, rockets in its slot count too. Off: only its key does.", "ロケット花火を持ってジャンプしたときにエリトラを着ます。擬似オフハンドがオンのときは、そのスロットのロケット花火でも着ます。オフではキーだけで着ます。"},
     {"elytraRiptide", "Riptide launch: {}", "激流で飛び出したら着る: {}"},
     {"help.interaction.elytraRiptide", "Put the elytra on when a Riptide trident launches you. Jump in the air to glide; it comes off after landing like a firework jump.", "激流のトライデントで飛び出したときにエリトラを着ます。滑空は空中でジャンプします。着地後は花火ジャンプと同じく外れます。"},
     {"elytraReturnSeconds", "Chestplate back after landing: {} s", "着地からチェストプレートに戻すまで: {} 秒"},

@@ -124,9 +124,17 @@ bool spinning(LocalPlayer& player) {
     return player.getEntityContext().tryGetComponent<RiptideTridentSpinAttackComponent>() != nullptr
         || player.getStatusFlag(ActorFlags::Damagenearbymobs);
 }
-bool holdingFireworks(LocalPlayer& player) {
-    auto const& held = player.getInventory().getItem(player.mInventory->mSelected);
+bool holdingFireworks(LocalPlayer& player, int slot) {
+    auto const& held = player.getInventory().getItem(slot);
     return !empty(held) && held.getTypeName() == "minecraft:firework_rocket";
+}
+// L-246: Fake Offhand's slot counts too, whatever the main hand holds.
+bool jumpFireworks(LocalPlayer& player, Settings const& settings) {
+    bool main = holdingFireworks(player, player.mInventory->mSelected);
+    bool fake = false;
+    int slot = settings.inventory.fakeOffhandSlot - 1;
+    if (settings.inventory.fakeOffhand && slot >= 0 && slot < 9) fake = holdingFireworks(player, slot);
+    return jumpHasFireworks(main, settings.inventory.fakeOffhand, fake);
 }
 void tick() noexcept {
     try {
@@ -140,12 +148,13 @@ void tick() noexcept {
         bool launched = spin && !wasSpinning;
         wasSpinning = spin;
         if (state.active && static_cast<int>(player->getDimensionId()) != dimension) { state = {}; trace("forget-dimension"); }
-        auto const& settings = Runtime::instance().preferences().interaction;
+        auto const preferences = Runtime::instance().snapshot();
+        auto const& settings = preferences->interaction;
         if (key) {
             // The key toggles: any worn elytra comes off, otherwise one goes on.
             if (isElytra(chest(*player))) takeOff(*player);
             else putOn(*player,false);
-        } else if (settings.elytraFireworkJump && jumped && holdingFireworks(*player)
+        } else if (settings.elytraFireworkJump && jumped && jumpFireworks(*player, *preferences)
             && !player->getVehicle() && !player->isInWater()) {
             // Any jump, the one from the ground included (decided 2026-09-30).
             trace("firework-jump");

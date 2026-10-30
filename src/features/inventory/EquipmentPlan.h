@@ -112,4 +112,9 @@ inline std::optional<int> chooseChestplate(std::vector<ChestplateCandidate> cons
         if (c.slot >= 0 && (!best || key(c) > key(*best))) best = c;
     return best ? std::optional<int>{best->slot} : std::nullopt;
 }
+// L-246: a firework jump also counts rockets in Fake Offhand's target slot
+// while that feature is on, whatever the main hand holds.
+inline bool jumpHasFireworks(bool mainHandRockets, bool fakeOffhandOn, bool fakeSlotRockets) {
+    return mainHandRockets || (fakeOffhandOn && fakeSlotRockets);
+}
 }
