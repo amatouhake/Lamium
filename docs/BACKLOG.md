@@ -1934,7 +1934,8 @@ micro-optimizations.
 
 ## Later / parked
 
-The following notes were imported on 2026-10-12 for later consideration.
+The first notes here were imported on 2026-10-12 for later consideration;
+low-priority requests accepted since then are appended at the end.
 Documentation tracking does not approve implementation or a release target.
 L-154 was merged into L-169 and is archived in BACKLOG-DONE.md.
 Fake Offhand reserved-slot protection is excluded from this import; the
