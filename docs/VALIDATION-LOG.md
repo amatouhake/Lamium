@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-280/L-281 Auto Elytra water behaviour (2026-10-30)
+
+`main` `f63cf36d` (merged as `99145be3`, DLL SHA-256
+`F0FDCAAA94A5EA33C12367C7FEAD3608669EE2822538A38104AAA1A812264BAA`),
+`1.26.51.01` LIP, release build with no trace options, maintainer.
+
+- A Riptide launch used to fight underwater does not swap the chestplate for
+  an elytra (L-280).
+- A launch underwater that breaks the surface puts the elytra on once the
+  player is out of the water in the air; a launch in rain equips as before.
+- A Riptide spin with the elytra already on restarts the return delay, so a
+  launch out of the water extends the flight.
+- Gliding into water now starts the return delay: the chestplate comes back
+  after the configured time instead of waiting for the player to reach ground
+  (L-281).
+- Firework jump and the key behave as before. Help text reads the new
+  sentences in Japanese, Simplified Chinese and Traditional Chinese.
+- Not checked: a launch underwater that takes longer than the two-second coast
+  to reach the surface; by design it does not equip.
+
 ## L-246 Auto Elytra firework jump with Fake Offhand rockets (2026-10-30)
 
 `main` `447449a` (merged as `f88a8a8b`, DLL SHA-256
