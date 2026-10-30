@@ -529,8 +529,9 @@ chunk, or draw the faces with a material that does not write depth.
 ## Feature work and research
 
 ### L-246 Option to trigger Auto Elytra with Fake Offhand fireworks
-Kind: Ready. Maintainer idea 2026-10-22 after 0.3.0; no implementation
-or release selected. The existing firework-jump trigger in
+Kind: Ready (built on branch `l246-elytra-fake-offhand`, PR #56; waiting for
+the in-game checks below). Maintainer idea 2026-10-22 after 0.3.0; no
+release selected. The existing firework-jump trigger in
 `src/features/interaction/ElytraSwap.cpp` checks only the selected
 main-hand hotbar slot (`holdingFireworks()`). A firework rocket assigned
 to Fake Offhand does not qualify.
@@ -544,6 +545,9 @@ empty or not rockets, nothing changes. This is an equipment trigger only,
 not automatic firework use or a guaranteed glide start (see L-71). Update
 the Firework jump help text in all four languages. Test main-hand and Fake
 Offhand combinations and verify in game. No release target selected.
+Reviewed 2026-10-30: the trigger reads the setting, not the
+`FakeOffhandTargets` capability, which pauses only target-specific main-hand
+checks; see [FAKE-OFFHAND.md](FAKE-OFFHAND.md).
 
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which

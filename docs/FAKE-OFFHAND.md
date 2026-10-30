@@ -15,6 +15,12 @@ is used and no glide is started; a later jump glides as in vanilla. With Fake
 Offhand off, or its slot empty or not rockets, the trigger reads the main hand
 as before.
 
+The trigger follows the setting, not the `FakeOffhandTargets` capability. That
+capability pauses only the target-specific main-hand checks in `targetUse()`;
+the slot's own instant uses, fireworks while gliding among them, stay available
+on an unverified game. Counting the slot while its fireworks still work is the
+consistent reading of "Fake Offhand is on" (reviewed 2026-10-30).
+
 ## Primary-use regressions (L-198, 2026-10-15)
 
 The maintainer reported three cases: a primary block prevented fireworks
