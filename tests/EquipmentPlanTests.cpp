@@ -89,8 +89,29 @@ void equipmentPlanTests() {
     in.riptideLaunch = false; in.spinning = false; in.inWater = false; in.onGround = false;
     check(elytraStep(state,in) == ElytraStep::PutOn,
           "the elytra goes on once the player is out of the water in the air");
-    // L-280: the launch frame itself has to reach the state machine, even with
-    // nothing active yet; that was the bug that made the wait never start.
+    check(elytraStep(state,in) == ElytraStep::PutOn && state.riptideWait,
+          "a swap the inventory refused is tried again");
+    in.wearingElytra = true;
+    elytraStep(state,in);
+    check(!state.riptideWait, "seeing the elytra worn ends the wait");
+    in.wearingElytra = false;
+    state = {};
+    in.riptideLaunch = true; in.onGround = true; in.spinning = true;
+    check(elytraStep(state,in) == ElytraStep::None && state.riptideWait, "a launch from land waits on the ground");
+    in.riptideLaunch = false; in.onGround = false;
+    check(elytraStep(state,in) == ElytraStep::PutOn, "a launch from land swaps once airborne");
+    state = {};
+    in.riptideLaunch = true; in.inWater = true; in.spinning = true;
+    elytraStep(state,in);
+    in.riptideLaunch = false; in.spinning = false; in.rising = true;
+    for (int tick = 0; tick < riptideCoastTicks; ++tick) elytraStep(state,in);
+    check(!state.riptideWait, "swimming up does not keep the wait forever");
+    in.rising = false;
+    state = {}; in.riptideLaunch = true; in.enabled = false;
+    elytraStep(state,in);
+    check(!state.riptideWait, "a disabled feature does not wait");
+    in.enabled = true; in.riptideLaunch = false;
+    // The launch tick reaches the state machine even with nothing followed yet.
     {
         ElytraSwapState fresh;
         ElytraInput launch;
@@ -109,6 +130,9 @@ void equipmentPlanTests() {
     check(elytraStep(state,in) == ElytraStep::TakeOff, "the chestplate comes back after the delay in water");
     state = {true,20,true,false,0}; in.gliding = true; in.inWater = true;
     check(elytraStep(state,in) == ElytraStep::None && !state.landed, "gliding over water is not a landing");
+    state = {true,20,true,true,1}; in.gliding = false; in.spinning = true; in.landingTicks = 60;
+    check(elytraStep(state,in) == ElytraStep::None && !state.landed && state.ticks == 0,
+          "a Riptide launch with the elytra on restarts the delay");
     check(chooseChestplate({{10,6,0,0,100},{20,8,2,0,50},{30,8,3,0,10}}) == 30
           && chooseChestplate({{10,8,3,1,10},{20,8,3,0,500}}) == 10 && !chooseChestplate({}),
           "the chestplate with the highest protection is chosen");

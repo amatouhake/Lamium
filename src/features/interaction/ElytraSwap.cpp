@@ -141,14 +141,16 @@ void tick() noexcept {
     try {
         bool key = std::exchange(keyPressed,false);
         auto* player = localPlayer();
-        if (!player || !enabled() || player->isCreative()) { jumpWasDown = wasSpinning = false; return; }
+        if (!player || !enabled() || player->isCreative()) { jumpWasDown = wasSpinning = state.riptideWait = false; return; }
         bool down = jumpDown(*player);
         bool jumped = down && !jumpWasDown;
         jumpWasDown = down;
         bool spin = spinning(*player);
         bool launched = spin && !wasSpinning;
         wasSpinning = spin;
-        if (state.active && static_cast<int>(player->getDimensionId()) != dimension) { state = {}; trace("forget-dimension"); }
+        if ((state.active || state.riptideWait) && static_cast<int>(player->getDimensionId()) != dimension) {
+            state = {}; trace("forget-dimension");
+        }
         auto const preferences = Runtime::instance().snapshot();
         auto const& settings = preferences->interaction;
         bool riptideLaunch = false;
@@ -167,6 +169,7 @@ void tick() noexcept {
             // The swap itself waits until the player can fly (L-280).
             trace("riptide-launch");
             riptideLaunch = true;
+            if (!state.active) dimension = static_cast<int>(player->getDimensionId());
         }
         ElytraInput in;
         in.enabled = true;
@@ -178,7 +181,7 @@ void tick() noexcept {
         in.rising = player->getVelocity().y > 0;
         in.riptideLaunch = riptideLaunch;
         if (!followsElytra(state,in)) return;
-        if (!state.active && !state.riptideWait && !in.riptideLaunch) {
+        if (!state.active && in.wearingElytra && in.gliding) {
             worn = {}; dimension = static_cast<int>(player->getDimensionId()); trace("follow-worn");
         }
         in.returnSlotHoldsChest = state.returnSlot && returnSlotHoldsChest(*player);

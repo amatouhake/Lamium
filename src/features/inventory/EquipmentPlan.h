@@ -65,9 +65,13 @@ struct ElytraSwapState {
     bool flown = false;            // Gliding (or a firework jump) since it went on.
     bool landed = false;           // Touched the ground or water after the flight.
     int ticks = 0;                 // Ticks since that landing.
-    bool riptideWait = false;      // A Riptide launch waits for a flyable frame (L-280).
-    int riptideStall = 0;          // Frames of that wait without a spin or a lift.
+    bool riptideWait = false;      // A Riptide launch waits for a tick the player can fly (L-280).
+    int riptideStall = 0;          // Ticks of that wait without a spin or a lift.
+    int riptideCoast = 0;          // Ticks of that wait since the spin ended.
 };
+// Client level ticks, 20 per second.
+inline constexpr int riptideStallTicks = 10; // No spin and no lift: swimming or standing.
+inline constexpr int riptideCoastTicks = 40; // Swimming up lifts too, so a lift alone ends here.
 enum class ElytraStep { None, PutOn, TakeOff, WearChestplate, Forget };
 struct ElytraInput {
     bool enabled = false;
@@ -80,8 +84,7 @@ struct ElytraInput {
     bool inWater = false;              // In water: no glide is possible there.
     bool spinning = false;             // The Riptide spin the launch started is still running.
     bool rising = false;               // The launch is still carrying the player up.
-    bool riptideLaunch = false;        // A Riptide launch started this frame.
-    int riptideStallTicks = 10;        // Stop waiting after this many stalled frames.
+    bool riptideLaunch = false;        // A Riptide launch started this tick.
 };
 // The delay runs from the first landing after a flight and ignores later hops
 // (sprint jumping kept resetting a grounded-time count); only a new glide
@@ -92,19 +95,19 @@ struct ElytraInput {
 // else the best chestplate in the inventory, else the elytra stays.
 inline ElytraStep elytraStep(ElytraSwapState& state, ElytraInput const& in) {
     // L-280: a Riptide launch does not swap on the spot. It waits for the first
-    // frame the player can actually fly (airborne and out of the water), and
+    // tick the player can actually fly (airborne and out of the water), and
     // gives up once the launch stopped carrying them (no spin, no lift) long
     // enough that they are swimming or standing. Underwater fights therefore
-    // never touch the chestplate.
-    if (in.riptideLaunch) { state.riptideWait = true; state.riptideStall = 0; }
+    // never touch the chestplate. The wait ends only when the elytra is seen
+    // worn, so a swap the inventory refused is tried again next tick.
+    if (in.riptideLaunch) { state.riptideWait = true; state.riptideStall = state.riptideCoast = 0; }
     if (state.riptideWait) {
         if (!in.enabled || in.wearingElytra) state.riptideWait = false;
-        else if (!in.inWater && !in.onGround) {
-            state.riptideWait = false;
-            state.riptideStall = 0;
-            return ElytraStep::PutOn;
-        } else if (in.spinning || in.rising) state.riptideStall = 0;
-        else if (++state.riptideStall >= std::max(in.riptideStallTicks,1)) state.riptideWait = false;
+        else if (!in.inWater && !in.onGround) return ElytraStep::PutOn;
+        else if (in.spinning) state.riptideStall = state.riptideCoast = 0;
+        else if (++state.riptideCoast >= riptideCoastTicks) state.riptideWait = false;
+        else if (in.rising) state.riptideStall = 0;
+        else if (++state.riptideStall >= riptideStallTicks) state.riptideWait = false;
     }
     if (!state.active) {
         if (!in.enabled || !in.wearingElytra || !in.gliding) return ElytraStep::None;
@@ -112,7 +115,8 @@ inline ElytraStep elytraStep(ElytraSwapState& state, ElytraInput const& in) {
     }
     if (!in.enabled || !in.wearingElytra) return ElytraStep::Forget;
     if (state.returnSlot && !in.returnSlotHoldsChest) state.returnSlot.reset();
-    if (in.gliding) { state.flown = true; state.landed = false; state.ticks = 0; return ElytraStep::None; }
+    // A Riptide spin flies like a glide: a launch out of the water restarts the delay.
+    if (in.gliding || in.spinning) { state.flown = true; state.landed = false; state.ticks = 0; return ElytraStep::None; }
     if (!state.flown) return ElytraStep::None; // Put on by key on the ground: wait for the key.
     if (!state.landed) {
         if (!in.onGround && !in.inWater) return ElytraStep::None;
@@ -123,10 +127,9 @@ inline ElytraStep elytraStep(ElytraSwapState& state, ElytraInput const& in) {
     if (state.returnSlot) return ElytraStep::TakeOff;
     return in.chestplateAvailable ? ElytraStep::WearChestplate : ElytraStep::Forget;
 }
-// Whether this frame has anything to do at all: an elytra is followed, a
-// Riptide launch waits for its flyable frame, or one is worn by hand and
-// gliding. The caller uses this to decide whether to run the state machine;
-// leaving the launch out of it is what kept the wait from ever starting.
+// Whether this tick has anything to do at all: an elytra is followed, a
+// Riptide launch waits for its flyable tick, or one is worn by hand and
+// gliding. The launch tick itself counts, since nothing is followed yet then.
 inline bool followsElytra(ElytraSwapState const& state, ElytraInput const& in) {
     return state.active || state.riptideWait || in.riptideLaunch || (in.wearingElytra && in.gliding);
 }

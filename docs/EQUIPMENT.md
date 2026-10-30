@@ -114,7 +114,9 @@ Decided 2026-10-30 (maintainer, L-280): the swap waits until the player can fly.
 A launch arms a wait instead of swapping on the spot; the elytra goes on the
 first frame the player is airborne and out of the water, and the wait is
 dropped once the launch has stopped carrying them (no spin and no upward
-speed) for half a second, which is what an underwater fight looks like. A
+speed) for half a second, which is what an underwater fight looks like, or
+two seconds after the spin ends, since swimming up also counts as upward
+speed. A Riptide spin with an elytra on restarts the return delay. A
 launch in rain or from land is airborne a frame or two later and behaves as
 before. This replaces an earlier "swap at the launch, undo it in water" rule
 that was never released.

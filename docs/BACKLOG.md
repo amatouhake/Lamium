@@ -552,8 +552,6 @@ that restarts within the delay still keeps the elytra. The delay row's help
 text says water is included, in all four languages.
 
 ### L-249 Show the chunks within simulation distance
-
-### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which
 chunks are within the simulation distance (where mobs, crops and redstone
 tick). Chunk Borders (`src/overlay/ChunkBorders.h`) draws only the borders
