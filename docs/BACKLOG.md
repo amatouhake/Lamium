@@ -81,8 +81,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-247 and L-248 are merged (2026-10-27), checked in game and closed
    2026-10-31 (BACKLOG-DONE); L-244 is parked (see its item).
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10): decided and Ready (2026-10-26): L-253. L-246, L-252 and
-   L-254 are done.
+   2026-10-10): L-253 is built (2026-10-31) and awaits its in-game checks.
+   L-246, L-252 and L-254 are done.
    **L-266 schematic follow-up batch** closed with the 0.3.1 release
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
@@ -127,7 +127,9 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.3.1
 
-No changed features recorded yet.
+- Minimap cave view (L-253): the chosen mode survives a restart and a world
+  rejoin, a forced Surface holds in the Nether, and the key does nothing
+  while the minimap is off.
 
 ### Gaps carried from released builds
 
@@ -805,6 +807,14 @@ Check in game: cycle from the key and from the settings row above and
 below ground in the Overworld and in the Nether (a forced Surface in
 the Nether included), the mode surviving a restart and a world
 rejoin, and the key doing nothing while the minimap is off.
+Status 2026-10-31: built (`9a4e0ff7`), not yet checked in game. The
+in-memory force is gone: `Settings::Map::caveView` holds Automatic /
+Surface / Cave, the minimap reads it every frame, and both the key and
+the stepper walk the same order. `viewForceOf` reads a corrupt value as
+Automatic. The key sits on the new `map.caveView` row under Minimap
+(after Round, before Debug View hiding), and its label now says "Cycle
+the minimap view"; `help.map.caveView` replaces `help.caveView`, and the
+`feature.caveView` strings are removed. The check list above stands.
 No release target selected.
 
 
