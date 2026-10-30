@@ -839,21 +839,57 @@ block is not carried. Do not change gameplay packets beyond what the
 player could do by hand without a separate decision.
 No release target selected.
 
-### L-253 Option to fix the minimap to surface or cave view
-Kind: Ready. Maintainer note 2026-10-24 after 0.3.0: make the minimap's
-surface/underground view an option. Today the minimap switches between the
-surface and the cave view by itself (a roof over the followed point,
-[MAP.md](MAP.md), L-228); only the world map has a manual cave on/off.
-Goal: let the player keep the minimap on the surface (or cave) view instead
-of the automatic switch.
-Decided (maintainer 2026-10-26): a three-way minimap setting, Automatic /
-Surface / Cave, default Automatic (today's behavior). No key. Surface keeps
-the surface view under a roof; Cave keeps the cave view at the height the
-automatic mode would use in a cave. The world map and cave recording are
-unchanged; FreeCamera's camera reference still decides the followed point.
-Settings, option row and help in all four languages; check in game above
-and below ground in the Overworld and in the Nether. No release target
-selected.
+### L-253 Make the minimap cave view a persisted three-way option the key cycles
+
+Kind: Ready. Rewritten 2026-10-30. The original text (maintainer note
+2026-10-24, decided 2026-10-26) said the minimap switches by itself and
+only the world map has a manual cave on/off, and decided a three-way
+setting with "No key". That premise was wrong: the maintainer had
+forgotten the shipped MinimapView key. Current main already forces the
+view from a key (`pressViewKey` / `ViewForce` in MapCave.h and
+Minimap.cpp, the `caveView` settings row with no switch, toasts
+`mapView.cave` / `mapView.surface` / `mapView.auto`; MAP.md documents
+it). What is actually missing is persistence and a settings surface:
+the force is an in-memory atomic, not a Settings value, the row shows
+no state and offers no choice, and FEATURES does not mention the key.
+The three-way decision stands; the "No key" part is reversed.
+
+Decided (maintainer 2026-10-30):
+
+- One state, two entry points. A new persisted field in `Settings::Map`
+  holds the view mode: Automatic / Surface / Cave, default Automatic
+  (today's behavior). The in-memory `viewForce` goes away; the minimap
+  reads the setting. `applyForce` semantics are unchanged (a chosen
+  mode wins over the automatic choice), and Cave keeps the cave view at
+  the height the automatic mode would use. The world map's opening
+  choice (`automaticView`), cave recording, and the FreeCamera
+  reference for the followed point are unchanged.
+- Settings placement: the `caveView` feature row is removed. The mode
+  becomes a choice option under the Minimap parent, after Round and
+  before the debug-hide option, shown as a stepper like the map zoom
+  and waypoints-world choices ("Cave view: < Automatic >"). Cave view
+  is not an independent feature — with the minimap off the key already
+  does nothing — so it does not keep a feature row of its own.
+- Key: the MinimapView binding moves to that option row (the
+  option-key precedent: `map.radarFaces`, `map.waypointsWorld`). The
+  key cycles the same setting Automatic → Surface → Cave → Automatic,
+  saves immediately like every settings change, and toasts the new
+  mode with the existing `mapView.*` strings. `pressForce` ("force
+  the view not shown, press again for automatic") is replaced by the
+  plain cycle; finding a mode can take two presses, accepted because
+  the settings row and the toast always name the current mode.
+- Texts: `help.caveView` is rewritten (it currently describes the old
+  key behavior) and the new option label and mode names land in all
+  four languages; FEATURES gains the option and the key in the Minimap
+  section; the MAP.md line about the key is updated to match.
+- Tests: the MapTests `pressForce` cases become cycle cases (order,
+  wrap-around, forced mode beats automatic).
+
+Check in game: cycle from the key and from the settings row above and
+below ground in the Overworld and in the Nether (a forced Surface in
+the Nether included), the mode surviving a restart and a world
+rejoin, and the key doing nothing while the minimap is off.
+No release target selected.
 
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
