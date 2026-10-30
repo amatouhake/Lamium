@@ -44,7 +44,7 @@ with the ordinary view, confirm a Target block shape with nothing under the
 crosshair falls back to the block the camera stands in, and compare the
 coordinate readout with a shape's center while detached.
 
-Done 2026-10-31: checked in game by the maintainer and passed: shapes are created and moved from the camera's view while FreeCamera or Freelook detaches it, and from the body in the ordinary view. The check predates this record; the build it ran on was not written down.
+Done 2026-10-31: checked in game by the maintainer before the 0.3.1 release; the fix shipped in `v0.3.1` (`91dcc958`, #44). The instance, the build and the DLL were not recorded. Shapes are created and moved from the camera's view while FreeCamera or Freelook detaches it, and from the body in the ordinary view.
 
 ### L-247 Status effects HUD reorders rapidly under beacon effects
 Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in
@@ -76,7 +76,7 @@ potion, the infinite-last rule, the read-failed case. In game: the rows must
 stay put with a beacon running, a new effect must still land by its remaining
 time and an ending one must be removed.
 
-Done 2026-10-31: checked in game by the maintainer and passed: with a beacon running the rows stay put, a new effect enters by its remaining time and an ended effect is removed. The check predates this record; the build it ran on was not written down.
+Done 2026-10-31: checked in game by the maintainer before the 0.3.1 release; the fix shipped in `v0.3.1` (`9e039c18`, #43). The instance, the build and the DLL were not recorded. With a beacon running the rows stay put, a new effect enters by its remaining time and an ended effect is removed.
 
 ### L-279 "None" outlines still drew the entity ghosts' outlines
 
@@ -1883,7 +1883,7 @@ three rules stay out of the menu (an L-238 exception). The on/off rows are
 named after the Java Edition states: "Lit" for lamps and torches,
 "Powered" for repeaters and comparators.
 
-Done 2026-10-31: the batch closed with the 0.3.1 release (2026-10-27), as BACKLOG.md's execution order already recorded; the item is moved here to complete the bookkeeping. Items that keep open parts (L-263, L-264) stay in BACKLOG.md; L-265 was out of the batch from the start.
+Done 2026-10-31: the batch closed with the 0.3.1 release (2026-10-27), as BACKLOG.md's execution order already recorded; the item is moved here to complete the bookkeeping. L-263, which keeps an open part, stays in BACKLOG.md; L-264 was closed 2026-10-26 and L-265 was out of the batch from the start.
 
 ### L-252 Hide the schematic mistake marks in the world
 Done 2026-10-26 (L-266 batch): `d70676e4`, in the menu's Show category since `c37f6937`; passed in game.

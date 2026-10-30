@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-247 and L-248 status effect rows and shapes reference (2026-10-31 record)
+
+Checked in game by the maintainer before the 0.3.1 release; the fixes shipped
+in `v0.3.1` as `9e039c18` (#43, L-247) and `91dcc958` (#44, L-248). The
+instance, the build and the DLL SHA-256 were not recorded when the check
+happened; this entry records the maintainer's confirmation.
+
+- Status effects HUD: with a beacon running the rows stay put, a new effect
+  enters by its remaining time and an ended effect is removed (L-247).
+- Shapes: creating a shape and Move here use the camera's view while
+  FreeCamera or Freelook detaches it, and the body's feet in the ordinary
+  view (L-248).
+- Not recorded: the rest of each item's checklist (L-248's Target block
+  picking, snapping and dimension changes; L-247 at more than one beacon
+  level).
+
 ## L-280/L-281 Auto Elytra water behaviour (2026-10-30)
 
 `main` `f63cf36d` (merged as `99145be3`, DLL SHA-256
