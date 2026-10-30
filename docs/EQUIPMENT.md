@@ -110,6 +110,20 @@ player jumps in the air to glide. Not in a vehicle or Creative.
 Unknown: whether the local player carries that component or flag during
 the spin on the client, locally and on a server.
 
+Decided 2026-10-30 (maintainer, L-280): the swap waits until the player can fly.
+A launch arms a wait instead of swapping on the spot; the elytra goes on the
+first frame the player is airborne and out of the water, and the wait is
+dropped once the launch has stopped carrying them (no spin and no upward
+speed) for half a second, which is what an underwater fight looks like. A
+launch in rain or from land is airborne a frame or two later and behaves as
+before. This replaces an earlier "swap at the launch, undo it in water" rule
+that was never released.
+
+Decided 2026-10-30 (maintainer, L-281): landing in water starts the same
+return delay as landing on ground. Before this an elytra glided into the sea
+stayed on until the player reached ground, because the delay only ran from a
+ground landing. A glide that restarts within the delay still keeps the elytra.
+
 ## Verification
 
 Pure tests (`tests/EquipmentPlanTests.cpp`) cover durability limits, enchantment

@@ -528,6 +528,31 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
+### L-280 Auto Elytra: put the elytra on after a Riptide launch only when the player can fly
+Kind: Ready. Maintainer report 2026-10-30 after 0.3.1: Riptide is used
+underwater to fight mobs, and Auto Elytra swapped the chestplate for an elytra
+at the launch. Under water the elytra can never glide, so the swap only took
+the chestplate away.
+Decided (maintainer 2026-10-30): a launch arms a wait instead of swapping. The
+elytra goes on the first frame the player is airborne and out of the water;
+the wait is dropped once the launch has stopped carrying them (no spin and no
+upward speed) for half a second, which is what an underwater fight looks like.
+A launch in rain or from land is airborne a frame or two later. The earlier
+"swap at the launch, undo it in water" rule is replaced. Help text in all four
+languages; check above and below water and in rain (see
+[EQUIPMENT.md](EQUIPMENT.md)).
+
+### L-281 Auto Elytra: landing in water starts the return delay
+Kind: Ready. Maintainer report 2026-10-30 after 0.3.1: an elytra glided into
+water never came off until the player reached ground, because the return delay
+ran only from a ground landing.
+Decided (maintainer 2026-10-30): landing in water counts as a landing, so the
+configured "chestplate back after landing" delay applies there too, and a glide
+that restarts within the delay still keeps the elytra. The delay row's help
+text says water is included, in all four languages.
+
+### L-249 Show the chunks within simulation distance
+
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which
 chunks are within the simulation distance (where mobs, crops and redstone

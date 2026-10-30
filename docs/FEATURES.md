@@ -353,9 +353,11 @@ or mining stops.
 
 ### Auto Elytra
 
-A key, a firework jump or a Riptide trident launch puts an elytra on; the
-chestplate returns after landing. The jump counts firework rockets in Fake
-Offhand's target slot too, while that feature is on.
+A key, a firework jump or a Riptide trident launch puts an elytra on; a
+Riptide launch waits until you are in the air out of the water. The chestplate
+returns a few seconds after landing, and landing in water counts. The jump
+counts firework rockets in Fake Offhand's target slot too, while that feature
+is on.
 
 ### Block Restrictions
 

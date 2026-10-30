@@ -87,8 +87,9 @@ std::optional<int> chestplateSlot(LocalPlayer& player) {
     }
     return chooseChestplate(candidates);
 }
-// A firework jump means flying: return the chestplate after landing even if
-// no glide followed. A key press on the ground waits for the key again.
+// A firework jump or a Riptide launch means flying: return the chestplate
+// after landing even if no glide followed. A key press on the ground waits for
+// the key again.
 void putOn(LocalPlayer& player, bool flying) {
     if (isElytra(chest(player))) return;
     auto slot = elytraSlot(player);
@@ -150,6 +151,7 @@ void tick() noexcept {
         if (state.active && static_cast<int>(player->getDimensionId()) != dimension) { state = {}; trace("forget-dimension"); }
         auto const preferences = Runtime::instance().snapshot();
         auto const& settings = preferences->interaction;
+        bool riptideLaunch = false;
         if (key) {
             // The key toggles: any worn elytra comes off, otherwise one goes on.
             if (isElytra(chest(*player))) takeOff(*player);
@@ -162,20 +164,28 @@ void tick() noexcept {
         } else if (settings.elytraRiptide && launched && !player->getVehicle()) {
             // At the launch, not while charging: Riptide flies without an
             // elytra, so only a real launch is worth a swap (decided 2026-10-14).
+            // The swap itself waits until the player can fly (L-280).
             trace("riptide-launch");
-            putOn(*player,true);
+            riptideLaunch = true;
         }
         ElytraInput in;
         in.enabled = true;
         in.gliding = player->isGliding();
         in.onGround = player->isOnGround();
         in.wearingElytra = isElytra(chest(*player));
-        if (!state.active && !(in.wearingElytra && in.gliding)) return;
-        if (!state.active) { worn = {}; dimension = static_cast<int>(player->getDimensionId()); trace("follow-worn"); }
+        in.inWater = player->isInWater();
+        in.spinning = spin;
+        in.rising = player->getVelocity().y > 0;
+        in.riptideLaunch = riptideLaunch;
+        if (!followsElytra(state,in)) return;
+        if (!state.active && !state.riptideWait && !in.riptideLaunch) {
+            worn = {}; dimension = static_cast<int>(player->getDimensionId()); trace("follow-worn");
+        }
         in.returnSlotHoldsChest = state.returnSlot && returnSlotHoldsChest(*player);
         in.chestplateAvailable = true; // Looked up only when it is time (takeOff).
         in.landingTicks = static_cast<int>(settings.elytraReturnSeconds * 20);
         switch (elytraStep(state,in)) {
+        case ElytraStep::PutOn: putOn(*player,true); break;
         case ElytraStep::TakeOff:
         case ElytraStep::WearChestplate: takeOff(*player); break;
         case ElytraStep::Forget: trace("forget"); state = {}; break;
