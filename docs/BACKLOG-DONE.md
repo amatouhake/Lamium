@@ -1604,6 +1604,42 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-246 Option to trigger Auto Elytra with Fake Offhand fireworks
+Kind: Ready. Maintainer idea 2026-10-22 after 0.3.0. The firework-jump
+trigger in `src/features/interaction/ElytraSwap.cpp` checked only the
+selected main-hand hotbar slot (`holdingFireworks()`); a rocket assigned to
+Fake Offhand did not qualify.
+Goal: equip an elytra on jump when Fake Offhand holds fireworks, even if the
+main hand holds another item, keeping the main-hand behavior and the
+chestplate return after landing.
+Decided (maintainer 2026-10-26): no new setting. The existing Firework jump
+trigger also fires when Fake Offhand is on and its slot holds firework
+rockets, whatever the main hand holds; with Fake Offhand off, or its slot
+empty or not rockets, nothing changes. An equipment trigger only: no firework
+is used and no glide is started (L-71), and the Firework jump help text
+changes in all four languages.
+
+`ElytraSwap.cpp` reads the main hand and, while the feature is on, Fake
+Offhand's target slot; `jumpHasFireworks()` (`EquipmentPlan.h`) is the pure
+decision and `tests/EquipmentPlanTests.cpp` covers it. The trigger follows
+the setting, not the `FakeOffhandTargets` capability: that capability pauses
+only the target-specific main-hand checks in `targetUse()`, while the slot's
+own instant uses (fireworks while gliding among them) still work, so counting
+the slot stays consistent (reviewed 2026-10-30; see
+[FAKE-OFFHAND.md](FAKE-OFFHAND.md)). The tick reads the settings through
+`Runtime::snapshot()` instead of copying them.
+
+Status 2026-10-30: built on `l246-elytra-fake-offhand`, PR #56, merged in
+`f88a8a8b`.
+Done 2026-10-30: checked by the maintainer on `447449a` (DLL SHA-256
+`0EAF85C678C21435D072AE067507475CF68B84AA2619E8A5B9F14E24199E3634`),
+`1.26.51.01` LIP, release build: a main-hand rocket still equips the elytra;
+with Fake Offhand on and a rocket in its slot the elytra goes on with any
+main-hand item, the rocket is not used and no glide starts; a second jump
+glides and the slot's rocket works; an empty or non-rocket slot, or Fake
+Offhand off, equips nothing; the chestplate returns a few seconds after
+landing; the new help text shows in Japanese and both Chinese languages.
+
 ### L-255 Connected Textures: edges on the inside of glass pane corners
 Kind: Ready. User report 2026-10-23 after 0.3.0, with a screenshot: at an
 L-shaped glass pane corner the outside has its edge but the inside has no

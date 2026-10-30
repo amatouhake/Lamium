@@ -79,8 +79,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-247 and L-248 are merged (2026-10-27) and still await their in-game
    check, as their items say; L-244 is parked (see its item).
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10): decided and Ready (2026-10-26): L-246, L-252, L-253,
-   L-254.
+   2026-10-10): decided and Ready (2026-10-26): L-253. L-246, L-252 and
+   L-254 are done.
    **L-266 schematic follow-up batch** closed with the 0.3.1 release
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
@@ -527,27 +527,6 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
-
-### L-246 Option to trigger Auto Elytra with Fake Offhand fireworks
-Kind: Ready (built on branch `l246-elytra-fake-offhand`, PR #56; waiting for
-the in-game checks below). Maintainer idea 2026-10-22 after 0.3.0; no
-release selected. The existing firework-jump trigger in
-`src/features/interaction/ElytraSwap.cpp` checks only the selected
-main-hand hotbar slot (`holdingFireworks()`). A firework rocket assigned
-to Fake Offhand does not qualify.
-Goal: optionally equip an elytra on jump when Fake Offhand holds fireworks,
-even if the main hand holds another item. Preserve the existing behavior
-when fireworks are in the main hand and the chestplate return after landing.
-Decided (maintainer 2026-10-26): no new setting. The existing Firework jump
-trigger also fires when Fake Offhand is on and its slot holds firework
-rockets, whatever the main hand holds. With Fake Offhand off, or its slot
-empty or not rockets, nothing changes. This is an equipment trigger only,
-not automatic firework use or a guaranteed glide start (see L-71). Update
-the Firework jump help text in all four languages. Test main-hand and Fake
-Offhand combinations and verify in game. No release target selected.
-Reviewed 2026-10-30: the trigger reads the setting, not the
-`FakeOffhandTargets` capability, which pauses only target-specific main-hand
-checks; see [FAKE-OFFHAND.md](FAKE-OFFHAND.md).
 
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which

@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-246 Auto Elytra firework jump with Fake Offhand rockets (2026-10-30)
+
+`main` `447449a` (merged as `f88a8a8b`, DLL SHA-256
+`0EAF85C678C21435D072AE067507475CF68B84AA2619E8A5B9F14E24199E3634`),
+`1.26.51.01` LIP, release build with no trace options, maintainer.
+
+- With Fake Offhand off, a jump holding firework rockets in the main hand
+  still puts the elytra on. With Fake Offhand on, rockets in its target slot
+  do the same whatever the main hand holds.
+- That jump uses no firework and starts no glide; a later jump glides and the
+  slot's rocket can be used.
+- An empty or non-rocket target slot, the feature off, or a main hand without
+  rockets equips nothing.
+- The chestplate comes back a few seconds after landing.
+- The Firework jump help text reads the new sentence in Japanese, Simplified
+  Chinese and Traditional Chinese.
+- Not checked: the trigger while `FakeOffhandTargets` is paused by an
+  unverified game version.
+
 ## L-259 book paste as a plain switch with a toggle key (2026-10-28)
 
 `main` `1c845919` (DLL SHA-256
