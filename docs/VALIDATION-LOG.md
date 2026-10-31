@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Camera arrow heading when FreeCamera looks straight down (L-286 follow-up, 2026-10-31)
+
+Local world, commit `d4c68f25`, DLL SHA-256
+`607AC0CF37844C0F9E0B3F4A13C431BC4260E566C6F8B144F698795A6383F439`,
+Minecraft 1.26.51.01 / LeviLamina Client 26.51.5. The maintainer confirmed:
+with FreeCamera looking straight down, the minimap's green arrow follows the
+mouse turning; with the body facing elsewhere it shows the camera's heading,
+not the body's; the world map opened in that pose shows the same direction.
+Looking straight up was not separately checked.
+
 ## Minimap arrow distortion at Map Size 18% (L-287, 2026-10-31 record)
 
 Same build as the entry below (`b6ad8327`, DLL
