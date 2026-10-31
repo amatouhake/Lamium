@@ -275,22 +275,29 @@ binding that ends on right click still leaves that borrow to vanilla.
 The three outcomes are `queuedPressAction` in `FakeOffhandPlan.h`, so
 every reason `chooseSlot` refuses (UI, screen, FreeCamera owning the
 look, primary priority) reaches the replay decision without a slot and
-replays nothing.
+replays nothing. The same rule holds for every build tick of the hold
+(`queuedHoldEdge`): a hold on another binding sends the use edge, with
+the borrowed slot selected, on the first tick that has a placement
+slot, and releases it on a tick that loses the slot, so vanilla's
+repeat never acts on the primary item.
 
-Status 2026-11-01: built (`318fb2c7`, branch
-`l288-fake-offhand-press`), not yet checked in game. `press()`
-(`FakeOffhand.cpp`) asks `queuedPressAction` once and sends
-`interaction::periodic::sendUseEdge` only for `Placement`; a press that
-borrows nothing traces as `press-idle`. Table test in
-`tests/FakeOffhandTests.cpp` covers no slot on either binding, an
-instant borrow on both, a placement borrow on another binding and a
-placement borrow on a right-click binding.
+Status 2026-11-01: built on branch `l288-fake-offhand-press`, not yet
+checked in game. `press()` (`FakeOffhand.cpp`) asks `queuedPressAction`
+once; the build-action hook sends or releases the edge per tick
+(`hold-down` / `hold-up` in the offhand trace); a press that borrows
+nothing traces as `press-idle`. Table tests in
+`tests/FakeOffhandTests.cpp` cover both helpers.
+Unverified: whether `_tickBuildAction` runs while no use is held (if
+not, a hold that starts off a block face still places nothing).
 
 In game: a rocket in the Fake Offhand and a block in the main hand on a
 non-right-click binding (a single button, then a chord that contains
 right click without ending on it) - nothing is placed; a block in the
-offhand aimed at a ghost - placed as before; schematics off -
-unchanged.
+Fake Offhand, holding the key from the sky onto a block face - placed;
+holding it from a block face into the air with a throwable in the main
+hand - nothing thrown; a block in the offhand aimed at a ghost - placed
+as before; an instant item (a firework while gliding) still fires from
+the bound key; Fake Offhand off and schematics off - unchanged.
 No release target selected.
 
 

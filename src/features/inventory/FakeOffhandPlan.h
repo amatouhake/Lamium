@@ -179,6 +179,17 @@ inline QueuedPress queuedPressAction(bool rightClickBinding, std::optional<int> 
     if (instant) return QueuedPress::Instant;
     return rightClickBinding ? QueuedPress::Nothing : QueuedPress::Placement;
 }
+// L-288: a held queued press replays the use edge only while a build tick has
+// a placement slot. A hold that starts off a block face sends it once the aim
+// reaches one; a hold that loses the slot releases it, so vanilla's repeat
+// never acts on the primary item. Instant holds keep their own lifecycle.
+enum class HoldEdge { None, Down, Up };
+inline HoldEdge queuedHoldEdge(bool held, bool sent, bool instantHold, bool placement) {
+    if (!held || instantHold) return HoldEdge::None;
+    if (placement && !sent) return HoldEdge::Down;
+    if (!placement && sent) return HoldEdge::Up;
+    return HoldEdge::None;
+}
 inline bool ownsInstantHold(int primary, int target, int selected, int configured, bool eligible) {
     return eligible && primary >= 0 && primary < 9 && target >= 0 && target < 9
         && primary != target && selected == primary && configured == target;
