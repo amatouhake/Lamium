@@ -37,6 +37,14 @@ void viewFeetTests() {
     check(!viewFeet(std::nullopt, Position{nan, 64, 0}, eye), "a non-finite body references nothing");
     check(!viewFeet(far, body, Position{nan, 65.62, -3.5}), "a non-finite eye references nothing");
 
+    // The heading comes from the view direction while it has a horizontal part;
+    // straight down or up it is the session's own yaw (the minimap's camera arrow).
+    using lamium::camera::viewYaw;
+    check(std::abs(viewYaw(-1, 0, 0, 0) - 90) < 1e-4 && std::abs(viewYaw(0, -.5, 1, 45) - 0) < 1e-4,
+        "a view with a horizontal part reads its heading from the direction");
+    check(viewYaw(0, -1, 0, 120) == 120 && viewYaw(1e-7, -1, -1e-7, -30) == -30,
+        "a view straight down keeps the session's yaw");
+
     // A shape created from the view keeps the camera's precise point for the
     // exact reference, and snaps the standing block one to a block center.
     auto at = *viewFeet(far, body, eye);

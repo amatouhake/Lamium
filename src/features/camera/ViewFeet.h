@@ -26,4 +26,12 @@ inline std::optional<Position> viewFeet(std::optional<Position> camera, Position
     if (!finite(*camera)) return std::nullopt;
     return Position{camera->x, camera->y - eyeHeight(eye, feet), camera->z};
 }
+// The heading of a view direction in Minecraft degrees (yaw 0 faces +Z).
+// Looking almost straight up or down leaves no horizontal part to read a
+// heading from, so the session's own yaw stands in.
+inline float viewYaw(double dx, double dy, double dz, float sessionYaw) {
+    double length = std::sqrt(dx * dx + dy * dy + dz * dz);
+    if (!(std::hypot(dx, dz) > length * 1e-3)) return sessionYaw;
+    return static_cast<float>(std::atan2(-dx, dz) * 180 / 3.14159265358979323846);
+}
 }

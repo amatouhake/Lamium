@@ -131,7 +131,9 @@ Do not infer game success from a build or unit-test result.
 - Minimap camera arrow (L-286): while FreeCamera flies, the green arrow at
   the map center shows where the camera looks, turns with it and disappears
   when FreeCamera stops. It uses the minimap's existing arrow drawing; the
-  arrow's legibility at small and large map sizes is L-287, parked.
+  arrow's legibility at small and large map sizes is L-287, parked. Looking
+  straight down or up, the arrow (and the world map's camera arrow) keeps
+  the camera's own heading instead of the body's (not yet checked in game).
 
 ### Gaps carried from released builds
 

@@ -137,7 +137,8 @@ public:
     std::optional<DetachedLookState::Angles> lookAnglesFor(IClientInstance const&);
     // Where the detached camera looks from and toward (Freelook or FreeCamera),
     // for readouts that should follow the camera rather than the body.
-    struct ViewRay { double x, y, z, dx, dy, dz; };
+    // `yaw` is the session's own heading, for a view straight up or down.
+    struct ViewRay { double x, y, z, dx, dy, dz; float yaw = 0; };
     std::optional<ViewRay> detachedViewRay(IClientInstance&);
     // FreeCamera's position as the feet of a player whose eyes stand at the
     // camera, and its angles; empty unless FreeCamera owns the view.

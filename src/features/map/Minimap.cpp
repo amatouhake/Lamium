@@ -13,6 +13,7 @@
 #include "features/map/MapView.h"
 #include "features/information/InfoHud.h"
 #include "features/camera/CameraSessions.h"
+#include "features/camera/ViewFeet.h"
 #include "features/visuals/PackImage.h"
 #include "app/Runtime.h"
 #include "ui/Widgets.h"
@@ -638,8 +639,7 @@ std::optional<Snapshot> snapshot(IClientInstance& client, bool biome) {
                 value.y = ray->y + feet;
                 value.z = ray->z;
                 value.camera = true;
-                if (ray->dx != 0 || ray->dz != 0)
-                    value.yaw = static_cast<float>(std::atan2(-ray->dx, ray->dz) * 180 / 3.14159265358979323846);
+                value.yaw = camera::viewYaw(ray->dx, ray->dy, ray->dz, ray->yaw);
             }
         }
     auto& region = player->getDimensionBlockSource();

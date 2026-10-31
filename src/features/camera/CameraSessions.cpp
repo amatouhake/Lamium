@@ -160,7 +160,7 @@ std::optional<CameraSessions::ViewRay> CameraSessions::detachedViewRay(IClientIn
     auto* player = current.getLocalPlayer();
     if (!angles || !player) return {};
     auto eye = player->getEyePos();
-    ViewRay ray{eye.x, eye.y, eye.z, 0, 0, 0};
+    ViewRay ray{eye.x, eye.y, eye.z, 0, 0, 0, angles->yaw};
     if (lookOwner.load() == DetachedOwner::FreeCamera) {
         if (auto displacement = motion.snapshot()) {
             std::lock_guard lock{freeInputMutex};
@@ -204,7 +204,7 @@ std::optional<CameraSessions::Pose> CameraSessions::freeCameraPose(IClientInstan
         {body.x, body.y, body.z}, {eye.x, eye.y, eye.z});
     if (!feet) return {};
     // Angles from the drawn view direction (yaw 0 faces +Z, positive pitch looks down).
-    auto yaw = static_cast<float>(std::atan2(-ray->dx, ray->dz) * 180 / std::numbers::pi);
+    auto yaw = camera::viewYaw(ray->dx, ray->dy, ray->dz, ray->yaw);
     auto pitch = static_cast<float>(-std::asin(std::clamp(ray->dy / length, -1.0, 1.0)) * 180 / std::numbers::pi);
     return Pose{feet->x, feet->y, feet->z, yaw, pitch};
 }
