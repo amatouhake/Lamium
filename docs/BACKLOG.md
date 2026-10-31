@@ -269,7 +269,7 @@ keeps priority, replays a vanilla use edge
 (`interaction::periodic::sendUseEdge`). Vanilla then runs its own use
 on the main hand, which is the right click the player did not press.
 
-Decided 2026-10-31 (maintainer: work it): a press that borrows nothing
+Decided 2026-11-01 (maintainer: work it): a press that borrows nothing
 does nothing; only a placement borrow replays the use edge, and a
 binding that ends on right click still leaves that borrow to vanilla.
 The three outcomes are `queuedPressAction` in `FakeOffhandPlan.h`, so
@@ -277,7 +277,7 @@ every reason `chooseSlot` refuses (UI, screen, FreeCamera owning the
 look, primary priority) reaches the replay decision without a slot and
 replays nothing.
 
-Status 2026-10-31: built (`318fb2c7`, branch
+Status 2026-11-01: built (`318fb2c7`, branch
 `l288-fake-offhand-press`), not yet checked in game. `press()`
 (`FakeOffhand.cpp`) asks `queuedPressAction` once and sends
 `interaction::periodic::sendUseEdge` only for `Placement`; a press that
