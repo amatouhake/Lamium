@@ -265,7 +265,8 @@ bool endsOnRightClick(Settings const& value) {
     auto chord = input::effectiveChord(value.bindings, input::Action::FakeOffhandUse);
     return !chord.empty() && chord.back() == input::Token{input::Device::Mouse, 2};
 }
-std::optional<int> chooseSlot(IClientInstance& client, HitResult const& solid, int& selected, bool& instant) {
+std::optional<int> chooseSlot(IClientInstance& client, HitResult const& solid, int& selected, bool& instant,
+    bool dedicatedKey = false) {
     auto* player = client.getLocalPlayer();
     if (!Runtime::instance().enabled() || !player || !player->isAlive() || player->isSpectator()
         || !client.isInGameInputEnabled() || ui::ownsInput() || !gameplayScreen(client.getScreenName())
@@ -282,7 +283,10 @@ std::optional<int> chooseSlot(IClientInstance& client, HitResult const& solid, i
     bool interactive = hitBlock && player->getDimensionBlockSource().getBlock(solid.mBlock)
         .getBlockType().isInteractiveBlock();
     bool primaryUsing = !player->mItemInUse->mItem->isNull();
-    bool primaryIdle = primaryPasses(player->getInventory().getItem(selected), *player, solid);
+    if (auto slot = interactSlot(dedicatedKey, selected, target, interactive, player->isSneaking(), primaryUsing))
+        return slot;
+    bool primaryIdle = primaryYields(dedicatedKey,
+        primaryPasses(player->getInventory().getItem(selected), *player, solid));
     if (blockItem) return placementSlot(true, true, selected, target, true, hitBlock, interactive,
         player->isSneaking(), primaryIdle, primaryUsing);
     // Timed use stops on a selection change (L-95 baseline). Never start it
@@ -441,7 +445,8 @@ LL_TYPE_INSTANCE_HOOK(BuildAction, ll::memory::HookPriority::Normal, ClientInsta
     LocalPlayer* player = nullptr;
     HoldEdge edge = HoldEdge::None;
     try {
-        slot = chooseSlot(*this, solid, selected, instant);
+        // Without a right-click chord, the hold came from another binding's queued press.
+        slot = chooseSlot(*this, solid, selected, instant, !rightChordHeld.load());
         int primary = instantPrimary.load();
         if (primary >= 0) {
             if (!ownsInstantHold(primary, instantTarget.load(), selected,
@@ -621,7 +626,7 @@ void press(IClientInstance& client) {
             return;
         }
         bool instant = false;
-        auto slot = chooseSlot(client, client.getLatestHitResult(), selected, instant);
+        auto slot = chooseSlot(client, client.getLatestHitResult(), selected, instant, !rightClick);
         traceChoice("press-choice", client, selected, slot, instant);
         auto action = queuedPressAction(rightClick, slot, instant);
         if (action == QueuedPress::Instant) {

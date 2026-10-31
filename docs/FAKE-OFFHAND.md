@@ -319,7 +319,11 @@ each build call, including unwinding, only if the selected slot is still the
 borrowed slot. The native right-click handler also borrows the placement
 slot around its first press (2026-10-07): vanilla acts there before any build
 tick, and an empty hand would otherwise open a container while sneaking.
-Other bindings replay the captured vanilla use edges.
+Other bindings replay the captured vanilla use edges, with the borrowed slot
+selected, only while a build tick has a slot (L-288). Such a binding asks
+for the Fake Offhand, so the primary item does not keep priority there, and
+an interactive block aimed without sneaking is opened with the borrowed slot
+selected (L-292).
 
 ## L-95 static review (2026-10-06)
 

@@ -78,7 +78,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    reports are L-288 to L-291 (Fake Offhand twice, Hand Restock, schematic
    water materials): L-288 is closed (checked 2026-11-01, BACKLOG-DONE),
    the other three are not built. L-292 (Fake Offhand key without primary
-   priority) is decided and ready.
+   priority) is built and waits for the in-game check.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -608,10 +608,17 @@ gliding or aimed at a block (on the ground at air it has no vanilla
 effect, so nothing happens).
 
 An interactive block (chest, furnace) aimed without sneaking opens, as
-vanilla does; sneaking places the Fake Offhand block on it. Open: which
-slot is selected while the interaction edge is replayed (the borrowed
-one avoids a main-hand item acting on the block, e.g. a bucket on a
-cauldron), as a pure predicate with a table test.
+vanilla does; sneaking places the Fake Offhand block on it. The
+borrowed slot is selected while that edge is replayed, so the main-hand
+item never acts on the block (a bucket on a cauldron).
+
+Status 2026-11-01: built on main, not yet checked in game.
+`chooseSlot` (`FakeOffhand.cpp`) takes `dedicatedKey` (the queued press
+on a binding that does not end on right click, and build ticks without a
+right-click chord); `primaryYields` and `interactSlot` in
+`FakeOffhandPlan.h` carry the rule, with table tests in
+`tests/FakeOffhandTests.cpp`. The interaction runs through the L-288
+placement hold, so the edge is released once the screen opens.
 
 L-290 (a filled bucket in the main hand stops the Fake Offhand) then
 only applies to the right-click binding.

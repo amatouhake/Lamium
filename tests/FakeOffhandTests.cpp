@@ -193,6 +193,21 @@ void fakeOffhandTests() {
     check(queuedHoldEdge(false, true, false, false) == HoldEdge::None
         && queuedHoldEdge(true, true, true, false) == HoldEdge::None,
         "L-288: right-click and instant holds keep their own edge lifecycle");
+    using lamium::inventory::fakeOffhand::primaryYields;
+    using lamium::inventory::fakeOffhand::interactSlot;
+    using lamium::inventory::fakeOffhand::placementSlot;
+    check(primaryYields(true, false) && !primaryYields(false, false) && primaryYields(false, true),
+        "L-292: only a right-click binding keeps the primary priority");
+    check(placementSlot(true,true,0,8,true,true,false,false, primaryYields(true,false), false) == 8
+        && !placementSlot(true,true,0,8,true,true,false,false, primaryYields(true,false), true)
+        && instantUseSlot(true,true,0,8, primaryYields(true,false), true,false,false,false) == 8,
+        "L-292: another key borrows over a primary block, but never interrupts a primary in use");
+    check(interactSlot(true,0,8,true,false,false) == 8,
+        "L-292: another key opens an interactive block with the borrowed slot selected");
+    check(!interactSlot(true,0,8,true,true,false) && !interactSlot(false,0,8,true,false,false)
+        && !interactSlot(true,0,8,false,false,false) && !interactSlot(true,0,8,true,false,true)
+        && !interactSlot(true,8,8,true,false,false) && !interactSlot(true,0,9,true,false,false),
+        "L-292: sneaking, the right-click binding, plain blocks, a primary in use and invalid slots do not interact");
     check(!ownsInstantHold(8,8,8,8,true),
         "an ordinary selected target never becomes a borrowed repeat session");
     check(instantUseSlot(true,true,0,8,true,true,false,false,false) == 8,

@@ -210,4 +210,17 @@ inline std::optional<int> placementSlot(bool enabled, bool triggered, int select
         || (interactive && !sneaking)) return {};
     return target;
 }
+// L-292: a binding that does not end on right click asks for the Fake Offhand,
+// so the primary item does not keep priority; a right-click binding shares
+// its click with vanilla and does.
+inline bool primaryYields(bool dedicatedKey, bool primaryIdle) { return dedicatedKey || primaryIdle; }
+// L-292: such a key aimed at an interactive block without sneaking opens it, as
+// vanilla does; the borrowed slot is selected so the primary item never acts
+// on the block. Sneaking falls through to placement or instant use.
+inline std::optional<int> interactSlot(bool dedicatedKey, int selected, int target,
+    bool interactive, bool sneaking, bool primaryUsing) {
+    if (!dedicatedKey || selected < 0 || selected >= 9 || target < 0 || target >= 9
+        || selected == target || !interactive || sneaking || primaryUsing) return {};
+    return target;
+}
 }
