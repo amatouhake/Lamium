@@ -592,24 +592,33 @@ void press(IClientInstance& client) {
         traceChoice("press-already-held", client, -1, {}, false);
         return;
     }
-    if (!queuedPressDecides(endsOnRightClick(value), nativeDecided.load())) {
+    bool rightClick = endsOnRightClick(value);
+    if (!queuedPressDecides(rightClick, nativeDecided.load())) {
         traceChoice("press-native-decided", client, -1, {}, false);
         return;
     }
+    int selected = -1;
+    QueuedPress action = QueuedPress::Nothing;
     try {
         if (!Runtime::instance().enabled() || !client.getLocalPlayer() || !client.isInGameInputEnabled()
             || ui::ownsInput() || !gameplayScreen(client.getScreenName())) return;
-        int selected = -1;
         bool instant = false;
         auto slot = chooseSlot(client, client.getLatestHitResult(), selected, instant);
         traceChoice("press-choice", client, selected, slot, instant);
-        if (slot && instant) {
+        action = queuedPressAction(rightClick, slot, instant);
+        if (action == QueuedPress::Instant) {
             beginInstant(client, selected, *slot, true);
             return;
         }
     } catch (...) { return; }
-    // A right-click chord lets vanilla receive the click; rightChord() marks it.
-    if (endsOnRightClick(value)) return;
+    // L-288: a press that borrows nothing must do nothing; only a placement
+    // borrow needs the replayed vanilla use edge. The right-click chord and the
+    // reasons `chooseSlot` refuses (UI, screen, FreeCamera owning the look,
+    // primary priority) never replay.
+    if (action != QueuedPress::Placement) {
+        traceChoice("press-idle", client, selected, {}, false);
+        return;
+    }
     syntheticThread.store(std::this_thread::get_id());
     synthetic.store(interaction::periodic::sendUseEdge(client, true));
 }

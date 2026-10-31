@@ -167,6 +167,18 @@ inline bool undoesRestore(int before, int after, int borrowed, int previous, boo
 inline bool queuedPressDecides(bool rightClickBinding, bool nativeDecided) {
     return !rightClickBinding || !nativeDecided;
 }
+// L-288: what a queued press runs once the slot choice is known. Only an
+// instant borrow or a placement borrow has anything to run; a press that
+// borrows nothing must do nothing, because the replayed vanilla use edge acts
+// on the primary item - the right click the player did not press. A binding
+// that ends on right click is left to vanilla, so the placement replay is only
+// for other bindings.
+enum class QueuedPress { Nothing, Instant, Placement };
+inline QueuedPress queuedPressAction(bool rightClickBinding, std::optional<int> slot, bool instant) {
+    if (!slot) return QueuedPress::Nothing;
+    if (instant) return QueuedPress::Instant;
+    return rightClickBinding ? QueuedPress::Nothing : QueuedPress::Placement;
+}
 inline bool ownsInstantHold(int primary, int target, int selected, int configured, bool eligible) {
     return eligible && primary >= 0 && primary < 9 && target >= 0 && target < 9
         && primary != target && selected == primary && configured == target;
