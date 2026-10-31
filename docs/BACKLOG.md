@@ -76,8 +76,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-285 ghost pick losing to the block at the player's feet is the newest
    bug report (Research, pick path; not built). The 2026-10-31 maintainer
    reports are L-288 to L-291 (Fake Offhand twice, Hand Restock, schematic
-   water materials): L-288 is built and waits for the in-game check,
-   the other three are not built.
+   water materials): L-288 is closed (checked 2026-11-01, BACKLOG-DONE),
+   the other three are not built. L-292 (Fake Offhand key without primary
+   priority) is decided and ready.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -249,55 +250,6 @@ way.
 In game: a schematic with a pool whose edges flow (a vanilla structure
 file or a saved pond) must show a source count equal to the buckets
 actually needed, with the flowing cells separate or absent.
-No release target selected.
-
-
-### L-288 A Fake Offhand key that is not right click still acts as one
-
-Kind: Bug. Maintainer report 2026-10-31: with the Fake Offhand bound to
-a button other than right click, pressing it acts like a right click
-whenever the offhand is not borrowed - a firework in the Fake Offhand
-and a block in the main hand place the block. The binding form (a
-single button, or a chord that contains right click without ending on
-it) was not recorded; both reach the same path.
-
-Cause: `press()` (`FakeOffhand.cpp`) returns early only for a binding
-whose LAST token is the right mouse button (that chord lets vanilla
-receive the click) and for an instant borrow; every other press,
-including one where `chooseSlot` found nothing because the primary
-keeps priority, replays a vanilla use edge
-(`interaction::periodic::sendUseEdge`). Vanilla then runs its own use
-on the main hand, which is the right click the player did not press.
-
-Decided 2026-11-01 (maintainer: work it): a press that borrows nothing
-does nothing; only a placement borrow replays the use edge, and a
-binding that ends on right click still leaves that borrow to vanilla.
-The three outcomes are `queuedPressAction` in `FakeOffhandPlan.h`, so
-every reason `chooseSlot` refuses (UI, screen, FreeCamera owning the
-look, primary priority) reaches the replay decision without a slot and
-replays nothing. The same rule holds for every build tick of the hold
-(`queuedHoldEdge`): a hold on another binding sends the use edge, with
-the borrowed slot selected, on the first tick that has a placement
-slot, and releases it on a tick that loses the slot, so vanilla's
-repeat never acts on the primary item.
-
-Status 2026-11-01: built on branch `l288-fake-offhand-press`, not yet
-checked in game. `press()` (`FakeOffhand.cpp`) asks `queuedPressAction`
-once; the build-action hook sends or releases the edge per tick
-(`hold-down` / `hold-up` in the offhand trace); a press that borrows
-nothing traces as `press-idle`. Table tests in
-`tests/FakeOffhandTests.cpp` cover both helpers.
-Unverified: whether `_tickBuildAction` runs while no use is held (if
-not, a hold that starts off a block face still places nothing).
-
-In game: a rocket in the Fake Offhand and a block in the main hand on a
-non-right-click binding (a single button, then a chord that contains
-right click without ending on it) - nothing is placed; a block in the
-Fake Offhand, holding the key from the sky onto a block face - placed;
-holding it from a block face into the air with a throwable in the main
-hand - nothing thrown; a block in the offhand aimed at a ghost - placed
-as before; an instant item (a firework while gliding) still fires from
-the bound key; Fake Offhand off and schematics off - unchanged.
 No release target selected.
 
 
@@ -638,6 +590,39 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
+
+### L-292 A Fake Offhand key that is not right click uses the Fake Offhand
+
+Kind: Ready (decided 2026-11-01 by the maintainer, after L-288). A
+Fake Offhand binding that does not end on right click is the player
+asking for the Fake Offhand, so it no longer yields to the primary
+item: `chooseSlot` skips the primary-priority checks (`primaryIdle` for
+`placementSlot` and `instantUseSlot`) for such a binding. A binding
+that ends on right click keeps the priority, because the same click
+also reaches vanilla.
+
+Kept for every binding: an item in use on the primary is not
+interrupted; timed items (bows, tridents, fishing rods, milk) are not
+started by a per-call borrow; a firework is only an instant use while
+gliding or aimed at a block (on the ground at air it has no vanilla
+effect, so nothing happens).
+
+An interactive block (chest, furnace) aimed without sneaking opens, as
+vanilla does; sneaking places the Fake Offhand block on it. Open: which
+slot is selected while the interaction edge is replayed (the borrowed
+one avoids a main-hand item acting on the block, e.g. a bucket on a
+cauldron), as a pure predicate with a table test.
+
+L-290 (a filled bucket in the main hand stops the Fake Offhand) then
+only applies to the right-click binding.
+
+In game, on a single non-right-click key: a block in the main hand and
+a snowball or a bucket in the Fake Offhand - the offhand item is used;
+a block in both - the Fake Offhand block is placed; a chest aimed
+without sneaking opens, with sneaking the Fake Offhand block is placed;
+the right-click binding is unchanged.
+No release target selected.
+
 
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which

@@ -12,6 +12,34 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Fake Offhand queued press borrows or does nothing (L-288, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, Minecraft 1.26.51.01 /
+LeviLamina Client 26.51.5, trace options off.
+
+First build, commit `3953fb6e` (press-time decision only), DLL SHA-256
+`B5093993FAC3C2E5CAE0C45C75F0D17573D2D7FEF811BD3487DBF239166D8DFA`. The
+maintainer reported: with a single non-right-click button, a rocket in the
+Fake Offhand and a block in the main hand, pressing places nothing (and the
+rocket is not used either: the block keeps primary priority and a rocket on
+the ground aimed at air is not an instant use). With chords that contain right
+click first or in the middle, the block is placed when right click goes down:
+only a chord that ends on right click is a right-click chord, the click reaches
+vanilla before the chord is complete, and Lamium does not swallow it. A block
+aimed at a ghost was placed, a gliding firework fired from the bound key, and
+Fake Offhand off was unchanged.
+
+Second build, commit `1ced1bcb` (the use edge is sent and released per build
+tick while the key is held), DLL SHA-256
+`CD36EA2A63BA883F8D705BBF2EDAE8330D5B078F524D77AD7F7C982254110652`, non-right
+click binding. The maintainer reported every point as expected: holding the
+key from the sky onto a block face places the Fake Offhand block; holding it
+from a block face into the air with a snowball in the main hand throws
+nothing; a rocket in the Fake Offhand with a block in the main hand places
+nothing; a gliding firework fires from the bound key. So `_tickBuildAction`
+runs while no use is held. Right-click binding and servers were not
+re-checked on this build.
+
 ## Camera arrow heading when FreeCamera looks straight down (L-286 follow-up, 2026-10-31)
 
 Local world, commit `d4c68f25`, DLL SHA-256
