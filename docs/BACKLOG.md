@@ -74,7 +74,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    maintainer's go-ahead). L-177 mismatch-highlight fix is built and awaits
    the reporter's next schematic session, not another implementation.
    L-285 ghost pick losing to the block at the player's feet is the newest
-   report (Research, pick path; not built).
+   bug report (Research, pick path; not built). The 2026-10-31 maintainer
+   reports are L-288 to L-291 (Fake Offhand twice, Hand Restock, schematic
+   water materials; none built).
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -167,6 +169,116 @@ validation checkpoints" (snapshot 2026-10-20).
 ## Bugs
 
 
+### L-291 Hand Restock leaves a consumption remainder as its own stack
+
+Kind: Bug. Maintainer report 2026-10-31 (everyday use, build not
+recorded): refilling a non-stackable item leaves the consumption
+remainder as a separate stack even when an existing stack of the same
+item could take it. With water buckets the empty bucket left after
+placing water stays as a one-item stack in the slot the bucket came
+from, while other empty buckets sit elsewhere in the inventory.
+
+Cause: the replacement branch of `planRestock` (`RestockPlan.h`) is a
+single swap between the source slot and the hand - the refill goes into
+the hand, the remainder goes into the source slot - and `applyMove`
+(`HandRestock.cpp`) sends that one `game::movePair`. Nothing merges the
+remainder into a stack of the same item, so one leftover stack
+accumulates per restock.
+
+Open: whether a restock may cost two moves (merge the remainder into an
+existing stack, then refill) or has to stay one, and what to do when
+the merge target fills up or does not exist; the family is
+`restockRemainder` (buckets, stews to bowls, potions and honey bottles
+to glass bottles).
+
+In game: with a stack of empty buckets in the inventory, place water
+from a water bucket and let the restock refill; the emptied bucket must
+join the existing empty-bucket stack instead of sitting on its own.
+Check the same with a stew and with a potion.
+No release target selected.
+
+
+### L-290 A filled bucket in the main hand stops the Fake Offhand entirely
+
+Kind: Bug. Maintainer report 2026-10-31 (build not recorded): with a
+water bucket in the main hand the Fake Offhand never fires, in any
+situation - also while aiming at the sky, where a filled bucket cannot
+pour anything.
+
+Cause: `primaryPass` (`FakeOffhandPlan.h`) refuses every bucket as a
+passing primary before the aim is looked at, and `idleUse`
+(`FakeOffhand.cpp`) only treats an EMPTY bucket or a glass bottle with
+no liquid aimed as idle. A filled bucket is therefore never idle, and
+`placementSlot` asks for the same `primaryIdle`, so the instant use and
+the placement borrow are both closed.
+
+Open: what a filled bucket has to see before it counts as idle - no
+block face in reach, or a face it cannot pour onto (a cauldron is not
+one) - as a pure predicate with a table test, and whether a bucket
+aimed at its own liquid stays primary (filling, not pouring).
+
+In game: a water bucket in the main hand and a firework in the Fake
+Offhand - aiming at the sky the offhand is used, aiming at the ground
+vanilla pours, and an empty bucket at no liquid is unchanged.
+No release target selected.
+
+
+### L-289 Schematic materials count flowing water as water to place
+
+Kind: Bug. Maintainer report 2026-10-31: the materials list counts a
+schematic's water as one number, source and flowing together, so the
+water actually needed - one bucket per source cell - cannot be read off
+it.
+
+Cause: a material line is keyed by the item the block asks for
+(`addMaterial` in `GhostVerify.cpp`: `info.item`, else the block name),
+and `describe` (`GhostBlocks.cpp`) goes through
+`BlockType::asItemInstance`, which ignores block state. A schematic
+stores source and flowing water as the same block with a different
+`liquid_depth` state - `sulfur_spring_medium_1.mcstructure` carries
+`minecraft:water [liquid_depth=0]` (source) and `[liquid_depth=8]`
+(falling) - so every water cell collapses into one line and the cells
+that need no bucket inflate the count.
+
+Open: sources and flowing cells as two lines, or one line with the
+source count only; the flowing cells need no item at all (the game
+fills them); and whether the Check tab's `placed` count splits the same
+way.
+
+In game: a schematic with a pool whose edges flow (a vanilla structure
+file or a saved pond) must show a source count equal to the buckets
+actually needed, with the flowing cells separate or absent.
+No release target selected.
+
+
+### L-288 A Fake Offhand key that is not right click still acts as one
+
+Kind: Bug. Maintainer report 2026-10-31: with the Fake Offhand bound to
+a button other than right click, pressing it acts like a right click
+whenever the offhand is not borrowed - a firework in the Fake Offhand
+and a block in the main hand place the block. The binding form (a
+single button, or a chord that contains right click without ending on
+it) was not recorded; both reach the same path.
+
+Cause: `press()` (`FakeOffhand.cpp`) returns early only for a binding
+whose LAST token is the right mouse button (that chord lets vanilla
+receive the click) and for an instant borrow; every other press,
+including one where `chooseSlot` found nothing because the primary
+keeps priority, replays a vanilla use edge
+(`interaction::periodic::sendUseEdge`). Vanilla then runs its own use
+on the main hand, which is the right click the player did not press.
+
+Open: a press that borrows nothing should do nothing; a placement
+borrow still needs the replayed edge, so the early return belongs where
+the borrow decision is made, not before it. The other reasons
+`chooseSlot` returns nothing (UI, screen, FreeCamera owning the look)
+must not replay either.
+
+In game: a rocket in the Fake Offhand and a block in the main hand on a
+non-right-click binding (single button, then a right-click chord) -
+nothing is placed; a block in the offhand aimed at a ghost - placed as
+before; schematics off - unchanged.
+No release target selected.
 
 
 ### L-285 Ghost pick loses to the block at the player's feet
