@@ -129,6 +129,9 @@ it) while doing so.
   approaches are the source of the L-105 hypotheses (mesh rebuild
   scheduling, batching, caching, occlusion culling). Their source is not
   opened.
+- Tweakeroo (Java, listed above): its fake-sneak placement, named by the
+  maintainer 2026-11-01 as the closest prior art, is the source of the L-293
+  idea. Its source and description text are not opened.
 
 If reference-only source later becomes incorporated source, move it to group 2
 in the same change that first imports code. Record the upstream repository and

@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Fake Offhand key without primary priority (L-292, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `136e04d8`, DLL
+SHA-256 `3E8E2C09941D3703E7BD55CA8CDFD96C4080A280C343CE66145E7145056966E6`,
+Minecraft 1.26.51.01 / LeviLamina Client 26.51.5, trace options off. On a
+single non-right-click key the maintainer reported every point as expected:
+a block in the main hand and a snowball in the Fake Offhand, aimed at a
+block, throws the snowball; a block in both hands places the Fake Offhand
+block; a chest aimed without sneaking opens without the main-hand item acting
+on it, and while sneaking the Fake Offhand block is placed on it; the
+right-click binding is unchanged. Doors, levers and servers were not checked.
+
 ## Fake Offhand queued press borrows or does nothing (L-288, 2026-11-01)
 
 Local world, LeviLauncher instance `1.26.51.01 LIP`, Minecraft 1.26.51.01 /

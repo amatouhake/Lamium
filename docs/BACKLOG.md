@@ -78,7 +78,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    reports are L-288 to L-291 (Fake Offhand twice, Hand Restock, schematic
    water materials): L-288 is closed (checked 2026-11-01, BACKLOG-DONE),
    the other three are not built. L-292 (Fake Offhand key without primary
-   priority) is built and waits for the in-game check.
+   priority) is closed (checked 2026-11-01). L-293 (placement as if
+   sneaking, toggle) is Research, not built.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -591,43 +592,36 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
-### L-292 A Fake Offhand key that is not right click uses the Fake Offhand
+### L-293 Place on interactive blocks as if sneaking, with a toggle
 
-Kind: Ready (decided 2026-11-01 by the maintainer, after L-288). A
-Fake Offhand binding that does not end on right click is the player
-asking for the Fake Offhand, so it no longer yields to the primary
-item: `chooseSlot` skips the primary-priority checks (`primaryIdle` for
-`placementSlot` and `instantUseSlot`) for such a binding. A binding
-that ends on right click keeps the priority, because the same click
-also reaches vanilla.
+Kind: Research (how to make a use act as a sneaking use), then Ready.
+Maintainer request 2026-11-01: while building a machine or a build, a
+chest, furnace, door or lever that is only part of it opens or toggles
+by mistake when a block is placed against it. Sneaking avoids that in
+vanilla but changes movement.
 
-Kept for every binding: an item in use on the primary is not
-interrupted; timed items (bows, tridents, fishing rods, milk) are not
-started by a per-call borrow; a firework is only an instant use while
-gliding or aimed at a block (on the ground at air it has no vanilla
-effect, so nothing happens).
+Decided 2026-11-01 (maintainer): an on/off setting plus a toggle key.
+While on, every use on a block behaves as it does while sneaking: the
+held block is placed against an interactive block instead of opening or
+toggling it. An option, off by default, inverts it while on: sneaking
+then opens or toggles as an ordinary use would. Off restores vanilla
+completely. The maintainer named a Java mod's fake-sneak placement as
+the closest prior art (PROVENANCE.md); its source is not opened.
 
-An interactive block (chest, furnace) aimed without sneaking opens, as
-vanilla does; sneaking places the Fake Offhand block on it. The
-borrowed slot is selected while that edge is replayed, so the main-hand
-item never acts on the block (a bucket on a cauldron).
+Open (Research): where the use path reads "sneaking" for the
+interactive-block decision (`GameMode::useItemOn`, the build action,
+the block's own `use`), and whether that can be answered without
+changing the player's real sneak state, movement or what the server
+sees; on a server the placement must be confirmed from the world, not
+the sent transaction. Also: whether an empty hand or a non-block item
+follows the same rule (vanilla sneak use applies to all items), the
+Fake Offhand's `interactSlot` and `placementSlot` must read the same
+effective sneak, and the HUD/indicator for the toggle state.
 
-Status 2026-11-01: built on main, not yet checked in game.
-`chooseSlot` (`FakeOffhand.cpp`) takes `dedicatedKey` (the queued press
-on a binding that does not end on right click, and build ticks without a
-right-click chord); `primaryYields` and `interactSlot` in
-`FakeOffhandPlan.h` carry the rule, with table tests in
-`tests/FakeOffhandTests.cpp`. The interaction runs through the L-288
-placement hold, so the edge is released once the screen opens.
-
-L-290 (a filled bucket in the main hand stops the Fake Offhand) then
-only applies to the right-click binding.
-
-In game, on a single non-right-click key: a block in the main hand and
-a snowball or a bucket in the Fake Offhand - the offhand item is used;
-a block in both - the Fake Offhand block is placed; a chest aimed
-without sneaking opens, with sneaking the Fake Offhand block is placed;
-the right-click binding is unchanged.
+In game (after it is built): with the toggle on, a block placed against
+a chest, furnace, door and lever is placed and nothing opens or
+toggles; with the invert option on, sneaking opens the chest; toggle
+off and the key restore vanilla; on a server the placed block stays.
 No release target selected.
 
 
