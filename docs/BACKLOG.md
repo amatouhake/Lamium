@@ -81,9 +81,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-247 and L-248 are merged (2026-10-27), checked in game and closed
    2026-10-31 (BACKLOG-DONE); L-244 is parked (see its item).
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10): L-253 is closed (checked 2026-10-31). L-286, the minimap's
-   FreeCamera arrow, is parked on branch `l286-minimap-camera-arrow` and not
-   merged. L-246, L-252 and L-254 are done.
+   2026-10-10): L-253 is closed (checked 2026-10-31) and L-286's minimap
+   camera arrow is merged; the arrow-look follow-up is L-287, parked. L-246,
+   L-252 and L-254 are done.
    **L-266 schematic follow-up batch** closed with the 0.3.1 release
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
@@ -128,7 +128,10 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.3.1
 
-No changed features on main yet; L-286 is not merged (see its item).
+- Minimap camera arrow (L-286): while FreeCamera flies, the green arrow at
+  the map center shows where the camera looks, turns with it and disappears
+  when FreeCamera stops. It uses the minimap's existing arrow drawing; the
+  arrow's legibility at small and large map sizes is L-287, parked.
 
 ### Gaps carried from released builds
 
@@ -501,37 +504,6 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
-
-### L-286 Show the FreeCamera heading on the minimap with the world map's arrow
-Kind: Ready. Maintainer request 2026-10-31 after the L-253 check: only the
-world map marks where FreeCamera looks (the green arrow), so the minimap
-follows the camera without showing which way it faces; adopt the world map's
-camera arrow there.
-Decided: the minimap draws the same green arrow (`cameraArrowColor` in
-MapImage.h) at its center while FreeCamera owns the view, turned with the map
-the way the player arrow is, so a north-up map shows the camera's bearing and
-a heading-up map keeps it at the top. No setting; the arrow exists only while
-the map follows the camera. The player arrow keeps its own place and color,
-and the world map is unchanged.
-Check in game: with FreeCamera flying, the green arrow at the center points
-where the camera looks, in the ordinary north-up view and with the rotating
-map; turning the camera turns it, stopping FreeCamera removes it and leaves
-the player arrow.
-Status 2026-10-31: the whole change lives on branch
-`l286-minimap-camera-arrow` (from `f66e430f`), not on main: the camera arrow,
-the screen-space redraw of both arrows, the map-size scaling, the heavier
-outline and the last hard-edged shaft-arrow look are commits `b2f563e4` to
-`ec66e53f` there. The camera arrow itself passed its check in game; the
-arrow's look did not, in any of the four tries (a plain triangle at large
-sizes or, with the shaft arrow, still not reading as an arrow; grey
-anti-aliased edges that looked like a mosaic, or a hard-edged shape that
-still did not read), so it is not merged.
-Parked 2026-10-31 (maintainer): the branch stays here for reference and the
-feature is given up for now; main has no camera arrow. Re-open only with a
-different approach to the marker (for example as a separate HUD layer or a
-simpler direction indicator), not by re-tuning this glyph.
-No release target selected.
-
 
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which
@@ -2005,6 +1977,28 @@ states where vanilla changes or drops it). Related to L-283 (both
 are about reading the aim point); decide whether they share a
 settings home. Priority: low as pure appearance unless the design
 ties it to visibility; nothing decided yet.
+No release target selected.
+
+### L-287 Make the minimap arrows legible at every map size
+Kind: Design (parked 2026-10-31). Split from L-286 when its camera arrow
+landed on main: the marker itself is done, but the player and camera arrows
+are drawn into the 256 px map texture, so a small map minifies them into a
+mangled shape, and at larger sizes the plain triangle does not read as an
+arrow. The maintainer gave up on the current look for now.
+Tried on branch `l286-minimap-camera-arrow` (kept locally, commits
+`b2f563e4` to `ec66e53f`, not merged): screen-space arrow images (no
+minification with the map), scaling with the Map Size with a 6 px floor, a
+two-unit outline, a notch-less triangle for small arrows, a head-and-shaft
+glyph, and hard black/white edges instead of anti-aliasing. Each was checked
+in game; none was accepted: small sizes stayed hard to tell apart from the
+white radar dots, and large ones showed a thin edge, an obvious triangle, or
+a grey mosaic.
+Open: a different marker rather than another glyph tweak - for example a
+direction wedge on the map frame, the mockup's green player arrow, or drawing
+the arrow in the HUD layer above the map. It must read at the smallest Map
+Size without dominating it, keep the camera arrow distinguishable, and still
+look like the map grew out of the game's own art. Do not re-tune the current
+glyph without a new idea.
 No release target selected.
 
 ### Previously parked work

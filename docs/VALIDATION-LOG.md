@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Minimap FreeCamera arrow (L-286, 2026-10-31)
+
+Local world, commit `b2f563e4` (merged to main as `a5cae157`), DLL SHA-256
+`0580F7AE4C3E4E72976F35EB2463B970AC5000DAB4C67B2A72C666B8997ED52A`,
+Minecraft 1.26.51.01 / LeviLamina Client 26.51.5. The maintainer ran the L-286
+check list and reported every point as expected, also after changing the map
+size and range: the green arrow sits at the minimap center while FreeCamera
+flies, turns with the camera, stays at the top on a heading-up map, disappears
+when FreeCamera stops, and the player arrow keeps its own place.
+
+The arrow's own look was then pursued separately on branch
+`l286-minimap-camera-arrow` and given up (L-287). The merged version keeps the
+minimap's existing in-texture arrow drawing.
+
 ## Minimap cave view setting (L-253, 2026-10-31)
 
 Local world, commit `9a4e0ff7`, DLL SHA-256

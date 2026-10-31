@@ -1672,6 +1672,33 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-286 Show the FreeCamera heading on the minimap with the world map's arrow
+Kind: Ready. Maintainer request 2026-10-31 after the L-253 check: only the
+world map marks where FreeCamera looks (the green arrow), so the minimap
+follows the camera without showing which way it faces; adopt the world map's
+camera arrow there.
+Decided: the minimap draws the same green arrow (`cameraArrowColor` in
+MapImage.h) at its center while FreeCamera owns the view, turned with the map
+the way the player arrow is, so a north-up map shows the camera's bearing and
+a heading-up map keeps it at the top. No setting; the arrow exists only while
+the map follows the camera. The player arrow keeps its own place and color,
+and the world map is unchanged.
+Check in game: with FreeCamera flying, the green arrow at the center points
+where the camera looks, in the ordinary north-up view and with the rotating
+map; turning the camera turns it, stopping FreeCamera removes it and leaves
+the player arrow.
+Built 2026-10-31 (`b2f563e4`): the snapshot marks the followed point as the
+camera, the map overlay carries the camera flag and angle, and the arrow is
+drawn into the map texture like the player's.
+Done 2026-10-31: checked in game by the maintainer on `0580f7ae` (DLL SHA-256
+`0580f7ae4c3e4e72976f35eb2463b970ac5000dab4c67b2a72c666b8997ed52a`, local
+world): every point passed, also with other map sizes and ranges. The same day
+the maintainer found the minimap arrows hard to read at small sizes; the look
+was reworked on branch `l286-minimap-camera-arrow` in four passes and given up
+without merging them. The camera arrow itself was cherry-picked to main as
+`a5cae157` and keeps the minimap's existing in-texture arrow drawing. The
+remaining legibility work is L-287.
+
 ### L-253 Make the minimap cave view a persisted three-way option the key cycles
 
 Kind: Ready. Rewritten 2026-10-30. The original text (maintainer note
