@@ -76,7 +76,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-285 ghost pick losing to the block at the player's feet is the newest
    bug report (Research, pick path; not built). The 2026-10-31 maintainer
    reports are L-288 to L-291 (Fake Offhand twice, Hand Restock, schematic
-   water materials; none built).
+   water materials): L-288 is built and waits for the in-game check,
+   the other three are not built.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -268,16 +269,28 @@ keeps priority, replays a vanilla use edge
 (`interaction::periodic::sendUseEdge`). Vanilla then runs its own use
 on the main hand, which is the right click the player did not press.
 
-Open: a press that borrows nothing should do nothing; a placement
-borrow still needs the replayed edge, so the early return belongs where
-the borrow decision is made, not before it. The other reasons
-`chooseSlot` returns nothing (UI, screen, FreeCamera owning the look)
-must not replay either.
+Decided 2026-10-31 (maintainer: work it): a press that borrows nothing
+does nothing; only a placement borrow replays the use edge, and a
+binding that ends on right click still leaves that borrow to vanilla.
+The three outcomes are `queuedPressAction` in `FakeOffhandPlan.h`, so
+every reason `chooseSlot` refuses (UI, screen, FreeCamera owning the
+look, primary priority) reaches the replay decision without a slot and
+replays nothing.
+
+Status 2026-10-31: built (`318fb2c7`, branch
+`l288-fake-offhand-press`), not yet checked in game. `press()`
+(`FakeOffhand.cpp`) asks `queuedPressAction` once and sends
+`interaction::periodic::sendUseEdge` only for `Placement`; a press that
+borrows nothing traces as `press-idle`. Table test in
+`tests/FakeOffhandTests.cpp` covers no slot on either binding, an
+instant borrow on both, a placement borrow on another binding and a
+placement borrow on a right-click binding.
 
 In game: a rocket in the Fake Offhand and a block in the main hand on a
-non-right-click binding (single button, then a right-click chord) -
-nothing is placed; a block in the offhand aimed at a ghost - placed as
-before; schematics off - unchanged.
+non-right-click binding (a single button, then a chord that contains
+right click without ending on it) - nothing is placed; a block in the
+offhand aimed at a ghost - placed as before; schematics off -
+unchanged.
 No release target selected.
 
 
