@@ -82,9 +82,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    2026-10-31 (BACKLOG-DONE); L-244 is parked (see its item).
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): L-253 is closed (checked 2026-10-31). L-286, the minimap's
-   FreeCamera arrow, is on branch `l286-minimap-camera-arrow` for one more
-   arrow-look revision; main has no camera arrow yet. L-246, L-252 and
-   L-254 are done.
+   FreeCamera arrow, is parked on branch `l286-minimap-camera-arrow` and not
+   merged. L-246, L-252 and L-254 are done.
    **L-266 schematic follow-up batch** closed with the 0.3.1 release
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
@@ -520,13 +519,17 @@ map; turning the camera turns it, stopping FreeCamera removes it and leaves
 the player arrow.
 Status 2026-10-31: the whole change lives on branch
 `l286-minimap-camera-arrow` (from `f66e430f`), not on main: the camera arrow,
-the screen-space redraw of both arrows, the map-size scaling and the heavier
-outline are commits `b2f563e4` to `49945e2c` there. The camera arrow itself
-passed its check in game; the arrow's look did not (a plain triangle at large
-sizes, grey anti-aliased edges that read as a mosaic), so it is not merged.
-One more revision is being made on that branch, then the maintainer decides
-whether to keep, change or drop it. Main stays without the feature until
-then.
+the screen-space redraw of both arrows, the map-size scaling, the heavier
+outline and the last hard-edged shaft-arrow look are commits `b2f563e4` to
+`ec66e53f` there. The camera arrow itself passed its check in game; the
+arrow's look did not, in any of the four tries (a plain triangle at large
+sizes or, with the shaft arrow, still not reading as an arrow; grey
+anti-aliased edges that looked like a mosaic, or a hard-edged shape that
+still did not read), so it is not merged.
+Parked 2026-10-31 (maintainer): the branch stays here for reference and the
+feature is given up for now; main has no camera arrow. Re-open only with a
+different approach to the marker (for example as a separate HUD layer or a
+simpler direction indicator), not by re-tuning this glyph.
 No release target selected.
 
 
