@@ -618,6 +618,51 @@ follows the same rule (vanilla sneak use applies to all items), the
 Fake Offhand's `interactSlot` and `placementSlot` must read the same
 effective sneak, and the HUD/indicator for the toggle state.
 
+Findings 2026-11-01 (SDK 26.51.8 headers and Lamium code, nothing run):
+- The server decides from its own sneak state. A block use reaches it as
+  an `ItemUseInventoryTransaction` (position, face, slot, item, click
+  position, predicted result) with no sneak bit; `PlayerAuthInputPacket`
+  carries the sneak state (`InputData::Sneaking`, `StartSneaking`,
+  `StopSneaking`) and can also carry an item use
+  (`PerformItemInteraction`, `mItemUseTransaction`). That also holds in
+  a local world, where the integrated server keeps its own player. So a
+  client-only answer (setting the local player's sneak flag around
+  `useItemOn`) would predict a placement that the server turns into
+  opening the container: rejected.
+- `Actor::isSneaking()` is an inline read of `ActorFlags::Sneaking`, so
+  there is no function to hook for the decision.
+- In Bedrock an empty hand interacts even while sneaking (VALIDATION-LOG,
+  L-95 sneak + chest), so with the toggle on an empty hand still opens a
+  chest; the invert option matters for a held item.
+- Lamium already has the two halves: Permanent Sneak
+  (`PermanentSneak.cpp`) feeds `SneakDown` into a transient copy of the
+  move input, which vanilla turns into a real sneak the server sees;
+  the L-288 / L-292 path can hold back the native first use and replay
+  it with `interaction::periodic::sendUseEdge`. Edge Guard already edits
+  outgoing `PlayerAuthInputPacket`s on `LoopbackPacketSender::send`.
+
+Two shapes, with different user-visible costs:
+- Sneak pulse: a use aimed at an interactive block while the toggle is
+  on is held back, sneak is fed until the local player's flag is set
+  (and the auth input that carries it has gone out), the use is
+  replayed, then sneak is released. Server-legitimate input; costs a
+  delay of a few ticks before the placement and a brief crouch (eye
+  height dips, other players see it, movement slows and an edge stops
+  the player for those ticks).
+- Sent state only: add the sneak bits to the outgoing auth input of
+  that tick and set the client flag only inside `useItemOn`, without
+  changing movement. No crouch, but the server's movement then runs
+  with a sneak the client did not simulate (corrections on servers,
+  anti-cheat risk); version-sensitive and only viable if a trace shows
+  the server reads the sneak bit before the use in the same packet.
+
+Next: a trace-only experiment (no behavior change): on sneak + right
+click on a chest with a block, log which packet carries the use, the
+client tick of the auth input that first has `Sneaking`/`StartSneaking`,
+and when the local `ActorFlags::Sneaking` turns on - in a local world
+and on BDS. The maintainer decides between the two shapes (crouch and
+delay vs. server risk) after it.
+
 In game (after it is built): with the toggle on, a block placed against
 a chest, furnace, door and lever is placed and nothing opens or
 toggles; with the invert option on, sneaking opens the chest; toggle
