@@ -1999,6 +1999,10 @@ the arrow in the HUD layer above the map. It must read at the smallest Map
 Size without dominating it, keep the camera arrow distinguishable, and still
 look like the map grew out of the game's own art. Do not re-tune the current
 glyph without a new idea.
+Re-check 2026-10-31 after L-286 merged to main (`b6ad8327`, DLL `c38a2ff2`):
+the maintainer could not reproduce the distorted arrows with different Map
+Size and Range, and the camera arrow draws well. Watch item: re-open only if
+a small map or another HUD scale shows it again.
 No release target selected.
 
 ### Previously parked work

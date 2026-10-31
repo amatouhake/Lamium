@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Minimap camera arrow on the merged build (L-286, 2026-10-31 record)
+
+Local world, commit `b6ad8327` (camera arrow `a5cae157`), DLL SHA-256
+`C38A2FF21500C2AEBB0CDB18918F08B42AD2F62891CA59393AE19A129E7ED22F`,
+Minecraft 1.26.51.01 / LeviLamina Client 26.51.5. The maintainer confirmed the
+green FreeCamera arrow draws correctly on the merged main build.
+
+The distorted player and camera arrows reported earlier the same day did not
+reproduce: after the reverted in-texture drawing was deployed, changing Map
+Size and Range still showed clean arrows. Not explained; the earlier
+screenshots were of a smaller map, where the map texture is minified as a
+whole. L-287 stays parked as a watch item.
+
 ## Minimap FreeCamera arrow (L-286, 2026-10-31)
 
 Local world, commit `b2f563e4` (merged to main as `a5cae157`), DLL SHA-256
