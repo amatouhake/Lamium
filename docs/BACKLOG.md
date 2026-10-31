@@ -2000,9 +2000,13 @@ Size without dominating it, keep the camera arrow distinguishable, and still
 look like the map grew out of the game's own art. Do not re-tune the current
 glyph without a new idea.
 Re-check 2026-10-31 after L-286 merged to main (`b6ad8327`, DLL `c38a2ff2`):
-the maintainer could not reproduce the distorted arrows with different Map
-Size and Range, and the camera arrow draws well. Watch item: re-open only if
-a small map or another HUD scale shows it again.
+the camera arrow draws well, and most Map Size and Range settings look clean.
+Narrowed the same day: the distorted player and camera arrows come back
+around Map Size 18 %, so the distortion is limited to some map sizes rather
+than gone. That fits the in-texture drawing (the 256 px map texture, arrow
+included, is minified to the map's on-screen size and those scales alias the
+arrow's thin outline and notch). Watch item: re-open with that condition if
+wanted.
 No release target selected.
 
 ### Previously parked work

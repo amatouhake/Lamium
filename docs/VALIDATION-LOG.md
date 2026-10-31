@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Minimap arrow distortion at Map Size 18% (L-287, 2026-10-31 record)
+
+Same build as the entry below (`b6ad8327`, DLL
+`C38A2FF21500C2AEBB0CDB18918F08B42AD2F62891CA59393AE19A129E7ED22F`). The
+maintainer narrowed the earlier report: the distorted player and camera arrows
+appear around Map Size 18 % and look clean at other sizes. The distortion is
+therefore limited to some map sizes rather than gone, which fits the
+in-texture drawing: the 256 px map texture, arrow included, is minified to the
+map's on-screen size, and at those sizes the scale lands on the arrow's
+one-pixel outline and tail notch and aliases it.
+
+L-287 keeps the details and the rejected alternatives. A fix would have to
+draw the arrow at screen resolution or thicken what the minification eats;
+neither is accepted yet, so the item stays parked.
+
 ## Minimap camera arrow on the merged build (L-286, 2026-10-31 record)
 
 Local world, commit `b6ad8327` (camera arrow `a5cae157`), DLL SHA-256
