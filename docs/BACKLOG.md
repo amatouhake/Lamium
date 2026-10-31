@@ -81,8 +81,10 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-247 and L-248 are merged (2026-10-27), checked in game and closed
    2026-10-31 (BACKLOG-DONE); L-244 is parked (see its item).
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10): L-253 is built (2026-10-31) and awaits its in-game checks.
-   L-246, L-252 and L-254 are done.
+   2026-10-10): L-253 is closed (checked 2026-10-31). L-286, the minimap's
+   FreeCamera arrow, is on branch `l286-minimap-camera-arrow` for one more
+   arrow-look revision; main has no camera arrow yet. L-246, L-252 and
+   L-254 are done.
    **L-266 schematic follow-up batch** closed with the 0.3.1 release
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
@@ -127,9 +129,7 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.3.1
 
-- Minimap cave view (L-253): the chosen mode survives a restart and a world
-  rejoin, a forced Surface holds in the Nether, and the key does nothing
-  while the minimap is off.
+No changed features on main yet; L-286 is not merged (see its item).
 
 ### Gaps carried from released builds
 
@@ -503,6 +503,33 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
+### L-286 Show the FreeCamera heading on the minimap with the world map's arrow
+Kind: Ready. Maintainer request 2026-10-31 after the L-253 check: only the
+world map marks where FreeCamera looks (the green arrow), so the minimap
+follows the camera without showing which way it faces; adopt the world map's
+camera arrow there.
+Decided: the minimap draws the same green arrow (`cameraArrowColor` in
+MapImage.h) at its center while FreeCamera owns the view, turned with the map
+the way the player arrow is, so a north-up map shows the camera's bearing and
+a heading-up map keeps it at the top. No setting; the arrow exists only while
+the map follows the camera. The player arrow keeps its own place and color,
+and the world map is unchanged.
+Check in game: with FreeCamera flying, the green arrow at the center points
+where the camera looks, in the ordinary north-up view and with the rotating
+map; turning the camera turns it, stopping FreeCamera removes it and leaves
+the player arrow.
+Status 2026-10-31: the whole change lives on branch
+`l286-minimap-camera-arrow` (from `f66e430f`), not on main: the camera arrow,
+the screen-space redraw of both arrows, the map-size scaling and the heavier
+outline are commits `b2f563e4` to `49945e2c` there. The camera arrow itself
+passed its check in game; the arrow's look did not (a plain triangle at large
+sizes, grey anti-aliased edges that read as a mosaic), so it is not merged.
+One more revision is being made on that branch, then the maintainer decides
+whether to keep, change or drop it. Main stays without the feature until
+then.
+No release target selected.
+
+
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which
 chunks are within the simulation distance (where mobs, crops and redstone
@@ -756,67 +783,6 @@ anti-cheat accept; how it relates to the vanilla place input and to L-263
 block is not carried. Do not change gameplay packets beyond what the
 player could do by hand without a separate decision.
 No release target selected.
-
-### L-253 Make the minimap cave view a persisted three-way option the key cycles
-
-Kind: Ready. Rewritten 2026-10-30. The original text (maintainer note
-2026-10-24, decided 2026-10-26) said the minimap switches by itself and
-only the world map has a manual cave on/off, and decided a three-way
-setting with "No key". That premise was wrong: the maintainer had
-forgotten the shipped MinimapView key. Current main already forces the
-view from a key (`pressViewKey` / `ViewForce` in MapCave.h and
-Minimap.cpp, the `caveView` settings row with no switch, toasts
-`mapView.cave` / `mapView.surface` / `mapView.auto`; MAP.md documents
-it). What is actually missing is persistence and a settings surface:
-the force is an in-memory atomic, not a Settings value, the row shows
-no state and offers no choice, and FEATURES does not mention the key.
-The three-way decision stands; the "No key" part is reversed.
-
-Decided (maintainer 2026-10-30):
-
-- One state, two entry points. A new persisted field in `Settings::Map`
-  holds the view mode: Automatic / Surface / Cave, default Automatic
-  (today's behavior). The in-memory `viewForce` goes away; the minimap
-  reads the setting. `applyForce` semantics are unchanged (a chosen
-  mode wins over the automatic choice), and Cave keeps the cave view at
-  the height the automatic mode would use. The world map's opening
-  choice (`automaticView`), cave recording, and the FreeCamera
-  reference for the followed point are unchanged.
-- Settings placement: the `caveView` feature row is removed. The mode
-  becomes a choice option under the Minimap parent, after Round and
-  before the debug-hide option, shown as a stepper like the map zoom
-  and waypoints-world choices ("Cave view: < Automatic >"). Cave view
-  is not an independent feature — with the minimap off the key already
-  does nothing — so it does not keep a feature row of its own.
-- Key: the MinimapView binding moves to that option row (the
-  option-key precedent: `map.radarFaces`, `map.waypointsWorld`). The
-  key cycles the same setting Automatic → Surface → Cave → Automatic,
-  saves immediately like every settings change, and toasts the new
-  mode with the existing `mapView.*` strings. `pressForce` ("force
-  the view not shown, press again for automatic") is replaced by the
-  plain cycle; finding a mode can take two presses, accepted because
-  the settings row and the toast always name the current mode.
-- Texts: `help.caveView` is rewritten (it currently describes the old
-  key behavior) and the new option label and mode names land in all
-  four languages; FEATURES gains the option and the key in the Minimap
-  section; the MAP.md line about the key is updated to match.
-- Tests: the MapTests `pressForce` cases become cycle cases (order,
-  wrap-around, forced mode beats automatic).
-
-Check in game: cycle from the key and from the settings row above and
-below ground in the Overworld and in the Nether (a forced Surface in
-the Nether included), the mode surviving a restart and a world
-rejoin, and the key doing nothing while the minimap is off.
-Status 2026-10-31: built (`9a4e0ff7`), not yet checked in game. The
-in-memory force is gone: `Settings::Map::caveView` holds Automatic /
-Surface / Cave, the minimap reads it every frame, and both the key and
-the stepper walk the same order. `viewForceOf` reads a corrupt value as
-Automatic. The key sits on the new `map.caveView` row under Minimap
-(after Round, before Debug View hiding), and its label now says "Cycle
-the minimap view"; `help.map.caveView` replaces `help.caveView`, and the
-`feature.caveView` strings are removed. The check list above stands.
-No release target selected.
-
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported

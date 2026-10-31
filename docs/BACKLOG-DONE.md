@@ -1672,6 +1672,70 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-253 Make the minimap cave view a persisted three-way option the key cycles
+
+Kind: Ready. Rewritten 2026-10-30. The original text (maintainer note
+2026-10-24, decided 2026-10-26) said the minimap switches by itself and
+only the world map has a manual cave on/off, and decided a three-way
+setting with "No key". That premise was wrong: the maintainer had
+forgotten the shipped MinimapView key. Current main already forces the
+view from a key (`pressViewKey` / `ViewForce` in MapCave.h and
+Minimap.cpp, the `caveView` settings row with no switch, toasts
+`mapView.cave` / `mapView.surface` / `mapView.auto`; MAP.md documents
+it). What is actually missing is persistence and a settings surface:
+the force is an in-memory atomic, not a Settings value, the row shows
+no state and offers no choice, and FEATURES does not mention the key.
+The three-way decision stands; the "No key" part is reversed.
+
+Decided (maintainer 2026-10-30):
+
+- One state, two entry points. A new persisted field in `Settings::Map`
+  holds the view mode: Automatic / Surface / Cave, default Automatic
+  (today's behavior). The in-memory `viewForce` goes away; the minimap
+  reads the setting. `applyForce` semantics are unchanged (a chosen
+  mode wins over the automatic choice), and Cave keeps the cave view at
+  the height the automatic mode would use. The world map's opening
+  choice (`automaticView`), cave recording, and the FreeCamera
+  reference for the followed point are unchanged.
+- Settings placement: the `caveView` feature row is removed. The mode
+  becomes a choice option under the Minimap parent, after Round and
+  before the debug-hide option, shown as a stepper like the map zoom
+  and waypoints-world choices ("Cave view: < Automatic >"). Cave view
+  is not an independent feature — with the minimap off the key already
+  does nothing — so it does not keep a feature row of its own.
+- Key: the MinimapView binding moves to that option row (the
+  option-key precedent: `map.radarFaces`, `map.waypointsWorld`). The
+  key cycles the same setting Automatic → Surface → Cave → Automatic,
+  saves immediately like every settings change, and toasts the new
+  mode with the existing `mapView.*` strings. `pressForce` ("force
+  the view not shown, press again for automatic") is replaced by the
+  plain cycle; finding a mode can take two presses, accepted because
+  the settings row and the toast always name the current mode.
+- Texts: `help.caveView` is rewritten (it currently describes the old
+  key behavior) and the new option label and mode names land in all
+  four languages; FEATURES gains the option and the key in the Minimap
+  section; the MAP.md line about the key is updated to match.
+- Tests: the MapTests `pressForce` cases become cycle cases (order,
+  wrap-around, forced mode beats automatic).
+
+Check in game: cycle from the key and from the settings row above and
+below ground in the Overworld and in the Nether (a forced Surface in
+the Nether included), the mode surviving a restart and a world
+rejoin, and the key doing nothing while the minimap is off.
+Status 2026-10-31: built (`9a4e0ff7`). The
+in-memory force is gone: `Settings::Map::caveView` holds Automatic /
+Surface / Cave, the minimap reads it every frame, and both the key and
+the stepper walk the same order. `viewForceOf` reads a corrupt value as
+Automatic. The key sits on the new `map.caveView` row under Minimap
+(after Round, before Debug View hiding), and its label now says "Cycle
+the minimap view"; `help.map.caveView` replaces `help.caveView`, and the
+`feature.caveView` strings are removed.
+
+Done 2026-10-31: checked in game by the maintainer on `9a4e0ff7` (DLL SHA-256
+`667A6236848FBADA3D86A75ACBC93F76467CDB1F018597862DAC907D38619A97`, local
+world): every point of the check list was as expected, and the session log
+held no settings-save or cave view error. See VALIDATION-LOG.
+
 ### L-280 Auto Elytra: put the elytra on after a Riptide launch only when the player can fly
 Kind: Ready. Maintainer report 2026-10-30 after 0.3.1: Riptide is used
 underwater to fight mobs, and Auto Elytra swapped the chestplate for an elytra

@@ -12,6 +12,27 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Minimap cave view setting (L-253, 2026-10-31)
+
+Local world, commit `9a4e0ff7`, DLL SHA-256
+`667A6236848FBADA3D86A75ACBC93F76467CDB1F018597862DAC907D38619A97`,
+Minecraft 1.26.51.01 / LeviLamina Client 26.51.5. The maintainer ran the L-253
+check list and reported every point as expected:
+
+- The Cave view row sits under Minimap between Round and Debug View hiding,
+  with its own key cell.
+- The key and the stepper cycle Automatic -> Surface -> Cave -> Automatic, toast
+  the new mode and stay in agreement.
+- Automatic switched under a dark ceiling and used the cave view in the
+  Nether; a forced Surface held there too.
+- The chosen mode survived a restart and a world rejoin.
+- The key did nothing while the minimap was off.
+- The world map's opening cave/surface choice was not affected.
+
+`mods/Lamium/logs/lamium.log` from the session held no settings-save error and
+no cave view error; the map lines were the usual texture, tint and scan
+diagnostics.
+
 ## L-247 and L-248 status effect rows and shapes reference (2026-10-31 record)
 
 Checked in game by the maintainer before the 0.3.1 release; the fixes shipped
