@@ -68,6 +68,9 @@ std::atomic_bool nativeDecided = false;
 // the down edge may send the matching up edge.
 std::atomic_bool synthetic = false;
 std::atomic<std::thread::id> syntheticThread{};
+// A queued press on another binding is held; build ticks send or release the
+// placement edge as the slot choice changes (L-288).
+std::atomic_bool queuedHold = false;
 // Only slot identities survive an instant-use hold; selection is restored
 // inside each native call and vanilla owns the repeat timer.
 std::atomic_int instantPrimary = -1, instantTarget = -1;
@@ -428,7 +431,7 @@ void reportBorrow(Player& source, HandSlot hand) noexcept {
 }
 LL_TYPE_INSTANCE_HOOK(BuildAction, ll::memory::HookPriority::Normal, ClientInstance,
     &ClientInstance::_tickBuildAction, void, HitResult const& solid, HitResult const& liquid, bool advanceTime) {
-    if (!enabled.load() || !(rightChordHeld.load() || synthetic.load())) {
+    if (!enabled.load() || !(rightChordHeld.load() || synthetic.load() || queuedHold.load())) {
         origin(solid, liquid, advanceTime);
         return;
     }
@@ -436,6 +439,7 @@ LL_TYPE_INSTANCE_HOOK(BuildAction, ll::memory::HookPriority::Normal, ClientInsta
     int selected = -1;
     bool instant = false;
     LocalPlayer* player = nullptr;
+    HoldEdge edge = HoldEdge::None;
     try {
         slot = chooseSlot(*this, solid, selected, instant);
         int primary = instantPrimary.load();
@@ -455,15 +459,27 @@ LL_TYPE_INSTANCE_HOOK(BuildAction, ll::memory::HookPriority::Normal, ClientInsta
                 slot.reset();
             }
         }
+        edge = queuedHoldEdge(queuedHold.load(), synthetic.load(), instantPrimary.load() >= 0, slot.has_value());
+        if (edge == HoldEdge::Up) {
+            traceChoice("hold-up", *this, selected, slot, false, &solid);
+            if (synthetic.exchange(false)) interaction::periodic::sendUseEdge(*this, false);
+        }
     } catch (...) {
         if (instantPrimary.load() >= 0) try { release(); } catch (...) {}
         slot.reset();
+        edge = HoldEdge::None;
     }
     if (!slot) {
         origin(solid, liquid, advanceTime);
         return;
     }
     SelectionRestore restore{*player, *slot, selected, instant};
+    if (edge == HoldEdge::Down) {
+        // Vanilla acts on the first press inside the handler; it must see the borrowed slot.
+        traceChoice("hold-down", *this, selected, slot, false, &solid);
+        syntheticThread.store(std::this_thread::get_id());
+        try { synthetic.store(interaction::periodic::sendUseEdge(*this, true)); } catch (...) {}
+    }
     origin(solid, liquid, advanceTime);
 }
 
@@ -592,29 +608,45 @@ void press(IClientInstance& client) {
         traceChoice("press-already-held", client, -1, {}, false);
         return;
     }
-    if (!queuedPressDecides(endsOnRightClick(value), nativeDecided.load())) {
+    bool rightClick = endsOnRightClick(value);
+    if (!queuedPressDecides(rightClick, nativeDecided.load())) {
         traceChoice("press-native-decided", client, -1, {}, false);
         return;
     }
+    int selected = -1;
     try {
         if (!Runtime::instance().enabled() || !client.getLocalPlayer() || !client.isInGameInputEnabled()
-            || ui::ownsInput() || !gameplayScreen(client.getScreenName())) return;
-        int selected = -1;
+            || ui::ownsInput() || !gameplayScreen(client.getScreenName())) {
+            traceChoice("press-idle", client, -1, {}, false);
+            return;
+        }
         bool instant = false;
         auto slot = chooseSlot(client, client.getLatestHitResult(), selected, instant);
         traceChoice("press-choice", client, selected, slot, instant);
-        if (slot && instant) {
+        auto action = queuedPressAction(rightClick, slot, instant);
+        if (action == QueuedPress::Instant) {
             beginInstant(client, selected, *slot, true);
             return;
         }
-    } catch (...) { return; }
-    // A right-click chord lets vanilla receive the click; rightChord() marks it.
-    if (endsOnRightClick(value)) return;
-    syntheticThread.store(std::this_thread::get_id());
-    synthetic.store(interaction::periodic::sendUseEdge(client, true));
+        // L-288: a press that borrows nothing replays nothing; the right-click
+        // binding leaves placement to vanilla. Another binding keeps the hold,
+        // and build ticks send or release the edge as the slot choice changes.
+        if (!rightClick) queuedHold.store(true);
+        auto* player = client.getLocalPlayer();
+        if (action != QueuedPress::Placement
+            || !player->mInventory->selectSlot(*slot, ContainerID::Inventory)) {
+            traceChoice("press-idle", client, selected, slot, false);
+            return;
+        }
+        // Vanilla acts on the first press inside the handler; it must see the borrowed slot.
+        SelectionRestore restore{*player, *slot, selected, false};
+        syntheticThread.store(std::this_thread::get_id());
+        synthetic.store(interaction::periodic::sendUseEdge(client, true));
+    } catch (...) {}
 }
 void release() {
     nativeDecided.store(false);
+    queuedHold.store(false);
     instantPrimary.store(-1);
     instantTarget.store(-1);
     if (!synthetic.exchange(false)) return;

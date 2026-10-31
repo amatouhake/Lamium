@@ -10,6 +10,52 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-288 A Fake Offhand key that is not right click still acts as one
+
+Kind: Bug. Maintainer report 2026-10-31: with the Fake Offhand bound to
+a button other than right click, pressing it acts like a right click
+whenever the offhand is not borrowed - a firework in the Fake Offhand
+and a block in the main hand place the block. The binding form (a
+single button, or a chord that contains right click without ending on
+it) was not recorded; both reach the same path.
+
+Cause: `press()` (`FakeOffhand.cpp`) returns early only for a binding
+whose LAST token is the right mouse button (that chord lets vanilla
+receive the click) and for an instant borrow; every other press,
+including one where `chooseSlot` found nothing because the primary
+keeps priority, replays a vanilla use edge
+(`interaction::periodic::sendUseEdge`). Vanilla then runs its own use
+on the main hand, which is the right click the player did not press.
+
+Decided 2026-11-01 (maintainer: work it): a press that borrows nothing
+does nothing; only a placement borrow replays the use edge, and a
+binding that ends on right click still leaves that borrow to vanilla.
+The three outcomes are `queuedPressAction` in `FakeOffhandPlan.h`, so
+every reason `chooseSlot` refuses (UI, screen, FreeCamera owning the
+look, primary priority) reaches the replay decision without a slot and
+replays nothing. The same rule holds for every build tick of the hold
+(`queuedHoldEdge`): a hold on another binding sends the use edge, with
+the borrowed slot selected, on the first tick that has a placement
+slot, and releases it on a tick that loses the slot, so vanilla's
+repeat never acts on the primary item.
+
+Status 2026-11-01: closed. Merged via PR #58 (press decision `318fb2c7`,
+per-tick edge `1ced1bcb`). `press()` (`FakeOffhand.cpp`) asks
+`queuedPressAction` once; the build-action hook sends or releases the edge
+per tick (`hold-down` / `hold-up` in the offhand trace); a press that borrows
+nothing traces as `press-idle`. Table tests in `tests/FakeOffhandTests.cpp`
+cover both helpers. Checked in game on `1ced1bcb` (VALIDATION-LOG
+2026-11-01): a hold that starts in the air places once the aim reaches a
+block face, so `_tickBuildAction` runs while no use is held.
+
+A chord that contains right click before its last token is not a
+right-click chord: the click reaches vanilla before the chord completes, so
+the main hand acts on it. Decided 2026-11-01 (maintainer): that is expected,
+and such bindings are not refused or warned about.
+Follow-up: L-292 (a non-right-click key uses the Fake Offhand without the
+primary priority).
+
+
 ### L-248 Shapes creation uses the body instead of the active camera
 Kind: Bug / Ready. Maintainer note 2026-10-22 after 0.3.0; not fixed in
 that release. `referencePoint()` in `src/ui/ShapesView.cpp` takes

@@ -169,6 +169,30 @@ void fakeOffhandTests() {
         "a queued right-click press decides only when the native handler has not yet");
     check(queuedPressDecides(false,false) && queuedPressDecides(false,true),
         "other activation bindings always decide in the queued press");
+    using lamium::inventory::fakeOffhand::queuedPressAction;
+    using lamium::inventory::fakeOffhand::QueuedPress;
+    check(queuedPressAction(false, std::nullopt, false) == QueuedPress::Nothing
+        && queuedPressAction(true, std::nullopt, false) == QueuedPress::Nothing
+        && queuedPressAction(false, std::nullopt, true) == QueuedPress::Nothing,
+        "L-288: a queued press that borrows nothing does nothing, whatever the binding");
+    check(queuedPressAction(false, 8, true) == QueuedPress::Instant
+        && queuedPressAction(true, 8, true) == QueuedPress::Instant,
+        "L-288: an instant borrow runs from the queued press on any binding");
+    check(queuedPressAction(false, 8, false) == QueuedPress::Placement,
+        "L-288: another binding replays the use edge for a placement borrow");
+    check(queuedPressAction(true, 8, false) == QueuedPress::Nothing,
+        "L-288: a right-click binding leaves a placement borrow to vanilla");
+    using lamium::inventory::fakeOffhand::queuedHoldEdge;
+    using lamium::inventory::fakeOffhand::HoldEdge;
+    check(queuedHoldEdge(true, false, false, true) == HoldEdge::Down
+        && queuedHoldEdge(true, false, false, false) == HoldEdge::None,
+        "L-288: a hold that starts off a block face sends the use edge once a tick has a placement slot");
+    check(queuedHoldEdge(true, true, false, false) == HoldEdge::Up
+        && queuedHoldEdge(true, true, false, true) == HoldEdge::None,
+        "L-288: a placement hold that loses the slot releases the edge instead of using the primary");
+    check(queuedHoldEdge(false, true, false, false) == HoldEdge::None
+        && queuedHoldEdge(true, true, true, false) == HoldEdge::None,
+        "L-288: right-click and instant holds keep their own edge lifecycle");
     check(!ownsInstantHold(8,8,8,8,true),
         "an ordinary selected target never becomes a borrowed repeat session");
     check(instantUseSlot(true,true,0,8,true,true,false,false,false) == 8,
