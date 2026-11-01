@@ -14,6 +14,7 @@
 #include "features/schematic/GhostPick.h"
 #include "features/schematic/SchematicActions.h"
 #include "features/map/PlayerLocationTrace.h"
+#include "features/information/SlimeTrace.h"
 #include "features/inspection/render/IconTrace.h"
 #include "features/research/TradeTrace.h"
 #include "features/research/RepeatTradeTrace.h"
@@ -174,6 +175,7 @@ Feature const features[] = {
     {"Repeat trade diagnostics", started<researchTrace::repeatTrade::start>, researchTrace::repeatTrade::stop},
     {"Ghost probe", started<schematic::ghostProbe::start>, schematic::ghostProbe::stop},
     {"Player location diagnostics", started<map::locationTrace::start>, map::locationTrace::stop},
+    {"Slime chunk diagnostics", started<information::slimeTrace::start>, information::slimeTrace::stop},
     {"Icon diagnostics", started<inspection::iconTrace::start>, inspection::iconTrace::stop},
     {"Trade diagnostics", started<researchTrace::trade::start>, researchTrace::trade::stop},
     {"Inventory move diagnostics", started<interaction::inventoryMoveTrace::start>, interaction::inventoryMoveTrace::stop},

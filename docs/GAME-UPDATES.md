@@ -214,6 +214,11 @@ ancestor walk beyond 16 controls leave it vanilla. Basic scope and the
 message-expiry/long-message regression passed on `b28a40d` (L-174);
 broader coverage remains in VALIDATION.
 
+### `src/features/information/SlimeTrace.cpp`
+Hooks: `SlimeRuleHook`
+Trace (`slime_trace`). Reads the answer of `SlimeSpawnRules::checkSpawnRulesCallback`
+and calls it for probes; changes nothing.
+
 ### `src/features/information/FrameTiming.cpp`
 Hooks: `FrameCompleted`
 Rebuild.

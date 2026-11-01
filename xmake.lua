@@ -33,6 +33,12 @@ option("research_trace")
     set_description("Enable bounded diagnostics for research items L-36, L-37, L-40, L-44, L-49 and L-58")
 option_end()
 
+option("slime_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Compare the L-232 slime chunk rule against the game's slime spawn rule")
+option_end()
+
 option("icon_trace")
     set_default(false)
     set_showmenu(true)
@@ -249,6 +255,7 @@ target("Lamium")
     if has_config("sneak_trace") then add_defines("LAMIUM_SNEAK_TRACE") end
     if has_config("book_paste_trace") then add_defines("LAMIUM_BOOK_PASTE_TRACE") end
     if has_config("hunger_trace") then add_defines("LAMIUM_HUNGER_TRACE") end
+    if has_config("slime_trace") then add_defines("LAMIUM_SLIME_TRACE") end
     if has_config("icon_trace") then add_defines("LAMIUM_ICON_TRACE") end
     if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end
     if has_config("repeat_trade_trace") then add_defines("LAMIUM_REPEAT_TRADE_TRACE") end
