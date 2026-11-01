@@ -36,7 +36,7 @@ std::vector<AreaMark> shapeMarks(int dimension) {
     if (!runtime.enabled() || !runtime.snapshot()->overlays.shapes) return marks;
     for (auto const& shape : overlay::shapes::footprints(dimension))
         marks.push_back({shapeKey(shape.id), {shape.area.x0, shape.area.z0, shape.area.x1, shape.area.z1}, shape.name,
-                         shapeMapColor(shape.color), shape.visible, false});
+                         shapeMapColor(shape.color), shape.visible, false, shape.round});
     return marks;
 }
 bool toggleVisible(MarkKey key) {

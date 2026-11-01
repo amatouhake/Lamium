@@ -404,6 +404,23 @@ void image() {
     drawOutline(clipped, 32, {{{-10, -10}, {40, -10}, {40, 40}, {-10, 40}}}, color, 1, true);
     check(clipped[0] == 0 && clipped[16 * 32 + 16] != 0, "a round map clips the footprint to its circle");
     drawOutline(clipped, 32, {{{900, 900}, {910, 900}, {910, 910}, {900, 910}}}, color, 1, false);
+    {
+        // L-296: corner marks thicken the outline at the corners only; a
+        // round shape is an unfilled ring.
+        std::vector<std::uint32_t> marked(32 * 32, packColor(50, 50, 50));
+        drawOutline(marked, 32, {{{8.5, 8.5}, {23.5, 8.5}, {23.5, 23.5}, {8.5, 23.5}}}, color, 1, false, .18f, 4);
+        auto at = [&](int x, int y) { return marked[static_cast<size_t>(y) * 32 + x]; };
+        check(channel(at(10, 9), 2) > 150 && channel(px(10, 9), 2) < 150 && at(16, 9) == px(16, 9),
+              "corner marks widen the outline near a corner and leave the middle of a side alone");
+        std::vector<std::uint32_t> ring(32 * 32, packColor(50, 50, 50));
+        std::vector<Point> circle;
+        for (auto p : ellipseRing(6.5, 6.5, 26.5, 26.5)) circle.push_back(p);
+        drawPolygonOutline(ring, 32, circle, color, 1, false, 0);
+        auto r = [&](int x, int y) { return ring[static_cast<size_t>(y) * 32 + x]; };
+        check(channel(r(16, 6), 2) > 150 && channel(r(26, 16), 1) > 150 && r(16, 16) == packColor(50, 50, 50)
+                  && r(7, 7) == packColor(50, 50, 50),
+              "a round footprint is a ring through the box's sides, empty inside and off its corners");
+    }
 
     std::vector<std::uint32_t> framed(16 * 16, packColor(50, 50, 50));
     drawFrame(framed, 16, false, 1);

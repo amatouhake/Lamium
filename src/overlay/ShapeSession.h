@@ -22,6 +22,7 @@ struct Footprint {
     ShapeColor color;
     bool visible;
     ShapeFootprint area;
+    bool round = false; // roundFromAbove
 };
 std::vector<Footprint> footprints(int dimension);
 // Previews a definition that is not yet part of the collection; nullopt ends it.

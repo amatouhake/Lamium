@@ -1060,6 +1060,17 @@ void drawSlimeChunks(MinecraftUIRenderContext& context) {
         else ui::fill(context, sx(edge.line) + inside, sy(edge.from), 1, sy(edge.to) - sy(edge.from), color, .55f);
     }
 }
+// A placement's corner marks (L-296): an L two units thick at each corner,
+// reaching one unit out of the frame.
+void footprintCorners(MinecraftUIRenderContext& context, float x, float y, float w, float h, Rgb color, float opacity) {
+    float l = std::min({5.f, w / 2 + 1, h / 2 + 1});
+    for (float cx : {x - 1, x + w - 1})
+        for (float cy : {y - 1, y + h - 1}) {
+            float hx = cx == x - 1 ? cx : cx - l + 2, vy = cy == y - 1 ? cy : cy - l + 2;
+            ui::fill(context, hx, cy, l, 2, color, opacity);
+            ui::fill(context, cx, vy, 2, l, color, opacity);
+        }
+}
 // Footprints (L-139): shapes, then schematic placements over them, each a
 // faint fill, a frame and its name, under the other markers. Hidden ones
 // stay faint, like hidden waypoints; the selected one is framed white.
@@ -1084,9 +1095,26 @@ void drawAreas(MinecraftUIRenderContext& context, std::vector<MarkName>& names) 
         auto color = rgb(mark.color);
         bool chosen = mark.selected || (state.panelWidth > 0 && state.selected == mark.key);
         float opacity = mark.visible ? 1.f : .35f;
-        ui::fill(context, x0, y0, w, h, color, .16f * opacity);
-        ui::frame(context, x0 - 1, y0 - 1, w + 2, h + 2, Rgb{0, 0, 0}, .6f * opacity);
-        ui::frame(context, x0, y0, w, h, chosen ? ui::palette::white : color, opacity);
+        auto line = chosen ? ui::palette::white : color;
+        if (mark.key.layer == MarkLayer::Placement) {
+            // Placements keep the fill and gain corner marks; shapes are a
+            // plain line in their own shape from above (L-296).
+            ui::fill(context, x0, y0, w, h, color, .16f * opacity);
+            ui::frame(context, x0 - 1, y0 - 1, w + 2, h + 2, Rgb{0, 0, 0}, .6f * opacity);
+            ui::frame(context, x0, y0, w, h, line, opacity);
+            footprintCorners(context, x0, y0, w, h, line, opacity);
+        } else if (mark.round) {
+            int ix0 = static_cast<int>(x0), iy0 = static_cast<int>(y0), ix1 = static_cast<int>(x0 + w), iy1 = static_cast<int>(y0 + h);
+            for (auto const& r : ellipseOutline(ix0 - 1, iy0 - 1, ix1 + 1, iy1 + 1))
+                ui::fill(context, static_cast<float>(r.x), static_cast<float>(r.y), static_cast<float>(r.w), static_cast<float>(r.h),
+                         Rgb{0, 0, 0}, .5f * opacity);
+            for (auto const& r : ellipseOutline(ix0, iy0, ix1, iy1))
+                ui::fill(context, static_cast<float>(r.x), static_cast<float>(r.y), static_cast<float>(r.w), static_cast<float>(r.h),
+                         line, opacity);
+        } else {
+            ui::frame(context, x0 - 1, y0 - 1, w + 2, h + 2, Rgb{0, 0, 0}, .5f * opacity);
+            ui::frame(context, x0, y0, w, h, line, opacity);
+        }
         auto name = mark.visible ? mark.name : mark.name + " " + ui::translated("worldMap.hidden");
         names.push_back({mark.key, cx, y0 + h + 2, std::move(name), mark.visible ? ui::palette::text : ui::palette::faint});
         state.markers.push_back({mark.key, x0, y0, x0 + w, y0 + h});
@@ -1204,10 +1232,18 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
     }
 }
 
-// A footprint as the map draws it, small: a faint fill in its frame.
+// Footprints as the map draws them, small (L-296): a placement's fill and
+// frame with corner dots, a shape's ring.
 void footprintIcon(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha) {
     ui::fill(context, x, cy - 3, 7, 6, color, .16f * alpha);
     ui::frame(context, x, cy - 3, 7, 6, color, alpha);
+    for (float dx : {-1.f, 6.f})
+        for (float dy : {-4.f, 2.f}) ui::fill(context, x + dx, cy + dy, 2, 2, color, alpha);
+}
+void shapeIcon(MinecraftUIRenderContext& context, float x, float cy, Rgb color, float alpha) {
+    int ix = static_cast<int>(x), iy = static_cast<int>(cy) - 3;
+    for (auto const& r : ellipseOutline(ix, iy, ix + 7, iy + 7))
+        ui::fill(context, static_cast<float>(r.x), static_cast<float>(r.y), static_cast<float>(r.w), static_cast<float>(r.h), color, alpha);
 }
 constexpr std::uint32_t shapeSymbolColor = packColor(242, 204, 61);
 // A layer's symbol in the top bar and the list menu.
@@ -1217,7 +1253,8 @@ void layerSymbol(MinecraftUIRenderContext& context, int kind, float x, float cy,
         // Slime chunks: two filled cells on a diagonal, like the map's.
         ui::fill(context, x, cy - 3, 3, 3, rgb(slimeColor), alpha);
         ui::fill(context, x + 4, cy, 3, 3, rgb(slimeColor), alpha);
-    } else footprintIcon(context, x, cy, rgb(kind == 1 ? placementColor : shapeSymbolColor), alpha);
+    } else if (kind == 1) footprintIcon(context, x, cy, rgb(placementColor), alpha);
+    else shapeIcon(context, x, cy, rgb(shapeSymbolColor), alpha);
 }
 void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending, bool recording) {
     auto spot = playerSpot();
@@ -1574,7 +1611,10 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
             ui::fill(context, x0 + 1, ry, 2, rowH, ui::palette::accent);
         } else if (over) ui::fill(context, x0 + 1, ry, w - 1, rowH, ui::palette::white, .07f);
         state.hits.push_back({x0, ry, w, rowH, Target::Row, -2, area.key});
-        footprintIcon(context, x + 1, ry + rowH / 2, rgb(area.color), area.visible ? 1.f : .4f);
+        float iconAlpha = area.visible ? 1.f : .4f;
+        if (area.key.layer == MarkLayer::Placement) footprintIcon(context, x + 1, ry + rowH / 2, rgb(area.color), iconAlpha);
+        else if (area.round) shapeIcon(context, x + 1, ry + rowH / 2, rgb(area.color), iconAlpha);
+        else ui::frame(context, x + 1, ry + rowH / 2 - 3, 7, 6, rgb(area.color), iconAlpha);
         float switchX = x0 + w - pad - ui::switchWidth;
         std::string far;
         if (spot && spot->dimension == state.dimension)

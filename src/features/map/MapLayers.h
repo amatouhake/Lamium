@@ -19,6 +19,7 @@ struct AreaMark {
     std::uint32_t color = 0;
     bool visible = true;
     bool selected = false; // placements: the schematic's selected one
+    bool round = false;    // shapes: drawn as the ellipse in the area (L-296)
 };
 // The map palette's cyan; the outline shape tells it from a waypoint.
 inline constexpr std::uint32_t placementColor = waypointColors[5];

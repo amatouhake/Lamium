@@ -794,7 +794,12 @@ switches:
   63,208,224). Maintainer 2026-11-01: compare looks in a mockup first, then
   build the chosen one. Mockup: [map-footprints.html](demos/map-footprints.html)
   (now, A dashed shapes, B shapes as their real outline, C corner marks on
-  placements, D = B + C), awaiting review.
+  placements, D = B + C). Chosen 2026-11-01: D. Built the same day, on both
+  maps, the top bar's switch symbols and the side panel's rows:
+  placements keep the fill and frame and gain corner marks; shapes lose the
+  fill and are a plain line, an ellipse in the area when `roundFromAbove`
+  (spheres, ellipsoids, upright domes, circles/cylinders/cones/frusta along
+  Y), else the box. Shape colors unchanged. Waiting for the in-game check.
 - With the world map on, its side panel lists and edits waypoints, so the
   separate waypoint screen may be little used there. Maintainer 2026-11-01:
   keep it as it is (it does no harm); revisit when the world map is no

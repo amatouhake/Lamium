@@ -571,7 +571,8 @@ std::vector<Footprint> footprints(int dimension) {
         auto& cached = cache[id];
         if (cached.first != shape.revision || !cached.first) cached = {shape.revision, shapeFootprint(shape)};
         if (cached.second)
-            result.push_back({id, shape.definition.name, shape.definition.color, shape.definition.visible, *cached.second});
+            result.push_back({id, shape.definition.name, shape.definition.color, shape.definition.visible, *cached.second,
+                              roundFromAbove(shape.definition)});
     }
     return result;
 }

@@ -146,4 +146,30 @@ inline int scaleBarBlocks(double unitsPerBlock, double minUnits) {
         if (blocks * unitsPerBlock >= minUnits) return blocks;
     return 50000;
 }
+// The outline of the ellipse inscribed in a screen box [x0, x1) by [y0, y1),
+// in whole GUI units, as rectangles (the UI draws rectangles only): a round
+// shape's footprint (L-296). Points around it are joined by a horizontal and
+// a vertical run each; a big ellipse gets more points, never more than 96.
+struct UnitRect { int x, y, w, h; };
+inline std::vector<UnitRect> ellipseOutline(int x0, int y0, int x1, int y1) {
+    std::vector<UnitRect> rects;
+    if (x1 - x0 < 2 || y1 - y0 < 2) {
+        rects.push_back({x0, y0, std::max(1, x1 - x0), std::max(1, y1 - y0)});
+        return rects;
+    }
+    double cx = (x0 + x1 - 1) / 2.0, cy = (y0 + y1 - 1) / 2.0, rx = (x1 - x0 - 1) / 2.0, ry = (y1 - y0 - 1) / 2.0;
+    int count = std::clamp(static_cast<int>((rx + ry) * 2), 12, 96);
+    std::vector<std::array<int, 2>> points;
+    for (int i = 0; i < count; ++i) {
+        double a = 2 * 3.14159265358979323846 * i / count;
+        std::array<int, 2> p{static_cast<int>(std::lround(cx + rx * std::cos(a))), static_cast<int>(std::lround(cy + ry * std::sin(a)))};
+        if (points.empty() || points.back() != p) points.push_back(p);
+    }
+    for (size_t i = 0; i < points.size(); ++i) {
+        auto p = points[i], q = points[(i + 1) % points.size()];
+        rects.push_back({std::min(p[0], q[0]), p[1], std::abs(q[0] - p[0]) + 1, 1});
+        if (q[1] != p[1]) rects.push_back({q[0], std::min(p[1], q[1]), 1, std::abs(q[1] - p[1]) + 1});
+    }
+    return rects;
+}
 }

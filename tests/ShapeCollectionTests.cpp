@@ -4,6 +4,28 @@
 void check(bool, char const*);
 void shapeCollectionTests() {
     {
+        // L-296: which shapes the maps draw round.
+        using namespace lamium::overlay;
+        auto of = [](Shape shape, Axis axis, bool dome = false) {
+            ShapeDefinition d;
+            ShapeSpec spec;
+            spec.shape = shape;
+            spec.axis = axis;
+            spec.dome = dome;
+            d.geometry = spec;
+            return roundFromAbove(d);
+        };
+        check(of(Shape::Sphere, Axis::X) && of(Shape::Ellipsoid, Axis::Z) && of(Shape::Circle, Axis::Y) && of(Shape::Cylinder, Axis::Y)
+                  && of(Shape::Cone, Axis::Y) && of(Shape::Frustum, Axis::Y) && of(Shape::Dome, Axis::Y),
+              "round shapes, and circular sections standing up, are round from above");
+        check(!of(Shape::Cylinder, Axis::X) && !of(Shape::Circle, Axis::Z) && !of(Shape::Dome, Axis::X)
+                  && !of(Shape::Sphere, Axis::Z, true) && !of(Shape::Box, Axis::Y) && !of(Shape::Pyramid, Axis::Y),
+              "lying circular sections, sideways domes, boxes and pyramids are boxes from above");
+        ShapeDefinition plane;
+        plane.geometry = PlaneSpec{};
+        check(!roundFromAbove(plane), "planes are boxes from above");
+    }
+    {
         // L-139: a shape's footprint on the maps is the box around its cells.
         lamium::overlay::ManagedShape shape;
         check(!lamium::overlay::shapeFootprint(shape), "an empty shape has no footprint");

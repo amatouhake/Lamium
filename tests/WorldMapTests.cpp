@@ -405,4 +405,17 @@ void worldMapTests() {
     mapMarks();
     images();
     view();
+    {
+        // L-296: a round shape's outline in whole GUI units.
+        auto rects = ellipseOutline(10, 20, 50, 40);
+        int top = 99, bottom = 0, left = 99, right = 0;
+        bool inside = true;
+        for (auto const& r : rects) {
+            inside = inside && r.x >= 10 && r.y >= 20 && r.x + r.w <= 50 && r.y + r.h <= 40 && r.w > 0 && r.h > 0;
+            top = std::min(top, r.y), bottom = std::max(bottom, r.y + r.h), left = std::min(left, r.x), right = std::max(right, r.x + r.w);
+        }
+        check(inside && top == 20 && bottom == 40 && left == 10 && right == 50, "the outline fills its box edge to edge and stays inside");
+        check(rects.size() <= 2 * 96 && ellipseOutline(0, 0, 4000, 4000).size() <= 2 * 96, "a big ellipse stays within its rectangle budget");
+        check(ellipseOutline(5, 5, 6, 6).size() == 1, "a tiny one is one rectangle");
+    }
 }

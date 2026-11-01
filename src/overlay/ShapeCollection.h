@@ -49,6 +49,17 @@ inline std::optional<ShapeFootprint> shapeFootprint(ManagedShape const& shape) {
     }
     return box;
 }
+// Whether a shape looks round from above, so the maps draw the ellipse in
+// its footprint instead of the box (L-296): round shapes (sphere, ellipsoid)
+// at any axis, a dome only upright, circular sections (circle, cylinder,
+// cone, frustum) only along Y. Square sections and planes are boxes.
+inline bool roundFromAbove(ShapeDefinition const& definition) {
+    auto const* spec = std::get_if<ShapeSpec>(&definition.geometry);
+    if (!spec) return false;
+    if (spec->shape == Shape::Dome || spec->dome) return spec->axis == Axis::Y;
+    if (shapeProfile(spec->shape) == Profile::Round) return true;
+    return shapeSection(spec->shape) == CrossSection::Circle && spec->axis == Axis::Y;
+}
 // Display blocks for any definition: rings, sphere volume or plane grid.
 inline std::set<Cell> shapeCells(ShapeDefinition const& definition) {
     return std::visit([](auto const& spec) {

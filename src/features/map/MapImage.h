@@ -126,35 +126,44 @@ inline double segmentDistance(Point p, Point a, Point b) {
     double dx = p.x - (a.x + t * vx), dy = p.y - (a.y + t * vy);
     return std::sqrt(dx * dx + dy * dy);
 }
-template<size_t N>
-inline bool insidePolygon(Point p, std::array<Point, N> const& polygon) {
+template <class Polygon>
+inline bool insidePolygon(Point p, Polygon const& polygon) {
     bool inside = false;
-    for (size_t i = 0, j = N - 1; i < N; j = i++) {
+    size_t const n = polygon.size();
+    for (size_t i = 0, j = n - 1; i < n; j = i++) {
         auto const& a = polygon[i];
         auto const& b = polygon[j];
         if ((a.y > p.y) != (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) inside = !inside;
     }
     return inside;
 }
-// A schematic placement's footprint (L-93): a black-edged colored outline
-// around a faint fill, clipped to the map's shape. A footprint smaller than a
-// few pixels still shows as a small square.
-inline void drawOutline(std::vector<std::uint32_t>& pixels, int n, std::array<Point, 4> corners, std::uint32_t color,
-                        double width, bool round, float fillAlpha = .18f) {
-    constexpr double smallest = 3;
-    double cx = 0, cy = 0;
-    for (auto const& c : corners) { cx += c.x / 4; cy += c.y / 4; }
-    if (std::hypot(corners[2].x - corners[0].x, corners[2].y - corners[0].y) < smallest) {
-        double h = smallest / 2;
-        corners = {{{cx - h, cy - h}, {cx + h, cy - h}, {cx + h, cy + h}, {cx - h, cy + h}}};
-    }
-    double reach = width / 2 + 1.5;
+// A footprint on the minimap: a black-edged colored outline around a faint
+// fill, clipped to the map's shape. `marks` (pixels, 0 for none) thickens
+// the outline along each corner for that length: schematic placements'
+// corner marks (L-296). The polygon is a box's 4 corners or a round shape's
+// ring.
+template <class Polygon>
+inline void drawPolygonOutline(std::vector<std::uint32_t>& pixels, int n, Polygon const& corners, std::uint32_t color,
+                               double width, bool round, float fillAlpha = .18f, double marks = 0) {
+    size_t const count = corners.size();
+    if (count < 3) return;
+    double reach = width / 2 + 2.5;
     double minX = corners[0].x, maxX = minX, minY = corners[0].y, maxY = minY;
     for (auto const& c : corners) {
         minX = std::min(minX, c.x); maxX = std::max(maxX, c.x);
         minY = std::min(minY, c.y); maxY = std::max(maxY, c.y);
     }
     if (!(maxX >= -reach && maxY >= -reach && minX <= n + reach && minY <= n + reach)) return;
+    // Each corner's two mark segments, toward its neighbors.
+    std::vector<std::pair<Point, Point>> markSegments;
+    if (marks > 0)
+        for (size_t i = 0; i < count; ++i)
+            for (size_t other : {(i + 1) % count, (i + count - 1) % count}) {
+                auto a = corners[i], b = corners[other];
+                double length = std::hypot(b.x - a.x, b.y - a.y);
+                double t = length > 0 ? std::min(1.0, marks / length) : 0;
+                markSegments.push_back({a, {a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t}});
+            }
     int x0 = std::max(0, int(std::floor(minX - reach))), x1 = std::min(n - 1, int(std::ceil(maxX + reach)));
     int y0 = std::max(0, int(std::floor(minY - reach))), y1 = std::min(n - 1, int(std::ceil(maxY + reach)));
     for (int y = y0; y <= y1; ++y)
@@ -162,15 +171,42 @@ inline void drawOutline(std::vector<std::uint32_t>& pixels, int n, std::array<Po
             if (!insideShape(x, y, n, round)) continue;
             Point p{x + .5, y + .5};
             double d = std::numeric_limits<double>::infinity();
-            for (size_t i = 0, j = 3; i < 4; j = i++) d = std::min(d, segmentDistance(p, corners[j], corners[i]));
+            for (size_t i = 0, j = count - 1; i < count; j = i++) d = std::min(d, segmentDistance(p, corners[j], corners[i]));
+            double m = std::numeric_limits<double>::infinity();
+            for (auto const& [a, b] : markSegments) m = std::min(m, segmentDistance(p, a, b));
+            double thick = width / 2 + 1.5; // the marks' half-width
             auto& pixel = pixels[static_cast<size_t>(y) * n + x];
             if (insidePolygon(p, corners) && fillAlpha > 0)
                 pixel = over(pixel, channel(color, 0), channel(color, 1), channel(color, 2), fillAlpha);
-            float edge = static_cast<float>(std::clamp(width / 2 + 1.5 - d, 0.0, 1.0));
+            float edge = static_cast<float>(std::clamp(std::max(width / 2 + 1.5 - d, thick + 1 - m), 0.0, 1.0));
             if (edge > 0) pixel = over(pixel, 0, 0, 0, edge * .8f);
-            float line = static_cast<float>(std::clamp(width / 2 + .5 - d, 0.0, 1.0));
+            float line = static_cast<float>(std::clamp(std::max(width / 2 + .5 - d, thick - m), 0.0, 1.0));
             if (line > 0) pixel = over(pixel, channel(color, 0), channel(color, 1), channel(color, 2), line);
         }
+}
+// A box footprint; one smaller than a few pixels still shows as a small square.
+inline void drawOutline(std::vector<std::uint32_t>& pixels, int n, std::array<Point, 4> corners, std::uint32_t color,
+                        double width, bool round, float fillAlpha = .18f, double marks = 0) {
+    constexpr double smallest = 3;
+    double cx = 0, cy = 0;
+    for (auto const& c : corners) { cx += c.x / 4; cy += c.y / 4; }
+    if (std::hypot(corners[2].x - corners[0].x, corners[2].y - corners[0].y) < smallest) {
+        double h = smallest / 2;
+        corners = {{{cx - h, cy - h}, {cx + h, cy - h}, {cx + h, cy + h}, {cx - h, cy + h}}};
+        marks = 0;
+    }
+    drawPolygonOutline(pixels, n, corners, color, width, round, fillAlpha, marks);
+}
+// Points around the ellipse inscribed in a world box, for a round shape's
+// footprint (L-296); the caller maps them onto the map.
+inline std::vector<Point> ellipseRing(double x0, double z0, double x1, double z1, int points = 32) {
+    std::vector<Point> ring;
+    double cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, rx = (x1 - x0) / 2, rz = (z1 - z0) / 2;
+    for (int i = 0; i < points; ++i) {
+        double a = 2 * 3.14159265358979323846 * i / points;
+        ring.push_back({cx + rx * std::cos(a), cz + rz * std::sin(a)});
+    }
+    return ring;
 }
 inline void drawArrow(std::vector<std::uint32_t>& pixels, int n, double cx, double cy, double angle, double size,
                       std::uint32_t fill = 0xFFFFFFFF) {

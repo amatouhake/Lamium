@@ -216,6 +216,10 @@ struct State {
         struct Outline {
             std::array<Point, 4> corners;
             std::uint32_t color;
+            // L-296: placements filled with corner marks; shapes a plain
+            // line, round ones along `ring` instead of the corners.
+            bool placement = false;
+            std::vector<Point> ring;
             bool operator==(Outline const&) const = default;
         };
         std::vector<Outline> outlines;
@@ -857,12 +861,16 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
             if (!mark.visible) continue;
             auto const& a = mark.area;
             State::Overlay::Outline outline{{}, mark.selected ? packColor(255, 255, 255) : mark.color};
+            outline.placement = mark.key.layer == MarkLayer::Placement;
+            // Quarter pixels: a still map is not redrawn for rounding noise.
+            auto onMap = [&](double x, double z) {
+                auto p = worldToPixel(transform, centerX, centerZ, x, z, blocks, pixels);
+                return Point{std::round(p.x * 4) / 4, std::round(p.y * 4) / 4};
+            };
             std::array<std::array<int, 2>, 4> world{{{a.x0, a.z0}, {a.x1, a.z0}, {a.x1, a.z1}, {a.x0, a.z1}}};
-            for (size_t i = 0; i < 4; ++i) {
-                auto p = worldToPixel(transform, centerX, centerZ, world[i][0], world[i][1], blocks, pixels);
-                // Quarter pixels: a still map is not redrawn for rounding noise.
-                outline.corners[i] = {std::round(p.x * 4) / 4, std::round(p.y * 4) / 4};
-            }
+            for (size_t i = 0; i < 4; ++i) outline.corners[i] = onMap(world[i][0], world[i][1]);
+            if (mark.round)
+                for (auto p : ellipseRing(a.x0, a.z0, a.x1, a.z1)) outline.ring.push_back(onMap(p.x, p.y));
             overlay.outlines.push_back(outline);
         }
         auto const& shown = state.shown;
@@ -880,8 +888,12 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
                     if (state.slime[i]) state.image[i] = washPixel(state.image[i], waypointColors[3], state.slime[i] == slimeBorder ? .55f : .3f);
             // The look agreed in docs/demos/minimap.html, smaller on wide maps.
             double unit = marker * dotScale(blocksAcross(zoom));
-            for (auto const& outline : overlay.outlines)
-                drawOutline(state.image, pixels, outline.corners, outline.color, std::max(1.0, 1.5 * marker), settings.round);
+            for (auto const& outline : overlay.outlines) {
+                double width = std::max(1.0, 1.5 * marker);
+                if (!outline.ring.empty()) drawPolygonOutline(state.image, pixels, outline.ring, outline.color, width, settings.round, 0);
+                else drawOutline(state.image, pixels, outline.corners, outline.color, width, settings.round,
+                                 outline.placement ? .18f : 0, outline.placement ? 4 * marker : 0);
+            }
             // Faces are drawn over the map on screen pixels, below.
             for (auto const& dot : overlay.dots)
                 if (dot.face < 0)
