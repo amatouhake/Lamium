@@ -25,6 +25,7 @@
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
+#include "mc/world/phys/HitResult.h"
 #include <stdexcept>
 
 namespace lamium::interaction::sneakPlacement {
@@ -35,6 +36,9 @@ Pulse pulse;
 bool serverSneak = false; // Sneaking in the last auth input sent.
 bool edited = false;      // Lamium changed the sneak bits of that packet.
 bool installed = false;
+// The block face a held-back use aimed at. The replay is a fresh use press,
+// which goes wherever the crosshair is then.
+std::optional<std::pair<BlockPos, uchar>> heldAt;
 using Auth = PlayerAuthInputPacketPayload::InputData;
 
 bool on() {
@@ -51,7 +55,7 @@ ItemStack const& heldIn(Player& actor, HandSlot hand) {
     return hand == HandSlot::Offhand ? actor.getOffhandSlot() : actor.getSelectedItem();
 }
 // Whether a build call on this block must wait for the sneak state first.
-bool holds(Player& actor, ItemStack const& item, BlockPos const& pos) noexcept {
+bool holds(Player& actor, ItemStack const& item, BlockPos const& pos, uchar face) noexcept {
     try {
         auto* player = localPlayer();
         if (!player || static_cast<Player*>(player) != &actor) return false;
@@ -59,18 +63,23 @@ bool holds(Player& actor, ItemStack const& item, BlockPos const& pos) noexcept {
         bool enabled = on();
         if (!enabled && !pulse.wanted) return false;
         bool interactive = player->getDimensionBlockSource().getBlock(pos).getBlockType().isInteractiveBlock();
-        return gate(pulse, enabled, runtime.snapshot()->interaction.sneakPlacementInvert, player->isSneaking(),
+        bool held = gate(pulse, enabled, runtime.snapshot()->interaction.sneakPlacementInvert, player->isSneaking(),
             interactive, item.isNull(), serverSneak) == Gate::Hold;
+        if (held) heldAt = {pos, face};
+        return held;
     } catch (...) { return false; }
 }
 void set(PlayerAuthInputPacket& auth, Auth flag, bool value) {
     auth.mInputData->mContainer.set(static_cast<size_t>(flag), value);
 }
 void replay() {
-    ll::thread::ClientThreadExecutor::getDefault().execute([] {
+    ll::thread::ClientThreadExecutor::getDefault().execute([at = heldAt] {
         try {
             auto client = ll::service::getClientInstance();
-            if (!client || !client->getLocalPlayer() || !on()) return;
+            if (!client || !client->getLocalPlayer() || !on() || !at) return;
+            // Looking elsewhere by now: the use would land on another block.
+            auto const& hit = client->getLatestHitResult();
+            if (hit.mType != HitResultType::Tile || hit.mBlock != at->first || hit.mFacing != at->second) return;
             if (periodic::sendUseEdge(*client, true)) periodic::sendUseEdge(*client, false);
         } catch (...) {}
     });
@@ -130,17 +139,17 @@ LL_TYPE_INSTANCE_HOOK(SneakPlacementSend, ll::memory::HookPriority::Normal, Loop
 #define GATE_HOOKS(Mode) \
 LL_TYPE_INSTANCE_HOOK(SneakPlacement##Mode##Build, ll::memory::HookPriority::Normal, Mode, \
     &Mode::$buildBlock, bool, BlockPos const& pos, uchar face, HandSlot hand, bool simTick) { \
-    if (holds(mPlayer, heldIn(mPlayer, hand), pos)) return false; \
+    if (holds(mPlayer, heldIn(mPlayer, hand), pos, face)) return false; \
     return origin(pos, face, hand, simTick); \
 } \
 LL_TYPE_INSTANCE_HOOK(SneakPlacement##Mode##StartBuild, ll::memory::HookPriority::Normal, Mode, \
     &Mode::$startBuildBlock, void, BlockPos const& pos, uchar face, HandSlot hand) { \
-    if (!holds(mPlayer, heldIn(mPlayer, hand), pos)) origin(pos, face, hand); \
+    if (!holds(mPlayer, heldIn(mPlayer, hand), pos, face)) origin(pos, face, hand); \
 } \
 LL_TYPE_INSTANCE_HOOK(SneakPlacement##Mode##UseOn, ll::memory::HookPriority::Normal, Mode, \
     &Mode::$useItemOn, InteractionResult, ItemStack& item, BlockPos const& pos, uchar face, \
     Vec3 const& hit, HandSlot hand, Block const* target, bool first) { \
-    if (holds(mPlayer, item, pos)) return InteractionResult{false, false}; \
+    if (holds(mPlayer, item, pos, face)) return InteractionResult{false, false}; \
     return origin(item, pos, face, hit, hand, target, first); \
 }
 GATE_HOOKS(GameMode)
