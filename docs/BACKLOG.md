@@ -79,8 +79,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    water materials): L-288 is closed (checked 2026-11-01, BACKLOG-DONE),
    the other three are not built. L-292 (Fake Offhand key without primary
    priority) is closed (checked 2026-11-01). L-293 (placement as if
-   sneaking, toggle) passed locally; which method is the default waits on
-   a server check of "Send only".
+   sneaking, toggle) passed locally and on the test BDS; "Send only" is the
+   default (2026-11-01).
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -677,6 +677,10 @@ server check then.
 
 Decided 2026-11-01 (maintainer): the sneak pulse ("Crouch briefly") is the
 default method; "Send only (experimental)" is a second method to try.
+Superseded the same day after the BDS checks: "Send only" is the default
+and labelled recommended; "Crouch briefly" stays as the fallback for
+servers that object to an edited sneak state, labelled as such. The
+feature keeps its experimental badge.
 
 Status 2026-11-01: built on main, checked in a local world (both methods
 pass; the maintainer prefers "Send only"; servers unchecked). Settings
