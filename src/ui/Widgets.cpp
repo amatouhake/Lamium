@@ -228,12 +228,13 @@ std::shared_ptr<BedrockTextureData const> iconTexture(MinecraftUIRenderContext& 
 }
 }
 void imageUv(MinecraftUIRenderContext& context, std::string_view texture, ImageRect rect, float u0, float v0, float u1,
-             float v1, float opacity) {
+             float v1, float opacity, Rgb tint) {
     auto data = iconTexture(context, texture);
     if (!data) return;
     context.drawImage(*data->mClientTexture, glm::vec2{rect.x, rect.y} * currentScale, glm::vec2{rect.w, rect.h} * currentScale,
                       glm::vec2{u0, v0}, glm::vec2{u1 - u0, v1 - v0}, false);
-    context.flushImages(white, std::clamp(opacity, 0.f, 1.f), HashedString{"ui_textured_and_glcolor"});
+    context.flushImages(mce::Color{tint.r, tint.g, tint.b, 1.f}, std::clamp(opacity, 0.f, 1.f),
+                        HashedString{"ui_textured_and_glcolor"});
 }
 bool runtimeImage(MinecraftUIRenderContext& context, ResourceLocation const& texture, ImageRect rect, float opacity) {
     return runtimeImage(context, texture, rect, 0, 0, 1, 1, opacity);

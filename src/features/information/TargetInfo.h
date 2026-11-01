@@ -22,6 +22,7 @@ struct TargetIcon {
     std::string name; // Item: item identifier. Texture: path of the source image.
     short aux = 0;
     float u0 = 0, v0 = 0, u1 = 1, v1 = 1;
+    bool tinted = false; // Texture drawn in the water color (L-294).
 };
 // Owned snapshot shared by target HUD and future detailed debug providers.
 struct TargetInfo {
@@ -143,6 +144,9 @@ struct ViewRay { double x, y, z, dx, dy, dz; double reach; bool detached = false
 std::optional<TargetInfo> collectTargetInfo(IClientInstance&, bool includeStates = false,
                                             std::optional<ViewRay> ray = std::nullopt, bool includeSchematic = true,
                                             bool includeLiquids = false);
+// Water's own texture as a tinted icon, for screens that would otherwise draw
+// the water item's untinted gray (L-294). Empty when it cannot be read.
+TargetIcon waterIcon();
 // Drops per-world icon lookups on world exit.
 void startTargetIcons();
 void stopTargetIcons();

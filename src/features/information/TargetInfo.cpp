@@ -134,22 +134,13 @@ TargetIcon entityIcon(IClientInstance& client, std::string const& identifier) {
     } catch (...) {} // Icon resolution must not replace the target snapshot.
     return {};
 }
-// Blocks without an item (portal, fire, ...) draw their own texture; the uv
-// keeps one animation frame instead of the whole vertical strip.
-TargetIcon blockIcon(BlockSource& source, BlockPos const& pos, Block const& block) {
-    std::string pick;
-    short aux = 0;
-    try {
-        auto item = block.asItemInstance(source, pos, true);
-        if (!item.isNull() && item.mItem) {
-            pick = item.mItem->mFullName->getString();
-            aux = item.getAuxValue();
-        }
-    } catch (...) {}
+// A block's own texture as an icon; the uv keeps one animation frame instead
+// of the whole vertical strip.
+TargetIcon textureIcon(Block const& block) {
     std::string texture;
     float u0 = 0, v0 = 0, u1 = 1, v1 = 1;
     float textureW = 0, textureH = 0, sourceW = 0, sourceH = 0;
-    if (pick.empty()) {
+    {
         try {
             auto const* graphics = BlockGraphics::getForBlock(block);
             if (graphics) {
@@ -200,12 +191,31 @@ TargetIcon blockIcon(BlockSource& source, BlockPos const& pos, Block const& bloc
             }
         } catch (...) { return {}; }
     }
-    auto icon = chooseBlockIcon(std::move(pick), aux, std::move(texture));
+    auto icon = chooseBlockIcon({}, 0, std::move(texture));
     icon.u0 = u0;
     icon.v0 = v0;
     icon.u1 = u1;
     icon.v1 = v1;
+    // L-294: water's texture is gray until the game tints it in the world,
+    // and its item draws that gray; the icon gets the ghosts' water color.
+    icon.tinted = icon.kind == IconKind::Texture && schematic::isWaterName(block.getTypeName());
     return icon;
+}
+// Blocks without an item (portal, fire, ...) draw their own texture, and so
+// does water (L-294).
+TargetIcon blockIcon(BlockSource& source, BlockPos const& pos, Block const& block) {
+    if (schematic::isWaterName(block.getTypeName())) return textureIcon(block);
+    std::string pick;
+    short aux = 0;
+    try {
+        auto item = block.asItemInstance(source, pos, true);
+        if (!item.isNull() && item.mItem) {
+            pick = item.mItem->mFullName->getString();
+            aux = item.getAuxValue();
+        }
+    } catch (...) {}
+    if (!pick.empty()) return chooseBlockIcon(std::move(pick), aux, {});
+    return textureIcon(block);
 }
 // A dropped stack shows the item it holds; its own identifier is
 // "minecraft:item", which names no item of its own.
@@ -232,6 +242,14 @@ TargetIcon fallingIcon(Actor& entity, LocalPlayer& player) {
         return blockIcon(player.getDimensionBlockSource(), where, block);
     } catch (...) { return {}; }
 }
+}
+TargetIcon waterIcon() {
+    try {
+        // Looked up each time: a block pointer kept across a registry reload crashed elsewhere.
+        auto found = Block::tryGetFromRegistry(HashedString{"minecraft:water"});
+        Block const* water = found ? &*found : nullptr;
+        return water ? textureIcon(*water) : TargetIcon{};
+    } catch (...) { return {}; }
 }
 // The block's states as card rows (named where L-112 knows them) and the
 // rest as raw "key: value" lines, leaving out `fixed` (shown by the

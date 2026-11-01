@@ -26,6 +26,7 @@
 #include "mc/client/renderer/BaseActorRenderContext.h"
 #include "mc/client/renderer/actor/ItemRenderer.h"
 #include "features/schematic/GhostRenderer.h"
+#include "features/schematic/LiquidName.h"
 #include "features/schematic/SchematicItems.h"
 #include "features/schematic/SchematicSession.h"
 #include "features/schematic/SchematicActions.h"
@@ -760,8 +761,10 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     if (icon) {
         inspection::render::drawItemIcon(context, {&stack, left, top + (headerH - iconSize) / 2, z}, 17);
     } else if (texture) {
+        auto const& water = schematic::waterColor;
         ui::imageUv(context, target.icon.name, {left, top + (headerH - iconSize) / 2, iconSize, iconSize},
-                    target.icon.u0, target.icon.v0, target.icon.u1, target.icon.v1);
+                    target.icon.u0, target.icon.v0, target.icon.u1, target.icon.v1, 1,
+                    target.icon.tinted ? ui::Rgb{water.r, water.g, water.b} : ui::palette::white);
     }
     float textX = left + iconSize + iconGap, textW = contentW - iconSize - iconGap;
     float textTop = top + (headerH - headerTextH) / 2;
@@ -793,7 +796,8 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
             x += (10 * 8 + 1 + 4) * z;
         }
         if (auto const* stack = rowStack(row)) {
-            inspection::render::drawItemIcon(context, {stack, std::round(x), std::round(y), rowIcon / 16}, 17);
+            if (!drawWaterIcon(context, *stack, std::round(x), std::round(y), rowIcon))
+                inspection::render::drawItemIcon(context, {stack, std::round(x), std::round(y), rowIcon / 16}, 17);
             x += rowIcon + 2 * z;
         }
         // Schematic rows in the verifier's colors (the HUD and Check tab use the same).
@@ -1657,4 +1661,13 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     return boxes;
 }
 void forgetEffectRows() { shownEffects.clear(); }
+bool drawWaterIcon(MinecraftUIRenderContext& context, ItemStack const& stack, float x, float y, float size) {
+    if (stack.isNull() || !schematic::isWaterName(stack.getTypeName())) return false;
+    auto icon = waterIcon();
+    if (!icon.tinted) return false;
+    auto const& water = schematic::waterColor;
+    ui::imageUv(context, icon.name, {x, y, size, size}, icon.u0, icon.v0, icon.u1, icon.v1, 1,
+                ui::Rgb{water.r, water.g, water.b});
+    return true;
+}
 }

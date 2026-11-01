@@ -721,6 +721,7 @@ std::string layersText(schematic::SavedPlacement const& p) {
 void drawItemIcon(MinecraftUIRenderContext& context, std::string const& icon, float x, float y, float size) {
     auto const* stack = schematic::items::iconStack(icon);
     if (!stack) return;
+    if (information::drawWaterIcon(context, *stack, x, y, size)) return; // L-294, in widget units
     // Item icons and the 3D preview draw in GUI units, outside the widgets' scale.
     float s = drawScale();
     inspection::render::drawItemIcon(context, {stack, std::round(x * s), std::round(y * s), size * s / 16}, 17);

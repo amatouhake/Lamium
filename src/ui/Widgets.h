@@ -76,8 +76,9 @@ struct ImageRect { float x, y, w, h; };
 void images(MinecraftUIRenderContext&, std::string_view texture, std::vector<ImageRect> const& rects, float opacity = 1);
 // One rectangle with an explicit sub-rectangle of the texture (uv in 0-1);
 // used for block textures whose source image holds several animation frames.
+// `tint` multiplies the texture (water's gray texture, L-294).
 void imageUv(MinecraftUIRenderContext&, std::string_view texture, ImageRect rect, float u0, float v0, float u1,
-             float v1, float opacity = 1);
+             float v1, float opacity = 1, Rgb tint = palette::white);
 // A texture Lamium uploaded at runtime (the minimap). False when the texture
 // group does not have it, so the caller can upload it again.
 bool runtimeImage(MinecraftUIRenderContext&, ResourceLocation const& texture, ImageRect rect, float opacity = 1);

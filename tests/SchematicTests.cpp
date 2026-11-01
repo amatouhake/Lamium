@@ -1207,6 +1207,9 @@ void verificationOrder() {
     check(materialsCount(waterlogged, false) == 1 && count("minecraft:stone", std::nullopt) == 1
           && count("minecraft:oak_double_slab", std::nullopt) == 2 && count("minecraft:wooden_door", std::nullopt, true) == 0,
           "waterlogged and ordinary blocks keep their item count");
+    check(isWaterName("minecraft:water") && isWaterName("minecraft:flowing_water") && !isWaterName("minecraft:lava")
+              && isLiquidName("minecraft:flowing_lava") && !isLiquidName("minecraft:stone") && !isWaterName(""),
+          "L-294: water and lava block names, still and flowing");
 }
 }
 void otherHalves() {

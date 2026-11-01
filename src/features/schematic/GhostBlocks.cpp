@@ -2,6 +2,7 @@
 #include "features/schematic/GhostCommon.h"
 #include "features/schematic/GhostFaces.h"
 #include "features/schematic/CheckRules.h"
+#include "features/schematic/LiquidName.h"
 #include "features/map/MapColors.h"
 #include "app/Runtime.h"
 #include "mc/client/gui/screens/ScreenContext.h"
@@ -190,7 +191,8 @@ bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos con
     // Water's texture is gray and tinted by the biome; lava's is colored,
     // and lava is not see-through.
     auto channel = [](float v, int shift) { return static_cast<std::uint32_t>(std::lround(std::clamp(v, 0.f, 1.f) * 255)) << shift; };
-    std::uint32_t tint = kind == 1 ? channel(.25f, 0) | channel(.45f, 8) | channel(.95f, 16) | channel(.55f, 24)
+    std::uint32_t tint = kind == 1 ? channel(waterColor.r, 0) | channel(waterColor.g, 8) | channel(waterColor.b, 16)
+                                       | channel(waterColor.a, 24)
                                    : channel(1.f, 0) | channel(1.f, 8) | channel(1.f, 16) | channel(1.f, 24);
     TextureUVCoordinateSet const& cube = cubeGraphics->getTexture(1, 0);
     float heights[2][2];

@@ -3,6 +3,7 @@
 #include "ui/HudEditorLayout.h"
 class MinecraftUIRenderContext;
 class ScreenView;
+class ItemStack;
 namespace lamium::information {
 // Layout editor preview: draw with this layout instead of the saved one, show
 // every element whether or not its feature is on, and fill empty elements
@@ -27,4 +28,8 @@ std::string biomeName(std::string const& identifier);
 // Called when the effects feature stops and on world exit, so an effect in a
 // new world cannot inherit a row order kept from the old one.
 void forgetEffectRows();
+// Water's icon is its own texture in the water color, not the water item's
+// untinted gray (L-294). Draws it and returns true for a water stack; any
+// other stack is the caller's to draw. x, y and size in ui::imageUv's units.
+bool drawWaterIcon(MinecraftUIRenderContext&, ItemStack const&, float x, float y, float size);
 }
