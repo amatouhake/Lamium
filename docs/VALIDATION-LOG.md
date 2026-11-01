@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Clipped stepper value tip for the keyboard row (L-293 follow-up, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `c332c977`, DLL
+SHA-256 `4EC8D9C91506C4043175C34237A442A3B30BE7471BD7FDE4100EACF455C42662`.
+The maintainer: with the pointer resting on a row, selecting the method row
+with the arrow keys shows the tip for "Send only (recommended)"; moving the
+mouse hides the keyboard tip.
+
 ## Clipped stepper value tip (L-293 follow-up, 2026-11-01)
 
 Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `66fcc8d6`, DLL
