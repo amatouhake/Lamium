@@ -23,7 +23,12 @@ block after looking away. Also seen: with Fake Offhand (right-click binding,
 glass in its slot) and Sneak Placement on, an empty main hand at a chest
 opened it instead of placing. On `1468eaef` (DLL SHA-256
 `18BB14E1D9BF559CD9C50636BD9E941F4C5FA15CEBFF0A7B675A6EC57F165544`), which
-changed this for a key of its own only, the chest still opened.
+changed this for a key of its own only, the chest still opened. On
+`9b055931` (DLL SHA-256
+`2ADFC5ECD5763C76DF6B72B633FF0D19D0B7CD899F8CBB325037BA0731D181C7`) the
+maintainer passed: right-clicking the chest with an empty main hand places
+the slot's block without opening it, a short click too; sneaking with "Open
+while sneaking" opens it. Not checked: a key of its own, servers.
 
 ## Map marks and information headings (L-297, 2026-11-01)
 
