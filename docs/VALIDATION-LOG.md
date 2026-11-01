@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Sneak placement default method and labels (L-293, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `1c8d2670`, DLL
+SHA-256 `E3E78CCF7263838C0D9A6AB8C8D677EDF0375970405A3EE34B7F8984312BA01B`.
+The maintainer confirmed the settings screen shows "Send only (recommended)"
+as the chosen method with the new labels and help, and a block is still
+placed against a chest.
+
 ## Sneak placement "Send only" with the shorter sneak, BDS (L-293, 2026-11-01)
 
 Same local test BDS, commit `82fe066f`, DLL SHA-256
