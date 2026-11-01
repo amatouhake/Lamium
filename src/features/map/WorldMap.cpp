@@ -18,6 +18,7 @@
 #include "mc/world/level/storage/LevelData.h"
 #include "features/information/InfoHud.h"
 #include "features/information/SlimeChunk.h"
+#include <tuple>
 #include "app/Runtime.h"
 #include "ui/Localization.h"
 #include "ui/NumberInput.h"
@@ -76,12 +77,15 @@ void log(std::string const& text) {
 constexpr int slotCount = 96;
 // Uploads per frame; the first frames after opening may upload more.
 constexpr int uploadsPerFrame = 6, uploadsWhileOpening = 16;
+// Slime chunk images (L-232) after the tiles and the two arrows.
+constexpr int slimeSlotCount = 48, slimeSlotBase = slotCount + 2;
 ResourceLocation const& slotLocation(int index) {
-    static std::array<ResourceLocation*, slotCount + 2> all{};
+    static std::array<ResourceLocation*, slimeSlotBase + slimeSlotCount> all{};
     auto& location = all[static_cast<size_t>(index)];
     if (!location) {
         auto name = index == slotCount ? std::string("lamium/worldmap/arrow")
             : index == slotCount + 1 ? std::string("lamium/worldmap/camera_arrow")
+            : index >= slimeSlotBase ? std::format("lamium/worldmap/slime/{}", index - slimeSlotBase)
                                      : std::format("lamium/worldmap/{}", index);
         location = new ResourceLocation(Core::PathView(name), ResourceFileSystem::Raw);
     }
@@ -965,19 +969,84 @@ struct MarkName {
     Rgb color;
 };
 // Slime chunks (L-232): a green wash over the Overworld terrain, under every
-// mark. Drawn only while a chunk is big enough to tell apart; the place
-// under the pointer names it at any zoom.
+// mark. Near, a rectangle per row run and the areas' outline; farther out,
+// prepared images of whole squares of chunks (SlimeImageLevel). Too far to
+// tell chunks apart it is not drawn; the place under the pointer names a
+// slime chunk at any zoom.
 constexpr std::uint32_t slimeColor = waypointColors[3];
-constexpr double slimeMinUnitsPerChunk = 4;
 information::SlimeChunkCache slimeCache;
+struct SlimeSlot {
+    std::optional<std::tuple<int, int, int>> key; // chunks per side, image x, image z
+    bool uploaded = false;
+    double used = 0;
+    unsigned readyAt = 0; // as Slot: a reused slot shows its old image a few frames
+};
+std::array<SlimeSlot, slimeSlotCount> slimeSlots;
 bool slimeShown() { return state.dimension == 0 && Runtime::instance().preferences().map.worldMapSlime; }
-bool slimeDrawable() { return state.view.scale() * 16 >= slimeMinUnitsPerChunk; }
+double slimeUnitsPerChunk() { return state.view.scale() * 16; }
+bool slimeDrawable() {
+    return slimeUnitsPerChunk() >= information::slimeRectMinUnits || information::slimeImageLevel(slimeUnitsPerChunk());
+}
+void drawSlimeImages(MinecraftUIRenderContext& context, information::SlimeImageLevel level, int x0, int x1, int z0, int z1) {
+    auto const& view = state.view;
+    auto floorDiv = [](int a, int b) { return a >= 0 ? a / b : -((-a + b - 1) / b); };
+    int bx0 = floorDiv(x0, level.chunks), bx1 = floorDiv(x1, level.chunks);
+    int bz0 = floorDiv(z0, level.chunks), bz1 = floorDiv(z1, level.chunks);
+    if ((bx1 - bx0 + 1) * (bz1 - bz0 + 1) > slimeSlotCount) return; // never at the levels' zooms
+    double time = now();
+    int budget = 4;
+    std::array<bool, slimeSlotCount> usedNow{};
+    for (int bz = bz0; bz <= bz1; ++bz)
+        for (int bx = bx0; bx <= bx1; ++bx) {
+            std::tuple key{level.chunks, bx, bz};
+            int index = -1;
+            for (int i = 0; i < slimeSlotCount; ++i)
+                if (slimeSlots[static_cast<size_t>(i)].key == key) { index = i; break; }
+            if (index < 0) {
+                if (budget <= 0) continue;
+                // An empty slot first, then the one shown longest ago.
+                auto age = [](SlimeSlot const& s) { return std::pair{s.key.has_value(), s.used}; };
+                for (int i = 0; i < slimeSlotCount; ++i)
+                    if (!usedNow[static_cast<size_t>(i)]
+                        && (index < 0 || age(slimeSlots[static_cast<size_t>(i)]) < age(slimeSlots[static_cast<size_t>(index)])))
+                        index = i;
+                if (index < 0) continue;
+                --budget;
+                auto& slot = slimeSlots[static_cast<size_t>(index)];
+                auto pixels = information::slimeImage(bx * level.chunks, bz * level.chunks, level, packColor(127, 214, 90, 77),
+                                                      packColor(127, 214, 90, 140), slimeCache);
+                try {
+                    if (upload(context.mClient, slotLocation(slimeSlotBase + index), pixels, level.chunks * level.perChunk, slot.uploaded)) {
+                        slot.readyAt = tileFrame + 3;
+                        slot.uploaded = true;
+                        slot.key = key;
+                    } else slot = SlimeSlot{};
+                } catch (...) { slot = SlimeSlot{}; }
+                if (!slot.key) continue;
+            }
+            auto& slot = slimeSlots[static_cast<size_t>(index)];
+            slot.used = time;
+            usedNow[static_cast<size_t>(index)] = true;
+            if (tileFrame < slot.readyAt) continue;
+            double blocks = level.chunks * 16.0;
+            float sx0 = static_cast<float>(snapToPixel(view.screenX(bx * blocks), state.pixelsPerUnit));
+            float sx1 = static_cast<float>(snapToPixel(view.screenX((bx + 1) * blocks), state.pixelsPerUnit));
+            float sy0 = static_cast<float>(snapToPixel(view.screenY(bz * blocks), state.pixelsPerUnit));
+            float sy1 = static_cast<float>(snapToPixel(view.screenY((bz + 1) * blocks), state.pixelsPerUnit));
+            if (!ui::runtimeImage(context, slotLocation(slimeSlotBase + index), {sx0, sy0, sx1 - sx0, sy1 - sy0}))
+                slot = SlimeSlot{};
+        }
+}
 void drawSlimeChunks(MinecraftUIRenderContext& context) {
     if (!slimeShown() || !slimeDrawable()) return;
     auto const& view = state.view;
     auto chunk = [](double block) { return static_cast<int>(std::floor(block / 16)); };
     int x0 = chunk(view.worldX(0)), x1 = chunk(view.worldX(view.width));
     int z0 = chunk(view.worldZ(state.top)), z1 = chunk(view.worldZ(view.height));
+    if (auto level = information::slimeImageLevel(slimeUnitsPerChunk())) {
+        drawSlimeImages(context, *level, x0, x1, z0, z1);
+        return;
+    }
     auto color = rgb(slimeColor);
     auto sx = [&](int edge) { return std::round(static_cast<float>(view.screenX(edge * 16.0))); };
     auto sy = [&](int edge) { return std::round(static_cast<float>(view.screenY(edge * 16.0))); };
@@ -1764,8 +1833,11 @@ void close() {
             if (slots[static_cast<size_t>(i)].uploaded) unload(*state.client, slotLocation(i));
         if (state.arrowUploaded) unload(*state.client, slotLocation(slotCount));
         if (state.cameraArrowUploaded) unload(*state.client, slotLocation(slotCount + 1));
+        for (int i = 0; i < slimeSlotCount; ++i)
+            if (slimeSlots[static_cast<size_t>(i)].uploaded) unload(*state.client, slotLocation(slimeSlotBase + i));
     }
     slots = {};
+    slimeSlots = {};
     state.arrowUploaded = false;
     state.cameraArrowUploaded = false;
     state.open = false;

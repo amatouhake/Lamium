@@ -744,9 +744,15 @@ Built 2026-11-01 (maintainer chose the scope that day): `SlimeChunk.h`
 chunk: Yes/No" after Chunk (Overworld only, hidden elsewhere, follows
 FreeCamera), " | Slime chunk" on the Debug View block/chunk line in both
 label styles, and a world map layer switch "Slime chunks" (Overworld only,
-default off): a green wash with a frame per row run while a chunk is at
-least 8 GUI units (4 since 2026-11-01, the maintainer wanted it farther out), the place under the pointer names a slime chunk at any
-zoom, and the switch's hover text says to zoom in when it is too far out.
+default off): a green wash with the areas' outline, the place under the
+pointer names a slime chunk at any zoom, and the switch's hover text says to
+zoom in when it is too far out. Drawing (2026-11-01, after the maintainer
+asked to see it farther out and a rectangle per run and edge was far too
+heavy at 4 GUI units per chunk): rectangles from 16 units per chunk in;
+below that prepared 256-pixel images of whole squares of chunks
+(`SlimeImageLevel`: 32 chunks at 8 px, 64 at 4 px, 256 at 1 px without
+outline), built once and kept in 48 texture slots, 4 uploads a frame; not
+drawn below 0.75 units per chunk.
 Minimap and a world overlay stay out (maintainer 2026-11-01). The
 `help.debugView` text is corrected in all four languages.
 Check: `xmake f --slime_trace=y` hooks the game's own

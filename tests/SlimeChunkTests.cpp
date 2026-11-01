@@ -60,4 +60,26 @@ void slimeChunkTests() {
             sides = sides && e.before == (e.horizontal ? l(e.from, e.line - 1) : l(e.line - 1, e.from));
         check(sides, "each edge knows which side the slime area is on");
     }
+    check(!slimeImageLevel(16) && !slimeImageLevel(32) && slimeImageLevel(15.9) == SlimeImageLevel{32, 8}
+              && slimeImageLevel(6) == SlimeImageLevel{32, 8} && slimeImageLevel(5.9) == SlimeImageLevel{64, 4}
+              && slimeImageLevel(3) == SlimeImageLevel{64, 4} && slimeImageLevel(2.9) == SlimeImageLevel{256, 1}
+              && slimeImageLevel(.75) == SlimeImageLevel{256, 1} && !slimeImageLevel(.7),
+          "rectangles near, outlined images, then plain images, then nothing far out");
+    for (double units : {15.9, 6.0, 5.9, 3.0, 2.9, .75})
+        check(slimeImageLevel(units)->chunks * slimeImageLevel(units)->perChunk == 256, "every image level is 256 pixels square");
+    {
+        // The L again, 4 pixels per chunk in a 2-chunk image: outline only on
+        // the area's border, fill inside, nothing outside.
+        auto l = [](int x, int z) { return (z == 0 && (x == 0 || x == 1)) || (z == 1 && x == 0); };
+        auto image = slimeImage(0, 0, {2, 4}, 1, 2, l);
+        auto at = [&](int x, int y) { return image[static_cast<size_t>(y * 8 + x)]; };
+        check(image.size() == 64 && at(0, 0) == 2 && at(1, 1) == 1 && at(3, 1) == 1 && at(4, 1) == 1 && at(7, 1) == 2
+                  && at(1, 3) == 1 && at(1, 4) == 1 && at(5, 3) == 2 && at(5, 5) == 0 && at(3, 7) == 2,
+              "an image outlines the area and leaves joins between chunks filled");
+        auto plain = slimeImage(0, 0, {2, 1}, 1, 2, l);
+        check((plain == std::vector<std::uint32_t>{1, 1, 1, 0}), "one pixel per chunk is fill only");
+        int filled = 0;
+        for (auto pixel : slimeImage(-5, -5, {11, 1}, 1, 2, isSlimeChunk)) filled += pixel == 1;
+        check(filled == 11, "an image marks exactly the rule's chunks");
+    }
 }

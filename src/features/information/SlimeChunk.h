@@ -1,6 +1,7 @@
 #pragma once
 #include <bitset>
 #include <cstdint>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -95,5 +96,49 @@ std::vector<SlimeEdge> slimeEdges(int x0, int x1, int z0, int z1, IsSlime&& isSl
         for (int z = z0; z <= z1; ++z)
             if (bool before = isSlime(x - 1, z); before != isSlime(x, z)) add(false, x, z, before);
     return edges;
+}
+
+// Farther out the map draws prepared images instead of a rectangle per run
+// (one per run and edge cost seconds a frame at the widest zoom, 2026-11-01).
+// The pattern never changes, so an image is built once per square of chunks.
+struct SlimeImageLevel {
+    int chunks;   // chunks per image side
+    int perChunk; // pixels per chunk; the outline needs at least 2
+    bool operator==(SlimeImageLevel const&) const = default;
+};
+inline constexpr double slimeRectMinUnits = 16; // GUI units per chunk: rectangles from here in
+// The image level for a zoom, nothing when rectangles draw it or it is too
+// far out to tell chunks apart. Every level is 256 pixels square, so a slot
+// takes any of them, and about 200 GUI units wide where it starts, so a
+// screen needs a dozen or two.
+inline std::optional<SlimeImageLevel> slimeImageLevel(double unitsPerChunk) {
+    if (!(unitsPerChunk < slimeRectMinUnits)) return {};
+    if (unitsPerChunk >= 6) return SlimeImageLevel{32, 8};
+    if (unitsPerChunk >= 3) return SlimeImageLevel{64, 4};
+    if (unitsPerChunk >= .75) return SlimeImageLevel{256, 1};
+    return {};
+}
+// RGBA pixels, row by row, of the chunks [cx0, cx0 + chunks) by
+// [cz0, cz0 + chunks): `fill` over slime chunks, `edge` on their outline
+// (the area's border only, as slimeEdges) when a chunk has room for it.
+template <class IsSlime>
+std::vector<std::uint32_t> slimeImage(int cx0, int cz0, SlimeImageLevel level, std::uint32_t fill, std::uint32_t edge,
+                                      IsSlime&& isSlime) {
+    int const side = level.chunks * level.perChunk, last = level.perChunk - 1;
+    std::vector<std::uint32_t> pixels(static_cast<std::size_t>(side) * static_cast<std::size_t>(side), 0);
+    for (int z = 0; z < level.chunks; ++z)
+        for (int x = 0; x < level.chunks; ++x) {
+            int cx = cx0 + x, cz = cz0 + z;
+            if (!isSlime(cx, cz)) continue;
+            bool west = level.perChunk > 1 && !isSlime(cx - 1, cz), east = level.perChunk > 1 && !isSlime(cx + 1, cz);
+            bool north = level.perChunk > 1 && !isSlime(cx, cz - 1), south = level.perChunk > 1 && !isSlime(cx, cz + 1);
+            for (int pz = 0; pz < level.perChunk; ++pz)
+                for (int px = 0; px < level.perChunk; ++px) {
+                    bool border = (west && px == 0) || (east && px == last) || (north && pz == 0) || (south && pz == last);
+                    auto at = static_cast<std::size_t>((z * level.perChunk + pz) * side + x * level.perChunk + px);
+                    pixels[at] = border ? edge : fill;
+                }
+        }
+    return pixels;
 }
 }
