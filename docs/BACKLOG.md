@@ -94,8 +94,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
    (Design). L-196 license/provenance evidence; L-236 is a follow-up;
-   L-232 slime chunk indicator (built 2026-11-01, waiting for the
-   slime_trace check); remaining Design/Research in L-166 trade helpers,
+   L-232 slime chunk indicator (checked 2026-11-01; the map outline fix
+   is left); L-295 minimap layers (Design); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
    L-163 a Lamium inventory screen, L-259 book paste overflow (on main and
@@ -735,7 +735,8 @@ player could do by hand without a separate decision.
 No release target selected.
 
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
-Kind: Ready, built 2026-11-01, waiting for the in-game check. Reported
+Kind: Ready, built and checked 2026-11-01 (VALIDATION-LOG); left: the
+world map outline fix below. Reported
 2026-10-19 as issue #30 (the reporter offers a PR: HUD line first, overlay
 separately). Chosen 2026-10-19.
 Built 2026-11-01 (maintainer chose the scope that day): `SlimeChunk.h`
@@ -780,8 +781,27 @@ AGENTS.md, three languages). Also correct the `help.debugView` text. Do not
 ship the lines until the maintainer has seen the rule match real slime
 spawns in game.
 Decided 2026-11-01: yes/no only; the Y limit goes in the help text once the
-probe confirms it (written "below about Y 40" until then). Record the formula's source in [PROVENANCE.md](PROVENANCE.md)
-before using it; do not copy the reporter's code verbatim.
+probe confirms it (written "below about Y 40" until then). The formula's
+source is in [PROVENANCE.md](PROVENANCE.md); the reporter's code was not
+copied.
+Confirmed 2026-11-01: the game says yes at Y 38 and no at Y 39 for the
+block under the feet, and the maintainer saw slimes on a floor at Y 38 but
+not at Y 39, so the help says "below Y 40 (standing on a block at Y 38 or
+lower)". The rule matched the game everywhere it was asked. One defect
+seen: each row run had its own frame, so chunks above and below each other
+showed a line between them; the map now fills runs and draws only the
+area's outline (`slimeEdges`). Close #30 once that is seen joined in game.
+
+### L-295 Rethink which map layers the minimap shows
+Kind: Design. Maintainer 2026-11-01, while adding L-232's slime layer: the
+settings deciding what the minimap shows are scattered. Waypoints follow
+"Show on the minimap" (`waypointsMinimap`), shapes their own Minimap switch
+(`minimapShapes`), schematic placements always show, and the world map's
+layer switches (L-146) do not affect the minimap. Slime chunks are not on
+the minimap yet; decide that together with the others. Open: one set of
+layer switches for both maps or per-map choices, where they live (settings
+rows or the map), defaults and migration of the two existing settings. Do
+not add a minimap slime layer before this is decided.
 
 ### L-233 Make inventory transfer gestures rebindable
 Kind: Design, future. Maintainer 2026-10-20: now that a wheel direction can

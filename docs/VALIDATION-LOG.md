@@ -12,6 +12,33 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Slime chunk rule against the game (L-232, issue #30, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, trace build of
+`1bd3ed2` (`slime_trace`), DLL SHA-256
+`8E741958EF3B56A59A23BF47C9A59658E3C77DD3D906021462A52CE30CE5A4A9`. The
+maintainer walked across chunks and waited underground for about 13 minutes;
+the agent read `lamium.log`.
+- Game spawner: 6,647 calls of `SlimeSpawnRules::checkSpawnRulesCallback`,
+  577 answered yes, none outside a chunk the rule marks (`trueOutsideRule 0`,
+  no `MISMATCH` line). Yes answers came at Y -61 to 38; inside rule chunks
+  the lowest no was at Y 39. Spawns were asked at every light level 0-15,
+  surface and underground.
+- Probe: 40 passes, 3,240 loaded chunks within 4 of the player, all agree
+  (the game says yes at some height exactly in the rule's chunks). All 325
+  rule chunks answered yes at Y -63, -40, -20, 0, 20, 30 and 38 and no at
+  39, 40, 41, 45, 50, 63, 64, 100 and 200.
+- The maintainer, by eye: a stone floor at Y 38 (slimes at Y 39) spawned
+  slimes; a floor at Y 39 (Y 40) did not. So the rule's position is the
+  block under the feet: slimes spawn below Y 40, on a block at Y 38 or lower.
+- The Info HUD line read Yes in a marked chunk and slimes spawned there; the
+  world map layer drew the green wash. Seen: chunks above and below each
+  other kept a frame line between them (each row run had its own frame);
+  fixed afterwards by drawing only the area's outline (its check is in
+  VALIDATION).
+- Not checked: servers (the rule does not depend on the world, and the
+  spawner runs only in a local world, so the trace cannot run there).
+
 ## Water icons in the target card and schematic screens (L-294, 2026-11-01)
 
 Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `f08f04a0`, DLL
