@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map Layers Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --mc-panel:16,17,19; --mc-edge:rgba(255,255,255,.14); --mc-dim:#b4b8b6; --mc-faint:#7f8583;
+  --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:28px 64px;display:grid;gap:30px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 19px/1.4 "Noto Sans JP",sans-serif;margin:0 0 4px}
+h3{font:700 14px/1.4 "Noto Sans JP",sans-serif;margin:0}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:76ch;margin-top:8px}
+.sub{color:var(--ink-2);font-size:13.5px;max-width:80ch}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:10px}
+section{display:grid;gap:12px}
+.seg-page{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.seg-page button{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:13px;padding:5px 12px}
+.seg-page button[aria-pressed=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.seg-page span{font-size:13px;color:var(--ink-3)}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px;display:grid;gap:6px}
+.note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:3px}
+.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.ask ol{margin:0;padding-left:1.3em;color:var(--ink-2);font-size:13.5px;display:grid;gap:6px}
+.ask b,.note b{color:var(--ink)}
+.rec{font-size:11px;color:#fff;background:var(--accent-deep);padding:1px 6px;margin-left:6px;vertical-align:2px}
+
+/* The world map's top bar in GUI units, scaled to the page. */
+.barcase{display:grid;gap:4px}
+.barhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:13px;color:var(--ink-2);flex-wrap:wrap}
+.fit-ok{color:var(--accent)} .fit-bad{color:#ff9d8f}
+.barbox{width:100%;overflow:hidden;border:1px solid var(--line);background:#0b0c0d;position:relative}
+.barscale{transform-origin:0 0}
+.gbar{display:flex;align-items:center;gap:3px;height:15px;padding:0 4px;background:rgba(var(--mc-panel),.9);border-bottom:1px solid var(--mc-edge);font:9px/1 var(--mc-font);color:#fff;white-space:nowrap;position:relative}
+.gbar .sp{flex:1 0 0}
+.gb{height:11px;line-height:11px;padding:0 4px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key);color:var(--mc-dim);flex:none;display:inline-flex;align-items:center;gap:3px}
+.gb.on{background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge);color:#fff}
+.gb.open{background:#2a4a1f;box-shadow:inset 0 0 0 1px var(--mc-on-edge);color:#fff}
+.gb.dis{background:#202122;box-shadow:inset 0 0 0 1px #3a3b3c;color:#5d6260}
+.gb.dis i{opacity:.35}
+.grp{display:flex;flex:none}
+.grp .gb+.gb{margin-left:-1px}
+.brand{flex:none;padding-right:3px}
+.over{position:absolute;inset:0;pointer-events:none;box-shadow:inset -3px 0 0 #ff6b5a}
+i.sym{display:inline-block;flex:none;width:7px;height:7px;position:relative}
+i.wp{width:7px;height:7px;background:#e04a3c;transform:rotate(45deg) scale(.75)}
+i.pl{border:1px solid #3fd0e0;background:rgba(63,208,224,.16)}
+i.pl::before,i.pl::after{content:"";position:absolute;width:2px;height:2px;background:#3fd0e0;box-shadow:5px 0 #3fd0e0,0 5px #3fd0e0,5px 5px #3fd0e0;left:-2px;top:-2px}
+i.sh{border:1px solid #f2cc3d;border-radius:50%}
+i.sl{background:linear-gradient(#7fd65a,#7fd65a) 0 0/3px 3px no-repeat,linear-gradient(#7fd65a,#7fd65a) 4px 4px/3px 3px no-repeat}
+i.rd{border-radius:50%;background:radial-gradient(circle,#96e0ff 0 1.5px,transparent 2px),radial-gradient(circle at 80% 30%,#ff5a4a 0 1px,transparent 1.5px)}
+.caret{font-size:7px;color:inherit}
+
+/* A larger stage for the panel, tooltip and radar views. */
+.stage-outer{width:100%;border:1px solid var(--line);background:#000}
+.stage-fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:640px;height:300px;transform-origin:0 0;font-family:var(--mc-font);color:#fff;user-select:none;overflow:hidden;background:#0b0c0d}
+.stage canvas{position:absolute;left:0;top:0;image-rendering:pixelated}
+.stage .gbar{position:absolute;left:0;top:0;width:640px}
+.pop{position:absolute;background:rgba(16,17,19,.98);box-shadow:inset 0 0 0 1px var(--mc-key-edge);font:9px/1 var(--mc-font);padding:2px 0;min-width:120px}
+.pop .row{display:flex;align-items:center;gap:5px;height:13px;padding:0 5px;color:#fff}
+.pop .row.dis{color:#6a6f6d}
+.pop .row .lbl{flex:1}
+.pop .row .hint{color:#7f8583;font-size:8px}
+.sw{width:18px;height:9px;background:var(--mc-off);box-shadow:inset 0 0 0 1px #2e2f30;position:relative;flex:none}
+.sw::after{content:"";position:absolute;top:1px;left:1px;width:7px;height:7px;background:#d0d1d4}
+.sw.on{background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.sw.on::after{left:10px;background:#fff}
+.sw.dis{opacity:.35}
+.pop .sep{height:1px;background:rgba(255,255,255,.1);margin:2px 0}
+.bottom{position:absolute;left:0;right:0;bottom:0;height:13px;background:rgba(16,17,19,.85);border-top:1px solid rgba(255,255,255,.14);font:9px/13px var(--mc-font);color:#b4b8b6;padding:0 4px}
+
+/* Settings rows. */
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:820px){.cols{grid-template-columns:1fr}}
+.settings{border:1px solid var(--line);background:#101113;font:12px/1 var(--mc-font);padding:6px 0}
+.settings h3{font:700 13px/1.4 "Noto Sans JP",sans-serif;padding:4px 10px 6px;color:var(--ink-2)}
+.srow{display:flex;align-items:center;gap:8px;min-height:22px;padding:0 10px;color:#fff}
+.srow.head{font-weight:700;background:rgba(255,255,255,.03);margin-top:4px}
+.srow.child{padding-left:28px;position:relative}
+.srow.child::before{content:"";position:absolute;left:16px;top:0;bottom:0;width:1px;background:rgba(255,255,255,.18)}
+.srow.grandchild{padding-left:44px;position:relative}
+.srow.grandchild::before{content:"";position:absolute;left:32px;top:0;bottom:0;width:1px;background:rgba(255,255,255,.18)}
+.srow .name{flex:1}
+.srow .chev{color:var(--mc-faint);width:10px}
+.key{font:11px/1 var(--mc-font);color:#b4b8b6;box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key);padding:4px 6px;min-width:46px;text-align:center}
+.srow .sw{transform:scale(1.4);margin-right:6px}
+.new{outline:1px dashed var(--accent);outline-offset:-2px}
+.gone{text-decoration:line-through;color:#7f8583}
+.tag{font:11px/1 "Noto Sans JP",sans-serif;color:#0b0c0d;background:var(--accent);padding:2px 5px}
+.tag.moved{background:#e0b84a}
+.tag.gone{background:#ff9d8f;text-decoration:none}
+</style>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">L-297 · Map layers</div>
+  <h1>地図のレイヤー：目印と情報</h1>
+  <p class="lede">地図に描く 5 つを「目印」（ウェイポイント・設計図・形状）と「情報」（スライムチャンク・レーダー）に分けた形の確認です。上部バー、情報パネル、目印がオフのときの見え方、設定画面の並び、ワールドマップのレーダーを並べます。地形は仮の絵です。</p>
+</header>
+
+<section>
+  <h2>1. 上部バーの幅</h2>
+  <p class="sub">ゲーム内の GUI 単位で描いています。UI 75/100/125% の横幅は worldmap-review.html で測った値（約 673 / 505 / 404 単位）です。右端に赤線が出ているものは 1 行に収まりません（今の実装では切り替えを記号だけにし、それでも入らなければ 2 行目に回します）。ブラウザの文字はゲームより 1 割ほど細いので、ゲームでは必要な幅が 1 割ほど増える見込みです。</p>
+  <div class="seg-page" id="scaleSel"><span>UI</span></div>
+  <div class="seg-page" id="dimSel"><span>ディメンション</span></div>
+  <div id="bars" style="display:grid;gap:14px"></div>
+</section>
+
+<section>
+  <h2>2. 情報パネルと、目印がオフのとき</h2>
+  <p class="sub">「情報 ▾」を押すと、「地表」と同じようにボタンの下にパネルが開きます。設定の「地図の目印」をオフにすると、上部バーの目印 3 つはオフの見た目で押せなくなり、乗せると下のバーに理由が出ます。</p>
+  <div class="seg-page" id="panelSel"><span>場面</span></div>
+  <div class="stage-outer"><div class="stage-fit" id="fit2"><div class="stage" id="stage2"><canvas width="640" height="300"></canvas></div></div></div>
+</section>
+
+<section>
+  <h2>3. 設定画面（地図のセクション）</h2>
+  <p class="sub">左が今、右が案です。キーの欄は見出しが持つ切り替えのキーです（未割り当ては「—」）。緑の点線は新しい行、黄色は移った行です。</p>
+  <div class="cols">
+    <div class="settings" id="setNow"><h3>今</h3></div>
+    <div class="settings" id="setNew"><h3>案</h3></div>
+  </div>
+</section>
+
+<section>
+  <h2>4. ワールドマップのレーダー</h2>
+  <p class="sub">レーダーの種類の設定どおりにモブとアイテムも出します。引くとプレイヤーの周りに固まるので、ある縮尺より引いたらモブとアイテムは出さず、プレイヤーだけにします。縮尺を変えて、どこから出すのがよいか比べてください。</p>
+  <div class="seg-page" id="zoomSel"><span>縮尺</span></div>
+  <div class="seg-page" id="thrSel"><span>モブを出す縮尺</span></div>
+  <div class="stage-outer"><div class="stage-fit" id="fit4"><div class="stage" id="stage4"><canvas width="640" height="300"></canvas></div></div></div>
+</section>
+
+<section class="note">
+  <h2>決まっていること（BACKLOG L-297）</h2>
+  <ul>
+    <li><b>目印</b>（ウェイポイント・設計図・形状）は「地図の目印」見出しにまとめ、見出しに切り替えとキーを持たせる。オフで両方の地図から目印が全部消える。子は 3 つの切り替え（上部バーと同じ値）と「ミニマップにも表示」。</li>
+    <li><b>情報</b>のレーダーとスライムチャンクは、それぞれ独立した見出し（切り替えとキー）。自分の切り替えで両方の地図に出る。「ミニマップにも表示」はかからない。</li>
+    <li>上部バーは目印 3 つを並べたまま、スライムの切り替えを「情報 ▾」ボタンに置き換える。</li>
+    <li>ワールドマップのレーダーはミニマップと同じ種類を出し、モブとアイテムは拡大したときだけ。</li>
+    <li>「地図の文字」はミニマップの小見出しのまま（切り替えなし）。</li>
+  </ul>
+</section>
+
+<section class="ask">
+  <h2>確認したいこと</h2>
+  <ol>
+    <li><b>上部バー</b>：ブラウザで測ると、案は UI 75% で余裕あり（502 / 673）、100% でぎりぎり（502 / 505、ゲームの文字では超える見込み）、125% では記号だけの形（385 / 404）になります。今の 4 つ（537）より狭くなるので悪化はしませんが、100% で名前を残したいなら「情報」の文字を記号だけにするなどの工夫が要ります。今の自動切り替え（入らなければ記号だけ）のままでよいか。</li>
+    <li><b>情報パネル</b>：中身はスライムチャンクとレーダーの 2 行だけ。レーダーの種類（プレイヤー・敵対モブ…）までパネルに出すか、設定画面に任せるか。<span class="rec">推奨 設定に任せる</span></li>
+    <li><b>目印がオフのとき</b>：3 つを押せない見た目にして下のバーに理由を出す、でよいか。</li>
+    <li><b>設定の並び</b>：ミニマップ → 地図の目印 → レーダー → スライムチャンク → ウェイポイント → ワールドマップ、でよいか。</li>
+    <li><b>モブを出す縮尺</b>：1 ブロック 1 単位（既定より 2 段引いたところ）から、でよいか。<span class="rec">推奨 1 単位</span></li>
+  </ol>
+</section>
+</div>
+
+<script>
+const W = {75:673, 100:505, 125:404};
+const state = {ui:75, dim:0, scene:'panel', zoom:2, thr:1};
+function seg(id, items, key, after){
+  const host = document.getElementById(id);
+  for (const it of items){
+    const b = document.createElement('button'); b.textContent = it.name; b.dataset.v = it.v;
+    b.onclick = () => { state[key] = it.v; host.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); after(); };
+    if (it.v === state[key]) b.setAttribute('aria-pressed', true);
+    host.appendChild(b);
+  }
+}
+const dimNames = ['* 地上', 'ネザー', 'エンド'];
+function dims(sel){ return `<span class="grp">${dimNames.map((n, i) => `<span class="gb ${i === sel ? 'on' : ''}">${i === sel ? n : n.replace('* ', '')}</span>`).join('')}</span>`; }
+const sw = {wp:'<i class="sym wp"></i>', pl:'<i class="sym pl"></i>', sh:'<i class="sym sh"></i>', sl:'<i class="sym sl"></i>', rd:'<i class="sym rd"></i>'};
+function bar(variant, dim, opts = {}){
+  const marksOff = opts.marksOff, open = opts.open;
+  const cls = marksOff ? 'gb dis' : 'gb on';
+  const terrain = dim === 2 ? '' : '<span class="gb">地表</span>';
+  let layers;
+  if (variant === 'now') {
+    layers = `<span class="grp"><span class="gb on">${sw.wp}ウェイポイント</span><span class="gb on">${sw.pl}設計図</span><span class="gb on">${sw.sh}形状</span>${dim === 0 ? `<span class="gb">${sw.sl}スライムチャンク</span>` : ''}</span>`;
+  } else if (variant === 'new') {
+    layers = `<span class="grp"><span class="${cls}">${sw.wp}ウェイポイント</span><span class="${cls}">${sw.pl}設計図</span><span class="${cls}">${sw.sh}形状</span></span><span class="gb ${open ? 'open' : ''}" id="infoBtn">${sw.sl}情報 <span class="caret">▼</span></span>`;
+  } else {
+    layers = `<span class="grp"><span class="${cls}">${sw.wp}</span><span class="${cls}">${sw.pl}</span><span class="${cls}">${sw.sh}</span></span><span class="gb ${open ? 'open' : ''}" id="infoBtn">${sw.sl}情報 <span class="caret">▼</span></span>`;
+  }
+  return `<span class="brand">Lamium</span>${dims(dim)}${terrain}<span style="width:5px"></span>${layers}<span class="sp"></span><span class="gb">自分に戻る</span><span class="gb">一覧</span><span class="gb">✕</span>`;
+}
+const VARIANTS = [
+  {id:'now', name:'今（切り替え 4 つ、地上のみスライム）'},
+  {id:'new', name:'案（目印 3 つ＋情報 ▾）'},
+  {id:'icons', name:'案・狭い幅（目印は記号だけ）'},
+];
+function drawBars(){
+  const box = document.getElementById('bars'), gw = W[state.ui];
+  box.innerHTML = VARIANTS.map(v => `<div class="barcase"><div class="barhead"><b>${v.name}</b><span id="fit-${v.id}"></span></div>
+    <div class="barbox"><div class="barscale" id="sc-${v.id}"><div class="gbar" id="bar-${v.id}" style="width:${gw}px">${bar(v.id, state.dim)}</div></div></div></div>`).join('');
+  requestAnimationFrame(() => {
+    for (const v of VARIANTS){
+      const b = document.getElementById('bar-' + v.id), sc = document.getElementById('sc-' + v.id);
+      const k = sc.parentElement.clientWidth / gw;
+      sc.style.transform = `scale(${k})`; sc.parentElement.style.height = (16 * k) + 'px';
+      let need = 8;
+      [...b.children].filter(c => !c.classList.contains('sp')).forEach(c => need += c.getBoundingClientRect().width / k + 3);
+      const ok = need <= gw;
+      if (!ok) b.insertAdjacentHTML('beforeend', '<span class="over"></span>');
+      document.getElementById('fit-' + v.id).innerHTML = ok ? `<span class="fit-ok">1 行に収まる（必要 ${Math.round(need)} / ${gw}）</span>`
+        : `<span class="fit-bad">収まらない（必要 ${Math.round(need)} / ${gw}）</span>`;
+    }
+  });
+}
+seg('scaleSel', [{name:'75%', v:75}, {name:'100%', v:100}, {name:'125%', v:125}], 'ui', drawBars);
+seg('dimSel', [{name:'地上', v:0}, {name:'ネザー', v:1}, {name:'エンド', v:2}], 'dim', drawBars);
+
+// Placeholder terrain.
+function noise(x, z, s){ const n = Math.sin(x * 12.9898 + z * 78.233 + s * 37.719) * 43758.5453; return n - Math.floor(n); }
+function smooth(x, z, s){
+  const xi = Math.floor(x), zi = Math.floor(z), xf = x - xi, zf = z - zi;
+  const a = noise(xi, zi, s), b = noise(xi + 1, zi, s), c = noise(xi, zi + 1, s), d = noise(xi + 1, zi + 1, s);
+  const u = xf * xf * (3 - 2 * xf), v = zf * zf * (3 - 2 * zf);
+  return a * (1 - u) * (1 - v) + b * u * (1 - v) + c * (1 - u) * v + d * u * v;
+}
+function terrain(canvas, cx, cz, scale){
+  const ctx = canvas.getContext('2d'), w = canvas.width, h = canvas.height, img = ctx.createImageData(w, h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+    const bx = Math.floor(cx + (x - w / 2) / scale), bz = Math.floor(cz + (y - h / 2) / scale);
+    const hgt = (smooth(bx / 60, bz / 60, 1) + smooth(bx / 25, bz / 25, 2) * .4) / 1.4;
+    let c = hgt < .3 ? [64, 104, 196] : hgt < .33 ? [210, 198, 140] : smooth(bx / 14, bz / 14, 9) > .62 ? [58, 112, 42] : [104, 160, 70];
+    const j = (noise(bx, bz, 5) - .5) * 10, i = (y * w + x) * 4;
+    img.data[i] = c[0] + j; img.data[i + 1] = c[1] + j; img.data[i + 2] = c[2] + j; img.data[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+function fitStage(fitId, stage){
+  const fit = document.getElementById(fitId);
+  const r = () => { const k = fit.clientWidth / 640; stage.style.transform = `scale(${k})`; fit.style.height = (300 * k) + 'px'; };
+  r(); addEventListener('resize', r);
+}
+
+// 2: the information panel and the marks-off state.
+const stage2 = document.getElementById('stage2');
+fitStage('fit2', stage2);
+seg('panelSel', [{name:'情報パネル（地上）', v:'panel'}, {name:'情報パネル（ネザー）', v:'nether'}, {name:'地図の目印がオフ', v:'off'}], 'scene', drawStage2);
+function drawStage2(){
+  const canvas = stage2.querySelector('canvas');
+  terrain(canvas, 0, 0, 2);
+  const ctx = canvas.getContext('2d');
+  // Slime wash for the Overworld panel scene.
+  if (state.scene === 'panel') {
+    ctx.fillStyle = 'rgba(127,214,90,.3)'; ctx.strokeStyle = 'rgba(127,214,90,.55)';
+    for (const [cx, cz] of [[-4,-1],[-4,2],[-3,-2],[-3,-1],[-1,0],[0,-2],[0,4],[1,-2],[3,0],[3,1]]) {
+      const x = 320 + cx * 32, y = 157 + cz * 32; ctx.fillRect(x, y, 32, 32);
+    }
+  }
+  stage2.querySelectorAll('.gbar,.pop,.bottom').forEach(e => e.remove());
+  const dim = state.scene === 'nether' ? 1 : 0;
+  const off = state.scene === 'off';
+  stage2.insertAdjacentHTML('beforeend', `<div class="gbar">${bar('new', dim, {marksOff: off, open: !off})}</div>`);
+  const btn = stage2.querySelector('#infoBtn');
+  const bx = btn.offsetLeft;
+  if (!off) {
+    stage2.insertAdjacentHTML('beforeend', `<div class="pop" style="left:${bx}px;top:15px">
+      <div class="row ${dim ? 'dis' : ''}">${sw.sl}<span class="lbl">スライムチャンク</span>${dim ? '<span class="hint">地上のみ</span>' : ''}<span class="sw ${dim ? 'dis' : 'on'}"></span></div>
+      <div class="row">${sw.rd}<span class="lbl">レーダー</span><span class="sw on"></span></div>
+    </div>`);
+  }
+  const text = off ? 'ウェイポイント: 設定の「地図の目印」がオフです' : 'X 37  Y 64  Z -12  平原  スライムチャンク';
+  stage2.insertAdjacentHTML('beforeend', `<div class="bottom">${text}</div>`);
+}
+
+// 3: settings rows.
+function row(kind, name, opts = {}){
+  const cls = ['srow', kind, opts.cls || ''].join(' ');
+  const chev = kind === 'head' ? '<span class="chev">▾</span>' : '';
+  const s = opts.sw === undefined ? '' : `<span class="sw ${opts.sw ? 'on' : ''}"></span>`;
+  const key = opts.key === undefined ? '' : `<span class="key">${opts.key}</span>`;
+  const tag = opts.tag ? `<span class="tag ${opts.tagCls || ''}">${opts.tag}</span>` : '';
+  return `<div class="${cls}">${chev}<span class="name">${name}</span>${tag}${s}${key}</div>`;
+}
+document.getElementById('setNow').insertAdjacentHTML('beforeend', [
+  row('head', 'ミニマップ', {sw:true, key:'—'}),
+  row('child', '表示範囲 / 地図の大きさ / 回転 / 円形 / 洞窟表示 …'),
+  row('child', 'デバッグ表示中は隠す', {sw:true}),
+  row('child', '地図のレイヤー', {sw:true}),
+  row('head', '地図の文字'),
+  row('child', '方角の文字 / 地図の下に座標 / 地図の下にバイオーム'),
+  row('head', 'レーダー', {sw:true, key:'—'}),
+  row('child', 'プレイヤーとモブを顔で表示', {sw:false}),
+  row('child', 'プレイヤー / 敵対モブ / 友好・中立モブ / アイテム / 透明なものも'),
+  row('head', 'ウェイポイント', {sw:true, key:'—'}),
+  row('child', 'ワールドに表示 / 表示する距離 / 死亡地点を記録 / 換算して表示 / 使い捨てを消す距離'),
+  row('head', 'ワールドマップ', {sw:true, key:'—'}),
+  row('child', '名前を常に表示 / シードマップへのリンク'),
+  row('child', '（ウェイポイント・設計図・形状・スライムの切り替えは地図の上部バーだけ）', {cls:''}),
+].join(''));
+document.getElementById('setNew').insertAdjacentHTML('beforeend', [
+  row('head', 'ミニマップ', {sw:true, key:'—'}),
+  row('child', '表示範囲 / 地図の大きさ / 回転 / 円形 / 洞窟表示 …'),
+  row('child', 'デバッグ表示中は隠す', {sw:true}),
+  row('child', '地図のレイヤー', {cls:'gone', tag:'目印へ', tagCls:'moved'}),
+  row('head', '地図の文字'),
+  row('child', '方角の文字 / 地図の下に座標 / 地図の下にバイオーム'),
+  row('head', '地図の目印', {sw:true, key:'—', cls:'new', tag:'新'}),
+  row('child', 'ウェイポイント', {sw:true, cls:'new'}),
+  row('child', '設計図', {sw:true, cls:'new'}),
+  row('child', '形状', {sw:true, cls:'new'}),
+  row('child', 'ミニマップにも表示', {sw:true, tag:'移動', tagCls:'moved'}),
+  row('head', 'レーダー', {sw:true, key:'—'}),
+  row('child', 'プレイヤーとモブを顔で表示', {sw:false}),
+  row('child', 'プレイヤー / 敵対モブ / 友好・中立モブ / アイテム / 透明なものも'),
+  row('head', 'スライムチャンク', {sw:true, key:'—', cls:'new', tag:'新'}),
+  row('head', 'ウェイポイント', {sw:true, key:'—'}),
+  row('child', 'ワールドに表示 / 表示する距離 / 死亡地点を記録 / 換算して表示 / 使い捨てを消す距離'),
+  row('head', 'ワールドマップ', {sw:true, key:'—'}),
+  row('child', '名前を常に表示 / シードマップへのリンク'),
+].join(''));
+
+// 4: radar on the world map.
+const stage4 = document.getElementById('stage4');
+fitStage('fit4', stage4);
+const ZOOMS = [{name:'1 ブロック 4 単位', v:4}, {name:'2（既定）', v:2}, {name:'1', v:1}, {name:'1/2', v:.5}, {name:'1/4', v:.25}];
+const THRESH = [{name:'1 単位から', v:1}, {name:'2 単位から', v:2}, {name:'1/2 単位から', v:.5}, {name:'いつも', v:0}];
+seg('zoomSel', ZOOMS, 'zoom', drawStage4);
+seg('thrSel', THRESH, 'thr', drawStage4);
+const DOTS = [];
+for (let i = 0; i < 46; i++) {
+  const a = noise(i, 1, 3) * Math.PI * 2, r = 6 + noise(i, 2, 3) * 54;
+  const k = noise(i, 3, 3);
+  DOTS.push({x: Math.cos(a) * r, z: Math.sin(a) * r, kind: k < .3 ? 'hostile' : k < .85 ? 'passive' : 'item'});
+}
+const PLAYERS = [{x: 18, z: -9, name: 'Steve'}, {x: -140, z: 60, name: 'Alex'}];
+function drawStage4(){
+  const canvas = stage4.querySelector('canvas'), ctx = canvas.getContext('2d'), s = state.zoom;
+  terrain(canvas, 0, 0, s);
+  const sx = x => 320 + x * s, sy = z => 157 + z * s;
+  const mobs = s >= state.thr;
+  const color = {hostile:'#ff5a4a', passive:'#f2f2f2', item:'#f2cc3d'};
+  if (mobs) for (const d of DOTS) {
+    ctx.fillStyle = 'rgba(0,0,0,.85)'; ctx.fillRect(Math.round(sx(d.x)) - 2, Math.round(sy(d.z)) - 2, 4, 4);
+    ctx.fillStyle = color[d.kind]; ctx.fillRect(Math.round(sx(d.x)) - 1.5, Math.round(sy(d.z)) - 1.5, 3, 3);
+  }
+  ctx.font = '9px DotGothic16, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (const p of PLAYERS) {
+    const x = Math.round(sx(p.x)), y = Math.round(sy(p.z));
+    ctx.fillStyle = 'rgba(0,0,0,.85)'; ctx.fillRect(x - 2, y - 2, 4, 4);
+    ctx.fillStyle = '#96e0ff'; ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
+    ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillText(p.name, x + 1, y + 4); ctx.fillStyle = '#96e0ff'; ctx.fillText(p.name, x, y + 3);
+  }
+  // The player's arrow.
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(320, 149); ctx.lineTo(326, 164); ctx.lineTo(320, 160); ctx.lineTo(314, 164); ctx.closePath(); ctx.fill(); ctx.stroke();
+  stage4.querySelectorAll('.gbar,.bottom').forEach(e => e.remove());
+  stage4.insertAdjacentHTML('beforeend', `<div class="gbar">${bar('new', 0)}</div>`);
+  stage4.insertAdjacentHTML('beforeend', `<div class="bottom">${mobs ? 'モブとアイテムを表示中' : 'この縮尺ではプレイヤーだけ（拡大するとモブとアイテムも出ます）'}</div>`);
+}
+function all(){ drawBars(); drawStage2(); drawStage4(); }
+document.fonts && document.fonts.ready.then(all);
+all();
+</script>
+</body>
+</html>
