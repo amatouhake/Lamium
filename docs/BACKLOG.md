@@ -94,8 +94,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
    (Design). L-196 license/provenance evidence; L-236 is a follow-up;
-   L-232 slime chunk indicator (checked 2026-11-01; the map outline fix
-   is left); L-295 minimap layers (Design); remaining Design/Research in L-166 trade helpers,
+   L-295 minimap layers (Design); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
    L-163 a Lamium inventory screen, L-259 book paste overflow (on main and
@@ -733,70 +732,6 @@ anti-cheat accept; how it relates to the vanilla place input and to L-263
 block is not carried. Do not change gameplay packets beyond what the
 player could do by hand without a separate decision.
 No release target selected.
-
-### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
-Kind: Ready, built and checked 2026-11-01 (VALIDATION-LOG); left: the
-world map outline fix below. Reported
-2026-10-19 as issue #30 (the reporter offers a PR: HUD line first, overlay
-separately). Chosen 2026-10-19.
-Built 2026-11-01 (maintainer chose the scope that day): `SlimeChunk.h`
-(rule, per-block cache, row runs; tests), an opt-in Info HUD line "Slime
-chunk: Yes/No" after Chunk (Overworld only, hidden elsewhere, follows
-FreeCamera), " | Slime chunk" on the Debug View block/chunk line in both
-label styles, and a world map layer switch "Slime chunks" (Overworld only,
-default off): a green wash with the areas' outline, the place under the
-pointer names a slime chunk at any zoom, and the switch's hover text says to
-zoom in when it is too far out. Drawing (2026-11-01, after the maintainer
-asked to see it farther out and a rectangle per run and edge was far too
-heavy at 4 GUI units per chunk): rectangles from 16 units per chunk in;
-below that prepared 256-pixel images of whole squares of chunks
-(`SlimeImageLevel`: 32 chunks at 8 px, 64 at 4 px, 256 at 1 px without
-outline), built once and kept in 48 texture slots, 4 uploads a frame; not
-drawn below 0.75 units per chunk.
-Minimap and a world overlay stay out (maintainer 2026-11-01). The
-`help.debugView` text is corrected in all four languages.
-Check: `xmake f --slime_trace=y` hooks the game's own
-`SlimeSpawnRules::checkSpawnRulesCallback` and logs (a) every spawner call
-with the rule's answer for that chunk (a `MISMATCH` line when the game says
-yes outside a rule chunk) and a 30 s summary with the Y range of yes
-answers, (b) a probe of the loaded chunks within 4 of the player at fixed
-heights, which also gives the height limit. Close #30 when the trace shows
-no mismatch, a slime is seen spawning in a marked chunk, and the Y limit in
-the help text matches the probe.
-Premise: a Bedrock chunk's slime status is a function of its chunk
-coordinates only, so the client can know it without a seed or server. This
-corrects L-57's "no seed, so unavailable" and the `help.debugView` text, which
-must change in all three languages once a line ships (L-57 is history; do not
-rewrite it).
-Claimed rule (public documentation, not Mojang source): MT19937 seeded with
-`uint32(chunkX) * 0x1f1f1f1f ^ uint32(chunkZ)`, slime chunk when the first
-output `% 10 == 0`. Checked 2026-10-19 only against the issue's list; the
-chunks in x,z in [-5,5] are (-4,-1) (-4,2) (-3,-2) (-3,-1) (-1,0) (0,-5)
-(0,-2) (0,4) (1,-2) (3,0) (3,1). Sources disagree on seed dependence (the
-Minecraft Wiki says independent; a finder site implies a seed), so **the rule
-is unverified in game**. Slimes spawn below roughly Y 40 (wiki; one source
-says 39) at any light level; verify the boundary before drawing a column.
-Decision (maintainer, 2026-10-19): first scope is the Info HUD and the Debug
-View only; the issue reporter may open a PR for that. Superseded 2026-11-01:
-the maintainer added the world map layer (the map now has layer switches,
-L-146); minimap and world overlay remain out.
-Step 1 (Ready): pure `isSlimeChunk(x, z)` in a header with tests using the
-list above, plus one line in each of the two HUDs (the Info HUD line is
-opt-in, default off, and cheap; follow Settings/Translations rules in
-AGENTS.md, three languages). Also correct the `help.debugView` text. Do not
-ship the lines until the maintainer has seen the rule match real slime
-spawns in game.
-Decided 2026-11-01: yes/no only; the Y limit goes in the help text once the
-probe confirms it (written "below about Y 40" until then). The formula's
-source is in [PROVENANCE.md](PROVENANCE.md); the reporter's code was not
-copied.
-Confirmed 2026-11-01: the game says yes at Y 38 and no at Y 39 for the
-block under the feet, and the maintainer saw slimes on a floor at Y 38 but
-not at Y 39, so the help says "below Y 40 (standing on a block at Y 38 or
-lower)". The rule matched the game everywhere it was asked. One defect
-seen: each row run had its own frame, so chunks above and below each other
-showed a line between them; the map now fills runs and draws only the
-area's outline (`slimeEdges`). Close #30 once that is seen joined in game.
 
 ### L-295 Rethink which map layers the minimap shows
 Kind: Design. Maintainer 2026-11-01, while adding L-232's slime layer: the

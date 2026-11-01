@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Slime chunk map drawing (L-232, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, trace options off,
+maintainer.
+- `132747fe`/`5f8fc404` (DLL SHA-256
+  `45FB5C5BC5B81FC7A51764FE29756170CF3F04DC75550F96061A31DF97267F6F`):
+  slime chunks above and below each other join with no line between them.
+- `458b48a2` (rectangles down to 4 GUI units per chunk, DLL
+  `E4E9A22C139A4D4F29C5D2DEC93F14984138F7D631757C626DB2D0E351534645`): far
+  too heavy at the widest zoom where it drew.
+- `c66c4362` (prepared images below 16 units per chunk, DLL
+  `BB628928301771AAB5BC830560C2862F7610909B9DD40C360C7D354412BF6A02`): no
+  slowdown at the widest zoom while dragging and zooming; the hand-over
+  from rectangles to images shows no shift or blur. Frame times were not
+  measured.
+
 ## Slime chunk rule against the game (L-232, issue #30, 2026-11-01)
 
 Local world, LeviLauncher instance `1.26.51.01 LIP`, trace build of
