@@ -475,14 +475,25 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
-### L-294 Missing water ghosts draw untinted white
+### L-294 Water icons in Lamium screens draw untinted white
 
-Kind: Design. Maintainer report 2026-11-01: a schematic's missing water
-draws with the water texture but without the biome water color, so it
-looks white. Faithful to the texture, but it reads wrong to a player.
-Open: what color missing water should have (a fixed water blue, the
-biome color at the cell, or the ghost tint), and whether lava is left
-as it is. Agree before building.
+Kind: Design. Maintainer report 2026-11-01 (clarified the same day): the
+water icon in the target card and in the schematic materials list is
+white. Ghosts in the world and the 3D preview are colored correctly. The
+icon is the water block's own item drawn by the game's item renderer
+(`describe` in `GhostBlocks.cpp`, `blockIcon` in `TargetInfo.cpp`), and
+water's texture is gray until the game tints it by biome, which the item
+render does not do. Faithful to the texture, but it reads wrong.
+Decided 2026-11-01 (maintainer): tint the water icon water blue, rather
+than showing a bucket or leaving it. Lava's texture is already colored.
+Approach (not built): water and flowing water draw as the water block's
+own texture through the texture icon path (`imageUv`, `Widgets.cpp`),
+whose `ui_textured_and_glcolor` flush multiplies by a color; pass the
+same fixed water color the world and preview shells use (`liquidShell`,
+`GhostBlocks.cpp`), shared from one constant, not the biome color. The
+target card already has texture icons (`blockIcon`); the materials list
+draws item icons only and needs the texture case. Kind: Ready (strong
+model) once this approach is accepted.
 No release target selected.
 
 ### L-249 Show the chunks within simulation distance
