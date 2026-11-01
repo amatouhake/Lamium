@@ -43,7 +43,9 @@ published for whoever wants it. There is no "first release" gate.
   the tests and has no known crash. Before tagging, smoke-test the release
   build (the mod loads, settings open, the changed features work) and update
   the README feature tables and Known issues, and [FEATURES.md](FEATURES.md).
-  A full regression is not required.
+  A full regression is not required. From 0.3.2 the smoke test uses the
+  commit's CI package and the tag's CI run attaches the assets to a draft
+  release ([DISTRIBUTION.md](DISTRIBUTION.md#release-flow-l-298-from-032)).
 - From 0.1.4 on, releases are ordinary GitHub releases, not marked
   pre-release: the 0.x version, the README status and the Experimental badges
   say what is unfinished.
@@ -134,6 +136,12 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.3.1
 
+- Release flow (L-298): the first tag pushed after it is the first real
+  run of the `draft-release` job. Check that a draft "Lamium <version>"
+  appears with exactly the ZIP and the symbols ZIP, that the run summary's
+  SHA-256 match the downloaded assets, and that LeviLauncher installs the
+  published ZIP. If the job fails, attach the assets from the run's
+  `release-assets` artifact by hand and record it in L-298.
 - Listings (L-196): after the next tag, the Bedrinth and LeviLauncher pages
   show `tooth.json`'s description with both the LeviMC and the Minecraft
   notices, and the release notes open with both.
@@ -485,6 +493,21 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
+
+### L-298 Attach release assets from the tag's CI run
+Kind: Ready (implemented 2026-11-01; waits for the first tag).
+Follow-up to L-196: release ZIPs up to 0.3.1 were built and attached by
+hand, and where they were built was not recorded, while THIRD_PARTY_NOTICES
+says a release is built from its tag. Decided with the maintainer
+2026-11-01: CI builds and attaches, a person writes the notes and
+publishes. `build.yml` uploads `bin/release/` as `release-assets` on a tag
+push; a separate `draft-release` job (the only job with `contents: write`,
+no build code) creates the draft "Lamium <version>" with both assets, or
+replaces the assets of an existing draft, and refuses a published release.
+The flow is in DISTRIBUTION.md. Not done: build provenance attestation
+(optional; needs a pinned action and `id-token`/`attestations` write).
+Validation: the Pre-release check "Release flow (L-298)" on the next tag;
+close this item after it passes.
 
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which

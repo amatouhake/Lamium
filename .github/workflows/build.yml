@@ -56,3 +56,57 @@ jobs:
           path: bin/Lamium/
           if-no-files-found: error
           retention-days: 14
+      - name: Upload release assets
+        if: github.ref_type == 'tag'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-assets
+          path: bin/release/
+          if-no-files-found: error
+          retention-days: 7
+
+  # A tag push leaves a draft release with the assets this run built from
+  # the tag. Publishing (and the release notes) stays a manual step; the
+  # write token lives only in this job, which runs no build code.
+  draft-release:
+    needs: windows-client
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-assets
+          path: assets
+      - name: Create or update the draft release
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(assets/*.zip)
+          [ "${#files[@]}" -eq 2 ] || { echo "Expected 2 release assets, found ${#files[@]}"; exit 1; }
+          sums=$(cd assets && sha256sum *.zip)
+          if draft=$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null); then
+            if [ "$draft" != true ]; then
+              echo "Release $TAG is already published; its assets are not replaced."
+              exit 1
+            fi
+            gh release upload "$TAG" "${files[@]}" --clobber
+          else
+            {
+              echo 'Not an official LeviMC product. Not approved by LeviMC and not associated with LeviMC. NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.'
+              echo
+              echo "<!-- Draft made by CI from $GITHUB_SHA, run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+              echo "$sums"
+              echo 'Write the release notes below the notice before publishing. -->'
+            } > notes.md
+            gh release create "$TAG" "${files[@]}" --draft --verify-tag \
+              --title "Lamium ${TAG#v}" --notes-file notes.md
+          fi
+          echo "$sums" >> "$GITHUB_STEP_SUMMARY"
