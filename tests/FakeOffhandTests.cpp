@@ -117,6 +117,53 @@ void fakeOffhandTests() {
     check(primaryPass(bow,true,false,true,std::nullopt,true) && !primaryPass(bow,true,false,false,std::nullopt,true)
               && !primaryPass(bow,true,false),
           "a bow without arrows passes on plain blocks too, not on special ones");
+    // L-290: a filled bucket is idle only where its use cannot act. A pour
+    // bucket needs a block face to pour on; a fish bucket can also put its fish
+    // into aimed liquid; milk is never idle, and a block face keeps every
+    // bucket primary. `air`: no block face in reach.
+    using lamium::inventory::fakeOffhand::bucketIdle;
+    auto bucketPasses = [&](char const* name, bool air, bool liquid) {
+        bool idle = bucketIdle(name, air, liquid);
+        return primaryPass(item(name), !air, false, true, std::nullopt, idle);
+    };
+    for (auto name : {"minecraft:water_bucket", "minecraft:lava_bucket", "minecraft:powder_snow_bucket"}) {
+        check(bucketIdle(name,true,false) && bucketIdle(name,true,true)
+                  && !bucketIdle(name,false,false) && !bucketIdle(name,false,true)
+                  && bucketPasses(name,true,false) && bucketPasses(name,true,true)
+                  && !bucketPasses(name,false,false) && !bucketPasses(name,false,true),
+              "L-290: a pour bucket is idle with no block face, whatever liquid lies along the ray");
+    }
+    for (auto name : {"minecraft:cod_bucket", "minecraft:salmon_bucket", "minecraft:tropical_fish_bucket",
+        "minecraft:pufferfish_bucket", "minecraft:axolotl_bucket", "minecraft:tadpole_bucket"}) {
+        check(bucketIdle(name,true,false) && !bucketIdle(name,true,true)
+                  && !bucketIdle(name,false,false) && !bucketIdle(name,false,true)
+                  && bucketPasses(name,true,false) && !bucketPasses(name,true,true)
+                  && !bucketPasses(name,false,false) && !bucketPasses(name,false,true),
+              "L-290: a fish bucket is idle only with no block face and no liquid aimed");
+    }
+    check(!bucketIdle("minecraft:milk_bucket",true,false) && !bucketIdle("minecraft:milk_bucket",true,true)
+              && !bucketIdle("minecraft:milk_bucket",false,false) && !bucketIdle("minecraft:milk_bucket",false,true)
+              && !bucketPasses("minecraft:milk_bucket",true,false) && !bucketPasses("minecraft:milk_bucket",true,true)
+              && !bucketPasses("minecraft:milk_bucket",false,false) && !bucketPasses("minecraft:milk_bucket",false,true),
+          "L-290: milk is never idle, because drinking works anywhere");
+    check(bucketIdle("minecraft:bucket",true,false) && !bucketIdle("minecraft:bucket",true,true)
+              && !bucketIdle("minecraft:bucket",false,false) && !bucketIdle("minecraft:bucket",false,true)
+              && bucketPasses("minecraft:bucket",true,false) && !bucketPasses("minecraft:bucket",true,true),
+          "L-290: the empty bucket keeps its rule, idle only at no liquid and no block face");
+    ItemTraits bottle{.name = "minecraft:glass_bottle", .liquidClip = true};
+    check(primaryPass(bottle,false,false,true,std::nullopt,true)
+              && !primaryPass(bottle,false,false,true,std::nullopt,false)
+              && !primaryPass(bottle,true,false,true,std::nullopt,false),
+          "L-290: the empty glass bottle keeps its air and no-liquid rule");
+    check(!bucketIdle("custom:water_bucket",true,false) && !bucketIdle("",true,false),
+        "L-290: a bucket name the list does not know keeps vanilla priority");
+    for (auto name : {"minecraft:water_bucket", "minecraft:lava_bucket", "minecraft:powder_snow_bucket",
+        "minecraft:cod_bucket", "minecraft:salmon_bucket", "minecraft:tropical_fish_bucket",
+        "minecraft:pufferfish_bucket", "minecraft:axolotl_bucket", "minecraft:tadpole_bucket",
+        "minecraft:bucket", "minecraft:milk_bucket"}) {
+        check(!primaryPass(item(name),false,false,true,std::nullopt,false),
+            "L-290: an entity target reports no idle, so every bucket keeps vanilla priority");
+    }
     check(!primaryPass(item("custom:stick"),false,false) && !primaryPass(ItemTraits{},false,false),
         "unknown and unreadable primary items remain vanilla");
     check(foodBlocked(false,false,20.f,20.f) && !foodBlocked(false,false,19.f,20.f),

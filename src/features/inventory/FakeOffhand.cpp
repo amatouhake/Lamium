@@ -227,11 +227,13 @@ bool holdsAmmo(LocalPlayer& player, bool fireworksToo) {
     return ammo(player.getOffhandSlot());
 }
 // L-189: the primary item's use cannot act now. Bows, crossbows and Riptide
-// tridents anywhere; fireworks, empty buckets and bottles aimed at nothing.
+// tridents anywhere; fireworks, empty buckets and bottles aimed at nothing;
+// L-290: a filled bucket with no block face to pour on.
 bool idleUse(ItemStack const& item, ItemTraits const& traits, LocalPlayer& player, bool liquidAimed, bool air) {
     auto id = detail::vanillaId(traits.name);
     if (air && id == "firework_rocket") return !player.isGliding();
-    if (air && (id == "bucket" || id == "glass_bottle")) return !liquidAimed;
+    if (bucketIdle(traits.name, air, liquidAimed)) return true;
+    if (air && id == "glass_bottle") return !liquidAimed;
     if (id == "trident") return EnchantUtils::getEnchantLevel(Enchant::Type::Riptide, item) > 0 && !player.isInWaterOrRain();
     if (id == "bow" || id == "crossbow") {
         if (player.isCreative()) return false;
