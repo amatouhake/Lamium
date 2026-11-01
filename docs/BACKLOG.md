@@ -262,14 +262,28 @@ stores source and flowing water as the same block with a different
 (falling) - so every water cell collapses into one line and the cells
 that need no bucket inflate the count.
 
-Open: sources and flowing cells as two lines, or one line with the
-source count only; the flowing cells need no item at all (the game
-fills them); and whether the Check tab's `placed` count splits the same
-way.
+Decided 2026-11-01 (maintainer): one line with the source count only -
+a flowing cell needs no item, so it adds nothing. The Check tab does
+not split: every cell, flowing ones included, is still compared state
+for state (`CheckRules.h` `sameBlock` compares `liquid_depth`), because
+the flow pattern differs even when the sources match. Only the
+materials line stops counting flowing cells.
+
+Status 2026-11-01: built (`62eac8fb`, branch
+`l289-water-source-material`), not yet checked in game. `flowingLiquid`
+and `materialsCount` (`Verification.h`) give a flowing liquid cell zero
+items and every other cell what `itemsPerBlock` says;
+`ResolvedPlacement.cpp` uses it for `perBlock`. `GhostVerify.cpp` is
+untouched, so the check, the tallies and the mismatch list behave
+exactly as before. Table tests in `tests/SchematicTests.cpp`. A liquid
+whose cells all flow keeps its line with nothing left to place.
 
 In game: a schematic with a pool whose edges flow (a vanilla structure
-file or a saved pond) must show a source count equal to the buckets
-actually needed, with the flowing cells separate or absent.
+file or a saved pond) shows a source count equal to the buckets it
+needs; placing those sources leaves nothing to place while the flowing
+cells are still compared and still reported when the world's flow
+differs. Lava the same, and a waterlogged block still counts as its
+own item.
 No release target selected.
 
 
