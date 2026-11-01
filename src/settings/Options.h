@@ -48,6 +48,7 @@ constexpr Option choice(std::string_view id, std::string_view feature, std::stri
 }
 inline constexpr std::array<std::string_view,2> activationLabels{"activation.hold","activation.toggle"};
 inline constexpr std::array<std::string_view,2> cameraReferenceLabels{"cameraReference.player","cameraReference.world"};
+inline constexpr std::array<std::string_view,2> sneakMethodLabels{"sneakMethod.crouch","sneakMethod.packet"};
 inline constexpr std::array<std::string_view,3> perspectiveLabels{"perspective.first","perspective.rear","perspective.front"};
 inline constexpr std::array<std::string_view,3> healthMeterLabels{"meter.hearts","meter.bar","meter.number"};
 inline constexpr std::array<std::string_view,2> growthMeterLabels{"meter.bar","meter.number"};
@@ -343,6 +344,9 @@ inline constexpr auto options = std::to_array<Option>({
             s.normalize();
         },
         NumericOption{.02f, .3f, [](Settings& s, float v) { s.interaction.edgeMargin = v; s.normalize(); }, .01f}},
+    toggle<&Settings::interaction, &Settings::Interaction::sneakPlacement>("interaction.sneakPlacement", "sneakPlacement", "sneakPlacement"),
+    toggle<&Settings::interaction, &Settings::Interaction::sneakPlacementInvert>("interaction.sneakPlacementInvert", "sneakPlacement", "sneakPlacementInvert"),
+    choice<&Settings::interaction, &Settings::Interaction::sneakPlacementPacket, sneakMethodLabels>("interaction.sneakPlacementPacket", "sneakPlacement", "sneakPlacementMethod"),
     toggle<&Settings::interaction, &Settings::Interaction::toolGuard>("interaction.toolGuard", "toolGuard", "toolGuard"),
     toggle<&Settings::interaction, &Settings::Interaction::toolGuardStrict>("interaction.toolGuardStrict", "toolGuard", "toolGuardStrict"),
     toggle<&Settings::interaction, &Settings::Interaction::elytraSwap>("interaction.elytraSwap", "elytraSwap", "elytraSwap"),

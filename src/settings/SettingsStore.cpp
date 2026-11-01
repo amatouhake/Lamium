@@ -78,6 +78,9 @@ Json encode(Settings const& settings) {
                          {"attackHeldOnly", settings.interaction.attackHeldOnly}, {"useHeldOnly", settings.interaction.useHeldOnly},
                          {"breaking", settings.interaction.breaking}, {"edgeGuard", settings.interaction.edgeGuard},
                          {"edgeMargin", settings.interaction.edgeMargin},
+                         {"sneakPlacement", settings.interaction.sneakPlacement},
+                         {"sneakPlacementInvert", settings.interaction.sneakPlacementInvert},
+                         {"sneakPlacementPacket", settings.interaction.sneakPlacementPacket},
                          {"toolGuard", settings.interaction.toolGuard}, {"elytraSwap", settings.interaction.elytraSwap},
                          {"toolGuardStrict", settings.interaction.toolGuardStrict},
                          {"elytraReturnSeconds", settings.interaction.elytraReturnSeconds},
@@ -300,6 +303,9 @@ Settings decodeSettings(std::string_view text) {
         value.interaction.breaking = settingsValue(options, "breaking", value.interaction.breaking);
         value.interaction.edgeGuard = settingsValue(options, "edgeGuard", value.interaction.edgeGuard);
         value.interaction.edgeMargin = settingsValue(options, "edgeMargin", value.interaction.edgeMargin);
+        value.interaction.sneakPlacement = settingsValue(options, "sneakPlacement", value.interaction.sneakPlacement);
+        value.interaction.sneakPlacementInvert = settingsValue(options, "sneakPlacementInvert", value.interaction.sneakPlacementInvert);
+        value.interaction.sneakPlacementPacket = settingsValue(options, "sneakPlacementPacket", value.interaction.sneakPlacementPacket);
         value.interaction.toolGuard = settingsValue(options, "toolGuard", value.interaction.toolGuard);
         value.interaction.toolGuardStrict = settingsValue(options, "toolGuardStrict", value.interaction.toolGuardStrict);
         value.interaction.elytraSwap = settingsValue(options, "elytraSwap", value.interaction.elytraSwap);

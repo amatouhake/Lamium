@@ -25,6 +25,7 @@
 #include "features/inspection/LockedTrades.h"
 #include "features/inspection/EnglishSearch.h"
 #include "features/interaction/EdgeGuard.h"
+#include "features/interaction/SneakPlacement.h"
 #include "features/interaction/ToolGuard.h"
 #include "features/interaction/MiningSessionHooks.h"
 #include "features/inventory/DeathRestore.h"
@@ -164,6 +165,7 @@ Feature const features[] = {
     {"Schematic adjust key", started<schematic::actions::startAdjust>, schematic::actions::stopAdjust},
     {"Breaking Restriction", started<interaction::breaking::start>, interaction::breaking::stop},
     {"Edge guard", started<interaction::edgeGuard::start>, interaction::edgeGuard::stop},
+    {"Sneak placement", started<interaction::sneakPlacement::start>, interaction::sneakPlacement::stop},
     {"Tool Protection", started<interaction::toolGuard::start>, interaction::toolGuard::stop},
     {"Mining session", started<interaction::mining::start>, interaction::mining::stop},
     {"Auto Elytra", started<interaction::elytraSwap::start>, interaction::elytraSwap::stop},

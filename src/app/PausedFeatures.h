@@ -49,6 +49,7 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     switch (id) {
     case Id::NightVision: return s.lighting.nightVision;
     case Id::EdgeGuardMovement: case Id::EdgeGuardReplay: return s.interaction.edgeGuard;
+    case Id::SneakPlacement: return s.interaction.sneakPlacement;
     case Id::ConnectedTextures: return v.connectedTextures;
     case Id::ChatPosition: return s.information.chatPosition;
     case Id::RepeatedTrades: return s.inventory.repeatTrades;

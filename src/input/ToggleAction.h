@@ -22,6 +22,7 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::HideDistanceFog: field = &value.visuals.hideDistanceFog; break;
     case Action::HidePortal: field = &value.visuals.hidePortal; break;
     case Action::EdgeGuard: field = &value.interaction.edgeGuard; break;
+    case Action::SneakPlacement: field = &value.interaction.sneakPlacement; break;
     case Action::ToolGuard: field = &value.interaction.toolGuard; break;
     case Action::ElytraSwap: field = &value.interaction.elytraSwap; break;
     case Action::Hitboxes: field = &value.overlays.hitboxes; break;

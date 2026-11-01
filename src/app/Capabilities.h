@@ -12,7 +12,7 @@ enum class Id {
     SkipServerPacks, FreeCameraHotbar, FakeOffhandTargets, ChatPosition,
     FreeCameraHand, FreeCameraHud, HideParticles, HideBossBars,
     SchematicBlend, SchematicActorLight, SchematicCreativePick,
-    InventoryDiagnostics, LanguageDiagnostics, Count
+    InventoryDiagnostics, LanguageDiagnostics, SneakPlacement, Count
 };
 enum class Impact { None, Partly, Fully };
 enum class Stage : std::uint8_t { Waiting, Ready, Stopped, Failed };
@@ -59,6 +59,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::SchematicCreativePick, "Schematic pick (creative inventory give)", "schematic", "capability.SchematicCreativePick", Impact::Partly, true, true},
     {Id::InventoryDiagnostics, "Inventory transfer diagnostics", "", "", Impact::None, true, true},
     {Id::LanguageDiagnostics, "Language diagnostics", "", "", Impact::None, true, true},
+    {Id::SneakPlacement, "Sneak placement (use gate and sneak state)", "sneakPlacement", "capability.SneakPlacement", Impact::Fully},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);

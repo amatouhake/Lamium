@@ -22,7 +22,7 @@ inline constexpr auto sections = std::to_array<std::string_view>({
 inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand" || id == "hideEffects" || id == "connectedTextures") return "section.camera";
     if (id == "previews" || id == "durability" || id == "foodValues" || id == "lockedTrades" || id == "repeatTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore") return "section.inventory";
-    if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
+    if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "sneakPlacement" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
     if (id == "settings" || id == "gameLanguage" || id == "skipServerPacks" || id == "calculator" || id == "toasts" || id == "hudText" || id == "bookPaste") return "section.interface";
     if (id.starts_with("schematic")) return "section.schematic";
     if (id == "minimap" || id == "mapText" || id == "radar" || id == "waypoints" || id == "worldMap") return "section.map";
@@ -56,6 +56,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"permanentSneak", "feature.permanentSneak", "help.permanentSneak", "", false, input::Action::PermanentSneak},
     {"permanentSprint", "feature.permanentSprint", "help.permanentSprint", "", false, input::Action::PermanentSprint},
     {"edgeGuard", "feature.edgeGuard", "help.edgeGuard", "interaction.edgeGuard", false, input::Action::EdgeGuard},
+    {"sneakPlacement", "feature.sneakPlacement", "help.sneakPlacement", "interaction.sneakPlacement", true, input::Action::SneakPlacement},
     {"toolGuard", "feature.toolGuard", "help.toolGuard", "interaction.toolGuard", false, input::Action::ToolGuard},
     {"elytraSwap", "feature.elytraSwap", "help.elytraSwap", "interaction.elytraSwap", false, input::Action::ElytraSwap},
     {"periodicAttack", "feature.periodicAttack", "help.periodicInput", "interaction.autoAttack", false, input::Action::PeriodicAttack},

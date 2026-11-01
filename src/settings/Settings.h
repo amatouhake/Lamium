@@ -32,6 +32,9 @@ struct Settings {
         bool breaking = false;
         bool edgeGuard = false; // Stop at block edges without sneaking.
         float edgeMargin = 0.1f; // Blocks the box stays over the block (L-161): safety vs reach.
+        bool sneakPlacement = false; // Uses on interactive blocks act as if sneaking (L-293).
+        bool sneakPlacementInvert = false; // While on, sneaking opens instead.
+        bool sneakPlacementPacket = false; // Send the sneak state only, without crouching (experimental).
         bool toolGuard = true; // Swap or stop before a held tool breaks (L-62).
         bool toolGuardStrict = true; // A new press does not mine on with it either.
         bool elytraSwap = false; // Put on an elytra by key or a firework jump (L-70).

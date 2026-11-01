@@ -420,6 +420,20 @@ confirmed from the inventory, not from these events alone.
 Hooks: `Build`, `HandleBuild`, `Name`, `StartUse`
 Trace (`Name` is the macro that makes several hooks).
 
+### `src/features/interaction/SneakPlacement.cpp`
+Hooks: `SneakPlacementInput`, `SneakPlacementSend`, `SneakPlacement`
+Meaning (L-293): `SneakPlacementSend` (`LoopbackPacketSender::$send`) reads
+the `Sneaking` bit of each sent `PlayerAuthInputPacket`; the local server
+decides a use with the sneak state of the auth inputs that arrived before its
+`InventoryTransactionPacket` (VALIDATION-LOG 2026-11-01). The macro hooks
+(`buildBlock`, `startBuildBlock`, `useItemOn` of `GameMode` and
+`SurvivalMode`) hold back a local use on an interactive block until that state
+has been sent; `SneakPlacementInput` (`extractRawHIDInput`) feeds `SneakDown`
+into a transient copy of the move input meanwhile. The experimental send-only
+method edits the auth input's sneak bits instead. `SneakPlacement` is the macro that makes
+the six build hooks. Protected by the
+`SneakPlacement` capability; a use is never held without it.
+
 ### `src/features/interaction/SneakUseTrace.cpp`
 Hooks: `SneakTraceSend`, `Name`
 Trace (`sneak_trace`, L-293): read-only; the sneak bits of each sent

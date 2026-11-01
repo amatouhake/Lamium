@@ -89,6 +89,8 @@ int main() try {
     offhandSwapTests();
     extern void fakeOffhandTests();
     fakeOffhandTests();
+    extern void sneakPlacementTests();
+    sneakPlacementTests();
     extern void fetchSlotTests();
     fetchSlotTests();
     extern void offhandSlotTests();

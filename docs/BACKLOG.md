@@ -79,7 +79,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    water materials): L-288 is closed (checked 2026-11-01, BACKLOG-DONE),
    the other three are not built. L-292 (Fake Offhand key without primary
    priority) is closed (checked 2026-11-01). L-293 (placement as if
-   sneaking, toggle) is Research, not built.
+   sneaking, toggle) is built and waits for the in-game check.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -673,6 +673,22 @@ client tick (about 50 ms). Real sneak input sets the client flag and
 tick of crouch before the use plus the release after it. BDS was not
 traced; packet order should be the same, and a built feature gets its
 server check then.
+
+Decided 2026-11-01 (maintainer): the sneak pulse ("Crouch briefly") is the
+default method; "Send only (experimental)" is a second method to try.
+
+Status 2026-11-01: built on main, not yet checked in game. Settings
+`interaction.sneakPlacement`, `sneakPlacementInvert`,
+`sneakPlacementPacket` (method), action `sneakplacement` (unbound),
+experimental badge, capability `SneakPlacement`. `SneakPlacementPlan.h`
+(`gate`, `afterAuth`, tests in `tests/SneakPlacementTests.cpp`) holds a
+use on an interactive block back in `buildBlock` / `startBuildBlock` /
+`useItemOn` until an auth input with the wanted sneak state has gone
+out, keeps the override three ticks after the last such use, replays a
+click vanilla did not retry, and gives up after ten ticks. Unverified:
+whether the native first press goes through those three calls at all;
+how the send-only method looks to the server's movement; invert while
+Permanent Sneak or toggle sneak holds the sneak.
 
 In game (after it is built): with the toggle on, a block placed against
 a chest, furnace, door and lever is placed and nothing opens or
