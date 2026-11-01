@@ -160,6 +160,27 @@ when both are intended as supported paths.
 
 Also keep the manual ZIP path usable as a fallback.
 
+## Release flow (L-298, from 0.3.2)
+
+Release assets are built by CI from the tag, not on a local machine:
+
+1. Smoke-test the commit to be released in game with its CI development
+   package (`Lamium-windows-x64-<sha>` on the commit's Actions run), not a
+   local build.
+2. Tag that commit `v<version>` and push the tag.
+3. The tag's `Build and test` run builds, tests and checks the package, runs
+   `New-ReleaseArchive.ps1`, and its `draft-release` job creates a draft
+   release "Lamium <version>" with the ZIP and the symbols ZIP attached. The
+   draft body opens with the notices; a hidden comment and the run summary
+   give the commit, the run and both assets' SHA-256.
+4. Write the release notes under the notice and publish the draft. Re-running
+   the job replaces the assets of a draft but refuses a published release.
+
+The tag's build is a fresh build of the tested commit, so its DLL bytes may
+differ from the development package that was smoke-tested. If that matters
+for a release, install the draft's ZIP before publishing. The tag is public
+once pushed (the LIP registry picks it up), so publish the draft promptly.
+
 ## Release checklist integration
 
 Before publishing a managed release:
@@ -168,8 +189,9 @@ Before publishing a managed release:
 - `scripts/Check-Package.ps1` passes;
 - `scripts/New-ReleaseArchive.ps1` passes, and the ZIP and the symbols ZIP
   it writes to `bin/release/` are the two assets attached to the GitHub
-  release (do not zip by hand: hand-made Windows archives, 0.1.1-0.1.3,
-  stored `\` separators);
+  release; from 0.3.2 the tag's CI run attaches them (Release flow above).
+  Do not zip by hand: hand-made Windows archives, 0.1.1-0.1.3, stored `\`
+  separators;
 - the pushed tag is `v<version>`, and its CI run passes;
 - release notes call out settings-schema migrations when one exists;
 - release notes open with the independent-project notice from the README
@@ -178,10 +200,10 @@ Before publishing a managed release:
   ASSOCIATED WITH MOJANG OR MICROSOFT."), as LeviLamina's and Minecraft's
   usage guidelines ask for every listing and description; `tooth.json`'s
   description carries both for LIP, Bedrinth and LeviLauncher;
-- the release's VALIDATION-LOG entry says where the attached assets were
-  built (the tag's CI artifact or a local build, with the commit), since
-  THIRD_PARTY_NOTICES tells users a release is built from its tag. Releases
-  up to 0.3.1 did not record it;
+- the release's VALIDATION-LOG entry names the tag's CI run and the assets'
+  SHA-256, since THIRD_PARTY_NOTICES tells users a release is built from its
+  tag. Releases up to 0.3.1 were attached by hand and did not record where
+  they were built;
 - a managed-update smoke test is repeated when packaging, installer behavior or
   compatibility metadata changes.
 
