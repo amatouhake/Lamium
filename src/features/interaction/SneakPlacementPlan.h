@@ -20,6 +20,7 @@ struct Pulse {
     std::optional<bool> wanted; // The sneak state the server must see.
     bool user = false;          // The player's own sneak when the override began.
     bool replay = false;        // A held-back use waits for a replay.
+    bool used = false;          // A use went out under the override.
     int idle = 0, waited = 0, matched = 0, bypass = 0;
 };
 enum class Gate { Pass, Hold };
@@ -41,6 +42,7 @@ inline Gate gate(Pulse& p, bool enabled, bool invert, bool localSneak, bool inte
     if (p.wanted) p.idle = 0;
     if (*wanted == serverSneak && (!p.wanted || *p.wanted == *wanted)) {
         p.replay = false;
+        p.used = p.wanted.has_value();
         return Gate::Pass;
     }
     if (p.wanted != wanted) {
@@ -48,6 +50,14 @@ inline Gate gate(Pulse& p, bool enabled, bool invert, bool localSneak, bool inte
     }
     p.replay = true;
     return Gate::Hold;
+}
+// The send-only method: the server already read the state before the use it
+// let through, so the next auth input goes back to the player's own state.
+// Every extra tick is a tick of sneak speed in the server's movement.
+inline bool releaseBeforeAuth(Pulse& p) {
+    if (!p.wanted || !p.used || p.replay) return false;
+    p = {};
+    return true;
 }
 enum class Step { None, Release, Replay, GiveUp };
 // Called once per sent auth input, after the override was applied to it.

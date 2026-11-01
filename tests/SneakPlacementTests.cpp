@@ -21,6 +21,14 @@ void sneakPlacementTests() {
     check(afterAuth(p, true) == Step::Release && !p.wanted,
         "L-293: the override ends a few ticks after the last use that needed it");
 
+    Pulse sendOnly;
+    gate(sendOnly, true, false, false, true, false, false);
+    check(!releaseBeforeAuth(sendOnly), "L-293: send-only keeps the sneak while the use still waits");
+    afterAuth(sendOnly, true);
+    gate(sendOnly, true, false, false, true, false, true);
+    check(releaseBeforeAuth(sendOnly) && !sendOnly.wanted,
+        "L-293: send-only drops the sneak on the auth input right after the use went out");
+
     Pulse quick;
     gate(quick, true, false, false, true, false, false);
     afterAuth(quick, true);

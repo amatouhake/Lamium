@@ -687,7 +687,10 @@ experimental badge, capability `SneakPlacement`. `SneakPlacementPlan.h`
 use on an interactive block back in `buildBlock` / `startBuildBlock` /
 `useItemOn` until an auth input with the wanted sneak state has gone
 out, keeps the override three ticks after the last such use, replays a
-click vanilla did not retry, and gives up after ten ticks. Unverified:
+click vanilla did not retry, and gives up after ten ticks. "Send only"
+drops the sneak bits on the auth input right after the use went out
+(`releaseBeforeAuth`), because each extra tick was a tick of sneak speed
+on BDS (VALIDATION-LOG 2026-11-01). Unverified:
 how the send-only method looks to the server's movement; invert while
 Permanent Sneak or toggle sneak holds the sneak.
 

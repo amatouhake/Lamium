@@ -101,7 +101,9 @@ LL_TYPE_INSTANCE_HOOK(SneakPlacementSend, ll::memory::HookPriority::Normal, Loop
             auto& auth = static_cast<PlayerAuthInputPacket&>(packet);
             if (!client->getLocalPlayer() || (!on() && pulse.wanted)) pulse = {};
             bool vanilla = auth.mInputData->contains(Auth::Sneaking), sneaking = vanilla;
-            if (pulse.wanted && packetMode() && versionSensitiveAllowed(capabilities::Id::SneakPlacement)) {
+            bool sendOnly = packetMode() && versionSensitiveAllowed(capabilities::Id::SneakPlacement);
+            if (sendOnly) releaseBeforeAuth(pulse);
+            if (pulse.wanted && sendOnly) {
                 // The server reads these bits before the use that follows.
                 sneaking = *pulse.wanted;
                 set(auth, Auth::Sneaking, sneaking);

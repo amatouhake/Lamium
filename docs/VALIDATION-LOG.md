@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Sneak placement "Send only" on BDS (L-293, 2026-11-01)
+
+Local test BDS 1.26.51.1 (`bds-1.26.51.1`, world `lamium-edge`, repaired by
+the server at start after missing LevelDB files), same DLL as the entry below
+(`a75fddb1`, `03393087...2C732F84`), Edge Guard off, method "Send only". The
+maintainer, with planks and plank slabs at a chest: standing still, the block
+was placed; walking and running along the chests while placing, no rubber
+band or stutter worth noting, but a brief slowdown as if sneaking; at a
+platform edge nothing odd. The slowdown fits the server moving the player at
+sneak speed for the ticks the edited auth inputs carried sneaking (the use's
+wait plus three ticks of hold).
+
 ## Sneak placement, both methods (L-293, 2026-11-01)
 
 Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `a75fddb1`, DLL
