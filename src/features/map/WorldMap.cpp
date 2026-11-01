@@ -1026,17 +1026,37 @@ bool slimeShown() {
     return state.dimension == 0 && map.worldMapSlime && onWorldMap(map.slimeShownOn);
 }
 double slimeUnitsPerChunk() { return state.view.scale() * 16; }
-bool slimeDrawable() {
-    return slimeUnitsPerChunk() >= information::slimeRectMinUnits || information::slimeImageLevel(slimeUnitsPerChunk());
-}
-void drawSlimeImages(MinecraftUIRenderContext& context, information::SlimeImageLevel level, int x0, int x1, int z0, int z1) {
+// The chunks on screen, under the top bar too: it draws over them, and its
+// height is only known after the slime layer (drawBars).
+struct SlimeArea { int x0, x1, z0, z1; };
+SlimeArea slimeArea() {
     auto const& view = state.view;
-    auto floorDiv = [](int a, int b) { return a >= 0 ? a / b : -((-a + b - 1) / b); };
-    int bx0 = floorDiv(x0, level.chunks), bx1 = floorDiv(x1, level.chunks);
-    int bz0 = floorDiv(z0, level.chunks), bz1 = floorDiv(z1, level.chunks);
-    if ((bx1 - bx0 + 1) * (bz1 - bz0 + 1) > slimeSlotCount) return; // never at the levels' zooms
+    auto chunk = [](double block) { return static_cast<int>(std::floor(block / 16)); };
+    return {chunk(view.worldX(0)), chunk(view.worldX(view.width)), chunk(view.worldZ(0)), chunk(view.worldZ(view.height))};
+}
+// The images covering an area, in image units.
+SlimeArea slimeImageGrid(information::SlimeImageLevel level, SlimeArea a) {
+    auto floorDiv = [](int v, int b) { return v >= 0 ? v / b : -((-v + b - 1) / b); };
+    return {floorDiv(a.x0, level.chunks), floorDiv(a.x1, level.chunks), floorDiv(a.z0, level.chunks), floorDiv(a.z1, level.chunks)};
+}
+bool slimeDrawable() {
+    if (slimeUnitsPerChunk() >= information::slimeRectMinUnits) return true;
+    auto level = information::slimeImageLevel(slimeUnitsPerChunk());
+    if (!level) return false;
+    // A large screen at a small GUI scale needs more images than there are
+    // slots; the panel then asks to zoom in rather than show nothing.
+    auto g = slimeImageGrid(*level, slimeArea());
+    return (g.x1 - g.x0 + 1) * (g.z1 - g.z0 + 1) <= slimeSlotCount;
+}
+void drawSlimeImages(MinecraftUIRenderContext& context, information::SlimeImageLevel level, SlimeArea area) {
+    auto const& view = state.view;
+    auto [bx0, bx1, bz0, bz1] = slimeImageGrid(level, area);
+    if ((bx1 - bx0 + 1) * (bz1 - bz0 + 1) > slimeSlotCount) return; // slimeDrawable said no
     double time = now();
-    int budget = 4;
+    // The farthest image is 65536 chunks, tens of milliseconds to work out
+    // at once: the rule is filled in a few cache blocks a frame, and an
+    // image is built once all of its chunks and their neighbors are in.
+    int budget = 4, rules = 8;
     std::array<bool, slimeSlotCount> usedNow{};
     for (int bz = bz0; bz <= bz1; ++bz)
         for (int bx = bx0; bx <= bx1; ++bx) {
@@ -1046,6 +1066,8 @@ void drawSlimeImages(MinecraftUIRenderContext& context, information::SlimeImageL
                 if (slimeSlots[static_cast<size_t>(i)].key == key) { index = i; break; }
             if (index < 0) {
                 if (budget <= 0) continue;
+                int cx = bx * level.chunks, cz = bz * level.chunks;
+                if (!slimeCache.warm(cx - 1, cx + level.chunks, cz - 1, cz + level.chunks, rules)) continue;
                 // An empty slot first, then the one shown longest ago.
                 auto age = [](SlimeSlot const& s) { return std::pair{s.key.has_value(), s.used}; };
                 for (int i = 0; i < slimeSlotCount; ++i)
@@ -1055,8 +1077,8 @@ void drawSlimeImages(MinecraftUIRenderContext& context, information::SlimeImageL
                 if (index < 0) continue;
                 --budget;
                 auto& slot = slimeSlots[static_cast<size_t>(index)];
-                auto pixels = information::slimeImage(bx * level.chunks, bz * level.chunks, level, packColor(127, 214, 90, 77),
-                                                      packColor(127, 214, 90, 140), slimeCache);
+                auto alpha = [](int a) { return (slimeColor & 0xFFFFFFu) | static_cast<std::uint32_t>(a) << 24; };
+                auto pixels = information::slimeImage(cx, cz, level, alpha(77), alpha(140), slimeCache);
                 try {
                     if (upload(context.mClient, slotLocation(slimeSlotBase + index), pixels, level.chunks * level.perChunk, slot.uploaded)) {
                         slot.readyAt = tileFrame + 3;
@@ -1082,13 +1104,12 @@ void drawSlimeImages(MinecraftUIRenderContext& context, information::SlimeImageL
 void drawSlimeChunks(MinecraftUIRenderContext& context) {
     if (!slimeShown() || !slimeDrawable()) return;
     auto const& view = state.view;
-    auto chunk = [](double block) { return static_cast<int>(std::floor(block / 16)); };
-    int x0 = chunk(view.worldX(0)), x1 = chunk(view.worldX(view.width));
-    int z0 = chunk(view.worldZ(state.top)), z1 = chunk(view.worldZ(view.height));
+    auto area = slimeArea();
     if (auto level = information::slimeImageLevel(slimeUnitsPerChunk())) {
-        drawSlimeImages(context, *level, x0, x1, z0, z1);
+        drawSlimeImages(context, *level, area);
         return;
     }
+    auto [x0, x1, z0, z1] = area;
     auto color = rgb(slimeColor);
     auto sx = [&](int edge) { return std::round(static_cast<float>(view.screenX(edge * 16.0))); };
     auto sy = [&](int edge) { return std::round(static_cast<float>(view.screenY(edge * 16.0))); };

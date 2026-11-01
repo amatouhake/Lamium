@@ -35,27 +35,48 @@ inline bool isSlimeChunk(int chunkX, int chunkZ) {
 inline bool slimeChunksIn(int dimension) { return dimension == 0; }
 
 // Answers per 32x32-chunk block, filled on first use. The world map asks for
-// every chunk on screen each frame; a full screen far out is a few hundred
-// blocks. Bounded: past the limit it starts over rather than growing.
+// every chunk on screen each frame; a full screen of the farthest images is
+// a couple of thousand blocks. Bounded: past the limit it starts over rather
+// than growing.
 class SlimeChunkCache {
     static constexpr int side = 32;
-    static constexpr std::size_t limit = 1024;
+    static constexpr std::size_t limit = 4096; // 128 bytes each
     std::unordered_map<std::uint64_t, std::bitset<side * side>> blocks;
+    unsigned clears = 0;
     static int floorDiv(int value) { return value >= 0 ? value / side : -((-value + side - 1) / side); }
+    static std::uint64_t keyOf(int bx, int bz) {
+        return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(bx)) << 32) | static_cast<std::uint32_t>(bz);
+    }
+    auto fill(int bx, int bz) {
+        if (blocks.size() >= limit) blocks.clear(), ++clears;
+        std::bitset<side * side> bits;
+        for (int z = 0; z < side; ++z)
+            for (int x = 0; x < side; ++x)
+                bits[static_cast<std::size_t>(z * side + x)] = isSlimeChunk(bx * side + x, bz * side + z);
+        return blocks.emplace(keyOf(bx, bz), bits).first;
+    }
 public:
     bool operator()(int chunkX, int chunkZ) {
         int bx = floorDiv(chunkX), bz = floorDiv(chunkZ);
-        auto key = (static_cast<std::uint64_t>(static_cast<std::uint32_t>(bx)) << 32) | static_cast<std::uint32_t>(bz);
-        auto found = blocks.find(key);
-        if (found == blocks.end()) {
-            if (blocks.size() >= limit) blocks.clear();
-            std::bitset<side * side> bits;
-            for (int z = 0; z < side; ++z)
-                for (int x = 0; x < side; ++x)
-                    bits[static_cast<std::size_t>(z * side + x)] = isSlimeChunk(bx * side + x, bz * side + z);
-            found = blocks.emplace(key, bits).first;
-        }
+        auto found = blocks.find(keyOf(bx, bz));
+        if (found == blocks.end()) found = fill(bx, bz);
         return found->second[static_cast<std::size_t>((chunkZ - bz * side) * side + (chunkX - bx * side))];
+    }
+    // Fills at most `budget` missing blocks of [x0, x1] by [z0, z1] (a block
+    // is about half a millisecond) and says whether all of them are in, so a
+    // caller can spread a large area over frames. Starting over midway
+    // counts as not in.
+    bool warm(int x0, int x1, int z0, int z1, int& budget) {
+        bool all = true;
+        unsigned start = clears;
+        for (int bz = floorDiv(z0); bz <= floorDiv(z1); ++bz)
+            for (int bx = floorDiv(x0); bx <= floorDiv(x1); ++bx) {
+                if (blocks.contains(keyOf(bx, bz))) continue;
+                if (budget <= 0) { all = false; continue; }
+                --budget;
+                fill(bx, bz);
+            }
+        return all && clears == start;
     }
     std::size_t size() const { return blocks.size(); }
 };

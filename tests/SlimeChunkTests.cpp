@@ -37,6 +37,15 @@ void slimeChunkTests() {
         for (int z = -70; z < 70; z += 5) cached = cached && cache(x, z) == isSlimeChunk(x, z);
     check(cached && cache(-33, 31) == isSlimeChunk(-33, 31), "the cache answers like the rule across block edges");
     check(cache.size() == 36, "the cache keeps one entry per 32-chunk block");
+    {
+        SlimeChunkCache warm;
+        int budget = 3;
+        check(!warm.warm(0, 63, 0, 63, budget) && budget == 0 && warm.size() == 3, "warming stops at its budget");
+        budget = 3;
+        check(warm.warm(0, 63, 0, 63, budget) && budget == 2 && warm.size() == 4, "warming resumes where it stopped");
+        budget = 0;
+        check(warm.warm(5, 40, 5, 40, budget), "an area already in needs no budget");
+    }
     auto runs = slimeRuns(0, 9, 0, 1, [](int x, int z) { return z == 0 ? (x >= 2 && x <= 4) || x == 9 : x == 0; });
     check(runs.size() == 3 && runs[0].z == 0 && runs[0].x0 == 2 && runs[0].x1 == 4 && runs[1].x0 == 9 && runs[1].x1 == 9
               && runs[2].z == 1 && runs[2].x0 == 0 && runs[2].x1 == 0,
