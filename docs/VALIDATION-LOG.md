@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Release 0.4.0 (2026-11-01)
+
+Smoke test by the maintainer in LeviLauncher instance `1.26.51.01 LIP`,
+local world, on `029638a5` with its CI development package
+(`Lamium-windows-x64-029638a5...`, run 41312480671, DLL SHA-256
+`4CF838E6C3CD1AE98D49DAF475666954C093755368AD152A1AE3A2E1FFAE9340`): passed
+(load, settings, the changed features). Tag `v0.4.0` on `029638a5`; its run
+41314557233 (`windows-client` and `draft-release` succeeded) created the
+draft "Lamium 0.4.0" with exactly two assets, whose downloads match the run's
+SHA-256: `Lamium-0.4.0-client-windows-x64.zip`
+`36930FBFB2AE51196D1B79843F6AFB37413988CC8F9686C3E3EB3199617EC00A` (28
+entries under `Lamium/`) and `Lamium-0.4.0-client-windows-x64.pdb.zip`
+`8BF48DCF1581C6B0F783ED9A83B6AB9C4392631397D96E577B51833430C0A59A`. The
+tag's DLL (SHA-256
+`BF4DBAF2D56195436F017E9468E69FEE360D0EA448EFDA7F8EBEF14875897ADF`) is a
+fresh build and differs from the tested package's; the published ZIP was not
+installed in game. Published 2026-11-01. Not checked: LeviLauncher installing
+the published ZIP; the Bedrinth and LeviLauncher listing text.
+
 ## Review fixes and Fake Offhand with Sneak Placement (2026-11-01)
 
 LeviLauncher instance `1.26.51.01 LIP`, local world. On `6960862f` (DLL

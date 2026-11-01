@@ -8611,6 +8611,10 @@ check); 13 B with L-15 (in-game check). In-game check 1 follows step 1.
 
 ## Archived release and validation checkpoints
 
+0.4.0 released 2026-11-01 (`v0.4.0` on `029638a5`, built and attached by the tag's run 41314557233, asset SHA-256 `36930FBFB2AE51196D1B79843F6AFB37413988CC8F9686C3E3EB3199617EC00A`, 28 entries, `manifest.json` 0.4.0).
+Its user-facing changes are the release notes. Smoke-tested with the commit's CI package; checks still owed are in
+BACKLOG "Since 0.4.0" (LeviLauncher install of the published ZIP, listing text). No server checks were made for this release.
+
 0.3.1 released 2026-10-27 (`v0.3.1`, asset SHA-256 `D2BA64271645CA4910123C4C8655441ADFCEFABF8AE5DF3D412C257F3E1C00F7`, 28 entries, `manifest.json` 0.3.1).
 Its user-facing changes are the release notes; the checks still owed are L-274's refused-pick line (a
 server that refuses the give or the move) and L-276's save-failure path (read-only `waypoints.json`).

@@ -115,7 +115,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    initiation, L-30 dragon hitboxes, L-33 mob timers, L-105 profiling.
    L-151/L-152/L-153 and the previously parked work remain later.
 7. **Before the next release:** changed-feature smoke and the relevant
-   Pre-release checks below. Latest release: 0.3.1, 2026-10-27 (`v0.3.1`).
+   Pre-release checks below. Latest release: 0.4.0, 2026-11-01 (`v0.4.0`).
    No next date is selected; a full regression is not a release gate.
 
 Task-picking rule: bugs first, then this order; follow each item's model,
@@ -134,32 +134,15 @@ server case are not release gates. [VALIDATION.md](VALIDATION.md) owns
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
-### Since 0.3.1
+### Since 0.4.0
 
-- Release flow (L-298): the first tag pushed after it is the first real
-  run of the `draft-release` job. Check that a draft "Lamium <version>"
-  appears with exactly the ZIP and the symbols ZIP, that the run summary's
-  SHA-256 match the downloaded assets, and that LeviLauncher installs the
-  published ZIP. If the job fails, attach the assets from the run's
-  `release-assets` artifact by hand and record it in L-298.
-- Listings (L-196): after the next tag, the Bedrinth and LeviLauncher pages
-  show `tooth.json`'s description with both the LeviMC and the Minecraft
-  notices, and the release notes open with both.
-- Minimap camera arrow (L-286): while FreeCamera flies, the green arrow at
-  the map center shows where the camera looks, turns with it and disappears
-  when FreeCamera stops. It uses the minimap's existing arrow drawing; the
-  arrow's legibility at small and large map sizes is L-287, parked. Looking
-  straight down or up, the arrow (and the world map's camera arrow) keeps
-  the camera's own heading instead of the body's (checked 2026-10-31).
-- Release notes for L-295/L-297: the map section gains "Map marks"
-  (waypoints, schematics, shapes) and "Slime chunks" headings with their own
-  switches and toggle keys; Map marks, Radar and Slime chunks each choose
-  their maps ("Shown on"). This replaces "Show on the minimap" (Waypoints)
-  and "Shapes" (Minimap): a file that hid waypoints from the minimap gets
-  the marks on the world map only; shapes now show on the minimap unless
-  switched off. The world map's top bar keeps the mark switches and gains an
-  Information panel (slime chunks, radar); the world map now shows mobs and
-  items from the radar when zoomed in.
+No changed features recorded yet. Left from the 0.4.0 tag (VALIDATION-LOG
+2026-11-01):
+
+- Release flow (L-298): LeviLauncher installs the published 0.4.0 ZIP. The
+  draft, its two assets and their SHA-256 passed on the tag's run.
+- Listings (L-196): the Bedrinth and LeviLauncher pages show `tooth.json`'s
+  description with both the LeviMC and the Minecraft notices.
 
 ### Gaps carried from released builds
 
@@ -495,7 +478,7 @@ chunk, or draw the faces with a material that does not write depth.
 ## Feature work and research
 
 ### L-298 Attach release assets from the tag's CI run
-Kind: Ready (implemented 2026-11-01; waits for the first tag).
+Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).
 Follow-up to L-196: release ZIPs up to 0.3.1 were built and attached by
 hand, and where they were built was not recorded, while THIRD_PARTY_NOTICES
 says a release is built from its tag. Decided with the maintainer
@@ -506,8 +489,9 @@ no build code) creates the draft "Lamium <version>" with both assets, or
 replaces the assets of an existing draft, and refuses a published release.
 The flow is in DISTRIBUTION.md. Not done: build provenance attestation
 (optional; needs a pinned action and `id-token`/`attestations` write).
-Validation: the Pre-release check "Release flow (L-298)" on the next tag;
-close this item after it passes.
+Validation: the `v0.4.0` run created the draft with both assets and
+matching SHA-256 (VALIDATION-LOG 2026-11-01). Left: LeviLauncher installs
+the published ZIP (BACKLOG "Since 0.4.0"); close this item after it passes.
 
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which
