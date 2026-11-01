@@ -14,6 +14,13 @@ it was not a full re-run of every entry.
 
 ## Map marks and information headings (L-297, 2026-11-01)
 
+Follow-up on `cbc37c5b` (DLL SHA-256
+`F110D5B625C1E5C212BCDE411705B48400BF110619BE76221996F5F89D93A0D8`): at UI
+Profile 75 % the shortened "Shown on" choices showed in full in all four
+languages, and the Information panel's blocked row read "Minimap only".
+
+The first check:
+
 Local world, LeviLauncher instance `1.26.51.01 LIP`, `5d620afb`, DLL SHA-256
 `8C9CD29C5DB72CDCB8C7AE1396C21C9AE13D386D926A270C66F3566F78CDDE91`, trace
 options off, maintainer.

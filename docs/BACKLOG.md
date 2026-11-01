@@ -94,7 +94,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
    (Design). L-196 license/provenance evidence; L-236 is a follow-up;
-   L-295 minimap layers (checked 2026-11-01); L-296 map follow-ups (Design); L-297 map marks and information (built 2026-11-01, waiting for the check); remaining Design/Research in L-166 trade helpers,
+   L-295, L-296 and L-297 (map layers) are done 2026-11-01; remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
    L-163 a Lamium inventory screen, L-259 book paste overflow (on main and
@@ -742,114 +742,6 @@ block is not carried. Do not change gameplay packets beyond what the
 player could do by hand without a separate decision.
 No release target selected.
 
-### L-295 Rethink which map layers the minimap shows
-Kind: Ready (designed 2026-11-01 with the maintainer), built and checked
-in game 2026-11-01 (VALIDATION-LOG). Follow-ups raised that day: L-296. Raised while adding
-L-232's slime layer: the settings deciding what the minimap shows were
-scattered. Before: waypoints and the death point followed "Show on the
-minimap" (`waypointsMinimap`, Waypoints group, default on), shapes their own
-switch (`minimapShapes`, Minimap group, default off), schematic placements
-always showed, slime chunks were world map only, and the world map's layer
-switches (L-146) did not reach the minimap.
-Decision (maintainer, 2026-11-01):
-- The world map's layer switches (waypoints with the death point,
-  schematics, shapes, slime chunks) decide both maps. Hiding a layer on the
-  world map hides it on the minimap too.
-- One setting in the Minimap group, "Show map layers on the minimap",
-  default on, turns all of them off on the minimap at once. It replaces
-  `waypointsMinimap` and `minimapShapes`; on load a file without the new key
-  takes it from `waypointsMinimap` (off stays off). The old keys are read
-  for that and no longer written. Shapes then follow the world map switch
-  (default on), so users who never turned them on see shapes on the
-  minimap after the update: say so in the release notes.
-- With the world map off the switches cannot be changed and keep their
-  saved values (defaults: waypoints, schematics, shapes on, slime off). No
-  settings rows for them; turning the world map on once is the way.
-- Radar stays as it is: its own per-kind settings, not a layer here.
-Build: slime chunks on the minimap as a wash in the composed image (the
-minimap is small, so per-pixel is cheap; Overworld only; built as
-`MapSlime.h`'s pixel mask whenever the terrain is composed, blended on each
-overlay redraw, with the same outline rule as the world map); the layer gates in
-`Minimap.cpp`; settings field, store migration with tests, row,
-translations (four languages) and help text for the new setting and the
-world map switches' wider meaning. Check in game: each world map switch
-hides its layer on both maps, the minimap setting hides them all, and an
-old settings file with `waypointsMinimap` off loads with the setting off.
-### L-296 Map follow-ups seen while checking L-295
-Kind: Design. Maintainer notes 2026-11-01 after using the shared layer
-switches:
-- The layer switches can only be changed on the world map, so someone who
-  uses the minimap without the world map keeps the saved values. Rejected
-  2026-11-01: the four switches as children of the minimap's "Map layers"
-  row, or that row as their parent. Led to the redesign in L-297.
-- Shapes and schematic placements draw almost the same on both maps (a
-  faint fill and a frame; only the color differs, and a shape can have the
-  placements' cyan; the default shape cyan 64,209,224 is the placements'
-  63,208,224). Maintainer 2026-11-01: compare looks in a mockup first, then
-  build the chosen one. Mockup: [map-footprints.html](demos/map-footprints.html)
-  (now, A dashed shapes, B shapes as their real outline, C corner marks on
-  placements, D = B + C). Chosen 2026-11-01: D. Built the same day, on both
-  maps, the top bar's switch symbols and the side panel's rows:
-  placements keep the fill and frame and gain corner marks; shapes lose the
-  fill and are a plain line, an ellipse in the area when `roundFromAbove`
-  (spheres, ellipsoids, upright domes, circles/cylinders/cones/frusta along
-  Y), else the box; small circles drawn row by row so they stay even.
-  Shape colors unchanged. Checked in game 2026-11-01 (`f8dc27d1`): done.
-- With the world map on, its side panel lists and edits waypoints, so the
-  separate waypoint screen may be little used there. Maintainer 2026-11-01:
-  keep it as it is (it does no harm); settled for now. Revisit only if the
-  world map stops being experimental and that changes the picture.
-### L-297 Map layers as marks and information
-Kind: Ready, built and checked 2026-11-01 (`5d620afb`, VALIDATION-LOG);
-the shortened labels below wait for a look. Labels: first "minimap and world
-map / world map only / minimap only"; at UI Profile 75 % only "minimap
-only" fitted, and "minimap and world map" started like "minimap only", so
-they are now "Both / World map / Minimap" with the help text explaining
-them (maintainer 2026-11-01). The Information panel's blocked hint keeps
-"Minimap only" (`worldMap.minimapOnly`). Supersedes L-295's "Map layers" setting and L-296's
-first point. The five things drawn on the maps are two kinds:
-- **Marks**, placed by the player: waypoints (with the death point),
-  schematic placements, shapes. They have names, side panel lists and
-  menus.
-- **Information**, read from the game: slime chunks, radar. No list, only
-  drawn over the map.
-Decisions:
-- Three headings of one shape in the map section, each with a switch and a
-  toggle key (DESIGN: an independent feature has one switch and a key) and
-  a "Shown on" row choosing both maps / the world map only / the minimap
-  only:
-  - **Map marks**: children waypoints, schematics and shapes as on/off
-    switches (the same values as the world map's top bar), then "Shown on"
-    for all three. Per-mark maps were considered and dropped (maintainer
-    2026-11-01: not needed, and one shape for all three headings reads
-    better).
-  - **Radar**: today's heading, switch, key and per-kind rows, plus
-    "Shown on".
-  - **Slime chunks**: a new heading (today's `worldMapSlime` becomes its
-    switch), child "Shown on".
-- Defaults: marks and radar on both maps, slime chunks the world map only.
-  L-295's "Map layers" (minimap) setting goes; a file with it off gets
-  marks "the world map only".
-- Order in the map section: Minimap (Map text stays its keyless
-  sub-heading), Map marks, Radar, Slime chunks, Waypoints, World map. The
-  waypoints feature's own switch still hides waypoints everywhere.
-- What these switches reach: maps only. World markers, schematic ghosts and
-  shapes in the world keep their features' switches; the Info HUD's slime
-  line keeps its own.
-- World map top bar: the three mark switches stay inline; the slime switch
-  goes and an "Information" button opens a panel (opened like the terrain
-  panel) with slime chunks (Overworld only) and radar; the radar's kinds
-  stay in the settings. Each switch there is the same on/off as its
-  settings row and works on both maps. An item the world map does not show
-  (Map marks off, or "Shown on" the minimap only, or slime outside the
-  Overworld) is drawn off and cannot be pressed; hovering says why. Where
-  the names do not fit (UI 100 % and 125 % in the browser measure), the bar
-  keeps today's fallback to symbols.
-- The world map shows the radar's kinds like the minimap, mobs and items
-  from 1 GUI unit per block in (two steps out from the default), players at
-  any zoom.
-Mockup: [map-layers.html](demos/map-layers.html) (settings rows and world map
-switches share one state).
 ### L-233 Make inventory transfer gestures rebindable
 Kind: Design, future. Maintainer 2026-10-20: now that a wheel direction can
 be part of a binding, the transfer gestures should be configurable instead
