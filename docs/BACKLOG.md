@@ -94,7 +94,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
    (Design). L-196 license/provenance evidence; L-236 is a follow-up;
-   L-295 minimap layers (checked 2026-11-01); L-296 map follow-ups (Design); L-297 map marks and information (decided; choice labels open); remaining Design/Research in L-166 trade helpers,
+   L-295 minimap layers (checked 2026-11-01); L-296 map follow-ups (Design); L-297 map marks and information (built 2026-11-01, waiting for the check); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
    L-163 a Lamium inventory screen, L-259 book paste overflow (on main and
@@ -140,11 +140,15 @@ Do not infer game success from a build or unit-test result.
   arrow's legibility at small and large map sizes is L-287, parked. Looking
   straight down or up, the arrow (and the world map's camera arrow) keeps
   the camera's own heading instead of the body's (checked 2026-10-31).
-- Release notes for L-295: the minimap now follows the world map's layer
-  switches, with one "Map layers" setting in the Minimap group replacing
-  "Show on the minimap" (Waypoints) and "Shapes" (Minimap). Shapes now show
-  on the minimap unless switched off on the world map; slime chunks can
-  show there too.
+- Release notes for L-295/L-297: the map section gains "Map marks"
+  (waypoints, schematics, shapes) and "Slime chunks" headings with their own
+  switches and toggle keys; Map marks, Radar and Slime chunks each choose
+  their maps ("Shown on"). This replaces "Show on the minimap" (Waypoints)
+  and "Shapes" (Minimap): a file that hid waypoints from the minimap gets
+  the marks on the world map only; shapes now show on the minimap unless
+  switched off. The world map's top bar keeps the mark switches and gains an
+  Information panel (slime chunks, radar); the world map now shows mobs and
+  items from the radar when zoomed in.
 
 ### Gaps carried from released builds
 
@@ -796,8 +800,10 @@ switches:
   keep it as it is (it does no harm); settled for now. Revisit only if the
   world map stops being experimental and that changes the picture.
 ### L-297 Map layers as marks and information
-Kind: Design decided 2026-11-01 with the maintainer; Ready once the choice
-labels are agreed. Supersedes L-295's "Map layers" setting and L-296's
+Kind: Ready, built 2026-11-01, waiting for the in-game check. Labels
+(maintainer 2026-11-01): "minimap and world map / world map only / minimap
+only" (Japanese with のみ); check how they fit at the standard UI size and
+shorten only if they are cut off. Supersedes L-295's "Map layers" setting and L-296's
 first point. The five things drawn on the maps are two kinds:
 - **Marks**, placed by the player: waypoints (with the death point),
   schematic placements, shapes. They have names, side panel lists and
@@ -840,9 +846,7 @@ Decisions:
   from 1 GUI unit per block in (two steps out from the default), players at
   any zoom.
 Mockup: [map-layers.html](demos/map-layers.html) (settings rows and world map
-switches share one state). Open: the "Shown on" labels ("minimap and world
-map / world map only / minimap only", or shorter "both maps / world map /
-minimap").
+switches share one state).
 ### L-233 Make inventory transfer gestures rebindable
 Kind: Design, future. Maintainer 2026-10-20: now that a wheel direction can
 be part of a binding, the transfer gestures should be configurable instead

@@ -29,6 +29,24 @@ struct LayerSwitches {
 inline constexpr bool layerShown(LayerSwitches on, MarkLayer layer) {
     return pointLayer(layer) ? on.waypoints : layer == MarkLayer::Placement ? on.schematics : on.shapes;
 }
+// Which maps a heading's items show on (L-297): Map marks, Radar and Slime
+// chunks each choose one. Saved as the index.
+enum class ShownOn { Both, WorldMap, Minimap };
+inline constexpr int clampShownOn(int value) { return value < 0 || value > 2 ? 0 : value; }
+inline constexpr bool onWorldMap(int shownOn) { return clampShownOn(shownOn) != static_cast<int>(ShownOn::Minimap); }
+inline constexpr bool onMinimap(int shownOn) { return clampShownOn(shownOn) != static_cast<int>(ShownOn::WorldMap); }
+// The marks a map draws: the Map marks heading, its map choice, then each
+// mark's own switch (the world map's top bar shows those switches).
+inline constexpr LayerSwitches shownMarks(LayerSwitches switches, bool heading, int shownOn, bool minimap) {
+    bool here = heading && (minimap ? onMinimap(shownOn) : onWorldMap(shownOn));
+    return {here && switches.waypoints, here && switches.schematics, here && switches.shapes};
+}
+// Why the world map cannot change an item from its top bar, if it cannot:
+// the heading is off, or the item is not on this map at all.
+enum class Blocked { No, HeadingOff, MinimapOnly };
+inline constexpr Blocked worldMapBlocked(bool heading, int shownOn) {
+    return !heading ? Blocked::HeadingOff : !onWorldMap(shownOn) ? Blocked::MinimapOnly : Blocked::No;
+}
 // The world map's side panel lists one layer at a time (L-204): 0 waypoints
 // and the death point, 1 schematic placements, 2 shapes.
 inline constexpr int listKind(MarkLayer layer) { return pointLayer(layer) ? 0 : layer == MarkLayer::Placement ? 1 : 2; }

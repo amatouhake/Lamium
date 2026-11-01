@@ -247,7 +247,7 @@ Json encode(Settings const& settings) {
                  {"round", settings.map.round}, {"caveView", settings.map.caveView},
                  {"coordinates", settings.map.coordinates},
                  {"biome", settings.map.biome}, {"compass", settings.map.compass},
-                 {"debugHide", settings.map.debugHide}, {"minimapLayers", settings.map.minimapLayers}, {"radar", settings.map.radar},
+                 {"debugHide", settings.map.debugHide}, {"radar", settings.map.radar},
                  {"radarPlayers", settings.map.radarPlayers}, {"radarHostile", settings.map.radarHostile},
                  {"radarPassive", settings.map.radarPassive}, {"radarItems", settings.map.radarItems},
                  {"radarInvisible", settings.map.radarInvisible}, {"waypoints", settings.map.waypoints},
@@ -259,7 +259,9 @@ Json encode(Settings const& settings) {
                  {"seedLink", settings.map.seedLink}, {"worldMapNames", settings.map.worldMapNames},
                  {"radarFaces", settings.map.radarFaces}, {"worldMapWaypoints", settings.map.worldMapWaypoints},
                  {"worldMapSchematics", settings.map.worldMapSchematics}, {"worldMapShapes", settings.map.worldMapShapes},
-                 {"worldMapSlime", settings.map.worldMapSlime}, {"worldMapList", settings.map.worldMapList}}},
+                 {"worldMapSlime", settings.map.worldMapSlime}, {"worldMapList", settings.map.worldMapList},
+                 {"mapMarks", settings.map.mapMarks}, {"marksShownOn", settings.map.marksShownOn},
+                 {"radarShownOn", settings.map.radarShownOn}, {"slimeShownOn", settings.map.slimeShownOn}}},
         {"schematic", {{"enabled", settings.schematic.enabled}, {"hud", settings.schematic.hud},
                        {"hudVerify", settings.schematic.hudVerify}, {"hudMaterials", settings.schematic.hudMaterials},
                        {"menuBackground", settings.schematic.menuBackground}, {"menuSmall", settings.schematic.menuSmall},
@@ -506,7 +508,14 @@ Settings decodeSettings(std::string_view text) {
         value.map.debugHide = settingsValue(map, "debugHide", value.map.debugHide);
         // Before L-295 the waypoints' "Show on the minimap" was the one
         // that hid most of it; off stays off.
-        value.map.minimapLayers = settingsValue(map, "minimapLayers", settingsValue(map, "waypointsMinimap", value.map.minimapLayers));
+        // Before L-297 one switch hid the marks on the minimap ("minimapLayers",
+        // before L-295 the waypoints' "waypointsMinimap"); off means the world
+        // map only.
+        bool marksOnMinimap = settingsValue(map, "minimapLayers", settingsValue(map, "waypointsMinimap", true));
+        value.map.marksShownOn = settingsValue(map, "marksShownOn", marksOnMinimap ? value.map.marksShownOn : 1);
+        value.map.mapMarks = settingsValue(map, "mapMarks", value.map.mapMarks);
+        value.map.radarShownOn = settingsValue(map, "radarShownOn", value.map.radarShownOn);
+        value.map.slimeShownOn = settingsValue(map, "slimeShownOn", value.map.slimeShownOn);
         value.map.radar = settingsValue(map, "radar", value.map.radar);
         value.map.radarPlayers = settingsValue(map, "radarPlayers", value.map.radarPlayers);
         value.map.radarHostile = settingsValue(map, "radarHostile", value.map.radarHostile);

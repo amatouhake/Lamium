@@ -10,6 +10,7 @@
 #include "features/information/InfoLines.h"
 #include "ui/HudElement.h"
 #include "features/camera/FreeCameraSpeed.h"
+#include "features/map/MapMarks.h"
 #include "features/map/MapView.h"
 
 namespace lamium {
@@ -158,10 +159,6 @@ struct Settings {
         bool biome = false;
         bool compass = false;
         bool debugHide = true; // Hide while Debug View is shown.
-        // The world map's layer switches decide the minimap too; off hides
-        // every layer on the minimap (L-295). Replaces waypointsMinimap and
-        // minimapShapes.
-        bool minimapLayers = true;
         bool radar = true;
         bool radarPlayers = true, radarHostile = true, radarPassive = true, radarItems = false;
         bool radarInvisible = false; // Also show players and mobs that are invisible.
@@ -177,9 +174,14 @@ struct Settings {
         bool seedLink = true; // World map menu: open an external seed map here, copy the seed.
         bool worldMapNames = false; // Every mark's name; off: under the pointer, selected or with a menu.
         bool worldMapPanel = true; // The world map's waypoint side panel is open; changed on the map.
-        // The world map's layer switches (L-146), changed on the map.
+        // Map marks (L-297): the heading's switch, each mark's switch (the
+        // world map's top bar shows them too) and the maps they show on
+        // (map::ShownOn). Radar and slime chunks choose their maps the same way.
+        bool mapMarks = true;
         bool worldMapWaypoints = true, worldMapSchematics = true, worldMapShapes = true;
-        bool worldMapSlime = false; // Slime chunks over the Overworld map (L-232).
+        int marksShownOn = 0, radarShownOn = 0;
+        bool worldMapSlime = false; // Slime chunks (L-232): the heading's switch.
+        int slimeShownOn = 1;
         int worldMapList = 0; // The side panel's list (L-204): 0 waypoints, 1 schematics, 2 shapes.
     } map;
     struct Schematic {
@@ -392,6 +394,7 @@ struct Settings {
         map.size = std::clamp(std::round(map.size), 10.f, 50.f);
         map.waypointsWorld = std::clamp(map.waypointsWorld, 0, 2);
         map.caveView = std::clamp(map.caveView, 0, 2);
+        for (auto* shownOn : {&map.marksShownOn, &map.radarShownOn, &map.slimeShownOn}) *shownOn = map::clampShownOn(*shownOn);
         if (!std::isfinite(map.waypointDistance)) map.waypointDistance = 0;
         map.waypointDistance = std::clamp(std::round(map.waypointDistance / 100) * 100, 0.f, 10000.f);
         if (!std::isfinite(map.waypointArrival)) map.waypointArrival = 6;

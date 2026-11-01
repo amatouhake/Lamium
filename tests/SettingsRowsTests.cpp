@@ -334,7 +334,8 @@ void settingsRowsTests() {
     size_t shapeKeys = 0;
     for (auto const& row : hotkeyRows) {
         if (row.action == input::Action::ToggleShapes || row.action == input::Action::OpenShapes) ++shapeKeys;
-        else check(!row.action, "shape search lists only shape keys");
+        // Map marks has a Shapes switch, so its key matches too (L-297).
+        else check(!row.action || row.action == input::Action::ToggleMapMarks, "shape search lists only shape keys");
     }
     check(shapeKeys == 2, "both shape keys are listed in Hotkeys");
     query.clear(); query.append("not-a-real-setting");

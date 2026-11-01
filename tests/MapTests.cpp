@@ -1,6 +1,7 @@
 #include "features/map/MapCave.h"
 #include "features/map/MapColors.h"
 #include "features/map/MapImage.h"
+#include "features/map/MapMarks.h"
 #include "features/map/MapRadar.h"
 #include "features/map/MapTiles.h"
 #include "features/map/MapView.h"
@@ -572,7 +573,23 @@ void teleport() {
           "teleport targets the block center, also for negative coordinates");
 }
 }
+void shownOn() {
+    // L-297: Map marks, Radar and Slime chunks choose their maps.
+    check(onWorldMap(0) && onMinimap(0) && onWorldMap(1) && !onMinimap(1) && !onWorldMap(2) && onMinimap(2),
+          "both maps, the world map only, the minimap only");
+    check(clampShownOn(7) == 0 && clampShownOn(-1) == 0 && onWorldMap(9) && onMinimap(9), "an unknown choice is both maps");
+    LayerSwitches some{true, false, true};
+    auto world = shownMarks(some, true, 0, false), mini = shownMarks(some, true, 1, true);
+    check(world.waypoints && !world.schematics && world.shapes && !mini.waypoints && !mini.shapes,
+          "each mark keeps its switch where the heading shows it, and none elsewhere");
+    auto off = shownMarks(some, false, 0, false);
+    check(!off.waypoints && !off.schematics && !off.shapes, "the heading off hides every mark");
+    check(worldMapBlocked(false, 0) == Blocked::HeadingOff && worldMapBlocked(true, 2) == Blocked::MinimapOnly
+              && worldMapBlocked(true, 1) == Blocked::No && worldMapBlocked(false, 2) == Blocked::HeadingOff,
+          "the world map's switches say why they cannot be pressed");
+}
 void mapTests() {
+    shownOn();
     teleport();
     colors();
     surface();

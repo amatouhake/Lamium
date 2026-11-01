@@ -126,7 +126,7 @@ enum class Target {
     CaveButton, CavePanel, CaveToggle, BroadToggle, HeightDown, HeightUp, HeightField, MatchHeight,
     Center, Waypoints, Close, Menu,
     LayerWaypoints, LayerSchematics, LayerShapes, // The layer switches (L-146).
-    LayerSlime, // Slime chunks, Overworld only (L-232).
+    InfoButton, InfoPanel, InfoSlime, InfoRadar, // The Information button and its panel (L-297).
     // The side panel: its background, header buttons, list and editor.
     Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Temporary, Swatch, Keep, Delete, OpenScreen,
     PanelKind, PanelKindItem // The list's layer menu (L-204) and its items.
@@ -174,6 +174,10 @@ struct State {
     bool editingHeight = false;
     ui::NumberInput heightInput;
     struct Rect { float x = 0, y = 0, w = 0, h = 0; } caveButton;
+    // The Information button, its panel and the panel's rows (L-297).
+    bool infoPanel = false;
+    Rect infoButton;
+    std::array<Rect, 2> infoRows{};
     struct Drag {
         float x, y;
         double centerX, centerZ;
@@ -365,6 +369,7 @@ void say(std::string text) {
     state.noticeAt = now();
 }
 
+void toggleInfo(Target target);
 void act(Target target) {
     switch (target) {
     case Target::Overworld: showDimension(0); break;
@@ -372,8 +377,16 @@ void act(Target target) {
     case Target::End: showDimension(2); break;
     case Target::CaveButton:
         state.cavePanel = !state.cavePanel;
+        state.infoPanel = false;
         state.kindMenu = false;
         break;
+    case Target::InfoButton:
+        state.infoPanel = !state.infoPanel;
+        state.cavePanel = false;
+        state.kindMenu = false;
+        break;
+    case Target::InfoSlime:
+    case Target::InfoRadar: toggleInfo(target); break;
     case Target::CaveToggle: toggleCave(); break;
     case Target::BroadToggle:
         if (state.cave) state.broad = !state.broad;
@@ -391,17 +404,43 @@ void act(Target target) {
     default: break;
     }
 }
-LayerSwitches layers() {
+// The mark switches as set (the top bar shows them), and the marks the world
+// map draws after the Map marks heading and its map choice (L-297).
+LayerSwitches markSwitches() {
     auto const& map = Runtime::instance().preferences().map;
     return {map.worldMapWaypoints, map.worldMapSchematics, map.worldMapShapes};
 }
+LayerSwitches layers() {
+    auto const& map = Runtime::instance().preferences().map;
+    return shownMarks(markSwitches(), map.mapMarks, map.marksShownOn, false);
+}
+Blocked marksBlocked() {
+    auto const& map = Runtime::instance().preferences().map;
+    return worldMapBlocked(map.mapMarks, map.marksShownOn);
+}
 void toggleLayer(Target target) {
+    if (marksBlocked() != Blocked::No) return;
     auto value = Runtime::instance().preferences();
     bool& on = target == Target::LayerWaypoints ? value.map.worldMapWaypoints
-        : target == Target::LayerSchematics ? value.map.worldMapSchematics
-        : target == Target::LayerSlime ? value.map.worldMapSlime : value.map.worldMapShapes;
+        : target == Target::LayerSchematics ? value.map.worldMapSchematics : value.map.worldMapShapes;
     on = !on;
     if (!Runtime::instance().save(value)) log("could not save the layer switches");
+}
+// Information (L-297): why the panel cannot switch slime chunks or the radar
+// on this map, if it cannot.
+std::optional<std::string_view> infoBlocked(Target target) {
+    auto const& map = Runtime::instance().preferences().map;
+    bool slime = target == Target::InfoSlime;
+    if (slime && state.dimension != 0) return "worldMap.blockedOverworld";
+    if (!onWorldMap(slime ? map.slimeShownOn : map.radarShownOn)) return "worldMap.blockedMinimap";
+    return std::nullopt;
+}
+void toggleInfo(Target target) {
+    if (infoBlocked(target)) return;
+    auto value = Runtime::instance().preferences();
+    bool& on = target == Target::InfoSlime ? value.map.worldMapSlime : value.map.radar;
+    on = !on;
+    if (!Runtime::instance().save(value)) log("could not save the information switches");
 }
 bool panelOpen() { return Runtime::instance().preferences().map.worldMapPanel; }
 int shownList() { return clampListKind(Runtime::instance().preferences().map.worldMapList); }
@@ -982,7 +1021,10 @@ struct SlimeSlot {
     unsigned readyAt = 0; // as Slot: a reused slot shows its old image a few frames
 };
 std::array<SlimeSlot, slimeSlotCount> slimeSlots;
-bool slimeShown() { return state.dimension == 0 && Runtime::instance().preferences().map.worldMapSlime; }
+bool slimeShown() {
+    auto const& map = Runtime::instance().preferences().map;
+    return state.dimension == 0 && map.worldMapSlime && onWorldMap(map.slimeShownOn);
+}
 double slimeUnitsPerChunk() { return state.view.scale() * 16; }
 bool slimeDrawable() {
     return slimeUnitsPerChunk() >= information::slimeRectMinUnits || information::slimeImageLevel(slimeUnitsPerChunk());
@@ -1146,18 +1188,24 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
     if (state.menu && (state.menu->kind == MenuKind::Placement || state.menu->kind == MenuKind::Shape) && !areaOf(state.menu->mark))
         state.menu.reset();
     auto spot = playerSpot();
-    if (settings.radar && settings.radarPlayers && spot && spot->dimension == state.dimension) {
+    // The radar's kinds as on the minimap (L-297); mobs and items only from
+    // radarMobsMinScale in, players at any zoom.
+    if (settings.radar && onWorldMap(settings.radarShownOn) && spot && spot->dimension == state.dimension) {
         faces::frame();
-        for (auto const& dot : collectDots(context.mClient, spot->x, spot->z, 3.0e7, spot->y, settings.radarInvisible,
-                                           settings.radarFaces)) {
-            if (dot.kind != DotKind::Player) continue;
+        RadarSwitches kinds{settings.radarPlayers, settings.radarHostile, settings.radarPassive, settings.radarItems};
+        auto dots = collectDots(context.mClient, spot->x, spot->z, 3.0e7, spot->y, settings.radarInvisible, settings.radarFaces);
+        std::stable_sort(dots.begin(), dots.end(), [](Dot const& a, Dot const& b) { return a.kind < b.kind; });
+        for (auto const& dot : dots) {
+            bool player = dot.kind == DotKind::Player;
+            if (!shown(dot.kind, kinds) || !radarDotShown(player, view.scale())) continue;
             float x = static_cast<float>(view.screenX(dot.x)), y = static_cast<float>(view.screenY(dot.z));
-            // A head is about 10 units with its outline, a dot 4.
-            float alpha = dot.distant ? distantAlpha : 1.f;
+            // A head is about 10 units with its outline, a dot 4; mobs far
+            // above or below are fainter, as on the minimap.
+            float alpha = dot.distant ? distantAlpha : !player && std::abs(dot.dy) >= 8 ? .5f : 1.f;
             bool head = dot.face >= 0 && faces::draw(context, dot.face, x, y, 8, alpha);
             if (!head) {
                 ui::fill(context, x - 2, y - 2, 4, 4, Rgb{0, 0, 0}, .85f * alpha);
-                ui::fill(context, x - 1.5f, y - 1.5f, 3, 3, rgb(dotColor(DotKind::Player)), alpha);
+                ui::fill(context, x - 1.5f, y - 1.5f, 3, 3, rgb(dotColor(dot.kind)), alpha);
             }
             if (!dot.name.empty())
                 smallLabel(context, x, y + (head ? 6 : 3), dot.name, dot.distant ? ui::palette::dim : Rgb{.59f, .88f, 1.f});
@@ -1247,6 +1295,11 @@ void shapeIcon(MinecraftUIRenderContext& context, float x, float cy, Rgb color, 
 }
 constexpr std::uint32_t shapeSymbolColor = packColor(242, 204, 61);
 // A layer's symbol in the top bar and the list menu.
+// The radar, small: a player's dot and a hostile mob's.
+void radarSymbol(MinecraftUIRenderContext& context, float x, float cy, float alpha) {
+    ui::fill(context, x, cy - 3, 3, 3, rgb(dotColor(DotKind::Player)), alpha);
+    ui::fill(context, x + 4, cy, 3, 3, rgb(dotColor(DotKind::Hostile)), alpha);
+}
 void layerSymbol(MinecraftUIRenderContext& context, int kind, float x, float cy, float alpha) {
     if (kind == 0) diamond(context, x + 4, cy, 7, rgb(waypointColors[0]), alpha);
     else if (kind == 3) {
@@ -1255,6 +1308,25 @@ void layerSymbol(MinecraftUIRenderContext& context, int kind, float x, float cy,
         ui::fill(context, x + 4, cy, 3, 3, rgb(slimeColor), alpha);
     } else if (kind == 1) footprintIcon(context, x, cy, rgb(placementColor), alpha);
     else shapeIcon(context, x, cy, rgb(shapeSymbolColor), alpha);
+}
+std::optional<Target> infoRowAt(float x, float y) {
+    if (!state.infoPanel) return std::nullopt;
+    constexpr std::array<Target, 2> rows{Target::InfoSlime, Target::InfoRadar};
+    for (size_t i = 0; i < rows.size(); ++i) {
+        auto const& r = state.infoRows[i];
+        if (x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h) return rows[i];
+    }
+    return std::nullopt;
+}
+std::string infoRowText(Target target) {
+    auto const& map = Runtime::instance().preferences().map;
+    bool slime = target == Target::InfoSlime;
+    auto name = ui::translated(slime ? "feature.slimeChunks" : "feature.radar");
+    if (auto why = infoBlocked(target)) return ui::translated(*why, name);
+    bool on = slime ? map.worldMapSlime : map.radar;
+    auto text = ui::translated("worldMap.layerShown", name, ui::translated(on ? "on" : "off"));
+    if (slime && on && !slimeDrawable()) text += "  " + ui::translated("worldMap.slimeZoomIn");
+    return text;
 }
 void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending, bool recording) {
     auto spot = playerSpot();
@@ -1274,24 +1346,25 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     float closeW = 13, rightW = widthOf(centerText) + 3 + widthOf(waypointsText) + 3 + closeW + 3;
     auto terrainText = stateText();
     float terrainW = state.dimension == 2 ? 0 : widthOf(terrainText);
-    // Layer switches (L-146): the mark's own symbol and the layer's name;
-    // slime chunks (L-232) only where there are any.
-    constexpr std::array<std::pair<Target, std::string_view>, 4> switches{{
-        {Target::LayerWaypoints, "nav.waypoints"}, {Target::LayerSchematics, "nav.schematics"}, {Target::LayerShapes, "nav.shapes"},
-        {Target::LayerSlime, "worldMap.slimeChunks"}}};
-    size_t const switchCount = state.dimension == 0 ? 4 : 3;
-    auto shownLayers = layers();
-    std::array<bool, 4> switchOn{shownLayers.waypoints, shownLayers.schematics, shownLayers.shapes,
-                                 Runtime::instance().preferences().map.worldMapSlime};
-    std::array<std::string, 4> switchTexts;
+    // Layer switches (L-146): the marks' own symbols and names, then the
+    // Information button for slime chunks and the radar (L-297).
+    constexpr std::array<std::pair<Target, std::string_view>, 3> switches{{
+        {Target::LayerWaypoints, "nav.waypoints"}, {Target::LayerSchematics, "nav.schematics"}, {Target::LayerShapes, "nav.shapes"}}};
+    auto const markOn = markSwitches();
+    std::array<bool, 3> switchOn{markOn.waypoints, markOn.schematics, markOn.shapes};
+    auto const blocked = marksBlocked();
+    std::array<std::string, 3> switchTexts;
     float namedW = 1;
-    for (size_t i = 0; i < switchCount; ++i) {
+    for (size_t i = 0; i < 3; ++i) {
         switchTexts[i] = ui::translated(switches[i].second);
         namedW += 12 + widthOf(switchTexts[i]) - 1;
     }
+    auto const infoText = ui::translated("worldMap.info");
+    float const infoNamedW = 12 + widthOf(infoText) + 7;
     float brandW = ui::textWidth(context, "Lamium") + 6;
-    constexpr float iconW = 15;
-    float const iconsW = 1 + static_cast<float>(switchCount) * (iconW - 1);
+    constexpr float iconW = 15, infoIconW = iconW + 7;
+    namedW += 3 + infoNamedW;
+    float const iconsW = 1 + 3 * (iconW - 1) + 3 + infoIconW;
     auto fits = [&](float width) { return 4 + brandW + dimsW + terrainW + 8 + width + 8 + rightW + 4 <= size.x; };
     bool const namedFits = fits(namedW), iconFits = fits(iconsW);
     bool compact = !namedFits;
@@ -1353,29 +1426,44 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     button(context, right, 2, centerText, Target::Center, false, hovering(right, 2, widthOf(centerText), buttonHeight));
     if (oneRow) { x = right - 8 - switchesW; y = 2; }
     else { x = 4; y = rowHeight + 2; }
-    std::array<float, 4> switchX{};
-    for (size_t i = 0; i < switchCount; ++i) {
+    std::array<float, 3> switchX{};
+    for (size_t i = 0; i < 3; ++i) {
         switchX[i] = x;
         x += (compact ? iconW : 12 + widthOf(switchTexts[i])) - 1;
     }
     std::optional<size_t> overSwitch;
-    // Neighbours share a border column: switches that are on are drawn last, keeping their accent frames whole.
+    // Neighbours share a border column: switches that are on are drawn last,
+    // keeping their accent frames whole. With Map marks off or on the minimap
+    // only, they are drawn off and say why when hovered.
     for (int pass = 0; pass < 2; ++pass)
-        for (size_t i = 0; i < switchCount; ++i) {
-            bool on = switchOn[i];
+        for (size_t i = 0; i < 3; ++i) {
+            bool on = switchOn[i] && blocked == Blocked::No;
             if (on != (pass == 1)) continue;
             float bx = switchX[i], bw = compact ? iconW : 12 + widthOf(switchTexts[i]);
             bool over = hovering(bx, y, bw, buttonHeight);
             if (over) overSwitch = i;
-            ui::fill(context, bx, y, bw, buttonHeight, on ? ui::palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill, .9f);
-            ui::frame(context, bx, y, bw, buttonHeight, on ? ui::palette::accent : ui::palette::keyEdge);
-            float alpha = on ? 1.f : .4f, iy = y + buttonHeight / 2;
+            bool live = blocked == Blocked::No;
+            ui::fill(context, bx, y, bw, buttonHeight, on ? ui::palette::accentDeep : over && live ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill,
+                     live ? .9f : .5f);
+            ui::frame(context, bx, y, bw, buttonHeight, on ? ui::palette::accent : ui::palette::keyEdge, live ? 1.f : .5f);
+            float alpha = on ? 1.f : live ? .4f : .2f, iy = y + buttonHeight / 2;
             layerSymbol(context, static_cast<int>(i), bx + 4, iy, alpha);
             if (!compact)
-                ui::label(context, bx + 12, y + inset, bw - 12, switchTexts[i], on || over ? ui::palette::text : ui::palette::faint,
+                ui::label(context, bx + 12, y + inset, bw - 12, switchTexts[i], on || (over && live) ? ui::palette::text : ui::palette::faint,
                           ui::Align::Center);
             state.hits.push_back({bx, y, bw, buttonHeight, switches[i].first});
         }
+    {
+        float bx = x + 4, bw = compact ? infoIconW : infoNamedW;
+        bool over = hovering(bx, y, bw, buttonHeight);
+        ui::fill(context, bx, y, bw, buttonHeight, state.infoPanel ? ui::palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill, .9f);
+        ui::frame(context, bx, y, bw, buttonHeight, state.infoPanel ? ui::palette::accent : ui::palette::keyEdge);
+        layerSymbol(context, 3, bx + 4, y + buttonHeight / 2, 1.f);
+        if (!compact) ui::label(context, bx + 12, y + inset, bw - 19, infoText, ui::palette::text, ui::Align::Center);
+        ui::chevron(context, bx + bw - 8, y + 3, true, over || state.infoPanel ? ui::palette::text : ui::palette::dim);
+        state.hits.push_back({bx, y, bw, buttonHeight, Target::InfoButton});
+        state.infoButton = {bx, y, bw, buttonHeight};
+    }
 
     // Bottom bar: the place under the cursor on the left; the scale bar on
     // the right with the hints before it, dropped when they would meet.
@@ -1384,7 +1472,9 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     ui::fill(context, 0, top, size.x, 1, ui::palette::white, .14f);
     float textY = top + 1 + inset;
     std::string where;
-    if (state.pointer.y > state.top && state.pointer.y < top) {
+    if (auto row = infoRowAt(state.pointer.x, state.pointer.y)) {
+        where = infoRowText(*row);
+    } else if (state.pointer.y > state.top && state.pointer.y < top) {
         int wx = blockFloor(state.view.worldX(state.pointer.x)), wz = blockFloor(state.view.worldZ(state.pointer.y));
         auto column = store::column(shownLayer(), wx, wz);
         where = column ? std::format("X {}  Y {}  Z {}", wx, column->height, wz) : std::format("X {}  Z {}", wx, wz);
@@ -1399,9 +1489,10 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
         else if (!column) where += "  " + ui::translated("worldMap.unrecorded");
         if (slimeShown() && slimeCache(blockFloor(wx / 16.0), blockFloor(wz / 16.0))) where += "  " + ui::translated("debugSlimeChunk");
     } else if (overSwitch) {
-        where = ui::translated("worldMap.layerShown", switchTexts[*overSwitch], ui::translated(switchOn[*overSwitch] ? "on" : "off"));
-        if (switches[*overSwitch].first == Target::LayerSlime && switchOn[*overSwitch] && !slimeDrawable())
-            where += "  " + ui::translated("worldMap.slimeZoomIn");
+        auto const& name = switchTexts[*overSwitch];
+        where = blocked == Blocked::HeadingOff ? ui::translated("worldMap.blockedHeading", name)
+            : blocked == Blocked::MinimapOnly ? ui::translated("worldMap.blockedMinimap", name)
+                                              : ui::translated("worldMap.layerShown", name, ui::translated(switchOn[*overSwitch] ? "on" : "off"));
     }
     float whereW = where.empty() ? 0 : ui::textWidth(context, where);
     ui::label(context, 4, textY, whereW + 2, where, ui::palette::dim);
@@ -1433,6 +1524,45 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     }
 }
 
+// The Information panel (L-297), opened under its button like the terrain
+// panel: slime chunks and the radar, each with its switch, or the reason the
+// world map cannot change it here.
+void drawInfoPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
+    state.infoRows = {};
+    if (!state.infoPanel) return;
+    constexpr float w = 160, rowH = 16;
+    constexpr std::array<Target, 2> rows{Target::InfoSlime, Target::InfoRadar};
+    float h = rows.size() * rowH + 4;
+    float available = size.x - state.panelWidth - 3;
+    float left = std::clamp(state.infoButton.x, 3.f, std::max(3.f, available - w));
+    float top = std::max(state.infoButton.y + state.infoButton.h + 1, state.top + 1);
+    ui::fill(context, left, top, w, h, ui::palette::panel, .92f);
+    ui::frame(context, left, top, w, h, ui::palette::white, .14f);
+    state.hits.push_back({left, top, w, h, Target::InfoPanel});
+    auto const& map = Runtime::instance().preferences().map;
+    float inset = ui::boxTextInset();
+    for (size_t i = 0; i < rows.size(); ++i) {
+        auto target = rows[i];
+        bool slime = target == Target::InfoSlime;
+        float y = top + 2 + static_cast<float>(i) * rowH, x = left + 5, cy = y + rowH / 2;
+        auto why = infoBlocked(target);
+        if (!why && hovering(left + 1, y, w - 2, rowH)) ui::fill(context, left + 1, y, w - 2, rowH, ui::palette::white, .07f);
+        float alpha = why ? .35f : 1.f;
+        if (slime) layerSymbol(context, 3, x, cy, alpha);
+        else radarSymbol(context, x, cy, alpha);
+        ui::label(context, x + 12, y + 3 + inset, w - 60, ui::translated(slime ? "feature.slimeChunks" : "feature.radar"),
+                  why ? ui::palette::faint : ui::palette::text);
+        if (why) {
+            auto hint = ui::translated(slime && state.dimension != 0 ? "worldMap.overworldOnly" : "shownOn.minimap");
+            float hw = ui::textWidth(context, hint);
+            ui::label(context, left + w - 5 - hw, y + 3 + inset, hw + 2, hint, ui::palette::faint);
+        } else {
+            ui::toggleSwitch(context, left + w - 5 - ui::switchWidth, cy - ui::switchHeight / 2, slime ? map.worldMapSlime : map.radar);
+        }
+        state.hits.push_back({left, y, w, rowH, target});
+        state.infoRows[i] = {left, y, w, rowH};
+    }
+}
 void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     if (!state.cavePanel || state.dimension == 2) return;
     constexpr float w = 212;
@@ -1845,6 +1975,7 @@ void open(IClientInstance& client, bool resume) {
     state.editingAxis = -1;
     state.editingHeight = false;
     state.cavePanel = false;
+    state.infoPanel = false;
     state.openedAt = now();
     if (resume) return;
     state.selected.reset();
@@ -1886,6 +2017,9 @@ void close() {
     state.menu.reset();
     commitName();
 }
+bool infoPanelTarget(Target target) {
+    return target == Target::InfoButton || target == Target::InfoPanel || target == Target::InfoSlime || target == Target::InfoRadar;
+}
 bool cavePanelTarget(Target target) {
     switch (target) {
     case Target::CavePanel:
@@ -1908,12 +2042,13 @@ Request press(float x, float y, bool right) {
         || (hit->target == Target::Coordinate && hit->item == state.editingAxis));
     if ((state.editingHeight || state.editingName || state.editingAxis >= 0) && !heightField && !sameSideField) commitName();
     // The cave panel sits above the map; its controls consume the press.
-    if (hit && (hit->target == Target::CaveButton || cavePanelTarget(hit->target))) {
+    if (hit && (hit->target == Target::CaveButton || cavePanelTarget(hit->target) || infoPanelTarget(hit->target))) {
         if (!right) act(hit->target);
         return request;
     }
-    if (state.cavePanel) {
+    if (state.cavePanel || state.infoPanel) {
         state.cavePanel = false;
+        state.infoPanel = false;
         // A map press only closes the panel; a bar or side-panel press goes on.
         if (!hit || hit->target == Target::None) return request;
     }
@@ -1953,8 +2088,7 @@ Request press(float x, float y, bool right) {
         case Target::Waypoints: setPanelOpen(!panelOpen()); return request;
         case Target::LayerWaypoints:
         case Target::LayerSchematics:
-        case Target::LayerShapes:
-        case Target::LayerSlime: toggleLayer(hit->target); return request;
+        case Target::LayerShapes: toggleLayer(hit->target); return request;
         default: act(hit->target); return request;
         }
     }
@@ -2005,7 +2139,7 @@ Request key(int key, bool openKey) {
         return request;
     }
     if (key == 0x1b) {
-        if (state.cavePanel) state.cavePanel = false;
+        if (state.cavePanel || state.infoPanel) state.cavePanel = state.infoPanel = false;
         else if (state.menu) state.menu.reset();
         else request.kind = Request::Kind::Close;
     } else if (key == 0x20) {
@@ -2067,6 +2201,8 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     drawPanel(context, size);
     context.flushText(0, std::nullopt);
     drawCavePanel(context, size);
+    context.flushText(0, std::nullopt);
+    drawInfoPanel(context, size);
     context.flushText(0, std::nullopt);
     drawKindMenu(context);
     context.flushText(0, std::nullopt);

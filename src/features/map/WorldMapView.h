@@ -146,6 +146,11 @@ inline int scaleBarBlocks(double unitsPerBlock, double minUnits) {
         if (blocks * unitsPerBlock >= minUnits) return blocks;
     return 50000;
 }
+// The world map's radar (L-297): players at any zoom; mobs and dropped items
+// only from 1 GUI unit per block in, since farther out they pile up around
+// the player.
+inline constexpr double radarMobsMinScale = 1;
+inline constexpr bool radarDotShown(bool player, double unitsPerBlock) { return player || unitsPerBlock >= radarMobsMinScale; }
 // The outline of the ellipse inscribed in a screen box [x0, x1) by [y0, y1),
 // in whole GUI units, as rectangles (the UI draws rectangles only): a round
 // shape's footprint (L-296). Up to 160 units tall it is drawn row by row,

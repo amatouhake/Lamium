@@ -72,6 +72,8 @@ static_assert(mapZoomLabels.size() == map::zoomSteps.size());
 inline constexpr std::array<std::string_view,3> worldMarkerLabels{
     "worldMarkers.always", "worldMarkers.whileHeld", "worldMarkers.off"};
 // L-253: the minimap's chosen view, in map::ViewForce order.
+inline constexpr std::array<std::string_view,3> shownOnLabels{
+    "shownOn.both", "shownOn.worldMap", "shownOn.minimap"};
 inline constexpr std::array<std::string_view,3> caveViewLabels{
     "caveView.auto", "caveView.surface", "caveView.cave"};
 inline constexpr auto elementBackgroundLabels = std::to_array<std::string_view>(
@@ -455,14 +457,22 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::map, &Settings::Map::coordinates>("map.coordinates", "mapText", "mapCoordinates"),
     toggle<&Settings::map, &Settings::Map::biome>("map.biome", "mapText", "mapBiome"),
     toggle<&Settings::map, &Settings::Map::debugHide>("map.debugHide", "minimap", "mapDebugHide"),
-    toggle<&Settings::map, &Settings::Map::minimapLayers>("map.minimapLayers", "minimap", "mapMinimapLayers"),
+    // L-297: three headings of one shape, each with a "Shown on" row.
+    toggle<&Settings::map, &Settings::Map::mapMarks>("map.mapMarks", "mapMarks", "mapMarks"),
+    toggle<&Settings::map, &Settings::Map::worldMapWaypoints>("map.worldMapWaypoints", "mapMarks", "mapMarkWaypoints"),
+    toggle<&Settings::map, &Settings::Map::worldMapSchematics>("map.worldMapSchematics", "mapMarks", "mapMarkSchematics"),
+    toggle<&Settings::map, &Settings::Map::worldMapShapes>("map.worldMapShapes", "mapMarks", "mapMarkShapes"),
+    choice<&Settings::map, &Settings::Map::marksShownOn, shownOnLabels>("map.marksShownOn", "mapMarks", "mapShownOn"),
     toggle<&Settings::map, &Settings::Map::radar>("map.radar", "radar", "mapRadar"),
+    choice<&Settings::map, &Settings::Map::radarShownOn, shownOnLabels>("map.radarShownOn", "radar", "mapShownOn"),
     toggle<&Settings::map, &Settings::Map::radarFaces>("map.radarFaces", "radar", "mapRadarFaces"),
     toggle<&Settings::map, &Settings::Map::radarPlayers>("map.radarPlayers", "radar", "mapRadarPlayers"),
     toggle<&Settings::map, &Settings::Map::radarHostile>("map.radarHostile", "radar", "mapRadarHostile"),
     toggle<&Settings::map, &Settings::Map::radarPassive>("map.radarPassive", "radar", "mapRadarPassive"),
     toggle<&Settings::map, &Settings::Map::radarItems>("map.radarItems", "radar", "mapRadarItems"),
     toggle<&Settings::map, &Settings::Map::radarInvisible>("map.radarInvisible", "radar", "mapRadarInvisible"),
+    toggle<&Settings::map, &Settings::Map::worldMapSlime>("map.worldMapSlime", "slimeChunks", "mapSlimeChunks"),
+    choice<&Settings::map, &Settings::Map::slimeShownOn, shownOnLabels>("map.slimeShownOn", "slimeChunks", "mapShownOn"),
     toggle<&Settings::map, &Settings::Map::waypoints>("map.waypoints", "waypoints", "mapWaypoints"),
     choice<&Settings::map, &Settings::Map::waypointsWorld, worldMarkerLabels>("map.waypointsWorld", "waypoints", "mapWaypointsWorld"),
     {"map.waypointDistance", "waypoints", "mapWaypointDistance",

@@ -25,7 +25,8 @@ inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "sneakPlacement" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
     if (id == "settings" || id == "gameLanguage" || id == "skipServerPacks" || id == "calculator" || id == "toasts" || id == "hudText" || id == "bookPaste") return "section.interface";
     if (id.starts_with("schematic")) return "section.schematic";
-    if (id == "minimap" || id == "mapText" || id == "radar" || id == "waypoints" || id == "worldMap") return "section.map";
+    if (id == "minimap" || id == "mapText" || id == "mapMarks" || id == "radar" || id == "slimeChunks" || id == "waypoints" || id == "worldMap")
+        return "section.map";
     return "section.information";
 }
 inline constexpr auto features = std::to_array<FeatureInfo>({
@@ -79,7 +80,9 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"minimap", "feature.minimap", "help.minimap", "map.minimap", true, input::Action::Minimap},
     // A heading for the minimap's text, without a switch of its own.
     {"mapText", "feature.mapText", "help.mapText", ""},
+    {"mapMarks", "feature.mapMarks", "help.mapMarks", "map.mapMarks", true, input::Action::ToggleMapMarks},
     {"radar", "feature.radar", "help.radar", "map.radar", true, input::Action::ToggleRadar},
+    {"slimeChunks", "feature.slimeChunks", "help.slimeChunks", "map.worldMapSlime", true, input::Action::ToggleSlimeChunks},
     {"waypoints", "feature.waypoints", "help.waypoints", "map.waypoints", true, input::Action::ToggleWaypoints},
     {"worldMap", "feature.worldMap", "help.worldMap", "map.worldMap", true, input::Action::ToggleWorldMap},
     {"schematic", "feature.schematic", "help.schematic", "schematic.enabled", true, input::Action::ToggleSchematic},

@@ -819,7 +819,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
             auto cameraOnMap = transform.toMap(cameraFacing.x, cameraFacing.z);
             overlay.cameraAngle = std::atan2(cameraOnMap.x, -cameraOnMap.z);
         }
-        if (settings.radar) {
+        if (settings.radar && onMinimap(settings.radarShownOn)) {
             RadarSwitches switches{settings.radarPlayers, settings.radarHostile, settings.radarPassive, settings.radarItems};
             faces::frame();
             bool withFaces = settings.radarFaces != facesHeld.load();
@@ -830,15 +830,15 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
                                      // A face is wider than a dot: keep it off the frame.
                                      withFaces ? 6 * marker * dotScale(blocksAcross(zoom)) : 3);
         }
-        // The world map's layer switches decide what the minimap shows, and
-        // one setting hides them all here (L-295).
-        bool layers = settings.minimapLayers;
-        overlay.slime = layers && settings.worldMapSlime && information::slimeChunksIn(view->dimension);
+        // Map marks, radar and slime chunks each choose their maps (L-297).
+        auto marks = shownMarks({settings.worldMapWaypoints, settings.worldMapSchematics, settings.worldMapShapes},
+                                settings.mapMarks, settings.marksShownOn, true);
+        overlay.slime = settings.worldMapSlime && onMinimap(settings.slimeShownOn) && information::slimeChunksIn(view->dimension);
         if (overlay.slime && state.slimeComposes != state.composes) {
             state.slime = slimeMask(transform, centerX, centerZ, blocks, pixels, state.slimeCache);
             state.slimeComposes = state.composes;
         }
-        if (settings.waypoints && layers && settings.worldMapWaypoints) {
+        if (settings.waypoints && marks.waypoints) {
             auto set = waypoints::current();
             double margin = 6 * marker;
             auto place = [&](double x, double z, int color, bool temporary = false) {
@@ -854,8 +854,8 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         }
         // Footprints (L-139): shapes under placements, each as its world map
         // switch says; hidden ones are left out.
-        auto areas = layers && settings.worldMapShapes ? shapeMarks(view->dimension) : std::vector<AreaMark>{};
-        auto placements = layers && settings.worldMapSchematics ? placementMarks(view->dimension) : std::vector<AreaMark>{};
+        auto areas = marks.shapes ? shapeMarks(view->dimension) : std::vector<AreaMark>{};
+        auto placements = marks.schematics ? placementMarks(view->dimension) : std::vector<AreaMark>{};
         areas.insert(areas.end(), placements.begin(), placements.end());
         for (auto const& mark : areas) {
             if (!mark.visible) continue;

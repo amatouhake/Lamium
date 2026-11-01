@@ -437,5 +437,7 @@ void worldMapTests() {
                         && g[static_cast<size_t>(y)][static_cast<size_t>(x)] == g[static_cast<size_t>(y)][static_cast<size_t>(size - 1 - x)];
         }
         check(symmetric, "a circle is the same mirrored and turned, at any small size");
+        check(radarDotShown(true, 1. / 256) && radarDotShown(false, 1) && radarDotShown(false, 2) && !radarDotShown(false, .75),
+              "the world map's radar shows players at any zoom, mobs from 1 unit per block in");
     }
 }

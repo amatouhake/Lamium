@@ -54,6 +54,8 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleEnglishSearch: field = &value.inspection.englishSearch; break;
     case Action::ToggleAutomationStatus: field = &value.ui.automationStatus; break;
     case Action::ToggleRadar: field = &value.map.radar; break;
+    case Action::ToggleMapMarks: field = &value.map.mapMarks; break;
+    case Action::ToggleSlimeChunks: field = &value.map.worldMapSlime; break;
     case Action::ToggleWaypoints: field = &value.map.waypoints; break;
     case Action::ToggleWorldMap: field = &value.map.worldMap; break;
     case Action::ToggleSchematic: field = &value.schematic.enabled; break;
