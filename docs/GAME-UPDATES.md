@@ -420,6 +420,13 @@ confirmed from the inventory, not from these events alone.
 Hooks: `Build`, `HandleBuild`, `Name`, `StartUse`
 Trace (`Name` is the macro that makes several hooks).
 
+### `src/features/interaction/SneakUseTrace.cpp`
+Hooks: `SneakTraceSend`, `Name`
+Trace (`sneak_trace`, L-293): read-only; the sneak bits of each sent
+`PlayerAuthInputPacket`, sent item-use transactions, and the sneak flag of the
+player whose `useItemOn` runs (the local player, and in a local world the
+server's copy). `Name` is the macro that makes the two `useItemOn` hooks.
+
 ### `src/features/inventory/BookPaste.cpp`
 Hooks: `BookScreenTick`, `BookScreenValid`, `PageBoxFocus`, `TextTrySet`, `ContextText`, `BookScreenOpen`, `TextCharKey`, `TextFits`, `ContextAction`, `PageParse`, `PageSetText`, `PageAddAt`, `ManagerEditPage`, `ManagerAddPage`, `BookEditSend`, `BookEditSendToServer`
 Meaning (L-259): `ContextText` is `TextEditContext::feedText`, where a paste

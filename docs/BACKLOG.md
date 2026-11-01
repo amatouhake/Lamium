@@ -660,7 +660,8 @@ Next: a trace-only experiment (no behavior change): on sneak + right
 click on a chest with a block, log which packet carries the use, the
 client tick of the auth input that first has `Sneaking`/`StartSneaking`,
 and when the local `ActorFlags::Sneaking` turns on - in a local world
-and on BDS. The maintainer decides between the two shapes (crouch and
+and on BDS (`xmake f --sneak_trace=y`, `SneakUseTrace.cpp`; built
+2026-11-01, results pending). The maintainer decides between the two shapes (crouch and
 delay vs. server risk) after it.
 
 In game (after it is built): with the toggle on, a block placed against
