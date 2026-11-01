@@ -51,8 +51,12 @@ std::optional<GhostAt> pickedGhost(LocalPlayer& player, HitResult const& hit) {
     }
     double reach = ghostReach(aimed, hitDistance, player.getPickRange());
     if (!(reach > 0)) return std::nullopt;
+    // `throughBlocks` says nothing solid lies within `reach`: true both when
+    // the game's own pick stopped at the hit we shortened for, and when it hit
+    // nothing at all (the feet fallback) — a block cell the walk grazes there
+    // is only the walk (L-224).
     return ghostAlong(player.getDimensionBlockSource(), static_cast<int>(player.getDimensionId()), from.x, from.y, from.z,
-                      way.x / length, way.y / length, way.z / length, reach, aimed);
+                      way.x / length, way.y / length, way.z / length, reach, true);
 }
 // The ghost's block as one item, as the game's own pick would give it: the
 // name and data value both paths use (skull kinds and monster eggs differ
