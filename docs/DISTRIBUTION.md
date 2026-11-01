@@ -174,9 +174,14 @@ Before publishing a managed release:
 - release notes call out settings-schema migrations when one exists;
 - release notes open with the independent-project notice from the README
   ("Not an official LeviMC product. Not approved by LeviMC and not associated
-  with LeviMC."), as LeviLamina's usage guidelines ask for every listing and
-  description; `tooth.json`'s description carries it for LIP, Bedrinth and
-  LeviLauncher;
+  with LeviMC. NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR
+  ASSOCIATED WITH MOJANG OR MICROSOFT."), as LeviLamina's and Minecraft's
+  usage guidelines ask for every listing and description; `tooth.json`'s
+  description carries both for LIP, Bedrinth and LeviLauncher;
+- the release's VALIDATION-LOG entry says where the attached assets were
+  built (the tag's CI artifact or a local build, with the commit), since
+  THIRD_PARTY_NOTICES tells users a release is built from its tag. Releases
+  up to 0.3.1 did not record it;
 - a managed-update smoke test is repeated when packaging, installer behavior or
   compatibility metadata changes.
 

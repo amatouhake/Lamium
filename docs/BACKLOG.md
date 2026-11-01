@@ -93,7 +93,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    **L-266 schematic follow-up batch** closed with the 0.3.1 release
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
-   (Design). L-196 license/provenance evidence; L-236 is a follow-up;
+   (Design). L-196 license/provenance review closed 2026-11-01; L-236 is a follow-up;
    L-295, L-296 and L-297 (map layers) are done 2026-11-01; remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
@@ -134,6 +134,9 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.3.1
 
+- Listings (L-196): after the next tag, the Bedrinth and LeviLauncher pages
+  show `tooth.json`'s description with both the LeviMC and the Minecraft
+  notices, and the release notes open with both.
 - Minimap camera arrow (L-286): while FreeCamera flies, the green arrow at
   the map center shows where the camera looks, turns with it and disappears
   when FreeCamera stops. It uses the minimap's existing arrow drawing; the
@@ -775,124 +778,6 @@ a rebuild because the key only covers visible fields. Needs a pure
 section-state helper and tests, renderer cache changes, and an in-game frame
 check on a large placement while stepping the cut. Not part of the current
 L-234 branch.
-
-### L-196 Review license notices, source access and provenance classification
-Kind: Research, then Ready for changes supported by the findings.
-Imported at the maintainer's request on 2026-10-15 from the current-tree
-follow-up in the [Notion license/provenance review](https://app.notion.com/p/3e7c12ab5b2d81f09eb2d7bf61cd81a2).
-Status: reviewed 2026-10-20 (findings below); P3-P5 done, P1 and P2 have
-outstanding items, mostly outside the repository. No release chosen. The
-source proposal covered public main / v0.2.1.
-Keep `LGPL-3.0-only` and the existing source-use boundaries in
-[PROVENANCE.md](PROVENANCE.md). This task does not approve importing outside
-source or changing the project license. Historical/private migration
-records stay outside the public repository.
-
-Work in the source proposal's priority order:
-
-1. **P1: independent-project notice.** Read LeviLamina's current Usage
-   Guidelines (English and Chinese) and EULA before deciding the required
-   wording. Check README, release descriptions and Bedrinth/LeviLauncher
-   listing text for a clear statement that Lamium is an independent
-   community project, not an official LeviMC product and not affiliated
-   with or endorsed by LeviMC. Add a supported notice where missing; record
-   which external surfaces were checked or still need an update. Do not
-   treat the proposal's missing-notice observation as a verified violation.
-2. **P2: corresponding source and distribution.** For GitHub Releases, LIP,
-   Bedrinth and LeviLauncher, trace the distributed DLL to its exact source
-   tag/commit, build instructions and dependency versions. Review SDK header
-   terms, generated import libraries and linking/distribution conditions.
-   Inspect the actual archive and its notices. If needed, add a source guide
-   to the ZIP or release text and enforce it in the package checks. A source
-   URL alone is not evidence that the whole distribution review is complete.
-3. **P3: earlier authored components, one-time check.** Check authorship and
-   third-party contributions in LaminaPeek, LaminaSort and LaminaView for
-   the code actually used by Lamium. Verify retained copyright/MIT notices
-   where required and record the scope and evidence in PROVENANCE / notices.
-   Do not assume sole ownership from the repository owner or an agent's
-   generated-code label.
-4. **P4: SPDX metadata.** Confirm the installed xmake accepts
-   `LGPL-3.0-only`, including dependency compatibility checks, before replacing
-   `set_license("LGPL-3.0")`. Keep project metadata and notices consistent.
-5. **P5: dependency classification.** Clarify direct source copies versus
-   external packages/header-only dependencies compiled into the DLL, notably
-   nlohmann/json in PROVENANCE group 2. Preserve its notice and the rule that
-   new source incorporation needs an explicit provenance record.
-
-Quick Container remains reference-only under the existing PROVENANCE entry;
-no additional action is proposed for the already recorded behavior-only
-L-169 observation. Its pack files/source/assets must not be opened for this
-task. Comparisons and legal analyses remain in external research notes;
-repository docs record concrete dependency facts, decisions and work status.
-
-Files to inspect: `README.md`, `THIRD_PARTY_NOTICES.md`,
-`docs/PROVENANCE.md`, `docs/DISTRIBUTION.md`, `xmake.lua`, release workflow,
-`scripts/Check-Package.ps1`, `scripts/New-ReleaseArchive.ps1` and package
-metadata. Acceptance: dated source/evidence references and resolved or
-explicitly outstanding findings for P1-P5; build and LamiumTests pass for
-changes, package/archive checks for packaging changes. Do not claim a full
-similarity audit or legal clearance from this bounded review.
-
-Findings (review of 2026-10-20 against main `f37d3d2` and release v0.2.3;
-not a legal opinion):
-
-- **P1, partly done.** Sources read: LeviLamina `main` at `4ca1356`,
-  `EULA.en.md`/`EULA.zh.md` (version 0.2.0, 2025-01-20) and
-  `docs/main/contents/common_guides/usage_guidelines.{en,zh}.md` (first
-  official version 2025-01-04; the Chinese text prevails). The EULA covers
-  LeviMC's closed-source software (PreLoader, PeEditor); Lamium does not
-  ship it. The usage guidelines ask anyone using the LeviLamina name to
-  avoid implying official status and to show, prominently on products,
-  listings and descriptions: "Not an official LeviMC product. Not approved
-  by LeviMC and not associated with LeviMC." (zh: "非官方 LeviMC 产品。未获得
-  LeviMC 批准，与 LeviMC 无关联。"), and to state who is responsible and how
-  to reach them. Before this review neither the README nor the v0.2.3
-  release text carried it. Done: the README opens with the notice and the
-  responsible maintainer and contact; `tooth.json`'s description carries it
-  (reaches LIP, Bedrinth and LeviLauncher with the next tag); the DISTRIBUTION
-  release checklist requires it in release notes. Outstanding: the published
-  v0.2.0-v0.2.3 release texts (the maintainer edits them on GitHub or lets
-  the next release carry it); the Bedrinth and LeviLauncher pages could not
-  be opened from the review environment and need a look after the next tag;
-  whether an in-game notice is wanted (a UI choice, not decided here);
-  Minecraft's own usage guidelines, which LeviMC's guidelines defer to for
-  sharing, could not be fetched and their disclaimer is not yet checked.
-- **P2, partly done.** Inspected the published
-  `Lamium-0.2.3-client-windows-x64.zip` (SHA-256
-  `14c87daeb55e28b55bee87e5e0e2234cd232435e3ac804a5e5adf8bbb4ef9f05`, as
-  GitHub's asset digest): `Lamium.dll`, `manifest.json` (0.2.3), COPYING,
-  COPYING.LESSER, THIRD_PARTY_NOTICES.md and 22 license files; no Minecraft
-  or LeviLamina binaries, no `.lib`. Its DLL imports `LeviLamina.dll`,
-  `bedrock_runtime.dll`, the MSVC runtime and Windows system DLLs only. Tag
-  v0.2.3 is `1040eaf`; LIP/Bedrinth/LeviLauncher install the same asset
-  (tooth.json URL). Zstandard is absent from that DLL and its notice; it
-  arrived after 0.2.3 with its notice. The build tools found: LeviBuildScript
-  0.6.1's link rule runs LiteLDev's prelink v0.8.6 (binary release, no
-  license file found) on bedrock-runtime-data (MIT) to make
-  `bedrock_runtime_api.lib`; the SDK recipe makes `LeviLamina.lib` from the
-  release DLL. Done: THIRD_PARTY_NOTICES (shipped in the ZIP) names the
-  source repository, the matching tag, the build steps and the lock file,
-  and records both generated import libraries; PROVENANCE says how each
-  dependency enters the build. Outstanding: the terms of the SDK's `mc/`
-  headers and of prelink's output (no license text found for either beyond
-  LeviLamina's COPYING); whether the release assets are built from the tag
-  by CI or locally (to state in DISTRIBUTION); a package-check rule that the
-  source section stays was not added (the shipped file is already compared
-  with the tracked one by `Check-Package.ps1`).
-- **P3, done.** LaminaPeek, LaminaSort and LaminaView: history and licenses
-  recorded in PROVENANCE group 2 and THIRD_PARTY_NOTICES. No third-party
-  human contribution after each repository's start was found; LaminaPeek's
-  older history is levilamina-mod-template's (CC0-1.0 since 2023-12-10).
-- **P4, done.** In xmake v3.1.1 (the CI version) and v3.1.2,
-  `set_license` stores the string unchecked and the package license check
-  only tests the `LGPL-` / `GPL-` prefix (`core/base/license.lua`), so
-  `LGPL-3.0-only` behaves as `LGPL-3.0` did. Changed in `xmake.lua`; CI run
-  821 on `cb1b95a` built, tested and package-checked it on Windows.
-- **P5, done.** nlohmann/json moved from PROVENANCE group 2 to group 1: it is
-  a header-only xmake package compiled into the DLL, not source copied into
-  the repository. No outside source file was found under `src/`, `tests/` or
-  `scripts/`; `src/app/MemoryOperators.cpp` is the template's two-line
-  memory-operator file, now listed with the template.
 
 ### L-190 Select several rows at once in list screens
 Kind: Design. Maintainer idea 2026-10-14; no implementation or release chosen.

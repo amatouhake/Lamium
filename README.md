@@ -11,7 +11,8 @@
 
 > [!NOTE]
 > Not an official LeviMC product. Not approved by LeviMC and not associated
-> with LeviMC. Lamium is an independent community project, published and
+> with LeviMC. NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR
+> ASSOCIATED WITH MOJANG OR MICROSOFT. Lamium is an independent community project, published and
 > maintained by amatouhake, who is responsible for it. Contact:
 > [GitHub issues](https://github.com/amatouhake/Lamium/issues), or a private
 > report from the repository's Security tab.
