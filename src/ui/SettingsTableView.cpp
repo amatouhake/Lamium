@@ -702,17 +702,17 @@ std::string linkTitle(input::Link link) {
 }
 // Lists every binding related to the action's chord, grouped by how it
 // relates, below the key cell (above it when there is more room there).
-void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current, SettingsTable const& t, int row,
+bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current, SettingsTable const& t, int row,
                      input::Action action, bool hoveredKey) {
     auto const preferences = Runtime::instance().preferences();
     auto const chord = input::effectiveChord(preferences.bindings, action);
-    if (chord.empty()) return;
+    if (chord.empty()) return false;
     auto const conflicts = input::bindingConflicts(preferences.bindings, action);
     auto const keys = chordKeys(current, chord);
     // Hovering the key cell reveals a binding only when the cell clips it; the
     // keyboard tip still appears only when there is a conflict (L-235).
-    if (!hoveredKey && conflicts.empty()) return;
-    if (hoveredKey && conflicts.empty() && keycapsWidth(context, keys) <= t.keyWidth) return;
+    if (!hoveredKey && conflicts.empty()) return false;
+    if (hoveredKey && conflicts.empty() && keycapsWidth(context, keys) <= t.keyWidth) return false;
     constexpr float pad = 4, headHeight = 15, lineHeight = 12, titleHeight = 13, itemHeight = 14;
     // Size the tip to the chord it reveals: the count on the right must not
     // squeeze the caps the row clipped (L-235).
@@ -790,6 +790,7 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     }
     if (shown < conflicts.size())
         label(context,x+pad,cursor+1,inner,translated("tip.more", std::to_string(conflicts.size() - shown)),palette::faint);
+    return true;
 }
 // The full version line and shared reasons for unavailable capabilities.
 void drawVersionTip(MinecraftUIRenderContext& context, SettingsTable const& t, SettingsTable::Hit const& hover) {
@@ -813,13 +814,14 @@ void drawVersionTip(MinecraftUIRenderContext& context, SettingsTable const& t, S
 }
 // A stepper value cut with "..." shows whole below the stepper, like a key
 // cell that clips its binding: on hover, or for the keyboard-selected row.
-void drawValueTip(MinecraftUIRenderContext& context, SettingsTable const& t, SettingsTable::Hit const& hover) {
+// `taken`: the row whose conflict tip is already in that place.
+void drawValueTip(MinecraftUIRenderContext& context, SettingsTable const& t, SettingsTable::Hit const& hover, int taken) {
     if (editingNumber_) return;
     int row = -1;
     if (hover.zone == Zone::Row && valid(hover.index) && rows[hover.index].kind == RowKind::Option
         && t.stepperPart(hover.x, optionAction(rows[hover.index].option->id).has_value()) != 2) row = hover.index;
     else if (keyboardTip && valid(selected)) row = selected;
-    if (row < t.first || row >= t.first + t.visible || rows[row].kind != RowKind::Option) return;
+    if (row == taken || row < t.first || row >= t.first + t.visible || rows[row].kind != RowKind::Option) return;
     auto const& option = *rows[row].option;
     auto value = option.read(Runtime::instance().preferences());
     if (std::holds_alternative<bool>(value) || (option.numeric && option.numeric->step > 0)) return;
@@ -1134,11 +1136,13 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         }
         label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
     }
+    int conflictRow = -1;
     if (!capturing_ && !findingKey)
         if (auto target = tipTarget(t, hover))
-            drawConflictTip(context,current,t,target->first,target->second,
-                hover.zone == Zone::Row && hover.column == Column::Key);
-    if (!capturing_ && !findingKey) drawValueTip(context, t, hover);
+            if (drawConflictTip(context,current,t,target->first,target->second,
+                    hover.zone == Zone::Row && hover.column == Column::Key))
+                conflictRow = target->first;
+    if (!capturing_ && !findingKey) drawValueTip(context, t, hover, conflictRow);
     drawVersionTip(context, t, hover);
     context.flushText(0,std::nullopt);
 }
