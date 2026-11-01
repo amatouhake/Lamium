@@ -5081,6 +5081,38 @@ two new sprite paths load (icons appear at all).
 
 ## Design
 
+### L-294 Water icons in Lamium screens draw untinted white
+
+Kind: Design. Maintainer report 2026-11-01 (clarified the same day): the
+water icon in the target card and in the schematic materials list is
+white. Ghosts in the world and the 3D preview are colored correctly. The
+icon is the water block's own item drawn by the game's item renderer
+(`describe` in `GhostBlocks.cpp`, `blockIcon` in `TargetInfo.cpp`), and
+water's texture is gray until the game tints it by biome, which the item
+render does not do. Faithful to the texture, but it reads wrong.
+Decided 2026-11-01 (maintainer): tint the water icon water blue, rather
+than showing a bucket or leaving it. Lava's texture is already colored.
+Approach (not built): water and flowing water draw as the water block's
+own texture through the texture icon path (`imageUv`, `Widgets.cpp`),
+whose `ui_textured_and_glcolor` flush multiplies by a color; pass the
+same fixed water color the world and preview shells use (`liquidShell`,
+`GhostBlocks.cpp`), shared from one constant, not the biome color. The
+target card already has texture icons (`blockIcon`); the materials list
+draws item icons only and needs the texture case. Kind: Ready (strong
+model) once this approach is accepted.
+Status 2026-11-01: built (`1f392e99`), then animated: stepping the
+source file's frames (`7c555d9b`) was choppy, so water draws its
+`atlas.terrain` tile, which the game animates and blends (`f08f04a0`).
+`waterColor` (`LiquidName.h`) is shared with `liquidShell`;
+`textureIcon`/`blockIcon` (`TargetInfo.cpp`) give water a tinted texture
+icon, and `drawWaterIcon` (`InfoHud.cpp`) draws a water stack that way in
+the card's schematic rows and every SchematicsView item icon (materials,
+Check). In game: the card aimed at water or a water ghost, and the
+materials list of a schematic with water, show a blue water icon.
+
+Closed 2026-11-01: checked in game on `f08f04a0` (local) -
+VALIDATION-LOG 2026-11-01.
+
 ### L-264 Target View: schematic water and flowing water
 Kind: Design details, then Research. User feedback 2026-10-26 (same thread
 as L-262): show in Target View whether a schematic cell holds a water

@@ -79,8 +79,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    with L-285 (ghost pick at the feet block) after its trace.
    L-292 (Fake Offhand key without primary
    priority) is closed (checked 2026-11-01). L-293 (placement as if
-   sneaking, toggle) is closed (2026-11-01). L-294 (white water ghosts) is
-   Design.
+   sneaking, toggle) is closed (2026-11-01). L-294 (water icons) is closed
+   (2026-11-01).
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -474,34 +474,6 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
-
-### L-294 Water icons in Lamium screens draw untinted white
-
-Kind: Design. Maintainer report 2026-11-01 (clarified the same day): the
-water icon in the target card and in the schematic materials list is
-white. Ghosts in the world and the 3D preview are colored correctly. The
-icon is the water block's own item drawn by the game's item renderer
-(`describe` in `GhostBlocks.cpp`, `blockIcon` in `TargetInfo.cpp`), and
-water's texture is gray until the game tints it by biome, which the item
-render does not do. Faithful to the texture, but it reads wrong.
-Decided 2026-11-01 (maintainer): tint the water icon water blue, rather
-than showing a bucket or leaving it. Lava's texture is already colored.
-Approach (not built): water and flowing water draw as the water block's
-own texture through the texture icon path (`imageUv`, `Widgets.cpp`),
-whose `ui_textured_and_glcolor` flush multiplies by a color; pass the
-same fixed water color the world and preview shells use (`liquidShell`,
-`GhostBlocks.cpp`), shared from one constant, not the biome color. The
-target card already has texture icons (`blockIcon`); the materials list
-draws item icons only and needs the texture case. Kind: Ready (strong
-model) once this approach is accepted.
-Status 2026-11-01: built (`1f392e99`), not yet checked in game.
-`waterColor` (`LiquidName.h`) is shared with `liquidShell`;
-`textureIcon`/`blockIcon` (`TargetInfo.cpp`) give water a tinted texture
-icon, and `drawWaterIcon` (`InfoHud.cpp`) draws a water stack that way in
-the card's schematic rows and every SchematicsView item icon (materials,
-Check). In game: the card aimed at water or a water ghost, and the
-materials list of a schematic with water, show a blue water icon.
-No release target selected.
 
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which

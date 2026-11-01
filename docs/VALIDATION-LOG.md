@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Water icons in the target card and schematic screens (L-294, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `f08f04a0`, DLL
+SHA-256 `8ACC10B7657FB57A02CB436C8E1E96A1469AF8A717FFBDCA093F597CE27EFBA5`, trace options off. The maintainer: the water icon in the
+target card and the schematic materials list is blue and moves at the
+vanilla pace and smoothness; nothing is missing or replaced; lava and
+other block icons are unchanged. Earlier builds the same day: `1f392e99`
+(tinted, first frame only: blue but still) and `7c555d9b` (stepping the
+source file's frames: choppy and off pace, since the game blends frames);
+`f08f04a0` draws water's tile of `atlas.terrain`, which the game animates.
+
 ## Indirect feet hit and Fake Offhand reach fixes (L-285, L-290, 2026-11-01)
 
 Trace build of `938a630c` (`pick_trace`, `offhand_trace`), DLL SHA-256
