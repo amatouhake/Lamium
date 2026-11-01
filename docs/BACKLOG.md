@@ -745,7 +745,7 @@ chunk: Yes/No" after Chunk (Overworld only, hidden elsewhere, follows
 FreeCamera), " | Slime chunk" on the Debug View block/chunk line in both
 label styles, and a world map layer switch "Slime chunks" (Overworld only,
 default off): a green wash with a frame per row run while a chunk is at
-least 8 GUI units, the place under the pointer names a slime chunk at any
+least 8 GUI units (4 since 2026-11-01, the maintainer wanted it farther out), the place under the pointer names a slime chunk at any
 zoom, and the switch's hover text says to zoom in when it is too far out.
 Minimap and a world overlay stay out (maintainer 2026-11-01). The
 `help.debugView` text is corrected in all four languages.

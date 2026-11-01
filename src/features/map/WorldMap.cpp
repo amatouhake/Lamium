@@ -968,7 +968,7 @@ struct MarkName {
 // mark. Drawn only while a chunk is big enough to tell apart; the place
 // under the pointer names it at any zoom.
 constexpr std::uint32_t slimeColor = waypointColors[3];
-constexpr double slimeMinUnitsPerChunk = 8;
+constexpr double slimeMinUnitsPerChunk = 4;
 information::SlimeChunkCache slimeCache;
 bool slimeShown() { return state.dimension == 0 && Runtime::instance().preferences().map.worldMapSlime; }
 bool slimeDrawable() { return state.view.scale() * 16 >= slimeMinUnitsPerChunk; }
