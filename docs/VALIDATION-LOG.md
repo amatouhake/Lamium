@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Sneak placement "Send only" with the shorter sneak, BDS (L-293, 2026-11-01)
+
+Same local test BDS, commit `82fe066f`, DLL SHA-256
+`D95FB96466D2A48ED805AB015EDD91B8BEFA5289D5BC938F8531ED7E6F73BF46`, method
+"Send only". The maintainer: walking and running along chests while placing,
+the brief slowdown is lighter but still there; standing still, blocks are
+placed as before. "Crouch briefly" slows and disturbs movement more. The
+maintainer prefers "Send only" as the default; whether "Crouch briefly"
+stays as an option is open.
+
 ## Sneak placement "Send only" on BDS (L-293, 2026-11-01)
 
 Local test BDS 1.26.51.1 (`bds-1.26.51.1`, world `lamium-edge`, repaired by
