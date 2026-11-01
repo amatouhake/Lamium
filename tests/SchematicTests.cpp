@@ -1190,6 +1190,22 @@ void verificationOrder() {
           "materials list the most remaining first and finished lines last");
     check(itemsPerBlock("minecraft:oak_double_slab", false) == 2 && itemsPerBlock("minecraft:wooden_door", true) == 0
           && itemsPerBlock("minecraft:stone", false) == 1, "double slabs need two items; second halves none");
+    // L-289: a liquid source needs a bucket, a flowing cell is filled by the game.
+    auto count = [](std::string_view name, std::optional<int> depth, bool secondHalf = false) {
+        PaletteBlock entry{std::string(name), {}, 18168865};
+        if (depth) entry.states.set("liquid_depth", {static_cast<std::int8_t>(*depth)});
+        return materialsCount(entry, secondHalf);
+    };
+    check(count("minecraft:water", 0) == 1 && count("minecraft:water", 8) == 0
+          && count("minecraft:flowing_water", 8) == 0 && count("minecraft:water", std::nullopt) == 1
+          && count("minecraft:lava", 0) == 1 && count("minecraft:lava", 2) == 0
+          && count("minecraft:flowing_lava", 6) == 0,
+          "a liquid source needs one item; a flowing liquid cell needs none");
+    PaletteBlock waterlogged{"minecraft:oak_stairs", {}, 18168865};
+    waterlogged.states.set("waterlogged_bit", {std::int8_t{1}});
+    check(materialsCount(waterlogged, false) == 1 && count("minecraft:stone", std::nullopt) == 1
+          && count("minecraft:oak_double_slab", std::nullopt) == 2 && count("minecraft:wooden_door", std::nullopt, true) == 0,
+          "waterlogged and ordinary blocks keep their item count");
 }
 }
 void otherHalves() {

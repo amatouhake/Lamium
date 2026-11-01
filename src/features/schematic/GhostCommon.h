@@ -24,6 +24,8 @@ bool blended(BlockRenderLayer layer);
 // What one palette entry asks the player to place.
 struct ItemInfo {
     std::string item, name, icon; // icon: the item as binary NBT for ItemStack::fromTag
+    // Items one cell of this entry asks for: 0 for a second half or a flowing
+    // liquid cell, which the game fills from a source (L-289).
     int perBlock = 1;
 };
 // The game block for a palette entry, looked up again each call.

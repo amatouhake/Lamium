@@ -68,4 +68,22 @@ inline int itemsPerBlock(std::string_view blockName, bool secondHalf) {
     if (secondHalf) return 0;
     return blockName.ends_with("double_slab") ? 2 : 1;
 }
+// A liquid cell that is not a source (liquid_depth above 0) is filled by the
+// game from a source, so it asks for no item of its own (L-289). A depth of 0
+// is a source, and a plain liquid entry without the state counts as one.
+inline bool flowingLiquid(PaletteBlock const& entry) {
+    if (entry.name != "minecraft:water" && entry.name != "minecraft:flowing_water"
+        && entry.name != "minecraft:lava" && entry.name != "minecraft:flowing_lava")
+        return false;
+    std::int64_t depth = 0;
+    auto const* state = entry.states.find("liquid_depth");
+    return state && state->integer(depth) && depth > 0;
+}
+// How many items one placed cell of `entry` asks for: a flowing liquid cell
+// asks for none, every other cell for what its block does (L-289). The
+// materials line stays as long as the schematic holds the liquid, so a pool
+// whose cells all flow shows with nothing left to place.
+inline int materialsCount(PaletteBlock const& entry, bool secondHalf) {
+    return flowingLiquid(entry) ? 0 : itemsPerBlock(entry.name, secondHalf);
+}
 }
