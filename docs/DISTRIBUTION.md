@@ -171,8 +171,9 @@ Release assets are built by CI from the tag, not on a local machine:
 3. The tag's `Build and test` run builds, tests and checks the package, runs
    `New-ReleaseArchive.ps1`, and its `draft-release` job creates a draft
    release "Lamium <version>" with the ZIP and the symbols ZIP attached. The
-   draft body opens with the notices; a hidden comment gives the commit, the
-   run and both assets' SHA-256, and the run summary the SHA-256.
+   draft body starts with the one-line description and the notices; a hidden
+   comment gives the commit, the run and both assets' SHA-256, and the run
+   summary the SHA-256.
 4. Write the release notes under the notice and publish the draft. Re-running
    the job replaces the assets of a draft but refuses a published release.
 
@@ -194,7 +195,9 @@ Before publishing a managed release:
   separators;
 - the pushed tag is `v<version>`, and its CI run passes;
 - release notes call out settings-schema migrations when one exists;
-- release notes open with the independent-project notice from the README
+- release notes start with the one-line description, then the
+  independent-project notice from the README as a quote, then the supported
+  versions (maintainer, 2026-11-01: the notice must be prominent, not first)
   ("Not an official LeviMC product. Not approved by LeviMC and not associated
   with LeviMC. NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR
   ASSOCIATED WITH MOJANG OR MICROSOFT."), as LeviLamina's and Minecraft's

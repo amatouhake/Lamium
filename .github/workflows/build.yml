@@ -100,7 +100,9 @@ jobs:
             gh release upload "$TAG" "${files[@]}" --clobber
           else
             {
-              echo 'Not an official LeviMC product. Not approved by LeviMC and not associated with LeviMC. NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.'
+              echo 'Lamium, client-side quality-of-life tools for Minecraft Bedrock and LeviLamina Client.'
+              echo
+              echo '> Not an official LeviMC product. Not approved by LeviMC and not associated with LeviMC. NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.'
               echo
               echo "<!-- Draft made by CI from $GITHUB_SHA, run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
               echo "$sums"
