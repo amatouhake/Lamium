@@ -494,6 +494,13 @@ same fixed water color the world and preview shells use (`liquidShell`,
 target card already has texture icons (`blockIcon`); the materials list
 draws item icons only and needs the texture case. Kind: Ready (strong
 model) once this approach is accepted.
+Status 2026-11-01: built (`1f392e99`), not yet checked in game.
+`waterColor` (`LiquidName.h`) is shared with `liquidShell`;
+`textureIcon`/`blockIcon` (`TargetInfo.cpp`) give water a tinted texture
+icon, and `drawWaterIcon` (`InfoHud.cpp`) draws a water stack that way in
+the card's schematic rows and every SchematicsView item icon (materials,
+Check). In game: the card aimed at water or a water ghost, and the
+materials list of a schematic with water, show a blue water icon.
 No release target selected.
 
 ### L-249 Show the chunks within simulation distance
