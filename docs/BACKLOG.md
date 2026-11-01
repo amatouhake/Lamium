@@ -295,8 +295,13 @@ Status 2026-11-01: built (`16443e31` plus `9e759986`, branch
 `l285-pick-feet-fallback`), not yet checked in game. `PickRay.h` holds
 `onRay` and `ghostReach` (pure, table-tested in
 `tests/SchematicTests.cpp`); `pickedGhost` (`GhostPick.cpp`) asks them
-and passes `throughBlocks` true, because within the reach the game's own
-pick hit nothing solid (L-224).
+and passes `throughBlocks` for an aimed hit or the feet fallback, because
+within the reach the game's own pick hit nothing solid (L-224); with no
+game hit, or an entity off the ray, a real block still stops the search.
+The target card (`TargetInfo.cpp`) applies the same `onRay` test, so the
+feet fallback no longer shortens its ghost search either and the card
+names the ghost the pick brings. Open: whether `HitResult::mIndirectHit`
+marks the fallback (a trace would tell; it could replace the tolerance).
 No release target selected.
 
 
