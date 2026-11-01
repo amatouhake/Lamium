@@ -20,6 +20,10 @@ foreach ($relative in @('COPYING', 'COPYING.LESSER', 'THIRD_PARTY_NOTICES.md')) 
 }
 $licenseRoot = Join-Path $projectDirectory 'licenses'
 $noticeText = Get-Content -LiteralPath (Join-Path $projectDirectory 'THIRD_PARTY_NOTICES.md') -Raw
+if ($noticeText -notmatch '(?m)^## Lamium source\r?$' -or
+    -not $noticeText.Contains('https://github.com/amatouhake/Lamium')) {
+    throw 'THIRD_PARTY_NOTICES.md must keep its Lamium source section.'
+}
 $referencedLicenses = [regex]::Matches($noticeText, '\]\((licenses/[^)]+)\)') |
     ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
 foreach ($relative in $referencedLicenses) {

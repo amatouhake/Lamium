@@ -5,7 +5,7 @@
   "version": "0.3.1",
   "info": {
     "name": "Lamium",
-    "description": "Client-side quality-of-life tools for LeviLamina Client. Not an official LeviMC product; not approved by or associated with LeviMC.",
+    "description": "Client-side quality-of-life tools for LeviLamina Client. Not an official LeviMC product; not approved by or associated with LeviMC. Not an official Minecraft product; not approved by or associated with Mojang or Microsoft.",
     "tags": [
       "platform:levilamina",
       "type:mod"
