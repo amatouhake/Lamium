@@ -1425,6 +1425,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"bookPaste", "跨頁貼上: {}"},
     {"key.Lamium.bookpaste", "切換書與筆跨頁貼上"},
     {"bookPaste.tooManyPages", "需要 {} 頁，可用 {} 頁"},
+    {"bookPaste.restDropped", "只貼上了第一頁"},
     {"feature.hudText", "HUD 文字"},
     {"help.hudText", "資訊 HUD、狀態行和偵錯畫面的行高，以及 HUD 背景的深淺。"},
     {"hudXYZ", "XYZ: {:.1f}, {:.1f}, {:.1f}"},

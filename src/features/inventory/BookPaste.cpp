@@ -289,6 +289,9 @@ void applyPages(BookScreenController& controller) noexcept {
     if (!decision.apply()) {
         BOOK_PASTE_TRACE("paste apply skipped={} index={} extra={} pages={} text {}", applySkipReason(decision.skip),
                          plan->index, plan->extra.size(), count, sizes(pageText));
+        // The first page is already in; the rest stays on the clipboard only.
+        if (decision.skip != ApplySkip::Screen)
+            try { ui::showWarningToast(ui::translated("bookPaste.restDropped")); } catch (...) {}
         return;
     }
     try {
@@ -304,6 +307,12 @@ void applyPages(BookScreenController& controller) noexcept {
             controller._parsePageText(decision.index + static_cast<int>(k));
         controller.mForceUIRefresh = true;
         controller.mShouldRefreshText = true;
+        {
+            // Adding pages rebuilds the page UI and may free the box; the next
+            // paste waits for it to be seen again (focus or a text set).
+            std::lock_guard lock(stateMutex);
+            screen.box = nullptr;
+        }
         BOOK_PASTE_TRACE("paste apply index={} added={} pages={}->{}", decision.index, decision.add, count,
                          static_cast<int>(controller.mPages.get().size()));
     } catch (std::exception const& error) {

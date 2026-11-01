@@ -1452,6 +1452,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"bookPaste", "Paste across pages: {}", "ページまたぎの貼り付け: {}"},
     {"key.Lamium.bookpaste", "Toggle book paste across pages", "本への貼り付けをページまたぎの切り替え"},
     {"bookPaste.tooManyPages", "Needs {} pages, {} free", "{}ページ必要、空き{}ページ"},
+    {"bookPaste.restDropped", "Only the first page was pasted", "最初のページだけ貼り付けました"},
     {"feature.hudText", "HUD text", "HUD の文字"},
     {"help.hudText", "Line height of the Info HUD, the status lines and the Debug View, and the darkness of HUD backgrounds.",
         "Info HUD、状態表示、デバッグ表示の行の高さと、HUD の背景の濃さです。"},

@@ -1425,6 +1425,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"bookPaste", "跨页粘贴: {}"},
     {"key.Lamium.bookpaste", "切换书与笔跨页粘贴"},
     {"bookPaste.tooManyPages", "需要 {} 页，可用 {} 页"},
+    {"bookPaste.restDropped", "只粘贴了第一页"},
     {"feature.hudText", "HUD 文字"},
     {"help.hudText", "信息 HUD、状态行和调试视图的行高，以及 HUD 背景的深浅。"},
     {"hudXYZ", "XYZ: {:.1f}, {:.1f}, {:.1f}"},
