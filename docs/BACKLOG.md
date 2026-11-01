@@ -800,10 +800,13 @@ switches:
   keep it as it is (it does no harm); settled for now. Revisit only if the
   world map stops being experimental and that changes the picture.
 ### L-297 Map layers as marks and information
-Kind: Ready, built 2026-11-01, waiting for the in-game check. Labels
-(maintainer 2026-11-01): "minimap and world map / world map only / minimap
-only" (Japanese with のみ); check how they fit at the standard UI size and
-shorten only if they are cut off. Supersedes L-295's "Map layers" setting and L-296's
+Kind: Ready, built and checked 2026-11-01 (`5d620afb`, VALIDATION-LOG);
+the shortened labels below wait for a look. Labels: first "minimap and world
+map / world map only / minimap only"; at UI Profile 75 % only "minimap
+only" fitted, and "minimap and world map" started like "minimap only", so
+they are now "Both / World map / Minimap" with the help text explaining
+them (maintainer 2026-11-01). The Information panel's blocked hint keeps
+"Minimap only" (`worldMap.minimapOnly`). Supersedes L-295's "Map layers" setting and L-296's
 first point. The five things drawn on the maps are two kinds:
 - **Marks**, placed by the player: waypoints (with the death point),
   schematic placements, shapes. They have names, side panel lists and

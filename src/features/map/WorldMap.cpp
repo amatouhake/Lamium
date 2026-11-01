@@ -1553,7 +1553,7 @@ void drawInfoPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         ui::label(context, x + 12, y + 3 + inset, w - 60, ui::translated(slime ? "feature.slimeChunks" : "feature.radar"),
                   why ? ui::palette::faint : ui::palette::text);
         if (why) {
-            auto hint = ui::translated(slime && state.dimension != 0 ? "worldMap.overworldOnly" : "shownOn.minimap");
+            auto hint = ui::translated(slime && state.dimension != 0 ? "worldMap.overworldOnly" : "worldMap.minimapOnly");
             float hw = ui::textWidth(context, hint);
             ui::label(context, left + w - 5 - hw, y + 3 + inset, hw + 2, hint, ui::palette::faint);
         } else {

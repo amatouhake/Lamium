@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Map marks and information headings (L-297, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, `5d620afb`, DLL SHA-256
+`8C9CD29C5DB72CDCB8C7AE1396C21C9AE13D386D926A270C66F3566F78CDDE91`, trace
+options off, maintainer.
+- Settings: the map section reads Minimap, Map marks, Radar, Slime chunks,
+  Waypoints, World map. Seen: at UI Profile 75 % the "Shown on" choices were
+  cut except "Minimap only", and "Minimap and world map" read like "Minimap
+  only"; shortened afterwards (not yet seen).
+- Map marks "Shown on" the minimap only, and Map marks off: the world map's
+  three mark switches drawn disabled, with the reason on hover. As expected.
+- The Information panel switched slime chunks and the radar, on the minimap
+  too as their "Shown on" said; slime chunks stayed off the minimap by
+  default. As expected.
+- The world map's radar drew mobs and items from two steps out from the
+  default zoom in, players at any zoom. As expected.
+
 ## Shapes and schematic placements told apart on the maps (L-296, 2026-11-01)
 
 Local world, LeviLauncher instance `1.26.51.01 LIP`, trace options off,
