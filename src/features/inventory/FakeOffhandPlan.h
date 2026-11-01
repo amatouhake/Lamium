@@ -108,6 +108,20 @@ inline TargetUse targetUseOf(ItemTraits const& item, bool shovelTag, bool hoeTag
     if (id == "bucket" || id == "glass_bottle") return TargetUse::Fill;
     return TargetUse::None;
 }
+// L-290: whether a bucket's ordinary use cannot act on this aim. A pour bucket
+// (water, lava, powder snow) needs a block face to pour on; with none it is
+// already full and has nothing to fill, whatever lies along the ray. A fish
+// bucket can also put its fish into aimed liquid, which keeps it primary. The
+// empty bucket needs liquid to collect; milk is drunk anywhere and is never
+// idle. `name`: the item name as the game reports it; `air`: no block face in
+// reach. Other buckets and namespaces stay primary.
+inline bool bucketIdle(std::string_view name, bool air, bool liquidAimed) {
+    auto id = detail::vanillaId(name);
+    if (!air || id.empty()) return false;
+    if (detail::any(id, {"water_bucket", "lava_bucket", "powder_snow_bucket"})) return true;
+    return detail::any(id, {"bucket", "cod_bucket", "salmon_bucket", "tropical_fish_bucket",
+        "pufferfish_bucket", "axolotl_bucket", "tadpole_bucket"}) && !liquidAimed;
+}
 // Whether the primary item's ordinary use cannot act on this aim. Interactive
 // blocks and entities are decided before this and keep vanilla priority.
 // `plainTarget`: a solid block without a block entity. Items act on special
@@ -119,7 +133,8 @@ inline TargetUse targetUseOf(ItemTraits const& item, bool shovelTag, bool hoeTag
 // state, the tool lists above); none when unread or the item has none, which
 // keeps vanilla priority. `idle`: the item's use cannot act now (a bow
 // without arrows or Riptide out of water and rain anywhere; a firework while
-// not gliding or an empty bucket or bottle at no liquid, aimed at nothing).
+// not gliding, an empty bucket or bottle at no liquid, or a filled bucket with
+// no block face to pour on, aimed at nothing).
 inline bool primaryPass(ItemTraits const& item, bool blockTarget, bool cannotEat, bool plainTarget = true,
                         std::optional<bool> targetUse = std::nullopt, bool idle = false) {
     if (item.empty) return true;

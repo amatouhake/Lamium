@@ -2,6 +2,7 @@
 #include "features/information/SchematicTarget.h"
 #include "features/information/TargetPick.h"
 #include "features/schematic/GhostRenderer.h"
+#include "features/schematic/LiquidName.h"
 #include "features/schematic/PickRay.h"
 #include "features/schematic/RayCells.h"
 #include "features/schematic/SchematicSession.h"
@@ -56,11 +57,7 @@ Pick pickAlong(LocalPlayer& player, ViewRay const& ray) {
     };
     auto& source = player.getDimensionBlockSource();
     // Like the game's own pick, look through water and lava.
-    auto solid = [](Block const& block) {
-        auto name = block.getTypeName();
-        return name != "minecraft:water" && name != "minecraft:flowing_water" && name != "minecraft:lava"
-            && name != "minecraft:flowing_lava";
-    };
+    auto solid = [](Block const& block) { return !schematic::isLiquidName(block.getTypeName()); };
     Pick pick;
     double best = ray.reach;
     auto hit = source.clip(from, to, false, ShapeType::Outline, static_cast<int>(ray.reach) + 1, false, false, nullptr,

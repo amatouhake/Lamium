@@ -36,7 +36,7 @@ bool flagged(nbt::Compound const& states, char const* name) {
 ItemInfo itemFor(PaletteBlock const& entry, Block const* block) {
     if (entry.isAir()) return {};
     ItemInfo out = block ? describe(*block, entry.name) : ItemInfo{"", entry.name, "", 1};
-    out.perBlock = itemsPerBlock(entry.name, flagged(entry.states, "upper_block_bit") || flagged(entry.states, "head_piece_bit"));
+    out.perBlock = materialsCount(entry, flagged(entry.states, "upper_block_bit") || flagged(entry.states, "head_piece_bit"));
     return out;
 }
 }

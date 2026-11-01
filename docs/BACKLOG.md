@@ -189,16 +189,36 @@ the hand, the remainder goes into the source slot - and `applyMove`
 remainder into a stack of the same item, so one leftover stack
 accumulates per restock.
 
-Open: whether a restock may cost two moves (merge the remainder into an
-existing stack, then refill) or has to stay one, and what to do when
-the merge target fills up or does not exist; the family is
-`restockRemainder` (buckets, stews to bowls, potions and honey bottles
-to glass bottles).
+Decided 2026-11-01 (maintainer): (A) a restock may cost two moves. The
+swap stays exactly as it is - the hand is refilled at once - and the
+remainder is merged into an existing stack of the same item on a later
+tick, once the swap's transaction is gone. No target, a full target, a
+changed inventory or hand, or about 40 ticks end the wait silently;
+the family is `restockRemainder` (buckets, stews to bowls, potions and
+honey bottles to glass bottles).
+
+Status 2026-11-01: built (`f30ea0c5`, branch
+`l291-restock-remainder-merge`), not yet checked in game.
+`RemainderPending` and `planRemainderMerge` (`RestockRemainder.h`) hold
+the wait and the destination rule (main inventory before the hotbar,
+fullest stack, ties to the lower slot, the offhand never used, the
+whole remainder must fit). `HandRestock.cpp` records the remainder when
+the replacement swap is predicted and merges it from the same per-tick
+path while no restock is being observed; a refused send is retried on
+later ticks up to a cap and the 40-tick deadline bounds the wait.
+Back-to-back uses keep each remainder's wait (up to four, oldest first;
+the deadline restarts once the next restock is no longer observed); a
+slot that changed under the merge, or the family's switch turned off,
+ends it. The ordinary refill is unchanged. Table tests in
+`tests/RestockRemainderTests.cpp`.
 
 In game: with a stack of empty buckets in the inventory, place water
-from a water bucket and let the restock refill; the emptied bucket must
-join the existing empty-bucket stack instead of sitting on its own.
-Check the same with a stew and with a potion.
+from a water bucket and let the restock refill; the emptied bucket
+joins the existing empty-bucket stack instead of sitting on its own.
+The same with a stew and with a potion. No stack and a full stack
+leave the remainder where it is, opening the inventory right after
+gives up silently, and a server (a laggy one especially) exercises the
+retry window.
 No release target selected.
 
 
@@ -216,14 +236,32 @@ no liquid aimed as idle. A filled bucket is therefore never idle, and
 `placementSlot` asks for the same `primaryIdle`, so the instant use and
 the placement borrow are both closed.
 
-Open: what a filled bucket has to see before it counts as idle - no
-block face in reach, or a face it cannot pour onto (a cauldron is not
-one) - as a pure predicate with a table test, and whether a bucket
-aimed at its own liquid stays primary (filling, not pouring).
+Decided 2026-11-01 (maintainer): a filled POUR bucket (water, lava,
+powder snow) is idle when no block face is in reach, whatever lies
+along the ray - with a face it really does pour, including onto a
+water surface (that places water in the cell above), so any face keeps
+the bucket primary. A fish bucket is idle only with no face AND no
+liquid aimed, because the game can put the fish into aimed liquid;
+milk is never idle (drinking works anywhere). A face the bucket cannot
+pour onto is out of scope: it would need a pour model, and guessing
+wrong steals a real pour.
 
-In game: a water bucket in the main hand and a firework in the Fake
-Offhand - aiming at the sky the offhand is used, aiming at the ground
-vanilla pours, and an empty bucket at no liquid is unchanged.
+Status 2026-11-01: built (`34aafa86`, branch `l290-bucket-idle`), not
+yet checked in game. `bucketIdle` (`FakeOffhandPlan.h`) holds the rule;
+`idleUse` (`FakeOffhand.cpp`) calls it and the empty bucket, the glass
+bottle and the entity guard are unchanged. Table tests in
+`tests/FakeOffhandTests.cpp` cover every bucket kind across air, aimed
+liquid, block face and entity targets, and an unknown namespace.
+
+In game (right-click binding; the dedicated key from L-292 ignores the
+priority): a water bucket in the main hand and a firework in the Fake
+Offhand - aiming at the sky uses the offhand, a ground face pours as
+vanilla, a water surface pours as vanilla. Also a lava and a powder
+snow bucket at the sky, a fish bucket aimed at water (the fish is
+placed, not the firework) and at the sky with no liquid (the firework),
+milk at the sky (drunk, not the firework), and the empty bucket
+unchanged.
+
 No release target selected.
 
 
@@ -244,14 +282,28 @@ stores source and flowing water as the same block with a different
 (falling) - so every water cell collapses into one line and the cells
 that need no bucket inflate the count.
 
-Open: sources and flowing cells as two lines, or one line with the
-source count only; the flowing cells need no item at all (the game
-fills them); and whether the Check tab's `placed` count splits the same
-way.
+Decided 2026-11-01 (maintainer): one line with the source count only -
+a flowing cell needs no item, so it adds nothing. The Check tab does
+not split: every cell, flowing ones included, is still compared state
+for state (`CheckRules.h` `sameBlock` compares `liquid_depth`), because
+the flow pattern differs even when the sources match. Only the
+materials line stops counting flowing cells.
+
+Status 2026-11-01: built (`62eac8fb`, branch
+`l289-water-source-material`), not yet checked in game. `flowingLiquid`
+and `materialsCount` (`Verification.h`) give a flowing liquid cell zero
+items and every other cell what `itemsPerBlock` says;
+`ResolvedPlacement.cpp` uses it for `perBlock`. `GhostVerify.cpp` is
+untouched, so the check, the tallies and the mismatch list behave
+exactly as before. Table tests in `tests/SchematicTests.cpp`. A liquid
+whose cells all flow keeps its line with nothing left to place.
 
 In game: a schematic with a pool whose edges flow (a vanilla structure
-file or a saved pond) must show a source count equal to the buckets
-actually needed, with the flowing cells separate or absent.
+file or a saved pond) shows a source count equal to the buckets it
+needs; placing those sources leaves nothing to place while the flowing
+cells are still compared and still reported when the world's flow
+differs. Lava the same, and a waterlogged block still counts as its
+own item.
 No release target selected.
 
 

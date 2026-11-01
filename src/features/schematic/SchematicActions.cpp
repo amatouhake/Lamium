@@ -2,6 +2,7 @@
 #include "features/camera/CameraSessions.h"
 #include "features/camera/ViewFeet.h"
 #include "features/schematic/GhostRenderer.h"
+#include "features/schematic/LiquidName.h"
 #include "features/schematic/MoveDirection.h"
 #include "features/schematic/MoveTarget.h"
 #include "features/schematic/TargetRay.h"
@@ -177,11 +178,7 @@ BlockHit cameraBlock(LocalPlayer& player, Vec3 const& eye, Vec3 const& dir) {
         eye.z + static_cast<float>(dir.z / length * reach)};
     auto& source = player.getDimensionBlockSource();
     auto hit = source.clip(eye, to, false, ShapeType::Outline, reach, false, false, nullptr,
-        [](BlockSource const&, Block const& block, bool) {
-            auto name = block.getTypeName();
-            return name != "minecraft:water" && name != "minecraft:flowing_water" && name != "minecraft:lava"
-                && name != "minecraft:flowing_lava";
-        }, false);
+        [](BlockSource const&, Block const& block, bool) { return !isLiquidName(block.getTypeName()); }, false);
     if (hit.mType != HitResultType::Tile) return result;
     result.tile = true;
     result.block = {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z};
