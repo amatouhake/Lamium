@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Indirect feet hit and Fake Offhand reach fixes (L-285, L-290, 2026-11-01)
+
+Trace build of `938a630c` (`pick_trace`, `offhand_trace`), DLL SHA-256
+`2EDC2CF27A4FC2E81F6C87CD2DEBB30E74BA2DA164C1525C06F6C45851CAAD50`. The maintainer reported every point as expected:
+L-285, local: middle-clicking a ghost beside the feet block or beside the
+lower body brings the ghost's block to the main hand, and the target card
+names that ghost (pick lines: `indirect=true aimed=false reach=5.70`).
+L-290, BDS: gliding with a water bucket primary, the offhand firework
+fires with a block some 30-50 blocks ahead. Local: a water bucket aimed at
+nearby ground still pours. Offhand trace: pick range 5.70, ground hits at
+3.0-5.4 blocks stayed targets, gliding hits 8.7-41.5 blocks away did not.
+
 ## Pick and Fake Offhand hit traces (L-285, L-290, 2026-11-01)
 
 Trace build `444224ca` (`pick_trace`, `offhand_trace`), DLL SHA-256

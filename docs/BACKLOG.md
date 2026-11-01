@@ -73,12 +73,10 @@ choices live in the L-items. An L-item wins if a summary drifts.
    outside loaded terrain (Research; new native experiment needs the
    maintainer's go-ahead). L-177 mismatch-highlight fix is built and awaits
    the reporter's next schematic session, not another implementation.
-   L-285 ghost pick losing to the block at the player's feet is the newest
-   bug report (Research, pick path; not built). The 2026-10-31 maintainer
+   The 2026-10-31 maintainer
    reports are L-288 to L-291 (Fake Offhand twice, Hand Restock, schematic
-   water materials): L-288, L-289 and L-291 are closed (checked 2026-11-01,
-   BACKLOG-DONE); L-290 passes locally but is flaky on BDS while gliding,
-   and L-285's built fix did not hold in game (both traced next).
+   water materials): all are closed (checked 2026-11-01, BACKLOG-DONE),
+   with L-285 (ghost pick at the feet block) after its trace.
    L-292 (Fake Offhand key without primary
    priority) is closed (checked 2026-11-01). L-293 (placement as if
    sneaking, toggle) is closed (2026-11-01). L-294 (white water ghosts) is
@@ -173,120 +171,6 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
-
-### L-290 A filled bucket in the main hand stops the Fake Offhand entirely
-
-Kind: Bug. Maintainer report 2026-10-31 (build not recorded): with a
-water bucket in the main hand the Fake Offhand never fires, in any
-situation - also while aiming at the sky, where a filled bucket cannot
-pour anything.
-
-Cause: `primaryPass` (`FakeOffhandPlan.h`) refuses every bucket as a
-passing primary before the aim is looked at, and `idleUse`
-(`FakeOffhand.cpp`) only treats an EMPTY bucket or a glass bottle with
-no liquid aimed as idle. A filled bucket is therefore never idle, and
-`placementSlot` asks for the same `primaryIdle`, so the instant use and
-the placement borrow are both closed.
-
-Decided 2026-11-01 (maintainer): a filled POUR bucket (water, lava,
-powder snow) is idle when no block face is in reach, whatever lies
-along the ray - with a face it really does pour, including onto a
-water surface (that places water in the cell above), so any face keeps
-the bucket primary. A fish bucket is idle only with no face AND no
-liquid aimed, because the game can put the fish into aimed liquid;
-milk is never idle (drinking works anywhere). A face the bucket cannot
-pour onto is out of scope: it would need a pour model, and guessing
-wrong steals a real pour.
-
-Status 2026-11-01: built (`34aafa86`, branch `l290-bucket-idle`), not
-yet checked in game. `bucketIdle` (`FakeOffhandPlan.h`) holds the rule;
-`idleUse` (`FakeOffhand.cpp`) calls it and the empty bucket, the glass
-bottle and the entity guard are unchanged. Table tests in
-`tests/FakeOffhandTests.cpp` cover every bucket kind across air, aimed
-liquid, block face and entity targets, and an unknown namespace.
-
-In game (right-click binding; the dedicated key from L-292 ignores the
-priority): a water bucket in the main hand and a firework in the Fake
-Offhand - aiming at the sky uses the offhand, a ground face pours as
-vanilla, a water surface pours as vanilla. Also a lava and a powder
-snow bucket at the sky, a fish bucket aimed at water (the fish is
-placed, not the firework) and at the sky with no liquid (the firework),
-milk at the sky (drunk, not the firework), and the empty bucket
-unchanged.
-
-In game 2026-11-01 on main `9a06ada2` (PR #59): local passes (sky:
-firework, ground: water poured). BDS: gliding with a water bucket in the
-main hand and fireworks in the Fake Offhand, the firework fires only
-sometimes. Suspect: the game's hit while gliding is sometimes a block
-hit (the fallback below the player?), which keeps the bucket primary.
-Next: `offhand_trace` build (`444224ca`) logs the hit with each choice.
-Trace 2026-11-01: while gliding the hit comes from a 1000-block ray, so
-blocks 22-115 ahead were block targets. Fix `938a630c`: a tile hit past
-the pick range plus one block (`blockInReach`, `FakeOffhandPlan.h`) is no
-target for the Fake Offhand. Not yet checked in game.
-No release target selected.
-
-
-### L-285 Ghost pick loses to the block at the player's feet
-
-Kind: Research (pick path), then Ready. Maintainer report
-2026-10-30: with a block at the player's feet, middle-clicking the
-ghost next to that block to pick the ghost's item brings the feet
-block into the hand instead; the ghost under the crosshair is not
-picked. With schematics off the same middle-click also brings the
-feet block, so the immediate cause is vanilla's own pick result in
-this geometry (middle-click toward an empty cell still picks a
-block), not a Lamium fall-through.
-Under L-263's decided rule the ghost pick applies when the crosshair
-is on a ghost and not on a real block, and a real block stays
-vanilla. If vanilla's hit here is the feet block, that rule reads
-the situation as "on a real block" and lets vanilla win — but the
-player was aiming at the ghost, so the outcome misreads the aim.
-Goal (maintainer 2026-10-30): when the crosshair is on a ghost and
-vanilla's pick is only the feet block, pick the ghost's block
-instead; that is the natural reading of the aim. A real block
-genuinely between the camera and the ghost still wins, as L-263
-decided, and with schematics off nothing changes.
-Research: what the pick path can see in this geometry — whether
-vanilla reports the feet block as its hit or falls back to it on a
-miss, and where GhostPick.cpp takes its "on a real block" decision
-from. Prefer ray order (the first ghost cell the view ray reaches
-versus the hit block's position) over adjacency or distance to the
-feet, which would misfire when the feet block is honestly aimed at.
-Decided 2026-11-01 (maintainer): (A) the pick ray decides. A game hit
-only counts as something the player aimed at when its position lies on
-the pick ray (0.05 blocks); then the ghost search stops just before it,
-so a real block in front of a ghost still wins. The feet fallback is
-off the ray, so it no longer shortens the search and the ghost under the
-crosshair wins. The rule is "nearest thing on the view ray", which is
-as close as a real block's middle-click behaves. The ray is the hit's
-own (`mStartPos`/`mRayDir`), so FreeCamera needs no separate reference,
-and the creative give path inherits the same precedence.
-
-Status 2026-11-01: built (`16443e31` plus `9e759986`, branch
-`l285-pick-feet-fallback`), not yet checked in game. `PickRay.h` holds
-`onRay` and `ghostReach` (pure, table-tested in
-`tests/SchematicTests.cpp`); `pickedGhost` (`GhostPick.cpp`) asks them
-and passes `throughBlocks` for an aimed hit or the feet fallback, because
-within the reach the game's own pick hit nothing solid (L-224); with no
-game hit, or an entity off the ray, a real block still stops the search.
-The target card (`TargetInfo.cpp`) applies the same `onRay` test, so the
-feet fallback no longer shortens its ghost search either and the card
-names the ghost the pick brings. Open: whether `HitResult::mIndirectHit`
-marks the fallback (a trace would tell; it could replace the tolerance).
-In game 2026-11-01 on main `9a06ada2` (merged as PR #62): NOT fixed -
-aiming at a ghost beside the feet block, middle-click still brings the
-feet block. So the game's hit for this case is not what the rule assumes
-(its own ray may point at the feet block, or the hit may be on the view
-ray after all). Next: the `pick_trace` build (`444224ca`) logs the hit's
-type, block, position, start, direction and `mIndirectHit` with the eye,
-view, reach and the ghost found; decide the fix from that log.
-Trace 2026-11-01 (VALIDATION-LOG): the fallback is an indirect tile hit
-with its own ray straight down. Fix `d54654c4`: an indirect hit is not
-aimed and the pick searches along the view; the card treats it as no
-hit. Not yet checked in game.
-No release target selected.
-
 
 ### L-276 A temporary waypoint whose removal cannot be saved is never announced again
 Kind: Bug. Review finding 2026-10-27 on `08da0c47`: `waypoints::arrive()`
