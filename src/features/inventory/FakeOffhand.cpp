@@ -291,11 +291,10 @@ std::optional<int> chooseSlot(IClientInstance& client, HitResult const& gameHit,
     bool interactive = hitBlock && player->getDimensionBlockSource().getBlock(solid.mBlock)
         .getBlockType().isInteractiveBlock();
     bool primaryUsing = !player->mItemInUse->mItem->isNull();
-    // A key of its own asks for the slot's item, which Sneak Placement makes
-    // act on an interactive block as if sneaking (L-293). A right click is
-    // shared with the primary hand, whose empty hand still opens the block.
-    bool sneaking = player->isSneaking();
-    if (dedicatedKey) sneaking = interaction::sneakPlacement::sneakForUse(sneaking).value_or(sneaking);
+    // The slot's item is what acts, and Sneak Placement makes an item act on
+    // an interactive block as if sneaking (L-293). A primary item that does
+    // not pass keeps the click, so its own Sneak Placement still decides.
+    bool sneaking = interaction::sneakPlacement::sneakForUse(player->isSneaking()).value_or(player->isSneaking());
     if (auto slot = interactSlot(dedicatedKey, selected, target, interactive, sneaking, primaryUsing))
         return slot;
     bool primaryIdle = primaryYields(dedicatedKey,

@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Review fixes and Fake Offhand with Sneak Placement (2026-11-01)
+
+LeviLauncher instance `1.26.51.01 LIP`, local world. On `6960862f` (DLL
+SHA-256 `F0E56474D5379108854945C7FC3A13451692F87731843813E8989BD54CF89B14`)
+the maintainer passed: panning the world map at one-pixel slime images
+without stutter, the images appearing over a few frames; a second long book
+paste right after one; a held sneak placement use not landing on another
+block after looking away. Also seen: with Fake Offhand (right-click binding,
+glass in its slot) and Sneak Placement on, an empty main hand at a chest
+opened it instead of placing. On `1468eaef` (DLL SHA-256
+`18BB14E1D9BF559CD9C50636BD9E941F4C5FA15CEBFF0A7B675A6EC57F165544`), which
+changed this for a key of its own only, the chest still opened.
+
 ## Map marks and information headings (L-297, 2026-11-01)
 
 Follow-up on `cbc37c5b` (DLL SHA-256

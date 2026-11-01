@@ -8,13 +8,15 @@ runtime coverage and remaining checks are in [VALIDATION.md](VALIDATION.md).
 
 ## With Sneak Placement (L-293, maintainer report 2026-11-01)
 
-The Fake Offhand key aimed at an interactive block opens it unless the
-player sneaks (L-292). With Sneak Placement on, the slot's item is what acts,
-so the key takes Sneak Placement's sneak state instead of the player's: the
-block in the slot is placed on a chest with an empty main hand, and with
-"Open while sneaking" sneaking opens it. A right-click binding keeps the
-player's own state, since the click is shared with the main hand and an
-empty hand still opens the block. When Sneak Placement holds the use back
+Fake Offhand aimed at an interactive block opens it unless the player
+sneaks (L-292). With Sneak Placement on, the slot's item is what acts, so
+the choice takes Sneak Placement's sneak state instead of the player's, for
+the right-click binding and a key of its own alike: the block in the slot is
+placed on a chest with an empty main hand, and with "Open while sneaking"
+sneaking opens it. Without that option such a chest opens only with Fake
+Offhand off or its slot empty, as with an item in the main hand. A first
+build (`1468eaef`) applied this to a key of its own only and did not help
+the default right-click binding (maintainer 2026-11-01). When Sneak Placement holds the use back
 and replays it, the replay selects the slot the use came from for that call
 only, as Fake Offhand does.
 
