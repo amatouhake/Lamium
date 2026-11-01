@@ -1,4 +1,6 @@
 #include "features/information/SlimeChunk.h"
+#include "features/map/MapSlime.h"
+#include "features/map/MapTiles.h"
 #include <random>
 #include <set>
 #include <utility>
@@ -81,5 +83,26 @@ void slimeChunkTests() {
         int filled = 0;
         for (auto pixel : slimeImage(-5, -5, {11, 1}, 1, 2, isSlimeChunk)) filled += pixel == 1;
         check(filled == 11, "an image marks exactly the rule's chunks");
+    }
+    {
+        // A 32-pixel minimap of 32 blocks centered on (8, 8): chunk (0, 0)
+        // is pixels 8-23 on both axes.
+        using namespace lamium::map;
+        auto only = [](int x, int z) { return x == 0 && z == 0; };
+        auto mask = slimeMask(ViewTransform::northUp(), 8, 8, 32, 32, only);
+        auto at = [&](int x, int y) { return mask[static_cast<size_t>(y * 32 + x)]; };
+        check(at(15, 15) == slimeInside && at(8, 8) == slimeBorder && at(23, 12) == slimeBorder && at(7, 8) == 0
+                  && at(24, 8) == 0 && at(12, 24) == 0,
+              "the minimap mask covers the slime chunk and outlines it");
+        auto all = slimeMask(ViewTransform::northUp(), 8, 8, 32, 32, [](int, int) { return true; });
+        bool noFrame = true;
+        for (auto v : all) noFrame = noFrame && v == slimeInside;
+        check(noFrame, "the map's own edge is not an outline");
+        int covered = 0;
+        for (auto v : slimeMask(ViewTransform::headingUp(180), 8, 8, 32, 32, only)) covered += v != 0;
+        check(covered == 256, "a turned map covers the same chunk");
+        auto green = lamium::map::packColor(127, 214, 90);
+        check(washPixel(0, green, .5f) == 0 && washPixel(lamium::map::packColor(0, 0, 0, 200), green, 1) == lamium::map::packColor(127, 214, 90, 200),
+              "the wash keeps a pixel's alpha and leaves the round map's outside alone");
     }
 }

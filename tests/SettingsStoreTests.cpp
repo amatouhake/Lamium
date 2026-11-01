@@ -349,7 +349,7 @@ void settingsStoreTests() {
           "offhand restock and tool protection default on; inventory tool fetch and auto elytra off");
     check(!old.map.minimap && old.map.zoom == map::defaultZoomIndex && !old.map.rotate && !old.map.round && old.map.debugHide
           && old.hud.minimap.anchor == ui::Anchor::TopRight, "the minimap starts off, at 128 blocks, top right");
-    check(!old.map.minimapShapes, "shapes stay off the minimap until turned on (L-139)");
+    check(old.map.minimapLayers, "map layers show on the minimap by default (L-295)");
     check(old.camera.freeCameraUndergroundHold == 2
               && decodeSettings(R"({"camera":{"freeCameraUndergroundHold":6}})").camera.freeCameraUndergroundHold == 6
               && decodeSettings(R"({"camera":{"freeCameraUndergroundHold":9}})").camera.freeCameraUndergroundHold == 6,
@@ -379,7 +379,10 @@ void settingsStoreTests() {
               && decodeSettings(R"({"schematic":{"ghostTint":2,"ghostTintPercent":55}})").schematic.ghostTint == 55,
               "the earlier strong, weak and none choices become 100%, 40% and 0%");
     }
-    check(decodeSettings(R"({"map":{"minimapShapes":true}})").map.minimapShapes, "shapes on the minimap load when saved on");
+    check(!decodeSettings(R"({"map":{"waypointsMinimap":false}})").map.minimapLayers
+              && decodeSettings(R"({"map":{"waypointsMinimap":true,"minimapShapes":false}})").map.minimapLayers
+              && !decodeSettings(R"({"map":{"minimapLayers":false,"waypointsMinimap":true}})").map.minimapLayers,
+          "the minimap's layer switch takes an old waypoints-off file as off, and its own key wins (L-295)");
     check(!old.map.worldMapNames && decodeSettings(R"({"map":{"worldMapNames":true}})").map.worldMapNames,
           "world map names show on hover until Always is saved on");
     check(old.map.worldMapWaypoints && old.map.worldMapSchematics && old.map.worldMapShapes

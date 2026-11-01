@@ -247,12 +247,12 @@ Json encode(Settings const& settings) {
                  {"round", settings.map.round}, {"caveView", settings.map.caveView},
                  {"coordinates", settings.map.coordinates},
                  {"biome", settings.map.biome}, {"compass", settings.map.compass},
-                 {"debugHide", settings.map.debugHide}, {"minimapShapes", settings.map.minimapShapes}, {"radar", settings.map.radar},
+                 {"debugHide", settings.map.debugHide}, {"minimapLayers", settings.map.minimapLayers}, {"radar", settings.map.radar},
                  {"radarPlayers", settings.map.radarPlayers}, {"radarHostile", settings.map.radarHostile},
                  {"radarPassive", settings.map.radarPassive}, {"radarItems", settings.map.radarItems},
                  {"radarInvisible", settings.map.radarInvisible}, {"waypoints", settings.map.waypoints},
                  {"waypointsWorld", settings.map.waypointsWorld}, {"waypointDistance", settings.map.waypointDistance},
-                 {"waypointsMinimap", settings.map.waypointsMinimap}, {"waypointsDeath", settings.map.waypointsDeath},
+                 {"waypointsDeath", settings.map.waypointsDeath},
                  {"waypointsCrossScale", settings.map.waypointsCrossScale}, {"waypointArrival", settings.map.waypointArrival},
                  {"worldMap", settings.map.worldMap},
                  {"worldMapNetherAuto", settings.map.worldMapNetherAuto}, {"worldMapPanel", settings.map.worldMapPanel},
@@ -504,7 +504,9 @@ Settings decodeSettings(std::string_view text) {
         value.map.biome = settingsValue(map, "biome", value.map.biome);
         value.map.compass = settingsValue(map, "compass", value.map.compass);
         value.map.debugHide = settingsValue(map, "debugHide", value.map.debugHide);
-        value.map.minimapShapes = settingsValue(map, "minimapShapes", value.map.minimapShapes);
+        // Before L-295 the waypoints' "Show on the minimap" was the one
+        // that hid most of it; off stays off.
+        value.map.minimapLayers = settingsValue(map, "minimapLayers", settingsValue(map, "waypointsMinimap", value.map.minimapLayers));
         value.map.radar = settingsValue(map, "radar", value.map.radar);
         value.map.radarPlayers = settingsValue(map, "radarPlayers", value.map.radarPlayers);
         value.map.radarHostile = settingsValue(map, "radarHostile", value.map.radarHostile);
@@ -518,7 +520,6 @@ Settings decodeSettings(std::string_view text) {
             else value.map.waypointsWorld = settingsValue(map, "waypointsWorld", value.map.waypointsWorld);
         }
         value.map.waypointDistance = settingsValue(map, "waypointDistance", value.map.waypointDistance);
-        value.map.waypointsMinimap = settingsValue(map, "waypointsMinimap", value.map.waypointsMinimap);
         value.map.waypointsDeath = settingsValue(map, "waypointsDeath", value.map.waypointsDeath);
         value.map.waypointsCrossScale = settingsValue(map, "waypointsCrossScale", value.map.waypointsCrossScale);
         value.map.waypointArrival = settingsValue(map, "waypointArrival", value.map.waypointArrival);

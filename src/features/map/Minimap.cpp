@@ -11,6 +11,8 @@
 #include "features/map/Waypoints.h"
 #include "features/map/MapTiles.h"
 #include "features/map/MapView.h"
+#include "features/map/MapSlime.h"
+#include "features/information/SlimeChunk.h"
 #include "features/information/InfoHud.h"
 #include "features/camera/CameraSessions.h"
 #include "features/camera/ViewFeet.h"
@@ -182,6 +184,10 @@ struct State {
     ViewSwitch automatic;
     std::optional<int> layer; // Cave view height; see stableLayer.
     std::vector<std::uint32_t> terrain, image;
+    // Slime chunks over the terrain (L-295), built with it.
+    std::vector<std::uint8_t> slime;
+    unsigned slimeComposes = ~0u;
+    information::SlimeChunkCache slimeCache;
     struct Key {
         double x = NAN, z = NAN, yaw = NAN;
         int zoom = -1, pixels = 0;
@@ -198,6 +204,7 @@ struct State {
         // so its heading needs a marker of its own (L-286).
         bool camera = false;
         double cameraAngle = 0;
+        bool slime = false;
         std::vector<PlacedDot> dots;
         struct Mark {
             double x, y;
@@ -819,7 +826,15 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
                                      // A face is wider than a dot: keep it off the frame.
                                      withFaces ? 6 * marker * dotScale(blocksAcross(zoom)) : 3);
         }
-        if (settings.waypoints && settings.waypointsMinimap) {
+        // The world map's layer switches decide what the minimap shows, and
+        // one setting hides them all here (L-295).
+        bool layers = settings.minimapLayers;
+        overlay.slime = layers && settings.worldMapSlime && information::slimeChunksIn(view->dimension);
+        if (overlay.slime && state.slimeComposes != state.composes) {
+            state.slime = slimeMask(transform, centerX, centerZ, blocks, pixels, state.slimeCache);
+            state.slimeComposes = state.composes;
+        }
+        if (settings.waypoints && layers && settings.worldMapWaypoints) {
             auto set = waypoints::current();
             double margin = 6 * marker;
             auto place = [&](double x, double z, int color, bool temporary = false) {
@@ -833,10 +848,10 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
             }
             if (set.death && set.death->dimension == view->dimension) place(set.death->x + .5, set.death->z + .5, -1);
         }
-        // Footprints (L-139): shapes under placements, shapes only when asked
-        // for (many would crowd the map); hidden ones are left out.
-        auto areas = settings.minimapShapes ? shapeMarks(view->dimension) : std::vector<AreaMark>{};
-        auto placements = placementMarks(view->dimension);
+        // Footprints (L-139): shapes under placements, each as its world map
+        // switch says; hidden ones are left out.
+        auto areas = layers && settings.worldMapShapes ? shapeMarks(view->dimension) : std::vector<AreaMark>{};
+        auto placements = layers && settings.worldMapSchematics ? placementMarks(view->dimension) : std::vector<AreaMark>{};
         areas.insert(areas.end(), placements.begin(), placements.end());
         for (auto const& mark : areas) {
             if (!mark.visible) continue;
@@ -854,11 +869,15 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         bool redraw = !state.uploaded || overlay.composes != shown.composes || overlay.visible != shown.visible
             || !(std::abs(overlay.angle - shown.angle) < .004) || !(std::abs(overlay.x - shown.x) < .25)
             || !(std::abs(overlay.y - shown.y) < .25) || overlay.camera != shown.camera
-            || !(std::abs(overlay.cameraAngle - shown.cameraAngle) < .004)
+            || !(std::abs(overlay.cameraAngle - shown.cameraAngle) < .004) || overlay.slime != shown.slime
             || overlay.dots != shown.dots || overlay.marks != shown.marks
             || overlay.outlines != shown.outlines;
         if (redraw && !state.terrain.empty()) {
             state.image = state.terrain;
+            // The world map's wash and outline (WorldMap.cpp's slime layer).
+            if (overlay.slime && state.slime.size() == state.image.size())
+                for (size_t i = 0; i < state.image.size(); ++i)
+                    if (state.slime[i]) state.image[i] = washPixel(state.image[i], waypointColors[3], state.slime[i] == slimeBorder ? .55f : .3f);
             // The look agreed in docs/demos/minimap.html, smaller on wide maps.
             double unit = marker * dotScale(blocksAcross(zoom));
             for (auto const& outline : overlay.outlines)

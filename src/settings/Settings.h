@@ -158,7 +158,10 @@ struct Settings {
         bool biome = false;
         bool compass = false;
         bool debugHide = true; // Hide while Debug View is shown.
-        bool minimapShapes = false; // Shapes as outlines (L-139); many would crowd a small map.
+        // The world map's layer switches decide the minimap too; off hides
+        // every layer on the minimap (L-295). Replaces waypointsMinimap and
+        // minimapShapes.
+        bool minimapLayers = true;
         bool radar = true;
         bool radarPlayers = true, radarHostile = true, radarPassive = true, radarItems = false;
         bool radarInvisible = false; // Also show players and mobs that are invisible.
@@ -166,7 +169,6 @@ struct Settings {
         bool waypoints = true; // All waypoint markers.
         int waypointsWorld = 0; // map::WorldMarkers: always, while the key is held, off.
         float waypointDistance = 0; // World markers up to this many blocks away; 0 shows all.
-        bool waypointsMinimap = true;
         bool waypointsDeath = true; // Record the last death point.
         bool waypointsCrossScale = false; // Overworld ones in the Nether at 1/8, Nether ones at 8x.
         float waypointArrival = 6; // Temporary waypoints go within this many blocks (L-261); 0 keeps them.
