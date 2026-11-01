@@ -16,6 +16,7 @@
 #include "features/schematic/MoveDirection.h"
 #include "features/schematic/MoveTarget.h"
 #include "features/schematic/TargetRay.h"
+#include "features/schematic/PickRay.h"
 #include "features/schematic/UnreadableNotice.h"
 #include "features/schematic/RestPose.h"
 #include "features/schematic/PreviewView.h"
@@ -1447,6 +1448,40 @@ void targetRayRules() {
     auto area = boxEntry(through, 0, 0, 0, 4, 4, 4);
     check(area && std::abs(*area - 2) < 1e-9, "an area box uses the same entry distance");
 }
+// L-285: what the game's pick means for a ghost pick. The block under the
+// player's feet, which the game picks when the ray meets nothing, is off the
+// ray and must not shorten the ghost search; a block the player aimed at
+// still does.
+void pickRayRules() {
+    using namespace lamium::schematic;
+    // Eye at the origin; `d` is the game's ray direction and `p` its hit point.
+    struct Case {
+        double px, py, pz, dx, dy, dz;
+        bool on;
+        char const* what;
+    };
+    Case const cases[] = {
+        {0, 0, -1.5, 0, 0, -1, true, "a block face on the view ray is a hit the player aimed at"},
+        {0, -1.12, 0, 0, 0, -1, false, "the block under the feet is not on the view ray"},
+        {0, 0, 3, 0, 0, -1, false, "a hit behind the player is not on the view ray"},
+        {0, pickRayTolerance, 0, 1, 0, 0, true, "a hit exactly at the tolerance is on the ray"},
+        {0, pickRayTolerance * 1.002, 0, 1, 0, 0, false, "a hit just past the tolerance is off the ray"},
+        {0, .04, -1.5, 0, 0, -1, true, "a hit inside the tolerance a few blocks out is on the ray"},
+        {0, 0, -1.5, 0, 0, -3, true, "the direction's length does not matter"},
+        {0, 0, -1.5, 0, 0, 0, false, "a ray with no direction has no point on it"},
+        {0, 0, 0, 0, 0, -1, true, "the ray's own start is on it"},
+        {2, 2.2, 0, 1, 1, 0, false, "the distance is measured across the ray, not along an axis"},
+    };
+    for (auto const& c : cases) check(onRay(0, 0, 0, c.dx, c.dy, c.dz, c.px, c.py, c.pz, pickRayTolerance) == c.on, c.what);
+    check(onRay(0, 0, 0, 0, 0, -1, 0, 0, -1.5, 0) && !onRay(0, 0, 0, 0, 0, -1, pickRayTolerance, 0, -1.5, 0),
+          "a tolerance of 0 keeps only the ray itself");
+    check(ghostReach(true, 2, 5) > 1.9 && ghostReach(true, 2, 5) < 2,
+          "a hit the player aimed at shortens the ghost search to just before it");
+    check(ghostReach(false, 1.12, 5) == 5, "the feet fallback leaves the whole pick range");
+    check(ghostReach(true, 3, 5) < 3.2 && 3.2 < ghostReach(false, 1.12, 5),
+          "a ghost behind a block the player aimed at stays out of the shortened reach");
+    check(!(ghostReach(true, .04, 5) > 0), "a hit closer than the clearance leaves nothing to search");
+}
 void unreadableNoticeRules() {
     using namespace lamium::schematic;
     UnreadableNotice notice;
@@ -1544,6 +1579,7 @@ void schematicTests() {
     moveRules();
     moveTargetRules();
     targetRayRules();
+    pickRayRules();
     ghostFaces();
     placementTransforms();
     entityRules();
