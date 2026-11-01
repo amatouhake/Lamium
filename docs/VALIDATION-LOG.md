@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Shapes and schematic placements told apart on the maps (L-296, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, trace options off,
+maintainer.
+- `edfb13b0` (DLL SHA-256
+  `CB7932956EE9FD72936687566D1C7BC516678F07A15F7F33A14946B663C0E12A`):
+  placements with corner marks, shapes as unfilled lines and a default-cyan
+  shape beside a placement told apart, on the world map, the minimap, the
+  top bar and the side panel. Seen: small circles (the 7-unit icons, a far
+  shape) looked like lopsided ellipses.
+- `f8dc27d1` (DLL
+  `B7F5500530A13F60BBD45935C1E124E0C0B4D339B5CDC8EB97AE5467FE8FFDD1`):
+  icons and small circles draw as even circles; no problem seen.
+
 ## Minimap follows the world map's layer switches (L-295, 2026-11-01)
 
 Local world, LeviLauncher instance `1.26.51.01 LIP`, `661302e6`, DLL SHA-256

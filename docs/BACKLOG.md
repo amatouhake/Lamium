@@ -799,7 +799,8 @@ switches:
   placements keep the fill and frame and gain corner marks; shapes lose the
   fill and are a plain line, an ellipse in the area when `roundFromAbove`
   (spheres, ellipsoids, upright domes, circles/cylinders/cones/frusta along
-  Y), else the box. Shape colors unchanged. Waiting for the in-game check.
+  Y), else the box; small circles drawn row by row so they stay even.
+  Shape colors unchanged. Checked in game 2026-11-01 (`f8dc27d1`): done.
 - With the world map on, its side panel lists and edits waypoints, so the
   separate waypoint screen may be little used there. Maintainer 2026-11-01:
   keep it as it is (it does no harm); revisit when the world map is no
