@@ -979,13 +979,16 @@ void drawSlimeChunks(MinecraftUIRenderContext& context) {
     int x0 = chunk(view.worldX(0)), x1 = chunk(view.worldX(view.width));
     int z0 = chunk(view.worldZ(state.top)), z1 = chunk(view.worldZ(view.height));
     auto color = rgb(slimeColor);
-    for (auto const& run : information::slimeRuns(x0, x1, z0, z1, slimeCache)) {
-        float sx0 = std::round(static_cast<float>(view.screenX(run.x0 * 16.0)));
-        float sx1 = std::round(static_cast<float>(view.screenX((run.x1 + 1) * 16.0)));
-        float sy0 = std::round(static_cast<float>(view.screenY(run.z * 16.0)));
-        float sy1 = std::round(static_cast<float>(view.screenY((run.z + 1) * 16.0)));
-        ui::fill(context, sx0, sy0, sx1 - sx0, sy1 - sy0, color, .3f);
-        ui::frame(context, sx0, sy0, sx1 - sx0, sy1 - sy0, color, .55f);
+    auto sx = [&](int edge) { return std::round(static_cast<float>(view.screenX(edge * 16.0))); };
+    auto sy = [&](int edge) { return std::round(static_cast<float>(view.screenY(edge * 16.0))); };
+    for (auto const& run : information::slimeRuns(x0, x1, z0, z1, slimeCache))
+        ui::fill(context, sx(run.x0), sy(run.z), sx(run.x1 + 1) - sx(run.x0), sy(run.z + 1) - sy(run.z), color, .3f);
+    // The outline of each area, not of each run, so chunks touching up or
+    // down read as one area like those side by side.
+    for (auto const& edge : information::slimeEdges(x0, x1, z0, z1, slimeCache)) {
+        float inside = edge.before ? -1.f : 0.f;
+        if (edge.horizontal) ui::fill(context, sx(edge.from), sy(edge.line) + inside, sx(edge.to) - sx(edge.from), 1, color, .55f);
+        else ui::fill(context, sx(edge.line) + inside, sy(edge.from), 1, sy(edge.to) - sy(edge.from), color, .55f);
     }
 }
 // Footprints (L-139): shapes, then schematic placements over them, each a

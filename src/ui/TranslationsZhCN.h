@@ -1171,7 +1171,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"help.information.block", "以整数显示你所站方块的位置: 位置向下取整，与游戏“显示坐标”选项显示的行相同。自由摄像机期间为摄像机所在的方块。"},
     {"help.information.targetBlock", "显示准星所指方块的坐标，无需开启目标信息。查找距离与目标信息的“范围”设置相同；没有瞄准任何方块时不显示此行。"},
     {"help.information.chunk", "显示你所在的区块（区块 X, Z）以及你在其中的位置（0 至 15）。"},
-    {"help.information.slimeChunk", "显示你所在的区块是否为史莱姆区块。在基岩版中这只由区块位置决定，与世界种子无关，因此在任何世界和服务器上都相同。史莱姆会在地下深处（约 Y 40 以下）生成，与亮度无关。仅限主世界，其他维度不显示此行。自由摄像机期间为摄像机所在的区块。"},
+    {"help.information.slimeChunk", "显示你所在的区块是否为史莱姆区块。在基岩版中这只由区块位置决定，与世界种子无关，因此在任何世界和服务器上都相同。史莱姆会在 Y 40 以下（站在 Y 38 或更低的方块上）生成，与亮度无关。仅限主世界，其他维度不显示此行。自由摄像机期间为摄像机所在的区块。"},
     {"help.information.speed", "以半秒内的平均值显示移动速度（格/秒）。传送不计入。"},
     {"help.information.horizontalSpeed", "以格/秒显示沿地面的速度（仅 X 和 Z）。"},
     {"help.information.verticalSpeed", "以格/秒显示上下方向的速度（仅 Y）。"},

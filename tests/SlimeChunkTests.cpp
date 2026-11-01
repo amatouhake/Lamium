@@ -42,4 +42,22 @@ void slimeChunkTests() {
     int cells = 0;
     for (auto const& run : slimeRuns(-5, 5, -5, 5, isSlimeChunk)) cells += run.x1 - run.x0 + 1;
     check(cells == 11, "runs cover exactly the slime chunks");
+    {
+        // An L of three chunks: (0,0) (1,0) (0,1). One outline, no line
+        // between touching chunks, up/down neighbors included.
+        auto l = [](int x, int z) { return (z == 0 && (x == 0 || x == 1)) || (z == 1 && x == 0); };
+        auto edges = slimeEdges(-1, 2, -1, 2, l);
+        int length = 0;
+        bool inner = false;
+        for (auto const& e : edges) {
+            length += e.to - e.from;
+            inner = inner || (e.horizontal && e.line == 1 && e.from <= 0 && e.to > 0) || (!e.horizontal && e.line == 1 && e.from <= 0 && e.to > 0);
+        }
+        check(length == 8 && !inner, "the outline follows the area's border only, across rows too");
+        check(edges.size() == 6, "straight borders join into one edge each");
+        bool sides = true;
+        for (auto const& e : edges)
+            sides = sides && e.before == (e.horizontal ? l(e.from, e.line - 1) : l(e.line - 1, e.from));
+        check(sides, "each edge knows which side the slime area is on");
+    }
 }

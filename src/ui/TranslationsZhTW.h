@@ -1171,7 +1171,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"help.information.block", "以整數顯示你所站的方塊：位置無條件捨去，與遊戲「顯示座標」所顯示的行相同。靈魂出竅期間為攝影機所在的方塊。"},
     {"help.information.targetBlock", "不必開啟高亮顯示，也能顯示準心下方塊的座標。尋找距離與高亮顯示的「範圍」設定相同；沒有瞄準任何東西時隱藏此行。"},
     {"help.information.chunk", "你所在的區塊（區塊 X, Z），以及你在區塊內的位置（0 到 15）。"},
-    {"help.information.slimeChunk", "顯示你所在的區塊是否為史萊姆區塊。在基岩版中這只由區塊位置決定，與世界種子無關，因此在任何世界和伺服器上都相同。史萊姆會在地底深處（約 Y 40 以下）生成，與亮度無關。僅限主世界，其他維度不顯示此行。靈魂出竅期間為攝影機所在的區塊。"},
+    {"help.information.slimeChunk", "顯示你所在的區塊是否為史萊姆區塊。在基岩版中這只由區塊位置決定，與世界種子無關，因此在任何世界和伺服器上都相同。史萊姆會在 Y 40 以下（站在 Y 38 或更低的方塊上）生成，與亮度無關。僅限主世界，其他維度不顯示此行。靈魂出竅期間為攝影機所在的區塊。"},
     {"help.information.speed", "你的移動速度（格/秒），取半秒內的平均值。傳送不計入。"},
     {"help.information.horizontalSpeed", "沿地面的速度（只算 X 和 Z），單位為格/秒。"},
     {"help.information.verticalSpeed", "上下方向的速度（只算 Y），單位為格/秒。"},

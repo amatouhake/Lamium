@@ -72,4 +72,28 @@ std::vector<SlimeRun> slimeRuns(int x0, int x1, int z0, int z1, IsSlime&& isSlim
         }
     return runs;
 }
+// The outline of the slime areas in [x0, x1] by [z0, z1]: only borders
+// between a slime chunk and a chunk that is not, so touching chunks in any
+// direction read as one area. In chunk-edge units: a horizontal edge lies
+// on z = line from x = from to x = to (exclusive), a vertical one on x = line.
+// before: the slime side is the one below line, so the map draws it inside.
+struct SlimeEdge { bool horizontal; int line, from, to; bool before; };
+template <class IsSlime>
+std::vector<SlimeEdge> slimeEdges(int x0, int x1, int z0, int z1, IsSlime&& isSlime) {
+    std::vector<SlimeEdge> edges;
+    auto add = [&](bool horizontal, int line, int at, bool before) {
+        if (!edges.empty()) {
+            auto& last = edges.back();
+            if (last.horizontal == horizontal && last.line == line && last.to == at && last.before == before) { ++last.to; return; }
+        }
+        edges.push_back({horizontal, line, at, at + 1, before});
+    };
+    for (int z = z0; z <= z1 + 1; ++z)
+        for (int x = x0; x <= x1; ++x)
+            if (bool before = isSlime(x, z - 1); before != isSlime(x, z)) add(true, z, x, before);
+    for (int x = x0; x <= x1 + 1; ++x)
+        for (int z = z0; z <= z1; ++z)
+            if (bool before = isSlime(x - 1, z); before != isSlime(x, z)) add(false, x, z, before);
+    return edges;
+}
 }
