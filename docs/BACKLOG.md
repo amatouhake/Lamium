@@ -660,9 +660,19 @@ Next: a trace-only experiment (no behavior change): on sneak + right
 click on a chest with a block, log which packet carries the use, the
 client tick of the auth input that first has `Sneaking`/`StartSneaking`,
 and when the local `ActorFlags::Sneaking` turns on - in a local world
-and on BDS (`xmake f --sneak_trace=y`, `SneakUseTrace.cpp`; built
-2026-11-01, results pending). The maintainer decides between the two shapes (crouch and
-delay vs. server risk) after it.
+and on BDS (`xmake f --sneak_trace=y`, `SneakUseTrace.cpp`).
+
+Trace result 2026-11-01 (local world; VALIDATION-LOG): the use goes out
+as its own `InventoryTransactionPacket` between two auth inputs, and the
+server reads the sneak state of the auth inputs that arrived before it;
+sneak pressed in the same tick as the click comes too late and the
+chest opens. So either shape has to hold the use back until an auth
+input with the sneak bits has been sent, which costs at least one
+client tick (about 50 ms). Real sneak input sets the client flag and
+`StartSneaking` in the same tick, so the sneak pulse needs about one
+tick of crouch before the use plus the release after it. BDS was not
+traced; packet order should be the same, and a built feature gets its
+server check then.
 
 In game (after it is built): with the toggle on, a block placed against
 a chest, furnace, door and lever is placed and nothing opens or

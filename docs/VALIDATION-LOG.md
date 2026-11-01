@@ -12,6 +12,38 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Sneak state around a use on a chest (L-293 research trace, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `26939ec6` built
+with `sneak_trace`, DLL SHA-256
+`4EEF27AAFBC96BB60B78CE0F61A1FF09166897D2B094DB0E0AF9D1500CF518D1`,
+Minecraft 1.26.51.01 / LeviLamina Client 26.51.5. Read-only trace. The
+maintainer, holding stained glass at a chest: without sneaking the chest
+opened; sneaking, the glass was placed; pressing sneak and right click
+almost together, the view dipped and the chest opened; sneaking with an empty
+hand, the chest opened. A bucket, a firework and rotten flesh were also used
+while sneaking.
+
+What the log shows:
+- A use on a block is sent as an `InventoryTransactionPacket` with an
+  `ItemUseTransaction` (action Place, then often an air Use), never inside
+  `PlayerAuthInputPacket` (`PerformItemInteraction` stayed off). It goes out
+  after client tick N's auth input and before tick N+1's.
+- The local server (`who=other`) handled the use right after the next auth
+  input arrived, with the sneak state of the auth inputs sent BEFORE the
+  transaction. Near-simultaneous press: the click's transaction left after
+  tick 604 (not sneaking), tick 605 carried `StartSneaking`, and the server's
+  `useItemOn` ran with sneaking false - the chest opened.
+- With real sneak input, the local `ActorFlags::Sneaking` and the auth
+  input's `StartSneaking` appear in the same client tick.
+- The client's `useItemOn` saw the chest as not interactive (`target` is null
+  or different on the client); the server's copy saw it as interactive.
+- A failing use on a block while held (bucket, rotten flesh at a chest)
+  repeats about eight transactions per client tick.
+
+Not checked: a dedicated server (BDS), where packet order should hold but
+was not observed; how many ticks the server movement keeps the sneak.
+
 ## Fake Offhand key without primary priority (L-292, 2026-11-01)
 
 Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `136e04d8`, DLL
