@@ -329,9 +329,12 @@ void traceChoice(char const* stage, IClientInstance& client,
         bool sword = !primary.isNull() && primary.mItem && primary.mItem->hasTag(VanillaItemTags::Sword());
         bool pickaxe = !primary.isNull() && primary.mItem && primary.mItem->hasTag(VanillaItemTags::Pickaxe());
         traceLog(budget, 128,
-            "L-95 adapter stage={} enabled={} synthetic={} owned={}/{} selected={} actual={} target={} chosen={} instant={} hit={} primary={}[{}] block={} sword={} pickaxe={} idle={} secondary={}[{}] known={} gliding={} using={} input={} ui={} screen={}",
+            "L-95 adapter stage={} enabled={} synthetic={} owned={}/{} selected={} actual={} target={} chosen={} instant={} hit={} hitblock={},{},{} hitpos={:.2f},{:.2f},{:.2f} start={:.2f},{:.2f},{:.2f} dir={:.2f},{:.2f},{:.2f} indirect={} liquid={} primary={}[{}] block={} sword={} pickaxe={} idle={} secondary={}[{}] known={} gliding={} using={} input={} ui={} screen={}",
             stage, enabled.load(), synthetic.load(), instantPrimary.load(), instantTarget.load(),
             selected, actual, target, slot.value_or(-1), instant, static_cast<int>(hit.mType),
+            hit.mBlock.x, hit.mBlock.y, hit.mBlock.z, hit.mPos.x, hit.mPos.y, hit.mPos.z,
+            hit.mStartPos.x, hit.mStartPos.y, hit.mStartPos.z, hit.mRayDir.x, hit.mRayDir.y, hit.mRayDir.z,
+            hit.mIndirectHit, hit.mIsHitLiquid,
             primary.isNull() ? "empty" : primary.getTypeName(), traitText(primary), static_cast<bool>(primary.mBlock),
             sword, pickaxe, primaryPasses(primary, *player, hit), secondary.isNull() ? "empty" : secondary.getTypeName(),
             traitText(secondary), secondaryUsable(secondary, *player, hit), player->isGliding(), !player->mItemInUse->mItem->isNull(),

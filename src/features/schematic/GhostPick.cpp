@@ -15,6 +15,9 @@
 #include "mc/world/item/ItemInstance.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/level/block/BlockType.h"
+#ifdef LAMIUM_PICK_TRACE
+#include "app/TraceLog.h"
+#endif
 #include <cmath>
 #include <format>
 #include <optional>
@@ -57,8 +60,23 @@ std::optional<GhostAt> pickedGhost(LocalPlayer& player, HitResult const& hit) {
     // there is only the walk (L-224). No hit at all, or an entity off the ray,
     // proves nothing about the blocks, so a real block still stops the search.
     bool throughBlocks = aimed || hit.mType == HitResultType::Tile;
-    return ghostAlong(player.getDimensionBlockSource(), static_cast<int>(player.getDimensionId()), from.x, from.y, from.z,
-                      way.x / length, way.y / length, way.z / length, reach, throughBlocks);
+    auto ghost = ghostAlong(player.getDimensionBlockSource(), static_cast<int>(player.getDimensionId()), from.x, from.y,
+                            from.z, way.x / length, way.y / length, way.z / length, reach, throughBlocks);
+#ifdef LAMIUM_PICK_TRACE
+    {
+        // L-285: what the game hands the pick when the feet block wins.
+        static TraceBudget budget;
+        Vec3 eye = player.getEyePos(), view = player.getViewVector(1.f);
+        traceLog(budget, 64,
+            "L-285 pick type={} block={},{},{} pos={:.3f},{:.3f},{:.3f} start={:.3f},{:.3f},{:.3f} dir={:.3f},{:.3f},{:.3f} "
+            "indirect={} liquid={} eye={:.3f},{:.3f},{:.3f} view={:.3f},{:.3f},{:.3f} aimed={} reach={:.2f} through={} ghost={}",
+            static_cast<int>(hit.mType), hit.mBlock.x, hit.mBlock.y, hit.mBlock.z, hit.mPos.x, hit.mPos.y, hit.mPos.z,
+            hit.mStartPos.x, hit.mStartPos.y, hit.mStartPos.z, hit.mRayDir.x, hit.mRayDir.y, hit.mRayDir.z,
+            hit.mIndirectHit, hit.mIsHitLiquid, eye.x, eye.y, eye.z, view.x, view.y, view.z, aimed, reach, throughBlocks,
+            ghost ? std::format("{},{},{}", ghost->cell.x, ghost->cell.y, ghost->cell.z) : std::string("none"));
+    }
+#endif
+    return ghost;
 }
 // The ghost's block as one item, as the game's own pick would give it: the
 // name and data value both paths use (skull kinds and monster eggs differ

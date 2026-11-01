@@ -117,6 +117,12 @@ option("offhand_trace")
     set_description("Observe item-use and selection lifecycles for L-95")
 option_end()
 
+option("pick_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Log the game's pick hit and the ghost search for L-285")
+option_end()
+
 option("sneak_trace")
     set_default(false)
     set_showmenu(true)
@@ -239,6 +245,7 @@ target("Lamium")
     if has_config("consumption_trace") then add_defines("LAMIUM_CONSUMPTION_TRACE") end
     if has_config("offhand_trace") then add_defines("LAMIUM_OFFHAND_TRACE") end
     if has_config("transfer_trace") then add_defines("LAMIUM_TRANSFER_TRACE") end
+    if has_config("pick_trace") then add_defines("LAMIUM_PICK_TRACE") end
     if has_config("sneak_trace") then add_defines("LAMIUM_SNEAK_TRACE") end
     if has_config("book_paste_trace") then add_defines("LAMIUM_BOOK_PASTE_TRACE") end
     if has_config("hunger_trace") then add_defines("LAMIUM_HUNGER_TRACE") end
