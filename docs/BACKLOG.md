@@ -220,6 +220,10 @@ main hand and fireworks in the Fake Offhand, the firework fires only
 sometimes. Suspect: the game's hit while gliding is sometimes a block
 hit (the fallback below the player?), which keeps the bucket primary.
 Next: `offhand_trace` build (`444224ca`) logs the hit with each choice.
+Trace 2026-11-01: while gliding the hit comes from a 1000-block ray, so
+blocks 22-115 ahead were block targets. Fix `938a630c`: a tile hit past
+the pick range plus one block (`blockInReach`, `FakeOffhandPlan.h`) is no
+target for the Fake Offhand. Not yet checked in game.
 No release target selected.
 
 
@@ -277,6 +281,10 @@ feet block. So the game's hit for this case is not what the rule assumes
 ray after all). Next: the `pick_trace` build (`444224ca`) logs the hit's
 type, block, position, start, direction and `mIndirectHit` with the eye,
 view, reach and the ghost found; decide the fix from that log.
+Trace 2026-11-01 (VALIDATION-LOG): the fallback is an indirect tile hit
+with its own ray straight down. Fix `d54654c4`: an indirect hit is not
+aimed and the pick searches along the view; the card treats it as no
+hit. Not yet checked in game.
 No release target selected.
 
 

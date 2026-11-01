@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Pick and Fake Offhand hit traces (L-285, L-290, 2026-11-01)
+
+Trace build `444224ca` (`pick_trace`, `offhand_trace`), DLL SHA-256
+`197968041E5505C763D37FDD5B6C2332A324E9FA7215C6A198B5111869DD2E29`.
+L-285, local: middle-clicking a ghost beside the feet block or beside the
+lower body brought the feet block every time. All seven pick lines show
+`type=0` (tile) on the feet block with `indirect=true`, start at the
+player and `dir=0,-2,0`: the fallback carries its own ray straight down,
+so the on-ray test took it for an aimed hit (`aimed=true`, reach 1.57,
+no ghost). L-290, BDS: gliding with a water bucket primary and offhand
+fireworks, the firework failed when a block lay some 30-50 blocks ahead
+and fired with nothing ahead or far away. Every gliding choice line shows
+a ray of length 1000; tile hits 22-115 blocks away were classified as
+block targets, which keeps the bucket primary.
+
 ## PRs #59-#62 merged on main: L-285, L-289, L-290, L-291, L-293 (2026-11-01)
 
 LeviLauncher instance `1.26.51.01 LIP`, commit `9a06ada2`, DLL SHA-256
