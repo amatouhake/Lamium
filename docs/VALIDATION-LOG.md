@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Minimap follows the world map's layer switches (L-295, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, `661302e6`, DLL SHA-256
+`08FF79FEDCF241F5AFFA8FC08F5EE64E984D5BE717CDCC06A7C1F16BA019B887`, trace
+options off, maintainer. The settings file was an old one
+(`waypointsMinimap` true, `minimapShapes` false, every world map switch on).
+Passed: slime chunks drawn on the minimap with the wash and outline, shapes
+on the minimap (now following the world map switch); each world map switch
+hid its layer on both maps; "Map layers" off hid every layer on the minimap
+and left the world map unchanged. Not checked: loading a file with
+`waypointsMinimap` false (covered by a unit test), a turned or round
+minimap's slime wash.
+
 ## Slime chunk map drawing (L-232, 2026-11-01)
 
 Local world, LeviLauncher instance `1.26.51.01 LIP`, trace options off,

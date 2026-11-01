@@ -94,7 +94,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
    (Design). L-196 license/provenance evidence; L-236 is a follow-up;
-   L-295 minimap layers (built 2026-11-01, waiting for the check); remaining Design/Research in L-166 trade helpers,
+   L-295 minimap layers (checked 2026-11-01); L-296 map follow-ups (Design); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
    L-163 a Lamium inventory screen, L-259 book paste overflow (on main and
@@ -739,8 +739,8 @@ player could do by hand without a separate decision.
 No release target selected.
 
 ### L-295 Rethink which map layers the minimap shows
-Kind: Ready (designed 2026-11-01 with the maintainer), built 2026-11-01,
-waiting for the in-game check. Raised while adding
+Kind: Ready (designed 2026-11-01 with the maintainer), built and checked
+in game 2026-11-01 (VALIDATION-LOG). Follow-ups raised that day: L-296. Raised while adding
 L-232's slime layer: the settings deciding what the minimap shows were
 scattered. Before: waypoints and the death point followed "Show on the
 minimap" (`waypointsMinimap`, Waypoints group, default on), shapes their own
@@ -771,6 +771,22 @@ translations (four languages) and help text for the new setting and the
 world map switches' wider meaning. Check in game: each world map switch
 hides its layer on both maps, the minimap setting hides them all, and an
 old settings file with `waypointsMinimap` off loads with the setting off.
+### L-296 Map follow-ups seen while checking L-295
+Kind: Design. Maintainer notes 2026-11-01 after using the shared layer
+switches:
+- The layer switches can only be changed on the world map, so someone who
+  uses the minimap without the world map keeps the saved values (accepted
+  for L-295, but a blind spot in use). Candidate: the minimap's "Map
+  layers" row gets the four switches as its child rows, the same values as
+  the world map's (one concept, a second place to reach it).
+- Shapes and schematic placements draw almost the same on both maps (a
+  faint fill and a frame; only the color differs, and a shape can have the
+  placements' cyan). Needs a look that tells them apart at a glance.
+- With the world map on, its side panel lists and edits waypoints, so the
+  separate waypoint screen may be little used there. Decide its role (kept
+  for players without the world map; whether the waypoint key or the
+  panel's button should go to the world map's panel instead).
+None decided; agree each before building.
 ### L-233 Make inventory transfer gestures rebindable
 Kind: Design, future. Maintainer 2026-10-20: now that a wheel direction can
 be part of a binding, the transfer gestures should be configurable instead
