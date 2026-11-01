@@ -72,15 +72,17 @@ std::shared_ptr<Operation> pending;
 // L-291: the remainder a replacement refill left in the source slot. It is
 // merged into another stack of the same item on a later tick, while no
 // restock is being observed. The kind table outlives the operation so the
-// remainder keeps its id.
+// remainder keeps its id. Back-to-back uses each leave one, oldest first.
 struct RemainderWatch {
     std::vector<ItemStack> kinds;
     RemainderPending pending;
     std::uint64_t playerId = 0;
     int dimension = 0;
     int maxStack = 0;
-    void clear() { *this = RemainderWatch{}; }
-} remainder;
+    RestockFamily family = RestockFamily::Other;
+};
+std::vector<RemainderWatch> remainders;
+constexpr std::size_t remainderWaits = 4;
 // The HUD and the player inventory briefly disagree while an update is being
 // applied. Refusing to plan is right; for the tick-by-tick totem watch it only
 // means "not settled yet", never a reason to stop Hand Restock (0ca7af5 follow-up).
@@ -257,7 +259,6 @@ std::shared_ptr<Operation> beginUse(Player& actor, HandSlot hand, bool placement
         op->token = game::beginTransfer(*controller);
         if (!op->token) { trace("begin-token-unavailable"); return {}; }
         pending = op;
-        remainder.clear(); // L-291: another restock replaces the remainder wait.
         trace("begin-captured",op->before.selected);
         return op;
     } catch (...) { failure(); return {}; }
@@ -309,19 +310,20 @@ bool applyMove(LocalPlayer& player, RestockPlan const& plan) {
 // L-291: a merge only ever adds the remainder to a stack of the same item.
 // Unlike a refill swap it never exchanges, so slots that changed under the
 // snapshot give up instead of moving something the player just put there.
-bool applyMerge(LocalPlayer& player, RemainderMerge const& merge) {
+enum class MergeResult { Merged, Changed, Busy };
+MergeResult applyMerge(LocalPlayer& player, RemainderMerge const& merge) {
     game::Location from{game::Place::Inventory,merge.source};
     game::Location to{game::Place::Inventory,merge.destination};
     ItemStack source = game::itemAt(player,from);
     ItemStack destination = game::itemAt(player,to);
     if (source.isNull() || destination.isNull() || source.mCount != merge.count
         || destination.mCount != merge.destinationCount - merge.count
-        || !source.matchesItem(destination)) { trace("merge-changed"); return false; }
+        || !source.matchesItem(destination)) { trace("merge-changed"); return MergeResult::Changed; }
     destination.add(merge.count);
     ItemStack empty;
     struct Applying { Applying() { applying = true; } ~Applying() { applying = false; } } guard;
-    if (!game::movePair(player,from,empty,to,destination)) { trace("merge-busy"); return false; }
-    return true;
+    if (!game::movePair(player,from,empty,to,destination)) { trace("merge-busy"); return MergeResult::Busy; }
+    return MergeResult::Merged;
 }
 // L-68: a totem in the offhand or the hand is consumed without a tracked use.
 // Compare settled snapshots from tick to tick instead.
@@ -374,35 +376,43 @@ void watchStep() noexcept {
 }
 // L-291: one extra move after a replacement refill, from the same per-tick
 // path and only while no restock is being observed. Everything is read back
-// from a fresh snapshot; a changed inventory, hand or world ends the wait.
+// from a fresh snapshot; a changed inventory, hand or world, or a switch
+// turned off, ends the wait. One remainder per tick, oldest first.
 void remainderStep() noexcept {
-    if (!remainder.pending.waiting()) return;
+    if (remainders.empty()) return;
+    auto& wait = remainders.front();
+    auto drop = [](char const* why) { remainders.erase(remainders.begin()); if (why) trace(why); };
     int now = static_cast<int>(tickSerial);
-    if (remainder.pending.expired(now)) { remainder.clear(); trace("remainder-expired"); return; }
-    if (!remainder.pending.due(now) || game::moving()) return;
+    if (!wait.pending.waiting()) { drop(nullptr); return; }
+    if (wait.pending.expired(now)) { drop("remainder-expired"); return; }
+    if (!wait.pending.due(now) || game::moving()) return;
     try {
         auto* player = eligible();
         auto controller = hud.lock();
         if (!player || !controller || !owned(*controller,*player)
-            || remainder.playerId != player->getRuntimeID().rawID
-            || remainder.dimension != static_cast<int>(player->getDimensionId())
-            || player->mInventory->mSelected != remainder.pending.selected) { remainder.clear(); return; }
-        auto current = snapshot(remainder.kinds,*controller,*player);
-        auto merge = planRemainderMerge(current,remainder.pending,remainder.maxStack);
-        if (!merge) { remainder.clear(); trace("remainder-no-merge"); return; }
-        if (!applyMerge(*player,*merge)) {
-            // movePair refuses while a transaction or request is in flight.
-            if (++remainder.pending.attempts >= remainderMergeAttempts) { remainder.clear(); trace("remainder-refused"); }
+            || !restockFamilyEnabled(wait.family,restockSwitches())
+            || wait.playerId != player->getRuntimeID().rawID
+            || wait.dimension != static_cast<int>(player->getDimensionId())
+            || player->mInventory->mSelected != wait.pending.selected) { drop(nullptr); return; }
+        auto current = snapshot(wait.kinds,*controller,*player);
+        auto merge = planRemainderMerge(current,wait.pending,wait.maxStack);
+        if (!merge) { drop("remainder-no-merge"); return; }
+        switch (applyMerge(*player,*merge)) {
+        case MergeResult::Busy: // movePair refuses while a transaction or request is in flight.
+            if (++wait.pending.attempts >= remainderMergeAttempts) drop("remainder-refused");
             return;
+        case MergeResult::Changed: drop("remainder-changed"); return;
+        case MergeResult::Merged: trace("remainder-merged",merge->destination); drop(nullptr); return;
         }
-        remainder.clear();
-        trace("remainder-merged",merge->destination);
     } catch (HudMismatch const&) { return; } // Mid-update; the deadline bounds the wait.
-    catch (...) { remainder.clear(); failure(); }
+    catch (...) { remainders.clear(); failure(); }
 }
 void tick() noexcept {
     ++tickSerial;
     if (!pending) { watchStep(); remainderStep(); return; }
+    // A restock being observed holds the remainder waits; their deadline starts
+    // again once it is over, so back-to-back uses still merge (L-291).
+    for (auto& wait : remainders) wait.pending.frame = static_cast<int>(tickSerial);
     watch.last.reset();
     try {
         auto op = pending;
@@ -473,13 +483,15 @@ void tick() noexcept {
         // source slot. Remember it for a later tick: the swap's transaction
         // must be gone before a second move is accepted.
         if (remainderKind >= 0 && plan->sourceAfter.kind == remainderKind && plan->sourceAfter.count > 0) {
-            remainder.clear();
-            remainder.kinds = op->kinds;
-            remainder.pending = RemainderPending{now.context,now.selected,plan->source,
+            if (remainders.size() >= remainderWaits) remainders.erase(remainders.begin());
+            auto& wait = remainders.emplace_back();
+            wait.kinds = op->kinds;
+            wait.pending = RemainderPending{now.context,now.selected,plan->source,
                 plan->sourceAfter.kind,plan->sourceAfter.count,static_cast<int>(tickSerial)};
-            remainder.playerId = op->playerId;
-            remainder.dimension = op->dimension;
-            remainder.maxStack = op->kinds[plan->sourceAfter.kind].getMaxStackSize();
+            wait.playerId = op->playerId;
+            wait.dimension = op->dimension;
+            wait.maxStack = op->kinds[plan->sourceAfter.kind].getMaxStackSize();
+            wait.family = op->family;
             trace("remainder-recorded",plan->sourceAfter.count);
         }
     } catch (...) { failure(); }
@@ -655,7 +667,7 @@ Hook hooks[] = {{CaptureHud::hook,CaptureHud::unhook},{Use::hook,Use::unhook},
     {FocusLost::hook,FocusLost::unhook},{ComplexSend::hook,ComplexSend::unhook},{Drop::hook,Drop::unhook},
     {SlotUpdate::hook,SlotUpdate::unhook},{ContentUpdate::hook,ContentUpdate::unhook},
     {EntityEvent::hook,EntityEvent::unhook}};
-void resetWatch() { watch = {}; totemTick = 0; remainder.clear(); }
+void resetWatch() { watch = {}; totemTick = 0; remainders.clear(); }
 }
 void start() {
     try {

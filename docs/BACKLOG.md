@@ -205,8 +205,11 @@ fullest stack, ties to the lower slot, the offhand never used, the
 whole remainder must fit). `HandRestock.cpp` records the remainder when
 the replacement swap is predicted and merges it from the same per-tick
 path while no restock is being observed; a refused send is retried on
-later ticks up to a cap and the 40-tick deadline bounds the wait. The
-ordinary refill is unchanged. Table tests in
+later ticks up to a cap and the 40-tick deadline bounds the wait.
+Back-to-back uses keep each remainder's wait (up to four, oldest first;
+the deadline restarts once the next restock is no longer observed); a
+slot that changed under the merge, or the family's switch turned off,
+ends it. The ordinary refill is unchanged. Table tests in
 `tests/RestockRemainderTests.cpp`.
 
 In game: with a stack of empty buckets in the inventory, place water

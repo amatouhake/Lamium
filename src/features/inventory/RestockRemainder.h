@@ -10,9 +10,10 @@ namespace lamium::inventory {
 // along with the swap: movePair refuses while the swap's transaction is
 // outstanding, so the merge waits for a later client tick and gives up when
 // the moment has passed instead of holding the remainder hostage.
-inline constexpr int remainderMergeFrames = 40; // about two thirds of a second at 60 fps
+// Client level ticks (20 per second, whatever the frame rate): two seconds.
+inline constexpr int remainderMergeTicks = 40;
 // A refused send (a transaction or request still in flight) may be retried on
-// later ticks; a server round trip fits inside this, and the frame deadline
+// later ticks; a server round trip fits inside this, and the tick deadline
 // still bounds the wait.
 inline constexpr int remainderMergeAttempts = 12;
 struct RemainderMerge {
@@ -22,7 +23,7 @@ struct RemainderMerge {
     int destinationCount; // The destination's count after the merge.
 };
 // What a replacement refill left behind, and enough to recognise it again on
-// a later frame: the swap's world, hand and remainder, plus the tick it was
+// a later tick: the swap's world, hand and remainder, plus the tick it was
 // sent on. Kind ids belong to the restock's own kind table, which the caller
 // keeps alive for as long as this is waiting.
 struct RemainderPending {
@@ -36,7 +37,7 @@ struct RemainderPending {
     bool waiting() const { return source >= 0 && kind >= 0 && count > 0; }
     // Never the tick the swap went out on: its transaction is still in flight.
     bool due(int now) const { return waiting() && now > frame; }
-    bool expired(int now) const { return waiting() && now - frame > remainderMergeFrames; }
+    bool expired(int now) const { return waiting() && now - frame > remainderMergeTicks; }
     void clear() { *this = RemainderPending{}; }
 };
 // The slot a later move would merge into, or nothing to do. Everything the

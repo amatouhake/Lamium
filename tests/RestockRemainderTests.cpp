@@ -76,8 +76,8 @@ void restockRemainderTests() {
 
     // The merge waits for the swap's own tick and gives up after the deadline.
     auto wait = pending(3,14,2,1,100);
-    check(!wait.due(100) && wait.due(101) && !wait.expired(100 + remainderMergeFrames)
-          && wait.expired(100 + remainderMergeFrames + 1),
+    check(!wait.due(100) && wait.due(101) && !wait.expired(100 + remainderMergeTicks)
+          && wait.expired(100 + remainderMergeTicks + 1),
           "the merge waits for the swap's tick and gives up after the deadline");
     wait.clear();
     check(!wait.waiting() && !wait.due(1000) && !wait.expired(1000), "a cleared remainder does nothing");
