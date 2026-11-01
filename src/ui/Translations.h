@@ -1535,7 +1535,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"key.Lamium.sneakplacement", "Toggle sneak placement", "スニーク設置の切り替え"},
     {"sneakPlacementInvert", "Open while sneaking", "スニーク中は開く"},
     {"sneakPlacementMethod", "Method", "方式"},
-    {"sneakMethod.crouch", "Crouch briefly (if a server objects)", "一瞬しゃがむ（サーバーで問題が出るとき）"},
+    {"sneakMethod.crouch", "Crouch briefly", "一瞬しゃがむ"},
     {"sneakMethod.packet", "Send only (recommended)", "送信だけ変える（推奨）"},
     {"feature.toolGuard", "Tool Protection", "道具の保護"},
     {"toolGuard", "Tool Protection: {}", "道具の保護: {}"},

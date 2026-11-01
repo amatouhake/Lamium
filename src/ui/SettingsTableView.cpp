@@ -811,6 +811,34 @@ void drawVersionTip(MinecraftUIRenderContext& context, SettingsTable const& t, S
     label(context,x+pad,y+pad+(1 + noteLines)*lineHeight,width-2*pad,std::move(hint),palette::faint);
     context.flushText(0, std::nullopt);
 }
+// A stepper value cut with "..." shows whole below the stepper, like a key
+// cell that clips its binding: on hover, or for the keyboard-selected row.
+void drawValueTip(MinecraftUIRenderContext& context, SettingsTable const& t, SettingsTable::Hit const& hover) {
+    if (editingNumber_) return;
+    int row = -1;
+    if (hover.zone == Zone::Row && valid(hover.index) && rows[hover.index].kind == RowKind::Option) {
+        bool keyed = optionAction(rows[hover.index].option->id).has_value();
+        if (t.stepperPart(hover.x, keyed) != 2) row = hover.index;
+    } else if (keyboardTip && valid(selected)) row = selected;
+    if (row < t.first || row >= t.first + t.visible || rows[row].kind != RowKind::Option) return;
+    auto const& option = *rows[row].option;
+    auto value = option.read(Runtime::instance().preferences());
+    if (std::holds_alternative<bool>(value) || (option.numeric && option.numeric->step > 0)) return;
+    bool keyed = optionAction(option.id).has_value();
+    float sx = t.stepperX(keyed), sw = t.stepperWidth(keyed);
+    auto text = optionValueText(option, value);
+    if (textWidth(context, text) <= sw - 2*SettingsTable::arrowWidth - 2) return;
+    constexpr float pad = 4, lineHeight = 12;
+    float width = std::min(t.width - 2*SettingsTable::pad, textWidth(context, text) + 2*pad), height = lineHeight + 2*pad;
+    float rowTop = t.rowY(row), rowBottom = rowTop + SettingsTable::rowHeight;
+    bool under = rowBottom + 1 + height <= t.top + t.height - 2;
+    float x = std::max(t.left + 2, sx + sw - width), y = under ? rowBottom + 1 : rowTop - 1 - height;
+    // Row text is queued until a flush; flush it so the tooltip covers it.
+    context.flushText(0, std::nullopt);
+    fill(context,x,y,width,height,palette::panel,.97f);
+    frame(context,x,y,width,height,palette::keyEdge);
+    label(context,x+pad,y+pad,width-2*pad,std::move(text));
+}
 void copyVersion_() {
     showMessageToast(translated(copyText(runningVersionLine()) ? "version.copied" : "version.copyFailed"));
 }
@@ -1111,6 +1139,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         if (auto target = tipTarget(t, hover))
             drawConflictTip(context,current,t,target->first,target->second,
                 hover.zone == Zone::Row && hover.column == Column::Key);
+    if (!capturing_ && !findingKey) drawValueTip(context, t, hover);
     drawVersionTip(context, t, hover);
     context.flushText(0,std::nullopt);
 }

@@ -1499,7 +1499,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"key.Lamium.sneakplacement", "切換潛行放置"},
     {"sneakPlacementInvert", "潛行時開啟"},
     {"sneakPlacementMethod", "方式"},
-    {"sneakMethod.crouch", "短暫蹲下（伺服器有問題時）"},
+    {"sneakMethod.crouch", "短暫蹲下"},
     {"sneakMethod.packet", "僅傳送（推薦）"},
     {"feature.toolGuard", "工具保護"},
     {"toolGuard", "工具保護: {}"},

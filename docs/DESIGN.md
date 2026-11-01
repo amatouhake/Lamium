@@ -876,3 +876,8 @@ and controlled failure cases were not separately reported. Details:
   "N more". Keyboard navigation shows the same tooltip for the selected row
   (keyboard users are not told to use the mouse); moving the mouse returns to
   hover. The footer keeps only the feature/action description.
+- (Decided 2026-11-01, L-293 follow-up) A stepper value cut with "..." shows
+  whole in a tip right under the stepper (above when there is no room), with
+  the same look as the key-cell tip: on hover over the stepper, and for the
+  keyboard-selected row. A value that fits shows no tip. Chosen over a first
+  footer line because the tip is where the eye already is.
