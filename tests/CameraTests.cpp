@@ -63,6 +63,8 @@ int main() try {
     edgeGuardReplayTests();
     extern void restockPlanTests();
     restockPlanTests();
+    extern void restockRemainderTests();
+    restockRemainderTests();
     extern void equipmentPlanTests();
     equipmentPlanTests();
     extern void textFitTests();
