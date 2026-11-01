@@ -417,5 +417,25 @@ void worldMapTests() {
         check(inside && top == 20 && bottom == 40 && left == 10 && right == 50, "the outline fills its box edge to edge and stays inside");
         check(rects.size() <= 2 * 96 && ellipseOutline(0, 0, 4000, 4000).size() <= 2 * 96, "a big ellipse stays within its rectangle budget");
         check(ellipseOutline(5, 5, 6, 6).size() == 1, "a tiny one is one rectangle");
+        // A 7-unit icon is the classic pixel circle, the same both ways round.
+        std::array<std::string, 7> grid;
+        grid.fill(std::string(7, '.'));
+        for (auto const& r : ellipseOutline(0, 0, 7, 7))
+            for (int y = r.y; y < r.y + r.h; ++y)
+                for (int x = r.x; x < r.x + r.w; ++x) grid[static_cast<size_t>(y)][static_cast<size_t>(x)] = '#';
+        check((grid == std::array<std::string, 7>{"..###..", ".#...#.", "#.....#", "#.....#", "#.....#", ".#...#.", "..###.."}),
+              "a small circle is drawn evenly, row by row");
+        bool symmetric = true;
+        for (int size : {5, 8, 11, 24, 61}) {
+            std::vector<std::string> g(static_cast<size_t>(size), std::string(static_cast<size_t>(size), '.'));
+            for (auto const& r : ellipseOutline(0, 0, size, size))
+                for (int y = r.y; y < r.y + r.h; ++y)
+                    for (int x = r.x; x < r.x + r.w; ++x) g[static_cast<size_t>(y)][static_cast<size_t>(x)] = '#';
+            for (int y = 0; y < size; ++y)
+                for (int x = 0; x < size; ++x)
+                    symmetric = symmetric && g[static_cast<size_t>(y)][static_cast<size_t>(x)] == g[static_cast<size_t>(x)][static_cast<size_t>(y)]
+                        && g[static_cast<size_t>(y)][static_cast<size_t>(x)] == g[static_cast<size_t>(y)][static_cast<size_t>(size - 1 - x)];
+        }
+        check(symmetric, "a circle is the same mirrored and turned, at any small size");
     }
 }

@@ -148,16 +148,41 @@ inline int scaleBarBlocks(double unitsPerBlock, double minUnits) {
 }
 // The outline of the ellipse inscribed in a screen box [x0, x1) by [y0, y1),
 // in whole GUI units, as rectangles (the UI draws rectangles only): a round
-// shape's footprint (L-296). Points around it are joined by a horizontal and
-// a vertical run each; a big ellipse gets more points, never more than 96.
+// shape's footprint (L-296). Up to 160 units tall it is drawn row by row,
+// mirrored on both axes, so a small one (an icon, a far-out shape) is a
+// clean pixel circle; taller ones join at most 96 points around it by a
+// horizontal and a vertical run each.
 struct UnitRect { int x, y, w, h; };
 inline std::vector<UnitRect> ellipseOutline(int x0, int y0, int x1, int y1) {
     std::vector<UnitRect> rects;
-    if (x1 - x0 < 2 || y1 - y0 < 2) {
-        rects.push_back({x0, y0, std::max(1, x1 - x0), std::max(1, y1 - y0)});
+    int const w = x1 - x0, h = y1 - y0;
+    if (w < 2 || h < 2) {
+        rects.push_back({x0, y0, std::max(1, w), std::max(1, h)});
         return rects;
     }
-    double cx = (x0 + x1 - 1) / 2.0, cy = (y0 + y1 - 1) / 2.0, rx = (x1 - x0 - 1) / 2.0, ry = (y1 - y0 - 1) / 2.0;
+    if (h <= 160) {
+        // Each row's inset from the left; the right side mirrors it, and the
+        // lower half mirrors the upper.
+        std::vector<int> inset(static_cast<size_t>(h));
+        for (int j = 0; j < (h + 1) / 2; ++j) {
+            double v = (j + .5 - h / 2.0) / (h / 2.0);
+            int in = static_cast<int>(std::lround(w / 2.0 * (1 - std::sqrt(std::max(0.0, 1 - v * v)))));
+            inset[static_cast<size_t>(j)] = inset[static_cast<size_t>(h - 1 - j)] = std::min(in, (w - 1) / 2);
+        }
+        for (int j = 0; j < h; ++j) {
+            int in = inset[static_cast<size_t>(j)];
+            bool edge = j == 0 || j == h - 1;
+            // Down to the next row's inset, so the line stays closed.
+            int to = edge ? w - in : std::max({in + 1, inset[static_cast<size_t>(j - 1)], inset[static_cast<size_t>(j + 1)]});
+            if (edge || 2 * to >= w) rects.push_back({x0 + in, y0 + j, w - 2 * in, 1});
+            else {
+                rects.push_back({x0 + in, y0 + j, to - in, 1});
+                rects.push_back({x1 - to, y0 + j, to - in, 1});
+            }
+        }
+        return rects;
+    }
+    double cx = (x0 + x1 - 1) / 2.0, cy = (y0 + y1 - 1) / 2.0, rx = (w - 1) / 2.0, ry = (h - 1) / 2.0;
     int count = std::clamp(static_cast<int>((rx + ry) * 2), 12, 96);
     std::vector<std::array<int, 2>> points;
     for (int i = 0; i < count; ++i) {
