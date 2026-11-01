@@ -98,8 +98,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
-   L-163 a Lamium inventory screen, L-259 book paste overflow (built; in-game
-   checks next). Agree open choices before building.
+   L-163 a Lamium inventory screen, L-259 book paste overflow (on main and
+   checked locally; edge cases left, see the item). Agree open choices
+   before building.
    L-165 Mass Craft remains below Map and needs a scope
    conversation; existing packs already cover part of that need.
 3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,
@@ -656,6 +657,11 @@ feature row whose state column is `interface.bookPaste` (like Skip server
 resource packs), with the unbound toggle action `bookpaste`
 (`ToggleBookPaste`); the details that were the nested row's help moved into
 the feature's help.
+Status 2026-11-01: every commit of branch `l259-book-paste-trace` is on
+main (PR #55, 2026-10-28), and main has the later page-index fix
+(`fa6cc2f4`) and the plain switch (`1c845919`), both checked in game
+(VALIDATION.md). Unchecked: servers, Japanese text, the right page of a
+spread, a replaced selection and the 50-page refusal.
 No release target selected.
 
 ### L-263 Pick the aimed ghost block from the inventory
