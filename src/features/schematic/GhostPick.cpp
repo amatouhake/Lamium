@@ -1,6 +1,7 @@
 #include "features/schematic/GhostPick.h"
 #include "features/schematic/GhostCommon.h"
 #include "features/schematic/GhostRenderer.h"
+#include "features/schematic/PickRay.h"
 #include "features/inventory/BringToHand.h"
 #include "features/inventory/PickConfirm.h"
 #include "app/Runtime.h"
@@ -35,15 +36,23 @@ std::optional<GhostAt> pickedGhost(LocalPlayer& player, HitResult const& hit) {
         length = std::sqrt(double(way.x) * way.x + double(way.y) * way.y + double(way.z) * way.z);
         if (!(length > 0)) return std::nullopt;
     }
-    double reach = player.getPickRange();
-    bool onHit = hit.mType == HitResultType::Tile || hit.mType == HitResultType::Entity;
-    if (onHit) {
+    // L-285: the game also reports the block under the player's feet when the
+    // ray meets nothing, and that fallback is off the ray. Only a hit on the
+    // ray is something the player aimed at, and only that hit shortens the
+    // search; taking the fallback for a hit put the ghost behind the feet
+    // block and the pick brought the feet block instead.
+    bool hitReal = hit.mType == HitResultType::Tile || hit.mType == HitResultType::Entity;
+    bool aimed = hitReal && onRay(from.x, from.y, from.z, way.x, way.y, way.z, hit.mPos.x, hit.mPos.y, hit.mPos.z,
+                                  pickRayTolerance);
+    double hitDistance = 0;
+    if (aimed) {
         double ex = hit.mPos.x - from.x, ey = hit.mPos.y - from.y, ez = hit.mPos.z - from.z;
-        reach = std::sqrt(ex * ex + ey * ey + ez * ez) - .05;
+        hitDistance = std::sqrt(ex * ex + ey * ey + ez * ez);
     }
+    double reach = ghostReach(aimed, hitDistance, player.getPickRange());
     if (!(reach > 0)) return std::nullopt;
     return ghostAlong(player.getDimensionBlockSource(), static_cast<int>(player.getDimensionId()), from.x, from.y, from.z,
-                      way.x / length, way.y / length, way.z / length, reach, onHit);
+                      way.x / length, way.y / length, way.z / length, reach, aimed);
 }
 // The ghost's block as one item, as the game's own pick would give it: the
 // name and data value both paths use (skull kinds and monster eggs differ
