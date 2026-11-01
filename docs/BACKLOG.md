@@ -216,14 +216,32 @@ no liquid aimed as idle. A filled bucket is therefore never idle, and
 `placementSlot` asks for the same `primaryIdle`, so the instant use and
 the placement borrow are both closed.
 
-Open: what a filled bucket has to see before it counts as idle - no
-block face in reach, or a face it cannot pour onto (a cauldron is not
-one) - as a pure predicate with a table test, and whether a bucket
-aimed at its own liquid stays primary (filling, not pouring).
+Decided 2026-11-01 (maintainer): a filled POUR bucket (water, lava,
+powder snow) is idle when no block face is in reach, whatever lies
+along the ray - with a face it really does pour, including onto a
+water surface (that places water in the cell above), so any face keeps
+the bucket primary. A fish bucket is idle only with no face AND no
+liquid aimed, because the game can put the fish into aimed liquid;
+milk is never idle (drinking works anywhere). A face the bucket cannot
+pour onto is out of scope: it would need a pour model, and guessing
+wrong steals a real pour.
 
-In game: a water bucket in the main hand and a firework in the Fake
-Offhand - aiming at the sky the offhand is used, aiming at the ground
-vanilla pours, and an empty bucket at no liquid is unchanged.
+Status 2026-11-01: built (`34aafa86`, branch `l290-bucket-idle`), not
+yet checked in game. `bucketIdle` (`FakeOffhandPlan.h`) holds the rule;
+`idleUse` (`FakeOffhand.cpp`) calls it and the empty bucket, the glass
+bottle and the entity guard are unchanged. Table tests in
+`tests/FakeOffhandTests.cpp` cover every bucket kind across air, aimed
+liquid, block face and entity targets, and an unknown namespace.
+
+In game (right-click binding; the dedicated key from L-292 ignores the
+priority): a water bucket in the main hand and a firework in the Fake
+Offhand - aiming at the sky uses the offhand, a ground face pours as
+vanilla, a water surface pours as vanilla. Also a lava and a powder
+snow bucket at the sky, a fish bucket aimed at water (the fish is
+placed, not the firework) and at the sky with no liquid (the firework),
+milk at the sky (drunk, not the firework), and the empty bucket
+unchanged.
+
 No release target selected.
 
 
