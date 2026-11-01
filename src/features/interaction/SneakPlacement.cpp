@@ -22,6 +22,8 @@
 #include "mc/world/gamemode/SurvivalMode.h"
 #include "mc/world/item/HandSlot.h"
 #include "mc/world/item/ItemStack.h"
+#include "mc/world/actor/player/Inventory.h"
+#include "mc/world/actor/player/PlayerInventory.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
@@ -36,9 +38,11 @@ Pulse pulse;
 bool serverSneak = false; // Sneaking in the last auth input sent.
 bool edited = false;      // Lamium changed the sneak bits of that packet.
 bool installed = false;
-// The block face a held-back use aimed at. The replay is a fresh use press,
-// which goes wherever the crosshair is then.
-std::optional<std::pair<BlockPos, uchar>> heldAt;
+// What a held-back use aimed at and the hotbar slot it used. The replay is a
+// fresh use press, which goes wherever the crosshair is then, with the slot
+// selected then; Fake Offhand's slot is selected only during its own calls.
+struct HeldUse { BlockPos pos; uchar face; int slot; };
+std::optional<HeldUse> heldAt;
 using Auth = PlayerAuthInputPacketPayload::InputData;
 
 bool on() {
@@ -65,7 +69,11 @@ bool holds(Player& actor, ItemStack const& item, BlockPos const& pos, uchar face
         bool interactive = player->getDimensionBlockSource().getBlock(pos).getBlockType().isInteractiveBlock();
         bool held = gate(pulse, enabled, runtime.snapshot()->interaction.sneakPlacementInvert, player->isSneaking(),
             interactive, item.isNull(), serverSneak) == Gate::Hold;
-        if (held) heldAt = {pos, face};
+        if (held) {
+            auto* inventory = player->mInventory.get();
+            bool hotbar = inventory && inventory->mSelectedContainerId == ContainerID::Inventory;
+            heldAt = HeldUse{pos, face, hotbar ? inventory->mSelected : -1};
+        }
         return held;
     } catch (...) { return false; }
 }
@@ -79,7 +87,25 @@ void replay() {
             if (!client || !client->getLocalPlayer() || !on() || !at) return;
             // Looking elsewhere by now: the use would land on another block.
             auto const& hit = client->getLatestHitResult();
-            if (hit.mType != HitResultType::Tile || hit.mBlock != at->first || hit.mFacing != at->second) return;
+            if (hit.mType != HitResultType::Tile || hit.mBlock != at->pos || hit.mFacing != at->face) return;
+            auto* player = client->getLocalPlayer();
+            auto* inventory = player->mInventory.get();
+            if (!inventory || inventory->mSelectedContainerId != ContainerID::Inventory || at->slot < 0 || at->slot >= 9)
+                return;
+            int selected = inventory->mSelected;
+            // The held slot is selected for the replay alone, as Fake Offhand
+            // does; an emptied slot would act with whatever is held now.
+            if (selected != at->slot) {
+                if (player->getInventory().getItem(at->slot).isNull()) return;
+                if (!inventory->selectSlot(at->slot, ContainerID::Inventory)) return;
+            }
+            struct Restore {
+                PlayerInventory& inventory;
+                int slot, previous;
+                ~Restore() {
+                    if (slot != previous && inventory.mSelected == slot) inventory.selectSlot(previous, ContainerID::Inventory);
+                }
+            } restore{*inventory, at->slot, selected};
             if (periodic::sendUseEdge(*client, true)) periodic::sendUseEdge(*client, false);
         } catch (...) {}
     });
@@ -167,6 +193,10 @@ Hook hooks[] = {
     {SneakPlacementSurvivalModeStartBuild::hook, SneakPlacementSurvivalModeStartBuild::unhook},
     {SneakPlacementSurvivalModeUseOn::hook, SneakPlacementSurvivalModeUseOn::unhook},
 };
+}
+std::optional<bool> sneakForUse(bool userSneaking) {
+    if (!installed || !on()) return {};
+    return wantedSneak(true, Runtime::instance().snapshot()->interaction.sneakPlacementInvert, userSneaking, true, false);
 }
 void start() {
     if (installed) return;

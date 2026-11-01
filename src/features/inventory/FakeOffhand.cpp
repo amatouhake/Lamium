@@ -1,6 +1,7 @@
 #include "features/inventory/FakeOffhand.h"
 #include "features/inventory/FakeOffhandPlan.h"
 #include "features/interaction/PeriodicInput.h"
+#include "features/interaction/SneakPlacement.h"
 #include "features/camera/CameraSessions.h"
 #include "app/Runtime.h"
 #ifdef LAMIUM_OFFHAND_TRACE
@@ -290,18 +291,23 @@ std::optional<int> chooseSlot(IClientInstance& client, HitResult const& gameHit,
     bool interactive = hitBlock && player->getDimensionBlockSource().getBlock(solid.mBlock)
         .getBlockType().isInteractiveBlock();
     bool primaryUsing = !player->mItemInUse->mItem->isNull();
-    if (auto slot = interactSlot(dedicatedKey, selected, target, interactive, player->isSneaking(), primaryUsing))
+    // A key of its own asks for the slot's item, which Sneak Placement makes
+    // act on an interactive block as if sneaking (L-293). A right click is
+    // shared with the primary hand, whose empty hand still opens the block.
+    bool sneaking = player->isSneaking();
+    if (dedicatedKey) sneaking = interaction::sneakPlacement::sneakForUse(sneaking).value_or(sneaking);
+    if (auto slot = interactSlot(dedicatedKey, selected, target, interactive, sneaking, primaryUsing))
         return slot;
     bool primaryIdle = primaryYields(dedicatedKey,
         primaryPasses(player->getInventory().getItem(selected), *player, solid));
     if (blockItem) return placementSlot(true, true, selected, target, true, hitBlock, interactive,
-        player->isSneaking(), primaryIdle, primaryUsing);
+        sneaking, primaryIdle, primaryUsing);
     // Timed use stops on a selection change (L-95 baseline). Never start it
     // from a per-call borrow or preempt an existing primary use.
     if (primaryUsing) return {};
     auto slot = instantUseSlot(true, true, selected, target,
         primaryIdle, targetInstant,
-        solid.mType == HitResultType::Entity, interactive, player->isSneaking());
+        solid.mType == HitResultType::Entity, interactive, sneaking);
     instant = slot.has_value();
     return slot;
 }
