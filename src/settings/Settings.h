@@ -177,6 +177,7 @@ struct Settings {
         bool worldMapPanel = true; // The world map's waypoint side panel is open; changed on the map.
         // The world map's layer switches (L-146), changed on the map.
         bool worldMapWaypoints = true, worldMapSchematics = true, worldMapShapes = true;
+        bool worldMapSlime = false; // Slime chunks over the Overworld map (L-232).
         int worldMapList = 0; // The side panel's list (L-204): 0 waypoints, 1 schematics, 2 shapes.
     } map;
     struct Schematic {
@@ -291,6 +292,7 @@ struct Settings {
         bool block = false;
         bool targetBlock = false; // the aimed block's coordinates (L-219)
         bool chunk = false;
+        bool slimeChunk = false; // Overworld slime chunk yes/no (L-232)
         bool speed = false;
         bool horizontalSpeed = false;
         bool verticalSpeed = false;

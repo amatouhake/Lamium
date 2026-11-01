@@ -13,7 +13,7 @@ namespace lamium::information {
 // Ordered info-line model (BACKLOG L-04b; providers extended by L-05).
 // Switches stay the existing Information flags; only the order is saved.
 inline constexpr auto infoLineIds = std::to_array<std::string_view>(
-    {"coordinates", "block", "targetBlock", "scaledCoordinates", "chunk", "dimension", "biome", "facing",
+    {"coordinates", "block", "targetBlock", "scaledCoordinates", "chunk", "slimeChunk", "dimension", "biome", "facing",
      "rotation", "yaw", "pitch", "speed", "horizontalSpeed", "verticalSpeed", "sprinting", "light",
      "weather", "time", "moon", "difficulty", "fps", "frameTime", "ping", "realTime"});
 struct ChunkPosition { int chunkX, chunkZ, inX, inZ; };

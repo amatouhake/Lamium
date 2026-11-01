@@ -249,6 +249,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::targetBlock>("information.targetBlock", "infoHud", "hudTargetBlock"),
     toggle<&Settings::information, &Settings::Information::scaledCoordinates>("information.scaledCoordinates", "infoHud", "hudScaledCoordinatesRow"),
     toggle<&Settings::information, &Settings::Information::chunk>("information.chunk", "infoHud", "hudChunk"),
+    toggle<&Settings::information, &Settings::Information::slimeChunk>("information.slimeChunk", "infoHud", "hudSlimeChunk"),
     toggle<&Settings::information, &Settings::Information::dimension>("information.dimension", "infoHud", "hudDimension"),
     toggle<&Settings::information, &Settings::Information::biome>("information.biome", "infoHud", "hudBiome"),
     {"information.biomeDisplay", "infoHud", "hudBiomeDisplay",

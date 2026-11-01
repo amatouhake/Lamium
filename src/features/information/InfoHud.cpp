@@ -7,6 +7,7 @@
 #include "features/information/TargetInfo.h"
 #include "features/information/TargetCard.h"
 #include "features/information/DebugLines.h"
+#include "features/information/SlimeChunk.h"
 #include "features/information/SystemInfo.h"
 #include "features/camera/CameraSessions.h"
 #include "features/interaction/BreakingRestriction.h"
@@ -917,6 +918,10 @@ std::optional<DebugValues> collectDebugValues(IClientInstance& client, std::opti
             value.x = info.position->x;
             value.y = info.position->y;
             value.z = info.position->z;
+            if (info.dimensionId && slimeChunksIn(*info.dimensionId)) {
+                auto chunk = chunkPosition(info.position->x, info.position->z);
+                value.slimeChunk = isSlimeChunk(chunk.chunkX, chunk.chunkZ);
+            }
         }
         if (info.yaw && info.pitch) {
             value.yaw = info.yaw;
@@ -966,7 +971,8 @@ GameText debugGameText(DebugValues const& value) {
         text.coordinates = ui::translated("hudXYZ", *value.x, *value.y, *value.z);
         text.blockChunk = ui::translated("debugBlock", static_cast<int>(std::floor(*value.x)),
                              static_cast<int>(std::floor(*value.y)), static_cast<int>(std::floor(*value.z)))
-            + " | " + ui::translated("hudChunk", formatChunk(chunkPosition(*value.x, *value.z)));
+            + " | " + ui::translated("hudChunk", formatChunk(chunkPosition(*value.x, *value.z)))
+            + (value.slimeChunk.value_or(false) ? " | " + ui::translated("debugSlimeChunk") : std::string{});
     }
     auto facing = [](float yaw, float pitch) {
         auto key = facingKey(yaw);
@@ -1082,6 +1088,7 @@ bool infoLineEnabled(Settings::Information const& settings, std::string_view id)
     if (id == "block") return settings.block;
     if (id == "targetBlock") return settings.targetBlock;
     if (id == "chunk") return settings.chunk;
+    if (id == "slimeChunk") return settings.slimeChunk;
     if (id == "speed") return settings.speed;
     if (id == "horizontalSpeed") return settings.horizontalSpeed;
     if (id == "verticalSpeed") return settings.verticalSpeed;
@@ -1093,7 +1100,7 @@ bool infoLineEnabled(Settings::Information const& settings, std::string_view id)
 }
 // Lines that read the camera's place and angles during FreeCamera (L-124).
 bool followsCamera(std::string_view id) {
-    for (std::string_view line : {"coordinates", "scaledCoordinates", "block", "targetBlock", "chunk", "facing", "yaw",
+    for (std::string_view line : {"coordinates", "scaledCoordinates", "block", "targetBlock", "chunk", "slimeChunk", "facing", "yaw",
                                   "pitch", "rotation", "biome", "light", "weather"})
         if (id == line) return true;
     return false;
@@ -1164,6 +1171,13 @@ std::optional<std::string> infoLineText(std::string_view id, PlayerInfo const& i
     if (id == "chunk") {
         if (!info.position) return ui::translated("hudChunk", ui::translated("unavailable"));
         return ui::translated("hudChunk", formatChunk(chunkPosition(info.position->x, info.position->z)));
+    }
+    // Only the Overworld has slime chunks; the line goes elsewhere.
+    if (id == "slimeChunk") {
+        if (info.dimensionId && !slimeChunksIn(*info.dimensionId)) return std::nullopt;
+        if (!info.position || !info.dimensionId) return ui::translated("hudSlimeChunk", ui::translated("unavailable"));
+        auto chunk = chunkPosition(info.position->x, info.position->z);
+        return ui::translated("hudSlimeChunk", ui::translated(isSlimeChunk(chunk.chunkX, chunk.chunkZ) ? "hudSlimeYes" : "hudSlimeNo"));
     }
     if (id == "speed")
         return ui::translated("hudSpeed", speed ? formatSpeed(speed->total) : ui::translated("unavailable"));
@@ -1614,8 +1628,8 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     if (!preview && (!settings.hud || (settings.debug && settings.debugHideHud))) { drawList(); return boxes; }
     PlayerInfoRequest request;
     request.coordinates = settings.coordinates || settings.scaledCoordinates || settings.block || settings.chunk
-        || settings.speed || settings.horizontalSpeed || settings.verticalSpeed;
-    request.dimension = settings.dimension || settings.scaledCoordinates;
+        || settings.slimeChunk || settings.speed || settings.horizontalSpeed || settings.verticalSpeed;
+    request.dimension = settings.dimension || settings.scaledCoordinates || settings.slimeChunk;
     request.biome = settings.biome;
     request.facing = settings.facing || settings.yaw;
     request.light = settings.light;

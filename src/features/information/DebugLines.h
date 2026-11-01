@@ -72,6 +72,7 @@ struct DebugValues {
     std::optional<EntityKinds> entityKinds;          // The entity total by kind (L-120)
     std::optional<TypeSummary> entityTypes;          // The most common entity types (L-120)
     std::optional<double> x, y, z;
+    std::optional<bool> slimeChunk; // Overworld only (L-232)
     std::optional<float> yaw, pitch;
     // FreeCamera (L-124): x..pitch, block, chunk, light and biome are the
     // camera's; body is the player's own position and angles.
@@ -188,9 +189,10 @@ inline DebugColumns buildDebugColumns(DebugValues const& value, DebugLabel style
             left.push_back({std::format("Player XYZ: {:.1f} / {:.1f} / {:.1f}", b->x, b->y, b->z)});
         if (value.x && value.z) {
             auto chunk = chunkPosition(*value.x, *value.z);
-            left.push_back({std::format("Block: {} {} {} | Chunk: {}, {}",
+            left.push_back({std::format("Block: {} {} {} | Chunk: {}, {}{}",
                 static_cast<int>(std::floor(*value.x)), value.y ? static_cast<int>(std::floor(*value.y)) : 0,
-                static_cast<int>(std::floor(*value.z)), chunk.chunkX, chunk.chunkZ)});
+                static_cast<int>(std::floor(*value.z)), chunk.chunkX, chunk.chunkZ,
+                value.slimeChunk.value_or(false) ? " | Slime chunk" : "")});
         }
         if (value.yaw && value.pitch)
             left.push_back({std::format("{}Facing: {} (towards {}) | Yaw/Pitch: {:.1f} / {:.1f}", camera,

@@ -135,6 +135,8 @@ int main() try {
     chatPositionTests();
     extern void infoLinesTests();
     infoLinesTests();
+    extern void slimeChunkTests();
+    slimeChunkTests();
     extern void targetDetailTests();
     targetDetailTests();
     extern void targetCardTests();

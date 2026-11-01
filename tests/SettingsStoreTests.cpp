@@ -257,6 +257,9 @@ void settingsStoreTests() {
               && decodeSettings(R"({"information":{"targetBlock":true,"block":true}})").information.targetBlock
               && !decodeSettings(R"({"information":{"block":true}})").information.targetBlock,
               "the aimed-block line defaults off, loads when saved and is not the standing-block switch");
+        check(!fresh.information.slimeChunk && !fresh.map.worldMapSlime
+                  && !decodeSettings(R"({"information":{"chunk":true}})").information.slimeChunk,
+              "the slime chunk line and map layer default off");
         check(fresh.information.debugHideHud && fresh.information.debugHideTarget && fresh.information.debugShadow
               && fresh.information.debugLabels == 0 && !fresh.information.debug,
               "a fresh file hides the Info HUD and Target while Debug is on, with shadows and game-standard names");
@@ -591,6 +594,14 @@ void settingsStoreTests() {
         target.information.targetSchematic = false;
         writeSettings(path, target);
         check(!readSettings(path).information.targetSchematic, "hidden schematic information survives restart");
+    }
+    {
+        Settings target;
+        target.information.slimeChunk = true;
+        target.map.worldMapSlime = true;
+        writeSettings(path, target);
+        auto loaded = readSettings(path);
+        check(loaded.information.slimeChunk && loaded.map.worldMapSlime, "the slime chunk line and map layer survive a restart");
     }
     {
         auto encoded = [&](Settings const& value) {

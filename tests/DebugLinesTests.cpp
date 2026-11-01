@@ -65,6 +65,12 @@ void debugLinesTests() {
               "java style joins fps, ping and render distance");
         check(java.left[2].text == "XYZ: 101.3 / 64.0 / -31.7", "java style formats the position");
         check(java.left[3].text == "Block: 101 64 -32 | Chunk: 6, -2", "java style formats block and chunk");
+        {
+            auto slime = value;
+            slime.slimeChunk = true;
+            check(buildDebugColumns(slime, DebugLabel::JavaF3, {}).left[3].text == "Block: 101 64 -32 | Chunk: 6, -2 | Slime chunk",
+                  "a slime chunk is named after the chunk; other chunks add nothing");
+        }
         check(java.left[4].text == "Facing: north (towards -Z) | Yaw/Pitch: 180.0 / 12.3",
               "yaw maps to the cardinal word and axis");
         check(java.left[5].text == "Client Light: 15 (sky 15, block 0)", "java style light line");

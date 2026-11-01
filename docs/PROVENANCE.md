@@ -132,6 +132,16 @@ it) while doing so.
 - Tweakeroo (Java, listed above): its fake-sneak placement, named by the
   maintainer 2026-11-01 as the closest prior art, is the source of the L-293
   idea. Its source and description text are not opened.
+- The Bedrock slime chunk rule (L-232, `features/information/SlimeChunk.h`):
+  MT19937 seeded with `uint32(chunkX) * 0x1f1f1f1f ^ uint32(chunkZ)`, slime
+  chunk when the first output `% 10 == 0`. It is a fact about the game, as
+  publicly documented (the Minecraft Wiki's Slime article and issue #30 by
+  its reporter, who states it is not from another mod's code). The reporter's
+  snippet was not copied; Lamium's function computes the first MT19937 output
+  from the standard's seeding and tempering, and the tests compare it with
+  `std::mt19937`. Checked against the game's own
+  `SlimeSpawnRules::checkSpawnRulesCallback` by the `slime_trace` build (see
+  VALIDATION-LOG).
 
 If reference-only source later becomes incorporated source, move it to group 2
 in the same change that first imports code. Record the upstream repository and

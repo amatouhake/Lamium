@@ -144,7 +144,8 @@ Json encode(Settings const& settings) {
                          {"ping", settings.information.ping},
                          {"rotation", settings.information.rotation}, {"block", settings.information.block},
                          {"targetBlock", settings.information.targetBlock},
-                         {"chunk", settings.information.chunk}, {"speed", settings.information.speed},
+                         {"chunk", settings.information.chunk}, {"slimeChunk", settings.information.slimeChunk},
+                         {"speed", settings.information.speed},
                          {"horizontalSpeed", settings.information.horizontalSpeed},
                          {"verticalSpeed", settings.information.verticalSpeed},
                          {"time", settings.information.time}, {"realTime", settings.information.realTime},
@@ -258,7 +259,7 @@ Json encode(Settings const& settings) {
                  {"seedLink", settings.map.seedLink}, {"worldMapNames", settings.map.worldMapNames},
                  {"radarFaces", settings.map.radarFaces}, {"worldMapWaypoints", settings.map.worldMapWaypoints},
                  {"worldMapSchematics", settings.map.worldMapSchematics}, {"worldMapShapes", settings.map.worldMapShapes},
-                 {"worldMapList", settings.map.worldMapList}}},
+                 {"worldMapSlime", settings.map.worldMapSlime}, {"worldMapList", settings.map.worldMapList}}},
         {"schematic", {{"enabled", settings.schematic.enabled}, {"hud", settings.schematic.hud},
                        {"hudVerify", settings.schematic.hudVerify}, {"hudMaterials", settings.schematic.hudMaterials},
                        {"menuBackground", settings.schematic.menuBackground}, {"menuSmall", settings.schematic.menuSmall},
@@ -393,6 +394,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.block = settingsValue(info, "block", value.information.block);
         value.information.targetBlock = settingsValue(info, "targetBlock", value.information.targetBlock);
         value.information.chunk = settingsValue(info, "chunk", value.information.chunk);
+        value.information.slimeChunk = settingsValue(info, "slimeChunk", value.information.slimeChunk);
         value.information.speed = settingsValue(info, "speed", value.information.speed);
         value.information.horizontalSpeed = settingsValue(info, "horizontalSpeed", value.information.horizontalSpeed);
         value.information.verticalSpeed = settingsValue(info, "verticalSpeed", value.information.verticalSpeed);
@@ -529,6 +531,7 @@ Settings decodeSettings(std::string_view text) {
         value.map.worldMapWaypoints = settingsValue(map, "worldMapWaypoints", value.map.worldMapWaypoints);
         value.map.worldMapSchematics = settingsValue(map, "worldMapSchematics", value.map.worldMapSchematics);
         value.map.worldMapShapes = settingsValue(map, "worldMapShapes", value.map.worldMapShapes);
+        value.map.worldMapSlime = settingsValue(map, "worldMapSlime", value.map.worldMapSlime);
         value.map.worldMapList = std::clamp(settingsValue(map, "worldMapList", value.map.worldMapList), 0, 2);
     }
     if (data.contains("schematic") && data.at("schematic").is_object()) {

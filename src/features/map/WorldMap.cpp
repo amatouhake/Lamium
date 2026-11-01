@@ -17,6 +17,7 @@
 #include "mc/world/level/Level.h"
 #include "mc/world/level/storage/LevelData.h"
 #include "features/information/InfoHud.h"
+#include "features/information/SlimeChunk.h"
 #include "app/Runtime.h"
 #include "ui/Localization.h"
 #include "ui/NumberInput.h"
@@ -121,6 +122,7 @@ enum class Target {
     CaveButton, CavePanel, CaveToggle, BroadToggle, HeightDown, HeightUp, HeightField, MatchHeight,
     Center, Waypoints, Close, Menu,
     LayerWaypoints, LayerSchematics, LayerShapes, // The layer switches (L-146).
+    LayerSlime, // Slime chunks, Overworld only (L-232).
     // The side panel: its background, header buttons, list and editor.
     Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Temporary, Swatch, Keep, Delete, OpenScreen,
     PanelKind, PanelKindItem // The list's layer menu (L-204) and its items.
@@ -392,7 +394,8 @@ LayerSwitches layers() {
 void toggleLayer(Target target) {
     auto value = Runtime::instance().preferences();
     bool& on = target == Target::LayerWaypoints ? value.map.worldMapWaypoints
-        : target == Target::LayerSchematics ? value.map.worldMapSchematics : value.map.worldMapShapes;
+        : target == Target::LayerSchematics ? value.map.worldMapSchematics
+        : target == Target::LayerSlime ? value.map.worldMapSlime : value.map.worldMapShapes;
     on = !on;
     if (!Runtime::instance().save(value)) log("could not save the layer switches");
 }
@@ -961,6 +964,30 @@ struct MarkName {
     std::string text;
     Rgb color;
 };
+// Slime chunks (L-232): a green wash over the Overworld terrain, under every
+// mark. Drawn only while a chunk is big enough to tell apart; the place
+// under the pointer names it at any zoom.
+constexpr std::uint32_t slimeColor = waypointColors[3];
+constexpr double slimeMinUnitsPerChunk = 8;
+information::SlimeChunkCache slimeCache;
+bool slimeShown() { return state.dimension == 0 && Runtime::instance().preferences().map.worldMapSlime; }
+bool slimeDrawable() { return state.view.scale() * 16 >= slimeMinUnitsPerChunk; }
+void drawSlimeChunks(MinecraftUIRenderContext& context) {
+    if (!slimeShown() || !slimeDrawable()) return;
+    auto const& view = state.view;
+    auto chunk = [](double block) { return static_cast<int>(std::floor(block / 16)); };
+    int x0 = chunk(view.worldX(0)), x1 = chunk(view.worldX(view.width));
+    int z0 = chunk(view.worldZ(state.top)), z1 = chunk(view.worldZ(view.height));
+    auto color = rgb(slimeColor);
+    for (auto const& run : information::slimeRuns(x0, x1, z0, z1, slimeCache)) {
+        float sx0 = std::round(static_cast<float>(view.screenX(run.x0 * 16.0)));
+        float sx1 = std::round(static_cast<float>(view.screenX((run.x1 + 1) * 16.0)));
+        float sy0 = std::round(static_cast<float>(view.screenY(run.z * 16.0)));
+        float sy1 = std::round(static_cast<float>(view.screenY((run.z + 1) * 16.0)));
+        ui::fill(context, sx0, sy0, sx1 - sx0, sy1 - sy0, color, .3f);
+        ui::frame(context, sx0, sy0, sx1 - sx0, sy1 - sy0, color, .55f);
+    }
+}
 // Footprints (L-139): shapes, then schematic placements over them, each a
 // faint fill, a frame and its name, under the other markers. Hidden ones
 // stay faint, like hidden waypoints; the selected one is framed white.
@@ -1010,6 +1037,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
     auto& view = state.view;
     state.markers.clear();
     std::vector<MarkName> names;
+    drawSlimeChunks(context);
     drawAreas(context, names);
     // A footprint whose provider turned off, or whose entry is gone, takes
     // its selection and menu with it; one only switched off on the map stays
@@ -1113,7 +1141,11 @@ constexpr std::uint32_t shapeSymbolColor = packColor(242, 204, 61);
 // A layer's symbol in the top bar and the list menu.
 void layerSymbol(MinecraftUIRenderContext& context, int kind, float x, float cy, float alpha) {
     if (kind == 0) diamond(context, x + 4, cy, 7, rgb(waypointColors[0]), alpha);
-    else footprintIcon(context, x, cy, rgb(kind == 1 ? placementColor : shapeSymbolColor), alpha);
+    else if (kind == 3) {
+        // Slime chunks: two filled cells on a diagonal, like the map's.
+        ui::fill(context, x, cy - 3, 3, 3, rgb(slimeColor), alpha);
+        ui::fill(context, x + 4, cy, 3, 3, rgb(slimeColor), alpha);
+    } else footprintIcon(context, x, cy, rgb(kind == 1 ? placementColor : shapeSymbolColor), alpha);
 }
 void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending, bool recording) {
     auto spot = playerSpot();
@@ -1133,20 +1165,24 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     float closeW = 13, rightW = widthOf(centerText) + 3 + widthOf(waypointsText) + 3 + closeW + 3;
     auto terrainText = stateText();
     float terrainW = state.dimension == 2 ? 0 : widthOf(terrainText);
-    // Layer switches (L-146): the mark's own symbol and the layer's name.
-    constexpr std::array<std::pair<Target, std::string_view>, 3> switches{{
-        {Target::LayerWaypoints, "nav.waypoints"}, {Target::LayerSchematics, "nav.schematics"}, {Target::LayerShapes, "nav.shapes"}}};
+    // Layer switches (L-146): the mark's own symbol and the layer's name;
+    // slime chunks (L-232) only where there are any.
+    constexpr std::array<std::pair<Target, std::string_view>, 4> switches{{
+        {Target::LayerWaypoints, "nav.waypoints"}, {Target::LayerSchematics, "nav.schematics"}, {Target::LayerShapes, "nav.shapes"},
+        {Target::LayerSlime, "worldMap.slimeChunks"}}};
+    size_t const switchCount = state.dimension == 0 ? 4 : 3;
     auto shownLayers = layers();
-    std::array<bool, 3> switchOn{shownLayers.waypoints, shownLayers.schematics, shownLayers.shapes};
-    std::array<std::string, 3> switchTexts;
+    std::array<bool, 4> switchOn{shownLayers.waypoints, shownLayers.schematics, shownLayers.shapes,
+                                 Runtime::instance().preferences().map.worldMapSlime};
+    std::array<std::string, 4> switchTexts;
     float namedW = 1;
-    for (size_t i = 0; i < 3; ++i) {
+    for (size_t i = 0; i < switchCount; ++i) {
         switchTexts[i] = ui::translated(switches[i].second);
         namedW += 12 + widthOf(switchTexts[i]) - 1;
     }
     float brandW = ui::textWidth(context, "Lamium") + 6;
     constexpr float iconW = 15;
-    float const iconsW = 1 + 3 * (iconW - 1);
+    float const iconsW = 1 + static_cast<float>(switchCount) * (iconW - 1);
     auto fits = [&](float width) { return 4 + brandW + dimsW + terrainW + 8 + width + 8 + rightW + 4 <= size.x; };
     bool const namedFits = fits(namedW), iconFits = fits(iconsW);
     bool compact = !namedFits;
@@ -1208,15 +1244,15 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     button(context, right, 2, centerText, Target::Center, false, hovering(right, 2, widthOf(centerText), buttonHeight));
     if (oneRow) { x = right - 8 - switchesW; y = 2; }
     else { x = 4; y = rowHeight + 2; }
-    std::array<float, 3> switchX{};
-    for (size_t i = 0; i < 3; ++i) {
+    std::array<float, 4> switchX{};
+    for (size_t i = 0; i < switchCount; ++i) {
         switchX[i] = x;
         x += (compact ? iconW : 12 + widthOf(switchTexts[i])) - 1;
     }
     std::optional<size_t> overSwitch;
     // Neighbours share a border column: switches that are on are drawn last, keeping their accent frames whole.
     for (int pass = 0; pass < 2; ++pass)
-        for (size_t i = 0; i < 3; ++i) {
+        for (size_t i = 0; i < switchCount; ++i) {
             bool on = switchOn[i];
             if (on != (pass == 1)) continue;
             float bx = switchX[i], bw = compact ? iconW : 12 + widthOf(switchTexts[i]);
@@ -1252,8 +1288,12 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
             }
         if (!biome.empty()) where += "  " + biome;
         else if (!column) where += "  " + ui::translated("worldMap.unrecorded");
-    } else if (overSwitch)
+        if (slimeShown() && slimeCache(blockFloor(wx / 16.0), blockFloor(wz / 16.0))) where += "  " + ui::translated("debugSlimeChunk");
+    } else if (overSwitch) {
         where = ui::translated("worldMap.layerShown", switchTexts[*overSwitch], ui::translated(switchOn[*overSwitch] ? "on" : "off"));
+        if (switches[*overSwitch].first == Target::LayerSlime && switchOn[*overSwitch] && !slimeDrawable())
+            where += "  " + ui::translated("worldMap.slimeZoomIn");
+    }
     float whereW = where.empty() ? 0 : ui::textWidth(context, where);
     ui::label(context, 4, textY, whereW + 2, where, ui::palette::dim);
     int blocks = scaleBarBlocks(state.view.scale(), 30);
@@ -1798,7 +1838,8 @@ Request press(float x, float y, bool right) {
         case Target::Waypoints: setPanelOpen(!panelOpen()); return request;
         case Target::LayerWaypoints:
         case Target::LayerSchematics:
-        case Target::LayerShapes: toggleLayer(hit->target); return request;
+        case Target::LayerShapes:
+        case Target::LayerSlime: toggleLayer(hit->target); return request;
         default: act(hit->target); return request;
         }
     }
