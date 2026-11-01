@@ -271,6 +271,18 @@ equipment swaps all use (`game::beginTransfer`, `movePair`):
   and rejoining the world cleared it. Whether anything short of a
   relog also clears it was not established.
 
+Direction (maintainer, 2026-11-02): the desync predates native
+client mods — fast vanilla play could already produce it — so
+suppressing occurrence is not the promising line; Lamium's own
+moves can at most avoid adding to it. The promising line is
+repair after the fact. Deliberately re-trigger the desync seen
+while building the shared foundation, observe exactly which state
+is stale, and catalogue recovery steps from lightest to heaviest.
+If a safe in-session resync exists, shipping it as a recovery
+feature is on the table. Any such feature may only restore from
+authoritative server state — never synthesize, rewrite or forge
+items — and must fail open to vanilla.
+
 Research questions, in order:
 1. When a transfer is not accepted, or a server correction lands in
    the middle of an operation, can any Lamium state outlive the
@@ -279,22 +291,33 @@ Research questions, in order:
    decided rules say operations stop and queues drop; verify the
    failure paths actually release everything.
 2. Does vanilla alone, with no Lamium, leave the same stuck slot
-   under fast repeated use/pickup/consumption? If the residue is
-   never Lamium's, this item closes as a platform behaviour and the
-   answer to future reports is the recovery step, not a fix.
-3. Which recovery clears a stuck slot? A relog is already known to
-   clear it (the maintainer's experience above), so in that case
-   the authoritative state was intact and the residue lived in
-   session state. Whether lighter steps — reopening the inventory,
-   changing dimension — also clear it is open, and each step that
-   works narrows where the residue sits. This is why the original
-   thread asked it first.
+   under fast repeated use/pickup/consumption? The comparison is
+   for learning the shape of the residue, not for assigning
+   blame: occurrence in vanilla is expected, and it is what makes
+   the recovery line the product of this item.
+3. Which recovery clears a stuck slot, and what is the lightest
+   reliable one? A relog is already known to clear it (the
+   maintainer's experience above), so in that case the
+   authoritative state was intact and the residue lived in
+   session state. Test the lighter steps — reopening the
+   inventory, interacting with the slot, changing dimension —
+   and record which ones work; each working step narrows where
+   the residue sits and is a candidate for what a recovery
+   feature would do. This is why the original thread asked it
+   first.
+4. Can a stuck slot be detected from client-visible state, and can
+   the client obtain a fresh authoritative inventory snapshot
+   in-session — the thing a relog does — without leaving the
+   world? These two answers decide whether a recovery feature is
+   feasible at all, and whether it would be automatic or a
+   manual action.
 
 Gate: no fix work from the original report; it does not meet the
-2026-11-01 reopening condition. Work starts from a reproduction
-anyone can run with publicly available releases, or from a session
-log that pairs the "Inventory transfer stopped" line with the
-state of the stuck slot in the same session.
+2026-11-01 reopening condition. The research above starts from
+the maintainer's own deliberate re-triggering, or from a public
+reproduction, or from a session log that pairs the "Inventory
+transfer stopped" line with the state of the stuck slot in the
+same session.
 
 Check if a reproduction is found: the stuck slot's contents before
 and after each recovery step; whether another Lamium operation owns
