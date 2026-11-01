@@ -117,6 +117,11 @@ void fakeOffhandTests() {
     check(primaryPass(bow,true,false,true,std::nullopt,true) && !primaryPass(bow,true,false,false,std::nullopt,true)
               && !primaryPass(bow,true,false),
           "a bow without arrows passes on plain blocks too, not on special ones");
+    using lamium::inventory::fakeOffhand::blockInReach;
+    check(blockInReach(0,-1.6,0,5.5) && blockInReach(3,4,0,5.5) && blockInReach(0,0,6.5,5.5)
+              && !blockInReach(0,0,6.6,5.5) && !blockInReach(-15,-4,20,5.5) && !blockInReach(0,0,1,0)
+              && !blockInReach(0,0,1e308 * 10,5.5),
+          "L-290: a block hit counts only within the pick range plus the margin");
     // L-290: a filled bucket is idle only where its use cannot act. A pour
     // bucket needs a block face to pour on; a fish bucket can also put its fish
     // into aimed liquid; milk is never idle, and a block face keeps every

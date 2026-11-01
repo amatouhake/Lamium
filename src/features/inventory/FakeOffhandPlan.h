@@ -108,6 +108,15 @@ inline TargetUse targetUseOf(ItemTraits const& item, bool shovelTag, bool hoeTag
     if (id == "bucket" || id == "glass_bottle") return TargetUse::Fill;
     return TargetUse::None;
 }
+// L-290: the game's hit comes from a long ray (1000 blocks while gliding,
+// trace 2026-11-01), so a block hit can lie far beyond what any use reaches.
+// It is a target only within the pick range; the margin keeps a block the
+// game might still act on a target, which keeps vanilla priority.
+inline constexpr double blockReachMargin = 1.0;
+inline bool blockInReach(double dx, double dy, double dz, double pickRange) {
+    double distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    return std::isfinite(distance) && pickRange > 0 && distance <= pickRange + blockReachMargin;
+}
 // L-290: whether a bucket's ordinary use cannot act on this aim. A pour bucket
 // (water, lava, powder snow) needs a block face to pour on; with none it is
 // already full and has nothing to fill, whatever lies along the ray. A fish
