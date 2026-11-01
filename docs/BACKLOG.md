@@ -281,13 +281,22 @@ miss, and where GhostPick.cpp takes its "on a real block" decision
 from. Prefer ray order (the first ghost cell the view ray reaches
 versus the hit block's position) over adjacency or distance to the
 feet, which would misfire when the feet block is honestly aimed at.
-Open: a ghost in the feet cell itself; which reference the pick uses
-while FreeCamera owns the view; the creative give path (L-263)
-inheriting the same precedence.
-Check in game: the reported setup (feet block, adjacent ghost, pick
-brings the ghost's item), a real block in front of a ghost (vanilla
-still wins), a ghost with no feet block nearby (unchanged), and
-schematics off (pure vanilla, unchanged).
+Decided 2026-11-01 (maintainer): (A) the pick ray decides. A game hit
+only counts as something the player aimed at when its position lies on
+the pick ray (0.05 blocks); then the ghost search stops just before it,
+so a real block in front of a ghost still wins. The feet fallback is
+off the ray, so it no longer shortens the search and the ghost under the
+crosshair wins. The rule is "nearest thing on the view ray", which is
+as close as a real block's middle-click behaves. The ray is the hit's
+own (`mStartPos`/`mRayDir`), so FreeCamera needs no separate reference,
+and the creative give path inherits the same precedence.
+
+Status 2026-11-01: built (`16443e31` plus `9e759986`, branch
+`l285-pick-feet-fallback`), not yet checked in game. `PickRay.h` holds
+`onRay` and `ghostReach` (pure, table-tested in
+`tests/SchematicTests.cpp`); `pickedGhost` (`GhostPick.cpp`) asks them
+and passes `throughBlocks` true, because within the reach the game's own
+pick hit nothing solid (L-224).
 No release target selected.
 
 
