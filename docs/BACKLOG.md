@@ -776,17 +776,21 @@ Kind: Design. Maintainer notes 2026-11-01 after using the shared layer
 switches:
 - The layer switches can only be changed on the world map, so someone who
   uses the minimap without the world map keeps the saved values (accepted
-  for L-295, but a blind spot in use). Candidate: the minimap's "Map
-  layers" row gets the four switches as its child rows, the same values as
-  the world map's (one concept, a second place to reach it).
+  for L-295, but a blind spot in use). Rejected 2026-11-01: the four
+  switches as children of the minimap's "Map layers" row (a child of a
+  child, or siblings that read as minimap-only), and "Map layers" as a
+  parent of the four (its tie to the minimap gets unclear). Open candidate:
+  the four switches as child rows of the World map feature, which owns them
+  (one level; option rows stay editable while the feature is off), with the
+  minimap's "Map layers" help pointing there. Not decided.
 - Shapes and schematic placements draw almost the same on both maps (a
   faint fill and a frame; only the color differs, and a shape can have the
-  placements' cyan). Needs a look that tells them apart at a glance.
+  placements' cyan). Maintainer 2026-11-01: compare looks in a mockup under
+  `docs/demos/` first, then build the chosen one.
 - With the world map on, its side panel lists and edits waypoints, so the
-  separate waypoint screen may be little used there. Decide its role (kept
-  for players without the world map; whether the waypoint key or the
-  panel's button should go to the world map's panel instead).
-None decided; agree each before building.
+  separate waypoint screen may be little used there. Maintainer 2026-11-01:
+  keep it as it is (it does no harm); revisit when the world map is no
+  longer experimental.
 ### L-233 Make inventory transfer gestures rebindable
 Kind: Design, future. Maintainer 2026-10-20: now that a wheel direction can
 be part of a binding, the transfer gestures should be configurable instead
