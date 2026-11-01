@@ -3,7 +3,6 @@
 #include "features/information/TargetPick.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/LiquidName.h"
-#include "features/schematic/PickRay.h"
 #include "features/schematic/RayCells.h"
 #include "features/schematic/SchematicSession.h"
 #include "app/Runtime.h"
@@ -321,15 +320,10 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         double dx = latest.mPos.x - ray->x, dy = latest.mPos.y - ray->y, dz = latest.mPos.z - ray->z;
         gameDistance = std::sqrt(dx * dx + dy * dy + dz * dz);
         gameHit = *gameDistance <= ray->reach;
-        // L-285: the block under the feet, which the game reports when its ray
-        // meets nothing, is off that ray and is not the aimed block; the card
-        // then looks along the view as the ghost pick does.
-        auto const& from = latest.mStartPos;
-        auto const& way = latest.mRayDir;
-        double length = std::sqrt(double(way.x) * way.x + double(way.y) * way.y + double(way.z) * way.z);
-        if (gameHit && length > 0 && std::isfinite(length)
-            && !schematic::onRay(from.x, from.y, from.z, way.x, way.y, way.z, latest.mPos.x, latest.mPos.y,
-                                 latest.mPos.z, schematic::pickRayTolerance)) {
+        // L-285: the block under the feet, which the game reports as an
+        // indirect hit when its ray meets nothing, is not the aimed block; the
+        // card then looks along the view as the ghost pick does.
+        if (gameHit && latest.mIndirectHit) {
             gameHit = false;
             gameDistance.reset();
         }

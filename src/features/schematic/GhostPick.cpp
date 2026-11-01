@@ -33,19 +33,20 @@ namespace {
 std::optional<GhostAt> pickedGhost(LocalPlayer& player, HitResult const& hit) {
     Vec3 from = hit.mStartPos, way = hit.mRayDir;
     double length = std::sqrt(double(way.x) * way.x + double(way.y) * way.y + double(way.z) * way.z);
-    if (!(length > 0) || !std::isfinite(length)) {
+    // L-285: when the view ray meets nothing the game picks the block under
+    // the feet as an indirect hit with its own ray, straight down from the
+    // player (trace 2026-11-01). That ray is not the aim: search the view.
+    if (hit.mIndirectHit || !(length > 0) || !std::isfinite(length)) {
         from = player.getEyePos();
         way = player.getViewVector(1.f);
         length = std::sqrt(double(way.x) * way.x + double(way.y) * way.y + double(way.z) * way.z);
         if (!(length > 0)) return std::nullopt;
     }
-    // L-285: the game also reports the block under the player's feet when the
-    // ray meets nothing, and that fallback is off the ray. Only a hit on the
-    // ray is something the player aimed at, and only that hit shortens the
-    // search; taking the fallback for a hit put the ghost behind the feet
-    // block and the pick brought the feet block instead.
+    // L-285: only a hit on the ray is something the player aimed at, and
+    // only that hit shortens the search; taking the feet fallback for a hit
+    // put the ghost behind the feet block and the pick brought the feet block.
     bool hitReal = hit.mType == HitResultType::Tile || hit.mType == HitResultType::Entity;
-    bool aimed = hitReal && onRay(from.x, from.y, from.z, way.x, way.y, way.z, hit.mPos.x, hit.mPos.y, hit.mPos.z,
+    bool aimed = hitReal && !hit.mIndirectHit && onRay(from.x, from.y, from.z, way.x, way.y, way.z, hit.mPos.x, hit.mPos.y, hit.mPos.z,
                                   pickRayTolerance);
     double hitDistance = 0;
     if (aimed) {
