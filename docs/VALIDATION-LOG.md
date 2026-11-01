@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Clipped stepper value tip (L-293 follow-up, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `66fcc8d6`, DLL
+SHA-256 `995E1B05EA125619B82DAC44D1ABC6D9C1CDAC9C460327CE231E727DDCA5B03F`.
+The maintainer: hovering "Send only (recommended)", cut with "...", shows the
+whole value in a tip; "Crouch briefly" fits and shows none; other clipped
+steppers show the tip too. Selecting the row with the arrow keys showed no
+tip: the pointer resting on another part of an option row stopped the
+keyboard case from being reached (fixed in the next commit, unchecked).
+
 ## Sneak placement default method and labels (L-293, 2026-11-01)
 
 Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `1c8d2670`, DLL

@@ -816,10 +816,9 @@ void drawVersionTip(MinecraftUIRenderContext& context, SettingsTable const& t, S
 void drawValueTip(MinecraftUIRenderContext& context, SettingsTable const& t, SettingsTable::Hit const& hover) {
     if (editingNumber_) return;
     int row = -1;
-    if (hover.zone == Zone::Row && valid(hover.index) && rows[hover.index].kind == RowKind::Option) {
-        bool keyed = optionAction(rows[hover.index].option->id).has_value();
-        if (t.stepperPart(hover.x, keyed) != 2) row = hover.index;
-    } else if (keyboardTip && valid(selected)) row = selected;
+    if (hover.zone == Zone::Row && valid(hover.index) && rows[hover.index].kind == RowKind::Option
+        && t.stepperPart(hover.x, optionAction(rows[hover.index].option->id).has_value()) != 2) row = hover.index;
+    else if (keyboardTip && valid(selected)) row = selected;
     if (row < t.first || row >= t.first + t.visible || rows[row].kind != RowKind::Option) return;
     auto const& option = *rows[row].option;
     auto value = option.read(Runtime::instance().preferences());
