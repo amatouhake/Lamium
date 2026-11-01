@@ -803,8 +803,8 @@ switches:
   Shape colors unchanged. Checked in game 2026-11-01 (`f8dc27d1`): done.
 - With the world map on, its side panel lists and edits waypoints, so the
   separate waypoint screen may be little used there. Maintainer 2026-11-01:
-  keep it as it is (it does no harm); revisit when the world map is no
-  longer experimental.
+  keep it as it is (it does no harm); settled for now. Revisit only if the
+  world map stops being experimental and that changes the picture.
 ### L-233 Make inventory transfer gestures rebindable
 Kind: Design, future. Maintainer 2026-10-20: now that a wheel direction can
 be part of a binding, the transfer gestures should be configurable instead
