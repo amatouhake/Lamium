@@ -101,7 +101,7 @@ pane. The flat-notch corner texel is kept whenever Connected Textures is on.
 
 Ordered information lines, among them coordinates (also scaled), biome
 names and ids, difficulty, yaw/pitch, sprinting, horizontal and vertical
-speed, and real time. Their order and position are set in the HUD layout.
+speed, real time and whether you stand in a slime chunk. Their order and position are set in the HUD layout.
 
 ### Target Info
 
@@ -113,8 +113,8 @@ units (one heart per 2 HP), armor and bars such as growth.
 A panel like Java Edition's F3 screen: game, world, look-at and PC details,
 entity counts by kind and the most common entity types. The game's own
 position line and paper doll are hidden while it is open, and where the Info
-HUD covers them. What the client cannot know (slime chunks, server TPS, mob
-caps, local difficulty) is not shown.
+HUD covers them. It says whether you stand in a slime chunk. What the client
+cannot know (server TPS, mob caps, local difficulty) is not shown.
 
 ### Durability HUD
 
@@ -187,14 +187,28 @@ A HUD element colored from your block textures.
   height. The Cave view row, or its key, fixes the surface or cave view, or
   returns to switching on its own.
 
+### Map marks
+
+Waypoints with the death point, schematic placements and shapes on the maps.
+Each has its own switch (the same as in the world map's top bar), and "Shown
+on" picks the minimap, the world map or both. Turning Map marks off hides
+them from both maps; the world drawing is unchanged.
+
 ### Radar
 
 Nearby players, mobs and dropped items as dots on the minimap, or optionally
-as mob faces and player skin heads.
+as mob faces and player skin heads. "Shown on" also puts them on the world
+map, where mobs and items appear once zoomed in far enough.
+
+### Slime chunks
+
+Slime chunks shaded green on the maps, in the Overworld (on the world map at
+first). On Bedrock they depend only on the chunk, so this works in every
+world and on servers. Slimes spawn there below Y 40 at any light level.
 
 ### Waypoints
 
-Waypoints with the last death point, shown on the minimap and in the world,
+Waypoints with the last death point, shown on the maps and in the world,
 edited in a Waypoints screen.
 
 - Temporary waypoints (a switch in the add prompt, which remembers the
@@ -210,8 +224,9 @@ A full-screen map (`M`) of the areas you have visited, recorded per world.
   that opens the same place in ChunkBase's seed map.
 - Schematic placements and shapes show on the map; a click selects one, and
   its menu shows or hides it or opens it in its own screen.
-- Switches in the map's top bar hide waypoints, schematics or shapes on the
-  map. Shapes can also show on the minimap (an option, off by default).
+- The map's top bar holds the Map marks switches and an Information panel
+  for slime chunks and the radar; they are the same settings as in Lamium
+  Settings.
 - Names show when the pointer is over a mark; an option shows them all.
 
 ## Schematics (experimental, off by default)
@@ -324,7 +339,8 @@ Swaps the held item with the offhand (`F`, as in Java Edition).
 ### Fake Offhand (experimental)
 
 Uses a hotbar block or item as if it were in the offhand, also when the item
-in your hand has nothing to do where you aim.
+in your hand has nothing to do where you aim. Under Sneak placement its key
+places on chests and other interactive blocks too.
 
 ### Hand Restock
 
@@ -348,6 +364,15 @@ Toggle sneaking or sprinting with a key.
 Stops at block edges without sneaking, with an adjustable margin. Also works
 on servers. In rare cases, such as heavy lag or a very small margin, you can
 still drop.
+
+### Sneak placement
+
+Off by default. Using a held item on a chest, furnace, door, lever or another
+interactive block acts as if you were sneaking: the item is placed or used
+instead of opening or toggling the block. An empty hand still opens, and an
+option turns it around so that sneaking opens. The default method only tells
+the server you sneak just before the use; "Crouch briefly" is for servers
+that object.
 
 ### Tool Protection
 
@@ -379,6 +404,13 @@ A calculator over the game, with units for stacks, chests and shulker boxes,
 history and copy buttons. Nothing is sent to chat.
 
 Text fields in Lamium have a caret, paste and click placement.
+
+### Book paste across pages
+
+On by default. A paste into a book that does not fit the page continues on
+new pages inserted after it, instead of being cut off; later pages move back.
+If 50 pages would not be enough, nothing is pasted and the pages needed are
+shown.
 
 ### Game language (experimental)
 

@@ -19,7 +19,7 @@
 
 ## Status
 
-Lamium 0.3.1 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.4.0 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -123,12 +123,14 @@ The HUD layout view moves and styles Lamium's HUD elements.
 | Feature | What it does | Key | Default |
 | --- | --- | --- | --- |
 | Minimap | A minimap colored from your block textures, with a cave view | — | Off |
-| Radar | Players, mobs and items on the minimap | — | On |
+| Map marks | Waypoints, schematic placements and shapes on the maps | — | On |
+| Radar | Players, mobs and items on the minimap or the world map | — | On |
+| Slime chunks | Slime chunks shaded green on the maps | — | Off |
 | Waypoints | Waypoints and the last death point, on the maps and in the world | — | On |
 | World map | A full-screen map of the areas you have visited | `M` | Off |
 
-Radar draws on the minimap. Waypoints and the death point also show in the
-world, with both maps off.
+Map marks, Radar and Slime chunks each choose the maps they show on.
+Waypoints and the death point also show in the world, with both maps off.
 
 ### Schematics *Exp.*
 
@@ -165,6 +167,7 @@ world, with both maps off.
 | Permanent Sneak | Toggle sneaking with a key | — | Off |
 | Permanent Sprint | Toggle sprinting with a key | — | Off |
 | Edge Guard | Stop at block edges without sneaking | — | Off |
+| Sneak placement | Place or use a held item on chests, doors and levers as if sneaking | — | Off |
 | Tool Protection | Swap or stop before a tool or elytra breaks | — | On |
 | Auto Elytra | Put an elytra on for a flight, the chestplate back after | — | Off |
 | Block Restrictions | Limit breaking to a region you start in | — | Off |
@@ -177,6 +180,7 @@ world, with both maps off.
 | Calculator | A calculator with stack, chest and shulker box units | — | — |
 | Game language *Exp.* | Change Minecraft's language without leaving the world | — | — |
 | Skip server resource packs *Exp.* | Show a server's world without its resource packs | — | Off |
+| Book paste across pages | A long paste into a book continues on new pages | — | On |
 
 Lamium's keys are its own and do not appear in Minecraft's keyboard
 settings. Change them under each feature or in the Hotkeys view; new
@@ -232,6 +236,8 @@ requests are handled. What has been checked in game, per feature, is in
   large explored area. Waypoint storage per server, distant players on
   dedicated servers, and the latest section-request/teleport changes on
   servers remain unverified.
+- Slime chunks are checked against the game's spawn rule in a local world;
+  servers are untested (the rule does not depend on the world).
 - Some servers may treat seeing mobs and players through walls as unfair.
 - A few mob faces are not right yet (silverfish and tadpoles stay dots;
   camel and hoglin faces may look off), and skins with custom head models
@@ -275,6 +281,9 @@ requests are handled. What has been checked in game, per feature, is in
   normal play; in rare cases, such as heavy lag or a very small edge margin,
   you can still drop. Other servers' anti-cheat is untested.
 - **Block Restrictions:** the breaking modes will be redesigned.
+- **Sneak placement:** checked in a local world and on a test BDS with both
+  methods. Other servers are untested; if one pulls you back, choose
+  "Crouch briefly".
 - **Auto Attack/Use:** whether several clicks per tick land on servers is not
   verified.
 
@@ -287,6 +296,8 @@ requests are handled. What has been checked in game, per feature, is in
   Servers whose packs add blocks, items, entities or menus will show those
   wrong. On a server that requires its packs, the game itself turns off your
   global resource packs, so the look is vanilla, not your own packs.
+- **Book paste across pages:** checked in a local world with English text;
+  servers, Japanese text and the 50-page limit are untested.
 
 ## Development
 

@@ -160,7 +160,7 @@ when both are intended as supported paths.
 
 Also keep the manual ZIP path usable as a fallback.
 
-## Release flow (L-298, from 0.3.2)
+## Release flow (L-298, from 0.4.0)
 
 Release assets are built by CI from the tag, not on a local machine:
 
@@ -189,7 +189,7 @@ Before publishing a managed release:
 - `scripts/Check-Package.ps1` passes;
 - `scripts/New-ReleaseArchive.ps1` passes, and the ZIP and the symbols ZIP
   it writes to `bin/release/` are the two assets attached to the GitHub
-  release; from 0.3.2 the tag's CI run attaches them (Release flow above).
+  release; from 0.4.0 the tag's CI run attaches them (Release flow above).
   Do not zip by hand: hand-made Windows archives, 0.1.1-0.1.3, stored `\`
   separators;
 - the pushed tag is `v<version>`, and its CI run passes;

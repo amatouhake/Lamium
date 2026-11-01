@@ -43,7 +43,7 @@ published for whoever wants it. There is no "first release" gate.
   the tests and has no known crash. Before tagging, smoke-test the release
   build (the mod loads, settings open, the changed features work) and update
   the README feature tables and Known issues, and [FEATURES.md](FEATURES.md).
-  A full regression is not required. From 0.3.2 the smoke test uses the
+  A full regression is not required. From 0.4.0 the smoke test uses the
   commit's CI package and the tag's CI run attaches the assets to a draft
   release ([DISTRIBUTION.md](DISTRIBUTION.md#release-flow-l-298-from-032)).
 - From 0.1.4 on, releases are ordinary GitHub releases, not marked
