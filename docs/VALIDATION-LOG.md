@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Sneak placement, both methods (L-293, 2026-11-01)
+
+Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `a75fddb1`, DLL
+SHA-256 `033930876200E17CF771E2E36986678B0AD672044FF9E5F52C6E50992C732F84`,
+Minecraft 1.26.51.01 / LeviLamina Client 26.51.5, trace options off. The
+maintainer reported every point as expected: with "Crouch briefly", glass
+held at a chest, furnace, door and lever is placed without opening or
+toggling them and the brief crouch is visible; an empty hand opens the chest;
+with "Open while sneaking" on, sneaking opens it; "Send only" places without
+crouching; off is vanilla. So the native first press does go through the held
+build calls. The maintainer found "Send only" much the better experience.
+Not checked: BDS or another server, moving while placing (where the server's
+movement sees a sneak the client did not simulate), Permanent Sneak or toggle
+sneak with the invert option.
+
 ## Sneak state around a use on a chest (L-293 research trace, 2026-11-01)
 
 Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `26939ec6` built
