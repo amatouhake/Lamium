@@ -224,6 +224,86 @@ In game: a pick the server refuses must log that line instead of passing
 silently; an accepted pick must log nothing.
 
 
+### L-299 Screenless inventory moves can leave a slot stuck when client and server desync
+Kind: Research.
+Origin: a Discord report (2026-10-31, reporter not named) said Hand
+Restock "locks" the hotbar after placing a lava bucket. The
+maintainer could not reproduce it in single-player or on a BDS
+(1.26.51) with matched settings, and closed the thread on
+2026-11-01 as not reproducible: the stated conditions kept changing
+and the requested log was never sent. Reopening was gated on exact
+steps that anyone can reproduce using publicly available releases
+only, with that session's log and a short video.
+
+Why this is tracked anyway, and not as a Hand Restock bug: another
+mod developer noted on Discord (2026-11-02) that this class of
+item lock-up is generally a client/server desync. It can happen in
+a local world too, because a local world still runs on an
+integrated server; it showed up often in the redstone era before
+native client mods, always when acting too fast, and item pickup
+and consumption gave the same trouble in recent mod work. That matches Lamium's own records for the shared
+screenless-move path, which Hand Restock, Transfer, Sort and the
+equipment swaps all use (`game::beginTransfer`, `movePair`):
+
+- HAND-RESTOCK.md ("Ordering the move"): the server runs a legacy
+  use in its next tick but applies an inventory transaction on
+  receipt, so a move sent right after a use reached the server first
+  and was rejected on BDS (`a41f0f2`). The move therefore waits for
+  a server update showing the consumption; a local prediction or a
+  sent transaction is not server confirmation.
+- DESIGN.md (bulk moves, L-169): a traced resource-pack bulk move
+  sent up to 44 requests in one frame (2026-10-15); Lamium waits
+  for all responses and checks touched slots against the
+  authoritative state. A rejected or timed-out request, an
+  unexpected prediction or a changed source stops the operation and
+  drops the queue; vanilla rolls back its rejected predictions.
+- The reporter's own session showed the shared layer's log line
+  "Inventory transfer stopped: response 2" — `TransferSession.cpp`
+  stopping with "request not accepted" when the result is not
+  Accepted. The log's source is the shared transfer session, not
+  Hand Restock itself.
+- README's known limits already say rejected moves on laggy servers
+  are untested for Inventory transfer, and that server timing and
+  very fast use may make Hand Restock skip a refill.
+- Maintainer's own experience while building the shared
+  screenless-move foundation under Hand Restock (recalled
+  2026-11-02): a desync lock of this shape did occur, and leaving
+  and rejoining the world cleared it. Whether anything short of a
+  relog also clears it was not established.
+
+Research questions, in order:
+1. When a transfer is not accepted, or a server correction lands in
+   the middle of an operation, can any Lamium state outlive the
+   failure — a pending operation, a transfer token, a predicted
+   snapshot — and make a slot behave as locked afterwards? The
+   decided rules say operations stop and queues drop; verify the
+   failure paths actually release everything.
+2. Does vanilla alone, with no Lamium, leave the same stuck slot
+   under fast repeated use/pickup/consumption? If the residue is
+   never Lamium's, this item closes as a platform behaviour and the
+   answer to future reports is the recovery step, not a fix.
+3. Which recovery clears a stuck slot? A relog is already known to
+   clear it (the maintainer's experience above), so in that case
+   the authoritative state was intact and the residue lived in
+   session state. Whether lighter steps — reopening the inventory,
+   changing dimension — also clear it is open, and each step that
+   works narrows where the residue sits. This is why the original
+   thread asked it first.
+
+Gate: no fix work from the original report; it does not meet the
+2026-11-01 reopening condition. Work starts from a reproduction
+anyone can run with publicly available releases, or from a session
+log that pairs the "Inventory transfer stopped" line with the
+state of the stuck slot in the same session.
+
+Check if a reproduction is found: the stuck slot's contents before
+and after each recovery step; whether another Lamium operation owns
+the transfer tracker at that moment; the same fast-use sequence
+with each screenless-move feature on and off in turn; local world
+and BDS.
+No release target selected.
+
+
 ### L-243 Large terrain gaps that only reload when the player comes near
 Kind: Bug / Research, not reproduced; watch item. Maintainer report
 2026-10-22 on `fca2ef9` (0.3.0), local world, after dimension
