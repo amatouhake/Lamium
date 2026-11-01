@@ -94,7 +94,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
    (Design). L-196 license/provenance evidence; L-236 is a follow-up;
-   L-295 minimap layers (Design); remaining Design/Research in L-166 trade helpers,
+   L-295 minimap layers (Ready, designed 2026-11-01); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
    L-163 a Lamium inventory screen, L-259 book paste overflow (on main and
@@ -734,16 +734,36 @@ player could do by hand without a separate decision.
 No release target selected.
 
 ### L-295 Rethink which map layers the minimap shows
-Kind: Design. Maintainer 2026-11-01, while adding L-232's slime layer: the
-settings deciding what the minimap shows are scattered. Waypoints follow
-"Show on the minimap" (`waypointsMinimap`), shapes their own Minimap switch
-(`minimapShapes`), schematic placements always show, and the world map's
-layer switches (L-146) do not affect the minimap. Slime chunks are not on
-the minimap yet; decide that together with the others. Open: one set of
-layer switches for both maps or per-map choices, where they live (settings
-rows or the map), defaults and migration of the two existing settings. Do
-not add a minimap slime layer before this is decided.
-
+Kind: Ready (designed 2026-11-01 with the maintainer). Raised while adding
+L-232's slime layer: the settings deciding what the minimap shows were
+scattered. Before: waypoints and the death point followed "Show on the
+minimap" (`waypointsMinimap`, Waypoints group, default on), shapes their own
+switch (`minimapShapes`, Minimap group, default off), schematic placements
+always showed, slime chunks were world map only, and the world map's layer
+switches (L-146) did not reach the minimap.
+Decision (maintainer, 2026-11-01):
+- The world map's layer switches (waypoints with the death point,
+  schematics, shapes, slime chunks) decide both maps. Hiding a layer on the
+  world map hides it on the minimap too.
+- One setting in the Minimap group, "Show map layers on the minimap",
+  default on, turns all of them off on the minimap at once. It replaces
+  `waypointsMinimap` and `minimapShapes`; on load a file without the new key
+  takes it from `waypointsMinimap` (off stays off). The old keys are read
+  for that and no longer written. Shapes then follow the world map switch
+  (default on), so users who never turned them on see shapes on the
+  minimap after the update: say so in the release notes.
+- With the world map off the switches cannot be changed and keep their
+  saved values (defaults: waypoints, schematics, shapes on, slime off). No
+  settings rows for them; turning the world map on once is the way.
+- Radar stays as it is: its own per-kind settings, not a layer here.
+Build: slime chunks on the minimap as a wash in the composed image (the
+minimap is small, so per-pixel is cheap; Overworld only, recomposed only
+when the view moves a chunk or the switch changes); the layer gates in
+`Minimap.cpp`; settings field, store migration with tests, row,
+translations (four languages) and help text for the new setting and the
+world map switches' wider meaning. Check in game: each world map switch
+hides its layer on both maps, the minimap setting hides them all, and an
+old settings file with `waypointsMinimap` off loads with the setting off.
 ### L-233 Make inventory transfer gestures rebindable
 Kind: Design, future. Maintainer 2026-10-20: now that a wheel direction can
 be part of a binding, the transfer gestures should be configurable instead
