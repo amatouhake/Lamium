@@ -189,16 +189,36 @@ the hand, the remainder goes into the source slot - and `applyMove`
 remainder into a stack of the same item, so one leftover stack
 accumulates per restock.
 
-Open: whether a restock may cost two moves (merge the remainder into an
-existing stack, then refill) or has to stay one, and what to do when
-the merge target fills up or does not exist; the family is
-`restockRemainder` (buckets, stews to bowls, potions and honey bottles
-to glass bottles).
+Decided 2026-11-01 (maintainer): (A) a restock may cost two moves. The
+swap stays exactly as it is - the hand is refilled at once - and the
+remainder is merged into an existing stack of the same item on a later
+tick, once the swap's transaction is gone. No target, a full target, a
+changed inventory or hand, or about 40 ticks end the wait silently;
+the family is `restockRemainder` (buckets, stews to bowls, potions and
+honey bottles to glass bottles).
+
+Status 2026-11-01: built (`f30ea0c5`, branch
+`l291-restock-remainder-merge`), not yet checked in game.
+`RemainderPending` and `planRemainderMerge` (`RestockRemainder.h`) hold
+the wait and the destination rule (main inventory before the hotbar,
+fullest stack, ties to the lower slot, the offhand never used, the
+whole remainder must fit). `HandRestock.cpp` records the remainder when
+the replacement swap is predicted and merges it from the same per-tick
+path while no restock is being observed; a refused send is retried on
+later ticks up to a cap and the 40-tick deadline bounds the wait.
+Back-to-back uses keep each remainder's wait (up to four, oldest first;
+the deadline restarts once the next restock is no longer observed); a
+slot that changed under the merge, or the family's switch turned off,
+ends it. The ordinary refill is unchanged. Table tests in
+`tests/RestockRemainderTests.cpp`.
 
 In game: with a stack of empty buckets in the inventory, place water
-from a water bucket and let the restock refill; the emptied bucket must
-join the existing empty-bucket stack instead of sitting on its own.
-Check the same with a stew and with a potion.
+from a water bucket and let the restock refill; the emptied bucket
+joins the existing empty-bucket stack instead of sitting on its own.
+The same with a stew and with a potion. No stack and a full stack
+leave the remainder where it is, opening the inventory right after
+gives up silently, and a server (a laggy one especially) exercises the
+retry window.
 No release target selected.
 
 
