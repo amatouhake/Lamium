@@ -146,7 +146,7 @@ placements and shapes are marks from the features that own them
 (`MapLayers.cpp`), keyed by layer and session id (`MapMarks.h`). The world
 map selects and acts on them (placements: select, show/hide, open in the
 Placed tab; shapes: show/hide, open in the Shapes view); the minimap draws
-placements, and shapes with the minimap's Shapes option (off by default).
+them as the Map marks settings say (L-295, L-297).
 Overlapping marks take the cursor in a fixed order: waypoints and the death
 point, placements, shapes, the smallest footprint first.
 Names on the world map (maintainer 2026-10-11, after names crowded on
@@ -843,7 +843,9 @@ Text, placement and settings
   (switch, key; range, size, turning, round, cave view, Debug View hiding,
   zoom and enlarge keys, layout link), "Map text" (a heading without a
   switch: compass letters, coordinates, biome), "Radar" (switch; one row per
-  kind and the invisible option), and later "Waypoints".
+  kind and the invisible option), and later "Waypoints". Since L-297 the
+  headings "Map marks" and "Slime chunks" hold where the world map's layers
+  show.
 - Bindable actions without default keys: minimap zoom in/out, minimap
   show/hide, add a waypoint, cycle the cave/surface view, and (2026-10-01)
   enlarge while held: twice the side and twice the area at the same scale,

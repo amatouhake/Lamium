@@ -71,9 +71,9 @@ inline constexpr std::array<std::string_view,11> mapZoomLabels{
 static_assert(mapZoomLabels.size() == map::zoomSteps.size());
 inline constexpr std::array<std::string_view,3> worldMarkerLabels{
     "worldMarkers.always", "worldMarkers.whileHeld", "worldMarkers.off"};
-// L-253: the minimap's chosen view, in map::ViewForce order.
 inline constexpr std::array<std::string_view,3> shownOnLabels{
     "shownOn.both", "shownOn.worldMap", "shownOn.minimap"};
+// L-253: the minimap's chosen view, in map::ViewForce order.
 inline constexpr std::array<std::string_view,3> caveViewLabels{
     "caveView.auto", "caveView.surface", "caveView.cave"};
 inline constexpr auto elementBackgroundLabels = std::to_array<std::string_view>(

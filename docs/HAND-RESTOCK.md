@@ -23,8 +23,10 @@ Off by default, toggle action unbound.
   higher slot.
 - Remainders: a last water/lava/milk/powder-snow bucket, stew or soup, potion
   or honey bottle that turns into its empty container is exchanged with a
-  reserve; the container takes the reserve's slot. Unknown transformations
-  fail open.
+  reserve; the container takes the reserve's slot. A later tick merges it
+  into an existing stack of the same item when one has room (L-291,
+  `RestockRemainder.h`); no target, a changed inventory or hand, or about
+  two seconds leave it where it is. Unknown transformations fail open.
 - Child "Shulker boxes" and "Buckets" (on by default, L-251): off keeps a
   placed or used shulker box out of Hand Restock, and off keeps an emptied
   bucket instead of exchanging it with a reserve. The other remainders and

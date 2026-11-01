@@ -1481,7 +1481,7 @@ void pickRayRules() {
     check(ghostReach(true, 2, 5) > 1.9 && ghostReach(true, 2, 5) < 2,
           "a hit the player aimed at shortens the ghost search to just before it");
     check(ghostReach(false, 1.12, 5) == 5, "the feet fallback leaves the whole pick range");
-    check(ghostReach(true, 3, 5) < 3.2 && 3.2 < ghostReach(false, 1.12, 5),
+    check(ghostReach(true, 3, 5) < 3.2,
           "a ghost behind a block the player aimed at stays out of the shortened reach");
     check(!(ghostReach(true, .04, 5) > 0), "a hit closer than the clearance leaves nothing to search");
 }

@@ -506,8 +506,6 @@ Settings decodeSettings(std::string_view text) {
         value.map.biome = settingsValue(map, "biome", value.map.biome);
         value.map.compass = settingsValue(map, "compass", value.map.compass);
         value.map.debugHide = settingsValue(map, "debugHide", value.map.debugHide);
-        // Before L-295 the waypoints' "Show on the minimap" was the one
-        // that hid most of it; off stays off.
         // Before L-297 one switch hid the marks on the minimap ("minimapLayers",
         // before L-295 the waypoints' "waypointsMinimap"); off means the world
         // map only.

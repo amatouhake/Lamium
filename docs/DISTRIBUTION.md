@@ -171,8 +171,8 @@ Release assets are built by CI from the tag, not on a local machine:
 3. The tag's `Build and test` run builds, tests and checks the package, runs
    `New-ReleaseArchive.ps1`, and its `draft-release` job creates a draft
    release "Lamium <version>" with the ZIP and the symbols ZIP attached. The
-   draft body opens with the notices; a hidden comment and the run summary
-   give the commit, the run and both assets' SHA-256.
+   draft body opens with the notices; a hidden comment gives the commit, the
+   run and both assets' SHA-256, and the run summary the SHA-256.
 4. Write the release notes under the notice and publish the draft. Re-running
    the job replaces the assets of a draft but refuses a published release.
 
