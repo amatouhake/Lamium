@@ -782,11 +782,19 @@ switches:
   parent of the four (its tie to the minimap gets unclear). Open candidate:
   the four switches as child rows of the World map feature, which owns them
   (one level; option rows stay editable while the feature is off), with the
-  minimap's "Map layers" help pointing there. Not decided.
+  minimap's "Map layers" help pointing there. Maintainer idea 2026-11-01:
+  stop thinking of minimap and world map layers apart and give "Map layers"
+  its own feature heading in the map section, like Radar: the four shared
+  switches (and the minimap's "Show on the minimap") as its children, so the
+  parent-child reading is natural. Open: whether that heading has a switch
+  of its own (Radar's does; the Map text heading has none). Not decided.
 - Shapes and schematic placements draw almost the same on both maps (a
   faint fill and a frame; only the color differs, and a shape can have the
-  placements' cyan). Maintainer 2026-11-01: compare looks in a mockup under
-  `docs/demos/` first, then build the chosen one.
+  placements' cyan; the default shape cyan 64,209,224 is the placements'
+  63,208,224). Maintainer 2026-11-01: compare looks in a mockup first, then
+  build the chosen one. Mockup: [map-footprints.html](demos/map-footprints.html)
+  (now, A dashed shapes, B shapes as their real outline, C corner marks on
+  placements, D = B + C), awaiting review.
 - With the world map on, its side panel lists and edits waypoints, so the
   separate waypoint screen may be little used there. Maintainer 2026-11-01:
   keep it as it is (it does no harm); revisit when the world map is no

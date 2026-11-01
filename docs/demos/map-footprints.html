@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map Footprints Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --mc-panel:16,17,19; --mc-edge:rgba(255,255,255,.14); --mc-dim:#b4b8b6; --mc-faint:#7f8583;
+  --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:28px 64px;display:grid;gap:24px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 19px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:74ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:10px}
+section{display:grid;gap:12px}
+.controls{display:grid;gap:8px}
+.seg-page{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.seg-page button{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:13px;padding:5px 12px}
+.seg-page button[aria-pressed=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.seg-page span{font-size:13px;color:var(--ink-3);min-width:5em}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px;display:grid;gap:6px}
+.note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:3px}
+.note b{color:var(--ink)}
+.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.ask ol{margin:0;padding-left:1.3em;color:var(--ink-2);font-size:13.5px;display:grid;gap:6px}
+.ask b{color:var(--ink)}
+.views{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:760px){.views{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);background:#000;display:grid}
+.panel .cap{font-size:12.5px;color:var(--ink-3);padding:6px 10px;border-top:1px solid var(--line);background:var(--ground-2)}
+canvas{display:block;width:100%;height:auto;image-rendering:pixelated}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.card{border:1px solid var(--line);background:var(--ground-2);display:grid}
+.card h3{font:700 14px/1.4 "Noto Sans JP",sans-serif;margin:0;padding:8px 10px 2px}
+.card p{font-size:12.5px;color:var(--ink-2);padding:0 10px 10px}
+.card canvas{border-bottom:1px solid var(--line);background:#000}
+.card.cur{box-shadow:inset 0 0 0 1px var(--accent)}
+</style>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">L-296 · Map footprints</div>
+  <h1>地図上の形状と設計図の見分け</h1>
+  <p class="lede">ワールドマップとミニマップで、形状と設計図の配置が同じ「薄い塗りと枠」で描かれていて、違うのは色だけです。形状の既定色はシアン（64,209,224）で、設計図の色（63,208,224）とほぼ同じなので、既定のままでは区別できません。現状と 4 つの案を同じ場面で比べます。地形は仮の絵です。</p>
+</header>
+
+<section class="controls">
+  <div class="seg-page" id="cand"><span>案</span></div>
+  <div class="seg-page" id="color"><span>形状の色</span></div>
+  <div class="seg-page" id="zoom"><span>縮尺</span></div>
+</section>
+
+<section>
+  <div class="views">
+    <div class="panel"><canvas id="world" width="640" height="300"></canvas><div class="cap" id="worldCap">ワールドマップ</div></div>
+    <div class="panel"><canvas id="mini" width="128" height="128"></canvas><div class="cap">ミニマップ（枠だけ、塗りなし）</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>一覧</h2>
+  <div class="grid" id="cards"></div>
+</section>
+
+<section class="note">
+  <h2>場面</h2>
+  <ul>
+    <li><b>設計図</b>: 「家」「畑」の 2 つの配置。</li>
+    <li><b>形状</b>: 円「噴水」、箱「倉庫」、円柱「塔」。もう 1 つ、「家」の配置をちょうど囲む箱「家の範囲」（建築の周りに形状を置く、よくある使い方）。</li>
+    <li>上部バーのレイヤー切替の記号も、案ごとに地図と同じ描き方にしています。</li>
+    <li>選択中（白枠）、非表示（薄い）の扱いはどの案も今と同じです。</li>
+  </ul>
+</section>
+
+<section class="ask">
+  <h2>確認したいこと</h2>
+  <ol>
+    <li><b>どの案にするか</b>（組み合わせも可）。</li>
+    <li>B / D の「形状は本当の形で描く」場合、円・球・円柱などは円、箱・角錐などは四角になります。上から見た形が分かる利点がある一方、地図の上で形状の種類まで伝える必要があるか。</li>
+    <li>ミニマップにも同じ違いを付けるか。ミニマップは小さいので、点線は短い枠だと点線に見えないことがあります。</li>
+    <li>形状の既定色をシアン以外に変えるのは、ワールド内の見た目も変わるので今回は対象外にしています。それでよいか。</li>
+  </ol>
+</section>
+</div>
+
+<script>
+const CANDS = [
+  {id:'now', name:'現状', desc:'どちらも薄い塗り＋黒い下枠＋色の枠。違いは色だけ。'},
+  {id:'A', name:'A 形状は点線', desc:'設計図は今のまま。形状は塗りなしの点線の枠。'},
+  {id:'B', name:'B 形状は本当の形', desc:'設計図は今のまま。形状は上から見た形（円か四角）を細い線で。塗りなし。'},
+  {id:'C', name:'C 設計図に角印', desc:'設計図は塗り＋枠に角の L 字印を足す。形状は塗りなしの枠だけ。'},
+  {id:'D', name:'D = B＋C', desc:'設計図は角印付き、形状は本当の形の細い線。違いが一番大きい。'},
+];
+const COLORS = [
+  {id:'cyan', name:'既定（シアン）', rgb:[64,209,224]},
+  {id:'yellow', name:'黄', rgb:[242,204,61]},
+  {id:'pink', name:'ピンク', rgb:[240,128,191]},
+];
+const ZOOMS = [{id:'near', name:'近い', scale:2}, {id:'mid', name:'中', scale:1}, {id:'far', name:'遠い', scale:.35}];
+const PLACE = [63,208,224];
+const placements = [
+  {name:'家', x0:-8, z0:-6, x1:16, z1:12, selected:true},
+  {name:'畑', x0:36, z0:-20, x1:76, z1:6},
+];
+const shapes = [
+  {name:'噴水', kind:'circle', cx:30, cz:26, r:9},
+  {name:'倉庫', kind:'box', x0:-46, z0:14, x1:-24, z1:34},
+  {name:'塔', kind:'circle', cx:66, cz:30, r:6},
+  {name:'家の範囲', kind:'box', x0:-10, z0:-8, x1:18, z1:14},
+];
+const state = {cand:'now', color:'cyan', zoom:'near'};
+
+function seg(id, items, key){
+  const host = document.getElementById(id);
+  for (const it of items){
+    const b = document.createElement('button');
+    b.textContent = it.name; b.dataset.v = it.id;
+    b.onclick = () => { state[key] = it.id; render(); };
+    host.appendChild(b);
+  }
+}
+seg('cand', CANDS, 'cand'); seg('color', COLORS, 'color'); seg('zoom', ZOOMS, 'zoom');
+
+// Placeholder terrain: fixed pseudo-random greens and a river.
+function terrain(ctx, w, h, scale, cx, cz){
+  const img = ctx.createImageData(w, h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+    const bx = Math.floor(cx + (x - w/2) / scale), bz = Math.floor(cz + (y - h/2) / scale);
+    let n = Math.sin(bx*.13)*Math.cos(bz*.11) + Math.sin((bx+bz)*.05)*.6;
+    const hash = ((bx*73856093) ^ (bz*19349663)) >>> 0;
+    const jitter = (hash % 17) - 8;
+    let r = 86, g = 128, b = 58;
+    if (n > .9){ r = 70; g = 104; b = 48; }
+    if (Math.abs(bz - 40 - Math.sin(bx*.08)*6) < 3){ r = 52; g = 92; b = 170; }
+    const i = (y*w + x)*4;
+    img.data[i] = r + jitter; img.data[i+1] = g + jitter; img.data[i+2] = b + jitter; img.data[i+3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+function frame(ctx, x, y, w, h, color, dash){
+  ctx.setLineDash(dash || []);
+  ctx.strokeStyle = color; ctx.lineWidth = 1;
+  ctx.strokeRect(Math.round(x) + .5, Math.round(y) + .5, Math.round(w) - 1, Math.round(h) - 1);
+  ctx.setLineDash([]);
+}
+function corners(ctx, x, y, w, h, color, len){
+  ctx.fillStyle = color;
+  const L = Math.min(len, w/2, h/2), t = 2;
+  x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
+  ctx.fillRect(x-1, y-1, L, t); ctx.fillRect(x-1, y-1, t, L);
+  ctx.fillRect(x+w-L+1, y-1, L, t); ctx.fillRect(x+w-1, y-1, t, L);
+  ctx.fillRect(x-1, y+h-1, L, t); ctx.fillRect(x-1, y+h-L+1, t, L);
+  ctx.fillRect(x+w-L+1, y+h-1, L, t); ctx.fillRect(x+w-1, y+h-L+1, t, L);
+}
+function circle(ctx, cx, cy, r, color, dash){
+  ctx.setLineDash(dash || []);
+  ctx.strokeStyle = color; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, Math.max(r, 2), 0, Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]);
+}
+function boxOf(s){ return s.kind === 'circle' ? {x0:s.cx-s.r, z0:s.cz-s.r, x1:s.cx+s.r, z1:s.cz+s.r} : s; }
+
+// One footprint as the given candidate draws it. `mini`: the minimap, outlines only.
+function drawPlacement(ctx, v, p, cand, mini){
+  let x = v.sx(p.x0), y = v.sy(p.z0), w = Math.max(v.sx(p.x1) - x, 4), h = Math.max(v.sy(p.z1) - y, 4);
+  const sel = p.selected && !mini;
+  if (!mini) ctx.fillStyle = rgba(PLACE, .16), ctx.fillRect(x, y, w, h);
+  if (!mini) frame(ctx, x-1, y-1, w+2, h+2, 'rgba(0,0,0,.6)');
+  frame(ctx, x, y, w, h, sel ? '#fff' : rgba(PLACE, 1));
+  if (cand === 'C' || cand === 'D') corners(ctx, x, y, w, h, sel ? '#fff' : rgba(PLACE, 1), mini ? 3 : 5);
+}
+function drawShape(ctx, v, s, cand, color, mini){
+  const b = boxOf(s);
+  let x = v.sx(b.x0), y = v.sy(b.z0), w = Math.max(v.sx(b.x1) - x, 4), h = Math.max(v.sy(b.z1) - y, 4);
+  const c = rgba(color, 1);
+  const trueShape = (cand === 'B' || cand === 'D') && s.kind === 'circle';
+  if (cand === 'now'){
+    if (!mini) ctx.fillStyle = rgba(color, .16), ctx.fillRect(x, y, w, h), frame(ctx, x-1, y-1, w+2, h+2, 'rgba(0,0,0,.6)');
+    frame(ctx, x, y, w, h, c);
+    return;
+  }
+  if (cand === 'A'){
+    if (!mini) frame(ctx, x-1, y-1, w+2, h+2, 'rgba(0,0,0,.5)', [3, 2]);
+    frame(ctx, x, y, w, h, c, [3, 2]);
+    return;
+  }
+  if (trueShape){
+    const cx = v.sx(s.cx), cy = v.sy(s.cz), r = s.r * v.scale;
+    if (!mini) circle(ctx, cx, cy, r + 1, 'rgba(0,0,0,.5)');
+    circle(ctx, cx, cy, r, c);
+    return;
+  }
+  if (!mini) frame(ctx, x-1, y-1, w+2, h+2, 'rgba(0,0,0,.5)');
+  frame(ctx, x, y, w, h, c);
+}
+function label(ctx, text, cx, y){
+  ctx.font = '9px DotGothic16, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillText(text, cx+1, y+1);
+  ctx.fillStyle = '#fff'; ctx.fillText(text, cx, y);
+}
+// The top bar's layer switches with each layer's symbol.
+function topBar(ctx, cand, color, width){
+  ctx.fillStyle = 'rgba(16,17,19,.85)'; ctx.fillRect(0, 0, width, 15);
+  ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(0, 14, width, 1);
+  ctx.font = '9px DotGothic16, monospace'; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#fff'; ctx.fillText('Lamium', 4, 3);
+  const items = [['設計図', 'place'], ['形状', 'shape']];
+  let x = 60;
+  for (const [text, kind] of items){
+    const w = 14 + ctx.measureText(text).width + 6;
+    ctx.fillStyle = '#3c8527'; ctx.fillRect(x, 2, w, 11);
+    ctx.strokeStyle = '#6cc349'; ctx.lineWidth = 1; ctx.strokeRect(x + .5, 2.5, w - 1, 10);
+    const sx = x + 4, sy = 4;
+    if (kind === 'place'){
+      ctx.fillStyle = rgba(PLACE, .16); ctx.fillRect(sx, sy, 7, 6); frame(ctx, sx, sy, 7, 6, rgba(PLACE, 1));
+      if (cand === 'C' || cand === 'D'){ ctx.fillStyle = rgba(PLACE, 1); ctx.fillRect(sx-1, sy-1, 2, 2); ctx.fillRect(sx+6, sy-1, 2, 2); ctx.fillRect(sx-1, sy+5, 2, 2); ctx.fillRect(sx+6, sy+5, 2, 2); }
+    } else {
+      const c = rgba(color, 1);
+      if (cand === 'now'){ ctx.fillStyle = rgba(color, .16); ctx.fillRect(sx, sy, 7, 6); frame(ctx, sx, sy, 7, 6, c); }
+      else if (cand === 'A') frame(ctx, sx, sy, 7, 6, c, [2, 1]);
+      else if (cand === 'B' || cand === 'D') circle(ctx, sx + 3.5, sy + 3.5, 3.2, c);
+      else frame(ctx, sx, sy, 7, 6, c);
+    }
+    ctx.fillStyle = '#fff'; ctx.fillText(text, x + 13, 3);
+    x += w + 2;
+  }
+}
+function view(scale, cx, cz, w, h, top){
+  return {scale, sx:(bx) => w/2 + (bx - cx)*scale, sy:(bz) => (top + (h - top)/2) + (bz - cz)*scale};
+}
+function drawWorld(canvas, cand, color, zoom, withBar){
+  const ctx = canvas.getContext('2d'); const w = canvas.width, h = canvas.height;
+  const top = withBar ? 15 : 0;
+  const s = ZOOMS.find(z => z.id === zoom).scale;
+  terrain(ctx, w, h, s, 14, 10 - (top/2)/s);
+  const v = view(s, 14, 10, w, h, top);
+  for (const sh of shapes) drawShape(ctx, v, sh, cand, color, false);
+  for (const p of placements) drawPlacement(ctx, v, p, cand, false);
+  if (s >= 1){
+    for (const sh of shapes){ const b = boxOf(sh); label(ctx, sh.name, (v.sx(b.x0)+v.sx(b.x1))/2, v.sy(b.z1) + 2); }
+    for (const p of placements) label(ctx, p.name, (v.sx(p.x0)+v.sx(p.x1))/2, v.sy(p.z1) + 2);
+  }
+  if (withBar) topBar(ctx, cand, color, w);
+}
+function drawMini(canvas, cand, color){
+  const ctx = canvas.getContext('2d'); const w = canvas.width;
+  const s = .9;
+  terrain(ctx, w, w, s, 14, 10);
+  const v = view(s, 14, 10, w, w, 0);
+  for (const sh of shapes) drawShape(ctx, v, sh, cand, color, true);
+  for (const p of placements) drawPlacement(ctx, v, p, cand, true);
+  ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.lineWidth = 2; ctx.strokeRect(1, 1, w-2, w-2);
+}
+const cardsHost = document.getElementById('cards');
+const cardCanvases = CANDS.map(c => {
+  const card = document.createElement('div'); card.className = 'card'; card.dataset.id = c.id;
+  const cv = document.createElement('canvas'); cv.width = 300; cv.height = 150;
+  const h3 = document.createElement('h3'); h3.textContent = c.name;
+  const p = document.createElement('p'); p.textContent = c.desc;
+  card.append(cv, h3, p); card.onclick = () => { state.cand = c.id; render(); };
+  card.style.cursor = 'pointer';
+  cardsHost.appendChild(card);
+  return {c, cv, card};
+});
+function render(){
+  for (const [id, key] of [['cand','cand'], ['color','color'], ['zoom','zoom']])
+    for (const b of document.querySelectorAll(`#${id} button`)) b.setAttribute('aria-pressed', b.dataset.v === state[key]);
+  const color = COLORS.find(c => c.id === state.color).rgb;
+  drawWorld(document.getElementById('world'), state.cand, color, state.zoom, true);
+  drawMini(document.getElementById('mini'), state.cand, color);
+  const cand = CANDS.find(c => c.id === state.cand);
+  document.getElementById('worldCap').textContent = `ワールドマップ — ${cand.name}: ${cand.desc}`;
+  for (const {c, cv, card} of cardCanvases){
+    drawWorld(cv, c.id, color, 'mid', false);
+    card.classList.toggle('cur', c.id === state.cand);
+  }
+}
+document.fonts && document.fonts.ready.then(render);
+render();
+</script>
+</body>
+</html>
