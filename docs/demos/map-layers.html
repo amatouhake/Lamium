@@ -99,6 +99,9 @@ i.rd{border-radius:50%;background:radial-gradient(circle,#96e0ff 0 1.5px,transpa
 .srow .sw{transform:scale(1.4);margin-right:6px}
 .new{outline:1px dashed var(--accent);outline-offset:-2px}
 .gone{text-decoration:line-through;color:#7f8583}
+.choice{font:11px/1 var(--mc-font);color:#fff;box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:#1d1e1f;padding:4px 6px;min-width:120px;text-align:center;cursor:pointer;user-select:none}
+.choice:hover{box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.gb[data-item],.pop .row[data-item]{cursor:pointer}
 .tag{font:11px/1 "Noto Sans JP",sans-serif;color:#0b0c0d;background:var(--accent);padding:2px 5px}
 .tag.moved{background:#e0b84a}
 .tag.gone{background:#ff9d8f;text-decoration:none}
@@ -121,14 +124,14 @@ i.rd{border-radius:50%;background:radial-gradient(circle,#96e0ff 0 1.5px,transpa
 
 <section>
   <h2>2. 情報パネルと、目印がオフのとき</h2>
-  <p class="sub">「情報 ▾」を押すと、「地表」と同じようにボタンの下にパネルが開きます。設定の「地図の目印」をオフにすると、上部バーの目印 3 つはオフの見た目で押せなくなり、乗せると下のバーに理由が出ます。</p>
+  <p class="sub">「情報 ▾」を押すと、「地表」と同じようにボタンの下にパネルが開きます。上部バーとパネルの切り替えは「ワールドマップに出すか」だけを変えます（両方 ⇄ ミニマップ、ワールドマップ ⇄ なし。レーダーとスライムはワールドマップ ⇄ ミニマップ）。押したり乗せたりして、3 の設定画面と合わせて確かめてください。ミニマップだけの項目はここではオフに見え、乗せると下のバーにそう出ます。設定の「地図の目印」をオフにすると、目印 3 つは押せなくなります。</p>
   <div class="seg-page" id="panelSel"><span>場面</span></div>
   <div class="stage-outer"><div class="stage-fit" id="fit2"><div class="stage" id="stage2"><canvas width="640" height="300"></canvas></div></div></div>
 </section>
 
 <section>
   <h2>3. 設定画面（地図のセクション）</h2>
-  <p class="sub">左が今、右が案です。キーの欄は見出しが持つ切り替えのキーです（未割り当ては「—」）。緑の点線は新しい行、黄色は移った行です。</p>
+  <p class="sub">左が今、右が案です。キーの欄は見出しが持つ切り替えのキーです（未割り当ては「—」）。緑の点線は新しい行、黄色は移った行です。「表示する地図」はクリックで切り替わり、2 の上部バーと情報パネルにもそのまま反映されます（逆も同じ）。</p>
   <div class="cols">
     <div class="settings" id="setNow"><h3>今</h3></div>
     <div class="settings" id="setNew"><h3>案</h3></div>
@@ -146,22 +149,22 @@ i.rd{border-radius:50%;background:radial-gradient(circle,#96e0ff 0 1.5px,transpa
 <section class="note">
   <h2>決まっていること（BACKLOG L-297）</h2>
   <ul>
-    <li><b>目印</b>（ウェイポイント・設計図・形状）は「地図の目印」見出しにまとめ、見出しに切り替えとキーを持たせる。オフで両方の地図から目印が全部消える。子は 3 つの切り替え（上部バーと同じ値）と「ミニマップにも表示」。</li>
-    <li><b>情報</b>のレーダーとスライムチャンクは、それぞれ独立した見出し（切り替えとキー）。自分の切り替えで両方の地図に出る。「ミニマップにも表示」はかからない。</li>
-    <li>上部バーは目印 3 つを並べたまま、スライムの切り替えを「情報 ▾」ボタンに置き換える。</li>
-    <li>ワールドマップのレーダーはミニマップと同じ種類を出し、モブとアイテムは拡大したときだけ。</li>
-    <li>「地図の文字」はミニマップの小見出しのまま（切り替えなし）。</li>
+    <li><b>目印</b>（ウェイポイント・設計図・形状）は「地図の目印」見出し（切り替えとキー）の子に、項目ごとの「両方 / ワールドマップ / ミニマップ / なし」。</li>
+    <li><b>情報</b>のレーダーとスライムチャンクは独立した見出し（切り替えとキー）で、子に「表示する地図: 両方 / ワールドマップ / ミニマップ」。</li>
+    <li>「地図のレイヤー」（ミニマップの子）は廃止。オフにしていた人は目印 3 つが「ワールドマップ」になる。</li>
+    <li>切り替えが効くのは地図だけ。ワールド内の目印・ゴースト・形状、情報 HUD のスライムの行はそれぞれの設定のまま。</li>
+    <li>上部バーは目印 3 つ＋「情報 ▾」。名前が入らない幅では今と同じく記号だけ。情報パネルはスライムとレーダーの 2 行だけで、レーダーの種類は設定画面。</li>
+    <li>上部バーとパネルの切り替えは「ワールドマップに出すか」だけを変える。目印がオフのときは押せない見た目で理由を出す。</li>
+    <li>設定の並びはミニマップ → 地図の目印 → レーダー → スライムチャンク → ウェイポイント → ワールドマップ。「地図の文字」はミニマップの小見出しのまま。</li>
+    <li>ワールドマップのレーダーはミニマップと同じ種類を出し、モブとアイテムは 1 ブロック 1 単位から。</li>
   </ul>
 </section>
 
 <section class="ask">
   <h2>確認したいこと</h2>
   <ol>
-    <li><b>上部バー</b>：ブラウザで測ると、案は UI 75% で余裕あり（502 / 673）、100% でぎりぎり（502 / 505、ゲームの文字では超える見込み）、125% では記号だけの形（385 / 404）になります。今の 4 つ（537）より狭くなるので悪化はしませんが、100% で名前を残したいなら「情報」の文字を記号だけにするなどの工夫が要ります。今の自動切り替え（入らなければ記号だけ）のままでよいか。</li>
-    <li><b>情報パネル</b>：中身はスライムチャンクとレーダーの 2 行だけ。レーダーの種類（プレイヤー・敵対モブ…）までパネルに出すか、設定画面に任せるか。<span class="rec">推奨 設定に任せる</span></li>
-    <li><b>目印がオフのとき</b>：3 つを押せない見た目にして下のバーに理由を出す、でよいか。</li>
-    <li><b>設定の並び</b>：ミニマップ → 地図の目印 → レーダー → スライムチャンク → ウェイポイント → ワールドマップ、でよいか。</li>
-    <li><b>モブを出す縮尺</b>：1 ブロック 1 単位（既定より 2 段引いたところ）から、でよいか。<span class="rec">推奨 1 単位</span></li>
+    <li><b>選択肢の名前</b>：「両方 / ワールドマップ / ミニマップ / なし」でよいか。行の名前は目印では項目名（ウェイポイント…）、レーダーとスライムでは「表示する地図」。</li>
+    <li><b>既定値</b>：目印 3 つとレーダーは「両方」、スライムチャンクは「ワールドマップ」。<span class="rec">推奨</span> スライムは常に緑が出るとミニマップがうるさいため。</li>
   </ol>
 </section>
 </div>
@@ -169,6 +172,24 @@ i.rd{border-radius:50%;background:radial-gradient(circle,#96e0ff 0 1.5px,transpa
 <script>
 const W = {75:673, 100:505, 125:404};
 const state = {ui:75, dim:0, scene:'panel', zoom:2, thr:1};
+// Where each item is shown: both, world, mini, none (marks only). Shared by
+// the settings rows and the world map's switches.
+const maps = {wp:'both', pl:'both', sh:'both', rd:'both', sl:'world'};
+const MAP_LABEL = {both:'両方', world:'ワールドマップ', mini:'ミニマップ', none:'なし'};
+const ITEM_NAME = {wp:'ウェイポイント', pl:'設計図', sh:'形状', rd:'レーダー', sl:'スライムチャンク'};
+const isMark = k => k === 'wp' || k === 'pl' || k === 'sh';
+const onWorld = k => maps[k] === 'both' || maps[k] === 'world';
+// A world map switch only moves the world map in or out.
+function pressWorld(k){
+  const next = {both:'mini', mini:'both', world: isMark(k) ? 'none' : 'mini', none:'world'};
+  maps[k] = next[maps[k]];
+  all();
+}
+function cycleSetting(k){
+  const order = isMark(k) ? ['both', 'world', 'mini', 'none'] : ['both', 'world', 'mini'];
+  maps[k] = order[(order.indexOf(maps[k]) + 1) % order.length];
+  all();
+}
 function seg(id, items, key, after){
   const host = document.getElementById(id);
   for (const it of items){
@@ -183,15 +204,15 @@ function dims(sel){ return `<span class="grp">${dimNames.map((n, i) => `<span cl
 const sw = {wp:'<i class="sym wp"></i>', pl:'<i class="sym pl"></i>', sh:'<i class="sym sh"></i>', sl:'<i class="sym sl"></i>', rd:'<i class="sym rd"></i>'};
 function bar(variant, dim, opts = {}){
   const marksOff = opts.marksOff, open = opts.open;
-  const cls = marksOff ? 'gb dis' : 'gb on';
+  const cls = k => marksOff ? 'gb dis' : onWorld(k) ? 'gb on' : 'gb';
   const terrain = dim === 2 ? '' : '<span class="gb">地表</span>';
   let layers;
   if (variant === 'now') {
     layers = `<span class="grp"><span class="gb on">${sw.wp}ウェイポイント</span><span class="gb on">${sw.pl}設計図</span><span class="gb on">${sw.sh}形状</span>${dim === 0 ? `<span class="gb">${sw.sl}スライムチャンク</span>` : ''}</span>`;
   } else if (variant === 'new') {
-    layers = `<span class="grp"><span class="${cls}">${sw.wp}ウェイポイント</span><span class="${cls}">${sw.pl}設計図</span><span class="${cls}">${sw.sh}形状</span></span><span class="gb ${open ? 'open' : ''}" id="infoBtn">${sw.sl}情報 <span class="caret">▼</span></span>`;
+    layers = `<span class="grp"><span class="${cls('wp')}" data-item="wp">${sw.wp}ウェイポイント</span><span class="${cls('pl')}" data-item="pl">${sw.pl}設計図</span><span class="${cls('sh')}" data-item="sh">${sw.sh}形状</span></span><span class="gb ${open ? 'open' : ''}" id="infoBtn">${sw.sl}情報 <span class="caret">▼</span></span>`;
   } else {
-    layers = `<span class="grp"><span class="${cls}">${sw.wp}</span><span class="${cls}">${sw.pl}</span><span class="${cls}">${sw.sh}</span></span><span class="gb ${open ? 'open' : ''}" id="infoBtn">${sw.sl}情報 <span class="caret">▼</span></span>`;
+    layers = `<span class="grp"><span class="${cls('wp')}">${sw.wp}</span><span class="${cls('pl')}">${sw.pl}</span><span class="${cls('sh')}">${sw.sh}</span></span><span class="gb ${open ? 'open' : ''}" id="infoBtn">${sw.sl}情報 <span class="caret">▼</span></span>`;
   }
   return `<span class="brand">Lamium</span>${dims(dim)}${terrain}<span style="width:5px"></span>${layers}<span class="sp"></span><span class="gb">自分に戻る</span><span class="gb">一覧</span><span class="gb">✕</span>`;
 }
@@ -269,12 +290,24 @@ function drawStage2(){
   const bx = btn.offsetLeft;
   if (!off) {
     stage2.insertAdjacentHTML('beforeend', `<div class="pop" style="left:${bx}px;top:15px">
-      <div class="row ${dim ? 'dis' : ''}">${sw.sl}<span class="lbl">スライムチャンク</span>${dim ? '<span class="hint">地上のみ</span>' : ''}<span class="sw ${dim ? 'dis' : 'on'}"></span></div>
-      <div class="row">${sw.rd}<span class="lbl">レーダー</span><span class="sw on"></span></div>
+      <div class="row ${dim ? 'dis' : ''}" ${dim ? '' : 'data-item="sl"'}>${sw.sl}<span class="lbl">スライムチャンク</span>${dim ? '<span class="hint">地上のみ</span>' : ''}<span class="sw ${dim ? 'dis' : onWorld('sl') ? 'on' : ''}"></span></div>
+      <div class="row" data-item="rd">${sw.rd}<span class="lbl">レーダー</span><span class="sw ${onWorld('rd') ? 'on' : ''}"></span></div>
     </div>`);
   }
-  const text = off ? 'ウェイポイント: 設定の「地図の目印」がオフです' : 'X 37  Y 64  Z -12  平原  スライムチャンク';
-  stage2.insertAdjacentHTML('beforeend', `<div class="bottom">${text}</div>`);
+  const text = off ? 'ウェイポイント: 設定の「地図の目印」がオフです' : '切り替えに乗せると、ここに今の表示先が出ます';
+  stage2.insertAdjacentHTML('beforeend', `<div class="bottom" id="hint2">${text}</div>`);
+  // Hover tells where the item is shown; a press moves the world map in or out.
+  stage2.querySelectorAll('[data-item]').forEach(el => {
+    const k = el.dataset.item;
+    el.onmouseenter = () => {
+      if (off && isMark(k)) return;
+      const where = maps[k];
+      document.getElementById('hint2').textContent = where === 'mini'
+        ? `${ITEM_NAME[k]}: ミニマップだけに表示中（押すとワールドマップにも）`
+        : `${ITEM_NAME[k]}をワールドマップに表示: ${onWorld(k) ? 'オン' : 'オフ'}（設定では「${MAP_LABEL[where]}」）`;
+    };
+    el.onclick = () => { if (!(off && isMark(k))) pressWorld(k); };
+  });
 }
 
 // 3: settings rows.
@@ -284,7 +317,8 @@ function row(kind, name, opts = {}){
   const s = opts.sw === undefined ? '' : `<span class="sw ${opts.sw ? 'on' : ''}"></span>`;
   const key = opts.key === undefined ? '' : `<span class="key">${opts.key}</span>`;
   const tag = opts.tag ? `<span class="tag ${opts.tagCls || ''}">${opts.tag}</span>` : '';
-  return `<div class="${cls}">${chev}<span class="name">${name}</span>${tag}${s}${key}</div>`;
+  const choice = opts.item ? `<span class="choice" data-choice="${opts.item}">◀ ${MAP_LABEL[maps[opts.item]]} ▶</span>` : '';
+  return `<div class="${cls}">${chev}<span class="name">${name}</span>${tag}${s}${choice}${key}</div>`;
 }
 document.getElementById('setNow').insertAdjacentHTML('beforeend', [
   row('head', 'ミニマップ', {sw:true, key:'—'}),
@@ -302,27 +336,32 @@ document.getElementById('setNow').insertAdjacentHTML('beforeend', [
   row('child', '名前を常に表示 / シードマップへのリンク'),
   row('child', '（ウェイポイント・設計図・形状・スライムの切り替えは地図の上部バーだけ）', {cls:''}),
 ].join(''));
+function drawSettings(){
+document.querySelectorAll('#setNew .srow').forEach(e => e.remove());
 document.getElementById('setNew').insertAdjacentHTML('beforeend', [
   row('head', 'ミニマップ', {sw:true, key:'—'}),
   row('child', '表示範囲 / 地図の大きさ / 回転 / 円形 / 洞窟表示 …'),
   row('child', 'デバッグ表示中は隠す', {sw:true}),
-  row('child', '地図のレイヤー', {cls:'gone', tag:'目印へ', tagCls:'moved'}),
+  row('child', '地図のレイヤー', {cls:'gone', tag:'各項目の「表示する地図」へ', tagCls:'moved'}),
   row('head', '地図の文字'),
   row('child', '方角の文字 / 地図の下に座標 / 地図の下にバイオーム'),
   row('head', '地図の目印', {sw:true, key:'—', cls:'new', tag:'新'}),
-  row('child', 'ウェイポイント', {sw:true, cls:'new'}),
-  row('child', '設計図', {sw:true, cls:'new'}),
-  row('child', '形状', {sw:true, cls:'new'}),
-  row('child', 'ミニマップにも表示', {sw:true, tag:'移動', tagCls:'moved'}),
+  row('child', 'ウェイポイント', {item:'wp', cls:'new'}),
+  row('child', '設計図', {item:'pl', cls:'new'}),
+  row('child', '形状', {item:'sh', cls:'new'}),
   row('head', 'レーダー', {sw:true, key:'—'}),
+  row('child', '表示する地図', {item:'rd', cls:'new'}),
   row('child', 'プレイヤーとモブを顔で表示', {sw:false}),
   row('child', 'プレイヤー / 敵対モブ / 友好・中立モブ / アイテム / 透明なものも'),
   row('head', 'スライムチャンク', {sw:true, key:'—', cls:'new', tag:'新'}),
+  row('child', '表示する地図', {item:'sl', cls:'new'}),
   row('head', 'ウェイポイント', {sw:true, key:'—'}),
   row('child', 'ワールドに表示 / 表示する距離 / 死亡地点を記録 / 換算して表示 / 使い捨てを消す距離'),
   row('head', 'ワールドマップ', {sw:true, key:'—'}),
   row('child', '名前を常に表示 / シードマップへのリンク'),
 ].join(''));
+document.querySelectorAll('#setNew [data-choice]').forEach(el => el.onclick = () => cycleSetting(el.dataset.choice));
+}
 
 // 4: radar on the world map.
 const stage4 = document.getElementById('stage4');
@@ -362,7 +401,7 @@ function drawStage4(){
   stage4.insertAdjacentHTML('beforeend', `<div class="gbar">${bar('new', 0)}</div>`);
   stage4.insertAdjacentHTML('beforeend', `<div class="bottom">${mobs ? 'モブとアイテムを表示中' : 'この縮尺ではプレイヤーだけ（拡大するとモブとアイテムも出ます）'}</div>`);
 }
-function all(){ drawBars(); drawStage2(); drawStage4(); }
+function all(){ drawBars(); drawStage2(); drawSettings(); drawStage4(); }
 document.fonts && document.fonts.ready.then(all);
 all();
 </script>

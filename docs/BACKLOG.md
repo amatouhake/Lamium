@@ -94,7 +94,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
    pick are all checked. Still open from it: L-265 placement assist
    (Design). L-196 license/provenance evidence; L-236 is a follow-up;
-   L-295 minimap layers (checked 2026-11-01); L-296 map follow-ups (Design); L-297 map marks and information (mockup); remaining Design/Research in L-166 trade helpers,
+   L-295 minimap layers (checked 2026-11-01); L-296 map follow-ups (Design); L-297 map marks and information (decided; labels and defaults open); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
    L-163 a Lamium inventory screen, L-259 book paste overflow (on main and
@@ -796,41 +796,49 @@ switches:
   keep it as it is (it does no harm); settled for now. Revisit only if the
   world map stops being experimental and that changes the picture.
 ### L-297 Map layers as marks and information
-Kind: Design decided 2026-11-01 with the maintainer; mockup next, then
-Ready. Supersedes part of L-295 (the minimap rule for slime chunks) and
-L-296's first point. The five things drawn on the maps are two kinds:
+Kind: Design decided 2026-11-01 with the maintainer (mockup reviewed, the
+recommended answers taken, then the per-map choice below); Ready once the
+mockup's settings and top bar are redrawn to match. Supersedes L-295's
+"Map layers" setting and L-296's first point. The five things drawn on the
+maps are two kinds:
 - **Marks**, placed by the player: waypoints (with the death point),
   schematic placements, shapes. They have names, side panel lists and
   menus.
 - **Information**, read from the game: slime chunks, radar. No list, only
   drawn over the map.
 Decisions:
-- Settings, map section: a "Map marks" heading with its own switch and
-  toggle key (both maps; DESIGN: an independent feature has one switch and
-  a key), children: the waypoints, schematics and shapes switches (the same
-  values as the world map's top bar) and "Also on the minimap" (today's
-  `minimapLayers`, now only for marks). Off hides every mark on both maps.
-  The waypoints feature's own switch still hides waypoints everywhere, so a
-  waypoint on a map needs that, the heading and its layer switch.
-- Radar keeps its heading, switch, key and per-kind rows; slime chunks get a
-  heading of their own with a switch (today's `worldMapSlime`) and a toggle
-  key. Both draw on both maps by their own switch; "Also on the minimap"
-  does not hide them (radar is mostly a minimap thing).
+- Every item chooses its maps with one row, "Shown on": both / world map /
+  minimap, plus "none" for the marks. This replaces L-295's single "Map
+  layers" (minimap) switch; on migration a file with it off makes the three
+  marks "world map".
+- Settings, map section, in this order: Minimap (Map text stays its keyless
+  sub-heading), **Map marks** (a heading with its own switch and toggle key:
+  off hides every mark on both maps; children: the three marks' "Shown on"
+  rows), **Radar** (heading, switch, key and per-kind rows as today, plus
+  "Shown on"), **Slime chunks** (a new heading with a switch and toggle key,
+  child "Shown on"), Waypoints, World map. The waypoints feature's own
+  switch still hides waypoints everywhere (world markers too).
+- What the switches reach: maps only. World markers, schematic ghosts and
+  shapes in the world keep their features' switches; the Info HUD's slime
+  line keeps its own.
 - World map top bar: the three mark switches stay inline; the slime switch
-  goes and an "Information" button opens a small panel (opened like the
-  terrain panel) with slime chunks (Overworld only, disabled elsewhere) and
-  radar. With "Map marks" off, the three mark switches show off and cannot
-  be pressed; hovering says they are off in the settings.
-- The world map shows the radar's kinds like the minimap (players, hostile,
-  passive, items, by the radar's rows), mobs and items only when zoomed in
-  far enough; players at any zoom as today.
-- "Map text" stays a keyless group heading under the minimap (it is the
-  minimap's own display).
-Mockup: [map-layers.html](demos/map-layers.html), awaiting review. Open
-there: the top bar at UI 75/100/125 % (measured in the browser: fits at
-75 %, borderline at 100 %, symbols only at 125 %), the Information panel's
-rows, the disabled mark switches, the settings rows' order, and the zoom
-from which mobs show (proposed: 1 GUI unit per block).
+  goes and an "Information" button opens a panel (opened like the terrain
+  panel) with slime chunks (Overworld only, disabled elsewhere) and radar;
+  the radar's kinds stay in the settings. Each switch there only says
+  whether the item is on the world map: pressing it moves both <-> minimap
+  and world map <-> none (radar and slime: world map <-> minimap, their
+  heading switch being their "none"). An item shown on the minimap only
+  looks off there, and hovering says so. With "Map marks" off the three
+  mark switches show off and cannot be pressed; hovering says why. Where
+  the names do not fit (UI 100 % and 125 % in the browser measure), the
+  bar keeps today's fallback to symbols.
+- The world map shows the radar's kinds like the minimap, mobs and items
+  from 1 GUI unit per block in (two steps out from the default), players at
+  any zoom.
+Mockup: [map-layers.html](demos/map-layers.html), redrawn 2026-11-01 for the
+per-map choice (settings rows and world map switches share one state).
+Open there: the choice labels (both / world map / minimap / none) and the
+defaults (proposed: marks and radar both, slime chunks world map).
 ### L-233 Make inventory transfer gestures rebindable
 Kind: Design, future. Maintainer 2026-10-20: now that a wheel direction can
 be part of a binding, the transfer gestures should be configurable instead
