@@ -79,6 +79,7 @@
 #include "ui/Animations.h"
 #include "ui/HudLines.h"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <ctime>
 #include <vector>
@@ -762,8 +763,9 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         inspection::render::drawItemIcon(context, {&stack, left, top + (headerH - iconSize) / 2, z}, 17);
     } else if (texture) {
         auto const& water = schematic::waterColor;
-        ui::imageUv(context, target.icon.name, {left, top + (headerH - iconSize) / 2, iconSize, iconSize},
-                    target.icon.u0, target.icon.v0, target.icon.u1, target.icon.v1, 1,
+        auto shown = target.icon.tinted ? flipbookFrame(target.icon, waterSeconds(), waterSecondsPerFrame) : target.icon;
+        ui::imageUv(context, shown.name, {left, top + (headerH - iconSize) / 2, iconSize, iconSize},
+                    shown.u0, shown.v0, shown.u1, shown.v1, 1,
                     target.icon.tinted ? ui::Rgb{water.r, water.g, water.b} : ui::palette::white);
     }
     float textX = left + iconSize + iconGap, textW = contentW - iconSize - iconGap;
@@ -1661,10 +1663,15 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     return boxes;
 }
 void forgetEffectRows() { shownEffects.clear(); }
+double waterSeconds() {
+    static auto const start = std::chrono::steady_clock::now();
+    return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+}
 bool drawWaterIcon(MinecraftUIRenderContext& context, ItemStack const& stack, float x, float y, float size) {
     if (stack.isNull() || !schematic::isWaterName(stack.getTypeName())) return false;
     auto icon = waterIcon();
     if (!icon.tinted) return false;
+    icon = flipbookFrame(icon, waterSeconds(), waterSecondsPerFrame);
     auto const& water = schematic::waterColor;
     ui::imageUv(context, icon.name, {x, y, size, size}, icon.u0, icon.v0, icon.u1, icon.v1, 1,
                 ui::Rgb{water.r, water.g, water.b});

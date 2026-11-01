@@ -32,4 +32,6 @@ void forgetEffectRows();
 // untinted gray (L-294). Draws it and returns true for a water stack; any
 // other stack is the caller's to draw. x, y and size in ui::imageUv's units.
 bool drawWaterIcon(MinecraftUIRenderContext&, ItemStack const&, float x, float y, float size);
+// Seconds into the water icons' animation, one clock for every screen.
+double waterSeconds();
 }

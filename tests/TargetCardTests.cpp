@@ -101,6 +101,12 @@ void targetCardTests() {
     auto plain = fileFrameUv(TargetIcon{IconKind::Texture, "textures/blocks/stone", 0, .5f, .25f, .75f, .5f}, 16, 16,
                              16, 16);
     check(plain.u0 == .5f && plain.u1 == .75f, "a uv set that already matches its file is unchanged");
+    TargetIcon strip{IconKind::Texture, "textures/blocks/water_still_grey", 0, 0, 0, 1, 1.f / 32};
+    auto first = flipbookFrame(strip, 0, .1), third = flipbookFrame(strip, .25, .1), wrapped = flipbookFrame(strip, 3.2, .1);
+    check(first.v0 == 0 && third.v0 > .062f && third.v0 < .063f && third.v1 - third.v0 > .031f
+              && wrapped.v0 == 0 && flipbookFrame(plain, 5, .1).v0 == plain.v0
+              && flipbookFrame(TargetIcon{IconKind::Texture, "x", 0, 0, 0, 1, 1}, 5, .1).v1 == 1,
+          "L-294: a flipbook strip steps one frame per period and wraps; a single image stays");
     check(morphProgress(0) == 0 && morphProgress(morphSeconds) == 1 && morphProgress(1) == 1
           && morphProgress(morphSeconds / 2) > .5f, "the card eases out and settles");
     {
