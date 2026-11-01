@@ -164,22 +164,6 @@ inline TargetIcon fileFrameUv(TargetIcon icon, float textureW, float textureH, f
     icon.v1 = (v > 0) ? std::min(1.f, v) : 1.f;
     return icon;
 }
-// L-294: a texture icon drawn from its source file shows one frame of a
-// vertical flipbook strip; step down the strip `seconds` into the animation
-// at `secondsPerFrame`. A single-frame image is left alone.
-inline TargetIcon flipbookFrame(TargetIcon icon, double seconds, double secondsPerFrame) {
-    float height = icon.v1 - icon.v0;
-    if (!(height > 0) || icon.v0 != 0 || !(seconds >= 0) || !(secondsPerFrame > 0)) return icon;
-    int frames = static_cast<int>(std::floor(1.f / height + .001f));
-    if (frames < 2) return icon;
-    int frame = static_cast<int>(static_cast<long long>(seconds / secondsPerFrame) % frames);
-    icon.v0 = height * static_cast<float>(frame);
-    icon.v1 = icon.v0 + height;
-    return icon;
-}
-// Water's still texture moves two game ticks per frame (the vanilla
-// flipbook), as the water item's icon did before L-294 drew the texture.
-inline constexpr double waterSecondsPerFrame = 0.1;
 // The card eases between targets: 0.1 s, ease-out.
 inline constexpr double morphSeconds = 0.1;
 inline float morphProgress(double elapsed) {

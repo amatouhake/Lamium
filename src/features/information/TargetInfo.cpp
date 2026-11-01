@@ -166,6 +166,14 @@ TargetIcon textureIcon(Block const& block) {
                     u1 = std::min(1.f, u0 + static_cast<float>(uv._texSizeW) / uv._sourceImageWidth);
                     v1 = std::min(1.f, v0 + static_cast<float>(uv._texSizeH) / uv._sourceImageHeight);
                 }
+                // L-294: water draws its tile of the terrain atlas, which the
+                // game animates and blends as it does for the water item's icon;
+                // the source file would show one still frame.
+                if (schematic::isWaterName(block.getTypeName())) {
+                    TargetIcon water{IconKind::Texture, "atlas.terrain", 0, u0, v0, u1, v1};
+                    water.tinted = true;
+                    return water;
+                }
                 // The set addresses the stitched atlas while the icon draws
                 // the source file, so restate one frame in file coordinates.
                 auto frame = fileFrameUv(TargetIcon{IconKind::Texture, texture, 0, u0, v0, u1, v1}, textureW,
@@ -196,9 +204,6 @@ TargetIcon textureIcon(Block const& block) {
     icon.v0 = v0;
     icon.u1 = u1;
     icon.v1 = v1;
-    // L-294: water's texture is gray until the game tints it in the world,
-    // and its item draws that gray; the icon gets the ghosts' water color.
-    icon.tinted = icon.kind == IconKind::Texture && schematic::isWaterName(block.getTypeName());
     return icon;
 }
 // Blocks without an item (portal, fire, ...) draw their own texture, and so
