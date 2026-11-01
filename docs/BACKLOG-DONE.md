@@ -10,6 +10,97 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-291 Hand Restock leaves a consumption remainder as its own stack
+
+Kind: Bug. Maintainer report 2026-10-31 (everyday use, build not
+recorded): refilling a non-stackable item leaves the consumption
+remainder as a separate stack even when an existing stack of the same
+item could take it. With water buckets the empty bucket left after
+placing water stays as a one-item stack in the slot the bucket came
+from, while other empty buckets sit elsewhere in the inventory.
+
+Cause: the replacement branch of `planRestock` (`RestockPlan.h`) is a
+single swap between the source slot and the hand - the refill goes into
+the hand, the remainder goes into the source slot - and `applyMove`
+(`HandRestock.cpp`) sends that one `game::movePair`. Nothing merges the
+remainder into a stack of the same item, so one leftover stack
+accumulates per restock.
+
+Decided 2026-11-01 (maintainer): (A) a restock may cost two moves. The
+swap stays exactly as it is - the hand is refilled at once - and the
+remainder is merged into an existing stack of the same item on a later
+tick, once the swap's transaction is gone. No target, a full target, a
+changed inventory or hand, or about 40 ticks end the wait silently;
+the family is `restockRemainder` (buckets, stews to bowls, potions and
+honey bottles to glass bottles).
+
+Status 2026-11-01: built (`f30ea0c5`, branch
+`l291-restock-remainder-merge`), not yet checked in game.
+`RemainderPending` and `planRemainderMerge` (`RestockRemainder.h`) hold
+the wait and the destination rule (main inventory before the hotbar,
+fullest stack, ties to the lower slot, the offhand never used, the
+whole remainder must fit). `HandRestock.cpp` records the remainder when
+the replacement swap is predicted and merges it from the same per-tick
+path while no restock is being observed; a refused send is retried on
+later ticks up to a cap and the 40-tick deadline bounds the wait.
+Back-to-back uses keep each remainder's wait (up to four, oldest first;
+the deadline restarts once the next restock is no longer observed); a
+slot that changed under the merge, or the family's switch turned off,
+ends it. The ordinary refill is unchanged. Table tests in
+`tests/RestockRemainderTests.cpp`.
+
+In game: with a stack of empty buckets in the inventory, place water
+from a water bucket and let the restock refill; the emptied bucket
+joins the existing empty-bucket stack instead of sitting on its own.
+The same with a stew and with a potion. No stack and a full stack
+leave the remainder where it is, opening the inventory right after
+gives up silently, and a server (a laggy one especially) exercises the
+retry window.
+Closed 2026-11-01: checked in game on `9a06ada2` (local and BDS) - VALIDATION-LOG
+2026-11-01.
+
+### L-289 Schematic materials count flowing water as water to place
+
+Kind: Bug. Maintainer report 2026-10-31: the materials list counts a
+schematic's water as one number, source and flowing together, so the
+water actually needed - one bucket per source cell - cannot be read off
+it.
+
+Cause: a material line is keyed by the item the block asks for
+(`addMaterial` in `GhostVerify.cpp`: `info.item`, else the block name),
+and `describe` (`GhostBlocks.cpp`) goes through
+`BlockType::asItemInstance`, which ignores block state. A schematic
+stores source and flowing water as the same block with a different
+`liquid_depth` state - `sulfur_spring_medium_1.mcstructure` carries
+`minecraft:water [liquid_depth=0]` (source) and `[liquid_depth=8]`
+(falling) - so every water cell collapses into one line and the cells
+that need no bucket inflate the count.
+
+Decided 2026-11-01 (maintainer): one line with the source count only -
+a flowing cell needs no item, so it adds nothing. The Check tab does
+not split: every cell, flowing ones included, is still compared state
+for state (`CheckRules.h` `sameBlock` compares `liquid_depth`), because
+the flow pattern differs even when the sources match. Only the
+materials line stops counting flowing cells.
+
+Status 2026-11-01: built (`62eac8fb`, branch
+`l289-water-source-material`), not yet checked in game. `flowingLiquid`
+and `materialsCount` (`Verification.h`) give a flowing liquid cell zero
+items and every other cell what `itemsPerBlock` says;
+`ResolvedPlacement.cpp` uses it for `perBlock`. `GhostVerify.cpp` is
+untouched, so the check, the tallies and the mismatch list behave
+exactly as before. Table tests in `tests/SchematicTests.cpp`. A liquid
+whose cells all flow keeps its line with nothing left to place.
+
+In game: a schematic with a pool whose edges flow (a vanilla structure
+file or a saved pond) shows a source count equal to the buckets it
+needs; placing those sources leaves nothing to place while the flowing
+cells are still compared and still reported when the world's flow
+differs. Lava the same, and a waterlogged block still counts as its
+own item.
+Closed 2026-11-01: checked in game on `9a06ada2` (local world) - VALIDATION-LOG
+2026-11-01.
+
 ### L-288 A Fake Offhand key that is not right click still acts as one
 
 Kind: Bug. Maintainer report 2026-10-31: with the Fake Offhand bound to
@@ -1717,6 +1808,118 @@ result is only the converted text; Latin typing and Backspace unchanged.
 ---
 
 ## Ready
+
+### L-293 Place on interactive blocks as if sneaking, with a toggle
+
+Kind: Research (how to make a use act as a sneaking use), then Ready.
+Maintainer request 2026-11-01: while building a machine or a build, a
+chest, furnace, door or lever that is only part of it opens or toggles
+by mistake when a block is placed against it. Sneaking avoids that in
+vanilla but changes movement.
+
+Decided 2026-11-01 (maintainer): an on/off setting plus a toggle key.
+While on, every use on a block behaves as it does while sneaking: the
+held block is placed against an interactive block instead of opening or
+toggling it. An option, off by default, inverts it while on: sneaking
+then opens or toggles as an ordinary use would. Off restores vanilla
+completely. The maintainer named a Java mod's fake-sneak placement as
+the closest prior art (PROVENANCE.md); its source is not opened.
+
+Open (Research): where the use path reads "sneaking" for the
+interactive-block decision (`GameMode::useItemOn`, the build action,
+the block's own `use`), and whether that can be answered without
+changing the player's real sneak state, movement or what the server
+sees; on a server the placement must be confirmed from the world, not
+the sent transaction. Also: whether an empty hand or a non-block item
+follows the same rule (vanilla sneak use applies to all items), the
+Fake Offhand's `interactSlot` and `placementSlot` must read the same
+effective sneak, and the HUD/indicator for the toggle state.
+
+Findings 2026-11-01 (SDK 26.51.8 headers and Lamium code, nothing run):
+- The server decides from its own sneak state. A block use reaches it as
+  an `ItemUseInventoryTransaction` (position, face, slot, item, click
+  position, predicted result) with no sneak bit; `PlayerAuthInputPacket`
+  carries the sneak state (`InputData::Sneaking`, `StartSneaking`,
+  `StopSneaking`) and can also carry an item use
+  (`PerformItemInteraction`, `mItemUseTransaction`). That also holds in
+  a local world, where the integrated server keeps its own player. So a
+  client-only answer (setting the local player's sneak flag around
+  `useItemOn`) would predict a placement that the server turns into
+  opening the container: rejected.
+- `Actor::isSneaking()` is an inline read of `ActorFlags::Sneaking`, so
+  there is no function to hook for the decision.
+- In Bedrock an empty hand interacts even while sneaking (VALIDATION-LOG,
+  L-95 sneak + chest), so with the toggle on an empty hand still opens a
+  chest; the invert option matters for a held item.
+- Lamium already has the two halves: Permanent Sneak
+  (`PermanentSneak.cpp`) feeds `SneakDown` into a transient copy of the
+  move input, which vanilla turns into a real sneak the server sees;
+  the L-288 / L-292 path can hold back the native first use and replay
+  it with `interaction::periodic::sendUseEdge`. Edge Guard already edits
+  outgoing `PlayerAuthInputPacket`s on `LoopbackPacketSender::send`.
+
+Two shapes, with different user-visible costs:
+- Sneak pulse: a use aimed at an interactive block while the toggle is
+  on is held back, sneak is fed until the local player's flag is set
+  (and the auth input that carries it has gone out), the use is
+  replayed, then sneak is released. Server-legitimate input; costs a
+  delay of a few ticks before the placement and a brief crouch (eye
+  height dips, other players see it, movement slows and an edge stops
+  the player for those ticks).
+- Sent state only: add the sneak bits to the outgoing auth input of
+  that tick and set the client flag only inside `useItemOn`, without
+  changing movement. No crouch, but the server's movement then runs
+  with a sneak the client did not simulate (corrections on servers,
+  anti-cheat risk); version-sensitive and only viable if a trace shows
+  the server reads the sneak bit before the use in the same packet.
+
+Next: a trace-only experiment (no behavior change): on sneak + right
+click on a chest with a block, log which packet carries the use, the
+client tick of the auth input that first has `Sneaking`/`StartSneaking`,
+and when the local `ActorFlags::Sneaking` turns on - in a local world
+and on BDS (`xmake f --sneak_trace=y`, `SneakUseTrace.cpp`).
+
+Trace result 2026-11-01 (local world; VALIDATION-LOG): the use goes out
+as its own `InventoryTransactionPacket` between two auth inputs, and the
+server reads the sneak state of the auth inputs that arrived before it;
+sneak pressed in the same tick as the click comes too late and the
+chest opens. So either shape has to hold the use back until an auth
+input with the sneak bits has been sent, which costs at least one
+client tick (about 50 ms). Real sneak input sets the client flag and
+`StartSneaking` in the same tick, so the sneak pulse needs about one
+tick of crouch before the use plus the release after it. BDS was not
+traced; packet order should be the same, and a built feature gets its
+server check then.
+
+Decided 2026-11-01 (maintainer): the sneak pulse ("Crouch briefly") is the
+default method; "Send only (experimental)" is a second method to try.
+Superseded the same day after the BDS checks: "Send only" is the default
+and labelled recommended; "Crouch briefly" stays as the fallback for
+servers that object to an edited sneak state, labelled as such. The
+feature keeps its experimental badge.
+
+Status 2026-11-01: built on main, checked in a local world (both methods
+pass; the maintainer prefers "Send only"; servers unchecked). Settings
+`interaction.sneakPlacement`, `sneakPlacementInvert`,
+`sneakPlacementPacket` (method), action `sneakplacement` (unbound),
+experimental badge, capability `SneakPlacement`. `SneakPlacementPlan.h`
+(`gate`, `afterAuth`, tests in `tests/SneakPlacementTests.cpp`) holds a
+use on an interactive block back in `buildBlock` / `startBuildBlock` /
+`useItemOn` until an auth input with the wanted sneak state has gone
+out, keeps the override three ticks after the last such use, replays a
+click vanilla did not retry, and gives up after ten ticks. "Send only"
+drops the sneak bits on the auth input right after the use went out
+(`releaseBeforeAuth`), because each extra tick was a tick of sneak speed
+on BDS (VALIDATION-LOG 2026-11-01). Unverified:
+how the send-only method looks to the server's movement; invert while
+Permanent Sneak or toggle sneak holds the sneak.
+
+In game (after it is built): with the toggle on, a block placed against
+a chest, furnace, door and lever is placed and nothing opens or
+toggles; with the invert option on, sneaking opens the chest; toggle
+off and the key restore vanilla; on a server the placed block stays.
+Closed 2026-11-01: checked in game on `9a06ada2` (local world and the test BDS; the invert option with Permanent Sneak or toggle sneak) - VALIDATION-LOG
+2026-11-01.
 
 ### L-292 A Fake Offhand key that is not right click uses the Fake Offhand
 

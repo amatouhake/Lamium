@@ -12,6 +12,28 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## PRs #59-#62 merged on main: L-285, L-289, L-290, L-291, L-293 (2026-11-01)
+
+LeviLauncher instance `1.26.51.01 LIP`, commit `9a06ada2`, DLL SHA-256
+`6C6D220E3371AE592484EB27E9E51B8F68EFB63B17D84391AE665054F9BB6FE3`, trace
+options off; local world and the local test BDS 1.26.51.1 (world
+`lamium-edge`). The maintainer:
+
+- L-290, local: a water bucket in the main hand and a firework in the Fake
+  Offhand (right-click binding): at the sky the firework is used, at the
+  ground water is poured. BDS: gliding with that pair, the firework is
+  sometimes used and sometimes not (not yet explained).
+- L-289, local: a schematic with water sources and flowing water lists only
+  the sources as water to place. Separately, missing water ghosts draw
+  untinted (white), which reads oddly even though it is the texture (L-294).
+- L-285, local: aiming at a ghost beside the block at the feet, with the
+  ghost's item in the inventory, middle-click still brings the feet block.
+  The fix does not hold; the pick hit is to be traced (`pick_trace`).
+- L-291, local and BDS: the bucket, stew and potion remainders join an
+  existing stack after the refill; on BDS the merged stack stays.
+- L-293, local: with "Open while sneaking" on, right-clicking a chest while
+  Permanent Sneak (or toggle sneak) holds the sneak opens it.
+
 ## Clipped stepper value tip for the keyboard row (L-293 follow-up, 2026-11-01)
 
 Local world, LeviLauncher instance `1.26.51.01 LIP`, commit `c332c977`, DLL
