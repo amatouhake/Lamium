@@ -1,4 +1,5 @@
 #include "features/information/TargetInfo.h"
+#include "features/information/BlockEntityRows.h"
 #include "features/information/SchematicTarget.h"
 #include "features/information/TargetPick.h"
 #include "features/schematic/GhostRenderer.h"
@@ -32,14 +33,20 @@
 #include "mc/world/level/Level.h"
 #include "mc/world/level/BlockPalette.h"
 #include "mc/world/level/block/Block.h"
+#include "mc/world/level/block/BlockType.h"
+#include "mc/world/level/block/actor/BlockActor.h"
+#include "mc/world/level/block/actor/BlockActorType.h"
+#include "mc/world/level/block/actor/NoteBlockActor.h"
+#include "mc/world/item/SaveContextFactory.h"
+#include "mc/world/item/ItemStack.h"
 #include "mc/world/level/dimension/Dimension.h"
 #include "mc/locale/I18n.h"
 #include "mc/deps/nbt/CompoundTagVariant.h"
+#include "mc/deps/shared_types/v1_26_20/block/NoteBlockInstrumentEnum.h"
 #include <algorithm>
-#include <set>
-#ifdef LAMIUM_RESEARCH_TRACE
+#include <cstdint>
 #include <format>
-#endif
+#include <set>
 
 namespace lamium::information {
 namespace {
@@ -247,6 +254,86 @@ TargetIcon fallingIcon(Actor& entity, LocalPlayer& player) {
         return blockIcon(player.getDimensionBlockSource(), where, block);
     } catch (...) { return {}; }
 }
+// L-299: a stored field's two names - the item and the block a row may hold -
+// plus the label the card draws for a field it knows. A name the game cannot
+// give back leaves the id standing, so a row is never dropped for a lookup.
+BlockEntityNames blockEntityNames() {
+    BlockEntityNames names;
+    names.item = [](std::string_view id) -> std::string {
+        try {
+            // The game names an item from its stack; the smallest one is enough.
+            schematic::nbt::Root root;
+            root.compound.set("Name", {std::string(id)});
+            root.compound.set("Count", {std::uint8_t{1}});
+            if (auto tag = CompoundTag::fromBinaryNbt(schematic::nbt::write(root))) {
+                auto stack = ItemStack::fromTag(*tag);
+                if (!stack.isNull()) return stack.getName();
+            }
+        } catch (...) {}
+        return {};
+    };
+    names.block = [](std::string_view id) -> std::string {
+        try {
+            if (auto block = Block::tryGetFromRegistry(HashedString(std::string(id))))
+                return block->buildDescriptionName();
+        } catch (...) {}
+        return {};
+    };
+    names.label = [](std::string_view key) -> std::string {
+        std::string translation = std::format("blockEntity.{}", key);
+        std::string text = ui::translated(translation);
+        return text == translation ? std::string{} : text;
+    };
+    return names;
+}
+// A block whose contents the player only sees by opening it: the client holds a
+// copy from when the world loaded and never refreshes it, so its item list
+// would show what was in there at load time (L-299).
+bool containerBlock(std::string_view identifier) {
+    for (auto name : {std::string_view{"chest"}, std::string_view{"barrel"}, std::string_view{"hopper"},
+                      std::string_view{"dispenser"}, std::string_view{"dropper"}, std::string_view{"furnace"},
+                      std::string_view{"smoker"}, std::string_view{"brewing_stand"},
+                      std::string_view{"shulker_box"}, std::string_view{"crafter"}})
+        if (identifier.find(name) != std::string_view::npos) return true;
+    return false;
+}
+// A field the client never refreshes: it keeps current only what it draws. A
+// container's contents and a note block's pitch are the copy the world loaded
+// with, so a row would read as the value now (L-299).
+std::vector<std::string_view> staleFields(std::string_view identifier) {
+    if (containerBlock(identifier)) return {"Items", "item"};
+    if (identifier == "minecraft:noteblock") return {"note"};
+    return {};
+}
+// What a block keeps in its block entity, as card rows: every saved field, so
+// the card never decides that one is unimportant. The note block's instrument
+// is the exception - the block under it decides, and nothing stores it.
+std::vector<TargetInfo::DetailRow> blockEntityDetails(BlockSource& source, BlockPos const& pos,
+                                                      Block const& block) {
+    std::vector<TargetInfo::DetailRow> rows;
+    if (block.getBlockType().mBlockEntityType == BlockActorType::Undefined) return rows;
+    if (auto const* actor = source.getBlockEntity(pos)) {
+        CompoundTag tag;
+        if (auto context = SaveContextFactory::createCloneSaveContext(); context && actor->save(tag, *context)) {
+            try {
+                auto bytes = tag.toBinaryNbt();
+                auto root = schematic::nbt::read(
+                    {reinterpret_cast<std::uint8_t const*>(bytes.data()), bytes.size()});
+                rows = blockEntityRows(root.compound, blockEntityNames(), staleFields(block.getTypeName()));
+            } catch (...) {} // A block entity that will not read must not replace the card.
+        }
+    }
+    if (block.getTypeName() == "minecraft:noteblock") {
+        try {
+            if (auto instrument = NoteBlockActor::getInstrument(source, pos))
+                rows.push_back({"blockEntity.instrument",
+                                SharedTypes::v1_26_20::NoteBlockInstrumentEnum::noteBlockInstrumentToString(
+                                    *instrument),
+                                false, {}, DetailKind::Other});
+        } catch (...) {}
+    }
+    return rows;
+}
 }
 TargetIcon waterIcon() {
     try {
@@ -332,7 +419,7 @@ std::optional<TargetInfo> liquidTarget(BlockSource& source, bool includeStates, 
     return std::nullopt;
 }
 std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates, std::optional<ViewRay> ray,
-                                            bool includeSchematic, bool includeLiquids) {
+                                            bool includeSchematic, bool includeLiquids, bool includeBlockEntity) {
     auto* player = client.getLocalPlayer();
     if (!player) return {};
     Pick pick;
@@ -476,6 +563,10 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         }
     }
     if (includeStates) appendStates(result, block, fixedStates, static_cast<int>(player->getDimensionId()) == 1);
+    // What the block keeps outside its states (L-299); read only when the card
+    // shows details, so the option off costs no lookup.
+    if (includeBlockEntity)
+        for (auto& row : blockEntityDetails(source, hit.mBlock, block)) result.details.push_back(std::move(row));
     for (auto& row : schematicDetails) result.details.push_back(std::move(row));
     return result;
 }

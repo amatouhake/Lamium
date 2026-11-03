@@ -5,6 +5,7 @@
 #include <cmath>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace lamium::information {
@@ -37,6 +38,7 @@ inline int heartSlots(int maximum) { return maximum > 0 ? (maximum + 1) / 2 : 0;
 inline int heartLines(int maximum) { return (heartSlots(maximum) + heartsPerLine - 1) / heartsPerLine; }
 // Schematic corrections, health and growth come first because they are what
 // people look for; other details and raw states only when asked for. At most `limit` rows.
+// The card grows with its content: the caller passes the rows the screen holds (L-299).
 inline std::vector<CardRow> cardRows(TargetInfo const& target, CardOptions const& options, size_t limit = 8) {
     std::vector<CardRow> rows;
     auto add = [&](CardRow row) { if (rows.size() < limit) rows.push_back(std::move(row)); };

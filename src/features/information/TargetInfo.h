@@ -143,7 +143,7 @@ struct ViewRay { double x, y, z, dx, dy, dz; double reach; bool detached = false
 // `includeLiquids`: real water and lava the ray meets are the target (L-264).
 std::optional<TargetInfo> collectTargetInfo(IClientInstance&, bool includeStates = false,
                                             std::optional<ViewRay> ray = std::nullopt, bool includeSchematic = true,
-                                            bool includeLiquids = false);
+                                            bool includeLiquids = false, bool includeBlockEntity = false);
 // Water's own texture as a tinted icon, for screens that would otherwise draw
 // the water item's untinted gray (L-294). Empty when it cannot be read.
 TargetIcon waterIcon();

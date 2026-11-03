@@ -322,6 +322,7 @@ target("LamiumTests")
     add_files("src/features/map/WaypointStore.cpp")
     add_files("src/features/inventory/DeathLayoutStore.cpp")
     add_files("src/features/schematic/Nbt.cpp", "src/features/schematic/Structure.cpp", "src/features/schematic/PlacementStore.cpp")
+    add_files("src/features/information/BlockEntityRows.cpp")
     add_files("src/features/inventory/sort/**.cpp")
     add_packages("nlohmann_json", "zstd")
     if is_plat("windows") then

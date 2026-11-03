@@ -82,7 +82,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-292 (Fake Offhand key without primary
    priority) is closed (checked 2026-11-01). L-293 (placement as if
    sneaking, toggle) is closed (2026-11-01). L-294 (water icons) is closed
-   (2026-11-01).
+   (2026-11-01). L-299 (block entity data in the target card) is built
+   2026-11-03 and awaits the in-game check.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -174,6 +175,53 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
+
+### L-299 Block entity data never reaches the target card
+Kind: Bug (missing information in the target card).
+Status: Built 2026-11-03, not yet checked in game.
+Maintainer report 2026-11-03: with Other details on, a note block shows its
+name and nothing else - the same as a plain block.
+Cause: `TargetInfo.cpp` `appendStates()` reads only the block's serialization
+states, and a block entity's own fields live outside them: Bedrock keeps a
+note block's pitch and on/off in its block entity
+(`mc/world/level/block/actor/NoteBlockActor.h`: `mNote`, `mOn`), and a sign's
+text, a jukebox's record, a lectern's book and the rest the same way, so no
+row could come from that path for any of them. The instrument is not stored at
+all - the block under a note block decides it
+(`NoteBlockActor::getInstrument`).
+Fix: `src/features/information/BlockEntityRows.h/.cpp` turns every saved field
+of the aimed block's block entity into a card row, and `collectTargetInfo`
+reads it through `BlockSource::getBlockEntity` + `BlockActor::save` (the path
+`AreaSave.cpp` already uses on the client) only when Other details is on, so
+the option off costs no lookup. Values read as the player knows them: an item
+stack as the item's name and count, a text compound as its lines, a list as its
+items, a note block's `note` as `<note> / 24 (<pitch>)`, and a known flag as
+yes/no; anything else keeps the game's own notation rather than being dropped.
+Only `id`, `x`, `y`, `z`, `isMovable` and `Findable` make no row - the name and
+position the card already shows, plus two flags every actor carries. A note
+block adds its instrument as a row of its own. The card is no longer limited
+to ten rows: it grows with its content up to what the screen holds, and a
+long value may use up to most of the screen width instead of the old fixed
+cap (`InfoHud.cpp` `drawTargetCard`).
+Not promised: a field the client never refreshes. It keeps current only what
+it has to draw, so a chest's, barrel's, hopper's, furnace's or shulker box's
+`Items`/`item` and a note block's `note` are the copy the world loaded with
+(checked in game 2026-11-03: the pitch was right after re-entering at 8 of 24
+and did not follow a later tune, and a container's list did not follow a
+change). Those fields make no row, because a stale value would read as the
+value now; counting the player's own tuning clicks was rejected for the same
+reason - another player can tune the same block. A note block keeps its
+instrument row, which the client derives from the block underneath and always
+has. Saved schematic data is L-184's side.
+Tests: `tests/BlockEntityRowsTests.cpp` covers the hidden fields, every value
+shape above, the flag rule, the label fallback, the note pitch table, and the
+overflow row.
+In game: a note block with Other details on (pitch, instrument, on/off), then
+off (no block entity rows at all); a sign with four lines; a jukebox with a
+record; a lectern with a book; a flower pot; a decorated pot; and a block with
+a block entity that stores nothing readable yet (a bed, a banner) to confirm a
+field the client lacks simply makes no row.
+No release target selected.
 
 ### L-276 A temporary waypoint whose removal cannot be saved is never announced again
 Kind: Bug. Review finding 2026-10-27 on `08da0c47`: `waypoints::arrive()`
