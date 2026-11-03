@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Target card block entity rows, review fixes (2026-11-03)
+
+LeviLauncher instance `1.26.51.01 LIP`, local world, on PR #65 commit
+`50c4f427` (DLL SHA-256
+`291F6CAB12C7D6FA3ABD5B6AB65276791B05BB1ECBC517F779FAEC81F57D0CBF`), copied
+into `mods/Lamium` from the branch build. Checked by the maintainer with
+Other details on:
+
+- Note block on stone: the instrument row reads as a translated name (bass
+  drum), not the game's internal id.
+- A sign with long text at a large card scale: the card stays on screen and
+  the rows that do not fit are left out.
+- Chest: no contents row; sign text, colour and glow rows still show.
+Not seen: other instruments' names and the 250 ms refresh after another
+player edits a block entity were not checked separately.
+
 ## Target card block entity rows (2026-11-03)
 
 LeviLauncher instance `1.26.51.01 LIP`, local world, on the PR #65 head
