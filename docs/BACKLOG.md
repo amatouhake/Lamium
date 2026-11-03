@@ -209,6 +209,18 @@ lectern, flower pot, enchanting table, item frames, campfire, spawner, bell,
 shelf. A meshed ghost of those gets its actor too, in the ghost pass and the 3D
 preview; the selection outline stays the mesh's. Not every block entity: a
 furnace or hopper has no renderer, so an actor there would only cost.
+Check 2026-11-04 on `b0e9de4d`: the lectern's book shows in the world and the
+preview; framed items, campfire items, the enchanting table's book, the
+spawner's mob and the bell show without flicker but do not move (whether they
+should is open); piston and chest unchanged; the potted plant still missing.
+The plant is not drawn by the pot's actor renderer but by the pot's mesh
+(`BlockTessellator::tessellateFlowerPotInWorld`), which presumably reads the
+pot's actor from the region. Trial: `SchematicRegion` answers
+`getBlockEntity` (the virtual const one) with a ghost pot actor loaded from
+the file while the ghost mesh tessellates that cell; the pot left the actor
+table. If the game reads through the non-virtual overload the plant stays
+missing, and drawing the plant block scaled into the pot is the next try.
+The 3D preview builds off the render thread and has no such actor yet.
 In game: a schematic with a lectern, a flower pot and a chiseled bookshelf,
 placed as ghosts, after the change; a piston and a chest to prove they did not
 regress.

@@ -384,7 +384,7 @@ bool step() {
             });
             // No mesh: a block entity, drawn by its renderer after the mesh. A
             // piston has both: its base mesh and its head drawn by its actor
-            // (L-178); so do a lectern, a flower pot, a frame (L-302).
+            // (L-178); so do a lectern and a frame (L-302).
             if (positions.size() == from || ghosts::actorDrawsOverMesh(block))
                 j.actorCells.push_back({static_cast<std::uint32_t>(cell), &block});
             if (static_cast<size_t>(cell) < s.liquids.size())

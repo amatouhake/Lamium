@@ -79,7 +79,6 @@ bool actorDrawsOverMesh(Block const& block) {
     switch (block.getBlockType().mBlockEntityType) {
     case BlockActorType::PistonArm:
     case BlockActorType::Lectern:
-    case BlockActorType::FlowerPot:
     case BlockActorType::EnchantingTable:
     case BlockActorType::ItemFrame:
     case BlockActorType::GlowItemFrame:

@@ -30,4 +30,10 @@ SchematicRegion::~SchematicRegion() = default;
 
 float SchematicRegion::getBrightness(::BlockPos const& pos) const { return fullLight ? 1.f : world.getBrightness(pos); }
 
+::BlockActor const* SchematicRegion::getBlockEntity(::BlockPos const& pos) const {
+    if (actorAnswer)
+        if (auto const* actor = actorAnswer(pos)) return actor;
+    return static_cast<::BlockSource const&>(world).getBlockEntity(pos);
+}
+
 } // namespace lamium::schematic

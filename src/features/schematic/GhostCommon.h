@@ -41,8 +41,9 @@ bool signTextIgnored();
 // "Ignore block entities" (L-303): no block entity field is compared.
 bool blockEntitiesIgnored();
 // A block whose mesh is only its base: its block actor draws the rest from
-// the file's data (a piston's head, L-178; a lectern's book, a potted plant,
-// a framed item, L-302), so its ghost needs both.
+// the file's data (a piston's head, L-178; a lectern's book, a framed item,
+// L-302), so its ghost needs both. A potted plant is not one: the pot's mesh
+// draws it, reading the pot's actor (GhostMesh.cpp).
 bool actorDrawsOverMesh(Block const& block);
 bool relaxedSame(Block const& expected, Block const& actual, unsigned on);
 bool relaxedSameType(Block const& expected, Block const& actual, unsigned on);
