@@ -86,7 +86,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    (checked 2026-11-03); L-301 (a note block's pitch from the sound events) is
    closed (checked 2026-11-03). L-302 (a ghost's actor-drawn contents) and
    L-303 (the check ignoring block entity data) came out of the L-184 in-game
-   check and are open. L-304 (a real liquid behind a ghost) is closed (checked
+   check and are open; L-303's fields are decided (2026-11-03) and it starts
+   with the lectern page probe. L-304 (a real liquid behind a ghost) is closed (checked
    2026-11-03).
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
@@ -181,8 +182,8 @@ validation checkpoints" (snapshot 2026-10-20).
 ## Bugs
 
 ### L-303 The schematic check ignores block entity data
-Kind: Bug / Design (which fields count). Maintainer in-game check 2026-11-03
-of PR #68.
+Kind: Bug, Ready (fields decided 2026-11-03); the lectern's page is Research
+first. Maintainer in-game check 2026-11-03 of PR #68.
 Reported: a note block's pitch and a lectern's book are compared by nothing -
 the card shows no "Wrong state" row for them, so a note block tuned after
 building, or a lectern whose book is gone, passes the check.
@@ -190,14 +191,42 @@ Cause: `CheckRules.h` `sameBlock()` compares the block's serialization states
 and nothing else, and a block entity's fields live outside them. The one
 block-entity field the check does see is a shulker box's opening, and only
 through its own capability (`SchematicShulker`, `GhostVerify.cpp`).
-Open: which fields count as a mismatch (a note block's note, a lectern's book
-and page, a flower pot's plant, a banner's patterns, a skull's type and owner -
-a chest's contents almost certainly do not), how the difference row reads in the
-card (which side is "now" when the world value comes from the actor), and the
-cost: reading the world's block entity for every cell would dominate a pass, so
-the comparison has to be gated to cells whose block type carries one of the
-chosen fields.
-In game: nothing to check until a field set is chosen.
+Decided (maintainer 2026-11-03): compare only the fields the client keeps
+current, which are the ones it draws (L-301 found that the rest stay at the
+copy the world loaded with). They are part of the build, either by looks or by
+what a comparator reads:
+- a note block's note (the L-301 sound events first, then the actor's copy);
+- a lectern's book (present or not);
+- a flower pot's plant;
+- a banner's base color and patterns;
+- a skull's type and rotation;
+- a bed's color (block entity data in Bedrock);
+- a decorated pot's sherds;
+- an item frame's item and rotation (the rotation is a comparator signal; frames
+  are used as storage displays);
+- a sign's text (both sides).
+Not compared: contents the client never refreshes (chest, barrel, hopper,
+dispenser, dropper, the furnaces, brewing stand, shulker box, crafter items)
+and a jukebox's disc. A chiseled bookshelf's books are a block state and are
+already compared.
+Research first: a lectern's open page sets a comparator's strength, so it
+should count, but it is not drawn on the block. A probe build (as in L-301)
+checks whether the client's value follows a page turn by this player and by
+another; if it does not, the page joins the fields left out.
+How it reads: a difference is a wrong state (yellow), with a row per field in
+the card's "should be -> now" form; "now" is the world's block actor (the note
+from the sound events when one was heard). A world value that cannot be read
+(capability paused, no actor) passes, as the shulker box's opening does.
+Cost: as for the shulker box, the world's actor is read only for a cell whose
+block already matches and whose file entry carries a block entity id in the
+compared table; the table (block entity id, field) is data, so a field is a
+row, not code.
+Setting: one, "Ignore sign text", a new L-262 category (off: compared). No
+switch for block entity data as a whole: the other fields are the build, and a
+broken read already fails open through the capability.
+In game: a schematic with each field above, built to match (no rows), then
+each changed in the world (a wrong state row naming it); "Ignore sign text" on
+passes only the sign; a chest with other contents still passes.
 No release target selected.
 
 ### L-302 A ghost's contents are missing when its block draws them through a block actor
