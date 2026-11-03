@@ -190,4 +190,22 @@ void targetCardTests() {
     check(!cardContentFits(0, 0, 80, 50, 0, 0, 100, 50) && !cardContentFits(0, 0, 100, 30, 0, 0, 100, 50)
           && !cardContentFits(5, 0, 100, 50, 0, 0, 100, 50),
           "the card content waits while a growing background is smaller than it");
+
+    // L-300: a wrapped value takes several lines, and the rows a card keeps are
+    // counted in lines. Rows are kept whole, and one row always shows.
+    {
+        auto lines = [](std::initializer_list<size_t> counts) {
+            std::vector<size_t> values(counts);
+            return [values](size_t i) { return values[i]; };
+        };
+        check(rowsFitting(3, lines({1, 1, 1}), 8) == 3, "rows of one line all fit a tall card");
+        check(rowsFitting(3, lines({1, 1, 1}), 2) == 2, "the row past the last whole one is left out");
+        check(rowsFitting(3, lines({2, 3, 1}), 5) == 2 && rowsFitting(3, lines({2, 3, 1}), 4) == 1,
+              "a wrapped value takes the room of the rows after it");
+        check(rowsFitting(3, lines({2, 1, 1}), 1) == 1, "a card with one line still shows its first row");
+        check(rowsFitting(3, lines({3, 1, 1}), 2) == 1, "a row taller than the card shows rather than nothing");
+        check(rowsFitting(0, lines({}), 4) == 0 && rowsFitting(3, lines({1, 1, 1}), 0) == 0,
+              "no rows, or no room for a line, shows nothing");
+        check(rowsFitting(2, lines({1, 0}), 3) == 2, "an empty line list still counts as one line");
+    }
 }

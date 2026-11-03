@@ -749,11 +749,8 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         if (valueLines[i].empty()) valueLines[i] = {values[i]};
     }
     // The capacity counts lines, so a wrapped value takes the room of the rows after it.
-    size_t shown = 0;
-    for (size_t used = 0; shown < rows.size(); ++shown) {
-        used += valueLines[shown].size();
-        if (used > static_cast<size_t>(capacity)) break;
-    }
+    size_t const shown = rowsFitting(rows.size(), [&](size_t i) { return valueLines[i].size(); },
+                                     static_cast<size_t>(capacity));
     rows.erase(rows.begin() + static_cast<std::ptrdiff_t>(shown), rows.end());
     labels.resize(shown);
     values.resize(shown);

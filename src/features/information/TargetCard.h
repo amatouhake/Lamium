@@ -36,6 +36,20 @@ struct CardRow {
 inline constexpr int heartsPerLine = 10, maxHeartLines = 5;
 inline int heartSlots(int maximum) { return maximum > 0 ? (maximum + 1) / 2 : 0; }
 inline int heartLines(int maximum) { return (heartSlots(maximum) + heartsPerLine - 1) / heartsPerLine; }
+// How many of the card's rows fit the lines the screen holds: L-300, a stored
+// value wraps, so a row may take several. Rows are kept whole - one that would
+// not fit is left out rather than cut off by the card's bottom - and a card
+// with room for a single line still shows its first row instead of none.
+template <class Lines>
+size_t rowsFitting(size_t count, Lines lines, size_t capacity) {
+    size_t shown = 0, used = 0;
+    for (; shown < count; ++shown) {
+        size_t const take = lines(shown);
+        used += take ? take : 1;
+        if (used > capacity) break;
+    }
+    return shown || count == 0 || capacity == 0 ? shown : 1;
+}
 // Schematic corrections, health and growth come first because they are what
 // people look for; other details and raw states only when asked for. At most `limit` rows.
 // The card grows with its content: the caller passes the rows the screen holds (L-300).
