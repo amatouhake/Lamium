@@ -52,6 +52,17 @@ Block const* lookup(PaletteBlock const& entry) {
     auto block = Block::tryGetFromRegistry(*tag);
     return block ? &*block : nullptr;
 }
+Block const* pottedPlant(nbt::Compound const& data) {
+    auto const* entry = data.find("PlantBlock");
+    auto const* plant = entry ? entry->as<nbt::Compound>() : nullptr;
+    if (!plant || !plant->find("name")) return nullptr;
+    nbt::Root root;
+    root.compound = *plant;
+    auto tag = CompoundTag::fromBinaryNbt(nbt::write(root));
+    if (!tag) return nullptr;
+    auto block = Block::tryGetFromRegistry(*tag);
+    return block ? &*block : nullptr;
+}
 // A block's states as text, for naming what differs (the target card).
 std::map<std::string, std::string> blockStates(Block const& block) {
     std::map<std::string, std::string> out;

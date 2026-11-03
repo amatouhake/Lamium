@@ -221,6 +221,14 @@ the file while the ghost mesh tessellates that cell; the pot left the actor
 table. If the game reads through the non-virtual overload the plant stays
 missing, and drawing the plant block scaled into the pot is the next try.
 The 3D preview builds off the render thread and has no such actor yet.
+Trial result 2026-11-04 on `14eeccbc`: no plant (the game does not read the
+pot's actor through the view); everything else unchanged. Trial removed.
+Now: the ghost pass and the 3D preview (which builds a few blocks per frame
+on the render thread) tessellate the file's `PlantBlock` into the pot's cell
+themselves, raised 4/16 onto the soil (`pottedPlant`, `potSoil`). The height
+and size are a guess to compare with a real potted plant. Moving parts (the
+enchanting table's book, a spawner's mob) stay still: a ghost's actors are not
+ticked, and the maintainer has not asked for it.
 In game: a schematic with a lectern, a flower pot and a chiseled bookshelf,
 placed as ghosts, after the change; a piston and a chest to prove they did not
 regress.

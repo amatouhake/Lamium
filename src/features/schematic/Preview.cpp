@@ -387,6 +387,16 @@ bool step() {
             // (L-178); so do a lectern and a frame (L-302).
             if (positions.size() == from || ghosts::actorDrawsOverMesh(block))
                 j.actorCells.push_back({static_cast<std::uint32_t>(cell), &block});
+            // The pot's plant, which its mesh takes from a world actor (L-302).
+            if (positions.size() > from && block.getBlockType().mBlockEntityType == BlockActorType::FlowerPot)
+                if (auto found = s.blockEntities.find(static_cast<std::int32_t>(cell)); found != s.blockEntities.end())
+                    if (auto const* plant = ghosts::pottedPlant(found->second))
+                        ghosts::eachLayer(*plant, *j.region, spot, [&](std::optional<BlockRenderLayer> layer) {
+                            size_t before = positions.size();
+                            ghosts::tessellateLayer(*j.blocks, batch, *plant, spot, layer);
+                            auto& placed = batch.mMeshData->mPositions.get();
+                            for (size_t v = before; v < placed.size(); ++v) placed[v].y += ghosts::potSoil;
+                        });
             if (static_cast<size_t>(cell) < s.liquids.size())
                 if (auto i = s.liquids[static_cast<size_t>(cell)]; i >= 0 && static_cast<size_t>(i) < j.palette.size() && j.palette[static_cast<size_t>(i)]
                     && ghosts::liquidKind(*j.palette[static_cast<size_t>(i)]))

@@ -43,8 +43,12 @@ bool blockEntitiesIgnored();
 // A block whose mesh is only its base: its block actor draws the rest from
 // the file's data (a piston's head, L-178; a lectern's book, a framed item,
 // L-302), so its ghost needs both. A potted plant is not one: the pot's mesh
-// draws it, reading the pot's actor (GhostMesh.cpp).
+// draws it from the world's actor, so a ghost pot draws the file's plant
+// itself (GhostMesh.cpp), raised by `potSoil` onto the pot's soil.
 bool actorDrawsOverMesh(Block const& block);
+// The plant a flower pot's block entity data names (`PlantBlock`), as a game block.
+Block const* pottedPlant(nbt::Compound const& data);
+inline constexpr float potSoil = 4.f / 16;
 bool relaxedSame(Block const& expected, Block const& actual, unsigned on);
 bool relaxedSameType(Block const& expected, Block const& actual, unsigned on);
 }

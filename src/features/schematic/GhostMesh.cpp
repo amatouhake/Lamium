@@ -471,7 +471,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     Point drawing{};
     int drawn = -1;
     view.answer = [&](BlockPos const& p) { return ghostNeighbor(region, shown, blocks, {p.x, p.y, p.z}, drawing, drawn, camera); };
-    struct Clear { SchematicRegion& view; ~Clear() { view.answer = nullptr; view.actorAnswer = nullptr; } } clear{view};
+    struct Clear { SchematicRegion& view; ~Clear() { view.answer = nullptr; } } clear{view};
     Tessellator batch(screen.tessellator.mBufferResourceService), see(screen.tessellator.mBufferResourceService);
     batch.begin({}, mce::PrimitiveMode::QuadList, 4096, false);
     see.begin({}, mce::PrimitiveMode::QuadList, 256, false);
@@ -553,15 +553,6 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
 #ifdef LAMIUM_SCHEMATIC_QUAD_TRACE
                 std::vector<TracedQuads> traced;
 #endif
-                // A potted plant is part of the pot's mesh: the tessellation
-                // reads it from the pot's block actor, which a ghost has only
-                // as the file's data (L-302).
-                std::shared_ptr<BlockActor> pot;
-                if (expected->getBlockType().mBlockEntityType == BlockActorType::FlowerPot)
-                    if (auto found = structure.blockEntities.find(structure.cell(local->x, local->y, local->z));
-                        found != structure.blockEntities.end())
-                        pot = makeBlockActor(*expected, pos, &found->second, placement.placement, region);
-                view.actorAnswer = [&](BlockPos const& at) -> BlockActor const* { return at == pos ? pot.get() : nullptr; };
                 eachLayer(*expected, region, pos, [&](std::optional<BlockRenderLayer> layer) {
                     Tessellator& target = layer && blended(*layer) ? see : batch;
                     size_t before = target.mMeshData->mPositions->size();
@@ -579,7 +570,22 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     }
                     meshed = meshed || positions.size() > before;
                 });
-                view.actorAnswer = nullptr;
+                // A potted plant is part of the pot's mesh, which the game
+                // builds from the pot's block actor in the world, so a ghost
+                // pot came out empty (L-302; answering that lookup through the
+                // view did not reach it). The file's plant is drawn into the
+                // pot instead, standing on its soil.
+                if (meshed && expected->getBlockType().mBlockEntityType == BlockActorType::FlowerPot)
+                    if (auto found = structure.blockEntities.find(structure.cell(local->x, local->y, local->z));
+                        found != structure.blockEntities.end())
+                        if (auto const* plant = pottedPlant(found->second))
+                            eachLayer(*plant, region, pos, [&](std::optional<BlockRenderLayer> layer) {
+                                Tessellator& target = layer && blended(*layer) ? see : batch;
+                                size_t before = target.mMeshData->mPositions->size();
+                                tessellateLayer(own, target, *plant, pos, layer);
+                                auto& positions = target.mMeshData->mPositions.get();
+                                for (size_t v = before; v < positions.size(); ++v) positions[v].y += potSoil;
+                            });
                 dropDuplicateQuads(batch, batchFrom);
                 dropDuplicateQuads(see, seeFrom);
 #ifdef LAMIUM_SCHEMATIC_QUAD_TRACE

@@ -16,9 +16,6 @@ public:
     ~SchematicRegion() override;
 
     Answer answer;
-    // The block actor a cell's tessellation reads (a ghost pot's plant,
-    // L-302); where it has nothing the world answers.
-    std::function<::BlockActor const*(::BlockPos const&)> actorAnswer;
     // Full brightness everywhere (ghost block actors), instead of the world's.
     bool fullLight = false;
 
@@ -27,7 +24,6 @@ public:
     ::Material const& getMaterial(::BlockPos const& pos) const override;
     ::Material const& getMaterial(int x, int y, int z) const override;
     float getBrightness(::BlockPos const& pos) const override;
-    ::BlockActor const* getBlockEntity(::BlockPos const& pos) const override;
 
 private:
     ::BlockSource& world;
