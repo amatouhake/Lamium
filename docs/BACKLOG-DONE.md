@@ -10,7 +10,7 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
-### L-299 Block entity data never reaches the target card
+### L-300 Block entity data never reaches the target card
 Kind: Bug (missing information in the target card).
 Status: done 2026-11-03; what the maintainer saw is in the Done line below.
 Maintainer report 2026-11-03: with Other details on, a note block shows its

@@ -36,7 +36,7 @@ void blockEntityRowTests() {
         return key == "note" || key == "IsWaxed" ? std::string(key) : std::string{};
     };
 
-    // L-299: a note block's pitch is stored, not a block state, and reads as
+    // L-300: a note block's pitch is stored, not a block state, and reads as
     // the note it plays.
     check(blockEntityValue("note", integer(12), names) == "12 / 24 (F#4)", "note 12 reads 12 / 24 (F#4)");
     check(blockEntityValue("note", integer(30), names) == "30", "a note past 24 keeps its number");
@@ -84,7 +84,7 @@ void blockEntityRowTests() {
     check(blockEntityValue("Rotation", nbt::Tag{1.5f}, names) == "1.5", "a float keeps its value");
 
     // A sign's text compound carries its colour and glow: they become rows of
-    // their own instead of hiding behind the text (L-299).
+    // their own instead of hiding behind the text (L-300).
     {
         nbt::Compound front;
         front.set("Text", {std::string{"a\nb"}});

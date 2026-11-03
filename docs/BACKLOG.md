@@ -82,8 +82,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-292 (Fake Offhand key without primary
    priority) is closed (checked 2026-11-01). L-293 (placement as if
    sneaking, toggle) is closed (2026-11-01). L-294 (water icons) is closed
-   (2026-11-01). L-299 (block entity data in the target card) is closed
-   (checked 2026-11-03); L-300 (values the client never refreshes) is open
+   (2026-11-01). L-300 (block entity data in the target card) is closed
+   (checked 2026-11-03); L-301 (values the client never refreshes) is open
    research.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
@@ -582,13 +582,13 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
-### L-300 Show block entity values the client never refreshes
-Kind: Research. Maintainer question 2026-11-03, follow-up of L-299.
+### L-301 Show block entity values the client never refreshes
+Kind: Research. Maintainer question 2026-11-03, follow-up of L-300.
 Current: the client keeps current only what it has to draw. A container's
 contents and a note block's pitch reach it as the copy the world loaded with
 and never update: in game a chest's and a furnace's contents did not follow a
 change, and a note block's pitch read 8 of 24 after re-entering and did not
-follow a tune. L-299 therefore gives those fields no row - a stale value would
+follow a tune. L-300 therefore gives those fields no row - a stale value would
 read as the value now - and keeps the rows the client really has (a sign's
 text, colour and waxed state, a note block's instrument, a potted plant).
 Open: whether a trustworthy value exists at all on the client - a packet it

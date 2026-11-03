@@ -729,13 +729,13 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     float headerH = std::max(iconSize, headerTextH);
     float headerW = iconSize + iconGap + std::max(nameW, idW);
     float rowsW = rows.empty() ? 0 : labelW + 6 * z + valuesW;
-    // L-299: a stored field can be longer than the old cap; the card takes the
+    // L-300: a stored field can be longer than the old cap; the card takes the
     // width it needs, up to most of the screen, rather than cutting the row short.
     float contentW = std::min(std::max(headerW, rowsW), std::max(260.f * z, width * .6f));
     float boxW = contentW + 2 * padX;
     // A stored value can be longer than one line (a sign's four lines, an item
     // list): it wraps inside the card and the row grows by a line per line of
-    // text, instead of the card cutting the rest away (L-299).
+    // text, instead of the card cutting the rest away (L-300).
     std::vector<std::vector<std::string>> valueLines(rows.size());
     float wrapWidth = std::max(40.f * z, contentW - labelW - 6 * z + 2);
     auto measureText = [&](std::string_view part) { return ui::textWidthScaled(context, part, z); };
