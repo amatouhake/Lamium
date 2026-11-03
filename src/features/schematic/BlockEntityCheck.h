@@ -28,8 +28,10 @@ struct Field {
     // pot), so a missing field is "none". Otherwise a side without it is not
     // compared: a file from another source may not store it.
     bool absentIsEmpty = false;
-    // Compared only while both sides hold this field (a lectern's page needs
-    // its book).
+    // Compared only while the file holds this field (a lectern's page needs
+    // its book). A world block without it shows the file's value against
+    // nothing, so the builder learns the page or turn before adding the book
+    // or item (maintainer 2026-11-03).
     std::string_view onlyWith = {};
     // Covered by "Ignore sign text".
     bool sign = false;
@@ -150,18 +152,18 @@ inline std::vector<Difference> differences(nbt::Compound const& file, nbt::Compo
     if (id.empty() || entityId(world) != id) return out;
     for (auto const& f : fields) {
         if (f.id != id || (f.sign && ignoreSign)) continue;
+        bool worldHolds = true;
         if (!f.onlyWith.empty()) {
             Field gate{f.id, f.onlyWith, f.within};
-            auto const* a = detail::lookup(file, gate);
-            auto const* b = detail::lookup(world, gate);
             std::int64_t flag = 1;
             auto held = [&](nbt::Tag const* t) { return t && (!t->integer(flag) || flag != 0); };
-            if (!held(a) || !held(b)) continue;
+            if (!held(detail::lookup(file, gate))) continue;
+            worldHolds = held(detail::lookup(world, gate));
         }
         auto const* want = detail::lookup(file, f);
-        auto const* now = detail::lookup(world, f);
-        if ((!want || !now) && !f.absentIsEmpty) continue;
+        auto const* now = worldHolds ? detail::lookup(world, f) : nullptr;
         if (!want && !now) continue;
+        if ((!want || !now) && !f.absentIsEmpty && worldHolds) continue;
         std::optional<nbt::Tag> expected;
         if (want) expected = placed(f, *want, placement);
         bool same = false;

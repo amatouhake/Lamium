@@ -80,7 +80,8 @@ void blockEntityCheckTests() {
         b.set("Item", {zero});
         check(differences(a, b, still, false).empty(), "a data value of 0 matches one left out");
     }
-    // A lectern: the page counts only while both hold a book.
+    // A lectern: the page counts while the file holds a book; without one in
+    // the world the file's page still shows, against nothing.
     {
         auto file = entity("Lectern"), world = entity("Lectern");
         file.set("hasBook", {std::int8_t{1}});
@@ -88,10 +89,25 @@ void blockEntityCheckTests() {
         world.set("hasBook", {std::int8_t{0}});
         world.set("page", {std::int32_t{0}});
         auto d = differences(file, world, still, false);
-        check(d.size() == 1 && d[0].field->key == "hasBook", "a missing book is the difference, not its page");
+        check(d.size() == 2 && d[0].field->key == "hasBook" && d[1].field->key == "page" && d[1].expected && !d[1].actual,
+              "a missing book shows the book and the page it should open at");
         world.set("hasBook", {std::int8_t{1}});
         d = differences(file, world, still, false);
         check(d.size() == 1 && d[0].field->key == "page", "another page differs once the book is there");
+        file.set("hasBook", {std::int8_t{0}});
+        world.set("page", {std::int32_t{5}});
+        d = differences(file, world, still, false);
+        check(d.size() == 1 && d[0].field->key == "hasBook", "without a book in the file the page is not judged");
+    }
+    // An empty frame in the world still shows the turn the file's item has.
+    {
+        auto file = entity("ItemFrame"), world = entity("ItemFrame");
+        file.set("Item", {item("minecraft:clock")});
+        file.set("ItemRotation", {90.f});
+        world.set("ItemRotation", {0.f});
+        auto d = differences(file, world, still, false);
+        check(d.size() == 2 && d[1].field->key == "ItemRotation" && d[1].expected && !d[1].actual,
+              "an empty frame shows the item and its turn");
     }
     // A sign: text, colour and glow on both sides; the owner aside; the
     // setting leaves all of it out.

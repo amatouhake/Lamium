@@ -233,6 +233,18 @@ rotation turns with the placement (`toWorldYaw`); an item frame's item
 rotation is kept as stored. Not done: mistake marks in the world come from the
 mesh, which compares blocks only, so a field-only mistake has no mark (as the
 shulker box's opening).
+First check 2026-11-03 on `97cdbf00`: built to match passes; an item frame's
+item makes a wrong state; a note block, lectern, flower pot and sign did not,
+and a note block that did stopped. Found: the info HUD's own target lookup
+ended the note sound subscription every frame and the card joined it again
+(14369 joins in the log), so every heard note was forgotten and the check read
+the note the world loaded with; the subscription is now decided once a frame
+in `InfoHud.cpp`, also while the schematic is on. Not yet explained: the
+lectern, flower pot and sign (the file's keys match the table; the card asks
+the check about the selected placement only, so a block in another placement
+gets no schematic rows). Changed after the check (maintainer): a gated field
+shows the file's value while the world block lacks the book or item (a page
+or an item's turn is known before the book or item goes in).
 In game: a schematic with each field above, built to match (no rows), then
 each changed in the world (a wrong state row naming it); "Ignore sign text" on
 passes only the sign; a chest with other contents still passes.

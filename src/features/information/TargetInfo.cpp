@@ -518,11 +518,6 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
                                             bool includeSchematic, bool includeLiquids, bool includeBlockEntity) {
     auto* player = client.getLocalPlayer();
     if (!player) return {};
-    // L-301: note block pitches come from the level's sound events. Read only
-    // while the card shows details, so the option off costs nothing.
-    if (auto* level = includeBlockEntity ? client.getLevel() : nullptr)
-        beginNoteSounds(*level, static_cast<int>(player->getDimensionId()));
-    else endNoteSounds();
     Pick pick;
     auto const& latest = client.getLatestHitResult();
     bool gameHit = latest.mType == HitResultType::Tile || latest.mType == HitResultType::Entity;

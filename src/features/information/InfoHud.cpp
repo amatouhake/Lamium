@@ -4,6 +4,7 @@
 #include "features/information/PlayerInfo.h"
 #include "features/information/FrameTiming.h"
 #include "features/information/NetworkInfo.h"
+#include "features/information/NoteSounds.h"
 #include "features/information/TargetInfo.h"
 #include "features/information/TargetCard.h"
 #include "features/information/DebugLines.h"
@@ -73,6 +74,7 @@
 #include "features/map/RadarFaces.h"
 #include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
+#include "mc/client/multiplayer/ClientLevel.h"
 #include "mc/world/level/Level.h"
 #include "mc/deps/shared_types/legacy/Difficulty.h"
 #include "mc/locale/I18n.h"
@@ -1586,6 +1588,15 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     auto targetRay = viewRay(settings.targetDistance);
     std::optional<TargetInfo> cardTarget;
     bool const cardRan = preview || (settings.target && !listHeld && !(settings.debug && settings.debugHideTarget));
+    // L-301: note pitches come from the level's sound events, heard while the
+    // card shows block entity rows or the schematic check may compare a note
+    // (L-303). Decided once a frame here: the target lookups run with other
+    // options too, and ending the subscription in one of them forgot every
+    // note each frame.
+    auto* noteLevel = (cardRan && settings.targetStates) || runtime.schematic.enabled ? context.mClient.getLevel() : nullptr;
+    if (auto* player = context.mClient.getLocalPlayer(); noteLevel && player)
+        beginNoteSounds(*noteLevel, static_cast<int>(player->getDimensionId()));
+    else endNoteSounds();
     if (cardRan) {
         // One distance for every viewpoint: the body normally, the camera
         // during Freelook and FreeCamera (it looks elsewhere than the body).
