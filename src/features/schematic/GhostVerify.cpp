@@ -252,7 +252,7 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
         // for a file entry that carries one. Unreadable passes, as above.
         bool ignoreSign = signTextIgnored();
         if (auto found = structure.blockEntities.find(static_cast<std::int32_t>(cellIndex));
-            found != structure.blockEntities.end() && entitycheck::compared(found->second, ignoreSign)) {
+            found != structure.blockEntities.end() && !blockEntitiesIgnored() && entitycheck::compared(found->second, ignoreSign)) {
             c.readEntity = true;
             if (auto saved = information::savedBlockEntity(region, pos)) {
                 // L-301: the stored note is the one the world loaded with.

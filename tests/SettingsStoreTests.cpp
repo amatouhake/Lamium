@@ -374,9 +374,10 @@ void settingsStoreTests() {
         check(!old.schematic.ignoreSignal && !old.schematic.litAsState && !old.schematic.ignoreGrowth
                   && relaxed.ignoreSignal && relaxed.litAsState && relaxed.ignoreGrowth,
               "the check is strict by default and the relaxations load (L-262)");
-        check(!old.schematic.ignoreSignText
-                  && decodeSettings(R"({"schematic":{"ignoreSignText":true}})").schematic.ignoreSignText,
-              "sign text is compared by default and the switch loads (L-303)");
+        check(!old.schematic.ignoreSignText && !old.schematic.ignoreBlockEntities
+                  && decodeSettings(R"({"schematic":{"ignoreSignText":true}})").schematic.ignoreSignText
+                  && decodeSettings(R"({"schematic":{"ignoreBlockEntities":true}})").schematic.ignoreBlockEntities,
+              "block data and sign text are compared by default and both switches load (L-303)");
         check(decodeSettings(R"({"schematic":{"ghostTint":0}})").schematic.ghostTint == 100
               && decodeSettings(R"({"schematic":{"ghostTint":1}})").schematic.ghostTint == 40
               && decodeSettings(R"({"schematic":{"ghostTint":2}})").schematic.ghostTint == 0

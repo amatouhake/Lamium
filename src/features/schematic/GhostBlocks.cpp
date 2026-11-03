@@ -72,6 +72,7 @@ unsigned checkRules() {
     return (s.ignoreSignal ? rules::Signal : 0u) | (s.litAsState ? rules::Lit : 0u) | (s.ignoreGrowth ? rules::Growth : 0u);
 }
 bool signTextIgnored() { return Runtime::instance().snapshot()->schematic.ignoreSignText; }
+bool blockEntitiesIgnored() { return Runtime::instance().snapshot()->schematic.ignoreBlockEntities; }
 bool relaxedSame(Block const& expected, Block const& actual, unsigned on) {
     if (&expected == &actual) return true;
     if (!on) return false;

@@ -61,6 +61,7 @@ bool toggleState(IClientInstance& client, Settings const& value, input::Action a
     if (action == input::Action::ToggleLitAsState) return value.schematic.litAsState;
     if (action == input::Action::ToggleIgnoreGrowth) return value.schematic.ignoreGrowth;
     if (action == input::Action::ToggleIgnoreSignText) return value.schematic.ignoreSignText;
+    if (action == input::Action::ToggleIgnoreBlockEntities) return value.schematic.ignoreBlockEntities;
     if (action == input::Action::PermanentSneak) return interaction::sneak::armed();
     if (action == input::Action::PermanentSprint) return interaction::sprint::armed();
     if (action == input::Action::Zoom) return CameraSessions::instance().wanted(CameraSessions::Session::Zoom);

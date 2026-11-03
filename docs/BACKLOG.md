@@ -257,9 +257,16 @@ blocks above and below decide it (`noteInstrumentMismatch`, against
 the check publishes its block entity mistake cells (`entityMistakes()`) and
 the mesh marks them yellow, rebuilding a section when that set changes (a
 section does not save block entities itself).
-Open (maintainer): block entity mistakes come from the selected placement's
-check only, while block mistakes are marked for every placement; whether to
-say so to the player, or to check every shown placement.
+Third check 2026-11-04 on `d5f5e85a`: the yellow marks come and go with the
+mistake, and leave with the placement's selection; the instrument difference
+shows, but the card also kept its own instrument row (now left out, like a
+fixed state, whenever a schematic row names the field).
+Decided (maintainer 2026-11-04): block entity data is checked for the
+selected placement only, said in the settings; and a switch "Ignore block
+data" (off: compared) turns the whole comparison off, for a new comparison
+that may misjudge and for players who want the check as before. Its help text
+says that only the selected placement is compared. "Ignore sign text" stays
+as the narrower switch.
 In game: a schematic with each field above, built to match (no rows), then
 each changed in the world (a wrong state row naming it); "Ignore sign text" on
 passes only the sign; a chest with other contents still passes.

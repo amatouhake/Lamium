@@ -506,6 +506,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::schematic, &Settings::Schematic::ignoreSignal>("schematic.ignoreSignal", "schematicCheck", "schematicIgnoreSignal"),
     toggle<&Settings::schematic, &Settings::Schematic::litAsState>("schematic.litAsState", "schematicCheck", "schematicLitAsState"),
     toggle<&Settings::schematic, &Settings::Schematic::ignoreGrowth>("schematic.ignoreGrowth", "schematicCheck", "schematicIgnoreGrowth"),
+    toggle<&Settings::schematic, &Settings::Schematic::ignoreBlockEntities>("schematic.ignoreBlockEntities", "schematicCheck", "schematicIgnoreBlockEntities"),
     toggle<&Settings::schematic, &Settings::Schematic::ignoreSignText>("schematic.ignoreSignText", "schematicCheck", "schematicIgnoreSignText"),
     toggle<&Settings::schematic, &Settings::Schematic::hud>("schematic.hud", "schematicHud", "schematicHud"),
     toggle<&Settings::schematic, &Settings::Schematic::hudVerify>("schematic.hudVerify", "schematicHud", "schematicHudVerify"),

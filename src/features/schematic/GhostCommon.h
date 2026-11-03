@@ -38,6 +38,8 @@ std::map<std::string, std::string> blockStates(Block const& block);
 unsigned checkRules();
 // "Ignore sign text" (L-303): a sign's block entity fields are not compared.
 bool signTextIgnored();
+// "Ignore block data" (L-303): no block entity field is compared.
+bool blockEntitiesIgnored();
 bool relaxedSame(Block const& expected, Block const& actual, unsigned on);
 bool relaxedSameType(Block const& expected, Block const& actual, unsigned on);
 }

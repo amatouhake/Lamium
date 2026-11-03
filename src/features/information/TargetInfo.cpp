@@ -684,9 +684,12 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     if (includeStates) appendStates(result, block, fixedStates, static_cast<int>(player->getDimensionId()) == 1);
     // What the block keeps outside its states (L-300); read only when the card
     // shows details, so the option off costs no lookup.
+    // A field the schematic row already shows, with the value now, is left
+    // out like a fixed state (L-303: the instrument read twice).
     if (includeBlockEntity)
         for (auto& row : blockEntityDetails(source, hit.mBlock, block, static_cast<int>(player->getDimensionId())))
-            result.details.push_back(std::move(row));
+            if (!fixedStates.contains(row.labelIsKey ? ui::translated(row.label) : row.label))
+                result.details.push_back(std::move(row));
     for (auto& row : schematicDetails) result.details.push_back(std::move(row));
     return result;
 }
