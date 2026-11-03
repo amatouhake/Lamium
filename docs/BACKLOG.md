@@ -266,7 +266,10 @@ selected placement only, said in the settings; and a switch "Ignore block
 data" (off: compared) turns the whole comparison off, for a new comparison
 that may misjudge and for players who want the check as before. Its help text
 says that only the selected placement is compared. "Ignore sign text" stays
-as the narrower switch.
+as the narrower switch. Renamed "Ignore block entities" (maintainer
+2026-11-04, after the checks on `1484b36c` passed): "block data" read as if a
+block's facing or waterlogging were skipped too; the help says states are
+still compared.
 In game: a schematic with each field above, built to match (no rows), then
 each changed in the world (a wrong state row naming it); "Ignore sign text" on
 passes only the sign; a chest with other contents still passes.
