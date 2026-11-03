@@ -85,32 +85,43 @@ void beginNoteSounds(Level& level, int dimension) {
     if (capabilities::registry().status(capabilities::Id::NoteBlockSounds).compatibility
         != capabilities::Reason::None)
         return;
-    std::scoped_lock lock(mutex);
+    // The subscription is built outside `mutex`: connecting takes the
+    // connector's own lock, and a sound may be dispatching while it runs.
+    std::unique_ptr<Bedrock::PubSub::Subscription> joined;
     capabilities::begin(capabilities::Id::NoteBlockSounds);
     try {
         auto& connector = level.getLevelSoundManager().getOnLevelSoundEventConnector();
-        subscription.reset(new Bedrock::PubSub::Subscription(
+        joined.reset(new Bedrock::PubSub::Subscription(
             connector.connect(onSound, Bedrock::PubSub::ConnectPosition::AtBack, nullptr)));
-        attached = true;
-        capabilities::hooks(capabilities::Id::NoteBlockSounds, true);
-        log("joined the level's sound events");
     } catch (...) {
         // Once per world: retrying every frame would only repeat the failure.
-        subscription.reset();
         failed = true;
         capabilities::hooks(capabilities::Id::NoteBlockSounds, false);
         log("could not join the level's sound events; the card keeps the loaded note");
+        return;
     }
+    {
+        std::scoped_lock lock(mutex);
+        subscription = std::move(joined);
+        attached = true;
+    }
+    capabilities::hooks(capabilities::Id::NoteBlockSounds, true);
+    log("joined the level's sound events");
 }
 
 void endNoteSounds() {
     if (!attached) return;
-    std::scoped_lock lock(mutex);
-    // The subscription holds its connection weakly, so disconnecting is safe
-    // even after the level that published it is gone.
-    subscription.reset();
-    attached = false;
-    notes.clear();
+    std::unique_ptr<Bedrock::PubSub::Subscription> leaving;
+    {
+        std::scoped_lock lock(mutex);
+        leaving = std::move(subscription);
+        attached = false;
+        notes.clear();
+    }
+    // Destroyed outside `mutex`: a dispatch in flight may be waiting for it, and
+    // the connection stays safe to drop after the level that published it is
+    // gone.
+    leaving.reset();
 }
 
 void forgetNoteSounds() {
