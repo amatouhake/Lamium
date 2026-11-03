@@ -387,17 +387,20 @@ std::vector<TargetInfo::DetailRow> readBlockEntityDetails(BlockSource& source, B
 // The card asks every frame; a save and a parse of the same block each time is
 // wasted work, so the rows are read again only for a new block or after a short
 // while (the stored fields change rarely and by another player's hand).
+struct BlockEntityRowsCache {
+    int x = 0, y = 0, z = 0, dimension = -1;
+    std::string identifier;
+    std::chrono::steady_clock::time_point read;
+    std::vector<TargetInfo::DetailRow> rows;
+};
+BlockEntityRowsCache blockEntityRowsCache;
+// A world that closes must not answer for the next one before its first read.
+void forgetBlockEntityRows() { blockEntityRowsCache = {}; }
 std::vector<TargetInfo::DetailRow> blockEntityDetails(BlockSource& source, BlockPos const& pos,
                                                       Block const& block, int dimension) {
     auto type = block.getBlockType().mBlockEntityType;
     if (type == BlockActorType::Undefined) return {};
-    struct Cached {
-        int x = 0, y = 0, z = 0, dimension = -1;
-        std::string identifier;
-        std::chrono::steady_clock::time_point read;
-        std::vector<TargetInfo::DetailRow> rows;
-    };
-    static Cached cached;
+    auto& cached = blockEntityRowsCache;
     auto now = std::chrono::steady_clock::now();
     auto const& identifier = block.getTypeName();
     if (cached.dimension != dimension || cached.x != pos.x || cached.y != pos.y || cached.z != pos.z
@@ -679,6 +682,9 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
                     schematicDetails = schematicRows(m->state, m->expectedName, m->expected, m->states,
                         result.identifier, [](std::string_view key) { return ui::translated(key); });
                     for (auto const& d : m->states) fixedStates.insert(d.key);
+                    // A state's row carries its key, a block entity row the label
+                    // as it is drawn (`entityStates` in GhostVerify.cpp); the
+                    // card's own rows are matched against either.
                 }
             }
         }
@@ -700,6 +706,7 @@ void startTargetIcons() {
         [](auto&) {
             clearSpawnEggIndex();
             forgetNoteSounds();
+            forgetBlockEntityRows();
         });
 }
 void stopTargetIcons() {
