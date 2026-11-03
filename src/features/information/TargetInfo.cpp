@@ -420,7 +420,7 @@ void appendStates(TargetInfo& result, Block const& block, std::set<std::string> 
 // The nearest schematic ghost in front of the aimed block (L-184): its block
 // as the card's target, marked as a block still to place.
 std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, bool includeStates, std::optional<ViewRay> const& ray,
-                                      bool throughBlocks) {
+                                      bool throughBlocks, bool includeBlockEntity) {
     double x, y, z, dx, dy, dz, reach;
     if (ray) { x = ray->x; y = ray->y; z = ray->z; dx = ray->dx; dy = ray->dy; dz = ray->dz; reach = ray->reach; }
     else {
@@ -439,6 +439,22 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
     result.blockPosition = TargetInfo::BlockPosition{pos.x, pos.y, pos.z};
     result.icon = blockIcon(source, pos, block);
     if (includeStates) appendStates(result, block, {}, static_cast<int>(player.getDimensionId()) == 1);
+    // L-184: the file's own block entity data, under the same rules the real
+    // block's rows use, so a ghost and the block it becomes read alike.
+    if (includeBlockEntity) {
+        auto type = block.getBlockType().mBlockEntityType;
+        if (ghost->blockEntity)
+            for (auto& row : blockEntityRows(*ghost->blockEntity, blockEntityNames(), staleFields(type), std::nullopt))
+                result.details.push_back(std::move(row));
+        if (type == BlockActorType::Music) {
+            try {
+                auto instrument = NoteBlockActor::getInstrument(source, pos);
+                if (instrument && *instrument != SharedTypes::v1_26_20::NoteBlockInstrument::None)
+                    result.details.push_back(
+                        {"blockEntity.instrument", instrumentName(*instrument), false, {}, DetailKind::Other});
+            } catch (...) {}
+        }
+    }
     result.details.push_back(ghostRow());
     result.ghost = true;
     return result;
@@ -530,7 +546,8 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
                                          static_cast<int>(player->getDimensionId()) == 1)) return liquid;
     // A ghost in front of the aimed block (or in the air) is the target.
     if (includeSchematic && (hit.mType != HitResultType::Entity || onGameLine))
-        if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ghostRay, onGameLine))
+        if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ghostRay, onGameLine,
+                                     includeBlockEntity))
             return ghost;
     if (hit.mType == HitResultType::Entity) {
         auto* entity = pick.entity;

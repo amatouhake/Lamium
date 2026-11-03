@@ -925,7 +925,7 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
             auto index = overlap::paletteAt(shown, dimension, cell);
             if (!index || static_cast<size_t>(*index) >= resolved[i].blocks.size()) continue;
             if (auto const* block = resolved[i].blocks[static_cast<size_t>(*index)])
-                return GhostAt{cell, block, shown.placement.name};
+                return GhostAt{cell, block, shown.placement.name, overlap::blockEntityAt(shown, dimension, cell)};
         }
     }
     return std::nullopt;

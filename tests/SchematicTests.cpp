@@ -1563,6 +1563,31 @@ void checkRelaxations() {
               && !r::ignoredState("open_bit", r::Signal | r::Lit | r::Growth),
           "a state only one side has still counts; doors' open state is not a signal");
 }
+// L-184: a ghost's block entity is the file's, at the cell the placement puts it.
+void ghostBlockEntityTests() {
+    auto structure = std::make_shared<Structure>(sample());
+    session::Shown shown;
+    shown.structure = structure;
+    shown.placement.name = "ghost";
+    shown.placement.dimension = 0;
+    shown.placement.visible = true;
+    shown.placement.placement = Placement{{200, 64, 200}, 0, Mirror::None};
+    auto data = overlap::blockEntityAt(shown, 0, Point{200, 65, 202});
+    check(data && data->find("id") && data->find("id")->as<std::string>()
+              && *data->find("id")->as<std::string>() == "Chest",
+          "the ghost cell reads the file's block entity");
+    check(!overlap::blockEntityAt(shown, 0, Point{200, 64, 200}), "a cell the file stores nothing for makes none");
+    check(!overlap::blockEntityAt(shown, 1, Point{200, 65, 202}), "another dimension draws nothing");
+    // A quarter turn moves the cell: structure-local (0, 1, 2) lands at 201.
+    shown.placement.placement.rotation = 1;
+    check(overlap::blockEntityAt(shown, 0, Point{201, 65, 200}).has_value(),
+          "a turned placement moves the cell with it");
+    check(!overlap::blockEntityAt(shown, 0, Point{200, 65, 202}), "the unturned cell is empty once turned");
+    session::Shown hidden = shown;
+    hidden.placement.visible = false;
+    check(!overlap::blockEntityAt(hidden, 0, Point{201, 65, 200}), "a hidden placement draws nothing");
+}
+
 void schematicTests() {
     checkRelaxations();
     placementSteps();

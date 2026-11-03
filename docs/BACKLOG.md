@@ -933,6 +933,15 @@ setting saved with compatibility for the test builds' numbers (DESIGN "Target
 and Schematics"). Awaiting in-game checks: ghost in the air and in front of a
 real block, wrong/extra/state rows, the setting off, short screens.
 Container inspection and saved Block Entity data remain Design / Research.
+Built 2026-11-03: the ghost's saved block entity data shows as target-card rows
+under the same rules a real block's rows use (L-300/L-301) - sign text, colour,
+glow and waxed state, a jukebox record, a lectern book and page, a potted
+plant, a note block's note and instrument - so a ghost and the block it becomes
+read alike. The row comes from the placement's `block_entities` entry for that
+cell (`PlacementOverlap.h` `blockEntityAt`, turned and mirrored like the cells),
+so it is complete even though the world's copy of a block entity is not.
+Still open, and now the whole of what is left: the data only the file has
+(container contents, a comparator's signal) and how to present it.
 Goal: inspect the ghost under the crosshair: expected block name, facing,
 BlockState and available saved Block Entity data. Provide a way to
 understand inventory contents of barrels/hoppers and other data relevant

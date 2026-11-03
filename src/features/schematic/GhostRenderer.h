@@ -45,6 +45,8 @@ struct GhostAt {
     Point cell;
     Block const* block = nullptr;
     std::string placement;
+    // What the file stores for that cell, when it stores anything (L-184).
+    std::optional<nbt::Compound> blockEntity;
 };
 // The first ghost along a ray. Real water and lava do not stop the search
 // (L-264); another real block does, unless
