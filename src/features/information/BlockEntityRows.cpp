@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -115,7 +116,9 @@ std::string blockEntityValue(std::string_view key, Tag const& tag, BlockEntityNa
     if (auto const* text = tag.as<std::string>()) return shortened(lines(*text));
     std::int64_t number = 0;
     if (tag.integer(number)) {
-        // L-299: the note block's pitch lives here, not in its states.
+        // L-299: the note block's pitch lives here, not in its states. The card
+        // passes `note` as stale until L-300 keeps it current, so this reading
+        // is for that item.
         if (key == "note" && number >= 0 && number <= 24)
             return std::format("{} / 24 ({})", number, notePitch(number));
         // A sign's text colour is a 32-bit ARGB value; the player reads #RRGGBB.
@@ -150,23 +153,24 @@ bool storesFields(Tag const& tag) {
     if (!compound || compound->entries.empty()) return false;
     return !compound->find("Name") && !compound->find("name");
 }
-bool listed(std::string_view key, std::vector<std::string_view> const& stale) {
+bool listed(std::string_view key, std::span<std::string_view const> stale) {
     return std::find(stale.begin(), stale.end(), key) != stale.end();
 }
 void appendField(std::vector<TargetInfo::DetailRow>& rows, std::string const& key, Tag const& tag,
-                 BlockEntityNames const& names, std::vector<std::string_view> const& stale, int depth = 0) {
+                 BlockEntityNames const& names, std::span<std::string_view const> stale, int depth = 0) {
     if (blockEntityFieldHidden(key) || listed(key, stale)) return;
     std::string value = blockEntityValue(key, tag, names);
     // Nothing stored: an empty string, an empty compound, an empty list.
     if (!value.empty()) {
         TargetInfo::DetailRow row;
+        // Plain text either way: the label is already translated, or the key itself.
         std::string label = names.label ? names.label(key) : std::string{};
-        if (label.empty()) {
-            row.label = key;
-            row.labelIsKey = false;
-        } else row.label = std::move(label);
+        row.label = label.empty() ? key : std::move(label);
+        row.labelIsKey = false;
+        // The game stores a flag as a byte; a wider integer is a count or an id.
         std::int64_t flag = 0;
-        if (flagField(key) && tag.integer(flag) && (flag == 0 || flag == 1)) {
+        if (flagField(key) && tag.type() == schematic::nbt::Type::Byte && tag.integer(flag)
+            && (flag == 0 || flag == 1)) {
             row.value = flag ? "target.yes" : "target.no";
             row.valueIsKey = true;
         } else row.value = std::move(value);
@@ -183,7 +187,7 @@ void appendField(std::vector<TargetInfo::DetailRow>& rows, std::string const& ke
 }
 
 std::vector<TargetInfo::DetailRow> blockEntityRows(Compound const& data, BlockEntityNames const& names,
-                                                   std::vector<std::string_view> stale) {
+                                                   std::span<std::string_view const> stale) {
     std::vector<TargetInfo::DetailRow> rows;
     for (auto const& entry : data.entries) appendField(rows, entry.name, entry.tag, names, stale);
     return rows;

@@ -122,7 +122,8 @@ void blockEntityRowTests() {
         furnace.set("BurnTime", {std::int16_t{200}});
         auto shown = blockEntityRows(furnace, names);
         check(shown.size() == 2, "a container, asked for everything, shows its items");
-        auto skipped = blockEntityRows(furnace, names, {"Items", "item"});
+        std::string_view const containerStale[] = {"Items"};
+        auto skipped = blockEntityRows(furnace, names, containerStale);
         check(skipped.size() == 1 && skipped[0].label == "BurnTime",
               "a container's stale item list makes no row");
         // The note block's pitch is the same kind of value: not drawn, so not
@@ -130,7 +131,8 @@ void blockEntityRowTests() {
         nbt::Compound music;
         music.set("note", {std::int8_t{8}});
         check(blockEntityRows(music, names).size() == 1, "the pitch is a row when asked for everything");
-        check(blockEntityRows(music, names, {"note"}).empty(),
+        std::string_view const noteStale[] = {"note"};
+        check(blockEntityRows(music, names, noteStale).empty(),
               "the pitch makes no row once it is a value the client does not keep");
     }
     // Every stored field makes one row, in the order the game saved them.
@@ -144,11 +146,18 @@ void blockEntityRowTests() {
         data.set("SkullType", {std::int8_t{3}});
         auto rows = blockEntityRows(data, names);
         check(rows.size() == 3, "three stored fields make three rows");
-        check(rows[0].label == "note" && rows[0].labelIsKey && rows[0].value == "12 / 24 (F#4)"
+        check(rows[0].label == "note" && !rows[0].labelIsKey && rows[0].value == "12 / 24 (F#4)"
               && rows[0].kind == DetailKind::Other, "the pitch keeps its label and value");
         check(rows[1].label == "IsWaxed" && rows[1].value == "target.yes" && rows[1].valueIsKey,
               "a stored flag reads as yes");
         check(rows[2].label == "SkullType" && !rows[2].labelIsKey && rows[2].value == "3",
               "a field without a label keeps its own key");
+    }
+    // Only a byte reads as a flag; a wider integer with a flag-like name is a number.
+    {
+        nbt::Compound data;
+        data.set("IsCount", {std::int32_t{1}});
+        auto rows = blockEntityRows(data, names);
+        check(rows.size() == 1 && rows[0].value == "1" && !rows[0].valueIsKey, "an int named like a flag keeps its number");
     }
 }

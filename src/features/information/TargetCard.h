@@ -76,7 +76,8 @@ inline std::vector<CardRow> cardRows(TargetInfo const& target, CardOptions const
     }
     if (!options.details) return rows;
     for (auto const& detail : target.details)
-        if (detail.kind == DetailKind::Other) add({detail.label, detail.value, true, detail.valueIsKey, detail.progress});
+        if (detail.kind == DetailKind::Other)
+            add({detail.label, detail.value, detail.labelIsKey, detail.valueIsKey, detail.progress});
     for (auto const& state : target.states) {
         auto split = state.find(": ");
         if (split == std::string::npos) add({state, "", false});

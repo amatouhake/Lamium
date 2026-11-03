@@ -2,6 +2,7 @@
 #include "features/information/TargetInfo.h"
 #include "features/schematic/Nbt.h"
 #include <functional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -41,7 +42,7 @@ std::string blockEntityValue(std::string_view key, schematic::nbt::Tag const& ta
 // as the value now (L-299).
 std::vector<TargetInfo::DetailRow> blockEntityRows(schematic::nbt::Compound const& data,
                                                    BlockEntityNames const& names,
-                                                   std::vector<std::string_view> stale = {});
+                                                   std::span<std::string_view const> stale = {});
 // A note block's pitch: note 0 plays F#3, 12 F#4, 24 F#5. Out of range is
 // the note's own number, since the game would not play it.
 std::string notePitch(long long note);

@@ -743,8 +743,19 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         bool plain = !rows[i].progress && !rowStack(rows[i]) && rows[i].before.empty();
         if (plain && measureText(values[i]) > wrapWidth)
             valueLines[i] = ui::wrapLabel(values[i], wrapWidth, 3, measureText);
-        else valueLines[i] = {values[i]};
+        // One line otherwise, also when a first glyph wider than the card wraps to nothing.
+        if (valueLines[i].empty()) valueLines[i] = {values[i]};
     }
+    // The capacity counts lines, so a wrapped value takes the room of the rows after it.
+    size_t shown = 0;
+    for (size_t used = 0; shown < rows.size(); ++shown) {
+        used += valueLines[shown].size();
+        if (used > static_cast<size_t>(capacity)) break;
+    }
+    rows.erase(rows.begin() + static_cast<std::ptrdiff_t>(shown), rows.end());
+    labels.resize(shown);
+    values.resize(shown);
+    valueLines.resize(shown);
     auto linesOf = [&](size_t i) { return std::max<size_t>(size_t{1}, valueLines[i].size()); };
     auto rowHeight = [&](size_t i) { return heightOf(rows[i]) + (linesOf(i) - 1) * lineH; };
     float rowsH = 0;
