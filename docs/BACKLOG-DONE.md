@@ -10,6 +10,124 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-303 The schematic check ignores block entity data
+Kind: Bug (fields decided 2026-11-03). Maintainer in-game check
+2026-11-03 of PR #68.
+Reported: a note block's pitch and a lectern's book are compared by nothing -
+the card shows no "Wrong state" row for them, so a note block tuned after
+building, or a lectern whose book is gone, passes the check.
+Cause: `CheckRules.h` `sameBlock()` compares the block's serialization states
+and nothing else, and a block entity's fields live outside them. The one
+block-entity field the check does see is a shulker box's opening, and only
+through its own capability (`SchematicShulker`, `GhostVerify.cpp`).
+Decided (maintainer 2026-11-03): compare only the fields the client keeps
+current, which are the ones it draws (L-301 found that the rest stay at the
+copy the world loaded with). They are part of the build, either by looks or by
+what a comparator reads:
+- a note block's note (the L-301 sound events first, then the actor's copy);
+- a lectern's book (present or not) and open page;
+- a flower pot's plant;
+- a banner's base color and patterns;
+- a skull's type and rotation;
+- a bed's color (block entity data in Bedrock);
+- a decorated pot's sherds;
+- an item frame's item and rotation (the rotation is a comparator signal; frames
+  are used as storage displays);
+- a sign's text (both sides).
+Not compared: contents the client never refreshes (chest, barrel, hopper,
+dispenser, dropper, the furnaces, brewing stand, shulker box, crafter items)
+and a jukebox's disc. A chiseled bookshelf's books are a block state and are
+already compared.
+A lectern's open page counts too (a comparator reads it): checked 2026-11-03
+on `fc02fcc6` with the target card as the probe, the client's page follows
+this player's turns and survives re-entering the world (VALIDATION-LOG); a
+turn by another player is unchecked.
+How it reads: a difference is a wrong state (yellow), with a row per field in
+the card's "should be -> now" form; "now" is the world's block actor (the note
+from the sound events when one was heard). A world value that cannot be read
+(capability paused, no actor) passes, as the shulker box's opening does.
+Cost: as for the shulker box, the world's actor is read only for a cell whose
+block already matches and whose file entry carries a block entity id in the
+compared table; the table (block entity id, field) is data, so a field is a
+row, not code.
+Setting: one, "Ignore sign text", a new L-262 category (off: compared). No
+switch for block entity data as a whole: the other fields are the build, and a
+broken read already fails open through the capability.
+Built 2026-11-03: the field table and comparison are
+`src/features/schematic/BlockEntityCheck.h` (`tests/BlockEntityCheckTests.cpp`),
+read in `GhostVerify.cpp` `classifyCell` after the shulker box; the world's
+block entity is saved through `information::savedBlockEntity` (the card's own
+read), and the scan looks at its clock after each such read. A skull's
+rotation turns with the placement (`toWorldYaw`); an item frame's item
+rotation is kept as stored. Not done: mistake marks in the world come from the
+mesh, which compares blocks only, so a field-only mistake has no mark (as the
+shulker box's opening).
+First check 2026-11-03 on `97cdbf00`: built to match passes; an item frame's
+item makes a wrong state; a note block, lectern, flower pot and sign did not,
+and a note block that did stopped. Found: the info HUD's own target lookup
+ended the note sound subscription every frame and the card joined it again
+(14369 joins in the log), so every heard note was forgotten and the check read
+the note the world loaded with; the subscription is now decided once a frame
+in `InfoHud.cpp`, also while the schematic is on. Not yet explained: the
+lectern, flower pot and sign (the file's keys match the table; the card asks
+the check about the selected placement only, so a block in another placement
+gets no schematic rows). Changed after the check (maintainer): a gated field
+shows the file's value while the world block lacks the book or item (a page
+or an item's turn is known before the book or item goes in).
+Second check 2026-11-04 on `d77d8e82`: a tuned note block keeps its pitch on
+the card and differs from the file; with their placement selected the
+lectern, flower pot and sign make a wrong state (the first check had another
+placement selected); an empty frame and a lectern without a book show the
+item's turn and the page. Reported: no yellow mark in the world for a block
+entity mistake, and a note block's instrument (bass drum in the file, harp in
+the world) was not compared. Changed: the instrument counts where the file's
+blocks above and below decide it (`noteInstrumentMismatch`, against
+`NoteBlockActor::getInstrument`, under the `NoteBlockInstrument` capability);
+the check publishes its block entity mistake cells (`entityMistakes()`) and
+the mesh marks them yellow, rebuilding a section when that set changes (a
+section does not save block entities itself).
+Third check 2026-11-04 on `d5f5e85a`: the yellow marks come and go with the
+mistake, and leave with the placement's selection; the instrument difference
+shows, but the card also kept its own instrument row (now left out, like a
+fixed state, whenever a schematic row names the field).
+Decided (maintainer 2026-11-04): block entity data is checked for the
+selected placement only, said in the settings; and a switch "Ignore block
+data" (off: compared) turns the whole comparison off, for a new comparison
+that may misjudge and for players who want the check as before. Its help text
+says that only the selected placement is compared. "Ignore sign text" stays
+as the narrower switch. Renamed "Ignore block entities" (maintainer
+2026-11-04, after the checks on `1484b36c` passed): "block data" read as if a
+block's facing or waterlogging were skipped too; the help says states are
+still compared.
+Reported 2026-11-04 on `3b945921`: an empty flower pot did not name the plant
+the file wants (as the empty item frame before). The block entity comparison
+ran only once the block and all its states matched, and an empty pot's states
+apparently differ from a planted one's, so the cell stopped at its states. It
+now also runs for a block of the right kind in other states, adding its rows
+to the state rows.
+Rotation check 2026-11-04 on `a920c015`, placement turned 90 degrees: a head
+on a wall was a wrong state whichever way it hung (its rotation was compared,
+but a wall head faces by `facing_direction` and keeps a rotation that means
+nothing); a head on the floor passed once placed at the check's -90, while
+the ghost card read the file's own -180 and the game writes a half turn as
+180. Changed: a head's rotation is compared only where the file's block
+stands on the floor (`facing_direction` 1); a ghost's card reads its angles
+turned with the placement, as `GhostActors.cpp` turns its model; angles read
+in (-180, 180].
+In game: a schematic with each field above, built to match (no rows), then
+each changed in the world (a wrong state row naming it); "Ignore sign text" on
+passes only the sign; a chest with other contents still passes.
+No release target selected.
+Done 2026-11-04: passed by the maintainer on `f72c89a1` (DLL SHA-256
+`6393583A4D24D7FCE9150A3B1ADB1E106E0B9ACE3851C0968C2CB7A182DFD0E4`): the
+compared fields make wrong states with yellow marks for the selected
+placement, the card names each field once, empty pots and frames name what
+goes in, "Ignore block entities" turns the comparison off, and heads and
+framed items pass under turns, mirrors and both. Earlier passes are in
+VALIDATION-LOG 2026-11-04. Left for later coverage: "Ignore sign text" on
+its own, banners, beds and sherds by hand, another player's page turn, scan
+time with many block entities, servers (Pre-release checks).
+
 ### L-304 A real liquid behind a ghost wins the target card
 Kind: Bug. Maintainer report 2026-11-03.
 Reported: with "Target water and lava" on, a ghost in front with real water or

@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block entity heads and frames under a turned placement (2026-11-04)
+
+LeviLauncher instance `1.26.51.01 LIP`, local world, L-303 `f72c89a1` (DLL
+SHA-256 `6393583A4D24D7FCE9150A3B1ADB1E106E0B9ACE3851C0968C2CB7A182DFD0E4`):
+
+- A placement turned 90 degrees: a head on the right wall passes, on another
+  wall it is a facing mistake; a floor head's ghost card reads the same angle
+  as the check (180 for a half turn) and placing it that way passes.
+- X mirror, Z mirror, and a turn combined with a mirror: floor heads and
+  item frames with items, placed right, pass.
+
+The earlier pass on `a920c015` had found a wall head a mistake whichever way
+it hung, and the ghost card reading the file's unturned -180.
+
 ## Block entity data in the schematic check (2026-11-04)
 
 LeviLauncher instance `1.26.51.01 LIP`, local world, L-303 on main, five
