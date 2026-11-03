@@ -577,7 +577,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
 #endif
                 // A piston's mesh is its base; the head and arm are its block
                 // actor's to draw (L-178), with the file's progress and state.
-                if (meshed && expected->getBlockType().mBlockEntityType == BlockActorType::PistonArm) {
+                // So are a lectern's book, a potted plant, a framed item (L-302).
+                if (meshed && actorDrawsOverMesh(*expected)) {
                     std::optional<nbt::Compound> data;
                     if (auto found = structure.blockEntities.find(structure.cell(local->x, local->y, local->z));
                         found != structure.blockEntities.end())

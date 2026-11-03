@@ -1,4 +1,5 @@
 #include "features/schematic/Preview.h"
+#include "features/schematic/GhostCommon.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/GhostFaces.h"
 #include "features/schematic/EntityModels.h"
@@ -382,8 +383,9 @@ bool step() {
                 ghosts::tessellateLayer(*j.blocks, batch, block, spot, layer);
             });
             // No mesh: a block entity, drawn by its renderer after the mesh. A
-            // piston has both: its base mesh and its head drawn by its actor (L-178).
-            if (positions.size() == from || block.getBlockType().mBlockEntityType == BlockActorType::PistonArm)
+            // piston has both: its base mesh and its head drawn by its actor
+            // (L-178); so do a lectern, a flower pot, a frame (L-302).
+            if (positions.size() == from || ghosts::actorDrawsOverMesh(block))
                 j.actorCells.push_back({static_cast<std::uint32_t>(cell), &block});
             if (static_cast<size_t>(cell) < s.liquids.size())
                 if (auto i = s.liquids[static_cast<size_t>(cell)]; i >= 0 && static_cast<size_t>(i) < j.palette.size() && j.palette[static_cast<size_t>(i)]

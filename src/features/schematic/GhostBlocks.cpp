@@ -73,6 +73,23 @@ unsigned checkRules() {
 }
 bool signTextIgnored() { return Runtime::instance().snapshot()->schematic.ignoreSignText; }
 bool blockEntitiesIgnored() { return Runtime::instance().snapshot()->schematic.ignoreBlockEntities; }
+bool actorDrawsOverMesh(Block const& block) {
+    // A table, not every block entity: a furnace or hopper has no renderer,
+    // and an actor per cell for those would only cost.
+    switch (block.getBlockType().mBlockEntityType) {
+    case BlockActorType::PistonArm:
+    case BlockActorType::Lectern:
+    case BlockActorType::FlowerPot:
+    case BlockActorType::EnchantingTable:
+    case BlockActorType::ItemFrame:
+    case BlockActorType::GlowItemFrame:
+    case BlockActorType::Campfire:
+    case BlockActorType::MobSpawner:
+    case BlockActorType::Bell:
+    case BlockActorType::Shelf: return true;
+    default: return false;
+    }
+}
 bool relaxedSame(Block const& expected, Block const& actual, unsigned on) {
     if (&expected == &actual) return true;
     if (!on) return false;

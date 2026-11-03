@@ -199,6 +199,16 @@ Open: whether to create the actor for every cell whose block type has a render
 component (double-drawn bases, one actor per cell), or only for the types that
 need it (a table), and whether the selection outline then has to come from the
 actor's shape.
+Seen 2026-11-04 (maintainer): a chiseled bookshelf ghost now shows its books
+(its books are block states, drawn by the mesh; why it read plain earlier is
+not known); the lectern's book and the potted plant are still missing.
+Built 2026-11-04 (no maintainer choice needed beyond "start"): a table,
+`actorDrawsOverMesh` in `GhostBlocks.cpp`, of the block types whose mesh is
+only a base and whose actor draws the rest from the file's data - piston,
+lectern, flower pot, enchanting table, item frames, campfire, spawner, bell,
+shelf. A meshed ghost of those gets its actor too, in the ghost pass and the 3D
+preview; the selection outline stays the mesh's. Not every block entity: a
+furnace or hopper has no renderer, so an actor there would only cost.
 In game: a schematic with a lectern, a flower pot and a chiseled bookshelf,
 placed as ghosts, after the change; a piston and a chest to prove they did not
 regress.
