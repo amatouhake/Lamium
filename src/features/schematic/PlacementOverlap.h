@@ -34,23 +34,14 @@ inline std::optional<int> paletteAt(session::Shown const& shown, int dimension, 
 }
 // The block entity the file stores for the ghost in this world cell (L-184):
 // the same data the real block shows in the target card, from the file rather
-// than from the world. Empty when this placement draws no ghost there or the
-// file stores none.
-inline std::optional<nbt::Compound> blockEntityAt(session::Shown const& shown, int dimension, Point cell) {
-    if (!shown.structure || !shown.placement.visible || shown.placement.dimension != dimension) return std::nullopt;
+// than from the world. Null when this placement draws no ghost there or the
+// file stores none; otherwise it points into `shown.structure`.
+inline nbt::Compound const* blockEntityAt(session::Shown const& shown, int dimension, Point cell) {
+    if (!drawsCell(shown, dimension, cell)) return nullptr;
     auto const& structure = *shown.structure;
     auto local = toLocal(structure.size, shown.placement.placement, cell);
-    if (!local) return std::nullopt;
     auto found = structure.blockEntities.find(structure.cell(local->x, local->y, local->z));
-    if (found == structure.blockEntities.end()) return std::nullopt;
-    return found->second;
-}
-// The same over the shown placements, earliest first, as the ghost pass draws them.
-inline std::optional<nbt::Compound> blockEntityAt(std::span<session::Shown const> placements, int dimension,
-                                                  Point cell) {
-    for (auto const& shown : placements)
-        if (auto data = blockEntityAt(shown, dimension, cell)) return data;
-    return std::nullopt;
+    return found == structure.blockEntities.end() ? nullptr : &found->second;
 }
 inline bool boxesMeet(session::Shown const& a, session::Shown const& b) {
     if (!a.structure || !b.structure || a.placement.dimension != b.placement.dimension) return false;

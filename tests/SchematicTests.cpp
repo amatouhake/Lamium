@@ -1580,12 +1580,32 @@ void ghostBlockEntityTests() {
     check(!overlap::blockEntityAt(shown, 1, Point{200, 65, 202}), "another dimension draws nothing");
     // A quarter turn moves the cell: structure-local (0, 1, 2) lands at 201.
     shown.placement.placement.rotation = 1;
-    check(overlap::blockEntityAt(shown, 0, Point{201, 65, 200}).has_value(),
+    check(overlap::blockEntityAt(shown, 0, Point{201, 65, 200}) != nullptr,
           "a turned placement moves the cell with it");
     check(!overlap::blockEntityAt(shown, 0, Point{200, 65, 202}), "the unturned cell is empty once turned");
     session::Shown hidden = shown;
     hidden.placement.visible = false;
     check(!overlap::blockEntityAt(hidden, 0, Point{201, 65, 200}), "a hidden placement draws nothing");
+    // Mirrored across x (2 wide): structure-local (0, 1, 2) lands at x 201.
+    shown.placement.placement = Placement{{200, 64, 200}, 0, Mirror::X};
+    check(overlap::blockEntityAt(shown, 0, Point{201, 65, 202}) != nullptr,
+          "a mirrored placement moves the cell with it");
+    check(!overlap::blockEntityAt(shown, 0, Point{200, 65, 202}), "the unmirrored cell is empty once mirrored");
+    // Only the bottom layer shown: the chest one layer up is not drawn.
+    session::Shown layered = shown;
+    layered.placement.layers.mode = LayerMode::Only;
+    layered.placement.layers.cut = 0;
+    check(!overlap::blockEntityAt(layered, 0, Point{201, 65, 202}), "a cell outside the shown layers has none");
+    // Two placements on the same cell each read their own file.
+    auto other = std::make_shared<Structure>(sample());
+    other->blockEntities[other->cell(0, 1, 2)].set("id", {std::string{"Barrel"}});
+    session::Shown second = shown;
+    second.structure = other;
+    auto first = overlap::blockEntityAt(shown, 0, Point{201, 65, 202});
+    auto again = overlap::blockEntityAt(second, 0, Point{201, 65, 202});
+    check(first && again && first != again && again->find("id")->as<std::string>()
+              && *again->find("id")->as<std::string>() == "Barrel",
+          "overlapping placements read their own block entity");
 }
 
 void schematicTests() {

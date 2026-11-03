@@ -291,6 +291,11 @@ BlockEntityNames blockEntityNames() {
     };
     return names;
 }
+// Built once: the card asks every frame, for real blocks and ghosts alike.
+BlockEntityNames const& sharedBlockEntityNames() {
+    static BlockEntityNames const names = blockEntityNames();
+    return names;
+}
 // A field the client never refreshes: it keeps current only what it draws. A
 // container's contents (seen only by opening it) and a note block's pitch are
 // the copy the world loaded with, so a row would read as the value now (L-300).
@@ -311,6 +316,10 @@ std::span<std::string_view const> staleFields(BlockActorType type) {
     default: return {};
     }
 }
+// A ghost's stored fields are current, but how a container's contents show
+// (card rows or an expanded view) is still open in L-184; until then a ghost
+// leaves out the same container fields a real block does.
+std::span<std::string_view const> ghostHeldBackFields(BlockActorType type) { return staleFields(type); }
 // The instrument as the player reads it; the game's own name when Lamium has none.
 std::string instrumentName(SharedTypes::v1_26_20::NoteBlockInstrument instrument) {
     static constexpr std::string_view keys[] = {
@@ -338,11 +347,10 @@ std::vector<TargetInfo::DetailRow> readBlockEntityDetails(BlockSource& source, B
                 auto bytes = tag.toBinaryNbt();
                 auto root = schematic::nbt::read(
                     {reinterpret_cast<std::uint8_t const*>(bytes.data()), bytes.size()});
-                static BlockEntityNames const names = blockEntityNames();
                 // L-301: the block stores the note it loaded with; the sound
                 // events report the pitch every time it plays.
                 auto note = type == BlockActorType::Music ? playedNote(pos, dimension) : std::nullopt;
-                rows = blockEntityRows(root.compound, names, staleFields(type), note);
+                rows = blockEntityRows(root.compound, sharedBlockEntityNames(), staleFields(type), note);
             } catch (...) {} // A block entity that will not read must not replace the card.
         }
     }
@@ -439,22 +447,13 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
     result.blockPosition = TargetInfo::BlockPosition{pos.x, pos.y, pos.z};
     result.icon = blockIcon(source, pos, block);
     if (includeStates) appendStates(result, block, {}, static_cast<int>(player.getDimensionId()) == 1);
-    // L-184: the file's own block entity data, under the same rules the real
-    // block's rows use, so a ghost and the block it becomes read alike.
-    if (includeBlockEntity) {
-        auto type = block.getBlockType().mBlockEntityType;
-        if (ghost->blockEntity)
-            for (auto& row : blockEntityRows(*ghost->blockEntity, blockEntityNames(), staleFields(type), std::nullopt))
-                result.details.push_back(std::move(row));
-        if (type == BlockActorType::Music) {
-            try {
-                auto instrument = NoteBlockActor::getInstrument(source, pos);
-                if (instrument && *instrument != SharedTypes::v1_26_20::NoteBlockInstrument::None)
-                    result.details.push_back(
-                        {"blockEntity.instrument", instrumentName(*instrument), false, {}, DetailKind::Other});
-            } catch (...) {}
-        }
-    }
+    // L-184: the file's own block entity data, so a ghost and the block it
+    // becomes read alike. No instrument row: the game reads it from the world
+    // around the cell, which is not the file's (the block below may be unplaced).
+    if (includeBlockEntity && ghost->blockEntity)
+        for (auto& row : blockEntityRows(*ghost->blockEntity, sharedBlockEntityNames(),
+                                         ghostHeldBackFields(block.getBlockType().mBlockEntityType), std::nullopt))
+            result.details.push_back(std::move(row));
     result.details.push_back(ghostRow());
     result.ghost = true;
     return result;
