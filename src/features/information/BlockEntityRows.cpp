@@ -157,9 +157,13 @@ bool listed(std::string_view key, std::span<std::string_view const> stale) {
     return std::find(stale.begin(), stale.end(), key) != stale.end();
 }
 void appendField(std::vector<TargetInfo::DetailRow>& rows, std::string const& key, Tag const& tag,
-                 BlockEntityNames const& names, std::span<std::string_view const> stale, int depth = 0) {
+                 BlockEntityNames const& names, std::span<std::string_view const> stale, std::optional<int> note,
+                 int depth = 0) {
     if (blockEntityFieldHidden(key) || listed(key, stale)) return;
     std::string value = blockEntityValue(key, tag, names);
+    // L-301: the block only stores the note the world loaded with; a sound the
+    // card has heard since is the current pitch.
+    if (key == "note" && note) value = std::format("{} / 24 ({})", *note, notePitch(*note));
     // Nothing stored: an empty string, an empty compound, an empty list.
     if (!value.empty()) {
         TargetInfo::DetailRow row;
@@ -181,15 +185,15 @@ void appendField(std::vector<TargetInfo::DetailRow>& rows, std::string const& ke
     for (auto const& child : tag.as<Compound>()->entries) {
         // `Text` is this field's own value, already shown by the row above.
         if (child.name == "Text") continue;
-        appendField(rows, child.name, child.tag, names, stale, depth + 1);
+        appendField(rows, child.name, child.tag, names, stale, note, depth + 1);
     }
 }
 }
 
 std::vector<TargetInfo::DetailRow> blockEntityRows(Compound const& data, BlockEntityNames const& names,
-                                                   std::span<std::string_view const> stale) {
+                                                   std::span<std::string_view const> stale, std::optional<int> note) {
     std::vector<TargetInfo::DetailRow> rows;
-    for (auto const& entry : data.entries) appendField(rows, entry.name, entry.tag, names, stale);
+    for (auto const& entry : data.entries) appendField(rows, entry.name, entry.tag, names, stale, note);
     return rows;
 }
 }

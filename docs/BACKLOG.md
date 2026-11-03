@@ -83,8 +83,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    priority) is closed (checked 2026-11-01). L-293 (placement as if
    sneaking, toggle) is closed (2026-11-01). L-294 (water icons) is closed
    (2026-11-01). L-300 (block entity data in the target card) is closed
-   (checked 2026-11-03); L-301 (values the client never refreshes) is open
-   research.
+   (checked 2026-11-03); L-301 (a note block's pitch from the sound events) is
+   closed (checked 2026-11-03).
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -581,24 +581,6 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
-
-### L-301 Show block entity values the client never refreshes
-Kind: Research. Maintainer question 2026-11-03, follow-up of L-300.
-Current: the client keeps current only what it has to draw. A container's
-contents and a note block's pitch reach it as the copy the world loaded with
-and never update: in game a chest's and a furnace's contents did not follow a
-change, and a note block's pitch read 8 of 24 after re-entering and did not
-follow a tune. L-300 therefore gives those fields no row - a stale value would
-read as the value now - and keeps the rows the client really has (a sign's
-text, colour and waxed state, a note block's instrument, a potted plant).
-Open: whether a trustworthy value exists at all on the client - a packet it
-already receives but ignores, a sound or level event that carries the pitch, a
-server-side companion (Lamium is client-only today) - and, if one exists,
-whether the cost belongs in this mod. Counting the player's own tuning clicks
-was rejected: another player can tune the same block. Marking a row as the
-world-load value instead of leaving it out stays an option.
-In game: nothing to check until an approach is chosen.
-No release target selected.
 
 ### L-298 Attach release assets from the tag's CI run
 Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).

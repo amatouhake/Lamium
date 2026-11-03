@@ -1791,6 +1791,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"blockEntity.Patterns", "Patterns", "模様"},
     {"blockEntity.Occupants", "Occupants", "中にいるもの"},
     {"blockEntity.SkullType", "Skull type", "頭の種類"},
+    {"capability.NoteBlockSounds", "Note block pitch (sound events)", "音ブロックの音程（サウンドイベント）"},
 });
 enum class Locale { English, Japanese, SimplifiedChinese, TraditionalChinese };
 inline constexpr std::array locales{Locale::English, Locale::Japanese, Locale::SimplifiedChinese, Locale::TraditionalChinese};

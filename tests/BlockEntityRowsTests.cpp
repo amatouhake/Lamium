@@ -1,4 +1,5 @@
 #include "features/information/BlockEntityRows.h"
+#include "features/information/NoteEvent.h"
 #include "features/information/TargetCard.h"
 #include "features/information/TargetInfo.h"
 #include <format>
@@ -126,14 +127,26 @@ void blockEntityRowTests() {
         auto skipped = blockEntityRows(furnace, names, containerStale);
         check(skipped.size() == 1 && skipped[0].label == "BurnTime",
               "a container's stale item list makes no row");
-        // The note block's pitch is the same kind of value: not drawn, so not
-        // kept current, so not shown.
+        // L-301: the sound event packs the instrument above the note. The probe
+        // read these values under four different blocks.
+        check(noteFromEventData(14) == 14, "under air: data 14 is note 14");
+        check(noteFromEventData(257) == 1 && noteFromEventData(259) == 3, "under stone: 257-259 are notes 1-3");
+        check(noteFromEventData(769) == 1, "under glass: 769 is note 1");
+        check(noteFromEventData(1793) == 1, "under wool: 1793 is note 1");
+        check(!noteFromEventData(-1) && !noteFromEventData(25) && !noteFromEventData(281),
+              "a note past 24 makes no note");
+        check(noteFromEventData(25 * 256 + 3) == 3 && !noteFromEventData(26 * 256 + 3),
+              "an instrument past the last one makes no note");
+        // The block stores the note the world loaded with, and the sound
+        // events report the pitch the card should show.
         nbt::Compound music;
         music.set("note", {std::int8_t{8}});
-        check(blockEntityRows(music, names).size() == 1, "the pitch is a row when asked for everything");
+        auto stored = blockEntityRows(music, names);
+        check(stored.size() == 1 && stored[0].value == "8 / 24 (D4)", "the stored note is the row's value");
+        auto heard = blockEntityRows(music, names, {}, 12);
+        check(heard.size() == 1 && heard[0].value == "12 / 24 (F#4)", "a played note replaces the stored one");
         std::string_view const noteStale[] = {"note"};
-        check(blockEntityRows(music, names, noteStale).empty(),
-              "the pitch makes no row once it is a value the client does not keep");
+        check(blockEntityRows(music, names, noteStale).empty(), "a field listed as stale makes no row");
     }
     // Every stored field makes one row, in the order the game saved them.
     {

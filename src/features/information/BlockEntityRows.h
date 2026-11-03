@@ -2,6 +2,7 @@
 #include "features/information/TargetInfo.h"
 #include "features/schematic/Nbt.h"
 #include <functional>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -40,9 +41,12 @@ std::string blockEntityValue(std::string_view key, schematic::nbt::Tag const& ta
 // keeps current only what it has to draw; a container's contents and a note
 // block's pitch are the copy it got when the world loaded, so a row would read
 // as the value now (L-300).
+// `note`: a note block's pitch as the sound events last reported it, which
+// replaces the stored one when the card has heard the block play (L-301).
 std::vector<TargetInfo::DetailRow> blockEntityRows(schematic::nbt::Compound const& data,
                                                    BlockEntityNames const& names,
-                                                   std::span<std::string_view const> stale = {});
+                                                   std::span<std::string_view const> stale = {},
+                                                   std::optional<int> note = std::nullopt);
 // A note block's pitch: note 0 plays F#3, 12 F#4, 24 F#5. Out of range is
 // the note's own number, since the game would not play it.
 std::string notePitch(long long note);
