@@ -489,7 +489,7 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
 // The first real water or lava along the ray, before any other block (L-264).
 // `entered` reports how far along the ray it lies, for L-304.
 std::optional<TargetInfo> liquidTarget(BlockSource& source, bool includeStates, ViewRay const& ray, bool nether,
-                                       double* entered = nullptr) {
+                                       double& entered) {
     for (auto const& cell : schematic::cellsAlong(ray.x, ray.y, ray.z, ray.dx, ray.dy, ray.dz, ray.reach)) {
         BlockPos pos{cell.x, cell.y, cell.z};
         if (!source.getChunkAt(pos)) return std::nullopt;
@@ -503,7 +503,7 @@ std::optional<TargetInfo> liquidTarget(BlockSource& source, bool includeStates, 
         result.blockPosition = TargetInfo::BlockPosition{pos.x, pos.y, pos.z};
         result.icon = blockIcon(source, pos, block);
         if (includeStates) appendStates(result, block, {}, nether);
-        if (entered) *entered = schematic::entryDistance(ray.x, ray.y, ray.z, ray.dx, ray.dy, ray.dz, cell);
+        entered = schematic::entryDistance(ray.x, ray.y, ray.z, ray.dx, ray.dy, ray.dz, cell);
         return result;
     }
     return std::nullopt;
@@ -576,12 +576,11 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     double liquidEntered = 0;
     if (includeLiquids && ghostRay && (hit.mType != HitResultType::Entity || onGameLine))
         liquid = liquidTarget(player->getDimensionBlockSource(), includeStates, *ghostRay,
-                              static_cast<int>(player->getDimensionId()) == 1, &liquidEntered);
+                              static_cast<int>(player->getDimensionId()) == 1, liquidEntered);
     // A ghost in front of the aimed block (or in the air) is the target.
     if (includeSchematic && (hit.mType != HitResultType::Entity || onGameLine)) {
         auto ghostRayLimited = ghostRay;
-        if (liquid && ghostRayLimited && liquidEntered < ghostRayLimited->reach)
-            ghostRayLimited->reach = liquidEntered;
+        if (liquid && ghostRayLimited) ghostRayLimited->reach = schematic::ghostReach(liquidEntered, ghostRayLimited->reach);
         if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ghostRayLimited,
                                      onGameLine, includeBlockEntity))
             return ghost;

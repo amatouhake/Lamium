@@ -27,7 +27,9 @@ water and lava" on:
 - The eye inside water: the water is the target, no ghost covers it.
 - The option off: the game looks through water as before and the ghost keeps
   the target.
-Not seen: a liquid and a ghost exactly at the same distance (unit tests only).
+Not seen: a liquid and a ghost at the same distance in game. The cut is
+unit-tested (`ghostReach`, the widened reach over a walked ray), the ordering
+between a liquid and a ghost in game is the list above.
 
 ## Ghost note block instrument (2026-11-03)
 

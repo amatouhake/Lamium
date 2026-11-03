@@ -22,9 +22,14 @@ won, however far. Both the option's help text and the rule recorded in L-278
 say a liquid **in front of** a ghost is the target, not one anywhere.
 Fixed in PR #69: `liquidTarget` reports the distance at which the ray enters
 the liquid's cell (`RayCells.h` `entryDistance`, the plane maths `cellsAlong`
-already uses), and the ghost search is cut to that distance, so the nearer of
-the two wins and a ghost at the same distance keeps the target. A liquid in
-front still is the target, so L-278 and the help text now hold as written.
+already uses), and the ghost search is cut there (`ghostReach`), so the nearer
+of the two wins and a ghost at the same distance keeps the target. The cut is
+widened by `sameDistance` (1e-9 blocks) because `cellsAlong` adds its steps up
+and lands an ulp or so off the direct distance - without it a ghost at the same
+distance fell outside the cut for about 19% of cells and the card could flicker
+(PR #69 review). A liquid in the eye's own cell keeps the target, since that is
+what the player stands in. A liquid in front still is the target, so L-278 and
+the help text now hold as written.
 Status 2026-11-03: built at `19140c19`.
 Done 2026-11-03: passed by the maintainer on `19140c19` (DLL SHA-256
 `411CAA4FF40724DB0A927020E2BC747D0A3E348FF29970DFDEC51EAF99211644`): a ghost in
