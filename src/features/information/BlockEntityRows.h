@@ -8,7 +8,7 @@
 #include <vector>
 
 namespace lamium::information {
-// Block entity data as target-card rows (L-299). The card reads a block's
+// Block entity data as target-card rows (L-300). The card reads a block's
 // states, and a block entity's own fields - a sign's text, a note block's
 // pitch, a jukebox's record - are stored outside them, so no row ever showed
 // them. Every saved field becomes a row: the card does not decide that a
@@ -39,7 +39,7 @@ std::string blockEntityValue(std::string_view key, schematic::nbt::Tag const& ta
 // `stale`: fields to leave out because the client never refreshes them. It
 // keeps current only what it has to draw; a container's contents and a note
 // block's pitch are the copy it got when the world loaded, so a row would read
-// as the value now (L-299).
+// as the value now (L-300).
 std::vector<TargetInfo::DetailRow> blockEntityRows(schematic::nbt::Compound const& data,
                                                    BlockEntityNames const& names,
                                                    std::span<std::string_view const> stale = {});

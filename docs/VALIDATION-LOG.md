@@ -51,7 +51,7 @@ into `mods/Lamium` from the branch build. Earlier passes on the same branch
   card off screen. A decorated pot, a chiseled bookshelf, an item frame and the
   back of a hanging sign showed nothing wrong.
 Not seen: nothing left open for this item; the values the client does not keep
-current are L-300.
+current are L-301.
 
 ## Release 0.4.0 (2026-11-01)
 

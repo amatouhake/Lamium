@@ -256,7 +256,7 @@ TargetIcon fallingIcon(Actor& entity, LocalPlayer& player) {
         return blockIcon(player.getDimensionBlockSource(), where, block);
     } catch (...) { return {}; }
 }
-// L-299: a stored field's two names - the item and the block a row may hold -
+// L-300: a stored field's two names - the item and the block a row may hold -
 // plus the label the card draws for a field it knows. A name the game cannot
 // give back leaves the id standing, so a row is never dropped for a lookup.
 BlockEntityNames blockEntityNames() {
@@ -290,7 +290,7 @@ BlockEntityNames blockEntityNames() {
 }
 // A field the client never refreshes: it keeps current only what it draws. A
 // container's contents (seen only by opening it) and a note block's pitch are
-// the copy the world loaded with, so a row would read as the value now (L-299).
+// the copy the world loaded with, so a row would read as the value now (L-300).
 std::span<std::string_view const> staleFields(BlockActorType type) {
     static constexpr std::string_view items[] = {"Items"}, note[] = {"note"};
     switch (type) {
@@ -601,7 +601,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         }
     }
     if (includeStates) appendStates(result, block, fixedStates, static_cast<int>(player->getDimensionId()) == 1);
-    // What the block keeps outside its states (L-299); read only when the card
+    // What the block keeps outside its states (L-300); read only when the card
     // shows details, so the option off costs no lookup.
     if (includeBlockEntity)
         for (auto& row : blockEntityDetails(source, hit.mBlock, block, static_cast<int>(player->getDimensionId())))

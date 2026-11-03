@@ -116,8 +116,8 @@ std::string blockEntityValue(std::string_view key, Tag const& tag, BlockEntityNa
     if (auto const* text = tag.as<std::string>()) return shortened(lines(*text));
     std::int64_t number = 0;
     if (tag.integer(number)) {
-        // L-299: the note block's pitch lives here, not in its states. The card
-        // passes `note` as stale until L-300 keeps it current, so this reading
+        // L-300: the note block's pitch lives here, not in its states. The card
+        // passes `note` as stale until L-301 keeps it current, so this reading
         // is for that item.
         if (key == "note" && number >= 0 && number <= 24)
             return std::format("{} / 24 ({})", number, notePitch(number));
