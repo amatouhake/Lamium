@@ -988,7 +988,17 @@ than the world's, which would pass for the file's. A note block's instrument
 comes from the file's blocks below and above it (each block declares one
 instrument for a note block under it and one for a note block on it, checked
 in game); outside the file or at a void cell it is not set. Passed in game on
-`a193244e`. The row comes from the placement's `block_entities` entry for that
+`a193244e`. Reviewed 2026-11-03: a block type that stores an engaged `none`
+where others store nothing would have counted as a decision and swallowed the
+instrument row, so the neighbour read normalises it (`declaresNoInstrument`).
+Three things to keep in mind, not defects: a note block on the file's top or
+bottom layer always reads "Not set by the schematic", correct but likely in a
+small schematic, so the wording may want to name that reason; `fileCellAt`
+guards only `structure`, not visibility, dimension or layers as `blockEntityAt`
+does through `drawsCell`, which is safe while `ghostAlong` is its only caller;
+and `GhostAt::blockEntity` points into the `structure` the same struct owns, a
+lifetime the type does not enforce.
+The row comes from the placement's `block_entities` entry for that
 cell (`PlacementOverlap.h` `blockEntityAt`, turned and mirrored like the cells),
 so it is complete even though the world's copy of a block entity is not.
 Still open, and now the whole of what is left: the data only the file has

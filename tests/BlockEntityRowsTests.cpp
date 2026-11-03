@@ -178,7 +178,7 @@ void blockEntityRowTests() {
     // wins over the block below, and nothing declared plays the harp. A
     // neighbor nothing says anything about leaves it open.
     {
-        enum class Instrument { Harp, Bell, Skeleton };
+        enum class Instrument { Harp, Bell, Skeleton, None };
         using D = Declared<Instrument>;
         D air{true, std::nullopt}, gold{true, Instrument::Bell}, skull{true, Instrument::Skeleton}, unknown{};
         check(noteInstrument(air, gold, Instrument::Harp) == Instrument::Bell, "the block below decides the instrument");
@@ -189,5 +189,14 @@ void blockEntityRowTests() {
         check(!noteInstrument(air, unknown, Instrument::Harp), "an unknown cell below leaves it open");
         check(noteInstrument(skull, unknown, Instrument::Harp) == Instrument::Skeleton,
               "a head above decides even with the cell below unknown");
+        // A component that stores an engaged `none` declares nothing, so the
+        // block below still decides instead of the row disappearing.
+        auto storedNone = std::optional<Instrument>{Instrument::None};
+        check(noteInstrument({true, declaresNoInstrument(storedNone, Instrument::None)}, gold, Instrument::Harp)
+                  == Instrument::Bell,
+              "a stored none above falls through to the block below");
+        check(declaresNoInstrument(std::optional<Instrument>{Instrument::Bell}, Instrument::None) == Instrument::Bell,
+              "a real instrument passes through");
+        check(!declaresNoInstrument(storedNone, Instrument::None), "a stored none declares nothing");
     }
 }

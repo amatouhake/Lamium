@@ -354,7 +354,7 @@ void appendGhostInstrument(std::vector<TargetInfo::DetailRow>& rows, schematic::
         Declared<NoteBlockInstrument> result{neighbor.known, std::nullopt};
         if (neighbor.block)
             if (auto const* component = neighbor.block->tryGetComponent<BlockInstrumentComponent>())
-                result.instrument = component->mInstruments.get()[side];
+                result.instrument = declaresNoInstrument(component->mInstruments.get()[side], NoteBlockInstrument::None);
         return result;
     };
     if (auto instrument = noteInstrument(declared(ghost.above, 0), declared(ghost.below, 1), NoteBlockInstrument::Harp))
