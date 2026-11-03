@@ -201,6 +201,18 @@ framed items pass under turns, mirrors and both. Earlier passes are in
 VALIDATION-LOG 2026-11-04. Left for later coverage: "Ignore sign text" on
 its own, banners, beds and sherds by hand, another player's page turn, scan
 time with many block entities, servers (Pre-release checks).
+Review 2026-11-04, from a review of `v0.4.0..main`: the aimed cell's block
+entity is read at most every 250 ms while the card asks about it (`entityRead`
+in `GhostVerify.cpp`; a pass over the placement still reads every cell fresh),
+which removes the per-frame save the card's own cache already avoided; a
+section takes `entityMistakes()` once, so the signature it records and the
+marks it draws cannot disagree; and both note capabilities name
+`schematic.enabled` as intent, so an unverified game's notice names the check as
+affected while it relies on the instrument. The "Setting: one" paragraph above
+was superseded by the "Ignore block entities" switch (decided 2026-11-04,
+recorded above).
+In game: yellow marks still appear and clear, and a sign looked at up close
+keeps updating them.
 
 ### L-304 A real liquid behind a ghost wins the target card
 Kind: Bug. Maintainer report 2026-11-03.
@@ -281,6 +293,16 @@ a block entity that stores nothing readable yet (a bed, a banner) to confirm a
 field the client lacks simply makes no row.
 No release target selected.
 Done 2026-11-03: checked by the maintainer on the PR #65 head `14dde8d0` (DLL SHA-256 `49F86038413FA01A2E6E06231A357F5A6EBDB3810F59219AAE674F17CDBE12A6`). Other details switches the block entity rows; a sign shows its four lines front and back, glowing text, text colour (a change shows immediately) and waxed state; a note block shows its instrument and follows the block underneath; a chest, furnace, barrel and hopper show no contents; a long value wraps, a command block's fields show in full, and a low window does not push the card off screen. A decorated pot, a chiseled bookshelf, an item frame and the back of a hanging sign showed nothing wrong. The pitch row and the container lists were removed after this check, and re-checked: the pitch row is gone (instrument kept) and the container rows are gone.
+Review 2026-11-04, from a review of `v0.4.0..main`: which rows a card keeps
+is now a pure `rowsFitting` in `TargetCard.h` (`tests/TargetCardTests.cpp`),
+counted in the lines a wrapped value takes; it keeps whole rows and always
+shows the first one, where the old code could drop every row when the first
+needed more lines than the screen held. "Other details" gained the help line it
+never had (`help.information.targetStates`, four languages), and the cached
+rows are dropped when the world closes so a new world cannot answer with the
+last one's for its first quarter second.
+In game: the help under "Other details", and a long sign value in a short
+window (a row still shows).
 
 ### L-290 A filled bucket in the main hand stops the Fake Offhand entirely
 
@@ -7238,6 +7260,10 @@ In game: a note block tuned by this player (the pitch row follows each press,
 (no block entity rows, no subscription cost).
 No release target selected.
 Done 2026-11-03: checked by the maintainer on the PR #67 head `3d799aaf` (DLL SHA-256 `3751F250CB5F78145A8D7D52676D5CA4C9B368E38EBC34F21E5662206F0DB102`). The pitch row follows each tune under stone, glass, wool, a block of gold and a hay bale, so the instrument packed above the note in the event's data is handled; the default (air) case, the note the world loads with, wrapping 24 back to 0 and the setting off were checked earlier on `b9ad4fde`.
+Review 2026-11-04: the subscription is built and dropped outside the note
+lock, so a sound dispatching while the card starts or stops asking for rows
+cannot deadlock with it, and the comment on leaving a world now says why the
+drop happens outside the lock.
 
 
 ### L-196 Review license notices, source access and provenance classification

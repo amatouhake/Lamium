@@ -146,6 +146,11 @@ Do not infer game success from a build or unit-test result.
   "Ignore block entities" clears it). Unchecked so far: "Ignore sign text"
   on its own; banners, beds and pot sherds changed by hand; a lectern page
   turned by another player; scan time with many block entities; servers.
+- Target card and check review fixes (L-300, L-301, L-303; 2026-11-04): the
+  new help line under "Other details", a long value in a short window, yellow
+  marks still appearing and clearing while a sign is looked at up close, and
+  the note card after a world change (the subscription is dropped and joined
+  again).
 
 Left from the 0.4.0 tag (VALIDATION-LOG 2026-11-01):
 
