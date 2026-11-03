@@ -35,8 +35,17 @@ PR #68):
   `B908A7E703EC466431519AA66F21D5F96DFAEC164B3279B93AF75CCF4C7DC7DA`): over a
   real hay bale with air below in the file, harp; on gold in the file, bell; a
   note block on the file's top or bottom layer, "Not set by the schematic".
+- Merged, `951fb651` (DLL SHA-256
+  `6E8764275DC3C874B63CE617DBFAF49A56B11066A5CC6C995136F7D58708ACCB`, PR #68):
+  the checklist passed. A ghost note block with stone directly above and gold
+  below reads bell, so a block type that stores an engaged `none` no longer
+  swallows the row; on the file's top or bottom layer, "Not set by the
+  schematic"; a ghost over a real hay bale with air in the file, harp; real note
+  blocks unchanged (stone, glass, wool, gold, hay); a chest ghost shows no
+  contents row.
 Not seen: an unverified game (the row should disappear), a mirrored or turned
-placement, a hidden layer under the note block.
+placement in game, a hidden layer under the note block (both covered by unit
+tests only).
 
 ## Target card note block pitch (2026-11-03)
 

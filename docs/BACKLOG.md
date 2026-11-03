@@ -988,7 +988,7 @@ than the world's, which would pass for the file's. A note block's instrument
 comes from the file's blocks below and above it (each block declares one
 instrument for a note block under it and one for a note block on it, checked
 in game); outside the file or at a void cell it is not set. Passed in game on
-`a193244e`. Reviewed 2026-11-03: a block type that stores an engaged `none`
+`a193244e`, and on the merged build `951fb651` (PR #68). Reviewed 2026-11-03: a block type that stores an engaged `none`
 where others store nothing would have counted as a decision and swallowed the
 instrument row, so the neighbour read normalises it (`declaresNoInstrument`).
 Three things to keep in mind, not defects: a note block on the file's top or
