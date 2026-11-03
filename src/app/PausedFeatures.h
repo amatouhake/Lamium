@@ -61,7 +61,10 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::HidePortal: return v.hideEffects && v.hidePortal;
     case Id::HideParticles: return v.hideEffects && v.hideParticles;
     case Id::HideBossBars: return v.hideEffects && v.hideBossBars;
-    case Id::NoteBlockSounds: case Id::NoteBlockInstrument: return s.information.targetStates;
+    // Both are used by the card's rows and by the check itself, which reads a
+    // note block's data whenever the schematic is on (L-303).
+    case Id::NoteBlockSounds: case Id::NoteBlockInstrument:
+        return s.information.targetStates || s.schematic.enabled;
     case Id::SchematicBlocks: case Id::SchematicPiston: case Id::SchematicShulker: case Id::SchematicEntities:
     case Id::SchematicBlend: case Id::SchematicActorLight: case Id::SchematicCreativePick: return s.schematic.enabled;
     case Id::FakeOffhandTargets: return s.inventory.fakeOffhand;
