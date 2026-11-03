@@ -112,6 +112,7 @@ the package/SDK loader-policy alignment in CI.
 | Schematic ghosts (actor lighting) | `GhostActors.cpp` | vanilla ghost actor lighting | ghost rendering and checking |
 | Schematic pick (creative inventory give) | `GhostPick.cpp`, `InventoryMove.cpp` (`giveCreative`) | a creative ghost pick of a block not carried does nothing | picks of carried blocks, survival picks |
 | Sneak placement (use gate and sneak state) | `SneakPlacement.cpp` | every use goes through the game's own sneak state | the setting and key (no effect) |
+| Note block pitch (level sound events) | `NoteSounds.cpp` | a note block's pitch on the target card stays at the note the world loaded with | the instrument and every other block entity row |
 
 ## Playbook for a new Minecraft or LeviLamina version
 

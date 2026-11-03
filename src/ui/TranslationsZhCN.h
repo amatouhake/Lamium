@@ -1755,5 +1755,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"blockEntity.Patterns", "图案"},
     {"blockEntity.Occupants", "占用者"},
     {"blockEntity.SkullType", "头颅种类"},
+    {"capability.NoteBlockSounds", "音符盒音高（声音事件）"},
 });
 }

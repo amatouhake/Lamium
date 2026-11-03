@@ -1,5 +1,6 @@
 #include "features/information/TargetInfo.h"
 #include "features/information/BlockEntityRows.h"
+#include "features/information/NoteSounds.h"
 #include "features/information/SchematicTarget.h"
 #include "features/information/TargetPick.h"
 #include "features/schematic/GhostRenderer.h"
@@ -15,6 +16,7 @@
 #include "mc/world/item/registry/ItemRegistryRef.h"
 #include "mc/deps/core/string/HashedString.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/client/multiplayer/ClientLevel.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/client/renderer/block/BlockGraphics.h"
 #include "mc/client/renderer/texture/TextureUVCoordinateSet.h"
@@ -292,7 +294,7 @@ BlockEntityNames blockEntityNames() {
 // container's contents (seen only by opening it) and a note block's pitch are
 // the copy the world loaded with, so a row would read as the value now (L-300).
 std::span<std::string_view const> staleFields(BlockActorType type) {
-    static constexpr std::string_view items[] = {"Items"}, note[] = {"note"};
+    static constexpr std::string_view items[] = {"Items"};
     switch (type) {
     case BlockActorType::Chest:
     case BlockActorType::BarrelBlock:
@@ -305,7 +307,6 @@ std::span<std::string_view const> staleFields(BlockActorType type) {
     case BlockActorType::BrewingStand:
     case BlockActorType::ShulkerBox:
     case BlockActorType::Crafter: return items;
-    case BlockActorType::Music: return note;
     default: return {};
     }
 }
@@ -327,7 +328,7 @@ std::string instrumentName(SharedTypes::v1_26_20::NoteBlockInstrument instrument
 // the card never decides that one is unimportant. The note block's instrument
 // is the exception - the block under it decides, and nothing stores it.
 std::vector<TargetInfo::DetailRow> readBlockEntityDetails(BlockSource& source, BlockPos const& pos,
-                                                          BlockActorType type) {
+                                                          BlockActorType type, int dimension) {
     std::vector<TargetInfo::DetailRow> rows;
     if (auto const* actor = source.getBlockEntity(pos)) {
         CompoundTag tag;
@@ -337,7 +338,10 @@ std::vector<TargetInfo::DetailRow> readBlockEntityDetails(BlockSource& source, B
                 auto root = schematic::nbt::read(
                     {reinterpret_cast<std::uint8_t const*>(bytes.data()), bytes.size()});
                 static BlockEntityNames const names = blockEntityNames();
-                rows = blockEntityRows(root.compound, names, staleFields(type));
+                // L-301: the block stores the note it loaded with; the sound
+                // events report the pitch every time it plays.
+                auto note = type == BlockActorType::Music ? playedNote(pos, dimension) : std::nullopt;
+                rows = blockEntityRows(root.compound, names, staleFields(type), note);
             } catch (...) {} // A block entity that will not read must not replace the card.
         }
     }
@@ -368,7 +372,8 @@ std::vector<TargetInfo::DetailRow> blockEntityDetails(BlockSource& source, Block
     auto const& identifier = block.getTypeName();
     if (cached.dimension != dimension || cached.x != pos.x || cached.y != pos.y || cached.z != pos.z
         || cached.identifier != identifier || now - cached.read >= std::chrono::milliseconds(250)) {
-        cached = {pos.x, pos.y, pos.z, dimension, identifier, now, readBlockEntityDetails(source, pos, type)};
+        cached = {pos.x, pos.y, pos.z, dimension, identifier, now,
+                  readBlockEntityDetails(source, pos, type, dimension)};
     }
     return cached.rows;
 }
@@ -460,6 +465,10 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
                                             bool includeSchematic, bool includeLiquids, bool includeBlockEntity) {
     auto* player = client.getLocalPlayer();
     if (!player) return {};
+    // L-301: note block pitches come from the level's sound events. Read only
+    // while the card shows details, so the option off costs nothing.
+    if (includeBlockEntity)
+        if (auto* level = client.getLevel()) beginNoteSounds(*level, static_cast<int>(player->getDimensionId()));
     Pick pick;
     auto const& latest = client.getLatestHitResult();
     bool gameHit = latest.mType == HitResultType::Tile || latest.mType == HitResultType::Entity;
@@ -611,7 +620,10 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
 }
 void startTargetIcons() {
     exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
-        [](auto&) { clearSpawnEggIndex(); });
+        [](auto&) {
+            clearSpawnEggIndex();
+            forgetNoteSounds();
+        });
 }
 void stopTargetIcons() {
     if (exitListener) {
