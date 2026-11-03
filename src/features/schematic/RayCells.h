@@ -38,4 +38,32 @@ inline std::vector<Point> cellsAlong(double x, double y, double z, double dx, do
     }
     return out;
 }
+// Distance along the ray where it enters `cell`'s box, 0 when it starts inside
+// (L-304: which of a real liquid and a ghost comes first). Pass `cellsAlong`
+// output: a cell the ray never enters also gives 0, which no caller wants.
+inline double entryDistance(double x, double y, double z, double dx, double dy, double dz, Point cell) {
+    double length = std::sqrt(dx * dx + dy * dy + dz * dz);
+    if (!(length > 0)) return 0;
+    dx /= length; dy /= length; dz /= length;
+    double entered = 0;
+    auto axis = [&](double origin, double dir, int at) {
+        if (dir > 0) entered = std::max(entered, (at - origin) / dir);
+        else if (dir < 0) entered = std::max(entered, (at + 1 - origin) / dir);
+    };
+    axis(x, dx, cell.x);
+    axis(y, dy, cell.y);
+    axis(z, dz, cell.z);
+    return entered;
+}
+// How far the ghost search runs when a real liquid starts at `liquidEntered`
+// (L-304): the nearest of the two wins and a ghost at the same distance keeps
+// the target. The traversal adds its steps up and lands an ulp or so off the
+// direct distance, so the cut is widened by `sameDistance` - far below anything
+// visible across the 64-block reach. A liquid at the eye's own cell leaves 0:
+// what the player is standing in is the target, not a ghost placed in it.
+inline constexpr double sameDistance = 1e-9;
+inline double ghostReach(double liquidEntered, double reach) {
+    if (!(liquidEntered > 0)) return 0;
+    return std::min(reach, liquidEntered + sameDistance);
+}
 }

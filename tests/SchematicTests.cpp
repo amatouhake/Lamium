@@ -1328,6 +1328,33 @@ void rayCells() {
     auto back = cellsAlong(-.5, 2.5, 0.5, 0, -1, 0, 1.6);
     check(back.size() == 3 && back[1] == Point{-1, 1, 0} && back[2] == Point{-1, 0, 0}, "negative directions and coordinates floor");
     check(cellsAlong(0, 0, 0, 0, 0, 0, 5).empty(), "no direction, no cells");
+    // L-304: how far along the ray each cell starts, so a real liquid and a
+    // ghost can be ordered and the nearest one wins.
+    check(entryDistance(.5, .5, .5, 1, 0, 0, Point{0, 0, 0}) == 0, "the start cell is entered at 0");
+    check(std::abs(entryDistance(.5, .5, .5, 1, 0, 0, Point{1, 0, 0}) - .5) < 1e-9, "the next cell half a block on");
+    check(std::abs(entryDistance(.5, .5, .5, 1, 1, 0, Point{1, 1, 0}) - .5 * std::sqrt(2.)) < 1e-9,
+          "a cell met at a corner keeps its distance");
+    check(entryDistance(2.5, .5, .5, -1, 0, 0, Point{2, 0, 0}) == 0, "the cell the ray starts in is entered at 0");
+    check(std::abs(entryDistance(2.5, .5, .5, -1, 0, 0, Point{1, 0, 0}) - .5) < 1e-9, "a cell the ray walks back into");
+    check(std::abs(entryDistance(.5, .5, .5, 0, 1, 0, Point{0, 3, 0}) - 2.5) < 1e-9, "a cell far along");
+    check(entryDistance(0, 0, 0, 0, 0, 0, Point{0, 0, 0}) == 0, "no direction enters at 0");
+    // The cut that gives a ghost the liquid's own distance: the traversal adds
+    // its steps up, so without the widening 19% of cells fall outside it.
+    check(ghostReach(0, 6) == 0, "a liquid at the eye keeps the target");
+    check(ghostReach(2.5, 6) > 2.5, "a ghost at the liquid's distance is still searched");
+    check(ghostReach(2.5, 6) < 2.5 + 1e-6, "the widening stays far below anything visible");
+    check(ghostReach(7, 6) == 6, "a liquid past the reach does not cut it");
+    bool allFound = true;
+    auto walked = cellsAlong(.5, .5, .5, 1, .3, .2, 6);
+    for (auto const& cell : walked) {
+        auto entered = entryDistance(.5, .5, .5, 1, .3, .2, cell);
+        if (entered == 0) continue; // the eye's own cell keeps the target: no cut to check
+        auto cut = ghostReach(entered, 6);
+        bool found = false;
+        for (auto const& hit : cellsAlong(.5, .5, .5, 1, .3, .2, cut)) found = found || hit == cell;
+        allFound = allFound && found;
+    }
+    check(allFound, "the widened cut still finds every cell the traversal reached");
 }
 // L-186: tint by setting, outline copies by width.
 void ghostLook() {

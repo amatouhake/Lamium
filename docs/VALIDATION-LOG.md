@@ -12,6 +12,29 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A real liquid behind a ghost (2026-11-03)
+
+LeviLauncher instance `1.26.51.01 LIP`, local world, one pass (L-304, PR #69,
+`19140c19`, DLL SHA-256
+`411CAA4FF40724DB0A927020E2BC747D0A3E348FF29970DFDEC51EAF99211644`), "Target
+water and lava" on:
+
+- A ghost in front of real water: the ghost is the target. Before this change
+  the water behind it was.
+- Real water in front of a ghost: the water is the target, as L-278 decided.
+- The same pair with lava.
+- With no ghost, aiming at water and at lava is unchanged, source or flow shown.
+- The eye inside water: the water is the target, no ghost covers it.
+- The option off: the game looks through water as before and the ghost keeps
+  the target.
+
+Second pass after the PR review, `a35ada4c` (DLL SHA-256
+`142C10F3650F56BA51F123BA2D44BF59348458E9720C8819585A7BF59A667BD8`): a schematic
+block in a real water cell, and a ray grazing the corner between a water cell
+and a ghost cell, no longer flicker between the water and the block; the eye
+inside water still shows the water. The cut itself is unit-tested (`ghostReach`
+over a walked ray, which fails for about 19% of cells without the widening).
+
 ## Ghost note block instrument (2026-11-03)
 
 LeviLauncher instance `1.26.51.01 LIP`, local world, three passes (L-184,

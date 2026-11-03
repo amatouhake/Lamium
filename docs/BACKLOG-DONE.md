@@ -10,6 +10,38 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-304 A real liquid behind a ghost wins the target card
+Kind: Bug. Maintainer report 2026-11-03.
+Reported: with "Target water and lava" on, a ghost in front with real water or
+lava behind it showed the liquid, not the ghost - the opposite of every other
+block, where the nearest thing wins.
+Cause: `TargetInfo.cpp` `collectTargetInfo` ran the liquid scan first and
+returned its hit without asking where it lay, and the scan walks through a
+ghost (a ghost is not in the world's `BlockSource`), so any liquid on the ray
+won, however far. Both the option's help text and the rule recorded in L-278
+say a liquid **in front of** a ghost is the target, not one anywhere.
+Fixed in PR #69: `liquidTarget` reports the distance at which the ray enters
+the liquid's cell (`RayCells.h` `entryDistance`, the plane maths `cellsAlong`
+already uses), and the ghost search is cut there (`ghostReach`), so the nearer
+of the two wins and a ghost at the same distance keeps the target. The cut is
+widened by `sameDistance` (1e-9 blocks) because `cellsAlong` adds its steps up
+and lands an ulp or so off the direct distance - without it a ghost at the same
+distance fell outside the cut for about 19% of cells and the card could flicker
+(PR #69 review). A liquid in the eye's own cell keeps the target, since that is
+what the player stands in. A liquid in front still is the target, so L-278 and
+the help text now hold as written.
+Status 2026-11-03: built at `19140c19`, then at `a35ada4c` for the review.
+Done 2026-11-03: passed by the maintainer on `19140c19` (DLL SHA-256
+`411CAA4FF40724DB0A927020E2BC747D0A3E348FF29970DFDEC51EAF99211644`): a ghost in
+front of water shows the ghost; water in front of a ghost shows the water; the
+same with lava; aiming at water or lava with no ghost is unchanged, source and
+flow included; the eye inside water shows the water; the option off leaves
+water alone and the ghost as before. Passed again on `a35ada4c` (DLL SHA-256
+`142C10F3650F56BA51F123BA2D44BF59348458E9720C8819585A7BF59A667BD8`) for the
+boundary: a schematic block in a real water cell and a ray grazing the corner
+between them no longer flicker between the water and the block, and the eye
+inside water still shows the water.
+
 ### L-300 Block entity data never reaches the target card
 Kind: Bug (missing information in the target card).
 Status: done 2026-11-03; what the maintainer saw is in the Done line below.
