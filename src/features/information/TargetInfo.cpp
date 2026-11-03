@@ -1,4 +1,5 @@
 #include "features/information/TargetInfo.h"
+#include "features/information/BlockEntityRows.h"
 #include "features/information/SchematicTarget.h"
 #include "features/information/TargetPick.h"
 #include "features/schematic/GhostRenderer.h"
@@ -32,14 +33,22 @@
 #include "mc/world/level/Level.h"
 #include "mc/world/level/BlockPalette.h"
 #include "mc/world/level/block/Block.h"
+#include "mc/world/level/block/BlockType.h"
+#include "mc/world/level/block/actor/BlockActor.h"
+#include "mc/world/level/block/actor/BlockActorType.h"
+#include "mc/world/level/block/actor/NoteBlockActor.h"
+#include "mc/world/item/SaveContextFactory.h"
+#include "mc/world/item/ItemStack.h"
 #include "mc/world/level/dimension/Dimension.h"
 #include "mc/locale/I18n.h"
 #include "mc/deps/nbt/CompoundTagVariant.h"
+#include "mc/deps/shared_types/v1_26_20/block/NoteBlockInstrumentEnum.h"
 #include <algorithm>
-#include <set>
-#ifdef LAMIUM_RESEARCH_TRACE
+#include <chrono>
+#include <cstdint>
 #include <format>
-#endif
+#include <set>
+#include <span>
 
 namespace lamium::information {
 namespace {
@@ -247,6 +256,122 @@ TargetIcon fallingIcon(Actor& entity, LocalPlayer& player) {
         return blockIcon(player.getDimensionBlockSource(), where, block);
     } catch (...) { return {}; }
 }
+// L-299: a stored field's two names - the item and the block a row may hold -
+// plus the label the card draws for a field it knows. A name the game cannot
+// give back leaves the id standing, so a row is never dropped for a lookup.
+BlockEntityNames blockEntityNames() {
+    BlockEntityNames names;
+    names.item = [](std::string_view id) -> std::string {
+        try {
+            // The game names an item from its stack; the smallest one is enough.
+            schematic::nbt::Root root;
+            root.compound.set("Name", {std::string(id)});
+            root.compound.set("Count", {std::uint8_t{1}});
+            if (auto tag = CompoundTag::fromBinaryNbt(schematic::nbt::write(root))) {
+                auto stack = ItemStack::fromTag(*tag);
+                if (!stack.isNull()) return stack.getName();
+            }
+        } catch (...) {}
+        return {};
+    };
+    names.block = [](std::string_view id) -> std::string {
+        try {
+            if (auto block = Block::tryGetFromRegistry(HashedString(std::string(id))))
+                return block->buildDescriptionName();
+        } catch (...) {}
+        return {};
+    };
+    names.label = [](std::string_view key) -> std::string {
+        std::string translation = std::format("blockEntity.{}", key);
+        std::string text = ui::translated(translation);
+        return text == translation ? std::string{} : text;
+    };
+    return names;
+}
+// A field the client never refreshes: it keeps current only what it draws. A
+// container's contents (seen only by opening it) and a note block's pitch are
+// the copy the world loaded with, so a row would read as the value now (L-299).
+std::span<std::string_view const> staleFields(BlockActorType type) {
+    static constexpr std::string_view items[] = {"Items"}, note[] = {"note"};
+    switch (type) {
+    case BlockActorType::Chest:
+    case BlockActorType::BarrelBlock:
+    case BlockActorType::Hopper:
+    case BlockActorType::Dispenser:
+    case BlockActorType::Dropper:
+    case BlockActorType::Furnace:
+    case BlockActorType::BlastFurnace:
+    case BlockActorType::Smoker:
+    case BlockActorType::BrewingStand:
+    case BlockActorType::ShulkerBox:
+    case BlockActorType::Crafter: return items;
+    case BlockActorType::Music: return note;
+    default: return {};
+    }
+}
+// The instrument as the player reads it; the game's own name when Lamium has none.
+std::string instrumentName(SharedTypes::v1_26_20::NoteBlockInstrument instrument) {
+    static constexpr std::string_view keys[] = {
+        "harp", "bassDrum", "snare", "hat", "bass", "flute", "bell", "guitar", "chime",
+        "xylophone", "ironXylophone", "cowBell", "didgeridoo", "bit", "banjo", "pling", "trumpet",
+        "trumpetExposed", "trumpetWeathered", "trumpetOxidized", "zombie", "skeleton", "creeper",
+        "dragon", "witherSkeleton", "piglin"};
+    auto index = static_cast<std::size_t>(instrument);
+    if (index < std::size(keys)) {
+        std::string key = std::format("blockEntity.instrument.{}", keys[index]);
+        if (auto text = ui::translated(key); text != key) return text;
+    }
+    return SharedTypes::v1_26_20::NoteBlockInstrumentEnum::noteBlockInstrumentToString(instrument);
+}
+// What a block keeps in its block entity, as card rows: every saved field, so
+// the card never decides that one is unimportant. The note block's instrument
+// is the exception - the block under it decides, and nothing stores it.
+std::vector<TargetInfo::DetailRow> readBlockEntityDetails(BlockSource& source, BlockPos const& pos,
+                                                          BlockActorType type) {
+    std::vector<TargetInfo::DetailRow> rows;
+    if (auto const* actor = source.getBlockEntity(pos)) {
+        CompoundTag tag;
+        if (auto context = SaveContextFactory::createCloneSaveContext(); context && actor->save(tag, *context)) {
+            try {
+                auto bytes = tag.toBinaryNbt();
+                auto root = schematic::nbt::read(
+                    {reinterpret_cast<std::uint8_t const*>(bytes.data()), bytes.size()});
+                static BlockEntityNames const names = blockEntityNames();
+                rows = blockEntityRows(root.compound, names, staleFields(type));
+            } catch (...) {} // A block entity that will not read must not replace the card.
+        }
+    }
+    if (type == BlockActorType::Music) {
+        try {
+            if (auto instrument = NoteBlockActor::getInstrument(source, pos);
+                instrument && *instrument != SharedTypes::v1_26_20::NoteBlockInstrument::None)
+                rows.push_back({"blockEntity.instrument", instrumentName(*instrument), false, {}, DetailKind::Other});
+        } catch (...) {}
+    }
+    return rows;
+}
+// The card asks every frame; a save and a parse of the same block each time is
+// wasted work, so the rows are read again only for a new block or after a short
+// while (the stored fields change rarely and by another player's hand).
+std::vector<TargetInfo::DetailRow> blockEntityDetails(BlockSource& source, BlockPos const& pos,
+                                                      Block const& block, int dimension) {
+    auto type = block.getBlockType().mBlockEntityType;
+    if (type == BlockActorType::Undefined) return {};
+    struct Cached {
+        int x = 0, y = 0, z = 0, dimension = -1;
+        std::string identifier;
+        std::chrono::steady_clock::time_point read;
+        std::vector<TargetInfo::DetailRow> rows;
+    };
+    static Cached cached;
+    auto now = std::chrono::steady_clock::now();
+    auto const& identifier = block.getTypeName();
+    if (cached.dimension != dimension || cached.x != pos.x || cached.y != pos.y || cached.z != pos.z
+        || cached.identifier != identifier || now - cached.read >= std::chrono::milliseconds(250)) {
+        cached = {pos.x, pos.y, pos.z, dimension, identifier, now, readBlockEntityDetails(source, pos, type)};
+    }
+    return cached.rows;
+}
 }
 TargetIcon waterIcon() {
     try {
@@ -332,7 +457,7 @@ std::optional<TargetInfo> liquidTarget(BlockSource& source, bool includeStates, 
     return std::nullopt;
 }
 std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates, std::optional<ViewRay> ray,
-                                            bool includeSchematic, bool includeLiquids) {
+                                            bool includeSchematic, bool includeLiquids, bool includeBlockEntity) {
     auto* player = client.getLocalPlayer();
     if (!player) return {};
     Pick pick;
@@ -476,6 +601,11 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         }
     }
     if (includeStates) appendStates(result, block, fixedStates, static_cast<int>(player->getDimensionId()) == 1);
+    // What the block keeps outside its states (L-299); read only when the card
+    // shows details, so the option off costs no lookup.
+    if (includeBlockEntity)
+        for (auto& row : blockEntityDetails(source, hit.mBlock, block, static_cast<int>(player->getDimensionId())))
+            result.details.push_back(std::move(row));
     for (auto& row : schematicDetails) result.details.push_back(std::move(row));
     return result;
 }

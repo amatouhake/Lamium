@@ -687,7 +687,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     options.armor = settings.targetArmor == 1 ? Meter::Bar : settings.targetArmor == 2 ? Meter::Number : Meter::Icons;
     options.growth = settings.targetGrowth == 1 ? Meter::Number : Meter::Bar;
     int capacity = std::max(0, static_cast<int>((height - 40) / (12 * z)));
-    auto rows = cardRows(target, options, static_cast<size_t>(std::min(capacity, 10)));
+    auto rows = cardRows(target, options, static_cast<size_t>(capacity));
     auto stack = settings.targetIcon ? iconStack(target) : ItemStack();
     bool icon = !stack.isNull();
     bool texture = settings.targetIcon && !icon && target.icon.kind == IconKind::Texture
@@ -729,10 +729,37 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     float headerH = std::max(iconSize, headerTextH);
     float headerW = iconSize + iconGap + std::max(nameW, idW);
     float rowsW = rows.empty() ? 0 : labelW + 6 * z + valuesW;
-    float contentW = std::min(std::max(headerW, rowsW), 260 * z);
+    // L-299: a stored field can be longer than the old cap; the card takes the
+    // width it needs, up to most of the screen, rather than cutting the row short.
+    float contentW = std::min(std::max(headerW, rowsW), std::max(260.f * z, width * .6f));
     float boxW = contentW + 2 * padX;
+    // A stored value can be longer than one line (a sign's four lines, an item
+    // list): it wraps inside the card and the row grows by a line per line of
+    // text, instead of the card cutting the rest away (L-299).
+    std::vector<std::vector<std::string>> valueLines(rows.size());
+    float wrapWidth = std::max(40.f * z, contentW - labelW - 6 * z + 2);
+    auto measureText = [&](std::string_view part) { return ui::textWidthScaled(context, part, z); };
+    for (size_t i = 0; i < rows.size(); ++i) {
+        bool plain = !rows[i].progress && !rowStack(rows[i]) && rows[i].before.empty();
+        if (plain && measureText(values[i]) > wrapWidth)
+            valueLines[i] = ui::wrapLabel(values[i], wrapWidth, 3, measureText);
+        // One line otherwise, also when a first glyph wider than the card wraps to nothing.
+        if (valueLines[i].empty()) valueLines[i] = {values[i]};
+    }
+    // The capacity counts lines, so a wrapped value takes the room of the rows after it.
+    size_t shown = 0;
+    for (size_t used = 0; shown < rows.size(); ++shown) {
+        used += valueLines[shown].size();
+        if (used > static_cast<size_t>(capacity)) break;
+    }
+    rows.erase(rows.begin() + static_cast<std::ptrdiff_t>(shown), rows.end());
+    labels.resize(shown);
+    values.resize(shown);
+    valueLines.resize(shown);
+    auto linesOf = [&](size_t i) { return std::max<size_t>(size_t{1}, valueLines[i].size()); };
+    auto rowHeight = [&](size_t i) { return heightOf(rows[i]) + (linesOf(i) - 1) * lineH; };
     float rowsH = 0;
-    for (auto const& row : rows) rowsH += heightOf(row);
+    for (size_t i = 0; i < rows.size(); ++i) rowsH += rowHeight(i);
     float boxH = headerH + (rows.empty() ? 0 : 3 * z + rowsH) + 2 * padY;
     auto placement = ui::placeElement(width, height, boxW, boxH, element);
     ui::hud_editor::Box finalBox{placement.x, placement.y, boxW, boxH};
@@ -777,7 +804,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
                         ui::Align::Left, element.shadow);
     float y = top + headerH + 3 * z;
     float valueX = left + labelW + 6 * z;
-    for (size_t i = 0; i < rows.size(); y += heightOf(rows[i]), ++i) {
+    for (size_t i = 0; i < rows.size(); y += rowHeight(i), ++i) {
         auto const& row = rows[i];
         ui::labelScaled(context, left, y, labelW + 2, labels[i], z, ui::palette::faint, ui::Align::Left, element.shadow);
         float x = valueX;
@@ -811,7 +838,11 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
             ui::changeArrow(context, x, y + (1.5f + ui::shapeTextDrop()) * z, z, color);
             x += (ui::changeArrowWidth + 3) * z;
         }
-        ui::labelScaled(context, x, y, left + contentW - x + 2, values[i], z, color, ui::Align::Left, element.shadow);
+        ui::labelScaled(context, x, y, left + contentW - x + 2, valueLines[i][0], z, color, ui::Align::Left,
+                        element.shadow);
+        for (size_t line = 1; line < valueLines[i].size(); ++line)
+            ui::labelScaled(context, valueX, y + static_cast<float>(line) * lineH, left + contentW - valueX + 2,
+                            valueLines[i][line], z, color, ui::Align::Left, element.shadow);
     }
     context.flushText(0, std::nullopt);
     return finalBox;
@@ -1558,7 +1589,8 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     if (cardRan) {
         // One distance for every viewpoint: the body normally, the camera
         // during Freelook and FreeCamera (it looks elsewhere than the body).
-        cardTarget = collectTargetInfo(context.mClient, true, targetRay, settings.targetSchematic, settings.targetLiquids);
+        cardTarget = collectTargetInfo(context.mClient, true, targetRay, settings.targetSchematic, settings.targetLiquids,
+                                       settings.targetStates);
         if (!cardTarget && preview) {
             TargetInfo sample{ui::translated("feature.targetInfo"), "minecraft:grass_block"};
             sample.icon = {IconKind::Item, "minecraft:grass_block", 0};

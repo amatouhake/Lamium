@@ -12,6 +12,47 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Target card block entity rows, review fixes (2026-11-03)
+
+LeviLauncher instance `1.26.51.01 LIP`, local world, on PR #65 commit
+`50c4f427` (DLL SHA-256
+`291F6CAB12C7D6FA3ABD5B6AB65276791B05BB1ECBC517F779FAEC81F57D0CBF`), copied
+into `mods/Lamium` from the branch build. Checked by the maintainer with
+Other details on:
+
+- Note block on stone: the instrument row reads as a translated name (bass
+  drum), not the game's internal id.
+- A sign with long text at a large card scale: the card stays on screen and
+  the rows that do not fit are left out.
+- Chest: no contents row; sign text, colour and glow rows still show.
+Not seen: other instruments' names and the 250 ms refresh after another
+player edits a block entity were not checked separately.
+
+## Target card block entity rows (2026-11-03)
+
+LeviLauncher instance `1.26.51.01 LIP`, local world, on the PR #65 head
+`14dde8d0` (DLL SHA-256
+`49F86038413FA01A2E6E06231A357F5A6EBDB3810F59219AAE674F17CDBE12A6`), copied
+into `mods/Lamium` from the branch build. Earlier passes on the same branch
+(`54484980`, `56992fb9`, `c0ae220f`) found and fixed the rest.
+
+- Other details off and on switches the block entity rows.
+- Note block: the instrument row follows the block underneath. The pitch row
+  was removed in this pass: the client's copy is the world-load value (8 of 24
+  after re-entering) and a tune does not update it.
+- Sign and hanging sign: front and back text as rows, long text wraps inside
+  the card, glowing text and text colour are rows and a colour change shows
+  immediately, waxed state reads as a row.
+- Containers: a chest, furnace, barrel and hopper show no item rows after this
+  pass (the client's list never refreshes; it was checked and did not follow a
+  change). A jukebox record, a lectern book and a flower pot were checked on an
+  earlier build of the branch.
+- A command block's fields show in full, and a low window does not push the
+  card off screen. A decorated pot, a chiseled bookshelf, an item frame and the
+  back of a hanging sign showed nothing wrong.
+Not seen: nothing left open for this item; the values the client does not keep
+current are L-300.
+
 ## Release 0.4.0 (2026-11-01)
 
 Smoke test by the maintainer in LeviLauncher instance `1.26.51.01 LIP`,
