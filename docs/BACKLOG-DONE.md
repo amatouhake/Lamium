@@ -10,6 +10,54 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-299 Block entity data never reaches the target card
+Kind: Bug (missing information in the target card).
+Status: done 2026-11-03; what the maintainer saw is in the Done line below.
+Maintainer report 2026-11-03: with Other details on, a note block shows its
+name and nothing else - the same as a plain block.
+Cause: `TargetInfo.cpp` `appendStates()` reads only the block's serialization
+states, and a block entity's own fields live outside them: Bedrock keeps a
+note block's pitch and on/off in its block entity
+(`mc/world/level/block/actor/NoteBlockActor.h`: `mNote`, `mOn`), and a sign's
+text, a jukebox's record, a lectern's book and the rest the same way, so no
+row could come from that path for any of them. The instrument is not stored at
+all - the block under a note block decides it
+(`NoteBlockActor::getInstrument`).
+Fix: `src/features/information/BlockEntityRows.h/.cpp` turns every saved field
+of the aimed block's block entity into a card row, and `collectTargetInfo`
+reads it through `BlockSource::getBlockEntity` + `BlockActor::save` (the path
+`AreaSave.cpp` already uses on the client) only when Other details is on, so
+the option off costs no lookup. Values read as the player knows them: an item
+stack as the item's name and count, a text compound as its lines, a list as its
+items, a note block's `note` as `<note> / 24 (<pitch>)`, and a known flag as
+yes/no; anything else keeps the game's own notation rather than being dropped.
+Only `id`, `x`, `y`, `z`, `isMovable` and `Findable` make no row - the name and
+position the card already shows, plus two flags every actor carries. A note
+block adds its instrument as a row of its own. The card is no longer limited
+to ten rows: it grows with its content up to what the screen holds, and a
+long value may use up to most of the screen width instead of the old fixed
+cap (`InfoHud.cpp` `drawTargetCard`).
+Not promised: a field the client never refreshes. It keeps current only what
+it has to draw, so a chest's, barrel's, hopper's, furnace's or shulker box's
+`Items`/`item` and a note block's `note` are the copy the world loaded with
+(checked in game 2026-11-03: the pitch was right after re-entering at 8 of 24
+and did not follow a later tune, and a container's list did not follow a
+change). Those fields make no row, because a stale value would read as the
+value now; counting the player's own tuning clicks was rejected for the same
+reason - another player can tune the same block. A note block keeps its
+instrument row, which the client derives from the block underneath and always
+has. Saved schematic data is L-184's side.
+Tests: `tests/BlockEntityRowsTests.cpp` covers the hidden fields, every value
+shape above, the flag rule, the label fallback, the note pitch table, and the
+overflow row.
+In game: a note block with Other details on (pitch, instrument, on/off), then
+off (no block entity rows at all); a sign with four lines; a jukebox with a
+record; a lectern with a book; a flower pot; a decorated pot; and a block with
+a block entity that stores nothing readable yet (a bed, a banner) to confirm a
+field the client lacks simply makes no row.
+No release target selected.
+Done 2026-11-03: checked by the maintainer on the PR #65 head `14dde8d0` (DLL SHA-256 `49F86038413FA01A2E6E06231A357F5A6EBDB3810F59219AAE674F17CDBE12A6`). Other details switches the block entity rows; a sign shows its four lines front and back, glowing text, text colour (a change shows immediately) and waxed state; a note block shows its instrument and follows the block underneath; a chest, furnace, barrel and hopper show no contents; a long value wraps, a command block's fields show in full, and a low window does not push the card off screen. A decorated pot, a chiseled bookshelf, an item frame and the back of a hanging sign showed nothing wrong. The pitch row and the container lists were removed after this check, and re-checked: the pitch row is gone (instrument kept) and the container rows are gone.
+
 ### L-290 A filled bucket in the main hand stops the Fake Offhand entirely
 
 Kind: Bug. Maintainer report 2026-10-31 (build not recorded): with a
