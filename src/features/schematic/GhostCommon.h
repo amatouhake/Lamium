@@ -6,14 +6,14 @@
 // LiquidShape.h and Verify.h.
 #include "features/schematic/Structure.h"
 #include "overlay/Depth.h"
-#include <glm/glm.hpp>
 #include <chrono>
 #include <cstddef>
 #include <map>
 #include <string>
 #include <string_view>
-#include <vector>
 class Block;
+class BlockPos;
+class BlockTessellator;
 enum class BlockRenderLayer : unsigned char;
 namespace lamium::schematic::ghosts {
 using Clock = std::chrono::steady_clock;
@@ -44,18 +44,24 @@ bool signTextIgnored();
 bool blockEntitiesIgnored();
 // A block whose mesh is only its base: its block actor draws the rest from
 // the file's data (a piston's head, L-178; a lectern's book, a framed item,
-// L-302), so its ghost needs both. A potted plant is not one: the pot's mesh
-// draws it from the world's actor, so a ghost pot draws the file's plant
-// itself (GhostMesh.cpp), raised by `potSoil` onto the pot's soil.
+// L-302), so its ghost needs both. A potted plant is not one (PotPlant).
 bool actorDrawsOverMesh(Block const& block);
-// The plant a flower pot's block entity data names (`PlantBlock`), as a game block.
-Block const* pottedPlant(nbt::Compound const& data);
-// Seats a plant tessellated at the pot's cell (vertices from `from` on) in
-// the pot: centered on the cell, as the game draws every potted plant (in
-// the world grass and flowers stand off center by their position), and
-// lifted onto the soil. `cell`: the cell's low corner in the same space.
-void seatPottedPlant(std::vector<glm::vec3>& positions, size_t from, glm::vec3 cell);
-inline constexpr float potSoil = 4.f / 16;
+// A pot's tessellation draws its plant from the tessellator's own table of
+// pots (filled from the world's actors when the game builds a chunk), so a
+// ghost pot came out empty. While one lives, the file's plant is in that
+// table for `pos`, and the game draws it as in a real pot (L-302). Nothing
+// without a plant in `data`, or when block tessellation is not verified.
+class PotPlant {
+public:
+    PotPlant(BlockTessellator& tessellator, BlockPos const& pos, Block const& pot, nbt::Compound const* data);
+    ~PotPlant();
+    PotPlant(PotPlant const&) = delete;
+    PotPlant& operator=(PotPlant const&) = delete;
+
+private:
+    BlockTessellator* tessellator = nullptr;
+    int x = 0, y = 0, z = 0;
+};
 bool relaxedSame(Block const& expected, Block const& actual, unsigned on);
 bool relaxedSameType(Block const& expected, Block const& actual, unsigned on);
 }

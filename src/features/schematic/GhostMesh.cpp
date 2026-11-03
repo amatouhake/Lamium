@@ -553,6 +553,9 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
 #ifdef LAMIUM_SCHEMATIC_QUAD_TRACE
                 std::vector<TracedQuads> traced;
 #endif
+                // A potted plant comes from the file, as the pot draws it (L-302).
+                auto entity = structure.blockEntities.find(structure.cell(local->x, local->y, local->z));
+                PotPlant plant(own, pos, *expected, entity != structure.blockEntities.end() ? &entity->second : nullptr);
                 eachLayer(*expected, region, pos, [&](std::optional<BlockRenderLayer> layer) {
                     Tessellator& target = layer && blended(*layer) ? see : batch;
                     size_t before = target.mMeshData->mPositions->size();
@@ -570,22 +573,6 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     }
                     meshed = meshed || positions.size() > before;
                 });
-                // A potted plant is part of the pot's mesh, which the game
-                // builds from the pot's block actor in the world, so a ghost
-                // pot came out empty (L-302; answering that lookup through the
-                // view did not reach it). The file's plant is drawn into the
-                // pot instead, standing on its soil.
-                if (meshed && expected->getBlockType().mBlockEntityType == BlockActorType::FlowerPot)
-                    if (auto found = structure.blockEntities.find(structure.cell(local->x, local->y, local->z));
-                        found != structure.blockEntities.end())
-                        if (auto const* plant = pottedPlant(found->second))
-                            eachLayer(*plant, region, pos, [&](std::optional<BlockRenderLayer> layer) {
-                                Tessellator& target = layer && blended(*layer) ? see : batch;
-                                size_t before = target.mMeshData->mPositions->size();
-                                tessellateLayer(own, target, *plant, pos, layer);
-                                seatPottedPlant(target.mMeshData->mPositions.get(), before,
-                                                {static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)});
-                            });
                 dropDuplicateQuads(batch, batchFrom);
                 dropDuplicateQuads(see, seeFrom);
 #ifdef LAMIUM_SCHEMATIC_QUAD_TRACE

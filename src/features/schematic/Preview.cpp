@@ -379,24 +379,19 @@ bool step() {
         if (ghosts::liquidKind(block)) {
             shell(block, 0);
         } else {
-            ghosts::eachLayer(block, *j.region, spot, [&](std::optional<BlockRenderLayer> layer) {
-                ghosts::tessellateLayer(*j.blocks, batch, block, spot, layer);
-            });
+            {
+                // A potted plant comes from the file, as the pot draws it (L-302).
+                auto entity = s.blockEntities.find(static_cast<std::int32_t>(cell));
+                ghosts::PotPlant plant(*j.blocks, spot, block, entity != s.blockEntities.end() ? &entity->second : nullptr);
+                ghosts::eachLayer(block, *j.region, spot, [&](std::optional<BlockRenderLayer> layer) {
+                    ghosts::tessellateLayer(*j.blocks, batch, block, spot, layer);
+                });
+            }
             // No mesh: a block entity, drawn by its renderer after the mesh. A
             // piston has both: its base mesh and its head drawn by its actor
             // (L-178); so do a lectern and a frame (L-302).
             if (positions.size() == from || ghosts::actorDrawsOverMesh(block))
                 j.actorCells.push_back({static_cast<std::uint32_t>(cell), &block});
-            // The pot's plant, which its mesh takes from a world actor (L-302).
-            if (positions.size() > from && block.getBlockType().mBlockEntityType == BlockActorType::FlowerPot)
-                if (auto found = s.blockEntities.find(static_cast<std::int32_t>(cell)); found != s.blockEntities.end())
-                    if (auto const* plant = ghosts::pottedPlant(found->second))
-                        ghosts::eachLayer(*plant, *j.region, spot, [&](std::optional<BlockRenderLayer> layer) {
-                            size_t before = positions.size();
-                            ghosts::tessellateLayer(*j.blocks, batch, *plant, spot, layer);
-                            ghosts::seatPottedPlant(batch.mMeshData->mPositions.get(), before,
-                                                    {static_cast<float>(spot.x), static_cast<float>(spot.y), static_cast<float>(spot.z)});
-                        });
             if (static_cast<size_t>(cell) < s.liquids.size())
                 if (auto i = s.liquids[static_cast<size_t>(cell)]; i >= 0 && static_cast<size_t>(i) < j.palette.size() && j.palette[static_cast<size_t>(i)]
                     && ghosts::liquidKind(*j.palette[static_cast<size_t>(i)]))

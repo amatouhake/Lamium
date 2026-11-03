@@ -229,6 +229,23 @@ themselves, raised 4/16 onto the soil (`pottedPlant`, `potSoil`). The height
 and size are a guess to compare with a real potted plant. Moving parts (the
 enchanting table's book, a spawner's mob) stay still: a ghost's actors are not
 ticked, and the maintainer has not asked for it.
+Check 2026-11-04 on `e6c4fc77`: the plant shows in the world and the preview,
+height about right, about 1.5 times too large, grass and flowers off center
+(a real pot centers every plant). The maintainer asked for the real ratio
+rather than tuning by eye.
+Probe 2026-11-04 (`pot_trace`, on `b69e97e5`, DLL SHA-256
+`526117DB8AA28C751039598932B571DC9DDEF2A2B4ECD3412F94FC386C7FFE5C`): the
+game's own tessellation of a real potted plant, through a fresh tessellator,
+gave the pot alone (28 vertices, 5/16-11/16 wide, 6/16 high) for every plant;
+the plants alone span 0.05-0.95 (saplings) or a 0.9 square offset by position
+(flowers, fern). Found in the SDK: the tessellator's
+`mBlockExtraDataMap.mExtraFlowerPotData` (position -> plant), which the
+game's chunk build fills from the pot's actor and the pot's tessellation
+reads. Now: `PotPlant` puts the file's plant in the ghost tessellator's table
+for that cell while the pot is tessellated (ghost pass and preview), so the
+game draws the plant at its own size and place. The hand-drawn plant and the
+probe are gone. Gated by the Schematic ghost blocks capability; unverified,
+the pot stays empty.
 In game: a schematic with a lectern, a flower pot and a chiseled bookshelf,
 placed as ghosts, after the change; a piston and a chest to prove they did not
 regress.

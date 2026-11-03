@@ -5,6 +5,7 @@
 #include "features/schematic/LiquidName.h"
 #include "features/map/MapColors.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "mc/client/gui/screens/ScreenContext.h"
 #include "mc/client/renderer/SupplementaryFieldAutoGenerationMode.h"
 #include "mc/client/renderer/Tessellator.h"
@@ -14,6 +15,7 @@
 #include "mc/deps/minecraft_renderer/resources/ServerTexture.h"
 #include "mc/client/renderer/block/BlockGraphics.h"
 #include "mc/client/renderer/block/BlockTessellator.h"
+#include "mc/client/renderer/block/block_tessellator_custom_extra_data/FlowerPotData.h"
 #include "mc/client/renderer/texture/TextureUVCoordinateSet.h"
 #include "mc/client/world/level/biome/biome_color_sampling/TessellationPolicy.h"
 #include "mc/deps/core_graphics/enums/PrimitiveMode.h"
@@ -52,26 +54,26 @@ Block const* lookup(PaletteBlock const& entry) {
     auto block = Block::tryGetFromRegistry(*tag);
     return block ? &*block : nullptr;
 }
-Block const* pottedPlant(nbt::Compound const& data) {
-    auto const* entry = data.find("PlantBlock");
+PotPlant::PotPlant(BlockTessellator& tessellator, BlockPos const& pos, Block const& pot, nbt::Compound const* data) {
+    if (!data || pot.getBlockType().mBlockEntityType != BlockActorType::FlowerPot) return;
+    if (!versionSensitiveAllowed(capabilities::Id::SchematicBlocks)) return;
+    auto const* entry = data->find("PlantBlock");
     auto const* plant = entry ? entry->as<nbt::Compound>() : nullptr;
-    if (!plant || !plant->find("name")) return nullptr;
+    if (!plant || !plant->find("name")) return;
     nbt::Root root;
     root.compound = *plant;
     auto tag = CompoundTag::fromBinaryNbt(nbt::write(root));
-    if (!tag) return nullptr;
+    if (!tag) return;
     auto block = Block::tryGetFromRegistry(*tag);
-    return block ? &*block : nullptr;
+    if (!block) return;
+    BlockTessellatorCustomExtraData::FlowerPotData potted;
+    potted.mPlant = &*block;
+    tessellator.mBlockExtraDataMap->mExtraFlowerPotData->insert_or_assign(pos, potted);
+    this->tessellator = &tessellator;
+    x = pos.x; y = pos.y; z = pos.z;
 }
-void seatPottedPlant(std::vector<glm::vec3>& positions, size_t from, glm::vec3 cell) {
-    if (from >= positions.size()) return;
-    glm::vec3 low{1e9f}, high{-1e9f};
-    for (size_t v = from; v < positions.size(); ++v) {
-        low = glm::min(low, positions[v]);
-        high = glm::max(high, positions[v]);
-    }
-    glm::vec3 shift{cell.x + .5f - (low.x + high.x) / 2, potSoil, cell.z + .5f - (low.z + high.z) / 2};
-    for (size_t v = from; v < positions.size(); ++v) positions[v] += shift;
+PotPlant::~PotPlant() {
+    if (tessellator) tessellator->mBlockExtraDataMap->mExtraFlowerPotData->erase(BlockPos{x, y, z});
 }
 // A block's states as text, for naming what differs (the target card).
 std::map<std::string, std::string> blockStates(Block const& block) {

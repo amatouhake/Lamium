@@ -556,7 +556,9 @@ pick, creative inventory give).
 ### `src/features/schematic/GhostRenderer.cpp`
 Hooks: `GhostBlendPass`, `GhostPass`
 Meaning: the block tessellator's private fields Lamium sets on its own
-tessellator (render layer, shape set, region), the mesh data streams
+tessellator (render layer, shape set, region; and, from `GhostBlocks.cpp`
+`PotPlant`, its `mBlockExtraDataMap` pot table, which a flower pot's
+tessellation reads for its plant, L-302), the mesh data streams
 (positions, colors, light UVs) it edits, the vertex streams, bounds and
 count it fills directly (the sorted blended mesh; outlines after their
 first primitive), the alpha pass order,
