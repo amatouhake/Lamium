@@ -27,9 +27,13 @@ water and lava" on:
 - The eye inside water: the water is the target, no ghost covers it.
 - The option off: the game looks through water as before and the ghost keeps
   the target.
-Not seen: a liquid and a ghost at the same distance in game. The cut is
-unit-tested (`ghostReach`, the widened reach over a walked ray), the ordering
-between a liquid and a ghost in game is the list above.
+
+Second pass after the PR review, `a35ada4c` (DLL SHA-256
+`142C10F3650F56BA51F123BA2D44BF59348458E9720C8819585A7BF59A667BD8`): a schematic
+block in a real water cell, and a ray grazing the corner between a water cell
+and a ghost cell, no longer flicker between the water and the block; the eye
+inside water still shows the water. The cut itself is unit-tested (`ghostReach`
+over a walked ray, which fails for about 19% of cells without the widening).
 
 ## Ghost note block instrument (2026-11-03)
 
