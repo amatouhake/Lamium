@@ -1328,6 +1328,16 @@ void rayCells() {
     auto back = cellsAlong(-.5, 2.5, 0.5, 0, -1, 0, 1.6);
     check(back.size() == 3 && back[1] == Point{-1, 1, 0} && back[2] == Point{-1, 0, 0}, "negative directions and coordinates floor");
     check(cellsAlong(0, 0, 0, 0, 0, 0, 5).empty(), "no direction, no cells");
+    // L-304: how far along the ray each cell starts, so a real liquid and a
+    // ghost can be ordered and the nearest one wins.
+    check(entryDistance(.5, .5, .5, 1, 0, 0, Point{0, 0, 0}) == 0, "the start cell is entered at 0");
+    check(std::abs(entryDistance(.5, .5, .5, 1, 0, 0, Point{1, 0, 0}) - .5) < 1e-9, "the next cell half a block on");
+    check(std::abs(entryDistance(.5, .5, .5, 1, 1, 0, Point{1, 1, 0}) - .5 * std::sqrt(2.)) < 1e-9,
+          "a cell met at a corner keeps its distance");
+    check(entryDistance(2.5, .5, .5, -1, 0, 0, Point{2, 0, 0}) == 0, "the cell the ray starts in is entered at 0");
+    check(std::abs(entryDistance(2.5, .5, .5, -1, 0, 0, Point{1, 0, 0}) - .5) < 1e-9, "a cell the ray walks back into");
+    check(std::abs(entryDistance(.5, .5, .5, 0, 1, 0, Point{0, 3, 0}) - 2.5) < 1e-9, "a cell far along");
+    check(entryDistance(0, 0, 0, 0, 0, 0, Point{0, 0, 0}) == 0, "no direction enters at 0");
 }
 // L-186: tint by setting, outline copies by width.
 void ghostLook() {

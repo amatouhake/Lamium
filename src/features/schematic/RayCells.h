@@ -38,4 +38,20 @@ inline std::vector<Point> cellsAlong(double x, double y, double z, double dx, do
     }
     return out;
 }
+// Distance along the ray where it enters `cell`'s box, 0 when it starts inside
+// (L-304: which of a real liquid and a ghost comes first).
+inline double entryDistance(double x, double y, double z, double dx, double dy, double dz, Point cell) {
+    double length = std::sqrt(dx * dx + dy * dy + dz * dz);
+    if (!(length > 0)) return 0;
+    dx /= length; dy /= length; dz /= length;
+    double entered = 0;
+    auto axis = [&](double origin, double dir, int at) {
+        if (dir > 0) entered = std::max(entered, (at - origin) / dir);
+        else if (dir < 0) entered = std::max(entered, (at + 1 - origin) / dir);
+    };
+    axis(x, dx, cell.x);
+    axis(y, dy, cell.y);
+    axis(z, dz, cell.z);
+    return entered;
+}
 }
