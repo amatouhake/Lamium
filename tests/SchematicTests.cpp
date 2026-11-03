@@ -1606,6 +1606,17 @@ void ghostBlockEntityTests() {
     check(first && again && first != again && again->find("id")->as<std::string>()
               && *again->find("id")->as<std::string>() == "Barrel",
           "overlapping placements read their own block entity");
+    // What the file puts at a cell, for a ghost's neighbors: air counts, void
+    // and outside say nothing, and hidden layers still belong to the file.
+    session::Shown file;
+    file.structure = structure;
+    file.placement.placement = Placement{{200, 64, 200}, 0, Mirror::None};
+    file.placement.layers.mode = LayerMode::Only;
+    file.placement.layers.cut = 1;
+    check(overlap::fileCellAt(file, Point{200, 64, 200}) == 1, "a hidden layer's block is still the file's");
+    check(overlap::fileCellAt(file, Point{201, 64, 200}) == 0, "air is something the file says");
+    check(!overlap::fileCellAt(file, Point{201, 64, 201}), "a void cell says nothing");
+    check(!overlap::fileCellAt(file, Point{200, 63, 200}), "below the file says nothing");
 }
 
 void schematicTests() {

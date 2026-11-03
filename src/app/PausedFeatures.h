@@ -61,7 +61,7 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::HidePortal: return v.hideEffects && v.hidePortal;
     case Id::HideParticles: return v.hideEffects && v.hideParticles;
     case Id::HideBossBars: return v.hideEffects && v.hideBossBars;
-    case Id::NoteBlockSounds: return s.information.targetStates;
+    case Id::NoteBlockSounds: case Id::NoteBlockInstrument: return s.information.targetStates;
     case Id::SchematicBlocks: case Id::SchematicPiston: case Id::SchematicShulker: case Id::SchematicEntities:
     case Id::SchematicBlend: case Id::SchematicActorLight: case Id::SchematicCreativePick: return s.schematic.enabled;
     case Id::FakeOffhandTargets: return s.inventory.fakeOffhand;

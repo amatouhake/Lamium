@@ -1,6 +1,7 @@
 #include "features/information/TargetInfo.h"
 #include "app/Capabilities.h"
 #include "features/information/BlockEntityRows.h"
+#include "features/information/NoteInstrument.h"
 #include "features/information/NoteSounds.h"
 #include "features/information/SchematicTarget.h"
 #include "features/information/TargetPick.h"
@@ -9,6 +10,7 @@
 #include "features/schematic/RayCells.h"
 #include "features/schematic/SchematicSession.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "ui/Localization.h"
 #include "features/information/TargetCard.h"
 #include "mc/world/item/Item.h"
@@ -40,6 +42,7 @@
 #include "mc/world/level/block/actor/BlockActor.h"
 #include "mc/world/level/block/actor/BlockActorType.h"
 #include "mc/world/level/block/actor/NoteBlockActor.h"
+#include "mc/world/level/block/components/BlockInstrumentComponent.h"
 #include "mc/world/item/SaveContextFactory.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/level/dimension/Dimension.h"
@@ -334,6 +337,31 @@ std::string instrumentName(SharedTypes::v1_26_20::NoteBlockInstrument instrument
     }
     return SharedTypes::v1_26_20::NoteBlockInstrumentEnum::noteBlockInstrumentToString(instrument);
 }
+void appendInstrument(std::vector<TargetInfo::DetailRow>& rows,
+                      std::optional<SharedTypes::v1_26_20::NoteBlockInstrument> instrument) {
+    if (instrument && *instrument != SharedTypes::v1_26_20::NoteBlockInstrument::None)
+        rows.push_back({"blockEntity.instrument", instrumentName(*instrument), false, {}, DetailKind::Other});
+}
+// L-184: a ghost note block's instrument as the file decides it, from the
+// file's blocks below and above - never the world's, which the file does not
+// promise. Where the file leaves it open, the row says so instead of guessing.
+void appendGhostInstrument(std::vector<TargetInfo::DetailRow>& rows, schematic::ghosts::GhostAt const& ghost) {
+    using SharedTypes::v1_26_20::NoteBlockInstrument;
+    if (!versionSensitiveAllowed(capabilities::Id::NoteBlockInstrument)) return;
+    // A block declares two instruments: [0] for a note block under it, [1] for
+    // one standing on it (seen in game on 1.26.51.01).
+    auto declared = [](schematic::ghosts::GhostAt::Neighbor neighbor, std::size_t side) {
+        Declared<NoteBlockInstrument> result{neighbor.known, std::nullopt};
+        if (neighbor.block)
+            if (auto const* component = neighbor.block->tryGetComponent<BlockInstrumentComponent>())
+                result.instrument = component->mInstruments.get()[side];
+        return result;
+    };
+    if (auto instrument = noteInstrument(declared(ghost.above, 0), declared(ghost.below, 1), NoteBlockInstrument::Harp))
+        appendInstrument(rows, instrument);
+    else
+        rows.push_back({"blockEntity.instrument", "blockEntity.instrument.notInFile", true, {}, DetailKind::Other});
+}
 // What a block keeps in its block entity, as card rows: every saved field, so
 // the card never decides that one is unimportant. The note block's instrument
 // is the exception - the block under it decides, and nothing stores it.
@@ -355,11 +383,7 @@ std::vector<TargetInfo::DetailRow> readBlockEntityDetails(BlockSource& source, B
         }
     }
     if (type == BlockActorType::Music) {
-        try {
-            if (auto instrument = NoteBlockActor::getInstrument(source, pos);
-                instrument && *instrument != SharedTypes::v1_26_20::NoteBlockInstrument::None)
-                rows.push_back({"blockEntity.instrument", instrumentName(*instrument), false, {}, DetailKind::Other});
-        } catch (...) {}
+        try { appendInstrument(rows, NoteBlockActor::getInstrument(source, pos)); } catch (...) {}
     }
     return rows;
 }
@@ -447,13 +471,17 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
     result.blockPosition = TargetInfo::BlockPosition{pos.x, pos.y, pos.z};
     result.icon = blockIcon(source, pos, block);
     if (includeStates) appendStates(result, block, {}, static_cast<int>(player.getDimensionId()) == 1);
-    // L-184: the file's own block entity data, so a ghost and the block it
-    // becomes read alike. No instrument row: the game reads it from the world
-    // around the cell, which is not the file's (the block below may be unplaced).
-    if (includeBlockEntity && ghost->blockEntity)
-        for (auto& row : blockEntityRows(*ghost->blockEntity, sharedBlockEntityNames(),
-                                         ghostHeldBackFields(block.getBlockType().mBlockEntityType), std::nullopt))
-            result.details.push_back(std::move(row));
+    // L-184: the file's own block entity data and the instrument it will play,
+    // so a ghost and the block it becomes read alike.
+    if (includeBlockEntity) {
+        auto type = block.getBlockType().mBlockEntityType;
+        if (ghost->blockEntity)
+            for (auto& row : blockEntityRows(*ghost->blockEntity, sharedBlockEntityNames(), ghostHeldBackFields(type),
+                                             std::nullopt))
+                result.details.push_back(std::move(row));
+        if (type == BlockActorType::Music)
+            try { appendGhostInstrument(result.details, *ghost); } catch (...) {}
+    }
     result.details.push_back(ghostRow());
     result.ghost = true;
     return result;

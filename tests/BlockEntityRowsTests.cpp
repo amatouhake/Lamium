@@ -1,5 +1,6 @@
 #include "features/information/BlockEntityRows.h"
 #include "features/information/NoteEvent.h"
+#include "features/information/NoteInstrument.h"
 #include "features/information/TargetCard.h"
 #include "features/information/TargetInfo.h"
 #include <format>
@@ -172,5 +173,21 @@ void blockEntityRowTests() {
         data.set("IsCount", {std::int32_t{1}});
         auto rows = blockEntityRows(data, names);
         check(rows.size() == 1 && rows[0].value == "1" && !rows[0].valueIsKey, "an int named like a flag keeps its number");
+    }
+    // L-184: as seen in game - gold under it plays the bell, a skull on top
+    // wins over the block below, and nothing declared plays the harp. A
+    // neighbor nothing says anything about leaves it open.
+    {
+        enum class Instrument { Harp, Bell, Skeleton };
+        using D = Declared<Instrument>;
+        D air{true, std::nullopt}, gold{true, Instrument::Bell}, skull{true, Instrument::Skeleton}, unknown{};
+        check(noteInstrument(air, gold, Instrument::Harp) == Instrument::Bell, "the block below decides the instrument");
+        check(noteInstrument(skull, gold, Instrument::Harp) == Instrument::Skeleton,
+              "a head above wins over the block below");
+        check(noteInstrument(air, air, Instrument::Harp) == Instrument::Harp, "no declared instrument plays the harp");
+        check(!noteInstrument(unknown, gold, Instrument::Harp), "an unknown cell above could still hold a head");
+        check(!noteInstrument(air, unknown, Instrument::Harp), "an unknown cell below leaves it open");
+        check(noteInstrument(skull, unknown, Instrument::Harp) == Instrument::Skeleton,
+              "a head above decides even with the cell below unknown");
     }
 }
