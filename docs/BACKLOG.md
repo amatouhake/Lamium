@@ -86,8 +86,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    (checked 2026-11-03); L-301 (a note block's pitch from the sound events) is
    closed (checked 2026-11-03). L-302 (a ghost's actor-drawn contents) and
    L-303 (the check ignoring block entity data) came out of the L-184 in-game
-   check and are open; L-303's fields are decided (2026-11-03) and it starts
-   with the lectern page probe. L-304 (a real liquid behind a ghost) is closed (checked
+   check and are open; L-303's fields are decided (2026-11-03, the lectern
+   page included after its probe) and it is Ready. L-304 (a real liquid behind a ghost) is closed (checked
    2026-11-03).
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
@@ -182,8 +182,8 @@ validation checkpoints" (snapshot 2026-10-20).
 ## Bugs
 
 ### L-303 The schematic check ignores block entity data
-Kind: Bug, Ready (fields decided 2026-11-03); the lectern's page is Research
-first. Maintainer in-game check 2026-11-03 of PR #68.
+Kind: Bug, Ready (fields decided 2026-11-03). Maintainer in-game check
+2026-11-03 of PR #68.
 Reported: a note block's pitch and a lectern's book are compared by nothing -
 the card shows no "Wrong state" row for them, so a note block tuned after
 building, or a lectern whose book is gone, passes the check.
@@ -196,7 +196,7 @@ current, which are the ones it draws (L-301 found that the rest stay at the
 copy the world loaded with). They are part of the build, either by looks or by
 what a comparator reads:
 - a note block's note (the L-301 sound events first, then the actor's copy);
-- a lectern's book (present or not);
+- a lectern's book (present or not) and open page;
 - a flower pot's plant;
 - a banner's base color and patterns;
 - a skull's type and rotation;
@@ -209,10 +209,10 @@ Not compared: contents the client never refreshes (chest, barrel, hopper,
 dispenser, dropper, the furnaces, brewing stand, shulker box, crafter items)
 and a jukebox's disc. A chiseled bookshelf's books are a block state and are
 already compared.
-Research first: a lectern's open page sets a comparator's strength, so it
-should count, but it is not drawn on the block. A probe build (as in L-301)
-checks whether the client's value follows a page turn by this player and by
-another; if it does not, the page joins the fields left out.
+A lectern's open page counts too (a comparator reads it): checked 2026-11-03
+on `fc02fcc6` with the target card as the probe, the client's page follows
+this player's turns and survives re-entering the world (VALIDATION-LOG); a
+turn by another player is unchecked.
 How it reads: a difference is a wrong state (yellow), with a row per field in
 the card's "should be -> now" form; "now" is the world's block actor (the note
 from the sound events when one was heard). A world value that cannot be read

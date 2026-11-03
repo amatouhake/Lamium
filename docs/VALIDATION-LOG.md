@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Lectern page on the client (2026-11-03)
+
+LeviLauncher instance `1.26.51.01 LIP`, local world, one pass (L-303 research,
+main `fc02fcc6`, DLL SHA-256
+`59C474C3E24DC9C8EB8AB6371FBA0D1469323FC27822172ED26226F784EA458B`), the
+target card's block entity rows (L-300) as the probe:
+
+- A lectern with a book shows a Page row.
+- Turning pages as this player: the row follows each turn.
+- After leaving and re-entering the world the row reads the page last turned to.
+- Not checked: a page turned by another player (no LAN or server session).
+
 ## A real liquid behind a ghost (2026-11-03)
 
 LeviLauncher instance `1.26.51.01 LIP`, local world, one pass (L-304, PR #69,
