@@ -12,6 +12,42 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block entity data in the schematic check (2026-11-04)
+
+LeviLauncher instance `1.26.51.01 LIP`, local world, L-303 on main, five
+passes:
+
+- `97cdbf00` (DLL SHA-256
+  `9E60C8A69EB3A9E2652C109ECDE2998E20D34CB7D3CA394A9C6CC663A409E717`): a
+  schematic with the compared blocks built to match shows no mistakes; an item
+  frame's item makes a wrong state. A note block stopped showing its mistake,
+  and a lectern, flower pot and sign showed none (another placement was
+  selected; see below).
+- `d77d8e82` (`F8330D1DF4E7416DEBC242899CBBCB6F06526D1195F8205E53F115229F4BBE73`):
+  a tuned note block keeps its pitch on the card and differs from the file;
+  with their placement selected, the lectern, flower pot and sign make wrong
+  states; an empty frame and a lectern without a book show the item's turn
+  and the page against "-". No yellow mark in the world; a note block's
+  instrument (bass drum in the file, harp in the world) not compared.
+- `d5f5e85a` (`59386ABD594575F8F1A7BFCE7093B421245FF35CF477E7D5A5D2E49564B648B3`):
+  a changed sign or note block gets a yellow mark that goes when it is put
+  back; the instrument difference shows with its mark; selecting another
+  placement removes the first one's block entity marks. The card also kept
+  its own instrument row.
+- `1484b36c` (`619F0AF2374D917D1A8BEEAE659C324263ABE6773F4478261545D86902BDC37A`):
+  the instrument shows once; the whole-comparison switch clears and restores
+  the wrong states and marks; its help says only the selected placement is
+  compared.
+- `3b945921` (`ED6A2A578D121CED71D7DC1A9E6DE651DDF4A496DF1594BCE26929923483F1EC`)
+  and `a920c015` (`73AFE6629BC94A179A366FCD9D124133C0EACB2CFC063048903F56EB39502EB6`):
+  the switch reads "Ignore block entities" in the settings, help and toast; an
+  empty flower pot names the file's plant against "-", another plant names
+  both, the right plant clears the mistake.
+
+Not checked: "Ignore sign text" on its own; a skull's rotation and an item
+frame's turn under a rotated or mirrored placement, and a wall skull; a page
+turned by another player; a placement with many block entities (scan time).
+
 ## Lectern page on the client (2026-11-03)
 
 LeviLauncher instance `1.26.51.01 LIP`, local world, one pass (L-303 research,
