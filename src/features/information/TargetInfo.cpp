@@ -5,6 +5,7 @@
 #include "features/information/NoteSounds.h"
 #include "features/information/SchematicTarget.h"
 #include "features/information/TargetPick.h"
+#include "features/schematic/BlockEntityCheck.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/LiquidName.h"
 #include "features/schematic/RayCells.h"
@@ -496,9 +497,10 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
     // so a ghost and the block it becomes read alike.
     if (includeBlockEntity) {
         auto type = block.getBlockType().mBlockEntityType;
+        // A head's rotation as the turned placement wants it, as its model is drawn.
         if (ghost->blockEntity)
-            for (auto& row : blockEntityRows(*ghost->blockEntity, sharedBlockEntityNames(), ghostHeldBackFields(type),
-                                             std::nullopt))
+            for (auto& row : blockEntityRows(schematic::entitycheck::placedEntity(*ghost->blockEntity, ghost->turn),
+                                             sharedBlockEntityNames(), ghostHeldBackFields(type), std::nullopt))
                 result.details.push_back(std::move(row));
         if (type == BlockActorType::Music)
             try { appendGhostInstrument(result.details, *ghost); } catch (...) {}

@@ -276,6 +276,15 @@ ran only once the block and all its states matched, and an empty pot's states
 apparently differ from a planted one's, so the cell stopped at its states. It
 now also runs for a block of the right kind in other states, adding its rows
 to the state rows.
+Rotation check 2026-11-04 on `a920c015`, placement turned 90 degrees: a head
+on a wall was a wrong state whichever way it hung (its rotation was compared,
+but a wall head faces by `facing_direction` and keeps a rotation that means
+nothing); a head on the floor passed once placed at the check's -90, while
+the ghost card read the file's own -180 and the game writes a half turn as
+180. Changed: a head's rotation is compared only where the file's block
+stands on the floor (`facing_direction` 1); a ghost's card reads its angles
+turned with the placement, as `GhostActors.cpp` turns its model; angles read
+in (-180, 180].
 In game: a schematic with each field above, built to match (no rows), then
 each changed in the world (a wrong state row naming it); "Ignore sign text" on
 passes only the sign; a chest with other contents still passes.

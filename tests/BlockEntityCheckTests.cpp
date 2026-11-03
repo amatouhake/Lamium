@@ -1,4 +1,5 @@
 #include "features/schematic/BlockEntityCheck.h"
+#include <map>
 #include <string>
 
 void check(bool, char const*);
@@ -137,10 +138,26 @@ void blockEntityCheckTests() {
         world.set("Rotation", {90.f});
         Placement turned;
         turned.rotation = 1;
-        check(differences(file, world, turned, false).empty(), "a skull turned with the placement matches");
-        check(differences(file, world, still, false).size() == 1, "the same skull unturned differs");
+        std::map<std::string, std::string> floor{{"facing_direction", "1"}}, wall{{"facing_direction", "3"}};
+        check(differences(file, world, turned, false, &floor).empty(), "a skull turned with the placement matches");
+        check(differences(file, world, still, false, &floor).size() == 1, "the same skull unturned differs");
         world.set("Rotation", {-270.f});
-        check(differences(file, world, turned, false).empty(), "angles a full turn apart match");
+        check(differences(file, world, turned, false, &floor).empty(), "angles a full turn apart match");
+        world.set("Rotation", {45.f});
+        check(differences(file, world, turned, false, &wall).empty(),
+              "a head on a wall faces by its state; its stored rotation is not compared");
+        check(differences(file, world, turned, false).empty(), "without the file's states the rotation is not judged");
+
+        // The game writes a half turn as 180, never -180; a ghost of a turned
+        // placement reads its turned angle, as its model is drawn.
+        check(entitycheck::gameAngle(-180.f) == 180.f && entitycheck::gameAngle(270.f) == -90.f
+                  && entitycheck::gameAngle(180.f) == 180.f, "angles read as the game writes them");
+        file.set("Rotation", {-180.f});
+        auto shown = entitycheck::placedEntity(file, turned);
+        auto const* turn = shown.find("Rotation");
+        check(turn && turn->as<float>() && *turn->as<float>() == -90.f, "a ghost's head rotation reads turned");
+        auto unturned = entitycheck::placedEntity(file, still);
+        check(*unturned.find("Rotation")->as<float>() == 180.f, "an unturned half turn reads 180");
 
         auto banner = entity("Banner"), plain = entity("Banner");
         banner.set("Base", {std::int32_t{15}});

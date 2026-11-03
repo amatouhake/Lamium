@@ -934,7 +934,8 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
                     return {found != nullptr, found};
                 };
                 return GhostAt{cell, block, shown.placement.name, shown.structure,
-                               overlap::blockEntityAt(shown, dimension, cell), fileAt(-1), fileAt(1)};
+                               overlap::blockEntityAt(shown, dimension, cell), fileAt(-1), fileAt(1),
+                               shown.placement.placement};
             }
         }
     }

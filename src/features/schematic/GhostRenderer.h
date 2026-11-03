@@ -57,6 +57,8 @@ struct GhostAt {
         Block const* block = nullptr; // known and null: air
     };
     Neighbor below, above;
+    // How the placement turns the file: a head's rotation reads turned (L-303).
+    Placement turn;
 };
 // The first ghost along a ray. Real water and lava do not stop the search
 // (L-264); another real block does, unless

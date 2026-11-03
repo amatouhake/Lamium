@@ -261,7 +261,8 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
             if (auto saved = information::savedBlockEntity(region, pos)) {
                 // L-301: the stored note is the one the world loaded with.
                 if (auto note = information::playedNote(pos, placement.dimension)) saved->set("note", {std::int32_t{*note}});
-                auto differences = entitycheck::differences(found->second, *saved, placement.placement, ignoreSign);
+                auto fileStates = blockStates(*against);
+                auto differences = entitycheck::differences(found->second, *saved, placement.placement, ignoreSign, &fileStates);
                 if (!differences.empty()) {
                     same = false;
                     c.entityStates = entityStates(differences);

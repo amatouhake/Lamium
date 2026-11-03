@@ -2,7 +2,9 @@
 #include "features/schematic/Nbt.h"
 #include "features/schematic/Placement.h"
 #include <cmath>
+#include <map>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -35,6 +37,9 @@ struct Field {
     std::string_view onlyWith = {};
     // Covered by "Ignore sign text".
     bool sign = false;
+    // Compared only while the file's block has this state value: a head on
+    // a wall faces by its block state and keeps a rotation that means nothing.
+    std::string_view state = {}, stateValue = {};
 };
 inline constexpr Field fields[] = {
     {"Music", "note"},
@@ -45,7 +50,7 @@ inline constexpr Field fields[] = {
     {"Banner", "Patterns", {}, Kind::Value, true},
     {"Banner", "Type"},
     {"Skull", "SkullType"},
-    {"Skull", "Rotation", {}, Kind::Angle},
+    {"Skull", "Rotation", {}, Kind::Angle, false, {}, false, "facing_direction", "1"},
     {"Bed", "color"},
     {"DecoratedPot", "sherds"},
     {"ItemFrame", "Item", {}, Kind::Item, true},
@@ -127,13 +132,31 @@ inline double angleApart(double a, double b) {
 }
 }
 
+// An angle as the game writes a head's: in (-180, 180], so a half turn is 180.
+inline float gameAngle(float degrees) {
+    degrees = std::fmod(degrees, 360.f);
+    if (degrees > 180) degrees -= 360;
+    if (degrees <= -180) degrees += 360;
+    return degrees;
+}
 // What the file stores, as the world should hold it after the placement's
-// turns and mirror (only an angle changes).
+// turns and mirror (only an angle changes; the ghost's model is turned the
+// same way in GhostActors.cpp).
 inline nbt::Tag placed(Field const& f, nbt::Tag tag, Placement const& placement) {
     if (f.kind != Kind::Angle) return tag;
     auto value = detail::number(tag);
     if (!value) return tag;
-    return nbt::Tag{toWorldYaw(static_cast<float>(*value), placement)};
+    return nbt::Tag{gameAngle(toWorldYaw(static_cast<float>(*value), placement))};
+}
+// A file's block entity with its angles turned for the placement: what a
+// ghost of a turned placement shows on the card.
+inline nbt::Compound placedEntity(nbt::Compound data, Placement const& placement) {
+    auto id = entityId(data);
+    for (auto const& f : fields) {
+        if (f.id != id || f.kind != Kind::Angle || !f.within.empty()) continue;
+        if (auto const* tag = data.find(f.key)) data.set(std::string(f.key), placed(f, *tag, placement));
+    }
+    return data;
 }
 
 // One compared field that differs. A side without the field (where it means
@@ -144,14 +167,21 @@ struct Difference {
 };
 // The compared fields that differ between the file's block entity and the
 // world's, both as saved. A field that one side cannot say anything about
-// is not a difference: the block alone decides, as before.
+// is not a difference: the block alone decides, as before. `fileStates`: the
+// file block's states, for the fields that depend on one (none: not compared).
 inline std::vector<Difference> differences(nbt::Compound const& file, nbt::Compound const& world,
-                                           Placement const& placement, bool ignoreSign) {
+                                           Placement const& placement, bool ignoreSign,
+                                           std::map<std::string, std::string> const* fileStates = nullptr) {
     std::vector<Difference> out;
     auto id = entityId(file);
     if (id.empty() || entityId(world) != id) return out;
     for (auto const& f : fields) {
         if (f.id != id || (f.sign && ignoreSign)) continue;
+        if (!f.state.empty()) {
+            if (!fileStates) continue;
+            auto found = fileStates->find(std::string(f.state));
+            if (found == fileStates->end() || found->second != f.stateValue) continue;
+        }
         bool worldHolds = true;
         if (!f.onlyWith.empty()) {
             Field gate{f.id, f.onlyWith, f.within};
