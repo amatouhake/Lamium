@@ -12,6 +12,32 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Ghost note block instrument (2026-11-03)
+
+LeviLauncher instance `1.26.51.01 LIP`, local world, three passes (L-184,
+PR #68):
+
+- Probe build (`86e2d979` plus a trace, DLL SHA-256
+  `D7A1E7845CC271F31624509D963460C15E5B87E4C6D742A2D5ED386C7AFC7D3D`): on real
+  note blocks the game's instrument matched the neighbors'
+  `BlockInstrumentComponent` every time. A block declares [0] for a note block
+  under it (skeleton skull: skeleton) and [1] for one on it (gold: bell, white
+  wool: guitar, glass: hat, stone: bass drum, hay bale: banjo). The one above
+  wins; air under it and nothing above plays the harp. The component lookup
+  resolved and Lamium loaded.
+- Ghost neighbors with the world as a fallback (DLL SHA-256
+  `E3AA2BB5AB62278D83E40E6C6B6AB10D44D2F8E8890FA1BBD81CD2E376FA7D86`): a ghost
+  on a ghost gold block read bell, with a ghost skull above it skeleton, and a
+  ghost alone on a real hay bale banjo. The maintainer rejected the last one:
+  the file says air there (harp), and the world's block must not read as the
+  file's.
+- File only, `a193244e` (DLL SHA-256
+  `B908A7E703EC466431519AA66F21D5F96DFAEC164B3279B93AF75CCF4C7DC7DA`): over a
+  real hay bale with air below in the file, harp; on gold in the file, bell; a
+  note block on the file's top or bottom layer, "Not set by the schematic".
+Not seen: an unverified game (the row should disappear), a mirrored or turned
+placement, a hidden layer under the note block.
+
 ## Target card note block pitch (2026-11-03)
 
 LeviLauncher instance `1.26.51.01 LIP`, local world, two passes:

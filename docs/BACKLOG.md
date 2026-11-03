@@ -978,7 +978,17 @@ Built 2026-11-03: the ghost's saved block entity data shows as target-card rows
 under the same rules a real block's rows use (L-300/L-301) - sign text, colour,
 glow and waxed state, a jukebox record, a lectern book and page, a potted
 plant, a note block's note and instrument - so a ghost and the block it becomes
-read alike. The row comes from the placement's `block_entities` entry for that
+read alike.
+Decided 2026-11-03 (maintainer): a ghost's card follows the same rules as the
+real block's, from the file alone. This is the base for the file-only data and
+the comparison still to come, so a difference between a ghost and its block
+must come from the data, never from the presentation. The world never fills a
+gap: a value the file does not decide reads "Not set by the schematic" rather
+than the world's, which would pass for the file's. A note block's instrument
+comes from the file's blocks below and above it (each block declares one
+instrument for a note block under it and one for a note block on it, checked
+in game); outside the file or at a void cell it is not set. Passed in game on
+`a193244e`. The row comes from the placement's `block_entities` entry for that
 cell (`PlacementOverlap.h` `blockEntityAt`, turned and mirrored like the cells),
 so it is complete even though the world's copy of a block entity is not.
 Still open, and now the whole of what is left: the data only the file has
