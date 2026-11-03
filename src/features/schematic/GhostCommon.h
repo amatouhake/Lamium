@@ -36,6 +36,8 @@ std::map<std::string, std::string> blockStates(Block const& block);
 // The check relaxations the settings turn on (rules::Category bits, L-262),
 // and whether `actual` passes for `expected`, or for its kind, under them.
 unsigned checkRules();
+// "Ignore sign text" (L-303): a sign's block entity fields are not compared.
+bool signTextIgnored();
 bool relaxedSame(Block const& expected, Block const& actual, unsigned on);
 bool relaxedSameType(Block const& expected, Block const& actual, unsigned on);
 }

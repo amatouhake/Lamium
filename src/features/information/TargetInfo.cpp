@@ -368,19 +368,13 @@ void appendGhostInstrument(std::vector<TargetInfo::DetailRow>& rows, schematic::
 std::vector<TargetInfo::DetailRow> readBlockEntityDetails(BlockSource& source, BlockPos const& pos,
                                                           BlockActorType type, int dimension) {
     std::vector<TargetInfo::DetailRow> rows;
-    if (auto const* actor = source.getBlockEntity(pos)) {
-        CompoundTag tag;
-        if (auto context = SaveContextFactory::createCloneSaveContext(); context && actor->save(tag, *context)) {
-            try {
-                auto bytes = tag.toBinaryNbt();
-                auto root = schematic::nbt::read(
-                    {reinterpret_cast<std::uint8_t const*>(bytes.data()), bytes.size()});
-                // L-301: the block stores the note it loaded with; the sound
-                // events report the pitch every time it plays.
-                auto note = type == BlockActorType::Music ? playedNote(pos, dimension) : std::nullopt;
-                rows = blockEntityRows(root.compound, sharedBlockEntityNames(), staleFields(type), note);
-            } catch (...) {} // A block entity that will not read must not replace the card.
-        }
+    if (auto saved = savedBlockEntity(source, pos)) {
+        // L-301: the block stores the note it loaded with; the sound
+        // events report the pitch every time it plays.
+        auto note = type == BlockActorType::Music ? playedNote(pos, dimension) : std::nullopt;
+        try {
+            rows = blockEntityRows(*saved, sharedBlockEntityNames(), staleFields(type), note);
+        } catch (...) {} // A block entity that will not read must not replace the card.
     }
     if (type == BlockActorType::Music) {
         try { appendInstrument(rows, NoteBlockActor::getInstrument(source, pos)); } catch (...) {}
@@ -411,6 +405,18 @@ std::vector<TargetInfo::DetailRow> blockEntityDetails(BlockSource& source, Block
     return cached.rows;
 }
 }
+std::optional<schematic::nbt::Compound> savedBlockEntity(BlockSource& source, BlockPos const& pos) {
+    auto const* actor = static_cast<BlockSource const&>(source).getBlockEntity(pos);
+    if (!actor) return std::nullopt;
+    CompoundTag tag;
+    auto context = SaveContextFactory::createCloneSaveContext();
+    if (!context || !actor->save(tag, *context)) return std::nullopt;
+    try {
+        auto bytes = tag.toBinaryNbt();
+        return schematic::nbt::read({reinterpret_cast<std::uint8_t const*>(bytes.data()), bytes.size()}).compound;
+    } catch (...) { return std::nullopt; }
+}
+BlockEntityNames const& gameBlockEntityNames() { return sharedBlockEntityNames(); }
 TargetIcon waterIcon() {
     try {
         // Looked up each time: a block pointer kept across a registry reload crashed elsewhere.

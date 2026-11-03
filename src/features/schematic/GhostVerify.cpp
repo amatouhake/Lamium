@@ -1,6 +1,10 @@
 #include "features/schematic/GhostVerify.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/CheckRules.h"
+#include "features/schematic/BlockEntityCheck.h"
+#include "features/information/BlockEntityRows.h"
+#include "features/information/NoteSounds.h"
+#include "ui/Localization.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/actor/Actor.h"
 #include "mc/world/level/BlockPos.h"
@@ -50,6 +54,10 @@ struct Cell {
     // A shulker box's opening, kept in block entity data (L-179): the file's,
     // turned with the placement, and the world's; -1 when not compared.
     int expectedFace = -1, actualFace = -1;
+    // L-303: the compared block entity fields that differ, as the card names
+    // them; and whether the world's block entity was read (it costs a save).
+    std::vector<StateDifference> entityStates;
+    bool readEntity = false;
 };
 struct Scan {
     std::uint64_t revision = 0;
@@ -85,6 +93,33 @@ int actualShulkerFace(BlockSource& region, Point world) {
     auto const* actor = static_cast<BlockSource const&>(region).getBlockEntity(BlockPos{world.x, world.y, world.z});
     if (!actor || actor->getType() != BlockActorType::ShulkerBox) return -1;
     return static_cast<ShulkerBoxBlockActor const*>(actor)->mFacing;
+}
+// A differing field as a row of the card and the Check list: the card's own
+// label and value for it, "-" for a side that holds nothing.
+std::vector<StateDifference> entityStates(std::vector<entitycheck::Difference> const& differences) {
+    auto const& names = information::gameBlockEntityNames();
+    auto label = [&](std::string_view key) {
+        std::string text = names.label ? names.label(key) : std::string{};
+        return text.empty() ? std::string(key) : text;
+    };
+    std::vector<StateDifference> out;
+    for (auto const& d : differences) {
+        auto const& f = *d.field;
+        auto value = [&](std::optional<nbt::Tag> const& tag) -> std::string {
+            if (!tag) return "-";
+            std::int64_t flag = 0;
+            if (tag->type() == nbt::Type::Byte && tag->integer(flag) && (flag == 0 || flag == 1)
+                && (f.key.starts_with("has") || f.key.starts_with("Ignore")))
+                return ui::translated(flag ? "target.yes" : "target.no");
+            auto text = information::blockEntityValue(f.key, *tag, names);
+            return text.empty() ? "-" : text;
+        };
+        std::string name = f.within.empty() ? label(f.key)
+            : f.key == "Text"               ? label(f.within)
+                                            : std::format("{} {}", label(f.within), label(f.key));
+        out.push_back({std::move(name), value(d.expected), value(d.actual)});
+    }
+    return out;
 }
 
 void checkEntities(BlockSource& region, LocalPlayer& player, session::Snapshot const& snapshot, int dimension,
@@ -204,6 +239,22 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
         if (c.expectedFace >= 0) c.actualFace = actualShulkerFace(region, c.world);
         // Unreadable is not a mistake: the block alone decides, as before.
         if (c.actualFace >= 0 && c.actualFace != c.expectedFace) same = false;
+        // L-303: the block entity fields the client keeps current; read only
+        // for a file entry that carries one. Unreadable passes, as above.
+        bool ignoreSign = signTextIgnored();
+        if (auto found = structure.blockEntities.find(static_cast<std::int32_t>(cellIndex));
+            found != structure.blockEntities.end() && entitycheck::compared(found->second, ignoreSign)) {
+            c.readEntity = true;
+            if (auto saved = information::savedBlockEntity(region, pos)) {
+                // L-301: the stored note is the one the world loaded with.
+                if (auto note = information::playedNote(pos, placement.dimension)) saved->set("note", {std::int32_t{*note}});
+                auto differences = entitycheck::differences(found->second, *saved, placement.placement, ignoreSign);
+                if (!differences.empty()) {
+                    same = false;
+                    c.entityStates = entityStates(differences);
+                }
+            }
+        }
     }
     c.state = classifyReading({.placeholder = actual->getMaterial().mType == SharedTypes::v1_26_20::MaterialType::ClientRequestPlaceholder,
                                .expectsAir = c.air,
@@ -242,6 +293,7 @@ Mismatch mismatchFor(Cell const& c, Resolved const& blocks) {
             m.states = stateDifferences(expected, actual);
             if (c.expectedFace >= 0 && c.actualFace >= 0 && c.expectedFace != c.actualFace)
                 m.states.push_back(faceDifference(c.expectedFace, c.actualFace));
+            m.states.insert(m.states.end(), c.entityStates.begin(), c.entityStates.end());
             if (m.states.empty() && c.expectedLiquid != c.actualLiquid)
                 m.states.push_back(liquidDifference(c.expectedLiquid, c.actualLiquid));
             m.identifier = c.expected->getTypeName();
@@ -286,9 +338,11 @@ void stepProgress(BlockSource& region, session::Snapshot const& snapshot, int di
         if (progressScan.key != key) { progressScan.key = key; progressScan.next = 0; progressScan.tally = {}; }
         Size placed = placedSize(shown.structure->size, shown.placement.placement.rotation);
         std::uint64_t total = static_cast<std::uint64_t>(placed.x) * placed.y * placed.z;
+        bool read = false;
         for (; progressScan.next < total && budget; ++progressScan.next, --budget) {
-            if ((budget & 255) == 0 && Clock::now() >= progressUntil) return;
+            if (((budget & 255) == 0 || read) && Clock::now() >= progressUntil) return;
             auto c = classifyCell(region, shown, resolved[progressScan.index], placed, progressScan.next);
+            read = c.readEntity;
             if (c.inside && c.visible) progressScan.tally.add(c.state, !c.air);
         }
         if (progressScan.next < total) return;
@@ -344,9 +398,13 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
         if (correct) line.placed += static_cast<std::uint64_t>(info.perBlock);
     };
     auto const scanUntil = Clock::now() + scanTime;
+    // A block entity read (L-303) costs about as much as hundreds of plain
+    // cells, so the clock is looked at after each one too.
+    bool read = false;
     for (std::uint64_t budget = scanBudget; scan.next < total && budget; ++scan.next, --budget) {
-        if ((budget & 255) == 0 && Clock::now() >= scanUntil) break;
+        if (((budget & 255) == 0 || read) && Clock::now() >= scanUntil) break;
         auto c = classifyCell(region, shown, blocks, placed, scan.next);
+        read = c.readEntity;
         if (!c.inside) continue;
         auto paletteIndex = c.palette;
         bool visible = c.visible, air = c.air;

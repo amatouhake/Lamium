@@ -204,6 +204,8 @@ struct Settings {
         // L-262: how the check relaxes (features/schematic/CheckRules.h); the
         // off and on forms of a redstone block are a state mistake, not a wrong block.
         bool ignoreSignal = false, litAsState = false, ignoreGrowth = false;
+        // L-303: a sign's text, colour and glow are left out of the check.
+        bool ignoreSignText = false;
     } schematic;
     struct Overlays {
         bool chunkBorders = false;

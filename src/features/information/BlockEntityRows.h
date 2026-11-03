@@ -8,6 +8,8 @@
 #include <string_view>
 #include <vector>
 
+class BlockPos;
+class BlockSource;
 namespace lamium::information {
 // Block entity data as target-card rows (L-300). The card reads a block's
 // states, and a block entity's own fields - a sign's text, a note block's
@@ -50,4 +52,10 @@ std::vector<TargetInfo::DetailRow> blockEntityRows(schematic::nbt::Compound cons
 // A note block's pitch: note 0 plays F#3, 12 F#4, 24 F#5. Out of range is
 // the note's own number, since the game would not play it.
 std::string notePitch(long long note);
+
+// With the game (TargetInfo.cpp): the block entity at `pos` as the client
+// would save it, nothing when there is none or it will not read; and the
+// names the card uses, shared by the schematic check (L-303).
+std::optional<schematic::nbt::Compound> savedBlockEntity(BlockSource& source, BlockPos const& pos);
+BlockEntityNames const& gameBlockEntityNames();
 }

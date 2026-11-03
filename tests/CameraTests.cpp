@@ -145,6 +145,8 @@ int main() try {
     blockEntityRowTests();
     extern void ghostBlockEntityTests();
     ghostBlockEntityTests();
+    extern void blockEntityCheckTests();
+    blockEntityCheckTests();
     extern void targetPickTests();
     targetPickTests();
     extern void shapeProfileTests();

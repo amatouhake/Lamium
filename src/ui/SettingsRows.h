@@ -178,6 +178,7 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "schematic.ignoreSignal") return input::Action::ToggleIgnoreSignal;
     if (option == "schematic.litAsState") return input::Action::ToggleLitAsState;
     if (option == "schematic.ignoreGrowth") return input::Action::ToggleIgnoreGrowth;
+    if (option == "schematic.ignoreSignText") return input::Action::ToggleIgnoreSignText;
     return {};
 }
 inline bool shownOnOption(input::Action action) {
@@ -259,6 +260,7 @@ inline std::string_view toggleToastKey(input::Action action) {
     case Action::ToggleIgnoreSignal: return "toast.ignoreSignal";
     case Action::ToggleLitAsState: return "toast.litAsState";
     case Action::ToggleIgnoreGrowth: return "toast.ignoreGrowth";
+    case Action::ToggleIgnoreSignText: return "toast.ignoreSignText";
     default: return featureNameKey(input::actions[static_cast<size_t>(action)].feature);
     }
 }

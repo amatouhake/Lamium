@@ -224,6 +224,15 @@ row, not code.
 Setting: one, "Ignore sign text", a new L-262 category (off: compared). No
 switch for block entity data as a whole: the other fields are the build, and a
 broken read already fails open through the capability.
+Built 2026-11-03: the field table and comparison are
+`src/features/schematic/BlockEntityCheck.h` (`tests/BlockEntityCheckTests.cpp`),
+read in `GhostVerify.cpp` `classifyCell` after the shulker box; the world's
+block entity is saved through `information::savedBlockEntity` (the card's own
+read), and the scan looks at its clock after each such read. A skull's
+rotation turns with the placement (`toWorldYaw`); an item frame's item
+rotation is kept as stored. Not done: mistake marks in the world come from the
+mesh, which compares blocks only, so a field-only mistake has no mark (as the
+shulker box's opening).
 In game: a schematic with each field above, built to match (no rows), then
 each changed in the world (a wrong state row naming it); "Ignore sign text" on
 passes only the sign; a chest with other contents still passes.

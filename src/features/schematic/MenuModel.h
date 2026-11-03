@@ -106,7 +106,8 @@ inline constexpr std::array<Category, 6> categories{{
 // the settings, with an optional key (maintainer 2026-10-26).
 inline constexpr bool keyOnlyAccelerator(Action action) {
     return action == Action::SchematicMenu || action == Action::AdjustSchematic || action == Action::OpenSchematics
-        || action == Action::ToggleIgnoreSignal || action == Action::ToggleLitAsState || action == Action::ToggleIgnoreGrowth;
+        || action == Action::ToggleIgnoreSignal || action == Action::ToggleLitAsState || action == Action::ToggleIgnoreGrowth
+        || action == Action::ToggleIgnoreSignText;
 }
 // The "move ... ->" commands: which target they choose before opening Move.
 inline constexpr bool choosesTarget(Command command, Target& target) {
