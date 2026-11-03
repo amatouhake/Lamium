@@ -134,7 +134,9 @@ void blockEntityRowTests() {
         check(noteFromEventData(769) == 1, "under glass: 769 is note 1");
         check(noteFromEventData(1793) == 1, "under wool: 1793 is note 1");
         check(!noteFromEventData(-1) && !noteFromEventData(25) && !noteFromEventData(281),
-              "a note past 24 or an unknown instrument makes no note");
+              "a note past 24 makes no note");
+        check(noteFromEventData(25 * 256 + 3) == 3 && !noteFromEventData(26 * 256 + 3),
+              "an instrument past the last one makes no note");
         // The block stores the note the world loaded with, and the sound
         // events report the pitch the card should show.
         nbt::Compound music;

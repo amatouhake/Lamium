@@ -10,6 +10,8 @@ namespace lamium::information {
 std::optional<int> playedNote(BlockPos const& pos, int dimension);
 // Subscribes to the level's sound events once; safe to call every frame.
 void beginNoteSounds(Level& level, int dimension);
-// Forgets the notes and the subscription when the world closes.
+// Leaves the sound events and forgets the notes; safe to call every frame.
+void endNoteSounds();
+// Also forgets a failed subscription when the world closes.
 void forgetNoteSounds();
 }

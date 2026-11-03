@@ -1,4 +1,5 @@
 #include "features/information/TargetInfo.h"
+#include "app/Capabilities.h"
 #include "features/information/BlockEntityRows.h"
 #include "features/information/NoteSounds.h"
 #include "features/information/SchematicTarget.h"
@@ -467,8 +468,9 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     if (!player) return {};
     // L-301: note block pitches come from the level's sound events. Read only
     // while the card shows details, so the option off costs nothing.
-    if (includeBlockEntity)
-        if (auto* level = client.getLevel()) beginNoteSounds(*level, static_cast<int>(player->getDimensionId()));
+    if (auto* level = includeBlockEntity ? client.getLevel() : nullptr)
+        beginNoteSounds(*level, static_cast<int>(player->getDimensionId()));
+    else endNoteSounds();
     Pick pick;
     auto const& latest = client.getLatestHitResult();
     bool gameHit = latest.mType == HitResultType::Tile || latest.mType == HitResultType::Entity;
@@ -631,5 +633,7 @@ void stopTargetIcons() {
         exitListener.reset();
     }
     clearSpawnEggIndex();
+    forgetNoteSounds();
+    capabilities::stop(capabilities::Id::NoteBlockSounds);
 }
 }
