@@ -397,12 +397,13 @@ bool BuildCamera::near(Point p, int reach) const {
     });
 }
 // The world's blocks in a section's cells, hashed: equal values mean nothing
-// there changed and the built meshes still hold.
-std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, SectionKey key) {
+// there changed and the built meshes still hold. `mistakes` is taken once by
+// the caller, so the hash a section records and the marks it draws agree.
+std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, SectionKey key,
+                          std::shared_ptr<EntityMistakes const> const& mistakes) {
     std::uint64_t hash = 1469598103934665603ull;
     // L-303: the check's block entity verdicts, so a section rebuilds when
     // one changes (a sign rewritten, a note tuned) with the block unchanged.
-    auto mistakes = entityMistakes();
     bool checked = !mistakes->cells.empty() && mistakes->key == drawKey(shown.placement);
     // One cell around the section too: its border ghosts' faces and
     // enclosure depend on the neighbors there.
@@ -420,6 +421,9 @@ std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, Sect
             hash = (hash ^ 0x9E3779B97F4A7C15ull) * 1099511628211ull;
     });
     return hash;
+}
+std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, SectionKey key) {
+    return signatureOf(region, shown, key, entityMistakes());
 }
 
 void prepareShapes(ScreenContext& screen, BlockTessellator& own, Resolved const& blocks) {
@@ -458,13 +462,15 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     out.due.reset();
     out.origin = {static_cast<float>(low.x), static_cast<float>(low.y), static_cast<float>(low.z)};
     out.built = out.checked = Clock::now();
-    out.signature = signatureOf(region, shown, key);
+    // The check's block entity verdicts, taken once: the signature this section
+    // records must be the one its marks are drawn from (L-303).
+    auto const entityMarks = entityMistakes();
+    out.signature = signatureOf(region, shown, key, entityMarks);
     out.complete = true;
     auto const tint = faces::ghostTint(Runtime::instance().snapshot()->schematic.ghostTint);
     // L-252: without marks a mistake is drawn like a correct cell (nothing).
     bool const showMarks = Runtime::instance().snapshot()->schematic.mistakeMarks;
     unsigned const relax = checkRules(); // L-262
-    auto const entityMarks = entityMistakes(); // L-303
     bool const entityChecked = !entityMarks->cells.empty() && entityMarks->key == drawKey(placement);
 
     prepareShapes(screen, own, blocks);
