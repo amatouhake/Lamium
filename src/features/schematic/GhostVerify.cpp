@@ -248,8 +248,12 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
         if (c.expectedFace >= 0) c.actualFace = actualShulkerFace(region, c.world);
         // Unreadable is not a mistake: the block alone decides, as before.
         if (c.actualFace >= 0 && c.actualFace != c.expectedFace) same = false;
-        // L-303: the block entity fields the client keeps current; read only
-        // for a file entry that carries one. Unreadable passes, as above.
+    }
+    // L-303: the block entity fields the client keeps current; read only for
+    // a file entry that carries one. Unreadable passes, as above. Also for a
+    // block of the right kind in other states: an empty flower pot's states
+    // differ from a planted one's, and the row must still name the plant.
+    if ((same || sameType) && !c.air && !actual->isAir()) {
         bool ignoreSign = signTextIgnored();
         if (auto found = structure.blockEntities.find(static_cast<std::int32_t>(cellIndex));
             found != structure.blockEntities.end() && !blockEntitiesIgnored() && entitycheck::compared(found->second, ignoreSign)) {

@@ -270,6 +270,12 @@ as the narrower switch. Renamed "Ignore block entities" (maintainer
 2026-11-04, after the checks on `1484b36c` passed): "block data" read as if a
 block's facing or waterlogging were skipped too; the help says states are
 still compared.
+Reported 2026-11-04 on `3b945921`: an empty flower pot did not name the plant
+the file wants (as the empty item frame before). The block entity comparison
+ran only once the block and all its states matched, and an empty pot's states
+apparently differ from a planted one's, so the cell stopped at its states. It
+now also runs for a block of the right kind in other states, adding its rows
+to the state rows.
 In game: a schematic with each field above, built to match (no rows), then
 each changed in the world (a wrong state row naming it); "Ignore sign text" on
 passes only the sign; a chest with other contents still passes.
