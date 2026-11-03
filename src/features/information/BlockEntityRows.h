@@ -8,6 +8,7 @@
 #include <string_view>
 #include <vector>
 
+class Block;
 class BlockPos;
 class BlockSource;
 namespace lamium::information {
@@ -58,4 +59,11 @@ std::string notePitch(long long note);
 // names the card uses, shared by the schematic check (L-303).
 std::optional<schematic::nbt::Compound> savedBlockEntity(BlockSource& source, BlockPos const& pos);
 BlockEntityNames const& gameBlockEntityNames();
+// A note block's instrument is not stored: the blocks above and below decide
+// it. The one the file's neighbors decide (unknown: null and not known; air:
+// null and known) and the one the world's block plays, by name, when both are
+// known and differ (L-303).
+std::optional<std::pair<std::string, std::string>> noteInstrumentMismatch(BlockSource& source, BlockPos const& pos,
+                                                                         bool aboveKnown, Block const* above,
+                                                                         bool belowKnown, Block const* below);
 }

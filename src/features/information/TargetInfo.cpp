@@ -345,19 +345,21 @@ void appendInstrument(std::vector<TargetInfo::DetailRow>& rows,
 // L-184: a ghost note block's instrument as the file decides it, from the
 // file's blocks below and above - never the world's, which the file does not
 // promise. Where the file leaves it open, the row says so instead of guessing.
+// A block declares two instruments: [0] for a note block under it, [1] for
+// one standing on it (seen in game on 1.26.51.01).
+Declared<SharedTypes::v1_26_20::NoteBlockInstrument> declaredBy(schematic::ghosts::GhostAt::Neighbor neighbor,
+                                                                std::size_t side) {
+    using SharedTypes::v1_26_20::NoteBlockInstrument;
+    Declared<NoteBlockInstrument> result{neighbor.known, std::nullopt};
+    if (neighbor.block)
+        if (auto const* component = neighbor.block->tryGetComponent<BlockInstrumentComponent>())
+            result.instrument = declaresNoInstrument(component->mInstruments.get()[side], NoteBlockInstrument::None);
+    return result;
+}
 void appendGhostInstrument(std::vector<TargetInfo::DetailRow>& rows, schematic::ghosts::GhostAt const& ghost) {
     using SharedTypes::v1_26_20::NoteBlockInstrument;
     if (!versionSensitiveAllowed(capabilities::Id::NoteBlockInstrument)) return;
-    // A block declares two instruments: [0] for a note block under it, [1] for
-    // one standing on it (seen in game on 1.26.51.01).
-    auto declared = [](schematic::ghosts::GhostAt::Neighbor neighbor, std::size_t side) {
-        Declared<NoteBlockInstrument> result{neighbor.known, std::nullopt};
-        if (neighbor.block)
-            if (auto const* component = neighbor.block->tryGetComponent<BlockInstrumentComponent>())
-                result.instrument = declaresNoInstrument(component->mInstruments.get()[side], NoteBlockInstrument::None);
-        return result;
-    };
-    if (auto instrument = noteInstrument(declared(ghost.above, 0), declared(ghost.below, 1), NoteBlockInstrument::Harp))
+    if (auto instrument = noteInstrument(declaredBy(ghost.above, 0), declaredBy(ghost.below, 1), NoteBlockInstrument::Harp))
         appendInstrument(rows, instrument);
     else
         rows.push_back({"blockEntity.instrument", "blockEntity.instrument.notInFile", true, {}, DetailKind::Other});
@@ -417,6 +419,19 @@ std::optional<schematic::nbt::Compound> savedBlockEntity(BlockSource& source, Bl
     } catch (...) { return std::nullopt; }
 }
 BlockEntityNames const& gameBlockEntityNames() { return sharedBlockEntityNames(); }
+std::optional<std::pair<std::string, std::string>> noteInstrumentMismatch(BlockSource& source, BlockPos const& pos,
+                                                                         bool aboveKnown, Block const* above,
+                                                                         bool belowKnown, Block const* below) {
+    using SharedTypes::v1_26_20::NoteBlockInstrument;
+    if (!versionSensitiveAllowed(capabilities::Id::NoteBlockInstrument)) return std::nullopt;
+    auto expected = noteInstrument(declaredBy({aboveKnown, above}, 0), declaredBy({belowKnown, below}, 1),
+                                   NoteBlockInstrument::Harp);
+    if (!expected) return std::nullopt;
+    std::optional<NoteBlockInstrument> actual;
+    try { actual = NoteBlockActor::getInstrument(source, pos); } catch (...) {}
+    if (!actual || *actual == NoteBlockInstrument::None || *actual == *expected) return std::nullopt;
+    return std::pair{instrumentName(*expected), instrumentName(*actual)};
+}
 TargetIcon waterIcon() {
     try {
         // Looked up each time: a block pointer kept across a registry reload crashed elsewhere.

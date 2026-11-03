@@ -245,6 +245,21 @@ the check about the selected placement only, so a block in another placement
 gets no schematic rows). Changed after the check (maintainer): a gated field
 shows the file's value while the world block lacks the book or item (a page
 or an item's turn is known before the book or item goes in).
+Second check 2026-11-04 on `d77d8e82`: a tuned note block keeps its pitch on
+the card and differs from the file; with their placement selected the
+lectern, flower pot and sign make a wrong state (the first check had another
+placement selected); an empty frame and a lectern without a book show the
+item's turn and the page. Reported: no yellow mark in the world for a block
+entity mistake, and a note block's instrument (bass drum in the file, harp in
+the world) was not compared. Changed: the instrument counts where the file's
+blocks above and below decide it (`noteInstrumentMismatch`, against
+`NoteBlockActor::getInstrument`, under the `NoteBlockInstrument` capability);
+the check publishes its block entity mistake cells (`entityMistakes()`) and
+the mesh marks them yellow, rebuilding a section when that set changes (a
+section does not save block entities itself).
+Open (maintainer): block entity mistakes come from the selected placement's
+check only, while block mistakes are marked for every placement; whether to
+say so to the player, or to check every shown placement.
 In game: a schematic with each field above, built to match (no rows), then
 each changed in the world (a wrong state row naming it); "Ignore sign text" on
 passes only the sign; a chest with other contents still passes.

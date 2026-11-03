@@ -7,7 +7,11 @@
 #include "features/schematic/ResolvedPlacement.h"
 #include "features/schematic/SchematicSession.h"
 #include "features/schematic/Verification.h"
+#include <memory>
 #include <optional>
+#include <set>
+#include <string>
+#include <tuple>
 #include <vector>
 class BlockSource;
 class LocalPlayer;
@@ -27,6 +31,16 @@ std::optional<Mismatch> checkedCell(BlockSource& region, Point world, std::vecto
 // unreadable. The Check list and the in-world marks share them.
 int expectedShulkerFace(Structure const& structure, std::int32_t cell, Placement const& placement);
 int actualShulkerFace(BlockSource& region, Point world);
+// The cells of the checked placement whose block matches but whose block
+// entity data does not (L-303), from its last finished pass. The in-world
+// marks take them from here: reading every block entity again while building
+// a section would cost a save per cell. `key` is the placement's drawKey.
+struct EntityMistakes {
+    std::string key;
+    std::set<std::tuple<int, int, int>> cells;
+    bool has(Point p) const { return cells.contains({p.x, p.y, p.z}); }
+};
+std::shared_ptr<EntityMistakes const> entityMistakes();
 // Drops the running pass and publishes an empty result.
 void resetVerification();
 }

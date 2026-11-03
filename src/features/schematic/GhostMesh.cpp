@@ -400,6 +400,10 @@ bool BuildCamera::near(Point p, int reach) const {
 // there changed and the built meshes still hold.
 std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, SectionKey key) {
     std::uint64_t hash = 1469598103934665603ull;
+    // L-303: the check's block entity verdicts, so a section rebuilds when
+    // one changes (a sign rewritten, a note tuned) with the block unchanged.
+    auto mistakes = entityMistakes();
+    bool checked = !mistakes->cells.empty() && mistakes->key == drawKey(shown.placement);
     // One cell around the section too: its border ghosts' faces and
     // enclosure depend on the neighbors there.
     eachCell(shown, key, 1, [&](int x, int y, int z) {
@@ -412,6 +416,8 @@ std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, Sect
         // A shulker box's opening arrives with its block actor, after the block.
         if (block && block->getBlockType().mBlockEntityType == BlockActorType::ShulkerBox)
             hash = (hash ^ static_cast<std::uint64_t>(actualShulkerFace(region, {x, y, z}) + 2)) * 1099511628211ull;
+        if (checked && block && block->getBlockType().mBlockEntityType != BlockActorType::Undefined && mistakes->has({x, y, z}))
+            hash = (hash ^ 0x9E3779B97F4A7C15ull) * 1099511628211ull;
     });
     return hash;
 }
@@ -458,6 +464,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     // L-252: without marks a mistake is drawn like a correct cell (nothing).
     bool const showMarks = Runtime::instance().snapshot()->schematic.mistakeMarks;
     unsigned const relax = checkRules(); // L-262
+    auto const entityMarks = entityMistakes(); // L-303
+    bool const entityChecked = !entityMarks->cells.empty() && entityMarks->key == drawKey(placement);
 
     prepareShapes(screen, own, blocks);
     Point drawing{};
@@ -515,7 +523,9 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     // A shulker box opening another way is a state mistake too.
                     int face = expectedShulkerFace(structure, structure.cell(local->x, local->y, local->z), placement.placement);
                     int placedFace = face >= 0 ? actualShulkerFace(region, {x, y, z}) : -1;
-                    if (showMarks && (fileLiquid != (extra.isAir() ? nullptr : &extra) || (placedFace >= 0 && placedFace != face)))
+                    // And block entity data the check found different (L-303).
+                    if (showMarks && (fileLiquid != (extra.isAir() ? nullptr : &extra) || (placedFace >= 0 && placedFace != face)
+                                      || (entityChecked && entityMarks->has({x, y, z}))))
                         marks.push_back({boxLow, boxHigh, 1.f, .8f, .2f});
                     continue;
                 }

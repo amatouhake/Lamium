@@ -70,10 +70,19 @@ struct Scan {
     // max-heaps on distance; turned into rows when the pass ends.
     std::vector<std::pair<double, Cell>> nearMissing, nearMistakes;
     std::map<std::string, MaterialLine> all, shown;
+    std::set<std::tuple<int, int, int>> entityMistakes;
 };
 Scan scan;
 std::mutex resultMutex;
 std::shared_ptr<Verification const> published = std::make_shared<Verification const>();
+std::shared_ptr<EntityMistakes const> publishedEntityMistakes = std::make_shared<EntityMistakes const>();
+void publishEntityMistakes(std::string key, std::set<std::tuple<int, int, int>> cells) {
+    auto value = std::make_shared<EntityMistakes>();
+    value->key = std::move(key);
+    value->cells = std::move(cells);
+    std::lock_guard lock(resultMutex);
+    publishedEntityMistakes = std::move(value);
+}
 void publish(std::shared_ptr<Verification const> value) {
     std::lock_guard lock(resultMutex);
     published = std::move(value);
@@ -254,6 +263,25 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
                     c.entityStates = entityStates(differences);
                 }
             }
+            // A note block's instrument comes from the blocks above and
+            // below; the file's decide it where both stand in the file.
+            if (entitycheck::entityId(found->second) == "Music") {
+                auto fileAt = [&](int dy) -> std::pair<bool, Block const*> {
+                    int y = local->y + dy;
+                    if (y < 0 || y >= structure.size.y) return {false, nullptr};
+                    auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, y, local->z))];
+                    if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size()) return {false, nullptr};
+                    if (structure.palette[static_cast<size_t>(index)].isAir()) return {true, nullptr};
+                    auto const* block = blocks.blocks[static_cast<size_t>(index)];
+                    return {block != nullptr, block};
+                };
+                auto [aboveKnown, above] = fileAt(1);
+                auto [belowKnown, below] = fileAt(-1);
+                if (auto instrument = information::noteInstrumentMismatch(region, pos, aboveKnown, above, belowKnown, below)) {
+                    same = false;
+                    c.entityStates.push_back({ui::translated("blockEntity.instrument"), instrument->first, instrument->second});
+                }
+            }
         }
     }
     c.state = classifyReading({.placeholder = actual->getMaterial().mType == SharedTypes::v1_26_20::MaterialType::ClientRequestPlaceholder,
@@ -365,6 +393,7 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
             auto none = std::make_shared<Verification>();
             none->revision = snapshot.revision;
             publish(std::move(none));
+            publishEntityMistakes({}, {});
         }
         return;
     }
@@ -376,6 +405,8 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
         scan = {};
         scan.key = key;
         std::lock_guard lock(resultMutex);
+        // Another placement's block entity mistakes are not this one's.
+        publishedEntityMistakes = std::make_shared<EntityMistakes const>();
         if (published->complete && !published->stale) {
             auto kept = std::make_shared<Verification>(*published);
             kept->stale = true;
@@ -406,6 +437,7 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
         auto c = classifyCell(region, shown, blocks, placed, scan.next);
         read = c.readEntity;
         if (!c.inside) continue;
+        if (!c.entityStates.empty()) scan.entityMistakes.insert({c.world.x, c.world.y, c.world.z});
         auto paletteIndex = c.palette;
         bool visible = c.visible, air = c.air;
         CellState state = c.state;
@@ -449,7 +481,9 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
     sortMaterials(result->materials);
     sortMaterials(result->visibleMaterials);
     publish(std::move(result));
+    publishEntityMistakes(drawKey(placement), std::move(scan.entityMistakes));
     // Start the next pass.
+    scan.entityMistakes.clear();
     scan.next = 0;
     scan.tally = {};
     scan.mismatches.clear();
@@ -494,5 +528,10 @@ void resetVerification() {
     entitiesChecked = {};
     scan = {};
     publish(std::make_shared<Verification const>());
+    publishEntityMistakes({}, {});
+}
+std::shared_ptr<EntityMistakes const> entityMistakes() {
+    std::lock_guard lock(resultMutex);
+    return publishedEntityMistakes;
 }
 }
