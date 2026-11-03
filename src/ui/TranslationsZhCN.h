@@ -1151,6 +1151,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"targetInfo", "目标信息: {}"},
     {"targetIdentifier", "显示标识符: {}"},
     {"targetStates", "其他详情: {}"},
+    {"help.information.targetStates", "关闭时只显示蓝图行、生命值、成长阶段和坐标。开启后还显示方块自身的状态，以及方块实体保存的数据（告示牌文字、音符盒的音高和乐器、讲台的书和页码等）。不显示箱子等容器的内容（游戏只保留加载世界时的副本）。"},
     {"targetIcon", "图标: {}"},
     {"targetHealth", "生命值: {}"},
     {"targetArmor", "盔甲值: {}"},

@@ -1174,6 +1174,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"targetInfo", "Target Info: {}", "照準先の情報: {}"},
     {"targetIdentifier", "Show identifier: {}", "ID を表示: {}"},
     {"targetStates", "Other details: {}", "その他の詳細: {}"},
+    {"help.information.targetStates", "Off leaves the schematic rows, health, growth and the position. On adds the block's own states and what its block entity stores: a sign's text, a note block's pitch and instrument, a lectern's book and page. A container's contents are never shown: the game keeps only the copy the world loaded with.", "オフでは設計図の行・体力・成長・座標だけを表示します。オンにするとブロック自身の状態と、ブロックエンティティが保存しているデータ（看板の文字、音ブロックの音程と楽器、書見台の本とページなど）も表示します。チェストなどの中身は表示しません（ゲームはワールド読み込み時の複製しか保持しないため）。"},
     {"targetIcon", "Icon: {}", "アイコン: {}"},
     {"targetHealth", "Health: {}", "体力: {}"},
     {"targetArmor", "Armor: {}", "防具: {}"},
