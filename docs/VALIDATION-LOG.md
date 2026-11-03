@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Target card note block pitch (2026-11-03)
+
+LeviLauncher instance `1.26.51.01 LIP`, local world, two passes:
+
+- `b9ad4fde` (DLL SHA-256
+  `B9AD4FDE58A16ADC8B3FB6D0784E2B2A411D55D4B2FD484C8B27B93B8204EFBD`): the
+  pitch row reads the note the world loaded with, follows each tune, wraps 24
+  back to 0, and the setting off shows no block entity rows. Tuning a block
+  whose instrument comes from the block underneath did not follow - the event's
+  `data` carries the instrument above the note.
+- `3d799aaf` (DLL SHA-256
+  `3751F250CB5F78145A8D7D52676D5CA4C9B368E38EBC34F21E5662206F0DB102`): the
+  pitch follows under stone, glass, wool, a block of gold and a hay bale.
+Not seen: another player tuning the same block (no LAN or server world was
+used), and a note block played by redstone.
+
 ## Target card block entity rows, review fixes (2026-11-03)
 
 LeviLauncher instance `1.26.51.01 LIP`, local world, on PR #65 commit

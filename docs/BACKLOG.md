@@ -83,8 +83,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    priority) is closed (checked 2026-11-01). L-293 (placement as if
    sneaking, toggle) is closed (2026-11-01). L-294 (water icons) is closed
    (2026-11-01). L-300 (block entity data in the target card) is closed
-   (checked 2026-11-03); L-301 (values the client never refreshes) is built
-   2026-11-03 for the note block's pitch and awaits the in-game check.
+   (checked 2026-11-03); L-301 (a note block's pitch from the sound events) is
+   closed (checked 2026-11-03).
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -581,44 +581,6 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
-
-### L-301 Show block entity values the client never refreshes
-Kind: Research, then implementation for the note block. Maintainer question
-2026-11-03, follow-up of L-300.
-Current: the client keeps current only what it has to draw. A container's
-contents and a note block's pitch reach it as the copy the world loaded with
-and never update: in game a chest's and a furnace's contents did not follow a
-change, and a note block's pitch read 8 of 24 after re-entering and did not
-follow a tune.
-Found 2026-11-03 (probe build, LeviLauncher `1.26.51.01 LIP`): the client does
-receive the pitch, just not in the block entity. Every play sends a level
-sound event `Note` (enum 81) at the block's position with the note in the
-event's own data (`LevelSoundManager::getOnLevelSoundEventConnector`:
-`SoundEventIdentifier`, `Vec3`, `int data`; the volume-and-pitch connector never
-fired for block sounds). The data packs the instrument above the note: a second
-probe read 14-16 under air (harp), 257-259 under stone (bass drum), 769-771
-under glass (hat) and 1793-1795 under wool (guitar) - `data / 256` is the
-instrument, `data % 256` the note, in `NoteBlockInstrument` order. So the sound
-is a live source that also follows another player's tuning, and counting this
-player's clicks is not needed.
-Built: `NoteSounds.h/.cpp` joins that connector once per world and remembers
-the note per block cell (cleared with the world, capped), and the target card
-uses it in place of the stored note, which is what the block still holds from
-world load. The row is a row again rather than a field L-300 leaves out.
-A new capability `NoteBlockSounds` covers the subscription: paused, the card
-shows the note the world loaded with, and the instrument and every other row
-are unaffected.
-Not solved: a container's contents. Those reach the client only through an open
-container screen and are gone when it closes, so a row would be a snapshot of
-some earlier visit; a server-side companion (Lamium is client-only) would be
-needed. They stay out.
-Status: built 2026-11-03, not yet checked in game.
-In game: a note block tuned by this player (the pitch row follows each press,
-24 wraps to 0); a note block tuned by another player in a LAN or server world
-(if one is available); a redstone-played note block; the same block left alone
-(it reads the note the world loaded with); and the card with the setting off
-(no block entity rows, no subscription cost).
-No release target selected.
 
 ### L-298 Attach release assets from the tag's CI run
 Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).
