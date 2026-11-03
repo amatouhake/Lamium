@@ -201,6 +201,12 @@ option("schematic_quad_trace")
     set_description("L-268: log the quads one ghost of each non-cube block draws, and which were dropped")
 option_end()
 
+option("pot_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-302: log where the game draws a real potted plant against the same plant alone")
+option_end()
+
 option("schematic_model_trace")
     set_default(false)
     set_showmenu(true)
@@ -248,6 +254,7 @@ target("Lamium")
     if has_config("schematic_perf_trace") then add_defines("LAMIUM_SCHEMATIC_PERF_TRACE") end
     if has_config("edge_guard_perf") then add_defines("LAMIUM_EDGE_PERF") end
     if has_config("schematic_quad_trace") then add_defines("LAMIUM_SCHEMATIC_QUAD_TRACE") end
+    if has_config("pot_trace") then add_defines("LAMIUM_POT_TRACE") end
     if has_config("consumption_trace") then add_defines("LAMIUM_CONSUMPTION_TRACE") end
     if has_config("offhand_trace") then add_defines("LAMIUM_OFFHAND_TRACE") end
     if has_config("transfer_trace") then add_defines("LAMIUM_TRANSFER_TRACE") end

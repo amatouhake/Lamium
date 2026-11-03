@@ -1,5 +1,6 @@
 #include "features/schematic/GhostRenderer.h"
 #include "mc/world/level/block/actor/BlockActorType.h"
+#include "mc/world/level/block/actor/FlowerPotBlockActor.h"
 #include "features/schematic/AreaSave.h"
 #include "features/schematic/PlacementOverlap.h"
 #include "features/schematic/EntityModels.h"
@@ -188,6 +189,54 @@ void release() {
     builtRevision = 0;
     resetVerification();
 }
+#ifdef LAMIUM_POT_TRACE
+// L-302 probe: the game's own drawing of a real potted plant under the
+// crosshair, against the same plant tessellated alone, once per pot. The
+// ghost pot draws its plant itself and needs the pot's scale and lift.
+void probePot(ScreenContext& screen, BlockSource& region, IClientInstance& client) {
+    static BlockPos last{0, -1000, 0};
+    auto const& hit = client.getLatestHitResult();
+    if (hit.mType != HitResultType::Tile || hit.mBlock == last) return;
+    Block const& pot = region.getBlock(hit.mBlock);
+    if (pot.getBlockType().mBlockEntityType != BlockActorType::FlowerPot) return;
+    auto const* actor = static_cast<BlockSource const&>(region).getBlockEntity(hit.mBlock);
+    if (!actor || actor->getType() != BlockActorType::FlowerPot) return;
+    Block const* plant = static_cast<FlowerPotBlockActor const*>(actor)->mPlant;
+    if (!plant) return;
+    last = hit.mBlock;
+    BlockTessellator tessellator(&region);
+    if (auto stone = Block::tryGetFromRegistry(HashedString{"minecraft:stone"})) {
+        Tessellator primer(screen.tessellator.mBufferResourceService);
+        primer.begin({}, mce::PrimitiveMode::QuadList, 64, false);
+        tessellator.appendTessellatedBlock(primer, *stone);
+    }
+    auto bounds = [&](Block const& block, char const* what) {
+        Tessellator batch(screen.tessellator.mBufferResourceService);
+        batch.begin({}, mce::PrimitiveMode::QuadList, 1024, false);
+        eachLayer(block, region, hit.mBlock, [&](std::optional<BlockRenderLayer> layer) {
+            tessellateLayer(tessellator, batch, block, hit.mBlock, layer);
+        });
+        glm::vec3 low{1e9f}, high{-1e9f}, plantLow{1e9f}, plantHigh{-1e9f};
+        glm::vec3 base{static_cast<float>(hit.mBlock.x), static_cast<float>(hit.mBlock.y), static_cast<float>(hit.mBlock.z)};
+        auto const& positions = batch.mMeshData->mPositions.get();
+        for (auto p : positions) {
+            p -= base;
+            low = glm::min(low, p);
+            high = glm::max(high, p);
+            // The pot itself is 6/16 high and 6/16 wide in the middle.
+            bool potPart = p.y <= 6.f / 16 + 1e-3f && p.x >= 5.f / 16 - 1e-3f && p.x <= 11.f / 16 + 1e-3f
+                && p.z >= 5.f / 16 - 1e-3f && p.z <= 11.f / 16 + 1e-3f;
+            if (!potPart) { plantLow = glm::min(plantLow, p); plantHigh = glm::max(plantHigh, p); }
+        }
+        log(std::format("pot probe {} {}: {} vertices, all ({:.4f} {:.4f} {:.4f})-({:.4f} {:.4f} {:.4f}), "
+                        "outside the pot ({:.4f} {:.4f} {:.4f})-({:.4f} {:.4f} {:.4f})",
+                        what, block.getTypeName(), positions.size(), low.x, low.y, low.z, high.x, high.y, high.z,
+                        plantLow.x, plantLow.y, plantLow.z, plantHigh.x, plantHigh.y, plantHigh.z));
+    };
+    bounds(pot, "potted");
+    bounds(*plant, "alone");
+}
+#endif
 void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, LocalPlayer& player) {
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
     auto stage = std::chrono::steady_clock::now();
@@ -251,6 +300,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     ScreenContext& screen = context.mScreenContext;
     Vec3 const camera = context.mImpl->mCameraPosition;
     auto& region = player.getDimensionBlockSource();
+#ifdef LAMIUM_POT_TRACE
+    probePot(screen, region, client);
+#endif
     // When the camera moves to another cell, rebuild the sections around
     // the old and the new cells (which ghosts are drawn whole changes). Only
     // a ghost drawn within two cells depends on the camera, so only sections

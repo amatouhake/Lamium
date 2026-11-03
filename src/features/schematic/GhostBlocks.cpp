@@ -63,6 +63,16 @@ Block const* pottedPlant(nbt::Compound const& data) {
     auto block = Block::tryGetFromRegistry(*tag);
     return block ? &*block : nullptr;
 }
+void seatPottedPlant(std::vector<glm::vec3>& positions, size_t from, glm::vec3 cell) {
+    if (from >= positions.size()) return;
+    glm::vec3 low{1e9f}, high{-1e9f};
+    for (size_t v = from; v < positions.size(); ++v) {
+        low = glm::min(low, positions[v]);
+        high = glm::max(high, positions[v]);
+    }
+    glm::vec3 shift{cell.x + .5f - (low.x + high.x) / 2, potSoil, cell.z + .5f - (low.z + high.z) / 2};
+    for (size_t v = from; v < positions.size(); ++v) positions[v] += shift;
+}
 // A block's states as text, for naming what differs (the target card).
 std::map<std::string, std::string> blockStates(Block const& block) {
     std::map<std::string, std::string> out;

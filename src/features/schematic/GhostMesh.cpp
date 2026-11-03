@@ -583,8 +583,8 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                                 Tessellator& target = layer && blended(*layer) ? see : batch;
                                 size_t before = target.mMeshData->mPositions->size();
                                 tessellateLayer(own, target, *plant, pos, layer);
-                                auto& positions = target.mMeshData->mPositions.get();
-                                for (size_t v = before; v < positions.size(); ++v) positions[v].y += potSoil;
+                                seatPottedPlant(target.mMeshData->mPositions.get(), before,
+                                                {static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)});
                             });
                 dropDuplicateQuads(batch, batchFrom);
                 dropDuplicateQuads(see, seeFrom);

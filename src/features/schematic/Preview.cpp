@@ -394,8 +394,8 @@ bool step() {
                         ghosts::eachLayer(*plant, *j.region, spot, [&](std::optional<BlockRenderLayer> layer) {
                             size_t before = positions.size();
                             ghosts::tessellateLayer(*j.blocks, batch, *plant, spot, layer);
-                            auto& placed = batch.mMeshData->mPositions.get();
-                            for (size_t v = before; v < placed.size(); ++v) placed[v].y += ghosts::potSoil;
+                            ghosts::seatPottedPlant(batch.mMeshData->mPositions.get(), before,
+                                                    {static_cast<float>(spot.x), static_cast<float>(spot.y), static_cast<float>(spot.z)});
                         });
             if (static_cast<size_t>(cell) < s.liquids.size())
                 if (auto i = s.liquids[static_cast<size_t>(cell)]; i >= 0 && static_cast<size_t>(i) < j.palette.size() && j.palette[static_cast<size_t>(i)]

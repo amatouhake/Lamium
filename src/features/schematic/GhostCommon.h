@@ -6,11 +6,13 @@
 // LiquidShape.h and Verify.h.
 #include "features/schematic/Structure.h"
 #include "overlay/Depth.h"
+#include <glm/glm.hpp>
 #include <chrono>
 #include <cstddef>
 #include <map>
 #include <string>
 #include <string_view>
+#include <vector>
 class Block;
 enum class BlockRenderLayer : unsigned char;
 namespace lamium::schematic::ghosts {
@@ -48,6 +50,11 @@ bool blockEntitiesIgnored();
 bool actorDrawsOverMesh(Block const& block);
 // The plant a flower pot's block entity data names (`PlantBlock`), as a game block.
 Block const* pottedPlant(nbt::Compound const& data);
+// Seats a plant tessellated at the pot's cell (vertices from `from` on) in
+// the pot: centered on the cell, as the game draws every potted plant (in
+// the world grass and flowers stand off center by their position), and
+// lifted onto the soil. `cell`: the cell's low corner in the same space.
+void seatPottedPlant(std::vector<glm::vec3>& positions, size_t from, glm::vec3 cell);
 inline constexpr float potSoil = 4.f / 16;
 bool relaxedSame(Block const& expected, Block const& actual, unsigned on);
 bool relaxedSameType(Block const& expected, Block const& actual, unsigned on);
