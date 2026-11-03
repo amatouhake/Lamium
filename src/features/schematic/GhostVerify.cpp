@@ -40,6 +40,30 @@ constexpr std::uint64_t scanBudget = 16384;
 // ms of 4-5 ms with 2428 sections, 2026-10-26); a pass then takes more
 // frames. Looked at every 256 cells.
 constexpr std::chrono::microseconds scanTime{500}, progressTime{250};
+// The card and the Check pane re-classify the aimed cell every frame, and a
+// block entity read costs a save and a parse (L-303). One read is kept for them
+// for as long as the card keeps its own rows; a pass walks each cell once, so it
+// always reads fresh and never fills this (it would evict the aimed cell).
+struct EntityRead {
+    Point world;
+    int dimension = 0;
+    std::int32_t cell = 0;
+    Structure const* structure = nullptr;
+    Clock::time_point read;
+    std::optional<nbt::Compound> saved;
+};
+EntityRead lastEntityRead;
+std::optional<nbt::Compound> entityRead(BlockSource& region, BlockPos const& pos, int dimension,
+                                        std::int32_t cell, Structure const* structure, bool reuse) {
+    if (!reuse) return information::savedBlockEntity(region, pos);
+    auto now = Clock::now();
+    bool same = lastEntityRead.structure == structure && lastEntityRead.cell == cell
+        && lastEntityRead.dimension == dimension && lastEntityRead.world == Point{pos.x, pos.y, pos.z};
+    if (same && now - lastEntityRead.read < std::chrono::milliseconds(250)) return lastEntityRead.saved;
+    lastEntityRead = {Point{pos.x, pos.y, pos.z}, dimension, cell, structure, now,
+                      information::savedBlockEntity(region, pos)};
+    return lastEntityRead.saved;
+}
 struct Cell {
     bool inside = false;      // false: outside the structure or a structure void
     CellState state = CellState::Unknown;
@@ -104,7 +128,10 @@ int actualShulkerFace(BlockSource& region, Point world) {
     return static_cast<ShulkerBoxBlockActor const*>(actor)->mFacing;
 }
 // A differing field as a row of the card and the Check list: the card's own
-// label and value for it, "-" for a side that holds nothing.
+// label and value for it, "-" for a side that holds nothing. The name is the
+// label as it is drawn - already translated, or the stored key - because the
+// card's own row for the same field carries its key and the two are matched by
+// the text the card shows (TargetInfo.cpp `fixedStates`).
 std::vector<StateDifference> entityStates(std::vector<entitycheck::Difference> const& differences) {
     auto const& names = information::gameBlockEntityNames();
     auto label = [&](std::string_view key) {
@@ -204,8 +231,11 @@ void addEntityResults(Verification& result, session::Shown const& shown, Resolve
 }
 
 // One cell of a placement, the n-th of its placed box (x, then y, then z
-// fastest), compared with the world.
-Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Size placed, std::uint64_t n) {
+// fastest), compared with the world. `reuseEntity`: the caller asks every frame
+// about the same cell (the card), so its block entity read may be kept for a
+// short while; a pass over the whole placement always reads fresh.
+Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Size placed, std::uint64_t n,
+                  bool reuseEntity = false) {
     Cell c;
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
@@ -258,7 +288,8 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
         if (auto found = structure.blockEntities.find(static_cast<std::int32_t>(cellIndex));
             found != structure.blockEntities.end() && !blockEntitiesIgnored() && entitycheck::compared(found->second, ignoreSign)) {
             c.readEntity = true;
-            if (auto saved = information::savedBlockEntity(region, pos)) {
+            if (auto saved = entityRead(region, pos, placement.dimension, static_cast<std::int32_t>(cellIndex),
+                                        shown.structure.get(), reuseEntity)) {
                 // L-301: the stored note is the one the world loaded with.
                 if (auto note = information::playedNote(pos, placement.dimension)) saved->set("note", {std::int32_t{*note}});
                 auto fileStates = blockStates(*against);
@@ -525,13 +556,14 @@ std::optional<Mismatch> checkedCell(BlockSource& region, Point world, std::vecto
     int ox = world.x - o.x, oy = world.y - o.y, oz = world.z - o.z;
     if (ox < 0 || oy < 0 || oz < 0 || ox >= placed.x || oy >= placed.y || oz >= placed.z) return std::nullopt;
     auto n = (static_cast<std::uint64_t>(ox) * placed.y + static_cast<std::uint64_t>(oy)) * placed.z + static_cast<std::uint64_t>(oz);
-    auto c = classifyCell(region, shown, resolved[static_cast<size_t>(index)], placed, n);
+    auto c = classifyCell(region, shown, resolved[static_cast<size_t>(index)], placed, n, true);
     if (!c.inside) return std::nullopt;
     return mismatchFor(c, resolved[static_cast<size_t>(index)]);
 }
 void resetVerification() {
     entitiesChecked = {};
     scan = {};
+    lastEntityRead = {};
     publish(std::make_shared<Verification const>());
     publishEntityMistakes({}, {});
 }
