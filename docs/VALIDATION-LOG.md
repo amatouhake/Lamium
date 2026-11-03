@@ -12,6 +12,32 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Ghost contents drawn by block actors and potted plants (2026-11-04)
+
+LeviLauncher instance `1.26.51.01 LIP`, local world, L-302, four passes:
+
+- `b0e9de4d` (DLL SHA-256
+  `3909CD613A8CAA392ADB4349FCD254DFC4E8532182AA02DEA10B094BE589E3A0`): a
+  lectern's book shows on its ghost in the world and the 3D preview; framed
+  items, campfire items, the enchanting table's book, a spawner's mob and a
+  bell show without flicker and do not move; piston and chest ghosts
+  unchanged; a potted plant missing. A chiseled bookshelf ghost already
+  showed its books before this build.
+- `14eeccbc` (`309869A68BD7C1D36D4D40F817D4CB109C2B8626975FC1847B5C1601C2E94F4B`):
+  answering the pot's actor through the ghost view drew no plant.
+- `e6c4fc77` (`F6C1847A1C367F4BCFD2AEA90F983037E277824151E4846E10AEADAE59B85A94`):
+  a hand-drawn plant showed, about 1.5 times too large, grass and flowers off
+  center. A `pot_trace` probe build (`b69e97e5`,
+  `526117DB8AA28C751039598932B571DC9DDEF2A2B4ECD3412F94FC386C7FFE5C`) found the
+  game's pot tessellation draws only the pot without its tessellator's pot
+  table.
+- `1adb0208` (`738E3D98AB1B775770F6ABBBE8F9D302809768A61E3A9463A1426F7868E624B3`):
+  flowers, grass, saplings, cactus and bamboo in ghost pots look like the
+  same plants in real pots; in the 3D preview they are nearly the same but
+  some quad sides vanish by view angle, as seagrass does (the accepted
+  preview limit in SCHEMATIC.md); lectern, frame, piston and chest ghosts
+  unchanged.
+
 ## Block entity heads and frames under a turned placement (2026-11-04)
 
 LeviLauncher instance `1.26.51.01 LIP`, local world, L-303 `f72c89a1` (DLL

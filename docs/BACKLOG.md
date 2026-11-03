@@ -86,7 +86,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    (checked 2026-11-03); L-301 (a note block's pitch from the sound events) is
    closed (checked 2026-11-03). L-302 (a ghost's actor-drawn contents) and
    L-303 (the check ignoring block entity data) came out of the L-184 in-game
-   check; L-302 is open, L-303 is closed (checked 2026-11-04). L-304 (a real
+   check; both are closed (checked 2026-11-04). L-304 (a real
    liquid behind a ghost) is closed (checked 2026-11-03).
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
@@ -184,72 +184,6 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
-
-### L-302 A ghost's contents are missing when its block draws them through a block actor
-Kind: Bug (ghost rendering). Maintainer in-game check 2026-11-03 of PR #68.
-Reported: a chiseled bookshelf ghost looks like plain boards whatever the file
-stores, and a lectern's book and a flower pot's plant are not drawn, while the
-target card now lists that data (L-184).
-Cause: `GhostMesh.cpp` adds a cell to the ghost pass's block actor list only
-when the block draws no mesh of its own (`!meshed`) or is a piston arm. A
-lectern, flower pot or chiseled bookshelf draws its base as block geometry, so
-no actor is created and the part its own renderer draws is missing
-(`GhostRenderer.cpp` renders that list).
-Open: whether to create the actor for every cell whose block type has a render
-component (double-drawn bases, one actor per cell), or only for the types that
-need it (a table), and whether the selection outline then has to come from the
-actor's shape.
-Seen 2026-11-04 (maintainer): a chiseled bookshelf ghost now shows its books
-(its books are block states, drawn by the mesh; why it read plain earlier is
-not known); the lectern's book and the potted plant are still missing.
-Built 2026-11-04 (no maintainer choice needed beyond "start"): a table,
-`actorDrawsOverMesh` in `GhostBlocks.cpp`, of the block types whose mesh is
-only a base and whose actor draws the rest from the file's data - piston,
-lectern, flower pot, enchanting table, item frames, campfire, spawner, bell,
-shelf. A meshed ghost of those gets its actor too, in the ghost pass and the 3D
-preview; the selection outline stays the mesh's. Not every block entity: a
-furnace or hopper has no renderer, so an actor there would only cost.
-Check 2026-11-04 on `b0e9de4d`: the lectern's book shows in the world and the
-preview; framed items, campfire items, the enchanting table's book, the
-spawner's mob and the bell show without flicker but do not move (whether they
-should is open); piston and chest unchanged; the potted plant still missing.
-The plant is not drawn by the pot's actor renderer but by the pot's mesh
-(`BlockTessellator::tessellateFlowerPotInWorld`), which presumably reads the
-pot's actor from the region. Trial: `SchematicRegion` answers
-`getBlockEntity` (the virtual const one) with a ghost pot actor loaded from
-the file while the ghost mesh tessellates that cell; the pot left the actor
-table. If the game reads through the non-virtual overload the plant stays
-missing, and drawing the plant block scaled into the pot is the next try.
-The 3D preview builds off the render thread and has no such actor yet.
-Trial result 2026-11-04 on `14eeccbc`: no plant (the game does not read the
-pot's actor through the view); everything else unchanged. Trial removed.
-Now: the ghost pass and the 3D preview (which builds a few blocks per frame
-on the render thread) tessellate the file's `PlantBlock` into the pot's cell
-themselves, raised 4/16 onto the soil (`pottedPlant`, `potSoil`). The height
-and size are a guess to compare with a real potted plant. Moving parts (the
-enchanting table's book, a spawner's mob) stay still: a ghost's actors are not
-ticked, and the maintainer has not asked for it.
-Check 2026-11-04 on `e6c4fc77`: the plant shows in the world and the preview,
-height about right, about 1.5 times too large, grass and flowers off center
-(a real pot centers every plant). The maintainer asked for the real ratio
-rather than tuning by eye.
-Probe 2026-11-04 (`pot_trace`, on `b69e97e5`, DLL SHA-256
-`526117DB8AA28C751039598932B571DC9DDEF2A2B4ECD3412F94FC386C7FFE5C`): the
-game's own tessellation of a real potted plant, through a fresh tessellator,
-gave the pot alone (28 vertices, 5/16-11/16 wide, 6/16 high) for every plant;
-the plants alone span 0.05-0.95 (saplings) or a 0.9 square offset by position
-(flowers, fern). Found in the SDK: the tessellator's
-`mBlockExtraDataMap.mExtraFlowerPotData` (position -> plant), which the
-game's chunk build fills from the pot's actor and the pot's tessellation
-reads. Now: `PotPlant` puts the file's plant in the ghost tessellator's table
-for that cell while the pot is tessellated (ghost pass and preview), so the
-game draws the plant at its own size and place. The hand-drawn plant and the
-probe are gone. Gated by the Schematic ghost blocks capability; unverified,
-the pot stays empty.
-In game: a schematic with a lectern, a flower pot and a chiseled bookshelf,
-placed as ghosts, after the change; a piston and a chest to prove they did not
-regress.
-No release target selected.
 
 ### L-276 A temporary waypoint whose removal cannot be saved is never announced again
 Kind: Bug. Review finding 2026-10-27 on `08da0c47`: `waypoints::arrive()`
