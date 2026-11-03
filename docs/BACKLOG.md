@@ -86,7 +86,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    (checked 2026-11-03); L-301 (a note block's pitch from the sound events) is
    closed (checked 2026-11-03). L-302 (a ghost's actor-drawn contents) and
    L-303 (the check ignoring block entity data) came out of the L-184 in-game
-   check and are open.
+   check and are open. L-304 (a real liquid behind a ghost) is closed (checked
+   2026-11-03).
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
