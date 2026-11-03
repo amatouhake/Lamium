@@ -84,7 +84,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    sneaking, toggle) is closed (2026-11-01). L-294 (water icons) is closed
    (2026-11-01). L-300 (block entity data in the target card) is closed
    (checked 2026-11-03); L-301 (a note block's pitch from the sound events) is
-   closed (checked 2026-11-03).
+   closed (checked 2026-11-03). L-302 (a ghost's actor-drawn contents) and
+   L-303 (the check ignoring block entity data) came out of the L-184 in-game
+   check and are open.
    Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
@@ -176,6 +178,45 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
+
+### L-303 The schematic check ignores block entity data
+Kind: Bug / Design (which fields count). Maintainer in-game check 2026-11-03
+of PR #68.
+Reported: a note block's pitch and a lectern's book are compared by nothing -
+the card shows no "Wrong state" row for them, so a note block tuned after
+building, or a lectern whose book is gone, passes the check.
+Cause: `CheckRules.h` `sameBlock()` compares the block's serialization states
+and nothing else, and a block entity's fields live outside them. The one
+block-entity field the check does see is a shulker box's opening, and only
+through its own capability (`SchematicShulker`, `GhostVerify.cpp`).
+Open: which fields count as a mismatch (a note block's note, a lectern's book
+and page, a flower pot's plant, a banner's patterns, a skull's type and owner -
+a chest's contents almost certainly do not), how the difference row reads in the
+card (which side is "now" when the world value comes from the actor), and the
+cost: reading the world's block entity for every cell would dominate a pass, so
+the comparison has to be gated to cells whose block type carries one of the
+chosen fields.
+In game: nothing to check until a field set is chosen.
+No release target selected.
+
+### L-302 A ghost's contents are missing when its block draws them through a block actor
+Kind: Bug (ghost rendering). Maintainer in-game check 2026-11-03 of PR #68.
+Reported: a chiseled bookshelf ghost looks like plain boards whatever the file
+stores, and a lectern's book and a flower pot's plant are not drawn, while the
+target card now lists that data (L-184).
+Cause: `GhostMesh.cpp` adds a cell to the ghost pass's block actor list only
+when the block draws no mesh of its own (`!meshed`) or is a piston arm. A
+lectern, flower pot or chiseled bookshelf draws its base as block geometry, so
+no actor is created and the part its own renderer draws is missing
+(`GhostRenderer.cpp` renders that list).
+Open: whether to create the actor for every cell whose block type has a render
+component (double-drawn bases, one actor per cell), or only for the types that
+need it (a table), and whether the selection outline then has to come from the
+actor's shape.
+In game: a schematic with a lectern, a flower pot and a chiseled bookshelf,
+placed as ghosts, after the change; a piston and a chest to prove they did not
+regress.
+No release target selected.
 
 ### L-276 A temporary waypoint whose removal cannot be saved is never announced again
 Kind: Bug. Review finding 2026-10-27 on `08da0c47`: `waypoints::arrive()`
@@ -933,6 +974,35 @@ setting saved with compatibility for the test builds' numbers (DESIGN "Target
 and Schematics"). Awaiting in-game checks: ghost in the air and in front of a
 real block, wrong/extra/state rows, the setting off, short screens.
 Container inspection and saved Block Entity data remain Design / Research.
+Built 2026-11-03: the ghost's saved block entity data shows as target-card rows
+under the same rules a real block's rows use (L-300/L-301) - sign text, colour,
+glow and waxed state, a jukebox record, a lectern book and page, a potted
+plant, a note block's note and instrument - so a ghost and the block it becomes
+read alike.
+Decided 2026-11-03 (maintainer): a ghost's card follows the same rules as the
+real block's, from the file alone. This is the base for the file-only data and
+the comparison still to come, so a difference between a ghost and its block
+must come from the data, never from the presentation. The world never fills a
+gap: a value the file does not decide reads "Not set by the schematic" rather
+than the world's, which would pass for the file's. A note block's instrument
+comes from the file's blocks below and above it (each block declares one
+instrument for a note block under it and one for a note block on it, checked
+in game); outside the file or at a void cell it is not set. Passed in game on
+`a193244e`. Reviewed 2026-11-03: a block type that stores an engaged `none`
+where others store nothing would have counted as a decision and swallowed the
+instrument row, so the neighbour read normalises it (`declaresNoInstrument`).
+Three things to keep in mind, not defects: a note block on the file's top or
+bottom layer always reads "Not set by the schematic", correct but likely in a
+small schematic, so the wording may want to name that reason; `fileCellAt`
+guards only `structure`, not visibility, dimension or layers as `blockEntityAt`
+does through `drawsCell`, which is safe while `ghostAlong` is its only caller;
+and `GhostAt::blockEntity` points into the `structure` the same struct owns, a
+lifetime the type does not enforce.
+The row comes from the placement's `block_entities` entry for that
+cell (`PlacementOverlap.h` `blockEntityAt`, turned and mirrored like the cells),
+so it is complete even though the world's copy of a block entity is not.
+Still open, and now the whole of what is left: the data only the file has
+(container contents, a comparator's signal) and how to present it.
 Goal: inspect the ghost under the crosshair: expected block name, facing,
 BlockState and available saved Block Entity data. Provide a way to
 understand inventory contents of barrels/hoppers and other data relevant

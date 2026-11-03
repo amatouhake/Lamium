@@ -45,6 +45,18 @@ struct GhostAt {
     Point cell;
     Block const* block = nullptr;
     std::string placement;
+    // What the file stores for that cell, when it stores anything (L-184):
+    // a pointer into `structure`, which keeps it alive without a copy per frame.
+    std::shared_ptr<Structure const> structure;
+    nbt::Compound const* blockEntity = nullptr;
+    // What the file puts right below and above the cell: a note block there
+    // plays what it stands on and under. Unknown where the file says nothing
+    // (outside it, a void cell, a block the game cannot resolve).
+    struct Neighbor {
+        bool known = false;
+        Block const* block = nullptr; // known and null: air
+    };
+    Neighbor below, above;
 };
 // The first ghost along a ray. Real water and lava do not stop the search
 // (L-264); another real block does, unless

@@ -924,8 +924,18 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
             if (resolved[i].structure != shown.structure.get()) continue;
             auto index = overlap::paletteAt(shown, dimension, cell);
             if (!index || static_cast<size_t>(*index) >= resolved[i].blocks.size()) continue;
-            if (auto const* block = resolved[i].blocks[static_cast<size_t>(*index)])
-                return GhostAt{cell, block, shown.placement.name};
+            if (auto const* block = resolved[i].blocks[static_cast<size_t>(*index)]) {
+                auto fileAt = [&](int dy) -> GhostAt::Neighbor {
+                    auto near = overlap::fileCellAt(shown, Point{cell.x, cell.y + dy, cell.z});
+                    if (!near) return {};
+                    if (shown.structure->palette[static_cast<size_t>(*near)].isAir()) return {true, nullptr};
+                    auto const* found = static_cast<size_t>(*near) < resolved[i].blocks.size()
+                        ? resolved[i].blocks[static_cast<size_t>(*near)] : nullptr;
+                    return {found != nullptr, found};
+                };
+                return GhostAt{cell, block, shown.placement.name, shown.structure,
+                               overlap::blockEntityAt(shown, dimension, cell), fileAt(-1), fileAt(1)};
+            }
         }
     }
     return std::nullopt;

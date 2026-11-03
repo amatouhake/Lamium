@@ -1735,6 +1735,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"blockEntity.instrument.dragon", "終界龍"},
     {"blockEntity.instrument.witherSkeleton", "凋零骷髏"},
     {"blockEntity.instrument.piglin", "豬布林"},
+    {"blockEntity.instrument.notInFile", "設計圖中未確定"},
     {"blockEntity.FrontText", "正面文字"},
     {"blockEntity.BackText", "背面文字"},
     {"blockEntity.IsWaxed", "上蠟"},
@@ -1756,5 +1757,6 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"blockEntity.Occupants", "佔用者"},
     {"blockEntity.SkullType", "頭顱種類"},
     {"capability.NoteBlockSounds", "音階盒音高（音效事件）"},
+    {"capability.NoteBlockInstrument", "虛影音階盒的樂器"},
 });
 }

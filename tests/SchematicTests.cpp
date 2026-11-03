@@ -1563,6 +1563,62 @@ void checkRelaxations() {
               && !r::ignoredState("open_bit", r::Signal | r::Lit | r::Growth),
           "a state only one side has still counts; doors' open state is not a signal");
 }
+// L-184: a ghost's block entity is the file's, at the cell the placement puts it.
+void ghostBlockEntityTests() {
+    auto structure = std::make_shared<Structure>(sample());
+    session::Shown shown;
+    shown.structure = structure;
+    shown.placement.name = "ghost";
+    shown.placement.dimension = 0;
+    shown.placement.visible = true;
+    shown.placement.placement = Placement{{200, 64, 200}, 0, Mirror::None};
+    auto data = overlap::blockEntityAt(shown, 0, Point{200, 65, 202});
+    check(data && data->find("id") && data->find("id")->as<std::string>()
+              && *data->find("id")->as<std::string>() == "Chest",
+          "the ghost cell reads the file's block entity");
+    check(!overlap::blockEntityAt(shown, 0, Point{200, 64, 200}), "a cell the file stores nothing for makes none");
+    check(!overlap::blockEntityAt(shown, 1, Point{200, 65, 202}), "another dimension draws nothing");
+    // A quarter turn moves the cell: structure-local (0, 1, 2) lands at 201.
+    shown.placement.placement.rotation = 1;
+    check(overlap::blockEntityAt(shown, 0, Point{201, 65, 200}) != nullptr,
+          "a turned placement moves the cell with it");
+    check(!overlap::blockEntityAt(shown, 0, Point{200, 65, 202}), "the unturned cell is empty once turned");
+    session::Shown hidden = shown;
+    hidden.placement.visible = false;
+    check(!overlap::blockEntityAt(hidden, 0, Point{201, 65, 200}), "a hidden placement draws nothing");
+    // Mirrored across x (2 wide): structure-local (0, 1, 2) lands at x 201.
+    shown.placement.placement = Placement{{200, 64, 200}, 0, Mirror::X};
+    check(overlap::blockEntityAt(shown, 0, Point{201, 65, 202}) != nullptr,
+          "a mirrored placement moves the cell with it");
+    check(!overlap::blockEntityAt(shown, 0, Point{200, 65, 202}), "the unmirrored cell is empty once mirrored");
+    // Only the bottom layer shown: the chest one layer up is not drawn.
+    session::Shown layered = shown;
+    layered.placement.layers.mode = LayerMode::Only;
+    layered.placement.layers.cut = 0;
+    check(!overlap::blockEntityAt(layered, 0, Point{201, 65, 202}), "a cell outside the shown layers has none");
+    // Two placements on the same cell each read their own file.
+    auto other = std::make_shared<Structure>(sample());
+    other->blockEntities[other->cell(0, 1, 2)].set("id", {std::string{"Barrel"}});
+    session::Shown second = shown;
+    second.structure = other;
+    auto first = overlap::blockEntityAt(shown, 0, Point{201, 65, 202});
+    auto again = overlap::blockEntityAt(second, 0, Point{201, 65, 202});
+    check(first && again && first != again && again->find("id")->as<std::string>()
+              && *again->find("id")->as<std::string>() == "Barrel",
+          "overlapping placements read their own block entity");
+    // What the file puts at a cell, for a ghost's neighbors: air counts, void
+    // and outside say nothing, and hidden layers still belong to the file.
+    session::Shown file;
+    file.structure = structure;
+    file.placement.placement = Placement{{200, 64, 200}, 0, Mirror::None};
+    file.placement.layers.mode = LayerMode::Only;
+    file.placement.layers.cut = 1;
+    check(overlap::fileCellAt(file, Point{200, 64, 200}) == 1, "a hidden layer's block is still the file's");
+    check(overlap::fileCellAt(file, Point{201, 64, 200}) == 0, "air is something the file says");
+    check(!overlap::fileCellAt(file, Point{201, 64, 201}), "a void cell says nothing");
+    check(!overlap::fileCellAt(file, Point{200, 63, 200}), "below the file says nothing");
+}
+
 void schematicTests() {
     checkRelaxations();
     placementSteps();

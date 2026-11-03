@@ -1,6 +1,7 @@
 #include "features/information/TargetInfo.h"
 #include "app/Capabilities.h"
 #include "features/information/BlockEntityRows.h"
+#include "features/information/NoteInstrument.h"
 #include "features/information/NoteSounds.h"
 #include "features/information/SchematicTarget.h"
 #include "features/information/TargetPick.h"
@@ -9,6 +10,7 @@
 #include "features/schematic/RayCells.h"
 #include "features/schematic/SchematicSession.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "ui/Localization.h"
 #include "features/information/TargetCard.h"
 #include "mc/world/item/Item.h"
@@ -40,6 +42,7 @@
 #include "mc/world/level/block/actor/BlockActor.h"
 #include "mc/world/level/block/actor/BlockActorType.h"
 #include "mc/world/level/block/actor/NoteBlockActor.h"
+#include "mc/world/level/block/components/BlockInstrumentComponent.h"
 #include "mc/world/item/SaveContextFactory.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/level/dimension/Dimension.h"
@@ -291,6 +294,11 @@ BlockEntityNames blockEntityNames() {
     };
     return names;
 }
+// Built once: the card asks every frame, for real blocks and ghosts alike.
+BlockEntityNames const& sharedBlockEntityNames() {
+    static BlockEntityNames const names = blockEntityNames();
+    return names;
+}
 // A field the client never refreshes: it keeps current only what it draws. A
 // container's contents (seen only by opening it) and a note block's pitch are
 // the copy the world loaded with, so a row would read as the value now (L-300).
@@ -311,6 +319,10 @@ std::span<std::string_view const> staleFields(BlockActorType type) {
     default: return {};
     }
 }
+// A ghost's stored fields are current, but how a container's contents show
+// (card rows or an expanded view) is still open in L-184; until then a ghost
+// leaves out the same container fields a real block does.
+std::span<std::string_view const> ghostHeldBackFields(BlockActorType type) { return staleFields(type); }
 // The instrument as the player reads it; the game's own name when Lamium has none.
 std::string instrumentName(SharedTypes::v1_26_20::NoteBlockInstrument instrument) {
     static constexpr std::string_view keys[] = {
@@ -325,6 +337,31 @@ std::string instrumentName(SharedTypes::v1_26_20::NoteBlockInstrument instrument
     }
     return SharedTypes::v1_26_20::NoteBlockInstrumentEnum::noteBlockInstrumentToString(instrument);
 }
+void appendInstrument(std::vector<TargetInfo::DetailRow>& rows,
+                      std::optional<SharedTypes::v1_26_20::NoteBlockInstrument> instrument) {
+    if (instrument && *instrument != SharedTypes::v1_26_20::NoteBlockInstrument::None)
+        rows.push_back({"blockEntity.instrument", instrumentName(*instrument), false, {}, DetailKind::Other});
+}
+// L-184: a ghost note block's instrument as the file decides it, from the
+// file's blocks below and above - never the world's, which the file does not
+// promise. Where the file leaves it open, the row says so instead of guessing.
+void appendGhostInstrument(std::vector<TargetInfo::DetailRow>& rows, schematic::ghosts::GhostAt const& ghost) {
+    using SharedTypes::v1_26_20::NoteBlockInstrument;
+    if (!versionSensitiveAllowed(capabilities::Id::NoteBlockInstrument)) return;
+    // A block declares two instruments: [0] for a note block under it, [1] for
+    // one standing on it (seen in game on 1.26.51.01).
+    auto declared = [](schematic::ghosts::GhostAt::Neighbor neighbor, std::size_t side) {
+        Declared<NoteBlockInstrument> result{neighbor.known, std::nullopt};
+        if (neighbor.block)
+            if (auto const* component = neighbor.block->tryGetComponent<BlockInstrumentComponent>())
+                result.instrument = declaresNoInstrument(component->mInstruments.get()[side], NoteBlockInstrument::None);
+        return result;
+    };
+    if (auto instrument = noteInstrument(declared(ghost.above, 0), declared(ghost.below, 1), NoteBlockInstrument::Harp))
+        appendInstrument(rows, instrument);
+    else
+        rows.push_back({"blockEntity.instrument", "blockEntity.instrument.notInFile", true, {}, DetailKind::Other});
+}
 // What a block keeps in its block entity, as card rows: every saved field, so
 // the card never decides that one is unimportant. The note block's instrument
 // is the exception - the block under it decides, and nothing stores it.
@@ -338,20 +375,15 @@ std::vector<TargetInfo::DetailRow> readBlockEntityDetails(BlockSource& source, B
                 auto bytes = tag.toBinaryNbt();
                 auto root = schematic::nbt::read(
                     {reinterpret_cast<std::uint8_t const*>(bytes.data()), bytes.size()});
-                static BlockEntityNames const names = blockEntityNames();
                 // L-301: the block stores the note it loaded with; the sound
                 // events report the pitch every time it plays.
                 auto note = type == BlockActorType::Music ? playedNote(pos, dimension) : std::nullopt;
-                rows = blockEntityRows(root.compound, names, staleFields(type), note);
+                rows = blockEntityRows(root.compound, sharedBlockEntityNames(), staleFields(type), note);
             } catch (...) {} // A block entity that will not read must not replace the card.
         }
     }
     if (type == BlockActorType::Music) {
-        try {
-            if (auto instrument = NoteBlockActor::getInstrument(source, pos);
-                instrument && *instrument != SharedTypes::v1_26_20::NoteBlockInstrument::None)
-                rows.push_back({"blockEntity.instrument", instrumentName(*instrument), false, {}, DetailKind::Other});
-        } catch (...) {}
+        try { appendInstrument(rows, NoteBlockActor::getInstrument(source, pos)); } catch (...) {}
     }
     return rows;
 }
@@ -420,7 +452,7 @@ void appendStates(TargetInfo& result, Block const& block, std::set<std::string> 
 // The nearest schematic ghost in front of the aimed block (L-184): its block
 // as the card's target, marked as a block still to place.
 std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, bool includeStates, std::optional<ViewRay> const& ray,
-                                      bool throughBlocks) {
+                                      bool throughBlocks, bool includeBlockEntity) {
     double x, y, z, dx, dy, dz, reach;
     if (ray) { x = ray->x; y = ray->y; z = ray->z; dx = ray->dx; dy = ray->dy; dz = ray->dz; reach = ray->reach; }
     else {
@@ -439,6 +471,17 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
     result.blockPosition = TargetInfo::BlockPosition{pos.x, pos.y, pos.z};
     result.icon = blockIcon(source, pos, block);
     if (includeStates) appendStates(result, block, {}, static_cast<int>(player.getDimensionId()) == 1);
+    // L-184: the file's own block entity data and the instrument it will play,
+    // so a ghost and the block it becomes read alike.
+    if (includeBlockEntity) {
+        auto type = block.getBlockType().mBlockEntityType;
+        if (ghost->blockEntity)
+            for (auto& row : blockEntityRows(*ghost->blockEntity, sharedBlockEntityNames(), ghostHeldBackFields(type),
+                                             std::nullopt))
+                result.details.push_back(std::move(row));
+        if (type == BlockActorType::Music)
+            try { appendGhostInstrument(result.details, *ghost); } catch (...) {}
+    }
     result.details.push_back(ghostRow());
     result.ghost = true;
     return result;
@@ -530,7 +573,8 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
                                          static_cast<int>(player->getDimensionId()) == 1)) return liquid;
     // A ghost in front of the aimed block (or in the air) is the target.
     if (includeSchematic && (hit.mType != HitResultType::Entity || onGameLine))
-        if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ghostRay, onGameLine))
+        if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ghostRay, onGameLine,
+                                     includeBlockEntity))
             return ghost;
     if (hit.mType == HitResultType::Entity) {
         auto* entity = pick.entity;

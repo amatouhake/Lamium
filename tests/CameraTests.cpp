@@ -143,6 +143,8 @@ int main() try {
     targetCardTests();
     extern void blockEntityRowTests();
     blockEntityRowTests();
+    extern void ghostBlockEntityTests();
+    ghostBlockEntityTests();
     extern void targetPickTests();
     targetPickTests();
     extern void shapeProfileTests();

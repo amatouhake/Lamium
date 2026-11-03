@@ -12,7 +12,8 @@ enum class Id {
     SkipServerPacks, FreeCameraHotbar, FakeOffhandTargets, ChatPosition,
     FreeCameraHand, FreeCameraHud, HideParticles, HideBossBars,
     SchematicBlend, SchematicActorLight, SchematicCreativePick,
-    InventoryDiagnostics, LanguageDiagnostics, SneakPlacement, NoteBlockSounds, Count
+    InventoryDiagnostics, LanguageDiagnostics, SneakPlacement, NoteBlockSounds,
+    NoteBlockInstrument, Count
 };
 enum class Impact { None, Partly, Fully };
 enum class Stage : std::uint8_t { Waiting, Ready, Stopped, Failed };
@@ -61,6 +62,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::LanguageDiagnostics, "Language diagnostics", "", "", Impact::None, true, true},
     {Id::SneakPlacement, "Sneak placement (use gate and sneak state)", "sneakPlacement", "capability.SneakPlacement", Impact::Fully},
     {Id::NoteBlockSounds, "Note block pitch (level sound events)", "targetInfo", "capability.NoteBlockSounds", Impact::Partly},
+    {Id::NoteBlockInstrument, "Ghost note block instrument (block instrument component)", "targetInfo", "capability.NoteBlockInstrument", Impact::Partly, true, true},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);

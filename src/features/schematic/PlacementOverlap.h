@@ -32,6 +32,32 @@ inline std::optional<int> paletteAt(session::Shown const& shown, int dimension, 
         || structure.palette[static_cast<size_t>(index)].isAir()) return std::nullopt;
     return static_cast<int>(index);
 }
+// The block entity the file stores for the ghost in this world cell (L-184):
+// the same data the real block shows in the target card, from the file rather
+// than from the world. Null when this placement draws no ghost there or the
+// file stores none; otherwise it points into `shown.structure`.
+inline nbt::Compound const* blockEntityAt(session::Shown const& shown, int dimension, Point cell) {
+    if (!drawsCell(shown, dimension, cell)) return nullptr;
+    auto const& structure = *shown.structure;
+    auto local = toLocal(structure.size, shown.placement.placement, cell);
+    auto found = structure.blockEntities.find(structure.cell(local->x, local->y, local->z));
+    return found == structure.blockEntities.end() ? nullptr : &found->second;
+}
+// What the file itself puts at a world cell for this placement, air included
+// and whatever layers are shown (L-184: a ghost reads its neighbors from the
+// file, never the world). None outside the placed box or at a void cell: the
+// file says nothing there.
+inline std::optional<int> fileCellAt(session::Shown const& shown, Point cell) {
+    if (!shown.structure) return std::nullopt;
+    auto const& structure = *shown.structure;
+    auto local = toLocal(structure.size, shown.placement.placement, cell);
+    if (!local) return std::nullopt;
+    auto at = static_cast<size_t>(structure.cell(local->x, local->y, local->z));
+    if (at >= structure.blocks.size()) return std::nullopt;
+    auto index = structure.blocks[at];
+    if (index == voidCell || static_cast<size_t>(index) >= structure.palette.size()) return std::nullopt;
+    return static_cast<int>(index);
+}
 inline bool boxesMeet(session::Shown const& a, session::Shown const& b) {
     if (!a.structure || !b.structure || a.placement.dimension != b.placement.dimension) return false;
     Size sa = placedSize(a.structure->size, a.placement.placement.rotation);
