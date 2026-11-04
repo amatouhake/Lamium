@@ -72,7 +72,7 @@ everything evenly, with no dark rings by light sources.
 ### Hide Offhand Item
 
 Hides the first-person offhand drawing, shields included. Equipment and use
-are kept.
+are kept. On Minecraft 1.26.60.05 a map in the off hand stays drawn.
 
 ### Hide effects (experimental)
 
@@ -106,7 +106,9 @@ speed, real time and whether you stand in a slime chunk. Their order and positio
 ### Target Info
 
 A card for the block or mob you aim at: icon, name, hearts in real health
-units (one heart per 2 HP), armor and bars such as growth.
+units (one heart per 2 HP), armor and bars such as growth. "Other details" adds
+the block's own states and what its block entity stores: a sign's text, a note
+block's pitch and instrument, a lectern's book and page.
 
 ### Debug View
 
@@ -243,7 +245,9 @@ build them.
 - **Check:** see what is missing, wrong or in the wrong state in the world,
   in a Check list and a HUD. The target card names the ghost you aim at (not
   placed yet) with the expected block and what to change; a real block that
-  differs says what is wrong first.
+  differs says what is wrong first. Block entity data is compared too (a note
+  block's note and instrument, a lectern's page, a flower pot's plant, a sign's
+  text and more), unless "Ignore block entities" is on.
 - **Materials:** count the materials left against what you carry, Shulker
   Boxes included, in chests and stacks.
 - **Save:** save an area of the world as a schematic, also larger than the
@@ -407,7 +411,9 @@ Text fields in Lamium have a caret, paste and click placement.
 
 ### Book paste across pages
 
-On by default. A paste into a book that does not fit the page continues on
+Unavailable on Minecraft 1.26.60.05 and hidden from the settings, until this game
+version's LeviLamina offers the game functions it needs; a paste works as in
+vanilla. Elsewhere it is on by default. A paste into a book that does not fit the page continues on
 new pages inserted after it, instead of being cut off; later pages move back.
 If 50 pages would not be enough, nothing is pasted and the pages needed are
 shown.

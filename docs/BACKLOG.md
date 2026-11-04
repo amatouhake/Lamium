@@ -143,6 +143,10 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.4.0
 
+- Move to 1.26.60.05 (L-305): the release build loads through LeviLauncher on a
+  fresh instance with LeviLamina installed first, and LIP offers it there
+  (`tooth.json`'s range changed). The map and hitboxes draw smoothly, which also
+  checks `mFrameAlpha`. Book paste is hidden from the settings and the Hotkeys view.
 - Schematic check of block entity data (L-303): a smoke of the release
   build (a changed sign or note block is a wrong state with a yellow mark;
   "Ignore block entities" clears it). Unchecked so far: "Ignore sign text"

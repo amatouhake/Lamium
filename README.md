@@ -19,7 +19,7 @@
 
 ## Status
 
-Lamium 0.4.0 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.5.0 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -64,6 +64,15 @@ Only the LeviLauncher path has been tested by the maintainer.
 
 Do not mix the two: a manual copy into a LeviLauncher-managed Lamium folder
 leaves LIP's file records out of date.
+
+**Moving from an older game version.** Each LeviLauncher instance keeps its own
+Lamium data, and a new instance starts with default settings. To keep them, copy
+`mods/Lamium/config/` (settings, server waypoints and maps) and
+`mods/Lamium/schematics/` from the old instance while the game is closed. Copying
+is not yet tested.
+
+**If the game does not start.** See "Minecraft 1.26.60.05" under
+[Known issues](#known-issues).
 
 Settings are stored in `mods/Lamium/config/` and the log is written to
 `mods/Lamium/logs/lamium.log`. For a manual install, deleting the whole
@@ -180,7 +189,6 @@ Waypoints and the death point also show in the world, with both maps off.
 | Calculator | A calculator with stack, chest and shulker box units | — | — |
 | Game language *Exp.* | Change Minecraft's language without leaving the world | — | — |
 | Skip server resource packs *Exp.* | Show a server's world without its resource packs | — | Off |
-| Book paste across pages | A long paste into a book continues on new pages | — | On |
 
 Lamium's keys are its own and do not appear in Minecraft's keyboard
 settings. Change them under each feature or in the Hotkeys view; new
@@ -193,6 +201,25 @@ Reports, questions and translation fixes are welcome as GitHub issues; see
 [Contributing](CONTRIBUTING.md) for what helps in a report and how pull
 requests are handled. What has been checked in game, per feature, is in
 [validation status](docs/VALIDATION.md).
+
+**Minecraft 1.26.60.05**
+
+- **The game does not start (`ERR_LAUNCH_GAME`):** this can happen without Lamium
+  on an instance that was started once before LeviLamina was installed, because
+  the loader and the launcher then patch the game in the wrong order. Installing
+  LeviLamina before the first start should avoid it. To repair an instance: with
+  the game closed, copy `Minecraft.Windows.exe.orig` over `Minecraft.Windows.exe`,
+  run `PeEditor.exe -mb --exe Minecraft.Windows.exe --inplace` in the instance
+  folder, then start it from LeviLauncher. Keep a copy of the old file. Repairing
+  was checked on one instance.
+- **Book paste across pages** is unavailable: this game version's LeviLamina does
+  not offer the game functions it needs yet. A paste works as in vanilla, and the
+  setting is hidden until it can return.
+- **Hide Offhand:** a map in the off hand stays drawn.
+- **Schematic ghosts:** the target card shows no instrument for a ghost note
+  block. Real note blocks show it.
+- **Connected Textures:** a glass pane can show an edge at a chunk border where
+  the pane continues (L-306).
 
 **Camera & view**
 
@@ -296,8 +323,6 @@ requests are handled. What has been checked in game, per feature, is in
   Servers whose packs add blocks, items, entities or menus will show those
   wrong. On a server that requires its packs, the game itself turns off your
   global resource packs, so the look is vanilla, not your own packs.
-- **Book paste across pages:** checked in a local world with English text;
-  servers, Japanese text and the 50-page limit are untested.
 
 ## Development
 
