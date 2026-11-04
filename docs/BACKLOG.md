@@ -122,7 +122,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    initiation, L-30 dragon hitboxes, L-33 mob timers, L-105 profiling.
    L-151/L-152/L-153 and the previously parked work remain later.
 7. **Before the next release:** changed-feature smoke and the relevant
-   Pre-release checks below. Latest release: 0.4.0, 2026-11-01 (`v0.4.0`).
+   Pre-release checks below. Latest release: 0.5.0, 2026-11-04 (`v0.5.0`).
    No next date is selected; a full regression is not a release gate.
 
 Task-picking rule: bugs first, then this order; follow each item's model,
@@ -141,12 +141,15 @@ server case are not release gates. [VALIDATION.md](VALIDATION.md) owns
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
-### Since 0.4.0
+### Since 0.5.0
 
-- Move to 1.26.60.05 (L-305): the smoke on `3acc0ad0`'s CI package passed
-  (VALIDATION-LOG). Left: the release ZIP loads through LeviLauncher on a fresh
-  instance with LeviLamina installed first, and LIP offers it there (`tooth.json`'s
-  range changed).
+Left from the 0.5.0 tag (L-305, VALIDATION-LOG 2026-11-04):
+
+- The published ZIP loads through LeviLauncher on a fresh instance with LeviLamina
+  installed first, and LIP offers it there (`tooth.json`'s range changed).
+
+Carried from 0.4.0:
+
 - Schematic check of block entity data (L-303): a smoke of the release
   build (a changed sign or note block is a wrong state with a yellow mark;
   "Ignore block entities" clears it). Unchecked so far: "Ignore sign text"

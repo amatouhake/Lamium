@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.5.0 published (2026-11-04, L-305)
+
+Tag `v0.5.0` on `fcb8076d`, built by run 41782845801 (`windows-client` and
+`draft-release` passed), published by hand from its draft with the release notes.
+Assets, SHA-256 as the run reported them:
+
+- `Lamium-0.5.0-client-windows-x64.zip`
+  `21522d87c3ece77f425bf1fb3057ff557143316e6d9e669e1111674ebd1a7a43`
+- `Lamium-0.5.0-client-windows-x64.pdb.zip`
+  `b854a98fd78e34bb38171ba744f3c872e5323c8ca1f32d65b1b5561971af4b47`
+
+Smoke of that commit, on its CI package (run 41781554437), DLL
+`20F636749DA7AF5C187F023813E101686C58F1AD4806A44D8E20C5B9409522D7`, local world, per
+the maintainer: a note block in a schematic placed as designed, with an instrument
+other than the harp, is not a mismatch; changing its note is. The fuller smoke below
+was on `3acc0ad0`, before only this check's change and documents.
+
+The published ZIP itself was not installed in game, and LIP's pickup was not seen.
+
 ## 0.5.0 smoke on the CI package (2026-11-04, L-305)
 
 LeviLauncher instance `1.26.60.05 Dev`, CI development package of `3acc0ad0` (run
