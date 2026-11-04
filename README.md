@@ -216,8 +216,9 @@ requests are handled. What has been checked in game, per feature, is in
   not offer the game functions it needs yet. A paste works as in vanilla, and the
   setting is hidden until it can return.
 - **Hide Offhand:** a map in the off hand stays drawn.
-- **Schematic ghosts:** the target card shows no instrument for a ghost note
-  block. Real note blocks show it.
+- **Schematics:** the target card shows no instrument for a ghost note block, and
+  the check does not compare a note block's instrument. Real note blocks show
+  theirs, and the note is still compared.
 - **Connected Textures:** a glass pane can show an edge at a chunk border where
   the pane continues (L-306).
 

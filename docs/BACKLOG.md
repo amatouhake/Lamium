@@ -233,7 +233,7 @@ Open:
      `?feedText@TextEditContext@@QEAAXV?$basic_string_view@DU?$char_traits@D@std@@@std@@@Z`,
      `?_setText@TextEditContext@@QEAAXV?$basic_string_view@DU?$char_traits@D@std@@@std@@@Z`.
      The trace build also needs other functions this list leaves out.
-   - Ghost note block instrument (no row on the card):
+   - Ghost note block instrument (no row on the card, not compared in the check):
      `??$tryGetComponent@UBlockInstrumentComponent@@@Block@@QEBAPEBUBlockInstrumentComponent@@XZ`.
      The request's check rejects it because the template is declared `MCAPI`, but
      this instantiation does not link. Needs another way to read the component.

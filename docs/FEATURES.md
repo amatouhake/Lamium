@@ -246,8 +246,9 @@ build them.
   in a Check list and a HUD. The target card names the ghost you aim at (not
   placed yet) with the expected block and what to change; a real block that
   differs says what is wrong first. Block entity data is compared too (a note
-  block's note and instrument, a lectern's page, a flower pot's plant, a sign's
-  text and more), unless "Ignore block entities" is on.
+  block's note, a lectern's page, a flower pot's plant, a sign's text and more),
+  unless "Ignore block entities" is on. On Minecraft 1.26.60.05 a note block's
+  instrument is neither compared nor shown for a ghost.
 - **Materials:** count the materials left against what you carry, Shulker
   Boxes included, in chests and stacks.
 - **Save:** save an area of the world as a schematic, also larger than the

@@ -432,6 +432,11 @@ std::optional<std::pair<std::string, std::string>> noteInstrumentMismatch(BlockS
                                                                          bool aboveKnown, Block const* above,
                                                                          bool belowKnown, Block const* below) {
     using SharedTypes::v1_26_20::NoteBlockInstrument;
+#ifdef LAMIUM_MCAPI_PENDING
+    // L-305: nothing tells what the file's neighbors declare, and every note
+    // block would be expected to play the harp.
+    return std::nullopt;
+#endif
     if (!versionSensitiveAllowed(capabilities::Id::NoteBlockInstrument)) return std::nullopt;
     auto expected = noteInstrument(declaredBy({aboveKnown, above}, 0), declaredBy({belowKnown, below}, 1),
                                    NoteBlockInstrument::Harp);
