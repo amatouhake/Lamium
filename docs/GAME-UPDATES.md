@@ -46,9 +46,8 @@ LeviLamina's own types.
 - 2026-11-04: SDK 26.60.0 and minimum loader 26.60.0 are the same version,
   so no import check is needed.
 
-The shared verified Minecraft executable remains 1.26.51.01 while the 26.60
-move is checked in game (playbook step 5), so on 1.26.60.05 every gated path
-stays vanilla for now. An unverified
+The shared verified Minecraft executable is 1.26.60.05, checked in game on
+2026-11-04 (L-305). An unverified
 executable or unsupported loader prevents probing and use of sensitive paths.
 The catalog can name a separately reviewed executable build per capability,
 without widening the others. No such exception is currently enabled.
@@ -399,8 +398,11 @@ Rebuild.
 
 ### `src/features/inventory/game/TransferRoutes.cpp`
 Hooks: `TransferAutoPlaceOrder`, `TransferAutoPlaceStackOrder`, `TransferAutoPlaceOutputsOrder`, `TransferDropSelected`
-Meaning: the screen's registered collection/slot-role order and native hover
-slot. Native orders were observed in the L-169 e3f9276 diagnostic checkpoint;
+Meaning: a Shift + left press outside every slot reaches no control (global
+button 1485818800), so with items held `pressAsPlainClick` sends the view the
+plain left button (3024615655, focus 2; traced on 1.26.60.05) and vanilla
+decides what is under the pointer. The screen's registered collection/slot-role
+order and native hover slot. Native orders were observed in the L-169 e3f9276 diagnostic checkpoint;
 the additional-screen hover-field mapping awaits the new-gesture smoke test.
 Only the manager
 call inside Lamium's synchronous auto-place invocation gets a filtered
@@ -409,7 +411,7 @@ layouts and method signatures rebuild. Verify amount, role restrictions,
 request IDs and authoritative slot counts after a game update.
 Drops (L-169): `_handleDropItem` and `_handleDropSelectedItem` take
 ItemTransferAmount, whose fields the SDK does not name; Lamium passes the
-bytes traced on 1.26.51.01 (`dropAmountBytes`: take type 1, then 2 for one
+bytes traced on 1.26.51.01 and again on 1.26.60.05 (`dropAmountBytes`: take type 1, then 2 for one
 item or 0 for the stack) by address, as the 12-byte argument is passed.
 `TransferDropSelected` observes the drop of the cursor's items (a click
 outside the window) and only reads the cursor first. Re-trace with

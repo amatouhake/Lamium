@@ -27,7 +27,7 @@ namespace {
 // only at step 5 of the playbook in docs/GAME-UPDATES.md, after every gated
 // capability was checked on the new game; never as part of an SDK bump.
 // New-ReleaseArchive.ps1 refuses a release whose SDK targets another game.
-constexpr unsigned verifiedGame[4] = {1, 26, 51, 1};
+constexpr unsigned verifiedGame[4] = {1, 26, 60, 5};
 std::array<unsigned,4> readExecutableVersion() {
     wchar_t path[32768];
     DWORD length = GetModuleFileNameW(nullptr, path, 32768);

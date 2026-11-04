@@ -7,8 +7,9 @@ hashes, traces, what the maintainer saw) is in
 reading it whole.
 
 Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.5, Windows x64. The
-move to 1.26.60.05 and LeviLamina 26.60 has only had a first smoke (L-305,
-2026-11-04); rows below are 26.51 results unless they say otherwise.
+move to 1.26.60.05 and LeviLamina 26.60 passed one round of the gated features
+on 2026-11-04 (L-305, VALIDATION-LOG); rows below are 26.51 results unless they
+say otherwise.
 "Local" is a single-player world, "BDS" a same-machine dedicated server
 1.26.51.1. Results before the 26.51.5 update (commit 4a5b975) were re-checked
 only briefly after it. Since `9372daf4` (2026-10-26) Lamium is built against

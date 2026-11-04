@@ -16,7 +16,7 @@ std::string runningGameVersion();
 std::string runningLoaderVersion();
 std::string runningVersionLine();
 // The game executable is the build Lamium's version-sensitive paths were
-// checked on (1.26.51.01). Read once. A build configured with
+// checked on (1.26.60.05). Read once. A build configured with
 // `--unverified_game=y` answers no, to test the fail-open paths (L-137).
 bool verifiedGameExecutable();
 // A capability may run only when the shared compatibility policy permits it

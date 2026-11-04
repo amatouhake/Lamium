@@ -71,8 +71,8 @@ published for whoever wants it. There is no "first release" gate.
 Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
-0. **L-305 move to Minecraft 1.26.60.05 / LeviLamina 26.60.** Game checks and
-   the symbol request are open; the verified game stays 1.26.51.01 until then.
+0. **L-305 move to Minecraft 1.26.60.05 / LeviLamina 26.60.** The verified game
+   is 1.26.60.05. Open: the symbols for book paste and an offhand map, and L-306.
 1. **Bugs first.** L-227 FreeCamera shows only the sky
    outside loaded terrain (Research; new native experiment needs the
    maintainer's go-ahead). L-177 mismatch-highlight fix is built and awaits
@@ -189,17 +189,13 @@ validation checkpoints" (snapshot 2026-10-20).
 
 ### L-305 Move to Minecraft 1.26.60.05 and LeviLamina 26.60
 Kind: Update. Follows the playbook in [GAME-UPDATES.md](GAME-UPDATES.md).
-Built against SDK 26.60.0 on 2026-11-04 (step 2). `verifiedGame` stays
-1.26.51.01, so every gated path stays vanilla on the new game (step 3).
+Built against SDK 26.60.0 on 2026-11-04. The gated features passed a round in
+game the same day (VALIDATION-LOG), so `verifiedGame` is 1.26.60.5.
 
 Open:
-1. **Meaning checks** and `verifiedGame` (playbook steps 4 and 5). The basic
-   smoke passed on 2026-11-04 (VALIDATION-LOG): the game starts, gated paths
-   stay vanilla, Lamium's settings, basic Sort and transfer, Hand Restock and
-   Hide Offhand work. Not checked yet: the cursor cases of `cursorHasItems` and
-   `mFrameAlpha` in the map and hitboxes (it replaces the per-actor
-   `getFrameAlpha`). The drop bytes and other traced values need re-tracing once
-   the gates open. Trace-only sources were not all compiled against 26.60.
+1. **Not checked in game yet.** `mFrameAlpha` in the map and hitboxes (it replaces
+   the per-actor `getFrameAlpha`). Only `transfer_trace` was built against 26.60
+   among the trace options; the others may need the same treatment.
 2. **Offhand map stays drawn with Hide Offhand on (regression from 26.51).** It
    does not go through the render calls Lamium can hook, and the likely target
    is not exported:
@@ -215,7 +211,8 @@ Open:
 4. **Symbols.** `LAMIUM_MCAPI_PENDING` (`xmake.lua`) holds these back, because
    the SDK does not export them. Remove it once they are available. The book
    paste list was filed in `LiteLDev/mcapi-requests` on 2026-11-04 and passed
-   its automatic check; the request is not yet answered.
+   its automatic check; it was closed as completed on 2026-11-04, with no
+   newer `bedrock-runtime-data` than `v26.60.5-client.5` published at that time.
    - Book paste (L-259, stays vanilla):
      `?$preFrameTick@BookScreenController@@QEAAXXZ`,
      `?$_isStillValid@BookScreenController@@QEBA_NXZ`,
@@ -236,6 +233,17 @@ Open:
 
 A note block's instrument name without a Lamium translation now falls back to
 its number, because `noteBlockInstrumentToString` is not exported.
+
+### L-306 A glass pane edge at a chunk border changed in 26.60
+Kind: Bug. Reported 2026-11-04 on 1.26.60.05 with Connected Textures on: an edge
+is drawn at a chunk border where the pane continues. On 1.26.51.01 the same spot
+has an edge cut off at the border instead, so neither is right. Other glass joins
+correctly across chunks.
+Hypothesis, not checked: `partsAt` in `ConnectedTexturesHooks.cpp` asks a neighbor
+pane for its shape, which depends on that neighbor's own neighbors, two blocks away;
+the region a chunk rebuild reads may not reach that far. A bent lower row beside a
+straight upper row also looks odd, on both versions; the maintainer takes that as
+unfinished design, not this bug.
 
 ### L-276 A temporary waypoint whose removal cannot be saved is never announced again
 Kind: Bug. Review finding 2026-10-27 on `08da0c47`: `waypoints::arrive()`

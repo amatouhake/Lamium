@@ -12,6 +12,43 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Gated features on Minecraft 1.26.60.05 (2026-11-04, L-305)
+
+LeviLauncher instance `1.26.60.05 Dev`, on `55ba21fa` with `verifiedGame` set to
+1.26.60.5 locally (not committed then). DLL
+`182CE5DCDD94384536D3C4AE533D2F2BDE1628E4C836E949203F9D54CE3D9732`, no trace, was
+the maintainer's round, one check each:
+
+- Passed: transfer gestures with Ctrl, Alt and Shift, the drop key and Ctrl + drop
+  key, clicking outside; repeated trades; Fake Offhand with blocks, fireworks and
+  throwables; Edge Guard; Sneak placement; Night Vision; Connected Textures on
+  glass; FreeCamera terrain and hiding the hand and HUD; all Hide effects; chat
+  position; ghost blocks, pistons, entity models and the 3D preview; a shulker box
+  facing another way marked as a state mismatch; creative ghost pick; the in-world
+  language list; skipping server packs; note block pitch.
+- Not working: Shift + click outside the window with items held (below).
+- Expected until the symbols arrive: no instrument row on a ghost note block.
+- Glass panes: an edge is drawn at a chunk border where the pane continues. On
+  `1.26.51.01 Dev` the same spot instead has an edge cut off at the border, so the
+  look changed in 26.60 (L-306). A bent lower row beside a straight upper row looks
+  odd on both.
+
+Shift + click outside: `transfer_trace` builds, local world. A plain left press
+outside gave button 533404285 from 3024615655 and `drop-selected` with bytes
+`01000000 00000000 00ffffff`; on the panel 1501717486, no drop. With Shift both
+reached no control (global button 1485818800). Vanilla's left and right click
+outside work; nothing shows whether the gesture ever worked on 26.51.
+
+DLL `694E527684EB93AAF278DA40C035C395DEEA3C89EC896B83B132D7D793969AD8`, no trace,
+with `pressAsPlainClick`: outside the window the stack and the matching items drop;
+on the panel nothing happens and the stack stays held; on a button the stack stays
+held and the button takes a plain click; on a slot the gesture is unchanged. The
+same in a server world, per the maintainer (which server was not stated).
+
+Not covered: every feature's edge cases, resource packs, the hitbox and map frame
+alpha. Book paste stays off and an offhand map stays drawn. The committed build with
+the same behavior was not run again.
+
 ## First run on Minecraft 1.26.60.05 and LeviLamina 26.60.0 (2026-11-04, L-305)
 
 LeviLauncher instance `1.26.60.05 Dev`, local world, uncommitted changes on
