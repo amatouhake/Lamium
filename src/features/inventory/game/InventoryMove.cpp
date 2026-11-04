@@ -83,7 +83,7 @@ bool giveCreative(LocalPlayer& player, int slot, ItemStack const& item) {
     ItemStack old = player.getInventory().getItem(slot);
     struct Active { Active() { active = true; } ~Active() { active = false; } } guard;
     recordedInventory = false;
-    auto scope = ItemStackNetManagerBase::_tryBeginClientLegacyTransactionRequest(&player);
+    auto scope = base->_tryBeginClientLegacyTransactionRequest();
     if (!base->mLegacyTransactionRequestId->mRawId) { trace("no-legacy-scope",0); return false; }
     player.getInventory().$setItem(slot,item);
     if (manager.mCurrentTransaction.get()) {
@@ -116,7 +116,7 @@ bool movePair(LocalPlayer& player, Location a, ItemStack const& newA, Location b
     ItemStack oldA = itemAt(player,a), oldB = itemAt(player,b);
     struct Active { Active() { active = true; } ~Active() { active = false; } } guard;
     recordedInventory = recordedOffhand = recordedArmor = false;
-    auto scope = ItemStackNetManagerBase::_tryBeginClientLegacyTransactionRequest(&player);
+    auto scope = base->_tryBeginClientLegacyTransactionRequest();
     if (!base->mLegacyTransactionRequestId->mRawId) { trace("no-legacy-scope",0); return false; }
     trace("set-first",static_cast<int>(a.place));
     set(player,a,newA);

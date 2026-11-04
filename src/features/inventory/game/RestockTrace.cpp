@@ -50,10 +50,10 @@ void inspect(std::shared_ptr<HudContainerManagerController> const& controller) n
         }
     } catch (...) {} // Read-only diagnostics must never alter vanilla behavior.
 }
-LL_TYPE_INSTANCE_HOOK(CreateHud, ll::memory::HookPriority::Normal, ClientInstanceScreenModel,
-    &ClientInstanceScreenModel::createHudContainerManagerController, std::shared_ptr<HudContainerManagerController>) {
-    auto result = origin();
-    inspect(result);
+LL_TYPE_INSTANCE_HOOK(CreateHud, ll::memory::HookPriority::Normal, HudScreenController,
+    &HudScreenController::$ctor, void*, std::shared_ptr<ClientInstanceScreenModel> model) {
+    auto* result = origin(std::move(model));
+    inspect(mHudScreenManagerController);
     return result;
 }
 // L-17: Sort's screen-backed transfers succeed while the HUD controller's

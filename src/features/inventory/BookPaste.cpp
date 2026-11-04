@@ -36,6 +36,16 @@
 #endif
 
 namespace lamium::inventory::bookPaste {
+#ifdef LAMIUM_MCAPI_PENDING
+// L-305: SDK 26.60 does not export what this path uses yet. A paste stays vanilla.
+bool start() {
+    try {
+        Runtime::instance().self().getLogger().warn("L-259 book paste stays vanilla: waiting for game symbols (L-305)");
+    } catch (...) {}
+    return true;
+}
+void stop() {}
+#else
 namespace {
 using Clock = std::chrono::steady_clock;
 // A book screen's controller and page box live as long as the screen. The
@@ -688,4 +698,5 @@ void stop() {
         } catch (...) {}
     }
 }
+#endif
 }

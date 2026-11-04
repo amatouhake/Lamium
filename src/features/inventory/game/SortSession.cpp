@@ -1,4 +1,5 @@
 #include "features/inventory/game/SortSession.h"
+#include "features/inventory/game/CursorState.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/inventory/game/TextInputTracker.h"
 #include "features/inventory/game/RequestTracker.h"
@@ -158,7 +159,7 @@ bool SortSession::run(
         logger.warn("Sort aborted: screen has no container manager");
         return false;
     }
-    if (controller._isCursorSelectedActive()) {
+    if (game::cursorHasItems(controller)) {
         logger.info("Sort skipped: an item is being held on the cursor");
         return false;
     }
@@ -240,7 +241,7 @@ void SortSession::tick(ContainerScreenController& controller) {
     // The screen may release its manager from a synchronous vanilla callback.
     auto manager = controller.mContainerManagerController;
     if (!active || active.get() != &controller || !manager || manager->mContainersClosed
-        || controller._isCursorSelectedActive()
+        || game::cursorHasItems(controller)
         || !Runtime::instance().preferences().inventory.sorting
         || TextInputTracker::getInstance().isEditing(ScreenTracker::getInstance().currentView())) {
         logger.info("Sort cancelled: screen, input, or settings changed");

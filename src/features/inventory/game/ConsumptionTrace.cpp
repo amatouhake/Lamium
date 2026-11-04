@@ -104,12 +104,12 @@ LL_TYPE_INSTANCE_HOOK(CompleteUse, ll::memory::HookPriority::Low, Player,
     if (local) log("cb=complete-using-item held={}->{}", heldBefore, heldCount(*player));
 }
 LL_TYPE_INSTANCE_HOOK(StartUse, ll::memory::HookPriority::Low, Player,
-    &Player::startUsingItem, void, ItemStack const& instance, int duration) {
+    &Player::startUsingItem, void, ItemStack const& instance, int duration, HandSlot hand) {
     auto* player = localPlayer();
     bool local = isLocal(static_cast<Player*>(this));
     if (local) log("cb=start-using-item count={} duration={} held={}",
         static_cast<int>(instance.mCount), duration, heldCount(*player));
-    origin(instance, duration);
+    origin(instance, duration, hand);
 }
 LL_TYPE_INSTANCE_HOOK(StopUse, ll::memory::HookPriority::Low, Player,
     &Player::stopUsingItem, void) {

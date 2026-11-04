@@ -1,3 +1,4 @@
+#include "features/inventory/game/CursorState.h"
 #include "features/inventory/game/TransferTrace.h"
 #ifdef LAMIUM_TRANSFER_TRACE
 #include "app/TraceLog.h"
@@ -69,7 +70,7 @@ std::string snapshot(ContainerScreenController& controller) {
     auto manager = controller.mContainerManagerController;
     if (!manager || manager->mContainersClosed) return "closed";
     std::string result = std::format("type={} cursor={}", int(manager->getContainerType()),
-        controller._isCursorSelectedActive());
+        game::cursorHasItems(controller));
     int budget = 256;
     for (auto const& name : collections(*manager)) {
         int size = manager->getContainerSize(name);

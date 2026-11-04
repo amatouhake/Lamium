@@ -17,16 +17,33 @@ bool hidden() {
     auto& runtime = Runtime::instance();
     return runtime.enabled() && runtime.snapshot()->visuals.hideOffhand;
 }
-// Flat offhand items (totems, maps, ...) go through the item-in-hand renderer.
+thread_local int firstPersonDepth = 0, itemDepth = 0;
+struct Depth {
+    int& value;
+    explicit Depth(int& depth) : value(depth) { ++value; }
+    ~Depth() { --value; }
+};
+// The first-person pass draws the main hand through renderItem and a flat
+// offhand item (a totem, ...) straight through renderObject, so a render object
+// outside renderItem during that pass is the off hand (L-305, 26.60).
+LL_TYPE_INSTANCE_HOOK(OffhandFirstPerson, ll::memory::HookPriority::Normal, ItemInHandRenderer,
+    &ItemInHandRenderer::renderFirstPerson, void, BaseActorRenderContext& context, Matrix const& previous, ItemContextFlags flags) {
+    Depth depth(firstPersonDepth);
+    origin(context, previous, flags);
+}
+LL_TYPE_INSTANCE_HOOK(OffhandItem, ll::memory::HookPriority::Normal, ItemInHandRenderer,
+    &ItemInHandRenderer::renderItem, void, BaseActorRenderContext& context, Actor& entity, ItemStack const& item,
+    bool posAndRotSetByJson, ItemContextFlags flags, bool useMatrixAsIs, bool renderingMainHand) {
+    Depth depth(itemDepth);
+    origin(context, entity, item, posAndRotSetByJson, flags, useMatrixAsIs, renderingMainHand);
+}
 LL_TYPE_INSTANCE_HOOK(OffhandVisibility, ll::memory::HookPriority::Normal, ItemInHandRenderer,
-    &ItemInHandRenderer::renderOffhandItem, void, BaseActorRenderContext& context,
-    Player& player, ItemContextFlags flags) {
+    &ItemInHandRenderer::renderObject, void, BaseActorRenderContext& context, ItemRenderCall const& call,
+    dragon::RenderMetadata const& metadata, ItemContextFlags flags) {
     bool firstPerson = (static_cast<unsigned>(flags) & static_cast<unsigned>(ItemContextFlags::FirstPersonPass)) != 0;
-    bool otherPass = (static_cast<unsigned>(flags) & (static_cast<unsigned>(ItemContextFlags::WorldPass)
-        | static_cast<unsigned>(ItemContextFlags::UIPass))) != 0;
-    if (firstPerson && !otherPass && hidden()) return;
+    if (firstPersonDepth > 0 && itemDepth == 0 && firstPerson && hidden()) return;
     // Never change equipped stacks, item use, or renderer-owned cached items.
-    origin(context, player, flags);
+    origin(context, call, metadata, flags);
 }
 // Attachables (the shield and other resource-pack 3D items) are drawn by the
 // data-driven model instead (L-14, verified 2026-09-27). Skip the local
@@ -51,7 +68,9 @@ LL_TYPE_INSTANCE_HOOK(OffhandAttachableNoChecks, ll::memory::HookPriority::Norma
     origin(item, slot, params, actor);
 }
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
-Hook hooks[] = {{OffhandVisibility::hook, OffhandVisibility::unhook}, {OffhandAttachable::hook, OffhandAttachable::unhook},
+Hook hooks[] = {
+    {OffhandFirstPerson::hook, OffhandFirstPerson::unhook}, {OffhandItem::hook, OffhandItem::unhook},
+    {OffhandVisibility::hook, OffhandVisibility::unhook}, {OffhandAttachable::hook, OffhandAttachable::unhook},
     {OffhandAttachableNoChecks::hook, OffhandAttachableNoChecks::unhook}};
 }
 void start() {

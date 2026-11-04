@@ -33,8 +33,8 @@ LL_TYPE_INSTANCE_HOOK(LookStartBuild, ll::memory::HookPriority::Highest, GameMod
     if (!blocked(mPlayer)) origin(pos, face, hand);
 }
 LL_TYPE_INSTANCE_HOOK(LookContinueBuild, ll::memory::HookPriority::Highest, GameMode,
-    &GameMode::$continueBuildBlock, void, BlockPos const& pos, uchar face, HandSlot hand) {
-    if (!blocked(mPlayer)) origin(pos, face, hand);
+    &GameMode::$continueBuildBlock, void, BlockPos const& pos, uchar face, HandSlot hand, float delayScale) {
+    if (!blocked(mPlayer)) origin(pos, face, hand, delayScale);
 }
 LL_TYPE_INSTANCE_HOOK(LookBuild, ll::memory::HookPriority::Highest, GameMode,
     &GameMode::$buildBlock, bool, BlockPos const& pos, uchar face, HandSlot hand, bool simTick) {

@@ -1,4 +1,5 @@
 #include "features/inventory/game/TransferRoutes.h"
+#include "features/inventory/game/CursorState.h"
 #include "features/inventory/game/TransferSession.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
@@ -173,10 +174,10 @@ bool drop(ContainerScreenController& controller, std::string const& collection, 
     return true;
 }
 bool dropAmount(ContainerScreenController& controller, std::string const& collection, int index, int amount) {
-    if (!supported(controller) || amount <= 0 || controller._isCursorSelectedActive()) return false;
+    if (!supported(controller) || amount <= 0 || game::cursorHasItems(controller)) return false;
     controller._handleTakeAmount(amount, collection, index);
     // Not taken onto the cursor: nothing to drop.
-    if (!controller._isCursorSelectedActive()) return false;
+    if (!game::cursorHasItems(controller)) return false;
     auto bytes = transfer::dropAmountBytes(false);
     ownDrop = true;
     try {

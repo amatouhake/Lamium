@@ -68,13 +68,14 @@ ClientCounters read(IClientInstance& client) {
     } catch (...) {}
     try {
         // The size only: the map is filled by loading threads, so it is never walked here.
-        out.chunks = clamped(player->getDimension().getChunkSource().getStorage().size());
+        if (auto const& source = static_cast<std::unique_ptr<ChunkSource> const&>(player->getDimension().mChunkSource))
+            out.chunks = clamped(source->getStorage().size());
     } catch (...) {}
     try {
         if (auto* renderer = client.getLevelRenderer()) {
             std::uint64_t total = 0;
-            auto& engine = renderer->getParticleEngine();
-            for (auto n : static_cast<uint const(&)[105]>(engine.particleCount)) total += n;
+            if (auto engine = static_cast<Bedrock::NonOwnerPointer<ParticleEngine> const&>(renderer->mParticleEngine))
+                for (auto n : static_cast<uint const(&)[106]>(engine->particleCount)) total += n;
             if (auto systems = static_cast<Bedrock::NonOwnerPointer<ParticleSystemEngine> const&>(renderer->mParticleSystemEngine))
                 total += static_cast<std::uint64_t const&>(systems->mTotalParticleCount);
             out.particles = clamped(total);

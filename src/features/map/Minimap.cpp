@@ -100,7 +100,7 @@ LL_TYPE_INSTANCE_HOOK(FrameAlphaHook, ll::memory::HookPriority::Normal, LevelRen
     origin(context);
     try {
         if (auto* player = context.mClientInstance.getLocalPlayer()) {
-            float alpha = context.getFrameAlpha(*player);
+            float alpha = context.mFrameAlpha;
             if (std::isfinite(alpha)) frameAlpha = std::clamp(alpha, 0.f, 1.f);
             // The death screen hides the HUD, so the death is noticed here.
             waypoints::watchDeath(context.mClientInstance);
@@ -314,7 +314,7 @@ BlockLook const* blockLook(IClientInstance& client, Block const& block) {
     if (auto found = blockLooks.find(key); found != blockLooks.end()) return &found->second;
     BlockLook look;
     auto const& type = block.getBlockType();
-    auto material = type.mMaterial.mType;
+    auto material = type.mMaterial->mType;
     using Material = SharedTypes::v1_26_20::MaterialType;
     look.tint = type.mTintMethod;
     if (material == Material::Air || material == Material::Glass || material == Material::StructureVoid

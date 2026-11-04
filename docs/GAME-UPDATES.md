@@ -12,7 +12,7 @@ entry here.
   member layouts come from the SDK headers, regenerated for each game
   version. Rebuilding against the new SDK follows moved members; removed or
   retyped functions and members fail to compile. An old Lamium on a new game
-  does not load: `tooth.json` pins LeviLamina `26.51.*`, and LeviLamina is
+  does not load: `tooth.json` pins LeviLamina `26.60.*`, and LeviLamina is
   tied to one game version.
 - **Not caught by a rebuild.** A member or field whose *meaning* changed
   (vertex streams, light texture fields, fog values, packet contents), a
@@ -30,7 +30,7 @@ A path that writes game memory or relies on a meaning a rebuild cannot check
 asks `versionSensitiveAllowed(capabilities::Id::...)` (`app/Versions.h`).
 `app/Capabilities.h` owns the typed definitions, feature/partial-loss mapping,
 compatibility policy, runtime stage and reason. All native adapters use one
-loader policy: series 26.51, minimum patch 5; later patches do not need an
+loader policy: series 26.60, minimum patch 0; later patches do not need an
 allowlist edit. This is not a promise that a patch cannot break an ABI: each
 adapter retains its target, ownership and contract checks.
 
@@ -43,8 +43,12 @@ LeviLamina's own types.
 
 - 2026-10-26: SDK 26.51.8 imports checked against loader 26.51.5, and
   26.51.7 (official client release DLLs; 68 imports, none missing).
+- 2026-11-04: SDK 26.60.0 and minimum loader 26.60.0 are the same version,
+  so no import check is needed.
 
-The shared verified Minecraft executable remains 1.26.51.01. An unverified
+The shared verified Minecraft executable remains 1.26.51.01 while the 26.60
+move is checked in game (playbook step 5), so on 1.26.60.05 every gated path
+stays vanilla for now. An unverified
 executable or unsupported loader prevents probing and use of sensitive paths.
 The catalog can name a separately reviewed executable build per capability,
 without widening the others. No such exception is currently enabled.
@@ -113,7 +117,7 @@ the package/SDK loader-policy alignment in CI.
 | Schematic pick (creative inventory give) | `GhostPick.cpp`, `InventoryMove.cpp` (`giveCreative`) | a creative ghost pick of a block not carried does nothing | picks of carried blocks, survival picks |
 | Sneak placement (use gate and sneak state) | `SneakPlacement.cpp` | every use goes through the game's own sneak state | the setting and key (no effect) |
 | Note block pitch (level sound events) | `NoteSounds.cpp` | a note block's pitch on the target card stays at the note the world loaded with | the instrument and every other block entity row |
-| Ghost note block instrument (block instrument component) | `TargetInfo.cpp` `appendGhostInstrument` (`BlockInstrumentComponent`: [0] for a note block under the block, [1] for one on it) | a ghost note block shows no instrument row | real note blocks, every other row |
+| Ghost note block instrument (block instrument component) | `TargetInfo.cpp` `appendGhostInstrument` (`BlockInstrumentComponent`: [0] for a note block under the block, [1] for one on it; held back by L-305) | a ghost note block shows no instrument row | real note blocks, every other row |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
@@ -145,6 +149,11 @@ the package/SDK loader-policy alignment in CI.
    must match it.
 6. **Release** as usual (DISTRIBUTION.md); the release notes name the game
    version.
+
+Since 26.60 most game functions in the SDK are marked `MCNAPI`: declared but
+not exported. A link error names them; `LiteLDev/mcapi-requests` is where a mod
+asks for them, with the mangled names from the linker. `LAMIUM_MCAPI_PENDING`
+in `xmake.lua` holds back what still waits for one (L-305).
 
 ## Inventory
 
@@ -420,7 +429,9 @@ Rebuild.
 
 ### `src/features/inventory/HandRestock.cpp`
 Hooks: `CaptureHud`, `Use`, `UseOn`, `StartUse`, `CompleteUse`, `FocusLost`, `ComplexSend`, `Drop`, `SlotUpdate`, `ContentUpdate`, `EntityEvent`
-Meaning: the HUD container controller, the order of use, consume and the
+Meaning: the HUD container controller (`CaptureHud` reads
+`HudScreenController::mHudScreenManagerController` after its constructor; the
+model's factory left the SDK in 26.60), the order of use, consume and the
 server's slot updates, and the entity event for a totem pop. Restocks are
 confirmed from the inventory, not from these events alone.
 
@@ -451,6 +462,7 @@ server's copy). `Name` is the macro that makes the two `useItemOn` hooks.
 
 ### `src/features/inventory/BookPaste.cpp`
 Hooks: `BookScreenTick`, `BookScreenValid`, `PageBoxFocus`, `TextTrySet`, `ContextText`, `BookScreenOpen`, `TextCharKey`, `TextFits`, `ContextAction`, `PageParse`, `PageSetText`, `PageAddAt`, `ManagerEditPage`, `ManagerAddPage`, `BookEditSend`, `BookEditSendToServer`
+Not built while `LAMIUM_MCAPI_PENDING` is set (L-305).
 Meaning (L-259): `ContextText` is `TextEditContext::feedText`, where a paste
 arrives after `feedAction(Paste)`. A paste into the page box of an editable book
 and quill that does not fit is split; the detour inserts only the part that fits
@@ -536,7 +548,7 @@ Trace (L-166, read-only; `repeat_trade_trace`, independent of `trade_trace`).
 ### `src/features/schematic/GhostActors.cpp`
 Hooks: `GhostActorShader`, `GhostActorLightPair`
 Meaning: block actor renderers set their light through these two
-overloads. Used only for ghost block actors (gated with ghost blocks).
+overloads (the position overload gained `BlockLightingFlags` in 26.60). Used only for ghost block actors (gated with ghost blocks).
 
 ### `src/features/schematic/GhostProbe.cpp`
 Hooks: `EffectsPassHook`
@@ -567,7 +579,7 @@ and the material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 
 ### `src/features/visuals/ConnectedSprites.cpp`
 Hooks: `SpriteAtlas`, `SpritePackIndex`, `SpritePackLoad`
-Meaning: the terrain atlas's `texture_data` entries (`texture_name`
+Meaning (`SpritePackIndex` sits on `ResourcePackLoader` since 26.60): the terrain atlas's `texture_data` entries (`texture_name`
 "atlas.terrain"), the resource pack lookup (`getPackStackIndexOfResource`:
 -1 makes the atlas skip an image; the string is the matched extension) and
 the pair overload of `load` the atlas reads images through; the sprite
@@ -593,8 +605,11 @@ names, particle effect names, the camera medium flags and fog values that
 medium, weather densities, the nausea mesh.
 
 ### `src/features/visuals/HideOffhand.cpp`
-Hooks: `OffhandVisibility`, `OffhandAttachable`, `OffhandAttachableNoChecks`
+Hooks: `OffhandFirstPerson`, `OffhandItem`, `OffhandVisibility`, `OffhandAttachable`, `OffhandAttachableNoChecks`
 Meaning: the off hand is drawn through these calls in first person.
+Since 26.60 the first-person pass draws the main hand through `renderItem` and
+a flat offhand item straight through `renderObject`; `OffhandVisibility` skips a
+`renderObject` outside `renderItem` during `renderFirstPerson`.
 
 ### `src/features/visuals/ServerPacks.cpp`
 Hooks: `ServerPacksJoin`, `ServerPacksStack`

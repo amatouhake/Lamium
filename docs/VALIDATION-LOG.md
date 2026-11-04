@@ -12,6 +12,36 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## First run on Minecraft 1.26.60.05 and LeviLamina 26.60.0 (2026-11-04, L-305)
+
+LeviLauncher instance `1.26.60.05 Dev`, local world, uncommitted changes on
+`297c9d1b` built against SDK 26.60.0. Verified game still 1.26.51.01, so gated
+paths are off.
+
+Launch failed first with no Lamium involved: exit `0xC0000142` and
+`Cannot install directory imports (Windows error 193)` from `LeviLauncher.dll`,
+with or without Lamium, because the executable's import table was unaligned.
+Repeating PeEditor on `Minecraft.Windows.exe.orig` fixed it.
+
+DLL `3CBFDD8FC21639CD9743E0DF0295EC923AAC952AFB44D494F59277C089C58E66`, no trace:
+the world opens without a crash, `L` opens and closes the settings, basic Sort and
+transfer work, Hand Restock refills. Ctrl and Alt transfer gestures and the
+held-item Shift gesture do nothing; the log says Item Transfer's native routes
+stay vanilla on the unverified game, which is expected. The same log names
+FreeCamera terrain, Connected Textures, Sneak placement and Edge Guard. Hide
+Offhand hid nothing except the shield.
+
+DLL `8D37AF782C1F25EE2DDBC9C0EF8AB2D428DDFABECC3B9DB7DAB6FD4DB7CA0D5D`, temporary
+`hide_offhand_trace` with the `renderObject` fix: offhand totem hidden with a sword,
+a block or a map in the main hand, which stays drawn; off, both hands draw. An
+offhand map stays drawn. The trace showed the main hand through `renderItem`, and a
+`renderObject` outside it in the first-person pass. Third person stays normal
+(seen on the build before this one).
+
+The final build without the trace, DLL
+`018DF367EB5614BE26B0CF067AFAD9F5BD3C556D42038D7E9C3FAF16B96664D7`, was deployed
+but not run. Not covered: BDS, everything gated, the map and hitbox frame alpha.
+
 ## Target card and check review fixes (2026-11-04)
 
 LeviLauncher instance `1.26.51.01 LIP`, local world, on `7dc9e402` (DLL SHA-256

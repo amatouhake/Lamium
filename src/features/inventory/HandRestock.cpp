@@ -8,6 +8,12 @@
 #include "app/TraceLog.h"
 #include "ui/SettingsScreen.h"
 #include "ll/api/memory/Hook.h"
+#include "mc/client/gui/screens/controllers/HudScreenController.h"
+#include "mc/client/gui/screens/models/ClientInstanceScreenModel.h"
+#include "mc/client/gui/screens/controllers/HudScreenController.h"
+#include "mc/client/gui/screens/models/ClientInstanceScreenModel.h"
+#include "mc/client/gui/screens/controllers/HudScreenController.h"
+#include "mc/client/gui/screens/models/ClientInstanceScreenModel.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
@@ -496,9 +502,9 @@ void tick() noexcept {
         }
     } catch (...) { failure(); }
 }
-LL_TYPE_INSTANCE_HOOK(CaptureHud, ll::memory::HookPriority::Normal, ClientInstanceScreenModel,
-    &ClientInstanceScreenModel::createHudContainerManagerController, std::shared_ptr<HudContainerManagerController>) {
-    auto result = origin(); reset(); hud = result; return result;
+LL_TYPE_INSTANCE_HOOK(CaptureHud, ll::memory::HookPriority::Normal, HudScreenController,
+    &HudScreenController::$ctor, void*, std::shared_ptr<ClientInstanceScreenModel> model) {
+    auto* result = origin(std::move(model)); reset(); hud = mHudScreenManagerController; return result;
 }
 LL_TYPE_INSTANCE_HOOK(Use, ll::memory::HookPriority::Normal, GameMode,
     &GameMode::$useItem, bool, ItemStack& item, HandSlot hand) {
@@ -538,7 +544,7 @@ LL_TYPE_INSTANCE_HOOK(UseOn, ll::memory::HookPriority::Normal, GameMode,
     catch (...) { if (op && pending == op) cancel(); throw; }
 }
 LL_TYPE_INSTANCE_HOOK(StartUse, ll::memory::HookPriority::Normal, Player,
-    &Player::startUsingItem, void, ItemStack const& item, int duration) {
+    &Player::startUsingItem, void, ItemStack const& item, int duration, HandSlot hand) {
     try {
         trace("start-timed",pending ? int(pending->callbackActive) : -1);
         if (pending && pending->callbackActive && static_cast<Player*>(eligible()) == static_cast<Player*>(this)) {
@@ -547,7 +553,7 @@ LL_TYPE_INSTANCE_HOOK(StartUse, ll::memory::HookPriority::Normal, Player,
             pending->deadline = Clock::now() + std::chrono::milliseconds(std::clamp(duration,1,1200) * 50 + 1000);
         }
     } catch (...) { failure(); }
-    origin(item,duration);
+    origin(item,duration,hand);
 }
 LL_TYPE_INSTANCE_HOOK(CompleteUse, ll::memory::HookPriority::Normal, Player,
     &Player::completeUsingItem, void) {

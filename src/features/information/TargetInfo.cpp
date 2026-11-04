@@ -115,7 +115,7 @@ bool eggIndexBuilt = false;
 ll::event::ListenerPtr exitListener;
 std::optional<std::string> spawnEggFor(ItemRegistryRef const& registry, std::string const& actorId) {
     std::scoped_lock lock(eggMutex);
-    if (!eggIndexBuilt && registry.isRegistryInitialized()) {
+    if (!eggIndexBuilt && !registry.mWeakRegistry.expired()) {
         auto const& items = registry.getNameToItemMap();
         for (auto const& [name, weak] : items) {
             auto* item = weak.get();
@@ -324,7 +324,7 @@ std::span<std::string_view const> staleFields(BlockActorType type) {
 // (card rows or an expanded view) is still open in L-184; until then a ghost
 // leaves out the same container fields a real block does.
 std::span<std::string_view const> ghostHeldBackFields(BlockActorType type) { return staleFields(type); }
-// The instrument as the player reads it; the game's own name when Lamium has none.
+// The instrument as the player reads it; its number when Lamium has no name.
 std::string instrumentName(SharedTypes::v1_26_20::NoteBlockInstrument instrument) {
     static constexpr std::string_view keys[] = {
         "harp", "bassDrum", "snare", "hat", "bass", "flute", "bell", "guitar", "chime",
@@ -336,7 +336,7 @@ std::string instrumentName(SharedTypes::v1_26_20::NoteBlockInstrument instrument
         std::string key = std::format("blockEntity.instrument.{}", keys[index]);
         if (auto text = ui::translated(key); text != key) return text;
     }
-    return SharedTypes::v1_26_20::NoteBlockInstrumentEnum::noteBlockInstrumentToString(instrument);
+    return std::to_string(index);
 }
 void appendInstrument(std::vector<TargetInfo::DetailRow>& rows,
                       std::optional<SharedTypes::v1_26_20::NoteBlockInstrument> instrument) {
@@ -352,13 +352,18 @@ Declared<SharedTypes::v1_26_20::NoteBlockInstrument> declaredBy(schematic::ghost
                                                                 std::size_t side) {
     using SharedTypes::v1_26_20::NoteBlockInstrument;
     Declared<NoteBlockInstrument> result{neighbor.known, std::nullopt};
+#ifndef LAMIUM_MCAPI_PENDING
     if (neighbor.block)
         if (auto const* component = neighbor.block->tryGetComponent<BlockInstrumentComponent>())
             result.instrument = declaresNoInstrument(component->mInstruments.get()[side], NoteBlockInstrument::None);
+#endif
     return result;
 }
 void appendGhostInstrument(std::vector<TargetInfo::DetailRow>& rows, schematic::ghosts::GhostAt const& ghost) {
     using SharedTypes::v1_26_20::NoteBlockInstrument;
+#ifdef LAMIUM_MCAPI_PENDING
+    return; // L-305: no row until the instrument component's lookup is exported.
+#endif
     if (!versionSensitiveAllowed(capabilities::Id::NoteBlockInstrument)) return;
     if (auto instrument = noteInstrument(declaredBy(ghost.above, 0), declaredBy(ghost.below, 1), NoteBlockInstrument::Harp))
         appendInstrument(rows, instrument);

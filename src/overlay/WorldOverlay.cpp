@@ -490,7 +490,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
             for (auto* actor : player->getLevel().getRuntimeActorList()) {
                 if (!actor || actor == player || &actor->getDimension() != &dimension) continue;
                 auto const& bounds = actor->getAABB();
-                float const alpha = context.getFrameAlpha(*actor);
+                float const alpha = context.mFrameAlpha;
                 Vec3 const simulated = actor->getPosition();
                 Vec3 const rendered = actor->getInterpolatedPosition(alpha);
                 Point const offset = hitboxRenderOffset({simulated.x,simulated.y,simulated.z},

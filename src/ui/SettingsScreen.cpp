@@ -271,8 +271,12 @@ bool exitHook = false;
 bool entranceHook = false;
 thread_local ScreenView* settingsRenderView = nullptr;
 
+// The stack the scene factory pushes to (getCurrentSceneStack left the SDK in 26.60).
+Bedrock::NotNullNonOwnerPtr<ISceneStack> sceneStack(IClientInstance& current) {
+    return current.getSceneFactory().mUseClientInstanceStack ? current.getClientSceneStack() : current.getMainSceneStack();
+}
 bool ownsTop() {
-    return client && scene && client->getSceneFactory().getCurrentSceneStack()->getTopScene() == scene.get();
+    return client && scene && sceneStack(*client)->getTopScene() == scene.get();
 }
 void releaseTextKeyboard() {
     if (!textKeyboardOwned) return;
@@ -455,7 +459,7 @@ void close() {
     releaseTextKeyboard();
     table_view::disarm();
     if (ownsTop()) {
-        if (!closing) client->getSceneFactory().getCurrentSceneStack()->schedulePopScreen(1);
+        if (!closing) sceneStack(*client)->schedulePopScreen(1);
         closing = true;
     } else clear();
 }
@@ -1302,7 +1306,7 @@ void open(IClientInstance& current) {
     if (!scene) return;
     client = &current;
     openedAt = std::chrono::steady_clock::now();
-    current.getSceneFactory().getCurrentSceneStack()->pushScreen(scene, false);
+    sceneStack(current)->pushScreen(scene, false);
 }
 void openShapes(IClientInstance& current) {
     std::lock_guard lock(mutex);

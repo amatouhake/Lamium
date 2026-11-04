@@ -1,5 +1,6 @@
 #include "features/inventory/RepeatTrades.h"
 #include "features/inventory/RepeatTradeState.h"
+#include "features/inventory/game/CursorState.h"
 #include "features/inventory/game/RequestTracker.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/inventory/game/TextInputTracker.h"
@@ -101,7 +102,7 @@ bool focused(ContainerScreenController& controller) {
     auto& tracker = game::ScreenTracker::getInstance();
     auto const* view = tracker.currentView();
     return tracker.current().get() == &controller && view && view->mHasFocus
-        && !controller._isCursorSelectedActive() && !game::TextInputTracker::getInstance().isEditing(view);
+        && !game::cursorHasItems(controller) && !game::TextInputTracker::getInstance().isEditing(view);
 }
 bool shiftOnly() {
     constexpr int down = 0x8000;

@@ -84,7 +84,7 @@ bool Runtime::load() {
             mod.getModDir() / "logs" / "lamium.log",
             ll::makePolymorphic<ll::io::PatternFormatter>("[{3:.3%F %T.} {2}][{1}] {0}", false), rotation);
         sink->setFlushLevel(ll::io::LogLevel::Info);
-        mod.getLogger().addSink(std::move(sink));
+        mod.getLogger().setSink("lamium_file", std::move(sink));
     } catch (std::exception const& error) {
         mod.getLogger().warn("Could not create Lamium log: {}", error.what());
     }

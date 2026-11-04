@@ -71,6 +71,8 @@ published for whoever wants it. There is no "first release" gate.
 Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
+0. **L-305 move to Minecraft 1.26.60.05 / LeviLamina 26.60.** Game checks and
+   the symbol request are open; the verified game stays 1.26.51.01 until then.
 1. **Bugs first.** L-227 FreeCamera shows only the sky
    outside loaded terrain (Research; new native experiment needs the
    maintainer's go-ahead). L-177 mismatch-highlight fix is built and awaits
@@ -184,6 +186,56 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
+
+### L-305 Move to Minecraft 1.26.60.05 and LeviLamina 26.60
+Kind: Update. Follows the playbook in [GAME-UPDATES.md](GAME-UPDATES.md).
+Built against SDK 26.60.0 on 2026-11-04 (step 2). `verifiedGame` stays
+1.26.51.01, so every gated path stays vanilla on the new game (step 3).
+
+Open:
+1. **Meaning checks** and `verifiedGame` (playbook steps 4 and 5). The basic
+   smoke passed on 2026-11-04 (VALIDATION-LOG): the game starts, gated paths
+   stay vanilla, Lamium's settings, basic Sort and transfer, Hand Restock and
+   Hide Offhand work. Not checked yet: the cursor cases of `cursorHasItems` and
+   `mFrameAlpha` in the map and hitboxes (it replaces the per-actor
+   `getFrameAlpha`). The drop bytes and other traced values need re-tracing once
+   the gates open. Trace-only sources were not all compiled against 26.60.
+2. **Offhand map stays drawn with Hide Offhand on (regression from 26.51).** It
+   does not go through the render calls Lamium can hook, and the likely target
+   is not exported:
+   `?_renderMiniMapHand@ItemInHandRenderer@@QEAAXAEAVBaseActorRenderContext@@AEAVPlayer@@_N@Z`.
+   Added to the symbol request on 2026-11-04; whether it draws the map is
+   unconfirmed.
+3. **Launching on 26.60.** An instance where PeEditor ran after LeviLauncher's
+   import patch fails at launch: the import table is left unaligned and
+   `LeviLauncher.dll` rejects it (`Cannot install directory imports (Windows
+   error 193)`, exit `0xC0000142`). Lamium is not involved. Repeat PeEditor on
+   the original executable, so that the launcher patches last. Not yet reported
+   upstream.
+4. **Symbols.** `LAMIUM_MCAPI_PENDING` (`xmake.lua`) holds these back, because
+   the SDK does not export them. Remove it once they are available. The book
+   paste list was filed in `LiteLDev/mcapi-requests` on 2026-11-04 and passed
+   its automatic check; the request is not yet answered.
+   - Book paste (L-259, stays vanilla):
+     `?$preFrameTick@BookScreenController@@QEAAXXZ`,
+     `?$_isStillValid@BookScreenController@@QEBA_NXZ`,
+     `?_addPageAt@BookScreenController@@QEAAXHAEBUPageContent@@@Z`,
+     `?_parsePageText@BookScreenController@@QEAAXH@Z`,
+     `??0PageContent@@QEAA@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$optional@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@Z`,
+     `??1PageContent@@QEAA@XZ`,
+     `?handleFocusSet@TextEditComponent@@QEAAX_N@Z`,
+     `?trySetText@TextEditComponent@@QEAA_NV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`,
+     `?_textFitsInControl@TextEditComponent@@QEBA_NAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`,
+     `?feedText@TextEditContext@@QEAAXV?$basic_string_view@DU?$char_traits@D@std@@@std@@@Z`,
+     `?_setText@TextEditContext@@QEAAXV?$basic_string_view@DU?$char_traits@D@std@@@std@@@Z`.
+     The trace build also needs other functions this list leaves out.
+   - Ghost note block instrument (no row on the card):
+     `??$tryGetComponent@UBlockInstrumentComponent@@@Block@@QEBAPEBUBlockInstrumentComponent@@XZ`.
+     The request's check rejects it because the template is declared `MCAPI`, but
+     this instantiation does not link. Needs another way to read the component.
+
+A note block's instrument name without a Lamium translation now falls back to
+its number, because `noteBlockInstrumentToString` is not exported.
 
 ### L-276 A temporary waypoint whose removal cannot be saved is never announced again
 Kind: Bug. Review finding 2026-10-27 on `08da0c47`: `waypoints::arrive()`

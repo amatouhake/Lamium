@@ -5,7 +5,7 @@
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/game/IMinecraftGame.h"
 #include "mc/client/gui/Font.h"
-#include "mc/client/gui/FontHandle.h"
+#include "ui/GameFont.h"
 #include "mc/client/gui/FontRepository.h"
 #include "mc/client/gui/CaretMeasureData.h"
 #include "mc/client/gui/TextAlignment.h"
@@ -35,7 +35,7 @@ constexpr mce::Color white{1.f,1.f,1.f,1.f};
 mce::Color color(Rgb value) { return {value.r, value.g, value.b, 1.f}; }
 float currentScale = 1;
 Font& defaultFont(MinecraftUIRenderContext& context) {
-    return context.mClient.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default").getFont();
+    return fontOf(context.mClient.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default"));
 }
 }
 float drawScale() { return currentScale; }

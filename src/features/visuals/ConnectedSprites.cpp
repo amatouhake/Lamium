@@ -231,8 +231,8 @@ std::string withoutPng(std::string path) {
 // Lookups for a sprite or a baked map answer with the base file's pack; a
 // texture set is preferred where the caller accepts one, as for vanilla.
 using PackIndex = std::pair<int, std::string_view>;
-LL_TYPE_INSTANCE_HOOK(SpritePackIndex, ll::memory::HookPriority::Normal, ResourcePackManager,
-    &ResourcePackManager::$getPackStackIndexOfResource, PackIndex, ResourceLocation const& location,
+LL_TYPE_INSTANCE_HOOK(SpritePackIndex, ll::memory::HookPriority::Normal, ResourcePackLoader,
+    &ResourcePackLoader::$getPackStackIndexOfResource, PackIndex, ResourceLocation const& location,
     gsl::span<std::string const> extensions) {
     auto result = origin(location, extensions);
     if (!versionSensitiveAllowed(capabilities::Id::ConnectedTextures)) return result;

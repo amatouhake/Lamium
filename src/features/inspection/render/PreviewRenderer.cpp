@@ -10,7 +10,7 @@
 #include "mc/client/game/IMinecraftGame.h"
 #include "mc/client/gui/CaretMeasureData.h"
 #include "mc/client/gui/Font.h"
-#include "mc/client/gui/FontHandle.h"
+#include "ui/GameFont.h"
 #include "mc/client/gui/FontRepository.h"
 #include "mc/client/gui/TextAlignment.h"
 #include "mc/client/gui/TextMeasureData.h"
@@ -158,7 +158,7 @@ void PreviewRenderer::render(
     //    "default" UI label resolves to (locale and font overrides included),
     //    measured by the UI's own strategy, anchored bottom-right of the cell.
     auto const& fontHandle = client.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default");
-    Font&       font       = fontHandle.getFont();
+    Font&       font       = ui::fontOf(fontHandle);
     Bedrock::NotNullNonOwnerPtr<FontHandle const> const fontRef{Bedrock::NonOwnerPointer<FontHandle const>{fontHandle}};
     TextMeasureData const  textData{kCountFontSize, 0.0f, true, false, false, ::ui::TextAlignment::Right};
     CaretMeasureData const caretData{-1, false};

@@ -53,7 +53,7 @@
 #include "features/inspection/render/PreviewLayout.h"
 #include "mc/client/gui/CaretMeasureData.h"
 #include "mc/client/gui/Font.h"
-#include "mc/client/gui/FontHandle.h"
+#include "ui/GameFont.h"
 #include "mc/client/gui/FontRepository.h"
 #include "mc/client/gui/TextAlignment.h"
 #include "mc/client/gui/TextMeasureData.h"
@@ -231,7 +231,7 @@ void slotCount(MinecraftUIRenderContext& context, offhand::Box icon, float unit,
     glm::vec2 size = context.getMeasureStrategy().measureText(fontRef, text, 1000, 1000, textData, caret).mSize;
     float right = icon.x + 17 * unit, bottom = icon.y + 18 * unit;
     auto draw = [&](float offset, mce::Color const& color) {
-        context.drawText(handle.getFont(), RectangleArea{right - size.x + offset, right + offset,
+        context.drawText(ui::fontOf(handle), RectangleArea{right - size.x + offset, right + offset,
                          bottom - size.y + offset, bottom + offset}, std::string(text), color, 1.0f,
                          ::ui::TextAlignment::Right, textData, caret);
     };

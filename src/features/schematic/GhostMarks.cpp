@@ -10,7 +10,7 @@
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/game/IMinecraftGame.h"
 #include "mc/client/gui/Font.h"
-#include "mc/client/gui/FontHandle.h"
+#include "ui/GameFont.h"
 #include "mc/client/gui/FontRepository.h"
 #include "mc/client/gui/screens/ScreenContext.h"
 #include "mc/client/renderer/BaseActorRenderer.h"
@@ -308,7 +308,7 @@ void drawNameTags(ScreenContext& screen, IClientInstance& client, BlockSource& r
     // The view's rotation rows are the camera axes.
     glm::vec3 right{view[0][0], view[1][0], view[2][0]}, up{view[0][1], view[1][1], view[2][1]};
     glm::vec3 across = glm::cross(right, -up);
-    auto& font = client.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default").getFont();
+    auto& font = ui::fontOf(client.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default"));
     auto background = BaseActorRenderer::NAME_TAG_BACKGROUND_COLOR();
     // Smooth fonts (Japanese, Chinese) keep their own material, which reads
     // text constants the name tag material does not set: without them the

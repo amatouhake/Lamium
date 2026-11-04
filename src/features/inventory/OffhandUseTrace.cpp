@@ -168,10 +168,10 @@ INTERACT_HOOK(SurvivalInteract, SurvivalMode)
 #undef INTERACT_HOOK
 
 LL_TYPE_INSTANCE_HOOK(StartUse, ll::memory::HookPriority::Low, Player,
-    &Player::startUsingItem, void, ItemStack const& item, int duration) {
+    &Player::startUsingItem, void, ItemStack const& item, int duration, HandSlot hand) {
     bool const observe = local(this);
     if (observe) log(timedBudget, "start-enter", duration);
-    origin(item, duration);
+    origin(item, duration, hand);
     if (observe) log(timedBudget, "start-exit", duration);
 }
 #define TIMED_HOOK(Name, Method) \

@@ -1,4 +1,5 @@
 #include "features/inventory/game/TransferSession.h"
+#include "features/inventory/game/CursorState.h"
 #include "features/inventory/game/TransferRoutes.h"
 #include "features/inventory/game/RequestTracker.h"
 #include "features/inventory/game/ScreenTracker.h"
@@ -225,7 +226,7 @@ bool available(ContainerScreenController& controller, bool cursor = false) {
         && manager && !manager->mContainersClosed
         && (ordinary(manager->getContainerType()) || inventoryScreen(*manager)
             || !transferRoutes::collections(controller).empty())
-        && (cursor || !controller._isCursorSelectedActive())
+        && (cursor || !game::cursorHasItems(controller))
         && !TextInputTracker::getInstance().isEditing(ScreenTracker::getInstance().currentView());
 }
 
@@ -243,7 +244,7 @@ std::optional<Slot> slotAt(ContainerScreenController& controller, std::string co
         && transfer::wornItem(stack.getTypeName(),
                               stack.mItem->isHumanoidArmor() || stack.mItem->hasTag(VanillaItemTags::Armor()));
     Slot result{name, index, *side, generation.load(), worn, occupied, transferRoutes::supported(controller),
-                controller._isCursorSelectedActive()};
+                game::cursorHasItems(controller)};
     int const size = inventorySize(*manager);
     if (size == 0 && manager->hasContainerController("combined_hotbar_and_inventory_items")) {
         if (name == "hotbar_items") result.collection = "combined_hotbar_and_inventory_items";
@@ -425,7 +426,7 @@ Move sendDrop(ContainerScreenController& controller, QueuedRequest const& entry,
         stopOperation("vanilla drop failed");
         return Move::Stop;
     }
-    if (controller._isCursorSelectedActive()) {
+    if (game::cursorHasItems(controller)) {
         stopOperation("a drop left items on the cursor");
         return Move::Stop;
     }
@@ -628,7 +629,7 @@ void placeHeld(ContainerScreenController& controller, Slot const& slot, unsigned
     captureTransfer(*token);
     auto const& placed = manager->getItemStack(slot.collection, slot.index);
     // Part or none placed (a slot with a role): vanilla keeps its own click.
-    if (controller._isCursorSelectedActive() || placed.isNull() || placed.mCount != held.mCount || !placed.matchesItem(held)) {
+    if (game::cursorHasItems(controller) || placed.isNull() || placed.mCount != held.mCount || !placed.matchesItem(held)) {
         cancelTransfer(*token);
         stopOperation("held stack not placed");
         return;
@@ -781,7 +782,7 @@ void TransferSession::tick(ContainerScreenController& controller) {
         if (slot && slot->generation != generation.load()) slot.reset();
         hover = slot;
         if (keys) dropKeys = std::move(*keys);
-        cursorHeld = controller._isCursorSelectedActive();
+        cursorHeld = game::cursorHasItems(controller);
         incoming.swap(pulses);
         first = std::exchange(vanillaFirst, std::nullopt);
         mode = drag;
@@ -796,7 +797,7 @@ void TransferSession::tick(ContainerScreenController& controller) {
     }
     if (observedStroke != currentStroke) { lastDrag.reset(); observedStroke = currentStroke; }
     if (first) lastDrag = first;
-    if (controller._isCursorSelectedActive() && slot && available(controller, true))
+    if (game::cursorHasItems(controller) && slot && available(controller, true))
         for (auto const& request : incoming)
             if (request.gesture == Gesture::CursorMatchingClick && request.slot == *slot
                 && transfer::enabled(request.gesture, gestureOptions())) {

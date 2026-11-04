@@ -102,12 +102,12 @@ BrightnessPair fullBrightness() {
 LL_TYPE_STATIC_HOOK(GhostActorShader, ll::memory::HookPriority::Normal, ActorShaderManager, &ActorShaderManager::setupShaderParameters,
                     void, ScreenContext& screen, BlockSource& source, BlockPos const& pos, float a, bool ignoreLighting,
                     LightTexture& lightTexture, std::weak_ptr<LightPropagation::LightVolumeManager> const& lightVolumes,
-                    Vec2 const& uvScale, Vec4 const& uvAnim) {
+                    Vec2 const& uvScale, Vec4 const& uvAnim, shaderpacking::BlockLightingFlags flags) {
     if (&source == ghostActorSource.load(std::memory_order_relaxed) && versionSensitiveAllowed(capabilities::Id::SchematicActorLight)) {
         ActorShaderManager::setupShaderParameters(screen, source, fullBrightness(), glm::vec4{1, 1, 1, 1}, 1.f, true, lightTexture, uvScale, uvAnim);
         return;
     }
-    origin(screen, source, pos, a, ignoreLighting, lightTexture, lightVolumes, uvScale, uvAnim);
+    origin(screen, source, pos, a, ignoreLighting, lightTexture, lightVolumes, uvScale, uvAnim, flags);
 }
 // Chests and beds compute their light first and pass it in.
 LL_TYPE_STATIC_HOOK(GhostActorLightPair, ll::memory::HookPriority::Normal, ActorShaderManager, &ActorShaderManager::setupShaderParameters,

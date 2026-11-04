@@ -9,7 +9,7 @@
 #include "mc/client/game/IMinecraftGame.h"
 #include "mc/client/gui/CaretMeasureData.h"
 #include "mc/client/gui/Font.h"
-#include "mc/client/gui/FontHandle.h"
+#include "ui/GameFont.h"
 #include "mc/client/gui/FontRepository.h"
 #include "mc/client/gui/TextAlignment.h"
 #include "mc/client/gui/TextMeasureData.h"
@@ -170,7 +170,7 @@ void drawTip(MinecraftUIRenderContext& context, glm::vec2 pointer, glm::vec2 scr
     context.fillRectangle(frame, mce::Color{0.10f, 0.10f, 0.10f, 1.0f}, 0.92f);
     context.drawRectangle(frame, mce::Color{0.55f, 0.35f, 0.70f, 1.0f}, 1.0f, 1);
     context.flushImages(mce::Color{1.f, 1.f, 1.f, 1.f}, 1.0f, HashedString{"ui_fillColor"});
-    context.drawText(fontHandle.getFont(), RectangleArea{at.x + pad, at.x + pad + size.x + 1, at.y + pad, at.y + pad + size.y},
+    context.drawText(ui::fontOf(fontHandle), RectangleArea{at.x + pad, at.x + pad + size.x + 1, at.y + pad, at.y + pad + size.y},
         std::move(text), mce::Color{1.f, 1.f, 1.f, 1.f}, 1.0f, ::ui::TextAlignment::Left, textData, caret);
     context.flushText(0.0f, std::nullopt);
 }
