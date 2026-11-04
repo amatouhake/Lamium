@@ -68,8 +68,8 @@ leaves LIP's file records out of date.
 **Moving from an older game version.** Each LeviLauncher instance keeps its own
 Lamium data, and a new instance starts with default settings. To keep them, copy
 `mods/Lamium/config/` (settings, server waypoints and maps) and
-`mods/Lamium/schematics/` from the old instance while the game is closed. Copying
-is not yet tested.
+`mods/Lamium/schematics/` from the old instance while the game is closed. Settings
+were checked this way; maps and waypoints were not.
 
 **If the game does not start.** See "Minecraft 1.26.60.05" under
 [Known issues](#known-issues).

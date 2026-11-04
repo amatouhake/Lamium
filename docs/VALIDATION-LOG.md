@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.5.0 smoke on the CI package (2026-11-04, L-305)
+
+LeviLauncher instance `1.26.60.05 Dev`, CI development package of `3acc0ad0` (run
+41778088155), DLL SHA-256
+`91D30E90F08CDB9B9677C9B17E515223E37588D2740329907637A2E19CAF05E6`, per the
+maintainer: the world opens, `L` opens and closes the settings, the version shows
+0.5.0. Book paste is absent from the settings and the Hotkeys view, and a paste into
+a book works as in vanilla without an error. Hitbox frames follow moving mobs
+smoothly and the minimap moves smoothly, which checks `mFrameAlpha`. Shift + click
+outside the window, Night Vision and FreeCamera's underground terrain work.
+Copying `mods/Lamium/config/` and `schematics/` from the old instance carried the
+settings over; maps were not looked at.
+
+Not covered: a fresh instance with LeviLamina installed before the first start,
+installing the published ZIP, servers on this build.
+
 ## Gated features on Minecraft 1.26.60.05 (2026-11-04, L-305)
 
 LeviLauncher instance `1.26.60.05 Dev`, on `55ba21fa` with `verifiedGame` set to

@@ -143,10 +143,10 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.4.0
 
-- Move to 1.26.60.05 (L-305): the release build loads through LeviLauncher on a
-  fresh instance with LeviLamina installed first, and LIP offers it there
-  (`tooth.json`'s range changed). The map and hitboxes draw smoothly, which also
-  checks `mFrameAlpha`. Book paste is hidden from the settings and the Hotkeys view.
+- Move to 1.26.60.05 (L-305): the smoke on `3acc0ad0`'s CI package passed
+  (VALIDATION-LOG). Left: the release ZIP loads through LeviLauncher on a fresh
+  instance with LeviLamina installed first, and LIP offers it there (`tooth.json`'s
+  range changed).
 - Schematic check of block entity data (L-303): a smoke of the release
   build (a changed sign or note block is a wrong state with a yellow mark;
   "Ignore block entities" clears it). Unchecked so far: "Ignore sign text"
@@ -197,9 +197,8 @@ Built against SDK 26.60.0 on 2026-11-04. The gated features passed a round in
 game the same day (VALIDATION-LOG), so `verifiedGame` is 1.26.60.5.
 
 Open:
-1. **Not checked in game yet.** `mFrameAlpha` in the map and hitboxes (it replaces
-   the per-actor `getFrameAlpha`). Only `transfer_trace` was built against 26.60
-   among the trace options; the others may need the same treatment.
+1. **Trace builds.** Only `transfer_trace` was built against 26.60 among the trace
+   options; the others may need the same treatment.
 2. **Offhand map stays drawn with Hide Offhand on (regression from 26.51).** It
    does not go through the render calls Lamium can hook, and the likely target
    is not exported:
@@ -210,13 +209,17 @@ Open:
    import patch fails at launch: the import table is left unaligned and
    `LeviLauncher.dll` rejects it (`Cannot install directory imports (Windows
    error 193)`, exit `0xC0000142`). Lamium is not involved. Repeat PeEditor on
-   the original executable, so that the launcher patches last. Not yet reported
-   upstream.
+   the original executable, so that the launcher patches last. Reported as
+   LiteLDev/LeviLauncher#176. A separate install failure on slow connections, as
+   LiteLDev/lip#402.
 4. **Symbols.** `LAMIUM_MCAPI_PENDING` (`xmake.lua`) holds these back, because
    the SDK does not export them. Remove it once they are available. The book
    paste list was filed in `LiteLDev/mcapi-requests` on 2026-11-04 and passed
-   its automatic check; it was closed as completed on 2026-11-04, with no
-   newer `bedrock-runtime-data` than `v26.60.5-client.5` published at that time.
+   its automatic check; it was closed as completed on 2026-11-04, and
+   `bedrock-runtime-data` `v26.60.5-client.6` followed. LeviLamina 26.60.0 pins
+   `client.5`, so an instance gets the new data only with a later LeviLamina; building
+   against it before then would fail on players' installs. Not yet checked that
+   `client.6` holds these symbols.
    - Book paste (L-259, stays vanilla):
      `?$preFrameTick@BookScreenController@@QEAAXXZ`,
      `?$_isStillValid@BookScreenController@@QEBA_NXZ`,
