@@ -213,6 +213,11 @@ was superseded by the "Ignore block entities" switch (decided 2026-11-04,
 recorded above).
 In game: yellow marks still appear and clear, and a sign looked at up close
 keeps updating them.
+Checked 2026-11-04 on `7dc9e402` (DLL SHA-256
+`C8BE55EE205B86E8710AFC28DF35E4C422F969DCFE28075030C5895AC1685A06`): a changed
+sign or note block gets its row and yellow mark at once and clears when put
+back, and the marks keep updating while a sign is looked at up close. Passes in
+VALIDATION-LOG 2026-11-04.
 
 ### L-304 A real liquid behind a ghost wins the target card
 Kind: Bug. Maintainer report 2026-11-03.
@@ -303,6 +308,10 @@ rows are dropped when the world closes so a new world cannot answer with the
 last one's for its first quarter second.
 In game: the help under "Other details", and a long sign value in a short
 window (a row still shows).
+Checked 2026-11-04 on `7dc9e402` (DLL SHA-256
+`C8BE55EE205B86E8710AFC28DF35E4C422F969DCFE28075030C5895AC1685A06`): the help
+line shows, a long value in a short window keeps a row, and no row from the
+previous world shows after a world change. Passes in VALIDATION-LOG 2026-11-04.
 
 ### L-290 A filled bucket in the main hand stops the Fake Offhand entirely
 
@@ -7264,6 +7273,10 @@ Review 2026-11-04: the subscription is built and dropped outside the note
 lock, so a sound dispatching while the card starts or stops asking for rows
 cannot deadlock with it, and the comment on leaving a world now says why the
 drop happens outside the lock.
+Checked 2026-11-04 on `7dc9e402` (DLL SHA-256
+`C8BE55EE205B86E8710AFC28DF35E4C422F969DCFE28075030C5895AC1685A06`): a note
+block's pitch still follows each tune, and the log shows one join per world.
+Passes in VALIDATION-LOG 2026-11-04.
 
 
 ### L-196 Review license notices, source access and provenance classification

@@ -12,6 +12,31 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Target card and check review fixes (2026-11-04)
+
+LeviLauncher instance `1.26.51.01 LIP`, local world, on `7dc9e402` (DLL SHA-256
+`C8BE55EE205B86E8710AFC28DF35E4C422F969DCFE28075030C5895AC1685A06`). The
+seven-step checklist passed:
+
+- The new help line under "Other details" shows its paragraph.
+- A sign, a note block and a lectern still show their block entity rows, and a
+  note block's pitch follows each tune.
+- A changed sign or note block gets its wrong-state row and yellow mark at
+  once, and the mark clears when the block is put back.
+- The marks keep updating while a sign is looked at up close: the aimed cell's
+  block entity read is kept for 250 ms, and the pass over the placement still
+  reads every cell.
+- After leaving and entering another world, no row or mark from the first one
+  shows.
+- A long sign value in a short window still shows a row.
+- `lamium.log` shows `Note sounds: joined the level's sound events` once for a
+  world, not every frame.
+
+Not seen: nothing on this checklist was skipped. The L-303 gaps recorded in
+VALIDATION.md stay open: "Ignore sign text" alone, banners, beds and pot sherds
+by hand, another player's page turn, scan time with many block entities,
+servers.
+
 ## Ghost contents drawn by block actors and potted plants (2026-11-04)
 
 LeviLauncher instance `1.26.51.01 LIP`, local world, L-302, four passes:
