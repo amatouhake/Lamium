@@ -16,4 +16,6 @@ bool autoPlace(ContainerScreenController& controller, std::string const& collect
 bool drop(ContainerScreenController& controller, std::string const& collection, int index, bool one);
 // Takes `amount` onto the empty cursor and drops it there (all but one).
 bool dropAmount(ContainerScreenController& controller, std::string const& collection, int index, int amount);
+// Presses the plain left button where the pointer is, so vanilla decides what is there.
+bool pressAsPlainClick(ContainerScreenController& controller);
 }

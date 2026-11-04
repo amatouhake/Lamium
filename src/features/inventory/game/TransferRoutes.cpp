@@ -1,6 +1,8 @@
 #include "features/inventory/game/TransferRoutes.h"
 #include "features/inventory/game/CursorState.h"
+#include "features/inventory/game/ScreenTracker.h"
 #include "features/inventory/game/TransferSession.h"
+#include "mc/client/gui/screens/ScreenView.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
 #include "ll/api/memory/Hook.h"
@@ -171,6 +173,19 @@ bool drop(ContainerScreenController& controller, std::string const& collection, 
     auto bytes = transfer::dropAmountBytes(one);
     reinterpret_cast<DropItem>(ll::memory::toFuncPtr(&ContainerScreenController::_handleDropItem))(
         &controller, collection, index, bytes.data());
+    return true;
+}
+bool pressAsPlainClick(ContainerScreenController& controller) {
+    if (!supported(controller)) return false;
+    auto& tracker = ScreenTracker::getInstance();
+    auto const active = tracker.current();
+    auto const* view = tracker.currentView();
+    if (!view || active.get() != &controller) return false;
+    // The global button and focus of a plain left press, traced on 1.26.60.05 (L-305).
+    constexpr uint plainLeftPress = 3024615655u;
+    auto& target = const_cast<ScreenView&>(*view);
+    target.handleButtonEvent(plainLeftPress, ButtonState::Down, FocusImpact::DeactivateFocus);
+    target.handleButtonEvent(plainLeftPress, ButtonState::Up, FocusImpact::DeactivateFocus);
     return true;
 }
 bool dropAmount(ContainerScreenController& controller, std::string const& collection, int index, int amount) {

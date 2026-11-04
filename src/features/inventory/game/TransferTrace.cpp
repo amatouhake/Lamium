@@ -106,30 +106,36 @@ void observe(ContainerScreenController& controller, char const* operation, char 
     } catch (...) {}
 }
 // Observe ordinary player operations only; no diagnostic invokes a handler.
+#ifndef LAMIUM_MCAPI_PENDING // L-305: not exported by SDK 26.60.
 LL_TYPE_INSTANCE_HOOK(TransferTakeAllTrace, ll::memory::HookPriority::Normal, ContainerScreenController,
     &ContainerScreenController::_handleTakeAll, void, std::string const& collection, int index) {
     observe(*this, "take-all", "before", collection, index, -1);
     origin(collection, index);
     observe(*this, "take-all", "predicted-after", collection, index, -1);
 }
+#endif
+#ifndef LAMIUM_MCAPI_PENDING // L-305: not exported by SDK 26.60.
 LL_TYPE_INSTANCE_HOOK(TransferPlaceAllTrace, ll::memory::HookPriority::Normal, ContainerScreenController,
     &ContainerScreenController::$_handlePlaceAll, void, std::string const& collection, int index) {
     observe(*this, "place-all", "before", collection, index, -1);
     origin(collection, index);
     observe(*this, "place-all", "predicted-after", collection, index, -1);
 }
+#endif
 LL_TYPE_INSTANCE_HOOK(TransferAutoPlaceTrace, ll::memory::HookPriority::Normal, ContainerScreenController,
     &ContainerScreenController::_handleAutoPlace, void, int amount, std::string const& collection, int index) {
     observe(*this, "auto-place", "before", collection, index, amount);
     origin(amount, collection, index);
     observe(*this, "auto-place", "predicted-after", collection, index, amount);
 }
+#ifndef LAMIUM_MCAPI_PENDING // L-305: not exported by SDK 26.60.
 LL_TYPE_INSTANCE_HOOK(TransferAddAllTrace, ll::memory::HookPriority::Normal, ContainerScreenController,
     &ContainerScreenController::_handleAddAllToCursor, void, std::string const& collection, int index) {
     observe(*this, "add-all-to-cursor", "before", collection, index, -1);
     origin(collection, index);
     observe(*this, "add-all-to-cursor", "predicted-after", collection, index, -1);
 }
+#endif
 LL_TYPE_INSTANCE_HOOK(TransferTakeAmountTrace, ll::memory::HookPriority::Normal, ContainerScreenController,
     &ContainerScreenController::_handleTakeAmount, void, int amount, std::string const& collection, int index) {
     observe(*this, "take-amount", "before", collection, index, amount);
@@ -185,6 +191,7 @@ LL_TYPE_INSTANCE_HOOK(TransferDropSelectedTrace, ll::memory::HookPriority::Norma
     origin(amount);
     observe(*this, "drop-selected", "predicted-after", "-", -1, -1);
 }
+#ifndef LAMIUM_MCAPI_PENDING // L-305: not exported by SDK 26.60.
 LL_TYPE_INSTANCE_HOOK(TransferManagerDropTrace, ll::memory::HookPriority::Normal, ContainerManagerController,
     managerDropTarget(), bool, SlotData const& slot, void const* amount) {
     bool result = origin(slot, amount);
@@ -195,10 +202,11 @@ LL_TYPE_INSTANCE_HOOK(TransferManagerDropTrace, ll::memory::HookPriority::Normal
     } catch (...) {}
     return result;
 }
+#endif
 // Which button a pack's control sends. Ids are matched to names by pressing
 // known vanilla controls (Shift + click is container_auto_place) in the same run.
 LL_TYPE_INSTANCE_HOOK(TransferButtonTrace, ll::memory::HookPriority::Normal, ScreenController,
-    &ScreenController::_handleEvent, ::ui::ViewRequest, ScreenEvent& event) {
+    &ScreenController::$handleEvent, ::ui::ViewRequest, ScreenEvent& event) {
     try {
         if (event.type == ScreenEventType::ButtonEvent && recent() && allowed()) {
             auto const& button = event.data->button.get();
@@ -226,10 +234,16 @@ LL_TYPE_INSTANCE_HOOK(TransferResponseTrace, ll::memory::HookPriority::Normal, C
 }
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[]{
+#ifndef LAMIUM_MCAPI_PENDING
     {TransferTakeAllTrace::hook, TransferTakeAllTrace::unhook},
+#endif
+#ifndef LAMIUM_MCAPI_PENDING
     {TransferPlaceAllTrace::hook, TransferPlaceAllTrace::unhook},
+#endif
     {TransferAutoPlaceTrace::hook, TransferAutoPlaceTrace::unhook},
+#ifndef LAMIUM_MCAPI_PENDING
     {TransferAddAllTrace::hook, TransferAddAllTrace::unhook},
+#endif
     {TransferTakeAmountTrace::hook, TransferTakeAmountTrace::unhook},
     {TransferTakePlaceTrace::hook, TransferTakePlaceTrace::unhook},
     {TransferPlaceOneTrace::hook, TransferPlaceOneTrace::unhook},
@@ -237,7 +251,9 @@ Hook hooks[]{
     {TransferButtonTrace::hook, TransferButtonTrace::unhook},
     {TransferDropItemTrace::hook, TransferDropItemTrace::unhook},
     {TransferDropSelectedTrace::hook, TransferDropSelectedTrace::unhook},
+#ifndef LAMIUM_MCAPI_PENDING
     {TransferManagerDropTrace::hook, TransferManagerDropTrace::unhook},
+#endif
     {TransferResponseTrace::hook, TransferResponseTrace::unhook}
 };
 }

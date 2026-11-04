@@ -98,8 +98,10 @@ std::vector<int> dropKeys{'Q'};
 std::chrono::steady_clock::time_point dropKeysRead{};
 bool cursorHeld = false;
 // A Shift + left press outside every slot with items on the cursor: if
-// vanilla drops them soon after, the matching items follow (L-169).
+// vanilla drops them soon after, the matching items follow (L-169). Vanilla
+// ignores that press, so the next tick hands it over as a plain one.
 std::optional<std::chrono::steady_clock::time_point> outsideShift;
+bool outsideShiftUnsent = false;
 std::optional<ItemStack> pendingDrop;
 
 void releaseWaiting() {
@@ -658,9 +660,13 @@ bool TransferSession::mouseButton(int button, bool down, bool shift, bool contro
     TRANSFER_TRACE(inputBudget, "Transfer trace: press button={} shift={} control={} cancelled={} hover={}:{} drag={} stroke={}",
         button, shift, control, cancelled, hover ? hover->collection : std::string("-"), hover ? hover->index : -1,
         static_cast<int>(drag), stroke);
-    if (!cancelled && !hover && button == 1 && shift && !control && !alt && cursorHeld)
+    if (!cancelled && !hover && button == 1 && shift && !control && !alt && cursorHeld) {
         outsideShift = std::chrono::steady_clock::now();
-    else outsideShift.reset();
+        outsideShiftUnsent = true;
+    } else {
+        outsideShift.reset();
+        outsideShiftUnsent = false;
+    }
     if (cancelled || !hover) return false;
     auto mode = transfer::mouseGesture(button, shift, control, alt, drop, hover->cursor);
     if (!transfer::enabled(mode, gestureOptions())) return false;
@@ -728,6 +734,7 @@ void TransferSession::cancel() {
         hover.reset();
         pulses.clear();
         outsideShift.reset();
+        outsideShiftUnsent = false;
         pendingDrop.reset();
         ++generation;
         ++stroke;
@@ -804,6 +811,15 @@ void TransferSession::tick(ContainerScreenController& controller) {
                 placeHeld(controller, *slot, revision);
                 return;
             }
+    bool sendOutside = false;
+    {
+        std::scoped_lock lock(inputLock);
+        sendOutside = std::exchange(outsideShiftUnsent, false);
+    }
+    // Before the check below, which needs an empty cursor. Unlocked: vanilla's
+    // drop comes back through cursorDropped.
+    if (sendOutside && available(controller, true) && transfer::enabled(Gesture::DropMatching, gestureOptions()))
+        transferRoutes::pressAsPlainClick(controller);
     if (!available(controller)) {
         if (!queued.empty() || !incoming.empty())
             TRANSFER_TRACE(queueBudget, "Transfer trace: unavailable drops queued={}", queued.size());

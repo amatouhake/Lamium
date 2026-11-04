@@ -25,7 +25,10 @@ operations and W/S moves remain out of scope.
 - `TransferDropSelected` (TransferRoutes.cpp) reads the cursor's items before
   vanilla drops them; a Shift + left press outside every slot with items
   held within the last second turns that into `DropMatching` for each
-  matching player slot (both sides in the inventory screen).
+  matching player slot (both sides in the inventory screen). Vanilla ignores
+  that press, so `pressAsPlainClick` hands it over as a plain left press: outside
+  the window vanilla drops, on the panel it does nothing, and a button under the
+  pointer takes it as a plain click.
 - ItemTransferAmount is passed as its traced bytes (`dropAmountBytes`); see
   GAME-UPDATES.md for the re-trace after a game update. All of this is
   behind the `TransferRoutes` capability.
