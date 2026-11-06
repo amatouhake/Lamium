@@ -75,15 +75,18 @@ choices live in the L-items. An L-item wins if a summary drifts.
    is 1.26.60.05. Open: the book-paste and offhand-map symbols (26.60.1's headers
    carry them, the 26.60.2 runtime's export table does not, and 26.60.3 had no
    release asset when it was checked) and L-306.
-1. **Bugs first.** Open: L-312 (a shape radius above 100 loses its decimal
-   place), L-307 (1.26.60 stores a structure as a compressed byte array; PR
-   #71), L-306 (a pane edge at a chunk border), L-227 (FreeCamera shows only
-   the sky outside loaded terrain; Research), L-177 (mismatch highlight; awaits
-   the reporter's next schematic session), and the built-but-unconfirmed failure
-   paths of L-274 and L-276. Parked: L-192/L-193/L-194 schematic drawing, L-123
-   elytra pose, L-91 shield glint, L-132 inventory-screen movement, L-244
-   FreeCamera started inside a block, L-287 minimap arrow look; respect each
-   item's stop/resume conditions. L-181 trident pose is low priority.
+1. **Bugs first.** Open: L-313 (the world map report; not reproduced here,
+   waiting for the reporter's re-check with the feature on), L-312 (a shape
+   radius above 100 loses its decimal place), L-307 (1.26.60 stores a structure
+   as a compressed byte array; PR #71), L-306 (a pane edge at a chunk border),
+   L-227 (FreeCamera shows only the sky outside loaded terrain; Research),
+   L-177 (mismatch highlight; awaits the reporter's next schematic session),
+   and the built-but-unconfirmed failure paths of L-274 and L-276. Parked:
+   L-192/L-193/L-194 schematic drawing, L-123 elytra pose, L-91 shield glint,
+   L-132 inventory-screen movement, L-244 FreeCamera started inside a block,
+   L-287 minimap arrow look; respect each item's stop/resume conditions. L-181
+   trident pose is low priority.
+
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): the L-266 schematic follow-up batch closed with 0.3.1 except
    L-265 placement assist (Design). Remaining Design/Research: L-166 trade
@@ -177,6 +180,32 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
+
+### L-313 The world map records nothing on a BDS server
+Kind: Bug / Research, not reproduced; watch item. User report 2026-11-05
+(Discord), on 1.26.60.05 with Lamium 0.5.0 against a local BDS server: the
+world map showed next to no terrain while the minimap drew normally. The
+screenshot shows the map screen with "Recording is off" in its top bar.
+What the code does: the hotkey refuses while `map.worldMap` is off and shows
+`worldMap.off` ("The world map is off. Turn it on under Map in the
+settings.") from `src/input/Actions.cpp:198`. The Open row on the feature's
+settings entry has no such check: `screen::openTool` selects the map nav
+(`src/ui/SettingsScreen.cpp:1448`), which enters the map screen
+(`enterWorldMap(true, false)`, `:225`) whatever the switch says, and the
+screen then draws what was recorded before and marks "Recording is off"
+(`WorldMap.cpp`). That is the state the screenshot shows. The map code is
+unchanged since 0.4.0 apart from the 26.60 move (`55ba21fa`).
+Maintainer check 2026-11-06 (1.26.60.05 instance, DLL SHA-256 not recorded):
+in a single-player world and on a BDS, recording worked, the data was kept
+per server address (`127.0.0.1:19132`), past-world data loaded, and
+dimension travel, going underground, coming back and rejoining all looked
+right; with the feature off, the Open row reproduces the reported screen.
+Open: whether the reporter's case is only the switch (they have not said
+whether it was on), whether the Open row should be refused like the hotkey
+or say what to do, and whether a real recording defect remains on a server.
+In game: the reporter turns the feature on and retries; their
+`mods/Lamium/logs/lamium.log` and the walking route would settle it.
+No release target selected.
 
 ### L-312 A shape radius above 100 loses its decimal place
 Kind: Bug. User report 2026-11-05 (Discord): a radius above 100 shows no decimal

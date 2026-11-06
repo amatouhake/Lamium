@@ -10,25 +10,6 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
-### L-313 The world map records nothing on a BDS server
-Kind: Bug, not reproduced. User report 2026-11-05 (Discord), on
-1.26.60.05 with Lamium 0.5.0 against a local BDS server: the world map
-showed next to no terrain while the minimap drew normally. The screenshot
-showed the map screen with "Recording is off" under it.
-Cause: the feature was off. `map.worldMap` is off by default and gates
-recording; opening the map from its action (`OpenWorldMap`, reachable from a
-hotkey and from the feature's action row) still draws the screen from
-whatever was recorded before and marks it "Recording is off" in the top bar
-(`WorldMap.cpp`), so it reads as a world with nothing recorded. The minimap
-keeps drawing because it renders the data already on disk.
-Done 2026-11-06: checked by the maintainer on the 1.26.60.05 instance (DLL
-SHA-256 not recorded). With the feature on, recording worked in a local world
-and on a BDS, the data was kept per server address (`127.0.0.1:19132`), and
-past-world data, dimension travel, going underground, coming back and
-rejoining all looked right; with it off, opening the map showed exactly the
-reported screen. No code change; whether the empty state should also name
-the switch is the maintainer's call.
-
 ### L-302 A ghost's contents are missing when its block draws them through a block actor
 Kind: Bug (ghost rendering). Maintainer in-game check 2026-11-03 of PR #68.
 Reported: a chiseled bookshelf ghost looks like plain boards whatever the file
