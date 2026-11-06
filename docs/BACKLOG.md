@@ -92,8 +92,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    helpers, L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection, L-163 a
    Lamium inventory screen, L-249 simulation distance, and the 2026-11-05 reports
-   L-309 (paper doll placement). L-311 (shapes following the player) is built;
-   L-308 passed with its open questions listed there. Agree open choices before
+   L-309 (paper doll placement). Agree open choices before
    building. L-165 Mass Craft remains below Map and needs a scope conversation;
    existing packs already cover part of that need.
 3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,
@@ -108,8 +107,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-151/L-152/L-153 and the previously parked work remain later.
 7. **Before the next release:** changed-feature smoke and the relevant
    Pre-release checks below. Latest release: 0.5.0, 2026-11-04 (`v0.5.0`).
-   Next: 0.5.1 (maintainer 2026-11-06), without a date. It waits for L-314's
-   check without Lamium: if Lamium is not needed for that crash, 0.5.1 goes out
+   Next: 0.5.1 (maintainer 2026-11-06), without a date. Order: L-314's check without
+   Lamium, a review of 0.5.0..HEAD, then the release work. For L-314: if Lamium is not needed for that crash, 0.5.1 goes out
    and the crash is reported to LeviLamina; if it is, decide then whether it
    goes out with a Known issue. A full regression is not a release gate.
 
@@ -131,10 +130,8 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.5.0
 
-Passed on `a8783490`, `2025d622` and `70700b1d` (VALIDATION-LOG): L-311, L-313's Record
-switch on the map, the card's three hold keys, "Up to the render distance". Changed
-after that, not checked: the world map's settings row (L-313), Range's maximum back
-at 64, and the ray's cell walk and height limit (L-308).
+Passed on `406707d4` (VALIDATION-LOG): L-308, L-311 and L-313's map key, Record switch
+and settings row. Their server cases are not covered.
 
 From 2026-11-06 (VALIDATION-LOG):
 
@@ -306,7 +303,7 @@ Changed again (maintainer 2026-11-06): the settings said "World map" and the map
 "Record" for one switch, and "World map: off" was untrue once the map opened anyway.
 The parent row now has no switch and opens the map, with its `M` key; "Record" is a
 child row with the toggle key. `map.worldMap` and action ids do not change.
-The key and the bottom bar switch passed in game; the settings row is not checked.
+The key, the bottom bar switch and the settings row passed in game.
 Open: the reporter turns the feature on and retries; their
 `mods/Lamium/logs/lamium.log` and the walking route would settle whether a
 defect remains on a server.
@@ -807,28 +804,6 @@ Kind: Blocked on a symbol request. Kept as one item so a single request to
   is needed.
 Before filing, confirm by linking: an SDK update may already have changed these.
 
-### L-311 Keep a shape's centre on the player
-Kind: Ready, built 2026-11-06. User request 2026-11-05 (Discord): a shape should be able to keep
-its centre on the player, so a radius or skin can be judged while moving.
-Current: a shape's centre is a fixed block position (`Field::X/Y/Z` in
-`src/ui/ShapeEditor.h`, written into `overlay::ShapeSpec::center`); the preview
-and the drawn cells are built from it and nothing re-derives it per frame.
-Decided (maintainer 2026-11-06): one "Follow the player" switch per shape; the
-feet block is the centre, height included; FreeCamera keeps it on the body; the
-saved coordinates do not change and the editor shows them; it is drawn only in
-the shape's own dimension. Changed after use (maintainer 2026-11-06): turning it
-off leaves the shape where it is drawn, which becomes its saved place, so it is
-not lost and moving it by walking is easy; the old place is given up for that.
-From another dimension, off leaves it where the player left its dimension (decided
-2026-11-06 after a first build kept the saved place, which lost it again); the maps
-draw it there too. The saved place stands only if the player was not in that
-dimension this session.
-Built without a rebuild: the mesh is drawn shifted by
-whole blocks, and nothing is written while moving. The shape file gains an
-optional `follow` key, written only when on; older builds ignore it. A plane
-follows by its origin, as Move here places it. The maps draw the followed place.
-In game: a portal, then off, then back: the shape is where the player left.
-
 ### L-309 Place and scale the paper doll
 Kind: Design. User request 2026-11-05 (Discord): choose where the paper doll
 sits and how large it is.
@@ -844,35 +819,6 @@ and scale in the HUD editor or a screen of its own; and what F1 (Hide HUD) and
 `hudHidePaperDoll` then mean. The maintainer's reply notes the doll's parts may
 have to be recreated to scale.
 No release target selected.
-
-### L-308 Show the distance to the aimed block
-Kind: Ready, built 2026-11-06 for 0.5.1. User request 2026-11-05 (Discord): a hotkey shows how far the
-block under the crosshair is, with the distance measured to the eye or to the
-feet.
-Current: nothing measures a ray for this. Target Info already casts a pick from
-the eye each frame and shows the aimed block's coordinates and states
-(`src/features/information/TargetInfo.cpp`, `information.targetBlock`), so the
-ray and the reach are in place.
-Decided (maintainer 2026-11-06): a Distance row on the target card with one
-decimal, measured from the eye (the camera during FreeCamera or Freelook) to the
-surface the ray meets; the target follows L-304 through a ghost; nothing aimed
-at means no card and no row. Feet distance waits until someone needs it. It is a
-Target Info option, "Show distance" (off by default), and the unbound hold key
-"targetmeasure" flips it while held, as the radar's face key does, so it can be
-always on or shown on demand. The key needs Target Info on. Mobs get the row too.
-The row passed in game 2026-11-06 on `356909de`.
-Decided after that check (maintainer 2026-11-06): the card's three information
-rows, Other details, Position and Distance, each have an unbound hold key that
-flips them. The identifier and icon are looks, and Schematic and Liquids choose
-the target, so they have none.
-Far range (maintainer 2026-11-06): "Up to the render distance" (off by default)
-replaces the Range with the corner of the render distance. Its load is the player's
-choice, not forbidden; improve what can be improved. So Range's slider stays 2 to 64
-for fine adjustment, as released (a build of 256 was tried and was hard to adjust at
-low values). Done for the load: the entity search walks 16-block boxes up to the
-nearest hit, the cell walk is lazy so a ray stops at its first answer, and a ray
-ends 16 blocks past the world's height. In game: Range's slider; a mob flying above
-the build limit is out of a far ray beyond that margin.
 
 ### L-298 Attach release assets from the tag's CI run
 Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).

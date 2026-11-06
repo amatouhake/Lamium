@@ -2277,6 +2277,59 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-311 Keep a shape's centre on the player
+Kind: Ready, built 2026-11-06. User request 2026-11-05 (Discord): a shape should be able to keep
+its centre on the player, so a radius or skin can be judged while moving.
+Current: a shape's centre is a fixed block position (`Field::X/Y/Z` in
+`src/ui/ShapeEditor.h`, written into `overlay::ShapeSpec::center`); the preview
+and the drawn cells are built from it and nothing re-derives it per frame.
+Decided (maintainer 2026-11-06): one "Follow the player" switch per shape; the
+feet block is the centre, height included; FreeCamera keeps it on the body; the
+saved coordinates do not change and the editor shows them; it is drawn only in
+the shape's own dimension. Changed after use (maintainer 2026-11-06): turning it
+off leaves the shape where it is drawn, which becomes its saved place, so it is
+not lost and moving it by walking is easy; the old place is given up for that.
+From another dimension, off leaves it where the player left its dimension (decided
+2026-11-06 after a first build kept the saved place, which lost it again); the maps
+draw it there too. The saved place stands only if the player was not in that
+dimension this session.
+Built without a rebuild: the mesh is drawn shifted by
+whole blocks, and nothing is written while moving. The shape file gains an
+optional `follow` key, written only when on; older builds ignore it. A plane
+follows by its origin, as Move here places it. The maps draw the followed place.
+In game: a portal, then off, then back: the shape is where the player left.
+Closed 2026-11-06: passed in game on `406707d4` (VALIDATION-LOG).
+
+### L-308 Show the distance to the aimed block
+Kind: Ready, built 2026-11-06 for 0.5.1. User request 2026-11-05 (Discord): a hotkey shows how far the
+block under the crosshair is, with the distance measured to the eye or to the
+feet.
+Current: nothing measures a ray for this. Target Info already casts a pick from
+the eye each frame and shows the aimed block's coordinates and states
+(`src/features/information/TargetInfo.cpp`, `information.targetBlock`), so the
+ray and the reach are in place.
+Decided (maintainer 2026-11-06): a Distance row on the target card with one
+decimal, measured from the eye (the camera during FreeCamera or Freelook) to the
+surface the ray meets; the target follows L-304 through a ghost; nothing aimed
+at means no card and no row. Feet distance waits until someone needs it. It is a
+Target Info option, "Show distance" (off by default), and the unbound hold key
+"targetmeasure" flips it while held, as the radar's face key does, so it can be
+always on or shown on demand. The key needs Target Info on. Mobs get the row too.
+The row passed in game 2026-11-06 on `356909de`.
+Decided after that check (maintainer 2026-11-06): the card's three information
+rows, Other details, Position and Distance, each have an unbound hold key that
+flips them. The identifier and icon are looks, and Schematic and Liquids choose
+the target, so they have none.
+Far range (maintainer 2026-11-06): "Up to the render distance" (off by default)
+replaces the Range with the corner of the render distance. Its load is the player's
+choice, not forbidden; improve what can be improved. So Range's slider stays 2 to 64
+for fine adjustment, as released (a build of 256 was tried and was hard to adjust at
+low values). Done for the load: the entity search walks 16-block boxes up to the
+nearest hit, the cell walk is lazy so a ray stops at its first answer, and a ray
+ends 16 blocks past the world's height. In game: Range's slider; a mob flying above
+the build limit is out of a far ray beyond that margin.
+Closed 2026-11-06: passed in game on `406707d4` (VALIDATION-LOG).
+
 ### L-310 Shorten the in-world game-language interval
 Kind: Ready (decided 2026-11-06: 5 s). User request 2026-11-05 (Discord):
 change the game language without the wait.

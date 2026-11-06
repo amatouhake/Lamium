@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## World map row, Range 64 and the ray's limits (2026-11-06)
+
+Build `406707d4`, DLL `0d3348c696633e0c18071db741aa4fc5e0a46b1b70343e4e569b29ce17164b9b`,
+no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed, per the
+maintainer: the World map parent row opens the map with no switch and Record follows
+the map's switch; the Record key's toast; Range's slider at 64, easy to adjust near 6;
+far blocks, the sky and the feet with "Up to the render distance". Not measured with a
+tool. Not covered: servers.
+
 ## L-311 across dimensions and the render distance range (2026-11-06)
 
 Build `70700b1d`, DLL `740def9410e2792eb42d22a704223bbb8eb76ef74d8b943eaf184e8a1ab6b61d`,
