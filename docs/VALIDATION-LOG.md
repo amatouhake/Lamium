@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Normal build of e26a5a91 (2026-11-06)
+
+Build `e26a5a91`, DLL `1ce3588b4920784d538040dd57032a870dc71de739e7321b1f15289ed751f184`,
+no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Seen, per the
+maintainer: Lamium loads, the book paste setting shows, and a long paste makes several
+pages. Not covered: servers, a replaced selection, the 50-page refusal's toast.
+
 ## L-259 book paste on SDK 26.60.3 (2026-11-06)
 
 Uncommitted tree on `2d26c43c`, DLL
