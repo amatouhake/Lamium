@@ -713,16 +713,18 @@ expected, so agree the model before building.
 No release target selected.
 
 ### L-310 Shorten the in-world game-language interval
-Kind: Design. User request 2026-11-05 (Discord): change the game language
-without the wait.
+Kind: Ready (decided 2026-11-06: 5 s). User request 2026-11-05 (Discord):
+change the game language without the wait.
 Current: `src/ui/LanguageSelection.h:39` sets `interval = 10` seconds. The wait
 exists because 12 changes in 23 s froze the game in world while the title screen
 did not (L-167, 2026-10-14), and the freeze's mechanism was never identified, so
 the interval is the only guard; the list shows the seconds left as
 `language.wait`.
-Open: keep 10 s, lower it to 5 s (the measured freeze was about one change per
-2 s, so 5 s keeps a 2.5x margin), or make the interval a setting with the risk in
-its help text. The maintainer's reply leaned to 5 s.
+Decided: lower `interval` to 5 seconds and change nothing else (one change per
+interval, the `language.wait` countdown). Not a setting and not removed: the
+freeze's mechanism was never identified, so the interval is the only guard, and
+the measured freeze was about one change per 2 s, which leaves a 2.5x margin.
+The comment above the struct carries that reasoning and the new number.
 In game: switch back and forth at the chosen interval and watch for the freeze;
 it leaves no log line, so the check is a hang.
 No release target selected.
