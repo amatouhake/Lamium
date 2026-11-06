@@ -131,9 +131,9 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.5.0
 
-Built 2026-11-06, not checked in game yet: L-311, L-313's Record switch in the bottom
-bar, the card's three hold keys and the 256-block Range (L-308). L-312, L-310, L-313's
-hotkey and L-308's distance row passed on `356909de` (VALIDATION-LOG).
+Passed on `a8783490` (VALIDATION-LOG): L-311, L-313's Record switch, the card's three
+hold keys, Range 256 without many entities. Changed after that, not checked: L-311's
+switch off, and the entity search behind the Range.
 
 From 2026-11-06 (VALIDATION-LOG):
 
@@ -261,10 +261,12 @@ mimalloc; the alternative is a segment MallocRedirect's own mimalloc already
 released. The 97 KB minidumps hold the stack and no heap, so they cannot decide.
 
 Next step, needs the maintainer, no code:
-1. On `1.26.60.05 Dev`, move `mods/Lamium` to `lamium-validation-disabled/`, enter
-   a world and exit, up to 8 times, then read `logs/crash/`. With Lamium on, 5 of
-   the last 8 exits left a trace, so at that rate 8 clean exits would mean Lamium
-   is needed.
+1. On `1.26.60.05 Dev`, move `mods/Lamium` to `lamium-validation-disabled/`. One
+   trial is a whole run, because the crash is in the process's exit and leaving a
+   world proves nothing: start the game, enter a world, play a little, leave it,
+   close the game, then read `logs/crash/`. Up to 8 trials. With Lamium on, 5 of the
+   last 8 exits left a trace, and 9 more traces of this shape came on 2026-11-06
+   (20:02 to 23:09), so 8 clean runs would mean Lamium is needed.
 2. A trace with +9BC101 and +39298E under the same destructor means Lamium is not
    needed: report it to LeviLamina with this evidence and close this as not ours.
 3. No trace means Lamium is needed: capture a full-memory dump at the crash,
@@ -811,12 +813,16 @@ and the drawn cells are built from it and nothing re-derives it per frame.
 Decided (maintainer 2026-11-06): one "Follow the player" switch per shape; the
 feet block is the centre, height included; FreeCamera keeps it on the body; the
 saved coordinates do not change and the editor shows them; it is drawn only in
-the shape's own dimension. Built without a rebuild: the mesh is drawn shifted by
+the shape's own dimension. Changed after use (maintainer 2026-11-06): turning it
+off leaves the shape where it is drawn, which becomes its saved place, so it is
+not lost and moving it by walking is easy; the old place is given up for that. In
+another dimension, where it is not drawn, off keeps the saved place.
+Built without a rebuild: the mesh is drawn shifted by
 whole blocks, and nothing is written while moving. The shape file gains an
 optional `follow` key, written only when on; older builds ignore it. A plane
 follows by its origin, as Move here places it. The maps draw the followed place.
-In game: a sphere with the switch on while walking, climbing, in FreeCamera and
-through a portal; off returns it to the saved place; rejoin keeps the switch.
+In game: off keeps the shape at the feet block, also in FreeCamera (the body's
+block); a portal, then off, keeps its saved place; rejoin keeps the switch.
 
 ### L-309 Place and scale the paper doll
 Kind: Design. User request 2026-11-05 (Discord): choose where the paper doll
@@ -854,8 +860,10 @@ Decided after that check (maintainer 2026-11-06): the card's three information
 rows, Other details, Position and Distance, each have an unbound hold key that
 flips them. The identifier and icon are looks, and Schematic and Liquids choose
 the target, so they have none. Range goes up from 64 to 256 blocks for measuring.
-That lengthens the per-frame clip and widens the entity search for whoever sets
-it high, so frame times at 256 looking diagonally are part of the check.
+One box around a long diagonal ray would span about a thousand chunks each frame,
+so the entity search now walks 16-block boxes and stops at the nearest hit. Left to
+check: frame rate at 64 and at 256 among many entities, looking past them; if 256
+costs visibly, lower the maximum rather than ship it.
 
 ### L-298 Attach release assets from the tag's CI run
 Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).
@@ -1003,7 +1011,13 @@ check on a large placement while stepping the cut. Not part of the current
 L-234 branch.
 
 ### L-190 Select several rows at once in list screens
-Kind: Ready for its first step, after 0.5.1. Maintainer idea 2026-10-14.
+Kind: Design for the whole; the first step is a trial on branch
+`l-190-waypoint-selection`, not merged. Maintainer idea 2026-10-14.
+Maintainer 2026-11-06, after using it: a good trial, but Lamium does not say it
+supports multiple selection until the lists it is needed for have it, those a player
+adds to without limit: Shapes, schematic placements and the map's side panel. Merge
+and announce together. `ui/RowSelection.h` is the shared part; each list's bulk
+actions are decided with it.
 Decided (maintainer 2026-11-06), no file format change: the Waypoints screen first;
 Ctrl + click toggles a row, Shift + click takes a range, no drag selection; show,
 hide and delete together, delete with a second press. The death point stays single.
