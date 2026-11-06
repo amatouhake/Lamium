@@ -1425,10 +1425,10 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"help.interface.hudBackgroundOpacity", "HUD 元素的卡片背景和每行背景有多暗。"},
     {"feature.toasts", "切換通知"},
     {"help.toasts", "用按鍵開啟或關閉功能時，短暫顯示的通知。"},
-    {"feature.bookPaste", "書與筆跨頁貼上"},
-    {"help.bookPaste", "較長的貼上內容中放不進本頁的部分會被默默丟棄。開啟後，其餘內容會接著寫入目前頁面後面插入的新頁；後面的頁面會向後移動，不會被覆寫。50 頁不夠時不會貼上任何內容，並顯示需要的頁數。"},
+    {"feature.bookPaste", "書本和羽毛筆跨頁貼上"},
+    {"help.bookPaste", "較長的貼上內容中放不進本頁的部分會被默默丟棄。開啟後，其餘內容會接著寫入目前頁面後面插入的新頁；後面的頁面會向後移動，不會被覆寫。50 頁不夠時不會貼上任何內容，並在關閉書本時顯示需要的頁數。"},
     {"bookPaste", "跨頁貼上: {}"},
-    {"key.Lamium.bookpaste", "切換書與筆跨頁貼上"},
+    {"key.Lamium.bookpaste", "切換書本和羽毛筆跨頁貼上"},
     {"bookPaste.tooManyPages", "需要 {} 頁，可用 {} 頁"},
     {"bookPaste.restDropped", "只貼上了第一頁"},
     {"feature.hudText", "HUD 文字"},
@@ -1772,6 +1772,6 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"blockEntity.ItemRotation", "物品旋轉"},
     {"capability.NoteBlockSounds", "音階盒音高（音效事件）"},
     {"capability.NoteBlockInstrument", "虛影音階盒的樂器"},
-    {"capability.BookPastePages", "跨頁貼上到書中"},
+    {"capability.BookPastePages", "書本和羽毛筆跨頁貼上"},
 });
 }

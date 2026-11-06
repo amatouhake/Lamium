@@ -63,7 +63,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::SneakPlacement, "Sneak placement (use gate and sneak state)", "sneakPlacement", "capability.SneakPlacement", Impact::Fully},
     {Id::NoteBlockSounds, "Note block pitch (level sound events)", "targetInfo", "capability.NoteBlockSounds", Impact::Partly},
     {Id::NoteBlockInstrument, "Ghost note block instrument (block instrument component)", "targetInfo", "capability.NoteBlockInstrument", Impact::Partly, true, true},
-    {Id::BookPastePages, "Book paste across pages (page model and caret)", "bookPaste", "capability.BookPastePages", Impact::Fully, true, true},
+    {Id::BookPastePages, "Paste across book pages (page model and caret)", "bookPaste", "capability.BookPastePages", Impact::Fully, true, true},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);

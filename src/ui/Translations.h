@@ -1452,10 +1452,10 @@ inline constexpr auto entries = std::to_array<Entry>({
         "HUD の各要素のカードと行ごとの背景の濃さです。"},
     {"feature.toasts", "Toggle toasts", "切り替え通知"},
     {"help.toasts", "A short notice when a key turns a feature on or off.", "キーで機能をオン・オフしたときに短く表示する通知です。"},
-    {"feature.bookPaste", "Book paste across pages", "本への貼り付けをページまたぎ"},
-    {"help.bookPaste", "Minecraft drops the part of a long paste that does not fit the page, without a word. With this on, the rest continues on new pages inserted after the current one; later pages move back and are never overwritten. If 50 pages would not be enough, nothing is pasted and the number of pages it needs is shown.", "長い貼り付けのうちページに収まらない分は、何も表示されずに捨てられます。これをオンにすると、残りは現在のページの後ろに挿入した新しいページへ続きます。後ろのページは後ろにずれ、上書きされません。50 ページで足りないときは何も貼り付けず、必要なページ数を表示します。"},
+    {"feature.bookPaste", "Paste across book pages", "本のページをまたいで貼り付け"},
+    {"help.bookPaste", "Minecraft drops the part of a long paste that does not fit the page, silently. With this on, the rest continues on new pages inserted after the current one; later pages move back and are never overwritten. If 50 pages would not be enough, nothing is pasted and the number of pages it needs is shown when the book closes.", "長い貼り付けのうちページに収まらない分は、何も表示されずに捨てられます。これをオンにすると、残りは現在のページの後ろに挿入した新しいページへ続きます。後ろのページは後ろにずれ、上書きされません。50 ページで足りないときは何も貼り付けず、本を閉じたときに必要なページ数を表示します。"},
     {"bookPaste", "Paste across pages: {}", "ページまたぎの貼り付け: {}"},
-    {"key.Lamium.bookpaste", "Toggle book paste across pages", "本への貼り付けをページまたぎの切り替え"},
+    {"key.Lamium.bookpaste", "Toggle paste across book pages", "本のページをまたいで貼り付けの切り替え"},
     {"bookPaste.tooManyPages", "Needs {} pages, {} free", "{}ページ必要、空き{}ページ"},
     {"bookPaste.restDropped", "Only the first page was pasted", "最初のページだけ貼り付けました"},
     {"feature.hudText", "HUD text", "HUD の文字"},
@@ -1808,7 +1808,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"blockEntity.ItemRotation", "Item rotation", "アイテムの回転"},
     {"capability.NoteBlockSounds", "Note block pitch (sound events)", "音ブロックの音程（サウンドイベント）"},
     {"capability.NoteBlockInstrument", "Ghost note block instrument", "ゴーストの音ブロックの楽器"},
-    {"capability.BookPastePages", "Book paste across pages", "本への貼り付けをページまたぎ"},
+    {"capability.BookPastePages", "Paste across book pages", "本のページをまたいで貼り付け"},
 });
 enum class Locale { English, Japanese, SimplifiedChinese, TraditionalChinese };
 inline constexpr std::array locales{Locale::English, Locale::Japanese, Locale::SimplifiedChinese, Locale::TraditionalChinese};

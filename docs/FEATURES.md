@@ -410,7 +410,7 @@ history and copy buttons. Nothing is sent to chat.
 
 Text fields in Lamium have a caret, paste and click placement.
 
-### Book paste across pages
+### Paste across book pages
 
 On by default. A paste into a book that does not fit the page starts at the caret
 and continues on new pages inserted after it, instead of being cut off; later pages

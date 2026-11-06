@@ -1426,7 +1426,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"feature.toasts", "切换提示"},
     {"help.toasts", "用按键开启或关闭功能时短暂显示的提示。"},
     {"feature.bookPaste", "书与笔跨页粘贴"},
-    {"help.bookPaste", "较长的粘贴内容中放不下本页的部分会被静默丢弃。开启后，其余内容会接着写入当前页后面插入的新页；后面的页会向后移动，不会被覆盖。50 页不够时不会粘贴任何内容，并显示需要的页数。"},
+    {"help.bookPaste", "较长的粘贴内容中放不下本页的部分会被静默丢弃。开启后，其余内容会接着写入当前页后面插入的新页；后面的页会向后移动，不会被覆盖。50 页不够时不会粘贴任何内容，并在关闭书时显示需要的页数。"},
     {"bookPaste", "跨页粘贴: {}"},
     {"key.Lamium.bookpaste", "切换书与笔跨页粘贴"},
     {"bookPaste.tooManyPages", "需要 {} 页，可用 {} 页"},
@@ -1772,6 +1772,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"blockEntity.ItemRotation", "物品旋转"},
     {"capability.NoteBlockSounds", "音符盒音高（声音事件）"},
     {"capability.NoteBlockInstrument", "虚影音符盒的乐器"},
-    {"capability.BookPastePages", "跨页粘贴到书中"},
+    {"capability.BookPastePages", "书与笔跨页粘贴"},
 });
 }
