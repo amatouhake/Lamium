@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-259 typing into a full page (2026-11-07)
+
+Build `27adec72`, DLL `aef14d409dc1aee9c04ed39289175f95ead03cb1acfc57a25cc0152d54a979af`,
+no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed, per the
+maintainer: on a book and quill page at 256 characters, typing one character and
+confirming Japanese through the IME change nothing and add no page. So these inputs do not
+split as a paste would, though the trace was off and did not show which path they took.
+Not covered: servers.
+
 ## L-314 exits without Lamium (2026-11-06)
 
 1.26.60.05 Dev instance, LeviLamina Client 26.60.3, Lamium disabled through LeviLauncher

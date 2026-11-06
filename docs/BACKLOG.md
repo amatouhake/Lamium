@@ -136,9 +136,7 @@ From 2026-11-06 (VALIDATION-LOG):
 
 - Book paste returns in the next release with new rules (L-259), and the minimum
   LeviLamina is 26.60.3. Worth a look: a server, a replaced selection, the 50-page
-  refusal's toast. Typing into a full page should do nothing and add no page: the
-  detour takes whatever reaches `feedText` as a paste, and its limit gate is a lower
-  bound since 2026-11-06.
+  refusal's toast.
 - Target distance (L-308): frame times are not measured. The worst case is FreeCamera
   at the full range, looking where nothing is hit.
 - The next release is the first built with the replaced prelink v0.8.8 asset; its
