@@ -171,6 +171,18 @@ void activateShapeField(int index, int part) {
         }
         return;
     }
+    case shape::Field::Follow: {
+        // Off keeps the shape where it is drawn: the body's block, not a detached
+        // camera's. In another dimension it is not drawn, so its saved place stands.
+        auto* player = screen::client() ? screen::client()->getLocalPlayer() : nullptr;
+        if (definition->follow && player && definition->dimension == screen::playerDimension()) {
+            auto const feet = player->getFeetPos();
+            applyShape(overlay::settledAt(*definition, {static_cast<int>(std::floor(feet.x)),
+                static_cast<int>(std::floor(feet.y)), static_cast<int>(std::floor(feet.z))}));
+            return;
+        }
+        break;
+    }
     case shape::Field::MoveHere: {
         if (auto point = referencePoint()) {
             auto moved = *definition;
