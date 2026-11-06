@@ -37,7 +37,7 @@ adapter retains its target, ownership and contract checks.
 `tooth.json` names the series (`26.60.*`, which `Check-Capabilities.ps1` requires),
 not the minimum patch: the README states the minimum. An older patch of the series
 can still be installed; gated capabilities stay vanilla there, and whether the DLL
-loads on it at all is unchecked.
+loads on it at all is unchecked. Kept this way for 0.5.1 (maintainer 2026-11-07).
 
 The minimum may stay below the SDK the DLL is built against only while every
 LeviLamina symbol Lamium imports exists in that older loader:
