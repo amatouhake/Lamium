@@ -77,8 +77,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
 1. **Bugs first.** Open: L-314 (silent crash at exit on 1.26.60; needs exits
    with Lamium removed to tell whether Lamium matters), L-313 (the world map
    report; not reproduced here, waiting for the reporter's re-check with the
-   feature on), L-312 (a shape
-   radius above 100 loses its decimal place), L-306 (a pane edge at a chunk border),
+   feature on; the map's Record button is built), L-312 (built, in-game check
+   left), L-306 (a pane edge at a chunk border),
    L-227 (FreeCamera shows only the sky outside loaded terrain; Research),
    L-177 (mismatch highlight; awaits the reporter's next schematic session),
    and the built-but-unconfirmed failure paths of L-274 and L-276. Parked:
@@ -93,8 +93,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    helpers, L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection, L-163 a
    Lamium inventory screen, L-249 simulation distance, and the 2026-11-05 reports
-   L-308 to L-311 (rangefinder, paper doll placement, language interval, shapes
-   following the player). Agree open choices before
+   L-309 and L-311 (paper doll placement, shapes following the player). L-308 and
+   L-310 are built for 0.5.1. Agree open choices before
    building. L-165 Mass Craft remains below Map and needs a scope conversation;
    existing packs already cover part of that need.
 3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,
@@ -109,7 +109,10 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-151/L-152/L-153 and the previously parked work remain later.
 7. **Before the next release:** changed-feature smoke and the relevant
    Pre-release checks below. Latest release: 0.5.0, 2026-11-04 (`v0.5.0`).
-   No next date is selected; a full regression is not a release gate.
+   Next: 0.5.1 (maintainer 2026-11-06), without a date. It waits for L-314's
+   check without Lamium: if Lamium is not needed for that crash, 0.5.1 goes out
+   and the crash is reported to LeviLamina; if it is, decide then whether it
+   goes out with a Known issue. A full regression is not a release gate.
 
 Task-picking rule: bugs first, then this order; follow each item's model,
 dependencies and validation requirements. Cheap models skip Design,
@@ -128,6 +131,9 @@ current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
 ### Since 0.5.0
+
+Built 2026-11-06, nothing below checked in game yet: L-312, L-310, L-313's Record
+button and hotkey, L-308. Each item names its check.
 
 From 2026-11-06 (VALIDATION-LOG):
 
@@ -271,9 +277,8 @@ Kind: Bug / Research, not reproduced; watch item. User report 2026-11-05
 (Discord), on 1.26.60.05 with Lamium 0.5.0 against a local BDS server: the
 world map showed next to no terrain while the minimap drew normally. The
 screenshot shows the map screen with "Recording is off" in its top bar.
-What the code does: the hotkey refuses while `map.worldMap` is off and shows
-`worldMap.off` ("The world map is off. Turn it on under Map in the
-settings.") from `src/input/Actions.cpp:198`. The Open row on the feature's
+What the code did until 2026-11-06: the hotkey refused while `map.worldMap` was
+off and showed a toast pointing at the settings. The Open row on the feature's
 settings entry has no such check: `screen::openTool` selects the map nav
 (`src/ui/SettingsScreen.cpp:1448`), which enters the map screen
 (`enterWorldMap(true, false)`, `:225`) whatever the switch says, and the
@@ -287,15 +292,16 @@ dimension travel, going underground, coming back and rejoining all looked
 right; with the feature off, the Open row reproduces the reported screen.
 Open: whether the reporter's case is only the switch (they have not said
 whether it was on), and whether a real recording defect remains on a server.
-Direction (maintainer 2026-11-06, not settled): keep the Open row able to open
-the map with the feature off, because the layers can still be inspected and
-edited, and add a way to turn recording on from the map screen itself (a
-control on the off note) instead of refusing like the hotkey. That also raises
-the standalone Waypoints screen (`OpenWaypoints`): if the map screen carries
-waypoint editing, it could be retired or de-emphasised.
-In game: the reporter turns the feature on and retries; their
-`mods/Lamium/logs/lamium.log` and the walking route would settle it.
-No release target selected.
+Decided and built (maintainer 2026-11-06, for 0.5.1): the hotkey opens the map
+with the feature off, as the Open row does, because the layers can still be
+inspected and edited; the top bar's "Record" button shows and switches
+`map.worldMap` in both directions, and "Recording is off" stays in the bottom
+bar. The standalone Waypoints screen is out of scope for now.
+In game: with the feature off, the hotkey opens the map; Record turns on and off
+and terrain is recorded only while on; narrow windows and each language keep the
+top bar usable. Open: the reporter turns the feature on and retries; their
+`mods/Lamium/logs/lamium.log` and the walking route would settle whether a
+defect remains on a server.
 
 ### L-312 A shape radius above 100 loses its decimal place
 Kind: Bug. User report 2026-11-05 (Discord): a radius above 100 shows no decimal
@@ -304,10 +310,10 @@ Cause: `src/ui/ShapesView.cpp:541` formats a non-integer value with
 `std::format("{:.3g}")`, three significant digits, so 100.5 draws "100", 101.5
 draws "102" and 104.5 draws "104" although the field steps by 0.5
 (`ShapeEditor.h:161`). The stored value is right; only the label is wrong.
-Fix: format by the field's step (one decimal for a 0.5 step) and keep the
-coordinate fields at three decimals.
+Fix, built 2026-11-06 for 0.5.1: `shape::numberText` keeps up to three decimals
+without trailing zeros, so a typed 1.25 stays right as well as a stepped 100.5;
+coordinate fields stay at three decimals.
 In game: a sphere at radius 100, 100.5 and 104.5, and the stepper on each.
-No release target selected.
 
 ### L-305 Move to Minecraft 1.26.60.05 and LeviLamina 26.60
 Kind: Update. Follows the playbook in [GAME-UPDATES.md](GAME-UPDATES.md).
@@ -831,10 +837,10 @@ Decided: lower `interval` to 5 seconds and change nothing else (one change per
 interval, the `language.wait` countdown). Not a setting and not removed: the
 freeze's mechanism was never identified, so the interval is the only guard, and
 the measured freeze was about one change per 2 s, which leaves a 2.5x margin.
-The comment above the struct carries that reasoning and the new number.
+The comment above the struct carries that reasoning and the new number. Built
+2026-11-06 for 0.5.1.
 In game: switch back and forth at the chosen interval and watch for the freeze;
 it leaves no log line, so the check is a hang.
-No release target selected.
 
 ### L-309 Place and scale the paper doll
 Kind: Design. User request 2026-11-05 (Discord): choose where the paper doll
@@ -853,19 +859,23 @@ have to be recreated to scale.
 No release target selected.
 
 ### L-308 Show the distance to the aimed block
-Kind: Design. User request 2026-11-05 (Discord): a hotkey shows how far the
+Kind: Ready, built 2026-11-06 for 0.5.1. User request 2026-11-05 (Discord): a hotkey shows how far the
 block under the crosshair is, with the distance measured to the eye or to the
 feet.
 Current: nothing measures a ray for this. Target Info already casts a pick from
 the eye each frame and shows the aimed block's coordinates and states
 (`src/features/information/TargetInfo.cpp`, `information.targetBlock`), so the
 ray and the reach are in place.
-Open: eye distance, feet distance or both; which HUD line it joins (Info HUD or
-the target card); whether it holds while the key is held or latches; whether the
-distance is to the block's centre or to the surface the ray enters; how it reads
-through a ghost, where the L-304 precedence rule applies; and what it shows with
-nothing aimed at. Decide with the wording, then one Ready task.
-No release target selected.
+Decided (maintainer 2026-11-06): a Distance row on the target card with one
+decimal, measured from the eye (the camera during FreeCamera or Freelook) to the
+surface the ray meets; the target follows L-304 through a ghost; nothing aimed
+at means no card and no row. Feet distance waits until someone needs it. It is a
+Target Info option, "Show distance" (off by default), and the unbound hold key
+"targetmeasure" flips it while held, as the radar's face key does, so it can be
+always on or shown on demand. The key needs Target Info on. Mobs get the row too.
+In game: bind the key, hold it at a block, a mob, a ghost and water with "Target
+water and lava" on; compare with a counted distance; turn the option on and see
+the key hide the row while held.
 
 ### L-298 Attach release assets from the tag's CI run
 Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).
