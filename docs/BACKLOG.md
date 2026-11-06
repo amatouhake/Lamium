@@ -75,10 +75,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    is 1.26.60.05. Open: the book-paste and offhand-map symbols (26.60.1's headers
    carry them, the 26.60.2 runtime's export table does not, and 26.60.3 had no
    release asset when it was checked) and L-306.
-1. **Bugs first.** Open: L-313 (the world map records nothing on a BDS server;
-   needs the reporter's settings and log), L-312 (a shape radius above 100 loses
-   its decimal place), L-307 (1.26.60 stores a structure as a compressed byte
-   array), L-306 (a pane edge at a chunk border), L-227 (FreeCamera shows only
+1. **Bugs first.** Open: L-312 (a shape radius above 100 loses its decimal
+   place), L-307 (1.26.60 stores a structure as a compressed byte array; PR
+   #71), L-306 (a pane edge at a chunk border), L-227 (FreeCamera shows only
    the sky outside loaded terrain; Research), L-177 (mismatch highlight; awaits
    the reporter's next schematic session), and the built-but-unconfirmed failure
    paths of L-274 and L-276. Parked: L-192/L-193/L-194 schematic drawing, L-123
@@ -178,22 +177,6 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
-
-### L-313 The world map records nothing on a BDS server
-Kind: Bug / Research. User report 2026-11-05 (Discord), on 1.26.60.05 with
-Lamium 0.5.0 against a local BDS server: the world map shows next to no terrain
-while the minimap in the same session draws normally. The screenshot shows the
-map screen with "Recording is off" under it and a few marks near the player.
-Cause: not reproduced. The map code is unchanged since 0.4.0 apart from the 26.60
-move (`55ba21fa`), and MAP.md records that server coverage was never checked, so
-a setting left off and a 26.60 server-side difference are both open. The two
-candidates are recording in `src/features/map/MapStore.cpp` and the world-map
-screen's own draw path.
-Open: whether recording was on for that world (the screen state is the first
-thing to read), which dimension, and whether panning to the recorded area draws.
-In game: record in a local world and then on the server, and compare the
-minimap, the world map and `<instance>/mods/Lamium/logs/lamium.log`.
-No release target selected.
 
 ### L-312 A shape radius above 100 loses its decimal place
 Kind: Bug. User report 2026-11-05 (Discord): a radius above 100 shows no decimal
