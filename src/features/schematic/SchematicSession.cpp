@@ -1,4 +1,5 @@
 #include "features/schematic/SchematicSession.h"
+#include "features/schematic/StructureInflate.h"
 #include "features/map/WaypointSession.h"
 #include "app/Runtime.h"
 #include "app/SessionIds.h"
@@ -102,7 +103,7 @@ std::shared_ptr<Structure const> load(std::string const& relative, std::string* 
     std::vector<std::uint8_t> bytes(static_cast<size_t>(size));
     if (!file.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()))) return fail("could not read the file");
     try {
-        auto structure = std::make_shared<Structure const>(parseStructure(bytes));
+        auto structure = std::make_shared<Structure const>(parseStructure(bytes, &inflateStructureBody));
         cache[relative] = {modified, now, structure, {}};
         if (error) error->clear();
         return structure;

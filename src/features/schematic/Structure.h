@@ -72,7 +72,12 @@ struct Structure {
     }
 };
 
+// The 1.26.60 game stores the body as a compressed byte array with
+// `compression` at the root (L-307); the runtime supplies the inflater, so this
+// module stays free of game types, and tests pass their own.
+using Inflate = std::optional<std::string> (*)(std::span<std::uint8_t const>);
+
 // Throws std::runtime_error with a reason when the file is not a usable structure.
-Structure parseStructure(std::span<std::uint8_t const> bytes);
+Structure parseStructure(std::span<std::uint8_t const> bytes, Inflate inflate = nullptr);
 std::string writeStructure(Structure const& structure);
 }

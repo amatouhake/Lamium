@@ -137,6 +137,61 @@ void structureRoundTrip() {
     check(parseStructure(span(nbt::write(legacy))).blocks == dry.blocks, "list-of-int layers read too");
 }
 
+// 1.26.60 keeps the body's keys but stores the compound as a byte array, zlib
+// when `compression` is set (L-307, issue #70).
+std::string fakeInflated;
+bool fakeInflateFails = false;
+size_t fakeInflateInput = 0;
+std::optional<std::string> fakeInflate(std::span<std::uint8_t const> bytes) {
+    fakeInflateInput = bytes.size();
+    if (fakeInflateFails) return std::nullopt;
+    return fakeInflated;
+}
+
+void structurePackedBody() {
+    auto original = sample();
+    nbt::Root packed = nbt::read(span(writeStructure(original)));
+    auto* tag = const_cast<nbt::Tag*>(packed.compound.find("structure"));
+    std::string const inner = nbt::write(nbt::Root{"", *tag->as<nbt::Compound>()});
+    tag->value = std::vector<std::int8_t>(inner.begin(), inner.end());
+    packed.compound.set("compression", {std::int8_t{1}});
+    std::string const bytes = nbt::write(packed);
+
+    fakeInflated = inner;
+    fakeInflateFails = false;
+    fakeInflateInput = 0;
+    auto parsed = parseStructure(span(bytes), &fakeInflate);
+    check(fakeInflateInput > 0 && fakeInflateInput < bytes.size(),
+          "the inflater gets the packed body, not the whole file");
+    check(parsed.size == original.size && parsed.blocks == original.blocks
+              && parsed.palette.size() == original.palette.size() && parsed.entities.size() == 1
+              && parsed.blockEntities.size() == 1,
+          "a compressed body reads like the plain compound");
+
+    bool refused = false;
+    std::string reason;
+    try { parseStructure(span(bytes)); } catch (std::runtime_error const& error) { refused = true; reason = error.what(); }
+    check(refused && reason.find("compressed") != std::string::npos,
+          "a compressed body without an inflater is refused by name");
+
+    fakeInflateFails = true;
+    refused = false;
+    reason.clear();
+    try { parseStructure(span(bytes), &fakeInflate); } catch (std::runtime_error const& error) { refused = true; reason = error.what(); }
+    check(refused && reason.find("could not be decompressed") != std::string::npos,
+          "a failed inflate is reported, not read as an empty body");
+
+    // A byte array without `compression` holds the body as it is.
+    fakeInflateFails = false;
+    nbt::Root plain = nbt::read(span(writeStructure(original)));
+    auto* plainTag = const_cast<nbt::Tag*>(plain.compound.find("structure"));
+    std::string const body = nbt::write(nbt::Root{"", *plainTag->as<nbt::Compound>()});
+    plainTag->value = std::vector<std::int8_t>(body.begin(), body.end());
+    auto unpacked = parseStructure(span(nbt::write(plain)));
+    check(unpacked.blocks == original.blocks && unpacked.entities.size() == 1,
+          "an uncompressed byte array is read as the body itself");
+}
+
 void structureRejects() {
     check(throws("") && throws("\x0a\x00\x00\x00"), "empty input and an empty compound are rejected");
     auto bad = sample();
@@ -1677,6 +1732,7 @@ void schematicTests() {
     verifyRules();
     nbtBasics();
     structureRoundTrip();
+    structurePackedBody();
     structureRejects();
     structureWrittenShape();
     sampleFiles();

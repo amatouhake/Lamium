@@ -64,7 +64,7 @@ std::string PaletteBlock::key() const {
     return out + ']';
 }
 
-Structure parseStructure(std::span<std::uint8_t const> bytes) {
+Structure parseStructure(std::span<std::uint8_t const> bytes, Inflate inflate) {
     auto root = nbt::read(bytes).compound;
     Structure out;
     if (auto const* version = root.find("format_version")) {
@@ -80,8 +80,30 @@ Structure parseStructure(std::span<std::uint8_t const> bytes) {
         for (int i = 0; i < 3; ++i) out.worldOrigin[i] = static_cast<int>(origin[i]);
     }
 
-    auto const& structure = compound(root, "structure");
-    auto const& palette = compound(compound(structure, "palette"), "default");
+    // Up to 1.26.51 the body is the `structure` compound itself. 1.26.60 keeps
+    // its keys where they were but stores the compound as a byte array, zlib
+    // when `compression` is set, so unpack it first (L-307).
+    std::optional<nbt::Root> unpacked;
+    nbt::Compound const* body = nullptr;
+    if (auto const* tag = root.find("structure")) {
+        if (auto const* compound = tag->as<nbt::Compound>()) body = compound;
+        else if (auto const* packed = tag->as<std::vector<std::int8_t>>()) {
+            std::int64_t compression = 0;
+            if (auto const* flag = root.find("compression")) flag->integer(compression);
+            std::string plain;
+            if (compression != 0) {
+                if (!inflate) fail("the structure body is compressed and this caller cannot decompress it");
+                auto inflated = inflate({reinterpret_cast<std::uint8_t const*>(packed->data()), packed->size()});
+                if (!inflated) fail("the compressed structure body could not be decompressed");
+                plain = std::move(*inflated);
+            } else plain.assign(reinterpret_cast<char const*>(packed->data()), packed->size());
+            unpacked = nbt::read({reinterpret_cast<std::uint8_t const*>(plain.data()), plain.size()});
+            body = &unpacked->compound;
+        }
+    }
+    if (!body) fail("missing compound 'structure'");
+
+    auto const& palette = compound(compound(*body, "palette"), "default");
     for (auto const& item : list(palette, "block_palette").items) {
         auto const* entry = item.as<nbt::Compound>();
         auto const* name = entry && entry->find("name") ? entry->find("name")->as<std::string>() : nullptr;
@@ -95,7 +117,7 @@ Structure parseStructure(std::span<std::uint8_t const> bytes) {
         out.palette.push_back(std::move(block));
     }
 
-    auto const& layers = list(structure, "block_indices");
+    auto const& layers = list(*body, "block_indices");
     if (layers.items.empty() || layers.items.size() > 2) fail("block_indices must hold one or two layers");
     for (size_t i = 0; i < layers.items.size(); ++i) {
         // A second-layer cell over air (water in an air cell) and palette
@@ -117,7 +139,7 @@ Structure parseStructure(std::span<std::uint8_t const> bytes) {
         }
     }
 
-    if (auto const* entities = structure.find("entities"); entities && entities->as<nbt::List>()) {
+    if (auto const* entities = body->find("entities"); entities && entities->as<nbt::List>()) {
         for (auto const& item : entities->as<nbt::List>()->items) {
             auto const* entity = item.as<nbt::Compound>();
             if (!entity) continue;
