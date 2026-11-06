@@ -348,7 +348,7 @@ struct Settings {
         ui.animations = std::clamp(ui.animations, 0, 2);
         information.targetGrowth = std::clamp(information.targetGrowth, 0, 1);
         if (!std::isfinite(information.targetDistance)) information.targetDistance = 6;
-        information.targetDistance = std::clamp(std::round(information.targetDistance), 2.f, 256.f);
+        information.targetDistance = std::clamp(std::round(information.targetDistance), 2.f, 64.f);
         if (!std::isfinite(interaction.edgeMargin)) interaction.edgeMargin = 0.1f;
         interaction.edgeMargin = std::clamp(interaction.edgeMargin, .02f, .3f);
         normalizeMode(interaction.placementMode, lamium::interaction::placementLabels.size());
