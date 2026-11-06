@@ -205,7 +205,7 @@ inline constexpr auto options = std::to_array<Option>({
     {"information.targetDistance", "targetInfo", "targetDistance",
         [](Settings const& s) -> OptionValue { return s.information.targetDistance; },
         [](Settings& s, int direction) { s.information.targetDistance += direction; s.normalize(); },
-        NumericOption{2, 64, [](Settings& s, float v) { s.information.targetDistance = v; }, 1}},
+        NumericOption{2, 256, [](Settings& s, float v) { s.information.targetDistance = v; }, 1}},
     toggle<&Settings::information, &Settings::Information::targetStates>("information.targetStates", "targetInfo", "targetStates"),
     toggle<&Settings::information, &Settings::Information::targetCoordinates>("information.targetCoordinates", "targetInfo", "targetCoordinates"),
     toggle<&Settings::information, &Settings::Information::targetMeasure>("information.targetMeasure", "targetInfo", "targetMeasure"),
