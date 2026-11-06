@@ -1,3 +1,4 @@
+#include "Issue70Structure.h"
 #include "features/schematic/RayCells.h"
 #include <cmath>
 #include "features/schematic/LiquidShape.h"
@@ -142,10 +143,53 @@ void structureRoundTrip() {
 std::string fakeInflated;
 bool fakeInflateFails = false;
 size_t fakeInflateInput = 0;
-std::optional<std::string> fakeInflate(std::span<std::uint8_t const> bytes) {
+size_t fakeInflateLimit = 0;
+std::optional<std::string> fakeInflate(std::span<std::uint8_t const> bytes, size_t maxSize) {
     fakeInflateInput = bytes.size();
+    fakeInflateLimit = maxSize;
     if (fakeInflateFails) return std::nullopt;
     return fakeInflated;
+}
+bool throwsWithFake(std::string const& bytes) {
+    try { parseStructure(span(bytes), &fakeInflate); } catch (std::runtime_error const&) { return true; }
+    return false;
+}
+
+// The body of a file the game really wrote, with the root keys it came with.
+bool issue70InputMatched = false;
+std::optional<std::string> issue70Inflate(std::span<std::uint8_t const> bytes, size_t) {
+    issue70InputMatched = std::equal(bytes.begin(), bytes.end(), std::begin(lamium_tests::issue70Packed),
+                                     std::end(lamium_tests::issue70Packed));
+    return std::string(std::begin(lamium_tests::issue70Body), std::end(lamium_tests::issue70Body));
+}
+
+void structureFromGame() {
+    auto ints = [](std::int32_t a, std::int32_t b, std::int32_t c) {
+        return nbt::List{nbt::Type::Int, {{a}, {b}, {c}}};
+    };
+    nbt::Root file{"", {}};
+    file.compound.set("compression", {std::int8_t{1}});
+    file.compound.set("format_version", {std::int32_t{2}});
+    file.compound.set("size", {ints(5, 5, 5)});
+    file.compound.set("structure", {std::vector<std::int8_t>(std::begin(lamium_tests::issue70Packed),
+                                                             std::end(lamium_tests::issue70Packed))});
+    file.compound.set("structure_world_origin", {ints(17499, -61, 15578)});
+
+    auto parsed = parseStructure(span(nbt::write(file)), &issue70Inflate);
+    check(issue70InputMatched, "the inflater gets the file's byte array unchanged");
+    check(parsed.size.x == 5 && parsed.size.y == 5 && parsed.size.z == 5 && parsed.formatVersion == 2
+              && parsed.worldOrigin == std::array{17499, -61, 15578},
+          "the root keys of a 1.26.60 file still read");
+    std::array<char const*, 5> const names{"minecraft:grass_block", "minecraft:structure_block",
+                                           "minecraft:light_blue_wool", "minecraft:air", "minecraft:dropper"};
+    bool sameNames = parsed.palette.size() == names.size();
+    for (size_t i = 0; sameNames && i < names.size(); ++i) sameNames = parsed.palette[i].name == names[i];
+    check(sameNames && parsed.palette[3].isAir(), "the palette of a 1.26.60 body reads in file order");
+    auto count = [&](std::int32_t index) { return std::count(parsed.blocks.begin(), parsed.blocks.end(), index); };
+    check(parsed.blocks.size() == 125 && count(0) == 25 && count(1) == 1 && count(2) == 1 && count(3) == 97 && count(4) == 1,
+          "the block layer of a 1.26.60 body reads every cell");
+    check(parsed.liquids.empty() && parsed.entities.empty() && parsed.blockEntities.size() == 2,
+          "a 1.26.60 body has no second layer or entities here, and two block entities");
 }
 
 void structurePackedBody() {
@@ -163,6 +207,7 @@ void structurePackedBody() {
     auto parsed = parseStructure(span(bytes), &fakeInflate);
     check(fakeInflateInput > 0 && fakeInflateInput < bytes.size(),
           "the inflater gets the packed body, not the whole file");
+    check(fakeInflateLimit == maxInflatedBodySize, "the inflater is told the size limit");
     check(parsed.size == original.size && parsed.blocks == original.blocks
               && parsed.palette.size() == original.palette.size() && parsed.entities.size() == 1
               && parsed.blockEntities.size() == 1,
@@ -181,8 +226,11 @@ void structurePackedBody() {
     check(refused && reason.find("could not be decompressed") != std::string::npos,
           "a failed inflate is reported, not read as an empty body");
 
-    // A byte array without `compression` holds the body as it is.
     fakeInflateFails = false;
+    fakeInflated = inner.substr(0, inner.size() / 2);
+    check(throwsWithFake(bytes), "a truncated body is rejected, not read as a smaller structure");
+
+    // A byte array without `compression` holds the body as it is.
     nbt::Root plain = nbt::read(span(writeStructure(original)));
     auto* plainTag = const_cast<nbt::Tag*>(plain.compound.find("structure"));
     std::string const body = nbt::write(nbt::Root{"", *plainTag->as<nbt::Compound>()});
@@ -1733,6 +1781,7 @@ void schematicTests() {
     nbtBasics();
     structureRoundTrip();
     structurePackedBody();
+    structureFromGame();
     structureRejects();
     structureWrittenShape();
     sampleFiles();

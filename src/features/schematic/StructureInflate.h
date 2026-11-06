@@ -5,5 +5,5 @@
 // out of Structure.cpp so the parser stays game-free and its tests supply
 // their own.
 namespace lamium::schematic {
-std::optional<std::string> inflateStructureBody(std::span<std::uint8_t const> bytes);
+std::optional<std::string> inflateStructureBody(std::span<std::uint8_t const> bytes, std::size_t maxSize);
 }

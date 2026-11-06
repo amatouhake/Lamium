@@ -231,8 +231,13 @@ body when `compression` is set through `ll::utils::compress_utils::decompress`
 (`StructureInflate.cpp`, wired in `SchematicSession.cpp`), and reads a byte array
 without `compression` as the body itself. Tests: `structurePackedBody` in
 `tests/SchematicTests.cpp` (compressed through a stub inflater, no inflater, a
-failed inflate, an uncompressed array), mutation-proved by forcing the plain path.
-The zlib reading comes from the report; the in-game check settles it.
+failed inflate, a truncated body, an uncompressed array), mutation-proved by forcing
+the plain path. The inflater stops at `maxInflatedBodySize` (256 MiB, the same as the
+file limit). `structureFromGame` reads the real body from issue #70's attachment
+(`tests/Issue70Structure.h`); that attachment inflated as zlib outside the mod.
+The tests do not reach the real `decompress`: the native suite never calls engine
+symbols, because that would need `LeviLamina.dll` at run time. Bad zlib data through
+the real inflater stays unchecked; the in-game load checks a good file.
 No release target selected.
 
 ### L-305 Move to Minecraft 1.26.60.05 and LeviLamina 26.60

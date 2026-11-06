@@ -93,8 +93,8 @@ Structure parseStructure(std::span<std::uint8_t const> bytes, Inflate inflate) {
             std::string plain;
             if (compression != 0) {
                 if (!inflate) fail("the structure body is compressed and this caller cannot decompress it");
-                auto inflated = inflate({reinterpret_cast<std::uint8_t const*>(packed->data()), packed->size()});
-                if (!inflated) fail("the compressed structure body could not be decompressed");
+                auto inflated = inflate({reinterpret_cast<std::uint8_t const*>(packed->data()), packed->size()}, maxInflatedBodySize);
+                if (!inflated) fail("the compressed structure body could not be decompressed or is too large");
                 plain = std::move(*inflated);
             } else plain.assign(reinterpret_cast<char const*>(packed->data()), packed->size());
             unpacked = nbt::read({reinterpret_cast<std::uint8_t const*>(plain.data()), plain.size()});
