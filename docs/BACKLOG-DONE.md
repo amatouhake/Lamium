@@ -10,6 +10,44 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-313 The world map records nothing on a BDS server
+Kind: Bug / Research, not reproduced; watch item. User report 2026-11-05
+(Discord), on 1.26.60.05 with Lamium 0.5.0 against a local BDS server: the
+world map showed next to no terrain while the minimap drew normally. The
+screenshot shows the map screen with "Recording is off" in its top bar.
+What the code did until 2026-11-06: the hotkey refused while `map.worldMap` was
+off and showed a toast pointing at the settings. The Open row on the feature's
+settings entry has no such check: `screen::openTool` selects the map nav
+(`src/ui/SettingsScreen.cpp:1448`), which enters the map screen
+(`enterWorldMap(true, false)`, `:225`) whatever the switch says, and the
+screen then draws what was recorded before and marks "Recording is off"
+(`WorldMap.cpp`). That is the state the screenshot shows. The map code is
+unchanged since 0.4.0 apart from the 26.60 move (`55ba21fa`).
+Maintainer check 2026-11-06 (1.26.60.05 instance, DLL SHA-256 not recorded):
+in a single-player world and on a BDS, recording worked, the data was kept
+per server address (`127.0.0.1:19132`), past-world data loaded, and
+dimension travel, going underground, coming back and rejoining all looked
+right; with the feature off, the Open row reproduces the reported screen.
+Open: whether the reporter's case is only the switch (they have not said
+whether it was on), and whether a real recording defect remains on a server.
+Decided and built (maintainer 2026-11-06, for 0.5.1): the hotkey opens the map
+with the feature off, as the Open row does, because the layers can still be
+inspected and edited. The standalone Waypoints screen is out of scope for now.
+Decided after the first check (maintainer 2026-11-06): a labelled "Record" switch
+in the map's bottom bar, beside the scale, is `map.worldMap` in both directions and
+replaces the "Recording is off" text, because it is state and not a command like
+the top bar's; it keeps its place when the bar is narrow.
+Changed again (maintainer 2026-11-06): the settings said "World map" and the map
+"Record" for one switch, and "World map: off" was untrue once the map opened anyway.
+The parent row now has no switch and opens the map, with its `M` key; "Record" is a
+child row with the toggle key. `map.worldMap` and action ids do not change.
+The key, the bottom bar switch and the settings row passed in game.
+Closed 2026-11-07 (maintainer): not reproduced here; the reporter's
+follow-up points to the feature having simply been off, and the 0.5.1 map UI
+rework (Record switch in the map itself) removes that confusion. Reopen if
+recording still fails with Record on, with that session's
+`mods/Lamium/logs/lamium.log`.
+
 ### L-314 Silent crash when Minecraft exits on 1.26.60
 Kind: Bug / Research. **Lamium is not needed for it** (2026-11-06, VALIDATION-LOG): with
 Lamium disabled, one of two runs left a trace with the same stack. Closed as not ours:
