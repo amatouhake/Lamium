@@ -74,8 +74,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
 0. **L-305 move to Minecraft 1.26.60.05 / LeviLamina 26.60.** The verified game
    is 1.26.60.05. Open: the offhand-map target is unconfirmed, and L-306. What waits
    for more game symbols is collected in L-315.
-1. **Bugs first.** Open: L-314 (silent crash at exit on 1.26.60; happens without
-   Lamium, to report to LeviLamina), L-313 (the world map
+1. **Bugs first.** Open: L-313 (the world map
    report; not reproduced here, waiting for the reporter's re-check with the
    feature on; the Record switch in the bottom bar is built), L-306 (a pane edge at a chunk border),
    L-227 (FreeCamera shows only the sky outside loaded terrain; Research),
@@ -192,88 +191,6 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
-
-### L-314 Silent crash when Minecraft exits on 1.26.60
-Kind: Bug / Research. **Lamium is not needed for it** (2026-11-06, VALIDATION-LOG): with
-Lamium disabled, one of two runs left a trace with the same stack. Left: report it to
-LeviLamina, then close this as not ours. Everything below that says Lamium is not
-excluded predates this check.
-Found 2026-11-06 in `logs/crash/`; the maintainer sees a normal exit because
-only the crash logger notices. No lost data has been seen; world saves were
-not checked. Nothing here was run in game: this is a static reading of the
-traces, minidumps and shipped binaries.
-
-Evidence (11 traces: 9 on `1.26.60.05 Dev`, 2 on `1.26.60.05`, 2026-11-04 to
-2026-11-06, C0000005):
-- All 11 have one shape, RVAs in `Minecraft.Windows.exe` 1.26.60+3c21f4e: main
-  thread `exit` → `ExitProcess` → the loader's shutdown → the exe's TLS callback
-  (+E942650) → one game `thread_local` destructor (+2C858C0, helper +2CB0480) →
-  `operator delete` (+392960, the frame ending C298E) → the game allocator's
-  release (+9BC0D0, the frame ending EC101) → `MallocRedirect!free` →
-  `ucrtbase!free` → ntdll. The two recurring frames are generic; the destructor
-  is the specific one. It frees plain vectors of a game struct (0x60 bytes with
-  a variant) and has no name in the SDK headers. It runs after world exit, so
-  it says nothing about what was freed during play.
-- None of the 29 traces on 1.26.51.01 has this shape. `MallocRedirect.dll`,
-  a Microsoft wrapper around mimalloc, is loaded in the 1.26.60 traces and in
-  none of the two checked 1.26.51 ones. It is the exe's import for `malloc` and
-  `free`. So the change of game version is the first correlate.
-- `MallocRedirect!free` (+19B0) asks its own mimalloc whether the pointer is
-  its own (+3220: segment map, then arena list) and hands it to the ucrt only
-  if not. Every dump keeps the return address +3312 of that check on the stack
-  and every stack reaches the ucrt, so **this mimalloc disowned the pointer**.
-- The freed blocks sit at 2.17 to 5.23 TiB, apart from the NT heap handle in the
-  same process (1.4 to 2.9 TiB) and inside mimalloc's usual address hint of 2 to
-  6 TiB. So `RtlFreeHeap` is most likely reading a block that is not a heap block
-  at all.
-- The faults are in ntdll's merge of free neighbours (RVA 0x9450; its name is
-  inferred, no symbols were loaded). It finds the neighbour from the size fields
-  in the freed block's header. In three dumps that neighbour is unmapped, in a
-  fourth the derived segment is. In the others the "free list link" it follows
-  (R15) is 0, 0xF, `mpty`, `/blocks/` or 0x01FF007C00000000.
-  **So `/blocks/` is not a string overwriting heap metadata**, the first reading
-  of that register: it is whatever lies where a bad header pointed. These
-  registers give no support to an out-of-bounds write.
-- `LeviLamina.dll` links a second mimalloc (`ll::memory::MimallocMemoryAllocator`).
-  A static initializer (+1A0AD0) exchanges the game's
-  `MemoryTrackerAnon::memoryAllocator` for it and never restores it. Lamium's
-  `src/app/MemoryOperators.cpp` sends its own `new` and `delete` there as well.
-  Two mimallocs in one process, using one address range, fit a pointer that one
-  of them disowns.
-
-Is Lamium implicated? Nothing points at it, and nothing excludes it yet:
-- No Lamium frame in any trace. Lamium calls no allocator directly, and no
-  Lamium code that was found touches this `thread_local`. It is reached from
-  game functions only (+27D2390, +3F6BB20, +3F6BCF0, +6D940F0, +BBE2150,
-  +55F0C90); whether a Lamium call or hook leads into them was not traced.
-- Connected Textures and the minimap: their two `memcpy` sites
-  (`ConnectedSprites.cpp`, `PackImage.cpp`) copy exactly the size of a vector
-  sized from the same width and height. Nothing there writes into a game buffer.
-- All 11 sessions ran Lamium, so no session compares it. The sessions whose
-  Lamium log survives also entered a world (the 2026-11-04 Dev logs are gone).
-- Book paste is out: the 2026-11-04 traces predate turning it on.
-
-Open: at the crash `operator delete` goes through the global at +1233C1A8 to the
-exe's own allocator, not LeviLamina's. No code in the exe writes that global.
-Either the swap in LeviLamina hits a different variable on 1.26.60, or something
-undid it; the symbol was not resolved through `bedrock_runtime_data`. So it is
-unknown which allocator produced the pointer. The likely reading is LeviLamina's
-mimalloc; the alternative is a segment MallocRedirect's own mimalloc already
-released. The 97 KB minidumps hold the stack and no heap, so they cannot decide.
-
-Next step, needs the maintainer, no code:
-1. On `1.26.60.05 Dev`, move `mods/Lamium` to `lamium-validation-disabled/`. One
-   trial is a whole run, because the crash is in the process's exit and leaving a
-   world proves nothing: start the game, enter a world, play a little, leave it,
-   close the game, then read `logs/crash/`. Up to 8 trials. With Lamium on, 5 of the
-   last 8 exits left a trace, and 9 more traces of this shape came on 2026-11-06
-   (20:02 to 23:09), so 8 clean runs would mean Lamium is needed.
-2. A trace with +9BC101 and +39298E under the same destructor means Lamium is not
-   needed: report it to LeviLamina with this evidence and close this as not ours.
-3. No trace means Lamium is needed: capture a full-memory dump at the crash,
-   read which mimalloc owns the pointer, and find what filled that vector.
-
-A fix in Lamium is not justified until step 1 is done.
 
 ### L-313 The world map records nothing on a BDS server
 Kind: Bug / Research, not reproduced; watch item. User report 2026-11-05
