@@ -131,9 +131,9 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.5.0
 
-Passed on `a8783490` (VALIDATION-LOG): L-311, L-313's Record switch, the card's three
-hold keys, Range 256 without many entities. Changed after that, not checked: L-311's
-switch off, and the entity search behind the Range.
+Passed on `a8783490` and `2025d622` (VALIDATION-LOG): L-311, L-313's Record switch, the
+card's three hold keys, Range 256 among many mobs. Changed after that, not checked:
+L-311's off from another dimension, and L-308's "Up to the render distance".
 
 From 2026-11-06 (VALIDATION-LOG):
 
@@ -303,8 +303,9 @@ replaces the "Recording is off" text, because it is state and not a command like
 the top bar's; it keeps its place when the bar is narrow. The feature keeps its
 parent switch (DESIGN: each feature has one, and a parent without one was unclear),
 and the help says that off stops only the recording.
-The key and a top bar button passed in game on `356909de`; the bottom bar switch
-is not checked. Also open: the reporter turns the feature on and retries; their
+The key, a top bar button and then the bottom bar switch passed in game. Open
+(maintainer 2026-11-06): the settings say "World map" and the map says "Record" for
+one switch. Also open: the reporter turns the feature on and retries; their
 `mods/Lamium/logs/lamium.log` and the walking route would settle whether a
 defect remains on a server.
 
@@ -815,14 +816,16 @@ feet block is the centre, height included; FreeCamera keeps it on the body; the
 saved coordinates do not change and the editor shows them; it is drawn only in
 the shape's own dimension. Changed after use (maintainer 2026-11-06): turning it
 off leaves the shape where it is drawn, which becomes its saved place, so it is
-not lost and moving it by walking is easy; the old place is given up for that. In
-another dimension, where it is not drawn, off keeps the saved place.
+not lost and moving it by walking is easy; the old place is given up for that.
+From another dimension, off leaves it where the player left its dimension (decided
+2026-11-06 after a first build kept the saved place, which lost it again); the maps
+draw it there too. The saved place stands only if the player was not in that
+dimension this session.
 Built without a rebuild: the mesh is drawn shifted by
 whole blocks, and nothing is written while moving. The shape file gains an
 optional `follow` key, written only when on; older builds ignore it. A plane
 follows by its origin, as Move here places it. The maps draw the followed place.
-In game: off keeps the shape at the feet block, also in FreeCamera (the body's
-block); a portal, then off, keeps its saved place; rejoin keeps the switch.
+In game: a portal, then off, then back: the shape is where the player left.
 
 ### L-309 Place and scale the paper doll
 Kind: Design. User request 2026-11-05 (Discord): choose where the paper doll
@@ -861,9 +864,12 @@ rows, Other details, Position and Distance, each have an unbound hold key that
 flips them. The identifier and icon are looks, and Schematic and Liquids choose
 the target, so they have none. Range goes up from 64 to 256 blocks for measuring.
 One box around a long diagonal ray would span about a thousand chunks each frame,
-so the entity search now walks 16-block boxes and stops at the nearest hit. Left to
-check: frame rate at 64 and at 256 among many entities, looking past them; if 256
-costs visibly, lower the maximum rather than ship it.
+so the entity search now walks 16-block boxes and stops at the nearest hit; no load
+problem among many mobs on `2025d622`. A fixed 256 is still short of a far render
+distance, so "Up to the render distance" (off by default) replaces the Range with
+the corner of the render distance (maintainer 2026-11-06). In game: far targets at
+the player's own render distance, frame rate looking across open ground at the
+largest one available, and the ray's end at unloaded terrain.
 
 ### L-298 Attach release assets from the tag's CI run
 Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).

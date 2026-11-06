@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-311 off and Range among entities (2026-11-06)
+
+Build `2025d622`, DLL `c49a1b528fa104e939821b76010b7ccc41cfaccac86cd43f9d7a6ddd07a66b79`,
+no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed as built,
+per the maintainer: off keeps the shape at the feet block, also in FreeCamera; off
+after a portal keeps the saved place (then judged wrong and changed); no load problem
+at Range 256 among many mobs. Frame times were not measured with a tool.
+
 ## L-311, the Record switch, card keys, Range and L-190 (2026-11-06)
 
 Build `a8783490` (branch `l-190-waypoint-selection`), DLL
