@@ -788,6 +788,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"help.map.radarFaces", "用游戏中已有的纹理（包括资源包）绘制每个生物的脸，并用每个玩家皮肤的头部表示玩家，旁边显示名称。没有可用脸部的生物和皮肤以及掉落物仍显示为圆点；部分头像可能还不正确。按住此行的按键可在头像和圆点之间切换。"},
     {"key.Lamium.radarfaces", "按住时切换头像和圆点"},
     {"key.Lamium.targetmeasure", "按住时切换目标距离显示"},
+    {"key.Lamium.targetdetails", "按住时切换目标的其他详情"},
+    {"key.Lamium.targetposition", "按住时切换目标位置显示"},
     {"mapCache", "已保存的地图（此世界）"},
     {"mapCacheClear", "删除"},
     {"mapCacheArmed", "再按一次以删除"},

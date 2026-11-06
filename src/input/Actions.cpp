@@ -252,7 +252,9 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::MinimapEnlarge) { map::setEnlarged(true); return; }
     if (action == input::Action::PlayerList) { information::playerList::setHeld(true); return; }
     if (action == input::Action::RadarFaces) { map::setFacesHeld(true); return; }
-    if (action == input::Action::TargetMeasure) { information::setDistanceHeld(true); return; }
+    if (action == input::Action::TargetMeasure) { information::setCardFlip(information::CardFlip::Distance, true); return; }
+    if (action == input::Action::TargetDetails) { information::setCardFlip(information::CardFlip::Details, true); return; }
+    if (action == input::Action::TargetPosition) { information::setCardFlip(information::CardFlip::Position, true); return; }
     if (action == input::Action::HideWaypoints) { map::markers::setHidden(true); return; }
     if (action == input::Action::AddWaypoint) {
         if (!value.map.waypoints) return;
@@ -311,7 +313,9 @@ void releaseAction(input::Action action) {
     if (action == input::Action::MinimapEnlarge) map::setEnlarged(false);
     if (action == input::Action::PlayerList) information::playerList::setHeld(false);
     if (action == input::Action::RadarFaces) map::setFacesHeld(false);
-    if (action == input::Action::TargetMeasure) information::setDistanceHeld(false);
+    if (action == input::Action::TargetMeasure) information::setCardFlip(information::CardFlip::Distance, false);
+    if (action == input::Action::TargetDetails) information::setCardFlip(information::CardFlip::Details, false);
+    if (action == input::Action::TargetPosition) information::setCardFlip(information::CardFlip::Position, false);
     if (action == input::Action::HideWaypoints) map::markers::setHidden(false);
     if (action == input::Action::AdjustSchematic) schematic::actions::setAdjustHeld(false);
 }

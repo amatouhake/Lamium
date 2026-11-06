@@ -788,6 +788,8 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"help.map.radarFaces", "用遊戲已有的材質（包括資源包）畫出每種生物的臉，並以每位玩家外觀的頭部表示玩家，旁邊顯示名稱。沒有可用臉部的生物和外觀，以及掉落物，仍顯示為圓點；有些頭像可能還不太正確。按住此列的按鍵會在頭像和圓點之間切換。"},
     {"key.Lamium.radarfaces", "按住時切換頭像和圓點"},
     {"key.Lamium.targetmeasure", "按住時切換目標距離顯示"},
+    {"key.Lamium.targetdetails", "按住時切換目標的其他詳情"},
+    {"key.Lamium.targetposition", "按住時切換目標位置顯示"},
     {"mapCache", "已儲存的地圖（此世界）"},
     {"mapCacheClear", "刪除"},
     {"mapCacheArmed", "再按一次以刪除"},

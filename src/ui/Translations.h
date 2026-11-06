@@ -797,6 +797,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.map.radarFaces", "Draw each mob as its face, built from the texture your game already has (resource packs included), and each player as the head of their skin, with their name beside it. Mobs and skins without a usable face, and dropped items, stay dots; some faces may not look right yet. The key on this row flips faces and dots while held.", "モブを顔で、プレイヤーをスキンの頭で表示します（名前は横に表示）。モブの顔はゲームが持っているテクスチャ（リソースパックを含む）から作ります。使える顔の無いモブやスキンと、落ちているアイテムは点のままです。一部の顔は正しく見えないことがあります。この行のキーを押している間は、顔と点が入れ替わります。"},
     {"key.Lamium.radarfaces", "Flip faces and dots while held", "押している間 顔と点を入れ替え"},
     {"key.Lamium.targetmeasure", "Flip the target's distance while held", "押している間 ターゲットの距離表示を切り替え"},
+    {"key.Lamium.targetdetails", "Flip the target's other details while held", "押している間 ターゲットのその他の詳細を切り替え"},
+    {"key.Lamium.targetposition", "Flip the target's position while held", "押している間 ターゲットの位置表示を切り替え"},
     {"mapCache", "Saved map (this world)", "保存した地図（このワールド）"},
     {"mapCacheClear", "Delete", "消す"},
     {"mapCacheArmed", "Press again to delete", "もう一度押すと消す"},

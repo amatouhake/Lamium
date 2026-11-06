@@ -174,6 +174,8 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "map.waypointsWorld") return input::Action::HideWaypoints;
     if (option == "map.radarFaces") return input::Action::RadarFaces;
     if (option == "information.targetMeasure") return input::Action::TargetMeasure;
+    if (option == "information.targetStates") return input::Action::TargetDetails;
+    if (option == "information.targetCoordinates") return input::Action::TargetPosition;
     if (option == "map.caveView") return input::Action::MinimapView;
     if (option == "schematic.mistakeMarks") return input::Action::ToggleMistakeMarks;
     if (option == "schematic.ignoreSignal") return input::Action::ToggleIgnoreSignal;

@@ -178,8 +178,11 @@ HotbarLookup hotbarBox(ScreenView const& view) {
 struct SeenHotbar { offhand::Box box; float screenW, screenH; };
 std::optional<SeenHotbar> seenHotbar;
 }
-namespace { std::atomic<bool> distanceHeld{false}; }
-void setDistanceHeld(bool held) { distanceHeld = held; }
+namespace {
+std::array<std::atomic<bool>, 3> cardFlips{};
+bool cardShows(bool option, CardFlip row) { return option != cardFlips[static_cast<size_t>(row)].load(); }
+}
+void setCardFlip(CardFlip row, bool held) { cardFlips[static_cast<size_t>(row)] = held; }
 void noteHotbar(ScreenView const& view) {
     auto hotbar = hotbarBox(view);
     if (!hotbar.box) return;
@@ -686,9 +689,9 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     bool card = element.background == ui::ElementBackground::Card;
     float padX = card ? 5 * z : 0, padY = card ? 4 * z : 0;
     CardOptions options;
-    options.details = settings.targetStates;
-    options.coordinates = settings.targetCoordinates;
-    options.distance = settings.targetMeasure != distanceHeld.load();
+    options.details = cardShows(settings.targetStates, CardFlip::Details);
+    options.coordinates = cardShows(settings.targetCoordinates, CardFlip::Position);
+    options.distance = cardShows(settings.targetMeasure, CardFlip::Distance);
     options.health = settings.targetHealth == 1 ? Meter::Bar : settings.targetHealth == 2 ? Meter::Number : Meter::Hearts;
     options.armor = settings.targetArmor == 1 ? Meter::Bar : settings.targetArmor == 2 ? Meter::Number : Meter::Icons;
     options.growth = settings.targetGrowth == 1 ? Meter::Number : Meter::Bar;
@@ -1594,7 +1597,8 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     // (L-303). Decided once a frame here: the target lookups run with other
     // options too, and ending the subscription in one of them forgot every
     // note each frame.
-    auto* noteLevel = (cardRan && settings.targetStates) || runtime.schematic.enabled ? context.mClient.getLevel() : nullptr;
+    bool const cardDetails = cardShows(settings.targetStates, CardFlip::Details);
+    auto* noteLevel = (cardRan && cardDetails) || runtime.schematic.enabled ? context.mClient.getLevel() : nullptr;
     if (auto* player = context.mClient.getLocalPlayer(); noteLevel && player)
         beginNoteSounds(*noteLevel, static_cast<int>(player->getDimensionId()));
     else endNoteSounds();
@@ -1602,7 +1606,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         // One distance for every viewpoint: the body normally, the camera
         // during Freelook and FreeCamera (it looks elsewhere than the body).
         cardTarget = collectTargetInfo(context.mClient, true, targetRay, settings.targetSchematic, settings.targetLiquids,
-                                       settings.targetStates);
+                                       cardDetails);
         if (!cardTarget && preview) {
             TargetInfo sample{ui::translated("feature.targetInfo"), "minecraft:grass_block"};
             sample.icon = {IconKind::Item, "minecraft:grass_block", 0};
