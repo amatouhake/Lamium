@@ -106,10 +106,10 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-151/L-152/L-153 and the previously parked work remain later.
 7. **Before the next release:** changed-feature smoke and the relevant
    Pre-release checks below. Latest release: 0.5.0, 2026-11-04 (`v0.5.0`).
-   Next: 0.5.1 (maintainer 2026-11-06), without a date. Order: L-314's check without
-   Lamium, a review of 0.5.0..HEAD, then the release work. For L-314: if Lamium is not needed for that crash, 0.5.1 goes out
-   and the crash is reported to LeviLamina; if it is, decide then whether it
-   goes out with a Known issue. A full regression is not a release gate.
+   Next: 0.5.1 (maintainer 2026-11-06), without a date. Order: a review of
+   0.5.0..HEAD, then the release work. The silent exit crash, reported as
+   LiteLDev/LeviLamina#1869 (L-314), goes in the README's Known issues while it is
+   open. A full regression is not a release gate.
 
 Task-picking rule: bugs first, then this order; follow each item's model,
 dependencies and validation requirements. Cheap models skip Design,
