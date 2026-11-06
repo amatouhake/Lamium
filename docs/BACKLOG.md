@@ -72,45 +72,30 @@ Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
 0. **L-305 move to Minecraft 1.26.60.05 / LeviLamina 26.60.** The verified game
-   is 1.26.60.05. Open: the symbols for book paste and an offhand map, and L-306.
-1. **Bugs first.** L-227 FreeCamera shows only the sky
-   outside loaded terrain (Research; new native experiment needs the
-   maintainer's go-ahead). L-177 mismatch-highlight fix is built and awaits
-   the reporter's next schematic session, not another implementation.
-   The 2026-10-31 maintainer
-   reports are L-288 to L-291 (Fake Offhand twice, Hand Restock, schematic
-   water materials): all are closed (checked 2026-11-01, BACKLOG-DONE),
-   with L-285 (ghost pick at the feet block) after its trace.
-   L-292 (Fake Offhand key without primary
-   priority) is closed (checked 2026-11-01). L-293 (placement as if
-   sneaking, toggle) is closed (2026-11-01). L-294 (water icons) is closed
-   (2026-11-01). L-300 (block entity data in the target card) is closed
-   (checked 2026-11-03); L-301 (a note block's pitch from the sound events) is
-   closed (checked 2026-11-03). L-302 (a ghost's actor-drawn contents) and
-   L-303 (the check ignoring block entity data) came out of the L-184 in-game
-   check; both are closed (checked 2026-11-04). L-304 (a real
-   liquid behind a ghost) is closed (checked 2026-11-03).
-   Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
-   L-91 shield glint and L-132 inventory-screen movement; respect each
+   is 1.26.60.05. Open: the book-paste and offhand-map symbols (26.60.1's headers
+   carry them, the 26.60.2 runtime's export table does not, and 26.60.3 had no
+   release asset when it was checked) and L-306.
+1. **Bugs first.** Open: L-313 (the world map records nothing on a BDS server;
+   needs the reporter's settings and log), L-312 (a shape radius above 100 loses
+   its decimal place), L-307 (1.26.60 stores a structure as a compressed byte
+   array), L-306 (a pane edge at a chunk border), L-227 (FreeCamera shows only
+   the sky outside loaded terrain; Research), L-177 (mismatch highlight; awaits
+   the reporter's next schematic session), and the built-but-unconfirmed failure
+   paths of L-274 and L-276. Parked: L-192/L-193/L-194 schematic drawing, L-123
+   elytra pose, L-91 shield glint, L-132 inventory-screen movement, L-244
+   FreeCamera started inside a block, L-287 minimap arrow look; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
-   L-247 and L-248 are merged (2026-10-27), checked in game and closed
-   2026-10-31 (BACKLOG-DONE); L-244 is parked (see its item).
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10): L-253 is closed (checked 2026-10-31) and L-286's minimap
-   camera arrow is merged; the arrow-look follow-up is L-287, parked. L-246,
-   L-252 and L-254 are done.
-   **L-266 schematic follow-up batch** closed with the 0.3.1 release
-   (2026-10-27): stages 1-3, L-264, stage 4 (L-256) and L-263's creative
-   pick are all checked. Still open from it: L-265 placement assist
-   (Design). L-196 license/provenance review closed 2026-11-01; L-236 is a follow-up;
-   L-295, L-296 and L-297 (map layers) are done 2026-11-01; remaining Design/Research in L-166 trade helpers,
-   L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
-   L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
-   L-163 a Lamium inventory screen, L-259 book paste overflow (on main and
-   checked locally; edge cases left, see the item). Agree open choices
-   before building.
-   L-165 Mass Craft remains below Map and needs a scope
-   conversation; existing packs already cover part of that need.
+   2026-10-10): the L-266 schematic follow-up batch closed with 0.3.1 except
+   L-265 placement assist (Design). Remaining Design/Research: L-166 trade
+   helpers, L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
+   L-170 enchantment planner, L-173 quick shapes, L-190 list selection, L-163 a
+   Lamium inventory screen, L-249 simulation distance, and the 2026-11-05 reports
+   L-308 to L-311 (rangefinder, paper doll placement, language interval, shapes
+   following the player). L-259 book paste overflow is on main and checked
+   locally; it stays hidden until its symbols return. Agree open choices before
+   building. L-165 Mass Craft remains below Map and needs a scope conversation;
+   existing packs already cover part of that need.
 3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,
    L-183/L-184/L-185/L-186 and the remaining name-tag issue L-117.
    The initial feature and 0.1.8 work are complete, not new tasks.
@@ -194,6 +179,54 @@ validation checkpoints" (snapshot 2026-10-20).
 
 ## Bugs
 
+### L-313 The world map records nothing on a BDS server
+Kind: Bug / Research. User report 2026-11-05 (Discord), on 1.26.60.05 with
+Lamium 0.5.0 against a local BDS server: the world map shows next to no terrain
+while the minimap in the same session draws normally. The screenshot shows the
+map screen with "Recording is off" under it and a few marks near the player.
+Cause: not reproduced. The map code is unchanged since 0.4.0 apart from the 26.60
+move (`55ba21fa`), and MAP.md records that server coverage was never checked, so
+a setting left off and a 26.60 server-side difference are both open. The two
+candidates are recording in `src/features/map/MapStore.cpp` and the world-map
+screen's own draw path.
+Open: whether recording was on for that world (the screen state is the first
+thing to read), which dimension, and whether panning to the recorded area draws.
+In game: record in a local world and then on the server, and compare the
+minimap, the world map and `<instance>/mods/Lamium/logs/lamium.log`.
+No release target selected.
+
+### L-312 A shape radius above 100 loses its decimal place
+Kind: Bug. User report 2026-11-05 (Discord): a radius above 100 shows no decimal
+place and the stepper looks like it skips values.
+Cause: `src/ui/ShapesView.cpp:541` formats a non-integer value with
+`std::format("{:.3g}")`, three significant digits, so 100.5 draws "100", 101.5
+draws "102" and 104.5 draws "104" although the field steps by 0.5
+(`ShapeEditor.h:161`). The stored value is right; only the label is wrong.
+Fix: format by the field's step (one decimal for a 0.5 step) and keep the
+coordinate fields at three decimals.
+In game: a sphere at radius 100, 100.5 and 104.5, and the stepper on each.
+No release target selected.
+
+### L-307 Structures saved by 1.26.60 do not load
+Kind: Ready. User report 2026-11-05 (GitHub issue #70), on 1.26.60.05 with
+Lamium 0.5.0: a `.mcstructure` saved by the vanilla structure block fails with
+`Structure: missing compound 'structure'`.
+Cause: 1.26.60 writes the file root with `compression: 1` and stores as a
+zlib-compressed byte array the NBT that used to be the `structure` compound, so
+`parseStructure` in `src/features/schematic/Structure.cpp:91` reads `structure`
+as a compound and stops. The NBT reader already carries `Type::ByteArray`
+(`Nbt.h:13`), so the file parses; only the wrapper is new.
+Fix: when the root holds `compression` and `structure` is a byte array, inflate
+it and parse that NBT as the structure compound, then continue as today; a file
+without `compression` keeps the current path. `ll::utils::compress_utils::decompress`
+(`ll/api/utils/CompressUtils.h`, exported by the runtime) inflates zlib in one
+call, so no new dependency.
+Tests: a factory-made file per case (plain, compressed, bad zlib data, truncated
+payload) in the native suite.
+In game: save a build in 1.26.60.05, load it from the Schematics screen and check
+that the ghost matches; then load a 1.26.51 export.
+No release target selected.
+
 ### L-305 Move to Minecraft 1.26.60.05 and LeviLamina 26.60
 Kind: Update. Follows the playbook in [GAME-UPDATES.md](GAME-UPDATES.md).
 Built against SDK 26.60.0 on 2026-11-04. The gated features passed a round in
@@ -204,10 +237,11 @@ Open:
    options; the others may need the same treatment.
 2. **Offhand map stays drawn with Hide Offhand on (regression from 26.51).** It
    does not go through the render calls Lamium can hook, and the likely target
-   is not exported:
+   was not exported:
    `?_renderMiniMapHand@ItemInHandRenderer@@QEAAXAEAVBaseActorRenderContext@@AEAVPlayer@@_N@Z`.
-   Added to the symbol request on 2026-11-04; whether it draws the map is
-   unconfirmed.
+   Added to the symbol request on 2026-11-04; 26.60.1's headers mark it
+   `MCAPI`, so the request covered it (item 4), but whether that call draws the
+   map is still unconfirmed.
 3. **Launching on 26.60.** An instance where PeEditor ran after LeviLauncher's
    import patch fails at launch: the import table is left unaligned and
    `LeviLauncher.dll` rejects it (`Cannot install directory imports (Windows
@@ -216,13 +250,17 @@ Open:
    LiteLDev/LeviLauncher#176. A separate install failure on slow connections, as
    LiteLDev/lip#402.
 4. **Symbols.** `LAMIUM_MCAPI_PENDING` (`xmake.lua`) holds these back, because
-   the SDK does not export them. Remove it once they are available. The book
-   paste list was filed in `LiteLDev/mcapi-requests` on 2026-11-04 and passed
-   its automatic check; it was closed as completed on 2026-11-04, and
-   `bedrock-runtime-data` `v26.60.5-client.6` followed. LeviLamina 26.60.0 pins
-   `client.5`, so an instance gets the new data only with a later LeviLamina; building
-   against it before then would fail on players' installs. Not yet checked that
-   `client.6` holds these symbols.
+   the SDK does not export them. Remove it once they are available. The request
+   (`LiteLDev/mcapi-requests` #283) was filed on 2026-11-04, passed its automatic
+   check and was closed as completed the same day. Checked 2026-11-06: the
+   headers at v26.60.1 and later mark every function below, `PageContent`'s
+   constructor and destructor, and `_renderMiniMapHand` `MCAPI` (v26.60.0 had
+   them `MCNAPI`), but the client runtime's export table holds the same 1040 names
+   in v26.60.0 and v26.60.2 and none of them, so a build against those SDKs still
+   cannot link them. v26.60.3 was published on 2026-11-06 without its release
+   asset; dumpbin that DLL when it appears (`packages/levilamina-client-sdk.lua`
+   builds the import library from the export table) and bump the package only if
+   the names are there.
    - Book paste (L-259, stays vanilla):
      `?$preFrameTick@BookScreenController@@QEAAXXZ`,
      `?$_isStillValid@BookScreenController@@QEBA_NXZ`,
@@ -659,6 +697,66 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
+
+### L-311 Keep a shape's centre on the player
+Kind: Design. User request 2026-11-05 (Discord): a shape should be able to keep
+its centre on the player, so a radius or skin can be judged while moving.
+Current: a shape's centre is a fixed block position (`Field::X/Y/Z` in
+`src/ui/ShapeEditor.h`, written into `overlay::ShapeSpec::center`); the preview
+and the drawn cells are built from it and nothing re-derives it per frame.
+Open: follow the feet or the eye, and whether the height follows too; how far the
+player may drift before the shape is rebuilt; what happens in another dimension;
+whether FreeCamera follows the camera or the body; one switch per shape or one
+global option; and whether the editor shows the followed centre or the saved
+one. The maintainer's reply warns that player tracking may reach further than
+expected, so agree the model before building.
+No release target selected.
+
+### L-310 Shorten the in-world game-language interval
+Kind: Design. User request 2026-11-05 (Discord): change the game language
+without the wait.
+Current: `src/ui/LanguageSelection.h:39` sets `interval = 10` seconds. The wait
+exists because 12 changes in 23 s froze the game in world while the title screen
+did not (L-167, 2026-10-14), and the freeze's mechanism was never identified, so
+the interval is the only guard; the list shows the seconds left as
+`language.wait`.
+Open: keep 10 s, lower it to 5 s (the measured freeze was about one change per
+2 s, so 5 s keeps a 2.5x margin), or make the interval a setting with the risk in
+its help text. The maintainer's reply leaned to 5 s.
+In game: switch back and forth at the chosen interval and watch for the freeze;
+it leaves no log line, so the check is a hang.
+No release target selected.
+
+### L-309 Place and scale the paper doll
+Kind: Design. User request 2026-11-05 (Discord): choose where the paper doll
+sits and how large it is.
+Current: the HUD editor moves Lamium's own elements (`HudElementId` in
+`src/ui/HudElement.h`, each with an anchor, an offset and a 75-150 % scale); the
+paper doll is drawn by the game and Lamium only hides it behind the Info HUD
+(`information.hudHidePaperDoll`, L-145). Moving or scaling it needs a hook on the
+game's doll draw.
+Open: which call draws the doll and whether it can be reached without a native
+experiment (the offhand map shows a draw can sit outside the hooks Lamium owns);
+if a hook is needed, whether the doll is drawn once or per part; anchor, offset
+and scale in the HUD editor or a screen of its own; and what F1 (Hide HUD) and
+`hudHidePaperDoll` then mean. The maintainer's reply notes the doll's parts may
+have to be recreated to scale.
+No release target selected.
+
+### L-308 Show the distance to the aimed block
+Kind: Design. User request 2026-11-05 (Discord): a hotkey shows how far the
+block under the crosshair is, with the distance measured to the eye or to the
+feet.
+Current: nothing measures a ray for this. Target Info already casts a pick from
+the eye each frame and shows the aimed block's coordinates and states
+(`src/features/information/TargetInfo.cpp`, `information.targetBlock`), so the
+ray and the reach are in place.
+Open: eye distance, feet distance or both; which HUD line it joins (Info HUD or
+the target card); whether it holds while the key is held or latches; whether the
+distance is to the block's centre or to the surface the ray enters; how it reads
+through a ghost, where the L-304 precedence rule applies; and what it shows with
+nothing aimed at. Decide with the wording, then one Ready task.
+No release target selected.
 
 ### L-298 Attach release assets from the tag's CI run
 Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).
