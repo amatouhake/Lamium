@@ -108,7 +108,8 @@ speed, real time and whether you stand in a slime chunk. Their order and positio
 A card for the block or mob you aim at: icon, name, hearts in real health
 units (one heart per 2 HP), armor and bars such as growth. "Other details" adds
 the block's own states and what its block entity stores: a sign's text, a note
-block's pitch and instrument, a lectern's book and page.
+block's pitch and instrument, a lectern's book and page. "Show distance" adds
+how far the target is from your eye; a key can flip it while held.
 
 ### Debug View
 

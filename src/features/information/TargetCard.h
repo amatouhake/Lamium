@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <format>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -15,6 +16,7 @@ enum class Meter { Hearts, Icons, Bar, Number };
 struct CardOptions {
     bool details = false;   // Other block states and mob details
     bool coordinates = false;
+    bool distance = false;
     Meter health = Meter::Hearts;
     Meter armor = Meter::Icons;
     Meter growth = Meter::Bar;
@@ -88,6 +90,7 @@ inline std::vector<CardRow> cardRows(TargetInfo const& target, CardOptions const
         auto const& p = *target.blockPosition;
         add({"target.position", std::to_string(p.x) + ", " + std::to_string(p.y) + ", " + std::to_string(p.z)});
     }
+    if (options.distance && target.distance) add({"target.distance", std::format("{:.1f}", *target.distance)});
     if (!options.details) return rows;
     for (auto const& detail : target.details)
         if (detail.kind == DetailKind::Other)

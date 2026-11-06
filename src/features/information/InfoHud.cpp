@@ -82,6 +82,7 @@
 #include "ui/Animations.h"
 #include "ui/HudLines.h"
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <ctime>
 #include <vector>
@@ -177,6 +178,8 @@ HotbarLookup hotbarBox(ScreenView const& view) {
 struct SeenHotbar { offhand::Box box; float screenW, screenH; };
 std::optional<SeenHotbar> seenHotbar;
 }
+namespace { std::atomic<bool> distanceHeld{false}; }
+void setDistanceHeld(bool held) { distanceHeld = held; }
 void noteHotbar(ScreenView const& view) {
     auto hotbar = hotbarBox(view);
     if (!hotbar.box) return;
@@ -685,6 +688,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     CardOptions options;
     options.details = settings.targetStates;
     options.coordinates = settings.targetCoordinates;
+    options.distance = settings.targetMeasure != distanceHeld.load();
     options.health = settings.targetHealth == 1 ? Meter::Bar : settings.targetHealth == 2 ? Meter::Number : Meter::Hearts;
     options.armor = settings.targetArmor == 1 ? Meter::Bar : settings.targetArmor == 2 ? Meter::Number : Meter::Icons;
     options.growth = settings.targetGrowth == 1 ? Meter::Number : Meter::Bar;

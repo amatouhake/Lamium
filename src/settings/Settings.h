@@ -257,6 +257,7 @@ struct Settings {
         float targetDistance = 6; // Blocks from the viewpoint (the body, or a detached camera)
         bool targetStates = false; // Other details
         bool targetCoordinates = false;
+        bool targetMeasure = false; // The distance to the target (L-308); a hold key flips it.
         bool targetSchematic = true; // Ghosts and schematic differences on the card
         bool targetLiquids = false; // Real water and lava as the target (L-264); ghosts' always are.
         bool durabilityHud = false;

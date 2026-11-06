@@ -61,7 +61,7 @@ namespace lamium::information {
 namespace {
 // What a detached camera looks at: the nearest block or entity box along the
 // ray. Only owned values and this frame's pointers leave this function.
-struct Pick { HitResultType type = HitResultType::NoHit; BlockPos block; Actor* entity = nullptr; };
+struct Pick { HitResultType type = HitResultType::NoHit; BlockPos block; Actor* entity = nullptr; std::optional<double> distance = std::nullopt; };
 Pick pickAlong(LocalPlayer& player, ViewRay const& ray) {
     Vec3 from{static_cast<float>(ray.x), static_cast<float>(ray.y), static_cast<float>(ray.z)};
     Vec3 to{static_cast<float>(ray.x + ray.dx * ray.reach), static_cast<float>(ray.y + ray.dy * ray.reach),
@@ -92,7 +92,7 @@ Pick pickAlong(LocalPlayer& player, ViewRay const& ray) {
         },
         [&](schematic::Point const& cell) { return !source.getChunkAt(BlockPos{cell.x, cell.y, cell.z}); });
     if (cellHit) {
-        pick = {HitResultType::Tile, BlockPos{cellHit->cell.x, cellHit->cell.y, cellHit->cell.z}, nullptr};
+        pick = {HitResultType::Tile, BlockPos{cellHit->cell.x, cellHit->cell.y, cellHit->cell.z}, nullptr, cellHit->distance};
         best = cellHit->distance;
     }
     AABB area{Vec3{std::min(from.x, to.x) - 1, std::min(from.y, to.y) - 1, std::min(from.z, to.z) - 1},
@@ -102,7 +102,7 @@ Pick pickAlong(LocalPlayer& player, ViewRay const& ray) {
         auto result = actor->getAABB().clip(from, to);
         if (!result.mIsHit) continue;
         double d = distance(result.mPos);
-        if (d < best) { best = d; pick = {HitResultType::Entity, {}, actor}; }
+        if (d < best) { best = d; pick = {HitResultType::Entity, {}, actor, d}; }
     }
     return pick;
 }
@@ -520,6 +520,7 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
     }
     result.details.push_back(ghostRow());
     result.ghost = true;
+    result.distance = schematic::entryDistance(x, y, z, dx, dy, dz, {ghost->cell.x, ghost->cell.y, ghost->cell.z});
     return result;
 }
 // The first real water or lava along the ray, before any other block (L-264).
@@ -540,6 +541,7 @@ std::optional<TargetInfo> liquidTarget(BlockSource& source, bool includeStates, 
         result.icon = blockIcon(source, pos, block);
         if (includeStates) appendStates(result, block, {}, nether);
         entered = schematic::entryDistance(ray.x, ray.y, ray.z, ray.dx, ray.dy, ray.dz, cell);
+        result.distance = entered;
         return result;
     }
     return std::nullopt;
@@ -599,6 +601,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         if (latest.mType == HitResultType::Entity) pick.entity = latest.getEntity();
     }
     struct { HitResultType mType; BlockPos mBlock; } hit{pick.type, pick.block};
+    auto const hitDistance = ray && (ray->detached || !gameHit) ? pick.distance : gameDistance;
     // Real water and lava, when the option is on, are the target only in front
     // of a ghost, as the option's help says (L-278): the nearest of the two
     // wins, and a ghost at the same distance keeps the target, so a ghost in
@@ -656,6 +659,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
                 result.details.push_back({"target.tamed", std::move(owner), ownerIsKey, {}});
             }
         }
+        result.distance = hitDistance;
         return result;
     }
     if (hit.mType != HitResultType::Tile) return {};
@@ -709,6 +713,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
             if (!fixedStates.contains(row.labelIsKey ? ui::translated(row.label) : row.label))
                 result.details.push_back(std::move(row));
     for (auto& row : schematicDetails) result.details.push_back(std::move(row));
+    result.distance = hitDistance;
     return result;
 }
 void startTargetIcons() {

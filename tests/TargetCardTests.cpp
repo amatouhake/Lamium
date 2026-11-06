@@ -8,6 +8,18 @@ void targetCardTests() {
     mob.details.push_back({"target.health", "16 / 20", false, .8f, DetailKind::Health, 16, 20});
     mob.details.push_back({"target.age", "target.adult", true});
     CardOptions options;
+    {
+        TargetInfo measured{"Stone", "minecraft:stone"};
+        measured.distance = 12.345;
+        CardOptions shown;
+        check(cardRows(measured, shown).empty(), "the distance waits for its switch");
+        shown.distance = true;
+        auto row = cardRows(measured, shown);
+        check(row.size() == 1 && row[0].label == "target.distance" && row[0].value == "12.3",
+              "the distance shows one decimal");
+        measured.distance.reset();
+        check(cardRows(measured, shown).empty(), "a target with no measured distance has no row");
+    }
     auto rows = cardRows(mob, options);
     check(rows.size() == 1 && rows[0].label == "target.health" && rows[0].meter == Meter::Hearts,
           "health leads the card and other details wait for their switch");

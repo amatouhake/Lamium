@@ -12,6 +12,8 @@ struct HudPreview { Settings::Hud layout; };
 // Returns where each element was drawn this frame (for editor hit tests).
 ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext&, float width, float height, Settings::Information const&,
                               HudPreview const* preview = nullptr);
+// The target card's hold key flips its distance row (L-308).
+void setDistanceHeld(bool held);
 // The offhand item beside the game's hotbar (L-75); `view` is the HUD view.
 void drawOffhandSlot(MinecraftUIRenderContext&, ScreenView const& view, Settings::Information const&);
 // Remembers where the game laid out the hotbar on the HUD view, for the

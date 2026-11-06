@@ -108,6 +108,7 @@ Json encode(Settings const& settings) {
                          {"targetDistance", settings.information.targetDistance},
                          {"targetStates", settings.information.targetStates},
                          {"targetCoordinates", settings.information.targetCoordinates},
+                         {"targetMeasure", settings.information.targetMeasure},
                          {"targetSchematic", settings.information.targetSchematic},
                          {"targetLiquids", settings.information.targetLiquids},
                          {"durabilityHud", settings.information.durabilityHud},
@@ -350,6 +351,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.targetGrowth = settingsValue(info, "targetGrowth", value.information.targetGrowth);
         value.information.targetDistance = settingsValue(info, "targetDistance", value.information.targetDistance);
         value.information.targetCoordinates = settingsValue(info, "targetCoordinates", value.information.targetCoordinates);
+        value.information.targetMeasure = settingsValue(info, "targetMeasure", value.information.targetMeasure);
         // Test builds of 2026-10-15 saved a number here (0 meant hidden).
         if (auto found = info.find("targetSchematic"); found != info.end())
             value.information.targetSchematic = found->is_number() ? found->get<double>() != 0

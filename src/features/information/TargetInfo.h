@@ -45,6 +45,7 @@ struct TargetInfo {
     struct BlockPosition { int x, y, z; };
     std::optional<BlockPosition> blockPosition = std::nullopt;
     bool ghost = false; // A schematic ghost, not a real block: the name takes the ghost's color.
+    std::optional<double> distance = std::nullopt; // From the ray's start to the surface it meets (L-308).
 };
 enum class StateKind { Integer, Text };
 // Max growth/age stage for common crops; unknown blocks show the value only.
