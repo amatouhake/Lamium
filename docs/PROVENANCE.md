@@ -25,7 +25,7 @@ static code end up inside `Lamium.dll`, so their notices ship with it.
 | SDK libraries | Header-only and support libraries the SDK depends on | Headers compiled in where used | See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) |
 | LeviLauncher | Installs and launches instances | Not at all (separate program) | GPL-3.0 |
 | LeviBuildScript 0.6.1 | Build rules: runs prelink before linking, writes `manifest.json` | Build time only | No license file found (checked 2026-10-20) |
-| prelink v0.8.8 and [bedrock-runtime-data](https://github.com/LiteLDev/bedrock-runtime-data) v26.60.5-client.5 | Generate `bedrock_runtime_api.lib`, the import library for the delay-loaded `bedrock_runtime.dll` | Build time; only import records reach the DLL | prelink: binary release, no license file found; bedrock-runtime-data: MIT |
+| prelink v0.8.8 and [bedrock-runtime-data](https://github.com/LiteLDev/bedrock-runtime-data) v26.60.5-client.5 | Generate `bedrock_runtime_api.lib`, the import library for the delay-loaded `bedrock_runtime.dll` | Build time; only import records reach the DLL | prelink: closed-source binary release, no license file found; a LiteLDev member stated that anyone can use it ([prelink-release#2](https://github.com/LiteLDev/prelink-release/issues/2), 2026-11-06); bedrock-runtime-data: MIT |
 
 ## 2. Incorporated or derived source
 
