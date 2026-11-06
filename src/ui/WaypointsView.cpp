@@ -1,6 +1,7 @@
 #include "ui/WaypointsView.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
+#include "ui/RowSelection.h"
 #include "ui/ScreenParts.h"
 #include "ui/SearchQuery.h"
 #include "ui/ShapesLayout.h"
@@ -26,6 +27,13 @@ using ShapeZone = ShapesLayout::Zone;
 // current world's waypoints taken each frame.
 bool waypointsDocked = false;
 std::optional<map::MarkKey> waypointSelected; // the death point or a waypoint, by its session id
+// What the list has selected (L-190); waypointSelected is its single row, if it
+// has just one, which is what the editor works on.
+RowSelection<map::MarkKey> waypointRows;
+bool severalSelected() { return waypointRows.keys.size() > 1; }
+void syncSelected() {
+    waypointSelected = waypointRows.keys.size() == 1 ? std::optional(waypointRows.keys.front()) : std::nullopt;
+}
 map::WaypointSet waypointSet;
 std::vector<size_t> waypointList; // Display order, indices into the set.
 ShapesLayout waypointsDisplayed;
@@ -48,9 +56,10 @@ void refreshWaypoints() {
         z = feet.z;
     }
     waypointList = map::waypointOrder(waypointSet.waypoints, screen::playerDimension(), x, z);
-    if (waypointSelected && (waypointSelected->layer == map::MarkLayer::Death ? !waypointSet.death
-                                 : indexOfId(waypointSet.waypoints, waypointSelected->id) < 0))
-        waypointSelected.reset();
+    waypointRows.retain([](map::MarkKey const& key) {
+        return key.layer == map::MarkLayer::Death ? waypointSet.death.has_value() : indexOfId(waypointSet.waypoints, key.id) >= 0;
+    });
+    syncSelected();
 }
 int waypointRowCount() { return static_cast<int>(waypointList.size()) + (waypointSet.death ? 1 : 0); }
 // The selection a list row stands for: the death point first, if any.
@@ -79,7 +88,9 @@ bool changeWaypoint(std::optional<map::MarkKey> mark, std::function<void(map::Wa
 }
 void selectWaypoint(std::optional<map::MarkKey> value) {
     screen::finishEditing();
-    waypointSelected = value;
+    if (value) waypointRows.only(*value);
+    else waypointRows.clear();
+    syncSelected();
     waypointFieldFirst = 0;
     waypointFieldSelected = -1;
     waypointDeleteArmed = false;
@@ -184,6 +195,52 @@ void deleteSelectedWaypoint() {
     int rowsLeft = waypointRowCount();
     selectWaypoint(rowsLeft ? waypointAtRow(std::min(row, rowsLeft - 1)) : std::nullopt);
 }
+// Ctrl + click toggles a row, Shift + click takes a range. Only waypoints take
+// part: the death point has no switch and is kept or deleted on its own.
+void pickRows(map::MarkKey const& value, bool range) {
+    if (waypointSelected == map::deathKey) waypointRows.clear();
+    if (range) {
+        std::vector<map::MarkKey> order;
+        order.reserve(waypointList.size());
+        for (size_t index : waypointList) order.push_back(map::waypointKey(waypointSet.waypoints[index].id));
+        waypointRows.range(value, order);
+    } else waypointRows.toggle(value);
+    syncSelected();
+    waypointFieldFirst = 0;
+    waypointFieldSelected = -1;
+    waypointDeleteArmed = false;
+}
+// Whether the bulk switch would show: any selected waypoint that is hidden.
+bool anySelectedHidden() {
+    return std::any_of(waypointRows.keys.begin(), waypointRows.keys.end(), [](map::MarkKey const& key) {
+        int index = indexOfId(waypointSet.waypoints, key.id);
+        return index >= 0 && !waypointSet.waypoints[static_cast<size_t>(index)].visible;
+    });
+}
+void showSelectedRows() {
+    bool const show = anySelectedHidden();
+    auto const keys = waypointRows.keys;
+    bool saved = map::waypoints::change([&](map::WaypointSet& set) {
+        for (auto const& key : keys)
+            if (int index = indexOfId(set.waypoints, key.id); index >= 0) set.waypoints[static_cast<size_t>(index)].visible = show;
+        return true;
+    });
+    if (saved) screen::clearMessage();
+    else screen::setMessage(translated("waypoint.saveError"));
+    refreshWaypoints();
+}
+void deleteSelectedRows() {
+    auto const keys = waypointRows.keys;
+    bool saved = map::waypoints::change([&](map::WaypointSet& set) {
+        for (auto const& key : keys)
+            if (int index = indexOfId(set.waypoints, key.id); index >= 0) set.waypoints.erase(set.waypoints.begin() + index);
+        return true;
+    });
+    if (!saved) { screen::setMessage(translated("waypoint.saveError")); return; }
+    screen::clearMessage();
+    selectWaypoint(std::nullopt);
+    refreshWaypoints();
+}
 void keepDeathPoint() {
     if (!waypointSet.death) return;
     auto death = *waypointSet.death;
@@ -223,7 +280,11 @@ void handleWaypointClick(float x, float y, bool right) {
             refreshWaypoints();
             return;
         }
-        if (value && value != waypointSelected) selectWaypoint(value);
+        if (!right && value && value->layer == map::MarkLayer::Waypoint && (screen::heldCtrl() || screen::heldShift())) {
+            pickRows(*value, screen::heldShift());
+            return;
+        }
+        if (value && (value != waypointSelected || severalSelected())) selectWaypoint(value);
         return;
     }
     case ShapeZone::Name:
@@ -247,6 +308,12 @@ void handleWaypointClick(float x, float y, bool right) {
         activateWaypointField(hit.index, right ? -1 : hit.part);
         return;
     case ShapeZone::Action:
+        if (severalSelected()) {
+            if (hit.index == 0) showSelectedRows();
+            else if (!waypointDeleteArmed) waypointDeleteArmed = true; // Always a second press for several.
+            else deleteSelectedRows();
+            return;
+        }
         if (hit.index == 0) { if (deathSelected()) keepDeathPoint(); return; }
         if (!waypointSelected) return;
         // A temporary waypoint goes on the first click (L-261).
@@ -311,6 +378,7 @@ void drawCrossGlyph(MinecraftUIRenderContext& context, float cx, float cy, Rgb c
     }
 }
 std::string waypointDescription() {
+    if (severalSelected()) return translated("waypoint.selectedCount", waypointRows.keys.size());
     if (deathSelected() && waypointSet.death) return translated("waypoint.deathNote");
     auto const* w = selectedWaypoint();
     if (!w) return translated(waypointSet.waypoints.empty() && !waypointSet.death ? "waypoint.empty" : "waypoint.selectHint");
@@ -349,7 +417,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         float y = l.listRowY(i);
         auto value = waypointAtRow(i);
         if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
-        rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,value && value == waypointSelected,over(ShapeZone::ListRow,i));
+        rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,value && waypointRows.contains(*value),over(ShapeZone::ListRow,i));
         float gx = l.listLeft + ShapesLayout::pad + 4, gy = y + ShapesLayout::rowHeight / 2;
         if (value == map::deathKey) {
             auto const& d = *waypointSet.death;
@@ -389,6 +457,11 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         paragraph(context,dx,l.previewY+36,dw,translated("waypoint.deathNote"),3,palette::faint);
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
         drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("waypoint.keep"),
+            over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
+    } else if (severalSelected()) {
+        label(context,dx,l.detailTop+6,dw,translated("waypoint.selectedCount", waypointRows.keys.size()));
+        fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
+        drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(anySelectedHidden() ? "waypoint.showSelected" : "waypoint.hideSelected"),
             over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
     } else if (!w) {
         paragraph(context,dx,l.detailTop+6,dw,translated(waypointSet.waypoints.empty() && !waypointSet.death ? "waypoint.empty"
@@ -447,7 +520,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         }
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
     }
-    if (waypointSelected) {
+    if (waypointSelected || severalSelected()) {
         drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
             translated(waypointDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1),
             waypointDeleteArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,Rgb{.54f,.23f,.2f},
@@ -471,7 +544,7 @@ ShapesLayout fitWaypoints(SettingsTable const& t, glm::vec2 size, bool docked) {
     auto l = ShapesLayout::fit(t, size.x, size.y, docked, waypointRowCount(), waypointListFirst, fieldCount,
         waypointFieldFirst, false, false);
     // Keeping the death point needs a wider first button.
-    if (deathSelected()) l.firstActionWidth = 110;
+    if (deathSelected() || severalSelected()) l.firstActionWidth = 110;
     waypointsDisplayed = l;
     waypointListFirst = l.listFirst;
     waypointFieldFirst = l.fieldFirst;

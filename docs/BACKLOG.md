@@ -1003,11 +1003,15 @@ check on a large placement while stepping the cut. Not part of the current
 L-234 branch.
 
 ### L-190 Select several rows at once in list screens
-Kind: Ready for its first step, after 0.5.1. Maintainer idea 2026-10-14.
+Kind: Ready, first step built on branch `l-190-waypoint-selection` for after 0.5.1.
+Maintainer idea 2026-10-14.
 Decided (maintainer 2026-11-06), no file format change: the Waypoints screen first;
 Ctrl + click toggles a row, Shift + click takes a range, no drag selection; show,
 hide and delete together, delete with a second press. The death point stays single.
-Other lists follow once this one has been used.
+Other lists follow once this one has been used. The switch shows all when any is
+hidden, else hides all.
+In game: Ctrl and Shift ranges in the Waypoints screen, show and hide, delete with a
+second press, a plain click returning to one row, the death point left out.
 Goal: in list screens (waypoints, the schematic Check list and similar lists)
 select several rows with Ctrl/Shift + click or by dragging, and act on them
 together (for example hide, delete or show in world).

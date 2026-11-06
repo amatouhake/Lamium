@@ -213,7 +213,8 @@ world and on servers. Slimes spawn there below Y 40 at any light level.
 ### Waypoints
 
 Waypoints with the last death point, shown on the maps and in the world,
-edited in a Waypoints screen.
+edited in a Waypoints screen, where Ctrl or Shift + click selects several to
+show, hide or delete together.
 
 - Temporary waypoints (a switch in the add prompt, which remembers the
   last choice) are drawn hollow, disappear when you get within a set
