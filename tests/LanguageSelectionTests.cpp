@@ -27,7 +27,7 @@ void languageSelectionTests() {
     LanguagePace pace;
     check(pace.wait(0) == 0, "the first change starts at once");
     pace.applied(100);
-    check(pace.wait(100) == 10 && pace.wait(105.5) == 5 && pace.wait(110) == 0, "later changes wait for the interval");
+    check(pace.wait(100) == 5 && pace.wait(102.5) == 3 && pace.wait(105) == 0, "later changes wait for the interval");
 
     LanguageContext asked{"ja_JP", 0, true};
     check(asked.permits({"ja_JP", 0, true}, false), "the same world, dimension and open screen applies");

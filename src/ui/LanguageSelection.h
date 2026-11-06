@@ -34,9 +34,10 @@ struct LanguageSelection {
     }
 };
 // In-world switching froze the game after 12 changes in 23 s while the
-// title screen did not (L-167, 2026-10-14); one change per interval.
+// title screen did not (L-167, 2026-10-14). Its mechanism was never identified,
+// so this is the only guard: one change per interval, 2.5x the frozen pace.
 struct LanguagePace {
-    static constexpr double interval = 10;
+    static constexpr double interval = 5;
     double last = -interval;
     // Seconds left before another change, 0 when one may start now.
     int wait(double now) const { return now - last >= interval ? 0 : static_cast<int>(std::ceil(interval - (now - last))); }
