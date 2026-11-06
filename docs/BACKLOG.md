@@ -77,8 +77,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    release asset when it was checked) and L-306.
 1. **Bugs first.** Open: L-313 (the world map report; not reproduced here,
    waiting for the reporter's re-check with the feature on), L-312 (a shape
-   radius above 100 loses its decimal place), L-307 (1.26.60 stores a structure
-   as a compressed byte array; PR #71), L-306 (a pane edge at a chunk border),
+   radius above 100 loses its decimal place), L-306 (a pane edge at a chunk border),
    L-227 (FreeCamera shows only the sky outside loaded terrain; Research),
    L-177 (mismatch highlight; awaits the reporter's next schematic session),
    and the built-but-unconfirmed failure paths of L-274 and L-276. Parked:
@@ -129,6 +128,12 @@ current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
 ### Since 0.5.0
+
+From 2026-11-06 (VALIDATION-LOG):
+
+- The next release is the first built with the replaced prelink v0.8.8 asset; its
+  smoke covers that build's load. L-307's bad-zlib and size-limit paths through the
+  real inflater stay unchecked.
 
 Left from the 0.5.0 tag (L-305, VALIDATION-LOG 2026-11-04):
 
@@ -217,39 +222,6 @@ draws "102" and 104.5 draws "104" although the field steps by 0.5
 Fix: format by the field's step (one decimal for a 0.5 step) and keep the
 coordinate fields at three decimals.
 In game: a sphere at radius 100, 100.5 and 104.5, and the stepper on each.
-No release target selected.
-
-### L-307 Structures saved by 1.26.60 do not load
-Kind: Ready. User report 2026-11-05 (GitHub issue #70), on 1.26.60.05 with
-Lamium 0.5.0: a `.mcstructure` saved by the vanilla structure block fails with
-`Structure: missing compound 'structure'`.
-Cause: 1.26.60 writes the file root with `compression: 1` and stores as a
-zlib-compressed byte array the NBT that used to be the `structure` compound, so
-`parseStructure` in `src/features/schematic/Structure.cpp:91` reads `structure`
-as a compound and stops. The NBT reader already carries `Type::ByteArray`
-(`Nbt.h:13`), so the file parses; only the wrapper is new.
-Fix: when the root holds `compression` and `structure` is a byte array, inflate
-it and parse that NBT as the structure compound, then continue as today; a file
-without `compression` keeps the current path. `ll::utils::compress_utils::decompress`
-(`ll/api/utils/CompressUtils.h`, exported by the runtime) inflates zlib in one
-call, so no new dependency.
-Tests: a factory-made file per case (plain, compressed, bad zlib data, truncated
-payload) in the native suite.
-In game: save a build in 1.26.60.05, load it from the Schematics screen and check
-that the ghost matches; then load a 1.26.51 export.
-Status 2026-11-06: built on `l307-structure-compression`, not yet checked in game.
-`parseStructure` takes an `Inflate` callback (`Structure.h`), unpacks a byte-array
-body when `compression` is set through `ll::utils::compress_utils::decompress`
-(`StructureInflate.cpp`, wired in `SchematicSession.cpp`), and reads a byte array
-without `compression` as the body itself. Tests: `structurePackedBody` in
-`tests/SchematicTests.cpp` (compressed through a stub inflater, no inflater, a
-failed inflate, a truncated body, an uncompressed array), mutation-proved by forcing
-the plain path. The inflater stops at `maxInflatedBodySize` (256 MiB, the same as the
-file limit). `structureFromGame` reads the real body from issue #70's attachment
-(`tests/Issue70Structure.h`); that attachment inflated as zlib outside the mod.
-The tests do not reach the real `decompress`: the native suite never calls engine
-symbols, because that would need `LeviLamina.dll` at run time. Bad zlib data through
-the real inflater stays unchecked; the in-game load checks a good file.
 No release target selected.
 
 ### L-305 Move to Minecraft 1.26.60.05 and LeviLamina 26.60

@@ -10,6 +10,42 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-307 Structures saved by 1.26.60 do not load
+Kind: Ready. User report 2026-11-05 (GitHub issue #70), on 1.26.60.05 with
+Lamium 0.5.0: a `.mcstructure` saved by the vanilla structure block fails with
+`Structure: missing compound 'structure'`.
+Cause: 1.26.60 writes the file root with `compression: 1` and stores as a
+zlib-compressed byte array the NBT that used to be the `structure` compound, so
+`parseStructure` in `src/features/schematic/Structure.cpp:91` reads `structure`
+as a compound and stops. The NBT reader already carries `Type::ByteArray`
+(`Nbt.h:13`), so the file parses; only the wrapper is new.
+Fix: when the root holds `compression` and `structure` is a byte array, inflate
+it and parse that NBT as the structure compound, then continue as today; a file
+without `compression` keeps the current path. `ll::utils::compress_utils::decompress`
+(`ll/api/utils/CompressUtils.h`, exported by the runtime) inflates zlib in one
+call, so no new dependency.
+Tests: a factory-made file per case (plain, compressed, bad zlib data, truncated
+payload) in the native suite.
+In game: save a build in 1.26.60.05, load it from the Schematics screen and check
+that the ghost matches; then load a 1.26.51 export.
+Status 2026-11-06: built on `l307-structure-compression`, not yet checked in game.
+`parseStructure` takes an `Inflate` callback (`Structure.h`), unpacks a byte-array
+body when `compression` is set through `ll::utils::compress_utils::decompress`
+(`StructureInflate.cpp`, wired in `SchematicSession.cpp`), and reads a byte array
+without `compression` as the body itself. Tests: `structurePackedBody` in
+`tests/SchematicTests.cpp` (compressed through a stub inflater, no inflater, a
+failed inflate, a truncated body, an uncompressed array), mutation-proved by forcing
+the plain path. The inflater stops at `maxInflatedBodySize` (256 MiB, the same as the
+file limit). `structureFromGame` reads the real body from issue #70's attachment
+(`tests/Issue70Structure.h`); that attachment inflated as zlib outside the mod.
+The tests do not reach the real `decompress`: the native suite never calls engine
+symbols, because that would need `LeviLamina.dll` at run time. Bad zlib data through
+the real inflater stays unchecked; the in-game load checks a good file.
+No release target selected.
+Done 2026-11-06 (PR #71, merged as `7507377b`): the maintainer's in-game check of
+`07669997` passed, see VALIDATION-LOG. Reply to issue #70 once a build with the fix
+is available, as promised there.
+
 ### L-302 A ghost's contents are missing when its block draws them through a block actor
 Kind: Bug (ghost rendering). Maintainer in-game check 2026-11-03 of PR #68.
 Reported: a chiseled bookshelf ghost looks like plain boards whatever the file

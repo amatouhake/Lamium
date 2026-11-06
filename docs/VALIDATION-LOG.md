@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-307 structures saved by 1.26.60, and the replaced prelink (2026-11-06)
+
+Build `07669997` (PR #71 with `main` merged in), DLL
+`8eb9229c2c79bc674f1ef8a4f16ec18a6a8e3c6d77afe42e1a0270b2c04b828d`, no trace options,
+built locally against SDK 26.60.0 with the replaced prelink v0.8.8 asset (zip
+`046811a5`, confirmed by the installed `prelink.exe` hash), 1.26.60.05 Dev instance.
+Local build, LamiumTests, LamiumNativeTests and CI passed on this commit.
+
+Seen, per the maintainer: Lamium loads and its settings screen opens in a world; a
+build saved by the 1.26.60.05 structure block loads from the Schematics screen with no
+error and its ghost matches the build; a 1.26.51 export still loads.
+
+Not covered: bad zlib data and the 256 MiB limit through the real inflater (the test
+suites use a stub, and do not load `LeviLamina.dll`), servers. This was a load check of
+this DLL, not a regression pass of other features with the new prelink. Whether the
+replaced prelink changes anything else is not known: upstream says only that it
+addressed potential bugs (prelink-release#2).
+
 ## 0.5.0 published (2026-11-04, L-305)
 
 Tag `v0.5.0` on `fcb8076d`, built by run 41782845801 (`windows-client` and
