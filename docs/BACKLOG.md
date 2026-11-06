@@ -77,8 +77,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
 1. **Bugs first.** Open: L-314 (silent crash at exit on 1.26.60; needs exits
    with Lamium removed to tell whether Lamium matters), L-313 (the world map
    report; not reproduced here, waiting for the reporter's re-check with the
-   feature on; the map's Record button is built), L-312 (built, in-game check
-   left), L-306 (a pane edge at a chunk border),
+   feature on; the map's Record button passed), L-306 (a pane edge at a chunk border),
    L-227 (FreeCamera shows only the sky outside loaded terrain; Research),
    L-177 (mismatch highlight; awaits the reporter's next schematic session),
    and the built-but-unconfirmed failure paths of L-274 and L-276. Parked:
@@ -93,8 +92,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    helpers, L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection, L-163 a
    Lamium inventory screen, L-249 simulation distance, and the 2026-11-05 reports
-   L-309 and L-311 (paper doll placement, shapes following the player). L-308 and
-   L-310 are built for 0.5.1. Agree open choices before
+   L-309 (paper doll placement). L-311 (shapes following the player) is built;
+   L-308 passed with its open questions listed there. Agree open choices before
    building. L-165 Mass Craft remains below Map and needs a scope conversation;
    existing packs already cover part of that need.
 3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,
@@ -132,8 +131,8 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.5.0
 
-Built 2026-11-06, nothing below checked in game yet: L-312, L-310, L-313's Record
-button and hotkey, L-308. Each item names its check.
+Built 2026-11-06, not checked in game yet: L-311. L-312, L-310, L-313's Record button
+and hotkey and L-308 passed on `356909de` (VALIDATION-LOG).
 
 From 2026-11-06 (VALIDATION-LOG):
 
@@ -297,23 +296,11 @@ with the feature off, as the Open row does, because the layers can still be
 inspected and edited; the top bar's "Record" button shows and switches
 `map.worldMap` in both directions, and "Recording is off" stays in the bottom
 bar. The standalone Waypoints screen is out of scope for now.
-In game: with the feature off, the hotkey opens the map; Record turns on and off
-and terrain is recorded only while on; narrow windows and each language keep the
-top bar usable. Open: the reporter turns the feature on and retries; their
+Passed in game 2026-11-06 on `356909de`. Open (maintainer 2026-11-06): whether the
+switch's name and the button's place are right. Also open: the reporter turns the
+feature on and retries; their
 `mods/Lamium/logs/lamium.log` and the walking route would settle whether a
 defect remains on a server.
-
-### L-312 A shape radius above 100 loses its decimal place
-Kind: Bug. User report 2026-11-05 (Discord): a radius above 100 shows no decimal
-place and the stepper looks like it skips values.
-Cause: `src/ui/ShapesView.cpp:541` formats a non-integer value with
-`std::format("{:.3g}")`, three significant digits, so 100.5 draws "100", 101.5
-draws "102" and 104.5 draws "104" although the field steps by 0.5
-(`ShapeEditor.h:161`). The stored value is right; only the label is wrong.
-Fix, built 2026-11-06 for 0.5.1: `shape::numberText` keeps up to three decimals
-without trailing zeros, so a typed 1.25 stays right as well as a stepped 100.5;
-coordinate fields stay at three decimals.
-In game: a sphere at radius 100, 100.5 and 104.5, and the stepper on each.
 
 ### L-305 Move to Minecraft 1.26.60.05 and LeviLamina 26.60
 Kind: Update. Follows the playbook in [GAME-UPDATES.md](GAME-UPDATES.md).
@@ -812,35 +799,20 @@ Kind: Blocked on a symbol request. Kept as one item so a single request to
 Before filing, confirm by linking: an SDK update may already have changed these.
 
 ### L-311 Keep a shape's centre on the player
-Kind: Design. User request 2026-11-05 (Discord): a shape should be able to keep
+Kind: Ready, built 2026-11-06. User request 2026-11-05 (Discord): a shape should be able to keep
 its centre on the player, so a radius or skin can be judged while moving.
 Current: a shape's centre is a fixed block position (`Field::X/Y/Z` in
 `src/ui/ShapeEditor.h`, written into `overlay::ShapeSpec::center`); the preview
 and the drawn cells are built from it and nothing re-derives it per frame.
-Open: follow the feet or the eye, and whether the height follows too; how far the
-player may drift before the shape is rebuilt; what happens in another dimension;
-whether FreeCamera follows the camera or the body; one switch per shape or one
-global option; and whether the editor shows the followed centre or the saved
-one. The maintainer's reply warns that player tracking may reach further than
-expected, so agree the model before building.
-No release target selected.
-
-### L-310 Shorten the in-world game-language interval
-Kind: Ready (decided 2026-11-06: 5 s). User request 2026-11-05 (Discord):
-change the game language without the wait.
-Current: `src/ui/LanguageSelection.h:39` sets `interval = 10` seconds. The wait
-exists because 12 changes in 23 s froze the game in world while the title screen
-did not (L-167, 2026-10-14), and the freeze's mechanism was never identified, so
-the interval is the only guard; the list shows the seconds left as
-`language.wait`.
-Decided: lower `interval` to 5 seconds and change nothing else (one change per
-interval, the `language.wait` countdown). Not a setting and not removed: the
-freeze's mechanism was never identified, so the interval is the only guard, and
-the measured freeze was about one change per 2 s, which leaves a 2.5x margin.
-The comment above the struct carries that reasoning and the new number. Built
-2026-11-06 for 0.5.1.
-In game: switch back and forth at the chosen interval and watch for the freeze;
-it leaves no log line, so the check is a hang.
+Decided (maintainer 2026-11-06): one "Follow the player" switch per shape; the
+feet block is the centre, height included; FreeCamera keeps it on the body; the
+saved coordinates do not change and the editor shows them; it is drawn only in
+the shape's own dimension. Built without a rebuild: the mesh is drawn shifted by
+whole blocks, and nothing is written while moving. The shape file gains an
+optional `follow` key, written only when on; older builds ignore it. A plane
+follows by its origin, as Move here places it. The maps draw the followed place.
+In game: a sphere with the switch on while walking, climbing, in FreeCamera and
+through a portal; off returns it to the saved place; rejoin keeps the switch.
 
 ### L-309 Place and scale the paper doll
 Kind: Design. User request 2026-11-05 (Discord): choose where the paper doll
@@ -873,9 +845,11 @@ at means no card and no row. Feet distance waits until someone needs it. It is a
 Target Info option, "Show distance" (off by default), and the unbound hold key
 "targetmeasure" flips it while held, as the radar's face key does, so it can be
 always on or shown on demand. The key needs Target Info on. Mobs get the row too.
-In game: bind the key, hold it at a block, a mob, a ghost and water with "Target
-water and lava" on; compare with a counted distance; turn the option on and see
-the key hide the row while held.
+Passed in game 2026-11-06 on `356909de`.
+Open (maintainer 2026-11-06), to settle before 0.5.1 because a released action id
+stays: whether the other Target Info options get keys as this one has, or none do;
+and whether the 64-block Range is too short for measuring. Raising it adds a longer
+per-frame clip and a larger entity search.
 
 ### L-298 Attach release assets from the tag's CI run
 Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).

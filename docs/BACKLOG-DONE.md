@@ -10,6 +10,19 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-312 A shape radius above 100 loses its decimal place
+Kind: Bug. User report 2026-11-05 (Discord): a radius above 100 shows no decimal
+place and the stepper looks like it skips values.
+Cause: `src/ui/ShapesView.cpp:541` formats a non-integer value with
+`std::format("{:.3g}")`, three significant digits, so 100.5 draws "100", 101.5
+draws "102" and 104.5 draws "104" although the field steps by 0.5
+(`ShapeEditor.h:161`). The stored value is right; only the label is wrong.
+Fix, built 2026-11-06 for 0.5.1: `shape::numberText` keeps up to three decimals
+without trailing zeros, so a typed 1.25 stays right as well as a stepped 100.5;
+coordinate fields stay at three decimals.
+In game: a sphere at radius 100, 100.5 and 104.5, and the stepper on each.
+In game 2026-11-06 on `356909de`: passed (VALIDATION-LOG).
+
 ### L-307 Structures saved by 1.26.60 do not load
 Kind: Ready. User report 2026-11-05 (GitHub issue #70), on 1.26.60.05 with
 Lamium 0.5.0: a `.mcstructure` saved by the vanilla structure block fails with
@@ -2263,6 +2276,24 @@ result is only the converted text; Latin typing and Backspace unchanged.
 ---
 
 ## Ready
+
+### L-310 Shorten the in-world game-language interval
+Kind: Ready (decided 2026-11-06: 5 s). User request 2026-11-05 (Discord):
+change the game language without the wait.
+Current: `src/ui/LanguageSelection.h:39` sets `interval = 10` seconds. The wait
+exists because 12 changes in 23 s froze the game in world while the title screen
+did not (L-167, 2026-10-14), and the freeze's mechanism was never identified, so
+the interval is the only guard; the list shows the seconds left as
+`language.wait`.
+Decided: lower `interval` to 5 seconds and change nothing else (one change per
+interval, the `language.wait` countdown). Not a setting and not removed: the
+freeze's mechanism was never identified, so the interval is the only guard, and
+the measured freeze was about one change per 2 s, which leaves a 2.5x margin.
+The comment above the struct carries that reasoning and the new number. Built
+2026-11-06 for 0.5.1.
+In game: switch back and forth at the chosen interval and watch for the freeze;
+it leaves no log line, so the check is a hang.
+In game 2026-11-06 on `356909de`: passed (VALIDATION-LOG).
 
 ### L-297 Map layers as marks and information
 Kind: Ready, **done 2026-11-01**: built and checked in game (`5d620afb`;

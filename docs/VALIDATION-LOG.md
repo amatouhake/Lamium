@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.5.1 small work (2026-11-06)
+
+Build `356909de` (source `2d556906`), DLL
+`3316f290e0054c3b3b7888fbfbbbd7105cc54e71fe9bd82266d1900945d00999`, no trace options,
+LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed, per the maintainer:
+L-312 (radius 100.5 and 104.5 and the stepper), L-310 (changes at 5 s without a freeze,
+countdown from 5), L-313's key and Record button (the key opens the map with the
+feature off, Record switches and terrain is recorded only while on, top bar in each
+language), L-308 (the hold key at a block, a mob and a ghost, and the option flipped).
+Not covered: servers; the maintainer's questions on the button's name and place, keys
+for the other card options and the 64-block range remain open.
+
 ## Book paste wording (2026-11-06)
 
 Build `79464e79`, DLL `0500ae8d6f44613d8a870c716be1842a8de7009358b4da08a61562dbbbbdcee3`,
