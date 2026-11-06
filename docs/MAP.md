@@ -1066,8 +1066,8 @@ every recommendation and built the same day (not checked in game yet):
 - A "World map" item pinned in the settings sidebar (between Waypoints and
   HUD layout). Opened from there, closing the map returns to the settings;
   opened by its key, to the game. With the feature off the sidebar and the
-  key still open it and show the saved map without recording ("Recording
-  is off"); the top bar's "Record" button turns the feature on or off (L-313).
+  key still open it and show the saved map without recording; the "Record"
+  switch in the bottom bar is the feature's switch (L-313).
 - A waypoint side panel on the map, toggled by the top bar's "Waypoints"
   button and remembered (`map.worldMapPanel`, no settings row): this
   dimension's death point and waypoints nearest first with shown

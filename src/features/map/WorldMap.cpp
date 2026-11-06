@@ -1373,8 +1373,7 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
         dimsW += widthOf(dimTexts[static_cast<size_t>(d)]) - 1;
     }
     auto centerText = ui::translated("worldMap.center"), waypointsText = ui::translated("worldMap.list");
-    auto recordText = ui::translated("worldMap.recording");
-    float closeW = 13, rightW = widthOf(recordText) + 3 + widthOf(centerText) + 3 + widthOf(waypointsText) + 3 + closeW + 3;
+    float closeW = 13, rightW = widthOf(centerText) + 3 + widthOf(waypointsText) + 3 + closeW + 3;
     auto terrainText = stateText();
     float terrainW = state.dimension == 2 ? 0 : widthOf(terrainText);
     // Layer switches (L-146): the marks' own symbols and names, then the
@@ -1455,8 +1454,6 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     button(context, right, 2, waypointsText, Target::Waypoints, panelOpen(), hovering(right, 2, widthOf(waypointsText), buttonHeight));
     right -= 3 + widthOf(centerText);
     button(context, right, 2, centerText, Target::Center, false, hovering(right, 2, widthOf(centerText), buttonHeight));
-    right -= 3 + widthOf(recordText);
-    button(context, right, 2, recordText, Target::Recording, recording, hovering(right, 2, widthOf(recordText), buttonHeight));
     if (oneRow) { x = right - 8 - switchesW; y = 2; }
     else { x = 4; y = rowHeight + 2; }
     std::array<float, 3> switchX{};
@@ -1528,7 +1525,6 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
                                               : ui::translated("worldMap.layerShown", name, ui::translated(switchOn[*overSwitch] ? "on" : "off"));
     }
     float whereW = where.empty() ? 0 : ui::textWidth(context, where);
-    ui::label(context, 4, textY, whereW + 2, where, ui::palette::dim);
     int blocks = scaleBarBlocks(state.view.scale(), 30);
     auto scaleText = ui::translated("worldMap.blocks", blocks);
     float barW = static_cast<float>(blocks * state.view.scale());
@@ -1538,12 +1534,16 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     ui::fill(context, barX, top + 5, 1, 4, ui::palette::white);
     ui::fill(context, barX + barW - 1, top + 5, 1, 4, ui::palette::white);
     ui::label(context, size.x - 4 - textW, textY, textW + 2, scaleText, ui::palette::dim);
-    float end = barX - 10, start = 4 + whereW + 10;
-    if (!recording) {
-        auto off = ui::translated("worldMap.recordingOff");
-        float w = ui::textWidth(context, off);
-        if (end - w >= start) { ui::label(context, end - w, textY, w + 2, off, ui::palette::warning); end -= w + 10; }
-    }
+    // The feature's switch (L-313) is state, not a command, so it sits here
+    // and keeps its place: the other texts give way, the place text is cut.
+    auto recordText = ui::translated("worldMap.recording");
+    float recordTextW = ui::textWidth(context, recordText);
+    float recordW = recordTextW + 4 + ui::switchWidth, recordX = barX - 10 - recordW;
+    ui::label(context, recordX, textY, recordTextW + 2, recordText, recording ? ui::palette::dim : ui::palette::warning);
+    ui::toggleSwitch(context, recordX + recordTextW + 4, top + 1 + (bottomHeight - 1 - ui::switchHeight) / 2, recording);
+    state.hits.push_back({recordX - 2, top + 1, recordW + 4, bottomHeight - 1, Target::Recording});
+    ui::label(context, 4, textY, std::clamp(whereW + 2, 1.f, std::max(1.f, recordX - 12)), where, ui::palette::dim);
+    float end = recordX - 10, start = 4 + whereW + 10;
     auto hint = ui::translated("worldMap.hint");
     float hintW = ui::textWidthScaled(context, hint, .75f);
     if (end - hintW >= start) {
