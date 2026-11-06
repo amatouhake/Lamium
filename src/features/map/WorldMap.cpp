@@ -124,7 +124,7 @@ void unload(IClientInstance& client, ResourceLocation const& location) {
 enum class Target {
     None, Overworld, Nether, End,
     CaveButton, CavePanel, CaveToggle, BroadToggle, HeightDown, HeightUp, HeightField, MatchHeight,
-    Center, Waypoints, Close, Menu,
+    Center, Recording, Waypoints, Close, Menu,
     LayerWaypoints, LayerSchematics, LayerShapes, // The layer switches (L-146).
     InfoButton, InfoPanel, InfoSlime, InfoRadar, // The Information button and its panel (L-297).
     // The side panel: its background, header buttons, list and editor.
@@ -370,6 +370,7 @@ void say(std::string text) {
 }
 
 void toggleInfo(Target target);
+void toggleRecording();
 void act(Target target) {
     switch (target) {
     case Target::Overworld: showDimension(0); break;
@@ -401,6 +402,7 @@ void act(Target target) {
         break;
     case Target::MatchHeight: matchHeight(); break;
     case Target::Center: returnToPlayer(); break;
+    case Target::Recording: toggleRecording(); break;
     default: break;
     }
 }
@@ -441,6 +443,13 @@ void toggleInfo(Target target) {
     bool& on = target == Target::InfoSlime ? value.map.worldMapSlime : value.map.radar;
     on = !on;
     if (!Runtime::instance().save(value)) log("could not save the information switches");
+}
+// The feature's own switch (L-313): with it off the screen still shows what
+// was recorded, so turning it on or off belongs here too.
+void toggleRecording() {
+    auto value = Runtime::instance().preferences();
+    value.map.worldMap = !value.map.worldMap;
+    if (!Runtime::instance().save(value)) log("could not save the recording switch");
 }
 bool panelOpen() { return Runtime::instance().preferences().map.worldMapPanel; }
 int shownList() { return clampListKind(Runtime::instance().preferences().map.worldMapList); }
@@ -1364,7 +1373,8 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
         dimsW += widthOf(dimTexts[static_cast<size_t>(d)]) - 1;
     }
     auto centerText = ui::translated("worldMap.center"), waypointsText = ui::translated("worldMap.list");
-    float closeW = 13, rightW = widthOf(centerText) + 3 + widthOf(waypointsText) + 3 + closeW + 3;
+    auto recordText = ui::translated("worldMap.recording");
+    float closeW = 13, rightW = widthOf(recordText) + 3 + widthOf(centerText) + 3 + widthOf(waypointsText) + 3 + closeW + 3;
     auto terrainText = stateText();
     float terrainW = state.dimension == 2 ? 0 : widthOf(terrainText);
     // Layer switches (L-146): the marks' own symbols and names, then the
@@ -1445,6 +1455,8 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     button(context, right, 2, waypointsText, Target::Waypoints, panelOpen(), hovering(right, 2, widthOf(waypointsText), buttonHeight));
     right -= 3 + widthOf(centerText);
     button(context, right, 2, centerText, Target::Center, false, hovering(right, 2, widthOf(centerText), buttonHeight));
+    right -= 3 + widthOf(recordText);
+    button(context, right, 2, recordText, Target::Recording, recording, hovering(right, 2, widthOf(recordText), buttonHeight));
     if (oneRow) { x = right - 8 - switchesW; y = 2; }
     else { x = 4; y = rowHeight + 2; }
     std::array<float, 3> switchX{};
