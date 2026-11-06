@@ -223,9 +223,6 @@ includes("packages/levilamina-client-sdk.lua")
 -- A new SDK (game or LeviLamina version): follow the playbook in
 -- docs/GAME-UPDATES.md; the verified game in src/app/Versions.cpp changes last.
 add_requires("levilamina-client-sdk 26.60.0", {configs = {shared = true}})
--- bedrockdata asks for prelink v0.8.8, whose release asset was replaced after
--- publication without explanation. Stay on v0.8.7 (docs/GAME-UPDATES.md).
-add_requireconfs("**.prelink", {override = true, version = "v0.8.7"})
 
 add_requires("levibuildscript")
 add_requires("nlohmann_json v3.12.0")

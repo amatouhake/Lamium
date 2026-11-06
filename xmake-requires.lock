@@ -142,7 +142,7 @@
                 commit = "595b596406d9c2736d56e35974e29e5b495e26cf",
                 url = "https://github.com/LiteLDev/xmake-repo.git"
             },
-            version = "v0.8.7"
+            version = "v0.8.8"
         },
         ["rapidjson 2025.02.05#f56260b5"] = {
             repo = {
