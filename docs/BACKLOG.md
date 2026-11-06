@@ -77,7 +77,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
 1. **Bugs first.** Open: L-314 (silent crash at exit on 1.26.60; needs exits
    with Lamium removed to tell whether Lamium matters), L-313 (the world map
    report; not reproduced here, waiting for the reporter's re-check with the
-   feature on; the map's Record button passed), L-306 (a pane edge at a chunk border),
+   feature on; the Record switch in the bottom bar is built), L-306 (a pane edge at a chunk border),
    L-227 (FreeCamera shows only the sky outside loaded terrain; Research),
    L-177 (mismatch highlight; awaits the reporter's next schematic session),
    and the built-but-unconfirmed failure paths of L-274 and L-276. Parked:
@@ -131,8 +131,9 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.5.0
 
-Built 2026-11-06, not checked in game yet: L-311. L-312, L-310, L-313's Record button
-and hotkey and L-308 passed on `356909de` (VALIDATION-LOG).
+Built 2026-11-06, not checked in game yet: L-311, L-313's Record switch in the bottom
+bar, the card's three hold keys and the 256-block Range (L-308). L-312, L-310, L-313's
+hotkey and L-308's distance row passed on `356909de` (VALIDATION-LOG).
 
 From 2026-11-06 (VALIDATION-LOG):
 
@@ -293,12 +294,15 @@ Open: whether the reporter's case is only the switch (they have not said
 whether it was on), and whether a real recording defect remains on a server.
 Decided and built (maintainer 2026-11-06, for 0.5.1): the hotkey opens the map
 with the feature off, as the Open row does, because the layers can still be
-inspected and edited; the top bar's "Record" button shows and switches
-`map.worldMap` in both directions, and "Recording is off" stays in the bottom
-bar. The standalone Waypoints screen is out of scope for now.
-Passed in game 2026-11-06 on `356909de`. Open (maintainer 2026-11-06): whether the
-switch's name and the button's place are right. Also open: the reporter turns the
-feature on and retries; their
+inspected and edited. The standalone Waypoints screen is out of scope for now.
+Decided after the first check (maintainer 2026-11-06): a labelled "Record" switch
+in the map's bottom bar, beside the scale, is `map.worldMap` in both directions and
+replaces the "Recording is off" text, because it is state and not a command like
+the top bar's; it keeps its place when the bar is narrow. The feature keeps its
+parent switch (DESIGN: each feature has one, and a parent without one was unclear),
+and the help says that off stops only the recording.
+The key and a top bar button passed in game on `356909de`; the bottom bar switch
+is not checked. Also open: the reporter turns the feature on and retries; their
 `mods/Lamium/logs/lamium.log` and the walking route would settle whether a
 defect remains on a server.
 
@@ -845,11 +849,13 @@ at means no card and no row. Feet distance waits until someone needs it. It is a
 Target Info option, "Show distance" (off by default), and the unbound hold key
 "targetmeasure" flips it while held, as the radar's face key does, so it can be
 always on or shown on demand. The key needs Target Info on. Mobs get the row too.
-Passed in game 2026-11-06 on `356909de`.
-Open (maintainer 2026-11-06), to settle before 0.5.1 because a released action id
-stays: whether the other Target Info options get keys as this one has, or none do;
-and whether the 64-block Range is too short for measuring. Raising it adds a longer
-per-frame clip and a larger entity search.
+The row passed in game 2026-11-06 on `356909de`.
+Decided after that check (maintainer 2026-11-06): the card's three information
+rows, Other details, Position and Distance, each have an unbound hold key that
+flips them. The identifier and icon are looks, and Schematic and Liquids choose
+the target, so they have none. Range goes up from 64 to 256 blocks for measuring.
+That lengthens the per-frame clip and widens the entity search for whoever sets
+it high, so frame times at 256 looking diagonally are part of the check.
 
 ### L-298 Attach release assets from the tag's CI run
 Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).
@@ -997,7 +1003,11 @@ check on a large placement while stepping the cut. Not part of the current
 L-234 branch.
 
 ### L-190 Select several rows at once in list screens
-Kind: Design. Maintainer idea 2026-10-14; no implementation or release chosen.
+Kind: Ready for its first step, after 0.5.1. Maintainer idea 2026-10-14.
+Decided (maintainer 2026-11-06), no file format change: the Waypoints screen first;
+Ctrl + click toggles a row, Shift + click takes a range, no drag selection; show,
+hide and delete together, delete with a second press. The death point stays single.
+Other lists follow once this one has been used.
 Goal: in list screens (waypoints, the schematic Check list and similar lists)
 select several rows with Ctrl/Shift + click or by dragging, and act on them
 together (for example hide, delete or show in world).
@@ -1007,17 +1017,22 @@ drag selection versus dragging to scroll or reorder; confirmation for
 destructive bulk actions; keyboard equivalents.
 
 ### L-183 Temporarily disregard selected schematic check mismatches
-Kind: Design, then Ready/Research depending on the chosen check state.
-User feedback clarified 2026-10-14; not chosen for implementation or a release.
+Kind: Design, after 0.5.1. User feedback clarified 2026-10-14.
+Decided (maintainer 2026-11-06): the choice persists across rejoining, so there
+is no unsaved first version. Per placement in its saved file, as an optional key
+in schematic coordinates, so moving or turning the placement keeps it. The unit is
+one difference on one cell (this cell's `powered`), so another block there still
+shows as a mistake. A count of what is ignored stays visible, with a list to undo
+one or all. Entries the structure no longer has are ignored; the number is capped.
+Older builds that save the placement may drop the key. The word "temporarily" goes.
+Proposed, to settle before building: ignored differences count as matching in the
+totals, and the choice is made from the Check list's row first.
 Goal: while building redstone and other stateful structures, temporarily
 exclude selected expected-vs-actual discrepancies from the check results.
 A block with a temporarily different powered/open/extended state can be
 intentional during construction; the schematic file and physical blocks do
 not change. This is **check-result suppression**, not hiding the ghost or
 automatically relaxing every BlockState comparison.
-Open: scope (one world cell, selected group, or a state key), persistence
-(until manual reset, reload, or session end), whether ignored rows contribute
-to completion totals/HUD/nearest-mistake, and how to unignore/review them.
 Keep the original strict comparison available. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-184 Inspect ghost block data and schematic container contents
@@ -1126,8 +1141,14 @@ L-114's Check-tab 3D preview mistake styling.
 [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-173 Quick shapes: a beacon's range at a glance, shapes that are not saved
-Kind: Design. From the maintainer's notes (2026-10-13); not chosen for
-building, no release.
+Kind: Design, direction decided 2026-11-06. From the maintainer's notes (2026-10-13).
+Direction: no separate quick shapes, which would make the player check again after
+every login. One action on an aimed beacon creates an ordinary shape, saved, listed,
+shown on the maps and edited like any other; a Box should hold it with no file
+format change. It is a copy of the range when made, so a changed pyramid needs a new
+one, and on a server it goes at rejoin as every shape does. Check first in game: the
+range's exact width and vertical extent, then the key or menu that creates it.
+The proposal below is superseded where it differs.
 Goal: see a beacon's range without making a shape (kind, center, radius,
 saving).
 Proposal (not decided): looking at a beacon, one action shows its range as
