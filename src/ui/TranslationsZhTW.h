@@ -1772,5 +1772,6 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"blockEntity.ItemRotation", "物品旋轉"},
     {"capability.NoteBlockSounds", "音階盒音高（音效事件）"},
     {"capability.NoteBlockInstrument", "虛影音階盒的樂器"},
+    {"capability.BookPastePages", "跨頁貼上到書中"},
 });
 }

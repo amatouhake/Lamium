@@ -105,9 +105,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"gameLanguage", "feature.gameLanguage", "help.gameLanguage", "", true},
     {"skipServerPacks", "feature.skipServerPacks", "help.skipServerPacks", "visuals.skipServerPacks", true, input::Action::ToggleSkipServerPacks},
     {"calculator", "feature.calculator", "help.calculator", "", false, input::Action::OpenCalculator},
-#ifndef LAMIUM_MCAPI_PENDING // L-305: it does nothing until its symbols are exported.
     {"bookPaste", "feature.bookPaste", "help.bookPaste", "interface.bookPaste", false, input::Action::ToggleBookPaste},
-#endif
     // Headings without a switch: their first row is the switch (no key of its own).
     {"toasts", "feature.toasts", "help.toasts", ""},
     // Text of the line elements (Info HUD, Status, Debug View) and HUD backgrounds.

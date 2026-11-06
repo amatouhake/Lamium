@@ -12,6 +12,51 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-259 book paste on SDK 26.60.3 (2026-11-06)
+
+Uncommitted tree on `2d26c43c`, DLL
+`f589f00efccf51caa2e7ba7b03e504c6ed91b10d35e4eb220f230e1c64d57ca0`, no trace options,
+built against SDK 26.60.3 with bedrock-runtime-data v26.60.5-client.9, LeviLamina
+Client 26.60.3, 1.26.60.05 Dev instance, local world. LamiumTests and
+LamiumNativeTests passed.
+
+Seen, per the maintainer: the setting shows and turns on. A paste that works keeps
+its text, and signing is normal. A first long paste reached about 14 pages; pasting
+the same text again straight after failed, with no "not enough pages" toast and far
+from 50 pages.
+
+Not seen: why the second paste failed (this build does not log it). A trace build,
+DLL `ed7088c1d8a16ad3672c84caca7b4846a8fc9c9ab77a7cf31830b8c3e255097a`, was put on
+the Dev instance to find out. Not covered: servers.
+
+Trace builds the same evening, same environment, maintainer pasting a 1,019-character
+text repeatedly. `ed7088c1`: 5 of 9 long pastes `gate=box`. `326b68b2`: the two page
+boxes keep their addresses across 3 page adds; `gate=limit` at limits 258 and 394 after
+refocusing. `f98148d1` (box kept, limit a lower bound): those two gone, 15 `gate=page-text`
+on later spreads. `142c9495`: the caret's page was `mCurrentPage * 2` plus the cursor
+flag's half on all 7 pastes, while `mCurrentPageIndex` stayed 0 or 1. `9d2cbf95` (that
+page, text still compared): multi-page pastes on the spreads tried worked, as the
+maintainer also saw; 14 `gate=page-text` at 35 pages followed a paste into the middle of
+a page until the player moved to another page. Each failure ended as vanilla's paste.
+
+`f01f3695` (green-caret rules): pastes no longer failed, but the result looked random to
+the maintainer: a mid-page paste left the page model old (a paste writing 252 bytes,
+then `replace page=0` with the old 258 on leaving), and the caret went 66, 103, 140.
+`e8faa76d` (head written to the model, caret set, book turned by writing `mCurrentPage`):
+the turn broke the book. Page 1's text landed on page 5 (`replace page=4`, 258 bytes, from
+a box still holding page 1), maintainer saw page 1 empty. The turn was removed. The same
+log shows a new pair of page box addresses after each reopen, none after adds or turns.
+
+`39a069c8` (no turn), DLL `39a069c8012e846bf347376c7bd2358a27ce0de85ab6d6ef6e7802216092f8b0`:
+accepted by the maintainer for now. In the log a mid-page paste kept its 246 bytes when
+the page was left (`replace page=0`, 246 bytes), and the caret stopped at the 244th
+character, the end of the page's paste. Pastes on the first page and on a later page
+inserted right after that page, with no `gate=` failure.
+
+Not covered: servers, a replaced selection. Repeated pastes stay out of order by design
+(L-315). A crash trace is written at exit in this session too, as in earlier ones (L-314,
+on its own branch).
+
 ## L-307 structures saved by 1.26.60, and the replaced prelink (2026-11-06)
 
 Build `07669997` (PR #71 with `main` merged in), DLL

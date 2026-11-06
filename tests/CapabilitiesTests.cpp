@@ -7,13 +7,13 @@ void check(bool, char const*);
 
 void capabilitiesTests() {
     using namespace lamium::capabilities;
-    check(loaderSupported(26,60,0) && loaderSupported(26,60,1)
+    check(loaderSupported(26,60,minimumLoaderPatch) && !loaderSupported(26,60,minimumLoaderPatch - 1)
         && loaderSupported(26,60,1000), "patch updates in the supported loader series need no allowlist edit");
     check(!loaderSupported(26,51,5) && !loaderSupported(26,61,0) && !loaderSupported(27,60,0)
         && !loaderSupported(-1,-1,-1), "older, unknown and other loader series remain outside the policy");
-    Registry r{{true,26,60,1}};
+    Registry r{{true,26,60,minimumLoaderPatch}};
     {
-        Registry cleanup{{true,26,60,1}};
+        Registry cleanup{{true,26,60,minimumLoaderPatch}};
         bool installed = false;
         int removals = 0, failures = 0;
         auto failed = [&] {
@@ -90,7 +90,7 @@ void capabilitiesTests() {
         "feature aggregation distinguishes essential failures from partial loss");
     check(r.status(Id::SchematicPiston).available(), "direct SDK adapters have no invented first-render prerequisite");
 
-    Registry unknown{{false,26,60,1}}, oldLoader{{true,26,51,4}};
+    Registry unknown{{false,26,60,minimumLoaderPatch}}, oldLoader{{true,26,51,4}};
     for (auto const& d : definitions) {
         unknown.ready(d.id); oldLoader.ready(d.id);
         if (d.gameSensitive) {
@@ -107,7 +107,7 @@ void capabilitiesTests() {
         "compatibility and the native result remain separate without accidentally widening either");
     auto reviewed = definition(terrain);
     reviewed.verifiedBuild = {1,26,52,1};
-    Environment nextGame{false,26,60,1,{1,26,52,1}};
+    Environment nextGame{false,26,60,minimumLoaderPatch,{1,26,52,1}};
     check(compatibility(reviewed,nextGame) == Reason::None && compatibility(terrain,nextGame) == Reason::UnverifiedGame,
         "a separately reviewed game build is scoped to one capability, leaving the shared baseline closed");
     nextGame.forceUnverified = true;
@@ -120,9 +120,9 @@ void capabilitiesTests() {
     check(!r.begin(Id::HideParticles) && !r.ready(Id::HideParticles)
         && r.status(Id::HideParticles).reason() == Reason::RemovalFailed,
         "a failed native cleanup requires a process restart instead of reusing stale hooks");
-    Registry fresh{{true,26,60,1}};
+    Registry fresh{{true,26,60,minimumLoaderPatch}};
     for (auto const& failed : definitions) {
-        Registry isolated{{true,26,60,1}};
+        Registry isolated{{true,26,60,minimumLoaderPatch}};
         for (auto const& d : definitions) isolated.ready(d.id);
         isolated.fail(failed.id,Reason::HookUnavailable);
         for (auto const& d : definitions)
@@ -152,7 +152,7 @@ void capabilitiesTests() {
         "unchanged frames and unrelated ready transitions do not repeat notices");
     check(notice.poll(2,3) && notice.changed("terrain failed"), "the same persistent failure can be explained in a new world");
     check(!notice.poll(0,4) && notice.poll(2,4) && notice.changed("terrain failed"), "world exit clears notice context");
-    Registry concurrent{{true,26,60,1}};
+    Registry concurrent{{true,26,60,minimumLoaderPatch}};
     std::thread writer([&] { for (int i=0; i<1000; ++i) concurrent.ready(terrain); concurrent.fail(terrain,Reason::NativeContract); });
     for (int i=0; i<1000; ++i) {
         auto status = concurrent.status(terrain);

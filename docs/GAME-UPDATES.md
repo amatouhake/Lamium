@@ -45,6 +45,9 @@ LeviLamina's own types.
   26.51.7 (official client release DLLs; 68 imports, none missing).
 - 2026-11-04: SDK 26.60.0 and minimum loader 26.60.0 are the same version,
   so no import check is needed.
+- 2026-11-06: SDK 26.60.3 and minimum loader 26.60.3 are the same version. The
+  minimum rose because book paste links through bedrock-runtime-data
+  v26.60.5-client.9 and was only seen working there (L-259).
 
 The shared verified Minecraft executable is 1.26.60.05, checked in game on
 2026-11-04 (L-305). An unverified
@@ -117,6 +120,7 @@ the package/SDK loader-policy alignment in CI.
 | Sneak placement (use gate and sneak state) | `SneakPlacement.cpp` | every use goes through the game's own sneak state | the setting and key (no effect) |
 | Note block pitch (level sound events) | `NoteSounds.cpp` | a note block's pitch on the target card stays at the note the world loaded with | the instrument and every other block entity row |
 | Ghost note block instrument (block instrument component) | `TargetInfo.cpp` `appendGhostInstrument` (`BlockInstrumentComponent`: [0] for a note block under the block, [1] for one on it; held back by L-305, also in the check's comparison) | a ghost note block shows no instrument row | real note blocks, every other row |
+| Book paste across pages (page model and caret) | `BookPaste.cpp` (`PageContent::mText`, `TextEditContext::mCaret` and `mSelection`) | a paste works as in vanilla | everything else |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
@@ -150,9 +154,12 @@ the package/SDK loader-policy alignment in CI.
    version.
 
 Since 26.60 most game functions in the SDK are marked `MCNAPI`: declared but
-not exported. A link error names them; `LiteLDev/mcapi-requests` is where a mod
-asks for them, with the mangled names from the linker. `LAMIUM_MCAPI_PENDING`
-in `xmake.lua` holds back what still waits for one (L-305).
+not linkable. A link error names them; `LiteLDev/mcapi-requests` is where a mod
+asks for them, with the mangled names from the linker. A granted function turns
+`MCAPI` in a later SDK's headers and links through prelink's
+`bedrock_runtime_api.lib`, not `LeviLamina.dll`'s export table, so check it by
+linking. `LAMIUM_MCAPI_PENDING` in `xmake.lua` holds back what still waits for
+one (L-305).
 
 ## Inventory
 
@@ -464,7 +471,6 @@ server's copy). `Name` is the macro that makes the two `useItemOn` hooks.
 
 ### `src/features/inventory/BookPaste.cpp`
 Hooks: `BookScreenTick`, `BookScreenValid`, `PageBoxFocus`, `TextTrySet`, `ContextText`, `BookScreenOpen`, `TextCharKey`, `TextFits`, `ContextAction`, `PageParse`, `PageSetText`, `PageAddAt`, `ManagerEditPage`, `ManagerAddPage`, `BookEditSend`, `BookEditSendToServer`
-Not built while `LAMIUM_MCAPI_PENDING` is set (L-305).
 Meaning (L-259): `ContextText` is `TextEditContext::feedText`, where a paste
 arrives after `feedAction(Paste)`. A paste into the page box of an editable book
 and quill that does not fit is split; the detour inserts only the part that fits

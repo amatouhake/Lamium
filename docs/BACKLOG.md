@@ -72,9 +72,8 @@ Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
 0. **L-305 move to Minecraft 1.26.60.05 / LeviLamina 26.60.** The verified game
-   is 1.26.60.05. Open: the book-paste and offhand-map symbols (26.60.1's headers
-   carry them, the 26.60.2 runtime's export table does not, and 26.60.3 had no
-   release asset when it was checked) and L-306.
+   is 1.26.60.05. Open: the offhand-map target is unconfirmed, and L-306. What waits
+   for more game symbols is collected in L-315.
 1. **Bugs first.** Open: L-313 (the world map report; not reproduced here,
    waiting for the reporter's re-check with the feature on), L-312 (a shape
    radius above 100 loses its decimal place), L-306 (a pane edge at a chunk border),
@@ -93,8 +92,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection, L-163 a
    Lamium inventory screen, L-249 simulation distance, and the 2026-11-05 reports
    L-308 to L-311 (rangefinder, paper doll placement, language interval, shapes
-   following the player). L-259 book paste overflow is on main and checked
-   locally; it stays hidden until its symbols return. Agree open choices before
+   following the player). Agree open choices before
    building. L-165 Mass Craft remains below Map and needs a scope conversation;
    existing packs already cover part of that need.
 3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,
@@ -131,6 +129,9 @@ Do not infer game success from a build or unit-test result.
 
 From 2026-11-06 (VALIDATION-LOG):
 
+- Book paste returns in the next release with new rules (L-259), and the minimum
+  LeviLamina is 26.60.3. Worth a look: a server, a replaced selection, the 50-page
+  refusal's toast.
 - The next release is the first built with the replaced prelink v0.8.8 asset; its
   smoke covers that build's load. L-307's bad-zlib and size-limit paths through the
   real inflater stay unchecked.
@@ -251,19 +252,21 @@ Open:
    the original executable, so that the launcher patches last. Reported as
    LiteLDev/LeviLauncher#176. A separate install failure on slow connections, as
    LiteLDev/lip#402.
-4. **Symbols.** `LAMIUM_MCAPI_PENDING` (`xmake.lua`) holds these back, because
-   the SDK does not export them. Remove it once they are available. The request
-   (`LiteLDev/mcapi-requests` #283) was filed on 2026-11-04, passed its automatic
-   check and was closed as completed the same day. Checked 2026-11-06: the
-   headers at v26.60.1 and later mark every function below, `PageContent`'s
-   constructor and destructor, and `_renderMiniMapHand` `MCAPI` (v26.60.0 had
-   them `MCNAPI`), but the client runtime's export table holds the same 1040 names
-   in v26.60.0 and v26.60.2 and none of them, so a build against those SDKs still
-   cannot link them. v26.60.3 was published on 2026-11-06 without its release
-   asset; dumpbin that DLL when it appears (`packages/levilamina-client-sdk.lua`
-   builds the import library from the export table) and bump the package only if
-   the names are there.
-   - Book paste (L-259, stays vanilla):
+4. **Symbols.** The request (`LiteLDev/mcapi-requests` #283) was filed on
+   2026-11-04, passed its automatic check and was closed as completed the same
+   day. An `MCAPI` game function links through `bedrock_runtime_api.lib`, which
+   prelink generates from bedrock-runtime-data, so `LeviLamina.dll`'s export
+   table says nothing about it: a link attempt is the check. Link result on
+   2026-11-06 against SDK 26.60.3 with bedrock-runtime-data v26.60.5-client.9:
+   only the ghost note block instrument is unresolved. `_textFitsInControl` is
+   still `MCNAPI` and deprecated in the 26.60.3 headers, yet it links and answers
+   in game, so an SDK update could take it away: the link error would say so.
+   The minimum LeviLamina rose to 26.60.3 with this; whether older
+   bedrock-runtime-data resolves these names is unchecked.
+   `LAMIUM_MCAPI_PENDING` (`xmake.lua`) now holds back only the instrument and
+   the transfer trace's hooks. `_renderMiniMapHand` was requested too, but nothing
+   references it yet, so it has not been linked.
+   - Book paste (L-259; links, and checked in game on 2026-11-06):
      `?$preFrameTick@BookScreenController@@QEAAXXZ`,
      `?$_isStillValid@BookScreenController@@QEBA_NXZ`,
      `?_addPageAt@BookScreenController@@QEAAXHAEBUPageContent@@@Z`,
@@ -275,11 +278,17 @@ Open:
      `?_textFitsInControl@TextEditComponent@@QEBA_NAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`,
      `?feedText@TextEditContext@@QEAAXV?$basic_string_view@DU?$char_traits@D@std@@@std@@@Z`,
      `?_setText@TextEditContext@@QEAAXV?$basic_string_view@DU?$char_traits@D@std@@@std@@@Z`.
-     The trace build also needs other functions this list leaves out.
+     `book_paste_trace` links with six diagnostic hooks held back (key, screen
+     open, action, set-page and the two manager hooks); its paste decisions log.
    - Ghost note block instrument (no row on the card, not compared in the check):
      `??$tryGetComponent@UBlockInstrumentComponent@@@Block@@QEBAPEBUBlockInstrumentComponent@@XZ`.
      The request's check rejects it because the template is declared `MCAPI`, but
      this instantiation does not link. Needs another way to read the component.
+     `BlockComponentStorage::_findComponentTyped` links but is not one: outside
+     the game `Bedrock::type_id<void, T>` numbers types from the mod's own counter,
+     so the id would name some other component. The maintainer's decision on
+     2026-11-06: keep this as a record and file nothing with LiteLDev for now
+     (L-315); the ghost's instrument row is all it costs.
 
 A note block's instrument name without a Lamium translation now falls back to
 its number, because `noteBlockInstrumentToString` is not exported.
@@ -700,6 +709,23 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
+### L-315 Finish what waits for more game symbols
+Kind: Blocked on a symbol request. Kept as one item so a single request to
+`LiteLDev/mcapi-requests` covers it; the maintainer prefers not to file one now
+(2026-11-06), to keep requests to LiteLDev infrequent. Nothing here is urgent.
+- Book paste as one continuous sheet (L-259, BACKLOG-DONE): a paste turns to where it
+  ended, so repeated pastes stay in order, and later pages reflow so no gaps stay at
+  the seams. Likely needs the game's page turn, `_setPageText` or
+  `BookScreenManager::editPage`, `deletePage` and `TextEditContext::feedCaretUpdate`;
+  find the page turn's call first. Writing `mCurrentPage` does not work: it corrupted
+  a book (VALIDATION-LOG).
+- Ghost note block instrument: `Block::tryGetComponent<BlockInstrumentComponent>` does
+  not link, and the request form rejects it (L-305 item 4 has the details). Its checker
+  ignores template arguments, so this needs a note to the maintainers, not the form.
+- Book paste's trace hooks held back by `LAMIUM_MCAPI_PENDING`: only if another trace
+  is needed.
+Before filing, confirm by linking: an SDK update may already have changed these.
+
 ### L-311 Keep a shape's centre on the player
 Kind: Design. User request 2026-11-05 (Discord): a shape should be able to keep
 its centre on the player, so a radius or skin can be judged while moving.
@@ -792,170 +818,6 @@ overlay or world map layer); behavior on servers where it is unknown.
 Research the source first, then agree the presentation with the maintainer.
 No release target selected.
 
-
-### L-259 Book and quill: paste overflow into new pages
-Kind: Ready (behavior and the switch decided; built, waiting for the in-game
-checks below). Maintainer request 2026-10-25: pasting into a book and quill
-page is refused outright when the result would exceed the page limit, which
-gets in the way of copying text into books.
-Goal: a paste that does not fit on the current page fills it and continues
-on new pages, staying within the vanilla per-page and 50-page limits so the
-edit is sent as ordinary page edits and any server accepts it. Raising the
-limits themselves is out of scope: whether a server keeps a page longer than
-the client allows is unknown, and a rejected edit would lose text.
-
-What limits a page (from SDK headers and the vanilla `ui/book_screen.json`,
-not yet seen at runtime): the page text box uses `max_length:
-"$max_page_length"`, a variable the JSON does not define, so it presumably
-comes from `BookScreenController::addStaticScreenVars`. The box's
-`TextEditComponent` also has `mConstrainToRect` and
-`_textFitsInControl(text)`, which presumably make the visible-lines limit.
-Edits go to the server as `BookEditPacket` (replace/add/delete/swap/
-finalize).
-
-Decided (maintainer 2026-10-25, accepting the proposals):
-- Only a paste into a page of an editable book and quill. Typing at a full
-  page, the title box and everything else stay vanilla. A paste that fits is
-  left to vanilla.
-- The pasted text is inserted at the caret, replacing a selection. The
-  current page keeps the text before the insertion point plus as much of
-  the pasted text as fits. The rest, followed by the text that came after
-  the caret, goes onto new pages **inserted** after the current page;
-  existing later pages move back and are never overwritten.
-- If the result needs more pages than the 50-page limit leaves, nothing is
-  pasted and a short message says how many pages it needs and how many are
-  free. No partial paste.
-- Page break: within the part that fits, break after the last line break,
-  else after the last space, unless that leaves the page less than half
-  full; otherwise break at the last character that fits (never inside a
-  UTF-8 sequence). The break's line break or space is dropped so a new page
-  does not start blank. Japanese text without spaces breaks by character.
-- "Fits" is the game's own test: the page's length limit and
-  `_textFitsInControl`, so wrapping and fonts need no copy in Lamium.
-- One switch, on by default; off is the vanilla refusal. Decided 2026-10-27:
-  `interface.bookPaste` on feature `bookPaste`, Settings::Interface group,
-  named "Book paste across pages" (「本への貼り付けをページまたぎ」), the switch
-  labelled "Paste across pages: {}" (「ページまたぎの貼り付け: {}」).
-
-Research before building (trace build, Windows):
-1. Which path a paste takes (`TextEditContext::feedAction(Paste)`,
-   `feedText`, `TextEditComponent::handleTextCharEvent`) and on which
-   thread; where the caret and selection can be read (`TextEditContext`
-   `mCaret`, `mSelection`).
-2. The page limit's unit: bytes or characters. Japanese is 3 bytes per
-   character in UTF-8, so a byte limit fits about 85 characters.
-3. Whether `BookScreenController::_setPageText`/`_addPageAt` send the edit
-   to the server or `BookScreenManager::editPage`/`addPageAt` must be called,
-   and when: apply the overflow on the next `BookScreenController::tick`
-   from owned strings, without keeping the controller pointer.
-Pure part with tests: splitting text into pages given a fits-predicate.
-New hooks go into GAME-UPDATES.md. Verify on a local world and on a server
-that the pages survive closing and reopening the book.
-Status 2026-10-27: built, not yet checked in game (branch
-`l259-book-paste-trace`). The trace build (`eb42d2c9`, `--book_paste_trace=y`,
-`src/features/inventory/BookPaste.cpp` plus a "Book paste diagnostics" entry in
-`Runtime.cpp`) answered the three research questions in a real game:
-- A paste is `TextEditContext::feedAction(Paste)` then one
-  `TextEditContext::feedText(clipboardText)`, which inserts what fits and
-  silently drops the rest: 4,631 characters offered on a page holding 69 left
-  exactly 256, with no message, and nothing on a page already at 256.
-- 256 counts characters, not bytes: a page held 602 bytes / 256 characters, and
-  519 bytes / 173 Japanese characters were accepted.
-- The page box is `mMaxLength = 256` with `mConstrainToRect = true`; the title
-  box takes 512 and does not constrain, so the page is identifiable by its
-  limit. Edits reach the server as `BookEditPacket(replace)` after
-  `_setPageText` -> `_parsePageText`/`BookScreenManager::editPage`, sent by both
-  `$send` and `$sendToServer`, so `_setPageText` and `_addPageAt` are enough to
-  write pages.
-Built in `src/features/inventory/BookPaste.{h,cpp}`: the split is pure
-(`splitPaste`, `chooseBreak`, `byteOffset` in the header, covered by
-`tests/BookPasteTests.cpp`) and `TextEditContext::feedText` is the interception
-point. It runs only when the switch is on, a book screen was seen this frame
-(`BookScreenController::$preFrameTick`), the book is `mEditable`, the view is
-Viewing, the context's limit is the page's 256 characters, and the page box was
-seen by its own focus or text calls; any other text field goes to the game
-untouched. Fits is the game's own test (`_textFitsInControl` plus the
-256-character limit). A paste that needs more pages than the 50-page limit
-leaves is refused whole, with a toast saying how many pages it needs and how
-many are free; the HUD is not drawn over the book screen, so the message is
-repeated when the book closes.
-Crash 2026-10-27, first in-game run of the merged build `1d2c341a` with the
-switch on: `0xC0000005` on `mov dword ptr [0x0000000000000000], 0xDEADC0DE`
-inside `ContextText::detour+0x802` (`BookPaste.cpp:266L`), the line that called
-`origin()` after the paste had been written, with the game's own frames above
-it. The cause was that write: `_setPageText` and `_addPageAt` ran inside
-`feedText`, i.e. with the text edit's own call on the stack, and the page
-rebuild they trigger invalidates the `TextEditContext` being edited - the detour
-then returned into memory the screen had already freed, which is what the dump's
-poison value marks. The same window explains pastes that did nothing.
-Fixed in `80d6dfb8`: `feedText` writes no page model at all. When the gate
-passes and the split yields pages, the detour calls the game's own
-`origin(<the part of the paste that fits>)` - plus `context._setText(<first
-page>)` when the caret had text after it, so that tail belongs to the last new
-page - and keeps the remaining page texts as owned strings in `DeferredPages`:
-the page index, the text that page must hold, the page text from before the
-paste, the paste's frame number and the screen identity (controller address plus
-a generation the `$preFrameTick` hook bumps whenever the controller changes, so
-a heap reuse at one address is not the old screen). The existing `$preFrameTick`
-hook applies them on the next frame, and only if the same screen is current and
-still `mEditable`, the page still holds what the paste left (or the text from
-before it, or a prefix of that while the model is one parse behind) and
-`pages + kept <= 50`; the kept pages go in with `_addPageAt(index + k,
-PageContent(text))` ascending, so later pages move back and are never
-overwritten, wrapped so a throw drops the plan. Any other verdict drops the plan
-with a reason, and the screen going away clears it. The refusal toast is queued
-the same way and shown from the book's own frame, never from inside the paste,
-and again when the book closes.
-Page-text gate relaxed in the same commit: a stored page that is a prefix of the
-live text is a page whose typing has not reached the model yet, so it passes and
-the caret counts the live text; unrelated text still goes to the game untouched.
-The old rule rejected any difference, which is why a paste right after typing
-did nothing.
-The pure part now carries the gate and the deferred plan (`pageTextGate`,
-`ScreenId`, `DeferredPages`, `pageUnchanged`, `planApply`, `applySkipReason`,
-`planDue`), with table tests in `tests/BookPasteTests.cpp` for pending typing,
-unrelated text, the same screen, a reused address, a moved page, the 50-page
-room and the next-frame rule; each rule was mutated once and its test failed.
-Trace lines for the retry (`--book_paste_trace=y`, DLL SHA-256
-`7775e0b839d7fa979795419384aeed698f76235c3f2538768a68c5fd27821170`): `paste
-gate=<reason>` names the verdict (`ok`, `pending-typing`, `text-unrelated`,
-`option`, `limit`, `box`, `not-editable`, `view`, `page-index`, `photo`,
-`caret`, `empty`, `split`), `paste defer index= frame= extra= head trim=` what
-was kept, and `paste apply index= added= pages=->` or `paste apply
-skipped=<reason>` (`screen`, `not-editable`, `page`, `page-moved`, `no-room`,
-`empty`) the deferred write.
-In-game checks still to do: a book that already has later pages, a paste that
-replaces a selection, a paste into a nearly full page, Japanese text, a paste at
-a mid-page caret, typing one character and pasting immediately, and a server
-(the pages must survive closing and reopening the book).
-Review fixes 2026-10-28 (after the in-game rounds, not yet seen in game): the
-pasted page is searched only among the preferred page and its two neighbours
-(an exact match before pending typing, longer before shorter, the preferred
-page on a tie; two equal neighbours give `gate=page-ambiguous` and the game
-keeps the paste), because a book-wide search let any empty page match an empty
-or freshly typed box and the overflow went in after that page. A second paste
-while kept pages wait for the next frame pastes nothing (`gate=busy`) instead
-of replacing them, and a CRLF whose CR is the first character past a page drops
-its LF so the next page does not open with a blank line.
-Fix 2026-10-28 (not yet seen in game): the maintainer saw text missing between
-the pasted page and the next one. The trace of a 7,687-character paste showed
-the book holding planned pages 0, 2, 3, ... and an empty page after the last:
-`_addPageAt(i)` inserts before page i, so the new pages went in front of the
-pasted page (whose model still held the old empty text), and the box then wrote
-the pasted page's text over the first new page. New pages now go in from
-index + 1.
-Settings change 2026-10-28 (maintainer): a single switch nested under a
-heading made no sense and could not take a key. Book paste is now a plain
-feature row whose state column is `interface.bookPaste` (like Skip server
-resource packs), with the unbound toggle action `bookpaste`
-(`ToggleBookPaste`); the details that were the nested row's help moved into
-the feature's help.
-Status 2026-11-01: every commit of branch `l259-book-paste-trace` is on
-main (PR #55, 2026-10-28), and main has the later page-index fix
-(`fa6cc2f4`) and the plain switch (`1c845919`), both checked in game
-(VALIDATION.md). Unchecked: servers, Japanese text, the right page of a
-spread, a replaced selection and the 50-page refusal.
-No release target selected.
 
 ### L-263 Pick the aimed ghost block from the inventory
 Kind: Research (pick-block hook), then Ready. Same feedback as L-262:

@@ -1,5 +1,7 @@
 #include "features/inventory/BookPaste.h"
+#include "app/Capabilities.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "ui/Localization.h"
 #include "ui/Toast.h"
 #include "ll/api/memory/Hook.h"
@@ -36,26 +38,16 @@
 #endif
 
 namespace lamium::inventory::bookPaste {
-#ifdef LAMIUM_MCAPI_PENDING
-// L-305: SDK 26.60 does not export what this path uses yet. A paste stays vanilla.
-bool start() {
-    try {
-        Runtime::instance().self().getLogger().warn("L-259 book paste stays vanilla: waiting for game symbols (L-305)");
-    } catch (...) {}
-    return true;
-}
-void stop() {}
-#else
 namespace {
 using Clock = std::chrono::steady_clock;
-// A book screen's controller and page box live as long as the screen. The
-// controller is remembered from the screen's own frame call and the box from
-// the box's own focus and text calls, so no game pointer outlives its screen:
+// A book screen's controller and page boxes live as long as the screen. The
+// controller is remembered from the screen's own frame call and the boxes from
+// their own focus and text calls, so no game pointer outlives its screen:
 // the screen keeps refreshing the stamp, and losing it drops both. The
 // generation tells two screens apart that a heap reuse put at one address.
 struct Screen {
     BookScreenController* controller = nullptr;
-    TextEditComponent* box = nullptr;
+    TextEditComponent* boxes[2]{}; // the spread's two page boxes, as they are seen
     Clock::time_point seen{};
     unsigned long long generation = 0;
     unsigned long long frame = 0;
@@ -97,19 +89,25 @@ bool pageBox(TextEditComponent const& box) noexcept {
 }
 void rememberController(BookScreenController& controller) noexcept {
     std::lock_guard lock(stateMutex);
-    if (screen.controller != &controller) {
+    auto const now = Clock::now();
+    // Reopening a book makes new page boxes (seen in game 2026-11-06), and the new
+    // controller can reuse the old address, so a gap in the frames also ends a
+    // screen. A long stall only costs the boxes until their next focus call.
+    if (screen.controller != &controller || now - screen.seen > screenAlive) {
         screen.controller = &controller;
-        screen.box = nullptr;      // another screen's box
+        screen.boxes[0] = screen.boxes[1] = nullptr; // another screen's boxes
         screen.generation = ++generations;
         pending.reset();           // a paste belongs to the screen that made it
     }
     ++screen.frame;
-    screen.seen = Clock::now();
+    screen.seen = now;
 }
 void rememberBox(TextEditComponent& box) noexcept {
     std::lock_guard lock(stateMutex);
     if (!screen.controller || Clock::now() - screen.seen > screenAlive) return;
-    screen.box = &box;
+    if (screen.boxes[0] == &box || screen.boxes[1] == &box) return;
+    screen.boxes[1] = screen.boxes[0];
+    screen.boxes[0] = &box;
 }
 struct Current {
     BookScreenController* controller = nullptr;
@@ -120,7 +118,16 @@ struct Current {
 std::optional<Current> current() {
     std::lock_guard lock(stateMutex);
     if (!screen.controller || Clock::now() - screen.seen > screenAlive) return std::nullopt;
-    return Current{screen.controller, screen.box, screen.generation, screen.frame};
+    // The box being edited is the selected one. Focus follows the mouse over
+    // the other half (seen in game 2026-11-06), so it says nothing here.
+    TextEditComponent* selected = nullptr;
+    for (auto* box : screen.boxes) {
+        if (box && box->mSelected) {
+            selected = box;
+            break;
+        }
+    }
+    return Current{screen.controller, selected, screen.generation, screen.frame};
 }
 void showRefusal(int needed, int free) noexcept {
     try { ui::showWarningToast(ui::translated("bookPaste.tooManyPages", needed, free)); } catch (...) {}
@@ -145,6 +152,7 @@ struct Outcome {
     std::string insert; // the shortened text the game's own insert gets
     std::string head;   // the text the first page must hold afterwards
     bool trim = false;  // the text after the caret moved, so the box must hold head
+    int caret = 0;      // where the caret stands on the first page afterwards
 };
 
 // Decides a paste and keeps the overflow for the next book frame. The page model
@@ -162,7 +170,8 @@ Outcome handlePaste(TextEditContext& context, std::string_view paste) {
     if (paste.empty()) return reject("empty");
     auto settings = Runtime::instance().snapshot();
     if (!settings->ui.bookPaste) return reject("option");
-    if (context.mMaxLength != pageLimit) return reject("limit"); // not the page box L-259 knows
+    if (!versionSensitiveAllowed(capabilities::Id::BookPastePages)) return reject("unverified-game");
+    if (!pageContextLimit(context.mMaxLength)) return reject("limit"); // not the page box L-259 knows
     if (!at) return reject("screen");
     auto& controller = *at->controller;
     if (!at->box) return reject("box");
@@ -179,25 +188,18 @@ Outcome handlePaste(TextEditContext& context, std::string_view paste) {
     }
     if (controller.mCurrentView != BookScreenController::BookView::Viewing) return reject("view");
     auto& pages = controller.mPages.get();
-    // The spread does not always name the page the box belongs to, so the page
-    // is found from the text it holds (choosePastedPage). A photo page holds no
-    // text and can never be the one being edited.
-    std::string_view const live = context.mCurrentUtf8Text.get();
-    std::vector<std::string_view> texts;
-    texts.reserve(pages.size());
-    for (auto const& stored : pages) texts.push_back(stored.mPhotoName.get().empty() ? stored.mText.get() : std::string_view{"\x01"});
-    PageChoice const choice = choosePastedPage(live, controller.mCurrentPageIndex, texts);
-    if (!choice.ok()) return reject(choice.reason);
-    int const index = choice.index;
+    auto const& cursor = controller.mPageHasCursor.get();
+    BOOK_PASTE_TRACE("paste where currentPage={} currentPageIndex={} editing={}:{} cursor={}:{} pages={}",
+                     controller.mCurrentPage, controller.mCurrentPageIndex, static_cast<bool>(controller.mEditingLeft),
+                     static_cast<bool>(controller.mEditingRight), cursor[0], cursor[1], pages.size());
+    // The green caret names the page, and the box's own text is what its position
+    // counts. Nothing here reads the page model's text: it lags the box until the
+    // player leaves the page. A photo page holds no text to edit.
+    int const index = caretPage(controller.mCurrentPage, cursor[0], cursor[1], static_cast<int>(pages.size()));
+    if (index < 0) return reject("no-caret");
     PageContent& page = pages[static_cast<std::size_t>(index)];
-    if (!page.mPhotoName.get().empty()) return reject("photo"); // photo pages hold no text
-    // The caret and the selection count characters of the box's text. Typing
-    // reaches the page model a frame later, so a stored page that is a prefix of
-    // the live text is pending typing, and the live text is what the caret
-    // counts; unrelated text means the paste goes to the game untouched.
-    TextGate const gate = pageTextGate(page.mText.get(), live);
-    if (!gate.pass) return reject(gate.reason);
-    std::string_view const text = gate.text;
+    if (!page.mPhotoName.get().empty()) return reject("photo");
+    std::string_view const text = context.mCurrentUtf8Text.get();
     int const chars = codePointCount(text);
     auto const& selection = context.mSelection.get();
     // The game counts characters; a caret past the end means the units or the
@@ -225,8 +227,6 @@ Outcome handlePaste(TextEditContext& context, std::string_view paste) {
         return codePointCount(candidate) <= pageLimit && at->box->_textFitsInControl(candidate);
     };
     auto split = splitPaste(before, after, paste, free, pageLimit, fits);
-    BOOK_PASTE_TRACE("paste gate={}{} page={} caret={} sel={}:{}", gate.reason, gate.pending ? " (typed tail)" : "",
-                     index, caret, from, to);
     if (split.kind == SplitKind::Vanilla) {
         BOOK_PASTE_TRACE("paste decision=vanilla page={} caret={} sel={}:{} paste {}", index, caret, from, to,
                          sizes(paste));
@@ -255,17 +255,17 @@ Outcome handlePaste(TextEditContext& context, std::string_view paste) {
     if (!outcome.head.starts_with(before)) return reject("split"); // the split must keep the page's head
     outcome.insert = outcome.head.substr(before.size());
     outcome.trim = !after.empty();
+    outcome.caret = codePointCount(outcome.head);
     DeferredPages plan;
     plan.screen = ScreenId{reinterpret_cast<std::uintptr_t>(at->controller), at->generation};
     plan.frame = at->frame;
     plan.index = index;
     plan.head = outcome.head;
-    plan.old = std::string(text);
     plan.extra.assign(std::make_move_iterator(split.pages.begin() + 1), std::make_move_iterator(split.pages.end()));
     BOOK_PASTE_TRACE("paste decision=split page={} caret={} sel={}:{} pages={} needed={} free={} paste {}", index,
                      caret, from, to, split.pages.size(), split.needed, split.free, sizes(paste));
     BOOK_PASTE_TRACE("paste defer index={} frame={} extra={} head {} trim={}", plan.index, plan.frame, plan.extra.size(),
-                     sizes(plan.head), outcome.trim);
+                     sizes(outcome.head), outcome.trim);
     {
         std::lock_guard lock(stateMutex);
         Pending item;
@@ -285,20 +285,29 @@ void applyPages(BookScreenController& controller) noexcept {
     ScreenId id;
     {
         std::lock_guard lock(stateMutex);
-        if (!pending || pending->pages.extra.empty()) return;
+        if (!pending || (pending->pages.extra.empty() && pending->pages.head.empty())) return;
         if (!planDue(pending->pages.frame, screen.frame)) return; // queued this frame
         plan = pending->pages;
         pending->pages.extra.clear(); // one attempt only
+        pending->pages.head.clear();
         id = ScreenId{reinterpret_cast<std::uintptr_t>(&controller), screen.generation};
     }
     auto& pages = controller.mPages.get();
     int const count = static_cast<int>(pages.size());
-    std::string_view pageText;
-    if (plan->index >= 0 && plan->index < count) pageText = pages[static_cast<std::size_t>(plan->index)].mText.get();
-    ApplyPlan const decision = planApply(*plan, id, static_cast<bool>(controller.mEditable), pageText, count);
+    // The box's new text does not reach the page model by itself after the box was
+    // set directly, and leaving the page then sent the old text to the server and
+    // loaded it back (seen in game 2026-11-06), so the model is told here.
+    if (id == plan->screen && plan->index >= 0 && plan->index < count) {
+        try {
+            pages[static_cast<std::size_t>(plan->index)].mText.get() = plan->head;
+            controller._parsePageText(plan->index);
+        } catch (...) { BOOK_PASTE_TRACE("paste head sync failed"); }
+    }
+    if (plan->extra.empty()) return;
+    ApplyPlan const decision = planApply(*plan, id, static_cast<bool>(controller.mEditable), count);
     if (!decision.apply()) {
-        BOOK_PASTE_TRACE("paste apply skipped={} index={} extra={} pages={} text {}", applySkipReason(decision.skip),
-                         plan->index, plan->extra.size(), count, sizes(pageText));
+        BOOK_PASTE_TRACE("paste apply skipped={} index={} extra={} pages={}", applySkipReason(decision.skip),
+                         plan->index, plan->extra.size(), count);
         // The first page is already in; the rest stays on the clipboard only.
         if (decision.skip != ApplySkip::Screen)
             try { ui::showWarningToast(ui::translated("bookPaste.restDropped")); } catch (...) {}
@@ -315,16 +324,18 @@ void applyPages(BookScreenController& controller) noexcept {
         // caret on them or reopens the book (seen in game 2026-10-27).
         for (std::size_t k = 0; k < plan->extra.size(); ++k)
             controller._parsePageText(decision.index + static_cast<int>(k));
+        // The book stays on the pasted page. Writing mCurrentPage turns the shown
+        // spread but leaves the box holding this page's text, which the game then
+        // saved over the target page (seen in game 2026-11-06). A real turn needs
+        // the game's own call, which does not link.
         controller.mForceUIRefresh = true;
         controller.mShouldRefreshText = true;
-        {
-            // Adding pages rebuilds the page UI and may free the box; the next
-            // paste waits for it to be seen again (focus or a text set).
-            std::lock_guard lock(stateMutex);
-            screen.box = nullptr;
-        }
-        BOOK_PASTE_TRACE("paste apply index={} added={} pages={}->{}", decision.index, decision.add, count,
-                         static_cast<int>(controller.mPages.get().size()));
+        // The box stays remembered: the page boxes outlive added pages (the same
+        // two addresses across every add, seen in game 2026-11-06), and no focus
+        // call follows when the shown page does not change, so forgetting it here
+        // sent the next paste to the game.
+        BOOK_PASTE_TRACE("paste apply index={} added={} pages={}->{} current={}", decision.index, decision.add, count,
+                         static_cast<int>(controller.mPages.get().size()), controller.mCurrentPageIndex);
     } catch (std::exception const& error) {
         BOOK_PASTE_TRACE("paste apply failed: {}", error.what());
     } catch (...) { BOOK_PASTE_TRACE("paste apply failed"); }
@@ -365,6 +376,12 @@ LL_TYPE_INSTANCE_HOOK(BookScreenValid, ll::memory::HookPriority::Normal, BookScr
 }
 LL_TYPE_INSTANCE_HOOK(PageBoxFocus, ll::memory::HookPriority::Normal, TextEditComponent,
     &TextEditComponent::handleFocusSet, void, bool focused) {
+#ifdef LAMIUM_BOOK_PASTE_TRACE
+    try {
+        log(std::format("focus box={} focused={} maxLength={} constrain={} selected={}", static_cast<void const*>(this),
+                        focused, mMaxLength, static_cast<bool>(mConstrainToRect), static_cast<bool>(mSelected)));
+    } catch (...) {}
+#endif
     if (focused) {
         try { if (pageBox(*this)) rememberBox(*this); } catch (...) {}
     }
@@ -418,6 +435,11 @@ LL_TYPE_INSTANCE_HOOK(ContextText, ll::memory::HookPriority::Normal, TextEditCon
                 _setText(outcome.head);
                 if (auto at = current(); at && at->box) at->box->trySetText(outcome.head);
             }
+            // The calls above leave the caret wherever they left it. Without this
+            // it wandered (66, 103, 140 for one spot, seen in game 2026-11-06).
+            mCaret = outcome.caret;
+            mSelection.get().mStartCaretPos = 0;
+            mSelection.get().mEndCaretPos = 0;
             break;
         case Outcome::Kind::Refused: break;
         }
@@ -466,6 +488,7 @@ void log(std::string line) noexcept {
 }
 // The two units L-259 has to tell apart.
 std::string sizes(std::string_view text) { return std::format("bytes={} chars={}", text.size(), codePointCount(text)); }
+#ifndef LAMIUM_MCAPI_PENDING // L-305: these hooks' targets do not link yet.
 char const* actionName(TextEditContext::TextEditAction action) {
     switch (action) {
     case TextEditContext::TextEditAction::Backspace: return "backspace";
@@ -478,6 +501,7 @@ char const* actionName(TextEditContext::TextEditAction action) {
     }
     return "unknown";
 }
+#endif
 char const* operationName(size_t index) {
     switch (index) {
     case 0: return "replace";
@@ -502,6 +526,7 @@ void noteLimit(TextEditComponent const* box, uint maxLength, bool constrain) noe
 std::string pageText(std::vector<PageContent>& pages, int index) {
     return index >= 0 && index < static_cast<int>(pages.size()) ? sizes(pages[index].mText.get()) : std::string("page=none");
 }
+#ifndef LAMIUM_MCAPI_PENDING
 LL_TYPE_INSTANCE_HOOK(TextCharKey, ll::memory::HookPriority::Normal, TextEditComponent,
     &TextEditComponent::handleTextCharEvent, TextCharEventResult, VisualTree& visualTree, std::string const& inputUtf8) {
     TextCharEventResult result = origin(visualTree, inputUtf8);
@@ -520,6 +545,7 @@ LL_TYPE_INSTANCE_HOOK(BookScreenOpen, ll::memory::HookPriority::Normal, BookScre
     } catch (...) {}
     origin(globalVars);
 }
+#endif
 LL_TYPE_INSTANCE_HOOK(TextFits, ll::memory::HookPriority::Normal, TextEditComponent,
     &TextEditComponent::_textFitsInControl, bool, std::string const& text) {
     bool fits = origin(text);
@@ -530,6 +556,7 @@ LL_TYPE_INSTANCE_HOOK(TextFits, ll::memory::HookPriority::Normal, TextEditCompon
     } catch (...) {}
     return fits;
 }
+#ifndef LAMIUM_MCAPI_PENDING
 LL_TYPE_INSTANCE_HOOK(ContextAction, ll::memory::HookPriority::Normal, TextEditContext,
     &TextEditContext::feedAction, void, TextEditAction action) {
     try {
@@ -546,6 +573,7 @@ LL_TYPE_INSTANCE_HOOK(ContextAction, ll::memory::HookPriority::Normal, TextEditC
                         sizes(mCurrentUtf8Text.get())));
     } catch (...) {}
 }
+#endif
 LL_TYPE_INSTANCE_HOOK(PageParse, ll::memory::HookPriority::Normal, BookScreenController,
     &BookScreenController::_parsePageText, void, int index) {
     origin(index);
@@ -554,6 +582,7 @@ LL_TYPE_INSTANCE_HOOK(PageParse, ll::memory::HookPriority::Normal, BookScreenCon
         log(std::format("parsePage index={} pages={} {}", index, pages.size(), pageText(pages, index)));
     } catch (...) {}
 }
+#ifndef LAMIUM_MCAPI_PENDING
 LL_TYPE_INSTANCE_HOOK(PageSetText, ll::memory::HookPriority::Normal, BookScreenController,
     &BookScreenController::_setPageText, void, int index, std::string const& text) {
     try { log(std::format("setPage index={} pages={} {}", index, mPages.get().size(), sizes(text))); } catch (...) {}
@@ -563,6 +592,7 @@ LL_TYPE_INSTANCE_HOOK(PageSetText, ll::memory::HookPriority::Normal, BookScreenC
         log(std::format("setPage stored index={} pages={} {}", index, pages.size(), pageText(pages, index)));
     } catch (...) {}
 }
+#endif
 LL_TYPE_INSTANCE_HOOK(PageAddAt, ll::memory::HookPriority::Normal, BookScreenController,
     &BookScreenController::_addPageAt, void, int index, PageContent const& page) {
     try {
@@ -572,6 +602,7 @@ LL_TYPE_INSTANCE_HOOK(PageAddAt, ll::memory::HookPriority::Normal, BookScreenCon
     origin(index, page);
     try { log(std::format("addPage stored index={} pages={}", index, mPages.get().size())); } catch (...) {}
 }
+#ifndef LAMIUM_MCAPI_PENDING
 LL_TYPE_INSTANCE_HOOK(ManagerEditPage, ll::memory::HookPriority::Normal, BookScreenManager,
     &BookScreenManager::editPage, void, int index, PageContent const& page) {
     try {
@@ -588,6 +619,7 @@ LL_TYPE_INSTANCE_HOOK(ManagerAddPage, ll::memory::HookPriority::Normal, BookScre
     } catch (...) {}
     origin(index, page);
 }
+#endif
 // Only the fields the packet header declares as plain values are read; the
 // operation variant is inspected by index, so an unknown one logs as unknown.
 void logBookEdit(char const* channel, Packet& packet) noexcept {
@@ -642,15 +674,17 @@ Hook hooks[] = {
     {"TextTrySet", TextTrySet::hook, TextTrySet::unhook},
     {"ContextText", ContextText::hook, ContextText::unhook},
 #ifdef LAMIUM_BOOK_PASTE_TRACE
+#ifndef LAMIUM_MCAPI_PENDING
     {"BookScreenOpen", BookScreenOpen::hook, BookScreenOpen::unhook},
     {"TextCharKey", TextCharKey::hook, TextCharKey::unhook},
-    {"TextFits", TextFits::hook, TextFits::unhook},
     {"ContextAction", ContextAction::hook, ContextAction::unhook},
-    {"PageParse", PageParse::hook, PageParse::unhook},
     {"PageSetText", PageSetText::hook, PageSetText::unhook},
-    {"PageAddAt", PageAddAt::hook, PageAddAt::unhook},
     {"ManagerEditPage", ManagerEditPage::hook, ManagerEditPage::unhook},
     {"ManagerAddPage", ManagerAddPage::hook, ManagerAddPage::unhook},
+#endif
+    {"TextFits", TextFits::hook, TextFits::unhook},
+    {"PageParse", PageParse::hook, PageParse::unhook},
+    {"PageAddAt", PageAddAt::hook, PageAddAt::unhook},
     {"BookEditSend", BookEditSend::hook, BookEditSend::unhook},
     {"BookEditSendToServer", BookEditSendToServer::hook, BookEditSendToServer::unhook},
 #endif
@@ -698,5 +732,4 @@ void stop() {
         } catch (...) {}
     }
 }
-#endif
 }

@@ -151,28 +151,18 @@ void bookPasteTests() {
         check(compact(joined) == compact(before + paste + after), "no other character of the paste is lost");
     }
 
-    // The page-text gate: typing reaches the page model a frame later, so a
-    // stored page that is a prefix of the live text is pending typing.
-    {
-        auto pending = pageTextGate("hello", "hello world");
-        check(pending.pass && pending.pending && pending.text == "hello world",
-              "a stored page that the live text extends passes the gate as pending typing");
-        check(std::string(pending.reason) == "pending-typing", "pending typing names itself in the trace");
-        auto same = pageTextGate("hello", "hello");
-        check(same.pass && !same.pending && same.text == "hello", "equal page texts pass the gate unchanged");
-        auto empty = pageTextGate("", "typed");
-        check(empty.pass && empty.pending && empty.text == "typed",
-              "an empty page model is a prefix, so the first typed characters pass");
-        auto both = pageTextGate("", "");
-        check(both.pass && !both.pending, "an empty page and an empty box pass");
-        auto unrelated = pageTextGate("hello", "goodbye");
-        check(!unrelated.pass && std::string(unrelated.reason) == "text-unrelated",
-              "unrelated page text is refused and says why");
-        check(!pageTextGate("hello", "").pass, "a live text shorter than the page is refused");
-        check(!pageTextGate("hello world", "hello").pass, "a live text that is a prefix of the stored page is refused");
-        check(!pageTextGate("hello", "xhello").pass, "text inserted before the stored page is unrelated");
-        check(!pageTextGate("hello", "helo world").pass, "text typed inside the stored page is unrelated");
-    }
+    check(pageContextLimit(pageLimit), "the page's own limit is a page context");
+    check(pageContextLimit(258) && pageContextLimit(394),
+          "a limit the game raised to a refocused page's bytes is still a page context");
+    check(!pageContextLimit(pageLimit - 1), "a smaller limit is some other text field");
+    // The green caret alone names the page.
+    check(caretPage(0, true, false, 5) == 0 && caretPage(0, false, true, 5) == 1,
+          "the first spread's halves are its two pages");
+    check(caretPage(1, true, false, 5) == 2 && caretPage(1, false, true, 5) == 3 && caretPage(2, true, false, 5) == 4,
+          "a spread holds two pages and the cursor flag names the half");
+    check(caretPage(1, false, false, 5) == -1, "no caret names no page");
+    check(caretPage(2, false, true, 5) == -1, "a caret past the last page names no page");
+    check(caretPage(-1, true, false, 5) == -1, "a negative spread names no page");
 
     // The deferred plan: what to add, and when it may be applied.
     {
@@ -180,42 +170,31 @@ void bookPasteTests() {
         plan.screen = ScreenId{0x1000, 7};
         plan.frame = 40;
         plan.index = 2;
-        plan.head = "hello world";
-        plan.old = "hello";
         plan.extra = {"abc", "def"};
 
-        auto applied = planApply(plan, ScreenId{0x1000, 7}, true, "hello world", 5);
+        auto applied = planApply(plan, ScreenId{0x1000, 7}, true, 5);
         check(applied.apply() && applied.index == 3 && applied.add == 2,
               "the same screen, still editable, adds every kept page after the index");
 
-        auto changed = planApply(plan, ScreenId{0x2000, 7}, true, "hello world", 5);
+        auto changed = planApply(plan, ScreenId{0x2000, 7}, true, 5);
         check(!changed.apply() && std::string(applySkipReason(changed.skip)) == "screen",
               "apply refused when the screen changed");
-        auto reused = planApply(plan, ScreenId{0x1000, 8}, true, "hello world", 5);
+        auto reused = planApply(plan, ScreenId{0x1000, 8}, true, 5);
         check(!reused.apply() && std::string(applySkipReason(reused.skip)) == "screen",
               "apply refused when a new screen reuses the controller address");
-        auto readOnly = planApply(plan, ScreenId{0x1000, 7}, false, "hello world", 5);
+        auto readOnly = planApply(plan, ScreenId{0x1000, 7}, false, 5);
         check(!readOnly.apply() && std::string(applySkipReason(readOnly.skip)) == "not-editable",
               "apply refused when the book stopped being editable");
-        auto moved = planApply(plan, ScreenId{0x1000, 7}, true, "goodbye", 5);
-        check(!moved.apply() && std::string(applySkipReason(moved.skip)) == "page-moved",
-              "apply refused when the page text moved");
-        auto lagging = planApply(plan, ScreenId{0x1000, 7}, true, "hello", 5);
-        check(lagging.apply(), "apply allowed while the page model is one parse behind");
-        auto laggingPrefix = planApply(plan, ScreenId{0x1000, 7}, true, "help", 5);
-        check(!laggingPrefix.apply(), "a page text that is not a prefix of the old page is refused");
-        auto gone = planApply(plan, ScreenId{0x1000, 7}, true, "hello world", 2);
+        auto gone = planApply(plan, ScreenId{0x1000, 7}, true, 2);
         check(!gone.apply() && std::string(applySkipReason(gone.skip)) == "page",
               "apply refused when the index is no longer a page");
-        auto full = planApply(plan, ScreenId{0x1000, 7}, true, "hello world", 49);
+        auto full = planApply(plan, ScreenId{0x1000, 7}, true, 49);
         check(!full.apply() && std::string(applySkipReason(full.skip)) == "no-room",
               "apply refused when 50 pages would be exceeded");
-        auto exactly = planApply(plan, ScreenId{0x1000, 7}, true, "hello world", 48);
+        auto exactly = planApply(plan, ScreenId{0x1000, 7}, true, 48);
         check(exactly.apply() && exactly.add == 2, "apply allowed when the pages land on exactly 50");
         DeferredPages none;
-        none.head = "hello world";
-        check(!planApply(none, ScreenId{}, true, "hello world", 1).apply(),
-              "a plan with no kept pages is not applied");
+        check(!planApply(none, ScreenId{}, true, 1).apply(), "a plan with no kept pages is not applied");
         check(std::string(applySkipReason(ApplySkip::Empty)) == "empty", "an empty plan says so");
     }
 
@@ -244,43 +223,5 @@ void bookPasteTests() {
         auto tail = splitPaste("", "ABC", "aaaaabbbbb", 10, 5, narrow);
         check(tail.kind == SplitKind::Pages && tail.pages.size() == 3 && tail.pages.back() == "ABC",
               "the text after the caret follows the paste onto its own page when it does not fit");
-    }
-
-    // The page a paste belongs to, from the text the box holds: the spread's
-    // idea of the current page can name the half the player just left.
-    {
-        using lamium::inventory::bookPaste::choosePastedPage;
-        std::vector<std::string_view> two{"left page", "right page"};
-        auto preferred = choosePastedPage("right page", 1, two);
-        check(preferred.ok() && preferred.index == 1, "the page the spread names is used when its text matches");
-        // Edited the right page, moved back to the left one: the spread still
-        // names page 1, the box holds page 0's text (seen in game 2026-10-27).
-        auto found = choosePastedPage("left page", 1, two);
-        check(found.ok() && found.index == 0, "a page whose stored text matches is found when the spread names another");
-        auto typed = choosePastedPage("left pageX", 1, two);
-        check(typed.ok() && typed.index == 0 && std::string(typed.reason) == "pending-typing",
-              "a page the live text extends is found the same way");
-        std::vector<std::string_view> blanks{"", ""};
-        auto empty = choosePastedPage("", 1, blanks);
-        check(empty.ok() && empty.index == 1, "an empty box on an empty page stays with the spread's page");
-        std::vector<std::string_view> growing{"ab", "abcd"};
-        auto longest = choosePastedPage("abcdX", 0, growing);
-        check(longest.ok() && longest.index == 1, "the longest matching neighbour wins over a shorter preferred page");
-        check(!choosePastedPage("abcdX", -1, growing).ok(), "no preferred page selects no page");
-        // An empty or freshly typed box matches every empty page; only the
-        // spread around the preferred page may take the overflow.
-        std::vector<std::string_view> book{"", "text", "", "", "more", "end"};
-        auto near = choosePastedPage("", 4, book);
-        check(near.ok() && near.index == 3, "an empty box finds the empty page beside the preferred one");
-        check(!choosePastedPage("", 1, book).ok(), "two empty neighbours of the preferred page cannot be told apart");
-        check(!choosePastedPage("", 4, std::vector<std::string_view>{"", "a", "b", "c", "more"}).ok(),
-              "an empty page far from the spread is never chosen");
-        auto exactFirst = choosePastedPage("left", 1, std::vector<std::string_view>{"left", ""});
-        check(exactFirst.ok() && exactFirst.index == 0, "an exact neighbour wins over a preferred page that only prefixes");
-        std::vector<std::string_view> unrelated{"one", "two"};
-        check(!choosePastedPage("three", 0, unrelated).ok(), "a box holding another page's text selects no page");
-        std::vector<std::string_view> photo{"", "\x01"};
-        auto skipped = choosePastedPage("", 0, photo);
-        check(skipped.ok() && skipped.index == 0, "a photo page is never taken for the text page beside it");
     }
 }

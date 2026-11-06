@@ -412,12 +412,12 @@ Text fields in Lamium have a caret, paste and click placement.
 
 ### Book paste across pages
 
-Unavailable on Minecraft 1.26.60.05 and hidden from the settings, until this game
-version's LeviLamina offers the game functions it needs; a paste works as in
-vanilla. Elsewhere it is on by default. A paste into a book that does not fit the page continues on
-new pages inserted after it, instead of being cut off; later pages move back.
-If 50 pages would not be enough, nothing is pasted and the pages needed are
-shown.
+On by default. A paste into a book that does not fit the page starts at the caret
+and continues on new pages inserted after it, instead of being cut off; later pages
+move back, and the text that followed the caret ends the last new page. The book
+stays on the pasted page, with the caret at the end of the part that landed there,
+so a second paste goes in before the rest of the first. If 50 pages would not be
+enough, nothing is pasted and the pages needed are shown when the book closes.
 
 ### Game language (experimental)
 

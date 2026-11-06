@@ -222,7 +222,7 @@ option_end()
 includes("packages/levilamina-client-sdk.lua")
 -- A new SDK (game or LeviLamina version): follow the playbook in
 -- docs/GAME-UPDATES.md; the verified game in src/app/Versions.cpp changes last.
-add_requires("levilamina-client-sdk 26.60.0", {configs = {shared = true}})
+add_requires("levilamina-client-sdk 26.60.3", {configs = {shared = true}})
 
 add_requires("levibuildscript")
 add_requires("nlohmann_json v3.12.0")
@@ -267,7 +267,7 @@ target("Lamium")
     if has_config("portal_trace") then add_defines("LAMIUM_PORTAL_TRACE") end
     if has_config("feature_skip") then add_defines("LAMIUM_FEATURE_SKIP") end
     if has_config("unverified_game") then add_defines("LAMIUM_UNVERIFIED_GAME") end
-    -- L-305: remove once SDK 26.60 exports the symbols it lists.
+    -- L-305: remove once the SDK links what it still holds back.
     add_defines("LAMIUM_MCAPI_PENDING")
     add_rules("@levibuildscript/linkrule")
     add_rules("@levibuildscript/modpacker", {modVersion = lamiumVersion})

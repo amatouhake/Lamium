@@ -3,12 +3,12 @@
         version = "1.0"
     },
     ["windows|x64"] = {
-        ["bedrockdata v26.60.5-client.5#f56260b5"] = {
+        ["bedrockdata v26.60.5-client.9#f56260b5"] = {
             repo = {
-                commit = "595b596406d9c2736d56e35974e29e5b495e26cf",
+                commit = "06a8e5bb0a288f8b4690d2a49e561b89073b40e3",
                 url = "https://github.com/LiteLDev/xmake-repo.git"
             },
-            version = "v26.60.5-client.5"
+            version = "v26.60.5-client.9"
         },
         ["cmake#f56260b5"] = {
             repo = {
@@ -88,8 +88,8 @@
             },
             version = "0.6.1"
         },
-        ["levilamina-client-sdk 26.60.0#16fb575b"] = {
-            version = "26.60.0"
+        ["levilamina-client-sdk 26.60.3#16fb575b"] = {
+            version = "26.60.3"
         },
         ["magic_enum v0.9.7#f56260b5"] = {
             repo = {

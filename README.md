@@ -28,7 +28,7 @@ experimental in the settings are still settling (see
 [Known issues](#known-issues)). Runtime evidence and
 remaining gaps are tracked in [validation status](docs/VALIDATION.md).
 
-Supported: Minecraft Bedrock 1.26.60.05, LeviLamina Client 26.60.0 or later
+Supported: Minecraft Bedrock 1.26.60.05, LeviLamina Client 26.60.3 or later
 (26.60 series), Windows x64. Android support is not currently planned: it
 would be a separate ARM64 port, not a repackaged build. On a game version
 Lamium has not been checked on, the parts that depend on it (for example
@@ -38,7 +38,7 @@ say which features are paused.
 
 ## Install
 
-**LeviLauncher (recommended).** In an instance with LeviLamina Client 26.60.0
+**LeviLauncher (recommended).** In an instance with LeviLamina Client 26.60.3
 or later for Minecraft 1.26.60.05, find Lamium in LeviLauncher's mod browser
 (Bedrinth) and install it. Update and uninstall it the same way. Updates keep
 your settings. Start Minecraft, enter a world and press `L` to open Lamium
@@ -51,7 +51,7 @@ Only the LeviLauncher path has been tested by the maintainer.
 
 **Manual ZIP (fallback).**
 
-1. Install LeviLamina Client 26.60.0 or later for Minecraft 1.26.60.05.
+1. Install LeviLamina Client 26.60.3 or later for Minecraft 1.26.60.05.
 2. Download `Lamium-<version>-client-windows-x64.zip` from the
    [Releases](https://github.com/amatouhake/Lamium/releases) page.
 3. Extract it so that `Lamium.dll` and `manifest.json` end up in
@@ -212,9 +212,6 @@ requests are handled. What has been checked in game, per feature, is in
   run `PeEditor.exe -mb --exe Minecraft.Windows.exe --inplace` in the instance
   folder, then start it from LeviLauncher. Keep a copy of the old file. Repairing
   was checked on one instance.
-- **Book paste across pages** is unavailable: this game version's LeviLamina does
-  not offer the game functions it needs yet. A paste works as in vanilla, and the
-  setting is hidden until it can return.
 - **Hide Offhand:** a map in the off hand stays drawn.
 - **Schematics:** the target card shows no instrument for a ghost note block, and
   the check does not compare a note block's instrument. Real note blocks show
@@ -349,7 +346,7 @@ continuing.
 
 ## Build
 
-Target: Windows x64, Minecraft 1.26.60.05, LeviLamina Client v26.60.0.
+Target: Windows x64, Minecraft 1.26.60.05, LeviLamina Client v26.60.3.
 Install Visual Studio Build Tools with the Windows SDK and C++ toolchain, LLVM
 (clang-cl), Git and xmake. Dependencies are resolved by xmake; no sibling
 project or machine-specific configuration is required.

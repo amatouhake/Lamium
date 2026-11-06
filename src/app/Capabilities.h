@@ -13,7 +13,7 @@ enum class Id {
     FreeCameraHand, FreeCameraHud, HideParticles, HideBossBars,
     SchematicBlend, SchematicActorLight, SchematicCreativePick,
     InventoryDiagnostics, LanguageDiagnostics, SneakPlacement, NoteBlockSounds,
-    NoteBlockInstrument, Count
+    NoteBlockInstrument, BookPastePages, Count
 };
 enum class Impact { None, Partly, Fully };
 enum class Stage : std::uint8_t { Waiting, Ready, Stopped, Failed };
@@ -63,6 +63,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::SneakPlacement, "Sneak placement (use gate and sneak state)", "sneakPlacement", "capability.SneakPlacement", Impact::Fully},
     {Id::NoteBlockSounds, "Note block pitch (level sound events)", "targetInfo", "capability.NoteBlockSounds", Impact::Partly},
     {Id::NoteBlockInstrument, "Ghost note block instrument (block instrument component)", "targetInfo", "capability.NoteBlockInstrument", Impact::Partly, true, true},
+    {Id::BookPastePages, "Book paste across pages (page model and caret)", "bookPaste", "capability.BookPastePages", Impact::Fully, true, true},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);
@@ -79,7 +80,7 @@ inline constexpr Definition const& definition(Id id) { return definitions[static
 
 // One policy for every native adapter. A patch is not a new ABI claim; native
 // checks still apply. Minecraft verification is a separate, stricter decision.
-inline constexpr int loaderMajor = 26, loaderMinor = 60, minimumLoaderPatch = 0;
+inline constexpr int loaderMajor = 26, loaderMinor = 60, minimumLoaderPatch = 3;
 struct Environment {
     bool verifiedGame;
     int major, minor, patch;

@@ -7,17 +7,17 @@ package("levilamina-client-sdk")
     set_description("LeviLamina client headers and release import library")
     set_license("LGPL-3.0")
     add_urls("https://github.com/LiteLDev/LeviLamina/archive/refs/tags/v$(version).zip")
-    add_versions("26.60.0", "281d4352baf4b02e05e6addd02dc565409702c478ace2f52d0a7580b24203301")
-    add_resources("26.60.0", "runtime",
-        "https://github.com/LiteLDev/LeviLamina/releases/download/v26.60.0/levilamina-v26.60.0-client-release-windows-x64.zip",
-        "377334fdc4e7c5696a139e73f28f72e61e42e5c2e1cd21d32b2c8893df299db9")
+    add_versions("26.60.3", "db12e7a9a275c96ed355e5ff6daa3b6504115578878ed21d8555bed43a4b65e0")
+    add_resources("26.60.3", "runtime",
+        "https://github.com/LiteLDev/LeviLamina/releases/download/v26.60.3/levilamina-v26.60.3-client-release-windows-x64.zip",
+        "71b56adfe8787ce1bb606fbf97d41126a18c1d80b9c0e096874b9878e0570569")
     add_defines("LL_PLAT_C", "ENTT_PACKED_PAGE=128", "ENTT_SPARSE_PAGE=4096", "ENTT_NO_MIXIN")
     add_links("LeviLamina")
     add_deps("entt v4.0.0", "expected-lite v0.8.0", "fmt 11.2.0", "gsl v4.2.0",
         "glm 1.0.1", "leveldb 1.23", "magic_enum v0.9.7", "nlohmann_json v3.12.0",
         "rapidjson 2025.02.05", "type_safe v0.2.4", "pcg_cpp v1.0.0", "pfr 2.1.1",
         "symbolprovider v1.3.0", "parallel-hashmap v2.0.0", "concurrentqueue v1.0.4",
-        "stb 2025.03.14", "bedrockdata v26.60.5-client.5")
+        "stb 2025.03.14", "bedrockdata v26.60.5-client.9")
 
     on_fetch(function(package, opt)
         if opt.system then return false end
