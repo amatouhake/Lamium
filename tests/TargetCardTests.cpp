@@ -8,6 +8,9 @@ void targetCardTests() {
     mob.details.push_back({"target.health", "16 / 20", false, .8f, DetailKind::Health, 16, 20});
     mob.details.push_back({"target.age", "target.adult", true});
     CardOptions options;
+    check(targetReach(64, false, 32) == 64, "the range stands while full range is off");
+    check(targetReach(64, true, 32) == 725 && targetReach(64, true, 0) == 64,
+          "full range reaches the corner of the render distance, or the range when it is unknown");
     {
         TargetInfo measured{"Stone", "minecraft:stone"};
         measured.distance = 12.345;

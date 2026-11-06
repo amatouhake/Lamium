@@ -1161,6 +1161,8 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"targetGrowth", "成長: {}"},
     {"targetDistance", "範圍: {} 格"},
     {"help.information.targetDistance", "資訊卡從視點（玩家，或在環顧四周和靈魂出竅期間為攝影機）往外尋找目標的最遠距離。"},
+    {"targetFullRange", "直到繪製距離: {}"},
+    {"help.information.targetFullRange", "在遊戲繪製的範圍內尋找目標，而不是使用上面的範圍。用於測量遠處；看向開闊地時負擔會增加。"},
     {"meter.hearts", "愛心"},
     {"meter.icons", "圖示"},
     {"animations", "動畫: {}"},

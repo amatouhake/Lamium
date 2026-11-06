@@ -255,6 +255,7 @@ struct Settings {
         int targetArmor = 0;  // 0 icons, 1 bar, 2 number
         int targetGrowth = 0; // 0 bar, 1 number
         float targetDistance = 6; // Blocks from the viewpoint (the body, or a detached camera)
+        bool targetFullRange = false; // Up to the render distance instead (L-308)
         bool targetStates = false; // Other details
         bool targetCoordinates = false;
         bool targetMeasure = false; // The distance to the target (L-308); a hold key flips it.

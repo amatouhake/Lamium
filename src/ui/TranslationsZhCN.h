@@ -1161,6 +1161,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"targetGrowth", "生长: {}"},
     {"targetDistance", "范围: {} 格"},
     {"help.information.targetDistance", "卡片从视点（玩家，或在自由视角和自由摄像机期间为摄像机）开始寻找目标的最远距离。"},
+    {"targetFullRange", "直到渲染距离: {}"},
+    {"help.information.targetFullRange", "在游戏渲染的范围内寻找目标，而不是使用上面的范围。用于测量远处；看向开阔地时开销会增加。"},
     {"meter.hearts", "心形"},
     {"meter.icons", "图标"},
     {"animations", "动画: {}"},

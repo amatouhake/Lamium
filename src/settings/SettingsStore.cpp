@@ -106,6 +106,7 @@ Json encode(Settings const& settings) {
                          {"targetArmor", settings.information.targetArmor},
                          {"targetGrowth", settings.information.targetGrowth},
                          {"targetDistance", settings.information.targetDistance},
+                         {"targetFullRange", settings.information.targetFullRange},
                          {"targetStates", settings.information.targetStates},
                          {"targetCoordinates", settings.information.targetCoordinates},
                          {"targetMeasure", settings.information.targetMeasure},
@@ -350,6 +351,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.targetArmor = settingsValue(info, "targetArmor", value.information.targetArmor);
         value.information.targetGrowth = settingsValue(info, "targetGrowth", value.information.targetGrowth);
         value.information.targetDistance = settingsValue(info, "targetDistance", value.information.targetDistance);
+        value.information.targetFullRange = settingsValue(info, "targetFullRange", value.information.targetFullRange);
         value.information.targetCoordinates = settingsValue(info, "targetCoordinates", value.information.targetCoordinates);
         value.information.targetMeasure = settingsValue(info, "targetMeasure", value.information.targetMeasure);
         // Test builds of 2026-10-15 saved a number here (0 meant hidden).

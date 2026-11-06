@@ -102,6 +102,11 @@ inline std::vector<CardRow> cardRows(TargetInfo const& target, CardOptions const
     }
     return rows;
 }
+// How far the card looks (L-308). The render distance is a square of chunks, so
+// its corner is the farthest loaded block; a block never loaded just ends the ray.
+inline double targetReach(float range, bool fullRange, int renderChunks) {
+    return fullRange && renderChunks > 0 ? std::ceil(renderChunks * 16 * std::sqrt(2.0)) : range;
+}
 // Ten icons like the vanilla armor bar: each is full, half or empty.
 enum class Heart { Empty, Half, Full };
 // Health in absolute units: one slot per 2 maximum HP, odd HP as a half heart.

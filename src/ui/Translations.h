@@ -1184,6 +1184,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"targetGrowth", "Growth: {}", "成長: {}"},
     {"targetDistance", "Range: {} blocks", "表示する距離: {} ブロック"},
     {"help.information.targetDistance", "How far from the viewpoint (the player, or the camera during Freelook and FreeCamera) the card looks for a target.", "視点（普段はプレイヤー、フリールック・フリーカメラ中はカメラ）からどこまで先の対象を表示するか。"},
+    {"targetFullRange", "Up to the render distance: {}", "描画距離まで: {}"},
+    {"help.information.targetFullRange", "Look for a target as far as the game draws, instead of the range above. For measuring far away; it costs more while you look across open ground.", "上の距離の代わりに、ゲームが描画している範囲まで対象を探します。遠くを測るときに使います。開けた場所を見ている間は処理が増えます。"},
     {"meter.hearts", "Hearts", "ハート"},
     {"meter.icons", "Icons", "アイコン"},
     {"animations", "Animations: {}", "アニメーション: {}"},

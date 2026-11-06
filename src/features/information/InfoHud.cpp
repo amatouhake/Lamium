@@ -1501,12 +1501,15 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         auto direction = player->getViewVector();
         return ViewRay{eye.x, eye.y, eye.z, direction.x, direction.y, direction.z, reach};
     };
+    auto cardReach = [&] {
+        return targetReach(settings.targetDistance, settings.targetFullRange, context.mClient.getOptions().getViewDistanceChunks());
+    };
     // Vanilla Hide HUD (F1) hides every element; recording and death
     // tracking below keep running (L-107).
     bool hidden = !preview && (context.mClient.getOptions().getHideHud() || camera::freeCameraHide::hudHidden());
     if (settings.debug && !hidden && !preview) {
         // No player, no panel: invented values would read as real ones.
-        if (auto values = collectDebugValues(context.mClient, viewRay(settings.targetDistance))) {
+        if (auto values = collectDebugValues(context.mClient, viewRay(cardReach()))) {
             auto counts = clientCounters(context.mClient);
             if (settings.debugEntityKinds) values->entityKinds = counts.entityKinds;
             if (size_t limit = settings.debugEntityTypes == 2 ? 10 : settings.debugEntityTypes == 1 ? 5 : 0; limit)
@@ -1589,7 +1592,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             box(ui::HudElementId::PlayerList) = drawPlayerList(context, width, height, hud.playerList, settings,
                                                                static_cast<float>(runtime.ui.hudRowHeight));
     };
-    auto targetRay = viewRay(settings.targetDistance);
+    auto targetRay = viewRay(cardReach());
     std::optional<TargetInfo> cardTarget;
     bool const cardRan = preview || (settings.target && !listHeld && !(settings.debug && settings.debugHideTarget));
     // L-301: note pitches come from the level's sound events, heard while the
