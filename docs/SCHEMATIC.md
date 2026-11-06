@@ -1276,6 +1276,12 @@ Research (2026-10-03, in progress):
   the maintainer allows for testing: `mixture.mcstructure` and
   `broken_village_house.mcstructure` (in their Downloads folder; not
   committed).
+- 1.26.60 (2026-11-06, issue #70): the same keys, but `structure` is
+  a byte array holding the body's own NBT and the root carries
+  `compression` (`1` = zlib). `parseStructure` unpacks it before
+  reading the body; a byte array with no `compression` is read as
+  the body itself, and a file with `structure` as a compound keeps
+  the old path.
 - A possible path for the file browser preview: the game's
   `StructureVolumeRenderer` (the structure block's 3D view) renders a
   block volume into UI. Not tried yet.

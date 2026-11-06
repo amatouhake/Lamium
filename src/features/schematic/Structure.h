@@ -1,6 +1,7 @@
 #pragma once
 #include "features/schematic/Nbt.h"
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <map>
 #include <optional>
@@ -72,7 +73,14 @@ struct Structure {
     }
 };
 
+// The 1.26.60 game stores the body as a compressed byte array with
+// `compression` at the root (L-307); the runtime supplies the inflater, so this
+// module stays free of game types, and tests pass their own. The inflater stops
+// at `maxSize`: a small file can expand far past the limit on the file itself.
+using Inflate = std::optional<std::string> (*)(std::span<std::uint8_t const>, std::size_t maxSize);
+inline constexpr std::size_t maxInflatedBodySize = 256ull * 1024 * 1024;
+
 // Throws std::runtime_error with a reason when the file is not a usable structure.
-Structure parseStructure(std::span<std::uint8_t const> bytes);
+Structure parseStructure(std::span<std::uint8_t const> bytes, Inflate inflate = nullptr);
 std::string writeStructure(Structure const& structure);
 }

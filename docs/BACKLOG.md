@@ -237,6 +237,19 @@ Tests: a factory-made file per case (plain, compressed, bad zlib data, truncated
 payload) in the native suite.
 In game: save a build in 1.26.60.05, load it from the Schematics screen and check
 that the ghost matches; then load a 1.26.51 export.
+Status 2026-11-06: built on `l307-structure-compression`, not yet checked in game.
+`parseStructure` takes an `Inflate` callback (`Structure.h`), unpacks a byte-array
+body when `compression` is set through `ll::utils::compress_utils::decompress`
+(`StructureInflate.cpp`, wired in `SchematicSession.cpp`), and reads a byte array
+without `compression` as the body itself. Tests: `structurePackedBody` in
+`tests/SchematicTests.cpp` (compressed through a stub inflater, no inflater, a
+failed inflate, a truncated body, an uncompressed array), mutation-proved by forcing
+the plain path. The inflater stops at `maxInflatedBodySize` (256 MiB, the same as the
+file limit). `structureFromGame` reads the real body from issue #70's attachment
+(`tests/Issue70Structure.h`); that attachment inflated as zlib outside the mod.
+The tests do not reach the real `decompress`: the native suite never calls engine
+symbols, because that would need `LeviLamina.dll` at run time. Bad zlib data through
+the real inflater stays unchecked; the in-game load checks a good file.
 No release target selected.
 
 ### L-305 Move to Minecraft 1.26.60.05 and LeviLamina 26.60
