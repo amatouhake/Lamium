@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Book paste wording (2026-11-06)
+
+Build `79464e79`, DLL `0500ae8d6f44613d8a870c716be1842a8de7009358b4da08a61562dbbbbdcee3`,
+no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Seen, per the
+maintainer: the new name and help read as expected in the three languages whose name
+changed (English, Japanese, Traditional Chinese). Not seen: Simplified Chinese, where
+only the help's last sentence changed.
+
 ## Normal build of e26a5a91 (2026-11-06)
 
 Build `e26a5a91`, DLL `1ce3588b4920784d538040dd57032a870dc71de739e7321b1f15289ed751f184`,
