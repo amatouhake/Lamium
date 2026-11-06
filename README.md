@@ -19,7 +19,7 @@
 
 ## Status
 
-Lamium 0.5.0 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.5.1 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -168,6 +168,7 @@ Waypoints and the death point also show in the world, with both maps off.
 | Fake Offhand *Exp.* | Use a hotbar block or item as if it were in the offhand | Right click | Off |
 | Hand Restock | Refill the held slot when it runs low; refill a used totem | — | Off |
 | Death layout restore *Exp.* | Put picked-up items back where they were when you died | — | Off |
+| Paste across book pages | A long paste into a book continues on new pages | — | On |
 
 ### Actions
 
@@ -218,6 +219,9 @@ requests are handled. What has been checked in game, per feature, is in
   theirs, and the note is still compared.
 - **Connected Textures:** a glass pane can show an edge at a chunk border where
   the pane continues (L-306).
+- **Crash log at exit:** closing the game can leave a crash log even though it looks
+  like a normal exit. It happens without Lamium too, and no lost data has been seen.
+  Reported as [LeviLamina#1869](https://github.com/LiteLDev/LeviLamina/issues/1869).
 
 **Camera & view**
 
@@ -298,6 +302,8 @@ requests are handled. What has been checked in game, per feature, is in
   inventory may be read as kept and nothing is restored. In use it sometimes
   restores after a death you did not expect, or in a layout that looks
   wrong (under investigation). Servers with latency are untested.
+- **Paste across book pages:** checked in a local world. Servers, replacing a
+  selection and the message when 50 pages are not enough are untested.
 
 **Actions**
 

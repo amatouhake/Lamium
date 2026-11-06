@@ -109,7 +109,10 @@ A card for the block or mob you aim at: icon, name, hearts in real health
 units (one heart per 2 HP), armor and bars such as growth. "Other details" adds
 the block's own states and what its block entity stores: a sign's text, a note
 block's pitch and instrument, a lectern's book and page. "Show distance" adds
-how far the target is from your eye; a key can flip it while held.
+how far the target is from your eye. Keys can flip the distance, the other
+details and the position while held. The card looks for a target up to its Range,
+or as far as the game draws with "Up to the render distance", which costs more
+while you look across open ground.
 
 ### Debug View
 
