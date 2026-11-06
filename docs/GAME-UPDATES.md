@@ -124,7 +124,13 @@ the package/SDK loader-policy alignment in CI.
    `add_requires` version in `xmake.lua`, `tooth.json`'s LeviLamina range
    and the game versions in README.md ("Supported: Minecraft Bedrock" with
    the full build number, install steps, Target); refresh
-   `xmake-requires.lock`.
+   `xmake-requires.lock`. `xmake.lua` holds prelink at v0.8.7 with
+   `add_requireconfs`, and the lock's `prelink v0.8.8` entry records
+   `version = "v0.8.7"` by hand because a locked version beats the override.
+   Upstream replaced the published v0.8.8 asset on 2026-11-04 with a binary
+   whose changes are unexplained (no release notes, new proprietary notice).
+   Before moving to a newer bedrockdata, check that v0.8.7 still reads its
+   data; do not take a newer prelink until the maintainer has decided to.
 2. **Build.** `xmake f ... -y`, `xmake build Lamium`, `LamiumTests`,
    `LamiumNativeTests`. Fix compile errors: they are the removed or retyped
    functions and members. Run `scripts/Check-GameInventory.ps1` and
