@@ -206,8 +206,13 @@ per server address (`127.0.0.1:19132`), past-world data loaded, and
 dimension travel, going underground, coming back and rejoining all looked
 right; with the feature off, the Open row reproduces the reported screen.
 Open: whether the reporter's case is only the switch (they have not said
-whether it was on), whether the Open row should be refused like the hotkey
-or say what to do, and whether a real recording defect remains on a server.
+whether it was on), and whether a real recording defect remains on a server.
+Direction (maintainer 2026-11-06, not settled): keep the Open row able to open
+the map with the feature off, because the layers can still be inspected and
+edited, and add a way to turn recording on from the map screen itself (a
+control on the off note) instead of refusing like the hotkey. That also raises
+the standalone Waypoints screen (`OpenWaypoints`): if the map screen carries
+waypoint editing, it could be retired or de-emphasised.
 In game: the reporter turns the feature on and retries; their
 `mods/Lamium/logs/lamium.log` and the walking route would settle it.
 No release target selected.
