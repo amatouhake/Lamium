@@ -671,6 +671,74 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
+### L-320 Highlight designated block types in the world
+Kind: Design. Maintainer's idea 2026-11-07 (multiplayer-session feedback).
+Designate block types (diamond ore, ancient debris, anything) and render
+them emphasised in the world so they are not overlooked. On Java Edition
+this is done with a resource pack; Bedrock Edition cannot switch resource
+packs from inside a world, so here it would be a client feature.
+Designation happens in the world: aim at a block and add its type with a
+key; a list manages the designated types.
+Decided in the same discussion: emphasis only, on blocks that are actually
+visible — nothing is ever shown through walls; X-ray-style display is out.
+Data: only blocks in chunks the client has received, scanned live like
+the light overlay; never the recorded map data, which may be stale.
+Rendering builds on the overlay foundation (light overlay / Shapes);
+matching kinship: the schematic check.
+Open: the emphasis style (outline, face tint, pulse — what reads as
+"stands out" without retexturing; Connected Textures is the reference
+feel); range and rescan cost; designation by type only or by exact block
+states; whether a schematic placement's blocks share this list or stay
+with the schematic check.
+
+### L-319 Item details: Work Penalty first, then the unshown rest
+Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).
+Target Info gives blocks a rich card, while items only get container
+contents, durability and food values in the tooltip. Main ask: show the
+anvil Work Penalty — the item's RepairCost as the level surcharge it adds
+to any anvil operation (a rename alone costs penalty + 1) and the
+prior-use count behind it (penalty = 2^n - 1). Do not predict a whole
+operation's cost; that depends on the other item and the operation.
+Then investigate what else the client knows about an item but Lamium does
+not show, and show that too. Candidates to verify in code before listing
+them as displayable: per-instance data (suspicious stew effect; firework
+detail vanilla does not print) and item-definition data (attack damage
+and speed, armour value, fuel burn time, anvil repair material,
+enchantability, max stack). A derived value (grindstone experience
+return) needs its own call — deterministic formulas only. Home: the item
+tooltip, beside durability and food values.
+
+### L-318 Tool Switch: pick a Silk Touch tool when only Silk Touch recovers the block
+Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).
+For blocks with no proper tool that drop themselves only with Silk Touch
+(glass and similar), Tool Switch should pick the Silk Touch tool
+automatically.
+Scope guard: apply only when the block has no preferred tool class and
+drops nothing without Silk Touch, so the switch can never change a drop
+the player would otherwise get — ores and similar, where Silk Touch is a
+choice rather than a rescue, stay out.
+Open: hotbar only, or the fetch-from-inventory option too; the pick order
+when several Silk Touch tools are present; whether the switch notice
+should say why this tool was picked.
+
+### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
+Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;
+the maintainer's own play agrees).
+With the minimap view forced to Surface (L-253), the Nether also uses the
+surface view, so only the bedrock ceiling is visible and the minimap
+loses almost all meaning there. Recorded as a problem: doing nothing is
+not the answer, but no candidate is good enough yet — the solution is
+deferred.
+Candidates: (a) in the Nether only, a forced Surface falls back to
+Automatic; (b) let the view choice be set per dimension; (c) a roof-aware
+forced Surface (cave view while a ceiling is above the player) — close
+to what Automatic already does, so it may only duplicate it.
+Counterweight: forced Surface has real uses in the Nether — creative
+work that breaks the bedrock ceiling and builds custom spaces. A fix
+that quietly erases the force in those cases trades one complaint for
+another. L-253's checked behaviour stands until a candidate survives
+this.
+
 ### L-315 Finish what waits for more game symbols
 Kind: Blocked on a symbol request. Kept as one item so a single request to
 `LiteLDev/mcapi-requests` covers it; the maintainer prefers not to file one now
@@ -1546,6 +1614,11 @@ Next step if resumed (a larger change, maintainer's call): draw these icons
 through the slot path, e.g. drive an `InventoryItemRenderer` (or its pass
 setup) from Lamium, which could fix the shield glint too. Keep `isGlint` as
 the glint predicate; do not replace it with `isEnchanted`.
+Update 2026-11-07: two more items the direct icon path cannot draw — a
+piglin head and a recovery compass show nothing in container previews
+(user report 2026-11-05, Discord). The head is a model item like the
+shield; the compass icon is data-driven. More weight for the slot-path
+next step above; still parked.
 
 ### L-79 Carved pumpkin and spyglass frame draw path
 Kind: Research. Cheap models may run the steps below and report; implementing
