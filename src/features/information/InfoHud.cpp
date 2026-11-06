@@ -24,11 +24,13 @@
 #include "ui/Localization.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/world/level/dimension/Dimension.h"
 #include "mc/client/game/IMinecraftGame.h"
 #include "mc/client/renderer/BaseActorRenderContext.h"
 #include "mc/client/renderer/actor/ItemRenderer.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/LiquidName.h"
+#include "features/schematic/RayCells.h"
 #include "features/schematic/SchematicItems.h"
 #include "features/schematic/SchematicSession.h"
 #include "features/schematic/SchematicActions.h"
@@ -1495,11 +1497,13 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     auto viewRay = [&](double reach) -> std::optional<ViewRay> {
         auto* player = context.mClient.getLocalPlayer();
         if (!player) return std::nullopt;
+        auto const& height = player->getDimension().mHeightRange;
+        auto inHeight = [&](double y, double dy) { return schematic::reachInHeight(y, dy, reach, height->mMin, height->mMax); };
         if (auto view = CameraSessions::instance().detachedViewRay(context.mClient))
-            return ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, reach, true};
+            return ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, inHeight(view->y, view->dy), true};
         auto eye = player->getEyePos();
         auto direction = player->getViewVector();
-        return ViewRay{eye.x, eye.y, eye.z, direction.x, direction.y, direction.z, reach};
+        return ViewRay{eye.x, eye.y, eye.z, direction.x, direction.y, direction.z, inHeight(eye.y, direction.y)};
     };
     auto cardReach = [&] {
         return targetReach(settings.targetDistance, settings.targetFullRange, context.mClient.getOptions().getViewDistanceChunks());

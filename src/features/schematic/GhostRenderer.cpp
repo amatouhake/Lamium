@@ -909,7 +909,7 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
     auto& runtime = Runtime::instance();
     if (!runtime.enabled() || !runtime.snapshot()->schematic.enabled) return std::nullopt;
     auto snapshot = session::snapshot();
-    for (auto const& cell : cellsAlong(x, y, z, dx, dy, dz, reach)) {
+    for (auto const& cell : CellWalk(x, y, z, dx, dy, dz, reach)) {
         BlockPos pos{cell.x, cell.y, cell.z};
         if (!region.getChunkAt(pos)) return std::nullopt;
         // A real block hides the ghosts behind it; one standing in its own

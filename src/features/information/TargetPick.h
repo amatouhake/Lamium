@@ -25,7 +25,7 @@ std::optional<CellHit> nearestCellHit(double x, double y, double z, double dx, d
     constexpr double same = 1e-3;
     std::optional<CellHit> walked;
     double limit = game ? std::min(reach, game->distance + 1) : reach;
-    for (auto const& cell : schematic::cellsAlong(x, y, z, dx, dy, dz, limit)) {
+    for (auto const& cell : schematic::CellWalk(x, y, z, dx, dy, dz, limit)) {
         if (stop(cell)) break;
         auto distance = clipCell(cell);
         if (!distance || *distance > reach) continue;

@@ -538,7 +538,7 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
 // `entered` reports how far along the ray it lies, for L-304.
 std::optional<TargetInfo> liquidTarget(BlockSource& source, bool includeStates, ViewRay const& ray, bool nether,
                                        double& entered) {
-    for (auto const& cell : schematic::cellsAlong(ray.x, ray.y, ray.z, ray.dx, ray.dy, ray.dz, ray.reach)) {
+    for (auto const& cell : schematic::CellWalk(ray.x, ray.y, ray.z, ray.dx, ray.dy, ray.dz, ray.reach)) {
         BlockPos pos{cell.x, cell.y, cell.z};
         if (!source.getChunkAt(pos)) return std::nullopt;
         Block const& block = source.getBlock(pos);

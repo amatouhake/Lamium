@@ -1421,6 +1421,11 @@ void liquidChecks() {
 }
 // L-184: the cells a ray passes, nearest first.
 void rayCells() {
+    check(reachInHeight(70, 0, 500, -64, 320) == 500, "a level ray keeps its reach");
+    check(reachInHeight(70, 1, 500, -64, 320) == 266, "a ray at the sky ends past the top with a margin");
+    check(reachInHeight(70, -1, 500, -64, 320) == 150, "a ray down ends past the bottom with a margin");
+    check(reachInHeight(70, 1, 6, -64, 320) == 6, "a short reach is unaffected");
+    check(reachInHeight(400, 1, 500, -64, 320) == 1, "above the world looking up keeps a short ray");
     auto cells = cellsAlong(.5, .5, .5, 1, 0, 0, 3.2);
     check(cells.size() == 4 && cells.front() == Point{0, 0, 0} && cells.back() == Point{3, 0, 0}, "a ray along x steps cell by cell");
     auto diagonal = cellsAlong(.5, .5, .5, 1, 1, 0, 2);
