@@ -53,6 +53,17 @@ Kind: Bug / Research. **Lamium is not needed for it** (2026-11-06, VALIDATION-LO
 Lamium disabled, one of two runs left a trace with the same stack. Closed as not ours:
 reported as LiteLDev/LeviLamina#1869 (2026-11-07). Everything below that says Lamium is not
 excluded predates this check.
+
+Fixed upstream the same day it was reported (2026-11-07): #1869 was closed
+about 90 minutes after it was filed, by LeviLamina commit `07d5c1e` ("fix
+client crashes on exit"). In `ModifyMemoryAllocator.cpp` the allocator hooks
+are no longer uninstalled when the client exits: they changed from auto hooks
+to a manually registered `HookRegistrar` that is deliberately never released,
+so the exit-time TLS destructor's frees keep going through LeviLamina's
+allocator. It is in LeviLamina's changelog under Unreleased; no tagged
+release carries the fix yet. This fits the reproduction (LeviLamina Client,
+no other mods); whether the game alone, with no LeviLamina, also crashes is
+still unknown, as nothing would record it.
 Found 2026-11-06 in `logs/crash/`; the maintainer sees a normal exit because
 only the crash logger notices. No lost data has been seen; world saves were
 not checked. Nothing here was run in game: this is a static reading of the
