@@ -142,6 +142,8 @@ No release target selected.
 Done 2026-11-06 (PR #71, merged as `7507377b`): the maintainer's in-game check of
 `07669997` passed, see VALIDATION-LOG. Reply to issue #70 once a build with the fix
 is available, as promised there.
+2026-11-07: released in 0.5.1. No further reply: the closing comment on issue #70 had
+already said none would follow and pointed to the releases page (maintainer's decision).
 
 ### L-302 A ghost's contents are missing when its block draws them through a block actor
 Kind: Bug (ghost rendering). Maintainer in-game check 2026-11-03 of PR #68.
