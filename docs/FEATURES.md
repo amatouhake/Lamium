@@ -222,6 +222,7 @@ edited in a Waypoints screen.
 ### World map
 
 A full-screen map (`M`) of the areas you have visited, recorded per world.
+It opens whether or not Record is on; off only stops recording.
 
 - Zooms out until everything explored fits on the screen.
 - A side panel lists waypoints, placed schematics and shapes, with a link

@@ -22,6 +22,8 @@ Decided rule without asking.
   offers a key that toggles it (unbound unless decided otherwise; L-83,
   2026-10-01). Commands of a feature (do now, open its screen, cycle) are
   child rows; a screen opener sits with the feature that owns the screen.
+  The world map is the one screen that stays usable with its only state off,
+  so its parent opens it and "Record" is a child switch (L-313, 2026-11-06).
   Named commands such as "Open settings" may instead have a key without a
   switch. Related settings may have a keyless group heading.
   Zoom, Freelook and FreeCamera offer "Activation: Hold / Toggle"; Hold lights

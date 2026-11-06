@@ -84,7 +84,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"radar", "feature.radar", "help.radar", "map.radar", true, input::Action::ToggleRadar},
     {"slimeChunks", "feature.slimeChunks", "help.slimeChunks", "map.worldMapSlime", true, input::Action::ToggleSlimeChunks},
     {"waypoints", "feature.waypoints", "help.waypoints", "map.waypoints", true, input::Action::ToggleWaypoints},
-    {"worldMap", "feature.worldMap", "help.worldMap", "map.worldMap", true, input::Action::ToggleWorldMap},
+    {"worldMap", "feature.worldMap", "help.worldMap", "", true, input::Action::OpenWorldMap},
     {"schematic", "feature.schematic", "help.schematic", "schematic.enabled", true, input::Action::ToggleSchematic},
     // The menu and the adjust key first: where to start (L-93, 2026-10-07).
     {"schematicMenu", "feature.schematicMenu", "help.schematicMenu", "", false, input::Action::SchematicMenu},
@@ -173,6 +173,7 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "interaction.breakingMode") return input::Action::CycleBreakingMode;
     if (option == "map.waypointsWorld") return input::Action::HideWaypoints;
     if (option == "map.radarFaces") return input::Action::RadarFaces;
+    if (option == "map.worldMap") return input::Action::ToggleWorldMap;
     if (option == "information.targetMeasure") return input::Action::TargetMeasure;
     if (option == "information.targetStates") return input::Action::TargetDetails;
     if (option == "information.targetCoordinates") return input::Action::TargetPosition;
@@ -266,6 +267,7 @@ inline std::string_view toggleToastKey(input::Action action) {
     case Action::ToggleIgnoreGrowth: return "toast.ignoreGrowth";
     case Action::ToggleIgnoreSignText: return "toast.ignoreSignText";
     case Action::ToggleIgnoreBlockEntities: return "toast.ignoreBlockEntities";
+    case Action::ToggleWorldMap: return "toast.worldMapRecording";
     default: return featureNameKey(input::actions[static_cast<size_t>(action)].feature);
     }
 }

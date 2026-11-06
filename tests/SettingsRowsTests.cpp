@@ -123,7 +123,7 @@ void settingsRowsTests() {
             check(input::actions[static_cast<size_t>(*primary)].feature == feature.id
                 && (!feature.toggle.empty() || sessions.contains(feature.id) || feature.id == "settings"
                     || feature.id == "schematicMenu" || feature.id == "schematicRepeat"
-                    || feature.id == "playerList"
+                    || feature.id == "playerList" || feature.id == "worldMap"
                     || feature.id == "calculator"), // Named commands: a key without a switch.
                 "a parent key belongs to the feature's own state or screen opener");
     for (auto id : {"restrictions", "mapText"}) {

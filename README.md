@@ -136,7 +136,7 @@ The HUD layout view moves and styles Lamium's HUD elements.
 | Radar | Players, mobs and items on the minimap or the world map | — | On |
 | Slime chunks | Slime chunks shaded green on the maps | — | Off |
 | Waypoints | Waypoints and the last death point, on the maps and in the world | — | On |
-| World map | A full-screen map of the areas you have visited | `M` | Off |
+| World map | A full-screen map of the areas you have visited | `M` | Recording off |
 
 Map marks, Radar and Slime chunks each choose the maps they show on.
 Waypoints and the death point also show in the world, with both maps off.
