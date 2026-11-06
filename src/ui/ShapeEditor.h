@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <format>
 #include <map>
 #include <set>
 #include <optional>
@@ -152,6 +153,14 @@ inline std::vector<Row> rows(ShapeDefinition const& definition, bool draft) {
 }
 
 struct Numeric { double value, minimum, maximum; bool integer = false; double step = 1; };
+// A stored number as a field draws it: its decimals whatever its size (L-312),
+// and no trailing zeros, so a typed 1.25 and a stepped 100.5 both read as stored.
+inline std::string numberText(double value) {
+    auto text = std::format("{:.3f}", value);
+    text.erase(text.find_last_not_of('0') + 1);
+    if (text.back() == '.') text.pop_back();
+    return text;
+}
 inline std::optional<Numeric> numeric(ShapeDefinition const& definition, Field field) {
     if (auto spec = std::get_if<overlay::ShapeSpec>(&definition.geometry)) {
         switch (field) {

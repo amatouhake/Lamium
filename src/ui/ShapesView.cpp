@@ -538,7 +538,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
                 auto range = shape::numeric(*definition, row.field);
                 std::string value;
                 if (range) {
-                    value = range->integer ? std::to_string(static_cast<long long>(range->value)) : std::format("{:.3g}", range->value);
+                    value = range->integer ? std::to_string(static_cast<long long>(range->value)) : shape::numberText(range->value);
                     if (row.field == shape::Field::X || row.field == shape::Field::Y || row.field == shape::Field::Z)
                         value = range->integer ? value : std::format("{:.3f}", range->value);
                     else value = translated("shape.blocks", value);

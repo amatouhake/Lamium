@@ -10,6 +10,11 @@ void shapeEditorTests() {
     overlay::Point feet{10.7, 64, -3.2};
 
     check(ui::shape::typeGlyphs.size() == ui::shape::types.size(), "every shape type has its own glyph");
+    check(ui::shape::numberText(100.5) == "100.5" && ui::shape::numberText(104.5) == "104.5"
+          && ui::shape::numberText(512) == "512" && ui::shape::numberText(100) == "100",
+          "a radius above 100 keeps its decimal and a whole one has none");
+    check(ui::shape::numberText(0) == "0" && ui::shape::numberText(1.25) == "1.25",
+          "zero and a typed value read as stored");
     for (size_t a = 0; a < ui::shape::typeGlyphs.size(); ++a) {
         auto glyph = ui::shape::typeGlyphs[a];
         check(glyph.size() == 25 && glyph.find_first_not_of(".#") == std::string_view::npos,
