@@ -75,16 +75,18 @@ choices live in the L-items. An L-item wins if a summary drifts.
    is 1.26.60.05. Open: the book-paste and offhand-map symbols (26.60.1's headers
    carry them, the 26.60.2 runtime's export table does not, and 26.60.3 had no
    release asset when it was checked) and L-306.
-1. **Bugs first.** Open: L-313 (the world map records nothing on a BDS server;
-   needs the reporter's settings and log), L-312 (a shape radius above 100 loses
-   its decimal place), L-307 (1.26.60 stores a structure as a compressed byte
-   array), L-306 (a pane edge at a chunk border), L-227 (FreeCamera shows only
-   the sky outside loaded terrain; Research), L-177 (mismatch highlight; awaits
-   the reporter's next schematic session), and the built-but-unconfirmed failure
-   paths of L-274 and L-276. Parked: L-192/L-193/L-194 schematic drawing, L-123
-   elytra pose, L-91 shield glint, L-132 inventory-screen movement, L-244
-   FreeCamera started inside a block, L-287 minimap arrow look; respect each
-   item's stop/resume conditions. L-181 trident pose is low priority.
+1. **Bugs first.** Open: L-313 (the world map report; not reproduced here,
+   waiting for the reporter's re-check with the feature on), L-312 (a shape
+   radius above 100 loses its decimal place), L-307 (1.26.60 stores a structure
+   as a compressed byte array; PR #71), L-306 (a pane edge at a chunk border),
+   L-227 (FreeCamera shows only the sky outside loaded terrain; Research),
+   L-177 (mismatch highlight; awaits the reporter's next schematic session),
+   and the built-but-unconfirmed failure paths of L-274 and L-276. Parked:
+   L-192/L-193/L-194 schematic drawing, L-123 elytra pose, L-91 shield glint,
+   L-132 inventory-screen movement, L-244 FreeCamera started inside a block,
+   L-287 minimap arrow look; respect each item's stop/resume conditions. L-181
+   trident pose is low priority.
+
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): the L-266 schematic follow-up batch closed with 0.3.1 except
    L-265 placement assist (Design). Remaining Design/Research: L-166 trade
@@ -180,19 +182,29 @@ validation checkpoints" (snapshot 2026-10-20).
 ## Bugs
 
 ### L-313 The world map records nothing on a BDS server
-Kind: Bug / Research. User report 2026-11-05 (Discord), on 1.26.60.05 with
-Lamium 0.5.0 against a local BDS server: the world map shows next to no terrain
-while the minimap in the same session draws normally. The screenshot shows the
-map screen with "Recording is off" under it and a few marks near the player.
-Cause: not reproduced. The map code is unchanged since 0.4.0 apart from the 26.60
-move (`55ba21fa`), and MAP.md records that server coverage was never checked, so
-a setting left off and a 26.60 server-side difference are both open. The two
-candidates are recording in `src/features/map/MapStore.cpp` and the world-map
-screen's own draw path.
-Open: whether recording was on for that world (the screen state is the first
-thing to read), which dimension, and whether panning to the recorded area draws.
-In game: record in a local world and then on the server, and compare the
-minimap, the world map and `<instance>/mods/Lamium/logs/lamium.log`.
+Kind: Bug / Research, not reproduced; watch item. User report 2026-11-05
+(Discord), on 1.26.60.05 with Lamium 0.5.0 against a local BDS server: the
+world map showed next to no terrain while the minimap drew normally. The
+screenshot shows the map screen with "Recording is off" in its top bar.
+What the code does: the hotkey refuses while `map.worldMap` is off and shows
+`worldMap.off` ("The world map is off. Turn it on under Map in the
+settings.") from `src/input/Actions.cpp:198`. The Open row on the feature's
+settings entry has no such check: `screen::openTool` selects the map nav
+(`src/ui/SettingsScreen.cpp:1448`), which enters the map screen
+(`enterWorldMap(true, false)`, `:225`) whatever the switch says, and the
+screen then draws what was recorded before and marks "Recording is off"
+(`WorldMap.cpp`). That is the state the screenshot shows. The map code is
+unchanged since 0.4.0 apart from the 26.60 move (`55ba21fa`).
+Maintainer check 2026-11-06 (1.26.60.05 instance, DLL SHA-256 not recorded):
+in a single-player world and on a BDS, recording worked, the data was kept
+per server address (`127.0.0.1:19132`), past-world data loaded, and
+dimension travel, going underground, coming back and rejoining all looked
+right; with the feature off, the Open row reproduces the reported screen.
+Open: whether the reporter's case is only the switch (they have not said
+whether it was on), whether the Open row should be refused like the hotkey
+or say what to do, and whether a real recording defect remains on a server.
+In game: the reporter turns the feature on and retries; their
+`mods/Lamium/logs/lamium.log` and the walking route would settle it.
 No release target selected.
 
 ### L-312 A shape radius above 100 loses its decimal place
@@ -726,16 +738,18 @@ expected, so agree the model before building.
 No release target selected.
 
 ### L-310 Shorten the in-world game-language interval
-Kind: Design. User request 2026-11-05 (Discord): change the game language
-without the wait.
+Kind: Ready (decided 2026-11-06: 5 s). User request 2026-11-05 (Discord):
+change the game language without the wait.
 Current: `src/ui/LanguageSelection.h:39` sets `interval = 10` seconds. The wait
 exists because 12 changes in 23 s froze the game in world while the title screen
 did not (L-167, 2026-10-14), and the freeze's mechanism was never identified, so
 the interval is the only guard; the list shows the seconds left as
 `language.wait`.
-Open: keep 10 s, lower it to 5 s (the measured freeze was about one change per
-2 s, so 5 s keeps a 2.5x margin), or make the interval a setting with the risk in
-its help text. The maintainer's reply leaned to 5 s.
+Decided: lower `interval` to 5 seconds and change nothing else (one change per
+interval, the `language.wait` countdown). Not a setting and not removed: the
+freeze's mechanism was never identified, so the interval is the only guard, and
+the measured freeze was about one change per 2 s, which leaves a 2.5x margin.
+The comment above the struct carries that reasoning and the new number.
 In game: switch back and forth at the chosen interval and watch for the freeze;
 it leaves no log line, so the check is a hang.
 No release target selected.

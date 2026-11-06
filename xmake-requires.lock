@@ -139,7 +139,7 @@
         },
         ["prelink v0.8.8#f56260b5"] = {
             repo = {
-                commit = "595b596406d9c2736d56e35974e29e5b495e26cf",
+                commit = "cd8bd4038fe01f3b60eade4045a79b5fd006a33f",
                 url = "https://github.com/LiteLDev/xmake-repo.git"
             },
             version = "v0.8.8"
