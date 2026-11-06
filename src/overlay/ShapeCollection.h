@@ -23,7 +23,17 @@ struct ShapeDefinition {
     std::variant<ShapeSpec, PlaneSpec> geometry = ShapeSpec{};
     ShapeStyle style = ShapeStyle::Face;
     ShapeColor color = ShapeColor::Cyan;
+    bool follow = false; // Drawn around the player; the saved place stays (L-311).
 };
+// How far a following shape is drawn from its saved place, for feet in `feet`:
+// whole blocks, so its cells keep their snap and its mesh needs no rebuild.
+inline Cell followShift(ShapeDefinition const& definition, Cell feet) {
+    if (auto spec = std::get_if<ShapeSpec>(&definition.geometry))
+        return {feet.x - static_cast<int>(std::floor(spec->center.x)), feet.y - static_cast<int>(std::floor(spec->center.y)),
+                feet.z - static_cast<int>(std::floor(spec->center.z))};
+    auto const& origin = std::get<PlaneSpec>(definition.geometry).origin;
+    return {feet.x - origin.x, feet.y - origin.y, feet.z - origin.z};
+}
 using ShapeId = uint64_t;
 struct ManagedShape {
     ShapeDefinition definition;

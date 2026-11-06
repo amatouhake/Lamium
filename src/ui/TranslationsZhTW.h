@@ -935,6 +935,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"shape.field.orientation", "方向"},
     {"shape.field.reference", "中心基準"},
     {"shape.field.moveHere", "移到此處"},
+    {"shape.field.follow", "跟隨玩家"},
     {"shape.field.visible", "顯示"},
     {"shape.field.style", "繪製方式"},
     {"shape.field.color", "顏色"},

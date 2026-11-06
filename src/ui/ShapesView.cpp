@@ -524,7 +524,8 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
             label(context,dx,y+3,l.stepperX()-dx-4,translated(row.label),palette::dim);
             switch (row.kind) {
             case shape::Row::Kind::Switch:
-                toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,definition->visible);
+                toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,
+                    row.field == shape::Field::Follow ? definition->follow : definition->visible);
                 break;
             case shape::Row::Kind::Button:
                 drawSmallButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated(row.label),over(ShapeZone::Field,i));

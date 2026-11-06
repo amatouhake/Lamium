@@ -171,6 +171,7 @@ feature on or off.
 
 Boxes, cones, pyramids, ellipsoids, domes and more drawn in the world, saved
 per world. Create and edit them from Shapes in the sidebar.
+A shape can follow the player, to judge its size while moving.
 
 ## Map (experimental)
 

@@ -48,6 +48,7 @@ std::vector<ShapeDefinition> decodeShapes(std::string_view text) {
         // Appearance fields arrived after version 1 files existed; absent means defaults.
         if (entry.contains("style")) definition.style = named<ShapeStyle>(entry.at("style"),styles);
         if (entry.contains("color")) definition.color = named<ShapeColor>(entry.at("color"),colors);
+        if (entry.contains("follow")) definition.follow = entry.at("follow").get<bool>();
         auto const& geometry = entry.at("geometry");
         if (geometry.at("type") == "plane") {
             auto const& origin = geometry.at("origin"); triple(origin);
@@ -94,6 +95,8 @@ std::string encodeShapes(std::vector<ShapeDefinition> const& definitions) {
         root["shapes"].push_back({{"name",definition.name},{"dimension",definition.dimension},
             {"visible",definition.visible},{"style",styles.at(static_cast<size_t>(definition.style))},
             {"color",colors.at(static_cast<size_t>(definition.color))},{"geometry",std::move(geometry)}});
+        // Written only when on: a file without following reads as before.
+        if (definition.follow) root["shapes"].back()["follow"] = true;
     }
     return root.dump(2) + "\n";
 }

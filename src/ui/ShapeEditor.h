@@ -104,7 +104,7 @@ inline ShapeDefinition withType(ShapeDefinition definition, int type, overlay::P
 }
 
 enum class Field { Type, Radius, Height, Snap, Width, Depth, Spacing, Orientation, X, Y, Z,
-    Reference, MoveHere, Visible, Style, Color, TopRadius, VerticalRadius, Axis };
+    Reference, MoveHere, Visible, Style, Color, TopRadius, VerticalRadius, Axis, Follow };
 struct Row {
     enum class Kind { Group, Value, Switch, Button } kind;
     std::string_view label;
@@ -145,6 +145,7 @@ inline std::vector<Row> rows(ShapeDefinition const& definition, bool draft) {
     }
     result.push_back({Kind::Value, "shape.field.reference", Field::Reference});
     if (!draft) result.push_back({Kind::Button, "shape.field.moveHere", Field::MoveHere});
+    if (!draft) result.push_back({Kind::Switch, "shape.field.follow", Field::Follow});
     result.push_back({Kind::Group, "shape.group.display"});
     if (!draft) result.push_back({Kind::Switch, "shape.field.visible", Field::Visible});
     result.push_back({Kind::Value, "shape.field.style", Field::Style});
@@ -237,6 +238,7 @@ inline ShapeDefinition adjust(ShapeDefinition definition, Field field, int direc
     case Field::Style: definition.style = cycle(definition.style, 2); break;
     case Field::Color: definition.color = cycle(definition.color, 4); break;
     case Field::Visible: definition.visible = !definition.visible; break;
+    case Field::Follow: definition.follow = !definition.follow; break;
     default: break;
     }
     return definition;

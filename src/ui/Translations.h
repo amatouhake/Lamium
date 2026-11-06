@@ -944,6 +944,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"shape.field.orientation", "Orientation", "向き"},
     {"shape.field.reference", "Center reference", "中心の基準"},
     {"shape.field.moveHere", "Move here", "ここへ移動"},
+    {"shape.field.follow", "Follow the player", "プレイヤーに追従"},
     {"shape.field.visible", "Show", "表示する"},
     {"shape.field.style", "Drawing", "描き方"},
     {"shape.field.color", "Color", "色"},

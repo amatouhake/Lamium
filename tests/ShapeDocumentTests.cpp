@@ -3,6 +3,18 @@
 void check(bool,char const*);
 void shapeDocumentTests() {
     using namespace lamium::overlay;
+    {
+        ShapeDefinition sphere{"Follow",0,true,ShapeSpec{Shape::Sphere,{10.5,64.5,-3.5},Snap::BlockCenter,4,1}};
+        check(encodeShapes({sphere}).find("follow") == std::string::npos, "a shape that does not follow writes no new key");
+        check(!decodeShapes(encodeShapes({sphere})).front().follow, "a file without the key does not follow");
+        sphere.follow = true;
+        check(decodeShapes(encodeShapes({sphere})).front().follow, "following survives the file");
+        auto shift = followShift(sphere, {12, 70, -4});
+        check(shift.x == 2 && shift.y == 6 && shift.z == 0, "a shape is shifted in whole blocks to the feet block");
+        ShapeDefinition grid{"Grid",0,true,PlaneSpec{{-10,20,30},3,4,2,Plane::XZ}};
+        shift = followShift(grid, {-10, 21, 28});
+        check(shift.x == 0 && shift.y == 1 && shift.z == -2, "a plane is shifted by its origin");
+    }
     std::vector<ShapeDefinition> definitions;
     for (auto type : {Shape::Circle,Shape::Cylinder,Shape::Sphere})
         for (auto snap : {Snap::BlockCenter,Snap::BlockCorner,Snap::Off})

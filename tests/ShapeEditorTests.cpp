@@ -76,6 +76,7 @@ void shapeEditorTests() {
         "style cycles between faces and lines");
     check(ui::shape::adjust(sphere, Field::Color, -1).color == overlay::ShapeColor::White, "color cycles backwards");
     check(!ui::shape::adjust(sphere, Field::Visible, 1).visible, "visibility toggles");
+    check(ui::shape::adjust(sphere, Field::Follow, 1).follow, "following toggles");
 
     // Preview: layers of a sphere, rings of a circle, runs of a filled plane.
     auto ball = ui::shape::withType({"B"}, 2, {0.5, 0.5, 0.5}, Reference::StandingBlock);

@@ -68,6 +68,7 @@ auto const& shapeCollection = shapeWorkspace.collection();
 ll::event::ListenerPtr exitListener;
 ll::event::ListenerPtr startJoinListener, joinListener;
 std::atomic<bool> joiningLocal{false};
+std::optional<Cell> followFeet; // This frame's feet block, under shapeMutex (L-311).
 bool identityFailed = false;
 #ifdef LAMIUM_SHAPE_TRACE
 std::atomic<unsigned> identitySamples{0};
@@ -169,14 +170,21 @@ void withTowardEye(BaseActorRenderContext& context, Cell origin, Draw&& draw, fl
 // A shape (or a draft, or the breaking region) as a cell overlay: faces in
 // its color with a faint outline, or lines alone.
 void drawShape(BaseActorRenderContext& context, FaceMaterial const& faceMaterial, ShapeId id,
-               ManagedShape const& shape, bool draft) {
+               ManagedShape const& shape, bool draft, std::optional<Cell> feet = std::nullopt) {
     if (!context.mImpl) return;
     auto [r, g, b] = shapeColor(shape.definition.color, draft);
     CellStyle style{r, g, b, !draft && shape.definition.style == ShapeStyle::Face};
     auto& mesh = shapeMeshes[id];
     if (mesh.stale(shape.revision, style, faceMaterial))
         buildCellMesh(context.mScreenContext, mesh, shape.faces, shape.lines, style, faceMaterial, shape.revision);
-    drawCellMesh(context.mScreenContext, context.mImpl->mCameraPosition, mesh, faceMaterial);
+    Vec3 camera = context.mImpl->mCameraPosition;
+    if (feet && shape.definition.follow) {
+        auto const shift = followShift(shape.definition, *feet);
+        camera.x -= static_cast<float>(shift.x);
+        camera.y -= static_cast<float>(shift.y);
+        camera.z -= static_cast<float>(shift.z);
+    }
+    drawCellMesh(context.mScreenContext, camera, mesh, faceMaterial);
 }
 // Per-batch colors so one frame can carry Java-style color coding.
 struct LineBatch { std::span<Line const> lines; float r, g, b, a = 1; };
@@ -417,8 +425,12 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
             std::lock_guard lock(shapeMutex);
             auto const faces = faceMaterial(client);
             int dimensionId = static_cast<int>(player->getDimensionId());
+            // The body, not a detached camera: FreeCamera looks at the shape around it.
+            Vec3 const body = player->getFeetPos();
+            followFeet = Cell{static_cast<int>(std::floor(body.x)), static_cast<int>(std::floor(body.y)),
+                              static_cast<int>(std::floor(body.z))};
             shapeCollection.forVisible(dimensionId,
-                [&](ShapeId id, ManagedShape const& shape) { drawShape(context, faces, id, shape, false); });
+                [&](ShapeId id, ManagedShape const& shape) { drawShape(context, faces, id, shape, false, followFeet); });
             draftCollection.forVisible(dimensionId,
                 [&](ShapeId, ManagedShape const& shape) { drawShape(context, faces, draftKey, shape, true); });
             // Release meshes of removed shapes.
@@ -570,9 +582,14 @@ std::vector<Footprint> footprints(int dimension) {
         if (shape.definition.dimension != dimension) continue;
         auto& cached = cache[id];
         if (cached.first != shape.revision || !cached.first) cached = {shape.revision, shapeFootprint(shape)};
-        if (cached.second)
-            result.push_back({id, shape.definition.name, shape.definition.color, shape.definition.visible, *cached.second,
-                              roundFromAbove(shape.definition)});
+        if (!cached.second) continue;
+        auto area = *cached.second;
+        if (shape.definition.follow && followFeet) {
+            auto const shift = followShift(shape.definition, *followFeet);
+            area = {area.x0 + shift.x, area.z0 + shift.z, area.x1 + shift.x, area.z1 + shift.z};
+        }
+        result.push_back({id, shape.definition.name, shape.definition.color, shape.definition.visible, area,
+                          roundFromAbove(shape.definition)});
     }
     return result;
 }
@@ -585,6 +602,7 @@ void clear() {
     std::lock_guard lock(shapeMutex);
     draftCollection.clear();
     releaseMeshes = true;
+    followFeet.reset();
     shapeWorkspace.leave();
     joiningLocal = false;
     identityFailed = false;
