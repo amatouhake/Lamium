@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-311, the Record switch, card keys, Range and L-190 (2026-11-06)
+
+Build `a8783490` (branch `l-190-waypoint-selection`), DLL
+`cd4a9ae2d52f818437af9c1331dba9cf873701fe1496fe336c4fd6a495645ff6`, no trace options,
+LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed, per the maintainer: L-311
+while walking, climbing and in FreeCamera, off returning to the saved place (behavior
+changed afterwards); the bottom bar's Record switch, also in a narrow window; the two
+further card keys; Range 256 looking far and diagonally with no stutter noticed;
+L-190's selection, show and hide, two-press delete and return to one row. Not
+measured: frame times, or Range 256 among many entities. Not covered: servers.
+
 ## 0.5.1 small work (2026-11-06)
 
 Build `356909de` (source `2d556906`), DLL

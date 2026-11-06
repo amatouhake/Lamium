@@ -14,6 +14,13 @@ void shapeDocumentTests() {
         ShapeDefinition grid{"Grid",0,true,PlaneSpec{{-10,20,30},3,4,2,Plane::XZ}};
         shift = followShift(grid, {-10, 21, 28});
         check(shift.x == 0 && shift.y == 1 && shift.z == -2, "a plane is shifted by its origin");
+        auto settled = settledAt(sphere, {12, 70, -4});
+        auto const& center = std::get<ShapeSpec>(settled.geometry).center;
+        check(!settled.follow && center.x == 12.5 && center.y == 70.5 && center.z == -3.5,
+              "following off keeps the shape where it is drawn, its snap included");
+        auto settledGrid = settledAt(grid, {-10, 21, 28});
+        auto const& origin = std::get<PlaneSpec>(settledGrid.geometry).origin;
+        check(origin.x == -10 && origin.y == 21 && origin.z == 28, "a plane settles by its origin");
     }
     std::vector<ShapeDefinition> definitions;
     for (auto type : {Shape::Circle,Shape::Cylinder,Shape::Sphere})

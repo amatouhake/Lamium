@@ -34,6 +34,20 @@ inline Cell followShift(ShapeDefinition const& definition, Cell feet) {
     auto const& origin = std::get<PlaneSpec>(definition.geometry).origin;
     return {feet.x - origin.x, feet.y - origin.y, feet.z - origin.z};
 }
+// Following ends where the shape is drawn: that place becomes its saved one.
+inline ShapeDefinition settledAt(ShapeDefinition definition, Cell feet) {
+    auto const shift = followShift(definition, feet);
+    if (auto spec = std::get_if<ShapeSpec>(&definition.geometry)) {
+        spec->center.x += shift.x;
+        spec->center.y += shift.y;
+        spec->center.z += shift.z;
+    } else {
+        auto& origin = std::get<PlaneSpec>(definition.geometry).origin;
+        origin = {origin.x + shift.x, origin.y + shift.y, origin.z + shift.z};
+    }
+    definition.follow = false;
+    return definition;
+}
 using ShapeId = uint64_t;
 struct ManagedShape {
     ShapeDefinition definition;
