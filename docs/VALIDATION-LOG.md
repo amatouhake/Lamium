@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-314 exits without Lamium (2026-11-06)
+
+1.26.60.05 Dev instance, LeviLamina Client 26.60.3, Lamium disabled through LeviLauncher
+(`manifest.json.close`), per the maintainer: two runs, each entering a world, playing a
+little, leaving and closing the game normally. The first left
+`trace_2026-11-06_23-58-33.log`, whose log says 0 mods loaded and whose trace names no
+Lamium module. Its stack has the same return addresses as the traces with Lamium: +9BC101,
++39298E, the destructor near +2C858C0 and the TLS callback near +E942650, under ExitProcess.
+The second run left no trace. So Lamium is not needed for this crash. Not tested: without
+LeviLamina, where the crash logger would not record it anyway.
+
 ## World map row, Range 64 and the ray's limits (2026-11-06)
 
 Build `406707d4`, DLL `0d3348c696633e0c18071db741aa4fc5e0a46b1b70343e4e569b29ce17164b9b`,

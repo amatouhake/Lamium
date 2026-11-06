@@ -74,8 +74,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
 0. **L-305 move to Minecraft 1.26.60.05 / LeviLamina 26.60.** The verified game
    is 1.26.60.05. Open: the offhand-map target is unconfirmed, and L-306. What waits
    for more game symbols is collected in L-315.
-1. **Bugs first.** Open: L-314 (silent crash at exit on 1.26.60; needs exits
-   with Lamium removed to tell whether Lamium matters), L-313 (the world map
+1. **Bugs first.** Open: L-314 (silent crash at exit on 1.26.60; happens without
+   Lamium, to report to LeviLamina), L-313 (the world map
    report; not reproduced here, waiting for the reporter's re-check with the
    feature on; the Record switch in the bottom bar is built), L-306 (a pane edge at a chunk border),
    L-227 (FreeCamera shows only the sky outside loaded terrain; Research),
@@ -194,7 +194,10 @@ validation checkpoints" (snapshot 2026-10-20).
 ## Bugs
 
 ### L-314 Silent crash when Minecraft exits on 1.26.60
-Kind: Bug / Research, cause narrowed, Lamium neither implicated nor excluded.
+Kind: Bug / Research. **Lamium is not needed for it** (2026-11-06, VALIDATION-LOG): with
+Lamium disabled, one of two runs left a trace with the same stack. Left: report it to
+LeviLamina, then close this as not ours. Everything below that says Lamium is not
+excluded predates this check.
 Found 2026-11-06 in `logs/crash/`; the maintainer sees a normal exit because
 only the crash logger notices. No lost data has been seen; world saves were
 not checked. Nothing here was run in game: this is a static reading of the
