@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.5.1 published (2026-11-07)
+
+Tag `v0.5.1` on `bc195c2e`, built by CI run
+[42255023010](https://github.com/amatouhake/Lamium/actions/runs/42255023010), published
+2026-11-06 16:53 UTC. Assets:
+`Lamium-0.5.1-client-windows-x64.zip`
+`7fcb9206883782208b55789e712ae5ff2a87431fa403354d88bb1a71f0f1f127`,
+`Lamium-0.5.1-client-windows-x64.pdb.zip`
+`5f7990115c062db20ab50e33a589c4b0734f44957ba31a63a1cbb8ae0e54c992`. The downloaded ZIP
+matches its hash. Not seen: the published ZIP installed in game, the LIP registry and
+Bedrinth listing, LeviLauncher offering it.
+
+## 0.5.1 smoke on the CI package (2026-11-07)
+
+CI development package of `bc195c2e` (run
+[42252128248](https://github.com/amatouhake/Lamium/actions/runs/42252128248)), DLL
+`2b2cbaa8386606f6c1da21b03f6824ab1e482668ec7999005165ca04785d29a4`, LeviLamina Client
+26.60.3, 1.26.60.05 Dev instance. The log names both versions. Passed, per the maintainer:
+Lamium loads and settings open; a long book paste continues on new pages and stays after
+reopening the book; a `.mcstructure` saved by the 1.26.60 structure block loads from
+Schematics; the target card's distance and "Up to the render distance" work; the world
+map opens by key. Not covered: servers, a replaced selection, the 50-page refusal's toast,
+frame times.
+
 ## L-259 typing into a full page (2026-11-07)
 
 Build `27adec72`, DLL `aef14d409dc1aee9c04ed39289175f95ead03cb1acfc57a25cc0152d54a979af`,

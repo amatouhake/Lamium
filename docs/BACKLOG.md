@@ -105,11 +105,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    initiation, L-30 dragon hitboxes, L-33 mob timers, L-105 profiling.
    L-151/L-152/L-153 and the previously parked work remain later.
 7. **Before the next release:** changed-feature smoke and the relevant
-   Pre-release checks below. Latest release: 0.5.0, 2026-11-04 (`v0.5.0`).
-   Next: 0.5.1 (maintainer 2026-11-06), without a date. Order: a review of
-   0.5.0..HEAD, then the release work. The silent exit crash, reported as
-   LiteLDev/LeviLamina#1869 (L-314), goes in the README's Known issues while it is
-   open. A full regression is not a release gate.
+   Pre-release checks below. Latest release: 0.5.1, 2026-11-07 (`v0.5.1`). The silent
+   exit crash, reported as LiteLDev/LeviLamina#1869 (L-314), stays in the README's Known
+   issues while it is open. A full regression is not a release gate.
 
 Task-picking rule: bugs first, then this order; follow each item's model,
 dependencies and validation requirements. Cheap models skip Design,
@@ -127,20 +125,22 @@ server case are not release gates. [VALIDATION.md](VALIDATION.md) owns
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
-### Since 0.5.0
+### Left from 0.5.1
+
+The tag (VALIDATION-LOG 2026-11-07): the published ZIP loads through LeviLauncher, and
+the LIP registry, Bedrinth and LeviLauncher offer it. The smoke used the commit's CI
+package, not this ZIP.
 
 Passed on `406707d4` (VALIDATION-LOG): L-308, L-311 and L-313's map key, Record switch
 and settings row. Their server cases are not covered.
 
 From 2026-11-06 (VALIDATION-LOG):
 
-- Book paste returns in the next release with new rules (L-259), and the minimum
-  LeviLamina is 26.60.3. Worth a look: a server, a replaced selection, the 50-page
-  refusal's toast.
+- Book paste (L-259) and the minimum LeviLamina 26.60.3 shipped in 0.5.1. Worth a look:
+  a server, a replaced selection, the 50-page refusal's toast.
 - Target distance (L-308): frame times are not measured. The worst case is FreeCamera
   at the full range, looking where nothing is hit.
-- The next release is the first built with the replaced prelink v0.8.8 asset; its
-  smoke covers that build's load. L-307's bad-zlib and size-limit paths through the
+- L-307's bad-zlib and size-limit paths through the
   real inflater stay unchecked.
 
 Left from the 0.5.0 tag (L-305, VALIDATION-LOG 2026-11-04):
