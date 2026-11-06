@@ -68,7 +68,9 @@ auto const& shapeCollection = shapeWorkspace.collection();
 ll::event::ListenerPtr exitListener;
 ll::event::ListenerPtr startJoinListener, joinListener;
 std::atomic<bool> joiningLocal{false};
-std::optional<Cell> followFeet; // This frame's feet block, under shapeMutex (L-311).
+// The latest feet block per dimension, under shapeMutex (L-311): a following
+// shape stays where the player left its dimension.
+std::map<int, Cell> followFeet;
 bool identityFailed = false;
 #ifdef LAMIUM_SHAPE_TRACE
 std::atomic<unsigned> identitySamples{0};
@@ -427,10 +429,11 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
             int dimensionId = static_cast<int>(player->getDimensionId());
             // The body, not a detached camera: FreeCamera looks at the shape around it.
             Vec3 const body = player->getFeetPos();
-            followFeet = Cell{static_cast<int>(std::floor(body.x)), static_cast<int>(std::floor(body.y)),
-                              static_cast<int>(std::floor(body.z))};
+            Cell const feet{static_cast<int>(std::floor(body.x)), static_cast<int>(std::floor(body.y)),
+                            static_cast<int>(std::floor(body.z))};
+            followFeet[dimensionId] = feet;
             shapeCollection.forVisible(dimensionId,
-                [&](ShapeId id, ManagedShape const& shape) { drawShape(context, faces, id, shape, false, followFeet); });
+                [&](ShapeId id, ManagedShape const& shape) { drawShape(context, faces, id, shape, false, feet); });
             draftCollection.forVisible(dimensionId,
                 [&](ShapeId, ManagedShape const& shape) { drawShape(context, faces, draftKey, shape, true); });
             // Release meshes of removed shapes.
@@ -572,6 +575,11 @@ bool remove(ShapeId id) {
     std::lock_guard lock(shapeMutex);
     return shapeWorkspace.change([&](auto& values) { return values.remove(id); });
 }
+std::optional<Cell> lastFeet(int dimension) {
+    std::lock_guard lock(shapeMutex);
+    auto found = followFeet.find(dimension);
+    return found == followFeet.end() ? std::nullopt : std::optional(found->second);
+}
 std::vector<Footprint> footprints(int dimension) {
     std::lock_guard lock(shapeMutex);
     // Boxes by shape and the revision they were computed for.
@@ -584,8 +592,8 @@ std::vector<Footprint> footprints(int dimension) {
         if (cached.first != shape.revision || !cached.first) cached = {shape.revision, shapeFootprint(shape)};
         if (!cached.second) continue;
         auto area = *cached.second;
-        if (shape.definition.follow && followFeet) {
-            auto const shift = followShift(shape.definition, *followFeet);
+        if (auto feet = followFeet.find(dimension); shape.definition.follow && feet != followFeet.end()) {
+            auto const shift = followShift(shape.definition, feet->second);
             area = {area.x0 + shift.x, area.z0 + shift.z, area.x1 + shift.x, area.z1 + shift.z};
         }
         result.push_back({id, shape.definition.name, shape.definition.color, shape.definition.visible, area,
@@ -602,7 +610,7 @@ void clear() {
     std::lock_guard lock(shapeMutex);
     draftCollection.clear();
     releaseMeshes = true;
-    followFeet.reset();
+    followFeet.clear();
     shapeWorkspace.leave();
     joiningLocal = false;
     identityFailed = false;

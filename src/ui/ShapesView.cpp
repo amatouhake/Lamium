@@ -172,15 +172,17 @@ void activateShapeField(int index, int part) {
         return;
     }
     case shape::Field::Follow: {
-        // Off keeps the shape where it is drawn: the body's block, not a detached
-        // camera's. In another dimension it is not drawn, so its saved place stands.
+        // Off keeps the shape where it was last drawn: the body's block, not a
+        // detached camera's. From another dimension, where the player left its
+        // own; the saved place stands only if the player was not there this session.
         auto* player = screen::client() ? screen::client()->getLocalPlayer() : nullptr;
-        if (definition->follow && player && definition->dimension == screen::playerDimension()) {
-            auto const feet = player->getFeetPos();
-            applyShape(overlay::settledAt(*definition, {static_cast<int>(std::floor(feet.x)),
-                static_cast<int>(std::floor(feet.y)), static_cast<int>(std::floor(feet.z))}));
-            return;
+        std::optional<overlay::Cell> feet = overlay::shapes::lastFeet(definition->dimension);
+        if (player && definition->dimension == screen::playerDimension()) {
+            auto const body = player->getFeetPos();
+            feet = overlay::Cell{static_cast<int>(std::floor(body.x)), static_cast<int>(std::floor(body.y)),
+                                 static_cast<int>(std::floor(body.z))};
         }
+        if (definition->follow && feet) { applyShape(overlay::settledAt(*definition, *feet)); return; }
         break;
     }
     case shape::Field::MoveHere: {
