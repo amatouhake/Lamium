@@ -95,14 +95,25 @@ Pick pickAlong(LocalPlayer& player, ViewRay const& ray) {
         pick = {HitResultType::Tile, BlockPos{cellHit->cell.x, cellHit->cell.y, cellHit->cell.z}, nullptr, cellHit->distance};
         best = cellHit->distance;
     }
-    AABB area{Vec3{std::min(from.x, to.x) - 1, std::min(from.y, to.y) - 1, std::min(from.z, to.z) - 1},
-              Vec3{std::max(from.x, to.x) + 1, std::max(from.y, to.y) + 1, std::max(from.z, to.z) + 1}};
-    for (Actor* actor : source.fetchEntities(&player, area, true, false)) {
-        if (!actor || actor->mRemoved) continue;
-        auto result = actor->getAABB().clip(from, to);
-        if (!result.mIsHit) continue;
-        double d = distance(result.mPos);
-        if (d < best) { best = d; pick = {HitResultType::Entity, {}, actor, d}; }
+    // Short boxes along the ray, up to the nearest hit so far: one box around a
+    // long diagonal ray would span about a thousand chunks every frame (L-308).
+    constexpr double segment = 16;
+    for (double start = 0; start < best; start += segment) {
+        double const end = std::min(start + segment, best);
+        auto along = [&](double t) {
+            return Vec3{static_cast<float>(ray.x + ray.dx * t), static_cast<float>(ray.y + ray.dy * t),
+                        static_cast<float>(ray.z + ray.dz * t)};
+        };
+        Vec3 const a = along(start), b = along(end);
+        AABB area{Vec3{std::min(a.x, b.x) - 1, std::min(a.y, b.y) - 1, std::min(a.z, b.z) - 1},
+                  Vec3{std::max(a.x, b.x) + 1, std::max(a.y, b.y) + 1, std::max(a.z, b.z) + 1}};
+        for (Actor* actor : source.fetchEntities(&player, area, true, false)) {
+            if (!actor || actor->mRemoved) continue;
+            auto result = actor->getAABB().clip(from, to);
+            if (!result.mIsHit) continue;
+            double d = distance(result.mPos);
+            if (d < best) { best = d; pick = {HitResultType::Entity, {}, actor, d}; }
+        }
     }
     return pick;
 }
