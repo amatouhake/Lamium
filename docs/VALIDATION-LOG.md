@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-311 across dimensions and the render distance range (2026-11-06)
+
+Build `70700b1d`, DLL `740def9410e2792eb42d22a704223bbb8eb76ef74d8b943eaf184e8a1ab6b61d`,
+no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed, per the
+maintainer: a following shape stays where the player left its dimension, on the map
+too; "Up to the render distance" finds far targets. The load at the largest render
+distance is accepted as the player's choice: improve it where possible, do not forbid
+it. Not measured with a tool.
+
 ## L-311 off and Range among entities (2026-11-06)
 
 Build `2025d622`, DLL `c49a1b528fa104e939821b76010b7ccc41cfaccac86cd43f9d7a6ddd07a66b79`,

@@ -131,9 +131,10 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.5.0
 
-Passed on `a8783490` and `2025d622` (VALIDATION-LOG): L-311, L-313's Record switch, the
-card's three hold keys, Range 256 among many mobs. Changed after that, not checked:
-L-311's off from another dimension, and L-308's "Up to the render distance".
+Passed on `a8783490`, `2025d622` and `70700b1d` (VALIDATION-LOG): L-311, L-313's Record
+switch on the map, the card's three hold keys, "Up to the render distance". Changed
+after that, not checked: the world map's settings row (L-313), Range's maximum back
+at 64, and the ray's cell walk and height limit (L-308).
 
 From 2026-11-06 (VALIDATION-LOG):
 
@@ -300,12 +301,13 @@ inspected and edited. The standalone Waypoints screen is out of scope for now.
 Decided after the first check (maintainer 2026-11-06): a labelled "Record" switch
 in the map's bottom bar, beside the scale, is `map.worldMap` in both directions and
 replaces the "Recording is off" text, because it is state and not a command like
-the top bar's; it keeps its place when the bar is narrow. The feature keeps its
-parent switch (DESIGN: each feature has one, and a parent without one was unclear),
-and the help says that off stops only the recording.
-The key, a top bar button and then the bottom bar switch passed in game. Open
-(maintainer 2026-11-06): the settings say "World map" and the map says "Record" for
-one switch. Also open: the reporter turns the feature on and retries; their
+the top bar's; it keeps its place when the bar is narrow.
+Changed again (maintainer 2026-11-06): the settings said "World map" and the map
+"Record" for one switch, and "World map: off" was untrue once the map opened anyway.
+The parent row now has no switch and opens the map, with its `M` key; "Record" is a
+child row with the toggle key. `map.worldMap` and action ids do not change.
+The key and the bottom bar switch passed in game; the settings row is not checked.
+Open: the reporter turns the feature on and retries; their
 `mods/Lamium/logs/lamium.log` and the walking route would settle whether a
 defect remains on a server.
 
@@ -862,14 +864,15 @@ The row passed in game 2026-11-06 on `356909de`.
 Decided after that check (maintainer 2026-11-06): the card's three information
 rows, Other details, Position and Distance, each have an unbound hold key that
 flips them. The identifier and icon are looks, and Schematic and Liquids choose
-the target, so they have none. Range goes up from 64 to 256 blocks for measuring.
-One box around a long diagonal ray would span about a thousand chunks each frame,
-so the entity search now walks 16-block boxes and stops at the nearest hit; no load
-problem among many mobs on `2025d622`. A fixed 256 is still short of a far render
-distance, so "Up to the render distance" (off by default) replaces the Range with
-the corner of the render distance (maintainer 2026-11-06). In game: far targets at
-the player's own render distance, frame rate looking across open ground at the
-largest one available, and the ray's end at unloaded terrain.
+the target, so they have none.
+Far range (maintainer 2026-11-06): "Up to the render distance" (off by default)
+replaces the Range with the corner of the render distance. Its load is the player's
+choice, not forbidden; improve what can be improved. So Range's slider stays 2 to 64
+for fine adjustment, as released (a build of 256 was tried and was hard to adjust at
+low values). Done for the load: the entity search walks 16-block boxes up to the
+nearest hit, the cell walk is lazy so a ray stops at its first answer, and a ray
+ends 16 blocks past the world's height. In game: Range's slider; a mob flying above
+the build limit is out of a far ray beyond that margin.
 
 ### L-298 Attach release assets from the tag's CI run
 Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).
