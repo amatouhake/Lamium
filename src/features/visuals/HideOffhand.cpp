@@ -45,14 +45,19 @@ LL_TYPE_INSTANCE_HOOK(OffhandVisibility, ll::memory::HookPriority::Normal, ItemI
     // Never change equipped stacks, item use, or renderer-owned cached items.
     origin(context, call, metadata, flags);
 }
-// A map held in the off hand is drawn by its own first-person call, outside
-// renderObject (L-305, 26.60; traced 2026-11-07: _renderMiniMapHand runs after
-// it and skipping that left the map drawn).
+// A map held in the off hand is drawn by its own first-person calls, outside
+// renderObject (L-305, 26.60, traced 2026-11-07): the map, then the arm
+// holding it.
 LL_TYPE_INSTANCE_HOOK(OffhandMap, ll::memory::HookPriority::Normal, ItemInHandRenderer,
     &ItemInHandRenderer::_renderPhotoMapItem, void, BaseActorRenderContext& context, Player& player,
     float const frameAlpha, bool const isMainHand) {
     if (!isMainHand && hidden()) return;
     origin(context, player, frameAlpha, isMainHand);
+}
+LL_TYPE_INSTANCE_HOOK(OffhandMapHand, ll::memory::HookPriority::Normal, ItemInHandRenderer,
+    &ItemInHandRenderer::_renderMiniMapHand, void, BaseActorRenderContext& context, Player& player, bool inOffhand) {
+    if (inOffhand && hidden()) return;
+    origin(context, player, inOffhand);
 }
 // Attachables (the shield and other resource-pack 3D items) are drawn by the
 // data-driven model instead (L-14, verified 2026-09-27). Skip the local
@@ -80,7 +85,8 @@ struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false
 Hook hooks[] = {
     {OffhandFirstPerson::hook, OffhandFirstPerson::unhook}, {OffhandItem::hook, OffhandItem::unhook},
     {OffhandVisibility::hook, OffhandVisibility::unhook}, {OffhandAttachable::hook, OffhandAttachable::unhook},
-    {OffhandAttachableNoChecks::hook, OffhandAttachableNoChecks::unhook}, {OffhandMap::hook, OffhandMap::unhook}};
+    {OffhandAttachableNoChecks::hook, OffhandAttachableNoChecks::unhook}, {OffhandMap::hook, OffhandMap::unhook},
+    {OffhandMapHand::hook, OffhandMapHand::unhook}};
 }
 void start() {
     if (installed) return;

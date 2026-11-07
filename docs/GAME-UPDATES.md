@@ -650,13 +650,14 @@ names, particle effect names, the camera medium flags and fog values that
 medium, weather densities, the nausea mesh.
 
 ### `src/features/visuals/HideOffhand.cpp`
-Hooks: `OffhandFirstPerson`, `OffhandItem`, `OffhandVisibility`, `OffhandAttachable`, `OffhandAttachableNoChecks`, `OffhandMap`
+Hooks: `OffhandFirstPerson`, `OffhandItem`, `OffhandVisibility`, `OffhandAttachable`, `OffhandAttachableNoChecks`, `OffhandMap`, `OffhandMapHand`
 Meaning: the off hand is drawn through these calls in first person.
 Since 26.60 the first-person pass draws the main hand through `renderItem` and
 a flat offhand item straight through `renderObject`; `OffhandVisibility` skips a
 `renderObject` outside `renderItem` during `renderFirstPerson`. A map in the
-off hand is drawn by `_renderPhotoMapItem` with `isMainHand` false; `OffhandMap`
-skips that call (`_renderMiniMapHand` runs after it and does not draw the map).
+off hand is drawn by `_renderPhotoMapItem` with `isMainHand` false and the arm
+holding it by `_renderMiniMapHand` with `inOffhand` true; `OffhandMap` and
+`OffhandMapHand` skip them.
 
 ### `src/features/visuals/ServerPacks.cpp`
 Hooks: `ServerPacksJoin`, `ServerPacksStack`
