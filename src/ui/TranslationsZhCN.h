@@ -62,7 +62,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"blockHighlight", "方块高亮: {}"},
     {"key.Lamium.blockhighlight", "切换方块高亮"},
     {"key.Lamium.highlightaimedblock", "高亮准星所指的方块种类（再按一次取消）"},
-    {"help.blockHighlight", "将选定种类的方块染成各自的颜色并让其闪烁发光，远处或黑暗中也容易发现。准星对准方块按下按键即可添加该种类，再按一次则移除。只给游戏本身绘制的面上色，因此不会透过墙壁显示。实验性功能。"},
+    {"help.blockHighlight", "让选定种类的方块以流动的彩虹色发光，远处或黑暗中也容易发现。准星对准方块按下按键即可添加该种类，再按一次则移除。只有暴露在外的面会发光，因此不会透过墙壁显示。实验性功能。"},
     {"highlight.added", "开始高亮 {}"},
     {"highlight.removed", "已停止高亮 {}"},
     {"highlight.full", "高亮列表已满"},
@@ -1798,6 +1798,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"capability.NoteBlockSounds", "音符盒音高（声音事件）"},
     {"capability.NoteBlockInstrument", "虚影音符盒的乐器"},
     {"capability.BookPastePages", "书与笔跨页粘贴"},
-    {"capability.BlockHighlight", "方块高亮（区块网格颜色）"},
+    {"capability.BlockHighlight", "方块高亮（区块分段记录）"},
 });
 }

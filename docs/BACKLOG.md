@@ -518,7 +518,7 @@ shows through walls. Changing the list or the switch rebuilds the chunks
 once. No outline; blocks drawn as block entities (chests) are not covered.
 Matching by block name only (states ignored; deepslate ores are their own
 names). Colors per type from the waypoint palette, the next free one on
-adding. Designation: a key adds the aimed block's type, or removes it if
+adding (superseded below: one rainbow for all). Designation: a key adds the aimed block's type, or removes it if
 already listed; the list is global (settings), not per world.
 Steps: (1) the hook, settings, key and rebuild, with full light and the
 tint checked in game (UV1 as the light map is a hypothesis; Vibrant
@@ -534,7 +534,13 @@ an outline — no scan, render-distance reach, visible in the dark and under
 Night Vision. The UV1 raise is dropped; the mesh tint stays as the base.
 Animation reference: resource packs that do this tend to use flashy,
 animated looks. Persistence: the list stays until removed; forgetting a
-type is answered by the list view (step 2), not by expiry. Still open: the tint strength; whether a schematic
+type is answered by the list view (step 2), not by expiry.
+2026-11-08, after the glow worked (`3614d9da`): the maintainer wants the
+"gaming" look and expects per-type colors to go unused. The glow is now a
+rainbow flowing across the world (hue from time and position), the same
+for every type; the mesh tint is dropped so the texture stays vanilla
+under the translucent glow. Saved per-type colors are kept in the file
+but no longer used; the list view will not offer recoloring. Still open: the tint strength; whether a schematic
 placement's blocks share this list (default: no, they stay with the
 schematic check).
 

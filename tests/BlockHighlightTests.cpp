@@ -1,4 +1,6 @@
 #include "features/visuals/BlockHighlight.h"
+#include <array>
+#include <cmath>
 #include <string>
 #include <vector>
 void check(bool, char const*);
@@ -27,25 +29,25 @@ void blockHighlightTests() {
           "loading drops empty and repeated names and clamps colors");
 
     std::vector<lamium::overlay::CellFace> faces;
-    appendFaces(faces, Mark{{1, 2, 3}, 0b000011, 0});
+    appendFaces(faces, Mark{{1, 2, 3}, 0b000011});
     check(faces.size() == 2 && faces[0].face == lamium::overlay::Face::Down && faces[1].face == lamium::overlay::Face::Up,
           "facing bits 0 and 1 are the bottom and top faces");
     faces.clear();
-    appendFaces(faces, Mark{{0, 0, 0}, 0b110100, 0});
+    appendFaces(faces, Mark{{0, 0, 0}, 0b110100});
     check(faces.size() == 3 && faces[0].face == lamium::overlay::Face::West && faces[1].face == lamium::overlay::Face::East
               && faces[2].face == lamium::overlay::Face::North,
           "facing bits 2, 4 and 5 are north, west and east");
     check(pulse(0) < .01f && pulse(pulsePeriod / 2) > .99f && pulse(pulsePeriod) < .01f && pulse(-pulsePeriod / 2) > .99f,
           "the pulse rises from nothing to full and back each period");
-    auto lifted = glowColor(0, 0, 0, 1);
-    check(lifted[0] > .4f && lifted[0] < .5f && glowColor(255, 0, 0, 0)[0] == 1.f && glowColor(255, 0, 0, 0)[1] == 0.f,
-          "the glow lifts a color toward white only as it peaks");
+    auto hueRed = hueColor(0, 1), green = hueColor(1.f / 3, 1), blue = hueColor(2.f / 3, 1);
+    check(hueRed == std::array<float, 3>{1, 0, 0} && green == std::array<float, 3>{0, 1, 0} && blue == std::array<float, 3>{0, 0, 1},
+          "hues 0, 1/3 and 2/3 are red, green and blue");
+    check(hueColor(1, 1) == hueRed && hueColor(.5f, .5f)[0] == .5f, "the hue wraps and saturation lifts the low channel");
+    lamium::overlay::Cell origin{0, 0, 0};
+    float h0 = rainbowHue(0, origin), h1 = rainbowHue(rainbowPeriod / 4, origin);
+    check(h0 == 0 && std::abs(h1 - .25f) < 1e-5f, "the hue turns once per period");
+    check(rainbowHue(0, {1, 0, 0}) != rainbowHue(0, origin) && rainbowHue(0, {1, 0, 0}) == rainbowHue(0, {0, 0, 1}),
+          "neighbouring blocks differ, along x + y + z");
+    check(rainbowHue(0, {-1000, 5, 7}) >= 0 && rainbowHue(0, {-1000, 5, 7}) < 1, "the hue stays in 0..1 far from the origin");
 
-    std::uint32_t white = 0xffffffffu;
-    check(tintVertex(white, 255, 255, 255) == white, "tinting white toward white changes nothing");
-    auto red = tintVertex(white, 255, 0, 0, 1.f);
-    check(red == 0xff0000ffu, "a full share replaces the color and keeps alpha (0xAABBGGRR)");
-    auto half = tintVertex(0x80000000u, 200, 100, 0, .5f);
-    check((half >> 24) == 0x80 && (half & 0xff) == 100 && ((half >> 8) & 0xff) == 50 && ((half >> 16) & 0xff) == 0,
-          "a share mixes each channel and keeps alpha");
 }

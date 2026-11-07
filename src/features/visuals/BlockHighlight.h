@@ -8,13 +8,13 @@
 #include <string_view>
 #include <vector>
 
-// Block highlight (BACKLOG L-320). Pure: the designated block types, their
-// colors, and how a highlighted vertex color is made. The tessellator glue
-// (BlockHighlightHooks.cpp) tints designated blocks in the terrain mesh.
+// Block highlight (BACKLOG L-320). Pure: the designated block types and the
+// glow drawn over their exposed faces. The glue (BlockHighlightHooks.cpp)
+// records where designated blocks were drawn as chunk sections are built.
 namespace lamium::visuals::highlight {
 struct Entry {
     std::string name; // the block's type name, e.g. "minecraft:diamond_ore"
-    int color = 0;    // index into the waypoint palette (map::waypointColors)
+    int color = 0;    // a waypoint palette index; saved, unused since the rainbow (2026-11-08)
     bool operator==(Entry const&) const = default;
 };
 inline constexpr size_t maxEntries = 32;
@@ -46,27 +46,12 @@ inline void normalize(std::vector<Entry>& entries) {
     entries = std::move(out);
 }
 
-// Vertex colors in the chunk mesh are packed as 0xAABBGGRR. The vanilla color
-// carries ambient occlusion and biome tint; the highlight keeps a share of it
-// so the block's shading still reads, and mixes in the type's color.
-inline constexpr float tintShare = .55f;
-inline std::uint32_t tintVertex(std::uint32_t vertex, std::uint8_t r, std::uint8_t g, std::uint8_t b, float share = tintShare) {
-    share = std::clamp(share, 0.f, 1.f);
-    auto mix = [&](unsigned shift, std::uint8_t target) {
-        float from = static_cast<float>((vertex >> shift) & 0xff);
-        float to = from * (1 - share) + static_cast<float>(target) * share;
-        return static_cast<std::uint32_t>(std::clamp(to + .5f, 0.f, 255.f)) << shift;
-    };
-    return (vertex & 0xff000000u) | mix(0, r) | mix(8, g) | mix(16, b);
-}
-
 // A designated block seen while a chunk section was built: its cell, the
 // faces the game drew (bits in the game's facing order: down, up, north,
-// south, west, east) and its color index. The glow overlay draws these.
+// south, west, east). The glow overlay draws these.
 struct Mark {
     overlay::Cell cell;
     std::uint8_t faces = 0;
-    std::uint8_t color = 0;
     bool operator==(Mark const&) const = default;
 };
 // The game's facing bit for each overlay face (overlay::Face order).
@@ -83,12 +68,33 @@ inline float pulse(double seconds) {
     if (phase < 0) phase += 1;
     return static_cast<float>(.5 - .5 * std::cos(phase * 6.283185307179586));
 }
-// A face color lifted toward white as the pulse peaks, so even a dark
-// palette color reads as light.
-inline std::array<float, 3> glowColor(std::uint8_t r, std::uint8_t g, std::uint8_t b, float strength) {
-    float lift = .45f * std::clamp(strength, 0.f, 1.f);
-    auto c = [&](std::uint8_t v) { float f = v / 255.f; return f + (1 - f) * lift; };
-    return {c(r), c(g), c(b)};
+// The glow's color: a rainbow flowing across the world. The hue moves with
+// time and with the cell's position, so neighbouring blocks differ a little
+// and the colors run through a vein (decided 2026-11-08: one look for every
+// type instead of per-type colors).
+inline constexpr double rainbowPeriod = 3.0;   // seconds for one turn of the hue
+inline constexpr double rainbowSpread = .035;  // hue turns per block along x + y + z
+inline float rainbowHue(double seconds, overlay::Cell cell) {
+    double hue = seconds / rainbowPeriod - (double(cell.x) + cell.y + cell.z) * rainbowSpread;
+    hue -= std::floor(hue);
+    return static_cast<float>(hue);
+}
+// A saturated, bright color for `hue` in 0..1 (red, yellow, green, cyan,
+// blue, magenta and back).
+inline std::array<float, 3> hueColor(float hue, float saturation = .8f) {
+    hue = hue - std::floor(hue);
+    float h = hue * 6, x = 1 - std::abs(std::fmod(h, 2.f) - 1);
+    std::array<float, 3> c{};
+    switch (static_cast<int>(h) % 6) {
+    case 0: c = {1, x, 0}; break;
+    case 1: c = {x, 1, 0}; break;
+    case 2: c = {0, 1, x}; break;
+    case 3: c = {0, x, 1}; break;
+    case 4: c = {x, 0, 1}; break;
+    default: c = {1, 0, x}; break;
+    }
+    for (auto& v : c) v = 1 - saturation + saturation * v;
+    return c;
 }
 // At most this many faces are drawn a frame, so a list of common blocks
 // cannot flood the overlay.

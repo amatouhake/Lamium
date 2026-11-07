@@ -1,7 +1,7 @@
 #pragma once
-// Block highlight glue (BACKLOG L-320): tints designated block types in the
-// terrain mesh, records where they were drawn for the glow overlay, and
-// rebuilds chunks when the list or switch changes. Pure rules are in
+// Block highlight glue (BACKLOG L-320): records where designated block
+// types were drawn, for the glow overlay, and rebuilds chunks when the list
+// or switch changes. Pure rules are in
 // BlockHighlight.h.
 #include "features/visuals/BlockHighlight.h"
 #include <cstdint>

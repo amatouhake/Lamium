@@ -1,5 +1,4 @@
 #include "features/visuals/BlockHighlightHooks.h"
-#include "features/map/Waypoints.h"
 #include "app/Capabilities.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
@@ -26,15 +25,15 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace lamium::visuals::highlight {
 namespace {
-// What chunk-build threads tint: type name to color. Replaced, never
+// The designated type names chunk-build threads look for. Replaced, never
 // changed, on the client thread; builders take a copy when `generation` moves.
-struct Paint { std::uint32_t packed; std::uint8_t index; };
 struct Table {
-    std::unordered_map<std::string, Paint> colors;
+    std::unordered_set<std::string> names;
 };
 std::mutex tableLock;
 std::shared_ptr<Table const> table;
@@ -82,34 +81,18 @@ std::uint8_t exposedFaces(BlockSource const& region, BlockPos const& pos) {
     return bits;
 }
 
-void tint(Tessellator& tessellator, size_t from, std::uint32_t color) {
-    auto& data = *tessellator.mMeshData;
-    size_t to = data.mPositions->size();
-    if (to <= from) return;
-    auto r = static_cast<std::uint8_t>(map::channel(color, 0)), g = static_cast<std::uint8_t>(map::channel(color, 1)),
-         b = static_cast<std::uint8_t>(map::channel(color, 2));
-    auto& colors = *data.mColors;
-    if (colors.size() >= to)
-        for (size_t i = from; i < to; ++i) colors[i] = tintVertex(colors[i], r, g, b);
-}
-
 LL_TYPE_INSTANCE_HOOK(HighlightBlock, ll::memory::HookPriority::Normal, BlockTessellator,
     &BlockTessellator::tessellateBlockInWorld, bool, Tessellator& tessellator, Block const& block, BlockPos const& pos,
     std::bitset<6> const faces, AirAndSimpleBlockBits const* simple) {
     if (capture && !capture->first) capture->first = pos;
-    Paint paint{};
     bool wanted = false;
     try {
-        if (auto current = currentTable(); current && !current->colors.empty()) {
-            auto found = current->colors.find(block.getTypeName());
-            if (found != current->colors.end()) { paint = found->second; wanted = true; }
-        }
+        if (auto current = currentTable(); current && !current->names.empty()) wanted = current->names.contains(block.getTypeName());
     } catch (...) {}
     if (!wanted) return origin(tessellator, block, pos, faces, simple);
     size_t before = tessellator.mMeshData->mPositions->size();
     bool result = origin(tessellator, block, pos, faces, simple);
     try {
-        tint(tessellator, before, paint.packed);
         size_t added = tessellator.mMeshData->mPositions->size() - before;
         BlockSource const* region = mRegion;
         // A block that added no quad is hidden; nothing to glow.
@@ -117,7 +100,7 @@ LL_TYPE_INSTANCE_HOOK(HighlightBlock, ll::memory::HookPriority::Normal, BlockTes
         if (faceSamples.fetch_add(1, std::memory_order_relaxed) < 6)
             Runtime::instance().self().getLogger().info("Block highlight: exposed faces {:06b} ({} set), {} vertices added",
                 bits, std::popcount(bits), added);
-        if (capture && bits) capture->marks.push_back({{pos.x, pos.y, pos.z}, bits, paint.index});
+        if (capture && bits) capture->marks.push_back({{pos.x, pos.y, pos.z}, bits});
     } catch (...) {}
     return result;
 }
@@ -156,9 +139,9 @@ LL_TYPE_INSTANCE_HOOK(HighlightSection, ll::memory::HookPriority::Normal, Render
     } catch (...) {}
 }
 
-// Chunks keep the colors they were built with, so each dimension's
-// coordinator rebuilds its chunks when the wanted list differs from the one
-// it last built with, and once when first seen while something is wanted.
+// Marks are recorded as sections build, so each dimension's coordinator
+// rebuilds its chunks when the wanted list differs from the one it last
+// built with, and once when first seen while something is wanted.
 // Client thread only.
 std::vector<Entry> wantedList() {
     auto& runtime = Runtime::instance();
@@ -170,13 +153,10 @@ std::vector<Entry> published;
 std::unordered_map<RenderChunkCoordinator const*, unsigned> built;
 void publish(std::vector<Entry> const& entries) {
     auto next = std::make_shared<Table>();
-    for (auto const& e : entries) {
-        auto index = map::clampColor(e.color);
-        next->colors[e.name] = {map::waypointColors[static_cast<size_t>(index)], static_cast<std::uint8_t>(index)};
-    }
+    for (auto const& e : entries) next->names.insert(e.name);
     {
         std::lock_guard lock(tableLock);
-        table = next->colors.empty() ? nullptr : std::shared_ptr<Table const>(std::move(next));
+        table = next->names.empty() ? nullptr : std::shared_ptr<Table const>(std::move(next));
     }
     published = entries;
     generation.fetch_add(1, std::memory_order_release);

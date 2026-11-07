@@ -101,7 +101,7 @@ the package/SDK loader-policy alignment in CI.
 |---|---|---|---|
 | FreeCamera terrain (native culler request) | `FreeCameraCulling.cpp` | underground terrain hidden as vanilla culls it | FreeCamera itself |
 | Connected Textures (chunk mesh vertices) | `ConnectedTexturesHooks.cpp`, `ConnectedSprites.cpp` | glass with borders | the setting (no effect) |
-| Block highlight (chunk mesh colors) | `BlockHighlightHooks.cpp` | designated blocks drawn as vanilla | the key, list and setting (no effect) |
+| Block highlight (chunk section marks) | `BlockHighlightHooks.cpp` | no glow | the key, list and setting (no effect) |
 | Night Vision (light texture data) | `NightVision.cpp` | vanilla light | the key and setting (no effect) |
 | Edge Guard (movement request) | `EdgeGuard.cpp` (movement request and move vector), `EdgeGuardHistory.cpp` (replay input capture) | vanilla movement and history capture | the setting (no effect) |
 | Edge Guard (replay capture) | `EdgeGuardHistory.cpp` | vanilla replay capture | ordinary movement guarding |
@@ -633,8 +633,8 @@ and the material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 
 ### `src/features/visuals/BlockHighlightHooks.cpp`
 Hooks: `HighlightBlock`, `HighlightSection`, `HighlightRebuild`
-Meaning: the chunk mesh's vertex colors for the vertices a designated block
-adds (none added means the block is hidden); `RenderChunkBuilder::build` as
+Meaning: the vertices a designated block adds to the chunk mesh (none added
+means the block is hidden); `RenderChunkBuilder::build` as
 one 16-block section build, named by the first block tessellated in it;
 `BlockType::mIsOpaqueFullBlock` as covering a neighbour's face; and when
 chunks rebuild. The tessellator's `faces` argument is not the drawn faces

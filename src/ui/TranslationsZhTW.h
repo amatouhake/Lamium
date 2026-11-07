@@ -62,7 +62,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"blockHighlight", "方塊醒目標示: {}"},
     {"key.Lamium.blockhighlight", "切換方塊醒目標示"},
     {"key.Lamium.highlightaimedblock", "醒目標示準星所指的方塊種類（再按一次取消）"},
-    {"help.blockHighlight", "將選定種類的方塊染成各自的顏色並讓其閃爍發光，遠處或黑暗中也容易發現。準星對準方塊按下按鍵即可加入該種類，再按一次則移除。只替遊戲本身繪製的面上色，因此不會透過牆壁顯示。實驗性功能。"},
+    {"help.blockHighlight", "讓選定種類的方塊以流動的彩虹色發光，遠處或黑暗中也容易發現。準星對準方塊按下按鍵即可加入該種類，再按一次則移除。只有暴露在外的面會發光，因此不會透過牆壁顯示。實驗性功能。"},
     {"highlight.added", "開始醒目標示 {}"},
     {"highlight.removed", "已停止醒目標示 {}"},
     {"highlight.full", "醒目標示清單已滿"},
@@ -1798,6 +1798,6 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"capability.NoteBlockSounds", "音階盒音高（音效事件）"},
     {"capability.NoteBlockInstrument", "虛影音階盒的樂器"},
     {"capability.BookPastePages", "書本和羽毛筆跨頁貼上"},
-    {"capability.BlockHighlight", "方塊醒目標示（區塊網格顏色）"},
+    {"capability.BlockHighlight", "方塊醒目標示（區塊分段記錄）"},
 });
 }
