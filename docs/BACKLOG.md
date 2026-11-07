@@ -72,12 +72,12 @@ Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
 0. **L-305 move to Minecraft 1.26.60.05 / LeviLamina 26.60.** The verified game
-   is 1.26.60.05. Open: the offhand-map target is unconfirmed. What waits
-   for more game symbols is collected in L-315.
+   is 1.26.60.05. Open: the offhand-map target is unconfirmed; its symbol is
+   `MCAPI` in the 26.60.3 headers, so the next step is a hook and a game check,
+   not a request. What waits for more game symbols is collected in L-315.
 1. **Bugs first.** Open: L-227 (FreeCamera shows only the sky outside loaded
-   terrain; Research), L-177 (mismatch highlight; awaits the reporter's next
-   schematic session), and the built-but-unconfirmed failure paths of L-274 and
-   L-276. Parked:
+   terrain; Research) and L-177 (mismatch highlight; awaits the reporter's next
+   schematic session). Parked:
    L-192/L-193/L-194 schematic drawing, L-123 elytra pose, L-91 shield glint,
    L-132 inventory-screen movement, L-244 FreeCamera started inside a block,
    L-287 minimap arrow look; respect each item's stop/resume conditions. L-181
@@ -255,55 +255,6 @@ Open:
 
 A note block's instrument name without a Lamium translation now falls back to
 its number, because `noteBlockInstrumentToString` is not exported.
-
-### L-276 A temporary waypoint whose removal cannot be saved is never announced again
-Kind: Bug. Review finding 2026-10-27 on `08da0c47`: `waypoints::arrive()`
-in `src/features/map/WaypointSession.cpp` called `ArrivalWatch::update()`
-before it saved the set with the reached waypoints erased, so a failed write
-left them in place but no longer armed: standing still never announced them
-again until the player left and came back.
-Fixed in `src/features/map/Waypoints.h`: `ArrivalWatch::plan()` returns the
-reached ids and the state that goes with them, and `arrivalStep()` erases the
-reached waypoints from a copy, hands it to the store and applies the plan only
-once the store reports the copy written. A failed save announces nothing and
-leaves the waypoint armed, so the announcement comes on the frame the write
-succeeds; the announce rules themselves are unchanged. The armed ids are an
-`std::unordered_set` instead of a list, because every HUD frame looked each
-temporary waypoint up in it (`isArmed`) with up to 1000 entries.
-Status 2026-10-27: the normal path is checked in game on `9006c175` (one toast, the waypoint removed); the save-failure path - read-only `waypoints.json`, no toast and the waypoint kept, removed only once writes work again - is still to check. Table test in
-`tests/WaypointTests.cpp` (`arrivalSave`) covers a save that fails first (the
-waypoint stays and a later frame announces it) and one that works (announced
-once, the other waypoint kept). In game: add a temporary waypoint, walk away
-and back (announced once, removed); then make the waypoint file read-only, add
-and reach another (nothing announced, it stays), make the file writable again
-and stand there (announced and removed).
-
-
-### L-274 Ghost pick cannot tell a refused pick from an accepted one
-Kind: Bug. Review of L-263, 2026-10-27. `game::movePair` and
-`game::giveCreative` returning true only means the transaction was sent, and
-`GhostPick.cpp` discarded the result: a server that refused the move looked
-exactly like an accepted pick.
-Decided: confirm from authoritative state on a later frame. The pick is
-remembered as `PickPending` (slot, wanted name and data value, the frame it
-was sent on) in `src/features/inventory/PickConfirm.h`; `pickConfirmed()`
-compares the slot's contents with the wanted item and data value. The read
-waits `pickConfirmFrames` frames first, because the slot holds the predicted
-contents right after the send and only the server's answer replaces them.
-`stepPick(LocalPlayer&)` in `GhostPick.cpp` runs from the ghost pass's
-per-frame hook (`LevelRendererPlayer::$renderEntityEffects`, the entry the
-ghost drawing already uses, no new hook), reads the slot once, logs one
-`pick not confirmed: slot N wanted <item> <aux> holds <item> <aux>` line (`holds
-nothing` when the slot is empty) when the contents differ, and forgets the
-pick. A newer pick replaces the waiting one and stopping the feature clears
-it.
-Status 2026-10-27: the accepted path is checked in game on `9006c175` (a successful pick logs nothing); the refused path - one `pick not confirmed` line - still needs a server that refuses the give or the move. Tests in
-`tests/FetchSlotTests.cpp` for `pickConfirmed` (name, data value, empty slot,
-empty pick) and for `PickPending::due` (the frame itself, the frame after,
-the last frame before the read, after it, cleared and item-less picks).
-In game: a pick the server refuses must log that line instead of passing
-silently; an accepted pick must log nothing.
-
 
 ### L-299 Screenless inventory moves can leave a slot stuck when client and server desync
 Kind: Research.
