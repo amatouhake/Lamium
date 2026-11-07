@@ -221,6 +221,7 @@ requests are handled. What has been checked in game, per feature, is in
   the pane continues (L-306).
 - **Crash log at exit:** closing the game can leave a crash log even though it looks
   like a normal exit. It happens without Lamium too, and no lost data has been seen.
+  Fixed in LeviLamina Client 26.60.4; on 26.60.3, updating the loader removes it.
   Reported as [LeviLamina#1869](https://github.com/LiteLDev/LeviLamina/issues/1869).
 
 **Camera & view**

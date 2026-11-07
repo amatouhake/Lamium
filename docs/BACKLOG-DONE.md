@@ -41,7 +41,10 @@ Changed again (maintainer 2026-11-06): the settings said "World map" and the map
 "Record" for one switch, and "World map: off" was untrue once the map opened anyway.
 The parent row now has no switch and opens the map, with its `M` key; "Record" is a
 child row with the toggle key. `map.worldMap` and action ids do not change.
-The key, the bottom bar switch and the settings row passed in game.
+The key, the bottom bar switch and the settings row passed in game on
+`406707d4` (DLL SHA-256
+`0d3348c696633e0c18071db741aa4fc5e0a46b1b70343e4e569b29ce17164b9b`;
+VALIDATION-LOG 2026-11-06).
 Closed 2026-11-07 (maintainer): not reproduced here; the reporter's
 follow-up points to the feature having simply been off, and the 0.5.1 map UI
 rework (Record switch in the map itself) removes that confusion. Reopen if
@@ -60,8 +63,10 @@ client crashes on exit"). In `ModifyMemoryAllocator.cpp` the allocator hooks
 are no longer uninstalled when the client exits: they changed from auto hooks
 to a manually registered `HookRegistrar` that is deliberately never released,
 so the exit-time TLS destructor's frees keep going through LeviLamina's
-allocator. It is in LeviLamina's changelog under Unreleased; no tagged
-release carries the fix yet. This fits the reproduction (LeviLamina Client,
+allocator. It shipped two hours later in the `v26.60.4` tag (2026-11-06
+19:22Z, client release asset published; the changelog has `## [26.60.4] -
+2026-11-07` with `Fixed: Fixed client crashes on exit [#1869]`, and
+Unreleased is empty again). This fits the reproduction (LeviLamina Client,
 no other mods); whether the game alone, with no LeviLamina, also crashes is
 still unknown, as nothing would record it.
 Found 2026-11-06 in `logs/crash/`; the maintainer sees a normal exit because

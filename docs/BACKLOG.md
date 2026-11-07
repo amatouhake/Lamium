@@ -105,7 +105,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
 7. **Before the next release:** changed-feature smoke and the relevant
    Pre-release checks below. Latest release: 0.5.1, 2026-11-07 (`v0.5.1`). The silent
    exit crash, reported as LiteLDev/LeviLamina#1869 (L-314), stays in the README's Known
-   issues while it is open. A full regression is not a release gate.
+   issues until the loader carries the fix; the `v26.60.4` tag does, so the entry names
+   it and asks users on 26.60.3 to update. A full regression is not a release gate.
 
 Task-picking rule: bugs first, then this order; follow each item's model,
 dependencies and validation requirements. Cheap models skip Design,
@@ -697,7 +698,8 @@ Target Info gives blocks a rich card, while items only get container
 contents, durability and food values in the tooltip. Main ask: show the
 anvil Work Penalty — the item's RepairCost as the level surcharge it adds
 to any anvil operation (a rename alone costs penalty + 1) and the
-prior-use count behind it (penalty = 2^n - 1). Do not predict a whole
+prior-use count behind it (penalty = 2^n - 1). Check both against the cost
+the anvil screen shows before trusting them, as L-170 says. Do not predict a whole
 operation's cost; that depends on the other item and the operation.
 Then investigate what else the client knows about an item but Lamium does
 not show, and show that too. Candidates to verify in code before listing
@@ -1579,6 +1581,7 @@ mining and the existing modes must keep working.
 Kind: Research. Found by the maintainer 2026-10-02 while checking L-75;
 leather added 2026-10-06 (found under L-61).
 Status: parked 2026-10-06 after a trace and three in-game experiments; the
+cause is known, the fix needs a different draw path (below). Known issue.
 Update 2026-10-10: leather layers (and fence gates, L-119) fixed by the
 shared-mesh icon path `inspection/render/ItemIcon` (checked). Update
 2026-10-11 (L-142): glinting items went back to the direct path for their
@@ -1586,7 +1589,6 @@ glint, so an enchanted leather piece shows its undyeable parts
 see-through again (maintainer: record it, not now). Left: the
 enchanted shield's glint; one round failed and is parked; the research
 record and the next idea are in BACKLOG-DONE under L-119.
-cause is known, the fix needs a different draw path (below). Known issue.
 Symptoms: an enchanted shield shows no glint in container previews and the
 L-75 offhand slot; dyed or undyed leather armor loses its undyeable layer in
 container previews and the durability HUD. Vanilla slots show both.
