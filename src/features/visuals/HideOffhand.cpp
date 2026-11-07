@@ -45,6 +45,13 @@ LL_TYPE_INSTANCE_HOOK(OffhandVisibility, ll::memory::HookPriority::Normal, ItemI
     // Never change equipped stacks, item use, or renderer-owned cached items.
     origin(context, call, metadata, flags);
 }
+// A map held in the off hand is drawn by its own first-person call, outside
+// renderObject (L-305, 26.60).
+LL_TYPE_INSTANCE_HOOK(OffhandMap, ll::memory::HookPriority::Normal, ItemInHandRenderer,
+    &ItemInHandRenderer::_renderMiniMapHand, void, BaseActorRenderContext& context, Player& player, bool inOffhand) {
+    if (inOffhand && hidden()) return;
+    origin(context, player, inOffhand);
+}
 // Attachables (the shield and other resource-pack 3D items) are drawn by the
 // data-driven model instead (L-14, verified 2026-09-27). Skip the local
 // player's offhand slot only while the view is first person, so other
@@ -71,7 +78,7 @@ struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false
 Hook hooks[] = {
     {OffhandFirstPerson::hook, OffhandFirstPerson::unhook}, {OffhandItem::hook, OffhandItem::unhook},
     {OffhandVisibility::hook, OffhandVisibility::unhook}, {OffhandAttachable::hook, OffhandAttachable::unhook},
-    {OffhandAttachableNoChecks::hook, OffhandAttachableNoChecks::unhook}};
+    {OffhandAttachableNoChecks::hook, OffhandAttachableNoChecks::unhook}, {OffhandMap::hook, OffhandMap::unhook}};
 }
 void start() {
     if (installed) return;

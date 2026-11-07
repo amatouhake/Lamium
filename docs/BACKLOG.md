@@ -72,9 +72,7 @@ Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
 0. **L-305 move to Minecraft 1.26.60.05 / LeviLamina 26.60.** The verified game
-   is 1.26.60.05. Open: the offhand-map target is unconfirmed; its symbol is
-   `MCAPI` in the 26.60.3 headers, so the next step is a hook and a game check,
-   not a request. What waits for more game symbols is collected in L-315.
+   is 1.26.60.05. Open: the offhand-map hook links and awaits a game check. What waits for more game symbols is collected in L-315.
 1. **Bugs first.** Open: L-227 (FreeCamera shows only the sky outside loaded
    terrain; Research) and L-177 (mismatch highlight; awaits the reporter's next
    schematic session). Parked:
@@ -206,8 +204,9 @@ Open:
    was not exported:
    `?_renderMiniMapHand@ItemInHandRenderer@@QEAAXAEAVBaseActorRenderContext@@AEAVPlayer@@_N@Z`.
    Added to the symbol request on 2026-11-04; 26.60.1's headers mark it
-   `MCAPI`, so the request covered it (item 4), but whether that call draws the
-   map is still unconfirmed.
+   `MCAPI`, so the request covered it (item 4). 2026-11-07: `OffhandMap` in
+   `HideOffhand.cpp` skips the call when `inOffhand` is true; it links against
+   SDK 26.60.3. Whether that call draws the map is unchecked in game.
 3. **Launching on 26.60.** An instance where PeEditor ran after LeviLauncher's
    import patch fails at launch: the import table is left unaligned and
    `LeviLauncher.dll` rejects it (`Cannot install directory imports (Windows
