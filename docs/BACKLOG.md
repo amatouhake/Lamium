@@ -72,12 +72,12 @@ Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
 0. **L-305 move to Minecraft 1.26.60.05 / LeviLamina 26.60.** The verified game
-   is 1.26.60.05. Open: the offhand-map target is unconfirmed, and L-306. What waits
+   is 1.26.60.05. Open: the offhand-map target is unconfirmed. What waits
    for more game symbols is collected in L-315.
-1. **Bugs first.** Open: L-306 (a pane edge at a chunk border),
-   L-227 (FreeCamera shows only the sky outside loaded terrain; Research),
-   L-177 (mismatch highlight; awaits the reporter's next schematic session),
-   and the built-but-unconfirmed failure paths of L-274 and L-276. Parked:
+1. **Bugs first.** Open: L-227 (FreeCamera shows only the sky outside loaded
+   terrain; Research), L-177 (mismatch highlight; awaits the reporter's next
+   schematic session), and the built-but-unconfirmed failure paths of L-274 and
+   L-276. Parked:
    L-192/L-193/L-194 schematic drawing, L-123 elytra pose, L-91 shield glint,
    L-132 inventory-screen movement, L-244 FreeCamera started inside a block,
    L-287 minimap arrow look; respect each item's stop/resume conditions. L-181
@@ -255,17 +255,6 @@ Open:
 
 A note block's instrument name without a Lamium translation now falls back to
 its number, because `noteBlockInstrumentToString` is not exported.
-
-### L-306 A glass pane edge at a chunk border changed in 26.60
-Kind: Bug. Reported 2026-11-04 on 1.26.60.05 with Connected Textures on: an edge
-is drawn at a chunk border where the pane continues. On 1.26.51.01 the same spot
-has an edge cut off at the border instead, so neither is right. Other glass joins
-correctly across chunks.
-Hypothesis, not checked: `partsAt` in `ConnectedTexturesHooks.cpp` asks a neighbor
-pane for its shape, which depends on that neighbor's own neighbors, two blocks away;
-the region a chunk rebuild reads may not reach that far. A bent lower row beside a
-straight upper row also looks odd, on both versions; the maintainer takes that as
-unfinished design, not this bug.
 
 ### L-276 A temporary waypoint whose removal cannot be saved is never announced again
 Kind: Bug. Review finding 2026-10-27 on `08da0c47`: `waypoints::arrive()`

@@ -238,6 +238,15 @@ inline Part partOf(float x0, float x1, float z0, float z1) {
     if (z0 < 0.4f) return Part::North;
     return Part::Center;
 }
+// The block origin of a pane's quads, in the mesh's own coordinates. The pane
+// path tests a quad's ends against its block's edges, so a frame one block off
+// makes every edge test miss. The mesh minimum can land a hair below an integer
+// where an arm tip sits on the block boundary (L-306, 1.26.60: a pane at x = 0
+// with a west arm gave -1e-7, and plain floor() moved the frame origin one block
+// west, so its quads read 1..2, the west join never took its sprite and it kept
+// the tile border). The edge tests' own 0.01 tolerance absorbs that error and
+// keeps the origin for any minimum in the block.
+inline float blockOrigin(float min) { return std::floor(min + 0.01f); }
 // A pane's parts from its shape boxes in block coordinates: an arm box reaches
 // the block edge. The center post is always drawn, though an L's boxes do not
 // cover it.
