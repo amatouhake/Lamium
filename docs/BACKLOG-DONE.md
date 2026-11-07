@@ -10,6 +10,28 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-306 Glass pane keeps its tile edge at a one-sided join
+Kind: Bug. Reported 2026-11-04 on 1.26.60.05 with Connected Textures on, as an edge
+drawn at a chunk border where the pane continues; the first reading blamed 26.60
+because 1.26.51.01 cut the edge off at the border instead, which is wrong too.
+Reproduced on 1.26.51.01 on 2026-11-07, so it predates 26.60. Two panes joined at a
+block border (x = -1 and x = 0) show the edge on the pane whose arm reaches the join:
+it stays on x = 0 while the x = -1 pane is clean. Only a same-type pane on the
+affected pane's far side removes it, so a four-pane run looks right and two panes do
+not; the other side of the pane and a pane one cell over in Z change nothing.
+Glass blocks, bookshelves and sandstone join correctly at the same conditions.
+Cause: `adjustPane` took each pane quad's block frame from `floor()` of the mesh
+minimum (`src/features/visuals/ConnectedTexturesHooks.cpp`). Where an arm tip sits
+exactly on the block boundary the minimum can come back a hair below it (-1e-7
+measured at x = 0), `floor()` then moved the pane one block back, and
+`x < 0.01f && west` could never fire: that quad kept the tile border. A second arm
+hid it, because the shifted west tip trips the east test and both ends then take
+their sprite - which is why the four-pane run always looked right.
+Fixed in `blockOrigin()` (`ConnectedTextures.h`: `floor(min + 0.5f)`, exact because a
+pane's geometry starts at its block's low edge or inside the low half) for x, y and
+z, with two table checks in `tests/ConnectedTexturesTests.cpp`.
+Done 2026-11-07: checked by the maintainer on the PR #72 head `4d3b86e6` (DLL SHA-256 `1DA8D7D07E24A3E24BBE140EA7A4BCBBE15B54C06B1F4FF419D2D33AB3AB5441`). The two-pane join at x = -1 / 0 shows no edge, and a four-pane run stays joined with no edge inside or outside.
+
 ### L-313 The world map records nothing on a BDS server
 Kind: Bug / Research, not reproduced; watch item. User report 2026-11-05
 (Discord), on 1.26.60.05 with Lamium 0.5.0 against a local BDS server: the
