@@ -115,6 +115,7 @@ struct Settings {
         int restockThreshold = 6; // Refill when the held count is at or below this; 0 only when empty.
         int restockOrder = 1; // Within a source region: 0 largest stack first, 1 smallest first (default, 2026-10-07).
         bool toolSwitchInventory = false; // Fetch a tool from the main inventory (L-69).
+        int toolSwitchDrop = 0; // Drop priority: speed, Fortune, Silk Touch (L-318).
         bool weaponSwitch = false; // Pick the strongest hotbar weapon when attacking (L-67).
         bool weaponSwitchInventory = false;
         // Where a fetch goes: 0 the selected slot, 1-9 a fixed hotbar slot (L-97).
@@ -354,6 +355,7 @@ struct Settings {
         normalizeMode(interaction.placementMode, lamium::interaction::placementLabels.size());
         if (inventory.fakeOffhandSlot < 1 || inventory.fakeOffhandSlot > 9) inventory.fakeOffhandSlot = 9;
         inventory.toolSwitchSlot = std::clamp(inventory.toolSwitchSlot, 0, 9);
+        if (inventory.toolSwitchDrop < 0 || inventory.toolSwitchDrop > 2) inventory.toolSwitchDrop = 0;
         inventory.weaponSwitchSlot = std::clamp(inventory.weaponSwitchSlot, 0, 9);
         inventory.restockThreshold = std::clamp(inventory.restockThreshold, 0, 63);
         if (inventory.restockOrder < 0 || inventory.restockOrder > 1) inventory.restockOrder = 1;

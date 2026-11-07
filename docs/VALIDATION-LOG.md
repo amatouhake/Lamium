@@ -12,6 +12,45 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Tool Switch drop priority (L-318, 2026-11-07)
+
+Branch `l318-silk-tool-switch`, PR #73, built from `118bb42e`; DLL SHA-256
+`EC4500E38D332E2FA7DCFDA01E6D69F8F1B581136B282B6DE7FA0AC5412E1039`, no trace
+options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed, per the
+maintainer:
+
+- Fortune priority on iron ore takes the Fortune pickaxe and drops more raw
+  iron; stone keeps the fastest tool. So the Fortune drop query answers on the
+  client.
+- Silk Touch priority on stone takes a wooden Silk Touch pickaxe over a faster
+  plain one, and stone drops.
+- Of two pickaxes of the same material, the one that broke a block last is
+  chosen.
+- The cycle key shows the toast and changes the settings row.
+
+Not covered: owning no Fortune or Silk Touch tool, other Fortune blocks (gravel,
+crops), servers.
+
+## Silk Touch tool switching (L-318, 2026-11-07)
+
+Branch `l318-silk-tool-switch`, PR #73, built from `4eaa35ea`; DLL SHA-256
+`04A513CE7C455177F611BD51422D641584E9BA8C47DCEC57477DE1D4A0223810`, no trace
+options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Seen, per the
+maintainer, with a Silk Touch pickaxe and a plain one:
+
+- Glass and ice break into the block after the switch to the Silk Touch tool.
+- Tinted glass and dirt are not switched (tinted glass drops itself).
+- With the option off, stone is not switched; with it on, a Silk Touch tool of
+  the same grade as the best plain one is taken and stone drops.
+- A diamond pickaxe is kept over a wooden Silk Touch one.
+- The new label and help read in all four languages.
+
+The drop data behind the boundary came from a probe build (reverted, not
+deployed): `getResourceDrops` gave glass, panes, stained glass and panes, ice,
+packed ice and blue ice as nothing without Silk Touch and the block with it;
+tinted glass drops itself; leaves, iron ore, stone and grass block change; dirt
+does not. Not covered: owning no Silk Touch tool at all, servers, and blocks
+whose drop depends on the tool class (the query answers with a synthetic stack).
 ## One-sided glass pane joins (L-306, 2026-11-07)
 
 Branch `l306-pane-frame`, PR #72, built from `29842d80` (`floor(min + 0.01f)`); DLL SHA-256

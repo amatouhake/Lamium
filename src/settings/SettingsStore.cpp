@@ -224,6 +224,7 @@ Json encode(Settings const& settings) {
                        {"restockThreshold", settings.inventory.restockThreshold},
                        {"restockOrder", settings.inventory.restockOrder},
                        {"toolSwitchInventory", settings.inventory.toolSwitchInventory},
+                       {"toolSwitchDrop", settings.inventory.toolSwitchDrop},
                        {"weaponSwitch", settings.inventory.weaponSwitch},
                        {"weaponSwitchInventory", settings.inventory.weaponSwitchInventory},
                        {"toolSwitchSlot", settings.inventory.toolSwitchSlot},
@@ -619,6 +620,9 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.restockThreshold = settingsValue(data.at("inventory"), "restockThreshold", value.inventory.restockThreshold);
         value.inventory.restockOrder = settingsValue(data.at("inventory"), "restockOrder", value.inventory.restockOrder);
         value.inventory.toolSwitchInventory = settingsValue(data.at("inventory"), "toolSwitchInventory", value.inventory.toolSwitchInventory);
+        // The on/off option before the drop priority (L-318, never released) meant Silk Touch.
+        if (settingsValue(data.at("inventory"), "toolSwitchSilkDrop", false)) value.inventory.toolSwitchDrop = 2;
+        value.inventory.toolSwitchDrop = settingsValue(data.at("inventory"), "toolSwitchDrop", value.inventory.toolSwitchDrop);
         value.inventory.weaponSwitch = settingsValue(data.at("inventory"), "weaponSwitch", value.inventory.weaponSwitch);
         value.inventory.weaponSwitchInventory = settingsValue(data.at("inventory"), "weaponSwitchInventory", value.inventory.weaponSwitchInventory);
         value.inventory.toolSwitchSlot = settingsValue(data.at("inventory"), "toolSwitchSlot", value.inventory.toolSwitchSlot);
