@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block highlight with many blocks (L-320, 2026-11-08)
+
+`62123753`, DLL SHA-256
+`eb98c6bd698c859da81ca92a8d3633dbfb640432004f3bca57cb950b2bb771e8`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer: with tuff and gravel highlighted the nearby glow stays while
+walking around, the limit toast shows once, and ore-only highlighting glows
+as before. Not checked: Night Vision, other dimensions, Vibrant Visuals,
+servers, the unverified-version fallback.
+
 ## Block highlight rainbow (L-320, 2026-11-08)
 
 `9dab5639`, DLL SHA-256
