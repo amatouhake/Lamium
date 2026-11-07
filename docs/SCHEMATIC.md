@@ -130,7 +130,8 @@ images are not embedded in this repository.
   toast saying how to turn it on; the radial menu opens at Show, where the
   feature switch is, with a toast, and runs only the switch, the HUD switch
   and screen items until the feature is on.
-- **L-182 (crash):** settings opened with the default L key can sometimes
+- **L-182 (crash, closed 2026-10-14: a stale preview after rejoining):**
+  settings opened with the default L key can sometimes
   crash while working with an active schematic check. Reproduce with
   logs/stack before attributing cause to the check or settings screen.
 - **L-183 (Design):** let builders temporarily suppress selected strict

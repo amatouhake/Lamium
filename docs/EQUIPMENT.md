@@ -101,7 +101,7 @@ not proof that the existing firework trigger regressed.
 Decided 2026-10-14 (maintainer): the trigger is the launch itself, not the
 charge, since Riptide flies without an elytra; default on; no automatic
 glide (L-71 starts later from simpler cases).
-Built 2026-10-14, not checked in game: a child "Riptide launch" (on by
+Built 2026-10-14 and checked locally on `e8c5e3f` (L-180): a child "Riptide launch" (on by
 default) beside "Jump with fireworks". The rising edge of the spin (the
 player's `RiptideTridentSpinAttackComponent`, or the `Damagenearbymobs`
 actor flag) puts the elytra on as a firework jump does, so it comes off the

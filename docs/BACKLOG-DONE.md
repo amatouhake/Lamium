@@ -5591,11 +5591,6 @@ the site=2/flags=34/mainhand=0 combo no longer logs (the skip works) but the
 shield is still visible, so a SECOND path draws it. The trace now logs every
 `renderOffhandItem` call with its flags plus `renderItemNew`, to catch it.
 
----
-
-## Ready
-
-
 ### L-61 Held-item durability HUD
 Kind: Ready **(strong model)** except the elytra flight time, which needs a
 short Research step first. Chosen by the maintainer 2026-09-28 from user

@@ -8,8 +8,9 @@ reading it whole.
 
 Baseline: Minecraft 1.26.51.01, LeviLamina Client 26.51.5, Windows x64. The
 move to 1.26.60.05 and LeviLamina 26.60 passed one round of the gated features
-on 2026-11-04 (L-305, VALIDATION-LOG); rows below are 26.51 results unless they
-say otherwise.
+on 2026-11-04 (L-305, VALIDATION-LOG); since 2026-11-07 Lamium is built against
+SDK 26.60.4 and requires LeviLamina 26.60.4, which passed a smoke check that day.
+Rows below are 26.51 results unless they say otherwise.
 "Local" is a single-player world, "BDS" a same-machine dedicated server
 1.26.51.1. Results before the 26.51.5 update (commit 4a5b975) were re-checked
 only briefly after it. Since `9372daf4` (2026-10-26) Lamium is built against
@@ -160,5 +161,5 @@ Checklist: [CHAT-POSITION.md](CHAT-POSITION.md).
 | Toggle toasts; message toast | 2026-09-30, local | |
 | Paste across book pages (L-259) | 2026-11-06, build on SDK 26.60.3, local, 1.26.60.05: a long paste from the caret continues on new pages after the page, on either half of later spreads; a mid-page paste keeps its text when the page is left and the book reopened; the caret stops at the end of the page's paste; mouse position does not matter; the switch shows and turns on. 2026-11-07 (`27adec72`): typing and an IME confirm on a full page add nothing | Servers; a selection replaced; the 50-page refusal's toast |
 | Version-sensitive gates and the unverified-game test build (L-137) | 2026-10-11, local: the gated features behave as before on the verified game (0.2.0 regression check 1, `2aea267`); the `--unverified_game=y` build of `891b798`: all nine capabilities stay vanilla with one log line each, the rest of their features work, no crash; `ddac26c`: paused marks in toggle toasts and settings rows, header warning, join toast | A real different game executable (next game update) |
-| Release ZIP without the PDB, symbols as their own asset (L-135) | 2026-10-11: scripts pass on the 0.1.9 package (ZIP 1.8 MB, symbols 17.6 MB, GUID and age match) | A managed install from a release made this way |
+| Release ZIP without the PDB, symbols as their own asset (L-135) | 2026-10-11: scripts pass on the 0.1.9 package (ZIP 1.8 MB, symbols 17.6 MB, GUID and age match); 2026-11-07: the 0.5.1 release ZIP, made this way, loads through LeviLauncher | |
 | Managed install and update keeping settings (L-65) | 2026-09-28, LeviLauncher test instance | |

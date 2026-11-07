@@ -106,7 +106,7 @@ action property.
 ## Settings key feedback (2026-10-14)
 
 [L-188](BACKLOG.md): the configured settings shortcut (default L) now
-also closes Lamium Settings. Built, not checked in game.
+also closes Lamium Settings. Passed on `9b3b8a9` (2026-10-14).
 Rule proposed in chat 2026-10-14, built when the maintainer said to go
 ahead: when the
 Settings binding is a single key, pressing it on a settings page (the
@@ -117,9 +117,9 @@ the world map, radial menu, HUD editor, prompts, calculator and language
 list keep their own keys. A binding on Backspace, Tab, Enter, Esc, Space or
 an arrow keeps the screen's meaning. Key repeats are ignored, including a
 key still held from opening the screen, so holding L does not flicker.
-Separately, [L-182](BACKLOG.md) tracks an intermittent
-crash when opening settings while checking a schematic; it needs an actual
-reproduction and is not solved merely by changing the toggle.
+Separately, L-182 was an intermittent crash when opening settings while
+checking a schematic; its cause was a stale preview after rejoining, fixed in
+`95a09e0` (BACKLOG-DONE).
 
 ## Remaining UI/runtime gaps
 
@@ -133,7 +133,7 @@ These are not reasons to redesign the shared settings UI:
   styles are planned but not built.
 - Map and Schematics are built, experimental subsystems; their follow-ups
   are L-60 and L-93. See [MAP.md](MAP.md) and [SCHEMATIC.md](SCHEMATIC.md).
-- Mass Craft remains an untriaged idea (BACKLOG's Later / parked section).
+- Mass Craft (L-165) is a Design item that needs a scope conversation first.
 
 Runtime evidence, including exact tested builds, stays in
 [VALIDATION.md](VALIDATION.md).

@@ -344,7 +344,8 @@ must own the supplied values rather than retain a component reference;
 two BDS correction replays verify that guarded raw/processed values survive
 preApply, calculation and postApply (`4fe7b29`, L-162). This does not guard
 against a correction that already moves the feet off support: a fall while
-slab bridging is recorded despite preserved input, and L-162 stays open.
+slab bridging is recorded despite preserved input; L-162 closed on 2026-10-13
+with that limit.
 
 ### `src/features/visuals/PortalTrace.cpp`
 Hooks: `PortalPackets`, `PortalInsideCheck`, `PortalScreenValid`, `PortalCraftingScreenValid`, `PortalModelValid`, `PortalCraftingValid`, `PortalSchedulePop`, `PortalInventoryKey`, `PortalOpenInventory`, `PortalCanOpen`, `PortalInside`, `PortalTick`

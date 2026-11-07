@@ -85,7 +85,8 @@ nothing skips until the next chunk is due. The 30 s diagnostics line counts
 the recording range by state, to tell unvisited chunks from blocks the
 client never received. A pure test walks a player through the world and
 requires every chunk that was well inside the range to have been scanned.
-Not checked in game yet. The other kind of gap in the saved regions, land
+Checked in game 2026-10-18 (L-210: five runs by the maintainer, merged from
+PR #20). The other kind of gap in the saved regions, land
 inside the edge chunks of a visit drawn as contour-shaped blobs (sections
 the client had not received), is not addressed by this and needs the
 diagnostics first.
@@ -313,7 +314,7 @@ Maintainer 2026-10-14: zoom out far enough that **everything explored fits on
 one screen**. It shows more of the already recorded world at once; it does
 not extend exploration, cache radius or data collection.
 
-Built (not checked in game): ten steps past 1/8 continue the same 1.5x/1.33x
+Built and seen on `9b3b8a9` (L-187, 2026-10-14): ten steps past 1/8 continue the same 1.5x/1.33x
 curve down to 1/256 GUI units per block (about 100,000 blocks across a
 400-unit screen). They open only as far as needed: the farthest step is the
 closest one at which the layer's explored bounds (whole regions) fit the map

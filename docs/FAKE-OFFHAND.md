@@ -132,7 +132,7 @@ Primary (selected slot) passes when its ordinary use cannot act:
 ### Target-specific primary uses (L-189, decided and built 2026-10-15)
 
 Maintainer 2026-10-15: include as much as possible, and prefer the game's
-own checks to hand-kept lists. Built, not checked in game. On top of the
+own checks to hand-kept lists. Passed locally on `a1a758e` (2026-10-15). On top of the
 table above, a primary item whose use only acts on certain blocks or in
 certain states passes when the game says it cannot act now; anything
 unread keeps vanilla priority. Block targets still have to be plain (no
