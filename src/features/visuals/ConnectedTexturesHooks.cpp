@@ -217,9 +217,9 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
         by = std::min(by, positions[i].y);
         bz = std::min(bz, positions[i].z);
     }
-    bx = std::floor(bx);
-    by = std::floor(by);
-    bz = std::floor(bz);
+    bx = blockOrigin(bx);
+    by = blockOrigin(by);
+    bz = blockOrigin(bz);
     auto above = partsAt(block, {pane.pos.x, pane.pos.y + 1, pane.pos.z});
     auto below = partsAt(block, {pane.pos.x, pane.pos.y - 1, pane.pos.z});
     bool east = paneAt(block, 1, 0), west = paneAt(block, -1, 0), south = paneAt(block, 0, 1), north = paneAt(block, 0, -1);

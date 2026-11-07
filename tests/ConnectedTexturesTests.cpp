@@ -392,6 +392,15 @@ void connectedTexturesTests() {
     check(widePieces.size() == 3 && widePieces[0].to == widePieces[1].from && widePieces[1].to == widePieces[2].from
               && !widePieces[1].lowCorner && !widePieces[1].highCorner && widePieces[2].to == 1.f,
           "a wider face keeps an untouched middle between its two corner slices");
+    // L-306: the pane path's frame. A mesh minimum a hair below an integer used
+    // to floor to the previous block, which made every block-edge test in
+    // adjustPane miss and left the tile border on one side of a join.
+    check(blockOrigin(0.f) == 0.f && blockOrigin(-0.f) == 0.f && blockOrigin(1e-7f) == 0.f
+              && blockOrigin(-1e-7f) == 0.f && blockOrigin(0.4375f) == 0.f && blockOrigin(0.4375f - 1e-7f) == 0.f,
+          "a pane's frame is its own block even when the mesh minimum lands on the edge");
+    check(blockOrigin(15.f) == 15.f && blockOrigin(15.4375f) == 15.f && blockOrigin(16.f - 1e-7f) == 16.f
+              && blockOrigin(-0.5625f) == -1.f && blockOrigin(-46.f) == -46.f && blockOrigin(-45.999999f) == -46.f,
+          "neighbouring blocks keep their own frame, negative coordinates included");
     // A corner slice is the tile border's own width, so sliding it costs no
     // texel of texture: two texels of geometry keep showing two.
     std::array<float, 4> sx{0.5625f, 0.6875f, 0.5625f, 0.6875f}, sz{p0, p0, p0, p0};
