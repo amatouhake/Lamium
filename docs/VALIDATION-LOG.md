@@ -14,15 +14,16 @@ it was not a full re-run of every entry.
 
 ## One-sided glass pane joins (L-306, 2026-11-07)
 
-Branch `l306-pane-frame`, PR #72, head `4d3b86e6`; DLL SHA-256
-`1DA8D7D07E24A3E24BBE140EA7A4BCBBE15B54C06B1F4FF419D2D33AB3AB5441`, no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev
+Branch `l306-pane-frame`, PR #72, built from `29842d80` (`floor(min + 0.01f)`); DLL SHA-256
+`F6D38B66D8311D9201E165666E463DD2971088B6AE3AA58FB8BCC092F93EF4CF`, no trace options, LeviLamina Client 26.60.3, 1.26.60.05 Dev
 instance. Seen, per the maintainer: two glass panes joined at a block border
-(x = -1 and x = 0) show no edge, and a four-pane run (x = -1 to 2) stays joined
-with no edge inside or outside. Before the fix the same spot kept the edge on
-the pane at x = 0 while the four-pane run looked right, which is how the defect
-stayed hidden. Also confirmed on 1.26.51.01 that it is not 26.60's. Not covered:
-stained panes beyond the same-type case, a north or south join (same code path),
-servers.
+(x = -1 and x = 0, and z = -1 and z = 0) show no edge, and a four-pane run
+(x = -1 to 2) stays joined with no edge inside or outside. The x join and the
+four-pane run had also passed on `4d3b86e6` (`floor(min + 0.5f)`, DLL
+`1DA8D7D07E24A3E24BBE140EA7A4BCBBE15B54C06B1F4FF419D2D33AB3AB5441`). Before the fix
+the same spot kept the edge on the pane at x = 0 while the four-pane run looked
+right, which is how the defect stayed hidden. Also confirmed on 1.26.51.01 that it
+is not 26.60's. Not covered: stained panes beyond the same-type case, servers.
 
 ## 0.5.1 published (2026-11-07)
 

@@ -27,10 +27,10 @@ measured at x = 0), `floor()` then moved the pane one block back, and
 `x < 0.01f && west` could never fire: that quad kept the tile border. A second arm
 hid it, because the shifted west tip trips the east test and both ends then take
 their sprite - which is why the four-pane run always looked right.
-Fixed in `blockOrigin()` (`ConnectedTextures.h`: `floor(min + 0.5f)`, exact because a
-pane's geometry starts at its block's low edge or inside the low half) for x, y and
-z, with two table checks in `tests/ConnectedTexturesTests.cpp`.
-Done 2026-11-07: checked by the maintainer on the PR #72 head `4d3b86e6` (DLL SHA-256 `1DA8D7D07E24A3E24BBE140EA7A4BCBBE15B54C06B1F4FF419D2D33AB3AB5441`). The two-pane join at x = -1 / 0 shows no edge, and a four-pane run stays joined with no edge inside or outside.
+Fixed in `blockOrigin()` (`ConnectedTextures.h`: `floor(min + 0.01f)`, the edge tests'
+own tolerance) for x, y and z, with table checks in `tests/ConnectedTexturesTests.cpp`.
+Done 2026-11-07: checked by the maintainer on a build of `29842d80` (DLL SHA-256 `F6D38B66D8311D9201E165666E463DD2971088B6AE3AA58FB8BCC092F93EF4CF`). The two-pane joins at x = -1 / 0 and z = -1 / 0 show no edge, and a four-pane run stays joined with no edge inside or outside.
+Not part of this bug: a bent lower row beside a straight upper row also looks odd, on both versions; the maintainer takes that as unfinished design.
 
 ### L-313 The world map records nothing on a BDS server
 Kind: Bug / Research, not reproduced; watch item. User report 2026-11-05
