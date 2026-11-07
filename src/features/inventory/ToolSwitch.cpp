@@ -43,16 +43,19 @@ Clock::time_point lastBreak{};
 bool quietSinceBreak() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - lastBreak).count() >= restockQuietMs;
 }
-// L-318: what a block drops with and without Silk Touch, from the game's own
-// drop strategy. The query builds item stacks, so the answer is cached per
-// block type; a fixed random keeps the comparison stable from call to call.
+// L-318: what a block drops plainly, with Silk Touch and with Fortune III, from
+// the game's own drop strategy. The query builds item stacks, so the answer is
+// cached per block type. A fixed random keeps the answers stable; the Fortune
+// pair uses a high one so a bonus roll shows in the count.
 struct DropRandom : IRandom {
-    int nextInt() override { return 0; }
-    int nextInt(int) override { return 0; }
+    bool high = false;
+    explicit DropRandom(bool high) : high(high) {}
+    int nextInt() override { return high ? 0x7fffffff : 0; }
+    int nextInt(int bound) override { return high && bound > 0 ? bound - 1 : 0; }
     int64 nextLong() override { return 0; }
-    bool nextBoolean() override { return false; }
-    float nextFloat() override { return 0.f; }
-    double nextDouble() override { return 0.5; }
+    bool nextBoolean() override { return high; }
+    float nextFloat() override { return high ? 0.999f : 0.f; }
+    double nextDouble() override { return high ? 0.999 : 0.5; }
     double nextGaussianDouble() override { return 0.0; }
     void consumeCount(uint) override {}
 };
@@ -62,17 +65,32 @@ std::vector<std::string> dropNames(ResourceDrops const& drops) {
         names.push_back(stack.getName() + " x" + std::to_string(static_cast<int>(stack.mCount)));
     return names;
 }
-bool hasSilkTouch(ItemStack const& stack) {
-    if (stack.isNull()) return false;
-    for (auto const& enchant : stack.constructItemEnchantsFromUserData().getAllEnchants())
-        if (enchant.mEnchantType == Enchant::Type::SilkTouch) return true;
-    return false;
+struct Enchants { bool silk = false; int fortune = 0; };
+Enchants enchantsOf(ItemStack const& stack) {
+    Enchants found;
+    if (stack.isNull()) return found;
+    for (auto const& enchant : stack.constructItemEnchantsFromUserData().getAllEnchants()) {
+        if (enchant.mEnchantType == Enchant::Type::SilkTouch) found.silk = true;
+        if (enchant.mEnchantType == Enchant::Type::Fortune) found.fortune = std::max(found.fortune, static_cast<int>(enchant.mLevel));
+    }
+    return found;
 }
-SilkScope dropScope(Block const& block, Player& player) {
-    static std::unordered_map<BlockType const*, SilkScope> cache;
+ItemStack enchanted(ItemStack const& plain, Enchant::Type type, int level) {
+    ItemStack stack = plain;
+    ItemEnchants enchants;
+    enchants.mSlot = 0;
+    EnchantmentInstance instance;
+    instance.mEnchantType = type;
+    instance.mLevel = level;
+    (*enchants.mItemEnchants)[0].push_back(instance);
+    stack.saveEnchantsToUserData(enchants);
+    return stack;
+}
+BlockDrops blockDrops(Block const& block, Player& player) {
+    static std::unordered_map<BlockType const*, BlockDrops> cache;
     auto const& type = block.getBlockType();
     if (auto found = cache.find(&type); found != cache.end()) return found->second;
-    if (!type.mResourceDropsStrategy) return SilkScope::None;
+    if (!type.mResourceDropsStrategy) return {};
     auto& inventory = player.getInventory();
     for (int slot = 0; slot < 36; ++slot) {
         auto const& base = inventory.getItem(slot);
@@ -80,28 +98,26 @@ SilkScope dropScope(Block const& block, Player& player) {
         try {
             ItemStack plain;
             plain.reinit(*base.mItem, 1, 0);
-            ItemStack touched = plain;
-            ItemEnchants enchants;
-            enchants.mSlot = 0;
-            EnchantmentInstance instance;
-            instance.mEnchantType = Enchant::Type::SilkTouch;
-            instance.mLevel = 1;
-            (*enchants.mItemEnchants)[0].push_back(instance);
-            touched.saveEnchantsToUserData(enchants);
-            DropRandom random;
+            auto touched = enchanted(plain, Enchant::Type::SilkTouch, 1);
+            auto lucky = enchanted(plain, Enchant::Type::Fortune, 3);
             BlockPos at{0, 0, 0};
             auto& region = player.getDimensionBlockSource();
             auto dimension = region.getDimensionId();
-            ResourceDropsContext without{ResourceDropsCause::PlayerMining, 0.f, plain, at, dimension, region};
-            ResourceDropsContext with{ResourceDropsCause::PlayerMining, 0.f, touched, at, dimension, region};
-            auto scope = scopeOfDrops(dropNames(type.mResourceDropsStrategy->getResourceDrops(block, random, without)),
-                                      dropNames(type.mResourceDropsStrategy->getResourceDrops(block, random, with)));
-            cache.emplace(&type, scope);
-            return scope;
-        } catch (...) { return SilkScope::None; }
+            auto drops = [&](ItemStack const& used, bool high) {
+                DropRandom random{high};
+                ResourceDropsContext context{ResourceDropsCause::PlayerMining, 0.f, used, at, dimension, region};
+                return dropNames(type.mResourceDropsStrategy->getResourceDrops(block, random, context));
+            };
+            BlockDrops answer{scopeOfDrops(drops(plain,false), drops(touched,false)),
+                              dropsDiffer(drops(plain,true), drops(lucky,true))};
+            cache.emplace(&type, answer);
+            return answer;
+        } catch (...) { return {}; }
     }
-    return SilkScope::None; // Nothing to test with; asked again next time.
+    return {}; // Nothing to test with; asked again next time.
 }
+// L-318: the slot that broke a block last, for ties between equal tools.
+ToolUse toolUse;
 enum class Choice { None, Selected, Fetched, Wait };
 Choice selectTool(Player& player, BlockPos const& pos) {
     if (!interaction::breaking::allows(player,pos)) return Choice::None;
@@ -116,26 +132,27 @@ Choice selectTool(Player& player, BlockPos const& pos) {
     auto const& block = player.getDimensionBlockSource().getBlock(pos);
     bool requiresTool = block.getBlockType().mRequiresCorrectToolForDrops;
     bool fetch = runtime.snapshot()->inventory.toolSwitchInventory;
-    // L-318: a Silk Touch tool where the block's own drop list depends on it.
-    auto scope = wantedScope(dropScope(block,player), runtime.snapshot()->inventory.toolSwitchSilkDrop);
+    // L-318: what the block asks of the tool, from its drop list and the priority.
+    auto want = wantFor(blockDrops(block,player), static_cast<DropPriority>(runtime.snapshot()->inventory.toolSwitchDrop));
     std::array<ToolCandidate,36> candidates;
     for (int slot=0; slot<(fetch ? 36 : 9); ++slot) {
         auto const& stack = player.getInventory().getItem(slot);
         if (stack.isNull() || !stack.mItem) continue;
+        auto enchants = want != Want::Speed ? enchantsOf(stack) : Enchants{};
         candidates[slot] = {stack.mItem->getDestroySpeed(stack,block),
             !requiresTool || stack.mItem->canDestroySpecial(block),
-            scope != SilkScope::None && hasSilkTouch(stack)};
+            enchants.silk, enchants.fortune, toolUse.last(slot, stack.mItem.get())};
         // Never fetch a tool that is about to break (L-62 would swap it back).
         if (slot >= 9 && aboutToBreak(stack.mItem->getMaxDamage(),stack.getDamageValue())) candidates[slot] = {};
     }
     std::array<ToolCandidate,9> hotbar;
     std::copy_n(candidates.begin(),9,hotbar.begin());
-    if (auto slot = chooseHotbarTool(hotbar,selected,scope)) {
+    if (auto slot = chooseHotbarTool(hotbar,selected,want)) {
         supplies->selectSlot(*slot,ContainerID::Inventory);
         return Choice::Selected;
     }
     if (!fetch) return Choice::None;
-    auto source = chooseInventoryTool(candidates,selected,scope);
+    auto source = chooseInventoryTool(candidates,selected,want);
     if (!source) return Choice::None;
     if (!quietSinceBreak()) return Choice::Wait;
     auto* local = client->getLocalPlayer();
@@ -184,11 +201,25 @@ interaction::mining::Gate continueGate(Player& player, BlockPos const& pos) {
     default: return interaction::mining::Gate::Proceed;
     }
 }
-void mined(bool destroyed) { if (destroyed) lastBreak = Clock::now(); }
+void mined(bool destroyed) {
+    if (!destroyed) return;
+    lastBreak = Clock::now();
+    try {
+        auto client = ll::service::getClientInstance();
+        auto* player = client ? client->getLocalPlayer() : nullptr;
+        auto* supplies = player ? player->mInventory.get() : nullptr;
+        if (!supplies || supplies->mSelectedContainerId != ContainerID::Inventory) return;
+        int selected = supplies->mSelected;
+        if (selected < 0 || selected >= 9) return;
+        auto const& stack = player->getInventory().getItem(selected);
+        if (!stack.isNull() && stack.mItem) toolUse.mark(selected, stack.mItem.get());
+    } catch (...) {}
+}
 void stopped() { if (!fetchPending) target.clear(); }
 void start() {}
 void stop() {
     target.clear();
+    toolUse.clear();
     fetchPending = false;
 }
 }

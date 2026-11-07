@@ -449,6 +449,11 @@ void settingsStoreTests() {
     check(!equipment.inventory.restockOffhand && equipment.inventory.toolSwitchInventory
           && !equipment.interaction.toolGuard && equipment.interaction.elytraSwap,
           "equipment follow-up switches load from disk");
+    check(decodeSettings(R"({"inventory":{"toolSwitchDrop":1}})").inventory.toolSwitchDrop == 1
+              && decodeSettings(R"({"inventory":{"toolSwitchSilkDrop":true}})").inventory.toolSwitchDrop == 2
+              && decodeSettings(R"({"inventory":{"toolSwitchDrop":7}})").inventory.toolSwitchDrop == 0
+              && decodeSettings(R"({})").inventory.toolSwitchDrop == 0,
+          "the drop priority loads, the old Silk Touch switch maps to it, and bad values reset to speed");
     check(!old.inventory.handRestock && old.inventory.restockFromHotbar,
           "restock defaults off and hotbar sources on in older files");
     auto restock = decodeSettings(R"({"inventory":{"handRestock":true,"restockFromHotbar":false}})");

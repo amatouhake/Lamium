@@ -178,6 +178,7 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "information.targetStates") return input::Action::TargetDetails;
     if (option == "information.targetCoordinates") return input::Action::TargetPosition;
     if (option == "map.caveView") return input::Action::MinimapView;
+    if (option == "inventory.toolSwitchDrop") return input::Action::CycleToolDrop;
     if (option == "schematic.mistakeMarks") return input::Action::ToggleMistakeMarks;
     if (option == "schematic.ignoreSignal") return input::Action::ToggleIgnoreSignal;
     if (option == "schematic.litAsState") return input::Action::ToggleLitAsState;

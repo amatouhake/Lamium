@@ -87,6 +87,8 @@ inline constexpr std::array<std::string_view,4> freeCameraHideLabels{"freeCamera
 inline constexpr std::array<std::string_view,7> undergroundHoldLabels{"undergroundHold.0", "undergroundHold.1", "undergroundHold.3",
     "undergroundHold.5", "undergroundHold.10", "undergroundHold.30", "undergroundHold.always"};
 inline constexpr std::array<std::string_view,4> ghostLinesLabels{"ghostLines.thin", "ghostLines.normal", "ghostLines.thick", "ghostLines.none"};
+// L-318: Tool Switch's drop priority, in inventory::DropPriority order.
+inline constexpr std::array<std::string_view,3> toolDropLabels{"toolDrop.speed", "toolDrop.fortune", "toolDrop.silk"};
 // L-97: the selected slot, then hotbar slots 1-9.
 inline constexpr std::array<std::string_view,10> fetchSlotLabels{"fetchSlot.selected", "hotbarSlot.1", "hotbarSlot.2",
     "hotbarSlot.3", "hotbarSlot.4", "hotbarSlot.5", "hotbarSlot.6", "hotbarSlot.7", "hotbarSlot.8", "hotbarSlot.9"};
@@ -289,7 +291,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inventory, &Settings::Inventory::toolSwitch>("inventory.toolSwitch", "toolSwitch", "toolSwitch"),
     toggle<&Settings::inventory, &Settings::Inventory::toolSwitchInventory>("inventory.toolSwitchInventory", "toolSwitch", "toolSwitchInventory"),
     choice<&Settings::inventory, &Settings::Inventory::toolSwitchSlot, fetchSlotLabels>("inventory.toolSwitchSlot", "toolSwitch", "fetchSlot"),
-    toggle<&Settings::inventory, &Settings::Inventory::toolSwitchSilkDrop>("inventory.toolSwitchSilkDrop", "toolSwitch", "silkDrop"),
+    choice<&Settings::inventory, &Settings::Inventory::toolSwitchDrop, toolDropLabels>("inventory.toolSwitchDrop", "toolSwitch", "toolDrop"),
     toggle<&Settings::inventory, &Settings::Inventory::weaponSwitch>("inventory.weaponSwitch", "weaponSwitch", "weaponSwitch"),
     toggle<&Settings::inventory, &Settings::Inventory::weaponSwitchInventory>("inventory.weaponSwitchInventory", "weaponSwitch", "weaponSwitchInventory"),
     choice<&Settings::inventory, &Settings::Inventory::weaponSwitchSlot, fetchSlotLabels>("inventory.weaponSwitchSlot", "weaponSwitch", "fetchSlot"),

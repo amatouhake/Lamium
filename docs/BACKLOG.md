@@ -720,15 +720,28 @@ Status: checked in game by the maintainer (VALIDATION-LOG 2026-11-07). Glass and
 ice switch and give the block; tinted glass and dirt do not switch; stone stays
 out with the option off and takes a same-grade Silk Touch tool with it on; a
 faster plain tool is kept; the label and help read in all four languages.
-Direction (maintainer 2026-11-07, not settled): three points came out of the
-check and none is decided. (A) Which of two equally fast tools to pick when the
-held item is not a tool: the left-most hotbar slot as today (L-31), the slot
-nearest the selected one, or the most durable one. (B) Where "a faster plain tool
-is kept" should stop: keep it as the help says, or take Silk Touch whenever the
-option is on and accept the slower break. (C) Fortune: the always-on group is
-unaffected; with the option on a Fortune tool gives more of the item where Silk
-Touch gives the block, so leave it as "the option means the block", keep a
-Fortune tool instead, or make it its own option.
+Three points came out of that check: (A) which of two equally fast tools to
+pick, (B) where "a faster plain tool is kept" should stop, (C) whether Fortune
+counts.
+Decided (maintainer 2026-11-07, replaces the on/off option): what a player wants
+from a block changes with the activity (mining wants Fortune on ores and speed
+elsewhere, gathering wants the block itself, clearing wants speed), so the
+choice is a mode the player switches, not a fixed rule.
+- Guard, always on: a block that drops nothing without Silk Touch takes a Silk
+  Touch tool in every mode (unchanged).
+- Drop priority, a three-way option `inventory.toolSwitchDrop` with a key that
+  cycles it and a toast naming the new value: Speed (default; today's behaviour
+  with the option off), Fortune (where Fortune changes the drop, the
+  highest-level Fortune tool that harvests the block, then the faster one;
+  elsewhere speed), Silk Touch (where Silk Touch changes the drop, a Silk Touch
+  tool that harvests the block, even when slower). This settles (B) and (C): a
+  priority means priority, and Fortune is its own mode instead of competing with
+  Silk Touch. A tool that cannot harvest the block never counts.
+- (A) Among equally good tools, the one last used to break a block wins; with no
+  record, the left-most hotbar slot (L-31) or the higher inventory slot (L-69)
+  as before. Durability stays out of this choice.
+- Whether Fortune changes a block's drop comes from the same drop query (plain
+  and Fortune III with a fixed high random); not confirmed on the client yet.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
 Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;

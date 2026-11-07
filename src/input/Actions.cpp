@@ -285,6 +285,13 @@ void executeAction(IClientInstance& client, input::Action action) {
             : next == map::ViewForce::Surface ? "mapView.surface" : "mapView.auto"));
         return;
     }
+    if (action == input::Action::CycleToolDrop) {
+        settings::find("inventory.toolSwitchDrop")->adjust(value,1);
+        if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save drop priority"); return; }
+        auto label = settings::toolDropLabels[static_cast<size_t>(value.inventory.toolSwitchDrop) % settings::toolDropLabels.size()];
+        ui::showMessageToast(ui::translated("toolDrop.toast", ui::translated(std::string(label))));
+        return;
+    }
     if (action == input::Action::CycleBreakingMode) {
         settings::find("interaction.breakingMode")->adjust(value,1);
         if (!runtime.save(value)) runtime.self().getLogger().error("Could not save breaking mode");
