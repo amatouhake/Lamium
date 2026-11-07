@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block highlight rainbow (L-320, 2026-11-08)
+
+`9dab5639`, DLL SHA-256
+`07f4c49c0d46281239c0501e7c9773c9ec050edaa6764f412f3a20b99ac1f216`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer: highlighted ore glows in a flowing rainbow with matching edges,
+the ore texture shows under the glow, and mining the ore removes its glow.
+Found: with very common blocks listed (tuff, gravel, plus two deepslate ores)
+or many types, the glow sometimes vanished without any notice. Suspected: the
+whole glow was one mesh of up to 24576 faces (196608 vertices on Fancy),
+past what one mesh may hold, and the face limit kept marks in section order,
+not nearest first. Fixed in the next build, untested.
+
 ## Block highlight glow (L-320, 2026-11-08)
 
 `3614d9da`, DLL SHA-256
