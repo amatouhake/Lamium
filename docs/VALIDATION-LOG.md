@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block highlight glow (L-320, 2026-11-08)
+
+`3614d9da`, DLL SHA-256
+`654a58d1d70dced4527d7ede23f18585c761a5855f0194ca890310da35143328`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer: highlighted iron ore keeps glowing and pulsing (on `4af43289` it
+showed for a moment and vanished), and ore about 110 blocks away glows the
+same way. Not checked: mining a highlighted block, through-wall leaks at
+distance, Night Vision, other dimensions, Vibrant Visuals.
+
 ## Block highlight first look (L-320, 2026-11-08)
 
 `2d14c846`, DLL SHA-256
