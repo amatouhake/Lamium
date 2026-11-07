@@ -58,6 +58,15 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"help.visuals.connectedCorners", "玻璃方块墙拐弯时，在拐角内侧保留两面墙的边框，使拐角看起来是拐角，而不是连成一整片。直墙和拐角外侧不受影响。"},
     {"help.visuals.connectedPaneCorners", "在摆成 L 形的玻璃板拐角的外侧绘制边框。玻璃板向内转弯处（L 形、T 形和十字形）内侧的边框，还需要同时开启同一功能中的“内侧拐角保留边框”。原版玻璃板两侧都没有边框，拐角看起来是一整片。"},
     {"help.connectedTextures", "相邻的同种方块会绘制成一个整面: 玻璃和玻璃板之间没有边框线，并排的书架之间没有隔板，叠放的砂岩之间没有横带。染色玻璃只与同色相连。实验性功能。"},
+    {"feature.blockHighlight", "方块高亮"},
+    {"blockHighlight", "方块高亮: {}"},
+    {"key.Lamium.blockhighlight", "切换方块高亮"},
+    {"key.Lamium.highlightaimedblock", "高亮准星所指的方块种类（再按一次取消）"},
+    {"help.blockHighlight", "将选定种类的方块染成各自的颜色并以最大亮度绘制，远处或黑暗中也容易发现。准星对准方块按下按键即可添加该种类，再按一次则移除。只给游戏本身绘制的面上色，因此不会透过墙壁显示。实验性功能。"},
+    {"highlight.added", "开始高亮 {}"},
+    {"highlight.removed", "已停止高亮 {}"},
+    {"highlight.full", "高亮列表已满"},
+    {"highlight.noBlock", "请将准星对准要高亮的方块"},
     {"help.hideEffects", "隐藏所选的视觉效果。关闭总开关会恢复所有绘制，并保留你的选择。声音和游戏玩法不受影响。实验性功能。"},
     {"effectsPaused", "总开关已关闭"},
     {"paused.full", "已暂停"},
@@ -1789,5 +1798,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"capability.NoteBlockSounds", "音符盒音高（声音事件）"},
     {"capability.NoteBlockInstrument", "虚影音符盒的乐器"},
     {"capability.BookPastePages", "书与笔跨页粘贴"},
+    {"capability.BlockHighlight", "方块高亮（区块网格颜色）"},
 });
 }

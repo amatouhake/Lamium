@@ -21,6 +21,7 @@
 #include "features/research/LanguageTrace.h"
 #include "features/interaction/InventoryMoveTrace.h"
 #include "features/visuals/ConnectedTexturesHooks.h"
+#include "features/visuals/BlockHighlightHooks.h"
 #include "features/visuals/PortalTrace.h"
 #include "features/visuals/ServerPacks.h"
 #include "features/inspection/LockedTrades.h"
@@ -147,6 +148,7 @@ Feature const features[] = {
     {"Offhand visibility", started<visuals::start>, visuals::stop},
     {"FreeCamera hiding", started<camera::freeCameraHide::start>, camera::freeCameraHide::stop},
     {"Connected Textures", visuals::connected::start, visuals::connected::stop, capabilities::Id::ConnectedTextures},
+    {"Block highlight", visuals::highlight::start, visuals::highlight::stop, capabilities::Id::BlockHighlight},
     {"Server resource packs", visuals::serverPacks::start, visuals::serverPacks::stop, capabilities::Id::SkipServerPacks},
     {"Tool Switch", started<inventory::tools::start>, inventory::tools::stop},
     {"Weapon Switch", started<inventory::weapons::start>, inventory::weapons::stop},

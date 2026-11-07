@@ -61,6 +61,15 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.visuals.connectedCorners", "Where glass block walls turn a corner, keep the border on both walls at the inside of the turn, so the corner reads as a corner instead of one continuous sheet. Straight walls and the outside of the corner do not change.", "ガラスブロックの壁が曲がる所で、内側の角に両方の壁の縁を残します。角が 1 枚につながって見えず、曲がり角だと分かるようになります。まっすぐな壁や角の外側は変わりません。"},
     {"help.visuals.connectedPaneCorners", "Draw a border on the outside of an L-shaped glass pane corner. The inside of every corner where panes turn inward - an L, a T or a cross - gains one only with \"Edges at inside corners\" on as well. Vanilla glass panes have no edge on either side, so a corner reads as one continuous sheet.", "L 字に置いた板ガラスの角の外側に縁を描きます。板ガラスが内側に曲がる角（L 字・T 字・十字）の内側の縁は、同じ機能の「内側の角に縁を残す」もオンにしたときに描きます。通常の板ガラスはどちら側にも縁がなく、角が 1 枚の面につながって見えます。"},
     {"help.connectedTextures", "Glass, glass panes, bookshelves and sandstone next to the same block draw as one surface: no border between glass, no divider between side-by-side bookshelves, no band between stacked sandstone. Stained glass joins only the same color. Experimental.", "隣り合う同じブロックを 1 枚の面として描きます。ガラスと板ガラスは境目の枠線、横に並べた本棚は間の仕切り、積んだ砂岩は間の帯が消えます。色付きガラスは同じ色どうしだけつながります。実験的な機能です。"},
+    {"feature.blockHighlight", "Block highlight", "ブロックのハイライト"},
+    {"blockHighlight", "Block highlight: {}", "ブロックのハイライト: {}"},
+    {"key.Lamium.blockhighlight", "Toggle Block highlight", "ブロックのハイライトを切り替え"},
+    {"key.Lamium.highlightaimedblock", "Highlight the aimed block type (again to remove)", "狙ったブロックの種類をハイライトに追加（もう一度で解除）"},
+    {"help.blockHighlight", "Tint the block types you pick in their own color and draw them at full brightness, so they stand out even far away or in the dark. Aim at a block and press the key to add its type; press it again to remove it. Only faces the game draws are tinted, so nothing shows through walls. Experimental.", "選んだ種類のブロックを種類ごとの色で染め、最大の明るさで描きます。遠くや暗い所でも見つけやすくなります。ブロックを狙ってキーを押すとその種類を追加し、もう一度押すと外します。ゲームが描く面だけを染めるので、壁越しには見えません。実験的な機能です。"},
+    {"highlight.added", "Highlighting {}", "{} をハイライトします"},
+    {"highlight.removed", "Stopped highlighting {}", "{} のハイライトをやめました"},
+    {"highlight.full", "The highlight list is full", "ハイライトのリストがいっぱいです"},
+    {"highlight.noBlock", "Aim at a block to highlight its type", "種類を登録するにはブロックを狙ってください"},
     {"help.hideEffects", "Hide the selected visual effects. Turning the main switch off restores all drawing and keeps your selections. Sound and gameplay stay unchanged. Experimental.", "選んだ視覚効果を隠します。全体をオフにするとすべて通常表示に戻り、個別の選択は保持されます。音やゲームの状態は変わりません。実験的な機能です。"},
     {"effectsPaused", "Main switch off", "全体OFF"},
     {"paused.full", "paused", "停止中"},
@@ -1825,6 +1834,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"capability.NoteBlockSounds", "Note block pitch (sound events)", "音ブロックの音程（サウンドイベント）"},
     {"capability.NoteBlockInstrument", "Ghost note block instrument", "ゴーストの音ブロックの楽器"},
     {"capability.BookPastePages", "Paste across book pages", "本のページをまたいで貼り付け"},
+    {"capability.BlockHighlight", "Block highlight (chunk mesh colors)", "ブロックのハイライト（チャンクの頂点色）"},
 });
 enum class Locale { English, Japanese, SimplifiedChinese, TraditionalChinese };
 inline constexpr std::array locales{Locale::English, Locale::Japanese, Locale::SimplifiedChinese, Locale::TraditionalChinese};

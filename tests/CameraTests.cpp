@@ -47,6 +47,8 @@ int main() try {
     inventoryHudTests();
     extern void connectedTexturesTests();
     connectedTexturesTests();
+    extern void blockHighlightTests();
+    blockHighlightTests();
     extern void textEditTests();
     textEditTests();
     extern void calculatorTests();

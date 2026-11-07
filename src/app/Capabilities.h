@@ -13,7 +13,7 @@ enum class Id {
     FreeCameraHand, FreeCameraHud, HideParticles, HideBossBars,
     SchematicBlend, SchematicActorLight, SchematicCreativePick,
     InventoryDiagnostics, LanguageDiagnostics, SneakPlacement, NoteBlockSounds,
-    NoteBlockInstrument, BookPastePages, Count
+    NoteBlockInstrument, BookPastePages, BlockHighlight, Count
 };
 enum class Impact { None, Partly, Fully };
 enum class Stage : std::uint8_t { Waiting, Ready, Stopped, Failed };
@@ -64,6 +64,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::NoteBlockSounds, "Note block pitch (level sound events)", "targetInfo", "capability.NoteBlockSounds", Impact::Partly},
     {Id::NoteBlockInstrument, "Ghost note block instrument (block instrument component)", "targetInfo", "capability.NoteBlockInstrument", Impact::Partly, true, true},
     {Id::BookPastePages, "Paste across book pages (page model and caret)", "bookPaste", "capability.BookPastePages", Impact::Fully, true, true},
+    {Id::BlockHighlight, "Block highlight (chunk mesh colors)", "blockHighlight", "capability.BlockHighlight", Impact::Fully},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);

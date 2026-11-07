@@ -334,6 +334,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::visuals, &Settings::Visuals::connectedTextures>("visuals.connectedTextures", "connectedTextures", "connectedTextures"),
     toggle<&Settings::visuals, &Settings::Visuals::connectedCorners>("visuals.connectedCorners", "connectedTextures", "connectedCorners"),
     toggle<&Settings::visuals, &Settings::Visuals::connectedPaneCorners>("visuals.connectedPaneCorners", "connectedTextures", "connectedPaneCorners"),
+    toggle<&Settings::visuals, &Settings::Visuals::blockHighlight>("visuals.blockHighlight", "blockHighlight", "blockHighlight"),
     toggle<&Settings::visuals, &Settings::Visuals::skipServerPacks>("visuals.skipServerPacks", "skipServerPacks", "skipServerPacks"),
     toggle<&Settings::visuals, &Settings::Visuals::hideBossBars>("visuals.hideBossBars", "hideEffects", "hideBossBars"),
     toggle<&Settings::visuals, &Settings::Visuals::hideNausea>("visuals.hideNausea", "hideEffects", "hideNausea"),

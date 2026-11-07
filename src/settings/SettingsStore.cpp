@@ -43,6 +43,11 @@ void preserveBroken(std::filesystem::path const& path) {
     std::filesystem::rename(path, broken);
 #endif
 }
+Json highlightJson(std::vector<visuals::highlight::Entry> const& entries) {
+    Json out = Json::array();
+    for (auto const& e : entries) out.push_back({{"name", e.name}, {"color", e.color}});
+    return out;
+}
 Json encodeHudElement(ui::HudElement const& element) {
     return {{"anchor", static_cast<int>(element.anchor)}, {"dx", element.dx},
             {"dy", element.dy}, {"scale", element.scale},
@@ -160,6 +165,8 @@ Json encode(Settings const& settings) {
                      {"connectedTextures", settings.visuals.connectedTextures},
                      {"connectedCorners", settings.visuals.connectedCorners},
                      {"connectedPaneCorners", settings.visuals.connectedPaneCorners},
+                     {"blockHighlight", settings.visuals.blockHighlight},
+                     {"highlightBlocks", highlightJson(settings.visuals.highlightBlocks)},
                      {"hideWeather", settings.visuals.hideWeather}, {"hideParticles", settings.visuals.hideParticles},
                      {"hideBossBars", settings.visuals.hideBossBars}, {"hideNausea", settings.visuals.hideNausea},
                      {"hideWater", settings.visuals.hideWater}, {"hideLava", settings.visuals.hideLava},
@@ -425,6 +432,14 @@ Settings decodeSettings(std::string_view text) {
         value.visuals.connectedTextures = settingsValue(visuals, "connectedTextures", value.visuals.connectedTextures);
         value.visuals.connectedCorners = settingsValue(visuals, "connectedCorners", value.visuals.connectedCorners);
         value.visuals.connectedPaneCorners = settingsValue(visuals, "connectedPaneCorners", value.visuals.connectedPaneCorners);
+        value.visuals.blockHighlight = settingsValue(visuals, "blockHighlight", value.visuals.blockHighlight);
+        if (visuals.contains("highlightBlocks") && visuals.at("highlightBlocks").is_array()) {
+            value.visuals.highlightBlocks.clear();
+            for (auto const& item : visuals.at("highlightBlocks"))
+                if (item.is_object() && item.contains("name") && item.at("name").is_string())
+                    value.visuals.highlightBlocks.push_back({item.at("name").get<std::string>(), settingsValue(item, "color", 0)});
+            visuals::highlight::normalize(value.visuals.highlightBlocks);
+        }
         value.visuals.skipServerPacks = settingsValue(visuals, "skipServerPacks", value.visuals.skipServerPacks);
         value.visuals.hideWeather = settingsValue(visuals, "hideWeather", value.visuals.hideWeather);
         value.visuals.hideParticles = settingsValue(visuals, "hideParticles", value.visuals.hideParticles);

@@ -101,6 +101,7 @@ the package/SDK loader-policy alignment in CI.
 |---|---|---|---|
 | FreeCamera terrain (native culler request) | `FreeCameraCulling.cpp` | underground terrain hidden as vanilla culls it | FreeCamera itself |
 | Connected Textures (chunk mesh vertices) | `ConnectedTexturesHooks.cpp`, `ConnectedSprites.cpp` | glass with borders | the setting (no effect) |
+| Block highlight (chunk mesh colors) | `BlockHighlightHooks.cpp` | designated blocks drawn as vanilla | the key, list and setting (no effect) |
 | Night Vision (light texture data) | `NightVision.cpp` | vanilla light | the key and setting (no effect) |
 | Edge Guard (movement request) | `EdgeGuard.cpp` (movement request and move vector), `EdgeGuardHistory.cpp` (replay input capture) | vanilla movement and history capture | the setting (no effect) |
 | Edge Guard (replay capture) | `EdgeGuardHistory.cpp` | vanilla replay capture | ordinary movement guarding |
@@ -629,6 +630,12 @@ count it fills directly (the sorted blended mesh; outlines after their
 first primitive), the alpha pass order,
 and the material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 (Schematic ghost blocks; entity models in `GhostMarks.cpp`).
+
+### `src/features/visuals/BlockHighlightHooks.cpp`
+Hooks: `HighlightBlock`, `HighlightRebuild`
+Meaning: the chunk mesh's vertex colors and light map coordinates (UV1) for
+the vertices a designated block adds, and when chunks rebuild. Gated (Block
+highlight).
 
 ### `src/features/visuals/ConnectedSprites.cpp`
 Hooks: `SpriteAtlas`, `SpritePackIndex`, `SpritePackLoad`

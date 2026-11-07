@@ -40,6 +40,7 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleDeathRestore: field = &value.inventory.deathRestore; break;
     case Action::ToggleHideEffects: field = &value.visuals.hideEffects; break;
     case Action::ToggleConnectedTextures: field = &value.visuals.connectedTextures; break;
+    case Action::ToggleBlockHighlight: field = &value.visuals.blockHighlight; break;
     case Action::ToggleDurabilityHud: field = &value.information.durabilityHud; break;
     case Action::ToggleInventoryHud: field = &value.information.inventoryHud; break;
     case Action::ToggleUsedSlots: field = &value.information.usedSlots; break;

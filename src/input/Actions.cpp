@@ -20,6 +20,9 @@
 #include "features/map/WaypointSession.h"
 #include "features/map/WaypointMarkers.h"
 #include "mc/client/player/LocalPlayer.h"
+#include "mc/world/level/BlockSource.h"
+#include "mc/world/level/block/Block.h"
+#include "mc/world/phys/HitResult.h"
 #include "ui/SettingsScreen.h"
 #include "ui/SettingsRows.h"
 #include "ui/Toast.h"
@@ -283,6 +286,24 @@ void executeAction(IClientInstance& client, input::Action action) {
         if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save minimap view"); return; }
         ui::showMessageToast(ui::translated(next == map::ViewForce::Cave ? "mapView.cave"
             : next == map::ViewForce::Surface ? "mapView.surface" : "mapView.auto"));
+        return;
+    }
+    if (action == input::Action::HighlightAimedBlock) {
+        auto const& hit = client.getLatestHitResult();
+        auto* player = client.getLocalPlayer();
+        if (!player || hit.mType != HitResultType::Tile || hit.mIndirectHit) {
+            ui::showMessageToast(ui::translated("highlight.noBlock"));
+            return;
+        }
+        auto const& block = player->getDimensionBlockSource().getBlock(hit.mBlock);
+        auto change = visuals::highlight::toggle(value.visuals.highlightBlocks, block.getTypeName());
+        if (change == visuals::highlight::Change::Invalid) return;
+        if (change == visuals::highlight::Change::Full) { ui::showMessageToast(ui::translated("highlight.full")); return; }
+        // Adding a type means wanting to see it.
+        if (change == visuals::highlight::Change::Added) value.visuals.blockHighlight = true;
+        if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save block highlight list"); return; }
+        ui::showMessageToast(ui::translated(change == visuals::highlight::Change::Added ? "highlight.added" : "highlight.removed",
+                                            block.buildDescriptionName()));
         return;
     }
     if (action == input::Action::CycleToolDrop) {

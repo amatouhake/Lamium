@@ -25,6 +25,14 @@ void settingsStoreTests() {
           && decodeSettings(R"({"information":{"targetSchematic":2}})").information.targetSchematic,
           "a display mode number from a test build reads as on or off");
     {
+        auto none = decodeSettings("{}").visuals;
+        check(!none.blockHighlight && none.highlightBlocks.empty(), "block highlight starts off with an empty list");
+        auto loaded = decodeSettings(R"({"visuals":{"blockHighlight":true,"highlightBlocks":[{"name":"minecraft:diamond_ore","color":5},{"name":"minecraft:diamond_ore"},{"color":2},"x",{"name":"minecraft:ancient_debris"}]}})").visuals;
+        check(loaded.blockHighlight && loaded.highlightBlocks.size() == 2 && loaded.highlightBlocks[0].color == 5
+                  && loaded.highlightBlocks[1] == visuals::highlight::Entry{"minecraft:ancient_debris", 0},
+              "the highlight list loads names and colors and skips malformed or repeated entries");
+    }
+    {
         check(decodeSettings("{}").visuals.hideNausea
               && !decodeSettings(R"({"visuals":{"hideNausea":false}})").visuals.hideNausea,
               "nausea color is selected by default and loads independently");

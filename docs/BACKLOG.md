@@ -507,11 +507,25 @@ Data: only blocks in chunks the client has received, scanned live like
 the light overlay; never the recorded map data, which may be stale.
 Rendering builds on the overlay foundation (light overlay / Shapes);
 matching kinship: the schematic check.
-Open: the emphasis style (outline, face tint, pulse — what reads as
-"stands out" without retexturing; Connected Textures is the reference
-feel); range and rescan cost; designation by type only or by exact block
-states; whether a schematic placement's blocks share this list or stay
-with the schematic check.
+Decided 2026-11-08 (maintainer): the point is finding blocks that are far
+away or awkwardly placed, so a scanned overlay (Shapes-style, radius 64 at
+most) is too short. Instead the highlight is built into the terrain mesh,
+in the same tessellator hook as Connected Textures: a designated block's
+vertices are tinted toward its type's color and drawn at full light so it
+shows in the dark. Reach is the render distance, with no scan and no
+per-frame cost; hidden faces are culled by the game itself, so nothing
+shows through walls. Changing the list or the switch rebuilds the chunks
+once. No outline; blocks drawn as block entities (chests) are not covered.
+Matching by block name only (states ignored; deepslate ores are their own
+names). Colors per type from the waypoint palette, the next free one on
+adding. Designation: a key adds the aimed block's type, or removes it if
+already listed; the list is global (settings), not per world.
+Steps: (1) the hook, settings, key and rebuild, with full light and the
+tint checked in game (UV1 as the light map is a hypothesis; Vibrant
+Visuals may need MERS emissive); (2) a list view to see, recolor and
+remove types. Still open: the tint strength; whether a schematic
+placement's blocks share this list (default: no, they stay with the
+schematic check).
 
 ### L-319 Item details: Work Penalty first, then the unshown rest
 Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).
