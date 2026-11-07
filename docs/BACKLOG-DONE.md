@@ -10,6 +10,65 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-177 Schematic mismatch highlight appears at the wrong position
+Kind: Bug / Research. User report 2026-10-14.
+Status: cause found and fix built 2026-10-14 (`0235527`), not checked in game.
+Maintainer 2026-10-15: checked when the reporter next uses the schematic
+features; no dedicated check before that.
+Details from the reporter: with a layer view, Show in world / Nearest
+mistake lit a cell far above the shown ghosts; showing it again was right.
+Changing layers or moving a placement restarts the check, but the last
+complete result stayed published, so the pointer used a cell from the
+earlier layers. The result is now kept for the list but marked stale, and
+Show in world / Nearest mistake say "still counting" until the new pass
+finishes. Check in game: change the layer, at once press Nearest mistake
+(counting), then after the pass it lights a shown cell.
+Original report: a highlighted discrepancy in a placed schematic can appear at
+a different world position from the corresponding incorrect block.
+Investigate the check result's cell coordinates, placement translation,
+rotation/mirroring, layer filters and overlay transform separately; do not
+assume the check data itself is wrong. Compare Check rows, world-space
+highlights and targeted blocks across transformed placements. Record a
+reproduction before choosing a fix. [SCHEMATIC.md](SCHEMATIC.md).
+Closed 2026-11-07 by the maintainer: the reporter has used the schematic features since and reported no recurrence. The dedicated check above was never run; build not recorded.
+
+### L-192 Glass ghost brightness changes by section with the camera position
+Kind: Bug / Research. Maintainer report 2026-10-14 (VALIDATION-LOG).
+Status update 2026-10-14 (2): the real see-through part passed; darkening left where blended quads overlap; fixed by sorting all blended quads together from the current camera, not checked.
+Status update 2026-10-14: happens only where a real see-through block is below the ghost; fix built (real see-through faces hide the ghost face in their plane), not checked in game.
+Status: open. More evidence 2026-10-14: only the current camera position
+matters (not where the camera was), so the build-time sort hypothesis below
+does not fit; with the camera below the floor both sides darken.
+White stained glass ghosts turn darker or lighter in
+world-aligned groups that look like the 8-block ghost sections, depending on
+where the camera is, not which way it looks; moving the placement keeps the
+dark area at the same world coordinates.
+Hypothesis (not checked): blended ghosts draw both sides without depth
+writes, so a glass cell's top and bottom faces both blend and the one drawn
+last dominates. Each section sorts its quads far to near from the camera
+position when it was built, and sections rebuild at different times, so
+sections built with the camera on different sides of the faces end up in a
+different order. Candidate fixes: drop back faces of blended ghosts (as the
+game does for glass) and rebuild a section when the camera crosses its
+planes, or re-sort blended quads when the camera has moved. Check first
+whether walking below and back above the floor flips which sections are dark.
+Closed 2026-11-07 by the maintainer: in everyday use since the 2026-10-14 fixes the glass ghosts look right. No dedicated check; build not recorded.
+
+### L-193 Glass ghosts of two adjacent placements flicker at their border
+Kind: Bug. Split from L-178 on 2026-10-14.
+Status update 2026-10-14 (2): left where two placements' see-through quads overlap on screen; same global sort fix as L-192, not checked.
+Status update 2026-10-14: does not happen with one placement; the flicker needs real see-through blocks below too; same fix as L-192, not checked in game.
+Status: open. `pistons` (8x3x7 at -95 84 -60) and `shulkers` (5x5x5 at -87 84
+-63) touch across x = -87; their white glass ghosts at y 84, z -60 and -59
+face each other and flicker. Cause found from the log (VALIDATION-LOG):
+next to the camera the pairing rule keeps one face of a shared plane, and
+the two placements' sections, built with the camera on different sides,
+each kept theirs. Fix built 2026-10-14: same-kind see-through pairs drop
+both faces even next to the camera; the flicker remained (VALIDATION-LOG),
+also where no faces meet, alternating between two looks. A perf trace build
+checks whether sections keep being rebuilt.
+Closed 2026-11-07 by the maintainer, with L-192: no flicker noticed in everyday use since the global blended-quad sort. No dedicated check; build not recorded.
+
 ### L-276 A temporary waypoint whose removal cannot be saved is never announced again
 Kind: Bug. Review finding 2026-10-27 on `08da0c47`: `waypoints::arrive()`
 in `src/features/map/WaypointSession.cpp` called `ArrivalWatch::update()`
@@ -2487,6 +2546,162 @@ result is only the converted text; Latin typing and Backspace unchanged.
 ---
 
 ## Ready
+
+### L-305 Move to Minecraft 1.26.60.05 and LeviLamina 26.60
+Kind: Update. Follows the playbook in [GAME-UPDATES.md](GAME-UPDATES.md).
+Built against SDK 26.60.0 on 2026-11-04. The gated features passed a round in
+game the same day (VALIDATION-LOG), so `verifiedGame` is 1.26.60.5.
+
+Open:
+1. **Trace builds.** Only `transfer_trace` was built against 26.60 among the trace
+   options; the others may need the same treatment.
+2. **Offhand map stays drawn with Hide Offhand on (regression from 26.51).**
+   It does not go through the render calls Lamium could hook on 26.51, and the
+   likely target was not exported:
+   `?_renderMiniMapHand@ItemInHandRenderer@@QEAAXAEAVBaseActorRenderContext@@AEAVPlayer@@_N@Z`.
+   Added to the symbol request on 2026-11-04; 26.60.1's headers mark it
+   `MCAPI`, so the request covered it (item 4). 2026-11-07 on LeviLamina 26.60.4:
+   skipping it with `inOffhand` true left the map drawn. A trace build showed
+   `_renderPhotoMapItem` with `isMainHand` false running first in the
+   first-person pass, so `OffhandMap` in `HideOffhand.cpp` skips that call
+   instead. Checked in game on `a1c43cc2`: the offhand map is hidden, a map in
+   the main hand stays drawn, but the arm that held the offhand map stays.
+   Skipping `_renderMiniMapHand` with `inOffhand` true as well (`34b455a2`) did
+   not hide that arm, so it was taken out again; no linkable arm-drawing call
+   was found in the SDK headers. Closed 2026-11-07: the map is hidden; the arm
+   that held it stays, accepted by the maintainer as a known limitation.
+3. **Launching on 26.60.** An instance where PeEditor ran after LeviLauncher's
+   import patch fails at launch: the import table is left unaligned and
+   `LeviLauncher.dll` rejects it (`Cannot install directory imports (Windows
+   error 193)`, exit `0xC0000142`). Lamium is not involved. Repeat PeEditor on
+   the original executable, so that the launcher patches last. Reported as
+   LiteLDev/LeviLauncher#176. A separate install failure on slow connections, as
+   LiteLDev/lip#402.
+4. **Symbols.** The request (`LiteLDev/mcapi-requests` #283) was filed on
+   2026-11-04, passed its automatic check and was closed as completed the same
+   day. An `MCAPI` game function links through `bedrock_runtime_api.lib`, which
+   prelink generates from bedrock-runtime-data, so `LeviLamina.dll`'s export
+   table says nothing about it: a link attempt is the check. Link result on
+   2026-11-06 against SDK 26.60.3 with bedrock-runtime-data v26.60.5-client.9:
+   only the ghost note block instrument is unresolved. `_textFitsInControl` is
+   still `MCNAPI` and deprecated in the 26.60.3 headers, yet it links and answers
+   in game, so an SDK update could take it away: the link error would say so.
+   The minimum LeviLamina rose to 26.60.3 with this; whether older
+   bedrock-runtime-data resolves these names is unchecked.
+   `LAMIUM_MCAPI_PENDING` (`xmake.lua`) now holds back only the instrument and
+   the transfer trace's hooks.
+   - Book paste (L-259; links, and checked in game on 2026-11-06):
+     `?$preFrameTick@BookScreenController@@QEAAXXZ`,
+     `?$_isStillValid@BookScreenController@@QEBA_NXZ`,
+     `?_addPageAt@BookScreenController@@QEAAXHAEBUPageContent@@@Z`,
+     `?_parsePageText@BookScreenController@@QEAAXH@Z`,
+     `??0PageContent@@QEAA@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$optional@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@Z`,
+     `??1PageContent@@QEAA@XZ`,
+     `?handleFocusSet@TextEditComponent@@QEAAX_N@Z`,
+     `?trySetText@TextEditComponent@@QEAA_NV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`,
+     `?_textFitsInControl@TextEditComponent@@QEBA_NAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`,
+     `?feedText@TextEditContext@@QEAAXV?$basic_string_view@DU?$char_traits@D@std@@@std@@@Z`,
+     `?_setText@TextEditContext@@QEAAXV?$basic_string_view@DU?$char_traits@D@std@@@std@@@Z`.
+     `book_paste_trace` links with six diagnostic hooks held back (key, screen
+     open, action, set-page and the two manager hooks); its paste decisions log.
+   - Ghost note block instrument (no row on the card, not compared in the check):
+     `??$tryGetComponent@UBlockInstrumentComponent@@@Block@@QEBAPEBUBlockInstrumentComponent@@XZ`.
+     The request's check rejects it because the template is declared `MCAPI`, but
+     this instantiation does not link. Needs another way to read the component.
+     `BlockComponentStorage::_findComponentTyped` links but is not one: outside
+     the game `Bedrock::type_id<void, T>` numbers types from the mod's own counter,
+     so the id would name some other component. The maintainer's decision on
+     2026-11-06: keep this as a record and file nothing with LiteLDev for now
+     (L-315); the ghost's instrument row is all it costs.
+
+A note block's instrument name without a Lamium translation now falls back to
+its number, because `noteBlockInstrumentToString` is not exported.
+Done 2026-11-07: items 2 to 4 are closed or recorded, the minimum LeviLamina is 26.60.4 (GAME-UPDATES.md), and what still waits for symbols is L-315. Item 1 moved to the GAME-UPDATES playbook: build a trace option before relying on it.
+
+### L-298 Attach release assets from the tag's CI run
+Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).
+Follow-up to L-196: release ZIPs up to 0.3.1 were built and attached by
+hand, and where they were built was not recorded, while THIRD_PARTY_NOTICES
+says a release is built from its tag. Decided with the maintainer
+2026-11-01: CI builds and attaches, a person writes the notes and
+publishes. `build.yml` uploads `bin/release/` as `release-assets` on a tag
+push; a separate `draft-release` job (the only job with `contents: write`,
+no build code) creates the draft "Lamium <version>" with both assets, or
+replaces the assets of an existing draft, and refuses a published release.
+The flow is in DISTRIBUTION.md. Not done: build provenance attestation
+(optional; needs a pinned action and `id-token`/`attestations` write).
+Validation: the `v0.4.0` run created the draft with both assets and
+matching SHA-256 (VALIDATION-LOG 2026-11-01). Left: LeviLauncher installs
+the published ZIP (BACKLOG "Since 0.4.0"); close this item after it passes.
+Done 2026-11-07: the 0.5.1 tag's published ZIP loads through LeviLauncher (VALIDATION-LOG 2026-11-07), the last condition. Build provenance attestation stays optional and unscheduled.
+
+### L-263 Pick the aimed ghost block from the inventory
+Kind: Research (pick-block hook), then Ready. Same feedback as L-262:
+take the block of the schematic ghost under the crosshair from the
+inventory.
+Decided (maintainer 2026-10-26): build this first, with the "bring this
+block from the inventory into the hand" step as a shared part that a later
+placement assist (L-265) can reuse. The vanilla pick-block input (middle
+click by default) does it when the crosshair is on a ghost and not on a
+real block; on a real block it stays vanilla. Like vanilla pick block:
+select the hotbar slot that holds it, else bring it from the inventory
+into the hotbar; nothing happens when it is not carried.
+Open: creative mode (vanilla gives the item; whether a ghost pick should
+too), and a ghost behind a wrong real block (vanilla wins as decided).
+Decided 2026-10-26 (maintainer): in creative mode a ghost pick gives the
+block even when it is not carried, like vanilla. Research (2026-10-26,
+SDK 26.51.8): vanilla's creative pick asks the server for the block at
+the hit (`BlockPickRequestPacket`), which cannot name a ghost; the
+creative inventory screen takes items with an item stack request whose
+action is `CraftCreative` (`ItemStackRequestActionType` 14, a
+`CreativeItemNetId` from `CreativeItemRegistry`) followed by a move into
+a slot. Lamium's moves use legacy transactions (`game::movePair`) and
+never build item stack requests. Next: a trace build that logs the
+request the creative screen sends when a block is taken into the hotbar,
+then the same request built by Lamium, confirmed from the slot's
+authoritative contents; gated, with a GAME-UPDATES entry.
+Correction the same day: building an item stack request is not possible
+with the SDK (`ItemStackNetManagerClient::_beginRequest`,
+`addRequestAction`, `trySendBatch` are all `MCNAPI`, as L-66 found).
+Experiment built instead (`xmake f --schematic_creative_pick=y`, off by
+default, not in release builds): in creative mode, a ghost pick of a block
+that is not carried puts it into the hotbar (`creativeSlotFor`: the
+selected slot when empty, else the first empty one, else the selected one
+replaced) through the same legacy transaction as `movePair`, balanced by
+creative-inventory actions (slot 1 gives the item, slot 0 takes back the
+replaced one). The log line "creative pick: slot N sent X, now holds Y",
+written at the next pick, shows whether the server kept it. To check: a
+local world and a server, an empty and a full hotbar, then whether the
+item stays after reopening the inventory or the world.
+Checked 2026-10-26 on `b2bde4f` (VALIDATION-LOG "L-263 creative pick
+experiment"): accepted in a local world (empty and full hotbar, kept after
+reopening); refused for water, lava and a structure block, and twice for
+a give into an empty hotbar slot that was not yet selected. Changed next
+(not yet checked): only items the creative inventory lists are given
+(`CreativeItemRegistry`, as sorting uses), and the slot is selected before
+the transaction is sent; the log adds the slot selected before and the
+time to the check. Servers not tried yet.
+Checked 2026-10-26 on `7d41160` (VALIDATION-LOG "L-263 creative pick,
+second check"): every give went through at once, unlisted items were not
+sent; the log now says "skipped" for those.
+Made a normal part of the pick the same day (maintainer: in-game checks go
+to the 0.3.1 pre-release round): the build option and the log lines are
+gone; the give is gated by the direct capability "Schematic pick
+(creative inventory give)" (GAME-UPDATES.md), off on an unverified game
+build. Left: the pre-release check of this build and a server.
+Status 2026-10-27 (review of this implementation, L-273 to L-275): the
+owned-item path compares the data value as the creative path does, so a skull
+or monster egg variant is no longer picked or swapped for another one; the
+pick is read back from the slot on a later frame, and one the server did not
+make logs `pick not confirmed`; and a ghost without an item (fire, water) no
+longer falls through to vanilla's pick of the real block behind it. Built,
+not yet checked in game.
+Research: where pick block is handled in the SDK and how the inventory
+move is confirmed from authoritative state (reuse the existing inventory
+transfer paths). New hooks go into GAME-UPDATES.md. No release target
+selected.
+Release target: 0.3.1, batch L-266.
+Done 2026-11-07: shipped in 0.3.1, and the review follow-ups L-273 to L-275 are closed (L-274 on 2026-11-07 without a refusing server). The remaining cases are the Pre-release checks row "Schematic ghost pick in creative", coverage rather than work.
 
 ### L-311 Keep a shape's centre on the player
 Kind: Ready, built 2026-11-06. User request 2026-11-05 (Discord): a shape should be able to keep

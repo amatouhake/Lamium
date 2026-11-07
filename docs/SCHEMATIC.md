@@ -97,7 +97,8 @@ The neighbor-shape, render-layer, liquid, saved block-entity and screen-preview
 work shipped in 0.1.8; the initial-scope record is in BACKLOG-DONE.md (L-93).
 Current follow-ups are indexed by L-93 in BACKLOG: Check-preview styling
 (L-114), richer entity models (L-115), raw materials (L-116), Japanese
-name-tag text (L-117), the paused glass/mark issues (L-192 to L-194), and
+name-tag text (L-117), the paused save-corner mark issue (L-194; the glass
+ghost issues L-192/L-193 closed 2026-11-07), and
 the later inspection, checking and legibility proposals.
 Local checks do not establish server, other-dimension or large-file coverage.
 
@@ -108,7 +109,8 @@ approval to build. Current status and questions live in
 [BACKLOG.md](BACKLOG.md); the original chat included screenshots but those
 images are not embedded in this repository.
 
-- **L-177, L-178, L-179 (bugs):** a world-space mismatch highlight can point
+- **L-177, L-178, L-179 (bugs, all closed; L-177 on 2026-11-07 without
+  a recurrence):** a world-space mismatch highlight can point
   at the wrong cell; a piston ghost's face texture can imply an extending
   surface where the mesh does not extend; shulker-box ghosts can ignore their
   saved facing. Treat overlay transforms, mesh texture mapping and saved

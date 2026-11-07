@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Maintainer closures from everyday use (L-177, L-192, L-193, 2026-11-07)
+
+No dedicated check and no build recorded. Per the maintainer: the reporter of
+L-177 has used the schematic features since the 2026-10-14 fix and did not
+report the stale mismatch highlight again; the maintainer uses glass ghosts
+regularly and sees neither the brightness change by section (L-192) nor the
+border flicker (L-193). All three are closed on that basis.
+
 ## Hide Offhand with a map in the off hand (L-305, 2026-11-07)
 
 1.26.60.05 Dev instance, LeviLamina Client 26.60.4 (updated the same day), no

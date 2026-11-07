@@ -71,12 +71,9 @@ published for whoever wants it. There is no "first release" gate.
 Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
-0. **L-305 move to Minecraft 1.26.60.05 / LeviLamina 26.60.** The verified game
-   is 1.26.60.05. What waits for more game symbols is collected in L-315.
 1. **Bugs first.** Open: L-227 (FreeCamera shows only the sky outside loaded
-   terrain; Research) and L-177 (mismatch highlight; awaits the reporter's next
-   schematic session). Parked:
-   L-192/L-193/L-194 schematic drawing, L-123 elytra pose, L-91 shield glint,
+   terrain; Research). What waits for more game symbols is collected in L-315.
+   Parked: L-194 save corner marks, L-123 elytra pose, L-91 shield glint,
    L-132 inventory-screen movement, L-244 FreeCamera started inside a block,
    L-287 minimap arrow look; respect each item's stop/resume conditions. L-181
    trident pose is low priority.
@@ -101,10 +98,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    initiation, L-30 dragon hitboxes, L-33 mob timers, L-105 profiling.
    L-151/L-152/L-153 and the previously parked work remain later.
 7. **Before the next release:** changed-feature smoke and the relevant
-   Pre-release checks below. Latest release: 0.5.1, 2026-11-07 (`v0.5.1`). The silent
-   exit crash, reported as LiteLDev/LeviLamina#1869 (L-314), stays in the README's Known
-   issues until the loader carries the fix; the `v26.60.4` tag does, so the entry names
-   it and asks users on 26.60.3 to update. A full regression is not a release gate.
+   Pre-release checks below. Latest release: 0.5.1, 2026-11-07 (`v0.5.1`). The next
+   release requires LeviLamina 26.60.4, which fixes the exit crash log (L-314), so
+   the README no longer lists it. A full regression is not a release gate.
 
 Task-picking rule: bugs first, then this order; follow each item's model,
 dependencies and validation requirements. Cheap models skip Design,
@@ -121,6 +117,13 @@ Choose relevant checks from these known gaps; a full regression and every
 server case are not release gates. [VALIDATION.md](VALIDATION.md) owns
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
+
+### Since 0.5.1
+
+- Built against SDK 26.60.4 with bedrock-runtime-data v26.60.5-client.11 and the
+  minimum LeviLamina raised to 26.60.4 (`fd2cda59`): load, settings and the gated
+  features on 26.60.4.
+- Hide Offhand hides an offhand map (`a1c43cc2`, checked); the arm stays.
 
 ### Left from 0.5.1
 
@@ -155,8 +158,6 @@ Carried from 0.4.0:
 
 Left from the 0.4.0 tag (VALIDATION-LOG 2026-11-01):
 
-- Release flow (L-298): LeviLauncher installs the published 0.4.0 ZIP. The
-  draft, its two assets and their SHA-256 passed on the tag's run.
 - Listings (L-196): the Bedrinth and LeviLauncher pages show `tooth.json`'s
   description with both the LeviMC and the Minecraft notices.
 
@@ -185,83 +186,11 @@ validation checkpoints" (snapshot 2026-10-20).
 | In-world language/server packs, L-167 | English Search and schematic ghosts after a change, broader servers/packs, rapid switching/hang risk and the 10 s interval. Cosmetic BDS evidence does not establish all pack types. See LANGUAGE.md. |
 | Camera and visual effects | FreeCamera world-exit/death/controller/body-view and hold-input cases, speed restart persistence; Hide effects restart/keys/master, ambient layers, packs, graphics modes and lifecycle. Detailed coverage is in VALIDATION.md, CAMERA.md and VISUAL-EFFECTS.md. |
 | Schematic ghost pick in creative, L-263 | A block not carried is given into the hotbar (empty selected slot, another empty slot, full hotbar), unlisted items (water, lava, structure block) do nothing, carried and survival picks unchanged; also on a server. |
-| Distribution listings | 0.1.4–0.1.8 registry pickup is recorded; LeviLauncher 0.2.0 was seen. Later registry/LeviLauncher/Bedrinth checks remain unrecorded here. Verify the version being released using DISTRIBUTION.md rather than reopening old release gates. |
+| Distribution listings | 0.1.4–0.1.8 registry pickup is recorded; LeviLauncher 0.2.0 was seen; 0.5.1 is offered by the LIP registry, Bedrinth and LeviLauncher (VALIDATION-LOG 2026-11-07). Verify the version being released using DISTRIBUTION.md rather than reopening old release gates. |
 
 ---
 
 ## Bugs
-
-### L-305 Move to Minecraft 1.26.60.05 and LeviLamina 26.60
-Kind: Update. Follows the playbook in [GAME-UPDATES.md](GAME-UPDATES.md).
-Built against SDK 26.60.0 on 2026-11-04. The gated features passed a round in
-game the same day (VALIDATION-LOG), so `verifiedGame` is 1.26.60.5.
-
-Open:
-1. **Trace builds.** Only `transfer_trace` was built against 26.60 among the trace
-   options; the others may need the same treatment.
-2. **Offhand map stays drawn with Hide Offhand on (regression from 26.51).**
-   Closed 2026-11-07: the map is hidden; the arm that held it stays, accepted by
-   the maintainer as a known limitation. It
-   does not go through the render calls Lamium can hook, and the likely target
-   was not exported:
-   `?_renderMiniMapHand@ItemInHandRenderer@@QEAAXAEAVBaseActorRenderContext@@AEAVPlayer@@_N@Z`.
-   Added to the symbol request on 2026-11-04; 26.60.1's headers mark it
-   `MCAPI`, so the request covered it (item 4). 2026-11-07 on LeviLamina 26.60.4:
-   skipping it with `inOffhand` true left the map drawn. A trace build showed
-   `_renderPhotoMapItem` with `isMainHand` false running first in the
-   first-person pass, so `OffhandMap` in `HideOffhand.cpp` skips that call
-   instead. Checked in game on `a1c43cc2`: the offhand map is hidden, a map in
-   the main hand stays drawn, but the arm that held the offhand map stays.
-   Skipping `_renderMiniMapHand` with `inOffhand` true as well (`34b455a2`) did
-   not hide that arm, so it was taken out again; no linkable arm-drawing call
-   was found in the SDK headers.
-3. **Launching on 26.60.** An instance where PeEditor ran after LeviLauncher's
-   import patch fails at launch: the import table is left unaligned and
-   `LeviLauncher.dll` rejects it (`Cannot install directory imports (Windows
-   error 193)`, exit `0xC0000142`). Lamium is not involved. Repeat PeEditor on
-   the original executable, so that the launcher patches last. Reported as
-   LiteLDev/LeviLauncher#176. A separate install failure on slow connections, as
-   LiteLDev/lip#402.
-4. **Symbols.** The request (`LiteLDev/mcapi-requests` #283) was filed on
-   2026-11-04, passed its automatic check and was closed as completed the same
-   day. An `MCAPI` game function links through `bedrock_runtime_api.lib`, which
-   prelink generates from bedrock-runtime-data, so `LeviLamina.dll`'s export
-   table says nothing about it: a link attempt is the check. Link result on
-   2026-11-06 against SDK 26.60.3 with bedrock-runtime-data v26.60.5-client.9:
-   only the ghost note block instrument is unresolved. `_textFitsInControl` is
-   still `MCNAPI` and deprecated in the 26.60.3 headers, yet it links and answers
-   in game, so an SDK update could take it away: the link error would say so.
-   The minimum LeviLamina rose to 26.60.3 with this; whether older
-   bedrock-runtime-data resolves these names is unchecked.
-   `LAMIUM_MCAPI_PENDING` (`xmake.lua`) now holds back only the instrument and
-   the transfer trace's hooks. `_renderMiniMapHand` was requested too, but nothing
-   references it yet, so it has not been linked.
-   - Book paste (L-259; links, and checked in game on 2026-11-06):
-     `?$preFrameTick@BookScreenController@@QEAAXXZ`,
-     `?$_isStillValid@BookScreenController@@QEBA_NXZ`,
-     `?_addPageAt@BookScreenController@@QEAAXHAEBUPageContent@@@Z`,
-     `?_parsePageText@BookScreenController@@QEAAXH@Z`,
-     `??0PageContent@@QEAA@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$optional@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@Z`,
-     `??1PageContent@@QEAA@XZ`,
-     `?handleFocusSet@TextEditComponent@@QEAAX_N@Z`,
-     `?trySetText@TextEditComponent@@QEAA_NV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`,
-     `?_textFitsInControl@TextEditComponent@@QEBA_NAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`,
-     `?feedText@TextEditContext@@QEAAXV?$basic_string_view@DU?$char_traits@D@std@@@std@@@Z`,
-     `?_setText@TextEditContext@@QEAAXV?$basic_string_view@DU?$char_traits@D@std@@@std@@@Z`.
-     `book_paste_trace` links with six diagnostic hooks held back (key, screen
-     open, action, set-page and the two manager hooks); its paste decisions log.
-   - Ghost note block instrument (no row on the card, not compared in the check):
-     `??$tryGetComponent@UBlockInstrumentComponent@@@Block@@QEBAPEBUBlockInstrumentComponent@@XZ`.
-     The request's check rejects it because the template is declared `MCAPI`, but
-     this instantiation does not link. Needs another way to read the component.
-     `BlockComponentStorage::_findComponentTyped` links but is not one: outside
-     the game `Bedrock::type_id<void, T>` numbers types from the mod's own counter,
-     so the id would name some other component. The maintainer's decision on
-     2026-11-06: keep this as a record and file nothing with LiteLDev for now
-     (L-315); the ghost's instrument row is all it costs.
-
-A note block's instrument name without a Lamium translation now falls back to
-its number, because `noteBlockInstrumentToString` is not exported.
 
 ### L-299 Screenless inventory moves can leave a slot stuck when client and server desync
 Kind: Research.
@@ -495,27 +424,6 @@ loaded chunk. Each is a new game dependency (GAME-UPDATES.md) and needs the
 maintainer's go-ahead. Terrain beyond the loaded area stays out of scope
 (CAMERA.md). [CAMERA.md](CAMERA.md)
 
-### L-177 Schematic mismatch highlight appears at the wrong position
-Kind: Bug / Research. User report 2026-10-14.
-Status: cause found and fix built 2026-10-14 (`0235527`), not checked in game.
-Maintainer 2026-10-15: checked when the reporter next uses the schematic
-features; no dedicated check before that.
-Details from the reporter: with a layer view, Show in world / Nearest
-mistake lit a cell far above the shown ghosts; showing it again was right.
-Changing layers or moving a placement restarts the check, but the last
-complete result stayed published, so the pointer used a cell from the
-earlier layers. The result is now kept for the list but marked stale, and
-Show in world / Nearest mistake say "still counting" until the new pass
-finishes. Check in game: change the layer, at once press Nearest mistake
-(counting), then after the pass it lights a shown cell.
-Original report: a highlighted discrepancy in a placed schematic can appear at
-a different world position from the corresponding incorrect block.
-Investigate the check result's cell coordinates, placement translation,
-rotation/mirroring, layer filters and overlay transform separately; do not
-assume the check data itself is wrong. Compare Check rows, world-space
-highlights and targeted blocks across transformed placements. Record a
-reproduction before choosing a fix. [SCHEMATIC.md](SCHEMATIC.md).
-
 ### L-181 FreeCamera draws the held trident the wrong way round
 Kind: Bug / Research, low priority (maintainer 2026-10-15: drawing only,
 harmless). User report 2026-10-14; not yet reproduced.
@@ -566,41 +474,6 @@ drawn in `GhostRenderer.cpp` `drawNameTags` (Japanese glyphs from sheet 48,
 type 3, scale 1.333, with the font's own material).
 
 ---
-
-### L-192 Glass ghost brightness changes by section with the camera position
-Kind: Bug / Research. Maintainer report 2026-10-14 (VALIDATION-LOG).
-Status update 2026-10-14 (2): the real see-through part passed; darkening left where blended quads overlap; fixed by sorting all blended quads together from the current camera, not checked.
-Status update 2026-10-14: happens only where a real see-through block is below the ghost; fix built (real see-through faces hide the ghost face in their plane), not checked in game.
-Status: open. More evidence 2026-10-14: only the current camera position
-matters (not where the camera was), so the build-time sort hypothesis below
-does not fit; with the camera below the floor both sides darken.
-White stained glass ghosts turn darker or lighter in
-world-aligned groups that look like the 8-block ghost sections, depending on
-where the camera is, not which way it looks; moving the placement keeps the
-dark area at the same world coordinates.
-Hypothesis (not checked): blended ghosts draw both sides without depth
-writes, so a glass cell's top and bottom faces both blend and the one drawn
-last dominates. Each section sorts its quads far to near from the camera
-position when it was built, and sections rebuild at different times, so
-sections built with the camera on different sides of the faces end up in a
-different order. Candidate fixes: drop back faces of blended ghosts (as the
-game does for glass) and rebuild a section when the camera crosses its
-planes, or re-sort blended quads when the camera has moved. Check first
-whether walking below and back above the floor flips which sections are dark.
-
-### L-193 Glass ghosts of two adjacent placements flicker at their border
-Kind: Bug. Split from L-178 on 2026-10-14.
-Status update 2026-10-14 (2): left where two placements' see-through quads overlap on screen; same global sort fix as L-192, not checked.
-Status update 2026-10-14: does not happen with one placement; the flicker needs real see-through blocks below too; same fix as L-192, not checked in game.
-Status: open. `pistons` (8x3x7 at -95 84 -60) and `shulkers` (5x5x5 at -87 84
--63) touch across x = -87; their white glass ghosts at y 84, z -60 and -59
-face each other and flicker. Cause found from the log (VALIDATION-LOG):
-next to the camera the pairing rule keeps one face of a shared plane, and
-the two placements' sections, built with the camera on different sides,
-each kept theirs. Fix built 2026-10-14: same-kind see-through pairs drop
-both faces even next to the camera; the flicker remained (VALIDATION-LOG),
-also where no faces meet, alternating between two looks. A perf trace build
-checks whether sections keep being rebuilt.
 
 ### L-194 Save corner marks over real glass or water change with the camera
 Kind: Bug / Research, low priority. Maintainer report 2026-10-14/15; parked
@@ -708,22 +581,6 @@ and scale in the HUD editor or a screen of its own; and what F1 (Hide HUD) and
 have to be recreated to scale.
 No release target selected.
 
-### L-298 Attach release assets from the tag's CI run
-Kind: Ready (implemented 2026-11-01; first run on `v0.4.0` passed).
-Follow-up to L-196: release ZIPs up to 0.3.1 were built and attached by
-hand, and where they were built was not recorded, while THIRD_PARTY_NOTICES
-says a release is built from its tag. Decided with the maintainer
-2026-11-01: CI builds and attaches, a person writes the notes and
-publishes. `build.yml` uploads `bin/release/` as `release-assets` on a tag
-push; a separate `draft-release` job (the only job with `contents: write`,
-no build code) creates the draft "Lamium <version>" with both assets, or
-replaces the assets of an existing draft, and refuses a published release.
-The flow is in DISTRIBUTION.md. Not done: build provenance attestation
-(optional; needs a pinned action and `id-token`/`attestations` write).
-Validation: the `v0.4.0` run created the draft with both assets and
-matching SHA-256 (VALIDATION-LOG 2026-11-01). Left: LeviLauncher installs
-the published ZIP (BACKLOG "Since 0.4.0"); close this item after it passes.
-
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which
 chunks are within the simulation distance (where mobs, crops and redstone
@@ -738,73 +595,6 @@ overlay or world map layer); behavior on servers where it is unknown.
 Research the source first, then agree the presentation with the maintainer.
 No release target selected.
 
-
-### L-263 Pick the aimed ghost block from the inventory
-Kind: Research (pick-block hook), then Ready. Same feedback as L-262:
-take the block of the schematic ghost under the crosshair from the
-inventory.
-Decided (maintainer 2026-10-26): build this first, with the "bring this
-block from the inventory into the hand" step as a shared part that a later
-placement assist (L-265) can reuse. The vanilla pick-block input (middle
-click by default) does it when the crosshair is on a ghost and not on a
-real block; on a real block it stays vanilla. Like vanilla pick block:
-select the hotbar slot that holds it, else bring it from the inventory
-into the hotbar; nothing happens when it is not carried.
-Open: creative mode (vanilla gives the item; whether a ghost pick should
-too), and a ghost behind a wrong real block (vanilla wins as decided).
-Decided 2026-10-26 (maintainer): in creative mode a ghost pick gives the
-block even when it is not carried, like vanilla. Research (2026-10-26,
-SDK 26.51.8): vanilla's creative pick asks the server for the block at
-the hit (`BlockPickRequestPacket`), which cannot name a ghost; the
-creative inventory screen takes items with an item stack request whose
-action is `CraftCreative` (`ItemStackRequestActionType` 14, a
-`CreativeItemNetId` from `CreativeItemRegistry`) followed by a move into
-a slot. Lamium's moves use legacy transactions (`game::movePair`) and
-never build item stack requests. Next: a trace build that logs the
-request the creative screen sends when a block is taken into the hotbar,
-then the same request built by Lamium, confirmed from the slot's
-authoritative contents; gated, with a GAME-UPDATES entry.
-Correction the same day: building an item stack request is not possible
-with the SDK (`ItemStackNetManagerClient::_beginRequest`,
-`addRequestAction`, `trySendBatch` are all `MCNAPI`, as L-66 found).
-Experiment built instead (`xmake f --schematic_creative_pick=y`, off by
-default, not in release builds): in creative mode, a ghost pick of a block
-that is not carried puts it into the hotbar (`creativeSlotFor`: the
-selected slot when empty, else the first empty one, else the selected one
-replaced) through the same legacy transaction as `movePair`, balanced by
-creative-inventory actions (slot 1 gives the item, slot 0 takes back the
-replaced one). The log line "creative pick: slot N sent X, now holds Y",
-written at the next pick, shows whether the server kept it. To check: a
-local world and a server, an empty and a full hotbar, then whether the
-item stays after reopening the inventory or the world.
-Checked 2026-10-26 on `b2bde4f` (VALIDATION-LOG "L-263 creative pick
-experiment"): accepted in a local world (empty and full hotbar, kept after
-reopening); refused for water, lava and a structure block, and twice for
-a give into an empty hotbar slot that was not yet selected. Changed next
-(not yet checked): only items the creative inventory lists are given
-(`CreativeItemRegistry`, as sorting uses), and the slot is selected before
-the transaction is sent; the log adds the slot selected before and the
-time to the check. Servers not tried yet.
-Checked 2026-10-26 on `7d41160` (VALIDATION-LOG "L-263 creative pick,
-second check"): every give went through at once, unlisted items were not
-sent; the log now says "skipped" for those.
-Made a normal part of the pick the same day (maintainer: in-game checks go
-to the 0.3.1 pre-release round): the build option and the log lines are
-gone; the give is gated by the direct capability "Schematic pick
-(creative inventory give)" (GAME-UPDATES.md), off on an unverified game
-build. Left: the pre-release check of this build and a server.
-Status 2026-10-27 (review of this implementation, L-273 to L-275): the
-owned-item path compares the data value as the creative path does, so a skull
-or monster egg variant is no longer picked or swapped for another one; the
-pick is read back from the slot on a later frame, and one the server did not
-make logs `pick not confirmed`; and a ghost without an item (fire, water) no
-longer falls through to vanilla's pick of the real block behind it. Built,
-not yet checked in game.
-Research: where pick block is handled in the SDK and how the inventory
-move is confirmed from authoritative state (reuse the existing inventory
-transfer paths). New hooks go into GAME-UPDATES.md. No release target
-selected.
-Release target: 0.3.1, batch L-266.
 
 ### L-265 Schematic placement assist: place the ghost's block in its state
 Kind: Design / Research (strong model). Maintainer note 2026-10-26 while
@@ -1603,8 +1393,8 @@ compatibility work are complete. Their full record is in BACKLOG-DONE.md
 history. Runtime coverage remains in VALIDATION.md.
 
 Open work, to choose with the maintainer rather than implement as one batch:
-- Bugs: L-177 stale mismatch highlight (fix built, reporter check pending),
-  L-117 Japanese entity-name text, and paused drawing work L-192/L-193/L-194.
+- Bugs: L-117 Japanese entity-name text and paused drawing work L-194
+  (L-177, L-192 and L-193 closed 2026-11-07).
 - Controls: L-230 view-directed movement (done),
   L-231 control rework (merged in PR #36), L-234 cut-plane layer model
   (merged in PR #37; L-236 follow-up; L-237 done) and L-238 menu/key parity. The design is in
@@ -1662,11 +1452,11 @@ enough to show as a time.
 ### L-114 3D previews in the schematic screen
 Kind: Research **(strong model)**. Chosen 2026-10-08 (L-93 screen review).
 Status: open for the Check tab. The Files preview and the Check tab's
-colored preview are built, checked and shipped in 0.1.8. Not done: the Check
-tab preview's mistake look and see-through emphasis (decided in the Check
-tab review below, then deferred to the 0.1.8 rendering work, which shipped
-without them), plus moving the zoomed view and drawing entities, water and
-block entities in the previews.
+colored preview are built, checked and shipped in 0.1.8; the previews have
+drawn block entities and entities (`3889c2a`) and liquids (`6fbaa3a`) since
+then. Not done: the Check tab preview's mistake look and see-through emphasis
+(decided in the Check tab review below, then deferred to the 0.1.8 rendering
+work, which shipped without them), and moving the zoomed view.
 History: Files preview built and checked in game 2026-10-08 (`f2fbf49`);
 Check tab colored preview built and checked (`1c0b8bc`). Check tab review
 decided 2026-10-08 (SCHEMATIC.md "Check tab review"): layout A, chips drive

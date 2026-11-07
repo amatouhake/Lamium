@@ -170,6 +170,9 @@ asks for them, with the mangled names from the linker. A granted function turns
 linking. `LAMIUM_MCAPI_PENDING` in `xmake.lua` holds back what still waits for
 one (L-305).
 
+Trace options are not built in CI. Of the existing ones only `transfer_trace`
+was built on 26.60 (L-305); build the one you need before relying on it.
+
 ## Inventory
 
 Per file with hooks: the hooks (checked by the script), and what it relies
