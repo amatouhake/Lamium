@@ -24,6 +24,14 @@ the process ends at once after closing the game. The exit before it, on
 `34b455a2`, left the process running until it was ended by hand; no crash
 folder was written and `latest.log` stops mid-session, so the cause is unknown.
 
+## Everyday-use confirmations (L-02, L-62, L-68, L-69, 2026-11-07)
+
+No dedicated check and no build recorded. Per the maintainer: the dedicated
+Hotkeys, Shapes and HUD layout openers (L-02 follow-up) are used in everyday
+play, and Tool Switch's inventory fetch (L-69), offhand totems (L-68) and Tool
+Protection (L-62) work on the trace-disabled release builds used since 0.1.8.
+VALIDATION.md no longer lists these as unchecked.
+
 ## Maintainer closures from everyday use (L-177, L-192, L-193, 2026-11-07)
 
 No dedicated check and no build recorded. Per the maintainer: the reporter of
