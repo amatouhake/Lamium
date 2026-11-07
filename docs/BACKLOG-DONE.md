@@ -6012,6 +6012,53 @@ Closed 2026-11-06 (maintainer): plan A is enough for now. What is left is L-315.
 
 ## Design
 
+### L-318 Tool Switch: pick a Silk Touch tool when only Silk Touch recovers the block
+Kind: Design. Done 2026-11-07 (PR #73, merged as `b82f953c`). Maintainer's note 2026-11-07 (multiplayer-session feedback).
+For blocks with no proper tool that drop themselves only with Silk Touch
+(glass and similar), Tool Switch should pick the Silk Touch tool
+automatically.
+Decided (maintainer 2026-11-07): the boundary comes from the block's own drop
+list, not from a list in the mod. Tool Switch asks `mResourceDropsStrategy` for
+the plain drop and for the same drop with Silk Touch and compares them. Blocks
+that drop nothing without it (glass, glass panes, stained glass and panes, ice,
+packed ice, blue ice) are always taken; a new option adds the blocks whose drop
+changes (stone, ores, grass, leaves). Tinted glass drops itself and stays out, as
+does anything whose drop does not change. Where players differ, the intent stays
+a choice: the option is off by default and only adds the second group.
+Built 2026-11-07 on branch `l318-silk-tool-switch` (PR #73), DLL SHA-256
+`04A513CE7C455177F611BD51422D641584E9BA8C47DCEC57477DE1D4A0223810`: the scope is
+cached per block type, `SilkScope` and the speed rules are pure in
+`ToolChoice.h`, and the table checks are in `tests/ToolChoiceTests.cpp`.
+Status: checked in game by the maintainer (VALIDATION-LOG 2026-11-07). Glass and
+ice switch and give the block; tinted glass and dirt do not switch; stone stays
+out with the option off and takes a same-grade Silk Touch tool with it on; a
+faster plain tool is kept; the label and help read in all four languages.
+Three points came out of that check: (A) which of two equally fast tools to
+pick, (B) where "a faster plain tool is kept" should stop, (C) whether Fortune
+counts.
+Decided (maintainer 2026-11-07, replaces the on/off option): what a player wants
+from a block changes with the activity (mining wants Fortune on ores and speed
+elsewhere, gathering wants the block itself, clearing wants speed), so the
+choice is a mode the player switches, not a fixed rule.
+- Guard, always on: a block that drops nothing without Silk Touch takes a Silk
+  Touch tool in every mode (unchanged).
+- Drop priority, a three-way option `inventory.toolSwitchDrop` with a key that
+  cycles it and a toast naming the new value: Speed (default; today's behaviour
+  with the option off), Fortune (where Fortune changes the drop, the
+  highest-level Fortune tool that harvests the block, then the faster one;
+  elsewhere speed), Silk Touch (where Silk Touch changes the drop, a Silk Touch
+  tool that harvests the block, even when slower). This settles (B) and (C): a
+  priority means priority, and Fortune is its own mode instead of competing with
+  Silk Touch. A tool that cannot harvest the block never counts.
+- (A) Among equally good tools, the one last used to break a block wins; with no
+  record, the left-most hotbar slot (L-31) or the higher inventory slot (L-69)
+  as before. Durability stays out of this choice.
+- Whether Fortune changes a block's drop comes from the same drop query (plain
+  and Fortune III with a fixed high random).
+Built and checked in game 2026-11-07 (`118bb42e`, DLL `EC4500E3`, VALIDATION-LOG):
+Fortune on iron ore, Silk Touch on stone, the tie rule and the cycle key all
+behave as decided.
+
 ### L-296 Map follow-ups seen while checking L-295
 Kind: Design, **closed 2026-11-01**: the first point became L-297, the
 second was built and checked, the third settled as is. Maintainer notes
