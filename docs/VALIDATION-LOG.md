@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## SDK 26.60.4 build smoke (2026-11-07)
+
+`ffb71ef2` (SDK 26.60.4, bedrock-runtime-data v26.60.5-client.11, minimum
+LeviLamina 26.60.4), DLL SHA-256
+`45c562b8f09c76d3bc8623c35c9ee7c2ed6bc12c71c1710ecd3c6e44cb336d94`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer: no paused-features toast on joining a world, `L` opens settings,
+Hide Offhand hides a totem, a version-gated feature (Night Vision) works, and
+the process ends at once after closing the game. The exit before it, on
+`34b455a2`, left the process running until it was ended by hand; no crash
+folder was written and `latest.log` stops mid-session, so the cause is unknown.
+
 ## Maintainer closures from everyday use (L-177, L-192, L-193, 2026-11-07)
 
 No dedicated check and no build recorded. Per the maintainer: the reporter of

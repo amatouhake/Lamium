@@ -121,8 +121,9 @@ Do not infer game success from a build or unit-test result.
 ### Since 0.5.1
 
 - Built against SDK 26.60.4 with bedrock-runtime-data v26.60.5-client.11 and the
-  minimum LeviLamina raised to 26.60.4 (`fd2cda59`): load, settings and the gated
-  features on 26.60.4.
+  minimum LeviLamina raised to 26.60.4 (`fd2cda59`): load, settings, a gated
+  feature and a clean exit passed on `ffb71ef2` (VALIDATION-LOG 2026-11-07);
+  repeat on the release build.
 - Hide Offhand hides an offhand map (`a1c43cc2`, checked); the arm stays.
 
 ### Left from 0.5.1
