@@ -30,7 +30,7 @@ A path that writes game memory or relies on a meaning a rebuild cannot check
 asks `versionSensitiveAllowed(capabilities::Id::...)` (`app/Versions.h`).
 `app/Capabilities.h` owns the typed definitions, feature/partial-loss mapping,
 compatibility policy, runtime stage and reason. All native adapters use one
-loader policy: series 26.60, minimum patch 3; later patches do not need an
+loader policy: series 26.60, minimum patch 4; later patches do not need an
 allowlist edit. This is not a promise that a patch cannot break an ABI: each
 adapter retains its target, ownership and contract checks.
 
@@ -53,6 +53,10 @@ LeviLamina's own types.
 - 2026-11-06: SDK 26.60.3 and minimum loader 26.60.3 are the same version. The
   minimum rose because book paste links through bedrock-runtime-data
   v26.60.5-client.9 and was only seen working there (L-259).
+- 2026-11-07: SDK 26.60.4 and minimum loader 26.60.4 are the same version. The
+  minimum rose because 26.60.4 fixes the crash log at exit (L-314,
+  LeviLamina#1869), so the README no longer lists it; bedrock-runtime-data is
+  v26.60.5-client.11.
 
 The shared verified Minecraft executable is 1.26.60.05, checked in game on
 2026-11-04 (L-305). An unverified

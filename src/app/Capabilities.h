@@ -80,7 +80,7 @@ inline constexpr Definition const& definition(Id id) { return definitions[static
 
 // One policy for every native adapter. A patch is not a new ABI claim; native
 // checks still apply. Minecraft verification is a separate, stricter decision.
-inline constexpr int loaderMajor = 26, loaderMinor = 60, minimumLoaderPatch = 3;
+inline constexpr int loaderMajor = 26, loaderMinor = 60, minimumLoaderPatch = 4;
 struct Environment {
     bool verifiedGame;
     int major, minor, patch;
