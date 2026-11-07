@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Tool Switch drop priority (L-318, 2026-11-07)
+
+Branch `l318-silk-tool-switch`, PR #73, built from `118bb42e`; DLL SHA-256
+`EC4500E38D332E2FA7DCFDA01E6D69F8F1B581136B282B6DE7FA0AC5412E1039`, no trace
+options, LeviLamina Client 26.60.3, 1.26.60.05 Dev instance. Passed, per the
+maintainer:
+
+- Fortune priority on iron ore takes the Fortune pickaxe and drops more raw
+  iron; stone keeps the fastest tool. So the Fortune drop query answers on the
+  client.
+- Silk Touch priority on stone takes a wooden Silk Touch pickaxe over a faster
+  plain one, and stone drops.
+- Of two pickaxes of the same material, the one that broke a block last is
+  chosen.
+- The cycle key shows the toast and changes the settings row.
+
+Not covered: owning no Fortune or Silk Touch tool, other Fortune blocks (gravel,
+crops), servers.
+
 ## Silk Touch tool switching (L-318, 2026-11-07)
 
 Branch `l318-silk-tool-switch`, PR #73, built from `4eaa35ea`; DLL SHA-256

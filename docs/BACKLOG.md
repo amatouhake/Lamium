@@ -741,7 +741,10 @@ choice is a mode the player switches, not a fixed rule.
   record, the left-most hotbar slot (L-31) or the higher inventory slot (L-69)
   as before. Durability stays out of this choice.
 - Whether Fortune changes a block's drop comes from the same drop query (plain
-  and Fortune III with a fixed high random); not confirmed on the client yet.
+  and Fortune III with a fixed high random).
+Built and checked in game 2026-11-07 (`118bb42e`, DLL `EC4500E3`, VALIDATION-LOG):
+Fortune on iron ore, Silk Touch on stone, the tie rule and the cycle key all
+behave as decided.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
 Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;
