@@ -194,6 +194,9 @@ void pruneMarks(std::function<bool(Mark const&)> const& keep) {
     if (std::erase_if(sections, [&](auto const& entry) { return entry.second.empty() || !keep(entry.second.front()); }))
         ++markRevision;
 }
+std::atomic<size_t> capped{0};
+void reportCapped(size_t shown) { capped.store(shown, std::memory_order_relaxed); }
+size_t takeCapped() { return capped.exchange(0, std::memory_order_relaxed); }
 void clearMarks() {
     std::lock_guard lock(markLock);
     if (sections.empty()) return;

@@ -35,6 +35,7 @@
 #include "features/schematic/SchematicSession.h"
 #include "features/schematic/SchematicActions.h"
 #include "features/visuals/ServerPacks.h"
+#include "features/visuals/BlockHighlightHooks.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/item/Item.h"
 #include "mc/world/item/ItemInstance.h"
@@ -1540,6 +1541,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         if (auto message = schematic::ghosts::takeSaveMessage()) ui::showMessageToast(std::move(*message));
         // Once the world shows: the server's look is missing on purpose.
         if (int packs = visuals::serverPacks::takeSkipped()) ui::showMessageToast(ui::translated("skipServerPacks.notice", packs), 6);
+        if (auto shown = visuals::highlight::takeCapped()) ui::showMessageToast(ui::translated("highlight.capped", shown), 6);
         if (runtime.schematic.enabled) schematic::actions::adjustFrame(context, width, height);
     }
     if (hidden) {

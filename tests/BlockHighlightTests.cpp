@@ -43,6 +43,12 @@ void blockHighlightTests() {
     check(hueRed == std::array<float, 3>{1, 0, 0} && green == std::array<float, 3>{0, 1, 0} && blue == std::array<float, 3>{0, 0, 1},
           "hues 0, 1/3 and 2/3 are red, green and blue");
     check(hueColor(1, 1) == hueRed && hueColor(.5f, .5f)[0] == .5f, "the hue wraps and saturation lifts the low channel");
+    std::vector<Mark> many{{{10, 0, 0}, 0b111111}, {{1, 0, 0}, 0b000011}, {{5, 0, 0}, 0b000001}, {{-2, 0, 0}, 0b000111}};
+    auto all = chooseNearest(many, {0, 0, 0}, 12);
+    check(all.count == 4 && !all.capped && many[0].cell.x == 10, "marks that fit are all drawn, order untouched");
+    auto near = chooseNearest(many, {0, 0, 0}, 6);
+    check(near.capped && near.count == 3 && many[0].cell.x == 1 && many[1].cell.x == -2 && many[2].cell.x == 5,
+          "over the limit the nearest marks are kept until their faces reach it");
     lamium::overlay::Cell origin{0, 0, 0};
     float h0 = rainbowHue(0, origin), h1 = rainbowHue(rainbowPeriod / 4, origin);
     check(h0 == 0 && std::abs(h1 - .25f) < 1e-5f, "the hue turns once per period");

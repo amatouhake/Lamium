@@ -68,6 +68,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.blockHighlight", "Make the block types you pick glow in flowing rainbow colors, so they stand out even far away or in the dark. Aim at a block and press the key to add its type; press it again to remove it. Only faces open to the air glow, so nothing shows through walls. Experimental.", "選んだ種類のブロックを、流れる虹色で光らせます。遠くや暗い所でも見つけやすくなります。ブロックを狙ってキーを押すとその種類を追加し、もう一度押すと外します。空気に面した面だけが光るので、壁越しには見えません。実験的な機能です。"},
     {"highlight.added", "Highlighting {}", "{} をハイライトします"},
     {"highlight.removed", "Stopped highlighting {}", "{} のハイライトをやめました"},
+    {"highlight.capped", "Too many blocks to highlight: only the nearest {} faces glow", "ハイライトするブロックが多すぎるため、近くの {} 面だけを光らせています"},
     {"highlight.full", "The highlight list is full", "ハイライトのリストがいっぱいです"},
     {"highlight.noBlock", "Aim at a block to highlight its type", "種類を登録するにはブロックを狙ってください"},
     {"help.hideEffects", "Hide the selected visual effects. Turning the main switch off restores all drawing and keeps your selections. Sound and gameplay stay unchanged. Experimental.", "選んだ視覚効果を隠します。全体をオフにするとすべて通常表示に戻り、個別の選択は保持されます。音やゲームの状態は変わりません。実験的な機能です。"},

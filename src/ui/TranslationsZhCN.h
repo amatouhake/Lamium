@@ -65,6 +65,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"help.blockHighlight", "让选定种类的方块以流动的彩虹色发光，远处或黑暗中也容易发现。准星对准方块按下按键即可添加该种类，再按一次则移除。只有暴露在外的面会发光，因此不会透过墙壁显示。实验性功能。"},
     {"highlight.added", "开始高亮 {}"},
     {"highlight.removed", "已停止高亮 {}"},
+    {"highlight.capped", "要高亮的方块太多，只有最近的 {} 个面会发光"},
     {"highlight.full", "高亮列表已满"},
     {"highlight.noBlock", "请将准星对准要高亮的方块"},
     {"help.hideEffects", "隐藏所选的视觉效果。关闭总开关会恢复所有绘制，并保留你的选择。声音和游戏玩法不受影响。实验性功能。"},

@@ -325,12 +325,16 @@ struct GlowState {
     std::vector<CellFace> faces;
     int dimension = 0;
     double prunedAt = 0;
+    std::optional<Cell> chosenAt; // the eye the nearest faces were chosen for, when capped
+    bool capped = false;          // the limit left marks out last time (says so once per new excess)
 };
 GlowState glow;
 void releaseGlow() {
     glow.marks.clear();
     glow.faces.clear();
     glow.revision = 0;
+    glow.chosenAt.reset();
+    glow.capped = false;
 }
 void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client, LocalPlayer& player,
                        Settings::Visuals const& visuals) {
@@ -351,12 +355,24 @@ void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client,
                                [&](auto const& e) { return e.name == name; });
         });
     }
-    if (visuals::highlight::marks(glow.revision, glow.marks)) {
+    Vec3 const eyePos = context.mImpl->mCameraPosition;
+    Cell const eye{static_cast<int>(std::floor(eyePos.x)), static_cast<int>(std::floor(eyePos.y)),
+                   static_cast<int>(std::floor(eyePos.z))};
+    bool changed = visuals::highlight::marks(glow.revision, glow.marks);
+    // A capped choice follows the eye: re-chosen after moving 8 blocks.
+    bool moved = glow.chosenAt && std::max({std::abs(eye.x - glow.chosenAt->x), std::abs(eye.y - glow.chosenAt->y),
+                                            std::abs(eye.z - glow.chosenAt->z)}) >= 8;
+    if (changed || moved) {
+        auto chosen = visuals::highlight::chooseNearest(glow.marks, eye, visuals::highlight::maxGlowFaces);
         glow.faces.clear();
-        for (auto const& mark : glow.marks) {
-            if (glow.faces.size() >= visuals::highlight::maxGlowFaces) break;
-            visuals::highlight::appendFaces(glow.faces, mark);
+        for (size_t i = 0; i < chosen.count; ++i) visuals::highlight::appendFaces(glow.faces, glow.marks[i]);
+        if (chosen.capped) glow.chosenAt = eye;
+        else glow.chosenAt.reset();
+        if (chosen.capped && !glow.capped) {
+            visuals::highlight::reportCapped(glow.faces.size());
+            try { Runtime::instance().self().getLogger().info("Block highlight: {} marks, nearest {} faces shown", glow.marks.size(), glow.faces.size()); } catch (...) {}
         }
+        glow.capped = chosen.capped;
     }
     if (glow.faces.empty()) return;
     auto const material = faceMaterial(client);
@@ -370,30 +386,34 @@ void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client,
         batch.vertex(static_cast<float>(p.x - camera.x), static_cast<float>(p.y - camera.y), static_cast<float>(p.z - camera.z));
     };
     size_t perFace = material.twoSided ? 8 : 4;
-    Tessellator batch(screen.tessellator.mBufferResourceService);
-    batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(glow.faces.size() * perFace), false);
     // Edges with vertex colors on the debug material: one draw for every hue.
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
-    Tessellator edges(screen.tessellator.mBufferResourceService);
-    edges.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(glow.faces.size() * 8), false);
-    for (auto const& face : glow.faces) {
-        auto [r, g, b] = visuals::highlight::hueColor(visuals::highlight::rainbowHue(seconds, face.cell));
-        auto corners = faceVertices(face);
-        batch.color(r, g, b, alpha);
-        for (auto p : corners) relative(batch, p);
-        if (material.twoSided) for (auto it = corners.rbegin(); it != corners.rend(); ++it) relative(batch, *it);
-        edges.color(r, g, b, 1.f);
-        for (size_t k = 0; k < 4; ++k) { relative(edges, corners[k]); relative(edges, corners[(k + 1) % 4]); }
+    for (size_t first = 0; first < glow.faces.size(); first += visuals::highlight::glowBatchFaces) {
+        std::span<CellFace const> part(glow.faces.data() + first,
+                                       std::min(visuals::highlight::glowBatchFaces, glow.faces.size() - first));
+        Tessellator batch(screen.tessellator.mBufferResourceService);
+        batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(part.size() * perFace), false);
+        Tessellator edges(screen.tessellator.mBufferResourceService);
+        edges.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(part.size() * 8), false);
+        for (auto const& face : part) {
+            auto [r, g, b] = visuals::highlight::hueColor(visuals::highlight::rainbowHue(seconds, face.cell));
+            auto corners = faceVertices(face);
+            batch.color(r, g, b, alpha);
+            for (auto p : corners) relative(batch, p);
+            if (material.twoSided) for (auto it = corners.rbegin(); it != corners.rend(); ++it) relative(batch, *it);
+            edges.color(r, g, b, 1.f);
+            for (size_t k = 0; k < 4; ++k) { relative(edges, corners[k]); relative(edges, corners[(k + 1) % 4]); }
+        }
+        auto mesh = batch.end(Tessellator::UploadMode::Buffered, "Lamium highlight glow", SupplementaryFieldAutoGenerationMode{});
+        auto outline = edges.end(Tessellator::UploadMode::Buffered, "Lamium highlight edges", SupplementaryFieldAutoGenerationMode{});
+        drawPulled(screen, glm::vec3{0.f}, depth::facePull, [&] {
+            mesh.renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
+                static_cast<uint>(part.size() * perFace), OffscreenCaptureDescription{}, nullptr);
+            if (lineMaterial.mRenderMaterialInfoPtr)
+                outline.renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0,
+                    static_cast<uint>(part.size() * 8), OffscreenCaptureDescription{}, nullptr);
+        });
     }
-    auto mesh = batch.end(Tessellator::UploadMode::Buffered, "Lamium highlight glow", SupplementaryFieldAutoGenerationMode{});
-    auto outline = edges.end(Tessellator::UploadMode::Buffered, "Lamium highlight edges", SupplementaryFieldAutoGenerationMode{});
-    drawPulled(screen, glm::vec3{0.f}, depth::facePull, [&] {
-        mesh.renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
-            static_cast<uint>(glow.faces.size() * perFace), OffscreenCaptureDescription{}, nullptr);
-        if (lineMaterial.mRenderMaterialInfoPtr)
-            outline.renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0,
-                static_cast<uint>(glow.faces.size() * 8), OffscreenCaptureDescription{}, nullptr);
-    });
 }
 void drawLightOverlay(BaseActorRenderContext& context, IClientInstance& client, LocalPlayer& player,
                       Settings::Overlays const& preferences) {

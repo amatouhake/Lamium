@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <array>
+#include <bit>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -96,7 +97,28 @@ inline std::array<float, 3> hueColor(float hue, float saturation = .8f) {
     for (auto& v : c) v = 1 - saturation + saturation * v;
     return c;
 }
-// At most this many faces are drawn a frame, so a list of common blocks
-// cannot flood the overlay.
-inline constexpr size_t maxGlowFaces = 24576;
+// At most this many faces are drawn a frame, the nearest first, so a list
+// of common blocks (tuff, gravel) cannot flood the overlay; each draw holds
+// at most `glowBatchFaces` so a mesh stays far below 65536 vertices.
+inline constexpr size_t maxGlowFaces = 16384;
+inline constexpr size_t glowBatchFaces = 4096;
+inline int faceCount(Mark const& mark) { return std::popcount(static_cast<unsigned>(mark.faces & 0x3f)); }
+// The marks to draw: all when their faces fit `limit`, else the nearest to
+// `eye` until the faces reach it. Reorders `marks`; returns how many to draw
+// from the front and whether some were left out.
+struct Chosen { size_t count; bool capped; };
+inline Chosen chooseNearest(std::vector<Mark>& marks, overlay::Cell eye, size_t limit) {
+    size_t total = 0;
+    for (auto const& m : marks) total += static_cast<size_t>(faceCount(m));
+    if (total <= limit) return {marks.size(), false};
+    auto distance = [&](Mark const& m) {
+        double dx = m.cell.x - eye.x, dy = m.cell.y - eye.y, dz = m.cell.z - eye.z;
+        return dx * dx + dy * dy + dz * dz;
+    };
+    std::sort(marks.begin(), marks.end(), [&](Mark const& a, Mark const& b) { return distance(a) < distance(b); });
+    size_t faces = 0, count = 0;
+    while (count < marks.size() && faces + static_cast<size_t>(faceCount(marks[count])) <= limit)
+        faces += static_cast<size_t>(faceCount(marks[count++]));
+    return {count, true};
+}
 }

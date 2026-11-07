@@ -17,4 +17,8 @@ bool marks(std::uint64_t& revision, std::vector<Mark>& out);
 // or the block there is no longer designated: another dimension's leftovers).
 void pruneMarks(std::function<bool(Mark const&)> const& keep);
 void clearMarks();
+// Set by the overlay when the nearest-faces limit left marks out; taken
+// (and cleared) by the HUD to say so once.
+void reportCapped(size_t shown);
+size_t takeCapped();
 }
