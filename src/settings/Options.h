@@ -289,6 +289,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inventory, &Settings::Inventory::toolSwitch>("inventory.toolSwitch", "toolSwitch", "toolSwitch"),
     toggle<&Settings::inventory, &Settings::Inventory::toolSwitchInventory>("inventory.toolSwitchInventory", "toolSwitch", "toolSwitchInventory"),
     choice<&Settings::inventory, &Settings::Inventory::toolSwitchSlot, fetchSlotLabels>("inventory.toolSwitchSlot", "toolSwitch", "fetchSlot"),
+    toggle<&Settings::inventory, &Settings::Inventory::toolSwitchSilkDrop>("inventory.toolSwitchSilkDrop", "toolSwitch", "silkDrop"),
     toggle<&Settings::inventory, &Settings::Inventory::weaponSwitch>("inventory.weaponSwitch", "weaponSwitch", "weaponSwitch"),
     toggle<&Settings::inventory, &Settings::Inventory::weaponSwitchInventory>("inventory.weaponSwitchInventory", "weaponSwitch", "weaponSwitchInventory"),
     choice<&Settings::inventory, &Settings::Inventory::weaponSwitchSlot, fetchSlotLabels>("inventory.weaponSwitchSlot", "weaponSwitch", "fetchSlot"),

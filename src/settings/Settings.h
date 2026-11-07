@@ -115,6 +115,7 @@ struct Settings {
         int restockThreshold = 6; // Refill when the held count is at or below this; 0 only when empty.
         int restockOrder = 1; // Within a source region: 0 largest stack first, 1 smallest first (default, 2026-10-07).
         bool toolSwitchInventory = false; // Fetch a tool from the main inventory (L-69).
+        bool toolSwitchSilkDrop = false; // Also where Silk Touch changes the drop (L-318).
         bool weaponSwitch = false; // Pick the strongest hotbar weapon when attacking (L-67).
         bool weaponSwitchInventory = false;
         // Where a fetch goes: 0 the selected slot, 1-9 a fixed hotbar slot (L-97).
