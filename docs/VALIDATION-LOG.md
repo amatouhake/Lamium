@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block highlight first look (L-320, 2026-11-08)
+
+`2d14c846`, DLL SHA-256
+`026dc50abb1ce4ab25a7e6ab7e26b074a82808f97a3828165c9f74949815b89b`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Iron ore
+designated with the key, in a dark cave at night. Seen (maintainer's
+screenshots): the iron ore is tinted red from the chunk mesh; the tint is weak
+with Night Vision on; with it off the block is darker than vanilla, not
+brighter (UV1 was raised to .9375; the log read UV1 0 to 0.000198 on the
+first three highlighted blocks). The list survived rejoining the world. Not
+checked: removing a type, the toggle key, other dimensions, Vibrant Visuals.
+The glow overlay that replaces the UV1 raise (`4af43289`) is untested.
+
 ## SDK 26.60.4 build smoke (2026-11-07)
 
 `ffb71ef2` (SDK 26.60.4, bedrock-runtime-data v26.60.5-client.11, minimum
