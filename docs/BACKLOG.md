@@ -72,7 +72,7 @@ Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
 0. **L-305 move to Minecraft 1.26.60.05 / LeviLamina 26.60.** The verified game
-   is 1.26.60.05. Open: the offhand-map hook links and awaits a game check. What waits for more game symbols is collected in L-315.
+   is 1.26.60.05. What waits for more game symbols is collected in L-315.
 1. **Bugs first.** Open: L-227 (FreeCamera shows only the sky outside loaded
    terrain; Research) and L-177 (mismatch highlight; awaits the reporter's next
    schematic session). Parked:
@@ -199,7 +199,9 @@ game the same day (VALIDATION-LOG), so `verifiedGame` is 1.26.60.5.
 Open:
 1. **Trace builds.** Only `transfer_trace` was built against 26.60 among the trace
    options; the others may need the same treatment.
-2. **Offhand map stays drawn with Hide Offhand on (regression from 26.51).** It
+2. **Offhand map stays drawn with Hide Offhand on (regression from 26.51).**
+   Closed 2026-11-07: the map is hidden; the arm that held it stays, accepted by
+   the maintainer as a known limitation. It
    does not go through the render calls Lamium can hook, and the likely target
    was not exported:
    `?_renderMiniMapHand@ItemInHandRenderer@@QEAAXAEAVBaseActorRenderContext@@AEAVPlayer@@_N@Z`.
@@ -212,7 +214,7 @@ Open:
    the main hand stays drawn, but the arm that held the offhand map stays.
    Skipping `_renderMiniMapHand` with `inOffhand` true as well (`34b455a2`) did
    not hide that arm, so it was taken out again; no linkable arm-drawing call
-   was found in the SDK headers. Whether the leftover arm is acceptable is open.
+   was found in the SDK headers.
 3. **Launching on 26.60.** An instance where PeEditor ran after LeviLauncher's
    import patch fails at launch: the import table is left unaligned and
    `LeviLauncher.dll` rejects it (`Cannot install directory imports (Windows

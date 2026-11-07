@@ -12,6 +12,28 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Hide Offhand with a map in the off hand (L-305, 2026-11-07)
+
+1.26.60.05 Dev instance, LeviLamina Client 26.60.4 (updated the same day), no
+trace options except where named. Per the maintainer:
+
+- `c89e2fb2` (DLL `d289c330...cf366`), skipping `_renderMiniMapHand` with
+  `inOffhand` true: the offhand map stayed drawn with Hide Offhand on and off;
+  a totem in the off hand was hidden, so Hide Offhand itself worked.
+- Trace build on `c89e2fb2` (DLL `e74d4305...2c80e`, uncommitted
+  `offhand_map_trace`): in the first-person pass `_renderPhotoMapItem
+  isMainHand false` ran first, then `_renderMiniMapHand inOffhand true`.
+- `a1c43cc2` (DLL `88455a38...cfa8b`), skipping `_renderPhotoMapItem` with
+  `isMainHand` false: the offhand map is hidden and returns with Hide Offhand
+  off; a map in the main hand stays drawn. The arm that held the offhand map
+  stays.
+- `34b455a2` (DLL `0cb8281a...84b19`), skipping both calls: the arm still
+  stays, the main-hand map is unchanged. The `_renderMiniMapHand` hook was
+  removed again in `f37dbc4e` (same code as `a1c43cc2`; that build was not
+  deployed because the game was running).
+
+The leftover arm is accepted as a known limitation.
+
 ## Tool Switch drop priority (L-318, 2026-11-07)
 
 Branch `l318-silk-tool-switch`, PR #73, built from `118bb42e`; DLL SHA-256
