@@ -10,11 +10,15 @@
 #include "mc/client/renderer/chunks/RenderChunkCoordinator.h"
 #include "mc/deps/minecraft_renderer/renderer/MeshData.h"
 #include "mc/world/level/BlockPos.h"
+#include "mc/world/level/BlockSource.h"
+#include "mc/world/level/block/BlockType.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/phys/AABB.h"
 #include <algorithm>
 #include <atomic>
+#include <array>
 #include <bit>
+#include <optional>
 #include <cmath>
 #include <map>
 #include <memory>
@@ -55,9 +59,28 @@ using SectionKey = std::tuple<int, int, int>;
 std::mutex markLock;
 std::map<SectionKey, std::vector<Mark>> sections;
 std::uint64_t markRevision = 1;
-// The section being built on this thread, if any.
-thread_local std::vector<Mark>* capture = nullptr;
+// The section being built on this thread, if any: its marks and the first
+// block tessellated, which names the section (L-320: the builder's bounding
+// box gave keys that let other builds erase a section's marks).
+struct Capture {
+    std::vector<Mark> marks;
+    std::optional<BlockPos> first;
+};
+thread_local Capture* capture = nullptr;
 std::atomic<int> faceSamples{0};
+// The game facing order: down, up, north, south, west, east.
+constexpr std::array<std::array<int, 3>, 6> facingOffset{{{0, -1, 0}, {0, 1, 0}, {0, 0, -1}, {0, 0, 1}, {-1, 0, 0}, {1, 0, 0}}};
+// Faces not covered by an opaque full block. The `faces` argument of the
+// tessellator is not this (it read all six while some blocks added no quad).
+std::uint8_t exposedFaces(BlockSource const& region, BlockPos const& pos) {
+    std::uint8_t bits = 0;
+    for (size_t f = 0; f < facingOffset.size(); ++f) {
+        auto const& o = facingOffset[f];
+        auto const& next = region.getBlock({pos.x + o[0], pos.y + o[1], pos.z + o[2]});
+        if (!next.getBlockType().mIsOpaqueFullBlock) bits |= static_cast<std::uint8_t>(1u << f);
+    }
+    return bits;
+}
 
 void tint(Tessellator& tessellator, size_t from, std::uint32_t color) {
     auto& data = *tessellator.mMeshData;
@@ -73,6 +96,7 @@ void tint(Tessellator& tessellator, size_t from, std::uint32_t color) {
 LL_TYPE_INSTANCE_HOOK(HighlightBlock, ll::memory::HookPriority::Normal, BlockTessellator,
     &BlockTessellator::tessellateBlockInWorld, bool, Tessellator& tessellator, Block const& block, BlockPos const& pos,
     std::bitset<6> const faces, AirAndSimpleBlockBits const* simple) {
+    if (capture && !capture->first) capture->first = pos;
     Paint paint{};
     bool wanted = false;
     try {
@@ -86,13 +110,14 @@ LL_TYPE_INSTANCE_HOOK(HighlightBlock, ll::memory::HookPriority::Normal, BlockTes
     bool result = origin(tessellator, block, pos, faces, simple);
     try {
         tint(tessellator, before, paint.packed);
-        auto bits = static_cast<std::uint8_t>(faces.to_ulong() & 0x3f);
-        // Whether the bits are the faces drawn is checked against the quads
-        // the block added (L-320 step 2).
-        if (faceSamples.fetch_add(1, std::memory_order_relaxed) < 4)
-            Runtime::instance().self().getLogger().info("Block highlight: faces {:06b} ({} set), {} vertices added",
-                bits, std::popcount(bits), tessellator.mMeshData->mPositions->size() - before);
-        if (capture && bits) capture->push_back({{pos.x, pos.y, pos.z}, bits, paint.index});
+        size_t added = tessellator.mMeshData->mPositions->size() - before;
+        BlockSource const* region = mRegion;
+        // A block that added no quad is hidden; nothing to glow.
+        std::uint8_t bits = added && region ? exposedFaces(*region, pos) : 0;
+        if (faceSamples.fetch_add(1, std::memory_order_relaxed) < 6)
+            Runtime::instance().self().getLogger().info("Block highlight: exposed faces {:06b} ({} set), {} vertices added",
+                bits, std::popcount(bits), added);
+        if (capture && bits) capture->marks.push_back({{pos.x, pos.y, pos.z}, bits, paint.index});
     } catch (...) {}
     return result;
 }
@@ -101,14 +126,24 @@ LL_TYPE_INSTANCE_HOOK(HighlightSection, ll::memory::HookPriority::Normal, Render
     &RenderChunkBuilder::build, void, RenderChunkGeometry& geometry, bool transparentLeaves, BakedBlockLightType lighting,
     bool forExport, mce::framebuilder::FrameLightingModelCapabilities const& capabilities) {
     if (forExport || capture) return origin(geometry, transparentLeaves, lighting, forExport, capabilities);
-    std::vector<Mark> found;
-    capture = &found;
+    Capture build;
+    capture = &build;
     struct Reset { ~Reset() { capture = nullptr; } } reset;
     origin(geometry, transparentLeaves, lighting, forExport, capabilities);
     try {
-        auto const& box = *mBuildBoundingBox;
-        SectionKey key{static_cast<int>(std::floor(box.min.x)), static_cast<int>(std::floor(box.min.y)),
-                       static_cast<int>(std::floor(box.min.z))};
+        // A section with no block drawn keeps what it had; pruning drops
+        // marks whose block is gone.
+        if (!build.first) return;
+        auto section = [](int v) { return v >= 0 ? v / 16 : -((-v + 15) / 16); };
+        SectionKey key{section(build.first->x), section(build.first->y), section(build.first->z)};
+        auto& found = build.marks;
+        // Every mark must lie in the section that names it.
+        auto dropped = std::erase_if(found, [&](Mark const& m) {
+            return SectionKey{section(m.cell.x), section(m.cell.y), section(m.cell.z)} != key;
+        });
+        static std::atomic<int> droppedReports{0};
+        if (dropped && droppedReports.fetch_add(1, std::memory_order_relaxed) < 3)
+            Runtime::instance().self().getLogger().warn("Block highlight: a build spanned more than one section ({} marks dropped)", dropped);
         std::lock_guard lock(markLock);
         auto at = sections.find(key);
         if (found.empty()) {

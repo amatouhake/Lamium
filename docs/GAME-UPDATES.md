@@ -634,9 +634,11 @@ and the material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 ### `src/features/visuals/BlockHighlightHooks.cpp`
 Hooks: `HighlightBlock`, `HighlightSection`, `HighlightRebuild`
 Meaning: the chunk mesh's vertex colors for the vertices a designated block
-adds; the faces bitset `tessellateBlockInWorld` receives as the faces the
-game draws; `RenderChunkBuilder::build` as one section build, its
-`mBuildBoundingBox` as that section's world box; and when chunks rebuild.
+adds (none added means the block is hidden); `RenderChunkBuilder::build` as
+one 16-block section build, named by the first block tessellated in it;
+`BlockType::mIsOpaqueFullBlock` as covering a neighbour's face; and when
+chunks rebuild. The tessellator's `faces` argument is not the drawn faces
+(it read all six for blocks that added no quad).
 Gated (Block highlight).
 
 ### `src/features/visuals/ConnectedSprites.cpp`
