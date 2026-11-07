@@ -207,9 +207,12 @@ Open:
    `MCAPI`, so the request covered it (item 4). 2026-11-07 on LeviLamina 26.60.4:
    skipping it with `inOffhand` true left the map drawn. A trace build showed
    `_renderPhotoMapItem` with `isMainHand` false running first in the
-   first-person pass. Skipping it hid the map but left the arm holding it
-   (`a1c43cc2`), so `HideOffhand.cpp` skips both calls (`OffhandMap`,
-   `OffhandMapHand`); the game check of that build is pending.
+   first-person pass, so `OffhandMap` in `HideOffhand.cpp` skips that call
+   instead. Checked in game on `a1c43cc2`: the offhand map is hidden, a map in
+   the main hand stays drawn, but the arm that held the offhand map stays.
+   Skipping `_renderMiniMapHand` with `inOffhand` true as well (`34b455a2`) did
+   not hide that arm, so it was taken out again; no linkable arm-drawing call
+   was found in the SDK headers. Whether the leftover arm is acceptable is open.
 3. **Launching on 26.60.** An instance where PeEditor ran after LeviLauncher's
    import patch fails at launch: the import table is left unaligned and
    `LeviLauncher.dll` rejects it (`Cannot install directory imports (Windows
