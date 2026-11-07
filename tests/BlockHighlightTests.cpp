@@ -26,6 +26,21 @@ void blockHighlightTests() {
     check(loaded.size() == 2 && loaded[0] == Entry{"minecraft:a", paletteSize - 1} && loaded[1] == Entry{"minecraft:b", 0},
           "loading drops empty and repeated names and clamps colors");
 
+    std::vector<lamium::overlay::CellFace> faces;
+    appendFaces(faces, Mark{{1, 2, 3}, 0b000011, 0});
+    check(faces.size() == 2 && faces[0].face == lamium::overlay::Face::Down && faces[1].face == lamium::overlay::Face::Up,
+          "facing bits 0 and 1 are the bottom and top faces");
+    faces.clear();
+    appendFaces(faces, Mark{{0, 0, 0}, 0b110100, 0});
+    check(faces.size() == 3 && faces[0].face == lamium::overlay::Face::West && faces[1].face == lamium::overlay::Face::East
+              && faces[2].face == lamium::overlay::Face::North,
+          "facing bits 2, 4 and 5 are north, west and east");
+    check(pulse(0) < .01f && pulse(pulsePeriod / 2) > .99f && pulse(pulsePeriod) < .01f && pulse(-pulsePeriod / 2) > .99f,
+          "the pulse rises from nothing to full and back each period");
+    auto lifted = glowColor(0, 0, 0, 1);
+    check(lifted[0] > .4f && lifted[0] < .5f && glowColor(255, 0, 0, 0)[0] == 1.f && glowColor(255, 0, 0, 0)[1] == 0.f,
+          "the glow lifts a color toward white only as it peaks");
+
     std::uint32_t white = 0xffffffffu;
     check(tintVertex(white, 255, 255, 255) == white, "tinting white toward white changes nothing");
     auto red = tintVertex(white, 255, 0, 0, 1.f);

@@ -11,6 +11,9 @@
 #include "overlay/ShapeWorkspace.h"
 #include "overlay/LocalShapePath.h"
 #include "features/interaction/BreakingRestriction.h"
+#include "features/visuals/BlockHighlightHooks.h"
+#include "features/map/Waypoints.h"
+#include "app/Capabilities.h"
 #include "mc/world/phys/HitResult.h"
 #include "app/Runtime.h"
 #include "ll/api/memory/Hook.h"
@@ -312,6 +315,102 @@ void buildLightMesh(ScreenContext& screen, LightChunk& chunk, Cell origin, Light
         chunk.lineVertices = static_cast<uint32_t>(lines.size() * 2);
     }
 }
+// Block highlight glow (BACKLOG L-320): the faces the game drew for
+// designated blocks, recorded while their chunk sections were built, drawn
+// unlit and pulsing so they stand out in the dark and under Night Vision.
+// Rebuilt as a small per-frame mesh per color, like the world lines.
+struct GlowState {
+    std::uint64_t revision = 0;
+    std::vector<visuals::highlight::Mark> marks;
+    std::array<std::vector<CellFace>, map::waypointColors.size()> faces;
+    std::array<std::vector<Line>, map::waypointColors.size()> lines;
+    int dimension = 0;
+    double prunedAt = 0;
+};
+GlowState glow;
+void releaseGlow() {
+    glow.marks.clear();
+    for (auto& f : glow.faces) f.clear();
+    for (auto& l : glow.lines) l.clear();
+    glow.revision = 0;
+}
+void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client, LocalPlayer& player,
+                       Settings::Visuals const& visuals) {
+    if (!context.mImpl) return;
+    int dimension = static_cast<int>(player.getDimensionId());
+    if (dimension != glow.dimension) { visuals::highlight::clearMarks(); releaseGlow(); glow.dimension = dimension; }
+    double now = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    // Sections whose chunk left, or whose block is no longer designated
+    // (another dimension's leftovers, a list change in flight), go.
+    if (now - glow.prunedAt > .5 || now < glow.prunedAt) {
+        glow.prunedAt = now;
+        auto& region = player.getDimensionBlockSource();
+        visuals::highlight::pruneMarks([&](visuals::highlight::Mark const& mark) {
+            BlockPos at{mark.cell.x, mark.cell.y, mark.cell.z};
+            if (!region.getChunkAt(at)) return false;
+            auto const& name = region.getBlock(at).getTypeName();
+            return std::any_of(visuals.highlightBlocks.begin(), visuals.highlightBlocks.end(),
+                               [&](auto const& e) { return e.name == name; });
+        });
+    }
+    if (visuals::highlight::marks(glow.revision, glow.marks)) {
+        for (auto& f : glow.faces) f.clear();
+        for (auto& l : glow.lines) l.clear();
+        size_t total = 0;
+        for (auto const& mark : glow.marks) {
+            if (total >= visuals::highlight::maxGlowFaces) break;
+            auto& faces = glow.faces[std::min<size_t>(mark.color, glow.faces.size() - 1)];
+            size_t before = faces.size();
+            visuals::highlight::appendFaces(faces, mark);
+            total += faces.size() - before;
+        }
+        for (size_t c = 0; c < glow.faces.size(); ++c)
+            for (auto const& face : glow.faces[c]) {
+                auto v = faceVertices(face);
+                for (size_t k = 0; k < 4; ++k) glow.lines[c].push_back({v[k], v[(k + 1) % 4]});
+            }
+    }
+    auto const material = faceMaterial(client);
+    if (!material.material.mRenderMaterialInfoPtr) return;
+    ScreenContext& screen = context.mScreenContext;
+    Vec3 const camera = context.mImpl->mCameraPosition;
+    float strength = visuals::highlight::pulse(now);
+    mce::MaterialPtr lineMaterial = lines::material();
+    for (size_t c = 0; c < glow.faces.size(); ++c) {
+        auto const& faces = glow.faces[c];
+        if (faces.empty()) continue;
+        auto packed = map::waypointColors[c];
+        auto [r, g, b] = visuals::highlight::glowColor(static_cast<std::uint8_t>(map::channel(packed, 0)),
+            static_cast<std::uint8_t>(map::channel(packed, 1)), static_cast<std::uint8_t>(map::channel(packed, 2)), strength);
+        float alpha = std::min(.8f, material.alpha * (1.2f + 1.3f * strength));
+        auto relative = [&](Tessellator& batch, Point p) {
+            batch.vertex(static_cast<float>(p.x - camera.x), static_cast<float>(p.y - camera.y), static_cast<float>(p.z - camera.z));
+        };
+        auto corners = faceCorners(faces, material.twoSided);
+        Tessellator batch(screen.tessellator.mBufferResourceService);
+        batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(corners.size()), false);
+        batch.color(r, g, b, alpha);
+        for (auto p : corners) relative(batch, p);
+        auto mesh = batch.end(Tessellator::UploadMode::Buffered, "Lamium highlight glow", SupplementaryFieldAutoGenerationMode{});
+        auto const& edges = glow.lines[c];
+        std::optional<mce::Mesh> outline;
+        if (!edges.empty() && lineMaterial.mRenderMaterialInfoPtr) {
+            Tessellator lineBatch(screen.tessellator.mBufferResourceService);
+            lineBatch.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(edges.size() * 2), false);
+            lineBatch.color(r, g, b, 1.f);
+            for (auto const& e : edges) { relative(lineBatch, e.from); relative(lineBatch, e.to); }
+            outline.emplace(lineBatch.end(Tessellator::UploadMode::Buffered, "Lamium highlight edges", SupplementaryFieldAutoGenerationMode{}));
+        }
+        drawPulled(screen, glm::vec3{0.f}, depth::facePull, [&] {
+            mesh.renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
+                static_cast<uint>(corners.size()), OffscreenCaptureDescription{}, nullptr);
+            if (outline) lines::colored(screen, r, g, b, [&] {
+                outline->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0,
+                    static_cast<uint>(edges.size() * 2), OffscreenCaptureDescription{}, nullptr);
+            });
+        });
+    }
+}
 void drawLightOverlay(BaseActorRenderContext& context, IClientInstance& client, LocalPlayer& player,
                       Settings::Overlays const& preferences) {
     if (!context.mImpl) return;
@@ -414,11 +513,15 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
     auto const settings = runtime.snapshot();
     auto const& preferences = settings->overlays;
     bool breaking = settings->interaction.breaking;
-    if (releaseMeshes.exchange(false)) { shapeMeshes.clear(); restrictionMesh.release(); releaseLight(); eyeTracks.clear(); }
+    if (releaseMeshes.exchange(false)) { shapeMeshes.clear(); restrictionMesh.release(); releaseLight(); releaseGlow(); eyeTracks.clear(); }
     if (!preferences.hitboxes) eyeTracks.clear();
     if (!preferences.light && !lightChunks.empty()) releaseLight();
     bool shapesShown = preferences.shapes && hasShapes();
-    if (!preferences.chunkBorders && !preferences.hitboxes && !preferences.light && !breaking && !shapesShown) return;
+    auto const& visuals = settings->visuals;
+    bool glowShown = visuals.blockHighlight && !visuals.highlightBlocks.empty()
+        && capabilities::registry().status(capabilities::Id::BlockHighlight).available();
+    if (!glowShown && glow.revision) releaseGlow();
+    if (!preferences.chunkBorders && !preferences.hitboxes && !preferences.light && !breaking && !shapesShown && !glowShown) return;
     IClientInstance& client = context.mClientInstance;
     auto* player = client.getLocalPlayer();
     if (!player) return;
@@ -474,6 +577,7 @@ LL_TYPE_INSTANCE_HOOK(WorldLines, ll::memory::HookPriority::Normal, LevelRendere
         }
         auto& dimension = player->getDimension();
         if (preferences.light) drawLightOverlay(context, client, *player, preferences);
+        if (glowShown) drawHighlightGlow(context, client, *player, visuals);
         if (preferences.chunkBorders) {
             auto const& range = dimension.mHeightRange;
             Vec3 const position = player->getPosition();
@@ -610,6 +714,7 @@ void clear() {
     std::lock_guard lock(shapeMutex);
     draftCollection.clear();
     releaseMeshes = true;
+    visuals::highlight::clearMarks();
     followFeet.clear();
     shapeWorkspace.leave();
     joiningLocal = false;

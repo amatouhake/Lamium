@@ -523,7 +523,18 @@ already listed; the list is global (settings), not per world.
 Steps: (1) the hook, settings, key and rebuild, with full light and the
 tint checked in game (UV1 as the light map is a hypothesis; Vibrant
 Visuals may need MERS emissive); (2) a list view to see, recolor and
-remove types. Still open: the tint strength; whether a schematic
+remove types.
+2026-11-08 in-game result (build 2d14c846): the tint shows; raising UV1 to
+.94 made the block darker (UV1 read ~0 to .0002 in a dark cave, so its
+scale is not 0..1) and Night Vision washes the tint out. Maintainer chose
+a glow overlay on top: the tessellator hook records each designated
+block's drawn faces per chunk section (`RenderChunkBuilder::build`), and
+the world overlay draws them unlit with a pulse in the type's color plus
+an outline — no scan, render-distance reach, visible in the dark and under
+Night Vision. The UV1 raise is dropped; the mesh tint stays as the base.
+Animation reference: resource packs that do this tend to use flashy,
+animated looks. Persistence: the list stays until removed; forgetting a
+type is answered by the list view (step 2), not by expiry. Still open: the tint strength; whether a schematic
 placement's blocks share this list (default: no, they stay with the
 schematic check).
 

@@ -65,7 +65,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"blockHighlight", "Block highlight: {}", "ブロックのハイライト: {}"},
     {"key.Lamium.blockhighlight", "Toggle Block highlight", "ブロックのハイライトを切り替え"},
     {"key.Lamium.highlightaimedblock", "Highlight the aimed block type (again to remove)", "狙ったブロックの種類をハイライトに追加（もう一度で解除）"},
-    {"help.blockHighlight", "Tint the block types you pick in their own color and draw them at full brightness, so they stand out even far away or in the dark. Aim at a block and press the key to add its type; press it again to remove it. Only faces the game draws are tinted, so nothing shows through walls. Experimental.", "選んだ種類のブロックを種類ごとの色で染め、最大の明るさで描きます。遠くや暗い所でも見つけやすくなります。ブロックを狙ってキーを押すとその種類を追加し、もう一度押すと外します。ゲームが描く面だけを染めるので、壁越しには見えません。実験的な機能です。"},
+    {"help.blockHighlight", "Tint the block types you pick in their own color and give them a pulsing glow, so they stand out even far away or in the dark. Aim at a block and press the key to add its type; press it again to remove it. Only faces the game draws are tinted, so nothing shows through walls. Experimental.", "選んだ種類のブロックを種類ごとの色で染め、脈打つように光らせます。遠くや暗い所でも見つけやすくなります。ブロックを狙ってキーを押すとその種類を追加し、もう一度押すと外します。ゲームが描く面だけを染めるので、壁越しには見えません。実験的な機能です。"},
     {"highlight.added", "Highlighting {}", "{} をハイライトします"},
     {"highlight.removed", "Stopped highlighting {}", "{} のハイライトをやめました"},
     {"highlight.full", "The highlight list is full", "ハイライトのリストがいっぱいです"},

@@ -1,5 +1,7 @@
 #pragma once
+#include "overlay/Geometry.h"
 #include <algorithm>
+#include <cmath>
 #include <array>
 #include <cstdint>
 #include <string>
@@ -57,4 +59,38 @@ inline std::uint32_t tintVertex(std::uint32_t vertex, std::uint8_t r, std::uint8
     };
     return (vertex & 0xff000000u) | mix(0, r) | mix(8, g) | mix(16, b);
 }
+
+// A designated block seen while a chunk section was built: its cell, the
+// faces the game drew (bits in the game's facing order: down, up, north,
+// south, west, east) and its color index. The glow overlay draws these.
+struct Mark {
+    overlay::Cell cell;
+    std::uint8_t faces = 0;
+    std::uint8_t color = 0;
+    bool operator==(Mark const&) const = default;
+};
+// The game's facing bit for each overlay face (overlay::Face order).
+inline constexpr std::array<int, 6> facingBit{4, 5, 0, 1, 2, 3};
+inline void appendFaces(std::vector<overlay::CellFace>& out, Mark const& mark) {
+    for (int f = 0; f < 6; ++f)
+        if (mark.faces >> facingBit[static_cast<size_t>(f)] & 1) out.push_back({mark.cell, static_cast<overlay::Face>(f)});
+}
+// The glow's strength over time, 0..1: a smooth pulse so the marks catch the
+// eye without blinking hard.
+inline constexpr double pulsePeriod = 1.6;
+inline float pulse(double seconds) {
+    double phase = std::fmod(seconds, pulsePeriod) / pulsePeriod;
+    if (phase < 0) phase += 1;
+    return static_cast<float>(.5 - .5 * std::cos(phase * 6.283185307179586));
+}
+// A face color lifted toward white as the pulse peaks, so even a dark
+// palette color reads as light.
+inline std::array<float, 3> glowColor(std::uint8_t r, std::uint8_t g, std::uint8_t b, float strength) {
+    float lift = .45f * std::clamp(strength, 0.f, 1.f);
+    auto c = [&](std::uint8_t v) { float f = v / 255.f; return f + (1 - f) * lift; };
+    return {c(r), c(g), c(b)};
+}
+// At most this many faces are drawn a frame, so a list of common blocks
+// cannot flood the overlay.
+inline constexpr size_t maxGlowFaces = 24576;
 }

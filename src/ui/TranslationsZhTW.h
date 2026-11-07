@@ -62,7 +62,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"blockHighlight", "方塊醒目標示: {}"},
     {"key.Lamium.blockhighlight", "切換方塊醒目標示"},
     {"key.Lamium.highlightaimedblock", "醒目標示準星所指的方塊種類（再按一次取消）"},
-    {"help.blockHighlight", "將選定種類的方塊染成各自的顏色並以最大亮度繪製，遠處或黑暗中也容易發現。準星對準方塊按下按鍵即可加入該種類，再按一次則移除。只替遊戲本身繪製的面上色，因此不會透過牆壁顯示。實驗性功能。"},
+    {"help.blockHighlight", "將選定種類的方塊染成各自的顏色並讓其閃爍發光，遠處或黑暗中也容易發現。準星對準方塊按下按鍵即可加入該種類，再按一次則移除。只替遊戲本身繪製的面上色，因此不會透過牆壁顯示。實驗性功能。"},
     {"highlight.added", "開始醒目標示 {}"},
     {"highlight.removed", "已停止醒目標示 {}"},
     {"highlight.full", "醒目標示清單已滿"},

@@ -632,10 +632,12 @@ and the material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 (Schematic ghost blocks; entity models in `GhostMarks.cpp`).
 
 ### `src/features/visuals/BlockHighlightHooks.cpp`
-Hooks: `HighlightBlock`, `HighlightRebuild`
-Meaning: the chunk mesh's vertex colors and light map coordinates (UV1) for
-the vertices a designated block adds, and when chunks rebuild. Gated (Block
-highlight).
+Hooks: `HighlightBlock`, `HighlightSection`, `HighlightRebuild`
+Meaning: the chunk mesh's vertex colors for the vertices a designated block
+adds; the faces bitset `tessellateBlockInWorld` receives as the faces the
+game draws; `RenderChunkBuilder::build` as one section build, its
+`mBuildBoundingBox` as that section's world box; and when chunks rebuild.
+Gated (Block highlight).
 
 ### `src/features/visuals/ConnectedSprites.cpp`
 Hooks: `SpriteAtlas`, `SpritePackIndex`, `SpritePackLoad`
