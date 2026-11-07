@@ -704,13 +704,31 @@ Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).
 For blocks with no proper tool that drop themselves only with Silk Touch
 (glass and similar), Tool Switch should pick the Silk Touch tool
 automatically.
-Scope guard: apply only when the block has no preferred tool class and
-drops nothing without Silk Touch, so the switch can never change a drop
-the player would otherwise get — ores and similar, where Silk Touch is a
-choice rather than a rescue, stay out.
-Open: hotbar only, or the fetch-from-inventory option too; the pick order
-when several Silk Touch tools are present; whether the switch notice
-should say why this tool was picked.
+Decided (maintainer 2026-11-07): the boundary comes from the block's own drop
+list, not from a list in the mod. Tool Switch asks `mResourceDropsStrategy` for
+the plain drop and for the same drop with Silk Touch and compares them. Blocks
+that drop nothing without it (glass, glass panes, stained glass and panes, ice,
+packed ice, blue ice) are always taken; a new option adds the blocks whose drop
+changes (stone, ores, grass, leaves). Tinted glass drops itself and stays out, as
+does anything whose drop does not change. Where players differ, the intent stays
+a choice: the option is off by default and only adds the second group.
+Built 2026-11-07 on branch `l318-silk-tool-switch` (PR #73), DLL SHA-256
+`04A513CE7C455177F611BD51422D641584E9BA8C47DCEC57477DE1D4A0223810`: the scope is
+cached per block type, `SilkScope` and the speed rules are pure in
+`ToolChoice.h`, and the table checks are in `tests/ToolChoiceTests.cpp`.
+Status: checked in game by the maintainer (VALIDATION-LOG 2026-11-07). Glass and
+ice switch and give the block; tinted glass and dirt do not switch; stone stays
+out with the option off and takes a same-grade Silk Touch tool with it on; a
+faster plain tool is kept; the label and help read in all four languages.
+Direction (maintainer 2026-11-07, not settled): three points came out of the
+check and none is decided. (A) Which of two equally fast tools to pick when the
+held item is not a tool: the left-most hotbar slot as today (L-31), the slot
+nearest the selected one, or the most durable one. (B) Where "a faster plain tool
+is kept" should stop: keep it as the help says, or take Silk Touch whenever the
+option is on and accept the slower break. (C) Fortune: the always-on group is
+unaffected; with the option on a Fortune tool gives more of the item where Silk
+Touch gives the block, so leave it as "the option means the block", keep a
+Fortune tool instead, or make it its own option.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
 Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;
