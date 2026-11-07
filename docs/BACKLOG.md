@@ -204,9 +204,11 @@ Open:
    was not exported:
    `?_renderMiniMapHand@ItemInHandRenderer@@QEAAXAEAVBaseActorRenderContext@@AEAVPlayer@@_N@Z`.
    Added to the symbol request on 2026-11-04; 26.60.1's headers mark it
-   `MCAPI`, so the request covered it (item 4). 2026-11-07: `OffhandMap` in
-   `HideOffhand.cpp` skips the call when `inOffhand` is true; it links against
-   SDK 26.60.3. Whether that call draws the map is unchecked in game.
+   `MCAPI`, so the request covered it (item 4). 2026-11-07 on LeviLamina 26.60.4:
+   skipping it with `inOffhand` true left the map drawn. A trace build showed
+   `_renderPhotoMapItem` with `isMainHand` false running first in the
+   first-person pass, so `OffhandMap` in `HideOffhand.cpp` skips that call
+   instead; the game check of that build is pending.
 3. **Launching on 26.60.** An instance where PeEditor ran after LeviLauncher's
    import patch fails at launch: the import table is left unaligned and
    `LeviLauncher.dll` rejects it (`Cannot install directory imports (Windows

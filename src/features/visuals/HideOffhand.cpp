@@ -46,11 +46,13 @@ LL_TYPE_INSTANCE_HOOK(OffhandVisibility, ll::memory::HookPriority::Normal, ItemI
     origin(context, call, metadata, flags);
 }
 // A map held in the off hand is drawn by its own first-person call, outside
-// renderObject (L-305, 26.60).
+// renderObject (L-305, 26.60; traced 2026-11-07: _renderMiniMapHand runs after
+// it and skipping that left the map drawn).
 LL_TYPE_INSTANCE_HOOK(OffhandMap, ll::memory::HookPriority::Normal, ItemInHandRenderer,
-    &ItemInHandRenderer::_renderMiniMapHand, void, BaseActorRenderContext& context, Player& player, bool inOffhand) {
-    if (inOffhand && hidden()) return;
-    origin(context, player, inOffhand);
+    &ItemInHandRenderer::_renderPhotoMapItem, void, BaseActorRenderContext& context, Player& player,
+    float const frameAlpha, bool const isMainHand) {
+    if (!isMainHand && hidden()) return;
+    origin(context, player, frameAlpha, isMainHand);
 }
 // Attachables (the shield and other resource-pack 3D items) are drawn by the
 // data-driven model instead (L-14, verified 2026-09-27). Skip the local
