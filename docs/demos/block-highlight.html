@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Block Highlight List</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --mc-panel:16,17,19; --mc-row-hover:rgba(255,255,255,.07); --mc-row-alt:rgba(255,255,255,.025);
+  --mc-sel:rgba(108,195,73,.16); --mc-edge:rgba(255,255,255,.14); --mc-dim:#b4b8b6; --mc-faint:#7f8583;
+  --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-warn:#ffc24a;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:28px 64px;display:grid;gap:24px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:72ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:13px;padding:6px 12px}
+.tabs button[aria-selected=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.opts{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--ink-2)}
+.opts label{display:flex;gap:6px;align-items:center;cursor:pointer}
+
+.stage-outer{width:100%;border:1px solid var(--line);background:#000}
+.stage-fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--mc-font);color:#fff;user-select:none;overflow:hidden}
+.stage canvas.world{position:absolute;inset:0;width:960px;height:540px;image-rendering:pixelated}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.25)}
+.crosshair{position:absolute;left:50%;top:50%;width:14px;height:2px;background:rgba(255,255,255,.85);transform:translate(-7px,-1px)}
+.crosshair::after{content:"";position:absolute;left:6px;top:-6px;width:2px;height:14px;background:rgba(255,255,255,.85)}
+.hotbar{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);display:flex;background:rgba(0,0,0,.45);border:2px solid #1d1d1d}
+.hotbar i{width:30px;height:30px;border:2px solid #8b8b8b;border-right-width:0}
+.hotbar i:last-child{border-right-width:2px}
+.hotbar i.sel{outline:2px solid #fff;outline-offset:-2px}
+.toast{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);background:rgba(var(--mc-panel),.78);padding:3px 8px;font-size:12px;display:flex;gap:6px;align-items:center;white-space:nowrap}
+.card{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:rgba(var(--mc-panel),.8);box-shadow:inset 0 0 0 1px var(--mc-edge);padding:5px 8px;display:grid;grid-template-columns:24px auto;column-gap:8px;font-size:12px;line-height:15px}
+.card .ic{grid-row:1/4;align-self:center}
+.card .sub{color:var(--mc-dim);font-size:11px}
+.card .hl{font-size:11px}
+
+.panel{position:absolute;left:120px;top:36px;width:720px;height:414px;display:flex;flex-direction:column;background:rgba(var(--mc-panel),.86);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.phead{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;border-bottom:1px solid var(--mc-edge);flex:none}
+.brand{font-size:14px}
+.crumb{font-size:12px;color:var(--mc-faint)}
+.exp{font-size:10px;color:#b98bff;box-shadow:inset 0 0 0 1px #b98bff;padding:0 4px;line-height:14px}
+.spacer{flex:1}
+.hbtn{all:unset;cursor:pointer;font:12px var(--mc-font);color:var(--mc-dim);padding:0 8px;height:20px;line-height:20px;box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.hbtn:hover{color:#fff;background:var(--mc-row-hover)}
+.pbody{flex:1;min-height:0;display:flex}
+.col{min-width:0;min-height:0;display:flex;flex-direction:column}
+.col.left{width:300px;border-right:1px solid var(--mc-edge);flex:none}
+.col.right{flex:1}
+.ctitle{display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;font-size:11px;color:var(--mc-faint);border-bottom:1px solid var(--mc-edge);flex:none}
+.ctitle b{font-weight:400;color:var(--mc-dim)}
+.scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#5a5b5c transparent}
+.row{display:grid;align-items:center;column-gap:8px;padding:0 10px;height:26px;font-size:13px}
+.row:nth-child(even){background:var(--mc-row-alt)}
+.row:hover{background:var(--mc-row-hover)}
+.lrow{grid-template-columns:16px minmax(0,1fr) auto 18px}
+.rrow{grid-template-columns:16px minmax(0,1fr) 150px 58px;cursor:pointer}
+.nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.id{font-size:11px;color:var(--mc-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.near{font-size:11px;color:var(--mc-dim);text-align:right;white-space:nowrap}
+.near.none{color:var(--mc-faint)}
+.x{all:unset;cursor:pointer;width:18px;height:18px;line-height:18px;text-align:center;font-size:12px;color:var(--mc-faint);box-shadow:inset 0 0 0 1px transparent}
+.row:hover .x{color:#ffb3ad;box-shadow:inset 0 0 0 1px #8a3a34}
+.x.armed{background:#8a2f28;color:#fff !important}
+.btn{all:unset;cursor:pointer;font:11px var(--mc-font);color:#fff;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge),inset 0 -2px 0 rgba(0,0,0,.5);padding:0 7px;height:18px;line-height:18px;text-align:center;white-space:nowrap}
+.btn:hover{background:#3a3b3c}
+.btn.added{background:transparent;box-shadow:none;color:var(--mc-on-edge)}
+.btn.off{background:transparent;box-shadow:none;color:var(--mc-faint);cursor:default}
+.search{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--mc-edge);flex:none}
+.search input{all:unset;flex:1;min-width:0;font:13px var(--mc-font);color:#fff;background:rgba(0,0,0,.45);box-shadow:inset 0 0 0 1px var(--mc-key-edge);height:20px;padding:0 6px}
+.search input:focus{box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.search input::placeholder{color:var(--mc-faint)}
+.chips{display:flex;gap:4px;padding:5px 10px;border-bottom:1px solid var(--mc-edge);flex:none;flex-wrap:wrap}
+.chip{all:unset;cursor:pointer;font:11px var(--mc-font);color:var(--mc-dim);padding:0 6px;height:16px;line-height:16px;box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.chip[aria-pressed=true]{background:var(--mc-sel);color:#fff;box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,30px);gap:4px;padding:8px 10px;align-content:start}
+.cell{all:unset;cursor:pointer;position:relative;width:30px;height:30px;display:grid;place-items:center;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.cell:hover{box-shadow:inset 0 0 0 1px #fff}
+.cell.on{box-shadow:inset 0 0 0 2px var(--mc-on-edge);background:var(--mc-sel)}
+.cell.on::after{content:"";position:absolute;right:2px;top:2px;width:5px;height:5px;background:var(--mc-on-edge)}
+.cell.na{opacity:.35;cursor:default}
+.hover{flex:none;border-top:1px solid var(--mc-edge);min-height:40px;padding:4px 10px;font-size:12px;display:grid;align-content:center}
+.hover .id{font-size:11px}
+.sib{font-size:11px;color:var(--mc-dim);padding:3px 10px 3px 34px;display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--mc-edge)}
+.pfoot{border-top:1px solid var(--mc-edge);padding:5px 10px;min-height:36px;display:grid;gap:1px;flex:none;font-size:11px;color:var(--mc-faint);line-height:1.45}
+.empty{padding:14px 12px;font-size:12px;color:var(--mc-faint);line-height:1.6}
+canvas.ic{display:block;width:16px;height:16px;image-rendering:pixelated}
+.cell canvas.ic{width:22px;height:22px}
+
+.settingsmock{border:1px solid var(--line);background:var(--ground-2);padding:16px 18px;display:grid;gap:10px}
+.tbl{font-family:var(--mc-font);font-size:13px;background:rgba(16,17,19,.95);box-shadow:inset 0 0 0 1px var(--mc-edge);max-width:680px;overflow-x:auto}
+.tbl .r{display:grid;grid-template-columns:minmax(0,1fr) 54px 130px;gap:10px;align-items:center;height:26px;padding:0 10px;color:#fff;min-width:420px}
+.tbl .r.c{color:var(--mc-dim);position:relative;padding-left:34px}
+.tbl .r.c::before{content:"";position:absolute;left:15px;top:0;bottom:50%;width:1px;background:rgba(255,255,255,.18)}
+.tbl .r.c::after{content:"";position:absolute;left:15px;top:50%;width:8px;height:1px;background:rgba(255,255,255,.18)}
+.tbl .r.sec{color:var(--accent);font-size:11px;height:22px;border-bottom:1px solid rgba(108,195,73,.3)}
+.cap{display:inline-block;height:16px;line-height:16px;padding:0 5px;font-size:11px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);color:#fff}
+.sw{position:relative;display:inline-block;width:30px;height:14px;background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.sw::after{content:"";position:absolute;top:1px;left:17px;width:12px;height:12px;background:#fff}
+.faint{color:var(--mc-faint);font-size:11px}
+.link{color:var(--accent);font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:16px 18px;display:grid;gap:8px;align-content:start}
+.note h3{font:700 15px/1.4 "Noto Sans JP",sans-serif;margin:0}
+.note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:4px}
+.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.ask ol{margin:0;padding-left:1.3em;color:var(--ink-2);font-size:13.5px;display:grid;gap:6px}
+.ask b{color:var(--ink)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">BACKLOG L-320 手順 (2) · ブロックのハイライト · 確認用モック</div>
+    <h1>ハイライトするブロックの一覧と、まだ見ていないブロックの追加</h1>
+    <p class="lede">今はキーで「照準のブロックを追加 / 外す」しかなく、<strong>何を指定したか見えない</strong>こと、<strong>まだ見つけていないブロックを指定できない</strong>ことが問題です。ここでは一覧画面を 1 つ足し、左に指定中の種類、右に追加の手段を置きます。追加の手段は <strong>A 名前で検索してリスト</strong> と <strong>B アイコンの格子</strong> の 2 案です。タブで場面を切り替えられ、検索・追加・削除は実際に操作できます（プレイ中の場面では H キーで照準のダイヤモンド鉱石を追加 / 外せます）。ブロックの絵は仮のものです。</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="場面">
+    <button role="tab" aria-selected="false" data-scene="play">プレイ中（キーで追加した直後）</button>
+    <button role="tab" aria-selected="true" data-scene="a">一覧の画面：A 検索リスト</button>
+    <button role="tab" aria-selected="false" data-scene="b">一覧の画面：B アイコン格子</button>
+  </div>
+  <div class="opts">
+    <label><input type="checkbox" id="optNear" checked> 「近くに N」列を出す（候補）</label>
+    <label><input type="checkbox" id="optSib" checked> 深層岩などの仲間をまとめて追加する案内（候補）</label>
+  </div>
+
+  <div class="stage-outer"><div class="stage-fit" id="fit"><div class="stage" id="stage">
+    <canvas class="world" id="world" width="480" height="270"></canvas>
+    <div id="layer"></div>
+    <div class="hotbar"><i></i><i class="sel"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div id="toast"></div>
+  </div></div></div>
+
+  <section class="settingsmock">
+    <h2>設定画面の行（「カメラ」の中、今の「ブロックのハイライト」の子）</h2>
+    <div class="tbl" role="img" aria-label="設定画面のブロックのハイライトの行">
+      <div class="r sec">カメラと見た目</div>
+      <div class="r"><span>▾ ブロックのハイライト <span class="exp">試験的</span></span><span class="sw" style="justify-self:center"></span><span><span class="cap">未割り当て</span></span></div>
+      <div class="r c"><span>ハイライトするブロック <span class="faint" id="countRow">5 種類</span></span><span></span><span class="link">一覧を開く</span></span></div>
+    </div>
+    <p class="faint" style="font-family:'Noto Sans JP',sans-serif;font-size:13px">照準のブロックを追加 / 外すキーは今のまま残します（一覧を開かなくても使える）。一覧専用のキーは作らず、設定の行から開きます。</p>
+  </section>
+
+  <section class="cards">
+    <article class="note"><h3>左：指定中の種類</h3><ul>
+      <li>アイコン・表示名・ID。並びは追加した順（新しいものが下）</li>
+      <li>× は 2 回押しで外す（形状やウェイポイントと同じ）</li>
+      <li>「近くに N」：今描いているハイライト面の記録から数えるので、走査も追加の負荷もなし。描画距離の中で、壁の向こうは数えない（見えていない面は記録されない）。0 なら「なし」</li>
+      <li>色の選択はなし（全種類が同じ虹色、2026-11-08 決定）</li>
+    </ul></article>
+    <article class="note"><h3>A 検索リスト</h3><ul>
+      <li>入力欄に打つと、表示名（今の言語）と ID の両方で絞り込む</li>
+      <li>何も打っていないときは「よく使う」候補（鉱石・古代の残骸・スポナーなど）を出す</li>
+      <li>行をクリックで追加、もう一度で外す。見たことのないブロックも全部出る</li>
+      <li>チェストなどブロックエンティティは灰色で「対象外」</li>
+    </ul></article>
+    <article class="note"><h3>B アイコン格子</h3><ul>
+      <li>分類チップ（鉱石 / 貴重 / 自然 / すべて）と検索欄で絞り、アイコンを並べる</li>
+      <li>指定中は緑の枠と右上の印。クリックで追加 / 外す</li>
+      <li>名前はアイコンに乗せたときだけ下の帯に出る。似た絵（各種の石）は見分けにくい</li>
+      <li>アイコンのないブロック（光源ブロックなど）は描けないので、結局リストが要る</li>
+    </ul></article>
+    <article class="note"><h3>プレイ中の補助</h3><ul>
+      <li>キーで追加 / 外したときのトーストにブロック名とアイコン</li>
+      <li>照準先の情報カードに「ハイライト中」の 1 行</li>
+      <li>どちらも小さく、A / B のどちらを選んでも入れられる</li>
+    </ul></article>
+  </section>
+
+  <section class="ask">
+    <h2>決めてほしいこと</h2>
+    <ol>
+      <li><b>追加の手段：A 検索リスト か B アイコン格子 か。</b>おすすめは A（名前と ID が常に見え、アイコンのないブロックも扱え、実装も軽い）。</li>
+      <li><b>表示名で検索できるようにするか。</b>ID だけなら確実で簡単。表示名にはゲームの翻訳を引く必要があり、実装時に SDK で可否を確かめる。おすすめは両方（表示名が引けなければ ID だけで出す）。</li>
+      <li><b>「近くに N」列を出すか。</b>指定が効いているか・近くにあるかがひと目で分かる。数字が描画距離と見えている面に限られることは脚注で示す。</li>
+      <li><b>仲間のまとめ追加。</b>ダイヤモンド鉱石を追加すると「深層岩のダイヤモンド鉱石も追加」の案内を 1 行出すか。ID の <code>deepslate_</code> 付きを探すだけの単純な規則にする。</li>
+      <li><b>トーストと情報カードの 1 行</b>を入れるか。</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+const BLOCKS = [
+  // id, ja, en, base, speck, cat
+  ["diamond_ore","ダイヤモンド鉱石","Diamond Ore","#7d7d7d","#5fe3d9","ore"],
+  ["deepslate_diamond_ore","深層岩のダイヤモンド鉱石","Deepslate Diamond Ore","#4a4a50","#5fe3d9","ore"],
+  ["emerald_ore","エメラルド鉱石","Emerald Ore","#7d7d7d","#3fd46a","ore"],
+  ["deepslate_emerald_ore","深層岩のエメラルド鉱石","Deepslate Emerald Ore","#4a4a50","#3fd46a","ore"],
+  ["gold_ore","金鉱石","Gold Ore","#7d7d7d","#f2d64b","ore"],
+  ["deepslate_gold_ore","深層岩の金鉱石","Deepslate Gold Ore","#4a4a50","#f2d64b","ore"],
+  ["iron_ore","鉄鉱石","Iron Ore","#7d7d7d","#d8b39a","ore"],
+  ["deepslate_iron_ore","深層岩の鉄鉱石","Deepslate Iron Ore","#4a4a50","#d8b39a","ore"],
+  ["copper_ore","銅鉱石","Copper Ore","#7d7d7d","#e07a4f","ore"],
+  ["deepslate_copper_ore","深層岩の銅鉱石","Deepslate Copper Ore","#4a4a50","#e07a4f","ore"],
+  ["redstone_ore","レッドストーン鉱石","Redstone Ore","#7d7d7d","#e0352b","ore"],
+  ["deepslate_redstone_ore","深層岩のレッドストーン鉱石","Deepslate Redstone Ore","#4a4a50","#e0352b","ore"],
+  ["lapis_ore","ラピスラズリ鉱石","Lapis Lazuli Ore","#7d7d7d","#2f5bd6","ore"],
+  ["deepslate_lapis_ore","深層岩のラピスラズリ鉱石","Deepslate Lapis Lazuli Ore","#4a4a50","#2f5bd6","ore"],
+  ["coal_ore","石炭鉱石","Coal Ore","#7d7d7d","#1e1e1e","ore"],
+  ["deepslate_coal_ore","深層岩の石炭鉱石","Deepslate Coal Ore","#4a4a50","#1e1e1e","ore"],
+  ["nether_gold_ore","ネザー金鉱石","Nether Gold Ore","#6e2a2a","#f2d64b","ore"],
+  ["quartz_ore","ネザークォーツ鉱石","Nether Quartz Ore","#6e2a2a","#ece6dc","ore"],
+  ["ancient_debris","古代の残骸","Ancient Debris","#5b4038","#8a6a5c","rare"],
+  ["mob_spawner","モンスタースポナー","Monster Spawner","#1f2a33","#3a4d5c","rare"],
+  ["trial_spawner","トライアルスポナー","Trial Spawner","#2a2f36","#d08a3a","rare"],
+  ["budding_amethyst","芽生えたアメジスト","Budding Amethyst","#7a4fb5","#c79bf2","rare"],
+  ["amethyst_block","アメジストブロック","Block of Amethyst","#8a5cc4","#b88be8","rare"],
+  ["end_portal_frame","エンドポータルフレーム","End Portal Frame","#3d6b5a","#d8d39c","rare"],
+  ["suspicious_sand","怪しげな砂","Suspicious Sand","#d9cf9a","#a69a63","rare"],
+  ["suspicious_gravel","怪しげな砂利","Suspicious Gravel","#857f7c","#5b5552","rare"],
+  ["sculk_shrieker","スカルクシュリーカー","Sculk Shrieker","#0f2a33","#c7e3d6","rare"],
+  ["vault","宝庫","Vault","#3a3f47","#d0b25a","rare"],
+  ["chest","チェスト","Chest","#9a6b2f","#4a3216","na"],
+  ["tuff","凝灰岩","Tuff","#6c6d66","#5a5b55","nat"],
+  ["gravel","砂利","Gravel","#857f7c","#6a6461","nat"],
+  ["clay","粘土","Clay","#a0a6b3","#8c92a0","nat"],
+  ["obsidian","黒曜石","Obsidian","#1b1527","#3b2c55","nat"],
+  ["magma","マグマブロック","Magma Block","#8a3a12","#f08a2a","nat"],
+  ["pointed_dripstone","鍾乳石","Pointed Dripstone","#866b5c","#a88a77","nat"],
+  ["glow_lichen","ヒカリゴケ","Glow Lichen","#5d7a6b","#9fe0b5","nat"],
+  ["light_block","光源ブロック","Light Block","","","noicon"],
+];
+const byId = Object.fromEntries(BLOCKS.map(b=>[b[0],b]));
+const SUGGEST = ["diamond_ore","ancient_debris","emerald_ore","gold_ore","iron_ore","mob_spawner","trial_spawner","budding_amethyst","suspicious_sand","suspicious_gravel","vault","chest"];
+const NEAR = {diamond_ore:0,deepslate_diamond_ore:3,iron_ore:41,deepslate_iron_ore:12,ancient_debris:0,tuff:812,gravel:97,emerald_ore:1,budding_amethyst:6,mob_spawner:1};
+let list = ["iron_ore","deepslate_iron_ore","tuff","gravel","diamond_ore"];
+let scene = "a", query = "", chip = "ore", armed = null, hoverId = null, lastSib = null;
+let optNear = true, optSib = true;
+
+// placeholder block art
+function icon(id, px=16){
+  const c=document.createElement("canvas"); c.width=8; c.height=8; c.className="ic";
+  const b=byId[id]; const g=c.getContext("2d");
+  if(!b || !b[3]){ g.strokeStyle="#7f8583"; g.strokeRect(1.5,1.5,5,5); g.fillStyle="#7f8583"; g.fillRect(3,3,2,2); return c; }
+  let s=[...id].reduce((a,ch)=>a*31+ch.charCodeAt(0)>>>0,7);
+  const r=()=>(s=s*1103515245+12345>>>0)/4294967296;
+  g.fillStyle=b[3]; g.fillRect(0,0,8,8);
+  for(let i=0;i<10;i++){ g.fillStyle=r()<.5?"rgba(0,0,0,.18)":"rgba(255,255,255,.1)"; g.fillRect(r()*8|0,r()*8|0,1,1); }
+  g.fillStyle=b[4]; for(let i=0;i<(b[5]==="ore"?7:5);i++){ g.fillRect(r()*7|0,r()*7|0,r()<.5?2:1,1); }
+  return c;
+}
+const ja = id => byId[id]?.[1] ?? id;
+const el = (tag, cls, html) => { const e=document.createElement(tag); if(cls) e.className=cls; if(html!=null) e.innerHTML=html; return e; };
+
+function toggle(id){
+  const b=byId[id]; if(!b || b[5]==="na") return;
+  const i=list.indexOf(id);
+  if(i>=0){ list.splice(i,1); showToast(id,false); lastSib=null; }
+  else { list.push(id); showToast(id,true); lastSib = sibling(id); }
+  render();
+}
+function sibling(id){
+  const s = id.startsWith("deepslate_") ? id.slice(10) : "deepslate_"+id;
+  return byId[s] && !list.includes(s) ? s : null;
+}
+function showToast(id, added){
+  const t=document.getElementById("toast"); t.innerHTML="";
+  const box=el("div","toast"); box.append(icon(id)); box.append(el("span",null,(added?"ハイライトに追加: ":"ハイライトから外しました: ")+ja(id)));
+  t.append(box); clearTimeout(showToast.h); showToast.h=setTimeout(()=>t.innerHTML="",2400);
+}
+
+function matches(b){
+  if(!query) return true;
+  const q=query.toLowerCase();
+  return b[0].includes(q.replace(/ /g,"_")) || b[1].includes(query) || b[2].toLowerCase().includes(q);
+}
+
+function leftColumn(){
+  const col=el("div","col left");
+  col.append(el("div","ctitle",`指定中 <b>${list.length}</b><span class="spacer"></span>${optNear?"近くに":""}`));
+  const sc=el("div","scroll");
+  if(!list.length) sc.append(el("div","empty","まだありません。右から追加するか、プレイ中に照準を合わせてキーを押します。"));
+  for(const id of list){
+    const r=el("div","row lrow"); r.append(icon(id));
+    const n=el("div","nm"); n.textContent=ja(id); n.title=id; r.append(n);
+    const near=NEAR[id]??0;
+    r.append(el("span","near"+(near?"":" none"), optNear?(near?near:"なし"):""));
+    const x=el("button","x"+(armed===id?" armed":""),"×"); x.title="2 回押すと外す";
+    x.onclick=e=>{ e.stopPropagation(); if(armed===id){ armed=null; toggle(id); } else { armed=id; render(); } };
+    r.append(x); sc.append(r);
+  }
+  col.append(sc);
+  return col;
+}
+
+function searchBar(ph){
+  const s=el("div","search"); const inp=el("input"); inp.placeholder=ph; inp.value=query;
+  inp.oninput=()=>{ query=inp.value; armed=null; renderRight(); };
+  s.append(inp); return [s, inp];
+}
+
+let rightHost=null;
+function rightA(){
+  const col=el("div","col right");
+  const [s]=searchBar("ブロック名または ID で検索（例: ダイヤ, debris）"); col.append(s);
+  const res=el("div"); res.style.cssText="flex:1;min-height:0;display:flex;flex-direction:column";
+  col.append(res); rightHost=()=>fillA(res); fillA(res);
+  return col;
+}
+function fillA(res){
+  res.innerHTML="";
+  const items = query ? BLOCKS.filter(matches) : SUGGEST.map(i=>byId[i]);
+  res.append(el("div","ctitle", query?`検索結果 <b>${items.length}</b>`:"よく使う（何か打つと全ブロックから探す）"));
+  if(optSib && lastSib){
+    const sb=el("div","sib"); sb.append(icon(lastSib)); sb.append(el("span",null,`${ja(lastSib)} も追加しますか？`));
+    const b=el("button","btn","追加"); b.onclick=()=>{ const s=lastSib; lastSib=null; toggle(s); lastSib=null; render(); };
+    sb.append(b); res.append(sb);
+  }
+  const sc=el("div","scroll");
+  if(!items.length) sc.append(el("div","empty","見つかりません。"));
+  for(const b of items){
+    const r=el("div","row rrow"); r.append(icon(b[0]));
+    r.append(el("div","nm",b[1])); r.append(el("div","id",b[0]));
+    const on=list.includes(b[0]);
+    const btn = b[5]==="na" ? el("span","btn off","対象外") : el("span","btn"+(on?" added":""), on?"指定中 ✓":"追加");
+    if(b[5]==="na") r.title="チェストなどブロックエンティティとして描かれるブロックはハイライトできません";
+    r.append(btn); r.onclick=()=>toggle(b[0]); sc.append(r);
+  }
+  res.append(sc);
+}
+
+function rightB(){
+  const col=el("div","col right");
+  const [s]=searchBar("絞り込み"); col.append(s);
+  const chips=el("div","chips");
+  for(const [k,label] of [["ore","鉱石"],["rare","貴重"],["nat","自然"],["all","すべて"]]){
+    const c=el("button","chip",label); c.setAttribute("aria-pressed",chip===k);
+    c.onclick=()=>{ chip=k; render(); }; chips.append(c);
+  }
+  col.append(chips);
+  const res=el("div"); res.style.cssText="flex:1;min-height:0;display:flex;flex-direction:column";
+  col.append(res); rightHost=()=>fillB(res); fillB(res);
+  return col;
+}
+function fillB(res){
+  res.innerHTML="";
+  if(optSib && lastSib){
+    const sb=el("div","sib"); sb.append(icon(lastSib)); sb.append(el("span",null,`${ja(lastSib)} も追加しますか？`));
+    const b=el("button","btn","追加"); b.onclick=()=>{ const s=lastSib; lastSib=null; toggle(s); lastSib=null; render(); };
+    sb.append(b); res.append(sb);
+  }
+  const sc=el("div","scroll"); const g=el("div","grid");
+  const items=BLOCKS.filter(b=>b[5]!=="noicon" && (chip==="all"||b[5]===chip||(chip==="rare"&&b[5]==="na")) && matches(b));
+  for(const b of items){
+    const c=el("button","cell"+(list.includes(b[0])?" on":"")+(b[5]==="na"?" na":""));
+    c.append(icon(b[0]));
+    c.onmouseenter=()=>{ hoverId=b[0]; hov(); };
+    c.onclick=()=>toggle(b[0]); g.append(c);
+  }
+  sc.append(g); res.append(sc);
+  const hv=el("div","hover"); hv.id="hov"; res.append(hv); hov();
+}
+function hov(){
+  const h=document.getElementById("hov"); if(!h) return;
+  if(!hoverId){ h.innerHTML='<span class="faint">アイコンに乗せると名前が出ます</span>'; return; }
+  const b=byId[hoverId];
+  h.innerHTML=`<span>${b[1]}${b[5]==="na"?' <span class="faint">対象外（ブロックエンティティ）</span>':list.includes(b[0])?' <span style="color:#6cc349">指定中</span>':""}</span><span class="id">${b[0]}</span>`;
+}
+
+function renderRight(){ if(rightHost) rightHost(); }
+
+function render(){
+  const layer=document.getElementById("layer"); layer.innerHTML="";
+  document.getElementById("countRow").textContent=list.length+" 種類";
+  rightHost=null;
+  if(scene==="play"){
+    layer.append(el("div","crosshair"));
+    const card=el("div","card"); const ic=icon("diamond_ore"); ic.classList.add("ic"); ic.style.width="24px"; ic.style.height="24px";
+    card.append(ic); card.append(el("div",null,"ダイヤモンド鉱石")); card.append(el("div","sub","採掘: 鉄のツルハシ以上"));
+    const on=list.includes("diamond_ore");
+    card.append(el("div","hl", on?'<span style="color:#6cc349">ハイライト中</span>':'<span class="faint">ハイライトなし</span>'));
+    layer.append(card);
+    drawWorld(true);
+    return;
+  }
+  drawWorld(false);
+  layer.append(el("div","dim"));
+  const p=el("div","panel");
+  const head=el("div","phead");
+  head.innerHTML='<span class="brand">Lamium</span><span class="crumb">ブロックのハイライト</span><span class="exp">試験的</span><span class="spacer"></span>';
+  const close=el("button","hbtn","閉じる"); head.append(close); p.append(head);
+  const body=el("div","pbody"); body.append(leftColumn()); body.append(scene==="a"?rightA():rightB()); p.append(body);
+  p.append(el("div","pfoot",(optNear?"「近くに」は描画距離の中で今見えている面から数えた数です。壁の向こうは数えません。<br>":"")+"ブロック名で指定し、状態（向きなど）は区別しません。チェストなどは対象外です。"));
+  layer.append(p);
+}
+
+// world: dark cave with a few ore blocks, glowing when listed
+function drawWorld(play){
+  const c=document.getElementById("world"), g=c.getContext("2d");
+  let s=12345; const r=()=>(s=s*1103515245+12345>>>0)/4294967296;
+  g.fillStyle="#0b0c0e"; g.fillRect(0,0,480,270);
+  const B=24;
+  for(let y=0;y<12;y++) for(let x=0;x<20;x++){
+    const d=Math.hypot(x-10,y-6); if(d<3.2) continue;
+    const shade=Math.max(18,70-d*5+r()*10)|0;
+    g.fillStyle=`rgb(${shade},${shade},${shade+3})`; g.fillRect(x*B,y*B,B,B);
+    g.fillStyle="rgba(0,0,0,.25)"; g.fillRect(x*B,y*B+B-1,B,1); g.fillRect(x*B+B-1,y*B,1,B);
+  }
+  const ores=[[9,3,"diamond_ore"],[14,8,"iron_ore"],[4,9,"deepslate_iron_ore"],[16,2,"emerald_ore"]];
+  const t=performance.now()/1000;
+  for(const [x,y,id] of ores){
+    const ic=icon(id); g.imageSmoothingEnabled=false; g.drawImage(ic,x*B,y*B,B,B);
+    if(play && list.includes(id)){
+      const h=(t*60+x*20+y*15)%360;
+      g.fillStyle=`hsla(${h},90%,60%,.38)`; g.fillRect(x*B,y*B,B,B);
+      g.strokeStyle=`hsl(${h},90%,65%)`; g.lineWidth=1; g.strokeRect(x*B+.5,y*B+.5,B-1,B-1);
+    }
+  }
+}
+function loop(){ if(scene==="play") drawWorld(true); requestAnimationFrame(loop); }
+
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  scene=b.dataset.scene; armed=null; render();
+  if(scene==="play") showToast("diamond_ore", list.includes("diamond_ore"));
+});
+document.getElementById("optNear").onchange=e=>{ optNear=e.target.checked; render(); };
+document.getElementById("optSib").onchange=e=>{ optSib=e.target.checked; render(); };
+document.addEventListener("keydown",e=>{ if(scene==="play" && (e.key==="h"||e.key==="H")) toggle("diamond_ore"); });
+
+function fit(){ const f=document.getElementById("fit"), st=document.getElementById("stage"); const k=f.clientWidth/960; st.style.transform=`scale(${k})`; f.style.height=540*k+"px"; }
+addEventListener("resize",fit); fit(); render(); loop();
+</script>

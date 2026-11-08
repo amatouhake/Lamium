@@ -543,6 +543,12 @@ under the translucent glow. Saved per-type colors are kept in the file
 but no longer used; the list view will not offer recoloring. Still open: the tint strength; whether a schematic
 placement's blocks share this list (default: no, they stay with the
 schematic check).
+2026-11-08: open problems from use - the designated types cannot be seen
+anywhere, and a type not yet found in the world cannot be added. Step 2
+becomes a list screen that also adds types from all block types; mockup
+[block-highlight.html](demos/block-highlight.html) (A search list vs B icon
+grid, display-name search, a nearby count, the deepslate sibling line, the
+toast and target-card line), awaiting the maintainer's choice.
 
 ### L-319 Item details: Work Penalty first, then the unshown rest
 Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).
