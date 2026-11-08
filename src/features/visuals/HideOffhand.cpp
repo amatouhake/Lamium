@@ -47,11 +47,17 @@ LL_TYPE_INSTANCE_HOOK(OffhandVisibility, ll::memory::HookPriority::Normal, ItemI
 }
 // A map held in the off hand is drawn by its own first-person call, outside
 // renderObject (L-305, 26.60; traced 2026-11-07: _renderMiniMapHand runs after
-// it and skipping that left the map drawn).
+// it and skipping that left the map drawn). Like attachables below, only the
+// local player's map and only in first person, should any other view use it.
+bool localFirstPerson(Actor& actor) {
+    auto client = ll::service::getClientInstance();
+    if (!client || client->getLocalPlayer() != &actor) return false;
+    try { return client->getOptions().getPlayerViewPerspective() == 0; } catch (...) { return false; }
+}
 LL_TYPE_INSTANCE_HOOK(OffhandMap, ll::memory::HookPriority::Normal, ItemInHandRenderer,
     &ItemInHandRenderer::_renderPhotoMapItem, void, BaseActorRenderContext& context, Player& player,
     float const frameAlpha, bool const isMainHand) {
-    if (!isMainHand && hidden()) return;
+    if (!isMainHand && hidden() && localFirstPerson(player)) return;
     origin(context, player, frameAlpha, isMainHand);
 }
 // Attachables (the shield and other resource-pack 3D items) are drawn by the
@@ -59,10 +65,7 @@ LL_TYPE_INSTANCE_HOOK(OffhandMap, ll::memory::HookPriority::Normal, ItemInHandRe
 // player's offhand slot only while the view is first person, so other
 // players and the third-person views keep it.
 bool skipAttachable(AttachableSlotIndex slot, Actor& actor) {
-    if (slot != AttachableSlotIndex::OffhandItem || !hidden()) return false;
-    auto client = ll::service::getClientInstance();
-    if (!client || client->getLocalPlayer() != &actor) return false;
-    try { return client->getOptions().getPlayerViewPerspective() == 0; } catch (...) { return false; }
+    return slot == AttachableSlotIndex::OffhandItem && hidden() && localFirstPerson(actor);
 }
 LL_TYPE_INSTANCE_HOOK(OffhandAttachable, ll::memory::HookPriority::Normal, DataDrivenModel,
     &DataDrivenModel::renderAttachable, void, ItemStack const& item, AttachableSlotIndex const& slot,
