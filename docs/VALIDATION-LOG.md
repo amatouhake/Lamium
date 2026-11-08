@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block highlight key with FreeCamera (L-320, 2026-11-08)
+
+`8c49d25c`, DLL SHA-256
+`50d3fa5ec1e015fcc1f670669234f61146fc580ed3bb36567ee29f04e2f998ca`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer: in FreeCamera, away from the body, the key adds the type the
+camera aims at and a second press removes it; with FreeCamera off the key
+takes the outlined block as before. Not checked: Freelook.
+
 ## Block highlight list (L-320, 2026-11-08)
 
 `983bf80f`, DLL SHA-256
