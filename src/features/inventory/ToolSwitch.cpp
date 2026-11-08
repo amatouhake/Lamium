@@ -27,6 +27,7 @@
 #include "mc/world/level/block/IResourceDropsStrategy.h"
 #include <algorithm>
 #include <chrono>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -45,8 +46,10 @@ bool quietSinceBreak() {
 }
 // L-318: what a block drops plainly, with Silk Touch and with Fortune III, from
 // the game's own drop strategy. The query builds item stacks, so the answer is
-// cached per block type. A fixed random keeps the answers stable; the Fortune
-// pair uses a high one so a bonus roll shows in the count.
+// cached per block type and the item it was asked with (a drop may depend on
+// the item used), and forgotten when the player's block source changes (world
+// or dimension). A fixed random keeps the answers stable; the Fortune pair uses
+// a high one so a bonus roll shows in the count.
 struct DropRandom : IRandom {
     bool high = false;
     explicit DropRandom(bool high) : high(high) {}
@@ -86,15 +89,21 @@ ItemStack enchanted(ItemStack const& plain, Enchant::Type type, int level) {
     stack.saveEnchantsToUserData(enchants);
     return stack;
 }
+std::map<std::pair<BlockType const*, Item const*>, BlockDrops> dropCache;
+BlockSource const* dropCacheRegion = nullptr;
 BlockDrops blockDrops(Block const& block, Player& player) {
-    static std::unordered_map<BlockType const*, BlockDrops> cache;
     auto const& type = block.getBlockType();
-    if (auto found = cache.find(&type); found != cache.end()) return found->second;
     if (!type.mResourceDropsStrategy) return {};
+    if (auto const* region = &player.getDimensionBlockSource(); region != dropCacheRegion) {
+        dropCache.clear();
+        dropCacheRegion = region;
+    }
     auto& inventory = player.getInventory();
     for (int slot = 0; slot < 36; ++slot) {
         auto const& base = inventory.getItem(slot);
         if (base.isNull() || !base.mItem) continue;
+        std::pair<BlockType const*, Item const*> key{&type, base.mItem.get()};
+        if (auto found = dropCache.find(key); found != dropCache.end()) return found->second;
         try {
             ItemStack plain;
             plain.reinit(*base.mItem, 1, 0);
@@ -110,7 +119,7 @@ BlockDrops blockDrops(Block const& block, Player& player) {
             };
             BlockDrops answer{scopeOfDrops(drops(plain,false), drops(touched,false)),
                               dropsDiffer(drops(plain,true), drops(lucky,true))};
-            cache.emplace(&type, answer);
+            dropCache.emplace(key, answer);
             return answer;
         } catch (...) { return {}; }
     }
@@ -220,6 +229,8 @@ void start() {}
 void stop() {
     target.clear();
     toolUse.clear();
+    dropCache.clear();
+    dropCacheRegion = nullptr;
     fetchPending = false;
 }
 }
