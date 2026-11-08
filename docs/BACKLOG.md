@@ -83,8 +83,11 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-265 placement assist (Design). Remaining Design/Research: L-166 trade
    helpers, L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection, L-163 a
-   Lamium inventory screen, L-249 simulation distance, and the 2026-11-05 reports
-   L-309 (paper doll placement). Agree open choices before
+   Lamium inventory screen, L-249 simulation distance, the 2026-11-05 reports
+   L-309 (paper doll placement) and the 2026-11-07 reports L-317 (Nether
+   minimap under forced Surface) and L-319 (item details order). In progress:
+   L-320 block highlight (built and checked in steps; its open runtime checks
+   are in VALIDATION.md). Agree open choices before
    building. L-165 Mass Craft remains below Map and needs a scope conversation;
    existing packs already cover part of that need.
 3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,

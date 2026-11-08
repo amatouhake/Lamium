@@ -95,6 +95,18 @@ border where glass block walls turn a corner, on the inside of the turn;
 "Edges at glass pane corners" adds an edge on the outside of an L-shaped
 pane. The flat-notch corner texel is kept whenever Connected Textures is on.
 
+### Block highlight (experimental)
+
+The block types you pick glow in rainbow colors flowing across the world, so
+they stand out far away and in the dark, up to the render distance. Aim at a
+block and press the key to add its type, or remove it if it is listed. Only
+faces open to the air glow, so nothing shows through walls; blocks drawn as
+block entities (chests and the like) are not covered. A list, opened from the
+settings row, shows the listed types with a count of those nearby, removes
+them, and adds any block type by searching its name or ID. Matching uses the
+block name only, so deepslate ores are their own types; after adding one, the
+list offers the other. With many blocks in view, only the nearest glow.
+
 ## HUD & overlays
 
 ### Info HUD
@@ -342,6 +354,14 @@ With an empty cursor and the drop key held, drags drop instead of moving:
 Picks the hotbar tool when mining, or the weapon that deals the most damage
 to what you hit. Optionally fetches one from the inventory, into the
 selected slot or a fixed one.
+
+A drop priority, cycled with a key, decides between tools where the
+enchantment changes what a block drops (read from the block's own drops):
+Speed (default), Fortune (the highest-level Fortune tool that harvests the
+block) or Silk Touch (a Silk Touch tool, even when slower). A block that
+drops nothing without Silk Touch, such as glass or ice, always takes a Silk
+Touch tool. Between equally good tools, the one used last wins. A tool is
+fetched from the inventory only when the hotbar has none that fits.
 
 ### Offhand swap
 

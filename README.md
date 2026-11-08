@@ -103,6 +103,7 @@ feature does in detail: [Features](docs/FEATURES.md).
 | Hide Offhand Item | Hide the offhand item (shields too) in first person | — | Off |
 | Hide effects *Exp.* | Hide rain, particles, boss bars, nausea, fogs, the portal screen | — | Off |
 | Connected Textures *Exp.* | Glass, panes, bookshelves and sandstone without seams | — | Off |
+| Block highlight *Exp.* | Make block types you pick glow in rainbow colors, where they are visible | — | Off |
 
 ### HUD & overlays
 
@@ -162,7 +163,7 @@ Waypoints and the death point also show in the world, with both maps off.
 | Search English names too | Recipe and creative search by English name or ID | — | On |
 | Inventory sorting | Sort the inventory or an open container | `R` | On |
 | Inventory transfer *Exp.* | Move items with the wheel, modified clicks and drags | — | Off |
-| Tool Switch | Pick the right tool when mining | — | Off |
+| Tool Switch | Pick the right tool when mining; optionally prefer Fortune or Silk Touch | — | Off |
 | Weapon Switch | Pick the strongest weapon when attacking | — | Off |
 | Offhand swap | Swap the held item with the offhand | `F` | On |
 | Fake Offhand *Exp.* | Use a hotbar block or item as if it were in the offhand | Right click | Off |
