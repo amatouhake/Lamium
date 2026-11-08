@@ -347,7 +347,7 @@ void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client,
     if (now - glow.prunedAt > .5 || now < glow.prunedAt) {
         glow.prunedAt = now;
         auto& region = player.getDimensionBlockSource();
-        visuals::highlight::pruneMarks([&](visuals::highlight::Mark const& mark) {
+        visuals::highlight::pruneMarks(dimension, [&](visuals::highlight::Mark const& mark) {
             BlockPos at{mark.cell.x, mark.cell.y, mark.cell.z};
             if (!region.getChunkAt(at)) return false;
             auto const& name = region.getBlock(at).getTypeName();
@@ -358,7 +358,7 @@ void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client,
     Vec3 const eyePos = context.mImpl->mCameraPosition;
     Cell const eye{static_cast<int>(std::floor(eyePos.x)), static_cast<int>(std::floor(eyePos.y)),
                    static_cast<int>(std::floor(eyePos.z))};
-    bool changed = visuals::highlight::marks(glow.revision, glow.marks);
+    bool changed = visuals::highlight::marks(dimension, glow.revision, glow.marks);
     // A capped choice follows the eye: re-chosen after moving 8 blocks.
     bool moved = glow.chosenAt && std::max({std::abs(eye.x - glow.chosenAt->x), std::abs(eye.y - glow.chosenAt->y),
                                             std::abs(eye.z - glow.chosenAt->z)}) >= 8;
@@ -370,7 +370,7 @@ void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client,
         else glow.chosenAt.reset();
         if (chosen.capped && !glow.capped) {
             visuals::highlight::reportCapped(glow.faces.size());
-            try { Runtime::instance().self().getLogger().info("Block highlight: {} marks, nearest {} faces shown", glow.marks.size(), glow.faces.size()); } catch (...) {}
+            try { Runtime::instance().self().getLogger().debug("Block highlight: {} marks, nearest {} faces shown", glow.marks.size(), glow.faces.size()); } catch (...) {}
         }
         glow.capped = chosen.capped;
     }

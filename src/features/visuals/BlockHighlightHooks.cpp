@@ -52,9 +52,9 @@ std::shared_ptr<Table const> currentTable() {
     return cached;
 }
 
-// Marks per chunk section, replaced whole each time the section is built.
-// Written by build threads, read by the render thread.
-using SectionKey = std::tuple<int, int, int>;
+// Marks per chunk section of a dimension, replaced whole each time the
+// section is built. Written by build threads, read by the render thread.
+using SectionKey = std::tuple<int, int, int, int>; // dimension, section x, y, z
 std::mutex markLock;
 std::map<SectionKey, std::vector<Mark>> sections;
 std::uint64_t markRevision = 1;
@@ -64,6 +64,7 @@ std::uint64_t markRevision = 1;
 struct Capture {
     std::vector<Mark> marks;
     std::optional<BlockPos> first;
+    int dimension = 0;
 };
 thread_local Capture* capture = nullptr;
 std::atomic<int> faceSamples{0};
@@ -84,7 +85,10 @@ std::uint8_t exposedFaces(BlockSource const& region, BlockPos const& pos) {
 LL_TYPE_INSTANCE_HOOK(HighlightBlock, ll::memory::HookPriority::Normal, BlockTessellator,
     &BlockTessellator::tessellateBlockInWorld, bool, Tessellator& tessellator, Block const& block, BlockPos const& pos,
     std::bitset<6> const faces, AirAndSimpleBlockBits const* simple) {
-    if (capture && !capture->first) capture->first = pos;
+    if (capture && !capture->first) {
+        capture->first = pos;
+        try { if (BlockSource const* region = mRegion) capture->dimension = static_cast<int>(region->getDimensionId()); } catch (...) {}
+    }
     bool wanted = false;
     try {
         if (auto current = currentTable(); current && !current->names.empty()) wanted = current->names.contains(block.getTypeName());
@@ -98,7 +102,7 @@ LL_TYPE_INSTANCE_HOOK(HighlightBlock, ll::memory::HookPriority::Normal, BlockTes
         // A block that added no quad is hidden; nothing to glow.
         std::uint8_t bits = added && region ? exposedFaces(*region, pos) : 0;
         if (faceSamples.fetch_add(1, std::memory_order_relaxed) < 6)
-            Runtime::instance().self().getLogger().info("Block highlight: exposed faces {:06b} ({} set), {} vertices added",
+            Runtime::instance().self().getLogger().debug("Block highlight: exposed faces {:06b} ({} set), {} vertices added",
                 bits, std::popcount(bits), added);
         if (capture && bits) capture->marks.push_back({{pos.x, pos.y, pos.z}, bits});
     } catch (...) {}
@@ -118,11 +122,11 @@ LL_TYPE_INSTANCE_HOOK(HighlightSection, ll::memory::HookPriority::Normal, Render
         // marks whose block is gone.
         if (!build.first) return;
         auto section = [](int v) { return v >= 0 ? v / 16 : -((-v + 15) / 16); };
-        SectionKey key{section(build.first->x), section(build.first->y), section(build.first->z)};
+        SectionKey key{build.dimension, section(build.first->x), section(build.first->y), section(build.first->z)};
         auto& found = build.marks;
         // Every mark must lie in the section that names it.
         auto dropped = std::erase_if(found, [&](Mark const& m) {
-            return SectionKey{section(m.cell.x), section(m.cell.y), section(m.cell.z)} != key;
+            return SectionKey{build.dimension, section(m.cell.x), section(m.cell.y), section(m.cell.z)} != key;
         });
         static std::atomic<int> droppedReports{0};
         if (dropped && droppedReports.fetch_add(1, std::memory_order_relaxed) < 3)
@@ -143,13 +147,27 @@ LL_TYPE_INSTANCE_HOOK(HighlightSection, ll::memory::HookPriority::Normal, Render
 // rebuilds its chunks when the wanted list differs from the one it last
 // built with, and once when first seen while something is wanted.
 // Client thread only.
-std::vector<Entry> wantedList() {
-    auto& runtime = Runtime::instance();
-    if (!capabilities::registry().status(capabilities::Id::BlockHighlight).available() || !runtime.enabled()) return {};
-    auto const& visuals = runtime.snapshot()->visuals;
-    return visuals.blockHighlight ? visuals.highlightBlocks : std::vector<Entry>{};
-}
 std::vector<Entry> published;
+// The settings snapshot the wanted list was last read from; every settings
+// change publishes a new one, so an unchanged pointer means nothing to copy.
+std::shared_ptr<Settings const> wantedFrom;
+std::vector<Entry> wanted;
+std::vector<Entry> const& wantedList() {
+    auto& runtime = Runtime::instance();
+    if (!capabilities::registry().status(capabilities::Id::BlockHighlight).available() || !runtime.enabled()) {
+        wantedFrom.reset();
+        wanted.clear();
+        return wanted;
+    }
+    auto settings = runtime.snapshot();
+    if (settings != wantedFrom) {
+        wantedFrom = settings;
+        if (settings && settings->visuals.blockHighlight) {
+            if (settings->visuals.highlightBlocks != wanted) wanted = settings->visuals.highlightBlocks;
+        } else wanted.clear();
+    }
+    return wanted;
+}
 std::unordered_map<RenderChunkCoordinator const*, unsigned> built;
 void publish(std::vector<Entry> const& entries) {
     auto next = std::make_shared<Table>();
@@ -167,8 +185,7 @@ LL_TYPE_INSTANCE_HOOK(HighlightRebuild, ll::memory::HookPriority::Normal, Render
     &RenderChunkCoordinator::tick, void) {
     origin();
     try {
-        auto want = wantedList();
-        if (want != published) publish(want);
+        if (auto const& want = wantedList(); want != published) publish(want);
         unsigned now = generation.load(std::memory_order_relaxed);
         auto [state, first] = built.try_emplace(this, now);
         if (first ? !published.empty() : state->second != now) {
@@ -181,18 +198,47 @@ struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false
 Hook hooks[] = {{HighlightBlock::hook, HighlightBlock::unhook}, {HighlightSection::hook, HighlightSection::unhook},
     {HighlightRebuild::hook, HighlightRebuild::unhook}};
 }
-bool marks(std::uint64_t& revision, std::vector<Mark>& out) {
+bool marks(int dimension, std::uint64_t& revision, std::vector<Mark>& out) {
     std::lock_guard lock(markLock);
     if (revision == markRevision) return false;
     revision = markRevision;
     out.clear();
-    for (auto const& [key, list] : sections) out.insert(out.end(), list.begin(), list.end());
+    for (auto const& [key, list] : sections)
+        if (std::get<0>(key) == dimension) out.insert(out.end(), list.begin(), list.end());
     return true;
 }
-void pruneMarks(std::function<bool(Mark const&)> const& keep) {
-    std::lock_guard lock(markLock);
-    if (std::erase_if(sections, [&](auto const& entry) { return entry.second.empty() || !keep(entry.second.front()); }))
+// `keep` reads the world, so it runs outside the lock the build threads take.
+// Each section's first mark is checked; only a section that fails is checked
+// mark by mark, and the result applies only if no build replaced it meanwhile.
+void pruneMarks(int dimension, std::function<bool(Mark const&)> const& keep) {
+    std::vector<std::pair<SectionKey, Mark>> fronts;
+    {
+        std::lock_guard lock(markLock);
+        if (std::erase_if(sections, [&](auto const& entry) {
+                return entry.second.empty() || std::get<0>(entry.first) != dimension;
+            }))
+            ++markRevision;
+        fronts.reserve(sections.size());
+        for (auto const& [key, list] : sections) fronts.emplace_back(key, list.front());
+    }
+    std::vector<Mark> list;
+    for (auto const& [key, front] : fronts) {
+        if (keep(front)) continue;
+        {
+            std::lock_guard lock(markLock);
+            auto at = sections.find(key);
+            if (at == sections.end()) continue;
+            list = at->second;
+        }
+        auto kept = list;
+        std::erase_if(kept, [&](Mark const& m) { return !keep(m); });
+        std::lock_guard lock(markLock);
+        auto at = sections.find(key);
+        if (at == sections.end() || at->second != list) continue;
+        if (kept.empty()) sections.erase(at);
+        else at->second = std::move(kept);
         ++markRevision;
+    }
 }
 std::atomic<size_t> capped{0};
 void reportCapped(size_t shown) { capped.store(shown, std::memory_order_relaxed); }
@@ -238,6 +284,8 @@ void stop() {
     generation.fetch_add(1, std::memory_order_release);
     published.clear();
     built.clear();
+    wantedFrom.reset();
+    wanted.clear();
     clearMarks();
     installed = !removed;
 }

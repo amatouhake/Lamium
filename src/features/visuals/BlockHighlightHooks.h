@@ -10,12 +10,13 @@
 namespace lamium::visuals::highlight {
 bool start();
 void stop();
-// Every recorded mark, copied into `out` when they changed since `revision`
-// (which is then updated); false and `out` untouched otherwise.
-bool marks(std::uint64_t& revision, std::vector<Mark>& out);
-// Drops each chunk section whose first mark `keep` rejects (its chunk left,
-// or the block there is no longer designated: another dimension's leftovers).
-void pruneMarks(std::function<bool(Mark const&)> const& keep);
+// Every mark recorded in `dimension`, copied into `out` when the marks changed
+// since `revision` (which is then updated); false and `out` untouched otherwise.
+bool marks(int dimension, std::uint64_t& revision, std::vector<Mark>& out);
+// Drops every other dimension's sections, and the marks of `dimension` that
+// `keep` rejects (the chunk left, or the block there is no longer designated).
+// Client thread; `keep` runs without the build threads' lock held.
+void pruneMarks(int dimension, std::function<bool(Mark const&)> const& keep);
 void clearMarks();
 // Set by the overlay when the nearest-faces limit left marks out; taken
 // (and cleared) by the HUD to say so once.

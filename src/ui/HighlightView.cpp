@@ -51,11 +51,17 @@ glm::vec2 lastPointer{};
 std::map<std::string, ItemStack, std::less<>> stacks;
 // Nearby counts from the recorded marks, refreshed while open.
 std::map<std::string, size_t, std::less<>> nearby;
+// A pass over the marks reads the world, so it runs a slice per frame and
+// replaces `nearby` only when it finishes.
 std::vector<hl::Mark> marks;
 std::uint64_t markRevision = 0;
 double countedAt = -1;
 bool countCapped = false;
+std::map<std::string, size_t, std::less<>> counting;
+size_t countNext = 0, countEnd = 0;
+bool countingCapped = false, countPass = false;
 constexpr size_t maxCountedMarks = 200000;
+constexpr size_t countsPerFrame = 20000;
 
 double now() { return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 std::vector<hl::Entry> listed() { return Runtime::instance().preferences().visuals.highlightBlocks; }
@@ -122,29 +128,40 @@ bool highlightOn() {
 }
 // The marks name cells only; the type comes from the block there now.
 void refreshCounts() {
-    if (!highlightOn()) { nearby.clear(); return; }
-    double t = now();
-    if (t - countedAt < .5) return;
-    countedAt = t;
-    if (!hl::marks(markRevision, marks)) return;
+    if (!highlightOn()) { nearby.clear(); countPass = false; return; }
     auto* client = screen::client();
     auto* player = client ? client->getLocalPlayer() : nullptr;
     if (!player) return;
-    auto list = listed();
-    nearby.clear();
-    for (auto const& e : list) nearby[e.name] = 0;
+    if (!countPass) {
+        double t = now();
+        if (t - countedAt < .5) return;
+        countedAt = t;
+        if (!hl::marks(static_cast<int>(player->getDimensionId()), markRevision, marks)) return;
+        counting.clear();
+        for (auto const& e : listed()) counting[e.name] = 0;
+        countingCapped = marks.size() > maxCountedMarks;
+        countNext = 0;
+        countEnd = std::min(marks.size(), maxCountedMarks);
+        countPass = true;
+    }
     auto& region = player->getDimensionBlockSource();
-    countCapped = marks.size() > maxCountedMarks;
-    size_t n = std::min(marks.size(), maxCountedMarks);
+    size_t stop = std::min(countEnd, countNext + countsPerFrame);
     try {
-        for (size_t i = 0; i < n; ++i) {
-            auto const& cell = marks[i].cell;
-            auto found = nearby.find(region.getBlock(BlockPos{cell.x, cell.y, cell.z}).getTypeName());
-            if (found != nearby.end()) ++found->second;
+        for (; countNext < stop; ++countNext) {
+            auto const& cell = marks[countNext].cell;
+            BlockPos at{cell.x, cell.y, cell.z};
+            if (!region.getChunkAt(at)) continue;
+            auto found = counting.find(region.getBlock(at).getTypeName());
+            if (found != counting.end()) ++found->second;
         }
-    } catch (...) {}
+    } catch (...) { countNext = countEnd; }
+    if (countNext < countEnd) return;
+    nearby = std::move(counting);
+    counting.clear();
+    countCapped = countingCapped;
+    countPass = false;
 }
-void forceRecount() { countedAt = -1; markRevision = 0; }
+void forceRecount() { countedAt = -1; markRevision = 0; countPass = false; }
 void toggle(std::string const& name) {
     auto& runtime = Runtime::instance();
     auto value = runtime.preferences();
@@ -322,8 +339,10 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         searching ? translated("highlight.found", results.size()) : translated("highlight.suggested"), palette::faint);
     if (searching && results.empty())
         label(context, rc.listLeft + pad, rc.rowsTop + 3, rc.listWidth - 2 * pad, translated("highlight.noMatch"), palette::faint);
-    float idLeft = rc.listLeft + std::max(110.0f, rc.listWidth * .5f);
     float tagLeft = last.addX();
+    // The ID column takes a share of what is left beside the tag, so it
+    // stays readable at the narrowest window.
+    float idLeft = rc.listLeft + pad + 14 + (tagLeft - rc.listLeft - pad - 14) * .55f;
     for (int i = rc.listFirst; i < rc.listFirst + rc.listVisible && i < rc.listCount; ++i) {
         auto const& choice = catalog[results[static_cast<size_t>(i)]];
         float y = rc.listRowY(i);
