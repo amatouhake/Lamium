@@ -12,6 +12,10 @@
 #include "ll/api/service/TargetedBedrock.h"
 #include "features/camera/CameraSessions.h"
 #include "features/information/InfoHud.h"
+#include "features/information/TargetCard.h"
+#include "features/information/TargetInfo.h"
+#include "features/schematic/RayCells.h"
+#include "mc/world/level/dimension/Dimension.h"
 #include "features/information/PlayerList.h"
 #include "features/inventory/Inventory.h"
 #include "features/inventory/game/ScreenTracker.h"
@@ -290,13 +294,28 @@ void executeAction(IClientInstance& client, input::Action action) {
         return;
     }
     if (action == input::Action::HighlightAimedBlock) {
-        auto const& hit = client.getLatestHitResult();
         auto* player = client.getLocalPlayer();
-        if (!player || hit.mType != HitResultType::Tile || hit.mIndirectHit) {
+        std::optional<BlockPos> aimed;
+        if (auto view = player ? CameraSessions::instance().detachedViewRay(client) : std::nullopt) {
+            // A detached Freelook or FreeCamera view owns the crosshair (L-230):
+            // take the block it looks at, as far as the target card reaches.
+            auto const& info = value.information;
+            auto const& height = player->getDimension().mHeightRange;
+            double reach = schematic::reachInHeight(view->y, view->dy,
+                information::targetReach(info.targetDistance, info.targetFullRange, client.getOptions().getViewDistanceChunks()),
+                height->mMin, height->mMax);
+            auto target = information::collectTargetInfo(client, false,
+                information::ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, reach, true}, false);
+            if (target && target->blockPosition) aimed = BlockPos{target->blockPosition->x, target->blockPosition->y, target->blockPosition->z};
+        } else if (player) {
+            auto const& hit = client.getLatestHitResult();
+            if (hit.mType == HitResultType::Tile && !hit.mIndirectHit) aimed = hit.mBlock;
+        }
+        if (!aimed) {
             ui::showMessageToast(ui::translated("highlight.noBlock"));
             return;
         }
-        auto const& block = player->getDimensionBlockSource().getBlock(hit.mBlock);
+        auto const& block = player->getDimensionBlockSource().getBlock(*aimed);
         auto change = visuals::highlight::toggle(value.visuals.highlightBlocks, block.getTypeName());
         if (change == visuals::highlight::Change::Invalid) return;
         if (change == visuals::highlight::Change::Full) { ui::showMessageToast(ui::translated("highlight.full")); return; }

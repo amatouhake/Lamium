@@ -568,6 +568,12 @@ plain one) when that name exists and is not listed. The target card gets
 a "Highlight: listed" row for a listed block. The list needs a world
 (icons come from the world's items).
 2026-11-08: the list passed in game (`983bf80f`, VALIDATION-LOG).
+Decided 2026-11-08 (maintainer): a schematic placement's blocks do not
+share this list; the open question above is closed (no). Reported the same
+day: with FreeCamera the key took the body's aimed block, not the camera's.
+Now, while Freelook or FreeCamera owns the view, the key takes the block the
+target card picks along the camera's ray, as far as the card reaches; from
+the body it keeps the game's own hit.
 
 ### L-319 Item details: Work Penalty first, then the unshown rest
 Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).
