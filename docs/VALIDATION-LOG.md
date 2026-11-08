@@ -12,6 +12,29 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Review fixes: block highlight, Hide Offhand map, Tool Switch (L-320, L-305, L-318, 2026-11-08)
+
+`15f4aefe`, DLL SHA-256
+`9208252463560c0464d1271653a064f6dcd47a3c977c3eff5c74d8ef09fbaab1`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. This build was
+deployed when the result was reported; checks 1-4 were first listed for
+`5e6dc0f9` (DLL `779d93b6...c424`, deployed earlier the same day), whose code
+`15f4aefe` contains unchanged apart from the Fortune fetch. Passed, per the
+maintainer:
+1. With the block highlight list open and a common type (stone) listed,
+   walking shows no stutter; the nearby count updates a little later.
+2. Mining a listed block, and going to the Nether and back: the glow goes and
+   returns correctly, and other types keep their glow.
+3. Hide Offhand on, a map in the off hand: hidden in first person, shown in
+   third person.
+4. Silk Touch priority on glass: switches to the Silk Touch tool as before.
+5. Fortune priority with fetching on, Fortune I held and Fortune III in the
+   inventory, on iron ore: Fortune III is fetched.
+6. With Fortune III on the hotbar: no fetch, the hotbar Fortune III is
+   selected.
+Not checked: the inventory paper doll with an offhand map; the drop cache
+across worlds; Vibrant Visuals.
+
 ## Block highlight key with FreeCamera (L-320, 2026-11-08)
 
 `8c49d25c`, DLL SHA-256
