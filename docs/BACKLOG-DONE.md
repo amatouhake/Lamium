@@ -6317,10 +6317,12 @@ choice is a mode the player switches, not a fixed rule.
 Built and checked in game 2026-11-07 (`118bb42e`, DLL `EC4500E3`, VALIDATION-LOG):
 Fortune on iron ore, Silk Touch on stone, the tie rule and the cycle key all
 behave as decided.
-Note 2026-11-08 (review): fetching keeps the L-69 rule that the inventory is
-searched only when the hotbar has nothing that fits, so with Fortune I on the
-hotbar a Fortune III pickaxe in the inventory is not fetched; "highest-level"
-applies within the hotbar, or within the inventory when fetching. The drop
+Decided 2026-11-08 (maintainer, after a review asked): under the Fortune
+priority with fetching on, a higher Fortune level in the inventory is fetched
+over a lower level on the hotbar or in hand (Fortune I held, Fortune III in the
+inventory: fetched), directly rather than first switching to a hotbar tool; an
+equal level on the hotbar stays. The other priorities keep the L-69 rule that
+the inventory is searched only when the hotbar has nothing that fits. The drop
 answer is cached per block type and the item asked with, and cleared when the
 world or dimension changes.
 

@@ -76,12 +76,19 @@ inline std::optional<int> chooseHotbarTool(std::array<ToolCandidate,9> const& to
     return detail::best(tools,0,9,Want::Speed,false);
 }
 // L-69: only when the hotbar has nothing to offer, the best tool in the main
-// inventory. L-318: a tool the block wants is fetched before the speed rule.
+// inventory. L-318: a tool the block wants is fetched before the speed rule;
+// under Fortune also over a hotbar Fortune tool of a lower level (maintainer
+// 2026-11-08), but not over an equal level.
 inline std::optional<int> chooseInventoryTool(std::array<ToolCandidate,36> const& tools, int selected, Want want = Want::Speed) {
     if (selected < 0 || selected >= 9) return {};
     std::array<ToolCandidate,9> hotbar;
     for (int slot=0; slot<9; ++slot) hotbar[slot] = tools[slot];
-    if (want != Want::Speed) {
+    if (want == Want::Fortune) {
+        auto onHand = detail::best(hotbar,0,9,want,false);
+        auto pick = detail::best(tools,9,36,want,true);
+        if (pick && (!onHand || tools[*pick].fortune > hotbar[*onHand].fortune)) return pick;
+        if (onHand) return {};
+    } else if (want != Want::Speed) {
         if (detail::fits(tools[selected],want) || detail::best(hotbar,0,9,want,false)) return {};
         if (auto pick = detail::best(tools,9,36,want,true)) return pick;
     }

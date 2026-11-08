@@ -156,12 +156,18 @@ Choice selectTool(Player& player, BlockPos const& pos) {
     }
     std::array<ToolCandidate,9> hotbar;
     std::copy_n(candidates.begin(),9,hotbar.begin());
-    if (auto slot = chooseHotbarTool(hotbar,selected,want)) {
-        supplies->selectSlot(*slot,ContainerID::Inventory);
-        return Choice::Selected;
+    // Under Fortune a higher level in the inventory wins over the hotbar, so
+    // it is asked first instead of switching to a lower level on the way.
+    std::optional<int> source;
+    if (fetch && want == Want::Fortune) source = chooseInventoryTool(candidates,selected,want);
+    if (!source) {
+        if (auto slot = chooseHotbarTool(hotbar,selected,want)) {
+            supplies->selectSlot(*slot,ContainerID::Inventory);
+            return Choice::Selected;
+        }
+        if (!fetch) return Choice::None;
+        source = chooseInventoryTool(candidates,selected,want);
     }
-    if (!fetch) return Choice::None;
-    auto source = chooseInventoryTool(candidates,selected,want);
     if (!source) return Choice::None;
     if (!quietSinceBreak()) return Choice::Wait;
     auto* local = client->getLocalPlayer();

@@ -64,6 +64,12 @@ void toolChoiceTests() {
     check(!chooseInventoryTool(bag,0,Want::AnySilk), "a Silk Touch tool on the hotbar is not fetched over");
     bag[4] = {}; bag[0] = {8,true}; bag[30] = {4,true,false,2};
     check(chooseInventoryTool(bag,0,Want::Fortune) == 30, "a Fortune tool is fetched over an effective held tool under the Fortune priority");
+    bag[5] = {9,true,false,1};
+    check(chooseInventoryTool(bag,0,Want::Fortune) == 30, "a higher Fortune level is fetched over a lower one on the hotbar");
+    check(chooseInventoryTool(bag,5,Want::Fortune) == 30, "a higher Fortune level is fetched over a held lower one");
+    bag[5].fortune = 2;
+    check(!chooseInventoryTool(bag,5,Want::Fortune), "an equal Fortune level on hand is not fetched over");
+    bag[5] = {};
     bag[12] = {4,true}; bag[14] = {4,true};
     bag[0] = {}; bag[30] = {};
     check(chooseInventoryTool(bag,0,Want::Speed) == 14, "inventory ties still go to the higher slot");

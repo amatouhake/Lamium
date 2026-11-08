@@ -361,7 +361,8 @@ Speed (default), Fortune (the highest-level Fortune tool that harvests the
 block) or Silk Touch (a Silk Touch tool, even when slower). A block that
 drops nothing without Silk Touch, such as glass or ice, always takes a Silk
 Touch tool. Between equally good tools, the one used last wins. A tool is
-fetched from the inventory only when the hotbar has none that fits.
+fetched from the inventory only when the hotbar has none that fits; under
+Fortune, also when the inventory holds a higher Fortune level.
 
 ### Offhand swap
 
