@@ -567,6 +567,7 @@ here". After adding a type, a line offers its deepslate sibling (or the
 plain one) when that name exists and is not listed. The target card gets
 a "Highlight: listed" row for a listed block. The list needs a world
 (icons come from the world's items).
+2026-11-08: the list passed in game (`983bf80f`, VALIDATION-LOG).
 
 ### L-319 Item details: Work Penalty first, then the unshown rest
 Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).

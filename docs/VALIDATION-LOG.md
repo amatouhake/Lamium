@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block highlight list (L-320, 2026-11-08)
+
+`983bf80f`, DLL SHA-256
+`a3d6a3d2257215db5a18f7cc6d8e4780465d8d6a6ecf99d7e84ba70be60480d8`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer: the Open button under Block highlight opens the list with the
+listed types on the left and suggestions on the right, both with icons;
+searching "ダイヤ" and "debris" narrows the results, a click adds the type and
+the deepslate sibling is offered; a type not yet found in the world, added
+from the list, glows underground and its nearby count rises; the target card
+shows the listed row; two presses of Remove take a type off and its glow
+stops. Not checked: the opener key, Night Vision, other dimensions, Vibrant
+Visuals, servers, the unverified-version fallback.
+
 ## Block highlight with many blocks (L-320, 2026-11-08)
 
 `62123753`, DLL SHA-256
