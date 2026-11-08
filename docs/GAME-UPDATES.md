@@ -639,7 +639,11 @@ one 16-block section build, named by the first block tessellated in it;
 `BlockType::mIsOpaqueFullBlock` as covering a neighbour's face; and when
 chunks rebuild. The tessellator's `faces` argument is not the drawn faces
 (it read all six for blocks that added no quad).
-Gated (Block highlight).
+Gated (Block highlight). The list screen (`src/ui/HighlightView.cpp`, no
+hooks) reads every type from `BlockTypeRegistry::mBlockLookupMap`, its
+`mDefaultState` for the display name and the icon (`ItemStack::reinit`
+from a block), and counts the recorded marks by the block now at each
+cell.
 
 ### `src/features/visuals/ConnectedSprites.cpp`
 Hooks: `SpriteAtlas`, `SpritePackIndex`, `SpritePackLoad`

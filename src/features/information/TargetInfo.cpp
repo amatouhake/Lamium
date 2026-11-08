@@ -723,6 +723,14 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         for (auto& row : blockEntityDetails(source, hit.mBlock, block, static_cast<int>(player->getDimensionId())))
             if (!fixedStates.contains(row.labelIsKey ? ui::translated(row.label) : row.label))
                 result.details.push_back(std::move(row));
+    // A listed highlight type says so (L-320), shown like the schematic rows
+    // whether or not other details are.
+    try {
+        auto settings = Runtime::instance().snapshot();
+        auto const& listed = settings->visuals.highlightBlocks;
+        if (std::any_of(listed.begin(), listed.end(), [&](auto const& e) { return e.name == result.identifier; }))
+            result.details.push_back({"target.highlight", "target.highlight.listed", true, {}, DetailKind::Highlight});
+    } catch (...) {}
     for (auto& row : schematicDetails) result.details.push_back(std::move(row));
     result.distance = hitDistance;
     return result;

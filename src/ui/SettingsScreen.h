@@ -22,6 +22,8 @@ void openSchematicMenu(IClientInstance& client);
 void openWorldMap(IClientInstance& client);
 // The calculator panel over the world (L-171).
 void openCalculator(IClientInstance& client);
+// The block highlight list in the settings (L-320).
+void openBlockHighlight(IClientInstance& client);
 bool ownsInput();
 void cancelInputCapture();
 }

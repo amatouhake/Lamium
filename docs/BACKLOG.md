@@ -549,6 +549,24 @@ becomes a list screen that also adds types from all block types; mockup
 [block-highlight.html](demos/block-highlight.html) (A search list vs B icon
 grid, display-name search, a nearby count, the deepslate sibling line, the
 toast and target-card line), awaiting the maintainer's choice.
+Decided 2026-11-08 (maintainer): A, the search list, matching both the
+display name (current language) and the ID; the rest left to the
+implementer. The list opens through an action row under Block highlight
+with the same Open button as the other tool openers (Shapes, World map,
+Hotkeys; its key is unbound by default) and replaces the settings rows
+like the game-language list, with a way back to the section. Implementer's
+choices: left the listed types in the order added (icon, name, ID, a
+"nearby" count, two-press remove); right a search field over every
+registered block type with the listed ones marked, clicking a row adds or
+removes; no "not covered" marking (the block-entity flag does not tell
+which blocks the terrain mesh draws), the footer says chests and the like
+are not covered instead. Nearby = recorded marks of that type: blocks in
+built sections with at least one face not covered by an opaque full
+block, so it counts buried-but-exposed cave walls too, not "visible from
+here". After adding a type, a line offers its deepslate sibling (or the
+plain one) when that name exists and is not listed. The target card gets
+a "Highlight: listed" row for a listed block. The list needs a world
+(icons come from the world's items).
 
 ### L-319 Item details: Work Penalty first, then the unshown rest
 Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).

@@ -147,6 +147,7 @@ inline bool opensTool(input::Action action) {
     case input::Action::OpenWorldMap:
     case input::Action::OpenCalculator:
     case input::Action::SchematicMenu:
+    case input::Action::OpenBlockHighlight:
         return true;
     default:
         return false;

@@ -84,6 +84,7 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining, key, remaining));
             else if (entry.key == "schematic.save.progress" || entry.key == "schematic.save.progressWaiting")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining));
+            else if (entry.key == "highlight.listed") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
             else if (entry.key == "schematic.save.tooLarge") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
             else if (entry.key == "schematic.withDetail") rendered = std::vformat(pattern, std::make_format_args(key, key));
             else if (entry.key == "paused.notice") rendered = std::vformat(pattern, std::make_format_args(key, key));

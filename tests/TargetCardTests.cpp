@@ -23,6 +23,13 @@ void targetCardTests() {
         measured.distance.reset();
         check(cardRows(measured, shown).empty(), "a target with no measured distance has no row");
     }
+    {
+        TargetInfo ore{"Diamond Ore", "minecraft:diamond_ore"};
+        ore.details.push_back({"target.highlight", "target.highlight.listed", true, {}, DetailKind::Highlight});
+        auto row = cardRows(ore, CardOptions{});
+        check(row.size() == 1 && row[0].label == "target.highlight" && row[0].valueIsKey,
+              "a listed highlight type shows without the details key");
+    }
     auto rows = cardRows(mob, options);
     check(rows.size() == 1 && rows[0].label == "target.health" && rows[0].meter == Meter::Hearts,
           "health leads the card and other details wait for their switch");

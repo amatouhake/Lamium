@@ -47,6 +47,55 @@ inline void normalize(std::vector<Entry>& entries) {
     entries = std::move(out);
 }
 
+// The list screen (step 2). A type's name without the vanilla namespace,
+// as shown beside its display name.
+inline std::string_view shortName(std::string_view name) {
+    return name.starts_with("minecraft:") ? name.substr(10) : name;
+}
+// The deepslate form of a plain type or the plain form of a deepslate one
+// ("minecraft:diamond_ore" <-> "minecraft:deepslate_diamond_ore"); the
+// caller checks that the name exists. Empty for a name without a part
+// after its namespace.
+inline std::string siblingName(std::string_view name) {
+    auto colon = name.find(':');
+    std::string_view space = colon == std::string_view::npos ? std::string_view{} : name.substr(0, colon + 1);
+    std::string_view rest = colon == std::string_view::npos ? name : name.substr(colon + 1);
+    if (rest.empty()) return {};
+    constexpr std::string_view prefix = "deepslate_";
+    if (rest.starts_with(prefix)) return rest.size() > prefix.size() ? std::string(space) + std::string(rest.substr(prefix.size())) : std::string{};
+    return std::string(space) + std::string(prefix) + std::string(rest);
+}
+// Every space-separated word of `query` appears in the display name or in
+// the name without "minecraft:" (ASCII case ignored), so "diamond_ore",
+// "diamond ore" and "ダイヤ" all find diamond ore. An empty query matches
+// nothing: the screen shows its suggestions instead.
+inline bool queryMatches(std::string_view query, std::string_view name, std::string_view display) {
+    auto fold = [](std::string_view s) {
+        std::string out(s);
+        for (auto& c : out) if (c >= 'A' && c <= 'Z') c = static_cast<char>(c + ('a' - 'A'));
+        return out;
+    };
+    auto q = fold(query), n = fold(shortName(name)), d = fold(display);
+    bool any = false;
+    for (size_t begin = 0; begin < q.size();) {
+        begin = q.find_first_not_of(' ', begin);
+        if (begin == std::string::npos) break;
+        auto end = std::min(q.find(' ', begin), q.size());
+        auto word = std::string_view(q).substr(begin, end - begin);
+        if (n.find(word) == std::string::npos && d.find(word) == std::string::npos) return false;
+        any = true;
+        begin = end;
+    }
+    return any;
+}
+// What the screen offers before anything is typed: blocks people usually
+// look for. Names missing from the game are skipped by the caller.
+inline constexpr std::array<std::string_view, 16> suggestedNames{
+    "minecraft:diamond_ore", "minecraft:deepslate_diamond_ore", "minecraft:ancient_debris", "minecraft:emerald_ore",
+    "minecraft:deepslate_emerald_ore", "minecraft:gold_ore", "minecraft:deepslate_gold_ore", "minecraft:iron_ore",
+    "minecraft:deepslate_iron_ore", "minecraft:mob_spawner", "minecraft:trial_spawner", "minecraft:vault",
+    "minecraft:budding_amethyst", "minecraft:suspicious_sand", "minecraft:suspicious_gravel", "minecraft:end_portal_frame"};
+
 // A designated block seen while a chunk section was built: its cell, the
 // faces the game drew (bits in the game's facing order: down, up, north,
 // south, west, east). The glow overlay draws these.

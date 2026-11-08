@@ -86,6 +86,8 @@ inline std::vector<CardRow> cardRows(TargetInfo const& target, CardOptions const
             add({detail.label, detail.value, true, detail.valueIsKey, detail.progress,
                  detail.progress ? options.growth : Meter::Number});
     }
+    for (auto const& detail : target.details)
+        if (detail.kind == DetailKind::Highlight) add({detail.label, detail.value, true, detail.valueIsKey});
     if (options.coordinates && target.blockPosition) {
         auto const& p = *target.blockPosition;
         add({"target.position", std::to_string(p.x) + ", " + std::to_string(p.y) + ", " + std::to_string(p.z)});

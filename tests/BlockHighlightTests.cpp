@@ -1,4 +1,5 @@
 #include "features/visuals/BlockHighlight.h"
+#include "ui/HighlightLayout.h"
 #include <array>
 #include <cmath>
 #include <string>
@@ -56,4 +57,46 @@ void blockHighlightTests() {
           "neighbouring blocks differ, along x + y + z");
     check(rainbowHue(0, {-1000, 5, 7}) >= 0 && rainbowHue(0, {-1000, 5, 7}) < 1, "the hue stays in 0..1 far from the origin");
 
+    check(shortName("minecraft:diamond_ore") == "diamond_ore" && shortName("mod:ruby_ore") == "mod:ruby_ore",
+          "only the vanilla namespace is left out of the shown name");
+    check(siblingName("minecraft:diamond_ore") == "minecraft:deepslate_diamond_ore"
+              && siblingName("minecraft:deepslate_diamond_ore") == "minecraft:diamond_ore",
+          "a type's deepslate sibling goes both ways");
+    check(siblingName("mod:ruby_ore") == "mod:deepslate_ruby_ore" && siblingName("minecraft:deepslate_").empty()
+              && siblingName("minecraft:").empty(), "siblings keep the namespace and refuse empty names");
+    check(queryMatches("diamond ore", "minecraft:deepslate_diamond_ore", "Deepslate Diamond Ore")
+              && queryMatches("DIAMOND_ORE", "minecraft:diamond_ore", "x"),
+          "words match the name in any case, with spaces or underscores");
+    check(queryMatches("ãã¤ã¤", "minecraft:diamond_ore",
+                       "ãã¤ã¤ã¢ã³ãé±ç³"),
+          "the display name in the current language matches");
+    check(!queryMatches("diamond emerald", "minecraft:diamond_ore", "Diamond Ore") && !queryMatches("  ", "minecraft:a", "A")
+              && !queryMatches("minecraft", "minecraft:stone", "Stone"),
+          "every word must match, a blank query matches nothing, and the namespace is not searched");
+
+    using lamium::ui::HighlightLayout;
+    using lamium::ui::SettingsTable;
+    using lamium::ui::ShapesLayout;
+    auto table = SettingsTable::fit(640, 360, 60, 0, 13);
+    auto layout = HighlightLayout::fit(table, 3, 0, 100, 0, false);
+    check(layout.usable() && layout.dividerX > layout.left && layout.dividerX < layout.left + layout.width,
+          "the listed column sits left of the search");
+    check(layout.results.listVisible > 5 && layout.results.listVisible < 100 && layout.results.listCount == 100,
+          "results scroll inside the space under the search");
+    float rowY = layout.listed.listRowY(1) + 2;
+    check(layout.hit(layout.listed.listLeft + 20, rowY).zone == HighlightLayout::Zone::Listed
+              && layout.hit(layout.listed.listLeft + 20, rowY).index == 1, "a listed row is hit by its index");
+    check(layout.hit(layout.removeX() + 1, rowY).zone == HighlightLayout::Zone::Remove, "the remove button sits on the row");
+    check(layout.hit(layout.listed.listLeft + 20, layout.listed.listRowY(3) + 2).zone == HighlightLayout::Zone::None,
+          "below the last listed row nothing is hit");
+    check(layout.hit(layout.searchX() + 4, layout.searchY + 4).zone == HighlightLayout::Zone::Search, "the field takes clicks");
+    check(layout.hit(layout.backX + 2, layout.headTop + 2).zone == HighlightLayout::Zone::Back, "Back is in the heading row");
+    auto offered = HighlightLayout::fit(table, 3, 0, 100, 0, true);
+    check(offered.results.rowsTop == layout.results.rowsTop + ShapesLayout::rowHeight
+              && offered.hit(offered.addX() + 1, offered.offerY + 2).zone == HighlightLayout::Zone::Offer,
+          "the sibling offer takes a row above the results");
+    check(HighlightLayout::fit(table, 3, 0, 100, 1000, false).results.listFirst
+              == 100 - layout.results.listVisible, "the first result row is clamped");
+    check(!HighlightLayout::fit(SettingsTable::fit(100, 100, 29, 0), 0, 0, 0, 0, false).usable(),
+          "too-small windows draw nothing");
 }

@@ -11,6 +11,7 @@
 #include "ui/WaypointsView.h"
 #include "ui/SchematicsView.h"
 #include "ui/SettingsTableView.h"
+#include "ui/HighlightView.h"
 #include "ui/LanguageView.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
@@ -172,6 +173,7 @@ void enterCalculator(bool fromSettings);
 // (L-172), in the order text events are routed.
 struct FocusedText { TextEdit* field = nullptr; void (*changed)() = nullptr; };
 FocusedText focusedText() {
+    if (highlight_view::opened()) return {&highlight_view::field(), highlight_view::edited};
     if (language_view::opened()) return {};
     if (table_view::capturing()) return {};
     if (calculatorOpen) return {&calculator_view::field(), calculator_view::edited};
@@ -297,7 +299,7 @@ bool scaledView() {
 float layoutScale() { return scaledView() ? screenScale : 1; }
 void syncTextKeyboard(float x, float y) {
     x *= layoutScale(); y *= layoutScale();
-    bool wanted = !closing && !table_view::capturing() && (calculatorOpen || table_view::searchFocused() || numericEditing() || shapes_view::editingName() || waypoints_view::editingName() || prompt
+    bool wanted = !closing && !table_view::capturing() && (calculatorOpen || highlight_view::opened() || table_view::searchFocused() || numericEditing() || shapes_view::editingName() || waypoints_view::editingName() || prompt
         || savePrompt
         || (worldMapOpen && map::world::editingName()));
     bool number = numericEditing();
@@ -385,6 +387,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
         // Never flush the world sidecar from inside a text callback.
         logControlText(text);
         if (calculatorOpen) { calculator_view::type(text); return; }
+        if (highlight_view::opened()) { highlight_view::type(text); return; }
         if (prompt) { prompt->name.type(text); return; }
         if (savePrompt) { if (savePrompt->name.type(text)) savePrompt->overwrite = false; return; }
         if (worldMapOpen && map::world::editingName()) { map::world::typeText(text); return; }
@@ -398,6 +401,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
 }
 void clear() {
     language_view::reset();
+    highlight_view::reset();
     releaseTextKeyboard();
     numberDirty = false; uiHeld.clear(); client = nullptr;
     table_view::reset();
@@ -456,6 +460,7 @@ void finishNumber() {
 }
 void close() {
     language_view::reset();
+    highlight_view::reset();
     releaseTextKeyboard();
     table_view::disarm();
     if (ownsTop()) {
@@ -1052,6 +1057,25 @@ void render(ll::event::UIRenderEvent& event) {
         if (pendingClick && !pendingClick->right && placeCaret(context, *target.field, pendingClick->x, pendingClick->y))
             pendingClick.reset();
     } else forgetEditField();
+    if (highlight_view::opened()) {
+        if (!closing) {
+            // Outside the view the sidebar, Close and the rest work as usual.
+            if (auto click = std::exchange(pendingClick, std::nullopt); click && !highlight_view::click(click->x, click->y, click->right)) {
+                highlight_view::reset();
+                table_view::click(click->x, click->y, click->right);
+            }
+            for (auto wheel : std::exchange(pendingWheels, {})) if (highlight_view::opened()) highlight_view::wheel(wheel.direction);
+            if (std::exchange(pendingRelease, false)) highlight_view::release();
+            for (int key : std::exchange(pendingKeys, {})) if (highlight_view::opened()) highlight_view::key(key);
+        }
+        pendingSearch = false;
+        if (!scene) return;
+        if (highlight_view::opened()) syncTextKeyboard(lastPointer.x, lastPointer.y);
+        displayedInverseScale = current.getGuiData()->mInvGuiScale;
+        DrawScale scale{screenScale};
+        table_view::render(context, current, size / screenScale, lastPointer);
+        return;
+    }
     if (language_view::opened()) {
         releaseTextKeyboard();
         if (!closing) {
@@ -1406,6 +1430,16 @@ void openCalculator(IClientInstance& current) {
     seedOpener(input::Action::OpenCalculator);
     enterCalculator(false);
 }
+void openBlockHighlight(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
+    if (!scene) open(current);
+    if (!scene) return;
+    if (openedNow) seedOpener(input::Action::OpenBlockHighlight);
+    if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
+    screen::finishEditing();
+    if (highlight_view::begin()) table_view::rebuild(true);
+}
 void openWorldMap(IClientInstance& current) {
     std::lock_guard lock(mutex);
     if (scene) return;
@@ -1448,6 +1482,7 @@ void openTool(input::Action action) {
     case input::Action::OpenWorldMap: selectNav(worldMapNav); return;
     case input::Action::OpenCalculator: enterCalculator(true); return;
     case input::Action::SchematicMenu: enterSchematicMenu(); return;
+    case input::Action::OpenBlockHighlight: language_view::reset(); if (highlight_view::begin()) table_view::rebuild(true); return;
     default: return;
     }
 }
@@ -1538,6 +1573,10 @@ void start() {
             pendingMapClose = true;
             return;
         }
+        if (highlight_view::opened() && wheel) {
+            pendingWheels.push_back({x, y, event.buttonData() > 0 ? -3 : 3});
+            return;
+        }
         if (language_view::opened() && wheel) {
             pendingWheels.push_back({x, y, event.buttonData() > 0 ? -3 : 3});
             return;
@@ -1607,6 +1646,25 @@ void start() {
         }
         if (language_view::opened()) {
             event.cancel(); pendingKeys.push_back(event.keyCode()); return;
+        }
+        // The highlight list's search is always focused: editing keys act at
+        // once, text comes through the native keyboard, the rest run next frame.
+        if (highlight_view::opened()) {
+            auto key = event.keyCode();
+            if (textEditKey(key, heldCtrl())) {
+                event.cancel();
+                if (editText(highlight_view::field(), key, heldCtrl())) highlight_view::edited();
+                return;
+            }
+            bool selectAll = key == 0x41 && heldCtrl();
+            bool command = key == 0x08 || key == 0x1b || key == 0x0d || key == 0x26 || key == 0x28 || key == 0x21 || key == 0x22
+                || key == 0x09 || selectAll;
+            if (textKeyboardOwned && !command) return;
+            event.cancel();
+            if (key == 0x08) { if (highlight_view::field().backspace()) highlight_view::edited(); }
+            else if (selectAll) highlight_view::field().selectAll();
+            else if (key != 0x09) pendingKeys.push_back(key);
+            return;
         }
         // The calculator copies its result (Ctrl+C) or "expression = value"
         // (Ctrl+Shift+C), not the field's text (L-171).
