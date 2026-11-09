@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block highlight rainbow refresh in batches (L-320, 2026-11-09)
+
+`c5c477e1` (DLL built from the same source before the docs-only commit),
+DLL SHA-256 `ad325a56d25f9f39179c10ac6d1fb63d53b3c9450ce519a439e6701189bdd20d`,
+no trace options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance.
+Passed, per the maintainer:
+1. With deepslate listed and the rainbow: about 90 FPS (about 70 on
+   `03034955`; rough figures).
+2. The flow and pulse stay smooth: no visible steps and no color seams
+   between batches.
+3. Marks come and go correctly while walking and mining.
+Not checked: Through walls with the rainbow, Simple graphics, Vibrant
+Visuals, servers.
+
 ## Block highlight Color and Strength (L-320, 2026-11-09)
 
 `03034955`, DLL SHA-256
