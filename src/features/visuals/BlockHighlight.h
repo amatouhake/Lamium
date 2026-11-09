@@ -174,7 +174,7 @@ inline float glowAlpha(float base, int strength, Look look, float pulse) {
 // The rainbow's colors are refreshed a few batches per frame instead of all
 // at once: each face about `rainbowRefreshHz` times a second, so the work
 // per frame stays even (no hitch on a full rebuild) and falls as FPS rises.
-inline constexpr double rainbowRefreshHz = 30;
+inline constexpr double rainbowRefreshHz = 20;
 inline constexpr size_t rainbowBatchFaces = 1024;
 // How many of `batches` to rebuild this frame, `dt` seconds after the last;
 // `owed` carries the fraction. At most every batch, never a backlog.

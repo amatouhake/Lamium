@@ -605,7 +605,7 @@ through-walls faces depend on the eye, so they are rebuilt whenever the
 camera moves, in either look.
 2026-11-09: checked in game (`03034955`); with deepslate listed about 70 FPS
 rainbow vs 165 FPS still. The rainbow now refreshes its faces in batches of
-1024, a few per frame, each about 30 times a second (`rainbowRefreshHz`), so
+1024, a few per frame, each about 30 times a second (`rainbowRefreshHz`; 20 since the 90 FPS check), so
 the work per frame is even and falls as FPS rises; a full rebuild remains
 when the faces are rechosen (a capped list after moving 8 blocks).
 
