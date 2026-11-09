@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block highlight Color and Strength (L-320, 2026-11-09)
+
+`03034955`, DLL SHA-256
+`431950090ecc1e0ad90605ccdbcfc2079ae1e8dd81f86a02dffc61db22c0af82`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer:
+1. The Color (Rainbow) and Strength (50 %) rows are under Block highlight;
+   the rainbow looks as before.
+2. Cyan and the other colors show still, without flow or pulse; marks come
+   and go correctly while walking and mining.
+3. 0 % leaves only the edges, 100 % clearly darker faces; with Through walls
+   on, the faint faces follow the strength.
+4. With deepslate listed: about 70 FPS with the rainbow, about 165 FPS with a
+   still color (rough figures; other apps were running and settings vary).
+Not checked: Simple graphics, Vibrant Visuals, servers.
+
 ## Block highlight Through walls (L-320, 2026-11-09)
 
 `81b20747`, DLL SHA-256
