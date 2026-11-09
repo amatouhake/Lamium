@@ -16,6 +16,16 @@ void blockHighlightTests() {
               && list[0].name == "minecraft:ancient_debris",
           "designating a listed type again removes it");
     check(toggle(list, "") == Change::Invalid && list.size() == 1, "an empty name is refused");
+    {
+        auto length = [](lamium::overlay::Point p) { return std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z); };
+        lamium::overlay::Point far{300, -40, 400}, near{.5, 1, -2};
+        auto f = throughWall(far), n = throughWall(near);
+        check(length(f) < 2.5 && length(n) < 2.5 && length(n) > .25, "through-wall vertices land within a few blocks of the eye");
+        check(std::abs(f.x / far.x - f.y / far.y) < 1e-12 && std::abs(f.x / far.x - f.z / far.z) < 1e-12 && f.x / far.x > 0,
+              "a through-wall vertex stays on its own ray");
+        check(length(n) < length(f), "a nearer face stays nearer through walls");
+        check(throughWall({0, 0, 0}) == lamium::overlay::Point{}, "the eye itself does not move");
+    }
     list.back().color = paletteSize - 1;
     toggle(list, "minecraft:emerald_ore");
     check(list.back().color == 0, "colors wrap around the palette");

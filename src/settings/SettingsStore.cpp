@@ -167,6 +167,7 @@ Json encode(Settings const& settings) {
                      {"connectedPaneCorners", settings.visuals.connectedPaneCorners},
                      {"blockHighlight", settings.visuals.blockHighlight},
                      {"highlightBlocks", highlightJson(settings.visuals.highlightBlocks)},
+                     {"highlightThroughWalls", settings.visuals.highlightThroughWalls},
                      {"hideWeather", settings.visuals.hideWeather}, {"hideParticles", settings.visuals.hideParticles},
                      {"hideBossBars", settings.visuals.hideBossBars}, {"hideNausea", settings.visuals.hideNausea},
                      {"hideWater", settings.visuals.hideWater}, {"hideLava", settings.visuals.hideLava},
@@ -433,6 +434,7 @@ Settings decodeSettings(std::string_view text) {
         value.visuals.connectedCorners = settingsValue(visuals, "connectedCorners", value.visuals.connectedCorners);
         value.visuals.connectedPaneCorners = settingsValue(visuals, "connectedPaneCorners", value.visuals.connectedPaneCorners);
         value.visuals.blockHighlight = settingsValue(visuals, "blockHighlight", value.visuals.blockHighlight);
+        value.visuals.highlightThroughWalls = settingsValue(visuals, "highlightThroughWalls", value.visuals.highlightThroughWalls);
         if (visuals.contains("highlightBlocks") && visuals.at("highlightBlocks").is_array()) {
             value.visuals.highlightBlocks.clear();
             for (auto const& item : visuals.at("highlightBlocks"))

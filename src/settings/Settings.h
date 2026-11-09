@@ -230,6 +230,7 @@ struct Settings {
         bool connectedPaneCorners = false; // Keep an edge at an L-shaped glass pane corner; the inside edge needs connectedCorners too (L-208, L-255, L-270), Experimental
         bool blockHighlight = false; // Designated block types tinted in the terrain mesh (L-320), Experimental
         std::vector<visuals::highlight::Entry> highlightBlocks;
+        bool highlightThroughWalls = false; // Recorded (exposed) faces also drawn faint behind terrain (L-320, 2026-11-09)
         bool hideWeather = true;
         bool hideParticles = true;
         bool hideBossBars = true;

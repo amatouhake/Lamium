@@ -577,6 +577,17 @@ day: with FreeCamera the key took the body's aimed block, not the camera's.
 Now, while Freelook or FreeCamera owns the view, the key takes the block the
 target card picks along the camera's ray, as far as the card reaches; from
 the body it keeps the game's own hit.
+Decided 2026-11-09 (maintainer), revising "nothing is ever shown through
+walls": an option, off by default, draws the recorded faces through walls
+too. Recorded faces are already only those not covered by an opaque full
+block (touching air, water, lava, leaves, slabs and the like), which is
+what a FreeCamera can see anyway; blocks buried on every side have no
+recorded face and never show. Look (implementer): faces behind terrain are
+drawn faint without edges under the normal glow, which keeps its strength
+where the face is in sight. No material without a depth test is known, so
+the faint pass moves each vertex along its own ray to within about two
+blocks of the eye: the screen position is unchanged and terrain no longer
+occludes it. The face cap stays as is (it already counts hidden faces).
 
 ### L-319 Item details: Work Penalty first, then the unshown rest
 Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).

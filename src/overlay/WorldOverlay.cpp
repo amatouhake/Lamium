@@ -385,6 +385,15 @@ void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client,
     auto relative = [&](Tessellator& batch, Point p) {
         batch.vertex(static_cast<float>(p.x - camera.x), static_cast<float>(p.y - camera.y), static_cast<float>(p.z - camera.z));
     };
+    // Through walls (option): the same faces again, faint and without edges,
+    // moved along their rays in front of the terrain; drawn first, so where a
+    // face is in sight the normal glow lies over it at full strength.
+    bool const through = visuals.highlightThroughWalls;
+    float const throughAlpha = alpha * .4f;
+    auto relativeThrough = [&](Tessellator& batch, Point p) {
+        auto q = visuals::highlight::throughWall({p.x - camera.x, p.y - camera.y, p.z - camera.z});
+        batch.vertex(static_cast<float>(q.x), static_cast<float>(q.y), static_cast<float>(q.z));
+    };
     size_t perFace = material.twoSided ? 8 : 4;
     // Edges with vertex colors on the debug material: one draw for every hue.
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
@@ -395,6 +404,8 @@ void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client,
         batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(part.size() * perFace), false);
         Tessellator edges(screen.tessellator.mBufferResourceService);
         edges.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(part.size() * 8), false);
+        Tessellator hidden(screen.tessellator.mBufferResourceService);
+        if (through) hidden.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(part.size() * perFace), false);
         for (auto const& face : part) {
             auto [r, g, b] = visuals::highlight::hueColor(visuals::highlight::rainbowHue(seconds, face.cell));
             auto corners = faceVertices(face);
@@ -403,6 +414,17 @@ void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client,
             if (material.twoSided) for (auto it = corners.rbegin(); it != corners.rend(); ++it) relative(batch, *it);
             edges.color(r, g, b, 1.f);
             for (size_t k = 0; k < 4; ++k) { relative(edges, corners[k]); relative(edges, corners[(k + 1) % 4]); }
+            if (!through) continue;
+            hidden.color(r, g, b, throughAlpha);
+            for (auto p : corners) relativeThrough(hidden, p);
+            if (material.twoSided) for (auto it = corners.rbegin(); it != corners.rend(); ++it) relativeThrough(hidden, *it);
+        }
+        if (through) {
+            auto mesh = hidden.end(Tessellator::UploadMode::Buffered, "Lamium highlight through walls", SupplementaryFieldAutoGenerationMode{});
+            drawPulled(screen, glm::vec3{0.f}, 1.f, [&] {
+                mesh.renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
+                    static_cast<uint>(part.size() * perFace), OffscreenCaptureDescription{}, nullptr);
+            });
         }
         auto mesh = batch.end(Tessellator::UploadMode::Buffered, "Lamium highlight glow", SupplementaryFieldAutoGenerationMode{});
         auto outline = edges.end(Tessellator::UploadMode::Buffered, "Lamium highlight edges", SupplementaryFieldAutoGenerationMode{});

@@ -151,6 +151,18 @@ inline std::array<float, 3> hueColor(float hue, float saturation = .8f) {
 // at most `glowBatchFaces` so a mesh stays far below 65536 vertices.
 inline constexpr size_t maxGlowFaces = 16384;
 inline constexpr size_t glowBatchFaces = 4096;
+// Through walls (option): no material without a depth test is known, so the
+// faint pass moves each camera-relative vertex along its own ray to
+// `throughNear` + distance * `throughScale` from the eye (512 blocks -> about
+// 1.8). Every vertex stays on its ray, so a face covers the same pixels, and
+// terrain farther than that no longer hides it.
+inline constexpr double throughNear = .3, throughScale = .003;
+inline overlay::Point throughWall(overlay::Point relative) {
+    double d = std::sqrt(relative.x * relative.x + relative.y * relative.y + relative.z * relative.z);
+    if (!(d > 1e-6)) return relative;
+    double s = (throughNear + d * throughScale) / d;
+    return {relative.x * s, relative.y * s, relative.z * s};
+}
 inline int faceCount(Mark const& mark) { return std::popcount(static_cast<unsigned>(mark.faces & 0x3f)); }
 // The marks to draw: all when their faces fit `limit`, else the nearest to
 // `eye` until the faces reach it. Reorders `marks`; returns how many to draw
