@@ -603,6 +603,11 @@ Cost: a rainbow rebuilds and uploads every face each frame (up to
 when the faces, the color, the strength or the material change. The
 through-walls faces depend on the eye, so they are rebuilt whenever the
 camera moves, in either look.
+2026-11-09: checked in game (`03034955`); with deepslate listed about 70 FPS
+rainbow vs 165 FPS still. The rainbow now refreshes its faces in batches of
+1024, a few per frame, each about 30 times a second (`rainbowRefreshHz`), so
+the work per frame is even and falls as FPS rises; a full rebuild remains
+when the faces are rechosen (a capped list after moving 8 blocks).
 
 ### L-319 Item details: Work Penalty first, then the unshown rest
 Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).

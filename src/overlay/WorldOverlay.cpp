@@ -317,9 +317,10 @@ void buildLightMesh(ScreenContext& screen, LightChunk& chunk, Cell origin, Light
 // Block highlight glow (BACKLOG L-320): the exposed faces of designated
 // blocks, recorded while their chunk sections were built, drawn unlit in a
 // rainbow that flows across the world and pulses, so they stand out in the
-// dark and under Night Vision. The rainbow is rebuilt every frame (its
-// colors move); a still color keeps its meshes until something they show
-// changes. Through-walls faces depend on the eye and follow the camera.
+// dark and under Night Vision. A still color keeps its meshes until
+// something they show changes; the rainbow refreshes a few batches a frame
+// (rainbowRefreshHz). Through-walls faces depend on the eye and follow the
+// camera.
 struct GlowMesh {
     std::optional<mce::Mesh> mesh;
     uint32_t vertices = 0;
@@ -331,9 +332,13 @@ struct GlowParts {
         bool operator==(Key const&) const = default;
     };
     std::optional<Key> key;
-    Cell origin{};      // the still meshes' vertices are relative to this cell
+    size_t batchFaces = visuals::highlight::glowBatchFaces;
+    size_t cursor = 0;  // the rainbow's next batch to refresh
+    double owed = 0;    // the rainbow's fraction of a batch carried to the next frame
+    double builtAt = 0; // when the rainbow last refreshed
+    Cell origin{};      // the glow meshes' vertices are relative to this cell
     Vec3 camera{};      // the through-walls meshes were moved for this eye
-    void clear() { faces.clear(); edges.clear(); key.reset(); }
+    void clear() { faces.clear(); edges.clear(); key.reset(); cursor = 0; owed = 0; }
     bool valid() const {
         auto ok = [](GlowMesh const& m) { return !m.mesh || m.mesh->isValid(); };
         return std::all_of(faces.begin(), faces.end(), ok) && std::all_of(edges.begin(), edges.end(), ok);
@@ -407,54 +412,57 @@ void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client,
     double seconds = std::fmod(now, 3600.0);
     auto const look = visuals.highlightColor;
     bool const animated = visuals::highlight::animated(look);
-    float const alpha = visuals::highlight::glowAlpha(material.alpha, visuals.highlightStrength, look,
-                                                      visuals::highlight::pulse(seconds));
     auto const stillColor = visuals::highlight::lookColor(look);
-    auto colorOf = [&](CellFace const& face) {
-        return animated ? visuals::highlight::hueColor(visuals::highlight::rainbowHue(seconds, face.cell)) : stillColor;
-    };
     size_t const perFace = material.twoSided ? 8 : 4;
     GlowParts::Key const key{glow.facesRevision, look, visuals.highlightStrength, material.variant};
-    // Builds `parts` in batches of `glowBatchFaces`; `place` turns a world
-    // point into the vertex written. Faces are skipped at zero alpha.
-    auto build = [&](GlowParts& parts, float faceAlpha, bool withEdges, auto&& place) {
-        parts.clear();
-        parts.key = key;
-        size_t batches = (glow.faces.size() + visuals::highlight::glowBatchFaces - 1) / visuals::highlight::glowBatchFaces;
-        parts.faces.reserve(batches);
-        parts.edges.reserve(batches);
+    // Rebuilds batch `index` of `parts` with the colors and pulse of `at`;
+    // `share` scales the faces' alpha, `place` turns a world point into the
+    // vertex written. Faces are skipped at zero alpha.
+    auto buildPart = [&](GlowParts& parts, size_t index, double at, float share, bool withEdges, auto&& place) {
+        size_t first = index * parts.batchFaces;
+        std::span<CellFace const> part(glow.faces.data() + first, std::min(parts.batchFaces, glow.faces.size() - first));
+        float const faceAlpha = share * visuals::highlight::glowAlpha(material.alpha, visuals.highlightStrength, look,
+                                                                      visuals::highlight::pulse(at));
         bool const withFaces = faceAlpha > 0;
-        for (size_t first = 0; first < glow.faces.size(); first += visuals::highlight::glowBatchFaces) {
-            std::span<CellFace const> part(glow.faces.data() + first,
-                                           std::min(visuals::highlight::glowBatchFaces, glow.faces.size() - first));
-            Tessellator batch(screen.tessellator.mBufferResourceService);
-            if (withFaces) batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(part.size() * perFace), false);
-            Tessellator edges(screen.tessellator.mBufferResourceService);
-            if (withEdges) edges.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(part.size() * 8), false);
-            for (auto const& face : part) {
-                auto [r, g, b] = colorOf(face);
-                auto corners = faceVertices(face);
-                if (withFaces) {
-                    batch.color(r, g, b, faceAlpha);
-                    for (auto p : corners) place(batch, p);
-                    if (material.twoSided) for (auto it = corners.rbegin(); it != corners.rend(); ++it) place(batch, *it);
-                }
-                if (withEdges) {
-                    edges.color(r, g, b, 1.f);
-                    for (size_t k = 0; k < 4; ++k) { place(edges, corners[k]); place(edges, corners[(k + 1) % 4]); }
-                }
-            }
+        auto& faces = parts.faces[index];
+        auto& lines = parts.edges[index];
+        faces.mesh.reset(); faces.vertices = 0;
+        lines.mesh.reset(); lines.vertices = 0;
+        Tessellator batch(screen.tessellator.mBufferResourceService);
+        if (withFaces) batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(part.size() * perFace), false);
+        Tessellator edges(screen.tessellator.mBufferResourceService);
+        if (withEdges) edges.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(part.size() * 8), false);
+        for (auto const& face : part) {
+            auto [r, g, b] = animated ? visuals::highlight::hueColor(visuals::highlight::rainbowHue(at, face.cell)) : stillColor;
+            auto corners = faceVertices(face);
             if (withFaces) {
-                auto& out = parts.faces.emplace_back();
-                out.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium highlight glow", SupplementaryFieldAutoGenerationMode{}));
-                out.vertices = static_cast<uint32_t>(part.size() * perFace);
+                batch.color(r, g, b, faceAlpha);
+                for (auto p : corners) place(batch, p);
+                if (material.twoSided) for (auto it = corners.rbegin(); it != corners.rend(); ++it) place(batch, *it);
             }
             if (withEdges) {
-                auto& out = parts.edges.emplace_back();
-                out.mesh.emplace(edges.end(Tessellator::UploadMode::Buffered, "Lamium highlight edges", SupplementaryFieldAutoGenerationMode{}));
-                out.vertices = static_cast<uint32_t>(part.size() * 8);
+                edges.color(r, g, b, 1.f);
+                for (size_t k = 0; k < 4; ++k) { place(edges, corners[k]); place(edges, corners[(k + 1) % 4]); }
             }
         }
+        if (withFaces) {
+            faces.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium highlight glow", SupplementaryFieldAutoGenerationMode{}));
+            faces.vertices = static_cast<uint32_t>(part.size() * perFace);
+        }
+        if (withEdges) {
+            lines.mesh.emplace(edges.end(Tessellator::UploadMode::Buffered, "Lamium highlight edges", SupplementaryFieldAutoGenerationMode{}));
+            lines.vertices = static_cast<uint32_t>(part.size() * 8);
+        }
+    };
+    auto build = [&](GlowParts& parts, size_t batchFaces, float share, bool withEdges, auto&& place) {
+        parts.clear();
+        parts.key = key;
+        parts.batchFaces = batchFaces;
+        parts.builtAt = now;
+        size_t batches = (glow.faces.size() + batchFaces - 1) / batchFaces;
+        parts.faces.resize(batches);
+        parts.edges.resize(batches);
+        for (size_t i = 0; i < batches; ++i) buildPart(parts, i, seconds, share, withEdges, place);
     };
     // Through walls (option): the same faces again, faint and without edges,
     // moved along their rays in front of the terrain; drawn first, so where a
@@ -465,7 +473,7 @@ void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client,
         bool sameEye = through.camera.x == camera.x && through.camera.y == camera.y && through.camera.z == camera.z;
         if (animated || through.key != key || !sameEye || !through.valid()) {
             through.camera = camera;
-            build(through, alpha * visuals::highlight::throughShare, false, [&](Tessellator& batch, Point p) {
+            build(through, visuals::highlight::glowBatchFaces, visuals::highlight::throughShare, false, [&](Tessellator& batch, Point p) {
                 auto q = visuals::highlight::throughWall({p.x - camera.x, p.y - camera.y, p.z - camera.z});
                 batch.vertex(static_cast<float>(q.x), static_cast<float>(q.y), static_cast<float>(q.z));
             });
@@ -478,24 +486,35 @@ void drawHighlightGlow(BaseActorRenderContext& context, IClientInstance& client,
     } else if (glow.through.key) {
         glow.through.clear();
     }
-    // The glow itself, relative to the eye's cell when built: a still color
-    // draws the same meshes until the faces, look, strength or material change.
-    auto& still = glow.still;
-    if (animated || still.key != key || !still.valid()) {
-        still.origin = eye;
-        build(still, alpha, true, [&](Tessellator& batch, Point p) {
-            batch.vertex(static_cast<float>(p.x - still.origin.x), static_cast<float>(p.y - still.origin.y),
-                         static_cast<float>(p.z - still.origin.z));
-        });
+    // The glow itself, relative to the cell the eye was in at the last full
+    // build. A still color draws the same meshes until the faces, look,
+    // strength or material change; the rainbow also refreshes its batches in
+    // turn, about rainbowRefreshHz times a second each.
+    auto& glowParts = glow.still;
+    auto placeGlow = [&](Tessellator& batch, Point p) {
+        batch.vertex(static_cast<float>(p.x - glowParts.origin.x), static_cast<float>(p.y - glowParts.origin.y),
+                     static_cast<float>(p.z - glowParts.origin.z));
+    };
+    if (glowParts.key != key || !glowParts.valid()) {
+        glowParts.origin = eye;
+        build(glowParts, animated ? visuals::highlight::rainbowBatchFaces : visuals::highlight::glowBatchFaces, 1.f, true, placeGlow);
+    } else if (animated && !glowParts.faces.empty()) {
+        size_t batches = glowParts.faces.size();
+        size_t count = visuals::highlight::refreshCount(glowParts.owed, batches, now - glowParts.builtAt);
+        glowParts.builtAt = now;
+        for (size_t i = 0; i < count; ++i) {
+            glowParts.cursor %= batches;
+            buildPart(glowParts, glowParts.cursor++, seconds, 1.f, true, placeGlow);
+        }
     }
     // Edges with vertex colors on the debug material: one draw for every hue.
     mce::MaterialPtr lineMaterial(mce::RenderMaterialGroup::common(), HashedString{"debug"});
-    withTowardEye(context, still.origin, [&] {
-        for (auto const& part : still.faces)
+    withTowardEye(context, glowParts.origin, [&] {
+        for (auto const& part : glowParts.faces)
             if (part.mesh) part.mesh->renderMesh(screen, material.material, gsl::span<mce::ClientTexture const*>{}, 0,
                                                  part.vertices, OffscreenCaptureDescription{}, nullptr);
         if (!lineMaterial.mRenderMaterialInfoPtr) return;
-        for (auto const& part : still.edges)
+        for (auto const& part : glowParts.edges)
             if (part.mesh) part.mesh->renderMesh(screen, lineMaterial, gsl::span<mce::ClientTexture const*>{}, 0,
                                                  part.vertices, OffscreenCaptureDescription{}, nullptr);
     });

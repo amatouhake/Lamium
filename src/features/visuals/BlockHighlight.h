@@ -171,6 +171,20 @@ inline float glowAlpha(float base, int strength, Look look, float pulse) {
     float swing = animated(look) ? 1.5f + .9f * pulse : 1.95f;
     return std::clamp(base * swing * static_cast<float>(std::clamp(strength, 0, 100)) / defaultStrength, 0.f, .85f);
 }
+// The rainbow's colors are refreshed a few batches per frame instead of all
+// at once: each face about `rainbowRefreshHz` times a second, so the work
+// per frame stays even (no hitch on a full rebuild) and falls as FPS rises.
+inline constexpr double rainbowRefreshHz = 30;
+inline constexpr size_t rainbowBatchFaces = 1024;
+// How many of `batches` to rebuild this frame, `dt` seconds after the last;
+// `owed` carries the fraction. At most every batch, never a backlog.
+inline size_t refreshCount(double& owed, size_t batches, double dt) {
+    if (!(dt > 0)) dt = 0;
+    owed = std::min(owed + static_cast<double>(batches) * rainbowRefreshHz * std::min(dt, 1.0), static_cast<double>(batches));
+    auto count = static_cast<size_t>(owed);
+    owed -= static_cast<double>(count);
+    return count;
+}
 // At most this many faces are drawn a frame, the nearest first, so a list
 // of common blocks (tuff, gravel) cannot flood the overlay; each draw holds
 // at most `glowBatchFaces` so a mesh stays far below 65536 vertices.

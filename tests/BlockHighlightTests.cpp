@@ -40,6 +40,17 @@ void blockHighlightTests() {
         check(animated(Look::Rainbow) && !animated(Look::White) && lookNames.size() == lookLabels.size(),
               "only the rainbow moves, and every look has a name and a label");
     }
+    {
+        double owed = 0;
+        size_t total = 0;
+        for (int frame = 0; frame < 165; ++frame) total += refreshCount(owed, 16, 1.0 / 165);
+        check(total >= 16 * 30 - 1 && total <= 16 * 30, "at 165 FPS every batch is rebuilt about 30 times a second");
+        owed = 0;
+        check(refreshCount(owed, 16, 1.0 / 20) == 16 && owed == 0, "at low FPS every batch is rebuilt each frame, no backlog");
+        owed = 0;
+        check(refreshCount(owed, 16, 5.0) == 16 && refreshCount(owed, 16, 0) == 0 && refreshCount(owed, 16, -1) == 0,
+              "a long pause or a clock step back adds no extra work");
+    }
     list.back().color = paletteSize - 1;
     toggle(list, "minecraft:emerald_ore");
     check(list.back().color == 0, "colors wrap around the palette");
