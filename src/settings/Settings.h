@@ -231,6 +231,8 @@ struct Settings {
         bool blockHighlight = false; // Designated block types tinted in the terrain mesh (L-320), Experimental
         std::vector<visuals::highlight::Entry> highlightBlocks;
         bool highlightThroughWalls = false; // Recorded (exposed) faces also drawn faint behind terrain (L-320, 2026-11-09)
+        visuals::highlight::Look highlightColor = visuals::highlight::Look::Rainbow; // L-320, 2026-11-09
+        int highlightStrength = visuals::highlight::defaultStrength; // percent, 0-100
         bool hideWeather = true;
         bool hideParticles = true;
         bool hideBossBars = true;
@@ -332,6 +334,8 @@ struct Settings {
         };
         normalizeMode(interaction.breakingMode, lamium::interaction::restrictionLabels.size());
         visuals::highlight::normalize(visuals.highlightBlocks);
+        if (static_cast<unsigned>(visuals.highlightColor) >= visuals::highlight::lookNames.size()) visuals.highlightColor = visuals::highlight::Look::Rainbow;
+        visuals.highlightStrength = std::clamp(visuals.highlightStrength, 0, 100);
         if (!std::isfinite(interaction.breakingBand)) interaction.breakingBand = 2;
         interaction.breakingBand = std::clamp(std::round(interaction.breakingBand), 1.f, 16.f);
         for (auto* mode : {&interaction.attackMode, &interaction.useMode})

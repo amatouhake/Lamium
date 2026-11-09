@@ -26,6 +26,20 @@ void blockHighlightTests() {
         check(length(n) < length(f), "a nearer face stays nearer through walls");
         check(throughWall({0, 0, 0}) == lamium::overlay::Point{}, "the eye itself does not move");
     }
+    {
+        float base = .13f;
+        check(std::abs(glowAlpha(base, 50, Look::Rainbow, 0) - base * 1.5f) < 1e-6f
+                  && std::abs(glowAlpha(base, 50, Look::Rainbow, 1) - base * 2.4f) < 1e-6f,
+              "50 % keeps the original rainbow pulse");
+        check(glowAlpha(base, 50, Look::Cyan, 0) == glowAlpha(base, 50, Look::Cyan, 1),
+              "a still color does not pulse");
+        check(std::abs(glowAlpha(base, 100, Look::Cyan, 0) - 2 * glowAlpha(base, 50, Look::Cyan, 0)) < 1e-6f,
+              "100 % doubles the faces");
+        check(glowAlpha(base, 0, Look::Rainbow, 1) == 0 && glowAlpha(.28f, 100, Look::Rainbow, 1) <= .85f,
+              "0 % hides the faces and the alpha stays capped");
+        check(animated(Look::Rainbow) && !animated(Look::White) && lookNames.size() == lookLabels.size(),
+              "only the rainbow moves, and every look has a name and a label");
+    }
     list.back().color = paletteSize - 1;
     toggle(list, "minecraft:emerald_ore");
     check(list.back().color == 0, "colors wrap around the palette");

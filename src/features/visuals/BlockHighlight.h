@@ -146,6 +146,31 @@ inline std::array<float, 3> hueColor(float hue, float saturation = .8f) {
     for (auto& v : c) v = 1 - saturation + saturation * v;
     return c;
 }
+// The glow's look (decided 2026-11-09): the flowing rainbow, or one still
+// color from the Shapes palette, which keeps its meshes between frames.
+enum class Look { Rainbow, Cyan, Yellow, Pink, White };
+inline constexpr std::array<std::string_view, 5> lookNames{"rainbow", "cyan", "yellow", "pink", "white"};
+inline constexpr std::array<std::string_view, 5> lookLabels{"highlightColor.rainbow", "shape.color.cyan", "shape.color.yellow",
+                                                            "shape.color.pink", "shape.color.white"};
+inline constexpr bool animated(Look look) { return look == Look::Rainbow; }
+// A still look's color (WorldOverlay's shape colors); white for the rainbow.
+inline constexpr std::array<float, 3> lookColor(Look look) {
+    switch (look) {
+    case Look::Cyan: return {.25f, .82f, .88f};
+    case Look::Yellow: return {.95f, .8f, .24f};
+    case Look::Pink: return {.94f, .5f, .75f};
+    default: return {.95f, .95f, .95f};
+    }
+}
+// The faces' alpha: `base` is the material's shape alpha, `strength` the
+// 0-100 % setting (50 % is the original look, 100 % about doubles it) and
+// `pulse` 0..1; a still look sits at the pulse's middle.
+inline constexpr int defaultStrength = 50;
+inline constexpr float throughShare = .4f; // the through-walls faces' part of the glow's alpha
+inline float glowAlpha(float base, int strength, Look look, float pulse) {
+    float swing = animated(look) ? 1.5f + .9f * pulse : 1.95f;
+    return std::clamp(base * swing * static_cast<float>(std::clamp(strength, 0, 100)) / defaultStrength, 0.f, .85f);
+}
 // At most this many faces are drawn a frame, the nearest first, so a list
 // of common blocks (tuff, gravel) cannot flood the overlay; each draw holds
 // at most `glowBatchFaces` so a mesh stays far below 65536 vertices.

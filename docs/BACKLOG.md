@@ -588,6 +588,21 @@ where the face is in sight. No material without a depth test is known, so
 the faint pass moves each vertex along its own ray to within about two
 blocks of the eye: the screen position is unchanged and terrain no longer
 occludes it. The face cap stays as is (it already counts hidden faces).
+Decided 2026-11-09 (maintainer), look and cost: both switches stay off by
+default (Experimental; Through walls also because servers may treat it as
+X-ray). One "Color" row: Rainbow (default, the flowing, pulsing look) /
+Cyan / Yellow / Pink / White (the Shapes palette); a single color is still,
+with no pulse. One "Strength" slider, 0-100 % in steps of 5, default 50 %
+(today's look); it scales the faces of every color, 100 % about doubles
+them, 0 % leaves the edges alone; the through-walls faces keep their fixed
+share of it. No speed, edge or pulse switches and no separate through-walls
+strength. The glow does not follow the Lamium-wide Animations setting
+(that one is for UI motion); a still color is the way to stop the motion.
+Cost: a rainbow rebuilds and uploads every face each frame (up to
+`maxGlowFaces`); a single color keeps its meshes and rebuilds them only
+when the faces, the color, the strength or the material change. The
+through-walls faces depend on the eye, so they are rebuilt whenever the
+camera moves, in either look.
 
 ### L-319 Item details: Work Penalty first, then the unshown rest
 Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).

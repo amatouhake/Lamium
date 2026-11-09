@@ -306,8 +306,10 @@ Contents:
   survival reach so distant things do not clutter the card.
 - **Animations** (General): one Lamium-wide setting, "Follow Minecraft"
   (Video > Screen Animations, the default), On or Off. Why: one switch for
-  every Lamium motion, and people who turned animations off in Minecraft
-  get the same from Lamium without looking for it.
+  every Lamium UI motion (screens, HUD), and people who turned animations
+  off in Minecraft get the same from Lamium without looking for it.
+  Drawings in the world follow their own feature's look instead (Block
+  highlight: a still color stops the rainbow; decided 2026-11-09).
 - **Status**: automation (periodic attack/use, permanent sneak) and breaking/
   placement restriction lines in one element, each with a colored marker
   (accent for automation, warning color for restrictions).

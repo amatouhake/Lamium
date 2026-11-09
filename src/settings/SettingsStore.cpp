@@ -168,6 +168,8 @@ Json encode(Settings const& settings) {
                      {"blockHighlight", settings.visuals.blockHighlight},
                      {"highlightBlocks", highlightJson(settings.visuals.highlightBlocks)},
                      {"highlightThroughWalls", settings.visuals.highlightThroughWalls},
+                     {"highlightColor", visuals::highlight::lookNames[static_cast<size_t>(settings.visuals.highlightColor)]},
+                     {"highlightStrength", settings.visuals.highlightStrength},
                      {"hideWeather", settings.visuals.hideWeather}, {"hideParticles", settings.visuals.hideParticles},
                      {"hideBossBars", settings.visuals.hideBossBars}, {"hideNausea", settings.visuals.hideNausea},
                      {"hideWater", settings.visuals.hideWater}, {"hideLava", settings.visuals.hideLava},
@@ -435,6 +437,10 @@ Settings decodeSettings(std::string_view text) {
         value.visuals.connectedPaneCorners = settingsValue(visuals, "connectedPaneCorners", value.visuals.connectedPaneCorners);
         value.visuals.blockHighlight = settingsValue(visuals, "blockHighlight", value.visuals.blockHighlight);
         value.visuals.highlightThroughWalls = settingsValue(visuals, "highlightThroughWalls", value.visuals.highlightThroughWalls);
+        auto highlightColor = settingsValue(visuals, "highlightColor", std::string("rainbow"));
+        for (size_t i = 0; i < visuals::highlight::lookNames.size(); ++i)
+            if (visuals::highlight::lookNames[i] == highlightColor) value.visuals.highlightColor = static_cast<visuals::highlight::Look>(i);
+        value.visuals.highlightStrength = settingsValue(visuals, "highlightStrength", value.visuals.highlightStrength);
         if (visuals.contains("highlightBlocks") && visuals.at("highlightBlocks").is_array()) {
             value.visuals.highlightBlocks.clear();
             for (auto const& item : visuals.at("highlightBlocks"))

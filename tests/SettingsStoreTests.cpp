@@ -31,6 +31,13 @@ void settingsStoreTests() {
         check(loaded.blockHighlight && loaded.highlightBlocks.size() == 2 && loaded.highlightBlocks[0].color == 5
                   && loaded.highlightBlocks[1] == visuals::highlight::Entry{"minecraft:ancient_debris", 0},
               "the highlight list loads names and colors and skips malformed or repeated entries");
+        check(none.highlightColor == visuals::highlight::Look::Rainbow && none.highlightStrength == 50,
+              "the highlight starts as the rainbow at 50 %");
+        auto look = decodeSettings(R"({"visuals":{"highlightColor":"pink","highlightStrength":250}})").visuals;
+        check(look.highlightColor == visuals::highlight::Look::Pink && look.highlightStrength == 100,
+              "the highlight color loads by name and the strength is clamped");
+        check(decodeSettings(R"({"visuals":{"highlightColor":"teal"}})").visuals.highlightColor == visuals::highlight::Look::Rainbow,
+              "an unknown highlight color falls back to the rainbow");
     }
     {
         check(decodeSettings("{}").visuals.hideNausea
