@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block highlight rainbow refresh at 20 Hz (L-320, 2026-11-09)
+
+`e7728dba`, DLL SHA-256
+`c1dd8db0da36919b715f975e00e9c5c4efaa780bbf6fa8dfa3b67f9be1fa3b24`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer:
+1. With deepslate listed and the rainbow: about 100 FPS (about 90 at 30 Hz;
+   rough figures).
+2. No visible steps in the flow or the pulse. The maintainer keeps 20 Hz,
+   close to the frame rate of the game's own block animations.
+
 ## Block highlight rainbow refresh in batches (L-320, 2026-11-09)
 
 `c5c477e1` (DLL built from the same source before the docs-only commit),
