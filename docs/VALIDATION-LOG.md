@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Block highlight Through walls (L-320, 2026-11-09)
+
+`81b20747`, DLL SHA-256
+`1acb6974eb50b27f55c830b54f96da8a92c0d07b1c37f1006fe5906d2106644e`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer:
+1. Through walls on: ores on cave walls show faint rainbow faces from the
+   surface and from outside the wall.
+2. Ores in sight keep the full glow and their edges.
+3. An ore enclosed in stone on every side does not show.
+4. Beside a glowing block and one or two blocks away, the faint faces keep
+   their shape and do not flicker.
+Not checked: Simple graphics, Vibrant Visuals, faces behind water, servers.
+
 ## Review fixes: block highlight, Hide Offhand map, Tool Switch (L-320, L-305, L-318, 2026-11-08)
 
 `15f4aefe`, DLL SHA-256
