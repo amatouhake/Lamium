@@ -82,23 +82,23 @@ std::uint8_t exposedFaces(BlockSource const& region, BlockPos const& pos) {
     return bits;
 }
 
-LL_TYPE_INSTANCE_HOOK(HighlightBlock, ll::memory::HookPriority::Normal, BlockTessellator,
-    &BlockTessellator::tessellateBlockInWorld, bool, Tessellator& tessellator, Block const& block, BlockPos const& pos,
-    std::bitset<6> const faces, AirAndSimpleBlockBits const* simple) {
+// One block's tessellation: names the section by its first block and marks
+// a designated block that added vertices.
+template <class Draw>
+bool tessellateMarked(BlockSource const* region, Tessellator& tessellator, Block const& block, BlockPos const& pos, Draw&& draw) {
     if (capture && !capture->first) {
         capture->first = pos;
-        try { if (BlockSource const* region = mRegion) capture->dimension = static_cast<int>(region->getDimensionId()); } catch (...) {}
+        try { if (region) capture->dimension = static_cast<int>(region->getDimensionId()); } catch (...) {}
     }
     bool wanted = false;
     try {
         if (auto current = currentTable(); current && !current->names.empty()) wanted = current->names.contains(block.getTypeName());
     } catch (...) {}
-    if (!wanted) return origin(tessellator, block, pos, faces, simple);
+    if (!wanted) return draw();
     size_t before = tessellator.mMeshData->mPositions->size();
-    bool result = origin(tessellator, block, pos, faces, simple);
+    bool result = draw();
     try {
         size_t added = tessellator.mMeshData->mPositions->size() - before;
-        BlockSource const* region = mRegion;
         // A block that added no quad is hidden; nothing to glow.
         std::uint8_t bits = added && region ? exposedFaces(*region, pos) : 0;
         if (faceSamples.fetch_add(1, std::memory_order_relaxed) < 6)
@@ -107,6 +107,28 @@ LL_TYPE_INSTANCE_HOOK(HighlightBlock, ll::memory::HookPriority::Normal, BlockTes
         if (capture && bits) capture->marks.push_back({{pos.x, pos.y, pos.z}, bits});
     } catch (...) {}
     return result;
+}
+// Set while the shape dispatcher below runs on this thread: the cube calls
+// it makes (a wall's boxes) belong to the block it is already marking.
+thread_local int dispatching = 0;
+
+// Full cubes; the chunk builder also calls this without the dispatcher.
+LL_TYPE_INSTANCE_HOOK(HighlightBlock, ll::memory::HookPriority::Normal, BlockTessellator,
+    &BlockTessellator::tessellateBlockInWorld, bool, Tessellator& tessellator, Block const& block, BlockPos const& pos,
+    std::bitset<6> const faces, AirAndSimpleBlockBits const* simple) {
+    if (dispatching) return origin(tessellator, block, pos, faces, simple);
+    return tessellateMarked(mRegion, tessellator, block, pos, [&] { return origin(tessellator, block, pos, faces, simple); });
+}
+// Every other shape (cactus, panes, stairs): the dispatcher that picks the
+// shape's own tessellation.
+LL_TYPE_INSTANCE_HOOK(HighlightShape, ll::memory::HookPriority::Normal, BlockTessellator,
+    &BlockTessellator::tessellateInWorld, bool, Tessellator& tessellator, Block const& block, BlockPos const& pos,
+    bool useCalcWithCache) {
+    return tessellateMarked(mRegion, tessellator, block, pos, [&] {
+        ++dispatching;
+        struct Leave { ~Leave() { --dispatching; } } leave;
+        return origin(tessellator, block, pos, useCalcWithCache);
+    });
 }
 
 LL_TYPE_INSTANCE_HOOK(HighlightSection, ll::memory::HookPriority::Normal, RenderChunkBuilder,
@@ -196,7 +218,7 @@ LL_TYPE_INSTANCE_HOOK(HighlightRebuild, ll::memory::HookPriority::Normal, Render
 }
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[] = {{HighlightBlock::hook, HighlightBlock::unhook}, {HighlightSection::hook, HighlightSection::unhook},
-    {HighlightRebuild::hook, HighlightRebuild::unhook}};
+    {HighlightRebuild::hook, HighlightRebuild::unhook}, {HighlightShape::hook, HighlightShape::unhook}};
 }
 bool marks(int dimension, std::uint64_t& revision, std::vector<Mark>& out) {
     std::lock_guard lock(markLock);

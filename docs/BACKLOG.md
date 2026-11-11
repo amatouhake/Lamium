@@ -617,6 +617,16 @@ rainbow vs 165 FPS still. The rainbow now refreshes its faces in batches of
 1024, a few per frame, each about 30 times a second (`rainbowRefreshHz`; 20 kept by the maintainer after the 2026-11-09 check: about 100 FPS, no visible steps; the game's texture animations also step once per tick, 20 times a second, e.g. fire: 32 frames in 1.6 s), so
 the work per frame is even and falls as FPS rises; a full rebuild remains
 when the faces are rechosen (a capped list after moving 8 blocks).
+2026-11-11, from the 0.6.0 smoke (maintainer): the deepslate sibling offer is
+removed. Both forms are in the suggestions and in any search, and the row
+it added moved the results under the pointer, inviting a wrong click.
+Reported the same day: cactus and glass panes did not glow. Only
+`tessellateBlockInWorld` (full cubes) was hooked; the shape dispatcher
+`tessellateInWorld` is hooked too now, and a non-cube block gets the same
+full-cell glow. Not checked in game yet. Chests stay uncovered (block
+entities). Open: what the suggestions should hold (a wet sponge was missed),
+and digits drawn over a following kanji in Japanese ("10 件" in the result
+count; cause not found yet).
 
 ### L-319 Item details: Work Penalty first, then the unshown rest
 Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).

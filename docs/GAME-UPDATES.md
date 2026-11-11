@@ -658,9 +658,11 @@ and the material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 (Schematic ghost blocks; entity models in `GhostMarks.cpp`).
 
 ### `src/features/visuals/BlockHighlightHooks.cpp`
-Hooks: `HighlightBlock`, `HighlightSection`, `HighlightRebuild`
+Hooks: `HighlightBlock`, `HighlightShape`, `HighlightSection`, `HighlightRebuild`
 Meaning: the vertices a designated block adds to the chunk mesh (none added
-means the block is hidden); `RenderChunkBuilder::build` as
+means the block is hidden); `tessellateInWorld` as the dispatcher every
+shape other than a full cube goes through, calling `tessellateBlockInWorld`
+for its cube parts on the same thread; `RenderChunkBuilder::build` as
 one 16-block section build, named by the first block tessellated in it;
 `BlockType::mIsOpaqueFullBlock` as covering a neighbour's face; and when
 chunks rebuild. The tessellator's `faces` argument is not the drawn faces
