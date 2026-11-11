@@ -702,8 +702,8 @@ chat, the paper doll and the scoreboard as detail switches, each on by
 default and with its own unbound key, like Hide effects. Why: three similar
 features crowded the HUD category; one switch turns all three on or off and
 the details leave one out. A settings file from before has no `gameHud`: any
-of the old switches on turns the group on and keeps each choice. Built
-2026-11-11; not checked in game yet.
+of the old switches on turns the group on and keeps each choice. Built and
+checked in game 2026-11-11 (VALIDATION).
 Game-drawn elements: the paper doll (L-309, done; BACKLOG-DONE) and chat scale are the requests;
 the hotbar and scoreboard are wanted if possible. Each needs Research on its
 draw path first. Elements declare what they offer (position / scale / look)

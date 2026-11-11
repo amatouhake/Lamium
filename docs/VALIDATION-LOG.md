@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Game HUD placement as one feature (L-321, 2026-11-11)
+
+`5372d087`, DLL SHA-256
+`8632890aea0bd8bcdf825f242eb0999289bb7b2c926024a51083a0d16e895fec`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, desktop UI, the
+maintainer's existing settings file (the three old switches on). Passed, per
+the maintainer:
+1. The Information category has one "Game HUD placement" row in place of the
+   three; expanded, it shows three detail switches.
+2. The earlier places and scales of the chat, the doll and the scoreboard
+   still apply (the settings migration).
+3. The main switch off restores all three; on again moves them again.
+4. One detail switch off returns only that part to the game's place.
+Not itemized: a file with only Chat position on or off, fresh settings, the
+keys and their toasts, the paused notices, other languages.
+
 ## Chat and scoreboard scale (L-321, 2026-11-11)
 
 `94f8299a`, DLL SHA-256
