@@ -837,6 +837,10 @@ Header read 2026-11-12 (SDK 26.60.4; reading only, nothing built or run):
   world map layer can follow once the shape is confirmed. When the range
   cannot be read: recommended to draw nothing and say so in the option's
   description, rather than assume a value.
+Probe 2026-11-12 (`world_probe` build, agent-run, VALIDATION-LOG):
+`getChunkTickRange()` on the client level returns 4 in a local world.
+Whether that follows the world's setting (not the default) and what a
+server gives are the two checks left before the option is built.
 
 
 ### L-265 Schematic placement assist: place the ghost's block in its state
@@ -1785,6 +1789,12 @@ Header read 2026-11-12 (SDK 26.60.4; reading only, nothing built or run):
   hitbox overlay; the head is `mHead`. Colors and labels are a choice for
   the maintainer (recommended: the existing hitbox color for the parts and
   the existing highlight color for the head, no new palette entry).
+Probe 2026-11-12 (`world_probe` build, agent-run, VALIDATION-LOG): on a
+dragon summoned in a local Overworld all eight pointers are non-null on the
+client and point to world-space boxes that move with it (head 1x1x1, neck
+3x3x3, body 5x3x5, tails 2x2x2, wings 4x3x4). So the parts are available to
+the overlay without a symbol request. Still open before building: a real
+dragon in the End, a server, and the color choice above.
 
 ### L-33 Mob growth and breeding timers in the target card
 Status: research (asked 2026-09-24; not part of L-08).
@@ -1817,6 +1827,13 @@ Header read 2026-11-12 (SDK 26.60.4; reading only, nothing built or run):
 - Cheapest first check, read only: on the client actor of a baby animal and
   of a just-bred adult, log whether each component is present and its
   values, once per second. If the client has them, nothing else is needed.
+Probe 2026-11-12 (`world_probe` build, agent-run, VALIDATION-LOG): the
+client actor has neither component (a baby cow and a baby squid in a local
+world: `baby=true`, no `AgeableComponent`, no `BreedableComponent`). So a
+timer needs the local server's actor (singleplayer only, the threading
+decision above) or the feature stays at "baby" / "in love". Recommended:
+the states only, said so in the help text; the server read is a large new
+dependency for a number most players check rarely.
 
 ### L-114 3D previews in the schematic screen
 Kind: Research **(strong model)**. Chosen 2026-10-08 (L-93 screen review).

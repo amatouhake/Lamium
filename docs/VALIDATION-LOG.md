@@ -12,6 +12,33 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## World probe: chunk tick range, mob timers, dragon part boxes (2026-11-12)
+
+Seen by the agent (Claude) driving the game through computer use, not by the
+maintainer. Build: `1479ee90` plus the uncommitted `world_probe` option, built with
+`xmake f --world_probe=y`, DLL SHA-256
+`c69dc0935bdb06b4e414e4c0fa1f152be5feda81cc48df0e5b33ea974535f5e6`, LeviLamina Client
+26.60.4, 1.26.60.05 Dev instance, the local creative world "マイ ワールド", Overworld.
+The first probe build (`cebdccf2...`) listed too few actors and gave only the first
+two results. Read from `lamium.log`; nothing was written to the game.
+
+- L-249: `ILevel::getChunkTickRange()` on the client level returned 4 on every sample.
+  The world's simulation distance setting was not read from the settings screen, so
+  "4 is this world's setting" is likely (4 is the default) but not confirmed.
+- L-33: client actors carry neither `AgeableComponent` nor `BreedableComponent`. A
+  baby cow summoned with `minecraft:entity_born` and a baby squid both logged
+  `baby=true ageable=false breedable=false`; no actor in the session had either
+  component. `tryGetComponent` links for both types.
+- L-30: a dragon summoned 60 blocks up with `/summon ender_dragon` had all eight part
+  pointers non-null on the client, each a world-space box that moved with it over four
+  samples: head 1x1x1, neck 3x3x3, body 5x3x5, tail parts 2x2x2, wings 4x3x4, inside
+  or just outside the 13x4x13 actor box. The dragon was removed with `/kill`.
+
+Not checked: a server (local or remote) for any of the three; a naturally spawned
+dragon in the End (L-30 asks for one); a world with another simulation distance; an
+adult animal after breeding. The Dev instance has the plain build again
+(`29b21312549aab9f9a5425fa41516e290f0a7244dd68d05847555a7e74c7e42e`).
+
 ## 0.6.0 release smoke and tag (2026-11-12)
 
 Smoke of the commit's CI package: `bb1cc4be`, run 43044152485, DLL SHA-256

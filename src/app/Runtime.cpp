@@ -10,6 +10,7 @@
 #endif
 #include "features/interaction/PermanentSneak.h"
 #include "features/research/ResearchTrace.h"
+#include "features/research/WorldProbe.h"
 #include "features/schematic/GhostProbe.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/GhostPick.h"
@@ -175,6 +176,7 @@ Feature const features[] = {
     {"Auto Elytra", started<interaction::elytraSwap::start>, interaction::elytraSwap::stop},
     {"Placement diagnostics", started<interaction::placementTrace::start>, interaction::placementTrace::stop},
     {"Research diagnostics", started<researchTrace::start>, researchTrace::stop},
+    {"World probe", started<researchTrace::worldProbe::start>, researchTrace::worldProbe::stop},
     {"Repeat trade diagnostics", started<researchTrace::repeatTrade::start>, researchTrace::repeatTrade::stop},
     {"Ghost probe", started<schematic::ghostProbe::start>, schematic::ghostProbe::stop},
     {"Player location diagnostics", started<map::locationTrace::start>, map::locationTrace::stop},

@@ -617,6 +617,12 @@ Trace. L-167 observations; read-only except the research-only `server_pack_skip`
 Hooks: `FovSampleHook`
 Trace.
 
+### `src/features/research/WorldProbe.cpp`
+Hooks: `ProbeHook`
+Trace (`world_probe`). Read-only: the client level's chunk tick range (L-249), nearby
+actors' `AgeableComponent`/`BreedableComponent` (L-33) and the eight `EnderDragon` part
+boxes (L-30, a class-layout read).
+
 ### `src/features/research/TradeTrace.cpp`
 Hooks: `CollectionBindHook`, `GlobalBindHook`, `TradeHook`
 Trace.
