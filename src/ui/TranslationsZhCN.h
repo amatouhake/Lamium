@@ -84,7 +84,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"highlight.remove", "移除"},
     {"highlight.removeConfirm", "再按一次"},
     {"highlight.searchPlaceholder", "方块名称或 ID"},
-    {"highlight.offer", "也添加 {}？"},
     {"highlight.add", "添加"},
     {"highlight.found", "找到 {} 个"},
     {"highlight.suggested", "常用方块（输入即可搜索全部方块）"},

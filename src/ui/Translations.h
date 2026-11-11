@@ -87,7 +87,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"highlight.remove", "Remove", "外す"},
     {"highlight.removeConfirm", "Again", "もう一度"},
     {"highlight.searchPlaceholder", "Block name or ID", "ブロック名または ID"},
-    {"highlight.offer", "Also add {}?", "{} も追加しますか？"},
     {"highlight.add", "Add", "追加"},
     {"highlight.found", "{} found", "{} 件"},
     {"highlight.suggested", "Often wanted - type to search every block", "よく使うもの（入力すると全ブロックから探します）"},

@@ -11,12 +11,11 @@ namespace lamium::ui {
 // ShapesLayout list so rows and scrollbars work as in the other views.
 struct HighlightLayout {
     static constexpr float titleHeight = 12, fieldHeight = 12, removeWidth = 40, addWidth = 40;
-    enum class Zone { None, Back, Listed, Remove, Search, Offer, Result };
+    enum class Zone { None, Back, Listed, Remove, Search, Result };
     struct Hit { Zone zone = Zone::None; int index = -1; };
 
     float left{}, width{}, headTop{}, bodyTop{}, footerTop{}, backX{};
-    float dividerX{}, rightLeft{}, rightWidth{}, searchY{}, offerY{};
-    bool offer{};
+    float dividerX{}, rightLeft{}, rightWidth{}, searchY{};
     ShapesLayout listed, results;
 
     bool usable() const { return width > 0; }
@@ -30,8 +29,7 @@ struct HighlightLayout {
         l.listFirst = SettingsTable::clampFirst(first, l.listCount, l.listVisible);
         return l;
     }
-    static HighlightLayout fit(SettingsTable const& t, int listedCount, int listedFirst, int resultCount, int resultFirst,
-                               bool offer) {
+    static HighlightLayout fit(SettingsTable const& t, int listedCount, int listedFirst, int resultCount, int resultFirst) {
         HighlightLayout l;
         if (!t.usable()) return l;
         l.left = t.tableLeft; l.width = t.tableWidth;
@@ -42,9 +40,7 @@ struct HighlightLayout {
         l.listed = column(l.left, leftWidth, l.bodyTop + titleHeight, l.footerTop, listedCount, listedFirst);
         l.rightLeft = l.dividerX + 1; l.rightWidth = l.left + l.width - l.rightLeft;
         l.searchY = l.bodyTop + 2;
-        l.offer = offer;
-        l.offerY = l.searchY + fieldHeight + 3;
-        float resultsTop = l.offerY + (offer ? ShapesLayout::rowHeight : 0) + titleHeight;
+        float resultsTop = l.searchY + fieldHeight + 3 + titleHeight;
         l.results = column(l.rightLeft, l.rightWidth, resultsTop, l.footerTop, resultCount, resultFirst);
         return l;
     }
@@ -67,7 +63,6 @@ struct HighlightLayout {
         if (int row = rowAt(listed, x, y); row >= 0)
             return {x >= removeX() && x < removeX() + removeWidth ? Zone::Remove : Zone::Listed, row};
         if (x >= searchX() && x < searchX() + searchWidth() && y >= searchY && y < searchY + fieldHeight) return {Zone::Search};
-        if (offer && x >= addX() && x < addX() + addWidth && y >= offerY && y < offerY + ShapesLayout::rowHeight) return {Zone::Offer};
         if (int row = rowAt(results, x, y); row >= 0) return {Zone::Result, row};
         return {};
     }

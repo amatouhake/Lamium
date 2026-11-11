@@ -43,7 +43,6 @@ SearchQuery query;
 int listedFirst = 0, resultFirst = 0, selected = -1;
 enum class Drag { None, Listed, Results } dragging = Drag::None;
 std::string armed;   // a listed name whose Remove was pressed once
-std::string offered; // the sibling offered after adding a type
 HighlightLayout last;
 glm::vec2 lastPointer{};
 // Item stacks for icons, made from each type's default block; they point at
@@ -173,10 +172,6 @@ void toggle(std::string const& name) {
     if (!runtime.save(value)) { screen::setMessage(translated("saveError")); return; }
     screen::clearMessage();
     armed.clear();
-    if (change == hl::Change::Added) {
-        auto sibling = hl::siblingName(name);
-        offered = catalogIndex.contains(sibling) && !isListed(value.visuals.highlightBlocks, sibling) ? sibling : std::string{};
-    } else if (offered == name || isListed(value.visuals.highlightBlocks, offered)) offered.clear();
     forceRecount();
 }
 void back() { reset(); table_view::rebuild(true); }
@@ -210,7 +205,7 @@ void reset() {
     query.clear();
     listedFirst = resultFirst = 0; selected = -1;
     dragging = Drag::None;
-    armed.clear(); offered.clear();
+    armed.clear();
     last = {};
     forceRecount();
 }
@@ -232,9 +227,6 @@ bool click(float x, float y, bool right) {
             if (armed == name) toggle(name);
             else armed = name;
         }
-        return true;
-    case Zone::Offer:
-        if (!offered.empty()) { auto name = std::exchange(offered, {}); toggle(name); offered.clear(); }
         return true;
     case Zone::Result:
         if (hit.index >= 0 && hit.index < static_cast<int>(results.size())) {
@@ -270,8 +262,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     refreshCounts();
     auto list = listed();
     if (!armed.empty() && !isListed(list, armed)) armed.clear();
-    if (!offered.empty() && isListed(list, offered)) offered.clear();
-    last = HighlightLayout::fit(t, static_cast<int>(list.size()), listedFirst, static_cast<int>(results.size()), resultFirst, !offered.empty());
+    last = HighlightLayout::fit(t, static_cast<int>(list.size()), listedFirst, static_cast<int>(results.size()), resultFirst);
     if (!last.usable()) return;
     if (dragging == Drag::Listed) last.listed.listFirst = last.listed.firstAt(pointer.y);
     if (dragging == Drag::Results) last.results.listFirst = last.results.firstAt(pointer.y);
@@ -318,21 +309,13 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     }
     drawListScrollbar(context, lc);
 
-    // Right: the search field, the sibling offer, then the results.
+    // Right: the search field, then the results.
     float fx = last.searchX(), fw = last.searchWidth();
     fill(context, fx, last.searchY, fw, HighlightLayout::fieldHeight, Rgb{0,0,0}, .45f);
     frame(context, fx, last.searchY, fw, HighlightLayout::fieldHeight, palette::accent);
     if (query.value().empty())
         label(context, fx + 4, last.searchY + 1 + boxTextInset(), fw - 8, translated("highlight.searchPlaceholder"), palette::faint);
     drawEditField(context, fx + 4, last.searchY, HighlightLayout::fieldHeight, fw - 8, query);
-    if (last.offer) {
-        float y = last.offerY;
-        drawIcon(context, offered, last.rightLeft + pad, y + 2);
-        label(context, last.rightLeft + pad + 14, y + 3, last.addX() - last.rightLeft - pad - 18,
-            translated("highlight.offer", displayOf(offered)), palette::dim);
-        drawSmallButton(context, last.addX(), y + 1, HighlightLayout::addWidth, 12, translated("highlight.add"),
-            hover.zone == Zone::Offer, palette::accentDeep, palette::accent);
-    }
     auto const& rc = last.results;
     bool searching = query.value().find_first_not_of(' ') != std::string::npos;
     label(context, rc.listLeft + pad, rc.rowsTop - HighlightLayout::titleHeight + 2, rc.listWidth - 2 * pad,

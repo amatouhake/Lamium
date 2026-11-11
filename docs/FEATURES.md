@@ -109,8 +109,7 @@ only the edges show. Blocks drawn as block entities (chests
 and the like) are not covered. A list, opened from the
 settings row, shows the listed types with a count of those nearby, removes
 them, and adds any block type by searching its name or ID. Matching uses the
-block name only, so deepslate ores are their own types; after adding one, the
-list offers the other. With many blocks in view, only the nearest glow.
+block name only, so deepslate ores are their own types. With many blocks in view, only the nearest glow.
 
 ## HUD & overlays
 

@@ -52,19 +52,6 @@ inline void normalize(std::vector<Entry>& entries) {
 inline std::string_view shortName(std::string_view name) {
     return name.starts_with("minecraft:") ? name.substr(10) : name;
 }
-// The deepslate form of a plain type or the plain form of a deepslate one
-// ("minecraft:diamond_ore" <-> "minecraft:deepslate_diamond_ore"); the
-// caller checks that the name exists. Empty for a name without a part
-// after its namespace.
-inline std::string siblingName(std::string_view name) {
-    auto colon = name.find(':');
-    std::string_view space = colon == std::string_view::npos ? std::string_view{} : name.substr(0, colon + 1);
-    std::string_view rest = colon == std::string_view::npos ? name : name.substr(colon + 1);
-    if (rest.empty()) return {};
-    constexpr std::string_view prefix = "deepslate_";
-    if (rest.starts_with(prefix)) return rest.size() > prefix.size() ? std::string(space) + std::string(rest.substr(prefix.size())) : std::string{};
-    return std::string(space) + std::string(prefix) + std::string(rest);
-}
 // Every space-separated word of `query` appears in the display name or in
 // the name without "minecraft:" (ASCII case ignored), so "diamond_ore",
 // "diamond ore" and "ダイヤ" all find diamond ore. An empty query matches
