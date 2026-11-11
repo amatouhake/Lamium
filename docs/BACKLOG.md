@@ -731,6 +731,13 @@ Kind: Blocked on a symbol request. Kept as one item so a single request to
 - Book paste's trace hooks held back by `LAMIUM_MCAPI_PENDING`: only if another trace
   is needed.
 Before filing, confirm by linking: an SDK update may already have changed these.
+Header check 2026-11-12 (SDK 26.60.4, the same SDK as L-305; nothing linked or run):
+`_setPageText`, `BookScreenManager::editPage`/`deletePage` and
+`TextEditContext::feedCaretUpdate` are still declared `MCNAPI`, so nothing has
+changed since L-305. `BookScreenController` declares no page-turn member at all
+(only `_tryFirePageTurnSound`), so the turn is probably a button handler
+registered in the constructor (a guess from the header); a request would have to
+name that handler's address, not a member function.
 
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which
