@@ -885,6 +885,17 @@ a rebuild because the key only covers visible fields. Needs a pure
 section-state helper and tests, renderer cache changes, and an in-game frame
 check on a large placement while stepping the cut. Not part of the current
 L-234 branch.
+Helper done 2026-11-12 (pure logic and tests only; the renderer's cache is
+unchanged): `src/features/schematic/SectionLayers.h` gives a section's layer
+state under a `PlacedSlab` as a comparable value: hidden, whole, or the shown
+range on the cut's axis. Whole and hidden compare equal across axes, so only
+sections holding the cut differ when it moves. `tests/SectionLayersTests.cpp`.
+For the renderer step (not started): the section mesh reads a halo of
+neighbour cells (`GhostMesh.cpp`, `halo`), so the range passed in must be
+widened by it, or a section next to the cut would keep faces toward a layer
+that has turned hidden; the test file has that case. The cache key then
+needs the section's value instead of the placement's whole layer view, and
+palette resolution should move out of the per-section rebuild.
 
 ### L-190 Select several rows at once in list screens
 Kind: Design for the whole; the first step is a trial on branch

@@ -45,6 +45,8 @@ int main() try {
     opposingKeysTests();
     extern void rawMaterialsTests();
     rawMaterialsTests();
+    extern void sectionLayersTests();
+    sectionLayersTests();
     extern void repeatTradeTests();
     repeatTradeTests();
     extern void englishSearchTests();
