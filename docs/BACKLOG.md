@@ -1137,6 +1137,20 @@ data), not shared.
 Open (maintainer): how wanted offers are entered (agent: a picker from the
 game's item and enchantment lists), and whether matches are kept as a short
 log.
+More open choices found while preparing 2026-11-12 (not decided; the offer
+matcher is not written until these are, because each changes it):
+- Level: a wanted "Mending" or "Sharpness IV" matches that level exactly, or
+  that level and above. Recommended: and above, since a higher level is
+  never worse for the same price cap.
+- Price: the cap compares the first input's count as shown (after
+  discounts and demand) or the base price. Recommended: as shown, because
+  that is what the player pays now; say so in the help text.
+- A book with two enchantments: matches if any wanted enchantment is on it,
+  or only when all are wanted. Recommended: any.
+- Villager identity for L-166 favourites: `Actor::getOrCreateUniqueID()`
+  links in SDK 26.60.4 (header read only). Whether the client's value equals
+  the server's persistent id, and survives a rejoin, is the check to make
+  before choosing per-villager favourites.
 
 ### L-167 Change the language and resource packs from inside a world
 Kind: Research, then Design (strong model) for the remaining pack work.
@@ -1696,6 +1710,30 @@ References for expected Java behavior / Bedrock uncertainty:
 https://minecraft.wiki/w/Ender_Dragon
 https://minecraft.wiki/w/Tutorial:Hitboxes
 
+Header read 2026-11-12 (SDK 26.60.4; reading only, nothing built or run):
+- Confirmed in headers: `EnderDragon` has eight `AABB*` members, `mHead`,
+  `mNeck`, `mBody`, `mTail1`..`mTail3`, `mWing1`, `mWing2`, and
+  `_hurt(AABB* part, source, damage)` takes the part that was hit. So Bedrock
+  does keep per-part boxes on the actor class. Generic part data also exists:
+  `SubBBsComponent::mSubBBs` (`vector<AABB>`) and
+  `HitboxComponent::mHitboxes` (`Hitbox` = pivot + AABB).
+- Not known: whether the client's dragon fills these (the pointers may be
+  null or stale on the client, or point into `SubBBsComponent`), and in
+  which space the boxes are (world or actor-relative). The overlay reads
+  only `Actor::getAABB()` today (`WorldOverlay.cpp`).
+- Suggested first check, a read-only trace on a real dragon in the End: per
+  second, log whether each of the eight pointers is non-null, the box each
+  points to, the dragon's position, and the sizes of the `SubBBsComponent`
+  and `HitboxComponent` vectors on its entity. Reading the eight members
+  depends on the class layout, so that path asks `versionSensitiveAllowed`;
+  the two components are read through `tryGetComponent` and need a link
+  check first (`Block::tryGetComponent<BlockInstrumentComponent>` did not
+  link in L-305, so this may not either).
+- If the trace shows live world-space boxes: draw them through the normal
+  hitbox overlay; the head is `mHead`. Colors and labels are a choice for
+  the maintainer (recommended: the existing hitbox color for the parts and
+  the existing highlight color for the head, no new palette entry).
+
 ### L-33 Mob growth and breeding timers in the target card
 Status: research (asked 2026-09-24; not part of L-08).
 The maintainer wants the time until a baby mob grows up and the remaining
@@ -1709,6 +1747,24 @@ breeding cooldown. The client SDK has `AgeableComponent::mAge` and
 - otherwise show only "baby" / "in love" states, and say so in the help text.
 Estimating from observed events (feeding speeds growth up) is not accurate
 enough to show as a time.
+Header read 2026-11-12 (SDK 26.60.4; reading only, nothing built or run):
+- Confirmed in headers: `AgeableComponent::mAge`, and `BreedableComponent`
+  with `mLoveTimer`, `mBreedCooldown`, `mBreedCooldownTime` and `mLoveCause`.
+  `IClientInstance::getServerData()` (virtual) returns the in-process
+  `Minecraft`, and `MinecraftGame::getServerInstance()` exists, so a local
+  world's server side is reachable by name. `Actor::getOrCreateUniqueID()`
+  links (`MCAPI`), which gives the key to find the same actor there.
+- Not known: whether the client actor has either component (first bullet
+  above), and whether `tryGetComponent` links for these two types.
+- The second bullet above is a threading question, not a symbol question:
+  the server level ticks on its own thread, so reading its actors from the
+  client thread is a data race unless the read is queued onto the server
+  thread and the plain values copied back. Lamium has no code that touches
+  the local server today, so this would be its first; that is a maintainer
+  decision (new kind of game dependency), not decided here.
+- Cheapest first check, read only: on the client actor of a baby animal and
+  of a just-bred adult, log whether each component is present and its
+  values, once per second. If the client has them, nothing else is needed.
 
 ### L-114 3D previews in the schematic screen
 Kind: Research **(strong model)**. Chosen 2026-10-08 (L-93 screen review).
