@@ -85,4 +85,39 @@ std::vector<std::string> wrapLabel(std::string_view source, float width, size_t 
     }
     return lines;
 }
+// Label runs. In the game's font a few characters measure 0 wide and are
+// drawn one character to the left of the pen, over what came before ("件"
+// and "渡" on 1.26.60, found by measuring every character Lamium uses).
+// Such a character is a run of its own so the label can give it a full
+// width and draw it where it belongs; the rest splits into ASCII and other
+// text, as Latin runs are raised in Japanese.
+enum class RunKind { Ascii, Wide, Zero };
+struct LabelRun { std::string_view text; RunKind kind; };
+template<class IsZero>
+std::vector<LabelRun> labelRuns(std::string_view text, IsZero isZero) {
+    std::vector<LabelRun> runs;
+    for (size_t at = 0; at < text.size();) {
+        size_t next = at + 1;
+        while (next < text.size() && (static_cast<unsigned char>(text[next]) & 0xc0) == 0x80) ++next;
+        auto glyph = text.substr(at, next - at);
+        RunKind kind = static_cast<unsigned char>(text[at]) < 0x80 ? RunKind::Ascii : isZero(glyph) ? RunKind::Zero : RunKind::Wide;
+        if (!runs.empty() && kind != RunKind::Zero && runs.back().kind == kind)
+            runs.back().text = std::string_view(runs.back().text.data(), runs.back().text.size() + glyph.size());
+        else runs.push_back({glyph, kind});
+        at = next;
+    }
+    return runs;
+}
+// How many characters of `text` are zero-wide ones.
+template<class IsZero>
+size_t zeroGlyphs(std::string_view text, IsZero isZero) {
+    size_t count = 0;
+    for (size_t at = 0; at < text.size();) {
+        size_t next = at + 1;
+        while (next < text.size() && (static_cast<unsigned char>(text[next]) & 0xc0) == 0x80) ++next;
+        if (static_cast<unsigned char>(text[at]) >= 0x80 && isZero(text.substr(at, next - at))) ++count;
+        at = next;
+    }
+    return count;
+}
 }

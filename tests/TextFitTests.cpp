@@ -35,4 +35,17 @@ void textFitTests() {
     check(wrapFullText("日本語設定",4,measure) == std::vector<std::string>{"日本", "語設", "定"}
         && wrapFullText("a\n\nb",4,measure) == std::vector<std::string>{"a", "", "b"}
         && wrapFullText("🌿日本",1,measure) == std::vector<std::string>{"🌿", "日", "本"},
-        "full help preserves blank lines and every complete UTF-8 codepoint without ellipsis");}
+        "full help preserves blank lines and every complete UTF-8 codepoint without ellipsis");
+    using lamium::ui::RunKind;
+    auto zero = [](std::string_view glyph) { return glyph == "件"; };
+    auto runs = lamium::ui::labelRuns("10 件あり", zero);
+    check(runs.size() == 3 && runs[0].text == "10 " && runs[0].kind == RunKind::Ascii && runs[1].text == "件"
+              && runs[1].kind == RunKind::Zero && runs[2].text == "あり" && runs[2].kind == RunKind::Wide,
+          "a zero-wide character is a run of its own between the ASCII and the other text");
+    auto pair = lamium::ui::labelRuns("件件", zero);
+    check(pair.size() == 2 && pair[0].text == "件" && pair[1].text == "件", "zero-wide characters never share a run");
+    check(lamium::ui::labelRuns("", zero).empty() && lamium::ui::labelRuns("条目", zero).size() == 1,
+          "text without such a character keeps one run per script");
+    check(lamium::ui::zeroGlyphs("条件 3 件", zero) == 2 && lamium::ui::zeroGlyphs("abc", zero) == 0,
+          "zero-wide characters are counted for the width they are owed");
+}

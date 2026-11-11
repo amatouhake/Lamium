@@ -24,6 +24,7 @@
 #include "ui/Translations.h"
 #include <algorithm>
 #include <mutex>
+#include <unordered_map>
 #include <unordered_set>
 #ifdef LAMIUM_RESEARCH_TRACE
 #include "app/Runtime.h"
@@ -43,12 +44,34 @@ DrawScale::DrawScale(float scale) : previous(currentScale) {
     currentScale = std::isfinite(scale) && scale > 0 ? scale : 1;
 }
 DrawScale::~DrawScale() { currentScale = previous; }
+namespace {
+// Characters the font measures 0 wide (TextFit.h, labelRuns): each is
+// measured once per font and remembered.
+Font const* quirkFont = nullptr;
+std::unordered_map<std::string, bool> zeroWide;
+bool zeroGlyph(Font& font, std::string_view glyph) {
+    if (quirkFont != &font) { quirkFont = &font; zeroWide.clear(); }
+    auto found = zeroWide.find(std::string(glyph));
+    if (found == zeroWide.end())
+        found = zeroWide.emplace(std::string(glyph), font.getLineLength(glyph, 1.0f, false) <= 0).first;
+    return found->second;
+}
+// The width such a character is owed: a full-width character's.
+float fullWidth(Font& font, float size) { return static_cast<float>(font.getLineLength("\xe4\xb8\xad", size, false)); }
+// A text's width with its zero-wide characters counted in.
+float measured(Font& font, std::string_view text, float size) {
+    float width = static_cast<float>(font.getLineLength(text, size, false));
+    if (std::none_of(text.begin(), text.end(), [](unsigned char ch) { return ch >= 0x80; })) return width;
+    auto zeros = zeroGlyphs(text, [&](std::string_view glyph) { return zeroGlyph(font, glyph); });
+    return zeros ? width + static_cast<float>(zeros) * fullWidth(font, size) : width;
+}
+}
 float textWidth(MinecraftUIRenderContext& context, std::string_view text) {
-    return defaultFont(context).getLineLength(text, 1.0f, false);
+    return measured(defaultFont(context), text, 1.0f);
 }
 float textWidthScaled(MinecraftUIRenderContext& context, std::string_view text, float size) {
     if (!(size > 0) || !std::isfinite(size)) size = 1;
-    return static_cast<float>(defaultFont(context).getLineLength(text, size, false));
+    return measured(defaultFont(context), text, size);
 }
 void fill(MinecraftUIRenderContext& context, float x, float y, float width, float height, Rgb value, float opacity) {
     if (width <= 0 || height <= 0) return;
@@ -89,15 +112,10 @@ float labelWidth(MinecraftUIRenderContext& context, std::string_view text, float
     if (!(size > 0) || !std::isfinite(size)) size = 1;
     auto& font = defaultFont(context);
     bool latin = std::any_of(text.begin(), text.end(), [](unsigned char ch) { return ch < 0x80 && ch != ' '; });
-    if (!latinRaise() || !latin) return static_cast<float>(font.getLineLength(text, size, false));
+    if (!latinRaise() || !latin) return measured(font, text, size);
     float total = 0;
-    for (size_t start = 0; start < text.size();) {
-        bool ascii = static_cast<unsigned char>(text[start]) < 0x80;
-        size_t end = start;
-        while (end < text.size() && (static_cast<unsigned char>(text[end]) < 0x80) == ascii) ++end;
-        total += static_cast<float>(font.getLineLength(text.substr(start, end - start), size, false));
-        start = end;
-    }
+    for (auto const& run : labelRuns(text, [&](std::string_view glyph) { return zeroGlyph(font, glyph); }))
+        total += measured(font, run.text, size);
     return total;
 }
 void label(MinecraftUIRenderContext& context, float x, float y, float width, std::string text, Rgb value, Align align) {
@@ -107,13 +125,15 @@ void labelScaled(MinecraftUIRenderContext& context, float x, float y, float widt
                  Rgb value, Align align, bool shadow) {
     if (!(size > 0) || !std::isfinite(size)) size = 1;
     auto& font = defaultFont(context);
-    auto measure = [&](std::string_view part) { return static_cast<float>(font.getLineLength(part, size, false)); };
+    auto measure = [&](std::string_view part) { return measured(font, part, size); };
     text = fitLabel(text, width, measure);
     if (text.empty()) return;
+    auto parts = labelRuns(text, [&](std::string_view glyph) { return zeroGlyph(font, glyph); });
+    bool zeros = std::any_of(parts.begin(), parts.end(), [](LabelRun const& run) { return run.kind == RunKind::Zero; });
     auto paint = [&](float px, float py, Rgb ink) {
         float raise = latinRaise() * size;
         bool latin = std::any_of(text.begin(), text.end(), [](unsigned char ch) { return ch < 0x80 && ch != ' '; });
-        if (!raise || !latin) {
+        if ((!raise || !latin) && !zeros) {
             auto native = align == Align::Right ? ::ui::TextAlignment::Right
                 : align == Align::Center ? ::ui::TextAlignment::Center : ::ui::TextAlignment::Left;
             drawRun(context, font, px, py, width, text, ink, native, size);
@@ -123,25 +143,23 @@ void labelScaled(MinecraftUIRenderContext& context, float x, float y, float widt
         // can be raised. Right and center lines are laid out from the anchored
         // right edge with the engine's own right alignment, so a run's measured
         // width being slightly off stays between runs instead of moving the edge
-        // (positioning runs left to right was visibly ragged).
-        struct Run { std::string_view text; bool ascii; float width; };
+        // (positioning runs left to right was visibly ragged). A zero-wide
+        // character is drawn one width left of the pen: from the left its pen
+        // starts a width further right, and right alignment already ends it
+        // at the run's right edge.
+        struct Run { std::string_view text; bool ascii, zero; float width; };
         std::vector<Run> runs;
         float total = 0;
-        for (size_t start = 0; start < text.size();) {
-            bool ascii = static_cast<unsigned char>(text[start]) < 0x80;
-            size_t end = start;
-            while (end < text.size() && (static_cast<unsigned char>(text[end]) < 0x80) == ascii) ++end;
-            std::string_view run(text.data() + start, end - start);
-            float runWidth = measure(run);
-            runs.push_back({run, ascii, runWidth});
+        for (auto const& part : parts) {
+            float runWidth = measure(part.text);
+            runs.push_back({part.text, part.kind == RunKind::Ascii, part.kind == RunKind::Zero, runWidth});
             total += runWidth;
-            start = end;
         }
         if (align == Align::Left) {
             float cursor = px;
             for (auto const& run : runs) {
-                drawRun(context, font, cursor, run.ascii ? py - raise : py, run.width + 2, std::string(run.text), ink,
-                        ::ui::TextAlignment::Left, size);
+                drawRun(context, font, run.zero ? cursor + run.width : cursor, run.ascii ? py - raise : py, run.width + 2,
+                        std::string(run.text), ink, ::ui::TextAlignment::Left, size);
                 cursor += run.width;
             }
             return;
@@ -163,8 +181,7 @@ void labelScaled(MinecraftUIRenderContext& context, float x, float y, float widt
 void paragraph(MinecraftUIRenderContext& context, float x, float y, float width, std::string_view text, size_t maxLines,
                Rgb value) {
     auto& font = defaultFont(context);
-    auto lines = wrapLabel(text, width, maxLines,
-        [&](std::string_view part) { return font.getLineLength(part, 1.0f, false); });
+    auto lines = wrapLabel(text, width, maxLines, [&](std::string_view part) { return measured(font, part, 1.0f); });
     for (auto& line : lines) {
         label(context, x, y, width, std::move(line), value);
         y += 12;
@@ -172,7 +189,7 @@ void paragraph(MinecraftUIRenderContext& context, float x, float y, float width,
 }
 size_t paragraphLines(MinecraftUIRenderContext& context, float width, std::string_view text, size_t maxLines) {
     auto& font = defaultFont(context);
-    return wrapLabel(text, width, maxLines, [&](std::string_view part) { return font.getLineLength(part, 1.0f, false); }).size();
+    return wrapLabel(text, width, maxLines, [&](std::string_view part) { return measured(font, part, 1.0f); }).size();
 }
 void panel(MinecraftUIRenderContext& context, float left, float top, float width, float height, float opacity) {
     fill(context,left,top,width,height,palette::panel,opacity);
