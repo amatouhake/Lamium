@@ -39,6 +39,8 @@ int main() try {
     lockedTradesTests();
     extern void enchantPlanTests();
     enchantPlanTests();
+    extern void frameProfileTests();
+    frameProfileTests();
     extern void repeatTradeTests();
     repeatTradeTests();
     extern void englishSearchTests();

@@ -1952,6 +1952,24 @@ Areas to look at first:
 Success: better frame time and 1 % lows in heavy scenes, not a higher
 average in an empty world. One proven large bottleneck beats many guessed
 micro-optimizations.
+Groundwork 2026-11-12 (no hook, no build option yet):
+- Pure part: `src/features/research/FrameProfile.h` collects a window of
+  frame times and per-stage times and reports the average, the worst frame,
+  the 1 % low (mean of the slowest hundredth) and each stage's time and
+  calls per frame; `tests/FrameProfileTests.cpp` covers it.
+- Stage boundaries that link in SDK 26.60.4 (header read only; each would be
+  a timing-only hook that calls the original unchanged):
+  `GameRenderer::renderCurrentFrame` (the whole frame),
+  `LevelRenderer::preRenderUpdate` (already hooked by FreeCamera terrain)
+  and `LevelRenderer::renderLevel`, `LevelRendererPlayer::$queueRenderEntities`,
+  `$renderBlockEntities` (already hooked by the ghost pass) and
+  `$renderEntityEffects`, and `RenderChunkCoordinator::tick` (chunk rebuild
+  bookkeeping). Chunk mesh building itself, particles and UI have no
+  linkable entry found yet; `RenderChunkBuilder` and the particle engine are
+  the next headers to read.
+- Not done on purpose: the spike's hooks and its xmake option. They are new
+  game dependencies, and the scenes that matter (village, farm, storage
+  room, fast flight) need the maintainer at the controls.
 
 ---
 
