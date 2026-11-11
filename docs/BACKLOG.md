@@ -1879,6 +1879,30 @@ how ingredients with several choices (any log, tags) and multi-step chains
 (cobblestone, stone, stone bricks) appear; then decide with the maintainer
 which recipe to prefer when several make the same item. The calculation is
 pure logic with tests.
+Groundwork 2026-11-12 (pure logic and tests only; not used by the Materials
+tab): `src/features/schematic/RawMaterials.h` takes the wanted items and one
+chosen recipe per craftable item and returns the raw materials, the crafts
+per intermediate with the spare output, and any item left raw because its
+recipes lead back to itself (iron block and ingot). Needs are added across
+the list before rounding to whole crafts. `tests/RawMaterialsTests.cpp`.
+Header read 2026-11-12 (SDK 26.60.4; nothing run): `Recipes` holds
+`mRecipes` as tag -> id -> `Recipe`, and `mFurnaceResults`; `Recipe` has
+`getResultItems()`, `getIngredient(x, y)`, `getCraftingSize()`,
+`isShapeless()` (virtual) and `mMyIngredients`, `mTag`, `mPriority`. So the
+client-side table can be walked by name; what it holds on a server, and how
+tag ingredients ("any log") appear in `RecipeIngredient`, is still the
+first thing to check in game.
+Open choices, with the agent's recommendation (not decided):
+- Several recipes for one item: recommended to prefer the crafting-table
+  recipe with the highest `mPriority`, then the stonecutter, then the
+  furnace, and never a recipe whose ingredient is the item's own product
+  (block from ingots, ingots from block).
+- An ingredient with several choices (any planks): recommended to show it
+  as one named group ("Any planks") rather than pick a wood type.
+- Furnace steps: recommended to list the smelted input as raw and not
+  count fuel, since fuel depends on what the player burns.
+- Spare output (2 stone bricks left from a batch of 4): recommended to show
+  only the raw totals at first; the per-step list can come later.
 
 ### L-111 Integration between features: remaining shared controls
 Kind: Design. The required 0.2.0 work (L-134/L-135/L-136/L-137/L-138/L-139)

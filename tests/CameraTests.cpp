@@ -43,6 +43,8 @@ int main() try {
     frameProfileTests();
     extern void opposingKeysTests();
     opposingKeysTests();
+    extern void rawMaterialsTests();
+    rawMaterialsTests();
     extern void repeatTradeTests();
     repeatTradeTests();
     extern void englishSearchTests();
