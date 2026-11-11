@@ -406,6 +406,14 @@ Contents:
   line bands also use the shared Background opacity setting described above.
   Text color is not a per-element option.
 
+Paper doll placement (L-309, 2026-11-11): a saved, default-off Paper doll
+position switch lets HUD layout place the game's paper doll, on the chat's
+pattern below. Position only for now; its default is the game's desktop
+place, so switching it on moves nothing until the element is dragged. The
+doll's look and when it shows stay vanilla. In the editor the game's own
+elements (chat, paper doll) have a warning-colored frame and position
+controls only.
+
 Chat placement (L-174, decided 2026-10-14): a saved, default-off Chat
 position switch moves ordinary HUD messages to the lower left and adds a
 position-only element to HUD layout. The default is flush left with its

@@ -45,6 +45,7 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleInventoryHud: field = &value.information.inventoryHud; break;
     case Action::ToggleUsedSlots: field = &value.information.usedSlots; break;
     case Action::ToggleChatPosition: field = &value.information.chatPosition; break;
+    case Action::TogglePaperDollPosition: field = &value.information.paperDollPosition; break;
     case Action::ToggleStatusEffects: field = &value.information.effectsHud; break;
     case Action::ToggleOffhandSlot: field = &value.information.offhandSlot; break;
     case Action::ToggleSaturation: field = &value.information.saturation; break;

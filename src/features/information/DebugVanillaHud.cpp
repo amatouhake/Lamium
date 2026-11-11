@@ -1,5 +1,7 @@
 #include "features/information/DebugVanillaHud.h"
+#include "app/CapabilityHooks.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/gui/controls/SpriteComponent.h"
 #include "mc/client/gui/controls/TextComponent.h"
@@ -19,6 +21,30 @@ namespace lamium::information::debugVanilla {
 namespace {
 bool installedSprite = false, installedText = false, installedDoll = false;
 std::atomic<bool> dollCovered{false}, positionCovered{false};
+std::atomic<bool> dollPlaced{false};
+std::atomic<float> dollX{0}, dollY{0};
+// The doll's control is drawn where the HUD layout puts it, for this one
+// call: its cached position is restored at once, without invalidating the
+// tree or touching its layout (as Chat position does, L-309).
+struct DollPlacement {
+    UIControl* owner = nullptr;
+    glm::vec2 position{};
+    ~DollPlacement() { if (owner) owner->mCachedPosition = position; }
+    void prepare(UIControl& control) {
+        if (!dollPlaced.load()) return;
+        auto& runtime = Runtime::instance();
+        if (!runtime.enabled() || !runtime.snapshot()->information.paperDollPosition) return;
+        std::string const& name = *control.mName;
+        if (name != "hud_player" || control.mCachedPositionDirty) return;
+        if (!versionSensitiveAllowed(capabilities::Id::PaperDollPosition)) return;
+        glm::vec2 size = *control.mSize;
+        auto next = paperDoll::controlPosition({dollX.load(), dollY.load()}, size.x, size.y);
+        if (!next) return;
+        position = *control.mCachedPosition;
+        owner = &control;
+        control.mCachedPosition = glm::vec2{next->x, next->y};
+    }
+};
 bool hiding() noexcept {
     try {
         auto& runtime = Runtime::instance();
@@ -51,6 +77,8 @@ LL_TYPE_INSTANCE_HOOK(DebugPaperDoll, ll::memory::HookPriority::Normal, HudPlaye
     &HudPlayerRenderer::$render, void, MinecraftUIRenderContext& context, IClientInstance& client, UIControl& owner,
     int pass) {
     if (hidingCovered(dollCovered)) return;
+    DollPlacement placement;
+    try { placement.prepare(owner); } catch (...) {}
     origin(context, client, owner, pass);
 #ifdef LAMIUM_DOLL_TRACE
     // L-309 experiment: three more dolls in the same frame, one per hypothesis.
@@ -92,16 +120,24 @@ void infoCovers(bool doll, bool position) {
     dollCovered = doll;
     positionCovered = position;
 }
+void placeDoll(std::optional<paperDoll::Point> center) {
+    if (center) { dollX = center->x; dollY = center->y; }
+    dollPlaced = center.has_value();
+}
 void start() noexcept {
+    capabilities::begin(capabilities::Id::PaperDollPosition);
     try {
         if (!installedSprite) installedSprite = DebugPositionSprite::hook(true) == 0;
         if (!installedText) installedText = DebugPositionText::hook(true) == 0;
         if (!installedDoll) installedDoll = DebugPaperDoll::hook(true) == 0;
         if (!installedSprite || !installedText || !installedDoll)
             Runtime::instance().self().getLogger().warn("Debug View cannot hide the game's position or paper doll; they stay drawn");
-    } catch (...) {}
+        capabilities::hooks(capabilities::Id::PaperDollPosition, installedDoll);
+    } catch (...) { capabilities::hooks(capabilities::Id::PaperDollPosition, false); }
 }
 void stop() {
+    capabilities::stop(capabilities::Id::PaperDollPosition);
+    dollPlaced = false;
     dollCovered = positionCovered = false;
     if (installedDoll && DebugPaperDoll::unhook(true)) installedDoll = false;
     if (installedText && DebugPositionText::unhook(true)) installedText = false;

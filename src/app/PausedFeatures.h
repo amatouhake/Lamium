@@ -53,6 +53,7 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::ConnectedTextures: return v.connectedTextures;
     case Id::BlockHighlight: return v.blockHighlight && !v.highlightBlocks.empty();
     case Id::ChatPosition: return s.information.chatPosition;
+    case Id::PaperDollPosition: return s.information.paperDollPosition;
     case Id::RepeatedTrades: return s.inventory.repeatTrades;
     case Id::TransferRoutes: return s.inventory.transfer;
     case Id::SkipServerPacks: return v.skipServerPacks;

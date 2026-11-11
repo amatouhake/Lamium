@@ -68,6 +68,7 @@ std::string_view elementName(HudElementId id) {
     case HudElementId::UsedSlots: return "feature.usedSlots";
     case HudElementId::StatusEffects: return "feature.statusEffects";
     case HudElementId::Chat: return "feature.chatPosition";
+    case HudElementId::PaperDoll: return "feature.paperDollPosition";
     default: return "hudEditor.toast";
     }
 }
@@ -85,6 +86,7 @@ HudElement& layoutElement(Settings::Hud& hud, HudElementId id) {
     case HudElementId::UsedSlots: return hud.usedSlots;
     case HudElementId::StatusEffects: return hud.statusEffects;
     case HudElementId::Chat: return hud.chat;
+    case HudElementId::PaperDoll: return hud.paperDoll;
     default: return hud.toast;
     }
 }
@@ -141,7 +143,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     std::string shadowText = shadow ? optionText(*shadow, value) : std::string{};
     std::string linesText = translated("hudEditor.lines");
     std::string resetText = translated("resetShort");
-    bool positionOnly = id == HudElementId::Chat;
+    bool positionOnly = hudGameDrawn(id);
     float snapW = textWidth(context, snapText) + 17, scaleW = textWidth(context, "150%") + 24;
     if (positionOnly) scaleW = 0;
     float backgroundW = background ? textWidth(context, backgroundText) + 8 : 0;
@@ -316,7 +318,7 @@ void run(Control const& control) {
     // Applied at once, like the binding row's Reset.
     case Command::Reset: resetElements(value, id); break;
     case Command::ScaleEdit:
-        if (id == HudElementId::Chat) return;
+        if (hudGameDrawn(id)) return;
         editingScale = true;
         screen::number().begin(settings::hudElement(value, id).scale);
         return;
@@ -483,7 +485,12 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         bool isFocus = focus && *focus == id;
         float opacity = isFocus ? .9f : hovered && *hovered == id ? .6f : framed(id) ? .35f : .2f;
         Box outer{box->x - 1, box->y - 1, box->w + 2, box->h + 2};
-        if (!framed(id)) { frame(context, outer.x, outer.y, outer.w, outer.h, isFocus ? palette::accent : palette::white, opacity); continue; }
+        // The game's own elements stand apart from Lamium's by their frame color.
+        if (!framed(id)) {
+            frame(context, outer.x, outer.y, outer.w, outer.h,
+                  isFocus ? palette::accent : hudGameDrawn(id) ? palette::warning : palette::white, hudGameDrawn(id) && !isFocus ? opacity + .25f : opacity);
+            continue;
+        }
         for (auto const& dash : dashedFrame(outer))
             fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length, palette::white, opacity);
         fill(context, box->x, box->y, box->w, box->h, Rgb{0, 0, 0}, .2f);
@@ -503,7 +510,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     }
     // Scale handles on the corners away from the anchor; the chat is placed only.
     handles.clear();
-    if (selected && active && *selected != HudElementId::Chat && !(drag && drag->moved))
+    if (selected && active && !hudGameDrawn(*selected) && !(drag && drag->moved))
         if (auto const& box = lastBoxes[static_cast<size_t>(*selected)]) {
             handles = scaleHandles(*active, *box, width, height);
             for (auto const& handle : handles) {

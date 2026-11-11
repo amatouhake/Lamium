@@ -39,6 +39,32 @@ void offhandSlotTests() {
         doll::Box line{2, 66, 110, 10}; // the position line under the doll's room
         check(doll::meets(line, doll::Box{2, 2, 120, 70}) && !doll::meets(line, doll::Box{2, 2, 120, 60}),
               "the position line is hidden only where the Info HUD meets it");
+        // L-309: the doll placed by the HUD layout.
+        auto center = doll::controlCenter(0, 0);
+        check(center.x == 22.5f && center.y == 22.5f, "the default element box centers the control at the game's desktop place");
+        auto at = doll::controlPosition(center, 15, 15);
+        check(at && at->x == 15 && at->y == 15, "a full-size control lands where the game draws it");
+        auto shrunk = doll::controlPosition(center, 0, 0);
+        check(shrunk && shrunk->x == 22.5f && shrunk->y == 22.5f, "a control shrunk by the entrance animation keeps its center");
+        check(!doll::controlPosition(center, -1, 15) && !doll::controlPosition({NAN, 0}, 15, 15), "bad geometry places nothing");
+        auto moved = doll::controlPosition(doll::controlCenter(200, 100), 15, 15);
+        check(moved && moved->x == 215 && moved->y == 115, "a moved element moves the control with it");
+        auto parts = doll::figure(doll::Box{100, 40, doll::placedWidth, doll::placedHeight});
+        check(parts[0].x == 118.5f && parts[0].y == 49 && parts[0].w == 8 && parts[5].y + parts[5].h == 81,
+              "the editor's stand-in figure is centered in the element box");
+        using lamium::ui::HudElementId;
+        check(lamium::ui::hudGameDrawn(HudElementId::PaperDoll) && lamium::ui::hudGameDrawn(HudElementId::Chat)
+              && !lamium::ui::hudGameDrawn(HudElementId::Info), "the chat and the paper doll are the game's own elements");
+        auto placed = lamium::ui::placeElement(480, 270, doll::placedWidth, doll::placedHeight,
+                                               lamium::ui::defaultHudElement(HudElementId::PaperDoll));
+        check(placed.x == 0 && placed.y == 0, "the paper doll's default place is the top left corner");
+    }
+    {
+        lamium::Settings fresh;
+        check(!fresh.information.paperDollPosition, "paper doll position starts off");
+        auto saved = lamium::decodeSettings(R"({"information":{"paperDollPosition":true},"hud":{"paperDoll":{"anchor":8,"dx":-10,"dy":-20,"scale":150}}})");
+        check(saved.information.paperDollPosition && saved.hud.paperDoll.dx == -10 && saved.hud.paperDoll.scale == 100,
+              "the paper doll's switch and place load; it has no scale");
     }
 
     lamium::Settings defaults;

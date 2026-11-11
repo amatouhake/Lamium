@@ -212,7 +212,11 @@ void noteCoveredVanilla(ScreenView const& view, ui::hud_editor::Boxes const& dra
             position = boxOf("player_position");
         }
     }
-    debugVanilla::infoCovers(paperDoll::covered(doll, hud), paperDoll::meets(position, hud));
+    // A doll placed by the HUD layout is covered where its placed box is.
+    auto const& placed = drawn[static_cast<size_t>(ui::HudElementId::PaperDoll)];
+    bool dollCovered = placed ? hud && paperDoll::overlaps({placed->x, placed->y, placed->w, placed->h}, *hud)
+                              : paperDoll::covered(doll, hud);
+    debugVanilla::infoCovers(dollCovered, paperDoll::meets(position, hud));
 }
 HotbarPlace editorHotbar(float width, float height) {
     auto box = offhand::editorHotbar(seenHotbar ? std::optional(seenHotbar->box) : std::nullopt,
@@ -1509,6 +1513,22 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     auto skipped = [&](ui::HudElementId id) { return preview && preview->hidden[static_cast<size_t>(id)]; };
     if (preview && !skipped(ui::HudElementId::Chat))
         box(ui::HudElementId::Chat) = chatPosition::preview(context, width, height, hud.chat);
+    // The game's paper doll (L-309): in play Lamium only says where its
+    // control goes; the editor, where the game draws none, shows a stand-in.
+    if (preview || settings.paperDollPosition) {
+        auto at = ui::placeElement(width, height, paperDoll::placedWidth, paperDoll::placedHeight, hud.paperDoll);
+        ui::hud_editor::Box placed{at.x, at.y, paperDoll::placedWidth, paperDoll::placedHeight};
+        if (!preview) debugVanilla::placeDoll(paperDoll::controlCenter(at.x, at.y));
+        if (!skipped(ui::HudElementId::PaperDoll)) {
+            box(ui::HudElementId::PaperDoll) = placed;
+            if (preview) {
+                auto parts = paperDoll::figure({placed.x, placed.y, placed.w, placed.h});
+                for (size_t i = 0; i < parts.size(); ++i)
+                    ui::fill(context, parts[i].x, parts[i].y, parts[i].w, parts[i].h,
+                             i == 0 ? ui::palette::text : i < 4 ? ui::palette::dim : ui::palette::faint, .7f);
+            }
+        }
+    } else debugVanilla::placeDoll(std::nullopt);
     auto viewRay = [&](double reach) -> std::optional<ViewRay> {
         auto* player = context.mClient.getLocalPlayer();
         if (!player) return std::nullopt;

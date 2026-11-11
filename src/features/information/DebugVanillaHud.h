@@ -1,4 +1,6 @@
 #pragma once
+#include "features/information/PaperDoll.h"
+#include <optional>
 #include <string_view>
 
 namespace lamium::information::debugVanilla {
@@ -12,6 +14,10 @@ inline bool positionControl(std::string_view name) {
 }
 // Set each frame by the HUD draw.
 void infoCovers(bool doll, bool position);
+// Where the paper doll's control is centered while Paper doll position is on
+// (L-309), in HUD units; nothing leaves the doll where the game puts it.
+// Set each frame by the HUD draw.
+void placeDoll(std::optional<paperDoll::Point> center);
 void start() noexcept;
 void stop();
 }

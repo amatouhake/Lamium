@@ -11,7 +11,7 @@ namespace lamium::ui {
 // Elements are info lines, target, status, toast and the zoom magnification.
 // The debug view is not an element: it is fixed to the screen edges. Pure
 // math; InfoHud draws. Append new ids: they index saved boxes.
-enum class HudElementId { Info, Target, Status, Toast, Magnification, Durability, Minimap, Schematic, PlayerList, Inventory, UsedSlots, StatusEffects, Chat };
+enum class HudElementId { Info, Target, Status, Toast, Magnification, Durability, Minimap, Schematic, PlayerList, Inventory, UsedSlots, StatusEffects, Chat, PaperDoll };
 enum class Anchor {
     TopLeft, TopCenter, TopRight,
     MiddleLeft, Center, MiddleRight,
@@ -61,6 +61,9 @@ inline constexpr bool hudConditional(HudElementId id) {
     return id == HudElementId::Target || id == HudElementId::Status || id == HudElementId::Toast
         || id == HudElementId::Magnification || id == HudElementId::Schematic || id == HudElementId::PlayerList;
 }
+// Drawn by the game and only moved by Lamium (L-174, L-309): the editor
+// frames them in another color and offers position controls only.
+inline constexpr bool hudGameDrawn(HudElementId id) { return id == HudElementId::Chat || id == HudElementId::PaperDoll; }
 // Gap from the screen edge used by defaults and snap-to; flush is allowed.
 inline constexpr float hudInset = 4;
 // Defaults match docs/demos/hud-editor.html.
@@ -87,6 +90,8 @@ inline constexpr HudElement defaultHudElement(HudElementId id) {
     case HudElementId::StatusEffects: return {Anchor::MiddleRight, -hudInset, 48, 100, ElementBackground::Card, true};
     // Flush left, above two default durability rows with a 4-unit gap (L-174).
     case HudElementId::Chat: return {Anchor::BottomLeft, 0, -44, 100, ElementBackground::None, true};
+    // The game's own place on desktop UI: the top left corner (L-309).
+    case HudElementId::PaperDoll: return {Anchor::TopLeft, 0, 0, 100, ElementBackground::None, true};
     // Above the armor and absorption rows over the hotbar.
     default: return {Anchor::BottomCenter, 0, -72, 100, ElementBackground::Card, false};
     }
@@ -105,6 +110,7 @@ inline constexpr std::string_view hudElementKey(HudElementId id) {
     case HudElementId::UsedSlots: return "usedSlots";
     case HudElementId::StatusEffects: return "statusEffects";
     case HudElementId::Chat: return "chat";
+    case HudElementId::PaperDoll: return "paperDoll";
     default: return "toast";
     }
 }

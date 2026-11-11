@@ -120,6 +120,7 @@ the package/SDK loader-policy alignment in CI.
 | FreeCamera hide (hotbar control) | `FreeCameraHide.cpp` `FreeCameraHud` (the hotbar control's visibility, restored after the draw) | the hotbar stays drawn in FreeCamera | hiding the hand and the whole HUD |
 | Fake Offhand (item use targets) | `FakeOffhand.cpp` `targetUse` (planter component by name, copper fields, `canBeFertilized`, `isRailBlock`) | the primary item keeps priority on blocks as before L-189 | air checks, the rest of Fake Offhand |
 | Chat position (HUD control positions) | `ChatPosition.cpp` | vanilla chat position | the setting, key and layout preview |
+| Paper doll position (HUD control position) | `DebugVanillaHud.cpp` `DollPlacement` (the `hud_player` control's cached position, restored after the draw) | the doll where the game puts it | the setting, key and layout preview; hiding the doll |
 | FreeCamera hide (hand pass) | `FreeCameraHide.cpp` | hand drawn | FreeCamera and independent HUD paths |
 | FreeCamera hide (HUD pass) | `FreeCameraHide.cpp` | whole HUD drawn | FreeCamera and hand hiding |
 | Hide effects (particle passes) | `HideEffects.cpp` | particles drawn | independent hide selections |
@@ -223,7 +224,12 @@ Hooks: `DebugPositionSprite`, `DebugPositionText`, `DebugPaperDoll`
 Meaning: the vanilla HUD's position panel is named `player_position` (label
 `player_position_text`) and the HUD paper doll is drawn by
 `HudPlayerRenderer`, its control named `hud_player` (where the Info HUD
-covers it, L-145). A renamed control only stops the hiding. The
+covers it, L-145). A renamed control only stops the hiding. With Paper
+doll position on (gated, L-309) the same hook draws the doll where the HUD
+layout puts it: `HudPlayerRenderer` centers the doll in `hud_player` and
+sizes it by the control, so the control's cached position is set for the one
+call from its current size and restored at once; a dirty cached position, a
+renamed control or bad geometry leaves the doll vanilla. The
 `doll_trace` option draws the doll three more times in that hook (moved,
 resized, through the world matrix; L-309).
 

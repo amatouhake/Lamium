@@ -147,6 +147,7 @@ struct Settings {
         ui::HudElement inventory = ui::defaultHudElement(ui::HudElementId::Inventory);
         ui::HudElement usedSlots = ui::defaultHudElement(ui::HudElementId::UsedSlots);
         ui::HudElement chat = ui::defaultHudElement(ui::HudElementId::Chat);
+        ui::HudElement paperDoll = ui::defaultHudElement(ui::HudElementId::PaperDoll);
         ui::HudElement statusEffects = ui::defaultHudElement(ui::HudElementId::StatusEffects);
     } hud;
     struct Map {
@@ -283,6 +284,8 @@ struct Settings {
         // the grid shows the main 27 by default, the counter counts all 36 (2026-10-11).
         bool inventoryHud = false, usedSlots = false, inventoryHotbar = false, usedSlotsHotbar = true;
         bool chatPosition = false;
+        // Places the game's paper doll by the HUD layout (L-309); position only.
+        bool paperDollPosition = false;
         // Status Effects HUD (L-147): names off gives the icon-and-time column.
         bool effectsHud = false, effectsNames = true, effectsWarning = true, effectsHideVanilla = true;
         bool saturation = true;        // Gold outlines on the hunger bar (L-63)
@@ -404,6 +407,10 @@ struct Settings {
         hud.chat.scale = 100;
         hud.chat.background = ui::ElementBackground::None;
         hud.chat.shadow = true;
+        normalizeElement(hud.paperDoll, ui::defaultHudElement(ui::HudElementId::PaperDoll));
+        hud.paperDoll.scale = 100;
+        hud.paperDoll.background = ui::ElementBackground::None;
+        hud.paperDoll.shadow = true;
         normalizeElement(hud.statusEffects, ui::defaultHudElement(ui::HudElementId::StatusEffects), true);
         map.zoom = map::clampZoomIndex(map.zoom);
         if (!std::isfinite(map.size)) map.size = 20;
