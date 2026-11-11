@@ -169,15 +169,17 @@ as 13/36. Each works without the other.
 Active effects with icons, numeric levels and remaining time. The game's own
 effect icons are hidden while it shows.
 
-### Chat position
+### Game HUD placement
 
-Off by default. Chat messages at the bottom left as on Java Edition, movable
-in the HUD layout editor. Text, backgrounds and fading stay vanilla.
+Off by default. Lets the HUD layout editor move and resize three parts of
+the game's own HUD, each with its own switch: the chat (at the bottom left
+by default, as on Java Edition), the paper doll and the scoreboard. Their
+text, backgrounds and fading stay vanilla.
 
 ### HUD layout and toggle toasts
 
-A live HUD layout editor places Lamium's HUD elements and shows where the
-game's hotbar is. Toggle toasts give a short notice when a key turns a
+A live HUD layout editor places and scales Lamium's HUD elements (50-200 %)
+and shows where the game's hotbar is. Toggle toasts give a short notice when a key turns a
 feature on or off.
 
 ### Chunk Borders, Hitboxes and Light Level Overlay
