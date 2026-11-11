@@ -679,11 +679,17 @@ list for now (revisit if that display is not enough); scale 50-200 % with
 corner handles; no snapping to other elements, only the screen edge, the
 4-unit inset and the center lines; game-drawn elements get a distinct frame
 and only the controls they can offer.
-Open (second mockup round): scale step for the handles and +/- buttons (5 %
-proposed, direct entry to 1 %), the toolbar's look (shadow as a "name: value"
-button like background; where the element reset goes) and where the
-Reset/Done bar sits (today bottom right then bottom left, both occupied by
-default elements).
+Also decided 2026-11-11: handles sit on the corners away from the anchor (the
+anchor point stays put while scaling); handles and +/- step 5 %, direct entry
+1 %; shadow is a "name: value" button like background.
+Open (third mockup round): resets should follow the settings screens' rules
+(DESIGN "Resetting settings") instead of the editor's own UI - proposed: the
+all-elements reset on a heading with a second press, the element reset at the
+end of the element toolbar and applied at once, like the binding row's Reset;
+whether this is done within L-321 is not settled. Where Reset all / Done sit:
+proposed a small titled panel in the middle of the screen shown only while
+nothing is selected (today's corner bar is covered by default elements; two
+bare buttons in the middle looked out of place).
 Game-drawn elements: the paper doll (L-309) and chat scale are the requests;
 the hotbar and scoreboard are wanted if possible. Each needs Research on its
 draw path first. Elements declare what they offer (position / scale / look)

@@ -152,14 +152,16 @@ svg.guide line.e{stroke:#ff7ad9;stroke-width:1}
 .eye.off{background:transparent}
 .actions{display:flex;gap:6px;padding:4px}
 .sep{width:1px;height:16px;background:var(--mc-edge);margin:0 2px}
-.hbtn.quiet{box-shadow:none;background:none;color:var(--mc-faint)}
-.hbtn.quiet:hover{background:rgba(255,255,255,.07)}
+.actions.titled{display:block;padding:8px 12px 10px;text-align:center}
+.actions .ttl{font-size:14px;color:#fff}
+.actions .hint{font-size:11px;color:var(--mc-faint);margin-bottom:6px}
+.actions .btns{display:flex;gap:6px;justify-content:center}
 </style>
 <div class="wrap">
   <header>
     <div class="eyebrow">LAMIUM / HUD LAYOUT v2</div>
     <h1>HUD レイアウト編集の見直し</h1>
-    <p class="lede">第 2 版です。前回の回答で決まったこと(下の「決定事項」)を反映し、残りの論点 — スケールの刻み、ツールバーの見た目、完了バーの位置 — を切り替えで比べられるようにしました。実際にドラッグ・拡縮・選択ができます。中身は見本で、ゲームのアートではありません。</p>
+    <p class="lede">第 2 版です。前回の回答で決まったこと(下の「決定事項」)を反映し、残りの論点 — リセットの置き方と完了バーの見た目 — を切り替えで比べられるようにしました。実際にドラッグ・拡縮・選択ができます。中身は見本で、ゲームのアートではありません。</p>
   </header>
 
   <section class="controls" id="controls"></section>
@@ -190,16 +192,15 @@ svg.guide line.e{stroke:#ff7ad9;stroke-width:1}
     <ul>
       <li>編集画面では、条件付きで出る要素を名前つきの破線枠にする。選ぶと中身が出る。</li>
       <li>要素一覧は今は作らない。上の表示で足りなくなったら考える。</li>
-      <li>スケールは 50–200 %。角ハンドルを付ける。</li>
+      <li>スケールは 50–200 %。角ハンドルはアンカーの反対側の角に付ける。± と角ハンドルは 5 % 刻み、数値入力は 1 % 単位。</li>
+      <li>影は背景と同じ「名前: 値」のボタンにする。</li>
       <li>他の要素へのスナップはしない。画面の端、端から 4 単位、中央の線だけ。</li>
       <li>ゲーム側の要素はオレンジの枠で区別し、できる操作だけをツールバーに出す。</li>
     </ul>
     <h2 style="margin-top:16px">確認したいこと</h2>
     <ol>
-      <li><b>スケールの刻み</b>: 案は「± と角ハンドルは 5 % 刻み、数値入力は 1 % 単位」。角ハンドルで大まかに、± で微調整、決まった値は入力、という分担です。刻みを切り替えて角ハンドルの手応えを比べてください。</li>
-      <li><b>影の表示</b>: 背景と同じ「名前: 値」のボタンにそろえる案でよいか。</li>
-      <li><b>要素のリセット</b>: ツールバー右端に区切って目立たない字で置く案か、完了バーに置く案(今のゲームと同じ。選択中は「この要素をリセット」、未選択は「すべてリセット」に変わる)か。</li>
-      <li><b>完了バーの位置</b>: 今は右下で、ふさがっていれば左下に移りますが、初期配置では両方に要素があります(右下: 使用スロット、左下: 耐久値)。画面中央の上寄りに固定する案と、空いている場所を探す案を比べてください。</li>
+      <li><b>要素のリセット</b>: 設定画面の決まりにそろえる案です。まとめてのリセットは見出しの行にあり 2 回押しで実行、編集中の 1 項目のリセットはその項目の操作の並びにあってすぐ実行(キー編集の行の「クリア / リセット / キャンセル」)。HUD では「すべてリセット」を見出しつきパネルに、要素のリセットをツールバーの右端に区切って置きます。</li>
+      <li><b>完了バーの位置</b>: 中央にボタンが 2 つ浮くだけだと取って付けたように見えるので、見出しと操作の説明を持つ小さなパネルにする案を足しました。「未選択のときだけ」は、要素を選ぶとパネルが消えてツールバーだけになり、何もないところをクリック(または Esc)で戻ります。</li>
     </ol>
   </section>
 </div>
@@ -207,12 +208,12 @@ svg.guide line.e{stroke:#ff7ad9;stroke-width:1}
 (() => {
 const U = 2, W = 960, H = 540, INSET = 8;
 const $ = id => document.getElementById(id);
-const opt = { show:'temp', list:'off', step:5, range:'50-200', handles:'on', snap:'off', game:'on', reset:'tool', shadow:'text', actions:'top' };
+const opt = { show:'temp', list:'off', step:5, range:'50-200', handles:'on', snap:'off', game:'on', reset:'tool', shadow:'text', actions:'idle' };
 const groups = [
   ['step','スケール刻み(± と角ハンドル)',[[25,'25'],[10,'10'],[5,'5'],[1,'1']]],
   ['shadow','影の表示',[['sw','スイッチ(前回)'],['text','「影: あり」ボタン']]],
-  ['reset','要素のリセット',[['inline','ツールバーに並べる(前回)'],['tool','ツールバー右端に区切って置く'],['bar','完了バーに置く(今のゲームと同じ)']]],
-  ['actions','完了バーの位置',[['corner','右下、ふさがれば左下(今のゲームと同じ)'],['top','画面中央の上寄りに固定'],['free','空いている場所を探す']]],
+  ['reset','要素のリセット',[['inline','ツールバーに並べる(前回)'],['tool','ツールバー右端に区切って置く(キー編集の行と同じ考え方)'],['bar','完了バーに置く(今のゲームと同じ)']]],
+  ['actions','完了バーの位置',[['corner','右下、ふさがれば左下(今のゲームと同じ)'],['top','中央上寄りにボタンだけ(前回)'],['panel','中央に見出しつきパネル'],['idle','見出しつきパネル、未選択のときだけ']]],
 ];
 const help = {
   all:'今の編集画面と同じく、すべての要素を見本つきで表示します。右中央や上中央で重なります。',
@@ -333,7 +334,7 @@ function renderUi(){
       : `<button class="hbtn" data-act="shadow">影: ${e.shadow ? 'あり' : 'なし'}</button>`;
     if (e.kind === 'game') h += `<span class="note">見た目はゲームのまま</span>`;
     if (opt.reset === 'inline') h += `<button class="hbtn" data-act="reset">リセット</button>`;
-    if (opt.reset === 'tool') h += `<i class="sep"></i><button class="hbtn quiet" data-act="reset">リセット</button>`;
+    if (opt.reset === 'tool') h += `<i class="sep"></i><button class="hbtn" data-act="reset">リセット</button>`;
     t.innerHTML = h; ui.append(t);
     const b = e.box, tw = t.offsetWidth, th = t.offsetHeight;
     const gap = b.y < 24 ? 32 : 10; // The name tag sits below an element at the top edge.
@@ -354,16 +355,17 @@ function renderUi(){
     if (opt.game === 'on') h += `<div class="grp game">ゲーム</div>` + els.filter(x => x.kind === 'game').map(row).join('');
     l.innerHTML = h; ui.append(l);
   }
-  if (!drag){
-    const a = document.createElement('div'); a.className = 'lpanel actions';
+  const titled = opt.actions === 'panel' || opt.actions === 'idle';
+  if (!drag && !(opt.actions === 'idle' && e)){
+    const a = document.createElement('div'); a.className = 'lpanel actions' + (titled ? ' titled' : '');
     const one = opt.reset === 'bar' && e;
     a.innerHTML = `<button class="hbtn${resetArmed ? ' warn' : ''}" data-act="${one ? 'reset' : 'resetAll'}">${resetArmed ? 'もう一度押すとリセット' : one ? 'この要素をリセット' : 'すべてリセット'}</button><button class="hbtn go" data-act="done">完了 (Esc)</button>`;
+    if (titled) a.innerHTML = `<div class="ttl">HUD レイアウト</div><div class="hint">クリックで選択、ドラッグで移動</div><div class="btns">${a.innerHTML}</div>`;
     ui.append(a);
     const w = a.offsetWidth, h = a.offsetHeight, mid = (W-w)/2;
     const blocked = (x,y) => [tbBox, ...els.filter(shown).map(o => o.box)].some(o => o && x < o.x+o.w && o.x < x+w && y < o.y+o.h && o.y < y+h);
-    const spots = opt.actions === 'top' ? [[mid, H*.3]]
-      : opt.actions === 'corner' ? [[W-w-INSET, H-h-INSET], [INSET, H-h-INSET]]
-      : [[W-w-INSET, H-h-INSET], [INSET, H-h-INSET], [W-w-INSET, INSET], [INSET, INSET], [mid, H*.62], [mid, INSET], [mid, H*.3]];
+    const spots = titled ? [[mid, H*.5 - h - 24]] : opt.actions === 'top' ? [[mid, H*.3]]
+      : [[W-w-INSET, H-h-INSET], [INSET, H-h-INSET]];
     const at = spots.find(([x,y]) => !blocked(x,y)) || spots[spots.length-1];
     a.style.left = at[0]+'px'; a.style.top = at[1]+'px';
   }
