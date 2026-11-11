@@ -435,6 +435,52 @@ loaded chunk. Each is a new game dependency (GAME-UPDATES.md) and needs the
 maintainer's go-ahead. Terrain beyond the loaded area stays out of scope
 (CAMERA.md). [CAMERA.md](CAMERA.md)
 
+Header re-read 2026-11-12 (SDK 26.60.4; reading only, nothing built or run):
+- Confirmed in headers: the culler classes are still empty, and
+  `LevelCullerType` is still an enum without names, so only 3 and 5 are
+  known. `shouldCullThisFrame` and any "culling point" name are not in the
+  26.60.4 client headers; candidate (b) has no symbol to start from.
+- Confirmed in headers: `LevelRendererCamera` also has `mViewRegion`
+  (`OwnerPtr<BlockSource>`), `mCameraPos`, `mCameraTargetPos`,
+  `mViewAreaSide`/`mViewAreaHeight`/`mViewAreaChanged`, `mForceCulling`,
+  `mRecullWhenNotBusy`, `mShowSky`, and the read-only queries
+  `cullerIsVisible(point, radius)` (MCAPI), `isAABBVisible(aabb, fast)` and
+  `getRenderChunkInstancedAtShared(SubChunkPos)`. The culler class list
+  names the kinds that exist: None, NoneAsync, Manhattan, CachedStep,
+  DistanceField (Perspective/Orthographic), Shadow.
+- Confirmed in Lamium: FreeCamera moves the camera through
+  `CameraAPI::$tryGetActorInterpolatedPosition` and `setupCamera`, so the
+  view matrix and whatever the culler starts from get the same position;
+  they cannot be split at those hooks. Outside the loaded area the hook's
+  `inside` test is false (no chunk), so the choice there is 3, or 5 with the
+  hold on Always; the maintainer saw the sky with both.
+- Hypothesis (not confirmed): the visibility walk starts at the camera's
+  render chunk, and a render chunk with no level chunk behind it has no
+  visibility data, so the walk ends at once. That matches "one chunk past
+  the edge, all at once" and both culler types failing.
+- Suggested order, each step a trace build that only reads (needs the
+  maintainer's go-ahead as a game dependency; no behavior change):
+  1. In the existing `TerrainPreRender` hook, once per second while
+     FreeCamera is on, log `mCameraPos`, `mViewAreaDistance`, `mViewAreaSide`,
+     `mLastCullerType`, `mForceCulling`, `mShowSky`, whether
+     `getRenderChunkInstancedAtShared` at the camera's sub-chunk and at the
+     player's is non-null, and `cullerIsVisible(playerPos, 8)`. Compare one
+     chunk inside the edge with one chunk outside. This separates "the view
+     area no longer holds the loaded chunks", "the culler rejects them" and
+     "they pass the culler but are not queued".
+  2. Map type numbers to culler kinds: request each value 0..7 for one
+     second in a flat test world and log the class name of `mLevelCuller`
+     read from its vtable's RTTI. Only then is candidate (a) concrete: ask
+     for the None kind while the camera's column has no chunk.
+  3. If 1 shows the culler rejecting loaded chunks and 2 finds a None kind,
+     try (a) behind `versionSensitiveAllowed`, checking the frame time: a
+     culler that rejects nothing draws every loaded chunk.
+- Open for the maintainer: whether this is worth two trace rounds, given
+  that flying past the loaded area is rare and the terrain there is out of
+  scope anyway. A cheaper alternative that needs no game dependency is a
+  product choice, not decided here: stop the camera at the loaded edge, or
+  show a notice when it leaves.
+
 ### L-181 FreeCamera draws the held trident the wrong way round
 Kind: Bug / Research, low priority (maintainer 2026-10-15: drawing only,
 harmless). User report 2026-10-14; not yet reproduced.
