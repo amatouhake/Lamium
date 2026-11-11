@@ -414,6 +414,14 @@ switch off restores the game's places and keeps the selections. One
 "Placement and look" link opens the editor at the chat. The paragraphs below
 describe each part; where they say "switch" they mean its detail switch
 under this one. The hotbar is not part of it (stopped, BACKLOG L-321).
+The chat's default place stays the lower left (decided 2026-11-11), so
+switching the feature on moves the chat at once while the doll and the
+scoreboard stay until dragged. Why not the game's place, as for the other
+two: the game does not put the chat at a fixed place. It is the last item of
+a stack under the paper doll's room, the position line, the day count and
+the game tips, so its height changes with what shows; a fixed default could
+only imitate one of those states, and it would sit on the default Info HUD.
+The lower left keeps clear of Lamium's HUD and matches Java Edition.
 
 Paper doll placement (L-309, 2026-11-11): the game's paper doll is placed
 by HUD layout, on the chat's pattern below. Position and scale (50-200 %); its default is the game's
