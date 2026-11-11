@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Chat and scoreboard scale (L-321, 2026-11-11)
+
+`94f8299a`, DLL SHA-256
+`df71b0bc4dcf57805afd6e0064915a009c88db6d0b8a181918592cf769227cbe`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, desktop UI. The
+maintainer answered "no problems" to the supplied checklist, without
+itemizing:
+1. Chat at 150 % and 50 %: wrapped messages intact, backgrounds and text
+   matching.
+2. Scoreboard at 200 % and 50 %: background, title, names and scores scale
+   together.
+3. Both back at 100 % have the game's size.
+4. With a scale set, switching the feature off restores the game's place and
+   size.
+Not itemized: handles and typed scale for these elements, fading and many
+messages at a scale, Pocket UI, other GUI scales, servers.
+
 ## Chat scale draw experiment (L-321, 2026-11-11)
 
 `075b60e0`, DLL SHA-256
