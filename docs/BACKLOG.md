@@ -698,6 +698,110 @@ Game-drawn elements: the paper doll (L-309) and chat scale are the requests;
 the hotbar and scoreboard are wanted if possible. Each needs Research on its
 draw path first. Elements declare what they offer (position / scale / look)
 instead of the editor's `positionOnly` special case for the chat.
+
+#### Draw paths of the game-drawn elements (Research, 2026-11-11)
+No code and no game run. **Read** means SDK 26.60.4 headers or the HUD
+definition of the installed 1.26.60.05 (`hud`, `scoreboard` and `common`
+namespaces in `resource_packs/vanilla/__brarchive/ui.brarchive`; the UI JSON is
+no longer loose files). Everything else is marked **Hypothesis** or **Unknown**
+and needs a native experiment.
+
+Shared facts (Read):
+- `ScreenView::render` (linkable, hooked by Chat position) draws from
+  `mRootRenderBatch`: `ComponentRenderBatch`es holding `TextComponent*`,
+  `SpriteComponent*` and `CustomRenderComponent*`. Each component is drawn by
+  its own call: `TextComponent::$render` and `SpriteComponent::render` (both
+  linkable, both hooked) or, for `"type": "custom"` controls, the renderer's
+  `render(MinecraftUIRenderContext&, IClientInstance&, UIControl& owner, int pass)`.
+  The one call that dispatches every custom renderer,
+  `MinecraftUIRenderContext::renderCustom`, is `MCNAPI` (not linkable).
+- `UIControl` exposes `mCachedPosition`, `mSize`, `mParentRelativePosition`,
+  `mClipsChildren`, `mChildren`; `TextComponent` exposes `mFontScaleFactor`
+  and `mLineHeight`. No control or component has a scale or transform member.
+- `MinecraftUIRenderContext::mScreenContext` is a `mce::MeshContext`; its
+  `camera.worldMatrixStack` has a linkable `push`. Lamium already pushes a
+  model matrix there during a UI draw for its own mesh (`schematic/Preview.cpp`;
+  the UI scissor did not reach that mesh).
+- Text and images are queued (`mTextToDraw` items carry `mArea` and
+  `mFontScale`, `mImagesToDraw` items `mPosition` and `mSize`) and drawn by
+  `flushText` / `flushImages`.
+
+So there are three tools, in rising cost: (1) translate `mCachedPosition` for
+one draw call and restore it (the chat, verified in game for text and
+sprites); (2) a matrix pushed around one draw call; (3) Lamium drawing the
+element itself and hiding the game's. **Hypothesis**: (2) works only for a
+renderer that draws its mesh inside its own call; queued text and images are
+drawn after the hook has returned, so a matrix around `TextComponent::$render`
+would do nothing. Not tested for any game renderer.
+
+| Element | Drawn by (Read) | Lamium already sees it | Calls |
+|---|---|---|---|
+| Paper doll | control `hud_player`, renderer `hud_player_renderer` = `HudPlayerRenderer::$render` (linkable) | yes: `DebugPaperDoll` in `DebugVanillaHud.cpp` skips the call to hide it; `noteCoveredVanilla` reads the control box | one call per pass draws the whole doll |
+| Chat | per message `chat_background` (image) with child `chat_text` (label), made by `chat_item_factory` under `chat_panel` | yes: `ChatPosition.cpp` | one sprite and one text call per message |
+| Scoreboard sidebar | `sidebar@scoreboard.scoreboard_sidebar` in `root_panel`, anchored right-middle: images `main` and `displayed_objective_background`, label `displayed_objective`, and one label per row from `player_list_factory` / `player_score_factory` | the two hooks Chat position owns are called for it; nothing filters for it yet | two sprites, one title, two labels per row |
+| Hotbar and status bars | see below | `noteHotbar` and `FreeCameraHide` read the box of `desktop_hotbar` / `pocket_hotbar` / `hotbar_panel` | many, of mixed kinds |
+
+Hotbar parts (Read). Under `hotbar_panel` (a horizontal stack): cap images;
+`hotbar_slots_renderer` (slot backgrounds, `HotBarSlotsRenderer::$render`,
+**not linkable**); per slot a selected-slot image, the item
+(`inventory_item_renderer`, `InventoryItemRenderer::$render`, linkable), the
+count label, the durability and storage bars (`progress_bar_renderer`,
+linkable) and `hotbar_cooldown_renderer` (**not linkable**). The hotbar hangs
+below the XP bar: `exp_progress_bar_and_hotbar` nests empty bar image > full bar
+image > nub > horse jump > dash > `hotbar_chooser`, with the level label and
+the item-name text factory beside them, and has a second variant with the
+locator bar (`HudLocatorBarRenderer::$render`, **not linkable**). Hearts,
+armor and hunger are separate custom controls of size 1x1 beside it in
+`centered_gui_elements_at_bottom_middle` (180x50, bottom-middle); their
+`$render` is linkable, bubbles' is **not**. `HudHeartRenderer`,
+`HudHungerRenderer`, `HudArmorRenderer` and `HotBarSlotsRenderer` keep their
+own meshes and per-icon positions (`mIconPosition`, `mSlotPositions`) filled
+outside `render`. Horse hearts, horse jump and dash were not checked.
+
+What each change needs:
+
+- **Paper doll** (details under L-309). Position: **Hypothesis** tool (1) in
+  the existing hook, no new hook. Scale: **Unknown**; try the control's
+  `mSize` for the call, then tool (2), and only then recreation.
+- **Chat scale.** The label takes `font_scale_factor` from the UI variable
+  `$chat_font_scale_factor`, so the text size is `TextComponent::mFontScaleFactor`
+  (Read). Wrapping, line heights and the backgrounds' sizes are fixed by
+  layout before any draw. **Hypothesis**: a draw-time scale has to treat each
+  message as a whole: positions scaled about the panel's anchor (pure math
+  next to `translated`), the background's `mSize` and the text's
+  `mFontScaleFactor` and `mSize` scaled for the call and restored.
+  **Unknown**: whether the text is re-wrapped or re-measured at draw time
+  (a different wrap than the layout's would overlap or gap the lines),
+  whether a per-frame change of the font scale defeats a text cache (cost,
+  flicker), and whether non-integer font scales stay sharp. The alternative,
+  changing the real layout values and letting the game re-lay out, gives up
+  "layout stays entirely vanilla" and was the source of the first chat
+  build's flicker.
+- **Scoreboard.** Position: tool (1) as for the chat; every part is a plain
+  image or label, so no new hook. The part names are generic (`main`), so
+  match by an ancestor named `sidebar` under the HUD root rather than by the
+  part's own name. **Unknown**: the runtime names of the factory-made rows,
+  and whether any ancestor clips. Scale: the same open questions as chat
+  scale; build it after the chat's answer.
+- **Hotbar.** Position: tool (1) per part cannot cover it, because three
+  renderers on the path are not linkable and the per-icon positions of
+  hearts, armor, hunger and slots are **Unknown** to follow `mCachedPosition`
+  at draw time. Moving the whole subtree before `ScreenView::render` and
+  restoring it after (the first chat build) reaches every part without those
+  hooks but shares that unknown. Scale: no path found short of tool (2) on
+  each renderer or recreation. Also affected: touch and pointer hit areas
+  (`hotbar_slot_button` stays where layout put it), the item-name text, and
+  Lamium's own users of the hotbar box (Offhand slot, FreeCamera hide).
+  Requesting the three functions (`LiteLDev/mcapi-requests`) is a
+  precondition for any per-part approach.
+
+Recommended order: the paper doll first. It is the top request, is one call
+Lamium already hooks, and its experiment (below, L-309) also answers whether
+tool (2) works on a game renderer at all, which decides what is possible for
+hearts and the hotbar. Then scoreboard position (reuses the chat path; cheap,
+no new hook), then chat scale after one text experiment, the hotbar last and
+possibly position only. Until an experiment passes, the editor should offer:
+doll and scoreboard nothing yet, chat position only.
 No release target selected.
 
 ### L-309 Place and scale the paper doll
@@ -714,6 +818,47 @@ if a hook is needed, whether the doll is drawn once or per part; anchor, offset
 and scale in the HUD editor or a screen of its own; and what F1 (Hide HUD) and
 `hudHidePaperDoll` then mean. The maintainer's reply notes the doll's parts may
 have to be recreated to scale.
+
+Research 2026-11-11 (headers and the installed HUD definition only; the
+shared facts and the other elements are under L-321):
+- Read: the doll is the control `hud_player` (`"type": "custom"`, renderer
+  `hud_player_renderer`) inside a 15x15 panel. Desktop: `hud_player_rend_desktop`
+  in `centered_gui_elements`, top-left, offset `$hud_player_rend_desktop_offset`
+  (default 15, 15). Pocket UI: `hud_player_rend_pocket` in
+  `not_centered_gui_elements`, offset 15, 25. Its visibility is the binding
+  `#paper_doll_visible`. `paper_doll_padding` (50 units) in `chat_stack` only
+  reserves room above the position line and chat.
+- Read: `HudPlayerRenderer::$render(MinecraftUIRenderContext&, IClientInstance&,
+  UIControl& owner, int pass)` is linkable and already hooked (`DebugPaperDoll`).
+  The class holds `mRenderTime`, `mLastTimeStamp` and `mPlayerArmorState`: no
+  position, size or scale of its own. So the answer to "which call" is known,
+  no new hook is needed, and from the hook's side the doll is one call per
+  pass, not one per part.
+- Read: the other doll renderers do not help recreation. `PaperDollRenderer`
+  has only `$render` linkable (constructor, `_render`, `_update` are not) and
+  `LivePlayerRenderer` nothing.
+- Hypothesis, position: the renderer places the doll from `owner`'s cached
+  position, so translating `owner.mCachedPosition` for the call and restoring
+  it (as Chat position does) moves it.
+- Hypothesis, scale, in the order to try: (a) the renderer sizes the model
+  from `owner.mSize`, so a scaled size for the call is enough (`PaperDoll.h`
+  measured the doll's extent at one control size only); (b) the model is drawn
+  inside the call through `camera.worldMatrixStack`, so a scale about the
+  control's corner pushed around `origin` scales it; (c) neither: Lamium draws
+  a player model itself and hides the game's, which is a feature of its own
+  size and not planned.
+- Unknown without a game run: all three hypotheses; whether the draw is
+  deferred past the hook; whether a clip or scissor cuts a moved or enlarged
+  doll; whether armor, held items, capes and persona pieces follow; what
+  `pass` values arrive.
+- One experiment answers these: a trace option that, in the existing hook,
+  applies one of offset +40, size x2 or matrix x2 chosen by a debug setting,
+  and logs `pass`, `owner`'s position and size once per change. Three
+  screenshots (move, sneak, with armor) per mode.
+- Follows from a moved doll: `noteCoveredVanilla` must test the moved box;
+  the editor needs a sample frame, since the game shows the doll only while
+  `#paper_doll_visible`. What F1 and `hudHidePaperDoll` mean for a moved doll
+  stays open (Design).
 No release target selected.
 
 ### L-249 Show the chunks within simulation distance
