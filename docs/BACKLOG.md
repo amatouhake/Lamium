@@ -881,8 +881,10 @@ is the game's desktop place (top left). The element is the doll's drawn
 extent, 45x50 units; the editor shows a stand-in figure because the game
 draws no doll there. `hudHidePaperDoll` tests the placed box; F1 is the
 game's and unchanged. Game-drawn elements have a warning-colored frame in the
-editor. Left: scale (the control's size for the call; sizes below 1 and
-clipping unchecked), Pocket UI's default place, other GUI scales.
+editor. Scale built 2026-11-11 (50-200 %, the control's size for the call;
+not checked in game yet): the element box scales with the doll, with the
+toolbar's scale and the corner handles like Lamium's own elements. Left:
+Pocket UI's default place, other GUI scales.
 No release target selected.
 
 ### L-249 Show the chunks within simulation distance

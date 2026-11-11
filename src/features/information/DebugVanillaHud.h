@@ -15,9 +15,9 @@ inline bool positionControl(std::string_view name) {
 // Set each frame by the HUD draw.
 void infoCovers(bool doll, bool position);
 // Where the paper doll's control is centered while Paper doll position is on
-// (L-309), in HUD units; nothing leaves the doll where the game puts it.
-// Set each frame by the HUD draw.
-void placeDoll(std::optional<paperDoll::Point> center);
+// (L-309), in HUD units, and how large it is drawn (1 is the game's size);
+// nothing leaves the doll as the game draws it. Set each frame by the HUD draw.
+void placeDoll(std::optional<paperDoll::Point> center, float scale = 1);
 void start() noexcept;
 void stop();
 }

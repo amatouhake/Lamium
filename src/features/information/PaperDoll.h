@@ -24,8 +24,11 @@ inline std::optional<Box> area(Box control) {
 // control width to each side, and 50 units from a control's width above it.
 inline constexpr float controlSide = 15, placedWidth = 3 * controlSide, placedHeight = 50;
 struct Point { float x, y; };
-// Where the control's center goes for an element box with its top left at x, y.
-inline Point controlCenter(float x, float y) { return {x + 1.5f * controlSide, y + 1.5f * controlSide}; }
+// Where the control's center goes for an element box with its top left at
+// x, y, drawn at `scale` (1 is the game's size): the box scales with the doll.
+inline Point controlCenter(float x, float y, float scale = 1) {
+    return {x + 1.5f * controlSide * scale, y + 1.5f * controlSide * scale};
+}
 // The control's top left for that center, whatever size the control has now
 // (the screen's entrance animation shrinks it about its center).
 inline std::optional<Point> controlPosition(Point center, float w, float h) {

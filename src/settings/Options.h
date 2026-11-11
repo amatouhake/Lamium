@@ -243,6 +243,7 @@ inline constexpr auto options = std::to_array<Option>({
     hudToggle<ui::HudElementId::UsedSlots, &ui::HudElement::shadow>("hud.usedSlots.shadow", "usedSlots", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::chatPosition>("information.chatPosition", "chatPosition", "chatPosition"),
     toggle<&Settings::information, &Settings::Information::paperDollPosition>("information.paperDollPosition", "paperDollPosition", "paperDollPosition"),
+    hudNumeric<ui::HudElementId::PaperDoll, &ui::HudElement::scale>("hud.paperDoll.scale", "paperDollPosition", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     toggle<&Settings::information, &Settings::Information::effectsHud>("information.effectsHud", "statusEffects", "statusEffects"),
     toggle<&Settings::information, &Settings::Information::effectsNames>("information.effectsNames", "statusEffects", "effectsNames"),
     toggle<&Settings::information, &Settings::Information::effectsWarning>("information.effectsWarning", "statusEffects", "effectsWarning"),

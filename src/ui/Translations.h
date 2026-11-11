@@ -415,7 +415,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"chatPosition", "Chat position: {}", "チャット位置変更: {}"},
     {"chatPosition.sample", "Sample chat message", "チャットメッセージの見本"},
     {"feature.paperDollPosition", "Paper doll position", "ペーパードール位置変更"},
-    {"help.paperDollPosition", "Moves the game's paper doll, the small player model on the HUD. Drag it in HUD layout. Its look and when it shows stay vanilla.", "HUD に出るプレイヤーの小さなモデル（ペーパードール）を移します。HUD レイアウトで自由に配置できます。見た目と表示される条件は標準のままです。"},
+    {"help.paperDollPosition", "Moves the game's paper doll, the small player model on the HUD. Move and resize it in HUD layout. Its look and when it shows stay vanilla.", "HUD に出るプレイヤーの小さなモデル（ペーパードール）を移します。HUD レイアウトで位置と大きさを変えられます。見た目と表示される条件は標準のままです。"},
     {"paperDollPosition", "Paper doll position: {}", "ペーパードール位置変更: {}"},
     {"key.Lamium.chatposition", "Toggle chat position", "チャット位置変更を切り替え"},
     {"key.Lamium.paperdollposition", "Toggle paper doll position", "ペーパードール位置変更を切り替え"},

@@ -284,7 +284,7 @@ struct Settings {
         // the grid shows the main 27 by default, the counter counts all 36 (2026-10-11).
         bool inventoryHud = false, usedSlots = false, inventoryHotbar = false, usedSlotsHotbar = true;
         bool chatPosition = false;
-        // Places the game's paper doll by the HUD layout (L-309); position only.
+        // Places and scales the game's paper doll by the HUD layout (L-309).
         bool paperDollPosition = false;
         // Status Effects HUD (L-147): names off gives the icon-and-time column.
         bool effectsHud = false, effectsNames = true, effectsWarning = true, effectsHideVanilla = true;
@@ -408,7 +408,6 @@ struct Settings {
         hud.chat.background = ui::ElementBackground::None;
         hud.chat.shadow = true;
         normalizeElement(hud.paperDoll, ui::defaultHudElement(ui::HudElementId::PaperDoll));
-        hud.paperDoll.scale = 100;
         hud.paperDoll.background = ui::ElementBackground::None;
         hud.paperDoll.shadow = true;
         normalizeElement(hud.statusEffects, ui::defaultHudElement(ui::HudElementId::StatusEffects), true);

@@ -22,14 +22,19 @@ namespace {
 bool installedSprite = false, installedText = false, installedDoll = false;
 std::atomic<bool> dollCovered{false}, positionCovered{false};
 std::atomic<bool> dollPlaced{false};
-std::atomic<float> dollX{0}, dollY{0};
-// The doll's control is drawn where the HUD layout puts it, for this one
-// call: its cached position is restored at once, without invalidating the
-// tree or touching its layout (as Chat position does, L-309).
+std::atomic<float> dollX{0}, dollY{0}, dollScale{1};
+// The doll's control is drawn where and as large as the HUD layout says, for
+// this one call: its cached position and size are restored at once, without
+// invalidating the tree or touching its layout (as Chat position does,
+// L-309). The game centers the doll in the control and sizes it by it.
 struct DollPlacement {
     UIControl* owner = nullptr;
-    glm::vec2 position{};
-    ~DollPlacement() { if (owner) owner->mCachedPosition = position; }
+    glm::vec2 position{}, size{};
+    ~DollPlacement() {
+        if (!owner) return;
+        owner->mCachedPosition = position;
+        owner->mSize = size;
+    }
     void prepare(UIControl& control) {
         if (!dollPlaced.load()) return;
         auto& runtime = Runtime::instance();
@@ -37,12 +42,17 @@ struct DollPlacement {
         std::string const& name = *control.mName;
         if (name != "hud_player" || control.mCachedPositionDirty) return;
         if (!versionSensitiveAllowed(capabilities::Id::PaperDollPosition)) return;
-        glm::vec2 size = *control.mSize;
-        auto next = paperDoll::controlPosition({dollX.load(), dollY.load()}, size.x, size.y);
+        float scale = dollScale.load();
+        if (!std::isfinite(scale) || scale < .5f || scale > 2) return;
+        glm::vec2 current = *control.mSize;
+        glm::vec2 scaled = current * scale;
+        auto next = paperDoll::controlPosition({dollX.load(), dollY.load()}, scaled.x, scaled.y);
         if (!next) return;
         position = *control.mCachedPosition;
+        size = current;
         owner = &control;
         control.mCachedPosition = glm::vec2{next->x, next->y};
+        if (scale != 1) control.mSize = scaled;
     }
 };
 bool hiding() noexcept {
@@ -120,8 +130,8 @@ void infoCovers(bool doll, bool position) {
     dollCovered = doll;
     positionCovered = position;
 }
-void placeDoll(std::optional<paperDoll::Point> center) {
-    if (center) { dollX = center->x; dollY = center->y; }
+void placeDoll(std::optional<paperDoll::Point> center, float scale) {
+    if (center) { dollX = center->x; dollY = center->y; dollScale = scale; }
     dollPlaced = center.has_value();
 }
 void start() noexcept {

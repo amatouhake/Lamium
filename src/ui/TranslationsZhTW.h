@@ -411,7 +411,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"chatPosition", "聊天位置: {}"},
     {"chatPosition.sample", "聊天訊息範例"},
     {"feature.paperDollPosition", "紙娃娃位置"},
-    {"help.paperDollPosition", "移動遊戲的紙娃娃（HUD 上的小型玩家模型），可在 HUD 版面配置中拖曳。外觀和顯示條件維持原版。"},
+    {"help.paperDollPosition", "移動遊戲的紙娃娃（HUD 上的小型玩家模型），可在 HUD 版面配置中移動和縮放。外觀和顯示條件維持原版。"},
     {"paperDollPosition", "紙娃娃位置: {}"},
     {"key.Lamium.chatposition", "切換聊天位置"},
     {"key.Lamium.paperdollposition", "切換紙娃娃位置"},

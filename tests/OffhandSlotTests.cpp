@@ -49,6 +49,11 @@ void offhandSlotTests() {
         check(!doll::controlPosition(center, -1, 15) && !doll::controlPosition({NAN, 0}, 15, 15), "bad geometry places nothing");
         auto moved = doll::controlPosition(doll::controlCenter(200, 100), 15, 15);
         check(moved && moved->x == 215 && moved->y == 115, "a moved element moves the control with it");
+        // Twice as large: the element box is 90x100 and the control 30x30 inside it.
+        auto doubled = doll::controlPosition(doll::controlCenter(200, 100, 2), 30, 30);
+        check(doubled && doubled->x == 230 && doubled->y == 130, "a scaled doll keeps its place inside the scaled element box");
+        check(lamium::ui::hudScalable(lamium::ui::HudElementId::PaperDoll) && !lamium::ui::hudScalable(lamium::ui::HudElementId::Chat),
+              "the paper doll takes a scale; the chat does not");
         auto parts = doll::figure(doll::Box{100, 40, doll::placedWidth, doll::placedHeight});
         check(parts[0].x == 118.5f && parts[0].y == 49 && parts[0].w == 8 && parts[5].y + parts[5].h == 81,
               "the editor's stand-in figure is centered in the element box");
@@ -63,8 +68,9 @@ void offhandSlotTests() {
         lamium::Settings fresh;
         check(!fresh.information.paperDollPosition, "paper doll position starts off");
         auto saved = lamium::decodeSettings(R"({"information":{"paperDollPosition":true},"hud":{"paperDoll":{"anchor":8,"dx":-10,"dy":-20,"scale":150}}})");
-        check(saved.information.paperDollPosition && saved.hud.paperDoll.dx == -10 && saved.hud.paperDoll.scale == 100,
-              "the paper doll's switch and place load; it has no scale");
+        check(saved.information.paperDollPosition && saved.hud.paperDoll.dx == -10 && saved.hud.paperDoll.scale == 150
+              && saved.hud.paperDoll.background == lamium::ui::ElementBackground::None,
+              "the paper doll's switch, place and scale load");
     }
 
     lamium::Settings defaults;
