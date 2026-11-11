@@ -6271,6 +6271,89 @@ Closed 2026-11-06 (maintainer): plan A is enough for now. What is left is L-315.
 
 ## Design
 
+### L-309 Place and scale the paper doll
+Kind: Design. User request 2026-11-05 (Discord): choose where the paper doll
+sits and how large it is.
+Current: the HUD editor moves Lamium's own elements (`HudElementId` in
+`src/ui/HudElement.h`, each with an anchor, an offset and a 75-150 % scale); the
+paper doll is drawn by the game and Lamium only hides it behind the Info HUD
+(`information.hudHidePaperDoll`, L-145). Moving or scaling it needs a hook on the
+game's doll draw.
+Open: which call draws the doll and whether it can be reached without a native
+experiment (the offhand map shows a draw can sit outside the hooks Lamium owns);
+if a hook is needed, whether the doll is drawn once or per part; anchor, offset
+and scale in the HUD editor or a screen of its own; and what F1 (Hide HUD) and
+`hudHidePaperDoll` then mean. The maintainer's reply notes the doll's parts may
+have to be recreated to scale.
+
+Research 2026-11-11 (headers and the installed HUD definition only; the
+shared facts and the other elements are under L-321):
+- Read: the doll is the control `hud_player` (`"type": "custom"`, renderer
+  `hud_player_renderer`) inside a 15x15 panel. Desktop: `hud_player_rend_desktop`
+  in `centered_gui_elements`, top-left, offset `$hud_player_rend_desktop_offset`
+  (default 15, 15). Pocket UI: `hud_player_rend_pocket` in
+  `not_centered_gui_elements`, offset 15, 25. Its visibility is the binding
+  `#paper_doll_visible`. `paper_doll_padding` (50 units) in `chat_stack` only
+  reserves room above the position line and chat.
+- Read: `HudPlayerRenderer::$render(MinecraftUIRenderContext&, IClientInstance&,
+  UIControl& owner, int pass)` is linkable and already hooked (`DebugPaperDoll`).
+  The class holds `mRenderTime`, `mLastTimeStamp` and `mPlayerArmorState`: no
+  position, size or scale of its own. So the answer to "which call" is known,
+  no new hook is needed, and from the hook's side the doll is one call per
+  pass, not one per part.
+- Read: the other doll renderers do not help recreation. `PaperDollRenderer`
+  has only `$render` linkable (constructor, `_render`, `_update` are not) and
+  `LivePlayerRenderer` nothing.
+- Hypothesis, position: the renderer places the doll from `owner`'s cached
+  position, so translating `owner.mCachedPosition` for the call and restoring
+  it (as Chat position does) moves it.
+- Hypothesis, scale, in the order to try: (a) the renderer sizes the model
+  from `owner.mSize`, so a scaled size for the call is enough (`PaperDoll.h`
+  measured the doll's extent at one control size only); (b) the model is drawn
+  inside the call through `camera.worldMatrixStack`, so a scale about the
+  control's corner pushed around `origin` scales it; (c) neither: Lamium draws
+  a player model itself and hides the game's, which is a feature of its own
+  size and not planned.
+- Unknown without a game run: all three hypotheses; whether the draw is
+  deferred past the hook; whether a clip or scissor cuts a moved or enlarged
+  doll; whether armor, held items, capes and persona pieces follow; what
+  `pass` values arrive.
+- One experiment answers these: a trace option that, in the existing hook,
+  applies one of offset +40, size x2 or matrix x2 chosen by a debug setting,
+  and logs `pass`, `owner`'s position and size once per change. Three
+  screenshots (move, sneak, with armor) per mode.
+- Follows from a moved doll: `noteCoveredVanilla` must test the moved box;
+  the editor needs a sample frame, since the game shows the doll only while
+  `#paper_doll_visible`. What F1 and `hudHidePaperDoll` mean for a moved doll
+  stays open (Design).
+
+Experiment result 2026-11-11 (`doll_trace`, VALIDATION-LOG "Paper doll draw
+experiment"): on desktop UI all three hypotheses hold. Moving
+`owner.mCachedPosition` for the call moves the doll; doubling `owner.mSize`
+for the call doubles it, armor, held item and head piece included, with the
+doll centered in the control; a scale on `camera.worldMatrixStack` around the
+call does the same. No recreation is needed. Build it with the position and
+size of the control (both restored after the call): that needs no matrix
+write, and the shrink of the control during the screen's entrance animation
+suggests the game itself sizes the doll this way. The matrix result matters
+for other renderers (L-321). Still unchecked: Pocket UI, other GUI scales,
+sizes below 1, clipping and draw order away from the corner.
+Position built and checked in game 2026-11-11 (desktop UI, see VALIDATION), on the
+Chat position pattern: a default-off Paper doll position switch with an
+unbound toggle key, and a position-only element in HUD layout whose default
+is the game's desktop place (top left). The element is the doll's drawn
+extent, 45x50 units; the editor shows a stand-in figure because the game
+draws no doll there. `hudHidePaperDoll` tests the placed box; F1 is the
+game's and unchanged. Game-drawn elements have a warning-colored frame in the
+editor. Scale built 2026-11-11 (50-200 %, the control's size for the call;
+not checked in game yet): the element box scales with the doll, with the
+toolbar's scale and the corner handles like Lamium's own elements. Left:
+Pocket UI's default place, other GUI scales.
+Scale checked in game 2026-11-11 (`789eaa13`, desktop UI): 200 % and 50 %
+draw as the editor's frame shows, nothing is cut off at the screen edge, and
+100 % restores the game's size. Closed 2026-11-11; what is left is in
+BACKLOG "Pre-release checks".
+
 ### L-318 Tool Switch: pick a Silk Touch tool when only Silk Touch recovers the block
 Kind: Design. Done 2026-11-07 (PR #73, merged as `b82f953c`). Maintainer's note 2026-11-07 (multiplayer-session feedback).
 For blocks with no proper tool that drop themselves only with Silk Touch

@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Paper doll scale (L-309, 2026-11-11)
+
+`789eaa13`, DLL SHA-256
+`5426ffdaedb473c44a2feca9e46a184c75b0ef3a571bd04d00d39e8d9c4c799f`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, desktop UI.
+Passed, per the maintainer:
+1. At 200 % the doll in play fills about the range the editor's frame shows,
+   armor and held item with it.
+2. At 50 % it is drawn small and correctly.
+3. Enlarged and placed at the screen edge it is not cut off.
+4. Back at 100 % it has the game's size again.
+Not itemized: sizes between, Pocket UI, other GUI scales, servers.
+
 ## Paper doll position (L-309, 2026-11-11)
 
 `94543d8e`, DLL SHA-256
