@@ -251,7 +251,7 @@ the chat, the screen hook establishes the render scope and each part's cached
 position is translated for its one draw from the sidebar's measured box, then
 restored. Gated (Scoreboard position); a renamed sidebar, a clipping panel on
 the way (logged once when it is the sidebar itself) or invalid geometry
-leaves it vanilla. Not checked in game yet (L-321).
+leaves it vanilla. Checked locally on `f90e1f61` (L-321).
 
 ### `src/features/information/ChatPosition.cpp`
 Hooks: `ChatHudRender`, `ChatTextRender`, `ChatBackgroundRender`

@@ -184,6 +184,7 @@ validation checkpoints" (snapshot 2026-10-20).
 | Item Transfer, L-169 | Held-stack/drop gestures passed the local chest checklist; try inventory and slot-role screens, servers and a rebound drop key. Full gesture/screen matrix, cursor/hotbar/keep-one/re-entry/saved-switch cases, controlled rejection/timeouts, world/dimension interruption, unverified-game fallback and packs remain. See ITEM-TRANSFER.md. |
 | Shared capability migration, L-198 to L-202 | Server/server-pack smoke. A separately requested forced-unverified build should check vanilla fallback and matching UI/notices while independent paths work. Injected hook/cleanup failures and partial-loss/restart UI remain unverified in game. |
 | Settings/help and map layers, L-197/L-146 | Broader sizes, languages and editing states; narrow-window two-row map bar. Use current DESIGN and VALIDATION, not superseded footer-expansion checkpoints. |
+| Scoreboard position, L-321 | Pocket UI, other GUI scales, long lists, servers and their custom sidebars. |
 | Paper doll position, L-309 | Pocket UI (the game's place there is 15, 25, Lamium's default the desktop 15, 15), other GUI scales, servers, the doll hidden under the Info HUD at its placed box. Known limit: overlapping another element it may not be shown or is not drawn behind it. |
 | Chat position, L-174/L-203 | Fresh settings, GUI scales/Pocket UI, packs, world/dimension/focus and servers beyond the recorded local checks. See CHAT-POSITION.md. |
 | Edge Guard, L-162 | Longer play, other servers, slippery blocks; correction that already puts feet off support remains a limit. Preserve environment/build/log if a fall recurs. |
@@ -781,8 +782,8 @@ What each change needs:
   changing the real layout values and letting the game re-lay out, gives up
   "layout stays entirely vanilla" and was the source of the first chat
   build's flicker.
-- **Scoreboard.** Position built 2026-11-11 (`ScoreboardPosition.cpp`, not
-  checked in game yet, see VALIDATION): a default-off Scoreboard position
+- **Scoreboard.** Position built and checked in game 2026-11-11
+  (`ScoreboardPosition.cpp`, desktop UI, see VALIDATION): a default-off Scoreboard position
   switch with an unbound key and a position-only element whose default is the
   game's place; a conditional element, so a named frame in the editor with a
   sample when selected. The notes it was built from: tool (1) as for the chat; every part is a plain

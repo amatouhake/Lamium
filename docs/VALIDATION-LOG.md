@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Scoreboard position (L-321, 2026-11-11)
+
+`f90e1f61`, DLL SHA-256
+`d05da587fd0431b71d8affcb043ccfbb4ae85efa2593ae5f20653885b58b51b0`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, desktop UI, a
+local world with a sidebar objective. Passed, per the maintainer:
+1. Switched on, the scoreboard stays at its usual place.
+2. Dragged in HUD layout: in play the background, title, names and scores are
+   drawn together at that place.
+3. At the left side and the top edge nothing is cut off; a long name added
+   afterwards still fits on the screen.
+4. Switched off, the scoreboard is back at the game's place.
+Not itemized: Pocket UI, other GUI scales, servers and their custom sidebars,
+long lists, the editor's sample and frame.
+
 ## Paper doll scale (L-309, 2026-11-11)
 
 `789eaa13`, DLL SHA-256
