@@ -15,6 +15,7 @@
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include <Windows.h>
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <utility>
@@ -57,6 +58,9 @@ struct RenderScope {
 struct Translation {
     UIControl* owner = nullptr;
     glm::vec2 position{};
+#ifdef LAMIUM_CHAT_SCALE_TRACE
+    glm::vec2 panelAt{}, panelSize{};
+#endif
     ~Translation() { if (owner) owner->mCachedPosition = position; }
     void prepare(UIControl& control) {
         if (!active) return;
@@ -84,8 +88,37 @@ struct Translation {
         }
         owner = &control;
         control.mCachedPosition = glm::vec2{next->x, next->y};
+#ifdef LAMIUM_CHAT_SCALE_TRACE
+        panelAt = at;
+        panelSize = size;
+#endif
     }
 };
+#ifdef LAMIUM_CHAT_SCALE_TRACE
+// L-321 experiment: the same chat part drawn two more times in the frame,
+// scaled about the placed panel's bottom left corner: 1.4 times to the right
+// of the chat and 0.7 times above it. Position and size of the control are
+// scaled for the call; `font` scales what else the part needs (the text's
+// font scale) and undoes it.
+std::atomic<int> traceLines{0};
+template<class Font, class Draw>
+void scaledCopies(Translation const& t, UIControl& control, Font font, Draw draw) {
+    if (!t.owner || !active) return;
+    glm::vec2 placed = *control.mCachedPosition, size = *control.mSize;
+    glm::vec2 corner = t.panelAt + (placed - t.position) + glm::vec2{0, t.panelSize.y};
+    struct Copy { float scale; glm::vec2 anchor; };
+    Copy const copies[] = {{1.4f, {active->width * .42f, corner.y}}, {.7f, {corner.x, corner.y - t.panelSize.y - 12}}};
+    for (auto const& copy : copies) {
+        control.mCachedPosition = copy.anchor + (placed - corner) * copy.scale;
+        control.mSize = size * copy.scale;
+        font(copy.scale);
+        draw();
+        font(0);
+    }
+    control.mCachedPosition = placed;
+    control.mSize = size;
+}
+#endif
 }
 LL_TYPE_INSTANCE_HOOK(ChatHudRender, ll::memory::HookPriority::Normal, ScreenView,
     &ScreenView::render, void, UIRenderContext& context) {
@@ -98,12 +131,31 @@ LL_TYPE_INSTANCE_HOOK(ChatTextRender, ll::memory::HookPriority::Normal, TextComp
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
     origin(context);
+#ifdef LAMIUM_CHAT_SCALE_TRACE
+    try {
+        float scale = mFontScaleFactor, line = mLineHeight;
+        if (translation.owner && traceLines.fetch_add(1) < 6) {
+            glm::vec2 at = *mOwner.mCachedPosition, size = *mOwner.mSize;
+            Runtime::instance().self().getLogger().info(
+                "Chat scale trace: text at={},{} size={},{} fontScale={} lineHeight={} linePadding={} fontSize={} panel={},{} {}x{}",
+                at.x, at.y, size.x, size.y, scale, line, static_cast<float>(mLinePadding), static_cast<int>(mFontSize),
+                translation.panelAt.x, translation.panelAt.y, translation.panelSize.x, translation.panelSize.y);
+        }
+        scaledCopies(translation, mOwner, [&](float by) {
+            mFontScaleFactor = by > 0 ? scale * by : scale;
+            mLineHeight = by > 0 ? line * by : line;
+        }, [&] { origin(context); });
+    } catch (...) {}
+#endif
 }
 LL_TYPE_INSTANCE_HOOK(ChatBackgroundRender, ll::memory::HookPriority::Normal, SpriteComponent,
     &SpriteComponent::render, void, UIRenderContext& context) {
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
     origin(context);
+#ifdef LAMIUM_CHAT_SCALE_TRACE
+    try { scaledCopies(translation, mOwner, [](float) {}, [&] { origin(context); }); } catch (...) {}
+#endif
 }
 std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, float width, float height,
                                          ui::HudElement const& element) {

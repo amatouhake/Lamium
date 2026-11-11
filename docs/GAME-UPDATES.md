@@ -260,6 +260,9 @@ Meaning: the HUD has `chat_panel` immediately under an unclipped
 screen hook establishes the render scope; each component uses the panel's
 current measured size after native layout, translates only its cached
 position while drawing, then restores it without invalidating the tree.
+The `chat_scale_trace` option draws each chat part two more times in those
+hooks, scaled (control position and size, the text's font scale and line
+height; L-321).
 Gated (Chat position); renamed controls, clipping, invalid geometry or an
 ancestor walk beyond 16 controls leave it vanilla. Basic scope and the
 message-expiry/long-message regression passed on `b28a40d` (L-174);
