@@ -395,7 +395,11 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     std::optional<HudElementId> focus = drag ? std::optional(drag->id) : resize ? std::optional(resize->id) : selected;
     // Elements that appear only by situation are named frames until selected,
     // so the screen is not filled with every element's sample at once (L-321).
-    auto framed = [&](HudElementId id) { return hudConditional(id) && focus != id; };
+    // Pointing at a frame shows what it holds without selecting it. Last
+    // frame's boxes: an element is the same size framed or drawn.
+    bool overUi = popoverBox && popoverBox->contains(pointerX, pointerY);
+    auto hovered = drag || resize || overUi ? std::nullopt : topmost(lastBoxes, pointerX, pointerY);
+    auto framed = [&](HudElementId id) { return hudConditional(id) && focus != id && hovered != id; };
     for (auto id : drawOrder) preview.outline[static_cast<size_t>(id)] = framed(id);
     std::optional<Anchor> active;
     if (focus) active = layoutElement(preview.layout, *focus).anchor;
@@ -416,12 +420,13 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     images(context, "textures/ui/hotbar_0", cells, .6f);
     images(context, "textures/ui/hotbar_end_cap", {{hotbar.x + 181 * unit, hotbar.y, unit, hotbar.h}}, .6f);
     lastBoxes = information::drawHud(context, width, height, value.information, &preview);
+    // The elements' text first: the frames' name plates go over it.
+    context.flushText(0, std::nullopt);
     if (drag && drag->drop) {
         if (drag->drop->lineX) fill(context, *drag->drop->lineX - .5f, 0, 1, height, palette::warning, .8f);
         if (drag->drop->lineY) fill(context, 0, *drag->drop->lineY - .5f, width, 1, palette::warning, .8f);
     }
-    bool overUi = popoverBox && popoverBox->contains(pointerX, pointerY);
-    auto hovered = drag || resize || overUi ? std::nullopt : topmost(lastBoxes, pointerX, pointerY);
+    std::vector<std::pair<Box, std::string>> plates;
     for (auto id : drawOrder) {
         auto const& box = lastBoxes[static_cast<size_t>(id)];
         if (!box) continue;
@@ -431,8 +436,14 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         if (!framed(id)) { frame(context, outer.x, outer.y, outer.w, outer.h, isFocus ? palette::accent : palette::white, opacity); continue; }
         for (auto const& dash : dashedFrame(outer))
             fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length, palette::white, opacity);
+        fill(context, box->x, box->y, box->w, box->h, Rgb{0, 0, 0}, .2f);
         auto name = translated(elementName(id));
-        label(context, box->x + 2, box->y + 1, std::max(box->w - 3, textWidth(context, name) + 2), name, palette::dim);
+        plates.push_back({namePlate(*box, textWidth(context, name) + 6, 11, width, height), std::move(name)});
+    }
+    // After every frame, so a plate is never crossed by another frame's dashes.
+    for (auto const& [plate, name] : plates) {
+        fill(context, plate.x, plate.y, plate.w, plate.h, palette::panel, .85f);
+        label(context, plate.x, plate.y + boxTextInset(), plate.w, name, palette::text, Align::Center);
     }
     if (focus && active) {
         if (auto const& box = lastBoxes[static_cast<size_t>(*focus)]) {

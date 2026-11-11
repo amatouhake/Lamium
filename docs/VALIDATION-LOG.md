@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## HUD layout editor rework (L-321, 2026-11-11)
+
+`d3babde2`, DLL SHA-256
+`60e86ba539b4ae301302484e9e50cc23ee5db397966724243c9a808e7cdfeefc`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer (with a 1920x1080 screenshot of the idle editor):
+1. The idle panel shows in the middle and conditional elements are dashed
+   frames; clicking a frame shows its content.
+2. Corner handles scale in 5 % steps and the result is saved; 50 % and 200 %
+   reported as fine.
+3. The typed scale applies on Enter and the arrow keys nudge again afterwards.
+4. A second click at the top center selects the element below.
+Reported: the frames' names, drawn at the top left of each frame, run into
+other elements' text and each other (schematic HUD over the info lines, target
+over player list, the zoom name wider than its frame), so a frame is hard to
+identify. Not itemized: which elements were scaled, Pocket UI, other GUI
+scales, servers.
+
 ## Block highlight rainbow refresh at 20 Hz (L-320, 2026-11-09)
 
 `e7728dba`, DLL SHA-256

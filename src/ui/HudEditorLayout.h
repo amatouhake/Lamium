@@ -118,6 +118,13 @@ inline Box idlePanel(float w, float h, float screenW, float screenH) {
     float x = std::max(0.f, (screenW - w) / 2);
     return {std::round(x), std::round(std::clamp(screenH / 2 - h - 12, 0.f, std::max(0.f, screenH - h))), w, h};
 }
+// A framed element's name sits on a plate in the middle of its frame, kept
+// on the screen: a plate may be wider than a small frame.
+inline Box namePlate(Box frame, float w, float h, float screenW, float screenH) {
+    float x = frame.x + (frame.w - w) / 2, y = frame.y + (frame.h - h) / 2;
+    return {std::round(std::clamp(x, 0.f, std::max(0.f, screenW - w))),
+            std::round(std::clamp(y, 0.f, std::max(0.f, screenH - h))), w, h};
+}
 // A dashed outline for an element shown as a frame only: the top-left of
 // each one-unit-thick dash and whether it runs horizontally.
 struct Dash { float x, y, length; bool horizontal; };
