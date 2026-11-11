@@ -223,7 +223,9 @@ Hooks: `DebugPositionSprite`, `DebugPositionText`, `DebugPaperDoll`
 Meaning: the vanilla HUD's position panel is named `player_position` (label
 `player_position_text`) and the HUD paper doll is drawn by
 `HudPlayerRenderer`, its control named `hud_player` (where the Info HUD
-covers it, L-145). A renamed control only stops the hiding.
+covers it, L-145). A renamed control only stops the hiding. The
+`doll_trace` option draws the doll three more times in that hook (moved,
+resized, through the world matrix; L-309).
 
 ### `src/features/information/StatusEffectsVanilla.cpp`
 Hooks: `VanillaEffectIcons`

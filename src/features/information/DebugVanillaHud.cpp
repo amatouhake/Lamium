@@ -6,6 +6,12 @@
 #include "mc/client/gui/controls/UIControl.h"
 #include "mc/client/gui/controls/renderers/HudPlayerRenderer.h"
 #include "settings/Settings.h"
+#ifdef LAMIUM_DOLL_TRACE
+#include "mc/client/gui/screens/ScreenContext.h"
+#include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
+#include "mc/deps/renderer/Camera.h"
+#include "mc/deps/renderer/MatrixStack.h"
+#endif
 #include <atomic>
 #include <string>
 
@@ -46,6 +52,41 @@ LL_TYPE_INSTANCE_HOOK(DebugPaperDoll, ll::memory::HookPriority::Normal, HudPlaye
     int pass) {
     if (hidingCovered(dollCovered)) return;
     origin(context, client, owner, pass);
+#ifdef LAMIUM_DOLL_TRACE
+    // L-309 experiment: three more dolls in the same frame, one per hypothesis.
+    try {
+        if (owner.mCachedPositionDirty) owner._setCachedPosition();
+        glm::vec2 at = *owner.mCachedPosition, size = *owner.mSize;
+        auto& stack = *context.mScreenContext.camera.worldMatrixStack;
+        static std::atomic<unsigned> logged{0};
+        if (pass >= 0 && pass < 8 && !(logged.fetch_or(1u << pass) & (1u << pass)))
+            Runtime::instance().self().getLogger().info("Doll trace: pass={} at={},{} size={},{} worldDepth={}", pass, at.x,
+                at.y, size.x, size.y, stack.stack->size());
+        // Below: the cached position moved down.
+        owner.mCachedPosition = at + glm::vec2{0, 70};
+        origin(context, client, owner, pass);
+        // Right: the control twice as large.
+        owner.mCachedPosition = at + glm::vec2{70, 0};
+        owner.mSize = size * 2.f;
+        origin(context, client, owner, pass);
+        owner.mCachedPosition = at;
+        owner.mSize = size;
+        // Far right: twice as large about the control's corner through the world matrix.
+        glm::mat4 model{1.f};
+        model[0][0] = model[1][1] = 2;
+        model[3] = {at.x + 160 - 2 * at.x, at.y - 2 * at.y, 0, 1};
+        auto ref = stack.push(false);
+        ref.stack->_isDirty = true;
+        ref.mat->_m = ref.mat->_m.get() * model;
+        origin(context, client, owner, pass);
+        ref.stack->_isDirty = true;
+        if (ref.stack->sortOrigin->has_value() && (ref.stack->stack->size() - 1) <= ref.stack->sortOrigin->value())
+            ref.stack->sortOrigin->reset();
+        ref.stack->stack->pop_back();
+        ref.mat = nullptr;
+        ref.stack = nullptr;
+    } catch (...) {}
+#endif
 }
 void infoCovers(bool doll, bool position) {
     dollCovered = doll;

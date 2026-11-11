@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Paper doll draw experiment (L-309, 2026-11-11)
+
+`4855df8e` plus the uncommitted `doll_trace` change (committed after this
+run), DLL SHA-256
+`d723aec3c5bb0da65099f87236ab19d4c2d85a31dc4b16d57af1fb9ed3b72509`,
+`doll_trace=y`, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, desktop
+UI, 1920x1080 screenshot from the maintainer. The trace calls the game's
+`HudPlayerRenderer::$render` three more times per frame. Seen:
+1. Four dolls, none looking wrong to the maintainer: the game's, one 70 units
+   below it at the same size (cached position moved), one to the right at
+   twice the size (cached position moved and the control's size doubled) and
+   one further right at twice the size (scale and offset on the world matrix).
+2. Each doll wears the diamond armor, holds the item and has the head piece;
+   all scale with it.
+3. The doubled-size doll's center sits where a control of twice the size
+   would have its center, so the doll is centered in and sized by its control.
+4. Log: `pass=0` only. The one logged frame had the control at 22.5, 22.5 with
+   size 0, 0, which is the center of its 15x15 place; the line is written once,
+   on the first draw, so this is read as the screen's entrance size animation,
+   not checked further.
+Not seen: Pocket UI, other GUI scales, sizes below 1, a doll near a screen
+edge or over other HUD parts (clipping, draw order), servers, other skins or
+persona pieces, whether the extra calls sped up the doll's animation.
+
 ## HUD layout editor selected element on top (L-321, 2026-11-11)
 
 `e4bf3ef1`, DLL SHA-256

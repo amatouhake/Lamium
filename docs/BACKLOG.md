@@ -732,7 +732,10 @@ sprites); (2) a matrix pushed around one draw call; (3) Lamium drawing the
 element itself and hiding the game's. **Hypothesis**: (2) works only for a
 renderer that draws its mesh inside its own call; queued text and images are
 drawn after the hook has returned, so a matrix around `TextComponent::$render`
-would do nothing. Not tested for any game renderer.
+would do nothing. Tested only for the paper doll (2026-11-11, L-309): tools
+(1) and (2) both work on `HudPlayerRenderer`, and so does scaling the
+control's `mSize` for the call. Hearts, slots and the other renderers that
+keep their own meshes are still untested.
 
 | Element | Drawn by (Read) | Lamium already sees it | Calls |
 |---|---|---|---|
@@ -760,9 +763,9 @@ outside `render`. Horse hearts, horse jump and dash were not checked.
 
 What each change needs:
 
-- **Paper doll** (details under L-309). Position: **Hypothesis** tool (1) in
-  the existing hook, no new hook. Scale: **Unknown**; try the control's
-  `mSize` for the call, then tool (2), and only then recreation.
+- **Paper doll** (details under L-309). Position: tool (1) in the existing
+  hook, no new hook. Scale: the control's `mSize` for the call. Both seen in
+  game 2026-11-11 on desktop UI.
 - **Chat scale.** The label takes `font_scale_factor` from the UI variable
   `$chat_font_scale_factor`, so the text size is `TextComponent::mFontScaleFactor`
   (Read). Wrapping, line heights and the backgrounds' sizes are fixed by
@@ -800,8 +803,8 @@ Lamium already hooks, and its experiment (below, L-309) also answers whether
 tool (2) works on a game renderer at all, which decides what is possible for
 hearts and the hotbar. Then scoreboard position (reuses the chat path; cheap,
 no new hook), then chat scale after one text experiment, the hotbar last and
-possibly position only. Until an experiment passes, the editor should offer:
-doll and scoreboard nothing yet, chat position only.
+possibly position only. As of the doll experiment the editor can offer:
+doll position and scale, chat position only, scoreboard nothing yet.
 No release target selected.
 
 ### L-309 Place and scale the paper doll
@@ -859,6 +862,21 @@ shared facts and the other elements are under L-321):
   the editor needs a sample frame, since the game shows the doll only while
   `#paper_doll_visible`. What F1 and `hudHidePaperDoll` mean for a moved doll
   stays open (Design).
+
+Experiment result 2026-11-11 (`doll_trace`, VALIDATION-LOG "Paper doll draw
+experiment"): on desktop UI all three hypotheses hold. Moving
+`owner.mCachedPosition` for the call moves the doll; doubling `owner.mSize`
+for the call doubles it, armor, held item and head piece included, with the
+doll centered in the control; a scale on `camera.worldMatrixStack` around the
+call does the same. No recreation is needed. Build it with the position and
+size of the control (both restored after the call): that needs no matrix
+write, and the shrink of the control during the screen's entrance animation
+suggests the game itself sizes the doll this way. The matrix result matters
+for other renderers (L-321). Still unchecked: Pocket UI, other GUI scales,
+sizes below 1, clipping and draw order away from the corner.
+Remaining before building is Design only: the editor's sample frame while the
+game hides the doll, the default placement, and what `hudHidePaperDoll` and
+F1 mean for a moved doll.
 No release target selected.
 
 ### L-249 Show the chunks within simulation distance

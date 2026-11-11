@@ -201,6 +201,12 @@ option("schematic_quad_trace")
     set_description("L-268: log the quads one ghost of each non-cube block draws, and which were dropped")
 option_end()
 
+option("doll_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-309: draw the paper doll three more times (moved, resized, through a matrix)")
+option_end()
+
 option("schematic_model_trace")
     set_default(false)
     set_showmenu(true)
@@ -244,6 +250,7 @@ target("Lamium")
     if has_config("placement_trace") then add_defines("LAMIUM_PLACEMENT_TRACE") end
     if has_config("research_trace") then add_defines("LAMIUM_RESEARCH_TRACE") end
     if has_config("ghost_probe") then add_defines("LAMIUM_GHOST_PROBE") end
+    if has_config("doll_trace") then add_defines("LAMIUM_DOLL_TRACE") end
     if has_config("schematic_model_trace") then add_defines("LAMIUM_SCHEMATIC_MODEL_TRACE") end
     if has_config("schematic_perf_trace") then add_defines("LAMIUM_SCHEMATIC_PERF_TRACE") end
     if has_config("edge_guard_perf") then add_defines("LAMIUM_EDGE_PERF") end
