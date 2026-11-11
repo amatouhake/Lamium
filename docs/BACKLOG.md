@@ -1542,6 +1542,29 @@ what vanilla's own jump-to-glide path checks and sends (input flags, the
 start-glide auth input action, equipment sync) and whether the client can
 start a glide right after the swap. No faked flags or packets: only a
 vanilla path that the server accepts.
+Header read 2026-11-12 (SDK 26.60.4; reading only, nothing built or run):
+- Confirmed in headers: gliding starts through entity systems, not through
+  a `Player` call. `PlayerInputRequestComponent::mHasGlideIntent` sits next
+  to `mHasFlyIntent`; `StartGlidingIntentSystem` and
+  `StartGlidingActionSystem::createSystem(isClientSide)` exist (opaque), and
+  `GlideInputSystem::doGlideInputSystem` takes abilities, move input, actor
+  data flags, `FallFlyTicksComponent` and the state vector. The packet side
+  is `PlayerAuthInputPacketPayload` action `StartGliding = 32` (and
+  `PlayerActionType::StartGliding = 15`). `Player::startGliding`,
+  `stopGliding` and `tryStartGliding` are `MCAPI`.
+- Hypothesis (not confirmed): the jump key in mid-air sets the glide intent
+  on the input request, the intent system checks the worn elytra and the
+  fall state, and the action system sets the flag and queues the auth input
+  action. `tryStartGliding` called from outside that order would then fail
+  or have no packet behind it, which matches the L-70 traces.
+- Next trace, read only: log `mHasGlideIntent`, `isGliding()`,
+  `MobGliding::getFallFlyTicks` and the worn chest item on each client tick
+  around a vanilla jump-to-glide, and around an L-70 swap followed by the
+  player's own jump press. That shows on which tick after the swap vanilla
+  itself accepts a glide.
+- Open for the maintainer: whether setting `mHasGlideIntent` for one tick
+  after the swap is confirmed counts as "a vanilla path" (it is what a jump
+  press does, if the hypothesis holds) or as a faked flag. Not decided here.
 
 ### L-93 Schematic: load, place, project, verify and list materials (experimental)
 Kind: Follow-up tracking; each L-item below owns its kind and open choices.
