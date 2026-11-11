@@ -428,20 +428,35 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     }
     // The focused element's tag takes its place first; the frames' tags keep
     // clear of it and of each other.
+    // A frame's tag also keeps off the elements drawn in full, and is left
+    // out rather than put on the focused or pointed-at element: that is the
+    // one being looked at.
     struct Tag { Box box; std::string name; bool focus; };
     std::vector<Tag> tags;
     std::vector<Box> taken;
-    auto addTag = [&](Box const& element, std::string name, bool isFocus) {
-        auto box = nameTag(element, textWidth(context, name) + 6, width, height, taken);
-        taken.push_back(box);
-        tags.push_back({box, std::move(name), isFocus});
-    };
+    std::optional<Box> focusTag;
     if (focus)
         if (auto const& box = lastBoxes[static_cast<size_t>(*focus)]) {
             auto name = translated(elementName(*focus));
             if (resize) name += std::format(" {}%", static_cast<int>(resize->scale));
-            addTag(*box, std::move(name), true);
+            focusTag = nameTag(*box, textWidth(context, name) + 6, width, height);
+            tags.push_back({*focusTag, std::move(name), true});
         }
+    if (focusTag) taken.push_back(*focusTag);
+    for (auto id : drawOrder)
+        if (auto const& box = lastBoxes[static_cast<size_t>(id)]; box && !framed(id)) taken.push_back(*box);
+    auto watched = [&](Box const& tag) {
+        for (auto id : {focus, hovered})
+            if (id)
+                if (auto const& box = lastBoxes[static_cast<size_t>(*id)]; box && tag.overlaps(*box)) return true;
+        return false;
+    };
+    auto addTag = [&](Box const& element, std::string name) {
+        auto box = nameTag(element, textWidth(context, name) + 6, width, height, taken);
+        if (watched(box)) return;
+        taken.push_back(box);
+        tags.push_back({box, std::move(name), false});
+    };
     for (auto id : drawOrder) {
         auto const& box = lastBoxes[static_cast<size_t>(id)];
         if (!box) continue;
@@ -452,7 +467,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         for (auto const& dash : dashedFrame(outer))
             fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length, palette::white, opacity);
         fill(context, box->x, box->y, box->w, box->h, Rgb{0, 0, 0}, .2f);
-        addTag(*box, translated(elementName(id)), false);
+        addTag(*box, translated(elementName(id)));
     }
     if (focus && active) {
         if (auto const& box = lastBoxes[static_cast<size_t>(*focus)]) {
@@ -463,7 +478,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     // After every frame, so a tag is never crossed by another frame's dashes:
     // the same tag for every named element, in the accent color when focused.
     for (auto const& tag : tags) {
-        fill(context, tag.box.x, tag.box.y, tag.box.w, tag.box.h, tag.focus ? palette::accent : palette::dim);
+        fill(context, tag.box.x, tag.box.y, tag.box.w, tag.box.h, tag.focus ? palette::accent : palette::dim, tag.focus ? 1.f : .75f);
         labelScaled(context, tag.box.x + 3, tag.box.y + boxTextInset(), tag.box.w - 4, tag.name, 1.f, palette::panel, Align::Left, false);
     }
     // Scale handles on the corners away from the anchor; the chat is placed only.
@@ -478,7 +493,12 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         }
     context.flushText(0, std::nullopt);
     if (selected && !resize && !(drag && drag->moved)) {
-        if (auto const& box = lastBoxes[static_cast<size_t>(*selected)]) drawToolbar(context, value, *box, pointerX, pointerY);
+        if (auto const& box = lastBoxes[static_cast<size_t>(*selected)]) {
+            // Below the name tag when that hangs under the element.
+            Box clear = *box;
+            if (focusTag && focusTag->y > box->y) clear.h = focusTag->y + focusTag->h - box->y;
+            drawToolbar(context, value, clear, pointerX, pointerY);
+        }
     } else if (!selected && !drag) drawIdlePanel(context, pointerX, pointerY);
     context.flushText(0, std::nullopt);
 }

@@ -243,7 +243,10 @@ Editing:
   tag the selected element has but gray instead of the accent color;
   pointing at a frame shows its content. Tags keep clear of each other
   (above the left corner, else below it, else the right corner), so
-  overlapping frames stay told apart. (2026-11-11, tried in game first: a
+  overlapping frames stay told apart, and clear of elements drawn in full;
+  a tag that would still cover the selected or pointed-at element is left
+  out. The toolbar opens below a tag that hangs under its element.
+  (2026-11-11, tried in game first: a
   name inside the frame's top left ran into other elements' text; a name on
   a dark plate in the middle looked out of place and two overlapping frames
   put their plates on each other.) Why: overlap is a problem in the editor, where everything shows

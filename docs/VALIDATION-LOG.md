@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## HUD layout editor frame names on corner tags (L-321, 2026-11-11)
+
+`b0e25376`, DLL SHA-256
+`ac90946efa8b9d48e0fa477a486a2e1ea02084a87d129990c50da5697e55269e`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Per the
+maintainer (two 1920x1080 screenshots): the corner tags read well and the
+toast and zoom tags no longer share a place. Reported: the tags stand out too
+much; with the target card selected or pointed at, the player list's tag sits
+on the card, so the element being looked at cannot be read. Seen in the
+screenshots, not reported: the schematic HUD's tag covers an info line, and
+the selected element's own tag, below the element at the top of the screen, is
+covered by the toolbar.
+
 ## HUD layout editor frame names on plates (L-321, 2026-11-11)
 
 `ac48a6bb`, DLL SHA-256
