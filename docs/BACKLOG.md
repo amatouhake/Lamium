@@ -632,7 +632,8 @@ The "10 件" overlap was not about digits: the game's font measures "件" and
 "渡" 0 wide and draws them one character left of the pen (the two found
 among Lamium's Japanese strings; log in VALIDATION-LOG). Labels now measure
 each non-ASCII character once per font, give a zero-wide one a full width
-and draw it as its own run (`labelRuns`, TextFit.h). Not checked in game.
+and draw it as its own run (`labelRuns`, TextFit.h). Checked in game
+(`2a75b760`, VALIDATION-LOG).
 
 ### L-319 Item details: Work Penalty first, then the unshown rest
 Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).

@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Zero-wide characters in labels, wet sponge order (2026-11-11)
+
+`2a75b760`, local build, DLL SHA-256
+`aad20aba0f17a8463d8078925f9ea4a8b7fb27cc743b75e009147fda33b21c63`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, Japanese. Passed,
+per the maintainer: "10 件" in the block highlight list's result count no
+longer overlaps and has no odd gap; "渡" in the Item Transfer help no longer
+sits on the character before it; the wet sponge is listed after deepslate
+iron ore and before the monster spawner.
+
+Not checked: right-aligned and centered labels with such a character, other
+sizes, Chinese, text drawn outside the label widgets.
+
 ## 0.6.0 smoke, block highlight shapes and a zero-wide character (2026-11-11)
 
 Smoke of the 0.6.0 CI package: `8bfe82e2`, run 43027018041, DLL SHA-256
