@@ -85,7 +85,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection, L-163 a
    Lamium inventory screen, L-249 simulation distance, the 2026-11-05 reports
    L-309 (paper doll placement), the 2026-11-11 L-321 (HUD layout editor
-   rework; mockup under review) and the 2026-11-07 reports L-317 (Nether
+   rework; editor UI decided, not built) and the 2026-11-07 reports L-317 (Nether
    minimap under forced Surface) and L-319 (item details order). In progress:
    L-320 block highlight (built and checked in steps; its open runtime checks
    are in VALIDATION.md). Agree open choices before
@@ -664,7 +664,7 @@ Kind: Blocked on a symbol request. Kept as one item so a single request to
 Before filing, confirm by linking: an SDK update may already have changed these.
 
 ### L-321 Rework the HUD layout editor
-Kind: Design. Maintainer 2026-11-11: the editor dates from the first HUD
+Kind: Feature (editor UI decided 2026-11-11); Research for each game-drawn element. Maintainer 2026-11-11: the editor dates from the first HUD
 elements; with 13 elements it is crowded, sizes are limited to 75-150 % in
 steps of 25, and game-drawn elements other than the chat cannot be placed.
 Agreed so far: overlap is a problem in the editor, where every element shows
@@ -682,14 +682,13 @@ and only the controls they can offer.
 Also decided 2026-11-11: handles sit on the corners away from the anchor (the
 anchor point stays put while scaling); handles and +/- step 5 %, direct entry
 1 %; shadow is a "name: value" button like background.
-Open (third mockup round): resets should follow the settings screens' rules
-(DESIGN "Resetting settings") instead of the editor's own UI - proposed: the
-all-elements reset on a heading with a second press, the element reset at the
-end of the element toolbar and applied at once, like the binding row's Reset;
-whether this is done within L-321 is not settled. Where Reset all / Done sit:
-proposed a small titled panel in the middle of the screen shown only while
-nothing is selected (today's corner bar is covered by default elements; two
-bare buttons in the middle looked out of place).
+Resets follow the settings screens' rules (DESIGN "Resetting settings")
+instead of one button that changes meaning: the element reset sits at the end
+of the element toolbar behind a divider and applies at once, like the binding
+row's Reset; "Reset all" needs a second press. "Reset all" and "Done (Esc)"
+sit in a small titled panel (title, one hint line) in the middle of the
+screen, shown only while nothing is selected (today's corner bar is covered
+by default elements). The UI is settled; the editor part can be built.
 Game-drawn elements: the paper doll (L-309) and chat scale are the requests;
 the hotbar and scoreboard are wanted if possible. Each needs Research on its
 draw path first. Elements declare what they offer (position / scale / look)
