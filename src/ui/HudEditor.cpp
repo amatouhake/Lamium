@@ -420,13 +420,28 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     images(context, "textures/ui/hotbar_0", cells, .6f);
     images(context, "textures/ui/hotbar_end_cap", {{hotbar.x + 181 * unit, hotbar.y, unit, hotbar.h}}, .6f);
     lastBoxes = information::drawHud(context, width, height, value.information, &preview);
-    // The elements' text first: the frames' name plates go over it.
+    // The elements' text first: the name tags go over it.
     context.flushText(0, std::nullopt);
     if (drag && drag->drop) {
         if (drag->drop->lineX) fill(context, *drag->drop->lineX - .5f, 0, 1, height, palette::warning, .8f);
         if (drag->drop->lineY) fill(context, 0, *drag->drop->lineY - .5f, width, 1, palette::warning, .8f);
     }
-    std::vector<std::pair<Box, std::string>> plates;
+    // The focused element's tag takes its place first; the frames' tags keep
+    // clear of it and of each other.
+    struct Tag { Box box; std::string name; bool focus; };
+    std::vector<Tag> tags;
+    std::vector<Box> taken;
+    auto addTag = [&](Box const& element, std::string name, bool isFocus) {
+        auto box = nameTag(element, textWidth(context, name) + 6, width, height, taken);
+        taken.push_back(box);
+        tags.push_back({box, std::move(name), isFocus});
+    };
+    if (focus)
+        if (auto const& box = lastBoxes[static_cast<size_t>(*focus)]) {
+            auto name = translated(elementName(*focus));
+            if (resize) name += std::format(" {}%", static_cast<int>(resize->scale));
+            addTag(*box, std::move(name), true);
+        }
     for (auto id : drawOrder) {
         auto const& box = lastBoxes[static_cast<size_t>(id)];
         if (!box) continue;
@@ -437,26 +452,19 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         for (auto const& dash : dashedFrame(outer))
             fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length, palette::white, opacity);
         fill(context, box->x, box->y, box->w, box->h, Rgb{0, 0, 0}, .2f);
-        auto name = translated(elementName(id));
-        plates.push_back({namePlate(*box, textWidth(context, name) + 6, 11, width, height), std::move(name)});
-    }
-    // After every frame, so a plate is never crossed by another frame's dashes.
-    for (auto const& [plate, name] : plates) {
-        fill(context, plate.x, plate.y, plate.w, plate.h, palette::panel, .85f);
-        label(context, plate.x, plate.y + boxTextInset(), plate.w, name, palette::text, Align::Center);
+        addTag(*box, translated(elementName(id)), false);
     }
     if (focus && active) {
         if (auto const& box = lastBoxes[static_cast<size_t>(*focus)]) {
             for (auto const& dot : dashes(anchorPoint(*active, width, height), elementPoint(*active, *box)))
                 fill(context, dot.x - .5f, dot.y - .5f, 1, 1, palette::accent);
-            // Name tag above the element, or below it at the top of the screen.
-            auto name = translated(elementName(*focus));
-            if (resize) name += std::format(" {}%", static_cast<int>(resize->scale));
-            float tagW = textWidth(context, name) + 6;
-            float tagY = box->y - 13 >= 0 ? box->y - 13 : box->y + box->h + 2;
-            fill(context, box->x - 1, tagY, tagW, 11, palette::accent);
-            labelScaled(context, box->x + 2, tagY + boxTextInset(), tagW - 4, name, 1.f, palette::panel, Align::Left, false);
         }
+    }
+    // After every frame, so a tag is never crossed by another frame's dashes:
+    // the same tag for every named element, in the accent color when focused.
+    for (auto const& tag : tags) {
+        fill(context, tag.box.x, tag.box.y, tag.box.w, tag.box.h, tag.focus ? palette::accent : palette::dim);
+        labelScaled(context, tag.box.x + 3, tag.box.y + boxTextInset(), tag.box.w - 4, tag.name, 1.f, palette::panel, Align::Left, false);
     }
     // Scale handles on the corners away from the anchor; the chat is placed only.
     handles.clear();

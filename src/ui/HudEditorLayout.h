@@ -118,12 +118,24 @@ inline Box idlePanel(float w, float h, float screenW, float screenH) {
     float x = std::max(0.f, (screenW - w) / 2);
     return {std::round(x), std::round(std::clamp(screenH / 2 - h - 12, 0.f, std::max(0.f, screenH - h))), w, h};
 }
-// A framed element's name sits on a plate in the middle of its frame, kept
-// on the screen: a plate may be wider than a small frame.
-inline Box namePlate(Box frame, float w, float h, float screenW, float screenH) {
-    float x = frame.x + (frame.w - w) / 2, y = frame.y + (frame.h - h) / 2;
-    return {std::round(std::clamp(x, 0.f, std::max(0.f, screenW - w))),
-            std::round(std::clamp(y, 0.f, std::max(0.f, screenH - h))), w, h};
+// An element's name tag hangs outside a corner of its box: above the left
+// corner, else below it, else above or below the right corner - the first
+// place that is on the screen and clear of the tags already placed, so the
+// names of overlapping frames stay apart (L-321). With no such place, the
+// first one on the screen, else the first one pushed onto it.
+inline constexpr float nameTagHeight = 11;
+inline Box nameTag(Box element, float w, float screenW, float screenH, std::vector<Box> const& taken = {}) {
+    float h = nameTagHeight, above = element.y - h - 2, below = element.y + element.h + 2;
+    float left = element.x - 1, right = element.x + element.w + 1 - w;
+    Box const places[] = {{left, above, w, h}, {left, below, w, h}, {right, above, w, h}, {right, below, w, h}};
+    auto onScreen = [&](Box const& b) { return b.x >= 0 && b.y >= 0 && b.x + b.w <= screenW && b.y + b.h <= screenH; };
+    auto clear = [&](Box const& b) {
+        for (auto const& other : taken) if (b.overlaps(other)) return false;
+        return true;
+    };
+    for (auto const& place : places) if (onScreen(place) && clear(place)) return place;
+    for (auto const& place : places) if (onScreen(place)) return place;
+    return {std::clamp(left, 0.f, std::max(0.f, screenW - w)), std::clamp(above, 0.f, std::max(0.f, screenH - h)), w, h};
 }
 // A dashed outline for an element shown as a frame only: the top-left of
 // each one-unit-thick dash and whether it runs horizontally.

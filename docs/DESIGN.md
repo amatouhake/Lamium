@@ -239,9 +239,14 @@ Editing:
 - The editor shows the live HUD (sample content for empty elements).
   Elements that appear only by situation (target, automation status, toast,
   magnification, schematic, player list) are a dashed frame until selected,
-  faintly filled, with the name on a plate in the frame's middle; pointing
-  at a frame shows its content. (First build 2026-11-11: the name at the
-  frame's top left ran into other elements' text.) Why: overlap is a problem in the editor, where everything shows
+  faintly filled, with a name tag outside a corner of the frame, the same
+  tag the selected element has but gray instead of the accent color;
+  pointing at a frame shows its content. Tags keep clear of each other
+  (above the left corner, else below it, else the right corner), so
+  overlapping frames stay told apart. (2026-11-11, tried in game first: a
+  name inside the frame's top left ran into other elements' text; a name on
+  a dark plate in the middle looked out of place and two overlapping frames
+  put their plates on each other.) Why: overlap is a problem in the editor, where everything shows
   at once, not in play; so there are no overlap warnings, no automatic
   avoidance and, for now, no element list.
 - Click selects, drag moves, arrows nudge (Shift: 10), Esc deselects then

@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## HUD layout editor frame names on plates (L-321, 2026-11-11)
+
+`ac48a6bb`, DLL SHA-256
+`e88504db978b51d9592cf5ca5479cf6cf117a4a78c118495449f29b783123101`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Per the
+maintainer (with a 1920x1080 screenshot):
+1. Passed: a name on its plate reads over the info lines.
+2. Passed: the target and player list plates at the top center do not overlap.
+3. Passed: pointing at a frame shows its content; moving away frames it again.
+Reported: two framed elements on each other (toast and zoom magnification)
+put their plates on each other and neither reads; the plate behind the text
+looks out of place.
+
 ## HUD layout editor rework (L-321, 2026-11-11)
 
 `d3babde2`, DLL SHA-256

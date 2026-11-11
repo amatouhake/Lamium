@@ -92,10 +92,17 @@ void hudEditorLayoutTests() {
     auto idle = idlePanel(100, 40, 640, 360);
     check(idle.x == 270 && idle.y == 128 && idle.w == 100, "the idle panel is centered above the crosshair");
     check(idlePanel(100, 40, 80, 30).x == 0 && idlePanel(100, 40, 80, 30).y == 0, "a tiny screen keeps the panel on it");
-    auto plate = namePlate(Box{100, 40, 60, 31}, 40, 11, 640, 360);
-    check(plate.x == 110 && plate.y == 50 && plate.w == 40, "a frame's name plate sits in its middle");
-    check(namePlate(Box{630, 0, 10, 6}, 40, 11, 640, 360).x == 600 && namePlate(Box{630, 0, 10, 6}, 40, 11, 640, 360).y == 0,
-          "a plate wider than its frame stays on the screen");
+    Box tagged{100, 40, 200, 30};
+    auto tag = nameTag(tagged, 40, 640, 360);
+    check(tag.x == 99 && tag.y == 27 && tag.w == 40 && tag.h == nameTagHeight, "a name tag hangs above the left corner");
+    check(nameTag(Box{100, 4, 60, 30}, 40, 640, 360).y == 36, "at the top of the screen the tag goes below");
+    auto second = nameTag(tagged, 40, 640, 360, {tag});
+    check(second.x == 99 && second.y == 72, "a taken place sends the next tag below the box");
+    auto third = nameTag(tagged, 40, 640, 360, {tag, second});
+    check(third.x == 261 && third.y == 27, "then to the right corner");
+    check(nameTag(Box{0, 100, 20, 10}, 40, 640, 360).x == 0, "a tag at the left edge stays on the screen");
+    auto crowded = nameTag(tagged, 40, 640, 360, {tag, second, third, Box{261, 72, 40, 11}});
+    check(crowded.x == 99 && crowded.y == 27, "with every place taken the first one is used");
     auto dashed = dashedFrame(Box{0, 0, 10, 5});
     check(dashed.size() == 6 && dashed[0].horizontal && dashed[0].length == 3 && !dashed[4].horizontal,
           "a dashed frame runs along all four edges");
