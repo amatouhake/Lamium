@@ -669,10 +669,21 @@ elements; with 13 elements it is crowded, sizes are limited to 75-150 % in
 steps of 25, and game-drawn elements other than the chat cannot be placed.
 Agreed so far: overlap is a problem in the editor, where every element shows
 at once, not in play, where elements appear by situation; so no overlap
-warnings or automatic avoidance. UI and the scale range/step are decided on
-the mockup [demos/hud-layout-v2.html](demos/hud-layout-v2.html) (its open
-questions are listed at its bottom). The saved model (anchor, offset, float
+warnings or automatic avoidance. The saved model (anchor, offset, float
 scale) stays; widening the scale needs no settings format change.
+Decided 2026-11-11 on the mockup
+[demos/hud-layout-v2.html](demos/hud-layout-v2.html): the editor shows
+conditional elements (target, automation status, toast, magnification, player
+list, schematic, scoreboard) as named dashed frames until selected; no element
+list for now (revisit if that display is not enough); scale 50-200 % with
+corner handles; no snapping to other elements, only the screen edge, the
+4-unit inset and the center lines; game-drawn elements get a distinct frame
+and only the controls they can offer.
+Open (second mockup round): scale step for the handles and +/- buttons (5 %
+proposed, direct entry to 1 %), the toolbar's look (shadow as a "name: value"
+button like background; where the element reset goes) and where the
+Reset/Done bar sits (today bottom right then bottom left, both occupied by
+default elements).
 Game-drawn elements: the paper doll (L-309) and chat scale are the requests;
 the hotbar and scoreboard are wanted if possible. Each needs Research on its
 draw path first. Elements declare what they offer (position / scale / look)
