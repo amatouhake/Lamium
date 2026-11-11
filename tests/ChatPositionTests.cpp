@@ -40,18 +40,34 @@ void chatPositionTests() {
           && !placed(640, 360, 20, 0, defaults) && !placed(0, 360, 20, 20, defaults)
           && !placed(640, 360, std::numeric_limits<float>::quiet_NaN(), 20, defaults),
           "unmeasured, oversized or invalid chat geometry leaves vanilla placement intact");
-    check(!decodeSettings("{}").information.chatPosition && input::defaultChord(input::Action::ToggleChatPosition).empty(),
-          "older settings leave chat vanilla and its new key unbound");
+    check(!decodeSettings("{}").information.placesChat() && input::defaultChord(input::Action::ToggleChatPosition).empty()
+          && input::defaultChord(input::Action::ToggleGameHud).empty(),
+          "older settings leave chat vanilla and the keys unbound");
+    // Game HUD placement (L-321): one switch over the three parts.
+    Settings grouped;
+    check(!grouped.information.gameHud && grouped.information.chatPosition && grouped.information.paperDollPosition
+          && grouped.information.scoreboardPosition && !grouped.information.placesChat(),
+          "game HUD placement starts off with every part selected");
+    auto legacyOn = decodeSettings(R"({"information":{"chatPosition":true}})");
+    check(legacyOn.information.gameHud && legacyOn.information.placesChat() && !legacyOn.information.placesPaperDoll()
+          && !legacyOn.information.placesScoreboard(),
+          "a file from before the group keeps a moved chat and moves nothing else");
+    auto legacyOff = decodeSettings(R"({"information":{"chatPosition":false}})");
+    check(!legacyOff.information.gameHud && legacyOff.information.chatPosition && legacyOff.information.scoreboardPosition,
+          "a file from before the group with the chat off gets the new defaults");
+    auto partOff = decodeSettings(R"({"information":{"gameHud":true,"chatPosition":false}})");
+    check(partOff.information.gameHud && !partOff.information.placesChat() && partOff.information.placesPaperDoll(),
+          "a part left out of the group stays out");
     Settings value;
     value.hud.chat = moved;
     value.hud.info.dx = 19;
-    check(input::toggleAction(value, input::Action::ToggleChatPosition), "the chat switch has a toggle action");
+    check(input::toggleAction(value, input::Action::ToggleGameHud) && value.information.placesChat(), "the group has a toggle action");
     auto path = std::filesystem::temp_directory_path()
         / ("lamium-chat-test-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) + ".json");
     writeSettings(path, value);
     auto restored = readSettings(path);
     std::filesystem::remove(path);
-    check(restored.information.chatPosition && restored.hud.chat.anchor == moved.anchor
+    check(restored.information.placesChat() && restored.hud.chat.anchor == moved.anchor
           && restored.hud.chat.dx == moved.dx && restored.hud.chat.dy == moved.dy && restored.hud.info.dx == 19,
           "chat enable and placement persist without changing another HUD element");
     auto active = paused::inUse(value);
@@ -84,14 +100,15 @@ void chatPositionTests() {
     check(shrunk && shrunk->w == 40 && shrunk->x == 600 && shrunk->y == 167.5f, "a scaled scoreboard stays on its edge");
     check(information::chatPosition::zoom(defaults) == 1 && information::chatPosition::zoom(big) == 2, "the element's scale is a factor");
     Settings board;
-    check(!board.information.scoreboardPosition && input::defaultChord(input::Action::ToggleScoreboardPosition).empty()
-          && input::toggleAction(board, input::Action::ToggleScoreboardPosition) && board.information.scoreboardPosition,
-          "scoreboard position starts off, has an unbound key and toggles");
+    check(!board.information.placesScoreboard() && input::defaultChord(input::Action::ToggleScoreboardPosition).empty()
+          && input::toggleAction(board, input::Action::ToggleGameHud) && board.information.placesScoreboard()
+          && input::toggleAction(board, input::Action::ToggleScoreboardPosition) && !board.information.placesScoreboard()
+          && board.information.placesChat(),
+          "the scoreboard follows the group, has an unbound key and can be left out alone");
     auto boardSaved = decodeSettings(R"({"information":{"scoreboardPosition":true},"hud":{"scoreboard":{"anchor":0,"dx":7,"dy":9,"scale":150}}})");
-    check(boardSaved.information.scoreboardPosition && boardSaved.hud.scoreboard.dx == 7 && boardSaved.hud.scoreboard.scale == 150,
+    check(boardSaved.information.placesScoreboard() && boardSaved.hud.scoreboard.dx == 7 && boardSaved.hud.scoreboard.scale == 150,
           "the scoreboard's switch, place and scale load");
-    check(paused::onUnverified("scoreboardPosition") == paused::Level::Fully, "scoreboard position is reported paused on an unverified executable");
-    check(paused::onUnverified("chatPosition") == paused::Level::Fully
-          && std::ranges::find(active, "chatPosition") != active.end(),
-          "chat position is reported paused on an unverified executable");
+    check(paused::onUnverified("gameHud") == paused::Level::Partly
+          && std::ranges::find(active, "gameHud") != active.end(),
+          "game HUD placement is reported paused on an unverified executable");
 }

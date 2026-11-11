@@ -64,9 +64,9 @@ void offhandSlotTests() {
     }
     {
         lamium::Settings fresh;
-        check(!fresh.information.paperDollPosition, "paper doll position starts off");
+        check(!fresh.information.placesPaperDoll() && fresh.information.paperDollPosition, "the paper doll is selected but not placed until the group is on");
         auto saved = lamium::decodeSettings(R"({"information":{"paperDollPosition":true},"hud":{"paperDoll":{"anchor":8,"dx":-10,"dy":-20,"scale":150}}})");
-        check(saved.information.paperDollPosition && saved.hud.paperDoll.dx == -10 && saved.hud.paperDoll.scale == 150
+        check(saved.information.placesPaperDoll() && saved.hud.paperDoll.dx == -10 && saved.hud.paperDoll.scale == 150
               && saved.hud.paperDoll.background == lamium::ui::ElementBackground::None,
               "the paper doll's switch, place and scale load");
     }

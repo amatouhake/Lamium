@@ -39,7 +39,7 @@ struct RenderScope {
         if (!installedText || !installedSprite) return;
         auto& runtime = Runtime::instance();
         auto settings = runtime.snapshot();
-        if (!runtime.enabled() || !settings->information.scoreboardPosition) return;
+        if (!runtime.enabled() || !settings->information.placesScoreboard()) return;
         auto* tree = view.mVisualTree.get();
         if (!tree || !std::string_view(*tree->mRootControlName).ends_with(".hud_screen")) return;
         auto client = ll::service::getClientInstance();

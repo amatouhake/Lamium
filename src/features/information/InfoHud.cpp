@@ -1519,7 +1519,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             preview->outline[static_cast<size_t>(ui::HudElementId::Scoreboard)]);
     // The game's paper doll (L-309): in play Lamium only says where its
     // control goes; the editor, where the game draws none, shows a stand-in.
-    if (preview || settings.paperDollPosition) {
+    if (preview || settings.placesPaperDoll()) {
         float zoom = elementZoom(hud.paperDoll);
         float dollW = paperDoll::placedWidth * zoom, dollH = paperDoll::placedHeight * zoom;
         auto at = ui::placeElement(width, height, dollW, dollH, hud.paperDoll);

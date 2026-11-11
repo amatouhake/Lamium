@@ -38,7 +38,7 @@ struct DollPlacement {
     void prepare(UIControl& control) {
         if (!dollPlaced.load()) return;
         auto& runtime = Runtime::instance();
-        if (!runtime.enabled() || !runtime.snapshot()->information.paperDollPosition) return;
+        if (!runtime.enabled() || !runtime.snapshot()->information.placesPaperDoll()) return;
         std::string const& name = *control.mName;
         if (name != "hud_player" || control.mCachedPositionDirty) return;
         if (!versionSensitiveAllowed(capabilities::Id::PaperDollPosition)) return;

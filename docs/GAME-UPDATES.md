@@ -119,9 +119,9 @@ the package/SDK loader-policy alignment in CI.
 | Skip server resource packs (pack stack packet) | `ServerPacks.cpp` | server packs applied as vanilla | the setting and key (no effect) |
 | FreeCamera hide (hotbar control) | `FreeCameraHide.cpp` `FreeCameraHud` (the hotbar control's visibility, restored after the draw) | the hotbar stays drawn in FreeCamera | hiding the hand and the whole HUD |
 | Fake Offhand (item use targets) | `FakeOffhand.cpp` `targetUse` (planter component by name, copper fields, `canBeFertilized`, `isRailBlock`) | the primary item keeps priority on blocks as before L-189 | air checks, the rest of Fake Offhand |
-| Chat position (HUD control positions) | `ChatPosition.cpp` | vanilla chat position | the setting, key and layout preview |
-| Scoreboard position (HUD control positions) | `ScoreboardPosition.cpp` | vanilla scoreboard position | the setting, key and layout preview |
-| Paper doll position (HUD control position) | `DebugVanillaHud.cpp` `DollPlacement` (the `hud_player` control's cached position and size, restored after the draw) | the doll where the game puts it | the setting, key and layout preview; hiding the doll |
+| Chat position (HUD control positions) | `ChatPosition.cpp` | vanilla chat position | the setting, key and layout preview; the other parts of Game HUD placement |
+| Scoreboard position (HUD control positions) | `ScoreboardPosition.cpp` | vanilla scoreboard position | the setting, key and layout preview; the other parts of Game HUD placement |
+| Paper doll position (HUD control position) | `DebugVanillaHud.cpp` `DollPlacement` (the `hud_player` control's cached position and size, restored after the draw) | the doll where the game puts it | the setting, key and layout preview; hiding the doll; the other parts of Game HUD placement |
 | FreeCamera hide (hand pass) | `FreeCameraHide.cpp` | hand drawn | FreeCamera and independent HUD paths |
 | FreeCamera hide (HUD pass) | `FreeCameraHide.cpp` | whole HUD drawn | FreeCamera and hand hiding |
 | Hide effects (particle passes) | `HideEffects.cpp` | particles drawn | independent hide selections |

@@ -114,6 +114,21 @@ void emitToggleToast(IClientInstance& client, input::Action action, Settings con
         }
         level = any ? paused::Level::Partly : paused::Level::No;
     }
+    // The same for the game HUD's parts: the chat's toggle speaks for the chat.
+    if (input::actions[static_cast<size_t>(action)].feature == "gameHud") {
+        using capabilities::Id;
+        auto stopped = [](Id id) { return capabilities::registry().status(id).paused(); };
+        bool any = false;
+        switch (action) {
+        case input::Action::ToggleChatPosition: any = stopped(Id::ChatPosition); break;
+        case input::Action::TogglePaperDollPosition: any = stopped(Id::PaperDollPosition); break;
+        case input::Action::ToggleScoreboardPosition: any = stopped(Id::ScoreboardPosition); break;
+        default:
+            for (auto const& d : capabilities::definitions)
+                if (d.feature == "gameHud" && paused::requested(d.id, value) && stopped(d.id)) any = true;
+        }
+        level = any ? paused::Level::Partly : paused::Level::No;
+    }
     if (on && level != paused::Level::No)
         name += " (" + ui::translated(level == paused::Level::Fully ? "paused.full" : "paused.partly") + ")";
     ui::showToggleToast(name, on);

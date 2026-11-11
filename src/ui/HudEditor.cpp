@@ -67,9 +67,9 @@ std::string_view elementName(HudElementId id) {
     case HudElementId::Inventory: return "feature.inventoryHud";
     case HudElementId::UsedSlots: return "feature.usedSlots";
     case HudElementId::StatusEffects: return "feature.statusEffects";
-    case HudElementId::Chat: return "feature.chatPosition";
-    case HudElementId::PaperDoll: return "feature.paperDollPosition";
-    case HudElementId::Scoreboard: return "feature.scoreboardPosition";
+    case HudElementId::Chat: return "chatPosition";
+    case HudElementId::PaperDoll: return "paperDollPosition";
+    case HudElementId::Scoreboard: return "scoreboardPosition";
     default: return "hudEditor.toast";
     }
 }

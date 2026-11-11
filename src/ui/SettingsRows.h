@@ -69,9 +69,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"durabilityHud", "feature.durabilityHud", "help.durabilityHud", "information.durabilityHud", false, input::Action::ToggleDurabilityHud},
     {"inventoryHud", "feature.inventoryHud", "help.inventoryHud", "information.inventoryHud", false, input::Action::ToggleInventoryHud},
     {"usedSlots", "feature.usedSlots", "help.usedSlots", "information.usedSlots", false, input::Action::ToggleUsedSlots},
-    {"chatPosition", "feature.chatPosition", "help.chatPosition", "information.chatPosition", false, input::Action::ToggleChatPosition},
-    {"paperDollPosition", "feature.paperDollPosition", "help.paperDollPosition", "information.paperDollPosition", false, input::Action::TogglePaperDollPosition},
-    {"scoreboardPosition", "feature.scoreboardPosition", "help.scoreboardPosition", "information.scoreboardPosition", false, input::Action::ToggleScoreboardPosition},
+    {"gameHud", "feature.gameHud", "help.gameHud", "information.gameHud", false, input::Action::ToggleGameHud},
     {"statusEffects", "feature.statusEffects", "help.statusEffects", "information.effectsHud", false, input::Action::ToggleStatusEffects},
     {"offhandSlot", "feature.offhandSlot", "help.offhandSlot", "information.offhandSlot", false, input::Action::ToggleOffhandSlot},
     {"saturation", "feature.saturation", "help.saturation", "information.saturation", false, input::Action::ToggleSaturation},
@@ -164,6 +162,9 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "visuals.hideParticles") return input::Action::HideParticles;
     if (option == "visuals.hideBossBars") return input::Action::HideBossBars;
     if (option == "visuals.hideNausea") return input::Action::HideNausea;
+    if (option == "information.chatPosition") return input::Action::ToggleChatPosition;
+    if (option == "information.paperDollPosition") return input::Action::TogglePaperDollPosition;
+    if (option == "information.scoreboardPosition") return input::Action::ToggleScoreboardPosition;
     if (option == "visuals.hideWater") return input::Action::HideWater;
     if (option == "visuals.hideLava") return input::Action::HideLava;
     if (option == "visuals.hidePowderSnow") return input::Action::HidePowderSnow;
@@ -208,8 +209,9 @@ inline std::optional<std::string_view> optionWarning(std::string_view option, Se
     if (option == "inventory.fakeOffhandSlot" && (tool || weapon)) return "warning.fakeOffhandSlotFetch";
     return {};
 }
+// A group's main switch is off: its selections are kept but do nothing.
 inline bool effectsPaused(std::string_view feature, Settings const& value) {
-    return feature == "hideEffects" && !value.visuals.hideEffects;
+    return (feature == "hideEffects" && !value.visuals.hideEffects) || (feature == "gameHud" && !value.information.gameHud);
 }
 
 // MapCache: the world map's saved data for this world, with a delete button.
@@ -228,9 +230,7 @@ inline std::optional<HudElementId> layoutElement(std::string_view feature) {
     if (feature == "playerList") return HudElementId::PlayerList;
     if (feature == "inventoryHud") return HudElementId::Inventory;
     if (feature == "usedSlots") return HudElementId::UsedSlots;
-    if (feature == "chatPosition") return HudElementId::Chat;
-    if (feature == "paperDollPosition") return HudElementId::PaperDoll;
-    if (feature == "scoreboardPosition") return HudElementId::Scoreboard;
+    if (feature == "gameHud") return HudElementId::Chat;
     if (feature == "statusEffects") return HudElementId::StatusEffects;
     return std::nullopt;
 }
@@ -259,6 +259,9 @@ inline constexpr std::string_view featureNameKey(std::string_view id) {
 inline std::string_view toggleToastKey(input::Action action) {
     using input::Action;
     switch (action) {
+    case Action::ToggleChatPosition: return "toast.chatPosition";
+    case Action::TogglePaperDollPosition: return "toast.paperDollPosition";
+    case Action::ToggleScoreboardPosition: return "toast.scoreboardPosition";
     case Action::HideWeather: return "toast.hideWeather";
     case Action::HideParticles: return "toast.hideParticles";
     case Action::HideBossBars: return "toast.hideBossBars";

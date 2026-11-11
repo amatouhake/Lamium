@@ -406,18 +406,25 @@ Contents:
   line bands also use the shared Background opacity setting described above.
   Text color is not a per-element option.
 
-Paper doll placement (L-309, 2026-11-11): a saved, default-off Paper doll
-position switch lets HUD layout place the game's paper doll, on the chat's
-pattern below. Position and scale (50-200 %); its default is the game's
+Game HUD placement (L-321, 2026-11-11): what HUD layout places of the
+game's own HUD is one feature with a saved, default-off main switch and a
+detail switch per part (chat, paper doll, scoreboard), each on by default
+and with its own unbound toggle key, built like Hide effects: the main
+switch off restores the game's places and keeps the selections. One
+"Placement and look" link opens the editor at the chat. The paragraphs below
+describe each part; where they say "switch" they mean its detail switch
+under this one. The hotbar is not part of it (stopped, BACKLOG L-321).
+
+Paper doll placement (L-309, 2026-11-11): the game's paper doll is placed
+by HUD layout, on the chat's pattern below. Position and scale (50-200 %); its default is the game's
 desktop place and size, so switching it on changes nothing until the
 element is dragged or scaled. The doll's look and when it shows stay
 vanilla. In the editor the game's own elements (chat, paper doll) have a
 warning-colored frame and no look controls; all three take a position and
 a scale (2026-11-11; the chat was position only before).
 
-Scoreboard placement (L-321, 2026-11-11): a saved, default-off Scoreboard
-position switch lets HUD layout place the game's scoreboard sidebar, on the
-chat's pattern below. Position and scale (50-200 %); the default is the
+Scoreboard placement (L-321, 2026-11-11): the game's scoreboard sidebar is
+placed by HUD layout, on the chat's pattern below. Position and scale (50-200 %); the default is the
 game's place, the middle of the right edge, at the game's size. It shows only where a world or server displays an
 objective, so the editor treats it as a conditional element.
 

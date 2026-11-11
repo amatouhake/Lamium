@@ -134,6 +134,7 @@ Json encode(Settings const& settings) {
                          {"inventoryHotbar", settings.information.inventoryHotbar},
                          {"usedSlotsHotbar", settings.information.usedSlotsHotbar},
                          {"effectsHud", settings.information.effectsHud},
+                         {"gameHud", settings.information.gameHud},
                          {"chatPosition", settings.information.chatPosition},
                          {"paperDollPosition", settings.information.paperDollPosition},
                          {"scoreboardPosition", settings.information.scoreboardPosition},
@@ -390,9 +391,25 @@ Settings decodeSettings(std::string_view text) {
         value.information.usedSlots = settingsValue(info, "usedSlots", value.information.usedSlots);
         value.information.inventoryHotbar = settingsValue(info, "inventoryHotbar", value.information.inventoryHotbar);
         value.information.usedSlotsHotbar = settingsValue(info, "usedSlotsHotbar", value.information.usedSlotsHotbar);
-        value.information.chatPosition = settingsValue(info, "chatPosition", value.information.chatPosition);
-        value.information.paperDollPosition = settingsValue(info, "paperDollPosition", value.information.paperDollPosition);
-        value.information.scoreboardPosition = settingsValue(info, "scoreboardPosition", value.information.scoreboardPosition);
+        // Game HUD placement (L-321) put one switch over what were separate
+        // ones. A file from before has no "gameHud": any of them on turns the
+        // group on and keeps each choice; none on leaves the group off with
+        // every part selected, the new default.
+        if (info.contains("gameHud")) {
+            value.information.gameHud = settingsValue(info, "gameHud", value.information.gameHud);
+            value.information.chatPosition = settingsValue(info, "chatPosition", value.information.chatPosition);
+            value.information.paperDollPosition = settingsValue(info, "paperDollPosition", value.information.paperDollPosition);
+            value.information.scoreboardPosition = settingsValue(info, "scoreboardPosition", value.information.scoreboardPosition);
+        } else {
+            bool chat = settingsValue(info, "chatPosition", false), doll = settingsValue(info, "paperDollPosition", false),
+                 board = settingsValue(info, "scoreboardPosition", false);
+            value.information.gameHud = chat || doll || board;
+            if (value.information.gameHud) {
+                value.information.chatPosition = chat;
+                value.information.paperDollPosition = doll;
+                value.information.scoreboardPosition = board;
+            }
+        }
         value.information.effectsHud = settingsValue(info, "effectsHud", value.information.effectsHud);
         value.information.effectsNames = settingsValue(info, "effectsNames", value.information.effectsNames);
         value.information.effectsWarning = settingsValue(info, "effectsWarning", value.information.effectsWarning);

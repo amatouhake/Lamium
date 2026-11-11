@@ -284,11 +284,15 @@ struct Settings {
         // Inventory grid and used-slot counter (L-127), each with its own hotbar switch:
         // the grid shows the main 27 by default, the counter counts all 36 (2026-10-11).
         bool inventoryHud = false, usedSlots = false, inventoryHotbar = false, usedSlotsHotbar = true;
-        bool chatPosition = false;
-        // Places and scales the game's paper doll by the HUD layout (L-309).
-        bool paperDollPosition = false;
-        // Places and scales the game's scoreboard sidebar by the HUD layout (L-321).
-        bool scoreboardPosition = false;
+        // Game HUD placement (L-321): one switch, default off, lets the HUD
+        // layout place and scale parts of the game's own HUD; each part can be
+        // left out and is selected by default (the chat L-174, the paper doll
+        // L-309, the scoreboard sidebar).
+        bool gameHud = false;
+        bool chatPosition = true, paperDollPosition = true, scoreboardPosition = true;
+        bool placesChat() const { return gameHud && chatPosition; }
+        bool placesPaperDoll() const { return gameHud && paperDollPosition; }
+        bool placesScoreboard() const { return gameHud && scoreboardPosition; }
         // Status Effects HUD (L-147): names off gives the icon-and-time column.
         bool effectsHud = false, effectsNames = true, effectsWarning = true, effectsHideVanilla = true;
         bool saturation = true;        // Gold outlines on the hunger bar (L-63)

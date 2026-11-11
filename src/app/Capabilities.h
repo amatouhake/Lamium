@@ -50,7 +50,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::SkipServerPacks, "Skip server resource packs (pack stack packet)", "skipServerPacks", "capability.SkipServerPacks", Impact::Fully},
     {Id::FreeCameraHotbar, "FreeCamera hide (hotbar control)", "freecamera", "capability.FreeCameraHotbar", Impact::Partly},
     {Id::FakeOffhandTargets, "Fake Offhand (item use targets)", "fakeOffhand", "capability.FakeOffhandTargets", Impact::Partly},
-    {Id::ChatPosition, "Chat position (HUD control positions)", "chatPosition", "capability.ChatPosition", Impact::Fully},
+    {Id::ChatPosition, "Chat position (HUD control positions)", "gameHud", "capability.ChatPosition", Impact::Partly},
     {Id::FreeCameraHand, "FreeCamera hide (hand pass)", "freecamera", "capability.FreeCameraHand", Impact::Partly, false},
     {Id::FreeCameraHud, "FreeCamera hide (HUD pass)", "freecamera", "capability.FreeCameraHud", Impact::Partly, false},
     {Id::HideParticles, "Hide effects (particle passes)", "hideEffects", "capability.HideParticles", Impact::Partly, false},
@@ -65,8 +65,8 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::NoteBlockInstrument, "Ghost note block instrument (block instrument component)", "targetInfo", "capability.NoteBlockInstrument", Impact::Partly, true, true},
     {Id::BookPastePages, "Paste across book pages (page model and caret)", "bookPaste", "capability.BookPastePages", Impact::Fully, true, true},
     {Id::BlockHighlight, "Block highlight (chunk section marks)", "blockHighlight", "capability.BlockHighlight", Impact::Fully},
-    {Id::PaperDollPosition, "Paper doll position (HUD control position)", "paperDollPosition", "capability.PaperDollPosition", Impact::Fully},
-    {Id::ScoreboardPosition, "Scoreboard position (HUD control positions)", "scoreboardPosition", "capability.ScoreboardPosition", Impact::Fully},
+    {Id::PaperDollPosition, "Paper doll position (HUD control position)", "gameHud", "capability.PaperDollPosition", Impact::Partly},
+    {Id::ScoreboardPosition, "Scoreboard position (HUD control positions)", "gameHud", "capability.ScoreboardPosition", Impact::Partly},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);

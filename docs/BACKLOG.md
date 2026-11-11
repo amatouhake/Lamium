@@ -696,6 +696,14 @@ Built and checked in game 2026-11-11 (editor part; rules in DESIGN
 got corner name tags that keep apart and off the watched element, a preview
 while pointed at, and the selected element is drawn on top. Left: the
 game-drawn elements below.
+Settings (maintainer 2026-11-11): the three game-drawn elements are one
+feature, "Game HUD placement" (`information.gameHud`, default off), with the
+chat, the paper doll and the scoreboard as detail switches, each on by
+default and with its own unbound key, like Hide effects. Why: three similar
+features crowded the HUD category; one switch turns all three on or off and
+the details leave one out. A settings file from before has no `gameHud`: any
+of the old switches on turns the group on and keeps each choice. Built
+2026-11-11; not checked in game yet.
 Game-drawn elements: the paper doll (L-309, done; BACKLOG-DONE) and chat scale are the requests;
 the hotbar and scoreboard are wanted if possible. Each needs Research on its
 draw path first. Elements declare what they offer (position / scale / look)
@@ -801,7 +809,10 @@ What each change needs:
   part's own name. **Unknown**: the runtime names of the factory-made rows,
   and whether any ancestor clips. Scale: the same open questions as chat
   scale; build it after the chat's answer.
-- **Hotbar.** Position: tool (1) per part cannot cover it, because three
+- **Hotbar.** Stopped 2026-11-11 (maintainer): the chat's method does not
+  reach it, so the cost is out of proportion to how rarely anyone wants the
+  hotbar elsewhere. Not planned; reopen only on a real request. The notes it
+  was judged from: tool (1) per part cannot cover it, because three
   renderers on the path are not linkable and the per-icon positions of
   hearts, armor, hunger and slots are **Unknown** to follow `mCachedPosition`
   at draw time. Moving the whole subtree before `ScreenView::render` and

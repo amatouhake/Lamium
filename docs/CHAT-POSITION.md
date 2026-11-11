@@ -1,5 +1,13 @@
 # Chat position (L-174)
 
+## Part of Game HUD placement (L-321, 2026-11-11)
+
+The chat's switch is now a detail switch, on by default, under the
+default-off **Game HUD placement** feature, beside the paper doll and the
+scoreboard (DESIGN "Game HUD placement"). Older settings with Chat position
+on load with the feature on and only the chat selected. Below, "Chat
+position switch" means that detail switch under the main one.
+
 ## Scale (L-321, 2026-11-11)
 
 HUD layout also scales the chat, 50-200 %, like Lamium's own elements. The
