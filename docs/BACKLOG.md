@@ -752,6 +752,31 @@ read it from game state; how to show it (Chunk Borders option, minimap
 overlay or world map layer); behavior on servers where it is unknown.
 Research the source first, then agree the presentation with the maintainer.
 No release target selected.
+Header read 2026-11-12 (SDK 26.60.4; reading only, nothing built or run):
+- Confirmed in headers: `ILevel::getChunkTickRange()` (virtual, so callable
+  on the client level without a new symbol) and
+  `getChunkTickRangeManager()`, whose `ChunkTickRangeManager` holds
+  `mChunkTickRange` and has `isChunkInTickRange(LevelChunk, minDistToPlayer)`
+  (`MCNAPI`). `LevelSettings::mServerChunkTickRange` and
+  `LevelData::mServerTickRange` hold the same number as data.
+- Hypothesis (not confirmed): the range is part of the level settings the
+  server sends at join, so a client on a server has it too. If so, "unknown
+  on servers" may not happen at all.
+- First check, read only: log `getChunkTickRange()` on the client level in a
+  local world at simulation distance 4 and 8, then on a server whose
+  distance is known. One log line at world join is enough.
+- Not known from headers: the simulated area's shape (square, circle or the
+  chunk-distance rule `isChunkInTickRange` uses) and whether it is centred on
+  each player. `isChunkInTickRange` could answer per chunk, but it does not
+  link (`MCNAPI`); the shape must be checked in game or the function
+  requested.
+- Open choices for the maintainer, with the agent's recommendation (not
+  decided): where to show it. Recommended: a Chunk Borders option that
+  tints the border lines of simulated chunks, because that overlay already
+  draws per chunk around the player and needs no new screen; the minimap or
+  world map layer can follow once the shape is confirmed. When the range
+  cannot be read: recommended to draw nothing and say so in the option's
+  description, rather than assume a value.
 
 
 ### L-265 Schematic placement assist: place the ghost's block in its state
@@ -953,6 +978,12 @@ shown on the maps and edited like any other; a Box should hold it with no file
 format change. It is a copy of the range when made, so a changed pyramid needs a new
 one, and on a server it goes at rejoin as every shape does. Check first in game: the
 range's exact width and vertical extent, then the key or menu that creates it.
+Header read 2026-11-12 (SDK 26.60.4; reading only): `BeaconBlockActor` has
+`mNumLevels` and `mNumLevelsSet` as plain members and gets its state through
+`_onUpdatePacket`, so the pyramid's level count is probably readable from the
+client's block actor, also on a server (not confirmed in game). No range or
+radius member exists in the header: the size per level has to come from the
+in-game check and live in a pure, tested table in Lamium.
 The proposal below is superseded where it differs.
 Goal: see a beacon's range without making a shape (kind, center, radius,
 saving).
