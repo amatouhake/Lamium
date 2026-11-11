@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Chat scale draw experiment (L-321, 2026-11-11)
+
+`075b60e0`, DLL SHA-256
+`bb59c4269ce0fa9cdbedf69369663311cbd8d0d9d1bb54314c2dc034e206e80f`,
+`chat_scale_trace=y`, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance,
+desktop UI, Chat position on, two 1920x1080 screenshots from the maintainer.
+The trace draws each chat text and background two more times per frame with
+the control's position and size, and the text's font scale and line height,
+multiplied for the call (1.4 to the right of the chat, 0.7 above it). Seen:
+1. Three chats: the game's, a larger and a smaller one. With one short
+   message and with a short message plus one wrapped over three lines, both
+   copies break the lines at the same words as the original, the lines keep
+   their spacing (no overlap, no gap) and each background spans its scaled
+   width and height.
+2. The scaled text looks sharp at both sizes.
+3. Per the maintainer: no flicker of the scaled copies while messages fade.
+4. Per the maintainer: enlarged, the text shadow's offset is a little more
+   noticeable.
+5. Log: `fontScale=1 lineHeight=14.668 linePadding=1.001 fontSize=1`, text
+   control 249 wide in a 256-wide panel, for a one-line message.
+Not seen: scales beyond 0.7-1.4, messages with formatting codes or emoji,
+many messages (the chat's maximum height), Pocket UI, other GUI scales,
+servers, the cost of the extra draws.
+
 ## Scoreboard position (L-321, 2026-11-11)
 
 `f90e1f61`, DLL SHA-256

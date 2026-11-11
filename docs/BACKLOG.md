@@ -768,7 +768,15 @@ What each change needs:
 - **Paper doll** (built; details under L-309 in BACKLOG-DONE). Position: tool (1) in the existing
   hook, no new hook. Scale: the control's `mSize` for the call. Both seen in
   game 2026-11-11 on desktop UI.
-- **Chat scale.** The label takes `font_scale_factor` from the UI variable
+- **Chat scale.** Experiment result 2026-11-11 (`chat_scale_trace`,
+  VALIDATION-LOG "Chat scale draw experiment"): the draw-time hypothesis
+  holds. Each part drawn with the control's position and size and the text's
+  `mFontScaleFactor` and `mLineHeight` multiplied for the call keeps the
+  layout's line breaks and spacing at 0.7 and 1.4, sharp and without flicker;
+  the text shadow's offset grows with the scale. So chat scale can be built
+  like chat position, with positions scaled about the placed panel's anchor,
+  and the scoreboard's scale the same way. Not built. The notes before the
+  experiment: the label takes `font_scale_factor` from the UI variable
   `$chat_font_scale_factor`, so the text size is `TextComponent::mFontScaleFactor`
   (Read). Wrapping, line heights and the backgrounds' sizes are fixed by
   layout before any draw. **Hypothesis**: a draw-time scale has to treat each
