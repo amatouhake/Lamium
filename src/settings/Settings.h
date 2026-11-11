@@ -287,7 +287,7 @@ struct Settings {
         bool chatPosition = false;
         // Places and scales the game's paper doll by the HUD layout (L-309).
         bool paperDollPosition = false;
-        // Places the game's scoreboard sidebar by the HUD layout (L-321); position only.
+        // Places and scales the game's scoreboard sidebar by the HUD layout (L-321).
         bool scoreboardPosition = false;
         // Status Effects HUD (L-147): names off gives the icon-and-time column.
         bool effectsHud = false, effectsNames = true, effectsWarning = true, effectsHideVanilla = true;
@@ -407,14 +407,12 @@ struct Settings {
         normalizeElement(hud.inventory, ui::defaultHudElement(ui::HudElementId::Inventory));
         normalizeElement(hud.usedSlots, ui::defaultHudElement(ui::HudElementId::UsedSlots));
         normalizeElement(hud.chat, ui::defaultHudElement(ui::HudElementId::Chat));
-        hud.chat.scale = 100;
         hud.chat.background = ui::ElementBackground::None;
         hud.chat.shadow = true;
         normalizeElement(hud.paperDoll, ui::defaultHudElement(ui::HudElementId::PaperDoll));
         hud.paperDoll.background = ui::ElementBackground::None;
         hud.paperDoll.shadow = true;
         normalizeElement(hud.scoreboard, ui::defaultHudElement(ui::HudElementId::Scoreboard));
-        hud.scoreboard.scale = 100;
         hud.scoreboard.background = ui::ElementBackground::None;
         hud.scoreboard.shadow = true;
         normalizeElement(hud.statusEffects, ui::defaultHudElement(ui::HudElementId::StatusEffects), true);

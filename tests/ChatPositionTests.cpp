@@ -65,15 +65,31 @@ void chatPositionTests() {
     check(row && row->x == 562 && row->y == 165, "at the default place a scoreboard part is not moved");
     auto shifted = translated(640, 360, {560, 155, 80, 50}, {562, 165}, placeAt(sidebar, 10, 20, 80, 50, 640, 360));
     check(shifted && shifted->x == 12 && shifted->y == 30, "a moved scoreboard carries its parts with it");
-    check(hudGameDrawn(HudElementId::Scoreboard) && !hudScalable(HudElementId::Scoreboard) && hudConditional(HudElementId::Scoreboard),
-          "the scoreboard is the game's, placed only, and shown as a frame in the editor");
+    check(hudGameDrawn(HudElementId::Scoreboard) && hudConditional(HudElementId::Scoreboard),
+          "the scoreboard is the game's and shown as a frame in the editor");
+    // Scale (L-321): the placed box and every part's place inside it scale together.
+    auto big = defaults;
+    big.scale = 150;
+    auto grown = placed(640, 360, 256, 30, big);
+    check(grown && grown->w == 384 && grown->h == 45 && grown->x == 0 && grown->y + grown->h == first->y + first->h,
+          "a scaled chat grows from its anchored corner");
+    auto part = translated(640, 360, {0, 60, 256, 30}, {2, 75}, big);
+    check(part && part->x == 3 && part->y == grown->y + 22.5f, "a part keeps its place inside the scaled panel");
+    big.scale = 200;
+    check(!placed(640, 360, 400, 30, big) && !translated(640, 360, {0, 60, 400, 30}, {2, 75}, big),
+          "a chat scaled past the screen is left as the game draws it");
+    auto small = sidebar;
+    small.scale = 50;
+    auto shrunk = placed(640, 360, 80, 50, small);
+    check(shrunk && shrunk->w == 40 && shrunk->x == 600 && shrunk->y == 167.5f, "a scaled scoreboard stays on its edge");
+    check(information::chatPosition::zoom(defaults) == 1 && information::chatPosition::zoom(big) == 2, "the element's scale is a factor");
     Settings board;
     check(!board.information.scoreboardPosition && input::defaultChord(input::Action::ToggleScoreboardPosition).empty()
           && input::toggleAction(board, input::Action::ToggleScoreboardPosition) && board.information.scoreboardPosition,
           "scoreboard position starts off, has an unbound key and toggles");
     auto boardSaved = decodeSettings(R"({"information":{"scoreboardPosition":true},"hud":{"scoreboard":{"anchor":0,"dx":7,"dy":9,"scale":150}}})");
-    check(boardSaved.information.scoreboardPosition && boardSaved.hud.scoreboard.dx == 7 && boardSaved.hud.scoreboard.scale == 100,
-          "the scoreboard's switch and place load; it has no scale");
+    check(boardSaved.information.scoreboardPosition && boardSaved.hud.scoreboard.dx == 7 && boardSaved.hud.scoreboard.scale == 150,
+          "the scoreboard's switch, place and scale load");
     check(paused::onUnverified("scoreboardPosition") == paused::Level::Fully, "scoreboard position is reported paused on an unverified executable");
     check(paused::onUnverified("chatPosition") == paused::Level::Fully
           && std::ranges::find(active, "chatPosition") != active.end(),

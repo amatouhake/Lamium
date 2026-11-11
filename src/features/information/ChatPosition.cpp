@@ -57,11 +57,13 @@ struct RenderScope {
 // without invalidating the tree or overwriting positions computed by re-layout.
 struct Translation {
     UIControl* owner = nullptr;
-    glm::vec2 position{};
-#ifdef LAMIUM_CHAT_SCALE_TRACE
-    glm::vec2 panelAt{}, panelSize{};
-#endif
-    ~Translation() { if (owner) owner->mCachedPosition = position; }
+    glm::vec2 position{}, size{};
+    float scale = 1;
+    ~Translation() {
+        if (!owner) return;
+        owner->mCachedPosition = position;
+        owner->mSize = size;
+    }
     void prepare(UIControl& control) {
         if (!active) return;
         std::string const& name = *control.mName;
@@ -79,46 +81,24 @@ struct Translation {
         if (control.mCachedPositionDirty) control._setCachedPosition();
         glm::vec2 at = *panel->mCachedPosition, size = *panel->mSize;
         position = *control.mCachedPosition;
-        auto next = translated(active->width, active->height, {at.x, at.y, size.x, size.y},
+        auto next = chatPosition::translated(active->width, active->height, {at.x, at.y, size.x, size.y},
                                {position.x, position.y}, active->element);
         if (!next) return;
         {
             std::lock_guard lock(seenMutex);
             seen = Seen{size.x, size.y, active->width, active->height};
         }
+        // The element's scale: the control's size for this draw, and for a
+        // text its font scale and line height (the hook), which keeps the
+        // layout's line breaks and spacing (checked in game, L-321).
+        scale = chatPosition::zoom(active->element);
+        // The part's own size, not the panel's (`size` above).
+        this->size = *control.mSize;
         owner = &control;
         control.mCachedPosition = glm::vec2{next->x, next->y};
-#ifdef LAMIUM_CHAT_SCALE_TRACE
-        panelAt = at;
-        panelSize = size;
-#endif
+        if (scale != 1) control.mSize = this->size * scale;
     }
 };
-#ifdef LAMIUM_CHAT_SCALE_TRACE
-// L-321 experiment: the same chat part drawn two more times in the frame,
-// scaled about the placed panel's bottom left corner: 1.4 times to the right
-// of the chat and 0.7 times above it. Position and size of the control are
-// scaled for the call; `font` scales what else the part needs (the text's
-// font scale) and undoes it.
-std::atomic<int> traceLines{0};
-template<class Font, class Draw>
-void scaledCopies(Translation const& t, UIControl& control, Font font, Draw draw) {
-    if (!t.owner || !active) return;
-    glm::vec2 placed = *control.mCachedPosition, size = *control.mSize;
-    glm::vec2 corner = t.panelAt + (placed - t.position) + glm::vec2{0, t.panelSize.y};
-    struct Copy { float scale; glm::vec2 anchor; };
-    Copy const copies[] = {{1.4f, {active->width * .42f, corner.y}}, {.7f, {corner.x, corner.y - t.panelSize.y - 12}}};
-    for (auto const& copy : copies) {
-        control.mCachedPosition = copy.anchor + (placed - corner) * copy.scale;
-        control.mSize = size * copy.scale;
-        font(copy.scale);
-        draw();
-        font(0);
-    }
-    control.mCachedPosition = placed;
-    control.mSize = size;
-}
-#endif
 }
 LL_TYPE_INSTANCE_HOOK(ChatHudRender, ll::memory::HookPriority::Normal, ScreenView,
     &ScreenView::render, void, UIRenderContext& context) {
@@ -130,32 +110,23 @@ LL_TYPE_INSTANCE_HOOK(ChatTextRender, ll::memory::HookPriority::Normal, TextComp
     &TextComponent::$render, void, UIRenderContext& context) {
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
+    float const font = mFontScaleFactor, line = mLineHeight;
+    bool const scaled = translation.owner && translation.scale != 1;
+    if (scaled) {
+        mFontScaleFactor = font * translation.scale;
+        mLineHeight = line * translation.scale;
+    }
     origin(context);
-#ifdef LAMIUM_CHAT_SCALE_TRACE
-    try {
-        float scale = mFontScaleFactor, line = mLineHeight;
-        if (translation.owner && traceLines.fetch_add(1) < 6) {
-            glm::vec2 at = *mOwner.mCachedPosition, size = *mOwner.mSize;
-            Runtime::instance().self().getLogger().info(
-                "Chat scale trace: text at={},{} size={},{} fontScale={} lineHeight={} linePadding={} fontSize={} panel={},{} {}x{}",
-                at.x, at.y, size.x, size.y, scale, line, static_cast<float>(mLinePadding), static_cast<int>(mFontSize),
-                translation.panelAt.x, translation.panelAt.y, translation.panelSize.x, translation.panelSize.y);
-        }
-        scaledCopies(translation, mOwner, [&](float by) {
-            mFontScaleFactor = by > 0 ? scale * by : scale;
-            mLineHeight = by > 0 ? line * by : line;
-        }, [&] { origin(context); });
-    } catch (...) {}
-#endif
+    if (scaled) {
+        mFontScaleFactor = font;
+        mLineHeight = line;
+    }
 }
 LL_TYPE_INSTANCE_HOOK(ChatBackgroundRender, ll::memory::HookPriority::Normal, SpriteComponent,
     &SpriteComponent::render, void, UIRenderContext& context) {
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
     origin(context);
-#ifdef LAMIUM_CHAT_SCALE_TRACE
-    try { scaledCopies(translation, mOwner, [](float) {}, [&] { origin(context); }); } catch (...) {}
-#endif
 }
 std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, float width, float height,
                                          ui::HudElement const& element) {
@@ -170,12 +141,13 @@ std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, fl
     auto box = placed(width, height, w, h, element);
     if (!box) return {};
     // Sample only; the gameplay chat is still rendered by vanilla.
-    int lines = std::min(3, static_cast<int>(box->h / 9));
+    float z = zoom(element), row = 9 * z;
+    int lines = std::min(3, static_cast<int>(box->h / row));
     for (int i = 0; i < lines; ++i) {
-        float y = box->y + box->h - (lines - i) * 9;
-        ui::fill(context, box->x, y, box->w, 9, ui::palette::panel, .5f);
-        ui::labelScaled(context, box->x + 2, y, std::max(0.f, box->w - 5), ui::translated("chatPosition.sample"),
-                        1.f, ui::palette::text, ui::Align::Left, true);
+        float y = box->y + box->h - static_cast<float>(lines - i) * row;
+        ui::fill(context, box->x, y, box->w, row, ui::palette::panel, .5f);
+        ui::labelScaled(context, box->x + 2 * z, y, std::max(0.f, box->w - 5 * z), ui::translated("chatPosition.sample"),
+                        z, ui::palette::text, ui::Align::Left, true);
     }
     context.flushText(0, std::nullopt);
     return box;

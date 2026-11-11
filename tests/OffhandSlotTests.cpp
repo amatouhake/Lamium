@@ -52,8 +52,6 @@ void offhandSlotTests() {
         // Twice as large: the element box is 90x100 and the control 30x30 inside it.
         auto doubled = doll::controlPosition(doll::controlCenter(200, 100, 2), 30, 30);
         check(doubled && doubled->x == 230 && doubled->y == 130, "a scaled doll keeps its place inside the scaled element box");
-        check(lamium::ui::hudScalable(lamium::ui::HudElementId::PaperDoll) && !lamium::ui::hudScalable(lamium::ui::HudElementId::Chat),
-              "the paper doll takes a scale; the chat does not");
         auto parts = doll::figure(doll::Box{100, 40, doll::placedWidth, doll::placedHeight});
         check(parts[0].x == 118.5f && parts[0].y == 49 && parts[0].w == 8 && parts[5].y + parts[5].h == 81,
               "the editor's stand-in figure is centered in the element box");

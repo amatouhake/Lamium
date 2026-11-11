@@ -57,8 +57,13 @@ struct RenderScope {
 // without invalidating the tree or overwriting positions computed by re-layout.
 struct Translation {
     UIControl* owner = nullptr;
-    glm::vec2 position{};
-    ~Translation() { if (owner) owner->mCachedPosition = position; }
+    glm::vec2 position{}, size{};
+    float scale = 1;
+    ~Translation() {
+        if (!owner) return;
+        owner->mCachedPosition = position;
+        owner->mSize = size;
+    }
     void prepare(UIControl& control) {
         if (!active) return;
         // The sidebar's parts sit a few panels under it; a clipping panel on
@@ -86,8 +91,15 @@ struct Translation {
             std::lock_guard lock(seenMutex);
             seen = Seen{size.x, size.y, active->width, active->height};
         }
+        // The element's scale: the control's size for this draw, and for a
+        // text its font scale and line height (the hook), which keeps the
+        // layout's line breaks and spacing (checked in game, L-321).
+        scale = chatPosition::zoom(active->element);
+        // The part's own size, not the panel's (`size` above).
+        this->size = *control.mSize;
         owner = &control;
         control.mCachedPosition = glm::vec2{next->x, next->y};
+        if (scale != 1) control.mSize = this->size * scale;
     }
 };
 }
@@ -101,7 +113,17 @@ LL_TYPE_INSTANCE_HOOK(ScoreboardTextRender, ll::memory::HookPriority::Normal, Te
     &TextComponent::$render, void, UIRenderContext& context) {
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
+    float const font = mFontScaleFactor, line = mLineHeight;
+    bool const scaled = translation.owner && translation.scale != 1;
+    if (scaled) {
+        mFontScaleFactor = font * translation.scale;
+        mLineHeight = line * translation.scale;
+    }
     origin(context);
+    if (scaled) {
+        mFontScaleFactor = font;
+        mLineHeight = line;
+    }
 }
 LL_TYPE_INSTANCE_HOOK(ScoreboardBackgroundRender, ll::memory::HookPriority::Normal, SpriteComponent,
     &SpriteComponent::render, void, UIRenderContext& context) {
@@ -119,15 +141,16 @@ std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, fl
     auto box = chatPosition::placed(width, height, w, h, element);
     if (!box || outline) return box;
     // Sample only; the gameplay sidebar is still rendered by vanilla.
+    float z = chatPosition::zoom(element);
     ui::fill(context, box->x, box->y, box->w, box->h, ui::palette::panel, .5f);
-    ui::labelScaled(context, box->x, box->y + 1, box->w, ui::translated("scoreboardPosition.sample"), 1.f,
+    ui::labelScaled(context, box->x, box->y + z, box->w, ui::translated("scoreboardPosition.sample"), z,
                     ui::palette::text, ui::Align::Center, false);
-    int rows = std::min(3, static_cast<int>((box->h - 10) / 10));
+    int rows = std::min(3, static_cast<int>((box->h - 10 * z) / (10 * z)));
     for (int i = 0; i < rows; ++i) {
-        float y = box->y + 11 + 10 * static_cast<float>(i);
-        ui::labelScaled(context, box->x + 2, y, std::max(0.f, box->w - 14), i == 0 ? "Steve" : i == 1 ? "Alex" : "Noor", 1.f,
+        float y = box->y + (11 + 10 * static_cast<float>(i)) * z;
+        ui::labelScaled(context, box->x + 2 * z, y, std::max(0.f, box->w - 14 * z), i == 0 ? "Steve" : i == 1 ? "Alex" : "Noor", z,
                         ui::palette::text, ui::Align::Left, false);
-        ui::labelScaled(context, box->x, y, std::max(0.f, box->w - 2), std::to_string(12 - 4 * i), 1.f,
+        ui::labelScaled(context, box->x, y, std::max(0.f, box->w - 2 * z), std::to_string(12 - 4 * i), z,
                         ui::palette::warning, ui::Align::Right, false);
     }
     context.flushText(0, std::nullopt);

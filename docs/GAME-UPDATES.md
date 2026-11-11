@@ -249,7 +249,8 @@ sized by its content) whose parts are plain images and labels with generic
 names, so a part is recognized by that ancestor within 16 controls. As for
 the chat, the screen hook establishes the render scope and each part's cached
 position is translated for its one draw from the sidebar's measured box, then
-restored. Gated (Scoreboard position); a renamed sidebar, a clipping panel on
+restored; a scale other than 100 % sets the control's size and a text's font
+scale and line height for that draw as the chat does. Gated (Scoreboard position); a renamed sidebar, a clipping panel on
 the way (logged once when it is the sidebar itself) or invalid geometry
 leaves it vanilla. Checked locally on `f90e1f61` (L-321).
 
@@ -260,9 +261,10 @@ Meaning: the HUD has `chat_panel` immediately under an unclipped
 screen hook establishes the render scope; each component uses the panel's
 current measured size after native layout, translates only its cached
 position while drawing, then restores it without invalidating the tree.
-The `chat_scale_trace` option draws each chat part two more times in those
-hooks, scaled (control position and size, the text's font scale and line
-height; L-321).
+For a scale other than 100 % the same hooks also set the control's size
+and, for a text, `TextComponent::mFontScaleFactor` and `mLineHeight` for the
+one draw and restore them: the layout's line breaks and spacing carry over
+(checked with the removed `chat_scale_trace` build, L-321).
 Gated (Chat position); renamed controls, clipping, invalid geometry or an
 ancestor walk beyond 16 controls leave it vanilla. Basic scope and the
 message-expiry/long-message regression passed on `b28a40d` (L-174);

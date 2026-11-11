@@ -145,9 +145,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     std::string shadowText = shadow ? optionText(*shadow, value) : std::string{};
     std::string linesText = translated("hudEditor.lines");
     std::string resetText = translated("resetShort");
-    bool positionOnly = !hudScalable(id);
     float snapW = textWidth(context, snapText) + 17, scaleW = textWidth(context, "150%") + 24;
-    if (positionOnly) scaleW = 0;
     float backgroundW = background ? textWidth(context, backgroundText) + 8 : 0;
     float shadowW = shadow ? textWidth(context, shadowText) + 8 : 0;
     float linesW = id == HudElementId::Info ? textWidth(context, linesText) + 17 : 0;
@@ -169,7 +167,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     };
     auto snap = add(snapW, Command::OpenSnap);
     button(context, snap, snapText, popover == Popover::Snap || hovering(snap, px, py), palette::keyEdge, true);
-    if (!positionOnly) {
+    {
         // Scale: arrows at both ends of one field; a click on the value types it.
         Box scaleBox{x, y, scaleW, itemHeight};
         fill(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyFill);
@@ -320,7 +318,6 @@ void run(Control const& control) {
     // Applied at once, like the binding row's Reset.
     case Command::Reset: resetElements(value, id); break;
     case Command::ScaleEdit:
-        if (!hudScalable(id)) return;
         editingScale = true;
         screen::number().begin(settings::hudElement(value, id).scale);
         return;
@@ -512,7 +509,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     }
     // Scale handles on the corners away from the anchor; the chat is placed only.
     handles.clear();
-    if (selected && active && hudScalable(*selected) && !(drag && drag->moved))
+    if (selected && active && !(drag && drag->moved))
         if (auto const& box = lastBoxes[static_cast<size_t>(*selected)]) {
             handles = scaleHandles(*active, *box, width, height);
             for (auto const& handle : handles) {

@@ -1,5 +1,16 @@
 # Chat position (L-174)
 
+## Scale (L-321, 2026-11-11)
+
+HUD layout also scales the chat, 50-200 %, like Lamium's own elements. The
+game's layout stays as it is: for each draw the part's place inside the
+panel, the control's size and the text's font scale and line height are
+multiplied and restored, which keeps the line breaks and spacing (the
+`chat_scale_trace` experiment, VALIDATION-LOG). The text shadow's offset
+grows with the scale. A chat scaled past the screen is left as the game
+draws it. Below, "only offers position controls" and "no ... appearance
+settings" predate this.
+
 ## Current contract (decided 2026-10-14)
 
 Information has a saved, default-off **Chat position** switch and an unbound

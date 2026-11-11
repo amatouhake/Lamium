@@ -63,12 +63,11 @@ inline constexpr bool hudConditional(HudElementId id) {
         || id == HudElementId::Scoreboard;
 }
 // Drawn by the game and only moved by Lamium (L-174, L-309): the editor
-// frames them in another color and offers no look controls. The chat and the
-// scoreboard are placed only; the paper doll also takes a scale.
+// frames them in another color and offers position and scale but no look
+// controls.
 inline constexpr bool hudGameDrawn(HudElementId id) {
     return id == HudElementId::Chat || id == HudElementId::PaperDoll || id == HudElementId::Scoreboard;
 }
-inline constexpr bool hudScalable(HudElementId id) { return id != HudElementId::Chat && id != HudElementId::Scoreboard; }
 // Gap from the screen edge used by defaults and snap-to; flush is allowed.
 inline constexpr float hudInset = 4;
 // Defaults match docs/demos/hud-editor.html.
