@@ -41,6 +41,8 @@ int main() try {
     enchantPlanTests();
     extern void frameProfileTests();
     frameProfileTests();
+    extern void opposingKeysTests();
+    opposingKeysTests();
     extern void repeatTradeTests();
     repeatTradeTests();
     extern void englishSearchTests();

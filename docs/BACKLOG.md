@@ -2006,6 +2006,22 @@ direction. Open: default, release/resume semantics and interaction with
 remapped keys, controllers, permanent movement and detached cameras.
 Model event sequences in pure logic before touching gameplay input; menus
 and focus changes must not leave stale held inputs. Not implemented.
+Model 2026-11-12 (pure logic and tests only; no input hook, setting or
+action): `src/input/OpposingKeys.h` resolves one axis from press, release
+and clear events; `tests/OpposingKeysTests.cpp` covers auto-repeat, stray
+releases and clearing on focus loss. Both release behaviors are modelled so
+the choice below costs nothing either way.
+Open choices, with the agent's recommendation (not decided):
+- Release/resume: when the winning key is released while the other is
+  still held, the held key takes over again (`Held`), or nothing moves
+  until it is pressed again (`Repress`). Recommended: `Held`; it matches
+  what a player expects when rocking between two keys, and `Repress` reads
+  as a dropped input.
+- Default: recommended off, since it changes vanilla movement (vanilla
+  cancels opposing keys).
+- Still to research before any wiring: where vanilla turns key state into
+  the move vector, so the result replaces only the cancelled case, and
+  what controllers and permanent movement feed into the same place.
 
 ### L-282 Toggle Vibrant Visuals with a key
 
