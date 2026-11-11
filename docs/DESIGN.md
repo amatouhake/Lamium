@@ -414,6 +414,12 @@ element is dragged or scaled. The doll's look and when it shows stay
 vanilla. In the editor the game's own elements (chat, paper doll) have a
 warning-colored frame and no look controls; the chat is placed only.
 
+Scoreboard placement (L-321, 2026-11-11): a saved, default-off Scoreboard
+position switch lets HUD layout place the game's scoreboard sidebar, on the
+chat's pattern below. Position only; the default is the game's place, the
+middle of the right edge. It shows only where a world or server displays an
+objective, so the editor treats it as a conditional element.
+
 Chat placement (L-174, decided 2026-10-14): a saved, default-off Chat
 position switch moves ordinary HUD messages to the lower left and adds a
 position-only element to HUD layout. The default is flush left with its

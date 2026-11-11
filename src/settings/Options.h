@@ -107,6 +107,7 @@ inline ui::HudElement const& hudElement(Settings const& value, ui::HudElementId 
     case ui::HudElementId::StatusEffects: return value.hud.statusEffects;
     case ui::HudElementId::Chat: return value.hud.chat;
     case ui::HudElementId::PaperDoll: return value.hud.paperDoll;
+    case ui::HudElementId::Scoreboard: return value.hud.scoreboard;
     default: return value.hud.toast;
     }
 }
@@ -125,6 +126,7 @@ inline ui::HudElement& hudElement(Settings& value, ui::HudElementId id) {
     case ui::HudElementId::StatusEffects: return value.hud.statusEffects;
     case ui::HudElementId::Chat: return value.hud.chat;
     case ui::HudElementId::PaperDoll: return value.hud.paperDoll;
+    case ui::HudElementId::Scoreboard: return value.hud.scoreboard;
     default: return value.hud.toast;
     }
 }
@@ -242,6 +244,7 @@ inline constexpr auto options = std::to_array<Option>({
     hudChoice<ui::HudElementId::UsedSlots, &ui::HudElement::background, elementBackgroundLabels>("hud.usedSlots.background", "usedSlots", "hudBackground"),
     hudToggle<ui::HudElementId::UsedSlots, &ui::HudElement::shadow>("hud.usedSlots.shadow", "usedSlots", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::chatPosition>("information.chatPosition", "chatPosition", "chatPosition"),
+    toggle<&Settings::information, &Settings::Information::scoreboardPosition>("information.scoreboardPosition", "scoreboardPosition", "scoreboardPosition"),
     toggle<&Settings::information, &Settings::Information::paperDollPosition>("information.paperDollPosition", "paperDollPosition", "paperDollPosition"),
     hudNumeric<ui::HudElementId::PaperDoll, &ui::HudElement::scale>("hud.paperDoll.scale", "paperDollPosition", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     toggle<&Settings::information, &Settings::Information::effectsHud>("information.effectsHud", "statusEffects", "statusEffects"),

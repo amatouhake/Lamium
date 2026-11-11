@@ -148,6 +148,7 @@ struct Settings {
         ui::HudElement usedSlots = ui::defaultHudElement(ui::HudElementId::UsedSlots);
         ui::HudElement chat = ui::defaultHudElement(ui::HudElementId::Chat);
         ui::HudElement paperDoll = ui::defaultHudElement(ui::HudElementId::PaperDoll);
+        ui::HudElement scoreboard = ui::defaultHudElement(ui::HudElementId::Scoreboard);
         ui::HudElement statusEffects = ui::defaultHudElement(ui::HudElementId::StatusEffects);
     } hud;
     struct Map {
@@ -286,6 +287,8 @@ struct Settings {
         bool chatPosition = false;
         // Places and scales the game's paper doll by the HUD layout (L-309).
         bool paperDollPosition = false;
+        // Places the game's scoreboard sidebar by the HUD layout (L-321); position only.
+        bool scoreboardPosition = false;
         // Status Effects HUD (L-147): names off gives the icon-and-time column.
         bool effectsHud = false, effectsNames = true, effectsWarning = true, effectsHideVanilla = true;
         bool saturation = true;        // Gold outlines on the hunger bar (L-63)
@@ -410,6 +413,10 @@ struct Settings {
         normalizeElement(hud.paperDoll, ui::defaultHudElement(ui::HudElementId::PaperDoll));
         hud.paperDoll.background = ui::ElementBackground::None;
         hud.paperDoll.shadow = true;
+        normalizeElement(hud.scoreboard, ui::defaultHudElement(ui::HudElementId::Scoreboard));
+        hud.scoreboard.scale = 100;
+        hud.scoreboard.background = ui::ElementBackground::None;
+        hud.scoreboard.shadow = true;
         normalizeElement(hud.statusEffects, ui::defaultHudElement(ui::HudElementId::StatusEffects), true);
         map.zoom = map::clampZoomIndex(map.zoom);
         if (!std::isfinite(map.size)) map.size = 20;

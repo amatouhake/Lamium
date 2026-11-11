@@ -71,6 +71,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"usedSlots", "feature.usedSlots", "help.usedSlots", "information.usedSlots", false, input::Action::ToggleUsedSlots},
     {"chatPosition", "feature.chatPosition", "help.chatPosition", "information.chatPosition", false, input::Action::ToggleChatPosition},
     {"paperDollPosition", "feature.paperDollPosition", "help.paperDollPosition", "information.paperDollPosition", false, input::Action::TogglePaperDollPosition},
+    {"scoreboardPosition", "feature.scoreboardPosition", "help.scoreboardPosition", "information.scoreboardPosition", false, input::Action::ToggleScoreboardPosition},
     {"statusEffects", "feature.statusEffects", "help.statusEffects", "information.effectsHud", false, input::Action::ToggleStatusEffects},
     {"offhandSlot", "feature.offhandSlot", "help.offhandSlot", "information.offhandSlot", false, input::Action::ToggleOffhandSlot},
     {"saturation", "feature.saturation", "help.saturation", "information.saturation", false, input::Action::ToggleSaturation},
@@ -229,6 +230,7 @@ inline std::optional<HudElementId> layoutElement(std::string_view feature) {
     if (feature == "usedSlots") return HudElementId::UsedSlots;
     if (feature == "chatPosition") return HudElementId::Chat;
     if (feature == "paperDollPosition") return HudElementId::PaperDoll;
+    if (feature == "scoreboardPosition") return HudElementId::Scoreboard;
     if (feature == "statusEffects") return HudElementId::StatusEffects;
     return std::nullopt;
 }

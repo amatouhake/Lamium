@@ -1,4 +1,5 @@
 #include "features/information/ChatPosition.h"
+#include "features/information/ScoreboardPosition.h"
 #include "settings/SettingsStore.h"
 #include "input/ToggleAction.h"
 #include "app/PausedFeatures.h"
@@ -54,6 +55,26 @@ void chatPositionTests() {
           && restored.hud.chat.dx == moved.dx && restored.hud.chat.dy == moved.dy && restored.hud.info.dx == 19,
           "chat enable and placement persist without changing another HUD element");
     auto active = paused::inUse(value);
+    // The scoreboard is placed the same way (L-321).
+    check(information::scoreboardPosition::sidebarControl("sidebar") && !information::scoreboardPosition::sidebarControl("main"),
+          "the scoreboard is recognized by its sidebar panel");
+    auto sidebar = defaultHudElement(HudElementId::Scoreboard);
+    auto vanilla = placed(640, 360, 80, 50, sidebar);
+    check(vanilla && vanilla->x == 560 && vanilla->y == 155, "the scoreboard's default place is the game's: the middle of the right edge");
+    auto row = translated(640, 360, {560, 155, 80, 50}, {562, 165}, sidebar);
+    check(row && row->x == 562 && row->y == 165, "at the default place a scoreboard part is not moved");
+    auto shifted = translated(640, 360, {560, 155, 80, 50}, {562, 165}, placeAt(sidebar, 10, 20, 80, 50, 640, 360));
+    check(shifted && shifted->x == 12 && shifted->y == 30, "a moved scoreboard carries its parts with it");
+    check(hudGameDrawn(HudElementId::Scoreboard) && !hudScalable(HudElementId::Scoreboard) && hudConditional(HudElementId::Scoreboard),
+          "the scoreboard is the game's, placed only, and shown as a frame in the editor");
+    Settings board;
+    check(!board.information.scoreboardPosition && input::defaultChord(input::Action::ToggleScoreboardPosition).empty()
+          && input::toggleAction(board, input::Action::ToggleScoreboardPosition) && board.information.scoreboardPosition,
+          "scoreboard position starts off, has an unbound key and toggles");
+    auto boardSaved = decodeSettings(R"({"information":{"scoreboardPosition":true},"hud":{"scoreboard":{"anchor":0,"dx":7,"dy":9,"scale":150}}})");
+    check(boardSaved.information.scoreboardPosition && boardSaved.hud.scoreboard.dx == 7 && boardSaved.hud.scoreboard.scale == 100,
+          "the scoreboard's switch and place load; it has no scale");
+    check(paused::onUnverified("scoreboardPosition") == paused::Level::Fully, "scoreboard position is reported paused on an unverified executable");
     check(paused::onUnverified("chatPosition") == paused::Level::Fully
           && std::ranges::find(active, "chatPosition") != active.end(),
           "chat position is reported paused on an unverified executable");

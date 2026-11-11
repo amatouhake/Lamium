@@ -120,6 +120,7 @@ the package/SDK loader-policy alignment in CI.
 | FreeCamera hide (hotbar control) | `FreeCameraHide.cpp` `FreeCameraHud` (the hotbar control's visibility, restored after the draw) | the hotbar stays drawn in FreeCamera | hiding the hand and the whole HUD |
 | Fake Offhand (item use targets) | `FakeOffhand.cpp` `targetUse` (planter component by name, copper fields, `canBeFertilized`, `isRailBlock`) | the primary item keeps priority on blocks as before L-189 | air checks, the rest of Fake Offhand |
 | Chat position (HUD control positions) | `ChatPosition.cpp` | vanilla chat position | the setting, key and layout preview |
+| Scoreboard position (HUD control positions) | `ScoreboardPosition.cpp` | vanilla scoreboard position | the setting, key and layout preview |
 | Paper doll position (HUD control position) | `DebugVanillaHud.cpp` `DollPlacement` (the `hud_player` control's cached position and size, restored after the draw) | the doll where the game puts it | the setting, key and layout preview; hiding the doll |
 | FreeCamera hide (hand pass) | `FreeCameraHide.cpp` | hand drawn | FreeCamera and independent HUD paths |
 | FreeCamera hide (HUD pass) | `FreeCameraHide.cpp` | whole HUD drawn | FreeCamera and hand hiding |
@@ -239,6 +240,18 @@ Meaning: `HudMobEffectsRenderer` draws the HUD's effect icons on the right
 (the hud screen's `mob_effects_renderer`). Skipped only while the Status
 Effects HUD read the effects that frame; a change only stops the hiding or
 hides those icons with the HUD showing the same effects (L-147).
+
+### `src/features/information/ScoreboardPosition.cpp`
+Hooks: `ScoreboardHudRender`, `ScoreboardTextRender`, `ScoreboardBackgroundRender`
+Meaning: the HUD has the scoreboard as a panel named `sidebar`
+(`scoreboard.scoreboard_sidebar`, anchored to the middle of the right edge,
+sized by its content) whose parts are plain images and labels with generic
+names, so a part is recognized by that ancestor within 16 controls. As for
+the chat, the screen hook establishes the render scope and each part's cached
+position is translated for its one draw from the sidebar's measured box, then
+restored. Gated (Scoreboard position); a renamed sidebar, a clipping panel on
+the way (logged once when it is the sidebar itself) or invalid geometry
+leaves it vanilla. Not checked in game yet (L-321).
 
 ### `src/features/information/ChatPosition.cpp`
 Hooks: `ChatHudRender`, `ChatTextRender`, `ChatBackgroundRender`

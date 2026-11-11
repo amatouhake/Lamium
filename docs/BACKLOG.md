@@ -781,7 +781,11 @@ What each change needs:
   changing the real layout values and letting the game re-lay out, gives up
   "layout stays entirely vanilla" and was the source of the first chat
   build's flicker.
-- **Scoreboard.** Position: tool (1) as for the chat; every part is a plain
+- **Scoreboard.** Position built 2026-11-11 (`ScoreboardPosition.cpp`, not
+  checked in game yet, see VALIDATION): a default-off Scoreboard position
+  switch with an unbound key and a position-only element whose default is the
+  game's place; a conditional element, so a named frame in the editor with a
+  sample when selected. The notes it was built from: tool (1) as for the chat; every part is a plain
   image or label, so no new hook. The part names are generic (`main`), so
   match by an ancestor named `sidebar` under the HUD root rather than by the
   part's own name. **Unknown**: the runtime names of the factory-made rows,
