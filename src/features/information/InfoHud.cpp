@@ -1506,7 +1506,9 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         Measuring(HudPreview const* preview, ui::HudElementId id) { measureOnly = preview && preview->outline[static_cast<size_t>(id)]; }
         ~Measuring() { measureOnly = false; }
     };
-    if (preview) box(ui::HudElementId::Chat) = chatPosition::preview(context, width, height, hud.chat);
+    auto skipped = [&](ui::HudElementId id) { return preview && preview->hidden[static_cast<size_t>(id)]; };
+    if (preview && !skipped(ui::HudElementId::Chat))
+        box(ui::HudElementId::Chat) = chatPosition::preview(context, width, height, hud.chat);
     auto viewRay = [&](double reach) -> std::optional<ViewRay> {
         auto* player = context.mClient.getLocalPlayer();
         if (!player) return std::nullopt;
@@ -1561,10 +1563,12 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         return boxes;
     }
     // Drawn first so every other element sits on top of the map.
-    if (preview || (runtime.map.minimap && !(settings.debug && runtime.map.debugHide)))
+    if (skipped(ui::HudElementId::Minimap)) {}
+    else if (preview || (runtime.map.minimap && !(settings.debug && runtime.map.debugHide)))
         box(ui::HudElementId::Minimap) = map::drawMinimap(context, width, height, hud.minimap, runtime.map, preview != nullptr, cardOpacity);
     else if (!runtime.map.minimap) map::drawMinimap(context, width, height, hud.minimap, runtime.map, false);
-    if (preview || runtime.ui.automationStatus || runtime.interaction.breaking) {
+    if (skipped(ui::HudElementId::Status)) {}
+    else if (preview || runtime.ui.automationStatus || runtime.interaction.breaking) {
         std::vector<ElementLine> lines;
         if (runtime.ui.automationStatus) {
             // One line per switched-on button: "Auto Attack: Periodic", marked
@@ -1608,20 +1612,23 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     bool listHeld = !preview && playerList::held();
     auto drawList = [&] {
         Measuring measuring{preview, ui::HudElementId::PlayerList};
-        if (preview || listHeld)
+        if ((preview || listHeld) && !skipped(ui::HudElementId::PlayerList))
             box(ui::HudElementId::PlayerList) = drawPlayerList(context, width, height, hud.playerList, settings,
                                                                static_cast<float>(runtime.ui.hudRowHeight));
     };
     auto targetRay = viewRay(cardReach());
     std::optional<TargetInfo> cardTarget;
-    bool const cardRan = preview || (settings.target && !listHeld && !(settings.debug && settings.debugHideTarget));
+    // Wanted even in an editor pass that leaves the card out: the note
+    // subscription below must not end and begin within one frame.
+    bool const cardWanted = preview || (settings.target && !listHeld && !(settings.debug && settings.debugHideTarget));
+    bool const cardRan = cardWanted && !skipped(ui::HudElementId::Target);
     // L-301: note pitches come from the level's sound events, heard while the
     // card shows block entity rows or the schematic check may compare a note
     // (L-303). Decided once a frame here: the target lookups run with other
     // options too, and ending the subscription in one of them forgot every
     // note each frame.
     bool const cardDetails = cardShows(settings.targetStates, CardFlip::Details);
-    auto* noteLevel = (cardRan && cardDetails) || runtime.schematic.enabled ? context.mClient.getLevel() : nullptr;
+    auto* noteLevel = (cardWanted && cardDetails) || runtime.schematic.enabled ? context.mClient.getLevel() : nullptr;
     if (auto* player = context.mClient.getLocalPlayer(); noteLevel && player)
         beginNoteSounds(*noteLevel, static_cast<int>(player->getDimensionId()));
     else endNoteSounds();
@@ -1639,24 +1646,28 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         if (cardTarget) box(ui::HudElementId::Target) = drawTargetCard(context, width, height, hud.target, *cardTarget, settings, !preview);
         else if (!preview) cardMorph = {};
     }
-    if (preview || settings.durabilityHud)
+    if (skipped(ui::HudElementId::Durability)) {}
+    else if (preview || settings.durabilityHud)
         box(ui::HudElementId::Durability) = drawDurability(context, width, height, hud.durability, settings, preview != nullptr);
-    if (preview || settings.effectsHud)
+    if (skipped(ui::HudElementId::StatusEffects)) {}
+    else if (preview || settings.effectsHud)
         box(ui::HudElementId::StatusEffects) = drawStatusEffects(context, width, height, hud.statusEffects, settings, preview != nullptr);
     else statusEffects::covers(false);
     if (preview || settings.inventoryHud || settings.usedSlots) {
         if (auto sample = sampleInventory(context.mClient, preview != nullptr)) {
-            if (preview || settings.inventoryHud)
+            if ((preview || settings.inventoryHud) && !skipped(ui::HudElementId::Inventory))
                 box(ui::HudElementId::Inventory) = drawInventoryGrid(context, width, height, hud.inventory, *sample, settings.inventoryHotbar);
-            if (preview || settings.usedSlots)
+            if ((preview || settings.usedSlots) && !skipped(ui::HudElementId::UsedSlots))
                 box(ui::HudElementId::UsedSlots) = drawUsedSlots(context, width, height, hud.usedSlots, *sample, settings.usedSlotsHotbar);
         }
     }
-    if (preview || (runtime.schematic.enabled && runtime.schematic.hud)) {
+    if (skipped(ui::HudElementId::Schematic)) {}
+    else if (preview || (runtime.schematic.enabled && runtime.schematic.hud)) {
         Measuring measuring{preview, ui::HudElementId::Schematic};
         box(ui::HudElementId::Schematic) = drawSchematicHud(context, width, height, hud.schematic, runtime.schematic, preview != nullptr);
     }
-    if (preview || runtime.camera.showMagnification) {
+    if (skipped(ui::HudElementId::Magnification)) {}
+    else if (preview || runtime.camera.showMagnification) {
         Measuring measuring{preview, ui::HudElementId::Magnification};
         auto level = CameraSessions::instance().magnification(context.mClient);
         if (!level && preview) level = runtime.camera.magnification;
@@ -1667,7 +1678,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     {
         auto toast = ui::currentToggleToast(ui::toastNow());
         if (!toast && preview) toast = ui::Toast::Visible{ui::translated("feature.toolSwitch"), true, 1.f};
-        if (toast && (preview || runtime.ui.toggleToasts || toast->warning)) {
+        if (toast && !skipped(ui::HudElementId::Toast) && (preview || runtime.ui.toggleToasts || toast->warning)) {
             float zoom = elementZoom(hud.toast);
             // A message may hold several lines ("\n"), each centered in the box;
             // a line wider than most of the screen wraps.
@@ -1701,7 +1712,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             context.flushText(0, std::nullopt);
         }
     }
-    if (!preview && (!settings.hud || (settings.debug && settings.debugHideHud))) { drawList(); return boxes; }
+    if (skipped(ui::HudElementId::Info) || (!preview && (!settings.hud || (settings.debug && settings.debugHideHud)))) { drawList(); return boxes; }
     PlayerInfoRequest request;
     request.coordinates = settings.coordinates || settings.scaledCoordinates || settings.block || settings.chunk
         || settings.slimeChunk || settings.speed || settings.horizontalSpeed || settings.verticalSpeed;

@@ -419,9 +419,29 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     for (int i = 0; i < 9; ++i) cells.push_back({hotbar.x + (1 + 20 * i) * unit, hotbar.y, 20 * unit, hotbar.h});
     images(context, "textures/ui/hotbar_0", cells, .6f);
     images(context, "textures/ui/hotbar_end_cap", {{hotbar.x + 181 * unit, hotbar.y, unit, hotbar.h}}, .6f);
-    lastBoxes = information::drawHud(context, width, height, value.information, &preview);
-    // The elements' text first: the name tags go over it.
+    // The focused element is drawn in a second pass, on top of the others,
+    // so it can be read where it overlaps them.
+    std::optional<Box> behind;
+    if (focus) {
+        if (auto const& box = lastBoxes[static_cast<size_t>(*focus)])
+            for (auto id : drawOrder)
+                if (auto const& other = lastBoxes[static_cast<size_t>(id)]; other && id != *focus && !framed(id) && box->overlaps(*other))
+                    behind = *box;
+        preview.hidden[static_cast<size_t>(*focus)] = true;
+    }
+    auto boxes = information::drawHud(context, width, height, value.information, &preview);
+    // The elements' text first: what follows goes over it.
     context.flushText(0, std::nullopt);
+    if (focus) {
+        // Only where it lies on another element: a darker ground sets it apart.
+        if (behind) fill(context, behind->x, behind->y, behind->w, behind->h, Rgb{0, 0, 0}, .45f);
+        preview.hidden.fill(true);
+        preview.hidden[static_cast<size_t>(*focus)] = false;
+        auto front = information::drawHud(context, width, height, value.information, &preview);
+        boxes[static_cast<size_t>(*focus)] = front[static_cast<size_t>(*focus)];
+        context.flushText(0, std::nullopt);
+    }
+    lastBoxes = boxes;
     if (drag && drag->drop) {
         if (drag->drop->lineX) fill(context, *drag->drop->lineX - .5f, 0, 1, height, palette::warning, .8f);
         if (drag->drop->lineY) fill(context, 0, *drag->drop->lineY - .5f, width, 1, palette::warning, .8f);

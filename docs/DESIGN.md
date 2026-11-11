@@ -252,6 +252,9 @@ Editing:
   put their plates on each other.) Why: overlap is a problem in the editor, where everything shows
   at once, not in play; so there are no overlap warnings, no automatic
   avoidance and, for now, no element list.
+- The selected (or dragged) element is drawn last, on top of the others,
+  with a darker ground where it lies on another element, so it reads where
+  elements overlap; in play the draw order is unchanged.
 - Click selects, drag moves, arrows nudge (Shift: 10), Esc deselects then
   leaves. A click on the selected element's place selects the element below
   it; the selected element can be dragged even under another one. A dashed

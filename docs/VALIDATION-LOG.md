@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## HUD layout editor tags off the watched element (L-321, 2026-11-11)
+
+`f1877315`, DLL SHA-256
+`d846adddde6d43321cc51f62cc0e446ccb7cc555e0843905d904c1db8d735c59`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer (with a 1920x1080 screenshot):
+1. No other tag sits on the target card while it is selected or pointed at.
+2. The schematic HUD's tag no longer covers an info line.
+3. With an element at the top edge selected, its tag and the toolbar both show.
+Reported: a selected element that overlaps the Info HUD looks as if it were
+behind it (the chat, with the info lines drawn over the chat sample; the same
+with the inventory HUD).
+
 ## HUD layout editor frame names on corner tags (L-321, 2026-11-11)
 
 `b0e25376`, DLL SHA-256

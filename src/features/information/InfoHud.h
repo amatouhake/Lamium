@@ -10,7 +10,9 @@ namespace lamium::information {
 // with sample content so they can be placed.
 // Elements marked in `outline` are measured and placed but not drawn: the
 // editor shows them as a named frame (L-321).
-struct HudPreview { Settings::Hud layout; std::array<bool, 13> outline{}; };
+// Elements marked in `hidden` are left out altogether: the editor draws the
+// selected element in a second pass, on top of the others.
+struct HudPreview { Settings::Hud layout; std::array<bool, 13> outline{}, hidden{}; };
 // Returns where each element was drawn this frame (for editor hit tests).
 ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext&, float width, float height, Settings::Information const&,
                               HudPreview const* preview = nullptr);
