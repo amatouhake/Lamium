@@ -100,9 +100,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    initiation, L-30 dragon hitboxes, L-33 mob timers, L-105 profiling.
    L-151/L-152/L-153 and the previously parked work remain later.
 7. **Before the next release:** changed-feature smoke and the relevant
-   Pre-release checks below. Latest release: 0.5.1, 2026-11-07 (`v0.5.1`). The next
-   release requires LeviLamina 26.60.4, which fixes the exit crash log (L-314), so
-   the README no longer lists it. A full regression is not a release gate.
+   Pre-release checks below. Latest release: 0.6.0, 2026-11-12 (`v0.6.0`). A full
+   regression is not a release gate.
 
 Task-picking rule: bugs first, then this order; follow each item's model,
 dependencies and validation requirements. Cheap models skip Design,
@@ -120,19 +119,18 @@ server case are not release gates. [VALIDATION.md](VALIDATION.md) owns
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
-### Since 0.5.1
+### Left from 0.6.0
 
-- Built against SDK 26.60.4 with bedrock-runtime-data v26.60.5-client.11 and the
-  minimum LeviLamina raised to 26.60.4 (`fd2cda59`): load, settings, a gated
-  feature and a clean exit passed on `ffb71ef2` (VALIDATION-LOG 2026-11-07);
-  repeat on the release build.
-- Hide Offhand hides an offhand map (`a1c43cc2`, checked); the arm stays.
-- 0.6.0 (version set 2026-11-11) smoke of the CI package, changed features:
-  Block highlight (L-320: key, list, glow, Through walls, Color/Strength),
-  the HUD layout editor and Game HUD placement (L-321, L-309: chat, paper
-  doll and scoreboard moved and scaled, a settings file from 0.5.1 with Chat
-  position on), Tool Switch's drop priority (L-318), one-sided pane joins
-  (L-306). Their open gaps are in VALIDATION.md and the table below.
+The tag (VALIDATION-LOG 2026-11-12): the published ZIP in game and the
+listings (LIP registry, Bedrinth, LeviLauncher) are not checked. The smoke
+used the commit's CI package.
+
+Passed on `bb1cc4be` (VALIDATION-LOG): load, settings, Block highlight (L-320),
+the HUD layout editor (L-321), Tool Switch's drop priority (L-318), a clean
+exit on LeviLamina 26.60.4. Not checked: a settings file from 0.5.1 with only
+Chat position on, which the release notes describe from the code; a label
+with a zero-wide character aligned right or centered. Other open gaps are in
+VALIDATION.md and the table below.
 
 ### Left from 0.5.1
 

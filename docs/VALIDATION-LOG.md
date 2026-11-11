@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.6.0 release smoke and tag (2026-11-12)
+
+Smoke of the commit's CI package: `bb1cc4be`, run 43044152485, DLL SHA-256
+`a3869b39ff196b0cc2fc56152c14483f961aaf73a1976472476710000f655187`, LeviLamina
+Client 26.60.4, 1.26.60.05 Dev instance, Japanese. Passed, per the
+maintainer: load, settings showing 0.6.0, the block highlight list ("10 件"
+not overlapping, a chest and a cactus glowing), the HUD layout and Tool
+Switch as in the first smoke, a clean exit.
+
+Tag `v0.6.0` on that commit; its CI run 43047219826 made the draft release
+with `Lamium-0.6.0-client-windows-x64.zip`
+(`25b7b445d13605d35a9fbf2c2f869d41a59c47244c190b5bf1fb9c0fd65b66dd`) and
+`Lamium-0.6.0-client-windows-x64.pdb.zip`
+(`23b56eada82203368710c06868357936e84732b44449e7d9196ddb75224cf10e`).
+
+Not checked: the published ZIP itself in game, the listings (LIP registry,
+Bedrinth, LeviLauncher), servers.
+
 ## Zero-wide characters in labels, wet sponge order (2026-11-11)
 
 `2a75b760`, local build, DLL SHA-256
