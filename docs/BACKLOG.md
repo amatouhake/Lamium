@@ -83,9 +83,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-265 placement assist (Design). Remaining Design/Research: L-166 trade
    helpers, L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection, L-163 a
-   Lamium inventory screen, L-249 simulation distance, the 2026-11-05 reports
-   the 2026-11-11 L-321 (HUD layout editor
-   rework; editor done, game-drawn elements need Research) and the 2026-11-07 reports L-317 (Nether
+   Lamium inventory screen, L-249 simulation distance and the 2026-11-07 reports L-317 (Nether
    minimap under forced Surface) and L-319 (item details order). In progress:
    L-320 block highlight (built and checked in steps; its open runtime checks
    are in VALIDATION.md). Agree open choices before
@@ -184,6 +182,8 @@ validation checkpoints" (snapshot 2026-10-20).
 | Item Transfer, L-169 | Held-stack/drop gestures passed the local chest checklist; try inventory and slot-role screens, servers and a rebound drop key. Full gesture/screen matrix, cursor/hotbar/keep-one/re-entry/saved-switch cases, controlled rejection/timeouts, world/dimension interruption, unverified-game fallback and packs remain. See ITEM-TRANSFER.md. |
 | Shared capability migration, L-198 to L-202 | Server/server-pack smoke. A separately requested forced-unverified build should check vanilla fallback and matching UI/notices while independent paths work. Injected hook/cleanup failures and partial-loss/restart UI remain unverified in game. |
 | Settings/help and map layers, L-197/L-146 | Broader sizes, languages and editing states; narrow-window two-row map bar. Use current DESIGN and VALIDATION, not superseded footer-expansion checkpoints. |
+| HUD layout editor rework, L-321 | Each element at 50 % and 200 % (text, icons, minimap), the toolbar's Reset and shadow button, saved 75-150 % layouts, Pocket UI, other GUI scales, text fit in other languages. |
+| Game HUD placement as one feature, L-321 | A settings file with only Chat position on or off, fresh settings, the keys and their toasts, paused notices, other languages. |
 | Scoreboard position and scale, chat scale, L-321 | Pocket UI, other GUI scales, long lists, servers and their custom sidebars; chat at 200 %, fading and many messages at a scale. |
 | Paper doll position, L-309 | Pocket UI (the game's place there is 15, 25, Lamium's default the desktop 15, 15), other GUI scales, servers, the doll hidden under the Info HUD at its placed box. Known limit: overlapping another element it may not be shown or is not drawn behind it. |
 | Chat position, L-174/L-203 | Fresh settings, GUI scales/Pocket UI, packs, world/dimension/focus and servers beyond the recorded local checks. See CHAT-POSITION.md. |
@@ -664,174 +664,6 @@ Kind: Blocked on a symbol request. Kept as one item so a single request to
 - Book paste's trace hooks held back by `LAMIUM_MCAPI_PENDING`: only if another trace
   is needed.
 Before filing, confirm by linking: an SDK update may already have changed these.
-
-### L-321 Rework the HUD layout editor
-Kind: Feature (editor UI decided 2026-11-11); Research for each game-drawn element. Maintainer 2026-11-11: the editor dates from the first HUD
-elements; with 13 elements it is crowded, sizes are limited to 75-150 % in
-steps of 25, and game-drawn elements other than the chat cannot be placed.
-Agreed so far: overlap is a problem in the editor, where every element shows
-at once, not in play, where elements appear by situation; so no overlap
-warnings or automatic avoidance. The saved model (anchor, offset, float
-scale) stays; widening the scale needs no settings format change.
-Decided 2026-11-11 on the mockup
-[demos/hud-layout-v2.html](demos/hud-layout-v2.html): the editor shows
-conditional elements (target, automation status, toast, magnification, player
-list, schematic, scoreboard) as named dashed frames until selected; no element
-list for now (revisit if that display is not enough); scale 50-200 % with
-corner handles; no snapping to other elements, only the screen edge, the
-4-unit inset and the center lines; game-drawn elements get a distinct frame
-and only the controls they can offer.
-Also decided 2026-11-11: handles sit on the corners away from the anchor (the
-anchor point stays put while scaling); handles and +/- step 5 %, direct entry
-1 %; shadow is a "name: value" button like background.
-Resets follow the settings screens' rules (DESIGN "Resetting settings")
-instead of one button that changes meaning: the element reset sits at the end
-of the element toolbar behind a divider and applies at once, like the binding
-row's Reset; "Reset all" needs a second press. "Reset all" and "Done (Esc)"
-sit in a small titled panel (title, one hint line) in the middle of the
-screen, shown only while nothing is selected (today's corner bar is covered
-by default elements).
-Built and checked in game 2026-11-11 (editor part; rules in DESIGN
-"Editing", coverage in VALIDATION). After the first game checks the frames
-got corner name tags that keep apart and off the watched element, a preview
-while pointed at, and the selected element is drawn on top. Left: the
-game-drawn elements below.
-Settings (maintainer 2026-11-11): the three game-drawn elements are one
-feature, "Game HUD placement" (`information.gameHud`, default off), with the
-chat, the paper doll and the scoreboard as detail switches, each on by
-default and with its own unbound key, like Hide effects. Why: three similar
-features crowded the HUD category; one switch turns all three on or off and
-the details leave one out. A settings file from before has no `gameHud`: any
-of the old switches on turns the group on and keeps each choice. Built and
-checked in game 2026-11-11 (VALIDATION).
-Game-drawn elements: the paper doll (L-309, done; BACKLOG-DONE) and chat scale are the requests;
-the hotbar and scoreboard are wanted if possible. Each needs Research on its
-draw path first. Elements declare what they offer (position / scale / look)
-instead of the editor's `positionOnly` special case for the chat.
-
-#### Draw paths of the game-drawn elements (Research, 2026-11-11)
-No code and no game run. **Read** means SDK 26.60.4 headers or the HUD
-definition of the installed 1.26.60.05 (`hud`, `scoreboard` and `common`
-namespaces in `resource_packs/vanilla/__brarchive/ui.brarchive`; the UI JSON is
-no longer loose files). Everything else is marked **Hypothesis** or **Unknown**
-and needs a native experiment.
-
-Shared facts (Read):
-- `ScreenView::render` (linkable, hooked by Chat position) draws from
-  `mRootRenderBatch`: `ComponentRenderBatch`es holding `TextComponent*`,
-  `SpriteComponent*` and `CustomRenderComponent*`. Each component is drawn by
-  its own call: `TextComponent::$render` and `SpriteComponent::render` (both
-  linkable, both hooked) or, for `"type": "custom"` controls, the renderer's
-  `render(MinecraftUIRenderContext&, IClientInstance&, UIControl& owner, int pass)`.
-  The one call that dispatches every custom renderer,
-  `MinecraftUIRenderContext::renderCustom`, is `MCNAPI` (not linkable).
-- `UIControl` exposes `mCachedPosition`, `mSize`, `mParentRelativePosition`,
-  `mClipsChildren`, `mChildren`; `TextComponent` exposes `mFontScaleFactor`
-  and `mLineHeight`. No control or component has a scale or transform member.
-- `MinecraftUIRenderContext::mScreenContext` is a `mce::MeshContext`; its
-  `camera.worldMatrixStack` has a linkable `push`. Lamium already pushes a
-  model matrix there during a UI draw for its own mesh (`schematic/Preview.cpp`;
-  the UI scissor did not reach that mesh).
-- Text and images are queued (`mTextToDraw` items carry `mArea` and
-  `mFontScale`, `mImagesToDraw` items `mPosition` and `mSize`) and drawn by
-  `flushText` / `flushImages`.
-
-So there are three tools, in rising cost: (1) translate `mCachedPosition` for
-one draw call and restore it (the chat, verified in game for text and
-sprites); (2) a matrix pushed around one draw call; (3) Lamium drawing the
-element itself and hiding the game's. **Hypothesis**: (2) works only for a
-renderer that draws its mesh inside its own call; queued text and images are
-drawn after the hook has returned, so a matrix around `TextComponent::$render`
-would do nothing. Tested only for the paper doll (2026-11-11, L-309): tools
-(1) and (2) both work on `HudPlayerRenderer`, and so does scaling the
-control's `mSize` for the call. Hearts, slots and the other renderers that
-keep their own meshes are still untested.
-
-| Element | Drawn by (Read) | Lamium already sees it | Calls |
-|---|---|---|---|
-| Paper doll | control `hud_player`, renderer `hud_player_renderer` = `HudPlayerRenderer::$render` (linkable) | yes: `DebugPaperDoll` in `DebugVanillaHud.cpp` skips the call to hide it; `noteCoveredVanilla` reads the control box | one call per pass draws the whole doll |
-| Chat | per message `chat_background` (image) with child `chat_text` (label), made by `chat_item_factory` under `chat_panel` | yes: `ChatPosition.cpp` | one sprite and one text call per message |
-| Scoreboard sidebar | `sidebar@scoreboard.scoreboard_sidebar` in `root_panel`, anchored right-middle: images `main` and `displayed_objective_background`, label `displayed_objective`, and one label per row from `player_list_factory` / `player_score_factory` | the two hooks Chat position owns are called for it; nothing filters for it yet | two sprites, one title, two labels per row |
-| Hotbar and status bars | see below | `noteHotbar` and `FreeCameraHide` read the box of `desktop_hotbar` / `pocket_hotbar` / `hotbar_panel` | many, of mixed kinds |
-
-Hotbar parts (Read). Under `hotbar_panel` (a horizontal stack): cap images;
-`hotbar_slots_renderer` (slot backgrounds, `HotBarSlotsRenderer::$render`,
-**not linkable**); per slot a selected-slot image, the item
-(`inventory_item_renderer`, `InventoryItemRenderer::$render`, linkable), the
-count label, the durability and storage bars (`progress_bar_renderer`,
-linkable) and `hotbar_cooldown_renderer` (**not linkable**). The hotbar hangs
-below the XP bar: `exp_progress_bar_and_hotbar` nests empty bar image > full bar
-image > nub > horse jump > dash > `hotbar_chooser`, with the level label and
-the item-name text factory beside them, and has a second variant with the
-locator bar (`HudLocatorBarRenderer::$render`, **not linkable**). Hearts,
-armor and hunger are separate custom controls of size 1x1 beside it in
-`centered_gui_elements_at_bottom_middle` (180x50, bottom-middle); their
-`$render` is linkable, bubbles' is **not**. `HudHeartRenderer`,
-`HudHungerRenderer`, `HudArmorRenderer` and `HotBarSlotsRenderer` keep their
-own meshes and per-icon positions (`mIconPosition`, `mSlotPositions`) filled
-outside `render`. Horse hearts, horse jump and dash were not checked.
-
-What each change needs:
-
-- **Paper doll** (built; details under L-309 in BACKLOG-DONE). Position: tool (1) in the existing
-  hook, no new hook. Scale: the control's `mSize` for the call. Both seen in
-  game 2026-11-11 on desktop UI.
-- **Chat scale.** Experiment result 2026-11-11 (`chat_scale_trace`,
-  VALIDATION-LOG "Chat scale draw experiment"): the draw-time hypothesis
-  holds. Each part drawn with the control's position and size and the text's
-  `mFontScaleFactor` and `mLineHeight` multiplied for the call keeps the
-  layout's line breaks and spacing at 0.7 and 1.4, sharp and without flicker;
-  the text shadow's offset grows with the scale. Built and checked in game 2026-11-11 for
-  the chat and the scoreboard (50-200 %, desktop UI, see VALIDATION): the placed box and each part's place inside it scale about the
-  element's anchor; a panel scaled past the screen is left vanilla. The
-  `chat_scale_trace` option was removed with it. The notes before the
-  experiment: the label takes `font_scale_factor` from the UI variable
-  `$chat_font_scale_factor`, so the text size is `TextComponent::mFontScaleFactor`
-  (Read). Wrapping, line heights and the backgrounds' sizes are fixed by
-  layout before any draw. **Hypothesis**: a draw-time scale has to treat each
-  message as a whole: positions scaled about the panel's anchor (pure math
-  next to `translated`), the background's `mSize` and the text's
-  `mFontScaleFactor` and `mSize` scaled for the call and restored.
-  **Unknown**: whether the text is re-wrapped or re-measured at draw time
-  (a different wrap than the layout's would overlap or gap the lines),
-  whether a per-frame change of the font scale defeats a text cache (cost,
-  flicker), and whether non-integer font scales stay sharp. The alternative,
-  changing the real layout values and letting the game re-lay out, gives up
-  "layout stays entirely vanilla" and was the source of the first chat
-  build's flicker.
-- **Scoreboard.** Position built and checked in game 2026-11-11
-  (`ScoreboardPosition.cpp`, desktop UI, see VALIDATION): a default-off Scoreboard position
-  switch with an unbound key and a position-only element whose default is the
-  game's place; a conditional element, so a named frame in the editor with a
-  sample when selected. The notes it was built from: tool (1) as for the chat; every part is a plain
-  image or label, so no new hook. The part names are generic (`main`), so
-  match by an ancestor named `sidebar` under the HUD root rather than by the
-  part's own name. **Unknown**: the runtime names of the factory-made rows,
-  and whether any ancestor clips. Scale: the same open questions as chat
-  scale; build it after the chat's answer.
-- **Hotbar.** Stopped 2026-11-11 (maintainer): the chat's method does not
-  reach it, so the cost is out of proportion to how rarely anyone wants the
-  hotbar elsewhere. Not planned; reopen only on a real request. The notes it
-  was judged from: tool (1) per part cannot cover it, because three
-  renderers on the path are not linkable and the per-icon positions of
-  hearts, armor, hunger and slots are **Unknown** to follow `mCachedPosition`
-  at draw time. Moving the whole subtree before `ScreenView::render` and
-  restoring it after (the first chat build) reaches every part without those
-  hooks but shares that unknown. Scale: no path found short of tool (2) on
-  each renderer or recreation. Also affected: touch and pointer hit areas
-  (`hotbar_slot_button` stays where layout put it), the item-name text, and
-  Lamium's own users of the hotbar box (Offhand slot, FreeCamera hide).
-  Requesting the three functions (`LiteLDev/mcapi-requests`) is a
-  precondition for any per-part approach.
-
-Recommended order: the paper doll first. It is the top request, is one call
-Lamium already hooks, and its experiment (L-309, BACKLOG-DONE) also answers whether
-tool (2) works on a game renderer at all, which decides what is possible for
-hearts and the hotbar. Then scoreboard position (reuses the chat path; cheap,
-no new hook), then chat scale after one text experiment, the hotbar last and
-possibly position only. As of the doll experiment the editor can offer:
-doll position and scale, chat position only, scoreboard nothing yet.
-No release target selected.
 
 ### L-249 Show the chunks within simulation distance
 Kind: Design / Research. User request 2026-10-23 after 0.3.0: show which

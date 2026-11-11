@@ -413,7 +413,7 @@ and with its own unbound toggle key, built like Hide effects: the main
 switch off restores the game's places and keeps the selections. One
 "Placement and look" link opens the editor at the chat. The paragraphs below
 describe each part; where they say "switch" they mean its detail switch
-under this one. The hotbar is not part of it (stopped, BACKLOG L-321).
+under this one. The hotbar is not part of it (stopped, BACKLOG-DONE L-321).
 The chat's default place stays the lower left (decided 2026-11-11), so
 switching the feature on moves the chat at once while the doll and the
 scoreboard stay until dragged. Why not the game's place, as for the other
