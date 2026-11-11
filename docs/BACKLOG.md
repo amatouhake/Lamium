@@ -85,7 +85,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection, L-163 a
    Lamium inventory screen, L-249 simulation distance, the 2026-11-05 reports
    L-309 (paper doll placement), the 2026-11-11 L-321 (HUD layout editor
-   rework; editor built, game checks open) and the 2026-11-07 reports L-317 (Nether
+   rework; editor done, game-drawn elements need Research) and the 2026-11-07 reports L-317 (Nether
    minimap under forced Surface) and L-319 (item details order). In progress:
    L-320 block highlight (built and checked in steps; its open runtime checks
    are in VALIDATION.md). Agree open choices before
@@ -689,8 +689,11 @@ row's Reset; "Reset all" needs a second press. "Reset all" and "Done (Esc)"
 sit in a small titled panel (title, one hint line) in the middle of the
 screen, shown only while nothing is selected (today's corner bar is covered
 by default elements).
-Built 2026-11-11 (editor part; rules in DESIGN "Editing"); not checked in
-game yet, see VALIDATION. Left: the game-drawn elements below.
+Built and checked in game 2026-11-11 (editor part; rules in DESIGN
+"Editing", coverage in VALIDATION). After the first game checks the frames
+got corner name tags that keep apart and off the watched element, a preview
+while pointed at, and the selected element is drawn on top. Left: the
+game-drawn elements below.
 Game-drawn elements: the paper doll (L-309) and chat scale are the requests;
 the hotbar and scoreboard are wanted if possible. Each needs Research on its
 draw path first. Elements declare what they offer (position / scale / look)

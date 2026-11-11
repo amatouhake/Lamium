@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## HUD layout editor selected element on top (L-321, 2026-11-11)
+
+`e4bf3ef1`, DLL SHA-256
+`919ffe6a140df14e64ccb7339a391b9f32e414c810cf713cf65d681366780927`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance. Passed, per the
+maintainer:
+1. The chat, selected over the Info HUD, is drawn in front and reads.
+2. The inventory HUD, selected over the Info HUD, is in front, icons included.
+3. Deselecting returns the usual order.
+Not itemized: other elements as the selected one, Pocket UI, other GUI scales,
+servers.
+
 ## HUD layout editor tags off the watched element (L-321, 2026-11-11)
 
 `f1877315`, DLL SHA-256
