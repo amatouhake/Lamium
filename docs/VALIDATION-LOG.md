@@ -12,6 +12,33 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.6.0 smoke, block highlight shapes and a zero-wide character (2026-11-11)
+
+Smoke of the 0.6.0 CI package: `8bfe82e2`, run 43027018041, DLL SHA-256
+`37947bf32db676ee9df8d1dbc307ff7e3e3053827c909f93b723af8ed87ebfea`,
+LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, Japanese. Passed, per the
+maintainer (load, settings showing 0.6.0, the changed features), with these
+reports: the deepslate sibling offer moves the results; cactus, glass panes
+and chests do not glow; "10 件" in the list's result count is drawn with the
+kanji over the digits, seen in other places too.
+
+Local builds on the same instance, each with an uncommitted diagnostic log
+(not release builds):
+1. `21443900` plus the log, DLL SHA-256
+   `d30f4f12064ef0b8c5c4173bef353849c7fcdb4eec0bdcd32d20d942b7d4c0e6`: cactus
+   and glass panes glow, walls and ores as before; no sibling offer row and
+   the results stay in place. Log: the font measures "件" 0 wide ("10 " 11,
+   "10 件" 11).
+2. The same plus the mark rule for shapes that add no vertices and the wet
+   sponge, DLL SHA-256
+   `75e391d8eacb15470c0cc3db624a84534080eed796e6b7e91cd64494633440a2`: chests
+   and shulker boxes glow; cactus, panes and ores as before. Log: of the 772
+   distinct non-ASCII characters in the Japanese strings, "件" and "渡"
+   measure 0 ("条件" 10, "件数" 10, "中" 10).
+
+Not checked: the label fix for those two characters (written after these
+builds), the wet sponge's place after the ores, servers, Vibrant Visuals.
+
 ## Game HUD placement as one feature (L-321, 2026-11-11)
 
 `5372d087`, DLL SHA-256

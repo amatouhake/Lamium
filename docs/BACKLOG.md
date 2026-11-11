@@ -623,10 +623,16 @@ it added moved the results under the pointer, inviting a wrong click.
 Reported the same day: cactus and glass panes did not glow. Only
 `tessellateBlockInWorld` (full cubes) was hooked; the shape dispatcher
 `tessellateInWorld` is hooked too now, and a non-cube block gets the same
-full-cell glow. Not checked in game yet. Chests stay uncovered (block
-entities). Open: what the suggestions should hold (a wet sponge was missed),
-and digits drawn over a following kanji in Japanese ("10 件" in the result
-count; cause not found yet).
+full-cell glow (checked in game the same day). Chests and shulker boxes
+add no vertices (block entities) but the dispatcher is called for them: a
+shape that drew no cube part is marked by its uncovered faces alone, and
+they glow too (checked). Suggestions (maintainer): keep them, add the wet
+sponge after the ores.
+The "10 件" overlap was not about digits: the game's font measures "件" and
+"渡" 0 wide and draws them one character left of the pen (the two found
+among Lamium's Japanese strings; log in VALIDATION-LOG). Labels now measure
+each non-ASCII character once per font, give a zero-wide one a full width
+and draw it as its own run (`labelRuns`, TextFit.h). Not checked in game.
 
 ### L-319 Item details: Work Penalty first, then the unshown rest
 Kind: Design. Maintainer's note 2026-11-07 (multiplayer-session feedback).
