@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lamium HUD Layout v2</title>
+<meta name="description" content="Lamium HUD layout editor rework: what the editor shows, an element list, free scale with corner handles, snapping to other elements, and game-drawn elements.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#141719; --ground-2:#1b2023; --line:#2b3236; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --mc-edge:rgba(255,255,255,.14); --mc-text:#fff; --mc-dim:#b4b8b6; --mc-faint:#8a918e;
+  --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-warn:#ffc24a; --mc-edit:#9fd4ff; --mc-game:#ffb86b;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 26px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:76ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.controls{display:grid;gap:8px}
+.cgroup{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cgroup .lab{font-size:12px;color:var(--ink-3);min-width:9.5em}
+.seg{all:unset;cursor:pointer;font:13px "Noto Sans JP",sans-serif;color:var(--ink-2);padding:3px 10px;border:1px solid var(--line);background:var(--ground-2)}
+.seg:hover{color:var(--ink)}
+.seg[aria-pressed="true"]{color:#fff;border-color:var(--accent-deep);background:rgba(108,195,73,.14)}
+.seg:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.modehelp{font-size:13px;color:var(--ink-2);border-left:2px solid var(--accent-deep);padding-left:10px;max-width:92ch}
+.box{border:1px solid var(--line);background:var(--ground-2);padding:14px 18px}
+.box ol,.box ul{margin:6px 0 0;padding-left:1.4em;color:var(--ink-2)}
+.box li{margin:4px 0}
+.box b{color:var(--ink)}
+
+/* Stage: a 480x270 GUI at scale 2 */
+.stage-outer{width:100%;border:1px solid var(--line);background:#000}
+.stage-fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--mc-font);color:var(--mc-text);user-select:none;overflow:hidden;touch-action:none;
+  background:linear-gradient(#78a6ff 0,#b4d8ff 58%,#5d9b3a 58%,#5d9b3a 62%,#866043 62%,#866043 74%,#7d7d7d 74%)}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.28);pointer-events:none}
+.cross{position:absolute;left:474px;top:264px;width:12px;height:12px;pointer-events:none}
+.cross::before,.cross::after{content:"";position:absolute;background:rgba(255,255,255,.85)}
+.cross::before{left:5px;top:0;width:2px;height:12px}.cross::after{left:0;top:5px;width:12px;height:2px}
+
+.hud{position:absolute;transform-origin:0 0;font-size:16px;line-height:20px;white-space:nowrap;pointer-events:none}
+.hud.shadow{text-shadow:2px 2px 0 rgba(0,0,0,.75)}
+.hud.card{padding:6px 10px;background:rgba(16,16,18,.74)}
+.hud .k{color:var(--mc-dim)}
+.hud .f{color:var(--mc-faint);font-size:12px;line-height:16px}
+.hud.bgline .ln{background:rgba(16,16,18,.6);padding:0 4px}
+.hud.ghost > *{opacity:.1}
+.ln{display:block;width:max-content}
+.hud.right .ln{margin-left:auto}
+.row{display:flex;align-items:center;gap:8px}
+.ico{width:16px;height:16px;background:#8a6b4a;box-shadow:inset 0 0 0 2px rgba(0,0,0,.35);flex:none}
+.ico.big{width:32px;height:32px}
+.ico.g{background:#6fa3d8}.ico.r{background:#c96a5a}.ico.y{background:#d9c257}.ico.v{background:#9a7ad6}
+.bar{display:block;width:60px;height:6px;background:rgba(0,0,0,.6)}
+.bar b{display:block;height:100%;background:#5fd04a}
+.bar.mid b{background:#e6c93c}
+.chip{display:flex;align-items:center;gap:8px}
+.chip::before{content:"";width:8px;height:8px;background:var(--accent)}
+.sw{position:relative;display:inline-block;width:30px;height:14px;background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge);flex:none}
+.sw::after{content:"";position:absolute;top:1px;left:17px;width:12px;height:12px;background:#fff}
+.sw.off{background:var(--mc-off);box-shadow:inset 0 0 0 1px #2e2f30}.sw.off::after{left:1px;background:#d0d1d4}
+.mini{width:128px;height:128px;background:
+  radial-gradient(circle at 30% 70%,#3f78c9 0 18%,transparent 19%),
+  linear-gradient(135deg,#4f8f3a 0 40%,#6aa84a 40% 62%,#8d8d8d 62% 78%,#d8d2a0 78%);box-shadow:inset 0 0 0 2px #1d1d1d;position:relative}
+.mini::after{content:"";position:absolute;left:58px;top:56px;border:6px solid transparent;border-bottom:14px solid #fff;border-top:0}
+.inv{display:grid;grid-template-columns:repeat(9,18px);gap:0}
+.inv i{width:18px;height:18px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.inv i.it{background:linear-gradient(#8a6b4a,#8a6b4a) center/10px 10px no-repeat}
+.inv i.it2{background:linear-gradient(#7d7d7d,#7d7d7d) center/10px 10px no-repeat}
+.chatl{display:block;width:320px;background:rgba(0,0,0,.45);padding:0 4px;overflow:hidden;text-overflow:ellipsis}
+.doll{width:44px;height:84px;position:relative}
+.doll i{position:absolute;background:#3aa7a0;box-shadow:inset 0 0 0 2px rgba(0,0,0,.3)}
+.doll .hd{left:12px;top:0;width:20px;height:20px;background:#c79a7a}
+.doll .bd{left:12px;top:20px;width:20px;height:30px}
+.doll .a1{left:2px;top:20px;width:10px;height:30px}.doll .a2{left:32px;top:20px;width:10px;height:30px}
+.doll .l1{left:12px;top:50px;width:10px;height:32px;background:#3b4aa8}.doll .l2{left:22px;top:50px;width:10px;height:32px;background:#3b4aa8}
+.hotbar{display:grid;gap:2px}
+.hb-row{display:flex;justify-content:space-between}
+.pips{display:flex;gap:0}
+.pips i{width:16px;height:16px;background:radial-gradient(circle,#e0503c 0 45%,transparent 46%)}
+.pips.food i{background:radial-gradient(circle,#c98a4a 0 45%,transparent 46%)}
+.xp{height:8px;background:#1d1d1d;box-shadow:inset 0 0 0 2px #000}
+.xp b{display:block;width:38%;height:100%;background:#7ed957;box-shadow:inset 0 0 0 2px #000}
+.slots{display:flex;background:rgba(0,0,0,.45);border:2px solid #1d1d1d}
+.slots i{width:40px;height:40px;border:2px solid #8b8b8b;border-right-width:0}
+.slots i:last-child{border-right-width:2px}
+.slots i.sel{outline:2px solid #fff;outline-offset:-2px}
+.score{background:rgba(0,0,0,.35);padding:2px 6px;min-width:150px}
+.score .t{text-align:center}
+.score .r{display:flex;justify-content:space-between;gap:20px}
+.score .r b{color:#ff5a5a;font-weight:400}
+
+/* Editor overlays */
+.frames{position:absolute;inset:0;pointer-events:none}
+.fr{position:absolute;outline:1px solid rgba(255,255,255,.28)}
+.fr.game{outline-color:rgba(255,184,107,.5)}
+.fr.ghost{outline-style:dashed}
+.fr.hover{outline-color:rgba(255,255,255,.7)}
+.fr.sel{outline:2px solid var(--mc-edit);z-index:5}
+.fr.sel.game{outline-color:var(--mc-game)}
+.fr .gname{position:absolute;left:3px;top:1px;font-size:11px;line-height:14px;color:rgba(255,255,255,.7);white-space:nowrap;text-shadow:1px 1px 0 #000}
+.fr.game .gname{color:var(--mc-game)}
+.fr .tag{position:absolute;left:-2px;top:-22px;font-size:12px;line-height:18px;color:#0c1a24;background:var(--mc-edit);padding:0 6px;white-space:nowrap}
+.fr.game .tag{background:var(--mc-game)}
+.fr.low .tag{top:auto;bottom:-22px}
+.fr .hd{position:absolute;width:10px;height:10px;background:#fff;box-shadow:0 0 0 2px #0c1a24;pointer-events:auto}
+.hd.c0{left:-6px;top:-6px;cursor:nwse-resize}.hd.c1{right:-6px;top:-6px;cursor:nesw-resize}
+.hd.c2{left:-6px;bottom:-6px;cursor:nesw-resize}.hd.c3{right:-6px;bottom:-6px;cursor:nwse-resize}
+svg.guide{position:absolute;inset:0;pointer-events:none}
+svg.guide line.s{stroke:#ffd66b;stroke-width:1}
+svg.guide line.e{stroke:#ff7ad9;stroke-width:1}
+
+.lpanel{position:absolute;background:rgb(22,23,25);box-shadow:inset 0 0 0 1px var(--mc-edge);font-size:12.5px;line-height:18px}
+.tb{display:flex;align-items:center;gap:6px;padding:4px;white-space:nowrap}
+.hbtn{all:unset;cursor:pointer;font:12px var(--mc-font);color:var(--mc-dim);padding:0 8px;height:22px;line-height:22px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key);white-space:nowrap}
+.hbtn:hover{color:#fff;background:#3a3b3c}
+.hbtn.go{color:#fff;box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.hbtn.warn{color:#fff;box-shadow:inset 0 0 0 1px var(--mc-warn)}
+.stepper{display:flex;align-items:center;box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key);height:22px}
+.stepper button{all:unset;cursor:pointer;width:20px;text-align:center;line-height:22px;font:12px var(--mc-font);color:var(--mc-dim)}
+.stepper button:hover{color:#fff;background:#3a3b3c}
+.stepper input{all:unset;width:34px;text-align:right;font:12px var(--mc-font);color:#fff}
+.stepper span{color:var(--mc-dim);padding-right:4px}
+.note{color:var(--mc-game);font-size:11px;padding:0 4px}
+.swl{display:flex;align-items:center;gap:6px;color:var(--mc-dim);cursor:pointer;padding:0 4px}
+.grid9{position:absolute;left:0;display:grid;grid-template-columns:repeat(3,26px);gap:3px;padding:6px;background:rgb(22,23,25);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.grid9 button{all:unset;cursor:pointer;width:26px;height:16px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key)}
+.grid9 button:hover{background:#3a3b3c}
+.grid9 button[aria-pressed="true"]{background:var(--mc-on-edge)}
+.list{width:170px;font-size:12px}
+.list .hdr{display:flex;align-items:center;height:24px;padding:0 8px;border-bottom:1px solid var(--mc-edge);cursor:move;color:#fff}
+.list .hdr span{flex:1}
+.list .grp{font-size:11px;color:var(--accent);padding:5px 8px 1px}
+.list .grp.game{color:var(--mc-game)}
+.lrow{display:flex;align-items:center;gap:6px;height:17px;padding:0 6px;cursor:pointer;color:var(--mc-dim)}
+.lrow:hover{background:rgba(255,255,255,.06)}
+.lrow.sel{background:rgba(159,212,255,.16);color:#fff}
+.lrow.hid{color:var(--mc-faint)}
+.lrow .nm{flex:1;overflow:hidden;text-overflow:ellipsis}
+.lrow .tp{font-size:10px;color:var(--mc-faint)}
+.eye{all:unset;cursor:pointer;width:14px;height:10px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-edit)}
+.eye.off{background:transparent}
+.actions{right:8px;bottom:8px;display:flex;gap:6px;padding:4px}
+</style>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">LAMIUM / HUD LAYOUT v2</div>
+    <h1>HUD レイアウト編集の見直し</h1>
+    <p class="lede">編集画面ではすべての HUD が同時に出るので重なって選びにくい、サイズの選択肢が少ない、ゲーム側の要素(Paper Doll、チャットなど)を扱えない、の 3 点を見直す案です。下の切り替えで比べてください。実際にドラッグ・拡縮・選択ができます。中身は見本で、ゲームのアートではありません。</p>
+  </header>
+
+  <section class="controls" id="controls"></section>
+  <p class="modehelp" id="help"></p>
+
+  <div class="stage-outer"><div class="stage-fit" id="fit">
+    <div class="stage" id="stage">
+      <div class="dim"></div><div class="cross"></div>
+      <div id="huds"></div>
+      <svg class="guide" id="guide" viewBox="0 0 960 540"></svg>
+      <div class="frames" id="frames"></div>
+      <div id="ui"></div>
+    </div>
+  </div></div>
+
+  <section class="box">
+    <h2>操作</h2>
+    <ul>
+      <li>クリックで選択、ドラッグで移動、矢印キーで 1 単位(Shift で 10)移動、Esc で選択解除。</li>
+      <li><b>重なった要素</b>: 同じ場所をもう一度クリックすると、下にある要素へ選択が移ります。選択中の要素は、上に別の要素があってもそのままドラッグできます。</li>
+      <li><b>角ハンドル</b>: 選択枠の四隅をドラッグするとスケールが変わります(反対側の角が固定)。ツールバーの数値は直接入力もできます。</li>
+      <li><b>要素一覧</b>: 見出しをドラッグで移動。行のクリックで選択、左の四角で「編集画面でだけ隠す」。</li>
+    </ul>
+  </section>
+
+  <section class="box">
+    <h2>確認したいこと</h2>
+    <ol>
+      <li><b>編集画面の表示</b>: 「一時的な要素は枠だけ」(キーを押している間・条件付きで出る要素は名前つきの枠にし、選ぶと中身が出る)でよいか。「選択中以外は枠だけ」「今と同じ」と比べてください。</li>
+      <li><b>要素一覧</b>: 必要か。置き場所は自由に動かせる小さなパネルでよいか。</li>
+      <li><b>スケール</b>: 範囲(75–150 / 50–200 / 50–300 %)と刻み(25 / 10 / 5 / 1)。角ハンドルは要るか、ツールバーの ± と数値入力だけでよいか。</li>
+      <li><b>他の要素へのスナップ</b>: 辺・中心・4 単位の隙間に吸着します(ピンクの線)。うるさくないか。</li>
+      <li><b>ゲーム側の要素</b>: オレンジの枠で区別し、できる操作だけをツールバーに出します。この見せ方でよいか。Paper Doll・チャットのスケール・ホットバー・スコアボードは、どれも描画フックの調査が先で、実現できるかは未確認です。</li>
+    </ol>
+  </section>
+</div>
+<script>
+(() => {
+const U = 2, W = 960, H = 540, INSET = 8;
+const $ = id => document.getElementById(id);
+const opt = { show:'temp', list:'on', step:5, range:'50-200', handles:'on', snap:'on', game:'on' };
+const groups = [
+  ['show','編集画面の表示',[['all','すべて表示(今と同じ)'],['temp','一時的な要素は枠だけ'],['solo','選択中以外は枠だけ']]],
+  ['list','要素一覧',[['off','なし'],['on','あり']]],
+  ['range','スケール範囲',[['75-150','75–150 %'],['50-200','50–200 %'],['50-300','50–300 %']]],
+  ['step','スケール刻み',[[25,'25'],[10,'10'],[5,'5'],[1,'1']]],
+  ['handles','角ハンドル',[['off','なし'],['on','あり']]],
+  ['snap','他の要素へのスナップ',[['off','なし'],['on','あり']]],
+  ['game','ゲーム側の要素',[['off','出さない'],['on','出す']]],
+];
+const help = {
+  all:'今の編集画面と同じく、すべての要素を見本つきで表示します。右中央や上中央で重なります。',
+  temp:'いつも出ている要素だけ中身を表示し、条件付きで出る要素(ターゲット、自動化の状態、トースト、倍率、プレイヤー一覧、設計図、スコアボード)は名前つきの破線枠にします。選ぶと中身が出ます。',
+  solo:'何か選ぶと、それ以外はすべて名前つきの破線枠になります。何も選んでいないときはすべて表示です。',
+};
+const invCells = Array.from({length:27},(_,i)=>`<i class="${i%5==0?'it':i%7==3?'it2':''}"></i>`).join('');
+const defs = [
+  {id:'chat',name:'チャット',kind:'game',when:'always',cap:{scale:1},d:{a:[0,1],dx:0,dy:-44,scale:100},
+   html:'<span class="chatl">&lt;Steve&gt; こんにちは</span><span class="chatl">&lt;Alex&gt; 拠点は北の山の上です</span><span class="chatl">Steve が進捗を達成しました</span>'},
+  {id:'hotbar',name:'ホットバー',kind:'game',when:'always',cap:{scale:1},d:{a:[.5,1],dx:0,dy:0,scale:100},
+   html:'<div class="hotbar"><div class="hb-row"><span class="pips">'+'<i></i>'.repeat(10)+'</span><span class="pips food">'+'<i></i>'.repeat(10)+'</span></div><div class="xp"><b></b></div><div class="slots"><i class="sel"></i>'+'<i></i>'.repeat(8)+'</div></div>'},
+  {id:'doll',name:'ペーパードール',kind:'game',when:'always',cap:{scale:1},d:{a:[0,0],dx:6,dy:50,scale:100},
+   html:'<div class="doll"><i class="hd"></i><i class="bd"></i><i class="a1"></i><i class="a2"></i><i class="l1"></i><i class="l2"></i></div>'},
+  {id:'score',name:'スコアボード',kind:'game',when:'temp',cap:{scale:1},d:{a:[1,.5],dx:0,dy:0,scale:100},
+   html:'<div class="score"><div class="t">ランキング</div><div class="r"><span>Steve</span><b>12</b></div><div class="r"><span>Alex</span><b>9</b></div><div class="r"><span>Noor</span><b>4</b></div></div>'},
+  {id:'minimap',name:'ミニマップ',kind:'l',when:'always',cap:{scale:1},d:{a:[1,0],dx:-4,dy:4,scale:100,bg:'none'},html:'<div class="mini"></div>'},
+  {id:'schematic',name:'設計図 HUD',kind:'l',when:'temp',cap:{scale:1,bg:1,shadow:1},d:{a:[0,.5],dx:4,dy:0,scale:100,bg:'card',shadow:false},
+   html:'<div>house.mcstructure</div><div class="f">残り 1,204 / 誤り 3</div><div class="row"><i class="ico"></i>オークの板材 <span class="k">412</span></div><div class="row"><i class="ico g"></i>ガラス <span class="k">96</span></div>'},
+  {id:'inventory',name:'インベントリ HUD',kind:'l',when:'always',cap:{scale:1,bg:1,shadow:1},d:{a:[1,1],dx:-4,dy:-21,scale:100,bg:'card',shadow:true},html:'<div class="inv">'+invCells+'</div>'},
+  {id:'used',name:'使用スロット',kind:'l',when:'always',cap:{scale:1,bg:1,shadow:1},d:{a:[1,1],dx:-4,dy:-4,scale:100,bg:'card',shadow:true},html:'13/36'},
+  {id:'effects',name:'ステータス効果',kind:'l',when:'always',cap:{scale:1,bg:1,shadow:1},d:{a:[1,.5],dx:-4,dy:48,scale:100,bg:'card',shadow:true},
+   html:'<div class="row"><i class="ico g"></i>移動速度 II <span class="k">1:23</span></div><div class="row"><i class="ico v"></i>暗視 <span class="k">7:40</span></div>'},
+  {id:'durability',name:'耐久値 HUD',kind:'l',when:'always',cap:{scale:1,bg:1,shadow:1},d:{a:[0,1],dx:4,dy:-4,scale:100,bg:'none',shadow:true},
+   html:'<div class="row"><i class="ico y"></i><span class="bar"><b style="width:82%"></b></span>1280</div><div class="row"><i class="ico r"></i><span class="bar mid"><b style="width:41%"></b></span>102</div>'},
+  {id:'mag',name:'ズーム倍率',kind:'l',when:'temp',cap:{scale:1,bg:1,shadow:1},d:{a:[.5,.5],dx:0,dy:36,scale:75,bg:'none',shadow:true},html:'4.0x'},
+  {id:'status',name:'自動化の状態',kind:'l',when:'temp',cap:{scale:1,bg:1,shadow:1,line:1},d:{a:[1,.5],dx:-4,dy:-20,scale:100,bg:'card',shadow:true},
+   html:'<span class="ln chip">自動採掘</span><span class="ln chip">連続設置</span>'},
+  {id:'target',name:'ターゲット情報',kind:'l',when:'temp',cap:{scale:1,bg:1,shadow:1},d:{a:[.5,0],dx:0,dy:4,scale:100,bg:'card',shadow:false},
+   html:'<div class="row"><i class="ico big"></i><div><div>オークの原木</div><div class="f">minecraft:oak_log</div></div></div>'},
+  {id:'toast',name:'トースト',kind:'l',when:'temp',cap:{scale:1,bg:1,shadow:1},d:{a:[.5,1],dx:0,dy:-72,scale:100,bg:'card',shadow:false},
+   html:'<div class="row">フルブライト <i class="sw"></i></div>'},
+  {id:'info',name:'情報 HUD',kind:'l',when:'always',cap:{scale:1,bg:1,shadow:1,line:1},d:{a:[0,0],dx:4,dy:4,scale:100,bg:'line',shadow:true},
+   html:'<span class="ln"><span class="k">位置:</span> 128.5 / 64.0 / -312.2</span><span class="ln"><span class="k">向き:</span> 北 (-Z)</span><span class="ln"><span class="k">バイオーム:</span> 平原</span><span class="ln"><span class="k">FPS:</span> 144</span>'},
+  {id:'players',name:'プレイヤー一覧',kind:'l',when:'temp',cap:{scale:1,bg:1,shadow:1,line:1},d:{a:[.5,0],dx:0,dy:4,scale:100,bg:'card',shadow:true},
+   html:'<span class="ln f">プレイヤー 4</span><span class="ln row"><i class="ico"></i>Steve</span><span class="ln row"><i class="ico g"></i>Alex</span><span class="ln row"><i class="ico r"></i>Noor</span><span class="ln row"><i class="ico v"></i>Kai</span>'},
+];
+const els = defs.map(d => ({...d, ...structuredClone(d.d), hidden:false}));
+const byId = id => els.find(e => e.id === id);
+let sel = null, hover = null, drag = null, guides = [], popover = false, resetArmed = false;
+let listPos = {x:560, y:150};
+
+const range = () => opt.range.split('-').map(Number);
+const clampScale = s => Math.min(range()[1], Math.max(range()[0], s));
+const shown = e => !e.hidden && (e.kind !== 'game' || opt.game === 'on');
+const ghost = e => e.id !== sel && (opt.show === 'temp' ? e.when === 'temp' : opt.show === 'solo' ? sel !== null : false);
+const bgNames = {none:'なし', card:'カード', line:'行ごと'};
+
+/* Placement: the same rules as HudElement.h */
+function size(e){ const s = e.scale/100; return {w:e.node.offsetWidth*s, h:e.node.offsetHeight*s}; }
+function box(e){
+  const {w,h} = size(e);
+  const x = (W-w)*e.a[0] + e.dx*U, y = (H-h)*e.a[1] + e.dy*U;
+  return {x:Math.min(Math.max(x,0),Math.max(0,W-w)), y:Math.min(Math.max(y,0),Math.max(0,H-h)), w, h};
+}
+const slot = (start,size,screen) => { const b = start, a = screen-start-size; return Math.abs(b-a) <= screen/6 ? .5 : b < a ? 0 : 1; };
+function placeAt(e,x,y){
+  const {w,h} = size(e);
+  e.a = [slot(x,w,W), slot(y,h,H)];
+  e.dx = Math.round((x-(W-w)*e.a[0])/U); e.dy = Math.round((y-(H-h)*e.a[1])/U);
+}
+function snapAxis(pos,size,screen,others){
+  const c = [[0,0,'s'],[INSET,INSET,'s'],[screen-size,screen,'s'],[screen-size-INSET,screen-INSET,'s'],[(screen-size)/2,screen/2,'s']];
+  if (opt.snap === 'on') for (const o of others){
+    const e = o.s+o.z, m = o.s+o.z/2;
+    c.push([o.s,o.s,'e'],[e-size,e,'e'],[m-size/2,m,'e'],[e+INSET,e,'e'],[o.s-INSET-size,o.s,'e']);
+  }
+  let best = {pos, line:null}, dist = 6;
+  for (const [at,line,kind] of c){ const d = Math.abs(pos-at); if (d < dist){ dist = d; best = {pos:at, line, kind}; } }
+  return best;
+}
+
+/* Rendering */
+function ensureNodes(){
+  for (const e of els) if (!e.node){
+    e.node = document.createElement('div'); e.node.innerHTML = e.html; $('huds').append(e.node);
+  }
+}
+function render(){
+  ensureNodes();
+  $('frames').innerHTML = '';
+  for (const e of els){
+    const n = e.node, vis = shown(e), g = ghost(e);
+    n.style.display = vis ? '' : 'none';
+    if (!vis) continue;
+    n.className = 'hud' + (e.shadow ? ' shadow' : '') + (e.bg === 'card' ? ' card' : e.bg === 'line' ? ' bgline' : '')
+      + (g ? ' ghost' : '') + (e.a[0] === 1 ? ' right' : '');
+    n.style.transform = `scale(${e.scale/100})`;
+    n.style.zIndex = e.id === sel ? 5 : '';
+    const b = e.box = box(e);
+    n.style.left = b.x+'px'; n.style.top = b.y+'px';
+    const f = document.createElement('div');
+    f.className = 'fr' + (e.kind === 'game' ? ' game' : '') + (g ? ' ghost' : '') + (e.id === sel ? ' sel' : e.id === hover ? ' hover' : '') + (b.y < 24 ? ' low' : '');
+    f.style.cssText = `left:${b.x}px;top:${b.y}px;width:${b.w}px;height:${b.h}px`;
+    if (g) f.innerHTML = `<span class="gname">${e.name}</span>`;
+    if (e.id === sel){
+      const pct = drag && drag.kind === 'scale' ? ` ${e.scale}%` : '';
+      f.innerHTML = `<span class="tag">${e.name}${e.kind === 'game' ? '(ゲーム)' : ''}${pct}</span>`;
+      if (opt.handles === 'on' && e.cap.scale && !(drag && drag.kind === 'move'))
+        for (let c = 0; c < 4; c++) f.innerHTML += `<i class="hd c${c}" data-c="${c}"></i>`;
+    }
+    $('frames').append(f);
+  }
+  $('guide').innerHTML = guides.map(g => g.axis === 'x'
+    ? `<line class="${g.kind}" x1="${g.at}" x2="${g.at}" y1="0" y2="${H}"/>` : `<line class="${g.kind}" y1="${g.at}" y2="${g.at}" x1="0" x2="${W}"/>`).join('');
+  renderUi();
+  $('help').textContent = help[opt.show];
+}
+function renderUi(){
+  const ui = $('ui'); ui.innerHTML = '';
+  const e = sel && byId(sel);
+  if (e && shown(e) && !drag){
+    const t = document.createElement('div'); t.className = 'lpanel tb';
+    let h = `<button class="hbtn" data-act="pos">位置 ▾</button>`;
+    if (e.cap.scale) h += `<span class="stepper"><button data-act="down">−</button><input id="scaleIn" inputmode="numeric" value="${e.scale}"><span>%</span><button data-act="up">+</button></span>`;
+    if (e.cap.bg) h += `<button class="hbtn" data-act="bg">背景: ${bgNames[e.bg]}</button>`;
+    if (e.cap.shadow) h += `<span class="swl" data-act="shadow">影 <i class="sw${e.shadow ? '' : ' off'}"></i></span>`;
+    h += `<button class="hbtn" data-act="reset">リセット</button>`;
+    if (e.kind === 'game') h += `<span class="note">見た目はゲームのまま</span>`;
+    t.innerHTML = h; ui.append(t);
+    const b = e.box, tw = t.offsetWidth, th = t.offsetHeight;
+    const below = b.y + b.h + 10 + th <= H - 40;
+    const tx = Math.min(Math.max(b.x,4),W-tw-4), ty = below ? b.y+b.h+10 : Math.max(4,b.y-10-th);
+    t.style.left = tx+'px'; t.style.top = ty+'px';
+    if (popover){
+      const g = document.createElement('div'); g.className = 'grid9';
+      for (let i = 0; i < 9; i++) g.innerHTML += `<button data-snap="${i}" aria-pressed="${e.a[0]*2 === i%3 && e.a[1]*2 === (i/3|0)}"></button>`;
+      t.append(g); g.style.top = (ty + th + 70 > H ? -72 : th + 2)+'px';
+    }
+  }
+  if (opt.list === 'on'){
+    const l = document.createElement('div'); l.className = 'lpanel list';
+    l.style.left = listPos.x+'px'; l.style.top = listPos.y+'px';
+    const row = x => `<div class="lrow${x.id === sel ? ' sel' : ''}${x.hidden ? ' hid' : ''}" data-row="${x.id}"><button class="eye${x.hidden ? ' off' : ''}" data-eye="${x.id}" title="編集画面で隠す"></button><span class="nm">${x.name}</span><span class="tp">${x.when === 'temp' ? '一時' : ''}</span></div>`;
+    let h = `<div class="hdr" data-drag="list"><span>要素</span></div><div class="grp">Lamium</div>` + els.filter(x => x.kind !== 'game').reverse().map(row).join('');
+    if (opt.game === 'on') h += `<div class="grp game">ゲーム</div>` + els.filter(x => x.kind === 'game').map(row).join('');
+    l.innerHTML = h; ui.append(l);
+  }
+  if (!drag){
+    const a = document.createElement('div'); a.className = 'lpanel actions';
+    a.innerHTML = `<button class="hbtn${resetArmed ? ' warn' : ''}" data-act="resetAll">${resetArmed ? 'もう一度押すとリセット' : 'すべてリセット'}</button><button class="hbtn go" data-act="done">完了 (Esc)</button>`;
+    ui.append(a);
+  }
+}
+
+/* Input */
+const stage = $('stage'); let fitK = 1;
+const pt = ev => { const r = stage.getBoundingClientRect(); return {x:(ev.clientX-r.left)/fitK, y:(ev.clientY-r.top)/fitK}; };
+const hits = p => els.filter(e => shown(e) && e.box && p.x >= e.box.x && p.x < e.box.x+e.box.w && p.y >= e.box.y && p.y < e.box.y+e.box.h).reverse();
+function select(id){ if (sel !== id) popover = false; sel = id; resetArmed = false; }
+function setScale(e, s){
+  const b = box(e), fx = b.x + b.w*e.a[0], fy = b.y + b.h*e.a[1];
+  e.scale = clampScale(Math.round(s));
+  const n = size(e); placeAt(e, Math.min(Math.max(fx - n.w*e.a[0],0),Math.max(0,W-n.w)), Math.min(Math.max(fy - n.h*e.a[1],0),Math.max(0,H-n.h)));
+}
+stage.addEventListener('pointerdown', ev => {
+  const p = pt(ev), t = ev.target;
+  if (t.closest('#ui')){
+    const act = t.closest('[data-act]')?.dataset.act, e = sel && byId(sel);
+    if (t.dataset.drag === 'list'){ drag = {kind:'list', ox:p.x-listPos.x, oy:p.y-listPos.y}; stage.setPointerCapture(ev.pointerId); return; }
+    if (t.dataset.eye){ const x = byId(t.dataset.eye); x.hidden = !x.hidden; if (x.hidden && sel === x.id) sel = null; }
+    else if (t.closest('[data-row]')){ const x = byId(t.closest('[data-row]').dataset.row); x.hidden = false; select(x.id); }
+    else if (t.dataset.snap !== undefined && e){ const i = +t.dataset.snap; e.a = [(i%3)/2, (i/3|0)/2]; e.dx = e.a[0] === 0 ? 4 : e.a[0] === 1 ? -4 : 0; e.dy = e.a[1] === 0 ? 4 : e.a[1] === 1 ? -4 : 0; }
+    else if (act === 'resetAll'){ if (!resetArmed){ resetArmed = true; render(); return; } els.forEach(x => Object.assign(x, structuredClone(x.d), {hidden:false})); sel = null; }
+    else if (act === 'done') sel = null;
+    else if (e && act === 'pos'){ popover = !popover; render(); return; }
+    else if (e && (act === 'up' || act === 'down')){ const d = act === 'up' ? 1 : -1; setScale(e, (d > 0 ? Math.floor(e.scale/opt.step) : Math.ceil(e.scale/opt.step))*opt.step + d*opt.step); }
+    else if (e && act === 'bg'){ const order = e.cap.line ? ['none','card','line'] : ['none','card']; e.bg = order[(order.indexOf(e.bg)+1)%order.length]; setScale(e, e.scale); }
+    else if (e && act === 'shadow') e.shadow = !e.shadow;
+    else if (e && act === 'reset') Object.assign(e, structuredClone(e.d));
+    else if (t.id === 'scaleIn') return;
+    resetArmed = false; render(); return;
+  }
+  ev.preventDefault(); resetArmed = false; popover = false;
+  if (t.classList.contains('hd') && sel){
+    const e = byId(sel), b = e.box, c = +t.dataset.c;
+    drag = {kind:'scale', e, s0:e.scale, w0:b.w, h0:b.h, fx:c%2 ? b.x : b.x+b.w, fy:c > 1 ? b.y : b.y+b.h, left:!(c%2), top:c < 2};
+  } else {
+    const h = hits(p), was = h.find(e => e.id === sel);
+    const e = was || h[0];
+    select(e ? e.id : null);
+    if (e) drag = {kind:'move', e, gx:p.x-e.box.x, gy:p.y-e.box.y, sx:p.x, sy:p.y, moved:false, cycle:was ? h : null};
+  }
+  if (drag) stage.setPointerCapture(ev.pointerId);
+  render();
+});
+stage.addEventListener('pointermove', ev => {
+  const p = pt(ev);
+  if (!drag){ const h = ev.target.closest('#ui') ? null : hits(p)[0]; const id = h ? h.id : null; if (id !== hover){ hover = id; render(); } return; }
+  if (drag.kind === 'list'){ listPos = {x:Math.min(Math.max(p.x-drag.ox,0),W-170), y:Math.min(Math.max(p.y-drag.oy,0),H-40)}; render(); return; }
+  const e = drag.e;
+  if (drag.kind === 'scale'){
+    const r = Math.max(Math.abs(p.x-drag.fx)/drag.w0, Math.abs(p.y-drag.fy)/drag.h0);
+    e.scale = clampScale(Math.round(drag.s0*r/opt.step)*opt.step);
+    const n = size(e);
+    placeAt(e, Math.min(Math.max(drag.left ? drag.fx-n.w : drag.fx,0),Math.max(0,W-n.w)), Math.min(Math.max(drag.top ? drag.fy-n.h : drag.fy,0),Math.max(0,H-n.h)));
+  } else {
+    if (!drag.moved && Math.hypot(p.x-drag.sx, p.y-drag.sy) < 3) return;
+    drag.moved = true;
+    const {w,h} = size(e), others = els.filter(o => o !== e && shown(o) && o.box);
+    const x = Math.min(Math.max(p.x-drag.gx,0),Math.max(0,W-w)), y = Math.min(Math.max(p.y-drag.gy,0),Math.max(0,H-h));
+    const sx = snapAxis(x,w,W,others.map(o => ({s:o.box.x,z:o.box.w}))), sy = snapAxis(y,h,H,others.map(o => ({s:o.box.y,z:o.box.h})));
+    guides = [];
+    if (sx.line !== null) guides.push({axis:'x', at:sx.line, kind:sx.kind});
+    if (sy.line !== null) guides.push({axis:'y', at:sy.line, kind:sy.kind});
+    placeAt(e, sx.pos, sy.pos);
+  }
+  render();
+});
+stage.addEventListener('pointerup', () => {
+  if (!drag) return;
+  if (drag.kind === 'move' && !drag.moved && drag.cycle && drag.cycle.length > 1){
+    const i = drag.cycle.findIndex(e => e.id === sel); select(drag.cycle[(i+1)%drag.cycle.length].id);
+  }
+  drag = null; guides = []; render();
+});
+stage.addEventListener('change', ev => { if (ev.target.id === 'scaleIn' && sel){ const v = parseInt(ev.target.value,10); if (isFinite(v)) setScale(byId(sel), v); render(); } });
+document.addEventListener('keydown', ev => {
+  if (ev.target.tagName === 'INPUT') return;
+  const d = {ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[ev.key];
+  if (ev.key === 'Escape'){ if (popover) popover = false; else select(null); render(); return; }
+  if (!d || !sel) return;
+  ev.preventDefault();
+  const e = byId(sel), b = e.box, k = (ev.shiftKey ? 10 : 1)*U;
+  placeAt(e, Math.min(Math.max(b.x+d[0]*k,0),Math.max(0,W-b.w)), Math.min(Math.max(b.y+d[1]*k,0),Math.max(0,H-b.h)));
+  render();
+});
+
+/* Page controls */
+function controls(){
+  $('controls').innerHTML = groups.map(([key,label,items]) => `<div class="cgroup"><span class="lab">${label}</span>` +
+    items.map(([v,t]) => `<button class="seg" data-key="${key}" data-val="${v}" aria-pressed="${String(opt[key]) === String(v)}">${t}</button>`).join('') + '</div>').join('');
+}
+$('controls').addEventListener('click', ev => {
+  const b = ev.target.closest('.seg'); if (!b) return;
+  opt[b.dataset.key] = b.dataset.key === 'step' ? +b.dataset.val : b.dataset.val;
+  if (b.dataset.key === 'range') els.forEach(e => { if (e.node) setScale(e, e.scale); });
+  if (sel && !shown(byId(sel))) sel = null;
+  controls(); render();
+});
+const fit = $('fit');
+function resize(){ fitK = fit.clientWidth / W; stage.style.transform = `scale(${fitK})`; fit.style.height = (H*fitK)+'px'; }
+new ResizeObserver(resize).observe(fit); resize();
+controls(); render();
+document.fonts && document.fonts.ready.then(render);
+})();
+</script>
+</html>

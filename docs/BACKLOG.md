@@ -84,7 +84,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    helpers, L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection, L-163 a
    Lamium inventory screen, L-249 simulation distance, the 2026-11-05 reports
-   L-309 (paper doll placement) and the 2026-11-07 reports L-317 (Nether
+   L-309 (paper doll placement), the 2026-11-11 L-321 (HUD layout editor
+   rework; mockup under review) and the 2026-11-07 reports L-317 (Nether
    minimap under forced Surface) and L-319 (item details order). In progress:
    L-320 block highlight (built and checked in steps; its open runtime checks
    are in VALIDATION.md). Agree open choices before
@@ -661,6 +662,22 @@ Kind: Blocked on a symbol request. Kept as one item so a single request to
 - Book paste's trace hooks held back by `LAMIUM_MCAPI_PENDING`: only if another trace
   is needed.
 Before filing, confirm by linking: an SDK update may already have changed these.
+
+### L-321 Rework the HUD layout editor
+Kind: Design. Maintainer 2026-11-11: the editor dates from the first HUD
+elements; with 13 elements it is crowded, sizes are limited to 75-150 % in
+steps of 25, and game-drawn elements other than the chat cannot be placed.
+Agreed so far: overlap is a problem in the editor, where every element shows
+at once, not in play, where elements appear by situation; so no overlap
+warnings or automatic avoidance. UI and the scale range/step are decided on
+the mockup [demos/hud-layout-v2.html](demos/hud-layout-v2.html) (its open
+questions are listed at its bottom). The saved model (anchor, offset, float
+scale) stays; widening the scale needs no settings format change.
+Game-drawn elements: the paper doll (L-309) and chat scale are the requests;
+the hotbar and scoreboard are wanted if possible. Each needs Research on its
+draw path first. Elements declare what they offer (position / scale / look)
+instead of the editor's `positionOnly` special case for the chat.
+No release target selected.
 
 ### L-309 Place and scale the paper doll
 Kind: Design. User request 2026-11-05 (Discord): choose where the paper doll
