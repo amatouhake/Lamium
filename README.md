@@ -19,7 +19,7 @@
 
 ## Status
 
-Lamium 0.5.1 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.6.0 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -245,8 +245,17 @@ requests are handled. What has been checked in game, per feature, is in
   sandstone connect. Joined glass panes stretch their glass by one texel at
   the joins instead of keeping the texture's own scale (drawn that way,
   panes shaded dark on one half).
+- **Block highlight:** checked in a local world in Fancy graphics; Vibrant
+  Visuals and servers are unverified. Blocks the game draws as block
+  entities, such as chests, do not glow. The rainbow costs frame rate when
+  many blocks are listed (a single color is cheaper). Some servers may treat
+  "Through walls" as unfair.
 
 **HUD & overlays**
+
+- **Game HUD placement:** checked in a local world at the desktop GUI scale;
+  Pocket UI, other GUI scales and servers' own sidebars are untested. A paper
+  doll placed over another HUD element may not be shown.
 
 - **Player list:** knows where other players are only while they share your
   dimension: elsewhere it shows the dimension they were last seen in, faded,

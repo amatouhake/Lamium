@@ -127,6 +127,12 @@ Do not infer game success from a build or unit-test result.
   feature and a clean exit passed on `ffb71ef2` (VALIDATION-LOG 2026-11-07);
   repeat on the release build.
 - Hide Offhand hides an offhand map (`a1c43cc2`, checked); the arm stays.
+- 0.6.0 (version set 2026-11-11) smoke of the CI package, changed features:
+  Block highlight (L-320: key, list, glow, Through walls, Color/Strength),
+  the HUD layout editor and Game HUD placement (L-321, L-309: chat, paper
+  doll and scoreboard moved and scaled, a settings file from 0.5.1 with Chat
+  position on), Tool Switch's drop priority (L-318), one-sided pane joins
+  (L-306). Their open gaps are in VALIDATION.md and the table below.
 
 ### Left from 0.5.1
 
