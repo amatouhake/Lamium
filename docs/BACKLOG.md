@@ -874,7 +874,7 @@ write, and the shrink of the control during the screen's entrance animation
 suggests the game itself sizes the doll this way. The matrix result matters
 for other renderers (L-321). Still unchecked: Pocket UI, other GUI scales,
 sizes below 1, clipping and draw order away from the corner.
-Position built 2026-11-11 (not checked in game yet, see VALIDATION), on the
+Position built and checked in game 2026-11-11 (desktop UI, see VALIDATION), on the
 Chat position pattern: a default-off Paper doll position switch with an
 unbound toggle key, and a position-only element in HUD layout whose default
 is the game's desktop place (top left). The element is the doll's drawn

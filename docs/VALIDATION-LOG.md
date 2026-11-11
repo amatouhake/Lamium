@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Paper doll position (L-309, 2026-11-11)
+
+`94543d8e`, DLL SHA-256
+`5943b666164e5010bb663e2bda7d1c1b90bdc2e7f9502be16d2c0693353de737`, no trace
+options, LeviLamina Client 26.60.4, 1.26.60.05 Dev instance, desktop UI.
+Passed, per the maintainer:
+1. Switched on, the doll stays at its usual place.
+2. The stand-in figure dragged in HUD layout: in play the doll is drawn
+   there, armor and held item with it.
+3. At the screen edges and near the middle the doll is not cut off and does
+   not go behind other HUD parts.
+4. Switched off, the doll is back at the game's place.
+Noted by the maintainer as a known limit: where the doll overlaps another
+element it may not be shown, or is not drawn behind it. Not itemized: which
+elements, Pocket UI, other GUI scales, servers, the stand-in figure and the
+frame color in the editor.
+
 ## Paper doll draw experiment (L-309, 2026-11-11)
 
 `4855df8e` plus the uncommitted `doll_trace` change (committed after this
