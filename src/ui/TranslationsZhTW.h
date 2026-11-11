@@ -91,7 +91,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"highlight.tagListed", "已加入"},
     {"highlight.offNote", "方塊醒目標示已關閉：清單會保留，但不會發光。"},
     {"highlight.nearbyHelp", "附近：已繪製區塊中、有面暴露在外的該種類方塊數量（不只是視野內的）。"},
-    {"help.highlightList", "點擊列即可加入或移除。依方塊名稱比對，不區分朝向等狀態。箱子等以方塊實體繪製的方塊不會發光。"},
+    {"help.highlightList", "點擊列即可加入或移除。依方塊名稱比對，不區分朝向等狀態。"},
     {"highlight.hint", "輸入即搜尋  上/下: 選擇  Enter: 加入或移除  Esc: 清除，再按返回"},
     {"highlight.noCatalog", "無法讀取遊戲的方塊清單"},
     {"target.highlight", "醒目標示"},

@@ -105,8 +105,8 @@ buried on every side never shows. Through walls (off by default) also shows
 those faces behind terrain, fainter. Color picks the rainbow (default) or one
 still color (cyan, yellow, pink, white), which is also lighter to draw;
 Strength (default 50 %) sets how strongly the faces are colored, and at 0 %
-only the edges show. Blocks drawn as block entities (chests
-and the like) are not covered. A list, opened from the
+only the edges show. Blocks of any shape glow as their whole cell, chests
+and shulker boxes included. A list, opened from the
 settings row, shows the listed types with a count of those nearby, removes
 them, and adds any block type by searching its name or ID. Matching uses the
 block name only, so deepslate ores are their own types. With many blocks in view, only the nearest glow.

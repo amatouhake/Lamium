@@ -82,10 +82,17 @@ std::uint8_t exposedFaces(BlockSource const& region, BlockPos const& pos) {
     return bits;
 }
 
+// Set while the shape dispatcher below runs on this thread: the cube calls
+// it makes (a wall's boxes) belong to the block it is already marking.
+thread_local int dispatching = 0;
+thread_local bool dispatchedCube = false;
 // One block's tessellation: names the section by its first block and marks
-// a designated block that added vertices.
-template <class Draw>
-bool tessellateMarked(BlockSource const* region, Tessellator& tessellator, Block const& block, BlockPos const& pos, Draw&& draw) {
+// a designated block. A cube that added no quad is hidden. Another shape
+// may add none because the game draws it as a block entity (a chest), so
+// `drewCube` false marks it by its uncovered faces alone.
+template <class Draw, class Cube>
+bool tessellateMarked(BlockSource const* region, Tessellator& tessellator, Block const& block, BlockPos const& pos, Draw&& draw,
+                      Cube&& drewCube) {
     if (capture && !capture->first) {
         capture->first = pos;
         try { if (region) capture->dimension = static_cast<int>(region->getDimensionId()); } catch (...) {}
@@ -99,8 +106,7 @@ bool tessellateMarked(BlockSource const* region, Tessellator& tessellator, Block
     bool result = draw();
     try {
         size_t added = tessellator.mMeshData->mPositions->size() - before;
-        // A block that added no quad is hidden; nothing to glow.
-        std::uint8_t bits = added && region ? exposedFaces(*region, pos) : 0;
+        std::uint8_t bits = (added || !drewCube()) && region ? exposedFaces(*region, pos) : 0;
         if (faceSamples.fetch_add(1, std::memory_order_relaxed) < 6)
             Runtime::instance().self().getLogger().debug("Block highlight: exposed faces {:06b} ({} set), {} vertices added",
                 bits, std::popcount(bits), added);
@@ -108,27 +114,33 @@ bool tessellateMarked(BlockSource const* region, Tessellator& tessellator, Block
     } catch (...) {}
     return result;
 }
-// Set while the shape dispatcher below runs on this thread: the cube calls
-// it makes (a wall's boxes) belong to the block it is already marking.
-thread_local int dispatching = 0;
 
 // Full cubes; the chunk builder also calls this without the dispatcher.
 LL_TYPE_INSTANCE_HOOK(HighlightBlock, ll::memory::HookPriority::Normal, BlockTessellator,
     &BlockTessellator::tessellateBlockInWorld, bool, Tessellator& tessellator, Block const& block, BlockPos const& pos,
     std::bitset<6> const faces, AirAndSimpleBlockBits const* simple) {
-    if (dispatching) return origin(tessellator, block, pos, faces, simple);
-    return tessellateMarked(mRegion, tessellator, block, pos, [&] { return origin(tessellator, block, pos, faces, simple); });
+    if (dispatching) {
+        dispatchedCube = true;
+        return origin(tessellator, block, pos, faces, simple);
+    }
+    return tessellateMarked(mRegion, tessellator, block, pos, [&] { return origin(tessellator, block, pos, faces, simple); },
+        [] { return true; });
 }
-// Every other shape (cactus, panes, stairs): the dispatcher that picks the
+// Every other shape (cactus, panes, chests): the dispatcher that picks the
 // shape's own tessellation.
 LL_TYPE_INSTANCE_HOOK(HighlightShape, ll::memory::HookPriority::Normal, BlockTessellator,
     &BlockTessellator::tessellateInWorld, bool, Tessellator& tessellator, Block const& block, BlockPos const& pos,
     bool useCalcWithCache) {
+    if (dispatching) return origin(tessellator, block, pos, useCalcWithCache);
+    bool cube = false;
     return tessellateMarked(mRegion, tessellator, block, pos, [&] {
+        dispatchedCube = false;
         ++dispatching;
         struct Leave { ~Leave() { --dispatching; } } leave;
-        return origin(tessellator, block, pos, useCalcWithCache);
-    });
+        bool result = origin(tessellator, block, pos, useCalcWithCache);
+        cube = dispatchedCube;
+        return result;
+    }, [&] { return cube; });
 }
 
 LL_TYPE_INSTANCE_HOOK(HighlightSection, ll::memory::HookPriority::Normal, RenderChunkBuilder,

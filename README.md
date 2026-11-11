@@ -246,8 +246,8 @@ requests are handled. What has been checked in game, per feature, is in
   the joins instead of keeping the texture's own scale (drawn that way,
   panes shaded dark on one half).
 - **Block highlight:** checked in a local world in Fancy graphics; Vibrant
-  Visuals and servers are unverified. Blocks the game draws as block
-  entities, such as chests, do not glow. The rainbow costs frame rate when
+  Visuals and servers are unverified. A block that is not a full cube glows
+  as its whole cell, not along its shape. The rainbow costs frame rate when
   many blocks are listed (a single color is cheaper). Some servers may treat
   "Through walls" as unfair.
 

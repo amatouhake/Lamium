@@ -91,7 +91,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"highlight.tagListed", "已添加"},
     {"highlight.offNote", "方块高亮已关闭：列表会保留，但不会发光。"},
     {"highlight.nearbyHelp", "附近：已绘制区块中、有面暴露在外的该种类方块数量（不只是视野内的）。"},
-    {"help.highlightList", "点击行即可添加或移除。按方块名称匹配，不区分朝向等状态。箱子等以方块实体绘制的方块不会发光。"},
+    {"help.highlightList", "点击行即可添加或移除。按方块名称匹配，不区分朝向等状态。"},
     {"highlight.hint", "输入即搜索  上/下: 选择  Enter: 添加或移除  Esc: 清除，再按返回"},
     {"highlight.noCatalog", "无法读取游戏的方块列表"},
     {"target.highlight", "高亮"},

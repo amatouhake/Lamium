@@ -94,7 +94,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"highlight.tagListed", "Listed", "指定中"},
     {"highlight.offNote", "Block highlight is off: the list is kept, nothing glows.", "ブロックのハイライトはオフです。リストは残りますが、何も光りません。"},
     {"highlight.nearbyHelp", "Nearby: blocks of the type in drawn chunks with a face open to the air, not only the ones in sight.", "近く: 描画中のチャンクで、空気などに面した面を持つその種類のブロックの数です（見えているものだけではありません）。"},
-    {"help.highlightList", "Click a row to add or remove. Matched by block name; states such as facing are ignored. Chests and other blocks drawn as block entities do not glow.", "行をクリックで追加 / 外す。ブロック名で判定し、向きなどの状態は区別しません。チェストなどブロックエンティティとして描かれるものは光りません。"},
+    {"help.highlightList", "Click a row to add or remove. Matched by block name; states such as facing are ignored.", "行をクリックで追加 / 外す。ブロック名で判定し、向きなどの状態は区別しません。"},
     {"highlight.hint", "Type to search  Up/Down: choose  Enter: add or remove  Esc: clear, then back", "入力で検索  上下: 選択  Enter: 追加 / 外す  Esc: 消去、もう一度で戻る"},
     {"highlight.noCatalog", "Could not read the game's block list", "ゲームのブロック一覧を読めませんでした"},
     {"target.highlight", "Highlight", "ハイライト"},

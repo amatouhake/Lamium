@@ -659,10 +659,11 @@ and the material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 
 ### `src/features/visuals/BlockHighlightHooks.cpp`
 Hooks: `HighlightBlock`, `HighlightShape`, `HighlightSection`, `HighlightRebuild`
-Meaning: the vertices a designated block adds to the chunk mesh (none added
+Meaning: the vertices a designated cube adds to the chunk mesh (none added
 means the block is hidden); `tessellateInWorld` as the dispatcher every
 shape other than a full cube goes through, calling `tessellateBlockInWorld`
-for its cube parts on the same thread; `RenderChunkBuilder::build` as
+for its cube parts on the same thread, and called for blocks drawn as block
+entities too (chests), which add no vertices; `RenderChunkBuilder::build` as
 one 16-block section build, named by the first block tessellated in it;
 `BlockType::mIsOpaqueFullBlock` as covering a neighbour's face; and when
 chunks rebuild. The tessellator's `faces` argument is not the drawn faces

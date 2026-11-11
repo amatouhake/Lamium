@@ -77,10 +77,10 @@ inline bool queryMatches(std::string_view query, std::string_view name, std::str
 }
 // What the screen offers before anything is typed: blocks people usually
 // look for. Names missing from the game are skipped by the caller.
-inline constexpr std::array<std::string_view, 16> suggestedNames{
+inline constexpr std::array<std::string_view, 17> suggestedNames{
     "minecraft:diamond_ore", "minecraft:deepslate_diamond_ore", "minecraft:ancient_debris", "minecraft:emerald_ore",
     "minecraft:deepslate_emerald_ore", "minecraft:gold_ore", "minecraft:deepslate_gold_ore", "minecraft:iron_ore",
-    "minecraft:deepslate_iron_ore", "minecraft:mob_spawner", "minecraft:trial_spawner", "minecraft:vault",
+    "minecraft:deepslate_iron_ore", "minecraft:wet_sponge", "minecraft:mob_spawner", "minecraft:trial_spawner", "minecraft:vault",
     "minecraft:budding_amethyst", "minecraft:suspicious_sand", "minecraft:suspicious_gravel", "minecraft:end_portal_frame"};
 
 // A designated block seen while a chunk section was built: its cell, the
