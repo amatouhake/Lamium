@@ -24,6 +24,13 @@ struct Rules {
 };
 // Unverified for Bedrock: each earlier anvil use doubles the surcharge.
 inline constexpr int priorWorkPenalty(int work) noexcept { return (1 << std::clamp(work, 0, maxWork)) - 1; }
+// The anvil uses behind a stored surcharge (L-319), or nothing when the
+// value is not one the rule above produces.
+inline constexpr std::optional<int> priorUses(int penalty) noexcept {
+    for (int work = 0; work <= maxWork; ++work)
+        if (priorWorkPenalty(work) == penalty) return work;
+    return std::nullopt;
+}
 
 struct Step {
     unsigned target = 0, sacrifice = 0; // Bit i = input i is part of that side.

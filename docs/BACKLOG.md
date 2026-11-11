@@ -696,6 +696,31 @@ and speed, armour value, fuel burn time, anvil repair material,
 enchantability, max stack). A derived value (grindstone experience
 return) needs its own call — deterministic formulas only. Home: the item
 tooltip, beside durability and food values.
+Header read 2026-11-12 (SDK 26.60.4; reading only, nothing run):
+- Linkable or virtual, so readable without a symbol request:
+  `ItemStackBase::getBaseRepairCost()` (the Work Penalty) and
+  `getMaxStackSize()` (`MCAPI`); `Item::getAttackDamage()`,
+  `getArmorValue()`, `getEnchantValue()`, `getEnchantSlot()`,
+  `getMaxDamage()` and `isValidRepairItem(...)` (virtual).
+- Not found as a linkable accessor: fuel burn time (only
+  `FuelItemComponent::mFuelDuration` for component items, and the brewing
+  stand's `PotionBrewing::getFuelValue`, `MCNAPI`), attack speed, and a
+  reader for the suspicious stew's effect (`SuspiciousStewItem` has only the
+  type enum). These stay off the list until a source is found.
+- Pure part done: `enchantPlan::priorUses(penalty)` in
+  `src/features/inventory/EnchantPlan.h` gives the prior-use count for a
+  stored surcharge, or nothing when the value is not 2^n - 1. Not shown
+  anywhere yet.
+Open choices, with the agent's recommendation (not decided):
+- The line's wording and whether both numbers show. Recommended: one line
+  with the surcharge and the use count together, hidden when the surcharge
+  is 0, so unused items keep today's tooltip.
+- Which definition values to show. Recommended: only values that differ
+  from "nothing" (attack damage above 0, armour above 0), behind the
+  existing tooltip detail setting rather than a new one; enchantability and
+  max stack are rarely useful and can wait.
+- A surcharge that is not 2^n - 1 (commands, other servers): recommended to
+  show the surcharge alone, without a use count.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
 Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;

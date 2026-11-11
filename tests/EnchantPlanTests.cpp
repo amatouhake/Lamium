@@ -28,6 +28,9 @@ int bruteForce(std::vector<Piece> pieces, int refuseAt) {
 void enchantPlanTests() {
     check(priorWorkPenalty(0) == 0 && priorWorkPenalty(1) == 1 && priorWorkPenalty(3) == 7,
           "each earlier anvil use doubles the surcharge");
+    check(priorUses(0) == 0 && priorUses(1) == 1 && priorUses(7) == 3 && priorUses(31) == 5,
+          "a stored surcharge names the anvil uses behind it");
+    check(!priorUses(2) && !priorUses(-1) && !priorUses(6), "a surcharge the rule cannot produce names no count");
     {
         std::vector<Input> one{{0, 0, true}};
         auto result = plan(one);
