@@ -1624,6 +1624,12 @@ Steps, one at a time, each with a written hypothesis first:
    opaque layouts.
 3. Record each result in VISUAL-EFFECTS.md and VALIDATION-LOG.md.
 Stop and hand back after two runtime rounds without a new candidate.
+Header re-read 2026-11-12 (SDK 26.60.4; reading only): searching the client
+headers for pumpkin, spyglass, scope, blur and overlay names finds nothing
+beyond what VISUAL-EFFECTS.md already covers (`HudVignetteRenderer`,
+`GuiData::mVignette`, the HUD `camera_renderer`). No new typed entry point
+for step 2 came out of the headers, so step 1, the transparent-texture test
+pack, is still the cheapest next step and needs no code.
 
 ### L-71 Start an elytra glide from the mod
 Kind: Research (cheap models may collect traces). Split from L-70 on
