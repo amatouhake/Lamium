@@ -305,6 +305,41 @@ with each screenless-move feature on and off in turn; local world
 and BDS.
 No release target selected.
 
+Code read for question 1, 2026-11-12 (reading only, nothing run or
+changed; `8cdfe543`):
+- The transfer tracker (`RequestTracker.cpp`) has one owner at a time
+  and is released only by `cancelTransfer`. Every owner releases it
+  on each path read: Hand Restock (`cancel`, `failure`, the 1 s
+  observation deadline, context change in `tick`, focus loss), Sort
+  and the screen transfer session (rejected, untracked or timed-out
+  result; `ScreenTracker` cancels both on screen close, change, focus
+  loss and world exit), Repeat trades (`clear` on a failed reply, a
+  changed job and an exception). A response that never arrives ends
+  as `TimedOut` after 5 s. No path was found that keeps the tracker
+  owned after a failure, so a leaked token is not a likely cause.
+- If a token did leak, the effect would be Lamium's own moves
+  refusing ("begin-token-unavailable", "another inventory request owns
+  the tracker"), not a locked vanilla slot. That does not match the
+  report's wording.
+- Two places where a client-only slot state could come from, both in
+  `game::movePair` / `giveCreative` (`InventoryMove.cpp`), not
+  confirmed at runtime:
+  1. Both slots are set through the client's setters first. If no
+     transaction is pending afterwards, the function logs
+     "recorded-nothing-pending" (trace builds only) and still returns
+     true. Whether the setters sent the actions themselves in that
+     case, or nothing was sent and the two slots now differ from the
+     server, is not recorded anywhere in the docs.
+  2. Seven callers (Tool guard, Elytra swap, Bring to hand, Death
+     restore, Offhand swap, Tool switch, Weapon switch) send their move
+     with no response tracking, unlike Hand Restock. If the server
+     rejects such a legacy transaction, Lamium never learns it and
+     relies on vanilla's correction arriving.
+- Suggested next step when the maintainer re-triggers the desync: a
+  `restock_trace` build already logs every `Move:` stage, so one
+  session log shows whether "recorded-nothing-pending" or a rejected
+  response precedes the stuck slot. No new hook is needed for that.
+
 
 ### L-243 Large terrain gaps that only reload when the player comes near
 Kind: Bug / Research, not reproduced; watch item. Maintainer report
