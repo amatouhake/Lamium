@@ -38,10 +38,29 @@ enum class ElementBackground { None, Card, Line };
 struct HudElement {
     Anchor anchor = Anchor::TopLeft;
     float dx = 0, dy = 0; // GUI-unit offset from the anchor point.
-    float scale = 100; // Percent, 75-150.
+    float scale = 100; // Percent, hudScaleMin-hudScaleMax.
     ElementBackground background = ElementBackground::None;
     bool shadow = true;
 };
+// Scale bounds and the step of the editor's buttons and handles (L-321);
+// a typed value may be any whole percent.
+inline constexpr float hudScaleMin = 50, hudScaleMax = 200, hudScaleStep = 5;
+inline float clampHudScale(float scale) {
+    return std::clamp(std::isfinite(scale) ? scale : 100.f, hudScaleMin, hudScaleMax);
+}
+// One press of - or +: to the next multiple of the step, so a typed 123 goes
+// to 120 or 125.
+inline float stepHudScale(float scale, int direction) {
+    float units = clampHudScale(scale) / hudScaleStep;
+    float next = direction < 0 ? std::ceil(units) - 1 : std::floor(units) + 1;
+    return clampHudScale(next * hudScaleStep);
+}
+// Elements that appear only in some situations: the layout editor shows them
+// as a named frame until selected (L-321).
+inline constexpr bool hudConditional(HudElementId id) {
+    return id == HudElementId::Target || id == HudElementId::Status || id == HudElementId::Toast
+        || id == HudElementId::Magnification || id == HudElementId::Schematic || id == HudElementId::PlayerList;
+}
 // Gap from the screen edge used by defaults and snap-to; flush is allowed.
 inline constexpr float hudInset = 4;
 // Defaults match docs/demos/hud-editor.html.
@@ -91,7 +110,7 @@ inline constexpr std::string_view hudElementKey(HudElementId id) {
 }
 inline float scaledExtent(float size, float scale) {
     if (!std::isfinite(size) || size < 0) return 0;
-    return size * std::clamp(std::isfinite(scale) ? scale : 100.f, 75.f, 150.f) / 100;
+    return size * clampHudScale(scale) / 100;
 }
 struct ElementPlacement { float x, y; };
 // Top-left of an element whose anchor point sits `factor` across the screen.

@@ -103,6 +103,9 @@ namespace lamium::information {
 namespace {
 // HUD background opacity for this frame (settings, L-98); set by drawHud.
 float cardOpacity = .72f;
+// The layout editor wants this element's box without its drawing (L-321);
+// set by drawHud around one element's draw call.
+bool measureOnly = false;
 SpeedSampler speedSampler;
 // Ids of the status effect rows shown last frame, top to bottom: a row keeps
 // its place until its effect ends (L-247). Cleared when a successful read
@@ -113,7 +116,7 @@ std::vector<unsigned> shownEffects;
 // One element row: text with an optional leading marker square.
 struct ElementLine { std::string text; std::optional<ui::Rgb> marker; ui::Rgb color = ui::palette::text; };
 float elementZoom(ui::HudElement const& element) {
-    return std::clamp(std::isfinite(element.scale) ? element.scale : 100.f, 75.f, 150.f) / 100;
+    return ui::clampHudScale(element.scale) / 100;
 }
 // Draw lines through the element model: card background, shadow, scale.
 std::optional<ui::hud_editor::Box> drawElement(MinecraftUIRenderContext& context, float width, float height,
@@ -136,6 +139,7 @@ std::optional<ui::hud_editor::Box> drawElement(MinecraftUIRenderContext& context
     float padY = element.background == ui::ElementBackground::Card ? 3 : 0;
     float boxWidth = contentWidth + 2 * padX, boxHeight = static_cast<float>(lines.size()) * rowHeight + 2 * padY;
     auto placement = ui::placeElement(width, height, boxWidth, boxHeight, element);
+    if (measureOnly) return ui::hud_editor::Box{placement.x, placement.y, boxWidth, boxHeight};
     if (element.background == ui::ElementBackground::Card)
         ui::card(context, placement.x, placement.y, boxWidth, boxHeight, cardOpacity);
     // Per-line bands on the right side of the screen line up on the right edge.
@@ -383,6 +387,7 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     if (!materials.empty()) h += 2 * z + rowH * (1 + static_cast<float>(materials.size()));
     float boxW = contentW + 2 * pad, boxH = h + 2 * pad;
     auto at = ui::placeElement(width, height, boxW, boxH, element);
+    if (measureOnly) return ui::hud_editor::Box{at.x, at.y, boxW, boxH};
     if (card) ui::card(context, at.x, at.y, boxW, boxH, cardOpacity);
     float x = at.x + pad, y = at.y + pad;
     auto text = [&](float tx, float ty, float w, std::string value, ui::Rgb color, float scale, ui::Align align = ui::Align::Left) {
@@ -772,6 +777,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     float boxH = headerH + (rows.empty() ? 0 : 3 * z + rowsH) + 2 * padY;
     auto placement = ui::placeElement(width, height, boxW, boxH, element);
     ui::hud_editor::Box finalBox{placement.x, placement.y, boxW, boxH};
+    if (measureOnly) return finalBox;
     // Ease the card between targets; the content appears once it settles.
     auto identity = target.identifier + "|" + target.name;
     std::optional<ui::hud_editor::Box> background = finalBox;
@@ -1419,6 +1425,7 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
     float boxWidth = contentWidth + 2 * padX;
     float boxHeight = (1 + firstColumnRows + (more ? 1 : 0)) * rowHeight + 2 * padY;
     auto at = ui::placeElement(width, height, boxWidth, boxHeight, element);
+    if (measureOnly) return ui::hud_editor::Box{at.x, at.y, boxWidth, boxHeight};
     if (card) ui::card(context, at.x, at.y, boxWidth, boxHeight, cardOpacity);
     float left = at.x + padX, top = at.y + padY;
     auto textTop = [&](float y) { return ui::lineTextTop(y, rowHeight, zoom, band); };
@@ -1494,6 +1501,11 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     auto const& runtime = *snapshot;
     cardOpacity = static_cast<float>(runtime.ui.hudBackgroundOpacity) / 100.f;
     auto const& hud = preview ? preview->layout : runtime.hud;
+    // Scoped to one element's draw call; false again when it returns.
+    struct Measuring {
+        Measuring(HudPreview const* preview, ui::HudElementId id) { measureOnly = preview && preview->outline[static_cast<size_t>(id)]; }
+        ~Measuring() { measureOnly = false; }
+    };
     if (preview) box(ui::HudElementId::Chat) = chatPosition::preview(context, width, height, hud.chat);
     auto viewRay = [&](double reach) -> std::optional<ViewRay> {
         auto* player = context.mClient.getLocalPlayer();
@@ -1588,12 +1600,14 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             lines.push_back({std::move(modeText), ui::palette::warning});
         }
         if (preview && lines.empty()) lines.push_back({ui::translated("status.permanentSneak"), ui::palette::accent});
+        Measuring measuring{preview, ui::HudElementId::Status};
         box(ui::HudElementId::Status) = drawElement(context, width, height, hud.status, lines, runtime.ui.hudRowHeight);
     }
     // The player list shares the top center with the target card and is drawn
     // over everything (L-128); the card waits while the list is held.
     bool listHeld = !preview && playerList::held();
     auto drawList = [&] {
+        Measuring measuring{preview, ui::HudElementId::PlayerList};
         if (preview || listHeld)
             box(ui::HudElementId::PlayerList) = drawPlayerList(context, width, height, hud.playerList, settings,
                                                                static_cast<float>(runtime.ui.hudRowHeight));
@@ -1612,6 +1626,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         beginNoteSounds(*noteLevel, static_cast<int>(player->getDimensionId()));
     else endNoteSounds();
     if (cardRan) {
+        Measuring measuring{preview, ui::HudElementId::Target};
         // One distance for every viewpoint: the body normally, the camera
         // during Freelook and FreeCamera (it looks elsewhere than the body).
         cardTarget = collectTargetInfo(context.mClient, true, targetRay, settings.targetSchematic, settings.targetLiquids,
@@ -1637,9 +1652,12 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
                 box(ui::HudElementId::UsedSlots) = drawUsedSlots(context, width, height, hud.usedSlots, *sample, settings.usedSlotsHotbar);
         }
     }
-    if (preview || (runtime.schematic.enabled && runtime.schematic.hud))
+    if (preview || (runtime.schematic.enabled && runtime.schematic.hud)) {
+        Measuring measuring{preview, ui::HudElementId::Schematic};
         box(ui::HudElementId::Schematic) = drawSchematicHud(context, width, height, hud.schematic, runtime.schematic, preview != nullptr);
+    }
     if (preview || runtime.camera.showMagnification) {
+        Measuring measuring{preview, ui::HudElementId::Magnification};
         auto level = CameraSessions::instance().magnification(context.mClient);
         if (!level && preview) level = runtime.camera.magnification;
         if (level)
@@ -1671,11 +1689,12 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             float lead = toast->plain ? 0 : ui::switchWidth + 6;
             float total = lead + textWidth + 2 * padX, rows = 14 * zoom * static_cast<float>(parts.size());
             auto frame = ui::placeElement(width, height, total, rows + 2 * padY, hud.toast);
-            if (card) ui::card(context, frame.x, frame.y, total, rows + 2 * padY, cardOpacity * toast->opacity);
+            bool const outlined = preview && preview->outline[static_cast<size_t>(ui::HudElementId::Toast)];
+            if (card && !outlined) ui::card(context, frame.x, frame.y, total, rows + 2 * padY, cardOpacity * toast->opacity);
             box(ui::HudElementId::Toast) = ui::hud_editor::Box{frame.x, frame.y, total, rows + 2 * padY};
             ui::ElementPlacement placement{frame.x + padX, frame.y + padY};
-            if (!toast->plain) ui::toggleSwitch(context, placement.x, placement.y + (14 * zoom - ui::switchHeight) / 2, toast->on);
-            for (size_t i = 0; i < parts.size(); ++i)
+            if (!toast->plain && !outlined) ui::toggleSwitch(context, placement.x, placement.y + (14 * zoom - ui::switchHeight) / 2, toast->on);
+            for (size_t i = 0; !outlined && i < parts.size(); ++i)
                 ui::labelScaled(context, placement.x + lead, placement.y + 14 * zoom * static_cast<float>(i), textWidth + 2,
                     parts[i], zoom, toast->opacity < 1 ? ui::palette::dim : toast->warning ? ui::palette::warning : ui::palette::text,
                     parts.size() > 1 ? ui::Align::Center : ui::Align::Left, hud.toast.shadow);

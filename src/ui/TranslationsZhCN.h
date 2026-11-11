@@ -927,7 +927,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"nav.hudLayout", "HUD 布局"},
     {"hudEditor.lines", "行"},
     {"hudEditor.snap", "吸附到"},
-    {"hudEditor.resetElement", "重置此元素"},
+    {"hudEditor.hint", "点击选择，拖动移动"},
     {"hudEditor.resetAll", "重置布局"},
     {"hudEditor.resetConfirm", "再按一次以重置"},
     {"hudEditor.anchorReadout", "锚点: {}（{}）"},

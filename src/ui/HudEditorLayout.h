@@ -61,6 +61,81 @@ inline std::optional<HudElementId> topmost(Boxes const& boxes, float px, float p
     }
     return std::nullopt;
 }
+// Every element under the pointer, topmost first. A click on the selected
+// element's place selects the next one below it, so covered elements can be
+// reached (L-321).
+inline std::vector<HudElementId> stackAt(Boxes const& boxes, float px, float py) {
+    std::vector<HudElementId> hits;
+    for (auto it = drawOrder.rbegin(); it != drawOrder.rend(); ++it) {
+        auto const& box = boxes[static_cast<size_t>(*it)];
+        if (box && box->contains(px, py)) hits.push_back(*it);
+    }
+    return hits;
+}
+inline std::optional<HudElementId> nextBelow(std::vector<HudElementId> const& stack, HudElementId current) {
+    for (size_t i = 0; i < stack.size(); ++i)
+        if (stack[i] == current) return stack[(i + 1) % stack.size()];
+    return stack.empty() ? std::nullopt : std::optional(stack.front());
+}
+
+// Scale handles (L-321). An element grows away from its anchor point, which
+// stays put while it is scaled, so only the corners away from that point get
+// a handle: one for a corner anchor, two for an edge, four for the center.
+inline constexpr float handleSize = 5;
+struct Handle { Box box; Point corner; };
+inline std::vector<Handle> scaleHandles(Anchor anchor, Box element, float screenW, float screenH) {
+    std::vector<Handle> handles;
+    auto f = anchorFactors(anchor);
+    for (int c = 0; c < 4; ++c) {
+        float cx = static_cast<float>(c % 2), cy = static_cast<float>(c / 2);
+        if (cx == f.x || cy == f.y) continue;
+        Point corner{element.x + element.w * cx, element.y + element.h * cy};
+        float x = std::clamp(corner.x - handleSize / 2, 0.f, std::max(0.f, screenW - handleSize));
+        float y = std::clamp(corner.y - handleSize / 2, 0.f, std::max(0.f, screenH - handleSize));
+        handles.push_back({{x, y, handleSize, handleSize}, corner});
+    }
+    return handles;
+}
+// A handle is easier to grab than it looks.
+inline bool grabs(Handle const& handle, float px, float py, float reach = 2) {
+    return px >= handle.box.x - reach && px < handle.box.x + handle.box.w + reach
+        && py >= handle.box.y - reach && py < handle.box.y + handle.box.h + reach;
+}
+// The scale a handle drag asks for: how far the pointer is from the anchor
+// point compared with where the handle started, on the axis that moved more,
+// in steps.
+inline float dragScale(float startScale, Point anchor, Point handle, Point pointer) {
+    float dx = std::abs(handle.x - anchor.x), dy = std::abs(handle.y - anchor.y);
+    float ratio = std::max(dx > 0 ? std::abs(pointer.x - anchor.x) / dx : 0.f,
+                           dy > 0 ? std::abs(pointer.y - anchor.y) / dy : 0.f);
+    if (!std::isfinite(ratio) || !(ratio > 0)) return clampHudScale(startScale);
+    return clampHudScale(std::round(clampHudScale(startScale) * ratio / hudScaleStep) * hudScaleStep);
+}
+// "Reset layout" and "Done" sit in a small titled panel above the crosshair,
+// shown only while nothing is selected (L-321): the screen's middle is where
+// elements rarely are.
+inline Box idlePanel(float w, float h, float screenW, float screenH) {
+    float x = std::max(0.f, (screenW - w) / 2);
+    return {std::round(x), std::round(std::clamp(screenH / 2 - h - 12, 0.f, std::max(0.f, screenH - h))), w, h};
+}
+// A dashed outline for an element shown as a frame only: the top-left of
+// each one-unit-thick dash and whether it runs horizontally.
+struct Dash { float x, y, length; bool horizontal; };
+inline std::vector<Dash> dashedFrame(Box box, float on = 3, float off = 2) {
+    std::vector<Dash> out;
+    if (!(box.w > 0) || !(box.h > 0) || !(on > 0) || !(off >= 0)) return out;
+    for (float x = 0; x < box.w && out.size() < 600; x += on + off) {
+        float length = std::min(on, box.w - x);
+        out.push_back({box.x + x, box.y, length, true});
+        out.push_back({box.x + x, box.y + box.h - 1, length, true});
+    }
+    for (float y = 0; y < box.h && out.size() < 1200; y += on + off) {
+        float length = std::min(on, box.h - y);
+        out.push_back({box.x, box.y + y, length, false});
+        out.push_back({box.x + box.w - 1, box.y + y, length, false});
+    }
+    return out;
+}
 
 // The element toolbar sits under the element, or above it when there is no
 // room below. The caller keeps the spot while only the look changes and asks

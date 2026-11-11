@@ -385,7 +385,7 @@ struct Settings {
             element.dx = std::clamp(element.dx, -512.f, 512.f);
             element.dy = std::clamp(element.dy, -512.f, 512.f);
             if (!std::isfinite(element.scale)) element.scale = defaultValue.scale;
-            element.scale = std::clamp(element.scale, 75.f, 150.f);
+            element.scale = std::clamp(element.scale, ui::hudScaleMin, ui::hudScaleMax);
             if (static_cast<unsigned>(element.anchor) > 8) element.anchor = defaultValue.anchor;
             if (static_cast<unsigned>(element.background) > (lines ? 2u : 1u)) element.background = defaultValue.background;
         };

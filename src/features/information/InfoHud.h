@@ -8,7 +8,9 @@ namespace lamium::information {
 // Layout editor preview: draw with this layout instead of the saved one, show
 // every element whether or not its feature is on, and fill empty elements
 // with sample content so they can be placed.
-struct HudPreview { Settings::Hud layout; };
+// Elements marked in `outline` are measured and placed but not drawn: the
+// editor shows them as a named frame (L-321).
+struct HudPreview { Settings::Hud layout; std::array<bool, 13> outline{}; };
 // Returns where each element was drawn this frame (for editor hit tests).
 ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext&, float width, float height, Settings::Information const&,
                               HudPreview const* preview = nullptr);

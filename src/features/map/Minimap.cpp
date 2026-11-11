@@ -771,7 +771,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         bool enlarged = enlargeHeld.load() && !preview;
         int pixels = enlarged ? enlargedPixels : normalPixels;
         double blocks = blocksAcross(zoom) * (enlarged ? 2 : 1), perPixel = blocks / pixels;
-        float zoomScale = std::clamp(std::isfinite(element.scale) ? element.scale : 100.f, 75.f, 150.f) / 100;
+        float zoomScale = ui::clampHudScale(element.scale) / 100;
         float size = std::round(height * std::clamp(settings.size, 10.f, 40.f) / 100 * zoomScale);
         // Markers keep their on-screen size when the map is enlarged.
         float baseSize = size;

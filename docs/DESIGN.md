@@ -217,29 +217,49 @@ Placement (every element):
   and at a 4-unit inset from it, and to the center lines; defaults and the
   3x3 "snap to" buttons use the inset. Why: flush must be possible, but a
   small gap reads better and makes aligned layouts easy.
-- Look: scale 75–150 %, background none / card, text shadow.
+- Look: scale 50–200 % (L-321; 75–150 % in steps of 25 before), background
+  none / card, text shadow.
 
 Editing:
 - Entry: the pinned "HUD layout" item in the settings sidebar, an unbound
   "Open HUD layout" action under General, and a "Placement and look" link row
   on each HUD feature that opens the editor with that element selected.
   The settings list has no placement or look rows of its own.
-- A corner bar holds "Reset" and "Done (Esc)". Reset returns the selected
-  element to its defaults at once (the Info HUD's also restores its line
-  order, L-221); with nothing selected it resets the whole
-  layout (including the info-line order) and asks for a second press.
-- Popovers (snap-to, lines) never cover their toolbar or the Reset/Done
-  strip: they open on the side that fits and scroll (wheel or scroll bar)
-  when there is not enough room.
-- The editor shows the live HUD (sample content for empty elements). Click
-  selects, drag moves, arrows nudge (Shift: 10), Esc deselects then leaves.
-  A dashed guide joins the anchor point and the element while selected.
+- (L-321, decided 2026-11-11 on demos/hud-layout-v2.html.) Resets follow
+  "Resetting settings": the selected element's "Reset" sits at the end of
+  its toolbar behind a divider and applies at once, like the binding row's
+  Reset (the Info HUD's also restores its line order, L-221); "Reset layout"
+  (every element and the info-line order) asks for a second press. "Reset
+  layout" and "Done (Esc)" sit in a small titled panel (title, one hint
+  line) above the crosshair, shown only while nothing is selected. Why: one
+  corner button that changed meaning with the selection was the editor's own
+  invention, and every corner holds an element by default.
+- Popovers (snap-to, lines) never cover their toolbar: they open on the side
+  that fits and scroll (wheel or scroll bar) when there is not enough room.
+- The editor shows the live HUD (sample content for empty elements).
+  Elements that appear only by situation (target, automation status, toast,
+  magnification, schematic, player list) are a named dashed frame until
+  selected. Why: overlap is a problem in the editor, where everything shows
+  at once, not in play; so there are no overlap warnings, no automatic
+  avoidance and, for now, no element list.
+- Click selects, drag moves, arrows nudge (Shift: 10), Esc deselects then
+  leaves. A click on the selected element's place selects the element below
+  it; the selected element can be dragged even under another one. A dashed
+  guide joins the anchor point and the element while selected. Dragging
+  snaps to the screen edge, the 4-unit inset and the center lines only, not
+  to other elements (tried in the mockup: it caught too often).
 - Selecting an element opens a small toolbar next to it (below, or above
-  when there is no room): snap-to 3x3, scale, background, shadow, and for
-  info lines a "Lines" popover (switch + up/down per line). The toolbar
+  when there is no room): snap-to 3x3, scale, background, shadow (a "name:
+  value" button like background), for info lines a "Lines" popover (switch
+  + up/down per line), then the divider and Reset. The toolbar
   stays where it is while only the look changes and re-anchors after a move
   or when the element grows over it. Why: a side panel that follows the
   selection jumps across the screen and is disorienting.
+- Scale: the toolbar's - and + step 5 %, a click on the value types any
+  whole percent, and square handles on the selected element scale it by
+  dragging in 5 % steps. The anchor point stays put, so handles sit only on
+  the corners away from it: one for a corner anchor, two for an edge, four
+  for the center. The chat is placed only.
 
 Card look (background "card"): Bedrock popup style — a dark translucent
 fill (about 72 %) with corners stepped by one GUI pixel, no border, no

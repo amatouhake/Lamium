@@ -147,14 +147,14 @@ constexpr Option hudChoice(std::string_view id, std::string_view feature, std::s
             field = static_cast<std::remove_reference_t<decltype(field)>>(index);
         }};
 }
-template<ui::HudElementId Id, auto Field, int Step>
+template<ui::HudElementId Id, auto Field>
 constexpr Option hudNumeric(std::string_view id, std::string_view feature, std::string_view label,
                             float minimum, float maximum) {
     return {id, feature, label,
         [](Settings const& value) -> OptionValue { return hudElement(value, Id).*Field; },
         [](Settings& value, int direction) {
             auto& field = hudElement(value, Id).*Field;
-            field += direction * Step;
+            field = ui::stepHudScale(field, direction);
             value.normalize();
         },
         NumericOption{minimum, maximum, [](Settings& value, float number) { hudElement(value, Id).*Field = number; }}};
@@ -226,17 +226,17 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::playerListDimension>("information.playerListDimension", "playerList", "playerListDimension"),
     toggle<&Settings::information, &Settings::Information::playerListDistance>("information.playerListDistance", "playerList", "playerListDistance"),
     toggle<&Settings::information, &Settings::Information::playerListMembers>("information.playerListMembers", "playerList", "playerListMembers"),
-    hudNumeric<ui::HudElementId::PlayerList, &ui::HudElement::scale, 25>("hud.playerList.scale", "playerList", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::PlayerList, &ui::HudElement::scale>("hud.playerList.scale", "playerList", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::PlayerList, &ui::HudElement::background, lineBackgroundLabels>("hud.playerList.background", "playerList", "hudBackground"),
     hudToggle<ui::HudElementId::PlayerList, &ui::HudElement::shadow>("hud.playerList.shadow", "playerList", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::inventoryHud>("information.inventoryHud", "inventoryHud", "inventoryHud"),
     toggle<&Settings::information, &Settings::Information::inventoryHotbar>("information.inventoryHotbar", "inventoryHud", "inventoryHotbar"),
-    hudNumeric<ui::HudElementId::Inventory, &ui::HudElement::scale, 25>("hud.inventory.scale", "inventoryHud", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Inventory, &ui::HudElement::scale>("hud.inventory.scale", "inventoryHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Inventory, &ui::HudElement::background, elementBackgroundLabels>("hud.inventory.background", "inventoryHud", "hudBackground"),
     hudToggle<ui::HudElementId::Inventory, &ui::HudElement::shadow>("hud.inventory.shadow", "inventoryHud", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::usedSlots>("information.usedSlots", "usedSlots", "usedSlots"),
     toggle<&Settings::information, &Settings::Information::usedSlotsHotbar>("information.usedSlotsHotbar", "usedSlots", "inventoryHotbar"),
-    hudNumeric<ui::HudElementId::UsedSlots, &ui::HudElement::scale, 25>("hud.usedSlots.scale", "usedSlots", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::UsedSlots, &ui::HudElement::scale>("hud.usedSlots.scale", "usedSlots", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::UsedSlots, &ui::HudElement::background, elementBackgroundLabels>("hud.usedSlots.background", "usedSlots", "hudBackground"),
     hudToggle<ui::HudElementId::UsedSlots, &ui::HudElement::shadow>("hud.usedSlots.shadow", "usedSlots", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::chatPosition>("information.chatPosition", "chatPosition", "chatPosition"),
@@ -244,7 +244,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::effectsNames>("information.effectsNames", "statusEffects", "effectsNames"),
     toggle<&Settings::information, &Settings::Information::effectsWarning>("information.effectsWarning", "statusEffects", "effectsWarning"),
     toggle<&Settings::information, &Settings::Information::effectsHideVanilla>("information.effectsHideVanilla", "statusEffects", "effectsHideVanilla"),
-    hudNumeric<ui::HudElementId::StatusEffects, &ui::HudElement::scale, 25>("hud.statusEffects.scale", "statusEffects", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::StatusEffects, &ui::HudElement::scale>("hud.statusEffects.scale", "statusEffects", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::StatusEffects, &ui::HudElement::background, lineBackgroundLabels>("hud.statusEffects.background", "statusEffects", "hudBackground"),
     hudToggle<ui::HudElementId::StatusEffects, &ui::HudElement::shadow>("hud.statusEffects.shadow", "statusEffects", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::saturation>("information.saturation", "saturation", "saturation"),
@@ -437,23 +437,23 @@ inline constexpr auto options = std::to_array<Option>({
         NumericOption{0, 100, [](Settings& s, float v) { s.ui.hudBackgroundOpacity = static_cast<int>(std::lround(v)); }, 4}},
     toggle<&Settings::ui, &Settings::Interface::automationStatus>("interface.automationStatus", "automationStatus", "automationStatus"),
     toggle<&Settings::ui, &Settings::Interface::bookPaste>("interface.bookPaste", "bookPaste", "bookPaste"),
-    hudNumeric<ui::HudElementId::Info, &ui::HudElement::scale, 25>("hud.info.scale", "infoHud", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Info, &ui::HudElement::scale>("hud.info.scale", "infoHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Info, &ui::HudElement::background, lineBackgroundLabels>("hud.info.background", "infoHud", "hudBackground"),
     hudToggle<ui::HudElementId::Info, &ui::HudElement::shadow>("hud.info.shadow", "infoHud", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::hudHidePaperDoll>("infoHud.hidePaperDoll", "infoHud", "hudHidePaperDoll"),
-    hudNumeric<ui::HudElementId::Target, &ui::HudElement::scale, 25>("hud.target.scale", "targetInfo", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Target, &ui::HudElement::scale>("hud.target.scale", "targetInfo", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Target, &ui::HudElement::background, elementBackgroundLabels>("hud.target.background", "targetInfo", "hudBackground"),
     hudToggle<ui::HudElementId::Target, &ui::HudElement::shadow>("hud.target.shadow", "targetInfo", "hudShadow"),
-    hudNumeric<ui::HudElementId::Status, &ui::HudElement::scale, 25>("hud.status.scale", "automationStatus", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Status, &ui::HudElement::scale>("hud.status.scale", "automationStatus", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Status, &ui::HudElement::background, lineBackgroundLabels>("hud.status.background", "automationStatus", "hudBackground"),
     hudToggle<ui::HudElementId::Status, &ui::HudElement::shadow>("hud.status.shadow", "automationStatus", "hudShadow"),
-    hudNumeric<ui::HudElementId::Toast, &ui::HudElement::scale, 25>("hud.toast.scale", "toasts", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Toast, &ui::HudElement::scale>("hud.toast.scale", "toasts", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Toast, &ui::HudElement::background, elementBackgroundLabels>("hud.toast.background", "toasts", "hudBackground"),
     hudToggle<ui::HudElementId::Toast, &ui::HudElement::shadow>("hud.toast.shadow", "toasts", "hudShadow"),
-    hudNumeric<ui::HudElementId::Magnification, &ui::HudElement::scale, 25>("hud.magnification.scale", "zoom", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Magnification, &ui::HudElement::scale>("hud.magnification.scale", "zoom", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Magnification, &ui::HudElement::background, elementBackgroundLabels>("hud.magnification.background", "zoom", "hudBackground"),
     hudToggle<ui::HudElementId::Magnification, &ui::HudElement::shadow>("hud.magnification.shadow", "zoom", "hudShadow"),
-    hudNumeric<ui::HudElementId::Durability, &ui::HudElement::scale, 25>("hud.durability.scale", "durabilityHud", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Durability, &ui::HudElement::scale>("hud.durability.scale", "durabilityHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Durability, &ui::HudElement::background, lineBackgroundLabels>("hud.durability.background", "durabilityHud", "hudBackground"),
     hudToggle<ui::HudElementId::Durability, &ui::HudElement::shadow>("hud.durability.shadow", "durabilityHud", "hudShadow"),
     toggle<&Settings::map, &Settings::Map::minimap>("map.minimap", "minimap", "minimap"),
@@ -523,10 +523,10 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::schematic, &Settings::Schematic::hud>("schematic.hud", "schematicHud", "schematicHud"),
     toggle<&Settings::schematic, &Settings::Schematic::hudVerify>("schematic.hudVerify", "schematicHud", "schematicHudVerify"),
     toggle<&Settings::schematic, &Settings::Schematic::hudMaterials>("schematic.hudMaterials", "schematicHud", "schematicHudMaterials"),
-    hudNumeric<ui::HudElementId::Schematic, &ui::HudElement::scale, 25>("hud.schematic.scale", "schematicHud", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Schematic, &ui::HudElement::scale>("hud.schematic.scale", "schematicHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Schematic, &ui::HudElement::background, elementBackgroundLabels>("hud.schematic.background", "schematicHud", "hudBackground"),
     hudToggle<ui::HudElementId::Schematic, &ui::HudElement::shadow>("hud.schematic.shadow", "schematicHud", "hudShadow"),
-    hudNumeric<ui::HudElementId::Minimap, &ui::HudElement::scale, 25>("hud.minimap.scale", "minimap", "hudScale", 75, 150),
+    hudNumeric<ui::HudElementId::Minimap, &ui::HudElement::scale>("hud.minimap.scale", "minimap", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     hudChoice<ui::HudElementId::Minimap, &ui::HudElement::background, elementBackgroundLabels>("hud.minimap.background", "minimap", "hudBackground"),
     hudToggle<ui::HudElementId::Minimap, &ui::HudElement::shadow>("hud.minimap.shadow", "minimap", "hudShadow"),
 });

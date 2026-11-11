@@ -936,7 +936,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"nav.hudLayout", "HUD layout", "HUD レイアウト"},
     {"hudEditor.lines", "Lines", "項目"},
     {"hudEditor.snap", "Snap to", "寄せる"},
-    {"hudEditor.resetElement", "Reset this element", "この要素を既定に戻す"},
+    {"hudEditor.hint", "Click to select, drag to move", "クリックで選択、ドラッグで移動"},
     {"hudEditor.resetAll", "Reset layout", "すべて既定に戻す"},
     {"hudEditor.resetConfirm", "Press again to reset", "もう一度押すと戻します"},
     {"hudEditor.anchorReadout", "Anchor: {} ({})", "基準: {}（{}）"},

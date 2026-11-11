@@ -137,7 +137,8 @@ bool numberDirty = false;
 
 using ShapeZone = ShapesLayout::Zone; // the list-and-detail layout's zones (Schematics view)
 bool numericEditing() {
-    return table_view::editingNumber() || shapes_view::editingNumber() || waypoints_view::editingNumber() || schematics_view::editingNumber();
+    return table_view::editingNumber() || shapes_view::editingNumber() || waypoints_view::editingNumber() || schematics_view::editingNumber()
+        || hud_editor::editingNumber();
 }
 // Waypoint add prompt (L-60 step 5): replaces the whole panel while open.
 struct WaypointPrompt { map::Waypoint draft; SearchQuery name; };
@@ -442,6 +443,7 @@ void dropMovedWarning() {
 void applyNumber() {
     if (!numericEditing() || !numberDirty) return;
     numberDirty = false;
+    if (hud_editor::editingNumber()) { hud_editor::applyNumber(); return; }
     if (waypoints_view::editingNumber()) { waypoints_view::applyNumber(); return; }
     if (schematics_view::editingNumber()) { schematics_view::applyNumber(); return; }
     if (shapes_view::editingNumber()) { shapes_view::applyNumber(); return; }
@@ -457,6 +459,7 @@ void finishNumber() {
     shapes_view::endEditing();
     waypoints_view::endEditing();
     schematics_view::endEditing();
+    hud_editor::endEditing();
 }
 void close() {
     language_view::reset();
@@ -1228,7 +1231,9 @@ void render(ll::event::UIRenderEvent& event) {
     displayedInverseScale = current.getGuiData()->mInvGuiScale;
     if (hudEditorView()) {
         glm::vec2 pointer = view.mPointerLocationPrevious;
-        releaseTextKeyboard();
+        // Only the toolbar's scale is typed here.
+        if (auto caret = hud_editor::caret()) syncTextKeyboard(caret->x, caret->y);
+        else releaseTextKeyboard();
         hud_editor::render(context, size.x, size.y, pointer.x, pointer.y);
         return;
     }
@@ -1754,13 +1759,15 @@ void start() {
         // input event.
         auto key = event.keyCode();
         bool tool = shapesView() || waypointsView() || schematicsView();
-        bool editing = shapesView() ? (shapes_view::editingName() || shapes_view::editingNumber())
+        bool editing = hudEditorView() ? hud_editor::editingNumber()
+            : shapesView() ? (shapes_view::editingName() || shapes_view::editingNumber())
             : waypointsView() ? (waypoints_view::editingName() || waypoints_view::editingNumber())
             : schematicsView() ? schematics_view::editingNumber()
             : (table_view::searchFocused() || table_view::editingNumber());
-        bool finishes = (key == 0x1b || key == 0x0d || key == 0x09) && (tool || !table_view::searchFocused());
+        bool finishes = (key == 0x1b || key == 0x0d || key == 0x09) && (tool || hudEditorView() || !table_view::searchFocused());
         if (editing && !finishes) {
-            if (shapesView()) shapes_view::key(key);
+            if (hudEditorView()) hud_editor::editKey(key);
+            else if (shapesView()) shapes_view::key(key);
             else if (waypointsView()) waypoints_view::key(key);
             else if (schematicsView()) schematics_view::key(key);
             else table_view::key(key);

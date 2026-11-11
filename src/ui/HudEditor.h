@@ -1,5 +1,5 @@
 #pragma once
-#include "ui/HudElement.h"
+#include "ui/HudEditorLayout.h"
 #include <optional>
 class MinecraftUIRenderContext;
 
@@ -15,4 +15,12 @@ Result press(float x, float y);
 void release();
 void wheel(int step, float x, float y);
 Result key(int key, bool shift);
+// The toolbar's scale typed as a number (screen::number(), L-321): the core
+// routes text to it, applies it each frame and ends it like any other number.
+bool editingNumber();
+void applyNumber();
+void endEditing();
+void editKey(int key);
+// Where the typed number is drawn, for the text keyboard.
+std::optional<Point> caret();
 }
