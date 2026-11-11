@@ -37,6 +37,8 @@ int main() try {
     debugLinesTests();
     extern void lockedTradesTests();
     lockedTradesTests();
+    extern void enchantPlanTests();
+    enchantPlanTests();
     extern void repeatTradeTests();
     repeatTradeTests();
     extern void englishSearchTests();
