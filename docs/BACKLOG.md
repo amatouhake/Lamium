@@ -747,8 +747,10 @@ Header read 2026-11-12 (SDK 26.60.4; reading only, nothing run):
   `src/features/inventory/EnchantPlan.h` gives the prior-use count for a
   stored surcharge, or nothing when the value is not 2^n - 1. Not shown
   anywhere yet.
-Decided by the maintainer 2026-11-13 and built the same day (not checked
-in game):
+Decided by the maintainer 2026-11-13, built the same day and confirmed by
+the maintainer in game (`8a3f8cca`, VALIDATION-LOG: one, two and three
+anvil uses agreeing with the anvil's cost, nothing on a fresh item, a line
+on a merged book, the setting off):
 - First only the work penalty; the other values wait for a look at what
   is worth showing and what the game already prints.
 - One line under the durability line, in the same grey: "Work penalty: +3
@@ -1886,7 +1888,13 @@ slot's yellow, which could not be brought about. Changed the same day
   change of looks, tastes differ). It is a sibling, not a setting under a
   setting; like the choosing panel it only works while the steps are
   listed beside the anvil, and its help says so.
-Next: L-319 (its first part is built; see there).
+Confirmed by the maintainer 2026-11-13 (`8a3f8cca`, VALIDATION-LOG): the
+other stack keeps its tint while one is carried, and the tints' setting
+turns them off. L-319's first part is built and confirmed; see there.
+Left of L-170: the result slot's yellow (not brought about), Survival
+(the 40-level refusal, the level's warning colour), the unbound key,
+servers, the unverified-version fallback, and the mark on a carried stack
+that the first version leaves out.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 

@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Work penalty in tooltips; the tints' setting (2026-11-13)
+
+`8a3f8cca`, local build, DLL SHA-256
+`fec5c212f64e74e01636b6e1f9a39bc7c59794f46096253787be2e702bfa781c`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer:
+
+- L-319: items that went through an anvil once, twice and three times show "+1 (1
+  anvil use)", "+3 (2 anvil uses)" and "+7 (3 anvil uses)", agreeing with the surcharge
+  in the anvil's cost. A fresh item shows no line; a merged enchanted book shows one.
+  With the "Work penalty" setting off the line is gone.
+- L-170: while one stack is carried at the anvil, the other stack to place keeps its
+  tint in the inventory; with "Tint the slots to use next" off the tints are gone.
+
+Not checked: a cost that is not 2^n - 1; an unverified game version; the toggle key.
+
 ## Enchantment order, thirtieth pass: the slots' tints (2026-11-13)
 
 `41179be1`, local build, DLL SHA-256
