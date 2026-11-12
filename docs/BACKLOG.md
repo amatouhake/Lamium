@@ -1103,14 +1103,30 @@ inventory can come later.
 Decided (maintainer 2026-10-12): an unbound hotkey (and the settings
 screen) opens it with the held item preselected; anything inside the anvil
 screen comes later.
-Open (maintainer): whether the anvil highlight is wanted later.
+Decided (maintainer 2026-11-12): the anvil highlight is wanted, as a
+follow-up after the first version.
+Decided (maintainer 2026-11-12): two goals, fewest levels and least prior
+work on the result. The maintainer referred to the two choices the
+enchant-order web tool offers (PROVENANCE.md); both narrow the orders in a
+useful way. The planner has both (`Goal`, below).
+Decided (maintainer 2026-11-12): merging two books of one enchantment into a
+higher level stays out of the first version; more than 10 inputs is refused
+and the screen says so.
+Open (maintainer): how the two goals appear. Either a choice between them or
+both plans at once is acceptable. Agent's recommendation: a two-way switch
+above one step list, fewest levels by default, with a line saying so when
+both goals give the same plan; two full lists double a screen that can
+already hold nine steps.
 Groundwork 2026-11-12 (pure logic and tests only; no screen, setting or
 action): `src/features/inventory/EnchantPlan.h` plans the order for up to 10
 inputs. The caller gives each input's cost as the sacrificed side and its
 earlier anvil uses; the refusal threshold is a parameter. It returns the
 steps with each cost, the total, the most expensive step and the result's
 anvil uses. `tests/EnchantPlanTests.cpp` compares it with an exhaustive
-search on 300 small sets.
+search on 300 small sets. `Rules::goal` (2026-11-12) picks what is minimized
+first: `FewestLevels` (total, then the most expensive step, then the result's
+anvil uses) or `LeastPriorWork` (the result's anvil uses, then total, then
+the most expensive step); the tests compare both with exhaustive searches.
 Still to check in game before any screen is built (the planner assumes them):
 - The prior-work surcharge is 2^uses - 1 for each side and the result has
   max(uses) + 1.
@@ -1118,16 +1134,8 @@ Still to check in game before any screen is built (the planner assumes them):
   or per-item multiplier, plus both surcharges, with nothing else added (no
   rename, repair or incompatible-enchantment charge in the planned cases).
 - The refusal threshold and whether it differs in Creative.
-Open choices, with the agent's recommendation (not decided):
-- Equal totals: the planner prefers the order whose most expensive step is
-  lowest, then the fewest anvil uses on the result. Recommended, because a
-  player short of levels can then do more of the plan; the alternative is to
-  show all equal orders.
-- Two books of one enchantment merging into a higher level (two Sharpness IV
-  into V) is not modelled. Recommended to leave out of the first version, as
-  it fits "fresh books only"; adding it changes the planner's input model.
-- More than 10 inputs is refused. Recommended to keep and say so in the
-  screen, since no vanilla item takes that many compatible enchantments.
+Next: the three game checks above, then the screen once the goal display is
+chosen.
 
 ### L-169 Item Transfer: remaining gesture and screen extensions
 Kind: Design. Current status reconciled 2026-10-20: matching/everything,

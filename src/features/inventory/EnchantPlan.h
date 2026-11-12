@@ -19,8 +19,11 @@ struct Input {
     int work = 0;      // Times it has already been through an anvil.
     bool item = false; // The piece being enchanted: always the kept side.
 };
+// What the plan minimizes first. The other value breaks ties.
+enum class Goal { FewestLevels, LeastPriorWork };
 struct Rules {
     int refuseAt = 40; // A step costing this much or more is refused; 0 = no limit.
+    Goal goal = Goal::FewestLevels;
 };
 // Unverified for Bedrock: each earlier anvil use doubles the surcharge.
 inline constexpr int priorWorkPenalty(int work) noexcept { return (1 << std::clamp(work, 0, maxWork)) - 1; }
@@ -45,8 +48,9 @@ struct Plan {
 
 // Inputs are assumed to carry distinct, mutually compatible enchantments;
 // merging two books of one enchantment into a higher level is not modelled.
-// Fewest total levels first, then the lowest most-expensive step, then the
-// fewest anvil uses on the result.
+// FewestLevels: fewest total levels, then the lowest most-expensive step, then
+// the fewest anvil uses on the result. LeastPriorWork: fewest anvil uses on
+// the result, then fewest total levels, then the lowest most-expensive step.
 inline std::optional<Plan> plan(std::span<Input const> inputs, Rules rules = {}) {
     int const count = static_cast<int>(inputs.size());
     if (count < 1 || count > maxInputs) return std::nullopt;
@@ -101,6 +105,7 @@ inline std::optional<Plan> plan(std::span<Input const> inputs, Rules rules = {})
         auto const& candidate = cell(full, work);
         if (candidate.total < 0) continue;
         if (end < 0) { end = work; continue; }
+        if (rules.goal == Goal::LeastPriorWork) break; // Work counts are visited in rising order.
         auto const& best = cell(full, end);
         if (candidate.total < best.total || (candidate.total == best.total && candidate.highest < best.highest)) end = work;
     }

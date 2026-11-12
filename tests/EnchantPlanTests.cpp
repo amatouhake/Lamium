@@ -24,6 +24,29 @@ int bruteForce(std::vector<Piece> pieces, int refuseAt) {
         }
     return best;
 }
+// The same search for the other goal: {anvil uses on the result, total}, the
+// uses compared first. {-1, -1} when no order exists.
+struct Least { int work, total; };
+Least bruteLeastWork(std::vector<Piece> pieces, int refuseAt) {
+    if (pieces.size() == 1) return {pieces[0].work, 0};
+    Least best{-1, -1};
+    for (std::size_t kept = 0; kept < pieces.size(); ++kept)
+        for (std::size_t gone = 0; gone < pieces.size(); ++gone) {
+            if (kept == gone || pieces[gone].item) continue;
+            int const cost = pieces[gone].value + priorWorkPenalty(pieces[kept].work) + priorWorkPenalty(pieces[gone].work);
+            if (refuseAt > 0 && cost >= refuseAt) continue;
+            auto next = pieces;
+            next[kept] = {pieces[kept].value + pieces[gone].value, std::max(pieces[kept].work, pieces[gone].work) + 1,
+                          pieces[kept].item};
+            next.erase(next.begin() + static_cast<std::ptrdiff_t>(gone));
+            auto const rest = bruteLeastWork(next, refuseAt);
+            if (rest.work < 0) continue;
+            int const total = cost + rest.total;
+            if (best.work < 0 || rest.work < best.work || (rest.work == best.work && total < best.total))
+                best = {rest.work, total};
+        }
+    return best;
+}
 }
 void enchantPlanTests() {
     check(priorWorkPenalty(0) == 0 && priorWorkPenalty(1) == 1 && priorWorkPenalty(3) == 7,
@@ -81,6 +104,7 @@ void enchantPlanTests() {
     // Compare with the brute force over small pseudo-random sets.
     std::uint32_t seed = 12345;
     auto next = [&](int below) { seed = seed * 1664525u + 1013904223u; return static_cast<int>((seed >> 16) % below); };
+    int goalsDiffer = 0;
     for (int round = 0; round < 300; ++round) {
         int const count = 1 + next(5);
         bool const withItem = next(4) != 0;
@@ -95,7 +119,22 @@ void enchantPlanTests() {
         auto result = plan(inputs, {refuseAt});
         int const expected = bruteForce(pieces, refuseAt);
         check((result ? result->total : -1) == expected, "the planner's total equals the exhaustive search");
+        auto least = plan(inputs, {refuseAt, Goal::LeastPriorWork});
+        auto const leastExpected = bruteLeastWork(pieces, refuseAt);
+        check(least.has_value() == result.has_value(), "both goals agree on whether an order exists");
+        check((least ? least->work : -1) == leastExpected.work && (least ? least->total : -1) == leastExpected.total,
+              "the least-prior-work plan equals the exhaustive search");
         if (!result) continue;
+        check(least->work <= result->work && least->total >= result->total, "each goal is at least as good on its own value");
+        if (least->work < result->work) ++goalsDiffer;
+        int leastSum = 0;
+        for (auto const& step : least->steps) {
+            leastSum += step.cost;
+            check(refuseAt == 0 || step.cost < refuseAt, "no least-prior-work step reaches the limit");
+        }
+        check(leastSum == least->total && static_cast<int>(least->steps.size()) == count - 1 &&
+                  (least->steps.empty() || least->steps.back().work == least->work),
+              "the least-prior-work steps add up to the reported plan");
         int sum = 0, highest = 0;
         for (auto const& step : result->steps) {
             sum += step.cost;
@@ -105,4 +144,5 @@ void enchantPlanTests() {
         check(sum == result->total && highest == result->highest && static_cast<int>(result->steps.size()) == count - 1,
               "the listed steps add up to the reported plan");
     }
+    check(goalsDiffer > 0, "some sets have a cheaper order that leaves more anvil uses on the result");
 }

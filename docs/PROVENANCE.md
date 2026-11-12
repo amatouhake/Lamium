@@ -107,8 +107,10 @@ it) while doing so.
   named by the maintainer 2026-10-12, is the source of the L-168 idea.
   Its source is not opened.
 - enchant-order (a web tool, MIT): the problem it solves, named by the
-  maintainer 2026-10-12, is the source of the L-170 idea. Its source is not
-  opened; Lamium's anvil rules are checked against the game.
+  maintainer 2026-10-12, is the source of the L-170 idea, and its two
+  publicly offered goals (fewest levels, least prior work), named by the
+  maintainer 2026-11-12, of L-170's two goals. Its source is not opened;
+  Lamium's anvil rules are checked against the game.
 - Quick Container (a Bedrock resource pack on CurseForge; its terms forbid
   using its code without permission): named by the maintainer 2026-10-15 as
   evidence that Bedrock can move everything or every matching item at once.
