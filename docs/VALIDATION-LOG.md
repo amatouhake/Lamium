@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The item held on the pointer at the anvil (2026-11-12)
+
+`31d6b5ef`, DLL SHA-256 `de6a1ab526233735736c33ebb59ee04e4cd27eccecb1feccc2d5ec01b938f296`,
+1.26.60.05 Dev instance. The maintainer held an item and moved it outside the anvil's
+window; `lamium.log` listed the controls near the pointer three times:
+
+- `inventory_selected_icon_button`, 16x16, its corner 8 left of and 8 above the
+  pointer; its child `selected_item_icon`, 21x21, corner 11.5 left of and 12.5 above
+  the pointer (pointer 465.3,190.3: at 453.8,177.8); `durability_bar_grabbed` and
+  `storage_bar_grabbed`, 16x1, under it.
+- A slot is `grid_item_for_inventory` / `grid_item_for_hotbar`, 18x18, with
+  `common.item_renderer`, 16x16, one unit inside.
+
+The first log of `ebe7b849` (pointer still over the slots) showed only slot controls;
+the earlier `ebe7b849` run with no plan logged nothing, as the log sits in the list's
+code. Seen with `ebe7b849`, per the maintainer: the list no longer vanishes under a
+held item.
+
 ## Enchantment order, twelfth pass (2026-11-12)
 
 `9ff54047`, local build, DLL SHA-256

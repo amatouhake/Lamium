@@ -524,7 +524,8 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     auto& context = event.uiRenderContext();
     // What the slots and the inventory hold, as planner inputs.
     int now = -1, gameCost = -1, level = -1, leftPenalty = -1, rightPenalty = -1;
-    bool both = false, creative = false, holding = false;
+    bool both = false, creative = false;
+    ItemStack const* heldItem = nullptr; // the stack on the pointer; the manager's, valid for this frame
     std::optional<unsigned> target, sacrifice;
     std::vector<unsigned> atHandNow;
     try {
@@ -544,7 +545,7 @@ void drawBeside(ll::event::UIRenderEvent& event) {
             if (target) atHandNow.push_back(*target);
             if (sacrifice) atHandNow.push_back(*sacrifice);
             auto const& onPointer = manager->getItemStack("cursor_items", 0);
-            holding = !onPointer.isNull();
+            if (!onPointer.isNull()) heldItem = &onPointer;
             if (auto mask = sideOf(onPointer)) atHandNow.push_back(*mask);
             int const carriedSlots = std::min(36, manager->getContainerSize("combined_hotbar_and_inventory_items"));
             for (int i = 0; i < carriedSlots; ++i)
@@ -567,35 +568,6 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     // list goes with it by the same distance, off the screen too.
     windowRest = reopened ? at.y : std::min(windowRest, at.y);
     float const top = std::clamp(windowRest, gap, screen.y - gap - height) + (at.y - windowRest);
-    // Temporary (L-170): which control draws the item held on the pointer, to paint it again over the list.
-    // Only with the pointer outside the anvil's window, where no slot is near, and at three different places.
-    if (holding) {
-        static int logged = 0;
-        static glm::vec2 lastLogged{-1000, -1000};
-        glm::vec2 const pointer = view.mPointerLocationPrevious;
-        bool const outside = pointer.x < at.x - 30 || pointer.x > at.x + size.x + 30 || pointer.y < at.y - 30 || pointer.y > at.y + size.y + 30;
-        if (logged < 3 && outside && std::abs(pointer.x - lastLogged.x) + std::abs(pointer.y - lastLogged.y) > 30) {
-            ++logged;
-            lastLogged = pointer;
-            try {
-                Runtime::instance().self().getLogger().info("Enchantment order: held item, pointer {:.1f},{:.1f}", pointer.x, pointer.y);
-                int lines = 0;
-                auto walk = [&](auto&& self, UIControl const& control, int depth) -> void {
-                    if (depth > 30 || lines >= 30) return;
-                    glm::vec2 const where = *control.mCachedPosition, extent = *control.mSize;
-                    bool const shown = (static_cast<int>(control.mVisible) & 1) != 0;
-                    if (extent.x >= 1 && extent.x <= 64 && extent.y >= 1 && extent.y <= 64 && pointer.x >= where.x - 40 && pointer.x <= where.x + extent.x + 40
-                        && pointer.y >= where.y - 40 && pointer.y <= where.y + extent.y + 40) {
-                        ++lines;
-                        Runtime::instance().self().getLogger().info("Enchantment order: near pointer depth={} name={} shown={} at={:.1f},{:.1f} size={:.1f}x{:.1f}",
-                            depth, *control.mName, shown, where.x, where.y, extent.x, extent.y);
-                    }
-                    for (auto const& child : *control.mChildren) if (child) self(self, *child, depth + 1);
-                };
-                if (tree->mRootControl) walk(walk, *tree->mRootControl.get(), 0);
-            } catch (...) {}
-        }
-    }
     // The game's window fades as it slides away on closing; the list fades with the distance, or with the
     // window's own opacity when that is lower.
     float const slide = std::max(0.f, at.y - windowRest), way = std::max(1.f, (screen.y - windowRest) * .5f);
@@ -606,6 +578,19 @@ void drawBeside(ll::event::UIRenderEvent& event) {
         opacity, now, next, gameCost, level, leftPenalty, rightPenalty, std::move(atHandNow)};
     // Not painted from inside the screen this frame (no tooltip, or the first frame): paint it now.
     if (!painted) paintList(context);
+    // Painted after the screen, the list covers the item held on the pointer. The game draws that item in the
+    // control `selected_item_icon` (21 units, following the pointer; read from the log 2026-11-12), so it is
+    // drawn once more in the same box, on top of the list, while the two overlap.
+    if (!painted && heldItem && opacity > .02f) {
+        static std::string const heldName = "selected_item_icon";
+        try {
+            if (auto icon = tree->getControlByName(heldName, true); icon && !icon->mCachedPositionDirty) {
+                glm::vec2 const where = *icon->mCachedPosition, extent = *icon->mSize;
+                if (extent.x > 0 && where.x < left + width && where.x + extent.x > left && where.y < top + height && where.y + extent.y > top)
+                    inspection::render::drawItemIcon(context, {heldItem, where.x, where.y, extent.x / 16, 0, opacity, true}, 17);
+            }
+        } catch (...) {}
+    }
 }
 void dropStacks() {
     kinds.clear();

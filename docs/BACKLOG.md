@@ -1398,6 +1398,13 @@ Lamium would draw the held item once more over the list, which needs the
 game's exact box for it; the build logs, three times per run, the small
 controls under the pointer while an item is held at the anvil, to find that
 control. Remove the log lines once it is known.
+The held item's control was found from the log (VALIDATION-LOG "The item held
+on the pointer at the anvil"): `selected_item_icon`, 21 units, following the
+pointer. Built the same day (not checked in game): while that box overlaps
+the list, Lamium draws the held stack once more in the same box after the
+list, with its glint, so it is seen on top. Its count and durability bar
+are not drawn again, so over the list a stack shows no number. The log
+lines are removed.
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s
