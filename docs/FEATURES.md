@@ -421,7 +421,11 @@ use on it, and the step list could not tell it from the other books afterwards.
 The same plan is shown right of the anvil screen ("List the steps beside the anvil",
 on by default), with the step whose two items lie in the slots highlighted and the
 last line speaking of that pair (it matches a step, the game's cost differs, an item
-is not part of the plan). Left of the anvil screen the same choices as in the
+is not part of the plan). The slots themselves are tinted: in the inventory the stack
+to put left in cyan and the one to put right in pink, with the same colours on the
+anvil's two slots while they wait; a slot holding the wrong thing in red; and the
+result slot green when the pair is a step at the planned cost, yellow when the game's
+cost differs, red when it is no step. Left of the anvil screen the same choices as in the
 planner are shown ("Choose enchantments beside the anvil", on by default), so a plan
 is made and changed with the anvil open: the kinds, the main-hand item's cell and
 after it a cell for the item in the anvil's left slot, the set buttons and the

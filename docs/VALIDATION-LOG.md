@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, twenty-ninth pass: the marks' looks, round 2 (2026-11-13)
+
+`aa5c70a8` built with `enchant_mark_test`, DLL SHA-256
+`53092ecd4b58f7bc25b3e306ebb02ebb783b2d66cc6b5f68eeec31144bd48fb1`, 1.26.60.05 Dev
+instance, Creative. Per the maintainer: the tint alone at 45% is the look; cyan and
+pink are easy to see. The mark on a carried stack follows it, but flickers (now in
+front of the item, now behind) and does not fit the larger size an item has while
+held.
+
 ## Enchantment order, twenty-eighth pass: the marks' looks, round 1 (2026-11-13)
 
 `c4c910dd` built with `enchant_mark_test`, DLL SHA-256

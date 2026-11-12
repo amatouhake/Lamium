@@ -1855,7 +1855,18 @@ Not built: the game's own hover tint. It belongs to the slot's own
 drawing; turning it on for other slots would mean writing the game's
 controls, and it has one colour. Only a look at how the slot draws it
 (a probe) would say more.
-Next: the choice of a look, then L-319.
+Round 2 by the maintainer 2026-11-13 (`aa5c70a8` with the option,
+VALIDATION-LOG). Decided: the tint alone, at 50% (45% looked a little
+faint; the colour has to be seen, the item under it only recognised, and
+if the system is right the item need not be clear), in the shapes' cyan
+(left) and pink (right). That leaves green to "this pair is right", red
+to "wrong" and yellow to "the cost differs". The mark on a carried stack
+is left out of the first version: it flickered in front of and behind
+the item and did not fit the size an item has while held. Built the same
+day (not checked in game); the `enchant_mark_test` option and its looks
+are removed. No setting of its own yet: the marks follow "List the steps
+beside the anvil".
+Next: the in-game check, then L-319.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 
