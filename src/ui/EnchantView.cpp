@@ -156,15 +156,20 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         float right = last.switchX() + switchWidth;
         Rgb const nameColor = off ? palette::faint : row.curse ? palette::curse : fixed ? palette::dim : palette::text;
         if (fixed) {
-            std::string tag = translated("enchantOrder.onItem");
-            float const w = textWidth(context, tag) + 2;
-            label(context, right - w, y + 3, w, tag, palette::accent, Align::Right);
-            // Its level in the level column like the others, moved left only if the tag is wider than the switch.
-            float nameRight = right - w - 3;
+            // On the item: the switch stays on and cannot be pressed; the
+            // level can go up from what the item has.
+            toggleSwitch(context, last.switchX(), y + 3, true);
+            fill(context, last.switchX(), y + 3, switchWidth, switchHeight, palette::panel, .55f);
+            float nameRight = last.switchX() - 4;
             if (!row.levelText.empty()) {
-                float const levelLeft = std::min(last.levelX(), right - w - 3 - L::levelWidth);
-                label(context, levelLeft, y + 3, L::levelWidth, row.levelText, palette::dim, Align::Center);
-                nameRight = levelLeft - 4;
+                if (row.maxLevel > row.carried) {
+                    bool const raised = row.level > row.carried;
+                    drawSmallButton(context, last.minusX(), y + 1, L::stepWidth, 12, "-", raised && hover.zone == Zone::RowMinus && hover.index == i,
+                        palette::keyFill, palette::keyEdge, raised ? palette::text : palette::faint);
+                    drawSmallButton(context, last.plusX(), y + 1, L::stepWidth, 12, "+", hover.zone == Zone::RowPlus && hover.index == i);
+                }
+                label(context, last.levelX(), y + 3, L::levelWidth, row.levelText, row.level > row.carried ? palette::text : palette::dim, Align::Center);
+                nameRight = last.minusX() - 4;
             }
             label(context, nameLeft, y + 3, nameRight - nameLeft, row.levelText.empty() ? row.label : row.name, nameColor);
         } else if (row.state == game::RowState::Blocked) {

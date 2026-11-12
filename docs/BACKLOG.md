@@ -1333,7 +1333,18 @@ stretch right of the switch.
 Sixth pass by the maintainer 2026-11-12 (`2af7b12e`, VALIDATION-LOG): passed.
 A row on the item now writes its level in the level column like the others
 (built, not checked in game).
-Open (maintainer asked 2026-11-12): raising an enchantment the held item
+Raising a carried enchantment, read and built 2026-11-12 (not checked in
+game): the anvil charges the difference in levels (VALIDATION-LOG "Anvil
+cost of raising a level"), so a book's value has a second form for "the
+kept side holds the item" (`Input::onItem`). A row on the item has level
+buttons from its level up; a raised level counts as one of the nine books.
+Not for a held enchanted book: it may be the sacrificed side, which was not
+read. "All highest" raises what the item carries too. The row's "on the
+item" tag is gone (it pushed the level out of its column in Japanese and
+English); the row has a dimmed switch that stays on, and the footer says
+why. The list beside the anvil is drawn before the anvil screen instead of
+after it, so the game's tooltips stay on top.
+Earlier note (maintainer asked 2026-11-12): raising an enchantment the held item
 already carries (Sharpness III on it, V wanted). The agent's view: this is
 not the left-out "two equal books into a higher level"; that one changes
 what the inputs are. Raising with one higher-level book keeps the inputs

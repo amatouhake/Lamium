@@ -18,6 +18,10 @@ struct Input {
     int value = 0;     // Levels this input adds when it is the sacrificed side.
     int work = 0;      // Times it has already been through an anvil.
     bool item = false; // The piece being enchanted: always the kept side.
+    // Levels it adds when the kept side holds the item, when that differs: a
+    // book raising a level the item already has is charged the difference
+    // there (read from the anvil 2026-11-12). Negative: the same as `value`.
+    int onItem = -1;
 };
 // What the plan minimizes first. The other value breaks ties.
 enum class Goal { FewestLevels, LeastPriorWork };
@@ -68,7 +72,7 @@ inline std::optional<Plan> plan(std::span<Input const> inputs, Rules rules = {})
     int deepest = 0;
     for (int i = 0; i < count; ++i) {
         auto const& input = inputs[i];
-        if (input.value < 0 || input.work < 0 || input.work > maxWork - maxInputs) return std::nullopt;
+        if (input.value < 0 || input.work < 0 || input.work > maxWork - maxInputs || input.onItem > input.value) return std::nullopt;
         if (input.item) { if (item) return std::nullopt; item = 1u << i; }
         deepest = std::max(deepest, input.work);
     }
@@ -81,11 +85,13 @@ inline std::optional<Plan> plan(std::span<Input const> inputs, Rules rules = {})
     };
     std::vector<Cell> cells(static_cast<std::size_t>(full + 1) * works);
     auto cell = [&](unsigned mask, int work) -> Cell& { return cells[static_cast<std::size_t>(mask) * works + work]; };
-    std::vector<int> value(full + 1, 0);
+    std::vector<int> value(full + 1, 0), valueOnItem(full + 1, 0);
+    auto sacrificed = [&](unsigned kept, unsigned gone) { return kept & item ? valueOnItem[gone] : value[gone]; };
     for (unsigned mask = 1; mask <= full; ++mask) {
         int low = 0;
         while (!(mask >> low & 1u)) ++low;
         value[mask] = value[mask & (mask - 1)] + inputs[low].value;
+        valueOnItem[mask] = valueOnItem[mask & (mask - 1)] + (inputs[low].onItem < 0 ? inputs[low].value : inputs[low].onItem);
         if (!(mask & (mask - 1))) { cell(mask, inputs[low].work).total = 0; continue; }
         // Every way to split the set into a kept side and a sacrificed side.
         for (unsigned kept = (mask - 1) & mask; kept; kept = (kept - 1) & mask) {
@@ -99,7 +105,7 @@ inline std::optional<Plan> plan(std::span<Input const> inputs, Rules rules = {})
                     if (right.total < 0) continue;
                     int const work = std::max(a, b) + 1;
                     if (work >= works) continue;
-                    int const cost = value[gone] + priorWorkPenalty(a) + priorWorkPenalty(b);
+                    int const cost = sacrificed(kept, gone) + priorWorkPenalty(a) + priorWorkPenalty(b);
                     if (rules.refuseAt > 0 && cost >= rules.refuseAt) continue;
                     int const total = left.total + right.total + cost;
                     int const highest = std::max({left.highest, right.highest, cost});
@@ -129,7 +135,7 @@ inline std::optional<Plan> plan(std::span<Input const> inputs, Rules rules = {})
         self(self, here.target, here.targetWork);
         self(self, gone, here.sacrificeWork);
         result.steps.push_back({here.target, gone,
-            value[gone] + priorWorkPenalty(here.targetWork) + priorWorkPenalty(here.sacrificeWork), work});
+            sacrificed(here.target, gone) + priorWorkPenalty(here.targetWork) + priorWorkPenalty(here.sacrificeWork), work});
     };
     emit(emit, full, end);
     return result;
@@ -143,20 +149,28 @@ struct Enchantment {
 };
 // Which inputs a stack in an anvil slot stands for: bit 0 when it is the
 // item (it then carries everything in `base`), bit i + 1 for each wanted
-// enchantment on it. Nothing when it carries anything else, a wanted one at
-// another level, or is a book with none of them.
+// enchantment on it (also one that raises what the item carried). Nothing
+// when it carries anything else, a wanted one at another level, or is a
+// book with none of them.
 inline std::optional<unsigned> carried(bool item, std::span<Enchantment const> on, std::span<Enchantment const> base,
     std::span<Enchantment const> wanted) {
     if (wanted.size() + 1 > static_cast<std::size_t>(maxInputs)) return std::nullopt;
     unsigned mask = item ? 1u : 0u;
-    std::size_t fromBase = 0;
     for (auto const& enchantment : on) {
-        if (item && std::ranges::find(base, enchantment) != base.end()) { ++fromBase; continue; }
+        if (item && std::ranges::find(base, enchantment) != base.end()) continue;
         auto const found = std::ranges::find(wanted, enchantment);
         if (found == wanted.end()) return std::nullopt;
         mask |= 1u << (found - wanted.begin() + 1);
     }
-    if (item ? fromBase != base.size() : mask == 0) return std::nullopt;
+    if (!item) return mask == 0 ? std::nullopt : std::optional{mask};
+    // The item still has all it carried: each as it was, or raised by a
+    // wanted enchantment of the same type.
+    for (auto const& had : base) {
+        bool const present = std::ranges::any_of(on, [&](Enchantment const& e) {
+            return e.type == had.type && (e == had || std::ranges::find(wanted, e) != wanted.end());
+        });
+        if (!present) return std::nullopt;
+    }
     return mask;
 }
 // The step that joins these two sides, or -1.

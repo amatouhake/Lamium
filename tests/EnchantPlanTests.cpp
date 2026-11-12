@@ -108,6 +108,25 @@ void enchantOrderTests() {
               "leaving the held state keeps what the item carries, ahead of the rest and within the highest level");
     }
     {
+        // Unbreaking 2 on the item: + adds a book for 3, - from there drops it, toggling it is refused.
+        std::vector<Enchantment> onItem{{17, 2}}, raising;
+        check(!step(raising, offers[6], -1, 2) && step(raising, offers[6], 1, 2) && raising == std::vector<Enchantment>{{17, 3}}
+                  && !step(raising, offers[6], 1, 2) && step(raising, offers[6], -1, 2) && raising.empty(),
+              "a carried level goes up by a wanted book and comes back down to itself");
+        check(!step(raising, offers[6], 1, 3), "a carried level at its highest has nowhere to go");
+        raising = {{17, 3}, {12, 2}};
+        auto made = inputs(raising, offers, 1, true, std::nullopt, onItem);
+        check(made && (*made)[1].value == 3 && (*made)[1].onItem == 1 && (*made)[2].onItem < 0, "a raising book is worth the difference on the item");
+        auto pruned = raising;
+        prune(pruned, offers, std::vector<Enchantment>{{17, 3}}, conflicts);
+        check(pruned == std::vector<Enchantment>{{12, 2}}, "a wanted level the item already has is dropped");
+        auto highest = allHighest(offers, onItem, conflicts);
+        check(has(highest, 17) && levelOf(highest, 17) == 3, "everything at its highest raises what the item carries");
+        std::vector<Enchantment> leaving{{17, 3}};
+        release(leaving, onItem, offers);
+        check(leaving == std::vector<Enchantment>{{17, 3}}, "leaving the held state keeps the level it was being raised to");
+    }
+    {
         using lamium::inventory::enchantPlan::Step;
         lamium::inventory::enchantPlan::Plan made;
         made.steps = {Step{2u, 4u, 3, 1}, Step{1u, 6u, 9, 2}, Step{7u, 8u, 5, 3}};
@@ -266,6 +285,25 @@ void enchantPlanTests() {
         check(found == static_cast<int>(result->steps.size()), "every step is found by its two sides");
         check(stepFor(*result, result->steps[0].sacrifice, result->steps[0].target) == -1, "swapped sides are not that step");
         check(stepFor(*result, 2u, 1u) == -1, "the item on the sacrificed side is no step");
+    }
+    {
+        // A sword with sharpness 3: a sharpness 5 book costs 5 onto a book but 2 onto the sword.
+        std::vector<Input> raise{{0, 0, true}, {5, 0, false, 2}, {3, 0, false}};
+        auto result = plan(raise);
+        check(result && result->total == 6 && result->steps.size() == 2 && result->steps[0].cost == 3 && result->steps[1].cost == 3,
+              "a raising book is charged the difference on the item: 3 for the plain book, then 2 + 1");
+        std::vector<Input> merged{{0, 0, true}, {5, 0, false, 2}, {1, 0, false}, {1, 0, false}, {1, 0, false}};
+        auto wide = plan(merged);
+        int sum = 0;
+        for (auto const& step : wide->steps) sum += step.cost;
+        check(wide && sum == wide->total && wide->total == 11, "the listed costs still add up with a raising book among others");
+        check(!plan(std::vector<Input>{{0, 0, true}, {2, 0, false, 3}}), "a value on the item above the plain one is refused");
+        std::vector<Enchantment> had{{9, 3}, {17, 3}}, want{{9, 5}, {14, 3}};
+        check(carried(true, std::vector<Enchantment>{{9, 3}, {17, 3}}, had, want) == 1u
+                  && carried(true, std::vector<Enchantment>{{9, 5}, {17, 3}}, had, want) == (1u | 2u)
+                  && carried(true, std::vector<Enchantment>{{9, 5}, {17, 3}, {14, 3}}, had, want) == (1u | 2u | 4u)
+                  && !carried(true, std::vector<Enchantment>{{9, 5}}, had, want) && !carried(true, std::vector<Enchantment>{{9, 4}, {17, 3}}, had, want),
+              "an item whose carried level was raised is still the item, with that book on it");
     }
     // Compare with the brute force over small pseudo-random sets.
     std::uint32_t seed = 12345;

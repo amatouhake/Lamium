@@ -18,6 +18,7 @@ struct Row {
     bool curse = false;
     std::string name;   // the name alone
     std::string levelText; // the level alone ("V"); empty when it has only one
+    int carried = 0;       // the level the held item already has; above it the row is raising it
 };
 struct KindCell {
     std::string name;

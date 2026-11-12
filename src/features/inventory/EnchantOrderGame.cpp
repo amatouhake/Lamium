@@ -250,6 +250,8 @@ void rebuild() {
     shown.bookKind = !withItem;
     shown.itemName = fromHeld && !held.name.empty() ? held.name : chosen.name;
     std::vector<Enchantment> const base = fromHeld ? held.base : std::vector<Enchantment>{};
+    // A held book's own enchantments are not raised: it may end up the sacrificed side, which was not read from the anvil.
+    if (heldBook) std::erase_if(wanted, [&](Enchantment const& e) { return has(base, e.type); });
     prune(wanted, chosen.offers, base, conflicts);
     shown.wanted = static_cast<int>(wanted.size());
     if (auto last = lastBySlot.find(chosenSlot); last != lastBySlot.end()) shown.hasLast = last->second != wanted;
@@ -258,8 +260,11 @@ void rebuild() {
     // offer comes last.
     for (auto const& offer : chosen.offers) {
         if (auto on = std::ranges::find_if(base, [&](Enchantment const& e) { return e.type == offer.type; }); on != base.end()) {
-            Row fixed{on->type, on->level, on->level, nameOf(on->type, on->level), {}, RowState::Fixed, offer.curse};
+            // It stays on; a level above what the item has is a wanted book raising it.
+            int const level = std::max(on->level, levelOf(wanted, on->type));
+            Row fixed{on->type, level, heldBook ? on->level : std::max(on->level, offer.maxLevel), nameOf(on->type, level), {}, RowState::Fixed, offer.curse};
             fixed.name = nameOnly(on->type);
+            fixed.carried = on->level;
             if (offer.maxLevel > 1 && fixed.label.size() > fixed.name.size() && fixed.label.starts_with(fixed.name)) {
                 fixed.levelText = fixed.label.substr(fixed.name.size());
                 while (!fixed.levelText.empty() && fixed.levelText.front() == ' ') fixed.levelText.erase(0, 1);
@@ -294,7 +299,7 @@ void rebuild() {
         heldValue = bookValue(base, chosen.offers);
         if (!heldValue) { shown.costUnknown = true; return; }
     }
-    auto made = inputs(wanted, chosen.offers, fromHeld ? held.work : 0, withItem, heldValue);
+    auto made = inputs(wanted, chosen.offers, fromHeld ? held.work : 0, withItem, heldValue, base);
     if (!made) { shown.costUnknown = true; return; }
     int const limit = creativeNow ? 0 : 40;
     auto mine = enchantPlan::plan(*made, {limit, goal});
@@ -314,8 +319,11 @@ void rebuild() {
     };
     for (auto& step : mine->steps) {
         // The step's cost is the sacrificed side's levels plus both surcharges.
+        // On the item a raising book adds only the difference.
+        bool const ontoItem = withItem && !heldBook && (step.target & 1u);
         int value = 0;
-        for (size_t i = 0; i < made->size(); ++i) if (step.sacrifice >> i & 1u) value += (*made)[i].value;
+        for (size_t i = 0; i < made->size(); ++i)
+            if (step.sacrifice >> i & 1u) value += ontoItem && (*made)[i].onItem >= 0 ? (*made)[i].onItem : (*made)[i].value;
         step.target <<= shift; step.sacrifice <<= shift;
         shown.steps.push_back({side(step.target), side(step.sacrifice), (step.target & 1u) != 0, step.cost, step.cost - value,
             onlyCurses(wanted, step.target), onlyCurses(wanted, step.sacrifice)});
@@ -366,7 +374,7 @@ std::string sideText(unsigned mask) {
 }
 // A finished plan leaves the anvil's side once the anvil has been closed;
 // the planner brings it back.
-void drawBeside(ll::event::AfterUIRenderEvent& event) {
+void drawBeside(ll::event::UIRenderEvent& event) {
     if (!active.valid || active.lines.empty()) return;
     if (!Runtime::instance().preferences().inventory.enchantOrderAnvil) return;
     auto& view = event.screenView();
@@ -596,12 +604,16 @@ void stepRow(int row, int delta) {
     auto const& offers = kinds[static_cast<size_t>(kind)].offers;
     int const type = shown.rows[static_cast<size_t>(row)].type;
     auto offer = std::ranges::find_if(offers, [&](Offer const& o) { return o.type == type; });
-    if (offer != offers.end() && step(wanted, *offer, delta)) rebuild();
+    bool const raising = usingHeld(kind) && kinds[static_cast<size_t>(kind)].slot != bookSlot;
+    if (offer != offers.end() && step(wanted, *offer, delta, raising ? levelOf(held.base, type) : 0)) rebuild();
 }
 void setAllHighest() {
     int const kind = chosenKind();
     if (!opened || kind < 0) return;
     auto all = allHighest(kinds[static_cast<size_t>(kind)].offers, usingHeld(kind) ? held.base : std::vector<Enchantment>{}, conflicts);
+    // A held book's own enchantments are not raised.
+    if (usingHeld(kind) && kinds[static_cast<size_t>(kind)].slot == bookSlot)
+        std::erase_if(all, [&](Enchantment const& e) { return has(held.base, e.type); });
     if (all == wanted) return;
     remember();
     wanted = std::move(all);
@@ -641,7 +653,8 @@ ItemStack const* bookIcon() { return book.isNull() ? nullptr : &book; }
 
 bool start() {
     auto& bus = ll::event::EventBus::getInstance();
-    renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { drawBeside(event); } catch (...) {} });
+    // Before the screen draws itself: the game's tooltips then cover the list, not the other way round.
+    renderListener = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) { try { drawBeside(event); } catch (...) {} });
     exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { dropStacks(); shown = {}; });
     return true;
 }

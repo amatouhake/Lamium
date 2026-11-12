@@ -12,6 +12,28 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Anvil cost of raising a level; seventh pass (2026-11-12)
+
+Read by the maintainer from the vanilla anvil's cost line, 1.26.60.05 Dev instance,
+each a sword carrying the lower level and a book of the higher one:
+
+| On the sword | Book | Cost |
+|---|---|---|
+| Sharpness III | Sharpness V | 2 |
+| Knockback I | Knockback II | 1 |
+| Looting I | Looting III | 4 |
+
+So a level the kept side already has is not charged again: the step costs the
+difference in levels times the book's rate (1, 1 and 2 here). Not tried: other
+enchantments on the sword at the same time, an item as the sacrificed side, a book
+as the kept side.
+
+`9d1ae487`, DLL SHA-256 `952bd1751e12e30a426ee7381c3550bed7eae2c09fa791a259afb75d002da34a`,
+Japanese and English: a row on the item writes its level in the level column, but
+the "on the item" tag is wider than the switch and pushes the level left of the
+column. Also seen (screenshot, English): the list beside the anvil is drawn over the
+game's item tooltip and hides it.
+
 ## Enchantment order, sixth pass (2026-11-12)
 
 `2af7b12e`, local build, DLL SHA-256

@@ -28,6 +28,11 @@ struct Conflicts {
 inline bool has(std::span<Enchantment const> list, int type) {
     return std::ranges::any_of(list, [&](Enchantment const& e) { return e.type == type; });
 }
+// The level of `type` in the list, or 0.
+inline int levelOf(std::span<Enchantment const> list, int type) {
+    auto found = std::ranges::find_if(list, [&](Enchantment const& e) { return e.type == type; });
+    return found == list.end() ? 0 : found->level;
+}
 // The enchantment already on the item or wanted that keeps `type` off, or -1.
 inline int blocker(int type, std::span<Enchantment const> base, std::span<Enchantment const> wanted, Conflicts const& conflicts) {
     for (auto list : {base, wanted})
@@ -64,23 +69,30 @@ inline Change toggle(std::vector<Enchantment>& wanted, Offer const& offer, std::
 }
 // One level up or down. Going below 1 turns the enchantment off, so the
 // level buttons are enough to drop one; above the highest nothing happens.
-// False when nothing changed.
-inline bool step(std::vector<Enchantment>& wanted, Offer const& offer, int delta) {
+// `carried` is the level the item already has: a level above it is a wanted
+// book that raises it, and coming back down to it drops that book. False
+// when nothing changed.
+inline bool step(std::vector<Enchantment>& wanted, Offer const& offer, int delta, int carried = 0) {
+    int const highest = std::max(1, offer.maxLevel);
     for (auto it = wanted.begin(); it != wanted.end(); ++it) {
         if (it->type != offer.type) continue;
-        if (it->level + delta < 1) { wanted.erase(it); return true; }
-        int const next = std::min(it->level + delta, std::max(1, offer.maxLevel));
+        if (it->level + delta <= carried) { wanted.erase(it); return true; }
+        int const next = std::min(it->level + delta, highest);
         return std::exchange(it->level, next) != next;
     }
-    return false;
+    if (carried < 1 || delta < 1 || carried >= highest || static_cast<int>(wanted.size()) >= maxBooks) return false;
+    wanted.push_back({offer.type, std::min(carried + delta, highest)});
+    return true;
 }
 // Every offered enchantment at its highest level, without curses. Of a group
 // that excludes each other one is taken: the most common in the game's own
 // weights, then the most particular to the item, then the first.
 inline std::vector<Enchantment> allHighest(std::span<Offer const> offers, std::span<Enchantment const> base, Conflicts const& conflicts) {
+    // What the item carries below its highest level is raised to it.
     std::vector<Offer const*> order;
     for (auto const& offer : offers)
-        if (!offer.curse && !has(base, offer.type) && blocker(offer.type, base, {}, conflicts) < 0) order.push_back(&offer);
+        if (!offer.curse && levelOf(base, offer.type) < std::max(1, offer.maxLevel) && blocker(offer.type, base, {}, conflicts) < 0)
+            order.push_back(&offer);
     std::ranges::stable_sort(order, [](Offer const* a, Offer const* b) {
         return a->frequency != b->frequency ? a->frequency > b->frequency : a->reach < b->reach;
     });
@@ -99,7 +111,7 @@ inline std::vector<Enchantment> allHighest(std::span<Offer const> offers, std::s
 inline void prune(std::vector<Enchantment>& wanted, std::span<Offer const> offers, std::span<Enchantment const> base, Conflicts const& conflicts) {
     std::erase_if(wanted, [&](Enchantment const& e) {
         auto offer = std::ranges::find_if(offers, [&](Offer const& o) { return o.type == e.type; });
-        return offer == offers.end() || e.level < 1 || e.level > offer->maxLevel || has(base, e.type)
+        return offer == offers.end() || e.level < 1 || e.level > offer->maxLevel || e.level <= levelOf(base, e.type)
             || blocker(e.type, base, {}, conflicts) >= 0;
     });
 }
@@ -110,7 +122,9 @@ inline void release(std::vector<Enchantment>& wanted, std::span<Enchantment cons
     std::vector<Enchantment> out;
     for (auto const& e : base) {
         auto offer = std::ranges::find_if(offers, [&](Offer const& o) { return o.type == e.type; });
-        if (offer != offers.end() && e.level >= 1) out.push_back({e.type, std::min(e.level, std::max(1, offer->maxLevel))});
+        // A level it was being raised to is kept.
+        int const level = std::max(e.level, levelOf(wanted, e.type));
+        if (offer != offers.end() && level >= 1) out.push_back({e.type, std::min(level, std::max(1, offer->maxLevel))});
     }
     for (auto const& e : wanted)
         if (!has(out, e.type)) out.push_back(e);
@@ -122,8 +136,10 @@ inline void release(std::vector<Enchantment>& wanted, std::span<Enchantment cons
 // enchantment. Nothing when a frequency is not one the cost rule covers.
 // A held enchanted book is input 0 as well, but with a value: unlike an item
 // it may be the sacrificed side.
+// `base` is what the item carries: a wanted level above it is charged the
+// difference when the book reaches the item.
 inline std::optional<std::vector<enchantPlan::Input>> inputs(std::span<Enchantment const> wanted, std::span<Offer const> offers, int itemWork,
-    bool withItem = true, std::optional<int> bookValue = std::nullopt) {
+    bool withItem = true, std::optional<int> bookValue = std::nullopt, std::span<Enchantment const> base = {}) {
     std::vector<enchantPlan::Input> out;
     if (withItem) out.push_back({bookValue.value_or(0), std::max(0, itemWork), !bookValue});
     for (auto const& e : wanted) {
@@ -131,7 +147,8 @@ inline std::optional<std::vector<enchantPlan::Input>> inputs(std::span<Enchantme
         if (offer == offers.end()) return std::nullopt;
         auto const cost = enchantPlan::levelCost(offer->frequency, true);
         if (!cost) return std::nullopt;
-        out.push_back({e.level * *cost, 0, false});
+        int const carried = withItem && !bookValue ? std::min(levelOf(base, e.type), e.level) : 0;
+        out.push_back({e.level * *cost, 0, false, carried > 0 ? (e.level - carried) * *cost : -1});
     }
     return out;
 }
