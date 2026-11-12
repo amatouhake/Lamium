@@ -151,6 +151,17 @@ void enchantOrderTests() {
                       && bookless.next == 0 && !bookless.ready && bookless.lacks(4u),
                   "a missing input is named by its bit; a step whose side is missing is not ready");
         }
+        {
+            // Step 1 joins the item (1) and the merged book (6).
+            std::vector<unsigned> slots{0u, 6u, 0u, 1u, 6u, 8u};
+            auto both = nextStacks(made.steps[1], slots, 0u, 0u), placed = nextStacks(made.steps[1], slots, 1u, 0u),
+                 wrong = nextStacks(made.steps[1], slots, 8u, 6u);
+            check(both.left == 3 && both.right == 1 && placed.left == -1 && placed.right == 1 && wrong.left == 3 && wrong.right == -1,
+                  "the next step's stacks are the first slots holding its sides, unless a side already lies in its anvil slot");
+            auto box = gridSlot(241, 177, 11);
+            check(box.x == 241 + 2 * 18 && box.y == 177 + 18 && box.w == 18 && box.h == 18 && gridSlot(241, 177, -1).w == 0 && gridSlot(241, 234, 8).x == 385,
+                  "a slot's box follows from its grid's corner, nine to a row");
+        }
         // An item with enchantments 1 and 3 on it (mask 11) is nothing this plan makes: steps join 2+4, then 1+6, then 7+8.
         std::vector<unsigned> earlier{11u, 2u, 4u}, earlierOnly{11u};
         check(nextStep(made, progress(earlier, made)) == 0 && !atHand(1u, progress(earlierOnly, made)) && progress(onSword, made) == onSword

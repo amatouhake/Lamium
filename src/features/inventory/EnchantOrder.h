@@ -198,6 +198,24 @@ inline Box changeButton(float left, float top, float width, float height, float 
     float const w = std::clamp(textWidth + 10, 0.f, std::max(0.f, width - 2 * pad));
     return {left + width - pad - w, top + height - pad - changeHeight, w, changeHeight};
 }
+// A slot's box in a grid of slots laid out row by row from the grid's corner (the game's inventory grids:
+// nine columns of 18 units).
+inline Box gridSlot(float gridX, float gridY, int index, int columns = 9, float size = 18) {
+    if (index < 0 || columns <= 0) return {};
+    return {gridX + static_cast<float>(index % columns) * size, gridY + static_cast<float>(index / columns) * size, size, size};
+}
+// The next step's two stacks among the player's slots, for outlining them: the first slot holding exactly
+// the kept side and the first holding exactly the sacrificed side, or -1 where the side is already in its
+// anvil slot or not in a slot at all. `slots` are the planner-input masks of the slots, 0 for none.
+struct NextStacks { int left = -1, right = -1; };
+inline NextStacks nextStacks(enchantPlan::Step const& step, std::span<unsigned const> slots, unsigned inLeft, unsigned inRight) {
+    NextStacks out;
+    for (std::size_t i = 0; i < slots.size(); ++i) {
+        if (out.left < 0 && inLeft != step.target && slots[i] == step.target) out.left = static_cast<int>(i);
+        else if (out.right < 0 && inRight != step.sacrifice && slots[i] == step.sacrifice) out.right = static_cast<int>(i);
+    }
+    return out;
+}
 // Following a plan with what the player carries: a step is done when one
 // stack holds everything the step joins. `stacks` are the planner-input
 // masks of the stacks at hand (enchantPlan::carried).

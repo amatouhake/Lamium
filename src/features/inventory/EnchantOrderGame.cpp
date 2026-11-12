@@ -515,6 +515,9 @@ struct ListState {
     bool chooser = false; // the choosing panel is shown left of the window
     ui::EnchantLayout choose;
     ui::EnchantStepsLayout steps;
+    // The next step's two stacks, outlined where they lie, and the anvil slot each goes in (L-170 trial).
+    struct Mark { Box box; bool left = true; };
+    std::vector<Mark> marks;
 } list;
 // What can be pressed beside the anvil, as last drawn, for presses that arrive from the window procedure; and
 // the presses taken there, which the client thread acts on with the next frame.
@@ -561,6 +564,31 @@ UIControl const* countControl(UIControl const& control, int depth = 0) {
     return nullptr;
 }
 using Icons = std::vector<inspection::render::IconAt>;
+// The slots inside a grid control, left to right: every square control of a slot's size that is not inside
+// another one found.
+void slotBoxes(UIControl const& control, std::vector<Box>& out, std::vector<std::string>& names, int depth = 0) {
+    if (depth > 12) return;
+    glm::vec2 const at = *control.mCachedPosition, size = *control.mSize;
+    bool const inside = std::ranges::any_of(out, [&](Box const& b) { return at.x >= b.x - .5f && at.y >= b.y - .5f && at.x + size.x <= b.x + b.w + .5f
+        && at.y + size.y <= b.y + b.h + .5f; });
+    if (!inside && size.x >= 15.5f && size.x <= 19.5f && std::abs(size.x - size.y) < 1.5f && (static_cast<int>(control.mVisible) & 1) != 0) {
+        out.push_back({at.x, at.y, size.x, size.y});
+        names.push_back(*control.mName);
+        return;
+    }
+    for (auto const& child : *control.mChildren)
+        if (child) slotBoxes(*child, out, names, depth + 1);
+}
+// Two units of outline around a slot: the stack that goes left in the accent colour, the one that goes
+// right in white, the same on the anvil slot each goes in.
+void paintMarks(MinecraftUIRenderContext& context) {
+    using namespace lamium::ui;
+    for (auto const& mark : list.marks) {
+        Rgb const color = mark.left ? palette::accent : palette::white;
+        frame(context, mark.box.x, mark.box.y, mark.box.w, mark.box.h, color);
+        frame(context, mark.box.x + 1, mark.box.y + 1, mark.box.w - 2, mark.box.h - 2, color);
+    }
+}
 // The choosing panel left of the window: the planner screen's own column (ui/EnchantChooser), with two lines
 // of status under it.
 void paintChooser(MinecraftUIRenderContext& context, Icons& icons) {
@@ -614,6 +642,7 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
     DrawOpacity const fade{list.opacity};
     Icons icons;
     Box change, panelBox;
+    paintMarks(context);
     if (list.chooser) {
         paintChooser(context, icons);
         auto const& l = list.choose;
@@ -787,6 +816,8 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     ItemStack const* inHand = nullptr;   // the main hand's; the player's, valid for this frame
     std::optional<unsigned> target, sacrifice;
     std::vector<unsigned> raw;
+    std::array<unsigned, 36> slotMasks{}; // the hotbar's nine, then the inventory's twenty-seven; 0 for no part of the plan
+    bool inputEmpty = true, materialEmpty = true;
     try {
         if (auto* player = context.mClient.getLocalPlayer()) {
             creative = player->isCreative();
@@ -811,9 +842,19 @@ void drawBeside(ll::event::UIRenderEvent& event) {
                 if (target) raw.push_back(*target);
                 if (sacrifice) raw.push_back(*sacrifice);
                 if (auto mask = sideOf(onPointer)) raw.push_back(*mask);
-                int const carriedSlots = std::min(36, manager->getContainerSize("combined_hotbar_and_inventory_items"));
-                for (int i = 0; i < carriedSlots; ++i)
-                    if (auto mask = sideOf(manager->getItemStack("combined_hotbar_and_inventory_items", i))) raw.push_back(*mask);
+                inputEmpty = input.isNull();
+                materialEmpty = material.isNull();
+                // The two collections apart, so a slot's place on the screen is known: its grid and its index there.
+                auto read = [&](char const* collection, int count, size_t first) {
+                    int const there = std::min(count, manager->getContainerSize(collection));
+                    for (int i = 0; i < there; ++i)
+                        if (auto mask = sideOf(manager->getItemStack(collection, i))) {
+                            raw.push_back(*mask);
+                            slotMasks[first + static_cast<size_t>(i)] = *mask;
+                        }
+                };
+                read("hotbar_items", 9, 0);
+                read("inventory_items", 27, 9);
             }
         }
     } catch (...) { now = -1; both = false; raw.clear(); }
@@ -834,6 +875,48 @@ void drawBeside(ll::event::UIRenderEvent& event) {
         }
     }
     finishedAtAnvil = planned && info.following.next < 0;
+    // The next step's two stacks and the slots they go in, when both are at hand and nothing is on the pointer.
+    std::vector<ListState::Mark> marks;
+    if (planned && info.following.ready && !heldItem) {
+        try {
+            auto const& step = active.plan.steps[static_cast<size_t>(info.following.next)];
+            auto const stacks = nextStacks(step, slotMasks, target.value_or(0u), sacrifice.value_or(0u));
+            auto box = [&](char const* name) -> std::optional<Box> {
+                static std::string key;
+                key = name;
+                auto control = tree->getControlByName(key, true);
+                if (!control || control->mCachedPositionDirty) return std::nullopt;
+                glm::vec2 const where = *control->mCachedPosition, extent = *control->mSize;
+                return Box{where.x, where.y, extent.x, extent.y};
+            };
+            auto slot = [&](int index) -> std::optional<Box> {
+                auto grid = box(index < 9 ? "hotbar_grid" : "inventory_grid");
+                if (!grid) return std::nullopt;
+                return gridSlot(grid->x, grid->y, index < 9 ? index : index - 9);
+            };
+            if (stacks.left >= 0) if (auto b = slot(stacks.left)) marks.push_back({*b, true});
+            if (stacks.right >= 0) if (auto b = slot(stacks.right)) marks.push_back({*b, false});
+            // The anvil's own two slots, where they are empty and their stack is still in the inventory.
+            static std::string const recipeName = "recipe_grid";
+            if (auto recipe = tree->getControlByName(recipeName, true); recipe && !recipe->mCachedPositionDirty) {
+                std::vector<Box> found;
+                std::vector<std::string> names;
+                slotBoxes(*recipe, found, names);
+                static bool told = false;
+                if (!std::exchange(told, true)) {
+                    std::string line;
+                    for (size_t i = 0; i < found.size(); ++i)
+                        line += std::format(" {} at {:.1f},{:.1f} size {:.1f}x{:.1f};", names[i], found[i].x, found[i].y, found[i].w, found[i].h);
+                    Runtime::instance().self().getLogger().info("Enchantment order: slots under recipe_grid:{}", line);
+                }
+                std::ranges::sort(found, {}, &Box::x);
+                if (found.size() >= 2) {
+                    if (stacks.left >= 0 && inputEmpty) marks.push_back({found[0], true});
+                    if (stacks.right >= 0 && materialEmpty) marks.push_back({found[1], false});
+                }
+            }
+        } catch (...) { marks.clear(); }
+    }
 
     ui::EnchantLayout choose;
     if (chooser) {
@@ -875,6 +958,7 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     list.chooser = chooser;
     list.choose = choose;
     list.steps = stepsLayout;
+    list.marks = std::move(marks);
     // Painted after the screen, the panels cover the item held on the pointer. The game draws that item in the
     // control `selected_item_icon` (21 units, following the pointer; read from the log 2026-11-12), so while
     // it overlaps one of them it is drawn once more in the same box, with them.

@@ -1790,7 +1790,24 @@ checked in game):
 Twenty-sixth pass by the maintainer 2026-11-13 (`6362a66a`, VALIDATION-LOG):
 confirmed. The steps' side is closed here on the maintainer's word (more
 polish is possible, none is asked for now).
-Next: the highlight trial, then L-319.
+Highlight trial, built 2026-11-13 (not checked in game). While the next
+step's two stacks are both at hand and nothing is on the pointer, the slot
+holding the stack that goes left gets a two-unit outline in the accent
+colour and the one that goes right in white; the anvil's left and right
+slot get the same outline while they are empty. A side already lying in
+its anvil slot is not outlined. How it finds the places: the stacks come
+from the `hotbar_items` and `inventory_items` collections apart (before:
+the combined one), a slot's box from the `hotbar_grid` / `inventory_grid`
+control's corner and the slot's index (nine columns of 18 units, pure
+`gridSlot`), the anvil's two slots as the first two slot-sized square
+controls under `recipe_grid`, left to right; their names are logged once
+a run for the record. Drawn with the panels, after the screen or right
+before the game's tooltip, never from the slot renderer. To find out in
+game: whether the outlines sit on the right slots, in the hotbar and the
+inventory, and on the anvil's two slots; whether they sit above the items
+and under the tooltip; whether the hotbar's first slot is index 0. No
+setting yet: it follows "List the steps beside the anvil".
+Next: the in-game check of the trial, then L-319.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 
