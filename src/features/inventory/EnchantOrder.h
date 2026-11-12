@@ -1,6 +1,7 @@
 #pragma once
 #include "features/inventory/EnchantPlan.h"
 #include <algorithm>
+#include <bit>
 #include <optional>
 #include <span>
 #include <utility>
@@ -159,9 +160,16 @@ inline std::optional<std::vector<enchantPlan::Input>> inputs(std::span<Enchantme
 // A finished item at hand (a stack holding every input) says the plan is
 // done. But with another item of the plan at hand that is not finished, the
 // player is making a second one, so the finished ones are left out.
+// And a stack the plan never makes (an item finished earlier with some of
+// these enchantments, a book merged another way) is not a part of it: only
+// the inputs and the steps' results count.
 inline std::vector<unsigned> progress(std::span<unsigned const> stacks, enchantPlan::Plan const& plan) {
     std::vector<unsigned> out(stacks.begin(), stacks.end());
     if (plan.steps.empty()) return out;
+    std::erase_if(out, [&](unsigned mask) {
+        return std::popcount(mask) != 1
+            && std::ranges::none_of(plan.steps, [&](enchantPlan::Step const& step) { return (step.target | step.sacrifice) == mask; });
+    });
     unsigned const full = plan.steps.back().target | plan.steps.back().sacrifice;
     if ((full & 1u) && std::ranges::any_of(out, [&](unsigned mask) { return (mask & 1u) && mask != full; }))
         std::erase(out, full);
@@ -180,9 +188,6 @@ inline std::optional<int> bookValue(std::span<Enchantment const> on, std::span<O
     }
     return value;
 }
-// Following a plan with what the player carries: a step is done when one
-// stack holds everything the step joins. `stacks` are the planner-input
-// masks of the stacks at hand (enchantPlan::carried).
 // The anvil list's "Change" button: a row of its own at the bottom, at the right edge.
 struct Box {
     float x = 0, y = 0, w = 0, h = 0;
@@ -193,6 +198,9 @@ inline Box changeButton(float left, float top, float width, float height, float 
     float const w = std::clamp(textWidth + 10, 0.f, std::max(0.f, width - 2 * pad));
     return {left + width - pad - w, top + height - pad - changeHeight, w, changeHeight};
 }
+// Following a plan with what the player carries: a step is done when one
+// stack holds everything the step joins. `stacks` are the planner-input
+// masks of the stacks at hand (enchantPlan::carried).
 inline bool done(enchantPlan::Step const& step, std::span<unsigned const> stacks) {
     unsigned const joined = step.target | step.sacrifice;
     return std::ranges::any_of(stacks, [&](unsigned mask) { return (mask & joined) == joined; });

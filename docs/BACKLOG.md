@@ -1643,8 +1643,29 @@ Built the same day (not checked in game):
   going to "Last choice"; before, the planner brought it back.
 - Not built: dragging the panel's scrollbar (a press on it jumps), text
   search.
+Twenty-first pass by the maintainer 2026-11-12 (`47dfc78e`, VALIDATION-LOG):
+the above works, at UI sizes 50% to 100%. Fixed the same day (not checked
+in game):
+- An item finished earlier, carrying some of the new plan's enchantments,
+  was counted as the plan's item part-way and the list started in the
+  middle. Only the plan's inputs and its steps' results count now
+  (`progress`).
+- The main-hand cell follows the main hand while the anvil is open, like
+  the slot's cell.
+- The anvil's panels get the thin outline Lamium's screen has, and the
+  choosing panel is no taller than its rows need.
+Raised by the maintainer and not decided:
+- The right panel (the steps) and the planner screen's right column differ
+  and neither is clearly better: the anvil's is simple but says little,
+  the planner's says more but its goal row is not obvious. They should be
+  brought together, like the left side.
+- What is missing for the whole plan cannot be seen at a glance; the list
+  only names what the next step lacks, when it comes. The maintainer
+  suggests doing this together with the related items set aside earlier
+  (what the player has, the next step), as one feature.
 Still open:
-- The in-game check of the above.
+- The right side: one design for the planner screen and the anvil, with
+  what is missing shown for the whole plan.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 

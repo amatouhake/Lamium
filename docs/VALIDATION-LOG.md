@@ -12,6 +12,38 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, twenty-first pass: choosing beside the anvil (2026-11-12)
+
+`47dfc78e`, local build, DLL SHA-256
+`5636da70bfe480293d09c08dfa6cc86e09ab2f013f30c263c95aa7a6c8006680`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer, at UI sizes 50%, 75%
+and 100% (at the largest some text is cut, everything works):
+
+- The choosing panel left of the anvil and the steps (or "no plan") right of it; rows,
+  level buttons, switches, set buttons and kind cells look as in the planner screen and
+  take presses.
+- An item put in the left slot gets its cell after the main hand's; pressing it fixes
+  the rows the item carries. The cell's place is the same without a main-hand item.
+- A step taken at the anvil leaves the plan as it was and moves the list on.
+- The goal's name switches the goal; the wheel scrolls the rows; an item on the pointer
+  is drawn above the panel and a press with it drops it as the game does.
+- With the setting off: the steps and the Change button only; the planner screen works
+  as before.
+
+Wrong or odd:
+
+- After a plan was finished, choosing enchantments again showed the new plan as partly
+  done (step 5 of 6 next, "not in your inventory" for a later book) with the earlier
+  finished sword in the hotbar.
+- The main-hand item is sometimes not offered in the panel, and changing what the main
+  hand holds while the anvil is open is not followed.
+- The right panel differs from the planner screen's right column, and neither is
+  clearly better: the anvil's is simple with little on it, the planner's has more but
+  its goal row is not obvious.
+- The right panel does not show at a glance what is missing: only what the next step
+  lacks.
+- The anvil's panels have no outer border as Lamium's screen has.
+
 ## Enchantment order, twentieth pass: the Change button (2026-11-12)
 
 `998e845e`, local build, DLL SHA-256

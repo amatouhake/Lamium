@@ -508,6 +508,7 @@ void paintChooser(MinecraftUIRenderContext& context, Icons& icons) {
     if (!l.usable() || !opened) return;
     float const pad = SettingsTable::pad;
     panel(context, l.left, l.headTop, l.width, l.footerTop + EnchantLayout::statusHeight - l.headTop, .8f);
+    frame(context, l.left, l.headTop, l.width, l.footerTop + EnchantLayout::statusHeight - l.headTop, palette::white, .14f);
     auto const hover = list.free ? l.hit(list.pointerX, list.pointerY) : EnchantLayout::Hit{};
     size_t const before = icons.size();
     int itemsDrawn = 0;
@@ -534,6 +535,7 @@ void paintNoPlan(MinecraftUIRenderContext& context, Box& change) {
     using namespace lamium::ui;
     constexpr float pad = 4, line = 10;
     panel(context, list.left, list.top, list.width, list.height, .8f);
+    frame(context, list.left, list.top, list.width, list.height, palette::white, .14f);
     label(context, list.left + pad, list.top + pad, list.width - 2 * pad, translated("feature.enchantOrder"), palette::dim);
     if (list.chooser)
         paragraph(context, list.left + pad, list.top + pad + line + 3, list.width - 2 * pad, translated("enchantOrder.empty"), 3, palette::faint);
@@ -562,6 +564,7 @@ void paintSteps(MinecraftUIRenderContext& context, Icons& icons, Box& change, Bo
     }
     int itemsDrawn = 0, booksDrawn = 0;
     panel(context, left, top, width, height, .8f);
+    frame(context, left, top, width, height, palette::white, .14f); // the outline Lamium's screen has
     float y = top + pad;
     float const inner = width - 2 * pad;
     // The total first, then what the player has to spend. With the choosing panel the goal's name is pressed to
@@ -710,17 +713,23 @@ void endAnvil() {
     pendingPresses.clear();
     pendingWheel = 0;
 }
-// The anvil's left slot as an item cell. With nothing chosen yet, an item put there is taken as the plan's.
-void seeSlot(ItemStack const& input) {
+// An item cell follows what is in its place while the anvil is open. True when it changed.
+bool see(Held& cell, ItemStack const& stack) {
     Held now;
-    readItem(now, input);
-    bool const same = now.present == slotItem.present
-        && (!now.present || (now.kind == slotItem.kind && now.work == slotItem.work && now.stateKnown == slotItem.stateKnown
-               && now.name == slotItem.name && sameSet(now.base, slotItem.base)));
-    if (same) return;
-    slotItem = std::move(now);
-    if (slotItem.present && slotItem.stateKnown && wanted.empty() && !active.valid) pickSlot();
-    else rebuild();
+    readItem(now, stack);
+    bool const same = now.present == cell.present
+        && (!now.present || (now.kind == cell.kind && now.work == cell.work && now.stateKnown == cell.stateKnown
+               && now.name == cell.name && sameSet(now.base, cell.base)));
+    if (same) return false;
+    cell = std::move(now);
+    return true;
+}
+// The main hand's cell and the anvil's left slot's. With nothing chosen yet, an item put in the slot is
+// taken as the plan's.
+void seeItems(ItemStack const* hand, ItemStack const& input) {
+    bool const handChanged = hand && see(held, *hand), slotChanged = see(slotItem, input);
+    if (slotChanged && slotItem.present && slotItem.stateKnown && wanted.empty() && !active.valid) pickSlot();
+    else if (handChanged || slotChanged) rebuild();
 }
 // The presses and wheel turns taken since the last frame.
 void applyPresses() {
@@ -800,11 +809,13 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     int now = -1, gameCost = -1, level = -1, leftPenalty = -1, rightPenalty = -1;
     bool both = false, creative = false;
     ItemStack const* heldItem = nullptr; // the stack on the pointer; the manager's, valid for this frame
+    ItemStack const* inHand = nullptr;   // the main hand's; the player's, valid for this frame
     std::optional<unsigned> target, sacrifice;
     std::vector<unsigned> atHandNow;
     try {
         if (auto* player = context.mClient.getLocalPlayer()) {
             creative = player->isCreative();
+            inHand = &player->getSelectedItem();
             if (auto const* attribute = player->getAttribute(Player::LEVEL()).mPtr) level = static_cast<int>(attribute->mCurrentValue);
         }
         auto& screenController = static_cast<ContainerScreenController&>(*view.mController);
@@ -813,7 +824,7 @@ void drawBeside(ll::event::UIRenderEvent& event) {
             auto const& material = manager->getItemStack("anvil_material_items", 0);
             // First what changes the plan, then the plan against the slots.
             if (chooser) {
-                seeSlot(input);
+                seeItems(inHand, input);
                 applyPresses();
             }
             auto const& onPointer = manager->getItemStack("cursor_items", 0);
@@ -845,8 +856,17 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     if (chooser) {
         float const chooseWidth = std::min(chooseWide, roomLeft), chooseHeight = std::min(chooseTall, screen.y - 2 * gap);
         float const chooseTop = std::clamp(windowRest + (size.y - chooseHeight) / 2, gap, std::max(gap, screen.y - gap - chooseHeight)) + (at.y - windowRest);
-        choose = ui::EnchantLayout::fitPanel(at.x - gap - chooseWidth, chooseTop, chooseWidth, chooseHeight, static_cast<int>(kinds.size()),
-            shown.heldCell, shown.slotCell, static_cast<int>(shown.rows.size()), chooserFirst);
+        auto fit = [&](float tall) {
+            return ui::EnchantLayout::fitPanel(at.x - gap - chooseWidth, chooseTop, chooseWidth, tall, static_cast<int>(kinds.size()),
+                shown.heldCell, shown.slotCell, static_cast<int>(shown.rows.size()), chooserFirst);
+        };
+        choose = fit(chooseHeight);
+        // No taller than its rows need: the top stays where the tallest would be, so it does not move with the kind.
+        if (choose.usable())
+            if (float const needed = choose.rows.rowsTop - chooseTop + static_cast<float>(choose.rows.listCount) * ui::ShapesLayout::rowHeight + 3
+                    + ui::EnchantLayout::statusHeight;
+                needed < chooseHeight)
+                choose = fit(std::max(needed, 150.f));
         chooserFirst = choose.rows.listFirst;
         chooser = choose.usable();
     }

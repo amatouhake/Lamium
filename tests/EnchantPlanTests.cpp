@@ -139,6 +139,11 @@ void enchantOrderTests() {
         check(nextStep(made, progress(second, made)) == 0 && nextStep(made, progress(spare, made)) == -1
                   && progress(finished, made) == finished,
               "a finished item does not end the plan while another item to enchant is at hand; a spare book does not restart it");
+        // An item with enchantments 1 and 3 on it (mask 11) is nothing this plan makes: steps join 2+4, then 1+6, then 7+8.
+        std::vector<unsigned> earlier{11u, 2u, 4u}, earlierOnly{11u};
+        check(nextStep(made, progress(earlier, made)) == 0 && !atHand(1u, progress(earlierOnly, made)) && progress(onSword, made) == onSword
+                  && progress(merged, made) == merged,
+              "an item the plan never makes is not counted as part of it; the plan's own results are");
     }
     auto allOnItem = allHighest(offers, base, conflicts);
     check(!has(allOnItem, 17) && !has(allOnItem, 9) && has(allOnItem, 12), "it skips what the item has and what that blocks");
