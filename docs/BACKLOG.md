@@ -1762,6 +1762,19 @@ one of the agreed order:
   lines are gone; their texts are removed.
 - At the anvil the goal's stepper takes presses while the choosing panel
   is open; the wheel and the scrollbar scroll the steps.
+Twenty-fourth pass by the maintainer 2026-11-13 (`12092660`, VALIDATION-LOG):
+the shared side works. Five things were not right; changed the same day
+(not checked in game):
+- A dividing line under the goal, as above the steps.
+- The last line wraps onto up to three lines, and the panel grows by
+  them, so what is missing is read whole. A side's names that are cut in
+  a step show whole in a box by the row while the pointer is on it, the
+  way the settings table shows a value that is cut.
+- At the anvil the steps' panel starts level with the choosing panel's
+  top (with the window's top when there is no choosing panel).
+- The choosing panel's status takes three lines and stays inside it.
+- The goal is the stepper box the lists use (`drawStepperBox`, taken out
+  of `drawShapeStepper`); where it cannot be switched it is plain text.
 Next: the in-game check, then the highlight trial, then L-319.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.

@@ -92,14 +92,17 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     if (auto* client = screen::client()) game::followInventory(*client);
     auto const& info = game::steps();
     int const stepCount = info.planned ? static_cast<int>(info.steps.size()) : 0;
-    auto fit = [&](int detailLines) {
+    auto fit = [&](int detailLines, int footLines) {
         return EnchantLayout::fit(t, static_cast<int>(v.kinds.size()), v.heldCell, static_cast<int>(v.rows.size()), rowFirst, stepCount, stepFirst,
-            detailLines);
+            detailLines, footLines);
     };
-    last = fit(1);
-    // The two details go on a line each where the column does not hold them side by side.
-    if (last.usable() && last.side.usable())
-        if (int const lines = enchant_steps::detailLines(context, info, last.side.width); lines != 1) last = fit(lines);
+    last = fit(1, 1);
+    // The two details go on a line each where the column does not hold them side by side, and the last line
+    // wraps where it is long.
+    if (last.usable() && last.side.usable()) {
+        int const lines = enchant_steps::detailLines(context, info, last.side.width), foot = enchant_steps::footLines(context, info, last.side.width);
+        if (lines != 1 || foot != 1) last = fit(lines, foot);
+    }
     if (!last.usable()) return;
     if (dragging == Drag::Rows) last.rows.listFirst = last.rows.firstAt(pointer.y);
     if (dragging == Drag::Steps) last.side.rows.listFirst = last.side.rows.firstAt(pointer.y);
@@ -121,7 +124,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     // Right: the goal, the totals, the steps. The same drawing as right of the anvil screen.
     auto const sideZone = hover.zone == Zone::Goal ? enchant_steps::Zone::Goal : hover.zone == Zone::AtOnce ? enchant_steps::Zone::AtOnce
         : hover.zone == Zone::Result ? enchant_steps::Zone::Result : enchant_steps::Zone::None;
-    enchant_steps::draw(context, last.side, info, sideZone, true, icons);
+    auto const tip = enchant_steps::draw(context, last.side, info, pointer.x, pointer.y, true, icons);
 
     // Footer, as in the table: status first, then what the screen is, then the limit.
     fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);
@@ -140,5 +143,6 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     context.flushText(0, std::nullopt);
     if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
     icons.clear();
+    enchant_steps::drawTip(context, tip);
 }
 }

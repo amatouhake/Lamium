@@ -16,6 +16,10 @@ void drawSmallButton(MinecraftUIRenderContext& context, float x, float y, float 
 void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY);
 // A value stepper in a view's editor column; while `editing` it shows the
 // number being typed.
+// The stepper of the lists' rows on its own: arrow cells at both ends (or - and +), the value between them.
+// `y` is the row's top; the box is a row high.
+void drawStepperBox(MinecraftUIRenderContext& context, float x, float y, float w, bool numeric, std::string text,
+                    NumberInput const* editing = nullptr);
 void drawShapeStepper(MinecraftUIRenderContext& context, ShapesLayout const& l, float y, bool numeric, std::string text,
                       NumberInput const* editing);
 // A row of color swatches in the editor's value column; the chosen one framed.

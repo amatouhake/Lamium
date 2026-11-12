@@ -581,7 +581,7 @@ void paintChooser(MinecraftUIRenderContext& context, Icons& icons) {
     std::string text = said ? chooserMessage : enchant_chooser::status(shown, hover);
     // The steps' side has no status line of its own: its help is said here too.
     if (text.empty() && list.free) text = enchant_steps::status(info, list.steps.hit(list.pointerX, list.pointerY));
-    if (!text.empty()) paragraph(context, l.left + pad, l.footerTop + 2, l.width - 2 * pad, text, 2, said ? palette::warning : palette::text);
+    if (!text.empty()) paragraph(context, l.left + pad, l.footerTop + 3, l.width - 2 * pad, text, 3, said ? palette::warning : palette::text);
 }
 // The Change button, in a row of its own at the bottom right: it opens the planner screen where the choosing
 // panel is not shown.
@@ -608,18 +608,19 @@ void paintNoPlan(MinecraftUIRenderContext& context, Box& change) {
     }
 }
 // The steps right of the window: the planner screen's own right column (ui/EnchantSteps).
-void paintSteps(MinecraftUIRenderContext& context, Icons& icons, Box& change) {
+ui::enchant_steps::Tip paintSteps(MinecraftUIRenderContext& context, Icons& icons, Box& change) {
     using namespace lamium::ui;
     auto const& l = list.steps;
-    if (!l.usable() || !info.planned) return;
+    if (!l.usable() || !info.planned) return {};
     panel(context, list.left, list.top, list.width, list.height, .8f);
     frame(context, list.left, list.top, list.width, list.height, palette::white, .14f); // the outline Lamium's screen has
-    auto const hover = list.free ? l.hit(list.pointerX, list.pointerY) : EnchantStepsLayout::Zone::None;
     size_t const before = icons.size();
-    enchant_steps::draw(context, l, info, hover, list.chooser, icons);
+    // No pointer while an item is on it.
+    auto const tip = enchant_steps::draw(context, l, info, list.free ? list.pointerX : -1e6f, list.free ? list.pointerY : -1e6f, list.chooser, icons);
     // In their turn and not in batches, so an item held on the pointer, drawn last, is above them all.
     for (size_t i = before; i < icons.size(); ++i) { icons[i].alpha = list.opacity; icons[i].direct = true; }
     if (!list.chooser) paintChange(context, change);
+    return tip;
 }
 void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr) {
     using namespace lamium::ui;
@@ -632,7 +633,8 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
         auto const& l = list.choose;
         panelBox = {l.left, l.headTop, l.width, l.footerTop + EnchantLayout::statusHeight - l.headTop};
     }
-    if (list.planned) paintSteps(context, icons, change);
+    enchant_steps::Tip tip;
+    if (list.planned) tip = paintSteps(context, icons, change);
     else paintNoPlan(context, change);
     {
         std::scoped_lock lock(pressLock);
@@ -644,6 +646,7 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
     // glint drawn after another batch of icons does not show (ItemIcon.cpp).
     if (held) icons.push_back({held->stack, held->x, held->y, held->size / 16, 0, list.opacity, true, true});
     if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
+    enchant_steps::drawTip(context, tip);
     if (held && held->stack->mItem) {
         // Its durability bar as the game draws it on a slot, at the held item's size.
         int const maxDamage = static_cast<int>(held->stack->mItem->getMaxDamage());
@@ -862,13 +865,16 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     float const changeSpace = chooser ? 0 : changeRow, room = screen.y - 2 * gap;
     int const stepCount = static_cast<int>(info.steps.size());
     int const lines = planned ? ui::enchant_steps::detailLines(context, info, width) : 1;
-    float const height = planned ? std::min(room, ui::EnchantStepsLayout::neededHeight(stepCount, lines) + changeSpace + 2)
+    int const foot = planned ? ui::enchant_steps::footLines(context, info, width) : 1;
+    float const height = planned ? std::min(room, ui::EnchantStepsLayout::neededHeight(stepCount, lines, foot) + changeSpace + 2)
                                  : pad + line + 3 + (chooser ? 3 * line : line) + changeSpace + pad;
     if (height > room) return;
-    float const top = std::clamp(windowRest, gap, screen.y - gap - height) + (at.y - windowRest);
+    // Level with the choosing panel's top where there is one, so the two start on one line; else with the window's.
+    float const rest = chooser ? choose.headTop - (at.y - windowRest) : windowRest;
+    float const top = std::clamp(rest, gap, std::max(gap, screen.y - gap - height)) + (at.y - windowRest);
     ui::EnchantStepsLayout stepsLayout;
     if (planned) {
-        stepsLayout = ui::EnchantStepsLayout::fit(left, top + 1, width, top + height - changeSpace - 1, stepCount, stepsFirst, lines);
+        stepsLayout = ui::EnchantStepsLayout::fit(left, top + 1, width, top + height - changeSpace - 1, stepCount, stepsFirst, lines, foot);
         if (!stepsLayout.usable()) return;
         stepsFirst = stepsLayout.rows.listFirst;
     }

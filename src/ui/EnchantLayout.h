@@ -32,26 +32,33 @@ struct EnchantStepsLayout {
     enum class Zone { None, Goal, AtOnce, Result };
     float left{}, top{}, width{}, bottom{};
     float goalY{}, totalY{}, detailY{}, titleY{}, footY{};
-    int detailLines{};
+    int detailLines{}, footLines{};
     ShapesLayout rows;
 
     bool usable() const { return width > 0; }
     // What everything but the steps takes, and the whole with `steps` of them: the anvil's panel is as tall
     // as its plan, up to the room there is.
-    static float fixedHeight(int detailLines) { return 1 + barHeight + 2 + line + detailLines * line + 6 + titleHeight + 2 + footHeight; }
-    static float neededHeight(int steps, int detailLines) {
-        return fixedHeight(detailLines) + static_cast<float>(steps * stepRows) * ShapesLayout::rowHeight;
+    // The last line wraps onto up to three, so what is missing can be read whole.
+    static constexpr float footLine = 12;
+    static float footTall(int footLines) { return footHeight + static_cast<float>(std::clamp(footLines, 1, 3) - 1) * footLine; }
+    static float fixedHeight(int detailLines, int footLines = 1) {
+        return 1 + barHeight + 4 + line + detailLines * line + 6 + titleHeight + 2 + footTall(footLines);
     }
-    static EnchantStepsLayout fit(float left, float top, float width, float bottom, int stepCount, int first, int detailLines) {
+    static float neededHeight(int steps, int detailLines, int footLines = 1) {
+        return fixedHeight(detailLines, footLines) + static_cast<float>(steps * stepRows) * ShapesLayout::rowHeight;
+    }
+    static EnchantStepsLayout fit(float left, float top, float width, float bottom, int stepCount, int first, int detailLines, int footLines = 1) {
         EnchantStepsLayout l;
-        if (width < 90 || bottom - top < fixedHeight(detailLines) + ShapesLayout::rowHeight * stepRows) return l;
+        if (width < 90 || bottom - top < fixedHeight(detailLines, footLines) + ShapesLayout::rowHeight * stepRows) return l;
         l.left = left; l.top = top; l.width = width; l.bottom = bottom;
         l.detailLines = std::clamp(detailLines, 0, 2);
+        l.footLines = std::clamp(footLines, 1, 3);
         l.goalY = top + 1;
-        l.totalY = l.goalY + barHeight + 2;
+        // A line under the goal sets it apart from the totals.
+        l.totalY = l.goalY + barHeight + 4;
         l.detailY = l.totalY + line;
         l.titleY = l.detailY + l.detailLines * line + 6;
-        l.footY = bottom - footHeight;
+        l.footY = bottom - footTall(l.footLines);
         l.rows = enchantColumn(left, width, l.titleY + titleHeight, l.footY, stepCount * stepRows, first);
         return l;
     }
@@ -70,7 +77,7 @@ struct EnchantLayout {
     static constexpr float levelWidth = 22;
     static constexpr int stepRows = EnchantStepsLayout::stepRows;
     enum class Zone { None, Back, Held, Kind, SetAll, SetLast, SetClear, Row, RowMinus, RowPlus, Goal, Slot, AtOnce, Result };
-    static constexpr float statusHeight = 23; // the panel's two lines of status under the rows
+    static constexpr float statusHeight = 41; // the panel's three lines of status under the rows
     struct Hit { Zone zone = Zone::None; int index = -1; };
 
     float left{}, width{}, headTop{}, bodyTop{}, footerTop{}, backX{};
@@ -87,7 +94,7 @@ struct EnchantLayout {
         return enchantColumn(left, width, rowsTop, bottom, count, first);
     }
     static EnchantLayout fit(SettingsTable const& t, int kinds, bool held, int rowCount, int rowFirst, int stepCount, int stepFirst,
-                             int detailLines = 1) {
+                             int detailLines = 1, int footLines = 1) {
         EnchantLayout l;
         if (!t.usable()) return l;
         float const pad = SettingsTable::pad;
@@ -98,7 +105,7 @@ struct EnchantLayout {
         l.layColumn(leftWidth, kinds, held, false, false, rowCount, rowFirst);
         l.rightLeft = l.dividerX + 1; l.rightWidth = l.left + l.width - l.rightLeft;
 
-        l.side = EnchantStepsLayout::fit(l.rightLeft, l.bodyTop, l.rightWidth, l.footerTop, stepCount, stepFirst, detailLines);
+        l.side = EnchantStepsLayout::fit(l.rightLeft, l.bodyTop, l.rightWidth, l.footerTop, stepCount, stepFirst, detailLines, footLines);
         return l;
     }
     // The choosing column from `left`, `bodyTop` down to `footerTop`: the item's line, the cells, the set

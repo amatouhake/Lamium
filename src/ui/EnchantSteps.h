@@ -18,9 +18,21 @@ namespace lamium::ui::enchant_steps {
 using Zone = EnchantStepsLayout::Zone;
 // 1 when the two details fit side by side in `width`, else 2.
 int detailLines(MinecraftUIRenderContext&, inventory::enchantOrder::game::StepsInfo const&, float width);
-// `goalLive`: the goal can be switched here (the planner is open).
-void draw(MinecraftUIRenderContext&, EnchantStepsLayout const&, inventory::enchantOrder::game::StepsInfo const&, Zone hover, bool goalLive,
-          std::vector<inspection::render::IconAt>& icons);
+// How many lines the last line takes in `width`, up to three.
+int footLines(MinecraftUIRenderContext&, inventory::enchantOrder::game::StepsInfo const&, float width);
+// A side's names that were cut, shown whole in a box by the row while the pointer is on it, as the settings
+// table does for a value that is cut. Drawn by the caller after its icons, so it is on top of them.
+struct Tip {
+    bool show = false;
+    float x = 0, y = 0, width = 0;
+    int lines = 1;
+    std::string text;
+};
+void drawTip(MinecraftUIRenderContext&, Tip const&);
+// `pointerX/Y`: where the pointer is, or outside the layout for none. `goalLive`: the goal can be switched here
+// (the planner is open).
+Tip draw(MinecraftUIRenderContext&, EnchantStepsLayout const&, inventory::enchantOrder::game::StepsInfo const&, float pointerX, float pointerY,
+         bool goalLive, std::vector<inspection::render::IconAt>& icons);
 // What the status line says about the zone under the pointer; empty for none.
 std::string status(inventory::enchantOrder::game::StepsInfo const&, Zone hover);
 }

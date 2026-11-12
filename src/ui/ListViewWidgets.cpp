@@ -23,7 +23,10 @@ void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l
 }
 void drawShapeStepper(MinecraftUIRenderContext& context, ShapesLayout const& l, float y, bool numeric, std::string text,
                       NumberInput const* editing) {
-    float x = l.stepperX(), w = l.stepperWidth(), aw = ShapesLayout::arrowWidth, h = ShapesLayout::rowHeight - 2;
+    drawStepperBox(context, l.stepperX(), y, l.stepperWidth(), numeric, std::move(text), editing);
+}
+void drawStepperBox(MinecraftUIRenderContext& context, float x, float y, float w, bool numeric, std::string text, NumberInput const* editing) {
+    float aw = ShapesLayout::arrowWidth, h = ShapesLayout::rowHeight - 2;
     fill(context,x,y+1,aw,h,palette::keyFill);
     fill(context,x+w-aw,y+1,aw,h,palette::keyFill);
     frame(context,x,y+1,w,h,editing ? palette::accent : palette::keyEdge);

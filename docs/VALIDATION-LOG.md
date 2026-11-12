@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, twenty-fourth pass: the shared steps' side (2026-11-13)
+
+`12092660`, local build, DLL SHA-256
+`7c848ced130d19d80430c5b5be71439c54d995545ae878955b3a8d60ea2ab876`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer: the planner screen's
+right side and the anvil's right panel have one order and look; with some books only,
+the names not at hand and the materials count are yellow and the last line lists what
+is missing; taking steps greys them and moves the white bar; the two details are on
+one line in the planner and on a line each at the anvil, with their help on hover; at
+the anvil the goal's arrows switch it and the wheel scrolls a long plan.
+
+Not right:
+
+- The top of the right side (the total, the details) lost the dividing lines the
+  mockup had and is harder to read.
+- "Not in your inventory: ..." is often cut, and there is no way to read it whole.
+- The right panel sits lower than in the mockup: it starts at the window's top as the
+  old list did, and with more above the steps it looks pushed down.
+- The left panel's status text runs out of the panel when it takes two lines or more.
+- The goal's arrows were chosen for being like Lamium's settings, yet they are not the
+  shared part.
+
+The maintainer notes the settings screen already has a way to show what does not fit.
+
 ## Enchantment order, twenty-third pass; a plain book at the anvil (2026-11-12)
 
 `e85009f7`, local build, DLL SHA-256

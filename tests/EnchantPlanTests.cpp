@@ -226,6 +226,10 @@ void enchantLayoutTests() {
         check(shortPanel.rows.listVisible == 4 && shortPanel.rows.listCount == 12 && shortPanel.rows.listFirst == 3
                   && !EnchantStepsLayout::fit(300, 20, 60, 400, 4, 0, 1).usable() && !EnchantStepsLayout::fit(300, 20, 180, 70, 4, 0, 1).usable(),
               "a shorter panel scrolls its steps; one too narrow or too short is not laid out");
+        auto wordy = EnchantStepsLayout::fit(300, 20, 180, 20 + EnchantStepsLayout::neededHeight(4, 2, 3), 4, 0, 2, 3);
+        check(wordy.usable() && wordy.rows.listVisible == 8 && wordy.footLines == 3 && wordy.footY == anvil.footY
+                  && wordy.bottom - wordy.footY == EnchantStepsLayout::footHeight + 2 * EnchantStepsLayout::footLine,
+              "a last line that wraps takes its room below the steps, which stay where they were");
     }
     auto plain = EnchantLayout::fit(table, 20, false, 12, 0, 9, 0);
     check(plain.kindColumns == layout.kindColumns && plain.setsY == layout.setsY && plain.rows.rowsTop == layout.rows.rowsTop
