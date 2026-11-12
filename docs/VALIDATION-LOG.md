@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, thirtieth pass: the slots' tints (2026-11-13)
+
+`41179be1`, local build, DLL SHA-256
+`f6cae88c7857e8fcf9a2c89561d9727f66d380af86858660da779bdecd698634`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer: the inventory's marks
+are half-strength tints in cyan and pink; the anvil's left and right slot carry the
+same tint while empty, get a frame with the right stack and turn red with a wrong
+one; the result slot is green for a planned pair and red for a pair that is no step;
+a held item itself carries no mark while the slot it goes to keeps its own.
+
+Not seen: the result slot's yellow (the game's cost differing from the plan) could not
+be brought about. Missing: while one stack is held, the mark of the other stack still
+to be placed disappears too; it should stay.
+
 ## Enchantment order, twenty-ninth pass: the marks' looks, round 2 (2026-11-13)
 
 `aa5c70a8` built with `enchant_mark_test`, DLL SHA-256

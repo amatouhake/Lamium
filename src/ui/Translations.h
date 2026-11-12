@@ -1812,6 +1812,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.inventory.enchantOrderAnvil", "The plan's steps are listed beside the anvil screen (with the setting below, the enchantments are chosen there too). Off: the anvil screen stays as the game draws it; the planner still works.", "金床の画面の横に計画の手順を並べます（下の設定がオンなら、エンチャントの選択もそこでできます）。オフにすると金床の画面はバニラのままで、計画の画面は引き続き使えます。"},
     {"enchantOrderAnvilChoose", "Choose enchantments beside the anvil: {}", "金床の横でエンチャントを選ぶ: {}"},
     {"help.inventory.enchantOrderAnvilChoose", "The planner's item and enchantment choices are shown left of the anvil screen, so a plan can be made and changed without leaving it. Off, or without room on the left: only the steps are listed, with a Change button that opens the planner.", "プランナーのアイテムとエンチャントの選択を金床の画面の左に表示し、金床を開いたまま計画を作成・変更できます。オフのとき、または左に入らないときは手順だけを表示し、「変更」ボタンでプランナーを開きます。"},
+    {"enchantOrderAnvilMarks", "Tint the slots to use next: {}", "次に使うスロットに色を付ける: {}"},
+    {"help.inventory.enchantOrderAnvilMarks", "At the anvil, the stacks the next step uses are tinted in the inventory (cyan goes left, pink goes right), and the anvil's own slots show by colour whether what lies in them is right. Works while the steps are listed beside the anvil.", "金床で、次の手順に使うスタックをインベントリで色付けし（水色は左、ピンクは右）、金床のスロットには置いたものが合っているかを色で示します。「金床の横に手順を表示」がオンのときに働きます。"},
     {"offhandSwapFireworks", "Fireworks to Fake Offhand: {}", "花火は擬似オフハンドへ: {}"},
     {"transfer", "Inventory transfer: {}", "インベントリ転送: {}"},
     {"storage", "Sort storage containers: {}", "チェストなどの整頓: {}"},

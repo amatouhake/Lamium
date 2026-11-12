@@ -876,7 +876,7 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     finishedAtAnvil = planned && info.following.next < 0;
     // What the anvil's three slots say, and the stacks to place next where they lie.
     std::vector<ListState::Mark> marks;
-    if (planned) {
+    if (planned && preferences.enchantOrderAnvilMarks) {
         try {
             using Tone = ListState::Tone;
             auto atHand = [&](unsigned side) { return pointerMask == side || std::ranges::find(slotMasks, side) != slotMasks.end(); };
@@ -906,11 +906,12 @@ void drawBeside(ll::event::UIRenderEvent& event) {
             if (say.result != ResultSay::None)
                 if (auto b = box("result_item_slot"))
                     marks.push_back({*b, say.result == ResultSay::Match ? Tone::Good : say.result == ResultSay::CostDiffers ? Tone::Warn : Tone::Wrong});
-            // In the inventory: the stacks that step still wants, while nothing is on the pointer.
-            if (!heldItem && say.step >= 0) {
-                auto const stacks = nextStacks(active.plan.steps[static_cast<size_t>(say.step)], slotMasks,
-                    inputEmpty ? 0u : active.plan.steps[static_cast<size_t>(say.step)].target,
-                    materialEmpty ? 0u : active.plan.steps[static_cast<size_t>(say.step)].sacrifice);
+            // In the inventory: the stacks that step still wants. A side that lies in its anvil slot or is being
+            // carried on the pointer is not looked for; the other one keeps its mark meanwhile.
+            if (say.step >= 0) {
+                auto const& step = active.plan.steps[static_cast<size_t>(say.step)];
+                auto const stacks = nextStacks(step, slotMasks, !inputEmpty || pointerMask == step.target ? step.target : 0u,
+                    !materialEmpty || pointerMask == step.sacrifice ? step.sacrifice : 0u);
                 if (stacks.left >= 0) if (auto b = slot(stacks.left)) marks.push_back({*b, Tone::Left});
                 if (stacks.right >= 0) if (auto b = slot(stacks.right)) marks.push_back({*b, Tone::Right});
             }

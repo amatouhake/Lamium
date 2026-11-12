@@ -1866,7 +1866,19 @@ the item and did not fit the size an item has while held. Built the same
 day (not checked in game); the `enchant_mark_test` option and its looks
 are removed. No setting of its own yet: the marks follow "List the steps
 beside the anvil".
-Next: the in-game check, then L-319.
+Thirtieth pass by the maintainer 2026-11-13 (`41179be1`, VALIDATION-LOG):
+the tints and what the anvil's slots say are confirmed, except the result
+slot's yellow, which could not be brought about. Changed the same day
+(not checked in game):
+- While one of the two stacks is carried, the other one keeps its mark
+  in the inventory (before, every inventory mark went with an item on the
+  pointer).
+- A setting of their own, "Tint the slots to use next", on by default,
+  beside the other two under Enchantment order (the maintainer: it is a
+  change of looks, tastes differ). It is a sibling, not a setting under a
+  setting; like the choosing panel it only works while the steps are
+  listed beside the anvil, and its help says so.
+Next: L-319.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 

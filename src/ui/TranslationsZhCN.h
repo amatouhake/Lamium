@@ -1776,6 +1776,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"help.inventory.enchantOrderAnvil", "在铁砧界面旁列出计划的步骤（开启下方设置时，也可在那里选择附魔）。关闭后铁砧界面保持原样，规划界面仍可使用。"},
     {"enchantOrderAnvilChoose", "在铁砧旁选择附魔: {}"},
     {"help.inventory.enchantOrderAnvilChoose", "在铁砧界面左侧显示规划界面的物品和附魔选择，无需离开铁砧即可制定和修改计划。关闭或左侧空间不足时，只列出步骤，并提供打开规划界面的“更改”按钮。"},
+    {"enchantOrderAnvilMarks", "为接下来要用的栏位着色: {}"},
+    {"help.inventory.enchantOrderAnvilMarks", "在铁砧界面中，为下一步要用的物品在物品栏中着色（青色放左，粉色放右），并在铁砧栏位上用颜色显示放入的物品是否正确。需要开启“在铁砧旁显示步骤”。"},
     {"offhandSwapFireworks", "烟花放入虚拟副手: {}"},
     {"transfer", "物品栏转移: {}"},
     {"storage", "整理储物容器: {}"},

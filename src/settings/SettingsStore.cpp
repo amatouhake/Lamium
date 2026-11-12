@@ -215,6 +215,7 @@ Json encode(Settings const& settings) {
                        {"deathRestoreAll", settings.inventory.deathRestoreAll},
                        {"enchantOrderAnvil", settings.inventory.enchantOrderAnvil},
                        {"enchantOrderAnvilChoose", settings.inventory.enchantOrderAnvilChoose},
+                       {"enchantOrderAnvilMarks", settings.inventory.enchantOrderAnvilMarks},
                        {"offhandSwapFireworks", settings.inventory.offhandSwapFireworks},
                        {"transfer", settings.inventory.transfer},
                        {"transferWheelOne", settings.inventory.transferWheelOne},
@@ -645,6 +646,8 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.enchantOrderAnvil = settingsValue(data.at("inventory"), "enchantOrderAnvil", value.inventory.enchantOrderAnvil);
         value.inventory.enchantOrderAnvilChoose =
             settingsValue(data.at("inventory"), "enchantOrderAnvilChoose", value.inventory.enchantOrderAnvilChoose);
+        value.inventory.enchantOrderAnvilMarks =
+            settingsValue(data.at("inventory"), "enchantOrderAnvilMarks", value.inventory.enchantOrderAnvilMarks);
         value.inventory.offhandSwapFireworks = settingsValue(data.at("inventory"), "offhandSwapFireworks", value.inventory.offhandSwapFireworks);
         value.inventory.sortContainers = settingsValue(data.at("inventory"), "sortContainers", value.inventory.sortContainers);
         value.inventory.transfer = settingsValue(data.at("inventory"), "transfer", value.inventory.transfer);

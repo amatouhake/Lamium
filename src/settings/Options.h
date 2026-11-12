@@ -421,6 +421,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inventory, &Settings::Inventory::deathRestoreAll>("inventory.deathRestoreAll", "deathRestore", "deathRestoreAll"),
     toggle<&Settings::inventory, &Settings::Inventory::enchantOrderAnvil>("inventory.enchantOrderAnvil", "enchantOrder", "enchantOrderAnvil"),
     toggle<&Settings::inventory, &Settings::Inventory::enchantOrderAnvilChoose>("inventory.enchantOrderAnvilChoose", "enchantOrder", "enchantOrderAnvilChoose"),
+    toggle<&Settings::inventory, &Settings::Inventory::enchantOrderAnvilMarks>("inventory.enchantOrderAnvilMarks", "enchantOrder", "enchantOrderAnvilMarks"),
     toggle<&Settings::inventory, &Settings::Inventory::sortContainers>("inventory.sortContainers", "sorting", "storage"),
     toggle<&Settings::inventory, &Settings::Inventory::transfer>("inventory.transfer", "transfer", "transfer"),
     toggle<&Settings::inventory, &Settings::Inventory::transferWheelOne>("inventory.transferWheelOne", "transfer", "transferWheelOne"),
