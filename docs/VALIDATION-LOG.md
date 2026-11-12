@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, seventeenth pass (2026-11-12)
+
+`8396fafb`, local build, DLL SHA-256
+`cf73e8fa218464d2c90338d019224d64a529e89f613343bcf0088a072e126dbe`, no trace options,
+1.26.60.05 Dev instance, Creative. Per the maintainer: no count is seen on top of a
+held stack over the list; the game's own number shows behind the list. `lamium.log`
+has no "held count control" line, so no shown control with "count" in its name was
+found under `inventory_selected_icon_button`: Lamium drew no count.
+
 ## Enchantment order, sixteenth pass (2026-11-12)
 
 `8d5083f4`, local build, DLL SHA-256

@@ -1459,6 +1459,17 @@ held stack's count is a little right of and below the game's.
   have not found it; the next step is a build that draws a row of test
   icons in those variants, not another guess. Same family as L-91 (glints
   outside vanilla slots).
+Seventeenth pass by the maintainer 2026-11-12 (`8396fafb`, VALIDATION-LOG): no
+count over the list; the count control was not found by its name. The
+maintainer agreed to a test build for the glints. Built the same day: the
+xmake option `enchant_glint_test` (off by default). With it the anvil screen
+shows, instead of the list, ten icon arrangements in turn, four seconds
+each, numbered on screen (size, spacing, text before the icons, bare or
+really enchanted stacks, one call or several, the list's own arrangement),
+to see which keep their glint; and while a stack of two or more is held
+outside the window it logs every control near the pointer that is not part
+of a slot, shown or not, to find the count's control. Remove the option's
+code once both are answered.
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s

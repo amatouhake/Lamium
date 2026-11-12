@@ -45,6 +45,7 @@
 #include <bit>
 #include <chrono>
 #include <cmath>
+#include <format>
 #include <map>
 #include <optional>
 #include <string_view>
@@ -684,6 +685,115 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     // Not painted from inside the screen this frame (no tooltip, or the first frame): paint it now.
     if (!painted) paintList(context, onTop.stack ? &onTop : nullptr);
 }
+#ifdef LAMIUM_ENCHANT_GLINT_TEST
+// L-170 test build only (`xmake f --enchant_glint_test=y`): which icon arrangements keep their glint at the anvil,
+// and which control writes a held stack's count. Replaces the list while the option is on.
+std::vector<ItemStack> testBare, testBooks, testSwords, testPlain;
+std::chrono::steady_clock::time_point testSeen{};
+void glintTest(ll::event::UIRenderEvent& event) {
+    auto& view = event.screenView();
+    if (!isAnvil(view)) return;
+    auto& context = event.uiRenderContext();
+    using namespace lamium::ui;
+    using inspection::render::IconAt;
+    auto const nowTime = std::chrono::steady_clock::now();
+    if (nowTime - testSeen > std::chrono::milliseconds(500) || testBare.empty()) {
+        testBare.clear(); testBooks.clear(); testSwords.clear(); testPlain.clear();
+        testBare.reserve(8); testBooks.reserve(4); testSwords.reserve(4); testPlain.reserve(4);
+        EnchantmentInstance sharp;
+        sharp.mEnchantType = Enchant::Type::Sharpness;
+        sharp.mLevel = 1;
+        for (int i = 0; i < 8; ++i) testBare.push_back(stackOf(bookItem));
+        for (int i = 0; i < 4; ++i) {
+            testBooks.push_back(stackOf(bookItem));
+            try { EnchantUtils::applyEnchant(testBooks.back(), sharp, true); } catch (...) {}
+            testSwords.push_back(stackOf("minecraft:diamond_sword"));
+            try { EnchantUtils::applyEnchant(testSwords.back(), sharp, true); } catch (...) {}
+            testPlain.push_back(stackOf("minecraft:diamond_sword"));
+        }
+    }
+    testSeen = nowTime;
+    static auto const started = std::chrono::steady_clock::now();
+    int const test = static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(nowTime - started).count() / 4 % 10);
+    constexpr std::array<char const*, 10> names{
+        "4 bare books, 16 units, 18 apart", "4 bare books, 8 units, 18 apart", "4 bare books, 8 units, in a column 10 apart",
+        "4 bare books, 16 units, text drawn just before", "4 enchanted books, 16 units", "4 enchanted swords, 16 units",
+        "1 bare book and 1 enchanted sword, 8 units", "2 bare books, 16 units", "4 bare books, 16 units, one call each",
+        "the list's own: sword, book, sword, book, 8 units, in order"};
+    constexpr float left = 6, top = 6;
+    panel(context, left, top, 216, 70, .8f);
+    label(context, left + 4, top + 4, 208, std::format("Glint test {} of 10", test + 1));
+    label(context, left + 4, top + 15, 208, names[static_cast<size_t>(test)], palette::dim);
+    float const x = left + 8, y = top + 30;
+    std::vector<IconAt> icons;
+    auto row = [&](std::vector<ItemStack>& stacks, int count, float scale, float dx, float dy) {
+        for (int i = 0; i < count; ++i) icons.push_back({&stacks[static_cast<size_t>(i)], x + i * dx, y + i * dy, scale, 0, 1.f, true});
+    };
+    bool separately = false;
+    switch (test) {
+    case 0: context.flushText(0, std::nullopt); row(testBare, 4, 1.f, 18, 0); break;
+    case 1: context.flushText(0, std::nullopt); row(testBare, 4, .5f, 18, 0); break;
+    case 2: context.flushText(0, std::nullopt); row(testBare, 4, .5f, 0, 10); break;
+    case 3: label(context, x, y + 20, 100, "text before the icons", palette::faint); context.flushText(0, std::nullopt); row(testBare, 4, 1.f, 18, 0); break;
+    case 4: context.flushText(0, std::nullopt); row(testBooks, 4, 1.f, 18, 0); break;
+    case 5: context.flushText(0, std::nullopt); row(testSwords, 4, 1.f, 18, 0); break;
+    case 6:
+        context.flushText(0, std::nullopt);
+        icons.push_back({&testBare[0], x, y, .5f, 0, 1.f, true});
+        icons.push_back({&testSwords[0], x + 18, y, .5f, 0, 1.f, true});
+        break;
+    case 7: context.flushText(0, std::nullopt); row(testBare, 2, 1.f, 18, 0); break;
+    case 8: context.flushText(0, std::nullopt); row(testBare, 4, 1.f, 18, 0); separately = true; break;
+    default:
+        context.flushText(0, std::nullopt);
+        icons.push_back({&testPlain[0], x, y, .5f, 0, 1.f, true, true});
+        icons.push_back({&testBare[0], x + 6, y + 10, .5f, 0, 1.f, true, true});
+        icons.push_back({&testPlain[1], x, y + 21, .5f, 0, 1.f, true, true});
+        icons.push_back({&testBare[1], x + 6, y + 31, .5f, 0, 1.f, true, true});
+        break;
+    }
+    if (separately) for (auto const& icon : icons) inspection::render::drawItemIcon(context, icon, 17);
+    else if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
+
+    // The control that writes a held stack's count: everything near the pointer that is not part of a slot.
+    try {
+        auto& screenController = static_cast<ContainerScreenController&>(*view.mController);
+        auto manager = screenController.mContainerManagerController;
+        auto* tree = view.mVisualTree.get();
+        static std::string const windowName = "root_panel";
+        auto window = tree ? tree->getControlByName(windowName, true) : nullptr;
+        if (!manager || manager->mContainersClosed || !window) return;
+        auto const& onPointer = manager->getItemStack("cursor_items", 0);
+        static int logged = 0;
+        static glm::vec2 lastLogged{-1000, -1000};
+        glm::vec2 const pointer = view.mPointerLocationPrevious, at = *window->mCachedPosition, size = *window->mSize;
+        bool const outside = pointer.x < at.x - 30 || pointer.x > at.x + size.x + 30 || pointer.y < at.y - 30 || pointer.y > at.y + size.y + 30;
+        if (onPointer.isNull() || onPointer.mCount < 2 || logged >= 2 || !outside
+            || std::abs(pointer.x - lastLogged.x) + std::abs(pointer.y - lastLogged.y) < 30) return;
+        ++logged;
+        lastLogged = pointer;
+        Runtime::instance().self().getLogger().info("Enchantment order test: held stack of {}, pointer {:.1f},{:.1f}", static_cast<int>(onPointer.mCount),
+            pointer.x, pointer.y);
+        int lines = 0;
+        auto slotPart = [](std::string const& name) {
+            return name.starts_with("grid_item_for") || name == "item_cell" || name == "bg" || name == "cell_image" || name == "item"
+                || name == "common.item_renderer" || name == "item_button_ref";
+        };
+        auto walk = [&](auto&& self, UIControl const& control, int depth) -> void {
+            if (depth > 30 || lines >= 40) return;
+            glm::vec2 const where = *control.mCachedPosition, extent = *control.mSize;
+            if (!slotPart(*control.mName) && extent.x <= 64 && extent.y <= 64 && pointer.x >= where.x - 40 && pointer.x <= where.x + extent.x + 40
+                && pointer.y >= where.y - 40 && pointer.y <= where.y + extent.y + 40) {
+                ++lines;
+                Runtime::instance().self().getLogger().info("Enchantment order test: depth={} name={} shown={} at={:.1f},{:.1f} size={:.1f}x{:.1f} children={}",
+                    depth, *control.mName, (static_cast<int>(control.mVisible) & 1) != 0, where.x, where.y, extent.x, extent.y, control.mChildren->size());
+            }
+            for (auto const& child : *control.mChildren) if (child) self(self, *child, depth + 1);
+        };
+        if (tree->mRootControl) walk(walk, *tree->mRootControl.get(), 0);
+    } catch (...) {}
+}
+#endif
 void dropStacks() {
     kinds.clear();
     held = {};
@@ -691,6 +801,9 @@ void dropStacks() {
     anvilItemIcon = ItemStack();
     anvilBookIcon = ItemStack();
     anvilItems.clear(); anvilBooks.clear(); screenItems.clear(); screenBooks.clear();
+#ifdef LAMIUM_ENCHANT_GLINT_TEST
+    testBare.clear(); testBooks.clear(); testSwords.clear(); testPlain.clear();
+#endif
     anvilIconsMade = false;
     opened = false;
 }
@@ -826,7 +939,12 @@ ItemStack const* bookIcon(int number) { return pooled(screenBooks, book, number)
 
 bool start() {
     auto& bus = ll::event::EventBus::getInstance();
+#ifdef LAMIUM_ENCHANT_GLINT_TEST
+    renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { glintTest(event); } catch (...) {} });
+    Runtime::instance().self().getLogger().warn("Enchantment order: glint test build, the list beside the anvil is replaced");
+#else
     renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { drawBeside(event); } catch (...) {} });
+#endif
     enterListener = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) { try { enterScreen(event); } catch (...) {} });
     inspection::setBeforeTooltip(beforeTooltip);
 
