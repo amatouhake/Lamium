@@ -1140,8 +1140,27 @@ planner", vanilla anvil screen, local world):
   `Rules::refuseAt = 40` matches; a Creative player needs 0.
 Not checked: a damaged input, a rename, an enchantment already on the item or
 in conflict with it, servers.
-Next: the screen. First find where the client can read each enchantment's
-multiplier and item compatibility (Research).
+Data sources, read through `world_probe` 2026-11-12 (VALIDATION-LOG "World
+probe: the enchantment registry"); all of these link on SDK 26.60.4:
+- The list: `Enchant::mEnchants()`, 42 entries on the client, each with
+  `mEnchantType`, `mStringId`, `mFrequency`, `mIsDisabled` and the virtual
+  `getMaxLevel()` and `isCompatibleWith(type)`.
+- The multiplier: no linkable function gives it (`ItemEnchants::getTotalValue`
+  is `MCNAPI`). `mFrequency` 30, 10, 3, 1 matched 1, 2, 4, 8 per level for a
+  sacrificed item and 1, 1, 2, 4 for a book in all nine costs read from the
+  anvil. Use that mapping, a pure function with a test; a new enchantment then
+  needs no Lamium update, a new frequency value does. It is a meaning a
+  rebuild cannot check, so the screen asks `versionSensitiveAllowed()`.
+- Whether an enchantment goes on the item: `EnchantUtils::canEnchant(stack,
+  {type, level}, false)` answers `Enchant`, `Increment`, `Conflict` or `Fail`.
+  It answered `Conflict` for one the item already had at that level.
+- Display names: `EnchantUtils::getEnchantNameAndLevel(type, level)`.
+- The item's earlier anvil uses: its repair cost, as recorded for L-319.
+- Not tried: `EnchantUtils::combineEnchantedItems(first, second, out, book)`
+  returns an int and links; it may give the game's own cost for a pair and
+  would then replace the mapping. Try it before building on the mapping.
+Next: the screen (Design: layout and wording, with a demo in `docs/demos/`),
+then the wiring.
 
 ### L-169 Item Transfer: remaining gesture and screen extensions
 Kind: Design. Current status reconciled 2026-10-20: matching/everything,

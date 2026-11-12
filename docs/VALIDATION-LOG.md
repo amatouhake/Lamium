@@ -12,6 +12,44 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## World probe: the enchantment registry (2026-11-12)
+
+Seen by the agent (Claude) driving the game through computer use, not by the
+maintainer. Build: `6a16c197` plus the then-uncommitted L-170 lines of the
+`world_probe` option, built with `xmake f --world_probe=y`, DLL SHA-256
+`f411e608ee554bcfe2d2c4ae6d2ede03b2922fc6363443014c5fcfb47df645bc`, 1.26.60.05 Dev
+instance, title screen showing LeviLamina 26.60.5, the local world "Lamium anvil
+test". Read from `lamium.log`; nothing was written to the game.
+
+- `Enchant::mEnchants()` on the client held 42 entries, ids 0 to 41, none
+  disabled, each with a string id, `mFrequency`, `getMaxLevel()`, primary and
+  secondary slot masks and a compatibility group.
+- Frequency 30: protection, sharpness, efficiency, power, loyalty, piercing.
+  10: fire_protection, feather_falling, projectile_protection, smite,
+  bane_of_arthropods, knockback, unbreaking, impaling, quick_charge, density, lunge.
+  3: blast_protection, respiration, depth_strider, aqua_affinity, fire_aspect,
+  looting, fortune, punch, flame, luck_of_the_sea, lure, frost_walker, mending,
+  riptide, multishot, wind_burst, breach. 1: thorns, silk_touch, infinity, binding,
+  vanishing, channeling, soul_speed, swift_sneak.
+- With the anvil costs read the same day (entry below), frequency 30, 10, 3, 1
+  matches a per-level cost of 1, 2, 4, 8 for a sacrificed item and 1, 1, 2, 4
+  for a book, in all nine cases read (sharpness, unbreaking, looting,
+  fire_aspect, mending, knockback and vanishing as books; knockback and
+  vanishing as items).
+- `isCompatibleWith` between every pair: the four protections exclude each other;
+  sharpness, smite, bane_of_arthropods, density and breach exclude each other;
+  silk_touch/fortune, depth_strider/frost_walker, infinity/mending,
+  multishot/piercing, riptide/loyalty and riptide/channeling exclude each other.
+- `EnchantUtils::canEnchant(held, {type, max level}, false)` with a diamond sword
+  carrying Curse of Vanishing in hand (`getEnchantSlot()` 0x10): `Enchant` for
+  sharpness, smite, bane_of_arthropods, knockback, fire_aspect, looting,
+  unbreaking and mending; `Conflict` for vanishing, which it already has; `Fail`
+  for the other 33.
+
+Not checked: `combineEnchantedItems`, an item that already carries a conflicting
+enchantment, other item types, a server, a world with experiments. The Dev
+instance has the published 0.6.0 again (`bb6691f9...`).
+
 ## Anvil costs behind the enchantment planner (2026-11-12)
 
 Seen by the agent (Claude) driving the game through computer use, not by the

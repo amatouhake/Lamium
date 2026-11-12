@@ -10,6 +10,13 @@
 #include "mc/entity/components_json_legacy/BreedableComponent.h"
 #include "mc/world/actor/Actor.h"
 #include "mc/world/actor/monster/EnderDragon.h"
+#include "mc/deps/core/string/HashedString.h"
+#include "mc/world/item/Item.h"
+#include "mc/world/item/ItemStack.h"
+#include "mc/world/item/enchanting/Enchant.h"
+#include "mc/world/item/enchanting/EnchantResult.h"
+#include "mc/world/item/enchanting/EnchantUtils.h"
+#include "mc/world/item/enchanting/EnchantmentInstance.h"
 #include "mc/world/level/Level.h"
 #include "mc/world/phys/AABB.h"
 #include <chrono>
@@ -30,9 +37,37 @@ void log(std::format_string<Args...> format, Args&&... args) noexcept {
 }
 Clock::time_point last = Clock::now() - std::chrono::hours(1);
 unsigned lines = 0;
+bool enchantsListed = false;
+// L-170, once: the enchantment registry, and what the held item accepts.
+void listEnchants(LocalPlayer& player) {
+    ItemStack const& held = player.getSelectedItem();
+    log("probe L-170 held={} enchantSlot={:#x}", held.getTypeName(), held.mItem ? held.mItem->getEnchantSlot() : 0);
+    for (auto const& enchant : Enchant::mEnchants()) {
+        if (!enchant) continue;
+        Enchant::Type const type = enchant->mEnchantType;
+        int const most = enchant->getMaxLevel();
+        EnchantmentInstance wanted;
+        wanted.mEnchantType = type;
+        wanted.mLevel = most;
+        auto const answer = EnchantUtils::canEnchant(held, wanted, false);
+        std::string conflicts;
+        for (auto const& other : Enchant::mEnchants())
+            if (other && other.get() != enchant.get() && !enchant->isCompatibleWith(other->mEnchantType))
+                conflicts += std::format("{} ", static_cast<int>(static_cast<Enchant::Type>(other->mEnchantType)));
+        ++lines;
+        log("probe L-170 enchant={} id={} frequency={} maxLevel={} primary={:#x} secondary={:#x} compatibility={} "
+            "disabled={} held={} conflicts={}",
+            static_cast<int>(type), static_cast<HashedString const&>(enchant->mStringId).getString(),
+            static_cast<int>(static_cast<Enchant::Frequency>(enchant->mFrequency)), most,
+            static_cast<int>(enchant->mPrimarySlots), static_cast<int>(enchant->mSecondarySlots),
+            static_cast<int>(enchant->mCompatibility), static_cast<bool>(enchant->mIsDisabled),
+            static_cast<int>(static_cast<EnchantResultType>(answer.result)), conflicts);
+    }
+}
 void probe(LocalPlayer& player) {
     if (Clock::now() - last < std::chrono::seconds(5) || lines >= 4000) return;
     last = Clock::now();
+    if (!enchantsListed) { enchantsListed = true; listEnchants(player); }
     auto& level = player.getLevel();
     ++lines;
     log("probe L-249 chunkTickRange={} dimension={}", level.getChunkTickRange(), static_cast<int>(player.getDimensionId()));
