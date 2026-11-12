@@ -567,10 +567,30 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     // list goes with it by the same distance, off the screen too.
     windowRest = reopened ? at.y : std::min(windowRest, at.y);
     float const top = std::clamp(windowRest, gap, screen.y - gap - height) + (at.y - windowRest);
-    // The list is painted over the item held on the pointer, so it gives way while that item is over it.
-    constexpr float reach = 12;
-    glm::vec2 const pointer = view.mPointerLocationPrevious;
-    if (holding && pointer.x > left - reach && pointer.x < left + width + reach && pointer.y > top - reach && pointer.y < top + height + reach) return;
+    // Temporary (L-170): which control draws the item held on the pointer, to paint it again over the list.
+    if (holding) {
+        static int logged = 0;
+        if (logged < 3) {
+            ++logged;
+            glm::vec2 const pointer = view.mPointerLocationPrevious;
+            try {
+                Runtime::instance().self().getLogger().info("Enchantment order: held item, pointer {:.1f},{:.1f}", pointer.x, pointer.y);
+                int lines = 0;
+                auto walk = [&](auto&& self, UIControl const& control, int depth) -> void {
+                    if (depth > 24 || lines >= 16 || (static_cast<int>(control.mVisible) & 1) == 0) return;
+                    glm::vec2 const where = *control.mCachedPosition, extent = *control.mSize;
+                    if (extent.x >= 4 && extent.x <= 48 && extent.y >= 4 && extent.y <= 48 && pointer.x >= where.x - 24 && pointer.x <= where.x + extent.x + 24
+                        && pointer.y >= where.y - 24 && pointer.y <= where.y + extent.y + 24) {
+                        ++lines;
+                        Runtime::instance().self().getLogger().info("Enchantment order: near pointer depth={} name={} at={:.1f},{:.1f} size={:.1f}x{:.1f}",
+                            depth, *control.mName, where.x, where.y, extent.x, extent.y);
+                    }
+                    for (auto const& child : *control.mChildren) if (child) self(self, *child, depth + 1);
+                };
+                if (tree->mRootControl) walk(walk, *tree->mRootControl.get(), 0);
+            } catch (...) {}
+        }
+    }
     // The game's window fades as it slides away on closing; the list fades with the distance, or with the
     // window's own opacity when that is lower.
     float const slide = std::max(0.f, at.y - windowRest), way = std::max(1.f, (screen.y - windowRest) * .5f);

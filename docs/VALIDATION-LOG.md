@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, twelfth pass (2026-11-12)
+
+`9ff54047`, local build, DLL SHA-256
+`c8c6cea8ccd60e490f96a4a126575bfed832f6dd20dd40da93fa06402bcde77a`, no trace options,
+1.26.60.05 Dev instance, Creative. Passed, per the maintainer: the list and enchanted
+items and books draw normally again; the list goes while a held item is over it and
+comes back; closing the anvil the list slides with the window and fades, and opens
+normally; the tooltip is over a bright list as before.
+
+Not wanted after all: the list vanishing under a held item makes the screen flicker.
+Both should be drawn, ideally the item on top, otherwise the item under the list.
+
 ## Enchantment order, eleventh pass: painting before the slots breaks the screen (2026-11-12)
 
 `768db9be`, local build, DLL SHA-256

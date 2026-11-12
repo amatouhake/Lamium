@@ -1389,6 +1389,15 @@ again). Instead, built the same day and not checked in game:
   opacity from how far the window has moved from rest (gone at half the way
   to the screen's bottom) or the window control's own `mAlpha` when that is
   lower; `ui::DrawOpacity` applies it to fills, text and the icons.
+Twelfth pass by the maintainer 2026-11-12 (`9ff54047`, VALIDATION-LOG): passed,
+but the list giving way to a held item flickers and is not wanted. Decided:
+the list is always drawn; the held item on top of it if that can be done,
+under it otherwise. Built the same day (not checked in game): the give-way
+rule is gone, so the held item is under the list again. To put it on top
+Lamium would draw the held item once more over the list, which needs the
+game's exact box for it; the build logs, three times per run, the small
+controls under the pointer while an item is held at the anvil, to find that
+control. Remove the log lines once it is known.
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s
