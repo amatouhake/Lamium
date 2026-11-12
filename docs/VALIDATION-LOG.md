@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, fifth pass (2026-11-12)
+
+`06a753ef`, local build, DLL SHA-256
+`5de2081094558230e5c7ab51b08ff0624349d383f46f996bc815b717fceb5750`, no trace options,
+1.26.60.05 Dev instance, Japanese, Creative. Passed, per the maintainer (with a
+screenshot):
+
+- The main-hand cell follows the enchanted book's; opening with nothing held moves
+  neither the grid nor the buttons.
+- A press on an enchantment the item carries does not change the plan.
+- An enchanted book in the main hand gets the cell, its enchantments are on the item,
+  and adding one gives steps.
+- "All highest" on a mace takes Density.
+
+Awkward: the level is written at the left with the name while `-` `+` stand far to
+the right, and rows without level buttons leave an empty stretch right of the switch.
+
 ## Enchantment order, fourth pass (2026-11-12)
 
 `b87a65eb`, local build, DLL SHA-256
