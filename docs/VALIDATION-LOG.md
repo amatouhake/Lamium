@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, nineteenth pass: the item icon's glint (2026-11-12)
+
+`02a8f09f`, local build, DLL SHA-256
+`1ac48de4e7efa66bb1e2735ee520c6fb94f7010c4fdb6dc8b4c92440343c13bc`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer, in the planner's steps
+and in the anvil list: with a plain item the item's icon has no glint at the step where
+it first appears and glints at the later ones; with an enchanted held item it glints
+from the first step.
+
 ## Enchantment order, eighteenth pass: glints and the held count (2026-11-12)
 
 `d96f2cbe`, local build, DLL SHA-256

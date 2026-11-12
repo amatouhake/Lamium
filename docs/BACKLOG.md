@@ -1511,6 +1511,7 @@ where the item carries an enchantment (from the first step if the held item
 has one, otherwise from the step after its first book). Built (not checked
 in game), in the anvil list and the planner's steps: those icons are drawn
 from a copy of the item with one of the plan's enchantments on it.
+Confirmed by the maintainer the same day (`02a8f09f`, nineteenth pass).
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s
