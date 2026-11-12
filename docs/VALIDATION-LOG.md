@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, sixth pass (2026-11-12)
+
+`2af7b12e`, local build, DLL SHA-256
+`849cb06be452e26ad21520362171609bd7ae0b71de00ba866947d3ce2193cd19`, no trace options,
+1.26.60.05 Dev instance, Japanese, Creative. Passed, per the maintainer ("all OK",
+with a screenshot): rows read name, `-` level `+`, switch; rows that are off show
+their level faintly with the switch at the right edge; rows on the item and
+conflicting rows are intact.
+
+Seen: a row on the item still writes its level beside the name, not in the level
+column. Missing: with Sharpness III on the held item, Sharpness V cannot be chosen.
+
 ## Enchantment order, fifth pass (2026-11-12)
 
 `06a753ef`, local build, DLL SHA-256

@@ -1330,6 +1330,20 @@ shows the level it would turn on at, faint and without buttons; a row with
 one level has the switch alone. This replaces "name, switch, level buttons"
 of the fourth pass, which left the level far from its buttons and an empty
 stretch right of the switch.
+Sixth pass by the maintainer 2026-11-12 (`2af7b12e`, VALIDATION-LOG): passed.
+A row on the item now writes its level in the level column like the others
+(built, not checked in game).
+Open (maintainer asked 2026-11-12): raising an enchantment the held item
+already carries (Sharpness III on it, V wanted). The agent's view: this is
+not the left-out "two equal books into a higher level"; that one changes
+what the inputs are. Raising with one higher-level book keeps the inputs
+and only changes what that book costs when it reaches the item, so it is a
+small extension of the cost model (`Input` gets a second value for "the kept
+side holds the item"). It needs one rule read from the anvil first: whether
+the step is charged the book's full level or the difference from the level
+on the item. Three readings settle it, each a fresh item with the lower
+level from `/enchant` and a fresh higher book: Sharpness III + V (5 or 2),
+Knockback I + II (2 or 1), Looting I + III (6 or 4).
 Noted for later, outside L-170: the world map is experimental and has no way
 to turn it off either; whether a screen that only opens on request needs a
 switch is one question for both.

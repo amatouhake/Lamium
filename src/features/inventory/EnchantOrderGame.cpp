@@ -258,7 +258,13 @@ void rebuild() {
     // offer comes last.
     for (auto const& offer : chosen.offers) {
         if (auto on = std::ranges::find_if(base, [&](Enchantment const& e) { return e.type == offer.type; }); on != base.end()) {
-            shown.rows.push_back({on->type, on->level, on->level, nameOf(on->type, on->level), {}, RowState::Fixed, offer.curse});
+            Row fixed{on->type, on->level, on->level, nameOf(on->type, on->level), {}, RowState::Fixed, offer.curse};
+            fixed.name = nameOnly(on->type);
+            if (offer.maxLevel > 1 && fixed.label.size() > fixed.name.size() && fixed.label.starts_with(fixed.name)) {
+                fixed.levelText = fixed.label.substr(fixed.name.size());
+                while (!fixed.levelText.empty() && fixed.levelText.front() == ' ') fixed.levelText.erase(0, 1);
+            }
+            shown.rows.push_back(std::move(fixed));
             continue;
         }
         Row row{offer.type, offer.maxLevel, offer.maxLevel, {}, {}, RowState::Off, offer.curse};

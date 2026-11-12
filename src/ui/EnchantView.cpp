@@ -159,7 +159,14 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             std::string tag = translated("enchantOrder.onItem");
             float const w = textWidth(context, tag) + 2;
             label(context, right - w, y + 3, w, tag, palette::accent, Align::Right);
-            label(context, nameLeft, y + 3, right - w - 3 - nameLeft, row.label, nameColor);
+            // Its level in the level column like the others, moved left only if the tag is wider than the switch.
+            float nameRight = right - w - 3;
+            if (!row.levelText.empty()) {
+                float const levelLeft = std::min(last.levelX(), right - w - 3 - L::levelWidth);
+                label(context, levelLeft, y + 3, L::levelWidth, row.levelText, palette::dim, Align::Center);
+                nameRight = levelLeft - 4;
+            }
+            label(context, nameLeft, y + 3, nameRight - nameLeft, row.levelText.empty() ? row.label : row.name, nameColor);
         } else if (row.state == game::RowState::Blocked) {
             std::string why = translated("enchantOrder.conflict", row.reason);
             float const w = std::min(textWidth(context, why) + 2, (right - nameLeft) * .55f);
