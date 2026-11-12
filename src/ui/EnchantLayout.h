@@ -8,10 +8,10 @@ namespace lamium::ui {
 // Enchantment order (BACKLOG L-170). Like the block highlight list it takes
 // the settings table's place: a heading row with the path and Back, then on
 // the left the item, the kinds as an icon grid, the held-state switch, the
-// set buttons and the enchantments; on the right the goal, the steps (two
-// list rows each) and the totals.
+// set buttons and the enchantments; on the right the goal, the totals and
+// the steps (two list rows each).
 struct EnchantLayout {
-    static constexpr float titleHeight = 12, barHeight = 14, cell = 14, cellGap = 2, buttonHeight = 11, stepWidth = 11;
+    static constexpr float titleHeight = 12, barHeight = 14, cell = 20, cellGap = 2, buttonHeight = 11, stepWidth = 11;
     static constexpr float summaryLine = 11, goalWidth = 120;
     static constexpr int summaryLines = 3, stepRows = 2;
     enum class Zone { None, Back, Kind, UseHeld, SetAll, SetLast, SetClear, Row, RowMinus, RowPlus, Goal };
@@ -65,10 +65,11 @@ struct EnchantLayout {
         l.rowsTitleY = y;
         l.rows = column(l.left, leftWidth, y + titleHeight, l.footerTop, rowCount, rowFirst);
 
+        // The totals sit right under the goal, where they are read first.
         l.goalY = l.bodyTop + 1;
-        l.stepsTitleY = l.goalY + barHeight + 1;
-        l.summaryTop = l.footerTop - summaryLines * summaryLine - 2;
-        l.steps = column(l.rightLeft, l.rightWidth, l.stepsTitleY + titleHeight, l.summaryTop, stepCount * stepRows, stepFirst);
+        l.summaryTop = l.goalY + barHeight + 1;
+        l.stepsTitleY = l.summaryTop + summaryLines * summaryLine + 3;
+        l.steps = column(l.rightLeft, l.rightWidth, l.stepsTitleY + titleHeight, l.footerTop, stepCount * stepRows, stepFirst);
         return l;
     }
     float kindX(int index) const { return left + SettingsTable::pad + (index % kindColumns) * (cell + cellGap); }

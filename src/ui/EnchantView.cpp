@@ -68,7 +68,8 @@ bool click(float x, float y, bool right) {
     case Zone::Back: back(); return true;
     case Zone::Kind: game::pickKind(hit.index); rowFirst = stepFirst = 0; return true;
     case Zone::UseHeld:
-        if (game::view().stateKnown) game::setUseHeld(!game::view().useHeld);
+        if (!game::view().inHand) screen::setMessage(translated("enchantOrder.useHeld.none"));
+        else if (game::view().stateKnown) game::setUseHeld(!game::view().useHeld);
         else screen::setMessage(translated("enchantOrder.heldUnknown"));
         rowFirst = stepFirst = 0;
         return true;
@@ -76,7 +77,17 @@ bool click(float x, float y, bool right) {
     case Zone::SetLast: game::restoreLast(); stepFirst = 0; return true;
     case Zone::SetClear: game::clearWanted(); stepFirst = 0; return true;
     case Zone::Row:
-        if (game::toggleRow(hit.index) == order::Change::Full) screen::setMessage(translated("enchantOrder.full", order::maxBooks));
+        switch (game::toggleRow(hit.index)) {
+        case order::Change::Full: screen::setMessage(translated("enchantOrder.full", order::maxBooks)); break;
+        // What the item carries cannot come off at an anvil: a press plans
+        // the item from fresh instead, keeping what it has as wanted.
+        case order::Change::Fixed:
+            game::setUseHeld(false);
+            screen::setMessage(translated("enchantOrder.heldReleased"));
+            rowFirst = 0;
+            break;
+        default: break;
+        }
         stepFirst = 0;
         return true;
     case Zone::RowMinus: game::stepRow(hit.index, -1); return true;
@@ -97,7 +108,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     lastPointer = pointer;
     auto const& v = game::view();
     int const stepCount = static_cast<int>(v.steps.size());
-    last = EnchantLayout::fit(t, static_cast<int>(v.kinds.size()), v.inHand, static_cast<int>(v.rows.size()), rowFirst, stepCount, stepFirst);
+    // The held-state row is always there, so the buttons under it stay put.
+    last = EnchantLayout::fit(t, static_cast<int>(v.kinds.size()), true, static_cast<int>(v.rows.size()), rowFirst, stepCount, stepFirst);
     if (!last.usable()) return;
     if (dragging == Drag::Rows) last.rows.listFirst = last.rows.firstAt(pointer.y);
     if (dragging == Drag::Steps) last.steps.listFirst = last.steps.firstAt(pointer.y);
@@ -123,15 +135,15 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         bool const chosen = i == v.kind, over = hover.zone == Zone::Kind && hover.index == i;
         fill(context, x, y, L::cell, L::cell, chosen ? palette::accent : Rgb{0, 0, 0}, chosen ? .16f : .3f);
         frame(context, x, y, L::cell, L::cell, chosen ? palette::accent : over ? palette::white : palette::keyEdge, chosen || over ? 1 : .6f);
-        drawIcon(context, game::kindIcon(i), x + 2, y + 2);
-        if (v.kinds[static_cast<size_t>(i)].held) fill(context, x + L::cell - 4, y + 1, 3, 3, palette::white);
+        drawIcon(context, game::kindIcon(i), x + 2, y + 2, 16);
+        if (v.kinds[static_cast<size_t>(i)].held) fill(context, x + L::cell - 5, y + 1, 4, 4, palette::white);
     }
     if (last.useHeldShown) {
-        bool const over = hover.zone == Zone::UseHeld;
+        bool const usable = v.inHand && v.stateKnown, over = hover.zone == Zone::UseHeld && usable;
         if (over) fill(context, last.left + 1, last.useHeldY, last.dividerX - last.left - 1, L::barHeight, palette::white, .07f);
         toggleSwitch(context, leftLeft, last.useHeldY + 3, v.useHeld);
         label(context, leftLeft + switchWidth + 5, last.useHeldY + 3, leftRight - leftLeft - switchWidth - 5, translated("enchantOrder.useHeld"),
-            v.stateKnown ? palette::text : palette::faint);
+            usable ? palette::text : palette::faint);
     }
     drawButton(context, last.setAllX, last.setsY, last.setWide, translated("enchantOrder.setAll"), hover.zone == Zone::SetAll, true);
     drawButton(context, last.setLastX, last.setsY, last.setWide, translated("enchantOrder.setLast"), hover.zone == Zone::SetLast, v.hasLast);
@@ -163,7 +175,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             drawSmallButton(context, last.plusX(), y + 1, L::stepWidth, 12, "+", hover.zone == Zone::RowPlus && hover.index == i);
             right = last.minusX() - 3;
         }
-        label(context, nameLeft, y + 3, right - nameLeft, row.label, off ? palette::faint : fixed ? palette::dim : palette::text);
+        label(context, nameLeft, y + 3, right - nameLeft, row.label,
+            off ? palette::faint : row.curse ? palette::curse : fixed ? palette::dim : palette::text);
     }
     drawListScrollbar(context, rc);
 
@@ -181,40 +194,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     }
     auto const& sc = last.steps;
     float const stepsLeft = sc.listLeft + pad, stepsWidth = sc.listWidth - 2 * pad;
-    if (v.steps.empty()) {
-        label(context, stepsLeft, last.stepsTitleY + 2, stepsWidth, translated("enchantOrder.steps.none"), palette::faint);
-        std::string text = translated(v.costUnknown ? "enchantOrder.unknownCost" : v.refused ? "enchantOrder.refused" : "enchantOrder.empty");
-        paragraph(context, stepsLeft, sc.rowsTop + 3, stepsWidth, text, 6, v.costUnknown || v.refused ? palette::warning : palette::faint);
-    } else {
-        label(context, stepsLeft, last.stepsTitleY + 2, stepsWidth, translated("enchantOrder.steps", v.steps.size()), palette::faint);
-        label(context, stepsLeft, last.stepsTitleY + 2, stepsWidth - 2, translated("enchantOrder.levels"), palette::faint, Align::Right);
-        constexpr float numberWidth = 12, costWidth = 20;
-        float const textLeft = stepsLeft + numberWidth + 4, textRight = sc.listLeft + sc.listWidth - pad - costWidth - 2;
-        for (int i = sc.listFirst; i < sc.listFirst + sc.listVisible && i < sc.listCount; ++i) {
-            auto const& step = v.steps[static_cast<size_t>(i / L::stepRows)];
-            float const y = sc.listRowY(i);
-            if ((i / L::stepRows) % 2 == 1) fill(context, sc.listLeft + 1, y, sc.listWidth - 2, ShapesLayout::rowHeight, palette::white, .025f);
-            if (i % L::stepRows == 0) {
-                label(context, stepsLeft, y + 3, numberWidth, std::to_string(i / L::stepRows + 1), palette::faint, Align::Right);
-                drawIcon(context, step.keptIsItem ? game::itemIcon() : game::bookIcon(), textLeft, y + 2);
-                label(context, textLeft + 13, y + 3, textRight - textLeft - 13, step.kept);
-                label(context, textRight + 2, y + 3, costWidth, std::to_string(step.cost), palette::text, Align::Right);
-            } else {
-                label(context, textLeft - 8, y + 3, 7, "+", palette::faint, Align::Right);
-                drawIcon(context, game::bookIcon(), textLeft, y + 2);
-                float nameRight = textRight;
-                if (step.penalty > 0) {
-                    std::string penalty = translated("enchantOrder.penalty", step.penalty);
-                    float const w = std::min(textWidth(context, penalty) + 2, (textRight + costWidth - textLeft) * .5f);
-                    label(context, textRight + costWidth + 2 - w, y + 3, w, penalty, palette::faint, Align::Right);
-                    nameRight = textRight + costWidth - w - 2;
-                }
-                label(context, textLeft + 13, y + 3, nameRight - textLeft - 13, step.gone, palette::dim);
-            }
-        }
-        drawListScrollbar(context, sc);
-        fill(context, last.rightLeft, last.summaryTop, last.rightWidth, 1, palette::white, .14f);
-        float y = last.summaryTop + 3;
+    if (v.planned && !v.steps.empty()) {
+        float y = last.summaryTop + 1;
         label(context, stepsLeft, y, stepsWidth, translated("enchantOrder.total", v.total));
         y += L::summaryLine;
         label(context, stepsLeft, y, stepsWidth,
@@ -227,6 +208,43 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
                           v.otherTotal, v.otherWork),
                 palette::faint);
     }
+    fill(context, last.rightLeft, last.stepsTitleY - 2, last.rightWidth, 1, palette::white, .14f);
+    if (v.steps.empty()) {
+        label(context, stepsLeft, last.stepsTitleY + 2, stepsWidth, translated("enchantOrder.steps.none"), palette::faint);
+        std::string text = translated(v.costUnknown ? "enchantOrder.unknownCost" : v.refused ? "enchantOrder.refused"
+            : v.planned ? "enchantOrder.noSteps" : "enchantOrder.empty");
+        paragraph(context, stepsLeft, sc.rowsTop + 3, stepsWidth, text, 6, v.costUnknown || v.refused ? palette::warning : palette::faint);
+    } else {
+        label(context, stepsLeft, last.stepsTitleY + 2, stepsWidth, translated("enchantOrder.steps", v.steps.size()), palette::faint);
+        label(context, stepsLeft, last.stepsTitleY + 2, stepsWidth - 2, translated("enchantOrder.levels"), palette::faint, Align::Right);
+        constexpr float numberWidth = 12, costWidth = 20;
+        float const textLeft = stepsLeft + numberWidth + 4, textRight = sc.listLeft + sc.listWidth - pad - costWidth - 2;
+        for (int i = sc.listFirst; i < sc.listFirst + sc.listVisible && i < sc.listCount; ++i) {
+            auto const& step = v.steps[static_cast<size_t>(i / L::stepRows)];
+            float const y = sc.listRowY(i);
+            if ((i / L::stepRows) % 2 == 1) fill(context, sc.listLeft + 1, y, sc.listWidth - 2, ShapesLayout::rowHeight, palette::white, .04f);
+            if (i % L::stepRows == 0) {
+                // A line above each step after the first: where one anvil use ends.
+                if (i > 0) fill(context, sc.listLeft + 1, y, sc.listWidth - 2, 1, palette::white, .18f);
+                label(context, stepsLeft, y + 3, numberWidth, std::to_string(i / L::stepRows + 1), palette::dim, Align::Right);
+                drawIcon(context, step.keptIsItem ? game::itemIcon() : game::bookIcon(), textLeft, y + 2);
+                label(context, textLeft + 13, y + 3, textRight - textLeft - 13, step.kept, step.keptCurse ? palette::curse : palette::text);
+                label(context, textRight + 2, y + 3, costWidth, std::to_string(step.cost), palette::text, Align::Right);
+            } else {
+                label(context, textLeft - 8, y + 3, 7, "+", palette::faint, Align::Right);
+                drawIcon(context, game::bookIcon(), textLeft, y + 2);
+                float nameRight = textRight;
+                if (step.penalty > 0) {
+                    std::string penalty = translated("enchantOrder.penalty", step.penalty);
+                    float const w = std::min(textWidth(context, penalty) + 2, (textRight + costWidth - textLeft) * .5f);
+                    label(context, textRight + costWidth + 2 - w, y + 3, w, penalty, palette::faint, Align::Right);
+                    nameRight = textRight + costWidth - w - 2;
+                }
+                label(context, textLeft + 13, y + 3, nameRight - textLeft - 13, step.gone, step.goneCurse ? palette::curse : palette::dim);
+            }
+        }
+        drawListScrollbar(context, sc);
+    }
 
     // Footer, as in the table: status first, then what the screen is, then the limit.
     fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);
@@ -238,7 +256,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         if (hover.zone == Zone::Kind && hover.index >= 0 && hover.index < static_cast<int>(v.kinds.size())) {
             auto const& kind = v.kinds[static_cast<size_t>(hover.index)];
             status = kind.held ? translated("enchantOrder.kind.held", kind.name) : kind.name;
-        } else if (hover.zone == Zone::UseHeld) status = translated(v.stateKnown ? "enchantOrder.useHeld.help" : "enchantOrder.heldUnknown");
+        } else if (hover.zone == Zone::UseHeld)
+            status = translated(!v.inHand ? "enchantOrder.useHeld.none" : v.stateKnown ? "enchantOrder.useHeld.help" : "enchantOrder.heldUnknown");
         else if (hover.zone == Zone::SetAll) status = translated("enchantOrder.setAll.help");
         else if (hover.zone == Zone::SetLast) status = translated("enchantOrder.setLast.help");
         else if (hover.zone == Zone::Goal) status = translated("enchantOrder.goal.help");

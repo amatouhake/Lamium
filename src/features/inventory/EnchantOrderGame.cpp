@@ -16,6 +16,10 @@
 #include "mc/client/gui/screens/controllers/ContainerScreenController.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
+#include "mc/locale/I18n.h"
+#include "mc/world/actor/player/Player.h"
+#include "mc/world/attribute/AttributeInstance.h"
+#include "mc/world/attribute/AttributeInstanceConstRef.h"
 #include "mc/world/containers/managers/controllers/AnvilContainerManagerController.h"
 #include "mc/world/containers/managers/controllers/ContainerManagerController.h"
 #include "mc/world/item/Item.h"
@@ -27,6 +31,7 @@
 #include "mc/world/item/enchanting/ItemEnchants.h"
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cmath>
 #include <map>
 #include <optional>
@@ -38,16 +43,27 @@ using enchantPlan::Goal;
 using enchantPlan::Plan;
 // One item per enchant slot: what goes on an item follows the slot, not the
 // material. An id the game does not have, or a slot seen before, is skipped.
-constexpr std::array<std::string_view, 24> kindItems{
-    "minecraft:diamond_sword", "minecraft:diamond_pickaxe", "minecraft:diamond_axe", "minecraft:diamond_shovel",
-    "minecraft:diamond_hoe", "minecraft:bow", "minecraft:crossbow", "minecraft:trident", "minecraft:mace",
-    "minecraft:diamond_spear", "minecraft:iron_spear", "minecraft:diamond_helmet", "minecraft:diamond_chestplate",
-    "minecraft:diamond_leggings", "minecraft:diamond_boots", "minecraft:fishing_rod", "minecraft:elytra", "minecraft:shield",
-    "minecraft:shears", "minecraft:flint_and_steel", "minecraft:brush", "minecraft:carrot_on_a_stick",
-    "minecraft:warped_fungus_on_a_stick", "minecraft:compass"};
+// A kind is named by the game's own creative group where it has one
+// ("Swords"), else by the item ("Bow"), so the words are the game's in
+// every language.
+struct KindItem { std::string_view id, group; };
+constexpr std::array<KindItem, 27> kindItems{{
+    {"minecraft:diamond_sword", "itemGroup.name.sword"}, {"minecraft:diamond_pickaxe", "itemGroup.name.pickaxe"},
+    {"minecraft:diamond_axe", "itemGroup.name.axe"}, {"minecraft:diamond_shovel", "itemGroup.name.shovel"},
+    {"minecraft:diamond_hoe", "itemGroup.name.hoe"}, {"minecraft:bow", ""}, {"minecraft:crossbow", ""}, {"minecraft:trident", ""},
+    {"minecraft:mace", ""}, {"minecraft:diamond_spear", "itemGroup.name.spear"}, {"minecraft:iron_spear", "itemGroup.name.spear"},
+    {"minecraft:diamond_helmet", "itemGroup.name.helmet"}, {"minecraft:diamond_chestplate", "itemGroup.name.chestplate"},
+    {"minecraft:diamond_leggings", "itemGroup.name.leggings"}, {"minecraft:diamond_boots", "itemGroup.name.boots"},
+    {"minecraft:fishing_rod", ""}, {"minecraft:elytra", ""}, {"minecraft:shield", ""}, {"minecraft:shears", ""},
+    {"minecraft:flint_and_steel", ""}, {"minecraft:brush", ""}, {"minecraft:carrot_on_a_stick", ""},
+    {"minecraft:warped_fungus_on_a_stick", ""}, {"minecraft:compass", ""}, {"minecraft:carved_pumpkin", ""},
+    {"minecraft:skeleton_skull", "itemGroup.name.skull"}, {"minecraft:enchanted_book", "itemGroup.name.enchantedBook"}}};
 constexpr std::string_view bookItem = "minecraft:enchanted_book";
 
-struct EnchantInfo { int type = 0, maxLevel = 1, frequency = 0; };
+struct EnchantInfo { int type = 0, maxLevel = 1, frequency = 0, reach = 0; };
+// Books alone (several enchanted books merged into one) have no enchant
+// slot of their own; the kind uses this one.
+constexpr int bookSlot = -1;
 struct Kind {
     int slot = 0;
     std::string name;
@@ -77,7 +93,7 @@ std::map<int, std::vector<Enchantment>> lastBySlot;
 View shown;
 // The plan the anvil list follows.
 struct Active {
-    bool valid = false, creative = false;
+    bool valid = false;
     int slot = 0;
     Goal goal = Goal::FewestLevels;
     std::string itemId, itemName;
@@ -99,6 +115,26 @@ std::string plain(std::string text) {
 }
 std::string nameOf(int type, int level) {
     try { return plain(EnchantUtils::getEnchantNameAndLevel(static_cast<Enchant::Type>(type), level)); } catch (...) { return {}; }
+}
+// The name without a level: the game only offers both together, so it is
+// what the texts for level 1 and level 5 ("I" and "V") share.
+std::string nameOnly(int type) {
+    std::string const one = nameOf(type, 1), five = nameOf(type, 5);
+    size_t same = 0;
+    while (same < one.size() && same < five.size() && one[same] == five[same]) ++same;
+    // Never end inside a multi-byte character.
+    while (same > 0 && same < one.size() && (static_cast<unsigned char>(one[same]) & 0xC0) == 0x80) --same;
+    std::string name = one.substr(0, same);
+    while (!name.empty() && name.back() == ' ') name.pop_back();
+    return name.empty() ? one : name;
+}
+std::string gameText(std::string_view key) {
+    if (key.empty()) return {};
+    try {
+        std::string const id(key);
+        std::string text = getI18n().get(id, getI18n().getCurrentLanguage());
+        return text == id ? std::string{} : plain(std::move(text));
+    } catch (...) { return {}; }
 }
 ItemStack stackOf(std::string_view id) {
     ItemStack stack;
@@ -126,8 +162,9 @@ bool readCatalog() {
     auto const& registry = Enchant::mEnchants();
     for (auto const& enchant : registry) {
         if (!enchant || static_cast<bool>(enchant->mIsDisabled)) continue;
+        auto const slots = static_cast<unsigned>(static_cast<int>(enchant->mPrimarySlots)) | static_cast<unsigned>(static_cast<int>(enchant->mSecondarySlots));
         enchants.push_back({static_cast<int>(static_cast<Enchant::Type>(enchant->mEnchantType)), std::max(1, enchant->getMaxLevel()),
-            static_cast<int>(static_cast<Enchant::Frequency>(enchant->mFrequency))});
+            static_cast<int>(static_cast<Enchant::Frequency>(enchant->mFrequency)), std::popcount(slots)});
     }
     for (auto const& a : registry) {
         if (!a) continue;
@@ -138,17 +175,23 @@ bool readCatalog() {
             if (!a->isCompatibleWith(static_cast<Enchant::Type>(y)) && !conflicts.between(x, y)) conflicts.pairs.emplace_back(x, y);
         }
     }
-    for (auto id : kindItems) {
-        ItemStack stack = stackOf(id);
+    for (auto const& item : kindItems) {
+        ItemStack stack = stackOf(item.id);
         if (stack.isNull() || !stack.mItem) continue;
-        int const slot = stack.mItem->getEnchantSlot();
+        bool const isBook = item.id == bookItem;
+        int const slot = isBook ? bookSlot : stack.mItem->getEnchantSlot();
         if (slot == 0 || std::ranges::any_of(kinds, [&](Kind const& k) { return k.slot == slot; })) continue;
         Kind kind{slot, {}, {}, std::move(stack)};
-        for (bool curses : {false, true})
-            for (auto const& info : enchants)
-                if (curse(info.type) == curses && goesOn(kind.icon, info)) kind.offers.push_back({info.type, info.maxLevel, info.frequency});
-        if (kind.offers.empty()) continue;
-        try { kind.name = plain(kind.icon.getName()); } catch (...) {}
+        std::vector<Offer> found;
+        for (auto const& info : enchants)
+            if (goesOn(kind.icon, info)) found.push_back({info.type, info.maxLevel, info.frequency, curse(info.type), info.reach});
+        // A book takes every enchantment; if the game's check says otherwise for the book item, offer them all.
+        if (isBook && found.empty())
+            for (auto const& info : enchants) found.push_back({info.type, info.maxLevel, info.frequency, curse(info.type), info.reach});
+        if (found.empty()) continue;
+        kind.offers = grouped(found, conflicts);
+        kind.name = gameText(item.group);
+        if (kind.name.empty()) try { kind.name = plain(kind.icon.getName()); } catch (...) {}
         kinds.push_back(std::move(kind));
     }
     return !enchants.empty() && !kinds.empty();
@@ -156,7 +199,7 @@ bool readCatalog() {
 void readHeld(LocalPlayer& player) {
     held = {};
     ItemStack const& stack = player.getSelectedItem();
-    if (stack.isNull() || !stack.mItem) return;
+    if (stack.isNull() || !stack.mItem || stack.getTypeName() == bookItem) return;
     int const slot = stack.mItem->getEnchantSlot();
     auto found = std::ranges::find_if(kinds, [&](Kind const& k) { return k.slot == slot; });
     if (slot == 0 || found == kinds.end()) return;
@@ -177,6 +220,12 @@ int chosenKind() {
 }
 bool usingHeld(int kind) { return held.present && held.kind == kind && held.stateKnown && useHeldState; }
 void remember() { if (chosenSlot && !wanted.empty()) lastBySlot[chosenSlot] = wanted; }
+bool onlyCurses(std::vector<Enchantment> const& list, unsigned mask) {
+    bool any = false;
+    for (size_t k = 0; k < list.size(); ++k)
+        if (mask >> (k + 1) & 1u) { if (!curse(list[k].type)) return false; any = true; }
+    return any;
+}
 void rebuild() {
     shown = {};
     shown.goal = goal;
@@ -186,38 +235,41 @@ void rebuild() {
     shown.kind = kind;
     if (kind < 0) { active = {}; return; }
     auto const& chosen = kinds[static_cast<size_t>(kind)];
-    bool const fromHeld = usingHeld(kind);
+    bool const fromHeld = usingHeld(kind), withItem = chosen.slot != bookSlot;
     shown.inHand = held.present && held.kind == kind;
     shown.stateKnown = held.stateKnown;
     shown.useHeld = fromHeld;
+    shown.bookKind = !withItem;
     shown.itemName = fromHeld && !held.name.empty() ? held.name : chosen.name;
     std::vector<Enchantment> const base = fromHeld ? held.base : std::vector<Enchantment>{};
     prune(wanted, chosen.offers, base, conflicts);
     shown.wanted = static_cast<int>(wanted.size());
-    shown.hasLast = lastBySlot.contains(chosenSlot);
+    if (auto last = lastBySlot.find(chosenSlot); last != lastBySlot.end()) shown.hasLast = last->second != wanted;
     // What the item has first, then what can be added.
-    for (auto const& e : base) shown.rows.push_back({e.type, e.level, e.level, nameOf(e.type, e.level), {}, RowState::Fixed});
+    for (auto const& e : base) shown.rows.push_back({e.type, e.level, e.level, nameOf(e.type, e.level), {}, RowState::Fixed, curse(e.type)});
     for (auto const& offer : chosen.offers) {
         if (has(base, offer.type)) continue;
-        Row row{offer.type, offer.maxLevel, offer.maxLevel, {}, {}, RowState::Off};
+        Row row{offer.type, offer.maxLevel, offer.maxLevel, {}, {}, RowState::Off, offer.curse};
         if (auto on = std::ranges::find_if(wanted, [&](Enchantment const& e) { return e.type == offer.type; }); on != wanted.end()) {
             row.level = on->level;
             row.state = RowState::On;
         } else if (int by = blocker(offer.type, base, wanted, conflicts); by >= 0) {
             row.state = RowState::Blocked;
-            row.reason = nameOf(by, 1);
+            row.reason = nameOnly(by);
         } else if (static_cast<int>(wanted.size()) >= maxBooks) row.state = RowState::Full;
         row.label = nameOf(offer.type, row.level);
         shown.rows.push_back(std::move(row));
     }
     active = {};
     if (wanted.empty()) return;
-    auto made = inputs(wanted, chosen.offers, fromHeld ? held.work : 0);
+    auto made = inputs(wanted, chosen.offers, fromHeld ? held.work : 0, withItem);
     if (!made) { shown.costUnknown = true; return; }
     int const limit = creativeNow ? 0 : 40;
     auto mine = enchantPlan::plan(*made, {limit, goal});
     auto other = enchantPlan::plan(*made, {limit, goal == Goal::FewestLevels ? Goal::LeastPriorWork : Goal::FewestLevels});
     if (!mine) { shown.refused = true; return; }
+    // Bit 0 is the item and bit i + 1 is wanted[i], with or without an item.
+    int const shift = withItem ? 0 : 1;
     auto side = [&](unsigned mask) {
         if (mask & 1u) return shown.itemName;
         std::string text;
@@ -228,20 +280,23 @@ void rebuild() {
         }
         return text;
     };
-    for (auto const& step : mine->steps) {
+    for (auto& step : mine->steps) {
         // The step's cost is the sacrificed side's levels plus both surcharges.
         int value = 0;
         for (size_t i = 0; i < made->size(); ++i) if (step.sacrifice >> i & 1u) value += (*made)[i].value;
-        shown.steps.push_back({side(step.target), side(step.sacrifice), (step.target & 1u) != 0, step.cost, step.cost - value});
+        step.target <<= shift; step.sacrifice <<= shift;
+        shown.steps.push_back({side(step.target), side(step.sacrifice), (step.target & 1u) != 0, step.cost, step.cost - value,
+            onlyCurses(wanted, step.target), onlyCurses(wanted, step.sacrifice)});
     }
     shown.total = mine->total; shown.highest = mine->highest; shown.work = mine->work;
+    shown.planned = true;
     if (other) {
         shown.otherKnown = true;
         shown.otherTotal = other->total; shown.otherWork = other->work;
         shown.sameForBoth = other->total == mine->total && other->work == mine->work;
     }
+    if (mine->steps.empty()) return;
     active.valid = true;
-    active.creative = creativeNow;
     active.slot = chosen.slot;
     active.goal = goal;
     try { active.itemId = chosen.icon.getTypeName(); } catch (...) {}
@@ -257,9 +312,19 @@ void rebuild() {
 std::optional<unsigned> sideOf(ItemStack const& stack) {
     if (stack.isNull() || !stack.mItem) return std::nullopt;
     bool const isBook = stack.getTypeName() == bookItem;
-    bool const isItem = !isBook && stack.mItem->getEnchantSlot() == active.slot;
+    bool const isItem = !isBook && active.slot != bookSlot && stack.mItem->getEnchantSlot() == active.slot;
     if (!isBook && !isItem) return std::nullopt;
     return enchantPlan::carried(isItem, enchantsOn(stack), active.base, active.wanted);
+}
+std::string sideText(unsigned mask) {
+    if (mask & 1u) return active.itemName;
+    std::string text;
+    for (size_t i = 0; i < active.wanted.size(); ++i) {
+        if (!(mask >> (i + 1) & 1u)) continue;
+        if (!text.empty()) text += ", ";
+        text += nameOf(active.wanted[i].type, active.wanted[i].level);
+    }
+    return text;
 }
 void drawBeside(ll::event::AfterUIRenderEvent& event) {
     if (!active.valid || active.lines.empty()) return;
@@ -275,7 +340,7 @@ void drawBeside(ll::event::AfterUIRenderEvent& event) {
     glm::vec2 const at = *window->mCachedPosition, size = *window->mSize, screen = *view.mSize;
     if (size.x <= 0 || size.y <= 0 || size.x >= screen.x - 1) return; // not laid out yet
     using namespace lamium::ui;
-    constexpr float gap = 4, pad = 4, line = 10, wide = 190, narrow = 110;
+    constexpr float gap = 4, pad = 4, line = 10, wide = 200, narrow = 110;
     float width = std::min(wide, screen.x - (at.x + size.x) - 2 * gap), left = at.x + size.x + gap;
     if (width < narrow) {
         width = std::min(wide, at.x - 2 * gap);
@@ -284,26 +349,41 @@ void drawBeside(ll::event::AfterUIRenderEvent& event) {
     if (width < narrow) return;
 
     auto& context = event.uiRenderContext();
-    int now = -1, gameCost = -1;
-    bool both = false;
+    // What the slots and the inventory hold, as planner inputs.
+    int now = -1, gameCost = -1, level = -1, leftPenalty = -1, rightPenalty = -1;
+    bool both = false, creative = false;
+    std::optional<unsigned> target, sacrifice;
+    std::vector<unsigned> atHandNow;
     try {
+        if (auto* player = context.mClient.getLocalPlayer()) {
+            creative = player->isCreative();
+            if (auto const* attribute = player->getAttribute(Player::LEVEL()).mPtr) level = static_cast<int>(attribute->mCurrentValue);
+        }
         auto& screenController = static_cast<ContainerScreenController&>(*view.mController);
         if (auto manager = screenController.mContainerManagerController; manager && !manager->mContainersClosed) {
             auto const& input = manager->getItemStack("anvil_input_items", 0);
             auto const& material = manager->getItemStack("anvil_material_items", 0);
+            if (!input.isNull()) { target = sideOf(input); leftPenalty = input.getBaseRepairCost(); }
+            if (!material.isNull()) { sacrifice = sideOf(material); rightPenalty = material.getBaseRepairCost(); }
             both = !input.isNull() && !material.isNull();
-            if (both) {
-                auto target = sideOf(input), sacrifice = sideOf(material);
-                if (target && sacrifice) now = enchantPlan::stepFor(active.plan, *target, *sacrifice);
-                gameCost = static_cast<AnvilContainerManagerController&>(*manager).mCost;
-            }
+            if (target && sacrifice) now = enchantPlan::stepFor(active.plan, *target, *sacrifice);
+            if (both) gameCost = static_cast<AnvilContainerManagerController&>(*manager).mCost;
+            if (target) atHandNow.push_back(*target);
+            if (sacrifice) atHandNow.push_back(*sacrifice);
+            if (auto mask = sideOf(manager->getItemStack("cursor_items", 0))) atHandNow.push_back(*mask);
+            int const carriedSlots = std::min(36, manager->getContainerSize("combined_hotbar_and_inventory_items"));
+            for (int i = 0; i < carriedSlots; ++i)
+                if (auto mask = sideOf(manager->getItemStack("combined_hotbar_and_inventory_items", i))) atHandNow.push_back(*mask);
         }
-    } catch (...) { now = -1; both = false; }
+    } catch (...) { now = -1; both = false; atHandNow.clear(); }
+    int const next = nextStep(active.plan, atHandNow);
 
     int const steps = static_cast<int>(active.lines.size());
-    bool const note = both; // a line under the total says what the slots are
-    auto heightFor = [&](bool twoLines) { return pad + line + 2 + steps * (twoLines ? 2 * line + 1 : line + 1) + 2 + line + (note ? line : 0) + pad; };
-    bool twoLines = heightFor(true) <= screen.y - 2 * gap;
+    constexpr int headLines = 2, footLines = 2;
+    auto heightFor = [&](bool twoLines) {
+        return pad + headLines * line + 3 + steps * (twoLines ? 2 * line + 2 : line + 2) + 2 + footLines * line + pad;
+    };
+    bool const twoLines = heightFor(true) <= screen.y - 2 * gap;
     float const height = heightFor(twoLines);
     if (height > screen.y - 2 * gap) return;
     float const top = std::clamp(at.y, gap, screen.y - gap - height);
@@ -314,49 +394,68 @@ void drawBeside(ll::event::AfterUIRenderEvent& event) {
     }
     panel(context, left, top, width, height, .8f);
     float y = top + pad;
+    float const inner = width - 2 * pad;
+    // The total first, then what the player has to spend.
     std::string const goalName = translated(active.goal == Goal::FewestLevels ? "enchantOrder.goal.levels" : "enchantOrder.goal.work");
-    float const goalWidth = textWidth(context, goalName) + 2;
-    label(context, left + pad, y, width - 2 * pad - goalWidth, translated("feature.enchantOrder"));
+    float const goalWidth = std::min(textWidth(context, goalName) + 2, inner * .5f);
+    label(context, left + pad, y, inner - goalWidth - 2, translated("enchantOrder.total", active.plan.total));
     label(context, left + width - pad - goalWidth, y, goalWidth, goalName, palette::faint, Align::Right);
-    y += line + 2;
+    y += line;
+    if (!creative && level >= 0) {
+        int const need = next >= 0 ? active.lines[static_cast<size_t>(next)].cost : 0;
+        label(context, left + pad, y, inner, translated("enchantOrder.anvil.have", level), level < need ? palette::warning : palette::dim);
+    } else label(context, left + pad, y, inner, translated("feature.enchantOrder"), palette::faint);
+    y += line + 3;
     std::vector<inspection::render::IconAt> icons;
     constexpr float icon = 8, numberWidth = 10, costWidth = 16;
-    auto sideAt = [&](float x, float rowY, float w, std::string const& text, bool item) {
+    auto sideAt = [&](float x, float rowY, float w, std::string const& text, bool item, Rgb color) {
         ItemStack const* stack = item ? &anvilItemIcon : &anvilBookIcon;
         if (!stack->isNull()) icons.push_back({stack, std::round(x), std::round(rowY), icon / 16});
-        label(context, x + icon + 2, rowY, w - icon - 2, text);
+        label(context, x + icon + 2, rowY, w - icon - 2, text, color);
     };
     for (int i = 0; i < steps; ++i) {
         auto const& step = active.lines[static_cast<size_t>(i)];
         float const rowHeight = twoLines ? 2 * line : line;
-        if (i == now) {
-            fill(context, left + 1, y - 1, width - 2, rowHeight + 1, palette::accent, .16f);
-            fill(context, left + 1, y - 1, 2, rowHeight + 1, palette::accent);
-        }
-        label(context, left + pad, y, numberWidth, std::to_string(i + 1), palette::faint, Align::Right);
-        float const textLeft = left + pad + numberWidth + 3, textWidthAll = width - 2 * pad - numberWidth - 3 - costWidth;
+        bool const finished = done(active.plan.steps[static_cast<size_t>(i)], atHandNow), marked = i == now, upNext = i == next;
+        if (i > 0) fill(context, left + pad, y - 1, inner, 1, palette::white, .1f);
+        if (marked) fill(context, left + 1, y, width - 2, rowHeight + 1, palette::accent, .16f);
+        if (marked || upNext) fill(context, left + 1, y, 2, rowHeight + 1, marked ? palette::accent : palette::white);
+        Rgb const color = finished ? palette::faint : upNext || marked ? palette::text : palette::dim;
+        label(context, left + pad, y + 1, numberWidth, std::to_string(i + 1), finished ? palette::faint : palette::dim, Align::Right);
+        float const textLeft = left + pad + numberWidth + 3, textWidthAll = inner - numberWidth - 3 - costWidth;
         if (twoLines) {
-            sideAt(textLeft, y, textWidthAll, step.kept, step.keptIsItem);
-            label(context, textLeft - 1, y + line, 6, "+", palette::faint);
-            sideAt(textLeft + 6, y + line, textWidthAll - 6, step.gone, false);
+            sideAt(textLeft, y + 1, textWidthAll, step.kept, step.keptIsItem, step.keptCurse && !finished ? palette::curse : color);
+            label(context, textLeft - 1, y + 1 + line, 6, "+", palette::faint);
+            sideAt(textLeft + 6, y + 1 + line, textWidthAll - 6, step.gone, false, step.goneCurse && !finished ? palette::curse : color);
         } else {
             float const half = (textWidthAll - 8) / 2;
-            sideAt(textLeft, y, half, step.kept, step.keptIsItem);
-            label(context, textLeft + half + 1, y, 6, "+", palette::faint);
-            sideAt(textLeft + half + 8, y, half, step.gone, false);
+            sideAt(textLeft, y + 1, half, step.kept, step.keptIsItem, color);
+            label(context, textLeft + half + 1, y + 1, 6, "+", palette::faint);
+            sideAt(textLeft + half + 8, y + 1, half, step.gone, false, color);
         }
-        label(context, left + width - pad - costWidth, y, costWidth, std::to_string(step.cost), i == now ? palette::accent : palette::text, Align::Right);
-        y += rowHeight + 1;
+        bool const short_ = !creative && level >= 0 && level < step.cost && !finished;
+        label(context, left + width - pad - costWidth, y + 1, costWidth, std::to_string(step.cost),
+            finished ? palette::faint : short_ ? palette::warning : marked ? palette::accent : palette::text, Align::Right);
+        y += rowHeight + 2;
     }
     y += 2;
-    label(context, left + pad, y, width - 2 * pad, translated("enchantOrder.total", active.plan.total), palette::dim);
-    if (note) {
-        y += line;
-        if (now < 0) label(context, left + pad, y, width - 2 * pad, translated("enchantOrder.anvil.notInPlan"), palette::faint);
-        else if (gameCost != active.lines[static_cast<size_t>(now)].cost)
-            label(context, left + pad, y, width - 2 * pad, translated("enchantOrder.anvil.costDiffers", gameCost), palette::warning);
-        else label(context, left + pad, y, width - 2 * pad, translated("enchantOrder.anvil.match", now + 1), palette::accent);
+    // What to do next, or what is wrong with the pair in the slots.
+    if (both && now >= 0 && gameCost != active.lines[static_cast<size_t>(now)].cost)
+        label(context, left + pad, y, inner, translated("enchantOrder.anvil.costDiffers", gameCost), palette::warning);
+    else if (both && now >= 0) label(context, left + pad, y, inner, translated("enchantOrder.anvil.match", now + 1), palette::accent);
+    else if (both) label(context, left + pad, y, inner,
+        translated(!target ? "enchantOrder.anvil.leftNot" : !sacrifice ? "enchantOrder.anvil.rightNot" : "enchantOrder.anvil.notInPlan"), palette::warning);
+    else if (next < 0) label(context, left + pad, y, inner, translated("enchantOrder.anvil.finished"), palette::accent);
+    else {
+        auto const& step = active.plan.steps[static_cast<size_t>(next)];
+        if (!atHand(step.target, atHandNow)) label(context, left + pad, y, inner, translated("enchantOrder.anvil.missing", sideText(step.target)), palette::warning);
+        else if (!atHand(step.sacrifice, atHandNow))
+            label(context, left + pad, y, inner, translated("enchantOrder.anvil.missing", sideText(step.sacrifice)), palette::warning);
+        else label(context, left + pad, y, inner, translated("enchantOrder.anvil.next", next + 1), palette::text);
     }
+    y += line;
+    if (leftPenalty >= 0 || rightPenalty >= 0)
+        label(context, left + pad, y, inner, translated("enchantOrder.anvil.penalties", std::max(0, leftPenalty), std::max(0, rightPenalty)), palette::faint);
     context.flushText(0, std::nullopt);
     if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
 }
@@ -409,6 +508,9 @@ void pickKind(int index) {
 }
 void setUseHeld(bool use) {
     if (!opened || useHeldState == use) return;
+    int const kind = chosenKind();
+    // Leaving the held state keeps what the item carries as wanted.
+    if (!use && kind >= 0 && usingHeld(kind)) release(wanted, held.base, kinds[static_cast<size_t>(kind)].offers);
     useHeldState = use;
     rebuild();
 }
@@ -436,14 +538,17 @@ void stepRow(int row, int delta) {
 void setAllHighest() {
     int const kind = chosenKind();
     if (!opened || kind < 0) return;
+    auto all = allHighest(kinds[static_cast<size_t>(kind)].offers, usingHeld(kind) ? held.base : std::vector<Enchantment>{}, conflicts);
+    if (all == wanted) return;
     remember();
-    wanted = allHighest(kinds[static_cast<size_t>(kind)].offers, usingHeld(kind) ? held.base : std::vector<Enchantment>{}, conflicts);
+    wanted = std::move(all);
     rebuild();
 }
 void restoreLast() {
     auto found = lastBySlot.find(chosenSlot);
     if (!opened || found == lastBySlot.end()) return;
     auto previous = found->second;
+    if (previous == wanted) return;
     remember();
     wanted = std::move(previous);
     rebuild();

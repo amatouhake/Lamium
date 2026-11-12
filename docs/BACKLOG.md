@@ -1250,6 +1250,44 @@ checks passed. The maintainer's notes from using it, grouped; none is decided:
 - Outside this item: English Search does not find enchanted books by an
   enchantment's English name ("protection", "knockback") in the Creative
   search field.
+Decided (maintainer 2026-11-12, after the grouped proposal) and built the
+same day, not checked in game:
+- The plain defects are fixed: the conflict reason is the name alone (what
+  the game's texts for level I and V share); "All highest" leaves curses out
+  and records nothing when it changes nothing; the held-state row is always
+  there (grey without a main-hand item of the kind); enchantments that
+  exclude each other are listed together (`grouped`).
+- Reading: curses are drawn in the game's red (`palette::curse`); kind cells
+  are 20 units with a full-size icon; a line separates the steps; the totals
+  sit under the goal in the screen and on the first line beside the anvil.
+- Kind names come from the game, never from Lamium: its creative group name
+  where it has one (`itemGroup.name.sword` and the like: swords, pickaxes,
+  axes, shovels, hoes, the four armor pieces, spears, skulls, enchanted
+  books), else the item's own name (Bow, Trident, Mace...). The maintainer
+  asked for vanilla wording in every language, Chinese included.
+- Held state: pressing an enchantment the item carries leaves the held
+  state; what it carries becomes wanted at the same level (`release`), and
+  the footer says so.
+- A level button below level 1 turns the enchantment off (the maintainer
+  had to travel to the switch to drop Knockback after "All highest").
+- "All highest" takes one of a group that excludes each other by the game's
+  data alone: the highest frequency weight, then the one that goes on the
+  fewest kinds of item, then the first (`allHighest`). No Lamium table.
+- New kinds: enchanted books merged into one (a plan without an item) and
+  the carved pumpkin; a skull stands in if the pumpkin's slot is missing.
+- Beside the anvil: the total and the player's level on top (the level in
+  the warning color when the next step costs more; not in Creative), done
+  steps greyed (a stack at hand holds everything the step joins), the next
+  step marked, a line saying which side of the pair is not in the plan or
+  what the next step still lacks, and the prior-work surcharge of the two
+  slot items.
+Still open:
+- Changing the plan at the anvil. After the above; Item Transfer already
+  handles clicks on container screens (`TransferSession`, `TransferGesture`,
+  the mouse listener in `CustomInput`), so start there rather than from
+  nothing.
+- An item's work penalty in its tooltip is L-319's first line; not built
+  here, it needs a setting and its place in the tooltip chosen.
 
 ### L-169 Item Transfer: remaining gesture and screen extensions
 Kind: Design. Current status reconciled 2026-10-20: matching/everything,

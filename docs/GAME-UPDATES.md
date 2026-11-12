@@ -514,7 +514,10 @@ server's copy). `Name` is the macro that makes the two `useItemOn` hooks.
 L-170. Reads the enchantments from `Enchant::mEnchants()` (`mEnchantType`, `mFrequency`, `mIsDisabled`,
 `getMaxLevel`, `isCompatibleWith`), names from `EnchantUtils::getEnchantNameAndLevel`, what goes on an item from
 `EnchantUtils::canEnchant` on one item per enchant slot (`Item::getEnchantSlot`), and the main-hand item's enchantments
-(`constructItemEnchantsFromUserData`) and anvil uses (`getBaseRepairCost`). Meaning a rebuild cannot check: the
+(`constructItemEnchantsFromUserData`) and anvil uses (`getBaseRepairCost`). Kind names are the game's
+`itemGroup.name.*` texts through `getI18n()`, `mPrimarySlots`/`mSecondarySlots` say how many kinds an enchantment goes
+on, and the list beside the anvil reads the player's level (`Player::LEVEL()`) and the 36 carried slots
+(`combined_hotbar_and_inventory_items`, `cursor_items`). Meaning a rebuild cannot check: the
 frequency values 30, 10, 3, 1 as the anvil's per-level cost (read in game 2026-11-12), the 40-level limit, and on the
 anvil screen its name, the `root_panel` control as the window, the two slot collections and
 `AnvilContainerManagerController::mCost` (a class-layout read, compared with the plan and shown when it differs).

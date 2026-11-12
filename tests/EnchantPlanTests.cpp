@@ -54,7 +54,7 @@ Least bruteLeastWork(std::vector<Piece> pieces, int refuseAt) {
 // frequencies and the damage group excluding each other.
 void enchantOrderTests() {
     using namespace lamium::inventory::enchantOrder;
-    std::vector<Offer> offers{{9, 5, 30}, {10, 5, 10}, {11, 5, 10}, {12, 2, 10}, {13, 2, 3}, {14, 3, 3}, {17, 3, 10}, {26, 1, 3}, {28, 1, 1}};
+    std::vector<Offer> offers{{9, 5, 30}, {10, 5, 10}, {11, 5, 10}, {12, 2, 10}, {13, 2, 3}, {14, 3, 3}, {17, 3, 10}, {26, 1, 3}, {28, 1, 1, true}};
     Conflicts conflicts{{{9, 10}, {9, 11}, {10, 11}, {22, 26}}};
     check(conflicts.between(10, 9) && conflicts.between(9, 10) && !conflicts.between(9, 12), "a conflict holds in either order");
     std::vector<Enchantment> wanted, none;
@@ -78,8 +78,45 @@ void enchantOrderTests() {
         check(toggle(full, many[maxBooks], none, conflicts) == Change::Full && static_cast<int>(full.size()) == maxBooks, "a tenth book does not");
     }
     auto all = allHighest(offers, none, conflicts);
-    check(all == std::vector<Enchantment>{{12, 2}, {13, 2}, {14, 3}, {17, 3}, {26, 1}, {28, 1}},
-          "everything at its highest leaves the group that excludes itself");
+    check(all == std::vector<Enchantment>{{9, 5}, {12, 2}, {13, 2}, {14, 3}, {17, 3}, {26, 1}},
+          "everything at its highest takes the most common of a group and no curse");
+    {
+        // A mace: three of the damage group are equally common; density goes on the mace alone.
+        std::vector<Offer> mace{{10, 5, 10, false, 4}, {11, 5, 10, false, 4}, {39, 5, 10, false, 1}, {40, 4, 3, false, 1}, {38, 3, 3, false, 1}};
+        Conflicts group{{{10, 11}, {10, 39}, {10, 40}, {11, 39}, {11, 40}, {39, 40}}};
+        check(allHighest(mace, none, group) == std::vector<Enchantment>{{39, 5}, {38, 3}},
+              "equally common ones are decided by how particular they are to the item");
+        // Boots: depth strider and frost walker tie on both, so the first stays.
+        std::vector<Offer> boots{{7, 3, 3, false, 1}, {25, 2, 3, false, 1}};
+        check(allHighest(boots, none, Conflicts{{{7, 25}}}) == std::vector<Enchantment>{{7, 3}}, "a full tie keeps the game's order");
+    }
+    {
+        std::vector<Offer> boots{{0, 4, 30}, {1, 4, 10}, {2, 4, 10}, {3, 4, 3}, {4, 4, 10}, {28, 1, 1, true}, {17, 3, 10}, {27, 1, 1, true}};
+        Conflicts armor{{{0, 1}, {0, 3}, {0, 4}, {1, 3}, {1, 4}, {3, 4}}};
+        auto order = grouped(boots, armor);
+        std::vector<int> types;
+        for (auto const& offer : order) types.push_back(offer.type);
+        check(types == std::vector<int>{0, 1, 3, 4, 2, 17, 28, 27}, "enchantments that exclude each other sit together, curses last");
+    }
+    {
+        std::vector<Enchantment> low{{12, 2}, {9, 1}};
+        check(step(low, offers[3], -1) && low[0].level == 1 && step(low, offers[3], -1) && low == std::vector<Enchantment>{{9, 1}},
+              "a level below 1 turns the enchantment off");
+        std::vector<Enchantment> chosen{{14, 3}, {17, 2}}, onItem{{17, 3}, {9, 7}, {99, 1}};
+        release(chosen, onItem, offers);
+        check(chosen == std::vector<Enchantment>{{17, 3}, {9, 5}, {14, 3}},
+              "leaving the held state keeps what the item carries, ahead of the rest and within the highest level");
+    }
+    {
+        using lamium::inventory::enchantPlan::Step;
+        lamium::inventory::enchantPlan::Plan made;
+        made.steps = {Step{2u, 4u, 3, 1}, Step{1u, 6u, 9, 2}, Step{7u, 8u, 5, 3}};
+        std::vector<unsigned> fresh{1u, 2u, 4u, 8u}, merged{1u, 6u, 8u}, onSword{7u, 8u}, finished{15u};
+        check(nextStep(made, fresh) == 0 && nextStep(made, merged) == 1 && nextStep(made, onSword) == 2 && nextStep(made, finished) == -1,
+              "the next step is the first whose parts are not yet in one stack");
+        check(done(made.steps[0], onSword) && !done(made.steps[2], onSword) && atHand(6u, merged) && !atHand(6u, fresh),
+              "a later result counts for the steps inside it");
+    }
     auto allOnItem = allHighest(offers, base, conflicts);
     check(!has(allOnItem, 17) && !has(allOnItem, 9) && has(allOnItem, 12), "it skips what the item has and what that blocks");
     std::vector<Enchantment> stale{{9, 5}, {12, 3}, {99, 1}, {17, 2}, {14, 3}};
@@ -116,8 +153,9 @@ void enchantLayoutTests() {
     check(layout.hit(layout.left + 30, rowY).zone == Zone::Row && layout.hit(layout.left + 30, rowY).index == 1
               && layout.hit(layout.minusX() + 1, rowY).zone == Zone::RowMinus && layout.hit(layout.plusX() + 1, rowY).zone == Zone::RowPlus,
           "a row is hit by its index, with its level buttons at the right");
-    check(layout.steps.listCount == 18 && layout.steps.rowsTop + layout.steps.listVisible * 14 <= layout.summaryTop,
-          "each step takes two list rows above the totals");
+    check(layout.steps.listCount == 18 && layout.summaryTop > layout.goalY && layout.steps.rowsTop > layout.summaryTop + 30
+              && layout.steps.rowsTop + layout.steps.listVisible * 14 <= layout.footerTop,
+          "the totals sit under the goal and each step takes two list rows below them");
     check(layout.hit(layout.goalX() + 4, layout.goalY + 2).zone == Zone::Goal && layout.hit(layout.backX + 2, layout.headTop + 2).zone == Zone::Back,
           "the goal and Back take clicks");
     auto plain = EnchantLayout::fit(table, 20, false, 12, 0, 9, 0);

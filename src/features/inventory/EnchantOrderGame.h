@@ -15,6 +15,7 @@ struct Row {
     std::string label;  // name and level, in the game's words
     std::string reason; // what blocks it, when blocked
     RowState state = RowState::Off;
+    bool curse = false;
 };
 struct KindCell {
     std::string name;
@@ -24,6 +25,7 @@ struct StepLine {
     std::string kept, gone;
     bool keptIsItem = false;
     int cost = 0, penalty = 0;
+    bool keptCurse = false, goneCurse = false; // that side is nothing but curses
 };
 // What the screen draws; rebuilt after every change.
 struct View {
@@ -33,6 +35,8 @@ struct View {
     bool inHand = false;     // the chosen kind is the main-hand item's
     bool stateKnown = false; // its anvil uses could be read
     bool useHeld = false;
+    bool bookKind = false;   // books merged into one; there is no item
+    bool planned = false;    // the totals below are valid
     std::vector<Row> rows;
     int wanted = 0;
     bool hasLast = false;

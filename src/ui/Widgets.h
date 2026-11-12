@@ -14,7 +14,8 @@ inline constexpr Rgb panel{.063f,.067f,.075f}, white{1,1,1}, text{1,1,1}, dim{.7
     faint{.498f,.522f,.514f}, accent{.424f,.765f,.286f}, accentDeep{.235f,.522f,.153f}, off{.282f,.286f,.29f},
     keyFill{.169f,.173f,.176f}, keyEdge{.353f,.357f,.361f}, experimental{.725f,.545f,1.f}, warning{1.f,.761f,.29f},
     knobOn{1,1,1}, knobOff{.816f,.82f,.831f}, heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
-    armor{.722f,.725f,.769f}; // #B8B9C4, sampled from the vanilla armor icon
+    armor{.722f,.725f,.769f}, // #B8B9C4, sampled from the vanilla armor icon
+    curse{1.f,.333f,.333f}; // the game's red for curses in an item's tooltip
 }
 enum class Align { Left, Right, Center };
 
