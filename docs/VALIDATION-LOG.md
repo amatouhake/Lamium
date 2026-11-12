@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, fourth pass (2026-11-12)
+
+`b87a65eb`, local build, DLL SHA-256
+`4dba981f4b732b6e8159e327085734cb10016ac5d883feb7ceeca985178a6377`, no trace options,
+1.26.60.05 Dev instance, Japanese, Creative. Passed, per the maintainer (with a
+screenshot):
+
+- Holding an enchanted item the screen opens on the main-hand cell at the left; the
+  kind's own cell switches to a fresh plan.
+- An enchantment row reads name, switch, then `-` `+`.
+- "List the steps beside the anvil" off shows nothing beside the anvil; on shows it.
+
+Seen: a pickaxe, a carved pumpkin and a plain book in the main hand get the cell; an
+enchanted book does not. Wanted: a press on an enchantment the item carries should
+no longer switch to a fresh plan now that the two are chosen apart; the main-hand
+cell after the enchanted book's instead of in its own column, so the grid does not
+move.
+
 ## Enchantment order, third pass (2026-11-12)
 
 `cfd22b5e`, local build, DLL SHA-256

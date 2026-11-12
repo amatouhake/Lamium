@@ -120,10 +120,12 @@ inline void release(std::vector<Enchantment>& wanted, std::span<Enchantment cons
 // The planner's inputs: the item with its earlier anvil uses when there is
 // one (a plan of books alone has none), then a fresh book per wanted
 // enchantment. Nothing when a frequency is not one the cost rule covers.
+// A held enchanted book is input 0 as well, but with a value: unlike an item
+// it may be the sacrificed side.
 inline std::optional<std::vector<enchantPlan::Input>> inputs(std::span<Enchantment const> wanted, std::span<Offer const> offers, int itemWork,
-    bool withItem = true) {
+    bool withItem = true, std::optional<int> bookValue = std::nullopt) {
     std::vector<enchantPlan::Input> out;
-    if (withItem) out.push_back({0, std::max(0, itemWork), true});
+    if (withItem) out.push_back({bookValue.value_or(0), std::max(0, itemWork), !bookValue});
     for (auto const& e : wanted) {
         auto offer = std::ranges::find_if(offers, [&](Offer const& o) { return o.type == e.type; });
         if (offer == offers.end()) return std::nullopt;
@@ -143,6 +145,19 @@ inline std::vector<unsigned> progress(std::span<unsigned const> stacks, enchantP
     if ((full & 1u) && std::ranges::any_of(out, [&](unsigned mask) { return (mask & 1u) && mask != full; }))
         std::erase(out, full);
     return out;
+}
+// What a book costs as the sacrificed side: its levels at the book rate.
+// Nothing when an enchantment on it is not offered or has an unknown rate.
+inline std::optional<int> bookValue(std::span<Enchantment const> on, std::span<Offer const> offers) {
+    int value = 0;
+    for (auto const& e : on) {
+        auto offer = std::ranges::find_if(offers, [&](Offer const& o) { return o.type == e.type; });
+        if (offer == offers.end()) return std::nullopt;
+        auto const cost = enchantPlan::levelCost(offer->frequency, true);
+        if (!cost) return std::nullopt;
+        value += e.level * *cost;
+    }
+    return value;
 }
 // Following a plan with what the player carries: a step is done when one
 // stack holds everything the step joins. `stacks` are the planner-input

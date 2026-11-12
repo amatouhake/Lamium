@@ -134,6 +134,15 @@ void enchantOrderTests() {
     std::vector<Offer> odd{{9, 5, 7}};
     check(!inputs(std::vector<Enchantment>{{9, 5}}, odd, 0) && !inputs(std::vector<Enchantment>{{50, 1}}, offers, 0),
           "an unknown frequency or enchantment gives no inputs");
+    {
+        // A held book with looting 3 and mending: 6 + 2 as the sacrificed side, and it may be sacrificed.
+        std::vector<Enchantment> onBook{{14, 3}, {26, 1}};
+        auto value = bookValue(onBook, offers);
+        auto withBook = inputs(std::vector<Enchantment>{{9, 5}}, offers, 1, true, value);
+        check(value == 8 && withBook && withBook->size() == 2 && (*withBook)[0].value == 8 && (*withBook)[0].work == 1 && !(*withBook)[0].item,
+              "a held book is input 0 with its value and uses, free to be either side");
+        check(!bookValue(std::vector<Enchantment>{{99, 1}}, offers) && bookValue(none, offers) == 0, "a book with an unknown enchantment has no value");
+    }
 }
 void enchantLayoutTests() {
     using lamium::ui::EnchantLayout;
@@ -148,8 +157,8 @@ void enchantLayoutTests() {
     check(layout.hit(layout.kindX(3) + 2, layout.kindY(3) + 2).zone == Zone::Kind && layout.hit(layout.kindX(3) + 2, layout.kindY(3) + 2).index == 3
               && layout.hit(layout.kindX(19) + 2, layout.kindY(19) + 2).index == 19,
           "a kind cell is hit by its index");
-    check(layout.hit(layout.heldX() + 2, layout.kindsTop + 2).zone == Zone::Held && layout.kindX(0) > layout.heldX() + EnchantLayout::cell,
-          "the main-hand item has its own cell left of the kinds");
+    check(layout.hit(layout.kindX(20) + 2, layout.kindY(20) + 2).zone == Zone::Held && layout.heldIndex() == 20,
+          "the main-hand item's cell comes after the last kind");
     check(layout.hit(layout.setAllX + 2, layout.setsY + 2).zone == Zone::SetAll && layout.hit(layout.setLastX + 2, layout.setsY + 2).zone == Zone::SetLast
               && layout.hit(layout.setClearX + 2, layout.setsY + 2).zone == Zone::SetClear
               && layout.setClearX + layout.setNarrow <= layout.dividerX,
@@ -164,9 +173,9 @@ void enchantLayoutTests() {
     check(layout.hit(layout.goalX() + 4, layout.goalY + 2).zone == Zone::Goal && layout.hit(layout.backX + 2, layout.headTop + 2).zone == Zone::Back,
           "the goal and Back take clicks");
     auto plain = EnchantLayout::fit(table, 20, false, 12, 0, 9, 0);
-    check(plain.kindColumns > layout.kindColumns && plain.kindX(0) == plain.heldX()
-              && plain.hit(plain.heldX() + 2, plain.kindsTop + 2).zone == Zone::Kind,
-          "without a main-hand item the kinds start at the left edge");
+    check(plain.kindColumns == layout.kindColumns && plain.setsY == layout.setsY && plain.rows.rowsTop == layout.rows.rowsTop
+              && plain.hit(plain.kindX(20) + 2, plain.kindY(20) + 2).zone == Zone::None,
+          "without a main-hand item its place stays empty and nothing moves");
     check(layout.switchX() + 18 < layout.minusX() && layout.switchX() > layout.left + 60, "the switch stands right of the name, before the level buttons");
     check(!EnchantLayout::fit(SettingsTable::fit(100, 100, 29, 0), 20, true, 12, 0, 9, 0).usable(), "too-small windows draw nothing");
 }

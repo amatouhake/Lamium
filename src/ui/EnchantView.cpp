@@ -74,13 +74,9 @@ bool click(float x, float y, bool right) {
     case Zone::Row:
         switch (game::toggleRow(hit.index)) {
         case order::Change::Full: screen::setMessage(translated("enchantOrder.full", order::maxBooks)); break;
-        // What the item carries cannot come off at an anvil: a press plans
-        // the item from fresh instead, keeping what it has as wanted.
-        case order::Change::Fixed:
-            game::setUseHeld(false);
-            screen::setMessage(translated("enchantOrder.heldReleased"));
-            rowFirst = 0;
-            break;
+        // What the item carries cannot come off at an anvil; a fresh plan is
+        // chosen by the kind's cell, not here.
+        case order::Change::Fixed: screen::setMessage(translated("enchantOrder.onItem.help")); break;
         default: break;
         }
         stepFirst = 0;
@@ -125,21 +121,22 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     drawIcon(context, game::itemIcon(), leftLeft, last.itemY + 2);
     label(context, leftLeft + 14, last.itemY + 3, leftRight - leftLeft - 14,
         v.useHeld ? translated("enchantOrder.kind.held", v.itemName) : v.itemName);
-    if (last.heldCell) {
-        // The item in the main hand itself: choosing it plans from its state.
-        float const x = last.heldX(), y = last.kindsTop;
-        bool const over = hover.zone == Zone::Held;
-        fill(context, x, y, L::cell, L::cell, v.useHeld ? palette::accent : Rgb{0, 0, 0}, v.useHeld ? .16f : .3f);
-        frame(context, x, y, L::cell, L::cell, v.useHeld ? palette::accent : over ? palette::white : palette::keyEdge, v.useHeld || over ? 1 : .6f);
-        drawIcon(context, game::heldIcon(), x + 2, y + 2, 16);
-        fill(context, x + L::cell + 3, y, 1, L::cell, palette::white, .14f);
-    }
+
     for (int i = 0; i < last.kindCount; ++i) {
         float const x = last.kindX(i), y = last.kindY(i);
         bool const chosen = i == v.kind && !v.useHeld, over = hover.zone == Zone::Kind && hover.index == i;
         fill(context, x, y, L::cell, L::cell, chosen ? palette::accent : Rgb{0, 0, 0}, chosen ? .16f : .3f);
         frame(context, x, y, L::cell, L::cell, chosen ? palette::accent : over ? palette::white : palette::keyEdge, chosen || over ? 1 : .6f);
         drawIcon(context, game::kindIcon(i), x + 2, y + 2, 16);
+    }
+    if (last.heldCell) {
+        // The item in the main hand itself, after the kinds: choosing it plans
+        // from its state. A lighter frame sets it apart from the kinds.
+        float const x = last.kindX(last.heldIndex()), y = last.kindY(last.heldIndex());
+        bool const over = hover.zone == Zone::Held;
+        fill(context, x, y, L::cell, L::cell, v.useHeld ? palette::accent : palette::white, v.useHeld ? .16f : .08f);
+        frame(context, x, y, L::cell, L::cell, v.useHeld ? palette::accent : over ? palette::white : palette::dim);
+        drawIcon(context, game::heldIcon(), x + 2, y + 2, 16);
     }
     drawButton(context, last.setAllX, last.setsY, last.setWide, translated("enchantOrder.setAll"), hover.zone == Zone::SetAll, true);
     drawButton(context, last.setLastX, last.setsY, last.setWide, translated("enchantOrder.setLast"), hover.zone == Zone::SetLast, v.hasLast);

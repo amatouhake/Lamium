@@ -139,7 +139,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"enchantOrder.anvil.match", "The slots match step {}", "金床の 2 つが {} 回目と一致しています"},
     {"enchantOrder.anvil.notInPlan", "This pair is not a step of the plan", "この組み合わせは計画にありません"},
     {"enchantOrder.anvil.costDiffers", "The game says {} levels; the plan may be off", "ゲームの表示は {} レベルです。計画とずれています"},
-    {"enchantOrder.heldReleased", "Planning this item from fresh now: what it carries is kept as wanted.", "新品からの計画に切り替えました。付いていたエンチャントは「付けたい」側に移しました。"},
     {"enchantOrder.noSteps", "One book needs no anvil.", "1 冊だけなら合成は不要です。"},
     {"enchantOrder.anvil.have", "Your level: {}", "いまのレベル: {}"},
     {"enchantOrder.anvil.next", "Next: step {}", "次は {} 回目"},

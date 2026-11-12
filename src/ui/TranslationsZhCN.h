@@ -136,7 +136,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"enchantOrder.anvil.match", "槽位与第 {} 步一致"},
     {"enchantOrder.anvil.notInPlan", "这一组合不在计划中"},
     {"enchantOrder.anvil.costDiffers", "游戏显示为 {} 级，计划可能有偏差"},
-    {"enchantOrder.heldReleased", "已改为从全新物品规划：原有的附魔已移到想要的附魔中。"},
     {"enchantOrder.noSteps", "只有一本书时无需铁砧。"},
     {"enchantOrder.anvil.have", "当前等级：{}"},
     {"enchantOrder.anvil.next", "下一步：第 {} 步"},

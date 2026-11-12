@@ -1311,6 +1311,16 @@ Decided the same day and built, not checked in game:
   under Enchantment order (`inventory.enchantOrderAnvil`, on by default): it
   is the only part that shows without being asked. The planner itself has
   no switch.
+Fourth pass by the maintainer 2026-11-12 (`b87a65eb`, VALIDATION-LOG): passed.
+Decided the same day and built, not checked in game:
+- A press on an enchantment the item carries does nothing but explain itself
+  in the footer: fresh and main hand are chosen by their cells now.
+- The main-hand cell is the last cell of the grid, after the enchanted
+  book's, with a lighter frame; its place is kept free when nothing is held,
+  so the grid never moves.
+- An enchanted book in the main hand gets the cell too (it had been left
+  out): the plan then merges further books into it, charging its anvil uses;
+  it may end up on either side of a step.
 Noted for later, outside L-170: the world map is experimental and has no way
 to turn it off either; whether a screen that only opens on request needs a
 switch is one question for both.

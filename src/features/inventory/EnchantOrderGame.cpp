@@ -98,6 +98,7 @@ struct Active {
     int slot = 0;
     Goal goal = Goal::FewestLevels;
     std::string itemId, itemName;
+    bool heldBook = false; // input 0 is an enchanted book the player held
     std::vector<Enchantment> base, wanted;
     Plan plan;
     std::vector<StepLine> lines;
@@ -202,8 +203,9 @@ bool readCatalog() {
 void readHeld(LocalPlayer& player) {
     held = {};
     ItemStack const& stack = player.getSelectedItem();
-    if (stack.isNull() || !stack.mItem || stack.getTypeName() == bookItem) return;
-    int const slot = stack.mItem->getEnchantSlot();
+    if (stack.isNull() || !stack.mItem) return;
+    // An enchanted book has no enchant slot of its own; it belongs to the book kind.
+    int const slot = stack.getTypeName() == bookItem ? bookSlot : stack.mItem->getEnchantSlot();
     auto found = std::ranges::find_if(kinds, [&](Kind const& k) { return k.slot == slot; });
     if (slot == 0 || found == kinds.end()) return;
     held.present = true;
@@ -238,7 +240,8 @@ void rebuild() {
     shown.kind = kind;
     if (kind < 0) { active = {}; return; }
     auto const& chosen = kinds[static_cast<size_t>(kind)];
-    bool const fromHeld = usingHeld(kind), withItem = chosen.slot != bookSlot;
+    // A held book is input 0 like an item, but it may be the sacrificed side.
+    bool const fromHeld = usingHeld(kind), heldBook = fromHeld && chosen.slot == bookSlot, withItem = chosen.slot != bookSlot || heldBook;
     shown.inHand = held.present && held.kind == kind;
     shown.stateKnown = held.stateKnown;
     shown.useHeld = fromHeld;
@@ -274,7 +277,12 @@ void rebuild() {
             shown.rows.push_back({e.type, e.level, e.level, nameOf(e.type, e.level), {}, RowState::Fixed, curse(e.type)});
     active = {};
     if (wanted.empty()) return;
-    auto made = inputs(wanted, chosen.offers, fromHeld ? held.work : 0, withItem);
+    std::optional<int> heldValue;
+    if (heldBook) {
+        heldValue = bookValue(base, chosen.offers);
+        if (!heldValue) { shown.costUnknown = true; return; }
+    }
+    auto made = inputs(wanted, chosen.offers, fromHeld ? held.work : 0, withItem, heldValue);
     if (!made) { shown.costUnknown = true; return; }
     int const limit = creativeNow ? 0 : 40;
     auto mine = enchantPlan::plan(*made, {limit, goal});
@@ -314,6 +322,7 @@ void rebuild() {
     try { active.itemId = chosen.icon.getTypeName(); } catch (...) {}
     active.itemName = shown.itemName;
     active.base = base;
+    active.heldBook = heldBook;
     active.wanted = wanted;
     active.plan = *mine;
     active.lines = shown.steps;
@@ -327,7 +336,11 @@ std::optional<unsigned> sideOf(ItemStack const& stack) {
     bool const isBook = stack.getTypeName() == bookItem;
     bool const isItem = !isBook && active.slot != bookSlot && stack.mItem->getEnchantSlot() == active.slot;
     if (!isBook && !isItem) return std::nullopt;
-    return enchantPlan::carried(isItem, enchantsOn(stack), active.base, active.wanted);
+    auto const on = enchantsOn(stack);
+    // The held book is told from the fresh ones by carrying everything it had.
+    if (isBook && active.heldBook && std::ranges::all_of(active.base, [&](Enchantment const& e) { return std::ranges::find(on, e) != on.end(); }))
+        return enchantPlan::carried(true, on, active.base, active.wanted);
+    return enchantPlan::carried(isItem, on, active.base, active.wanted);
 }
 std::string sideText(unsigned mask) {
     if (mask & 1u) return active.itemName;

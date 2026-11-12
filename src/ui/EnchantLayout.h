@@ -7,19 +7,19 @@
 namespace lamium::ui {
 // Enchantment order (BACKLOG L-170). Like the block highlight list it takes
 // the settings table's place: a heading row with the path and Back, then on
-// the left the item, a cell for the main-hand item beside the kinds as an
-// icon grid, the set buttons and the enchantments; on the right the goal, the totals and
+// the left the item, the kinds as an icon grid with the main-hand item's cell
+// last, the set buttons and the enchantments; on the right the goal, the totals and
 // the steps (two list rows each).
 struct EnchantLayout {
     static constexpr float titleHeight = 12, barHeight = 14, cell = 20, cellGap = 2, buttonHeight = 11, stepWidth = 11;
-    static constexpr float summaryLine = 11, goalWidth = 120, heldGap = 7;
+    static constexpr float summaryLine = 11, goalWidth = 120;
     static constexpr int summaryLines = 3, stepRows = 2;
     enum class Zone { None, Back, Held, Kind, SetAll, SetLast, SetClear, Row, RowMinus, RowPlus, Goal };
     struct Hit { Zone zone = Zone::None; int index = -1; };
 
     float left{}, width{}, headTop{}, bodyTop{}, footerTop{}, backX{};
     float dividerX{}, rightLeft{}, rightWidth{};
-    float itemY{}, kindsTop{}, kindsLeft{}, setsY{}, rowsTitleY{};
+    float itemY{}, kindsTop{}, setsY{}, rowsTitleY{};
     float setAllX{}, setLastX{}, setClearX{}, setWide{}, setNarrow{};
     int kindColumns{}, kindCount{};
     bool heldCell{};
@@ -49,12 +49,11 @@ struct EnchantLayout {
         l.rightLeft = l.dividerX + 1; l.rightWidth = l.left + l.width - l.rightLeft;
 
         l.kindCount = std::max(0, kinds);
-        // The main-hand item's own cell stands left of the kinds, apart from them.
+        // The main-hand item's cell comes after the last kind. Its place is
+        // kept whether or not there is one, so nothing below moves.
         l.heldCell = held;
-        float const heldRoom = held ? cell + heldGap : 0;
-        l.kindsLeft = l.left + pad + heldRoom;
-        l.kindColumns = std::max(1, static_cast<int>((leftWidth - 2 * pad - heldRoom + cellGap) / (cell + cellGap)));
-        int const kindRows = (l.kindCount + l.kindColumns - 1) / l.kindColumns;
+        l.kindColumns = std::max(1, static_cast<int>((leftWidth - 2 * pad + cellGap) / (cell + cellGap)));
+        int const kindRows = (l.kindCount + 1 + l.kindColumns - 1) / l.kindColumns;
         l.itemY = l.bodyTop + 1;
         l.kindsTop = l.itemY + barHeight + 1;
         float y = l.kindsTop + kindRows * (cell + cellGap);
@@ -73,8 +72,8 @@ struct EnchantLayout {
         l.steps = column(l.rightLeft, l.rightWidth, l.stepsTitleY + titleHeight, l.footerTop, stepCount * stepRows, stepFirst);
         return l;
     }
-    float heldX() const { return left + SettingsTable::pad; }
-    float kindX(int index) const { return kindsLeft + (index % kindColumns) * (cell + cellGap); }
+    float kindX(int index) const { return left + SettingsTable::pad + (index % kindColumns) * (cell + cellGap); }
+    int heldIndex() const { return kindCount; }
     float kindY(int index) const { return kindsTop + (index / kindColumns) * (cell + cellGap); }
     float plusX() const { return rows.listLeft + rows.listWidth - SettingsTable::pad - stepWidth; }
     float minusX() const { return plusX() - stepWidth - 1; }
@@ -93,7 +92,8 @@ struct EnchantLayout {
         if (x < dividerX) {
             for (int i = 0; i < kindCount; ++i)
                 if (x >= kindX(i) && x < kindX(i) + cell && y >= kindY(i) && y < kindY(i) + cell) return {Zone::Kind, i};
-            if (heldCell && x >= heldX() && x < heldX() + cell && y >= kindsTop && y < kindsTop + cell) return {Zone::Held};
+            if (heldCell && x >= kindX(heldIndex()) && x < kindX(heldIndex()) + cell && y >= kindY(heldIndex()) && y < kindY(heldIndex()) + cell)
+                return {Zone::Held};
             if (y >= setsY && y < setsY + buttonHeight) {
                 if (x >= setAllX && x < setAllX + setWide) return {Zone::SetAll};
                 if (x >= setLastX && x < setLastX + setWide) return {Zone::SetLast};
