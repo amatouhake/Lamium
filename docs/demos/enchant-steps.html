@@ -164,16 +164,15 @@ p{margin:0}
 .chip.have{color:var(--mc-dim)}
 .chip b{font-weight:400;margin-left:4px}
 .srow{cursor:default}
-.srow .at{color:#fff}
-.srow .notyet{color:var(--mc-dim)}
-.srow .notyet .tile{opacity:.4}
 .srow .lack{color:var(--mc-warn)}
+.sum .now{margin-left:8px;font-size:12px;color:var(--mc-dim)}
+.sum .d{display:flex;flex-wrap:wrap;column-gap:14px}
 .sum .mat{margin-left:10px;font-size:12px;color:var(--mc-dim)}
 .sum .mat.short{color:var(--mc-warn)}
 .sum .d{color:var(--mc-dim)}
 .srow.done{opacity:.45}
 .srow.next{box-shadow:inset 2px 0 0 #fff}
-.srow.can{background:var(--mc-sel);box-shadow:inset 2px 0 0 var(--mc-on-edge);cursor:pointer}
+.srow.next.can{cursor:pointer}
 .srow{grid-template-columns:18px minmax(0,1fr) auto}
 .srow .c small{display:block;font-size:10px;color:var(--mc-faint);white-space:nowrap}
 .tip{position:absolute;z-index:5;background:#100010;box-shadow:inset 0 0 0 2px #2a0a5e;color:#fff;font-size:12px;line-height:1.35;padding:5px 7px;white-space:nowrap;pointer-events:none}
@@ -187,9 +186,9 @@ p{margin:0}
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">BACKLOG L-170 · エンチャント順序 · 手順の側をまとめる（モック第 2 版、2026-11-12）</div>
+    <div class="eyebrow">BACKLOG L-170 · エンチャント順序 · 手順の側をまとめる（モック第 3 版、2026-11-12）</div>
     <h1>手順・足りないもの・作業ペナルティを 1 つのまとまりで見せる</h1>
-    <p class="lede">左の選択はプランナー画面と金床で 1 つの部品になりました。このモックは<strong>右の手順の側</strong>を同じように 1 つにまとめ、関連する表示（<strong>計画全体で足りないもの</strong>、<strong>次に使うアイテムのハイライト</strong>、<strong>アイテムの作業ペナルティ</strong>）を一緒に考える案です。第 2 版では、材料の一覧をやめて<strong>合計の行の数</strong>と<strong>手順の名前ごとの色</strong>にし、目標は ◀ ▶ に決め、ハイライトを<strong>左右で色分け</strong>し、合計の下の説明の行を両方の画面で同じにしました。計算は実際に動きます。「手元にあるもの」を切り替えたり、緑の手順を押して進めたりできます。アイコンは 1 文字の仮の絵、エンチャント名は仮の訳です。</p>
+    <p class="lede">左の選択はプランナー画面と金床で 1 つの部品になりました。このモックは<strong>右の手順の側</strong>を同じように 1 つにまとめ、関連する表示（<strong>計画全体で足りないもの</strong>、<strong>次に使うアイテムのハイライト</strong>、<strong>アイテムの作業ペナルティ</strong>）を一緒に考える案です。第 3 版では、手順の見分け方を<strong>3 つだけ</strong>に減らしました（足りない名前は黄色、済んだ手順は薄い、次の手順に白い線）。いまのレベルは合計の横に置き、その下の 2 項目は入りきらなければ項目ごとに改行します。計算は実際に動きます。「手元にあるもの」を切り替えたり、白い線の手順を押して進めたりできます。アイコンは 1 文字の仮の絵、エンチャント名は仮の訳です。</p>
   </header>
 
   <div class="tabs" role="tablist" aria-label="場面">
@@ -217,19 +216,21 @@ p{margin:0}
 
   <section class="cards">
     <article class="note"><h3>手順の側を 1 つにする</h3><ul>
-      <li>上から <strong>目標</strong>（◀ ▶）、<strong>合計と材料の数</strong>、説明の 1 行、<strong>手順</strong>、いますることの 1 行。金床でも Lamium の画面でも同じ並び、同じ描画</li>
-      <li>材料の一覧は置かない。「合計 38 レベル」の横に「材料 4/6」と出し、足りないときは黄色にする</li>
-      <li>下の 1 行は、いまできる手順があればそれ、なければ<strong>計画全体で足りないもの</strong>を並べる</li>
+      <li>上から <strong>目標</strong>（◀ ▶）、<strong>合計・いまのレベル・材料の数</strong>、説明の 2 項目、<strong>手順</strong>、いますることの 1 行。金床でも Lamium の画面でも同じ並び、同じ描画</li>
+      <li>「合計 38 レベル（いま 30）」と、必要な量と持っている量を隣に置く。その横に「材料 4/6」、足りないときは黄色</li>
+      <li>下の 1 行は、次の手順ができるならそれ、できないなら<strong>計画全体で足りないもの</strong>を並べる</li>
     </ul></article>
-    <article class="note"><h3>手順の色</h3><ul>
-      <li><strong>名前ごと</strong>: その本（やアイテム）が手元にも合成済みの中にもなければ、その名前だけ黄色。合成で作る辺でも、どの材料が足りないかが分かる</li>
-      <li><strong>辺ごと</strong>: その辺そのものがいま 1 つのスタックとして手元にあれば白でアイコンも明るい。まだ作っていない辺は灰色でアイコンが暗い</li>
-      <li>済んだ手順は薄く、次の手順は白い線、<strong>2 つとも手元にある手順は緑</strong>（いまできる）</li>
-      <li>Lamium の画面でも、プレイヤーのインベントリを読んで同じ表示にする</li>
+    <article class="note"><h3>手順の見分け方は 3 つだけ</h3><ul>
+      <li><strong>黄色い名前</strong>: その本（やアイテム）をまだ持っていない</li>
+      <li><strong>薄い行</strong>: 済んだ手順</li>
+      <li><strong>白い線</strong>: 次に行う手順（1 つだけ）</li>
+      <li>第 2 版にあった「辺ごとの明るさ」「いまできる手順の緑」はやめた。次の手順ができるかどうかは下の 1 行とインベントリの枠で分かる</li>
+      <li>金床に置いた 2 つが手順と一致したときにその行が緑になるのは、いまのまま（金床の画面だけ）</li>
     </ul></article>
     <article class="note"><h3>合計の下の行</h3><ul>
       <li>いまの Lamium の画面は「いちばん高い 1 回: 14　完成品の金床使用回数: 3（次回 +7）」。意味を知らないと読めないし、金床には出ていない</li>
-      <li>言い換えの案: <strong>「一度に必要: 14 レベル」</strong>（いちばん高い 1 回 = その回を行うのに持っていなければならないレベル。金床ではいまのレベルと並べる）と <strong>「仕上がりの作業ペナルティ: +7」</strong>（完成品を次に金床に入れると上乗せされるレベル）</li>
+      <li>言い換える: <strong>「一度に必要: 14 レベル」</strong>（いちばん高い 1 回 = その回を行うのに持っていなければならないレベル）と <strong>「仕上がりの作業ペナルティ: +7」</strong>（完成品を次に金床に入れると上乗せされるレベル）</li>
+      <li>2 項目が 1 行に入らない幅（金床の横）では、項目ごとに改行する</li>
       <li>乗せたときの説明欄（Lamium の画面のフッター、金床の左パネル下の 2 行）に、それぞれ 1 文の説明を出す</li>
       <li>上のセレクトで「いまの言葉」「出さない」と比べられる。両方の画面で同じ行にする</li>
     </ul></article>
@@ -242,16 +243,17 @@ p{margin:0}
   </section>
 
   <section class="ask">
-    <h2>決定事項（2026-11-12）と残り</h2>
+    <h2>決定事項（2026-11-12）</h2>
     <ol>
       <li><b>手順の側は両方の画面で 1 つの部品にする。</b></li>
       <li><b>目標は ◀ ▶。</b>設定画面と同じ形で、切り替えにポインタを動かさなくてよい。</li>
       <li><b>材料の一覧は置かず、合計の行の数と、手順の名前ごとの色で見せる。</b></li>
+      <li><b>手順の見分け方は、黄色い名前・薄い行・白い線の 3 つだけ。</b>辺ごとの明るさや「いまできる」の色は複雑なので入れない。</li>
+      <li><b>いまのレベルは合計の横。その下は「一度に必要」と「仕上がりの作業ペナルティ」で、入らなければ項目ごとに改行。</b></li>
       <li><b>次に使うアイテムのハイライトを入れる（描ければ）。左右を色で分ける。</b></li>
       <li><b>作業ペナルティのツールチップは L-319 として別に作る。</b></li>
+      <li><b>ただの本はアイテムとして出さない。</b>金床が合成できることは分かった上での判断で、理由は BACKLOG と FEATURES に書く。</li>
       <li><b>作る順番: ①手順の側の共通化、②ハイライトの試作、③ L-319。</b></li>
-      <li>残り：<b>合計の下の行の言葉。</b>言い換え（「一度に必要」「仕上がりの作業ペナルティ」）でよいか、いまの言葉のままか、出さないか。</li>
-      <li>残り：<b>ただの本をアイテムとして出すか。</b>ゲームは合成できるが、出すと金床のリストが手順を追えない。おすすめは出さない。</li>
     </ol>
   </section>
 </div>
@@ -423,22 +425,22 @@ function stepsPart(into, c, full){
   const steps=c.mine.steps, next=steps.findIndex(s=>!done(s));
   const sum=el("div","sum"); sum.style.borderTop="0"; sum.style.borderBottom="1px solid var(--mc-edge)";
   let got=0; c.inputs.forEach((x,i)=>{ if(holds(1<<i)) got++; });
-  sum.append(el("div","big",`合計 ${c.mine.total} レベル<span class="mat${got<c.inputs.length?" short":""}">材料 ${got}/${c.inputs.length}</span>`));
-  const level=creative?"":"（いま 30）";
-  if(detail==="plain") sum.append(el("div","d",`一度に必要: ${c.mine.highest} レベル${level}　仕上がりの作業ペナルティ: +${pen(c.mine.work)}`));
-  else if(detail==="old") sum.append(el("div","d",`いちばん高い 1 回: ${c.mine.highest}　完成品の金床使用回数: ${c.mine.work}（次回 +${pen(c.mine.work)}）`));
+  sum.append(el("div","big",`合計 ${c.mine.total} レベル`+(creative?"":`<span class="now">（いま 30）</span>`)
+    +`<span class="mat${got<c.inputs.length?" short":""}">材料 ${got}/${c.inputs.length}</span>`));
+  if(detail==="plain") sum.append(el("div","d",`<span>一度に必要: ${c.mine.highest} レベル</span><span>仕上がりの作業ペナルティ: +${pen(c.mine.work)}</span>`));
+  else if(detail==="old") sum.append(el("div","d",`<span>いちばん高い 1 回: ${c.mine.highest}</span><span>完成品の金床使用回数: ${c.mine.work}（次回 +${pen(c.mine.work)}）</span>`));
   into.append(sum);
   into.append(el("div","ctitle",`手順 <b>${steps.length}</b> 回<span class="spacer"></span>レベル`));
   const sc=el("div","scroll");
-  // A side: bright when that very stack is at hand; each name yellow when what it stands for is nowhere.
+  // A side: each name yellow when what it stands for is nowhere, at hand or inside a merged stack.
   const side=mask=>{
     const names=[];
     for(let i=0;i<c.inputs.length;i++) if(mask>>i&1) names.push(`<span class="${holds(1<<i)?"":"lack"}">${c.text(1<<i)}</span>`);
-    return `<span class="${at(mask)?"at":"notyet"}">${c.glyph(mask)}${names.join(", ")}</span>`;
+    return `<span>${c.glyph(mask)}${names.join(", ")}</span>`;
   };
   steps.forEach((s,i)=>{
-    const can=!done(s)&&at(s.kept)&&at(s.gone);
-    const r=el("div","row srow"+(done(s)?" done":can?" can":i===next?" next":""));
+    const can=i===next&&at(s.kept)&&at(s.gone);
+    const r=el("div","row srow"+(done(s)?" done":i===next?" next":"")+(can?" can":""));
     r.append(el("span","n",i+1));
     const w=el("div","what");
     w.innerHTML=`${side(s.kept)}<br><span class="plus">＋</span>${side(s.gone)}`;
@@ -453,9 +455,9 @@ function stepsPart(into, c, full){
   const f=el("div","sum");
   if(next<0) f.append(el("div",null,'<span style="color:var(--mc-on-edge)">計画は完了しています</span>'));
   else {
-    const ready=steps.findIndex(x=>!done(x)&&at(x.kept)&&at(x.gone));
+    const ready=at(steps[next].kept)&&at(steps[next].gone)?next:-1;
     const lacking=[]; c.inputs.forEach((x,i)=>{ if(!holds(1<<i)) lacking.push(c.text(1<<i)); });
-    if(ready>=0) f.append(el("div",null,`いまできる: ${ready+1} 回目`+(scene==="anvil"&&hilite?"（緑の枠を左、白の枠を右に）":"")));
+    if(ready>=0) f.append(el("div",null,`次は ${ready+1} 回目`+(scene==="anvil"&&hilite?"（緑の枠を左、白の枠を右に）":"")));
     else if(lacking.length) f.append(el("div","warn",`足りないもの: ${lacking.join("、")}`));
     else f.append(el("div","warn",`${next+1} 回目の 2 つがそろっていません`));
   }
@@ -498,7 +500,7 @@ function render(){
     layer.append(p); return;
   }
   const steps=c.mine?c.mine.steps:[], at=mask=>have.some(s=>s.mask===mask), done=s=>have.some(x=>(x.mask&(s.kept|s.gone))===(s.kept|s.gone));
-  const ready=steps.find(s=>!done(s)&&at(s.kept)&&at(s.gone));
+  const upNext=steps.find(s=>!done(s)), ready=upNext&&at(upNext.kept)&&at(upNext.gone)?upNext:null;
   const a=el("div","anvil");
   a.innerHTML=`<div class="t">修理 &amp; 名前変更</div><div class="nm2"></div>
     <div class="slots"><span class="slot${hilite&&ready?" hlL":""}"></span>＋<span class="slot${hilite&&ready?" hlR":""}"></span>→<span class="slot"></span></div>

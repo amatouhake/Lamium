@@ -409,7 +409,9 @@ is left out, as the anvil refuses it; in Creative there is no limit.
 With the main-hand item chosen, what it carries stays and its earlier anvil uses are
 charged; a carried level can be raised, which costs only the difference. Books are
 always counted as fresh, and two books of one enchantment are not merged into a higher
-level.
+level. A plain book is not offered as an item to plan from, although the anvil does
+enchant one from an enchanted book: the result is that book again with one more anvil
+use on it, and the step list could not tell it from the other books afterwards.
 
 The plan's steps are listed right of the anvil screen ("List the steps beside the
 anvil", on by default): the total and your level on top, finished steps grey, the next

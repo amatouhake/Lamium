@@ -1719,9 +1719,24 @@ mockup proposes one line for both screens in plainer words ("needed at
 once: N levels", "the finished item's work penalty: +N"), each explained
 in the status line on hover; the present words and no line can be compared
 on the page.
-Still open:
-- The words of the line under the total (plainer, as now, or none).
-- Whether a plain book is offered as an item.
+Decided by the maintainer the same day (the mockup's third version):
+- The plainer words. Your level goes beside the total, not beside "needed
+  at once". The two items under it break onto a line each where one line
+  does not hold them.
+- The coloured names stay. The other rules of the second version (a side
+  bright only when that very stack is at hand, a green row for every step
+  that can be taken) were too much: the maintainer was reading the
+  explanation instead of the list. Three ways to tell steps apart and no
+  more: a yellow name is not at hand, a faint row is done, a white bar is
+  the next step. Whether the next step can be taken is said by the last
+  line and by the inventory outlines. The row of the pair lying in the
+  slots stays highlighted as today.
+- A plain book is not offered as an item, knowing that the anvil accepts
+  it. That this is a choice and not ignorance of the game is recorded here
+  and in FEATURES.md; the maintainer is not sure the game itself needs to
+  say it.
+Next, when the maintainer says so: build the shared steps' side (order
+agreed: that, then the highlight trial, then L-319).
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 
