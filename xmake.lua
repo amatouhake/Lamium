@@ -42,7 +42,7 @@ option_end()
 option("enchant_mark_test")
     set_default(false)
     set_showmenu(true)
-    set_description("L-170: at the anvil, show the marks on the slots in five looks in turn, to choose one")
+    set_description("L-170: at the anvil, show the marks on the slots in six looks in turn, to choose one")
 option_end()
 
 option("slime_trace")

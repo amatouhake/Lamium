@@ -1838,6 +1838,23 @@ drawing before. Built the same day (not checked in game):
   five looks in turn, six seconds each, named on screen: thin frame;
   thin frame and a faint tint; tint alone; corners; thin frame and tint
   with the right side in yellow. Remove the option once one is chosen.
+Round 1 of the looks by the maintainer 2026-11-13 (`c4c910dd` with the
+option, VALIDATION-LOG): the frame with a tint and the tint alone show
+best, to be tried stronger; yellow is out for the right side; what the
+anvil's slots say works. Raised: green for "left" is also the colour of a
+right pair - would the shapes' cyan and pink do, or are they hard to see;
+could the game's own green slot background under the pointer be used;
+and could a stack carried on the pointer be marked, as the panels redraw
+a held item.
+Round 2, built the same day (not checked in game): six looks, six
+seconds each - frame with a 30% and a 45% tint, tint alone at 45% and
+60%, in green and purple; frame with 30% and tint alone at 45% in the
+shapes' cyan and pink. A stack on the pointer that the step wants is
+marked on the box the game draws it in, in its side's colour.
+Not built: the game's own hover tint. It belongs to the slot's own
+drawing; turning it on for other slots would mean writing the game's
+controls, and it has one colour. Only a look at how the slot draws it
+(a probe) would say more.
 Next: the choice of a look, then L-319.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.

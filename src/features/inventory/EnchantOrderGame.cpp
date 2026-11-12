@@ -569,53 +569,54 @@ UIControl const* countControl(UIControl const& control, int depth = 0) {
     return nullptr;
 }
 using Icons = std::vector<inspection::render::IconAt>;
-// The marks on the slots. Drawn over the items (Lamium cannot draw under them), so they are kept light: a
-// one-unit frame along the slot's rim, outside the item's picture, and a faint tint. The stack that goes
-// left and its slot in the accent colour, the right one in the "experimental" purple (white did not show
-// on the game's light inventory); a wrong stack in the curses' red.
+// The marks on the slots. Drawn over the items (Lamium cannot draw under them), so they are a tint, with or
+// without a one-unit frame along the slot's rim, outside the item's picture. A wrong stack is in the curses'
+// red, a pair that makes a step in the accent green.
+struct MarkLook {
+    bool frame = true;
+    float tint = .3f;
+    bool shapes = false; // the two sides in the shapes' cyan and pink, not the accent green and the purple
+    char const* name = "";
+};
 #ifdef LAMIUM_ENCHANT_MARK_TEST
-// L-170 trial build only (`xmake f --enchant_mark_test=y`): five looks in turn, six seconds each, named on screen.
+// L-170 trial build only (`xmake f --enchant_mark_test=y`): six looks in turn, six seconds each, named on screen.
+constexpr std::array<MarkLook, 6> markLooks{{
+    {true, .3f, false, "frame, tint 30%, green and purple"}, {true, .45f, false, "frame, tint 45%, green and purple"},
+    {false, .45f, false, "tint 45% alone, green and purple"}, {false, .6f, false, "tint 60% alone, green and purple"},
+    {true, .3f, true, "frame, tint 30%, cyan and pink"}, {false, .45f, true, "tint 45% alone, cyan and pink"}}};
 int markStyle() {
     static auto const started = std::chrono::steady_clock::now();
-    return static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - started).count() / 6 % 5);
+    return static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - started).count() / 6
+        % static_cast<long long>(markLooks.size()));
 }
 #else
-int markStyle() { return 1; }
+constexpr std::array<MarkLook, 1> markLooks{{{true, .3f, false, ""}}};
+int markStyle() { return 0; }
 #endif
 void paintMarks(MinecraftUIRenderContext& context) {
     using namespace lamium::ui;
     using Tone = ListState::Tone;
     int const style = markStyle();
+    auto const& look = markLooks[static_cast<size_t>(style)];
+    constexpr Rgb cyan{.25f, .82f, .88f}, pink{.94f, .5f, .75f}; // the shapes' colours (ShapesView)
     for (auto const& mark : list.marks) {
         auto const& b = mark.box;
-        Rgb const color = mark.tone == Tone::Left || mark.tone == Tone::Good ? palette::accent
-            : mark.tone == Tone::Right ? (style == 4 ? palette::warning : palette::experimental)
-            : mark.tone == Tone::Wrong ? palette::curse : palette::warning;
-        // What an anvil slot says once something lies in it is the same in every look.
-        if (mark.placed || mark.tone == Tone::Wrong || mark.tone == Tone::Good || mark.tone == Tone::Warn) {
-            fill(context, b.x + 1, b.y + 1, b.w - 2, b.h - 2, color, mark.tone == Tone::Wrong ? .22f : .3f);
+        Rgb const color = mark.tone == Tone::Left ? (look.shapes ? cyan : palette::accent)
+            : mark.tone == Tone::Right ? (look.shapes ? pink : palette::experimental)
+            : mark.tone == Tone::Good ? palette::accent : mark.tone == Tone::Wrong ? palette::curse : palette::warning;
+        // An anvil slot holding its stack says so more strongly than an empty one asking for it; what the
+        // result slot and a wrong stack say is the same in every look.
+        bool const said = mark.tone == Tone::Wrong || mark.tone == Tone::Good || mark.tone == Tone::Warn;
+        float const tint = said ? .4f : mark.placed ? std::min(.75f, look.tint + .2f) : look.tint;
+        bool const framed = said || mark.placed || look.frame;
+        if (framed) {
+            fill(context, b.x + 1, b.y + 1, b.w - 2, b.h - 2, color, tint);
             frame(context, b.x, b.y, b.w, b.h, color);
-            continue;
-        }
-        switch (style) {
-        case 0: frame(context, b.x, b.y, b.w, b.h, color); break;
-        case 2: fill(context, b.x, b.y, b.w, b.h, color, .3f); break;
-        case 3: {
-            constexpr float arm = 5;
-            for (float const x : {b.x, b.x + b.w - arm}) for (float const y : {b.y, b.y + b.h - 1}) fill(context, x, y, arm, 1, color);
-            for (float const x : {b.x, b.x + b.w - 1}) for (float const y : {b.y, b.y + b.h - arm}) fill(context, x, y, 1, arm, color);
-            break;
-        }
-        default:
-            fill(context, b.x + 1, b.y + 1, b.w - 2, b.h - 2, color, .16f);
-            frame(context, b.x, b.y, b.w, b.h, color);
-            break;
-        }
+        } else fill(context, b.x, b.y, b.w, b.h, color, tint);
     }
 #ifdef LAMIUM_ENCHANT_MARK_TEST
-    constexpr std::array<char const*, 5> names{"thin frame", "thin frame and a faint tint", "tint alone", "corners", "thin frame and tint, right in yellow"};
-    fill(context, 6, 6, 190, 14, palette::panel, .9f);
-    label(context, 10, 9, 182, std::format("Mark style {} of 5: {}", style + 1, names[static_cast<size_t>(style)]));
+    fill(context, 6, 6, 230, 14, palette::panel, .9f);
+    label(context, 10, 9, 222, std::format("Mark style {} of {}: {}", style + 1, markLooks.size(), look.name));
 #endif
 }
 // The choosing panel left of the window: the planner screen's own column (ui/EnchantChooser), with two lines
@@ -937,6 +938,14 @@ void drawBeside(ll::event::UIRenderEvent& event) {
             if (say.result != ResultSay::None)
                 if (auto b = box("result_item_slot"))
                     marks.push_back({*b, say.result == ResultSay::Match ? Tone::Good : say.result == ResultSay::CostDiffers ? Tone::Warn : Tone::Wrong});
+            // On the pointer: the stack being carried to its slot keeps its mark, on the box the game draws it in
+            // (`inventory_selected_icon_button`, 16 units, following the pointer).
+            if (heldItem && say.step >= 0) {
+                auto const& step = active.plan.steps[static_cast<size_t>(say.step)];
+                bool const goesLeft = pointerMask == step.target && inputEmpty, goesRight = pointerMask == step.sacrifice && materialEmpty;
+                if (pointerMask != 0 && (goesLeft || goesRight))
+                    if (auto b = box("inventory_selected_icon_button")) marks.push_back({*b, goesLeft ? Tone::Left : Tone::Right});
+            }
             // In the inventory: the stacks that step still wants, while nothing is on the pointer.
             if (!heldItem && say.step >= 0) {
                 auto const stacks = nextStacks(active.plan.steps[static_cast<size_t>(say.step)], slotMasks,

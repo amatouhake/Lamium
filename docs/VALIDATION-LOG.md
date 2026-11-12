@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, twenty-eighth pass: the marks' looks, round 1 (2026-11-13)
+
+`c4c910dd` built with `enchant_mark_test`, DLL SHA-256
+`5bed05c30cd593a4b0363353dc5b320ecd665bcb4e645ed78b7c97c5fd830323`, 1.26.60.05 Dev
+instance, Creative. Per the maintainer: looks 2 (thin frame and a faint tint) and 3
+(tint alone) are the ones that show; both should be tried with a stronger tint. Yellow
+for the right side could read as a warning, so purple by elimination. What the anvil's
+slots say is understood by colour, the result slot included; the slot a carried stack
+goes to keeps its mark.
+
+Noticed by the maintainer: the game itself tints a slot's background green under the
+pointer. And green for "goes left" is also the colour of success here.
+
 ## Enchantment order, twenty-seventh pass: the highlight trial (2026-11-13)
 
 `8774eedf`, local build, DLL SHA-256
