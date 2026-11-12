@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.6.0 published ZIP, block highlight keys and Through walls (2026-11-12)
+
+The published `Lamium-0.6.0-client-windows-x64.zip`
+(`25b7b445d13605d35a9fbf2c2f869d41a59c47244c190b5bf1fb9c0fd65b66dd`, matching
+the release digest) copied by hand into the 1.26.60.05 Dev instance, DLL SHA-256
+`bb6691f9efabec5f2f4137015317006ad96fe2bdfd18b48ebf98269379b5aaa5`, LeviLamina
+Client 26.60.4. Passed, per the maintainer, as one "all OK" to this list:
+
+- The ZIP: a world loads, settings show 0.6.0, listed blocks glow, a clean exit.
+- Block highlight (L-320): the opener key opens the list; the toggle removes
+  the glow and brings it back; the add key in Freelook adds the aimed block's
+  type; Through walls shows ores behind water faintly, also under Simple
+  graphics and Vibrant Visuals; the glow is readable under Night Vision.
+
+Not checked: an install through LeviLauncher or LIP (the files were copied),
+servers, the Nether and End, Vibrant Visuals beyond Through walls (edge colors).
+
 ## 0.6.0 listings (2026-11-12)
 
 Per the maintainer: Bedrinth and LeviLauncher list 0.6.0. Both read the LIP
