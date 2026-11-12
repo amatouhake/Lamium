@@ -721,7 +721,8 @@ contents, durability and food values in the tooltip. Main ask: show the
 anvil Work Penalty — the item's RepairCost as the level surcharge it adds
 to any anvil operation (a rename alone costs penalty + 1) and the
 prior-use count behind it (penalty = 2^n - 1). Check both against the cost
-the anvil screen shows before trusting them, as L-170 says. Do not predict a whole
+the anvil screen shows before trusting them, as L-170 says (the 2^n - 1 rule
+was read from the screen 2026-11-12, VALIDATION-LOG). Do not predict a whole
 operation's cost; that depends on the other item and the operation.
 Then investigate what else the client knows about an item but Lamium does
 not show, and show that too. Candidates to verify in code before listing
@@ -1125,14 +1126,22 @@ search on 300 small sets. `Rules::goal` (2026-11-12) picks what is minimized
 first: `FewestLevels` (total, then the most expensive step, then the result's
 anvil uses) or `LeastPriorWork` (the result's anvil uses, then total, then
 the most expensive step); the tests compare both with exhaustive searches.
-Still to check in game before any screen is built (the planner assumes them):
+Checked in game 2026-11-12 (VALIDATION-LOG "Anvil costs behind the enchantment
+planner", vanilla anvil screen, local world):
 - The prior-work surcharge is 2^uses - 1 for each side and the result has
   max(uses) + 1.
-- A step's cost is the sacrificed side's enchantment levels times a per-book
-  or per-item multiplier, plus both surcharges, with nothing else added (no
-  rename, repair or incompatible-enchantment charge in the planned cases).
-- The refusal threshold and whether it differs in Creative.
-Next: the three game checks above, then the screen.
+- A step's cost is the sacrificed side's enchantment levels times a
+  per-enchantment multiplier, plus both surcharges, with nothing else added
+  for undamaged, unrenamed inputs. The multiplier for a sacrificed item was
+  twice the book's in both cases read (Knockback 1 and 2, Curse of Vanishing
+  4 and 8); the screen should take multipliers from the game rather than a
+  Lamium table, as proposed above.
+- A step costing 40 or more is refused in Survival; Creative has no limit.
+  `Rules::refuseAt = 40` matches; a Creative player needs 0.
+Not checked: a damaged input, a rename, an enchantment already on the item or
+in conflict with it, servers.
+Next: the screen. First find where the client can read each enchantment's
+multiplier and item compatibility (Research).
 
 ### L-169 Item Transfer: remaining gesture and screen extensions
 Kind: Design. Current status reconciled 2026-10-20: matching/everything,

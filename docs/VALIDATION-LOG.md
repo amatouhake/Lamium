@@ -12,6 +12,59 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Anvil costs behind the enchantment planner (2026-11-12)
+
+Seen by the agent (Claude) driving the game through computer use, not by the
+maintainer. Vanilla anvil behavior, read from the cost line of the anvil screen;
+Lamium was the published 0.6.0 (`bb6691f9...`) and took no part. 1.26.60.05 Dev
+instance, title screen showing LeviLamina 26.60.5, a new local world
+"Lamium anvil test" (Creative, cheats). Books and swords were made with `/give`
+and `/enchant` (it works on an enchanted book), so every input started with no
+earlier anvil use. All items at full durability, no rename.
+
+Fresh diamond sword as the kept side, fresh sacrifice:
+
+| Sacrifice | Cost | Per level |
+|---|---|---|
+| Book, Sharpness V | 5 | 1 |
+| Book, Unbreaking III | 3 | 1 |
+| Book, Looting III | 6 | 2 |
+| Book, Fire Aspect II | 4 | 2 |
+| Book, Mending | 2 | 2 |
+| Book, Knockback II | 2 | 1 |
+| Book, Curse of Vanishing | 4 | 4 |
+| Sword, Knockback II | 4 | 2 |
+| Sword, Curse of Vanishing | 8 | 8 |
+
+Book onto book: Sharpness V kept, Unbreaking III sacrificed, 3; Fire Aspect II
+kept, Knockback II sacrificed, 2; Looting III kept, Mending sacrificed, 2.
+
+One sword through five steps (kept uses, sacrifice uses -> cost):
+
+- 0 uses + the Sharpness/Unbreaking book (1 use, value 8): 9 = 8 + 0 + 1.
+- 2 uses + the Looting/Mending book (1 use, value 8): 12 = 8 + 3 + 1.
+- 3 uses + Fire Aspect II book: 11 = 4 + 7.
+- 4 uses + Knockback II book: 17 = 2 + 15.
+- 5 uses + Curse of Vanishing book: 35 = 4 + 31 (read, not taken).
+
+So the surcharge is 2^uses - 1 on each side and the result has max(uses) + 1
+(0 and 1 gave 2; 2 and 1 gave 3). A plain sword + a Vanishing sword with one
+use: 9 = 8 + 1.
+
+The limit, with the 5-use sword: + a fresh Vanishing sword costs 39, + the
+one-use Vanishing sword costs 40. Creative shows both with a result. Survival
+(100 levels): 39 has a result; 40 shows "コストが高すぎます!" and no result.
+
+Also seen: the 5-use sword (Knockback II on it) + a fresh Knockback II sword
+gives no result in Creative (nothing to add or repair).
+
+Not checked: a damaged item or a rename in the same step, a book whose
+enchantment is already on the item or conflicts with it, two equal books
+merging into a higher level, other item types and enchantments, servers.
+The world "Lamium anvil test" is left in the Dev instance. In "マイ ワールド" one
+`/give enchanted_book` was run with a full inventory before the test moved to
+the new world; nothing else was changed there.
+
 ## 0.6.0 published ZIP, block highlight keys and Through walls (2026-11-12)
 
 The published `Lamium-0.6.0-client-windows-x64.zip`

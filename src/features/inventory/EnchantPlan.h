@@ -8,9 +8,9 @@
 // L-170 groundwork: the order of anvil combinations that costs the fewest
 // levels. Not wired to any screen, setting or action yet.
 //
-// The cost model is a parameter, not a claim about the game: the caller
-// supplies what each input costs as a sacrifice, and the prior-work rule
-// below is the assumption to check against the anvil screen first.
+// The caller supplies what each input costs as a sacrifice. The prior-work
+// rule and the limit of 40 were read from the anvil screen on 1.26.60
+// (VALIDATION-LOG 2026-11-12).
 namespace lamium::inventory::enchantPlan {
 inline constexpr int maxInputs = 10, maxWork = 20;
 
@@ -25,7 +25,7 @@ struct Rules {
     int refuseAt = 40; // A step costing this much or more is refused; 0 = no limit.
     Goal goal = Goal::FewestLevels;
 };
-// Unverified for Bedrock: each earlier anvil use doubles the surcharge.
+// Each earlier anvil use doubles the surcharge.
 inline constexpr int priorWorkPenalty(int work) noexcept { return (1 << std::clamp(work, 0, maxWork)) - 1; }
 // The anvil uses behind a stored surcharge (L-319), or nothing when the
 // value is not one the rule above produces.
