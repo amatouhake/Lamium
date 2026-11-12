@@ -1547,11 +1547,19 @@ Knockback I + II (2 or 1), Looting I + III (6 or 4).
 Noted for later, outside L-170: the world map is experimental and has no way
 to turn it off either; whether a screen that only opens on request needs a
 switch is one question for both.
+Trial of choice (a), built 2026-11-12 on the maintainer's go-ahead (not
+checked in game): the anvil list has a "Change" button in a row of its own
+at the bottom right. A left press on it, with nothing on the pointer, is
+kept from the game (`CustomInput`'s mouse listener asks
+`enchantOrder::game::listPress`, which answers from the button's box and
+pointer of the last frame) and opens the planner over the anvil screen on
+the client thread (`ui::openEnchantOrder(client, true)`, the one case
+`ui::open` accepts `anvil_screen`). To find out in game: whether the scene
+opens over the anvil at all, whether Esc returns to the anvil with the
+items still in its slots, and what the planner chooses while the item is
+in a slot and not in the main hand. If the anvil is lost, choice (b).
 Still open:
-- Changing the plan at the anvil. After the above; Item Transfer already
-  handles clicks on container screens (`TransferSession`, `TransferGesture`,
-  the mouse listener in `CustomInput`), so start there rather than from
-  nothing.
+- Changing the plan at the anvil: the trial above.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 

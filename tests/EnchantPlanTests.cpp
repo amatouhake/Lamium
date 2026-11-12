@@ -349,4 +349,13 @@ void enchantPlanTests() {
               "the listed steps add up to the reported plan");
     }
     check(goalsDiffer > 0, "some sets have a cheaper order that leaves more anvil uses on the result");
+    {
+        using namespace lamium::inventory::enchantOrder;
+        Box const button = changeButton(100, 20, 120, 90, 30);
+        check(button.x + button.w == 216 && button.y + button.h == 106 && button.w == 40 && button.h == changeHeight,
+              "the anvil list's Change button sits in the bottom right corner, inside the padding");
+        check(button.has(180, 100) && !button.has(175, 100) && !button.has(180, 94) && !button.has(216, 100),
+              "only presses inside the Change button count");
+        check(changeButton(100, 20, 30, 90, 80).w == 22 && !Box{}.has(0, 0), "a long word is cut to the list's width; no box, no press");
+    }
 }

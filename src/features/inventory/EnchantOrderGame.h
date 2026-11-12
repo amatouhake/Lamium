@@ -74,6 +74,10 @@ void restoreLast();
 void clearWanted();
 void flipGoal();
 // Icons, valid while the screen is open.
+// A mouse button changed, told from the window procedure (values only, no game state): true when it was the left
+// button on the anvil list's Change button, which the caller keeps from the game and answers by opening the
+// planner on the client thread.
+bool listPress(bool left, bool down);
 ItemStack const* kindIcon(int index);
 ItemStack const* itemIcon();
 ItemStack const* heldIcon();

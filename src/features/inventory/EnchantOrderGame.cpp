@@ -44,6 +44,7 @@
 #include <array>
 #include <bit>
 #include <chrono>
+#include <mutex>
 #include <cmath>
 #include <format>
 #include <map>
@@ -425,7 +426,18 @@ struct ListState {
     float opacity = 1;
     int now = -1, next = -1, gameCost = -1, level = -1, leftPenalty = -1, rightPenalty = -1;
     std::vector<unsigned> atHand;
+    float pointerX = -1, pointerY = -1;
+    bool canChange = false; // nothing on the pointer: a press there would drop it
 } list;
+// The Change button as last drawn, for presses that arrive from the window procedure.
+std::mutex changeLock;
+struct ChangeBox {
+    Box box;
+    float pointerX = -1, pointerY = -1;
+    std::chrono::steady_clock::time_point at{};
+    bool live = false;
+} changeBox;
+bool changeSwallow = false;
 bool insideAnvil = false, paintedInside = false;
 // The item held on the pointer, to be drawn once more over the list: the
 // game's stack and the box the game draws it in. Valid for one frame.
@@ -535,6 +547,15 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
     y += line;
     if (leftPenalty >= 0 || rightPenalty >= 0)
         label(context, left + pad, y, inner, translated("enchantOrder.anvil.penalties", std::max(0, leftPenalty), std::max(0, rightPenalty)), palette::faint);
+    {
+        std::string const text = translated("enchantOrder.anvil.change");
+        Box const button = changeButton(left, top, width, height, textWidth(context, text), pad);
+        bool const live = list.canChange && list.opacity > .98f, over = live && button.has(list.pointerX, list.pointerY);
+        fill(context, button.x, button.y, button.w, button.h, palette::white, over ? .22f : .08f);
+        label(context, button.x, button.y + 1, button.w, text, over ? palette::text : palette::dim, Align::Center);
+        std::scoped_lock lock(changeLock);
+        changeBox = {button, list.pointerX, list.pointerY, std::chrono::steady_clock::now(), live};
+    }
     context.flushText(0, std::nullopt);
     // The held item goes with the list's own icons, last so it is on top: a
     // glint drawn after another batch of icons does not show (ItemIcon.cpp).
@@ -655,7 +676,7 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     int const steps = static_cast<int>(active.lines.size());
     constexpr int headLines = 2, footLines = 2;
     auto heightFor = [&](bool twoLines) {
-        return pad + headLines * line + 3 + steps * (twoLines ? 2 * line + 2 : line + 2) + 2 + footLines * line + pad;
+        return pad + headLines * line + 3 + steps * (twoLines ? 2 * line + 2 : line + 2) + 2 + footLines * line + changeRow + pad;
     };
     bool const twoLines = heightFor(true) <= screen.y - 2 * gap;
     float const height = heightFor(twoLines);
@@ -671,7 +692,7 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     // Only while it is moving and only a value that looks like a fade: at rest the member may not be the drawn opacity.
     if (float const own = window->mAlpha; slide > .5f && std::isfinite(own) && own > 0 && own < opacity) opacity = own;
     list = {true, std::chrono::steady_clock::now(), left, top, width, height, twoLines, both, creative, target.has_value(), sacrifice.has_value(),
-        opacity, now, next, gameCost, level, leftPenalty, rightPenalty, std::move(atHandNow)};
+        opacity, now, next, gameCost, level, leftPenalty, rightPenalty, std::move(atHandNow), view.mPointerLocationPrevious->x, view.mPointerLocationPrevious->y, heldItem == nullptr};
     // Painted after the screen, the list covers the item held on the pointer. The game draws that item in the
     // control `selected_item_icon` (21 units, following the pointer; read from the log 2026-11-12), so while
     // the two overlap it is drawn once more in the same box, with the list.
@@ -820,6 +841,15 @@ void clearWanted() {
 void flipGoal() {
     goal = goal == Goal::FewestLevels ? Goal::LeastPriorWork : Goal::FewestLevels;
     if (opened) rebuild();
+}
+bool listPress(bool left, bool down) {
+    std::scoped_lock lock(changeLock);
+    if (!left) return false;
+    if (!down) return std::exchange(changeSwallow, false);
+    // The box of a frame drawn a moment ago: the list is gone or moved otherwise.
+    changeSwallow = changeBox.live && std::chrono::steady_clock::now() - changeBox.at < std::chrono::milliseconds(300)
+        && changeBox.box.has(changeBox.pointerX, changeBox.pointerY);
+    return changeSwallow;
 }
 ItemStack const* kindIcon(int index) {
     if (index < 0 || index >= static_cast<int>(kinds.size()) || kinds[static_cast<size_t>(index)].icon.isNull()) return nullptr;

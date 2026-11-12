@@ -1333,10 +1333,14 @@ std::string dimensionName(int dimension) { return ui::dimensionName(dimension); 
 int distanceTo(int x, int z) { return ui::distanceTo(x, z); }
 void returnToMap() { enterWorldMap(mapFromSettings, true); }
 }
+// Set while the enchantment order opens from the anvil list: the one case where the scene goes over a
+// container screen (L-170 trial; whether the anvil is still there afterwards is checked in game).
+bool overAnvilScreen = false;
 void open(IClientInstance& current) {
     std::lock_guard lock(mutex);
     if (scene || !(gameplayScreen(current.getScreenName())
-        || outsideWorldMenu(current.getScreenName(), current.getLocalPlayer() != nullptr))) return;
+        || outsideWorldMenu(current.getScreenName(), current.getLocalPlayer() != nullptr)
+        || (overAnvilScreen && current.getScreenName() == "anvil_screen"))) return;
     CameraSessions::instance().suspendInput();
     error.clear(); rangeWarning.reset(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
     pendingClose = false;
@@ -1468,12 +1472,16 @@ void openBlockHighlight(IClientInstance& current) {
     enchant_view::reset();
     if (highlight_view::begin()) table_view::rebuild(true);
 }
-void openEnchantOrder(IClientInstance& current) {
+void openEnchantOrder(IClientInstance& current, bool overAnvil) {
     std::lock_guard lock(mutex);
     bool const openedNow = !scene;
-    if (!scene) open(current);
+    if (!scene) {
+        overAnvilScreen = overAnvil;
+        open(current);
+        overAnvilScreen = false;
+    }
     if (!scene) return;
-    if (openedNow) seedOpener(input::Action::OpenEnchantOrder);
+    if (openedNow && !overAnvil) seedOpener(input::Action::OpenEnchantOrder);
     if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
     screen::finishEditing();
     language_view::reset();

@@ -179,6 +179,16 @@ inline std::optional<int> bookValue(std::span<Enchantment const> on, std::span<O
 // Following a plan with what the player carries: a step is done when one
 // stack holds everything the step joins. `stacks` are the planner-input
 // masks of the stacks at hand (enchantPlan::carried).
+// The anvil list's "Change" button: a row of its own at the bottom, at the right edge.
+struct Box {
+    float x = 0, y = 0, w = 0, h = 0;
+    bool has(float px, float py) const { return w > 0 && h > 0 && px >= x && px < x + w && py >= y && py < y + h; }
+};
+inline constexpr float changeRow = 13, changeHeight = 11;
+inline Box changeButton(float left, float top, float width, float height, float textWidth, float pad = 4) {
+    float const w = std::clamp(textWidth + 10, 0.f, std::max(0.f, width - 2 * pad));
+    return {left + width - pad - w, top + height - pad - changeHeight, w, changeHeight};
+}
 inline bool done(enchantPlan::Step const& step, std::span<unsigned const> stacks) {
     unsigned const joined = step.target | step.sacrifice;
     return std::ranges::any_of(stacks, [&](unsigned mask) { return (mask & joined) == joined; });

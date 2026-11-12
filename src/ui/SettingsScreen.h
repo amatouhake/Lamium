@@ -25,7 +25,8 @@ void openCalculator(IClientInstance& client);
 // The block highlight list in the settings (L-320).
 void openBlockHighlight(IClientInstance& client);
 // The enchantment order planner in the settings (L-170).
-void openEnchantOrder(IClientInstance& client);
+// `overAnvil`: asked from the anvil list; the screen may then open over the anvil screen.
+void openEnchantOrder(IClientInstance& client, bool overAnvil = false);
 bool ownsInput();
 void cancelInputCapture();
 }

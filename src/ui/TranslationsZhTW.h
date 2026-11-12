@@ -143,6 +143,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"enchantOrder.anvil.rightNot", "右側物品不在計劃中"},
     {"enchantOrder.anvil.finished", "計劃已完成"},
     {"enchantOrder.anvil.penalties", "累積懲罰：左 +{}，右 +{}"},
+    {"enchantOrder.anvil.change", "變更"},
     {"target.highlight", "醒目標示"},
     {"target.highlight.listed", "已加入"},
     {"help.hideEffects", "隱藏所選的視覺效果。關閉總開關會恢復所有繪製，並保留你的選擇。聲音和遊戲玩法不受影響。實驗性功能。"},

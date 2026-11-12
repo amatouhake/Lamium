@@ -2,6 +2,7 @@
 #include "features/camera/CameraSessions.h"
 #include "features/interaction/PermanentSneak.h"
 #include "features/interaction/PeriodicInput.h"
+#include "features/inventory/EnchantOrderGame.h"
 #include "features/inventory/FakeOffhand.h"
 #include "features/inventory/RepeatTrades.h"
 #include "input/Binding.h"
@@ -172,6 +173,15 @@ void startCustomInput() {
             : Token{Device::Mouse, button > MouseAction::ActionWheel ? button - 1 : button};
         bool down = wheel || event.buttonData() == MouseAction::DataDown;
         if (down) inventory::repeatTrades::cancel();
+        // The anvil list's Change button: the press stays from the game, the planner opens on the client thread.
+        if (!wheel && !event.isCancelled()
+            && inventory::enchantOrder::game::listPress(button == MouseAction::ActionLeft, down)) {
+            if (down) clientTasks::post([] {
+                if (auto client = ll::service::getClientInstance()) ui::openEnchantOrder(*client, true);
+            });
+            event.cancel();
+            return;
+        }
         bool consumed = process(token, down, event.isCancelled());
         auto const& keys = held.value();
         bool shift = contains(keys, Token{Device::Key, 0x10}) || contains(keys, Token{Device::Key, 0xA0})

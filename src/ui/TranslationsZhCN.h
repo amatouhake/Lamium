@@ -143,6 +143,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"enchantOrder.anvil.rightNot", "右侧物品不在计划中"},
     {"enchantOrder.anvil.finished", "计划已完成"},
     {"enchantOrder.anvil.penalties", "累积惩罚：左 +{}，右 +{}"},
+    {"enchantOrder.anvil.change", "更改"},
     {"target.highlight", "高亮"},
     {"target.highlight.listed", "已添加"},
     {"help.hideEffects", "隐藏所选的视觉效果。关闭总开关会恢复所有绘制，并保留你的选择。声音和游戏玩法不受影响。实验性功能。"},

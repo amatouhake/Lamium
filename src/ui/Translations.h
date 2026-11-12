@@ -146,6 +146,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"enchantOrder.anvil.rightNot", "The right item is not part of the plan", "右のアイテムは計画にありません"},
     {"enchantOrder.anvil.finished", "The plan is finished", "計画は完了しています"},
     {"enchantOrder.anvil.penalties", "Prior work: left +{}, right +{}", "作業ペナルティ: 左 +{}、右 +{}"},
+    {"enchantOrder.anvil.change", "Change", "変更"},
     {"target.highlight", "Highlight", "ハイライト"},
     {"target.highlight.listed", "Listed", "指定中"},
     {"help.hideEffects", "Hide the selected visual effects. Turning the main switch off restores all drawing and keeps your selections. Sound and gameplay stay unchanged. Experimental.", "選んだ視覚効果を隠します。全体をオフにするとすべて通常表示に戻り、個別の選択は保持されます。音やゲームの状態は変わりません。実験的な機能です。"},
