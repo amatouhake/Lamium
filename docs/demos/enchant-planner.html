@@ -57,6 +57,7 @@ p{margin:0}
 .row:hover{background:var(--mc-row-hover)}
 .erow{grid-template-columns:30px minmax(0,1fr) auto;cursor:pointer}
 .erow.na{color:var(--mc-faint);cursor:default}
+.why{font-size:11px;color:var(--mc-faint);white-space:nowrap}
 .erow .why{font-size:11px;color:var(--mc-faint);white-space:nowrap}
 .srow{grid-template-columns:18px minmax(0,1fr) 34px;height:auto;min-height:26px;padding-block:4px}
 .srow .n{color:var(--mc-faint);font-size:12px;text-align:right}
@@ -130,7 +131,7 @@ p{margin:0}
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">BACKLOG L-170 · エンチャント順序 · 確認用モック（第 2 版）</div>
+    <div class="eyebrow">BACKLOG L-170 · エンチャント順序 · 合意したモック（第 2 版、2026-11-12）</div>
     <h1>付けたいエンチャントを選ぶと、いちばん安い金床の順番が出る画面</h1>
     <p class="lede">左で<strong>アイテムと付けたいエンチャント</strong>を選ぶと、右に<strong>金床で合成する順番</strong>と各回のコストが出ます。第 2 版では、アイテムを<strong>種類のアイコン</strong>で選び、手順に<strong>アイテムと本のアイコン</strong>を付け、<strong>セット</strong>のボタンと<strong>金床の画面の横に出す手順</strong>（候補）を足しました。計算は実際に動き、コストの規則は 2026-11-12 にゲームで読んだものです。アイコンは 1 文字の仮の絵、エンチャント名は仮の訳で、ゲームでは本物を使います。</p>
   </header>
@@ -190,13 +191,17 @@ p{margin:0}
   </section>
 
   <section class="ask">
-    <h2>確認したいこと</h2>
+    <h2>決定事項（2026-11-12）</h2>
     <ol>
-      <li><b>「手持ち」はメインハンドだけでよいか。</b>おすすめはメインハンドだけ（どれを指すか迷わない）。</li>
-      <li><b>種類で選ぶか、アイテム名で選ぶか。</b>おすすめは種類（結果が同じで、選択肢が 17 ほどで済む）。アイテム名にすると 100 以上になり検索が要る。</li>
-      <li><b>金床の画面の横の手順を初版に入れるか。</b>おすすめは、描けると分かれば初版に入れる（順番を見たいのは金床の前なので）。描けなければ計画の画面だけを先に出す。</li>
-      <li><b>セットはこの 2 つでよいか。</b>「すべて最大」と「前回の選択」は Lamium が表を持たずに作れる。よく使う組み合わせを Lamium が決めて持つ案は、競合する組でどれを選ぶか（ダメージ増加かアンデッド特効か、幸運かシルクタッチか）を決める必要があり、新しいエンチャントのたびに更新が要る。</li>
-      <li><b>メインハンドと同じ種類を「新品として」計画したいときの扱い。</b>このモックでは、別のアイテムに持ち替えるか何も持たずに開く。切り替えを足す案もある。</li>
+      <li><b>「手持ち」はメインハンド（ホットバーで選択中のスロット）だけ。</b></li>
+      <li><b>アイテムは種類のアイコン格子で選ぶ。</b>◀ ▶ は使わない。</li>
+      <li><b>メインハンドの種類を選んでいるときは「手持ちの状態を使う」スイッチを出す。</b>オンで付与済みのエンチャント（固定）と金床使用回数を使い、オフで新品として計算する。</li>
+      <li><b>セットは「すべて最大」と「前回の選択」。</b>Lamium が決めたセットや保存できるセットは入れない。</li>
+      <li><b>手順は中身を書き、アイテムと本のアイコンを付ける。</b></li>
+      <li><b>クリエイティブは今のゲームモードに合わせて上限なし。</b>切り替えは置かない。</li>
+      <li><b>呪いは一覧の最後に出す。画面の名前は「エンチャント順序」。</b></li>
+      <li><b>金床の画面の横の手順を初版に入れる。</b>表示だけで、クリックやキーは受けない。金床に入れた 2 つが手順と一致するとその行が光る。</li>
+      <li><b>初版に入れない：</b>持っている本を読むこと、同じ本 2 冊の合成、金床のスロットを光らせること。</li>
     </ol>
   </section>
 </div>
@@ -236,15 +241,16 @@ const HELD = {
   used:{name:"ダイヤモンドの剣",kind:0,ench:new Map([[9,4],[17,3]]),work:2},
   none:null,
 };
-let scene="plan", held=HELD.plain, creative=false;
+let scene="plan", held=HELD.plain, creative=false, useHeld=true;
 let item = 0, goal = "levels", want = new Map([[14,3],[13,2],[17,3],[9,5],[26,1]]), last = new Map(), now = -1;
 
 const el = (tag, cls, html) => { const e=document.createElement(tag); if(cls) e.className=cls; if(html!=null) e.innerHTML=html; return e; };
 const pen = w => (1<<w)-1;
 const tile = (ch, book) => `<span class="tile${book?" book":""}">${ch}</span>`;
-const onHeld = () => held && held.kind===item;
+const onHeld = () => held && held.kind===item && useHeld;
 const have = () => onHeld() ? held.ench : new Map();
 const itemName = () => onHeld() ? held.name : KIND_NAME[item]+"（新品）";
+const inHand = () => held && held.kind===item;
 
 // The same search as src/features/inventory/EnchantPlan.h.
 function plan(inputs, refuseAt, least){
@@ -311,9 +317,14 @@ function compute(){
 
 function left(){
   const col=el("div","col left");
-  const bar=el("div","bar"); bar.innerHTML=`<span class="k">アイテム</span><span class="spacer"></span><span class="nm">${tile(KIND[item])}${itemName()}</span>`
-    +(onHeld()?'<span class="have">手に持っている</span>':"");
+  const bar=el("div","bar"); bar.innerHTML=`<span class="k">アイテム</span><span class="spacer"></span><span class="nm">${tile(KIND[item])}${itemName()}</span>`;
   col.append(bar);
+  if(inHand()){
+    const use=el("div","bar"); use.style.cursor="pointer";
+    use.innerHTML=`<button class="sw${useHeld?" on":""}"></button><span>手持ちの状態を使う</span><span class="spacer"></span><span class="why">${useHeld?"付与済みと金床使用回数を使う":"新品として計算"}</span>`;
+    use.onclick=()=>{ useHeld=!useHeld; want=new Map(); now=-1; render(); };
+    col.append(use);
+  }
   const kinds=el("div","kinds");
   ITEMS.forEach((it,i)=>{
     const k=el("button","kind"+(i===item?" on":"")+(held&&held.kind===i?" held":""),tile(KIND[i]));

@@ -1168,23 +1168,15 @@ Decided after its first review (maintainer 2026-11-12):
   drawn with their icons (`inspection::render::drawItemIcon`).
 - Creative follows the current game mode and has no limit; no switch.
 - Curses are listed last. The screen is called "エンチャント順序".
-Open (maintainer), second version of the mockup, with the agent's
-recommendation:
-- "Held" means the main hand, the selected hotbar slot (recommended); the
-  hotbar and inventory are not searched.
-- Choosing by kind (sword, pickaxe, ...) rather than by item name
-  (recommended): what goes on an item follows its enchant slot, not its
-  material, so about 17 kinds cover every item; shown as an icon grid.
-- The anvil: the maintainer expects the order to be wanted mostly in the anvil
-  screen. Recommended: the plan stays after the screen closes and a compact
-  step list sits beside the anvil screen, marking the step whose two inputs
-  are in the slots; in the first version if drawing beside the anvil screen
-  proves possible (Research), otherwise right after it.
-- Sets: the maintainer asks for commonly wanted combinations as one choice.
-  Recommended: "everything at its highest" (enchantments with no conflict)
-  and the last selection per kind, both without a Lamium table; a
-  Lamium-written set per kind needs choices inside conflict groups and an
-  update per new enchantment, so it waits for a request.
+Decided after the second version (maintainer 2026-11-12):
+- "Held" is the main hand, the selected hotbar slot; the hotbar and
+  inventory are not searched.
+- The item is chosen by kind (sword, pickaxe, ...) from an icon grid: what
+  goes on an item follows its enchant slot, not its material.
+- While the main-hand kind is chosen, a "use the held item's state" switch
+  is shown; off plans for a fresh item of that kind.
+- Sets: "everything at its highest" (enchantments with no conflict) and the
+  last selection per kind. No Lamium-written or saved sets.
 Decided (maintainer 2026-11-12, after the research below): the step list
 beside the anvil screen is part of the first version.
 The step list beside the anvil, researched 2026-11-12 (VALIDATION-LOG "World
@@ -1214,7 +1206,8 @@ Pure logic added 2026-11-12 in `EnchantPlan.h`, tested: `levelCost(frequency,
 book)` (the mapping above; an unknown frequency gives nothing), `carried(...)`
 (which planner inputs a stack in an anvil slot stands for) and `stepFor(...)`
 (the step joining two sides).
-Next: the second review, then the wiring.
+The design is agreed. Not yet chosen for building; the wiring waits for the
+maintainer's go-ahead.
 
 ### L-169 Item Transfer: remaining gesture and screen extensions
 Kind: Design. Current status reconciled 2026-10-20: matching/everything,
