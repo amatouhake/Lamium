@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order glint test, round 1 (2026-11-12)
+
+`47b2a8ca` built with `enchant_glint_test`, DLL SHA-256
+`c655de96e3de7240e57a7665ce01870c6f478104071e8ed29dcb79ede7305a51`, 1.26.60.05 Dev
+instance, Creative. Per the maintainer, watched for two rounds: none of the ten
+arrangements glints at the anvil (bare or really enchanted stacks, 16 or 8 units, one
+call or one per icon). In the same build a shulker box preview with 27 enchanted books
+glints on every one. All ten drew a translucent fill and flushed text before the icons;
+the preview draws opaque fills and no text before its icons.
+
+From `lamium.log`, holding a stack of 64 outside the window: the held stack's count is
+the control `selected_stack_size_text`, 12x10 units, under an unnamed (`default`) child
+of `inventory_selected_icon_button`, at the button's position plus (3, 6). Beside it:
+`selected_item_icon` 21x21, `durability_bar_grabbed` and `storage_bar_grabbed` 16x1.
+
 ## Enchantment order, seventeenth pass (2026-11-12)
 
 `8396fafb`, local build, DLL SHA-256

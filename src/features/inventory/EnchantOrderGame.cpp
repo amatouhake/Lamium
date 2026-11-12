@@ -5,6 +5,8 @@
 #include "features/inspection/Inspection.h"
 #include "features/inspection/render/DurabilityBar.h"
 #include "features/inspection/render/ItemIcon.h"
+#include "features/inspection/render/PreviewRenderer.h"
+#include "features/inspection/preview/ContainerPreview.h"
 #include "ui/Localization.h"
 #include "ui/Widgets.h"
 #include "ll/api/event/EventBus.h"
@@ -423,13 +425,13 @@ struct HeldIcon {
     bool counted = false;
     float countX = 0, countY = 0, countWidth = 0, countHeight = 0;
 };
-// The game's count label of the held item: the first shown control under it with "count" in its name.
+// The game's count label of the held item, `selected_stack_size_text` (12x10 units; read from the log 2026-11-12).
 UIControl const* countControl(UIControl const& control, int depth = 0) {
     if (depth > 8) return nullptr;
     for (auto const& child : *control.mChildren) {
         if (!child || (static_cast<int>(child->mVisible) & 1) == 0) continue;
         glm::vec2 const extent = *child->mSize;
-        if (child->mName->find("count") != std::string::npos && extent.x > 0 && extent.y > 0) return child.get();
+        if (*child->mName == "selected_stack_size_text" && extent.x > 0 && extent.y > 0) return child.get();
         if (auto const* found = countControl(*child, depth + 1)) return found;
     }
     return nullptr;
@@ -714,84 +716,50 @@ void glintTest(ll::event::UIRenderEvent& event) {
     }
     testSeen = nowTime;
     static auto const started = std::chrono::steady_clock::now();
-    int const test = static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(nowTime - started).count() / 4 % 10);
-    constexpr std::array<char const*, 10> names{
-        "4 bare books, 16 units, 18 apart", "4 bare books, 8 units, 18 apart", "4 bare books, 8 units, in a column 10 apart",
-        "4 bare books, 16 units, text drawn just before", "4 enchanted books, 16 units", "4 enchanted swords, 16 units",
-        "1 bare book and 1 enchanted sword, 8 units", "2 bare books, 16 units", "4 bare books, 16 units, one call each",
-        "the list's own: sword, book, sword, book, 8 units, in order"};
+    constexpr int tests = 8;
+    int const test = static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(nowTime - started).count() / 5 % tests);
+    constexpr std::array<char const*, tests> names{
+        "the container preview's own code, 27 enchanted books, at the pointer", "icons alone: nothing drawn before them",
+        "opaque fill, then icons", "translucent fill, then icons", "opaque fill, text drawn and flushed, then icons",
+        "opaque fill, then icons at 8 units", "opaque fill, then bare books", "opaque fill, then one stack four times"};
+    // Round 2: everything in round 1 drew text and a translucent fill before the icons and none glinted, while the
+    // container preview (opaque fills, no text before its icons) does. The number is written after the icons here.
     constexpr float left = 6, top = 6;
-    panel(context, left, top, 216, 70, .8f);
-    label(context, left + 4, top + 4, 208, std::format("Glint test {} of 10", test + 1));
-    label(context, left + 4, top + 15, 208, names[static_cast<size_t>(test)], palette::dim);
-    float const x = left + 8, y = top + 30;
+    float const x = left + 8, y = top + 8;
     std::vector<IconAt> icons;
-    auto row = [&](std::vector<ItemStack>& stacks, int count, float scale, float dx, float dy) {
-        for (int i = 0; i < count; ++i) icons.push_back({&stacks[static_cast<size_t>(i)], x + i * dx, y + i * dy, scale, 0, 1.f, true});
+    auto row = [&](std::vector<ItemStack>& stacks, float scale) {
+        for (int i = 0; i < 4; ++i) icons.push_back({&stacks[static_cast<size_t>(i)], x + i * 18.f, y, scale, 0, 1.f, true});
     };
-    bool separately = false;
     switch (test) {
-    case 0: context.flushText(0, std::nullopt); row(testBare, 4, 1.f, 18, 0); break;
-    case 1: context.flushText(0, std::nullopt); row(testBare, 4, .5f, 18, 0); break;
-    case 2: context.flushText(0, std::nullopt); row(testBare, 4, .5f, 0, 10); break;
-    case 3: label(context, x, y + 20, 100, "text before the icons", palette::faint); context.flushText(0, std::nullopt); row(testBare, 4, 1.f, 18, 0); break;
-    case 4: context.flushText(0, std::nullopt); row(testBooks, 4, 1.f, 18, 0); break;
-    case 5: context.flushText(0, std::nullopt); row(testSwords, 4, 1.f, 18, 0); break;
-    case 6:
-        context.flushText(0, std::nullopt);
-        icons.push_back({&testBare[0], x, y, .5f, 0, 1.f, true});
-        icons.push_back({&testSwords[0], x + 18, y, .5f, 0, 1.f, true});
-        break;
-    case 7: context.flushText(0, std::nullopt); row(testBare, 2, 1.f, 18, 0); break;
-    case 8: context.flushText(0, std::nullopt); row(testBare, 4, 1.f, 18, 0); separately = true; break;
-    default:
-        context.flushText(0, std::nullopt);
-        icons.push_back({&testPlain[0], x, y, .5f, 0, 1.f, true, true});
-        icons.push_back({&testBare[0], x + 6, y + 10, .5f, 0, 1.f, true, true});
-        icons.push_back({&testPlain[1], x, y + 21, .5f, 0, 1.f, true, true});
-        icons.push_back({&testBare[1], x + 6, y + 31, .5f, 0, 1.f, true, true});
+    case 0: {
+        static inspection::render::PreviewRenderer renderer;
+        auto preview = inspection::preview::ContainerPreview::empty(9, 3);
+        for (auto& slot : preview.slots) slot = testBooks[0];
+        renderer.render(view, context, preview);
         break;
     }
-    if (separately) for (auto const& icon : icons) inspection::render::drawItemIcon(context, icon, 17);
-    else if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
-
-    // The control that writes a held stack's count: everything near the pointer that is not part of a slot.
-    try {
-        auto& screenController = static_cast<ContainerScreenController&>(*view.mController);
-        auto manager = screenController.mContainerManagerController;
-        auto* tree = view.mVisualTree.get();
-        static std::string const windowName = "root_panel";
-        auto window = tree ? tree->getControlByName(windowName, true) : nullptr;
-        if (!manager || manager->mContainersClosed || !window) return;
-        auto const& onPointer = manager->getItemStack("cursor_items", 0);
-        static int logged = 0;
-        static glm::vec2 lastLogged{-1000, -1000};
-        glm::vec2 const pointer = view.mPointerLocationPrevious, at = *window->mCachedPosition, size = *window->mSize;
-        bool const outside = pointer.x < at.x - 30 || pointer.x > at.x + size.x + 30 || pointer.y < at.y - 30 || pointer.y > at.y + size.y + 30;
-        if (onPointer.isNull() || onPointer.mCount < 2 || logged >= 2 || !outside
-            || std::abs(pointer.x - lastLogged.x) + std::abs(pointer.y - lastLogged.y) < 30) return;
-        ++logged;
-        lastLogged = pointer;
-        Runtime::instance().self().getLogger().info("Enchantment order test: held stack of {}, pointer {:.1f},{:.1f}", static_cast<int>(onPointer.mCount),
-            pointer.x, pointer.y);
-        int lines = 0;
-        auto slotPart = [](std::string const& name) {
-            return name.starts_with("grid_item_for") || name == "item_cell" || name == "bg" || name == "cell_image" || name == "item"
-                || name == "common.item_renderer" || name == "item_button_ref";
-        };
-        auto walk = [&](auto&& self, UIControl const& control, int depth) -> void {
-            if (depth > 30 || lines >= 40) return;
-            glm::vec2 const where = *control.mCachedPosition, extent = *control.mSize;
-            if (!slotPart(*control.mName) && extent.x <= 64 && extent.y <= 64 && pointer.x >= where.x - 40 && pointer.x <= where.x + extent.x + 40
-                && pointer.y >= where.y - 40 && pointer.y <= where.y + extent.y + 40) {
-                ++lines;
-                Runtime::instance().self().getLogger().info("Enchantment order test: depth={} name={} shown={} at={:.1f},{:.1f} size={:.1f}x{:.1f} children={}",
-                    depth, *control.mName, (static_cast<int>(control.mVisible) & 1) != 0, where.x, where.y, extent.x, extent.y, control.mChildren->size());
-            }
-            for (auto const& child : *control.mChildren) if (child) self(self, *child, depth + 1);
-        };
-        if (tree->mRootControl) walk(walk, *tree->mRootControl.get(), 0);
-    } catch (...) {}
+    case 1: row(testBooks, 1.f); break;
+    case 2: fill(context, left, top, 90, 32, palette::panel, 1.f); row(testBooks, 1.f); break;
+    case 3: fill(context, left, top, 90, 32, palette::panel, .8f); row(testBooks, 1.f); break;
+    case 4:
+        fill(context, left, top, 90, 32, palette::panel, 1.f);
+        label(context, x, y + 16, 80, "text before", palette::faint);
+        context.flushText(0, std::nullopt);
+        row(testBooks, 1.f);
+        break;
+    case 5: fill(context, left, top, 90, 32, palette::panel, 1.f); row(testBooks, .5f); break;
+    case 6: fill(context, left, top, 90, 32, palette::panel, 1.f); row(testBare, 1.f); break;
+    default:
+        fill(context, left, top, 90, 32, palette::panel, 1.f);
+        for (int i = 0; i < 4; ++i) icons.push_back({&testBooks[0], x + i * 18.f, y, 1.f, 0, 1.f, true});
+        break;
+    }
+    if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
+    // The number, after the icons and away from them.
+    fill(context, left, top + 40, 216, 26, palette::panel, 1.f);
+    label(context, left + 4, top + 43, 208, std::format("Glint test {} of {} (round 2)", test + 1, tests));
+    label(context, left + 4, top + 54, 208, names[static_cast<size_t>(test)], palette::dim);
+    context.flushText(0, std::nullopt);
 }
 #endif
 void dropStacks() {

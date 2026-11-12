@@ -1470,6 +1470,17 @@ to see which keep their glint; and while a stack of two or more is held
 outside the window it logs every control near the pointer that is not part
 of a slot, shown or not, to find the count's control. Remove the option's
 code once both are answered.
+Glint test round 1 by the maintainer 2026-11-12 (VALIDATION-LOG): none of the
+ten arrangements glints, the container preview still does. So the icons are
+not the cause (count, size, kind of stack, calls); what the ten shared and
+the preview does not is a translucent fill and flushed text before the
+icons. The log named the count's control, `selected_stack_size_text`; the
+list now looks for that name (not checked in game). Round 2 of the option,
+built the same day, eight arrangements, five seconds each, the number
+written after the icons: the preview's own code with 27 enchanted books at
+the pointer; icons with nothing before them; after an opaque fill; after a
+translucent fill; after an opaque fill and flushed text; at 8 units; bare
+books; one stack four times.
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s
