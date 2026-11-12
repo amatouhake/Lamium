@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, twenty-second pass (2026-11-12)
+
+`088f8120`, local build, DLL SHA-256
+`3cceba9cbaf40dfc2b418770aef2bf4c0dd50e7fb72c5d11f015833446621066`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer: with an item finished
+earlier at hand a new plan for the same kind starts at step 1; the main-hand cell
+follows the main hand while the anvil is open; the panels have their border and the
+choosing panel is as tall as its rows.
+
+Not wanted: the panel changing its height with the rows is restless; the fixed height
+before was better. Odd: the same item in the main hand and in the left slot shows both
+cells as chosen. Seen in the maintainer's screenshot: a plain book in the hand and the
+slot was offered as an item and planned as an enchanted book.
+
 ## Enchantment order, twenty-first pass: choosing beside the anvil (2026-11-12)
 
 `47dfc78e`, local build, DLL SHA-256

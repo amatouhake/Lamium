@@ -111,6 +111,7 @@ struct PlanItem {
     int slot = 0, work = 0;
     std::string id, name;
     std::vector<Enchantment> base;
+    bool fromSlot = false; // taken from the anvil slot's cell, not the main hand's
 } planItem;
 ItemStack planIcon; // rebuilt at open
 Goal goal = Goal::FewestLevels;
@@ -254,9 +255,11 @@ void readItem(Held& held, ItemStack const& stack) {
     held = {};
     if (stack.isNull() || !stack.mItem) return;
     // An enchanted book has no enchant slot of its own; it belongs to the book kind.
-    int const slot = stack.getTypeName() == bookItem ? bookSlot : stack.mItem->getEnchantSlot();
+    // Only the enchanted book: a plain book's slot value is the same "everything", and an anvil puts nothing on it.
+    bool const isBook = stack.getTypeName() == bookItem;
+    int const slot = isBook ? bookSlot : stack.mItem->getEnchantSlot();
     auto found = std::ranges::find_if(kinds, [&](Kind const& k) { return k.slot == slot; });
-    if (slot == 0 || found == kinds.end()) return;
+    if (slot == 0 || (slot == bookSlot && !isBook) || found == kinds.end()) return;
     held.present = true;
     held.kind = static_cast<int>(found - kinds.begin());
     held.base = enchantsOn(stack);
@@ -279,7 +282,7 @@ bool isPlanItem(Held const& item) {
         && item.work == planItem.work && sameSet(item.base, planItem.base);
 }
 void take(Held const& item) {
-    planItem = {true, kinds[static_cast<size_t>(item.kind)].slot, item.work, {}, item.name, item.base};
+    planItem = {true, kinds[static_cast<size_t>(item.kind)].slot, item.work, {}, item.name, item.base, &item == &slotItem};
     try { planItem.id = item.icon.getTypeName(); } catch (...) {}
     planIcon = ItemStack(item.icon);
 }
@@ -306,10 +309,13 @@ void rebuild() {
     shown.inHand = held.present && held.kind == kind;
     shown.stateKnown = held.stateKnown;
     shown.useItem = fromHeld;
-    shown.useHeld = fromHeld && isPlanItem(held);
+    // Two like items, one in the hand and one in the slot: only the cell that was pressed is the chosen one.
+    // The other is when the pressed one no longer holds the item (it went from the hand into the slot, say).
+    bool const handIs = fromHeld && isPlanItem(held), slotIs = fromHeld && isPlanItem(slotItem);
+    shown.useHeld = handIs && (!planItem.fromSlot || !slotIs);
     shown.heldCell = held.present && held.stateKnown;
     shown.heldName = held.name;
-    shown.useSlot = fromHeld && isPlanItem(slotItem);
+    shown.useSlot = slotIs && (planItem.fromSlot || !handIs);
     shown.slotCell = slotItem.present && slotItem.stateKnown;
     shown.slotName = slotItem.name;
     shown.bookKind = !withItem;
@@ -856,17 +862,9 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     if (chooser) {
         float const chooseWidth = std::min(chooseWide, roomLeft), chooseHeight = std::min(chooseTall, screen.y - 2 * gap);
         float const chooseTop = std::clamp(windowRest + (size.y - chooseHeight) / 2, gap, std::max(gap, screen.y - gap - chooseHeight)) + (at.y - windowRest);
-        auto fit = [&](float tall) {
-            return ui::EnchantLayout::fitPanel(at.x - gap - chooseWidth, chooseTop, chooseWidth, tall, static_cast<int>(kinds.size()),
-                shown.heldCell, shown.slotCell, static_cast<int>(shown.rows.size()), chooserFirst);
-        };
-        choose = fit(chooseHeight);
-        // No taller than its rows need: the top stays where the tallest would be, so it does not move with the kind.
-        if (choose.usable())
-            if (float const needed = choose.rows.rowsTop - chooseTop + static_cast<float>(choose.rows.listCount) * ui::ShapesLayout::rowHeight + 3
-                    + ui::EnchantLayout::statusHeight;
-                needed < chooseHeight)
-                choose = fit(std::max(needed, 150.f));
+        // One height whatever the kind: a panel as tall as its rows changed size with every press (tried 2026-11-12).
+        choose = ui::EnchantLayout::fitPanel(at.x - gap - chooseWidth, chooseTop, chooseWidth, chooseHeight, static_cast<int>(kinds.size()),
+            shown.heldCell, shown.slotCell, static_cast<int>(shown.rows.size()), chooserFirst);
         chooserFirst = choose.rows.listFirst;
         chooser = choose.usable();
     }
@@ -1004,7 +1002,7 @@ void pickItem(Held const& item) {
         int const slot = kinds[static_cast<size_t>(item.kind)].slot;
         if (slot != chosenSlot) { remember(); wanted.clear(); chosenSlot = slot; }
         take(item);
-    }
+    } else planItem.fromSlot = &item == &slotItem; // the same item's other cell
     rebuild();
 }
 }

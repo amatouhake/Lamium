@@ -1654,6 +1654,14 @@ in game):
   the slot's cell.
 - The anvil's panels get the thin outline Lamium's screen has, and the
   choosing panel is no taller than its rows need.
+Twenty-second pass by the maintainer 2026-11-12 (`088f8120`, VALIDATION-LOG):
+the three fixes work. Changed the same day (not checked in game): the
+choosing panel keeps one height again (growing and shrinking with the rows
+was restless); of two like items in the hand and the slot only the pressed
+cell is shown chosen (the plan's record says which cell it came from, and
+the other cell takes over when the item has moved there); a plain book is
+no longer offered as an item (its enchant slot value is the enchanted
+book's "everything").
 Raised by the maintainer and not decided:
 - The right panel (the steps) and the planner screen's right column differ
   and neither is clearly better: the anvil's is simple but says little,
