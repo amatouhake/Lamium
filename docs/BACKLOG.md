@@ -1281,6 +1281,20 @@ same day, not checked in game:
   step marked, a line saying which side of the pair is not in the plan or
   what the next step still lacks, and the prior-work surcharge of the two
   slot items.
+Second use by the maintainer 2026-11-12 (`9a1bec30`, VALIDATION-LOG): the four
+checks passed. Fixed the same day, not checked in game:
+- The anvil list kept saying "finished" with no way out. A stack holding
+  every input counts as finished, so another item with the same
+  enchantments does too. Now a finished plan leaves the anvil's side once
+  the anvil is closed (the planner brings it back), and a finished item is
+  ignored while another item of the plan that is not finished is at hand
+  (`progress`): holding a fresh sword means a second one is being made.
+- The main-hand mark is a line under the kind's cell, clear of the icon.
+- The enchantments keep one order whether the held state is used or not;
+  what the item carries is fixed in its place.
+- The held-state row sits under the list and shows only for the main hand's
+  kind, so nothing above it moves.
+- More space under the totals.
 Still open:
 - Changing the plan at the anvil. After the above; Item Transfer already
   handles clicks on container screens (`TransferSession`, `TransferGesture`,

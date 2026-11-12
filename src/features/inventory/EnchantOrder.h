@@ -133,6 +133,17 @@ inline std::optional<std::vector<enchantPlan::Input>> inputs(std::span<Enchantme
     }
     return out;
 }
+// A finished item at hand (a stack holding every input) says the plan is
+// done. But with another item of the plan at hand that is not finished, the
+// player is making a second one, so the finished ones are left out.
+inline std::vector<unsigned> progress(std::span<unsigned const> stacks, enchantPlan::Plan const& plan) {
+    std::vector<unsigned> out(stacks.begin(), stacks.end());
+    if (plan.steps.empty()) return out;
+    unsigned const full = plan.steps.back().target | plan.steps.back().sacrifice;
+    if ((full & 1u) && std::ranges::any_of(out, [&](unsigned mask) { return (mask & 1u) && mask != full; }))
+        std::erase(out, full);
+    return out;
+}
 // Following a plan with what the player carries: a step is done when one
 // stack holds everything the step joins. `stacks` are the planner-input
 // masks of the stacks at hand (enchantPlan::carried).

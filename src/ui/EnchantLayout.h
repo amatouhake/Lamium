@@ -7,8 +7,8 @@
 namespace lamium::ui {
 // Enchantment order (BACKLOG L-170). Like the block highlight list it takes
 // the settings table's place: a heading row with the path and Back, then on
-// the left the item, the kinds as an icon grid, the held-state switch, the
-// set buttons and the enchantments; on the right the goal, the totals and
+// the left the item, the kinds as an icon grid, the set buttons, the
+// enchantments and under them the held-state switch; on the right the goal, the totals and
 // the steps (two list rows each).
 struct EnchantLayout {
     static constexpr float titleHeight = 12, barHeight = 14, cell = 20, cellGap = 2, buttonHeight = 11, stepWidth = 11;
@@ -54,21 +54,21 @@ struct EnchantLayout {
         l.itemY = l.bodyTop + 1;
         l.kindsTop = l.itemY + barHeight + 1;
         float y = l.kindsTop + kindRows * (cell + cellGap);
+        // The held-state row sits under the list, where showing it moves nothing.
         l.useHeldShown = useHeld;
-        l.useHeldY = y;
-        if (useHeld) y += barHeight;
+        l.useHeldY = l.footerTop - barHeight;
         l.setsY = y + 1;
         float const room = leftWidth - 2 * pad - 2 * 3;
         l.setWide = std::floor(room * .38f); l.setNarrow = room - 2 * l.setWide;
         l.setAllX = l.left + pad; l.setLastX = l.setAllX + l.setWide + 3; l.setClearX = l.setLastX + l.setWide + 3;
         y = l.setsY + buttonHeight + 3;
         l.rowsTitleY = y;
-        l.rows = column(l.left, leftWidth, y + titleHeight, l.footerTop, rowCount, rowFirst);
+        l.rows = column(l.left, leftWidth, y + titleHeight, useHeld ? l.useHeldY - 1 : l.footerTop, rowCount, rowFirst);
 
         // The totals sit right under the goal, where they are read first.
         l.goalY = l.bodyTop + 1;
         l.summaryTop = l.goalY + barHeight + 1;
-        l.stepsTitleY = l.summaryTop + summaryLines * summaryLine + 3;
+        l.stepsTitleY = l.summaryTop + summaryLines * summaryLine + 6;
         l.steps = column(l.rightLeft, l.rightWidth, l.stepsTitleY + titleHeight, l.footerTop, stepCount * stepRows, stepFirst);
         return l;
     }

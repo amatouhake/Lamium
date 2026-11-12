@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <chrono>
 #include <cmath>
 #include <map>
 #include <optional>
@@ -103,6 +104,8 @@ struct Active {
 } active;
 ItemStack anvilItemIcon, anvilBookIcon;
 bool anvilIconsMade = false;
+std::chrono::steady_clock::time_point anvilSeen{};
+bool finishedAtAnvil = false;
 ll::event::ListenerPtr renderListener, exitListener;
 
 bool curse(int type) {
@@ -245,10 +248,14 @@ void rebuild() {
     prune(wanted, chosen.offers, base, conflicts);
     shown.wanted = static_cast<int>(wanted.size());
     if (auto last = lastBySlot.find(chosenSlot); last != lastBySlot.end()) shown.hasLast = last->second != wanted;
-    // What the item has first, then what can be added.
-    for (auto const& e : base) shown.rows.push_back({e.type, e.level, e.level, nameOf(e.type, e.level), {}, RowState::Fixed, curse(e.type)});
+    // One order whether the held state is used or not: what the item has
+    // stays in its place, fixed. Anything on it that the kind does not
+    // offer comes last.
     for (auto const& offer : chosen.offers) {
-        if (has(base, offer.type)) continue;
+        if (auto on = std::ranges::find_if(base, [&](Enchantment const& e) { return e.type == offer.type; }); on != base.end()) {
+            shown.rows.push_back({on->type, on->level, on->level, nameOf(on->type, on->level), {}, RowState::Fixed, offer.curse});
+            continue;
+        }
         Row row{offer.type, offer.maxLevel, offer.maxLevel, {}, {}, RowState::Off, offer.curse};
         if (auto on = std::ranges::find_if(wanted, [&](Enchantment const& e) { return e.type == offer.type; }); on != wanted.end()) {
             row.level = on->level;
@@ -260,6 +267,9 @@ void rebuild() {
         row.label = nameOf(offer.type, row.level);
         shown.rows.push_back(std::move(row));
     }
+    for (auto const& e : base)
+        if (std::ranges::none_of(chosen.offers, [&](Offer const& o) { return o.type == e.type; }))
+            shown.rows.push_back({e.type, e.level, e.level, nameOf(e.type, e.level), {}, RowState::Fixed, curse(e.type)});
     active = {};
     if (wanted.empty()) return;
     auto made = inputs(wanted, chosen.offers, fromHeld ? held.work : 0, withItem);
@@ -306,6 +316,7 @@ void rebuild() {
     active.plan = *mine;
     active.lines = shown.steps;
     anvilIconsMade = false;
+    finishedAtAnvil = false;
 }
 
 // The step list beside the anvil screen. It takes no input.
@@ -326,11 +337,20 @@ std::string sideText(unsigned mask) {
     }
     return text;
 }
+// A finished plan leaves the anvil's side once the anvil has been closed;
+// the planner brings it back.
 void drawBeside(ll::event::AfterUIRenderEvent& event) {
     if (!active.valid || active.lines.empty()) return;
     auto& view = event.screenView();
-    if (!view.mHasFocus || !view.mController || !view.mController->_isContainerScreen()) return;
-    if (view.getScreenName() != "anvil_screen") return;
+    bool const anvil = view.mHasFocus && view.mController && view.mController->_isContainerScreen() && view.getScreenName() == "anvil_screen";
+    if (!anvil) {
+        if (finishedAtAnvil && std::chrono::steady_clock::now() - anvilSeen > std::chrono::milliseconds(500)) {
+            active = {};
+            finishedAtAnvil = false;
+        }
+        return;
+    }
+    anvilSeen = std::chrono::steady_clock::now();
     if (!versionSensitiveAllowed(capabilities::Id::EnchantOrder)) return;
     auto* tree = view.mVisualTree.get();
     if (!tree) return;
@@ -376,7 +396,9 @@ void drawBeside(ll::event::AfterUIRenderEvent& event) {
                 if (auto mask = sideOf(manager->getItemStack("combined_hotbar_and_inventory_items", i))) atHandNow.push_back(*mask);
         }
     } catch (...) { now = -1; both = false; atHandNow.clear(); }
+    atHandNow = progress(atHandNow, active.plan);
     int const next = nextStep(active.plan, atHandNow);
+    finishedAtAnvil = next < 0;
 
     int const steps = static_cast<int>(active.lines.size());
     constexpr int headLines = 2, footLines = 2;

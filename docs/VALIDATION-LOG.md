@@ -12,6 +12,33 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order after the rework (2026-11-12)
+
+`9a1bec30`, local build, DLL SHA-256
+`ec3cafdcbe2e75a6a9e9804b5157b8dfc3e4b32df80e63b9f36ab34c22bd1e82`, no trace options,
+1.26.60.05 Dev instance, Japanese, Creative. Passed, per the maintainer (with a
+screenshot of the screen):
+
+- Kinds are named by the game's group words ("剣") with larger icons; the enchanted
+  book and the carved pumpkin can be chosen.
+- "All highest" on a sword takes Sharpness and no curse; `-` at level 1 turns an
+  enchantment off; curses are red; the conflict reason is the name alone.
+- Pressing an enchantment a held enchanted sword carries switches to planning it
+  from fresh.
+- Beside the anvil the total and the level are on top, done steps are grey, the next
+  one is marked, and a pair outside the plan says which side.
+
+Seen as wrong: the anvil list kept saying the plan was finished after the finished
+item was thrown away, also after opening the anvil with another kind and choosing
+the first kind in the planner again; nothing showed how to get out of that. Whether
+another item with the same enchantments was still carried is not known. Awkward: the
+white main-hand mark covers part of the icon; turning the held state on or off
+reorders the enchantments; the held-state row sits at the top though it means
+nothing for most kinds; no space between the last totals line and the line under it.
+
+Not checked: Survival (the level line and its warning), the mace's "All highest",
+the book kind's plan at the anvil, other GUI scales, servers.
+
 ## Enchantment order, first use (2026-11-12)
 
 `0d2b5ecd`, local build, DLL SHA-256

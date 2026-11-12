@@ -116,6 +116,10 @@ void enchantOrderTests() {
               "the next step is the first whose parts are not yet in one stack");
         check(done(made.steps[0], onSword) && !done(made.steps[2], onSword) && atHand(6u, merged) && !atHand(6u, fresh),
               "a later result counts for the steps inside it");
+        std::vector<unsigned> second{15u, 1u, 2u}, spare{15u, 2u};
+        check(nextStep(made, progress(second, made)) == 0 && nextStep(made, progress(spare, made)) == -1
+                  && progress(finished, made) == finished,
+              "a finished item does not end the plan while another item to enchant is at hand; a spare book does not restart it");
     }
     auto allOnItem = allHighest(offers, base, conflicts);
     check(!has(allOnItem, 17) && !has(allOnItem, 9) && has(allOnItem, 12), "it skips what the item has and what that blocks");
@@ -159,8 +163,9 @@ void enchantLayoutTests() {
     check(layout.hit(layout.goalX() + 4, layout.goalY + 2).zone == Zone::Goal && layout.hit(layout.backX + 2, layout.headTop + 2).zone == Zone::Back,
           "the goal and Back take clicks");
     auto plain = EnchantLayout::fit(table, 20, false, 12, 0, 9, 0);
-    check(plain.rows.rowsTop < layout.rows.rowsTop && plain.hit(plain.left + 20, plain.useHeldY + 2).zone != Zone::UseHeld,
-          "without the held-state row the list starts higher");
+    check(plain.rows.rowsTop == layout.rows.rowsTop && plain.rows.listVisible > layout.rows.listVisible
+              && plain.hit(plain.left + 20, plain.useHeldY + 2).zone != Zone::UseHeld && layout.useHeldY + EnchantLayout::barHeight == layout.footerTop,
+          "the held-state row sits under the list and takes a row from it, moving nothing above");
     check(!EnchantLayout::fit(SettingsTable::fit(100, 100, 29, 0), 20, true, 12, 0, 9, 0).usable(), "too-small windows draw nothing");
 }
 void enchantPlanTests() {

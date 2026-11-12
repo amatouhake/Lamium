@@ -108,8 +108,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     lastPointer = pointer;
     auto const& v = game::view();
     int const stepCount = static_cast<int>(v.steps.size());
-    // The held-state row is always there, so the buttons under it stay put.
-    last = EnchantLayout::fit(t, static_cast<int>(v.kinds.size()), true, static_cast<int>(v.rows.size()), rowFirst, stepCount, stepFirst);
+    // The held-state row is under the list and only for the main hand's kind.
+    last = EnchantLayout::fit(t, static_cast<int>(v.kinds.size()), v.inHand, static_cast<int>(v.rows.size()), rowFirst, stepCount, stepFirst);
     if (!last.usable()) return;
     if (dragging == Drag::Rows) last.rows.listFirst = last.rows.firstAt(pointer.y);
     if (dragging == Drag::Steps) last.steps.listFirst = last.steps.firstAt(pointer.y);
@@ -136,10 +136,12 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         fill(context, x, y, L::cell, L::cell, chosen ? palette::accent : Rgb{0, 0, 0}, chosen ? .16f : .3f);
         frame(context, x, y, L::cell, L::cell, chosen ? palette::accent : over ? palette::white : palette::keyEdge, chosen || over ? 1 : .6f);
         drawIcon(context, game::kindIcon(i), x + 2, y + 2, 16);
-        if (v.kinds[static_cast<size_t>(i)].held) fill(context, x + L::cell - 5, y + 1, 4, 4, palette::white);
+        // The main hand's kind: a line under the cell, clear of the icon.
+        if (v.kinds[static_cast<size_t>(i)].held) fill(context, x + 2, y + L::cell, L::cell - 4, 1, palette::white);
     }
     if (last.useHeldShown) {
         bool const usable = v.inHand && v.stateKnown, over = hover.zone == Zone::UseHeld && usable;
+        fill(context, last.left, last.useHeldY - 1, last.dividerX - last.left, 1, palette::white, .14f);
         if (over) fill(context, last.left + 1, last.useHeldY, last.dividerX - last.left - 1, L::barHeight, palette::white, .07f);
         toggleSwitch(context, leftLeft, last.useHeldY + 3, v.useHeld);
         label(context, leftLeft + switchWidth + 5, last.useHeldY + 3, leftRight - leftLeft - switchWidth - 5, translated("enchantOrder.useHeld"),
