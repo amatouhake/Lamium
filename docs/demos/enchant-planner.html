@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enchantment Order Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --mc-panel:16,17,19; --mc-row-hover:rgba(255,255,255,.07); --mc-row-alt:rgba(255,255,255,.025);
+  --mc-sel:rgba(108,195,73,.16); --mc-edge:rgba(255,255,255,.14); --mc-dim:#b4b8b6; --mc-faint:#7f8583;
+  --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-warn:#ffc24a;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:28px 64px;display:grid;gap:24px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:72ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.opts{display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px;color:var(--ink-2);align-items:center}
+.opts label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.opts select{font:13px "Noto Sans JP",sans-serif;background:var(--ground-2);color:var(--ink);border:1px solid var(--line);padding:3px 6px}
+
+.stage-outer{width:100%;border:1px solid var(--line);background:#000}
+.stage-fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--mc-font);color:#fff;user-select:none;overflow:hidden}
+.stage canvas.world{position:absolute;inset:0;width:960px;height:540px;image-rendering:pixelated}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.25)}
+
+.panel{position:absolute;left:100px;top:36px;width:760px;height:444px;display:flex;flex-direction:column;background:rgba(var(--mc-panel),.86);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.phead{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;border-bottom:1px solid var(--mc-edge);flex:none}
+.brand{font-size:14px}
+.crumb{font-size:12px;color:var(--mc-faint)}
+.exp{font-size:10px;color:#b98bff;box-shadow:inset 0 0 0 1px #b98bff;padding:0 4px;line-height:14px}
+.spacer{flex:1}
+.hbtn{all:unset;cursor:pointer;font:12px var(--mc-font);color:var(--mc-dim);padding:0 8px;height:20px;line-height:20px;box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.hbtn:hover{color:#fff;background:var(--mc-row-hover)}
+.pbody{flex:1;min-height:0;display:flex}
+.col{min-width:0;min-height:0;display:flex;flex-direction:column}
+.col.left{width:330px;border-right:1px solid var(--mc-edge);flex:none}
+.col.right{flex:1}
+.ctitle{display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;font-size:11px;color:var(--mc-faint);border-bottom:1px solid var(--mc-edge);flex:none}
+.ctitle b{font-weight:400;color:var(--mc-dim)}
+.bar{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;font-size:13px;border-bottom:1px solid var(--mc-edge);flex:none}
+.bar .k{color:var(--mc-dim)}
+.scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#5a5b5c transparent}
+.row{display:grid;align-items:center;column-gap:8px;padding:0 10px;height:26px;font-size:13px}
+.row:nth-child(even){background:var(--mc-row-alt)}
+.row:hover{background:var(--mc-row-hover)}
+.erow{grid-template-columns:30px minmax(0,1fr) auto;cursor:pointer}
+.erow.na{color:var(--mc-faint);cursor:default}
+.erow .why{font-size:11px;color:var(--mc-faint);white-space:nowrap}
+.srow{grid-template-columns:18px minmax(0,1fr) 34px;height:auto;min-height:26px;padding-block:4px}
+.srow .n{color:var(--mc-faint);font-size:12px;text-align:right}
+.srow .what{min-width:0;line-height:1.35}
+.srow .what small{display:block;font-size:11px;color:var(--mc-faint)}
+.srow .c{text-align:right}
+.plus{color:var(--mc-faint);padding:0 4px}
+.tag{font-size:11px;color:var(--mc-dim);box-shadow:inset 0 0 0 1px var(--mc-key-edge);padding:0 4px;line-height:15px;display:inline-block;margin-right:3px}
+.nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sw{all:unset;cursor:pointer;position:relative;display:inline-block;width:30px;height:14px;background:var(--mc-off);box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.sw::after{content:"";position:absolute;top:1px;left:1px;width:12px;height:12px;background:#c9c9c9}
+.sw.on{background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.sw.on::after{left:17px;background:#fff}
+.sw.dis{opacity:.35;cursor:default}
+.step{display:inline-flex;align-items:center;gap:2px;font-size:12px}
+.step button{all:unset;cursor:pointer;width:16px;height:16px;line-height:16px;text-align:center;color:var(--mc-dim);box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key)}
+.step button:hover{color:#fff;background:#3a3b3c}
+.step button[disabled]{opacity:.3;cursor:default}
+.step span{min-width:26px;text-align:center}
+.step.wide span{min-width:118px}
+.sum{flex:none;border-top:1px solid var(--mc-edge);padding:6px 10px;font-size:12px;display:grid;gap:2px}
+.sum .big{font-size:14px}
+.sum .faint,.faint{color:var(--mc-faint);font-size:11px}
+.warn{color:var(--mc-warn)}
+.pfoot{border-top:1px solid var(--mc-edge);padding:5px 10px;min-height:36px;display:grid;gap:1px;flex:none;font-size:11px;color:var(--mc-faint);line-height:1.45}
+.empty{padding:14px 12px;font-size:12px;color:var(--mc-faint);line-height:1.6}
+
+.settingsmock{border:1px solid var(--line);background:var(--ground-2);padding:16px 18px;display:grid;gap:10px}
+.tbl{font-family:var(--mc-font);font-size:13px;background:rgba(16,17,19,.95);box-shadow:inset 0 0 0 1px var(--mc-edge);max-width:680px;overflow-x:auto}
+.tbl .r{display:grid;grid-template-columns:minmax(0,1fr) 54px 130px;gap:10px;align-items:center;height:26px;padding:0 10px;color:#fff;min-width:420px}
+.tbl .r.sec{color:var(--accent);font-size:11px;height:22px;border-bottom:1px solid rgba(108,195,73,.3)}
+.cap{display:inline-block;height:16px;line-height:16px;padding:0 5px;font-size:11px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);color:#fff}
+.link{color:var(--accent);font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:16px 18px;display:grid;gap:8px;align-content:start}
+.note h3{font:700 15px/1.4 "Noto Sans JP",sans-serif;margin:0}
+.note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:4px}
+.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.ask ol{margin:0;padding-left:1.3em;color:var(--ink-2);font-size:13.5px;display:grid;gap:6px}
+.ask b{color:var(--ink)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">BACKLOG L-170 · エンチャント順序プランナー · 確認用モック</div>
+    <h1>付けたいエンチャントを選ぶと、いちばん安い金床の順番が出る画面</h1>
+    <p class="lede">左で<strong>アイテムと付けたいエンチャント</strong>を選ぶと、右に<strong>金床で合成する順番</strong>と各回のコストが出ます。右上の切り替えで<strong>「最小レベル」と「最小作業ペナルティ」</strong>を選べます（2026-11-12 決定）。このページの計算は実際に動き、コストの規則は同日にゲームで読んだもの（作業ペナルティ 2^回数−1、40 以上は拒否、本の倍率は頻度から）です。エンチャント名は仮の訳で、ゲームでは本物の名前を使います。剣で 7 つ全部をオンにすると、2 つの目標で手順が変わる例になります（47 レベル・4 回 と 49 レベル・3 回）。</p>
+  </header>
+
+  <div class="opts">
+    <label>手順の書き方
+      <select id="optNames"><option value="full">中身を書く（本: ダメージ増加 V, 耐久力 III）</option><option value="letter">記号で呼ぶ（本 A）</option></select>
+    </label>
+    <label><input type="checkbox" id="optCreative"> クリエイティブ（上限なし）</label>
+    <label>持っているアイテムの金床使用回数
+      <select id="optWork"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select>
+    </label>
+    <label><input type="checkbox" id="optCurse" checked> 呪いも一覧に出す</label>
+  </div>
+
+  <div class="stage-outer"><div class="stage-fit" id="fit"><div class="stage" id="stage">
+    <canvas class="world" id="world" width="480" height="270"></canvas>
+    <div class="dim"></div>
+    <div id="layer"></div>
+  </div></div></div>
+
+  <section class="settingsmock">
+    <h2>設定画面の行とキー（2026-10-12 決定：未割り当てのキーと設定画面から開く）</h2>
+    <div class="tbl" role="img" aria-label="設定画面のエンチャント順序の行">
+      <div class="r sec">インベントリ</div>
+      <div class="r"><span>エンチャント順序 <span class="exp">試験的</span></span><span></span><span><span class="cap">未割り当て</span> <span class="link">開く</span></span></div>
+    </div>
+    <p class="faint" style="font-family:'Noto Sans JP',sans-serif;font-size:13px">オン / オフのスイッチはありません（開くだけの画面）。キーを押すと、手に持っているアイテムを選んだ状態で開きます。</p>
+  </section>
+
+  <section class="cards">
+    <article class="note"><h3>左：アイテムとエンチャント</h3><ul>
+      <li>いちばん上でアイテムの種類を ◀ ▶ で選ぶ。開いたときは手に持っているアイテム</li>
+      <li>そのアイテムに付くエンチャントだけを並べる（ゲームの判定を使う）</li>
+      <li>スイッチで付ける / 付けない、レベルは − + で変える。オンにした直後は最大レベル</li>
+      <li>競合するもの（ダメージ増加とアンデッド特効など）は、片方をオンにすると灰色になり理由を出す</li>
+      <li>アイテム 1 つと本 9 冊まで。超えるとスイッチが入らず、下に理由が出る</li>
+    </ul></article>
+    <article class="note"><h3>右：手順</h3><ul>
+      <li>上の「目標」で切り替える。既定は最小レベル</li>
+      <li>1 行が金床 1 回。左が残す側、＋ の右が消える側、右端がその回のレベル</li>
+      <li>下に合計、いちばん高い 1 回、完成品の金床使用回数（次に金床に入れたときの上乗せ）</li>
+      <li>2 つの目標で手順が同じなら、その旨を 1 行で出す</li>
+      <li>40 以上の回が避けられないときは手順を出さず、理由を出す</li>
+    </ul></article>
+    <article class="note"><h3>初版に入れないもの（決定済み）</h3><ul>
+      <li>持っている本を読む（すでに金床を通った本）。本は全部新品として計算する</li>
+      <li>同じエンチャントの本 2 冊を合成して上のレベルにする手順</li>
+      <li>金床の画面で次に入れる 2 つを光らせる（後続として作る）</li>
+    </ul></article>
+  </section>
+
+  <section class="ask">
+    <h2>確認したいこと</h2>
+    <ol>
+      <li><b>アイテムの選び方。</b>このモックは「種類を ◀ ▶ で選ぶ、開いたときは手持ち」。手持ちだけに絞る案もある（何も持っていないと使えないが、画面は単純）。おすすめは種類を選べる方（先に計画を立てられる）。</li>
+      <li><b>手に持っているアイテムの状態を使うか。</b>すでに付いているエンチャントは「付与済み」として固定し、金床使用回数をコストに入れる（上の「金床使用回数」で試せる）。使わない場合は常に新品として計算する。おすすめは使う。</li>
+      <li><b>手順の書き方。</b>途中でできる本を「中身を書く」か「記号で呼ぶ」か（上の選択で切り替え）。おすすめは中身を書く（どの本か迷わない。長いときは 2 行になる）。</li>
+      <li><b>クリエイティブでは上限なしにするか。</b>ゲームはクリエイティブで 40 以上も通す。おすすめは今のゲームモードに自動で合わせる（切り替えは置かない）。</li>
+      <li><b>呪いを一覧に出すか。</b>束縛の呪い・消滅の呪いも本で付けられる。おすすめは一覧の最後に出す。</li>
+      <li><b>画面の名前。</b>このモックは「エンチャント順序」。</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+// id, name (placeholder translation), frequency, max level, primary slots, secondary slots, conflicts
+// Frequency, max level, slots and conflicts are the values read from the game on 2026-11-12.
+const E = [
+ [0,"ダメージ軽減",30,4,0xf,0,[1,3,4]],[1,"火炎耐性",10,4,0xf,0,[0,3,4]],[2,"落下耐性",10,4,0x4,0,[]],
+ [3,"爆発耐性",3,4,0xf,0,[0,1,4]],[4,"飛び道具耐性",10,4,0xf,0,[0,1,3]],[5,"棘の鎧",1,3,0x2,0xd,[]],
+ [6,"水中呼吸",3,3,0x1,0,[]],[7,"水中歩行",3,3,0x4,0,[25]],[8,"水中採掘",3,1,0x1,0,[]],
+ [9,"ダメージ増加",30,5,0x800010,0x200,[10,11,39,40]],[10,"アンデッド特効",10,5,0xc00010,0x200,[9,11,39,40]],
+ [11,"虫特効",10,5,0xc00010,0x200,[9,10,39,40]],[12,"ノックバック",10,2,0x800010,0,[]],
+ [13,"火属性",3,2,0xc00010,0,[]],[14,"ドロップ増加",3,3,0x800010,0,[]],[15,"効率強化",30,5,0xe40,0x80,[]],
+ [16,"シルクタッチ",1,1,0xe40,0x80,[18]],[17,"耐久力",10,3,0x811e7f,0x72e1c0,[]],[18,"幸運",3,3,0xe40,0,[16]],
+ [19,"射撃ダメージ増加",30,5,0x20,0,[]],[20,"パンチ",3,2,0x20,0,[]],[21,"フレイム",3,1,0x20,0,[]],
+ [22,"無限",1,1,0x20,0,[26]],[23,"宝釣り",3,3,0x1000,0,[]],[24,"入れ食い",3,3,0x1000,0,[]],
+ [25,"氷渡り",3,2,0x4,0,[7]],[26,"修繕",3,1,0x811e7f,0x72e1c0,[22]],[27,"束縛の呪い",1,1,0x4400f,0,[]],
+ [28,"消滅の呪い",1,1,0xffffffff,0,[]],[29,"水生特効",10,5,0x8000,0,[]],[30,"激流",3,3,0x8000,0,[31,32]],
+ [31,"忠誠",30,3,0x8000,0,[30]],[32,"召雷",1,1,0x8000,0,[30]],[33,"拡散",3,1,0x10000,0,[34]],
+ [34,"貫通",30,4,0x10000,0,[33]],[35,"高速装填",10,3,0x10000,0,[]],[36,"ソウルスピード",1,3,0x4,0,[]],
+ [37,"スニーク速度上昇",1,3,0x8,0,[]],[38,"ウィンドバースト",3,3,0x400000,0,[]],[39,"重撃",10,5,0x400000,0,[9,10,11,40]],
+ [40,"防具貫通",3,4,0x400000,0,[9,10,11,39]],[41,"突進",10,3,0x800000,0,[]],
+];
+const ITEMS = [["ダイヤモンドの剣",0x10],["ダイヤモンドのツルハシ",0x400],["ダイヤモンドの斧",0x200],["ダイヤモンドのシャベル",0x800],
+ ["ダイヤモンドのクワ",0x40],["弓",0x20],["クロスボウ",0x10000],["トライデント",0x8000],["メイス",0x400000],["ダイヤモンドの槍",0x800000],
+ ["ダイヤモンドのヘルメット",0x1],["ダイヤモンドのチェストプレート",0x2],["ダイヤモンドのレギンス",0x8],["ダイヤモンドのブーツ",0x4],
+ ["釣竿",0x1000],["エリトラ",0x4000],["盾",0x20000]];
+const ROMAN=["","I","II","III","IV","V"];
+const bookPerLevel = f => f===30||f===10 ? 1 : f===3 ? 2 : 4;
+const maxInputs = 10;
+
+let item = 0, goal = "levels", want = new Map([[9,5],[17,3],[14,3],[13,2],[26,1]]);
+let optNames="full", optCreative=false, optWork=0, optCurse=true;
+
+const el = (tag, cls, html) => { const e=document.createElement(tag); if(cls) e.className=cls; if(html!=null) e.innerHTML=html; return e; };
+const pen = w => (1<<w)-1;
+
+// The same search as src/features/inventory/EnchantPlan.h.
+function plan(inputs, refuseAt, least){
+  const n=inputs.length; if(n<1||n>maxInputs) return null;
+  const deepest=Math.max(...inputs.map(i=>i.work)), works=deepest+n, full=(1<<n)-1;
+  let itemBit=0; inputs.forEach((x,i)=>{ if(x.item) itemBit=1<<i; });
+  const cells=new Array((full+1)*works).fill(null), value=new Array(full+1).fill(0);
+  const at=(m,w)=>m*works+w;
+  for(let mask=1;mask<=full;mask++){
+    const low=31-Math.clz32(mask&-mask);
+    value[mask]=value[mask&(mask-1)]+inputs[low].value;
+    if(!(mask&(mask-1))){ cells[at(mask,inputs[low].work)]={total:0,highest:0}; continue; }
+    for(let kept=(mask-1)&mask;kept;kept=(kept-1)&mask){
+      const gone=mask^kept; if(gone&itemBit) continue;
+      for(let a=0;a<works;a++){ const L=cells[at(kept,a)]; if(!L) continue;
+        for(let b=0;b<works;b++){ const R=cells[at(gone,b)]; if(!R) continue;
+          const w=Math.max(a,b)+1; if(w>=works) continue;
+          const cost=value[gone]+pen(a)+pen(b); if(refuseAt>0&&cost>=refuseAt) continue;
+          const total=L.total+R.total+cost, highest=Math.max(L.highest,R.highest,cost), best=cells[at(mask,w)];
+          if(!best||total<best.total||(total===best.total&&highest<best.highest)) cells[at(mask,w)]={total,highest,kept,a,b};
+        }}
+    }
+  }
+  let end=-1;
+  for(let w=0;w<works;w++){ const c=cells[at(full,w)]; if(!c) continue;
+    if(end<0){ end=w; if(least) break; continue; }
+    const best=cells[at(full,end)];
+    if(c.total<best.total||(c.total===best.total&&c.highest<best.highest)) end=w;
+  }
+  if(end<0) return null;
+  const steps=[];
+  (function emit(mask,w){ if(!(mask&(mask-1))) return; const c=cells[at(mask,w)], gone=mask^c.kept;
+    emit(c.kept,c.a); emit(gone,c.b);
+    steps.push({kept:c.kept,gone,cost:value[gone]+pen(c.a)+pen(c.b),work:w,keptWork:c.a,goneWork:c.b}); })(full,end);
+  return {steps,total:cells[at(full,end)].total,highest:cells[at(full,end)].highest,work:end};
+}
+
+const fits = e => ((e[4]|e[5])&ITEMS[item][1])!==0;
+function listed(){ return E.filter(e=>fits(e) && (optCurse || (e[0]!==27&&e[0]!==28))); }
+function blocker(e){ for(const id of want.keys()) if(id!==e[0] && (e[6].includes(id)||E[id][6].includes(e[0]))) return E[id]; return null; }
+function prune(){ for(const id of [...want.keys()]) if(!listed().some(e=>e[0]===id)) want.delete(id); }
+
+function left(){
+  const col=el("div","col left");
+  const bar=el("div","bar"); bar.append(el("span","k","アイテム"));
+  const st=el("span","step wide");
+  const prev=el("button",null,"◀"), next=el("button",null,"▶");
+  prev.onclick=()=>{ item=(item+ITEMS.length-1)%ITEMS.length; want.clear(); render(); };
+  next.onclick=()=>{ item=(item+1)%ITEMS.length; want.clear(); render(); };
+  st.append(prev,el("span",null,ITEMS[item][0]),next); bar.append(el("span","spacer"),st); col.append(bar);
+  const rows=listed();
+  col.append(el("div","ctitle",`付けたいエンチャント <b>${want.size}</b> / ${maxInputs-1}<span class="spacer"></span>レベル`));
+  const sc=el("div","scroll");
+  for(const e of rows){
+    const on=want.has(e[0]), blk=on?null:blocker(e), full=!on&&want.size>=maxInputs-1;
+    const r=el("div","row erow"+(blk?" na":""));
+    const sw=el("button","sw"+(on?" on":"")+(blk||full?" dis":""));
+    const flip=()=>{ if(blk||full) return; on?want.delete(e[0]):want.set(e[0],e[3]); render(); };
+    r.onclick=flip; r.append(sw);
+    r.append(el("div","nm",e[1]));
+    if(blk) r.append(el("span","why",blk[1]+" と競合"));
+    else if(on && e[3]>1){
+      const s=el("span","step"), lv=want.get(e[0]);
+      const dn=el("button",null,"−"), up=el("button",null,"+");
+      dn.disabled=lv<=1; up.disabled=lv>=e[3];
+      dn.onclick=ev=>{ ev.stopPropagation(); if(lv>1){ want.set(e[0],lv-1); render(); } };
+      up.onclick=ev=>{ ev.stopPropagation(); if(lv<e[3]){ want.set(e[0],lv+1); render(); } };
+      s.onclick=ev=>ev.stopPropagation();
+      s.append(dn,el("span",null,ROMAN[lv]),up); r.append(s);
+    } else r.append(el("span","why",on?"":"最大 "+ROMAN[e[3]]));
+    sc.append(r);
+  }
+  col.append(sc);
+  return col;
+}
+
+function right(){
+  const col=el("div","col right");
+  const bar=el("div","bar"); bar.append(el("span","k","目標"));
+  const st=el("span","step wide"), prev=el("button",null,"◀"), next=el("button",null,"▶");
+  const flip=()=>{ goal=goal==="levels"?"work":"levels"; render(); };
+  prev.onclick=flip; next.onclick=flip;
+  st.append(prev,el("span",null,goal==="levels"?"最小レベル":"最小作業ペナルティ"),next); bar.append(el("span","spacer"),st); col.append(bar);
+
+  const ids=[...want.keys()].sort((a,b)=>a-b);
+  const inputs=[{value:0,work:optWork,item:true},...ids.map(id=>({value:want.get(id)*bookPerLevel(E[id][2]),work:0,item:false}))];
+  const label=i=>i===0?ITEMS[item][0]:E[ids[i-1]][1]+(E[ids[i-1]][3]>1?" "+ROMAN[want.get(ids[i-1])]:"");
+  const limit=optCreative?0:40;
+  const sc=el("div","scroll");
+  if(!ids.length){
+    col.append(el("div","ctitle","手順"));
+    sc.append(el("div","empty","左で付けたいエンチャントをオンにすると、ここに金床の順番が出ます。")); col.append(sc);
+    return col;
+  }
+  const mine=plan(inputs,limit,goal==="work"), other=plan(inputs,limit,goal!=="work");
+  if(!mine){
+    col.append(el("div","ctitle","手順"));
+    sc.append(el("div","empty warn","この組み合わせは、どの順番でも 40 レベル以上の回が出るため金床に拒否されます。エンチャントを減らすか、金床使用回数の少ないアイテムを使ってください。"));
+    col.append(sc); return col;
+  }
+  col.append(el("div","ctitle",`手順 <b>${mine.steps.length}</b> 回<span class="spacer"></span>レベル`));
+  const letters=new Map(); let nextLetter=0;
+  const name=mask=>{
+    if(mask&1) return ITEMS[item][0];
+    const parts=[]; for(let i=1;i<inputs.length;i++) if(mask>>i&1) parts.push(label(i));
+    if(parts.length===1) return "本: "+parts[0];
+    if(optNames==="letter") return "本 "+letters.get(mask);
+    return "本: "+parts.join(", ");
+  };
+  mine.steps.forEach((s,i)=>{
+    const made=s.kept|s.gone;
+    if(!(made&1) && !letters.has(made)) letters.set(made,String.fromCharCode(65+nextLetter++));
+    const r=el("div","row srow");
+    r.append(el("span","n",i+1));
+    const w=el("div","what");
+    w.innerHTML=`${name(s.kept)}<span class="plus">＋</span>${name(s.gone)}`;
+    const notes=[];
+    if(optNames==="letter" && !(made&1)) notes.push("できた本を 本 "+letters.get(made)+" と呼ぶ");
+    if(s.keptWork||s.goneWork) notes.push("作業ペナルティ "+(pen(s.keptWork)+pen(s.goneWork)));
+    if(notes.length) w.append(el("small",null,notes.join(" · ")));
+    r.append(w); r.append(el("span","c",s.cost)); sc.append(r);
+  });
+  col.append(sc);
+  const sum=el("div","sum");
+  sum.append(el("div","big",`合計 ${mine.total} レベル`));
+  sum.append(el("div",null,`いちばん高い 1 回: ${mine.highest}　完成品の金床使用回数: ${mine.work}（次回の上乗せ ${pen(mine.work)}）`));
+  if(other && other.total===mine.total && other.work===mine.work) sum.append(el("div","faint","どちらの目標でも同じ手順です。"));
+  else if(other) sum.append(el("div","faint",goal==="levels"
+    ? `最小作業ペナルティにすると: 合計 ${other.total} レベル、金床使用回数 ${other.work}`
+    : `最小レベルにすると: 合計 ${other.total} レベル、金床使用回数 ${other.work}`));
+  col.append(sum);
+  return col;
+}
+
+function render(){
+  prune();
+  const layer=document.getElementById("layer"); layer.innerHTML="";
+  const p=el("div","panel");
+  const head=el("div","phead");
+  head.innerHTML='<span class="brand">Lamium</span><span class="crumb">エンチャント順序</span><span class="exp">試験的</span><span class="spacer"></span>';
+  head.append(el("button","hbtn","閉じる")); p.append(head);
+  const body=el("div","pbody"); body.append(left(),right()); p.append(body);
+  p.append(el("div","pfoot","本はすべて新品（金床を通っていない）として計算します。同じエンチャントの本 2 冊を合成する手順は扱いません。<br>"
+    +(optCreative?"クリエイティブでは上限なしで計算します。":"1 回が 40 レベル以上になる手順は金床に拒否されるので出しません。")));
+  layer.append(p);
+}
+
+function drawWorld(){
+  const c=document.getElementById("world"), g=c.getContext("2d");
+  let s=4242; const r=()=>(s=s*1103515245+12345>>>0)/4294967296;
+  g.fillStyle="#6fa8dc"; g.fillRect(0,0,480,130);
+  for(let y=0;y<6;y++) for(let x=0;x<20;x++){
+    const v=70+r()*30|0; g.fillStyle=y===0?`rgb(${v*.6|0},${v+60},${v*.5|0})`:`rgb(${v+20},${v},${v*.7|0})`;
+    g.fillRect(x*24,130+y*24,24,24);
+  }
+  g.fillStyle="#3a3d42"; g.fillRect(216,100,48,10); g.fillRect(228,110,24,12); g.fillRect(220,122,40,8);
+}
+
+document.getElementById("optNames").onchange=e=>{ optNames=e.target.value; render(); };
+document.getElementById("optCreative").onchange=e=>{ optCreative=e.target.checked; render(); };
+document.getElementById("optWork").onchange=e=>{ optWork=+e.target.value; render(); };
+document.getElementById("optCurse").onchange=e=>{ optCurse=e.target.checked; render(); };
+function fit(){ const f=document.getElementById("fit"), st=document.getElementById("stage"); const k=f.clientWidth/960; st.style.transform=`scale(${k})`; f.style.height=540*k+"px"; }
+addEventListener("resize",fit); fit(); drawWorld(); render();
+</script>

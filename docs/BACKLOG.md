@@ -1159,8 +1159,19 @@ probe: the enchantment registry"); all of these link on SDK 26.60.4:
 - Not tried: `EnchantUtils::combineEnchantedItems(first, second, out, book)`
   returns an int and links; it may give the game's own cost for a pair and
   would then replace the mapping. Try it before building on the mapping.
-Next: the screen (Design: layout and wording, with a demo in `docs/demos/`),
-then the wiring.
+Mockup 2026-11-12: [demos/enchant-planner.html](demos/enchant-planner.html),
+awaiting review. Open (maintainer), with the agent's recommendation:
+- Item choice: a kind stepper with the held item preselected (recommended),
+  or the held item only.
+- The held item's state: keep its enchantments as fixed rows and charge its
+  anvil uses (recommended), or always plan for a fresh item.
+- Step wording: write an intermediate book's contents (recommended) or call
+  it by a letter.
+- Creative: follow the current game mode and drop the limit there
+  (recommended), with no switch.
+- Curses: listed last (recommended) or left out.
+- The screen's name; the mockup says "エンチャント順序".
+Next: the review, then the wiring.
 
 ### L-169 Item Transfer: remaining gesture and screen extensions
 Kind: Design. Current status reconciled 2026-10-20: matching/everything,
