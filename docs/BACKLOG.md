@@ -1571,8 +1571,21 @@ Raised by the maintainer, not decided:
   would rather do the planner's work on the anvil screen itself than open
   Lamium's screen each time, accepts that it is more work, and is willing
   to go through a mockup again.
+Decided by the maintainer 2026-11-12: the previous plan wins. An unfinished
+plan opens as it was left; the main hand's cell is shown and switches only
+when pressed; without a plan the main hand is chosen as before; no new
+setting. And the anvil-screen planner goes through a mockup first.
+Built the same day (not checked in game): on opening, a plan that is still
+active keeps its kind, its enchantments and whether it was planned from a
+held item. If it was and that item is not in the main hand now (same kind,
+same enchantments, same anvil uses), the main-hand cell stands for the
+plan's item, rebuilt from the plan's record, so the plan is the same with
+the item lying in the anvil's slot. Known gap: in that case another
+enchantable item in the main hand is not offered until the plan is
+finished or changed to a fresh one.
 Still open:
-- Changing the plan at the anvil: the two points above.
+- Changing the plan at the anvil: the mockup of a planner on the anvil
+  screen (with a way in when there is no plan).
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 

@@ -356,6 +356,9 @@ void enchantPlanTests() {
               "the anvil list's Change button sits in the bottom right corner, inside the padding");
         check(button.has(180, 100) && !button.has(175, 100) && !button.has(180, 94) && !button.has(216, 100),
               "only presses inside the Change button count");
+        std::vector<Enchantment> const one{{9, 3}, {12, 1}}, other{{12, 1}, {9, 3}}, raised{{9, 4}, {12, 1}};
+        check(sameSet(one, other) && !sameSet(one, raised) && !sameSet(one, std::vector<Enchantment>{{9, 3}}) && sameSet({}, {}),
+              "two items carry the same enchantments when types and levels agree, whatever the order");
         check(changeButton(100, 20, 30, 90, 80).w == 22 && !Box{}.has(0, 0), "a long word is cut to the list's width; no box, no press");
     }
 }

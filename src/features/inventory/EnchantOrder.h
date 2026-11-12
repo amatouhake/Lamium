@@ -33,6 +33,10 @@ inline int levelOf(std::span<Enchantment const> list, int type) {
     auto found = std::ranges::find_if(list, [&](Enchantment const& e) { return e.type == type; });
     return found == list.end() ? 0 : found->level;
 }
+// The same enchantments at the same levels, in any order.
+inline bool sameSet(std::span<Enchantment const> a, std::span<Enchantment const> b) {
+    return a.size() == b.size() && std::ranges::all_of(a, [&](Enchantment const& e) { return levelOf(b, e.type) == e.level; });
+}
 // The enchantment already on the item or wanted that keeps `type` off, or -1.
 inline int blocker(int type, std::span<Enchantment const> base, std::span<Enchantment const> wanted, Conflicts const& conflicts) {
     for (auto list : {base, wanted})

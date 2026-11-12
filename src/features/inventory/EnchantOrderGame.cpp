@@ -112,6 +112,10 @@ struct Active {
     Goal goal = Goal::FewestLevels;
     std::string itemId, itemName;
     bool heldBook = false; // input 0 is an enchanted book the player held
+    // Planned from the item that was in the main hand: its state, to open the same plan again without it there.
+    bool fromHeld = false;
+    int heldWork = 0;
+    std::string heldId, heldName;
     std::vector<Enchantment> base, wanted;
     Plan plan;
     std::vector<StepLine> lines;
@@ -385,6 +389,12 @@ void rebuild() {
     active.itemName = shown.itemName;
     active.base = base;
     active.heldBook = heldBook;
+    active.fromHeld = fromHeld;
+    if (fromHeld) {
+        active.heldWork = held.work;
+        active.heldName = held.name;
+        try { active.heldId = held.icon.getTypeName(); } catch (...) { active.heldId = active.itemId; }
+    }
     active.wanted = wanted;
     active.plan = *mine;
     active.lines = shown.steps;
@@ -744,8 +754,25 @@ bool open(IClientInstance& client, std::string& problem) {
         book = stackOf(bookItem);
     } catch (...) { dropStacks(); problem = "enchantOrder.noCatalog"; return false; }
     opened = true;
-    // The main hand's kind when it can be enchanted, else the kind left last.
-    if (held.present) {
+    // An unfinished plan opens as it was left (decided 2026-11-12): the main hand no longer replaces it, its
+    // cell is only offered. A plan made from a held item keeps that item's state when the item is not in the
+    // main hand now (it may lie in the anvil's slot); its cell then stands for the plan's item.
+    Active const was = active;
+    if (was.valid && std::ranges::any_of(kinds, [&](Kind const& k) { return k.slot == was.slot; }) && was.slot == chosenSlot) {
+        bool const same = held.present && held.stateKnown && kinds[static_cast<size_t>(held.kind)].slot == was.slot
+            && held.work == was.heldWork && sameSet(held.base, was.base);
+        if (was.fromHeld && !same) {
+            held = {};
+            held.present = held.stateKnown = true;
+            held.kind = chosenKind();
+            held.work = was.heldWork;
+            held.name = was.heldName;
+            held.base = was.base;
+            held.icon = enchantedCopy(stackOf(was.heldId.empty() ? was.itemId : was.heldId), was.base);
+        }
+        useHeldState = was.fromHeld;
+    } else if (held.present) {
+        // Without one: the main hand's kind when it can be enchanted, else the kind left last.
         int const slot = kinds[static_cast<size_t>(held.kind)].slot;
         if (slot != chosenSlot) { remember(); wanted.clear(); chosenSlot = slot; }
         useHeldState = held.stateKnown;
