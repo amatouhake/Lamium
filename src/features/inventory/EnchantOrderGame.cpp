@@ -429,7 +429,9 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
     constexpr float icon = 8, numberWidth = 10, costWidth = 16;
     auto sideAt = [&](float x, float rowY, float w, std::string const& text, bool item, Rgb color) {
         ItemStack const* stack = item ? &anvilItemIcon : &anvilBookIcon;
-        if (!stack->isNull()) icons.push_back({stack, std::round(x), std::round(rowY), icon / 16, 0, list.opacity});
+        // With its glint, like the container previews: every glinting icon is followed by its own glint. A
+        // glinting book drawn without one made the held item's glint fail on long lists.
+        if (!stack->isNull()) icons.push_back({stack, std::round(x), std::round(rowY), icon / 16, 0, list.opacity, true});
         label(context, x + icon + 2, rowY, w - icon - 2, text, color);
     };
     for (int i = 0; i < steps; ++i) {
@@ -492,6 +494,14 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
             if (front.width() > 0)
                 fill(context, held->x + front.x0 * unit, held->y + front.y0 * unit, front.width() * unit, front.height() * unit,
                     Rgb{color.r, color.g, color.b});
+        }
+        // Its count, only while the whole item is over the list: the game's own number is hidden there, and
+        // outside it a second number a little off the game's would show double.
+        if (held->stack->mCount > 1 && held->x >= left && held->x + held->size <= left + width && held->y >= top
+            && held->y + held->size <= top + height) {
+            label(context, held->x, held->y + held->size - 9, held->size - 1, std::to_string(static_cast<int>(held->stack->mCount)), palette::text,
+                Align::Right);
+            context.flushText(0, std::nullopt);
         }
     }
 }

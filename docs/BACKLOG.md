@@ -1412,6 +1412,16 @@ the held item is drawn in the same call as the list's own icons, last, as a
 glint does not show after another batch of icons; its durability bar is
 drawn over it with the slot bar's geometry at the held size. The count of a
 held stack is still not drawn over the list.
+Fourteenth pass by the maintainer 2026-11-12 (`6fa5445b`, VALIDATION-LOG): the
+bar is right; the held item's glint is lost over a long list and kept over
+a short one. The maintainer asked whether the container previews' drawing
+applies: it is the same icon call (`drawItemIcons`), and there every
+glinting icon is followed by its own glint. The list's books were glinting
+icons drawn without one. Built the same day (not checked in game): the
+list's icons are drawn with their glint as in the previews, and a held
+stack's count is drawn while the whole item is over the list (not while it
+straddles the edge, where a second number slightly off the game's would
+show double).
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s

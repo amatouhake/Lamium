@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, fourteenth pass (2026-11-12)
+
+`6fa5445b`, local build, DLL SHA-256
+`05e9a65132a7774d09bad05f79187186d018b12fe1612de5a23ff83fff5b2cc7`, no trace options,
+1.26.60.05 Dev instance, Creative. Per the maintainer: a damaged held item's
+durability bar is on top of it over the list, same place and thickness as outside;
+the list's own book and sword icons look as before (the books have no glint, noticed
+now). Wrong: an enchanted held item keeps its glint over a short list and loses it
+over a long one.
+
 ## Enchantment order, thirteenth pass (2026-11-12)
 
 `8d62d240`, local build, DLL SHA-256
