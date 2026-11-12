@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, tenth pass (2026-11-12)
+
+`e8d1d318`, local build, DLL SHA-256
+`b5a864b5727c004edcb25bc9f79053c95c10b61a156280a7b1f188530adfbf2c`, no trace options,
+1.26.60.05 Dev instance, English, Creative. Passed, per the maintainer (two
+screenshots): with the pointer on an item the list stays, at full brightness, under
+the game's tooltip; it does not flicker as the pointer crosses items; its item icons
+do not show through the tooltip.
+
+Seen: while the anvil screen closes, the game's window slides down and partly off the
+screen and fades, but the list slides only as far as the screen's edge, does not
+fade, and vanishes a moment later. An item held on the pointer and dragged over the
+list is drawn under it, with only the pointer above.
+
 ## Enchantment order, ninth pass (2026-11-12)
 
 `4800022a`, local build, DLL SHA-256

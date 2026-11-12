@@ -7,6 +7,8 @@
 #include "ui/Localization.h"
 #include "ui/Widgets.h"
 #include "ll/api/event/EventBus.h"
+#include "ll/api/memory/Hook.h"
+#include "mc/client/gui/controls/renderers/InventoryItemRenderer.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "mc/client/game/IClientInstance.h"
@@ -468,12 +470,22 @@ void paintList(MinecraftUIRenderContext& context) {
     context.flushText(0, std::nullopt);
     if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
 }
-// The game's tooltip is about to be drawn in the anvil screen.
+// Something of the anvil screen is about to be drawn: the first slot of the
+// frame, or failing that the game's tooltip. Painted here the list is above
+// the screen's dark layer and under the slots' items, an item dragged on the
+// pointer and the tooltip.
 void beforeTooltip(MinecraftUIRenderContext& context) {
     if (!insideAnvil || paintedInside || !list.ready || std::chrono::steady_clock::now() - list.at > std::chrono::milliseconds(250)) return;
     paintedInside = true;
     paintList(context);
 }
+LL_TYPE_INSTANCE_HOOK(EnchantListBeforeSlots, ll::memory::HookPriority::Normal, InventoryItemRenderer, &InventoryItemRenderer::$render, void,
+    MinecraftUIRenderContext& context, IClientInstance& client, UIControl& owner, int pass) {
+    if (insideAnvil && !paintedInside) try { beforeTooltip(context); } catch (...) {}
+    origin(context, client, owner, pass);
+}
+bool slotHookInstalled = false;
+float windowRest = 0;
 bool isAnvil(ScreenView& view) {
     return view.mHasFocus && view.mController && view.mController->_isContainerScreen() && view.getScreenName() == "anvil_screen";
 }
@@ -497,6 +509,7 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     insideAnvil = false;
     bool const painted = std::exchange(paintedInside, false);
     list.ready = false;
+    bool const reopened = std::chrono::steady_clock::now() - anvilSeen > std::chrono::milliseconds(500);
     anvilSeen = std::chrono::steady_clock::now();
     if (!versionSensitiveAllowed(capabilities::Id::EnchantOrder)) return;
     auto* tree = view.mVisualTree.get();
@@ -554,7 +567,10 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     bool const twoLines = heightFor(true) <= screen.y - 2 * gap;
     float const height = heightFor(twoLines);
     if (height > screen.y - 2 * gap) return;
-    float const top = std::clamp(at.y, gap, screen.y - gap - height);
+    // Where the window rests is its highest place since the screen opened. While it slides away on closing the
+    // list goes with it by the same distance, off the screen too.
+    windowRest = reopened ? at.y : std::min(windowRest, at.y);
+    float const top = std::clamp(windowRest, gap, screen.y - gap - height) + (at.y - windowRest);
     list = {true, std::chrono::steady_clock::now(), left, top, width, height, twoLines, both, creative, target.has_value(), sacrifice.has_value(),
         now, next, gameCost, level, leftPenalty, rightPenalty, std::move(atHandNow)};
     // Not painted from inside the screen this frame (no tooltip, or the first frame): paint it now.
@@ -699,12 +715,15 @@ bool start() {
     renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { drawBeside(event); } catch (...) {} });
     enterListener = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) { try { enterScreen(event); } catch (...) {} });
     inspection::setBeforeTooltip(beforeTooltip);
+    slotHookInstalled = EnchantListBeforeSlots::hook(true) == 0;
+    if (!slotHookInstalled) Runtime::instance().self().getLogger().warn("Enchantment order: the list beside the anvil is painted after the screen");
     exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { dropStacks(); shown = {}; });
     return true;
 }
 void stop() {
     auto& bus = ll::event::EventBus::getInstance();
     inspection::setBeforeTooltip(nullptr);
+    if (slotHookInstalled && EnchantListBeforeSlots::unhook(true)) slotHookInstalled = false;
     for (auto* listener : {&renderListener, &exitListener, &enterListener})
         if (*listener) { bus.removeListener(*listener); listener->reset(); }
     dropStacks();

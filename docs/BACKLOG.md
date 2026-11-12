@@ -1365,6 +1365,17 @@ a frame without a tooltip paints it after the screen as before. The
 step-aside rule and the tooltip box read are gone. To see in game: the list
 at full brightness with a tooltip over it, no flicker when the pointer
 crosses items, and the list's item icons not showing through the tooltip.
+Tenth pass by the maintainer 2026-11-12 (`e8d1d318`, VALIDATION-LOG): passed;
+the maintainer agrees with trying choice (a) below for editing. Two things
+seen and changed the same day (not checked in game):
+- Closing: the list now moves with the window by however far the window is
+  from where it rests, without being held at the screen's edge, so it
+  slides off with it. It does not fade; Lamium's text has no opacity.
+- An item dragged over the list was under it. The list is now painted
+  before the first slot of the anvil screen draws in a frame (a new hook on
+  `InventoryItemRenderer::$render`, `EnchantListBeforeSlots`), so slots, the
+  dragged item and the tooltip all come after it. The tooltip hook and the
+  after-screen paint remain as fallbacks for a frame in which no slot draws.
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s

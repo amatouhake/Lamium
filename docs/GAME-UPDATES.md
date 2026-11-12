@@ -510,7 +510,11 @@ Trace (`sneak_trace`, L-293): read-only; the sneak bits of each sent
 player whose `useItemOn` runs (the local player, and in a local world the
 server's copy). `Name` is the macro that makes the two `useItemOn` hooks.
 
-### Enchantment order (`EnchantOrderGame.cpp`, no hooks)
+### `src/features/inventory/EnchantOrderGame.cpp`
+Hooks: `EnchantListBeforeSlots`
+Rebuild. The hook (`InventoryItemRenderer::$render`) only marks the moment the first slot of the anvil screen draws in
+a frame, to paint the list beside the anvil under everything the screen draws after it; without it the list is
+painted later and covers a dragged item.
 L-170. Reads the enchantments from `Enchant::mEnchants()` (`mEnchantType`, `mFrequency`, `mIsDisabled`,
 `getMaxLevel`, `isCompatibleWith`), names from `EnchantUtils::getEnchantNameAndLevel`, what goes on an item from
 `EnchantUtils::canEnchant` on one item per enchant slot (`Item::getEnchantSlot`), and the main-hand item's enchantments
