@@ -1159,19 +1159,33 @@ probe: the enchantment registry"); all of these link on SDK 26.60.4:
 - Not tried: `EnchantUtils::combineEnchantedItems(first, second, out, book)`
   returns an int and links; it may give the game's own cost for a pair and
   would then replace the mapping. Try it before building on the mapping.
-Mockup 2026-11-12: [demos/enchant-planner.html](demos/enchant-planner.html),
-awaiting review. Open (maintainer), with the agent's recommendation:
-- Item choice: a kind stepper with the held item preselected (recommended),
-  or the held item only.
-- The held item's state: keep its enchantments as fixed rows and charge its
-  anvil uses (recommended), or always plan for a fresh item.
-- Step wording: write an intermediate book's contents (recommended) or call
-  it by a letter.
-- Creative: follow the current game mode and drop the limit there
-  (recommended), with no switch.
-- Curses: listed last (recommended) or left out.
-- The screen's name; the mockup says "エンチャント順序".
-Next: the review, then the wiring.
+Mockup 2026-11-12: [demos/enchant-planner.html](demos/enchant-planner.html).
+Decided after its first review (maintainer 2026-11-12):
+- The item can be chosen; the screen opens on the held one. A `◀ ▶` stepper
+  is turned down: it does not scale to the number of choices.
+- The held item's enchantments are fixed rows and its anvil uses are charged.
+- A step names an intermediate book by its contents, and items and books are
+  drawn with their icons (`inspection::render::drawItemIcon`).
+- Creative follows the current game mode and has no limit; no switch.
+- Curses are listed last. The screen is called "エンチャント順序".
+Open (maintainer), second version of the mockup, with the agent's
+recommendation:
+- "Held" means the main hand, the selected hotbar slot (recommended); the
+  hotbar and inventory are not searched.
+- Choosing by kind (sword, pickaxe, ...) rather than by item name
+  (recommended): what goes on an item follows its enchant slot, not its
+  material, so about 17 kinds cover every item; shown as an icon grid.
+- The anvil: the maintainer expects the order to be wanted mostly in the anvil
+  screen. Recommended: the plan stays after the screen closes and a compact
+  step list sits beside the anvil screen, marking the step whose two inputs
+  are in the slots; in the first version if drawing beside the anvil screen
+  proves possible (Research), otherwise right after it.
+- Sets: the maintainer asks for commonly wanted combinations as one choice.
+  Recommended: "everything at its highest" (enchantments with no conflict)
+  and the last selection per kind, both without a Lamium table; a
+  Lamium-written set per kind needs choices inside conflict groups and an
+  update per new enchantment, so it waits for a request.
+Next: the second review, then the wiring.
 
 ### L-169 Item Transfer: remaining gesture and screen extensions
 Kind: Design. Current status reconciled 2026-10-20: matching/everything,
