@@ -1704,8 +1704,23 @@ building before the open points are settled:
   the steps, a side made by an earlier step does not show which of its
   own materials is missing; below the steps, the list is far from the
   total, which is also "what is needed".
+Agreed by the maintainer the same day and shown in the mockup's second
+version: no materials list. The total's row carries a count ("materials
+4/6", yellow when short); in the steps each name is yellow when that book
+or item is neither at hand nor inside a merged stack, and a side is bright
+only when that very stack is at hand (dim icon and grey text otherwise);
+the last line names what the whole plan lacks when no step can be taken.
+The highlight uses two colours, one for the stack that goes left and one
+for the right, with the same outlines on the anvil's two slots.
+What the maintainer had found hard to read was not the goal but the
+planner screen's line "Dearest step / Anvil uses on the result": useful,
+but not understood at first sight, and not shown at the anvil at all. The
+mockup proposes one line for both screens in plainer words ("needed at
+once: N levels", "the finished item's work penalty: +N"), each explained
+in the status line on hover; the present words and no line can be compared
+on the page.
 Still open:
-- The right side: the materials question above.
+- The words of the line under the total (plainer, as now, or none).
 - Whether a plain book is offered as an item.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
