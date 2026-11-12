@@ -1481,6 +1481,14 @@ written after the icons: the preview's own code with 27 enchanted books at
 the pointer; icons with nothing before them; after an opaque fill; after a
 translucent fill; after an opaque fill and flushed text; at 8 units; bare
 books; one stack four times.
+Glint test round 2 by the maintainer 2026-11-12 (VALIDATION-LOG): the
+preview's code glints at the anvil too; icons with nothing under them glint
+weakly; icons on a fill of the panel colour (0.06 grey) do not. So the
+screen, the hook and the text are not the cause: what is under the icon is.
+The preview puts a 0.23 grey square under every icon. Round 3, built the
+same day, varies that: a grey or white fill under all four, grey squares on
+an opaque or translucent panel, the preview's frame colour alone, squares
+alone, squares at 8 units, and the list's own arrangement with squares.
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s

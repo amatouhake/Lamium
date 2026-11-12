@@ -719,45 +719,42 @@ void glintTest(ll::event::UIRenderEvent& event) {
     constexpr int tests = 8;
     int const test = static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(nowTime - started).count() / 5 % tests);
     constexpr std::array<char const*, tests> names{
-        "the container preview's own code, 27 enchanted books, at the pointer", "icons alone: nothing drawn before them",
-        "opaque fill, then icons", "translucent fill, then icons", "opaque fill, text drawn and flushed, then icons",
-        "opaque fill, then icons at 8 units", "opaque fill, then bare books", "opaque fill, then one stack four times"};
-    // Round 2: everything in round 1 drew text and a translucent fill before the icons and none glinted, while the
-    // container preview (opaque fills, no text before its icons) does. The number is written after the icons here.
+        "grey fill (the preview's slot colour) under all four", "white fill under all four",
+        "dark panel, a grey square under each icon", "translucent dark panel, a grey square under each icon",
+        "the preview's frame colour alone, no squares", "a grey square under each icon, no panel",
+        "dark panel, grey squares, icons at 8 units", "translucent panel, text flushed, grey squares, 8 units"};
+    // Round 3. Round 2: the preview's own code glints at the anvil; icons with nothing before them glint weakly;
+    // icons on one opaque fill of the panel colour do not, whatever else varies. The preview puts a lighter
+    // square (0.23 grey) under every icon, so this round varies what is under the icons.
     constexpr float left = 6, top = 6;
+    constexpr Rgb grey{.23f, .23f, .23f};
     float const x = left + 8, y = top + 8;
     std::vector<IconAt> icons;
-    auto row = [&](std::vector<ItemStack>& stacks, float scale) {
-        for (int i = 0; i < 4; ++i) icons.push_back({&stacks[static_cast<size_t>(i)], x + i * 18.f, y, scale, 0, 1.f, true});
+    auto row = [&](float scale, bool squares) {
+        for (int i = 0; i < 4; ++i) {
+            if (squares) fill(context, x + i * 18.f, y, 16 * scale, 16 * scale, grey, 1.f);
+            icons.push_back({&testBooks[static_cast<size_t>(i)], x + i * 18.f, y, scale, 0, 1.f, true});
+        }
     };
     switch (test) {
-    case 0: {
-        static inspection::render::PreviewRenderer renderer;
-        auto preview = inspection::preview::ContainerPreview::empty(9, 3);
-        for (auto& slot : preview.slots) slot = testBooks[0];
-        renderer.render(view, context, preview);
-        break;
-    }
-    case 1: row(testBooks, 1.f); break;
-    case 2: fill(context, left, top, 90, 32, palette::panel, 1.f); row(testBooks, 1.f); break;
-    case 3: fill(context, left, top, 90, 32, palette::panel, .8f); row(testBooks, 1.f); break;
-    case 4:
-        fill(context, left, top, 90, 32, palette::panel, 1.f);
+    case 0: fill(context, left, top, 90, 32, grey, 1.f); row(1.f, false); break;
+    case 1: fill(context, left, top, 90, 32, palette::white, 1.f); row(1.f, false); break;
+    case 2: fill(context, left, top, 90, 32, palette::panel, 1.f); row(1.f, true); break;
+    case 3: fill(context, left, top, 90, 32, palette::panel, .8f); row(1.f, true); break;
+    case 4: fill(context, left, top, 90, 32, Rgb{.10f, .10f, .10f}, .92f); row(1.f, false); break;
+    case 5: row(1.f, true); break;
+    case 6: fill(context, left, top, 90, 32, palette::panel, 1.f); row(.5f, true); break;
+    default:
+        fill(context, left, top, 90, 32, palette::panel, .8f);
         label(context, x, y + 16, 80, "text before", palette::faint);
         context.flushText(0, std::nullopt);
-        row(testBooks, 1.f);
-        break;
-    case 5: fill(context, left, top, 90, 32, palette::panel, 1.f); row(testBooks, .5f); break;
-    case 6: fill(context, left, top, 90, 32, palette::panel, 1.f); row(testBare, 1.f); break;
-    default:
-        fill(context, left, top, 90, 32, palette::panel, 1.f);
-        for (int i = 0; i < 4; ++i) icons.push_back({&testBooks[0], x + i * 18.f, y, 1.f, 0, 1.f, true});
+        row(.5f, true);
         break;
     }
     if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
     // The number, after the icons and away from them.
     fill(context, left, top + 40, 216, 26, palette::panel, 1.f);
-    label(context, left + 4, top + 43, 208, std::format("Glint test {} of {} (round 2)", test + 1, tests));
+    label(context, left + 4, top + 43, 208, std::format("Glint test {} of {} (round 3)", test + 1, tests));
     label(context, left + 4, top + 54, 208, names[static_cast<size_t>(test)], palette::dim);
     context.flushText(0, std::nullopt);
 }

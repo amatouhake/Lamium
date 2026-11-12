@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order glint test, round 2 (2026-11-12)
+
+`f3ee9086` built with `enchant_glint_test`, DLL SHA-256
+`151704f6fa5a5ca72d3ae84e733ac03bedbe3088c9d40384d90cdcdb47f11ea5`, 1.26.60.05 Dev
+instance, Creative. Per the maintainer:
+
+- 1, the container preview's own code with 27 enchanted books: glints, close to a real
+  enchanted book.
+- 2, four enchanted books with nothing drawn before them: something like the glint's
+  animation is seen, but less pink than a real enchanted book.
+- 3 to 8, the same icons on one opaque or translucent fill of the panel colour (with
+  text, at 8 units, bare books, one stack four times): no glint.
+
+The maintainer notes the glint is an animation moving left to right, so a glint that
+stood still might look like none. Not examined.
+
 ## Enchantment order glint test, round 1 (2026-11-12)
 
 `47b2a8ca` built with `enchant_glint_test`, DLL SHA-256
