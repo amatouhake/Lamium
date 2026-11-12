@@ -1223,7 +1223,33 @@ review in game:
   saved to the settings file.
 - The list beside the anvil also says when the pair in the slots is not a
   step, and warns when the game's own cost differs from the plan's.
-- README and FEATURES.md wait for the first game check.
+- README and FEATURES.md wait for the review below.
+First use by the maintainer 2026-11-12 (`0d2b5ecd`, VALIDATION-LOG): the four
+checks passed. The maintainer's notes from using it, grouped; none is decided:
+- Plain defects: the conflict reason carries a level ("ダメージ増加 I と競合")
+  where the level means nothing; "All highest" turns curses on; it also
+  enables "Last choice" when it changed nothing; the set buttons move down
+  when the held-state row appears; on boots Feather Falling sits between the
+  four protections that exclude each other.
+- Reading: curses are not red as in the game; the kind icons are too small
+  to choose from; a kind shows an item's name ("Diamond Sword") and reads as
+  if the plan were for that item only, a kind word is wanted; where one step
+  ends and the next begins is hard to see; the totals sit at the bottom, in
+  the screen and beside the anvil, where they are not seen.
+- Held state: fixed rows look dead (a press does nothing); the maintainer
+  suggests weakening it, for example leaving the held state when such an
+  enchantment is chosen.
+- Sets: "All highest" could choose the usual one of a conflicting group
+  (Protection on armor, Sharpness on a sword); the maintainer does not know
+  the usual one for every kind (bow, mace).
+- Items missing from the kinds: a book (enchanted books merged into one) and
+  a carved pumpkin.
+- Beside the anvil: nothing says what is wrong with a pair, which items the
+  next step needs or how many levels the player has; the plan cannot be
+  changed there; an item's work penalty is not shown anywhere (L-319).
+- Outside this item: English Search does not find enchanted books by an
+  enchantment's English name ("protection", "knockback") in the Creative
+  search field.
 
 ### L-169 Item Transfer: remaining gesture and screen extensions
 Kind: Design. Current status reconciled 2026-10-20: matching/everything,

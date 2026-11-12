@@ -12,6 +12,33 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, first use (2026-11-12)
+
+`0d2b5ecd`, local build, DLL SHA-256
+`1f13c7becc972179eb448be455291793612fa350255572f69a5e670556539db6`, no trace options,
+1.26.60.05 Dev instance, Japanese, Creative (the screen's footer said so). Passed, per
+the maintainer:
+
+- The Open button under Inventory opens the screen; holding a sword it opens on the
+  sword's kind.
+- Turning enchantments on lists the steps; the goal switch changes the result.
+- After closing it, the anvil shows the same steps beside its window; the pair of a
+  step in the slots marks that row and the anvil's shown cost agrees.
+- Conflicting enchantments are grey with a reason; an enchanted item in hand shows
+  its enchantments as on the item, and the held-state switch changes that.
+- A sword made by following the six steps carried Looting III, Sharpness V,
+  Unbreaking III, Fire Aspect II, Mending and Knockback II (screenshot of its tooltip).
+
+Seen as wrong or awkward (BACKLOG L-170 has the list): the conflict reason names the
+enchantment with a level ("ダメージ増加 I と競合"); "All highest" also turns curses on and
+enables "Last choice" when nothing changed; the set buttons move when the held-state
+row appears; Feather Falling sits between the four protections on boots; a book and a
+carved pumpkin are not offered as items.
+
+Not checked: Survival and the 40-level refusal on this build, the unbound key,
+another GUI scale, a narrow window, servers, the unverified-version fallback, the
+warning when the game's cost differs.
+
 ## World probe: the anvil screen (2026-11-12)
 
 Seen by the agent (Claude) driving the game through computer use, not by the
