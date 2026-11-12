@@ -247,7 +247,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
                 // A line above each step after the first: where one anvil use ends.
                 if (i > 0) fill(context, sc.listLeft + 1, y, sc.listWidth - 2, 1, palette::white, .18f);
                 label(context, stepsLeft, y + 3, numberWidth, std::to_string(i / L::stepRows + 1), palette::dim, Align::Right);
-                drawIcon(context, step.keptIsItem ? game::itemIcon(itemsDrawn++) : game::bookIcon(booksDrawn++), textLeft, y + 2);
+                drawIcon(context, step.keptIsItem ? game::itemIcon(itemsDrawn++, step.keptEnchanted) : game::bookIcon(booksDrawn++), textLeft, y + 2);
                 label(context, textLeft + 13, y + 3, textRight - textLeft - 13, step.kept, step.keptCurse ? palette::curse : palette::text);
                 label(context, textRight + 2, y + 3, costWidth, std::to_string(step.cost), palette::text, Align::Right);
             } else {

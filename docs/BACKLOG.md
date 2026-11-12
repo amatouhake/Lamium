@@ -1506,6 +1506,11 @@ held stack's count are confirmed. The `enchant_glint_test` option and the
 count's log line are removed. Open, the maintainer's question: the list's
 and the planner's item icon is a plain stack, so it has no glint even at a
 step where the item would be enchanted.
+Decided by the maintainer the same day: the item's icon glints at the steps
+where the item carries an enchantment (from the first step if the held item
+has one, otherwise from the step after its first book). Built (not checked
+in game), in the anvil list and the planner's steps: those icons are drawn
+from a copy of the item with one of the plan's enchantments on it.
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s

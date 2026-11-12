@@ -29,6 +29,7 @@ struct StepLine {
     bool keptIsItem = false;
     int cost = 0, penalty = 0;
     bool keptCurse = false, goneCurse = false; // that side is nothing but curses
+    bool keptEnchanted = false; // the kept side is the item and it carries an enchantment by this step
 };
 // What the screen draws; rebuilt after every change.
 struct View {
@@ -79,7 +80,8 @@ ItemStack const* heldIcon();
 ItemStack const* bookIcon();
 // The same pictures as stacks of their own, by a running number within a frame: drawing one stack many
 // times in a frame loses the glints.
-ItemStack const* itemIcon(int number);
+// `enchanted`: the item as it looks with an enchantment on it (its glint).
+ItemStack const* itemIcon(int number, bool enchanted = false);
 ItemStack const* bookIcon(int number);
 
 bool start();

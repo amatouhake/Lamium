@@ -115,12 +115,12 @@ struct Active {
     Plan plan;
     std::vector<StepLine> lines;
 } active;
-ItemStack anvilItemIcon, anvilBookIcon;
+ItemStack anvilItemIcon, anvilBookIcon, anvilItemGlint, screenItemGlint;
 bool anvilIconsMade = false;
 // One stack per drawn icon: a stack drawn several times in a frame lost its glint, and the others' with it
 // (seen 2026-11-12 with two or more steps; the container previews draw a stack per slot).
 constexpr size_t iconPool = 48;
-std::vector<ItemStack> anvilItems, anvilBooks, screenItems, screenBooks;
+std::vector<ItemStack> anvilItems, anvilBooks, screenItems, screenBooks, anvilGlints, screenGlints;
 ItemStack const* pooled(std::vector<ItemStack>& pool, ItemStack const& source, int number) {
     if (source.isNull() || number < 0 || static_cast<size_t>(number) >= iconPool) return source.isNull() ? nullptr : &source;
     // Reserved once: pointers into the pool are held for the frame and must not move as it grows.
@@ -173,6 +173,16 @@ ItemStack stackOf(std::string_view id) {
     stack.mShowPickUp = false;
     stack.mWasPickedUp = false;
     return stack;
+}
+// The item with one of the plan's enchantments on it, for its glint at the steps where it has one.
+ItemStack enchantedCopy(ItemStack const& source, std::vector<Enchantment> const& from) {
+    ItemStack out{source};
+    if (out.isNull() || from.empty()) return out;
+    EnchantmentInstance one;
+    one.mEnchantType = static_cast<Enchant::Type>(from.front().type);
+    one.mLevel = from.front().level;
+    try { EnchantUtils::applyEnchant(out, one, true); } catch (...) { out = ItemStack{source}; }
+    return out;
 }
 std::vector<Enchantment> enchantsOn(ItemStack const& stack) {
     std::vector<Enchantment> out;
@@ -259,7 +269,8 @@ bool onlyCurses(std::vector<Enchantment> const& list, unsigned mask) {
     return any;
 }
 void rebuild() {
-    screenItems.clear();
+    screenItems.clear(); screenGlints.clear();
+    screenItemGlint = ItemStack();
     shown = {};
     shown.goal = goal;
     shown.creative = creativeNow;
@@ -345,6 +356,7 @@ void rebuild() {
         }
         return text;
     };
+    bool itemEnchanted = !base.empty();
     for (auto& step : mine->steps) {
         // The step's cost is the sacrificed side's levels plus both surcharges.
         // On the item a raising book adds only the difference.
@@ -355,6 +367,7 @@ void rebuild() {
         step.target <<= shift; step.sacrifice <<= shift;
         shown.steps.push_back({side(step.target), side(step.sacrifice), (step.target & 1u) != 0, step.cost, step.cost - value,
             onlyCurses(wanted, step.target), onlyCurses(wanted, step.sacrifice)});
+        if (shown.steps.back().keptIsItem) shown.steps.back().keptEnchanted = std::exchange(itemEnchanted, true);
     }
     shown.total = mine->total; shown.highest = mine->highest; shown.work = mine->work;
     shown.planned = true;
@@ -449,7 +462,8 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
     if (!anvilIconsMade) {
         anvilItemIcon = stackOf(active.itemId);
         anvilBookIcon = stackOf(bookItem);
-        anvilItems.clear();
+        anvilItemGlint = enchantedCopy(anvilItemIcon, active.wanted);
+        anvilItems.clear(); anvilGlints.clear();
         anvilBooks.clear();
         anvilIconsMade = true;
     }
@@ -470,9 +484,10 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
     y += line + 3;
     std::vector<inspection::render::IconAt> icons;
     constexpr float icon = 8, numberWidth = 10, costWidth = 16;
-    auto sideAt = [&](float x, float rowY, float w, std::string const& text, bool item, Rgb color) {
+    auto sideAt = [&](float x, float rowY, float w, std::string const& text, bool item, Rgb color, bool enchanted = false) {
         // A stack of its own, drawn in its turn and not in a batch, so the held item drawn last is above them all.
-        ItemStack const* stack = item ? pooled(anvilItems, anvilItemIcon, itemsDrawn++) : pooled(anvilBooks, anvilBookIcon, booksDrawn++);
+        ItemStack const* stack = !item ? pooled(anvilBooks, anvilBookIcon, booksDrawn++)
+            : enchanted ? pooled(anvilGlints, anvilItemGlint, itemsDrawn++) : pooled(anvilItems, anvilItemIcon, itemsDrawn++);
         if (stack) icons.push_back({stack, std::round(x), std::round(rowY), icon / 16, 0, list.opacity, true, true});
         label(context, x + icon + 2, rowY, w - icon - 2, text, color);
     };
@@ -487,12 +502,13 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
         label(context, left + pad, y + 1, numberWidth, std::to_string(i + 1), finished ? palette::faint : palette::dim, Align::Right);
         float const textLeft = left + pad + numberWidth + 3, textWidthAll = inner - numberWidth - 3 - costWidth;
         if (twoLines) {
-            sideAt(textLeft, y + 1, textWidthAll, step.kept, step.keptIsItem, step.keptCurse && !finished ? palette::curse : color);
+            sideAt(textLeft, y + 1, textWidthAll, step.kept, step.keptIsItem, step.keptCurse && !finished ? palette::curse : color,
+                step.keptEnchanted);
             label(context, textLeft - 1, y + 1 + line, 6, "+", palette::faint);
             sideAt(textLeft + 6, y + 1 + line, textWidthAll - 6, step.gone, false, step.goneCurse && !finished ? palette::curse : color);
         } else {
             float const half = (textWidthAll - 8) / 2;
-            sideAt(textLeft, y + 1, half, step.kept, step.keptIsItem, color);
+            sideAt(textLeft, y + 1, half, step.kept, step.keptIsItem, color, step.keptEnchanted);
             label(context, textLeft + half + 1, y + 1, 6, "+", palette::faint);
             sideAt(textLeft + half + 8, y + 1, half, step.gone, false, color);
         }
@@ -687,7 +703,9 @@ void dropStacks() {
     book = ItemStack();
     anvilItemIcon = ItemStack();
     anvilBookIcon = ItemStack();
-    anvilItems.clear(); anvilBooks.clear(); screenItems.clear(); screenBooks.clear();
+    anvilItemGlint = ItemStack();
+    screenItemGlint = ItemStack();
+    anvilItems.clear(); anvilBooks.clear(); screenItems.clear(); screenBooks.clear(); anvilGlints.clear(); screenGlints.clear();
     anvilIconsMade = false;
     opened = false;
 }
@@ -815,9 +833,12 @@ ItemStack const* itemIcon() {
 }
 ItemStack const* heldIcon() { return held.present && !held.icon.isNull() ? &held.icon : nullptr; }
 ItemStack const* bookIcon() { return book.isNull() ? nullptr : &book; }
-ItemStack const* itemIcon(int number) {
+ItemStack const* itemIcon(int number, bool enchanted) {
     auto const* source = itemIcon();
-    return source ? pooled(screenItems, *source, number) : nullptr;
+    if (!source) return nullptr;
+    if (!enchanted) return pooled(screenItems, *source, number);
+    if (screenItemGlint.isNull()) screenItemGlint = enchantedCopy(*source, wanted);
+    return pooled(screenGlints, screenItemGlint, number);
 }
 ItemStack const* bookIcon(int number) { return pooled(screenBooks, book, number); }
 
