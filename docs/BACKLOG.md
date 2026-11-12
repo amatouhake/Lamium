@@ -1376,6 +1376,19 @@ seen and changed the same day (not checked in game):
   `InventoryItemRenderer::$render`, `EnchantListBeforeSlots`), so slots, the
   dragged item and the tooltip all come after it. The tooltip hook and the
   after-screen paint remain as fallbacks for a frame in which no slot draws.
+Eleventh pass by the maintainer 2026-11-12 (`768db9be`, VALIDATION-LOG):
+failed. Painting from the slot renderer's hook left the list and every
+enchanted item white: the game is mid-way through its item drawing there.
+The hook is removed (do not paint from `InventoryItemRenderer::$render`
+again). Instead, built the same day and not checked in game:
+- While an item is held on the pointer and the pointer is over the list,
+  the list is not painted, so the item is seen whole. Painting the held
+  item again on top of the list was the alternative; it needs the game's
+  exact place and size for it.
+- Closing: the game's window fades as it slides. The list now takes an
+  opacity from how far the window has moved from rest (gone at half the way
+  to the screen's bottom) or the window control's own `mAlpha` when that is
+  lower; `ui::DrawOpacity` applies it to fills, text and the icons.
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s

@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, eleventh pass: painting before the slots breaks the screen (2026-11-12)
+
+`768db9be`, local build, DLL SHA-256
+`08fffeec440746a808f8c55cbcd0a7709acb3eaf56902cb7f3a63cd7cf2dae77`, no trace options,
+1.26.60.05 Dev instance, Creative. Failed, per the maintainer (two screenshots):
+with the list painted from a hook on `InventoryItemRenderer::$render`, before the
+first slot of the frame,
+
+- the list is a plain white box, and so are the slots holding enchanted tools;
+- enchanted books lose their picture and show only the glint on a black square;
+- an item held on the pointer draws normally.
+
+So Lamium's fills and text must not be drawn while the game is in the middle of its
+slot items: the hook was removed. Also seen while the anvil closes: the game's own
+window does not only slide down, it becomes transparent as it goes (the hammer of
+the window is faintly visible over the hotbar in the first screenshot).
+
 ## Enchantment order, tenth pass (2026-11-12)
 
 `e8d1d318`, local build, DLL SHA-256

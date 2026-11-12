@@ -7,8 +7,6 @@
 #include "ui/Localization.h"
 #include "ui/Widgets.h"
 #include "ll/api/event/EventBus.h"
-#include "ll/api/memory/Hook.h"
-#include "mc/client/gui/controls/renderers/InventoryItemRenderer.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "mc/client/game/IClientInstance.h"
@@ -384,6 +382,7 @@ struct ListState {
     std::chrono::steady_clock::time_point at{};
     float left = 0, top = 0, width = 0, height = 0;
     bool twoLines = true, both = false, creative = false, target = false, sacrifice = false;
+    float opacity = 1;
     int now = -1, next = -1, gameCost = -1, level = -1, leftPenalty = -1, rightPenalty = -1;
     std::vector<unsigned> atHand;
 } list;
@@ -398,6 +397,8 @@ void paintList(MinecraftUIRenderContext& context) {
     bool const target = list.target, sacrifice = list.sacrifice;
     auto const& atHandNow = list.atHand;
     if (!active.valid || steps == 0 || now >= steps || next >= steps || static_cast<int>(active.plan.steps.size()) != steps) return;
+    if (list.opacity <= .02f) return;
+    DrawOpacity const fade{list.opacity};
     if (!anvilIconsMade) {
         anvilItemIcon = stackOf(active.itemId);
         anvilBookIcon = stackOf(bookItem);
@@ -421,7 +422,7 @@ void paintList(MinecraftUIRenderContext& context) {
     constexpr float icon = 8, numberWidth = 10, costWidth = 16;
     auto sideAt = [&](float x, float rowY, float w, std::string const& text, bool item, Rgb color) {
         ItemStack const* stack = item ? &anvilItemIcon : &anvilBookIcon;
-        if (!stack->isNull()) icons.push_back({stack, std::round(x), std::round(rowY), icon / 16});
+        if (!stack->isNull()) icons.push_back({stack, std::round(x), std::round(rowY), icon / 16, 0, list.opacity});
         label(context, x + icon + 2, rowY, w - icon - 2, text, color);
     };
     for (int i = 0; i < steps; ++i) {
@@ -470,21 +471,14 @@ void paintList(MinecraftUIRenderContext& context) {
     context.flushText(0, std::nullopt);
     if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
 }
-// Something of the anvil screen is about to be drawn: the first slot of the
-// frame, or failing that the game's tooltip. Painted here the list is above
-// the screen's dark layer and under the slots' items, an item dragged on the
-// pointer and the tooltip.
+// The game's tooltip is about to be drawn in the anvil screen. Painted here
+// the list is above the screen's dark layer and under the tooltip. (Painting
+// from the slot renderer instead broke the game's item drawing.)
 void beforeTooltip(MinecraftUIRenderContext& context) {
     if (!insideAnvil || paintedInside || !list.ready || std::chrono::steady_clock::now() - list.at > std::chrono::milliseconds(250)) return;
     paintedInside = true;
     paintList(context);
 }
-LL_TYPE_INSTANCE_HOOK(EnchantListBeforeSlots, ll::memory::HookPriority::Normal, InventoryItemRenderer, &InventoryItemRenderer::$render, void,
-    MinecraftUIRenderContext& context, IClientInstance& client, UIControl& owner, int pass) {
-    if (insideAnvil && !paintedInside) try { beforeTooltip(context); } catch (...) {}
-    origin(context, client, owner, pass);
-}
-bool slotHookInstalled = false;
 float windowRest = 0;
 bool isAnvil(ScreenView& view) {
     return view.mHasFocus && view.mController && view.mController->_isContainerScreen() && view.getScreenName() == "anvil_screen";
@@ -530,7 +524,7 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     auto& context = event.uiRenderContext();
     // What the slots and the inventory hold, as planner inputs.
     int now = -1, gameCost = -1, level = -1, leftPenalty = -1, rightPenalty = -1;
-    bool both = false, creative = false;
+    bool both = false, creative = false, holding = false;
     std::optional<unsigned> target, sacrifice;
     std::vector<unsigned> atHandNow;
     try {
@@ -549,7 +543,9 @@ void drawBeside(ll::event::UIRenderEvent& event) {
             if (both) gameCost = static_cast<AnvilContainerManagerController&>(*manager).mCost;
             if (target) atHandNow.push_back(*target);
             if (sacrifice) atHandNow.push_back(*sacrifice);
-            if (auto mask = sideOf(manager->getItemStack("cursor_items", 0))) atHandNow.push_back(*mask);
+            auto const& onPointer = manager->getItemStack("cursor_items", 0);
+            holding = !onPointer.isNull();
+            if (auto mask = sideOf(onPointer)) atHandNow.push_back(*mask);
             int const carriedSlots = std::min(36, manager->getContainerSize("combined_hotbar_and_inventory_items"));
             for (int i = 0; i < carriedSlots; ++i)
                 if (auto mask = sideOf(manager->getItemStack("combined_hotbar_and_inventory_items", i))) atHandNow.push_back(*mask);
@@ -571,8 +567,18 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     // list goes with it by the same distance, off the screen too.
     windowRest = reopened ? at.y : std::min(windowRest, at.y);
     float const top = std::clamp(windowRest, gap, screen.y - gap - height) + (at.y - windowRest);
+    // The list is painted over the item held on the pointer, so it gives way while that item is over it.
+    constexpr float reach = 12;
+    glm::vec2 const pointer = view.mPointerLocationPrevious;
+    if (holding && pointer.x > left - reach && pointer.x < left + width + reach && pointer.y > top - reach && pointer.y < top + height + reach) return;
+    // The game's window fades as it slides away on closing; the list fades with the distance, or with the
+    // window's own opacity when that is lower.
+    float const slide = std::max(0.f, at.y - windowRest), way = std::max(1.f, (screen.y - windowRest) * .5f);
+    float opacity = std::clamp(1 - slide / way, 0.f, 1.f);
+    // Only while it is moving and only a value that looks like a fade: at rest the member may not be the drawn opacity.
+    if (float const own = window->mAlpha; slide > .5f && std::isfinite(own) && own > 0 && own < opacity) opacity = own;
     list = {true, std::chrono::steady_clock::now(), left, top, width, height, twoLines, both, creative, target.has_value(), sacrifice.has_value(),
-        now, next, gameCost, level, leftPenalty, rightPenalty, std::move(atHandNow)};
+        opacity, now, next, gameCost, level, leftPenalty, rightPenalty, std::move(atHandNow)};
     // Not painted from inside the screen this frame (no tooltip, or the first frame): paint it now.
     if (!painted) paintList(context);
 }
@@ -715,15 +721,14 @@ bool start() {
     renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { drawBeside(event); } catch (...) {} });
     enterListener = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) { try { enterScreen(event); } catch (...) {} });
     inspection::setBeforeTooltip(beforeTooltip);
-    slotHookInstalled = EnchantListBeforeSlots::hook(true) == 0;
-    if (!slotHookInstalled) Runtime::instance().self().getLogger().warn("Enchantment order: the list beside the anvil is painted after the screen");
+
     exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { dropStacks(); shown = {}; });
     return true;
 }
 void stop() {
     auto& bus = ll::event::EventBus::getInstance();
     inspection::setBeforeTooltip(nullptr);
-    if (slotHookInstalled && EnchantListBeforeSlots::unhook(true)) slotHookInstalled = false;
+
     for (auto* listener : {&renderListener, &exitListener, &enterListener})
         if (*listener) { bus.removeListener(*listener); listener->reset(); }
     dropStacks();

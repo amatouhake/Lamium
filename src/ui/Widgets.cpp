@@ -34,7 +34,7 @@ namespace lamium::ui {
 namespace {
 constexpr mce::Color white{1.f,1.f,1.f,1.f};
 mce::Color color(Rgb value) { return {value.r, value.g, value.b, 1.f}; }
-float currentScale = 1;
+float currentScale = 1, currentOpacity = 1;
 Font& defaultFont(MinecraftUIRenderContext& context) {
     return fontOf(context.mClient.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default"));
 }
@@ -44,6 +44,11 @@ DrawScale::DrawScale(float scale) : previous(currentScale) {
     currentScale = std::isfinite(scale) && scale > 0 ? scale : 1;
 }
 DrawScale::~DrawScale() { currentScale = previous; }
+float drawOpacity() { return currentOpacity; }
+DrawOpacity::DrawOpacity(float opacity) : previous(currentOpacity) {
+    currentOpacity = std::isfinite(opacity) ? std::clamp(opacity, 0.f, 1.f) * previous : previous;
+}
+DrawOpacity::~DrawOpacity() { currentOpacity = previous; }
 namespace {
 // Characters the font measures 0 wide (TextFit.h, labelRuns): each is
 // measured once per font and remembered.
@@ -76,7 +81,7 @@ float textWidthScaled(MinecraftUIRenderContext& context, std::string_view text, 
 void fill(MinecraftUIRenderContext& context, float x, float y, float width, float height, Rgb value, float opacity) {
     if (width <= 0 || height <= 0) return;
     float s = currentScale;
-    context.fillRectangle(RectangleArea{x*s,(x+width)*s,y*s,(y+height)*s}, color(value), std::clamp(opacity,0.f,1.f));
+    context.fillRectangle(RectangleArea{x*s,(x+width)*s,y*s,(y+height)*s}, color(value), std::clamp(opacity,0.f,1.f) * currentOpacity);
     context.flushImages(white,1,HashedString{"ui_fillColor"});
 }
 void frame(MinecraftUIRenderContext& context, float x, float y, float width, float height, Rgb value, float opacity) {
@@ -101,7 +106,10 @@ void drawRun(MinecraftUIRenderContext& context, Font& font, float x, float y, fl
     float s = currentScale;
     TextMeasureData const measure{size*s, 0.0f, false, false, false, align};
     CaretMeasureData const caret{-1, false};
-    context.drawText(font, RectangleArea{x*s,(x+width)*s,y*s,(y+14*size)*s}, std::move(text), color(value), size*s, align,
+    // The text's opacity goes in the color: the next argument is its size.
+    mce::Color ink = color(value);
+    ink.a = currentOpacity;
+    context.drawText(font, RectangleArea{x*s,(x+width)*s,y*s,(y+14*size)*s}, std::move(text), ink, size*s, align,
                      measure, caret);
 }
 }

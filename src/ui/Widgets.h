@@ -31,6 +31,17 @@ struct DrawScale {
     DrawScale& operator=(DrawScale const&) = delete;
 };
 
+// Everything drawn inside the scope (fills, text) is multiplied by this
+// opacity: a list that fades with a closing screen. 1 outside a scope.
+float drawOpacity();
+struct DrawOpacity {
+    float previous;
+    explicit DrawOpacity(float opacity);
+    ~DrawOpacity();
+    DrawOpacity(DrawOpacity const&) = delete;
+    DrawOpacity& operator=(DrawOpacity const&) = delete;
+};
+
 // Coordinates use the game's GUI units. Widgets borrow the render context only
 // for this call; screens retain navigation and input ownership themselves.
 void label(MinecraftUIRenderContext&, float x, float y, float width, std::string text,
