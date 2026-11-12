@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enchantment Order at the Anvil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --mc-panel:16,17,19; --mc-row-hover:rgba(255,255,255,.07); --mc-row-alt:rgba(255,255,255,.025);
+  --mc-sel:rgba(108,195,73,.16); --mc-edge:rgba(255,255,255,.14); --mc-dim:#b4b8b6; --mc-faint:#7f8583;
+  --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-warn:#ffc24a;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:28px 64px;display:grid;gap:24px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:72ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.opts{display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px;color:var(--ink-2);align-items:center}
+.opts label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.opts select{font:13px "Noto Sans JP",sans-serif;background:var(--ground-2);color:var(--ink);border:1px solid var(--line);padding:3px 6px}
+
+.stage-outer{width:100%;border:1px solid var(--line);background:#000}
+.stage-fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--mc-font);color:#fff;user-select:none;overflow:hidden}
+.stage canvas.world{position:absolute;inset:0;width:960px;height:540px;image-rendering:pixelated}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.25)}
+
+.panel{position:absolute;left:100px;top:36px;width:760px;height:444px;display:flex;flex-direction:column;background:rgba(var(--mc-panel),.86);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.phead{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;border-bottom:1px solid var(--mc-edge);flex:none}
+.brand{font-size:14px}
+.crumb{font-size:12px;color:var(--mc-faint)}
+.exp{font-size:10px;color:#b98bff;box-shadow:inset 0 0 0 1px #b98bff;padding:0 4px;line-height:14px}
+.spacer{flex:1}
+.hbtn{all:unset;cursor:pointer;font:12px var(--mc-font);color:var(--mc-dim);padding:0 8px;height:20px;line-height:20px;box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.hbtn:hover{color:#fff;background:var(--mc-row-hover)}
+.pbody{flex:1;min-height:0;display:flex}
+.col{min-width:0;min-height:0;display:flex;flex-direction:column}
+.col.left{width:330px;border-right:1px solid var(--mc-edge);flex:none}
+.col.right{flex:1}
+.ctitle{display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;font-size:11px;color:var(--mc-faint);border-bottom:1px solid var(--mc-edge);flex:none}
+.ctitle b{font-weight:400;color:var(--mc-dim)}
+.bar{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;font-size:13px;border-bottom:1px solid var(--mc-edge);flex:none}
+.bar .k{color:var(--mc-dim)}
+.scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#5a5b5c transparent}
+.row{display:grid;align-items:center;column-gap:8px;padding:0 10px;height:26px;font-size:13px}
+.row:nth-child(even){background:var(--mc-row-alt)}
+.row:hover{background:var(--mc-row-hover)}
+.erow{grid-template-columns:30px minmax(0,1fr) auto;cursor:pointer}
+.erow.na{color:var(--mc-faint);cursor:default}
+.why{font-size:11px;color:var(--mc-faint);white-space:nowrap}
+.erow .why{font-size:11px;color:var(--mc-faint);white-space:nowrap}
+.srow{grid-template-columns:18px minmax(0,1fr) 34px;height:auto;min-height:26px;padding-block:4px}
+.srow .n{color:var(--mc-faint);font-size:12px;text-align:right}
+.srow .what{min-width:0;line-height:1.35}
+.srow .what small{display:block;font-size:11px;color:var(--mc-faint)}
+.srow .c{text-align:right}
+.plus{color:var(--mc-faint);padding:0 4px}
+.tag{font-size:11px;color:var(--mc-dim);box-shadow:inset 0 0 0 1px var(--mc-key-edge);padding:0 4px;line-height:15px;display:inline-block;margin-right:3px}
+.nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sw{all:unset;cursor:pointer;position:relative;display:inline-block;width:30px;height:14px;background:var(--mc-off);box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.sw::after{content:"";position:absolute;top:1px;left:1px;width:12px;height:12px;background:#c9c9c9}
+.sw.on{background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.sw.on::after{left:17px;background:#fff}
+.sw.dis{opacity:.35;cursor:default}
+.step{display:inline-flex;align-items:center;gap:2px;font-size:12px}
+.step button{all:unset;cursor:pointer;width:16px;height:16px;line-height:16px;text-align:center;color:var(--mc-dim);box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key)}
+.step button:hover{color:#fff;background:#3a3b3c}
+.step button[disabled]{opacity:.3;cursor:default}
+.step span{min-width:26px;text-align:center}
+.step.wide span{min-width:118px}
+.sum{flex:none;border-top:1px solid var(--mc-edge);padding:6px 10px;font-size:12px;display:grid;gap:2px}
+.sum .big{font-size:14px}
+.sum .faint,.faint{color:var(--mc-faint);font-size:11px}
+.warn{color:var(--mc-warn)}
+.pfoot{border-top:1px solid var(--mc-edge);padding:5px 10px;min-height:36px;display:grid;gap:1px;flex:none;font-size:11px;color:var(--mc-faint);line-height:1.45}
+.empty{padding:14px 12px;font-size:12px;color:var(--mc-faint);line-height:1.6}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:13px;padding:6px 12px}
+.tabs button[aria-selected=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.tile{display:inline-grid;place-items:center;width:16px;height:16px;font-size:11px;line-height:1;background:#2f6f8f;color:#fff;vertical-align:-3px;margin-right:4px;flex:none}
+.tile.book{background:#8a3f8f}
+.kinds{display:grid;grid-template-columns:repeat(auto-fill,24px);gap:3px;padding:6px 10px;border-bottom:1px solid var(--mc-edge);flex:none}
+.kind{all:unset;cursor:pointer;position:relative;width:24px;height:24px;display:grid;place-items:center;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.kind .tile{margin:0;vertical-align:0}
+.kind:hover{box-shadow:inset 0 0 0 1px #fff}
+.kind.on{box-shadow:inset 0 0 0 2px var(--mc-on-edge);background:var(--mc-sel)}
+.kind.held::after{content:"";position:absolute;right:2px;top:2px;width:5px;height:5px;background:#fff}
+.sets{display:flex;gap:4px;padding:5px 10px;border-bottom:1px solid var(--mc-edge);flex:none}
+.btn{all:unset;cursor:pointer;font:11px var(--mc-font);color:#fff;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge),inset 0 -2px 0 rgba(0,0,0,.5);padding:0 7px;height:18px;line-height:18px;text-align:center;white-space:nowrap}
+.btn:hover{background:#3a3b3c}
+.btn[disabled]{opacity:.35;cursor:default}
+.have{font-size:11px;color:var(--mc-on-edge);white-space:nowrap}
+.srow.now{background:var(--mc-sel);box-shadow:inset 2px 0 0 var(--mc-on-edge)}
+.anvil{position:absolute;left:150px;top:90px;width:360px;height:330px;background:#c6c6c6;box-shadow:inset 0 0 0 2px #fff,inset 0 0 0 4px #555;color:#3f3f3f;font-size:13px;padding:14px}
+.anvil .t{text-align:center;margin-bottom:10px}
+.anvil .nm2{height:26px;background:#8b8b8b;box-shadow:inset 0 0 0 2px #373737;color:#fff;padding:4px 8px;margin-left:60px;white-space:nowrap;overflow:hidden}
+.anvil .slots{display:flex;align-items:center;gap:14px;margin:14px 0 4px 20px;font-size:18px}
+.anvil .slot{width:36px;height:36px;background:#8b8b8b;box-shadow:inset 0 0 0 2px #373737;display:grid;place-items:center}
+.anvil .slot .tile{width:24px;height:24px;font-size:15px;margin:0}
+.anvil .cost{text-align:right;color:#2e7d16;background:rgba(0,0,0,.35);padding:1px 6px;width:max-content;margin-left:auto;color:#80ff20}
+.anvil .inv{display:grid;grid-template-columns:repeat(9,34px);gap:2px;margin-top:8px}
+.anvil .inv i{height:34px;background:#8b8b8b;box-shadow:inset 0 0 0 2px #373737}
+.side{position:absolute;left:520px;top:90px;width:300px;height:330px;display:flex;flex-direction:column;background:rgba(var(--mc-panel),.86);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.side .srow{font-size:12px;cursor:pointer}
+
+.settingsmock{border:1px solid var(--line);background:var(--ground-2);padding:16px 18px;display:grid;gap:10px}
+.tbl{font-family:var(--mc-font);font-size:13px;background:rgba(16,17,19,.95);box-shadow:inset 0 0 0 1px var(--mc-edge);max-width:680px;overflow-x:auto}
+.tbl .r{display:grid;grid-template-columns:minmax(0,1fr) 54px 130px;gap:10px;align-items:center;height:26px;padding:0 10px;color:#fff;min-width:420px}
+.tbl .r.sec{color:var(--accent);font-size:11px;height:22px;border-bottom:1px solid rgba(108,195,73,.3)}
+.cap{display:inline-block;height:16px;line-height:16px;padding:0 5px;font-size:11px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);color:#fff}
+.link{color:var(--accent);font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:16px 18px;display:grid;gap:8px;align-content:start}
+.note h3{font:700 15px/1.4 "Noto Sans JP",sans-serif;margin:0}
+.note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:4px}
+.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.ask ol{margin:0;padding-left:1.3em;color:var(--ink-2);font-size:13.5px;display:grid;gap:6px}
+.ask b{color:var(--ink)}
+
+.anvil{left:300px;top:105px}
+.side{left:auto;top:auto;height:auto}
+.side.steps{left:664px;top:105px;width:288px;max-height:415px}
+.side.editor{left:8px;top:20px;width:288px;height:500px}
+.side.one{left:664px;top:20px;width:288px;height:500px}
+.side.stub{left:664px;top:105px;width:288px}
+.side .scroll{min-height:40px}
+.ptabs{display:flex;border-bottom:1px solid var(--mc-edge);flex:none}
+.ptabs button{all:unset;cursor:pointer;flex:1;text-align:center;font:12px var(--mc-font);height:24px;line-height:24px;color:var(--mc-faint)}
+.ptabs button.on{color:#fff;box-shadow:inset 0 -2px 0 var(--mc-on-edge)}
+.ptabs button:hover{color:#fff}
+.side .kinds{grid-template-columns:repeat(auto-fill,22px)}
+.side .kind{width:22px;height:22px}
+.side .erow{grid-template-columns:minmax(0,1fr) auto 30px;font-size:12px;height:24px;padding:0 8px}
+.side .bar{font-size:12px;padding:0 8px}
+.side .sets{padding:5px 8px}
+.side .ctitle{padding:0 8px}
+.x{all:unset;cursor:pointer;width:18px;height:18px;line-height:18px;text-align:center;color:var(--mc-dim);font:12px var(--mc-font)}
+.x:hover{color:#fff;background:var(--mc-row-hover)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">BACKLOG L-170 · エンチャント順序 · 金床の画面で計画する（モック、2026-11-12）</div>
+    <h1>金床を開いたまま、エンチャントを選んで手順を見る</h1>
+    <p class="lede">いまは金床の横に<strong>手順</strong>だけが出て、計画を変えるには Lamium の画面を開きます。このモックは、<strong>エンチャントの選択も金床の横でできる</strong>ようにする案です。置き方を 2 つ用意しました。計算は実際に動きます。アイコンは 1 文字の仮の絵、エンチャント名は仮の訳です。場面は GUI スケール 2 相当（480 × 270 単位）で、金床のウィンドウの左右にそれぞれ約 150 単位の空きがあります。</p>
+  </header>
+
+  <div class="opts">
+    <label>置き方
+      <select id="optLayout">
+        <option value="split">A: 左にエンチャント、右に手順</option>
+        <option value="tabs">B: 右に 1 枚、タブで切り替え</option>
+      </select>
+    </label>
+    <label>金床の左スロット（場面の設定）
+      <select id="optSlot">
+        <option value="none">空</option>
+        <option value="plain">新品のダイヤモンドの剣</option>
+        <option value="used">ダイヤモンドの剣（ダメージ増加 IV・耐久力 III、金床 2 回）</option>
+      </select>
+    </label>
+    <label>計画（場面の設定）
+      <select id="optPlan"><option value="yes">あり</option><option value="no">なし</option></select>
+    </label>
+    <label>ゲームモード
+      <select id="optMode"><option value="s">サバイバル</option><option value="c">クリエイティブ</option></select>
+    </label>
+  </div>
+
+  <div class="stage-outer"><div class="stage-fit" id="fit"><div class="stage" id="stage">
+    <canvas class="world" id="world" width="480" height="270"></canvas>
+    <div class="dim" style="background:rgba(0,0,0,.45)"></div>
+    <div id="layer"></div>
+  </div></div></div>
+
+  <section class="cards">
+    <article class="note"><h3>流れ（案）</h3><ul>
+      <li><strong>計画がないとき</strong>は、金床の横に 1 行だけの小さな札が出る。「計画する」を押すとエンチャントの選択が開く</li>
+      <li><strong>計画があるとき</strong>は、いまと同じ手順のリストが出る。「編集」を押すとエンチャントの選択が開き、選び直すと手順がその場で変わる</li>
+      <li>選択を閉じても計画は残る。金床を閉じても残る（いまと同じ）</li>
+      <li>手順の行を押すと、モックではその回の 2 つが金床に入る（ゲームでは自分で入れる。表示だけ）</li>
+    </ul></article>
+    <article class="note"><h3>どのアイテムの計画か（案）</h3><ul>
+      <li><strong>金床の左スロットにエンチャントできるアイテムがあれば、それ</strong>。付与済みのエンチャントと金床使用回数を使う（「スロットの状態を使う」をオフにすると新品として計算）</li>
+      <li>左スロットが空なら、<strong>種類のアイコン</strong>から選ぶ（Lamium の画面と同じ格子）</li>
+      <li>金床ではメインハンドは見ない。Lamium の画面（キーと設定画面から開く方）はいままでどおりメインハンドを見る</li>
+      <li>未完了の計画があるあいだは、スロットのアイテムが変わっても計画を勝手に替えない（今日決めた「前の計画を維持」と同じ）</li>
+    </ul></article>
+    <article class="note"><h3>A と B の違い</h3><ul>
+      <li><strong>A</strong>: 選択と手順が同時に見える。左右の空きを両方使う。ウィンドウが狭くて片側に入らないときは B の形に落とす</li>
+      <li><strong>B</strong>: 右の 1 枚だけで済む。選択中は手順が見えず、タブを行き来する。左側は空いたまま</li>
+      <li>どちらも行は「名前 | − レベル + | スイッチ」で、Lamium の画面と同じ並び</li>
+      <li>「すべて最大」「前回の選択」「クリア」と目標の切り替えも横に置く</li>
+    </ul></article>
+    <article class="note"><h3>作るときに分かっていること</h3><ul>
+      <li>クリックをゲームに渡さず受けること、ポインタの位置で明るくすることは「変更」ボタンで確認済み</li>
+      <li>ホイールでの一覧のスクロールは同じ仕組みで受けられる見込み（未確認）</li>
+      <li>アイテムを持ったまま横を押すと、いまはバニラどおり落とす。選択が開いているあいだもそのままにする</li>
+      <li>名前での検索は入れない（文字入力は金床の名前欄とぶつかる）</li>
+      <li>GUI スケールが大きいと空きが減る。入らないときは「変更」ボタンで Lamium の画面を開く形に落とす</li>
+    </ul></article>
+  </section>
+
+  <section class="ask">
+    <h2>確認したいこと</h2>
+    <ol>
+      <li><b>置き方は A と B のどちらにするか。</b>おすすめは A（選びながら手順が見える）。</li>
+      <li><b>金床では左スロットのアイテムを対象にし、空なら種類を選ぶ、でよいか。</b></li>
+      <li><b>計画がないときは小さな札だけ出す、でよいか。</b>（常に選択を開いておく案もある。金床を普通に使う人には邪魔になりうる）</li>
+      <li><b>Lamium の画面は残すか。</b>おすすめは残す（金床がなくても計画でき、狭い画面の逃げ道にもなる）。その場合、金床の「変更」ボタンは「編集」に置き換わる。</li>
+      <li><b>選択を開いているあいだ、金床を閉じたら選択も閉じる、でよいか。</b>（次に開いたときは手順だけに戻る）</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+
+// id, name (placeholder translation), frequency, max level, primary slots, secondary slots, conflicts
+// Frequency, max level, slots and conflicts are the values read from the game on 2026-11-12.
+const E = [
+ [0,"ダメージ軽減",30,4,0xf,0,[1,3,4]],[1,"火炎耐性",10,4,0xf,0,[0,3,4]],[2,"落下耐性",10,4,0x4,0,[]],
+ [3,"爆発耐性",3,4,0xf,0,[0,1,4]],[4,"飛び道具耐性",10,4,0xf,0,[0,1,3]],[5,"棘の鎧",1,3,0x2,0xd,[]],
+ [6,"水中呼吸",3,3,0x1,0,[]],[7,"水中歩行",3,3,0x4,0,[25]],[8,"水中採掘",3,1,0x1,0,[]],
+ [9,"ダメージ増加",30,5,0x800010,0x200,[10,11,39,40]],[10,"アンデッド特効",10,5,0xc00010,0x200,[9,11,39,40]],
+ [11,"虫特効",10,5,0xc00010,0x200,[9,10,39,40]],[12,"ノックバック",10,2,0x800010,0,[]],
+ [13,"火属性",3,2,0xc00010,0,[]],[14,"ドロップ増加",3,3,0x800010,0,[]],[15,"効率強化",30,5,0xe40,0x80,[]],
+ [16,"シルクタッチ",1,1,0xe40,0x80,[18]],[17,"耐久力",10,3,0x811e7f,0x72e1c0,[]],[18,"幸運",3,3,0xe40,0,[16]],
+ [19,"射撃ダメージ増加",30,5,0x20,0,[]],[20,"パンチ",3,2,0x20,0,[]],[21,"フレイム",3,1,0x20,0,[]],
+ [22,"無限",1,1,0x20,0,[26]],[23,"宝釣り",3,3,0x1000,0,[]],[24,"入れ食い",3,3,0x1000,0,[]],
+ [25,"氷渡り",3,2,0x4,0,[7]],[26,"修繕",3,1,0x811e7f,0x72e1c0,[22]],[27,"束縛の呪い",1,1,0x4400f,0,[]],
+ [28,"消滅の呪い",1,1,0xffffffff,0,[]],[29,"水生特効",10,5,0x8000,0,[]],[30,"激流",3,3,0x8000,0,[31,32]],
+ [31,"忠誠",30,3,0x8000,0,[30]],[32,"召雷",1,1,0x8000,0,[30]],[33,"拡散",3,1,0x10000,0,[34]],
+ [34,"貫通",30,4,0x10000,0,[33]],[35,"高速装填",10,3,0x10000,0,[]],[36,"ソウルスピード",1,3,0x4,0,[]],
+ [37,"スニーク速度上昇",1,3,0x8,0,[]],[38,"ウィンドバースト",3,3,0x400000,0,[]],[39,"重撃",10,5,0x400000,0,[9,10,11,40]],
+ [40,"防具貫通",3,4,0x400000,0,[9,10,11,39]],[41,"突進",10,3,0x800000,0,[]],
+];
+const ITEMS = [["ダイヤモンドの剣",0x10],["ダイヤモンドのツルハシ",0x400],["ダイヤモンドの斧",0x200],["ダイヤモンドのシャベル",0x800],
+ ["ダイヤモンドのクワ",0x40],["弓",0x20],["クロスボウ",0x10000],["トライデント",0x8000],["メイス",0x400000],["ダイヤモンドの槍",0x800000],
+ ["ダイヤモンドのヘルメット",0x1],["ダイヤモンドのチェストプレート",0x2],["ダイヤモンドのレギンス",0x8],["ダイヤモンドのブーツ",0x4],
+ ["釣竿",0x1000],["エリトラ",0x4000],["盾",0x20000]];
+const ROMAN=["","I","II","III","IV","V"];
+const bookPerLevel = f => f===30||f===10 ? 1 : f===3 ? 2 : 4;
+const maxInputs = 10;
+
+
+const KIND = ["剣","ツ","斧","シ","ク","弓","弩","叉","槌","槍","兜","胸","脚","靴","釣","翼","盾"];
+const KIND_NAME = ["剣","ツルハシ","斧","シャベル","クワ","弓","クロスボウ","トライデント","メイス","槍","ヘルメット","チェストプレート","レギンス","ブーツ","釣竿","エリトラ","盾"];
+const SLOT = {
+  plain:{name:"ダイヤモンドの剣",kind:0,ench:new Map(),work:0},
+  used:{name:"ダイヤモンドの剣",kind:0,ench:new Map([[9,4],[17,3]]),work:2},
+  none:null,
+};
+const START = () => new Map([[14,3],[13,2],[17,3],[9,5],[26,1]]);
+let layout="split", inSlot=null, creative=false, useSlot=true, editing=false, tab="steps";
+let item = 0, goal = "levels", want = START(), last = new Map(), now = -1;
+
+const el = (tag, cls, html) => { const e=document.createElement(tag); if(cls) e.className=cls; if(html!=null) e.innerHTML=html; return e; };
+const pen = w => (1<<w)-1;
+const tile = (ch, book) => `<span class="tile${book?" book":""}">${ch}</span>`;
+const onSlot = () => inSlot && inSlot.kind===item && useSlot;
+const have = () => onSlot() ? inSlot.ench : new Map();
+const itemName = () => onSlot() ? inSlot.name : KIND_NAME[item]+"（新品）";
+
+// The same search as src/features/inventory/EnchantPlan.h.
+function plan(inputs, refuseAt, least){
+  const n=inputs.length; if(n<1||n>maxInputs) return null;
+  const deepest=Math.max(...inputs.map(i=>i.work)), works=deepest+n, full=(1<<n)-1;
+  let itemBit=0; inputs.forEach((x,i)=>{ if(x.item) itemBit=1<<i; });
+  const cells=new Array((full+1)*works).fill(null), value=new Array(full+1).fill(0);
+  const at=(m,w)=>m*works+w;
+  for(let mask=1;mask<=full;mask++){
+    const low=31-Math.clz32(mask&-mask);
+    value[mask]=value[mask&(mask-1)]+inputs[low].value;
+    if(!(mask&(mask-1))){ cells[at(mask,inputs[low].work)]={total:0,highest:0}; continue; }
+    for(let kept=(mask-1)&mask;kept;kept=(kept-1)&mask){
+      const gone=mask^kept; if(gone&itemBit) continue;
+      for(let a=0;a<works;a++){ const L=cells[at(kept,a)]; if(!L) continue;
+        for(let b=0;b<works;b++){ const R=cells[at(gone,b)]; if(!R) continue;
+          const w=Math.max(a,b)+1; if(w>=works) continue;
+          const cost=value[gone]+pen(a)+pen(b); if(refuseAt>0&&cost>=refuseAt) continue;
+          const total=L.total+R.total+cost, highest=Math.max(L.highest,R.highest,cost), best=cells[at(mask,w)];
+          if(!best||total<best.total||(total===best.total&&highest<best.highest)) cells[at(mask,w)]={total,highest,kept,a,b};
+        }}
+    }
+  }
+  let end=-1;
+  for(let w=0;w<works;w++){ const c=cells[at(full,w)]; if(!c) continue;
+    if(end<0){ end=w; if(least) break; continue; }
+    const best=cells[at(full,end)];
+    if(c.total<best.total||(c.total===best.total&&c.highest<best.highest)) end=w;
+  }
+  if(end<0) return null;
+  const steps=[];
+  (function emit(mask,w){ if(!(mask&(mask-1))) return; const c=cells[at(mask,w)], gone=mask^c.kept;
+    emit(c.kept,c.a); emit(gone,c.b);
+    steps.push({kept:c.kept,gone,cost:value[gone]+pen(c.a)+pen(c.b),work:w,keptWork:c.a,goneWork:c.b}); })(full,end);
+  return {steps,total:cells[at(full,end)].total,highest:cells[at(full,end)].highest,work:end};
+}
+
+
+const fits = e => ((e[4]|e[5])&ITEMS[item][1])!==0;
+function listed(){ const all=E.filter(fits); return [...all.filter(e=>e[0]!==27&&e[0]!==28), ...all.filter(e=>e[0]===27||e[0]===28)]; }
+const clash = (a,b) => a[6].includes(b[0]) || b[6].includes(a[0]);
+function blocker(e){
+  for(const id of [...have().keys(), ...want.keys()]) if(id!==e[0] && clash(e,E[id])) return E[id];
+  return null;
+}
+function blockerExcept(e){ for(const id of have().keys()) if(clash(e,E[id])) return true; return false; }
+function prune(){ for(const id of [...want.keys()]) if(!listed().some(e=>e[0]===id) || have().has(id) || blockerExcept(E[id])) want.delete(id); }
+function pick(i){ if(want.size) last.set(item,new Map(want)); item=i; want=new Map(); now=-1; render(); }
+
+function compute(){
+  const ids=[...want.keys()].sort((a,b)=>a-b);
+  const inputs=[{value:0,work:onSlot()?inSlot.work:0,item:true},...ids.map(id=>({value:want.get(id)*bookPerLevel(E[id][2]),work:0,item:false}))];
+  const label=i=>E[ids[i-1]][1]+(E[ids[i-1]][3]>1?" "+ROMAN[want.get(ids[i-1])]:"");
+  const limit=creative?0:40;
+  const mine=ids.length?plan(inputs,limit,goal==="work"):null, other=ids.length?plan(inputs,limit,goal!=="work"):null;
+  const name=mask=>{
+    if(mask&1) return tile(KIND[item])+itemName();
+    const parts=[]; for(let i=1;i<inputs.length;i++) if(mask>>i&1) parts.push(label(i));
+    return tile("本",true)+parts.join(", ");
+  };
+  const glyph=mask=>mask&1?tile(KIND[item]):tile("本",true);
+  return {ids,mine,other,name,glyph};
+}
+const refused = "どの順番でも 40 レベル以上の回が出るため金床に拒否されます。";
+
+// The choosing part: item, kinds, sets, rows.
+function chooser(into){
+  const bar=el("div","bar"); bar.innerHTML=`<span class="k">アイテム</span><span class="spacer"></span><span class="nm">${tile(KIND[item])}${itemName()}</span>`;
+  into.append(bar);
+  if(inSlot && inSlot.kind===item){
+    const use=el("div","bar"); use.style.cursor="pointer";
+    use.innerHTML=`<button class="sw${useSlot?" on":""}"></button><span>スロットの状態を使う</span>`;
+    use.onclick=()=>{ useSlot=!useSlot; want=new Map(); now=-1; render(); };
+    into.append(use);
+  }
+  if(!inSlot){
+    const kinds=el("div","kinds");
+    ITEMS.forEach((it,i)=>{ const k=el("button","kind"+(i===item?" on":""),tile(KIND[i])); k.title=KIND_NAME[i]; k.onclick=()=>pick(i); kinds.append(k); });
+    into.append(kinds);
+  }
+  const rows=listed(), free=rows.filter(e=>!have().has(e[0]));
+  const sets=el("div","sets");
+  const all=el("button","btn","すべて最大"), prev=el("button","btn","前回"), clear=el("button","btn","クリア");
+  all.onclick=()=>{ want=new Map(); for(const e of free) if(!free.some(o=>o!==e&&clash(e,o)) && !blockerExcept(e) && want.size<maxInputs-1) want.set(e[0],e[3]); now=-1; render(); };
+  prev.disabled=!last.has(item); prev.onclick=()=>{ want=new Map(last.get(item)); now=-1; render(); };
+  clear.disabled=!want.size; clear.onclick=()=>{ last.set(item,new Map(want)); want=new Map(); now=-1; render(); };
+  sets.append(all,prev,el("span","spacer"),clear); into.append(sets);
+  into.append(el("div","ctitle",`付けたいエンチャント <b>${want.size}</b> / ${maxInputs-1}`));
+  const sc=el("div","scroll");
+  for(const e of rows){
+    const had=have().get(e[0]);
+    const on=want.has(e[0]), blk=on||had?null:blocker(e), full=!on&&want.size>=maxInputs-1;
+    const r=el("div","row erow"+(blk||had?" na":""));
+    r.onclick=()=>{ if(blk||full||had) return; on?want.delete(e[0]):want.set(e[0],e[3]); now=-1; render(); };
+    r.append(el("div","nm",e[1]));
+    if(had) r.append(el("span","have","付与済み "+(e[3]>1?ROMAN[had]:"")));
+    else if(blk) r.append(el("span","why",blk[1]+" と競合"));
+    else if(on && e[3]>1){
+      const s=el("span","step"), lv=want.get(e[0]);
+      const dn=el("button",null,"−"), up=el("button",null,"+");
+      up.disabled=lv>=e[3];
+      dn.onclick=ev=>{ ev.stopPropagation(); lv>1?want.set(e[0],lv-1):want.delete(e[0]); render(); };
+      up.onclick=ev=>{ ev.stopPropagation(); if(lv<e[3]){ want.set(e[0],lv+1); render(); } };
+      s.onclick=ev=>ev.stopPropagation();
+      s.append(dn,el("span",null,ROMAN[lv]),up); r.append(s);
+    } else r.append(el("span","why",on?"":"最大 "+ROMAN[e[3]]));
+    r.append(el("button","sw"+(on||had?" on":"")+(blk||full||had?" dis":"")));
+    sc.append(r);
+  }
+  into.append(sc);
+}
+
+// The steps part: goal, rows, totals.
+function stepsPart(into, c){
+  const bar=el("div","bar"); bar.append(el("span","k","目標"));
+  const st=el("span","step wide"), prev=el("button",null,"◀"), next=el("button",null,"▶");
+  const flip=()=>{ goal=goal==="levels"?"work":"levels"; now=-1; render(); };
+  prev.onclick=flip; next.onclick=flip;
+  st.append(prev,el("span",null,goal==="levels"?"最小レベル":"最小作業ペナルティ"),next); bar.append(el("span","spacer"),st); into.append(bar);
+  const sc=el("div","scroll");
+  if(!c.mine){
+    sc.append(el("div","empty"+(c.ids.length?" warn":""), c.ids.length?refused:"エンチャントをオンにすると、ここに金床の順番が出ます。"));
+    into.append(sc); return;
+  }
+  c.mine.steps.forEach((s,i)=>{
+    const r=el("div","row srow"+(now===i?" now":""));
+    r.append(el("span","n",i+1));
+    const w=el("div","what"); w.innerHTML=`${c.name(s.kept)}<br><span class="plus">＋</span>${c.name(s.gone)}`;
+    r.append(w); r.append(el("span","c",s.cost));
+    r.onclick=()=>{ now=now===i?-1:i; render(); };
+    sc.append(r);
+  });
+  into.append(sc);
+  const f=el("div","sum");
+  f.append(el("div",null,`合計 ${c.mine.total} レベル　いちばん高い 1 回: ${c.mine.highest}`));
+  f.append(el("div","faint",now>=0?`金床の 2 つが ${now+1} 回目と一致しています。`:"次は 1 回目"));
+  into.append(f);
+}
+
+function head(title, buttons){
+  const h=el("div","phead");
+  h.innerHTML=`<span class="brand" style="font-size:12px">${title}</span><span class="exp">試験的</span><span class="spacer"></span>`;
+  for(const b of buttons) h.append(b);
+  return h;
+}
+function button(text, on){ const b=el("button","hbtn",text); b.onclick=on; return b; }
+function closer(){ const b=el("button","x","×"); b.title="選択を閉じる"; b.onclick=()=>{ editing=false; tab="steps"; render(); }; return b; }
+
+function render(){
+  prune();
+  const layer=document.getElementById("layer"); layer.innerHTML="";
+  const c=compute(), step=c.mine&&now>=0?c.mine.steps[now]:null;
+  const a=el("div","anvil");
+  const leftGlyph=step?c.glyph(step.kept):inSlot?tile(KIND[inSlot.kind]):"";
+  a.innerHTML=`<div class="t">修理 &amp; 名前変更</div><div class="nm2">${step?(step.kept&1?itemName():"エンチャントの本"):inSlot?inSlot.name:""}</div>
+    <div class="slots"><span class="slot">${leftGlyph}</span>＋<span class="slot">${step?c.glyph(step.gone):""}</span>→<span class="slot">${step?c.glyph(step.kept):""}</span></div>
+    ${step?`<div class="cost">エンチャントのコスト: ${step.cost}</div>`:'<div style="height:21px"></div>'}
+    <div style="margin-top:10px">インベントリ</div><div class="inv">${"<i></i>".repeat(36)}</div>`;
+  layer.append(a);
+
+  const planned=want.size>0;
+  if(!planned && !editing){
+    // No plan: one small row.
+    const s=el("div","side stub");
+    s.append(head("エンチャント順序",[button("計画する",()=>{ editing=true; tab="ench"; render(); })]));
+    layer.append(s); return;
+  }
+  if(layout==="split"){
+    const s=el("div","side steps");
+    s.append(head("エンチャント順序", editing?[]:[button("編集",()=>{ editing=true; render(); })]));
+    stepsPart(s,c); layer.append(s);
+    if(editing){
+      const e=el("div","side editor");
+      e.append(head("エンチャントを選ぶ",[closer()]));
+      chooser(e); layer.append(e);
+    }
+  } else {
+    const s=el("div","side "+(editing?"one":"steps"));
+    s.append(head("エンチャント順序", editing?[closer()]:[button("編集",()=>{ editing=true; tab="ench"; render(); })]));
+    if(editing){
+      const t=el("div","ptabs");
+      for(const [id,text] of [["ench","エンチャント"],["steps",`手順${c.mine?" "+c.mine.steps.length:""}`]]){
+        const b=el("button",tab===id?"on":"",text); b.onclick=()=>{ tab=id; render(); }; t.append(b);
+      }
+      s.append(t);
+      tab==="ench"?chooser(s):stepsPart(s,c);
+    } else stepsPart(s,c);
+    layer.append(s);
+  }
+}
+
+function drawWorld(){
+  const c=document.getElementById("world"), g=c.getContext("2d");
+  let s=4242; const r=()=>(s=s*1103515245+12345>>>0)/4294967296;
+  g.fillStyle="#6fa8dc"; g.fillRect(0,0,480,130);
+  for(let y=0;y<6;y++) for(let x=0;x<20;x++){
+    const v=70+r()*30|0; g.fillStyle=y===0?`rgb(${v*.6|0},${v+60},${v*.5|0})`:`rgb(${v+20},${v},${v*.7|0})`;
+    g.fillRect(x*24,130+y*24,24,24);
+  }
+}
+document.getElementById("optLayout").onchange=e=>{ layout=e.target.value; tab=editing?"ench":"steps"; render(); };
+document.getElementById("optSlot").onchange=e=>{ inSlot=SLOT[e.target.value]; if(inSlot) item=inSlot.kind; useSlot=true; now=-1; render(); };
+document.getElementById("optPlan").onchange=e=>{ want=e.target.value==="yes"?START():new Map(); editing=false; tab="steps"; now=-1; render(); };
+document.getElementById("optMode").onchange=e=>{ creative=e.target.value==="c"; now=-1; render(); };
+function fit(){ const f=document.getElementById("fit"), st=document.getElementById("stage"); const k=f.clientWidth/960; st.style.transform=`scale(${k})`; f.style.height=540*k+"px"; }
+addEventListener("resize",fit); fit(); drawWorld(); render();
+</script>

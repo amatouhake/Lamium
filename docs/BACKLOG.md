@@ -1583,9 +1583,15 @@ plan's item, rebuilt from the plan's record, so the plan is the same with
 the item lying in the anvil's slot. Known gap: in that case another
 enchantable item in the main hand is not offered until the plan is
 finished or changed to a fresh one.
+Mockup made the same day, not yet reviewed:
+[demos/enchant-anvil.html](demos/enchant-anvil.html). It proposes a
+one-row stub with "Plan" when there is no plan, "Edit" on the step list,
+the item from the anvil's left slot (else the kind grid), and two
+placements: A, the enchantments left of the window and the steps right;
+B, one panel on the right with two tabs. Its five questions are at the
+bottom of the page; nothing is to be built before they are answered.
 Still open:
-- Changing the plan at the anvil: the mockup of a planner on the anvil
-  screen (with a way in when there is no plan).
+- Changing the plan at the anvil: the mockup's questions.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 
