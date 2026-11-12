@@ -94,8 +94,7 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
 // keep the call that carries the glyph line while the tooltip renders.
 struct GlyphDraw { Font* font; float x, y; tooltip::GlyphRun run; std::vector<information::saturation::FoodIcon> icons; };
 bool tooltipRendering = false;
-TooltipBox lastTooltip;
-bool tooltipDrawn = false;
+void (*beforeTooltip)(MinecraftUIRenderContext&) = nullptr;
 std::optional<GlyphDraw> glyphDraw;
 LL_TYPE_INSTANCE_HOOK(TooltipFontDraw, ll::memory::HookPriority::Normal, Font, &Font::$drawCached, void,
     ScreenContext& screenContext, std::string_view str, float x, float y, mce::Color const& color,
@@ -124,17 +123,11 @@ LL_TYPE_INSTANCE_HOOK(TooltipFontDraw, ll::memory::HookPriority::Normal, Font, &
 }
 LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTextRenderer, &HoverTextRenderer::$render,
     void, MinecraftUIRenderContext& context, IClientInstance& client, UIControl& owner, int pass) {
+    if (beforeTooltip) try { beforeTooltip(context); } catch (...) {}
     glyphDraw.reset();
     tooltipRendering = true;
     origin(context, client, owner, pass);
     tooltipRendering = false;
-    try {
-        // Where the tooltip was drawn, for what must stay clear of it.
-        if (!mContent->empty() && mBoxDimensions->x > 0 && mBoxDimensions->y > 0) {
-            lastTooltip = {mCursorPosition->x + mOffset->x, mCursorPosition->y + mOffset->y, mBoxDimensions->x, mBoxDimensions->y};
-            tooltipDrawn = true;
-        }
-    } catch (...) {}
     try {
         if (!glyphDraw) return;
         // Text is batched and drawn after the tooltip renders; draw it now so
@@ -158,11 +151,7 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
     }
 }
 }
-bool takeTooltip(TooltipBox& box) {
-    if (!std::exchange(tooltipDrawn, false)) return false;
-    box = lastTooltip;
-    return true;
-}
+void setBeforeTooltip(void (*painter)(MinecraftUIRenderContext&)) { beforeTooltip = painter; }
 bool start() {
     try {
         tooltipHookInstalled = ShulkerContentsText::hook(true) == 0;

@@ -108,7 +108,7 @@ ItemStack anvilItemIcon, anvilBookIcon;
 bool anvilIconsMade = false;
 std::chrono::steady_clock::time_point anvilSeen{};
 bool finishedAtAnvil = false;
-ll::event::ListenerPtr renderListener, exitListener;
+ll::event::ListenerPtr renderListener, exitListener, enterListener;
 
 bool curse(int type) {
     return type == static_cast<int>(Enchant::Type::CurseOfBinding) || type == static_cast<int>(Enchant::Type::CurseOfVanishing);
@@ -373,93 +373,33 @@ std::string sideText(unsigned mask) {
     }
     return text;
 }
-// A finished plan leaves the anvil's side once the anvil has been closed;
-// the planner brings it back.
-void drawBeside(ll::event::UIRenderEvent& event) {
-    if (!active.valid || active.lines.empty()) return;
-    if (!Runtime::instance().preferences().inventory.enchantOrderAnvil) return;
-    auto& view = event.screenView();
-    bool const anvil = view.mHasFocus && view.mController && view.mController->_isContainerScreen() && view.getScreenName() == "anvil_screen";
-    if (!anvil) {
-        if (finishedAtAnvil && std::chrono::steady_clock::now() - anvilSeen > std::chrono::milliseconds(500)) {
-            active = {};
-            finishedAtAnvil = false;
-        }
-        return;
-    }
-    anvilSeen = std::chrono::steady_clock::now();
-    // Taken every frame so an old tooltip is never acted on.
-    inspection::TooltipBox tooltip;
-    bool const tooltipShown = inspection::takeTooltip(tooltip);
-    if (!versionSensitiveAllowed(capabilities::Id::EnchantOrder)) return;
-    auto* tree = view.mVisualTree.get();
-    if (!tree) return;
-    static std::string const windowName = "root_panel";
-    auto window = tree->getControlByName(windowName, true);
-    if (!window || window->mCachedPositionDirty) return;
-    glm::vec2 const at = *window->mCachedPosition, size = *window->mSize, screen = *view.mSize;
-    if (size.x <= 0 || size.y <= 0 || size.x >= screen.x - 1) return; // not laid out yet
+// What the list shows, worked out once a frame after the anvil screen has
+// drawn. It is painted from here, or one frame later from inside the
+// screen's own drawing, right before the game's tooltip, which then stays on
+// top while the list is above the screen's dark layer.
+struct ListState {
+    bool ready = false;
+    std::chrono::steady_clock::time_point at{};
+    float left = 0, top = 0, width = 0, height = 0;
+    bool twoLines = true, both = false, creative = false, target = false, sacrifice = false;
+    int now = -1, next = -1, gameCost = -1, level = -1, leftPenalty = -1, rightPenalty = -1;
+    std::vector<unsigned> atHand;
+} list;
+bool insideAnvil = false, paintedInside = false;
+void paintList(MinecraftUIRenderContext& context) {
     using namespace lamium::ui;
-    constexpr float gap = 4, pad = 4, line = 10, wide = 200, narrow = 110;
-    float width = std::min(wide, screen.x - (at.x + size.x) - 2 * gap), left = at.x + size.x + gap;
-    if (width < narrow) {
-        width = std::min(wide, at.x - 2 * gap);
-        left = at.x - gap - width;
-    }
-    if (width < narrow) return;
-
-    auto& context = event.uiRenderContext();
-    // What the slots and the inventory hold, as planner inputs.
-    int now = -1, gameCost = -1, level = -1, leftPenalty = -1, rightPenalty = -1;
-    bool both = false, creative = false;
-    std::optional<unsigned> target, sacrifice;
-    std::vector<unsigned> atHandNow;
-    try {
-        if (auto* player = context.mClient.getLocalPlayer()) {
-            creative = player->isCreative();
-            if (auto const* attribute = player->getAttribute(Player::LEVEL()).mPtr) level = static_cast<int>(attribute->mCurrentValue);
-        }
-        auto& screenController = static_cast<ContainerScreenController&>(*view.mController);
-        if (auto manager = screenController.mContainerManagerController; manager && !manager->mContainersClosed) {
-            auto const& input = manager->getItemStack("anvil_input_items", 0);
-            auto const& material = manager->getItemStack("anvil_material_items", 0);
-            if (!input.isNull()) { target = sideOf(input); leftPenalty = input.getBaseRepairCost(); }
-            if (!material.isNull()) { sacrifice = sideOf(material); rightPenalty = material.getBaseRepairCost(); }
-            both = !input.isNull() && !material.isNull();
-            if (target && sacrifice) now = enchantPlan::stepFor(active.plan, *target, *sacrifice);
-            if (both) gameCost = static_cast<AnvilContainerManagerController&>(*manager).mCost;
-            if (target) atHandNow.push_back(*target);
-            if (sacrifice) atHandNow.push_back(*sacrifice);
-            if (auto mask = sideOf(manager->getItemStack("cursor_items", 0))) atHandNow.push_back(*mask);
-            int const carriedSlots = std::min(36, manager->getContainerSize("combined_hotbar_and_inventory_items"));
-            for (int i = 0; i < carriedSlots; ++i)
-                if (auto mask = sideOf(manager->getItemStack("combined_hotbar_and_inventory_items", i))) atHandNow.push_back(*mask);
-        }
-    } catch (...) { now = -1; both = false; atHandNow.clear(); }
-    atHandNow = progress(atHandNow, active.plan);
-    int const next = nextStep(active.plan, atHandNow);
-    finishedAtAnvil = next < 0;
-
-    int const steps = static_cast<int>(active.lines.size());
-    constexpr int headLines = 2, footLines = 2;
-    auto heightFor = [&](bool twoLines) {
-        return pad + headLines * line + 3 + steps * (twoLines ? 2 * line + 2 : line + 2) + 2 + footLines * line + pad;
-    };
-    bool const twoLines = heightFor(true) <= screen.y - 2 * gap;
-    float const height = heightFor(twoLines);
-    if (height > screen.y - 2 * gap) return;
-    float const top = std::clamp(at.y, gap, screen.y - gap - height);
+    constexpr float pad = 4, line = 10;
+    float const left = list.left, top = list.top, width = list.width, height = list.height;
+    bool const twoLines = list.twoLines, both = list.both, creative = list.creative;
+    int const now = list.now, next = list.next, gameCost = list.gameCost, level = list.level, leftPenalty = list.leftPenalty,
+              rightPenalty = list.rightPenalty, steps = static_cast<int>(active.lines.size());
+    bool const target = list.target, sacrifice = list.sacrifice;
+    auto const& atHandNow = list.atHand;
+    if (!active.valid || steps == 0 || now >= steps || next >= steps || static_cast<int>(active.plan.steps.size()) != steps) return;
     if (!anvilIconsMade) {
         anvilItemIcon = stackOf(active.itemId);
         anvilBookIcon = stackOf(bookItem);
         anvilIconsMade = true;
-    }
-    // The list is drawn after the screen, so it would cover the game's item
-    // tooltip: it is left out while the tooltip reaches into it.
-    if (tooltipShown) {
-        constexpr float margin = 3;
-        if (tooltip.x < left + width + margin && tooltip.x + tooltip.w > left - margin && tooltip.y < top + height + margin
-            && tooltip.y + tooltip.h > top - margin) return;
     }
     panel(context, left, top, width, height, .8f);
     float y = top + pad;
@@ -527,6 +467,98 @@ void drawBeside(ll::event::UIRenderEvent& event) {
         label(context, left + pad, y, inner, translated("enchantOrder.anvil.penalties", std::max(0, leftPenalty), std::max(0, rightPenalty)), palette::faint);
     context.flushText(0, std::nullopt);
     if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
+}
+// The game's tooltip is about to be drawn in the anvil screen.
+void beforeTooltip(MinecraftUIRenderContext& context) {
+    if (!insideAnvil || paintedInside || !list.ready || std::chrono::steady_clock::now() - list.at > std::chrono::milliseconds(250)) return;
+    paintedInside = true;
+    paintList(context);
+}
+bool isAnvil(ScreenView& view) {
+    return view.mHasFocus && view.mController && view.mController->_isContainerScreen() && view.getScreenName() == "anvil_screen";
+}
+void enterScreen(ll::event::UIRenderEvent& event) {
+    insideAnvil = active.valid && isAnvil(event.screenView());
+    if (insideAnvil) paintedInside = false;
+}
+// A finished plan leaves the anvil's side once the anvil has been closed;
+// the planner brings it back.
+void drawBeside(ll::event::UIRenderEvent& event) {
+    if (!active.valid || active.lines.empty()) return;
+    if (!Runtime::instance().preferences().inventory.enchantOrderAnvil) { list.ready = false; return; }
+    auto& view = event.screenView();
+    if (!isAnvil(view)) {
+        if (finishedAtAnvil && std::chrono::steady_clock::now() - anvilSeen > std::chrono::milliseconds(500)) {
+            active = {};
+            finishedAtAnvil = false;
+        }
+        return;
+    }
+    insideAnvil = false;
+    bool const painted = std::exchange(paintedInside, false);
+    list.ready = false;
+    anvilSeen = std::chrono::steady_clock::now();
+    if (!versionSensitiveAllowed(capabilities::Id::EnchantOrder)) return;
+    auto* tree = view.mVisualTree.get();
+    if (!tree) return;
+    static std::string const windowName = "root_panel";
+    auto window = tree->getControlByName(windowName, true);
+    if (!window || window->mCachedPositionDirty) return;
+    glm::vec2 const at = *window->mCachedPosition, size = *window->mSize, screen = *view.mSize;
+    if (size.x <= 0 || size.y <= 0 || size.x >= screen.x - 1) return; // not laid out yet
+    constexpr float gap = 4, pad = 4, line = 10, wide = 200, narrow = 110;
+    float width = std::min(wide, screen.x - (at.x + size.x) - 2 * gap), left = at.x + size.x + gap;
+    if (width < narrow) {
+        width = std::min(wide, at.x - 2 * gap);
+        left = at.x - gap - width;
+    }
+    if (width < narrow) return;
+
+    auto& context = event.uiRenderContext();
+    // What the slots and the inventory hold, as planner inputs.
+    int now = -1, gameCost = -1, level = -1, leftPenalty = -1, rightPenalty = -1;
+    bool both = false, creative = false;
+    std::optional<unsigned> target, sacrifice;
+    std::vector<unsigned> atHandNow;
+    try {
+        if (auto* player = context.mClient.getLocalPlayer()) {
+            creative = player->isCreative();
+            if (auto const* attribute = player->getAttribute(Player::LEVEL()).mPtr) level = static_cast<int>(attribute->mCurrentValue);
+        }
+        auto& screenController = static_cast<ContainerScreenController&>(*view.mController);
+        if (auto manager = screenController.mContainerManagerController; manager && !manager->mContainersClosed) {
+            auto const& input = manager->getItemStack("anvil_input_items", 0);
+            auto const& material = manager->getItemStack("anvil_material_items", 0);
+            if (!input.isNull()) { target = sideOf(input); leftPenalty = input.getBaseRepairCost(); }
+            if (!material.isNull()) { sacrifice = sideOf(material); rightPenalty = material.getBaseRepairCost(); }
+            both = !input.isNull() && !material.isNull();
+            if (target && sacrifice) now = enchantPlan::stepFor(active.plan, *target, *sacrifice);
+            if (both) gameCost = static_cast<AnvilContainerManagerController&>(*manager).mCost;
+            if (target) atHandNow.push_back(*target);
+            if (sacrifice) atHandNow.push_back(*sacrifice);
+            if (auto mask = sideOf(manager->getItemStack("cursor_items", 0))) atHandNow.push_back(*mask);
+            int const carriedSlots = std::min(36, manager->getContainerSize("combined_hotbar_and_inventory_items"));
+            for (int i = 0; i < carriedSlots; ++i)
+                if (auto mask = sideOf(manager->getItemStack("combined_hotbar_and_inventory_items", i))) atHandNow.push_back(*mask);
+        }
+    } catch (...) { now = -1; both = false; atHandNow.clear(); }
+    atHandNow = progress(atHandNow, active.plan);
+    int const next = nextStep(active.plan, atHandNow);
+    finishedAtAnvil = next < 0;
+
+    int const steps = static_cast<int>(active.lines.size());
+    constexpr int headLines = 2, footLines = 2;
+    auto heightFor = [&](bool twoLines) {
+        return pad + headLines * line + 3 + steps * (twoLines ? 2 * line + 2 : line + 2) + 2 + footLines * line + pad;
+    };
+    bool const twoLines = heightFor(true) <= screen.y - 2 * gap;
+    float const height = heightFor(twoLines);
+    if (height > screen.y - 2 * gap) return;
+    float const top = std::clamp(at.y, gap, screen.y - gap - height);
+    list = {true, std::chrono::steady_clock::now(), left, top, width, height, twoLines, both, creative, target.has_value(), sacrifice.has_value(),
+        now, next, gameCost, level, leftPenalty, rightPenalty, std::move(atHandNow)};
+    // Not painted from inside the screen this frame (no tooltip, or the first frame): paint it now.
+    if (!painted) paintList(context);
 }
 void dropStacks() {
     kinds.clear();
@@ -665,12 +697,15 @@ ItemStack const* bookIcon() { return book.isNull() ? nullptr : &book; }
 bool start() {
     auto& bus = ll::event::EventBus::getInstance();
     renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { drawBeside(event); } catch (...) {} });
+    enterListener = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) { try { enterScreen(event); } catch (...) {} });
+    inspection::setBeforeTooltip(beforeTooltip);
     exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { dropStacks(); shown = {}; });
     return true;
 }
 void stop() {
     auto& bus = ll::event::EventBus::getInstance();
-    for (auto* listener : {&renderListener, &exitListener})
+    inspection::setBeforeTooltip(nullptr);
+    for (auto* listener : {&renderListener, &exitListener, &enterListener})
         if (*listener) { bus.removeListener(*listener); listener->reset(); }
     dropStacks();
     shown = {};

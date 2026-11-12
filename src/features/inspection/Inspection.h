@@ -1,10 +1,11 @@
 #pragma once
+class MinecraftUIRenderContext;
 namespace lamium::inspection {
 bool start();
 void stop();
-// The box of the game's item tooltip drawn since the last call, in GUI
-// units, if one was drawn (L-170 keeps its list out from under it). Client
-// thread.
-struct TooltipBox { float x = 0, y = 0, w = 0, h = 0; };
-bool takeTooltip(TooltipBox& box);
+// Called right before the game draws an item tooltip, inside the screen's
+// own drawing: what it paints is above the screen's controls and under the
+// tooltip (L-170's list beside the anvil). One painter; null removes it.
+// Client thread.
+void setBeforeTooltip(void (*painter)(MinecraftUIRenderContext&));
 }

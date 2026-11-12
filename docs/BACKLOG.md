@@ -1356,6 +1356,36 @@ Ninth pass by the maintainer 2026-11-12 (`4800022a`, VALIDATION-LOG): passed;
 the logged boxes agree with the reading of the tooltip's members, and the
 log lines were removed afterwards. README and FEATURES.md describe the
 feature from here on.
+Asked by the maintainer 2026-11-12: the list above the screen's dark layer
+and under the tooltip, always shown, as the ideal. Built the same day as a
+trial (not checked in game): Lamium already hooks the game's tooltip
+drawing, which runs inside the screen's own drawing, so the list is painted
+there right before the tooltip, from the state worked out the frame before;
+a frame without a tooltip paints it after the screen as before. The
+step-aside rule and the tooltip box read are gone. To see in game: the list
+at full brightness with a tooltip over it, no flicker when the pointer
+crosses items, and the list's item icons not showing through the tooltip.
+Changing the plan at the anvil, researched in code the same day (nothing
+built):
+- A click on the list can be kept from the game: `CustomInput`'s
+  `MouseInputEvent` listener cancels events before vanilla sees them, which
+  Item Transfer already does on container screens
+  (`TransferSession::mouseButton` answering true). The event arrives outside
+  the client tick, so the hit test must use the list's box cached from the
+  last frame and the action must be queued to the client thread.
+- The pointer in GUI units is `ScreenView::mPointerLocationPrevious`
+  (container previews, locked trades), enough for hover and for the hit test.
+- The planner cannot open while the anvil is open today: `ui::open` asks for
+  a gameplay screen (`gameplayScreen(getScreenName())`). Whether Lamium's
+  scene can be pushed over a container screen, and whether the anvil and
+  the items in its slots are still there after it closes, is unknown.
+- Choices, with the agent's recommendation (not decided): (a) a "Change"
+  button on the list that opens the planner over the anvil and returns to
+  it on Esc, if the game allows a scene over a container screen
+  (recommended first, as a trial build, because it reuses the whole
+  planner); (b) the same button closing the anvil first, if (a) loses the
+  anvil; (c) small controls on the list itself (the goal, dropping a
+  step's enchantment), which duplicates the planner in a narrow list.
 Earlier note (maintainer asked 2026-11-12): raising an enchantment the held item
 already carries (Sharpness III on it, V wanted). The agent's view: this is
 not the left-out "two equal books into a higher level"; that one changes
