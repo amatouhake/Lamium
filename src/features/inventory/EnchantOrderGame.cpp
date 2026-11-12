@@ -516,7 +516,12 @@ struct ListState {
     ui::EnchantLayout choose;
     ui::EnchantStepsLayout steps;
     // The next step's two stacks, outlined where they lie, and the anvil slot each goes in (L-170 trial).
-    struct Mark { Box box; bool left = true; };
+    enum class Tone { Left, Right, Wrong, Good, Warn };
+    struct Mark {
+        Box box;
+        Tone tone = Tone::Left;
+        bool placed = false; // an anvil slot holding the right stack: said more strongly
+    };
     std::vector<Mark> marks;
 } list;
 // What can be pressed beside the anvil, as last drawn, for presses that arrive from the window procedure; and
@@ -564,15 +569,54 @@ UIControl const* countControl(UIControl const& control, int depth = 0) {
     return nullptr;
 }
 using Icons = std::vector<inspection::render::IconAt>;
-// Two units of outline around a slot: the stack that goes left in the accent colour, the one that goes
-// right in white, the same on the anvil slot each goes in.
+// The marks on the slots. Drawn over the items (Lamium cannot draw under them), so they are kept light: a
+// one-unit frame along the slot's rim, outside the item's picture, and a faint tint. The stack that goes
+// left and its slot in the accent colour, the right one in the "experimental" purple (white did not show
+// on the game's light inventory); a wrong stack in the curses' red.
+#ifdef LAMIUM_ENCHANT_MARK_TEST
+// L-170 trial build only (`xmake f --enchant_mark_test=y`): five looks in turn, six seconds each, named on screen.
+int markStyle() {
+    static auto const started = std::chrono::steady_clock::now();
+    return static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - started).count() / 6 % 5);
+}
+#else
+int markStyle() { return 1; }
+#endif
 void paintMarks(MinecraftUIRenderContext& context) {
     using namespace lamium::ui;
+    using Tone = ListState::Tone;
+    int const style = markStyle();
     for (auto const& mark : list.marks) {
-        Rgb const color = mark.left ? palette::accent : palette::white;
-        frame(context, mark.box.x, mark.box.y, mark.box.w, mark.box.h, color);
-        frame(context, mark.box.x + 1, mark.box.y + 1, mark.box.w - 2, mark.box.h - 2, color);
+        auto const& b = mark.box;
+        Rgb const color = mark.tone == Tone::Left || mark.tone == Tone::Good ? palette::accent
+            : mark.tone == Tone::Right ? (style == 4 ? palette::warning : palette::experimental)
+            : mark.tone == Tone::Wrong ? palette::curse : palette::warning;
+        // What an anvil slot says once something lies in it is the same in every look.
+        if (mark.placed || mark.tone == Tone::Wrong || mark.tone == Tone::Good || mark.tone == Tone::Warn) {
+            fill(context, b.x + 1, b.y + 1, b.w - 2, b.h - 2, color, mark.tone == Tone::Wrong ? .22f : .3f);
+            frame(context, b.x, b.y, b.w, b.h, color);
+            continue;
+        }
+        switch (style) {
+        case 0: frame(context, b.x, b.y, b.w, b.h, color); break;
+        case 2: fill(context, b.x, b.y, b.w, b.h, color, .3f); break;
+        case 3: {
+            constexpr float arm = 5;
+            for (float const x : {b.x, b.x + b.w - arm}) for (float const y : {b.y, b.y + b.h - 1}) fill(context, x, y, arm, 1, color);
+            for (float const x : {b.x, b.x + b.w - 1}) for (float const y : {b.y, b.y + b.h - arm}) fill(context, x, y, 1, arm, color);
+            break;
+        }
+        default:
+            fill(context, b.x + 1, b.y + 1, b.w - 2, b.h - 2, color, .16f);
+            frame(context, b.x, b.y, b.w, b.h, color);
+            break;
+        }
     }
+#ifdef LAMIUM_ENCHANT_MARK_TEST
+    constexpr std::array<char const*, 5> names{"thin frame", "thin frame and a faint tint", "tint alone", "corners", "thin frame and tint, right in yellow"};
+    fill(context, 6, 6, 190, 14, palette::panel, .9f);
+    label(context, 10, 9, 182, std::format("Mark style {} of 5: {}", style + 1, names[static_cast<size_t>(style)]));
+#endif
 }
 // The choosing panel left of the window: the planner screen's own column (ui/EnchantChooser), with two lines
 // of status under it.
@@ -803,6 +847,7 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     std::vector<unsigned> raw;
     std::array<unsigned, 36> slotMasks{}; // the hotbar's nine, then the inventory's twenty-seven; 0 for no part of the plan
     bool inputEmpty = true, materialEmpty = true;
+    unsigned pointerMask = 0;
     try {
         if (auto* player = context.mClient.getLocalPlayer()) {
             creative = player->isCreative();
@@ -826,7 +871,7 @@ void drawBeside(ll::event::UIRenderEvent& event) {
                 if (both) gameCost = static_cast<AnvilContainerManagerController&>(*manager).mCost;
                 if (target) raw.push_back(*target);
                 if (sacrifice) raw.push_back(*sacrifice);
-                if (auto mask = sideOf(onPointer)) raw.push_back(*mask);
+                if (auto mask = sideOf(onPointer)) { raw.push_back(*mask); pointerMask = *mask; }
                 inputEmpty = input.isNull();
                 materialEmpty = material.isNull();
                 // The two collections apart, so a slot's place on the screen is known: its grid and its index there.
@@ -860,12 +905,14 @@ void drawBeside(ll::event::UIRenderEvent& event) {
         }
     }
     finishedAtAnvil = planned && info.following.next < 0;
-    // The next step's two stacks and the slots they go in, when both are at hand and nothing is on the pointer.
+    // What the anvil's three slots say, and the stacks to place next where they lie.
     std::vector<ListState::Mark> marks;
-    if (planned && info.following.ready && !heldItem) {
+    if (planned) {
         try {
-            auto const& step = active.plan.steps[static_cast<size_t>(info.following.next)];
-            auto const stacks = nextStacks(step, slotMasks, target.value_or(0u), sacrifice.value_or(0u));
+            using Tone = ListState::Tone;
+            auto atHand = [&](unsigned side) { return pointerMask == side || std::ranges::find(slotMasks, side) != slotMasks.end(); };
+            auto const say = anvilSay(active.plan, info.following.next, !inputEmpty, target.value_or(0u), !materialEmpty, sacrifice.value_or(0u), gameCost,
+                atHand);
             auto box = [&](char const* name) -> std::optional<Box> {
                 static std::string key;
                 key = name;
@@ -879,12 +926,25 @@ void drawBeside(ll::event::UIRenderEvent& event) {
                 if (!grid) return std::nullopt;
                 return gridSlot(grid->x, grid->y, index < 9 ? index : index - 9);
             };
-            if (stacks.left >= 0) if (auto b = slot(stacks.left)) marks.push_back({*b, true});
-            if (stacks.right >= 0) if (auto b = slot(stacks.right)) marks.push_back({*b, false});
-            // The anvil's own two slots (`input_item_slot`, `material_item_slot`, 18 units; read from the log
-            // 2026-11-13), where they are empty and their stack is still in the inventory.
-            if (stacks.left >= 0 && inputEmpty) if (auto b = box("input_item_slot")) marks.push_back({*b, true});
-            if (stacks.right >= 0 && materialEmpty) if (auto b = box("material_item_slot")) marks.push_back({*b, false});
+            // The anvil's slots (`input_item_slot`, `material_item_slot`, `result_item_slot`, 18 units; read from
+            // the log 2026-11-13).
+            auto place = [&](char const* name, SlotSay state, Tone tone) {
+                if (state == SlotSay::None) return;
+                if (auto b = box(name)) marks.push_back({*b, state == SlotSay::Wrong ? Tone::Wrong : tone, state == SlotSay::Right});
+            };
+            place("input_item_slot", say.left, Tone::Left);
+            place("material_item_slot", say.right, Tone::Right);
+            if (say.result != ResultSay::None)
+                if (auto b = box("result_item_slot"))
+                    marks.push_back({*b, say.result == ResultSay::Match ? Tone::Good : say.result == ResultSay::CostDiffers ? Tone::Warn : Tone::Wrong});
+            // In the inventory: the stacks that step still wants, while nothing is on the pointer.
+            if (!heldItem && say.step >= 0) {
+                auto const stacks = nextStacks(active.plan.steps[static_cast<size_t>(say.step)], slotMasks,
+                    inputEmpty ? 0u : active.plan.steps[static_cast<size_t>(say.step)].target,
+                    materialEmpty ? 0u : active.plan.steps[static_cast<size_t>(say.step)].sacrifice);
+                if (stacks.left >= 0) if (auto b = slot(stacks.left)) marks.push_back({*b, Tone::Left});
+                if (stacks.right >= 0) if (auto b = slot(stacks.right)) marks.push_back({*b, Tone::Right});
+            }
         } catch (...) { marks.clear(); }
     }
 

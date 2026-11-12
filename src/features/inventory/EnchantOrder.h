@@ -216,6 +216,31 @@ inline NextStacks nextStacks(enchantPlan::Step const& step, std::span<unsigned c
     }
     return out;
 }
+// What the anvil's own slots say about the plan, so a pair can be checked where it is placed. The step they
+// are held against is the one the placed pair makes, else the next step.
+enum class SlotSay { None, Wanted, Right, Wrong }; // empty and its stack is at hand; holds its stack; holds something else
+enum class ResultSay { None, Match, CostDiffers, NotAStep };
+struct AnvilSay {
+    int step = -1;
+    SlotSay left = SlotSay::None, right = SlotSay::None;
+    ResultSay result = ResultSay::None;
+};
+// `leftMask` / `rightMask`: the placed stacks as planner inputs, 0 for a stack that is no part of the plan.
+// `leftAtHand` / `rightAtHand`: tells whether a stack holding exactly that side is in a slot or on the pointer.
+template <class AtHand>
+AnvilSay anvilSay(enchantPlan::Plan const& plan, int next, bool leftFilled, unsigned leftMask, bool rightFilled, unsigned rightMask, int gameCost,
+                  AtHand&& atHand) {
+    AnvilSay out;
+    int const made = leftFilled && rightFilled && leftMask && rightMask ? enchantPlan::stepFor(plan, leftMask, rightMask) : -1;
+    out.step = made >= 0 ? made : next;
+    if (leftFilled && rightFilled)
+        out.result = made < 0 ? ResultSay::NotAStep : gameCost == plan.steps[static_cast<std::size_t>(made)].cost ? ResultSay::Match : ResultSay::CostDiffers;
+    if (out.step < 0 || out.step >= static_cast<int>(plan.steps.size())) return out;
+    auto const& step = plan.steps[static_cast<std::size_t>(out.step)];
+    out.left = leftFilled ? (leftMask == step.target ? SlotSay::Right : SlotSay::Wrong) : atHand(step.target) ? SlotSay::Wanted : SlotSay::None;
+    out.right = rightFilled ? (rightMask == step.sacrifice ? SlotSay::Right : SlotSay::Wrong) : atHand(step.sacrifice) ? SlotSay::Wanted : SlotSay::None;
+    return out;
+}
 // Following a plan with what the player carries: a step is done when one
 // stack holds everything the step joins. `stacks` are the planner-input
 // masks of the stacks at hand (enchantPlan::carried).

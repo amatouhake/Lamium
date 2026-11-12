@@ -158,6 +158,21 @@ void enchantOrderTests() {
                  wrong = nextStacks(made.steps[1], slots, 8u, 6u);
             check(both.left == 3 && both.right == 1 && placed.left == -1 && placed.right == 1 && wrong.left == 3 && wrong.right == -1,
                   "the next step's stacks are the first slots holding its sides, unless a side already lies in its anvil slot");
+            // Steps: 0 joins 2+4 (cost 3), 1 joins 1+6 (cost 9), 2 joins 7+8 (cost 5).
+            auto has = [](std::vector<unsigned> stacks) { return [stacks](unsigned side) { return std::ranges::find(stacks, side) != stacks.end(); }; };
+            auto empty = anvilSay(made, 1, false, 0u, false, 0u, 0, has({1u, 6u})), half = anvilSay(made, 1, true, 1u, false, 0u, 0, has({6u}));
+            check(empty.step == 1 && empty.left == SlotSay::Wanted && empty.right == SlotSay::Wanted && empty.result == ResultSay::None
+                      && half.left == SlotSay::Right && half.right == SlotSay::Wanted,
+                  "empty anvil slots ask for the next step's stacks while those are at hand; a placed one is right");
+            auto pair = anvilSay(made, 1, true, 1u, true, 6u, 9, has({})), dear = anvilSay(made, 1, true, 1u, true, 6u, 12, has({}));
+            auto swapped = anvilSay(made, 1, true, 6u, true, 1u, 9, has({})), other = anvilSay(made, 1, true, 2u, true, 4u, 3, has({}));
+            auto stranger = anvilSay(made, 1, true, 0u, false, 0u, 0, has({6u})), lacking = anvilSay(made, 1, false, 0u, false, 0u, 0, has({6u}));
+            check(pair.result == ResultSay::Match && pair.left == SlotSay::Right && pair.right == SlotSay::Right && dear.result == ResultSay::CostDiffers
+                      && swapped.result == ResultSay::NotAStep && swapped.left == SlotSay::Wrong && swapped.right == SlotSay::Wrong,
+                  "a placed pair is held against the step it makes: its cost, or that it is none, the two the wrong way round included");
+            check(other.step == 0 && other.result == ResultSay::Match && other.left == SlotSay::Right && stranger.left == SlotSay::Wrong
+                      && stranger.right == SlotSay::Wanted && lacking.left == SlotSay::None && anvilSay(made, -1, false, 0u, false, 0u, 0, has({1u})).left == SlotSay::None,
+                  "another step's pair counts as that step; a stack of no plan is wrong; nothing is asked for what is not at hand or when the plan is done");
             auto box = gridSlot(241, 177, 11);
             check(box.x == 241 + 2 * 18 && box.y == 177 + 18 && box.w == 18 && box.h == 18 && gridSlot(241, 177, -1).w == 0 && gridSlot(241, 234, 8).x == 385,
                   "a slot's box follows from its grid's corner, nine to a row");

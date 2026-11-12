@@ -1816,7 +1816,29 @@ there yet: the outline covers the item, white does not show on the light
 inventory, and the anvil's own slots say nothing about whether what was
 placed is right. Open: how the marks should look and what the anvil's
 three slots should say.
-Next: that design, then L-319.
+Agreed in words with the maintainer 2026-11-13, to be compared in a trial
+build rather than a mockup (it is about how marks look on the game's own
+pictures and light inventory). Limits first: Lamium draws after the
+screen or right before the tooltip, so always over the items; a colour
+under an item would need the slot renderer, which broke the game's
+drawing before. Built the same day (not checked in game):
+- The anvil's three slots speak (pure `anvilSay`). Left and right: empty
+  and their stack at hand, in a slot or on the pointer - the side's
+  colour; holding the right stack - the same colour, stronger; holding
+  anything else - the curses' red. The result slot: the pair makes a step
+  at the plan's cost - green; at another cost - yellow; no step - red.
+  The step they are held against is the one the placed pair makes, else
+  the next step.
+- In the inventory the stacks that step still wants are marked one by
+  one (before: only when both were at hand), while nothing is on the
+  pointer.
+- Colours: left the accent green, right the "experimental" purple.
+- The look of a mark, default: a one-unit frame on the slot's rim with a
+  faint tint. The xmake option `enchant_mark_test` (off by default) shows
+  five looks in turn, six seconds each, named on screen: thin frame;
+  thin frame and a faint tint; tint alone; corners; thin frame and tint
+  with the right side in yellow. Remove the option once one is chosen.
+Next: the choice of a look, then L-319.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 
