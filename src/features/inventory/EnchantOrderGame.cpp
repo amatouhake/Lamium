@@ -564,21 +564,6 @@ UIControl const* countControl(UIControl const& control, int depth = 0) {
     return nullptr;
 }
 using Icons = std::vector<inspection::render::IconAt>;
-// The slots inside a grid control, left to right: every square control of a slot's size that is not inside
-// another one found.
-void slotBoxes(UIControl const& control, std::vector<Box>& out, std::vector<std::string>& names, int depth = 0) {
-    if (depth > 12) return;
-    glm::vec2 const at = *control.mCachedPosition, size = *control.mSize;
-    bool const inside = std::ranges::any_of(out, [&](Box const& b) { return at.x >= b.x - .5f && at.y >= b.y - .5f && at.x + size.x <= b.x + b.w + .5f
-        && at.y + size.y <= b.y + b.h + .5f; });
-    if (!inside && size.x >= 15.5f && size.x <= 19.5f && std::abs(size.x - size.y) < 1.5f && (static_cast<int>(control.mVisible) & 1) != 0) {
-        out.push_back({at.x, at.y, size.x, size.y});
-        names.push_back(*control.mName);
-        return;
-    }
-    for (auto const& child : *control.mChildren)
-        if (child) slotBoxes(*child, out, names, depth + 1);
-}
 // Two units of outline around a slot: the stack that goes left in the accent colour, the one that goes
 // right in white, the same on the anvil slot each goes in.
 void paintMarks(MinecraftUIRenderContext& context) {
@@ -896,25 +881,10 @@ void drawBeside(ll::event::UIRenderEvent& event) {
             };
             if (stacks.left >= 0) if (auto b = slot(stacks.left)) marks.push_back({*b, true});
             if (stacks.right >= 0) if (auto b = slot(stacks.right)) marks.push_back({*b, false});
-            // The anvil's own two slots, where they are empty and their stack is still in the inventory.
-            static std::string const recipeName = "recipe_grid";
-            if (auto recipe = tree->getControlByName(recipeName, true); recipe && !recipe->mCachedPositionDirty) {
-                std::vector<Box> found;
-                std::vector<std::string> names;
-                slotBoxes(*recipe, found, names);
-                static bool told = false;
-                if (!std::exchange(told, true)) {
-                    std::string line;
-                    for (size_t i = 0; i < found.size(); ++i)
-                        line += std::format(" {} at {:.1f},{:.1f} size {:.1f}x{:.1f};", names[i], found[i].x, found[i].y, found[i].w, found[i].h);
-                    Runtime::instance().self().getLogger().info("Enchantment order: slots under recipe_grid:{}", line);
-                }
-                std::ranges::sort(found, {}, &Box::x);
-                if (found.size() >= 2) {
-                    if (stacks.left >= 0 && inputEmpty) marks.push_back({found[0], true});
-                    if (stacks.right >= 0 && materialEmpty) marks.push_back({found[1], false});
-                }
-            }
+            // The anvil's own two slots (`input_item_slot`, `material_item_slot`, 18 units; read from the log
+            // 2026-11-13), where they are empty and their stack is still in the inventory.
+            if (stacks.left >= 0 && inputEmpty) if (auto b = box("input_item_slot")) marks.push_back({*b, true});
+            if (stacks.right >= 0 && materialEmpty) if (auto b = box("material_item_slot")) marks.push_back({*b, false});
         } catch (...) { marks.clear(); }
     }
 

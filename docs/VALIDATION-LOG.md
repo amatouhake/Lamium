@@ -12,7 +12,29 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
-## Enchantment order, twenty-sixth pass (2026-11-13)
+## Enchantment order, twenty-seventh pass: the highlight trial (2026-11-13)
+
+`8774eedf`, local build, DLL SHA-256
+`102db174ede3557fc7b1baacb6962c2846a97f6f555f5a93f80521c69ae59c08`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer: the outlines sit on the
+right slots in the inventory and the hotbar; the anvil's left slot gets the green one
+and the right slot the white one, and each goes when its stack is placed; the outlines
+are above the items and under the tooltip, and nothing of the items or slots is
+broken; holding an item hides them, and after a step they move to the next two.
+
+From `lamium.log`: the anvil's three slots under `recipe_grid` are `input_item_slot`,
+`material_item_slot` and `result_item_slot`, each 18x18 (at 252.8, 306.6 and 360.3 by
+144.0 in that window).
+
+Drawing works; using it feels wrong:
+
+- The outline is thick and hides part of the item's picture.
+- Whether the right things were placed cannot be told on the anvil itself: nothing on
+  the two slots or the result slot changes with the match, only the last line of the
+  steps on the right.
+- White is hard to see on the vanilla inventory, which is light.
+
+
 
 `6362a66a`, local build, DLL SHA-256
 `c007fa19e442dc578b1cdb79d408e2053ecd612c0972382e0fbe6d53ed96e951`, no trace options,

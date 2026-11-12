@@ -1807,7 +1807,16 @@ game: whether the outlines sit on the right slots, in the hotbar and the
 inventory, and on the anvil's two slots; whether they sit above the items
 and under the tooltip; whether the hotbar's first slot is index 0. No
 setting yet: it follows "List the steps beside the anvil".
-Next: the in-game check of the trial, then L-319.
+Twenty-seventh pass by the maintainer 2026-11-13 (`8774eedf`, VALIDATION-LOG):
+the trial draws in the right places, above the items and under the
+tooltip, without breaking anything. The anvil's slots are named
+`input_item_slot`, `material_item_slot`, `result_item_slot`; the code asks
+for them by name now and the log line is gone. As a design it is not
+there yet: the outline covers the item, white does not show on the light
+inventory, and the anvil's own slots say nothing about whether what was
+placed is right. Open: how the marks should look and what the anvil's
+three slots should say.
+Next: that design, then L-319.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 
