@@ -39,12 +39,6 @@ option("world_probe")
     set_description("Read-only probes for L-249, L-33 and L-30: log the chunk tick range, nearby actors' age and breeding components and the dragon's part boxes every 5 s")
 option_end()
 
-option("enchant_glint_test")
-    set_default(false)
-    set_showmenu(true)
-    set_description("L-170: at the anvil, show ten icon arrangements in turn to find which keep their glint, and log the controls near a held stack")
-option_end()
-
 option("slime_trace")
     set_default(false)
     set_showmenu(true)
@@ -262,7 +256,6 @@ target("Lamium")
     if has_config("placement_trace") then add_defines("LAMIUM_PLACEMENT_TRACE") end
     if has_config("research_trace") then add_defines("LAMIUM_RESEARCH_TRACE") end
     if has_config("world_probe") then add_defines("LAMIUM_WORLD_PROBE") end
-    if has_config("enchant_glint_test") then add_defines("LAMIUM_ENCHANT_GLINT_TEST") end
     if has_config("ghost_probe") then add_defines("LAMIUM_GHOST_PROBE") end
     if has_config("doll_trace") then add_defines("LAMIUM_DOLL_TRACE") end
     if has_config("schematic_model_trace") then add_defines("LAMIUM_SCHEMATIC_MODEL_TRACE") end

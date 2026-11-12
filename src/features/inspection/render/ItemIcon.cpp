@@ -78,8 +78,8 @@ constexpr float glintOverlayAlpha = 1.35f;
 // The overlay is also scaled by the colour of whatever was filled last (seen 2026-11-12, L-170: on a white fill
 // it shows, on the settings panel's near-black one it does not, with nothing before it it is weak and not
 // pink). The value above was measured in the container preview, whose last fill before the icons is its
-// border, so that colour is set for every overlay. That the current shader colour is what carries it is a
-// reading of those results, not something seen in the game's code.
+// border, so that colour is set for every overlay (confirmed in game the same day: the anvil list, the planner
+// screen and the preview all glint alike).
 constexpr mce::Color glintTint{0.55f, 0.35f, 0.70f, 1.0f};
 int chunkOf(ItemStack const& stack) {
     if (stack.mItem->isGlint(stack)) return glinting;

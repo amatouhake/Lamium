@@ -1500,6 +1500,12 @@ preview's border colour around each glint overlay and put back. If that is
 right, the list, the planner screen and the HUD icons glint like the
 preview, and the preview is unchanged. The test option stays until this is
 confirmed.
+Eighteenth pass by the maintainer 2026-11-12 (`d96f2cbe`, VALIDATION-LOG): the
+glints (list, held item over it, planner screen, preview unchanged) and the
+held stack's count are confirmed. The `enchant_glint_test` option and the
+count's log line are removed. Open, the maintainer's question: the list's
+and the planner's item icon is a plain stack, so it has no glint even at a
+step where the item would be enchanted.
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s
@@ -2061,6 +2067,10 @@ piglin head and a recovery compass show nothing in container previews
 (user report 2026-11-05, Discord). The head is a model item like the
 shield; the compass icon is data-driven. More weight for the slot-path
 next step above; still parked.
+Rechecked by the maintainer 2026-11-12 (`d96f2cbe`, 1.26.60.05): a piglin
+head and the other heads are drawn in a container preview; a recovery
+compass is still not, a compass is. The leather gap is unchanged and shows
+in the enchantment order's icons as well.
 
 ### L-79 Carved pumpkin and spyglass frame draw path
 Kind: Research. Cheap models may run the steps below and report; implementing

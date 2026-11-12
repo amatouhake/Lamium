@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, eighteenth pass: glints and the held count (2026-11-12)
+
+`d96f2cbe`, local build, DLL SHA-256
+`62010ed4e3204598c8508d03ad90d394c7ca37fabf44b825af3ed96e2ffbcb62`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer:
+
+- With a plan of two or more steps the anvil list's books glint, and an enchanted held
+  item keeps its glint over the list.
+- In the planner screen the enchanted books and the main-hand cell glint.
+- A shulker box preview's glints look as before.
+- A held stack of two or more shows its count on top of the item, at the game's own
+  place.
+
+Also seen: the list's item icon (a sword, say) has no glint even where the item would
+be enchanted at that step; it is drawn from a plain stack. Icons the direct path does
+not draw, rechecked the same day: a piglin head and the other heads are drawn in a
+container preview; a recovery compass is not (a compass is); leather armour's undyeable
+parts are missing as before, in the enchantment order's icons too.
+
 ## Enchantment order glint test, round 3 (2026-11-12)
 
 `a3c756d1` built with `enchant_glint_test`, DLL SHA-256

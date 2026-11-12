@@ -5,8 +5,6 @@
 #include "features/inspection/Inspection.h"
 #include "features/inspection/render/DurabilityBar.h"
 #include "features/inspection/render/ItemIcon.h"
-#include "features/inspection/render/PreviewRenderer.h"
-#include "features/inspection/preview/ContainerPreview.h"
 #include "ui/Localization.h"
 #include "ui/Widgets.h"
 #include "ll/api/event/EventBus.h"
@@ -675,10 +673,6 @@ void drawBeside(ll::event::UIRenderEvent& event) {
                             glm::vec2 const at2 = *count->mCachedPosition, size2 = *count->mSize;
                             onTop.counted = true;
                             onTop.countX = at2.x; onTop.countY = at2.y; onTop.countWidth = size2.x; onTop.countHeight = size2.y;
-                            static bool logged = false;
-                            if (!std::exchange(logged, true))
-                                Runtime::instance().self().getLogger().info("Enchantment order: held count control {} at {:.1f},{:.1f} size {:.1f}x{:.1f}, icon at {:.1f},{:.1f}",
-                                    *count->mName, at2.x, at2.y, size2.x, size2.y, where.x, where.y);
                         }
                 }
             }
@@ -687,78 +681,6 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     // Not painted from inside the screen this frame (no tooltip, or the first frame): paint it now.
     if (!painted) paintList(context, onTop.stack ? &onTop : nullptr);
 }
-#ifdef LAMIUM_ENCHANT_GLINT_TEST
-// L-170 test build only (`xmake f --enchant_glint_test=y`): which icon arrangements keep their glint at the anvil,
-// and which control writes a held stack's count. Replaces the list while the option is on.
-std::vector<ItemStack> testBare, testBooks, testSwords, testPlain;
-std::chrono::steady_clock::time_point testSeen{};
-void glintTest(ll::event::UIRenderEvent& event) {
-    auto& view = event.screenView();
-    if (!isAnvil(view)) return;
-    auto& context = event.uiRenderContext();
-    using namespace lamium::ui;
-    using inspection::render::IconAt;
-    auto const nowTime = std::chrono::steady_clock::now();
-    if (nowTime - testSeen > std::chrono::milliseconds(500) || testBare.empty()) {
-        testBare.clear(); testBooks.clear(); testSwords.clear(); testPlain.clear();
-        testBare.reserve(8); testBooks.reserve(4); testSwords.reserve(4); testPlain.reserve(4);
-        EnchantmentInstance sharp;
-        sharp.mEnchantType = Enchant::Type::Sharpness;
-        sharp.mLevel = 1;
-        for (int i = 0; i < 8; ++i) testBare.push_back(stackOf(bookItem));
-        for (int i = 0; i < 4; ++i) {
-            testBooks.push_back(stackOf(bookItem));
-            try { EnchantUtils::applyEnchant(testBooks.back(), sharp, true); } catch (...) {}
-            testSwords.push_back(stackOf("minecraft:diamond_sword"));
-            try { EnchantUtils::applyEnchant(testSwords.back(), sharp, true); } catch (...) {}
-            testPlain.push_back(stackOf("minecraft:diamond_sword"));
-        }
-    }
-    testSeen = nowTime;
-    static auto const started = std::chrono::steady_clock::now();
-    constexpr int tests = 8;
-    int const test = static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(nowTime - started).count() / 5 % tests);
-    constexpr std::array<char const*, tests> names{
-        "grey fill (the preview's slot colour) under all four", "white fill under all four",
-        "dark panel, a grey square under each icon", "translucent dark panel, a grey square under each icon",
-        "the preview's frame colour alone, no squares", "a grey square under each icon, no panel",
-        "dark panel, grey squares, icons at 8 units", "translucent panel, text flushed, grey squares, 8 units"};
-    // Round 3. Round 2: the preview's own code glints at the anvil; icons with nothing before them glint weakly;
-    // icons on one opaque fill of the panel colour do not, whatever else varies. The preview puts a lighter
-    // square (0.23 grey) under every icon, so this round varies what is under the icons.
-    constexpr float left = 6, top = 6;
-    constexpr Rgb grey{.23f, .23f, .23f};
-    float const x = left + 8, y = top + 8;
-    std::vector<IconAt> icons;
-    auto row = [&](float scale, bool squares) {
-        for (int i = 0; i < 4; ++i) {
-            if (squares) fill(context, x + i * 18.f, y, 16 * scale, 16 * scale, grey, 1.f);
-            icons.push_back({&testBooks[static_cast<size_t>(i)], x + i * 18.f, y, scale, 0, 1.f, true});
-        }
-    };
-    switch (test) {
-    case 0: fill(context, left, top, 90, 32, grey, 1.f); row(1.f, false); break;
-    case 1: fill(context, left, top, 90, 32, palette::white, 1.f); row(1.f, false); break;
-    case 2: fill(context, left, top, 90, 32, palette::panel, 1.f); row(1.f, true); break;
-    case 3: fill(context, left, top, 90, 32, palette::panel, .8f); row(1.f, true); break;
-    case 4: fill(context, left, top, 90, 32, Rgb{.10f, .10f, .10f}, .92f); row(1.f, false); break;
-    case 5: row(1.f, true); break;
-    case 6: fill(context, left, top, 90, 32, palette::panel, 1.f); row(.5f, true); break;
-    default:
-        fill(context, left, top, 90, 32, palette::panel, .8f);
-        label(context, x, y + 16, 80, "text before", palette::faint);
-        context.flushText(0, std::nullopt);
-        row(.5f, true);
-        break;
-    }
-    if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
-    // The number, after the icons and away from them.
-    fill(context, left, top + 40, 216, 26, palette::panel, 1.f);
-    label(context, left + 4, top + 43, 208, std::format("Glint test {} of {} (round 3)", test + 1, tests));
-    label(context, left + 4, top + 54, 208, names[static_cast<size_t>(test)], palette::dim);
-    context.flushText(0, std::nullopt);
-}
-#endif
 void dropStacks() {
     kinds.clear();
     held = {};
@@ -766,9 +688,6 @@ void dropStacks() {
     anvilItemIcon = ItemStack();
     anvilBookIcon = ItemStack();
     anvilItems.clear(); anvilBooks.clear(); screenItems.clear(); screenBooks.clear();
-#ifdef LAMIUM_ENCHANT_GLINT_TEST
-    testBare.clear(); testBooks.clear(); testSwords.clear(); testPlain.clear();
-#endif
     anvilIconsMade = false;
     opened = false;
 }
@@ -904,12 +823,7 @@ ItemStack const* bookIcon(int number) { return pooled(screenBooks, book, number)
 
 bool start() {
     auto& bus = ll::event::EventBus::getInstance();
-#ifdef LAMIUM_ENCHANT_GLINT_TEST
-    renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { glintTest(event); } catch (...) {} });
-    Runtime::instance().self().getLogger().warn("Enchantment order: glint test build, the list beside the anvil is replaced");
-#else
     renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { drawBeside(event); } catch (...) {} });
-#endif
     enterListener = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) { try { enterScreen(event); } catch (...) {} });
     inspection::setBeforeTooltip(beforeTooltip);
 
