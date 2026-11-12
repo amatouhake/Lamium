@@ -457,14 +457,6 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     // The list is drawn after the screen, so it would cover the game's item
     // tooltip: it is left out while the tooltip reaches into it.
     if (tooltipShown) {
-        static int logged = 0;
-        if (logged < 3) {
-            ++logged;
-            try {
-                Runtime::instance().self().getLogger().info("Enchantment order: tooltip box {:.0f},{:.0f} {:.0f}x{:.0f}, list {:.0f},{:.0f} {:.0f}x{:.0f}",
-                    tooltip.x, tooltip.y, tooltip.w, tooltip.h, left, top, width, height);
-            } catch (...) {}
-        }
         constexpr float margin = 3;
         if (tooltip.x < left + width + margin && tooltip.x + tooltip.w > left - margin && tooltip.y < top + height + margin
             && tooltip.y + tooltip.h > top - margin) return;

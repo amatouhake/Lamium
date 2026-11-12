@@ -169,6 +169,7 @@ Waypoints and the death point also show in the world, with both maps off.
 | Fake Offhand *Exp.* | Use a hotbar block or item as if it were in the offhand | Right click | Off |
 | Hand Restock | Refill the held slot when it runs low; refill a used totem | — | Off |
 | Death layout restore *Exp.* | Put picked-up items back where they were when you died | — | Off |
+| Enchantment order *Exp.* | Plan the cheapest order of anvil uses for the enchantments you want, and follow it beside the anvil | — | — |
 | Paste across book pages | A long paste into a book continues on new pages | — | On |
 
 ### Actions
@@ -304,6 +305,11 @@ requests are handled. What has been checked in game, per feature, is in
 - **Hand Restock:** checked in local worlds and in everyday server use; server timing and very fast use
   or ambiguous inventory changes may skip a refill. It does not refill tools
   (Tool Protection swaps a tool before it breaks).
+- **Enchantment order:** checked in a local Creative world with swords, a pickaxe, a mace and
+  books. Survival (the 40-level refusal and the level warning), servers and other GUI scales are
+  untested. It plans with fresh books only and does not merge two books of one enchantment into a
+  higher level. The cost rules were read from the anvil of 1.26.60; on another game version the
+  planner says it is not checked and stays closed.
 - **Death layout restore:** checked in local worlds; with instant respawn the
   inventory may be read as kept and nothing is restored. In use it sometimes
   restores after a death you did not expect, or in a layout that looks

@@ -391,6 +391,34 @@ bottles, empty buckets) and refills an offhand totem after it saves you.
 Picking up your dropped items puts the hotbar, armor and offhand, optionally
 the whole inventory, back the way they were when you died.
 
+### Enchantment order (experimental)
+
+Opened from its Open button or an unbound key. Choose what to enchant: a kind of item
+(sword, pickaxe, ... or enchanted books to merge into one), or the last cell, the item
+in your main hand as it is. Turn on the enchantments you want; `-` and `+` change a
+level, and `-` at the lowest level turns one off. Enchantments that exclude each other
+are grey with the reason. "All highest" turns on everything at its highest level
+without curses, taking the most common one of a group that excludes each other; "Last
+choice" brings back what was chosen for that kind before.
+
+The right side lists the anvil uses in order, each with its level cost, and the total
+on top. The goal switches between the fewest levels and the least prior work left on
+the result (later changes then cost less). An order with a step of 40 levels or more
+is left out, as the anvil refuses it; in Creative there is no limit.
+
+With the main-hand item chosen, what it carries stays and its earlier anvil uses are
+charged; a carried level can be raised, which costs only the difference. Books are
+always counted as fresh, and two books of one enchantment are not merged into a higher
+level.
+
+While a plan exists, its steps are listed beside the anvil screen ("List the steps
+beside the anvil", on by default): the total and your level on top, finished steps
+grey, the next step marked, the step whose two items are in the slots highlighted, a
+note when an item is not part of the plan or the next step lacks something, and the
+prior-work surcharge of the two items. The list steps aside for the game's item
+tooltip, and a finished plan leaves it when the anvil closes. The plan lasts for the
+session.
+
 ## Actions
 
 ### Permanent Sneak and Permanent Sprint

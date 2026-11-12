@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, ninth pass (2026-11-12)
+
+`4800022a`, local build, DLL SHA-256
+`f2cdbe8d2898a36e9bd22799d98247edbfd5bc5426748ebca6301a49e43b2bd5`, no trace options,
+1.26.60.05 Dev instance, Creative. Passed, per the maintainer ("all OK"): the list
+beside the anvil is as bright as before; it goes while the game's item tooltip
+reaches into it and comes back when the pointer leaves; it stays for a tooltip that
+does not reach it.
+
+From `lamium.log` of that run (the build logged the first three boxes): tooltip
+boxes 352,204 88x28, 407,177 86x18 and 402,181 86x18 against a list at x 412 to 612,
+each reaching into it. So `HoverRenderer::mCursorPosition + mOffset` with
+`mBoxDimensions` behaves as the tooltip's corner and size here.
+
+Not checked: a tooltip taller or wider than the screen edge allows (where the game
+moves it), another GUI scale.
+
 ## Enchantment order, eighth pass (2026-11-12)
 
 `c884f267`, local build, DLL SHA-256

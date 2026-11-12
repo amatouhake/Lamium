@@ -1352,6 +1352,10 @@ game's item tooltip overlaps it (the tooltip's box is read where Lamium
 already hooks its drawing, `HoverRenderer::mCursorPosition`, `mOffset` and
 `mBoxDimensions`). The first three boxes are logged to `lamium.log` so the
 meaning of those members can be checked against a screenshot.
+Ninth pass by the maintainer 2026-11-12 (`4800022a`, VALIDATION-LOG): passed;
+the logged boxes agree with the reading of the tooltip's members, and the
+log lines were removed afterwards. README and FEATURES.md describe the
+feature from here on.
 Earlier note (maintainer asked 2026-11-12): raising an enchantment the held item
 already carries (Sharpness III on it, V wanted). The agent's view: this is
 not the left-out "two equal books into a higher level"; that one changes
