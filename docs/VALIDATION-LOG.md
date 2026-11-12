@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, twenty-sixth pass (2026-11-13)
+
+`6362a66a`, local build, DLL SHA-256
+`c007fa19e442dc578b1cdb79d408e2053ecd612c0972382e0fbe6d53ed96e951`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer: the player's level and
+the materials count follow the total on one line; a step's prior work reads "incl. N"
+with the names longer than before and its breakdown in the status line on hover; with
+nothing chosen the anvil's right panel has the goal and its arrows switch it. The
+maintainer closes the steps' side here: small things could still be polished, but it
+need not be perfect at once.
+
 ## Enchantment order, twenty-fifth pass (2026-11-13)
 
 `582fb68f`, local build, DLL SHA-256

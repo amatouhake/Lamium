@@ -1787,7 +1787,10 @@ checked in game):
   the goal (switched there too), the dividers, the steps' heading and the
   lines saying what to do, in the room of two steps. The bare stub is
   gone.
-Next: the in-game check, then the highlight trial, then L-319.
+Twenty-sixth pass by the maintainer 2026-11-13 (`6362a66a`, VALIDATION-LOG):
+confirmed. The steps' side is closed here on the maintainer's word (more
+polish is possible, none is asked for now).
+Next: the highlight trial, then L-319.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 
