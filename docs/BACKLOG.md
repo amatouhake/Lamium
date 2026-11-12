@@ -1590,8 +1590,25 @@ the item from the anvil's left slot (else the kind grid), and two
 placements: A, the enchantments left of the window and the steps right;
 B, one panel on the right with two tabs. Its five questions are at the
 bottom of the page; nothing is to be built before they are answered.
+Answered by the maintainer the same day; the mockup's second version shows
+it:
+- Placement A: the chooser left of the anvil window, the steps right.
+- The chooser is always shown, with no "Plan" or "Edit" button; a press
+  each time is a chore. Those who do not want the left side filled get a
+  setting, not a button. With the setting off, or without room on the
+  left, the step list keeps a "Change" button that opens Lamium's screen,
+  shown without a plan too.
+- The item is not taken from the left slot by itself: treating the main
+  hand specially made the planner screen complicated before and ended as a
+  cell after the kinds. The same here: the kind grid, with item cells
+  added last.
+- Lamium's screen stays (several interfaces for one feature are usual
+  here: waypoints, shapes, schematics; and it plans without an anvil).
+- Everything Lamium attaches to the anvil screen closes with it.
 Still open:
-- Changing the plan at the anvil: the mockup's questions.
+- Which item cells the anvil's chooser gets: the left slot's only, or the
+  main hand's and the left slot's (the mockup shows both; the agent
+  recommends both). Then building it.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 

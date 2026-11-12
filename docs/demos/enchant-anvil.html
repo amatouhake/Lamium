@@ -132,37 +132,27 @@ p{margin:0}
 .side{left:auto;top:auto;height:auto}
 .side.steps{left:664px;top:105px;width:288px;max-height:415px}
 .side.editor{left:8px;top:20px;width:288px;height:500px}
-.side.one{left:664px;top:20px;width:288px;height:500px}
-.side.stub{left:664px;top:105px;width:288px}
 .side .scroll{min-height:40px}
-.ptabs{display:flex;border-bottom:1px solid var(--mc-edge);flex:none}
-.ptabs button{all:unset;cursor:pointer;flex:1;text-align:center;font:12px var(--mc-font);height:24px;line-height:24px;color:var(--mc-faint)}
-.ptabs button.on{color:#fff;box-shadow:inset 0 -2px 0 var(--mc-on-edge)}
-.ptabs button:hover{color:#fff}
 .side .kinds{grid-template-columns:repeat(auto-fill,22px)}
 .side .kind{width:22px;height:22px}
+.kind.slotc::after{content:"";position:absolute;right:2px;top:2px;width:5px;height:5px;background:#ffb13b}
 .side .erow{grid-template-columns:minmax(0,1fr) auto 30px;font-size:12px;height:24px;padding:0 8px}
 .side .bar{font-size:12px;padding:0 8px}
 .side .sets{padding:5px 8px}
 .side .ctitle{padding:0 8px}
-.x{all:unset;cursor:pointer;width:18px;height:18px;line-height:18px;text-align:center;color:var(--mc-dim);font:12px var(--mc-font)}
-.x:hover{color:#fff;background:var(--mc-row-hover)}
+.legend{font-size:10px;color:var(--mc-faint);padding:0 8px 5px;border-bottom:1px solid var(--mc-edge);flex:none;display:flex;gap:10px}
+.legend i{display:inline-block;width:5px;height:5px;margin-right:3px;background:#fff}
+.legend i.s{background:#ffb13b}
 </style>
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">BACKLOG L-170 · エンチャント順序 · 金床の画面で計画する（モック、2026-11-12）</div>
+    <div class="eyebrow">BACKLOG L-170 · エンチャント順序 · 金床の画面で計画する（モック第 2 版、2026-11-12）</div>
     <h1>金床を開いたまま、エンチャントを選んで手順を見る</h1>
-    <p class="lede">いまは金床の横に<strong>手順</strong>だけが出て、計画を変えるには Lamium の画面を開きます。このモックは、<strong>エンチャントの選択も金床の横でできる</strong>ようにする案です。置き方を 2 つ用意しました。計算は実際に動きます。アイコンは 1 文字の仮の絵、エンチャント名は仮の訳です。場面は GUI スケール 2 相当（480 × 270 単位）で、金床のウィンドウの左右にそれぞれ約 150 単位の空きがあります。</p>
+    <p class="lede">金床のウィンドウの<strong>左にエンチャントの選択、右に手順</strong>を常に出す案です。第 2 版では、第 1 版への回答を入れました。選択は開閉せず常に出し、対象のアイテムは Lamium の画面と同じ<strong>種類のアイコン</strong>で選び、その末尾に<strong>メインハンドのアイテム</strong>と<strong>金床の左スロットのアイテム</strong>のマスを足します。計算は実際に動きます。アイコンは 1 文字の仮の絵、エンチャント名は仮の訳です。場面は GUI スケール 2 相当（480 × 270 単位）です。</p>
   </header>
 
   <div class="opts">
-    <label>置き方
-      <select id="optLayout">
-        <option value="split">A: 左にエンチャント、右に手順</option>
-        <option value="tabs">B: 右に 1 枚、タブで切り替え</option>
-      </select>
-    </label>
     <label>金床の左スロット（場面の設定）
       <select id="optSlot">
         <option value="none">空</option>
@@ -170,8 +160,18 @@ p{margin:0}
         <option value="used">ダイヤモンドの剣（ダメージ増加 IV・耐久力 III、金床 2 回）</option>
       </select>
     </label>
+    <label>メインハンド（場面の設定）
+      <select id="optHand">
+        <option value="none">エンチャントできないもの</option>
+        <option value="pick">新品のダイヤモンドのツルハシ</option>
+        <option value="boots">ダイヤモンドのブーツ（落下耐性 IV、金床 1 回）</option>
+      </select>
+    </label>
     <label>計画（場面の設定）
       <select id="optPlan"><option value="yes">あり</option><option value="no">なし</option></select>
+    </label>
+    <label>設定「金床の横で選ぶ」
+      <select id="optShow"><option value="on">オン</option><option value="off">オフ</option></select>
     </label>
     <label>ゲームモード
       <select id="optMode"><option value="s">サバイバル</option><option value="c">クリエイティブ</option></select>
@@ -185,41 +185,43 @@ p{margin:0}
   </div></div></div>
 
   <section class="cards">
-    <article class="note"><h3>流れ（案）</h3><ul>
-      <li><strong>計画がないとき</strong>は、金床の横に 1 行だけの小さな札が出る。「計画する」を押すとエンチャントの選択が開く</li>
-      <li><strong>計画があるとき</strong>は、いまと同じ手順のリストが出る。「編集」を押すとエンチャントの選択が開き、選び直すと手順がその場で変わる</li>
-      <li>選択を閉じても計画は残る。金床を閉じても残る（いまと同じ）</li>
-      <li>手順の行を押すと、モックではその回の 2 つが金床に入る（ゲームでは自分で入れる。表示だけ）</li>
+    <article class="note"><h3>常に出す</h3><ul>
+      <li>金床を開くと、左に選択、右に手順が出る。「計画する」「編集」のボタンは置かない</li>
+      <li>計画がないときも左の選択は出ていて、右は「エンチャントをオンにすると…」の 1 行になる</li>
+      <li>左を出したくない人は設定「金床の横で選ぶ」をオフにする。右の手順だけになり、「変更」ボタンで Lamium の画面を開ける（計画がないときも出るので、金床から必ず入れる）</li>
+      <li>金床を閉じると、金床に付いている Lamium の表示はすべて一緒に閉じる。計画は残る</li>
     </ul></article>
-    <article class="note"><h3>どのアイテムの計画か（案）</h3><ul>
-      <li><strong>金床の左スロットにエンチャントできるアイテムがあれば、それ</strong>。付与済みのエンチャントと金床使用回数を使う（「スロットの状態を使う」をオフにすると新品として計算）</li>
-      <li>左スロットが空なら、<strong>種類のアイコン</strong>から選ぶ（Lamium の画面と同じ格子）</li>
-      <li>金床ではメインハンドは見ない。Lamium の画面（キーと設定画面から開く方）はいままでどおりメインハンドを見る</li>
-      <li>未完了の計画があるあいだは、スロットのアイテムが変わっても計画を勝手に替えない（今日決めた「前の計画を維持」と同じ）</li>
+    <article class="note"><h3>どのアイテムの計画か</h3><ul>
+      <li>種類のアイコンの格子は Lamium の画面と同じ。新品として計算する</li>
+      <li>格子の末尾に、あるときだけ 2 つのマスが足される。<strong>白い印</strong>がメインハンドのアイテム、<strong>橙の印</strong>が金床の左スロットのアイテム</li>
+      <li>この 2 つのマスを選ぶと、そのアイテムの付与済みエンチャント（固定）と金床使用回数を使う。新品として計算したいときは種類のマスを選ぶ</li>
+      <li>未完了の計画があるあいだは、スロットやメインハンドが変わっても選択を勝手に替えない。マスが出るだけ</li>
+      <li>計画がないときだけ、開いた時点で左スロット、なければメインハンド、どちらもなければ前回の種類を選んだ状態にする</li>
     </ul></article>
-    <article class="note"><h3>A と B の違い</h3><ul>
-      <li><strong>A</strong>: 選択と手順が同時に見える。左右の空きを両方使う。ウィンドウが狭くて片側に入らないときは B の形に落とす</li>
-      <li><strong>B</strong>: 右の 1 枚だけで済む。選択中は手順が見えず、タブを行き来する。左側は空いたまま</li>
-      <li>どちらも行は「名前 | − レベル + | スイッチ」で、Lamium の画面と同じ並び</li>
-      <li>「すべて最大」「前回の選択」「クリア」と目標の切り替えも横に置く</li>
+    <article class="note"><h3>Lamium の画面との関係</h3><ul>
+      <li>Lamium の画面は残す（キーと設定画面から開く。金床がなくても計画できる）</li>
+      <li>どちらで選んでも同じ 1 つの計画を編集する</li>
+      <li>行は「名前 | − レベル + | スイッチ」、「すべて最大」「前回」「クリア」、目標の切り替えも同じ</li>
+      <li>Lamium の画面には左スロットのマスは出ない（金床が開いていないので）</li>
     </ul></article>
     <article class="note"><h3>作るときに分かっていること</h3><ul>
       <li>クリックをゲームに渡さず受けること、ポインタの位置で明るくすることは「変更」ボタンで確認済み</li>
       <li>ホイールでの一覧のスクロールは同じ仕組みで受けられる見込み（未確認）</li>
-      <li>アイテムを持ったまま横を押すと、いまはバニラどおり落とす。選択が開いているあいだもそのままにする</li>
+      <li>アイテムを持ったまま横を押すと、バニラどおり落とす（選択は反応しない）</li>
       <li>名前での検索は入れない（文字入力は金床の名前欄とぶつかる）</li>
-      <li>GUI スケールが大きいと空きが減る。入らないときは「変更」ボタンで Lamium の画面を開く形に落とす</li>
+      <li>左に入らない幅（GUI スケールが大きい、ウィンドウが狭い）では、設定オフのときと同じ形に落とす</li>
     </ul></article>
   </section>
 
   <section class="ask">
-    <h2>確認したいこと</h2>
+    <h2>決定事項（2026-11-12）と残り</h2>
     <ol>
-      <li><b>置き方は A と B のどちらにするか。</b>おすすめは A（選びながら手順が見える）。</li>
-      <li><b>金床では左スロットのアイテムを対象にし、空なら種類を選ぶ、でよいか。</b></li>
-      <li><b>計画がないときは小さな札だけ出す、でよいか。</b>（常に選択を開いておく案もある。金床を普通に使う人には邪魔になりうる）</li>
-      <li><b>Lamium の画面は残すか。</b>おすすめは残す（金床がなくても計画でき、狭い画面の逃げ道にもなる）。その場合、金床の「変更」ボタンは「編集」に置き換わる。</li>
-      <li><b>選択を開いているあいだ、金床を閉じたら選択も閉じる、でよいか。</b>（次に開いたときは手順だけに戻る）</li>
+      <li><b>置き方は左に選択、右に手順。</b>タブ 1 枚の案（B）は採らない。</li>
+      <li><b>左の選択は常に出す。</b>開閉のボタンは置かず、出したくない人のための設定を 1 つ足す。</li>
+      <li><b>アイテムは種類の格子で選び、末尾にアイテムのマスを足す。</b>左スロットを特別扱いして自動で対象にすることはしない。</li>
+      <li><b>Lamium の画面は残す。</b></li>
+      <li><b>金床を閉じたら、金床に付く表示はすべて閉じる。</b></li>
+      <li>残り：<b>末尾のマスは「左スロット」だけか、「メインハンド」と「左スロット」の両方か。</b>このモックは両方。おすすめは両方（金床に置く前でも、置いた後でも同じ計画を選べる）。</li>
     </ol>
   </section>
 </div>
@@ -261,16 +263,22 @@ const SLOT = {
   used:{name:"ダイヤモンドの剣",kind:0,ench:new Map([[9,4],[17,3]]),work:2},
   none:null,
 };
+const HAND = {
+  pick:{name:"ダイヤモンドのツルハシ",kind:1,ench:new Map(),work:0},
+  boots:{name:"ダイヤモンドのブーツ",kind:13,ench:new Map([[2,4]]),work:1},
+  none:null,
+};
 const START = () => new Map([[14,3],[13,2],[17,3],[9,5],[26,1]]);
-let layout="split", inSlot=null, creative=false, useSlot=true, editing=false, tab="steps";
-let item = 0, goal = "levels", want = START(), last = new Map(), now = -1;
+let inSlot=null, inHand=null, creative=false, show=true;
+// What the plan is for: a kind planned as fresh, or one of the two items.
+let src="kind", item = 0, goal = "levels", want = START(), last = new Map(), now = -1;
 
 const el = (tag, cls, html) => { const e=document.createElement(tag); if(cls) e.className=cls; if(html!=null) e.innerHTML=html; return e; };
 const pen = w => (1<<w)-1;
 const tile = (ch, book) => `<span class="tile${book?" book":""}">${ch}</span>`;
-const onSlot = () => inSlot && inSlot.kind===item && useSlot;
-const have = () => onSlot() ? inSlot.ench : new Map();
-const itemName = () => onSlot() ? inSlot.name : KIND_NAME[item]+"（新品）";
+const from = () => src==="slot" ? inSlot : src==="hand" ? inHand : null;
+const have = () => from() ? from().ench : new Map();
+const itemName = () => from() ? from().name : KIND_NAME[item]+"（新品）";
 
 // The same search as src/features/inventory/EnchantPlan.h.
 function plan(inputs, refuseAt, least){
@@ -318,45 +326,44 @@ function blocker(e){
 }
 function blockerExcept(e){ for(const id of have().keys()) if(clash(e,E[id])) return true; return false; }
 function prune(){ for(const id of [...want.keys()]) if(!listed().some(e=>e[0]===id) || have().has(id) || blockerExcept(E[id])) want.delete(id); }
-function pick(i){ if(want.size) last.set(item,new Map(want)); item=i; want=new Map(); now=-1; render(); }
+function pick(to, kind){
+  if(to===src && kind===item) return;
+  if(want.size) last.set(src+item,new Map(want));
+  src=to; item=kind; want=new Map(); now=-1; render();
+}
 
 function compute(){
   const ids=[...want.keys()].sort((a,b)=>a-b);
-  const inputs=[{value:0,work:onSlot()?inSlot.work:0,item:true},...ids.map(id=>({value:want.get(id)*bookPerLevel(E[id][2]),work:0,item:false}))];
+  const inputs=[{value:0,work:from()?from().work:0,item:true},...ids.map(id=>({value:want.get(id)*bookPerLevel(E[id][2]),work:0,item:false}))];
   const label=i=>E[ids[i-1]][1]+(E[ids[i-1]][3]>1?" "+ROMAN[want.get(ids[i-1])]:"");
   const limit=creative?0:40;
-  const mine=ids.length?plan(inputs,limit,goal==="work"):null, other=ids.length?plan(inputs,limit,goal!=="work"):null;
+  const mine=ids.length?plan(inputs,limit,goal==="work"):null;
   const name=mask=>{
     if(mask&1) return tile(KIND[item])+itemName();
     const parts=[]; for(let i=1;i<inputs.length;i++) if(mask>>i&1) parts.push(label(i));
     return tile("本",true)+parts.join(", ");
   };
   const glyph=mask=>mask&1?tile(KIND[item]):tile("本",true);
-  return {ids,mine,other,name,glyph};
+  return {ids,mine,name,glyph};
 }
 const refused = "どの順番でも 40 レベル以上の回が出るため金床に拒否されます。";
 
-// The choosing part: item, kinds, sets, rows.
+// The choosing part: item, kinds with the two item cells last, sets, rows.
 function chooser(into){
   const bar=el("div","bar"); bar.innerHTML=`<span class="k">アイテム</span><span class="spacer"></span><span class="nm">${tile(KIND[item])}${itemName()}</span>`;
   into.append(bar);
-  if(inSlot && inSlot.kind===item){
-    const use=el("div","bar"); use.style.cursor="pointer";
-    use.innerHTML=`<button class="sw${useSlot?" on":""}"></button><span>スロットの状態を使う</span>`;
-    use.onclick=()=>{ useSlot=!useSlot; want=new Map(); now=-1; render(); };
-    into.append(use);
-  }
-  if(!inSlot){
-    const kinds=el("div","kinds");
-    ITEMS.forEach((it,i)=>{ const k=el("button","kind"+(i===item?" on":""),tile(KIND[i])); k.title=KIND_NAME[i]; k.onclick=()=>pick(i); kinds.append(k); });
-    into.append(kinds);
-  }
+  const kinds=el("div","kinds");
+  ITEMS.forEach((it,i)=>{ const k=el("button","kind"+(src==="kind"&&i===item?" on":""),tile(KIND[i])); k.title=KIND_NAME[i]+"（新品）"; k.onclick=()=>pick("kind",i); kinds.append(k); });
+  if(inHand){ const k=el("button","kind held"+(src==="hand"?" on":""),tile(KIND[inHand.kind])); k.title="メインハンド: "+inHand.name; k.onclick=()=>pick("hand",inHand.kind); kinds.append(k); }
+  if(inSlot){ const k=el("button","kind slotc"+(src==="slot"?" on":""),tile(KIND[inSlot.kind])); k.title="金床の左スロット: "+inSlot.name; k.onclick=()=>pick("slot",inSlot.kind); kinds.append(k); }
+  into.append(kinds);
+  if(inHand||inSlot) into.append(el("div","legend",(inHand?"<span><i></i>メインハンド</span>":"")+(inSlot?'<span><i class="s"></i>金床の左スロット</span>':"")));
   const rows=listed(), free=rows.filter(e=>!have().has(e[0]));
   const sets=el("div","sets");
   const all=el("button","btn","すべて最大"), prev=el("button","btn","前回"), clear=el("button","btn","クリア");
   all.onclick=()=>{ want=new Map(); for(const e of free) if(!free.some(o=>o!==e&&clash(e,o)) && !blockerExcept(e) && want.size<maxInputs-1) want.set(e[0],e[3]); now=-1; render(); };
-  prev.disabled=!last.has(item); prev.onclick=()=>{ want=new Map(last.get(item)); now=-1; render(); };
-  clear.disabled=!want.size; clear.onclick=()=>{ last.set(item,new Map(want)); want=new Map(); now=-1; render(); };
+  prev.disabled=!last.has(src+item); prev.onclick=()=>{ want=new Map(last.get(src+item)); now=-1; render(); };
+  clear.disabled=!want.size; clear.onclick=()=>{ last.set(src+item,new Map(want)); want=new Map(); now=-1; render(); };
   sets.append(all,prev,el("span","spacer"),clear); into.append(sets);
   into.append(el("div","ctitle",`付けたいエンチャント <b>${want.size}</b> / ${maxInputs-1}`));
   const sc=el("div","scroll");
@@ -392,7 +399,8 @@ function stepsPart(into, c){
   st.append(prev,el("span",null,goal==="levels"?"最小レベル":"最小作業ペナルティ"),next); bar.append(el("span","spacer"),st); into.append(bar);
   const sc=el("div","scroll");
   if(!c.mine){
-    sc.append(el("div","empty"+(c.ids.length?" warn":""), c.ids.length?refused:"エンチャントをオンにすると、ここに金床の順番が出ます。"));
+    sc.append(el("div","empty"+(c.ids.length?" warn":""), c.ids.length?refused
+      : show?"左でエンチャントをオンにすると、ここに金床の順番が出ます。":"計画がありません。「変更」で付けたいエンチャントを選びます。"));
     into.append(sc); return;
   }
   c.mine.steps.forEach((s,i)=>{
@@ -416,10 +424,9 @@ function head(title, buttons){
   for(const b of buttons) h.append(b);
   return h;
 }
-function button(text, on){ const b=el("button","hbtn",text); b.onclick=on; return b; }
-function closer(){ const b=el("button","x","×"); b.title="選択を閉じる"; b.onclick=()=>{ editing=false; tab="steps"; render(); }; return b; }
 
 function render(){
+  if(src==="slot"&&!inSlot || src==="hand"&&!inHand) src="kind";
   prune();
   const layer=document.getElementById("layer"); layer.innerHTML="";
   const c=compute(), step=c.mine&&now>=0?c.mine.steps[now]:null;
@@ -430,35 +437,14 @@ function render(){
     ${step?`<div class="cost">エンチャントのコスト: ${step.cost}</div>`:'<div style="height:21px"></div>'}
     <div style="margin-top:10px">インベントリ</div><div class="inv">${"<i></i>".repeat(36)}</div>`;
   layer.append(a);
-
-  const planned=want.size>0;
-  if(!planned && !editing){
-    // No plan: one small row.
-    const s=el("div","side stub");
-    s.append(head("エンチャント順序",[button("計画する",()=>{ editing=true; tab="ench"; render(); })]));
-    layer.append(s); return;
-  }
-  if(layout==="split"){
-    const s=el("div","side steps");
-    s.append(head("エンチャント順序", editing?[]:[button("編集",()=>{ editing=true; render(); })]));
-    stepsPart(s,c); layer.append(s);
-    if(editing){
-      const e=el("div","side editor");
-      e.append(head("エンチャントを選ぶ",[closer()]));
-      chooser(e); layer.append(e);
-    }
-  } else {
-    const s=el("div","side "+(editing?"one":"steps"));
-    s.append(head("エンチャント順序", editing?[closer()]:[button("編集",()=>{ editing=true; tab="ench"; render(); })]));
-    if(editing){
-      const t=el("div","ptabs");
-      for(const [id,text] of [["ench","エンチャント"],["steps",`手順${c.mine?" "+c.mine.steps.length:""}`]]){
-        const b=el("button",tab===id?"on":"",text); b.onclick=()=>{ tab=id; render(); }; t.append(b);
-      }
-      s.append(t);
-      tab==="ench"?chooser(s):stepsPart(s,c);
-    } else stepsPart(s,c);
-    layer.append(s);
+  const s=el("div","side steps");
+  const change=el("button","hbtn","変更"); change.title="Lamium の画面を開く";
+  s.append(head("エンチャント順序", show?[]:[change]));
+  stepsPart(s,c); layer.append(s);
+  if(show){
+    const e=el("div","side editor");
+    e.append(head("エンチャントを選ぶ",[]));
+    chooser(e); layer.append(e);
   }
 }
 
@@ -471,9 +457,12 @@ function drawWorld(){
     g.fillRect(x*24,130+y*24,24,24);
   }
 }
-document.getElementById("optLayout").onchange=e=>{ layout=e.target.value; tab=editing?"ench":"steps"; render(); };
-document.getElementById("optSlot").onchange=e=>{ inSlot=SLOT[e.target.value]; if(inSlot) item=inSlot.kind; useSlot=true; now=-1; render(); };
-document.getElementById("optPlan").onchange=e=>{ want=e.target.value==="yes"?START():new Map(); editing=false; tab="steps"; now=-1; render(); };
+// Scene settings only add or remove the item cells; with no plan the item is preselected (slot, then hand).
+function preselect(){ if(want.size) return; if(inSlot){ src="slot"; item=inSlot.kind; } else if(inHand){ src="hand"; item=inHand.kind; } }
+document.getElementById("optSlot").onchange=e=>{ inSlot=SLOT[e.target.value]; now=-1; preselect(); render(); };
+document.getElementById("optHand").onchange=e=>{ inHand=HAND[e.target.value]; now=-1; preselect(); render(); };
+document.getElementById("optPlan").onchange=e=>{ want=e.target.value==="yes"?START():new Map(); if(want.size){ src="kind"; item=0; } now=-1; preselect(); render(); };
+document.getElementById("optShow").onchange=e=>{ show=e.target.value==="on"; render(); };
 document.getElementById("optMode").onchange=e=>{ creative=e.target.value==="c"; now=-1; render(); };
 function fit(){ const f=document.getElementById("fit"), st=document.getElementById("stage"); const k=f.clientWidth/960; st.style.transform=`scale(${k})`; f.style.height=540*k+"px"; }
 addEventListener("resize",fit); fit(); drawWorld(); render();
