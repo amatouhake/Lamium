@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, sixteenth pass (2026-11-12)
+
+`8d5083f4`, local build, DLL SHA-256
+`d32f57a18f6d565a636700169849e72914df00bae9f398a9a81941c78ee258cc`, no trace options,
+1.26.60.05 Dev instance, Creative. Per the maintainer:
+
+- Glints: unchanged. With two or more steps the list's books do not glint and an
+  enchanted held item loses its glint over the list. The planner screen's enchanted
+  books and its main-hand cell do not glint either. So a stack of its own per icon
+  was not the cause.
+- A held carved pumpkin or enchanted book is now above the list's swords.
+- A held stack's count is on top of the item across the list's edge and is not
+  doubled, but it sits a little to the right of and below the game's own number, on
+  the list as well; the change is visible as the item crosses the edge.
+
 ## Enchantment order, fifteenth pass (2026-11-12)
 
 `0855cb5b`, local build, DLL SHA-256

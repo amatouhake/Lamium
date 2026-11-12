@@ -1439,6 +1439,26 @@ Built the same day (not checked in game):
   end, with glints (its books had none).
 - A held stack's count is drawn whenever the held item is drawn again, on
   top of it.
+Sixteenth pass by the maintainer 2026-11-12 (`8d5083f4`, VALIDATION-LOG): the
+held item is above every icon of the list; the glints are unchanged; the
+held stack's count is a little right of and below the game's.
+- Count, built the same day (not checked in game): its place is taken from
+  the game's own count control under `inventory_selected_icon_button` (the
+  first shown descendant with "count" in its name), and it is drawn like the
+  container previews' counts, with the engine's shadow; the control found is
+  logged once per run. Without such a control the count is not drawn.
+- Glints, open. What is known: one glinting icon followed by the held item
+  works; with two or more steps no icon glints, not even the first, whether
+  the list's swords go in a batch after the glinting icons (`0855cb5b`) or
+  every icon is drawn in order (`8d5083f4`), and whether the books share a
+  stack or not. The planner screen never glints. The container preview
+  glints with 30 enchanted books through the same `drawItemIcons`. Not yet
+  compared: the icon scale (the list draws at 8 units, the planner at 10 and
+  16, the preview at 16), the text flushed right before the icons, real
+  enchanted stacks against bare `enchanted_book` stacks. Three blind rounds
+  have not found it; the next step is a build that draws a row of test
+  icons in those variants, not another guess. Same family as L-91 (glints
+  outside vanilla slots).
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s

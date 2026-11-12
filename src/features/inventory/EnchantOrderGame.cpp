@@ -11,6 +11,15 @@
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/client/game/IMinecraftGame.h"
+#include "mc/client/gui/CaretMeasureData.h"
+#include "mc/client/gui/Font.h"
+#include "mc/client/gui/FontRepository.h"
+#include "mc/client/gui/TextAlignment.h"
+#include "mc/client/gui/TextMeasureData.h"
+#include "mc/deps/core/math/Color.h"
+#include "mc/deps/input/RectangleArea.h"
+#include "ui/GameFont.h"
 #include "mc/client/gui/controls/UIControl.h"
 #include "mc/client/gui/controls/VisualTree.h"
 #include "mc/client/gui/screens/ScreenController.h"
@@ -409,7 +418,21 @@ bool insideAnvil = false, paintedInside = false;
 struct HeldIcon {
     ItemStack const* stack = nullptr;
     float x = 0, y = 0, size = 16;
+    // Where the game writes the stack's count, when it shows one.
+    bool counted = false;
+    float countX = 0, countY = 0, countWidth = 0, countHeight = 0;
 };
+// The game's count label of the held item: the first shown control under it with "count" in its name.
+UIControl const* countControl(UIControl const& control, int depth = 0) {
+    if (depth > 8) return nullptr;
+    for (auto const& child : *control.mChildren) {
+        if (!child || (static_cast<int>(child->mVisible) & 1) == 0) continue;
+        glm::vec2 const extent = *child->mSize;
+        if (child->mName->find("count") != std::string::npos && extent.x > 0 && extent.y > 0) return child.get();
+        if (auto const* found = countControl(*child, depth + 1)) return found;
+    }
+    return nullptr;
+}
 void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr) {
     using namespace lamium::ui;
     constexpr float pad = 4, line = 10;
@@ -513,10 +536,16 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
                 fill(context, held->x + front.x0 * unit, held->y + front.y0 * unit, front.width() * unit, front.height() * unit,
                     Rgb{color.r, color.g, color.b});
         }
-        // Its count, on top of it: the game's own number is under the item drawn again.
-        if (held->stack->mCount > 1) {
-            label(context, held->x, held->y + held->size - 9, held->size - 1, std::to_string(static_cast<int>(held->stack->mCount)), palette::text,
-                Align::Right);
+        // Its count, on top of it and where the game writes it (the game's own number is under the item
+        // drawn again), drawn as the container previews draw theirs.
+        if (held->stack->mCount > 1 && held->counted) {
+            auto const& fontHandle = context.mClient.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default");
+            TextMeasureData const textData{1.0f, 0.0f, true, false, false, ::ui::TextAlignment::Right};
+            CaretMeasureData const caret{-1, false};
+            context.drawText(ui::fontOf(fontHandle),
+                RectangleArea{held->countX, held->countX + held->countWidth, held->countY, held->countY + held->countHeight},
+                std::to_string(static_cast<int>(held->stack->mCount)), mce::Color{1.f, 1.f, 1.f, list.opacity}, 1.0f, ::ui::TextAlignment::Right,
+                textData, caret);
             context.flushText(0, std::nullopt);
         }
     }
@@ -635,8 +664,20 @@ void drawBeside(ll::event::UIRenderEvent& event) {
         try {
             if (auto icon = tree->getControlByName(heldName, true); icon && !icon->mCachedPositionDirty) {
                 glm::vec2 const where = *icon->mCachedPosition, extent = *icon->mSize;
-                if (extent.x > 0 && where.x < left + width && where.x + extent.x > left && where.y < top + height && where.y + extent.y > top)
+                if (extent.x > 0 && where.x < left + width && where.x + extent.x > left && where.y < top + height && where.y + extent.y > top) {
                     onTop = {heldItem, where.x, where.y, extent.x};
+                    static std::string const buttonName = "inventory_selected_icon_button";
+                    if (auto button = tree->getControlByName(buttonName, true))
+                        if (auto const* count = countControl(*button)) {
+                            glm::vec2 const at2 = *count->mCachedPosition, size2 = *count->mSize;
+                            onTop.counted = true;
+                            onTop.countX = at2.x; onTop.countY = at2.y; onTop.countWidth = size2.x; onTop.countHeight = size2.y;
+                            static bool logged = false;
+                            if (!std::exchange(logged, true))
+                                Runtime::instance().self().getLogger().info("Enchantment order: held count control {} at {:.1f},{:.1f} size {:.1f}x{:.1f}, icon at {:.1f},{:.1f}",
+                                    *count->mName, at2.x, at2.y, size2.x, size2.y, where.x, where.y);
+                        }
+                }
             }
         } catch (...) { onTop = {}; }
     }
