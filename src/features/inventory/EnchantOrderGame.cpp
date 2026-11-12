@@ -255,7 +255,9 @@ void readItem(Held& held, ItemStack const& stack) {
     held = {};
     if (stack.isNull() || !stack.mItem) return;
     // An enchanted book has no enchant slot of its own; it belongs to the book kind.
-    // Only the enchanted book: a plain book's slot value is the same "everything", and an anvil puts nothing on it.
+    // Only the enchanted book. A plain book has the same "everything" slot value and an anvil does enchant it
+    // from an enchanted book (read in game 2026-11-12), but it is not offered: once through the anvil the list
+    // could not tell it from the fresh books. Open in BACKLOG L-170.
     bool const isBook = stack.getTypeName() == bookItem;
     int const slot = isBook ? bookSlot : stack.mItem->getEnchantSlot();
     auto found = std::ranges::find_if(kinds, [&](Kind const& k) { return k.slot == slot; });

@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, twenty-third pass; a plain book at the anvil (2026-11-12)
+
+`e85009f7`, local build, DLL SHA-256
+`da8f766e94426e69914142e326cd44c4b431db8e6d15d8d340192b263432469a`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer: of two like items in the main
+hand and the left slot only the pressed cell is shown chosen; the choosing panel keeps
+its height when the kind changes; a plain book in the hand is not offered as a cell.
+
+A game reading against the last point, by the maintainer in Survival and in Creative:
+the anvil does take a plain book (`minecraft:book`) in the left slot with an enchanted
+book in the right one and offers an enchanted book as the result (in the screenshot at
+a cost of 3 levels). So "an anvil puts nothing on a plain book" in `e85009f7` is wrong
+as a statement about the game; whether the planner should offer a plain book is open.
+Not read: what the cost is made of, the result's anvil uses.
+
 ## Enchantment order, twenty-second pass (2026-11-12)
 
 `088f8120`, local build, DLL SHA-256

@@ -1683,9 +1683,30 @@ hand, made earlier, missing) and done / next / ready told apart, the
 surcharge under a step's cost; the next step's two stacks outlined in the
 anvil's inventory; the work penalty in an item's tooltip (L-319). Its six
 questions are at the bottom of the page.
+Twenty-third pass by the maintainer 2026-11-12 (`e85009f7`, VALIDATION-LOG):
+one chosen cell and the fixed height are confirmed. The plain book is not:
+the anvil does enchant a plain book from an enchanted book, in Survival and
+Creative, so leaving it out is not "what the game does". Open: offer it or
+not. Known if it is offered: the list cannot tell the plan's plain book
+from the fresh enchanted books once it has been through the anvil (a held
+book is told by what it carried, and a plain one carried nothing).
+The steps' side, the maintainer's answers to the mockup the same day; no
+building before the open points are settled:
+- Decided: one component for both screens. The goal stays the stepper
+  (arrows): it is what Lamium's settings use, and two buttons make the
+  pointer travel. The next step's stacks are to be highlighted if it can
+  be drawn, told apart by which slot each goes in (left or right). The
+  work penalty in the tooltip is L-319's. Order: the shared steps' side
+  first, then the highlight trial, then L-319.
+- Open: the materials list. As drawn it repeats what the steps' colours
+  say and takes room at the top. Either the steps carry the same
+  information, or the list goes below the steps. Concerns with each: in
+  the steps, a side made by an earlier step does not show which of its
+  own materials is missing; below the steps, the list is far from the
+  total, which is also "what is needed".
 Still open:
-- The right side: the mockup's questions, then building in the order
-  agreed.
+- The right side: the materials question above.
+- Whether a plain book is offered as an item.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 
