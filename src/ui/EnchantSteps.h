@@ -33,6 +33,7 @@ void drawTip(MinecraftUIRenderContext&, Tip const&);
 // (the planner is open).
 Tip draw(MinecraftUIRenderContext&, EnchantStepsLayout const&, inventory::enchantOrder::game::StepsInfo const&, float pointerX, float pointerY,
          bool goalLive, std::vector<inspection::render::IconAt>& icons);
-// What the status line says about the zone under the pointer; empty for none.
+// What the status line says about what is under the pointer; empty for nothing.
 std::string status(inventory::enchantOrder::game::StepsInfo const&, Zone hover);
+std::string status(inventory::enchantOrder::game::StepsInfo const&, EnchantStepsLayout const&, float pointerX, float pointerY);
 }

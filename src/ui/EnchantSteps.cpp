@@ -97,17 +97,20 @@ Tip draw(MinecraftUIRenderContext& context, EnchantStepsLayout const& l, game::S
         tip.y = under + height <= l.bottom ? under : rowY - 1 - height;
     };
     auto const& following = info.following;
-    // The total, what the player has beside it, and how much of the materials is at hand.
+    // The total, what the player has beside it, then how much of the materials is at hand: one run of text.
     {
         std::string total = translated("enchantOrder.total", info.total);
-        std::string const materials = translated("enchantOrder.materials", following.have, following.need);
-        float const materialsWidth = textWidth(context, materials) + 2, totalWidth = textWidth(context, total);
-        label(context, left, l.totalY, inner - materialsWidth - 4, std::move(total));
-        if (info.level >= 0)
-            label(context, left + totalWidth + 4, l.totalY, inner - totalWidth - materialsWidth - 8, translated("enchantOrder.now", info.level),
-                info.level < info.highest ? palette::warning : palette::dim);
-        label(context, left + inner - materialsWidth, l.totalY, materialsWidth, materials,
-            following.have < following.need ? palette::warning : palette::dim, Align::Right);
+        float x = left;
+        float const right = left + inner;
+        auto put = [&](std::string text, Rgb color) {
+            if (x >= right) return;
+            float const w = textWidth(context, text);
+            label(context, x, l.totalY, std::min(w + 2, right - x), std::move(text), color);
+            x += w + 6;
+        };
+        put(std::move(total), palette::text);
+        if (info.level >= 0) put(translated("enchantOrder.now", info.level), info.level < info.highest ? palette::warning : palette::dim);
+        put(translated("enchantOrder.materials", following.have, following.need), following.have < following.need ? palette::warning : palette::dim);
     }
     if (l.detailLines > 0) {
         std::string once = atOnce(info), after = result(info);
@@ -154,8 +157,10 @@ Tip draw(MinecraftUIRenderContext& context, EnchantStepsLayout const& l, game::S
             enchant_chooser::addIcon(icons, game::stepBookIcon(booksDrawn++), textLeft, y + 2);
             float nameRight = textRight;
             if (step.penalty > 0) {
-                std::string penalty = translated("enchantOrder.penalty", step.penalty);
-                float const w = std::min(textWidth(context, penalty) + 2, (textRight + costWidth - textLeft) * .5f);
+                // The part of the cost that is prior work, short and under the cost: the names matter more. What
+                // it is, is said in the status line.
+                std::string penalty = translated("enchantOrder.penalty.short", step.penalty);
+                float const w = textWidth(context, penalty) + 2;
                 label(context, textRight + costWidth + 2 - w, y + 3, w, penalty, palette::faint, Align::Right);
                 nameRight = textRight + costWidth - w - 2;
             }
@@ -170,6 +175,18 @@ Tip draw(MinecraftUIRenderContext& context, EnchantStepsLayout const& l, game::S
     paragraph(context, left, l.footY + 3, inner, info.note, static_cast<size_t>(l.footLines),
         info.noteTone == 2 ? palette::warning : info.noteTone == 1 ? palette::accent : palette::text);
     return tip;
+}
+std::string status(game::StepsInfo const& info, EnchantStepsLayout const& l, float x, float y) {
+    if (!l.usable()) return {};
+    if (auto text = status(info, l.hit(x, y)); !text.empty()) return text;
+    // A step whose cost holds prior work.
+    auto const& rows = l.rows;
+    if (!info.planned || x < rows.listLeft || x >= rows.listLeft + rows.listWidth || y < rows.rowsTop
+        || y >= rows.rowsTop + static_cast<float>(rows.listVisible) * ShapesLayout::rowHeight) return {};
+    int const number = (static_cast<int>((y - rows.rowsTop) / ShapesLayout::rowHeight) + rows.listFirst) / EnchantStepsLayout::stepRows;
+    if (number < 0 || number >= static_cast<int>(info.steps.size()) || info.steps[static_cast<size_t>(number)].penalty <= 0) return {};
+    auto const& step = info.steps[static_cast<size_t>(number)];
+    return translated("enchantOrder.penalty.help", number + 1, step.cost, step.penalty);
 }
 std::string status(game::StepsInfo const& info, Zone hover) {
     switch (hover) {

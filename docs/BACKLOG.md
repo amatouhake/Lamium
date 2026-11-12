@@ -1775,6 +1775,18 @@ the shared side works. Five things were not right; changed the same day
 - The choosing panel's status takes three lines and stays inside it.
 - The goal is the stepper box the lists use (`drawStepperBox`, taken out
   of `drawShapeStepper`); where it cannot be switched it is plain text.
+Twenty-fifth pass by the maintainer 2026-11-13 (`582fb68f`, VALIDATION-LOG):
+the five changes work; three rough spots, changed the same day (not
+checked in game):
+- The total, the player's level and the materials count run on as one
+  line of text, as in the mockup.
+- A step's prior work is short ("incl. 2") at the right of its second
+  row, so the names have the room; what it means is said in the status
+  line while the pointer is on the step.
+- Without a plan the anvil's right panel is the same side as with one:
+  the goal (switched there too), the dividers, the steps' heading and the
+  lines saying what to do, in the room of two steps. The bare stub is
+  gone.
 Next: the in-game check, then the highlight trial, then L-319.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.

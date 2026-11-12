@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, twenty-fifth pass (2026-11-13)
+
+`582fb68f`, local build, DLL SHA-256
+`35293294168877c7e6a0efd9736037b9b47f98c3698f02f32f828a044f06ab91`, no trace options,
+1.26.60.05 Dev instance, Creative. Confirmed by the maintainer: the line under the goal
+and the goal as the box stepper, in the planner and at the anvil; a long last line
+wrapping so it is read whole; the right panel level with the left one; two and three
+lines of status inside the left panel; a cut name shown whole in a box on hover.
+
+Still rough:
+
+- In the totals the materials count alone sits at the right, unlike the mockup, and
+  looks out of place.
+- "Prior work N" is large in the steps and crowds the enchantment names, which matter
+  most.
+- With nothing chosen the right panel is too bare and sits oddly high, and the goal
+  cannot be changed there although it can in Lamium's screen.
+
 ## Enchantment order, twenty-fourth pass: the shared steps' side (2026-11-13)
 
 `12092660`, local build, DLL SHA-256

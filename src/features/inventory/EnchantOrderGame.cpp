@@ -580,7 +580,7 @@ void paintChooser(MinecraftUIRenderContext& context, Icons& icons) {
     bool const said = !chooserMessage.empty() && std::chrono::steady_clock::now() - chooserMessageAt < std::chrono::seconds(4);
     std::string text = said ? chooserMessage : enchant_chooser::status(shown, hover);
     // The steps' side has no status line of its own: its help is said here too.
-    if (text.empty() && list.free) text = enchant_steps::status(info, list.steps.hit(list.pointerX, list.pointerY));
+    if (text.empty() && list.free) text = enchant_steps::status(info, list.steps, list.pointerX, list.pointerY);
     if (!text.empty()) paragraph(context, l.left + pad, l.footerTop + 3, l.width - 2 * pad, text, 3, said ? palette::warning : palette::text);
 }
 // The Change button, in a row of its own at the bottom right: it opens the planner screen where the choosing
@@ -593,25 +593,11 @@ void paintChange(MinecraftUIRenderContext& context, Box& change) {
     fill(context, change.x, change.y, change.w, change.h, palette::white, over ? .22f : .08f);
     label(context, change.x, change.y + 1, change.w, text, over ? palette::text : palette::dim, Align::Center);
 }
-// No plan: one small panel saying so.
-void paintNoPlan(MinecraftUIRenderContext& context, Box& change) {
-    using namespace lamium::ui;
-    constexpr float pad = 4, line = 10;
-    panel(context, list.left, list.top, list.width, list.height, .8f);
-    frame(context, list.left, list.top, list.width, list.height, palette::white, .14f);
-    label(context, list.left + pad, list.top + pad, list.width - 2 * pad, translated("feature.enchantOrder"), palette::dim);
-    if (list.chooser)
-        paragraph(context, list.left + pad, list.top + pad + line + 3, list.width - 2 * pad, translated("enchantOrder.empty"), 3, palette::faint);
-    else {
-        label(context, list.left + pad, list.top + pad + line + 3, list.width - 2 * pad, translated("enchantOrder.anvil.noPlan"), palette::faint);
-        paintChange(context, change);
-    }
-}
 // The steps right of the window: the planner screen's own right column (ui/EnchantSteps).
 ui::enchant_steps::Tip paintSteps(MinecraftUIRenderContext& context, Icons& icons, Box& change) {
     using namespace lamium::ui;
     auto const& l = list.steps;
-    if (!l.usable() || !info.planned) return {};
+    if (!l.usable()) return {};
     panel(context, list.left, list.top, list.width, list.height, .8f);
     frame(context, list.left, list.top, list.width, list.height, palette::white, .14f); // the outline Lamium's screen has
     size_t const before = icons.size();
@@ -633,13 +619,11 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
         auto const& l = list.choose;
         panelBox = {l.left, l.headTop, l.width, l.footerTop + EnchantLayout::statusHeight - l.headTop};
     }
-    enchant_steps::Tip tip;
-    if (list.planned) tip = paintSteps(context, icons, change);
-    else paintNoPlan(context, change);
+    auto const tip = paintSteps(context, icons, change);
     {
         std::scoped_lock lock(pressLock);
         pressState = {std::chrono::steady_clock::now(), list.pointerX, list.pointerY, list.free && list.opacity > .98f, change, panelBox,
-            list.chooser ? list.choose : EnchantLayout{}, list.planned ? list.steps : EnchantStepsLayout{}, list.chooser};
+            list.chooser ? list.choose : EnchantLayout{}, list.steps, list.chooser};
     }
     context.flushText(0, std::nullopt);
     // The held item goes with the panels' own icons, last so it is on top: a
@@ -776,7 +760,7 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     if (!window || window->mCachedPositionDirty) return;
     glm::vec2 const at = *window->mCachedPosition, size = *window->mSize, screen = *view.mSize;
     if (size.x <= 0 || size.y <= 0 || size.x >= screen.x - 1) return; // not laid out yet
-    constexpr float gap = 4, pad = 4, line = 10, wide = 200, narrow = 110, chooseWide = 190, chooseNarrow = 130, chooseTall = 300;
+    constexpr float gap = 4, wide = 200, narrow = 110, chooseWide = 190, chooseNarrow = 130, chooseTall = 300;
     float const roomRight = screen.x - (at.x + size.x) - 2 * gap, roomLeft = at.x - 2 * gap;
     auto& context = event.uiRenderContext();
     // The choosing panel needs both sides: itself on the left, the steps on the right.
@@ -866,18 +850,15 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     int const stepCount = static_cast<int>(info.steps.size());
     int const lines = planned ? ui::enchant_steps::detailLines(context, info, width) : 1;
     int const foot = planned ? ui::enchant_steps::footLines(context, info, width) : 1;
-    float const height = planned ? std::min(room, ui::EnchantStepsLayout::neededHeight(stepCount, lines, foot) + changeSpace + 2)
-                                 : pad + line + 3 + (chooser ? 3 * line : line) + changeSpace + pad;
-    if (height > room) return;
+    // Without a plan the same side with its goal, and a few lines saying what to do, in the room of two steps.
+    float const height = std::min(room, ui::EnchantStepsLayout::neededHeight(planned ? stepCount : 2, lines, foot) + changeSpace + 2);
     // Level with the choosing panel's top where there is one, so the two start on one line; else with the window's.
     float const rest = chooser ? choose.headTop - (at.y - windowRest) : windowRest;
     float const top = std::clamp(rest, gap, std::max(gap, screen.y - gap - height)) + (at.y - windowRest);
-    ui::EnchantStepsLayout stepsLayout;
-    if (planned) {
-        stepsLayout = ui::EnchantStepsLayout::fit(left, top + 1, width, top + height - changeSpace - 1, stepCount, stepsFirst, lines, foot);
-        if (!stepsLayout.usable()) return;
-        stepsFirst = stepsLayout.rows.listFirst;
-    }
+    auto const stepsLayout =
+        ui::EnchantStepsLayout::fit(left, top + 1, width, top + height - changeSpace - 1, planned ? stepCount : 0, stepsFirst, lines, foot);
+    if (!stepsLayout.usable()) return;
+    stepsFirst = stepsLayout.rows.listFirst;
     // The game's window fades as it slides away on closing; the panels fade with the distance, or with the
     // window's own opacity when that is lower.
     float const slide = std::max(0.f, at.y - windowRest), way = std::max(1.f, (screen.y - windowRest) * .5f);

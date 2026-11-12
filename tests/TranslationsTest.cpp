@@ -87,6 +87,7 @@ void translationTests() {
             else if (entry.key == "highlight.listed" || entry.key == "enchantOrder.wanted" || entry.key == "enchantOrder.otherWork"
                 || entry.key == "enchantOrder.otherLevels" || entry.key == "enchantOrder.materials")
                 rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
+            else if (entry.key == "enchantOrder.penalty.help") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining));
             else if (entry.key == "schematic.save.tooLarge") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining));
             else if (entry.key == "schematic.withDetail") rendered = std::vformat(pattern, std::make_format_args(key, key));
             else if (entry.key == "paused.notice") rendered = std::vformat(pattern, std::make_format_args(key, key));

@@ -122,8 +122,6 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     enchant_chooser::draw(context, last, v, hover, icons, itemsDrawn);
 
     // Right: the goal, the totals, the steps. The same drawing as right of the anvil screen.
-    auto const sideZone = hover.zone == Zone::Goal ? enchant_steps::Zone::Goal : hover.zone == Zone::AtOnce ? enchant_steps::Zone::AtOnce
-        : hover.zone == Zone::Result ? enchant_steps::Zone::Result : enchant_steps::Zone::None;
     auto const tip = enchant_steps::draw(context, last.side, info, pointer.x, pointer.y, true, icons);
 
     // Footer, as in the table: status first, then what the screen is, then the limit.
@@ -134,7 +132,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     if (status.empty()) {
         statusColor = palette::text;
         status = enchant_chooser::status(v, hover);
-        if (status.empty()) status = enchant_steps::status(info, sideZone);
+        if (status.empty()) status = enchant_steps::status(info, last.side, pointer.x, pointer.y);
         if (status.empty()) status = translated("enchantOrder.fresh");
     }
     label(context, textLeft, t.footerTop + 3, footWidth, status, statusColor);
