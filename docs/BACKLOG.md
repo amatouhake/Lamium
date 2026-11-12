@@ -1558,8 +1558,21 @@ the client thread (`ui::openEnchantOrder(client, true)`, the one case
 opens over the anvil at all, whether Esc returns to the anvil with the
 items still in its slots, and what the planner chooses while the item is
 in a slot and not in the main hand. If the anvil is lost, choice (b).
+Twentieth pass by the maintainer 2026-11-12 (`998e845e`, VALIDATION-LOG): the
+trial works. The scene opens over the anvil (whose window is not drawn
+meanwhile), Esc returns to the anvil with the slots' items in place and the
+new plan in the list; the anvil plays its opening animation on return.
+Raised by the maintainer, not decided:
+- Opening the planner takes the main hand's item and so drops the previous
+  plan silently; from the anvil it took whatever the main hand held, not
+  the item in the slot. Either the previous choice is kept while the
+  main-hand cell is only shown, or a setting turns the main hand off.
+- Without a plan the anvil shows no list and no button. The maintainer
+  would rather do the planner's work on the anvil screen itself than open
+  Lamium's screen each time, accepts that it is more work, and is willing
+  to go through a mockup again.
 Still open:
-- Changing the plan at the anvil: the trial above.
+- Changing the plan at the anvil: the two points above.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 

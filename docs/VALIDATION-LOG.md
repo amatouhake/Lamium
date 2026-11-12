@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, twentieth pass: the Change button (2026-11-12)
+
+`998e845e`, local build, DLL SHA-256
+`2205c40ad94e2ab62651dfeb5167df4e3ee8b89ab7918127d27cf5278cba139c`, no trace options,
+1.26.60.05 Dev instance, Creative. Per the maintainer:
+
+- The anvil list has "Change" at its bottom right and it brightens under the pointer.
+- A press opens the planner; the anvil's window is not seen while it is open.
+- After changing the plan, Esc returns to the anvil: the items left in its slots are
+  still there and the list shows the new plan. The anvil's window comes up from below
+  with its opening animation, as when first opened.
+- With the item in an anvil slot, the planner chose whatever was in the main hand at
+  that moment; with nothing enchantable in the main hand it opened the previous plan.
+
+Also noticed: opening the planner with an enchantable item in the main hand replaces
+the previous plan without a word (Last choice on the same kind brings it back). And
+with no plan there is no list, so no button: the planner cannot be reached from the
+anvil then.
+
 ## Enchantment order, nineteenth pass: the item icon's glint (2026-11-12)
 
 `02a8f09f`, local build, DLL SHA-256
