@@ -143,12 +143,13 @@ void enchantLayoutTests() {
     auto layout = EnchantLayout::fit(table, 20, true, 12, 0, 9, 0);
     check(layout.usable() && layout.dividerX > layout.left && layout.dividerX < layout.left + layout.width,
           "the item column sits left of the steps");
-    check(layout.kindColumns >= 8 && layout.kindY(layout.kindColumns) > layout.kindY(0) && layout.kindX(layout.kindColumns) == layout.kindX(0),
+    check(layout.kindColumns >= 6 && layout.kindY(layout.kindColumns) > layout.kindY(0) && layout.kindX(layout.kindColumns) == layout.kindX(0),
           "kinds wrap into rows of whole cells");
     check(layout.hit(layout.kindX(3) + 2, layout.kindY(3) + 2).zone == Zone::Kind && layout.hit(layout.kindX(3) + 2, layout.kindY(3) + 2).index == 3
               && layout.hit(layout.kindX(19) + 2, layout.kindY(19) + 2).index == 19,
           "a kind cell is hit by its index");
-    check(layout.hit(layout.left + 20, layout.useHeldY + 2).zone == Zone::UseHeld, "the held-state row takes clicks");
+    check(layout.hit(layout.heldX() + 2, layout.kindsTop + 2).zone == Zone::Held && layout.kindX(0) > layout.heldX() + EnchantLayout::cell,
+          "the main-hand item has its own cell left of the kinds");
     check(layout.hit(layout.setAllX + 2, layout.setsY + 2).zone == Zone::SetAll && layout.hit(layout.setLastX + 2, layout.setsY + 2).zone == Zone::SetLast
               && layout.hit(layout.setClearX + 2, layout.setsY + 2).zone == Zone::SetClear
               && layout.setClearX + layout.setNarrow <= layout.dividerX,
@@ -163,9 +164,10 @@ void enchantLayoutTests() {
     check(layout.hit(layout.goalX() + 4, layout.goalY + 2).zone == Zone::Goal && layout.hit(layout.backX + 2, layout.headTop + 2).zone == Zone::Back,
           "the goal and Back take clicks");
     auto plain = EnchantLayout::fit(table, 20, false, 12, 0, 9, 0);
-    check(plain.rows.rowsTop == layout.rows.rowsTop && plain.rows.listVisible > layout.rows.listVisible
-              && plain.hit(plain.left + 20, plain.useHeldY + 2).zone != Zone::UseHeld && layout.useHeldY + EnchantLayout::barHeight == layout.footerTop,
-          "the held-state row sits under the list and takes a row from it, moving nothing above");
+    check(plain.kindColumns > layout.kindColumns && plain.kindX(0) == plain.heldX()
+              && plain.hit(plain.heldX() + 2, plain.kindsTop + 2).zone == Zone::Kind,
+          "without a main-hand item the kinds start at the left edge");
+    check(layout.switchX() + 18 < layout.minusX() && layout.switchX() > layout.left + 60, "the switch stands right of the name, before the level buttons");
     check(!EnchantLayout::fit(SettingsTable::fit(100, 100, 29, 0), 20, true, 12, 0, 9, 0).usable(), "too-small windows draw nothing");
 }
 void enchantPlanTests() {

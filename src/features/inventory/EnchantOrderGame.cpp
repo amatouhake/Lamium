@@ -242,6 +242,8 @@ void rebuild() {
     shown.inHand = held.present && held.kind == kind;
     shown.stateKnown = held.stateKnown;
     shown.useHeld = fromHeld;
+    shown.heldCell = held.present && held.stateKnown;
+    shown.heldName = held.name;
     shown.bookKind = !withItem;
     shown.itemName = fromHeld && !held.name.empty() ? held.name : chosen.name;
     std::vector<Enchantment> const base = fromHeld ? held.base : std::vector<Enchantment>{};
@@ -341,6 +343,7 @@ std::string sideText(unsigned mask) {
 // the planner brings it back.
 void drawBeside(ll::event::AfterUIRenderEvent& event) {
     if (!active.valid || active.lines.empty()) return;
+    if (!Runtime::instance().preferences().inventory.enchantOrderAnvil) return;
     auto& view = event.screenView();
     bool const anvil = view.mHasFocus && view.mController && view.mController->_isContainerScreen() && view.getScreenName() == "anvil_screen";
     if (!anvil) {
@@ -508,6 +511,7 @@ bool open(IClientInstance& client, std::string& problem) {
     if (held.present) {
         int const slot = kinds[static_cast<size_t>(held.kind)].slot;
         if (slot != chosenSlot) { remember(); wanted.clear(); chosenSlot = slot; }
+        useHeldState = held.stateKnown;
     } else if (chosenKind() < 0) { wanted.clear(); chosenSlot = kinds.front().slot; }
     rebuild();
     return true;
@@ -522,10 +526,22 @@ View const& view() { return shown; }
 void pickKind(int index) {
     if (!opened || index < 0 || index >= static_cast<int>(kinds.size())) return;
     int const slot = kinds[static_cast<size_t>(index)].slot;
-    if (slot == chosenSlot) return;
+    if (slot == chosenSlot) {
+        // The held item's own kind: the same item from fresh, keeping what it carries as wanted.
+        if (usingHeld(index)) setUseHeld(false);
+        return;
+    }
     remember();
     wanted.clear();
     chosenSlot = slot;
+    useHeldState = false;
+    rebuild();
+}
+void pickHeld() {
+    if (!opened || !held.present || !held.stateKnown) return;
+    int const slot = kinds[static_cast<size_t>(held.kind)].slot;
+    if (slot != chosenSlot) { remember(); wanted.clear(); chosenSlot = slot; }
+    useHeldState = true;
     rebuild();
 }
 void setUseHeld(bool use) {
@@ -595,6 +611,7 @@ ItemStack const* itemIcon() {
     if (usingHeld(kind) && !held.icon.isNull()) return &held.icon;
     return kindIcon(kind);
 }
+ItemStack const* heldIcon() { return held.present && !held.icon.isNull() ? &held.icon : nullptr; }
 ItemStack const* bookIcon() { return book.isNull() ? nullptr : &book; }
 
 bool start() {

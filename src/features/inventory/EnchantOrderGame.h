@@ -34,7 +34,9 @@ struct View {
     std::string itemName;
     bool inHand = false;     // the chosen kind is the main-hand item's
     bool stateKnown = false; // its anvil uses could be read
-    bool useHeld = false;
+    bool useHeld = false;    // the main-hand item's cell is chosen
+    bool heldCell = false;   // there is such a cell
+    std::string heldName;
     bool bookKind = false;   // books merged into one; there is no item
     bool planned = false;    // the totals below are valid
     std::vector<Row> rows;
@@ -56,7 +58,10 @@ bool open(IClientInstance& client, std::string& problem);
 // Drops what was read; the plan stays for the anvil.
 void close();
 View const& view();
+// A kind plans a fresh item of it.
 void pickKind(int index);
+// The main-hand item: what it carries stays and its anvil uses are charged.
+void pickHeld();
 void setUseHeld(bool use);
 Change toggleRow(int row);
 void stepRow(int row, int delta);
@@ -67,6 +72,7 @@ void flipGoal();
 // Icons, valid while the screen is open.
 ItemStack const* kindIcon(int index);
 ItemStack const* itemIcon();
+ItemStack const* heldIcon();
 ItemStack const* bookIcon();
 
 bool start();

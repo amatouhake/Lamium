@@ -1295,6 +1295,25 @@ checks passed. Fixed the same day, not checked in game:
 - The held-state row sits under the list and shows only for the main hand's
   kind, so nothing above it moves.
 - More space under the totals.
+Third pass by the maintainer 2026-11-12 (`cfd22b5e`, VALIDATION-LOG): passed;
+the lasting "finished" had been a stone pickaxe with the same enchantments.
+Decided the same day and built, not checked in game:
+- The held state is a cell, not a switch: the main-hand item itself (its own
+  icon) stands left of the kinds, apart from them. Choosing it plans from
+  its state; choosing a kind plans a fresh item, and choosing the held
+  item's own kind keeps what it carries as wanted. The white mark and the
+  switch row are gone. The cell appears only when the item's anvil uses
+  could be read.
+- An enchantment row reads name, switch, level buttons, as the settings
+  table orders a row; "on the item" and the conflict reason stand where the
+  switch would.
+- The list beside the anvil has a switch, "List the steps beside the anvil"
+  under Enchantment order (`inventory.enchantOrderAnvil`, on by default): it
+  is the only part that shows without being asked. The planner itself has
+  no switch.
+Noted for later, outside L-170: the world map is experimental and has no way
+to turn it off either; whether a screen that only opens on request needs a
+switch is one question for both.
 Still open:
 - Changing the plan at the anvil. After the above; Item Transfer already
   handles clicks on container screens (`TransferSession`, `TransferGesture`,

@@ -67,12 +67,7 @@ bool click(float x, float y, bool right) {
     switch (hit.zone) {
     case Zone::Back: back(); return true;
     case Zone::Kind: game::pickKind(hit.index); rowFirst = stepFirst = 0; return true;
-    case Zone::UseHeld:
-        if (!game::view().inHand) screen::setMessage(translated("enchantOrder.useHeld.none"));
-        else if (game::view().stateKnown) game::setUseHeld(!game::view().useHeld);
-        else screen::setMessage(translated("enchantOrder.heldUnknown"));
-        rowFirst = stepFirst = 0;
-        return true;
+    case Zone::Held: game::pickHeld(); rowFirst = stepFirst = 0; return true;
     case Zone::SetAll: game::setAllHighest(); stepFirst = 0; return true;
     case Zone::SetLast: game::restoreLast(); stepFirst = 0; return true;
     case Zone::SetClear: game::clearWanted(); stepFirst = 0; return true;
@@ -108,8 +103,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     lastPointer = pointer;
     auto const& v = game::view();
     int const stepCount = static_cast<int>(v.steps.size());
-    // The held-state row is under the list and only for the main hand's kind.
-    last = EnchantLayout::fit(t, static_cast<int>(v.kinds.size()), v.inHand, static_cast<int>(v.rows.size()), rowFirst, stepCount, stepFirst);
+    last = EnchantLayout::fit(t, static_cast<int>(v.kinds.size()), v.heldCell, static_cast<int>(v.rows.size()), rowFirst, stepCount, stepFirst);
     if (!last.usable()) return;
     if (dragging == Drag::Rows) last.rows.listFirst = last.rows.firstAt(pointer.y);
     if (dragging == Drag::Steps) last.steps.listFirst = last.steps.firstAt(pointer.y);
@@ -126,26 +120,26 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     fill(context, t.tableLeft, t.rowsTop - 1, t.tableWidth, 1, palette::white, .14f);
     fill(context, last.dividerX, t.rowsTop, 1, last.footerTop - t.rowsTop, palette::white, .14f);
 
-    // Left: the item, the kinds, the held-state switch, the sets, the rows.
+    // Left: the item, the main hand's cell and the kinds, the sets, the rows.
     float const leftRight = last.dividerX - pad, leftLeft = last.left + pad;
     drawIcon(context, game::itemIcon(), leftLeft, last.itemY + 2);
-    label(context, leftLeft + 14, last.itemY + 3, leftRight - leftLeft - 14, v.itemName);
+    label(context, leftLeft + 14, last.itemY + 3, leftRight - leftLeft - 14,
+        v.useHeld ? translated("enchantOrder.kind.held", v.itemName) : v.itemName);
+    if (last.heldCell) {
+        // The item in the main hand itself: choosing it plans from its state.
+        float const x = last.heldX(), y = last.kindsTop;
+        bool const over = hover.zone == Zone::Held;
+        fill(context, x, y, L::cell, L::cell, v.useHeld ? palette::accent : Rgb{0, 0, 0}, v.useHeld ? .16f : .3f);
+        frame(context, x, y, L::cell, L::cell, v.useHeld ? palette::accent : over ? palette::white : palette::keyEdge, v.useHeld || over ? 1 : .6f);
+        drawIcon(context, game::heldIcon(), x + 2, y + 2, 16);
+        fill(context, x + L::cell + 3, y, 1, L::cell, palette::white, .14f);
+    }
     for (int i = 0; i < last.kindCount; ++i) {
         float const x = last.kindX(i), y = last.kindY(i);
-        bool const chosen = i == v.kind, over = hover.zone == Zone::Kind && hover.index == i;
+        bool const chosen = i == v.kind && !v.useHeld, over = hover.zone == Zone::Kind && hover.index == i;
         fill(context, x, y, L::cell, L::cell, chosen ? palette::accent : Rgb{0, 0, 0}, chosen ? .16f : .3f);
         frame(context, x, y, L::cell, L::cell, chosen ? palette::accent : over ? palette::white : palette::keyEdge, chosen || over ? 1 : .6f);
         drawIcon(context, game::kindIcon(i), x + 2, y + 2, 16);
-        // The main hand's kind: a line under the cell, clear of the icon.
-        if (v.kinds[static_cast<size_t>(i)].held) fill(context, x + 2, y + L::cell, L::cell - 4, 1, palette::white);
-    }
-    if (last.useHeldShown) {
-        bool const usable = v.inHand && v.stateKnown, over = hover.zone == Zone::UseHeld && usable;
-        fill(context, last.left, last.useHeldY - 1, last.dividerX - last.left, 1, palette::white, .14f);
-        if (over) fill(context, last.left + 1, last.useHeldY, last.dividerX - last.left - 1, L::barHeight, palette::white, .07f);
-        toggleSwitch(context, leftLeft, last.useHeldY + 3, v.useHeld);
-        label(context, leftLeft + switchWidth + 5, last.useHeldY + 3, leftRight - leftLeft - switchWidth - 5, translated("enchantOrder.useHeld"),
-            usable ? palette::text : palette::faint);
     }
     drawButton(context, last.setAllX, last.setsY, last.setWide, translated("enchantOrder.setAll"), hover.zone == Zone::SetAll, true);
     drawButton(context, last.setLastX, last.setsY, last.setWide, translated("enchantOrder.setLast"), hover.zone == Zone::SetLast, v.hasLast);
@@ -159,8 +153,10 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         bool const on = row.state == game::RowState::On, fixed = row.state == game::RowState::Fixed;
         bool const off = row.state == game::RowState::Blocked || row.state == game::RowState::Full;
         rowBackground(context, rc.listLeft + 1, y, rc.listWidth - 2, ShapesLayout::rowHeight, false, rowHover && !off && !fixed);
-        toggleSwitch(context, rc.listLeft + pad, y + 3, on || fixed);
-        float const nameLeft = rc.listLeft + pad + switchWidth + 5;
+        // Name, then the switch, then the level buttons, as the settings table
+        // orders a row. What replaces the switch (on the item, a conflict)
+        // is written where it would stand.
+        float const nameLeft = rc.listLeft + pad;
         float right = last.plusX() + L::stepWidth;
         if (fixed) {
             std::string tag = translated("enchantOrder.onItem");
@@ -172,10 +168,13 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             float const w = std::min(textWidth(context, why) + 2, (right - nameLeft) * .55f);
             label(context, right - w, y + 3, w, why, palette::faint, Align::Right);
             right -= w + 3;
-        } else if (on && row.maxLevel > 1) {
-            drawSmallButton(context, last.minusX(), y + 1, L::stepWidth, 12, "-", hover.zone == Zone::RowMinus && hover.index == i);
-            drawSmallButton(context, last.plusX(), y + 1, L::stepWidth, 12, "+", hover.zone == Zone::RowPlus && hover.index == i);
-            right = last.minusX() - 3;
+        } else {
+            toggleSwitch(context, last.switchX(), y + 3, on);
+            if (on && row.maxLevel > 1) {
+                drawSmallButton(context, last.minusX(), y + 1, L::stepWidth, 12, "-", hover.zone == Zone::RowMinus && hover.index == i);
+                drawSmallButton(context, last.plusX(), y + 1, L::stepWidth, 12, "+", hover.zone == Zone::RowPlus && hover.index == i);
+            }
+            right = last.switchX() - 4;
         }
         label(context, nameLeft, y + 3, right - nameLeft, row.label,
             off ? palette::faint : row.curse ? palette::curse : fixed ? palette::dim : palette::text);
@@ -256,10 +255,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     if (status.empty()) {
         statusColor = palette::text;
         if (hover.zone == Zone::Kind && hover.index >= 0 && hover.index < static_cast<int>(v.kinds.size())) {
-            auto const& kind = v.kinds[static_cast<size_t>(hover.index)];
-            status = kind.held ? translated("enchantOrder.kind.held", kind.name) : kind.name;
-        } else if (hover.zone == Zone::UseHeld)
-            status = translated(!v.inHand ? "enchantOrder.useHeld.none" : v.stateKnown ? "enchantOrder.useHeld.help" : "enchantOrder.heldUnknown");
+            status = v.kinds[static_cast<size_t>(hover.index)].name;
+        } else if (hover.zone == Zone::Held) status = translated("enchantOrder.useHeld.help", v.heldName);
         else if (hover.zone == Zone::SetAll) status = translated("enchantOrder.setAll.help");
         else if (hover.zone == Zone::SetLast) status = translated("enchantOrder.setLast.help");
         else if (hover.zone == Zone::Goal) status = translated("enchantOrder.goal.help");
