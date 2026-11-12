@@ -568,22 +568,27 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     windowRest = reopened ? at.y : std::min(windowRest, at.y);
     float const top = std::clamp(windowRest, gap, screen.y - gap - height) + (at.y - windowRest);
     // Temporary (L-170): which control draws the item held on the pointer, to paint it again over the list.
+    // Only with the pointer outside the anvil's window, where no slot is near, and at three different places.
     if (holding) {
         static int logged = 0;
-        if (logged < 3) {
+        static glm::vec2 lastLogged{-1000, -1000};
+        glm::vec2 const pointer = view.mPointerLocationPrevious;
+        bool const outside = pointer.x < at.x - 30 || pointer.x > at.x + size.x + 30 || pointer.y < at.y - 30 || pointer.y > at.y + size.y + 30;
+        if (logged < 3 && outside && std::abs(pointer.x - lastLogged.x) + std::abs(pointer.y - lastLogged.y) > 30) {
             ++logged;
-            glm::vec2 const pointer = view.mPointerLocationPrevious;
+            lastLogged = pointer;
             try {
                 Runtime::instance().self().getLogger().info("Enchantment order: held item, pointer {:.1f},{:.1f}", pointer.x, pointer.y);
                 int lines = 0;
                 auto walk = [&](auto&& self, UIControl const& control, int depth) -> void {
-                    if (depth > 24 || lines >= 16 || (static_cast<int>(control.mVisible) & 1) == 0) return;
+                    if (depth > 30 || lines >= 30) return;
                     glm::vec2 const where = *control.mCachedPosition, extent = *control.mSize;
-                    if (extent.x >= 4 && extent.x <= 48 && extent.y >= 4 && extent.y <= 48 && pointer.x >= where.x - 24 && pointer.x <= where.x + extent.x + 24
-                        && pointer.y >= where.y - 24 && pointer.y <= where.y + extent.y + 24) {
+                    bool const shown = (static_cast<int>(control.mVisible) & 1) != 0;
+                    if (extent.x >= 1 && extent.x <= 64 && extent.y >= 1 && extent.y <= 64 && pointer.x >= where.x - 40 && pointer.x <= where.x + extent.x + 40
+                        && pointer.y >= where.y - 40 && pointer.y <= where.y + extent.y + 40) {
                         ++lines;
-                        Runtime::instance().self().getLogger().info("Enchantment order: near pointer depth={} name={} at={:.1f},{:.1f} size={:.1f}x{:.1f}",
-                            depth, *control.mName, where.x, where.y, extent.x, extent.y);
+                        Runtime::instance().self().getLogger().info("Enchantment order: near pointer depth={} name={} shown={} at={:.1f},{:.1f} size={:.1f}x{:.1f}",
+                            depth, *control.mName, shown, where.x, where.y, extent.x, extent.y);
                     }
                     for (auto const& child : *control.mChildren) if (child) self(self, *child, depth + 1);
                 };
