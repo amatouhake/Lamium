@@ -1185,6 +1185,8 @@ recommendation:
   and the last selection per kind, both without a Lamium table; a
   Lamium-written set per kind needs choices inside conflict groups and an
   update per new enchantment, so it waits for a request.
+Decided (maintainer 2026-11-12, after the research below): the step list
+beside the anvil screen is part of the first version.
 The step list beside the anvil, researched 2026-11-12 (VALIDATION-LOG "World
 probe: the anvil screen"); nothing was drawn yet:
 - Drawing: the `AfterUIRenderEvent` of the container screen's `ScreenView`
@@ -1208,6 +1210,10 @@ probe: the anvil screen"); nothing was drawn yet:
 - Still unknown: other GUI scales and narrow windows (the list needs a
   fallback when it does not fit: hide it), and whether Lamium's key opens the
   planner while the anvil is open.
+Pure logic added 2026-11-12 in `EnchantPlan.h`, tested: `levelCost(frequency,
+book)` (the mapping above; an unknown frequency gives nothing), `carried(...)`
+(which planner inputs a stack in an anvil slot stands for) and `stepFor(...)`
+(the step joining two sides).
 Next: the second review, then the wiring.
 
 ### L-169 Item Transfer: remaining gesture and screen extensions

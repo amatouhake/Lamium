@@ -35,6 +35,16 @@ inline constexpr std::optional<int> priorUses(int penalty) noexcept {
     return std::nullopt;
 }
 
+// Levels one enchantment level costs on the sacrificed side, from the game's
+// `Enchant::Frequency` value (30, 10, 3, 1). Read from the anvil in nine
+// cases (VALIDATION-LOG 2026-11-12); another value gives nothing, so the
+// caller does not plan with a guess.
+inline constexpr std::optional<int> levelCost(int frequency, bool book) noexcept {
+    int const item = frequency == 30 ? 1 : frequency == 10 ? 2 : frequency == 3 ? 4 : frequency == 1 ? 8 : 0;
+    if (!item) return std::nullopt;
+    return book ? std::max(1, item / 2) : item;
+}
+
 struct Step {
     unsigned target = 0, sacrifice = 0; // Bit i = input i is part of that side.
     int cost = 0;
@@ -123,5 +133,36 @@ inline std::optional<Plan> plan(std::span<Input const> inputs, Rules rules = {})
     };
     emit(emit, full, end);
     return result;
+}
+
+// Following a plan at the anvil. Input 0 is the item and input i + 1 the
+// book of wanted[i], as the planner's caller lays them out.
+struct Enchantment {
+    int type = 0, level = 0;
+    bool operator==(Enchantment const&) const = default;
+};
+// Which inputs a stack in an anvil slot stands for: bit 0 when it is the
+// item (it then carries everything in `base`), bit i + 1 for each wanted
+// enchantment on it. Nothing when it carries anything else, a wanted one at
+// another level, or is a book with none of them.
+inline std::optional<unsigned> carried(bool item, std::span<Enchantment const> on, std::span<Enchantment const> base,
+    std::span<Enchantment const> wanted) {
+    if (wanted.size() + 1 > static_cast<std::size_t>(maxInputs)) return std::nullopt;
+    unsigned mask = item ? 1u : 0u;
+    std::size_t fromBase = 0;
+    for (auto const& enchantment : on) {
+        if (item && std::ranges::find(base, enchantment) != base.end()) { ++fromBase; continue; }
+        auto const found = std::ranges::find(wanted, enchantment);
+        if (found == wanted.end()) return std::nullopt;
+        mask |= 1u << (found - wanted.begin() + 1);
+    }
+    if (item ? fromBase != base.size() : mask == 0) return std::nullopt;
+    return mask;
+}
+// The step that joins these two sides, or -1.
+inline int stepFor(Plan const& plan, unsigned target, unsigned sacrifice) noexcept {
+    for (std::size_t i = 0; i < plan.steps.size(); ++i)
+        if (plan.steps[i].target == target && plan.steps[i].sacrifice == sacrifice) return static_cast<int>(i);
+    return -1;
 }
 }

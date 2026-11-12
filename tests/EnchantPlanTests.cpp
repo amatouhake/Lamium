@@ -101,6 +101,37 @@ void enchantPlanTests() {
         auto result = plan(books);
         check(result && result->total == 2 && result->steps[0].sacrifice == 1u, "books alone merge onto the dearer one");
     }
+    // The nine costs read from the anvil: sharpness, unbreaking, looting, fire
+    // aspect, mending, knockback and vanishing as books, the last two as items.
+    check(levelCost(30, true) == 1 && levelCost(10, true) == 1 && levelCost(3, true) == 2 && levelCost(1, true) == 4,
+          "a book's level costs 1, 1, 2 or 4 by frequency");
+    check(levelCost(30, false) == 1 && levelCost(10, false) == 2 && levelCost(3, false) == 4 && levelCost(1, false) == 8,
+          "an item's level costs 1, 2, 4 or 8 by frequency");
+    check(!levelCost(0, true) && !levelCost(5, false) && !levelCost(-1, true), "an unknown frequency has no cost");
+    {
+        // A sword with unbreaking 3 already on it; wanted: sharpness 5, looting 3, mending.
+        std::vector<Enchantment> base{{17, 3}}, wanted{{9, 5}, {14, 3}, {26, 1}};
+        std::vector<Enchantment> fresh{{17, 3}}, half{{9, 5}, {17, 3}}, other{{17, 3}, {12, 2}}, low{{17, 3}, {9, 4}};
+        check(carried(true, fresh, base, wanted) == 1u, "the untouched item is input 0");
+        check(carried(true, half, base, wanted) == (1u | 2u), "the item with one wanted enchantment carries that input too");
+        check(!carried(true, other, base, wanted), "an item with an unplanned enchantment matches nothing");
+        check(!carried(true, low, base, wanted), "a wanted enchantment at another level matches nothing");
+        check(!carried(true, std::vector<Enchantment>{{9, 5}}, base, wanted), "an item without its base enchantments is another item");
+        std::vector<Enchantment> book{{14, 3}}, merged{{14, 3}, {26, 1}}, blank, stray{{17, 3}};
+        check(carried(false, book, base, wanted) == 4u && carried(false, merged, base, wanted) == (4u | 8u),
+              "a book carries the wanted enchantments on it");
+        check(!carried(false, blank, base, wanted) && !carried(false, stray, base, wanted),
+              "an empty book and a book of a base enchantment match nothing");
+        std::vector<Input> inputs{{0, 0, true}, {5, 0, false}, {6, 0, false}, {2, 0, false}};
+        auto result = plan(inputs);
+        check(result.has_value(), "the example plans");
+        int found = 0;
+        for (std::size_t i = 0; i < result->steps.size(); ++i)
+            if (stepFor(*result, result->steps[i].target, result->steps[i].sacrifice) == static_cast<int>(i)) ++found;
+        check(found == static_cast<int>(result->steps.size()), "every step is found by its two sides");
+        check(stepFor(*result, result->steps[0].sacrifice, result->steps[0].target) == -1, "swapped sides are not that step");
+        check(stepFor(*result, 2u, 1u) == -1, "the item on the sacrificed side is no step");
+    }
     // Compare with the brute force over small pseudo-random sets.
     std::uint32_t seed = 12345;
     auto next = [&](int below) { seed = seed * 1664525u + 1013904223u; return static_cast<int>((seed >> 16) % below); };
