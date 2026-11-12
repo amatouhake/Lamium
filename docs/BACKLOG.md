@@ -747,16 +747,24 @@ Header read 2026-11-12 (SDK 26.60.4; reading only, nothing run):
   `src/features/inventory/EnchantPlan.h` gives the prior-use count for a
   stored surcharge, or nothing when the value is not 2^n - 1. Not shown
   anywhere yet.
-Open choices, with the agent's recommendation (not decided):
-- The line's wording and whether both numbers show. Recommended: one line
-  with the surcharge and the use count together, hidden when the surcharge
-  is 0, so unused items keep today's tooltip.
+Decided by the maintainer 2026-11-13 and built the same day (not checked
+in game):
+- First only the work penalty; the other values wait for a look at what
+  is worth showing and what the game already prints.
+- One line under the durability line, in the same grey: "Work penalty: +3
+  (2 anvil uses)". Nothing for an item whose stored cost is 0. A cost
+  that is not 2^n - 1 is shown alone, without a count (pure
+  `enchantPlan::workPenalty`).
+- A setting of its own, "Work penalty", on by default, a feature row
+  beside Durability numbers and Food values with its toggle key (unbound).
+- It is read as the enchantment order reads it and asks the same
+  capability (`EnchantOrder`): on a game version that is not verified the
+  line is left out.
+Still open, not started:
 - Which definition values to show. Recommended: only values that differ
-  from "nothing" (attack damage above 0, armour above 0), behind the
-  existing tooltip detail setting rather than a new one; enchantability and
-  max stack are rarely useful and can wait.
-- A surcharge that is not 2^n - 1 (commands, other servers): recommended to
-  show the surcharge alone, without a use count.
+  from "nothing" (attack damage above 0, armour above 0), after checking
+  what the game's own tooltip already prints; enchantability and max
+  stack are rarely useful and can wait.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
 Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;
@@ -1878,7 +1886,7 @@ slot's yellow, which could not be brought about. Changed the same day
   change of looks, tastes differ). It is a sibling, not a setting under a
   setting; like the choosing panel it only works while the steps are
   listed beside the anvil, and its help says so.
-Next: L-319.
+Next: L-319 (its first part is built; see there).
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 

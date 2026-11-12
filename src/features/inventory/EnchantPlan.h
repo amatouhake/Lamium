@@ -39,6 +39,18 @@ inline constexpr std::optional<int> priorUses(int penalty) noexcept {
     return std::nullopt;
 }
 
+// An item's work penalty as its tooltip tells it (L-319): the levels its stored repair cost adds to any anvil
+// use, and the anvil uses behind it where the cost is one the rule produces. Nothing for an item that has
+// never been through an anvil, so its tooltip stays as it was.
+struct WorkPenalty {
+    int levels = 0;
+    std::optional<int> uses;
+};
+inline constexpr std::optional<WorkPenalty> workPenalty(int repairCost) noexcept {
+    if (repairCost <= 0) return std::nullopt;
+    return WorkPenalty{repairCost, priorUses(repairCost)};
+}
+
 // Levels one enchantment level costs on the sacrificed side, from the game's
 // `Enchant::Frequency` value (30, 10, 3, 1). Read from the anvil in nine
 // cases (VALIDATION-LOG 2026-11-12); another value gives nothing, so the

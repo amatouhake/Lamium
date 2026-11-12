@@ -13,7 +13,10 @@
 #include "mc/world/item/components/IFoodItemComponent.h"
 #include <string_view>
 #include <vector>
+#include "app/Capabilities.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
+#include "features/inventory/EnchantPlan.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/render/UIRenderEvent.h"
@@ -78,6 +81,12 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
                 text += "\n\u00a77" + ui::translated("durabilityValue", remaining, maximum);
             }
         }
+        // The anvil's surcharge on this item (L-319). Read the way the enchantment order reads it, and under the
+        // same capability: what the number means was checked against the anvil screen for that feature.
+        if (settings.workPenalty && versionSensitiveAllowed(capabilities::Id::EnchantOrder))
+            if (auto const penalty = inventory::enchantPlan::workPenalty(getBaseRepairCost()))
+                text += "\n\u00a77" + (penalty->uses ? ui::translated("workPenaltyValue", penalty->levels, *penalty->uses)
+                                                      : ui::translated("workPenaltyOnly", penalty->levels));
         if (settings.foodValues)
             if (auto* food = mItem->getFood()) {
                 auto icons = information::saturation::foodIcons(food->getNutrition(), food->getSaturationModifier());

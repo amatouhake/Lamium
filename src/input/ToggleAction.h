@@ -56,6 +56,7 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleRepeatTrades: field = &value.inventory.repeatTrades; break;
     case Action::ToggleSkipServerPacks: field = &value.visuals.skipServerPacks; break;
     case Action::ToggleEnglishSearch: field = &value.inspection.englishSearch; break;
+    case Action::ToggleWorkPenalty: field = &value.inspection.workPenalty; break;
     case Action::ToggleAutomationStatus: field = &value.ui.automationStatus; break;
     case Action::ToggleRadar: field = &value.map.radar; break;
     case Action::ToggleMapMarks: field = &value.map.mapMarks; break;

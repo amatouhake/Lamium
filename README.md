@@ -158,6 +158,7 @@ Waypoints and the death point also show in the world, with both maps off.
 | Container previews | Shulker Box and Bundle contents in the tooltip | — | On |
 | Durability numbers | Remaining durability in the tooltip | — | On |
 | Food values | Hunger and saturation a food restores, in the tooltip | — | On |
+| Work penalty | The anvil surcharge an item carries and its anvil uses, in the tooltip | — | On |
 | All trader levels | Every trade level in the trade screen | — | On |
 | Repeated trades | Shift + right click repeats a trade | — | On |
 | Search English names too | Recipe and creative search by English name or ID | — | On |

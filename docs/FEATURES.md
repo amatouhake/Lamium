@@ -299,13 +299,18 @@ build them.
 
 ## Inventory
 
-### Container previews, Durability numbers and Food values
+### Container previews, Durability numbers, Food values and Work penalty
 
 Inside the game's item tooltip:
 
 - Shulker Box and Bundle contents.
 - Remaining durability.
 - What food restores: hunger and saturation as hunger-bar icons.
+- The anvil work penalty ("Work penalty: +3 (2 anvil uses)"): the levels the item adds
+  to any anvil use and how many times it has been through an anvil. An item that has
+  never been through one shows nothing; a surcharge that no number of anvil uses
+  gives (set by a command, say) is shown without the count. It does not predict what
+  an operation will cost: that depends on the other item too.
 
 ### Trades
 

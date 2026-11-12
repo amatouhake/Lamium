@@ -177,6 +177,12 @@ void enchantOrderTests() {
             check(box.x == 241 + 2 * 18 && box.y == 177 + 18 && box.w == 18 && box.h == 18 && gridSlot(241, 177, -1).w == 0 && gridSlot(241, 234, 8).x == 385,
                   "a slot's box follows from its grid's corner, nine to a row");
         }
+        {
+            auto none = workPenalty(0), three = workPenalty(3), odd = workPenalty(5), deep = workPenalty(31);
+            check(!none && !workPenalty(-1) && three && three->levels == 3 && three->uses == 2 && deep && deep->uses == 5,
+                  "an item's work penalty is its stored surcharge and the anvil uses behind it; none for a fresh item");
+            check(odd && odd->levels == 5 && !odd->uses, "a surcharge the rule does not produce is told without a count");
+        }
         // An item with enchantments 1 and 3 on it (mask 11) is nothing this plan makes: steps join 2+4, then 1+6, then 7+8.
         std::vector<unsigned> earlier{11u, 2u, 4u}, earlierOnly{11u};
         check(nextStep(made, progress(earlier, made)) == 0 && !atHand(1u, progress(earlierOnly, made)) && progress(onSword, made) == onSword

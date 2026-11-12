@@ -133,7 +133,7 @@ the package/SDK loader-policy alignment in CI.
 | Note block pitch (level sound events) | `NoteSounds.cpp` | a note block's pitch on the target card stays at the note the world loaded with | the instrument and every other block entity row |
 | Ghost note block instrument (block instrument component) | `TargetInfo.cpp` `appendGhostInstrument` (`BlockInstrumentComponent`: [0] for a note block under the block, [1] for one on it; held back by L-305, also in the check's comparison) | a ghost note block shows no instrument row | real note blocks, every other row |
 | Paste across book pages (page model and caret) | `BookPaste.cpp` (`PageContent::mText`, `TextEditContext::mCaret` and `mSelection`) | a paste works as in vanilla | everything else |
-| Enchantment order (enchantment costs and anvil screen) | `EnchantOrderGame.cpp` (`Enchant::mFrequency` as the cost class, `AnvilContainerManagerController::mCost`, the `anvil_screen` name, its `root_panel` box and the `anvil_input_items` / `anvil_material_items` collections) | the planner screen says it is not checked on this game and nothing is drawn beside the anvil | everything else |
+| Enchantment order (enchantment costs and anvil screen) | `EnchantOrderGame.cpp` (`Enchant::mFrequency` as the cost class, `AnvilContainerManagerController::mCost`, the `anvil_screen` name, its `root_panel` box and the `anvil_input_items` / `anvil_material_items` collections) | the planner screen says it is not checked on this game, nothing is drawn beside the anvil, and item tooltips carry no work penalty line (`Inspection.cpp`, `ItemStackBase::getBaseRepairCost` read as the anvil surcharge) | everything else |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
