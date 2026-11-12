@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order glint test, round 3 (2026-11-12)
+
+`a3c756d1` built with `enchant_glint_test`, DLL SHA-256
+`f65cc9405ec4b8ed87493cae0b184d7ddd82330308bc76dae26ffcfdfbf641c9`, 1.26.60.05 Dev
+instance, Creative. Per the maintainer: only 2 (a white fill under the four icons)
+looks glinting; 1 and 3 to 8 (a 0.23 grey fill, grey squares on or without a panel, the
+preview's frame colour alone, at 8 units, with text) do not.
+
 ## Enchantment order glint test, round 2 (2026-11-12)
 
 `f3ee9086` built with `enchant_glint_test`, DLL SHA-256

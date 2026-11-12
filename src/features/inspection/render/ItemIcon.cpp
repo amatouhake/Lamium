@@ -6,12 +6,15 @@
 #include "mc/client/gui/screens/BatchClippingState.h"
 #include "mc/client/gui/screens/BatchKey.h"
 #include "mc/client/gui/screens/ComponentRenderBatch.h"
+#include "mc/client/gui/screens/ScreenContext.h"
 #include "mc/client/gui/screens/UIBatchType.h"
 #include "mc/client/renderer/BaseActorRenderContext.h"
 #include "mc/client/renderer/actor/ItemRenderer.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/deps/core/file/PathView.h"
+#include "mc/deps/core/math/Color.h"
 #include "mc/deps/core/resource/ResourceLocation.h"
+#include "mc/deps/renderer/ShaderColor.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/item/Item.h"
 #include <algorithm>
@@ -72,6 +75,12 @@ bool drawable(IconAt const& icon) { return icon.stack && !icon.stack->isNull() &
 // 1.5 and +27.6 at 1.35 against vanilla's +27.7. Drawing the overlay several
 // times instead over-tints: +30 for two passes, +58 for three.
 constexpr float glintOverlayAlpha = 1.35f;
+// The overlay is also scaled by the colour of whatever was filled last (seen 2026-11-12, L-170: on a white fill
+// it shows, on the settings panel's near-black one it does not, with nothing before it it is weak and not
+// pink). The value above was measured in the container preview, whose last fill before the icons is its
+// border, so that colour is set for every overlay. That the current shader colour is what carries it is a
+// reading of those results, not something seen in the game's code.
+constexpr mce::Color glintTint{0.55f, 0.35f, 0.70f, 1.0f};
 int chunkOf(ItemStack const& stack) {
     if (stack.mItem->isGlint(stack)) return glinting;
     return static_cast<int>(InventoryItemRenderer::getRenderTypeFromItem(stack));
@@ -89,9 +98,16 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
         auto const& icon = icons[i];
         renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, false, icon.alpha, 1.0f, icon.scale,
             zOrder);
-        if (icon.glint && icon.stack->mItem->isGlint(*icon.stack))
+        if (icon.glint && icon.stack->mItem->isGlint(*icon.stack)) {
+            auto& shaderColor = static_cast<ShaderColor&>(context.mScreenContext.currentShaderColor);
+            mce::Color const was = shaderColor.color;
+            shaderColor.color = glintTint;
+            shaderColor.dirty = true;
             renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, true, glintOverlayAlpha * icon.alpha,
                 1.0f, icon.scale, zOrder);
+            shaderColor.color = was;
+            shaderColor.dirty = true;
+        }
     };
     // Glinting items before any shared-mesh batch: after one, the foil call
     // drew nothing even right after its icon (L-142 round 2); 0.1.8 drew no

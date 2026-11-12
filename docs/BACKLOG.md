@@ -1489,6 +1489,17 @@ The preview puts a 0.23 grey square under every icon. Round 3, built the
 same day, varies that: a grey or white fill under all four, grey squares on
 an opaque or translucent panel, the preview's frame colour alone, squares
 alone, squares at 8 units, and the list's own arrangement with squares.
+Glint test round 3 by the maintainer 2026-11-12 (VALIDATION-LOG): only the
+white fill glints; the preview's own slot grey does not. So it is not what
+lies under the icon but the colour of the last fill before it: the preview
+draws its purple border last, the tests drew grey or the panel colour last,
+and the list's last fill depends on its rows (which fits one step working
+and two failing). Built the same day (not checked in game), in
+`drawItemIcons` for every caller: the current shader colour is set to the
+preview's border colour around each glint overlay and put back. If that is
+right, the list, the planner screen and the HUD icons glint like the
+preview, and the preview is unchanged. The test option stays until this is
+confirmed.
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s
