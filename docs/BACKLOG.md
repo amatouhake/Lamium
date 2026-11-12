@@ -767,6 +767,19 @@ Still open, not started:
   from "nothing" (attack damage above 0, armour above 0), after checking
   what the game's own tooltip already prints; enchantability and max
   stack are rarely useful and can wait.
+The maintainer's direction 2026-11-13 (the work stops here for now; not
+decisions):
+- The rest is meant wide: from attack damage and armour to what the game
+  folds into "+NBT", as much about an item as can be shown.
+- Durability numbers, Food values and Work penalty all add a line to an
+  item in an inventory, so they may belong together in the settings. The
+  doubt was whether Food values also covers the HUD: it does not. Food
+  values (`inspection.foodValues`) is the tooltip line only; the hunger
+  bar's outline and its preview of held food are the separate feature
+  Saturation (`information.saturation`, `information.saturationPreview`).
+  The agent's view: group them when the wider values arrive, as one
+  feature with a switch per line; the settings file's keys and the three
+  toggle keys can stay as they are, since only the rows' grouping changes.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
 Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;
