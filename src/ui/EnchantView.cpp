@@ -150,31 +150,35 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         bool const on = row.state == game::RowState::On, fixed = row.state == game::RowState::Fixed;
         bool const off = row.state == game::RowState::Blocked || row.state == game::RowState::Full;
         rowBackground(context, rc.listLeft + 1, y, rc.listWidth - 2, ShapesLayout::rowHeight, false, rowHover && !off && !fixed);
-        // Name, then the switch, then the level buttons, as the settings table
-        // orders a row. What replaces the switch (on the item, a conflict)
-        // is written where it would stand.
+        // Name, the level as a stepper, then the switch at the right edge. What
+        // replaces them (on the item, a conflict) is written in their place.
         float const nameLeft = rc.listLeft + pad;
-        float right = last.plusX() + L::stepWidth;
+        float right = last.switchX() + switchWidth;
+        Rgb const nameColor = off ? palette::faint : row.curse ? palette::curse : fixed ? palette::dim : palette::text;
         if (fixed) {
             std::string tag = translated("enchantOrder.onItem");
             float const w = textWidth(context, tag) + 2;
             label(context, right - w, y + 3, w, tag, palette::accent, Align::Right);
-            right -= w + 3;
+            label(context, nameLeft, y + 3, right - w - 3 - nameLeft, row.label, nameColor);
         } else if (row.state == game::RowState::Blocked) {
             std::string why = translated("enchantOrder.conflict", row.reason);
             float const w = std::min(textWidth(context, why) + 2, (right - nameLeft) * .55f);
             label(context, right - w, y + 3, w, why, palette::faint, Align::Right);
-            right -= w + 3;
+            label(context, nameLeft, y + 3, right - w - 3 - nameLeft, row.name.empty() ? row.label : row.name, nameColor);
         } else {
             toggleSwitch(context, last.switchX(), y + 3, on);
-            if (on && row.maxLevel > 1) {
-                drawSmallButton(context, last.minusX(), y + 1, L::stepWidth, 12, "-", hover.zone == Zone::RowMinus && hover.index == i);
-                drawSmallButton(context, last.plusX(), y + 1, L::stepWidth, 12, "+", hover.zone == Zone::RowPlus && hover.index == i);
+            float nameRight = last.switchX() - 4;
+            if (!row.levelText.empty()) {
+                if (on) {
+                    drawSmallButton(context, last.minusX(), y + 1, L::stepWidth, 12, "-", hover.zone == Zone::RowMinus && hover.index == i);
+                    drawSmallButton(context, last.plusX(), y + 1, L::stepWidth, 12, "+", hover.zone == Zone::RowPlus && hover.index == i);
+                }
+                // Off: the level it would turn on at, without its buttons.
+                label(context, last.levelX(), y + 3, L::levelWidth, row.levelText, on ? palette::text : palette::faint, Align::Center);
+                nameRight = last.minusX() - 4;
             }
-            right = last.switchX() - 4;
+            label(context, nameLeft, y + 3, nameRight - nameLeft, row.levelText.empty() ? row.label : row.name, nameColor);
         }
-        label(context, nameLeft, y + 3, right - nameLeft, row.label,
-            off ? palette::faint : row.curse ? palette::curse : fixed ? palette::dim : palette::text);
     }
     drawListScrollbar(context, rc);
 

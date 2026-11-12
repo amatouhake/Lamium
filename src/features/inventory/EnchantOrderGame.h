@@ -16,6 +16,8 @@ struct Row {
     std::string reason; // what blocks it, when blocked
     RowState state = RowState::Off;
     bool curse = false;
+    std::string name;   // the name alone
+    std::string levelText; // the level alone ("V"); empty when it has only one
 };
 struct KindCell {
     std::string name;

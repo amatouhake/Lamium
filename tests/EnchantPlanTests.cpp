@@ -176,7 +176,9 @@ void enchantLayoutTests() {
     check(plain.kindColumns == layout.kindColumns && plain.setsY == layout.setsY && plain.rows.rowsTop == layout.rows.rowsTop
               && plain.hit(plain.kindX(20) + 2, plain.kindY(20) + 2).zone == Zone::None,
           "without a main-hand item its place stays empty and nothing moves");
-    check(layout.switchX() + 18 < layout.minusX() && layout.switchX() > layout.left + 60, "the switch stands right of the name, before the level buttons");
+    check(layout.minusX() + EnchantLayout::stepWidth == layout.levelX() && layout.levelX() + EnchantLayout::levelWidth == layout.plusX()
+              && layout.plusX() + EnchantLayout::stepWidth < layout.switchX() && layout.minusX() > layout.left + 60,
+          "a row reads name, the level between its buttons, then the switch at the right edge");
     check(!EnchantLayout::fit(SettingsTable::fit(100, 100, 29, 0), 20, true, 12, 0, 9, 0).usable(), "too-small windows draw nothing");
 }
 void enchantPlanTests() {

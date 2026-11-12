@@ -270,6 +270,12 @@ void rebuild() {
             row.reason = nameOnly(by);
         } else if (static_cast<int>(wanted.size()) >= maxBooks) row.state = RowState::Full;
         row.label = nameOf(offer.type, row.level);
+        row.name = nameOnly(offer.type);
+        // The level alone is what the full text has after the name.
+        if (offer.maxLevel > 1 && row.label.size() > row.name.size() && row.label.starts_with(row.name)) {
+            row.levelText = row.label.substr(row.name.size());
+            while (!row.levelText.empty() && row.levelText.front() == ' ') row.levelText.erase(0, 1);
+        }
         shown.rows.push_back(std::move(row));
     }
     for (auto const& e : base)

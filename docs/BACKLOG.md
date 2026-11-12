@@ -1321,6 +1321,15 @@ Decided the same day and built, not checked in game:
 - An enchanted book in the main hand gets the cell too (it had been left
   out): the plan then merges further books into it, charging its anvil uses;
   it may end up on either side of a step.
+Fifth pass by the maintainer 2026-11-12 (`06a753ef`, VALIDATION-LOG): passed,
+"All highest" on a mace taking Density included. Decided the same day and
+built, not checked in game: an enchantment row reads name, then the level
+as a stepper (`-` level `+`, as Lamium's number rows), then the switch at
+the right edge. The name no longer carries the level; a row that is off
+shows the level it would turn on at, faint and without buttons; a row with
+one level has the switch alone. This replaces "name, switch, level buttons"
+of the fourth pass, which left the level far from its buttons and an empty
+stretch right of the switch.
 Noted for later, outside L-170: the world map is experimental and has no way
 to turn it off either; whether a screen that only opens on request needs a
 switch is one question for both.

@@ -12,7 +12,7 @@ namespace lamium::ui {
 // the steps (two list rows each).
 struct EnchantLayout {
     static constexpr float titleHeight = 12, barHeight = 14, cell = 20, cellGap = 2, buttonHeight = 11, stepWidth = 11;
-    static constexpr float summaryLine = 11, goalWidth = 120;
+    static constexpr float summaryLine = 11, goalWidth = 120, levelWidth = 22;
     static constexpr int summaryLines = 3, stepRows = 2;
     enum class Zone { None, Back, Held, Kind, SetAll, SetLast, SetClear, Row, RowMinus, RowPlus, Goal };
     struct Hit { Zone zone = Zone::None; int index = -1; };
@@ -75,10 +75,12 @@ struct EnchantLayout {
     float kindX(int index) const { return left + SettingsTable::pad + (index % kindColumns) * (cell + cellGap); }
     int heldIndex() const { return kindCount; }
     float kindY(int index) const { return kindsTop + (index / kindColumns) * (cell + cellGap); }
-    float plusX() const { return rows.listLeft + rows.listWidth - SettingsTable::pad - stepWidth; }
-    float minusX() const { return plusX() - stepWidth - 1; }
-    // The switch stands right of the name, as in the settings table, with the level buttons after it.
-    float switchX() const { return minusX() - 4 - 18; }
+    // A row reads name, then the level as a stepper (- level +), then the
+    // switch at the right edge, so nothing is left empty beside it.
+    float switchX() const { return rows.listLeft + rows.listWidth - SettingsTable::pad - 18; }
+    float plusX() const { return switchX() - 6 - stepWidth; }
+    float levelX() const { return plusX() - levelWidth; }
+    float minusX() const { return levelX() - stepWidth; }
     float goalX() const { return rightLeft + rightWidth - SettingsTable::pad - goalWidth; }
     static int rowAt(ShapesLayout const& c, float x, float y) {
         if (x < c.listLeft || x >= c.listLeft + c.listWidth || y < c.rowsTop) return -1;
