@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enchantment Order Steps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --mc-panel:16,17,19; --mc-row-hover:rgba(255,255,255,.07); --mc-row-alt:rgba(255,255,255,.025);
+  --mc-sel:rgba(108,195,73,.16); --mc-edge:rgba(255,255,255,.14); --mc-dim:#b4b8b6; --mc-faint:#7f8583;
+  --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-warn:#ffc24a;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:28px 64px;display:grid;gap:24px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:72ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.opts{display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px;color:var(--ink-2);align-items:center}
+.opts label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.opts select{font:13px "Noto Sans JP",sans-serif;background:var(--ground-2);color:var(--ink);border:1px solid var(--line);padding:3px 6px}
+
+.stage-outer{width:100%;border:1px solid var(--line);background:#000}
+.stage-fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--mc-font);color:#fff;user-select:none;overflow:hidden}
+.stage canvas.world{position:absolute;inset:0;width:960px;height:540px;image-rendering:pixelated}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.25)}
+
+.panel{position:absolute;left:100px;top:36px;width:760px;height:444px;display:flex;flex-direction:column;background:rgba(var(--mc-panel),.86);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.phead{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;border-bottom:1px solid var(--mc-edge);flex:none}
+.brand{font-size:14px}
+.crumb{font-size:12px;color:var(--mc-faint)}
+.exp{font-size:10px;color:#b98bff;box-shadow:inset 0 0 0 1px #b98bff;padding:0 4px;line-height:14px}
+.spacer{flex:1}
+.hbtn{all:unset;cursor:pointer;font:12px var(--mc-font);color:var(--mc-dim);padding:0 8px;height:20px;line-height:20px;box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.hbtn:hover{color:#fff;background:var(--mc-row-hover)}
+.pbody{flex:1;min-height:0;display:flex}
+.col{min-width:0;min-height:0;display:flex;flex-direction:column}
+.col.left{width:330px;border-right:1px solid var(--mc-edge);flex:none}
+.col.right{flex:1}
+.ctitle{display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;font-size:11px;color:var(--mc-faint);border-bottom:1px solid var(--mc-edge);flex:none}
+.ctitle b{font-weight:400;color:var(--mc-dim)}
+.bar{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;font-size:13px;border-bottom:1px solid var(--mc-edge);flex:none}
+.bar .k{color:var(--mc-dim)}
+.scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#5a5b5c transparent}
+.row{display:grid;align-items:center;column-gap:8px;padding:0 10px;height:26px;font-size:13px}
+.row:nth-child(even){background:var(--mc-row-alt)}
+.row:hover{background:var(--mc-row-hover)}
+.erow{grid-template-columns:30px minmax(0,1fr) auto;cursor:pointer}
+.erow.na{color:var(--mc-faint);cursor:default}
+.why{font-size:11px;color:var(--mc-faint);white-space:nowrap}
+.erow .why{font-size:11px;color:var(--mc-faint);white-space:nowrap}
+.srow{grid-template-columns:18px minmax(0,1fr) 34px;height:auto;min-height:26px;padding-block:4px}
+.srow .n{color:var(--mc-faint);font-size:12px;text-align:right}
+.srow .what{min-width:0;line-height:1.35}
+.srow .what small{display:block;font-size:11px;color:var(--mc-faint)}
+.srow .c{text-align:right}
+.plus{color:var(--mc-faint);padding:0 4px}
+.tag{font-size:11px;color:var(--mc-dim);box-shadow:inset 0 0 0 1px var(--mc-key-edge);padding:0 4px;line-height:15px;display:inline-block;margin-right:3px}
+.nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sw{all:unset;cursor:pointer;position:relative;display:inline-block;width:30px;height:14px;background:var(--mc-off);box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.sw::after{content:"";position:absolute;top:1px;left:1px;width:12px;height:12px;background:#c9c9c9}
+.sw.on{background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.sw.on::after{left:17px;background:#fff}
+.sw.dis{opacity:.35;cursor:default}
+.step{display:inline-flex;align-items:center;gap:2px;font-size:12px}
+.step button{all:unset;cursor:pointer;width:16px;height:16px;line-height:16px;text-align:center;color:var(--mc-dim);box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key)}
+.step button:hover{color:#fff;background:#3a3b3c}
+.step button[disabled]{opacity:.3;cursor:default}
+.step span{min-width:26px;text-align:center}
+.step.wide span{min-width:118px}
+.sum{flex:none;border-top:1px solid var(--mc-edge);padding:6px 10px;font-size:12px;display:grid;gap:2px}
+.sum .big{font-size:14px}
+.sum .faint,.faint{color:var(--mc-faint);font-size:11px}
+.warn{color:var(--mc-warn)}
+.pfoot{border-top:1px solid var(--mc-edge);padding:5px 10px;min-height:36px;display:grid;gap:1px;flex:none;font-size:11px;color:var(--mc-faint);line-height:1.45}
+.empty{padding:14px 12px;font-size:12px;color:var(--mc-faint);line-height:1.6}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:13px;padding:6px 12px}
+.tabs button[aria-selected=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.tile{display:inline-grid;place-items:center;width:16px;height:16px;font-size:11px;line-height:1;background:#2f6f8f;color:#fff;vertical-align:-3px;margin-right:4px;flex:none}
+.tile.book{background:#8a3f8f}
+.kinds{display:grid;grid-template-columns:repeat(auto-fill,24px);gap:3px;padding:6px 10px;border-bottom:1px solid var(--mc-edge);flex:none}
+.kind{all:unset;cursor:pointer;position:relative;width:24px;height:24px;display:grid;place-items:center;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.kind .tile{margin:0;vertical-align:0}
+.kind:hover{box-shadow:inset 0 0 0 1px #fff}
+.kind.on{box-shadow:inset 0 0 0 2px var(--mc-on-edge);background:var(--mc-sel)}
+.kind.held::after{content:"";position:absolute;right:2px;top:2px;width:5px;height:5px;background:#fff}
+.sets{display:flex;gap:4px;padding:5px 10px;border-bottom:1px solid var(--mc-edge);flex:none}
+.btn{all:unset;cursor:pointer;font:11px var(--mc-font);color:#fff;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge),inset 0 -2px 0 rgba(0,0,0,.5);padding:0 7px;height:18px;line-height:18px;text-align:center;white-space:nowrap}
+.btn:hover{background:#3a3b3c}
+.btn[disabled]{opacity:.35;cursor:default}
+.have{font-size:11px;color:var(--mc-on-edge);white-space:nowrap}
+.srow.now{background:var(--mc-sel);box-shadow:inset 2px 0 0 var(--mc-on-edge)}
+.anvil{position:absolute;left:150px;top:90px;width:360px;height:330px;background:#c6c6c6;box-shadow:inset 0 0 0 2px #fff,inset 0 0 0 4px #555;color:#3f3f3f;font-size:13px;padding:14px}
+.anvil .t{text-align:center;margin-bottom:10px}
+.anvil .nm2{height:26px;background:#8b8b8b;box-shadow:inset 0 0 0 2px #373737;color:#fff;padding:4px 8px;margin-left:60px;white-space:nowrap;overflow:hidden}
+.anvil .slots{display:flex;align-items:center;gap:14px;margin:14px 0 4px 20px;font-size:18px}
+.anvil .slot{width:36px;height:36px;background:#8b8b8b;box-shadow:inset 0 0 0 2px #373737;display:grid;place-items:center}
+.anvil .slot .tile{width:24px;height:24px;font-size:15px;margin:0}
+.anvil .cost{text-align:right;color:#2e7d16;background:rgba(0,0,0,.35);padding:1px 6px;width:max-content;margin-left:auto;color:#80ff20}
+.anvil .inv{display:grid;grid-template-columns:repeat(9,34px);gap:2px;margin-top:8px}
+.anvil .inv i{height:34px;background:#8b8b8b;box-shadow:inset 0 0 0 2px #373737}
+.side{position:absolute;left:520px;top:90px;width:300px;height:330px;display:flex;flex-direction:column;background:rgba(var(--mc-panel),.86);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.side .srow{font-size:12px;cursor:pointer}
+
+.settingsmock{border:1px solid var(--line);background:var(--ground-2);padding:16px 18px;display:grid;gap:10px}
+.tbl{font-family:var(--mc-font);font-size:13px;background:rgba(16,17,19,.95);box-shadow:inset 0 0 0 1px var(--mc-edge);max-width:680px;overflow-x:auto}
+.tbl .r{display:grid;grid-template-columns:minmax(0,1fr) 54px 130px;gap:10px;align-items:center;height:26px;padding:0 10px;color:#fff;min-width:420px}
+.tbl .r.sec{color:var(--accent);font-size:11px;height:22px;border-bottom:1px solid rgba(108,195,73,.3)}
+.cap{display:inline-block;height:16px;line-height:16px;padding:0 5px;font-size:11px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);color:#fff}
+.link{color:var(--accent);font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:16px 18px;display:grid;gap:8px;align-content:start}
+.note h3{font:700 15px/1.4 "Noto Sans JP",sans-serif;margin:0}
+.note ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13.5px;display:grid;gap:4px}
+.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.ask ol{margin:0;padding-left:1.3em;color:var(--ink-2);font-size:13.5px;display:grid;gap:6px}
+.ask b{color:var(--ink)}
+
+.anvil{left:300px;top:105px}
+.anvil .inv i{display:grid;place-items:center;position:relative}
+.anvil .inv i .tile{width:24px;height:24px;font-size:15px;margin:0}
+.anvil .inv i.hl{box-shadow:inset 0 0 0 2px #373737,0 0 0 2px var(--mc-on-edge);z-index:1}
+.side{left:auto;top:auto;height:auto}
+.side.steps{left:664px;top:40px;width:288px;max-height:480px}
+.side.editor{left:8px;top:20px;width:288px;height:500px}
+.side .scroll{min-height:40px}
+.side .kinds{grid-template-columns:repeat(auto-fill,22px)}
+.side .kind{width:22px;height:22px}
+.kind.itemc{background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px var(--mc-dim)}
+.kind.itemc.on{background:var(--mc-sel);box-shadow:inset 0 0 0 2px var(--mc-on-edge)}
+.erow{grid-template-columns:minmax(0,1fr) 16px 26px 16px 30px;column-gap:2px}
+.side .erow{grid-template-columns:minmax(0,1fr) 16px 26px 16px 30px;font-size:12px;height:24px;padding:0 8px}
+.erow .lv{text-align:center;font-size:12px}
+.erow .lv.off{color:var(--mc-faint)}
+.erow .sb{all:unset;cursor:pointer;width:16px;height:16px;line-height:16px;text-align:center;color:var(--mc-dim);box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key);font-size:12px}
+.erow .sb:hover{color:#fff;background:#3a3b3c}
+.erow .wide{grid-column:2 / 6;text-align:right}
+.side .bar{font-size:12px;padding:0 8px}
+.side .sets{padding:5px 8px}
+.side .ctitle{padding:0 8px}
+.seg{display:flex;gap:3px;flex:1;justify-content:flex-end}
+.seg button{all:unset;cursor:pointer;font:11px var(--mc-font);padding:0 7px;height:18px;line-height:18px;color:var(--mc-dim);background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);white-space:nowrap}
+.seg button.on{color:#fff;background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.seg button:hover{color:#fff}
+.mat{flex:none;border-bottom:1px solid var(--mc-edge);padding:5px 8px 6px;font-size:11px;display:grid;gap:4px}
+.mat .t{color:var(--mc-faint);display:flex}
+.mat .chips{display:flex;flex-wrap:wrap;gap:3px}
+.chip{display:inline-flex;align-items:center;height:18px;padding:0 5px 0 2px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);white-space:nowrap}
+.chip .tile{margin-right:3px;vertical-align:0}
+.chip.miss{color:var(--mc-warn);box-shadow:inset 0 0 0 1px var(--mc-warn)}
+.chip.have{color:var(--mc-dim)}
+.chip b{font-weight:400;margin-left:4px}
+.srow{cursor:default}
+.srow .side-have{color:#fff}
+.srow .side-later{color:var(--mc-dim)}
+.srow .side-miss{color:var(--mc-warn)}
+.srow.done{opacity:.45}
+.srow.next{box-shadow:inset 2px 0 0 #fff}
+.srow.can{background:var(--mc-sel);box-shadow:inset 2px 0 0 var(--mc-on-edge);cursor:pointer}
+.srow{grid-template-columns:18px minmax(0,1fr) auto}
+.srow .c small{display:block;font-size:10px;color:var(--mc-faint);white-space:nowrap}
+.tip{position:absolute;z-index:5;background:#100010;box-shadow:inset 0 0 0 2px #2a0a5e;color:#fff;font-size:12px;line-height:1.35;padding:5px 7px;white-space:nowrap;pointer-events:none}
+.tip .e{color:#a8a8ff}
+.tip .w{color:var(--mc-dim)}
+.tip .new{color:var(--mc-on-edge)}
+.handy{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--ink-2)}
+.handy button{all:unset;cursor:pointer;border:1px solid var(--line);background:var(--ground-2);padding:3px 9px;font-size:13px}
+.handy button.on{border-color:var(--accent);color:#fff}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">BACKLOG L-170 · エンチャント順序 · 手順の側をまとめる（モック、2026-11-12）</div>
+    <h1>手順・足りないもの・作業ペナルティを 1 つのまとまりで見せる</h1>
+    <p class="lede">左の選択はプランナー画面と金床で 1 つの部品になりました。このモックは<strong>右の手順の側</strong>を同じように 1 つにまとめ、関連する表示（<strong>計画全体で足りないもの</strong>、<strong>次に使うアイテムのハイライト</strong>、<strong>アイテムの作業ペナルティ</strong>）を一緒に考える案です。計算は実際に動きます。「手元にあるもの」を切り替えたり、光っている手順を押して進めたりできます。アイコンは 1 文字の仮の絵、エンチャント名は仮の訳です。</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="場面">
+    <button role="tab" aria-selected="true" data-scene="anvil">金床の画面</button>
+    <button role="tab" aria-selected="false" data-scene="plan">Lamium の画面</button>
+  </div>
+  <div class="opts">
+    <label>目標の形
+      <select id="optGoal"><option value="seg">2 つのボタン</option><option value="step">◀ ▶（いまの形）</option></select>
+    </label>
+    <label>インベントリのハイライト
+      <select id="optHl"><option value="on">オン</option><option value="off">オフ</option></select>
+    </label>
+    <label>ゲームモード
+      <select id="optMode"><option value="s">サバイバル</option><option value="c">クリエイティブ</option></select>
+    </label>
+  </div>
+  <div class="handy" id="handy"></div>
+
+  <div class="stage-outer"><div class="stage-fit" id="fit"><div class="stage" id="stage">
+    <canvas class="world" id="world" width="480" height="270"></canvas>
+    <div class="dim" style="background:rgba(0,0,0,.45)"></div>
+    <div id="layer"></div>
+  </div></div></div>
+
+  <section class="cards">
+    <article class="note"><h3>手順の側を 1 つにする</h3><ul>
+      <li>上から <strong>目標</strong>、<strong>合計</strong>、<strong>材料</strong>、<strong>手順</strong>、いま何をすればよいかの 1 行。金床でも Lamium の画面でも同じ並び、同じ描画</li>
+      <li>Lamium の画面は幅があるので、合計の下に「いちばん高い 1 回」「完成品の金床使用回数」の行が足される。金床では出さない</li>
+      <li>目標は「2 つのボタン」にすると、選べるのが 2 つで、いまどちらかが一目で分かる（◀ ▶ は何が出てくるか押すまで分からない）</li>
+    </ul></article>
+    <article class="note"><h3>足りないもの</h3><ul>
+      <li><strong>材料</strong>: 計画に要るもの（アイテムと本）を全部並べ、手元にないものを黄色い枠にする。「材料 4/6」で数も分かる</li>
+      <li>合成済みの本やアイテムに入っている分は「ある」と数える</li>
+      <li><strong>手順の各辺</strong>: 白 = いま手元にある、灰 = 前の手順で作るもの、黄 = 材料が足りない</li>
+      <li>済んだ手順は薄く、次の手順は白い線、<strong>2 つとも手元にある手順は緑</strong>（いまできる）</li>
+      <li>Lamium の画面でも、プレイヤーのインベントリを読んで同じ表示にする</li>
+    </ul></article>
+    <article class="note"><h3>次に使うアイテムのハイライト</h3><ul>
+      <li>金床のインベントリで、次の手順に使う 2 つのスロットに緑の枠を付ける</li>
+      <li>金床に置いた 2 つが手順と一致したときの行の強調は、いまのまま</li>
+      <li>スロットの位置は読める見込みだが、スロットの上に枠を描くのは未確認（以前、スロットの描画に割り込んで壊したことがあるので、リストと同じ「画面の後に描く」やり方で試す）</li>
+    </ul></article>
+    <article class="note"><h3>作業ペナルティ</h3><ul>
+      <li><strong>ツールチップ</strong>: アイテムに乗せると「作業ペナルティ: 金床 N 回（次回 +M）」が出る。モックではインベントリのマスに乗せると出る。これは L-319「Item details: Work Penalty first, then the unshown rest」の 1 行目で、設定と置き場所はそちらで決める</li>
+      <li><strong>手順の行</strong>: その回に上乗せされる分を、コストの下に小さく出す（Lamium の画面には既にある。金床にも出す）</li>
+      <li>金床の「作業ペナルティ: 左 +N、右 +M」の行は、手順の行に出るなら要らなくなる</li>
+    </ul></article>
+  </section>
+
+  <section class="ask">
+    <h2>確認したいこと</h2>
+    <ol>
+      <li><b>手順の側を、この並び（目標・合計・材料・手順・1 行）で両方共通にしてよいか。</b></li>
+      <li><b>目標は「2 つのボタン」と「◀ ▶」のどちらにするか。</b>おすすめは 2 つのボタン。</li>
+      <li><b>材料の一覧と、手順の各辺の色分け（白・灰・黄）でよいか。</b></li>
+      <li><b>次に使うアイテムのハイライトを入れるか。</b>描けるかは試作で確かめる。</li>
+      <li><b>作業ペナルティのツールチップは L-319 として別に作る、でよいか。</b>手順の行の上乗せ表示はこちらで入れる。</li>
+      <li><b>作る順番。</b>おすすめ: ①手順の側の共通化と材料・色分け・目標、②ハイライトの試作、③ L-319 のツールチップ。</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+
+// id, name (placeholder translation), frequency, max level, primary slots, secondary slots, conflicts
+// Frequency, max level, slots and conflicts are the values read from the game on 2026-11-12.
+const E = [
+ [0,"ダメージ軽減",30,4,0xf,0,[1,3,4]],[1,"火炎耐性",10,4,0xf,0,[0,3,4]],[2,"落下耐性",10,4,0x4,0,[]],
+ [3,"爆発耐性",3,4,0xf,0,[0,1,4]],[4,"飛び道具耐性",10,4,0xf,0,[0,1,3]],[5,"棘の鎧",1,3,0x2,0xd,[]],
+ [6,"水中呼吸",3,3,0x1,0,[]],[7,"水中歩行",3,3,0x4,0,[25]],[8,"水中採掘",3,1,0x1,0,[]],
+ [9,"ダメージ増加",30,5,0x800010,0x200,[10,11,39,40]],[10,"アンデッド特効",10,5,0xc00010,0x200,[9,11,39,40]],
+ [11,"虫特効",10,5,0xc00010,0x200,[9,10,39,40]],[12,"ノックバック",10,2,0x800010,0,[]],
+ [13,"火属性",3,2,0xc00010,0,[]],[14,"ドロップ増加",3,3,0x800010,0,[]],[15,"効率強化",30,5,0xe40,0x80,[]],
+ [16,"シルクタッチ",1,1,0xe40,0x80,[18]],[17,"耐久力",10,3,0x811e7f,0x72e1c0,[]],[18,"幸運",3,3,0xe40,0,[16]],
+ [19,"射撃ダメージ増加",30,5,0x20,0,[]],[20,"パンチ",3,2,0x20,0,[]],[21,"フレイム",3,1,0x20,0,[]],
+ [22,"無限",1,1,0x20,0,[26]],[23,"宝釣り",3,3,0x1000,0,[]],[24,"入れ食い",3,3,0x1000,0,[]],
+ [25,"氷渡り",3,2,0x4,0,[7]],[26,"修繕",3,1,0x811e7f,0x72e1c0,[22]],[27,"束縛の呪い",1,1,0x4400f,0,[]],
+ [28,"消滅の呪い",1,1,0xffffffff,0,[]],[29,"水生特効",10,5,0x8000,0,[]],[30,"激流",3,3,0x8000,0,[31,32]],
+ [31,"忠誠",30,3,0x8000,0,[30]],[32,"召雷",1,1,0x8000,0,[30]],[33,"拡散",3,1,0x10000,0,[34]],
+ [34,"貫通",30,4,0x10000,0,[33]],[35,"高速装填",10,3,0x10000,0,[]],[36,"ソウルスピード",1,3,0x4,0,[]],
+ [37,"スニーク速度上昇",1,3,0x8,0,[]],[38,"ウィンドバースト",3,3,0x400000,0,[]],[39,"重撃",10,5,0x400000,0,[9,10,11,40]],
+ [40,"防具貫通",3,4,0x400000,0,[9,10,11,39]],[41,"突進",10,3,0x800000,0,[]],
+];
+const ITEMS = [["ダイヤモンドの剣",0x10],["ダイヤモンドのツルハシ",0x400],["ダイヤモンドの斧",0x200],["ダイヤモンドのシャベル",0x800],
+ ["ダイヤモンドのクワ",0x40],["弓",0x20],["クロスボウ",0x10000],["トライデント",0x8000],["メイス",0x400000],["ダイヤモンドの槍",0x800000],
+ ["ダイヤモンドのヘルメット",0x1],["ダイヤモンドのチェストプレート",0x2],["ダイヤモンドのレギンス",0x8],["ダイヤモンドのブーツ",0x4],
+ ["釣竿",0x1000],["エリトラ",0x4000],["盾",0x20000]];
+const ROMAN=["","I","II","III","IV","V"];
+const bookPerLevel = f => f===30||f===10 ? 1 : f===3 ? 2 : 4;
+const maxInputs = 10;
+
+
+const KIND = ["剣","ツ","斧","シ","ク","弓","弩","叉","槌","槍","兜","胸","脚","靴","釣","翼","盾"];
+const KIND_NAME = ["剣","ツルハシ","斧","シャベル","クワ","弓","クロスボウ","トライデント","メイス","槍","ヘルメット","チェストプレート","レギンス","ブーツ","釣竿","エリトラ","盾"];
+const START = () => new Map([[14,3],[13,2],[17,3],[9,5],[26,1]]);
+let scene="anvil", goalStyle="seg", hilite=true, creative=false;
+let item = 0, goal = "levels", want = START(), last = new Map();
+// What the player has: one entry per stack, as the inputs it holds and its anvil uses.
+let stacks = [];
+
+const el = (tag, cls, html) => { const e=document.createElement(tag); if(cls) e.className=cls; if(html!=null) e.innerHTML=html; return e; };
+const pen = w => (1<<w)-1;
+const tile = (ch, book) => `<span class="tile${book?" book":""}">${ch}</span>`;
+const bits = m => { let n=0; while(m){ n+=m&1; m>>>=1; } return n; };
+
+// The same search as src/features/inventory/EnchantPlan.h.
+function plan(inputs, refuseAt, least){
+  const n=inputs.length; if(n<1||n>maxInputs) return null;
+  const deepest=Math.max(...inputs.map(i=>i.work)), works=deepest+n, full=(1<<n)-1;
+  let itemBit=0; inputs.forEach((x,i)=>{ if(x.item) itemBit=1<<i; });
+  const cells=new Array((full+1)*works).fill(null), value=new Array(full+1).fill(0);
+  const at=(m,w)=>m*works+w;
+  for(let mask=1;mask<=full;mask++){
+    const low=31-Math.clz32(mask&-mask);
+    value[mask]=value[mask&(mask-1)]+inputs[low].value;
+    if(!(mask&(mask-1))){ cells[at(mask,inputs[low].work)]={total:0,highest:0}; continue; }
+    for(let kept=(mask-1)&mask;kept;kept=(kept-1)&mask){
+      const gone=mask^kept; if(gone&itemBit) continue;
+      for(let a=0;a<works;a++){ const L=cells[at(kept,a)]; if(!L) continue;
+        for(let b=0;b<works;b++){ const R=cells[at(gone,b)]; if(!R) continue;
+          const w=Math.max(a,b)+1; if(w>=works) continue;
+          const cost=value[gone]+pen(a)+pen(b); if(refuseAt>0&&cost>=refuseAt) continue;
+          const total=L.total+R.total+cost, highest=Math.max(L.highest,R.highest,cost), best=cells[at(mask,w)];
+          if(!best||total<best.total||(total===best.total&&highest<best.highest)) cells[at(mask,w)]={total,highest,kept,a,b};
+        }}
+    }
+  }
+  let end=-1;
+  for(let w=0;w<works;w++){ const c=cells[at(full,w)]; if(!c) continue;
+    if(end<0){ end=w; if(least) break; continue; }
+    const best=cells[at(full,end)];
+    if(c.total<best.total||(c.total===best.total&&c.highest<best.highest)) end=w;
+  }
+  if(end<0) return null;
+  const steps=[];
+  (function emit(mask,w){ if(!(mask&(mask-1))) return; const c=cells[at(mask,w)], gone=mask^c.kept;
+    emit(c.kept,c.a); emit(gone,c.b);
+    steps.push({kept:c.kept,gone,cost:value[gone]+pen(c.a)+pen(c.b),work:w,keptWork:c.a,goneWork:c.b}); })(full,end);
+  return {steps,total:cells[at(full,end)].total,highest:cells[at(full,end)].highest,work:end};
+}
+
+
+const fits = e => ((e[4]|e[5])&ITEMS[item][1])!==0;
+function listed(){ const all=E.filter(fits); return [...all.filter(e=>e[0]!==27&&e[0]!==28), ...all.filter(e=>e[0]===27||e[0]===28)]; }
+const clash = (a,b) => a[6].includes(b[0]) || b[6].includes(a[0]);
+function blocker(e){ for(const id of want.keys()) if(id!==e[0] && clash(e,E[id])) return E[id]; return null; }
+function prune(){ for(const id of [...want.keys()]) if(!listed().some(e=>e[0]===id)) want.delete(id); }
+
+function compute(){
+  const ids=[...want.keys()].sort((a,b)=>a-b);
+  const inputs=[{value:0,work:0,item:true},...ids.map(id=>({value:want.get(id)*bookPerLevel(E[id][2]),work:0,item:false}))];
+  const label=i=>E[ids[i-1]][1]+(E[ids[i-1]][3]>1?" "+ROMAN[want.get(ids[i-1])]:"");
+  const mine=ids.length?plan(inputs,creative?0:40,goal==="work"):null;
+  const text=mask=>{
+    if(mask&1) return KIND_NAME[item];
+    const parts=[]; for(let i=1;i<inputs.length;i++) if(mask>>i&1) parts.push(label(i));
+    return parts.join(", ");
+  };
+  const glyph=mask=>mask&1?tile(KIND[item]):tile("本",true);
+  return {ids,inputs,mine,label,text,glyph};
+}
+// The stacks that are part of this plan: its inputs and its steps' results.
+function usable(c){
+  if(!c.mine) return [];
+  return stacks.filter(s=>bits(s.mask)===1 || c.mine.steps.some(st=>(st.kept|st.gone)===s.mask));
+}
+function reset(){
+  const c=compute();
+  stacks=[{mask:1,work:0}];
+  c.ids.forEach((id,i)=>{ if(i%2===0) stacks.push({mask:1<<(i+1),work:0}); });
+}
+const refused = "どの順番でも 40 レベル以上の回が出るため金床に拒否されます。";
+
+function chooser(into){
+  const bar=el("div","bar"); bar.innerHTML=`<span class="nm">${tile(KIND[item])}${KIND_NAME[item]}</span>`;
+  into.append(bar);
+  const kinds=el("div","kinds");
+  ITEMS.forEach((it,i)=>{ const k=el("button","kind"+(i===item?" on":""),tile(KIND[i])); k.title=KIND_NAME[i]; k.onclick=()=>{ if(i===item) return; if(want.size) last.set(item,new Map(want)); item=i; want=new Map(); reset(); render(); }; kinds.append(k); });
+  into.append(kinds);
+  const rows=listed();
+  const sets=el("div","sets");
+  const all=el("button","btn","すべて最大"), prev=el("button","btn","前回の選択"), clear=el("button","btn","クリア");
+  all.onclick=()=>{ want=new Map(); for(const e of rows) if(e[0]!==27&&e[0]!==28 && ![...want.keys()].some(id=>clash(e,E[id])) && want.size<maxInputs-1) want.set(e[0],e[3]); reset(); render(); };
+  prev.disabled=!last.has(item); prev.onclick=()=>{ want=new Map(last.get(item)); reset(); render(); };
+  clear.disabled=!want.size; clear.onclick=()=>{ last.set(item,new Map(want)); want=new Map(); reset(); render(); };
+  sets.append(all,prev,el("span","spacer"),clear); into.append(sets);
+  into.append(el("div","ctitle",`付けたいエンチャント <b>${want.size}</b>/${maxInputs-1}`));
+  const sc=el("div","scroll");
+  for(const e of rows){
+    const on=want.has(e[0]), blk=on?null:blocker(e), full=!on&&want.size>=maxInputs-1;
+    const r=el("div","row erow"+(blk?" na":""));
+    r.onclick=()=>{ if(blk||full) return; on?want.delete(e[0]):want.set(e[0],e[3]); reset(); render(); };
+    r.append(el("div","nm",e[1]));
+    if(blk){ r.append(el("span","why wide",blk[1]+" と競合")); }
+    else {
+      const lv=on?want.get(e[0]):e[3];
+      if(on && e[3]>1){
+        const dn=el("button","sb","−"), up=el("button","sb","+");
+        dn.onclick=ev=>{ ev.stopPropagation(); lv>1?want.set(e[0],lv-1):want.delete(e[0]); reset(); render(); };
+        up.onclick=ev=>{ ev.stopPropagation(); if(lv<e[3]){ want.set(e[0],lv+1); reset(); render(); } };
+        r.append(dn,el("span","lv",ROMAN[lv]),up);
+      } else r.append(el("span"),el("span","lv off",e[3]>1?ROMAN[lv]:""),el("span"));
+      r.append(el("button","sw"+(on?" on":"")+(full?" dis":"")));
+    }
+    sc.append(r);
+  }
+  into.append(sc);
+}
+
+// The steps' side, one for both screens. `full`: the planner screen's extra lines.
+function stepsPart(into, c, full){
+  const bar=el("div","bar"); bar.append(el("span","k","目標"));
+  const flip=to=>{ if(goal===to) return; goal=to; reset(); render(); };
+  if(goalStyle==="seg"){
+    const seg=el("span","seg");
+    for(const [id,text] of [["levels","最小レベル"],["work","最小作業ペナルティ"]]){ const b=el("button",goal===id?"on":"",text); b.onclick=()=>flip(id); seg.append(b); }
+    bar.append(seg);
+  } else {
+    const st=el("span","step wide"), prev=el("button",null,"◀"), next=el("button",null,"▶");
+    prev.onclick=next.onclick=()=>flip(goal==="levels"?"work":"levels");
+    st.append(prev,el("span",null,goal==="levels"?"最小レベル":"最小作業ペナルティ"),next); bar.append(el("span","spacer"),st);
+  }
+  into.append(bar);
+  if(!c.mine){
+    const sc=el("div","scroll");
+    sc.append(el("div","empty"+(c.ids.length?" warn":""), c.ids.length?refused:"左で付けたいエンチャントをオンにすると、ここに金床の順番が出ます。"));
+    into.append(sc); return;
+  }
+  const have=usable(c), at=mask=>have.some(s=>s.mask===mask), holds=bit=>have.some(s=>s.mask&bit);
+  const done=s=>have.some(x=>(x.mask&(s.kept|s.gone))===(s.kept|s.gone));
+  const steps=c.mine.steps, next=steps.findIndex(s=>!done(s));
+  const sum=el("div","sum"); sum.style.borderTop="0"; sum.style.borderBottom="1px solid var(--mc-edge)";
+  sum.append(el("div","big",`合計 ${c.mine.total} レベル`+(creative?"":`<span class="faint" style="margin-left:10px">いまのレベル: 30</span>`)));
+  if(full) sum.append(el("div","faint",`いちばん高い 1 回: ${c.mine.highest}　完成品の金床使用回数: ${c.mine.work}（次回 +${pen(c.mine.work)}）`));
+  into.append(sum);
+  // Materials: everything the plan needs, what is not at hand marked.
+  const mat=el("div","mat"), chips=el("div","chips");
+  let got=0;
+  c.inputs.forEach((x,i)=>{ const ok=holds(1<<i); if(ok) got++;
+    chips.append(el("span","chip "+(ok?"have":"miss"),(i===0?tile(KIND[item]):tile("本",true))+c.text(1<<i)+`<b>${ok?"✓":"なし"}</b>`)); });
+  mat.append(el("div","t",`材料 ${got}/${c.inputs.length}<span class="spacer"></span>${got<c.inputs.length?'<span class="warn">足りないものがあります</span>':"そろっています"}`),chips);
+  into.append(mat);
+  into.append(el("div","ctitle",`手順 <b>${steps.length}</b> 回<span class="spacer"></span>レベル`));
+  const sc=el("div","scroll");
+  const sideClass=mask=>at(mask)?"side-have":bits(mask)===1?"side-miss":[...Array(c.inputs.length).keys()].every(i=>!(mask>>i&1)||holds(1<<i))?"side-later":"side-miss";
+  steps.forEach((s,i)=>{
+    const can=!done(s)&&at(s.kept)&&at(s.gone);
+    const r=el("div","row srow"+(done(s)?" done":can?" can":i===next?" next":""));
+    r.append(el("span","n",i+1));
+    const w=el("div","what");
+    w.innerHTML=`<span class="${sideClass(s.kept)}">${c.glyph(s.kept)}${c.text(s.kept)}</span><br><span class="plus">＋</span><span class="${sideClass(s.gone)}">${c.glyph(s.gone)}${c.text(s.gone)}</span>`;
+    r.append(w);
+    const p=pen(s.keptWork)+pen(s.goneWork);
+    r.append(el("span","c",s.cost+(p?`<small>うち上乗せ ${p}</small>`:"")));
+    if(can){ r.title="モック: 押すとこの回を金床で行ったことにします"; r.onclick=()=>{
+      stacks=stacks.filter(x=>x.mask!==s.kept&&x.mask!==s.gone); stacks.push({mask:s.kept|s.gone,work:s.work}); render(); }; }
+    sc.append(r);
+  });
+  into.append(sc);
+  const f=el("div","sum");
+  if(next<0) f.append(el("div",null,'<span style="color:var(--mc-on-edge)">計画は完了しています</span>'));
+  else {
+    const s=steps[next], lack=[s.kept,s.gone].filter(m=>!at(m));
+    const ready=steps.findIndex(x=>!done(x)&&at(x.kept)&&at(x.gone));
+    if(ready>=0) f.append(el("div",null,`いまできる: ${ready+1} 回目`+(scene==="anvil"&&hilite?"（インベントリで緑の枠の 2 つ）":"")));
+    else f.append(el("div","warn",`${next+1} 回目に足りません: ${lack.map(c.text).join(" / ")}`));
+  }
+  into.append(f);
+}
+
+function head(title){
+  const h=el("div","phead");
+  h.innerHTML=`<span class="brand" style="font-size:12px">${title}</span><span class="exp">試験的</span><span class="spacer"></span>`;
+  return h;
+}
+function tipFor(layer, cell, s, c){
+  const t=el("div","tip");
+  const lines=[`<div>${s.mask&1?"ダイヤモンドの剣":"エンチャントの本"}</div>`];
+  for(let i=1;i<c.inputs.length;i++) if(s.mask>>i&1) lines.push(`<div class="e">${c.label(i)}</div>`);
+  lines.push(`<div class="new">作業ペナルティ: 金床 ${s.work} 回（次回 +${pen(s.work)}）</div>`);
+  t.innerHTML=lines.join("");
+  const a=layer.getBoundingClientRect(), b=cell.getBoundingClientRect(), k=a.width/960;
+  t.style.left=((b.right-a.left)/k+6)+"px"; t.style.top=((b.top-a.top)/k-4)+"px";
+  layer.append(t); return t;
+}
+
+function render(){
+  prune();
+  const layer=document.getElementById("layer"); layer.innerHTML="";
+  const c=compute(), have=usable(c);
+  // The scene's own control: what is at hand.
+  const handy=document.getElementById("handy"); handy.innerHTML="<span>手元にあるもの（場面の設定）:</span>";
+  c.inputs.forEach((x,i)=>{ const bit=1<<i, alone=stacks.some(s=>s.mask===bit), merged=!alone&&stacks.some(s=>s.mask&bit);
+    const b=el("button",alone||merged?"on":"",c.text(bit)+(merged?"（合成済み）":alone?" ✓":"")); b.disabled=merged;
+    b.onclick=()=>{ if(alone) stacks=stacks.filter(s=>s.mask!==bit); else stacks.push({mask:bit,work:0}); render(); }; handy.append(b); });
+  const again=el("button",null,"最初に戻す"); again.onclick=()=>{ reset(); render(); }; handy.append(again);
+
+  if(scene==="plan"){
+    const p=el("div","panel");
+    const h=el("div","phead"); h.innerHTML='<span class="brand">Lamium</span><span class="crumb">エンチャント順序</span><span class="exp">試験的</span><span class="spacer"></span>'; h.append(el("button","hbtn","閉じる")); p.append(h);
+    const body=el("div","pbody"), l=el("div","col left"), r=el("div","col right");
+    chooser(l); stepsPart(r,c,true); body.append(l,r); p.append(body);
+    p.append(el("div","pfoot","本はすべて新品として計算します。材料の有無はインベントリから読みます。"));
+    layer.append(p); return;
+  }
+  const steps=c.mine?c.mine.steps:[], at=mask=>have.some(s=>s.mask===mask), done=s=>have.some(x=>(x.mask&(s.kept|s.gone))===(s.kept|s.gone));
+  const ready=steps.find(s=>!done(s)&&at(s.kept)&&at(s.gone));
+  const a=el("div","anvil");
+  a.innerHTML=`<div class="t">修理 &amp; 名前変更</div><div class="nm2"></div>
+    <div class="slots"><span class="slot"></span>＋<span class="slot"></span>→<span class="slot"></span></div>
+    <div style="height:21px"></div><div style="margin-top:10px">インベントリ</div>`;
+  const inv=el("div","inv");
+  for(let i=0;i<36;i++){
+    const cell=el("i"), s=stacks[i];
+    if(s){
+      cell.innerHTML=s.mask&1?tile(KIND[item]):tile("本",true);
+      if(hilite&&ready&&(s.mask===ready.kept||s.mask===ready.gone)) cell.className="hl";
+      let tip=null;
+      cell.onmouseenter=()=>{ tip=tipFor(layer,cell,s,c); };
+      cell.onmouseleave=()=>{ if(tip) tip.remove(); tip=null; };
+    }
+    inv.append(cell);
+  }
+  a.append(inv); layer.append(a);
+  const e=el("div","side editor"); e.append(head("エンチャントを選ぶ")); chooser(e); layer.append(e);
+  const s=el("div","side steps"); s.append(head("エンチャント順序")); stepsPart(s,c,false); layer.append(s);
+}
+
+function drawWorld(){
+  const c=document.getElementById("world"), g=c.getContext("2d");
+  let s=4242; const r=()=>(s=s*1103515245+12345>>>0)/4294967296;
+  g.fillStyle="#6fa8dc"; g.fillRect(0,0,480,130);
+  for(let y=0;y<6;y++) for(let x=0;x<20;x++){
+    const v=70+r()*30|0; g.fillStyle=y===0?`rgb(${v*.6|0},${v+60},${v*.5|0})`:`rgb(${v+20},${v},${v*.7|0})`;
+    g.fillRect(x*24,130+y*24,24,24);
+  }
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  scene=b.dataset.scene; render();
+});
+document.getElementById("optGoal").onchange=e=>{ goalStyle=e.target.value; render(); };
+document.getElementById("optHl").onchange=e=>{ hilite=e.target.value==="on"; render(); };
+document.getElementById("optMode").onchange=e=>{ creative=e.target.value==="c"; reset(); render(); };
+function fit(){ const f=document.getElementById("fit"), st=document.getElementById("stage"); const k=f.clientWidth/960; st.style.transform=`scale(${k})`; f.style.height=540*k+"px"; }
+addEventListener("resize",fit); fit(); drawWorld(); reset(); render();
+</script>

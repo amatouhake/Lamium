@@ -1671,9 +1671,21 @@ Raised by the maintainer and not decided:
   only names what the next step lacks, when it comes. The maintainer
   suggests doing this together with the related items set aside earlier
   (what the player has, the next step), as one feature.
+The maintainer the same day: the related things are the item's work penalty
+and the highlight of what the next step uses; rather than holding to what
+the first version left out, things that belong together should be thought
+through together, even if they are built later.
+Mockup made the same day, not yet reviewed:
+[demos/enchant-steps.html](demos/enchant-steps.html). One steps' side for
+both screens: goal (two buttons or the stepper), total, a materials list
+with what is not at hand marked, the steps with each side coloured (at
+hand, made earlier, missing) and done / next / ready told apart, the
+surcharge under a step's cost; the next step's two stacks outlined in the
+anvil's inventory; the work penalty in an item's tooltip (L-319). Its six
+questions are at the bottom of the page.
 Still open:
-- The right side: one design for the planner screen and the anvil, with
-  what is missing shown for the whole plan.
+- The right side: the mockup's questions, then building in the order
+  agreed.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 
