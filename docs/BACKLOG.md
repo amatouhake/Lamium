@@ -1112,11 +1112,9 @@ useful way. The planner has both (`Goal`, below).
 Decided (maintainer 2026-11-12): merging two books of one enchantment into a
 higher level stays out of the first version; more than 10 inputs is refused
 and the screen says so.
-Open (maintainer): how the two goals appear. Either a choice between them or
-both plans at once is acceptable. Agent's recommendation: a two-way switch
-above one step list, fewest levels by default, with a line saying so when
-both goals give the same plan; two full lists double a screen that can
-already hold nine steps.
+Decided (maintainer 2026-11-12): a two-way switch above one step list,
+fewest levels by default, with a line saying so when both goals give the
+same plan.
 Groundwork 2026-11-12 (pure logic and tests only; no screen, setting or
 action): `src/features/inventory/EnchantPlan.h` plans the order for up to 10
 inputs. The caller gives each input's cost as the sacrificed side and its
@@ -1134,8 +1132,7 @@ Still to check in game before any screen is built (the planner assumes them):
   or per-item multiplier, plus both surcharges, with nothing else added (no
   rename, repair or incompatible-enchantment charge in the planned cases).
 - The refusal threshold and whether it differs in Creative.
-Next: the three game checks above, then the screen once the goal display is
-chosen.
+Next: the three game checks above, then the screen.
 
 ### L-169 Item Transfer: remaining gesture and screen extensions
 Kind: Design. Current status reconciled 2026-10-20: matching/everything,
