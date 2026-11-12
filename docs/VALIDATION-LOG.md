@@ -12,6 +12,29 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, third pass (2026-11-12)
+
+`cfd22b5e`, local build, DLL SHA-256
+`c7e556623a598ac5086e508a0c27160e915e77ffd828e100a3b381b7348c7752`, no trace options,
+1.26.60.05 Dev instance, Japanese, Creative. Passed, per the maintainer (with a
+screenshot):
+
+- After a finished item is made, closing and reopening the anvil shows no list; the
+  planner brings it back.
+- With a finished item and a fresh one of the kind both carried, the anvil guides from
+  step 1 instead of saying finished.
+- The held-state row is under the list and switching it keeps the row order; the
+  main-hand kind has a white line under its cell.
+
+The "finished" that would not go away in the second pass: a stone pickaxe with the
+same enchantments was still carried; only the diamond one had been looked at.
+
+Awkward: the white line reads as belonging to either the cell above or the one
+below; the switches of the enchantment rows and of the held-state row are on the
+left while Lamium's settings put them right of the name; the held-state row's hover
+background leaves a gap on the left only; an experimental feature without a way to
+turn it off (the world map is the same).
+
 ## Enchantment order after the rework (2026-11-12)
 
 `9a1bec30`, local build, DLL SHA-256
