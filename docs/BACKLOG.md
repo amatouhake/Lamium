@@ -121,9 +121,9 @@ Do not infer game success from a build or unit-test result.
 
 ### Left from 0.6.0
 
-The tag (VALIDATION-LOG 2026-11-12; release published the same day): the published ZIP in game and the
-listings (LIP registry, Bedrinth, LeviLauncher) are not checked. The smoke
-used the commit's CI package.
+The tag (VALIDATION-LOG 2026-11-12; release published the same day): the published ZIP in game is
+not checked. Bedrinth and LeviLauncher list 0.6.0 (VALIDATION-LOG 2026-11-12).
+The smoke used the commit's CI package.
 
 Passed on `bb1cc4be` (VALIDATION-LOG): load, settings, Block highlight (L-320),
 the HUD layout editor (L-321), Tool Switch's drop priority (L-318), a clean

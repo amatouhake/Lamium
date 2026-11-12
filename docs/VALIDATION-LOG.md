@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.6.0 listings (2026-11-12)
+
+Per the maintainer: Bedrinth and LeviLauncher list 0.6.0. Both read the LIP
+registry (DISTRIBUTION.md); the registry itself was not opened.
+
+Not checked: the published ZIP in game.
+
 ## World probe: chunk tick range, mob timers, dragon part boxes (2026-11-12)
 
 Seen by the agent (Claude) driving the game through computer use, not by the
