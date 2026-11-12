@@ -133,6 +133,7 @@ the package/SDK loader-policy alignment in CI.
 | Note block pitch (level sound events) | `NoteSounds.cpp` | a note block's pitch on the target card stays at the note the world loaded with | the instrument and every other block entity row |
 | Ghost note block instrument (block instrument component) | `TargetInfo.cpp` `appendGhostInstrument` (`BlockInstrumentComponent`: [0] for a note block under the block, [1] for one on it; held back by L-305, also in the check's comparison) | a ghost note block shows no instrument row | real note blocks, every other row |
 | Paste across book pages (page model and caret) | `BookPaste.cpp` (`PageContent::mText`, `TextEditContext::mCaret` and `mSelection`) | a paste works as in vanilla | everything else |
+| Enchantment order (enchantment costs and anvil screen) | `EnchantOrderGame.cpp` (`Enchant::mFrequency` as the cost class, `AnvilContainerManagerController::mCost`, the `anvil_screen` name, its `root_panel` box and the `anvil_input_items` / `anvil_material_items` collections) | the planner screen says it is not checked on this game and nothing is drawn beside the anvil | everything else |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
@@ -508,6 +509,16 @@ Trace (`sneak_trace`, L-293): read-only; the sneak bits of each sent
 `PlayerAuthInputPacket`, sent item-use transactions, and the sneak flag of the
 player whose `useItemOn` runs (the local player, and in a local world the
 server's copy). `Name` is the macro that makes the two `useItemOn` hooks.
+
+### Enchantment order (`EnchantOrderGame.cpp`, no hooks)
+L-170. Reads the enchantments from `Enchant::mEnchants()` (`mEnchantType`, `mFrequency`, `mIsDisabled`,
+`getMaxLevel`, `isCompatibleWith`), names from `EnchantUtils::getEnchantNameAndLevel`, what goes on an item from
+`EnchantUtils::canEnchant` on one item per enchant slot (`Item::getEnchantSlot`), and the main-hand item's enchantments
+(`constructItemEnchantsFromUserData`) and anvil uses (`getBaseRepairCost`). Meaning a rebuild cannot check: the
+frequency values 30, 10, 3, 1 as the anvil's per-level cost (read in game 2026-11-12), the 40-level limit, and on the
+anvil screen its name, the `root_panel` control as the window, the two slot collections and
+`AnvilContainerManagerController::mCost` (a class-layout read, compared with the plan and shown when it differs).
+Gated (Enchantment order). After a game update: read a few costs from the anvil again and open the planner beside it.
 
 ### `src/features/inventory/BookPaste.cpp`
 Hooks: `BookScreenTick`, `BookScreenValid`, `PageBoxFocus`, `TextTrySet`, `ContextText`, `BookScreenOpen`, `TextCharKey`, `TextFits`, `ContextAction`, `PageParse`, `PageSetText`, `PageAddAt`, `ManagerEditPage`, `ManagerAddPage`, `BookEditSend`, `BookEditSendToServer`

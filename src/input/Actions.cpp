@@ -219,6 +219,7 @@ void executeAction(IClientInstance& client, input::Action action) {
     }
     if (action == input::Action::OpenCalculator) { ui::openCalculator(client); return; }
     if (action == input::Action::OpenBlockHighlight) { ui::openBlockHighlight(client); return; }
+    if (action == input::Action::OpenEnchantOrder) { ui::openEnchantOrder(client); return; }
     if (action == input::Action::OpenWorldMap) { ui::openWorldMap(client); return; }
     if (action == input::Action::FakeOffhandUse) { inventory::fakeOffhand::press(client); return; }
     if (action == input::Action::ElytraSwapKey) { interaction::elytraSwap::press(); return; }

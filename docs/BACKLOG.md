@@ -1206,8 +1206,24 @@ Pure logic added 2026-11-12 in `EnchantPlan.h`, tested: `levelCost(frequency,
 book)` (the mapping above; an unknown frequency gives nothing), `carried(...)`
 (which planner inputs a stack in an anvil slot stands for) and `stepFor(...)`
 (the step joining two sides).
-The design is agreed. Not yet chosen for building; the wiring waits for the
-maintainer's go-ahead.
+The design is agreed and building was chosen (maintainer 2026-11-12).
+Built 2026-11-12, not checked in game (VALIDATION.md): the screen inside the
+settings (`src/ui/EnchantView.cpp`, layout in `EnchantLayout.h`), opened by an
+unbound key or the Open button of "Enchantment order" under Inventory; the
+game reads and the list beside the anvil in
+`src/features/inventory/EnchantOrderGame.cpp`; the edits in `EnchantOrder.h`;
+the capability `EnchantOrder` gates both. Differences from the mockup, for the
+review in game:
+- A kind is named by its example item in the game's words ("Diamond Sword"),
+  not by a kind word: Lamium has no translated kind names and the game offers
+  none.
+- A row shows the enchantment with its level as the game writes it and has
+  `-` `+` buttons, instead of a separate level between the buttons.
+- The plan and the last choice per kind last for the session; nothing is
+  saved to the settings file.
+- The list beside the anvil also says when the pair in the slots is not a
+  step, and warns when the game's own cost differs from the plan's.
+- README and FEATURES.md wait for the first game check.
 
 ### L-169 Item Transfer: remaining gesture and screen extensions
 Kind: Design. Current status reconciled 2026-10-20: matching/everything,

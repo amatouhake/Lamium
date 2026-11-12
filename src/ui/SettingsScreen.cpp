@@ -12,6 +12,7 @@
 #include "ui/SchematicsView.h"
 #include "ui/SettingsTableView.h"
 #include "ui/HighlightView.h"
+#include "ui/EnchantView.h"
 #include "ui/LanguageView.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
@@ -403,6 +404,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
 void clear() {
     language_view::reset();
     highlight_view::reset();
+    enchant_view::reset();
     releaseTextKeyboard();
     numberDirty = false; uiHeld.clear(); client = nullptr;
     table_view::reset();
@@ -464,6 +466,7 @@ void finishNumber() {
 void close() {
     language_view::reset();
     highlight_view::reset();
+    enchant_view::reset();
     releaseTextKeyboard();
     table_view::disarm();
     if (ownsTop()) {
@@ -1060,6 +1063,25 @@ void render(ll::event::UIRenderEvent& event) {
         if (pendingClick && !pendingClick->right && placeCaret(context, *target.field, pendingClick->x, pendingClick->y))
             pendingClick.reset();
     } else forgetEditField();
+    if (enchant_view::opened()) {
+        releaseTextKeyboard();
+        if (!closing) {
+            // Outside the view the sidebar, Close and the rest work as usual.
+            if (auto click = std::exchange(pendingClick, std::nullopt); click && !enchant_view::click(click->x, click->y, click->right)) {
+                enchant_view::reset();
+                table_view::click(click->x, click->y, click->right);
+            }
+            for (auto wheel : std::exchange(pendingWheels, {})) if (enchant_view::opened()) enchant_view::wheel(wheel.direction);
+            if (std::exchange(pendingRelease, false)) enchant_view::release();
+            for (int key : std::exchange(pendingKeys, {})) if (enchant_view::opened()) enchant_view::key(key);
+        }
+        pendingSearch = false;
+        if (!scene) return;
+        displayedInverseScale = current.getGuiData()->mInvGuiScale;
+        DrawScale scale{screenScale};
+        table_view::render(context, current, size / screenScale, lastPointer);
+        return;
+    }
     if (highlight_view::opened()) {
         if (!closing) {
             // Outside the view the sidebar, Close and the rest work as usual.
@@ -1443,7 +1465,20 @@ void openBlockHighlight(IClientInstance& current) {
     if (openedNow) seedOpener(input::Action::OpenBlockHighlight);
     if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
     screen::finishEditing();
+    enchant_view::reset();
     if (highlight_view::begin()) table_view::rebuild(true);
+}
+void openEnchantOrder(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
+    if (!scene) open(current);
+    if (!scene) return;
+    if (openedNow) seedOpener(input::Action::OpenEnchantOrder);
+    if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
+    screen::finishEditing();
+    language_view::reset();
+    highlight_view::reset();
+    if (enchant_view::begin()) table_view::rebuild(true);
 }
 void openWorldMap(IClientInstance& current) {
     std::lock_guard lock(mutex);
@@ -1487,7 +1522,8 @@ void openTool(input::Action action) {
     case input::Action::OpenWorldMap: selectNav(worldMapNav); return;
     case input::Action::OpenCalculator: enterCalculator(true); return;
     case input::Action::SchematicMenu: enterSchematicMenu(); return;
-    case input::Action::OpenBlockHighlight: language_view::reset(); if (highlight_view::begin()) table_view::rebuild(true); return;
+    case input::Action::OpenBlockHighlight: language_view::reset(); enchant_view::reset(); if (highlight_view::begin()) table_view::rebuild(true); return;
+    case input::Action::OpenEnchantOrder: language_view::reset(); highlight_view::reset(); if (enchant_view::begin()) table_view::rebuild(true); return;
     default: return;
     }
 }
@@ -1578,7 +1614,7 @@ void start() {
             pendingMapClose = true;
             return;
         }
-        if (highlight_view::opened() && wheel) {
+        if ((highlight_view::opened() || enchant_view::opened()) && wheel) {
             pendingWheels.push_back({x, y, event.buttonData() > 0 ? -3 : 3});
             return;
         }
@@ -1649,7 +1685,7 @@ void start() {
             event.cancel();
             return;
         }
-        if (language_view::opened()) {
+        if (language_view::opened() || enchant_view::opened()) {
             event.cancel(); pendingKeys.push_back(event.keyCode()); return;
         }
         // The highlight list's search is always focused: editing keys act at

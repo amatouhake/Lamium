@@ -21,7 +21,7 @@ inline constexpr auto sections = std::to_array<std::string_view>({
     "section.interaction", "section.interface"});
 inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand" || id == "hideEffects" || id == "connectedTextures" || id == "blockHighlight") return "section.camera";
-    if (id == "previews" || id == "durability" || id == "foodValues" || id == "lockedTrades" || id == "repeatTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore") return "section.inventory";
+    if (id == "previews" || id == "durability" || id == "foodValues" || id == "lockedTrades" || id == "repeatTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore" || id == "enchantOrder") return "section.inventory";
     if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "sneakPlacement" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
     if (id == "settings" || id == "gameLanguage" || id == "skipServerPacks" || id == "calculator" || id == "toasts" || id == "hudText" || id == "bookPaste") return "section.interface";
     if (id.starts_with("schematic")) return "section.schematic";
@@ -54,6 +54,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"fakeOffhand", "feature.fakeOffhand", "help.fakeOffhand", "inventory.fakeOffhand", true, input::Action::FakeOffhand},
     {"offhandSwap", "feature.offhandSwap", "help.offhandSwap", "inventory.offhandSwap", false, input::Action::ToggleOffhandSwap},
     {"deathRestore", "feature.deathRestore", "help.deathRestore", "inventory.deathRestore", true, input::Action::ToggleDeathRestore},
+    {"enchantOrder", "feature.enchantOrder", "help.enchantOrder", "", true, input::Action::OpenEnchantOrder},
     {"restrictions", "feature.restrictions", "help.restrictions", ""},
     {"permanentSneak", "feature.permanentSneak", "help.permanentSneak", "", false, input::Action::PermanentSneak},
     {"permanentSprint", "feature.permanentSprint", "help.permanentSprint", "", false, input::Action::PermanentSprint},
@@ -148,6 +149,7 @@ inline bool opensTool(input::Action action) {
     case input::Action::OpenCalculator:
     case input::Action::SchematicMenu:
     case input::Action::OpenBlockHighlight:
+    case input::Action::OpenEnchantOrder:
         return true;
     default:
         return false;

@@ -1,5 +1,6 @@
 #include "features/inventory/EnchantPlan.h"
 #include "features/inventory/EnchantOrder.h"
+#include "ui/EnchantLayout.h"
 #include <cstdint>
 #include <vector>
 void check(bool, char const*);
@@ -93,8 +94,40 @@ void enchantOrderTests() {
     check(!inputs(std::vector<Enchantment>{{9, 5}}, odd, 0) && !inputs(std::vector<Enchantment>{{50, 1}}, offers, 0),
           "an unknown frequency or enchantment gives no inputs");
 }
+void enchantLayoutTests() {
+    using lamium::ui::EnchantLayout;
+    using lamium::ui::SettingsTable;
+    using Zone = EnchantLayout::Zone;
+    auto table = SettingsTable::fit(640, 360, 60, 0, 13);
+    auto layout = EnchantLayout::fit(table, 20, true, 12, 0, 9, 0);
+    check(layout.usable() && layout.dividerX > layout.left && layout.dividerX < layout.left + layout.width,
+          "the item column sits left of the steps");
+    check(layout.kindColumns >= 8 && layout.kindY(layout.kindColumns) > layout.kindY(0) && layout.kindX(layout.kindColumns) == layout.kindX(0),
+          "kinds wrap into rows of whole cells");
+    check(layout.hit(layout.kindX(3) + 2, layout.kindY(3) + 2).zone == Zone::Kind && layout.hit(layout.kindX(3) + 2, layout.kindY(3) + 2).index == 3
+              && layout.hit(layout.kindX(19) + 2, layout.kindY(19) + 2).index == 19,
+          "a kind cell is hit by its index");
+    check(layout.hit(layout.left + 20, layout.useHeldY + 2).zone == Zone::UseHeld, "the held-state row takes clicks");
+    check(layout.hit(layout.setAllX + 2, layout.setsY + 2).zone == Zone::SetAll && layout.hit(layout.setLastX + 2, layout.setsY + 2).zone == Zone::SetLast
+              && layout.hit(layout.setClearX + 2, layout.setsY + 2).zone == Zone::SetClear
+              && layout.setClearX + layout.setNarrow <= layout.dividerX,
+          "the three set buttons sit side by side inside the column");
+    float const rowY = layout.rows.listRowY(1) + 2;
+    check(layout.hit(layout.left + 30, rowY).zone == Zone::Row && layout.hit(layout.left + 30, rowY).index == 1
+              && layout.hit(layout.minusX() + 1, rowY).zone == Zone::RowMinus && layout.hit(layout.plusX() + 1, rowY).zone == Zone::RowPlus,
+          "a row is hit by its index, with its level buttons at the right");
+    check(layout.steps.listCount == 18 && layout.steps.rowsTop + layout.steps.listVisible * 14 <= layout.summaryTop,
+          "each step takes two list rows above the totals");
+    check(layout.hit(layout.goalX() + 4, layout.goalY + 2).zone == Zone::Goal && layout.hit(layout.backX + 2, layout.headTop + 2).zone == Zone::Back,
+          "the goal and Back take clicks");
+    auto plain = EnchantLayout::fit(table, 20, false, 12, 0, 9, 0);
+    check(plain.rows.rowsTop < layout.rows.rowsTop && plain.hit(plain.left + 20, plain.useHeldY + 2).zone != Zone::UseHeld,
+          "without the held-state row the list starts higher");
+    check(!EnchantLayout::fit(SettingsTable::fit(100, 100, 29, 0), 20, true, 12, 0, 9, 0).usable(), "too-small windows draw nothing");
+}
 void enchantPlanTests() {
     enchantOrderTests();
+    enchantLayoutTests();
     check(priorWorkPenalty(0) == 0 && priorWorkPenalty(1) == 1 && priorWorkPenalty(3) == 7,
           "each earlier anvil use doubles the surcharge");
     check(priorUses(0) == 0 && priorUses(1) == 1 && priorUses(7) == 3 && priorUses(31) == 5,

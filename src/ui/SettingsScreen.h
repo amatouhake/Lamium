@@ -24,6 +24,8 @@ void openWorldMap(IClientInstance& client);
 void openCalculator(IClientInstance& client);
 // The block highlight list in the settings (L-320).
 void openBlockHighlight(IClientInstance& client);
+// The enchantment order planner in the settings (L-170).
+void openEnchantOrder(IClientInstance& client);
 bool ownsInput();
 void cancelInputCapture();
 }

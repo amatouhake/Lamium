@@ -24,6 +24,7 @@
 #include "features/interaction/InventoryMoveTrace.h"
 #include "features/visuals/ConnectedTexturesHooks.h"
 #include "features/visuals/BlockHighlightHooks.h"
+#include "features/inventory/EnchantOrderGame.h"
 #include "features/visuals/PortalTrace.h"
 #include "features/visuals/ServerPacks.h"
 #include "features/inspection/LockedTrades.h"
@@ -144,6 +145,7 @@ Feature const features[] = {
     {"English search", inspection::englishSearch::start, inspection::englishSearch::stop},
     {"Inventory", inventory::start, inventory::stop},
     {"Repeated trading", inventory::repeatTrades::start, inventory::repeatTrades::stop, capabilities::Id::RepeatedTrades},
+    {"Enchantment order", inventory::enchantOrder::game::start, inventory::enchantOrder::game::stop},
     {"Settings screen", started<ui::start>, ui::stop},
     {"Custom input", started<input::startCustomInput>, input::stopCustomInput},
     {"World overlay", started<overlay::start>, overlay::stop},
