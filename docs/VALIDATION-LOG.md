@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, eighth pass (2026-11-12)
+
+`c884f267`, local build, DLL SHA-256
+`1d9149656c19d3e842ae49507c3159b71c675b9ee481b1fec77ac0147ff1435e`, no trace options,
+1.26.60.05 Dev instance, English and Japanese, Creative. Passed, per the maintainer
+(two screenshots):
+
+- With Sharpness III on the held sword, `+` on its row raises it to V and the steps
+  and costs appear; the anvil's shown cost agrees.
+- A row on the item shows a dimmed switch and its level in the level column, without
+  shifting in Japanese or English.
+- The game's item tooltip is drawn over the list beside the anvil.
+- One plan with other enchantments beside the raised one (six steps, 35 levels: the
+  last step's 12 matched the anvil's "Enchantment Cost: 12"). More involved cases
+  were not tried.
+
+Wrong: drawn before the screen, the list sits under the screen's translucent dark
+layer and is darker than before.
+
 ## Anvil cost of raising a level; seventh pass (2026-11-12)
 
 Read by the maintainer from the vanilla anvil's cost line, 1.26.60.05 Dev instance,

@@ -1,4 +1,5 @@
 #include "features/inspection/Inspection.h"
+#include <utility>
 #include "features/inspection/hover/HoverTracker.h"
 #include "features/inspection/preview/HoveredPreviewCache.h"
 #include "features/inspection/render/PreviewRenderer.h"
@@ -93,6 +94,8 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
 // keep the call that carries the glyph line while the tooltip renders.
 struct GlyphDraw { Font* font; float x, y; tooltip::GlyphRun run; std::vector<information::saturation::FoodIcon> icons; };
 bool tooltipRendering = false;
+TooltipBox lastTooltip;
+bool tooltipDrawn = false;
 std::optional<GlyphDraw> glyphDraw;
 LL_TYPE_INSTANCE_HOOK(TooltipFontDraw, ll::memory::HookPriority::Normal, Font, &Font::$drawCached, void,
     ScreenContext& screenContext, std::string_view str, float x, float y, mce::Color const& color,
@@ -126,6 +129,13 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
     origin(context, client, owner, pass);
     tooltipRendering = false;
     try {
+        // Where the tooltip was drawn, for what must stay clear of it.
+        if (!mContent->empty() && mBoxDimensions->x > 0 && mBoxDimensions->y > 0) {
+            lastTooltip = {mCursorPosition->x + mOffset->x, mCursorPosition->y + mOffset->y, mBoxDimensions->x, mBoxDimensions->y};
+            tooltipDrawn = true;
+        }
+    } catch (...) {}
+    try {
         if (!glyphDraw) return;
         // Text is batched and drawn after the tooltip renders; draw it now so
         // the icons land on top of the glyphs.
@@ -147,6 +157,11 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
     } catch (...) {
     }
 }
+}
+bool takeTooltip(TooltipBox& box) {
+    if (!std::exchange(tooltipDrawn, false)) return false;
+    box = lastTooltip;
+    return true;
 }
 bool start() {
     try {

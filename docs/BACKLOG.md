@@ -1344,6 +1344,14 @@ item" tag is gone (it pushed the level out of its column in Japanese and
 English); the row has a dimmed switch that stays on, and the footer says
 why. The list beside the anvil is drawn before the anvil screen instead of
 after it, so the game's tooltips stay on top.
+Eighth pass by the maintainer 2026-11-12 (`c884f267`, VALIDATION-LOG): passed,
+but the list drawn before the screen is under the screen's dark layer.
+Changed the same day (not checked in game): the list is drawn after the
+screen again, at full brightness, and is left out for a frame in which the
+game's item tooltip overlaps it (the tooltip's box is read where Lamium
+already hooks its drawing, `HoverRenderer::mCursorPosition`, `mOffset` and
+`mBoxDimensions`). The first three boxes are logged to `lamium.log` so the
+meaning of those members can be checked against a screenshot.
 Earlier note (maintainer asked 2026-11-12): raising an enchantment the held item
 already carries (Sharpness III on it, V wanted). The agent's view: this is
 not the left-out "two equal books into a higher level"; that one changes

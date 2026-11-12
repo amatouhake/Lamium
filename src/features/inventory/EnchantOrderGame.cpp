@@ -2,6 +2,7 @@
 #include "app/Capabilities.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
+#include "features/inspection/Inspection.h"
 #include "features/inspection/render/ItemIcon.h"
 #include "ui/Localization.h"
 #include "ui/Widgets.h"
@@ -387,6 +388,9 @@ void drawBeside(ll::event::UIRenderEvent& event) {
         return;
     }
     anvilSeen = std::chrono::steady_clock::now();
+    // Taken every frame so an old tooltip is never acted on.
+    inspection::TooltipBox tooltip;
+    bool const tooltipShown = inspection::takeTooltip(tooltip);
     if (!versionSensitiveAllowed(capabilities::Id::EnchantOrder)) return;
     auto* tree = view.mVisualTree.get();
     if (!tree) return;
@@ -449,6 +453,21 @@ void drawBeside(ll::event::UIRenderEvent& event) {
         anvilItemIcon = stackOf(active.itemId);
         anvilBookIcon = stackOf(bookItem);
         anvilIconsMade = true;
+    }
+    // The list is drawn after the screen, so it would cover the game's item
+    // tooltip: it is left out while the tooltip reaches into it.
+    if (tooltipShown) {
+        static int logged = 0;
+        if (logged < 3) {
+            ++logged;
+            try {
+                Runtime::instance().self().getLogger().info("Enchantment order: tooltip box {:.0f},{:.0f} {:.0f}x{:.0f}, list {:.0f},{:.0f} {:.0f}x{:.0f}",
+                    tooltip.x, tooltip.y, tooltip.w, tooltip.h, left, top, width, height);
+            } catch (...) {}
+        }
+        constexpr float margin = 3;
+        if (tooltip.x < left + width + margin && tooltip.x + tooltip.w > left - margin && tooltip.y < top + height + margin
+            && tooltip.y + tooltip.h > top - margin) return;
     }
     panel(context, left, top, width, height, .8f);
     float y = top + pad;
@@ -653,8 +672,7 @@ ItemStack const* bookIcon() { return book.isNull() ? nullptr : &book; }
 
 bool start() {
     auto& bus = ll::event::EventBus::getInstance();
-    // Before the screen draws itself: the game's tooltips then cover the list, not the other way round.
-    renderListener = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) { try { drawBeside(event); } catch (...) {} });
+    renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) { try { drawBeside(event); } catch (...) {} });
     exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { dropStacks(); shown = {}; });
     return true;
 }

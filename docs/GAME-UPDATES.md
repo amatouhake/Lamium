@@ -521,6 +521,9 @@ on, and the list beside the anvil reads the player's level (`Player::LEVEL()`) a
 frequency values 30, 10, 3, 1 as the anvil's per-level cost (read in game 2026-11-12), the 40-level limit, and on the
 anvil screen its name, the `root_panel` control as the window, the two slot collections and
 `AnvilContainerManagerController::mCost` (a class-layout read, compared with the plan and shown when it differs).
+The list stays clear of the game's item tooltip by its box, read in `Inspection.cpp`'s `TooltipPainter` from
+`HoverRenderer::mCursorPosition`, `mOffset` and `mBoxDimensions` (taken as corner = cursor + offset, size = box; not
+confirmed).
 Gated (Enchantment order). After a game update: read a few costs from the anvil again and open the planner beside it.
 
 ### `src/features/inventory/BookPaste.cpp`
