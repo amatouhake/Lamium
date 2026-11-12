@@ -28,10 +28,14 @@ EnchantLayout last;
 glm::vec2 lastPointer{};
 
 void back() { reset(); table_view::rebuild(true); }
-void drawIcon(MinecraftUIRenderContext& context, ItemStack const* stack, float x, float y, float size = 10) {
+// Icons are collected while the view draws and drawn in one call at the end,
+// each from a stack of its own: that is how glints survive (the container
+// previews do the same).
+std::vector<inspection::render::IconAt> icons;
+void drawIcon(MinecraftUIRenderContext&, ItemStack const* stack, float x, float y, float size = 10) {
     if (!stack) return;
     float s = drawScale(); // icons draw in GUI units, outside the widgets' scale
-    inspection::render::drawItemIcon(context, {stack, std::round(x * s), std::round(y * s), size * s / 16}, 17);
+    icons.push_back({stack, std::round(x * s), std::round(y * s), size * s / 16, 0, 1.f, true});
 }
 void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool hovered, bool enabled) {
     if (enabled) drawSmallButton(context, x, y, w, EnchantLayout::buttonHeight, std::move(text), hovered);
@@ -97,6 +101,8 @@ void wheel(int amount) {
 void release() { dragging = Drag::None; }
 void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer) {
     lastPointer = pointer;
+    icons.clear();
+    int itemsDrawn = 0, booksDrawn = 0;
     auto const& v = game::view();
     int const stepCount = static_cast<int>(v.steps.size());
     last = EnchantLayout::fit(t, static_cast<int>(v.kinds.size()), v.heldCell, static_cast<int>(v.rows.size()), rowFirst, stepCount, stepFirst);
@@ -118,7 +124,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
 
     // Left: the item, the main hand's cell and the kinds, the sets, the rows.
     float const leftRight = last.dividerX - pad, leftLeft = last.left + pad;
-    drawIcon(context, game::itemIcon(), leftLeft, last.itemY + 2);
+    drawIcon(context, game::itemIcon(itemsDrawn++), leftLeft, last.itemY + 2);
     label(context, leftLeft + 14, last.itemY + 3, leftRight - leftLeft - 14,
         v.useHeld ? translated("enchantOrder.kind.held", v.itemName) : v.itemName);
 
@@ -241,12 +247,12 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
                 // A line above each step after the first: where one anvil use ends.
                 if (i > 0) fill(context, sc.listLeft + 1, y, sc.listWidth - 2, 1, palette::white, .18f);
                 label(context, stepsLeft, y + 3, numberWidth, std::to_string(i / L::stepRows + 1), palette::dim, Align::Right);
-                drawIcon(context, step.keptIsItem ? game::itemIcon() : game::bookIcon(), textLeft, y + 2);
+                drawIcon(context, step.keptIsItem ? game::itemIcon(itemsDrawn++) : game::bookIcon(booksDrawn++), textLeft, y + 2);
                 label(context, textLeft + 13, y + 3, textRight - textLeft - 13, step.kept, step.keptCurse ? palette::curse : palette::text);
                 label(context, textRight + 2, y + 3, costWidth, std::to_string(step.cost), palette::text, Align::Right);
             } else {
                 label(context, textLeft - 8, y + 3, 7, "+", palette::faint, Align::Right);
-                drawIcon(context, game::bookIcon(), textLeft, y + 2);
+                drawIcon(context, game::bookIcon(booksDrawn++), textLeft, y + 2);
                 float nameRight = textRight;
                 if (step.penalty > 0) {
                     std::string penalty = translated("enchantOrder.penalty", step.penalty);
@@ -285,5 +291,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     label(context, textLeft, t.footerTop + 16, footWidth, translated("help.enchantOrderList"), palette::dim);
     label(context, textLeft, t.footerTop + 30, footWidth, translated(v.creative ? "enchantOrder.limit.creative" : "enchantOrder.limit"), palette::faint);
     context.flushText(0, std::nullopt);
+    if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
+    icons.clear();
 }
 }

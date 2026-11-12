@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, fifteenth pass (2026-11-12)
+
+`0855cb5b`, local build, DLL SHA-256
+`535080a4a929d8c90417fac0124cfa5de8d1a4a77241aa387fc9fab26d59ba5a`, no trace options,
+1.26.60.05 Dev instance, Creative. Per the maintainer:
+
+- With one step the list's book icon and an enchanted held item over the list both
+  glint. With two or more steps neither does. (A shulker box preview with about 30
+  enchanted books shows every glint.)
+- A held stack of two or more shows its count at the bottom right while wholly over
+  the list, not far from where the game puts it; while it straddles the list's edge
+  the count is under the held item.
+- A held carved pumpkin or enchanted book over the list is above the list's books but
+  under its swords; a held plain book or anvil is above both.
+- The planner screen's enchanted book icons have no glint.
+
 ## Enchantment order, fourteenth pass (2026-11-12)
 
 `6fa5445b`, local build, DLL SHA-256

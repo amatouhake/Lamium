@@ -1422,6 +1422,23 @@ list's icons are drawn with their glint as in the previews, and a held
 stack's count is drawn while the whole item is over the list (not while it
 straddles the edge, where a second number slightly off the game's would
 show double).
+Fifteenth pass by the maintainer 2026-11-12 (`0855cb5b`, VALIDATION-LOG): glints
+work with one step and fail with two or more, for the list's books and the
+held item alike, while a preview of 30 enchanted books is fine. The
+difference found in code: the list drew one book stack many times, the
+preview draws a stack of its own per slot. Also seen: a held block or
+glinting item went under the list's swords (those were drawn later, in a
+batch), and a held stack's count went under the item at the list's edge.
+Built the same day (not checked in game):
+- Every icon gets a stack of its own (a pool per kind of icon), in the
+  anvil list and in the planner screen.
+- The anvil list draws all its icons one after another without batches
+  (`IconAt::direct`), the held item last, so it is above every icon of the
+  list whatever it is.
+- The planner screen collects its icons and draws them in one call at the
+  end, with glints (its books had none).
+- A held stack's count is drawn whenever the held item is drawn again, on
+  top of it.
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s

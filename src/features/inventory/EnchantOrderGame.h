@@ -77,6 +77,10 @@ ItemStack const* kindIcon(int index);
 ItemStack const* itemIcon();
 ItemStack const* heldIcon();
 ItemStack const* bookIcon();
+// The same pictures as stacks of their own, by a running number within a frame: drawing one stack many
+// times in a frame loses the glints.
+ItemStack const* itemIcon(int number);
+ItemStack const* bookIcon(int number);
 
 bool start();
 void stop();

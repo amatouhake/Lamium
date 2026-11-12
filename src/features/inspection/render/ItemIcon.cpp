@@ -84,12 +84,12 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
     BaseActorRenderContext renderContext(context.mScreenContext, client, client.getMinecraftGame_DEPRECATED());
     std::vector<int> chunks;
     chunks.reserve(icons.size());
-    for (auto const& icon : icons) chunks.push_back(drawable(icon) ? chunkOf(*icon.stack) : -1);
+    for (auto const& icon : icons) chunks.push_back(!drawable(icon) ? -1 : icon.direct ? glinting : chunkOf(*icon.stack));
     auto direct = [&](size_t i) {
         auto const& icon = icons[i];
         renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, false, icon.alpha, 1.0f, icon.scale,
             zOrder);
-        if (icon.glint && chunks[i] == glinting)
+        if (icon.glint && icon.stack->mItem->isGlint(*icon.stack))
             renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, true, glintOverlayAlpha * icon.alpha,
                 1.0f, icon.scale, zOrder);
     };

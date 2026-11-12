@@ -18,6 +18,9 @@ struct IconAt {
     int frame = 0;
     float alpha = 1.f; // Whole-icon opacity (a faded player list dimension, L-131)
     bool glint = false; // Draw the glint of items that have one (Item::isGlint)
+    // Draw it on its own, in its place among the others, instead of in a shared batch: batches are drawn after
+    // every glinting icon, so an icon that must be on top of batched ones asks for this (L-170).
+    bool direct = false;
 };
 void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> icons, int zOrder);
 inline void drawItemIcon(MinecraftUIRenderContext& context, IconAt const& icon, int zOrder) {

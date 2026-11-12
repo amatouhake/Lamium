@@ -107,6 +107,21 @@ struct Active {
 } active;
 ItemStack anvilItemIcon, anvilBookIcon;
 bool anvilIconsMade = false;
+// One stack per drawn icon: a stack drawn several times in a frame lost its glint, and the others' with it
+// (seen 2026-11-12 with two or more steps; the container previews draw a stack per slot).
+constexpr size_t iconPool = 48;
+std::vector<ItemStack> anvilItems, anvilBooks, screenItems, screenBooks;
+ItemStack const* pooled(std::vector<ItemStack>& pool, ItemStack const& source, int number) {
+    if (source.isNull() || number < 0 || static_cast<size_t>(number) >= iconPool) return source.isNull() ? nullptr : &source;
+    // Reserved once: pointers into the pool are held for the frame and must not move as it grows.
+    pool.reserve(iconPool);
+    while (pool.size() <= static_cast<size_t>(number)) {
+        pool.emplace_back(source);
+        pool.back().mShowPickUp = false;
+        pool.back().mWasPickedUp = false;
+    }
+    return &pool[static_cast<size_t>(number)];
+}
 std::chrono::steady_clock::time_point anvilSeen{};
 bool finishedAtAnvil = false;
 ll::event::ListenerPtr renderListener, exitListener, enterListener;
@@ -234,6 +249,7 @@ bool onlyCurses(std::vector<Enchantment> const& list, unsigned mask) {
     return any;
 }
 void rebuild() {
+    screenItems.clear();
     shown = {};
     shown.goal = goal;
     shown.creative = creativeNow;
@@ -409,8 +425,11 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
     if (!anvilIconsMade) {
         anvilItemIcon = stackOf(active.itemId);
         anvilBookIcon = stackOf(bookItem);
+        anvilItems.clear();
+        anvilBooks.clear();
         anvilIconsMade = true;
     }
+    int itemsDrawn = 0, booksDrawn = 0;
     panel(context, left, top, width, height, .8f);
     float y = top + pad;
     float const inner = width - 2 * pad;
@@ -428,10 +447,9 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
     std::vector<inspection::render::IconAt> icons;
     constexpr float icon = 8, numberWidth = 10, costWidth = 16;
     auto sideAt = [&](float x, float rowY, float w, std::string const& text, bool item, Rgb color) {
-        ItemStack const* stack = item ? &anvilItemIcon : &anvilBookIcon;
-        // With its glint, like the container previews: every glinting icon is followed by its own glint. A
-        // glinting book drawn without one made the held item's glint fail on long lists.
-        if (!stack->isNull()) icons.push_back({stack, std::round(x), std::round(rowY), icon / 16, 0, list.opacity, true});
+        // A stack of its own, drawn in its turn and not in a batch, so the held item drawn last is above them all.
+        ItemStack const* stack = item ? pooled(anvilItems, anvilItemIcon, itemsDrawn++) : pooled(anvilBooks, anvilBookIcon, booksDrawn++);
+        if (stack) icons.push_back({stack, std::round(x), std::round(rowY), icon / 16, 0, list.opacity, true, true});
         label(context, x + icon + 2, rowY, w - icon - 2, text, color);
     };
     for (int i = 0; i < steps; ++i) {
@@ -480,7 +498,7 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
     context.flushText(0, std::nullopt);
     // The held item goes with the list's own icons, last so it is on top: a
     // glint drawn after another batch of icons does not show (ItemIcon.cpp).
-    if (held) icons.push_back({held->stack, held->x, held->y, held->size / 16, 0, list.opacity, true});
+    if (held) icons.push_back({held->stack, held->x, held->y, held->size / 16, 0, list.opacity, true, true});
     if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
     if (held && held->stack->mItem) {
         // Its durability bar as the game draws it on a slot, at the held item's size.
@@ -495,10 +513,8 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
                 fill(context, held->x + front.x0 * unit, held->y + front.y0 * unit, front.width() * unit, front.height() * unit,
                     Rgb{color.r, color.g, color.b});
         }
-        // Its count, only while the whole item is over the list: the game's own number is hidden there, and
-        // outside it a second number a little off the game's would show double.
-        if (held->stack->mCount > 1 && held->x >= left && held->x + held->size <= left + width && held->y >= top
-            && held->y + held->size <= top + height) {
+        // Its count, on top of it: the game's own number is under the item drawn again.
+        if (held->stack->mCount > 1) {
             label(context, held->x, held->y + held->size - 9, held->size - 1, std::to_string(static_cast<int>(held->stack->mCount)), palette::text,
                 Align::Right);
             context.flushText(0, std::nullopt);
@@ -633,6 +649,7 @@ void dropStacks() {
     book = ItemStack();
     anvilItemIcon = ItemStack();
     anvilBookIcon = ItemStack();
+    anvilItems.clear(); anvilBooks.clear(); screenItems.clear(); screenBooks.clear();
     anvilIconsMade = false;
     opened = false;
 }
@@ -760,6 +777,11 @@ ItemStack const* itemIcon() {
 }
 ItemStack const* heldIcon() { return held.present && !held.icon.isNull() ? &held.icon : nullptr; }
 ItemStack const* bookIcon() { return book.isNull() ? nullptr : &book; }
+ItemStack const* itemIcon(int number) {
+    auto const* source = itemIcon();
+    return source ? pooled(screenItems, *source, number) : nullptr;
+}
+ItemStack const* bookIcon(int number) { return pooled(screenBooks, book, number); }
 
 bool start() {
     auto& bus = ll::event::EventBus::getInstance();
