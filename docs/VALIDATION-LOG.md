@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment order, thirteenth pass (2026-11-12)
+
+`8d62d240`, local build, DLL SHA-256
+`15ba57c5de1d75c8db63166011d413629a7eb4bdde82ca5db78e030c551ea58c`, no trace options,
+1.26.60.05 Dev instance, Creative. Per the maintainer: a held item moved over the
+list is seen on top of it while the list stays; crossing the list's edge the item is
+neither doubled nor shifted; without a held item the tooltip and the closing fade are
+as before. Wrong: an enchanted item's glint is missing while it overlaps the list and
+returns when it leaves; the item's durability bar is drawn under the list.
+
 ## The item held on the pointer at the anvil (2026-11-12)
 
 `31d6b5ef`, DLL SHA-256 `de6a1ab526233735736c33ebb59ee04e4cd27eccecb1feccc2d5ec01b938f296`,

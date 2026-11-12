@@ -1405,6 +1405,13 @@ the list, Lamium draws the held stack once more in the same box after the
 list, with its glint, so it is seen on top. Its count and durability bar
 are not drawn again, so over the list a stack shows no number. The log
 lines are removed.
+Thirteenth pass by the maintainer 2026-11-12 (`8d62d240`, VALIDATION-LOG): the
+held item is on top without doubling, but without its glint and with its
+durability bar under the list. Built the same day (not checked in game):
+the held item is drawn in the same call as the list's own icons, last, as a
+glint does not show after another batch of icons; its durability bar is
+drawn over it with the slot bar's geometry at the held size. The count of a
+held stack is still not drawn over the list.
 Changing the plan at the anvil, researched in code the same day (nothing
 built):
 - A click on the list can be kept from the game: `CustomInput`'s

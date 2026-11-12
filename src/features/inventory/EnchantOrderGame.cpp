@@ -3,6 +3,7 @@
 #include "app/Runtime.h"
 #include "app/Versions.h"
 #include "features/inspection/Inspection.h"
+#include "features/inspection/render/DurabilityBar.h"
 #include "features/inspection/render/ItemIcon.h"
 #include "ui/Localization.h"
 #include "ui/Widgets.h"
@@ -387,7 +388,13 @@ struct ListState {
     std::vector<unsigned> atHand;
 } list;
 bool insideAnvil = false, paintedInside = false;
-void paintList(MinecraftUIRenderContext& context) {
+// The item held on the pointer, to be drawn once more over the list: the
+// game's stack and the box the game draws it in. Valid for one frame.
+struct HeldIcon {
+    ItemStack const* stack = nullptr;
+    float x = 0, y = 0, size = 16;
+};
+void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr) {
     using namespace lamium::ui;
     constexpr float pad = 4, line = 10;
     float const left = list.left, top = list.top, width = list.width, height = list.height;
@@ -469,7 +476,24 @@ void paintList(MinecraftUIRenderContext& context) {
     if (leftPenalty >= 0 || rightPenalty >= 0)
         label(context, left + pad, y, inner, translated("enchantOrder.anvil.penalties", std::max(0, leftPenalty), std::max(0, rightPenalty)), palette::faint);
     context.flushText(0, std::nullopt);
+    // The held item goes with the list's own icons, last so it is on top: a
+    // glint drawn after another batch of icons does not show (ItemIcon.cpp).
+    if (held) icons.push_back({held->stack, held->x, held->y, held->size / 16, 0, list.opacity, true});
     if (!icons.empty()) inspection::render::drawItemIcons(context, icons, 17);
+    if (held && held->stack->mItem) {
+        // Its durability bar as the game draws it on a slot, at the held item's size.
+        int const maxDamage = static_cast<int>(held->stack->mItem->getMaxDamage());
+        if (inspection::render::shouldShowDurabilityBar(held->stack->isDamageableItem(), held->stack->getDamageValue(), maxDamage)) {
+            float const unit = held->size / 16, ratio = inspection::render::durabilityRatio(held->stack->getDamageValue(), maxDamage);
+            auto const back = inspection::render::durabilityBackground({0, 0, 16, 16});
+            auto const front = inspection::render::durabilityForeground(back, ratio);
+            auto const color = inspection::render::durabilityColor(ratio);
+            fill(context, held->x + back.x0 * unit, held->y + back.y0 * unit, back.width() * unit, back.height() * unit, Rgb{0, 0, 0});
+            if (front.width() > 0)
+                fill(context, held->x + front.x0 * unit, held->y + front.y0 * unit, front.width() * unit, front.height() * unit,
+                    Rgb{color.r, color.g, color.b});
+        }
+    }
 }
 // The game's tooltip is about to be drawn in the anvil screen. Painted here
 // the list is above the screen's dark layer and under the tooltip. (Painting
@@ -576,21 +600,22 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     if (float const own = window->mAlpha; slide > .5f && std::isfinite(own) && own > 0 && own < opacity) opacity = own;
     list = {true, std::chrono::steady_clock::now(), left, top, width, height, twoLines, both, creative, target.has_value(), sacrifice.has_value(),
         opacity, now, next, gameCost, level, leftPenalty, rightPenalty, std::move(atHandNow)};
-    // Not painted from inside the screen this frame (no tooltip, or the first frame): paint it now.
-    if (!painted) paintList(context);
     // Painted after the screen, the list covers the item held on the pointer. The game draws that item in the
-    // control `selected_item_icon` (21 units, following the pointer; read from the log 2026-11-12), so it is
-    // drawn once more in the same box, on top of the list, while the two overlap.
+    // control `selected_item_icon` (21 units, following the pointer; read from the log 2026-11-12), so while
+    // the two overlap it is drawn once more in the same box, with the list.
+    HeldIcon onTop;
     if (!painted && heldItem && opacity > .02f) {
         static std::string const heldName = "selected_item_icon";
         try {
             if (auto icon = tree->getControlByName(heldName, true); icon && !icon->mCachedPositionDirty) {
                 glm::vec2 const where = *icon->mCachedPosition, extent = *icon->mSize;
                 if (extent.x > 0 && where.x < left + width && where.x + extent.x > left && where.y < top + height && where.y + extent.y > top)
-                    inspection::render::drawItemIcon(context, {heldItem, where.x, where.y, extent.x / 16, 0, opacity, true}, 17);
+                    onTop = {heldItem, where.x, where.y, extent.x};
             }
-        } catch (...) {}
+        } catch (...) { onTop = {}; }
     }
+    // Not painted from inside the screen this frame (no tooltip, or the first frame): paint it now.
+    if (!painted) paintList(context, onTop.stack ? &onTop : nullptr);
 }
 void dropStacks() {
     kinds.clear();
