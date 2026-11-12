@@ -139,6 +139,18 @@ void enchantOrderTests() {
         check(nextStep(made, progress(second, made)) == 0 && nextStep(made, progress(spare, made)) == -1
                   && progress(finished, made) == finished,
               "a finished item does not end the plan while another item to enchant is at hand; a spare book does not restart it");
+        {
+            auto start = follow(fresh, made), middle = follow(merged, made), end = follow(finished, made);
+            std::vector<unsigned> noSword{2u, 4u, 8u}, noBook{1u, 2u, 8u};
+            auto swordless = follow(noSword, made), bookless = follow(noBook, made);
+            check(start.next == 0 && start.ready && start.have == 4 && start.need == 4 && start.done == std::vector<bool>{false, false, false}
+                      && middle.next == 1 && middle.ready && middle.done == std::vector<bool>{true, false, false} && middle.have == 4,
+                  "following a plan: the next step is ready when its two sides are at hand, and merged stacks still count as materials");
+            check(end.next == -1 && !end.ready && end.have == 4 && swordless.next == 0 && swordless.ready && swordless.have == 3
+                      && swordless.lacks(1u) && !swordless.lacks(2u) && !swordless.lacks(16u)
+                      && bookless.next == 0 && !bookless.ready && bookless.lacks(4u),
+                  "a missing input is named by its bit; a step whose side is missing is not ready");
+        }
         // An item with enchantments 1 and 3 on it (mask 11) is nothing this plan makes: steps join 2+4, then 1+6, then 7+8.
         std::vector<unsigned> earlier{11u, 2u, 4u}, earlierOnly{11u};
         check(nextStep(made, progress(earlier, made)) == 0 && !atHand(1u, progress(earlierOnly, made)) && progress(onSword, made) == onSword
@@ -191,11 +203,30 @@ void enchantLayoutTests() {
     check(layout.hit(layout.left + 30, rowY).zone == Zone::Row && layout.hit(layout.left + 30, rowY).index == 1
               && layout.hit(layout.minusX() + 1, rowY).zone == Zone::RowMinus && layout.hit(layout.plusX() + 1, rowY).zone == Zone::RowPlus,
           "a row is hit by its index, with its level buttons at the right");
-    check(layout.steps.listCount == 18 && layout.summaryTop > layout.goalY && layout.steps.rowsTop > layout.summaryTop + 30
-              && layout.steps.rowsTop + layout.steps.listVisible * 14 <= layout.footerTop,
-          "the totals sit under the goal and each step takes two list rows below them");
-    check(layout.hit(layout.goalX() + 4, layout.goalY + 2).zone == Zone::Goal && layout.hit(layout.backX + 2, layout.headTop + 2).zone == Zone::Back,
-          "the goal and Back take clicks");
+    auto const& side = layout.side;
+    check(side.usable() && side.rows.listCount == 18 && side.totalY > side.goalY && side.detailY > side.totalY && side.detailLines == 1
+              && side.rows.rowsTop > side.detailY + 11 && side.rows.rowsTop + side.rows.listVisible * 14 <= side.footY
+              && side.footY + lamium::ui::EnchantStepsLayout::footHeight == layout.footerTop,
+          "the total and its detail sit under the goal, each step takes two list rows below them, and a last line closes the column");
+    check(layout.hit(side.goalX() + 4, side.goalY + 2).zone == Zone::Goal && layout.hit(layout.backX + 2, layout.headTop + 2).zone == Zone::Back
+              && layout.hit(side.left + 8, side.detailY + 2).zone == Zone::AtOnce
+              && layout.hit(side.left + side.width - 8, side.detailY + 2).zone == Zone::Result,
+          "the goal and Back take clicks; the two details are told apart for their help");
+    {
+        using lamium::ui::EnchantStepsLayout;
+        // The anvil's panel: as tall as its plan needs, the detail on two lines where one does not hold it.
+        float const tall = EnchantStepsLayout::neededHeight(4, 2);
+        auto anvil = EnchantStepsLayout::fit(300, 20, 180, 20 + tall, 4, 0, 2);
+        check(anvil.usable() && anvil.rows.listVisible == 8 && anvil.rows.listCount == 8 && anvil.detailLines == 2
+                  && anvil.hit(310, anvil.detailY + 2) == EnchantStepsLayout::Zone::AtOnce
+                  && anvil.hit(310, anvil.detailY + 13) == EnchantStepsLayout::Zone::Result
+                  && anvil.goalX() >= anvil.left + 34 && anvil.goalX() + anvil.goalW() <= anvil.left + anvil.width,
+              "a panel as tall as its plan shows every step without scrolling, with its detail on two lines");
+        auto shortPanel = EnchantStepsLayout::fit(300, 20, 180, 20 + EnchantStepsLayout::neededHeight(2, 2), 6, 3, 2);
+        check(shortPanel.rows.listVisible == 4 && shortPanel.rows.listCount == 12 && shortPanel.rows.listFirst == 3
+                  && !EnchantStepsLayout::fit(300, 20, 60, 400, 4, 0, 1).usable() && !EnchantStepsLayout::fit(300, 20, 180, 70, 4, 0, 1).usable(),
+              "a shorter panel scrolls its steps; one too narrow or too short is not laid out");
+    }
     auto plain = EnchantLayout::fit(table, 20, false, 12, 0, 9, 0);
     check(plain.kindColumns == layout.kindColumns && plain.setsY == layout.setsY && plain.rows.rowsTop == layout.rows.rowsTop
               && plain.hit(plain.kindX(20) + 2, plain.kindY(20) + 2).zone == Zone::None,

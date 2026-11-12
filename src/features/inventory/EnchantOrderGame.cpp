@@ -7,6 +7,7 @@
 #include "features/inspection/render/ItemIcon.h"
 #include "ui/EnchantChooser.h"
 #include "ui/EnchantLayout.h"
+#include "ui/EnchantSteps.h"
 #include "ui/Localization.h"
 #include "ui/Widgets.h"
 #include "ll/api/event/EventBus.h"
@@ -30,7 +31,9 @@
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/locale/I18n.h"
+#include "mc/world/actor/player/Inventory.h"
 #include "mc/world/actor/player/Player.h"
+#include "mc/world/actor/player/PlayerInventory.h"
 #include "mc/world/attribute/AttributeInstance.h"
 #include "mc/world/attribute/AttributeInstanceConstRef.h"
 #include "mc/world/containers/managers/controllers/AnvilContainerManagerController.h"
@@ -51,6 +54,7 @@
 #include <format>
 #include <map>
 #include <optional>
+#include <span>
 #include <string_view>
 
 namespace lamium::inventory::enchantOrder::game {
@@ -125,16 +129,18 @@ struct Active {
     Goal goal = Goal::FewestLevels;
     std::string itemId, itemName;
     bool heldBook = false; // input 0 is an enchanted book the player held
+    bool otherKnown = false, sameForBoth = false; // the other goal's outcome, for the goal's help
+    int otherTotal = 0, otherWork = 0;
     std::vector<Enchantment> base, wanted;
     Plan plan;
     std::vector<StepLine> lines;
 } active;
-ItemStack anvilItemIcon, anvilBookIcon, anvilItemGlint, screenItemGlint;
+ItemStack anvilItemIcon, anvilBookIcon, anvilItemGlint;
 bool anvilIconsMade = false;
 // One stack per drawn icon: a stack drawn several times in a frame lost its glint, and the others' with it
 // (seen 2026-11-12 with two or more steps; the container previews draw a stack per slot).
 constexpr size_t iconPool = 48;
-std::vector<ItemStack> anvilItems, anvilBooks, screenItems, screenBooks, anvilGlints, screenGlints;
+std::vector<ItemStack> anvilItems, anvilBooks, screenItems, anvilGlints;
 ItemStack const* pooled(std::vector<ItemStack>& pool, ItemStack const& source, int number) {
     if (source.isNull() || number < 0 || static_cast<size_t>(number) >= iconPool) return source.isNull() ? nullptr : &source;
     // Reserved once: pointers into the pool are held for the frame and must not move as it grows.
@@ -296,8 +302,7 @@ bool onlyCurses(std::vector<Enchantment> const& list, unsigned mask) {
     return any;
 }
 void rebuild() {
-    screenItems.clear(); screenGlints.clear();
-    screenItemGlint = ItemStack();
+    screenItems.clear();
     shown = {};
     shown.goal = goal;
     shown.creative = creativeNow;
@@ -390,6 +395,13 @@ void rebuild() {
         }
         return text;
     };
+    auto parts = [&](unsigned mask) {
+        std::vector<NamePart> out;
+        if (mask & 1u) { out.push_back({shown.itemName, 1u}); return out; }
+        for (size_t i = 0; i < wanted.size(); ++i)
+            if (mask >> (i + 1) & 1u) out.push_back({nameOf(wanted[i].type, wanted[i].level), 1u << (i + 1)});
+        return out;
+    };
     bool itemEnchanted = !base.empty();
     for (auto& step : mine->steps) {
         // The step's cost is the sacrificed side's levels plus both surcharges.
@@ -402,6 +414,8 @@ void rebuild() {
         shown.steps.push_back({side(step.target), side(step.sacrifice), (step.target & 1u) != 0, step.cost, step.cost - value,
             onlyCurses(wanted, step.target), onlyCurses(wanted, step.sacrifice)});
         if (shown.steps.back().keptIsItem) shown.steps.back().keptEnchanted = std::exchange(itemEnchanted, true);
+        shown.steps.back().keptParts = parts(step.target);
+        shown.steps.back().goneParts = parts(step.sacrifice);
     }
     shown.total = mine->total; shown.highest = mine->highest; shown.work = mine->work;
     shown.planned = true;
@@ -418,6 +432,8 @@ void rebuild() {
     active.itemName = shown.itemName;
     active.base = base;
     active.heldBook = heldBook;
+    active.otherKnown = shown.otherKnown; active.sameForBoth = shown.sameForBoth;
+    active.otherTotal = shown.otherTotal; active.otherWork = shown.otherWork;
     active.wanted = wanted;
     active.plan = *mine;
     active.lines = shown.steps;
@@ -447,6 +463,43 @@ std::string sideText(unsigned mask) {
     }
     return text;
 }
+StepsInfo info;
+void makeInfo(std::span<unsigned const> raw, int level, bool creative) {
+    info = {};
+    info.goal = goal;
+    info.creative = creative;
+    info.level = creative ? -1 : level;
+    if (!active.valid || active.lines.empty()) {
+        info.message = ui::translated(!opened ? "enchantOrder.anvil.noPlan" : shown.costUnknown ? "enchantOrder.unknownCost"
+            : shown.refused ? "enchantOrder.refused" : shown.planned ? "enchantOrder.noSteps" : "enchantOrder.empty");
+        info.warning = opened && (shown.costUnknown || shown.refused);
+        return;
+    }
+    info.planned = true;
+    info.goal = active.goal;
+    info.total = active.plan.total; info.highest = active.plan.highest; info.work = active.plan.work;
+    info.otherKnown = active.otherKnown; info.sameForBoth = active.sameForBoth;
+    info.otherTotal = active.otherTotal; info.otherWork = active.otherWork;
+    info.steps = active.lines;
+    info.following = follow(raw, active.plan);
+    auto const& f = info.following;
+    if (f.next < 0) { info.note = ui::translated("enchantOrder.anvil.finished"); info.noteTone = 1; return; }
+    // The next step when it can be taken; else everything the plan still lacks.
+    std::string lacking;
+    for (unsigned bit = 1; bit != 0 && bit <= f.full; bit <<= 1)
+        if (f.lacks(bit)) { if (!lacking.empty()) lacking += ", "; lacking += sideText(bit); }
+    if (f.ready || lacking.empty()) info.note = ui::translated("enchantOrder.anvil.next", f.next + 1);
+    else { info.note = ui::translated("enchantOrder.anvil.missing", lacking); info.noteTone = 2; }
+}
+void ensureStepIcons() {
+    if (anvilIconsMade) return;
+    anvilItemIcon = stackOf(active.itemId);
+    anvilBookIcon = stackOf(bookItem);
+    anvilItemGlint = enchantedCopy(anvilItemIcon, active.wanted);
+    anvilItems.clear(); anvilGlints.clear();
+    anvilBooks.clear();
+    anvilIconsMade = true;
+}
 // What the list shows, worked out once a frame after the anvil screen has
 // drawn. It is painted from here, or one frame later from inside the
 // screen's own drawing, right before the game's tooltip, which then stays on
@@ -455,15 +508,13 @@ struct ListState {
     bool ready = false;
     std::chrono::steady_clock::time_point at{};
     float left = 0, top = 0, width = 0, height = 0;
-    bool twoLines = true, both = false, creative = false, target = false, sacrifice = false;
     float opacity = 1;
-    int now = -1, next = -1, gameCost = -1, level = -1, leftPenalty = -1, rightPenalty = -1;
-    std::vector<unsigned> atHand;
     float pointerX = -1, pointerY = -1;
     bool free = false;    // nothing on the pointer: a press beside the window would drop it
     bool planned = false; // there are steps to list; else one line says there is no plan
     bool chooser = false; // the choosing panel is shown left of the window
     ui::EnchantLayout choose;
+    ui::EnchantStepsLayout steps;
 } list;
 // What can be pressed beside the anvil, as last drawn, for presses that arrive from the window procedure; and
 // the presses taken there, which the client thread acts on with the next frame.
@@ -472,18 +523,20 @@ struct PressState {
     std::chrono::steady_clock::time_point at{};
     float pointerX = -1, pointerY = -1;
     bool live = false; // fully shown and nothing on the pointer
-    Box change, goal, panel; // an empty box takes no press
+    Box change, panel; // an empty box takes no press
     ui::EnchantLayout choose;
+    ui::EnchantStepsLayout steps;
+    bool goalLive = false;
 } pressState;
 struct Pending {
     ui::EnchantLayout::Hit hit;
-    bool goal = false, scrollbar = false;
+    bool goal = false, scrollbar = false, stepsScrollbar = false;
     float y = 0;
 };
 std::vector<Pending> pendingPresses;
-int pendingWheel = 0;
+int pendingWheel = 0, pendingStepsWheel = 0;
 bool pressSwallow = false;
-int chooserFirst = 0;
+int chooserFirst = 0, stepsFirst = 0;
 std::string chooserMessage;
 std::chrono::steady_clock::time_point chooserMessageAt{};
 bool insideAnvil = false, paintedInside = false;
@@ -525,7 +578,9 @@ void paintChooser(MinecraftUIRenderContext& context, Icons& icons) {
     for (size_t i = before; i < icons.size(); ++i) { icons[i].alpha = list.opacity; icons[i].direct = true; }
     fill(context, l.left, l.footerTop, l.width, 1, palette::white, .14f);
     bool const said = !chooserMessage.empty() && std::chrono::steady_clock::now() - chooserMessageAt < std::chrono::seconds(4);
-    std::string const text = said ? chooserMessage : enchant_chooser::status(shown, hover);
+    std::string text = said ? chooserMessage : enchant_chooser::status(shown, hover);
+    // The steps' side has no status line of its own: its help is said here too.
+    if (text.empty() && list.free) text = enchant_steps::status(info, list.steps.hit(list.pointerX, list.pointerY));
     if (!text.empty()) paragraph(context, l.left + pad, l.footerTop + 2, l.width - 2 * pad, text, 2, said ? palette::warning : palette::text);
 }
 // The Change button, in a row of its own at the bottom right: it opens the planner screen where the choosing
@@ -552,98 +607,18 @@ void paintNoPlan(MinecraftUIRenderContext& context, Box& change) {
         paintChange(context, change);
     }
 }
-void paintSteps(MinecraftUIRenderContext& context, Icons& icons, Box& change, Box& goalBox) {
+// The steps right of the window: the planner screen's own right column (ui/EnchantSteps).
+void paintSteps(MinecraftUIRenderContext& context, Icons& icons, Box& change) {
     using namespace lamium::ui;
-    constexpr float pad = 4, line = 10;
-    float const left = list.left, top = list.top, width = list.width, height = list.height;
-    bool const twoLines = list.twoLines, both = list.both, creative = list.creative;
-    int const now = list.now, next = list.next, gameCost = list.gameCost, level = list.level, leftPenalty = list.leftPenalty,
-              rightPenalty = list.rightPenalty, steps = static_cast<int>(active.lines.size());
-    bool const target = list.target, sacrifice = list.sacrifice;
-    auto const& atHandNow = list.atHand;
-    if (!active.valid || steps == 0 || now >= steps || next >= steps || static_cast<int>(active.plan.steps.size()) != steps) return;
-    if (!anvilIconsMade) {
-        anvilItemIcon = stackOf(active.itemId);
-        anvilBookIcon = stackOf(bookItem);
-        anvilItemGlint = enchantedCopy(anvilItemIcon, active.wanted);
-        anvilItems.clear(); anvilGlints.clear();
-        anvilBooks.clear();
-        anvilIconsMade = true;
-    }
-    int itemsDrawn = 0, booksDrawn = 0;
-    panel(context, left, top, width, height, .8f);
-    frame(context, left, top, width, height, palette::white, .14f); // the outline Lamium's screen has
-    float y = top + pad;
-    float const inner = width - 2 * pad;
-    // The total first, then what the player has to spend. With the choosing panel the goal's name is pressed to
-    // change the goal, as its stepper is in the planner screen.
-    std::string const goalName = translated(active.goal == Goal::FewestLevels ? "enchantOrder.goal.levels" : "enchantOrder.goal.work");
-    float const goalWidth = std::min(textWidth(context, goalName) + 2, inner * .5f);
-    label(context, left + pad, y, inner - goalWidth - 2, translated("enchantOrder.total", active.plan.total));
-    if (list.chooser) {
-        goalBox = {left + width - pad - goalWidth - 2, y - 1, goalWidth + 4, line + 1};
-        bool const over = list.free && list.opacity > .98f && goalBox.has(list.pointerX, list.pointerY);
-        fill(context, goalBox.x, goalBox.y, goalBox.w, goalBox.h, palette::white, over ? .22f : .08f);
-        label(context, left + width - pad - goalWidth, y, goalWidth, goalName, over ? palette::text : palette::dim, Align::Right);
-    } else label(context, left + width - pad - goalWidth, y, goalWidth, goalName, palette::faint, Align::Right);
-    y += line;
-    if (!creative && level >= 0) {
-        int const need = next >= 0 ? active.lines[static_cast<size_t>(next)].cost : 0;
-        label(context, left + pad, y, inner, translated("enchantOrder.anvil.have", level), level < need ? palette::warning : palette::dim);
-    } else label(context, left + pad, y, inner, translated("feature.enchantOrder"), palette::faint);
-    y += line + 3;
-    constexpr float icon = 8, numberWidth = 10, costWidth = 16;
-    auto sideAt = [&](float x, float rowY, float w, std::string const& text, bool item, Rgb color, bool enchanted = false) {
-        // A stack of its own, drawn in its turn and not in a batch, so the held item drawn last is above them all.
-        ItemStack const* stack = !item ? pooled(anvilBooks, anvilBookIcon, booksDrawn++)
-            : enchanted ? pooled(anvilGlints, anvilItemGlint, itemsDrawn++) : pooled(anvilItems, anvilItemIcon, itemsDrawn++);
-        if (stack) icons.push_back({stack, std::round(x), std::round(rowY), icon / 16, 0, list.opacity, true, true});
-        label(context, x + icon + 2, rowY, w - icon - 2, text, color);
-    };
-    for (int i = 0; i < steps; ++i) {
-        auto const& step = active.lines[static_cast<size_t>(i)];
-        float const rowHeight = twoLines ? 2 * line : line;
-        bool const finished = done(active.plan.steps[static_cast<size_t>(i)], atHandNow), marked = i == now, upNext = i == next;
-        if (i > 0) fill(context, left + pad, y - 1, inner, 1, palette::white, .1f);
-        if (marked) fill(context, left + 1, y, width - 2, rowHeight + 1, palette::accent, .16f);
-        if (marked || upNext) fill(context, left + 1, y, 2, rowHeight + 1, marked ? palette::accent : palette::white);
-        Rgb const color = finished ? palette::faint : upNext || marked ? palette::text : palette::dim;
-        label(context, left + pad, y + 1, numberWidth, std::to_string(i + 1), finished ? palette::faint : palette::dim, Align::Right);
-        float const textLeft = left + pad + numberWidth + 3, textWidthAll = inner - numberWidth - 3 - costWidth;
-        if (twoLines) {
-            sideAt(textLeft, y + 1, textWidthAll, step.kept, step.keptIsItem, step.keptCurse && !finished ? palette::curse : color,
-                step.keptEnchanted);
-            label(context, textLeft - 1, y + 1 + line, 6, "+", palette::faint);
-            sideAt(textLeft + 6, y + 1 + line, textWidthAll - 6, step.gone, false, step.goneCurse && !finished ? palette::curse : color);
-        } else {
-            float const half = (textWidthAll - 8) / 2;
-            sideAt(textLeft, y + 1, half, step.kept, step.keptIsItem, color, step.keptEnchanted);
-            label(context, textLeft + half + 1, y + 1, 6, "+", palette::faint);
-            sideAt(textLeft + half + 8, y + 1, half, step.gone, false, color);
-        }
-        bool const short_ = !creative && level >= 0 && level < step.cost && !finished;
-        label(context, left + width - pad - costWidth, y + 1, costWidth, std::to_string(step.cost),
-            finished ? palette::faint : short_ ? palette::warning : marked ? palette::accent : palette::text, Align::Right);
-        y += rowHeight + 2;
-    }
-    y += 2;
-    // What to do next, or what is wrong with the pair in the slots.
-    if (both && now >= 0 && gameCost != active.lines[static_cast<size_t>(now)].cost)
-        label(context, left + pad, y, inner, translated("enchantOrder.anvil.costDiffers", gameCost), palette::warning);
-    else if (both && now >= 0) label(context, left + pad, y, inner, translated("enchantOrder.anvil.match", now + 1), palette::accent);
-    else if (both) label(context, left + pad, y, inner,
-        translated(!target ? "enchantOrder.anvil.leftNot" : !sacrifice ? "enchantOrder.anvil.rightNot" : "enchantOrder.anvil.notInPlan"), palette::warning);
-    else if (next < 0) label(context, left + pad, y, inner, translated("enchantOrder.anvil.finished"), palette::accent);
-    else {
-        auto const& step = active.plan.steps[static_cast<size_t>(next)];
-        if (!atHand(step.target, atHandNow)) label(context, left + pad, y, inner, translated("enchantOrder.anvil.missing", sideText(step.target)), palette::warning);
-        else if (!atHand(step.sacrifice, atHandNow))
-            label(context, left + pad, y, inner, translated("enchantOrder.anvil.missing", sideText(step.sacrifice)), palette::warning);
-        else label(context, left + pad, y, inner, translated("enchantOrder.anvil.next", next + 1), palette::text);
-    }
-    y += line;
-    if (leftPenalty >= 0 || rightPenalty >= 0)
-        label(context, left + pad, y, inner, translated("enchantOrder.anvil.penalties", std::max(0, leftPenalty), std::max(0, rightPenalty)), palette::faint);
+    auto const& l = list.steps;
+    if (!l.usable() || !info.planned) return;
+    panel(context, list.left, list.top, list.width, list.height, .8f);
+    frame(context, list.left, list.top, list.width, list.height, palette::white, .14f); // the outline Lamium's screen has
+    auto const hover = list.free ? l.hit(list.pointerX, list.pointerY) : EnchantStepsLayout::Zone::None;
+    size_t const before = icons.size();
+    enchant_steps::draw(context, l, info, hover, list.chooser, icons);
+    // In their turn and not in batches, so an item held on the pointer, drawn last, is above them all.
+    for (size_t i = before; i < icons.size(); ++i) { icons[i].alpha = list.opacity; icons[i].direct = true; }
     if (!list.chooser) paintChange(context, change);
 }
 void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr) {
@@ -651,18 +626,18 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
     if (list.opacity <= .02f) return;
     DrawOpacity const fade{list.opacity};
     Icons icons;
-    Box change, goalBox, panelBox;
+    Box change, panelBox;
     if (list.chooser) {
         paintChooser(context, icons);
         auto const& l = list.choose;
         panelBox = {l.left, l.headTop, l.width, l.footerTop + EnchantLayout::statusHeight - l.headTop};
     }
-    if (list.planned) paintSteps(context, icons, change, goalBox);
+    if (list.planned) paintSteps(context, icons, change);
     else paintNoPlan(context, change);
     {
         std::scoped_lock lock(pressLock);
-        pressState = {std::chrono::steady_clock::now(), list.pointerX, list.pointerY, list.free && list.opacity > .98f, change, goalBox, panelBox,
-            list.chooser ? list.choose : EnchantLayout{}};
+        pressState = {std::chrono::steady_clock::now(), list.pointerX, list.pointerY, list.free && list.opacity > .98f, change, panelBox,
+            list.chooser ? list.choose : EnchantLayout{}, list.planned ? list.steps : EnchantStepsLayout{}, list.chooser};
     }
     context.flushText(0, std::nullopt);
     // The held item goes with the panels' own icons, last so it is on top: a
@@ -719,7 +694,7 @@ void endAnvil() {
     std::scoped_lock lock(pressLock);
     pressState = {};
     pendingPresses.clear();
-    pendingWheel = 0;
+    pendingWheel = pendingStepsWheel = 0;
 }
 // An item cell follows what is in its place while the anvil is open. True when it changed.
 bool see(Held& cell, ItemStack const& stack) {
@@ -742,17 +717,22 @@ void seeItems(ItemStack const* hand, ItemStack const& input) {
 // The presses and wheel turns taken since the last frame.
 void applyPresses() {
     std::vector<Pending> presses;
-    int wheel = 0;
+    int wheel = 0, stepsWheel = 0;
     {
         std::scoped_lock lock(pressLock);
         presses.swap(pendingPresses);
         wheel = std::exchange(pendingWheel, 0);
+        stepsWheel = std::exchange(pendingStepsWheel, 0);
     }
     auto const& rows = list.choose.rows;
+    auto const& stepRows = list.steps.rows;
     if (wheel) chooserFirst = ui::SettingsTable::clampFirst(chooserFirst + wheel, rows.listCount, rows.listVisible);
+    if (stepsWheel) stepsFirst = ui::SettingsTable::clampFirst(stepsFirst + stepsWheel, stepRows.listCount, stepRows.listVisible);
     for (auto const& press : presses) {
-        if (press.goal) { flipGoal(); continue; }
+        if (press.goal) { if (opened) { flipGoal(); stepsFirst = 0; } continue; }
+        if (press.stepsScrollbar) { stepsFirst = stepRows.firstAt(press.y); continue; }
         if (press.scrollbar) { chooserFirst = rows.firstAt(press.y); continue; }
+        if (!opened) continue;
         std::string message;
         auto const pressed = ui::enchant_chooser::press(press.hit, message);
         if (pressed == ui::enchant_chooser::Pressed::NewItem) chooserFirst = 0;
@@ -814,12 +794,12 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     windowRest = reopened ? at.y : std::min(windowRest, at.y);
 
     // What the slots and the inventory hold, as planner inputs.
-    int now = -1, gameCost = -1, level = -1, leftPenalty = -1, rightPenalty = -1;
+    int now = -1, gameCost = -1, level = -1;
     bool both = false, creative = false;
     ItemStack const* heldItem = nullptr; // the stack on the pointer; the manager's, valid for this frame
     ItemStack const* inHand = nullptr;   // the main hand's; the player's, valid for this frame
     std::optional<unsigned> target, sacrifice;
-    std::vector<unsigned> atHandNow;
+    std::vector<unsigned> raw;
     try {
         if (auto* player = context.mClient.getLocalPlayer()) {
             creative = player->isCreative();
@@ -831,34 +811,42 @@ void drawBeside(ll::event::UIRenderEvent& event) {
             auto const& input = manager->getItemStack("anvil_input_items", 0);
             auto const& material = manager->getItemStack("anvil_material_items", 0);
             // First what changes the plan, then the plan against the slots.
-            if (chooser) {
-                seeItems(inHand, input);
-                applyPresses();
-            }
+            if (chooser) seeItems(inHand, input);
+            applyPresses();
             auto const& onPointer = manager->getItemStack("cursor_items", 0);
             if (!onPointer.isNull()) heldItem = &onPointer;
             if (active.valid) {
-                if (!input.isNull()) { target = sideOf(input); leftPenalty = input.getBaseRepairCost(); }
-                if (!material.isNull()) { sacrifice = sideOf(material); rightPenalty = material.getBaseRepairCost(); }
+                if (!input.isNull()) target = sideOf(input);
+                if (!material.isNull()) sacrifice = sideOf(material);
                 both = !input.isNull() && !material.isNull();
                 if (target && sacrifice) now = enchantPlan::stepFor(active.plan, *target, *sacrifice);
                 if (both) gameCost = static_cast<AnvilContainerManagerController&>(*manager).mCost;
-                if (target) atHandNow.push_back(*target);
-                if (sacrifice) atHandNow.push_back(*sacrifice);
-                if (auto mask = sideOf(onPointer)) atHandNow.push_back(*mask);
+                if (target) raw.push_back(*target);
+                if (sacrifice) raw.push_back(*sacrifice);
+                if (auto mask = sideOf(onPointer)) raw.push_back(*mask);
                 int const carriedSlots = std::min(36, manager->getContainerSize("combined_hotbar_and_inventory_items"));
                 for (int i = 0; i < carriedSlots; ++i)
-                    if (auto mask = sideOf(manager->getItemStack("combined_hotbar_and_inventory_items", i))) atHandNow.push_back(*mask);
+                    if (auto mask = sideOf(manager->getItemStack("combined_hotbar_and_inventory_items", i))) raw.push_back(*mask);
             }
         }
-    } catch (...) { now = -1; both = false; atHandNow.clear(); }
-    bool const planned = active.valid && !active.lines.empty();
-    int next = -1;
+    } catch (...) { now = -1; both = false; raw.clear(); }
+    makeInfo(raw, level, creative);
+    bool const planned = info.planned;
     if (planned) {
-        atHandNow = progress(atHandNow, active.plan);
-        next = nextStep(active.plan, atHandNow);
+        // The pair lying in the slots is what the last line speaks of.
+        info.inSlots = now;
+        if (both && now >= 0 && gameCost != active.lines[static_cast<size_t>(now)].cost) {
+            info.note = ui::translated("enchantOrder.anvil.costDiffers", gameCost);
+            info.noteTone = 2;
+        } else if (both && now >= 0) {
+            info.note = ui::translated("enchantOrder.anvil.match", now + 1);
+            info.noteTone = 1;
+        } else if (both) {
+            info.note = ui::translated(!target ? "enchantOrder.anvil.leftNot" : !sacrifice ? "enchantOrder.anvil.rightNot" : "enchantOrder.anvil.notInPlan");
+            info.noteTone = 2;
+        }
     }
-    finishedAtAnvil = planned && next < 0;
+    finishedAtAnvil = planned && info.following.next < 0;
 
     ui::EnchantLayout choose;
     if (chooser) {
@@ -870,16 +858,20 @@ void drawBeside(ll::event::UIRenderEvent& event) {
         chooserFirst = choose.rows.listFirst;
         chooser = choose.usable();
     }
-    int const steps = static_cast<int>(active.lines.size());
-    constexpr int headLines = 2, footLines = 2;
-    float const changeSpace = chooser ? 0 : changeRow;
-    auto heightFor = [&](bool twoLines) {
-        return pad + headLines * line + 3 + steps * (twoLines ? 2 * line + 2 : line + 2) + 2 + footLines * line + changeSpace + pad;
-    };
-    bool const twoLines = heightFor(true) <= screen.y - 2 * gap;
-    float const height = planned ? heightFor(twoLines) : pad + line + 3 + (chooser ? 3 * line : line) + changeSpace + pad;
-    if (height > screen.y - 2 * gap) return;
+    // The steps: as tall as the plan needs, scrolling where the screen is not.
+    float const changeSpace = chooser ? 0 : changeRow, room = screen.y - 2 * gap;
+    int const stepCount = static_cast<int>(info.steps.size());
+    int const lines = planned ? ui::enchant_steps::detailLines(context, info, width) : 1;
+    float const height = planned ? std::min(room, ui::EnchantStepsLayout::neededHeight(stepCount, lines) + changeSpace + 2)
+                                 : pad + line + 3 + (chooser ? 3 * line : line) + changeSpace + pad;
+    if (height > room) return;
     float const top = std::clamp(windowRest, gap, screen.y - gap - height) + (at.y - windowRest);
+    ui::EnchantStepsLayout stepsLayout;
+    if (planned) {
+        stepsLayout = ui::EnchantStepsLayout::fit(left, top + 1, width, top + height - changeSpace - 1, stepCount, stepsFirst, lines);
+        if (!stepsLayout.usable()) return;
+        stepsFirst = stepsLayout.rows.listFirst;
+    }
     // The game's window fades as it slides away on closing; the panels fade with the distance, or with the
     // window's own opacity when that is lower.
     float const slide = std::max(0.f, at.y - windowRest), way = std::max(1.f, (screen.y - windowRest) * .5f);
@@ -889,17 +881,13 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     list.ready = true;
     list.at = clock;
     list.left = left; list.top = top; list.width = width; list.height = height;
-    list.twoLines = twoLines; list.both = both; list.creative = creative;
-    list.target = target.has_value(); list.sacrifice = sacrifice.has_value();
     list.opacity = opacity;
-    list.now = now; list.next = next; list.gameCost = gameCost; list.level = level;
-    list.leftPenalty = leftPenalty; list.rightPenalty = rightPenalty;
-    list.atHand = std::move(atHandNow);
     list.pointerX = view.mPointerLocationPrevious->x; list.pointerY = view.mPointerLocationPrevious->y;
     list.free = heldItem == nullptr;
     list.planned = planned;
     list.chooser = chooser;
     list.choose = choose;
+    list.steps = stepsLayout;
     // Painted after the screen, the panels cover the item held on the pointer. The game draws that item in the
     // control `selected_item_icon` (21 units, following the pointer; read from the log 2026-11-12), so while
     // it overlaps one of them it is drawn once more in the same box, with them.
@@ -938,8 +926,7 @@ void dropStacks() {
     anvilItemIcon = ItemStack();
     anvilBookIcon = ItemStack();
     anvilItemGlint = ItemStack();
-    screenItemGlint = ItemStack();
-    anvilItems.clear(); anvilBooks.clear(); screenItems.clear(); screenBooks.clear(); anvilGlints.clear(); screenGlints.clear();
+    anvilItems.clear(); anvilBooks.clear(); screenItems.clear(); anvilGlints.clear();
     anvilIconsMade = false;
     opened = false;
 }
@@ -1073,12 +1060,22 @@ int anvilPress(bool left, bool down) {
     if (!state.live || std::chrono::steady_clock::now() - state.at > std::chrono::milliseconds(300)) return 0;
     float const x = state.pointerX, y = state.pointerY;
     if (state.change.has(x, y)) { pressSwallow = true; return 2; }
-    if (state.goal.has(x, y)) {
-        Pending press;
-        press.goal = true;
-        pendingPresses.push_back(press);
-        pressSwallow = true;
-        return 1;
+    if (state.steps.usable()) {
+        if (state.goalLive && state.steps.hit(x, y) == ui::EnchantStepsLayout::Zone::Goal) {
+            Pending press;
+            press.goal = true;
+            pendingPresses.push_back(press);
+            pressSwallow = true;
+            return 1;
+        }
+        if (state.steps.rows.onScrollbar(x, y)) {
+            Pending press;
+            press.stepsScrollbar = true;
+            press.y = y;
+            pendingPresses.push_back(press);
+            pressSwallow = true;
+            return 1;
+        }
     }
     if (state.panel.has(x, y)) {
         Pending press;
@@ -1094,10 +1091,43 @@ int anvilPress(bool left, bool down) {
 bool anvilWheel(int rows) {
     std::scoped_lock lock(pressLock);
     auto const& state = pressState;
-    if (!state.live || std::chrono::steady_clock::now() - state.at > std::chrono::milliseconds(300)
-        || !state.panel.has(state.pointerX, state.pointerY)) return false;
-    pendingWheel += rows;
-    return true;
+    if (!state.live || std::chrono::steady_clock::now() - state.at > std::chrono::milliseconds(300)) return false;
+    float const x = state.pointerX, y = state.pointerY;
+    if (state.panel.has(x, y)) { pendingWheel += rows; return true; }
+    auto const& steps = state.steps;
+    if (steps.usable() && x >= steps.left && x < steps.left + steps.width && y >= steps.top && y < steps.bottom) {
+        pendingStepsWheel += rows;
+        return true;
+    }
+    return false;
+}
+void followInventory(IClientInstance& client) {
+    std::vector<unsigned> raw;
+    int level = -1;
+    bool creative = creativeNow;
+    try {
+        if (auto* player = client.getLocalPlayer()) {
+            creative = player->isCreative();
+            if (auto const* attribute = player->getAttribute(Player::LEVEL()).mPtr) level = static_cast<int>(attribute->mCurrentValue);
+            if (active.valid) {
+                auto& inventory = player->getInventory();
+                for (int slot = 0; slot < 36; ++slot)
+                    if (auto mask = sideOf(inventory.getItem(slot))) raw.push_back(*mask);
+            }
+        }
+    } catch (...) { raw.clear(); }
+    makeInfo(raw, level, creative);
+}
+StepsInfo const& steps() { return info; }
+ItemStack const* stepItemIcon(int number, bool enchanted) {
+    if (!active.valid) return nullptr;
+    ensureStepIcons();
+    return enchanted ? pooled(anvilGlints, anvilItemGlint, number) : pooled(anvilItems, anvilItemIcon, number);
+}
+ItemStack const* stepBookIcon(int number) {
+    if (!active.valid) return nullptr;
+    ensureStepIcons();
+    return pooled(anvilBooks, anvilBookIcon, number);
 }
 ItemStack const* kindIcon(int index) {
     if (index < 0 || index >= static_cast<int>(kinds.size()) || kinds[static_cast<size_t>(index)].icon.isNull()) return nullptr;
@@ -1112,14 +1142,10 @@ ItemStack const* itemIcon() {
 ItemStack const* heldIcon() { return held.present && !held.icon.isNull() ? &held.icon : nullptr; }
 ItemStack const* slotIcon() { return slotItem.present && !slotItem.icon.isNull() ? &slotItem.icon : nullptr; }
 ItemStack const* bookIcon() { return book.isNull() ? nullptr : &book; }
-ItemStack const* itemIcon(int number, bool enchanted) {
+ItemStack const* itemIcon(int number) {
     auto const* source = itemIcon();
-    if (!source) return nullptr;
-    if (!enchanted) return pooled(screenItems, *source, number);
-    if (screenItemGlint.isNull()) screenItemGlint = enchantedCopy(*source, wanted);
-    return pooled(screenGlints, screenItemGlint, number);
+    return source ? pooled(screenItems, *source, number) : nullptr;
 }
-ItemStack const* bookIcon(int number) { return pooled(screenBooks, book, number); }
 
 bool start() {
     auto& bus = ll::event::EventBus::getInstance();

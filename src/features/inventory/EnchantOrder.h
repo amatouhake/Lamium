@@ -214,4 +214,34 @@ inline int nextStep(enchantPlan::Plan const& plan, std::span<unsigned const> sta
 inline bool atHand(unsigned side, std::span<unsigned const> stacks) {
     return std::ranges::find(stacks, side) != stacks.end();
 }
+// Where the player stands with a plan, for the steps' side of both screens:
+// which steps are done, the next one and whether its two sides are at hand,
+// and which of the plan's inputs are held at all (alone or inside a merged
+// stack), as a count of materials.
+struct Following {
+    std::vector<unsigned> stacks; // the stacks that are part of the plan
+    std::vector<bool> done;
+    int next = -1;
+    bool ready = false;
+    unsigned held = 0, full = 0;
+    int have = 0, need = 0;
+    bool lacks(unsigned bit) const { return (full & bit) != 0 && (held & bit) == 0; }
+};
+inline Following follow(std::span<unsigned const> raw, enchantPlan::Plan const& plan) {
+    Following out;
+    out.stacks = progress(raw, plan);
+    if (plan.steps.empty()) return out;
+    out.full = plan.steps.back().target | plan.steps.back().sacrifice;
+    for (unsigned mask : out.stacks) out.held |= mask;
+    out.held &= out.full;
+    out.need = std::popcount(out.full);
+    out.have = std::popcount(out.held);
+    for (auto const& step : plan.steps) out.done.push_back(done(step, out.stacks));
+    out.next = nextStep(plan, out.stacks);
+    if (out.next >= 0) {
+        auto const& step = plan.steps[static_cast<size_t>(out.next)];
+        out.ready = atHand(step.target, out.stacks) && atHand(step.sacrifice, out.stacks);
+    }
+    return out;
+}
 }

@@ -24,12 +24,36 @@ struct KindCell {
     std::string name;
     bool held = false; // the main-hand item is of this kind
 };
+// One name of a step's side and the plan input it stands for (enchantPlan's bit), so a name can be marked
+// when that input is not at hand.
+struct NamePart {
+    std::string text;
+    unsigned bit = 0;
+};
 struct StepLine {
     std::string kept, gone;
     bool keptIsItem = false;
     int cost = 0, penalty = 0;
     bool keptCurse = false, goneCurse = false; // that side is nothing but curses
     bool keptEnchanted = false; // the kept side is the item and it carries an enchantment by this step
+    std::vector<NamePart> keptParts, goneParts;
+};
+// The steps' side as both screens draw it (ui/EnchantSteps): the plan and where the player stands with it.
+struct StepsInfo {
+    bool planned = false;
+    std::string message; // said in place of the steps when there are none
+    bool warning = false;
+    enchantPlan::Goal goal = enchantPlan::Goal::FewestLevels;
+    bool creative = false;
+    int level = -1; // the player's; -1 when it does not matter (Creative) or is not known
+    int total = 0, highest = 0, work = 0;
+    bool otherKnown = false, sameForBoth = false;
+    int otherTotal = 0, otherWork = 0;
+    std::vector<StepLine> steps;
+    Following following;
+    int inSlots = -1; // the step whose two stacks lie in the anvil's slots
+    std::string note; // the last line: what to do next
+    int noteTone = 0; // 0 plain, 1 good, 2 warning
 };
 // What the screen draws; rebuilt after every change.
 struct View {
@@ -79,6 +103,13 @@ void setAllHighest();
 void restoreLast();
 void clearWanted();
 void flipGoal();
+// The steps' side. In the planner screen it is brought up to date from the player's inventory every frame;
+// at the anvil the panel does that itself.
+void followInventory(IClientInstance& client);
+StepsInfo const& steps();
+// The steps' icons, each a stack of its own by a running number within a frame.
+ItemStack const* stepItemIcon(int number, bool enchanted);
+ItemStack const* stepBookIcon(int number);
 // Icons, valid while the screen is open.
 // A mouse button changed, told from the window procedure (values only, no game state). 0: not Lamium's. 1: a
 // press on the panels beside the anvil, kept from the game; what it does happens on the client thread with the
@@ -92,11 +123,9 @@ ItemStack const* itemIcon();
 ItemStack const* heldIcon();
 ItemStack const* slotIcon();
 ItemStack const* bookIcon();
-// The same pictures as stacks of their own, by a running number within a frame: drawing one stack many
+// The chosen item's picture as a stack of its own, by a running number within a frame: drawing one stack many
 // times in a frame loses the glints.
-// `enchanted`: the item as it looks with an enchantment on it (its glint).
-ItemStack const* itemIcon(int number, bool enchanted = false);
-ItemStack const* bookIcon(int number);
+ItemStack const* itemIcon(int number);
 
 bool start();
 void stop();

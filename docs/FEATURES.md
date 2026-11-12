@@ -401,10 +401,15 @@ are grey with the reason. "All highest" turns on everything at its highest level
 without curses, taking the most common one of a group that excludes each other; "Last
 choice" brings back what was chosen for that kind before.
 
-The right side lists the anvil uses in order, each with its level cost, and the total
-on top. The goal switches between the fewest levels and the least prior work left on
-the result (later changes then cost less). An order with a step of 40 levels or more
-is left out, as the anvil refuses it; in Creative there is no limit.
+The right side is the plan: the goal, the total with your level beside it and how many
+of the materials (the item and the books) you have, the levels needed at once (the
+dearest step) and the work penalty the finished item will carry, then the anvil uses
+in order, each with its level cost and the prior-work part of it. A name in yellow is
+something you do not have yet, a faint step is done, and a white bar marks the next
+step; the last line says what to do next or what is still missing. The goal switches
+between the fewest levels and the least prior work left on the result (later changes
+then cost less). An order with a step of 40 levels or more is left out, as the anvil
+refuses it; in Creative there is no limit.
 
 With the main-hand item chosen, what it carries stays and its earlier anvil uses are
 charged; a carried level can be raised, which costs only the difference. Books are
@@ -413,16 +418,15 @@ level. A plain book is not offered as an item to plan from, although the anvil d
 enchant one from an enchanted book: the result is that book again with one more anvil
 use on it, and the step list could not tell it from the other books afterwards.
 
-The plan's steps are listed right of the anvil screen ("List the steps beside the
-anvil", on by default): the total and your level on top, finished steps grey, the next
-step marked, the step whose two items are in the slots highlighted, a note when an
-item is not part of the plan or the next step lacks something, and the prior-work
-surcharge of the two items. Left of the anvil screen the same choices as in the
+The same plan is shown right of the anvil screen ("List the steps beside the anvil",
+on by default), with the step whose two items lie in the slots highlighted and the
+last line speaking of that pair (it matches a step, the game's cost differs, an item
+is not part of the plan). Left of the anvil screen the same choices as in the
 planner are shown ("Choose enchantments beside the anvil", on by default), so a plan
 is made and changed with the anvil open: the kinds, the main-hand item's cell and
 after it a cell for the item in the anvil's left slot, the set buttons and the
-enchantment rows, with the wheel scrolling the rows; the goal's name on the step list
-is pressed to switch the goal. With that setting off, or without room on both sides,
+enchantment rows, with the wheel scrolling the rows; the goal is switched on the right
+as in the planner. With that setting off, or without room on both sides,
 only the steps are listed, with a "Change" button that opens the planner. Both step
 aside for the game's item tooltip and close with the anvil; a finished plan is cleared
 when the anvil closes (its enchantments stay under "Last choice"). An unfinished plan

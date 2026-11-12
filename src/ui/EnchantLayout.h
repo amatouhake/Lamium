@@ -11,11 +11,65 @@ namespace lamium::ui {
 // last, the set buttons and the enchantments; on the right the goal, the totals and
 // the steps (two list rows each). The left column alone is also the panel left
 // of the anvil screen (fitPanel), where the anvil's left slot gets a cell too.
+// A scrolling list column: the rows of a ShapesLayout between `rowsTop` and `bottom`.
+inline ShapesLayout enchantColumn(float left, float width, float rowsTop, float bottom, int count, int first) {
+    ShapesLayout l;
+    l.left = l.listLeft = left; l.width = l.listWidth = width;
+    l.rowsTop = rowsTop;
+    l.fieldVisible = 1; // ShapesLayout::usable(), which its scrollbar asks
+    l.listCount = std::max(0, count);
+    l.listVisible = std::max(0, static_cast<int>((bottom - rowsTop - 2) / ShapesLayout::rowHeight));
+    l.listFirst = SettingsTable::clampFirst(first, l.listCount, l.listVisible);
+    return l;
+}
+// The steps' side, one for the planner screen's right column and the panel
+// right of the anvil screen: the goal, the total with the player's level and
+// the materials count, one or two lines of detail, the steps (two list rows
+// each) and a last line saying what to do next.
+struct EnchantStepsLayout {
+    static constexpr float barHeight = 14, line = 11, titleHeight = 12, footHeight = 13, goalWidth = 120;
+    static constexpr int stepRows = 2;
+    enum class Zone { None, Goal, AtOnce, Result };
+    float left{}, top{}, width{}, bottom{};
+    float goalY{}, totalY{}, detailY{}, titleY{}, footY{};
+    int detailLines{};
+    ShapesLayout rows;
+
+    bool usable() const { return width > 0; }
+    // What everything but the steps takes, and the whole with `steps` of them: the anvil's panel is as tall
+    // as its plan, up to the room there is.
+    static float fixedHeight(int detailLines) { return 1 + barHeight + 2 + line + detailLines * line + 6 + titleHeight + 2 + footHeight; }
+    static float neededHeight(int steps, int detailLines) {
+        return fixedHeight(detailLines) + static_cast<float>(steps * stepRows) * ShapesLayout::rowHeight;
+    }
+    static EnchantStepsLayout fit(float left, float top, float width, float bottom, int stepCount, int first, int detailLines) {
+        EnchantStepsLayout l;
+        if (width < 90 || bottom - top < fixedHeight(detailLines) + ShapesLayout::rowHeight * stepRows) return l;
+        l.left = left; l.top = top; l.width = width; l.bottom = bottom;
+        l.detailLines = std::clamp(detailLines, 0, 2);
+        l.goalY = top + 1;
+        l.totalY = l.goalY + barHeight + 2;
+        l.detailY = l.totalY + line;
+        l.titleY = l.detailY + l.detailLines * line + 6;
+        l.footY = bottom - footHeight;
+        l.rows = enchantColumn(left, width, l.titleY + titleHeight, l.footY, stepCount * stepRows, first);
+        return l;
+    }
+    float goalW() const { return std::clamp(width - 2 * SettingsTable::pad - 34, 40.0f, goalWidth); }
+    float goalX() const { return left + width - SettingsTable::pad - goalW(); }
+    Zone hit(float x, float y) const {
+        if (!usable() || x < left || x >= left + width || y < top || y >= bottom) return Zone::None;
+        if (y >= goalY && y < goalY + barHeight && x >= goalX() && x < goalX() + goalW()) return Zone::Goal;
+        if (detailLines == 2 && y >= detailY && y < detailY + 2 * line) return y < detailY + line ? Zone::AtOnce : Zone::Result;
+        if (detailLines == 1 && y >= detailY && y < detailY + line) return x < left + width / 2 ? Zone::AtOnce : Zone::Result;
+        return Zone::None;
+    }
+};
 struct EnchantLayout {
     static constexpr float titleHeight = 12, barHeight = 14, cell = 20, cellGap = 2, buttonHeight = 11, stepWidth = 11;
-    static constexpr float summaryLine = 11, goalWidth = 120, levelWidth = 22;
-    static constexpr int summaryLines = 3, stepRows = 2;
-    enum class Zone { None, Back, Held, Kind, SetAll, SetLast, SetClear, Row, RowMinus, RowPlus, Goal, Slot };
+    static constexpr float levelWidth = 22;
+    static constexpr int stepRows = EnchantStepsLayout::stepRows;
+    enum class Zone { None, Back, Held, Kind, SetAll, SetLast, SetClear, Row, RowMinus, RowPlus, Goal, Slot, AtOnce, Result };
     static constexpr float statusHeight = 23; // the panel's two lines of status under the rows
     struct Hit { Zone zone = Zone::None; int index = -1; };
 
@@ -25,21 +79,15 @@ struct EnchantLayout {
     float setAllX{}, setLastX{}, setClearX{}, setWide{}, setNarrow{};
     int kindColumns{}, kindCount{};
     bool heldCell{}, slotPlace{}, slotCell{};
-    float goalY{}, stepsTitleY{}, summaryTop{};
-    ShapesLayout rows, steps;
+    ShapesLayout rows;
+    EnchantStepsLayout side; // the planner screen's right column
 
     bool usable() const { return width > 0; }
     static ShapesLayout column(float left, float width, float rowsTop, float bottom, int count, int first) {
-        ShapesLayout l;
-        l.left = l.listLeft = left; l.width = l.listWidth = width;
-        l.rowsTop = rowsTop;
-        l.fieldVisible = 1; // ShapesLayout::usable(), which its scrollbar asks
-        l.listCount = std::max(0, count);
-        l.listVisible = std::max(0, static_cast<int>((bottom - rowsTop - 2) / ShapesLayout::rowHeight));
-        l.listFirst = SettingsTable::clampFirst(first, l.listCount, l.listVisible);
-        return l;
+        return enchantColumn(left, width, rowsTop, bottom, count, first);
     }
-    static EnchantLayout fit(SettingsTable const& t, int kinds, bool held, int rowCount, int rowFirst, int stepCount, int stepFirst) {
+    static EnchantLayout fit(SettingsTable const& t, int kinds, bool held, int rowCount, int rowFirst, int stepCount, int stepFirst,
+                             int detailLines = 1) {
         EnchantLayout l;
         if (!t.usable()) return l;
         float const pad = SettingsTable::pad;
@@ -50,11 +98,7 @@ struct EnchantLayout {
         l.layColumn(leftWidth, kinds, held, false, false, rowCount, rowFirst);
         l.rightLeft = l.dividerX + 1; l.rightWidth = l.left + l.width - l.rightLeft;
 
-        // The totals sit right under the goal, where they are read first.
-        l.goalY = l.bodyTop + 1;
-        l.summaryTop = l.goalY + barHeight + 1;
-        l.stepsTitleY = l.summaryTop + summaryLines * summaryLine + 6;
-        l.steps = column(l.rightLeft, l.rightWidth, l.stepsTitleY + titleHeight, l.footerTop, stepCount * stepRows, stepFirst);
+        l.side = EnchantStepsLayout::fit(l.rightLeft, l.bodyTop, l.rightWidth, l.footerTop, stepCount, stepFirst, detailLines);
         return l;
     }
     // The choosing column from `left`, `bodyTop` down to `footerTop`: the item's line, the cells, the set
@@ -103,7 +147,6 @@ struct EnchantLayout {
     float plusX() const { return switchX() - 6 - stepWidth; }
     float levelX() const { return plusX() - levelWidth; }
     float minusX() const { return levelX() - stepWidth; }
-    float goalX() const { return rightLeft + rightWidth - SettingsTable::pad - goalWidth; }
     static int rowAt(ShapesLayout const& c, float x, float y) {
         if (x < c.listLeft || x >= c.listLeft + c.listWidth || y < c.rowsTop) return -1;
         int offset = static_cast<int>((y - c.rowsTop) / ShapesLayout::rowHeight);
@@ -133,8 +176,12 @@ struct EnchantLayout {
             }
             return {};
         }
-        if (y >= goalY && y < goalY + barHeight && x >= goalX() && x < goalX() + goalWidth) return {Zone::Goal};
-        return {};
+        switch (side.hit(x, y)) {
+        case EnchantStepsLayout::Zone::Goal: return {Zone::Goal};
+        case EnchantStepsLayout::Zone::AtOnce: return {Zone::AtOnce};
+        case EnchantStepsLayout::Zone::Result: return {Zone::Result};
+        default: return {};
+        }
     }
 };
 }

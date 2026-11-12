@@ -1735,8 +1735,34 @@ Decided by the maintainer the same day (the mockup's third version):
   it. That this is a choice and not ignorance of the game is recorded here
   and in FEATURES.md; the maintainer is not sure the game itself needs to
   say it.
-Next, when the maintainer says so: build the shared steps' side (order
-agreed: that, then the highlight trial, then L-319).
+Built 2026-11-12 on the maintainer's go-ahead (not checked in game), step
+one of the agreed order:
+- One steps' side for both places (`ui/EnchantSteps`, laid out by
+  `EnchantStepsLayout`): the goal's stepper, the total with the player's
+  level beside it and the materials count at the right, the two details
+  (side by side, or a line each where they do not fit), the steps as two
+  list rows each with a scrollbar, and the last line. The planner screen's
+  right column and the anvil's right panel are this one drawing; the
+  anvil's old compact list is gone.
+- Where the player stands (`enchantOrder::follow`, pure): done steps, the
+  next one and whether its two sides are at hand, and which inputs are
+  held at all. The planner screen reads the player's inventory every
+  frame; the anvil reads its slots, the pointer and the inventory as
+  before.
+- Three ways to tell steps apart: a name in the warning colour is not at
+  hand, a done step is faint, a white bar marks the next. The step whose
+  pair lies in the anvil's slots keeps its tint.
+- The last line: the pair in the slots first (match, the game's cost
+  differing, an item not of the plan), else the next step when it can be
+  taken, else everything the plan still lacks.
+- The other goal's outcome and the two details' explanations are said in
+  the status line when the pointer is on them (the planner's footer; at
+  the anvil the choosing panel's status lines). The planner's third
+  summary line and the anvil's "your level" and "prior work: left, right"
+  lines are gone; their texts are removed.
+- At the anvil the goal's stepper takes presses while the choosing panel
+  is open; the wheel and the scrollbar scroll the steps.
+Next: the in-game check, then the highlight trial, then L-319.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 
