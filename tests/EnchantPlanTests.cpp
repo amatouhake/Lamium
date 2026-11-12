@@ -1,4 +1,5 @@
 #include "features/inventory/EnchantPlan.h"
+#include "features/inventory/EnchantOrder.h"
 #include <cstdint>
 #include <vector>
 void check(bool, char const*);
@@ -48,7 +49,52 @@ Least bruteLeastWork(std::vector<Piece> pieces, int refuseAt) {
     return best;
 }
 }
+// The screen's edits (L-170): a sword's enchantments with the game's
+// frequencies and the damage group excluding each other.
+void enchantOrderTests() {
+    using namespace lamium::inventory::enchantOrder;
+    std::vector<Offer> offers{{9, 5, 30}, {10, 5, 10}, {11, 5, 10}, {12, 2, 10}, {13, 2, 3}, {14, 3, 3}, {17, 3, 10}, {26, 1, 3}, {28, 1, 1}};
+    Conflicts conflicts{{{9, 10}, {9, 11}, {10, 11}, {22, 26}}};
+    check(conflicts.between(10, 9) && conflicts.between(9, 10) && !conflicts.between(9, 12), "a conflict holds in either order");
+    std::vector<Enchantment> wanted, none;
+    check(toggle(wanted, offers[0], none, conflicts) == Change::Added && wanted == std::vector<Enchantment>{{9, 5}},
+          "an enchantment turns on at its highest level");
+    check(toggle(wanted, offers[1], none, conflicts) == Change::Blocked && wanted.size() == 1 && blocker(10, none, wanted, conflicts) == 9,
+          "a conflicting one stays off and names what blocks it");
+    check(step(wanted, offers[0], -1) && wanted[0].level == 4 && step(wanted, offers[0], 5) && wanted[0].level == 5
+              && !step(wanted, offers[0], 1) && !step(wanted, offers[3], 1),
+          "levels move within 1 and the highest, only for what is on");
+    check(toggle(wanted, offers[0], none, conflicts) == Change::Removed && wanted.empty(), "a second press turns it off");
+    std::vector<Enchantment> base{{17, 3}, {10, 4}};
+    check(toggle(wanted, offers[6], base, conflicts) == Change::Fixed && toggle(wanted, offers[0], base, conflicts) == Change::Blocked
+              && blocker(9, base, wanted, conflicts) == 10 && wanted.empty(),
+          "what the item has is fixed and blocks its conflicts");
+    {
+        std::vector<Offer> many;
+        std::vector<Enchantment> full;
+        for (int i = 0; i < maxBooks + 1; ++i) many.push_back({100 + i, 1, 30});
+        for (int i = 0; i < maxBooks; ++i) check(toggle(full, many[i], none, conflicts) == Change::Added, "nine books fit");
+        check(toggle(full, many[maxBooks], none, conflicts) == Change::Full && static_cast<int>(full.size()) == maxBooks, "a tenth book does not");
+    }
+    auto all = allHighest(offers, none, conflicts);
+    check(all == std::vector<Enchantment>{{12, 2}, {13, 2}, {14, 3}, {17, 3}, {26, 1}, {28, 1}},
+          "everything at its highest leaves the group that excludes itself");
+    auto allOnItem = allHighest(offers, base, conflicts);
+    check(!has(allOnItem, 17) && !has(allOnItem, 9) && has(allOnItem, 12), "it skips what the item has and what that blocks");
+    std::vector<Enchantment> stale{{9, 5}, {12, 3}, {99, 1}, {17, 2}, {14, 3}};
+    prune(stale, offers, base, conflicts);
+    check(stale == std::vector<Enchantment>{{14, 3}}, "pruning drops the blocked, the too high, the unknown and the item's own");
+    std::vector<Enchantment> pick{{9, 5}, {14, 3}, {28, 1}};
+    auto made = inputs(pick, offers, 2);
+    check(made && made->size() == 4 && (*made)[0].item && (*made)[0].work == 2 && (*made)[1].value == 5 && (*made)[2].value == 6
+              && (*made)[3].value == 4 && !(*made)[1].item && (*made)[1].work == 0,
+          "inputs are the item with its uses and a fresh book per enchantment at the book cost");
+    std::vector<Offer> odd{{9, 5, 7}};
+    check(!inputs(std::vector<Enchantment>{{9, 5}}, odd, 0) && !inputs(std::vector<Enchantment>{{50, 1}}, offers, 0),
+          "an unknown frequency or enchantment gives no inputs");
+}
 void enchantPlanTests() {
+    enchantOrderTests();
     check(priorWorkPenalty(0) == 0 && priorWorkPenalty(1) == 1 && priorWorkPenalty(3) == 7,
           "each earlier anvil use doubles the surcharge");
     check(priorUses(0) == 0 && priorUses(1) == 1 && priorUses(7) == 3 && priorUses(31) == 5,
