@@ -173,12 +173,17 @@ void startCustomInput() {
             : Token{Device::Mouse, button > MouseAction::ActionWheel ? button - 1 : button};
         bool down = wheel || event.buttonData() == MouseAction::DataDown;
         if (down) inventory::repeatTrades::cancel();
-        // The anvil list's Change button: the press stays from the game, the planner opens on the client thread.
-        if (!wheel && !event.isCancelled()
-            && inventory::enchantOrder::game::listPress(button == MouseAction::ActionLeft, down)) {
-            if (down) clientTasks::post([] {
-                if (auto client = ll::service::getClientInstance()) ui::openEnchantOrder(*client, true);
-            });
+        // The panels beside the anvil: their presses and wheel turns stay from the game. The Change button
+        // opens the planner on the client thread.
+        if (!wheel && !event.isCancelled()) {
+            if (int const taken = inventory::enchantOrder::game::anvilPress(button == MouseAction::ActionLeft, down)) {
+                if (taken == 2 && down) clientTasks::post([] {
+                    if (auto client = ll::service::getClientInstance()) ui::openEnchantOrder(*client, true);
+                });
+                event.cancel();
+                return;
+            }
+        } else if (wheel && !event.isCancelled() && inventory::enchantOrder::game::anvilWheel(event.buttonData() > 0 ? -3 : 3)) {
             event.cancel();
             return;
         }

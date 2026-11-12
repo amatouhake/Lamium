@@ -411,12 +411,20 @@ charged; a carried level can be raised, which costs only the difference. Books a
 always counted as fresh, and two books of one enchantment are not merged into a higher
 level.
 
-While a plan exists, its steps are listed beside the anvil screen ("List the steps
-beside the anvil", on by default): the total and your level on top, finished steps
-grey, the next step marked, the step whose two items are in the slots highlighted, a
-note when an item is not part of the plan or the next step lacks something, and the
-prior-work surcharge of the two items. The list steps aside for the game's item
-tooltip, and a finished plan leaves it when the anvil closes. The plan lasts for the
+The plan's steps are listed right of the anvil screen ("List the steps beside the
+anvil", on by default): the total and your level on top, finished steps grey, the next
+step marked, the step whose two items are in the slots highlighted, a note when an
+item is not part of the plan or the next step lacks something, and the prior-work
+surcharge of the two items. Left of the anvil screen the same choices as in the
+planner are shown ("Choose enchantments beside the anvil", on by default), so a plan
+is made and changed with the anvil open: the kinds, the main-hand item's cell and
+after it a cell for the item in the anvil's left slot, the set buttons and the
+enchantment rows, with the wheel scrolling the rows; the goal's name on the step list
+is pressed to switch the goal. With that setting off, or without room on both sides,
+only the steps are listed, with a "Change" button that opens the planner. Both step
+aside for the game's item tooltip and close with the anvil; a finished plan is cleared
+when the anvil closes (its enchantments stay under "Last choice"). An unfinished plan
+opens as it was left, whatever is in the main hand or the slot. The plan lasts for the
 session.
 
 ## Actions

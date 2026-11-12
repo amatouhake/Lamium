@@ -199,6 +199,26 @@ void enchantLayoutTests() {
               && layout.plusX() + EnchantLayout::stepWidth < layout.switchX() && layout.minusX() > layout.left + 60,
           "a row reads name, the level between its buttons, then the switch at the right edge");
     check(!EnchantLayout::fit(SettingsTable::fit(100, 100, 29, 0), 20, true, 12, 0, 9, 0).usable(), "too-small windows draw nothing");
+    // The same column as a panel left of the anvil screen.
+    auto panel = EnchantLayout::fitPanel(10, 20, 150, 240, 20, true, true, 12, 0);
+    check(panel.usable() && panel.dividerX == 160 && panel.footerTop == 260 - EnchantLayout::statusHeight && panel.rows.listVisible >= 4
+              && panel.rows.rowsTop + panel.rows.listVisible * 14 <= panel.footerTop,
+          "the anvil's panel is the choosing column alone, with its status lines under the rows");
+    check(panel.slotIndex() == 21 && panel.hit(panel.kindX(20) + 2, panel.kindY(20) + 2).zone == Zone::Held
+              && panel.hit(panel.kindX(21) + 2, panel.kindY(21) + 2).zone == Zone::Slot,
+          "the anvil slot's item gets a cell after the main hand's");
+    auto empty = EnchantLayout::fitPanel(10, 20, 150, 240, 20, false, false, 12, 0);
+    check(empty.setsY == panel.setsY && empty.rows.rowsTop == panel.rows.rowsTop && empty.hit(empty.kindX(21) + 2, empty.kindY(21) + 2).zone == Zone::None
+              && empty.hit(empty.kindX(20) + 2, empty.kindY(20) + 2).zone == Zone::None,
+          "without the items their places stay empty and nothing moves");
+    float const panelRow = panel.rows.listRowY(1) + 2;
+    check(panel.hit(panel.minusX() + 1, panelRow).zone == Zone::RowMinus && panel.hit(panel.plusX() + 1, panelRow).zone == Zone::RowPlus
+              && panel.hit(panel.left + 20, panelRow).zone == Zone::Row && panel.hit(panel.left + 20, panel.footerTop + 3).zone == Zone::None
+              && panel.minusX() > panel.left + 50,
+          "the panel's rows take presses like the screen's, and its status lines take none");
+    check(layout.slotIndex() == 21 && layout.hit(layout.kindX(21) + 2, layout.kindY(21) + 2).zone == Zone::None
+              && !EnchantLayout::fitPanel(10, 20, 100, 240, 20, true, true, 12, 0).usable(),
+          "the planner screen has no slot cell; a panel too narrow is not laid out");
 }
 void enchantPlanTests() {
     enchantOrderTests();

@@ -1605,10 +1605,46 @@ it:
 - Lamium's screen stays (several interfaces for one feature are usual
   here: waypoints, shapes, schematics; and it plans without an anvil).
 - Everything Lamium attaches to the anvil screen closes with it.
+Decided by the maintainer the same day: both item cells. With two warnings
+before building: a mark in a cell's corner sits on the item's picture and
+was rejected for the planner screen, which sets its item cell apart by its
+fill and frame; and the planner keeps the level in one place whatever the
+row's state (on the item, on, off), which the mockup's "on the item" and
+"highest" texts did not. The anvil's chooser is to share the planner
+screen's look and handling wherever the anvil screen does not force a
+difference.
+Built the same day (not checked in game):
+- One chooser for both places (`ui/EnchantChooser`, laid out by
+  `EnchantLayout::layColumn`): the item's line, the kind cells, the item
+  cells, the set buttons, the rows with the level stepper and the switch,
+  drawn and pressed by the same code in Lamium's screen and left of the
+  anvil. The anvil's panel (`EnchantLayout::fitPanel`) adds two status
+  lines under the rows, where the screen has its footer.
+- Item cells: the main hand's, then the anvil's left slot's (anvil only),
+  both with the lighter fill and frame; their places are kept when empty.
+  The plan's item is now a record taken when a cell is chosen (kind,
+  enchantments, anvil uses, name), not the live item, so the plan stays
+  the same when the item moves between hand, slot and pointer. A cell is
+  marked chosen while the item in it matches that record. This replaces
+  the earlier "keep the previous plan" patch (`f80ad88f`) and removes its
+  known gap.
+- At the anvil the chooser is always shown when the new setting "Choose
+  enchantments beside the anvil" is on (default) and there is room on both
+  sides; the steps go right. Without a plan the right panel says so. With
+  the setting off or no room: steps only, with the "Change" button, shown
+  without a plan too.
+- With nothing chosen and no plan, an item put in the left slot is taken
+  as the plan's item; otherwise the slot only offers its cell.
+- Presses and wheel turns over the panels are kept from the game by the
+  mouse listener (values of the last frame) and acted on with the next
+  frame on the client thread. The goal is switched by pressing its name on
+  the step list. Nothing is taken while an item is on the pointer.
+- A finished plan is now cleared when the anvil closes, its enchantments
+  going to "Last choice"; before, the planner brought it back.
+- Not built: dragging the panel's scrollbar (a press on it jumps), text
+  search.
 Still open:
-- Which item cells the anvil's chooser gets: the left slot's only, or the
-  main hand's and the left slot's (the mockup shows both; the agent
-  recommends both). Then building it.
+- The in-game check of the above.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 

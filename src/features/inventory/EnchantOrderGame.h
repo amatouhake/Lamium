@@ -38,9 +38,13 @@ struct View {
     std::string itemName;
     bool inHand = false;     // the chosen kind is the main-hand item's
     bool stateKnown = false; // its anvil uses could be read
-    bool useHeld = false;    // the main-hand item's cell is chosen
+    bool useItem = false;    // planned from an item's state, not a fresh one of the kind
+    bool useHeld = false;    // and that item is the one in the main hand: its cell is chosen
     bool heldCell = false;   // there is such a cell
     std::string heldName;
+    bool useSlot = false;    // the same for the item in the anvil's left slot (anvil screen only)
+    bool slotCell = false;
+    std::string slotName;
     bool bookKind = false;   // books merged into one; there is no item
     bool planned = false;    // the totals below are valid
     std::vector<Row> rows;
@@ -58,7 +62,8 @@ struct View {
 
 // Reads the game's enchantments and the main-hand item. False with a
 // translation key in `problem` when there is nothing to plan with.
-bool open(IClientInstance& client, std::string& problem);
+// `atAnvil`: opened by the panel beside the anvil screen, which closes it again.
+bool open(IClientInstance& client, std::string& problem, bool atAnvil = false);
 // Drops what was read; the plan stays for the anvil.
 void close();
 View const& view();
@@ -66,7 +71,8 @@ View const& view();
 void pickKind(int index);
 // The main-hand item: what it carries stays and its anvil uses are charged.
 void pickHeld();
-void setUseHeld(bool use);
+// The same for the item in the anvil's left slot.
+void pickSlot();
 Change toggleRow(int row);
 void stepRow(int row, int delta);
 void setAllHighest();
@@ -74,13 +80,17 @@ void restoreLast();
 void clearWanted();
 void flipGoal();
 // Icons, valid while the screen is open.
-// A mouse button changed, told from the window procedure (values only, no game state): true when it was the left
-// button on the anvil list's Change button, which the caller keeps from the game and answers by opening the
-// planner on the client thread.
-bool listPress(bool left, bool down);
+// A mouse button changed, told from the window procedure (values only, no game state). 0: not Lamium's. 1: a
+// press on the panels beside the anvil, kept from the game; what it does happens on the client thread with the
+// next frame. 2: the same on the Change button, which the caller answers by opening the planner on the client
+// thread.
+int anvilPress(bool left, bool down);
+// The wheel over the anvil's choosing panel, in rows: true when the panel takes it.
+bool anvilWheel(int rows);
 ItemStack const* kindIcon(int index);
 ItemStack const* itemIcon();
 ItemStack const* heldIcon();
+ItemStack const* slotIcon();
 ItemStack const* bookIcon();
 // The same pictures as stacks of their own, by a running number within a frame: drawing one stack many
 // times in a frame loses the glints.

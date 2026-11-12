@@ -9,12 +9,14 @@ namespace lamium::ui {
 // the settings table's place: a heading row with the path and Back, then on
 // the left the item, the kinds as an icon grid with the main-hand item's cell
 // last, the set buttons and the enchantments; on the right the goal, the totals and
-// the steps (two list rows each).
+// the steps (two list rows each). The left column alone is also the panel left
+// of the anvil screen (fitPanel), where the anvil's left slot gets a cell too.
 struct EnchantLayout {
     static constexpr float titleHeight = 12, barHeight = 14, cell = 20, cellGap = 2, buttonHeight = 11, stepWidth = 11;
     static constexpr float summaryLine = 11, goalWidth = 120, levelWidth = 22;
     static constexpr int summaryLines = 3, stepRows = 2;
-    enum class Zone { None, Back, Held, Kind, SetAll, SetLast, SetClear, Row, RowMinus, RowPlus, Goal };
+    enum class Zone { None, Back, Held, Kind, SetAll, SetLast, SetClear, Row, RowMinus, RowPlus, Goal, Slot };
+    static constexpr float statusHeight = 23; // the panel's two lines of status under the rows
     struct Hit { Zone zone = Zone::None; int index = -1; };
 
     float left{}, width{}, headTop{}, bodyTop{}, footerTop{}, backX{};
@@ -22,7 +24,7 @@ struct EnchantLayout {
     float itemY{}, kindsTop{}, setsY{}, rowsTitleY{};
     float setAllX{}, setLastX{}, setClearX{}, setWide{}, setNarrow{};
     int kindColumns{}, kindCount{};
-    bool heldCell{};
+    bool heldCell{}, slotPlace{}, slotCell{};
     float goalY{}, stepsTitleY{}, summaryTop{};
     ShapesLayout rows, steps;
 
@@ -45,25 +47,8 @@ struct EnchantLayout {
         l.headTop = t.theadTop; l.bodyTop = t.rowsTop; l.footerTop = t.footerTop;
         l.backX = t.rowsRight() - pad - ShapesLayout::closeWidth;
         float const leftWidth = std::clamp(t.tableWidth * .46f, 150.0f, 230.0f);
-        l.dividerX = l.left + leftWidth;
+        l.layColumn(leftWidth, kinds, held, false, false, rowCount, rowFirst);
         l.rightLeft = l.dividerX + 1; l.rightWidth = l.left + l.width - l.rightLeft;
-
-        l.kindCount = std::max(0, kinds);
-        // The main-hand item's cell comes after the last kind. Its place is
-        // kept whether or not there is one, so nothing below moves.
-        l.heldCell = held;
-        l.kindColumns = std::max(1, static_cast<int>((leftWidth - 2 * pad + cellGap) / (cell + cellGap)));
-        int const kindRows = (l.kindCount + 1 + l.kindColumns - 1) / l.kindColumns;
-        l.itemY = l.bodyTop + 1;
-        l.kindsTop = l.itemY + barHeight + 1;
-        float y = l.kindsTop + kindRows * (cell + cellGap);
-        l.setsY = y + 1;
-        float const room = leftWidth - 2 * pad - 2 * 3;
-        l.setWide = std::floor(room * .38f); l.setNarrow = room - 2 * l.setWide;
-        l.setAllX = l.left + pad; l.setLastX = l.setAllX + l.setWide + 3; l.setClearX = l.setLastX + l.setWide + 3;
-        y = l.setsY + buttonHeight + 3;
-        l.rowsTitleY = y;
-        l.rows = column(l.left, leftWidth, y + titleHeight, l.footerTop, rowCount, rowFirst);
 
         // The totals sit right under the goal, where they are read first.
         l.goalY = l.bodyTop + 1;
@@ -72,8 +57,45 @@ struct EnchantLayout {
         l.steps = column(l.rightLeft, l.rightWidth, l.stepsTitleY + titleHeight, l.footerTop, stepCount * stepRows, stepFirst);
         return l;
     }
+    // The choosing column from `left`, `bodyTop` down to `footerTop`: the item's line, the cells, the set
+    // buttons, the rows.
+    void layColumn(float leftWidth, int kinds, bool held, bool slotHasPlace, bool slot, int rowCount, int rowFirst) {
+        float const pad = SettingsTable::pad;
+        dividerX = left + leftWidth;
+        kindCount = std::max(0, kinds);
+        // The main-hand item's cell comes after the last kind, then the anvil
+        // slot's where there is an anvil. Their places are kept whether or
+        // not there is an item, so nothing below moves.
+        heldCell = held;
+        slotPlace = slotHasPlace;
+        slotCell = slotHasPlace && slot;
+        kindColumns = std::max(1, static_cast<int>((leftWidth - 2 * pad + cellGap) / (cell + cellGap)));
+        int const kindRows = (kindCount + 1 + (slotPlace ? 1 : 0) + kindColumns - 1) / kindColumns;
+        itemY = bodyTop + 1;
+        kindsTop = itemY + barHeight + 1;
+        float y = kindsTop + kindRows * (cell + cellGap);
+        setsY = y + 1;
+        float const room = leftWidth - 2 * pad - 2 * 3;
+        setWide = std::floor(room * .38f); setNarrow = room - 2 * setWide;
+        setAllX = left + pad; setLastX = setAllX + setWide + 3; setClearX = setLastX + setWide + 3;
+        y = setsY + buttonHeight + 3;
+        rowsTitleY = y;
+        rows = column(left, leftWidth, y + titleHeight, footerTop, rowCount, rowFirst);
+    }
+    // The choosing column on its own, as a panel: its status lines take the last `statusHeight` units.
+    static EnchantLayout fitPanel(float left, float top, float width, float height, int kinds, bool held, bool slot, int rowCount, int rowFirst) {
+        EnchantLayout l;
+        if (width < 120 || height < 150) return l;
+        l.left = left; l.width = width;
+        l.headTop = l.bodyTop = top; l.footerTop = top + height - statusHeight;
+        l.backX = left + width;
+        l.layColumn(width, kinds, held, true, slot, rowCount, rowFirst);
+        l.rightLeft = l.dividerX; l.rightWidth = 0;
+        return l;
+    }
     float kindX(int index) const { return left + SettingsTable::pad + (index % kindColumns) * (cell + cellGap); }
     int heldIndex() const { return kindCount; }
+    int slotIndex() const { return kindCount + 1; }
     float kindY(int index) const { return kindsTop + (index / kindColumns) * (cell + cellGap); }
     // A row reads name, then the level as a stepper (- level +), then the
     // switch at the right edge, so nothing is left empty beside it.
@@ -96,6 +118,8 @@ struct EnchantLayout {
                 if (x >= kindX(i) && x < kindX(i) + cell && y >= kindY(i) && y < kindY(i) + cell) return {Zone::Kind, i};
             if (heldCell && x >= kindX(heldIndex()) && x < kindX(heldIndex()) + cell && y >= kindY(heldIndex()) && y < kindY(heldIndex()) + cell)
                 return {Zone::Held};
+            if (slotCell && x >= kindX(slotIndex()) && x < kindX(slotIndex()) + cell && y >= kindY(slotIndex()) && y < kindY(slotIndex()) + cell)
+                return {Zone::Slot};
             if (y >= setsY && y < setsY + buttonHeight) {
                 if (x >= setAllX && x < setAllX + setWide) return {Zone::SetAll};
                 if (x >= setLastX && x < setLastX + setWide) return {Zone::SetLast};
