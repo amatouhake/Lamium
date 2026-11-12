@@ -2,6 +2,15 @@
 #ifdef LAMIUM_WORLD_PROBE
 #include "app/Runtime.h"
 #include "ll/api/memory/Hook.h"
+#include "ll/api/event/EventBus.h"
+#include "ll/api/event/render/UIRenderEvent.h"
+#include "mc/client/gui/controls/UIControl.h"
+#include "mc/client/gui/controls/VisualTree.h"
+#include "mc/client/gui/screens/ScreenController.h"
+#include "mc/client/gui/screens/ScreenView.h"
+#include "mc/client/gui/screens/controllers/ContainerScreenController.h"
+#include "mc/world/containers/managers/controllers/AnvilContainerManagerController.h"
+#include "mc/world/containers/managers/controllers/ContainerManagerController.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
@@ -114,14 +123,77 @@ LL_TYPE_INSTANCE_HOOK(ProbeHook, ll::memory::HookPriority::Low, LevelRendererPla
     } catch (...) {}
     return result;
 }
+// L-170: the anvil screen's name, its controls' boxes (once per opening),
+// and once a second the game's own cost and what the slots hold.
+ll::event::ListenerPtr screenListener;
+Clock::time_point lastScreen = Clock::now() - std::chrono::hours(1);
+void const* treeOf = nullptr;
+unsigned screenLines = 0;
+int ticksHere = 0;
+float viewWidth = 0;
+// Only the larger boxes narrower than the screen: the window and its parts.
+void boxes(UIControl const& control, int depth) {
+    if (depth > 16 || screenLines >= 400) return;
+    if ((static_cast<int>(control.mVisible) & 1) == 0) return;
+    glm::vec2 const at = *control.mCachedPosition, size = *control.mSize;
+    if (size.x >= 60 && size.y >= 12 && size.x < viewWidth - 1) {
+        ++screenLines;
+        log("probe L-170 control depth={} name={} at={:.0f},{:.0f} size={:.0f}x{:.0f}", depth, *control.mName, at.x, at.y,
+            size.x, size.y);
+    }
+    for (auto const& child : *control.mChildren)
+        if (child) boxes(*child, depth + 1);
+}
+void anvilScreen(ll::event::AfterUIRenderEvent& event) {
+    auto& view = event.screenView();
+    if (!view.mHasFocus || !view.mController || !view.mController->_isContainerScreen() || screenLines >= 400) return;
+    std::string const name = view.getScreenName();
+    if (name.find("anvil") == std::string::npos) { treeOf = nullptr; return; }
+    auto& screen = static_cast<ContainerScreenController&>(*view.mController);
+    auto manager = screen.mContainerManagerController;
+    if (!manager) return;
+    if (treeOf != &view) {
+        treeOf = &view;
+        ticksHere = 0;
+        glm::vec2 const size = *view.mSize;
+        viewWidth = size.x;
+        ++screenLines;
+        log("probe L-170 screen={} view={:.0f}x{:.0f} containerType={}", name, size.x, size.y,
+            static_cast<int>(manager->getContainerType()));
+    }
+    if (Clock::now() - lastScreen < std::chrono::seconds(1)) return;
+    lastScreen = Clock::now();
+    // The first frames are not laid out yet.
+    if (++ticksHere == 2)
+        if (auto* tree = view.mVisualTree.get(); tree && tree->mRootControl) boxes(*tree->mRootControl.get(), 0);
+    std::string held;
+    size_t visited = 0;
+    for (auto const& [collection, container] : manager->mContainers.get()) {
+        if (++visited > 32) break;
+        if (!container) continue;
+        int const size = manager->getContainerSize(collection);
+        if (size > 4) { held += std::format(" {}[{}]", collection, size); continue; }
+        for (int i = 0; i < size; ++i) {
+            auto const& item = manager->getItemStack(collection, i);
+            held += item.isNull() ? std::format(" {}[{}]=empty", collection, i)
+                                  : std::format(" {}[{}]={} repairCost={}", collection, i, item.getTypeName(),
+                                        item.getBaseRepairCost());
+        }
+    }
+    ++screenLines;
+    log("probe L-170 anvil cost={}{}", static_cast<int>(static_cast<AnvilContainerManagerController&>(*manager).mCost), held);
+}
 bool installed = false;
 }
 void start() {
     installed = ProbeHook::hook(true) == 0;
     if (!installed) throw std::runtime_error("Could not install the world probe");
+    screenListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::AfterUIRenderEvent>(
+        [](auto& event) { try { anvilScreen(event); } catch (...) {} });
     Runtime::instance().self().getLogger().warn("World probe enabled (L-249, L-33, L-30; read only)");
 }
 void stop() {
+    if (screenListener) { ll::event::EventBus::getInstance().removeListener(screenListener); screenListener.reset(); }
     if (installed && ProbeHook::unhook(true)) installed = false;
 }
 }

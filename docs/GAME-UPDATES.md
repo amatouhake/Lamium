@@ -622,7 +622,8 @@ Hooks: `ProbeHook`
 Trace (`world_probe`). Read-only: the client level's chunk tick range (L-249), nearby
 actors' `AgeableComponent`/`BreedableComponent` (L-33) and the eight `EnderDragon` part
 boxes (L-30, a class-layout read); once per run the `Enchant::mEnchants()` registry and
-`EnchantUtils::canEnchant` on the held item (L-170).
+`EnchantUtils::canEnchant` on the held item (L-170); on the anvil screen its control boxes,
+slot contents and `AnvilContainerManagerController::mCost` (L-170, a class-layout read).
 
 ### `src/features/research/TradeTrace.cpp`
 Hooks: `CollectionBindHook`, `GlobalBindHook`, `TradeHook`

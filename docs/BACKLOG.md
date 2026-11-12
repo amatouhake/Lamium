@@ -1185,6 +1185,29 @@ recommendation:
   and the last selection per kind, both without a Lamium table; a
   Lamium-written set per kind needs choices inside conflict groups and an
   update per new enchantment, so it waits for a request.
+The step list beside the anvil, researched 2026-11-12 (VALIDATION-LOG "World
+probe: the anvil screen"); nothing was drawn yet:
+- Drawing: the `AfterUIRenderEvent` of the container screen's `ScreenView`
+  gives a render context; Lamium already draws there (container previews,
+  locked trades).
+- Which screen: `getScreenName()` is `anvil_screen`.
+- Where: the window is the control `root_panel` (176x166 at 234,91 in a
+  644x348 view), read from `mCachedPosition`/`mSize` once laid out, so the
+  list can sit to its right; 234 units were free there.
+- What is in the slots: `getItemStack("anvil_input_items", 0)` and
+  `("anvil_material_items", 0)`, with `constructItemEnchantsFromUserData`
+  for their enchantments and `getBaseRepairCost()` for their anvil uses.
+- The game's own cost for the pair in the slots:
+  `AnvilContainerManagerController::mCost` (a class-layout read behind
+  `versionSensitiveAllowed()`), so the marked step can be checked against it
+  and a difference shown rather than trusted.
+- Input: the list takes no clicks or keys in the first version. A click
+  outside the window drops the cursor's stack in vanilla, and keys go to the
+  vanilla screen (the calculator dropped its container-screen step for that
+  reason). The plan is changed from the planner screen.
+- Still unknown: other GUI scales and narrow windows (the list needs a
+  fallback when it does not fit: hide it), and whether Lamium's key opens the
+  planner while the anvil is open.
 Next: the second review, then the wiring.
 
 ### L-169 Item Transfer: remaining gesture and screen extensions

@@ -12,6 +12,35 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## World probe: the anvil screen (2026-11-12)
+
+Seen by the agent (Claude) driving the game through computer use, not by the
+maintainer. Builds: `911c00b0` plus the then-uncommitted anvil-screen lines of the
+`world_probe` option, DLL SHA-256 `540e3076...5673` (slots and cost) and
+`a3b3e78a94cb0a3a64b4aca65f8d9e26fe7da0422879c8602fe2c9cbf9008dbf` (laid-out boxes),
+1.26.60.05 Dev instance, title screen showing LeviLamina 26.60.5, the local world
+"Lamium anvil test", Creative, windowed. Read from `lamium.log` inside the
+`AfterUIRenderEvent` of the focused container screen; nothing was written to the game.
+
+- `ScreenView::getScreenName()` is `anvil_screen`; the manager's container type is 5.
+- The manager's collections: `anvil_input_items[1]`, `anvil_material_items[1]`,
+  `anvil_result_items[1]`, `cursor_items[1]`, `creative_output_items[1]`,
+  `hotbar_items[9]`, `inventory_items[27]`, `combined_hotbar_and_inventory_items[36]`.
+  `getItemStack` followed the sword from the hotbar to the cursor to the input slot.
+- `ItemStackBase::getBaseRepairCost()` gave 31 for the sword with five anvil uses
+  and 0 for the fresh one.
+- `AnvilContainerManagerController::mCost` was 0 with empty slots, 31 with only the
+  five-use sword in the input, and 39 with the fresh Vanishing sword as material;
+  the screen showed "エンチャントのコスト: 39" at that moment.
+- Boxes one second after opening, in a 644x348 view: `root_panel` at 234,91 size
+  176x166 (the window), `recipe_grid` at 255,138 size 134x17, `inventory_grid` at
+  241,177 size 162x54, `hotbar_grid` at 241,234 size 162x18. The first frame's
+  boxes are not laid out (everything 644x348).
+
+Not checked: drawing anything there, another GUI scale or window size, Survival,
+a server, whether a Lamium key reaches Lamium while this screen is open. The Dev
+instance has the published 0.6.0 again (`bb6691f9...`).
+
 ## World probe: the enchantment registry (2026-11-12)
 
 Seen by the agent (Claude) driving the game through computer use, not by the
