@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Showing and hiding HUD elements, fourth build (L-334, 2026-11-14)
+
+Build `0f95144b`, DLL SHA-256
+`c43dd834a769284bf8e264d722998ca703e40c34d2f3675381c04fa260c5f753`, 1.26.60.05 Dev
+instance, the maintainer, with four screenshots of HUD layout.
+
+- Situational elements (faint, dashed) and hidden ones (hatched, named) read apart.
+- The selected tag's switch toggles show/hide and the name does not move.
+- The idle panel shows the legend; its spacing could be roomier.
+- Still wrong: the Durability HUD's toolbar covered its tag (tag above, toolbar above);
+  the chat's switch sat outside the element, beyond the tag at its right corner; the target
+  card's and the player list's tags (same place, top center) were drawn on each other,
+  also with the target card selected.
+
 ## Showing and hiding HUD elements, third build (L-334, 2026-11-14)
 
 Build `772e1876`, DLL SHA-256

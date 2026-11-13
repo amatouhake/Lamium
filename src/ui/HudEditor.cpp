@@ -285,17 +285,17 @@ void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
     // The legend (L-334): the dashed frame shows by situation, the gray
     // hatching is switched off.
     std::string situational = translated("hudEditor.situational"), hidden = translated("hudEditor.switchedOff");
-    constexpr float swatchW = 12, swatchH = 7, swatchGap = 3, pairGap = 10;
+    constexpr float swatchW = 12, swatchH = 7, swatchGap = 4, pairGap = 16, legendTop = 4, legendBottom = 6;
     float legend = 2 * (swatchW + swatchGap) + textWidth(context, situational) + pairGap + textWidth(context, hidden);
     float w = std::max({buttons, textWidth(context, title), textWidth(context, hint), legend}) + 2 * edge;
-    float h = edge + 3 * rowH + 3 + itemHeight + edge;
+    float h = edge + 3 * rowH + legendTop + legendBottom + itemHeight + edge;
     Box box = idlePanel(w, h, screenW, screenH);
     panel(context, box.x, box.y, box.w, box.h, 1.f);
     frame(context, box.x, box.y, box.w, box.h, palette::white, .14f);
     label(context, box.x, box.y + edge, box.w, title, palette::text, Align::Center);
     label(context, box.x, box.y + edge + rowH, box.w, hint, palette::faint, Align::Center);
     {
-        float lx = box.x + (box.w - legend) / 2, ly = box.y + edge + 2 * rowH;
+        float lx = box.x + (box.w - legend) / 2, ly = box.y + edge + 2 * rowH + legendTop;
         float sy = ly + (rowH - swatchH) / 2;
         for (auto const& dash : dashedFrame({lx, sy, swatchW, swatchH}, 2, 1))
             fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length, palette::white, .6f);
@@ -309,7 +309,7 @@ void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
         lx += swatchW + swatchGap;
         label(context, lx, ly, textWidth(context, hidden) + 2, hidden, palette::dim, Align::Left);
     }
-    float y = box.y + edge + 3 * rowH + 3, x = box.x + (box.w - buttons) / 2;
+    float y = box.y + edge + 3 * rowH + legendTop + legendBottom, x = box.x + (box.w - buttons) / 2;
     Box resetBox{x, y, resetW, itemHeight}, doneBox{x + resetW + gap, y, doneW, itemHeight};
     button(context, resetBox, reset, resetArmed || hovering(resetBox, px, py), resetArmed ? palette::warning : palette::keyEdge);
     button(context, doneBox, done, hovering(doneBox, px, py), palette::accent);
@@ -505,15 +505,17 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         if (auto const& box = lastBoxes[static_cast<size_t>(*focus)]) {
             auto name = translated(elementName(*focus));
             if (resize) name += std::format(" {}%", static_cast<int>(resize->scale));
-            bool right = rightSide(*focus);
-            focusTag = nameTag(*box, textWidth(context, name) + 6, width, height, {}, right);
+            // The tag is placed with the switch's room, so both keep clear of
+            // others; the name keeps the end at the element's corner and the
+            // switch takes the end toward the element's middle.
+            auto shown = settings::hudShown(value, *focus);
+            constexpr float switchRoom = switchWidth + 4;
+            float nameW = textWidth(context, name) + 6;
+            auto whole = nameTag(*box, nameW + (shown ? switchRoom : 0), width, height, {}, rightSide(*focus));
+            bool fromRight = whole.x + whole.w / 2 > box->x + box->w / 2;
+            focusTag = Box{fromRight ? whole.x + whole.w - nameW : whole.x, whole.y, nameW, whole.h};
             tags.push_back({*focusTag, std::move(name), true, isOff(*focus)});
-            if (auto shown = settings::hudShown(value, *focus)) {
-                constexpr float switchRoom = switchWidth + 4;
-                float x = right ? focusTag->x - switchRoom : focusTag->x + focusTag->w;
-                if (x < 0 || x + switchRoom > width) x = right ? focusTag->x + focusTag->w : focusTag->x - switchRoom;
-                focusSwitch = std::pair{Box{x, focusTag->y, switchRoom, focusTag->h}, *shown};
-            }
+            if (shown) focusSwitch = std::pair{Box{fromRight ? whole.x : whole.x + nameW, whole.y, switchRoom, whole.h}, *shown};
         }
     if (focusTag) taken.push_back(*focusTag);
     if (focusSwitch) taken.push_back(focusSwitch->first);
@@ -598,9 +600,15 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     context.flushText(0, std::nullopt);
     if (selected && !resize && !(drag && drag->moved)) {
         if (auto const& box = lastBoxes[static_cast<size_t>(*selected)]) {
-            // Below the name tag when that hangs under the element.
+            // Clear of the name tag and its switch, above or below the element.
             Box clear = *box;
-            if (focusTag && focusTag->y > box->y) clear.h = focusTag->y + focusTag->h - box->y;
+            auto join = [&](Box const& other) {
+                float top = std::min(clear.y, other.y), bottom = std::max(clear.y + clear.h, other.y + other.h);
+                clear.y = top;
+                clear.h = bottom - top;
+            };
+            if (focusTag) join(*focusTag);
+            if (focusSwitch) join(focusSwitch->first);
             drawToolbar(context, value, clear, pointerX, pointerY);
         }
     } else if (!selected && !drag) drawIdlePanel(context, pointerX, pointerY);

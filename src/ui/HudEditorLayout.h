@@ -145,6 +145,11 @@ inline Box nameTag(Box element, float w, float screenW, float screenH, std::vect
                    std::clamp(y, 0.f, std::max(0.f, screenH - h)), w, h};
     };
     for (auto const& place : {inside(element.y), inside(element.y + element.h - h)}) if (clear(place)) return place;
+    // Then stacked further out, as a list of names would be.
+    for (int k = 1; k <= 6; ++k)
+        for (float x : {near, far})
+            for (float y : {below + k * (h + 1), above - k * (h + 1)})
+                if (Box place{x, y, w, h}; onScreen(place) && clear(place)) return place;
     for (auto const& place : places) if (onScreen(place)) return place;
     return {std::clamp(left, 0.f, std::max(0.f, screenW - w)), std::clamp(above, 0.f, std::max(0.f, screenH - h)), w, h};
 }

@@ -527,10 +527,12 @@ first build):
   Tags hang from the element's anchored side (the right edge for an element
   anchored on the right), keep clear of other tags and of elements drawn in
   full, and with no free place outside go inside the element's top or bottom
-  edge, never onto another tag.
+  edge, then stack further out above or below, never onto another tag.
 - The switch is the settings screen's switch, joined to the selected
-  element's name tag on the side away from the anchor (so the name never
-  moves), only while selected. A game part offers it only while Placed or
+  element's name tag: the tag is placed with the switch's room, the name keeps
+  the end at the element's corner and the switch takes the end toward the
+  element's middle, only while selected. The toolbar keeps clear of the tag
+  and the switch. A game part offers it only while Placed or
   Hidden. Toolbars do not change (a toolbar switch was ruled out: Lamium
   elements' toolbars are already long).
 - The idle panel (nothing selected) has a legend: a dashed swatch "Shown by

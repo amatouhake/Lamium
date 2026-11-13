@@ -104,7 +104,7 @@ void hudEditorLayoutTests() {
     auto crowded = nameTag(tagged, 40, 640, 360, {tag, second, third, Box{261, 72, 40, 11}});
     check(crowded.x == 100 && crowded.y == 40, "with every place outside taken the tag goes inside the top edge, not on a tag (L-334)");
     auto full = nameTag(tagged, 40, 640, 360, {tag, second, third, Box{261, 72, 40, 11}, crowded, Box{100, 59, 40, 11}});
-    check(full.x == 99 && full.y == 27, "with the inside taken too the first place is used");
+    check(full.x == 99 && full.y == 84, "with the inside taken too the tag stacks below the one already there");
     auto rightTag = nameTag(tagged, 40, 640, 360, {}, true);
     check(rightTag.x == 261 && rightTag.y == 27, "an element anchored on the right hangs its tag from the right corner");
     auto dashed = dashedFrame(Box{0, 0, 10, 5});
