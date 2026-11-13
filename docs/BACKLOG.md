@@ -953,7 +953,8 @@ item names in a shulker box's tooltip, since the preview shows the same.
 That exists: "Hide Shulker contents text" under Container previews, off by
 default. Whether it should be on by default is the maintainer's call.
 Decided by the maintainer 2026-11-13 in that session, looking only at what
-each line shows and for whom, built the same day, not yet checked in game:
+each line shows and for whom, built the same day and confirmed by the
+maintainer on `e6562d2e` (VALIDATION-LOG):
 - One heading, "Item details", without a switch or key of its own (as Map
   text is), and a child switch per kind of line in the tooltip's order:
   Durability numbers, Work penalty, Suspicious stew effect, Food values,

@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item details as one heading with a switch per line (2026-11-13)
+
+`e6562d2e`, local build, DLL SHA-256
+`1e996a77336d6d601178eb6fddcfe59fc591261e1852e4dfdef0e4a8090f52a9`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319):
+
+- Inventory has "Item details" as a heading; opened, it lists eight child switches.
+- "Show ID" off removes only the ID line, enchantability and fuel stay; "Property values"
+  off does the reverse.
+- "Suspicious stew effect" off: no effect on a stew in Survival.
+- "Property values" off and "Show tags" on: only the tags.
+
+Not checked: the toggle keys on the child rows and their toasts; a settings file from
+before the split; other languages; servers.
+
 ## Item tags and NBT as detail toggles (2026-11-13)
 
 `a3a8dcca`, local build, DLL SHA-256
