@@ -631,6 +631,31 @@ taken: easing on press and release (tried and dropped 2026-10-06, see
 `ZoomState::press`), and settings for animation speed and per-behavior
 toggles.
 
+### L-334 Game HUD: hide each part, from the settings and HUD layout
+Kind: Design. Maintainer 2026-11-14, after L-323: Hide boss bars belongs
+with the HUD rather than under Hide effects in Camera & view (agreed to move
+it to HUD & overlays). If that is done, the maintainer would like the other
+game HUD parts Lamium places (paper doll, chat, scoreboard) to be hideable
+the same way, and show/hide to be handled from HUD layout as well.
+Feasibility (read from the code, nothing built): every part already has a
+hook on its draw path. Boss bars: `HideEffects.cpp` skips their text and
+sprite draws; chat and scoreboard: `ChatPosition.cpp` / `ScoreboardPosition.cpp`
+hook the same text and sprite draws and could skip them; paper doll:
+`DebugVanillaHud.cpp` `DebugPaperDoll` already skips the doll's renderer
+when the Info HUD covers it. So hiding is a skipped draw per part, with the
+same gating as placement, and the game's layout is untouched.
+Open choices for the maintainer:
+- Whether hiding needs the Game HUD placement main switch on (one switch
+  restores everything vanilla, but turning it on moves the chat to the lower
+  left by default unless the chat part is left out), or each part's hiding
+  works on its own.
+- How the editor shows it: a show/hide button in the selected game part's
+  toolbar, and how a hidden part is drawn there (a dimmed frame).
+- Moving Hide boss bars: its saved key and action id stay; it carries over as
+  hidden only if Hide effects and Hide boss bars were both on, so no one's
+  bars change after the update. Hide effects keeps the other effects.
+- Chat: hidden messages on the HUD only; the chat screen stays vanilla.
+
 ### L-323 Game HUD placement: boss bars
 Kind: Research, then Design. Asked for by the maintainer 2026-11-13.
 Game HUD placement moves and scales the chat, the paper doll and the

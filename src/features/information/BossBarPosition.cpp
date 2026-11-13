@@ -156,6 +156,21 @@ LL_TYPE_INSTANCE_HOOK(BossBarSpriteRender, ll::memory::HookPriority::Normal, Spr
     try { translation.prepare(mOwner); } catch (...) {}
     origin(context);
 }
+// The bar textures are 13x5 nine-slices with 4-pixel caps; the game clips
+// the filled one from the left, so draw the whole bar cut at `visible`.
+static void nineSlice(MinecraftUIRenderContext& context, std::string_view texture, ui::ImageRect bar, float z,
+                      float visible, ui::Rgb tint) {
+    float cap = std::min(4 * z, bar.w / 2);
+    struct Piece { float x, w, u0, u1; } pieces[] = {
+        {bar.x, cap, 0, 4.f / 13}, {bar.x + cap, bar.w - 2 * cap, 4.f / 13, 9.f / 13},
+        {bar.x + bar.w - cap, cap, 9.f / 13, 1}};
+    for (auto p : pieces) {
+        float shown = std::min(p.w, bar.x + visible - p.x);
+        if (shown <= 0 || p.w <= 0) continue;
+        float u1 = p.u0 + (p.u1 - p.u0) * shown / p.w;
+        ui::imageUv(context, texture, {p.x, bar.y, shown, bar.h}, p.u0, 0, u1, 1, 1, tint);
+    }
+}
 std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, float width, float height,
                                            ui::HudElement const& element, bool outline) {
     float w = barWidth, h = barHeight;
@@ -178,8 +193,8 @@ std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, fl
         ui::Rgb tint = tints[i % 2];
         float filled = i % 2 ? 1.f : .85f;
         ui::ImageRect bar{box->x, y + 10 * z, box->w, 5 * z};
-        ui::imageUv(context, "textures/ui/empty_progress_bar", bar, 0, 0, 1, 1, 1, tint);
-        ui::imageUv(context, "textures/ui/filled_progress_bar", {bar.x, bar.y, bar.w * filled, bar.h}, 0, 0, filled, 1, 1, tint);
+        nineSlice(context, "textures/ui/empty_progress_bar", bar, z, bar.w, tint);
+        nineSlice(context, "textures/ui/filled_progress_bar", bar, z, bar.w * filled, tint);
     }
     context.flushText(0, std::nullopt);
     return box;
