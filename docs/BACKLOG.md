@@ -917,6 +917,16 @@ yet checked in game: the hover control's own `mSize` is set to the new box
 and its `mCachedPosition` moved back so the box ends inside the screen
 (the outermost parent's size; pure `details::keptInside`), both put back
 after the draw, as Scoreboard position does with its control.
+Seen by the maintainer 2026-11-13 on `d9db34bb`: the box still does not
+change with Alt. Neither the renderer's `mBoxDimensions` nor the control's
+`mSize` draws the frame. Third try, not yet checked in game: the frame is
+the renderer's `NinePatchLayer` (`mLayer`), which holds its size (`w`,
+`h`) and nine cached quads; for the draw the quads' far coordinates are
+moved by the growth (pure `details::stretched`) and put back. The first
+six swaps log what the game holds ("Tooltip forms: ..." in lamium.log:
+control, box, cursor, offset, frame size and quads) so the next step can
+be read from the log if this fails too; take the line out once the frame
+follows.
 Asked by the maintainer the same day: hiding the game's list of contained
 item names in a shulker box's tooltip, since the preview shows the same.
 That exists: "Hide Shulker contents text" under Container previews, off by

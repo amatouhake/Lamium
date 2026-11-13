@@ -8,6 +8,10 @@
 #include "features/inspection/ItemDetails.h"
 #include "ui/Widgets.h"
 #include "mc/client/gui/controls/UIControl.h"
+#include "mc/client/gui/components/NinePatchLayer.h"
+#include <array>
+#include <format>
+#include <memory>
 #include "mc/deps/nbt/CompoundTag.h"
 #include "mc/deps/nbt/CompoundTagVariant.h"
 #include "mc/deps/nbt/ListTag.h"
@@ -262,8 +266,16 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
     // The other form of Lamium's text when the key changed after the game took the text: its text and box for this
     // one draw, put back right after. On a game this was not checked on, the text follows the key at the next hover.
     // The box is the hover control's: its size, and its place so that a longer text stays on the screen.
-    struct Kept { std::string text; glm::vec2 box, size, at; };
+    // The frame is a nine-patch whose quads the game cached for the text it had: they are moved for the draw too.
+    struct Kept {
+        std::string text;
+        glm::vec2 box, size, at;
+        float w = 0, h = 0;
+        std::array<NinePatchLayer::CachedQuad, 9> quads;
+        bool layer = false;
+    };
     std::optional<Kept> kept;
+    NinePatchLayer* const layer = static_cast<std::unique_ptr<NinePatchLayer> const&>(mLayer).get();
     try {
         if (versionSensitiveAllowed(capabilities::Id::TooltipForms))
             if (auto const* other = otherForm(*mFormattedContent, detailsHeld.load())) {
@@ -276,17 +288,48 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
                     }
                     return most;
                 };
-                glm::vec2 const size = *owner.mSize, at = *owner.mCachedPosition;
-                auto const next = details::resized({size.x, size.y}, widest(*mFormattedContent), details::lineCount(*mFormattedContent),
-                                                   widest(*other), details::lineCount(*other), tooltip::lineHeight);
+                glm::vec2 const size = *owner.mSize, at = *owner.mCachedPosition, box = *mBoxDimensions;
+                glm::vec2 const growth{widest(*other) - widest(*mFormattedContent),
+                                       (details::lineCount(*other) - details::lineCount(*mFormattedContent)) * tooltip::lineHeight};
                 // The screen is the outermost control.
                 glm::vec2 screen = size + at;
                 for (auto parent = owner.mParent.lock(); parent; parent = parent->mParent.lock()) screen = *parent->mSize;
-                kept = Kept{*mFormattedContent, *mBoxDimensions, size, at};
+                // What the game holds for this tooltip, a few times: which of these the frame follows is not known
+                // from the headers.
+                static int told = 0;
+                if (told < 6) {
+                    ++told;
+                    glm::vec2 const cursor = *mCursorPosition, offset = *mOffset;
+                    std::string quads;
+                    if (layer)
+                        for (auto const& quad : layer->quads)
+                            quads += std::format(" [{:.0f}..{:.0f}, {:.0f}..{:.0f}]", float(quad->x0), float(quad->x1), float(quad->y0), float(quad->y1));
+                    Runtime::instance().self().getLogger().info(
+                        "Tooltip forms: control {:.1f},{:.1f} {:.1f}x{:.1f}, box {:.1f}x{:.1f}, cursor {:.1f},{:.1f}, offset {:.1f},{:.1f}, "
+                        "screen {:.1f}x{:.1f}, growth {:.1f},{:.1f}, frame {}x{} quads{}",
+                        at.x, at.y, size.x, size.y, box.x, box.y, cursor.x, cursor.y, offset.x, offset.y, screen.x, screen.y, growth.x,
+                        growth.y, layer ? float(layer->w) : -1.f, layer ? float(layer->h) : -1.f, quads);
+                }
+                kept = Kept{*mFormattedContent, box, size, at};
                 *mFormattedContent = *other;
-                mBoxDimensions = glm::vec2{next.width, next.height};
-                owner.mSize = glm::vec2{next.width, next.height};
-                owner.mCachedPosition = glm::vec2{details::keptInside(at.x, next.width, screen.x), details::keptInside(at.y, next.height, screen.y)};
+                mBoxDimensions = box + growth;
+                owner.mSize = size + growth;
+                owner.mCachedPosition = glm::vec2{details::keptInside(at.x, size.x + growth.x, screen.x), details::keptInside(at.y, size.y + growth.y, screen.y)};
+                if (layer) {
+                    kept->layer = true;
+                    kept->w = layer->w;
+                    kept->h = layer->h;
+                    size_t index = 0;
+                    for (auto& quad : layer->quads) {
+                        kept->quads[index++] = *quad;
+                        quad->x0 = details::stretched(quad->x0, kept->w, growth.x);
+                        quad->x1 = details::stretched(quad->x1, kept->w, growth.x);
+                        quad->y0 = details::stretched(quad->y0, kept->h, growth.y);
+                        quad->y1 = details::stretched(quad->y1, kept->h, growth.y);
+                    }
+                    layer->w = kept->w + growth.x;
+                    layer->h = kept->h + growth.y;
+                }
             }
     } catch (...) {
     }
@@ -298,6 +341,12 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
         mBoxDimensions = kept->box;
         owner.mSize = kept->size;
         owner.mCachedPosition = kept->at;
+        if (kept->layer && layer) {
+            layer->w = kept->w;
+            layer->h = kept->h;
+            size_t index = 0;
+            for (auto& quad : layer->quads) *quad = kept->quads[index++];
+        }
     }
     try {
         if (!glyphDraw) return;

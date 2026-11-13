@@ -62,6 +62,11 @@ inline int lineCount(std::string_view text) { return 1 + static_cast<int>(std::c
 inline Box resized(Box box, float widestNow, int linesNow, float widestThen, int linesThen, float lineHeight) {
     return {std::max(0.f, box.width + widestThen - widestNow), std::max(0.f, box.height + (linesThen - linesNow) * lineHeight)};
 }
+// A nine-patch frame's cached corner coordinate for a frame grown by `growth`: the far half moves with the far
+// edge, the near half stays, so the corners keep their size and the middle stretches.
+inline constexpr float stretched(float coordinate, float extent, float growth) {
+    return coordinate > extent / 2 ? coordinate + growth : coordinate;
+}
 // Where a box of `size` starts so that it ends inside `room`, moved back no further than the start of the room.
 inline constexpr float keptInside(float at, float size, float room) { return std::max(0.f, std::min(at, room - size)); }
 // Text without its colour and style codes: what the player reads.

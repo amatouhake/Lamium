@@ -66,6 +66,8 @@ void itemDetailsTests() {
               "a tooltip's box follows the other text's lines and widest line, keeping its room around the text");
         check(keptInside(50, 100, 400) == 50 && keptInside(350, 100, 400) == 300 && keptInside(10, 500, 400) == 0,
               "a grown box moves back inside the screen, never past its start");
+        check(stretched(0, 100, 40) == 0 && stretched(4, 100, 40) == 4 && stretched(96, 100, 40) == 136 && stretched(100, 100, 40) == 140,
+              "a grown frame keeps its near corners and moves its far ones");
         Item big{.id = "x", .full = true};
         for (size_t i = 0; i < dataLines + 9; ++i) big.data.push_back({"k", "v"});
         auto cut = lines(big);
