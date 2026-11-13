@@ -130,6 +130,10 @@ Do not infer game success from a build or unit-test result.
   text naming 32 blocks was not looked at.
 - L-323 boss bar placement: Pocket UI (touch padding above the bars), other
   GUI scales and servers are not checked.
+- L-334 showing and hiding HUD elements: switching a Lamium element from the
+  editor's tag switch was not itemized; a settings file from before with Hide
+  boss bars on is covered by unit tests only; Pocket UI, other GUI scales and
+  servers are not checked.
 
 ### Left from 0.6.0
 
@@ -632,51 +636,6 @@ magnification. Open: its name and its default. From the same issue, not
 taken: easing on press and release (tried and dropped 2026-10-06, see
 `ZoomState::press`), and settings for animation speed and per-behavior
 toggles.
-
-### L-334 Game HUD: hide each part, from the settings and HUD layout
-Kind: Design, then Ready. Maintainer 2026-11-14, after L-323: Hide boss bars belongs
-with the HUD rather than under Hide effects in Camera & view (agreed to move
-it to HUD & overlays). If that is done, the maintainer would like the other
-game HUD parts Lamium places (paper doll, chat, scoreboard) to be hideable
-the same way, and show/hide to be handled from HUD layout as well. The
-same day: Lamium's own HUD elements have on/off switches too, but HUD
-layout cannot toggle them; include them, minding two problems: telling a
-hidden element from a conditional one (dashed frame today), and toolbars
-that are already long for Lamium elements. Mockup:
-[game-hud-hide.html](demos/game-hud-hide.html) (hidden look A/B/C, where the
-switch sits T1/T2/T3; the agent recommends A and T2, and that a Lamium
-element's show/hide is its existing feature switch).
-Feasibility (read from the code, nothing built): every part already has a
-hook on its draw path. Boss bars: `HideEffects.cpp` skips their text and
-sprite draws; chat and scoreboard: `ChatPosition.cpp` / `ScoreboardPosition.cpp`
-hook the same text and sprite draws and could skip them; paper doll:
-`DebugVanillaHud.cpp` `DebugPaperDoll` already skips the doll's renderer
-when the Info HUD covers it. So hiding is a skipped draw per part, with the
-same gating as placement, and the game's layout is untouched.
-Open choices for the maintainer:
-- Whether hiding needs the Game HUD placement main switch on (one switch
-  restores everything vanilla, but turning it on moves the chat to the lower
-  left by default unless the chat part is left out), or each part's hiding
-  works on its own.
-- How the editor shows it: a show/hide button in the selected game part's
-  toolbar, and how a hidden part is drawn there (a dimmed frame).
-- Moving Hide boss bars: its key and action id stay (the saved value moved to
-  `information.showBossBars`, as decided below); it carries over as
-  hidden only if Hide effects and Hide boss bars were both on, so no one's
-  bars change after the update. Hide effects keeps the other effects.
-- Chat: hidden messages on the HUD only; the chat screen stays vanilla.
-Decided 2026-11-14 (maintainer: "go with them"): the agent's
-recommendations, recorded in DESIGN "Showing and hiding from HUD layout".
-Built the same day; in-game checks open (VALIDATION).
-Revised after the first in-game look (maintainer, 2026-11-14): the hidden look
-inverted the amount shown (hidden drew more than conditional) and reused the
-game parts' yellow, so it is now a gray hatched box with contents only when
-pointed at; the eight settings rows became one Standard / Placed / Hidden
-row per part, with one cycle key each (Hide boss bars kept as the boss bars'
-key, the boss bar placement key retired). DESIGN has the current rules.
-Third round the same day (demos/hud-hide-v2.html): situational elements
-faint, hidden ones hatched and named, the settings screen's switch joined to
-the selected tag, a legend in the idle panel, tags never stacked.
 
 ### L-320 Highlight designated block types in the world
 Kind: Design. Maintainer's idea 2026-11-07 (multiplayer-session feedback).

@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Hidden veil and Standard game parts (L-334, 2026-11-14)
+
+Build `66958838`, DLL SHA-256
+`de7c5009a392e8ba2d6ed4e891a12e3658567cde62480e0b2255fd6be81c3c7b`, 1.26.60.05 Dev
+instance, the maintainer: all passed. A hidden scoreboard reads as switched off (dark veil,
+quieter frame); game parts left Standard are not in the editor (none with the main switch
+off); the Game HUD layout link selects the first part in the editor, or none.
+
 ## HUD layout frame colors (L-334, 2026-11-14)
 
 Build `f49d0a2b`, DLL SHA-256
