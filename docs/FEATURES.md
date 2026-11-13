@@ -238,6 +238,9 @@ edited in a Waypoints screen. With Waypoints off nothing is shown, no death poin
 is recorded and reached temporary waypoints stay; saved waypoints are kept. To hide
 only the markers, use "Show in the world" and the Map marks layer.
 
+- The death point is temporary by default: it is removed when reached, at
+  the temporary waypoints' distance. "Temporary death point" off keeps it
+  until the next death or until it is deleted.
 - Temporary waypoints (a switch in the add prompt, which remembers the
   last choice) are drawn hollow, disappear when you get within a set
   distance (6 blocks by default) and are deleted with one click.

@@ -179,6 +179,7 @@ struct Settings {
         int waypointsWorld = 0; // map::WorldMarkers: always, while the key is held, off.
         float waypointDistance = 0; // World markers up to this many blocks away; 0 shows all.
         bool waypointsDeath = true; // Record the last death point.
+        bool waypointsDeathTemporary = true; // It goes on arrival like a temporary waypoint (L-326).
         bool waypointsCrossScale = false; // Overworld ones in the Nether at 1/8, Nether ones at 8x.
         float waypointArrival = 6; // Temporary waypoints go within this many blocks (L-261); 0 keeps them.
         bool worldMap = false; // Recording and the world map screen.

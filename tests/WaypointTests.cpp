@@ -96,6 +96,19 @@ void arrival() {
     auto near = step(others, list, 0, 3.5, 64, .5, 6);
     check(near.size() == 1 && near[0] == 1, "normal waypoints and other dimensions are never reached");
 }
+// L-326: the death point as a temporary mark.
+void deathArrival() {
+    std::optional<DeathPoint> death = DeathPoint{0, 64, 0, 0};
+    DeathArrival watch;
+    check(!watch.update(death, 0, .5, 64, .5, 6), "a death point the player respawns beside is not reached on the spot");
+    check(!watch.update(death, 0, 50.5, 64, .5, 6) && watch.update(death, 0, .5, 64, .5, 6) && watch.update(death, 0, .5, 64, .5, 6),
+          "it is reached after leaving it, and again until its removal is saved");
+    check(!watch.update(death, 1, .5, 64, .5, 6) && !watch.update(death, 0, .5, 64, .5, 0) && !watch.update(std::nullopt, 0, .5, 64, .5, 6),
+          "another dimension, distance 0 and no death point reach nothing");
+    DeathArrival next;
+    next.update(death, 0, 50.5, 64, .5, 6);
+    check(!next.update(DeathPoint{1, 64, 0, 0}, 0, .5, 64, .5, 6), "a new death point starts over: dying again where one stands is not arriving");
+}
 // L-276: the watch keeps a reached waypoint armed until its removal is saved.
 void arrivalSave() {
     WaypointSet set;
@@ -209,6 +222,7 @@ void waypointTests() {
     basics();
     markers();
     arrival();
+    deathArrival();
     arrivalSave();
     storage();
 }

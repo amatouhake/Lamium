@@ -103,6 +103,23 @@ std::vector<std::string> arrivalStep(ArrivalWatch& watch, WaypointSet const& set
     watch.apply(std::move(plan));
     return names;
 }
+// The death point as a temporary mark (L-326): reached at the same distance
+// and by the same rule as a temporary waypoint. One the player is within
+// reach of (respawning beside it) counts only after the player has left it.
+// True on every frame it is reached, so a removal that could not be saved is
+// tried again.
+class DeathArrival {
+    std::optional<DeathPoint> of; // The point `armed` speaks of.
+    bool armed = false;
+public:
+    void reset() { of.reset(); armed = false; }
+    bool update(std::optional<DeathPoint> const& death, int dimension, double x, double y, double z, double distance) {
+        if (death != of) { of = death; armed = false; }
+        if (!death || death->dimension != dimension || !(distance > 0)) return false;
+        if (std::hypot(death->x + .5 - x, death->y - y, death->z + .5 - z) > distance) { armed = true; return false; }
+        return armed;
+    }
+};
 inline constexpr size_t maxWaypoints = 1000;
 inline constexpr size_t maxNameBytes = 128;
 // The name a new waypoint gets: the lowest "N" not used yet.

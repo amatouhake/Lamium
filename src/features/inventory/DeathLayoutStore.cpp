@@ -25,7 +25,7 @@ std::string encodeLayout(Layout const& layout) {
                          {"maxStack", stack.maxStack}, {"done", layout.done[s]}});
     }
     Json root{{"version", 1}, {"x", layout.x}, {"y", layout.y}, {"z", layout.z}, {"dimension", layout.dimension},
-              {"slots", std::move(slots)}};
+              {"reached", layout.reached}, {"slots", std::move(slots)}};
     return root.dump(2);
 }
 Layout decodeLayout(std::string_view text) {
@@ -38,6 +38,7 @@ Layout decodeLayout(std::string_view text) {
     layout.y = integer(root.value("y", Json()), 0);
     layout.z = integer(root.value("z", Json()), 0);
     layout.dimension = integer(root.value("dimension", Json()), 0);
+    if (auto found = root.find("reached"); found != root.end() && found->is_boolean()) layout.reached = found->get<bool>();
     if (auto found = root.find("slots"); found != root.end() && found->is_array())
         for (auto const& entry : *found) {
             if (!entry.is_object()) continue;

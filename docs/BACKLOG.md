@@ -72,7 +72,7 @@ Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
 1. **Bugs first.** Built, waiting for the in-game check: L-322 (Fake Offhand
-   key with its slot selected). Open: L-324 (custom blocks brown on the map;
+   key with its slot selected); also L-326 (death point as a temporary mark). Open: L-324 (custom blocks brown on the map;
    Research), L-227 (FreeCamera shows only the sky outside loaded
    terrain; Research). What waits for more game symbols is collected in L-315.
    Parked: L-194 save corner marks, L-123 elytra pose, L-91 shield glint,
@@ -621,8 +621,21 @@ chunk, or draw the faces with a material that does not write depth.
 ## Feature work and research
 
 ### L-326 The death point follows the waypoint kinds
-Kind: Design (two details open), then Ready (strong model). Maintainer
-2026-11-13: the death point stays after it is reached, and there are three
+Kind: Ready (strong model); decided 2026-11-13.
+Status: built 2026-11-13, not checked in game. Setting "Temporary death
+point" (`map.waypointsDeathTemporary`, on by default) under Waypoints;
+`DeathArrival` (`Waypoints.h`), `arriveDeath` / `reachedDeath`
+(`WaypointSession`), the layout's `reached` flag saved in
+`death-layout.json` and `leftPlace` (`DeathLayout.h`), all tested. The
+toast on arrival says "Death point reached".
+Check in game: die, come back: the death point goes at the arrival
+distance with the toast, and picking the items up still restores the
+layout; walking more than 32 blocks away with items left ends the restore
+(log "left the death point"); respawning beside the death point does not
+remove it on the spot; with the setting off the death point stays and the
+restore behaves as before; leaving and rejoining after arrival keeps the
+restore until the place is left. Servers unchecked.
+Maintainer 2026-11-13: the death point stays after it is reached, and there are three
 kinds of mark (normal, temporary, death point) that each behave their own
 way.
 Decided (maintainer 2026-11-13):
@@ -638,12 +651,11 @@ Decided (maintainer 2026-11-13):
   arrival it ends when everything is back, at the next death, or once the
   player has left the place; not "until the next death" alone, because
   later pickups elsewhere would keep rearranging the inventory.
-Open:
-- How far "left the place" is. Agent's proposal: 32 blocks from the death
-  point (the top of the arrival distance's range), after having arrived.
-- As normal: whether the death point and the restore keep today's rules
-  (kept until removed by hand or replaced by the next death; the restore
-  ends with it). Agent's proposal: yes, unchanged.
+- "Left the place" is 32 blocks from the death point (the top of the
+  arrival distance's range) or another dimension, after having arrived.
+- As normal the death point and the restore keep the earlier rules: kept
+  until removed by hand or replaced by the next death, and the restore
+  ends with it.
 Notes: `features/map/Waypoints.h` (the arrival test), `WaypointSession.cpp`,
 `DeathRestore.cpp`, `DeathLayoutStore.cpp`; DESIGN's lines on the death
 point change with it. Removing the death point by hand still ends the

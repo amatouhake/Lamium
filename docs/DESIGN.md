@@ -128,7 +128,8 @@ menu and HUD editor keep GUI units.
   setting's own help, and the toast of a child's key adds it after the name.
   Command rows (open a screen, do now) are not dimmed. There is no
   exception: Waypoints off also stops recording a death point and removing
-  reached temporary waypoints (the same day); hiding only the markers is
+  reached temporary waypoints (the same day), the death point as a
+  temporary mark included (L-326, 2026-11-13); hiding only the markers is
   "Show in the world" and the Map marks layer.
 - **Child settings** are indented with a vertical guide line. Expanding or
   collapsing keeps the clicked row where it was. The wheel scrolls without

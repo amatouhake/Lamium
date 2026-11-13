@@ -513,6 +513,7 @@ inline constexpr auto options = std::to_array<Option>({
         [](Settings& s, int direction) { s.map.waypointDistance += direction * 100.f; s.normalize(); },
         NumericOption{0, 10000, [](Settings& s, float v) { s.map.waypointDistance = v; }, 100}},
     toggle<&Settings::map, &Settings::Map::waypointsDeath>("map.waypointsDeath", "waypoints", "mapWaypointsDeath"),
+    toggle<&Settings::map, &Settings::Map::waypointsDeathTemporary>("map.waypointsDeathTemporary", "waypoints", "mapWaypointsDeathTemporary"),
     toggle<&Settings::map, &Settings::Map::waypointsCrossScale>("map.waypointsCrossScale", "waypoints", "mapWaypointsCrossScale"),
     {"map.waypointArrival", "waypoints", "mapWaypointArrival",
         [](Settings const& s) -> OptionValue { return s.map.waypointArrival; },

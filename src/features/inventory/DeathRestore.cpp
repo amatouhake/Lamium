@@ -111,7 +111,9 @@ void follow() {
     catch (std::exception const& error) { log(std::string("could not load: ") + error.what()); }
 }
 // The layout ends when the player removes or replaces the death point it
-// belongs to; a death point never recorded (switched off) does not end it.
+// belongs to; a death point never recorded (switched off) does not end it,
+// and neither does one that went by being reached (L-326): from then on the
+// layout ends when the player leaves the place.
 // It is looked for every tick until seen, so removing it before any pickup
 // counts too.
 bool deathPointMatches() {
@@ -129,7 +131,7 @@ Scope scopeOf(Settings const& prefs) {
 }
 void step(LocalPlayer& player, Slots const& now, Settings const& prefs) {
     auto scope = scopeOf(prefs);
-    if (deathPointRemoved(prefs.map.waypointsDeath)) { log("death point removed"); forget(); return; }
+    if (!state.layout->reached && deathPointRemoved(prefs.map.waypointsDeath)) { log("death point removed"); forget(); return; }
     auto before = state.layout->done;
     bool all = markDone(*state.layout, now, scope);
     if (all) {
@@ -198,6 +200,20 @@ void tick() noexcept {
         }
         if (!state.layout) { state.previous = now; state.havePrevious = true; return; }
         if (!state.deathPointSeen && prefs->map.waypointsDeath && deathPointMatches()) state.deathPointSeen = true;
+        if (!state.layout->reached) {
+            if (auto reached = map::waypoints::reachedDeath(); reached && reached->x == state.layout->x
+                && reached->y == state.layout->y && reached->z == state.layout->z && reached->dimension == state.layout->dimension) {
+                state.layout->reached = true;
+                save();
+            }
+        } else if (auto feet = player->getFeetPos();
+                   leftPlace(*state.layout, static_cast<int>(player->getDimensionId()), feet.x, feet.y, feet.z)) {
+            log("left the death point");
+            forget();
+            state.previous = now;
+            state.havePrevious = true;
+            return;
+        }
         if (state.havePrevious && !game::moving() && pickedUp(*state.layout, state.previous, now, scopeOf(*prefs))) {
             state.armed = true;
             state.lastPickup = Clock::now();

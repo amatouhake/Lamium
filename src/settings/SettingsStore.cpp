@@ -281,6 +281,7 @@ Json encode(Settings const& settings) {
                  {"radarInvisible", settings.map.radarInvisible}, {"waypoints", settings.map.waypoints},
                  {"waypointsWorld", settings.map.waypointsWorld}, {"waypointDistance", settings.map.waypointDistance},
                  {"waypointsDeath", settings.map.waypointsDeath},
+                 {"waypointsDeathTemporary", settings.map.waypointsDeathTemporary},
                  {"waypointsCrossScale", settings.map.waypointsCrossScale}, {"waypointArrival", settings.map.waypointArrival},
                  {"worldMap", settings.map.worldMap},
                  {"worldMapNetherAuto", settings.map.worldMapNetherAuto}, {"worldMapPanel", settings.map.worldMapPanel},
@@ -591,6 +592,7 @@ Settings decodeSettings(std::string_view text) {
         }
         value.map.waypointDistance = settingsValue(map, "waypointDistance", value.map.waypointDistance);
         value.map.waypointsDeath = settingsValue(map, "waypointsDeath", value.map.waypointsDeath);
+        value.map.waypointsDeathTemporary = settingsValue(map, "waypointsDeathTemporary", value.map.waypointsDeathTemporary);
         value.map.waypointsCrossScale = settingsValue(map, "waypointsCrossScale", value.map.waypointsCrossScale);
         value.map.waypointArrival = settingsValue(map, "waypointArrival", value.map.waypointArrival);
         value.map.worldMap = settingsValue(map, "worldMap", value.map.worldMap);

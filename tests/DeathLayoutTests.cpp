@@ -163,6 +163,11 @@ void deathLayoutTests() {
         layout.slots[40] = item("shield", 1, "", 1);
         layout.done[0] = true;
         check(decodeLayout(encodeLayout(layout)) == layout, "the death layout survives saving");
+        check(!leftPlace(layout, 0, 5000, 70, 300), "a layout whose death point was not reached does not end by distance");
+        layout.reached = true;
+        check(decodeLayout(encodeLayout(layout)).reached, "that the death point was reached is saved");
+        check(!leftPlace(layout, 1, -11.5, 70, 330) && leftPlace(layout, 1, -11.5, 70, 340) && leftPlace(layout, 0, -11.5, 70, 300.5),
+              "once reached, the layout ends 32 blocks away or in another dimension (L-326)");
         bool rejected = false;
         try { (void)decodeLayout(R"({"version":2})"); } catch (...) { rejected = true; }
         check(rejected, "another version is rejected");

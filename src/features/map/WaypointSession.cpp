@@ -27,6 +27,8 @@ bool loadFailed = false; // Never overwrite a file that could not be read.
 std::optional<DeathPoint> pendingDeath;
 DeathWatch deathWatch;
 ArrivalWatch arrivalWatch;
+DeathArrival deathArrival;
+std::optional<DeathPoint> deathReached;
 std::atomic<bool> joiningLocal{false};
 std::uint64_t nextId = 1; // never reset: ids are not reused within the session
 ll::event::ListenerPtr startJoinListener, joinListener, exitListener;
@@ -62,6 +64,8 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
         pendingDeath.reset();
         deathWatch.reset();
         arrivalWatch.reset();
+        deathArrival.reset();
+        deathReached.reset();
         joined = {joined.world + 1, true, std::nullopt};
         try { joined.mapFolder = resolve(event, "map", "map", false); }
         catch (std::exception const& error) { log(std::string("no folder for the world map: ") + error.what()); }
@@ -88,6 +92,8 @@ void leave() {
     pendingDeath.reset();
     deathWatch.reset();
     arrivalWatch.reset();
+    deathArrival.reset();
+    deathReached.reset();
 }
 // Saves a candidate, then publishes it; the caller holds the lock.
 bool commit(WaypointSet candidate) {
@@ -150,12 +156,25 @@ void frame(bool recordDeath) {
     if (!recordDeath) return;
     auto candidate = set;
     candidate.death = death;
-    commit(std::move(candidate));
+    if (commit(std::move(candidate))) deathReached.reset();
 }
 std::vector<std::string> arrive(int dimension, double x, double y, double z, double distance) {
     std::lock_guard lock(mutex);
     return arrivalStep(arrivalWatch, set, dimension, x, y, z, distance,
                        [](WaypointSet const& candidate) { return commit(candidate); });
+}
+bool arriveDeath(int dimension, double x, double y, double z, double distance) {
+    std::lock_guard lock(mutex);
+    if (!deathArrival.update(set.death, dimension, x, y, z, distance)) return false;
+    auto candidate = set;
+    auto death = *std::exchange(candidate.death, std::nullopt);
+    if (!commit(std::move(candidate))) return false;
+    deathReached = death;
+    return true;
+}
+std::optional<DeathPoint> reachedDeath() {
+    std::lock_guard lock(mutex);
+    return deathReached;
 }
 void start() {
     auto& bus = ll::event::EventBus::getInstance();
