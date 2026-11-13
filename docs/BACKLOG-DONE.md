@@ -10,6 +10,50 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-331 Connected Textures: glass pane edges are uneven in less simple arrangements
+Kind: Research, then Ready.
+Status: done. Cause found, fixed and confirmed by the maintainer 2026-11-13 on
+`e64c3386` (VALIDATION-LOG). Left as it is (maintainer, the same day): where
+the upper pane has an arm the lower corner has not, the join at the post
+still reads slightly odd; it is rare. Why it cannot be made clean without
+a wider change: a pane run's free end has no vertical border in the game's
+own drawing, while an L's outside corner has one (the pane corner option),
+so a corner under a free end always meets an edge with none. Giving free
+ends an edge would be a new look for every pane run, not a fix.
+The maintainer's smallest case (2026-11-13; Connected Textures on, inward
+edges off, pane corner edges on; the pane at 0,0,0): panes at 0,0,0, 1,0,0
+and 0,0,1 make an L with its outside corner edge, which is right. A pane
+added at 0,1,0 has no neighbor beside it and is a lone post. Then the top
+border of the L breaks at the corner, the post above has no bottom border,
+and the L's outside corner edge stops under a post that has none. Noted
+with it: a pane's top and bottom border is the thin top (bottom) face and
+also the top (bottom) texel row of its side faces.
+Cause: a part dropped its top (bottom) border wherever the pane above
+(below) had the same part, and every pane has the post, so the post joined
+any pane above it whatever its shape.
+Built (`paneJoinsVertically`, tested): an arm still joins the same arm;
+the post joins only a pane with the same arms. With different arms each
+pane keeps its own outline, as vanilla draws that junction.
+Check in game: the case above shows the L's top border unbroken and the
+post with its own bottom border; stacked panes of one shape (a flat wall,
+a straight run two high, an L two high) join as before; a wall whose upper
+row has an extra arm at one pane keeps closed outlines there.
+Not decided, if the result still reads wrong: carrying the outside corner
+edge up a post of another shape instead of closing both outlines.
+Maintainer report 2026-11-13 (`786424c4`, with a
+screenshot kept outside the repository).
+With "Edges at glass pane corners" on and the inside edges ("Edges at
+inward corners") off, panes laid out in more than a flat run - an L with
+further panes above and beside it, panes meeting at different heights -
+show a border on some sides and none on others that look alike. Flat rows
+and simple walls look right.
+To find out first: which neighbor arrangement each wrong side has (the
+target card's `minecraft:connection_*` states help), and whether the rule
+that decides an edge looks only at the pane's own connections or also at
+the panes above and below. Then the rule for an outside corner is stated
+again in Lamium's terms before any code changes.
+Connected Textures has its Experimental badge back while this is open.
+
 ### L-322 Fake Offhand: a key of its own does nothing while its slot is selected
 Kind: Ready. Reported by the maintainer 2026-11-13.
 Status: done. Built 2026-11-13 and confirmed by the maintainer the same day on

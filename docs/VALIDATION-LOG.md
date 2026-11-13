@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Glass panes of different shapes above each other (2026-11-13)
+
+`e64c3386`, local build, DLL SHA-256
+`b6f31bc85c8655b421b5b2051d525673fa4e4556151fd9f3fff4411e54838e05`, no trace options,
+1.26.60.05 Dev instance; Connected Textures on, inward edges off, pane corner edges on.
+Confirmed by the maintainer (L-331):
+
+- An L (panes at 0,0,0, 1,0,0 and 0,0,1) under a lone post at 0,1,0: the L's top border
+  is unbroken at the corner and the post has its own bottom border; it reads more
+  natural than before.
+- Stacked panes of one shape (a flat wall, a straight run two high, an L two high) join
+  as before.
+- With a pane added at 1,1,0 (the upper pane gains an east arm): the outlines are
+  closed, no border breaks off.
+
+The maintainer's remark on the last case: the join between 0,0,0 and 0,1,0 still reads
+slightly odd; accepted as a rare arrangement.
+Not checked: stained panes, resource packs with other pane textures, Vibrant Visuals.
+
 ## A death's waypoint named with its date and time (2026-11-13)
 
 `b7cb3d25`, local build, DLL SHA-256
