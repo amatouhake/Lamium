@@ -182,7 +182,15 @@ menu and HUD editor keep GUI units.
   from English on its own, not converted from Simplified Chinese; game terms
   (items, blocks, biomes) follow the game's own text in each language.
   Contributor notes: [TRANSLATING.md](TRANSLATING.md).
-- Japanese locale: Latin runs are raised 1.5 units to share the baseline, and
+- (Decided 2026-11-13, L-319) How far Latin runs are raised is a setting,
+  "Latin text raise" under General > HUD text (`interface.latinRaise`): a
+  value from 0 to 2.75 GUI units in quarter steps that holds in every
+  language, or Automatic (the default), which uses Lamium's value for the
+  game language and shows it ("Auto 1.5"). Why: the offset depends on the
+  font, so it differs by language and resource pack, and a hidden
+  Japanese-only constant could not be seen or corrected. Automatic is 1.5
+  for Japanese and 0 elsewhere until the maintainer's values replace them.
+- Japanese locale: Latin runs are raised (the setting above) to share the baseline, and
   text inside a frame starts `boxTextInset()` lower, and a shape drawn beside
   text (the change arrow) moves `shapeTextDrop()` lower to meet the glyphs. Always draw through
   `ui::label`/`ui::paragraph`, never raw font calls.

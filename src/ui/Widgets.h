@@ -54,6 +54,8 @@ void labelScaled(MinecraftUIRenderContext&, float x, float y, float width, std::
 // Japanese glyphs fill more of the line; text framed by a border starts this
 // much lower than its box top so it clears the bottom edge in every locale.
 float boxTextInset();
+// What "Automatic" lifts Latin runs by in the current game language (the Latin text raise setting).
+float autoLatinRaise();
 // One stroke of the current font: Minecraft's pixel font draws whole GUI
 // units, the Japanese font about half (an underline under a label). Chinese
 // and Korean drew the pixel font's weight on the title screen (2026-10-14).

@@ -1019,6 +1019,12 @@ low in Japanese, so it is ">" now (confirmed on `5220a3db`). The toast's
 text sat at its row's top, about two units above the switch's middle; it
 is centered in the row now, as a HUD line with a background is. Not yet
 checked in game.
+Decided by the maintainer the same day, built, not yet checked in game:
+the raise of Latin runs, a hidden 1.5 units in Japanese only, becomes the
+setting "Latin text raise" (DESIGN, Text and languages). In the
+screenshots Japanese looked raised too far and Chinese, with no raise, had
+Latin runs low. Open: the Automatic values per language, to be read off
+the setting by the maintainer (Japanese now 1.5, Chinese 0).
 Still open: the enchantability wording if the help text is not enough.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether

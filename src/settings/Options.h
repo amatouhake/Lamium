@@ -452,6 +452,11 @@ inline constexpr auto options = std::to_array<Option>({
         [](Settings const& s) -> OptionValue { return static_cast<float>(s.ui.hudRowHeight); },
         [](Settings& s, int direction) { s.ui.hudRowHeight += direction; s.normalize(); },
         NumericOption{9, 16, [](Settings& s, float v) { s.ui.hudRowHeight = static_cast<int>(std::lround(v)); }, 1}},
+    // The lowest step is "Automatic": the game language's own value.
+    {"interface.latinRaise", "hudText", "latinRaise",
+        [](Settings const& s) -> OptionValue { return static_cast<float>(s.ui.latinRaise) * .25f; },
+        [](Settings& s, int direction) { s.ui.latinRaise += direction; s.normalize(); },
+        NumericOption{-.25f, 2.75f, [](Settings& s, float v) { s.ui.latinRaise = static_cast<int>(std::lround(v * 4)); }, .25f}},
     {"interface.hudBackgroundOpacity", "hudText", "hudBackgroundOpacity",
         [](Settings const& s) -> OptionValue { return static_cast<float>(s.ui.hudBackgroundOpacity); },
         [](Settings& s, int direction) { s.ui.hudBackgroundOpacity += direction * 4; s.normalize(); },

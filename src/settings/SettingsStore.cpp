@@ -256,7 +256,7 @@ Json encode(Settings const& settings) {
         {"interface", {{"toggleToasts", settings.ui.toggleToasts}, {"automationStatus", settings.ui.automationStatus},
                        {"bookPaste", settings.ui.bookPaste},
                        {"animations", settings.ui.animations}, {"hudRowHeight", settings.ui.hudRowHeight},
-                       {"hudBackgroundOpacity", settings.ui.hudBackgroundOpacity}}},
+                       {"hudBackgroundOpacity", settings.ui.hudBackgroundOpacity}, {"latinRaise", settings.ui.latinRaise}}},
         {"hud", {{"info", encodeHudElement(settings.hud.info)}, {"target", encodeHudElement(settings.hud.target)},
                    {"status", encodeHudElement(settings.hud.status)}, {"toast", encodeHudElement(settings.hud.toast)},
                    {"magnification", encodeHudElement(settings.hud.magnification)},
@@ -706,6 +706,7 @@ Settings decodeSettings(std::string_view text) {
         value.ui.bookPaste = settingsValue(data.at("interface"), "bookPaste", value.ui.bookPaste);
         value.ui.hudRowHeight = settingsValue(data.at("interface"), "hudRowHeight", value.ui.hudRowHeight);
         value.ui.hudBackgroundOpacity = settingsValue(data.at("interface"), "hudBackgroundOpacity", value.ui.hudBackgroundOpacity);
+        value.ui.latinRaise = settingsValue(data.at("interface"), "latinRaise", value.ui.latinRaise);
     }
     if (data.contains("hud") && data.at("hud").is_object()) {
         auto const& hud = data.at("hud");

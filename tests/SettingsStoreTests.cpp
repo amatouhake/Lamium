@@ -1,3 +1,4 @@
+#include "ui/LatinRaise.h"
 #include "app/PausedFeatures.h"
 #include "settings/SettingsStore.h"
 #include "settings/Options.h"
@@ -554,6 +555,12 @@ void settingsStoreTests() {
     {
         auto off = decodeSettings(R"({"inspection":{"itemDetails":false}})").inspection;
         auto split = decodeSettings(R"({"inspection":{"itemDetails":false,"itemDetailsStew":true,"itemDetailsId":true}})").inspection;
+        using namespace lamium::ui;
+        auto raised = decodeSettings(R"({"interface":{"latinRaise":3}})"), wild = decodeSettings(R"({"interface":{"latinRaise":99}})");
+        check(old.ui.latinRaise == latinRaiseAuto && raised.ui.latinRaise == 3 && wild.ui.latinRaise == latinRaiseMax
+              && latinRaiseUnits(old.ui.latinRaise, true) == 1.5f && latinRaiseUnits(old.ui.latinRaise, false) == 0.f
+              && latinRaiseUnits(3, true) == .75f && latinRaiseUnits(3, false) == .75f && latinRaiseUnits(0, true) == 0.f,
+              "the Latin raise follows the language until a value is set, which then holds in every language (L-319)");
         check(old.inspection.itemTooltip && off.itemTooltip,
               "the tooltip lines' main switch is on for an older file, whatever its Item details was (L-319)");
         check(old.inspection.itemDetailsStew && old.inspection.itemDetailsId && !off.itemDetailsStew && !off.itemDetailsId
