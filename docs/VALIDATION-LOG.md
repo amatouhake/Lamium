@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Toasts named under their feature and stacked; Waypoints as a full switch (2026-11-13)
+
+`b8ddb003`, local build, DLL SHA-256
+`5717ef2ec2b152265b7a5fc7fa45b80a83fe73f2386288cb136fe04cd3c30796`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319):
+
+- A child's key ("Show ID") toasts as "Item details › Show ID"; the sign draws.
+- Two or more toggles on one key: the toast lists them, each switch the right way.
+- Waypoints off: its child rows are dimmed and dying does not move the death point.
+- Not liked: "›" is drawn in another font in English and sits low in Japanese.
+
+Not checked: more toggles than the toast's four rows; other languages than English and
+Japanese.
+
 ## Child settings dimmed under a switched-off feature (2026-11-13)
 
 `d80c18ca`, local build, DLL SHA-256

@@ -397,7 +397,8 @@ Contents:
   old. (Decided 2026-11-13, L-319) The toggles of one key press, which
   happen when keys are bound alike, share the toast instead: a row and a
   switch each, four rows at most, then a count. The key of a child switch
-  is named "Feature › Child" with the label the settings screen gives the
+  is named "Feature > Child" (an ASCII sign: others change the font in
+  English and sit low in Japanese) with the label the settings screen gives the
   child; there are no toast-only names. No `[switch]` marker text. Card background by default, fading with
   the toast. Fires only after the new state is saved. Setting to
   turn it off. Changes made inside the settings screen do not toast.
