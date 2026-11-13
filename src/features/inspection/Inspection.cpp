@@ -6,6 +6,7 @@
 #include "features/information/SaturationHud.h"
 #include "features/inspection/TooltipGlyphs.h"
 #include "features/inspection/ItemDetails.h"
+#include "ui/Widgets.h"
 #include "mc/deps/nbt/CompoundTag.h"
 #include "mc/deps/nbt/CompoundTagVariant.h"
 #include "mc/deps/nbt/ListTag.h"
@@ -62,6 +63,23 @@ void rememberFood(std::string text, std::vector<information::saturation::FoodIco
     std::erase_if(tooltipFood, [&](TooltipFood const& entry) { return entry.text == text; });
     if (tooltipFood.size() >= tooltipFoodKept) tooltipFood.erase(tooltipFood.begin());
     tooltipFood.push_back({std::move(text), std::move(icons)});
+}
+// A tooltip's two forms (L-319), by either text: the game keeps a slot's hover text until the pointer moves on, so
+// the painter swaps in the other form while it draws when the key's state has changed since.
+struct TooltipForms { std::string brief, full; };
+std::vector<TooltipForms> tooltipForms;
+void rememberForms(std::string brief, std::string full) {
+    std::erase_if(tooltipForms, [&](TooltipForms const& entry) { return entry.brief == brief; });
+    if (tooltipForms.size() >= tooltipFoodKept) tooltipForms.erase(tooltipForms.begin());
+    tooltipForms.push_back({std::move(brief), std::move(full)});
+}
+// The text to draw instead of `shown`, or null when it is already the wanted form or not one of Lamium's.
+std::string const* otherForm(std::string_view shown, bool wantFull) {
+    for (auto it = tooltipForms.rbegin(); it != tooltipForms.rend(); ++it) {
+        if (wantFull && it->brief == shown) return &it->full;
+        if (!wantFull && it->full == shown) return &it->brief;
+    }
+    return nullptr;
 }
 std::vector<information::saturation::FoodIcon> const* foodFor(std::string_view text) {
     for (auto it = tooltipFood.rbegin(); it != tooltipFood.rend(); ++it)
@@ -164,11 +182,10 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
             item.id = getTypeName();
             item.aux = getAuxValue();
             for (auto const& tag : *mItem->mTags) item.tags.push_back(tag.getString());
-            // The data's text is built only while the long form is asked for, and only for the lines it will show.
-            item.full = detailsHeld.load();
+            // Both forms are built here, once per hover: the text is asked for when the pointer reaches a slot.
             if (mUserData)
                 for (auto const& [key, tag] : mUserData->mTags)
-                    item.data.push_back({key, item.full && item.data.size() < details::dataLines ? tag.toSnbt(SnbtFormat::Minimize) : std::string{}});
+                    item.data.push_back({key, item.data.size() < details::dataLines ? tag.toSnbt(SnbtFormat::Minimize) : std::string{}});
             item.enchantability = mItem->getEnchantValue();
             item.maxStack = getMaxStackSize();
             item.cooldownTicks = mItem->getCooldownDuration();
@@ -185,8 +202,21 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
             item.useTicks = static_cast<float>(mItem->mMaxUseDuration);
             if (!(item.useTicks > 0))
                 item.useTicks = seconds("minecraft:use_modifiers", [](ItemComponent* c) { return static_cast<UseModifiersItemComponent*>(c)->mUseDuration; });
-            for (auto const& line : details::lines(item))
-                text += (line.dim ? "\n\u00a78" : "\n\u00a77") + (line.key.empty() ? line.value : ui::translated(line.key, line.value));
+            auto render = [&](bool full) {
+                item.full = full;
+                std::string out;
+                for (auto const& line : details::lines(item))
+                    out += (line.dim ? "\n\u00a78" : "\n\u00a77") + (line.key.empty() ? line.value : ui::translated(line.key, line.value));
+                return out;
+            };
+            auto const brief = text.mUnredactedString + render(false);
+            if (!item.data.empty()) {
+                auto full = text.mUnredactedString + render(true);
+                if (!icons.empty()) rememberFood(full, icons);
+                rememberForms(brief, std::move(full));
+            }
+            // The form the key asks for now; the painter follows the key from here on.
+            text.mUnredactedString = detailsHeld.load() && !item.data.empty() ? tooltipForms.back().full : brief;
         }
         if (!icons.empty()) rememberFood(text.mUnredactedString, std::move(icons));
     } catch (...) {
@@ -228,9 +258,37 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
     void, MinecraftUIRenderContext& context, IClientInstance& client, UIControl& owner, int pass) {
     if (beforeTooltip) try { beforeTooltip(context); } catch (...) {}
     glyphDraw.reset();
+    // The other form of Lamium's text when the key changed after the game took the text: its text and box for this
+    // one draw, put back right after. On a game this was not checked on, the text follows the key at the next hover.
+    std::optional<std::pair<std::string, glm::vec2>> kept;
+    try {
+        if (versionSensitiveAllowed(capabilities::Id::TooltipForms))
+            if (auto const* other = otherForm(*mFormattedContent, detailsHeld.load())) {
+                auto widest = [&](std::string_view text) {
+                    float most = 0;
+                    for (size_t start = 0; start <= text.size();) {
+                        auto const stop = std::min(text.find('\n', start), text.size());
+                        most = std::max(most, ui::textWidth(context, details::plain(text.substr(start, stop - start))));
+                        start = stop + 1;
+                    }
+                    return most;
+                };
+                glm::vec2 const box = mBoxDimensions;
+                auto const next = details::resized({box.x, box.y}, widest(*mFormattedContent), details::lineCount(*mFormattedContent),
+                                                   widest(*other), details::lineCount(*other), tooltip::lineHeight);
+                kept.emplace(*mFormattedContent, box);
+                *mFormattedContent = *other;
+                mBoxDimensions = glm::vec2{next.width, next.height};
+            }
+    } catch (...) {
+    }
     tooltipRendering = true;
     origin(context, client, owner, pass);
     tooltipRendering = false;
+    if (kept) {
+        *mFormattedContent = std::move(kept->first);
+        mBoxDimensions = kept->second;
+    }
     try {
         if (!glyphDraw) return;
         // Text is batched and drawn after the tooltip renders; draw it now so

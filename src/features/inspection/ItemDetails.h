@@ -55,6 +55,13 @@ inline std::string clip(std::string_view text, size_t limit = valueLimit) {
     }
     return out;
 }
+// A tooltip's box for another text, from the box the game made for the text it has: the room around the text
+// stays, the lines and the widest line change. Widths are of the widest line of each text.
+struct Box { float width = 0, height = 0; };
+inline int lineCount(std::string_view text) { return 1 + static_cast<int>(std::count(text.begin(), text.end(), '\n')); }
+inline Box resized(Box box, float widestNow, int linesNow, float widestThen, int linesThen, float lineHeight) {
+    return {std::max(0.f, box.width + widestThen - widestNow), std::max(0.f, box.height + (linesThen - linesNow) * lineHeight)};
+}
 // Text without its colour and style codes: what the player reads.
 inline std::string plain(std::string_view text) {
     std::string out;

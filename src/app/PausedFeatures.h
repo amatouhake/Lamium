@@ -55,6 +55,7 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::ChatPosition: return s.information.placesChat();
     case Id::PaperDollPosition: return s.information.placesPaperDoll();
     case Id::ScoreboardPosition: return s.information.placesScoreboard();
+    case Id::TooltipForms: return s.inspection.itemDetails;
     case Id::RepeatedTrades: return s.inventory.repeatTrades;
     case Id::TransferRoutes: return s.inventory.transfer;
     case Id::SkipServerPacks: return v.skipServerPacks;

@@ -894,6 +894,25 @@ the long form still never comes, held before or after the pointer reaches
 the item. A second gameplay-only check sat in `executeAction`
 (`Actions.cpp`), ahead of the line that sets the held state; the press is
 now handled before it, beside Sort. Not yet checked in game.
+Seen by the maintainer 2026-11-13 on `f3b0e62f` (VALIDATION-LOG): the key
+works, but the form only changes when the pointer moves to another item,
+on pressing and on releasing; the long form of a shulker box fits the
+screen and is enough to look into a structure or a picked piston. Changed
+the same day, not yet checked in game:
+- The game asks for a slot's hover text once, when the pointer reaches it.
+  Both forms are now built then and remembered by their text, and the
+  tooltip's painter (`TooltipPainter`) puts the other one in for the draw
+  when the key's state differs: `HoverRenderer::mFormattedContent` and
+  `mBoxDimensions`, written for one draw and put back. The new box keeps
+  the room the game left around the text and takes the other text's lines
+  and widest line (pure `details::resized`). Its place is not recomputed:
+  a long form opened near the screen's edge may run off it until the
+  pointer moves. Gated by a capability of its own (`TooltipForms`); on a
+  game that is not verified the form follows the key at the next hover.
+Asked by the maintainer the same day: hiding the game's list of contained
+item names in a shulker box's tooltip, since the preview shows the same.
+That exists: "Hide Shulker contents text" under Container previews, off by
+default. Whether it should be on by default is the maintainer's call.
 Still open: whether Durability numbers, Food values, Work penalty and Item
 details become one group in the settings (the note above).
 

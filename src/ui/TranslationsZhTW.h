@@ -31,6 +31,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"capability.PaperDollPosition", "紙娃娃位置"},
     {"capability.ScoreboardPosition", "計分板位置"},
     {"capability.EnchantOrder", "附魔順序（花費與鐵砧步驟）"},
+    {"capability.TooltipForms", "物品詳情（按下按鍵時立即顯示 NBT）"},
     {"capability.FreeCameraHand", "隱藏手部"},
     {"capability.FreeCameraHud", "隱藏整個 HUD"},
     {"capability.HideParticles", "粒子的隱藏"},

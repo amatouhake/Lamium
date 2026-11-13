@@ -34,6 +34,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"capability.PaperDollPosition", "Paper doll placement", "ペーパードールの配置"},
     {"capability.ScoreboardPosition", "Scoreboard placement", "スコアボードの配置"},
     {"capability.EnchantOrder", "Enchantment order (costs and the anvil list)", "エンチャント順序（コストと金床の手順）"},
+    {"capability.TooltipForms", "Item details (NBT at once when the key is pressed)", "アイテムの詳細（キーを押した瞬間の NBT 表示）"},
     {"capability.FreeCameraHand", "Hide the hand", "手の非表示"},
     {"capability.FreeCameraHud", "Hide the whole HUD", "HUD全体の非表示"},
     {"capability.HideParticles", "Particle visibility", "パーティクルの非表示"},

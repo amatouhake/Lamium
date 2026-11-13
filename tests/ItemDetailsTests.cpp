@@ -61,6 +61,9 @@ void itemDetailsTests() {
         check(rows.size() == 3 && rows[0] == Line{"itemDetails.tags", "", true} && rows[1] == Line{"", "  " + std::string(30, 'a') + ", ", true}
                   && rows[2] == Line{"", "  " + std::string(30, 'b'), true},
               "tags that wrap go under their label, every row indented alike");
+        auto grown = resized({100, 50}, 90, 4, 150, 9, 10), shrunk = resized({160, 100}, 150, 9, 90, 4, 10);
+        check(grown.width == 160 && grown.height == 100 && shrunk.width == 100 && shrunk.height == 50 && lineCount("a\nb") == 2,
+              "a tooltip's box follows the other text's lines and widest line, keeping its room around the text");
         Item big{.id = "x", .full = true};
         for (size_t i = 0; i < dataLines + 9; ++i) big.data.push_back({"k", "v"});
         auto cut = lines(big);

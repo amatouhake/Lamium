@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item details, the long form (2026-11-13)
+
+`f3b0e62f`, local build, DLL SHA-256
+`73d2ec4d7f751da8d3172fdbe576b9549b087d4af40845b54111f411f246b8c6`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- With Alt held the NBT shows one entry per line, but only after the pointer moves to
+  another item; releasing the key likewise changes nothing until the pointer moves.
+- A shulker box's long form fits the screen (its `Items` is one cut line). A picked
+  piston shows its nine entries. Enough to look into a structure, not to read long
+  contents.
+- The game's own list of contained item names is still in the shulker box's tooltip
+  beside the preview ("Hide Shulker contents text" was off).
+
 ## Item details, the held key again (2026-11-13)
 
 `28d12745`, local build, DLL SHA-256

@@ -31,6 +31,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"capability.PaperDollPosition", "纸娃娃位置"},
     {"capability.ScoreboardPosition", "计分板位置"},
     {"capability.EnchantOrder", "附魔顺序（花费与铁砧步骤）"},
+    {"capability.TooltipForms", "物品详情（按下按键时立即显示 NBT）"},
     {"capability.FreeCameraHand", "隐藏手部"},
     {"capability.FreeCameraHud", "隐藏整个HUD"},
     {"capability.HideParticles", "粒子的隐藏"},

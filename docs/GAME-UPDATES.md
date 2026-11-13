@@ -134,6 +134,7 @@ the package/SDK loader-policy alignment in CI.
 | Ghost note block instrument (block instrument component) | `TargetInfo.cpp` `appendGhostInstrument` (`BlockInstrumentComponent`: [0] for a note block under the block, [1] for one on it; held back by L-305, also in the check's comparison) | a ghost note block shows no instrument row | real note blocks, every other row |
 | Paste across book pages (page model and caret) | `BookPaste.cpp` (`PageContent::mText`, `TextEditContext::mCaret` and `mSelection`) | a paste works as in vanilla | everything else |
 | Enchantment order (enchantment costs and anvil screen) | `EnchantOrderGame.cpp` (`Enchant::mFrequency` as the cost class, `AnvilContainerManagerController::mCost`, the `anvil_screen` name, its `root_panel` box and the `anvil_input_items` / `anvil_material_items` collections) | the planner screen says it is not checked on this game, nothing is drawn beside the anvil, and item tooltips carry no work penalty line (`Inspection.cpp`, `ItemStackBase::getBaseRepairCost` read as the anvil surcharge) | everything else |
+| Item details (tooltip text and box while drawn) | `Inspection.cpp` `TooltipPainter` (`HoverRenderer::mFormattedContent` as the drawn text, `mBoxDimensions` as the box's size, both written for one draw and put back) | the tooltip follows the NBT key at the next hover, not at once | every line of Item details, the count line, the long form |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
@@ -292,6 +293,13 @@ Meaning: hover events arrive per slot with the container's collection names.
 Hooks: `ShulkerContentsText`, `DurabilityHovertext`, `TooltipFontDraw`, `TooltipPainter`
 Meaning: the hover text's line layout and the placeholder glyph line the
 painter covers with hunger-bar icons; fonts' sheet scales.
+Item details (L-319) read, without a gate: `Item::mTags`, `ItemStackBase::mUserData`, `Item::mMaxUseDuration`,
+`FurnaceBlockActor::getItemBurnDuration` and, where that is 0, `FuelItemComponent::mFuelDuration` (seconds), and
+for a suspicious stew `Item::buildEffectDescriptionName` with the effect found by its translated name
+(`MobEffect::getNameById` 1..38, `mDescriptionId`, `mIsHarmful`, `mAttributeModifiers`). The game asks for a slot's
+hover text when the pointer reaches it and keeps it; `TooltipPainter` swaps Lamium's other form in for one draw
+when the NBT key changed since. Gated (Item details, tooltip forms): the swap only. After a game update: hover an
+item with NBT, press and release the key without moving the pointer; the box must fit the text both ways.
 
 ### `src/features/inspection/LockedTrades.cpp`
 Hooks: `TierVisibleHook`, `OfferHook`
