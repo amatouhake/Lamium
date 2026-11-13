@@ -499,7 +499,6 @@ std::string optionValueText(settings::Option const& option, settings::OptionValu
     try {
         if (auto choice = std::get_if<settings::ChoiceValue>(&value)) return translated(choice->label);
         if (auto number = std::get_if<float>(&value)) {
-            if (option.id == "interface.latinRaise" && *number < 0) return translated("latinRaise.auto", autoLatinRaise());
             float secondary = option.numeric ? *number * option.numeric->secondary : 0;
             return std::vformat(pattern, std::make_format_args(*number, secondary));
         }
@@ -648,8 +647,7 @@ std::string baseDescription() {
         auto helpKey = "help." + std::string(entry.option->id);
         auto help = translated(helpKey);
         auto text = help != helpKey ? help : translated(entry.feature->description);
-        // The raise's lowest step is "Automatic", not a number: its help tells the range.
-        if (entry.option->numeric && entry.option->id != "interface.latinRaise") {
+        if (entry.option->numeric) {
             auto const& range = *entry.option->numeric;
             text += "\n" + translated("numberRangeLine", range.minimum, range.maximum);
         }

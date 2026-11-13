@@ -1,8 +1,6 @@
 #include "ui/Widgets.h"
 #include "ui/KeycapLines.h"
 #include "ui/TextFit.h"
-#include "ui/LatinRaise.h"
-#include "app/Runtime.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/game/IMinecraftGame.h"
@@ -93,12 +91,14 @@ void frame(MinecraftUIRenderContext& context, float x, float y, float width, flo
     fill(context,x+width-1,y+1,1,height-2,value,opacity);
 }
 namespace {
-// Latin letters and digits are drawn from glyphs that sit lower than kana, kanji and hanzi on the same line.
-// Raise those runs to share the line: by the setting, or by the language's own value while it is automatic.
+// With a Japanese locale, Latin letters and digits are drawn from glyphs that sit
+// lower than kana and kanji on the same line. Raise those runs to share the line.
+// Japanese only: there a run drawn on its own keeps the line's font. In Chinese it
+// gets the pixel font, so a raise changes its shape and width as well (L-319).
 bool japaneseLocale() { return translations::japanese(*getI18n().getCurrentLanguage()->mCode); }
 float latinRaise() {
-    auto const settings = Runtime::instance().snapshot();
-    return latinRaiseUnits(settings ? settings->ui.latinRaise : latinRaiseAuto, japaneseLocale());
+    auto locale = getI18n().getCurrentLanguage();
+    return translations::japanese(*locale->mCode) ? 1.f : 0.f;
 }
 // The engine shadow sits one GUI unit away, which reads as doubled on dense
 // Japanese lines; Lamium draws its own, closer copy instead.
@@ -115,7 +115,6 @@ void drawRun(MinecraftUIRenderContext& context, Font& font, float x, float y, fl
                      measure, caret);
 }
 }
-float autoLatinRaise() { return languageLatinRaise(japaneseLocale()); }
 float boxTextInset() { return japaneseLocale() ? 0.f : 1.f; }
 float textStroke() { return japaneseLocale() ? .5f : 1.f; }
 float shapeTextDrop() { return japaneseLocale() ? 1.f : 0.f; }

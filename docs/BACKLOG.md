@@ -1031,8 +1031,10 @@ drawn apart from the hanzi gets the pixel font, so the setting cannot do
 there what it says. The toast's centered text was right in English and a
 unit low in Japanese and Chinese; it starts a unit higher in those now
 (`rowTextLift`), not yet checked in game.
-Open, the maintainer's call: drop the setting and keep a Japanese-only
-raise of 1, or make the raise work in Chinese as well.
+Decided by the maintainer the same day: the setting is removed (it was
+never released, so `interface.latinRaise` needs no migration) and the raise
+stays Japanese-only, now 1 unit instead of 1.5 (DESIGN, Text and
+languages). Not yet checked in game.
 Still open: the enchantability wording if the help text is not enough.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether

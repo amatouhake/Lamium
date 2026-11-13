@@ -140,7 +140,6 @@ struct Settings {
         // L-259: a paste that does not fit the page continues on new pages.
         bool bookPaste = true;
         int hudRowHeight = 12; // Line height of the Info HUD, Status and Debug View, 9-16 (L-98)
-        int latinRaise = -1; // Quarter GUI units Latin runs are lifted in all of Lamium's text; -1 follows the language (L-319)
         int hudBackgroundOpacity = 60; // Percent, HUD cards and line backgrounds (L-98)
     } ui;
     struct Hud {
@@ -373,7 +372,6 @@ struct Settings {
         information.debugEntityTypes = std::clamp(information.debugEntityTypes, 0, 2);
         ui.hudRowHeight = std::clamp(ui.hudRowHeight, 9, 16);
         ui.hudBackgroundOpacity = std::clamp(ui.hudBackgroundOpacity, 0, 100);
-        ui.latinRaise = std::clamp(ui.latinRaise, -1, 11);
         information.durabilityLook = std::clamp(information.durabilityLook, 0, 2);
         ui.animations = std::clamp(ui.animations, 0, 2);
         information.targetGrowth = std::clamp(information.targetGrowth, 0, 1);
