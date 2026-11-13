@@ -1015,7 +1015,10 @@ Three more doubts from that check, decided by the maintainer the same day
   children like every other feature.
 Confirmed by the maintainer on `b8ddb003` (VALIDATION-LOG). The sign
 between the names was "›": it drew, but in another font in English and
-low in Japanese, so it is ">" now. Not yet checked in game.
+low in Japanese, so it is ">" now (confirmed on `5220a3db`). The toast's
+text sat at its row's top, about two units above the switch's middle; it
+is centered in the row now, as a HUD line with a background is. Not yet
+checked in game.
 Still open: the enchantability wording if the help text is not enough.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether

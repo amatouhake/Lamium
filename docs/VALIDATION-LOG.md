@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The toast's ">" between feature and child (2026-11-13)
+
+`5220a3db`, local build, DLL SHA-256
+`e80fe7b3e960b8b50a72f1c0a6827d522f2e02eb2ec3a566b44160f8549d0a46`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319), English, Japanese and
+Simplified Chinese:
+
+- "Item details > Show ID": the sign is in the line's font and at its height.
+- Seen beside it: the toast's text sits about two units higher than its switch (measured
+  on the English screenshot). In Japanese the Latin runs ("ID", ">") look raised too far;
+  in Chinese, where nothing is raised, Latin runs sit lower than the Chinese glyphs.
+
 ## Toasts named under their feature and stacked; Waypoints as a full switch (2026-11-13)
 
 `b8ddb003`, local build, DLL SHA-256

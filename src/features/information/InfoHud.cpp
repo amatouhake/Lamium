@@ -1746,7 +1746,8 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
                 if (!toast->plain && !outlined)
                     ui::toggleSwitch(context, placement.x, placement.y + 14 * zoom * static_cast<float>(row) + (14 * zoom - ui::switchHeight) / 2, on);
             for (size_t i = 0; !outlined && i < parts.size(); ++i)
-                ui::labelScaled(context, placement.x + lead, placement.y + 14 * zoom * static_cast<float>(i), textWidth + 2,
+                // Centered in its row like the switch beside it (at the row's top it read about two units high).
+                ui::labelScaled(context, placement.x + lead, ui::lineTextTop(placement.y + 14 * zoom * static_cast<float>(i), 14 * zoom, zoom, true), textWidth + 2,
                     parts[i], zoom, toast->opacity < 1 ? ui::palette::dim : toast->warning ? ui::palette::warning : ui::palette::text,
                     parts.size() > 1 && !stacked ? ui::Align::Center : ui::Align::Left, hud.toast.shadow);
             context.flushText(0, std::nullopt);
