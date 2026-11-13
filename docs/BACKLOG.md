@@ -72,7 +72,8 @@ Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
 1. **Bugs first.** Built, waiting for the in-game check: L-322 (Fake Offhand
-   key with its slot selected). Open: L-227 (FreeCamera shows only the sky outside loaded
+   key with its slot selected). Open: L-324 (custom blocks brown on the map;
+   Research), L-227 (FreeCamera shows only the sky outside loaded
    terrain; Research). What waits for more game symbols is collected in L-315.
    Parked: L-194 save corner marks, L-123 elytra pose, L-91 shield glint,
    L-132 inventory-screen movement, L-244 FreeCamera started inside a block,
@@ -220,6 +221,23 @@ Check in game with the key on a non-right-click binding and the Fake
 Offhand slot selected: a block is placed (and repeats while held), a
 throwable is thrown, food is eaten while held, a chest opens; with another
 slot selected the key borrows as before.
+
+### L-324 Map: custom blocks are drawn in a dirt-like brown
+Kind: Research. Issue #76 (2026-11-11), accepted by the maintainer
+2026-11-13.
+On the minimap and world map, add-on blocks show brown instead of their
+own color, while the game's map item shows the color of their
+`minecraft:map_color` component (reported on 0.6.0, game 26.60, with
+steps: an add-on with such blocks, a filled area, compare with a map item).
+How Lamium colors a block (`Minimap.cpp`, `blockLook` / `blockColor`): the
+average of the top texture from `BlockGraphics`, times the biome tint; the
+game's `getMapColor` is used only when no texture color was found.
+Hypothesis, not checked: for add-on blocks `BlockGraphics` hands back a
+default texture, so a color is found and it is the wrong one. First step:
+reproduce with an add-on and read which texture path the block resolves to
+(the map's diagnostics log the first texture loads). Then either fall back
+to `getMapColor` for blocks whose texture is that default, or find the
+block's real top texture; the maintainer chooses once the cause is known.
 
 ### L-299 Screenless inventory moves can leave a slot stuck when client and server desync
 Kind: Research.
@@ -601,6 +619,46 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
+
+### L-326 The death point follows the waypoint kinds
+Kind: Design (two details open), then Ready (strong model). Maintainer
+2026-11-13: the death point stays after it is reached, and there are three
+kinds of mark (normal, temporary, death point) that each behave their own
+way.
+Decided (maintainer 2026-11-13):
+- The death point behaves as one of the two waypoint kinds, chosen by a
+  setting: temporary (the default, since it is rarely wanted after it was
+  reached) or normal (for keeping it).
+- As temporary it is removed on arrival like a temporary waypoint: the same
+  arrival distance, and a point the player is already near counts only
+  after the player has moved away (L-261), which covers respawning beside
+  it.
+- Death layout restore (L-109) no longer ends when the death point is
+  removed by arrival, since that is the moment the pickups start. After
+  arrival it ends when everything is back, at the next death, or once the
+  player has left the place; not "until the next death" alone, because
+  later pickups elsewhere would keep rearranging the inventory.
+Open:
+- How far "left the place" is. Agent's proposal: 32 blocks from the death
+  point (the top of the arrival distance's range), after having arrived.
+- As normal: whether the death point and the restore keep today's rules
+  (kept until removed by hand or replaced by the next death; the restore
+  ends with it). Agent's proposal: yes, unchanged.
+Notes: `features/map/Waypoints.h` (the arrival test), `WaypointSession.cpp`,
+`DeathRestore.cpp`, `DeathLayoutStore.cpp`; DESIGN's lines on the death
+point change with it. Removing the death point by hand still ends the
+restore in both kinds.
+
+### L-325 Zoom: return to the set magnification on release
+Kind: Design (small). Issue #74 (2026-11-10); the maintainer 2026-11-13:
+such a setting may exist.
+Today the wheel's magnification is kept for the next press (`ZoomState`:
+`release` keeps the target; only a changed setting or `reset` returns to
+it). Add an option under Zoom that makes every press start from the set
+magnification. Open: its name and its default. From the same issue, not
+taken: easing on press and release (tried and dropped 2026-10-06, see
+`ZoomState::press`), and settings for animation speed and per-behavior
+toggles.
 
 ### L-323 Game HUD placement: boss bars
 Kind: Research, then Design. Asked for by the maintainer 2026-11-13.
