@@ -10,6 +10,24 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-322 Fake Offhand: a key of its own does nothing while its slot is selected
+Kind: Ready. Reported by the maintainer 2026-11-13.
+Status: done. Built 2026-11-13 and confirmed by the maintainer the same day on
+`26ebab3a` (VALIDATION-LOG); food and held use were not looked at.
+With a binding that does not end on right click (L-292), pressing the key
+while the Fake Offhand slot itself is selected did nothing: every slot
+choice (`instantUseSlot`, `placementSlot`, `interactSlot`) refuses
+`selected == target`, which is right for a right-click binding (vanilla
+already uses the selected item) but leaves a key of its own dead.
+Built: `plainUse` (`FakeOffhandPlan.h`, tested). Such a press borrows
+nothing and sends the vanilla use edge, held until the key is released, so
+the selected item is used, placed or acts on the aimed block as a right
+click would. A right-click binding is unchanged.
+Check in game with the key on a non-right-click binding and the Fake
+Offhand slot selected: a block is placed (and repeats while held), a
+throwable is thrown, food is eaten while held, a chest opens; with another
+slot selected the key borrows as before.
+
 ### L-177 Schematic mismatch highlight appears at the wrong position
 Kind: Bug / Research. User report 2026-10-14.
 Status: cause found and fix built 2026-10-14 (`0235527`), not checked in game.
@@ -2546,6 +2564,50 @@ result is only the converted text; Latin typing and Backspace unchanged.
 ---
 
 ## Ready
+
+### L-326 The death point follows the waypoint kinds
+Kind: Ready (strong model); decided 2026-11-13.
+Status: done. Built 2026-11-13 and confirmed by the maintainer the same day on
+`26ebab3a` (VALIDATION-LOG); servers, respawning beside the point and
+rejoining after arrival were not looked at. Follow-ups from that check are
+BACKLOG L-327 and L-328. Setting "Temporary death
+point" (`map.waypointsDeathTemporary`, on by default) under Waypoints;
+`DeathArrival` (`Waypoints.h`), `arriveDeath` / `reachedDeath`
+(`WaypointSession`), the layout's `reached` flag saved in
+`death-layout.json` and `leftPlace` (`DeathLayout.h`), all tested. The
+toast on arrival says "Death point reached".
+Check in game: die, come back: the death point goes at the arrival
+distance with the toast, and picking the items up still restores the
+layout; walking more than 32 blocks away with items left ends the restore
+(log "left the death point"); respawning beside the death point does not
+remove it on the spot; with the setting off the death point stays and the
+restore behaves as before; leaving and rejoining after arrival keeps the
+restore until the place is left. Servers unchecked.
+Maintainer 2026-11-13: the death point stays after it is reached, and there are three
+kinds of mark (normal, temporary, death point) that each behave their own
+way.
+Decided (maintainer 2026-11-13):
+- The death point behaves as one of the two waypoint kinds, chosen by a
+  setting: temporary (the default, since it is rarely wanted after it was
+  reached) or normal (for keeping it).
+- As temporary it is removed on arrival like a temporary waypoint: the same
+  arrival distance, and a point the player is already near counts only
+  after the player has moved away (L-261), which covers respawning beside
+  it.
+- Death layout restore (L-109) no longer ends when the death point is
+  removed by arrival, since that is the moment the pickups start. After
+  arrival it ends when everything is back, at the next death, or once the
+  player has left the place; not "until the next death" alone, because
+  later pickups elsewhere would keep rearranging the inventory.
+- "Left the place" is 32 blocks from the death point (the top of the
+  arrival distance's range) or another dimension, after having arrived.
+- As normal the death point and the restore keep the earlier rules: kept
+  until removed by hand or replaced by the next death, and the restore
+  ends with it.
+Notes: `features/map/Waypoints.h` (the arrival test), `WaypointSession.cpp`,
+`DeathRestore.cpp`, `DeathLayoutStore.cpp`; DESIGN's lines on the death
+point change with it. Removing the death point by hand still ends the
+restore in both kinds.
 
 ### L-305 Move to Minecraft 1.26.60.05 and LeviLamina 26.60
 Kind: Update. Follows the playbook in [GAME-UPDATES.md](GAME-UPDATES.md).

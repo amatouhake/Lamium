@@ -71,8 +71,7 @@ published for whoever wants it. There is no "first release" gate.
 Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
-1. **Bugs first.** Built, waiting for the in-game check: L-322 (Fake Offhand
-   key with its slot selected); also L-326 (death point as a temporary mark). Open: L-324 (custom blocks brown on the map;
+1. **Bugs first.** Open: L-324 (custom blocks brown on the map;
    Research), L-227 (FreeCamera shows only the sky outside loaded
    terrain; Research). What waits for more game symbols is collected in L-315.
    Parked: L-194 save corner marks, L-123 elytra pose, L-91 shield glint,
@@ -204,23 +203,6 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
-
-### L-322 Fake Offhand: a key of its own does nothing while its slot is selected
-Kind: Ready. Reported by the maintainer 2026-11-13.
-Status: built 2026-11-13, not checked in game.
-With a binding that does not end on right click (L-292), pressing the key
-while the Fake Offhand slot itself is selected did nothing: every slot
-choice (`instantUseSlot`, `placementSlot`, `interactSlot`) refuses
-`selected == target`, which is right for a right-click binding (vanilla
-already uses the selected item) but leaves a key of its own dead.
-Built: `plainUse` (`FakeOffhandPlan.h`, tested). Such a press borrows
-nothing and sends the vanilla use edge, held until the key is released, so
-the selected item is used, placed or acts on the aimed block as a right
-click would. A right-click binding is unchanged.
-Check in game with the key on a non-right-click binding and the Fake
-Offhand slot selected: a block is placed (and repeats while held), a
-throwable is thrown, food is eaten while held, a chest opens; with another
-slot selected the key borrows as before.
 
 ### L-324 Map: custom blocks are drawn in a dirt-like brown
 Kind: Research. Issue #76 (2026-11-11), accepted by the maintainer
@@ -620,46 +602,29 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
-### L-326 The death point follows the waypoint kinds
-Kind: Ready (strong model); decided 2026-11-13.
-Status: built 2026-11-13, not checked in game. Setting "Temporary death
-point" (`map.waypointsDeathTemporary`, on by default) under Waypoints;
-`DeathArrival` (`Waypoints.h`), `arriveDeath` / `reachedDeath`
-(`WaypointSession`), the layout's `reached` flag saved in
-`death-layout.json` and `leftPlace` (`DeathLayout.h`), all tested. The
-toast on arrival says "Death point reached".
-Check in game: die, come back: the death point goes at the arrival
-distance with the toast, and picking the items up still restores the
-layout; walking more than 32 blocks away with items left ends the restore
-(log "left the death point"); respawning beside the death point does not
-remove it on the spot; with the setting off the death point stays and the
-restore behaves as before; leaving and rejoining after arrival keeps the
-restore until the place is left. Servers unchecked.
-Maintainer 2026-11-13: the death point stays after it is reached, and there are three
-kinds of mark (normal, temporary, death point) that each behave their own
-way.
-Decided (maintainer 2026-11-13):
-- The death point behaves as one of the two waypoint kinds, chosen by a
-  setting: temporary (the default, since it is rarely wanted after it was
-  reached) or normal (for keeping it).
-- As temporary it is removed on arrival like a temporary waypoint: the same
-  arrival distance, and a point the player is already near counts only
-  after the player has moved away (L-261), which covers respawning beside
-  it.
-- Death layout restore (L-109) no longer ends when the death point is
-  removed by arrival, since that is the moment the pickups start. After
-  arrival it ends when everything is back, at the next death, or once the
-  player has left the place; not "until the next death" alone, because
-  later pickups elsewhere would keep rearranging the inventory.
-- "Left the place" is 32 blocks from the death point (the top of the
-  arrival distance's range) or another dimension, after having arrived.
-- As normal the death point and the restore keep the earlier rules: kept
-  until removed by hand or replaced by the next death, and the restore
-  ends with it.
-Notes: `features/map/Waypoints.h` (the arrival test), `WaypointSession.cpp`,
-`DeathRestore.cpp`, `DeathLayoutStore.cpp`; DESIGN's lines on the death
-point change with it. Removing the death point by hand still ends the
-restore in both kinds.
+### L-327 Death layout restore: say how long it lasts and when it ends
+Kind: Design (small). Maintainer 2026-11-13, after checking L-326: nothing
+in the game says that the restore ends 32 blocks from the death point, and
+when it ends by leaving, only the log says so.
+Open: what tells the player. Agent's proposal: a toast when the restore
+ends by leaving the place (as "Inventory back as it was at death" already
+announces the other end), and the distance named in the feature's help.
+
+### L-328 The death point still reads as a third kind of waypoint
+Kind: Design. Maintainer 2026-11-13, after checking L-326: the death
+point's life now follows the waypoint kinds, but the Waypoints screen and
+the world map still treat it apart ("Make a waypoint", its own note, no
+Temporary switch), so there seem to be three kinds: waypoint, temporary
+waypoint, death point.
+Open: how far to go. Agent's proposals, not decided:
+- (a) Small: the death point's row gets the waypoints' own controls where
+  they apply (the Temporary switch in place of the setting, delete as a
+  temporary one) and loses "Make a waypoint" and its note.
+- (b) Whole: a death adds an ordinary waypoint named "Death point"
+  (temporary or normal by the setting, replacing the one from the death
+  before, keeping the red cross), and the separate death point record goes;
+  every edit is the ordinary one. Needs a migration of saved death points
+  and a way for Death layout restore to know its waypoint.
 
 ### L-325 Zoom: return to the set magnification on release
 Kind: Design (small). Issue #74 (2026-11-10); the maintainer 2026-11-13:
@@ -1058,7 +1023,7 @@ kept; only installs without one change). The same day the rows were renamed
 from "Shulker" to "shulker box" in English and Japanese ("Shulker box
 previews", "Show empty shulker boxes", "Hide shulker box contents text" and
 their help), because "Shulker" alone reads as the mob; the Chinese rows
-already said "shulker box". Built 2026-11-13, not checked in game.
+already said "shulker box". Built and confirmed 2026-11-13 (`26ebab3a`).
 Decided by the maintainer 2026-11-13 in that session, looking only at what
 each line shows and for whom, built the same day and confirmed by the
 maintainer on `e6562d2e` (VALIDATION-LOG):
@@ -2272,8 +2237,8 @@ Left of L-170: the result slot's yellow (not brought about), Survival
 (the 40-level refusal, the level's warning colour), the unbound key,
 servers, the unverified-version fallback, and the mark on a carried stack
 that the first version leaves out.
-Reported by the maintainer 2026-11-13 and built the same day (not checked
-in game): with something else than its own stack in an anvil slot, the
+Reported by the maintainer 2026-11-13, built and confirmed the same day
+(`26ebab3a`, VALIDATION-LOG): with something else than its own stack in an anvil slot, the
 marks other than the red "wrong" went away - the inventory mark of the
 stack that slot wants, and the empty other slot's tint when its stack was
 the one lying in the wrong slot. The inventory search took any filled slot

@@ -12,6 +12,29 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Fake Offhand on its own slot, anvil marks, shulker box previews, the death point as a temporary mark (2026-11-13)
+
+`26ebab3a`, local build, DLL SHA-256
+`6a479e03b1e6c098f95fc3b3c4833e3d188de610e206fc613a9195f4edb205eb`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer:
+
+- L-322: with a key of its own and the Fake Offhand slot selected, the key places a
+  block, throws and opens a chest; with another slot selected it borrows as before.
+- L-170: the right side's book in the anvil's left slot keeps the red, and the left
+  side's stack in the inventory and the empty right slot keep their tints.
+- L-319: the rows read "shulker box"; with no saved choice the game's contents text
+  is hidden.
+- L-326: the death point goes at the arrival distance with its toast, and picking the
+  items up afterwards restores the layout; more than 32 blocks away with items left,
+  later pickups no longer rearrange (log "left the death point"); with "Temporary
+  death point" off the death point stays when reached.
+
+Not checked: servers; respawning beside the death point; rejoining after arrival;
+food and held use on the Fake Offhand key.
+The maintainer's remarks the same day: nothing in the game says how far the restore
+lasts or that it ended; the death point still reads as a third kind beside normal and
+temporary waypoints ("Make a waypoint" in the Waypoints screen and the world map).
+
 ## Latin runs raised 1 unit in Japanese; the toast's text beside its switch (2026-11-13)
 
 `fab713d8`, local build, DLL SHA-256
