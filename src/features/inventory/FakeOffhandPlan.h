@@ -247,4 +247,9 @@ inline std::optional<int> interactSlot(bool dedicatedKey, int selected, int targ
         || selected == target || !interactive || sneaking || primaryUsing) return {};
     return target;
 }
+// L-322: such a key pressed while the Fake Offhand slot itself is selected has
+// nothing to borrow; it is a plain use of that slot, held like a right click.
+inline bool plainUse(bool dedicatedKey, int selected, int target) {
+    return dedicatedKey && selected >= 0 && selected < 9 && selected == target;
+}
 }

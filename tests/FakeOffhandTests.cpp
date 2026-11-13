@@ -254,6 +254,9 @@ void fakeOffhandTests() {
         && !placementSlot(true,true,0,8,true,true,false,false, primaryYields(true,false), true)
         && instantUseSlot(true,true,0,8, primaryYields(true,false), true,false,false,false) == 8,
         "L-292: another key borrows over a primary block, but never interrupts a primary in use");
+    using lamium::inventory::fakeOffhand::plainUse;
+    check(plainUse(true,8,8) && !plainUse(false,8,8) && !plainUse(true,0,8) && !plainUse(true,-1,-1) && !plainUse(true,9,9),
+          "a dedicated key with the Fake Offhand slot selected is a plain use of it (L-322)");
     check(interactSlot(true,0,8,true,false,false) == 8,
         "L-292: another key opens an interactive block with the borrowed slot selected");
     check(!interactSlot(true,0,8,true,true,false) && !interactSlot(false,0,8,true,false,false)
