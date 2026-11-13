@@ -204,6 +204,7 @@ Json encode(Settings const& settings) {
                         {"hideShulkerContents", settings.inspection.hideShulkerContents},
                         {"bundlePreviews", settings.inspection.bundlePreviews},
                         {"emptyBundlePreviews", settings.inspection.emptyBundlePreviews},
+                        {"itemTooltip", settings.inspection.itemTooltip},
                         {"durability", settings.inspection.durability},
                         {"foodValues", settings.inspection.foodValues},
                         {"workPenalty", settings.inspection.workPenalty},
@@ -633,6 +634,7 @@ Settings decodeSettings(std::string_view text) {
     }
     if (data.contains("inspection") && data.at("inspection").is_object()) {
         value.inspection.containerPreviews = settingsValue(data.at("inspection"), "containerPreviews", value.inspection.containerPreviews);
+        value.inspection.itemTooltip = settingsValue(data.at("inspection"), "itemTooltip", value.inspection.itemTooltip);
         value.inspection.durability = settingsValue(data.at("inspection"), "durability", value.inspection.durability);
         value.inspection.foodValues = settingsValue(data.at("inspection"), "foodValues", value.inspection.foodValues);
         value.inspection.workPenalty = settingsValue(data.at("inspection"), "workPenalty", value.inspection.workPenalty);

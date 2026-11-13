@@ -128,6 +128,7 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
         if (!runtime.enabled() || isNull() || !mItem) return text;
         auto const snapshot = runtime.snapshot();
         auto const& settings = snapshot->inspection;
+        if (!settings.itemTooltip) return text;
         if (settings.durability && isDamageableItem()) {
             int maximum = mItem->getMaxDamage();
             if (maximum > 0) {

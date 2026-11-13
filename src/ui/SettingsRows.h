@@ -41,8 +41,9 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"connectedTextures", "feature.connectedTextures", "help.connectedTextures", "visuals.connectedTextures", true, input::Action::ToggleConnectedTextures},
     {"blockHighlight", "feature.blockHighlight", "help.blockHighlight", "visuals.blockHighlight", true, input::Action::ToggleBlockHighlight},
     {"previews", "feature.previews", "help.previews", "inspection.containerPreviews", false, input::Action::TogglePreviews},
-    // The lines Lamium adds to an item's tooltip: a heading, each kind of line a switch of its own (L-319).
-    {"itemDetails", "feature.itemDetails", "help.itemDetails", ""},
+    // The lines Lamium adds to an item's tooltip: each kind of line a switch of its own, kept while the main
+    // switch is off (L-319).
+    {"itemDetails", "feature.itemDetails", "help.itemDetails", "inspection.itemTooltip", false, input::Action::ToggleItemTooltip},
     {"lockedTrades", "feature.lockedTrades", "help.lockedTrades", "inspection.lockedTrades", false, input::Action::ToggleLockedTrades},
     {"repeatTrades", "feature.repeatTrades", "help.repeatTrades", "inventory.repeatTrades", false, input::Action::ToggleRepeatTrades},
     {"englishSearch", "feature.englishSearch", "help.englishSearch", "inspection.englishSearch", false, input::Action::ToggleEnglishSearch},
@@ -171,6 +172,10 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "inspection.foodValues") return input::Action::ToggleFoodValues;
     if (option == "inspection.workPenalty") return input::Action::ToggleWorkPenalty;
     if (option == "inspection.itemDetails") return input::Action::ToggleItemDetails;
+    if (option == "inspection.itemDetailsStew") return input::Action::ToggleItemStew;
+    if (option == "inspection.itemDetailsId") return input::Action::ToggleItemId;
+    if (option == "inspection.itemDetailsTags") return input::Action::ToggleItemTags;
+    if (option == "inspection.itemDetailsNbt") return input::Action::ToggleItemNbt;
     if (option == "visuals.hideWater") return input::Action::HideWater;
     if (option == "visuals.hideLava") return input::Action::HideLava;
     if (option == "visuals.hidePowderSnow") return input::Action::HidePowderSnow;
@@ -217,7 +222,8 @@ inline std::optional<std::string_view> optionWarning(std::string_view option, Se
 }
 // A group's main switch is off: its selections are kept but do nothing.
 inline bool effectsPaused(std::string_view feature, Settings const& value) {
-    return (feature == "hideEffects" && !value.visuals.hideEffects) || (feature == "gameHud" && !value.information.gameHud);
+    return (feature == "hideEffects" && !value.visuals.hideEffects) || (feature == "gameHud" && !value.information.gameHud)
+        || (feature == "itemDetails" && !value.inspection.itemTooltip);
 }
 
 // MapCache: the world map's saved data for this world, with a delete button.
@@ -288,6 +294,10 @@ inline std::string_view toggleToastKey(input::Action action) {
     case Action::ToggleFoodValues: return "feature.foodValues";
     case Action::ToggleWorkPenalty: return "feature.workPenalty";
     case Action::ToggleItemDetails: return "toast.itemValues";
+    case Action::ToggleItemStew: return "toast.itemStew";
+    case Action::ToggleItemId: return "toast.itemId";
+    case Action::ToggleItemTags: return "toast.itemTags";
+    case Action::ToggleItemNbt: return "toast.itemNbt";
     default: return featureNameKey(input::actions[static_cast<size_t>(action)].feature);
     }
 }

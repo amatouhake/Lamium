@@ -410,6 +410,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::inspection, &Settings::Inspection::bundlePreviews>("inspection.bundlePreviews", "previews", "bundlePreviews"),
     toggle<&Settings::inspection, &Settings::Inspection::emptyBundlePreviews>("inspection.emptyBundlePreviews", "previews", "emptyBundlePreviews"),
     // One heading, a switch per kind of line, in the tooltip's order (L-319).
+    toggle<&Settings::inspection, &Settings::Inspection::itemTooltip>("inspection.itemTooltip", "itemDetails", "itemTooltip"),
     toggle<&Settings::inspection, &Settings::Inspection::durability>("inspection.durability", "itemDetails", "durability"),
     toggle<&Settings::inspection, &Settings::Inspection::workPenalty>("inspection.workPenalty", "itemDetails", "workPenalty"),
     toggle<&Settings::inspection, &Settings::Inspection::itemDetailsStew>("inspection.itemDetailsStew", "itemDetails", "itemDetailsStew"),

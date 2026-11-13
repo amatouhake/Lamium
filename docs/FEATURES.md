@@ -302,10 +302,10 @@ build them.
 ### Container previews and Item details
 
 Inside the game's item tooltip. Container previews is a feature with its own switch. Item
-details is a heading in the settings with one switch per kind of line: Durability numbers,
-Work penalty, Suspicious stew effect, Food values, Property values, Show ID, Show tags and
-Show NBT. The first six are on by default; Durability numbers, Work penalty, Food values and
-Property values each have a toggle key on their row (unbound).
+details has a main switch and one switch per kind of line: Durability numbers, Work penalty,
+Suspicious stew effect, Food values, Property values, Show ID, Show tags and Show NBT. The
+first six are on by default. With the main switch off the tooltip is the game's own and the
+other switches keep their values. Every row has a toggle key (unbound).
 
 - Shulker Box and Bundle contents.
 - Remaining durability.

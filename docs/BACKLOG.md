@@ -974,6 +974,22 @@ maintainer on `e6562d2e` (VALIDATION-LOG):
   and NBT no longer need Item details on.
 - Not asked, left as they were: the ID stays on by default, fuel stays
   inside Property values.
+Decided by the maintainer 2026-11-13 (later), built the same day, not yet
+checked in game:
+- Item details gets a main switch (`inspection.itemTooltip`, on by
+  default), as Hide effects has: off leaves the game's own tooltip, the
+  child switches keep their values and are marked "Main switch off". Its
+  use is comparing with what the game itself shows.
+- Every row can have a key: the main switch (`itemtooltip`) and the four
+  children that had none (`itemstew`, `itemid`, `itemtags`, `itemnbt`).
+  All unbound. F3+H is not a default: a player who knows that key from
+  Java Edition expects the ID and technical lines, not this switch.
+- The ID stays on by default: it is how a player finds an item's English
+  name for a search or a command.
+- The help shown on a child while a main switch is off named Hide effects
+  for every feature; it now says "this feature".
+Known and left: the toggle keys only work outside screens, so a key is
+pressed before the inventory is opened.
 Still open: the enchantability wording if the help text is not enough.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether

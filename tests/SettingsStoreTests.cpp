@@ -554,6 +554,8 @@ void settingsStoreTests() {
     {
         auto off = decodeSettings(R"({"inspection":{"itemDetails":false}})").inspection;
         auto split = decodeSettings(R"({"inspection":{"itemDetails":false,"itemDetailsStew":true,"itemDetailsId":true}})").inspection;
+        check(old.inspection.itemTooltip && off.itemTooltip,
+              "the tooltip lines' main switch is on for an older file, whatever its Item details was (L-319)");
         check(old.inspection.itemDetailsStew && old.inspection.itemDetailsId && !off.itemDetailsStew && !off.itemDetailsId
               && split.itemDetailsStew && split.itemDetailsId && !split.itemDetails,
               "a file from before the stew's effect and the ID had switches keeps what Item details showed (L-319)");

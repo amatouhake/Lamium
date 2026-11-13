@@ -58,6 +58,11 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleEnglishSearch: field = &value.inspection.englishSearch; break;
     case Action::ToggleWorkPenalty: field = &value.inspection.workPenalty; break;
     case Action::ToggleItemDetails: field = &value.inspection.itemDetails; break;
+    case Action::ToggleItemTooltip: field = &value.inspection.itemTooltip; break;
+    case Action::ToggleItemStew: field = &value.inspection.itemDetailsStew; break;
+    case Action::ToggleItemId: field = &value.inspection.itemDetailsId; break;
+    case Action::ToggleItemTags: field = &value.inspection.itemDetailsTags; break;
+    case Action::ToggleItemNbt: field = &value.inspection.itemDetailsNbt; break;
     case Action::ToggleAutomationStatus: field = &value.ui.automationStatus; break;
     case Action::ToggleRadar: field = &value.map.radar; break;
     case Action::ToggleMapMarks: field = &value.map.mapMarks; break;
