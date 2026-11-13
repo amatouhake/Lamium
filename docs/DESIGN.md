@@ -540,8 +540,16 @@ first build):
   and the switch. A game part offers it only while Placed or
   Hidden. Toolbars do not change (a toolbar switch was ruled out: Lamium
   elements' toolbars are already long).
+- The frame's color says who draws the element, its line the state
+  (decided 2026-11-14 after a situational scoreboard lost its yellow): white
+  for Lamium's, yellow for the game's own, solid when shown, dashed when it
+  shows by situation, and over the gray hatching when hidden.
 - The idle panel (nothing selected) has a legend: a dashed swatch "Shown by
-  situation" and a hatched swatch "Hidden".
+  situation", a hatched swatch "Hidden", and below them a yellow swatch "The
+  game's HUD".
+- Not done, by the maintainer's choice: marking game parts left Standard in
+  the editor. If ever, by leaving them out of the editor rather than adding
+  more to it.
 - Cost: hidden and situational elements are drawn in the same pass as the
   others with an opacity per element; the dots are bounded per element.
 - Hide boss bars moved from Hide effects to the boss bars' row. A settings

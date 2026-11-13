@@ -482,6 +482,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"gameHudPart.hidden", "隐藏"},
     {"hudEditor.situational", "视情况显示"},
     {"hudEditor.switchedOff", "隐藏"},
+    {"hudEditor.gameHud", "游戏自带的 HUD"},
     {"key.Lamium.chatposition", "切换聊天：标准、放置、隐藏"},
     {"key.Lamium.paperdollposition", "切换纸娃娃：标准、放置、隐藏"},
     {"key.Lamium.scoreboardposition", "切换计分板：标准、放置、隐藏"},

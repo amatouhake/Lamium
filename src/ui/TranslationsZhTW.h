@@ -482,6 +482,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"gameHudPart.hidden", "隱藏"},
     {"hudEditor.situational", "視情況顯示"},
     {"hudEditor.switchedOff", "隱藏"},
+    {"hudEditor.gameHud", "遊戲本身的 HUD"},
     {"key.Lamium.chatposition", "切換聊天：標準、放置、隱藏"},
     {"key.Lamium.paperdollposition", "切換紙娃娃：標準、放置、隱藏"},
     {"key.Lamium.scoreboardposition", "切換計分板：標準、放置、隱藏"},

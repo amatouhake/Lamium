@@ -282,13 +282,15 @@ void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
     float resetW = textWidth(context, reset) + 10, doneW = textWidth(context, done) + 10;
     float buttons = resetW + gap + doneW;
     constexpr float rowH = 11, edge = 6;
-    // The legend (L-334): the dashed frame shows by situation, the gray
-    // hatching is switched off.
+    // The legend (L-334): the line is the state (dashed shows by situation,
+    // the gray hatching is switched off), yellow is the game's own HUD.
     std::string situational = translated("hudEditor.situational"), hidden = translated("hudEditor.switchedOff");
+    std::string game = translated("hudEditor.gameHud");
     constexpr float swatchW = 12, swatchH = 7, swatchGap = 4, pairGap = 16, legendTop = 4, legendBottom = 6;
     float legend = 2 * (swatchW + swatchGap) + textWidth(context, situational) + pairGap + textWidth(context, hidden);
-    float w = std::max({buttons, textWidth(context, title), textWidth(context, hint), legend}) + 2 * edge;
-    float h = edge + 3 * rowH + legendTop + legendBottom + itemHeight + edge;
+    float gameLegend = swatchW + swatchGap + textWidth(context, game);
+    float w = std::max({buttons, textWidth(context, title), textWidth(context, hint), legend, gameLegend}) + 2 * edge;
+    float h = edge + 4 * rowH + legendTop + legendBottom + itemHeight + edge;
     Box box = idlePanel(w, h, screenW, screenH);
     panel(context, box.x, box.y, box.w, box.h, 1.f);
     frame(context, box.x, box.y, box.w, box.h, palette::white, .14f);
@@ -308,8 +310,13 @@ void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
         frame(context, lx, sy, swatchW, swatchH, palette::faint, .9f);
         lx += swatchW + swatchGap;
         label(context, lx, ly, textWidth(context, hidden) + 2, hidden, palette::dim, Align::Left);
+        lx = box.x + (box.w - gameLegend) / 2;
+        ly += rowH;
+        frame(context, lx, ly + (rowH - swatchH) / 2, swatchW, swatchH, palette::warning, .9f);
+        lx += swatchW + swatchGap;
+        label(context, lx, ly, textWidth(context, game) + 2, game, palette::dim, Align::Left);
     }
-    float y = box.y + edge + 3 * rowH + legendTop + legendBottom, x = box.x + (box.w - buttons) / 2;
+    float y = box.y + edge + 4 * rowH + legendTop + legendBottom, x = box.x + (box.w - buttons) / 2;
     Box resetBox{x, y, resetW, itemHeight}, doneBox{x + resetW + gap, y, doneW, itemHeight};
     button(context, resetBox, reset, resetArmed || hovering(resetBox, px, py), resetArmed ? palette::warning : palette::keyEdge);
     button(context, doneBox, done, hovering(doneBox, px, py), palette::accent);
@@ -561,8 +568,9 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
             std::vector<ImageRect> lines;
             for (auto const& square : hatch(*box)) lines.push_back({square.x, square.y, square.w, square.h});
             fills(context, lines, palette::faint, .6f);
-            frame(context, outer.x, outer.y, outer.w, outer.h, isFocus ? palette::accent : palette::faint,
-                  isFocus ? .9f : isHovered ? .8f : .6f);
+            // The hatching is the state, the frame's color who draws it.
+            frame(context, outer.x, outer.y, outer.w, outer.h,
+                  isFocus ? palette::accent : hudGameDrawn(id) ? palette::warning : palette::white, isFocus ? .9f : isHovered ? .8f : .6f);
             if (!isFocus && !isHovered) addTag(*box, id);
             continue;
         }
@@ -573,7 +581,8 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
             continue;
         }
         for (auto const& dash : dashedFrame(outer))
-            fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length, palette::white, opacity + .15f);
+            fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length,
+                 hudGameDrawn(id) ? palette::warning : palette::white, hudGameDrawn(id) ? opacity + .4f : opacity + .15f);
         // Its faint contents say what it is: named only when pointed at or
         // selected, as a shown element is. Only a hidden one keeps its name.
     }

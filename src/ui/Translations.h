@@ -486,6 +486,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"gameHudPart.hidden", "Hidden", "非表示"},
     {"hudEditor.situational", "Shown by situation", "状況で表示"},
     {"hudEditor.switchedOff", "Hidden", "非表示"},
+    {"hudEditor.gameHud", "The game's HUD", "ゲームの HUD"},
     {"key.Lamium.chatposition", "Switch the chat: standard, placed, hidden", "チャットの標準・配置・非表示を切り替え"},
     {"key.Lamium.paperdollposition", "Switch the paper doll: standard, placed, hidden", "ペーパードールの標準・配置・非表示を切り替え"},
     {"key.Lamium.scoreboardposition", "Switch the scoreboard: standard, placed, hidden", "スコアボードの標準・配置・非表示を切り替え"},
