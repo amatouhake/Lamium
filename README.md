@@ -101,7 +101,7 @@ feature does in detail: [Features](docs/FEATURES.md).
 | FreeCamera | Fly the view while the player stays in place | — | — |
 | Night Vision | Brighten the view locally, optionally without dark rings | — | Off |
 | Hide Offhand Item | Hide the offhand item (shields too) in first person | — | Off |
-| Hide effects | Hide rain, particles, boss bars, nausea, fogs, the portal screen | — | Off |
+| Hide effects | Hide rain, particles, nausea, fogs, the portal screen | — | Off |
 | Connected Textures | Glass, panes, bookshelves and sandstone without seams | — | Off |
 | Block highlight *Exp.* | Make block types you pick glow in rainbow colors, where they are visible | — | Off |
 
@@ -119,7 +119,7 @@ feature does in detail: [Features](docs/FEATURES.md).
 | Inventory HUD | Your inventory as a 9x3 grid during play | — | Off |
 | Used slots | Used inventory slots, such as 13/36 | — | Off |
 | Status effects HUD | Effects with levels and remaining time | — | Off |
-| Game HUD placement | Move and resize the game's own chat, paper doll, scoreboard and boss bars in HUD layout; the chat goes to the bottom left by default, as on Java Edition | — | Off |
+| Game HUD placement | Move and resize the game's own chat, paper doll, scoreboard and boss bars in HUD layout, or hide each of them; the chat goes to the bottom left by default, as on Java Edition | — | Off |
 | Toggle toasts | A notice when a key turns a feature on or off | — | On |
 | Chunk Borders | Java-style chunk edges | `F3+G` | Off |
 | Hitboxes | Entity bounds with eye and look markers | `F3+B` | Off |

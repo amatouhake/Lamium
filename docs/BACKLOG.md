@@ -660,7 +660,8 @@ Open choices for the maintainer:
   works on its own.
 - How the editor shows it: a show/hide button in the selected game part's
   toolbar, and how a hidden part is drawn there (a dimmed frame).
-- Moving Hide boss bars: its saved key and action id stay; it carries over as
+- Moving Hide boss bars: its key and action id stay (the saved value moved to
+  `information.showBossBars`, as decided below); it carries over as
   hidden only if Hide effects and Hide boss bars were both on, so no one's
   bars change after the update. Hide effects keeps the other effects.
 - Chat: hidden messages on the HUD only; the chat screen stays vanilla.

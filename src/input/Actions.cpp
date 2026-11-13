@@ -62,7 +62,8 @@ bool toggleState(IClientInstance& client, Settings const& value, input::Action a
     if (action == input::Action::BreakingRestriction) return value.interaction.breaking;
     if (action == input::Action::HideWeather) return value.visuals.hideWeather;
     if (action == input::Action::HideParticles) return value.visuals.hideParticles;
-    if (action == input::Action::HideBossBars) return value.information.hidesBossBars();
+    // Named by its row, "Show the boss bars" (L-334).
+    if (action == input::Action::HideBossBars) return !value.information.hidesBossBars();
     if (action == input::Action::HideNausea) return value.visuals.hideNausea;
     if (action == input::Action::HideWater) return value.visuals.hideWater;
     if (action == input::Action::HideLava) return value.visuals.hideLava;

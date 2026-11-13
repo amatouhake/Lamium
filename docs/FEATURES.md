@@ -79,7 +79,7 @@ are kept. On Minecraft 1.26.60.05 a map in the off hand stays drawn.
 Hides the selected visual effects; one main switch turns the selection on.
 Sound and gameplay stay unchanged.
 
-- Rain and snow, particles and boss bars.
+- Rain and snow, and particles.
 - The nausea color and the Nether portal's purple screen.
 - Underwater, lava and powder snow fog.
 - The distance fog on land, in the Nether and in the End.
@@ -172,13 +172,14 @@ effect icons are hidden while it shows.
 
 Off by default. Lets the HUD layout editor move and resize four parts of
 the game's own HUD, each with its own switch: the chat (at the bottom left
-by default, as on Java Edition), the paper doll, the scoreboard and the boss bars. Their
-text, backgrounds and fading stay vanilla.
+by default, as on Java Edition), the paper doll, the scoreboard and the boss bars. Each
+can also be hidden while placed. Their text, backgrounds and fading stay vanilla.
 
 ### HUD layout and toggle toasts
 
-A live HUD layout editor places and scales Lamium's HUD elements (50-200 %)
-and shows where the game's hotbar is. Toggle toasts give a short notice when a key turns a
+A live HUD layout editor places and scales Lamium's HUD elements (50-200 %),
+switches them on or off from a check on their name tag (a switched-off element
+is drawn faint and hatched) and shows where the game's hotbar is. Toggle toasts give a short notice when a key turns a
 feature on or off.
 
 ### Chunk Borders, Hitboxes and Light Level Overlay

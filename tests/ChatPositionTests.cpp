@@ -186,6 +186,13 @@ void chatPositionTests() {
         check(hiddenSaved.information.hidesChat() && hiddenSaved.information.hidesPaperDoll()
               && !hiddenSaved.information.hidesScoreboard() && !hiddenSaved.information.hidesBossBars(),
               "the parts' show values load");
+        auto migrated = decodeSettings(R"({"visuals":{"hideEffects":true}})");
+        migrated.information.showBossBars = true;
+        writeSettings(path, migrated);
+        auto reread = readSettings(path);
+        std::filesystem::remove(path);
+        check(!reread.information.hidesBossBars() && reread.information.gameHud,
+              "boss bars shown again after the move stay shown when saved and loaded");
         using hud_editor::hatch;
         auto lines = hatch({10, 20, 12, 6});
         check(!lines.empty() && std::all_of(lines.begin(), lines.end(), [](auto const& b) {
