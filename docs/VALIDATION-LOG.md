@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Showing and hiding HUD elements, third build (L-334, 2026-11-14)
+
+Build `772e1876`, DLL SHA-256
+`741e58b21b9c680a1dc66740a8ef59fb55ade5358cf5313e069deac8534d064d`, 1.26.60.05 Dev
+instance, the maintainer, with five screenshots of HUD layout.
+
+- The editor is light again: pointing and dragging do not lag.
+- A right-anchored tag no longer flips sides, but the "(hidden)" suffix still moved the
+  name; with the check drawn inside the tag the name shifted too.
+- The check appearing on a pointed-at tag looked usable but vanished when reached.
+- Hidden elements said least, but nothing could be told any more; two tags (Schematic HUD
+  and boss bars) were drawn on top of each other.
+- The maintainer then chose, on hud-hide-v2.html: situational elements faint (A), hidden
+  ones hatched and named, the common switch joined to the selected tag, and a legend.
+
 ## Showing and hiding HUD elements, second build (L-334, 2026-11-14)
 
 Build `d8412701`, DLL SHA-256

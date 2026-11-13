@@ -138,6 +138,13 @@ inline Box nameTag(Box element, float w, float screenW, float screenH, std::vect
         return true;
     };
     for (auto const& place : places) if (onScreen(place) && clear(place)) return place;
+    // No free place outside: inside the element's top or bottom edge rather
+    // than on another tag (L-334).
+    auto inside = [&](float y) {
+        return Box{std::clamp(rightFirst ? element.x + element.w - w : element.x, 0.f, std::max(0.f, screenW - w)),
+                   std::clamp(y, 0.f, std::max(0.f, screenH - h)), w, h};
+    };
+    for (auto const& place : {inside(element.y), inside(element.y + element.h - h)}) if (clear(place)) return place;
     for (auto const& place : places) if (onScreen(place)) return place;
     return {std::clamp(left, 0.f, std::max(0.f, screenW - w)), std::clamp(above, 0.f, std::max(0.f, screenH - h)), w, h};
 }

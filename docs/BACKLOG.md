@@ -674,6 +674,9 @@ game parts' yellow, so it is now a gray hatched box with contents only when
 pointed at; the eight settings rows became one Standard / Placed / Hidden
 row per part, with one cycle key each (Hide boss bars kept as the boss bars'
 key, the boss bar placement key retired). DESIGN has the current rules.
+Third round the same day (demos/hud-hide-v2.html): situational elements
+faint, hidden ones hatched and named, the settings screen's switch joined to
+the selected tag, a legend in the idle panel, tags never stacked.
 
 ### L-320 Highlight designated block types in the world
 Kind: Design. Maintainer's idea 2026-11-07 (multiplayer-session feedback).

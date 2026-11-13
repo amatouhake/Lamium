@@ -511,23 +511,32 @@ first build):
   placement key is retired.
 - Hiding skips the part's draw; the game's layout and its state stay. The
   chat hides only the HUD messages; the chat screen stays vanilla.
-- In the editor a hidden element says least of all (second revision, after
-  the maintainer found the first gray look still said more than a frame that
-  shows by situation): sparse gray diagonal dots and a faint gray outline, no
-  contents and no name. Pointed at or selected, its name tag "<name> (hidden)"
-  appears and its contents show faint (30 %). It is never the white dashed
-  frame of an element that only shows by situation, and never yellow, which
-  marks the game's own elements. It can still be moved and scaled. A game
-  part offers the switch only while it is Placed or Hidden.
-- Name tags hang from the element's anchored side: from the right edge for an
-  element anchored on the right, otherwise from the left, above it when there
-  is room. A tag no longer jumps between sides when the element's width or
-  state changes.
-- Cost: hidden elements are measured in the same drawing pass as the others
-  (an opacity per element), and the dots are bounded per element.
-- The switch is a check at the start of the name tag of the selected element
-  and of the pointed-at one (the pointed-at tag stays while the pointer is on
-  it). Toolbars do not change.
+- The editor's looks (third round, decided 2026-11-14 on
+  demos/hud-hide-v2.html after three in-game looks; the earlier rounds hid
+  too much or said more for a hidden element than for a situational one):
+  - Shown: contents and a frame (yellow for the game's own elements).
+  - Shows by situation: contents at half opacity, a white dashed frame and
+    its name. This replaces L-321's frame-only look, so every placed element
+    can be seen.
+  - Hidden: no contents, gray diagonal dots and a gray frame, and its name on
+    a darker gray tag; contents at 30 % only while selected. Never yellow,
+    which marks the game's own elements. It can still be moved and scaled.
+  - Pointed at or selected, an element is drawn in full (a hidden one faint)
+    and named.
+- Names carry no state ("(hidden)" was dropped: it changed the tag's width).
+  Tags hang from the element's anchored side (the right edge for an element
+  anchored on the right), keep clear of other tags and of elements drawn in
+  full, and with no free place outside go inside the element's top or bottom
+  edge, never onto another tag.
+- The switch is the settings screen's switch, joined to the selected
+  element's name tag on the side away from the anchor (so the name never
+  moves), only while selected. A game part offers it only while Placed or
+  Hidden. Toolbars do not change (a toolbar switch was ruled out: Lamium
+  elements' toolbars are already long).
+- The idle panel (nothing selected) has a legend: a dashed swatch "Shown by
+  situation" and a hatched swatch "Hidden".
+- Cost: hidden and situational elements are drawn in the same pass as the
+  others with an opacity per element; the dots are bounded per element.
 - Hide boss bars moved from Hide effects to the boss bars' row. A settings
   file from before keeps what it showed: bars hidden only where Hide effects
   and its boss choice were both on, with the group on for the boss bars alone
