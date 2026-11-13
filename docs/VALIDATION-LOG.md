@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A death's waypoint named with its date and time (2026-11-13)
+
+`b7cb3d25`, local build, DLL SHA-256
+`32797eb9257d442f0c5aa48be0e9bc3eb6b72a1fecdcb691279c3c9541dbcc6d`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-333): dying adds "Death point
+MM-DD HH:MM" with the PC's time, and two deaths more than a minute apart are told apart
+by name.
+
 ## A death's waypoint left alone; the layout restore tied to the place of the death (2026-11-13)
 
 `179ef3c0`, local build, DLL SHA-256

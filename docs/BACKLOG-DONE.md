@@ -2565,6 +2565,28 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-333 Death waypoints: which one is the latest
+Kind: Ready; (a) chosen by the maintainer 2026-11-13.
+Status: done. Built 2026-11-13 (`deathName`, tested; the session reads the local
+clock when the death is recorded), confirmed by the maintainer the same day on `b7cb3d25` (the name carries
+the PC's time; two deaths a minute apart are told apart). A death point taken
+over from an older file has no time and keeps the plain name. The lists
+still order by distance.
+Check in game: dying adds "Death point MM-DD HH:MM" with the PC's local
+time; a second death a minute later is told apart; the name can still be
+edited.
+Maintainer 2026-11-13, after confirming L-332: every
+death's waypoint is named "Death point", so with several of them (normal
+ones, or temporary ones never reached) nothing says which is the one to go
+back to.
+Open: what tells them apart. Agent's proposals, not decided:
+- (a) The real date and time of the death in the name ("Death point 11-13
+  21:05"): tells the latest and when, needs nothing saved beside the name,
+  and the name stays editable.
+- (b) A running number ("Death point 3", one more than the highest among
+  the death waypoints present): shorter, but starts over once the earlier
+  ones are deleted.
+
 ### L-332 Death points: grow them as their own feature, or make them simpler
 Kind: Ready (strong model); decided 2026-11-13.
 Status: done. Built 2026-11-13 and confirmed by the maintainer the same day on

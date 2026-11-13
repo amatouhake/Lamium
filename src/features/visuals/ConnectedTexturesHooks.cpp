@@ -229,15 +229,14 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
     // (L-208). The faces beside a concave corner - one for an L, two for a T,
     // four for a cross - gain an inside edge only with the inside-corner option
     // too, so the pane option alone leaves the turn looking as L-208 left it
-    // (maintainer 2026-10-27). With the pane option off no pane geometry is
-    // computed at all.
+    // (maintainer 2026-10-27). The pane's own parts are read either way: the
+    // vertical joins need them (L-331).
     auto edges = paneEdgeKinds(paneCorners.load(), insideCorners.load());
-    Parts parts;
+    Parts parts = partsAt(block, pane.pos);
     std::optional<std::pair<float, float>> outside;
-    if (edges.outside) {
-        parts = partsAt(block, pane.pos);
-        outside = paneCornerPoint(parts);
-    }
+    if (edges.outside) outside = paneCornerPoint(parts);
+    auto joinsAbove = [&](Part part) { return paneJoinsVertically(part, parts, above); };
+    auto joinsBelow = [&](Part part) { return paneJoinsVertically(part, parts, below); };
     auto const& g = pane.glass;
     float uLow = std::min(g.u0, g.u1), uHigh = std::max(g.u0, g.u1), vLow = std::min(g.v0, g.v1), vHigh = std::max(g.v0, g.v1);
     float du = (uHigh - uLow) / g.width, dv = (vHigh - vLow) / g.height;
@@ -260,7 +259,7 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
             float x = positions[i].x - bx, y = positions[i].y - by, z = positions[i].z - bz;
             if ((x > 0.99f && east) || (x < 0.01f && west) || (z > 0.99f && south) || (z < 0.01f && north))
                 mask |= edgeSide(uvs[i].x, uLow, uHigh, du, Left, Right);
-            if ((y > 0.9f && above.has(part)) || (y < 0.1f && below.has(part))) mask |= edgeSide(uvs[i].y, vLow, vHigh, dv, Top, Bottom);
+            if ((y > 0.9f && joinsAbove(part)) || (y < 0.1f && joinsBelow(part))) mask |= edgeSide(uvs[i].y, vLow, vHigh, dv, Top, Bottom);
         }
         auto moved = sprites::shift(uLow, vLow, mask & ruleSides(glassRule()));
         if (!moved) return;
@@ -281,7 +280,7 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
         if (y1 - y0 < 0.01f) {
             // A thin top or bottom face: fold it to a point under (over) the same part.
             bool top = y0 > 0.5f;
-            if ((top && above.has(part)) || (!top && below.has(part)))
+            if ((top && joinsAbove(part)) || (!top && joinsBelow(part)))
                 for (size_t i = q + 1; i < q + 4; ++i) positions[i] = positions[q];
             continue;
         }

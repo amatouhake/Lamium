@@ -227,7 +227,7 @@ inline Mask edgeSide(float value, float low, float high, float texel, Side lowSi
 // it is adjusted per part on the mesh vanilla built, not through the texture:
 // a glass face's side border goes where its block edge touches the same pane;
 // its top (bottom) border and the thin top (bottom) face go where the pane
-// above (below) has the same part.
+// above (below) joins that part (paneJoinsVertically).
 enum class Part { Center, East, West, South, North };
 inline constexpr int partIndex(Part part) { return static_cast<int>(part); }
 // The part a face belongs to, from its extent in block coordinates.
@@ -268,6 +268,20 @@ Parts partsOf(Boxes const& boxes) {
         if (box.z0 < 0.1f) parts.part[partIndex(Part::North)] = true;
     }
     return parts;
+}
+// L-331: whether a part joins the pane above (below), dropping the border
+// between them. An arm joins the same arm: their faces lie in one plane and
+// end together. The post joins only a pane with the same arms. The post is in
+// every pane, so joining it wherever a pane sat above cut a gap into the top
+// border of a corner under a lone post and left that post without its own
+// border, as if the two were one sheet while their outlines differ. With
+// different arms each pane keeps its outline closed, as vanilla draws it.
+inline bool paneJoinsVertically(Part part, Parts const& own, Parts const& other) {
+    if (!other.has(part)) return false;
+    if (part != Part::Center) return true;
+    for (Part arm : {Part::East, Part::West, Part::South, Part::North})
+        if (own.has(arm) != other.has(arm)) return false;
+    return true;
 }
 // L-208/L-255: the post corner an L-shaped pane turns around - one arm on each
 // axis - in block coordinates, or none for straight, lone or absent panes.

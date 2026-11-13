@@ -126,7 +126,8 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.6.0
 
-- L-333: a death's waypoint is named with the local date and time.
+- L-331: glass panes of different shapes above each other (BACKLOG L-331's
+  list).
 - L-327: the "restore ended" toast was confirmed on `786424c4`; the help
   text naming 32 blocks was not looked at.
 
@@ -215,7 +216,29 @@ validation checkpoints" (snapshot 2026-10-20).
 ## Bugs
 
 ### L-331 Connected Textures: glass pane edges are uneven in less simple arrangements
-Kind: Research. Maintainer report 2026-11-13 (`786424c4`, with a
+Kind: Research, then Ready. Cause found and a fix built 2026-11-13, not
+checked in game.
+The maintainer's smallest case (2026-11-13; Connected Textures on, inward
+edges off, pane corner edges on; the pane at 0,0,0): panes at 0,0,0, 1,0,0
+and 0,0,1 make an L with its outside corner edge, which is right. A pane
+added at 0,1,0 has no neighbor beside it and is a lone post. Then the top
+border of the L breaks at the corner, the post above has no bottom border,
+and the L's outside corner edge stops under a post that has none. Noted
+with it: a pane's top and bottom border is the thin top (bottom) face and
+also the top (bottom) texel row of its side faces.
+Cause: a part dropped its top (bottom) border wherever the pane above
+(below) had the same part, and every pane has the post, so the post joined
+any pane above it whatever its shape.
+Built (`paneJoinsVertically`, tested): an arm still joins the same arm;
+the post joins only a pane with the same arms. With different arms each
+pane keeps its own outline, as vanilla draws that junction.
+Check in game: the case above shows the L's top border unbroken and the
+post with its own bottom border; stacked panes of one shape (a flat wall,
+a straight run two high, an L two high) join as before; a wall whose upper
+row has an extra arm at one pane keeps closed outlines there.
+Not decided, if the result still reads wrong: carrying the outside corner
+edge up a post of another shape instead of closing both outlines.
+Maintainer report 2026-11-13 (`786424c4`, with a
 screenshot kept outside the repository).
 With "Edges at glass pane corners" on and the inside edges ("Edges at
 inward corners") off, panes laid out in more than a flat run - an L with
@@ -635,27 +658,6 @@ the earlier note "L-86 Radar faces follow-up" under Later lists mobs
 without a face). If the icons can be made right, the maintainer wants the
 radar's default changed from dots to icons (`map.radarFaces`, off today);
 that default is decided once the icons are confirmed in game.
-
-### L-333 Death waypoints: which one is the latest
-Kind: Ready; (a) chosen by the maintainer 2026-11-13.
-Status: built 2026-11-13 (`deathName`, tested; the session reads the local
-clock when the death is recorded), not checked in game. A death point taken
-over from an older file has no time and keeps the plain name. The lists
-still order by distance.
-Check in game: dying adds "Death point MM-DD HH:MM" with the PC's local
-time; a second death a minute later is told apart; the name can still be
-edited.
-Maintainer 2026-11-13, after confirming L-332: every
-death's waypoint is named "Death point", so with several of them (normal
-ones, or temporary ones never reached) nothing says which is the one to go
-back to.
-Open: what tells them apart. Agent's proposals, not decided:
-- (a) The real date and time of the death in the name ("Death point 11-13
-  21:05"): tells the latest and when, needs nothing saved beside the name,
-  and the name stays editable.
-- (b) A running number ("Death point 3", one more than the highest among
-  the death waypoints present): shorter, but starts over once the earlier
-  ones are deleted.
 
 ### L-325 Zoom: return to the set magnification on release
 Kind: Design (small). Issue #74 (2026-11-10); the maintainer 2026-11-13:

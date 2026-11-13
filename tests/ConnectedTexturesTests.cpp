@@ -140,6 +140,21 @@ void connectedTexturesTests() {
     auto post = partsOf(std::vector<Box>{{0.438f, 0.562f, 0.438f, 0.562f}});
     check(post.has(Part::Center) && !post.has(Part::East) && !post.has(Part::North), "a lone pane is only its post");
     auto straight = partsOf(std::vector<Box>{{0.f, 1.f, 0.438f, 0.562f}});
+    {
+        // L-331: an L under a lone post, as reported: the post does not join, the arms have nothing to join.
+        auto bend = partsOf(std::vector<Box>{{0.5f, 1.f, 0.438f, 0.562f}, {0.438f, 0.562f, 0.5f, 1.f}});
+        auto alone = partsOf(std::vector<Box>{{0.438f, 0.562f, 0.438f, 0.562f}});
+        auto line = partsOf(std::vector<Box>{{0.f, 1.f, 0.438f, 0.562f}});
+        check(!paneJoinsVertically(Part::Center, bend, alone) && !paneJoinsVertically(Part::Center, alone, bend)
+                  && !paneJoinsVertically(Part::East, bend, alone),
+              "a post joins the pane above or below only when both have the same arms");
+        check(paneJoinsVertically(Part::Center, bend, bend) && paneJoinsVertically(Part::East, bend, bend)
+                  && paneJoinsVertically(Part::Center, alone, alone) && paneJoinsVertically(Part::Center, line, line),
+              "panes of one shape join whole, as before");
+        check(paneJoinsVertically(Part::East, bend, line) && !paneJoinsVertically(Part::South, bend, line)
+                  && !paneJoinsVertically(Part::Center, bend, line) && !paneJoinsVertically(Part::Center, bend, Parts{}),
+              "an arm joins the same arm of a pane shaped otherwise; nothing joins what is not a pane");
+    }
     check(straight.has(Part::East) && straight.has(Part::West), "a straight pane has both arms");
     check(!Parts{}.has(Part::Center), "no pane, no parts");
     // L-208: the L corner point, per orientation, and the post UV rewrite.
