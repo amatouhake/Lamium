@@ -176,6 +176,10 @@ one (L-305).
 
 Trace options are not built in CI. Of the existing ones only `transfer_trace`
 was built on 26.60 (L-305); build the one you need before relying on it.
+`spawn_area_trace` (issue #32, built on 26.60 2026-11-13) has no hook and so
+no inventory entry: it reads `LevelChunk::mSpawningAreas` of the chunks around
+the player and logs them. The member's place is not checked by a rebuild; a
+list longer than 64 is reported as unreadable.
 
 ## Inventory
 
@@ -275,12 +279,6 @@ broader coverage remains in VALIDATION.
 Hooks: `SlimeRuleHook`
 Trace (`slime_trace`). Reads the answer of `SlimeSpawnRules::checkSpawnRulesCallback`
 and calls it for probes; changes nothing.
-
-### `src/features/information/SpawnAreaTrace.cpp`
-Hooks: none
-Trace (`spawn_area_trace`, issue #32). Reads `LevelChunk::mSpawningAreas` of the
-chunks around the player and logs them; changes nothing. The member's place is
-not checked by a rebuild: a list longer than 64 is reported as unreadable.
 
 ### `src/features/information/FrameTiming.cpp`
 Hooks: `FrameCompleted`
