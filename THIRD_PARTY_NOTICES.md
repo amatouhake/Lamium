@@ -35,6 +35,13 @@ mod by Lamium's author, copyright 2026 amatouhake, published under the MIT Licen
 The code Lamium adapted from these three earlier mods was written by
 Lamium's author, who licenses it in Lamium under LGPL-3.0-only.
 
+## BarelyEnoughItems
+
+Part of the item-icon glint drawing (`src/features/inspection/render/ItemIcon.cpp`)
+follows [BarelyEnoughItems](https://github.com/MiracleForest/BarelyEnoughItems)
+at commit `2d4facf`, copyright LeviMC, licensed under LGPL-3.0-or-later and used
+in Lamium under LGPL-3.0. Details are in docs/PROVENANCE.md.
+
 ## JSON for Modern C++
 
 Settings serialization uses [nlohmann/json](https://github.com/nlohmann/json)

@@ -17,6 +17,13 @@
 #include "mc/deps/renderer/ShaderColor.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/item/Item.h"
+#include "mc/deps/core/string/HashedString.h"
+#include "mc/deps/input/RectangleArea.h"
+#ifdef LAMIUM_GLINT_TRIAL
+#include "app/TraceLog.h"
+#include "mc/client/player/LocalPlayer.h"
+#include "mc/world/actor/player/PlayerInventory.h"
+#endif
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
@@ -85,6 +92,32 @@ int chunkOf(ItemStack const& stack) {
     if (stack.mItem->isGlint(stack)) return glinting;
     return static_cast<int>(InventoryItemRenderer::getRenderTypeFromItem(stack));
 }
+#ifdef LAMIUM_GLINT_TRIAL
+// The trial variants and the flush in drawItemIcons follow BarelyEnoughItems, copyright LeviMC,
+// LGPL-3.0-or-later (docs/PROVENANCE.md).
+// L-91 trial: the draw context BarelyEnoughItems (2d4facf, src/ui/gfx/Painter.cpp) uses around the same two
+// renderGuiItemNew calls differs in three ways. One variant per frame, picked by the selected hotbar slot, because
+// glint state leaks between icons drawn in one frame (L-142).
+// 1 (slot 1): as before. 2: an off-screen white quad flushed with "ui_flush" before the glinting icons.
+// 3: zOrder 0 for icon and foil. 4: foil at the icon's own alpha, shader colour untouched. 5: 2+3+4.
+struct GlintTrial { bool flush = false, zeroZ = false, plainFoil = false; };
+GlintTrial glintTrial(MinecraftUIRenderContext& context, std::span<IconAt const> icons) {
+    static int logged = -1;
+    static TraceBudget budget;
+    auto* player = context.mClient.getLocalPlayer();
+    int slot = player && player->mInventory ? player->mInventory->mSelected : 0;
+    int variant = slot >= 1 && slot <= 4 ? slot + 1 : 1;
+    if (variant != logged) {
+        logged = variant;
+        for (auto const& icon : icons)
+            if (drawable(icon) && icon.glint && icon.stack->mItem->isGlint(*icon.stack))
+                traceLog(budget, 200, "[glint_trial] variant {} item {} renderType {}", variant,
+                    icon.stack->getTypeName(), static_cast<int>(InventoryItemRenderer::getRenderTypeFromItem(*icon.stack)));
+        traceLog(budget, 200, "[glint_trial] variant {} active", variant);
+    }
+    return {variant == 2 || variant == 5, variant == 3 || variant == 5, variant == 4 || variant == 5};
+}
+#endif
 }
 void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> icons, int zOrder) {
     auto& client = context.mClient;
@@ -94,21 +127,34 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
     std::vector<int> chunks;
     chunks.reserve(icons.size());
     for (auto const& icon : icons) chunks.push_back(!drawable(icon) ? -1 : icon.direct ? glinting : chunkOf(*icon.stack));
+#ifdef LAMIUM_GLINT_TRIAL
+    auto const trial = glintTrial(context, icons);
+#else
+    struct { bool flush = false, zeroZ = false, plainFoil = false; } const trial;
+#endif
     auto direct = [&](size_t i) {
         auto const& icon = icons[i];
-        renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, false, icon.alpha, 1.0f, icon.scale,
-            zOrder);
-        if (icon.glint && icon.stack->mItem->isGlint(*icon.stack)) {
+        bool const glint = icon.glint && icon.stack->mItem->isGlint(*icon.stack);
+        int const z = glint && trial.zeroZ ? 0 : zOrder;
+        renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, false, icon.alpha, 1.0f, icon.scale, z);
+        if (glint && trial.plainFoil) {
+            renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, true, icon.alpha, 1.0f, icon.scale, z);
+        } else if (glint) {
             auto& shaderColor = static_cast<ShaderColor&>(context.mScreenContext.currentShaderColor);
             mce::Color const was = shaderColor.color;
             shaderColor.color = glintTint;
             shaderColor.dirty = true;
             renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, true, glintOverlayAlpha * icon.alpha,
-                1.0f, icon.scale, zOrder);
+                1.0f, icon.scale, z);
             shaderColor.color = was;
             shaderColor.dirty = true;
         }
     };
+    if (trial.flush && std::find(chunks.begin(), chunks.end(), glinting) != chunks.end()) {
+        mce::Color const white{1.f, 1.f, 1.f, 1.f};
+        context.fillRectangle(RectangleArea{-10000.f, -9999.f, -10000.f, -9999.f}, white, 1.f);
+        context.flushImages(white, 1.f, HashedString{"ui_flush"});
+    }
     // Glinting items before any shared-mesh batch: after one, the foil call
     // drew nothing even right after its icon (L-142 round 2); 0.1.8 drew no
     // batches at all.

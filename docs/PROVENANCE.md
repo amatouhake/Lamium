@@ -37,6 +37,7 @@ Code in this repository that did not start in this repository.
 | [LaminaView](https://github.com/amatouhake/LaminaView) | Camera integration lessons | Earlier mod by Lamium's author; MIT |
 | [LaminaPeek](https://github.com/amatouhake/LaminaPeek) | Item-content readers, hover integration, preview rendering | Earlier mod by Lamium's author; MIT |
 | [LaminaSort](https://github.com/amatouhake/LaminaSort) | Inventory planning, item classification, container transfers | Earlier mod by Lamium's author; MIT |
+| [BarelyEnoughItems](https://github.com/MiracleForest/BarelyEnoughItems) `2d4facf` (decision below) | `ItemIcon.cpp`, L-91 glint trial (2026-11-14): from `src/ui/gfx/Painter.cpp` (no copyright or SPDX header in the file), the three ways its draw context differs around the same two `renderGuiItemNew` calls: an off-screen white quad (at -10000, -9999) flushed with `ui_flush` before the icons, zOrder 0, and the foil at the icon's alpha with the shader colour untouched. Lamium's own code selects them per frame behind `glint_trial`; the flush branch is compiled into release builds but off | LGPL-3.0-or-later, © LeviMC, used under LGPL-3.0. BEI's AGENTS.md says its authors read Lamium for ideas (it calls Lamium unlicensed), and its item-icon path (`7ed0718`, 2026-10-20) has the same structure as Lamium's earlier `ItemIcon` (L-119 2026-10-10, L-142 2026-10-11); only the three differences above came in |
 | [Issue #70](https://github.com/amatouhake/Lamium/issues/70) attachment, by MatchaMustard | `tests/Issue70Structure.h`: the bytes of a 5x5x5 structure the game saved, and the same bytes inflated. Test data only, not in `Lamium.dll` | No license stated; game output, kept as a test of the file format |
 
 Earlier mods, checked once on 2026-10-20 (BACKLOG L-196 P3) at LaminaPeek
@@ -62,7 +63,7 @@ A future subsystem may incorporate compatible upstream source only after the
 maintainer chooses that path and the exact source/license scope is reviewed.
 Until then, candidate upstream implementations remain reference-only research.
 
-### Chosen, nothing incorporated yet
+### Chosen sources
 
 - [BarelyEnoughItems (BEI)](https://github.com/MiracleForest/BarelyEnoughItems)
   (README and COPYING.LESSER: LGPL-3.0-or-later, © LeviMC; used under
