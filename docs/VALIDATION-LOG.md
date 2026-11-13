@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Showing and hiding HUD elements, sixth build (L-334, 2026-11-14)
+
+Build `d02e6002`, DLL SHA-256
+`b061c95803b9630dc7eed53a2054d4890cf937c8bee4d3a1bbc2c43c0bdeb313`, 1.26.60.05 Dev
+instance, the maintainer, with two screenshots.
+
+- With the target card selected the player list's name no longer lies on it; a chat
+  flush with the left edge keeps its tag on the left.
+- Still wrong: selecting the paper doll put the switch on the left and moved its name to
+  the right (the tag is wider than the element, so its middle lay right of the element's).
+
 ## Showing and hiding HUD elements, fifth build (L-334, 2026-11-14)
 
 Build `9f80c23a`, DLL SHA-256
