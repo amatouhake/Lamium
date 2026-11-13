@@ -12,6 +12,8 @@
 #include "mc/world/item/ItemTag.h"
 #include "mc/locale/I18n.h"
 #include "mc/world/effect/MobEffect.h"
+#include "mc/world/attribute/Attribute.h"
+#include "mc/world/attribute/AttributeModifier.h"
 #include <optional>
 #include "mc/world/item/components/FuelItemComponent.h"
 #include "mc/world/item/components/UseModifiersItemComponent.h"
@@ -86,14 +88,19 @@ void collectData(std::string const& key, Tag const& tag, int depth, details::Ite
         if (keep) item.data.push_back({key, tag.toSnbt(SnbtFormat::Minimize), depth});
     }
 }
-// Whether the effect a shown line starts with is a harmful one: the game's effects by their translated names, the
-// longest that fits. Asked again only when the line changes.
-std::optional<bool> effectHarmful(std::string const& shown) {
+// The effect a shown line starts with: the game's effects by their translated names, the longest that fits. Whether
+// it is harmful, and what it does to attributes at its first level in the game's words. Asked again only when the
+// line changes.
+struct EffectInfo {
+    std::optional<bool> harmful;
+    std::vector<std::string> modifiers;
+};
+EffectInfo const& effectInfo(std::string const& shown) {
     static std::string last;
-    static std::optional<bool> answer;
+    static EffectInfo answer;
     if (shown == last) return answer;
     last = shown;
-    answer.reset();
+    answer = {};
     auto language = getI18n().getCurrentLanguage();
     size_t best = 0;
     for (uint id = 1; id <= 38; ++id) {
@@ -102,9 +109,17 @@ std::optional<bool> effectHarmful(std::string const& shown) {
         if (!effect) continue;
         std::string const& key = effect->mDescriptionId;
         auto const label = getI18n().get(key, language);
-        if (label.size() > best && label != key && shown.starts_with(label)) {
-            best = label.size();
-            answer = static_cast<bool>(effect->mIsHarmful);
+        if (label.size() <= best || label == key || !shown.starts_with(label)) continue;
+        best = label.size();
+        answer.harmful = static_cast<bool>(effect->mIsHarmful);
+        answer.modifiers.clear();
+        for (auto const& [attribute, modifier] : *effect->mAttributeModifiers) {
+            if (!attribute || !modifier) continue;
+            auto const attributeKey = "attribute.name." + attribute->mName->getString();
+            auto const attributeName = getI18n().get(attributeKey, language);
+            float const value = effect->getAttributeModifierValue(0, *modifier);
+            if (attributeName != attributeKey && std::isfinite(value) && value != 0)
+                answer.modifiers.push_back(details::modifierLine(value, static_cast<int>(modifier->mOperation), attributeName));
         }
     }
     return answer;
@@ -145,6 +160,17 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
             if (auto const penalty = inventory::enchantPlan::workPenalty(getBaseRepairCost()))
                 text += "\n\u00a77" + (penalty->uses ? ui::translated("workPenaltyValue", penalty->levels, *penalty->uses)
                                                       : ui::translated("workPenaltyOnly", penalty->levels));
+        // The game tells a suspicious stew's effect only in Creative (L-319): the same lines elsewhere, where the
+        // game puts them, above the food.
+        if (settings.itemDetails && mItem->mFullName->getString() == "minecraft:suspicious_stew") {
+            auto const effect = details::plain(mItem->buildEffectDescriptionName(*this, true));
+            if (!effect.empty() && details::plain(text.mUnredactedString).find(effect) == std::string::npos) {
+                auto const& info = effectInfo(effect);
+                auto const tint = std::string("\n\u00a7") + details::effectTint(info.harmful);
+                text += tint + effect;
+                for (auto const& line : info.modifiers) text += tint + line;
+            }
+        }
         // The glyph line goes above Lamium's detail lines; it is remembered with the whole text further down.
         std::vector<information::saturation::FoodIcon> icons;
         if (settings.foodValues)
@@ -177,17 +203,8 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
             item.useTicks = static_cast<float>(mItem->mMaxUseDuration);
             if (!(item.useTicks > 0))
                 item.useTicks = seconds("minecraft:use_modifiers", [](ItemComponent* c) { return static_cast<UseModifiersItemComponent*>(c)->mUseDuration; });
-            // The game names a suspicious stew's effect only in Creative.
-            if (item.id == "minecraft:suspicious_stew") {
-                auto effect = details::plain(mItem->buildEffectDescriptionName(*this, true));
-                if (!effect.empty() && details::plain(text.mUnredactedString).find(effect) == std::string::npos) {
-                    item.effectHarmful = effectHarmful(effect);
-                    item.effect = std::move(effect);
-                }
-            }
             for (auto const& line : details::lines(item))
-                text += (line.tint ? std::string("\n\u00a7") + line.tint : line.dim ? "\n\u00a78" : "\n\u00a77")
-                        + (line.key.empty() ? line.value : ui::translated(line.key, line.value));
+                text += (line.dim ? "\n\u00a78" : "\n\u00a77") + (line.key.empty() ? line.value : ui::translated(line.key, line.value));
         }
         if (!icons.empty()) rememberFood(text.mUnredactedString, std::move(icons));
     } catch (...) {

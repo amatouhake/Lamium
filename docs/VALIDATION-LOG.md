@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item details in tooltips, third look (2026-11-13)
+
+`70de5f54`, local build, DLL SHA-256
+`c0139e59734adc125677bae63d3bd6d5c8f948faea2bc5be3c539e838f0594db`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- A suspicious stew's effect in Survival is red for a bad effect and blue for a good
+  one, like the game's line in Creative. In Creative the line shows once.
+- In Creative the game's effect line is above the food icons; Lamium's in Survival is
+  under them. For Weakness the game adds "-0.5 Attack Damage" in Creative; Survival
+  shows no such line.
+- "Use time: 1.6 s" on bread and a milk bucket, 0.8 s on dried kelp, 1.25 s on a
+  crossbow, none on a bow.
+
 ## Item details in tooltips, second look (2026-11-13)
 
 `6f70bdb2`, local build, DLL SHA-256

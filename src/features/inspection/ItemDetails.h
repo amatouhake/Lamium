@@ -20,8 +20,6 @@ struct Item {
     std::vector<std::string> tags;
     std::vector<Entry> data; // User data in reading order, at most dataLines of it
     size_t dataTotal = 0;    // How many entries the user data has in all
-    std::string effect;      // An effect line the game left out, in the game's own words
-    std::optional<bool> effectHarmful; // Unknown: told without the game's red or blue
     int enchantability = 0, maxStack = 64, cooldownTicks = 0;
     float burnTicks = 0, useTicks = 0;
 };
@@ -29,7 +27,6 @@ struct Item {
 struct Line {
     std::string key, value;
     bool dim = false; // Identity and data, darker than the values
-    char tint = 0;    // A colour code of its own: the game's red and blue for effects
     bool operator==(Line const&) const = default;
 };
 inline constexpr size_t valueLimit = 40, lineWidth = 44, tagLines = 4, dataLines = 48;
@@ -73,6 +70,14 @@ inline std::string plain(std::string_view text) {
     }
     return out;
 }
+// An effect's lines take the game's colours: red for a harmful one, blue otherwise, white when it cannot be told.
+inline constexpr char effectTint(std::optional<bool> harmful) { return !harmful ? 'f' : *harmful ? 'c' : '9'; }
+// What an effect does to an attribute, as the game words it: "-0.5 Attack Damage", "+20% Speed". Only the first
+// operation adds a plain amount; the others are shares.
+inline std::string modifierLine(float value, int operation, std::string_view name) {
+    auto const amount = number(std::abs(operation == 0 ? value : value * 100));
+    return std::format("{}{}{} {}", value < 0 ? '-' : '+', amount, operation == 0 ? "" : "%", name);
+}
 // Names joined by ", " into lines of about `width` bytes; past `lines`, an ellipsis.
 inline std::vector<std::string> wrapped(std::vector<std::string> const& names, size_t width = lineWidth,
                                         size_t lines = tagLines) {
@@ -93,8 +98,6 @@ inline std::vector<std::string> wrapped(std::vector<std::string> const& names, s
 inline std::vector<Line> lines(Item const& item) {
     std::vector<Line> out;
     auto value = [&](char const* key, std::string text) { out.push_back({key, std::move(text)}); };
-    if (!item.effect.empty())
-        out.push_back({"", plain(item.effect), false, !item.effectHarmful ? 'f' : *item.effectHarmful ? 'c' : '9'});
     if (item.enchantability > 0) value("itemDetails.enchantability", std::to_string(item.enchantability));
     // 64 and 1 say nothing; the stacks of 16 are the ones worth telling.
     if (item.maxStack > 1 && item.maxStack < 64) value("itemDetails.maxStack", std::to_string(item.maxStack));

@@ -22,18 +22,16 @@ void itemDetailsTests() {
               "values come first, the id after them, and a stack of one is not told");
     }
     {
-        Item stew{.id = "minecraft:suspicious_stew", .aux = 2, .effect = "Weakness (0:07)", .useTicks = 32};
+        Item bread{.id = "minecraft:bread", .useTicks = 32};
         Item bow{.id = "minecraft:bow", .useTicks = 72000};
-        auto out = lines(stew);
-        check(out[0] == Line{"", "Weakness (0:07)", false, 'f'} && out[1] == Line{"itemDetails.useTime", "1.6"},
-              "an effect the game left out leads, then the time the item takes to use");
-        stew.effect = "\xC2\xA7" "7Weakness \xC2\xA7" "r(0:07)";
-        stew.effectHarmful = true;
-        check(lines(stew)[0] == Line{"", "Weakness (0:07)", false, 'c'}, "a harmful effect is red whatever codes it came with");
-        stew.effectHarmful = false;
-        check(lines(stew)[0].tint == '9', "a helpful effect is blue");
-        check(plain("\xC2\xA7" "cRed\xC2\xA7") == "Red" && plain("plain") == "plain", "codes are dropped, a cut one too");
+        check(lines(bread)[0] == Line{"itemDetails.useTime", "1.6"}, "the time the item takes to use, in seconds");
         check(lines(bow).size() == 1, "an item held for as long as the button is has no use time");
+        check(effectTint(true) == 'c' && effectTint(false) == '9' && effectTint({}) == 'f',
+              "a harmful effect is red, a helpful one blue, an unknown one white");
+        check(modifierLine(-0.5f, 0, "Attack Damage") == "-0.5 Attack Damage" && modifierLine(0.2f, 2, "Speed") == "+20% Speed"
+                  && modifierLine(3, 0, "Armor") == "+3 Armor",
+              "an attribute change is an amount or a share, signed");
+        check(plain("\xC2\xA7" "cRed\xC2\xA7") == "Red" && plain("plain") == "plain", "codes are dropped, a cut one too");
     }
     {
         Item coal{.id = "minecraft:coal", .burnTicks = 1600};

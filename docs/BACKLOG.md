@@ -839,6 +839,17 @@ day, not yet checked in game:
 - No use time showed on a bow, bread or a milk bucket: they have no
   `minecraft:use_modifiers` component. `Item::mMaxUseDuration` is read
   first now, the component only where that is 0.
+Seen by the maintainer 2026-11-13 on `70de5f54` (VALIDATION-LOG): the
+stew's effect red or blue in Survival and not repeated in Creative; use
+time on bread and a milk bucket (1.6 s), dried kelp (0.8 s) and a crossbow
+(1.25 s), none on a bow. Changed the same day, not yet checked in game:
+- In Survival the stew's effect sat under the food icons and lacked the
+  game's second line ("-0.5 Attack Damage" under Weakness). The effect
+  now goes above the food icons, where the game puts it, followed by one
+  line per attribute the effect changes: `MobEffect::mAttributeModifiers`
+  with `getAttributeModifierValue(0, ...)`, named by the game's
+  `attribute.name.<attribute>` text and left out where that text is
+  missing. The first level is assumed, which is what a stew gives.
 Open, for one design talk once the values are right (the maintainer's
 call): stored data makes the tooltip of an enchanted armour piece or a
 shulker box far too tall. Wanted: short by default, the long form on

@@ -312,8 +312,8 @@ Inside the game's item tooltip:
   gives (set by a command, say) is shown without the count. It does not predict what
   an operation will cost: that depends on the other item too.
 - Item details, the values the game knows and does not print, each only where the
-  item has one, under the food icons: a suspicious stew's effect outside Creative;
-  enchantability; a stack limit below 64 (above 1); the cooldown and the time the
+  item has one. Above the food icons, a suspicious stew's effect outside Creative,
+  in the game's words and colours. Under them: enchantability; a stack limit below 64 (above 1); the cooldown and the time the
   item takes to use, in seconds; how many items it smelts as fuel; then, darker, its
   ID (with "#N" for a data value other than 0), its item tags and its stored data.
   Stored data is told whole, each compound's entries and each list's elements
