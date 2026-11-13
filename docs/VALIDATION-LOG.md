@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Boss bar sample in HUD layout (L-323, 2026-11-14)
+
+Build `f96794ea`, DLL SHA-256
+`f673a1a5832fb7e9ccb403fdb66544050da303e9b11eebdef92498de44b8deef`, 1.26.60.05 Dev
+instance, the maintainer, with screenshots. On `44aea6d9` the sample (bar textures
+stretched whole) looked unlike the game's bars; on `f96794ea` (13x5 nine-slices with
+4-pixel caps) the maintainer judged it nearly the same as vanilla.
+
 ## Boss bar position (L-323, 2026-11-14)
 
 Build `348f83a8`, DLL SHA-256

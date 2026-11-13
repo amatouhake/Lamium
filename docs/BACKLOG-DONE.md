@@ -8505,6 +8505,33 @@ https://github.com/maruohon/tweakeroo/blob/ornithe/1.12.2/src/main/java/tweakero
 
 ## Research
 
+### L-323 Game HUD placement: boss bars
+Kind: Research, then Design. Asked for by the maintainer 2026-11-13.
+Game HUD placement moves and scales the chat, the paper doll and the
+scoreboard; add the boss bars as a fourth part with its own switch and its
+place in the layout editor. Today Lamium only hides them (`bossBarsBit` in
+`features/visuals/EffectVisibility.h`, matching `boss_health_panel` /
+`boss_hud_panel`). To find out first: which control carries the whole stack
+of bars, how its size changes with the number of bars and with the text
+above each bar, and whether moving it holds across screen and GUI scale
+changes as the other three parts do. Open choices after that: the anchor
+when the number of bars changes, and how it behaves with the hide switch.
+Status 2026-11-14: built (the maintainer asked for it again). Read from the
+installed HUD definition: the bars stack in the grid `boss_health_grid`
+(182 x 30 % of the screen, top middle, offset 2), one 182x20 item per bar
+(name label, then the bar images 10 units down). The element is the box the
+shown bars fill; choices taken (DESIGN "Boss bar placement"): the anchor
+decides the growth direction, Hide boss bars wins. Open: the in-game checks
+in VALIDATION.md, including whether the default 2 units down matches the
+game (the first measured box is logged) and whether a scaled clipped bar
+keeps its fill. Checked in game 2026-11-14 (VALIDATION): the default matches
+the game (logged 229,2) and all four checks passed. The editor's sample
+draws the game's bar textures as nine-slices; the maintainer accepted it
+on `f96794ea` as close to vanilla. Status: done 2026-11-14.
+The `boss_hud_padding` (20) and touch padding (15 %) above
+the grid move the game's place on some layouts; the default does not follow
+them.
+
 ### L-301 Show block entity values the client never refreshes
 Kind: Research, then implementation for the note block. Maintainer question
 2026-11-03, follow-up of L-300.
