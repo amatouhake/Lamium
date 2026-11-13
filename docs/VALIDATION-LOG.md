@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Glint on white seen in game (2026-11-14)
+
+`679aad22`, DLL SHA-256 `5963c4dfd3941d95d1328f651fa36a284066ede1a6b1e20d8baba5d5d7f431a2`,
+1.26.60.05 Dev instance, the maintainer: an enchanted book's glint in a shulker box
+preview and in the enchantment order's anvil list looks the same as in vanilla slots.
+Also seen: with Item details on or off, the game's hover text slightly overlaps the
+bottom of a shulker box preview (followed up the same day).
+
 ## Glint overlay calibrated on white (2026-11-14)
 
 Uncommitted `glint_measure` build (the overlay's shader colour and strength changed every
