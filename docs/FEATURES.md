@@ -240,8 +240,8 @@ only the markers, use "Show in the world" and the Map marks layer.
 
 - Dying adds a waypoint named "Death point", drawn as a cross. It is
   temporary by default (removed when reached); "Temporary death point" off
-  makes it a normal one. It is edited like any waypoint; the next death
-  replaces it unless you renamed it or changed its kind.
+  makes it a normal one. It is edited and deleted like any waypoint; each
+  death adds its own.
 - Temporary waypoints (a switch in the add prompt, which remembers the
   last choice) are drawn hollow, disappear when you get within a set
   distance (6 blocks by default) and are deleted with one click.

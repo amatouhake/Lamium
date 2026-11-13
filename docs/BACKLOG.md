@@ -636,7 +636,30 @@ radar's default changed from dots to icons (`map.radarFaces`, off today);
 that default is decided once the icons are confirmed in game.
 
 ### L-332 Death points: grow them as their own feature, or make them simpler
-Kind: Design (conversation first). Maintainer 2026-11-13, after confirming
+Kind: Ready (strong model); decided 2026-11-13.
+Status: built 2026-11-13, not checked in game.
+Decided (maintainer 2026-11-13): simpler, along the agent's view below, and
+further than it: the next death does not replace anything either. A
+death's records should lean on how waypoints already work and never do
+what the player did not intend; marks do not pile up because a death's
+waypoint is temporary by default.
+Built:
+- A death adds a waypoint and that is all that is special about it: the
+  cross is its mark and stays whatever is edited, earlier ones are left
+  alone, and `kept` / `edited` are gone (`recordDeath`, tested).
+- Death layout restore no longer looks at waypoints (`atPlace`,
+  `Layout::started`, tested): pickups count within 32 blocks of where the
+  player died, in that dimension; after the first one there, going farther
+  ends the layout with its toast. It also ends when everything is back and
+  at the next death. Deleting a waypoint no longer ends it; it works with
+  Waypoints off.
+Check in game: two deaths leave two "Death point" waypoints; moving or
+renaming one keeps its cross; coming back and picking items up restores
+the layout with the death's waypoint deleted beforehand, and with
+Waypoints off; walking 32 blocks away after the first pickup shows the
+toast; a pickup of a like item far from the place before returning does
+not rearrange anything. Servers unchecked.
+Maintainer 2026-11-13, after confirming
 L-328: the death waypoint follows only the latest death, so it does not
 serve as a record of deaths (which death, where the one before was); a
 moved one loses its cross but is still named "Death point"; perhaps death

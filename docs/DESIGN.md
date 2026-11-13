@@ -161,11 +161,16 @@ menu and HUD editor keep GUI units.
   temporary, and nothing beside them. A death adds a waypoint named "Death
   point": a cross for its mark, red to start with, temporary unless
   "Temporary death point" is off. Its name, color, kind and visibility are
-  edited like any waypoint's. The next death replaces it unless it was
-  renamed or switched between the kinds; moving it makes it an ordinary
-  waypoint (a diamond, no longer followed by Death layout restore). Older
-  lines here that speak of "the death point" as its own row or mark
-  describe the state before this.
+  edited like any waypoint's. Older lines here that speak of "the death
+  point" as its own row or mark describe the state before this.
+- (Decided 2026-11-13, L-332) Nothing else is special about a death's
+  waypoint: the cross stays whatever is edited, and the next death adds
+  its own without replacing one. Death layout restore does not depend on
+  waypoints: it belongs to the place of the death (32 blocks around it),
+  starts with the first pickup there and ends by leaving it, when
+  everything is back, or at the next death. The rule behind both: a
+  death's records lean on what waypoints already do and never act in a way
+  the player did not intend.
 - (Decided 2026-11-13) The badge comes off when a feature has been in two
   or more releases, has no open bug item and no planned change of behavior
   (BACKLOG "Release policy"). By that rule Hide effects,

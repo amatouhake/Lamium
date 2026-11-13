@@ -37,12 +37,9 @@ struct Waypoint {
     bool visible = true;
     bool temporary = false; // removed on arrival, deleted without confirmation (L-261)
     std::uint64_t id = 0; // session id (app/SessionIds.h, L-139); not saved
-    // Where the player died (L-328): an ordinary waypoint whose mark is a
-    // cross, and the one Death layout restore follows.
+    // Added where the player died (L-328, L-332): an ordinary waypoint in
+    // every way; this only makes its mark a cross.
     bool death = false;
-    // A death's waypoint the player renamed or switched between temporary
-    // and normal: the next death leaves it and adds its own.
-    bool kept = false;
     bool operator==(Waypoint const&) const = default;
 };
 struct DeathPoint {
@@ -114,24 +111,15 @@ std::vector<std::string> arrivalStep(ArrivalWatch& watch, WaypointSet const& set
 inline constexpr size_t maxWaypoints = 1000;
 inline constexpr size_t maxNameBytes = 128;
 // A death adds a waypoint (L-328): red to start with, temporary or normal as
-// the setting says. It takes the place of the last death's waypoint unless
-// the player kept that one. False when the list is full.
+// the setting says. Earlier ones are left alone (L-332): temporary ones go
+// when reached, the rest when the player deletes them. False when the list
+// is full.
 inline bool recordDeath(WaypointSet& set, DeathPoint const& at, std::string name, bool temporary) {
-    std::erase_if(set.waypoints, [](Waypoint const& w) { return w.death && !w.kept; });
     if (set.waypoints.size() >= maxWaypoints) return false;
     Waypoint w{std::move(name), deathColorIndex, at.x, at.y, at.z, at.dimension, true, temporary};
     w.death = true;
     set.waypoints.push_back(std::move(w));
     return true;
-}
-// After an edit of a death's waypoint: moved, it is an ordinary waypoint from
-// then on (no cross, Death layout restore lets go of it); renamed or switched
-// between temporary and normal, it is kept at the next death.
-inline void edited(Waypoint& now, Waypoint const& before) {
-    if (!before.death || !now.death) return;
-    if (now.x != before.x || now.y != before.y || now.z != before.z || now.dimension != before.dimension)
-        now.death = now.kept = false;
-    else if (now.name != before.name || now.temporary != before.temporary) now.kept = true;
 }
 // The name a new waypoint gets: the lowest "N" not used yet.
 template<class Name>

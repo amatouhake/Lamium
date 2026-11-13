@@ -28,7 +28,6 @@ bool loadFailed = false; // Never overwrite a file that could not be read.
 std::optional<DeathPoint> pendingDeath;
 DeathWatch deathWatch;
 ArrivalWatch arrivalWatch;
-std::optional<DeathPoint> deathReached;
 std::atomic<bool> joiningLocal{false};
 std::uint64_t nextId = 1; // never reset: ids are not reused within the session
 ll::event::ListenerPtr startJoinListener, joinListener, exitListener;
@@ -64,7 +63,6 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
         pendingDeath.reset();
         deathWatch.reset();
         arrivalWatch.reset();
-        deathReached.reset();
         joined = {joined.world + 1, true, std::nullopt};
         try { joined.mapFolder = resolve(event, "map", "map", false); }
         catch (std::exception const& error) { log(std::string("no folder for the world map: ") + error.what()); }
@@ -91,7 +89,6 @@ void leave() {
     pendingDeath.reset();
     deathWatch.reset();
     arrivalWatch.reset();
-    deathReached.reset();
 }
 // Saves a candidate, then publishes it; the caller holds the lock.
 bool commit(WaypointSet candidate) {
@@ -130,10 +127,6 @@ bool change(std::function<bool(WaypointSet&)> const& mutation) {
     std::lock_guard lock(mutex);
     auto candidate = set;
     if (!mutation(candidate)) return false;
-    for (auto& w : candidate.waypoints)
-        if (auto before = std::ranges::find_if(set.waypoints, [&](Waypoint const& b) { return b.id == w.id; });
-            w.id && before != set.waypoints.end())
-            edited(w, *before);
     for (auto& w : candidate.waypoints) {
         w.color = clampColor(w.color);
         if (w.name.size() > maxNameBytes) w.name.resize(maxNameBytes);
@@ -163,22 +156,12 @@ void frame(bool recordDeath, bool temporary, std::string const& name) {
     auto death = *std::exchange(pendingDeath, std::nullopt);
     if (!recordDeath) return;
     auto candidate = set;
-    if (map::recordDeath(candidate, death, name, temporary) && commit(std::move(candidate))) deathReached.reset();
+    if (map::recordDeath(candidate, death, name, temporary)) commit(std::move(candidate));
 }
 std::vector<std::string> arrive(int dimension, double x, double y, double z, double distance) {
     std::lock_guard lock(mutex);
-    std::vector<Waypoint> deaths;
-    for (auto const& w : set.waypoints) if (w.death && w.temporary) deaths.push_back(w);
-    auto names = arrivalStep(arrivalWatch, set, dimension, x, y, z, distance,
-                             [](WaypointSet const& candidate) { return commit(candidate); });
-    for (auto const& d : deaths)
-        if (std::ranges::none_of(set.waypoints, [&](Waypoint const& w) { return w.id == d.id; }))
-            deathReached = DeathPoint{d.x, d.y, d.z, d.dimension};
-    return names;
-}
-std::optional<DeathPoint> reachedDeath() {
-    std::lock_guard lock(mutex);
-    return deathReached;
+    return arrivalStep(arrivalWatch, set, dimension, x, y, z, distance,
+                       [](WaypointSet const& candidate) { return commit(candidate); });
 }
 void start() {
     auto& bus = ll::event::EventBus::getInstance();

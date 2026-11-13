@@ -36,7 +36,6 @@ struct State {
     unsigned world = 0;
     std::optional<std::filesystem::path> file;
     std::optional<Layout> layout;
-    bool deathPointSeen = false; // The waypoints' death point matched this layout once.
     Slots lastAlive{}, previous{};
     LifeWatch life;
     bool haveAlive = false, havePrevious = false;
@@ -111,30 +110,11 @@ void follow() {
     try { state.layout = readLayout(*state.file); }
     catch (std::exception const& error) { log(std::string("could not load: ") + error.what()); }
 }
-// The layout ends when the player removes, moves or replaces the death's
-// waypoint it belongs to (L-328); a death point never recorded (switched off) does not end it,
-// and neither does one that went by being reached (L-326): from then on the
-// layout ends when the player leaves the place.
-// It is looked for every tick until seen, so removing it before any pickup
-// counts too.
-bool deathPointMatches() {
-    auto set = map::waypoints::current();
-    return std::ranges::any_of(set.waypoints, [](map::Waypoint const& w) {
-        return w.death && w.x == state.layout->x && w.y == state.layout->y && w.z == state.layout->z
-            && w.dimension == state.layout->dimension;
-    });
-}
-bool deathPointRemoved(bool recording) {
-    if (!recording) return false;
-    if (deathPointMatches()) { state.deathPointSeen = true; return false; }
-    return state.deathPointSeen;
-}
 Scope scopeOf(Settings const& prefs) {
     return prefs.inventory.deathRestoreAll ? Scope::All : Scope::HotbarEquipment;
 }
 void step(LocalPlayer& player, Slots const& now, Settings const& prefs) {
     auto scope = scopeOf(prefs);
-    if (!state.layout->reached && deathPointRemoved(prefs.map.waypointsDeath)) { log("death point removed"); forget(); return; }
     auto before = state.layout->done;
     bool all = markDone(*state.layout, now, scope);
     if (all) {
@@ -186,7 +166,6 @@ void tick() noexcept {
                 layout.dimension = static_cast<int>(player->getDimensionId());
                 layout.slots = state.lastAlive;
                 state.layout = layout;
-                state.deathPointSeen = false;
                 state.armed = false;
                 save();
             } else if (state.layout) {
@@ -202,24 +181,21 @@ void tick() noexcept {
             if (state.layout && anyItem(now)) { log("inventory kept at respawn"); forget(); }
         }
         if (!state.layout) { state.previous = now; state.havePrevious = true; return; }
-        if (!state.deathPointSeen && prefs->map.waypointsDeath && deathPointMatches()) state.deathPointSeen = true;
-        if (!state.layout->reached) {
-            if (auto reached = map::waypoints::reachedDeath(); reached && reached->x == state.layout->x
-                && reached->y == state.layout->y && reached->z == state.layout->z && reached->dimension == state.layout->dimension) {
-                state.layout->reached = true;
-                save();
-            }
-        } else if (auto feet = player->getFeetPos();
-                   leftPlace(*state.layout, static_cast<int>(player->getDimensionId()), feet.x, feet.y, feet.z)) {
-            log("left the death point");
+        // The layout belongs to the place of the death (L-332): pickups count
+        // there only, and leaving it after the first one ends the layout.
+        auto feet = player->getFeetPos();
+        bool here = atPlace(*state.layout, static_cast<int>(player->getDimensionId()), feet.x, feet.y, feet.z);
+        if (state.layout->started && !here) {
+            log("left the place of the death");
             forget();
             try { ui::showMessageToast(ui::translated("deathRestore.left")); } catch (...) {}
             state.previous = now;
             state.havePrevious = true;
             return;
         }
-        if (state.havePrevious && !game::moving() && pickedUp(*state.layout, state.previous, now, scopeOf(*prefs))) {
+        if (state.havePrevious && !game::moving() && here && pickedUp(*state.layout, state.previous, now, scopeOf(*prefs))) {
             state.armed = true;
+            if (!state.layout->started) { state.layout->started = true; save(); }
             state.lastPickup = Clock::now();
             state.moves = state.repeats = state.busy = 0;
             state.lastMove.reset();

@@ -104,27 +104,10 @@ void deathWaypoints() {
               && set.waypoints[1].temporary && set.waypoints[1].color == deathColorIndex && set.waypoints[1].dimension == 1,
           "a death adds a red waypoint of the set kind where the player died");
     recordDeath(set, DeathPoint{20, 70, -5, 0}, "Death point", false);
-    check(set.waypoints.size() == 2 && set.waypoints[1].x == 20 && !set.waypoints[1].temporary && set.waypoints[0].name == "home",
-          "the next death takes the place of an untouched one and leaves other waypoints alone");
-    auto before = set.waypoints[1];
-    set.waypoints[1].name = "my grave";
-    edited(set.waypoints[1], before);
-    check(set.waypoints[1].death && set.waypoints[1].kept, "a renamed death's waypoint is kept");
-    recordDeath(set, DeathPoint{30, 70, -5, 0}, "Death point", true);
-    check(set.waypoints.size() == 3 && set.waypoints[1].name == "my grave" && set.waypoints[2].x == 30,
-          "a kept one stays and the next death adds its own");
-    before = set.waypoints[2];
-    set.waypoints[2].color = 5;
-    edited(set.waypoints[2], before);
-    check(!set.waypoints[2].kept, "a color change alone does not keep it");
-    set.waypoints[2].temporary = false;
-    edited(set.waypoints[2], before);
-    check(set.waypoints[2].kept, "switching the kind keeps it");
-    before = set.waypoints[2];
-    set.waypoints[2].y = 71;
-    edited(set.waypoints[2], before);
-    check(!set.waypoints[2].death && !set.waypoints[2].kept, "moved, it is an ordinary waypoint");
-    check(decodeWaypoints(encodeWaypoints(set)) == set, "the death mark and that it is kept are saved");
+    check(set.waypoints.size() == 3 && set.waypoints[1].x == 10 && set.waypoints[2].x == 20 && !set.waypoints[2].temporary
+              && set.waypoints[0].name == "home",
+          "the next death adds its own and leaves the earlier ones alone (L-332)");
+    check(decodeWaypoints(encodeWaypoints(set)) == set, "the cross mark is saved");
     WaypointSet full;
     full.waypoints.resize(maxWaypoints);
     check(!recordDeath(full, DeathPoint{}, "x", true), "a full list takes no death waypoint");

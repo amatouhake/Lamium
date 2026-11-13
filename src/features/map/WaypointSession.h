@@ -31,9 +31,6 @@ void frame(bool recordDeath, bool temporary, std::string const& name);
 // Called every HUD frame with the player's body (not FreeCamera's view):
 // removes the temporary waypoints reached (L-261) and returns their names.
 std::vector<std::string> arrive(int dimension, double x, double y, double z, double distance);
-// The death's waypoint last removed by arrival in this world, until another
-// death is recorded: the death layout tells it from a removal by hand.
-std::optional<DeathPoint> reachedDeath();
 // The joined world, for the world map's saved regions: `world` changes with
 // every join; `mapFolder` is the world's Lamium folder "map" (local) or a
 // per-server folder in the config, none when kept for the session only.

@@ -36,17 +36,18 @@ struct Layout {
     // Set once a slot holds its death-time item; it is never touched again,
     // so later rearranging by the player is left alone.
     std::array<bool, slotCount> done{};
-    // The death point was reached and went as a temporary mark (L-326).
-    bool reached = false;
+    // An item of it was picked up at the place of the death (L-332).
+    bool started = false;
     bool operator==(Layout const&) const = default;
 };
-// L-326: once reached, the layout lasts while the player stays about the
-// place; later pickups elsewhere must not keep rearranging the inventory.
-inline constexpr double leaveDistance = 32;
-inline bool leftPlace(Layout const& layout, int dimension, double x, double y, double z) {
-    if (!layout.reached) return false;
-    return dimension != layout.dimension
-        || std::hypot(layout.x + .5 - x, double(layout.y) - y, layout.z + .5 - z) > leaveDistance;
+// L-332: the layout belongs to the place of the death, not to a waypoint.
+// Pickups count only within this distance of it, in its dimension; once one
+// happened there, going farther ends the layout, so pickups elsewhere never
+// rearrange the inventory.
+inline constexpr double placeDistance = 32;
+inline bool atPlace(Layout const& layout, int dimension, double x, double y, double z) {
+    return dimension == layout.dimension
+        && std::hypot(layout.x + .5 - x, double(layout.y) - y, layout.z + .5 - z) <= placeDistance;
 }
 // Equipment, offhand, hotbar, then the main inventory.
 inline std::array<int, slotCount> targetOrder() {
