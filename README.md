@@ -101,8 +101,8 @@ feature does in detail: [Features](docs/FEATURES.md).
 | FreeCamera | Fly the view while the player stays in place | — | — |
 | Night Vision | Brighten the view locally, optionally without dark rings | — | Off |
 | Hide Offhand Item | Hide the offhand item (shields too) in first person | — | Off |
-| Hide effects *Exp.* | Hide rain, particles, boss bars, nausea, fogs, the portal screen | — | Off |
-| Connected Textures *Exp.* | Glass, panes, bookshelves and sandstone without seams | — | Off |
+| Hide effects | Hide rain, particles, boss bars, nausea, fogs, the portal screen | — | Off |
+| Connected Textures | Glass, panes, bookshelves and sandstone without seams | — | Off |
 | Block highlight *Exp.* | Make block types you pick glow in rainbow colors, where they are visible | — | Off |
 
 ### HUD & overlays
@@ -165,7 +165,7 @@ Waypoints and the death point also show in the world, with both maps off.
 | Tool Switch | Pick the right tool when mining; optionally prefer Fortune or Silk Touch | — | Off |
 | Weapon Switch | Pick the strongest weapon when attacking | — | Off |
 | Offhand swap | Swap the held item with the offhand | `F` | On |
-| Fake Offhand *Exp.* | Use a hotbar block or item as if it were in the offhand | Right click | Off |
+| Fake Offhand | Use a hotbar block or item as if it were in the offhand | Right click | Off |
 | Hand Restock | Refill the held slot when it runs low; refill a used totem | — | Off |
 | Death layout restore *Exp.* | Put picked-up items back where they were when you died | — | Off |
 | Enchantment order *Exp.* | Plan the cheapest order of anvil uses for the enchantments you want, and follow it beside the anvil | — | — |
@@ -189,8 +189,8 @@ Waypoints and the death point also show in the world, with both maps off.
 | Feature | What it does | Key | Default |
 | --- | --- | --- | --- |
 | Calculator | A calculator with stack, chest and shulker box units | — | — |
-| Game language *Exp.* | Change Minecraft's language without leaving the world | — | — |
-| Skip server resource packs *Exp.* | Show a server's world without its resource packs | — | Off |
+| Game language | Change Minecraft's language without leaving the world | — | — |
+| Skip server resource packs | Show a server's world without its resource packs | — | Off |
 
 Lamium's keys are its own and do not appear in Minecraft's keyboard
 settings. Change them under each feature or in the Hotkeys view; new

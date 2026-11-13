@@ -157,6 +157,14 @@ menu and HUD editor keep GUI units.
   the Experimental Map. Fake Offhand, Death layout restore,
   the version-sensitive visuals, Game language, Skip server packs, Map and
   Schematics keep the badge.
+- (Decided 2026-11-13) The badge comes off when a feature has been in two
+  or more releases, has no open bug item and no planned change of behavior
+  (BACKLOG "Release policy"). By that rule Hide effects, Connected Textures,
+  Fake Offhand, Sneak placement, Slime chunks, Game language and Skip
+  server resource packs lose it. Kept: the maps, map marks and Schematics
+  (open bugs), Inventory transfer (L-299), Death layout restore (L-240),
+  Waypoints (L-328 changes the death point), Radar (its mob icons are to be
+  fixed, L-330), Block highlight and Enchantment order (too new).
 
 ### Text and languages (Decided)
 

@@ -74,7 +74,7 @@ everything evenly, with no dark rings by light sources.
 Hides the first-person offhand drawing, shields included. Equipment and use
 are kept. On Minecraft 1.26.60.05 a map in the off hand stays drawn.
 
-### Hide effects (experimental)
+### Hide effects
 
 Hides the selected visual effects; one main switch turns the selection on.
 Sound and gameplay stay unchanged.
@@ -84,7 +84,7 @@ Sound and gameplay stay unchanged.
 - Underwater, lava and powder snow fog.
 - The distance fog on land, in the Nether and in the End.
 
-### Connected Textures (experimental)
+### Connected Textures
 
 Glass, glass panes, bookshelves and sandstone next to the same block draw as
 one surface, without seams. Glass, bookshelves and sandstone keep the
@@ -400,7 +400,7 @@ Fortune, also when the inventory holds a higher Fortune level.
 
 Swaps the held item with the offhand (`F`, as in Java Edition).
 
-### Fake Offhand (experimental)
+### Fake Offhand
 
 Uses a hotbar block or item as if it were in the offhand, also when the item
 in your hand has nothing to do where you aim. Under Sneak placement its key
@@ -524,11 +524,11 @@ stays on the pasted page, with the caret at the end of the part that landed ther
 so a second paste goes in before the rest of the first. If 50 pages would not be
 enough, nothing is pasted and the pages needed are shown when the book closes.
 
-### Game language (experimental)
+### Game language
 
 Changes Minecraft's display language without leaving the world.
 
-### Skip server resource packs (experimental)
+### Skip server resource packs
 
 A server's packs are accepted as it asks but not shown: the world looks
 vanilla. Local worlds keep their packs.

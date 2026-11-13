@@ -618,11 +618,19 @@ point's life now follows the waypoint kinds, but the Waypoints screen and
 the world map still treat it apart ("Make a waypoint", its own note, no
 Temporary switch), so there seem to be three kinds: waypoint, temporary
 waypoint, death point.
-Decided (maintainer 2026-11-13): (b), the whole change. Open before
-building: whether the death waypoint's mark can be changed (the red cross
-against the waypoints' colored diamond) and what else of it is editable;
-see the questions put to the maintainer that day. The two proposals as
-they were made:
+Decided (maintainer 2026-11-13): (b), the whole change, with the agent's
+answers to the open points accepted the same day:
+- The mark stays a cross; its color can be changed like any waypoint's
+  (red to start with).
+- The name can be edited. Moving its coordinates makes it an ordinary
+  waypoint: the cross goes and Death layout restore no longer follows it.
+- The next death replaces the death waypoint only while it is untouched; one
+  that was renamed, moved or switched to normal by hand is left alone and a
+  new one is added.
+- "Record the death point" and "Temporary death point" stay. The second is
+  the kind the next death waypoint gets; afterwards its row's own Temporary
+  switch changes it.
+The two proposals as they were made:
 - (a) Small: the death point's row gets the waypoints' own controls where
   they apply (the Temporary switch in place of the setting, delete as a
   temporary one) and loses "Make a waypoint" and its note.
@@ -631,6 +639,15 @@ they were made:
   before, keeping the red cross), and the separate death point record goes;
   every edit is the ordinary one. Needs a migration of saved death points
   and a way for Death layout restore to know its waypoint.
+
+### L-330 Radar: mob icons that draw wrongly, then icons by default
+Kind: Research, then Design. Maintainer 2026-11-13: some mobs' icons on
+the radar do not draw correctly, so the radar keeps its Experimental badge.
+First find which mobs draw wrongly and why (`features/map/RadarFaces.cpp`;
+the earlier note "L-86 Radar faces follow-up" under Later lists mobs
+without a face). If the icons can be made right, the maintainer wants the
+radar's default changed from dots to icons (`map.radarFaces`, off today);
+that default is decided once the icons are confirmed in game.
 
 ### L-325 Zoom: return to the set magnification on release
 Kind: Design (small). Issue #74 (2026-11-10); the maintainer 2026-11-13:
