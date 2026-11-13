@@ -104,13 +104,13 @@ void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, ui
         ui::fill(context, cx - half, top + i, 2 * half, 1, ui::Rgb{0, 0, 0}, .85f);
     }
 }
-void cross(MinecraftUIRenderContext& context, float cx, float cy) {
+void cross(MinecraftUIRenderContext& context, float cx, float cy, ui::Rgb color) {
     for (int pass = 0; pass < 2; ++pass)
         for (int i = -2; i <= 2; ++i)
             for (int sign : {1, -1}) {
                 float x = cx + i - .5f, y = cy + sign * i - .5f;
                 if (pass == 0) ui::fill(context, x - 1, y - 1, 3, 3, ui::Rgb{0, 0, 0}, .85f);
-                else ui::fill(context, x, y, 1, 1, rgb(deathColor));
+                else ui::fill(context, x, y, 1, 1, color);
             }
 }
 }
@@ -136,22 +136,20 @@ void draw(MinecraftUIRenderContext& context, float width, float height, Settings
     double distanceX = free ? view->x : feet.x, distanceZ = free ? view->z : feet.z;
     int dimension = static_cast<int>(player->getDimensionId());
     auto set = waypoints::current();
-    struct Marker { double sx, sy, distance; std::string name; int color; bool temporary; };
+    struct Marker { double sx, sy, distance; std::string name; int color; bool temporary, cross; };
     std::vector<Marker> shownMarkers;
-    auto consider = [&](double x, double y, double z, std::string name, int color, bool temporary = false) {
+    auto consider = [&](double x, double y, double z, std::string name, int color, bool temporary, bool cross) {
         double distance = std::hypot(x - distanceX, z - distanceZ);
         if (settings.waypointDistance > 0 && distance > settings.waypointDistance) return;
         // Aim at the middle of the block above the marked one, at eye level.
         if (auto p = project(*view, x, y + 1.5, z, width, height, 12))
-            shownMarkers.push_back({p->x, p->y, distance, std::move(name), color, temporary});
+            shownMarkers.push_back({p->x, p->y, distance, std::move(name), color, temporary, cross});
     };
     for (auto const& w : set.waypoints) {
         if (!w.visible) continue;
         if (auto at = shownPosition(w.x, w.y, w.z, w.dimension, dimension, settings.waypointsCrossScale))
-            consider(at->x, at->y, at->z, w.name, w.color, w.temporary);
+            consider(at->x, at->y, at->z, w.name, w.color, w.temporary, w.death);
     }
-    if (set.death && set.death->dimension == dimension)
-        consider(set.death->x + .5, set.death->y, set.death->z + .5, ui::translated("waypoint.death"), -1);
     // Far ones first, so nearer markers sit on top.
     std::sort(shownMarkers.begin(), shownMarkers.end(), [](Marker const& a, Marker const& b) { return a.distance > b.distance; });
     constexpr float textScale = .75f;
@@ -162,8 +160,9 @@ void draw(MinecraftUIRenderContext& context, float width, float height, Settings
         // Whole screen pixels, not GUI units: a unit is several pixels, and
         // rounding to it made markers jump while the player moved.
         float x = snap(static_cast<float>(m.sx)), y = snap(static_cast<float>(m.sy));
-        if (m.color < 0) cross(context, x, y);
-        else diamond(context, x, y, 7, rgb(waypointColors[static_cast<size_t>(clampColor(m.color))]), m.temporary);
+        auto const color = rgb(waypointColors[static_cast<size_t>(clampColor(m.color))]);
+        if (m.cross) cross(context, x, y, color);
+        else diamond(context, x, y, 7, color, m.temporary);
         float below = y + 5;
         if (nearCrosshair(m.sx, m.sy, width, height)) {
             float w = ui::textWidthScaled(context, m.name, textScale);

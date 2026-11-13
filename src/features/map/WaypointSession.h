@@ -25,15 +25,14 @@ bool change(std::function<bool(WaypointSet&)> const& mutation);
 // death and remembers where. Saved later from frame(), never here.
 void watchDeath(IClientInstance&);
 // Called every HUD frame on the client thread: saves a pending death point.
-void frame(bool recordDeath);
+// A death becomes a waypoint named `name`, temporary or normal (L-328); a
+// death point from an older file is turned into one the same way.
+void frame(bool recordDeath, bool temporary, std::string const& name);
 // Called every HUD frame with the player's body (not FreeCamera's view):
 // removes the temporary waypoints reached (L-261) and returns their names.
 std::vector<std::string> arrive(int dimension, double x, double y, double z, double distance);
-// The same for the death point as a temporary mark (L-326): removes it when
-// reached; true once the removal is saved.
-bool arriveDeath(int dimension, double x, double y, double z, double distance);
-// The death point last removed by arrival in this world, until another death
-// is recorded: the death layout tells it from a removal by hand.
+// The death's waypoint last removed by arrival in this world, until another
+// death is recorded: the death layout tells it from a removal by hand.
 std::optional<DeathPoint> reachedDeath();
 // The joined world, for the world map's saved regions: `world` changes with
 // every join; `mapFolder` is the world's Lamium folder "map" (local) or a

@@ -1,4 +1,5 @@
 #include "features/map/WaypointSession.h"
+#include <algorithm>
 #include "features/map/WaypointStore.h"
 #include "overlay/LocalShapePath.h"
 #include "app/Runtime.h"
@@ -27,7 +28,6 @@ bool loadFailed = false; // Never overwrite a file that could not be read.
 std::optional<DeathPoint> pendingDeath;
 DeathWatch deathWatch;
 ArrivalWatch arrivalWatch;
-DeathArrival deathArrival;
 std::optional<DeathPoint> deathReached;
 std::atomic<bool> joiningLocal{false};
 std::uint64_t nextId = 1; // never reset: ids are not reused within the session
@@ -64,7 +64,6 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
         pendingDeath.reset();
         deathWatch.reset();
         arrivalWatch.reset();
-        deathArrival.reset();
         deathReached.reset();
         joined = {joined.world + 1, true, std::nullopt};
         try { joined.mapFolder = resolve(event, "map", "map", false); }
@@ -92,7 +91,6 @@ void leave() {
     pendingDeath.reset();
     deathWatch.reset();
     arrivalWatch.reset();
-    deathArrival.reset();
     deathReached.reset();
 }
 // Saves a candidate, then publishes it; the caller holds the lock.
@@ -132,6 +130,10 @@ bool change(std::function<bool(WaypointSet&)> const& mutation) {
     std::lock_guard lock(mutex);
     auto candidate = set;
     if (!mutation(candidate)) return false;
+    for (auto& w : candidate.waypoints)
+        if (auto before = std::ranges::find_if(set.waypoints, [&](Waypoint const& b) { return b.id == w.id; });
+            w.id && before != set.waypoints.end())
+            edited(w, *before);
     for (auto& w : candidate.waypoints) {
         w.color = clampColor(w.color);
         if (w.name.size() > maxNameBytes) w.name.resize(maxNameBytes);
@@ -149,28 +151,30 @@ void watchDeath(IClientInstance& client) {
     pendingDeath = DeathPoint{static_cast<int>(std::floor(feet.x)), static_cast<int>(std::floor(feet.y)),
                               static_cast<int>(std::floor(feet.z)), static_cast<int>(player->getDimensionId())};
 }
-void frame(bool recordDeath) {
+void frame(bool recordDeath, bool temporary, std::string const& name) {
     std::lock_guard lock(mutex);
+    // A death point saved before L-328 becomes its waypoint.
+    if (set.death) {
+        auto candidate = set;
+        auto old = *std::exchange(candidate.death, std::nullopt);
+        if (map::recordDeath(candidate, old, name, temporary)) commit(std::move(candidate));
+    }
     if (!pendingDeath) return;
     auto death = *std::exchange(pendingDeath, std::nullopt);
     if (!recordDeath) return;
     auto candidate = set;
-    candidate.death = death;
-    if (commit(std::move(candidate))) deathReached.reset();
+    if (map::recordDeath(candidate, death, name, temporary) && commit(std::move(candidate))) deathReached.reset();
 }
 std::vector<std::string> arrive(int dimension, double x, double y, double z, double distance) {
     std::lock_guard lock(mutex);
-    return arrivalStep(arrivalWatch, set, dimension, x, y, z, distance,
-                       [](WaypointSet const& candidate) { return commit(candidate); });
-}
-bool arriveDeath(int dimension, double x, double y, double z, double distance) {
-    std::lock_guard lock(mutex);
-    if (!deathArrival.update(set.death, dimension, x, y, z, distance)) return false;
-    auto candidate = set;
-    auto death = *std::exchange(candidate.death, std::nullopt);
-    if (!commit(std::move(candidate))) return false;
-    deathReached = death;
-    return true;
+    std::vector<Waypoint> deaths;
+    for (auto const& w : set.waypoints) if (w.death && w.temporary) deaths.push_back(w);
+    auto names = arrivalStep(arrivalWatch, set, dimension, x, y, z, distance,
+                             [](WaypointSet const& candidate) { return commit(candidate); });
+    for (auto const& d : deaths)
+        if (std::ranges::none_of(set.waypoints, [&](Waypoint const& w) { return w.id == d.id; }))
+            deathReached = DeathPoint{d.x, d.y, d.z, d.dimension};
+    return names;
 }
 std::optional<DeathPoint> reachedDeath() {
     std::lock_guard lock(mutex);

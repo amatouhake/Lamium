@@ -96,18 +96,38 @@ void arrival() {
     auto near = step(others, list, 0, 3.5, 64, .5, 6);
     check(near.size() == 1 && near[0] == 1, "normal waypoints and other dimensions are never reached");
 }
-// L-326: the death point as a temporary mark.
-void deathArrival() {
-    std::optional<DeathPoint> death = DeathPoint{0, 64, 0, 0};
-    DeathArrival watch;
-    check(!watch.update(death, 0, .5, 64, .5, 6), "a death point the player respawns beside is not reached on the spot");
-    check(!watch.update(death, 0, 50.5, 64, .5, 6) && watch.update(death, 0, .5, 64, .5, 6) && watch.update(death, 0, .5, 64, .5, 6),
-          "it is reached after leaving it, and again until its removal is saved");
-    check(!watch.update(death, 1, .5, 64, .5, 6) && !watch.update(death, 0, .5, 64, .5, 0) && !watch.update(std::nullopt, 0, .5, 64, .5, 6),
-          "another dimension, distance 0 and no death point reach nothing");
-    DeathArrival next;
-    next.update(death, 0, 50.5, 64, .5, 6);
-    check(!next.update(DeathPoint{1, 64, 0, 0}, 0, .5, 64, .5, 6), "a new death point starts over: dying again where one stands is not arriving");
+// L-328: a death is a waypoint with a cross.
+void deathWaypoints() {
+    WaypointSet set;
+    set.waypoints.push_back({"home", 3, 1, 64, 1, 0, true});
+    check(recordDeath(set, DeathPoint{10, 70, -5, 1}, "Death point", true) && set.waypoints.size() == 2 && set.waypoints[1].death
+              && set.waypoints[1].temporary && set.waypoints[1].color == deathColorIndex && set.waypoints[1].dimension == 1,
+          "a death adds a red waypoint of the set kind where the player died");
+    recordDeath(set, DeathPoint{20, 70, -5, 0}, "Death point", false);
+    check(set.waypoints.size() == 2 && set.waypoints[1].x == 20 && !set.waypoints[1].temporary && set.waypoints[0].name == "home",
+          "the next death takes the place of an untouched one and leaves other waypoints alone");
+    auto before = set.waypoints[1];
+    set.waypoints[1].name = "my grave";
+    edited(set.waypoints[1], before);
+    check(set.waypoints[1].death && set.waypoints[1].kept, "a renamed death's waypoint is kept");
+    recordDeath(set, DeathPoint{30, 70, -5, 0}, "Death point", true);
+    check(set.waypoints.size() == 3 && set.waypoints[1].name == "my grave" && set.waypoints[2].x == 30,
+          "a kept one stays and the next death adds its own");
+    before = set.waypoints[2];
+    set.waypoints[2].color = 5;
+    edited(set.waypoints[2], before);
+    check(!set.waypoints[2].kept, "a color change alone does not keep it");
+    set.waypoints[2].temporary = false;
+    edited(set.waypoints[2], before);
+    check(set.waypoints[2].kept, "switching the kind keeps it");
+    before = set.waypoints[2];
+    set.waypoints[2].y = 71;
+    edited(set.waypoints[2], before);
+    check(!set.waypoints[2].death && !set.waypoints[2].kept, "moved, it is an ordinary waypoint");
+    check(decodeWaypoints(encodeWaypoints(set)) == set, "the death mark and that it is kept are saved");
+    WaypointSet full;
+    full.waypoints.resize(maxWaypoints);
+    check(!recordDeath(full, DeathPoint{}, "x", true), "a full list takes no death waypoint");
 }
 // L-276: the watch keeps a reached waypoint armed until its removal is saved.
 void arrivalSave() {
@@ -147,7 +167,7 @@ void storage() {
     set.lastColor = 6;
     set.lastTemporary = true;
     check(decodeWaypoints(encodeWaypoints(set)) == set,
-          "waypoints, temporary ones, the death point and the last color and kind round-trip");
+          "waypoints, temporary ones, an older file's death point and the last color and kind round-trip");
     auto partial = decodeWaypoints(R"({"version":1,"waypoints":[{"name":"a","x":1},{"x":2},{"name":"b","color":99,"dimension":7}]})");
     check(partial.waypoints.size() == 2 && partial.waypoints[0].visible && partial.waypoints[0].x == 1
           && partial.waypoints[1].color == 11 && partial.waypoints[1].dimension == 2 && !partial.death
@@ -222,7 +242,7 @@ void waypointTests() {
     basics();
     markers();
     arrival();
-    deathArrival();
+    deathWaypoints();
     arrivalSave();
     storage();
 }

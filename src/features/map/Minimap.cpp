@@ -208,8 +208,9 @@ struct State {
         std::vector<PlacedDot> dots;
         struct Mark {
             double x, y;
-            int color; // -1: the death point.
+            int color;
             bool temporary = false;
+            bool cross = false; // A death's waypoint (L-328).
             bool operator==(Mark const&) const = default;
         };
         std::vector<Mark> marks;
@@ -841,16 +842,15 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         if (settings.waypoints && marks.waypoints) {
             auto set = waypoints::current();
             double margin = 6 * marker;
-            auto place = [&](double x, double z, int color, bool temporary = false) {
+            auto place = [&](double x, double z, int color, bool temporary, bool cross) {
                 auto m = mapMarker(transform, centerX, centerZ, x, z, blocks, pixels, settings.round, margin);
-                overlay.marks.push_back({std::round(m.x), std::round(m.y), color, temporary});
+                overlay.marks.push_back({std::round(m.x), std::round(m.y), color, temporary, cross});
             };
             for (auto const& w : set.waypoints) {
                 if (!w.visible) continue;
                 if (auto at = shownPosition(w.x, w.y, w.z, w.dimension, view->dimension, settings.waypointsCrossScale))
-                    place(at->x, at->z, w.color, w.temporary);
+                    place(at->x, at->z, w.color, w.temporary, w.death);
             }
-            if (set.death && set.death->dimension == view->dimension) place(set.death->x + .5, set.death->z + .5, -1);
         }
         // Footprints (L-139): shapes under placements, each as its world map
         // switch says; hidden ones are left out.
@@ -899,7 +899,8 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
                 if (dot.face < 0)
                     drawDot(state.image, pixels, dot.px + .5, dot.py + .5, 3 * unit, 2 * unit, dotColor(dot.kind), dot.alpha);
             for (auto const& mark : overlay.marks) {
-                if (mark.color < 0) drawCross(state.image, pixels, mark.x + .5, mark.y + .5, 11 * marker);
+                if (mark.cross) drawCross(state.image, pixels, mark.x + .5, mark.y + .5, 11 * marker,
+                                          waypointColors[static_cast<size_t>(clampColor(mark.color))]);
                 else drawDiamond(state.image, pixels, mark.x + .5, mark.y + .5, 12 * marker,
                                  waypointColors[static_cast<size_t>(clampColor(mark.color))], mark.temporary);
             }

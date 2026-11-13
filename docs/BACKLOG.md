@@ -613,7 +613,25 @@ chunk, or draw the faces with a material that does not write depth.
 ## Feature work and research
 
 ### L-328 The death point still reads as a third kind of waypoint
-Kind: Design. Maintainer 2026-11-13, after checking L-326: the death
+Kind: Ready (strong model); decided 2026-11-13.
+Status: built 2026-11-13, not checked in game. A death adds an ordinary
+waypoint named "Death point" (`recordDeath`, `Waypoint::death` / `kept`,
+`edited`; tested), saved in the waypoint list; a death point in an older
+file becomes one when the world is joined. The separate death row, "Make a
+waypoint", the death menu and their strings are gone from the Waypoints
+screen and the world map; arrival uses the temporary waypoints' own path
+and toast. Death layout restore follows the waypoint that carries the
+cross at the layout's place.
+Check in game: an existing death point shows as a waypoint with a red
+cross after joining; dying adds one (temporary by default) and replaces
+the untouched one before; arrival removes it with the temporary waypoint
+toast and the restore still runs; its color, name and Temporary switch
+edit like any waypoint, and a renamed one survives the next death; moving
+it turns the cross into a diamond; cross on the minimap, world map, in the
+world and in both lists. Servers unchecked.
+Not done: a temporary death waypoint's cross has no hollow middle, so only
+its row's switch tells it from a normal one.
+Maintainer 2026-11-13, after checking L-326: the death
 point's life now follows the waypoint kinds, but the Waypoints screen and
 the world map still treat it apart ("Make a waypoint", its own note, no
 Temporary switch), so there seem to be three kinds: waypoint, temporary

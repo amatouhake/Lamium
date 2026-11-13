@@ -128,7 +128,7 @@ enum class Target {
     LayerWaypoints, LayerSchematics, LayerShapes, // The layer switches (L-146).
     InfoButton, InfoPanel, InfoSlime, InfoRadar, // The Information button and its panel (L-297).
     // The side panel: its background, header buttons, list and editor.
-    Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Temporary, Swatch, Keep, Delete, OpenScreen,
+    Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Temporary, Swatch, Delete, OpenScreen,
     PanelKind, PanelKindItem // The list's layer menu (L-204) and its items.
 };
 struct Hit {
@@ -137,7 +137,7 @@ struct Hit {
     int item = -1;
     MarkKey mark{}; // List rows and their switches: the entry they stand for.
 };
-enum class MenuKind { Ground, Waypoint, Death, Placement, Shape };
+enum class MenuKind { Ground, Waypoint, Placement, Shape };
 struct Menu {
     MenuKind kind;
     float x, y;    // Screen, where it was opened.
@@ -148,7 +148,6 @@ struct Menu {
 };
 MenuKind menuKind(MarkKey mark) {
     switch (mark.layer) {
-    case MarkLayer::Death: return MenuKind::Death;
     case MarkLayer::Placement: return MenuKind::Placement;
     case MarkLayer::Shape: return MenuKind::Shape;
     default: return MenuKind::Waypoint;
@@ -509,8 +508,7 @@ void select(std::optional<MarkKey> mark, bool move) {
     if (mark) setShownList(listKind(mark->layer));
     if (!move || !mark) return;
     auto set = waypoints::current();
-    if (mark->layer == MarkLayer::Death && set.death) focus(set.death->x + .5, set.death->z + .5);
-    else if (auto const* w = waypointOf(set, *mark)) {
+    if (auto const* w = waypointOf(set, *mark)) {
         if (auto at = shownPosition(w->x, w->y, w->z, w->dimension, state.dimension, true)) focus(at->x, at->z);
     } else if (auto const* area = areaOf(*mark))
         focus((area->area.x0 + area->area.x1) / 2.0, (area->area.z0 + area->area.z1) / 2.0);
@@ -534,25 +532,9 @@ bool changeWaypoint(MarkKey mark, std::function<void(Waypoint&)> const& apply) {
 bool changeSelected(std::function<void(Waypoint&)> const& apply) {
     return state.selected && changeWaypoint(*state.selected, apply);
 }
-// Keeps the death point as an ordinary waypoint; its new key, if saved.
-std::optional<MarkKey> keepDeath(WaypointSet const& set) {
-    if (!set.death) return std::nullopt;
-    auto death = *set.death;
-    Waypoint w{ui::translated("waypoint.deathName"), nextColor(set.lastColor), death.x, death.y, death.z, death.dimension, true};
-    bool saved = waypoints::change([&](WaypointSet& s) {
-        s.waypoints.push_back(w);
-        s.lastColor = w.color;
-        s.death.reset();
-        return true;
-    });
-    if (!saved) { say(ui::translated("waypoint.saveError")); return std::nullopt; }
-    auto now = waypoints::current();
-    return now.waypoints.empty() ? std::nullopt : std::optional(waypointKey(now.waypoints.back().id));
-}
-// Deletes the death point or a waypoint by its key.
+// Deletes a waypoint by its key.
 bool deleteMark(MarkKey mark) {
     return waypoints::change([&](WaypointSet& s) {
-        if (mark.layer == MarkLayer::Death) { s.death.reset(); return true; }
         int index = indexOfId(s.waypoints, mark.id);
         if (mark.layer != MarkLayer::Waypoint || index < 0) return false;
         s.waypoints.erase(s.waypoints.begin() + index);
@@ -621,9 +603,6 @@ Request panelAction(Hit const& hit) {
         break;
     case Target::Temporary: changeSelected([](Waypoint& w) { w.temporary = !w.temporary; }); break;
     case Target::Swatch: changeSelected([&](Waypoint& w) { w.color = clampColor(hit.item); }); break;
-    case Target::Keep:
-        if (auto kept = keepDeath(set)) select(kept, false);
-        break;
     case Target::Delete: {
         auto const* chosen = state.selected ? waypointOf(set, *state.selected) : nullptr;
         if (!state.deleteArmed && !(chosen && chosen->temporary)) { state.deleteArmed = true; break; }
@@ -672,10 +651,7 @@ std::optional<TeleportTarget> teleportTarget(Menu const& menu, WaypointSet const
     auto* player = state.client ? state.client->getLocalPlayer() : nullptr;
     if (!player || menu.kind == MenuKind::Placement || menu.kind == MenuKind::Shape) return std::nullopt;
     int dimension = state.dimension, x = menu.worldX, y = menu.worldY, z = menu.worldZ;
-    if (menu.kind == MenuKind::Death) {
-        if (!set.death) return std::nullopt;
-        dimension = set.death->dimension; x = set.death->x; y = set.death->y; z = set.death->z;
-    } else if (menu.kind == MenuKind::Waypoint) {
+    if (menu.kind == MenuKind::Waypoint) {
         auto const* w = waypointOf(set, menu.mark);
         if (!w) return std::nullopt;
         dimension = w->dimension; x = w->x; y = w->y; z = w->z;
@@ -720,8 +696,6 @@ std::vector<std::string> menuItems(Menu const& menu, WaypointSet const& set) {
             items.push_back(ui::translated("worldMap.openSeedMap"));
             items.push_back(ui::translated("worldMap.copySeed"));
         }
-    } else if (menu.kind == MenuKind::Death) {
-        items = {ui::translated("waypoint.keep"), ui::translated(menu.armed ? "worldMap.deleteArmed" : "worldMap.delete")};
     } else if (menu.kind == MenuKind::Placement || menu.kind == MenuKind::Shape) {
         auto const* area = areaOf(menu.mark);
         auto visibility = ui::translated(area && area->visible ? "worldMap.hide" : "worldMap.show");
@@ -776,18 +750,6 @@ Request chooseMenu(int item) {
         } else {
             request.kind = menu.kind == MenuKind::Placement ? Request::Kind::OpenSchematic : Request::Kind::OpenShape;
             request.mark = menu.mark;
-        }
-        return request;
-    }
-    if (menu.kind == MenuKind::Death) {
-        if (item == 0 && set.death) {
-            state.menu.reset();
-            if (keepDeath(set)) say(ui::translated("waypoint.added", ui::translated("waypoint.deathName")));
-        } else if (item == 1) {
-            if (!menu.armed) { state.menu->armed = true; return request; }
-            state.menu.reset();
-            if (!waypoints::change([](WaypointSet& s) { s.death.reset(); return true; }))
-                say(ui::translated("waypoint.saveError"));
         }
         return request;
     }
@@ -856,13 +818,13 @@ void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, Rg
         ui::fill(context, cx - half, top + i, 2 * half, 1, Rgb{0, 0, 0}, .85f * opacity);
     }
 }
-void cross(MinecraftUIRenderContext& context, float cx, float cy) {
+void cross(MinecraftUIRenderContext& context, float cx, float cy, Rgb color) {
     for (int pass = 0; pass < 2; ++pass)
         for (int i = -2; i <= 2; ++i)
             for (int sign : {1, -1}) {
                 float x = cx + i - .5f, y = cy + sign * i - .5f;
                 if (pass == 0) ui::fill(context, x - 1, y - 1, 3, 3, Rgb{0, 0, 0}, .85f);
-                else ui::fill(context, x, y, 1, 1, rgb(deathColor));
+                else ui::fill(context, x, y, 1, 1, color);
             }
 }
 void smallLabel(MinecraftUIRenderContext& context, float cx, float y, std::string const& text, Rgb color) {
@@ -1251,19 +1213,19 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
             if (x < -20 || y < -20 || x > view.width + 20 || y > view.height + 20) continue;
             // Hidden ones stay faint here so they can be shown again.
             float opacity = w.visible ? 1.f : .35f;
-            if (state.panelWidth > 0 && state.selected == waypointKey(w.id)) diamond(context, x, y, 13, ui::palette::white, 1);
-            diamond(context, x, y, 9, rgb(waypointColors[static_cast<size_t>(clampColor(w.color))]), opacity, w.temporary);
+            Rgb const color = rgb(waypointColors[static_cast<size_t>(clampColor(w.color))]);
+            bool const chosen = state.panelWidth > 0 && state.selected == waypointKey(w.id);
+            if (w.death) {
+                // A death's waypoint keeps the cross for its mark (L-328).
+                if (chosen) ui::frame(context, x - 5, y - 5, 10, 10, ui::palette::white);
+                cross(context, x, y, color);
+            } else {
+                if (chosen) diamond(context, x, y, 13, ui::palette::white, 1);
+                diamond(context, x, y, 9, color, opacity, w.temporary);
+            }
             auto name = w.visible ? w.name : w.name + " " + ui::translated("worldMap.hidden");
             names.push_back({waypointKey(w.id), x, y + 6, std::move(name), w.visible ? ui::palette::text : ui::palette::faint});
             state.markers.push_back({waypointKey(w.id), x, y, x, y});
-        }
-        if (set.death && set.death->dimension == state.dimension) {
-            float x = std::round(static_cast<float>(view.screenX(set.death->x + .5)));
-            float y = std::round(static_cast<float>(view.screenY(set.death->z + .5)));
-            if (state.panelWidth > 0 && state.selected == deathKey) ui::frame(context, x - 5, y - 5, 10, 10, ui::palette::white);
-            cross(context, x, y);
-            names.push_back({deathKey, x, y + 5, ui::translated("waypoint.death"), ui::palette::text});
-            state.markers.push_back({deathKey, x, y, x, y});
         }
     }
     drawNames(context, names, settings.worldMapNames);
@@ -1696,9 +1658,8 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     constexpr float pad = 4, rowH = 11;
     float inset = ui::boxTextInset(), inner = w - 2 * pad, x = x0 + pad, y = top + 2;
 
-    // Rows: the death point here, then this dimension's waypoints, nearest first.
-    std::vector<int> entries; // -1 the death point, else into the set
-    if (set.death && set.death->dimension == state.dimension) entries.push_back(-1);
+    // Rows: this dimension's waypoints, nearest first.
+    std::vector<int> entries; // into the set
     std::vector<int> listed;
     for (size_t i = 0; i < set.waypoints.size(); ++i)
         if (set.waypoints[i].dimension == state.dimension) listed.push_back(static_cast<int>(i));
@@ -1709,7 +1670,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     std::stable_sort(listed.begin(), listed.end(), [&](int a, int b) { return distance(a) < distance(b); });
     entries.insert(entries.end(), listed.begin(), listed.end());
     if (state.selected && pointLayer(state.selected->layer)
-        && (state.selected->layer == MarkLayer::Death ? !set.death : !waypointOf(set, *state.selected)))
+        && !waypointOf(set, *state.selected))
         state.selected.reset();
     // Or this dimension's placements or shapes (L-204), nearest first.
     int const kind = shownList();
@@ -1790,7 +1751,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     }
     for (int r = 0; kind == 0 && r < maxRows && state.listFirst + r < rows; ++r) {
         int index = entries[static_cast<size_t>(state.listFirst + r)];
-        auto mark = index == -1 ? deathKey : waypointKey(set.waypoints[static_cast<size_t>(index)].id);
+        auto mark = waypointKey(set.waypoints[static_cast<size_t>(index)].id);
         float ry = y + r * rowH;
         bool selected = mark == state.selected, over = hovering(x0, ry, w, rowH);
         if (selected) {
@@ -1798,14 +1759,10 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
             ui::fill(context, x0 + 1, ry, 2, rowH, ui::palette::accent);
         } else if (over) ui::fill(context, x0 + 1, ry, w - 1, rowH, ui::palette::white, .07f);
         state.hits.push_back({x0, ry, w, rowH, Target::Row, index, mark});
-        if (index == -1) {
-            cross(context, x + 4, ry + rowH / 2);
-            ui::label(context, x + 11, ry + inset, inner - 11, ui::translated("waypoint.death"), ui::palette::text);
-            continue;
-        }
         auto const& p = set.waypoints[static_cast<size_t>(index)];
-        diamond(context, x + 4, ry + rowH / 2, 7, rgb(waypointColors[static_cast<size_t>(clampColor(p.color))]), p.visible ? 1.f : .4f,
-                p.temporary);
+        if (Rgb const color = rgb(waypointColors[static_cast<size_t>(clampColor(p.color))]); p.death)
+            cross(context, x + 4, ry + rowH / 2, color);
+        else diamond(context, x + 4, ry + rowH / 2, 7, color, p.visible ? 1.f : .4f, p.temporary);
         float switchX = x0 + w - pad - ui::switchWidth;
         std::string far;
         if (spot && spot->dimension == state.dimension) far = ui::translated("waypoint.meters", static_cast<int>(std::lround(distance(index))));
@@ -1831,14 +1788,6 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         return bw;
     };
     auto deleteText = ui::translated(state.deleteArmed ? "worldMap.deleteArmed" : "worldMap.delete");
-    if (state.selected == deathKey && set.death) {
-        auto const& d = *set.death;
-        ui::labelScaled(context, x, y, inner, std::format("{}, {}, {}", d.x, d.y, d.z), .75f, ui::palette::dim);
-        y += 10;
-        float used = small(x, y, inner, ui::translated("waypoint.keep"), Target::Keep, 0);
-        small(x + used + 3, y, inner - used - 3, deleteText, Target::Delete, 0, true);
-        return;
-    }
     if (auto const* area = state.selected ? areaOf(*state.selected) : nullptr) {
         // A placement or a shape: what it covers, shown or not, and its own screen.
         ui::label(context, x, y + inset, inner, area->name);
@@ -1965,9 +1914,6 @@ void drawMenu(MinecraftUIRenderContext& context, glm::vec2 size) {
         auto const* area = areaOf(m.mark);
         if (!area) { state.menu.reset(); return; }
         head = area->name + "  " + ui::translated("worldMap.areaSize", area->area.x1 - area->area.x0, area->area.z1 - area->area.z0);
-    } else if (m.kind == MenuKind::Death) {
-        if (!set.death) { state.menu.reset(); return; }
-        head = ui::translated("waypoint.death") + std::format("  {}, {}, {}", set.death->x, set.death->y, set.death->z);
     } else {
         auto const* w = waypointOf(set, m.mark);
         if (!w) { state.menu.reset(); return; }
@@ -1984,7 +1930,7 @@ void drawMenu(MinecraftUIRenderContext& context, glm::vec2 size) {
     ui::fill(context, x + 1, y + 9, width - 2, 1, ui::palette::white, .14f);
     for (size_t i = 0; i < items.size(); ++i) {
         float iy = y + 11 + i * itemHeight;
-        bool danger = (m.kind == MenuKind::Waypoint && i == 2) || (m.kind == MenuKind::Death && i == 1);
+        bool danger = (m.kind == MenuKind::Waypoint && i == 2);
         if (danger && m.armed) ui::fill(context, x + 1, iy, width - 2, itemHeight, Rgb{.54f, .18f, .16f});
         else if (hovering(x, iy, width, itemHeight)) ui::fill(context, x + 1, iy, width - 2, itemHeight, ui::palette::white, .07f);
         ui::label(context, x + pad, iy + 1, width - 2 * pad, items[i],

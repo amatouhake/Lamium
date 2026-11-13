@@ -128,8 +128,8 @@ menu and HUD editor keep GUI units.
   setting's own help, and the toast of a child's key adds it after the name.
   Command rows (open a screen, do now) are not dimmed. There is no
   exception: Waypoints off also stops recording a death point and removing
-  reached temporary waypoints (the same day), the death point as a
-  temporary mark included (L-326, 2026-11-13); hiding only the markers is
+  reached temporary waypoints (the same day); a death's waypoint is one
+  of them (L-328, 2026-11-13); hiding only the markers is
   "Show in the world" and the Map marks layer.
 - **Child settings** are indented with a vertical guide line. Expanding or
   collapsing keeps the clicked row where it was. The wheel scrolls without
@@ -157,6 +157,15 @@ menu and HUD editor keep GUI units.
   the Experimental Map. Fake Offhand, Death layout restore,
   the version-sensitive visuals, Game language, Skip server packs, Map and
   Schematics keep the badge.
+- (Decided 2026-11-13, L-328) There are two kinds of waypoint, normal and
+  temporary, and nothing beside them. A death adds a waypoint named "Death
+  point": a cross for its mark, red to start with, temporary unless
+  "Temporary death point" is off. Its name, color, kind and visibility are
+  edited like any waypoint's. The next death replaces it unless it was
+  renamed or switched between the kinds; moving it makes it an ordinary
+  waypoint (a diamond, no longer followed by Death layout restore). Older
+  lines here that speak of "the death point" as its own row or mark
+  describe the state before this.
 - (Decided 2026-11-13) The badge comes off when a feature has been in two
   or more releases, has no open bug item and no planned change of behavior
   (BACKLOG "Release policy"). By that rule Hide effects, Connected Textures,

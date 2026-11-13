@@ -25,6 +25,8 @@ std::string encodeWaypoints(WaypointSet const& set) {
         entry["color"] = w.color;
         entry["visible"] = w.visible;
         if (w.temporary) entry["temporary"] = true;
+        if (w.death) entry["death"] = true;
+        if (w.kept) entry["kept"] = true;
         list.push_back(std::move(entry));
     }
     Json root{{"version", 1}, {"waypoints", std::move(list)}, {"lastColor", set.lastColor}};
@@ -57,6 +59,9 @@ WaypointSet decodeWaypoints(std::string_view text) {
             w.visible = !visible.is_boolean() || visible.get<bool>();
             auto temporary = entry.value("temporary", Json());
             w.temporary = temporary.is_boolean() && temporary.get<bool>();
+            auto death = entry.value("death", Json()), kept = entry.value("kept", Json());
+            w.death = death.is_boolean() && death.get<bool>();
+            w.kept = w.death && kept.is_boolean() && kept.get<bool>();
             set.waypoints.push_back(std::move(w));
         }
     if (auto found = root.find("death"); found != root.end() && found->is_object())

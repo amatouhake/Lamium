@@ -16,6 +16,7 @@
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/item/enchanting/ItemEnchants.h"
 #include "mc/world/item/enchanting/EnchantmentInstance.h"
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <format>
@@ -110,16 +111,18 @@ void follow() {
     try { state.layout = readLayout(*state.file); }
     catch (std::exception const& error) { log(std::string("could not load: ") + error.what()); }
 }
-// The layout ends when the player removes or replaces the death point it
-// belongs to; a death point never recorded (switched off) does not end it,
+// The layout ends when the player removes, moves or replaces the death's
+// waypoint it belongs to (L-328); a death point never recorded (switched off) does not end it,
 // and neither does one that went by being reached (L-326): from then on the
 // layout ends when the player leaves the place.
 // It is looked for every tick until seen, so removing it before any pickup
 // counts too.
 bool deathPointMatches() {
-    auto death = map::waypoints::current().death;
-    return death && death->x == state.layout->x && death->y == state.layout->y && death->z == state.layout->z
-        && death->dimension == state.layout->dimension;
+    auto set = map::waypoints::current();
+    return std::ranges::any_of(set.waypoints, [](map::Waypoint const& w) {
+        return w.death && w.x == state.layout->x && w.y == state.layout->y && w.z == state.layout->z
+            && w.dimension == state.layout->dimension;
+    });
 }
 bool deathPointRemoved(bool recording) {
     if (!recording) return false;

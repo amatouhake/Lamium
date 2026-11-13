@@ -22,6 +22,7 @@ inline constexpr std::array<std::uint32_t, 12> waypointColors{
     packColor(224, 74, 60), packColor(240, 154, 62), packColor(242, 204, 61), packColor(127, 214, 90),
     packColor(63, 191, 127), packColor(63, 208, 224), packColor(74, 141, 240), packColor(122, 108, 240),
     packColor(183, 124, 240), packColor(239, 127, 192), packColor(242, 242, 242), packColor(138, 143, 148)};
+inline constexpr int deathColorIndex = 0; // A death's waypoint starts red.
 inline constexpr int clampColor(int index) { return std::clamp(index, 0, static_cast<int>(waypointColors.size()) - 1); }
 // A new waypoint takes the color after the last one used, so neighbors differ.
 inline constexpr int nextColor(int last) {
@@ -36,6 +37,12 @@ struct Waypoint {
     bool visible = true;
     bool temporary = false; // removed on arrival, deleted without confirmation (L-261)
     std::uint64_t id = 0; // session id (app/SessionIds.h, L-139); not saved
+    // Where the player died (L-328): an ordinary waypoint whose mark is a
+    // cross, and the one Death layout restore follows.
+    bool death = false;
+    // A death's waypoint the player renamed or switched between temporary
+    // and normal: the next death leaves it and adds its own.
+    bool kept = false;
     bool operator==(Waypoint const&) const = default;
 };
 struct DeathPoint {
@@ -44,6 +51,7 @@ struct DeathPoint {
 };
 struct WaypointSet {
     std::vector<Waypoint> waypoints;
+    // Files from before L-328 only: the session turns it into a waypoint.
     std::optional<DeathPoint> death;
     int lastColor = -1; // The next waypoint starts at color 0.
     bool lastTemporary = false; // The add prompt opens with the kind chosen last.
@@ -103,25 +111,28 @@ std::vector<std::string> arrivalStep(ArrivalWatch& watch, WaypointSet const& set
     watch.apply(std::move(plan));
     return names;
 }
-// The death point as a temporary mark (L-326): reached at the same distance
-// and by the same rule as a temporary waypoint. One the player is within
-// reach of (respawning beside it) counts only after the player has left it.
-// True on every frame it is reached, so a removal that could not be saved is
-// tried again.
-class DeathArrival {
-    std::optional<DeathPoint> of; // The point `armed` speaks of.
-    bool armed = false;
-public:
-    void reset() { of.reset(); armed = false; }
-    bool update(std::optional<DeathPoint> const& death, int dimension, double x, double y, double z, double distance) {
-        if (death != of) { of = death; armed = false; }
-        if (!death || death->dimension != dimension || !(distance > 0)) return false;
-        if (std::hypot(death->x + .5 - x, death->y - y, death->z + .5 - z) > distance) { armed = true; return false; }
-        return armed;
-    }
-};
 inline constexpr size_t maxWaypoints = 1000;
 inline constexpr size_t maxNameBytes = 128;
+// A death adds a waypoint (L-328): red to start with, temporary or normal as
+// the setting says. It takes the place of the last death's waypoint unless
+// the player kept that one. False when the list is full.
+inline bool recordDeath(WaypointSet& set, DeathPoint const& at, std::string name, bool temporary) {
+    std::erase_if(set.waypoints, [](Waypoint const& w) { return w.death && !w.kept; });
+    if (set.waypoints.size() >= maxWaypoints) return false;
+    Waypoint w{std::move(name), deathColorIndex, at.x, at.y, at.z, at.dimension, true, temporary};
+    w.death = true;
+    set.waypoints.push_back(std::move(w));
+    return true;
+}
+// After an edit of a death's waypoint: moved, it is an ordinary waypoint from
+// then on (no cross, Death layout restore lets go of it); renamed or switched
+// between temporary and normal, it is kept at the next death.
+inline void edited(Waypoint& now, Waypoint const& before) {
+    if (!before.death || !now.death) return;
+    if (now.x != before.x || now.y != before.y || now.z != before.z || now.dimension != before.dimension)
+        now.death = now.kept = false;
+    else if (now.name != before.name || now.temporary != before.temporary) now.kept = true;
+}
 // The name a new waypoint gets: the lowest "N" not used yet.
 template<class Name>
 std::string defaultWaypointName(std::vector<Waypoint> const& existing, Name name) {
@@ -181,11 +192,11 @@ inline void drawDiamond(std::vector<std::uint32_t>& pixels, int n, double cx, do
             if (middle > 0) pixel = over(pixel, 0, 0, 0, middle);
         }
 }
-// The death point's cross is red: white read as a passive mob's dot
-// (maintainer, 2026-10-01); its shape tells it from the red hostile dots.
-inline constexpr std::uint32_t deathColor = packColor(230, 46, 46);
-// The death point's cross: red with a black edge.
-inline void drawCross(std::vector<std::uint32_t>& pixels, int n, double cx, double cy, double size) {
+// A death's waypoint is a cross with a black edge, red to start with: white
+// read as a passive mob's dot (maintainer, 2026-10-01); its shape tells it
+// from the red hostile dots.
+inline void drawCross(std::vector<std::uint32_t>& pixels, int n, double cx, double cy, double size,
+                      std::uint32_t color = waypointColors[deathColorIndex]) {
     double half = size / 2, thick = std::max(1.0, size / 5);
     int x0 = std::max(0, int(std::floor(cx - half - thick))), x1 = std::min(n - 1, int(std::ceil(cx + half + thick)));
     int y0 = std::max(0, int(std::floor(cy - half - thick))), y1 = std::min(n - 1, int(std::ceil(cy + half + thick)));
@@ -201,7 +212,7 @@ inline void drawCross(std::vector<std::uint32_t>& pixels, int n, double cx, doub
             auto& pixel = pixels[static_cast<size_t>(y) * n + x];
             pixel = over(pixel, 0, 0, 0, ring);
             float fill = static_cast<float>(std::clamp(thick / 2 + .5 - d, 0.0, 1.0));
-            if (fill > 0) pixel = over(pixel, channel(deathColor, 0), channel(deathColor, 1), channel(deathColor, 2), fill);
+            if (fill > 0) pixel = over(pixel, channel(color, 0), channel(color, 1), channel(color, 2), fill);
         }
 }
 

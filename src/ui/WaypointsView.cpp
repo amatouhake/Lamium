@@ -48,21 +48,14 @@ void refreshWaypoints() {
         z = feet.z;
     }
     waypointList = map::waypointOrder(waypointSet.waypoints, screen::playerDimension(), x, z);
-    if (waypointSelected && (waypointSelected->layer == map::MarkLayer::Death ? !waypointSet.death
-                                 : indexOfId(waypointSet.waypoints, waypointSelected->id) < 0))
-        waypointSelected.reset();
+    if (waypointSelected && indexOfId(waypointSet.waypoints, waypointSelected->id) < 0) waypointSelected.reset();
 }
-int waypointRowCount() { return static_cast<int>(waypointList.size()) + (waypointSet.death ? 1 : 0); }
-// The selection a list row stands for: the death point first, if any.
+int waypointRowCount() { return static_cast<int>(waypointList.size()); }
+// The selection a list row stands for.
 std::optional<map::MarkKey> waypointAtRow(int row) {
-    if (waypointSet.death) {
-        if (row == 0) return map::deathKey;
-        --row;
-    }
     if (row < 0 || row >= static_cast<int>(waypointList.size())) return std::nullopt;
     return map::waypointKey(waypointSet.waypoints[waypointList[static_cast<size_t>(row)]].id);
 }
-bool deathSelected() { return waypointSelected == map::deathKey; }
 map::Waypoint const* selectedWaypoint() {
     if (!waypointSelected || waypointSelected->layer != map::MarkLayer::Waypoint) return nullptr;
     int index = indexOfId(waypointSet.waypoints, waypointSelected->id);
@@ -172,7 +165,6 @@ void deleteSelectedWaypoint() {
     int row = 0;
     for (int i = 0; i < waypointRowCount(); ++i) if (waypointAtRow(i) == selection) row = i;
     bool saved = map::waypoints::change([&](map::WaypointSet& set) {
-        if (selection->layer == map::MarkLayer::Death) { set.death.reset(); return true; }
         int index = indexOfId(set.waypoints, selection->id);
         if (index < 0) return false;
         set.waypoints.erase(set.waypoints.begin() + index);
@@ -183,22 +175,6 @@ void deleteSelectedWaypoint() {
     refreshWaypoints();
     int rowsLeft = waypointRowCount();
     selectWaypoint(rowsLeft ? waypointAtRow(std::min(row, rowsLeft - 1)) : std::nullopt);
-}
-void keepDeathPoint() {
-    if (!waypointSet.death) return;
-    auto death = *waypointSet.death;
-    map::Waypoint w{translated("waypoint.deathName"), map::nextColor(waypointSet.lastColor), death.x, death.y, death.z,
-                    death.dimension, true};
-    bool saved = map::waypoints::change([&](map::WaypointSet& set) {
-        set.waypoints.push_back(w);
-        set.lastColor = w.color;
-        set.death.reset();
-        return true;
-    });
-    if (!saved) { screen::setMessage(translated("waypoint.saveError")); return; }
-    screen::clearMessage();
-    refreshWaypoints();
-    if (!waypointSet.waypoints.empty()) selectWaypoint(map::waypointKey(waypointSet.waypoints.back().id));
 }
 void handleWaypointClick(float x, float y, bool right) {
     screen::finishEditing();
@@ -247,7 +223,7 @@ void handleWaypointClick(float x, float y, bool right) {
         activateWaypointField(hit.index, right ? -1 : hit.part);
         return;
     case ShapeZone::Action:
-        if (hit.index == 0) { if (deathSelected()) keepDeathPoint(); return; }
+        if (hit.index == 0) return;
         if (!waypointSelected) return;
         // A temporary waypoint goes on the first click (L-261).
         if (auto const* w = selectedWaypoint(); !waypointDeleteArmed && !(w && w->temporary)) { waypointDeleteArmed = true; return; }
@@ -296,7 +272,6 @@ Rgb waypointRgb(int color) {
     auto c = map::waypointColors[static_cast<size_t>(map::clampColor(color))];
     return {map::channel(c, 0) / 255.f, map::channel(c, 1) / 255.f, map::channel(c, 2) / 255.f};
 }
-constexpr Rgb deathRgb{230 / 255.f, 46 / 255.f, 46 / 255.f};
 // Small pixel glyphs for list rows and the editor.
 void drawDiamondGlyph(MinecraftUIRenderContext& context, float cx, float cy, int size, Rgb color, float opacity = 1) {
     auto rows = map::diamondRows(size);
@@ -304,16 +279,17 @@ void drawDiamondGlyph(MinecraftUIRenderContext& context, float cx, float cy, int
     for (size_t i = 0; i < rows.size(); ++i)
         fill(context, cx - rows[i] - .5f, top + i, 2.f * rows[i] + 1, 1, color, opacity);
 }
-void drawCrossGlyph(MinecraftUIRenderContext& context, float cx, float cy, Rgb color) {
-    for (int i = -2; i <= 2; ++i) {
-        fill(context, cx + i - .5f, cy + i - .5f, 1, 1, color);
-        fill(context, cx + i - .5f, cy - i - .5f, 1, 1, color);
+// A death's waypoint (L-328): a cross of `reach` units each way, `thick` wide.
+void drawCrossGlyph(MinecraftUIRenderContext& context, float cx, float cy, Rgb color, int reach = 2, float thick = 1,
+                    float opacity = 1) {
+    for (int i = -reach; i <= reach; ++i) {
+        fill(context, cx + i - thick / 2, cy + i - thick / 2, thick, thick, color, opacity);
+        fill(context, cx + i - thick / 2, cy - i - thick / 2, thick, thick, color, opacity);
     }
 }
 std::string waypointDescription() {
-    if (deathSelected() && waypointSet.death) return translated("waypoint.deathNote");
     auto const* w = selectedWaypoint();
-    if (!w) return translated(waypointSet.waypoints.empty() && !waypointSet.death ? "waypoint.empty" : "waypoint.selectHint");
+    if (!w) return translated(waypointSet.waypoints.empty() ? "waypoint.empty" : "waypoint.selectHint");
     if (editingWaypointField >= 0) return translated("integerRange", -map::coordinateLimit, map::coordinateLimit);
     if (w->dimension != screen::playerDimension()) return w->name + ": " + translated("waypoint.elsewhere");
     return w->name + ": " + translated(w->visible ? "waypoint.shownState" : "waypoint.hiddenState");
@@ -351,21 +327,15 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
         rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,value && value == waypointSelected,over(ShapeZone::ListRow,i));
         float gx = l.listLeft + ShapesLayout::pad + 4, gy = y + ShapesLayout::rowHeight / 2;
-        if (value == map::deathKey) {
-            auto const& d = *waypointSet.death;
-            bool here = d.dimension == screen::playerDimension();
-            drawCrossGlyph(context, gx, gy, deathRgb);
-            label(context,nameX,y+3,distanceX-nameX-4,translated("waypoint.death"),here ? palette::text : palette::faint);
-            label(context,distanceX,y+3,52,here ? translated("waypoint.meters", screen::distanceTo(d.x, d.z)) : screen::dimensionName(d.dimension),
-                palette::dim,Align::Right);
-            continue;
-        }
         int index = value ? indexOfId(waypointSet.waypoints, value->id) : -1;
         if (index < 0) continue;
         auto const& w = waypointSet.waypoints[static_cast<size_t>(index)];
         bool here = w.dimension == screen::playerDimension();
-        drawDiamondGlyph(context, gx, gy, 7, waypointRgb(w.color), w.visible && here ? 1.f : .35f);
-        if (w.temporary) drawDiamondGlyph(context, gx, gy, map::hollowSize(7), Rgb{0,0,0}, .85f); // hollow: temporary (L-261)
+        if (w.death) drawCrossGlyph(context, gx, gy, waypointRgb(w.color), 2, 1, w.visible && here ? 1.f : .35f);
+        else {
+            drawDiamondGlyph(context, gx, gy, 7, waypointRgb(w.color), w.visible && here ? 1.f : .35f);
+            if (w.temporary) drawDiamondGlyph(context, gx, gy, map::hollowSize(7), Rgb{0,0,0}, .85f); // hollow: temporary (L-261)
+        }
         label(context,nameX,y+3,distanceX-nameX-4,w.name,here ? palette::text : palette::faint);
         label(context,distanceX,y+3,52,here ? translated("waypoint.meters", screen::distanceTo(w.x, w.z)) : screen::dimensionName(w.dimension),
             palette::dim,Align::Right);
@@ -378,36 +348,32 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     // Editor pane.
     float dx = l.detailLeft + ShapesLayout::pad, dw = l.detailWidth - 2 * ShapesLayout::pad;
     auto const* w = selectedWaypoint();
-    if (deathSelected() && waypointSet.death) {
-        auto const& d = *waypointSet.death;
-        drawCrossGlyph(context, dx + 5, l.nameY + 7, deathRgb);
-        label(context,dx+14,l.nameY+1+boxTextInset(),dw-14,translated("waypoint.death"));
-        label(context,dx,l.previewY+1,dw,std::format("{}, {}, {}", d.x, d.y, d.z));
-        label(context,dx,l.previewY+12,dw,screen::dimensionName(d.dimension),palette::dim);
-        if (d.dimension == screen::playerDimension())
-            label(context,dx,l.previewY+23,dw,translated("waypoint.distance", screen::distanceTo(d.x, d.z)),palette::dim);
-        paragraph(context,dx,l.previewY+36,dw,translated("waypoint.deathNote"),3,palette::faint);
-        fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("waypoint.keep"),
-            over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
-    } else if (!w) {
-        paragraph(context,dx,l.detailTop+6,dw,translated(waypointSet.waypoints.empty() && !waypointSet.death ? "waypoint.empty"
+if (!w) {
+        paragraph(context,dx,l.detailTop+6,dw,translated(waypointSet.waypoints.empty() ? "waypoint.empty"
             : "waypoint.selectHint"),3,palette::faint);
     } else {
         // Name field with the waypoint's diamond.
         fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,Rgb{0,0,0},.4f);
         frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingWaypointName ? palette::accent : palette::keyEdge);
-        drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, 7, waypointRgb(w->color));
-        if (w->temporary) drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, map::hollowSize(7), Rgb{0,0,0}, .85f);
+        if (w->death) drawCrossGlyph(context, dx + 7, l.nameY + 6.5f, waypointRgb(w->color));
+        else {
+            drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, 7, waypointRgb(w->color));
+            if (w->temporary) drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, map::hollowSize(7), Rgb{0,0,0}, .85f);
+        }
         if (editingWaypointName) drawEditField(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,waypointNameInput);
         else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,w->name);
         // The preview area: a large diamond and where the waypoint is.
         float size = ShapesLayout::previewSize;
         fill(context,dx,l.previewY,size,size,Rgb{0,0,0},.35f);
         frame(context,dx,l.previewY,size,size,palette::white,.14f);
-        drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 31, Rgb{0,0,0}, .8f);
-        drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 25, waypointRgb(w->color));
-        if (w->temporary) drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, map::hollowSize(25), Rgb{0,0,0}, .85f);
+        if (w->death) {
+            drawCrossGlyph(context, dx + size / 2, l.previewY + size / 2, Rgb{0,0,0}, 10, 6, .8f);
+            drawCrossGlyph(context, dx + size / 2, l.previewY + size / 2, waypointRgb(w->color), 9, 3);
+        } else {
+            drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 31, Rgb{0,0,0}, .8f);
+            drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 25, waypointRgb(w->color));
+            if (w->temporary) drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, map::hollowSize(25), Rgb{0,0,0}, .85f);
+        }
         float ix = dx + size + 8, iw = dw - size - 8;
         label(context,ix,l.previewY+1,iw,std::format("{}, {}, {}", w->x, w->y, w->z));
         label(context,ix,l.previewY+12,iw,screen::dimensionName(w->dimension),palette::dim);
@@ -470,8 +436,6 @@ ShapesLayout fitWaypoints(SettingsTable const& t, glm::vec2 size, bool docked) {
     int fieldCount = selectedWaypoint() ? static_cast<int>(map::waypointFields.size()) : 0;
     auto l = ShapesLayout::fit(t, size.x, size.y, docked, waypointRowCount(), waypointListFirst, fieldCount,
         waypointFieldFirst, false, false);
-    // Keeping the death point needs a wider first button.
-    if (deathSelected()) l.firstActionWidth = 110;
     waypointsDisplayed = l;
     waypointListFirst = l.listFirst;
     waypointFieldFirst = l.fieldFirst;

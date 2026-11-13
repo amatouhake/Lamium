@@ -1571,7 +1571,8 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     if (!preview) {
         map::record(context.mClient, runtime.map);
         // Waypoints off is all of it off: no death point, nothing reached (L-319).
-        map::waypoints::frame(runtime.map.waypoints && runtime.map.waypointsDeath);
+        map::waypoints::frame(runtime.map.waypoints && runtime.map.waypointsDeath, runtime.map.waypointsDeathTemporary,
+                              ui::translated("waypoint.deathName"));
         // The body arrives, not FreeCamera's view.
         if (auto* player = context.mClient.getLocalPlayer(); player && player->isAlive()) {
             auto feet = player->getFeetPos();
@@ -1579,11 +1580,6 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
                 for (auto& name : map::waypoints::arrive(static_cast<int>(player->getDimensionId()), feet.x, feet.y, feet.z,
                                                          runtime.map.waypointArrival))
                     ui::showMessageToast(ui::translated("waypoint.reached", name));
-            if (runtime.map.waypoints && runtime.map.waypointsDeath && runtime.map.waypointsDeathTemporary
-                && std::isfinite(feet.x) && std::isfinite(feet.y) && std::isfinite(feet.z)
-                && map::waypoints::arriveDeath(static_cast<int>(player->getDimensionId()), feet.x, feet.y, feet.z,
-                                               runtime.map.waypointArrival))
-                ui::showMessageToast(ui::translated("waypoint.deathReached"));
         }
         // Under every HUD element: they point into the world.
         map::markers::draw(context, width, height, runtime.map);
