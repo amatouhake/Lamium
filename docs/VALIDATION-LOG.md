@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Container preview beside the hover text (2026-11-14)
+
+`48a880ca` (with `2c33914a` and `c754b059`), DLL SHA-256
+`37a979eb224a9adc1e9387c0ac9c8b94f4531f19d557f25db3f2d70099063ef3`, 1.26.60.05 Dev
+instance, the maintainer; the log read by the agent.
+
+- A shulker box preview no longer overlaps the game's hover text, with Item details on
+  and off, including in the top row. The logged box (`HoverRenderer` cursor + offset,
+  size) matches the drawn text: offset (10, -10), text 5 units inside.
+- Small pointer moves no longer shift the frame's border against its fills.
+- A bundle preview has no pickup squash and no longer shakes. Over a bundle the game
+  draws an empty 9x18 hover text box on some frames only; it is now ignored.
+- Not changed: a bundle preview sits well above the game's bundle tooltip, which is an
+  OreUI panel drawn lower than the text hover box; its rectangle is not read.
+
 ## Glint on white seen in game (2026-11-14)
 
 `679aad22`, DLL SHA-256 `5963c4dfd3941d95d1328f651fa36a284066ede1a6b1e20d8baba5d5d7f431a2`,
