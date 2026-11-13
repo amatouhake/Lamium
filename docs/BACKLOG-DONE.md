@@ -2565,6 +2565,47 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-332 Death points: grow them as their own feature, or make them simpler
+Kind: Ready (strong model); decided 2026-11-13.
+Status: done. Built 2026-11-13 and confirmed by the maintainer the same day on
+`179ef3c0` (VALIDATION-LOG); servers not looked at. Follow-up: BACKLOG L-333.
+Decided (maintainer 2026-11-13): simpler, along the agent's view below, and
+further than it: the next death does not replace anything either. A
+death's records should lean on how waypoints already work and never do
+what the player did not intend; marks do not pile up because a death's
+waypoint is temporary by default.
+Built:
+- A death adds a waypoint and that is all that is special about it: the
+  cross is its mark and stays whatever is edited, earlier ones are left
+  alone, and `kept` / `edited` are gone (`recordDeath`, tested).
+- Death layout restore no longer looks at waypoints (`atPlace`,
+  `Layout::started`, tested): pickups count within 32 blocks of where the
+  player died, in that dimension; after the first one there, going farther
+  ends the layout with its toast. It also ends when everything is back and
+  at the next death. Deleting a waypoint no longer ends it; it works with
+  Waypoints off.
+Check in game: two deaths leave two "Death point" waypoints; moving or
+renaming one keeps its cross; coming back and picking items up restores
+the layout with the death's waypoint deleted beforehand, and with
+Waypoints off; walking 32 blocks away after the first pickup shows the
+toast; a pickup of a like item far from the place before returning does
+not rearrange anything. Servers unchecked.
+Maintainer 2026-11-13, after confirming
+L-328: the death waypoint follows only the latest death, so it does not
+serve as a record of deaths (which death, where the one before was); a
+moved one loses its cross but is still named "Death point"; perhaps death
+points should not have been pressed into the waypoints' frame, but grown
+as their own feature with a natural link to waypoints, or made simpler.
+The agent's view, not decided: make it simpler by taking the special
+rules away rather than adding a record of deaths. (1) A death's waypoint
+is an ordinary waypoint from the moment it is added; the cross is only its
+mark and stays whatever is edited, so nothing changes shape by being
+moved. (2) Death layout restore stops depending on the waypoint: it has
+the death's place itself and ends when everything is back, at the next
+death, or 32 blocks away after the player came back to it, so it also
+works with Waypoints off. (3) A lasting record of deaths (numbered, dated)
+is a different feature and is not started as a by-product.
+
 ### L-328 The death point still reads as a third kind of waypoint
 Kind: Ready (strong model); decided 2026-11-13.
 Status: done. Built 2026-11-13 and confirmed by the maintainer the same day on

@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A death's waypoint left alone; the layout restore tied to the place of the death (2026-11-13)
+
+`179ef3c0`, local build, DLL SHA-256
+`2416abc9ffc51d3d2fcfb4211d930fe0755ee69005a61e8a4cb1e804ed00a402`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-332):
+
+- Two deaths leave two "Death point" waypoints.
+- Moving or renaming one keeps its cross.
+- With the death's waypoint deleted beforehand, and with Waypoints off, coming back and
+  picking the items up restores the layout.
+- 32 blocks away after the first pickup, the "restore ended" toast shows.
+- A like item picked up far away before returning rearranges nothing.
+
+Not checked: servers.
+The maintainer's remark: with several death waypoints all named "Death point" (normal
+ones, or temporary ones never reached), nothing says which is the latest (BACKLOG L-333).
+
 ## A death's waypoint, the restore's end by leaving, seven badges off (2026-11-13)
 
 `786424c4`, local build, DLL SHA-256
