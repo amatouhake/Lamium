@@ -879,7 +879,11 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     if (planned && preferences.enchantOrderAnvilMarks) {
         try {
             using Tone = ListState::Tone;
-            auto atHand = [&](unsigned side) { return pointerMask == side || std::ranges::find(slotMasks, side) != slotMasks.end(); };
+            // A stack lying in the other anvil slot is at hand too: the empty slot it belongs in still asks for it.
+            auto atHand = [&](unsigned side) {
+                return pointerMask == side || target.value_or(0u) == side || sacrifice.value_or(0u) == side
+                    || std::ranges::find(slotMasks, side) != slotMasks.end();
+            };
             auto const say = anvilSay(active.plan, info.following.next, !inputEmpty, target.value_or(0u), !materialEmpty, sacrifice.value_or(0u), gameCost,
                 atHand);
             auto box = [&](char const* name) -> std::optional<Box> {
@@ -907,11 +911,12 @@ void drawBeside(ll::event::UIRenderEvent& event) {
                 if (auto b = box("result_item_slot"))
                     marks.push_back({*b, say.result == ResultSay::Match ? Tone::Good : say.result == ResultSay::CostDiffers ? Tone::Warn : Tone::Wrong});
             // In the inventory: the stacks that step still wants. A side that lies in its anvil slot or is being
-            // carried on the pointer is not looked for; the other one keeps its mark meanwhile.
+            // carried on the pointer is not looked for; the other one keeps its mark meanwhile. A slot holding
+            // something else has not placed its side, so that side keeps its mark too.
             if (say.step >= 0) {
                 auto const& step = active.plan.steps[static_cast<size_t>(say.step)];
-                auto const stacks = nextStacks(step, slotMasks, !inputEmpty || pointerMask == step.target ? step.target : 0u,
-                    !materialEmpty || pointerMask == step.sacrifice ? step.sacrifice : 0u);
+                auto const stacks = nextStacks(step, slotMasks, pointerMask == step.target ? step.target : target.value_or(0u),
+                    pointerMask == step.sacrifice ? step.sacrifice : sacrifice.value_or(0u));
                 if (stacks.left >= 0) if (auto b = slot(stacks.left)) marks.push_back({*b, Tone::Left});
                 if (stacks.right >= 0) if (auto b = slot(stacks.right)) marks.push_back({*b, Tone::Right});
             }

@@ -158,6 +158,8 @@ void enchantOrderTests() {
                  wrong = nextStacks(made.steps[1], slots, 8u, 6u);
             check(both.left == 3 && both.right == 1 && placed.left == -1 && placed.right == 1 && wrong.left == 3 && wrong.right == -1,
                   "the next step's stacks are the first slots holding its sides, unless a side already lies in its anvil slot");
+            auto crossed = nextStacks(made.steps[1], slots, 6u, 0u);
+            check(crossed.left == 3 && crossed.right == 1, "the right side's stack in the left slot places neither side: both keep their marks");
             // Steps: 0 joins 2+4 (cost 3), 1 joins 1+6 (cost 9), 2 joins 7+8 (cost 5).
             auto has = [](std::vector<unsigned> stacks) { return [stacks](unsigned side) { return std::ranges::find(stacks, side) != stacks.end(); }; };
             auto empty = anvilSay(made, 1, false, 0u, false, 0u, 0, has({1u, 6u})), half = anvilSay(made, 1, true, 1u, false, 0u, 0, has({6u}));
