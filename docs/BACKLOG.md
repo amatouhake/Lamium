@@ -850,6 +850,11 @@ time on bread and a milk bucket (1.6 s), dried kelp (0.8 s) and a crossbow
   with `getAttributeModifierValue(0, ...)`, named by the game's
   `attribute.name.<attribute>` text and left out where that text is
   missing. The first level is assumed, which is what a stew gives.
+  Confirmed by the maintainer the same day on `becfac62` (VALIDATION-LOG):
+  Weakness in Survival reads as in Creative, an effect without an
+  attribute adds no line, Creative shows nothing twice.
+The values are now right as far as checked; what is left is the design
+talk below and the enchantability wording.
 Open, for one design talk once the values are right (the maintainer's
 call): stored data makes the tooltip of an enchanted armour piece or a
 shulker box far too tall. Wanted: short by default, the long form on

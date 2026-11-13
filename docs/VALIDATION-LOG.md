@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Suspicious stew effect lines (2026-11-13)
+
+`becfac62`, local build, DLL SHA-256
+`99da4ef46abd63cf016803272ab90968ae3261edb704946e937355592c736cb6`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319):
+
+- In Survival a Weakness stew shows its effect line and "-0.5 Attack Damage" above
+  the food icons, the same as the game's own tooltip in Creative.
+- A stew whose effect changes no attribute (Darkness and others) shows no extra line.
+- In Creative nothing is shown twice.
+
+Not checked: other languages; an effect with a share rather than an amount; servers.
+
 ## Item details in tooltips, third look (2026-11-13)
 
 `70de5f54`, local build, DLL SHA-256
