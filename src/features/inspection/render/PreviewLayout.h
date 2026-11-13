@@ -67,6 +67,21 @@ struct PreviewLayout {
         };
     }
 
+    /// The same frame moved clear of `box` (the game's hover text): above it
+    /// when there is room, else below it; unchanged when it does not overlap
+    /// or fits neither way.
+    [[nodiscard]] constexpr PreviewLayout clearOf(Rect const& box, float gap, float screenHeight) const {
+        bool const overlaps = frame.x0 < box.x1 && box.x0 < frame.x1 && frame.y0 < box.y1 + gap && box.y0 - gap < frame.y1;
+        if (!overlaps) return *this;
+        float const height = frame.height();
+        float y = box.y0 - gap - height;
+        if (y < 0.0f) {
+            y = box.y1 + gap;
+            if (y + height > screenHeight) return *this;
+        }
+        return PreviewLayout{columns, rows, Rect{frame.x0, y, frame.x1, y + height}};
+    }
+
     /// Full 18x18 cell of `slot` (row-major, matching container slot order).
     [[nodiscard]] constexpr Rect cell(int slot) const {
         int const   column = slot % columns;

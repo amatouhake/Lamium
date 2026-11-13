@@ -1,4 +1,6 @@
 #pragma once
+#include "features/inspection/render/PreviewLayout.h"
+#include <optional>
 
 class MinecraftUIRenderContext;
 class ScreenView;
@@ -16,7 +18,9 @@ namespace lamium::inspection::render {
 /// batches, so everything drawn here is flushed explicitly.
 class PreviewRenderer {
 public:
-    void render(ScreenView& view, MinecraftUIRenderContext& context, preview::ContainerPreview const& preview);
+    // `hoverText`: the game's hover text box this frame, which the frame keeps clear of.
+    void render(ScreenView& view, MinecraftUIRenderContext& context, preview::ContainerPreview const& preview,
+        std::optional<Rect> hoverText = std::nullopt);
 };
 
 } // namespace lamium::inspection::render

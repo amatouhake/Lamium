@@ -63,7 +63,8 @@ RectangleArea toArea(Rect const& r) { return RectangleArea{r.x0, r.x1, r.y0, r.y
 void PreviewRenderer::render(
     ScreenView&                      view,
     MinecraftUIRenderContext&        context,
-    preview::ContainerPreview const& preview
+    preview::ContainerPreview const& preview,
+    std::optional<Rect>              hoverText
 ) {
     if (preview.columns <= 0 || preview.rows <= 0) {
         // Defensive only: providers report a real frame even for empty
@@ -77,8 +78,8 @@ void PreviewRenderer::render(
 
     glm::vec2 const pointer = view.mPointerLocationPrevious;
     glm::vec2 const screen  = view.mSize;
-    auto const      layout =
-        PreviewLayout::anchored(preview.columns, preview.rows, pointer.x, pointer.y, screen.x, screen.y);
+    auto layout = PreviewLayout::anchored(preview.columns, preview.rows, pointer.x, pointer.y, screen.x, screen.y);
+    if (hoverText) layout = layout.clearOf(*hoverText, 2.0f, screen.y);
 
     static bool sLoggedFirstRender = false;
     if (!sLoggedFirstRender) {

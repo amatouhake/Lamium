@@ -204,6 +204,12 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
 struct GlyphDraw { Font* font; float x, y; tooltip::GlyphRun run; std::vector<information::saturation::FoodIcon> icons; };
 bool tooltipRendering = false;
 void (*beforeTooltip)(MinecraftUIRenderContext&) = nullptr;
+// The hover text's box in this frame's UI pass, for the container preview to stay clear of. Tagged with the UI
+// frame it was drawn in; the preview, drawn after the UI pass, ignores one from an earlier frame.
+struct TooltipBox { render::Rect rect; unsigned frame; };
+std::optional<TooltipBox> tooltipBox;
+std::optional<std::pair<float, float>> tooltipTextAt;
+unsigned uiFrame = 0;
 std::optional<GlyphDraw> glyphDraw;
 LL_TYPE_INSTANCE_HOOK(TooltipFontDraw, ll::memory::HookPriority::Normal, Font, &Font::$drawCached, void,
     ScreenContext& screenContext, std::string_view str, float x, float y, mce::Color const& color,
@@ -211,6 +217,7 @@ LL_TYPE_INSTANCE_HOOK(TooltipFontDraw, ll::memory::HookPriority::Normal, Font, &
     int caretPosition, bool shadow, float linePadding, mce::Color const& resetColorOverride,
     mce::Color const& shaderDarkColor, float outlineWidth, float yCaretOffset,
     OffscreenCaptureDescription const& offscreenCaptureDescription, bool autoGenNormalsAndTangents) {
+    if (tooltipRendering && !tooltipTextAt) tooltipTextAt = std::pair{x, y};
     if (tooltipRendering && !glyphDraw)
         if (auto run = tooltip::findGlyphRun(str)) {
             auto const* icons = foodFor(str);
@@ -234,9 +241,22 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
     void, MinecraftUIRenderContext& context, IClientInstance& client, UIControl& owner, int pass) {
     if (beforeTooltip) try { beforeTooltip(context); } catch (...) {}
     glyphDraw.reset();
+    tooltipTextAt.reset();
     tooltipRendering = true;
     origin(context, client, owner, pass);
     tooltipRendering = false;
+    try {
+        glm::vec2 const at = *mCursorPosition + *mOffset, size = *mBoxDimensions;
+        if (size.x > 0 && size.y > 0) tooltipBox = TooltipBox{{at.x, at.y, at.x + size.x, at.y + size.y}, uiFrame};
+        static bool told = false;
+        if (!told && tooltipTextAt) {
+            told = true;
+            Runtime::instance().self().getLogger().info("Hover text box: cursor ({}, {}) offset ({}, {}) size ({}, {}), text at ({}, {})",
+                mCursorPosition->x, mCursorPosition->y, mOffset->x, mOffset->y, size.x, size.y, tooltipTextAt->first,
+                tooltipTextAt->second);
+        }
+    } catch (...) {
+    }
     try {
         if (!glyphDraw) return;
         // Text is batched and drawn after the tooltip renders; draw it now so
@@ -273,6 +293,7 @@ bool start() {
         hover::HoverTracker::getInstance().install();
         auto& bus = ll::event::EventBus::getInstance();
         renderListener = bus.emplaceListener<ll::event::AfterUIRenderEvent>([](auto& event) {
+            unsigned const frame = uiFrame++;
             auto settings = Runtime::instance().preferences();
             auto* controller = event.screenView().mController.get();
             if (!controller || !controller->_isContainerScreen()) return;
@@ -284,7 +305,9 @@ bool start() {
             if (!(shulker ? preferences.shulkerPreviews : preferences.bundlePreviews)) return;
             if (contents->filledSlotCount() == 0 && contents->skippedSlotCount == 0
                 && !(shulker ? preferences.emptyShulkerPreviews : preferences.emptyBundlePreviews)) return;
-            renderer.render(event.screenView(), event.uiRenderContext(), *contents);
+            std::optional<render::Rect> hoverText;
+            if (tooltipBox && tooltipBox->frame == frame) hoverText = tooltipBox->rect;
+            renderer.render(event.screenView(), event.uiRenderContext(), *contents, hoverText);
         });
         exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { cache.clear(); });
         return true;

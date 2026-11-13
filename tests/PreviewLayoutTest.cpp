@@ -104,9 +104,27 @@ void testIconIsCentredInCell() {
     CHECK(near(cell.y1 - icon.y1, 1.0f));
 }
 
+void testMovesClearOfHoverText() {
+    // Frame 108..278 x 130..192 (pointer 100, 200); hover text reaches up to y 189.
+    auto const layout = PreviewLayout::anchored(9, 3, 100.0f, 200.0f, 400.0f, 300.0f);
+    auto const moved  = layout.clearOf(Rect{104.0f, 189.0f, 200.0f, 215.0f}, 2.0f, 300.0f);
+    CHECK_RECT(moved.frame, 108.0f, 125.0f, 278.0f, 187.0f);
+    // Not overlapping: unchanged.
+    auto const apart = layout.clearOf(Rect{104.0f, 195.0f, 200.0f, 215.0f}, 2.0f, 300.0f);
+    CHECK(apart.frame == layout.frame);
+    // Beside it horizontally: unchanged.
+    auto const beside = layout.clearOf(Rect{280.0f, 150.0f, 350.0f, 215.0f}, 2.0f, 300.0f);
+    CHECK(beside.frame == layout.frame);
+    // No room above: below the hover text.
+    auto const low = PreviewLayout::anchored(9, 3, 100.0f, 80.0f, 400.0f, 300.0f);
+    auto const under = low.clearOf(Rect{104.0f, 60.0f, 200.0f, 95.0f}, 2.0f, 300.0f);
+    CHECK_RECT(under.frame, 108.0f, 97.0f, 278.0f, 159.0f);
+}
+
 } // namespace
 
 int runPreviewLayoutTests() {
+    testMovesClearOfHoverText();
     testFrameSize();
     testAnchorsAboveRightWhenThereIsRoom();
     testFallsBelowWhenNoRoomAbove();
