@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Child settings dimmed under a switched-off feature (2026-11-13)
+
+`d80c18ca`, local build, DLL SHA-256
+`d1ac567ab2405f942f27748ab22e592d7631f566885f842b8da5038a371d5952`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319):
+
+- Info HUD or Container previews off: their child rows are dimmed, the names unchanged.
+- A dimmed child selected: the footer has the main-switch line, then the setting's own help.
+- Item details off and the key of "Show ID" pressed: the toast's switch follows the child,
+  and the name ends in "(Main switch off)".
+
+Not checked: every other feature's children one by one; other languages.
+
 ## Item details' main switch and the keys on its rows (2026-11-13)
 
 `988806af`, local build, DLL SHA-256

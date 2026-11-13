@@ -1001,7 +1001,8 @@ Seen by the maintainer on `988806af`, three doubts, answered the same day:
   Saturation, the death point of Waypoints, the mark layers of Map marks,
   the hide options of Info HUD, Debug View and Status effects); only the
   death point does, so Waypoints is left undimmed. The rest of the child
-  settings were not read one by one. Not yet checked in game.
+  settings were not read one by one. Confirmed by the maintainer on
+  `d80c18ca` (VALIDATION-LOG).
 Still open: the enchantability wording if the help text is not enough.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
