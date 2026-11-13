@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Boss bar position (L-323, 2026-11-14)
+
+Build `348f83a8`, DLL SHA-256
+`4c3cc2a120dfd29584eee7a121fe5fb5cd5ce3754f2596d912f5b2240235e69b`, 1.26.60.05 Dev
+instance, desktop UI, the maintainer, with the Ender Dragon and the Wither; the log read
+by the agent: the game's bars measured at 229,2, 182 x 20 on a 640 x 360 screen.
+
+- Game HUD placement on with the layout untouched: the bars stay where the game puts them.
+- Moved to the bottom in HUD layout with two bosses: the bars stack upward, names follow.
+- At 150 % with a damaged boss: the fill is right and nothing is cut off.
+- Hide boss bars on while moved: the bars are hidden.
+- Not seen: Pocket UI (touch padding), other GUI scales, servers. The editor's sample was
+  plain rectangles; the maintainer asked for it to look like the game's bars.
+
 ## Bundle preview attached to the bundle tooltip (2026-11-14)
 
 Uncommitted build, DLL SHA-256

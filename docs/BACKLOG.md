@@ -650,7 +650,10 @@ shown bars fill; choices taken (DESIGN "Boss bar placement"): the anchor
 decides the growth direction, Hide boss bars wins. Open: the in-game checks
 in VALIDATION.md, including whether the default 2 units down matches the
 game (the first measured box is logged) and whether a scaled clipped bar
-keeps its fill. The `boss_hud_padding` (20) and touch padding (15 %) above
+keeps its fill. Checked in game 2026-11-14 (VALIDATION): the default matches
+the game (logged 229,2) and all four checks passed. Left: the editor's sample
+now uses the game's bar textures (maintainer's request, unchecked).
+The `boss_hud_padding` (20) and touch padding (15 %) above
 the grid move the game's place on some layouts; the default does not follow
 them.
 

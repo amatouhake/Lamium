@@ -168,12 +168,18 @@ std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, fl
     // Sample only; the bars in play are still drawn by the game.
     float z = chatPosition::zoom(element);
     int bars = std::max(1, static_cast<int>(box->h / (barHeight * z) + .5f));
+    // The game's own bar textures, tinted as its pink and purple bars are
+    // (sampled from a screenshot); the first one part empty.
+    constexpr ui::Rgb tints[] = {{.86f, .1f, .86f}, {.42f, .24f, .66f}};
     for (int i = 0; i < bars; ++i) {
         float y = box->y + barHeight * z * static_cast<float>(i);
         ui::labelScaled(context, box->x, y, box->w, ui::translated("bossBarPosition.sample"), z,
                         ui::palette::text, ui::Align::Center, true);
-        ui::fill(context, box->x, y + 10 * z, box->w, 5 * z, ui::palette::off);
-        ui::fill(context, box->x, y + 10 * z, box->w * .65f, 5 * z, ui::palette::experimental);
+        ui::Rgb tint = tints[i % 2];
+        float filled = i % 2 ? 1.f : .85f;
+        ui::ImageRect bar{box->x, y + 10 * z, box->w, 5 * z};
+        ui::imageUv(context, "textures/ui/empty_progress_bar", bar, 0, 0, 1, 1, 1, tint);
+        ui::imageUv(context, "textures/ui/filled_progress_bar", {bar.x, bar.y, bar.w * filled, bar.h}, 0, 0, filled, 1, 1, tint);
     }
     context.flushText(0, std::nullopt);
     return box;

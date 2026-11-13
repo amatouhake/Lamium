@@ -489,7 +489,8 @@ size. The element is the box the shown bars fill (182 x 20 per bar, as the
 game lays them out), so when bars are added or removed the anchor the drop
 chose stays put: bars at the top grow downward as in vanilla, bars dropped at
 the bottom grow upward. Hide boss bars wins: hidden bars stay hidden wherever
-they are placed. A conditional element in the editor, with a sample bar.
+they are placed. A conditional element in the editor, with sample bars drawn
+from the game's bar textures.
 Chosen by the implementer from the existing rules when the maintainer asked
 for it; the maintainer may still change either choice.
 
