@@ -167,8 +167,7 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "information.chatPosition") return input::Action::ToggleChatPosition;
     if (option == "information.paperDollPosition") return input::Action::TogglePaperDollPosition;
     if (option == "information.scoreboardPosition") return input::Action::ToggleScoreboardPosition;
-    if (option == "information.bossBarPosition") return input::Action::ToggleBossBarPosition;
-    if (option == "information.showBossBars") return input::Action::HideBossBars;
+    if (option == "information.bossBarPosition") return input::Action::HideBossBars;
     if (option == "inspection.durability") return input::Action::ToggleDurability;
     if (option == "inspection.foodValues") return input::Action::ToggleFoodValues;
     if (option == "inspection.workPenalty") return input::Action::ToggleWorkPenalty;

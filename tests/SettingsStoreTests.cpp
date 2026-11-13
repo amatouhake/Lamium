@@ -150,12 +150,10 @@ void settingsStoreTests() {
         auto current = decodeSettings(R"({"information":{"showBossBars":true},"visuals":{"hideEffects":true,"hideBossBars":true}})");
         check(!current.information.hidesBossBars(), "a current file's show value wins over the old key");
         Settings value;
-        check(input::defaultChord(input::Action::HideBossBars).empty()
-              && input::toggleAction(value,input::Action::HideBossBars) && value.information.hidesBossBars()
-              && !value.information.placesChat() && !value.visuals.hideEffects
-              && input::toggleAction(value,input::Action::HideBossBars) && !value.information.hidesBossBars()
-              && value.information.placesBossBars(),
-              "the unbound boss key hides the bars alone and shows them again");
+        value.information.gameHud = true;
+        settings::find("information.bossBarPosition")->adjust(value, 1);
+        check(value.information.hidesBossBars() && value.information.placesChat() && !value.visuals.hideEffects,
+              "the boss bars' row hides them without changing another part");
         check(visuals::effectMask(false,true,true,true) == 0
               && visuals::effectMask(true,false,false,true) == visuals::bossBarsBit
               && visuals::effectMask(true,true,true,true) == 7,

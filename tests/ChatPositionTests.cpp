@@ -5,6 +5,7 @@
 #include "input/ToggleAction.h"
 #include "app/PausedFeatures.h"
 #include "settings/Options.h"
+#include "ui/SettingsRows.h"
 #include <algorithm>
 #include <limits>
 #include <chrono>
@@ -105,7 +106,8 @@ void chatPositionTests() {
     Settings board;
     check(!board.information.placesScoreboard() && input::defaultChord(input::Action::ToggleScoreboardPosition).empty()
           && input::toggleAction(board, input::Action::ToggleGameHud) && board.information.placesScoreboard()
-          && input::toggleAction(board, input::Action::ToggleScoreboardPosition) && !board.information.placesScoreboard()
+          && (settings::find("information.scoreboardPosition")->adjust(board, 1), board.information.hidesScoreboard())
+          && (settings::find("information.scoreboardPosition")->adjust(board, 1), !board.information.placesScoreboard())
           && board.information.placesChat(),
           "the scoreboard follows the group, has an unbound key and can be left out alone");
     auto boardSaved = decodeSettings(R"({"information":{"scoreboardPosition":true},"hud":{"scoreboard":{"anchor":0,"dx":7,"dy":9,"scale":150}}})");
@@ -144,11 +146,11 @@ void chatPositionTests() {
               "the boss bars are the game's and shown as a frame in the editor");
         Settings withBars;
         check(withBars.information.bossBarPosition && !withBars.information.placesBossBars()
-              && input::defaultChord(input::Action::ToggleBossBarPosition).empty()
+              && input::defaultChord(input::Action::HideBossBars).empty() && input::retired(input::Action::ToggleBossBarPosition)
               && input::toggleAction(withBars, input::Action::ToggleGameHud) && withBars.information.placesBossBars()
-              && input::toggleAction(withBars, input::Action::ToggleBossBarPosition) && !withBars.information.placesBossBars()
+              && (settings::find("information.bossBarPosition")->adjust(withBars, -1), !withBars.information.placesBossBars())
               && withBars.information.placesScoreboard(),
-              "the boss bars follow the group, have an unbound key and can be left out alone");
+              "the boss bars follow the group, keep the merged unbound key and can be left out alone");
         auto barsSaved = decodeSettings(R"({"information":{"gameHud":true,"bossBarPosition":false},"hud":{"bossBars":{"anchor":7,"dx":3,"dy":-5,"scale":125}}})");
         check(barsSaved.information.gameHud && !barsSaved.information.bossBarPosition && barsSaved.hud.bossBars.anchor == Anchor::BottomCenter
               && barsSaved.hud.bossBars.dy == -5 && barsSaved.hud.bossBars.scale == 125,
@@ -162,6 +164,23 @@ void chatPositionTests() {
         check(!roundTrip.information.bossBarPosition && roundTrip.hud.bossBars.scale == 125, "the boss bars' settings save");
     }
     // Showing and hiding from HUD layout (L-334).
+    {
+        Settings parts;
+        auto const* chatRow = settings::find("information.chatPosition");
+        auto mode = [&] { return std::get<settings::ChoiceValue>(chatRow->read(parts)).label; };
+        check(mode() == "gameHudPart.placed", "a part is Placed by default");
+        chatRow->adjust(parts, 1);
+        bool hidden = mode() == "gameHudPart.hidden" && parts.information.chatPosition && !parts.information.showChat;
+        chatRow->adjust(parts, 1);
+        bool standard = mode() == "gameHudPart.vanilla" && !parts.information.chatPosition && parts.information.showChat;
+        chatRow->adjust(parts, 1);
+        check(hidden && standard && mode() == "gameHudPart.placed",
+              "a part's row steps Placed, Hidden, Standard with its two saved switches");
+        check(ui::optionAction("information.bossBarPosition") == input::Action::HideBossBars
+              && ui::optionAction("information.chatPosition") == input::Action::ToggleChatPosition
+              && !settings::find("information.showBossBars"),
+              "each part is one row with one key; the boss bars keep the bound hide key");
+    }
     {
         Settings shown;
         check(!settings::hudShown(shown, HudElementId::Chat) && !settings::hudShown(shown, HudElementId::BossBars)

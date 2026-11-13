@@ -2,13 +2,6 @@
 #include "settings/Settings.h"
 namespace lamium::input {
 inline bool toggleAction(Settings& value, Action action) {
-    // Hide boss bars (L-334): hiding brings the group on for the boss bars
-    // alone if needed; showing only shows them.
-    if (action == Action::HideBossBars) {
-        if (value.information.hidesBossBars()) value.information.showBossBars = true;
-        else value.information.hideBossBarsAlone();
-        return true;
-    }
     bool* field = nullptr;
     switch (action) {
     case Action::BreakingRestriction: field = &value.interaction.breaking; break;
@@ -50,10 +43,6 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::ToggleDurabilityHud: field = &value.information.durabilityHud; break;
     case Action::ToggleInventoryHud: field = &value.information.inventoryHud; break;
     case Action::ToggleUsedSlots: field = &value.information.usedSlots; break;
-    case Action::ToggleChatPosition: field = &value.information.chatPosition; break;
-    case Action::TogglePaperDollPosition: field = &value.information.paperDollPosition; break;
-    case Action::ToggleScoreboardPosition: field = &value.information.scoreboardPosition; break;
-    case Action::ToggleBossBarPosition: field = &value.information.bossBarPosition; break;
     case Action::ToggleGameHud: field = &value.information.gameHud; break;
     case Action::ToggleStatusEffects: field = &value.information.effectsHud; break;
     case Action::ToggleOffhandSlot: field = &value.information.offhandSlot; break;

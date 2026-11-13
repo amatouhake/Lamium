@@ -48,6 +48,15 @@ std::optional<std::string> autoModeText(Settings const& value, input::Action act
     return interaction::autoModeText(attack ? value.interaction.attackMode : value.interaction.useMode,
         attack ? value.interaction.attackHeldOnly : value.interaction.useHeldOnly);
 }
+std::optional<std::string_view> gameHudPartOption(input::Action action) {
+    switch (action) {
+    case input::Action::ToggleChatPosition: return "information.chatPosition";
+    case input::Action::TogglePaperDollPosition: return "information.paperDollPosition";
+    case input::Action::ToggleScoreboardPosition: return "information.scoreboardPosition";
+    case input::Action::HideBossBars: return "information.bossBarPosition";
+    default: return std::nullopt;
+    }
+}
 std::string toggleFeatureName(input::Action action) {
     auto key = ui::toggleToastKey(action);
     auto name = key.empty() ? std::string(input::actions[static_cast<size_t>(action)].feature) : ui::translated(key);
@@ -62,8 +71,6 @@ bool toggleState(IClientInstance& client, Settings const& value, input::Action a
     if (action == input::Action::BreakingRestriction) return value.interaction.breaking;
     if (action == input::Action::HideWeather) return value.visuals.hideWeather;
     if (action == input::Action::HideParticles) return value.visuals.hideParticles;
-    // Named by its row, "Show the boss bars" (L-334).
-    if (action == input::Action::HideBossBars) return !value.information.hidesBossBars();
     if (action == input::Action::HideNausea) return value.visuals.hideNausea;
     if (action == input::Action::HideWater) return value.visuals.hideWater;
     if (action == input::Action::HideLava) return value.visuals.hideLava;
@@ -115,7 +122,6 @@ void emitToggleToast(IClientInstance& client, input::Action action, Settings con
         switch (action) {
         case input::Action::HideWeather: any = stopped(Id::HideWeather); break;
         case input::Action::HideParticles: any = stopped(Id::HideParticles); break;
-        case input::Action::HideBossBars: any = stopped(Id::HideBossBars); break;
         case input::Action::HideNausea: any = stopped(Id::HideNausea); break;
         case input::Action::HidePortal: any = stopped(Id::HidePortal); break;
         case input::Action::HideWater: case input::Action::HideLava: case input::Action::HideDistanceFog:
@@ -133,11 +139,6 @@ void emitToggleToast(IClientInstance& client, input::Action action, Settings con
         auto stopped = [](Id id) { return capabilities::registry().status(id).paused(); };
         bool any = false;
         switch (action) {
-        case input::Action::ToggleChatPosition: any = stopped(Id::ChatPosition); break;
-        case input::Action::TogglePaperDollPosition: any = stopped(Id::PaperDollPosition); break;
-        case input::Action::ToggleScoreboardPosition: any = stopped(Id::ScoreboardPosition); break;
-        case input::Action::ToggleBossBarPosition: any = stopped(Id::BossBarPosition); break;
-        case input::Action::HideBossBars: any = stopped(Id::HideBossBars); break;
         default:
             for (auto const& d : capabilities::definitions)
                 if (d.feature == "gameHud" && paused::requested(d.id, value) && stopped(d.id)) any = true;
@@ -355,6 +356,18 @@ void executeAction(IClientInstance& client, input::Action action) {
         if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save block highlight list"); return; }
         ui::showMessageToast(ui::translated(change == visuals::highlight::Change::Added ? "highlight.added" : "highlight.removed",
                                             block.buildDescriptionName()));
+        return;
+    }
+    // A game HUD part's key steps it through Standard, Placed and Hidden (L-334).
+    if (auto part = gameHudPartOption(action)) {
+        auto const* option = settings::find(*part);
+        option->adjust(value, 1);
+        if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save the game HUD part"); return; }
+        auto choice = std::get<settings::ChoiceValue>(option->read(value)).label;
+        auto text = ui::translated("feature.gameHud") + " > "
+            + ui::translated(std::string(option->label), ui::translated(std::string(choice)));
+        if (!value.information.gameHud) text += " (" + ui::translated("effectsPaused") + ")";
+        ui::showMessageToast(text);
         return;
     }
     if (action == input::Action::CycleToolDrop) {

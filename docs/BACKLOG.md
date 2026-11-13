@@ -668,6 +668,12 @@ Open choices for the maintainer:
 Decided 2026-11-14 (maintainer: "go with them"): the agent's
 recommendations, recorded in DESIGN "Showing and hiding from HUD layout".
 Built the same day; in-game checks open (VALIDATION).
+Revised after the first in-game look (maintainer, 2026-11-14): the hidden look
+inverted the amount shown (hidden drew more than conditional) and reused the
+game parts' yellow, so it is now a gray hatched box with contents only when
+pointed at; the eight settings rows became one Standard / Placed / Hidden
+row per part, with one cycle key each (Hide boss bars kept as the boss bars'
+key, the boss bar placement key retired). DESIGN has the current rules.
 
 ### L-320 Highlight designated block types in the world
 Kind: Design. Maintainer's idea 2026-11-07 (multiplayer-session feedback).

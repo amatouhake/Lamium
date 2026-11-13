@@ -89,6 +89,8 @@ inline constexpr std::array<std::string_view,7> undergroundHoldLabels{"undergrou
 inline constexpr std::array<std::string_view,4> ghostLinesLabels{"ghostLines.thin", "ghostLines.normal", "ghostLines.thick", "ghostLines.none"};
 // L-318: Tool Switch's drop priority, in inventory::DropPriority order.
 inline constexpr std::array<std::string_view,3> toolDropLabels{"toolDrop.speed", "toolDrop.fortune", "toolDrop.silk"};
+// A game HUD part (L-334): the game's own, placed by the layout, or hidden.
+inline constexpr std::array<std::string_view,3> gameHudPartLabels{"gameHudPart.vanilla", "gameHudPart.placed", "gameHudPart.hidden"};
 // L-97: the selected slot, then hotbar slots 1-9.
 inline constexpr std::array<std::string_view,10> fetchSlotLabels{"fetchSlot.selected", "hotbarSlot.1", "hotbarSlot.2",
     "hotbarSlot.3", "hotbarSlot.4", "hotbarSlot.5", "hotbarSlot.6", "hotbarSlot.7", "hotbarSlot.8", "hotbarSlot.9"};
@@ -159,6 +161,24 @@ inline bool* hudShownField(Settings& value, ui::HudElementId id) {
 inline std::optional<bool> hudShown(Settings const& value, ui::HudElementId id) {
     auto* field = hudShownField(const_cast<Settings&>(value), id);
     return field ? std::optional(*field) : std::nullopt;
+}
+// One row for a game HUD part's two saved switches: its part switch and
+// its show value (L-334). Standard leaves it the game's; Hidden places it
+// so that it can be hidden.
+template<auto Placed, auto Shown>
+constexpr Option gameHudPart(std::string_view id, std::string_view label) {
+    return {id, "gameHud", label,
+        [](Settings const& value) -> OptionValue {
+            auto const& info = value.information;
+            return ChoiceValue{gameHudPartLabels[!(info.*Placed) ? 0 : (info.*Shown) ? 1 : 2]};
+        },
+        [](Settings& value, int direction) {
+            auto& info = value.information;
+            size_t index = !(info.*Placed) ? 0 : (info.*Shown) ? 1 : 2;
+            index = (index + (direction < 0 ? 2 : 1)) % 3;
+            info.*Placed = index != 0;
+            info.*Shown = index != 2;
+        }};
 }
 template<ui::HudElementId Id, auto Field>
 constexpr Option hudToggle(std::string_view id, std::string_view feature, std::string_view label) {
@@ -274,18 +294,14 @@ inline constexpr auto options = std::to_array<Option>({
     hudChoice<ui::HudElementId::UsedSlots, &ui::HudElement::background, elementBackgroundLabels>("hud.usedSlots.background", "usedSlots", "hudBackground"),
     hudToggle<ui::HudElementId::UsedSlots, &ui::HudElement::shadow>("hud.usedSlots.shadow", "usedSlots", "hudShadow"),
     toggle<&Settings::information, &Settings::Information::gameHud>("information.gameHud", "gameHud", "gameHud"),
-    toggle<&Settings::information, &Settings::Information::chatPosition>("information.chatPosition", "gameHud", "chatPosition"),
+    gameHudPart<&Settings::Information::chatPosition, &Settings::Information::showChat>("information.chatPosition", "chatPart"),
     hudNumeric<ui::HudElementId::Chat, &ui::HudElement::scale>("hud.chat.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
-    toggle<&Settings::information, &Settings::Information::showChat>("information.showChat", "gameHud", "showChat"),
-    toggle<&Settings::information, &Settings::Information::scoreboardPosition>("information.scoreboardPosition", "gameHud", "scoreboardPosition"),
+    gameHudPart<&Settings::Information::scoreboardPosition, &Settings::Information::showScoreboard>("information.scoreboardPosition", "scoreboardPart"),
     hudNumeric<ui::HudElementId::Scoreboard, &ui::HudElement::scale>("hud.scoreboard.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
-    toggle<&Settings::information, &Settings::Information::showScoreboard>("information.showScoreboard", "gameHud", "showScoreboard"),
-    toggle<&Settings::information, &Settings::Information::paperDollPosition>("information.paperDollPosition", "gameHud", "paperDollPosition"),
+    gameHudPart<&Settings::Information::paperDollPosition, &Settings::Information::showPaperDoll>("information.paperDollPosition", "paperDollPart"),
     hudNumeric<ui::HudElementId::PaperDoll, &ui::HudElement::scale>("hud.paperDoll.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
-    toggle<&Settings::information, &Settings::Information::showPaperDoll>("information.showPaperDoll", "gameHud", "showPaperDoll"),
-    toggle<&Settings::information, &Settings::Information::bossBarPosition>("information.bossBarPosition", "gameHud", "bossBarPosition"),
+    gameHudPart<&Settings::Information::bossBarPosition, &Settings::Information::showBossBars>("information.bossBarPosition", "bossBarsPart"),
     hudNumeric<ui::HudElementId::BossBars, &ui::HudElement::scale>("hud.bossBars.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
-    toggle<&Settings::information, &Settings::Information::showBossBars>("information.showBossBars", "gameHud", "showBossBars"),
     toggle<&Settings::information, &Settings::Information::effectsHud>("information.effectsHud", "statusEffects", "statusEffects"),
     toggle<&Settings::information, &Settings::Information::effectsNames>("information.effectsNames", "statusEffects", "effectsNames"),
     toggle<&Settings::information, &Settings::Information::effectsWarning>("information.effectsWarning", "statusEffects", "effectsWarning"),

@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Showing and hiding HUD elements, first build (L-334, 2026-11-14)
+
+Build `4a3979d3`, DLL SHA-256
+`8c57c097234fc9cff47e3f5e530a072dc6d16ee35972a11dc272030ca1487946`, 1.26.60.05 Dev
+instance, the maintainer, with a screenshot of the settings rows.
+
+- Each game part can be hidden and shown again from its switch.
+- The Game HUD placement main switch off returns every part to vanilla.
+- The editor's hidden look read wrong: hidden elements drew more (faint contents and
+  hatching) than conditional ones (a dashed frame), and a yellow-only frame was unclear.
+- The settings rows (part switch and "show" switch alternating) were hard to read.
+- Not done: the old-settings-file check (covered by unit tests instead).
+
 ## Boss bar sample in HUD layout (L-323, 2026-11-14)
 
 Build `f96794ea`, DLL SHA-256

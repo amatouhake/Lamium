@@ -417,9 +417,9 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     bool overUi = popoverBox && popoverBox->contains(pointerX, pointerY);
     auto hovered = drag || resize || overUi ? std::nullopt : topmost(lastBoxes, pointerX, pointerY);
     if (!drag && !resize && !overUi && hoverTag && hoverTag->second.contains(pointerX, pointerY)) hovered = hoverTag->first;
-    // Switched off from the editor or the settings (L-334): drawn faint and
-    // hatched, never as the dashed frame of an element that shows only by
-    // situation, so the two read apart.
+    // Switched off from the editor or the settings (L-334): a gray hatched
+    // box, never the dashed frame of an element that shows only by situation,
+    // so the two read apart; its contents show faint when pointed at.
     std::array<bool, std::tuple_size_v<Boxes>> off{};
     for (auto id : drawOrder) {
         auto shown = settings::hudShown(value, id);
@@ -463,17 +463,25 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     auto boxes = information::drawHud(context, width, height, value.information, &preview);
     // The elements' text first: what follows goes over it.
     context.flushText(0, std::nullopt);
-    if (anyOff) {
-        auto faint = preview;
-        faint.hidden.fill(true);
-        for (auto id : drawOrder)
-            if (isOff(id) && focus != id) faint.hidden[static_cast<size_t>(id)] = false;
-        DrawOpacity const fade{offOpacity};
-        auto drawn = information::drawHud(context, width, height, value.information, &faint);
-        for (auto id : drawOrder)
-            if (!faint.hidden[static_cast<size_t>(id)]) boxes[static_cast<size_t>(id)] = drawn[static_cast<size_t>(id)];
-        context.flushText(0, std::nullopt);
-    }
+    // A hidden element says least of all: only measured, its contents shown
+    // faint while it is pointed at (or selected, below).
+    if (anyOff)
+        for (bool pointed : {false, true}) {
+            auto faint = preview;
+            faint.hidden.fill(true);
+            bool any = false;
+            for (auto id : drawOrder)
+                if (isOff(id) && focus != id && (hovered == id) == pointed) {
+                    faint.hidden[static_cast<size_t>(id)] = false;
+                    any = true;
+                }
+            if (!any) continue;
+            DrawOpacity const fade{pointed ? offOpacity : 0.f};
+            auto drawn = information::drawHud(context, width, height, value.information, &faint);
+            for (auto id : drawOrder)
+                if (!faint.hidden[static_cast<size_t>(id)]) boxes[static_cast<size_t>(id)] = drawn[static_cast<size_t>(id)];
+            context.flushText(0, std::nullopt);
+        }
     if (focus) {
         // Only where it lies on another element: a darker ground sets it apart.
         if (behind) fill(context, behind->x, behind->y, behind->w, behind->h, Rgb{0, 0, 0}, .45f);
@@ -551,8 +559,9 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         if (isOff(id)) {
             std::vector<ImageRect> lines;
             for (auto const& square : hatch(*box)) lines.push_back({square.x, square.y, square.w, square.h});
-            fills(context, lines, palette::warning, .35f);
-            frame(context, outer.x, outer.y, outer.w, outer.h, isFocus ? palette::accent : palette::warning, isFocus ? .9f : .6f);
+            // Gray: yellow already marks the game's own elements.
+            fills(context, lines, palette::faint, .45f);
+            frame(context, outer.x, outer.y, outer.w, outer.h, isFocus ? palette::accent : palette::faint, isFocus ? .9f : .7f);
             if (!isFocus && !isHovered) addTag(*box, id);
             continue;
         }
@@ -575,10 +584,10 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     }
     // After every frame, so a tag is never crossed by another frame's dashes:
     // the same tag for every named element, in the accent color when focused
-    // and the warning color when switched off.
+    // and a darker gray when switched off.
     for (auto const& tag : tags) {
         fill(context, tag.box.x, tag.box.y, tag.box.w, tag.box.h,
-             tag.focus ? palette::accent : tag.off ? palette::warning : palette::dim, tag.focus || tag.off ? 1.f : .75f);
+             tag.focus ? palette::accent : tag.off ? palette::faint : palette::dim, tag.focus || tag.off ? 1.f : .75f);
         float text = tag.box.x + 3;
         if (tag.check) {
             float cx = tag.box.x + 2, cy = tag.box.y + (tag.box.h - checkSize) / 2;

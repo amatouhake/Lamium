@@ -1,4 +1,5 @@
 #include "features/inspection/render/ItemIcon.h"
+#include "ui/Widgets.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/game/IMinecraftGame.h"
 #include "mc/client/gui/controls/UIMaterialType.h"
@@ -79,6 +80,8 @@ int chunkOf(ItemStack const& stack) {
 }
 }
 void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> icons, int zOrder) {
+    // Measured but not drawn (HUD layout's hidden elements, L-334).
+    if (ui::drawOpacity() <= 0) return;
     auto& client = context.mClient;
     auto* renderer = client.getItemRenderer();
     if (!renderer) return;

@@ -79,13 +79,13 @@ float textWidthScaled(MinecraftUIRenderContext& context, std::string_view text, 
     return measured(defaultFont(context), text, size);
 }
 void fill(MinecraftUIRenderContext& context, float x, float y, float width, float height, Rgb value, float opacity) {
-    if (width <= 0 || height <= 0) return;
+    if (width <= 0 || height <= 0 || currentOpacity <= 0) return;
     float s = currentScale;
     context.fillRectangle(RectangleArea{x*s,(x+width)*s,y*s,(y+height)*s}, color(value), std::clamp(opacity,0.f,1.f) * currentOpacity);
     context.flushImages(white,1,HashedString{"ui_fillColor"});
 }
 void fills(MinecraftUIRenderContext& context, std::vector<ImageRect> const& rects, Rgb value, float opacity) {
-    if (rects.empty()) return;
+    if (rects.empty() || currentOpacity <= 0) return;
     float s = currentScale, alpha = std::clamp(opacity,0.f,1.f) * currentOpacity;
     for (auto const& r : rects)
         if (r.w > 0 && r.h > 0)
@@ -113,6 +113,7 @@ float latinRaise() {
 float const labelShadowOffset = .5f;
 void drawRun(MinecraftUIRenderContext& context, Font& font, float x, float y, float width, std::string text, Rgb value,
              ::ui::TextAlignment align, float size) {
+    if (currentOpacity <= 0) return;
     float s = currentScale;
     TextMeasureData const measure{size*s, 0.0f, false, false, false, align};
     CaretMeasureData const caret{-1, false};
@@ -231,7 +232,7 @@ void rowBackground(MinecraftUIRenderContext& context, float left, float top, flo
 }
 void images(MinecraftUIRenderContext& context, std::string_view texture, std::vector<ImageRect> const& rects,
             float opacity) {
-    if (rects.empty()) return;
+    if (rects.empty() || currentOpacity <= 0) return;
     auto pointer = context.getTexture(ResourceLocation(Core::PathView(texture)), false);
     std::shared_ptr<BedrockTextureData const> const& data = pointer.mClientTexture;
     if (!data) return;
@@ -268,6 +269,7 @@ std::shared_ptr<BedrockTextureData const> iconTexture(MinecraftUIRenderContext& 
 }
 void imageUv(MinecraftUIRenderContext& context, std::string_view texture, ImageRect rect, float u0, float v0, float u1,
              float v1, float opacity, Rgb tint) {
+    if (currentOpacity <= 0) return;
     auto data = iconTexture(context, texture);
     if (!data) return;
     context.drawImage(*data->mClientTexture, glm::vec2{rect.x, rect.y} * currentScale, glm::vec2{rect.w, rect.h} * currentScale,
@@ -284,6 +286,7 @@ bool runtimeImage(MinecraftUIRenderContext& context, ResourceLocation const& tex
     if (!data) return false;
     IsMissingTexture missing = data->mIsMissingTexture;
     if (missing == IsMissingTexture::Yes) return false;
+    if (currentOpacity <= 0) return true;
     context.drawImage(*data->mClientTexture, glm::vec2{rect.x, rect.y} * currentScale, glm::vec2{rect.w, rect.h} * currentScale, glm::vec2{u, v},
                       glm::vec2{uSpan, vSpan}, false);
     context.flushImages(white, std::clamp(opacity, 0.f, 1.f) * currentOpacity, HashedString{"ui_textured_and_glcolor"});

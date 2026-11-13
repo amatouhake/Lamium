@@ -488,36 +488,42 @@ default is the game's desktop place, top center 2 units down, at the game's
 size. The element is the box the shown bars fill (182 x 20 per bar, as the
 game lays them out), so when bars are added or removed the anchor the drop
 chose stays put: bars at the top grow downward as in vanilla, bars dropped at
-the bottom grow upward. Hide boss bars wins: hidden bars stay hidden wherever
-they are placed. A conditional element in the editor, with sample bars drawn
-from the game's bar textures.
+the bottom grow upward. Hidden boss bars stay hidden wherever they are
+placed. A conditional element in the editor, with sample bars drawn from the
+game's bar textures. The growth direction was chosen by the implementer from
+the existing rules when the maintainer asked for it.
 
 Showing and hiding from HUD layout (L-334, decided 2026-11-14 with the
-maintainer, mockup demos/game-hud-hide.html, choices A and T2):
+maintainer, mockup demos/game-hud-hide.html; revised the same day after the
+first build):
 - Every element with a switch can be shown or hidden from the editor. For
   Lamium's elements it is the feature's own switch (Info HUD, Target info,
   Status, toggle toasts, magnification, Durability, minimap, Schematic HUD,
   inventory, used slots, status effects); the player list has none (a held
-  key). The game's parts each get a show value in Game HUD placement (Show
-  the chat / paper doll / scoreboard / boss bars), effective only while the
-  part is placed: the main switch or the part's switch off is fully vanilla,
-  so a part that is not placed offers no switch in the editor.
+  key).
+- Each game part is one row under Game HUD placement with three values:
+  Standard (the game's own), Placed (moved and scaled by the layout) and
+  Hidden (not drawn), default Placed. The main switch off leaves every part
+  the game's. Saved as the part switch and a show value per part. Each part
+  has one key that steps Standard, Placed, Hidden like Tool Switch's drop
+  priority; with the main switch off it changes the choice only and says so.
+  The boss bars' key is the old Hide boss bars key; the separate boss bar
+  placement key is retired.
 - Hiding skips the part's draw; the game's layout and its state stay. The
   chat hides only the HUD messages; the chat screen stays vanilla.
-- In the editor a hidden element is drawn faint (30 %) at its real size with
-  yellow (warning) diagonal hatching, a yellow frame and a yellow tag reading
-  "<name> (hidden)". It is never the white dashed frame of an element that
-  only shows by situation. It can still be moved and scaled.
+- In the editor a hidden element says least of all: a gray (faint) hatched box
+  with a gray frame and a gray tag "<name> (hidden)", no contents. Its
+  contents show faint (30 %) while it is selected or pointed at. It is never
+  the white dashed frame of an element that only shows by situation, and never
+  yellow, which marks the game's own elements. It can still be moved and
+  scaled. A game part offers the switch only while it is Placed or Hidden.
 - The switch is a check at the start of the name tag of the selected element
   and of the pointed-at one (the pointed-at tag stays while the pointer is on
   it). Toolbars do not change.
-- Hide boss bars moved from Hide effects to the boss bars' show value. Its
-  key stays: hiding brings Game HUD placement on for the boss bars alone if
-  it was off; a second press only shows them. A settings file from before
-  keeps what it showed (bars hidden only where Hide effects and its boss
-  choice were both on).
-Chosen by the implementer from the existing rules when the maintainer asked
-for it; the maintainer may still change either choice.
+- Hide boss bars moved from Hide effects to the boss bars' row. A settings
+  file from before keeps what it showed: bars hidden only where Hide effects
+  and its boss choice were both on, with the group on for the boss bars alone
+  if it was off.
 
 Chat placement (L-174, decided 2026-10-14): a saved, default-off Chat
 position switch moves ordinary HUD messages to the lower left and adds a

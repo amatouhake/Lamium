@@ -67,7 +67,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"freecameraspeeddown", "freecamera", Behavior::Press},
     {"hideweather", "hideEffects", Behavior::Toggle},
     {"hideparticles", "hideEffects", Behavior::Toggle},
-    {"hidebossbars", "gameHud", Behavior::Toggle},
+    {"hidebossbars", "gameHud", Behavior::Press},
     {"hidenausea", "hideEffects", Behavior::Toggle},
     {"hidewater", "hideEffects", Behavior::Toggle},
     {"hidelava", "hideEffects", Behavior::Toggle},
@@ -139,7 +139,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"opencalculator", "calculator", Behavior::Press},
     {"repeattrades", "repeatTrades", Behavior::Toggle},
     {"skipserverpacks", "skipServerPacks", Behavior::Toggle},
-    {"chatposition", "gameHud", Behavior::Toggle},
+    {"chatposition", "gameHud", Behavior::Press},
     {"cyclemovetarget", "schematicMove", Behavior::Press},
     {"cyclelayeraxis", "schematicLayers", Behavior::Press},
     {"cyclelayermode", "schematicLayers", Behavior::Press},
@@ -170,8 +170,8 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"blockhighlight", "blockHighlight", Behavior::Toggle},
     {"highlightaimedblock", "blockHighlight", Behavior::Press},
     {"openblockhighlight", "blockHighlight", Behavior::Press},
-    {"paperdollposition", "gameHud", Behavior::Toggle},
-    {"scoreboardposition", "gameHud", Behavior::Toggle},
+    {"paperdollposition", "gameHud", Behavior::Press},
+    {"scoreboardposition", "gameHud", Behavior::Press},
     {"gamehud", "gameHud", Behavior::Toggle},
     {"openenchantorder", "enchantOrder", Behavior::Press},
     {"workpenalty", "itemDetails", Behavior::Toggle},
@@ -181,7 +181,8 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"itemid", "itemDetails", Behavior::Toggle},
     {"itemtags", "itemDetails", Behavior::Toggle},
     {"itemnbt", "itemDetails", Behavior::Toggle},
-    {"bossbarposition", "gameHud", Behavior::Toggle},
+    // Merged into hidebossbars, which cycles the boss bars (L-334).
+    {"bossbarposition", "", Behavior::Press},
 });
 static_assert(actions.size() == static_cast<size_t>(Action::Count));
 // Kept for its saved id but no longer shown or dispatched.
