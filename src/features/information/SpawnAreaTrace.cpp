@@ -11,6 +11,10 @@
 #include "mc/world/level/Level.h"
 #include "mc/world/level/chunk/LevelChunk.h"
 #include "mc/world/level/dimension/Dimension.h"
+#include "mc/world/level/levelgen/v2/SpawnerData.h"
+#include "mc/world/level/levelgen/v2/StructureSpawnOverride.h"
+#include <set>
+#include <tuple>
 #include <atomic>
 #include <cmath>
 #include <format>
@@ -18,8 +22,13 @@
 
 namespace lamium::information::spawnAreaTrace {
 namespace {
-// Reads only: the spawn areas each loaded chunk around the player carries
-// (`LevelChunk::mSpawningAreas`), every 5 s, logged when the picture changes.
+// Reads only: the spawn areas each loaded chunk around the player carries,
+// every 5 s, logged when the picture changes. Two places hold them: the older
+// list `LevelChunk::mSpawningAreas` (empty on both sides in a 26.60 local
+// world, 2026-11-13) and the chunk's structure registry
+// (`LevelChunkVolumeData::mDataRegistry`), whose storages are counted: the
+// structures by name, their boxes, the static and dynamic spawn areas and the
+// spawn overrides. The game's own lookups for them are not in the client SDK.
 // Two sides. "client": the chunks the client itself holds, in a local world
 // and on a server alike; whether those carry the areas is the question.
 // "server": in a local world the game's own server runs in this process and
@@ -36,10 +45,13 @@ Side clientSide{"client"}, serverSide{"server"};
 ll::event::ListenerPtr clientListener, serverListener;
 // Where the local player is, for the server's tick.
 std::atomic<bool> known{false};
-std::atomic<int> playerChunkX{0}, playerChunkZ{0}, playerDimension{0};
+std::atomic<int> playerChunkX{0}, playerChunkZ{0}, playerDimension{0}, playerX{0}, playerY{0}, playerZ{0};
 int chunkOf(double block) { return static_cast<int>(std::floor(block / 16.0)); }
-void probe(Side& side, BlockSource& region, int dimension, int px, int pz) {
-    int loaded = 0, withAreas = 0, areas = 0;
+void probe(Side& side, BlockSource& region, int dimension, int px, int pz, BlockPos const& at) {
+    int loaded = 0, withAreas = 0, areas = 0, withStructures = 0, structures = 0, references = 0;
+    size_t types = 0, boxes = 0, fixed = 0, moving = 0, overrides = 0;
+    std::set<std::string> names;
+    (void)at;
     std::string found;
     for (int dz = -reach; dz <= reach; ++dz)
         for (int dx = -reach; dx <= reach; ++dx) {
@@ -47,6 +59,30 @@ void probe(Side& side, BlockSource& region, int dimension, int px, int pz) {
             auto const* chunk = region.getChunkAt(BlockPos{cx * 16 + 8, 0, cz * 16 + 8});
             if (!chunk) continue;
             ++loaded;
+            auto const& volume = *chunk->mLevelChunkVolumeData;
+            size_t own = volume.mStructures->size(), referred = volume.mStructureReferences->size();
+            // The same guard as below: counts too large to be real are not counted.
+            if (own <= 256 && referred <= 256 && own + referred > 0) {
+                ++withStructures;
+                structures += static_cast<int>(own);
+                references += static_cast<int>(referred);
+            }
+            {
+                auto const& data = *volume.mDataRegistry->mData;
+                auto const& typeStore = std::get<0>(data);
+                // Counts too large to be real: the registry is not where this build expects it.
+                if (typeStore.size() <= 256) {
+                    types += typeStore.size();
+                    boxes += std::get<1>(data).size();
+                    moving += std::get<4>(data).size();
+                    fixed += std::get<5>(data).size();
+                    overrides += std::get<6>(data).size();
+                    for (auto const& entry : typeStore) {
+                        std::string const& name = entry.type;
+                        if (names.size() < 12 && name.size() < 80) names.insert(name);
+                    }
+                }
+            }
             auto const& list = *chunk->mSpawningAreas;
             // A list too long to be real means the member is not where this build expects it.
             if (list.empty() || list.size() > 64) {
@@ -61,8 +97,13 @@ void probe(Side& side, BlockSource& region, int dimension, int px, int pz) {
                     box.min.y, box.min.z, box.max.x, box.max.y, box.max.z);
             }
         }
-    auto summary = std::format("dimension {} around chunk {} {}: loaded {} chunks, {} with spawn areas, {} areas", dimension, px, pz,
-        loaded, withAreas, areas);
+    std::string named;
+    for (auto const& name : names) named += " " + name;
+    auto summary = std::format("dimension {} around chunk {} {}: loaded {} chunks; old list: {} chunks, {} areas; structure lists: {} "
+                               "chunks, {} structures, {} references; registry: {} types, {} boxes, {} static areas, {} dynamic areas, "
+                               "{} spawn overrides; names:{}",
+        dimension, px, pz, loaded, withAreas, areas, withStructures, structures, references, types, boxes, fixed, moving, overrides,
+        named.empty() ? std::string{" none"} : named);
     if (summary == side.lastSummary) return;
     side.lastSummary = summary;
     traceLog(side.summaryBudget, 200, "#32 spawn areas ({}): {}", side.name, summary);
@@ -80,9 +121,13 @@ void clientTick() noexcept {
         playerChunkX = px;
         playerChunkZ = pz;
         playerDimension = dimension;
+        BlockPos at{static_cast<int>(std::floor(feet.x)), static_cast<int>(std::floor(feet.y)), static_cast<int>(std::floor(feet.z))};
+        playerX = at.x;
+        playerY = at.y;
+        playerZ = at.z;
         known = true;
         if (++clientSide.ticks % 100) return;
-        probe(clientSide, player->getDimensionBlockSource(), dimension, px, pz);
+        probe(clientSide, player->getDimensionBlockSource(), dimension, px, pz, at);
     } catch (std::exception const& error) {
         traceLog(clientSide.failBudget, 20, "#32 spawn area probe (client) failed: {}", error.what());
     } catch (...) {}
@@ -93,7 +138,8 @@ void serverTick(Level& level) noexcept {
         int dimension = playerDimension.load();
         auto ref = level.getDimension(DimensionType{dimension}).lock();
         if (!ref) return;
-        probe(serverSide, ref->getBlockSourceFromMainChunkSource(), dimension, playerChunkX.load(), playerChunkZ.load());
+        probe(serverSide, ref->getBlockSourceFromMainChunkSource(), dimension, playerChunkX.load(), playerChunkZ.load(),
+              BlockPos{playerX.load(), playerY.load(), playerZ.load()});
     } catch (std::exception const& error) {
         traceLog(serverSide.failBudget, 20, "#32 spawn area probe (server) failed: {}", error.what());
     } catch (...) {}
