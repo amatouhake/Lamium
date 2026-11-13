@@ -75,6 +75,12 @@ bool toggleState(IClientInstance& client, Settings const& value, input::Action a
     if (action == input::Action::Zoom) return CameraSessions::instance().wanted(CameraSessions::Session::Zoom);
     if (action == input::Action::Freelook) return CameraSessions::instance().wanted(CameraSessions::Session::Freelook);
     if (action == input::Action::FreeCamera) return CameraSessions::instance().wanted(CameraSessions::Session::FreeCamera);
+    // A key on a child switch's row speaks for that switch, not for its feature's.
+    for (auto const& option : settings::options)
+        if (ui::optionAction(option.id) == action) {
+            auto current = option.read(value);
+            if (auto state = std::get_if<bool>(&current)) return *state;
+        }
     auto id = input::actions[static_cast<size_t>(action)].feature;
     for (auto const& feature : ui::features) {
         if (feature.id != id || feature.toggle.empty()) continue;

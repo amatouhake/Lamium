@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item details' main switch and the keys on its rows (2026-11-13)
+
+`988806af`, local build, DLL SHA-256
+`c87d58d26c60116bb9ad58e4ebfcc3c1e59a7ad669cfbb4087f769b00f95e038`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- The Item details row has a switch and a key cell; off, the tooltip is the game's own.
+- While it is off the child rows read "Main switch off"; on again, their values act as before.
+- A key bound to a child that had none ("Show ID") shows a toast in play and the next
+  tooltip follows it.
+- Wrong: the toast of a child's key draws the main switch's state, not the child's, so it
+  looks as if nothing changed.
+
+Not checked: a settings file from before the split; other languages; servers.
+
 ## Item details as one heading with a switch per line (2026-11-13)
 
 `e6562d2e`, local build, DLL SHA-256

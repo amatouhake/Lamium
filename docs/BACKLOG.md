@@ -974,8 +974,8 @@ maintainer on `e6562d2e` (VALIDATION-LOG):
   and NBT no longer need Item details on.
 - Not asked, left as they were: the ID stays on by default, fuel stays
   inside Property values.
-Decided by the maintainer 2026-11-13 (later), built the same day, not yet
-checked in game:
+Decided by the maintainer 2026-11-13 (later), built the same day and seen
+by the maintainer on `988806af` (VALIDATION-LOG):
 - Item details gets a main switch (`inspection.itemTooltip`, on by
   default), as Hide effects has: off leaves the game's own tooltip, the
   child switches keep their values and are marked "Main switch off". Its
