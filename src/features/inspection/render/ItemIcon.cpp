@@ -66,21 +66,13 @@ bool drawable(IconAt const& icon) { return icon.stack && !icon.stack->isNull() &
 // Glinting items keep the direct path, with the foil call right after their
 // icon as in 0.1.8; an enchanted leather piece loses its undyeable layer
 // that way, as before 0.1.9.
-// renderGuiItemNew(foil = true) draws the additive glint overlay on its own,
-// outside the UI's InventoryItemGlint material pass, and comes out weaker than
-// vanilla's slot glint. Its `transparency` argument scales the overlay
-// linearly, so one pass at this value reproduces vanilla: frame-averaged
-// blue-minus-green over the item pixels of an enchanted book, measured in the
-// same frames as a vanilla inventory slot, was +4 at 1.0, +23 at 1.3, +38 at
-// 1.5 and +27.6 at 1.35 against vanilla's +27.7. Drawing the overlay several
-// times instead over-tints: +30 for two passes, +58 for three.
-constexpr float glintOverlayAlpha = 1.35f;
-// The overlay is also scaled by the colour of whatever was filled last (seen 2026-11-12, L-170: on a white fill
-// it shows, on the settings panel's near-black one it does not, with nothing before it it is weak and not
-// pink). The value above was measured in the container preview, whose last fill before the icons is its
-// border, so that colour is set for every overlay (confirmed in game the same day: the anvil list, the planner
-// screen and the preview all glint alike).
-constexpr mce::Color glintTint{0.55f, 0.35f, 0.70f, 1.0f};
+// renderGuiItemNew(foil = true) draws the glint overlay scaled by the current
+// shader colour, i.e. whatever was filled last (L-170: on a near-black fill it
+// does not show). With the colour set to white and the icon's own alpha it
+// matches a vanilla hotbar slot exactly: frame-averaged colour over an
+// enchanted book's pixels, same frames, no difference (2026-11-14). The earlier
+// purple x 1.35 had been fitted against the container preview's border fill.
+constexpr mce::Color glintTint{1.0f, 1.0f, 1.0f, 1.0f};
 int chunkOf(ItemStack const& stack) {
     if (stack.mItem->isGlint(stack)) return glinting;
     return static_cast<int>(InventoryItemRenderer::getRenderTypeFromItem(stack));
@@ -103,7 +95,7 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
             mce::Color const was = shaderColor.color;
             shaderColor.color = glintTint;
             shaderColor.dirty = true;
-            renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, true, glintOverlayAlpha * icon.alpha,
+            renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, true, icon.alpha,
                 1.0f, icon.scale, zOrder);
             shaderColor.color = was;
             shaderColor.dirty = true;

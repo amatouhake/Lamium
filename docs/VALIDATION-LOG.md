@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Glint overlay calibrated on white (2026-11-14)
+
+Uncommitted `glint_measure` build (the overlay's shader colour and strength changed every
+6 s of wall-clock time), DLL SHA-256
+`0210977558510be0bed488038243e84b86e4d5919bc6c1d3e9ec08592fa3892b`, 1.26.60.05 Dev
+instance, a Creative world set up by the maintainer: an enchanted book in hotbar slot 1,
+slot 9 selected, the Inventory HUD with the hotbar row and no background. The agent
+recorded 150 s with ffmpeg `ddagrab` (GDI screen grabs of the game came back frozen) and
+compared, per setting, the frame-averaged colour of the book's pixels in the HUD (Lamium)
+and in the hotbar (vanilla), aligned and masked to pixels the two share.
+
+- White at 1.0: Lamium [129.2 75.7 98.6], vanilla [129.2 75.7 98.6], no difference.
+- The release setting (purple 0.55/0.35/0.70 at 1.35): weaker, difference -9.4 -4.0 -5.4.
+- White 0.5 to 1.1 scaled the overlay linearly (blue -40 at 0.5, +10.5 at 1.1).
+
+The release build now sets white at the icon's own alpha. Not yet looked at in game.
+
 ## L-91 glint trial: BEI's draw context does not bring the shield glint (2026-11-14)
 
 `8e00a4b1` built with `--glint_trial=y`, DLL SHA-256
