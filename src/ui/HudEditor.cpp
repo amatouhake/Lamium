@@ -536,7 +536,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
             tags.push_back({place, std::move(name), false, isOff(*hovered)});
         }
     for (auto id : drawOrder)
-        if (auto const& box = lastBoxes[static_cast<size_t>(id)]; box && !framed(id) && !isOff(id)) taken.push_back(*box);
+        if (auto const& box = lastBoxes[static_cast<size_t>(id)]; box && !isOff(id)) taken.push_back(*box);
     auto watched = [&](Box const& tag) {
         for (auto id : {focus, hovered})
             if (id)
@@ -574,7 +574,8 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         }
         for (auto const& dash : dashedFrame(outer))
             fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length, palette::white, opacity + .15f);
-        addTag(*box, id);
+        // Its faint contents say what it is: named only when pointed at or
+        // selected, as a shown element is. Only a hidden one keeps its name.
     }
     if (focus && active) {
         if (auto const& box = lastBoxes[static_cast<size_t>(*focus)]) {

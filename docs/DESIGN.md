@@ -515,14 +515,16 @@ first build):
   demos/hud-hide-v2.html after three in-game looks; the earlier rounds hid
   too much or said more for a hidden element than for a situational one):
   - Shown: contents and a frame (yellow for the game's own elements).
-  - Shows by situation: contents at half opacity, a white dashed frame and
-    its name. This replaces L-321's frame-only look, so every placed element
-    can be seen.
+  - Shows by situation: contents at half opacity and a white dashed frame.
+    This replaces L-321's frame-only look, so every placed element can be
+    seen.
   - Hidden: no contents, gray diagonal dots and a gray frame, and its name on
     a darker gray tag; contents at 30 % only while selected. Never yellow,
     which marks the game's own elements. It can still be moved and scaled.
   - Pointed at or selected, an element is drawn in full (a hidden one faint)
-    and named.
+    and named. Otherwise only a hidden element carries its name: where the
+    contents show, they say what the element is (decided 2026-11-14, after
+    situational elements' names repeated their contents' first line).
 - Names carry no state ("(hidden)" was dropped: it changed the tag's width).
   Tags hang from the element's anchored side (the right edge for an element
   anchored on the right), keep clear of other tags and of elements drawn in

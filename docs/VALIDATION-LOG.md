@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Showing and hiding HUD elements, seventh build (L-334, 2026-11-14)
+
+Build `3c1af87a`, DLL SHA-256
+`0d3fa58d339325d786cac805a74f667479fa7fcde7214843ac1acd8199af635d`, 1.26.60.05 Dev
+instance, the maintainer, with a screenshot of HUD layout.
+
+- The paper doll's switch sits right of its name and the name stays on the left; the chat
+  and right-anchored elements keep their switch sides.
+- Many situational elements showed both faint contents and a name tag repeating them
+  (Schematic HUD, target card, scoreboard); the maintainer chose names only for hidden
+  elements and on pointing or selecting.
+
 ## Showing and hiding HUD elements, sixth build (L-334, 2026-11-14)
 
 Build `d02e6002`, DLL SHA-256
