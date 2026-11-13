@@ -174,6 +174,8 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (!runtime.enabled() || ui::ownsInput()) return;
     // Sorting validates its container/text-input context in requestSort.
     if (action == input::Action::Sort) { inventory::requestSort(client); return; }
+    // Tooltips are in container screens, which the gameplay check below turns away.
+    if (action == input::Action::ItemDetailsMore) { inspection::setDetailsHeld(true); return; }
     if (action == input::Action::Settings && outsideWorldMenu(client.getScreenName(), client.getLocalPlayer() != nullptr)) {
         ui::open(client);
         return;
@@ -276,7 +278,6 @@ void executeAction(IClientInstance& client, input::Action action) {
     }
     if (action == input::Action::MinimapEnlarge) { map::setEnlarged(true); return; }
     if (action == input::Action::PlayerList) { information::playerList::setHeld(true); return; }
-    if (action == input::Action::ItemDetailsMore) { inspection::setDetailsHeld(true); return; }
     if (action == input::Action::RadarFaces) { map::setFacesHeld(true); return; }
     if (action == input::Action::TargetMeasure) { information::setCardFlip(information::CardFlip::Distance, true); return; }
     if (action == input::Action::TargetDetails) { information::setCardFlip(information::CardFlip::Details, true); return; }

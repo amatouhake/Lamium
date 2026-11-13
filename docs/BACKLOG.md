@@ -889,6 +889,11 @@ yet checked in game:
 - "Stored data" was Lamium's own word. The game has no player-facing name
   for it; its language file only says "NBT" (a command message), so the
   line and the key say NBT.
+Seen by the maintainer 2026-11-13 on `28d12745`: wrapped tags line up;
+the long form still never comes, held before or after the pointer reaches
+the item. A second gameplay-only check sat in `executeAction`
+(`Actions.cpp`), ahead of the line that sets the held state; the press is
+now handled before it, beside Sort. Not yet checked in game.
 Still open: whether Durability numbers, Food values, Work penalty and Item
 details become one group in the settings (the note above).
 

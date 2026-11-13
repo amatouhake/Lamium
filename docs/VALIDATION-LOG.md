@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item details, the held key again (2026-11-13)
+
+`28d12745`, local build, DLL SHA-256
+`93eccfd538094b61f8d38718bf8128f84fc840d972f57f5ffa1642ffe0b9a390`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- Tags over more than one line start at the same column.
+- The NBT key still does nothing in the inventory, with Alt or another key, pressed
+  while over an item or before moving onto it: the line stays "NBT: N entries".
+
 ## Item details, short form and the held key (2026-11-13)
 
 `83bddd4c`, local build, DLL SHA-256
