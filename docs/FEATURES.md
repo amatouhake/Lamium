@@ -316,7 +316,7 @@ Inside the game's item tooltip:
   in the game's words and colours. Under them: enchantability; a stack limit below 64 (above 1); the cooldown and the time the
   item takes to use, in seconds; how many items it smelts as fuel; then, darker, its
   ID (with "#N" for a data value other than 0), its item tags, and how many entries
-  its stored data has. While the stored data key is held (Alt by default) the count
+  its NBT has. While the NBT key is held (Alt by default, in container screens) the count
   gives way to the data: one line per top-level entry, a compound or list as its
   whole text on that line, cut at 60 characters; past 24 entries the rest is
   counted. Armor values and attack damage are the game's own lines and are not

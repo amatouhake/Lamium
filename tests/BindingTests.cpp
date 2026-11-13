@@ -50,6 +50,9 @@ void bindingTests() {
         && !actionAllowed(Action::Transfer, false, false)
         && actionAllowed(Action::Sort, false, true) && !actionAllowed(Action::Sort, true, false),
         "transfer toggle works in gameplay and containers while sort remains container-only");
+    check(actionAllowed(Action::ItemDetailsMore, false, true) && !actionAllowed(Action::ItemDetailsMore, true, false)
+        && sameInputContext(Action::ItemDetailsMore, Action::Sort) && !sameInputContext(Action::ItemDetailsMore, Action::Zoom),
+        "the tooltip's NBT key works where tooltips are, in a container, and only meets container keys");
     check(actionAllowed(Action::Settings, false, false, false, true) && !actionAllowed(Action::Zoom, false, false, false, true)
         && !actionAllowed(Action::Settings, false, false), "outside a world only the settings key opens (L-175)");
     check(lamium::outsideWorldMenu("ui://./hbui/index.html", false) && !lamium::outsideWorldMenu("ui://./hbui/index.html", true)

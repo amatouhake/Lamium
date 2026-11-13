@@ -856,15 +856,15 @@ time on bread and a milk bucket (1.6 s), dried kelp (0.8 s) and a crossbow
 Decided with the maintainer 2026-11-13 (the design talk), built the same
 day, not yet checked in game:
 - Two forms. Short, by default: the value lines, the ID and the tags as
-  before, and the stored data as one line with its count ("Stored data: 12
-  entries"). Long, while a key is held: the count gives way to the data.
+  before, and the stored data as one line with its count ("NBT: 12
+  entries", first worded "Stored data"). Long, while a key is held: the count gives way to the data.
 - The long form is the raw content, nothing left out, but not a tree:
   each top-level entry is one line, a compound or list as its whole text
   on that line, cut at 60 characters; at most 24 entries, then a count. A
   shulker box's items are one cut line: seeing them is the container
   preview's job. The indented tree is not taken for now.
-- The key is an action of its own ("Show stored data in tooltips while
-  held", `itemdetailsmore`), held, Alt by default. The agent's choice among
+- The key is an action of its own ("Show NBT in tooltips while held",
+  `itemdetailsmore`), held, Alt by default. The agent's choice among
   keys that all mean something in an inventory: Shift and Ctrl are held
   for nearly every transfer, Alt only for "every item of a kind" clicks,
   so the tooltip changes least often by accident. The maintainer is not
@@ -873,6 +873,22 @@ day, not yet checked in game:
   means is told in the setting's help, not in the tooltip.
 - No scrolling: with one line per entry it is not needed, and the wheel
   stays Inventory transfer's.
+Seen by the maintainer 2026-11-13 on `83bddd4c` (VALIDATION-LOG): the
+count line shows and Alt + click still moves every item of a kind, but the
+long form never came, with Alt or another key. Changed the same day, not
+yet checked in game:
+- The key was only allowed during gameplay, like most actions, and
+  tooltips are in container screens. It is now a container-only key, as
+  Sort is (`containerOnly` in `Binding.h`), so it also only meets
+  container keys in the Hotkeys conflict list. If the long form still does
+  not come, the game keeps a slot's tooltip text instead of asking each
+  frame, and the switch has to move to where the text is drawn.
+- Tags that wrap were ragged: the first row after the label, the others
+  indented two spaces. One row stays beside the label; more go under it,
+  every row indented alike.
+- "Stored data" was Lamium's own word. The game has no player-facing name
+  for it; its language file only says "NBT" (a command message), so the
+  line and the key say NBT.
 Still open: whether Durability numbers, Food values, Work penalty and Item
 details become one group in the settings (the note above).
 

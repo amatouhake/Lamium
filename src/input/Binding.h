@@ -295,14 +295,15 @@ inline Relation bindingRelation(Chord const& a, Chord const& b) {
     if (a == b) return Relation::Shared;
     return coversAll(a, b) || coversAll(b, a) ? Relation::Overlap : Relation::None;
 }
-// Transfer can be toggled in gameplay or a container; Sort is container-only.
+// Transfer can be toggled in gameplay or a container; Sort and the tooltip's NBT key are container-only.
+inline constexpr bool containerOnly(Action action) { return action == Action::Sort || action == Action::ItemDetailsMore; }
 inline bool sameInputContext(Action a, Action b) {
-    return a == Action::Transfer || b == Action::Transfer || (a == Action::Sort) == (b == Action::Sort);
+    return a == Action::Transfer || b == Action::Transfer || containerOnly(a) == containerOnly(b);
 }
 inline bool actionAllowed(Action action, bool gameplay, bool container, bool freeCamera = false, bool outsideWorld = false) {
     if (action == Action::Settings && outsideWorld) return true;
     if (action == Action::FreeCameraSpeedUp || action == Action::FreeCameraSpeedDown) return gameplay && freeCamera;
-    if (action == Action::Sort) return container;
+    if (containerOnly(action)) return container;
     if (action == Action::Transfer) return gameplay || container;
     return gameplay;
 }

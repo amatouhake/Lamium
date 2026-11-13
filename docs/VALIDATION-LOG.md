@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item details, short form and the held key (2026-11-13)
+
+`83bddd4c`, local build, DLL SHA-256
+`6824580d9abb9c2fa6fa9717302584c9e83efe0061d203097c16c68ea8359ebc`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- Enchanted armour and a shulker box with items show one line, "Stored data: N
+  entries", in place of the data.
+- Holding Alt does not bring the data: the count stays. The same with the action
+  bound to another key.
+- Alt + click (every item of a kind) moves items as before.
+- Tags over more than one line are not aligned: the first row follows the label, the
+  others start two spaces in.
+
 ## Suspicious stew effect lines (2026-11-13)
 
 `becfac62`, local build, DLL SHA-256

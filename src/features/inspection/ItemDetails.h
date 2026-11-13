@@ -102,10 +102,12 @@ inline std::vector<Line> lines(Item const& item) {
     if (item.useTicks > 0 && item.useTicks <= longestUse) value("itemDetails.useTime", number(item.useTicks / ticksPerSecond));
     if (item.burnTicks > 0) value("itemDetails.fuel", number(item.burnTicks / smeltTicks));
     if (!item.id.empty()) out.push_back({"", item.aux ? std::format("{} #{}", item.id, item.aux) : item.id, true});
-    bool first = true;
-    for (auto& row : wrapped(item.tags)) {
-        out.push_back({first ? "itemDetails.tags" : "", first ? std::move(row) : "  " + row, true});
-        first = false;
+    // One row sits beside the label; more go under it, all indented alike, since no count of spaces lines a
+    // row up with text after a label.
+    if (auto rows = wrapped(item.tags); rows.size() == 1) out.push_back({"itemDetails.tags", std::move(rows[0]), true});
+    else if (!rows.empty()) {
+        out.push_back({"itemDetails.tags", "", true});
+        for (auto& row : rows) out.push_back({"", "  " + row, true});
     }
     // Short by default: the data is counted. The long form tells each top-level entry on a line of its own, cut at
     // the width, so a shulker box's items are one line and not hundreds.

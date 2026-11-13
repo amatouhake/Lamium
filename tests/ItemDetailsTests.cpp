@@ -56,6 +56,11 @@ void itemDetailsTests() {
         check(out.size() == 4 && out[2] == Line{"", "display: " + std::string(dataWidth, 'x') + "\xE2\x80\xA6", true}
                   && out[3] == Line{"", "Damage: 3", true},
               "the long form tells each top-level entry on one line, cut at the width");
+        Item tagged{.tags = {std::string(30, 'a'), std::string(30, 'b')}};
+        auto rows = lines(tagged);
+        check(rows.size() == 3 && rows[0] == Line{"itemDetails.tags", "", true} && rows[1] == Line{"", "  " + std::string(30, 'a') + ", ", true}
+                  && rows[2] == Line{"", "  " + std::string(30, 'b'), true},
+              "tags that wrap go under their label, every row indented alike");
         Item big{.id = "x", .full = true};
         for (size_t i = 0; i < dataLines + 9; ++i) big.data.push_back({"k", "v"});
         auto cut = lines(big);
