@@ -71,7 +71,8 @@ published for whoever wants it. There is no "first release" gate.
 Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
-1. **Bugs first.** Open: L-227 (FreeCamera shows only the sky outside loaded
+1. **Bugs first.** Built, waiting for the in-game check: L-322 (Fake Offhand
+   key with its slot selected). Open: L-227 (FreeCamera shows only the sky outside loaded
    terrain; Research). What waits for more game symbols is collected in L-315.
    Parked: L-194 save corner marks, L-123 elytra pose, L-91 shield glint,
    L-132 inventory-screen movement, L-244 FreeCamera started inside a block,
@@ -202,6 +203,23 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
+
+### L-322 Fake Offhand: a key of its own does nothing while its slot is selected
+Kind: Ready. Reported by the maintainer 2026-11-13.
+Status: built 2026-11-13, not checked in game.
+With a binding that does not end on right click (L-292), pressing the key
+while the Fake Offhand slot itself is selected did nothing: every slot
+choice (`instantUseSlot`, `placementSlot`, `interactSlot`) refuses
+`selected == target`, which is right for a right-click binding (vanilla
+already uses the selected item) but leaves a key of its own dead.
+Built: `plainUse` (`FakeOffhandPlan.h`, tested). Such a press borrows
+nothing and sends the vanilla use edge, held until the key is released, so
+the selected item is used, placed or acts on the aimed block as a right
+click would. A right-click binding is unchanged.
+Check in game with the key on a non-right-click binding and the Fake
+Offhand slot selected: a block is placed (and repeats while held), a
+throwable is thrown, food is eaten while held, a chest opens; with another
+slot selected the key borrows as before.
 
 ### L-299 Screenless inventory moves can leave a slot stuck when client and server desync
 Kind: Research.
@@ -584,6 +602,18 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
+### L-323 Game HUD placement: boss bars
+Kind: Research, then Design. Asked for by the maintainer 2026-11-13.
+Game HUD placement moves and scales the chat, the paper doll and the
+scoreboard; add the boss bars as a fourth part with its own switch and its
+place in the layout editor. Today Lamium only hides them (`bossBarsBit` in
+`features/visuals/EffectVisibility.h`, matching `boss_health_panel` /
+`boss_hud_panel`). To find out first: which control carries the whole stack
+of bars, how its size changes with the number of bars and with the text
+above each bar, and whether moving it holds across screen and GUI scale
+changes as the other three parts do. Open choices after that: the anchor
+when the number of bars changes, and how it behaves with the hide switch.
+
 ### L-320 Highlight designated block types in the world
 Kind: Design. Maintainer's idea 2026-11-07 (multiplayer-session feedback).
 Designate block types (diamond ore, ancient debris, anything) and render
@@ -952,6 +982,13 @@ Asked by the maintainer the same day: hiding the game's list of contained
 item names in a shulker box's tooltip, since the preview shows the same.
 That exists: "Hide Shulker contents text" under Container previews, off by
 default. Whether it should be on by default is the maintainer's call.
+Decided by the maintainer 2026-11-13: on by default, since the shulker box
+preview is on by default and shows the same contents (a saved choice is
+kept; only installs without one change). The same day the rows were renamed
+from "Shulker" to "shulker box" in English and Japanese ("Shulker box
+previews", "Show empty shulker boxes", "Hide shulker box contents text" and
+their help), because "Shulker" alone reads as the mob; the Chinese rows
+already said "shulker box". Built 2026-11-13, not checked in game.
 Decided by the maintainer 2026-11-13 in that session, looking only at what
 each line shows and for whom, built the same day and confirmed by the
 maintainer on `e6562d2e` (VALIDATION-LOG):
@@ -2165,6 +2202,15 @@ Left of L-170: the result slot's yellow (not brought about), Survival
 (the 40-level refusal, the level's warning colour), the unbound key,
 servers, the unverified-version fallback, and the mark on a carried stack
 that the first version leaves out.
+Reported by the maintainer 2026-11-13 and built the same day (not checked
+in game): with something else than its own stack in an anvil slot, the
+marks other than the red "wrong" went away - the inventory mark of the
+stack that slot wants, and the empty other slot's tint when its stack was
+the one lying in the wrong slot. The inventory search took any filled slot
+as "its side is placed", and a stack lying in the other anvil slot did not
+count as at hand. Now a slot counts as placed only when it holds its own
+side, and the anvil's two slots count as at hand. The red stays as it was;
+no new mark or colour.
 - An item's work penalty in its tooltip is L-319's first line; not built
   here, it needs a setting and its place in the tooltip chosen.
 

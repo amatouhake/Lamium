@@ -145,6 +145,13 @@ it) while doing so.
   `std::mt19937`. Checked against the game's own
   `SlimeSpawnRules::checkSpawnRulesCallback` by the `slime_trace` build (see
   VALIDATION-LOG).
+- BarelyEnoughItems (BEI) (LGPL-3.0-or-later): named by the maintainer
+  2026-11-13 as a comparison for Lamium's item-icon rendering (L-91).
+  Its source was read in the maintainer's external research only; the
+  comparison stays in external research notes, and whoever writes
+  Lamium code does not open it. Lamium's ItemIcon predates BEI's first
+  release (2026-11-01) and was written independently from the game's
+  own slot rendering.
 
 If reference-only source later becomes incorporated source, move it to group 2
 in the same change that first imports code. Record the upstream repository and
