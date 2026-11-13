@@ -102,7 +102,7 @@ feature does in detail: [Features](docs/FEATURES.md).
 | Night Vision | Brighten the view locally, optionally without dark rings | — | Off |
 | Hide Offhand Item | Hide the offhand item (shields too) in first person | — | Off |
 | Hide effects | Hide rain, particles, boss bars, nausea, fogs, the portal screen | — | Off |
-| Connected Textures *Exp.* | Glass, panes, bookshelves and sandstone without seams | — | Off |
+| Connected Textures | Glass, panes, bookshelves and sandstone without seams | — | Off |
 | Block highlight *Exp.* | Make block types you pick glow in rainbow colors, where they are visible | — | Off |
 
 ### HUD & overlays

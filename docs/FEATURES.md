@@ -84,7 +84,7 @@ Sound and gameplay stay unchanged.
 - Underwater, lava and powder snow fog.
 - The distance fog on land, in the Nether and in the End.
 
-### Connected Textures (experimental)
+### Connected Textures
 
 Glass, glass panes, bookshelves and sandstone next to the same block draw as
 one surface, without seams. Glass, bookshelves and sandstone keep the

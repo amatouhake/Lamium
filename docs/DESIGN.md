@@ -180,8 +180,9 @@ menu and HUD editor keep GUI units.
   server resource packs lose it. Kept: the maps, map marks and Schematics
   (open bugs), Inventory transfer (L-299), Death layout restore (L-240),
   Waypoints (L-328 changes the death point), Radar (its mob icons are to be
-  fixed, L-330), Block highlight and Enchantment order (too new), and Connected Textures
-  (taken off and put back the same day: its glass pane edges, L-331).
+  fixed, L-330), Block highlight and Enchantment order (too new). Connected Textures lost
+  it, got it back the same day over its glass pane edges (L-331) and lost
+  it again once that was fixed and confirmed.
 
 ### Text and languages (Decided)
 
