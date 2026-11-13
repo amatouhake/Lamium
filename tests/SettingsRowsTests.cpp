@@ -152,6 +152,13 @@ void settingsRowsTests() {
           "Hide effects has a master switch with its toggle key and nine independent child switches");
     Settings effectSettings;
     check(ui::effectsPaused("hideEffects",effectSettings), "the master effect switch defaults off");
+    {
+        Settings off;
+        off.information.hud = false; off.inspection.containerPreviews = false; off.map.waypoints = false;
+        check(ui::effectsPaused("infoHud",off) && ui::effectsPaused("previews",off) && !ui::effectsPaused("previews",Settings{})
+              && !ui::effectsPaused("waypoints",off) && !ui::effectsPaused("mapText",off),
+              "every switched-off feature dims its child settings; waypoints keep recording a death point (L-319)");
+    }
     effectSettings.visuals.hideEffects = true;
     check(!ui::effectsPaused("hideEffects",effectSettings) && !ui::effectsPaused("freecamera",effectSettings),
           "children show no paused state once the master is on");

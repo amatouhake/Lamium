@@ -163,7 +163,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"paused.notice", "Lamium 尚未在 Minecraft {} 上驗證。\n已暫停: {}"},
     {"paused.tip", "Lamium 尚未在 Minecraft {} 上驗證。標示為已暫停的功能中，依賴遊戲版本的部分維持原版行為；其餘部分正常運作。"},
     {"help.paused", "Lamium 尚未在此 Minecraft 版本上驗證，因此已暫停：依賴遊戲版本的部分維持原版行為。"},
-    {"help.effectsPaused", "此功能的總開關已關閉。在開啟總開關之前，個別開關和按鍵只會變更已儲存的選擇。"},
+    {"help.effectsPaused", "總開關已關閉：此設定會保留，但在開啟該功能之前不起作用。"},
     {"hideWeather", "雨和雪"},
     {"hideParticles", "粒子"},
     {"hideBossBars", "Boss 血條"},

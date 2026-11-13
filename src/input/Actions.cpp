@@ -94,7 +94,8 @@ bool toggleState(IClientInstance& client, Settings const& value, input::Action a
 void emitToggleToast(IClientInstance& client, input::Action action, Settings const& value) {
     auto name = toggleFeatureName(action);
     if (auto mode = autoModeText(value, action)) name += ": " + *mode;
-    if (ui::effectsPaused(input::actions[static_cast<size_t>(action)].feature,value))
+    // Only a child's key: the feature's own key is the main switch.
+    if (ui::shownOnOption(action) && ui::effectsPaused(input::actions[static_cast<size_t>(action)].feature,value))
         name += " (" + ui::translated("effectsPaused") + ")";
     bool on = toggleState(client, value, action);
     auto level = pausedLevel(input::actions[static_cast<size_t>(action)].feature);

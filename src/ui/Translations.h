@@ -166,7 +166,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"paused.notice", "Lamium is not verified on Minecraft {} yet.\nPaused: {}", "Lamium は Minecraft {} で未確認です。\n停止中: {}"},
     {"paused.tip", "Lamium is not verified on Minecraft {} yet. Features marked paused keep vanilla behavior where they depend on the game version; the rest works.", "Lamium は Minecraft {} での動作を確認していません。「停止中」の機能は、ゲームのバージョンに依存する部分がバニラの動作のままになります。それ以外は動きます。"},
     {"help.paused", "Paused on this Minecraft version, which Lamium is not verified on yet: the part that depends on the game version stays vanilla.", "Lamium が未確認の Minecraft のバージョンのため停止中です。ゲームのバージョンに依存する部分はバニラの動作のままになります。"},
-    {"help.effectsPaused", "This feature's main switch is off. Individual switches and keys only change the saved selections until it is turned on.", "この機能の全体スイッチがオフです。個別のスイッチやキーは選択だけを変更し、全体をオンにするまで効果はありません。"},
+    {"help.effectsPaused", "Main switch off: this setting is kept but does nothing until the feature is turned on.", "全体スイッチがオフです。この設定は保たれますが、機能をオンにするまで効きません。"},
     {"hideWeather", "Rain and snow", "雨・雪"},
     {"hideParticles", "Particles", "パーティクル"},
     {"hideBossBars", "Boss bars", "ボスバー"},

@@ -636,8 +636,6 @@ std::string baseDescription() {
     if (!valid(selected)) return query.value().find_first_not_of(' ') != std::string::npos
         ? translated("noResultsFor", query.value()) : std::string{};
     auto const& entry = rows[selected];
-    if (entry.child() && effectsPaused(entry.feature->id,Runtime::instance().preferences()))
-        return translated("help.effectsPaused");
     switch (entry.kind) {
     case RowKind::Feature: {
         auto text = translated(entry.feature->description);
@@ -653,6 +651,8 @@ std::string baseDescription() {
             auto const& range = *entry.option->numeric;
             text += "\n" + translated("numberRangeLine", range.minimum, range.maximum);
         }
+        // The setting's own help stays readable under the note.
+        if (effectsPaused(entry.feature->id,Runtime::instance().preferences())) text = translated("help.effectsPaused") + "\n" + text;
         return text;
     }
     case RowKind::Action: {
@@ -1030,8 +1030,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             drawGuide(context,y,entry.lastChild);
             auto value = entry.option->read(preferences);
             auto name = splitLabel(translated(entry.option->label)).name;
+            // Dimmed, the name as it is: the footer says why.
             bool paused = effectsPaused(entry.feature->id,preferences);
-            if (paused) name += " (" + translated("effectsPaused") + ")";
             if (editingRow) {
                 label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(name),palette::dim);
             } else if (auto flag = std::get_if<bool>(&value)) {

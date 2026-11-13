@@ -990,6 +990,18 @@ by the maintainer on `988806af` (VALIDATION-LOG):
   for every feature; it now says "this feature".
 Known and left: the toggle keys only work outside screens, so a key is
 pressed before the inventory is opened.
+Seen by the maintainer on `988806af`, three doubts, answered the same day:
+- The toast of a child's key drew the main switch's state. Fixed
+  (`cd71814f`) for every key that sits on a child switch's row.
+- "(Main switch off)" was added to the child's name. Decided: names are not
+  rewritten; the row is dimmed and the footer says why (DESIGN, Components).
+- Only Hide effects, Game HUD placement and Item details dimmed their
+  children. Decided: every feature with a switch does. Checked in code for
+  the children that might act with the feature off (the stew preview of
+  Saturation, the death point of Waypoints, the mark layers of Map marks,
+  the hide options of Info HUD, Debug View and Status effects); only the
+  death point does, so Waypoints is left undimmed. The rest of the child
+  settings were not read one by one. Not yet checked in game.
 Still open: the enchantability wording if the help text is not enough.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether

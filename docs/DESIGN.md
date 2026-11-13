@@ -122,6 +122,12 @@ menu and HUD editor keep GUI units.
   No "ON/OFF" words and no check boxes.
 - **Key caps** for bindings. The key column never shows Hold/Toggle/Press.
 - **Steppers**: `− value +` for numbers, `◀ value ▶` for choices.
+- (Decided 2026-11-13, L-319) While a feature's switch is off, its child
+  setting rows are drawn dimmed in every feature. Their names do not change
+  and they stay editable; the footer says "Main switch off" above the
+  setting's own help, and the toast of a child's key adds it after the name.
+  Command rows (open a screen, do now) are not dimmed. Waypoints is the one
+  exception: a death point is recorded while it is off.
 - **Child settings** are indented with a vertical guide line. Expanding or
   collapsing keeps the clicked row where it was. The wheel scrolls without
   moving the selection.

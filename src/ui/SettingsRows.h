@@ -220,10 +220,18 @@ inline std::optional<std::string_view> optionWarning(std::string_view option, Se
     if (option == "inventory.fakeOffhandSlot" && (tool || weapon)) return "warning.fakeOffhandSlotFetch";
     return {};
 }
-// A group's main switch is off: its selections are kept but do nothing.
-inline bool effectsPaused(std::string_view feature, Settings const& value) {
-    return (feature == "hideEffects" && !value.visuals.hideEffects) || (feature == "gameHud" && !value.information.gameHud)
-        || (feature == "itemDetails" && !value.inspection.itemTooltip);
+// A feature's switch is off: its child settings are kept but do nothing (drawn dimmed, L-319).
+inline bool effectsPaused(std::string_view id, Settings const& value) {
+    // A death point is recorded while waypoints are switched off.
+    if (id == "waypoints") return false;
+    for (auto const& feature : features) {
+        if (feature.id != id || feature.toggle.empty()) continue;
+        if (auto option = settings::find(feature.toggle)) {
+            auto current = option->read(value);
+            if (auto state = std::get_if<bool>(&current)) return !*state;
+        }
+    }
+    return false;
 }
 
 // MapCache: the world map's saved data for this world, with a delete button.
