@@ -12,6 +12,31 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Issue #32: the client holds no structure spawn areas (2026-11-13)
+
+`a163e4fa` built with `--spawn_area_trace=y`, DLL SHA-256
+`9aeb72e032ed9d26cc2f5488b31187d96e243edc73bef2a2722cc63222e247aa`, 1.26.60.05 Dev
+instance, a local world, run by the maintainer; the log read by the agent. The trace
+counts, for the 17 x 17 chunks around the player, what the client's own chunks hold and
+what the chunks of the game's built-in server hold (same process, its own level).
+
+- At a pillager outpost (around chunk 97, 353). Server: registry 9 structure types, 20
+  boxes, 20 static spawn areas, 9 spawn overrides, name `minecraft:pillager_outpost`.
+  Client: 0 of each, no name.
+- At an ocean monument beside a trial chamber (around chunk -56, 395). Server: 41 types,
+  177 boxes, 50 static and 127 dynamic spawn areas, 41 overrides, names
+  `minecraft:monument` and `minecraft:trial_chambers`. Client: 0 of each.
+- The older list `LevelChunk::mSpawningAreas` was empty on both sides at both places
+  (two earlier trace builds the same evening, `9d873103` and `d3970cdb`, read only it).
+
+So on 26.60 the spawn areas live in the chunk's structure registry
+(`LevelChunkVolumeData::mDataRegistry`), the server side of a local world has them, and
+the client's chunks do not receive them even there. The other mod the reporter named
+works in local worlds only, which fits reading the built-in server.
+Not checked: a dedicated server. The client's chunks arrive from a local world's server
+and from a remote one by the same path, so the same is expected, not observed. The
+Nether (fortresses) was not visited.
+
 ## Connected Textures without the Experimental badge (2026-11-13)
 
 `17d41635`, local build, DLL SHA-256

@@ -177,9 +177,11 @@ one (L-305).
 Trace options are not built in CI. Of the existing ones only `transfer_trace`
 was built on 26.60 (L-305); build the one you need before relying on it.
 `spawn_area_trace` (issue #32, built on 26.60 2026-11-13) has no hook and so
-no inventory entry: it reads `LevelChunk::mSpawningAreas` of the chunks around
-the player and logs them. The member's place is not checked by a rebuild; a
-list longer than 64 is reported as unreadable.
+no inventory entry: it reads `LevelChunk::mSpawningAreas` and the storages of
+`LevelChunkVolumeData::mDataRegistry` for the chunks around the player, on the
+client and on a local world's built-in server, and logs the counts. The
+members' places are not checked by a rebuild; counts too large to be real are
+left out. Its result is in VALIDATION-LOG (2026-11-13).
 
 ## Inventory
 
