@@ -7,6 +7,7 @@
 #include "features/inspection/TooltipGlyphs.h"
 #include "features/inspection/ItemDetails.h"
 #include "ui/Widgets.h"
+#include "mc/client/gui/controls/UIControl.h"
 #include "mc/deps/nbt/CompoundTag.h"
 #include "mc/deps/nbt/CompoundTagVariant.h"
 #include "mc/deps/nbt/ListTag.h"
@@ -260,7 +261,9 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
     glyphDraw.reset();
     // The other form of Lamium's text when the key changed after the game took the text: its text and box for this
     // one draw, put back right after. On a game this was not checked on, the text follows the key at the next hover.
-    std::optional<std::pair<std::string, glm::vec2>> kept;
+    // The box is the hover control's: its size, and its place so that a longer text stays on the screen.
+    struct Kept { std::string text; glm::vec2 box, size, at; };
+    std::optional<Kept> kept;
     try {
         if (versionSensitiveAllowed(capabilities::Id::TooltipForms))
             if (auto const* other = otherForm(*mFormattedContent, detailsHeld.load())) {
@@ -273,12 +276,17 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
                     }
                     return most;
                 };
-                glm::vec2 const box = mBoxDimensions;
-                auto const next = details::resized({box.x, box.y}, widest(*mFormattedContent), details::lineCount(*mFormattedContent),
+                glm::vec2 const size = *owner.mSize, at = *owner.mCachedPosition;
+                auto const next = details::resized({size.x, size.y}, widest(*mFormattedContent), details::lineCount(*mFormattedContent),
                                                    widest(*other), details::lineCount(*other), tooltip::lineHeight);
-                kept.emplace(*mFormattedContent, box);
+                // The screen is the outermost control.
+                glm::vec2 screen = size + at;
+                for (auto parent = owner.mParent.lock(); parent; parent = parent->mParent.lock()) screen = *parent->mSize;
+                kept = Kept{*mFormattedContent, *mBoxDimensions, size, at};
                 *mFormattedContent = *other;
                 mBoxDimensions = glm::vec2{next.width, next.height};
+                owner.mSize = glm::vec2{next.width, next.height};
+                owner.mCachedPosition = glm::vec2{details::keptInside(at.x, next.width, screen.x), details::keptInside(at.y, next.height, screen.y)};
             }
     } catch (...) {
     }
@@ -286,8 +294,10 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
     origin(context, client, owner, pass);
     tooltipRendering = false;
     if (kept) {
-        *mFormattedContent = std::move(kept->first);
-        mBoxDimensions = kept->second;
+        *mFormattedContent = std::move(kept->text);
+        mBoxDimensions = kept->box;
+        owner.mSize = kept->size;
+        owner.mCachedPosition = kept->at;
     }
     try {
         if (!glyphDraw) return;

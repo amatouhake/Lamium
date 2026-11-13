@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item details, the form swapped while drawn (2026-11-13)
+
+`bde4219b`, local build, DLL SHA-256
+`10118dbbf9183be399f607121c534e684b7f1e23b34f257323f24c5c220c9027`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- Without moving the pointer, pressing Alt brings the long form at once and releasing
+  it brings back "NBT: N entries".
+- The box does not follow: it keeps the size made for the text the game had, so the
+  long form's text runs out of it to the right and below, near the screen's edges too.
+- A named bread (food with NBT) keeps its food icons in place in the long form.
+
 ## Item details, the long form (2026-11-13)
 
 `f3b0e62f`, local build, DLL SHA-256

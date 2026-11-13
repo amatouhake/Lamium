@@ -64,6 +64,8 @@ void itemDetailsTests() {
         auto grown = resized({100, 50}, 90, 4, 150, 9, 10), shrunk = resized({160, 100}, 150, 9, 90, 4, 10);
         check(grown.width == 160 && grown.height == 100 && shrunk.width == 100 && shrunk.height == 50 && lineCount("a\nb") == 2,
               "a tooltip's box follows the other text's lines and widest line, keeping its room around the text");
+        check(keptInside(50, 100, 400) == 50 && keptInside(350, 100, 400) == 300 && keptInside(10, 500, 400) == 0,
+              "a grown box moves back inside the screen, never past its start");
         Item big{.id = "x", .full = true};
         for (size_t i = 0; i < dataLines + 9; ++i) big.data.push_back({"k", "v"});
         auto cut = lines(big);

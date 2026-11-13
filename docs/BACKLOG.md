@@ -909,6 +909,14 @@ the same day, not yet checked in game:
   a long form opened near the screen's edge may run off it until the
   pointer moves. Gated by a capability of its own (`TooltipForms`); on a
   game that is not verified the form follows the key at the next hover.
+Seen by the maintainer 2026-11-13 on `bde4219b` (VALIDATION-LOG): the
+form changes at once on pressing and releasing, the food icons stay in
+place in the long form, but the box keeps the size of the text the game
+had: `mBoxDimensions` is not what the draw uses. Changed the same day, not
+yet checked in game: the hover control's own `mSize` is set to the new box
+and its `mCachedPosition` moved back so the box ends inside the screen
+(the outermost parent's size; pure `details::keptInside`), both put back
+after the draw, as Scoreboard position does with its control.
 Asked by the maintainer the same day: hiding the game's list of contained
 item names in a shulker box's tooltip, since the preview shows the same.
 That exists: "Hide Shulker contents text" under Container previews, off by
