@@ -126,7 +126,7 @@ the package/SDK loader-policy alignment in CI.
 | FreeCamera hide (hand pass) | `FreeCameraHide.cpp` | hand drawn | FreeCamera and independent HUD paths |
 | FreeCamera hide (HUD pass) | `FreeCameraHide.cpp` | whole HUD drawn | FreeCamera and hand hiding |
 | Hide effects (particle passes) | `HideEffects.cpp` | particles drawn | independent hide selections |
-| Hide effects (boss bar passes) | `HideEffects.cpp` | boss bars drawn | independent hide selections |
+| Hide boss bars (boss bar passes) | `HideEffects.cpp` `BossBarPosition.cpp` | boss bars drawn | Hide effects; boss bar placement; the other parts of Game HUD placement |
 | Schematic ghosts (blended pass) | `GhostRenderer.cpp` | no blended ghost pass | ordinary ghosts and checking |
 | Schematic ghosts (actor lighting) | `GhostActors.cpp` | vanilla ghost actor lighting | ghost rendering and checking |
 | Schematic pick (creative inventory give) | `GhostPick.cpp`, `InventoryMove.cpp` (`giveCreative`) | a creative ghost pick of a block not carried does nothing | picks of carried blocks, survival picks |
@@ -233,7 +233,7 @@ Hooks: `DebugPositionSprite`, `DebugPositionText`, `DebugPaperDoll`
 Meaning: the vanilla HUD's position panel is named `player_position` (label
 `player_position_text`) and the HUD paper doll is drawn by
 `HudPlayerRenderer`, its control named `hud_player` (where the Info HUD
-covers it, L-145). A renamed control only stops the hiding. With Paper
+covers it, L-145, or Game HUD placement hides it, L-334). A renamed control only stops the hiding. With Paper
 doll position on (gated, L-309) the same hook draws the doll where the HUD
 layout puts it: `HudPlayerRenderer` centers the doll in `hud_player` and
 sizes it by the control, so the control's cached position and, for a scale
@@ -261,7 +261,8 @@ controls. The first part drawn in a frame measures the box from the grid's
 top to its lowest shown item; every part is translated (and scaled) for its
 one draw from that box as for the scoreboard, then restored. Gated (Boss bar
 position); a renamed grid, a clipping panel on the way or invalid geometry
-leaves it vanilla. Hide boss bars skips the same draws whatever the hook
+leaves it vanilla. Hidden boss bars (L-334) are skipped here as well as by
+`HideEffects.cpp`. Hide boss bars skips the same draws whatever the hook
 order. The first measured box is logged once. Built 2026-11-14 (L-323), not
 yet checked in game.
 
@@ -276,7 +277,8 @@ position is translated for its one draw from the sidebar's measured box, then
 restored; a scale other than 100 % sets the control's size and a text's font
 scale and line height for that draw as the chat does. Gated (Scoreboard position); a renamed sidebar, a clipping panel on
 the way (logged once when it is the sidebar itself) or invalid geometry
-leaves it vanilla. Checked locally on `f90e1f61` (L-321).
+leaves it vanilla. Checked locally on `f90e1f61` (L-321). A part hidden from Game HUD placement (L-334) is recognized the same way
+and its draw is skipped instead of moved.
 
 ### `src/features/information/ChatPosition.cpp`
 Hooks: `ChatHudRender`, `ChatTextRender`, `ChatBackgroundRender`
@@ -290,7 +292,9 @@ and, for a text, `TextComponent::mFontScaleFactor` and `mLineHeight` for the
 one draw and restore them: the layout's line breaks and spacing carry over
 (checked with the removed `chat_scale_trace` build, L-321).
 Gated (Chat position); renamed controls, clipping, invalid geometry or an
-ancestor walk beyond 16 controls leave it vanilla. Basic scope and the
+ancestor walk beyond 16 controls leave it vanilla. A part hidden from Game HUD placement (L-334) is recognized the same way
+and its draw is skipped instead of moved.
+Basic scope and the
 message-expiry/long-message regression passed on `b28a40d` (L-174);
 broader coverage remains in VALIDATION.
 

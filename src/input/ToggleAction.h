@@ -2,6 +2,13 @@
 #include "settings/Settings.h"
 namespace lamium::input {
 inline bool toggleAction(Settings& value, Action action) {
+    // Hide boss bars (L-334): hiding brings the group on for the boss bars
+    // alone if needed; showing only shows them.
+    if (action == Action::HideBossBars) {
+        if (value.information.hidesBossBars()) value.information.showBossBars = true;
+        else value.information.hideBossBarsAlone();
+        return true;
+    }
     bool* field = nullptr;
     switch (action) {
     case Action::BreakingRestriction: field = &value.interaction.breaking; break;
@@ -14,7 +21,6 @@ inline bool toggleAction(Settings& value, Action action) {
     case Action::HideOffhand: field = &value.visuals.hideOffhand; break;
     case Action::HideWeather: field = &value.visuals.hideWeather; break;
     case Action::HideParticles: field = &value.visuals.hideParticles; break;
-    case Action::HideBossBars: field = &value.visuals.hideBossBars; break;
     case Action::HideNausea: field = &value.visuals.hideNausea; break;
     case Action::HideWater: field = &value.visuals.hideWater; break;
     case Action::HideLava: field = &value.visuals.hideLava; break;

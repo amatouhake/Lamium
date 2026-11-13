@@ -28,7 +28,7 @@ struct Seen { float width, height, screenW, screenH; };
 std::optional<Seen> seen;
 std::mutex seenMutex;
 std::atomic<bool> warnedClip{false};
-struct Frame { float width, height; ui::HudElement element; };
+struct Frame { float width, height; ui::HudElement element; bool hidden = false; };
 thread_local Frame const* active = nullptr;
 // No game references or control changes: layout stays entirely vanilla.
 struct RenderScope {
@@ -49,7 +49,7 @@ struct RenderScope {
         if (foregroundProcess != GetCurrentProcessId()) return;
         if (!versionSensitiveAllowed(capabilities::Id::ScoreboardPosition)) return;
         glm::vec2 size = *view.mSize;
-        frame = Frame{size.x, size.y, settings->hud.scoreboard};
+        frame = Frame{size.x, size.y, settings->hud.scoreboard, !settings->information.showScoreboard};
         active = &*frame;
     }
 };
@@ -59,6 +59,7 @@ struct Translation {
     UIControl* owner = nullptr;
     glm::vec2 position{}, size{};
     float scale = 1;
+    bool skip = false; // A part of a hidden scoreboard: not drawn (L-334).
     ~Translation() {
         if (!owner) return;
         owner->mCachedPosition = position;
@@ -80,6 +81,7 @@ struct Translation {
                 Runtime::instance().self().getLogger().warn("Scoreboard position: the sidebar clips its parts; it stays vanilla");
             return;
         }
+        if (active->hidden) { skip = true; return; }
         if (panel->mCachedPositionDirty) panel->_setCachedPosition();
         if (control.mCachedPositionDirty) control._setCachedPosition();
         glm::vec2 at = *panel->mCachedPosition, size = *panel->mSize;
@@ -113,6 +115,7 @@ LL_TYPE_INSTANCE_HOOK(ScoreboardTextRender, ll::memory::HookPriority::Normal, Te
     &TextComponent::$render, void, UIRenderContext& context) {
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
+    if (translation.skip) return;
     float const font = mFontScaleFactor, line = mLineHeight;
     bool const scaled = translation.owner && translation.scale != 1;
     if (scaled) {
@@ -129,6 +132,7 @@ LL_TYPE_INSTANCE_HOOK(ScoreboardBackgroundRender, ll::memory::HookPriority::Norm
     &SpriteComponent::render, void, UIRenderContext& context) {
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
+    if (translation.skip) return;
     origin(context);
 }
 std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, float width, float height,

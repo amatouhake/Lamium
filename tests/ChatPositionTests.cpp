@@ -4,6 +4,8 @@
 #include "settings/SettingsStore.h"
 #include "input/ToggleAction.h"
 #include "app/PausedFeatures.h"
+#include "settings/Options.h"
+#include <algorithm>
 #include <limits>
 #include <chrono>
 void check(bool, char const*);
@@ -158,6 +160,38 @@ void chatPositionTests() {
         auto roundTrip = readSettings(path);
         std::filesystem::remove(path);
         check(!roundTrip.information.bossBarPosition && roundTrip.hud.bossBars.scale == 125, "the boss bars' settings save");
+    }
+    // Showing and hiding from HUD layout (L-334).
+    {
+        Settings shown;
+        check(!settings::hudShown(shown, HudElementId::Chat) && !settings::hudShown(shown, HudElementId::BossBars)
+              && !settings::hudShown(shown, HudElementId::PlayerList),
+              "a game part not placed and the player list have no show/hide switch");
+        check(settings::hudShown(shown, HudElementId::Info) == std::optional(false)
+              && settings::hudShown(shown, HudElementId::Toast) == std::optional(true),
+              "a Lamium element's show/hide is its own feature switch");
+        shown.information.gameHud = true;
+        *settings::hudShownField(shown, HudElementId::Scoreboard) = false;
+        *settings::hudShownField(shown, HudElementId::Minimap) = true;
+        check(shown.information.hidesScoreboard() && !shown.information.hidesChat() && shown.map.minimap
+              && settings::hudShown(shown, HudElementId::Scoreboard) == std::optional(false),
+              "the switch of a placed game part hides only that part");
+        shown.information.scoreboardPosition = false;
+        check(!shown.information.hidesScoreboard() && !settings::hudShown(shown, HudElementId::Scoreboard),
+              "a part left out of the group is the game's again, shown");
+        shown.information.scoreboardPosition = true;
+        shown.information.gameHud = false;
+        check(!shown.information.hidesScoreboard(), "the main switch off shows every part");
+        auto hiddenSaved = decodeSettings(R"({"information":{"gameHud":true,"showChat":false,"showPaperDoll":false}})");
+        check(hiddenSaved.information.hidesChat() && hiddenSaved.information.hidesPaperDoll()
+              && !hiddenSaved.information.hidesScoreboard() && !hiddenSaved.information.hidesBossBars(),
+              "the parts' show values load");
+        using hud_editor::hatch;
+        auto lines = hatch({10, 20, 12, 6});
+        check(!lines.empty() && std::all_of(lines.begin(), lines.end(), [](auto const& b) {
+                  return b.x >= 10 && b.x + b.w <= 22 && b.y >= 20 && b.y + b.h <= 26;
+              }), "the hatching stays inside the element");
+        check(hatch({0, 0, 2000, 2000}).size() == 4000 && hatch({0, 0, 0, 5}).empty(), "the hatching is bounded");
     }
     check(paused::onUnverified("gameHud") == paused::Level::Partly
           && std::ranges::find(active, "gameHud") != active.end(),

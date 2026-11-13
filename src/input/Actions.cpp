@@ -62,7 +62,7 @@ bool toggleState(IClientInstance& client, Settings const& value, input::Action a
     if (action == input::Action::BreakingRestriction) return value.interaction.breaking;
     if (action == input::Action::HideWeather) return value.visuals.hideWeather;
     if (action == input::Action::HideParticles) return value.visuals.hideParticles;
-    if (action == input::Action::HideBossBars) return value.visuals.hideBossBars;
+    if (action == input::Action::HideBossBars) return value.information.hidesBossBars();
     if (action == input::Action::HideNausea) return value.visuals.hideNausea;
     if (action == input::Action::HideWater) return value.visuals.hideWater;
     if (action == input::Action::HideLava) return value.visuals.hideLava;
@@ -136,6 +136,7 @@ void emitToggleToast(IClientInstance& client, input::Action action, Settings con
         case input::Action::TogglePaperDollPosition: any = stopped(Id::PaperDollPosition); break;
         case input::Action::ToggleScoreboardPosition: any = stopped(Id::ScoreboardPosition); break;
         case input::Action::ToggleBossBarPosition: any = stopped(Id::BossBarPosition); break;
+        case input::Action::HideBossBars: any = stopped(Id::HideBossBars); break;
         default:
             for (auto const& d : capabilities::definitions)
                 if (d.feature == "gameHud" && paused::requested(d.id, value) && stopped(d.id)) any = true;

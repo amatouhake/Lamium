@@ -89,6 +89,8 @@ void toggleSwitch(MinecraftUIRenderContext&, float x, float y, bool on);
 // batched into one flush. Rectangles are x, y, width, height.
 struct ImageRect { float x, y, w, h; };
 void images(MinecraftUIRenderContext&, std::string_view texture, std::vector<ImageRect> const& rects, float opacity = 1);
+// Many rectangles of one color, flushed once (the editor's hatching, L-334).
+void fills(MinecraftUIRenderContext&, std::vector<ImageRect> const& rects, Rgb color, float opacity = 1);
 // One rectangle with an explicit sub-rectangle of the texture (uv in 0-1);
 // used for block textures whose source image holds several animation frames.
 // `tint` multiplies the texture (water's gray texture, L-294).

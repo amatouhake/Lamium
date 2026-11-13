@@ -10,16 +10,18 @@
 #include "features/information/InfoLines.h"
 #include "settings/Options.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
+#include <array>
 #include <format>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace lamium::ui::hud_editor {
 namespace {
 // Everything clickable is laid out while drawing and hit-tested on the next
 // press, so drawing and hit testing can never disagree.
-enum class Command { Done, Reset, ResetAll, OpenSnap, OpenLines, Snap, ScaleDown, ScaleUp, ScaleEdit, Background, Shadow, LineSwitch, LineUp, LineDown };
+enum class Command { Done, Reset, ResetAll, OpenSnap, OpenLines, Snap, ScaleDown, ScaleUp, ScaleEdit, Background, Shadow, LineSwitch, LineUp, LineDown, Shown };
 struct Control { Box box; Command command; int arg = 0; std::string line; };
 enum class Popover { None, Snap, Lines };
 // `under` is what lay under the press; `cycle` when the pressed element was
@@ -50,6 +52,9 @@ std::optional<LinesTrack> linesTrack;
 bool scrolling = false;
 float screenW = 0, screenH = 0;
 bool resetArmed = false; // "Reset layout" asks for a second press.
+// The pointed-at element's name tag as drawn: pointing at it keeps the
+// element pointed at, so its show/hide check can be reached (L-334).
+std::optional<std::pair<HudElementId, Box>> hoverTag;
 
 constexpr std::array<std::string_view, 9> growLabels{
     "grow.topLeft", "grow.topCenter", "grow.topRight", "grow.middleLeft", "grow.center",
@@ -314,6 +319,14 @@ void run(Control const& control) {
     resetArmed = false;
     if (control.command == Command::OpenSnap) { popover = popover == Popover::Snap ? Popover::None : Popover::Snap; return; }
     if (control.command == Command::OpenLines) { popover = popover == Popover::Lines ? Popover::None : Popover::Lines; return; }
+    // The check on a name tag: the element's own switch (L-334).
+    if (control.command == Command::Shown) {
+        if (auto* field = settings::hudShownField(value, static_cast<HudElementId>(control.arg))) {
+            *field = !*field;
+            save(value);
+        }
+        return;
+    }
     if (!selected) return;
     auto id = *selected;
     switch (control.command) {
@@ -365,6 +378,7 @@ void reset() {
     linesFirst = 0;
     resetArmed = false;
     lastBoxes = {};
+    hoverTag.reset();
     controls.clear();
     popoverBox.reset();
     linesTrack.reset();
@@ -402,7 +416,17 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     // frame's boxes: an element is the same size framed or drawn.
     bool overUi = popoverBox && popoverBox->contains(pointerX, pointerY);
     auto hovered = drag || resize || overUi ? std::nullopt : topmost(lastBoxes, pointerX, pointerY);
-    auto framed = [&](HudElementId id) { return hudConditional(id) && focus != id && hovered != id; };
+    if (!drag && !resize && !overUi && hoverTag && hoverTag->second.contains(pointerX, pointerY)) hovered = hoverTag->first;
+    // Switched off from the editor or the settings (L-334): drawn faint and
+    // hatched, never as the dashed frame of an element that shows only by
+    // situation, so the two read apart.
+    std::array<bool, std::tuple_size_v<Boxes>> off{};
+    for (auto id : drawOrder) {
+        auto shown = settings::hudShown(value, id);
+        off[static_cast<size_t>(id)] = shown && !*shown;
+    }
+    auto isOff = [&](HudElementId id) { return off[static_cast<size_t>(id)]; };
+    auto framed = [&](HudElementId id) { return hudConditional(id) && !isOff(id) && focus != id && hovered != id; };
     for (auto id : drawOrder) preview.outline[static_cast<size_t>(id)] = framed(id);
     std::optional<Anchor> active;
     if (focus) active = layoutElement(preview.layout, *focus).anchor;
@@ -432,14 +456,30 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
                     behind = *box;
         preview.hidden[static_cast<size_t>(*focus)] = true;
     }
+    constexpr float offOpacity = .3f;
+    bool anyOff = false;
+    for (auto id : drawOrder)
+        if (isOff(id) && focus != id) { preview.hidden[static_cast<size_t>(id)] = true; anyOff = true; }
     auto boxes = information::drawHud(context, width, height, value.information, &preview);
     // The elements' text first: what follows goes over it.
     context.flushText(0, std::nullopt);
+    if (anyOff) {
+        auto faint = preview;
+        faint.hidden.fill(true);
+        for (auto id : drawOrder)
+            if (isOff(id) && focus != id) faint.hidden[static_cast<size_t>(id)] = false;
+        DrawOpacity const fade{offOpacity};
+        auto drawn = information::drawHud(context, width, height, value.information, &faint);
+        for (auto id : drawOrder)
+            if (!faint.hidden[static_cast<size_t>(id)]) boxes[static_cast<size_t>(id)] = drawn[static_cast<size_t>(id)];
+        context.flushText(0, std::nullopt);
+    }
     if (focus) {
         // Only where it lies on another element: a darker ground sets it apart.
         if (behind) fill(context, behind->x, behind->y, behind->w, behind->h, Rgb{0, 0, 0}, .45f);
         preview.hidden.fill(true);
         preview.hidden[static_cast<size_t>(*focus)] = false;
+        DrawOpacity const fade{isOff(*focus) ? offOpacity : 1.f};
         auto front = information::drawHud(context, width, height, value.information, &preview);
         boxes[static_cast<size_t>(*focus)] = front[static_cast<size_t>(*focus)];
         context.flushText(0, std::nullopt);
@@ -453,19 +493,40 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     // clear of it and of each other.
     // A frame's tag also keeps off the elements drawn in full, and is left
     // out rather than put on the focused or pointed-at element: that is the
-    // one being looked at.
-    struct Tag { Box box; std::string name; bool focus; };
+    // one being looked at. The focused and the pointed-at element's tags
+    // carry the show/hide check where the element has a switch (L-334).
+    constexpr float checkSize = 7, checkRoom = 10;
+    struct Tag { Box box; std::string name; bool focus, off; std::optional<HudElementId> check; };
     std::vector<Tag> tags;
     std::vector<Box> taken;
     std::optional<Box> focusTag;
+    auto tagName = [&](HudElementId id) {
+        auto name = translated(elementName(id));
+        return isOff(id) ? translated("hudEditor.hidden", name) : name;
+    };
+    auto checkOf = [&](HudElementId id) {
+        return settings::hudShown(value, id) ? std::optional(id) : std::nullopt;
+    };
     if (focus)
         if (auto const& box = lastBoxes[static_cast<size_t>(*focus)]) {
-            auto name = translated(elementName(*focus));
+            auto name = tagName(*focus);
             if (resize) name += std::format(" {}%", static_cast<int>(resize->scale));
-            focusTag = nameTag(*box, textWidth(context, name) + 6, width, height);
-            tags.push_back({*focusTag, std::move(name), true});
+            auto check = checkOf(*focus);
+            focusTag = nameTag(*box, textWidth(context, name) + 6 + (check ? checkRoom : 0), width, height);
+            tags.push_back({*focusTag, std::move(name), true, isOff(*focus), check});
         }
     if (focusTag) taken.push_back(*focusTag);
+    std::optional<std::pair<HudElementId, Box>> nextHoverTag;
+    if (hovered && hovered != focus && !drag && !resize)
+        if (auto const& box = lastBoxes[static_cast<size_t>(*hovered)]) {
+            auto name = tagName(*hovered);
+            auto check = checkOf(*hovered);
+            auto place = nameTag(*box, textWidth(context, name) + 6 + (check ? checkRoom : 0), width, height, taken);
+            taken.push_back(place);
+            tags.push_back({place, std::move(name), false, isOff(*hovered), check});
+            nextHoverTag = std::pair{*hovered, place};
+        }
+    hoverTag = nextHoverTag;
     for (auto id : drawOrder)
         if (auto const& box = lastBoxes[static_cast<size_t>(id)]; box && !framed(id)) taken.push_back(*box);
     auto watched = [&](Box const& tag) {
@@ -474,18 +535,27 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
                 if (auto const& box = lastBoxes[static_cast<size_t>(*id)]; box && tag.overlaps(*box)) return true;
         return false;
     };
-    auto addTag = [&](Box const& element, std::string name) {
+    auto addTag = [&](Box const& element, HudElementId id) {
+        auto name = tagName(id);
         auto box = nameTag(element, textWidth(context, name) + 6, width, height, taken);
         if (watched(box)) return;
         taken.push_back(box);
-        tags.push_back({box, std::move(name), false});
+        tags.push_back({box, std::move(name), false, isOff(id), std::nullopt});
     };
     for (auto id : drawOrder) {
         auto const& box = lastBoxes[static_cast<size_t>(id)];
         if (!box) continue;
-        bool isFocus = focus && *focus == id;
-        float opacity = isFocus ? .9f : hovered && *hovered == id ? .6f : framed(id) ? .35f : .2f;
+        bool isFocus = focus && *focus == id, isHovered = hovered && *hovered == id;
+        float opacity = isFocus ? .9f : isHovered ? .6f : framed(id) ? .35f : .2f;
         Box outer{box->x - 1, box->y - 1, box->w + 2, box->h + 2};
+        if (isOff(id)) {
+            std::vector<ImageRect> lines;
+            for (auto const& square : hatch(*box)) lines.push_back({square.x, square.y, square.w, square.h});
+            fills(context, lines, palette::warning, .35f);
+            frame(context, outer.x, outer.y, outer.w, outer.h, isFocus ? palette::accent : palette::warning, isFocus ? .9f : .6f);
+            if (!isFocus && !isHovered) addTag(*box, id);
+            continue;
+        }
         // The game's own elements stand apart from Lamium's by their frame color.
         if (!framed(id)) {
             frame(context, outer.x, outer.y, outer.w, outer.h,
@@ -495,7 +565,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         for (auto const& dash : dashedFrame(outer))
             fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length, palette::white, opacity);
         fill(context, box->x, box->y, box->w, box->h, Rgb{0, 0, 0}, .2f);
-        addTag(*box, translated(elementName(id)));
+        addTag(*box, id);
     }
     if (focus && active) {
         if (auto const& box = lastBoxes[static_cast<size_t>(*focus)]) {
@@ -504,10 +574,20 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         }
     }
     // After every frame, so a tag is never crossed by another frame's dashes:
-    // the same tag for every named element, in the accent color when focused.
+    // the same tag for every named element, in the accent color when focused
+    // and the warning color when switched off.
     for (auto const& tag : tags) {
-        fill(context, tag.box.x, tag.box.y, tag.box.w, tag.box.h, tag.focus ? palette::accent : palette::dim, tag.focus ? 1.f : .75f);
-        labelScaled(context, tag.box.x + 3, tag.box.y + boxTextInset(), tag.box.w - 4, tag.name, 1.f, palette::panel, Align::Left, false);
+        fill(context, tag.box.x, tag.box.y, tag.box.w, tag.box.h,
+             tag.focus ? palette::accent : tag.off ? palette::warning : palette::dim, tag.focus || tag.off ? 1.f : .75f);
+        float text = tag.box.x + 3;
+        if (tag.check) {
+            float cx = tag.box.x + 2, cy = tag.box.y + (tag.box.h - checkSize) / 2;
+            fill(context, cx, cy, checkSize, checkSize, palette::panel);
+            if (!tag.off) fill(context, cx + 2, cy + 2, checkSize - 4, checkSize - 4, palette::white);
+            controls.push_back({{tag.box.x, tag.box.y, checkRoom, tag.box.h}, Command::Shown, static_cast<int>(*tag.check)});
+            text += checkRoom;
+        }
+        labelScaled(context, text, tag.box.y + boxTextInset(), tag.box.x + tag.box.w - text - 1, tag.name, 1.f, palette::panel, Align::Left, false);
     }
     // Scale handles on the corners away from the anchor; the chat is placed only.
     handles.clear();

@@ -148,8 +148,8 @@ void settingsRowsTests() {
         return row.heading() && row.feature->id == "hideEffects";
     });
     check(effectGroup != rows.end() && effectGroup->feature->toggle == "visuals.hideEffects"
-          && effectGroup->feature->primary == input::Action::ToggleHideEffects && effectGroup->children == 9,
-          "Hide effects has a master switch with its toggle key and nine independent child switches");
+          && effectGroup->feature->primary == input::Action::ToggleHideEffects && effectGroup->children == 8,
+          "Hide effects has a master switch with its toggle key and eight independent child switches (boss bars moved to Game HUD placement, L-334)");
     Settings effectSettings;
     check(ui::effectsPaused("hideEffects",effectSettings), "the master effect switch defaults off");
     {
@@ -165,7 +165,7 @@ void settingsRowsTests() {
     effectSettings.visuals.hideEffects = false;
     check(ui::effectsPaused("hideEffects",effectSettings) && !ui::effectsPaused("freecamera",effectSettings),
           "only Hide effects children display the paused state when their master is off");
-    for (auto id : {"visuals.hideWeather", "visuals.hideParticles", "visuals.hideBossBars", "visuals.hideNausea",
+    for (auto id : {"visuals.hideWeather", "visuals.hideParticles", "visuals.hideNausea",
                     "visuals.hideWater", "visuals.hideLava", "visuals.hidePowderSnow", "visuals.hideDistanceFog",
                     "visuals.hidePortal"}) {
         auto child = std::find_if(rows.begin(), rows.end(), [=](auto const& row) {

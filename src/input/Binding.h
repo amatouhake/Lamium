@@ -67,7 +67,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"freecameraspeeddown", "freecamera", Behavior::Press},
     {"hideweather", "hideEffects", Behavior::Toggle},
     {"hideparticles", "hideEffects", Behavior::Toggle},
-    {"hidebossbars", "hideEffects", Behavior::Toggle},
+    {"hidebossbars", "gameHud", Behavior::Toggle},
     {"hidenausea", "hideEffects", Behavior::Toggle},
     {"hidewater", "hideEffects", Behavior::Toggle},
     {"hidelava", "hideEffects", Behavior::Toggle},

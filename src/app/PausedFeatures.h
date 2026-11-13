@@ -64,7 +64,7 @@ inline bool requested(capabilities::Id id, Settings const& s) {
     case Id::HideNausea: return v.hideEffects && (v.hideNausea || v.hidePowderSnow);
     case Id::HidePortal: return v.hideEffects && v.hidePortal;
     case Id::HideParticles: return v.hideEffects && v.hideParticles;
-    case Id::HideBossBars: return v.hideEffects && v.hideBossBars;
+    case Id::HideBossBars: return s.information.hidesBossBars();
     // Both are used by the card's rows and by the check itself, which reads a
     // note block's data whenever the schematic is on (L-303).
     case Id::NoteBlockSounds: case Id::NoteBlockInstrument:

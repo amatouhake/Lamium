@@ -634,7 +634,7 @@ taken: easing on press and release (tried and dropped 2026-10-06, see
 toggles.
 
 ### L-334 Game HUD: hide each part, from the settings and HUD layout
-Kind: Design. Maintainer 2026-11-14, after L-323: Hide boss bars belongs
+Kind: Design, then Ready. Maintainer 2026-11-14, after L-323: Hide boss bars belongs
 with the HUD rather than under Hide effects in Camera & view (agreed to move
 it to HUD & overlays). If that is done, the maintainer would like the other
 game HUD parts Lamium places (paper doll, chat, scoreboard) to be hideable
@@ -664,6 +664,9 @@ Open choices for the maintainer:
   hidden only if Hide effects and Hide boss bars were both on, so no one's
   bars change after the update. Hide effects keeps the other effects.
 - Chat: hidden messages on the HUD only; the chat screen stays vanilla.
+Decided 2026-11-14 (maintainer: "go with them"): the agent's
+recommendations, recorded in DESIGN "Showing and hiding from HUD layout".
+Built the same day; in-game checks open (VALIDATION).
 
 ### L-320 Highlight designated block types in the world
 Kind: Design. Maintainer's idea 2026-11-07 (multiplayer-session feedback).

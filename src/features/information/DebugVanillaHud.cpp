@@ -66,6 +66,15 @@ bool hiding() noexcept {
 bool hidingCovered(std::atomic<bool> const& covered) noexcept {
     try { return hiding() || (covered.load() && Runtime::instance().enabled()); } catch (...) { return false; }
 }
+// The doll hidden from Game HUD placement (L-334), while Lamium places it.
+bool dollHidden() noexcept {
+    try {
+        if (!dollPlaced.load()) return false;
+        auto& runtime = Runtime::instance();
+        return runtime.enabled() && runtime.snapshot()->information.hidesPaperDoll()
+            && versionSensitiveAllowed(capabilities::Id::PaperDollPosition);
+    } catch (...) { return false; }
+}
 bool position(UIControl& owner) noexcept {
     try {
         std::string const& name = *owner.mName;
@@ -86,7 +95,7 @@ LL_TYPE_INSTANCE_HOOK(DebugPositionText, ll::memory::HookPriority::Normal, TextC
 LL_TYPE_INSTANCE_HOOK(DebugPaperDoll, ll::memory::HookPriority::Normal, HudPlayerRenderer,
     &HudPlayerRenderer::$render, void, MinecraftUIRenderContext& context, IClientInstance& client, UIControl& owner,
     int pass) {
-    if (hidingCovered(dollCovered)) return;
+    if (hidingCovered(dollCovered) || dollHidden()) return;
     DollPlacement placement;
     try { placement.prepare(owner); } catch (...) {}
     origin(context, client, owner, pass);

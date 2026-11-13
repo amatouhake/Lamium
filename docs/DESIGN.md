@@ -491,6 +491,31 @@ chose stays put: bars at the top grow downward as in vanilla, bars dropped at
 the bottom grow upward. Hide boss bars wins: hidden bars stay hidden wherever
 they are placed. A conditional element in the editor, with sample bars drawn
 from the game's bar textures.
+
+Showing and hiding from HUD layout (L-334, decided 2026-11-14 with the
+maintainer, mockup demos/game-hud-hide.html, choices A and T2):
+- Every element with a switch can be shown or hidden from the editor. For
+  Lamium's elements it is the feature's own switch (Info HUD, Target info,
+  Status, toggle toasts, magnification, Durability, minimap, Schematic HUD,
+  inventory, used slots, status effects); the player list has none (a held
+  key). The game's parts each get a show value in Game HUD placement (Show
+  the chat / paper doll / scoreboard / boss bars), effective only while the
+  part is placed: the main switch or the part's switch off is fully vanilla,
+  so a part that is not placed offers no switch in the editor.
+- Hiding skips the part's draw; the game's layout and its state stay. The
+  chat hides only the HUD messages; the chat screen stays vanilla.
+- In the editor a hidden element is drawn faint (30 %) at its real size with
+  yellow (warning) diagonal hatching, a yellow frame and a yellow tag reading
+  "<name> (hidden)". It is never the white dashed frame of an element that
+  only shows by situation. It can still be moved and scaled.
+- The switch is a check at the start of the name tag of the selected element
+  and of the pointed-at one (the pointed-at tag stays while the pointer is on
+  it). Toolbars do not change.
+- Hide boss bars moved from Hide effects to the boss bars' show value. Its
+  key stays: hiding brings Game HUD placement on for the boss bars alone if
+  it was off; a second press only shows them. A settings file from before
+  keeps what it showed (bars hidden only where Hide effects and its boss
+  choice were both on).
 Chosen by the implementer from the existing rules when the maintainer asked
 for it; the maintainer may still change either choice.
 

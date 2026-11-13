@@ -163,12 +163,12 @@ inline bool opensTool(input::Action action) {
 inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "visuals.hideWeather") return input::Action::HideWeather;
     if (option == "visuals.hideParticles") return input::Action::HideParticles;
-    if (option == "visuals.hideBossBars") return input::Action::HideBossBars;
     if (option == "visuals.hideNausea") return input::Action::HideNausea;
     if (option == "information.chatPosition") return input::Action::ToggleChatPosition;
     if (option == "information.paperDollPosition") return input::Action::TogglePaperDollPosition;
     if (option == "information.scoreboardPosition") return input::Action::ToggleScoreboardPosition;
     if (option == "information.bossBarPosition") return input::Action::ToggleBossBarPosition;
+    if (option == "information.showBossBars") return input::Action::HideBossBars;
     if (option == "inspection.durability") return input::Action::ToggleDurability;
     if (option == "inspection.foodValues") return input::Action::ToggleFoodValues;
     if (option == "inspection.workPenalty") return input::Action::ToggleWorkPenalty;

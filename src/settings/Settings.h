@@ -247,7 +247,6 @@ struct Settings {
         int highlightStrength = visuals::highlight::defaultStrength; // percent, 0-100
         bool hideWeather = true;
         bool hideParticles = true;
-        bool hideBossBars = true;
         bool hideNausea = true;
         bool hideWater = true;
         bool hideLava = true;
@@ -304,6 +303,20 @@ struct Settings {
         bool placesPaperDoll() const { return gameHud && paperDollPosition; }
         bool placesScoreboard() const { return gameHud && scoreboardPosition; }
         bool placesBossBars() const { return gameHud && bossBarPosition; }
+        // Shown or hidden while placed (L-334): a hidden part is not drawn;
+        // with its part switch or the main switch off it is the game's again.
+        bool showChat = true, showPaperDoll = true, showScoreboard = true, showBossBars = true;
+        bool hidesChat() const { return placesChat() && !showChat; }
+        bool hidesPaperDoll() const { return placesPaperDoll() && !showPaperDoll; }
+        bool hidesScoreboard() const { return placesScoreboard() && !showScoreboard; }
+        bool hidesBossBars() const { return placesBossBars() && !showBossBars; }
+        // Hides the boss bars with nothing else changing: an off group comes on
+        // for the boss bars alone, which stay at their place (L-334).
+        void hideBossBarsAlone() {
+            if (!gameHud) { gameHud = true; chatPosition = paperDollPosition = scoreboardPosition = false; }
+            bossBarPosition = true;
+            showBossBars = false;
+        }
         // Status Effects HUD (L-147): names off gives the icon-and-time column.
         bool effectsHud = false, effectsNames = true, effectsWarning = true, effectsHideVanilla = true;
         bool saturation = true;        // Gold outlines on the hunger bar (L-63)

@@ -84,6 +84,14 @@ void fill(MinecraftUIRenderContext& context, float x, float y, float width, floa
     context.fillRectangle(RectangleArea{x*s,(x+width)*s,y*s,(y+height)*s}, color(value), std::clamp(opacity,0.f,1.f) * currentOpacity);
     context.flushImages(white,1,HashedString{"ui_fillColor"});
 }
+void fills(MinecraftUIRenderContext& context, std::vector<ImageRect> const& rects, Rgb value, float opacity) {
+    if (rects.empty()) return;
+    float s = currentScale, alpha = std::clamp(opacity,0.f,1.f) * currentOpacity;
+    for (auto const& r : rects)
+        if (r.w > 0 && r.h > 0)
+            context.fillRectangle(RectangleArea{r.x*s,(r.x+r.w)*s,r.y*s,(r.y+r.h)*s}, color(value), alpha);
+    context.flushImages(white,1,HashedString{"ui_fillColor"});
+}
 void frame(MinecraftUIRenderContext& context, float x, float y, float width, float height, Rgb value, float opacity) {
     fill(context,x,y,width,1,value,opacity);
     fill(context,x,y+height-1,width,1,value,opacity);
@@ -230,7 +238,7 @@ void images(MinecraftUIRenderContext& context, std::string_view texture, std::ve
     for (auto const& r : rects)
         context.drawImage(*data->mClientTexture, glm::vec2{r.x, r.y} * currentScale, glm::vec2{r.w, r.h} * currentScale, glm::vec2{0, 0},
                           glm::vec2{1, 1}, false);
-    context.flushImages(white, std::clamp(opacity, 0.f, 1.f), HashedString{"ui_textured_and_glcolor"});
+    context.flushImages(white, std::clamp(opacity, 0.f, 1.f) * currentOpacity, HashedString{"ui_textured_and_glcolor"});
 }
 namespace {
 // The ui loader answers an unknown path with its missing-texture placeholder,
@@ -264,7 +272,7 @@ void imageUv(MinecraftUIRenderContext& context, std::string_view texture, ImageR
     if (!data) return;
     context.drawImage(*data->mClientTexture, glm::vec2{rect.x, rect.y} * currentScale, glm::vec2{rect.w, rect.h} * currentScale,
                       glm::vec2{u0, v0}, glm::vec2{u1 - u0, v1 - v0}, false);
-    context.flushImages(mce::Color{tint.r, tint.g, tint.b, 1.f}, std::clamp(opacity, 0.f, 1.f),
+    context.flushImages(mce::Color{tint.r, tint.g, tint.b, 1.f}, std::clamp(opacity, 0.f, 1.f) * currentOpacity,
                         HashedString{"ui_textured_and_glcolor"});
 }
 bool runtimeImage(MinecraftUIRenderContext& context, ResourceLocation const& texture, ImageRect rect, float opacity) {
@@ -278,7 +286,7 @@ bool runtimeImage(MinecraftUIRenderContext& context, ResourceLocation const& tex
     if (missing == IsMissingTexture::Yes) return false;
     context.drawImage(*data->mClientTexture, glm::vec2{rect.x, rect.y} * currentScale, glm::vec2{rect.w, rect.h} * currentScale, glm::vec2{u, v},
                       glm::vec2{uSpan, vSpan}, false);
-    context.flushImages(white, std::clamp(opacity, 0.f, 1.f), HashedString{"ui_textured_and_glcolor"});
+    context.flushImages(white, std::clamp(opacity, 0.f, 1.f) * currentOpacity, HashedString{"ui_textured_and_glcolor"});
     return true;
 }
 void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on) {

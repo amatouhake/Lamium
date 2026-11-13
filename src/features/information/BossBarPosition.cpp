@@ -32,6 +32,7 @@ std::atomic<bool> warnedClip{false}, loggedVanilla{false};
 struct Frame {
     float width, height;
     ui::HudElement element;
+    bool hidden = false;
     // Measured from the grid by the first part drawn this frame, so every
     // part of the frame moves with the same box.
     UIControl const* grid = nullptr;
@@ -58,7 +59,7 @@ struct RenderScope {
         if (foregroundProcess != GetCurrentProcessId()) return;
         if (!versionSensitiveAllowed(capabilities::Id::BossBarPosition)) return;
         glm::vec2 size = *view.mSize;
-        frame = Frame{size.x, size.y, settings->hud.bossBars};
+        frame = Frame{size.x, size.y, settings->hud.bossBars, !settings->information.showBossBars};
         active = &*frame;
     }
 };
@@ -80,6 +81,7 @@ struct Translation {
     UIControl* owner = nullptr;
     glm::vec2 position{}, size{};
     float scale = 1;
+    bool skip = false; // A part of hidden bars: not drawn (L-334).
     ~Translation() {
         if (!owner) return;
         owner->mCachedPosition = position;
@@ -101,6 +103,7 @@ struct Translation {
                 Runtime::instance().self().getLogger().warn("Boss bar position: the grid clips its bars; they stay vanilla");
             return;
         }
+        if (active->hidden) { skip = true; return; }
         if (active->grid != panel.get()) {
             active->grid = panel.get();
             active->box = measure(*panel);
@@ -138,6 +141,7 @@ LL_TYPE_INSTANCE_HOOK(BossBarTextRender, ll::memory::HookPriority::Normal, TextC
     &TextComponent::$render, void, UIRenderContext& context) {
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
+    if (translation.skip) return;
     float const font = mFontScaleFactor, line = mLineHeight;
     bool const scaled = translation.owner && translation.scale != 1;
     if (scaled) {
@@ -154,6 +158,7 @@ LL_TYPE_INSTANCE_HOOK(BossBarSpriteRender, ll::memory::HookPriority::Normal, Spr
     &SpriteComponent::render, void, UIRenderContext& context) {
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
+    if (translation.skip) return;
     origin(context);
 }
 // The bar textures are 13x5 nine-slices with 4-pixel caps; the game clips

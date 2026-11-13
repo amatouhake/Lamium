@@ -139,6 +139,10 @@ Json encode(Settings const& settings) {
                          {"paperDollPosition", settings.information.paperDollPosition},
                          {"scoreboardPosition", settings.information.scoreboardPosition},
                          {"bossBarPosition", settings.information.bossBarPosition},
+                         {"showChat", settings.information.showChat},
+                         {"showPaperDoll", settings.information.showPaperDoll},
+                         {"showScoreboard", settings.information.showScoreboard},
+                         {"showBossBars", settings.information.showBossBars},
                          {"effectsNames", settings.information.effectsNames},
                          {"effectsWarning", settings.information.effectsWarning},
                          {"effectsHideVanilla", settings.information.effectsHideVanilla},
@@ -175,7 +179,7 @@ Json encode(Settings const& settings) {
                      {"highlightColor", visuals::highlight::lookNames[static_cast<size_t>(settings.visuals.highlightColor)]},
                      {"highlightStrength", settings.visuals.highlightStrength},
                      {"hideWeather", settings.visuals.hideWeather}, {"hideParticles", settings.visuals.hideParticles},
-                     {"hideBossBars", settings.visuals.hideBossBars}, {"hideNausea", settings.visuals.hideNausea},
+                     {"hideNausea", settings.visuals.hideNausea},
                      {"hideWater", settings.visuals.hideWater}, {"hideLava", settings.visuals.hideLava},
                      {"hidePowderSnow", settings.visuals.hidePowderSnow},
                      {"hideDistanceFog", settings.visuals.hideDistanceFog},
@@ -424,6 +428,10 @@ Settings decodeSettings(std::string_view text) {
                 value.information.scoreboardPosition = board;
             }
         }
+        value.information.showChat = settingsValue(info, "showChat", value.information.showChat);
+        value.information.showPaperDoll = settingsValue(info, "showPaperDoll", value.information.showPaperDoll);
+        value.information.showScoreboard = settingsValue(info, "showScoreboard", value.information.showScoreboard);
+        value.information.showBossBars = settingsValue(info, "showBossBars", value.information.showBossBars);
         value.information.effectsHud = settingsValue(info, "effectsHud", value.information.effectsHud);
         value.information.effectsNames = settingsValue(info, "effectsNames", value.information.effectsNames);
         value.information.effectsWarning = settingsValue(info, "effectsWarning", value.information.effectsWarning);
@@ -488,7 +496,6 @@ Settings decodeSettings(std::string_view text) {
         value.visuals.skipServerPacks = settingsValue(visuals, "skipServerPacks", value.visuals.skipServerPacks);
         value.visuals.hideWeather = settingsValue(visuals, "hideWeather", value.visuals.hideWeather);
         value.visuals.hideParticles = settingsValue(visuals, "hideParticles", value.visuals.hideParticles);
-        value.visuals.hideBossBars = settingsValue(visuals, "hideBossBars", value.visuals.hideBossBars);
         value.visuals.hideNausea = settingsValue(visuals, "hideNausea", value.visuals.hideNausea);
         value.visuals.hideWater = settingsValue(visuals, "hideWater", value.visuals.hideWater);
         value.visuals.hideLava = settingsValue(visuals, "hideLava", value.visuals.hideLava);
@@ -735,6 +742,17 @@ Settings decodeSettings(std::string_view text) {
         element("scoreboard", value.hud.scoreboard, ui::HudElementId::Scoreboard);
         element("bossBars", value.hud.bossBars, ui::HudElementId::BossBars);
         element("statusEffects", value.hud.statusEffects, ui::HudElementId::StatusEffects);
+    }
+    // Hide boss bars was a Hide effects choice (on by default inside it)
+    // until L-334 made it the boss bars' show value under Game HUD placement.
+    // A file from before keeps what it showed: bars hidden only where both
+    // were on, with the group on for the boss bars alone if it was off.
+    bool noShow = !(data.contains("information") && data.at("information").is_object()
+                    && data.at("information").contains("showBossBars"));
+    if (noShow && data.contains("visuals") && data.at("visuals").is_object()) {
+        auto const& visuals = data.at("visuals");
+        if (settingsValue(visuals, "hideEffects", false) && settingsValue(visuals, "hideBossBars", true))
+            value.information.hideBossBarsAlone();
     }
     value.normalize();
     return value;

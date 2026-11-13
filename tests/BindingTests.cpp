@@ -23,10 +23,15 @@ void bindingTests() {
             ++count;
             check(option.feature == actions[i].feature, "toggle changes only its owning feature");
         }
-        check(count == (changed ? 1u : 0u), "press and hold actions cannot modify toggle settings");
+        // Hide boss bars may bring the group on for the boss bars alone (L-334).
+        bool group = action == Action::HideBossBars;
+        check(group ? count >= 1 : count == (changed ? 1u : 0u), "press and hold actions cannot modify toggle settings");
         toggleAction(value,action);
-        for (auto const& option : lamium::settings::options)
-            check(option.read(value) == option.read(lamium::Settings{}), "second toggle restores original settings");
+        // Showing the boss bars again leaves the group as the first press set it.
+        if (group) check(!value.information.hidesBossBars(), "a second boss key press shows the bars again");
+        else
+            for (auto const& option : lamium::settings::options)
+                check(option.read(value) == option.read(lamium::Settings{}), "second toggle restores original settings");
         check(actions[i].defaultKey >= 0 && actions[i].defaultKey <= 255, "native defaults use valid key codes or unbound");
     }
     check(actions[static_cast<size_t>(Action::Settings)].defaultKey == 0x4C

@@ -137,6 +137,19 @@ inline Box nameTag(Box element, float w, float screenW, float screenH, std::vect
     for (auto const& place : places) if (onScreen(place)) return place;
     return {std::clamp(left, 0.f, std::max(0.f, screenW - w)), std::clamp(above, 0.f, std::max(0.f, screenH - h)), w, h};
 }
+// Diagonal hatching over an element hidden from HUD layout (L-334): one-unit
+// squares on lines `spacing` apart, clipped to the box, at most `limit`.
+inline std::vector<Box> hatch(Box box, int spacing = 6, size_t limit = 4000) {
+    std::vector<Box> out;
+    if (!(box.w >= 1) || !(box.h >= 1) || spacing < 1 || !std::isfinite(box.x) || !std::isfinite(box.y)) return out;
+    int w = static_cast<int>(std::min(box.w, 4000.f)), h = static_cast<int>(std::min(box.h, 4000.f));
+    for (int k = 0; k < w + h - 1; k += spacing)
+        for (int y = std::max(0, k - w + 1); y <= std::min(h - 1, k); ++y) {
+            out.push_back({box.x + static_cast<float>(k - y), box.y + static_cast<float>(y), 1, 1});
+            if (out.size() >= limit) return out;
+        }
+    return out;
+}
 // A dashed outline for an element shown as a frame only: the top-left of
 // each one-unit-thick dash and whether it runs horizontally.
 struct Dash { float x, y, length; bool horizontal; };

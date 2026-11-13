@@ -54,7 +54,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::FreeCameraHand, "FreeCamera hide (hand pass)", "freecamera", "capability.FreeCameraHand", Impact::Partly, false},
     {Id::FreeCameraHud, "FreeCamera hide (HUD pass)", "freecamera", "capability.FreeCameraHud", Impact::Partly, false},
     {Id::HideParticles, "Hide effects (particle passes)", "hideEffects", "capability.HideParticles", Impact::Partly, false},
-    {Id::HideBossBars, "Hide effects (boss bar passes)", "hideEffects", "capability.HideBossBars", Impact::Partly, false},
+    {Id::HideBossBars, "Hide boss bars (boss bar passes)", "gameHud", "capability.HideBossBars", Impact::Partly, false},
     {Id::SchematicBlend, "Schematic ghosts (blended pass)", "schematic", "capability.SchematicBlend", Impact::Partly},
     {Id::SchematicActorLight, "Schematic ghosts (actor lighting)", "schematic", "capability.SchematicActorLight", Impact::Partly},
     {Id::SchematicCreativePick, "Schematic pick (creative inventory give)", "schematic", "capability.SchematicCreativePick", Impact::Partly, true, true},

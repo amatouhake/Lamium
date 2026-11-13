@@ -132,6 +132,34 @@ inline ui::HudElement& hudElement(Settings& value, ui::HudElementId id) {
     default: return value.hud.toast;
     }
 }
+// What HUD layout's show/hide switches (L-334): a Lamium element's own
+// feature switch, a game part's show value. None for the player list (a held
+// key) and for a game part that is not placed: its show value does nothing.
+inline bool* hudShownField(Settings& value, ui::HudElementId id) {
+    auto& info = value.information;
+    switch (id) {
+    case ui::HudElementId::Info: return &info.hud;
+    case ui::HudElementId::Target: return &info.target;
+    case ui::HudElementId::Status: return &value.ui.automationStatus;
+    case ui::HudElementId::Toast: return &value.ui.toggleToasts;
+    case ui::HudElementId::Magnification: return &value.camera.showMagnification;
+    case ui::HudElementId::Durability: return &info.durabilityHud;
+    case ui::HudElementId::Minimap: return &value.map.minimap;
+    case ui::HudElementId::Schematic: return &value.schematic.hud;
+    case ui::HudElementId::Inventory: return &info.inventoryHud;
+    case ui::HudElementId::UsedSlots: return &info.usedSlots;
+    case ui::HudElementId::StatusEffects: return &info.effectsHud;
+    case ui::HudElementId::Chat: return info.placesChat() ? &info.showChat : nullptr;
+    case ui::HudElementId::PaperDoll: return info.placesPaperDoll() ? &info.showPaperDoll : nullptr;
+    case ui::HudElementId::Scoreboard: return info.placesScoreboard() ? &info.showScoreboard : nullptr;
+    case ui::HudElementId::BossBars: return info.placesBossBars() ? &info.showBossBars : nullptr;
+    default: return nullptr;
+    }
+}
+inline std::optional<bool> hudShown(Settings const& value, ui::HudElementId id) {
+    auto* field = hudShownField(const_cast<Settings&>(value), id);
+    return field ? std::optional(*field) : std::nullopt;
+}
 template<ui::HudElementId Id, auto Field>
 constexpr Option hudToggle(std::string_view id, std::string_view feature, std::string_view label) {
     return {id, feature, label,
@@ -248,12 +276,16 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::gameHud>("information.gameHud", "gameHud", "gameHud"),
     toggle<&Settings::information, &Settings::Information::chatPosition>("information.chatPosition", "gameHud", "chatPosition"),
     hudNumeric<ui::HudElementId::Chat, &ui::HudElement::scale>("hud.chat.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
+    toggle<&Settings::information, &Settings::Information::showChat>("information.showChat", "gameHud", "showChat"),
     toggle<&Settings::information, &Settings::Information::scoreboardPosition>("information.scoreboardPosition", "gameHud", "scoreboardPosition"),
     hudNumeric<ui::HudElementId::Scoreboard, &ui::HudElement::scale>("hud.scoreboard.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
+    toggle<&Settings::information, &Settings::Information::showScoreboard>("information.showScoreboard", "gameHud", "showScoreboard"),
     toggle<&Settings::information, &Settings::Information::paperDollPosition>("information.paperDollPosition", "gameHud", "paperDollPosition"),
     hudNumeric<ui::HudElementId::PaperDoll, &ui::HudElement::scale>("hud.paperDoll.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
+    toggle<&Settings::information, &Settings::Information::showPaperDoll>("information.showPaperDoll", "gameHud", "showPaperDoll"),
     toggle<&Settings::information, &Settings::Information::bossBarPosition>("information.bossBarPosition", "gameHud", "bossBarPosition"),
     hudNumeric<ui::HudElementId::BossBars, &ui::HudElement::scale>("hud.bossBars.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
+    toggle<&Settings::information, &Settings::Information::showBossBars>("information.showBossBars", "gameHud", "showBossBars"),
     toggle<&Settings::information, &Settings::Information::effectsHud>("information.effectsHud", "statusEffects", "statusEffects"),
     toggle<&Settings::information, &Settings::Information::effectsNames>("information.effectsNames", "statusEffects", "effectsNames"),
     toggle<&Settings::information, &Settings::Information::effectsWarning>("information.effectsWarning", "statusEffects", "effectsWarning"),
@@ -356,7 +388,6 @@ inline constexpr auto options = std::to_array<Option>({
         [](Settings& s, int direction) { s.visuals.highlightStrength += direction * 5; s.normalize(); },
         NumericOption{0, 100, [](Settings& s, float v) { s.visuals.highlightStrength = static_cast<int>(std::lround(v)); }, 5}},
     toggle<&Settings::visuals, &Settings::Visuals::skipServerPacks>("visuals.skipServerPacks", "skipServerPacks", "skipServerPacks"),
-    toggle<&Settings::visuals, &Settings::Visuals::hideBossBars>("visuals.hideBossBars", "hideEffects", "hideBossBars"),
     toggle<&Settings::visuals, &Settings::Visuals::hideNausea>("visuals.hideNausea", "hideEffects", "hideNausea"),
     toggle<&Settings::visuals, &Settings::Visuals::hideWeather>("visuals.hideWeather", "hideEffects", "hideWeather"),
     toggle<&Settings::visuals, &Settings::Visuals::hideParticles>("visuals.hideParticles", "hideEffects", "hideParticles"),

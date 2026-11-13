@@ -47,7 +47,7 @@ void settingsStoreTests() {
         value.visuals.hideNausea = false;
         check(input::defaultChord(input::Action::HideNausea).empty()
               && input::toggleAction(value,input::Action::HideNausea) && value.visuals.hideNausea
-              && !value.visuals.hideEffects && value.visuals.hideBossBars && value.visuals.hideParticles,
+              && !value.visuals.hideEffects && value.visuals.hideParticles,
               "the unbound nausea key changes only its selection while the master is off");
         using visuals::hideNauseaMesh;
         check(hideNauseaMesh(visuals::effectMask(true,false,false,false,true),true,
@@ -131,15 +131,31 @@ void settingsStoreTests() {
               "fog with nothing to hide and unreadable values stay vanilla");
     }
     {
-        check(decodeSettings("{}").visuals.hideBossBars
-              && !decodeSettings(R"({"visuals":{"hideBossBars":false}})").visuals.hideBossBars,
-              "boss bars are selected by default and load their independent selection");
+        // Hide boss bars moved to Game HUD placement (L-334).
+        auto fresh = decodeSettings("{}");
+        check(fresh.information.showBossBars && !fresh.information.hidesBossBars() && !fresh.information.gameHud,
+              "boss bars are shown by default");
+        auto both = decodeSettings(R"({"visuals":{"hideEffects":true}})");
+        check(both.information.hidesBossBars() && !both.information.placesChat() && !both.information.placesScoreboard()
+              && !both.information.placesPaperDoll() && both.hud.bossBars.dy == 2,
+              "a file from before that hid boss bars keeps them hidden and moves nothing else");
+        auto dormant = decodeSettings(R"({"visuals":{"hideEffects":false,"hideBossBars":true}})");
+        auto unpicked = decodeSettings(R"({"visuals":{"hideEffects":true,"hideBossBars":false}})");
+        check(!dormant.information.hidesBossBars() && !dormant.information.gameHud
+              && !unpicked.information.hidesBossBars() && !unpicked.information.gameHud,
+              "a file from before that did not hide boss bars keeps them shown");
+        auto grouped = decodeSettings(R"({"information":{"gameHud":true,"bossBarPosition":false},"visuals":{"hideEffects":true}})");
+        check(grouped.information.hidesBossBars() && grouped.information.placesChat(),
+              "with the group already on, old hidden boss bars are hidden and the other parts stay");
+        auto current = decodeSettings(R"({"information":{"showBossBars":true},"visuals":{"hideEffects":true,"hideBossBars":true}})");
+        check(!current.information.hidesBossBars(), "a current file's show value wins over the old key");
         Settings value;
-        value.visuals.hideBossBars = false;
         check(input::defaultChord(input::Action::HideBossBars).empty()
-              && input::toggleAction(value,input::Action::HideBossBars) && value.visuals.hideBossBars
-              && !value.visuals.hideEffects && value.visuals.hideWeather && value.visuals.hideParticles,
-              "the unbound boss key changes only its selection while the master is off");
+              && input::toggleAction(value,input::Action::HideBossBars) && value.information.hidesBossBars()
+              && !value.information.placesChat() && !value.visuals.hideEffects
+              && input::toggleAction(value,input::Action::HideBossBars) && !value.information.hidesBossBars()
+              && value.information.placesBossBars(),
+              "the unbound boss key hides the bars alone and shows them again");
         check(visuals::effectMask(false,true,true,true) == 0
               && visuals::effectMask(true,false,false,true) == visuals::bossBarsBit
               && visuals::effectMask(true,true,true,true) == 7,

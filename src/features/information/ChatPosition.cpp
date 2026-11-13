@@ -26,7 +26,7 @@ bool installed = false, installedText = false, installedSprite = false;
 struct Seen { float width, height, screenW, screenH; };
 std::optional<Seen> seen;
 std::mutex seenMutex;
-struct Frame { float width, height; ui::HudElement element; };
+struct Frame { float width, height; ui::HudElement element; bool hidden = false; };
 thread_local Frame const* active = nullptr;
 // No game references or control changes: layout stays entirely vanilla.
 struct RenderScope {
@@ -49,7 +49,7 @@ struct RenderScope {
         if (foregroundProcess != GetCurrentProcessId()) return;
         if (!versionSensitiveAllowed(capabilities::Id::ChatPosition)) return;
         glm::vec2 size = *view.mSize;
-        frame = Frame{size.x, size.y, settings->hud.chat};
+        frame = Frame{size.x, size.y, settings->hud.chat, !settings->information.showChat};
         active = &*frame;
     }
 };
@@ -59,6 +59,7 @@ struct Translation {
     UIControl* owner = nullptr;
     glm::vec2 position{}, size{};
     float scale = 1;
+    bool skip = false; // A part of a hidden chat: not drawn (L-334).
     ~Translation() {
         if (!owner) return;
         owner->mCachedPosition = position;
@@ -77,6 +78,7 @@ struct Translation {
         if (!panel || *panel->mName != "chat_panel" || panel->mClipsChildren) return;
         auto parent = panel->mParent.lock();
         if (!parent || *parent->mName != "chat_stack" || parent->mClipsChildren) return;
+        if (active->hidden) { skip = true; return; }
         if (panel->mCachedPositionDirty) panel->_setCachedPosition();
         if (control.mCachedPositionDirty) control._setCachedPosition();
         glm::vec2 at = *panel->mCachedPosition, size = *panel->mSize;
@@ -110,6 +112,7 @@ LL_TYPE_INSTANCE_HOOK(ChatTextRender, ll::memory::HookPriority::Normal, TextComp
     &TextComponent::$render, void, UIRenderContext& context) {
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
+    if (translation.skip) return;
     float const font = mFontScaleFactor, line = mLineHeight;
     bool const scaled = translation.owner && translation.scale != 1;
     if (scaled) {
@@ -126,6 +129,7 @@ LL_TYPE_INSTANCE_HOOK(ChatBackgroundRender, ll::memory::HookPriority::Normal, Sp
     &SpriteComponent::render, void, UIRenderContext& context) {
     Translation translation;
     try { translation.prepare(mOwner); } catch (...) {}
+    if (translation.skip) return;
     origin(context);
 }
 std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, float width, float height,
