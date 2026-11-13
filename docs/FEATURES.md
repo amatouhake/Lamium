@@ -314,7 +314,10 @@ Suspicious stew effect, Food values, Property values, Show ID, Show tags and Sho
 first six are on by default. With the main switch off the tooltip is the game's own and the
 other switches keep their values. Every row has a toggle key (unbound).
 
-- Shulker Box and Bundle contents.
+- Shulker Box and Bundle contents, in a box right above the game's tooltip (for a
+  Bundle, its contents tooltip below the pointer). With the pointer on the left of a
+  Bundle's slot the box can cover part of that slot's icon; accepted by the maintainer
+  2026-11-14.
 - Remaining durability.
 - What food restores: hunger and saturation as hunger-bar icons.
 - The anvil work penalty ("Work penalty: +3 (2 anvil uses)"): the levels the item adds
