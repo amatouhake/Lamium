@@ -121,9 +121,15 @@ void testMovesClearOfHoverText() {
     CHECK_RECT(under.frame, 108.0f, 97.0f, 278.0f, 159.0f);
 }
 
+void testSnapsToWholeUnits() {
+    auto const layout = PreviewLayout::anchored(9, 3, 330.6667f, 240.0f, 640.0f, 360.0f).snapped();
+    CHECK_RECT(layout.frame, 339.0f, 170.0f, 509.0f, 232.0f);
+}
+
 } // namespace
 
 int runPreviewLayoutTests() {
+    testSnapsToWholeUnits();
     testMovesClearOfHoverText();
     testFrameSize();
     testAnchorsAboveRightWhenThereIsRoom();

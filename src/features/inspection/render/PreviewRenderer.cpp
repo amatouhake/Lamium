@@ -64,7 +64,7 @@ void PreviewRenderer::render(
     ScreenView&                      view,
     MinecraftUIRenderContext&        context,
     preview::ContainerPreview const& preview,
-    std::optional<Rect>              hoverText
+    std::optional<HoverTextBox>      hoverText
 ) {
     if (preview.columns <= 0 || preview.rows <= 0) {
         // Defensive only: providers report a real frame even for empty
@@ -76,10 +76,13 @@ void PreviewRenderer::render(
         return;
     }
 
-    glm::vec2 const pointer = view.mPointerLocationPrevious;
+    // The hover text is placed from its own pointer position, which can differ from the view's by a frame;
+    // following it keeps the two from shaking against each other.
+    glm::vec2 const pointer = hoverText ? glm::vec2{hoverText->cursorX, hoverText->cursorY} : glm::vec2(*view.mPointerLocationPrevious);
     glm::vec2 const screen  = view.mSize;
     auto layout = PreviewLayout::anchored(preview.columns, preview.rows, pointer.x, pointer.y, screen.x, screen.y);
-    if (hoverText) layout = layout.clearOf(*hoverText, 2.0f, screen.y);
+    if (hoverText) layout = layout.clearOf(hoverText->box, 2.0f, screen.y);
+    layout = layout.snapped();
 
     static bool sLoggedFirstRender = false;
     if (!sLoggedFirstRender) {

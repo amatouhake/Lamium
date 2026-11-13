@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 
 // Pure geometry for the preview overlay. Deliberately free of game types so it
 // can be unit-tested without LeviLamina or the game.
@@ -80,6 +81,13 @@ struct PreviewLayout {
             if (y + height > screenHeight) return *this;
         }
         return PreviewLayout{columns, rows, Rect{frame.x0, y, frame.x1, y + height}};
+    }
+
+    /// The frame on whole GUI units: at a fractional pointer the fills and the
+    /// border rounded apart and the background showed past the border.
+    [[nodiscard]] PreviewLayout snapped() const {
+        float const x = std::round(frame.x0), y = std::round(frame.y0);
+        return PreviewLayout{columns, rows, Rect{x, y, x + frame.width(), y + frame.height()}};
     }
 
     /// Full 18x18 cell of `slot` (row-major, matching container slot order).

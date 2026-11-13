@@ -206,7 +206,7 @@ bool tooltipRendering = false;
 void (*beforeTooltip)(MinecraftUIRenderContext&) = nullptr;
 // The hover text's box in this frame's UI pass, for the container preview to stay clear of. Tagged with the UI
 // frame it was drawn in; the preview, drawn after the UI pass, ignores one from an earlier frame.
-struct TooltipBox { render::Rect rect; unsigned frame; };
+struct TooltipBox { render::HoverTextBox box; unsigned frame; };
 std::optional<TooltipBox> tooltipBox;
 std::optional<std::pair<float, float>> tooltipTextAt;
 unsigned uiFrame = 0;
@@ -247,10 +247,14 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
     tooltipRendering = false;
     try {
         glm::vec2 const at = *mCursorPosition + *mOffset, size = *mBoxDimensions;
-        if (size.x > 0 && size.y > 0) tooltipBox = TooltipBox{{at.x, at.y, at.x + size.x, at.y + size.y}, uiFrame};
-        static bool told = false;
-        if (!told && tooltipTextAt) {
-            told = true;
+        if (size.x > 0 && size.y > 0)
+            tooltipBox = TooltipBox{{{at.x, at.y, at.x + size.x, at.y + size.y}, mCursorPosition->x, mCursorPosition->y}, uiFrame};
+        // Once per box size (bounded): the bundle tooltip's box is checked against what is drawn.
+        static int told = 0;
+        static glm::vec2 toldSize{};
+        if (told < 12 && tooltipTextAt && size != toldSize) {
+            ++told;
+            toldSize = size;
             Runtime::instance().self().getLogger().info("Hover text box: cursor ({}, {}) offset ({}, {}) size ({}, {}), text at ({}, {})",
                 mCursorPosition->x, mCursorPosition->y, mOffset->x, mOffset->y, size.x, size.y, tooltipTextAt->first,
                 tooltipTextAt->second);
@@ -305,8 +309,8 @@ bool start() {
             if (!(shulker ? preferences.shulkerPreviews : preferences.bundlePreviews)) return;
             if (contents->filledSlotCount() == 0 && contents->skippedSlotCount == 0
                 && !(shulker ? preferences.emptyShulkerPreviews : preferences.emptyBundlePreviews)) return;
-            std::optional<render::Rect> hoverText;
-            if (tooltipBox && tooltipBox->frame == frame) hoverText = tooltipBox->rect;
+            std::optional<render::HoverTextBox> hoverText;
+            if (tooltipBox && tooltipBox->frame == frame) hoverText = tooltipBox->box;
             renderer.render(event.screenView(), event.uiRenderContext(), *contents, hoverText);
         });
         exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { cache.clear(); });
