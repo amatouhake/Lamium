@@ -103,10 +103,8 @@ p{margin:0}
 .knob::after{content:"";position:absolute;top:1px;left:17px;width:12px;height:12px;background:#fff}
 .knob.off{background:#48494a;box-shadow:inset 0 0 0 1px #2e2f30}.knob.off::after{left:1px;background:#d0d1d4}
 .hbtn.offv{color:#fff;box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
-.eye{position:absolute;width:26px;height:22px;z-index:5;cursor:pointer;background:rgba(180,184,182,.9)}
-.eye.sel{background:var(--accent)}
-.eye svg{position:absolute;left:4px;top:4px}
-.eye:hover{outline:1px solid #fff}
+.tagsw{position:absolute;height:22px;width:40px;z-index:5;cursor:pointer;background:var(--accent);display:flex;align-items:center;justify-content:center}
+.tagsw:hover .knob{box-shadow:inset 0 0 0 1px #fff}
 </style>
 <body>
 <div class="wrap">
@@ -120,11 +118,6 @@ p{margin:0}
     <div class="cgroup"><span class="lab">状況で出る要素の見せ方</span>
       <button class="seg" data-m="A" aria-pressed="true">A 中身を薄く出す</button>
       <button class="seg" data-m="B">B 枠と名前だけ</button>
-    </div>
-    <div class="cgroup"><span class="lab">表示の切り替えの形</span>
-      <button class="seg" data-t="S" aria-pressed="true">S ツールバー先頭のスイッチ（推奨）</button>
-      <button class="seg" data-t="T">T ツールバーの「表示: オン」</button>
-      <button class="seg" data-t="E">E 名前タグの目のアイコン</button>
     </div>
     <p class="modehelp" id="help"></p>
   </section>
@@ -160,8 +153,7 @@ p{margin:0}
     <div id="tags"></div>
 
     <div class="tb" id="tb" hidden>
-      <span class="tsw" id="tsw"><i class="knob" id="knob"></i>表示</span><span class="sep" id="tswSep"></span>
-      <button class="hbtn">寄せる ▾</button><button class="hbtn">◀ 100% ▶</button><button class="hbtn look">背景: カード</button><button class="hbtn" id="tbtn">表示: オン</button><span class="sep"></span><button class="hbtn">リセット</button>
+      <button class="hbtn">寄せる ▾</button><button class="hbtn">◀ 100% ▶</button><button class="hbtn look">背景: カード</button><span class="sep"></span><button class="hbtn">リセット</button>
     </div>
     <div class="panel" id="panel">
       <div class="ttl">HUD レイアウト</div>
@@ -176,7 +168,7 @@ p{margin:0}
     <ol>
       <li><b>状況で出る要素の見せ方。</b>A（いま表示中）: 状況で出る要素は中身を 50% で出し、白い点線と名前を付けます。隠した要素は中身なしの灰色の斜線と名前です。置いたものが全部見えるぶん見本が多く並ぶので、画面の混み具合を見てください。B は上のボタンで比べられます。</li>
       <li><b>名前タグ。</b>名前だけを表示し、「・非表示」は付けません。状況で出る要素と隠した要素は、いつも名前を出します。重なりを避ける処理は残し、空きがないときも別のタグに重ねず、要素の枠の内側の上端に置きます。</li>
-      <li><b>切り替えの形。</b> <span class="rec">推奨: S。</span>選択中の要素のツールバーの先頭に、設定画面や切り替え通知と同じスイッチと「表示」を置きます。Lamium の画面ですでに「オン/オフ」を表す部品なので、新しい記号を覚える必要がありません。T は「文字の影: オン」と同じ形のボタンで、ツールバーの言葉には揃いますがボタンが一つ長くなります。E は画像編集ソフトのレイヤーのような目のアイコンで、小さく収まりますが Lamium の他の画面にはない記号です。どれもポインタを乗せただけでは出ず、名前タグの位置も動きません。</li>
+      <li><b>切り替えの形。</b>選択中の要素の名前タグに、設定画面や切り替え通知と同じスイッチをつなげます。位置は基準と反対側の端（左寄せのタグなら右、右寄せなら左）なので、名前は動きません。ポインタを乗せただけでは出ず、ツールバーは今のままです。</li>
       <li><b>凡例。</b>何も選んでいないときのパネルに「点線 = 状況で表示」「斜線 = 非表示」を出します。</li>
     </ol>
   </section>
@@ -186,12 +178,6 @@ const W = 960, H = 540;
 const stage = document.getElementById('stage'), fit = document.getElementById('fit');
 function resize(){ const k = fit.clientWidth / W; stage.style.transform = `scale(${k})`; fit.style.height = (H*k)+'px'; }
 new ResizeObserver(resize).observe(fit); resize();
-const toggles = {
-  S: 'S: 選択するとツールバーの先頭に、設定画面と同じスイッチと「表示」が出ます。',
-  T: 'T: 選択するとツールバーに「表示: オン / オフ」のボタンが出ます（文字の影などと同じ形）。',
-  E: 'E: 選択すると名前タグの、基準と反対側の端に目のアイコンが付きます。閉じた目が非表示です。'
-};
-let toggle = 'S';
 const help = {
   B: 'B: 状況で出る要素（白い点線）と隠した要素（灰色の斜線）は、どちらも中身を出さず名前を出します。ポインタを乗せるか選択すると、状況で出る要素は中身が、隠した要素は薄い中身が見えます。',
   A: 'A: 状況で出る要素は中身を 50% で出し、点線と名前を付けます。隠した要素は中身なしの灰色の斜線と名前です。'
@@ -204,15 +190,8 @@ function overlap(a, b){ return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y +
 function measure(text){ const c = measure.c || (measure.c = document.createElement('canvas').getContext('2d')); c.font = '14px DotGothic16, monospace'; return Math.ceil(c.measureText(text).width) + 12; }
 function render(){
   stage.className = 'stage m' + mode;
-  document.getElementById('help').textContent = help[mode] + ' ' + toggles[toggle];
+  document.getElementById('help').textContent = help[mode];
   document.querySelectorAll('[data-m]').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === mode));
-  document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === toggle));
-  const offSel = sel && sel.classList.contains('off');
-  document.getElementById('tsw').hidden = document.getElementById('tswSep').hidden = toggle !== 'S';
-  document.getElementById('knob').classList.toggle('off', !!offSel);
-  const tbtn = document.getElementById('tbtn');
-  tbtn.hidden = toggle !== 'T';
-  tbtn.textContent = '表示: ' + (offSel ? 'オフ' : 'オン');
   tb.querySelectorAll('.look').forEach(b => b.hidden = !(sel && !sel.classList.contains('game')));
   els.forEach(e => { e.classList.toggle('sel', e === sel); e.classList.toggle('hover', e === hover && e !== sel); });
   tagsEl.innerHTML = '';
@@ -234,19 +213,18 @@ function render(){
     t.textContent = e.dataset.name;
     t.style.left = place.x + 'px'; t.style.top = place.y + 'px';
     tagsEl.appendChild(t);
-    if (e === sel && toggle === 'E') {
-      const off = e.classList.contains('off');
-      const eye = document.createElement('span');
-      eye.className = 'eye sel';
-      eye.title = '表示 / 非表示';
-      eye.style.top = place.y + 'px';
-      eye.style.left = (right ? place.x - 26 : place.x + w) + 'px';
-      eye.innerHTML = off
-        ? '<svg width="18" height="14" viewBox="0 0 9 7" shape-rendering="crispEdges"><path fill="#101113" d="M1 3h7v1H1zM2 4h1v1H2zM4 4h1v2H4zM6 4h1v1H6z"/></svg>'
-        : '<svg width="18" height="14" viewBox="0 0 9 7" shape-rendering="crispEdges"><path fill="#101113" d="M3 1h3v1H3zM1 2h2v1H1zM6 2h2v1H6zM0 3h1v1H0zM8 3h1v1H8zM1 4h2v1H1zM6 4h2v1H6zM3 5h3v1H3zM4 2h1v3H4zM3 3h3v1H3z"/></svg>';
-      eye.onclick = ev => { ev.stopPropagation(); e.classList.toggle('off'); render(); };
-      tagsEl.appendChild(eye);
-      taken.push({x: parseFloat(eye.style.left), y: place.y, w: 26, h: 22});
+    if (e === sel) {
+      // The settings screen's switch, joined to the tag on the side away
+      // from the anchor, so the name never moves.
+      const sw = document.createElement('span');
+      sw.className = 'tagsw';
+      sw.title = '表示 / 非表示';
+      sw.style.top = place.y + 'px';
+      sw.style.left = (right ? place.x - 40 : place.x + w) + 'px';
+      sw.innerHTML = '<i class="knob' + (e.classList.contains('off') ? ' off' : '') + '"></i>';
+      sw.onclick = ev => { ev.stopPropagation(); e.classList.toggle('off'); render(); };
+      tagsEl.appendChild(sw);
+      taken.push({x: parseFloat(sw.style.left), y: place.y, w: 40, h: 22});
     }
   }
   panel.hidden = !!sel;
@@ -258,9 +236,7 @@ function render(){
   }
 }
 document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { mode = b.dataset.m; render(); });
-document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { toggle = b.dataset.t; render(); });
-document.getElementById('tsw').onclick = () => { if (sel) { sel.classList.toggle('off'); render(); } };
-document.getElementById('tbtn').onclick = () => { if (sel) { sel.classList.toggle('off'); render(); } };
+
 els.forEach(e => {
   e.onclick = ev => { ev.stopPropagation(); sel = e; render(); };
   e.onmouseenter = () => { hover = e; render(); };
