@@ -417,6 +417,10 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     controls.clear();
     auto const value = Runtime::instance().preferences();
     information::HudPreview preview{value.hud};
+    // Game parts left Standard are not here at all (L-334).
+    if (selected && !settings::hudInEditor(value, *selected)) select(std::nullopt);
+    for (auto id : drawOrder)
+        if (!settings::hudInEditor(value, id)) preview.hidden[static_cast<size_t>(id)] = true;
     scaleField.reset();
     if (resize) {
         resize->scale = dragScale(resize->start, resize->anchor, resize->handle, {pointerX, pointerY});
@@ -491,7 +495,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         // Only where it lies on another element: a darker ground sets it apart.
         if (behind) fill(context, behind->x, behind->y, behind->w, behind->h, Rgb{0, 0, 0}, .45f);
         preview.hidden.fill(true);
-        preview.hidden[static_cast<size_t>(*focus)] = false;
+        preview.hidden[static_cast<size_t>(*focus)] = !settings::hudInEditor(value, *focus);
         auto front = information::drawHud(context, width, height, value.information, &preview);
         boxes[static_cast<size_t>(*focus)] = front[static_cast<size_t>(*focus)];
         context.flushText(0, std::nullopt);
@@ -564,13 +568,15 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         float opacity = isFocus ? .9f : isHovered ? .6f : framed(id) ? .35f : .2f;
         Box outer{box->x - 1, box->y - 1, box->w + 2, box->h + 2};
         if (isOff(id)) {
-            // Gray: yellow already marks the game's own elements.
+            // Switched off: a dark veil like a disabled settings row, gray
+            // hatching, and a quieter frame than a shown element's.
+            fill(context, box->x, box->y, box->w, box->h, Rgb{0, 0, 0}, .35f);
             std::vector<ImageRect> lines;
             for (auto const& square : hatch(*box)) lines.push_back({square.x, square.y, square.w, square.h});
             fills(context, lines, palette::faint, .6f);
             // The hatching is the state, the frame's color who draws it.
             frame(context, outer.x, outer.y, outer.w, outer.h,
-                  isFocus ? palette::accent : hudGameDrawn(id) ? palette::warning : palette::white, isFocus ? .9f : isHovered ? .8f : .6f);
+                  isFocus ? palette::accent : hudGameDrawn(id) ? palette::warning : palette::white, isFocus ? .9f : isHovered ? .6f : .35f);
             if (!isFocus && !isHovered) addTag(*box, id);
             continue;
         }

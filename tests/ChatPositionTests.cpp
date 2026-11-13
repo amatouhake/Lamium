@@ -212,6 +212,18 @@ void chatPositionTests() {
         std::filesystem::remove(path);
         check(!reread.information.hidesBossBars() && reread.information.gameHud,
               "boss bars shown again after the move stay shown when saved and loaded");
+        Settings standard;
+        check(!settings::hudInEditor(standard, HudElementId::Chat) && settings::hudInEditor(standard, HudElementId::Info)
+              && !settings::firstGameHudPart(standard),
+              "with Game HUD placement off no game part is in the editor and its link selects none");
+        standard.information.gameHud = true;
+        standard.information.chatPosition = false;
+        check(!settings::hudInEditor(standard, HudElementId::Chat) && settings::hudInEditor(standard, HudElementId::Scoreboard)
+              && settings::firstGameHudPart(standard) == std::optional(HudElementId::PaperDoll),
+              "a part left Standard is not in the editor; the link opens the first part that is");
+        standard.information.showChat = false;
+        standard.information.chatPosition = true;
+        check(settings::hudInEditor(standard, HudElementId::Chat), "a hidden part stays in the editor");
         using hud_editor::hatch;
         auto lines = hatch({10, 20, 12, 6});
         check(!lines.empty() && std::all_of(lines.begin(), lines.end(), [](auto const& b) {

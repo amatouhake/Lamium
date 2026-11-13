@@ -518,8 +518,9 @@ first build):
   - Shows by situation: contents at half opacity and a white dashed frame.
     This replaces L-321's frame-only look, so every placed element can be
     seen.
-  - Hidden: no contents, gray diagonal dots and a gray frame, and its name on
-    a darker gray tag; contents at 30 % only while selected. Never yellow,
+  - Hidden: no contents, a dark veil (like a disabled settings row), gray
+    diagonal dots and a quieter frame, and its name on a darker gray tag;
+    contents at 30 % only while selected. Never yellow,
     which marks the game's own elements. It can still be moved and scaled.
   - Pointed at or selected, an element is drawn in full (a hidden one faint)
     and named. Otherwise only a hidden element carries its name: where the
@@ -547,9 +548,11 @@ first build):
 - The idle panel (nothing selected) has a legend: a dashed swatch "Shown by
   situation", a hatched swatch "Hidden", and below them a yellow swatch "The
   game's HUD".
-- Not done, by the maintainer's choice: marking game parts left Standard in
-  the editor. If ever, by leaving them out of the editor rather than adding
-  more to it.
+- A game part left Standard (or every part with Game HUD placement off) is
+  not in the editor at all: it is the game's own and moving it would change
+  nothing (decided 2026-11-14, by taking away rather than marking it). Game
+  HUD placement's layout link opens the editor at its first part in the
+  editor, or with nothing selected.
 - Cost: hidden and situational elements are drawn in the same pass as the
   others with an opacity per element; the dots are bounded per element.
 - Hide boss bars moved from Hide effects to the boss bars' row. A settings

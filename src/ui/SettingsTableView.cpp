@@ -261,6 +261,11 @@ void beginNumber(settings::Option const& option) {
 // Enter / Space / click on the name of a row.
 void openLayout(std::optional<HudElementId> element) {
     screen::selectNav(nav::hud);
+    // Game HUD placement's link names the chat; a part left Standard is not
+    // in the editor, so the first one that is, or none.
+    auto const preferences = Runtime::instance().preferences();
+    if (element && !settings::hudInEditor(preferences, *element))
+        element = hudGameDrawn(*element) ? settings::firstGameHudPart(preferences) : std::nullopt;
     hud_editor::select(element);
 }
 void setSlider(settings::Option const& option, float fraction) {

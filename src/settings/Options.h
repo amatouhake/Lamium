@@ -162,6 +162,24 @@ inline std::optional<bool> hudShown(Settings const& value, ui::HudElementId id) 
     auto* field = hudShownField(const_cast<Settings&>(value), id);
     return field ? std::optional(*field) : std::nullopt;
 }
+// A game part left Standard (or with Game HUD placement off) is the game's
+// own and not in HUD layout at all (L-334): moving it would change nothing.
+inline bool hudInEditor(Settings const& value, ui::HudElementId id) {
+    auto const& info = value.information;
+    switch (id) {
+    case ui::HudElementId::Chat: return info.placesChat();
+    case ui::HudElementId::PaperDoll: return info.placesPaperDoll();
+    case ui::HudElementId::Scoreboard: return info.placesScoreboard();
+    case ui::HudElementId::BossBars: return info.placesBossBars();
+    default: return true;
+    }
+}
+// Where Game HUD placement's layout link opens: its first part in the editor.
+inline std::optional<ui::HudElementId> firstGameHudPart(Settings const& value) {
+    for (auto id : {ui::HudElementId::Chat, ui::HudElementId::PaperDoll, ui::HudElementId::Scoreboard, ui::HudElementId::BossBars})
+        if (hudInEditor(value, id)) return id;
+    return std::nullopt;
+}
 // One row for a game HUD part's two saved switches: its part switch and
 // its show value (L-334). Standard leaves it the game's; Hidden places it
 // so that it can be hidden.
