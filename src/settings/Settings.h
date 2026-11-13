@@ -74,7 +74,7 @@ struct Settings {
         bool containerPreviews = true;
         bool shulkerPreviews = true;
         bool emptyShulkerPreviews = true;
-        bool hideShulkerContents = false;
+        bool hideShulkerContents = true; // The preview shows the same contents (2026-11-13).
         bool bundlePreviews = true;
         bool emptyBundlePreviews = true;
         bool durability = true;

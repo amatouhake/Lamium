@@ -549,7 +549,9 @@ void settingsStoreTests() {
           "OpenHotkeys is unbound by default");
     check(decodeSettings(R"({"interface":{"gameplayHints":false}})").ui.automationStatus,
           "removed gameplay hints key loads without error");
-    check(!old.inspection.hideShulkerContents, "older settings retain vanilla Shulker contents text");
+    check(old.inspection.hideShulkerContents
+          && !decodeSettings(R"({"inspection":{"hideShulkerContents":false}})").inspection.hideShulkerContents,
+          "the shulker box contents text is hidden unless a saved choice keeps it");
     check(!old.inspection.itemDetailsTags && !old.inspection.itemDetailsNbt, "item tags and NBT stay out of tooltips until asked for (L-319)");
     {
         auto off = decodeSettings(R"({"inspection":{"itemDetails":false}})").inspection;
