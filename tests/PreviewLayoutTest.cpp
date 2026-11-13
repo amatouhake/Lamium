@@ -119,6 +119,9 @@ void testMovesClearOfHoverText() {
     auto const low = PreviewLayout::anchored(9, 3, 100.0f, 80.0f, 400.0f, 300.0f);
     auto const under = low.clearOf(Rect{104.0f, 60.0f, 200.0f, 95.0f}, 2.0f, 300.0f);
     CHECK_RECT(under.frame, 108.0f, 97.0f, 278.0f, 159.0f);
+    // Attached: right above a box drawn below the pointer.
+    auto const attached = layout.clearOf(Rect{104.0f, 211.0f, 200.0f, 270.0f}, 2.0f, 300.0f, true);
+    CHECK_RECT(attached.frame, 108.0f, 147.0f, 278.0f, 209.0f);
 }
 
 void testSnapsToWholeUnits() {

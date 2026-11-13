@@ -81,7 +81,7 @@ void PreviewRenderer::render(
     glm::vec2 const pointer = hoverText ? glm::vec2{hoverText->cursorX, hoverText->cursorY} : glm::vec2(*view.mPointerLocationPrevious);
     glm::vec2 const screen  = view.mSize;
     auto layout = PreviewLayout::anchored(preview.columns, preview.rows, pointer.x, pointer.y, screen.x, screen.y);
-    if (hoverText) layout = layout.clearOf(hoverText->box, 2.0f, screen.y);
+    if (hoverText) layout = layout.clearOf(hoverText->box, 2.0f, screen.y, hoverText->attach);
     layout = layout.snapped();
 
     static bool sLoggedFirstRender = false;

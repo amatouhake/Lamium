@@ -40,6 +40,9 @@
 #include "ll/api/event/render/UIRenderEvent.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/gui/screens/ScreenController.h"
+#include "mc/client/gui/controls/UIControl.h"
+#include "mc/client/gui/controls/VisualTree.h"
+#include "mc/client/gui/screens/ScreenView.h"
 #include "mc/safety/RedactableString.h"
 #include "mc/world/item/Item.h"
 #include "mc/world/item/ItemStackBase.h"
@@ -275,6 +278,31 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
     } catch (...) {
     }
 }
+// The game's bundle tooltip is a UI panel ("bundle_cursor_tooltip", gameplay UI) placed by the cursor, not hover
+// text; its box is the union of its shown parts (the purple background reaches past the panel). Logged 2026-11-14:
+// it sits at the pointer + (10, 10), 90 units wide.
+void unite(UIControl const& control, render::Rect& box, bool& any, int depth) {
+    if (depth > 6 || (static_cast<int>(control.mVisible) & 1) == 0 || control.mCachedPositionDirty) return;
+    glm::vec2 const at = *control.mCachedPosition, size = *control.mSize;
+    if (size.x > 0 && size.y > 0) {
+        render::Rect const r{at.x, at.y, at.x + size.x, at.y + size.y};
+        box = any ? render::Rect{std::min(box.x0, r.x0), std::min(box.y0, r.y0), std::max(box.x1, r.x1), std::max(box.y1, r.y1)} : r;
+        any = true;
+    }
+    for (auto const& child : *control.mChildren)
+        if (child) unite(*child, box, any, depth + 1);
+}
+std::optional<render::Rect> bundleTooltipBox(ScreenView const& view) {
+    VisualTree* tree = view.mVisualTree.get();
+    if (!tree) return std::nullopt;
+    auto control = tree->getControlByName("bundle_cursor_tooltip", true);
+    if (!control) return std::nullopt;
+    render::Rect box{};
+    bool any = false;
+    unite(*control, box, any, 0);
+    if (!any) return std::nullopt;
+    return box;
+}
 }
 void setBeforeTooltip(void (*painter)(MinecraftUIRenderContext&)) { beforeTooltip = painter; }
 bool start() {
@@ -303,6 +331,11 @@ bool start() {
                 && !(shulker ? preferences.emptyShulkerPreviews : preferences.emptyBundlePreviews)) return;
             std::optional<render::HoverTextBox> hoverText;
             if (tooltipBox && tooltipBox->frame == frame) hoverText = tooltipBox->box;
+            if (!shulker)
+                if (auto box = bundleTooltipBox(event.screenView())) {
+                    glm::vec2 const pointer = event.screenView().mPointerLocationPrevious;
+                    hoverText = render::HoverTextBox{*box, pointer.x, pointer.y, true};
+                }
             renderer.render(event.screenView(), event.uiRenderContext(), *contents, hoverText);
         });
         exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { cache.clear(); });

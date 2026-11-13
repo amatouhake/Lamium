@@ -20,6 +20,7 @@ namespace lamium::inspection::render {
 struct HoverTextBox {
     Rect  box;
     float cursorX, cursorY;
+    bool  attach = false; // Sit right above it even when apart (the bundle tooltip, drawn below the pointer)
 };
 
 class PreviewRenderer {

@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Bundle preview attached to the bundle tooltip (2026-11-14)
+
+Uncommitted build, DLL SHA-256
+`bcfde18cfefbb4f39268ee4495968d88f25bdacc014602e5ef8cc8e5407e2d20` (the committed
+version only drops its log lines), 1.26.60.05 Dev instance, the maintainer; the log read
+by the agent. The game's bundle tooltip is the UI panel `bundle_cursor_tooltip`, logged
+at the pointer + (10, 10), 90 x 58-63 units.
+
+- The bundle preview sits right above the bundle tooltip and does not shake.
+- With the pointer on the left part of the bundle's slot, the preview slightly covers
+  the bundle's own icon.
+
 ## Container preview beside the hover text (2026-11-14)
 
 `48a880ca` (with `2c33914a` and `c754b059`), DLL SHA-256

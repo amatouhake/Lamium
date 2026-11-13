@@ -71,9 +71,11 @@ struct PreviewLayout {
     /// The same frame moved clear of `box` (the game's hover text): above it
     /// when there is room, else below it; unchanged when it does not overlap
     /// or fits neither way.
-    [[nodiscard]] constexpr PreviewLayout clearOf(Rect const& box, float gap, float screenHeight) const {
+    /// With `attach`, it goes right above the box (or below) even when apart,
+    /// so it sits by a tooltip drawn lower than the pointer (the bundle's).
+    [[nodiscard]] constexpr PreviewLayout clearOf(Rect const& box, float gap, float screenHeight, bool attach = false) const {
         bool const overlaps = frame.x0 < box.x1 && box.x0 < frame.x1 && frame.y0 < box.y1 + gap && box.y0 - gap < frame.y1;
-        if (!overlaps) return *this;
+        if (!overlaps && !attach) return *this;
         float const height = frame.height();
         float y = box.y0 - gap - height;
         if (y < 0.0f) {
