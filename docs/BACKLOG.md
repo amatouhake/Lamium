@@ -2774,15 +2774,14 @@ shulker box's preview does not change that. The same holds for the other
 heads (dragon, creeper). Not looked into; where the two cases' item data
 differ is the first thing to read (the stored data is now visible in the
 tooltip with Item details on).
-Trial 2026-11-14 (`glint_trial` build, PROVENANCE: BEI): BEI's item-icon
-path has the same structure as Lamium's (icon then foil through
-`renderGuiItemNew`, glinting stacks before the shared-mesh batches) and
-no bundle handling; it draws a real stack only for the item held on the
-cursor. Its draw context differs in three ways, which the trial tests one
-per frame by the selected hotbar slot: 1 as before, 2 an off-screen white
-quad flushed with `ui_flush` before the glinting icons, 3 zOrder 0, 4 the
-foil at the icon's alpha without Lamium's shader-colour tint, 5 all three.
-Result pending.
+Trial 2026-11-14 (`8e00a4b1`, removed in the next commit): BEI's
+item-icon path has the same structure as Lamium's and the same gaps (the
+maintainer saw the enchanted shield, enchanted leather, recovery compass
+and unloaded heads fail there too). Its three draw-context differences
+(off-screen white quad flushed with `ui_flush`, zOrder 0, foil at the
+icon's alpha without Lamium's shader-colour tint), alone and together,
+drew no shield glint; flat items' glint looked the same in all of them.
+BEI offers no lead for L-91.
 
 ### L-79 Carved pumpkin and spyglass frame draw path
 Kind: Research. Cheap models may run the steps below and report; implementing

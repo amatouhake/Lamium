@@ -57,12 +57,6 @@ option("icon_trace")
     set_description("Enable bounded diagnostics for L-91/L-119 (vanilla slot icon routes vs Lamium's icon calls)")
 option_end()
 
-option("glint_trial")
-    set_default(false)
-    set_showmenu(true)
-    set_description("L-91 trial: glint draw-context variants picked by the selected hotbar slot (1-5)")
-option_end()
-
 option("playerlist_trace")
     set_default(false)
     set_showmenu(true)
@@ -284,7 +278,6 @@ target("Lamium")
     if has_config("slime_trace") then add_defines("LAMIUM_SLIME_TRACE") end
     if has_config("spawn_area_trace") then add_defines("LAMIUM_SPAWN_AREA_TRACE") end
     if has_config("icon_trace") then add_defines("LAMIUM_ICON_TRACE") end
-    if has_config("glint_trial") then add_defines("LAMIUM_GLINT_TRIAL") end
     if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end
     if has_config("repeat_trade_trace") then add_defines("LAMIUM_REPEAT_TRADE_TRACE") end
     if has_config("language_trace") then add_defines("LAMIUM_LANGUAGE_TRACE") end

@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-91 glint trial: BEI's draw context does not bring the shield glint (2026-11-14)
+
+`8e00a4b1` built with `--glint_trial=y`, DLL SHA-256
+`fa52444cce035f983b51dc5619a91cdbc5dd6bf9d09ad42cc990d4895f2436af`, 1.26.60.05 Dev
+instance, run by the maintainer. An enchanted shield in a shulker box preview and in the
+offhand slot, with hotbar slots 1-5 selecting: as before; an off-screen white quad
+flushed with `ui_flush` before the glinting icons; zOrder 0; the foil at the icon's
+alpha with the shader colour untouched; all three.
+
+- No variant drew the shield's glint.
+- Flat items' glint (enchanted books and the like) looked normal in every variant; not
+  measured.
+- The maintainer also saw BarelyEnoughItems fail the same way for an enchanted shield,
+  enchanted leather armor, a recovery compass and heads not yet loaded.
+
 ## Issue #32: the client holds no structure spawn areas (2026-11-13)
 
 `a163e4fa` built with `--spawn_area_trace=y`, DLL SHA-256
