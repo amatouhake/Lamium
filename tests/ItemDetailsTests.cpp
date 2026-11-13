@@ -45,18 +45,21 @@ void itemDetailsTests() {
     }
     {
         Item potion{.id = "minecraft:potion", .aux = 21, .tags = {"minecraft:is_food"}};
-        potion.data = {{"display", "", 0}, {"Name", "\"x\"", 1}, {"Lore", "[2]", 1}, {"0", "\"a\"", 2}, {"Damage", "3", 0}};
+        potion.data = {{"display", "{Name:\"x\"}"}, {"Damage", "3"}};
         auto out = lines(potion);
         check(out[0] == Line{"", "minecraft:potion #21", true} && out[1] == Line{"itemDetails.tags", "minecraft:is_food", true},
               "a data value follows the id, tags follow both");
-        check(out.size() == 7 && out[2] == Line{"", "display:", true} && out[3] == Line{"", "  Name: \"x\"", true}
-                  && out[4] == Line{"", "  Lore: [2]", true} && out[5] == Line{"", "    0: \"a\"", true} && out[6] == Line{"", "Damage: 3", true},
-              "user data is told whole, each level indented under its compound or list");
-        Item big{.id = "x"};
-        for (size_t i = 0; i < dataLines + 5; ++i) big.data.push_back({"k", "v", 0});
-        big.dataTotal = dataLines + 9;
+        check(out.size() == 3 && out[2] == Line{"itemDetails.data", "2", true}, "user data is only counted by default");
+        potion.full = true;
+        potion.data[0].value = std::string(dataWidth + 5, 'x');
+        out = lines(potion);
+        check(out.size() == 4 && out[2] == Line{"", "display: " + std::string(dataWidth, 'x') + "\xE2\x80\xA6", true}
+                  && out[3] == Line{"", "Damage: 3", true},
+              "the long form tells each top-level entry on one line, cut at the width");
+        Item big{.id = "x", .full = true};
+        for (size_t i = 0; i < dataLines + 9; ++i) big.data.push_back({"k", "v"});
         auto cut = lines(big);
         check(cut.size() == 1 + dataLines + 1 && cut.back() == Line{"itemDetails.more", "9", true},
-              "past the limit the rest of the user data is counted, by the total the walk found");
+              "past the limit the rest of the user data is counted");
     }
 }

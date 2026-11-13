@@ -315,10 +315,13 @@ Inside the game's item tooltip:
   item has one. Above the food icons, a suspicious stew's effect outside Creative,
   in the game's words and colours. Under them: enchantability; a stack limit below 64 (above 1); the cooldown and the time the
   item takes to use, in seconds; how many items it smelts as fuel; then, darker, its
-  ID (with "#N" for a data value other than 0), its item tags and its stored data.
-  Stored data is told whole, each compound's entries and each list's elements
-  indented under it, values cut at 40 characters; past 48 lines the rest is counted.
-  Armor values and attack damage are the game's own lines and are not repeated.
+  ID (with "#N" for a data value other than 0), its item tags, and how many entries
+  its stored data has. While the stored data key is held (Alt by default) the count
+  gives way to the data: one line per top-level entry, a compound or list as its
+  whole text on that line, cut at 60 characters; past 24 entries the rest is
+  counted. Armor values and attack damage are the game's own lines and are not
+  repeated. Enchantability is the number an enchanting table works from: the higher,
+  the better the enchantments it offers.
 
 ### Trades
 

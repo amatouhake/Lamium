@@ -8,4 +8,6 @@ void stop();
 // tooltip (L-170's list beside the anvil). One painter; null removes it.
 // Client thread.
 void setBeforeTooltip(void (*painter)(MinecraftUIRenderContext&));
+// While held, item tooltips tell their stored data instead of counting it (L-319). Any thread.
+void setDetailsHeld(bool held);
 }

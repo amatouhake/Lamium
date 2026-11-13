@@ -10,16 +10,13 @@
 namespace lamium::inspection::details {
 // What an item's tooltip can say beyond the game's own text (BACKLOG L-319).
 // Pure: the values come from the game, the lines and their limits from here.
-struct Entry {
-    std::string key, value; // No value: a compound, its entries follow one level deeper
-    int depth = 0;
-};
+struct Entry { std::string key, value; };
 struct Item {
     std::string id;
     int aux = 0;
     std::vector<std::string> tags;
-    std::vector<Entry> data; // User data in reading order, at most dataLines of it
-    size_t dataTotal = 0;    // How many entries the user data has in all
+    std::vector<Entry> data; // The user data's top level; a compound or list is its whole text on one line
+    bool full = false;       // The long form: the data itself rather than its count
     int enchantability = 0, maxStack = 64, cooldownTicks = 0;
     float burnTicks = 0, useTicks = 0;
 };
@@ -29,7 +26,7 @@ struct Line {
     bool dim = false; // Identity and data, darker than the values
     bool operator==(Line const&) const = default;
 };
-inline constexpr size_t valueLimit = 40, lineWidth = 44, tagLines = 4, dataLines = 48;
+inline constexpr size_t valueLimit = 40, lineWidth = 44, tagLines = 4, dataLines = 24, dataWidth = 60;
 inline constexpr float smeltTicks = 200, ticksPerSecond = 20;
 // A bow or a shield is held for as long as the button is; that is not a time to tell.
 inline constexpr float longestUse = 1200;
@@ -110,14 +107,16 @@ inline std::vector<Line> lines(Item const& item) {
         out.push_back({first ? "itemDetails.tags" : "", first ? std::move(row) : "  " + row, true});
         first = false;
     }
-    size_t const shown = std::min(item.data.size(), dataLines);
-    for (size_t i = 0; i < shown; ++i) {
-        auto const& entry = item.data[i];
-        out.push_back({"", std::string(2 * static_cast<size_t>(std::max(entry.depth, 0)), ' ') + clip(entry.key)
-                               + (entry.value.empty() ? ":" : ": " + clip(entry.value)), true});
+    // Short by default: the data is counted. The long form tells each top-level entry on a line of its own, cut at
+    // the width, so a shulker box's items are one line and not hundreds.
+    if (!item.full) {
+        if (!item.data.empty()) out.push_back({"itemDetails.data", std::to_string(item.data.size()), true});
+        return out;
     }
-    if (auto const total = std::max(item.dataTotal, item.data.size()); total > shown)
-        out.push_back({"itemDetails.more", std::to_string(total - shown), true});
+    size_t const shown = std::min(item.data.size(), dataLines);
+    for (size_t i = 0; i < shown; ++i)
+        out.push_back({"", clip(item.data[i].key) + ": " + clip(item.data[i].value, dataWidth), true});
+    if (item.data.size() > shown) out.push_back({"itemDetails.more", std::to_string(item.data.size() - shown), true});
     return out;
 }
 }

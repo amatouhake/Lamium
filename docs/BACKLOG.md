@@ -853,13 +853,28 @@ time on bread and a milk bucket (1.6 s), dried kelp (0.8 s) and a crossbow
   Confirmed by the maintainer the same day on `becfac62` (VALIDATION-LOG):
   Weakness in Survival reads as in Creative, an effect without an
   attribute adds no line, Creative shows nothing twice.
-The values are now right as far as checked; what is left is the design
-talk below and the enchantability wording.
-Open, for one design talk once the values are right (the maintainer's
-call): stored data makes the tooltip of an enchanted armour piece or a
-shulker box far too tall. Wanted: short by default, the long form on
-demand. Scrolling the tooltip with the wheel would collide with Inventory
-transfer's wheel.
+Decided with the maintainer 2026-11-13 (the design talk), built the same
+day, not yet checked in game:
+- Two forms. Short, by default: the value lines, the ID and the tags as
+  before, and the stored data as one line with its count ("Stored data: 12
+  entries"). Long, while a key is held: the count gives way to the data.
+- The long form is the raw content, nothing left out, but not a tree:
+  each top-level entry is one line, a compound or list as its whole text
+  on that line, cut at 60 characters; at most 24 entries, then a count. A
+  shulker box's items are one cut line: seeing them is the container
+  preview's job. The indented tree is not taken for now.
+- The key is an action of its own ("Show stored data in tooltips while
+  held", `itemdetailsmore`), held, Alt by default. The agent's choice among
+  keys that all mean something in an inventory: Shift and Ctrl are held
+  for nearly every transfer, Alt only for "every item of a kind" clicks,
+  so the tooltip changes least often by accident. The maintainer is not
+  against Alt but has not settled it.
+- Enchantability keeps its line ("Enchantability: 15"); what the number
+  means is told in the setting's help, not in the tooltip.
+- No scrolling: with one line per entry it is not needed, and the wheel
+  stays Inventory transfer's.
+Still open: whether Durability numbers, Food values, Work penalty and Item
+details become one group in the settings (the note above).
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
 Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;

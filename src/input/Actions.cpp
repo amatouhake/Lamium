@@ -17,6 +17,7 @@
 #include "features/schematic/RayCells.h"
 #include "mc/world/level/dimension/Dimension.h"
 #include "features/information/PlayerList.h"
+#include "features/inspection/Inspection.h"
 #include "features/inventory/Inventory.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/map/MapView.h"
@@ -275,6 +276,7 @@ void executeAction(IClientInstance& client, input::Action action) {
     }
     if (action == input::Action::MinimapEnlarge) { map::setEnlarged(true); return; }
     if (action == input::Action::PlayerList) { information::playerList::setHeld(true); return; }
+    if (action == input::Action::ItemDetailsMore) { inspection::setDetailsHeld(true); return; }
     if (action == input::Action::RadarFaces) { map::setFacesHeld(true); return; }
     if (action == input::Action::TargetMeasure) { information::setCardFlip(information::CardFlip::Distance, true); return; }
     if (action == input::Action::TargetDetails) { information::setCardFlip(information::CardFlip::Details, true); return; }
@@ -376,6 +378,7 @@ void releaseAction(input::Action action) {
     if (action == input::Action::FakeOffhandUse) inventory::fakeOffhand::release();
     if (action == input::Action::MinimapEnlarge) map::setEnlarged(false);
     if (action == input::Action::PlayerList) information::playerList::setHeld(false);
+    if (action == input::Action::ItemDetailsMore) inspection::setDetailsHeld(false);
     if (action == input::Action::RadarFaces) map::setFacesHeld(false);
     if (action == input::Action::TargetMeasure) information::setCardFlip(information::CardFlip::Distance, false);
     if (action == input::Action::TargetDetails) information::setCardFlip(information::CardFlip::Details, false);

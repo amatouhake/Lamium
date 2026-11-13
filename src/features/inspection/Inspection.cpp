@@ -15,6 +15,7 @@
 #include "mc/world/attribute/Attribute.h"
 #include "mc/world/attribute/AttributeModifier.h"
 #include <optional>
+#include <atomic>
 #include "mc/world/item/components/FuelItemComponent.h"
 #include "mc/world/item/components/UseModifiersItemComponent.h"
 #include <cmath>
@@ -50,6 +51,7 @@ preview::HoveredPreviewCache cache;
 render::PreviewRenderer renderer;
 ll::event::ListenerPtr renderListener, exitListener;
 bool tooltipHookInstalled = false, durabilityHookInstalled = false, foodHooksInstalled = false;
+std::atomic<bool> detailsHeld = false;
 // Food values by the hover text that carries their glyph line. The game
 // builds hover text for more items than the one shown, so the painter looks
 // the drawn text up instead of trusting the latest one.
@@ -65,28 +67,6 @@ std::vector<information::saturation::FoodIcon> const* foodFor(std::string_view t
     for (auto it = tooltipFood.rbegin(); it != tooltipFood.rend(); ++it)
         if (it->text == text) return &it->icons;
     return nullptr;
-}
-// An item's user data in reading order: a compound's entries and a list's elements one level deeper. Only the
-// first lines are kept, the rest is counted, and a very large tag is not walked to its end.
-void collectData(std::string const& key, Tag const& tag, int depth, details::Item& item) {
-    if (++item.dataTotal > 4096) return;
-    bool const keep = item.data.size() < details::dataLines;
-    switch (tag.getId()) {
-    case Tag::Compound:
-        if (keep) item.data.push_back({key, "", depth});
-        for (auto const& [name, child] : static_cast<CompoundTag const&>(tag).mTags)
-            std::visit([&](auto const& held) { collectData(name, held, depth + 1, item); }, child.mTagStorage);
-        break;
-    case Tag::List: {
-        auto const& list = static_cast<ListTag const&>(tag);
-        if (keep) item.data.push_back({key, std::format("[{}]", list.size()), depth});
-        for (size_t i = 0; i < list.size(); ++i)
-            if (list[i]) collectData(std::to_string(i), *list[i], depth + 1, item);
-        break;
-    }
-    default:
-        if (keep) item.data.push_back({key, tag.toSnbt(SnbtFormat::Minimize), depth});
-    }
 }
 // The effect a shown line starts with: the game's effects by their translated names, the longest that fits. Whether
 // it is harmful, and what it does to attributes at its first level in the game's words. Asked again only when the
@@ -184,9 +164,11 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
             item.id = getTypeName();
             item.aux = getAuxValue();
             for (auto const& tag : *mItem->mTags) item.tags.push_back(tag.getString());
+            // The data's text is built only while the long form is asked for, and only for the lines it will show.
+            item.full = detailsHeld.load();
             if (mUserData)
                 for (auto const& [key, tag] : mUserData->mTags)
-                    std::visit([&](auto const& held) { collectData(key, held, 0, item); }, tag.mTagStorage);
+                    item.data.push_back({key, item.full && item.data.size() < details::dataLines ? tag.toSnbt(SnbtFormat::Minimize) : std::string{}});
             item.enchantability = mItem->getEnchantValue();
             item.maxStack = getMaxStackSize();
             item.cooldownTicks = mItem->getCooldownDuration();
@@ -306,6 +288,7 @@ bool start() {
         return false;
     }
 }
+void setDetailsHeld(bool held) { detailsHeld = held; }
 void stop() {
     auto& bus = ll::event::EventBus::getInstance();
     for (auto* listener : {&renderListener, &exitListener}) {
