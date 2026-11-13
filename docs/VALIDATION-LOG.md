@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## HUD layout frame colors (L-334, 2026-11-14)
+
+Build `f49d0a2b`, DLL SHA-256
+`c6fc5adcddcef0b534488b79e61e93b9cdd90f8d5a3a95bc1e03a17555a40230`, 1.26.60.05 Dev
+instance, the maintainer: all passed (a situational scoreboard has a yellow dashed frame;
+hidden game parts a yellow frame over the hatching, hidden Lamium elements a white one; the
+legend's "game's HUD" row). Raised: a hidden game part (the scoreboard) does not read as
+hidden enough; and how game parts left Standard should appear in the editor.
+
 ## Showing and hiding HUD elements, eighth build (L-334, 2026-11-14)
 
 Build `baff6efc`, DLL SHA-256
