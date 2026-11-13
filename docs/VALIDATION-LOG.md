@@ -12,6 +12,28 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A death's waypoint, the restore's end by leaving, seven badges off (2026-11-13)
+
+`786424c4`, local build, DLL SHA-256
+`2577f878b76f6c3885749112fa16df930540467464343574c1879d35a28a651f`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer, as specified:
+
+- L-328: an existing death point shows as a waypoint with a red cross after joining;
+  dying adds "Death point" and replaces the untouched one before; with "Temporary death
+  point" on, arrival removes it with the temporary waypoint toast and picking the items
+  up restores the layout; a renamed one survives the next death and a new one is added;
+  moving it turns the cross into a diamond; the cross shows in its chosen color on the
+  minimap, the world map, in the world and in both lists.
+- L-327: 32 blocks away after arrival, the "restore ended" toast shows.
+- The seven features that lost the Experimental badge show none in the settings.
+
+Not checked: servers.
+The maintainer's remarks the same day: the death point only follows the latest death
+and does not suit a lasting record of deaths; a moved one changing its mark while still
+named "Death point" reads wrong; whether death points should grow as their own feature
+or become simpler is open (BACKLOG L-332). Connected Textures: glass pane edges look
+wrong in less simple arrangements (BACKLOG L-331), so its badge is back.
+
 ## Fake Offhand on its own slot, anvil marks, shulker box previews, the death point as a temporary mark (2026-11-13)
 
 `26ebab3a`, local build, DLL SHA-256
