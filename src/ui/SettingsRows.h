@@ -222,8 +222,6 @@ inline std::optional<std::string_view> optionWarning(std::string_view option, Se
 }
 // A feature's switch is off: its child settings are kept but do nothing (drawn dimmed, L-319).
 inline bool effectsPaused(std::string_view id, Settings const& value) {
-    // A death point is recorded while waypoints are switched off.
-    if (id == "waypoints") return false;
     for (auto const& feature : features) {
         if (feature.id != id || feature.toggle.empty()) continue;
         if (auto option = settings::find(feature.toggle)) {
@@ -275,39 +273,9 @@ inline constexpr std::string_view featureNameKey(std::string_view id) {
         if (feature.id == id) return feature.name;
     return {};
 }
-// What a toggle toast names: an effect's own switch, otherwise its feature.
+// What a toggle toast names: the feature; a child switch's label follows it (Actions.cpp).
 inline std::string_view toggleToastKey(input::Action action) {
-    using input::Action;
-    switch (action) {
-    case Action::ToggleChatPosition: return "toast.chatPosition";
-    case Action::TogglePaperDollPosition: return "toast.paperDollPosition";
-    case Action::ToggleScoreboardPosition: return "toast.scoreboardPosition";
-    case Action::HideWeather: return "toast.hideWeather";
-    case Action::HideParticles: return "toast.hideParticles";
-    case Action::HideBossBars: return "toast.hideBossBars";
-    case Action::HideNausea: return "toast.hideNausea";
-    case Action::HideWater: return "toast.hideWater";
-    case Action::HideLava: return "toast.hideLava";
-    case Action::HidePowderSnow: return "toast.hidePowderSnow";
-    case Action::HideDistanceFog: return "toast.hideDistanceFog";
-    case Action::HidePortal: return "toast.hidePortal";
-    case Action::ToggleMistakeMarks: return "schematic.menu.toggleMarks";
-    case Action::ToggleIgnoreSignal: return "toast.ignoreSignal";
-    case Action::ToggleLitAsState: return "toast.litAsState";
-    case Action::ToggleIgnoreGrowth: return "toast.ignoreGrowth";
-    case Action::ToggleIgnoreSignText: return "toast.ignoreSignText";
-    case Action::ToggleIgnoreBlockEntities: return "toast.ignoreBlockEntities";
-    case Action::ToggleWorldMap: return "toast.worldMapRecording";
-    case Action::ToggleDurability: return "feature.durability";
-    case Action::ToggleFoodValues: return "feature.foodValues";
-    case Action::ToggleWorkPenalty: return "feature.workPenalty";
-    case Action::ToggleItemDetails: return "toast.itemValues";
-    case Action::ToggleItemStew: return "toast.itemStew";
-    case Action::ToggleItemId: return "toast.itemId";
-    case Action::ToggleItemTags: return "toast.itemTags";
-    case Action::ToggleItemNbt: return "toast.itemNbt";
-    default: return featureNameKey(input::actions[static_cast<size_t>(action)].feature);
-    }
+    return featureNameKey(input::actions[static_cast<size_t>(action)].feature);
 }
 // Hotkeys found by key: only actions whose binding uses these inputs.
 struct KeyFilter {

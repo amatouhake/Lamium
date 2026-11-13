@@ -1003,6 +1003,18 @@ Seen by the maintainer on `988806af`, three doubts, answered the same day:
   death point does, so Waypoints is left undimmed. The rest of the child
   settings were not read one by one. Confirmed by the maintainer on
   `d80c18ca` (VALIDATION-LOG).
+Three more doubts from that check, decided by the maintainer the same day
+(DESIGN: Components, Toast), built, not yet checked in game:
+- A child's toast did not say which feature it belongs to. It reads
+  "Feature › Child" now, from the settings screen's labels; the toast-only
+  names are removed.
+- Keys bound alike all fired but each toast replaced the one before. The
+  toggles of one key press share the toast, a row each (four, then a count).
+- Waypoints' switch only hid the markers while a death point was still
+  recorded. It is the whole feature's switch now, so Waypoints dims its
+  children like every other feature.
+To see in game: whether "›" has a glyph in each language's font, and
+whether the longest "Feature › Child" fits the toast.
 Still open: the enchantability wording if the help text is not enough.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether

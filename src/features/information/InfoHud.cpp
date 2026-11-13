@@ -94,8 +94,11 @@
 namespace lamium::ui {
 namespace {
 Toast activeToast;
+unsigned toastGroups = 0, toastGroup = 0;
 }
-void showToggleToast(std::string feature, bool on) { activeToast.show(std::move(feature), on, toastNow()); }
+void showToggleToast(std::string feature, bool on) { activeToast.showToggle(std::move(feature), on, toastNow(), toastGroup); }
+void beginToastGroup() { if (!++toastGroups) ++toastGroups; toastGroup = toastGroups; }
+void endToastGroup() { toastGroup = 0; }
 void showMessageToast(std::string message, double seconds) { activeToast.show(std::move(message), false, toastNow(), true, seconds); }
 void showWarningToast(std::string message, double seconds) { activeToast.show(std::move(message), false, toastNow(), true, seconds, true); }
 std::optional<Toast::Visible> currentToggleToast(double now) { return activeToast.current(now); }
@@ -1567,11 +1570,12 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     }
     if (!preview) {
         map::record(context.mClient, runtime.map);
-        map::waypoints::frame(runtime.map.waypointsDeath);
+        // Waypoints off is all of it off: no death point, nothing reached (L-319).
+        map::waypoints::frame(runtime.map.waypoints && runtime.map.waypointsDeath);
         // The body arrives, not FreeCamera's view.
         if (auto* player = context.mClient.getLocalPlayer(); player && player->isAlive()) {
             auto feet = player->getFeetPos();
-            if (std::isfinite(feet.x) && std::isfinite(feet.y) && std::isfinite(feet.z))
+            if (runtime.map.waypoints && std::isfinite(feet.x) && std::isfinite(feet.y) && std::isfinite(feet.z))
                 for (auto& name : map::waypoints::arrive(static_cast<int>(player->getDimensionId()), feet.x, feet.y, feet.z,
                                                          runtime.map.waypointArrival))
                     ui::showMessageToast(ui::translated("waypoint.reached", name));
@@ -1719,6 +1723,14 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
                 if (end == std::string::npos) break;
                 start = end + 1;
             }
+            // The other toggles of the same key press, a row and a switch each.
+            std::vector<std::pair<size_t, bool>> switches{{0, toast->on}};
+            for (auto const& row : toast->more) {
+                switches.emplace_back(parts.size(), row.on);
+                parts.push_back(row.text);
+            }
+            if (toast->dropped) parts.push_back(ui::translated("toast.more", toast->dropped));
+            bool const stacked = !toast->more.empty();
             float textWidth = 0;
             for (auto const& part : parts) textWidth = std::max(textWidth, ui::textWidthScaled(context, part, zoom));
             bool card = hud.toast.background == ui::ElementBackground::Card;
@@ -1730,11 +1742,13 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             if (card && !outlined) ui::card(context, frame.x, frame.y, total, rows + 2 * padY, cardOpacity * toast->opacity);
             box(ui::HudElementId::Toast) = ui::hud_editor::Box{frame.x, frame.y, total, rows + 2 * padY};
             ui::ElementPlacement placement{frame.x + padX, frame.y + padY};
-            if (!toast->plain && !outlined) ui::toggleSwitch(context, placement.x, placement.y + (14 * zoom - ui::switchHeight) / 2, toast->on);
+            for (auto const& [row, on] : switches)
+                if (!toast->plain && !outlined)
+                    ui::toggleSwitch(context, placement.x, placement.y + 14 * zoom * static_cast<float>(row) + (14 * zoom - ui::switchHeight) / 2, on);
             for (size_t i = 0; !outlined && i < parts.size(); ++i)
                 ui::labelScaled(context, placement.x + lead, placement.y + 14 * zoom * static_cast<float>(i), textWidth + 2,
                     parts[i], zoom, toast->opacity < 1 ? ui::palette::dim : toast->warning ? ui::palette::warning : ui::palette::text,
-                    parts.size() > 1 ? ui::Align::Center : ui::Align::Left, hud.toast.shadow);
+                    parts.size() > 1 && !stacked ? ui::Align::Center : ui::Align::Left, hud.toast.shadow);
             context.flushText(0, std::nullopt);
         }
     }

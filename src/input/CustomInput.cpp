@@ -8,6 +8,7 @@
 #include "input/Binding.h"
 #include "input/Actions.h"
 #include "app/Runtime.h"
+#include "ui/Toast.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/inventory/game/TextInputTracker.h"
 #include "features/inventory/game/TransferSession.h"
@@ -45,10 +46,13 @@ void flush() {
         work.swap(queued);
         flushScheduled = false;
     }
+    // Keys bound alike arrive together: their toggles share one toast.
+    ui::beginToastGroup();
     for (auto [action, press] : work) {
         if (!press) { releaseAction(action); continue; }
         if (auto client = ll::service::getClientInstance()) executeAction(*client, action);
     }
+    ui::endToastGroup();
 }
 void post(Action action, bool press) {
     std::scoped_lock lock(queueLock);

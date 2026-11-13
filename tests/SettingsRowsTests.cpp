@@ -156,8 +156,8 @@ void settingsRowsTests() {
         Settings off;
         off.information.hud = false; off.inspection.containerPreviews = false; off.map.waypoints = false;
         check(ui::effectsPaused("infoHud",off) && ui::effectsPaused("previews",off) && !ui::effectsPaused("previews",Settings{})
-              && !ui::effectsPaused("waypoints",off) && !ui::effectsPaused("mapText",off),
-              "every switched-off feature dims its child settings; waypoints keep recording a death point (L-319)");
+              && ui::effectsPaused("waypoints",off) && !ui::effectsPaused("mapText",off),
+              "every switched-off feature dims its child settings, a heading without a switch none (L-319)");
     }
     effectSettings.visuals.hideEffects = true;
     check(!ui::effectsPaused("hideEffects",effectSettings) && !ui::effectsPaused("freecamera",effectSettings),

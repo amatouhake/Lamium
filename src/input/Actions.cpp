@@ -50,7 +50,11 @@ std::optional<std::string> autoModeText(Settings const& value, input::Action act
 }
 std::string toggleFeatureName(input::Action action) {
     auto key = ui::toggleToastKey(action);
-    return key.empty() ? std::string(input::actions[static_cast<size_t>(action)].feature) : ui::translated(key);
+    auto name = key.empty() ? std::string(input::actions[static_cast<size_t>(action)].feature) : ui::translated(key);
+    // A child switch is named under its feature, with the label the settings screen gives it.
+    for (auto const& option : settings::options)
+        if (ui::optionAction(option.id) == action) return name + " \u203a " + ui::splitLabel(ui::translated(option.label)).name;
+    return name;
 }
 bool toggleState(IClientInstance& client, Settings const& value, input::Action action) {
     (void)client;
