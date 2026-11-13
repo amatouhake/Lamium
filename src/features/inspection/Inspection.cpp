@@ -247,18 +247,10 @@ LL_TYPE_INSTANCE_HOOK(TooltipPainter, ll::memory::HookPriority::Normal, HoverTex
     tooltipRendering = false;
     try {
         glm::vec2 const at = *mCursorPosition + *mOffset, size = *mBoxDimensions;
-        if (size.x > 0 && size.y > 0)
+        // Only a box with text: over a bundle the game draws an empty 9x18 one on some frames only, and following
+        // it made the preview jump between two places.
+        if (size.x > 0 && size.y > 0 && tooltipTextAt)
             tooltipBox = TooltipBox{{{at.x, at.y, at.x + size.x, at.y + size.y}, mCursorPosition->x, mCursorPosition->y}, uiFrame};
-        // Once per box size (bounded): the bundle tooltip's box is checked against what is drawn.
-        static int told = 0;
-        static glm::vec2 toldSize{};
-        if (told < 12 && tooltipTextAt && size != toldSize) {
-            ++told;
-            toldSize = size;
-            Runtime::instance().self().getLogger().info("Hover text box: cursor ({}, {}) offset ({}, {}) size ({}, {}), text at ({}, {})",
-                mCursorPosition->x, mCursorPosition->y, mOffset->x, mOffset->y, size.x, size.y, tooltipTextAt->first,
-                tooltipTextAt->second);
-        }
     } catch (...) {
     }
     try {
