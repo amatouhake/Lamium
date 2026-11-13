@@ -638,7 +638,14 @@ Kind: Design. Maintainer 2026-11-14, after L-323: Hide boss bars belongs
 with the HUD rather than under Hide effects in Camera & view (agreed to move
 it to HUD & overlays). If that is done, the maintainer would like the other
 game HUD parts Lamium places (paper doll, chat, scoreboard) to be hideable
-the same way, and show/hide to be handled from HUD layout as well.
+the same way, and show/hide to be handled from HUD layout as well. The
+same day: Lamium's own HUD elements have on/off switches too, but HUD
+layout cannot toggle them; include them, minding two problems: telling a
+hidden element from a conditional one (dashed frame today), and toolbars
+that are already long for Lamium elements. Mockup:
+[game-hud-hide.html](demos/game-hud-hide.html) (hidden look A/B/C, where the
+switch sits T1/T2/T3; the agent recommends A and T2, and that a Lamium
+element's show/hide is its existing feature switch).
 Feasibility (read from the code, nothing built): every part already has a
 hook on its draw path. Boss bars: `HideEffects.cpp` skips their text and
 sprite draws; chat and scoreboard: `ChatPosition.cpp` / `ScoreboardPosition.cpp`

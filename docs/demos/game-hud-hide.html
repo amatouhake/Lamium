@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HUD Show and Hide</title>
+<meta name="description" content="L-334: showing and hiding every HUD element from the HUD layout editor - the game's parts (boss bars, scoreboard, chat, paper doll) and Lamium's own elements - and telling a hidden element from one that only appears in some situations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#141719; --ground-2:#1b2023; --line:#2b3236; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --mc-edge:rgba(255,255,255,.14); --mc-dim:#b4b8b6;
+  --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-warn:#ffc24a; --mc-panel:#101113;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 26px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:80ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.controls{display:grid;gap:8px}
+.cgroup{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cgroup .lab{font-size:12px;color:var(--ink-3);min-width:10em}
+.seg{all:unset;cursor:pointer;font:13px "Noto Sans JP",sans-serif;color:var(--ink-2);padding:3px 10px;border:1px solid var(--line);background:var(--ground-2)}
+.seg:hover{color:var(--ink)}
+.seg[aria-pressed="true"]{color:#fff;border-color:var(--accent-deep);background:rgba(108,195,73,.14)}
+.seg:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.modehelp{font-size:13px;color:var(--ink-2);border-left:2px solid var(--accent-deep);padding-left:10px;max-width:96ch}
+.box{border:1px solid var(--line);background:var(--ground-2);padding:14px 18px}
+.box ol{margin:6px 0 0;padding-left:1.4em;color:var(--ink-2)}
+.box li{margin:7px 0}
+.box b{color:var(--ink)}
+.rec{color:var(--accent)}
+
+.stage-outer{width:100%;border:1px solid var(--line);background:#000}
+.stage-fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--mc-font);color:#fff;user-select:none;overflow:hidden;
+  background:linear-gradient(#78a6ff 0,#b4d8ff 58%,#5d9b3a 58%,#5d9b3a 62%,#866043 62%,#866043 74%,#7d7d7d 74%)}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.25);pointer-events:none}
+
+.el{position:absolute;cursor:pointer}
+.el .body{position:absolute;inset:0;font-size:16px;line-height:20px;white-space:nowrap;text-shadow:2px 2px 0 rgba(0,0,0,.75)}
+.el .fr{position:absolute;inset:-2px;outline:2px solid rgba(255,255,255,.35);pointer-events:none}
+.el.game .fr{outline-color:rgba(255,194,74,.75)}
+.el.sel .fr{outline:2px solid var(--accent)}
+.el.cond:not(.sel) .body{visibility:hidden}
+.el.cond:not(.sel) .fr{outline:2px dashed rgba(255,255,255,.45);background:rgba(0,0,0,.2)}
+.tag{position:absolute;left:-2px;top:-26px;display:flex;align-items:center;gap:6px;font-size:14px;line-height:22px;padding:0 6px;color:var(--mc-panel);background:rgba(180,184,182,.85);white-space:nowrap}
+.el.sel .tag{background:var(--accent)}
+.tag.low{top:auto;bottom:-26px}
+.el:not(.cond):not(.sel):not(.hidden) .tag{display:none}
+.ck{display:none;width:14px;height:14px;background:var(--mc-panel);box-shadow:inset 0 0 0 2px var(--mc-panel);position:relative;cursor:pointer}
+.ck::after{content:"";position:absolute;left:3px;top:3px;width:8px;height:8px;background:#fff}
+.el.hidden .ck::after{display:none}
+.tT2 .el.sel .ck,.tT2 .el.hover .ck{display:inline-block}
+.tT2 .el:hover .tag{display:flex}
+.tT2 .el:hover .ck{display:inline-block}
+
+/* Hidden: three looks */
+.el.hidden .tag{background:rgba(255,194,74,.9)}
+.el.hidden.sel .tag{background:var(--accent)}
+.el.hidden .tag .nm::after{content:"・非表示"}
+.vA .el.hidden .body{visibility:visible;opacity:.25}
+.vA .el.hidden .fr{background:repeating-linear-gradient(135deg,rgba(255,194,74,.3) 0 2px,transparent 2px 10px);outline:2px solid rgba(255,194,74,.45)}
+.vA .el.hidden.sel .fr{outline-color:var(--accent)}
+.vB .el.hidden .body{visibility:hidden}
+.vB .el.hidden .fr{outline:2px dashed rgba(255,194,74,.75);background:rgba(0,0,0,.35)}
+.vB .el.hidden.sel .fr{outline-color:var(--accent)}
+.vC .el.hidden:not(.sel) .body,.vC .el.hidden:not(.sel) .fr{visibility:hidden}
+.vC .el.hidden:not(.sel) .tag{top:0;left:0;bottom:auto}.vC .el.hidden.sel .body{opacity:.25}
+.vC .el.hidden.sel .fr{background:repeating-linear-gradient(135deg,rgba(255,194,74,.3) 0 2px,transparent 2px 10px)}
+
+/* Samples */
+.bar{position:absolute;left:0;height:10px;width:364px;background:#2a0f2a;box-shadow:inset 0 0 0 2px #120612}
+.bar b{display:block;height:100%;width:85%;background:#d81ad8;box-shadow:inset 0 2px 0 rgba(255,255,255,.25)}
+.bar.p{background:#1c1230}.bar.p b{width:100%;background:#6b3da8}
+.bname{position:absolute;left:0;width:364px;text-align:center}
+.score{background:rgba(0,0,0,.45);padding:2px 6px}
+.score .r{display:flex;justify-content:space-between;gap:20px}
+.score .r b{color:#ff5a5a;font-weight:400}
+.chatl{display:block;background:rgba(0,0,0,.45);padding:0 4px}
+.doll{position:absolute;left:12px;top:2px;width:44px;height:84px}
+.doll i{position:absolute;background:#3aa7a0;box-shadow:inset 0 0 0 2px rgba(0,0,0,.3)}
+.doll .hd{left:12px;top:0;width:20px;height:20px;background:#c79a7a}
+.doll .bd{left:12px;top:20px;width:20px;height:30px}
+.doll .a1{left:2px;top:20px;width:10px;height:30px}.doll .a2{left:32px;top:20px;width:10px;height:30px}
+.doll .l1{left:12px;top:50px;width:10px;height:32px;background:#3b4aa8}.doll .l2{left:22px;top:50px;width:10px;height:32px;background:#3b4aa8}
+.card{background:rgba(16,16,18,.74);padding:6px 10px}
+.card .k{color:var(--mc-dim)}
+.mini{background:linear-gradient(135deg,#4f8f3a 0 40%,#6aa84a 40% 62%,#8d8d8d 62% 78%,#d8d2a0 78%);box-shadow:inset 0 0 0 2px #1d1d1d}
+.dur{display:flex;align-items:center;gap:8px}
+.dur i{width:28px;height:28px;background:#8a8a8a;box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
+.dur s{display:block;width:60px;height:6px;background:#5fd04a;text-decoration:none}
+
+/* Toolbar and list panel */
+.tb{position:absolute;display:flex;align-items:center;gap:6px;padding:4px;background:rgb(22,23,25);box-shadow:inset 0 0 0 1px var(--mc-edge);white-space:nowrap;z-index:9}
+.hbtn{all:unset;cursor:pointer;font:14px var(--mc-font);color:var(--mc-dim);padding:0 9px;height:26px;line-height:26px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key)}
+.hbtn:hover{color:#fff;background:#3a3b3c}
+.hbtn.off{color:#fff;box-shadow:inset 0 0 0 1px var(--mc-warn)}
+.hbtn.go{color:#fff;box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.sep{width:1px;height:20px;background:var(--mc-key-edge)}
+.panel{position:absolute;left:50%;top:150px;transform:translateX(-50%);width:300px;background:rgb(22,23,25);box-shadow:inset 0 0 0 1px var(--mc-edge);padding:8px 10px;z-index:8;font-size:14px}
+.panel .ttl{color:#fff;margin-bottom:6px}
+.panel .li{display:flex;align-items:center;gap:8px;color:var(--mc-dim);line-height:24px;cursor:pointer}
+.panel .li .sq{width:14px;height:14px;box-shadow:inset 0 0 0 2px var(--mc-key-edge);position:relative}
+.panel .li.on .sq::after{content:"";position:absolute;left:3px;top:3px;width:8px;height:8px;background:var(--accent)}
+.panel .li .g{color:var(--mc-warn);font-size:12px}
+.panel .btns{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}
+.panel .cols{display:grid;grid-template-columns:1fr 1fr;column-gap:10px}
+</style>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">L-334 · DESIGN MOCKUP · 2026-11-14</div>
+    <h1>HUD レイアウトでの表示 / 非表示</h1>
+    <p class="lede">HUD レイアウトから、ゲームのパーツ（ボスバー・スコアボード・チャット・ペーパードール）と Lamium の要素（情報 HUD・ミニマップ・耐久値など）の表示を切り替える案です。論点は二つ: 「状況によって今は出ていないだけ」の要素（白い点線）と「自分で隠した」要素をどう見分けるか、そして Lamium の要素はツールバーがすでに長いので、切り替えをどこに置くか。要素をクリックすると選択、何もない所をクリックすると選択解除です。</p>
+  </header>
+
+  <section class="controls">
+    <div class="cgroup"><span class="lab">隠した要素の見せ方</span>
+      <button class="seg" data-v="A" aria-pressed="true">A 斜線（推奨）</button>
+      <button class="seg" data-v="B">B 黄色の点線</button>
+      <button class="seg" data-v="C">C タグだけ残す</button>
+    </div>
+    <div class="cgroup"><span class="lab">切り替えの場所</span>
+      <button class="seg" data-t="T2" aria-pressed="true">T2 名前タグのチェック（推奨）</button>
+      <button class="seg" data-t="T1">T1 ツールバーのボタン</button>
+      <button class="seg" data-t="T3">T3 未選択時の一覧</button>
+    </div>
+    <p class="modehelp" id="help"></p>
+  </section>
+
+  <div class="stage-outer"><div class="stage-fit" id="fit"><div class="stage vA tT2" id="stage">
+    <div class="dim"></div>
+
+    <div class="el" data-id="info" data-look="1" style="left:8px;top:8px;width:210px;height:68px">
+      <div class="body card"><span class="k">座標</span> 120, 64, -38<br><span class="k">バイオーム</span> 平原</div>
+      <div class="fr"></div><span class="tag low"><i class="ck"></i><span class="nm">情報 HUD</span></span>
+    </div>
+
+    <div class="el game" data-id="boss" style="left:298px;top:4px;width:364px;height:80px">
+      <div class="body">
+        <span class="bname" style="top:0">エンダードラゴン</span><span class="bar" style="top:20px"><b></b></span>
+        <span class="bname" style="top:40px">ウィザー</span><span class="bar p" style="top:60px"><b></b></span>
+      </div>
+      <div class="fr"></div><span class="tag low"><i class="ck"></i><span class="nm">ボスバー</span></span>
+    </div>
+
+    <div class="el hidden" data-id="mini" data-look="1" style="left:824px;top:8px;width:128px;height:128px">
+      <div class="body mini"></div>
+      <div class="fr"></div><span class="tag low"><i class="ck"></i><span class="nm">ミニマップ</span></span>
+    </div>
+
+    <div class="el game" data-id="doll" style="left:8px;top:120px;width:68px;height:90px">
+      <div class="body"><div class="doll"><i class="hd"></i><i class="bd"></i><i class="a1"></i><i class="a2"></i><i class="l1"></i><i class="l2"></i></div></div>
+      <div class="fr"></div><span class="tag low"><i class="ck"></i><span class="nm">ペーパードール</span></span>
+    </div>
+
+    <div class="el game hidden" data-id="score" style="left:790px;top:200px;width:164px;height:100px">
+      <div class="body score"><div style="text-align:center">キル数</div>
+        <div class="r"><span>Steve</span><b>12</b></div><div class="r"><span>Alex</span><b>8</b></div><div class="r"><span>Noor</span><b>4</b></div></div>
+      <div class="fr"></div><span class="tag"><i class="ck"></i><span class="nm">スコアボード</span></span>
+    </div>
+
+    <div class="el game" data-id="chat" style="left:4px;top:360px;width:470px;height:60px">
+      <div class="body"><span class="chatl">チャットメッセージの見本</span><span class="chatl">チャットメッセージの見本</span><span class="chatl">チャットメッセージの見本</span></div>
+      <div class="fr"></div><span class="tag"><i class="ck"></i><span class="nm">チャット</span></span>
+    </div>
+
+    <div class="el" data-id="dur" data-look="1" style="left:8px;top:496px;width:110px;height:36px">
+      <div class="body dur" style="padding:4px"><i></i><s></s></div>
+      <div class="fr"></div><span class="tag"><i class="ck"></i><span class="nm">耐久値 HUD</span></span>
+    </div>
+
+    <div class="el cond" data-id="toast" data-look="1" style="left:600px;top:430px;width:200px;height:40px">
+      <div class="body card">ズーム: オン</div><div class="fr"></div><span class="tag"><i class="ck"></i><span class="nm">切り替え通知</span></span>
+    </div>
+
+    <div class="tb" id="tb" hidden>
+      <button class="hbtn">寄せる ▾</button>
+      <button class="hbtn">◀ 100% ▶</button>
+      <button class="hbtn look">背景: カード</button>
+      <button class="hbtn look">文字の影: オフ</button>
+      <button class="hbtn" id="vis">表示: する</button>
+      <span class="sep"></span>
+      <button class="hbtn">リセット</button>
+    </div>
+
+    <div class="panel" id="panel" hidden>
+      <div class="ttl">HUD レイアウト</div>
+      <div class="cols" id="list"></div>
+      <div class="btns"><button class="hbtn">すべてリセット</button><button class="hbtn go">完了</button></div>
+    </div>
+  </div></div></div>
+
+  <section class="box">
+    <h2>確認したいこと（推奨つき）</h2>
+    <ol>
+      <li><b>エディタで切り替える「表示」は、今ある機能のスイッチそのもの。</b> <span class="rec">推奨。</span>情報 HUD やミニマップは、設定画面の機能スイッチと同じ値を切り替えます（新しい設定は増やしません）。ゲームのパーツには新しく「表示」の値を足します。</li>
+      <li><b>隠した要素の見せ方。</b> <span class="rec">推奨: A。</span>本来の大きさで薄く描き、黄色の斜線とタグの「・非表示」を付けます。白い点線（今は出ていないだけ）と形が違い、場所も見えるので隠したまま動かせます。B は点線どうしで色だけの違いになり、C は選ぶまで場所が分かりません。</li>
+      <li><b>切り替えの場所。</b> <span class="rec">推奨: T2。</span>名前タグの先頭にチェックを置き、選択中・ポインタを乗せた要素のタグに出ます。ツールバーの長さは変わらず、全要素で同じ操作です。T1 は Lamium の要素だとボタンが 6 個になり狭い画面で折り返しが要ります。T3 は一覧で一度に切り替えられますが、以前「要素の一覧は今は作らない」と決めたものの見直しになります（T2 と併用も可）。</li>
+      <li><b>ゲームのパーツの非表示はメインスイッチ（ゲーム HUD の配置変更）に従う。</b> <span class="rec">推奨。</span>オフで全部バニラに戻る約束を守れます。パーツのスイッチがオフならそのパーツは完全にバニラ（隠しもしない）とし、「表示」は扱うときだけ効く、と読みます。メインをオンにするとチャットが左下へ動く点は、チャットのパーツをオフにすれば避けられます。</li>
+      <li><b>今の「ボスバーを隠す」（視覚効果を隠す）はボスバーの「表示」に移す。</b>キーと保存名はそのまま。使っていた人は更新時に、メインをオン・ボスバーだけ選択・表示しない、に移すので見た目は変わりません。視覚効果を隠すからは行がなくなります。</li>
+      <li><b>チャットを隠すと HUD 上のメッセージだけが消える。</b>チャット画面（T キー）は標準のままです。</li>
+    </ol>
+  </section>
+</div>
+<script>
+const W = 960, H = 540;
+const stage = document.getElementById('stage'), fit = document.getElementById('fit');
+function resize(){ const k = fit.clientWidth / W; stage.style.transform = `scale(${k})`; fit.style.height = (H*k)+'px'; }
+new ResizeObserver(resize).observe(fit); resize();
+const vHelp = {
+  A: 'A: 隠した要素も本来の大きさで薄く描き、黄色の斜線を重ねます。タグは黄色で「・非表示」付き。状況で出る要素（白い点線）とは形で見分けられます。',
+  B: 'B: 隠した要素は中身を描かず黄色の点線の枠にします。状況で出る要素の白い点線とは色だけの違いです。',
+  C: 'C: 隠した要素はタグだけ残し、枠も中身も描きません。選択すると A の姿で現れます。'
+};
+const tHelp = {
+  T2: 'T2: 選択中かポインタを乗せた要素の名前タグにチェックが出ます。チェックを外すと非表示。ツールバーは今のままです。',
+  T1: 'T1: ツールバーに「表示: する / しない」。情報 HUD など Lamium の要素ではボタンが 6 個になります。',
+  T3: 'T3: 何も選んでいない時に出ている「すべてリセット / 完了」のパネルを一覧にして、チェックで切り替えます（何もない所をクリックすると出ます）。'
+};
+let v = 'A', t = 'T2', sel = null;
+const helpEl = document.getElementById('help');
+function apply(){
+  stage.className = `stage v${v} t${t}`;
+  document.querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v));
+  document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === t));
+  helpEl.textContent = vHelp[v] + ' ' + tHelp[t];
+  select(sel);
+}
+document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { v = b.dataset.v; apply(); });
+document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { t = b.dataset.t; if (t === 'T3') sel = null; apply(); });
+const tb = document.getElementById('tb'), vis = document.getElementById('vis'), panel = document.getElementById('panel'), list = document.getElementById('list');
+const els = [...document.querySelectorAll('.el')];
+function select(el){
+  sel = el;
+  els.forEach(e => e.classList.toggle('sel', e === el));
+  panel.hidden = !!el;
+  renderList();
+  if (!el) { tb.hidden = true; return; }
+  tb.hidden = false;
+  tb.querySelectorAll('.look').forEach(b => b.style.display = el.dataset.look ? '' : 'none');
+  vis.style.display = t === 'T1' ? '' : 'none';
+  const r = el.getBoundingClientRect(), s = stage.getBoundingClientRect(), k = s.width / W;
+  let x = (r.left - s.left) / k, y = (r.bottom - s.top) / k + 8;
+  if (el.querySelector('.tag.low')) y += 26;
+  if (y + 36 > H) y = (r.top - s.top) / k - 70;
+  tb.style.left = Math.min(Math.max(4, x), W - tb.offsetWidth - 4) + 'px'; tb.style.top = y + 'px';
+  syncVis();
+}
+function syncVis(){
+  if (!sel) return;
+  const hidden = sel.classList.contains('hidden');
+  vis.textContent = '表示: ' + (hidden ? 'しない' : 'する');
+  vis.classList.toggle('off', hidden);
+}
+function renderList(){
+  list.innerHTML = '';
+  if (t !== 'T3') { panel.querySelector('.cols').style.display = 'none'; return; }
+  panel.querySelector('.cols').style.display = '';
+  els.forEach(e => {
+    const li = document.createElement('div');
+    li.className = 'li' + (e.classList.contains('hidden') ? '' : ' on');
+    li.innerHTML = `<i class="sq"></i><span>${e.querySelector('.nm').textContent}</span>` + (e.classList.contains('game') ? '<span class="g">ゲーム</span>' : '');
+    li.onclick = ev => { ev.stopPropagation(); e.classList.toggle('hidden'); renderList(); };
+    list.appendChild(li);
+  });
+}
+els.forEach(el => {
+  el.onclick = e => { e.stopPropagation(); select(el); };
+  el.querySelector('.ck').onclick = e => { e.stopPropagation(); el.classList.toggle('hidden'); syncVis(); };
+});
+stage.onclick = () => select(null);
+tb.onclick = e => e.stopPropagation();
+panel.onclick = e => e.stopPropagation();
+vis.onclick = () => { sel.classList.toggle('hidden'); syncVis(); };
+sel = document.querySelector('[data-id="info"]');
+apply();
+</script>
+</body>
+</html>
