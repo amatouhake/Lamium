@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Showing and hiding HUD elements, eighth build (L-334, 2026-11-14)
+
+Build `baff6efc`, DLL SHA-256
+`fb357e316b33e45b16f5b43db37c7e6833fc55b8517927ba64c9532c34f55f9e`, 1.26.60.05 Dev
+instance, the maintainer: the checklist passed as a whole (situational elements carry no
+name until pointed at, hidden ones keep theirs, crowded places read better). Raised: a
+situational game part (the scoreboard) has a white dashed frame, so it no longer reads as
+the game's (yellow) element, and the legend does not explain white and yellow.
+
 ## Showing and hiding HUD elements, seventh build (L-334, 2026-11-14)
 
 Build `3c1af87a`, DLL SHA-256
