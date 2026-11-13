@@ -170,9 +170,9 @@ effect icons are hidden while it shows.
 
 ### Game HUD placement
 
-Off by default. Lets the HUD layout editor move and resize three parts of
+Off by default. Lets the HUD layout editor move and resize four parts of
 the game's own HUD, each with its own switch: the chat (at the bottom left
-by default, as on Java Edition), the paper doll and the scoreboard. Their
+by default, as on Java Edition), the paper doll, the scoreboard and the boss bars. Their
 text, backgrounds and fading stay vanilla.
 
 ### HUD layout and toggle toasts
