@@ -927,12 +927,33 @@ six swaps log what the game holds ("Tooltip forms: ..." in lamium.log:
 control, box, cursor, offset, frame size and quads) so the next step can
 be read from the log if this fails too; take the line out once the frame
 follows.
+Seen by the maintainer 2026-11-13 on `ff043a26` (VALIDATION-LOG): the
+frame now takes the long form's size on Alt, but not its place: the game
+places a tooltip for the text it has when the pointer arrives, so a form
+changed afterwards runs off the screen, leaves its text, or sits away from
+the item. Held or not held from the start, both forms look right.
+Decided by the maintainer the same day, built, not yet checked in game:
+- No key. Switching inside the inventory is hard to understand, and with
+  one line per entry the long form is rarely too tall. The held action
+  (never pushed, so no saved id is left behind), the swap while drawing,
+  its capability and its log lines are removed; the game lays out
+  whatever text it is given.
+- Two detail toggles under Item details, both off by default: "Show tags"
+  (`inspection.itemDetailsTags`) and "Show NBT"
+  (`inspection.itemDetailsNbt`). No count-only form for NBT: the count
+  alone is seldom wanted, and two states make it a toggle.
+- The value lines and the ID stay under the one Item details switch.
+For a later session, the maintainer's wish: look at Durability numbers,
+Food values, Work penalty and Item details (with its two toggles) with
+fresh eyes and decide how these tooltip settings should be grouped and
+split. Not to be decided as a by-product of other work.
 Asked by the maintainer the same day: hiding the game's list of contained
 item names in a shulker box's tooltip, since the preview shows the same.
 That exists: "Hide Shulker contents text" under Container previews, off by
 default. Whether it should be on by default is the maintainer's call.
-Still open: whether Durability numbers, Food values, Work penalty and Item
-details become one group in the settings (the note above).
+Still open: the grouping of the tooltip settings (the note above, for a
+session of its own) and the enchantability wording if the help text is
+not enough.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
 Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;

@@ -14,7 +14,7 @@ struct Token {
     int code;
     auto operator<=>(Token const&) const = default;
 };
-enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, PermanentSneak, PeriodicAttack, PeriodicUse, ToggleShapes, OpenShapes, FreeCamera, OpenHotkeys, OpenHudLayout, CycleAttackMode, CycleUseMode, AttackHeldOnly, UseHeldOnly, PermanentSprint, EdgeGuard, FakeOffhand, FakeOffhandUse, Transfer, ToolGuard, ElytraSwap, ElytraSwapKey, FreeCameraSpeedUp, FreeCameraSpeedDown, HideWeather, HideParticles, HideBossBars, HideNausea, HideWater, HideLava, HidePowderSnow, Minimap, MinimapZoomIn, MinimapZoomOut, MinimapView, MinimapEnlarge, AddWaypoint, HideWaypoints, OpenWaypoints, OpenWorldMap, TogglePreviews, ToggleDurability, ToggleSorting, ToggleHideEffects, ToggleDurabilityHud, ToggleAutomationStatus, ToggleRadar, ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleOffhandSlot, ToggleSaturation, ToggleFoodValues, WeaponSwitch, ToggleSchematic, OpenSchematics, ToggleSchematicHud, NearestMistake, SelectLookedPlacement, NextPlacement, MovePlacementForward, MovePlacementBack, MovePlacementHere, RotatePlacement, MirrorPlacement, LayerUp, LayerDown, MovePlacementLeft, MovePlacementRight, MovePlacementUp, MovePlacementDown, LayerHere, OpenSchematicFiles, OpenSchematicCheck, OpenSchematicMaterials, OpenSchematicPlaced, SwapOffhand, ToggleOffhandSwap, SchematicCorner1, SchematicCorner2, SaveSchematicArea, SchematicMenu, AdjustSchematic, ToggleDeathRestore, HideDistanceFog, ToggleLockedTrades, ToggleEnglishSearch, PlayerList, ToggleInventoryHud, ToggleUsedSlots, ToggleConnectedTextures, HidePortal, ToggleStatusEffects, OpenCalculator, ToggleRepeatTrades, ToggleSkipServerPacks, ToggleChatPosition, CycleMoveTarget, CycleLayerAxis, CycleLayerMode, ToggleLayerKeep, ResetPlacementTurn, RotatePlacementBack, PreviousPlacement, TogglePlacementShown, TogglePlacementExtras, TogglePlacementEntities, ClearSchematicArea, OpenSchematicKeys, ToggleMistakeMarks, ToggleIgnoreSignal, ToggleLitAsState, ToggleIgnoreGrowth, ToggleBookPaste, SneakPlacement, ToggleMapMarks, ToggleSlimeChunks, ToggleIgnoreSignText, ToggleIgnoreBlockEntities, TargetMeasure, TargetDetails, TargetPosition, CycleToolDrop, ToggleBlockHighlight, HighlightAimedBlock, OpenBlockHighlight, TogglePaperDollPosition, ToggleScoreboardPosition, ToggleGameHud, OpenEnchantOrder, ToggleWorkPenalty, ToggleItemDetails, ItemDetailsMore, Count };
+enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, PermanentSneak, PeriodicAttack, PeriodicUse, ToggleShapes, OpenShapes, FreeCamera, OpenHotkeys, OpenHudLayout, CycleAttackMode, CycleUseMode, AttackHeldOnly, UseHeldOnly, PermanentSprint, EdgeGuard, FakeOffhand, FakeOffhandUse, Transfer, ToolGuard, ElytraSwap, ElytraSwapKey, FreeCameraSpeedUp, FreeCameraSpeedDown, HideWeather, HideParticles, HideBossBars, HideNausea, HideWater, HideLava, HidePowderSnow, Minimap, MinimapZoomIn, MinimapZoomOut, MinimapView, MinimapEnlarge, AddWaypoint, HideWaypoints, OpenWaypoints, OpenWorldMap, TogglePreviews, ToggleDurability, ToggleSorting, ToggleHideEffects, ToggleDurabilityHud, ToggleAutomationStatus, ToggleRadar, ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleOffhandSlot, ToggleSaturation, ToggleFoodValues, WeaponSwitch, ToggleSchematic, OpenSchematics, ToggleSchematicHud, NearestMistake, SelectLookedPlacement, NextPlacement, MovePlacementForward, MovePlacementBack, MovePlacementHere, RotatePlacement, MirrorPlacement, LayerUp, LayerDown, MovePlacementLeft, MovePlacementRight, MovePlacementUp, MovePlacementDown, LayerHere, OpenSchematicFiles, OpenSchematicCheck, OpenSchematicMaterials, OpenSchematicPlaced, SwapOffhand, ToggleOffhandSwap, SchematicCorner1, SchematicCorner2, SaveSchematicArea, SchematicMenu, AdjustSchematic, ToggleDeathRestore, HideDistanceFog, ToggleLockedTrades, ToggleEnglishSearch, PlayerList, ToggleInventoryHud, ToggleUsedSlots, ToggleConnectedTextures, HidePortal, ToggleStatusEffects, OpenCalculator, ToggleRepeatTrades, ToggleSkipServerPacks, ToggleChatPosition, CycleMoveTarget, CycleLayerAxis, CycleLayerMode, ToggleLayerKeep, ResetPlacementTurn, RotatePlacementBack, PreviousPlacement, TogglePlacementShown, TogglePlacementExtras, TogglePlacementEntities, ClearSchematicArea, OpenSchematicKeys, ToggleMistakeMarks, ToggleIgnoreSignal, ToggleLitAsState, ToggleIgnoreGrowth, ToggleBookPaste, SneakPlacement, ToggleMapMarks, ToggleSlimeChunks, ToggleIgnoreSignText, ToggleIgnoreBlockEntities, TargetMeasure, TargetDetails, TargetPosition, CycleToolDrop, ToggleBlockHighlight, HighlightAimedBlock, OpenBlockHighlight, TogglePaperDollPosition, ToggleScoreboardPosition, ToggleGameHud, OpenEnchantOrder, ToggleWorkPenalty, ToggleItemDetails, Count };
 enum class Behavior { Press, Hold, Toggle };
 // Ordinary chords are order-sensitive and yield to a more specific chord
 // completed by the same press. Modifier-like chords (held camera keys) match
@@ -176,7 +176,6 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"openenchantorder", "enchantOrder", Behavior::Press},
     {"workpenalty", "workPenalty", Behavior::Toggle},
     {"itemdetails", "itemDetails", Behavior::Toggle},
-    {"itemdetailsmore", "itemDetails", Behavior::Hold, 0x12, Matching::Modifier},
 });
 static_assert(actions.size() == static_cast<size_t>(Action::Count));
 // Kept for its saved id but no longer shown or dispatched.
@@ -295,15 +294,14 @@ inline Relation bindingRelation(Chord const& a, Chord const& b) {
     if (a == b) return Relation::Shared;
     return coversAll(a, b) || coversAll(b, a) ? Relation::Overlap : Relation::None;
 }
-// Transfer can be toggled in gameplay or a container; Sort and the tooltip's NBT key are container-only.
-inline constexpr bool containerOnly(Action action) { return action == Action::Sort || action == Action::ItemDetailsMore; }
+// Transfer can be toggled in gameplay or a container; Sort is container-only.
 inline bool sameInputContext(Action a, Action b) {
-    return a == Action::Transfer || b == Action::Transfer || containerOnly(a) == containerOnly(b);
+    return a == Action::Transfer || b == Action::Transfer || (a == Action::Sort) == (b == Action::Sort);
 }
 inline bool actionAllowed(Action action, bool gameplay, bool container, bool freeCamera = false, bool outsideWorld = false) {
     if (action == Action::Settings && outsideWorld) return true;
     if (action == Action::FreeCameraSpeedUp || action == Action::FreeCameraSpeedDown) return gameplay && freeCamera;
-    if (containerOnly(action)) return container;
+    if (action == Action::Sort) return container;
     if (action == Action::Transfer) return gameplay || container;
     return gameplay;
 }

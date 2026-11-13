@@ -13,7 +13,7 @@ enum class Id {
     FreeCameraHand, FreeCameraHud, HideParticles, HideBossBars,
     SchematicBlend, SchematicActorLight, SchematicCreativePick,
     InventoryDiagnostics, LanguageDiagnostics, SneakPlacement, NoteBlockSounds,
-    NoteBlockInstrument, BookPastePages, BlockHighlight, PaperDollPosition, ScoreboardPosition, EnchantOrder, TooltipForms, Count
+    NoteBlockInstrument, BookPastePages, BlockHighlight, PaperDollPosition, ScoreboardPosition, EnchantOrder, Count
 };
 enum class Impact { None, Partly, Fully };
 enum class Stage : std::uint8_t { Waiting, Ready, Stopped, Failed };
@@ -68,7 +68,6 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::PaperDollPosition, "Paper doll position (HUD control position)", "gameHud", "capability.PaperDollPosition", Impact::Partly},
     {Id::ScoreboardPosition, "Scoreboard position (HUD control positions)", "gameHud", "capability.ScoreboardPosition", Impact::Partly},
     {Id::EnchantOrder, "Enchantment order (enchantment costs and anvil screen)", "enchantOrder", "capability.EnchantOrder", Impact::Fully, true, true},
-    {Id::TooltipForms, "Item details (tooltip text and box while drawn)", "itemDetails", "capability.TooltipForms", Impact::Partly, true, true},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);

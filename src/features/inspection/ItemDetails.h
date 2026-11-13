@@ -16,7 +16,6 @@ struct Item {
     int aux = 0;
     std::vector<std::string> tags;
     std::vector<Entry> data; // The user data's top level; a compound or list is its whole text on one line
-    bool full = false;       // The long form: the data itself rather than its count
     int enchantability = 0, maxStack = 64, cooldownTicks = 0;
     float burnTicks = 0, useTicks = 0;
 };
@@ -55,20 +54,6 @@ inline std::string clip(std::string_view text, size_t limit = valueLimit) {
     }
     return out;
 }
-// A tooltip's box for another text, from the box the game made for the text it has: the room around the text
-// stays, the lines and the widest line change. Widths are of the widest line of each text.
-struct Box { float width = 0, height = 0; };
-inline int lineCount(std::string_view text) { return 1 + static_cast<int>(std::count(text.begin(), text.end(), '\n')); }
-inline Box resized(Box box, float widestNow, int linesNow, float widestThen, int linesThen, float lineHeight) {
-    return {std::max(0.f, box.width + widestThen - widestNow), std::max(0.f, box.height + (linesThen - linesNow) * lineHeight)};
-}
-// A nine-patch frame's cached corner coordinate for a frame grown by `growth`: the far half moves with the far
-// edge, the near half stays, so the corners keep their size and the middle stretches.
-inline constexpr float stretched(float coordinate, float extent, float growth) {
-    return coordinate > extent / 2 ? coordinate + growth : coordinate;
-}
-// Where a box of `size` starts so that it ends inside `room`, moved back no further than the start of the room.
-inline constexpr float keptInside(float at, float size, float room) { return std::max(0.f, std::min(at, room - size)); }
 // Text without its colour and style codes: what the player reads.
 inline std::string plain(std::string_view text) {
     std::string out;
@@ -123,12 +108,8 @@ inline std::vector<Line> lines(Item const& item) {
         out.push_back({"itemDetails.tags", "", true});
         for (auto& row : rows) out.push_back({"", "  " + row, true});
     }
-    // Short by default: the data is counted. The long form tells each top-level entry on a line of its own, cut at
-    // the width, so a shulker box's items are one line and not hundreds.
-    if (!item.full) {
-        if (!item.data.empty()) out.push_back({"itemDetails.data", std::to_string(item.data.size()), true});
-        return out;
-    }
+    // Each top-level entry on a line of its own, cut at the width, so a shulker box's items are one line and not
+    // hundreds.
     size_t const shown = std::min(item.data.size(), dataLines);
     for (size_t i = 0; i < shown; ++i)
         out.push_back({"", clip(item.data[i].key) + ": " + clip(item.data[i].value, dataWidth), true});

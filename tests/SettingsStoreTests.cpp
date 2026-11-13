@@ -433,7 +433,6 @@ void settingsStoreTests() {
         s.inventory.repeatTrades = false;
         s.inventory.transfer = false;
         s.ui.bookPaste = false;
-        s.inspection.itemDetails = false;
         s.lighting.nightVision = true;
         s.visuals.hideEffects = true;
         s.visuals.hideWater = s.visuals.hideLava = s.visuals.hidePowderSnow = s.visuals.hideDistanceFog = false;
@@ -551,6 +550,7 @@ void settingsStoreTests() {
     check(decodeSettings(R"({"interface":{"gameplayHints":false}})").ui.automationStatus,
           "removed gameplay hints key loads without error");
     check(!old.inspection.hideShulkerContents, "older settings retain vanilla Shulker contents text");
+    check(!old.inspection.itemDetailsTags && !old.inspection.itemDetailsNbt, "item tags and NBT stay out of tooltips until asked for (L-319)");
     check(old.inspection.shulkerPreviews && old.inspection.emptyShulkerPreviews
           && old.inspection.bundlePreviews && old.inspection.emptyBundlePreviews,
           "older files retain the existing preview behavior including empty containers");

@@ -45,30 +45,22 @@ void itemDetailsTests() {
     }
     {
         Item potion{.id = "minecraft:potion", .aux = 21, .tags = {"minecraft:is_food"}};
-        potion.data = {{"display", "{Name:\"x\"}"}, {"Damage", "3"}};
+        potion.data = {{"display", std::string(dataWidth + 5, 'x')}, {"Damage", "3"}};
         auto out = lines(potion);
         check(out[0] == Line{"", "minecraft:potion #21", true} && out[1] == Line{"itemDetails.tags", "minecraft:is_food", true},
               "a data value follows the id, tags follow both");
-        check(out.size() == 3 && out[2] == Line{"itemDetails.data", "2", true}, "user data is only counted by default");
-        potion.full = true;
-        potion.data[0].value = std::string(dataWidth + 5, 'x');
-        out = lines(potion);
         check(out.size() == 4 && out[2] == Line{"", "display: " + std::string(dataWidth, 'x') + "\xE2\x80\xA6", true}
                   && out[3] == Line{"", "Damage: 3", true},
-              "the long form tells each top-level entry on one line, cut at the width");
+              "each top-level entry of the user data is one line, cut at the width");
+        potion.tags.clear();
+        potion.data.clear();
+        check(lines(potion).size() == 1, "tags and user data that were not asked for add nothing");
         Item tagged{.tags = {std::string(30, 'a'), std::string(30, 'b')}};
         auto rows = lines(tagged);
         check(rows.size() == 3 && rows[0] == Line{"itemDetails.tags", "", true} && rows[1] == Line{"", "  " + std::string(30, 'a') + ", ", true}
                   && rows[2] == Line{"", "  " + std::string(30, 'b'), true},
               "tags that wrap go under their label, every row indented alike");
-        auto grown = resized({100, 50}, 90, 4, 150, 9, 10), shrunk = resized({160, 100}, 150, 9, 90, 4, 10);
-        check(grown.width == 160 && grown.height == 100 && shrunk.width == 100 && shrunk.height == 50 && lineCount("a\nb") == 2,
-              "a tooltip's box follows the other text's lines and widest line, keeping its room around the text");
-        check(keptInside(50, 100, 400) == 50 && keptInside(350, 100, 400) == 300 && keptInside(10, 500, 400) == 0,
-              "a grown box moves back inside the screen, never past its start");
-        check(stretched(0, 100, 40) == 0 && stretched(4, 100, 40) == 4 && stretched(96, 100, 40) == 136 && stretched(100, 100, 40) == 140,
-              "a grown frame keeps its near corners and moves its far ones");
-        Item big{.id = "x", .full = true};
+        Item big{.id = "x"};
         for (size_t i = 0; i < dataLines + 9; ++i) big.data.push_back({"k", "v"});
         auto cut = lines(big);
         check(cut.size() == 1 + dataLines + 1 && cut.back() == Line{"itemDetails.more", "9", true},

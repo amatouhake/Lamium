@@ -17,7 +17,6 @@
 #include "features/schematic/RayCells.h"
 #include "mc/world/level/dimension/Dimension.h"
 #include "features/information/PlayerList.h"
-#include "features/inspection/Inspection.h"
 #include "features/inventory/Inventory.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "features/map/MapView.h"
@@ -174,8 +173,6 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (!runtime.enabled() || ui::ownsInput()) return;
     // Sorting validates its container/text-input context in requestSort.
     if (action == input::Action::Sort) { inventory::requestSort(client); return; }
-    // Tooltips are in container screens, which the gameplay check below turns away.
-    if (action == input::Action::ItemDetailsMore) { inspection::setDetailsHeld(true); return; }
     if (action == input::Action::Settings && outsideWorldMenu(client.getScreenName(), client.getLocalPlayer() != nullptr)) {
         ui::open(client);
         return;
@@ -379,7 +376,6 @@ void releaseAction(input::Action action) {
     if (action == input::Action::FakeOffhandUse) inventory::fakeOffhand::release();
     if (action == input::Action::MinimapEnlarge) map::setEnlarged(false);
     if (action == input::Action::PlayerList) information::playerList::setHeld(false);
-    if (action == input::Action::ItemDetailsMore) inspection::setDetailsHeld(false);
     if (action == input::Action::RadarFaces) map::setFacesHeld(false);
     if (action == input::Action::TargetMeasure) information::setCardFlip(information::CardFlip::Distance, false);
     if (action == input::Action::TargetDetails) information::setCardFlip(information::CardFlip::Details, false);

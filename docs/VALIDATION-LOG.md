@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item details, the frame on the key (2026-11-13)
+
+`ff043a26`, local build, DLL SHA-256
+`afb1ac627baeed5f0d5f3892517cebf2bba9693b20387a6f854210e43f9f783f`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- Pressing Alt over an item gives the frame the long form's size; releasing it gives
+  the size back. (`d9db34bb` before it: no change of the frame at all.)
+- The place does not follow. Near the bottom or right edge the long form runs off the
+  screen; the text can leave the frame; released after a long form, the frame can be
+  smaller than where the text is, or the tooltip sits away from the item as if it were
+  still wide.
+- With Alt held, or not held, from before the pointer reaches the item, the frame and
+  its place fit the form shown.
+
 ## Item details, the form swapped while drawn (2026-11-13)
 
 `bde4219b`, local build, DLL SHA-256
