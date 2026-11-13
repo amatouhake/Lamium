@@ -511,12 +511,20 @@ first build):
   placement key is retired.
 - Hiding skips the part's draw; the game's layout and its state stay. The
   chat hides only the HUD messages; the chat screen stays vanilla.
-- In the editor a hidden element says least of all: a gray (faint) hatched box
-  with a gray frame and a gray tag "<name> (hidden)", no contents. Its
-  contents show faint (30 %) while it is selected or pointed at. It is never
-  the white dashed frame of an element that only shows by situation, and never
-  yellow, which marks the game's own elements. It can still be moved and
-  scaled. A game part offers the switch only while it is Placed or Hidden.
+- In the editor a hidden element says least of all (second revision, after
+  the maintainer found the first gray look still said more than a frame that
+  shows by situation): sparse gray diagonal dots and a faint gray outline, no
+  contents and no name. Pointed at or selected, its name tag "<name> (hidden)"
+  appears and its contents show faint (30 %). It is never the white dashed
+  frame of an element that only shows by situation, and never yellow, which
+  marks the game's own elements. It can still be moved and scaled. A game
+  part offers the switch only while it is Placed or Hidden.
+- Name tags hang from the element's anchored side: from the right edge for an
+  element anchored on the right, otherwise from the left, above it when there
+  is room. A tag no longer jumps between sides when the element's width or
+  state changes.
+- Cost: hidden elements are measured in the same drawing pass as the others
+  (an opacity per element), and the dots are bounded per element.
 - The switch is a check at the start of the name tag of the selected element
   and of the pointed-at one (the pointed-at tag stays while the pointer is on
   it). Toolbars do not change.

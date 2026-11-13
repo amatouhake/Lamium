@@ -12,7 +12,13 @@ namespace lamium::information {
 // editor shows them as a named frame (L-321).
 // Elements marked in `hidden` are left out altogether: the editor draws the
 // selected element in a second pass, on top of the others.
-struct HudPreview { Settings::Hud layout; std::array<bool, 16> outline{}, hidden{}; };
+// `opacity` scales one element's drawing (HUD layout's hidden elements,
+// L-334); at 0 it is measured but nothing is drawn.
+struct HudPreview {
+    Settings::Hud layout;
+    std::array<bool, 16> outline{}, hidden{};
+    std::array<float, 16> opacity = [] { std::array<float, 16> all; all.fill(1); return all; }();
+};
 // Returns where each element was drawn this frame (for editor hit tests).
 ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext&, float width, float height, Settings::Information const&,
                               HudPreview const* preview = nullptr);

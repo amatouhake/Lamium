@@ -217,7 +217,8 @@ void chatPositionTests() {
         check(!lines.empty() && std::all_of(lines.begin(), lines.end(), [](auto const& b) {
                   return b.x >= 10 && b.x + b.w <= 22 && b.y >= 20 && b.y + b.h <= 26;
               }), "the hatching stays inside the element");
-        check(hatch({0, 0, 2000, 2000}).size() == 4000 && hatch({0, 0, 0, 5}).empty(), "the hatching is bounded");
+        check(hatch({0, 0, 2000, 2000}).size() <= 400 && hatch({0, 0, 400, 200}).size() <= 400 && hatch({0, 0, 0, 5}).empty(),
+              "the hatching costs about the same whatever the element's size");
     }
     check(paused::onUnverified("gameHud") == paused::Level::Partly
           && std::ranges::find(active, "gameHud") != active.end(),

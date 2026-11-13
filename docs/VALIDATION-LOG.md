@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Showing and hiding HUD elements, second build (L-334, 2026-11-14)
+
+Build `d8412701`, DLL SHA-256
+`e7d79f1f389e8a4986c74738177cb9d7bbe8d50422bba5d60a8bb7c9cf43f089`, 1.26.60.05 Dev
+instance, the maintainer, with three screenshots of HUD layout.
+
+- Each part's row switches Standard / Placed / Hidden and the game follows it.
+- The boss bars' key steps Standard, Placed, Hidden and its toast names the state.
+- Hidden elements are gray hatched boxes whose contents show faint when pointed at, and
+  they read apart from conditional frames.
+- Still wrong: a hidden element says more than a conditional one; the editor is slow
+  (pointing reacts late, dragging lags); an element's name tag moves between three
+  places as its state changes (the automation status, anchored on the right).
+
 ## Showing and hiding HUD elements, first build (L-334, 2026-11-14)
 
 Build `4a3979d3`, DLL SHA-256

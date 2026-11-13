@@ -1515,15 +1515,27 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         Measuring(HudPreview const* preview, ui::HudElementId id) { measureOnly = preview && preview->outline[static_cast<size_t>(id)]; }
         ~Measuring() { measureOnly = false; }
     };
+    struct Fading {
+        std::optional<ui::DrawOpacity> scope;
+        Fading(HudPreview const* preview, ui::HudElementId id) {
+            if (float value = preview ? preview->opacity[static_cast<size_t>(id)] : 1; value < 1) scope.emplace(value);
+        }
+    };
     auto skipped = [&](ui::HudElementId id) { return preview && preview->hidden[static_cast<size_t>(id)]; };
-    if (preview && !skipped(ui::HudElementId::Chat))
+    if (preview && !skipped(ui::HudElementId::Chat)) {
+        Fading fading{preview, ui::HudElementId::Chat};
         box(ui::HudElementId::Chat) = chatPosition::preview(context, width, height, hud.chat);
-    if (preview && !skipped(ui::HudElementId::Scoreboard))
+    }
+    if (preview && !skipped(ui::HudElementId::Scoreboard)) {
+        Fading fading{preview, ui::HudElementId::Scoreboard};
         box(ui::HudElementId::Scoreboard) = scoreboardPosition::preview(context, width, height, hud.scoreboard,
             preview->outline[static_cast<size_t>(ui::HudElementId::Scoreboard)]);
-    if (preview && !skipped(ui::HudElementId::BossBars))
+    }
+    if (preview && !skipped(ui::HudElementId::BossBars)) {
+        Fading fading{preview, ui::HudElementId::BossBars};
         box(ui::HudElementId::BossBars) = bossBarPosition::preview(context, width, height, hud.bossBars,
             preview->outline[static_cast<size_t>(ui::HudElementId::BossBars)]);
+    }
     // The game's paper doll (L-309): in play Lamium only says where its
     // control goes; the editor, where the game draws none, shows a stand-in.
     if (preview || settings.placesPaperDoll()) {
@@ -1535,6 +1547,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         if (!skipped(ui::HudElementId::PaperDoll)) {
             box(ui::HudElementId::PaperDoll) = placed;
             if (preview) {
+                Fading fading{preview, ui::HudElementId::PaperDoll};
                 auto parts = paperDoll::figure({placed.x, placed.y, placed.w, placed.h});
                 for (size_t i = 0; i < parts.size(); ++i)
                     ui::fill(context, parts[i].x, parts[i].y, parts[i].w, parts[i].h,
@@ -1599,8 +1612,10 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     }
     // Drawn first so every other element sits on top of the map.
     if (skipped(ui::HudElementId::Minimap)) {}
-    else if (preview || (runtime.map.minimap && !(settings.debug && runtime.map.debugHide)))
+    else if (preview || (runtime.map.minimap && !(settings.debug && runtime.map.debugHide))) {
+        Fading fading{preview, ui::HudElementId::Minimap};
         box(ui::HudElementId::Minimap) = map::drawMinimap(context, width, height, hud.minimap, runtime.map, preview != nullptr, cardOpacity);
+    }
     else if (!runtime.map.minimap) map::drawMinimap(context, width, height, hud.minimap, runtime.map, false);
     if (skipped(ui::HudElementId::Status)) {}
     else if (preview || runtime.ui.automationStatus || runtime.interaction.breaking) {
@@ -1640,6 +1655,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         }
         if (preview && lines.empty()) lines.push_back({ui::translated("status.permanentSneak"), ui::palette::accent});
         Measuring measuring{preview, ui::HudElementId::Status};
+        Fading fading{preview, ui::HudElementId::Status};
         box(ui::HudElementId::Status) = drawElement(context, width, height, hud.status, lines, runtime.ui.hudRowHeight);
     }
     // The player list shares the top center with the target card and is drawn
@@ -1647,6 +1663,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     bool listHeld = !preview && playerList::held();
     auto drawList = [&] {
         Measuring measuring{preview, ui::HudElementId::PlayerList};
+        Fading fading{preview, ui::HudElementId::PlayerList};
         if ((preview || listHeld) && !skipped(ui::HudElementId::PlayerList))
             box(ui::HudElementId::PlayerList) = drawPlayerList(context, width, height, hud.playerList, settings,
                                                                static_cast<float>(runtime.ui.hudRowHeight));
@@ -1669,6 +1686,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     else endNoteSounds();
     if (cardRan) {
         Measuring measuring{preview, ui::HudElementId::Target};
+        Fading fading{preview, ui::HudElementId::Target};
         // One distance for every viewpoint: the body normally, the camera
         // during Freelook and FreeCamera (it looks elsewhere than the body).
         cardTarget = collectTargetInfo(context.mClient, true, targetRay, settings.targetSchematic, settings.targetLiquids,
@@ -1682,28 +1700,38 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         else if (!preview) cardMorph = {};
     }
     if (skipped(ui::HudElementId::Durability)) {}
-    else if (preview || settings.durabilityHud)
+    else if (preview || settings.durabilityHud) {
+        Fading fading{preview, ui::HudElementId::Durability};
         box(ui::HudElementId::Durability) = drawDurability(context, width, height, hud.durability, settings, preview != nullptr);
+    }
     if (skipped(ui::HudElementId::StatusEffects)) {}
-    else if (preview || settings.effectsHud)
+    else if (preview || settings.effectsHud) {
+        Fading fading{preview, ui::HudElementId::StatusEffects};
         box(ui::HudElementId::StatusEffects) = drawStatusEffects(context, width, height, hud.statusEffects, settings, preview != nullptr);
+    }
     else statusEffects::covers(false);
     if (preview || settings.inventoryHud || settings.usedSlots) {
         if (auto sample = sampleInventory(context.mClient, preview != nullptr)) {
-            if ((preview || settings.inventoryHud) && !skipped(ui::HudElementId::Inventory))
+            if ((preview || settings.inventoryHud) && !skipped(ui::HudElementId::Inventory)) {
+                Fading fading{preview, ui::HudElementId::Inventory};
                 box(ui::HudElementId::Inventory) = drawInventoryGrid(context, width, height, hud.inventory, *sample, settings.inventoryHotbar);
-            if ((preview || settings.usedSlots) && !skipped(ui::HudElementId::UsedSlots))
+            }
+            if ((preview || settings.usedSlots) && !skipped(ui::HudElementId::UsedSlots)) {
+                Fading fading{preview, ui::HudElementId::UsedSlots};
                 box(ui::HudElementId::UsedSlots) = drawUsedSlots(context, width, height, hud.usedSlots, *sample, settings.usedSlotsHotbar);
+            }
         }
     }
     if (skipped(ui::HudElementId::Schematic)) {}
     else if (preview || (runtime.schematic.enabled && runtime.schematic.hud)) {
         Measuring measuring{preview, ui::HudElementId::Schematic};
+        Fading fading{preview, ui::HudElementId::Schematic};
         box(ui::HudElementId::Schematic) = drawSchematicHud(context, width, height, hud.schematic, runtime.schematic, preview != nullptr);
     }
     if (skipped(ui::HudElementId::Magnification)) {}
     else if (preview || runtime.camera.showMagnification) {
         Measuring measuring{preview, ui::HudElementId::Magnification};
+        Fading fading{preview, ui::HudElementId::Magnification};
         auto level = CameraSessions::instance().magnification(context.mClient);
         if (!level && preview) level = runtime.camera.magnification;
         if (level)
@@ -1714,6 +1742,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         auto toast = ui::currentToggleToast(ui::toastNow());
         if (!toast && preview) toast = ui::Toast::Visible{ui::translated("feature.toolSwitch"), true, 1.f};
         if (toast && !skipped(ui::HudElementId::Toast) && (preview || runtime.ui.toggleToasts || toast->warning)) {
+            Fading fading{preview, ui::HudElementId::Toast};
             float zoom = elementZoom(hud.toast);
             // A message may hold several lines ("\n"), each centered in the box;
             // a line wider than most of the screen wraps.
@@ -1804,7 +1833,10 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         }
     }
     if (preview && lines.empty()) lines.push_back({ui::translated("feature.infoHud"), {}});
-    box(ui::HudElementId::Info) = drawElement(context, width, height, hud.info, lines, runtime.ui.hudRowHeight);
+    {
+        Fading fading{preview, ui::HudElementId::Info};
+        box(ui::HudElementId::Info) = drawElement(context, width, height, hud.info, lines, runtime.ui.hudRowHeight);
+    }
     drawList();
     return boxes;
 }

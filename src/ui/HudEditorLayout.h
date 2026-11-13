@@ -124,10 +124,14 @@ inline Box idlePanel(float w, float h, float screenW, float screenH) {
 // names of overlapping frames stay apart (L-321). With no such place, the
 // first one on the screen, else the first one pushed onto it.
 inline constexpr float nameTagHeight = 11;
-inline Box nameTag(Box element, float w, float screenW, float screenH, std::vector<Box> const& taken = {}) {
+// `rightFirst` for an element anchored on the right: its tag hangs from the
+// right edge, which stays put when the element's width changes (L-334).
+inline Box nameTag(Box element, float w, float screenW, float screenH, std::vector<Box> const& taken = {},
+                   bool rightFirst = false) {
     float h = nameTagHeight, above = element.y - h - 2, below = element.y + element.h + 2;
     float left = element.x - 1, right = element.x + element.w + 1 - w;
-    Box const places[] = {{left, above, w, h}, {left, below, w, h}, {right, above, w, h}, {right, below, w, h}};
+    float near = rightFirst ? right : left, far = rightFirst ? left : right;
+    Box const places[] = {{near, above, w, h}, {near, below, w, h}, {far, above, w, h}, {far, below, w, h}};
     auto onScreen = [&](Box const& b) { return b.x >= 0 && b.y >= 0 && b.x + b.w <= screenW && b.y + b.h <= screenH; };
     auto clear = [&](Box const& b) {
         for (auto const& other : taken) if (b.overlaps(other)) return false;
@@ -139,12 +143,15 @@ inline Box nameTag(Box element, float w, float screenW, float screenH, std::vect
 }
 // Diagonal hatching over an element hidden from HUD layout (L-334): one-unit
 // squares on lines `spacing` apart, clipped to the box, at most `limit`.
-inline std::vector<Box> hatch(Box box, int spacing = 6, size_t limit = 4000) {
+// Dots fall every `step` units along a line, the step growing with the box
+// so one element never costs more than about `limit` rectangles a frame.
+inline std::vector<Box> hatch(Box box, int spacing = 8, size_t limit = 300) {
     std::vector<Box> out;
-    if (!(box.w >= 1) || !(box.h >= 1) || spacing < 1 || !std::isfinite(box.x) || !std::isfinite(box.y)) return out;
+    if (!(box.w >= 1) || !(box.h >= 1) || spacing < 1 || limit < 1 || !std::isfinite(box.x) || !std::isfinite(box.y)) return out;
     int w = static_cast<int>(std::min(box.w, 4000.f)), h = static_cast<int>(std::min(box.h, 4000.f));
+    int step = std::max(2, static_cast<int>(std::ceil(static_cast<double>(w) * h / (static_cast<double>(spacing) * static_cast<double>(limit)))));
     for (int k = 0; k < w + h - 1; k += spacing)
-        for (int y = std::max(0, k - w + 1); y <= std::min(h - 1, k); ++y) {
+        for (int y = std::max(0, k - w + 1) + (k / spacing) % step; y <= std::min(h - 1, k); y += step) {
             out.push_back({box.x + static_cast<float>(k - y), box.y + static_cast<float>(y), 1, 1});
             if (out.size() >= limit) return out;
         }

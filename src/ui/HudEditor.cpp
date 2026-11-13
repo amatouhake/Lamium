@@ -456,38 +456,19 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
                     behind = *box;
         preview.hidden[static_cast<size_t>(*focus)] = true;
     }
+    // A hidden element says least of all: only measured, in the same pass, its
+    // contents shown faint while it is pointed at or selected.
     constexpr float offOpacity = .3f;
-    bool anyOff = false;
     for (auto id : drawOrder)
-        if (isOff(id) && focus != id) { preview.hidden[static_cast<size_t>(id)] = true; anyOff = true; }
+        if (isOff(id)) preview.opacity[static_cast<size_t>(id)] = hovered == id || focus == id ? offOpacity : 0.f;
     auto boxes = information::drawHud(context, width, height, value.information, &preview);
     // The elements' text first: what follows goes over it.
     context.flushText(0, std::nullopt);
-    // A hidden element says least of all: only measured, its contents shown
-    // faint while it is pointed at (or selected, below).
-    if (anyOff)
-        for (bool pointed : {false, true}) {
-            auto faint = preview;
-            faint.hidden.fill(true);
-            bool any = false;
-            for (auto id : drawOrder)
-                if (isOff(id) && focus != id && (hovered == id) == pointed) {
-                    faint.hidden[static_cast<size_t>(id)] = false;
-                    any = true;
-                }
-            if (!any) continue;
-            DrawOpacity const fade{pointed ? offOpacity : 0.f};
-            auto drawn = information::drawHud(context, width, height, value.information, &faint);
-            for (auto id : drawOrder)
-                if (!faint.hidden[static_cast<size_t>(id)]) boxes[static_cast<size_t>(id)] = drawn[static_cast<size_t>(id)];
-            context.flushText(0, std::nullopt);
-        }
     if (focus) {
         // Only where it lies on another element: a darker ground sets it apart.
         if (behind) fill(context, behind->x, behind->y, behind->w, behind->h, Rgb{0, 0, 0}, .45f);
         preview.hidden.fill(true);
         preview.hidden[static_cast<size_t>(*focus)] = false;
-        DrawOpacity const fade{isOff(*focus) ? offOpacity : 1.f};
         auto front = information::drawHud(context, width, height, value.information, &preview);
         boxes[static_cast<size_t>(*focus)] = front[static_cast<size_t>(*focus)];
         context.flushText(0, std::nullopt);
@@ -512,6 +493,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         auto name = translated(elementName(id));
         return isOff(id) ? translated("hudEditor.hidden", name) : name;
     };
+    auto rightSide = [&](HudElementId id) { return anchorFactors(layoutElement(preview.layout, id).anchor).x == 1; };
     auto checkOf = [&](HudElementId id) {
         return settings::hudShown(value, id) ? std::optional(id) : std::nullopt;
     };
@@ -520,7 +502,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
             auto name = tagName(*focus);
             if (resize) name += std::format(" {}%", static_cast<int>(resize->scale));
             auto check = checkOf(*focus);
-            focusTag = nameTag(*box, textWidth(context, name) + 6 + (check ? checkRoom : 0), width, height);
+            focusTag = nameTag(*box, textWidth(context, name) + 6 + (check ? checkRoom : 0), width, height, {}, rightSide(*focus));
             tags.push_back({*focusTag, std::move(name), true, isOff(*focus), check});
         }
     if (focusTag) taken.push_back(*focusTag);
@@ -529,7 +511,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         if (auto const& box = lastBoxes[static_cast<size_t>(*hovered)]) {
             auto name = tagName(*hovered);
             auto check = checkOf(*hovered);
-            auto place = nameTag(*box, textWidth(context, name) + 6 + (check ? checkRoom : 0), width, height, taken);
+            auto place = nameTag(*box, textWidth(context, name) + 6 + (check ? checkRoom : 0), width, height, taken, rightSide(*hovered));
             taken.push_back(place);
             tags.push_back({place, std::move(name), false, isOff(*hovered), check});
             nextHoverTag = std::pair{*hovered, place};
@@ -545,7 +527,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     };
     auto addTag = [&](Box const& element, HudElementId id) {
         auto name = tagName(id);
-        auto box = nameTag(element, textWidth(context, name) + 6, width, height, taken);
+        auto box = nameTag(element, textWidth(context, name) + 6, width, height, taken, rightSide(id));
         if (watched(box)) return;
         taken.push_back(box);
         tags.push_back({box, std::move(name), false, isOff(id), std::nullopt});
@@ -557,12 +539,14 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         float opacity = isFocus ? .9f : isHovered ? .6f : framed(id) ? .35f : .2f;
         Box outer{box->x - 1, box->y - 1, box->w + 2, box->h + 2};
         if (isOff(id)) {
+            // Less than a frame that shows by situation: sparse gray dots and a
+            // faint outline, no name until pointed at. Gray: yellow already
+            // marks the game's own elements.
             std::vector<ImageRect> lines;
             for (auto const& square : hatch(*box)) lines.push_back({square.x, square.y, square.w, square.h});
-            // Gray: yellow already marks the game's own elements.
-            fills(context, lines, palette::faint, .45f);
-            frame(context, outer.x, outer.y, outer.w, outer.h, isFocus ? palette::accent : palette::faint, isFocus ? .9f : .7f);
-            if (!isFocus && !isHovered) addTag(*box, id);
+            fills(context, lines, palette::faint, isFocus || isHovered ? .6f : .35f);
+            frame(context, outer.x, outer.y, outer.w, outer.h, isFocus ? palette::accent : palette::faint,
+                  isFocus ? .9f : isHovered ? .6f : .3f);
             continue;
         }
         // The game's own elements stand apart from Lamium's by their frame color.
