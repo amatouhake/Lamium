@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item details in tooltips, second look (2026-11-13)
+
+`6f70bdb2`, local build, DLL SHA-256
+`a2d1e30b91a191ada60431377b221c5cad526fc9893bad8eaa353f4343edad9a`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- Coal and charcoal show "Fuel: smelts 8 items".
+- A piston picked with Ctrl + middle click shows all its stored data, no count.
+- A suspicious stew shows its effect line in Survival. It is white, where the game's
+  own line in Creative is red for a bad effect; in Creative both lines show.
+- The food icons sit above the detail lines, in place.
+- No use time on a bow, bread or a milk bucket.
+- Enchanted armour and a shulker box with items: the stored data makes the tooltip
+  taller than the screen ("... 82 more" at the bottom of a shulker box's).
+
+Also seen (L-91): a head inside a shulker box opened once since entering the world is
+drawn in the preview; a head lying in a never-opened shulker box from before is not,
+whatever else has been drawn; the same for dragon and creeper heads.
+
 ## Item details in tooltips, first look (2026-11-13)
 
 `63c672ca`, local build, DLL SHA-256

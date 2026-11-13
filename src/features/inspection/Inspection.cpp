@@ -10,6 +10,9 @@
 #include "mc/deps/nbt/CompoundTagVariant.h"
 #include "mc/deps/nbt/ListTag.h"
 #include "mc/world/item/ItemTag.h"
+#include "mc/locale/I18n.h"
+#include "mc/world/effect/MobEffect.h"
+#include <optional>
 #include "mc/world/item/components/FuelItemComponent.h"
 #include "mc/world/item/components/UseModifiersItemComponent.h"
 #include <cmath>
@@ -83,6 +86,29 @@ void collectData(std::string const& key, Tag const& tag, int depth, details::Ite
         if (keep) item.data.push_back({key, tag.toSnbt(SnbtFormat::Minimize), depth});
     }
 }
+// Whether the effect a shown line starts with is a harmful one: the game's effects by their translated names, the
+// longest that fits. Asked again only when the line changes.
+std::optional<bool> effectHarmful(std::string const& shown) {
+    static std::string last;
+    static std::optional<bool> answer;
+    if (shown == last) return answer;
+    last = shown;
+    answer.reset();
+    auto language = getI18n().getCurrentLanguage();
+    size_t best = 0;
+    for (uint id = 1; id <= 38; ++id) {
+        auto const name = MobEffect::getNameById(id);
+        auto const* effect = name.empty() ? nullptr : MobEffect::getByName(name);
+        if (!effect) continue;
+        std::string const& key = effect->mDescriptionId;
+        auto const label = getI18n().get(key, language);
+        if (label.size() > best && label != key && shown.starts_with(label)) {
+            best = label.size();
+            answer = static_cast<bool>(effect->mIsHarmful);
+        }
+    }
+    return answer;
+}
 LL_TYPE_INSTANCE_HOOK(ShulkerContentsText, ll::memory::HookPriority::Normal, ShulkerBoxBlockItem,
     &ShulkerBoxBlockItem::$appendFormattedHovertext, void, ItemStackBase const& stack,
     Level& level, Bedrock::Safety::RedactableString& hovertext, bool const showCategory) {
@@ -147,14 +173,21 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
             item.burnTicks = FurnaceBlockActor::getItemBurnDuration(*mItem, details::smeltTicks);
             if (!(item.burnTicks > 0))
                 item.burnTicks = seconds("minecraft:fuel", [](ItemComponent* c) { return static_cast<FuelItemComponent*>(c)->mFuelDuration; });
-            item.useTicks = seconds("minecraft:use_modifiers", [](ItemComponent* c) { return static_cast<UseModifiersItemComponent*>(c)->mUseDuration; });
+            // Eating and drinking times are the item's own; newer items keep theirs in a component.
+            item.useTicks = static_cast<float>(mItem->mMaxUseDuration);
+            if (!(item.useTicks > 0))
+                item.useTicks = seconds("minecraft:use_modifiers", [](ItemComponent* c) { return static_cast<UseModifiersItemComponent*>(c)->mUseDuration; });
             // The game names a suspicious stew's effect only in Creative.
             if (item.id == "minecraft:suspicious_stew") {
-                auto effect = mItem->buildEffectDescriptionName(*this, true);
-                if (!effect.empty() && text.mUnredactedString.find(effect) == std::string::npos) item.effect = std::move(effect);
+                auto effect = details::plain(mItem->buildEffectDescriptionName(*this, true));
+                if (!effect.empty() && details::plain(text.mUnredactedString).find(effect) == std::string::npos) {
+                    item.effectHarmful = effectHarmful(effect);
+                    item.effect = std::move(effect);
+                }
             }
             for (auto const& line : details::lines(item))
-                text += (line.dim ? "\n\u00a78" : "\n\u00a77") + (line.key.empty() ? line.value : ui::translated(line.key, line.value));
+                text += (line.tint ? std::string("\n\u00a7") + line.tint : line.dim ? "\n\u00a78" : "\n\u00a77")
+                        + (line.key.empty() ? line.value : ui::translated(line.key, line.value));
         }
         if (!icons.empty()) rememberFood(text.mUnredactedString, std::move(icons));
     } catch (...) {

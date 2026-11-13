@@ -25,8 +25,14 @@ void itemDetailsTests() {
         Item stew{.id = "minecraft:suspicious_stew", .aux = 2, .effect = "Weakness (0:07)", .useTicks = 32};
         Item bow{.id = "minecraft:bow", .useTicks = 72000};
         auto out = lines(stew);
-        check(out[0] == Line{"", "Weakness (0:07)"} && out[1] == Line{"itemDetails.useTime", "1.6"},
+        check(out[0] == Line{"", "Weakness (0:07)", false, 'f'} && out[1] == Line{"itemDetails.useTime", "1.6"},
               "an effect the game left out leads, then the time the item takes to use");
+        stew.effect = "\xC2\xA7" "7Weakness \xC2\xA7" "r(0:07)";
+        stew.effectHarmful = true;
+        check(lines(stew)[0] == Line{"", "Weakness (0:07)", false, 'c'}, "a harmful effect is red whatever codes it came with");
+        stew.effectHarmful = false;
+        check(lines(stew)[0].tint == '9', "a helpful effect is blue");
+        check(plain("\xC2\xA7" "cRed\xC2\xA7") == "Red" && plain("plain") == "plain", "codes are dropped, a cut one too");
         check(lines(bow).size() == 1, "an item held for as long as the button is has no use time");
     }
     {

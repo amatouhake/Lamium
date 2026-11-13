@@ -826,6 +826,24 @@ changed the same day, not yet checked in game:
 Open: "Enchantability: 15" tells that an item can be enchanted but not
 what the number means to a player; the maintainer keeps the line and may
 want a better wording. Tooltip length waits until the repeats are gone.
+Seen by the maintainer 2026-11-13 on `6f70bdb2` (VALIDATION-LOG): coal and
+charcoal read 8, the picked piston's data is whole, the stew's effect shows
+in Survival, the food icons sit right above the details. Changed the same
+day, not yet checked in game:
+- The stew's effect came without the game's colour and was repeated in
+  Creative, where the game prints it itself. The line is now compared and
+  shown without colour codes, and coloured as the game does: red for a
+  harmful effect, blue otherwise, white when the effect cannot be told.
+  Harmful is `MobEffect::mIsHarmful` of the effect whose translated name
+  the line starts with.
+- No use time showed on a bow, bread or a milk bucket: they have no
+  `minecraft:use_modifiers` component. `Item::mMaxUseDuration` is read
+  first now, the component only where that is 0.
+Open, for one design talk once the values are right (the maintainer's
+call): stored data makes the tooltip of an enchanted armour piece or a
+shulker box far too tall. Wanted: short by default, the long form on
+demand. Scrolling the tooltip with the wheel would collide with Inventory
+transfer's wheel.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
 Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;
@@ -2479,6 +2497,15 @@ Rechecked by the maintainer 2026-11-12 (`d96f2cbe`, 1.26.60.05): a piglin
 head and the other heads are drawn in a container preview; a recovery
 compass is still not, a compass is. The leather gap is unchanged and shows
 in the enchantment order's icons as well.
+Narrowed by the maintainer 2026-11-13 (seen while testing L-319, build
+`6f70bdb2`): a head inside a shulker box that was opened once since the
+world was entered is drawn in the preview; a head that has sat in a
+shulker box as an item since before, never opened this session, is not.
+Drawing the same kind of head correctly in another container or another
+shulker box's preview does not change that. The same holds for the other
+heads (dragon, creeper). Not looked into; where the two cases' item data
+differ is the first thing to read (the stored data is now visible in the
+tooltip with Item details on).
 
 ### L-79 Carved pumpkin and spyglass frame draw path
 Kind: Research. Cheap models may run the steps below and report; implementing
