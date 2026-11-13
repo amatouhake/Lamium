@@ -46,7 +46,7 @@ void probe(LocalPlayer& player) {
             for (auto const& area : list) {
                 ++areas;
                 auto const& box = *area.aabb;
-                found += std::format(" chunk({},{}):type{}[{},{},{} .. {},{},{}]", cx, cz, static_cast<int>(*area.type), box.min.x,
+                found += std::format(" chunk({},{}):type{}[{},{},{} .. {},{},{}]", cx, cz, static_cast<int>(area.type), box.min.x,
                     box.min.y, box.min.z, box.max.x, box.max.y, box.max.z);
             }
         }
