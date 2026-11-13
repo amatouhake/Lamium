@@ -83,7 +83,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"openworldmap", "worldMap", Behavior::Press, 0x4D},
     // Every saved feature switch can be bound (SETTINGS-KEYMAP rule 1).
     {"previews", "previews", Behavior::Toggle},
-    {"durability", "durability", Behavior::Toggle},
+    {"durability", "itemDetails", Behavior::Toggle},
     {"sorting", "sorting", Behavior::Toggle},
     {"hideeffects", "hideEffects", Behavior::Toggle},
     {"durabilityhud", "durabilityHud", Behavior::Toggle},
@@ -94,7 +94,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"radarfaces", "radar", Behavior::Hold},
     {"offhandslot", "offhandSlot", Behavior::Toggle},
     {"saturation", "saturation", Behavior::Toggle},
-    {"foodvalues", "foodValues", Behavior::Toggle},
+    {"foodvalues", "itemDetails", Behavior::Toggle},
     {"weaponswitch", "weaponSwitch", Behavior::Toggle},
     {"schematic", "schematic", Behavior::Toggle},
     {"openschematics", "schematic", Behavior::Press},
@@ -174,7 +174,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"scoreboardposition", "gameHud", Behavior::Toggle},
     {"gamehud", "gameHud", Behavior::Toggle},
     {"openenchantorder", "enchantOrder", Behavior::Press},
-    {"workpenalty", "workPenalty", Behavior::Toggle},
+    {"workpenalty", "itemDetails", Behavior::Toggle},
     {"itemdetails", "itemDetails", Behavior::Toggle},
 });
 static_assert(actions.size() == static_cast<size_t>(Action::Count));

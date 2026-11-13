@@ -143,7 +143,7 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
                                                       : ui::translated("workPenaltyOnly", penalty->levels));
         // The game tells a suspicious stew's effect only in Creative (L-319): the same lines elsewhere, where the
         // game puts them, above the food.
-        if (settings.itemDetails && mItem->mFullName->getString() == "minecraft:suspicious_stew") {
+        if (settings.itemDetailsStew && mItem->mFullName->getString() == "minecraft:suspicious_stew") {
             auto const effect = details::plain(mItem->buildEffectDescriptionName(*this, true));
             if (!effect.empty() && details::plain(text.mUnredactedString).find(effect) == std::string::npos) {
                 auto const& info = effectInfo(effect);
@@ -160,32 +160,36 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
                 if (!icons.empty()) text += tooltip::glyphLine(tooltip::placeholders(static_cast<int>(icons.size())));
             }
         // The rest the game knows and does not print (L-319).
-        if (settings.itemDetails) {
+        if (settings.itemDetails || settings.itemDetailsId || settings.itemDetailsTags || settings.itemDetailsNbt) {
             details::Item item;
-            item.id = getTypeName();
-            item.aux = getAuxValue();
+            if (settings.itemDetailsId) {
+                item.id = getTypeName();
+                item.aux = getAuxValue();
+            }
             if (settings.itemDetailsTags)
                 for (auto const& tag : *mItem->mTags) item.tags.push_back(tag.getString());
             // A compound or list is its whole text, cut to a line by the pure side; past the lines shown only counted.
             if (settings.itemDetailsNbt && mUserData)
                 for (auto const& [key, tag] : mUserData->mTags)
                     item.data.push_back({key, item.data.size() < details::dataLines ? tag.toSnbt(SnbtFormat::Minimize) : std::string{}});
-            item.enchantability = mItem->getEnchantValue();
-            item.maxStack = getMaxStackSize();
-            item.cooldownTicks = mItem->getCooldownDuration();
-            // Seconds in the item's components. Coal's burn time is only there: the furnace's own answer for it is 0.
-            auto seconds = [&](char const* id, auto read) -> float {
-                auto* component = mItem->getComponent(HashedString{id});
-                float const value = component ? read(component) : 0;
-                return std::isfinite(value) && value > 0 && value < 100000 ? value * details::ticksPerSecond : 0;
-            };
-            item.burnTicks = FurnaceBlockActor::getItemBurnDuration(*mItem, details::smeltTicks);
-            if (!(item.burnTicks > 0))
-                item.burnTicks = seconds("minecraft:fuel", [](ItemComponent* c) { return static_cast<FuelItemComponent*>(c)->mFuelDuration; });
-            // Eating and drinking times are the item's own; newer items keep theirs in a component.
-            item.useTicks = static_cast<float>(mItem->mMaxUseDuration);
-            if (!(item.useTicks > 0))
-                item.useTicks = seconds("minecraft:use_modifiers", [](ItemComponent* c) { return static_cast<UseModifiersItemComponent*>(c)->mUseDuration; });
+            if (settings.itemDetails) {
+                item.enchantability = mItem->getEnchantValue();
+                item.maxStack = getMaxStackSize();
+                item.cooldownTicks = mItem->getCooldownDuration();
+                // Seconds in the item's components. Coal's burn time is only there: the furnace's own answer for it is 0.
+                auto seconds = [&](char const* id, auto read) -> float {
+                    auto* component = mItem->getComponent(HashedString{id});
+                    float const value = component ? read(component) : 0;
+                    return std::isfinite(value) && value > 0 && value < 100000 ? value * details::ticksPerSecond : 0;
+                };
+                item.burnTicks = FurnaceBlockActor::getItemBurnDuration(*mItem, details::smeltTicks);
+                if (!(item.burnTicks > 0))
+                    item.burnTicks = seconds("minecraft:fuel", [](ItemComponent* c) { return static_cast<FuelItemComponent*>(c)->mFuelDuration; });
+                // Eating and drinking times are the item's own; newer items keep theirs in a component.
+                item.useTicks = static_cast<float>(mItem->mMaxUseDuration);
+                if (!(item.useTicks > 0))
+                    item.useTicks = seconds("minecraft:use_modifiers", [](ItemComponent* c) { return static_cast<UseModifiersItemComponent*>(c)->mUseDuration; });
+            }
             for (auto const& line : details::lines(item))
                 text += (line.dim ? "\n\u00a78" : "\n\u00a77") + (line.key.empty() ? line.value : ui::translated(line.key, line.value));
         }

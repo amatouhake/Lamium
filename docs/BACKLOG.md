@@ -952,9 +952,28 @@ Asked by the maintainer the same day: hiding the game's list of contained
 item names in a shulker box's tooltip, since the preview shows the same.
 That exists: "Hide Shulker contents text" under Container previews, off by
 default. Whether it should be on by default is the maintainer's call.
-Still open: the grouping of the tooltip settings (the note above, for a
-session of its own) and the enchantability wording if the help text is
-not enough.
+Decided by the maintainer 2026-11-13 in that session, looking only at what
+each line shows and for whom, built the same day, not yet checked in game:
+- One heading, "Item details", without a switch or key of its own (as Map
+  text is), and a child switch per kind of line in the tooltip's order:
+  Durability numbers, Work penalty, Suspicious stew effect, Food values,
+  Property values, Show ID, Show tags, Show NBT. The four feature rows are
+  gone; their toggle keys sit on the child rows.
+- The old Item details switch held three unlike things and is split. The
+  stew's effect tells what the game hides in Survival, so a player may not
+  want it (`inspection.itemDetailsStew`). The ID is the one line on every
+  item and is for commands and packs (`inspection.itemDetailsId`). The five
+  values of an item's kind stay together as Property values, which keeps
+  `inspection.itemDetails` and the `itemdetails` key. Durability and Work
+  penalty both tell the one item's state but are read by different players,
+  so they stay apart.
+- Nothing saved changes meaning: no settings key or action id is renamed.
+  The two new keys, when a file lacks them, take the file's
+  `inspection.itemDetails`, so nothing appears that was switched off. Tags
+  and NBT no longer need Item details on.
+- Not asked, left as they were: the ID stays on by default, fuel stays
+  inside Property values.
+Still open: the enchantability wording if the help text is not enough.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
 Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;

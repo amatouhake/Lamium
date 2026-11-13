@@ -208,6 +208,8 @@ Json encode(Settings const& settings) {
                         {"foodValues", settings.inspection.foodValues},
                         {"workPenalty", settings.inspection.workPenalty},
                         {"itemDetails", settings.inspection.itemDetails},
+                        {"itemDetailsStew", settings.inspection.itemDetailsStew},
+                        {"itemDetailsId", settings.inspection.itemDetailsId},
                         {"itemDetailsTags", settings.inspection.itemDetailsTags},
                         {"itemDetailsNbt", settings.inspection.itemDetailsNbt},
                         {"lockedTrades", settings.inspection.lockedTrades},
@@ -635,6 +637,9 @@ Settings decodeSettings(std::string_view text) {
         value.inspection.foodValues = settingsValue(data.at("inspection"), "foodValues", value.inspection.foodValues);
         value.inspection.workPenalty = settingsValue(data.at("inspection"), "workPenalty", value.inspection.workPenalty);
         value.inspection.itemDetails = settingsValue(data.at("inspection"), "itemDetails", value.inspection.itemDetails);
+        // Both were part of Item details until the split (L-319): a file from before it keeps what it showed.
+        value.inspection.itemDetailsStew = settingsValue(data.at("inspection"), "itemDetailsStew", value.inspection.itemDetails);
+        value.inspection.itemDetailsId = settingsValue(data.at("inspection"), "itemDetailsId", value.inspection.itemDetails);
         value.inspection.itemDetailsTags = settingsValue(data.at("inspection"), "itemDetailsTags", value.inspection.itemDetailsTags);
         value.inspection.itemDetailsNbt = settingsValue(data.at("inspection"), "itemDetailsNbt", value.inspection.itemDetailsNbt);
         value.inspection.lockedTrades = settingsValue(data.at("inspection"), "lockedTrades", value.inspection.lockedTrades);

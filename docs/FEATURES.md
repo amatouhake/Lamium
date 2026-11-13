@@ -299,9 +299,13 @@ build them.
 
 ## Inventory
 
-### Container previews, Durability numbers, Food values, Work penalty and Item details
+### Container previews and Item details
 
-Inside the game's item tooltip:
+Inside the game's item tooltip. Container previews is a feature with its own switch. Item
+details is a heading in the settings with one switch per kind of line: Durability numbers,
+Work penalty, Suspicious stew effect, Food values, Property values, Show ID, Show tags and
+Show NBT. The first six are on by default; Durability numbers, Work penalty, Food values and
+Property values each have a toggle key on their row (unbound).
 
 - Shulker Box and Bundle contents.
 - Remaining durability.
@@ -311,12 +315,13 @@ Inside the game's item tooltip:
   never been through one shows nothing; a surcharge that no number of anvil uses
   gives (set by a command, say) is shown without the count. It does not predict what
   an operation will cost: that depends on the other item too.
-- Item details, the values the game knows and does not print, each only where the
-  item has one. Above the food icons, a suspicious stew's effect outside Creative,
-  in the game's words and colours. Under them: enchantability; a stack limit below 64 (above 1); the cooldown and the time the
-  item takes to use, in seconds; how many items it smelts as fuel; then, darker, its
-  ID (with "#N" for a data value other than 0). Two detail settings, off by default,
-  add more: "Show tags" lists its item tags, and "Show NBT" its NBT, one line per
+- Above the food icons, a suspicious stew's effect outside Creative, in the game's
+  words and colours.
+- Property values, the values of the item's kind that the game knows and does not print,
+  each only where the item has one, under the food icons: enchantability; a stack limit below 64 (above 1); the cooldown and the time the
+  item takes to use, in seconds; how many items it smelts as fuel.
+- Darker, its ID (with "#N" for a data value other than 0). Two more, off by default:
+  "Show tags" lists its item tags, and "Show NBT" its NBT, one line per
   top-level entry, a compound or list as its whole text on that line, cut at 60
   characters; past 24 entries the rest is
   counted. Armor values and attack damage are the game's own lines and are not

@@ -80,8 +80,9 @@ struct Settings {
         bool durability = true;
         bool foodValues = true; // Hunger and saturation gain on hovered food (L-64)
         bool workPenalty = true; // An item's anvil work penalty in its tooltip (L-319)
-        bool itemDetails = true; // Values the game does not print and the id in an item's tooltip (L-319)
-        bool itemDetailsTags = false, itemDetailsNbt = false; // Its tags and its user data as well
+        bool itemDetails = true; // The values of an item's kind that the game does not print (L-319)
+        bool itemDetailsStew = true; // A suspicious stew's effect outside Creative
+        bool itemDetailsId = true, itemDetailsTags = false, itemDetailsNbt = false; // Its id, tags and user data
         bool lockedTrades = true; // Every trader level in the trade screen (L-129)
         bool englishSearch = true; // Recipe and creative search match English names too (L-130)
     } inspection;

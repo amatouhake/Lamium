@@ -21,7 +21,7 @@ inline constexpr auto sections = std::to_array<std::string_view>({
     "section.interaction", "section.interface"});
 inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand" || id == "hideEffects" || id == "connectedTextures" || id == "blockHighlight") return "section.camera";
-    if (id == "previews" || id == "durability" || id == "foodValues" || id == "workPenalty" || id == "itemDetails" || id == "lockedTrades" || id == "repeatTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore" || id == "enchantOrder") return "section.inventory";
+    if (id == "previews" || id == "itemDetails" || id == "lockedTrades" || id == "repeatTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore" || id == "enchantOrder") return "section.inventory";
     if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "sneakPlacement" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
     if (id == "settings" || id == "gameLanguage" || id == "skipServerPacks" || id == "calculator" || id == "toasts" || id == "hudText" || id == "bookPaste") return "section.interface";
     if (id.starts_with("schematic")) return "section.schematic";
@@ -41,10 +41,8 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"connectedTextures", "feature.connectedTextures", "help.connectedTextures", "visuals.connectedTextures", true, input::Action::ToggleConnectedTextures},
     {"blockHighlight", "feature.blockHighlight", "help.blockHighlight", "visuals.blockHighlight", true, input::Action::ToggleBlockHighlight},
     {"previews", "feature.previews", "help.previews", "inspection.containerPreviews", false, input::Action::TogglePreviews},
-    {"durability", "feature.durability", "help.durability", "inspection.durability", false, input::Action::ToggleDurability},
-    {"foodValues", "feature.foodValues", "help.foodValues", "inspection.foodValues", false, input::Action::ToggleFoodValues},
-    {"workPenalty", "feature.workPenalty", "help.workPenalty", "inspection.workPenalty", false, input::Action::ToggleWorkPenalty},
-    {"itemDetails", "feature.itemDetails", "help.itemDetails", "inspection.itemDetails", false, input::Action::ToggleItemDetails},
+    // The lines Lamium adds to an item's tooltip: a heading, each kind of line a switch of its own (L-319).
+    {"itemDetails", "feature.itemDetails", "help.itemDetails", ""},
     {"lockedTrades", "feature.lockedTrades", "help.lockedTrades", "inspection.lockedTrades", false, input::Action::ToggleLockedTrades},
     {"repeatTrades", "feature.repeatTrades", "help.repeatTrades", "inventory.repeatTrades", false, input::Action::ToggleRepeatTrades},
     {"englishSearch", "feature.englishSearch", "help.englishSearch", "inspection.englishSearch", false, input::Action::ToggleEnglishSearch},
@@ -169,6 +167,10 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "information.chatPosition") return input::Action::ToggleChatPosition;
     if (option == "information.paperDollPosition") return input::Action::TogglePaperDollPosition;
     if (option == "information.scoreboardPosition") return input::Action::ToggleScoreboardPosition;
+    if (option == "inspection.durability") return input::Action::ToggleDurability;
+    if (option == "inspection.foodValues") return input::Action::ToggleFoodValues;
+    if (option == "inspection.workPenalty") return input::Action::ToggleWorkPenalty;
+    if (option == "inspection.itemDetails") return input::Action::ToggleItemDetails;
     if (option == "visuals.hideWater") return input::Action::HideWater;
     if (option == "visuals.hideLava") return input::Action::HideLava;
     if (option == "visuals.hidePowderSnow") return input::Action::HidePowderSnow;
@@ -282,6 +284,10 @@ inline std::string_view toggleToastKey(input::Action action) {
     case Action::ToggleIgnoreSignText: return "toast.ignoreSignText";
     case Action::ToggleIgnoreBlockEntities: return "toast.ignoreBlockEntities";
     case Action::ToggleWorldMap: return "toast.worldMapRecording";
+    case Action::ToggleDurability: return "feature.durability";
+    case Action::ToggleFoodValues: return "feature.foodValues";
+    case Action::ToggleWorkPenalty: return "feature.workPenalty";
+    case Action::ToggleItemDetails: return "toast.itemValues";
     default: return featureNameKey(input::actions[static_cast<size_t>(action)].feature);
     }
 }
