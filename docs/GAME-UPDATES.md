@@ -121,6 +121,7 @@ the package/SDK loader-policy alignment in CI.
 | Fake Offhand (item use targets) | `FakeOffhand.cpp` `targetUse` (planter component by name, copper fields, `canBeFertilized`, `isRailBlock`) | the primary item keeps priority on blocks as before L-189 | air checks, the rest of Fake Offhand |
 | Chat position (HUD control positions) | `ChatPosition.cpp` | vanilla chat position | the setting, key and layout preview; the other parts of Game HUD placement |
 | Scoreboard position (HUD control positions) | `ScoreboardPosition.cpp` | vanilla scoreboard position | the setting, key and layout preview; the other parts of Game HUD placement |
+| Boss bar position (HUD control positions) | `BossBarPosition.cpp` | vanilla boss bar position | the setting, key and layout preview; Hide boss bars; the other parts of Game HUD placement |
 | Paper doll position (HUD control position) | `DebugVanillaHud.cpp` `DollPlacement` (the `hud_player` control's cached position and size, restored after the draw) | the doll where the game puts it | the setting, key and layout preview; hiding the doll; the other parts of Game HUD placement |
 | FreeCamera hide (hand pass) | `FreeCameraHide.cpp` | hand drawn | FreeCamera and independent HUD paths |
 | FreeCamera hide (HUD pass) | `FreeCameraHide.cpp` | whole HUD drawn | FreeCamera and hand hiding |
@@ -247,6 +248,22 @@ Meaning: `HudMobEffectsRenderer` draws the HUD's effect icons on the right
 (the hud screen's `mob_effects_renderer`). Skipped only while the Status
 Effects HUD read the effects that frame; a change only stops the hiding or
 hides those icons with the HUD showing the same effects (L-147).
+
+### `src/features/information/BossBarPosition.cpp`
+Hooks: `BossBarHudRender`, `BossBarTextRender`, `BossBarSpriteRender`
+Meaning: the HUD stacks the boss bars in a grid named `boss_health_grid`
+(`hud.boss_health_grid`: 182 wide, 30 % of the screen tall, top middle,
+offset 2 under `boss_hud_panel`), one 182x20 item per bar holding the name
+label and the progress bar images (the filled one clipped by its ratio). The
+items are named after the template `boss_health_panel`, which is also the
+outer full-screen panel, so a part is recognized by the grid within 16
+controls. The first part drawn in a frame measures the box from the grid's
+top to its lowest shown item; every part is translated (and scaled) for its
+one draw from that box as for the scoreboard, then restored. Gated (Boss bar
+position); a renamed grid, a clipping panel on the way or invalid geometry
+leaves it vanilla. Hide boss bars skips the same draws whatever the hook
+order. The first measured box is logged once. Built 2026-11-14 (L-323), not
+yet checked in game.
 
 ### `src/features/information/ScoreboardPosition.cpp`
 Hooks: `ScoreboardHudRender`, `ScoreboardTextRender`, `ScoreboardBackgroundRender`

@@ -138,6 +138,7 @@ Json encode(Settings const& settings) {
                          {"chatPosition", settings.information.chatPosition},
                          {"paperDollPosition", settings.information.paperDollPosition},
                          {"scoreboardPosition", settings.information.scoreboardPosition},
+                         {"bossBarPosition", settings.information.bossBarPosition},
                          {"effectsNames", settings.information.effectsNames},
                          {"effectsWarning", settings.information.effectsWarning},
                          {"effectsHideVanilla", settings.information.effectsHideVanilla},
@@ -269,7 +270,8 @@ Json encode(Settings const& settings) {
                    {"statusEffects", encodeHudElement(settings.hud.statusEffects)},
                    {"chat", encodeHudElement(settings.hud.chat)},
                    {"paperDoll", encodeHudElement(settings.hud.paperDoll)},
-                   {"scoreboard", encodeHudElement(settings.hud.scoreboard)}}},
+                   {"scoreboard", encodeHudElement(settings.hud.scoreboard)},
+                   {"bossBars", encodeHudElement(settings.hud.bossBars)}}},
         {"map", {{"minimap", settings.map.minimap}, {"range", map::blocksAcross(settings.map.zoom)}, {"size", settings.map.size},
                  {"rotate", settings.map.rotate},
                  {"round", settings.map.round}, {"caveView", settings.map.caveView},
@@ -411,6 +413,7 @@ Settings decodeSettings(std::string_view text) {
             value.information.chatPosition = settingsValue(info, "chatPosition", value.information.chatPosition);
             value.information.paperDollPosition = settingsValue(info, "paperDollPosition", value.information.paperDollPosition);
             value.information.scoreboardPosition = settingsValue(info, "scoreboardPosition", value.information.scoreboardPosition);
+            value.information.bossBarPosition = settingsValue(info, "bossBarPosition", value.information.bossBarPosition);
         } else {
             bool chat = settingsValue(info, "chatPosition", false), doll = settingsValue(info, "paperDollPosition", false),
                  board = settingsValue(info, "scoreboardPosition", false);
@@ -730,6 +733,7 @@ Settings decodeSettings(std::string_view text) {
         element("chat", value.hud.chat, ui::HudElementId::Chat);
         element("paperDoll", value.hud.paperDoll, ui::HudElementId::PaperDoll);
         element("scoreboard", value.hud.scoreboard, ui::HudElementId::Scoreboard);
+        element("bossBars", value.hud.bossBars, ui::HudElementId::BossBars);
         element("statusEffects", value.hud.statusEffects, ui::HudElementId::StatusEffects);
     }
     value.normalize();

@@ -642,6 +642,17 @@ of bars, how its size changes with the number of bars and with the text
 above each bar, and whether moving it holds across screen and GUI scale
 changes as the other three parts do. Open choices after that: the anchor
 when the number of bars changes, and how it behaves with the hide switch.
+Status 2026-11-14: built (the maintainer asked for it again). Read from the
+installed HUD definition: the bars stack in the grid `boss_health_grid`
+(182 x 30 % of the screen, top middle, offset 2), one 182x20 item per bar
+(name label, then the bar images 10 units down). The element is the box the
+shown bars fill; choices taken (DESIGN "Boss bar placement"): the anchor
+decides the growth direction, Hide boss bars wins. Open: the in-game checks
+in VALIDATION.md, including whether the default 2 units down matches the
+game (the first measured box is logged) and whether a scaled clipped bar
+keeps its fill. The `boss_hud_padding` (20) and touch padding (15 %) above
+the grid move the game's place on some layouts; the default does not follow
+them.
 
 ### L-320 Highlight designated block types in the world
 Kind: Design. Maintainer's idea 2026-11-07 (multiplayer-session feedback).

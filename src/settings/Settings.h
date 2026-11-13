@@ -157,6 +157,7 @@ struct Settings {
         ui::HudElement chat = ui::defaultHudElement(ui::HudElementId::Chat);
         ui::HudElement paperDoll = ui::defaultHudElement(ui::HudElementId::PaperDoll);
         ui::HudElement scoreboard = ui::defaultHudElement(ui::HudElementId::Scoreboard);
+        ui::HudElement bossBars = ui::defaultHudElement(ui::HudElementId::BossBars);
         ui::HudElement statusEffects = ui::defaultHudElement(ui::HudElementId::StatusEffects);
     } hud;
     struct Map {
@@ -296,12 +297,13 @@ struct Settings {
         // Game HUD placement (L-321): one switch, default off, lets the HUD
         // layout place and scale parts of the game's own HUD; each part can be
         // left out and is selected by default (the chat L-174, the paper doll
-        // L-309, the scoreboard sidebar).
+        // L-309, the scoreboard sidebar, the boss bars L-323).
         bool gameHud = false;
-        bool chatPosition = true, paperDollPosition = true, scoreboardPosition = true;
+        bool chatPosition = true, paperDollPosition = true, scoreboardPosition = true, bossBarPosition = true;
         bool placesChat() const { return gameHud && chatPosition; }
         bool placesPaperDoll() const { return gameHud && paperDollPosition; }
         bool placesScoreboard() const { return gameHud && scoreboardPosition; }
+        bool placesBossBars() const { return gameHud && bossBarPosition; }
         // Status Effects HUD (L-147): names off gives the icon-and-time column.
         bool effectsHud = false, effectsNames = true, effectsWarning = true, effectsHideVanilla = true;
         bool saturation = true;        // Gold outlines on the hunger bar (L-63)
@@ -428,6 +430,9 @@ struct Settings {
         normalizeElement(hud.scoreboard, ui::defaultHudElement(ui::HudElementId::Scoreboard));
         hud.scoreboard.background = ui::ElementBackground::None;
         hud.scoreboard.shadow = true;
+        normalizeElement(hud.bossBars, ui::defaultHudElement(ui::HudElementId::BossBars));
+        hud.bossBars.background = ui::ElementBackground::None;
+        hud.bossBars.shadow = true;
         normalizeElement(hud.statusEffects, ui::defaultHudElement(ui::HudElementId::StatusEffects), true);
         map.zoom = map::clampZoomIndex(map.zoom);
         if (!std::isfinite(map.size)) map.size = 20;

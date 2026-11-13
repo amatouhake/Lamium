@@ -1,5 +1,6 @@
 #include "features/information/ChatPosition.h"
 #include "features/information/ScoreboardPosition.h"
+#include "features/information/BossBarPosition.h"
 #include "settings/SettingsStore.h"
 #include "input/ToggleAction.h"
 #include "app/PausedFeatures.h"
@@ -108,6 +109,56 @@ void chatPositionTests() {
     auto boardSaved = decodeSettings(R"({"information":{"scoreboardPosition":true},"hud":{"scoreboard":{"anchor":0,"dx":7,"dy":9,"scale":150}}})");
     check(boardSaved.information.placesScoreboard() && boardSaved.hud.scoreboard.dx == 7 && boardSaved.hud.scoreboard.scale == 150,
           "the scoreboard's switch, place and scale load");
+    // The boss bars are placed the same way (L-323), by the box their shown
+    // items fill rather than the grid's fixed 30 % height.
+    {
+        namespace boss = information::bossBarPosition;
+        check(boss::gridControl("boss_health_grid") && !boss::gridControl("boss_health_panel") && !boss::gridControl("boss_hud_panel"),
+              "the boss bars are recognized by their grid, not by the name the outer panel shares with each item");
+        boss::Span two[] = {{2, 22}, {22, 42}};
+        auto filled = boss::occupied({229, 2, 182, 108}, two);
+        check(filled && filled->x == 229 && filled->y == 2 && filled->w == 182 && filled->h == 40,
+              "the boss bar box runs from the grid's top to its lowest shown bar");
+        check(!boss::occupied({229, 2, 182, 108}, {}), "with no bar shown there is nothing to place");
+        auto bars = defaultHudElement(HudElementId::BossBars);
+        auto vanillaBars = placed(640, 360, 182, 40, bars);
+        check(vanillaBars && vanillaBars->x == 229 && vanillaBars->y == 2,
+              "the boss bars' default place is the game's desktop one: top center, 2 units down");
+        auto name = translated(640, 360, *filled, {229, 22}, bars);
+        check(name && name->x == 229 && name->y == 22, "at the default place a boss bar part is not moved");
+        auto low = bars;
+        low.anchor = Anchor::BottomCenter;
+        low.dy = -4;
+        auto oneLow = placed(640, 360, 182, 20, low), threeLow = placed(640, 360, 182, 60, low);
+        check(oneLow && threeLow && oneLow->y + oneLow->h == 356 && threeLow->y + threeLow->h == 356 && threeLow->y == 296,
+              "boss bars anchored at the bottom stack upward as more appear");
+        auto movedName = translated(640, 360, *filled, {229, 22}, low);
+        check(movedName && movedName->x == 229 && movedName->y == 336, "moved boss bars carry each bar with them");
+        auto bigBars = bars;
+        bigBars.scale = 150;
+        auto grownBars = placed(640, 360, 182, 20, bigBars);
+        check(grownBars && grownBars->w == 273 && grownBars->h == 30 && grownBars->y == 2, "scaled boss bars grow from the top center");
+        check(hudGameDrawn(HudElementId::BossBars) && hudConditional(HudElementId::BossBars),
+              "the boss bars are the game's and shown as a frame in the editor");
+        Settings withBars;
+        check(withBars.information.bossBarPosition && !withBars.information.placesBossBars()
+              && input::defaultChord(input::Action::ToggleBossBarPosition).empty()
+              && input::toggleAction(withBars, input::Action::ToggleGameHud) && withBars.information.placesBossBars()
+              && input::toggleAction(withBars, input::Action::ToggleBossBarPosition) && !withBars.information.placesBossBars()
+              && withBars.information.placesScoreboard(),
+              "the boss bars follow the group, have an unbound key and can be left out alone");
+        auto barsSaved = decodeSettings(R"({"information":{"gameHud":true,"bossBarPosition":false},"hud":{"bossBars":{"anchor":7,"dx":3,"dy":-5,"scale":125}}})");
+        check(barsSaved.information.gameHud && !barsSaved.information.bossBarPosition && barsSaved.hud.bossBars.anchor == Anchor::BottomCenter
+              && barsSaved.hud.bossBars.dy == -5 && barsSaved.hud.bossBars.scale == 125,
+              "the boss bars' switch, place and scale load");
+        auto older = decodeSettings(R"({"information":{"gameHud":true,"chatPosition":true}})");
+        check(older.information.placesBossBars() && older.hud.bossBars.dy == 2,
+              "a file from before the boss bars selects them at the game's place");
+        writeSettings(path, barsSaved);
+        auto roundTrip = readSettings(path);
+        std::filesystem::remove(path);
+        check(!roundTrip.information.bossBarPosition && roundTrip.hud.bossBars.scale == 125, "the boss bars' settings save");
+    }
     check(paused::onUnverified("gameHud") == paused::Level::Partly
           && std::ranges::find(active, "gameHud") != active.end(),
           "game HUD placement is reported paused on an unverified executable");

@@ -454,7 +454,7 @@ Contents:
 
 Game HUD placement (L-321, 2026-11-11): what HUD layout places of the
 game's own HUD is one feature with a saved, default-off main switch and a
-detail switch per part (chat, paper doll, scoreboard), each on by default
+detail switch per part (chat, paper doll, scoreboard, boss bars), each on by default
 and with its own unbound toggle key, built like Hide effects: the main
 switch off restores the game's places and keeps the selections. One
 "Placement and look" link opens the editor at the chat. The paragraphs below
@@ -481,6 +481,17 @@ Scoreboard placement (L-321, 2026-11-11): the game's scoreboard sidebar is
 placed by HUD layout, on the chat's pattern below. Position and scale (50-200 %); the default is the
 game's place, the middle of the right edge, at the game's size. It shows only where a world or server displays an
 objective, so the editor treats it as a conditional element.
+
+Boss bar placement (L-323, 2026-11-14): the game's boss bars are placed by
+HUD layout on the scoreboard's pattern, position and scale (50-200 %). The
+default is the game's desktop place, top center 2 units down, at the game's
+size. The element is the box the shown bars fill (182 x 20 per bar, as the
+game lays them out), so when bars are added or removed the anchor the drop
+chose stays put: bars at the top grow downward as in vanilla, bars dropped at
+the bottom grow upward. Hide boss bars wins: hidden bars stay hidden wherever
+they are placed. A conditional element in the editor, with a sample bar.
+Chosen by the implementer from the existing rules when the maintainer asked
+for it; the maintainer may still change either choice.
 
 Chat placement (L-174, decided 2026-10-14): a saved, default-off Chat
 position switch moves ordinary HUD messages to the lower left and adds a

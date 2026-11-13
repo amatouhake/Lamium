@@ -11,7 +11,7 @@ namespace lamium::ui {
 // Elements are info lines, target, status, toast and the zoom magnification.
 // The debug view is not an element: it is fixed to the screen edges. Pure
 // math; InfoHud draws. Append new ids: they index saved boxes.
-enum class HudElementId { Info, Target, Status, Toast, Magnification, Durability, Minimap, Schematic, PlayerList, Inventory, UsedSlots, StatusEffects, Chat, PaperDoll, Scoreboard };
+enum class HudElementId { Info, Target, Status, Toast, Magnification, Durability, Minimap, Schematic, PlayerList, Inventory, UsedSlots, StatusEffects, Chat, PaperDoll, Scoreboard, BossBars };
 enum class Anchor {
     TopLeft, TopCenter, TopRight,
     MiddleLeft, Center, MiddleRight,
@@ -60,13 +60,14 @@ inline float stepHudScale(float scale, int direction) {
 inline constexpr bool hudConditional(HudElementId id) {
     return id == HudElementId::Target || id == HudElementId::Status || id == HudElementId::Toast
         || id == HudElementId::Magnification || id == HudElementId::Schematic || id == HudElementId::PlayerList
-        || id == HudElementId::Scoreboard;
+        || id == HudElementId::Scoreboard || id == HudElementId::BossBars;
 }
 // Drawn by the game and only moved by Lamium (L-174, L-309): the editor
 // frames them in another color and offers position and scale but no look
 // controls.
 inline constexpr bool hudGameDrawn(HudElementId id) {
-    return id == HudElementId::Chat || id == HudElementId::PaperDoll || id == HudElementId::Scoreboard;
+    return id == HudElementId::Chat || id == HudElementId::PaperDoll || id == HudElementId::Scoreboard
+        || id == HudElementId::BossBars;
 }
 // Gap from the screen edge used by defaults and snap-to; flush is allowed.
 inline constexpr float hudInset = 4;
@@ -98,6 +99,8 @@ inline constexpr HudElement defaultHudElement(HudElementId id) {
     case HudElementId::PaperDoll: return {Anchor::TopLeft, 0, 0, 100, ElementBackground::None, true};
     // The game's own place: the middle of the right edge (L-321).
     case HudElementId::Scoreboard: return {Anchor::MiddleRight, 0, 0, 100, ElementBackground::None, true};
+    // The game's own place on desktop UI: top center, its grid 2 units down (L-323).
+    case HudElementId::BossBars: return {Anchor::TopCenter, 0, 2, 100, ElementBackground::None, true};
     // Above the armor and absorption rows over the hotbar.
     default: return {Anchor::BottomCenter, 0, -72, 100, ElementBackground::Card, false};
     }
@@ -118,6 +121,7 @@ inline constexpr std::string_view hudElementKey(HudElementId id) {
     case HudElementId::Chat: return "chat";
     case HudElementId::PaperDoll: return "paperDoll";
     case HudElementId::Scoreboard: return "scoreboard";
+    case HudElementId::BossBars: return "bossBars";
     default: return "toast";
     }
 }

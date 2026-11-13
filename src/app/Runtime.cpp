@@ -2,6 +2,7 @@
 #include "app/Versions.h"
 #include "features/information/ChatPosition.h"
 #include "features/information/ScoreboardPosition.h"
+#include "features/information/BossBarPosition.h"
 #include "app/ClientTasks.h"
 #ifdef LAMIUM_FEATURE_SKIP
 #include <filesystem>
@@ -195,6 +196,7 @@ Feature const features[] = {
     {"Debug View vanilla HUD", started<information::debugVanilla::start>, information::debugVanilla::stop},
     {"Chat position", started<information::chatPosition::start>, information::chatPosition::stop},
     {"Scoreboard position", started<information::scoreboardPosition::start>, information::scoreboardPosition::stop},
+    {"Boss bar position", started<information::bossBarPosition::start>, information::bossBarPosition::stop},
     {"Status effects vanilla icons", started<information::statusEffects::start>, information::statusEffects::stop},
     {"Effect diagnostics", started<visuals::effectTrace::start>, visuals::effectTrace::stop},
     {"Portal diagnostics", started<visuals::portalTrace::start>, visuals::portalTrace::stop},

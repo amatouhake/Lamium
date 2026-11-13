@@ -2,6 +2,7 @@
 #include "features/camera/FreeCameraHide.h"
 #include "features/information/ChatPosition.h"
 #include "features/information/ScoreboardPosition.h"
+#include "features/information/BossBarPosition.h"
 #include "features/information/PlayerInfo.h"
 #include "features/information/FrameTiming.h"
 #include "features/information/NetworkInfo.h"
@@ -1520,6 +1521,9 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     if (preview && !skipped(ui::HudElementId::Scoreboard))
         box(ui::HudElementId::Scoreboard) = scoreboardPosition::preview(context, width, height, hud.scoreboard,
             preview->outline[static_cast<size_t>(ui::HudElementId::Scoreboard)]);
+    if (preview && !skipped(ui::HudElementId::BossBars))
+        box(ui::HudElementId::BossBars) = bossBarPosition::preview(context, width, height, hud.bossBars,
+            preview->outline[static_cast<size_t>(ui::HudElementId::BossBars)]);
     // The game's paper doll (L-309): in play Lamium only says where its
     // control goes; the editor, where the game draws none, shows a stand-in.
     if (preview || settings.placesPaperDoll()) {

@@ -232,6 +232,7 @@ void settingsRowsTests() {
     std::set<ui::HudElementId> linked(ui::hud_editor::drawOrder.begin(), ui::hud_editor::drawOrder.end());
     linked.erase(ui::HudElementId::PaperDoll);
     linked.erase(ui::HudElementId::Scoreboard);
+    linked.erase(ui::HudElementId::BossBars);
     check(layouts == linked, "every HUD element is reachable from the settings list");
     {
         auto sort = std::find_if(rows.begin(), rows.end(), [](auto const& row) {

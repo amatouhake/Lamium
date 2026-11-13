@@ -70,6 +70,7 @@ std::string_view elementName(HudElementId id) {
     case HudElementId::Chat: return "chatPosition";
     case HudElementId::PaperDoll: return "paperDollPosition";
     case HudElementId::Scoreboard: return "scoreboardPosition";
+    case HudElementId::BossBars: return "bossBarPosition";
     default: return "hudEditor.toast";
     }
 }
@@ -89,6 +90,7 @@ HudElement& layoutElement(Settings::Hud& hud, HudElementId id) {
     case HudElementId::Chat: return hud.chat;
     case HudElementId::PaperDoll: return hud.paperDoll;
     case HudElementId::Scoreboard: return hud.scoreboard;
+    case HudElementId::BossBars: return hud.bossBars;
     default: return hud.toast;
     }
 }

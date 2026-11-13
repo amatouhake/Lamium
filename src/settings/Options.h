@@ -108,6 +108,7 @@ inline ui::HudElement const& hudElement(Settings const& value, ui::HudElementId 
     case ui::HudElementId::Chat: return value.hud.chat;
     case ui::HudElementId::PaperDoll: return value.hud.paperDoll;
     case ui::HudElementId::Scoreboard: return value.hud.scoreboard;
+    case ui::HudElementId::BossBars: return value.hud.bossBars;
     default: return value.hud.toast;
     }
 }
@@ -127,6 +128,7 @@ inline ui::HudElement& hudElement(Settings& value, ui::HudElementId id) {
     case ui::HudElementId::Chat: return value.hud.chat;
     case ui::HudElementId::PaperDoll: return value.hud.paperDoll;
     case ui::HudElementId::Scoreboard: return value.hud.scoreboard;
+    case ui::HudElementId::BossBars: return value.hud.bossBars;
     default: return value.hud.toast;
     }
 }
@@ -250,6 +252,8 @@ inline constexpr auto options = std::to_array<Option>({
     hudNumeric<ui::HudElementId::Scoreboard, &ui::HudElement::scale>("hud.scoreboard.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     toggle<&Settings::information, &Settings::Information::paperDollPosition>("information.paperDollPosition", "gameHud", "paperDollPosition"),
     hudNumeric<ui::HudElementId::PaperDoll, &ui::HudElement::scale>("hud.paperDoll.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
+    toggle<&Settings::information, &Settings::Information::bossBarPosition>("information.bossBarPosition", "gameHud", "bossBarPosition"),
+    hudNumeric<ui::HudElementId::BossBars, &ui::HudElement::scale>("hud.bossBars.scale", "gameHud", "hudScale", ui::hudScaleMin, ui::hudScaleMax),
     toggle<&Settings::information, &Settings::Information::effectsHud>("information.effectsHud", "statusEffects", "statusEffects"),
     toggle<&Settings::information, &Settings::Information::effectsNames>("information.effectsNames", "statusEffects", "effectsNames"),
     toggle<&Settings::information, &Settings::Information::effectsWarning>("information.effectsWarning", "statusEffects", "effectsWarning"),
