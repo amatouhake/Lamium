@@ -159,7 +159,7 @@ Waypoints and the death point also show in the world, with both maps off.
 | Durability numbers | Remaining durability in the tooltip | — | On |
 | Food values | Hunger and saturation a food restores, in the tooltip | — | On |
 | Work penalty | The anvil surcharge an item carries and its anvil uses, in the tooltip | — | On |
-| Item details | Armor values, fuel, ID, tags and stored data the game does not print, in the tooltip | — | On |
+| Item details | Fuel, use time, ID, tags and stored data the game does not print, in the tooltip | — | On |
 | All trader levels | Every trade level in the trade screen | — | On |
 | Repeated trades | Shift + right click repeats a trade | — | On |
 | Search English names too | Recipe and creative search by English name or ID | — | On |

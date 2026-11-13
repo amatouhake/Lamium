@@ -10,6 +10,10 @@
 #include "mc/deps/nbt/CompoundTagVariant.h"
 #include "mc/deps/nbt/ListTag.h"
 #include "mc/world/item/ItemTag.h"
+#include "mc/world/item/components/FuelItemComponent.h"
+#include "mc/world/item/components/UseModifiersItemComponent.h"
+#include <cmath>
+#include <variant>
 #include "mc/world/level/block/actor/FurnaceBlockActor.h"
 #include "mc/client/gui/Font.h"
 #include "mc/client/gui/screens/ScreenContext.h"
@@ -57,6 +61,28 @@ std::vector<information::saturation::FoodIcon> const* foodFor(std::string_view t
         if (it->text == text) return &it->icons;
     return nullptr;
 }
+// An item's user data in reading order: a compound's entries and a list's elements one level deeper. Only the
+// first lines are kept, the rest is counted, and a very large tag is not walked to its end.
+void collectData(std::string const& key, Tag const& tag, int depth, details::Item& item) {
+    if (++item.dataTotal > 4096) return;
+    bool const keep = item.data.size() < details::dataLines;
+    switch (tag.getId()) {
+    case Tag::Compound:
+        if (keep) item.data.push_back({key, "", depth});
+        for (auto const& [name, child] : static_cast<CompoundTag const&>(tag).mTags)
+            std::visit([&](auto const& held) { collectData(name, held, depth + 1, item); }, child.mTagStorage);
+        break;
+    case Tag::List: {
+        auto const& list = static_cast<ListTag const&>(tag);
+        if (keep) item.data.push_back({key, std::format("[{}]", list.size()), depth});
+        for (size_t i = 0; i < list.size(); ++i)
+            if (list[i]) collectData(std::to_string(i), *list[i], depth + 1, item);
+        break;
+    }
+    default:
+        if (keep) item.data.push_back({key, tag.toSnbt(SnbtFormat::Minimize), depth});
+    }
+}
 LL_TYPE_INSTANCE_HOOK(ShulkerContentsText, ll::memory::HookPriority::Normal, ShulkerBoxBlockItem,
     &ShulkerBoxBlockItem::$appendFormattedHovertext, void, ItemStackBase const& stack,
     Level& level, Bedrock::Safety::RedactableString& hovertext, bool const showCategory) {
@@ -93,42 +119,44 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
             if (auto const penalty = inventory::enchantPlan::workPenalty(getBaseRepairCost()))
                 text += "\n\u00a77" + (penalty->uses ? ui::translated("workPenaltyValue", penalty->levels, *penalty->uses)
                                                       : ui::translated("workPenaltyOnly", penalty->levels));
-        // The rest the game knows and does not print (L-319). Containers and lists are told by size only, so a
-        // full shulker box costs no more than a stick.
+        // The glyph line goes above Lamium's detail lines; it is remembered with the whole text further down.
+        std::vector<information::saturation::FoodIcon> icons;
+        if (settings.foodValues)
+            if (auto* food = mItem->getFood()) {
+                icons = information::saturation::foodIcons(food->getNutrition(), food->getSaturationModifier());
+                if (!icons.empty()) text += tooltip::glyphLine(tooltip::placeholders(static_cast<int>(icons.size())));
+            }
+        // The rest the game knows and does not print (L-319).
         if (settings.itemDetails) {
             details::Item item;
             item.id = getTypeName();
             item.aux = getAuxValue();
             for (auto const& tag : *mItem->mTags) item.tags.push_back(tag.getString());
             if (mUserData)
-                for (auto const& [key, tag] : mUserData->mTags) {
-                    std::string value;
-                    if (item.data.size() < details::dataLines) {
-                        if (tag.is_object()) value = std::format("{{{}}}", tag.get<CompoundTag>().size());
-                        else if (tag.is_array()) value = std::format("[{}]", tag.get<ListTag>().size());
-                        else if (tag.is_binary()) value = "[\u2026]";
-                        else value = tag.toSnbt(SnbtFormat::Minimize);
-                    }
-                    item.data.push_back({key, std::move(value)});
-                }
-            item.armor = mItem->getArmorValue();
-            item.toughness = mItem->getToughnessValue();
-            item.knockbackResistance = mItem->getKnockbackResistanceValue();
+                for (auto const& [key, tag] : mUserData->mTags)
+                    std::visit([&](auto const& held) { collectData(key, held, 0, item); }, tag.mTagStorage);
             item.enchantability = mItem->getEnchantValue();
             item.maxStack = getMaxStackSize();
             item.cooldownTicks = mItem->getCooldownDuration();
+            // Seconds in the item's components. Coal's burn time is only there: the furnace's own answer for it is 0.
+            auto seconds = [&](char const* id, auto read) -> float {
+                auto* component = mItem->getComponent(HashedString{id});
+                float const value = component ? read(component) : 0;
+                return std::isfinite(value) && value > 0 && value < 100000 ? value * details::ticksPerSecond : 0;
+            };
             item.burnTicks = FurnaceBlockActor::getItemBurnDuration(*mItem, details::smeltTicks);
+            if (!(item.burnTicks > 0))
+                item.burnTicks = seconds("minecraft:fuel", [](ItemComponent* c) { return static_cast<FuelItemComponent*>(c)->mFuelDuration; });
+            item.useTicks = seconds("minecraft:use_modifiers", [](ItemComponent* c) { return static_cast<UseModifiersItemComponent*>(c)->mUseDuration; });
+            // The game names a suspicious stew's effect only in Creative.
+            if (item.id == "minecraft:suspicious_stew") {
+                auto effect = mItem->buildEffectDescriptionName(*this, true);
+                if (!effect.empty() && text.mUnredactedString.find(effect) == std::string::npos) item.effect = std::move(effect);
+            }
             for (auto const& line : details::lines(item))
                 text += (line.dim ? "\n\u00a78" : "\n\u00a77") + (line.key.empty() ? line.value : ui::translated(line.key, line.value));
         }
-        if (settings.foodValues)
-            if (auto* food = mItem->getFood()) {
-                auto icons = information::saturation::foodIcons(food->getNutrition(), food->getSaturationModifier());
-                if (!icons.empty()) {
-                    text += tooltip::glyphLine(tooltip::placeholders(static_cast<int>(icons.size())));
-                    rememberFood(text.mUnredactedString, std::move(icons));
-                }
-            }
+        if (!icons.empty()) rememberFood(text.mUnredactedString, std::move(icons));
     } catch (...) {
     }
     return text;

@@ -16,13 +16,18 @@ void itemDetailsTests() {
     }
     check(lines({}).empty(), "an item with nothing to tell adds nothing");
     {
-        Item chestplate{.id = "minecraft:netherite_chestplate", .armor = 8, .toughness = 3, .knockbackResistance = 0.1f,
-                        .enchantability = 15, .maxStack = 1};
-        auto out = lines(chestplate);
-        check(out.size() == 5 && out[0] == Line{"itemDetails.armor", "8"} && out[1] == Line{"itemDetails.toughness", "3"}
-                  && out[2] == Line{"itemDetails.knockbackResistance", "10"} && out[3] == Line{"itemDetails.enchantability", "15"}
-                  && out[4] == Line{"", "minecraft:netherite_chestplate", true},
-              "armour values come first, the id last, and a stack of one is not told");
+        Item sword{.id = "minecraft:netherite_sword", .enchantability = 15, .maxStack = 1};
+        auto out = lines(sword);
+        check(out.size() == 2 && out[0] == Line{"itemDetails.enchantability", "15"} && out[1] == Line{"", "minecraft:netherite_sword", true},
+              "values come first, the id after them, and a stack of one is not told");
+    }
+    {
+        Item stew{.id = "minecraft:suspicious_stew", .aux = 2, .effect = "Weakness (0:07)", .useTicks = 32};
+        Item bow{.id = "minecraft:bow", .useTicks = 72000};
+        auto out = lines(stew);
+        check(out[0] == Line{"", "Weakness (0:07)"} && out[1] == Line{"itemDetails.useTime", "1.6"},
+              "an effect the game left out leads, then the time the item takes to use");
+        check(lines(bow).size() == 1, "an item held for as long as the button is has no use time");
     }
     {
         Item coal{.id = "minecraft:coal", .burnTicks = 1600};
@@ -36,11 +41,18 @@ void itemDetailsTests() {
     }
     {
         Item potion{.id = "minecraft:potion", .aux = 21, .tags = {"minecraft:is_food"}};
-        for (int i = 0; i < 10; ++i) potion.data.push_back({"k" + std::to_string(i), "v"});
+        potion.data = {{"display", "", 0}, {"Name", "\"x\"", 1}, {"Lore", "[2]", 1}, {"0", "\"a\"", 2}, {"Damage", "3", 0}};
         auto out = lines(potion);
         check(out[0] == Line{"", "minecraft:potion #21", true} && out[1] == Line{"itemDetails.tags", "minecraft:is_food", true},
               "a data value follows the id, tags follow both");
-        check(out.size() == 2 + dataLines + 1 && out[2] == Line{"", "k0: v", true} && out.back() == Line{"itemDetails.more", "2", true},
-              "user data is listed up to its limit, then counted");
+        check(out.size() == 7 && out[2] == Line{"", "display:", true} && out[3] == Line{"", "  Name: \"x\"", true}
+                  && out[4] == Line{"", "  Lore: [2]", true} && out[5] == Line{"", "    0: \"a\"", true} && out[6] == Line{"", "Damage: 3", true},
+              "user data is told whole, each level indented under its compound or list");
+        Item big{.id = "x"};
+        for (size_t i = 0; i < dataLines + 5; ++i) big.data.push_back({"k", "v", 0});
+        big.dataTotal = dataLines + 9;
+        auto cut = lines(big);
+        check(cut.size() == 1 + dataLines + 1 && cut.back() == Line{"itemDetails.more", "9", true},
+              "past the limit the rest of the user data is counted, by the total the walk found");
     }
 }

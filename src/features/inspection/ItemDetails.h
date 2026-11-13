@@ -9,16 +9,19 @@
 namespace lamium::inspection::details {
 // What an item's tooltip can say beyond the game's own text (BACKLOG L-319).
 // Pure: the values come from the game, the lines and their limits from here.
-struct Entry { std::string key, value; };
+struct Entry {
+    std::string key, value; // No value: a compound, its entries follow one level deeper
+    int depth = 0;
+};
 struct Item {
     std::string id;
     int aux = 0;
     std::vector<std::string> tags;
-    std::vector<Entry> data; // Top-level user data, values already short
-    int armor = 0, toughness = 0;
-    float knockbackResistance = 0; // 0..1
+    std::vector<Entry> data; // User data in reading order, at most dataLines of it
+    size_t dataTotal = 0;    // How many entries the user data has in all
+    std::string effect;      // An effect line the game left out, in the game's own words
     int enchantability = 0, maxStack = 64, cooldownTicks = 0;
-    float burnTicks = 0;
+    float burnTicks = 0, useTicks = 0;
 };
 // A translated line with one value, or a line taken as it is (no key).
 struct Line {
@@ -26,8 +29,10 @@ struct Line {
     bool dim = false; // Identity and data, darker than the values
     bool operator==(Line const&) const = default;
 };
-inline constexpr size_t valueLimit = 40, lineWidth = 44, tagLines = 4, dataLines = 8;
+inline constexpr size_t valueLimit = 40, lineWidth = 44, tagLines = 4, dataLines = 48;
 inline constexpr float smeltTicks = 200, ticksPerSecond = 20;
+// A bow or a shield is held for as long as the button is; that is not a time to tell.
+inline constexpr float longestUse = 1200;
 
 // Up to two decimals, without trailing zeros.
 inline std::string number(float value) {
@@ -73,14 +78,12 @@ inline std::vector<std::string> wrapped(std::vector<std::string> const& names, s
 inline std::vector<Line> lines(Item const& item) {
     std::vector<Line> out;
     auto value = [&](char const* key, std::string text) { out.push_back({key, std::move(text)}); };
-    if (item.armor > 0) value("itemDetails.armor", std::to_string(item.armor));
-    if (item.toughness > 0) value("itemDetails.toughness", std::to_string(item.toughness));
-    if (item.knockbackResistance > 0)
-        value("itemDetails.knockbackResistance", number(std::round(item.knockbackResistance * 1000) / 10));
+    if (!item.effect.empty()) out.push_back({"", item.effect});
     if (item.enchantability > 0) value("itemDetails.enchantability", std::to_string(item.enchantability));
     // 64 and 1 say nothing; the stacks of 16 are the ones worth telling.
     if (item.maxStack > 1 && item.maxStack < 64) value("itemDetails.maxStack", std::to_string(item.maxStack));
     if (item.cooldownTicks > 0) value("itemDetails.cooldown", number(item.cooldownTicks / ticksPerSecond));
+    if (item.useTicks > 0 && item.useTicks <= longestUse) value("itemDetails.useTime", number(item.useTicks / ticksPerSecond));
     if (item.burnTicks > 0) value("itemDetails.fuel", number(item.burnTicks / smeltTicks));
     if (!item.id.empty()) out.push_back({"", item.aux ? std::format("{} #{}", item.id, item.aux) : item.id, true});
     bool first = true;
@@ -88,13 +91,14 @@ inline std::vector<Line> lines(Item const& item) {
         out.push_back({first ? "itemDetails.tags" : "", first ? std::move(row) : "  " + row, true});
         first = false;
     }
-    for (size_t i = 0; i < item.data.size(); ++i) {
-        if (i == dataLines) {
-            out.push_back({"itemDetails.more", std::to_string(item.data.size() - i), true});
-            break;
-        }
-        out.push_back({"", clip(item.data[i].key) + ": " + clip(item.data[i].value), true});
+    size_t const shown = std::min(item.data.size(), dataLines);
+    for (size_t i = 0; i < shown; ++i) {
+        auto const& entry = item.data[i];
+        out.push_back({"", std::string(2 * static_cast<size_t>(std::max(entry.depth, 0)), ' ') + clip(entry.key)
+                               + (entry.value.empty() ? ":" : ": " + clip(entry.value)), true});
     }
+    if (auto const total = std::max(item.dataTotal, item.data.size()); total > shown)
+        out.push_back({"itemDetails.more", std::to_string(total - shown), true});
     return out;
 }
 }

@@ -12,6 +12,29 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item details in tooltips, first look (2026-11-13)
+
+`63c672ca`, local build, DLL SHA-256
+`6b26e210015cd11277999c2205657c340bc8f5e8ba7f3bd1268e72f6936a98d0`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- A netherite chestplate shows armor 8, toughness 3 and knockback resistance 10%.
+  The game's own tooltip prints the same three values (+8 Armor, +3 Toughness, +1
+  Knockback Resistance; other armor compared in Creative, some in Survival), so the
+  lines repeat it.
+- "Max stack: 16" on an ender pearl, a snowball, an egg and a bed. "Cooldown" 1 s on an
+  ender pearl, 7 s on a goat horn, 0.5 s on a wind charge.
+- Fuel: "1.5" on oak logs and slabs, "100" on a lava bucket. Coal and charcoal show
+  no fuel line, though coal smelted eight logs in a furnace.
+- A piston picked with Ctrl + middle click shows "... 1 more": an entry of its stored
+  data is hidden behind the count.
+- A suspicious stew shows its ID with "#2" and the `minecraft:is_food` tag. Its effect
+  line is the game's and is there in Creative only.
+- The food icons come last, under the detail lines.
+
+Not checked: enchanted tools and shulker boxes for length; the setting off; the toggle
+key; servers.
+
 ## Work penalty in tooltips; the tints' setting (2026-11-13)
 
 `8a3f8cca`, local build, DLL SHA-256

@@ -805,6 +805,27 @@ To see in game: the values against known ones (netherite chestplate 8 / 3 /
 10%, coal 8, ender pearl stack 16 and cooldown 1 s), how long the tooltip
 gets on an enchanted tool and a shulker box, and whether any line repeats
 what the game already prints.
+Seen by the maintainer 2026-11-13 on `63c672ca` (VALIDATION-LOG) and
+changed the same day, not yet checked in game:
+- The armour lines are gone: the game prints the same three values.
+- Coal and charcoal showed no fuel while logs (1.5) and a lava bucket (100)
+  did. Where the furnace's function answers 0 the burn time is now read
+  from the item's `minecraft:fuel` component (seconds).
+- Stored data is told whole (a picked piston hid one entry behind the
+  count): compounds and lists are walked, each level indented, up to 48
+  lines and 4096 entries walked. The maintainer: first show all that can
+  be read, calm the look afterwards.
+- The food icons sit above the detail lines (`findGlyphRun` takes the last
+  line made of glyphs alone, no longer only the text's last line).
+- A suspicious stew's effect, which the game prints only in Creative, is
+  added from `Item::buildEffectDescriptionName(stack, true)` when the
+  tooltip does not already hold it. Asked for that one item only.
+- Use time is read from the `minecraft:use_modifiers` component (seconds),
+  so only component items have it; values above 60 s are not told.
+- Attack speed is dropped from the list: the game has no attack cooldown.
+Open: "Enchantability: 15" tells that an item can be enchanted but not
+what the number means to a player; the maintainer keeps the line and may
+want a better wording. Tooltip length waits until the repeats are gone.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
 Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;
