@@ -527,7 +527,10 @@ first build):
   Tags hang from the element's anchored side (the right edge for an element
   anchored on the right), keep clear of other tags and of elements drawn in
   full, and with no free place outside go inside the element's top or bottom
-  edge, then stack further out above or below, never onto another tag.
+  edge, then stack further out above or below, never onto another tag. A tag
+  near the screen edge is moved onto the screen rather than sent to the other
+  corner. No other name lies on the selected element, and the pointer over
+  the selected element counts as pointing at it, not at what lies below.
 - The switch is the settings screen's switch, joined to the selected
   element's name tag: the tag is placed with the switch's room, the name keeps
   the end at the element's corner and the switch takes the end toward the

@@ -101,6 +101,7 @@ void hudEditorLayoutTests() {
     auto third = nameTag(tagged, 40, 640, 360, {tag, second});
     check(third.x == 261 && third.y == 27, "then to the right corner");
     check(nameTag(Box{0, 100, 20, 10}, 40, 640, 360).x == 0, "a tag at the left edge stays on the screen");
+    check(nameTag(Box{0, 100, 200, 30}, 40, 640, 360).x == 0, "an element flush with the left edge keeps its tag on the left");
     auto crowded = nameTag(tagged, 40, 640, 360, {tag, second, third, Box{261, 72, 40, 11}});
     check(crowded.x == 100 && crowded.y == 40, "with every place outside taken the tag goes inside the top edge, not on a tag (L-334)");
     auto full = nameTag(tagged, 40, 640, 360, {tag, second, third, Box{261, 72, 40, 11}, crowded, Box{100, 59, 40, 11}});

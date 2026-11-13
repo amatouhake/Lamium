@@ -432,6 +432,10 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     // selected. Both are drawn in full while pointed at or selected.
     bool overUi = popoverBox && popoverBox->contains(pointerX, pointerY);
     auto hovered = drag || resize || overUi ? std::nullopt : topmost(lastBoxes, pointerX, pointerY);
+    // The selected element keeps the pointer even under another one, as it
+    // keeps a press: what lies below shows no name over it.
+    if (hovered && focus)
+        if (auto const& box = lastBoxes[static_cast<size_t>(*focus)]; box && box->contains(pointerX, pointerY)) hovered = focus;
     std::array<bool, std::tuple_size_v<Boxes>> off{};
     for (auto id : drawOrder) {
         auto shown = settings::hudShown(value, id);
@@ -519,6 +523,9 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         }
     if (focusTag) taken.push_back(*focusTag);
     if (focusSwitch) taken.push_back(focusSwitch->first);
+    // No other name lies on the selected element.
+    if (focus)
+        if (auto const& box = lastBoxes[static_cast<size_t>(*focus)]) taken.push_back(*box);
     if (hovered && hovered != focus && !drag && !resize)
         if (auto const& box = lastBoxes[static_cast<size_t>(*hovered)]) {
             auto name = translated(elementName(*hovered));

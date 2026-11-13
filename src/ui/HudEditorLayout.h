@@ -129,7 +129,10 @@ inline constexpr float nameTagHeight = 11;
 inline Box nameTag(Box element, float w, float screenW, float screenH, std::vector<Box> const& taken = {},
                    bool rightFirst = false) {
     float h = nameTagHeight, above = element.y - h - 2, below = element.y + element.h + 2;
-    float left = element.x - 1, right = element.x + element.w + 1 - w;
+    // Kept on the screen sideways rather than given up: an element flush with
+    // the left edge keeps its tag on the left (L-334).
+    float maxX = std::max(0.f, screenW - w);
+    float left = std::clamp(element.x - 1, 0.f, maxX), right = std::clamp(element.x + element.w + 1 - w, 0.f, maxX);
     float near = rightFirst ? right : left, far = rightFirst ? left : right;
     Box const places[] = {{near, above, w, h}, {near, below, w, h}, {far, above, w, h}, {far, below, w, h}};
     auto onScreen = [&](Box const& b) { return b.x >= 0 && b.y >= 0 && b.x + b.w <= screenW && b.y + b.h <= screenH; };

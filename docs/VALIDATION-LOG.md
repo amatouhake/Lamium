@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Showing and hiding HUD elements, fifth build (L-334, 2026-11-14)
+
+Build `9f80c23a`, DLL SHA-256
+`cdf2951a67fc02219666cd8e94a9ae1ea3d02fe9dba8106f5226b950c86cb9d0`, 1.26.60.05 Dev
+instance, the maintainer, with four screenshots of HUD layout.
+
+- The target card's and the player list's tags no longer overlap while neither is selected.
+- The chat's switch stays over the element; the Durability HUD's toolbar clears its tag;
+  the legend has room.
+- Still wrong: with the target card selected, the player list's name (the pointed-at
+  element below it) was drawn on the selected card; the chat's tag jumped to the right
+  corner when the chat sat flush with the left edge.
+
 ## Showing and hiding HUD elements, fourth build (L-334, 2026-11-14)
 
 Build `0f95144b`, DLL SHA-256
