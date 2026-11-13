@@ -276,6 +276,12 @@ Hooks: `SlimeRuleHook`
 Trace (`slime_trace`). Reads the answer of `SlimeSpawnRules::checkSpawnRulesCallback`
 and calls it for probes; changes nothing.
 
+### `src/features/information/SpawnAreaTrace.cpp`
+Hooks: none
+Trace (`spawn_area_trace`, issue #32). Reads `LevelChunk::mSpawningAreas` of the
+chunks around the player and logs them; changes nothing. The member's place is
+not checked by a rebuild: a list longer than 64 is reported as unreadable.
+
 ### `src/features/information/FrameTiming.cpp`
 Hooks: `FrameCompleted`
 Rebuild.
