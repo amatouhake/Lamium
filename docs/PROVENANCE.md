@@ -62,6 +62,24 @@ A future subsystem may incorporate compatible upstream source only after the
 maintainer chooses that path and the exact source/license scope is reviewed.
 Until then, candidate upstream implementations remain reference-only research.
 
+### Chosen, nothing incorporated yet
+
+- [BarelyEnoughItems (BEI)](https://github.com/MiracleForest/BarelyEnoughItems)
+  (README and COPYING.LESSER: LGPL-3.0-or-later, © LeviMC; used under
+  LGPL-3.0). Decided by the maintainer 2026-11-14: its source may be opened
+  for item rendering and recipe work, starting from upstream commit
+  `2d4facf`. It was reference-only before; on 2026-11-13 it was named as a
+  comparison for Lamium's item-icon rendering (L-91), and its source was
+  read only in the maintainer's external research. Lamium's ItemIcon, up to
+  and including Lamium commit `34c55be2`, predates BEI's first release
+  (2026-11-01) and was written independently from the game's own slot
+  rendering. Code written after reading BEI source counts as derived: the
+  change that first brings any in adds a row to the table above (upstream
+  commit, files used, what was changed), keeps BEI's copyright notice in the
+  affected files and adds BEI to THIRD_PARTY_NOTICES.md. Before using a
+  file, check its own copyright/SPDX lines and BEI's docs for code BEI took
+  from elsewhere; the repository-level license does not cover that.
+
 ## 3. Reference only
 
 Behavior, UX and feasibility research. Do not copy, translate or closely
@@ -145,13 +163,6 @@ it) while doing so.
   `std::mt19937`. Checked against the game's own
   `SlimeSpawnRules::checkSpawnRulesCallback` by the `slime_trace` build (see
   VALIDATION-LOG).
-- BarelyEnoughItems (BEI) (LGPL-3.0-or-later): named by the maintainer
-  2026-11-13 as a comparison for Lamium's item-icon rendering (L-91).
-  Its source was read in the maintainer's external research only; the
-  comparison stays in external research notes, and whoever writes
-  Lamium code does not open it. Lamium's ItemIcon predates BEI's first
-  release (2026-11-01) and was written independently from the game's
-  own slot rendering.
 
 If reference-only source later becomes incorporated source, move it to group 2
 in the same change that first imports code. Record the upstream repository and
