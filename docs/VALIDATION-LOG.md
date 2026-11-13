@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Latin runs raised 1 unit in Japanese; the toast's text beside its switch (2026-11-13)
+
+`fab713d8`, local build, DLL SHA-256
+`44cca1a2a4883a835ce9f1849a1bdd0445dfee3bd25202f68f8a51b10c57625c`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319):
+
+- General > HUD text has no "Latin text raise".
+- Japanese: Latin runs ("ID", ">") line up with the text around them in the settings
+  screen and the toast.
+- Japanese and Chinese: the toast's text and its switch share a middle.
+
+Not checked: Traditional Chinese apart from Simplified, if only one was looked at; the
+toast at other HUD scales.
+
 ## The toast's text centered; the Latin text raise setting (2026-11-13)
 
 `dba113dd`, local build, DLL SHA-256

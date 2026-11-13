@@ -1034,7 +1034,8 @@ unit low in Japanese and Chinese; it starts a unit higher in those now
 Decided by the maintainer the same day: the setting is removed (it was
 never released, so `interface.latinRaise` needs no migration) and the raise
 stays Japanese-only, now 1 unit instead of 1.5 (DESIGN, Text and
-languages). Not yet checked in game.
+languages). Confirmed by the maintainer on `fab713d8` (VALIDATION-LOG),
+with the toast's text beside its switch in Japanese and Chinese.
 Still open: the enchantability wording if the help text is not enough.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
