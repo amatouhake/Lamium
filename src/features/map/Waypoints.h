@@ -7,6 +7,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdint>
+#include <format>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -114,6 +115,11 @@ inline constexpr size_t maxNameBytes = 128;
 // the setting says. Earlier ones are left alone (L-332): temporary ones go
 // when reached, the rest when the player deletes them. False when the list
 // is full.
+// Its name carries when the player died, in local time, so the latest of
+// several is told apart (L-333): "Death point 11-13 21:05".
+inline std::string deathName(std::string_view base, int month, int day, int hour, int minute) {
+    return std::format("{} {:02}-{:02} {:02}:{:02}", base, month, day, hour, minute);
+}
 inline bool recordDeath(WaypointSet& set, DeathPoint const& at, std::string name, bool temporary) {
     if (set.waypoints.size() >= maxWaypoints) return false;
     Waypoint w{std::move(name), deathColorIndex, at.x, at.y, at.z, at.dimension, true, temporary};

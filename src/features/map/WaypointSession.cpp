@@ -16,6 +16,7 @@
 #include "mc/world/level/Level.h"
 #include <atomic>
 #include <cmath>
+#include <ctime>
 #include <mutex>
 
 namespace lamium::map::waypoints {
@@ -156,7 +157,12 @@ void frame(bool recordDeath, bool temporary, std::string const& name) {
     auto death = *std::exchange(pendingDeath, std::nullopt);
     if (!recordDeath) return;
     auto candidate = set;
-    if (map::recordDeath(candidate, death, name, temporary)) commit(std::move(candidate));
+    // The older file's death point above has no time; this one is now.
+    std::string dated = name;
+    std::time_t const now = std::time(nullptr);
+    if (std::tm local{}; localtime_s(&local, &now) == 0)
+        dated = deathName(name, local.tm_mon + 1, local.tm_mday, local.tm_hour, local.tm_min);
+    if (map::recordDeath(candidate, death, std::move(dated), temporary)) commit(std::move(candidate));
 }
 std::vector<std::string> arrive(int dimension, double x, double y, double z, double distance) {
     std::lock_guard lock(mutex);

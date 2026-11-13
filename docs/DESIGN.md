@@ -170,7 +170,9 @@ menu and HUD editor keep GUI units.
   starts with the first pickup there and ends by leaving it, when
   everything is back, or at the next death. The rule behind both: a
   death's records lean on what waypoints already do and never act in a way
-  the player did not intend.
+  the player did not intend. The name carries the local date and time of
+  the death ("Death point 11-13 21:05"), so the latest is told apart
+  (L-333).
 - (Decided 2026-11-13) The badge comes off when a feature has been in two
   or more releases, has no open bug item and no planned change of behavior
   (BACKLOG "Release policy"). By that rule Hide effects,

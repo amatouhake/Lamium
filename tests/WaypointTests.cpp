@@ -108,6 +108,7 @@ void deathWaypoints() {
               && set.waypoints[0].name == "home",
           "the next death adds its own and leaves the earlier ones alone (L-332)");
     check(decodeWaypoints(encodeWaypoints(set)) == set, "the cross mark is saved");
+    check(deathName("Death point", 3, 7, 9, 5) == "Death point 03-07 09:05", "a death's waypoint is named with its local date and time (L-333)");
     WaypointSet full;
     full.waypoints.resize(maxWaypoints);
     check(!recordDeath(full, DeathPoint{}, "x", true), "a full list takes no death waypoint");

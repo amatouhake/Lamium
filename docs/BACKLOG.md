@@ -126,6 +126,7 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.6.0
 
+- L-333: a death's waypoint is named with the local date and time.
 - L-327: the "restore ended" toast was confirmed on `786424c4`; the help
   text naming 32 blocks was not looked at.
 
@@ -636,7 +637,15 @@ radar's default changed from dots to icons (`map.radarFaces`, off today);
 that default is decided once the icons are confirmed in game.
 
 ### L-333 Death waypoints: which one is the latest
-Kind: Design (small). Maintainer 2026-11-13, after confirming L-332: every
+Kind: Ready; (a) chosen by the maintainer 2026-11-13.
+Status: built 2026-11-13 (`deathName`, tested; the session reads the local
+clock when the death is recorded), not checked in game. A death point taken
+over from an older file has no time and keeps the plain name. The lists
+still order by distance.
+Check in game: dying adds "Death point MM-DD HH:MM" with the PC's local
+time; a second death a minute later is told apart; the name can still be
+edited.
+Maintainer 2026-11-13, after confirming L-332: every
 death's waypoint is named "Death point", so with several of them (normal
 ones, or temporary ones never reached) nothing says which is the one to go
 back to.

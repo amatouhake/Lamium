@@ -238,7 +238,8 @@ edited in a Waypoints screen. With Waypoints off nothing is shown, no death poin
 is recorded and reached temporary waypoints stay; saved waypoints are kept. To hide
 only the markers, use "Show in the world" and the Map marks layer.
 
-- Dying adds a waypoint named "Death point", drawn as a cross. It is
+- Dying adds a waypoint named "Death point" with the date and time, drawn
+  as a cross. It is
   temporary by default (removed when reached); "Temporary death point" off
   makes it a normal one. It is edited and deleted like any waypoint; each
   death adds its own.
