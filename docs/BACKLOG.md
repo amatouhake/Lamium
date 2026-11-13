@@ -75,7 +75,7 @@ published for whoever wants it. There is no "first release" gate.
 Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
-1. **Bugs first.** Open: L-324 (custom blocks brown on the map;
+1. **Bugs first.** Open: L-331 (Connected Textures pane edges; Research), L-324 (custom blocks brown on the map;
    Research), L-227 (FreeCamera shows only the sky outside loaded
    terrain; Research). What waits for more game symbols is collected in L-315.
    Parked: L-194 save corner marks, L-123 elytra pose, L-91 shield glint,
@@ -126,9 +126,8 @@ Do not infer game success from a build or unit-test result.
 
 ### Since 0.6.0
 
-- L-327: leaving the death point by 32 blocks after reaching it, with items
-  left, shows the "restore ended" toast; the help of Death layout restore
-  names the distance.
+- L-327: the "restore ended" toast was confirmed on `786424c4`; the help
+  text naming 32 blocks was not looked at.
 
 ### Left from 0.6.0
 
@@ -213,6 +212,21 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
+
+### L-331 Connected Textures: glass pane edges are uneven in less simple arrangements
+Kind: Research. Maintainer report 2026-11-13 (`786424c4`, with a
+screenshot kept outside the repository).
+With "Edges at glass pane corners" on and the inside edges ("Edges at
+inward corners") off, panes laid out in more than a flat run - an L with
+further panes above and beside it, panes meeting at different heights -
+show a border on some sides and none on others that look alike. Flat rows
+and simple walls look right.
+To find out first: which neighbor arrangement each wrong side has (the
+target card's `minecraft:connection_*` states help), and whether the rule
+that decides an edge looks only at the pane's own connections or also at
+the panes above and below. Then the rule for an outside corner is stated
+again in Lamium's terms before any code changes.
+Connected Textures has its Experimental badge back while this is open.
 
 ### L-324 Map: custom blocks are drawn in a dirt-like brown
 Kind: Research. Issue #76 (2026-11-11), accepted by the maintainer
@@ -612,52 +626,6 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
-### L-328 The death point still reads as a third kind of waypoint
-Kind: Ready (strong model); decided 2026-11-13.
-Status: built 2026-11-13, not checked in game. A death adds an ordinary
-waypoint named "Death point" (`recordDeath`, `Waypoint::death` / `kept`,
-`edited`; tested), saved in the waypoint list; a death point in an older
-file becomes one when the world is joined. The separate death row, "Make a
-waypoint", the death menu and their strings are gone from the Waypoints
-screen and the world map; arrival uses the temporary waypoints' own path
-and toast. Death layout restore follows the waypoint that carries the
-cross at the layout's place.
-Check in game: an existing death point shows as a waypoint with a red
-cross after joining; dying adds one (temporary by default) and replaces
-the untouched one before; arrival removes it with the temporary waypoint
-toast and the restore still runs; its color, name and Temporary switch
-edit like any waypoint, and a renamed one survives the next death; moving
-it turns the cross into a diamond; cross on the minimap, world map, in the
-world and in both lists. Servers unchecked.
-Not done: a temporary death waypoint's cross has no hollow middle, so only
-its row's switch tells it from a normal one.
-Maintainer 2026-11-13, after checking L-326: the death
-point's life now follows the waypoint kinds, but the Waypoints screen and
-the world map still treat it apart ("Make a waypoint", its own note, no
-Temporary switch), so there seem to be three kinds: waypoint, temporary
-waypoint, death point.
-Decided (maintainer 2026-11-13): (b), the whole change, with the agent's
-answers to the open points accepted the same day:
-- The mark stays a cross; its color can be changed like any waypoint's
-  (red to start with).
-- The name can be edited. Moving its coordinates makes it an ordinary
-  waypoint: the cross goes and Death layout restore no longer follows it.
-- The next death replaces the death waypoint only while it is untouched; one
-  that was renamed, moved or switched to normal by hand is left alone and a
-  new one is added.
-- "Record the death point" and "Temporary death point" stay. The second is
-  the kind the next death waypoint gets; afterwards its row's own Temporary
-  switch changes it.
-The two proposals as they were made:
-- (a) Small: the death point's row gets the waypoints' own controls where
-  they apply (the Temporary switch in place of the setting, delete as a
-  temporary one) and loses "Make a waypoint" and its note.
-- (b) Whole: a death adds an ordinary waypoint named "Death point"
-  (temporary or normal by the setting, replacing the one from the death
-  before, keeping the red cross), and the separate death point record goes;
-  every edit is the ordinary one. Needs a migration of saved death points
-  and a way for Death layout restore to know its waypoint.
-
 ### L-330 Radar: mob icons that draw wrongly, then icons by default
 Kind: Research, then Design. Maintainer 2026-11-13: some mobs' icons on
 the radar do not draw correctly, so the radar keeps its Experimental badge.
@@ -666,6 +634,23 @@ the earlier note "L-86 Radar faces follow-up" under Later lists mobs
 without a face). If the icons can be made right, the maintainer wants the
 radar's default changed from dots to icons (`map.radarFaces`, off today);
 that default is decided once the icons are confirmed in game.
+
+### L-332 Death points: grow them as their own feature, or make them simpler
+Kind: Design (conversation first). Maintainer 2026-11-13, after confirming
+L-328: the death waypoint follows only the latest death, so it does not
+serve as a record of deaths (which death, where the one before was); a
+moved one loses its cross but is still named "Death point"; perhaps death
+points should not have been pressed into the waypoints' frame, but grown
+as their own feature with a natural link to waypoints, or made simpler.
+The agent's view, not decided: make it simpler by taking the special
+rules away rather than adding a record of deaths. (1) A death's waypoint
+is an ordinary waypoint from the moment it is added; the cross is only its
+mark and stays whatever is edited, so nothing changes shape by being
+moved. (2) Death layout restore stops depending on the waypoint: it has
+the death's place itself and ends when everything is back, at the next
+death, or 32 blocks away after the player came back to it, so it also
+works with Waypoints off. (3) A lasting record of deaths (numbered, dated)
+is a different feature and is not started as a by-product.
 
 ### L-325 Zoom: return to the set magnification on release
 Kind: Design (small). Issue #74 (2026-11-10); the maintainer 2026-11-13:
