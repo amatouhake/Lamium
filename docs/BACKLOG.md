@@ -61,6 +61,10 @@ published for whoever wants it. There is no "first release" gate.
   adds each `v*` tag through a registry PR, so Bedrinth and LeviLauncher pick
   up a release without a registration step. Package rules and the release
   checklist: [DISTRIBUTION.md](DISTRIBUTION.md).
+- The Experimental badge comes off a feature when all three hold (decided
+  2026-11-13): it has been in two or more releases, no bug item is open
+  against it, and no change to how it behaves is planned. The maintainer
+  decides per feature; meeting the three is what makes it a candidate.
 - Large features may start at any time. They land on main in steps, default
   off and with the Experimental badge, so main stays releasable while they
   grow. A step that is not usable yet stays out of the settings screen (or
@@ -119,6 +123,12 @@ Choose relevant checks from these known gaps; a full regression and every
 server case are not release gates. [VALIDATION.md](VALIDATION.md) owns
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
+
+### Since 0.6.0
+
+- L-327: leaving the death point by 32 blocks after reaching it, with items
+  left, shows the "restore ended" toast; the help of Death layout restore
+  names the distance.
 
 ### Left from 0.6.0
 
@@ -602,21 +612,17 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
-### L-327 Death layout restore: say how long it lasts and when it ends
-Kind: Design (small). Maintainer 2026-11-13, after checking L-326: nothing
-in the game says that the restore ends 32 blocks from the death point, and
-when it ends by leaving, only the log says so.
-Open: what tells the player. Agent's proposal: a toast when the restore
-ends by leaving the place (as "Inventory back as it was at death" already
-announces the other end), and the distance named in the feature's help.
-
 ### L-328 The death point still reads as a third kind of waypoint
 Kind: Design. Maintainer 2026-11-13, after checking L-326: the death
 point's life now follows the waypoint kinds, but the Waypoints screen and
 the world map still treat it apart ("Make a waypoint", its own note, no
 Temporary switch), so there seem to be three kinds: waypoint, temporary
 waypoint, death point.
-Open: how far to go. Agent's proposals, not decided:
+Decided (maintainer 2026-11-13): (b), the whole change. Open before
+building: whether the death waypoint's mark can be changed (the red cross
+against the waypoints' colored diamond) and what else of it is editable;
+see the questions put to the maintainer that day. The two proposals as
+they were made:
 - (a) Small: the death point's row gets the waypoints' own controls where
   they apply (the Temporary switch in place of the setting, delete as a
   temporary one) and loses "Make a waypoint" and its note.
@@ -3200,6 +3206,18 @@ Groundwork 2026-11-12 (no hook, no build option yet):
 ---
 
 ## Later / parked
+
+### L-329 Health a food would give back, beside its food values
+Kind: idea, recorded and not pursued (maintainer 2026-11-13).
+Beside the hunger and saturation a held food restores, show how much
+health eating it would bring back. A food restores hunger and saturation
+only; health follows from natural regeneration, so the number would be an
+estimate (an upper bound that sprinting, jumping and damage lower), and
+drawing an estimate is doubtful in itself. The maintainer's recollection:
+Bedrock regenerates more slowly than Java, which widens the gap between
+the estimate and what is seen. If taken up: first measure Bedrock's
+regeneration rule in game, then decide whether an upper bound is worth
+showing at all.
 
 The first notes here were imported on 2026-10-12 for later consideration;
 low-priority requests accepted since then are appended at the end.

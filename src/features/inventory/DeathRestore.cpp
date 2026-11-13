@@ -210,6 +210,7 @@ void tick() noexcept {
                    leftPlace(*state.layout, static_cast<int>(player->getDimensionId()), feet.x, feet.y, feet.z)) {
             log("left the death point");
             forget();
+            try { ui::showMessageToast(ui::translated("deathRestore.left")); } catch (...) {}
             state.previous = now;
             state.havePrevious = true;
             return;
