@@ -780,6 +780,31 @@ decisions):
   The agent's view: group them when the wider values arrive, as one
   feature with a switch per line; the settings file's keys and the three
   toggle keys can stay as they are, since only the rows' grouping changes.
+Decided by the maintainer 2026-11-13 (later the same day) and built as a
+trial, not yet checked in game:
+- All four groups are shown: armour values, fuel, the ID with tags and
+  stored data, and the other definition values. Always shown for now; what
+  to do if a tooltip gets too long is decided after seeing it.
+- One setting, "Item details" (`inspection.itemDetails`, on by default,
+  toggle key unbound), a feature row after Work penalty. The agent's
+  choice for the trial; a switch per line waits for the grouping above.
+- The lines, after the work penalty and before the food icons (pure
+  `inspection/ItemDetails.h`): grey for armour, armour toughness, knockback
+  resistance (%), enchantability, a stack limit between 2 and 63, cooldown
+  (s), fuel as items smelted; dark grey for the ID ("#N" for a data value
+  other than 0), the tags (wrapped, four lines at most) and the top level
+  of the stored data (eight entries, then a count; compounds and lists by
+  size only, so a full shulker box is not serialised each frame).
+- Fuel is `FurnaceBlockActor::getItemBurnDuration(item, 200)` divided by
+  200. What the second argument means was not checked: coal must read 8.
+- Left out: the time an item takes to use (`Item::getMaxUseDuration` wants
+  an `ItemStack` the tooltip does not always have), attack speed and the
+  suspicious stew's effect (no reader found), and attack damage (the game
+  prints it; to confirm in game).
+To see in game: the values against known ones (netherite chestplate 8 / 3 /
+10%, coal 8, ender pearl stack 16 and cooldown 1 s), how long the tooltip
+gets on an enchanted tool and a shulker box, and whether any line repeats
+what the game already prints.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether
 Kind: Design. Reported from play 2026-11-07 (multiplayer-session feedback;

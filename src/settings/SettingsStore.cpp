@@ -207,6 +207,7 @@ Json encode(Settings const& settings) {
                         {"durability", settings.inspection.durability},
                         {"foodValues", settings.inspection.foodValues},
                         {"workPenalty", settings.inspection.workPenalty},
+                        {"itemDetails", settings.inspection.itemDetails},
                         {"lockedTrades", settings.inspection.lockedTrades},
                         {"englishSearch", settings.inspection.englishSearch}}},
         {"inventory", {{"sorting", settings.inventory.sorting}, {"sortContainers", settings.inventory.sortContainers},
@@ -631,6 +632,7 @@ Settings decodeSettings(std::string_view text) {
         value.inspection.durability = settingsValue(data.at("inspection"), "durability", value.inspection.durability);
         value.inspection.foodValues = settingsValue(data.at("inspection"), "foodValues", value.inspection.foodValues);
         value.inspection.workPenalty = settingsValue(data.at("inspection"), "workPenalty", value.inspection.workPenalty);
+        value.inspection.itemDetails = settingsValue(data.at("inspection"), "itemDetails", value.inspection.itemDetails);
         value.inspection.lockedTrades = settingsValue(data.at("inspection"), "lockedTrades", value.inspection.lockedTrades);
         value.inspection.englishSearch = settingsValue(data.at("inspection"), "englishSearch", value.inspection.englishSearch);
         value.inspection.shulkerPreviews = settingsValue(data.at("inspection"), "shulkerPreviews", value.inspection.shulkerPreviews);

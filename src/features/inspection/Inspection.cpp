@@ -5,6 +5,12 @@
 #include "features/inspection/render/PreviewRenderer.h"
 #include "features/information/SaturationHud.h"
 #include "features/inspection/TooltipGlyphs.h"
+#include "features/inspection/ItemDetails.h"
+#include "mc/deps/nbt/CompoundTag.h"
+#include "mc/deps/nbt/CompoundTagVariant.h"
+#include "mc/deps/nbt/ListTag.h"
+#include "mc/world/item/ItemTag.h"
+#include "mc/world/level/block/actor/FurnaceBlockActor.h"
 #include "mc/client/gui/Font.h"
 #include "mc/client/gui/screens/ScreenContext.h"
 #include "mc/client/gui/controls/renderers/HoverTextRenderer.h"
@@ -87,6 +93,34 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
             if (auto const penalty = inventory::enchantPlan::workPenalty(getBaseRepairCost()))
                 text += "\n\u00a77" + (penalty->uses ? ui::translated("workPenaltyValue", penalty->levels, *penalty->uses)
                                                       : ui::translated("workPenaltyOnly", penalty->levels));
+        // The rest the game knows and does not print (L-319). Containers and lists are told by size only, so a
+        // full shulker box costs no more than a stick.
+        if (settings.itemDetails) {
+            details::Item item;
+            item.id = getTypeName();
+            item.aux = getAuxValue();
+            for (auto const& tag : *mItem->mTags) item.tags.push_back(tag.getString());
+            if (mUserData)
+                for (auto const& [key, tag] : mUserData->mTags) {
+                    std::string value;
+                    if (item.data.size() < details::dataLines) {
+                        if (tag.is_object()) value = std::format("{{{}}}", tag.get<CompoundTag>().size());
+                        else if (tag.is_array()) value = std::format("[{}]", tag.get<ListTag>().size());
+                        else if (tag.is_binary()) value = "[\u2026]";
+                        else value = tag.toSnbt(SnbtFormat::Minimize);
+                    }
+                    item.data.push_back({key, std::move(value)});
+                }
+            item.armor = mItem->getArmorValue();
+            item.toughness = mItem->getToughnessValue();
+            item.knockbackResistance = mItem->getKnockbackResistanceValue();
+            item.enchantability = mItem->getEnchantValue();
+            item.maxStack = getMaxStackSize();
+            item.cooldownTicks = mItem->getCooldownDuration();
+            item.burnTicks = FurnaceBlockActor::getItemBurnDuration(*mItem, details::smeltTicks);
+            for (auto const& line : details::lines(item))
+                text += (line.dim ? "\n\u00a78" : "\n\u00a77") + (line.key.empty() ? line.value : ui::translated(line.key, line.value));
+        }
         if (settings.foodValues)
             if (auto* food = mItem->getFood()) {
                 auto icons = information::saturation::foodIcons(food->getNutrition(), food->getSaturationModifier());

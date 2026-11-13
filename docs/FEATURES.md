@@ -299,7 +299,7 @@ build them.
 
 ## Inventory
 
-### Container previews, Durability numbers, Food values and Work penalty
+### Container previews, Durability numbers, Food values, Work penalty and Item details
 
 Inside the game's item tooltip:
 
@@ -311,6 +311,14 @@ Inside the game's item tooltip:
   never been through one shows nothing; a surcharge that no number of anvil uses
   gives (set by a command, say) is shown without the count. It does not predict what
   an operation will cost: that depends on the other item too.
+- Item details, the values the game knows and does not print, each only where the
+  item has one: armor, armor toughness and knockback resistance; enchantability; a
+  stack limit below 64 (above 1); the cooldown in seconds; how many items it smelts
+  as fuel; then, darker, its ID (with "#N" for a data value other than 0), its item
+  tags and its stored data. Stored data is the top level only, at most eight
+  entries with a count of the rest; a compound or list is told by its size
+  ("{3}", "[27]"), other values are cut at 40 characters. How long an item takes to
+  use and its attack speed are not shown.
 
 ### Trades
 

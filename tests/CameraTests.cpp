@@ -113,6 +113,8 @@ int main() try {
     saturationTests();
     extern void tooltipGlyphsTests();
     tooltipGlyphsTests();
+    extern void itemDetailsTests();
+    itemDetailsTests();
     extern void settingsRowsTests();
     settingsRowsTests();
     extern void bindingTests();
