@@ -1025,6 +1025,14 @@ setting "Latin text raise" (DESIGN, Text and languages). In the
 screenshots Japanese looked raised too far and Chinese, with no raise, had
 Latin runs low. Open: the Automatic values per language, to be read off
 the setting by the maintainer (Japanese now 1.5, Chinese 0).
+Seen by the maintainer on `dba113dd` (VALIDATION-LOG): Japanese is right at
+1; in Chinese a raised Latin run changes font and width, because a run
+drawn apart from the hanzi gets the pixel font, so the setting cannot do
+there what it says. The toast's centered text was right in English and a
+unit low in Japanese and Chinese; it starts a unit higher in those now
+(`rowTextLift`), not yet checked in game.
+Open, the maintainer's call: drop the setting and keep a Japanese-only
+raise of 1, or make the raise work in Chinese as well.
 Still open: the enchantability wording if the help text is not enough.
 
 ### L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether

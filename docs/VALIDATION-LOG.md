@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## The toast's text centered; the Latin text raise setting (2026-11-13)
+
+`dba113dd`, local build, DLL SHA-256
+`5699b3730cd9004314ff2feb21c44eb3859a04a9ded188aa92afd98c2c0aff58`, no trace options,
+1.26.60.05 Dev instance. Seen by the maintainer (L-319):
+
+- The toast's text beside its switch: right in English, now too low in Japanese and in
+  both Chinese languages (about one unit in the Japanese screenshot; it was one unit high
+  before the change).
+- "Latin text raise" is under General > HUD text, reads "Auto 1.5" in Japanese, and moving
+  it changes the settings screen and the toast at once.
+- Japanese looks right at 1.
+- Chinese: at any value above 0 the Latin runs change font and width, not only height
+  ("HUD" beside the hanzi at 0 and at 0.25). The game draws a line that has hanzi in it
+  with one font throughout; a Latin run drawn on its own gets the pixel font.
+
 ## The toast's ">" between feature and child (2026-11-13)
 
 `5220a3db`, local build, DLL SHA-256

@@ -64,6 +64,9 @@ float textStroke();
 // letters, in text units: Japanese glyphs sit about one unit lower than
 // Latin ones (the change arrow measured 2026-10-08).
 float shapeTextDrop();
+// How much higher text centered in a row starts in Japanese and Chinese, in text units: their glyphs sit about one
+// unit lower in the line than the pixel font's (the toast beside its switch, measured in Japanese 2026-11-13).
+float rowTextLift();
 void paragraph(MinecraftUIRenderContext&, float x, float y, float width, std::string_view text, size_t maxLines,
                Rgb color = palette::text);
 // How many lines paragraph() would draw.

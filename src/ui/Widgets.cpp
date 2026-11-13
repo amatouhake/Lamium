@@ -119,6 +119,10 @@ float autoLatinRaise() { return languageLatinRaise(japaneseLocale()); }
 float boxTextInset() { return japaneseLocale() ? 0.f : 1.f; }
 float textStroke() { return japaneseLocale() ? .5f : 1.f; }
 float shapeTextDrop() { return japaneseLocale() ? 1.f : 0.f; }
+float rowTextLift() {
+    auto const code = *getI18n().getCurrentLanguage()->mCode;
+    return translations::localeFor(code) == translations::Locale::English ? 0.f : 1.f;
+}
 float labelWidth(MinecraftUIRenderContext& context, std::string_view text, float size) {
     if (!(size > 0) || !std::isfinite(size)) size = 1;
     auto& font = defaultFont(context);
