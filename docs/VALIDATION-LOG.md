@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Item tags and NBT as detail toggles (2026-11-13)
+
+`a3a8dcca`, local build, DLL SHA-256
+`b2e934a0bdd5a2a491bd505d10a7025afd4d8e1849f24d3a15dd546861de869a`, no trace options,
+1.26.60.05 Dev instance. Confirmed by the maintainer (L-319):
+
+- By default a tooltip has no tags and no NBT; the value lines and the ID are there.
+- "Show tags" and "Show NBT" each add their lines when on; the frame and its place fit.
+- Alt changes nothing in the tooltip, and Alt + click moves items as before.
+
+Not checked: Item details off; its toggle key; other languages; servers.
+
 ## Item details, the frame on the key (2026-11-13)
 
 `ff043a26`, local build, DLL SHA-256

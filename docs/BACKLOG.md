@@ -943,6 +943,7 @@ Decided by the maintainer the same day, built, not yet checked in game:
   (`inspection.itemDetailsNbt`). No count-only form for NBT: the count
   alone is seldom wanted, and two states make it a toggle.
 - The value lines and the ID stay under the one Item details switch.
+Confirmed by the maintainer the same day on `a3a8dcca` (VALIDATION-LOG).
 For a later session, the maintainer's wish: look at Durability numbers,
 Food values, Work penalty and Item details (with its two toggles) with
 fresh eyes and decide how these tooltip settings should be grouped and
