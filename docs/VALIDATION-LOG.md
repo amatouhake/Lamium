@@ -12,6 +12,12 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Connected Textures without the Experimental badge (2026-11-13)
+
+`17d41635`, local build, DLL SHA-256
+`5dd4f18e059c164f2c4e9f639bdd0f787e9fc5bd8f9726bb4f9f4942a23e4eca`, 1.26.60.05 Dev instance.
+Confirmed by the maintainer: Connected Textures shows no Experimental badge in the settings.
+
 ## Glass panes of different shapes above each other (2026-11-13)
 
 `e64c3386`, local build, DLL SHA-256
