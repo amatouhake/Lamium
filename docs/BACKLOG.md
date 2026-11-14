@@ -188,10 +188,10 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 ## Bugs
 
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) open; a Realm and a changing port not seen
-- [L-344](backlog/L-344.md) English Search does not find enchanted books by enchantment name (Bug): Open, not started. Reported by the maintainer while working on L-170 (noted before 2026-11-14).
+- [L-344](backlog/L-344.md) English Search does not find enchanted books by enchantment name (Ready): Open, not started; scope agreed 2026-11-15
 - [L-339](backlog/L-339.md) Smaller bugs found by the 2026-11-14 code review (Ready): Open, not started; each verified against the code, none seen in game
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
-- [L-324](backlog/L-324.md) Map: custom blocks are drawn in a dirt-like brown (Research): Open, not started (issue #76, accepted by the maintainer 2026-11-13)
+- [L-324](backlog/L-324.md) Map: custom blocks are drawn in a dirt-like brown (Ready): Open, not started; fix rule agreed 2026-11-15, reproduction needs an add-on
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
 - [L-243](backlog/L-243.md) Large terrain gaps that only reload when the player comes near (Bug / Research): Not reproduced; watch item, reopen with the conditions if it returns
 - [L-244](backlog/L-244.md) FreeCamera keeps the inside-a-block view after starting in a block (Bug): Parked (maintainer 2026-10-27) until a path to the renderer that draws the effect is found; left vanilla
@@ -206,22 +206,23 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
+- [L-348](backlog/L-348.md) Hide the game's position and days played lines (Ready): Open, not started; agreed 2026-11-15
 - [L-338](backlog/L-338.md) When a death layout ends (Feature): Built 2026-11-14 on the maintainer's go-ahead, not checked in game
-- [L-336](backlog/L-336.md) Durability HUD: choose its items in HUD layout (Design): Open, waiting for the maintainer's choice
-- [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Design): Waiting for the maintainer's choice of which setting stays
+- [L-336](backlog/L-336.md) HUD layout: choose each element's contents in the editor (Ready): Open, not started; direction agreed 2026-11-15
+- [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Ready): Open, not started; direction agreed 2026-11-15
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
-- [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Design): Waiting for the option's name and default; the maintainer agreed such a setting may exist (2026-11-13).
+- [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Ready): Open, not started; name and default agreed 2026-11-15
 - [L-320](backlog/L-320.md) Highlight designated block types in the world (Design): Released in 0.6.0 (Experimental); open are in-game checks and any follow-ups the maintainer raises
 - [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature; what remains is Design): Built 2026-11-13 after 0.6.0 (not released) and checked in game; open choices, small fixes and unchecked cases remain
-- [L-317](backlog/L-317.md) Forcing the Surface view leaves the minimap nearly useless in the Nether (Design): Problem recorded, solution deferred: no candidate is good enough yet.
+- [L-317](backlog/L-317.md) Forcing the Surface view leaves the minimap nearly useless in the Nether (Ready): Open, not started; candidate (b) chosen 2026-11-15
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target
 - [L-233](backlog/L-233.md) Make inventory transfer gestures rebindable (Design): Open, not urgent; nothing is blocked today
 - [L-236](backlog/L-236.md) Rebuild only the ghost sections whose visible layer changed (Design): Partly done: pure helper and tests built (2026-11-12); renderer step not started
 - [L-190](backlog/L-190.md) Select several rows at once in list screens (Design for the whole): Waypoints trial on branch `l-190-waypoint-selection`, not merged; waits for Shapes, schematic placements and the map side panel
-- [L-183](backlog/L-183.md) Disregard selected schematic check mismatches (Design): Rules mostly agreed; two proposals to settle before building
+- [L-183](backlog/L-183.md) Disregard selected schematic check mismatches (Ready): Open, not started; rules agreed 2026-11-15
 - [L-184](backlog/L-184.md) Inspect ghost block data and schematic container contents (Design / Research): Partly done: target card and saved block entity rows shipped; file-only data (containers, comparator signal) open.
 - [L-185](backlog/L-185.md) Instantly load a schematic into the world when cheats allow it (Design): Open, not approved for implementation or release
 - [L-186](backlog/L-186.md) Improve schematic ghost legibility and reconsider translucency (Design / Research): Partly done: tint slider and outline widths shipped and checked; translucent ghosts open (maintainer: after the release).
