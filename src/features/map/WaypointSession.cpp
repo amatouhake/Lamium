@@ -21,6 +21,7 @@
 #include <format>
 #include <variant>
 #endif
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <fstream>
@@ -81,6 +82,9 @@ struct Identity {
     bool hasAddress() const { return !local && port > 0 && !(address.empty() && ip.empty()); }
 } identity;
 std::filesystem::path configFolder() { return Runtime::instance().self().getConfigDir(); }
+// Fuller data that may be the joined server's, per kind (SavedData.h); refreshed by suggest().
+std::array<std::optional<SavedData>, 3> fullerFound;
+void suggest();
 // Reads the server list, lets `edit` change it and saves it when it did. A list that cannot be read is never
 // overwritten: `edit` then works on an empty one and nothing is saved. The caller holds the lock.
 template<class Edit>
@@ -161,6 +165,7 @@ void attach() {
         loadFailed = true;
         log(std::string("could not load: ") + error.what());
     }
+    try { suggest(); } catch (...) { fullerFound = {}; }
 }
 #ifdef LAMIUM_SERVER_TRACE
 // L-343: everything the client has at join that could tell one server from another, to see what stays the same
@@ -217,6 +222,7 @@ void leave() {
     std::lock_guard lock(mutex);
     joined.active = false;
     identity = {};
+    fullerFound = {};
     set = {};
     destination.reset();
     loadFailed = false;
@@ -380,6 +386,63 @@ std::string firstLine(std::filesystem::path const& path) {
     return line;
 }
 }
+namespace {
+// One server data's summary by key. The caller holds the lock.
+SavedData summary(std::filesystem::path const& config, servers::List const& list, std::string const& key, std::string const& current) {
+    SavedData item;
+    item.key = key;
+    item.name = servers::shownName(list.servers, key);
+    for (auto const& e : list.servers) {
+        if (e.key != key) continue;
+        item.anyPort = item.anyPort || e.anyPort;
+        if (item.levelId.empty()) item.levelId = e.levelId;
+        if (item.host.empty()) item.host = e.hosts.empty() ? e.ip : e.hosts.back();
+    }
+    item.maybe = servers::maybe(list.servers, current, key);
+    measure(item, config / waypointFolder / (key + ".json"), config / schematicFolder / (key + ".json"),
+            config / deathFolder / (key + ".json"), config / mapFolder / key);
+    return item;
+}
+// Works out fullerFound for the joined server. Reads a few files: at a join and after a change only.
+void suggest() {
+    fullerFound = {};
+    if (!joined.active || !identity.hasAddress() || !identity.key) return;
+    std::error_code ignored;
+    auto config = configFolder();
+    servers::List list;
+    if (std::filesystem::exists(config / "servers.json", ignored)) list = readServers(config / "servers.json");
+    std::string const current = *identity.key;
+    for (auto const& e : list.servers) if (e.key == current && e.quiet) return;
+    auto keys = servers::candidates(list.servers, current);
+    if (keys.size() > 12) keys.resize(12);
+    auto mine = summary(config, list, current, current);
+    std::vector<SavedData> others;
+    std::vector<servers::Amounts> amounts;
+    for (auto const& key : keys) {
+        if (!safeKey(key)) continue;
+        others.push_back(summary(config, list, key, current));
+        amounts.push_back({others.back().waypoints, others.back().placements, others.back().mapBytes});
+    }
+    auto best = servers::fuller({mine.waypoints, mine.placements, mine.mapBytes}, amounts);
+    for (auto [index, slot] : {std::pair{best.waypoints, 0}, std::pair{best.placements, 1}, std::pair{best.map, 2}})
+        if (index >= 0) {
+            fullerFound[static_cast<size_t>(slot)] = others[static_cast<size_t>(index)];
+            fullerFound[static_cast<size_t>(slot)]->canUse = true;
+        }
+}
+}
+std::optional<SavedData> fullerData(DataKind kind) {
+    std::lock_guard lock(mutex);
+    return fullerFound[static_cast<size_t>(kind)];
+}
+void quietFullerData() {
+    std::lock_guard lock(mutex);
+    fullerFound = {};
+    if (!identity.hasAddress() || !identity.key) return;
+    withList([&](servers::List& list) {
+        for (auto& e : list.servers) if (e.key == *identity.key) e.quiet = true;
+    });
+}
 std::vector<SavedData> savedData() {
     std::lock_guard lock(mutex);
     std::vector<SavedData> items;
@@ -487,6 +550,7 @@ bool removeData(SavedData const& item) {
     std::filesystem::remove_all(config / mapFolder / item.key, ignored);
     withList([&](servers::List& list) { servers::forget(list, item.key); });
     log("deleted the saved data under '" + item.key + "'");
+    try { suggest(); } catch (...) { fullerFound = {}; }
     return true;
 }
 int setDataAnyPort(std::string const& key, bool on) {
@@ -500,6 +564,8 @@ int setDataAnyPort(std::string const& key, bool on) {
             log("this server now uses the data under '" + *now + "'");
             identity.key = now;
             attach();
+        } else {
+            try { suggest(); } catch (...) { fullerFound = {}; }
         }
     }
     return released;

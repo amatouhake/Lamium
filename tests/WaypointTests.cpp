@@ -235,6 +235,17 @@ void storage() {
               "a port given other data keeps it; the rest still follow the switch");
         check(sv::choose(wide, "stranger.example.net", "203.0.113.72", 30006, "r", held) == "stranger.example.net_30006",
               "the switch is for the address it was set on");
+        {
+            // The notice of fuller data: per kind, the fullest candidate that beats the data in use.
+            auto best = sv::fuller({2, 0, 500}, {{12, 3, 100}, {1, 0, 9000}, {30, 3, 400}});
+            check(best.waypoints == 2 && best.placements == 0 && best.map == 1, "each kind names the candidate holding the most of it");
+            auto none = sv::fuller({12, 3, 9000}, {{12, 3, 100}, {1, 0, 9000}});
+            check(none.waypoints < 0 && none.placements < 0 && none.map < 0, "data that holds as much is not second-guessed");
+            auto keys = sv::candidates(wide, "realm.example.net_30001");
+            check(std::find(keys.begin(), keys.end(), "realm.example.net_30002") != keys.end()
+                  && std::find(keys.begin(), keys.end(), "realm.example.net_30001") == keys.end(),
+                  "candidates are the keys passed over and those alike, never the one in use");
+        }
         check(sv::shownName(wide, "realm.example.net_30001") == "realm.example.net:30001"
               && sv::shownName({}, "http___198.51.100.20_19133_19133") == "198.51.100.20:19133"
               && sv::shownName({}, "play.example.net_19133") == "play.example.net:19133"

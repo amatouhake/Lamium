@@ -74,6 +74,8 @@ struct Entry {
     // server whose port changes with every visit). A record of the exact
     // port still comes first, so one port can be given other data.
     bool anyPort = false;
+    // The player's "do not show again": no notice of fuller data for this server on the tool screens.
+    bool quiet = false;
     bool operator==(Entry const&) const = default;
 };
 // A world joined without an address, for its name in the saved data list.
@@ -291,5 +293,31 @@ inline Maybe maybe(std::vector<Entry> const& entries, std::string const& current
         if (mine->hosts.empty() && e.hosts.empty() && !mine->ip.empty() && e.ip == mine->ip) return Maybe::SameAddress;
     }
     return Maybe::No;
+}
+// The keys that may be the joined server's data, most likely first as far as the records tell.
+inline std::vector<std::string> candidates(std::vector<Entry> const& entries, std::string const& current) {
+    std::vector<std::string> keys;
+    auto add = [&](std::string const& key) {
+        if (key != current && std::find(keys.begin(), keys.end(), key) == keys.end()) keys.push_back(key);
+    };
+    for (auto const& e : entries) if (e.key == current) for (auto const& key : e.others) add(key);
+    for (auto const& e : entries) if (maybe(entries, current, e.key) != Maybe::No) add(e.key);
+    return keys;
+}
+// The notice on the tool screens (L-343): per kind of data, the candidate that holds more of it than the
+// data in use, the fullest one; none where the data in use holds as much. Not while the map is only what
+// was recorded since joining: a screen says "your waypoints may be elsewhere" when elsewhere has more.
+struct Amounts { int waypoints = 0, placements = 0; long long map = 0; };
+struct Fuller { int waypoints = -1, placements = -1, map = -1; }; // Indices into the candidates, -1 none.
+inline Fuller fuller(Amounts const& current, std::vector<Amounts> const& others) {
+    Fuller best;
+    Amounts most = current;
+    for (int i = 0; i < static_cast<int>(others.size()); ++i) {
+        auto const& o = others[static_cast<size_t>(i)];
+        if (o.waypoints > most.waypoints) { most.waypoints = o.waypoints; best.waypoints = i; }
+        if (o.placements > most.placements) { most.placements = o.placements; best.placements = i; }
+        if (o.map > most.map) { most.map = o.map; best.map = i; }
+    }
+    return best;
 }
 }

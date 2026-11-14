@@ -90,7 +90,7 @@ std::string encodeServers(servers::List const& all) {
     Json list = Json::array(), worlds = Json::array();
     for (auto const& e : all.servers)
         list.push_back({{"key", e.key}, {"hosts", e.hosts}, {"ip", e.ip}, {"port", e.port}, {"levelId", e.levelId},
-                        {"others", e.others}, {"anyPort", e.anyPort}});
+                        {"others", e.others}, {"anyPort", e.anyPort}, {"quiet", e.quiet}});
     for (auto const& w : all.worlds) worlds.push_back({{"key", w.key}, {"name", w.name}});
     return Json{{"version", 1}, {"servers", std::move(list)}, {"worlds", std::move(worlds)}}.dump(2);
 }
@@ -120,6 +120,7 @@ servers::List decodeServers(std::string_view text) {
             if (auto ip = entry.find("ip"); ip != entry.end() && ip->is_string()) e.ip = ip->get<std::string>();
             if (auto id = entry.find("levelId"); id != entry.end() && id->is_string()) e.levelId = id->get<std::string>();
             if (auto wide = entry.find("anyPort"); wide != entry.end() && wide->is_boolean()) e.anyPort = wide->get<bool>();
+            if (auto quiet = entry.find("quiet"); quiet != entry.end() && quiet->is_boolean()) e.quiet = quiet->get<bool>();
             entries.push_back(std::move(e));
         }
     if (auto found = root.find("worlds"); found != root.end() && found->is_array())

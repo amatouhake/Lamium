@@ -1,6 +1,7 @@
 #pragma once
 #include "features/map/ServerIdentity.h"
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -39,4 +40,10 @@ bool removeData(SavedData const&);
 int setDataAnyPort(std::string const& key, bool on);
 // The data the joined server uses, as shown; empty when there is none to choose (a local world, no world).
 std::string dataName();
+// The notice on the tool screens: other data that may be the joined server's and holds more of one kind than
+// the data in use. Worked out at a join and after a change, so asking every frame is cheap.
+enum class DataKind { Waypoints, Placements, Map };
+std::optional<SavedData> fullerData(DataKind kind);
+// "Do not show again": no such notice for the joined server from now on.
+void quietFullerData();
 }
