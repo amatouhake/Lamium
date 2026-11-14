@@ -672,7 +672,11 @@ std::string baseDescription() {
     }
     case RowKind::Layout: return translated("help.layoutLink");
     case RowKind::MapCache: return translated("help.mapCache");
-    case RowKind::SavedData: return translated("help.savedData");
+    case RowKind::SavedData: {
+        // The footer has the name in full, however little of it the row has room for.
+        auto name = saved_data_view::currentName();
+        return (name.empty() ? std::string() : translated("savedData.current", name) + "  ") + translated("help.savedData");
+    }
     default: return {};
     }
 }
@@ -1096,9 +1100,12 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             auto name = saved_data_view::currentName();
             auto link = translated(name.empty() ? "savedData.rowOpen" : "savedData.rowChoose");
             float linkWidth = textWidth(context,link) + SettingsTable::gap;
-            label(context,t.nameX+12,y+3,nameRight-t.nameX-12,
-                translated(entry.feature->id == "savedData" ? "savedData.rowServer" : "savedData.row"),palette::dim);
-            label(context,t.stateX,y+3,t.controlWidth()-linkWidth,std::move(name),palette::text,Align::Right);
+            auto title = translated(entry.feature->id == "savedData" ? "savedData.rowServer" : "savedData.row");
+            // The name takes the row's free width, not only the value column: an address is long.
+            float nameLeft = t.nameX + 12 + textWidth(context,title) + 2 * SettingsTable::gap;
+            float nameEnd = t.stateX + t.controlWidth() - linkWidth;
+            label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(title),palette::dim);
+            if (nameEnd > nameLeft) label(context,nameLeft,y+3,nameEnd-nameLeft,std::move(name),palette::text,Align::Right);
             label(context,t.stateX,y+3,t.controlWidth(),std::move(link),palette::accent,Align::Right);
             break;
         }
