@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A server's data under one name (L-343, 2026-11-14)
+
+Build `d6a06f2e`, DLL SHA-256
+`8f8485b511499cc561b1e51d6cd930834efeeb45ba0f3c1c4db47725cb9c6de9`, 1.26.60.05 Dev
+instance, the maintainer: the servers joined before the change show their maps and waypoints
+as before. From the log and files (the agent; the IP, ports and level ids here are stand-ins
+for a private server's): three joins by transfer logged "this server's
+data is under 'http___198.51.100.20_<port>_<port>'" for ports 19135, 19134 and 19133, the
+names in use before, and `config/servers.json` holds one record each (no host name, the IP,
+the port, level ids `lobby`, `farm`, `local_world`). Not checked: a friend's world
+(none available), a join by host name linking to a record made by IP.
+
 ## An unused crossbow keeps its look (2026-11-14)
 
 Build `761b612e`, DLL SHA-256

@@ -77,7 +77,8 @@ published for whoever wants it. There is no "first release" gate.
 Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
-1. **Bugs first.** Open: L-335 (rows under a switched-off feature dim only in
+1. **Bugs first.** Open: L-343 (a server's map, waypoints and placements lost
+   when its address changes; Research), L-335 (rows under a switched-off feature dim only in
    the middle; Ready), L-339 (smaller bugs from the 2026-11-14 code review;
    Ready), L-299 (a slot stuck after a screenless move when client and server
    desync), L-240 (death layout restore acts unexpectedly; Research), L-324
@@ -165,6 +166,11 @@ Do not infer game success from a build or unit-test result.
   in the inventory keeping its look while the held one is drawn on
   `761b612e` (VALIDATION-LOG 2026-11-14). Not looked at: a bow's pull, a
   compass or clock.
+- Server data names (L-343): a server joined before the change still shows
+  its map and waypoints, the log names the key and `config/servers.json`
+  is written (passed on `d6a06f2e`, VALIDATION-LOG 2026-11-14). Not
+  checked: a friend's world keeping its data over a rejoin (none was
+  available).
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
@@ -255,6 +261,139 @@ validation checkpoints" (snapshot 2026-10-20).
 
 ## Bugs
 
+### L-343 A server's map, waypoints and placements are lost when its address changes
+Kind: Bug. Research for the identity, then Design for moving existing data
+(it touches saved data: agree before building).
+Reports: Discord 2026-11 (after leaving a Realms server and reconnecting,
+the explored map is gone and its file is back to 0 MB); the maintainer
+(servers using a proxy plugin that makes even the vanilla client treat each
+visit as a new server: schematic placements, waypoints and the map are
+gone).
+Cause in the code: a server's data lives in a folder and file named after
+the address and port of the connection (`resolve` in
+`src/features/map/WaypointSession.cpp`, `serverFileName` in `Waypoints.h`).
+Seen in the maintainer's own config folders 2026-11-14 (host names, IPs,
+ports and level ids in this item are stand-ins: the servers are private):
+`play.example.net_19133` beside `http___play.example.net_19133_19133` and
+`http___198.51.100.20_19133_19133`, and for a local server
+`127.0.0.1_19132` beside `http___127.0.0.1_19132_19132`: the same port
+under three forms of the address. Other ports of the same host are there
+too (`_19134`, `_19135`), but those may be different servers: several
+servers on one address differ only by port (maintainer 2026-11-14, their
+own setup does this). **A different port is never taken as the same
+server by rule.** Three things change the name:
+1. The address sometimes arrives as a URL (`http://host:port`), which is
+   turned into `http___host_port` and gets the port appended again. This
+   part is deterministic: strip the scheme and the port before naming.
+2. The port changes between visits of one server (Realms, networks that
+   hand the player on to another port). Not told apart from two servers on
+   one address by the address alone.
+3. The name is sometimes the IP address instead of the host name.
+Nothing is deleted: the earlier data is still under its old name, which is
+also the workaround today (rename the folder and the `.json` files in
+`mods/Lamium/config/map`, `waypoints`, `schematics`, `death-layouts`).
+Open:
+- What identifies a server when address and port do not (2, 3): something
+  the server sends (the level's id or name), a Realm's id, or a name the
+  player gives. Find what the client has at join time and whether it is
+  stable across visits; two servers must never share data by accident, so
+  where nothing reliable exists the player chooses and the default stays
+  address and port.
+- What happens to the folders that exist: merge by rule, or let the player
+  pick ("use the data of ..." on the map or Waypoints screen), which also
+  covers the cases no rule can decide.
+Research 2026-11-14, from the SDK headers (nothing seen at runtime yet).
+What the client holds at join that could identify a server:
+- `Social::GameConnectionInfo` (already read for the address): `mType`
+  (LAN, platform, Xbox Live), `mTransportType` (RakNet or NetherNet),
+  `mHostIpAddress`, `mUnresolvedUrl`, `mPort`, `mServerRegion`,
+  `mExternalServerName`, `mRakNetGUID` (the server process's id; expected
+  to change when the server restarts), `mNetherNetId`.
+- `mNetherNetId` is a variant with a **Realms** form holding a UUID
+  (`NetherNet::Realms::NetworkID`): the likeliest stable id for a Realm,
+  whose address and port change per visit. To be confirmed in game.
+- From the server's start packet, through the level: the level id
+  (`Level::getLevelId`), the level name (`LevelData::mLevelName`) and the
+  seed. A server software or proxy may send the same default for every
+  server, or a new value per visit, so none is trusted before it is seen.
+- The start packet's telemetry ids (server, scenario, world, owner) and
+  the featured-server info are untyped in the SDK; not read.
+Trace: `xmake f --server_trace=y` logs one line per join, "Waypoints:
+identity: ...", with all of the above (`traceIdentity` in
+`WaypointSession.cpp`). The line names the server, so a trace log is not
+for sharing as it is. Collect, each twice with a reconnect in between: a
+Realm; a server behind the proxy plugin; an ordinary server by host name;
+the same by IP; two servers on one address with different ports; a local
+world.
+Seen 2026-11-14 (trace build `665ba692`, 1.26.60.05 Dev, the maintainer;
+each joined twice; no Realm was available):
+
+| Joined | type | host | url | port | level id | level name | seed |
+|---|---|---|---|---|---|---|---|
+| Local world | 0 | 127.0.0.1 | empty | 0 | random-looking | world name | real |
+| A friend's world | -1 | empty | empty | 0 | random-looking | world name | real |
+| Server reached by transfer (three backends of one network) | 1 | the IP | `http://<IP>:<port>` | per backend | per backend (`lobby`, `local_world`, `farm`) | per backend | 0 |
+| A featured server | 1 | its IP | `https://<name>:19132` | 19132 | the network's name | the same | 4294967295 |
+
+Every value was the same on the second visit. `mRakNetGUID` was always
+unset, `mNetherNetId` always empty, `mTransportType` "unknown" for every
+remote join: none of them identifies anything here. What follows:
+- **A friend's world has no address at all**, so `resolve` returns nothing
+  and its waypoints, map, placements and death layout are never saved. Its
+  level id was stable and looks unique, like a local world's.
+- **The url carries a scheme and the port**, which is where the
+  `http___..._<port>_<port>` names come from. The host part is the name the
+  player typed for a direct join and the IP after a transfer, so one
+  backend gets two names depending on how it was reached; `host` is the
+  resolved IP in both cases.
+- **The level id tells this network's backends apart** and stayed the same,
+  but it is whatever the server's configuration says (`local_world` is a
+  likely default elsewhere), so it cannot be the identity on its own.
+- A port that changes between visits was not seen in this session.
+Agreed by the maintainer 2026-11-14, with the remark that this network
+also announced a changed server address lately, so not every second name
+comes from a transfer.
+Built 2026-11-14, not checked in game (parts 1 and 2 of four):
+1. No address (a friend's world): the data is saved under the level id
+   (`world_<hex of the id>` in the config folders). Nothing was saved
+   there before.
+2. With an address: `config/servers.json` records, per server, the key its
+   data is under, the names it was joined by, the IP it was last found at,
+   the port and the last level id (`ServerIdentity.h`, tested). A join
+   belongs to a recorded server when the port is the same and it was joined
+   by this name before, or it is at this IP now, the level id does not say
+   otherwise, and no name says otherwise (the join has no name, as after a
+   transfer, or the record has none yet). A recorded server keeps its key
+   whatever its folders hold later. Only when a join brings something new
+   (a server not recorded, a new name or IP of a recorded one) are the
+   names its data may be under compared (the forms seen above), and the one
+   holding the most is used: its documents first, then the size of its map.
+   Names passed over are remembered and not compared again. A new server is
+   named `<host>_<port>`, without scheme. Nothing is merged, moved or
+   deleted; the log says "this server's data is under '<key>'" at each join.
+What this does not do yet:
+- A server reached only by IP does not find the data it has under its host
+  name, because nothing has told Lamium that the name and the IP are one
+  server; a join by the name does, once. Part 3 is for this.
+- One key carries all four kinds of data. When the name with the waypoints
+  and placements wins over the name the map was explored under, that map
+  is no longer shown (it is still on disk). Decided 2026-11-14: one key
+  stays for all four kinds; the map is not chosen on its own, and part 3
+  is how the player picks another name.
+- A world joined without an address that sends a plain name as its level id
+  would share data with any other sending the same. Not seen; a Realm is
+  not seen at all.
+Open, to agree before building:
+3. A different port, or a name and an IP nothing has linked: the player
+   says "use the data of ..." on the Waypoints or map screen, listing the
+   names passed over and those with the same level id first. Where it
+   sits and how it reads. Mockup 2026-11-14, awaiting review:
+   [demos/server-data.html](demos/server-data.html) (a row under World
+   map, a list-and-detail screen, a hint where the data is empty).
+4. Whether folders that turn out to be one server are ever merged (waypoint
+   lists could be; map tiles less obviously), or only chosen between.
+Still to see: a Realm; a server whose port changes between visits.
+
 ### L-335 Rows under a switched-off feature are dimmed only in the middle
 Kind: Ready. Maintainer 2026-11-14 (`5359af0c`, Durability HUD off): the
 dark band over the child rows starts right of the tree guide and ends before
@@ -283,6 +422,103 @@ Kind: Ready (each is narrow; verified against the code, none seen in game).
   header and the sidebar; a distance of 0 reads "0 blocks".
 - Transfer labels with two colons lose the action name in English
   (`splitLabel` splits at the first ": ").
+- Inventory HUD: a compass and a clock do not show their needle and time
+  (maintainer 2026-11-14 on `b709804b`; the crossbow, a bow's pull and a
+  cast fishing rod do). The frame is asked the same way as for the offhand
+  slot, so first see whether the offhand slot shows them, then how the two
+  draw paths differ (`ItemIcon.cpp`: batch or direct).
+- The suspicious stew's effect line is left out when the tooltip already
+  contains the effect's name anywhere, for example a stew named "Speed
+  stew" (`Inspection.cpp`).
+- The toggle toast's switch does not follow the element's scale (18x9 fixed
+  in a `14*zoom` row), and HUD cards pad `5`/`3` fixed in some elements and
+  `5*z`/`3*z` in others (`InfoHud.cpp`).
+- The death place is a 3D distance: after a death high up the items fall
+  farther than 32 blocks and the layout never starts (`DeathLayout.h`).
+- With the default scope, picking up only main-inventory items does not
+  start a layout, though the help says the first pickup there does.
+- The world map draws a hidden death waypoint at full strength; the
+  Waypoints screen dims it.
+- Six screen-opening actions are missing from `opensMenu`
+  (`CustomInput.cpp`).
+- Enchantment order is not in `paused::requested`, so the join notice does
+  not name it on an unverified game.
+
+### L-342 Lower findings of the 2026-11-14 review, kept for later
+Kind: mixed; nothing here is agreed work. Listed so the review's result is
+in the repository (its working notes were not committed). "Seen" means read
+in the code; the rest was reported by a reviewer and not checked. Pick one
+up through its own item when it is to be worked on.
+Settings table:
+- Seen: the sidebar's "Schematics" is both a section and a pinned opener;
+  the Map page has two switches named "Waypoints"; Debug View's "hide
+  while shown" rules sit under two headings in four wordings; Debug View
+  alone still lists text shadow and background; in-world aids are split
+  between Camera & view and HUD & overlays; `featureSection` is an if-chain
+  whose miss falls silently into HUD & overlays; a distance of 0 means
+  unlimited; sidebar counts skip features whose switch is a child row;
+  session features (Zoom, Freelook, FreeCamera) never dim their child rows;
+  Game HUD's parts are ordered differently in the rows and in the editor.
+- Reported: sibling rows are named unevenly ("Show X" beside a bare noun,
+  six ways to say a distance); small integer ranges are a stepper in one
+  place and a slider in another; README and FEATURES place Toggle toasts
+  and Book paste in other sections than the screen does.
+Screens (beyond L-341):
+- Reported: about nine small-button variants, two Close buttons in separate
+  code; tooltip and popup panels at opacities from .92 to 1.0 and panels
+  from .8 to 1.0 (DESIGN says .8); the three docked screens and the three
+  list-replacing screens are copies of each other, one footer line off by
+  one unit; the world map builds its hit list while drawing and has no
+  layout header; its side list has no scroll bar; five ways to show a
+  passing notice with no rule for which; waypoint marks drawn by three
+  copies of the same code; chat, scoreboard and boss bar placement are
+  three near-identical files.
+- Reported, behavior: a waypoint's name is written only when editing ends
+  while a shape's is written at once; Tab stops on world-only pages outside
+  a world; a key of a switched-off feature is silent for some features and
+  toasts for others; the block highlight list confirms a removal on the
+  left and removes at one click on the right; out-of-range numbers are
+  reported in some fields and dropped silently in others; HUD layout does
+  not report a failed save; Esc in a search field does three things;
+  Shift for 10x and right click for less exist on some steppers only; the
+  header says "Close (Esc)" on pages where Esc goes back; reset and "find
+  by key" have no keyboard path; a right click acts as a left click on tool
+  buttons, arming and running a removal; the tool screens' top-right switch
+  is the feature's switch but reads "Show all"; focus loss closes the
+  language list while a drag or another sub-screen goes on; HUD layout's
+  idle panel lets clicks through to the element behind it.
+Enchantment order (also ENCHANT-ORDER.md "Remaining" in L-170):
+- Reported: the hover split of "needed at once" and "work penalty" does not
+  match the drawn text; an off row has a dead area where - and + would be;
+  the level's warning color compares with the plan's most expensive step,
+  not the next one; the planner takes no key but Esc; an item past 10 anvil
+  uses reads "every order is refused" even in Creative; the plan follows
+  stacks without looking at their anvil uses; a plain or single-enchantment
+  book in the hand cannot be told from a fresh one; the planner runs twice
+  per change inside the draw event; clicks keep hitting the cached frame
+  for 300 ms after the anvil closes; a book-limit warning stays in the
+  settings footer after leaving; its tooltip layer depends on Inspection's
+  hook having started.
+Other:
+- Reported: a hidden game HUD part comes back differently per part on focus
+  loss or an unverified game; toast grouping is per queue run, not per key
+  press; the older death point's conversion runs in the HUD frame even with
+  Waypoints off; GAME-UPDATES.md lacks some newer reads (the hover cursor
+  position, `bundle_cursor_tooltip`, control names the anvil code reads)
+  and still calls boss bar placement unchecked; the glint draw changes the
+  shader color without a gate; `IconAt::direct` draws before the batches
+  though its comment says on top; the literal 16 for the number of HUD
+  elements is repeated instead of taken from the enum; `RawMaterials.h`
+  treats an item after a loop as part of it (unused feature); pure geometry
+  left in `.cpp` files without tests (step row lookup, hint placement, the
+  editor's tag and switch split); `zh_TW` mixes two spellings of "plan";
+  comments in `EnchantPlan.h` and `EnchantOrderGame.cpp` describe earlier
+  states; the debug world probe keeps a `ScreenView` pointer across frames
+  (trace build only); Fake Offhand's own key with eating, a bow, a shield
+  or a trident is not checked in game.
+- AGENTS.md says not to open other mods' source without exception, while
+  PROVENANCE.md records a permission decided 2026-11-14 for one project:
+  AGENTS.md should point at that exception.
 
 ### L-324 Map: custom blocks are drawn in a dirt-like brown
 Kind: Research. Issue #76 (2026-11-11), accepted by the maintainer
