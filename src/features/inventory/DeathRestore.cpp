@@ -30,6 +30,7 @@ using namespace std::chrono_literals;
 // at a time, reading the inventory again before each move.
 constexpr std::chrono::milliseconds quietAfterPickup = 1s, betweenMoves = 250ms, whenBusy = 100ms;
 constexpr int movesPerRun = 100, sameMoveLimit = 3;
+constexpr int saveAgeEvery = 200; // Ticks: a rejoin loses at most 10 s of the count.
 ll::event::ListenerPtr tickListener;
 // Client thread only.
 struct State {
@@ -148,10 +149,24 @@ void tick() noexcept {
         auto& runtime = Runtime::instance();
         auto prefs = runtime.snapshot();
         follow();
-        if (!runtime.enabled() || !prefs->inventory.deathRestore) { state.armed = false; state.haveAlive = false; return; }
+        bool const on = runtime.enabled() && prefs->inventory.deathRestore;
+        if (!on) { state.armed = false; state.haveAlive = false; }
+        if (!runtime.enabled()) return;
         auto client = ll::service::getClientInstance();
         auto* player = client ? client->getLocalPlayer() : nullptr;
         if (!player || !player->mInventory) return;
+        // The dropped items age whether or not the feature is on (L-338); a
+        // run in progress finishes first.
+        if (state.layout && !state.armed) {
+            auto at = player->getFeetPos();
+            int const before = state.layout->loadedTicks;
+            if (age(*state.layout, loadedAround(*state.layout, static_cast<int>(player->getDimensionId()), at.x, at.z))) {
+                log("the dropped items' five minutes are over");
+                forget();
+                if (on) try { ui::showMessageToast(ui::translated("deathRestore.expired")); } catch (...) {}
+            } else if (state.layout->loadedTicks != before && state.layout->loadedTicks % saveAgeEvery == 0) save();
+        }
+        if (!on) return;
         bool alive = player->isAlive();
         auto event = state.life.update(alive);
         if (event == LifeWatch::Event::Died) {

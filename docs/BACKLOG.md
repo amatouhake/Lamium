@@ -93,8 +93,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): the L-266 schematic follow-up batch closed with 0.3.1 except
    L-265 placement assist (Design). Decisions waiting for the maintainer:
-   L-338 (when a death layout ends). Built, with open checks
-   or follow-ups in their items: L-170 enchantment order planner, L-319 item
+   none. Built, with open checks
+   or follow-ups in their items: L-338 death layout time limit, L-170
+   enchantment order planner, L-319 item
    details, L-320 block highlight (released in 0.6.0). Remaining
    Design/Research: L-336 Durability HUD items, L-337 minimap size, L-340
    settings grouping, L-341 shared widgets (Refactor), L-325 zoom release,
@@ -680,28 +681,30 @@ chunk, or draw the faces with a material that does not write depth.
 ## Feature work and research
 
 ### L-338 When a death layout ends
-Kind: Design (the rule below is the agent's proposal; the maintainer agreed
-to a time limit 2026-11-14 and has not agreed the rule yet). The last of
-five choices from the 2026-11-14 review; the other four were decided and
-built the same day (DESIGN.md "Components"; ENCHANT-ORDER.md and
-ITEM-DETAILS.md "Current behavior"; Pre-release checks).
-Problem: an unstarted death layout stays until the next death (since L-332 a
-waypoint's removal no longer ends it), so a later visit that picks items up
-within 32 blocks starts a restore; a started one is dropped on the first
-tick after joining more than 32 blocks away. Relates to L-240.
-Maintainer 2026-11-14: a time limit, yes; but dropped items only age toward
-their 5 minutes while their chunk is loaded, so a clock that starts at the
-death is wrong; and the limit must be explained to the user.
-Proposal: count time only while the death place can be ticking for this
-player (same dimension, within the simulation distance); when that count
-reaches 5 minutes the items are gone, so the layout ends, with the same
-"restore ended" toast. Away from it, or in another dimension, the count
-stands still, so a far-away death keeps its layout for a later return. The
-feature's help text says so in one sentence. Open: what stands in for
-"loaded" (the simulation distance setting, or a fixed radius); on a server
-other players can keep the chunk loaded while this player is away, so the
-items can be gone with the count unfinished - accept that (the layout then
-ends at the next death, as today) or add a second, long limit.
+Kind: Feature, built 2026-11-14 on the maintainer's go-ahead; not checked in
+game. The last of five choices from the 2026-11-14 review (the other four:
+DESIGN.md "Components", ENCHANT-ORDER.md, ITEM-DETAILS.md).
+Rule (DESIGN.md, L-338): a layout also ends once the place of the death has
+been loaded around the player for 5 minutes in total, because the dropped
+items are gone by then. "Loaded" is the death's dimension and 48 blocks
+across (inside the smallest simulation distance, so the count never runs
+ahead of the items); away from it the count stands still. The count is kept
+in the layout file (`loadedTicks`, saved every 10 s), runs with the feature
+switched off too, and waits while a restore is moving items. Ending shows
+"Death layout restore ended: the dropped items are gone by now"; the help
+text explains the limit. Pure part: `age`, `loadedAround` in
+`DeathLayout.h`, tested.
+Remaining:
+- In game: stay near a death for 5 minutes without picking up (the toast,
+  the file removed); go far away and return later (still restores); rejoin
+  in between (the count continues).
+- Accepted for now: on a server other players can keep the chunk loaded
+  while this player is away, so the items can be gone with the count
+  unfinished; the layout then ends at the next death, as before. A second,
+  long limit is not built.
+- Not changed: a started layout is still dropped on the first tick after
+  joining more than 32 blocks away (the L-332 rule). L-240 stays open until
+  the maintainer sees whether the unexpected restores stop.
 
 ### L-336 Durability HUD: choose its items in HUD layout
 Kind: Design. Maintainer 2026-11-14: Info HUD's lines are chosen in the HUD

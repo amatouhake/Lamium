@@ -1,6 +1,7 @@
 #include "features/inventory/DeathLayoutStore.h"
 #include "app/AtomicFile.h"
 #include <nlohmann/json.hpp>
+#include <algorithm>
 #include <fstream>
 #include <limits>
 #include <stdexcept>
@@ -25,7 +26,7 @@ std::string encodeLayout(Layout const& layout) {
                          {"maxStack", stack.maxStack}, {"done", layout.done[s]}});
     }
     Json root{{"version", 1}, {"x", layout.x}, {"y", layout.y}, {"z", layout.z}, {"dimension", layout.dimension},
-              {"started", layout.started}, {"slots", std::move(slots)}};
+              {"started", layout.started}, {"loadedTicks", layout.loadedTicks}, {"slots", std::move(slots)}};
     return root.dump(2);
 }
 Layout decodeLayout(std::string_view text) {
@@ -39,6 +40,7 @@ Layout decodeLayout(std::string_view text) {
     layout.z = integer(root.value("z", Json()), 0);
     layout.dimension = integer(root.value("dimension", Json()), 0);
     if (auto found = root.find("started"); found != root.end() && found->is_boolean()) layout.started = found->get<bool>();
+    layout.loadedTicks = std::clamp(integer(root.value("loadedTicks", Json()), 0), 0, despawnTicks);
     if (auto found = root.find("slots"); found != root.end() && found->is_array())
         for (auto const& entry : *found) {
             if (!entry.is_object()) continue;

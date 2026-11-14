@@ -38,6 +38,8 @@ struct Layout {
     std::array<bool, slotCount> done{};
     // An item of it was picked up at the place of the death (L-332).
     bool started = false;
+    // Client ticks spent with the place loaded around the player (L-338).
+    int loadedTicks = 0;
     bool operator==(Layout const&) const = default;
 };
 // L-332: the layout belongs to the place of the death, not to a waypoint.
@@ -48,6 +50,21 @@ inline constexpr double placeDistance = 32;
 inline bool atPlace(Layout const& layout, int dimension, double x, double y, double z) {
     return dimension == layout.dimension
         && std::hypot(layout.x + .5 - x, double(layout.y) - y, layout.z + .5 - z) <= placeDistance;
+}
+// L-338: the layout ends when the dropped items are gone. A dropped item
+// lasts 5 minutes, counted only while its chunk is loaded and ticking, so
+// time counts only while the player is near enough for that at any
+// simulation distance (the smallest is 4 chunks); far away or in another
+// dimension the count stands still and a later return still restores.
+inline constexpr int despawnTicks = 5 * 60 * 20;
+inline constexpr double loadedDistance = 48;
+inline bool loadedAround(Layout const& layout, int dimension, double x, double z) {
+    return dimension == layout.dimension && std::hypot(layout.x + .5 - x, layout.z + .5 - z) <= loadedDistance;
+}
+// One client tick; true once the items can no longer be there.
+inline bool age(Layout& layout, bool loaded) {
+    if (loaded && layout.loadedTicks < despawnTicks) ++layout.loadedTicks;
+    return layout.loadedTicks >= despawnTicks;
 }
 // Equipment, offhand, hotbar, then the main inventory.
 inline std::array<int, slotCount> targetOrder() {

@@ -167,6 +167,18 @@ void deathLayoutTests() {
         check(decodeLayout(encodeLayout(layout)).started, "that pickups began at the place is saved");
         check(atPlace(layout, 1, -11.5, 70, 330) && !atPlace(layout, 1, -11.5, 70, 340) && !atPlace(layout, 0, -11.5, 70, 300.5),
               "the place of the death is 32 blocks around it, in its dimension (L-332)");
+        // L-338: the layout ends with the dropped items, five minutes of the place being loaded.
+        Layout aging = layout;
+        check(loadedAround(aging, 1, -11.5, 348) && !loadedAround(aging, 1, -11.5, 349) && !loadedAround(aging, 0, -11.5, 300.5)
+              && loadedAround(aging, 1, -11.5, 300.5), "the place counts as loaded within 48 blocks across, at any height, in its dimension");
+        bool early = false;
+        for (int t = 0; t < despawnTicks - 1; ++t) early = early || age(aging, true);
+        for (int t = 0; t < 100000; ++t) early = early || age(aging, false);
+        check(!early && aging.loadedTicks == despawnTicks - 1, "time away from the place does not count");
+        check(decodeLayout(encodeLayout(aging)).loadedTicks == despawnTicks - 1, "the count survives saving");
+        check(age(aging, true) && age(aging, false), "after five minutes loaded the layout is over, and stays over");
+        check(decodeLayout(R"({"version":1,"loadedTicks":-5})").loadedTicks == 0
+              && decodeLayout(R"({"version":1})").loadedTicks == 0, "a missing or broken count starts from zero");
         bool rejected = false;
         try { (void)decodeLayout(R"({"version":2})"); } catch (...) { rejected = true; }
         check(rejected, "another version is rejected");

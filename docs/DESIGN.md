@@ -171,7 +171,11 @@ menu and HUD editor keep GUI units.
   its own without replacing one. Death layout restore does not depend on
   waypoints: it belongs to the place of the death (32 blocks around it),
   starts with the first pickup there and ends by leaving it, when
-  everything is back, or at the next death. The rule behind both: a
+  everything is back, or at the next death. It also ends when the dropped
+  items are gone (decided 2026-11-14, L-338): after 5 minutes in total of
+  the place being loaded around the player (48 blocks across, in its
+  dimension); time away does not count, since unloaded items do not age,
+  and the help text tells the player so. The rule behind both: a
   death's records lean on what waypoints already do and never act in a way
   the player did not intend. The name carries the local date and time of
   the death ("Death point 11-13 21:05"), so the latest is told apart

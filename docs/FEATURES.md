@@ -421,7 +421,10 @@ bottles, empty buckets) and refills an offhand totem after it saves you.
 ### Death layout restore (experimental)
 
 Picking up your dropped items puts the hotbar, armor and offhand, optionally
-the whole inventory, back the way they were when you died.
+the whole inventory, back the way they were when you died. It works within 32
+blocks of where you died and ends at the next death, when you walk away after
+picking items up, or once you have spent 5 minutes in total within 48 blocks of
+the place (dropped items are gone by then; time away does not count).
 
 ### Enchantment order (experimental)
 
