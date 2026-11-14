@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Four review decisions (L-338, 2026-11-14)
+
+Build `e92d2398`, DLL SHA-256
+`45825074a2089003e335e7f51a0732ab415ae1018be18c9c572b0a3fe1875694`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. With Toggle toasts off a key toggle shows no toast and
+"waypoint added" still shows. Esc: HUD layout, the block highlight list and Enchantment order
+opened by key return to the game, HUD layout opened from the settings returns to the settings
+table, the planner opened from the anvil's Change button returns to the anvil; the Back
+button of a page opened by key goes to the settings table. The steps beside the anvil still
+show with the saved setting on and go with it off; Restrictions has no Placement mode row;
+item tooltips show their ID and property values as before. Not done: the death layout's time
+limit (takes long). Raised: Durability HUD shows no glint on an enchanted item.
+
 ## Status element switch hides the restriction lines (2026-11-14)
 
 Build `5fa24a6b`, DLL SHA-256

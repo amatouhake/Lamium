@@ -148,21 +148,20 @@ Do not infer game success from a build or unit-test result.
 - Fixes from the 2026-11-14 code review (`d4e36406`..`5359af0c`): four passed
   in game on `5359af0c` (VALIDATION-LOG 2026-11-14: category reset of the
   game parts' placement, faded icons and counts, Map size 50, the schematic
-  menu click). Not looked at: an enchanted item's glint on a faint element;
-  an older file's death point with a full waypoint list; a hidden chat,
+  menu click). Not looked at: an older file's death point with a full waypoint list; a hidden chat,
   scoreboard or boss bar under a clipping panel (needs a resource pack whose
   HUD clips them). The Status element's switch hiding the block restriction
   lines passed on `5fa24a6b` (VALIDATION-LOG 2026-11-14).
-- Four decisions of 2026-11-14 (L-338), built and unit-tested only, none
-  looked at in game: with Toggle toasts off a message toast still shows and
-  an on/off toast does not; Esc in HUD layout, the block highlight list and
-  Enchantment order opened by their keys returns to the game, opened from
-  the anvil's Change button to the anvil, opened from the settings to the
-  settings table, and their Back button goes to the settings table; a new
-  install shows nothing beside the anvil until "List the steps beside the
-  anvil" is on (a saved on stays on) and Restrictions has no Placement mode
-  row; Item details on an unverified game version (cannot be brought about
-  on the verified one).
+- Four decisions of 2026-11-14 (L-338) passed in game on `e92d2398`
+  (VALIDATION-LOG 2026-11-14): Toggle toasts' switch, Esc returning to where
+  a page was opened from, the anvil setting and the Placement mode row, Item
+  details unchanged. Not looked at: Item details on an unverified game
+  version (cannot be brought about on the verified one).
+- The death layout's time limit (L-338): not checked in game.
+- Durability HUD draws an enchanted item's glint (2026-11-14, after the
+  maintainer saw none): built only. Look at it in play and, in HUD layout,
+  with the element hidden or situational (the glint may stay at full
+  strength on a faint element).
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
