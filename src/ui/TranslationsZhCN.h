@@ -1712,7 +1712,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"help.inspection.emptyBundlePreviews", "收纳袋为空时也显示预览；需要开启收纳袋预览。"},
     {"help.inspection.durability", "在物品提示框中显示剩余耐久度。"},
     {"help.inspection.workPenalty", "在物品提示框中显示铁砧的累积惩罚：该物品每次使用铁砧时额外增加的等级，以及它经过铁砧的次数。从未经过铁砧的物品不显示。"},
-    {"help.itemDetails", "Lamium 添加到物品提示框中的行，每种各有开关。关闭后显示游戏原本的提示框，下方开关的设置会保留。"},
+    {"help.itemDetails", "Lamium 添加到物品提示框中的行，每种各有开关。关闭后显示游戏原本的提示框，下方开关的设置会保留。关闭期间，容器预览中的“隐藏潜影盒内容文字”仍然有效。"},
     {"help.inspection.itemDetails", "补充游戏不显示的物品种类数值：附魔能力（越高，附魔台越容易给出更好的附魔）、较小的堆叠上限、冷却时间、使用时间、作为燃料可烧炼的物品数。物品没有的数值不显示。"},
     {"help.inspection.itemDetailsStew", "在创造模式以外也显示谜之炖菜的效果（游戏在那里会将其隐藏）。"},
     {"help.inspection.itemDetailsId", "在提示框中显示物品的 ID；数据值不为 0 时一并显示。"},

@@ -31,6 +31,8 @@ ID and technical lines, not this switch).
 - Main switch off: the hook returns the game's text untouched and the
   children keep their values; their rows are dimmed as
   [DESIGN.md](DESIGN.md) "Screens" says. Its use is comparing with the game's own tooltip.
+  "Hide shulker box contents text" (Container previews) still applies while
+  it is off, and its help says so (maintainer 2026-11-15).
 - Each child works alone: tags and NBT do not need Property values on.
 - A settings file without `itemDetailsStew` or `itemDetailsId` takes the
   file's `inspection.itemDetails` for them, so a file from before the split

@@ -1712,7 +1712,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"help.inspection.emptyBundlePreviews", "組合包是空的時候也顯示預覽；需要開啟組合包預覽。"},
     {"help.inspection.durability", "在物品提示中顯示剩餘耐久度。"},
     {"help.inspection.workPenalty", "在物品提示中顯示鐵砧的累積懲罰：該物品每次使用鐵砧時額外增加的等級，以及它經過鐵砧的次數。從未經過鐵砧的物品不顯示。"},
-    {"help.itemDetails", "Lamium 加到物品提示中的行，每種各有開關。關閉後顯示遊戲原本的提示，下方開關的設定會保留。"},
+    {"help.itemDetails", "Lamium 加到物品提示中的行，每種各有開關。關閉後顯示遊戲原本的提示，下方開關的設定會保留。關閉期間，容器預覽中的「隱藏界伏蚌盒的內容文字」仍然有效。"},
     {"help.inspection.itemDetails", "補充遊戲不顯示的物品種類數值：附魔能力（越高，附魔台越容易給出更好的附魔）、較小的堆疊上限、冷卻時間、使用時間、作為燃料可燒煉的物品數。物品沒有的數值不顯示。"},
     {"help.inspection.itemDetailsStew", "在創造模式以外也顯示可疑的燉湯的效果（遊戲在那裡會將其隱藏）。"},
     {"help.inspection.itemDetailsId", "在提示中顯示物品的 ID；資料值不為 0 時一併顯示。"},
