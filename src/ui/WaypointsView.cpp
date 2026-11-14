@@ -343,7 +343,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         if (w.death) drawCrossGlyph(context, gx, gy, waypointRgb(w.color), 2, 1, w.visible && here ? 1.f : .35f);
         else {
             drawDiamondGlyph(context, gx, gy, 7, waypointRgb(w.color), w.visible && here ? 1.f : .35f);
-            if (w.temporary) drawDiamondGlyph(context, gx, gy, map::hollowSize(7), Rgb{0,0,0}, .85f); // hollow: temporary (L-261)
+            if (w.temporary) drawDiamondGlyph(context, gx, gy, map::hollowSize(7), palette::shade, .85f); // hollow: temporary (L-261)
         }
         label(context,nameX,y+3,distanceX-nameX-4,w.name,here ? palette::text : palette::faint);
         label(context,distanceX,y+3,52,here ? translated("waypoint.meters", screen::distanceTo(w.x, w.z)) : screen::dimensionName(w.dimension),
@@ -362,26 +362,26 @@ if (!w) {
             : "waypoint.selectHint"),3,palette::faint);
     } else {
         // Name field with the waypoint's diamond.
-        fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,Rgb{0,0,0},.4f);
+        fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,palette::shade,.4f);
         frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingWaypointName ? palette::accent : palette::keyEdge);
         if (w->death) drawCrossGlyph(context, dx + 7, l.nameY + 6.5f, waypointRgb(w->color));
         else {
             drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, 7, waypointRgb(w->color));
-            if (w->temporary) drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, map::hollowSize(7), Rgb{0,0,0}, .85f);
+            if (w->temporary) drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, map::hollowSize(7), palette::shade, .85f);
         }
         if (editingWaypointName) drawEditField(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,waypointNameInput);
         else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,w->name);
         // The preview area: a large diamond and where the waypoint is.
         float size = ShapesLayout::previewSize;
-        fill(context,dx,l.previewY,size,size,Rgb{0,0,0},.35f);
+        fill(context,dx,l.previewY,size,size,palette::shade,.35f);
         frame(context,dx,l.previewY,size,size,palette::white,.14f);
         if (w->death) {
-            drawCrossGlyph(context, dx + size / 2, l.previewY + size / 2, Rgb{0,0,0}, 10, 6, .8f);
+            drawCrossGlyph(context, dx + size / 2, l.previewY + size / 2, palette::shade, 10, 6, .8f);
             drawCrossGlyph(context, dx + size / 2, l.previewY + size / 2, waypointRgb(w->color), 9, 3);
         } else {
-            drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 31, Rgb{0,0,0}, .8f);
+            drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 31, palette::shade, .8f);
             drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, 25, waypointRgb(w->color));
-            if (w->temporary) drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, map::hollowSize(25), Rgb{0,0,0}, .85f);
+            if (w->temporary) drawDiamondGlyph(context, dx + size / 2, l.previewY + size / 2, map::hollowSize(25), palette::shade, .85f);
         }
         float ix = dx + size + 8, iw = dw - size - 8;
         label(context,ix,l.previewY+1,iw,std::format("{}, {}, {}", w->x, w->y, w->z));
@@ -423,10 +423,8 @@ if (!w) {
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
     }
     if (waypointSelected) {
-        drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-            translated(waypointDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1),
-            waypointDeleteArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,Rgb{.54f,.23f,.2f},
-            waypointDeleteArmed ? palette::text : Rgb{1.f,.7f,.68f});
+        drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
+            translated(waypointDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1), waypointDeleteArmed);
     }
 
     // Footer.

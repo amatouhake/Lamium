@@ -11,6 +11,10 @@ class MinecraftUIRenderContext;
 namespace lamium::ui {
 void drawSmallButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                      bool hovered, Rgb fillColor = palette::keyFill, Rgb edge = palette::keyEdge, Rgb textColor = palette::text);
+// A destructive button: the first press arms it (danger fill), the second acts.
+// The danger edge stays in both states so it keeps the plain button's shape.
+void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
+                      bool hovered, bool armed);
 // The body of a docked view too short for its editor (!l.usable()): Expand and
 // a hint under the header, which matches what ShapesLayout::hit() answers then.
 void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY);
@@ -30,7 +34,7 @@ void drawSwatchRow(MinecraftUIRenderContext& context, ShapesLayout const& l, flo
         float x = l.swatchX(i, count);
         if (i == chosen) frame(context,x-2,top-2,size+4,size+4,palette::white);
         fill(context,x,top,size,size,colorOf(i));
-        frame(context,x,top,size,size,Rgb{0,0,0},.6f);
+        frame(context,x,top,size,size,palette::shade,.6f);
     }
 }
 // Text being typed in a field of `height` from `top`: the selection as a

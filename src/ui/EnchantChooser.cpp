@@ -37,7 +37,7 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
     for (int i = 0; i < l.kindCount; ++i) {
         float const x = l.kindX(i), y = l.kindY(i);
         bool const chosen = i == v.kind && !v.useItem, over = hover.zone == Zone::Kind && hover.index == i;
-        fill(context, x, y, L::cell, L::cell, chosen ? palette::accent : Rgb{0, 0, 0}, chosen ? .16f : .3f);
+        fill(context, x, y, L::cell, L::cell, chosen ? palette::accent : palette::shade, chosen ? .16f : .3f);
         frame(context, x, y, L::cell, L::cell, chosen ? palette::accent : over ? palette::white : palette::keyEdge, chosen || over ? 1 : .6f);
         addIcon(icons, game::kindIcon(i), x + 2, y + 2, 16);
     }
@@ -68,7 +68,7 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
         // replaces them (on the item, a conflict) is written in their place.
         float const nameLeft = rc.listLeft + pad;
         float right = l.switchX() + switchWidth;
-        Rgb const nameColor = off ? palette::faint : row.curse ? palette::curse : fixed ? palette::dim : palette::text;
+        Rgb const nameColor = off ? palette::faint : row.curse ? palette::vanilla::curse : fixed ? palette::dim : palette::text;
         if (fixed) {
             // On the item: the switch stays on and cannot be pressed; the
             // level can go up from what the item has.

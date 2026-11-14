@@ -85,15 +85,19 @@ ones. Lamium's own colors carry one meaning each, everywhere:
 | `off` | Switch off track |
 | `knobOn`, `knobOff` | Switch knob |
 | `keyFill`, `keyEdge` | Key caps; plain button fill and edge |
+| `hover` | A hovered button's fill |
 | `experimental` | Purple: only the Experimental badge |
-| `warning` | Yellow: only warnings (conflicts, refused values, notices) |
-| `danger` | Red: only destructive actions and their armed state (to add, L-341) |
-| `info` | Light blue: reference, not Lamium's own content: drafts, ghosts, the game's own HUD parts (to add, L-341) |
-| `hover` | A hovered button's fill (to add, L-341) |
+| `warning` | Yellow: only warnings (conflicts, refused values, notices, a schematic block in the wrong state) |
+| `danger`, `dangerEdge`, `dangerText` | Red: only destructive actions: armed fill, edge, unarmed text |
+| `info` | Light blue: reference, not Lamium's own content: drafts, ghosts, waypoint names on the map, the game's own HUD parts |
+| `mismatch` | Red text for a schematic block that differs from the world (not destructive, so not `danger`) |
+| `cornerOne`, `cornerTwo` | A schematic area's two corners, as their marks in the world |
+| `shade` | Black scrims, field backs and outlines; each use sets its opacity |
 
-Colors sampled from the game (`heart`, `heartEmpty`, `armor`, `curse`, the
-container preview's tooltip border) only match what the game draws and carry
-no Lamium meaning; they move under `palette::vanilla::` in L-341. Text shadow
+Colors sampled from the game (`heart`, `heartEmpty`, `armor`, `curse`,
+`tooltipBorder` for the container preview's frame) live in
+`palette::vanilla::`: they only match what the game draws and carry no
+Lamium meaning. Text shadow
 comes from `labelScaled`, not a token.
 
 ### Sizes
@@ -123,9 +127,12 @@ have local copies (BACKLOG L-341); they are not the pattern.
   drawn from rectangles). A value cut with "..." shows whole in a tip under
   the stepper. A value that defeats another setting draws its stepper in
   warning color, and the footer says why.
-- **Buttons**, three kinds: plain (`keyFill` with `keyEdge`), primary
-  (`accent` fill) and destructive (press twice: the first press arms it in
-  `danger`, the second acts; losing focus disarms).
+- **Buttons**, three kinds of one shape: a fill, a 1-unit edge lighter than
+  the fill, centered text; only the colors differ. Plain (`keyFill`,
+  `keyEdge`), primary (`accentDeep`, `accent`) and destructive
+  (`drawDangerButton`: `keyFill` with `dangerText` until the first press
+  arms it in `danger` with white text; the second press acts; `dangerEdge`
+  in both states; losing focus disarms).
 - **Scrollbars** on any list or text that overflows; pressing or dragging
   puts the first line under the pointer.
 - **Tips** open below their anchor (above when there is no room) and look

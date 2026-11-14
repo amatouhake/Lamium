@@ -1069,10 +1069,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 }
             }
             fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-            drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-                translated(schematicDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1),
-                schematicDeleteArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,Rgb{.54f,.23f,.2f},
-                schematicDeleteArmed ? palette::text : Rgb{1.f,.7f,.68f});
+            drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
+                translated(schematicDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1), schematicDeleteArmed);
         } else paragraph(context,dx,l.detailTop+6,dw,translated(schematicSet.placements.empty() ? "schematic.noPlacements"
             : "schematic.selectHint"),4,palette::faint);
         break;
@@ -1091,7 +1089,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 // The 3D preview below the facts, turning slowly (L-114).
                 float top = l.previewY + 48, bottom = l.actionsY - 6;
                 if (bottom - top >= 24) {
-                    fill(context,dx,top,dw,bottom-top,Rgb{0,0,0},.25f);
+                    fill(context,dx,top,dw,bottom-top,palette::shade,.25f);
                     frame(context,dx,top,dw,bottom-top,palette::white,.1f);
                     auto& t = previewTurn;
                     t.x = dx; t.y = top; t.w = dw; t.h = bottom - top;
@@ -1145,7 +1143,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         if (unloadable) paragraph(context,dx,l.previewY,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
         else if (checkOff) paragraph(context,dx,l.previewY,dw,translated("schematic.offCheck"),3,palette::faint);
         else {
-            fill(context,dx,pvTop,dw,pvHeight,Rgb{0,0,0},.25f);
+            fill(context,dx,pvTop,dw,pvHeight,palette::shade,.25f);
             frame(context,dx,pvTop,dw,pvHeight,palette::white,.1f);
             if (counting) label(context,dx+4,pvTop+3,dw-8,translated("schematic.counting"),palette::dim);
             else if (auto structure = schematic::session::structure(checked->file)) {
@@ -1201,8 +1199,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         if (!counting && !unloadable) {
             if (fits(y + 11)) label(context,dx,y+11,half,translated("schematic.summary.correct", t.correct, t.total()),palette::accent);
             if (fits(y + 22)) label(context,dx,y+22,half,translated("schematic.summary.missing", t.missing),palette::dim);
-            if (fits(y + 33)) label(context,dx,y+33,half,translated("schematic.summary.wrong", t.wrong + t.extra),Rgb{1.f,.45f,.4f});
-            if (fits(y + 44)) label(context,dx,y+44,half,translated("schematic.summary.state", t.state),Rgb{1.f,.8f,.3f});
+            if (fits(y + 33)) label(context,dx,y+33,half,translated("schematic.summary.wrong", t.wrong + t.extra),palette::mismatch);
+            if (fits(y + 44)) label(context,dx,y+44,half,translated("schematic.summary.state", t.state),palette::warning);
         }
         float bottom = y + 57;
         // The list keeps the nearest of each kind; say so when it is cut.
@@ -1229,7 +1227,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             // Every differing state: "<state>  <now> -> <should be>", full width below.
             float sy = bottom;
             if (!m.states.empty() && fits(sy)) { fill(context,dx,sy-3,dw,1,palette::white,.1f); label(context,dx,sy,dw,translated("schematic.check.states"),palette::faint); sy += 11; }
-            Rgb stateColor{1.f, .8f, .25f};
+            auto stateColor = palette::warning;
             auto const& identifier = m.identifier;
             for (auto const& d : m.states) {
                 if (!fits(sy)) break;

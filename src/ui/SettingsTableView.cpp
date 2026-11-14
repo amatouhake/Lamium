@@ -553,7 +553,7 @@ void drawOpenButton(MinecraftUIRenderContext& context, SettingsTable const& t, f
     fill(context,x,cy,openButtonWidth,capHeight,palette::keyFill);
     if (hovered) fill(context,x,cy,openButtonWidth,capHeight,palette::white,.1f);
     frame(context,x,cy,openButtonWidth,capHeight,palette::keyEdge);
-    fill(context,x+1,cy+capHeight-2,openButtonWidth-2,1,Rgb{0,0,0},.5f);
+    fill(context,x+1,cy+capHeight-2,openButtonWidth-2,1,palette::shade,.5f);
     labelScaled(context,x,cy+boxTextInset(),openButtonWidth,translated("open"),1.f,palette::text,Align::Center,true);
 }
 void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, float y, input::Action action) {
@@ -883,7 +883,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     displayed = t;
     if (sliderDrag && sliderDrag->numeric) setSlider(*sliderDrag, std::max(0.f, t.sliderFraction(std::min(pointer.x, t.sliderValueX() - 1))));
     first = t.first;
-    fill(context,0,0,size.x,size.y,Rgb{0,0,0},.2f);
+    fill(context,0,0,size.x,size.y,palette::shade,.2f);
     if (!t.usable()) {
         label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
         context.flushText(0, std::nullopt);
@@ -907,7 +907,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             label(context,t.versionX+versionWidth,t.top+6,t.versionWidth-versionWidth+2,std::move(paused),palette::warning);
     }
     if (!shapesView() && !waypointsView() && !schematicsView() && !language_view::opened() && !saved_data_view::opened() && !highlight_view::opened() && !enchant_view::opened()) {
-    fill(context,t.searchX,t.top+4,t.searchWidth,12,Rgb{0,0,0},.45f);
+    fill(context,t.searchX,t.top+4,t.searchWidth,12,palette::shade,.45f);
     frame(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() || (findingKey && hotkeysView()) ? palette::accent : palette::keyEdge);
     if (findingKey && hotkeysView())
         label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("captureBox"),palette::accent);
@@ -993,12 +993,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             findingKey || keyQuery ? palette::accent : palette::keyEdge,findingKey || keyQuery ? palette::text : palette::dim);
     if (auto scope = capturing_ || findingKey ? ResetScope::None : resetScope(); scope != ResetScope::None) {
         bool keys = scope == ResetScope::Keys;
-        drawSmallButton(context,t.headActionX(keys),t.theadTop,SettingsTable::headActionWidth,11,
+        drawDangerButton(context,t.headActionX(keys),t.theadTop,SettingsTable::headActionWidth,11,
             translated(resetArmed ? "reset.confirm" : keys ? "reset.keys"
                 : scope == ResetScope::Section ? "reset.section" : "reset.all"),
             t.headAction(hover.x,hover.y,keys),
-            resetArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,resetArmed ? Rgb{.54f,.23f,.2f} : palette::keyEdge,
-            resetArmed ? palette::text : palette::dim);
+            resetArmed);
     }
     fill(context,t.tableLeft,t.rowsTop-1,t.tableWidth,1,palette::white,.14f);
 
@@ -1122,9 +1121,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 float w = textWidth(context,text) + 8, bx = t.stateX + t.controlWidth() - w;
                 mapCacheButtonX = bx;
                 mapCacheButtonWidth = w;
-                fill(context,bx,y+2,w,capHeight,mapCacheArmed ? Rgb{.54f,.18f,.16f} : Rgb{.23f,.15f,.14f});
-                frame(context,bx,y+2,w,capHeight,Rgb{.54f,.23f,.2f});
-                label(context,bx,y+2+boxTextInset(),w,std::move(text),mapCacheArmed ? palette::text : Rgb{1.f,.7f,.68f},Align::Center);
+                drawDangerButton(context,bx,y+2,w,capHeight,std::move(text),false,mapCacheArmed);
             }
             break;
         }
@@ -1134,7 +1131,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             for (size_t b = 0; b < buttons.size(); ++b) {
                 float bx = t.captureButtonX(static_cast<int>(b), static_cast<int>(buttons.size())), by = y + 1.5f;
                 bool over = t.captureButton(hover.x, hover.y, y, static_cast<int>(buttons.size())) == static_cast<int>(b);
-                fill(context,bx,by,SettingsTable::captureButtonWidth,SettingsTable::footerButtonHeight,over ? Rgb{.23f,.23f,.24f} : palette::keyFill);
+                fill(context,bx,by,SettingsTable::captureButtonWidth,SettingsTable::footerButtonHeight,over ? palette::hover : palette::keyFill);
                 frame(context,bx,by,SettingsTable::captureButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
                 label(context,bx,by+boxTextInset(),SettingsTable::captureButtonWidth,translated(buttons[b]),palette::text,Align::Center);
             }
@@ -1158,7 +1155,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (findingKey) {
         float x = t.footerButtonX(0), y = t.footerButtonY();
         bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == 0;
-        fill(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,over ? Rgb{.23f,.23f,.24f} : palette::keyFill);
+        fill(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,over ? palette::hover : palette::keyFill);
         frame(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
         label(context,x,y+boxTextInset(),SettingsTable::footerButtonWidth,translated("cancelShort"),palette::text,Align::Center);
         float after = t.footerButtonX(1);

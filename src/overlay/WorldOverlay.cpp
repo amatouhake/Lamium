@@ -5,6 +5,7 @@
 #include "overlay/Hitboxes.h"
 #include "overlay/Depth.h"
 #include "overlay/LineColor.h"
+#include "ui/Widgets.h"
 #include "features/camera/CameraSessions.h"
 #include "overlay/LightOverlay.h"
 #include "overlay/ShapeSession.h"
@@ -152,7 +153,7 @@ thread_local std::unordered_map<ActorRuntimeID, EyeTrack> eyeTracks;
 thread_local uint64_t eyeFrame = 0;
 thread_local int eyeDimension = 0;
 std::array<float,3> shapeColor(ShapeColor color, bool draft) {
-    if (draft) return {.62f,.83f,1.f};
+    if (draft) return {ui::palette::info.r,ui::palette::info.g,ui::palette::info.b}; // as the Shapes list
     switch (color) {
     case ShapeColor::Yellow: return {.95f,.8f,.24f};
     case ShapeColor::Pink: return {.94f,.5f,.75f};

@@ -70,8 +70,9 @@ is fixed to the screen edges and is not an element.
   that fits and scroll when there is not enough room.
 - Resets (decided 2026-11-11): the selected element's Reset applies at once,
   like a binding row's Reset (the Info HUD's also restores its line order);
-  "Reset layout" (every element and the info-line order) asks for a second
-  press. "Reset layout" and "Done (Esc)" sit in a small titled panel (title,
+  "Reset layout" (every element and the info-line order) is a destructive
+  button: the first press arms it in red, the second resets. "Done (Esc)"
+  is a primary (green) button. Both sit in a small titled panel (title,
   one hint line, a legend) above the crosshair, shown only while nothing is
   selected.
 
@@ -99,11 +100,10 @@ is fixed to the screen edges and is not an element.
     and named. Otherwise only a hidden element carries its name: where the
     contents show, they say what the element is.
 - The frame's color says who draws the element, its line the state: white
-  for Lamium's, yellow for the game's own; solid when shown, dashed when it
-  shows by situation, over the gray hatching when hidden. A hidden element
-  is otherwise never drawn in yellow.
+  for Lamium's, light blue (`info`) for the game's own; solid when shown,
+  dashed when it shows by situation, over the gray hatching when hidden.
 - The idle panel's legend: a dashed swatch "Shown by situation", a hatched
-  swatch "Hidden", and below them a yellow swatch "The game's HUD".
+  swatch "Hidden", and below them a light blue swatch "The game's HUD".
 - Names carry no state (no "(hidden)": it changed the tag's width). Tags hang
   from the element's anchored side, keep clear of other tags and of elements
   drawn in full, and with no free place outside go inside the element's top

@@ -24,10 +24,19 @@ struct Rgb { float r, g, b; };
 namespace palette {
 inline constexpr Rgb panel{.063f,.067f,.075f}, white{1,1,1}, text{1,1,1}, dim{.706f,.722f,.714f},
     faint{.498f,.522f,.514f}, accent{.424f,.765f,.286f}, accentDeep{.235f,.522f,.153f}, off{.282f,.286f,.29f},
-    keyFill{.169f,.173f,.176f}, keyEdge{.353f,.357f,.361f}, experimental{.725f,.545f,1.f}, warning{1.f,.761f,.29f},
-    knobOn{1,1,1}, knobOff{.816f,.82f,.831f}, heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
-    armor{.722f,.725f,.769f}, // #B8B9C4, sampled from the vanilla armor icon
-    curse{1.f,.333f,.333f}; // the game's red for curses in an item's tooltip
+    keyFill{.169f,.173f,.176f}, keyEdge{.353f,.357f,.361f}, hover{.23f,.23f,.24f}, experimental{.725f,.545f,1.f},
+    warning{1.f,.761f,.29f}, danger{.54f,.18f,.16f}, dangerEdge{.85f,.33f,.3f}, dangerText{1.f,.7f,.68f},
+    info{.62f,.83f,1.f}, knobOn{1,1,1}, knobOff{.816f,.82f,.831f},
+    shade{0,0,0}, // black scrims and outlines; each use sets its own opacity
+    mismatch{1.f,.35f,.3f}, // a schematic block that differs from the world: not destructive, so not danger
+    cornerOne{1.f,.4f,.35f}, cornerTwo{.45f,.65f,1.f}; // schematic area corners, as their marks in the world
+// Sampled from the game: they only match what the game draws, no Lamium meaning.
+namespace vanilla {
+inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
+    armor{.722f,.725f,.769f}, // #B8B9C4, the armor icon
+    curse{1.f,.333f,.333f}, // curses in an item's tooltip
+    tooltipBorder{.55f,.35f,.7f}; // the container preview's frame, as the item tooltip's
+}
 }
 enum class Align { Left, Right, Center };
 

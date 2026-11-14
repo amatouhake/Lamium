@@ -362,7 +362,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     fill(context, l.left, l.top + 18, l.width, 1, palette::white, .14f);
 
     // ---- Left: field, result, chests, keys ----
-    fill(context, x, l.fieldY(), lw, 14, Rgb{0, 0, 0}, .45f);
+    fill(context, x, l.fieldY(), lw, 14, palette::shade, .45f);
     frame(context, x, l.fieldY(), lw, 14, palette::accent);
     drawEditField(context, x + 3, l.fieldY(), 14, lw - 6, line);
     if (result.value) {
@@ -385,7 +385,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
             float kx = l.keyX(column), ky = l.keyY(row);
             bool over = inside(pointer.x, pointer.y, kx, ky, l.cell(), rh);
             bool equals = k.kind == Kind::Equals;
-            fill(context, kx, ky, l.cell(), rh, equals ? palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : palette::keyFill);
+            fill(context, kx, ky, l.cell(), rh, equals ? palette::accentDeep : over ? palette::hover : palette::keyFill);
             frame(context, kx, ky, l.cell(), rh, equals ? palette::accent : palette::keyEdge);
             drawKeyLabel(context, k, kx, ky, l.cell(), rh);
             if (over && !k.tip.empty()) { tip = k.tip; tipX = kx; tipY = ky - 13; }

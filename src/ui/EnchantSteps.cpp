@@ -147,7 +147,7 @@ Tip draw(MinecraftUIRenderContext& context, EnchantStepsLayout const& l, game::S
             label(context, left, y + 3, numberWidth, std::to_string(number + 1), done ? palette::faint : palette::dim, Align::Right);
             enchant_chooser::addIcon(icons, step.keptIsItem ? game::stepItemIcon(itemsDrawn++, step.keptEnchanted) : game::stepBookIcon(booksDrawn++),
                 textLeft, y + 2);
-            if (names(context, step.keptParts, step.kept, textLeft + 13, y + 3, textRight, step.keptCurse ? palette::curse : palette::text, done,
+            if (names(context, step.keptParts, step.kept, textLeft + 13, y + 3, textRight, step.keptCurse ? palette::vanilla::curse : palette::text, done,
                     following))
                 offer(step.kept, y);
             label(context, textRight + 2, y + 3, costWidth, std::to_string(step.cost),
@@ -164,7 +164,7 @@ Tip draw(MinecraftUIRenderContext& context, EnchantStepsLayout const& l, game::S
                 label(context, textRight + costWidth + 2 - w, y + 3, w, penalty, palette::faint, Align::Right);
                 nameRight = textRight + costWidth - w - 2;
             }
-            if (names(context, step.goneParts, step.gone, textLeft + 13, y + 3, nameRight, step.goneCurse ? palette::curse : palette::dim, done,
+            if (names(context, step.goneParts, step.gone, textLeft + 13, y + 3, nameRight, step.goneCurse ? palette::vanilla::curse : palette::dim, done,
                     following))
                 offer(step.gone, y);
         }

@@ -88,7 +88,7 @@ void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, ui
     float top = cy - static_cast<float>(rows.size()) / 2;
     for (size_t i = 0; i < rows.size(); ++i) {
         float half = static_cast<float>(rows[i]) + .5f;
-        ui::fill(context, cx - half, top + i, 2 * half, 1, ui::Rgb{0, 0, 0}, .85f);
+        ui::fill(context, cx - half, top + i, 2 * half, 1, ui::palette::shade, .85f);
     }
     auto inner = diamondRows(size - 2);
     top = cy - static_cast<float>(inner.size()) / 2;
@@ -101,7 +101,7 @@ void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, ui
     top = cy - static_cast<float>(hole.size()) / 2;
     for (size_t i = 0; i < hole.size(); ++i) {
         float half = static_cast<float>(hole[i]) + .5f;
-        ui::fill(context, cx - half, top + i, 2 * half, 1, ui::Rgb{0, 0, 0}, .85f);
+        ui::fill(context, cx - half, top + i, 2 * half, 1, ui::palette::shade, .85f);
     }
 }
 void cross(MinecraftUIRenderContext& context, float cx, float cy, ui::Rgb color) {
@@ -109,7 +109,7 @@ void cross(MinecraftUIRenderContext& context, float cx, float cy, ui::Rgb color)
         for (int i = -2; i <= 2; ++i)
             for (int sign : {1, -1}) {
                 float x = cx + i - .5f, y = cy + sign * i - .5f;
-                if (pass == 0) ui::fill(context, x - 1, y - 1, 3, 3, ui::Rgb{0, 0, 0}, .85f);
+                if (pass == 0) ui::fill(context, x - 1, y - 1, 3, 3, ui::palette::shade, .85f);
                 else ui::fill(context, x, y, 1, 1, color);
             }
 }

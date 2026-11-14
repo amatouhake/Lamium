@@ -229,12 +229,12 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         float const namesX = pictured ? x + thumbSide + 6 : x, namesWidth = width - (namesX - x), thumbTop = y + 1;
         if (pictured) {
             data_thumb::show(d->mapFolder, d->key);
-            fill(context, x, thumbTop, thumbSide, thumbSide, Rgb{0, 0, 0}, .45f);
+            fill(context, x, thumbTop, thumbSide, thumbSide, palette::shade, .45f);
             if (data_thumb::draw(context, {x, thumbTop, thumbSide, thumbSide})) {
                 for (auto const& dot : d->dots)
                     if (auto at = data_thumb::at(dot.x, dot.z)) {
                         float const cx = x + at->first * thumbSide, cy = thumbTop + at->second * thumbSide;
-                        fill(context, cx - 2, cy - 2, 4, 4, Rgb{0, 0, 0});
+                        fill(context, cx - 2, cy - 2, 4, 4, palette::shade);
                         fill(context, cx - 1, cy - 1, 2, 2, markRgb(dot.color));
                     }
             } else label(context, x, thumbTop + thumbSide / 2 - 5, thumbSide, translated("savedData.noMap"), palette::faint, Align::Center);
@@ -295,9 +295,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         if (last.remove) {
             // The same red as the other press-twice deletes (L-341 collects them).
             bool const isArmed = armed == d->key;
-            drawSmallButton(context, last.deleteX, last.deleteY, last.deleteWidth, SavedDataLayout::buttonHeight, removeText,
-                hover.zone == Zone::Delete, isArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill, Rgb{.54f,.23f,.2f},
-                isArmed ? palette::text : Rgb{1.f,.7f,.68f});
+            drawDangerButton(context, last.deleteX, last.deleteY, last.deleteWidth, SavedDataLayout::buttonHeight, removeText,
+                hover.zone == Zone::Delete, isArmed);
         }
     }
 

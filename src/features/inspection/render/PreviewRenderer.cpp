@@ -11,6 +11,7 @@
 #include "mc/client/gui/CaretMeasureData.h"
 #include "mc/client/gui/Font.h"
 #include "ui/GameFont.h"
+#include "ui/Widgets.h"
 #include "mc/client/gui/FontRepository.h"
 #include "mc/client/gui/TextAlignment.h"
 #include "mc/client/gui/TextMeasureData.h"
@@ -39,7 +40,8 @@ namespace {
 HashedString const kFillMaterial{"ui_fillColor"};
 
 constexpr mce::Color kFrameBackground{0.10f, 0.10f, 0.10f, 1.0f};
-constexpr mce::Color kFrameBorder{0.55f, 0.35f, 0.70f, 1.0f};
+constexpr auto kTooltipBorder = ui::palette::vanilla::tooltipBorder;
+constexpr mce::Color kFrameBorder{kTooltipBorder.r, kTooltipBorder.g, kTooltipBorder.b, 1.0f};
 constexpr mce::Color kSlotBackground{0.23f, 0.23f, 0.23f, 1.0f};
 constexpr mce::Color kCountText{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr mce::Color kWhite{1.0f, 1.0f, 1.0f, 1.0f};

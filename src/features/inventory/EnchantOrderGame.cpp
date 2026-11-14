@@ -582,7 +582,7 @@ void paintMarks(MinecraftUIRenderContext& context) {
     for (auto const& mark : list.marks) {
         auto const& b = mark.box;
         Rgb const color = mark.tone == Tone::Left ? cyan : mark.tone == Tone::Right ? pink
-            : mark.tone == Tone::Good ? palette::accent : mark.tone == Tone::Wrong ? palette::curse : palette::warning;
+            : mark.tone == Tone::Good ? palette::accent : mark.tone == Tone::Wrong ? palette::vanilla::curse : palette::warning;
         fill(context, b.x, b.y, b.w, b.h, color, tint);
         if (mark.placed || mark.tone == Tone::Wrong || mark.tone == Tone::Good || mark.tone == Tone::Warn) frame(context, b.x, b.y, b.w, b.h, color);
     }
@@ -666,7 +666,7 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
             auto const back = inspection::render::durabilityBackground({0, 0, 16, 16});
             auto const front = inspection::render::durabilityForeground(back, ratio);
             auto const color = inspection::render::durabilityColor(ratio);
-            fill(context, held->x + back.x0 * unit, held->y + back.y0 * unit, back.width() * unit, back.height() * unit, Rgb{0, 0, 0});
+            fill(context, held->x + back.x0 * unit, held->y + back.y0 * unit, back.width() * unit, back.height() * unit, palette::shade);
             if (front.width() > 0)
                 fill(context, held->x + front.x0 * unit, held->y + front.y0 * unit, front.width() * unit, front.height() * unit,
                     Rgb{color.r, color.g, color.b});

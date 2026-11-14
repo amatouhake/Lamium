@@ -559,7 +559,7 @@ void renderPrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 p
     auto const& d = prompt->draft;
     std::string_view dimension = d.dimension == 1 ? "dimension.nether" : d.dimension == 2 ? "dimension.end" : "dimension.overworld";
     label(context, x, l.whereY(), l.inner(), std::format("{}, {}, {}  {}", d.x, d.y, d.z, translated(dimension)), palette::dim);
-    fill(context, x, l.fieldY(), l.inner(), L::fieldHeight, Rgb{0, 0, 0}, .4f);
+    fill(context, x, l.fieldY(), l.inner(), L::fieldHeight, palette::shade, .4f);
     frame(context, x, l.fieldY(), l.inner(), L::fieldHeight, palette::accent);
     drawEditField(context, x + 3, l.fieldY(), L::fieldHeight, l.inner() - 6, prompt->name);
     for (int i = 0; i < L::swatches; ++i) {
@@ -567,7 +567,7 @@ void renderPrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 p
         float sx = l.swatchX(i), sy = l.swatchY();
         if (i == map::clampColor(d.color)) frame(context, sx - 2, sy - 2, L::swatch + 4, L::swatch + 4, palette::white);
         fill(context, sx, sy, L::swatch, L::swatch, Rgb{map::channel(c, 0) / 255.f, map::channel(c, 1) / 255.f, map::channel(c, 2) / 255.f});
-        frame(context, sx, sy, L::swatch, L::swatch, Rgb{0, 0, 0}, .6f);
+        frame(context, sx, sy, L::swatch, L::swatch, palette::shade, .6f);
     }
     auto hover = l.hit(pointer.x, pointer.y).part;
     label(context, x, l.temporaryY() + boxTextInset(), l.inner() - L::switchWidth - 4, translated("waypoint.temporary"),
@@ -575,7 +575,7 @@ void renderPrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 p
     toggleSwitch(context, l.switchX(), l.temporaryY() + (L::rowHeight - switchHeight) / 2, d.temporary);
     auto button = [&](float bx, std::string text, bool primary, bool over) {
         fill(context, bx, l.buttonY(), L::buttonWidth, L::buttonHeight,
-             primary ? palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : palette::keyFill);
+             primary ? palette::accentDeep : over ? palette::hover : palette::keyFill);
         frame(context, bx, l.buttonY(), L::buttonWidth, L::buttonHeight, primary ? palette::accent : palette::keyEdge);
         label(context, bx, l.buttonY() + boxTextInset(), L::buttonWidth, std::move(text), palette::text, Align::Center);
     };
@@ -710,7 +710,7 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
     auto const preferences = Runtime::instance().preferences();
     static constexpr std::array<float, 3> dims{0.f, .12f, .35f};
     float dim = dims[static_cast<size_t>(std::clamp(preferences.schematic.menuBackground, 0, 2))];
-    if (dim > 0) fill(context, 0, 0, size.x, size.y, Rgb{0, 0, 0}, dim);
+    if (dim > 0) fill(context, 0, 0, size.x, size.y, palette::shade, dim);
     float s = preferences.schematic.menuSmall ? menuSmallScale : 1.f;
     auto width = [&](std::string const& text) { return textWidthScaled(context, text, s); };
     static constexpr std::array<char const*, 5> targets{"schematic.target.placement", "schematic.target.corner1",
@@ -771,7 +771,7 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
     // The center: where the menu is, what Move moves, and what each button does.
     std::vector<std::pair<std::string, Rgb>> lines;
     if (!list && schematicMenu->category == menu::moveCategory) {
-        static constexpr std::array<Rgb, 5> colors{palette::accent, Rgb{1.f, .4f, .35f}, Rgb{.45f, .65f, 1.f}, palette::white,
+        static constexpr std::array<Rgb, 5> colors{palette::accent, palette::cornerOne, palette::cornerTwo, palette::white,
             Rgb{.55f, .55f, .58f}};
         auto t = static_cast<size_t>(schematic::actions::target());
         lines.push_back({translated("schematic.menu.target", translated(targets[t])), colors[t]});
@@ -894,13 +894,13 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
         auto const& c = corner == 0 ? p.area.a : p.area.b;
         // In the colors of the corner blocks in the world.
         label(context, x, y + boxTextInset(), L::labelWidth - 4, translated(corner == 0 ? "schematic.save.corner1" : "schematic.save.corner2"),
-            corner == 0 ? Rgb{1.f, .4f, .35f} : Rgb{.45f, .65f, 1.f});
+            corner == 0 ? palette::cornerOne : palette::cornerTwo);
         for (int axis = 0; axis < 3; ++axis) {
             float cx = l.cellX(axis), w = l.cellWidth();
             int value = axis == 0 ? c.x : axis == 1 ? c.y : c.z;
             bool overMinus = hover.part == L::Part::Minus && hover.corner == corner && hover.axis == axis;
             bool overPlus = hover.part == L::Part::Plus && hover.corner == corner && hover.axis == axis;
-            fill(context, cx, y, w, L::rowHeight, Rgb{0, 0, 0}, .3f);
+            fill(context, cx, y, w, L::rowHeight, palette::shade, .3f);
             drawSmallButton(context, cx, y, L::step, L::rowHeight, "-", overMinus);
             drawSmallButton(context, cx + w - L::step, y, L::step, L::rowHeight, "+", overPlus);
             static constexpr std::array<char const*, 3> axes{"X", "Y", "Z"};
@@ -910,7 +910,7 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
     }
     auto s = p.area.size();
     label(context, x, l.sizeY(), l.inner(), translated("schematic.save.size", s.x, s.y, s.z, p.area.cells()), palette::dim);
-    fill(context, x, l.fieldY(), l.inner(), L::fieldHeight, Rgb{0, 0, 0}, .4f);
+    fill(context, x, l.fieldY(), l.inner(), L::fieldHeight, palette::shade, .4f);
     frame(context, x, l.fieldY(), l.inner(), L::fieldHeight, palette::accent);
     drawEditField(context, x + 3, l.fieldY(), L::fieldHeight, l.inner() - 6, p.name);
     auto file = schematic::schematicFileName(p.name.value());
@@ -926,8 +926,8 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
     } else if (!p.problem.empty()) label(context, x, l.statusY(), l.inner(), p.problem, palette::warning);
     drawSmallButton(context, l.saveX(), l.buttonY(), L::buttonWidth, L::buttonHeight,
         translated(running ? "schematic.save.stop" : p.overwrite ? "schematic.save.overwrite" : "schematic.save.button"),
-        hover.part == L::Part::Save, p.overwrite || running ? Rgb{.54f, .18f, .16f} : palette::accentDeep,
-        p.overwrite || running ? Rgb{.54f, .23f, .2f} : palette::accent);
+        hover.part == L::Part::Save, p.overwrite || running ? palette::danger : palette::accentDeep,
+        p.overwrite || running ? palette::dangerEdge : palette::accent);
     drawSmallButton(context, l.clearX(), l.buttonY(), L::buttonWidth, L::buttonHeight, translated("schematic.save.clear"),
         hover.part == L::Part::Clear);
     drawSmallButton(context, l.cancelX(), l.buttonY(), L::buttonWidth, L::buttonHeight, translated("schematic.save.cancel"),
@@ -1060,7 +1060,7 @@ void render(ll::event::UIRenderEvent& event) {
             glm::vec2 pointer = view.mPointerLocationPrevious;
             bool over = pointer.x >= titleEntry.x && pointer.x < titleEntry.x + w && pointer.y >= titleEntry.y
                 && pointer.y < titleEntry.y + h;
-            fill(context, titleEntry.x, titleEntry.y, w, h, Rgb{0, 0, 0}, over ? .7f : .53f);
+            fill(context, titleEntry.x, titleEntry.y, w, h, palette::shade, over ? .7f : .53f);
             // Plain white without Lamium's shadow, as LeviLamina's line.
             labelScaled(context, titleEntry.x + 1.75f, titleEntry.y + 2.5f, w, text, 1.f, palette::white, Align::Left, false);
             if (over) fill(context, titleEntry.x + 1.75f, titleEntry.y + 10.5f, w - 3.5f, textStroke(), palette::white);

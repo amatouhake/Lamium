@@ -283,7 +283,7 @@ void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
     float buttons = resetW + gap + doneW;
     constexpr float rowH = 11, edge = 6;
     // The legend (L-334): the line is the state (dashed shows by situation,
-    // the gray hatching is switched off), yellow is the game's own HUD.
+    // the gray hatching is switched off), light blue (info) is the game's own HUD.
     std::string situational = translated("hudEditor.situational"), hidden = translated("hudEditor.switchedOff");
     std::string game = translated("hudEditor.gameHud");
     constexpr float swatchW = 12, swatchH = 7, swatchGap = 4, pairGap = 16, legendTop = 4, legendBottom = 6;
@@ -312,14 +312,15 @@ void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
         label(context, lx, ly, textWidth(context, hidden) + 2, hidden, palette::dim, Align::Left);
         lx = box.x + (box.w - gameLegend) / 2;
         ly += rowH;
-        frame(context, lx, ly + (rowH - swatchH) / 2, swatchW, swatchH, palette::warning, .9f);
+        frame(context, lx, ly + (rowH - swatchH) / 2, swatchW, swatchH, palette::info, .9f);
         lx += swatchW + swatchGap;
         label(context, lx, ly, textWidth(context, game) + 2, game, palette::dim, Align::Left);
     }
     float y = box.y + edge + 4 * rowH + legendTop + legendBottom, x = box.x + (box.w - buttons) / 2;
     Box resetBox{x, y, resetW, itemHeight}, doneBox{x + resetW + gap, y, doneW, itemHeight};
-    button(context, resetBox, reset, resetArmed || hovering(resetBox, px, py), resetArmed ? palette::warning : palette::keyEdge);
-    button(context, doneBox, done, hovering(doneBox, px, py), palette::accent);
+    drawDangerButton(context, resetBox.x, resetBox.y, resetBox.w, resetBox.h, reset, hovering(resetBox, px, py), resetArmed);
+    drawSmallButton(context, doneBox.x, doneBox.y, doneBox.w, doneBox.h, done, hovering(doneBox, px, py), palette::accentDeep,
+        palette::accent);
     controls.push_back({resetBox, Command::ResetAll});
     controls.push_back({doneBox, Command::Done});
 }
@@ -435,7 +436,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
             element = placeAt(element, next.box.x, next.box.y, next.box.w, next.box.h, width, height);
         }
     }
-    fill(context, 0, 0, width, height, Rgb{0, 0, 0}, .25f);
+    fill(context, 0, 0, width, height, palette::shade, .25f);
     std::optional<HudElementId> focus = drag ? std::optional(drag->id) : resize ? std::optional(resize->id) : selected;
     // Elements that appear only by situation are drawn faint (half) with a
     // dashed frame and their name; switched-off ones (L-334) are a gray hatched
@@ -493,7 +494,7 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
     context.flushText(0, std::nullopt);
     if (focus) {
         // Only where it lies on another element: a darker ground sets it apart.
-        if (behind) fill(context, behind->x, behind->y, behind->w, behind->h, Rgb{0, 0, 0}, .45f);
+        if (behind) fill(context, behind->x, behind->y, behind->w, behind->h, palette::shade, .45f);
         preview.hidden.fill(true);
         preview.hidden[static_cast<size_t>(*focus)] = !settings::hudInEditor(value, *focus);
         auto front = information::drawHud(context, width, height, value.information, &preview);
@@ -570,25 +571,25 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         if (isOff(id)) {
             // Switched off: a dark veil like a disabled settings row, gray
             // hatching, and a quieter frame than a shown element's.
-            fill(context, box->x, box->y, box->w, box->h, Rgb{0, 0, 0}, .35f);
+            fill(context, box->x, box->y, box->w, box->h, palette::shade, .35f);
             std::vector<ImageRect> lines;
             for (auto const& square : hatch(*box)) lines.push_back({square.x, square.y, square.w, square.h});
             fills(context, lines, palette::faint, .6f);
             // The hatching is the state, the frame's color who draws it.
             frame(context, outer.x, outer.y, outer.w, outer.h,
-                  isFocus ? palette::accent : hudGameDrawn(id) ? palette::warning : palette::white, isFocus ? .9f : isHovered ? .6f : .35f);
+                  isFocus ? palette::accent : hudGameDrawn(id) ? palette::info : palette::white, isFocus ? .9f : isHovered ? .6f : .35f);
             if (!isFocus && !isHovered) addTag(*box, id);
             continue;
         }
         // The game's own elements stand apart from Lamium's by their frame color.
         if (!framed(id)) {
             frame(context, outer.x, outer.y, outer.w, outer.h,
-                  isFocus ? palette::accent : hudGameDrawn(id) ? palette::warning : palette::white, hudGameDrawn(id) && !isFocus ? opacity + .25f : opacity);
+                  isFocus ? palette::accent : hudGameDrawn(id) ? palette::info : palette::white, hudGameDrawn(id) && !isFocus ? opacity + .25f : opacity);
             continue;
         }
         for (auto const& dash : dashedFrame(outer))
             fill(context, dash.x, dash.y, dash.horizontal ? dash.length : 1, dash.horizontal ? 1 : dash.length,
-                 hudGameDrawn(id) ? palette::warning : palette::white, hudGameDrawn(id) ? opacity + .4f : opacity + .15f);
+                 hudGameDrawn(id) ? palette::info : palette::white, hudGameDrawn(id) ? opacity + .4f : opacity + .15f);
         // Its faint contents say what it is: named only when pointed at or
         // selected, as a shown element is. Only a hidden one keeps its name.
     }

@@ -393,7 +393,6 @@ Rgb shapeRgb(overlay::ShapeColor color) {
     default: return {.25f,.82f,.88f};
     }
 }
-constexpr Rgb draftRgb{.62f,.83f,1.f};
 void drawTypeIcon(MinecraftUIRenderContext& context, float x, float y, int type, Rgb color) {
     auto pattern = shape::typeGlyphs[static_cast<size_t>(std::clamp(type, 0, static_cast<int>(shape::typeGlyphs.size()) - 1))];
     for (int i = 0; i < 25 && i < static_cast<int>(pattern.size()); ++i)
@@ -451,17 +450,17 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         bool chosen = isDraft || (!shapeDraft && item && shapeSelected == item->id);
         if (i % 2) fill(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::white,.025f);
         rowBackground(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,chosen && !isDraft,over(ShapeZone::ListRow,i));
-        if (isDraft) frame(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,draftRgb);
+        if (isDraft) frame(context,l.listLeft+1,y,l.listWidth-2,ShapesLayout::rowHeight,palette::info);
         bool elsewhere = shown.dimension != screen::playerDimension();
         // The same type glyph and color as the opened shape; dimmed when hidden or elsewhere.
-        Rgb glyph = isDraft ? draftRgb : shapeRgb(shown.color);
+        Rgb glyph = isDraft ? palette::info : shapeRgb(shown.color);
         if (!shown.visible || elsewhere) glyph = {glyph.r * .4f, glyph.g * .4f, glyph.b * .4f};
         drawTypeIcon(context,l.listLeft+ShapesLayout::pad,y+2,shape::typeIndex(shown),glyph);
         std::string suffix = isDraft ? translated("shape.draftTag") : elsewhere ? translated("shape.otherDimension", shown.dimension) : "";
         float suffixWidth = suffix.empty() ? 0 : textWidth(context, suffix) + 6;
-        label(context,nameX,y+3,typeX-nameX-4-suffixWidth,shown.name,isDraft ? draftRgb : elsewhere ? palette::faint : palette::text);
+        label(context,nameX,y+3,typeX-nameX-4-suffixWidth,shown.name,isDraft ? palette::info : elsewhere ? palette::faint : palette::text);
         if (!suffix.empty())
-            label(context,typeX-4-suffixWidth+2,y+3,suffixWidth,suffix,isDraft ? draftRgb : palette::faint);
+            label(context,typeX-4-suffixWidth+2,y+3,suffixWidth,suffix,isDraft ? palette::info : palette::faint);
         label(context,typeX,y+3,48,translated(shape::types[shape::typeIndex(shown)].name),palette::dim);
         if (!isDraft) toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,shown.visible);
     }
@@ -484,16 +483,16 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     } else if (!definition) {
         paragraph(context,dx,l.detailTop+6,dw,translated(shapeList.empty() ? "shape.empty" : "shape.selectHint"),3,palette::faint);
     } else {
-        if (shapeDraft) label(context,dx,l.detailTop+4,dw,translated("shape.draftNote"),draftRgb);
+        if (shapeDraft) label(context,dx,l.detailTop+4,dw,translated("shape.draftNote"),palette::info);
         // Name field.
-        fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,Rgb{0,0,0},.4f);
+        fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,palette::shade,.4f);
         frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingShapeName ? palette::accent : palette::keyEdge);
-        drawTypeIcon(context,dx+3,l.nameY+1.5f,shape::typeIndex(*definition),shapeDraft ? draftRgb : shapeRgb(definition->color));
+        drawTypeIcon(context,dx+3,l.nameY+1.5f,shape::typeIndex(*definition),shapeDraft ? palette::info : shapeRgb(definition->color));
         if (editingShapeName) drawEditField(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,shapeNameInput);
         else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,definition->name);
         // Preview: one layer seen from above; plane seen along its normal.
         float px = dx, py = l.previewY, size = ShapesLayout::previewSize;
-        fill(context,px,py,size,size,Rgb{0,0,0},.35f);
+        fill(context,px,py,size,size,palette::shade,.35f);
         frame(context,px,py,size,size,palette::white,.14f);
         auto const* preview = previewFor(*definition);
         if (preview) {
@@ -501,7 +500,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
             float scale = std::min((size - 4) / spanU, (size - 4) / spanV);
             float ox = px + (size - spanU * scale) / 2 - preview->minU * scale;
             float oy = py + (size - spanV * scale) / 2 - preview->minV * scale;
-            Rgb color = shapeDraft ? draftRgb : shapeRgb(definition->color);
+            Rgb color = shapeDraft ? palette::info : shapeRgb(definition->color);
             for (auto const& run : preview->runs)
                 fill(context,ox + run.u * scale,oy + run.v * scale,std::max(1.0f, run.length * scale),std::max(1.0f, scale),color,.9f);
             fill(context,ox,oy,std::max(1.0f, scale),std::max(1.0f, scale),palette::accent);
@@ -571,10 +570,8 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
             drawSmallButton(context,l.actionX(1),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.cancel"),over(ShapeZone::Action,1));
         } else {
             drawSmallButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.duplicateShort"),over(ShapeZone::Action,0));
-            drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
-                translated(shapeDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1),
-                shapeDeleteArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill,Rgb{.54f,.23f,.2f},
-                shapeDeleteArmed ? palette::text : Rgb{1.f,.7f,.68f});
+            drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
+                translated(shapeDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1), shapeDeleteArmed);
         }
     }
 

@@ -373,9 +373,9 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     struct Cell { ui::Rgb mark; std::string text; };
     std::array<Cell, 4> cells{{
         {ui::palette::accent, ui::translated("schematic.hud.correct") + " " + std::format("{}/{}", tally.correct, tally.total())},
-        {ui::Rgb{.75f, .85f, .9f}, ui::translated("schematic.kind.missing") + " " + std::to_string(tally.missing)},
-        {ui::Rgb{1.f, .35f, .3f}, ui::translated("schematic.hud.wrong") + " " + std::to_string(tally.wrong + tally.extra)},
-        {ui::Rgb{1.f, .8f, .25f}, ui::translated("schematic.kind.state") + " " + std::to_string(tally.state)}}};
+        {ui::palette::info, ui::translated("schematic.kind.missing") + " " + std::to_string(tally.missing)},
+        {ui::palette::mismatch, ui::translated("schematic.hud.wrong") + " " + std::to_string(tally.wrong + tally.extra)},
+        {ui::palette::warning, ui::translated("schematic.kind.state") + " " + std::to_string(tally.state)}}};
     std::string nearText = nearest ? ui::translated("schematic.hud.nearest", *nearest) : std::string{};
     float mark = 7 * z;
     float columnA = std::max(widthOf(cells[0].text, small), widthOf(cells[2].text, small)) + mark;
@@ -588,7 +588,7 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         if (dur::showsBar(look)) {
             cx += gap;
             float by = y + (rowH - barH) / 2;
-            ui::fill(context, cx, by, barW, barH, ui::Rgb{0, 0, 0});
+            ui::fill(context, cx, by, barW, barH, ui::palette::shade);
             auto color = inspection::render::durabilityColor(row.ratio());
             float fillW = dur::barFill(row, barW / z) * z;
             if (fillW > 0) ui::fill(context, cx, by, fillW, barH - z, ui::Rgb{color.r, color.g, color.b});
@@ -703,7 +703,7 @@ std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& c
             ui::imageUv(context, path, {std::round(x), std::round(y + z), icon, icon}, 0, 0, 1, 1);
         if (!names[i].empty())
             ui::labelScaled(context, x + nameX, textY, nameW, names[i], z,
-                            effect.harmful ? ui::palette::heart : ui::palette::text, ui::Align::Left, element.shadow);
+                            effect.harmful ? ui::palette::vanilla::heart : ui::palette::text, ui::Align::Left, element.shadow);
         if (!levels[i].empty())
             ui::labelScaled(context, x + levelX, textY, levelW, levels[i], z, ui::palette::text, ui::Align::Right,
                             element.shadow);
@@ -836,7 +836,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     float textTop = top + (headerH - headerTextH) / 2;
     // A ghost's name in the ghost's light blue: a block to place, not one that is there.
     ui::labelScaled(context, textX, textTop, textW + 2, target.name, z,
-                    target.ghost ? ui::Rgb{.75f, .85f, .9f} : ui::palette::text, ui::Align::Left, element.shadow);
+                    target.ghost ? ui::palette::info : ui::palette::text, ui::Align::Left, element.shadow);
     if (settings.targetIdentifier)
         ui::labelScaled(context, textX, textTop + lineH, textW + 2, target.identifier, z, ui::palette::faint,
                         ui::Align::Left, element.shadow);
@@ -852,7 +852,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
             bool health = row.label == "target.health";
             bool armor = row.label == "target.armor";
             ui::fill(context, x, barY, barW * std::clamp(*row.progress, 0.f, 1.f), barH,
-                     health ? ui::palette::heart : armor ? ui::palette::armor : ui::palette::accent);
+                     health ? ui::palette::vanilla::heart : armor ? ui::palette::vanilla::armor : ui::palette::accent);
             x += barW + 4 * z;
         } else if (row.progress && row.meter == Meter::Hearts) {
             heartRows(context, x, y + 1 * z, z, healthHearts(row.current, row.maximum));
@@ -867,8 +867,8 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
             x += rowIcon + 2 * z;
         }
         // Schematic rows in the verifier's colors (the HUD and Check tab use the same).
-        auto color = row.tone == Tone::Wrong ? ui::Rgb{1.f, .35f, .3f} : row.tone == Tone::State ? ui::Rgb{1.f, .8f, .25f}
-            : row.tone == Tone::Missing ? ui::Rgb{.75f, .85f, .9f} : ui::palette::text;
+        auto color = row.tone == Tone::Wrong ? ui::palette::mismatch : row.tone == Tone::State ? ui::palette::warning
+            : row.tone == Tone::Missing ? ui::palette::info : ui::palette::text;
         if (!row.before.empty()) {
             float w = ui::textWidthScaled(context, row.before, z);
             ui::labelScaled(context, x, y, w + 2, row.before, z, color, ui::Align::Left, element.shadow);
@@ -1282,7 +1282,7 @@ void slotDecorations(MinecraftUIRenderContext& context, ItemStack const& stack, 
         auto front = inspection::render::durabilityForeground(back, ratio);
         auto color = inspection::render::durabilityColor(ratio);
         ui::fill(context, icon.x + back.x0 * unit, icon.y + back.y0 * unit, back.width() * unit, back.height() * unit,
-                 ui::Rgb{0, 0, 0});
+                 ui::palette::shade);
         if (front.width() > 0)
             ui::fill(context, icon.x + front.x0 * unit, icon.y + front.y0 * unit, front.width() * unit,
                      front.height() * unit, ui::Rgb{color.r, color.g, color.b});

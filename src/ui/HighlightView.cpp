@@ -302,16 +302,15 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         if (!count.empty()) label(context, countRight - countWidth, y + 3, countWidth, count, count == "0" ? palette::faint : palette::dim, Align::Right);
         if (rowHover || armed == name) {
             bool isArmed = armed == name;
-            drawSmallButton(context, last.removeX(), y + 1, HighlightLayout::removeWidth, 12,
-                translated(isArmed ? "highlight.removeConfirm" : "highlight.remove"), hover.zone == Zone::Remove && hover.index == i,
-                isArmed ? Rgb{.54f,.18f,.16f} : palette::keyFill, Rgb{.54f,.23f,.2f}, isArmed ? palette::text : Rgb{1.f,.7f,.68f});
+            drawDangerButton(context, last.removeX(), y + 1, HighlightLayout::removeWidth, 12,
+                translated(isArmed ? "highlight.removeConfirm" : "highlight.remove"), hover.zone == Zone::Remove && hover.index == i, isArmed);
         }
     }
     drawListScrollbar(context, lc);
 
     // Right: the search field, then the results.
     float fx = last.searchX(), fw = last.searchWidth();
-    fill(context, fx, last.searchY, fw, HighlightLayout::fieldHeight, Rgb{0,0,0}, .45f);
+    fill(context, fx, last.searchY, fw, HighlightLayout::fieldHeight, palette::shade, .45f);
     frame(context, fx, last.searchY, fw, HighlightLayout::fieldHeight, palette::accent);
     if (query.value().empty())
         label(context, fx + 4, last.searchY + 1 + boxTextInset(), fw - 8, translated("highlight.searchPlaceholder"), palette::faint);

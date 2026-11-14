@@ -376,7 +376,7 @@ float keycaps(MinecraftUIRenderContext& context, float x, float y, float width, 
         if (capWidth < 8) break;
         fill(context,x+used,y,capWidth,capHeight,filled ? palette::warning : palette::keyFill);
         frame(context,x+used,y,capWidth,capHeight,edge);
-        fill(context,x+used+1,y+capHeight-2,capWidth-2,1,Rgb{0,0,0},filled ? .25f : .5f);
+        fill(context,x+used+1,y+capHeight-2,capWidth-2,1,palette::shade,filled ? .25f : .5f);
         // Dark text on the filled cap would smear with the font's shadow.
         labelScaled(context,x+used+3,y+boxTextInset(),capWidth-5,keys[i],1.f,ink,Align::Left,!filled);
         used += capWidth;

@@ -15,6 +15,11 @@ void drawSmallButton(MinecraftUIRenderContext& context, float x, float y, float 
     frame(context,x,y,w,h,edge);
     label(context,x,y+(h-10)/2+boxTextInset()-1,w,std::move(text),textColor,Align::Center);
 }
+void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
+                      bool hovered, bool armed) {
+    drawSmallButton(context,x,y,w,h,std::move(text),hovered,armed ? palette::danger : palette::keyFill,palette::dangerEdge,
+        armed ? palette::text : palette::dangerText);
+}
 void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY) {
     drawSmallButton(context,l.dockX,l.top+4,ShapesLayout::dockWidth,12,translated("shape.undock"),
         l.hit(pointerX, pointerY).zone == ShapesLayout::Zone::Dock);
