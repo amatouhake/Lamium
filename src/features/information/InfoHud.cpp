@@ -452,6 +452,12 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     context.flushText(0, std::nullopt);
     return ui::hud_editor::Box{at.x, at.y, boxW, boxH};
 }
+// The icon frame an inventory slot would draw: a crossbow being drawn, loaded with an arrow or a firework, a
+// bow's pull, a compass. Asked of the player's own stack, not a copy: the pull belongs to the item in use.
+int iconFrame(LocalPlayer* player, ItemStack const& stack) {
+    if (!player || !stack.mItem) return 0;
+    try { return stack.mItem->getAnimationFrameFor(player, false, &stack, true); } catch (...) { return 0; }
+}
 // ---- Durability HUD (L-61) ----
 std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& context, float width, float height,
     ui::HudElement const& element, Settings::Information const& settings, bool preview) {
@@ -459,9 +465,9 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     auto look = static_cast<dur::Look>(std::clamp(settings.durabilityLook, 0, 2));
     // Copies for this frame only: the renderer must not replay a pickup squash.
     std::array<ItemStack, 6> stacks;
-    // What a loaded crossbow holds, marked on its icon (L-150).
-    std::array<ItemStack, 6> charges;
+    std::array<int, 6> frames{};
     dur::Samples samples{};
+    auto* player = context.mClient.getLocalPlayer();
     auto sample = [&](dur::Slot slot, ItemStack const& source) {
         auto i = static_cast<size_t>(slot);
         if (source.isNull() || source.mCount <= 0 || !source.mItem || !source.isDamageableItem()) return;
@@ -470,15 +476,10 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         stacks[i].mWasPickedUp = false;
         samples[i] = {true, source.getDamageValue(), static_cast<int>(source.mItem->getMaxDamage()),
                       dur::weaponOf(source.getTypeName())};
-        ItemInstance const* charged = source.mChargedItem.get();
-        if (samples[i].weapon == dur::Weapon::Crossbow && charged && !charged->isNull() && charged->mItem) {
-            try { charges[i].reinit(charged->getTypeName(), 1, charged->getAuxValue()); } catch (...) { charges[i] = ItemStack(); }
-            charges[i].mShowPickUp = false;
-            charges[i].mWasPickedUp = false;
-        }
+        // A loaded crossbow shows what it holds in its own texture, as in a slot (the small mark of L-150 is gone).
+        frames[i] = iconFrame(player, source);
     };
     dur::AmmoCounts ammo;
-    auto* player = context.mClient.getLocalPlayer();
     if (player) {
         using ArmorSlot = SharedTypes::Legacy::ArmorSlot;
         sample(dur::Slot::MainHand, player->getSelectedItem());
@@ -558,7 +559,7 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     auto* renderer = context.mClient.getItemRenderer();
     // Drawn in one call after the rows, so enchanted items keep their glint
     // (a glint drawn after another batch of icons does not show, ItemIcon.cpp).
-    std::vector<inspection::render::IconAt> icons, chargeIcons;
+    std::vector<inspection::render::IconAt> icons;
     for (size_t i = 0; i < rows.size(); ++i) {
         auto const& row = rows[i];
         float left = alignRight ? placement.x + boxW - padX - rowWidths[i] : placement.x + padX;
@@ -570,10 +571,8 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         // Whole GUI units, as in inventory slots: layered icons (dyed
         // leather) show seams between their layers at fractional positions.
         if (renderer) {
-            icons.push_back({&stacks[static_cast<size_t>(row.slot)], std::round(x), std::round(y + z), z, 0, 1.f, true});
-            // A loaded crossbow: its charge, small, on the icon's lower right.
-            if (auto const& charge = charges[static_cast<size_t>(row.slot)]; !charge.isNull())
-                chargeIcons.push_back({&charge, std::round(x + 8 * z), std::round(y + 9 * z), z / 2});
+            icons.push_back({&stacks[static_cast<size_t>(row.slot)], std::round(x), std::round(y + z), z,
+                             frames[static_cast<size_t>(row.slot)], 1.f, true});
         }
         float cx = x + icon;
         if (dur::showsBar(look)) {
@@ -609,7 +608,6 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     }
     context.flushText(0, std::nullopt);
     inspection::render::drawItemIcons(context, icons, 17);
-    inspection::render::drawItemIcons(context, chargeIcons, 18);
     return ui::hud_editor::Box{placement.x, placement.y, boxW, boxH};
 }
 // ---- Status Effects HUD (L-147, docs/demos/status-effects-hud.html) ----
@@ -1319,6 +1317,7 @@ std::string biomeName(std::string const& identifier) { return localizedBiomeName
 struct InventorySample {
     std::array<ItemStack, inventoryHud::slotCount> stacks;
     std::array<bool, inventoryHud::slotCount> occupied{};
+    std::array<int, inventoryHud::slotCount> frames{};
 };
 std::optional<InventorySample> sampleInventory(IClientInstance& client, bool preview) {
     auto* player = client.getLocalPlayer();
@@ -1334,6 +1333,7 @@ std::optional<InventorySample> sampleInventory(IClientInstance& client, bool pre
             sample.stacks[i].mShowPickUp = false;
             sample.stacks[i].mWasPickedUp = false;
             sample.occupied[i] = true;
+            sample.frames[i] = iconFrame(player, stack);
         }
     }
     if (preview && std::none_of(sample.occupied.begin(), sample.occupied.end(), [](bool b) { return b; })) {
@@ -1376,7 +1376,7 @@ std::optional<ui::hud_editor::Box> drawInventoryGrid(MinecraftUIRenderContext& c
             ui::frame(context, x, y, cell, cell, ui::palette::text, .18f);
             if (!sample.occupied[i]) continue;
             offhand::Box icon{std::round(x + z), std::round(y + z), 16 * z, 16 * z};
-            icons.push_back({&sample.stacks[i], icon.x, icon.y, z, 0, 1.f, true});
+            icons.push_back({&sample.stacks[i], icon.x, icon.y, z, sample.frames[i], 1.f, true});
             drawn.push_back({&sample.stacks[i], icon});
         }
     inspection::render::drawItemIcons(context, icons, 17);

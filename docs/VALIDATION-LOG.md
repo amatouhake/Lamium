@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Durability HUD glint (2026-11-14)
+
+Build `fc83b806`, DLL SHA-256
+`ecfbf7ca4b54925fc604e6c326658d054963edbe73d657283a9b1a2f68d27c98`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Enchanted tools and armor glint in Durability HUD; a
+loaded crossbow still showed its small arrow; with the element hidden and selected in HUD
+layout the glint is as faint as the rest. Raised: the crossbow should look as it does in a
+slot (its drawing stages, loaded with an arrow, loaded with a firework).
+
 ## Four review decisions (L-338, 2026-11-14)
 
 Build `e92d2398`, DLL SHA-256

@@ -158,10 +158,14 @@ Do not infer game success from a build or unit-test result.
   details unchanged. Not looked at: Item details on an unverified game
   version (cannot be brought about on the verified one).
 - The death layout's time limit (L-338): not checked in game.
-- Durability HUD draws an enchanted item's glint (2026-11-14, after the
-  maintainer saw none): built only. Look at it in play and, in HUD layout,
-  with the element hidden or situational (the glint may stay at full
-  strength on a faint element).
+- Durability HUD's glint on enchanted items passed on `fc83b806`
+  (VALIDATION-LOG 2026-11-14), also faint on a hidden element.
+- Durability HUD and Inventory HUD draw an item with the frame a slot would
+  use (2026-11-14, built only): a crossbow being drawn, loaded with an arrow
+  or with a firework; a bow's pull; a compass or clock. The small mark of
+  the loaded item on the crossbow (L-150) is gone. Look at each crossbow
+  state in the main hand and the offhand, and at a crossbow lying in the
+  Inventory HUD.
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared

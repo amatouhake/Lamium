@@ -141,7 +141,8 @@ cannot know (server TPS, mob caps, local difficulty) is not shown.
 ### Durability HUD
 
 Durability of the held item, and optionally the offhand and armor. Arrows
-and fireworks are counted beside bow, crossbow and elytra durability.
+and fireworks are counted beside bow, crossbow and elytra durability. Items look as
+they do in a slot: a loaded crossbow shows its arrow or firework.
 
 ### Offhand slot
 
