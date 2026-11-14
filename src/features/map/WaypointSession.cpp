@@ -1,6 +1,8 @@
 #include "features/map/WaypointSession.h"
 #include <algorithm>
 #include "features/map/WaypointStore.h"
+#include "features/map/SavedData.h"
+#include "features/schematic/PlacementStore.h"
 #include "overlay/LocalShapePath.h"
 #include "app/Runtime.h"
 #include "app/SessionIds.h"
@@ -20,6 +22,9 @@
 #include <variant>
 #endif
 #include <atomic>
+#include <chrono>
+#include <fstream>
+#include <set>
 #include <cmath>
 #include <ctime>
 #include <mutex>
@@ -317,5 +322,184 @@ void stop() {
             listener->reset();
         }
     leave();
+}
+
+// ---- Saved data (L-343 part 3) ----
+namespace {
+bool safeKey(std::string const& key) {
+    return !key.empty() && key.size() <= 140 && key.find_first_of("/\\:") == std::string::npos && key != ".." && key != ".";
+}
+std::int64_t writtenAt(std::filesystem::path const& path) {
+    std::error_code ignored;
+    auto time = std::filesystem::last_write_time(path, ignored);
+    if (ignored) return 0;
+    // file_clock to system_clock without clock_cast: the difference of the two "now"s.
+    auto system = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+        time - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+    return std::chrono::duration_cast<std::chrono::seconds>(system.time_since_epoch()).count();
+}
+// One data's four kinds, given where each lies. Bounded: the map walk stops at 2000 files.
+void measure(SavedData& item, std::filesystem::path const& waypointFile, std::filesystem::path const& schematicFile,
+             std::filesystem::path const& deathFile, std::filesystem::path const& map) {
+    std::error_code ignored;
+    if (std::filesystem::is_regular_file(waypointFile, ignored)) {
+        item.used = std::max(item.used, writtenAt(waypointFile));
+        try {
+            auto set = readWaypoints(waypointFile);
+            item.waypoints = static_cast<int>(set.waypoints.size());
+            for (auto const& w : set.waypoints) {
+                if (item.marks.size() >= savedMarks) break;
+                item.marks.push_back({w.name, clampColor(w.color)});
+            }
+        } catch (...) {}
+    }
+    if (std::filesystem::is_regular_file(schematicFile, ignored)) {
+        item.used = std::max(item.used, writtenAt(schematicFile));
+        try { item.placements = static_cast<int>(schematic::readPlacements(schematicFile).placements.size()); } catch (...) {}
+    }
+    if (std::filesystem::is_regular_file(deathFile, ignored)) item.used = std::max(item.used, writtenAt(deathFile));
+    if (std::filesystem::is_directory(map, ignored)) {
+        int files = 0;
+        std::filesystem::recursive_directory_iterator it(map, ignored), end;
+        for (; !ignored && it != end; it.increment(ignored)) {
+            if (++files > 2000) { item.mapMore = true; break; }
+            if (!it->is_regular_file(ignored)) continue;
+            item.mapBytes += static_cast<long long>(it->file_size(ignored));
+            item.used = std::max(item.used, writtenAt(it->path()));
+        }
+    }
+}
+std::string firstLine(std::filesystem::path const& path) {
+    std::ifstream file(path, std::ios::binary);
+    std::string line;
+    if (file) std::getline(file, line);
+    while (!line.empty() && (line.back() == '\r' || line.back() == '\n')) line.pop_back();
+    if (line.size() > 80) line.resize(80);
+    return line;
+}
+}
+std::vector<SavedData> savedData() {
+    std::lock_guard lock(mutex);
+    std::vector<SavedData> items;
+    std::error_code ignored;
+    auto config = configFolder();
+    servers::List list;
+    try { if (std::filesystem::exists(config / "servers.json", ignored)) list = readServers(config / "servers.json"); } catch (...) {}
+    std::string const current = !identity.local && identity.key ? *identity.key : std::string();
+    // Every key any of the four folders holds.
+    std::set<std::string> keys;
+    for (auto folder : {mapFolder, waypointFolder, schematicFolder, deathFolder}) {
+        std::filesystem::directory_iterator it(config / folder, ignored), end;
+        for (; !ignored && it != end && keys.size() < savedDataLimit; it.increment(ignored)) {
+            auto name = it->path().filename().u8string();
+            std::string key(name.begin(), name.end());
+            if (folder != mapFolder) {
+                if (!key.ends_with(".json")) continue;
+                key.resize(key.size() - 5);
+            }
+            if (safeKey(key)) keys.insert(std::move(key));
+        }
+        ignored.clear();
+    }
+    for (auto const& key : keys) {
+        SavedData item;
+        item.key = key;
+        item.kind = key.starts_with("world_") ? SavedData::Kind::Friend : SavedData::Kind::Server;
+        if (item.kind == SavedData::Kind::Friend) {
+            auto found = std::find_if(list.worlds.begin(), list.worlds.end(), [&](servers::World const& w) { return w.key == key; });
+            if (found != list.worlds.end()) item.name = found->name;
+        } else {
+            item.name = servers::shownName(list.servers, key);
+            for (auto const& e : list.servers) {
+                if (e.key != key) continue;
+                item.anyPort = item.anyPort || e.anyPort;
+                if (item.levelId.empty()) item.levelId = e.levelId;
+                if (item.host.empty()) item.host = e.hosts.empty() ? e.ip : e.hosts.back();
+            }
+            item.maybe = servers::maybe(list.servers, current, key);
+        }
+        measure(item, config / waypointFolder / (key + ".json"), config / schematicFolder / (key + ".json"),
+                config / deathFolder / (key + ".json"), config / mapFolder / key);
+        item.inUse = !current.empty() && key == current;
+        item.canUse = item.kind == SavedData::Kind::Server && identity.hasAddress() && !item.inUse;
+        item.canDelete = !item.inUse;
+        items.push_back(std::move(item));
+    }
+    // Local worlds that have a Lamium folder.
+    if (!identity.worlds.empty()) {
+        std::filesystem::directory_iterator it(identity.worlds, ignored), end;
+        for (; !ignored && it != end && items.size() < savedDataLimit; it.increment(ignored)) {
+            auto folder = it->path() / "lamium";
+            if (!std::filesystem::is_directory(folder, ignored)) { ignored.clear(); continue; }
+            SavedData item;
+            item.kind = SavedData::Kind::Local;
+            auto name = it->path().filename().u8string();
+            item.key.assign(name.begin(), name.end());
+            item.name = firstLine(it->path() / "levelname.txt");
+            item.levelId = item.key;
+            measure(item, folder / "waypoints.json", folder / "schematics.json", folder / "death-layout.json", folder / "map");
+            if (!item.waypoints && !item.placements && !item.mapBytes && !item.used) continue;
+            item.inUse = identity.local && identity.levelId == item.key;
+            item.canDelete = !item.inUse;
+            items.push_back(std::move(item));
+        }
+    }
+    // In use first, then what may be this server's, then the latest used.
+    std::stable_sort(items.begin(), items.end(), [](SavedData const& a, SavedData const& b) {
+        auto rank = [](SavedData const& d) { return d.inUse ? 0 : d.maybe != servers::Maybe::No ? 1 : 2; };
+        return rank(a) != rank(b) ? rank(a) < rank(b) : a.used > b.used;
+    });
+    return items;
+}
+bool useData(std::string const& key) {
+    std::lock_guard lock(mutex);
+    if (!joined.active || !identity.hasAddress() || !safeKey(key) || key.starts_with("world_")) return false;
+    if (identity.key && *identity.key == key) return true;
+    bool assigned = false;
+    bool const saved = withList([&](servers::List& list) {
+        assigned = servers::assign(list.servers, identity.address, identity.ip, identity.port, identity.levelId, key);
+    });
+    if (!assigned || !saved) return false;
+    log("this server now uses the data under '" + key + "'");
+    identity.key = key;
+    attach();
+    return true;
+}
+bool removeData(SavedData const& item) {
+    std::lock_guard lock(mutex);
+    std::error_code ignored;
+    if (item.kind == SavedData::Kind::Local) {
+        if (identity.local && identity.levelId == item.key) return false;
+        try {
+            // localWorldFile checks that the folder is a world of the game's own worlds folder.
+            for (std::string_view name : {"waypoints.json", "schematics.json", "death-layout.json"})
+                if (auto file = overlay::localWorldFile(identity.worlds, item.key, name)) std::filesystem::remove(*file, ignored);
+            if (auto map = overlay::localWorldFile(identity.worlds, item.key, "map")) std::filesystem::remove_all(*map, ignored);
+        } catch (std::exception const& error) { log(std::string("could not delete a world's data: ") + error.what()); return false; }
+        log("deleted the saved data of the local world '" + item.key + "'");
+        return true;
+    }
+    if (!safeKey(item.key) || (!identity.local && identity.key && *identity.key == item.key)) return false;
+    auto config = configFolder();
+    for (auto folder : {waypointFolder, schematicFolder, deathFolder}) std::filesystem::remove(config / folder / (item.key + ".json"), ignored);
+    std::filesystem::remove_all(config / mapFolder / item.key, ignored);
+    withList([&](servers::List& list) { servers::forget(list, item.key); });
+    log("deleted the saved data under '" + item.key + "'");
+    return true;
+}
+bool setDataAnyPort(std::string const& key, bool on) {
+    std::lock_guard lock(mutex);
+    bool changed = false;
+    return withList([&](servers::List& list) { changed = servers::setAnyPort(list.servers, key, on); }) && changed;
+}
+std::string dataName() {
+    std::lock_guard lock(mutex);
+    if (!joined.active || identity.local || !identity.key) return {};
+    if (!identity.hasAddress()) return identity.levelName;
+    std::error_code ignored;
+    servers::List list;
+    try { if (std::filesystem::exists(configFolder() / "servers.json", ignored)) list = readServers(configFolder() / "servers.json"); }
+    catch (...) {}
+    return servers::shownName(list.servers, *identity.key);
 }
 }
