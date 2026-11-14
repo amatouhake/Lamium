@@ -181,6 +181,8 @@ struct Settings {
         bool round = false;
         // map::ViewForce: 0 automatic, 1 surface, 2 cave; the key cycles it (L-253).
         int caveView = 0;
+        // L-317: 0 same as caveView, else map::ViewForce + 1, used in the Nether.
+        int netherView = 0;
         bool coordinates = false;
         bool biome = false;
         bool compass = false;
@@ -463,6 +465,7 @@ struct Settings {
         map.zoom = map::clampZoomIndex(map.zoom);
         map.waypointsWorld = std::clamp(map.waypointsWorld, 0, 2);
         map.caveView = std::clamp(map.caveView, 0, 2);
+        map.netherView = std::clamp(map.netherView, 0, 3);
         for (auto* shownOn : {&map.marksShownOn, &map.radarShownOn, &map.slimeShownOn}) *shownOn = map::clampShownOn(*shownOn);
         if (!std::isfinite(map.waypointDistance)) map.waypointDistance = 0;
         map.waypointDistance = std::clamp(std::round(map.waypointDistance / 100) * 100, 0.f, 10000.f);

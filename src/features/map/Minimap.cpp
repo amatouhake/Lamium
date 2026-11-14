@@ -762,7 +762,8 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         follow(view->dimension);
         int zoom = clampZoomIndex(settings.zoom);
         auto wanted = chooseView(state.automatic.mode, view->dimension == 1, view->covered, view->skyLight);
-        auto mode = applyForce(viewForceOf(settings.caveView), state.automatic.update(wanted, time));
+        auto mode = applyForce(resolveForce(settings.caveView, settings.netherView, view->dimension == 1),
+                               state.automatic.update(wanted, time));
         playerView = state.automatic.mode;
         bool cave = mode == ViewMode::Cave;
         auto& cache = cave ? state.cave : state.surface;

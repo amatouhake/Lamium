@@ -281,6 +281,7 @@ Json encode(Settings const& settings) {
                  {"size", nullptr}, // L-337: removed by the merge, see scaleFromLegacySize.
                  {"rotate", settings.map.rotate},
                  {"round", settings.map.round}, {"caveView", settings.map.caveView},
+                 {"netherView", settings.map.netherView},
                  {"coordinates", settings.map.coordinates},
                  {"biome", settings.map.biome}, {"compass", settings.map.compass},
                  {"debugHide", settings.map.debugHide}, {"radar", settings.map.radar},
@@ -578,6 +579,7 @@ Settings decodeSettings(std::string_view text) {
         value.map.rotate = settingsValue(map, "rotate", value.map.rotate);
         value.map.round = settingsValue(map, "round", value.map.round);
         value.map.caveView = std::clamp(settingsValue(map, "caveView", value.map.caveView), 0, 2);
+        value.map.netherView = std::clamp(settingsValue(map, "netherView", value.map.netherView), 0, 3);
         value.map.coordinates = settingsValue(map, "coordinates", value.map.coordinates);
         value.map.biome = settingsValue(map, "biome", value.map.biome);
         value.map.compass = settingsValue(map, "compass", value.map.compass);

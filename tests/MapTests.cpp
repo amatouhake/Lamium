@@ -451,6 +451,22 @@ void cave() {
     check(viewForceOf(-1) == ViewForce::Auto && viewForceOf(3) == ViewForce::Auto
           && viewForceOf(0) == ViewForce::Auto && viewForceOf(1) == ViewForce::Surface
           && viewForceOf(2) == ViewForce::Cave, "a corrupt saved mode reads as automatic");
+    // L-317: the Nether view row.
+    check(resolveForce(1, 0, true) == ViewForce::Surface && resolveForce(2, 0, false) == ViewForce::Cave,
+          "Same as others uses the Cave view row everywhere");
+    check(resolveForce(1, 3, true) == ViewForce::Cave && resolveForce(1, 1, true) == ViewForce::Auto
+          && resolveForce(1, 3, false) == ViewForce::Surface, "a Nether override applies only in the Nether");
+    check(resolveForce(2, 9, true) == ViewForce::Cave && resolveForce(2, -1, true) == ViewForce::Cave,
+          "a corrupt Nether choice reads as the same as others");
+    auto key = cycleViewKey(1, 3, true);
+    check(key.caveView == 1 && key.netherView == 1 && key.shown == ViewForce::Auto,
+          "in the Nether the key cycles the override, Cave back to Automatic");
+    key = cycleViewKey(1, 3, false);
+    check(key.caveView == 2 && key.netherView == 3 && key.shown == ViewForce::Cave,
+          "elsewhere the key cycles the Cave view row");
+    key = cycleViewKey(0, 0, true);
+    check(key.caveView == 1 && key.netherView == 0 && key.shown == ViewForce::Surface,
+          "without an override the key cycles the Cave view row in the Nether too");
     ViewSwitch view;
     check(view.update(ViewMode::Cave, 10) == ViewMode::Cave, "the first switch is immediate");
     check(view.update(ViewMode::Surface, 10.5) == ViewMode::Cave && view.update(ViewMode::Surface, 11) == ViewMode::Surface,

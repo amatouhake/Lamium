@@ -76,6 +76,9 @@ inline constexpr std::array<std::string_view,3> shownOnLabels{
 // L-253: the minimap's chosen view, in map::ViewForce order.
 inline constexpr std::array<std::string_view,3> caveViewLabels{
     "caveView.auto", "caveView.surface", "caveView.cave"};
+// L-317: Settings::Map::netherView, "Same as others" then caveViewLabels.
+inline constexpr std::array<std::string_view,4> netherViewLabels{
+    "netherView.same", "caveView.auto", "caveView.surface", "caveView.cave"};
 inline constexpr auto elementBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard"});
 // Info, Status, the player list and Durability also offer a background behind each line (L-98, L-128).
@@ -552,6 +555,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::map, &Settings::Map::rotate>("map.rotate", "minimap", "mapRotate"),
     toggle<&Settings::map, &Settings::Map::round>("map.round", "minimap", "mapRound"),
     choice<&Settings::map, &Settings::Map::caveView, caveViewLabels>("map.caveView", "minimap", "mapCaveView"),
+    choice<&Settings::map, &Settings::Map::netherView, netherViewLabels>("map.netherView", "minimap", "mapNetherView"),
     toggle<&Settings::map, &Settings::Map::compass>("map.compass", "mapText", "mapCompass"),
     toggle<&Settings::map, &Settings::Map::coordinates>("map.coordinates", "mapText", "mapCoordinates"),
     toggle<&Settings::map, &Settings::Map::biome>("map.biome", "mapText", "mapBiome"),

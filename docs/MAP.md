@@ -13,7 +13,7 @@ independently; other map mods are reference-only ([PROVENANCE.md](PROVENANCE.md)
 group 3).
 
 Settings (category "Map", `Settings::Map`): "Minimap" (switch, key; range,
-heading up, round, Cave view, Debug View hiding, zoom/enlarge keys,
+heading up, round, Cave view, Nether view, Debug View hiding, zoom/enlarge keys,
 layout link); "Map text" heading (compass letters, coordinates, biome);
 "Radar" (switch, one row per kind, invisible ones, faces); "Waypoints"
 (switch, add key, Show in the world with its key, Show up to, Show on the
@@ -69,6 +69,9 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   Positions are interpolated with the frame's tick fraction.
 - Cave view: under a ceiling it switches on its own; the Cave view setting or
   MinimapView key forces surface or cave, or returns to automatic (L-253).
+  "Nether view" (Same as others default, Automatic, Surface, Cave) replaces
+  it in the Nether; while it is not Same as others, the key in the Nether
+  cycles it instead (L-317). No End row.
   Automatic switches wait 1 s after the previous one. The minimap stays broad
   and follows the player; its held height moves only when the player is more
   than 3 blocks away; the roof check uses most of the 3x3 columns around.
@@ -372,7 +375,6 @@ Under `src/features/map/` unless stated; pure parts tested in
   experimental", "World map, experimental", "Waypoints, experimental" and the
   map layer rows; [pre-release checks](backlog/pre-release-checks.md).
 - Open: [L-287 Make the minimap arrows legible at every map size](backlog/L-287.md);
-  [L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether](backlog/L-317.md);
   [L-324 Map: custom blocks are drawn in a dirt-like brown](backlog/L-324.md);
   [L-343 A server's map, waypoints and placements are lost when its address changes](backlog/L-343.md);
   [L-243 Large terrain gaps that only reload when the player comes near](backlog/L-243.md);

@@ -322,8 +322,12 @@ void executeAction(IClientInstance& client, input::Action action) {
     }
     if (action == input::Action::MinimapView) {
         if (!value.map.minimap) return;
-        auto next = map::cycleForce(map::viewForceOf(value.map.caveView));
-        value.map.caveView = static_cast<int>(next);
+        auto* player = client.getLocalPlayer();
+        bool nether = player && static_cast<int>(player->getDimensionId()) == 1;
+        auto cycled = map::cycleViewKey(value.map.caveView, value.map.netherView, nether);
+        value.map.caveView = cycled.caveView;
+        value.map.netherView = cycled.netherView;
+        auto next = cycled.shown;
         if (!runtime.save(value)) { runtime.self().getLogger().error("Could not save minimap view"); return; }
         ui::showMessageToast(ui::translated(next == map::ViewForce::Cave ? "mapView.cave"
             : next == map::ViewForce::Surface ? "mapView.surface" : "mapView.auto"));

@@ -57,6 +57,23 @@ inline ViewForce cycleForce(ViewForce force) {
     default: return ViewForce::Auto;
     }
 }
+// L-317: the Nether's own choice. Saved 0 is "Same as others", 1-3 are
+// ViewForce + 1; anything else reads as the same as others.
+inline bool netherOverrides(int netherView) { return netherView >= 1 && netherView <= 3; }
+inline ViewForce resolveForce(int caveView, int netherView, bool nether) {
+    return nether && netherOverrides(netherView) ? static_cast<ViewForce>(netherView - 1) : viewForceOf(caveView);
+}
+// The view key changes the view used where the player is: in the Nether
+// with an override set, the override (which then never returns to 0).
+struct ViewKeyResult { int caveView, netherView; ViewForce shown; };
+inline ViewKeyResult cycleViewKey(int caveView, int netherView, bool nether) {
+    if (nether && netherOverrides(netherView)) {
+        auto next = cycleForce(static_cast<ViewForce>(netherView - 1));
+        return {caveView, static_cast<int>(next) + 1, next};
+    }
+    auto next = cycleForce(viewForceOf(caveView));
+    return {static_cast<int>(next), netherView, next};
+}
 
 // The height the cave view is drawn around. It stays put while the player
 // moves within `caveLayerSlack` blocks of it, so steps, slopes and jumps do

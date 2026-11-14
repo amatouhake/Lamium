@@ -270,8 +270,9 @@ void settingsRowsTests() {
         auto optionAt = [&](std::string_view id) { return std::ranges::find(minimapOptions, id) - minimapOptions.begin(); };
         check(minimap != rows.end() && ui::optionAction("map.caveView") == input::Action::MinimapView
               && optionAt("map.caveView") == optionAt("map.round") + 1
-              && optionAt("map.debugHide") == optionAt("map.caveView") + 1,
-              "the cave view choice follows Round, precedes Debug View hiding and carries the view key");
+              && optionAt("map.netherView") == optionAt("map.caveView") + 1
+              && optionAt("map.debugHide") == optionAt("map.netherView") + 1,
+              "the cave and Nether view choices follow Round, precede Debug View hiding, and the first carries the view key");
     }
     for (auto id : {"inventory.transferWheelOne", "inventory.transferWheelStack",
                     "inventory.transferDragStack", "inventory.transferDragOne", "inventory.transferWheelMatching",
