@@ -134,7 +134,8 @@ menu and HUD editor keep GUI units.
 - **Child settings** are indented with a vertical guide line. Expanding or
   collapsing keeps the clicked row where it was. The wheel scrolls without
   moving the selection.
-- **Sidebar** with categories; Hotkeys and Shapes are pinned at the bottom.
+- **Sidebar** with categories; Hotkeys, Shapes, Waypoints, Schematics, World
+  map and HUD layout are pinned at the bottom.
   Below 380 units the key column narrows. Search spans all categories.
 - **Scrollbars** (decided 2026-10-15): the settings list and the footer
   description show a scrollbar while they overflow; pressing or dragging it
@@ -154,9 +155,11 @@ menu and HUD editor keep GUI units.
   or a very small margin). Inventory transfer keeps it and is off for new
   installs (a saved on stays on); none of the features reviewed for 0.3.0
   keeps the badge while on by default. Radar and Waypoints remain on inside
-  the Experimental Map. Fake Offhand, Death layout restore,
-  the version-sensitive visuals, Game language, Skip server packs, Map and
-  Schematics keep the badge.
+  the Experimental Map. Which features carry the badge now is the
+  `experimental` flag in `SettingsRows.h` (2026-11-14: Block highlight,
+  Inventory transfer, Death layout restore, Enchantment order, the Map
+  features and Schematics); when it comes off is BACKLOG "Release policy"
+  (decided 2026-11-13).
 - (Decided 2026-11-13, L-328) There are two kinds of waypoint, normal and
   temporary, and nothing beside them. A death adds a waypoint named "Death
   point": a cross for its mark, red to start with, temporary unless
@@ -240,7 +243,10 @@ demo and this text differ, this text wins. The first demo
 rework came from using the first editor build (2026-09-24).
 
 Elements: **Info lines**, **Target**, **Status**, **Toast**, **Zoom
-magnification**, **Durability**, **Minimap** and **Schematic HUD**. Feature
+magnification**, **Durability**, **Minimap**, **Schematic HUD**, **Player
+list**, **Inventory**, **Used slots** and **Status effects** are Lamium's;
+**Chat**, **Paper doll**, **Scoreboard** and **Boss bars** are the game's own
+parts, in the editor only while Game HUD places them (L-334). Feature
 docs describe the contents of the latter elements. The **Debug**
 panel is fixed to the screen edges and is not an element (see its bullet).
 

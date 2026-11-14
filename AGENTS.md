@@ -103,8 +103,7 @@ Rules the code already follows; keep them:
    dimension change and focus loss.
 4. **Settings**: add a field in `Settings.h`, an entry in `Options.h`, load/save
    in `SettingsStore.cpp` (tolerate missing keys), a row in `SettingsRows.h`,
-   and English + Japanese strings in `Translations.h` plus the Simplified
-   Chinese row in `TranslationsZhCN.h`. `SettingsStoreTests`
+   and strings in all four languages (rule 6). `SettingsStoreTests`
    and `TranslationsTest` catch most omissions.
 5. **Actions**: append to `enum Action` and `actions` in `Binding.h` (never
    reorder; ids are saved), map toggles in `ToggleAction.h`, handle presses in
