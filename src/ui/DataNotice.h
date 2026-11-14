@@ -8,8 +8,8 @@ class MinecraftUIRenderContext;
 // data, or not to be shown again for this server.
 namespace lamium::ui::data_notice {
 using Kind = map::waypoints::DataKind;
-inline constexpr float bandHeight = 46;
-// The room the screen leaves for it: bandHeight while there is something to say, else 0.
+inline constexpr float bandHeight = 46; // Before it was first drawn.
+// The room the screen leaves for it: what it needed when drawn last, 0 while there is nothing to say.
 float height(Kind kind);
 // `solid`: over the world map, where nothing else is behind it.
 void draw(MinecraftUIRenderContext&, float x, float y, float width, Kind kind, glm::vec2 pointer, bool solid = false);

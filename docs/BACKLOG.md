@@ -178,10 +178,11 @@ Do not infer game success from a build or unit-test result.
   2026-11-14), and so did the Open button and child rows, the any-port
   switch releasing other ports with one port given other data afterwards,
   the marks naming the reason and same-named rows told apart (`16330f1f`).
-  Not looked at: the notice of fuller data on the Waypoints screen, the
-  Schematics screen's Placements tab and the world map (each with the
-  list still usable under it, docked too), its three buttons, and that
-  "Do not show again" holds over a rejoin.
+  The notice of fuller data passed on `f5f0dc78` on the Waypoints screen,
+  the Placements tab and the world map, with "Use this data" and "Saved
+  data". Not looked at: "Do not show again" and that it holds over a
+  rejoin; the notice at its measured height with all three buttons in the
+  list screens; the Verify and Materials tabs; docked panels.
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
@@ -453,7 +454,12 @@ Open, to agree before building:
    screens it is a band between the toolbar and the list
    (`ShapesLayout::fit`'s `notice`), docked panels included; on the world
    map it lies under the top bar at the left and takes only its own
-   presses. Not built yet: the map thumbnail.
+   presses. After its game check (2026-11-14): in the list screens' narrow
+   column the words were cut and the third button did not fit, so the
+   notice now takes the height its words and buttons need (the buttons
+   wrap to another row; the screen leaves the room measured at the last
+   draw); and it shows on the Schematics screen's Verify and Materials
+   tabs too, which show what is placed. Not built yet: the map thumbnail.
 4. Whether folders that turn out to be one server are ever merged (waypoint
    lists could be; map tiles less obviously), or only chosen between.
 Still to see: a Realm; a server whose port changes between visits.

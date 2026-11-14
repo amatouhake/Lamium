@@ -1347,7 +1347,8 @@ ShapesLayout fitSchematics(SettingsTable const& t, glm::vec2 size, bool docked) 
     // The tabs fill the toolbar, so docked, the "Show all" switch takes the row below.
     auto l = ShapesLayout::fit(t, size.x, size.y, docked, schematicRowCount(), schematicListFirst, schematicFieldCount(),
         schematicFieldFirst, false, false, true,
-        schematicTab == SchematicTab::Placements ? data_notice::height(data_notice::Kind::Placements) : 0);
+        // Placements, and Verify and Materials, which show what is placed; Files are not a world's.
+        schematicTab != SchematicTab::Files ? data_notice::height(data_notice::Kind::Placements) : 0);
     // The first action never runs into the one at the right edge.
     l.firstActionWidth = std::clamp(l.detailWidth - 2 * ShapesLayout::pad - ShapesLayout::deleteWidth - 4, 40.f, 96.f);
     // Materials has one action: the calculator link, readable across the pane.

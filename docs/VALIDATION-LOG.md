@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Notice of fuller saved data (L-343, 2026-11-14)
+
+Build `f5f0dc78`, DLL SHA-256
+`338c97d790feef4244da3f14e4344f69e9f63345bcb3ddc01049fa8f2a3b8088`, 1.26.60.05 Dev
+instance, the maintainer: the notice shows on the Waypoints screen and the Schematics screen's
+Placements tab with the list usable under it, and at the world map's upper left with the map
+still dragged and zoomed; "Use this data" switches at once and the notice goes; "Saved data"
+opens General > Saved data. Not pressed: "Do not show again", kept for later looks. Found: on
+the two list screens the words are cut ("...") and the third button is missing, the column
+being narrower than the map's notice; the Verify and Materials tabs depend on the placements
+too and show no notice.
+
 ## Saved data: Open button, any-port switch, marks (L-343, 2026-11-14)
 
 Build `16330f1f`, DLL SHA-256
