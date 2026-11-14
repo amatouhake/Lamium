@@ -1,4 +1,16 @@
 #pragma once
+// Every Lamium screen and HUD element draws through this file (and the list
+// pieces in ListViewWidgets.h). Rules, checked by scripts/Check-UiTokens.ps1:
+// - No color literals elsewhere: a missing color becomes a palette token here.
+//   Each Lamium color has one meaning: purple Experimental, yellow (warning)
+//   a warning, red a destructive action, light blue "reference, not Lamium's
+//   own content". Colors sampled from the game only match the game.
+// - A control a screen needs and this file lacks is added here, not drawn in
+//   the screen and not copied from another screen. Buttons: plain, primary
+//   (accent fill), destructive (press twice, armed in red).
+// - A control that must look or behave unlike the one here is a design
+//   question for the maintainer, not a local variant.
+// Details: docs/DESIGN.md "Visual language". Old local copies: BACKLOG L-341.
 #include <string>
 #include <string_view>
 #include <vector>

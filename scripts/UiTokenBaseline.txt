@@ -1,0 +1,27 @@
+# Check-UiTokens.ps1 baseline: kind, file, count. Only ever goes down (L-341).
+color src/ui/CalculatorView.cpp 6
+button src/ui/CalculatorView.cpp 3
+color src/ui/EnchantChooser.cpp 1
+button src/ui/EnchantChooser.cpp 2
+color src/ui/HighlightView.cpp 4
+button src/ui/HighlightView.cpp 1
+color src/ui/HudEditor.cpp 3
+button src/ui/HudEditor.cpp 3
+color src/ui/SavedDataView.cpp 5
+button src/ui/SavedDataView.cpp 1
+color src/ui/SchematicsView.cpp 8
+button src/ui/SchematicsView.cpp 5
+color src/ui/SettingsScreen.cpp 15
+button src/ui/SettingsScreen.cpp 1
+color src/ui/SettingsTableView.cpp 11
+button src/ui/SettingsTableView.cpp 7
+color src/ui/ShapesView.cpp 6
+button src/ui/ShapesView.cpp 4
+color src/ui/WaypointsView.cpp 10
+button src/ui/WaypointsView.cpp 2
+color src/features/information/HungerTrace.cpp 1
+color src/features/information/InfoHud.cpp 13
+color src/features/inventory/EnchantOrderGame.cpp 3
+color src/features/map/WaypointMarkers.cpp 4
+color src/features/map/WorldMap.cpp 25
+button src/features/map/WorldMap.cpp 10
