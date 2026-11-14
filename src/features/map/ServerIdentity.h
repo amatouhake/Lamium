@@ -70,9 +70,29 @@ struct Entry {
     // Other names found holding data for this server and not used: never
     // weighed again, and kept for the player to choose from later.
     std::vector<std::string> others;
+    // The player's switch: this address uses this data whatever the port (a
+    // server whose port changes with every visit). A record of the exact
+    // port still comes first, so one port can be given other data.
+    bool anyPort = false;
     bool operator==(Entry const&) const = default;
 };
+// A world joined without an address, for its name in the saved data list.
+struct World {
+    std::string key, name;
+    bool operator==(World const&) const = default;
+};
+struct List {
+    std::vector<Entry> servers;
+    std::vector<World> worlds;
+    bool operator==(List const&) const = default;
+};
 inline constexpr size_t maxEntries = 500, maxNames = 16;
+// The join's name (lower case; empty when the address is the bare IP).
+inline std::string nameOf(std::string_view address, std::string_view ip) {
+    std::string host = hostOf(address);
+    for (auto& c : host) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return host == ip ? std::string() : host;
+}
 // A recorded server is this join's when the port is the same and
 // - it was joined by this name before, or
 // - it is at this IP now, the level id does not say otherwise, and no name
@@ -125,6 +145,14 @@ std::string choose(std::vector<Entry>& entries, std::string_view address, std::s
         record(*matched);
         return matched->key;
     }
+    // Not recorded at this port: an address the player gave one data for every port.
+    if (!known) {
+        auto wide = std::find_if(entries.begin(), entries.end(), [&](Entry const& e) {
+            return e.anyPort && (name.empty() ? !ip.empty() && e.hosts.empty() && e.ip == ip
+                                              : std::find(e.hosts.begin(), e.hosts.end(), name) != e.hosts.end());
+        });
+        if (wide != entries.end()) return wide->key;
+    }
     // Something new: weigh the recorded key, if any, against names not recorded anywhere.
     auto recorded = [&](std::string const& key) {
         return std::any_of(entries.begin(), entries.end(), [&](Entry const& e) {
@@ -163,5 +191,80 @@ std::string choose(std::vector<Entry>& entries, std::string_view address, std::s
     if (entries.size() >= maxEntries) entries.erase(entries.begin());
     entries.push_back(std::move(next));
     return chosen;
+}
+// The player's choice (L-343 part 3): this join uses `key` from now on. Its
+// own record takes the key and remembers the one it had; another server
+// recorded under `key` keeps using it too. False when there is no address.
+inline bool assign(std::vector<Entry>& entries, std::string_view address, std::string_view ip, int port,
+                   std::string_view levelId, std::string const& key) {
+    std::string const name = nameOf(address, ip);
+    if (key.empty() || port <= 0 || port > 65535 || (name.empty() && ip.empty())) return false;
+    levelId = levelId.substr(0, 64);
+    auto matched = std::find_if(entries.begin(), entries.end(), [&](Entry const& e) { return reachedBy(e, name, ip, port, levelId); });
+    if (matched == entries.end()) {
+        if (entries.size() >= maxEntries) entries.erase(entries.begin());
+        entries.push_back({});
+        matched = entries.end() - 1;
+        matched->port = port;
+    }
+    auto& entry = *matched;
+    if (!entry.key.empty() && entry.key != key && std::find(entry.others.begin(), entry.others.end(), entry.key) == entry.others.end()) {
+        if (entry.others.size() >= maxNames) entry.others.erase(entry.others.begin());
+        entry.others.push_back(entry.key);
+    }
+    entry.key = key;
+    entry.others.erase(std::remove(entry.others.begin(), entry.others.end(), key), entry.others.end());
+    if (!name.empty() && std::find(entry.hosts.begin(), entry.hosts.end(), name) == entry.hosts.end()) entry.hosts.push_back(name);
+    if (!ip.empty()) entry.ip = std::string(ip);
+    if (!levelId.empty()) entry.levelId = std::string(levelId);
+    return true;
+}
+// The data under `key` was deleted: its records go, and nothing points at it.
+inline void forget(List& list, std::string const& key) {
+    std::erase_if(list.servers, [&](Entry const& e) { return e.key == key; });
+    for (auto& e : list.servers) std::erase(e.others, key);
+    std::erase_if(list.worlds, [&](World const& w) { return w.key == key; });
+}
+inline bool setAnyPort(std::vector<Entry>& entries, std::string const& key, bool on) {
+    bool any = false;
+    for (auto& e : entries) if (e.key == key && e.anyPort != on) { e.anyPort = on; any = true; }
+    return any;
+}
+// How a key reads in the list: "host:port" from its record, else worked out
+// of the key itself (a name from before L-343).
+inline std::string shownName(std::vector<Entry> const& entries, std::string const& key) {
+    for (auto const& e : entries)
+        if (e.key == key && e.port > 0 && !(e.hosts.empty() && e.ip.empty()))
+            return (e.hosts.empty() ? e.ip : e.hosts.back()) + ":" + std::to_string(e.port);
+    std::string_view name = key;
+    for (std::string_view scheme : {"https___", "http___"})
+        if (name.starts_with(scheme)) {
+            name.remove_prefix(scheme.size());
+            // "host_port_port": the URL's own port and the one appended.
+            if (auto last = name.rfind('_'); last != std::string_view::npos)
+                if (auto before = name.rfind('_', last - 1); before != std::string_view::npos
+                    && name.substr(before, last - before) == name.substr(last)) name = name.substr(0, last);
+            break;
+        }
+    auto split = name.rfind('_');
+    if (split == std::string_view::npos || split + 1 >= name.size()
+        || name.substr(split + 1).find_first_not_of("0123456789") != std::string_view::npos) return std::string(name);
+    return std::string(name.substr(0, split)) + ":" + std::string(name.substr(split + 1));
+}
+// Why another key may be this join's data, for the list's mark.
+enum class Maybe { No, UsedBefore, SameLevel, SameAddress };
+inline Maybe maybe(std::vector<Entry> const& entries, std::string const& current, std::string const& other) {
+    if (current.empty() || other == current) return Maybe::No;
+    auto mine = std::find_if(entries.begin(), entries.end(), [&](Entry const& e) { return e.key == current; });
+    if (mine == entries.end()) return Maybe::No;
+    if (std::find(mine->others.begin(), mine->others.end(), other) != mine->others.end()) return Maybe::UsedBefore;
+    for (auto const& e : entries) {
+        if (e.key != other) continue;
+        if (!mine->levelId.empty() && e.levelId == mine->levelId) return Maybe::SameLevel;
+        for (auto const& host : e.hosts)
+            if (std::find(mine->hosts.begin(), mine->hosts.end(), host) != mine->hosts.end()) return Maybe::SameAddress;
+        if (mine->hosts.empty() && e.hosts.empty() && !mine->ip.empty() && e.ip == mine->ip) return Maybe::SameAddress;
+    }
+    return Maybe::No;
 }
 }

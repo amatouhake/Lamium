@@ -17,8 +17,8 @@ void writeWaypoints(std::filesystem::path const&, WaypointSet const&);
 // Which key each server's data is under (L-343): one document in Lamium's
 // config folder. Entries that make no sense are dropped; another version or
 // a broken document is rejected, and is then left alone.
-std::string encodeServers(std::vector<servers::Entry> const&);
-std::vector<servers::Entry> decodeServers(std::string_view);
-std::vector<servers::Entry> readServers(std::filesystem::path const&);
-void writeServers(std::filesystem::path const&, std::vector<servers::Entry> const&);
+std::string encodeServers(servers::List const&);
+servers::List decodeServers(std::string_view);
+servers::List readServers(std::filesystem::path const&);
+void writeServers(std::filesystem::path const&, servers::List const&);
 }

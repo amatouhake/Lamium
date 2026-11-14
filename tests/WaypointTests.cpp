@@ -200,11 +200,53 @@ void storage() {
               "a server seen for the first time is named by host and port and remembered");
         check(sv::choose(fresh, "", "", 0, "id", held).empty() && sv::choose(fresh, "host", "1.2.3.4", 0, "id", held).empty(),
               "no address gives no server name");
-        check(lamium::map::decodeServers(lamium::map::encodeServers(entries)) == entries, "the server list survives saving");
+        // The player's choice (part 3).
+        std::vector<sv::Entry> picked;
+        (void)sv::choose(picked, "http://198.51.100.30:19140", "198.51.100.30", 19140, "lv", held);
+        check(sv::assign(picked, "http://198.51.100.30:19140", "198.51.100.30", 19140, "lv", "old.example.net_19140")
+              && picked.size() == 1 && picked[0].key == "old.example.net_19140"
+              && picked[0].others == std::vector<std::string>{"198.51.100.30_19140"}
+              && sv::choose(picked, "http://198.51.100.30:19140", "198.51.100.30", 19140, "lv", held) == "old.example.net_19140",
+              "a chosen key is used from then on, and the one in use before is remembered");
+        check(sv::assign(picked, "http://198.51.100.30:19140", "198.51.100.30", 19140, "lv", "198.51.100.30_19140")
+              && picked[0].key == "198.51.100.30_19140" && picked[0].others == std::vector<std::string>{"old.example.net_19140"},
+              "choosing the earlier key again goes back");
+        check(sv::maybe(picked, "198.51.100.30_19140", "old.example.net_19140") == sv::Maybe::UsedBefore
+              && sv::maybe(picked, "198.51.100.30_19140", "unrelated_1") == sv::Maybe::No
+              && !sv::assign(picked, "", "", 0, "lv", "x_1"), "a key passed over is a candidate; no address, no choice");
+        // One data for every port of an address, with one port given other data.
+        std::vector<sv::Entry> wide;
+        (void)sv::choose(wide, "realm.example.net", "203.0.113.70", 30001, "r", held);
+        check(sv::choose(wide, "realm.example.net", "203.0.113.71", 30002, "r", held) == "realm.example.net_30002"
+              && sv::maybe(wide, "realm.example.net_30002", "realm.example.net_30001") == sv::Maybe::SameLevel,
+              "another port is another server until the player says otherwise, and reads as a candidate");
+        std::erase_if(wide, [](sv::Entry const& e) { return e.port == 30002; });
+        check(sv::setAnyPort(wide, "realm.example.net_30001", true)
+              && sv::choose(wide, "realm.example.net", "203.0.113.72", 30003, "r", held) == "realm.example.net_30001"
+              && wide.size() == 1 && wide[0].port == 30001, "with the switch on, any port of that address uses the data");
+        check(sv::assign(wide, "realm.example.net", "203.0.113.72", 30004, "other", "elsewhere_30004")
+              && sv::choose(wide, "realm.example.net", "203.0.113.72", 30004, "other", held) == "elsewhere_30004"
+              && sv::choose(wide, "realm.example.net", "203.0.113.72", 30005, "r", held) == "realm.example.net_30001",
+              "a port given other data keeps it; the rest still follow the switch");
+        check(sv::choose(wide, "stranger.example.net", "203.0.113.72", 30006, "r", held) == "stranger.example.net_30006",
+              "the switch is for the address it was set on");
+        check(sv::shownName(wide, "realm.example.net_30001") == "realm.example.net:30001"
+              && sv::shownName({}, "http___198.51.100.20_19133_19133") == "198.51.100.20:19133"
+              && sv::shownName({}, "play.example.net_19133") == "play.example.net:19133"
+              && sv::shownName({}, "world_41") == "world:41" , "a key reads as host and port");
+        sv::List all{wide, {{"world_41", "A friend's world"}}};
+        check(lamium::map::decodeServers(lamium::map::encodeServers(all)) == all, "the server list survives saving");
+        sv::forget(all, "realm.example.net_30001");
+        sv::forget(all, "world_41");
+        check(all.worlds.empty() && std::none_of(all.servers.begin(), all.servers.end(), [](sv::Entry const& e) {
+                  return e.key == "realm.example.net_30001"
+                      || std::find(e.others.begin(), e.others.end(), "realm.example.net_30001") != e.others.end(); }),
+              "deleted data leaves no record pointing at it");
         auto cleaned = lamium::map::decodeServers(
-            R"({"version":1,"servers":[{"key":"../x","port":1},{"key":"ok_1","port":1,"hosts":["a",5]},{"key":"p","port":0}]})");
-        check(cleaned.size() == 1 && cleaned[0].key == "ok_1" && cleaned[0].hosts == std::vector<std::string>{"a"},
-              "entries that could leave the folder or make no sense are dropped");
+            R"({"version":1,"servers":[{"key":"../x","port":1},{"key":"ok_1","port":1,"hosts":["a",5]},{"key":"p","port":0}],
+                "worlds":[{"key":"a/b","name":"n"},{"key":"world_1","name":"n"}]})");
+        check(cleaned.servers.size() == 1 && cleaned.servers[0].key == "ok_1" && cleaned.servers[0].hosts == std::vector<std::string>{"a"}
+              && cleaned.worlds.size() == 1, "entries that could leave the folder or make no sense are dropped");
         bool rejected = false;
         try { (void)lamium::map::decodeServers(R"({"version":2})"); } catch (...) { rejected = true; }
         check(rejected, "another version of the server list is rejected");

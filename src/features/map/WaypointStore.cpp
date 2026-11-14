@@ -80,19 +80,27 @@ WaypointSet readWaypoints(std::filesystem::path const& path) {
 void writeWaypoints(std::filesystem::path const& path, WaypointSet const& set) {
     writeFileReplacing(path, encodeWaypoints(set), "waypoints");
 }
-std::string encodeServers(std::vector<servers::Entry> const& entries) {
-    Json list = Json::array();
-    for (auto const& e : entries)
-        list.push_back({{"key", e.key}, {"hosts", e.hosts}, {"ip", e.ip}, {"port", e.port}, {"levelId", e.levelId},
-                        {"others", e.others}});
-    return Json{{"version", 1}, {"servers", std::move(list)}}.dump(2);
+namespace {
+// A key is a file name written by keyOf or worldKey: nothing that could leave the folder.
+bool safeKey(std::string const& key) {
+    return !key.empty() && key.size() <= 140 && key.find_first_of("/\\:") == std::string::npos && key != ".." && key != ".";
 }
-std::vector<servers::Entry> decodeServers(std::string_view text) {
+}
+std::string encodeServers(servers::List const& all) {
+    Json list = Json::array(), worlds = Json::array();
+    for (auto const& e : all.servers)
+        list.push_back({{"key", e.key}, {"hosts", e.hosts}, {"ip", e.ip}, {"port", e.port}, {"levelId", e.levelId},
+                        {"others", e.others}, {"anyPort", e.anyPort}});
+    for (auto const& w : all.worlds) worlds.push_back({{"key", w.key}, {"name", w.name}});
+    return Json{{"version", 1}, {"servers", std::move(list)}, {"worlds", std::move(worlds)}}.dump(2);
+}
+servers::List decodeServers(std::string_view text) {
     if (text.size() > maxDocument) throw std::length_error("Server list document exceeds size limit");
     auto root = Json::parse(text);
     if (!root.is_object() || integer(root.value("version", Json()), 0) != 1)
         throw std::invalid_argument("Unsupported server list document");
-    std::vector<servers::Entry> entries;
+    servers::List all;
+    auto& entries = all.servers;
     auto names = [](Json const& entry, char const* field) {
         std::vector<std::string> out;
         if (auto found = entry.find(field); found != entry.end() && found->is_array())
@@ -106,18 +114,23 @@ std::vector<servers::Entry> decodeServers(std::string_view text) {
             servers::Entry e;
             e.key = entry.value("key", std::string());
             e.port = integer(entry.value("port", Json()), 0);
-            // A key is a file name written by keyOf: nothing that could leave the folder.
-            if (e.key.empty() || e.key.size() > 120 || e.key.find_first_of("/\\:") != std::string::npos || e.key == ".."
-                || e.key == "." || e.port <= 0 || e.port > 65535) continue;
+            if (!safeKey(e.key) || e.port <= 0 || e.port > 65535) continue;
             e.hosts = names(entry, "hosts");
             e.others = names(entry, "others");
             if (auto ip = entry.find("ip"); ip != entry.end() && ip->is_string()) e.ip = ip->get<std::string>();
             if (auto id = entry.find("levelId"); id != entry.end() && id->is_string()) e.levelId = id->get<std::string>();
+            if (auto wide = entry.find("anyPort"); wide != entry.end() && wide->is_boolean()) e.anyPort = wide->get<bool>();
             entries.push_back(std::move(e));
         }
-    return entries;
+    if (auto found = root.find("worlds"); found != root.end() && found->is_array())
+        for (auto const& entry : *found) {
+            if (!entry.is_object() || all.worlds.size() >= servers::maxEntries) continue;
+            servers::World w{entry.value("key", std::string()), entry.value("name", std::string())};
+            if (safeKey(w.key)) all.worlds.push_back(std::move(w));
+        }
+    return all;
 }
-std::vector<servers::Entry> readServers(std::filesystem::path const& path) {
+servers::List readServers(std::filesystem::path const& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) throw std::runtime_error("Could not open server list document");
     std::string text(maxDocument + 1, '\0');
@@ -126,7 +139,7 @@ std::vector<servers::Entry> readServers(std::filesystem::path const& path) {
     text.resize(static_cast<size_t>(file.gcount()));
     return decodeServers(text);
 }
-void writeServers(std::filesystem::path const& path, std::vector<servers::Entry> const& entries) {
-    writeFileReplacing(path, encodeServers(entries), "server list");
+void writeServers(std::filesystem::path const& path, servers::List const& all) {
+    writeFileReplacing(path, encodeServers(all), "server list");
 }
 }
