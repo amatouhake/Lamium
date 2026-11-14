@@ -1,222 +1,184 @@
-# Schematic controls redesign
+# Schematic controls
 
-Status: design discussion, 2026-10-20, all recommendations adopted. L-231 is
-implemented and merged (PR #36, merge commit `780bfba`); its in-game checklist
-passed on 2026-10-21 (build `89c7925`). L-234 is merged (PR #37, merge commit
-`75152f1`) after in-game checks. L-236 (per-section ghost reuse) is a
-follow-up; L-237 (missing-structure warning) is done. L-238 (menu and key parity,
-2026-10-22) is implemented and its in-game check passed (`41d3ea7`). This note records the
-agreed direction; the items under "Open questions" remain undecided.
+Current contract, rewritten 2026-11-14; earlier records: `git show 10d58d01:docs/SCHEMATIC-CONTROLS.md`.
 
-[SCHEMATIC.md](SCHEMATIC.md) still describes the behavior in the game today;
-[BACKLOG.md](BACKLOG.md) owns task status (L-231 controls, L-234 layer model,
-L-238 menu and keys, L-239 mode memory).
+How the player moves, turns and slices schematic placements and the save
+area: the move target, view-directed steps, the radial menu, Repeat, the
+cut-plane layers and how they are saved, and the looked-at selection.
+Everything else about Schematics (files, ghosts, check, materials, area save,
+screen) is in [SCHEMATIC.md](SCHEMATIC.md); shared control rules are in
+[DESIGN.md](DESIGN.md#controls).
 
-## Problems seen in game
+Settings (Schematics category): the menu opener ("Schematic menu") with
+`schematic.menuBackground` (none / light / dark, default light),
+`schematic.menuSmall` (small in the lower right, default on) and
+`schematic.menuReopen` (reopen where it was closed, default off); Repeat
+("Repeat the last adjustment", a Hold action) with
+`schematic.repeatAllSteps` (default off). Every operation also has a
+bindable action; the only default binding is Alt+Wheel up/down for
+moving the target away/closer.
 
-- The six direction keys always move the selected placement, while the radial
-  menu moves a separate move target (placement, corner 1, corner 2, save
-  area). The same directions mean different things on the two surfaces.
-- Corner and area targets cannot be moved from keys, and the move target is
-  invisible once the menu closes.
-- "Repeat the last adjustment" records only menu steppers and includes the
-  layer axis and mode, so a wheel turn can change the layer model by accident.
-- Layers are six combined directions plus a mode and a zero-based index from
-  the chosen side. The direction decides both the numbering origin and the
-  "up to" side, which is hard to read and does not fit a view-based control.
-- The radial menu's Area category holds seven items, more than any other
-  child category.
-- Every schematic key is unbound, so the quick paths are hard to find.
-
-## Adopted direction
+## Behavior
 
 ### Move target
 
-- One move target shared by keys and the menu: placement, corner 1, corner 2,
-  the save area.
-- One Press action cycles the target; the looked-at selection can also set it.
-- The six direction keys, the menu movement steppers and the move toasts act
-  on the target. Rotate/mirror and the layer controls stay settings of the
-  selected placement.
-- The move-to-feet command uses the view source: the player's feet normally
-  and the camera's virtual feet (its height minus the player's eye height) in
-  Freelook/FreeCamera. Layer-here follows the same rule, and corners are set at
-  the block the view (or camera) hits.
-- The settings group is "Move target and placement"; the target key is
-  "Select the next move target", placed next to "Select the next placement".
-- The move-to-feet key acts on the current target like the menu's item: the
-  placement origin, corner 2, or the area (corner 1 to the feet and corner 2
-  follows). With no target it toasts. The help says "Move the target to your
-  feet"; the action id stays.
-- Display: the target name in the schematic HUD when it is on, the target's
-  frame or mark emphasized in the world, and the target named in move toasts.
-  The HUD is optional, so the HUD-off case relies on the frame/mark and the
-  toasts. Where the placement and area frames overlap, the active frame is
-  drawn last with a brighter or thicker stroke.
-- Cycle only valid targets: the placement when one is selected, a corner when
-  it is set, the area when both corners are set. An explicit **no target**
-  state exists when nothing is valid.
-- After a delete, area clear, visibility change or placement selection,
-  revalidate the target and take the first valid one in this order: placement
-  (when selected), corner 1, corner 2, area, else no target.
-- With no target, the direction keys toast that there is nothing to move and
-  the HUD shows `Move target: none`; the target key cycles to the next valid
-  target and names it.
-- Reset to the placement on world/dimension change and when a placement is
-  selected or placed.
-- The looked-at selection extends "select the placement you look at" with the
-  ray and distance rules below.
+- One move target shared by keys and the menu: the selected placement,
+  corner 1, corner 2 or the save area. The six direction keys, the menu's
+  movement steppers and the move toasts act on it. Rotate/mirror and the
+  layer controls always act on the selected placement.
+- "Select the next move target" (next to "Select the next placement" in the
+  "Move target and placement" group) cycles only valid targets: the
+  placement when one is selected, a corner when it is set, the area when
+  both corners are set. With nothing valid there is an explicit **no
+  target** state: direction keys toast that there is nothing to move and
+  the target key names the next valid target when one appears.
+- After a delete, area clear, visibility change or placement selection, the
+  target is revalidated and falls to the first valid one in the order
+  placement, corner 1, corner 2, area, else no target. World/dimension
+  change and selecting or placing a placement reset it to the placement.
+- Move to feet acts on the current target: the placement origin, corner 2,
+  or the area (corner 1 to the feet, corner 2 follows). With no target it
+  toasts. The help says "Move the target to your feet"; the action id stays.
+- The view source: the player's feet normally, the camera's virtual feet
+  (camera height minus the player's eye height) when Freelook or FreeCamera
+  owns the view. Move to feet, Cut here and the screen's "Layer here" use
+  it; corners are set at the block the view (or camera) hits.
+- Display (decided): the target named in move toasts, in the schematic HUD
+  when the HUD is on, and its frame or mark emphasized in the world; where
+  placement and area frames overlap, the active one is drawn last and
+  brighter or thicker. Not all of it is built (see Limits).
+
+### View-directed steps
+
+Decided with L-230: all six directions come from one camera frame. Forward
+and back step along the view's dominant axis and move on Y past 60 degrees
+up or down; left/right stay horizontal; up/down are right x forward, so
+they are world Y with a level-ish view and take the horizontal direction
+once forward turns vertical. Each step is decided per input, with no gesture
+lock or hysteresis. A detached Freelook or FreeCamera view owns the
+direction. Press actions can be bound to wheel chords (Alt with a wheel
+direction); Hold actions cannot.
 
 ### Repeat the last menu adjustment
 
-- Repeats the adjustment last used in the schematic menu: movement,
-  rotate/mirror and the layer index. Key actions do not replace it, so a menu
-  layer change stays repeatable after a key move.
-- The option **Repeat every menu step** (`schematic.repeatAllSteps`, default
-  off) adds the layer axis, mode and keep side. The target picker and
-  placement selection are never repeated.
-- The memory stores the **kind** of adjustment, not its last sign; the wheel
-  direction chooses the sign. After a back step, adjust + wheel up moves
-  forward. The toast names the value.
-- Clear the memory on target change, another placement selection,
-  world/dimension change, feature disable and session reset, so a rotate done
-  on the placement cannot repeat after the context changed. A failed operation
-  does not update it; stopping the feature clears it.
-- A successful view slice sets the memory to the layer cut (L-234), so the next
-  adjust plus wheel moves the cut.
-- Rotate, mirror and layer operations still act on the selected placement; the
-  repeat toast names the operation and what it acts on.
+- Held with the wheel, Repeat repeats the kind of adjustment last used in
+  the menu: movement, rotate/mirror or the layer cut. Key actions do not
+  replace it, so a menu layer change stays repeatable after a key move.
+- `schematic.repeatAllSteps` adds the layer axis, mode and keep side. The
+  target picker and the placement selection are never repeated.
+- The memory stores the kind, not the sign; the wheel direction picks the
+  sign (after a back step, adjust + wheel up moves forward). The toast names
+  the value and what it acts on.
+- Cleared on target change, another placement selection, world/dimension
+  change, feature disable and session reset. A failed or refused operation
+  does not update it.
 
 ### Corners and default keys
 
-- Corner 1 and corner 2 keep separate actions. A setter is often re-run after
-  the view moves, so merging them would hurt.
-- Default binding only for forward/back: Alt + Wheel up/down. No corner
-  defaults and no edit mode in this round.
-- While Schematics is off, the default chord is still consumed and shows the
-  turn-it-on toast. Accepted for this round; revisit when Schematics leaves
-  Experimental or if it annoys non-users (gating the input on the feature
-  switch is the alternative).
-- The schematic menu defaults to the small lower-right layout
-  (`schematic.menuSmall` default on), so it does not cover the crosshair.
+- Corner 1 and corner 2 keep separate actions: a setter is often re-run
+  after the view moves.
+- Only Alt+Wheel up/down (move away/closer) is bound by default; Lamium binds
+  few keys, and a wheel binding is hard to discover in the key settings. No
+  corner defaults and no edit mode.
+- With Schematics off the default chord is still consumed and shows the
+  turn-it-on toast. Accepted; revisit when Schematics leaves Experimental or
+  if it bothers non-users (gating the input on the feature is the
+  alternative).
+- The menu defaults to the small lower-right layout so it does not cover
+  the crosshair.
 
 ### Layers: a cut plane
 
-- Replace the six-direction model with **Axis** (Y / X / Z), **Cut**,
-  **Keep** (low/high) and **Mode** (all / only / up to).
+- A placement's layer view is **Axis** (Y / X / Z), **Cut**, **Keep**
+  (low / high) and **Mode** (All / Only / Up to).
 - The plane is attached to the **structure**: Cut is a structure-local offset
   from the low corner along the structure's own axis. Moving, rotating or
   mirroring the placement keeps the same build cells visible; the world plane
-  turns with the placement. The screen shows the layer number and the extent;
-  no world coordinate is stored.
-- **Keep** is used by "up to": low shows cells at or below the cut, high at or
-  above. "Only" shows the one layer at the cut; "all" ignores the cut. The
-  placed screen has its own Keep row, so both sides can be chosen without the
-  radial menu.
-- The Layers menu is **Axis / Cut / Mode / Keep / Cut here**. Show all is
-  dropped because Mode already has All. Keep is a stepper (low / high); in
-  only/all it has no visible effect but stays editable for "up to".
-- Cut here keeps the axis and keep, sets the cut to the view source's layer
-  along that axis (the player's feet in normal play, the camera's virtual feet
-  in FreeLook/FreeCamera), then leaves All for the mode in which the cut,
-  Keep or Axis was last changed (Only by default; L-239, checked in game on
-  `fce4b99`). Modes only viewed or passed through and edits under
-  All do not update the memory. The memory belongs to each placement for the
-  world session and is not saved.
-- Menu Cut steps, Layer up/down keys and screen Cut +/- first leave All
-  without moving the cut. The screen's match-layer command and typed cut
-  set the cut, then leave All like Cut here. A key/menu cut operation that
-  leaves All announces the resulting mode; the screen keeps its own message
-  line. Rejoining forgets the remembered mode and defaults to Only.
-- Changing the axis **keeps the Cut**, clamped to the new extent. Only Cut here
+  turns with it. The screen shows the layer number and the extent.
+- Up to shows cells at or below the cut (Keep low) or at or above it (Keep
+  high); Only shows the one layer at the cut; All ignores the cut. Keep stays
+  editable under Only/All. The Placed tab has its own Keep row.
+- Changing the axis keeps the Cut, clamped to the new extent. Only Cut here
   moves the plane to the view source.
-- **View slice is removed** (2026-10-21): it overlapped Axis and Cut here,
-  changed Only/Keep as a side effect, and the axis has only three values. A
-  later "Axis from view" shortcut can be considered separately.
-- A single plane cannot express a compound cut (for example X here and Y
-  here). This is a documented limitation, not something this round adds.
+- Cut here keeps axis and keep, sets the cut to the view source's layer,
+  then leaves All. Menu Cut steps, Layer up/down keys and the screen's Cut
+  +/- first leave All without moving the cut; "Layer here" and a typed cut
+  set the cut, then leave All.
+- Leaving All returns to the mode in which the cut, Keep or Axis was last
+  changed, Only by default (L-239). Modes only viewed or passed through and
+  edits under All do not update that memory. It belongs to each placement
+  for the world session, is not saved, does not enter the ghost key, and
+  rejoining resets it to Only.
+- Keys and menu announce the resulting mode when they leave All; the screen
+  keeps its own message line.
 - Check and Materials read the same cut region; a change restarts the check
-  once.
+  once. A single plane cannot express a compound cut (X here and Y here);
+  that is a documented limit.
 
 ### Storage and migration
 
-- Keep the document at `version: 1`. Add a separate per-placement object,
+- The placements document stays `version: 1`. A placement carries
   `layerView: { space: "structure", axis: "y"|"x"|"z", cut: <offset>,
-  keep: "low"|"high", mode: "all"|"only"|"upTo" }`, in **structure-local**
-  coordinates. The old six-direction `layerAxis` key cannot be reused: an older
-  Lamium would read a different direction.
-- A `layerView` without `space: "structure"` (written by the first cut-plane
-  build) is ignored in favor of its old fields, which carry the same view; the
-  next layer edit writes the marked form.
-- Leave the legacy `layerAxis`/`layerMode`/`layer` fields for older readers.
-  Older Lamium ignores `layerView`; the new reader prefers it.
-- When the structure is known, **always** dual-write the exact legacy fields.
-  They are placed-box based, so the structure-local plane is mapped through
-  the current rotation and mirror: low/only uses the low or high direction
-  with `index` counted from that side. An older Lamium then shows the same
-  cells under the same placement.
-- Never convert without the size: a placement whose structure is missing keeps
-  its legacy fields and is written back unchanged; other placements can still
-  be saved. `layerView` is added when the layer view is next edited while the
-  size is known; unrelated saves keep the legacy fields.
-- Cut edits are allowed only while the size is known, so the legacy fields are
-  never stale. Without the size the screen says the layer view cannot be edited
-  yet. The same applies to turning or resetting a placement whose cut plane is
-  in the new form: the old `layer` index depends on the extent and the
-  rotation, so the command refuses without the structure. A still-legacy
-  placement can turn normally because old and new readers both use its old
-  fields.
-- A mixed file round-trips both forms. Rollback to an older Lamium reads the
-  last legacy fields and shows the same view.
+  keep: "low"|"high", mode: "all"|"only"|"upTo" }` in structure-local
+  coordinates. The old `layerAxis` key is not reused: an older Lamium would
+  read a different direction.
+- The legacy `layerAxis`/`layerMode`/`layer` fields stay for older readers.
+  Older Lamium ignores `layerView`; the current reader prefers it. A
+  `layerView` without `space: "structure"` is ignored in favor of its old
+  fields; the next layer edit writes the marked form.
+- When the structure is known, the exact legacy fields are always written
+  too, mapped through the current rotation and mirror (placed-box based: the
+  low or high direction with `index` counted from that side), so an older
+  Lamium shows the same cells.
+- Never convert without the size: a placement whose structure is missing
+  keeps its legacy fields and is written back unchanged; `layerView` is added
+  at the next layer edit with the size known. Cut edits, and turning or
+  resetting a placement already in the new form, are refused without the
+  structure ("the layer view cannot be edited yet"). A still-legacy
+  placement turns normally.
+- A mixed file round-trips both forms; rollback reads the last legacy fields
+  and shows the same view.
 
 ### Looked-at selection
 
-- Use the same drawn view ray as movement: the detached camera when one owns
-  the view, otherwise the player's eye and view.
-- A corner wins when the ray passes through its **block cell**, even when the
-  cell is air. The nearest corner entry wins; when both corners share a cell,
-  keep the current corner if it is one, else corner 1.
-- Otherwise the nearest placement box entry wins; then the save area when the
-  ray enters its box (in the air too). A placement hit inside the area is
-  therefore chosen over the area.
-- A block that fully hides what is behind it occludes these targets; glass,
-  plants and other see-through blocks do not. A target on, in front of, or
-  overlapping the opaque block stays selectable; only a block strictly between
-  the view and the target hides it. Water and lava are looked through.
-- Rebuilding a ray from the eye is exact for the cell tests; setting a corner
-  keeps using the game's crosshair in normal play so the outlined block and the
-  corner agree at seams.
-- Looking at nothing selectable reports "No move target where you look".
+"Select what you look at" chooses the move target:
+- The ray is the drawn view: the detached camera when one owns the view,
+  otherwise the player's eye.
+- A corner wins when the ray passes through its block cell, even in air; the
+  nearest corner entry wins; when both corners share a cell, keep the current
+  corner if it is one, else corner 1.
+- Otherwise the nearest placement box entry wins, then the save area when the
+  ray enters its box. A placement inside the area is chosen over the area.
+- A block that fully hides what is behind it occludes targets strictly
+  behind it; glass, plants, water and lava do not. A target on, in front of,
+  or overlapping the opaque block stays selectable.
+- Setting a corner keeps using the game's crosshair hit in normal play, so
+  the outlined block and the corner agree at seams.
+- Nothing selectable: "No move target where you look".
 
-## Third review (2026-10-20, adopted)
+### Menu and key parity
 
-The four points were adopted the same day and are folded into the sections
-above; nothing remains proposed.
-
-## Menu and key parity (2026-10-22, adopted, L-238)
-
-Goal (maintainer): the schematic operations are easy to understand and use
-from the radial menu, from keys, or both, as the player chooses. Neither path
-is required for any operation.
-
-### Principles
-
+Decided with L-238 (maintainer: every schematic operation is easy from the
+radial menu, from keys, or both; neither path is required):
 1. **Either path completes every operation.** Each operation has a bindable
-   action and a menu route. An operation counts as reachable when its path
-   achieves it, directly or not: keys reach corners and the area as move
-   targets through the looked-at selection and the target cycle, so no
-   per-target key is added.
-2. **Accelerators need no counterpart.** Opening the menu and Repeat speed up
-   the menu path; cycling the move target speeds up the key path. Repeat
-   stays a key only: it exists to avoid reopening the menu.
-3. **One vocabulary.** The menu and the key settings use the same names, the
-   same groups and the same order.
-4. **The menu teaches the keys.** A menu item shows its bound key, if any.
+   action and a menu route. Keys reach corners and the area through the
+   looked-at selection and the target cycle, so there is no per-target key.
+2. **Accelerators need no counterpart.** Opening the menu or the screen and
+   Repeat speed up the menu path; cycling the target speeds up the key path.
+   The Check rules (L-262, L-303) stay in the settings with optional keys
+   and have no menu item.
+3. **One vocabulary.** Menu and key settings share names, groups and order.
+4. **The menu teaches the keys.** The hovered item's bound keys show above
+   the ring, with the Repeat pointer (in the center a long chord would widen
+   the whole ring).
 
-### Menu: six categories of five or six items
-
-Eight categories of three to seven items felt either sparse or crowded; the
-target is five or six per category.
+The menu is two levels: categories, then their items. Click runs an item,
+the wheel over a stepper changes it, right click goes back, the menu key or
+Esc closes it. The game keeps running; the menu only takes the mouse. It
+opens at the category list, or with `menuReopen` where it was closed.
+Items spread out from 55% of the ring over 0.15 s with ease-out, following
+the Animations setting. Names, file picking and delete confirmation stay on
+the screen; absolute X/Y/Z are not in the menu.
 
 | Category | Items |
 |---|---|
@@ -227,109 +189,79 @@ target is five or six per category.
 | Area | Corner 1 at the looked block, Corner 2 at the looked block, Move area →, Save, Clear |
 | Screen | Place from a file…, Placed list…, Check tab, Materials tab, Schematic HUD, Key settings |
 
-L-266 (2026-10-26): the HUD switch moved from Show and check to Screen to
-make room for Mistake marks; the three Check rules (signal, on/off as a
-wrong state, plant growth) stay out of the menu, in the settings with an
-optional key.
+- Five or six items per category (eight categories of three to seven felt
+  sparse or crowded). "Move placement/area →" set the target and open Move.
+- With Schematics off the menu opens at Show and check with a toast and runs
+  only the feature switch, the HUD switch and the screen items
+  (`worksWhileOff`); schematic keys toast how to turn the feature on.
+- Menu items are not saved ids; reordering only moves the remembered open
+  level.
+- Key settings: the switch rows at the top (Schematics, HUD, menu, Repeat,
+  screen), then groups in the menu's order and names: Move, Placement,
+  Layers, Show and check, Area, Screen, plus Check for the rule switches.
+  Groups are display only; saved bindings are unaffected.
+- No reverse keys for Mirror, Axis, Mode or Keep: they cycle two or three
+  states.
+- Placement toggle toasts name what changed ("Show placement on").
 
-- Turn merges into Placement: rotation and mirror are settings of the
-  selected placement.
-- Area drops "Move corner 1/2 →"; the Move category's target stepper and the
-  looked-at selection choose a corner.
-- Check splits: Extra blocks and Nearest mistake go to Show and check; the
-  tab openers go to Screen. The duplicated Check and Materials tab items in
-  Screen go away; "Place from a file…" and "Placed list…" (was "Delete a
-  placement…") stand for the Files and Placed tabs.
-- Renames: "This placement" becomes "Show selected placement"; "Corner 1/2
-  here" names the looked block (the command always used it).
-- Menu items are not saved ids, so reordering only moves the remembered
-  open level.
+Long names: every ring plate takes the width of the widest label of all
+categories (`renderSchematicMenu`) and the radius grows with it
+(`RadialLayout::at`), unclamped to the screen. Menu labels are separate
+translation keys from the key-setting labels and stay short in every
+language; a pure test sizes the ring for the widest label at a 480x253 GUI
+screen.
 
-### Keys: the same groups plus General
+## Code
 
-General (open the menu, open the Schematics screen, Repeat), then Move,
-Placement, Layers, Show and check, Area, Screen, in the menu's order. Groups
-are display only; saved bindings are unaffected.
+- `src/features/schematic/SchematicActions.cpp`: key presses (`press`), menu
+  steps (`step`) and commands (`run`), the move target and the Repeat memory
+  (`remembered`), lifecycle resets.
+- `MoveTarget.h` (valid targets, cycling), `MoveDirection.h` (view frame),
+  `TargetRay.h` (corner/area entry, occlusion): pure, tested.
+- `Placement.h`: mirror then clockwise quarter turns, the cut plane
+  (`cutAlong`, `withAxis`, `leaveAll`, `noteLayerEdit`), legacy conversion
+  (`fromLegacy`, `dualWrite`). `PlacementStore.cpp`: `schematics.json`.
+- `MenuModel.h`: categories, items, the keys each item names,
+  `worksWhileOff`, `keyOnlyAccelerator`. `src/ui/RadialLayout.h`: ring
+  geometry, hit test, `spread`. `src/ui/SettingsScreen.cpp`
+  (`renderSchematicMenu`) draws it.
+- Actions in `src/input/Binding.h` (groups `schematicMove`,
+  `schematicPlacement`, `schematicLayers`, `schematicShow`, `schematicSave`,
+  `schematicScreen`, `schematicCheck`); the default chord is set there.
+- `tests/SchematicTests.cpp`: the above, every-key-has-an-item, the ring fit,
+  and the old-to-new layer conversion showing the same cells.
+  `LAMIUM_MIGRATE_PLACEMENTS` (a world's `lamium/schematics.json`) with
+  `LAMIUM_MIGRATE_SCHEMATICS` (`mods/Lamium/schematics`) makes `LamiumTests`
+  report each placement's old/new visible-cell counts and dual-write result.
 
-New actions, appended and unbound: Reset rotation and mirror, Rotate
-counterclockwise, Previous placement, Show selected placement, Extra blocks,
-Entities, Clear area, Open key settings. No reverse keys for Mirror, Axis,
-Mode or Keep: they cycle two or three states, so the forward key reaches
-every state in one or two presses.
+## Known
 
-Default keys stay Alt+Wheel only (move the target away/closer). Lamium binds
-few keys by default; that one exists because a wheel binding is hard to
-discover in the key settings.
+- The ghost key covers only visible layer fields (All ignores the cut, Only
+  ignores Keep, Up to uses both), so editing an unused field saves without
+  rebuilding ghosts. Moving the cut still rebuilds the whole placement.
 
-### Long names
+## Tried
 
-Every ring plate takes the width of the widest label of all categories
-(`renderSchematicMenu`), and the ring radius grows with that width
-(`RadialLayout::at`), so one long label enlarges the whole ring in that
-language. The ring is not clamped to the screen. Keep menu labels short in
-English, Japanese and Chinese (they are separate keys from the longer key
-setting labels), and add a pure check that the ring for the widest label
-still fits a small GUI screen (for example 480x253) before relying on it.
+- Six combined directions plus a zero-based index as the layer model: the
+  direction decided both the numbering origin and the "up to" side, hard to
+  read and unfit for view-based control. Replaced by the cut plane (L-234).
+- A "View slice" command: it overlapped Axis and Cut here, changed Only/Keep
+  as a side effect, and the axis has only three values. Removed; an "Axis
+  from view" shortcut can be considered separately.
+- Direction keys that always moved the placement while the menu moved its own
+  target: the same directions meant different things. One shared target now.
+- Repeat that recorded layer axis and mode by default: a wheel turn changed
+  the layer model by accident.
+- Reusing `layerAxis` for the new model: older Lamium would misread it.
 
-### As built (2026-10-22)
+## Limits
 
-- Each menu item names its keys in `MenuModel.h`; a test checks that every
-  schematic key has an item and every item a key, except the accelerators
-  (menu, screen, Repeat; "Move placement/area →").
-- The hovered item's bound keys show **above the ring**, with the Repeat
-  pointer, not in the center: a long chord would otherwise widen the center
-  and with it the whole ring.
-- The Schematics on/off and HUD keys stay on their switch rows at the top of
-  the key settings (with the menu, Repeat and screen keys); the key groups
-  below follow the menu: Move, Placement, Layers, Show and check, Area,
-  Screen. Group names reuse the menu's category labels.
-- The long-name check estimates text (ASCII about 6 units, CJK about 9) and
-  sizes the ring as the menu does; at 480x253 it failed for English, so the
-  longest labels became "Current placement", "Move placement >", "Looked-at
-  target" and "Place a file...".
-- Placement-toggle toasts now name what changed ("Show placement on").
-
-## Open questions
-
-- L-236 (per-section ghost reuse) is a separate follow-up; L-237
-  (missing-structure warning) is done. L-238 is done; finer adjustments are expected only
-  from use.
-
-## Suggested order
-
-From the 2026-10-20 reviews, for the maintainer to confirm:
-
-1. **L-231 first (done)**: move target, target display and repeat cleanup with
-   the current layer model, so the operation feel can be checked before the layer
-   model changes. Merged in PR #36.
-2. **L-234 as a separate step**: prove with pure logic that the conversion from
-   every old direction and mode shows the same cells, then implement the cut
-   plane and the storage form. Merged in PR #37 (2026-10-22).
-3. **L-238 menu and key parity** (2026-10-22): one set of operations for
-   the radial menu and the keys; see "Menu and key parity".
-4. **Then inspection work**: L-183's single-row ignore first; L-190's
-   multi-selection after it, sharing only the parts that fit. L-185 stays a
-   separate, larger task.
-
-## Not in this round
-
-- Item-based operation and a persistent edit mode.
-- The Files/Check 3D preview's own layer peel.
-- Other check or material semantics.
-
-## Files likely touched
-
-`Placement.h`, `PlacementStore.cpp`, `GhostBlocks.cpp`, the verification and
-materials paths, `MenuModel.h`, `SchematicActions.cpp`, `SchematicsView.cpp`,
-the three-language help, and `tests/SchematicTests.cpp`.
-
-## Review
-
-Three independent reads were returned on 2026-10-20. The second found the
-`layerAxis` key collision in the first migration proposal, the missing repeat
-setup after a slice, target invalidation after delete/clear, and the
-distance/view-source gap in the looked-at selection. The third found the
-corner-inside-the-box selection gap, the missing move-to-feet unification, the
-undefined Cut-here/axis handover, and the incomplete repeat clearing. All are
-adopted above. A prototype may live on a separate branch; main keeps today's
-behavior until the design settles.
+- Not built from the display rule: the target line in the schematic HUD and
+  the emphasized target frame in the world ([VALIDATION](VALIDATION.md),
+  Schematics row).
+- Up to rebuilds every section of a large placement on each cut step:
+  [L-236 Rebuild only the ghost sections whose visible layer changed](backlog/L-236.md).
+- Shared controls with other features: [L-111 Integration between features: remaining shared controls](backlog/L-111.md).
+- Out of scope: item-based operation, a persistent edit mode, a layer peel
+  in the 3D previews' own controls (that is [L-114 3D previews in the schematic screen](backlog/L-114.md)).
+- In-game coverage: [VALIDATION.md](VALIDATION.md), Schematics row.

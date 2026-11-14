@@ -1,650 +1,271 @@
-# Detached camera implementation notes
-
-Freelook and FreeCamera are disabled and unbound by default.
-Both passed local runtime checks. Current product behavior is in
-[Camera](#camera-decided-2026-09-26-unless-noted) at the end of this file; current coverage
-and remaining checks are in [VALIDATION.md](VALIDATION.md). This file records
-the native integration and its evolution. Dated checkpoints retain earlier
-cancellation rules and limitations; later L-26/L-76/L-77/L-78 entries and
-that section define the current behavior. The SDK/probe sections at the end are
-earlier research, not instructions to replace the working camera path.
-
-## Freelook camera detachment
-
-L-39 (verified by the maintainer in game 2026-09-27, commit b585411, DLL
-7af6b60a): activation saves the current perspective and requests rear third
-person; release and cancellation restore the saved perspective. F5 remains
-available during Freelook. Each newly active camera rig is detached before look
-input and on the UI frame, so switching rigs does not deliberately reattach
-camera-to-player rotation.
-
-L-48 (maintainer-confirmed in game 2026-09-27, commit a7ce3a6, DLL d262d42e)
-adds a saved starting-view choice for Freelook (first, rear third by default,
-front third) and a saved Activation choice for FreeCamera (Hold or Toggle by
-default). A wheel binding remains a toggle in either mode. The maintainer
-confirmed the follow-up as complete; individual edge cases were not reported.
-
-Vanilla (Minecraft 1.26.51.01) turns the active camera entity from look input and
-then copies the camera orientation to the local player for camera entities that
-carry `VanillaCamera::UpdatePlayerFromCameraComponent`. `LocalPlayer::_applyTurnDelta`
-does not change the player's rotation synchronously; it also turns the head yaw
-(`ActorHeadRotationComponent`) directly, without `Actor::setYHeadRot`.
-
-While the Freelook action is held:
-
-- The component is removed from every entity with `ActiveCameraComponent` and
-  `UpdatePlayerFromCameraComponent`, after saving its look mode and the camera's
-  own angles: `CameraDirectLookComponent` yaw/pitch (first person, radians) and
-  `CameraOrbitComponent` current/ideal azimuth and polar angle (third person).
-- Look input still reaches vanilla, so only the camera turns; the player's body
-  and pitch stay unchanged and movement (including elytra flight) keeps its
-  original direction.
-- The head yaw captured at activation is written back to both current and
-  previous head yaw after each look input and after each UI render.
-
-On release or any cancellation, the saved camera angles are written back (with
-orbit velocities and the direct-look yaw delta cleared) before the component is
-re-added with its original look mode. Without a local player the saved state is
-discarded, since the camera entities belong to that level. Attack, use and
-building remain blocked by the existing interaction guard while detached.
-
-Earlier approaches did not work at runtime and were removed: overriding the view
-matrix after `setupCamera` changed culling but not the rendered view, and
-substituting the local player's angles in `CameraAPI::tryGetActorRotation` did not
-affect the rendered orientation.
-
-Local runtime check (2026-09-23, Minecraft 1.26.51.01 / LeviLamina Client 26.51.3):
-in first and third person, the view turned freely while held and returned to the
-original direction on release; body, head pitch and head yaw stayed fixed without
-jitter, and nothing snapped on release. During elytra flight the original flight
-direction was kept while looking around; turning the view did not steer. Trace
-logs confirmed one detached camera per activation (direct look in first person,
-orbit in third person) and head yaw changes originating in `_applyTurnDelta`.
-Multiplayer visibility of the head, riding, spectator/creative flight, dimension
-changes during a hold, controllers and custom camera presets are unverified.
-
-`DetachedCameraMotion` now supplies a game-independent displacement session for
-the future FreeCamera adapter. It consumes camera-basis vectors, analog axes,
-speed and elapsed time; it normalizes diagonals, limits a stalled update to
-0.1 seconds, caps supplied speed at 100 blocks/second, and discards the session
-on invalid input or owner replacement. These are initial internal bounds, not
-user-facing settings. Cancellation removes the displacement without retaining
-or restoring any player transform. FreeCamera drives it (see FreeCamera below).
-
-`camera::consumeMovement` is the native extraction boundary prepared for that
-adapter. After vanilla HID extraction it consumes `RawMoveInputComponent`'s
-horizontal axes and momentary jump/sneak/ascend/descend flags, then clears only
-the extracted movement axes/flags. It does not alter the stored physical input
-or look/selection flags. A FreeCamera extraction hook calls it after vanilla HID
-extraction for the session owner only; FreeCamera reads its axes with
-`camera::freecameraInputAxes` just before. Freelook sessions pass through
-untouched. Keyboard axes were verified in game; controllers were not tested.
-
-The standalone `LamiumNativeTests` target builds this adapter against the SDK
-types without launching Minecraft or calling engine functions. Run
-`xmake build LamiumNativeTests` and `xmake run LamiumNativeTests`. It verifies
-that consumption clears both horizontal vectors and movement flags, preserves
-look/selection state, does not modify a copied source snapshot, and distinguishes
-held jump/sneak from a persistent sneak toggle. The local build/run passes;
-CI now includes the target. These tests establish data manipulation only, not
-native input ordering, axis signs, or actual player movement suppression.
-
-`DetachedLookState` now provides the game-independent angular session: begin from
-a fresh orientation, ignore repeated activation, accumulate degree deltas with
-bounded pitch and wrapped yaw, and discard the pose on cancellation or invalid
-input. Snapshot and input updates are synchronized. Unit tests cover boundary
-crossing, pitch limits, repeated activation, cancellation/reactivation, and
-nonfinite/extreme input. The `freelook` Hold action uses this
-session for activation, ownership and cancellation; the camera itself is
-detached as described above.
-Features and Hotkeys expose the action, with a separately persisted enable flag.
-Release, settings entry, focus loss, world exit, dimension transition, camera
-configuration changes, and non-gameplay screens discard the detached pose.
-Cancellation retains a release latch: native key repeat cannot restart an
-interrupted hold. The action's release callback clears that latch. Invalid input
-and owner replacement follow the same rule. If the platform loses a key-up during
-focus loss, one press/release may be needed before the next activation; silently
-restarting a still-held input is not used to recover. Unit tests cover these
-cancellation/repeat/release sequences; native focus recovery remains unverified.
-
-Pure tests cover pitched starts, both poles and yaw boundary angles. Matching
-this model to native interpolation, front third-person view and camera effects
-still needs runtime validation; it is not proof of the final rendered world pitch.
-Runtime actor ID
-changes now cancel the session without retaining an actor pointer; death,
-sleeping, riding, missing runtime identity, and an empty view stack also cancel
-or prevent activation. Owner replacement is unit-tested, while these native
-lifecycle checks still require Minecraft validation. Interaction aim,
-split-screen rendering, culling and perspective transitions remain incomplete;
-this is not a stable Freelook feature.
-
-Render application now checks `LevelRendererPlayer::mClientInstance` against the
-client that owns the hold. A different renderer passes through without cancelling
-that hold. Zoom FOV and turn sensitivity also check their client/player owner.
-`TurnHook` also routes the Zoom correction through the one `_applyTurnDelta`
-call, so the detached Freelook/FreeCamera turn slows like the attached look
-instead of using raw input.
-This narrows native hook effects to the current owner; it does not implement
-independent simultaneous split-screen sessions or prove split-screen support.
-
-The interaction guard now intercepts GameMode attack, start/continue/final block
-destruction, start/continue/final placement, item use, use-as-attack, use-on-block
-and entity interaction, plus the SurvivalMode overrides of attack, interact,
-finish/start block destruction, start/final placement, use, use-as-attack and
-use-on-block (the base hooks never fire in survival mode; creative mode uses
-the base GameMode). Stage 1 runtime testing showed mob attacks passing while
-detached in survival mode, which these mirrors fixed (verified in game 2026-09-24). While a valid detached session owns that local player,
-these paths return no success (and no swing for use-on-block), without invoking
-the original operation. Other players and inactive sessions pass through.
-Stop/release operations remain untouched so vanilla can clean up existing use.
-The guard installs with the camera lifecycle and is unwound if startup fails.
-
-This is build-verified only. Runtime checks must cover keyboard remapping,
-offhand use, continued mining/placement, and another interaction mod. Starting
-Freelook while an item is already charging/eating is now rejected using the SDK's
-`ActorFlags::Usingitem` status flag. If that flag becomes set during a detached
-session, the override is discarded. Lamium does not call stop/release/complete
-item use or mutate the flag; the existing action remains vanilla-owned. This
-policy still requires validation with food, bows, crossbows and offhand use,
-including the initial-use tick and release-triggered effects. No claim
-of complete interaction isolation is made from the list of hooks alone.
-The next work should validate and correct this integration, not merely expand its
-settings. Do not enable the old fixed-angle `camera_probe` simultaneously.
-
-## FreeCamera
-
-FreeCamera (unbound Toggle) reuses Freelook's detached session
-and adds position. Verified in game 2026-09-24 on build 31323b8 (trace build):
-
-- Rotation: the same detachment as Freelook; the two never run together.
-- Movement: after `ClientInputUpdateSystem::extractRawHIDInput`, axes are read
-  from the direction flags (analog vector as controller fallback) and then
-  consumed, so the player stays still. Attack/use are blocked by the
-  interaction guard, including the SurvivalMode mirrors.
-- Position: `DetachedCameraMotion` advances once per rendered frame (fixed 20
-  blocks/s, basis from the fresh vanilla view) and the displacement is written
-  into the detached camera entity's `CameraOffsetComponent::mEntityOffset`
-  after UI render. Vanilla builds the view from it, so terrain, culling,
-  shapes and chunk borders follow. Chunks outside the player's render
-  distance stay ungenerated.
-- Perspective: FreeCamera always flies in first person and adds
-  `CameraRenderPlayerModelComponent` (an empty tag: test it with `all_of`, not
-  `try_get`) so the body is visible. Starting in third person sets first
-  person with `setPlayerViewPerspective`, waits until the render eye stops
-  moving, and restores the saved perspective on exit. F5 is ignored while
-  active.
-- Exits: toggle, settings, death, focus loss and world re-entry verified.
-  Dimension change could not be exercised with the camera alone.
-
-Failed approaches: translating the view after `setupCamera` (924dd12,
-8c81b36) was applied but never reached the detached render; terrain vanished
-instead. Moving third-person orbit rigs through the pivot worked but the
-rotation center felt wrong, so FreeCamera locks first person instead.
-Continuing flight from the previous third-person eye (31323b8) did not pass
-verification and was removed: starting from third person begins at the head.
-
-## Trident interaction report (2026-10-14)
-
-[L-181](BACKLOG.md) tracks an unverified report of a trident striking the
-player when used with FreeCamera active. Establish whether the trident was
-thrown, used for Riptide or merely held, and whether the behavior occurs
-on a server. Keep interaction blocking, camera/body position and
-server-authoritative projectile behavior separate during diagnosis.
-No fix or change to the camera contract is selected.
-
-## Underground terrain visibility (L-37; implemented 2026-10-07)
-
-L-200/L-202 follow-up (2026-10-15): the maintainer reported caves missing again.
-The ordinary local log identifies LeviLamina 26.51.7 rejected as an
-unsupported loader version. The initial .7 allowlist edit was superseded by
-L-202's shared loader-series/minimum policy (26.51, patch 5 or later).
-Executable gating, virtual-entry/ownership checks and the native
-request/retained-field validation remain. The shared registry waits for the
-first unmodified request/retention check before allowing the 3 -> 5 override;
-failure and its reason are visible in settings without disabling camera
-movement. No world/renderer yet is Waiting, not failure. The maintainer's
-local normal-build checklist on `d5978e2` passed underground visibility,
-restoration and hiding on .7; the ordinary log records native `3 -> 5`
-retention. Server coverage for this migration remains open. The older
-runtime coverage below belongs to .6.
-
-L-207 follow-up (2026-10-18): the frame-rate report was measured in a local
-world. At a standstill on open ground the drop (65 -> 32 frames per second,
-64 after FreeCamera off) is this forced 3 -> 5 override alone; the detached
-view and terrain streaming do not account for it (39 while flying). The
-override is now gated to the camera eye being inside terrain (its block is
-not air; an unloaded column or a height outside the dimension reads as no):
-that is the case it exists for, while open space — above ground, inside
-caves and under the Nether ceiling — keeps the normal culler and does not
-pay the cost. Binding, ownership and retained-field validation are
-unchanged.
-
-Runtime status: **underground terrain checked in a local world and on BDS**
-by the maintainer on `d56b81e`, 2026-10-07, Minecraft 1.26.51.01 / LeviLamina
-Client 26.51.6 (DLL `822285b2...5f8bfe7c`, trace options off). The runtime log
-confirms binding at SDK-derived virtual slot 26 and the native 3 -> 5 request
-being retained. The maintainer also confirmed normal-view and player-control
-restoration after turning FreeCamera off. Other players' view of the body is
-explicitly unchecked. A further report confirms intended Hold/Toggle behavior,
-camera retention through menus and focus loss, and FreeCamera turning OFF on
-dimension travel. Per-case environments were not listed separately. World
-exit/death, controllers and broader graphics/resource coverage remain open
-for the terrain adapter. See VALIDATION.md and VALIDATION-LOG.md.
-
-The first candidate (`aa5efa9`)
-was tested on 2026-10-07 but its 26.51.5-only loader gate disabled it on the
-installed 26.51.6. Screenshots showed unchanged partial cave rendering; no
-native request was replaced. `d56b81e` admits that installed patch and
-logs arming separately from the actual substitution. See VALIDATION-LOG.md.
-Earlier game checks found normal/FreeCamera
-terrain culler type 3 and spectator type 5; caves were clipped at straight
-chunk boundaries from inside solid blocks, while a camera inside open cave
-space rendered normally. A separate forced update to 5 fought native requests
-for 3 and blanked the view. Querying spectator/game type did not change the
-selection. The old probes and failed hook are retained in BACKLOG-DONE.md and
-VALIDATION-LOG.md; they are not evidence that this candidate works.
-
-`FreeCameraCulling.cpp` intercepts the primary renderer's native
-`updateLevelCullerType` request. It changes only a requested type 3 to 5 during
-the owning FreeCamera session, then calls the original once. Other requested
-types and other cameras pass through. Ending FreeCamera lets the next native
-request choose the normal culler. The replacement avoids the prior independent
-3/5 requests; cave drawing and restoration are maintainer-confirmed, while
-native call frequency was not measured. Pure tests cover all
-byte-sized requests and stable selection across
-repeated activation/exit frames; they do not exercise the game renderer.
-
-The candidate requires Minecraft executable file version 1.26.51.1
-(launcher version 1.26.51.01) and the common LeviLamina policy (26.51, patch 5 or later). These
-have different coverage: cave drawing was checked on 26.51.6; 26.51.5 has not
-been re-tested with this adapter, and 26.51.7 awaits its first check. A pre-render hook
-binds lazily from an actual primary renderer while FreeCamera is active. The
-SDK virtual-call thunk provides the slot; the implementation must be executable
-code in the game module. There is no hard-coded vtable slot or game address.
-Only requests on that render thread for that primary renderer and the current
-client/player session can change. No game object pointer is retained between
-callbacks. An unmodified native type-3 request must first leave the typed
-`mLastCullerType` field at 3. Every later overridden request must retain 5;
-a mismatch disables the adapter. These checks establish a narrow call/field
-contract, not correctness of cave rendering. A warning explains a disabled
-path; the rest of FreeCamera retains its previous rendering behavior.
-
-Ordinary-build startup messages report the detected loader and
-`FreeCamera terrain: adapter armed; awaiting FreeCamera renderer` after the
-version gates pass. One-time messages identify the binding and first substitution:
-`FreeCamera terrain: culler hook bound at virtual slot ...` and
-`FreeCamera terrain: native request 3 -> 5 retained`. No trace option is needed.
-Absence of the latter after flight means the replacement was not observed;
-capture the log before pursuing a different path. Player game type, abilities,
-position, camera input policy and network packets are not modified here.
-Terrain beyond the client's loaded area remains outside this scope.
-
-Further coverage to check when needed (basic cave rendering passed locally
-and on BDS; the following individual cases were not all reported):
-
-- Start FreeCamera above ground, enter solid ground near a known cave, rotate
-  and cross chunk boundaries. Compare the surrounding cave/terrain with a
-  separate spectator view; watch for blank frames, disappearing chunks or
-  repeated rebuilding after standing still.
-- Fly through open cave space and back to the surface; inspect terrain,
-  shadows and overlays. Toggle off/on repeatedly and confirm the normal view
-  and player controls return without flicker or missing terrain.
-- Hold/Toggle operation, camera retention through menus/focus loss and OFF on
-  dimension travel were confirmed in the follow-up. Check world exit/re-entry
-  and death separately for the terrain adapter.
-- Check ordinary first/third person, Freelook and Zoom with FreeCamera off.
-  Check the player's mode and body remain unchanged from another player's
-  view. BDS cave drawing passed; remote body appearance remains unverified.
-
-## Boundaries
-
-### Flight speed controls (L-26, implemented 2026-09-30)
-
-FreeCamera saves a base flight speed of 5-100 blocks/s, in steps of 5 and
-defaulting to 20. Two unbound Press actions change it by 5 during active
-FreeCamera gameplay, persist the change and show a message toast. Holding a
-speed key does not repeat; the endpoints do not wrap. The settings child and
-the actions use the same normalization.
-
-Native extraction captures `MoveInputState::Flag::SprintDown` before consuming
-movement. Revised 2026-09-30 after maintainer testing: a fresh sprint-key press
-while the combined forward axis is positive starts a session-owned sprint.
-Releasing the sprint key keeps it active until forward input stops, including
-strafe-only, backward or opposing directions. A press while stationary does
-not reserve a later sprint. Forward diagonals receive the same boost: double
-only world-horizontal motion after ordinary diagonal normalization, leaving
-vertical displacement unchanged. Maximum horizontal speed is 200 blocks/s.
-Menus, focus loss and ending the session cancel sprint; resuming with an
-already-held key does not count as another press. The speed setting updates
-an atomic configuration without restarting the detached session. No player
-sprint state, position, game mode or key mapping is changed.
-
-Detail action labels read "Increase speed" / "Decrease speed"; Hotkeys names
-FreeCamera explicitly. Opposing keyboard flags remain cancelled even if the
-native analog vector is nonzero.
-
-The maintainer confirmed five-step speed adjustment, bound speed keys, the
-previous held horizontal-only boost on `7e72244`. On `41b1ff6` they reported
-checking the revised build in game and finding no problems. The supplied
-checklist included the revised labels and sprint behavior; individual input/
-menu/focus cases and restart persistence were not reported separately.
-
-Freelook changes camera rotation while retaining the player's position and
-rotation. FreeCamera additionally changes camera position while leaving the
-player in place. Neither feature may simulate this by temporarily teleporting
-or rotating the player, changing game mode, sending camera commands, or relying
-on server support. Both share one detached-camera session; switching modes must
-not leave two input owners or two camera overrides active.
-
-### Position reference (L-76; rapid-motion fix L-77)
-
-FreeCamera exposes a saved Position reference choice, Player or World. Missing
-keys default to Player, preserving the existing behavior. `FreeCameraPosition`
-owns only an activation eye/reference and the selected mode. The original
-UI-render writer combined it with displacement and the current player's eye.
-Player uses body-relative displacement; World writes the difference between
-the fixed world target and the current eye into the existing camera offset.
-Compensation runs even at zero flight displacement, including while a menu
-pauses flight. No player transform, movement state or gameplay medium is changed.
-
-Changing the choice rebases the reference at the current target, preserving
-the position without restarting movement or rotation. Detached target readouts
-use the same position calculation. Ending a session clears the reference;
-reactivation captures the new eye. Speed and forward-only sprint are shared by
-both modes. Pure tests cover body movement without input, continued flight,
-switching in both directions, reset/reactivation and non-finite values.
-
-The maintainer confirmed position retention, live switching and release on
-`43c4211`, but rapid body movement/elytra caused visible corrections (L-77).
-First fix: `CameraAPI::$tryGetActorInterpolatedPosition` keeps its vanilla
-return value and calls the offset writer with that frame's interpolated body
-position plus the current eye/body difference. Only the owning client and its
-local actor can write. Once reached, World skips after-UI tick-position
-compensation; Player retains the existing constant-offset writer. A one-time
-session log records callback reach. If the native route is not reached, the
-previous writer remains as a fallback. No actor transform or API return value
-is changed. Pure tests cover rapid motion over five interpolation alphas.
-
-On `d20fdf8` the maintainer confirmed improved elytra motion, normal reference
-switching and release. The log confirms native interpolation-writer reach;
-it does not establish every caller's consumption order. Check different frame
-rates, menus/focus, targeting and exit/death/dimension cleanup on the normal
-release build.
-
-### Lamium view entry (L-78)
-
-The common opener for Settings, Shapes, Hotkeys and HUD layout now calls the
-same input suspension as focus loss instead of resetting all camera sessions.
-Toggle FreeCamera keeps its displacement, world reference and detached pose;
-movement input, timing and sprint are cleared. While a view owns input, the
-existing frame logic pauses flight and retains the camera. Zoom/Freelook pause
-while keeping toggle requests; Hold actions end through input invalidation's
-release dispatch. Closing does not reactivate stale movement. Explicit off
-and world/death/dimension cleanup still use the existing reset paths.
-On `d3f0293` the maintainer confirmed Toggle Player/World position/orientation
-retention and paused flight through Lamium views, plus normal inventory,
-window movement and explicit release. Hold and broader lifecycle behavior
-remain unverified; no individual Escape/Close results were supplied.
-
-## Earlier SDK and probe record (2026-09-23)
-
-The sections below preceded the camera-entity implementation described above.
-The view-matrix approaches did not produce the detached view and were abandoned.
-Their diagnostic options remain development tools; their "next" instructions
-and "not completed" statements describe that earlier checkpoint. The L-37
-implementation above and completed follow-up in BACKLOG-DONE record the
-current cave-visibility path.
-
-### SDK surfaces inspected
-
-In the 26.51.3 client SDK:
-
-- `LocalPlayer::_applyTurnDelta(Vec2 const&)` is already intercepted by Zoom.
-  Detached look input should be routed through that same integration point,
-  avoiding competing hooks with different sensitivity or cancellation rules.
-- `LevelRendererPlayer::setupCamera(mce::Camera&, float)` is exported. It is a
-  candidate for applying a final render-camera override after vanilla setup.
-- `mce::Camera` contains view/world/projection matrix stacks, inverse view,
-  right/up/forward vectors, position, and frustum. It exports
-  `updateViewMatrixDependencies()`. Changing position or a single matrix alone
-  is insufficient evidence that all rendering/culling consumers agree.
-- `MinecraftCamera::CameraComponent` separately stores orientation, position,
-  projection parameters, post-view transform, and saved matrices. An ECS
-  override is another candidate, but its ordering relative to rendering and
-  player input must be established first.
-- `VanillaCamera::UpdatePlayerFromCameraComponent` contains a look mode. Its
-  existence makes it necessary to inspect camera-to-player propagation before
-  changing a game camera entity. The declaration does not prove when it runs.
-- `IClientInstance` exposes the camera, camera registry/systems, and weak camera
-  entity references. `CameraRegistry` owns game/debug camera entities and
-  exports preset/entity setup; its declaration provides no simple standalone
-  register/unregister-camera API. Do not rebuild the global registry to add a
-  Lamium camera.
-- `ICameraAPI` exposes actor positions/rotations, movement input, clipping,
-  timing, and viewport information. `IVanillaCameraAPI` exposes bobbing, vehicle,
-  portal, sleeping, and perspective information. These declarations do not
-  establish a supported isolated-camera lifecycle.
-
-### Initial integration experiment
-
-For the next hold/drag experiment, `camera_trace` also records three independently
-bounded Freelook stages (32 records each per process): successful session begin,
-native turn deltas accepted by that session, and relative degree angles actually
-written to the render view. Startup camera samples cannot consume these budgets.
-These records contain no player/world identifiers or positions. They distinguish
-an unobserved hold from missing turn input or missing render application; they do
-not by themselves prove body isolation, correct sensitivity, or visible rotation.
-The ordinary build has no Freelook trace code.
-
-First observe `setupCamera` during first/third-person rendering and establish
-the view-matrix convention, whether vanilla reconstructs it every frame, and
-which camera position drives culling, world overlays, and hand rendering.
-Prefer a per-frame render override if these consumers stay consistent; otherwise
-investigate the ECS camera update sequence. Do not choose an approach solely
-because a hook links successfully.
-
-Capture only Lamium-owned pose/input state. Avoid retaining actor or camera
-component pointers between callbacks. Discard the detached pose on world exit,
-dimension change, player replacement, focus loss, menu entry, disable, or a
-missing camera. Returning to vanilla should remove the override, not restore a
-stale player transform. Repeated held-key events after cancellation must not
-reactivate the session until a fresh press, matching the existing input layer.
-
-FreeCamera needs movement input ownership and suppression of player movement,
-attack, and use while detached. Freelook needs explicit handling of interaction
-aim versus displayed aim before it is considered ready. Settings opening must
-cancel the detached session, and Zoom must use the same camera/input policy.
-
-### Probe procedures and observations
-
-#### Opt-in position override experiment
-
-`xmake f --camera_position_probe=y --camera_probe=n` followed by
-`xmake build Lamium` enables a two-block camera-local rightward displacement
-while Zoom is held. The probe applies a translation to the fresh vanilla view
-after setup, retains vanilla's world origin, and lets the subsequent camera
-dependency update run normally. It does not alter player position, movement,
-game mode, or packets. Releasing Zoom removes the per-frame override. The
-rotation probe takes precedence if both options are enabled; use one at a time.
-
-This is a local development experiment, not FreeCamera. Zoom still affects FOV,
-movement still belongs to vanilla, and the existing camera trace is enabled.
-Check visible parallax, near/far geometry, Shape alignment, culling at the view
-edges, and return to vanilla before extending the translation to a moving
-session. In particular, the separate render origin may have downstream users
-that do not consume the adjusted view. Disable with
-`xmake f --camera_position_probe=n` and rebuild before ordinary use.
-
-#### Opt-in view override experiment
-
-`xmake f --camera_probe=y` enables a development-only fixed 20-degree
-camera-local yaw while the existing Zoom action is held in gameplay. It also
-enables the trace hooks. The probe composes with the fresh vanilla view after
-each setup call, marks the view stack dirty through its mutable accessor, and
-leaves dependency updates to the normal render path. It does not write player
-position/rotation or cached camera dependencies. Zoom release, cancellation,
-disable, and non-gameplay screens stop applying the override; it does not restore
-a saved matrix. Disable with `xmake f --camera_probe=n` and rebuild.
-
-This is not Freelook: mouse input still follows vanilla player rotation,
-Zoom still changes FOV, and interaction aim has not been separated. Use only in
-a local validation world to check whether the modified view remains stable
-across frames, aligns with world overlays, and returns on release. Its runtime
-behavior is not yet verified. A complete feature still needs its own input
-action, detached pose, cancellation policy, and interaction handling.
-
-#### Read-only observations
-
-An optional read-only probe is available with `xmake f --camera_trace=y`
-followed by `xmake`. It observes the existing Zoom hook lifecycle and samples
-`setupCamera` once per 120 calls, up to 32 samples per process. It records the
-interpolation factor, availability of the prior view matrix, finite matrix
-values, maximum pre/post view change, view/inverse-view identity error, and
-camera basis lengths. It does not record positions, world identifiers, or
-paths, and does not modify camera matrices or player state. Disable it with
-`xmake f --camera_trace=n` and rebuild for ordinary use.
-
-The probe also observes the first 64 dependency-update calls after setup has
-been seen on the calling thread. Each records a thread-local setup serial,
-whether setup is still on the stack, and whether the dependency update is for
-that active setup camera, followed by post-update inverse error and basis
-lengths. Camera identity is retained only within the synchronous setup scope;
-an update outside that scope is deliberately not identified with a prior camera.
-The two log streams have separate limits (32 setup samples, 64 updates).
-
-On 2026-09-23, ordering-probe build `dc02bbc` was installed with matching DLL
-hashes and exercised in the same local creative world, starting in rear
-third-person view. All 64 dependency samples were outside setup and finite.
-The first setup sample (serial 1) still had zero basis lengths; the immediately
-following dependency samples at serial 1 had unit basis lengths and inverse
-errors of zero and approximately `1.53e-5`. The sample budget ended at setup
-serial 43 during startup. World and Shape rendering remained visible and the
-game exited normally. This does not cover subsequent perspective transitions
-or deliberate rotation.
-
-The observed order supports trying an opt-in render-only rotation after vanilla
-setup, allowing the existing later dependency update to process the modified
-view. It does not prove camera identity outside setup: `sameCamera=false` there
-means no identity comparison was possible, not that it was a different camera.
-The next experiment should apply a reversible rotation to the fresh view matrix
-on each call, with no player transform writes, then inspect world/overlay
-alignment and dependency consistency. Do not extend passive tracing indefinitely
-instead of testing that integration hypothesis.
-
-The diagnostic build compiles and links against SDK 26.51.3. On 2026-09-23,
-build `6bfaeb4` was installed with matching source/destination DLL hashes and
-observed in a local creative world on Minecraft 1.26.51.01. First-person world
-rendering and an F5 switch to rear third-person rendering remained visible,
-including the existing Shape overlay. Minecraft then exited normally.
-
-The flushed log contained exactly 32 samples (0 through 31). All reported finite
-view/product matrices and an available pre-call view. Sample 0 had basis lengths
-`0/0/0` and inverse error `0.74165905`; subsequent samples had lengths `1/1/1`
-and inverse error `0`. Pre/post view differences stayed approximately `0.741659`.
-This demonstrates that the hook runs and changes the view in this scene, but
-cached camera dependencies are not valid at every observed initialization stage.
-The perspective transition was not tagged in the trace, so these values must not
-be assigned to a specific perspective or used to claim transition coverage.
-
-Next, observe `updateViewMatrixDependencies()` ordering relative to setup and
-compare fresh inverse/basis values during deliberate camera rotation. The
-stationary samples cannot establish whether cached dependencies belong to the
-current or previous frame. A zero view change alone would likewise not establish
-that vanilla reconstructs the camera on every call. These measurements do not
-establish culling, input ownership, or detached-camera correctness.
-
-Verify body position and rotation stay unchanged from another local observation
-or suitable client diagnostics, and check remote behavior before claiming
-multiplayer support. Exercise release/toggle, focus loss, menus, dimension/world
-changes, death, riding, sleeping, perspective changes, Zoom, and another camera
-mod. Check view/frustum alignment, overlay coordinates, hands, and unloaded
-terrain. Instrumentation should remain local and optional; none of these checks
-has been completed for detached cameras.
-
-## Hiding the hand and HUD while flying (L-191, 2026-10-15)
-
-Decided by the maintainer 2026-10-15; checked locally on `b5daa75` (hand,
-hotbar and restoration) and `7d79bef` (whole HUD including Lamium), then in
-the `d5978e2` migration smoke. L-191 is archived in BACKLOG-DONE.md;
-broader coverage remains in VALIDATION.md. FreeCamera
-setting "Hide while flying": nothing, hand (default), hand and hotbar, or
-the whole HUD. The hand is the first-person item pass
-(`ItemInHandRenderer::renderFirstPerson`); the whole HUD skips the HUD
-screen's draw, as F1 does, Lamium's HUD included; the hotbar hides its
-control (`desktop_hotbar`, `pocket_hotbar`, `hotbar_panel`) for each draw
-only and restores it right after (gated). Only while FreeCamera owns the
-view; nothing in the game's options changes. What FreeCamera allows the
-player to do is unchanged (L-25).
-
-## Camera (Decided 2026-09-26 unless noted)
-
-Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
-- (Decided, BACKLOG L-38; lower limit revised 2026-09-30, L-80; wheel range
-  widened 2026-10-06, L-99) Zoom goes up to 50x. The initial magnification
-  setting stays 2x-50x (a saved value below 2x loads as 2x), so pressing Zoom
-  always visibly zooms. While held, the wheel goes from 1x to 50x; with the
-  Zoom setting "Wide-angle view" (off by default; decided 2026-10-11, L-140)
-  it goes down to 0.5x: below 1x the view widens, but never past 160 degrees
-  (the wheel stops there). Turning the setting off brings a kept level below
-  1x up to 1x. A
-  wheel notch multiplies or divides the target magnification by a fixed ratio
-  (about 1.15), so every notch feels the same at 2x and at 40x; a notch that
-  crosses 1x stops on exactly 1x once. The shown magnification eases toward
-  the target over a short time instead of jumping; turn sensitivity follows
+# Camera: Zoom, Freelook and FreeCamera
+
+Current contract, rewritten 2026-11-14; earlier records: `git show 10d58d01:docs/CAMERA.md`.
+
+Zoom magnifies the view. Freelook turns the camera while the player's body,
+head and movement keep their direction. FreeCamera also moves the camera
+through the world while the player stays where it is. All three are
+client-side camera changes: no teleport, no player rotation, no game-mode
+change, no camera command, no server support. Freelook and FreeCamera are
+off and unbound by default.
+
+Settings (Camera): Zoom with Activation (Hold default), magnification (2x-50x),
+Wide-angle view (off), magnification HUD element (on); Freelook with
+Activation and starting view (first, rear third default, front third);
+FreeCamera with Activation (Toggle default), flight speed (5-100 blocks/s,
+default 20), Position reference (Player default, World), Hide while flying
+(nothing, hand default, hand and hotbar, whole HUD), Leave on hit (off: any
+hit, even without damage, ends FreeCamera; L-126), Underground hold (how
+long the spectator culler stays after the eye leaves terrain: 0, 1, 3
+default, 5, 10, 30 s or always; L-214). Keys: one per feature,
+plus two unbound FreeCamera speed actions.
+
+## Behavior
+
+### Switches and lifecycle (decided 2026-09-26, L-47, L-27)
+
+- Zoom, Freelook, FreeCamera, Permanent Sneak and Permanent Sprint have no
+  saved switch. Their switch shows whether they are wanted; the key or a
+  click on the switch flips it, and the effect starts when gameplay allows (a
+  click in settings takes effect after closing them). Nothing is saved
+  across restarts.
+- Menus pause Zoom, Freelook, Sneak and Sprint; they resume afterwards.
+  FreeCamera in Toggle mode keeps its position through menus, settings and
+  focus loss. Hold ends when its input is released or input ownership is
+  lost. Focus loss keeps toggle modes wanted; death, dimension change and
+  leaving the world turn them all off.
+- Lamium views (Settings, Shapes, Hotkeys, HUD layout) use the same input
+  suspension as focus loss, not a camera reset (L-78). Toggle FreeCamera
+  keeps its displacement, world reference and detached pose; movement input,
+  timing and sprint are cleared and flight pauses. Zoom/Freelook pause while
+  keeping toggle requests; Hold actions end through the release dispatch.
+  Closing does not reactivate stale movement.
+- Freelook and FreeCamera share one detached-camera session; they never run
+  together, and switching must not leave two input owners or two camera
+  overrides active.
+- An interrupted hold keeps a release latch: native key repeat cannot
+  restart it; one fresh press is needed. If the platform loses a key-up
+  during focus loss, one press/release may be needed before the next
+  activation; a still-held input is never silently restarted.
+
+### Zoom (L-38, L-80, L-99, L-140, L-45)
+
+- The magnification setting is 2x-50x (a saved value below 2x loads as 2x),
+  so pressing Zoom always visibly zooms.
+- While the Zoom key is held, the wheel goes from 1x to 50x; with
+  "Wide-angle view" down to 0.5x, where the view widens but never past 160
+  degrees (the wheel stops there). Turning the setting off brings a kept
+  level below 1x up to 1x.
+- A notch multiplies or divides the target by about 1.15, so every notch
+  feels the same at 2x and 40x; a notch crossing 1x stops on exactly 1x once.
+  The shown magnification eases toward the target; turn sensitivity follows
   the shown magnification above 1x and stays normal below it.
-- (Decided 2026-10-06, L-99) The wheel level is kept between presses until
-  the world is left, including levels below 1x and across dimension changes.
-  A level left at exactly 1x is the exception: the next press starts from the
-  magnification setting, so Zoom never opens without a visible change.
-- (Decided 2026-10-06, L-99 follow-up) The wheel changes the magnification
-  only while the Zoom key is held. In Hold mode that is the whole zoom; in
-  Toggle mode the wheel keeps its normal job (hotbar) while Zoom is on, and
-  holding the key adjusts it. Toggle mode switches on at the press and off at
-  the release of a plain tap; a hold that used the wheel leaves Zoom on.
-- (Decided 2026-10-06) Pressing and releasing Zoom switch at once, whatever
-  the Animations setting. An ease-in/out (0.1 s) was built and tried; it felt
-  wrong without a frame like the spyglass's, and following the setting would
-  have made it the default. Only wheel changes ease.
-- (Noted 2026-10-06) Below 1x the held item drifts toward the screen center
-  because the hand follows the wider projection; accepted as is for now.
-- (Decided, BACKLOG L-45) While zooming, the magnification is shown as "×12.5" by its own HUD element
-  (small, dimmed, below the crosshair by default; movable in the HUD layout);
-  a Zoom setting turns it off (default on).
-- (Decided 2026-09-26) The toggle toast's default sits above the armor and
-  absorption rows (bottom center, 72 up) so it does not cover them.
-- (Decided 2026-09-27, BACKLOG L-39/L-48) Freelook saves the current
-  perspective (first, rear third or front third), switches to its configured
-  starting view (rear third by default), and restores the saved perspective on
-  exit. The player may switch perspectives with F5 while Freelook is active.
-  FreeCamera offers Activation: Hold / Toggle, default Toggle. A wheel binding
-  toggles in either mode because a wheel impulse cannot be held.
-- (Decided 2026-10-07, L-37) FreeCamera should show surrounding loaded terrain
-  and caves from inside solid ground, as spectator rendering does. This must
-  remain a camera/rendering change: retain the player's game mode, abilities,
-  body and server movement. Unsupported rendering paths retain vanilla
-  visibility. Implementation and runtime coverage are tracked in CAMERA.md
-  and VALIDATION.md.
-- (Decided 2026-09-26, BACKLOG L-47 and L-27) Zoom, Freelook, FreeCamera,
-  Permanent Sneak and Permanent Sprint have no saved switch. Their switch
-  shows whether they are wanted; the key or a click on the switch flips it,
-  and the effect starts when gameplay allows (a click in settings takes
-  effect after closing them). Menus pause Zoom, Freelook, Sneak and Sprint
-  and they resume afterwards; FreeCamera in Toggle mode keeps its position
-  through menus, settings and focus loss. Hold ends when its input is released
-  or input ownership is lost. Focus loss keeps toggle modes wanted; death, dimension
-  change and leaving the world turn them all off. Nothing is saved across
-  restarts.
+- The wheel level is kept between presses until the world is left, including
+  levels below 1x and across dimension changes. A level left at exactly 1x
+  is the exception: the next press starts from the setting.
+- The wheel changes the magnification only while the Zoom key is held. In
+  Toggle mode the wheel keeps its normal job (hotbar) while Zoom is on;
+  Toggle switches on at the press and off at the release of a plain tap, and
+  a hold that used the wheel leaves Zoom on.
+- Pressing and releasing switch at once, whatever the Animations setting;
+  only wheel changes ease (decided 2026-10-06).
+- The magnification shows as "×12.5" in its own HUD element (small, dimmed,
+  below the crosshair by default, movable in HUD layout).
+- The toggle toast's default sits above the armor and absorption rows
+  (bottom center, 72 up).
+- The Zoom correction also slows the detached Freelook/FreeCamera turn,
+  routed through the same `_applyTurnDelta` call.
 
-- (Decided 2026-09-30, L-26 follow-up) FreeCamera speed actions use concise
-  detail labels (Increase / Decrease speed) and explicitly name FreeCamera in
-  Hotkeys. A fresh sprint-key press during forward input starts a horizontal
-  2x boost that continues after key release. Forward diagonals qualify;
-  strafe-only, backward or cancelled forward input ends it. Vertical speed
-  stays unchanged. Menus, focus loss and session exit cancel the boost.
+### Freelook (L-39, L-48)
 
-- (Decided 2026-09-30, L-76) FreeCamera has a saved Position reference choice:
-  Player (default, existing behavior) or World. World keeps the camera's world
-  position independent of body movement while still accepting flight input.
-  Changing the choice during a session preserves its current position. A new
-  session starts at the current player's eye; world/dimension exit clears the
-  anchor. This changes only camera offsets, never the player's position.
+- Activation saves the current perspective, switches to the starting view
+  and restores the saved perspective on release or cancellation. F5 works
+  while Freelook is active. A wheel binding toggles in either Activation
+  mode, since a wheel impulse cannot be held.
+- Only the camera turns: the body, head pitch and head yaw keep their
+  direction and movement (elytra flight included) keeps its course.
+- Attack, use and building are blocked while detached (interaction guard).
+- Starting while an item is being used (eating, charging) is refused; if the
+  player starts using an item during the session, the override is
+  discarded. Lamium never stops or completes item use itself.
+- Release, settings entry, focus loss, world exit, dimension transition,
+  camera configuration changes, non-gameplay screens, death, sleeping,
+  riding, a runtime actor ID change, a missing runtime identity and an empty
+  view stack cancel the session or prevent activation. Returning to vanilla
+  removes the override; it never restores a stale player transform.
+
+### FreeCamera (L-18, L-26, L-76, L-77, L-37, L-191)
+
+- Rotation is Freelook's detachment. Movement keys move the camera; the
+  player stays still. Attack and use are blocked as in Freelook.
+- FreeCamera always flies in first person and shows the player's body.
+  Starting in third person switches to first person, waits until the render
+  eye stops moving, and restores the saved perspective on exit. F5 is
+  ignored while active. Starting from third person begins at the head.
+- Flight speed: 5-100 blocks/s in steps of 5, default 20. The two speed
+  actions change it by 5 during active FreeCamera gameplay, save it and show
+  a message toast; a held key does not repeat and the ends do not wrap.
+  Labels: "Increase speed" / "Decrease speed"; Hotkeys names FreeCamera.
+- Sprint (decided 2026-09-30): a fresh sprint-key press while moving forward
+  doubles world-horizontal speed (max 200 blocks/s; vertical unchanged) and
+  stays on after the key is released until forward input stops. Forward
+  diagonals qualify; strafe-only, backward or cancelled forward input ends
+  it. A press while stationary reserves nothing. Menus, focus loss and
+  session end cancel it; an already-held key on resume is not a press.
+  Opposing keyboard flags stay cancelled even if the analog vector is
+  nonzero.
+- Position reference: Player moves the camera with the body; World keeps the
+  camera's world position independent of body movement while still taking
+  flight input. Changing the choice during a session keeps the current
+  position. A session starts at the player's eye; world/dimension exit
+  clears the anchor.
+- Hide while flying (decided 2026-10-15): the hand is the first-person item
+  pass; the whole HUD skips the HUD screen's draw as F1 does, Lamium's HUD
+  included; the hotbar hides its control for each draw only. Only while
+  FreeCamera owns the view; no game option changes.
+- Ends on its key, release (Hold), death, world exit and dimension change.
+
+### Underground terrain visibility (L-37; implemented 2026-10-07)
+
+Decided 2026-10-07. From inside solid ground FreeCamera shows the loaded
+terrain and caves around it, as spectator rendering does, while keeping the
+player's game mode, abilities, body and server movement. The spectator
+culler is used while the camera eye is inside terrain (its block is not
+air; an unloaded column or out-of-range height reads as no) and for the
+Underground hold time after it leaves (`SpectatorHold`); open space keeps
+the normal culler, which is cheaper. An unsupported path keeps vanilla
+visibility; the rest of FreeCamera works without it.
+
+## Code
+
+All in `src/features/camera/` unless noted.
+
+- `CameraSessions.cpp/.h`: session ownership, Zoom FOV, perspective
+  save/restore (`setPlayerViewPerspective`), the
+  `ClientInputUpdateSystem::extractRawHIDInput` hook, per-frame FreeCamera
+  advance, item-use refusal (`ActorFlags::Usingitem`). Render, Zoom FOV and
+  turn sensitivity check `LevelRendererPlayer::mClientInstance` / the
+  player against the owning client; another renderer passes through.
+- `DetachedCameraRig.cpp/.h`: removes and re-adds
+  `VanillaCamera::UpdatePlayerFromCameraComponent`, saves and restores the
+  camera's own angles, writes `CameraOffsetComponent::mEntityOffset`, adds
+  `CameraRenderPlayerModelComponent` for the body.
+- `DetachedLookState.h` (pure): angular session; bounded pitch, wrapped yaw,
+  repeated activation ignored, discarded on cancel or invalid input.
+  `tests/DetachedLookTests.cpp`.
+- `DetachedCameraMotion.h` (pure): displacement session from camera basis,
+  analog axes, speed and time; normalizes diagonals, limits a stalled update
+  to 0.1 s, caps speed at 100 blocks/s before the sprint factor, discards on
+  invalid input or owner replacement. `tests/DetachedCameraMotionTests.cpp`.
+- `CameraMovementInput.cpp/.h`: `camera::consumeMovement` clears only the
+  extracted horizontal axes and jump/sneak/ascend/descend flags of
+  `RawMoveInputComponent` after vanilla extraction, for the session owner
+  only; `camera::freecameraInputAxes` reads them just before;
+  `SprintDown` is captured first. Stored physical input and look/selection
+  flags stay. `tests-native/CameraMovementInputTests.cpp`
+  (`LamiumNativeTests`: data manipulation only, not native ordering).
+- `FreeCameraPosition.h` (pure): activation eye/reference and the chosen
+  mode. `CameraAPI::$tryGetActorInterpolatedPosition` keeps its return value
+  and calls the offset writer with that frame's interpolated body position;
+  once reached, World skips the after-UI writer, which remains as fallback.
+- `FreeCameraSpeed.h`, `FreeCameraSprint.h` (pure): speed normalization and
+  the forward-only sprint latch.
+- `FreeCameraCulling.cpp/.h`: intercepts the primary renderer's
+  `updateLevelCullerType`; `terrainCuller` turns a requested 3 into 5 only
+  for the owning session; other types and cameras pass through. Binds lazily
+  from a real primary renderer in a `LevelRenderer::preRenderUpdate` hook;
+  the slot comes from the SDK virtual-call thunk, never a hard-coded slot or
+  address. An unmodified type-3 request must first leave `mLastCullerType`
+  at 3, and every overridden request must retain 5; 30 mismatches in a row
+  (`CullerCheck::limit`, L-213) disable the adapter. Capability `FreeCameraTerrain` under the shared version policy.
+  `tests/FreeCameraCullingTests.cpp`.
+- `FreeCameraHide.cpp/.h`: `ItemInHandRenderer::renderFirstPerson`; the
+  `desktop_hotbar`, `pocket_hotbar`, `hotbar_panel` controls; capabilities
+  `FreeCameraHand`, `FreeCameraHotbar`, `FreeCameraHud`.
+- `CameraInteraction.cpp/.h`: interaction guard (below).
+- `ZoomState.h` (pure): zoom levels, notch, easing, the 160-degree limit.
+- `CameraTrace.cpp/.h`: development traces, xmake options `camera_trace`,
+  `camera_probe` (fixed 20-degree yaw while Zoom is held) and
+  `camera_position_probe` (2-block sideways shift); never in a release
+  build, and never `camera_probe` together with the camera features.
+
+Interaction guard: while a valid detached session owns the local player,
+GameMode attack, start/continue/final block destruction, start/continue/final
+placement, item use, use-as-attack, use-on-block and entity interaction, and
+the SurvivalMode overrides of attack, interact, start/finish destruction,
+start/final placement, use, use-as-attack and use-on-block return no success
+(no swing for use-on-block) without calling the original. Other players and
+inactive sessions pass through; stop/release operations stay untouched so
+vanilla can clean up. Installed with the camera lifecycle, unwound if
+startup fails.
+
+Ordinary-build log lines (no trace option): `FreeCamera terrain: adapter
+armed; awaiting FreeCamera renderer`, `... culler hook bound at virtual slot
+...`, `... native request 3 -> 5 retained`. If the last is absent after
+flight, the replacement was not observed: capture the log before trying
+another path.
+
+## Known
+
+- Vanilla turns the active camera entity from look input, then copies its
+  orientation to the local player for camera entities carrying
+  `VanillaCamera::UpdatePlayerFromCameraComponent`. Removing it (after saving
+  its look mode and the camera's `CameraDirectLookComponent` yaw/pitch or
+  `CameraOrbitComponent` azimuth/polar angles) detaches the camera; restoring
+  writes the angles back with orbit velocities and the direct-look yaw delta
+  cleared, then re-adds the component. Each newly active rig is detached
+  before look input and on the UI frame.
+- `LocalPlayer::_applyTurnDelta` turns head yaw (`ActorHeadRotationComponent`)
+  directly, without `Actor::setYHeadRot`; Freelook writes the activation head
+  yaw back to current and previous head yaw after each look input and UI
+  render.
+- Vanilla builds the view from `CameraOffsetComponent::mEntityOffset`, so
+  terrain, culling, shapes and chunk borders follow a displaced FreeCamera.
+- `CameraRenderPlayerModelComponent` is an empty tag: test it with `all_of`,
+  not `try_get`.
+- The base GameMode interaction hooks never fire in survival mode;
+  SurvivalMode has its own overrides. Creative uses the base GameMode.
+- Culler types (observed on 1.26.51.01): normal and FreeCamera 3, spectator
+  5. Type 3 clips caves at chunk borders when the camera is inside solid
+  blocks; a camera in open cave space renders normally. The spectator type
+  costs frame rate (65 -> 32 fps at a standstill in a local world).
+- `CameraRegistry` owns the game/debug camera entities and has no
+  standalone register/unregister API: do not rebuild it to add a Lamium
+  camera.
+- The camera entities belong to the level; without a local player the saved
+  state is discarded.
+
+## Tried
+
+- Overriding the view matrix after `setupCamera`: changed culling, not the
+  rendered view.
+- Translating the view after `setupCamera` for FreeCamera: never reached the
+  detached render; terrain vanished.
+- Substituting the player's angles in `CameraAPI::tryGetActorRotation`: no
+  effect on the rendered orientation.
+- Moving third-person orbit rigs through the pivot: worked, but the rotation
+  center felt wrong; FreeCamera locks first person instead.
+- Continuing flight from the previous third-person eye: failed verification.
+- Forcing the culler to 5 independently: fought native requests for 3 and
+  blanked the view. Querying spectator/game type did not change the selection.
+- A Zoom ease-in/out on press (0.1 s): felt wrong without a frame like the
+  spyglass's.
+
+## Limits
+
+- Below 1x the held item drifts toward the screen center (the hand follows
+  the wider projection); accepted for now.
+- Terrain outside the client's loaded area stays unseen
+  ([L-227 FreeCamera outside the loaded area shows only the sky](backlog/L-227.md)).
+- Split-screen: hooks are limited to the owning client; independent
+  simultaneous sessions are not implemented.
+- Coverage (multiplayer view of the body, controllers, riding, item-use
+  cases, other camera mods, world exit/death for the terrain adapter, Hold
+  through Lamium views): [VALIDATION.md "Camera and view"](VALIDATION.md#camera-and-view).
+- Open work:
+  [L-181 FreeCamera draws the held trident the wrong way round](backlog/L-181.md),
+  [L-123 FreeCamera stretches the worn elytra on the inventory player model](backlog/L-123.md),
+  [L-244 FreeCamera keeps the inside-a-block view after starting in a block](backlog/L-244.md),
+  [L-257 FreeCamera culler reads blocks on the render thread](backlog/L-257.md),
+  [L-151 Show the player's body in first person](backlog/L-151.md),
+  [L-325 Zoom: return to the set magnification on release](backlog/L-325.md).

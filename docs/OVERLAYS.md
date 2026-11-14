@@ -1,39 +1,55 @@
 # Overlay foundation
 
-Lamium's world-overlay foundation is integrated rather than compile-only.
-Shapes, Chunk Borders, Hitboxes and the light overlay share the
-world-rendering infrastructure. Shapes have a dedicated editor and local-world
-sidecar persistence. Basic Shapes rendering/persistence, Java-style Chunk
-Borders and ordinary Hitboxes have runtime evidence; broad graphics-mode,
-resource-pack, crowded-world and lifecycle coverage remains incomplete.
+Current contract, rewritten 2026-11-14; earlier records: `git show 10d58d01:docs/OVERLAYS.md`.
 
-`ShapeCollection` is the game-independent shape manager: stable session IDs,
-names, visibility, dimension ownership and cached block-surface geometry.
-Geometry is built when a shape changes, not during read-only drawing. Failed
-generation or budget checks leave the previous entry intact. The collection
-defaults to 32 shapes and 200,000 total cached lines, including hidden shapes;
-removing entries frees the budget. IDs are not reused by clear, so a stale
-editor selection cannot refer to a new shape.
+World-space overlays drawn by Lamium: Shapes (block-grid building guides with
+their own view and per-world file), Chunk Borders, Hitboxes, and the shared
+face/line drawing that the light overlay ([LIGHT-OVERLAY.md](LIGHT-OVERLAY.md)),
+the breaking restriction ([RESTRICTIONS.md](RESTRICTIONS.md)) and Schematics
+([SCHEMATIC.md](SCHEMATIC.md)) also use.
 
-The runtime owns the collection behind a mutex and exposes definition-only
-snapshots/mutations through `ShapeSession.h`. Visible shapes in the current
-dimension draw from cached CPU geometry and uploaded meshes. World exit and
-overlay shutdown release session state/resources. Local-world joins bind the
-workspace to `lamium/shapes.json` under the resolved world directory; unsupported
-or remote identities remain session-only.
+Settings and keys:
+- Shape rendering: switch with the `toggleshapes` key on the parent row, the
+  `openshapes` command on a child row (both unbound). Shapes also open from
+  the pinned sidebar entry.
+- Chunk Borders: default off, `chunkborders` key, default `F3+G`.
+- Hitboxes: `hitboxes` key, default `F3+B`.
 
-Cell overlays (L-138, built 2026-10-11): Shapes, the breaking region and
-the schematic save area draw through one builder: `CellSurface.h` (faces on
-the cells' own planes and the outline, pure and tested) and `CellMesh`
-(upload, face material, outline coloring, pull toward the eye by the
-Depth.h rules). Each keeps its own colors and decides when it shows.
+## Behavior
 
-## Shapes view and rendering
+### World overlays
 
-Shapes open from the pinned settings sidebar entry or the initially unbound
-`openshapes` key. The Shape drawing feature in settings has a switch that
-hides or shows every shape, a `toggleshapes` binding on its parent row and
-the `openshapes` command on a child row (L-83).
+- Block-grid shapes show the blocks that form the shape, not smooth
+  wireframes. Wireframes are for Chunk Borders and Hitboxes. Turning center
+  snapping off never turns a building guide into a smooth mesh.
+- (Decided 2026-10-12) Against the vanilla block selection outline (the black
+  frame on the targeted block): position markers win, building guides yield.
+  Chunk Borders, Hitboxes and the schematic corners and save area draw over
+  it; Shapes and the light overlay let it show over them; the breaking
+  restriction leaves the targeted block out. `Depth.h` holds the pulls that
+  set this order.
+- (Decided 2026-10-07) World-space overlays (Chunk Borders, Hitboxes, light
+  levels, Shapes, schematic ghosts) stay visible with vanilla Hide HUD (F1).
+  Screen HUD elements and in-world waypoint markers hide with it (L-106,
+  L-107).
+- (Decided) Line overlays get per-batch colors so Chunk Borders and Hitboxes
+  follow Java's F3+G / F3+B color coding.
+- Meshes are rebuilt only when a shape changes, never per frame.
+
+### Depth
+
+Every face overlay follows `overlay/Depth.h` (rules in its header comment):
+faces lie on their cell's own plane, never inset into a cell that may be
+solid; the whole mesh is pulled toward the eye by a fraction so it stays in
+front of the block face at any distance and angle; an offset along the
+normal is allowed only toward the side the camera must be on (light tints
+lift into their air cell); layers drawn over each other use increasing
+pulls. Pulls: schematic ghosts .998; faces and light tints .997; light
+digits and marks over the selection outline .995; Chunk Borders and
+Hitboxes .994; light digit lines .993 (save-area corners in between, see
+the file).
+
+### Shapes view
 
 The view places a shape list beside an editor. The list shows color, name,
 type (other dimensions are dimmed and tagged) and a visibility switch. The
@@ -45,230 +61,196 @@ links to the Shape rendering row in settings, and docks the view to the right
 edge so the world stays visible (the draw-all switch then moves to the
 toolbar). Editing keeps both scroll positions.
 
-"New shape" first asks for a type, then opens a draft that is previewed in the
-world as light-blue lines but not saved. The center reference is the standing
-block (snapped to its center), the exact position (no snapping) or the
-targeted block; "Move here" uses the same reference for existing shapes. The
-standing and exact references follow the drawn view (L-248): while Freelook
-or FreeCamera detaches it, they use the camera's virtual feet (its position
-minus the player's eye height) instead of the body, the same reference the
-schematic placement actions use. A targeted block comes from the hit alone,
-so it does not depend on a usable view pose. Create adds the draft; Cancel or
-leaving the view discards it. Delete requires a second press.
+- "New shape" first asks for a type, then opens a draft previewed in the
+  world as light-blue lines and not saved. Create adds it; Cancel or leaving
+  the view discards it. Delete needs a second press.
+- The center reference is the standing block (snapped to its center), the
+  exact position (no snapping) or the targeted block; "Move here" uses the
+  same reference. Standing and exact follow the drawn view (L-248): while
+  Freelook or FreeCamera detaches it they use the camera's virtual feet (its
+  position minus the player's eye height), as the schematic placement actions
+  do. A targeted block comes from the hit alone.
+- Follow the player (L-311, maintainer 2026-11-06): one switch per shape.
+  The feet block is the center, height included; FreeCamera keeps it on the
+  body; it is drawn only in the shape's own dimension and the saved
+  coordinates do not change while following. Turning it off leaves the shape
+  where it is drawn, which becomes its saved place; from another dimension,
+  where the player left the shape's dimension. The maps draw the followed
+  place.
+- Shapes also appear on the world map and minimap ([MAP.md](MAP.md)).
 
-Shapes are drawn from the blocks that form them, not as smooth wireframes.
-The current presets include circle, cylinder, sphere, box, cone, frustum,
-pyramid, ellipsoid and dome, plus rectangular planes; ShapeSpec presets can be
-oriented on Y/X/Z where supported. Each shape has a style (faces: translucent
-block faces with a faint outline; lines: block edges) and one of the shared
-shape colors. Older version-1 files load with compatible defaults for fields
-that did not exist yet.
+### Shape look
 
-Each shape's faces and lines are uploaded once per geometry revision, relative
-to the shape's first block, and positioned each frame with the world matrix.
-Meshes are released when shapes are removed or the world is left. Face
-materials follow graphics mode as documented in DESIGN.md (Fancy uses the
-hologram-pointer path where available; Simple/Vibrant Visuals use the
-lightning/strong-line fallbacks). Runtime work established the current
-translucent/line strategy, but alternate packs and graphics modes are not
-exhaustively covered.
+- Presets: circle, cylinder, sphere, box, cone, frustum, pyramid, ellipsoid,
+  dome, oriented on Y/X/Z where supported, plus rectangular planes (XZ, XY,
+  YZ).
+- Style: faces (default; translucent, unlit, two-sided, faint outline) or
+  lines (block edges).
+- Colors: cyan (default), yellow, pink, white. Drafts are light blue.
+- Face material follows the graphics mode (`overlay/FaceMaterial.h`): Fancy
+  uses the hologram pointer material with both windings; Simple uses the
+  two-sided additive lightning material, fainter, and the Shapes view footer
+  warns about it; Vibrant Visuals tries lightning and draws full-strength
+  outlines so the shape stays readable even if faces do not show.
 
-Depth (L-110, 2026-10-08): every face overlay follows the rules in
-`overlay/Depth.h` (tested in OverlayGeometryTests). Faces lie on their cell's
-own plane and the mesh is pulled toward the eye by a fraction, so it stays in
-front of the block face there at any distance and angle. The earlier 0.005
-inset into the cell (2026-09-23) fell behind the block face when looking at a
-grazing angle a few blocks away, which made Shapes and the breaking
-restriction's faces fight with the terrain; it is gone. Offsets along the
-normal are allowed only toward the side the camera must be on (light tints
-lift into their air cell). Pulls per layer: ghosts .998, faces and tints
-.997, light digits .995, digit lines .993.
+### Shape geometry conventions
 
-Pure tests cover type definitions, editor rows, stepping and validation,
-reference placement, preview layers and runs, and the view's hit testing.
+These are Lamium's own conventions:
 
-## Shape document format
+- Centers default to the containing block's center (`floor(position) + 0.5`),
+  negative coordinates included. Block Corner uses the block's lower corner;
+  Off keeps the supplied center. Radius tests sample block centers.
+- A filled circle is one disk layer; its horizontal boundary cells form a
+  ring. A cylinder repeats the disk upward from the center's block Y for the
+  given number of layers. A sphere uses 3D distance. Boundary extraction
+  removes shared internal faces.
+- Planes: unit spacing fills the plane; larger spacing draws grid lines with
+  a complete outside border. Face vertices lie on block boundaries with
+  outward winding.
+- `gridSurfaceLines` turns exposed faces into unique unit edges, keeping the
+  grid seams on the outside surface and dropping edges from internal faces
+  only; canonical integer endpoints avoid reversed duplicates.
+- Enumeration is limited to 250,000 candidate cells and line conversion to
+  one million lines by default; oversized shapes are rejected before
+  enumeration, never truncated. Coordinates are checked before integer
+  conversion. The limit is not a frame-time guarantee: generation stays out
+  of drawing.
 
-The definition codec uses version 1 JSON with a `shapes` array. Every entry
-stores `name`, `dimension`, `visible`, `style`, `color` and `geometry`.
-Runtime IDs and derived faces/lines are never persisted.
+### Shape collection and persistence
 
-Shape geometry types are `circle`, `cylinder`, `sphere`, `box`, `cone`,
-`frustum`, `pyramid`, `ellipsoid` and `dome`. They store a three-number
-`center`, `snap` (`block_center`, `block_corner`, `off`), `radius`,
-integer `height`, `axis` (`y`, `x`, `z`), `topRadius`, `heightRadius`
-and `dome`. Fields added after the first version-1 files are optional on read
-and receive legacy-compatible defaults. Plane geometry uses `type: plane`,
-integer `origin`, `width`, `depth`, `spacing` and `plane` (`xz`, `xy`,
-`yz`).
+- `ShapeCollection` holds stable session IDs, names, visibility, dimension
+  and cached block-surface geometry. Defaults: 32 shapes and 4,000,000 total
+  cached lines, hidden shapes included. Geometry is built when a shape
+  changes; a failed generation or budget check leaves the previous entry.
+  IDs are not reused by clear, and a successful load assigns fresh IDs, so a
+  stale editor selection cannot reach another shape.
+- The runtime owns the collection behind a mutex and exposes definition-only
+  snapshots and mutations through `ShapeSession.h`.
+- `ShapeWorkspace` binds the collection to a world file. Local-world joins
+  resolve `lamium/shapes.json` inside the world directory: the current game's
+  `FilePathManager::mWorlds` root plus the Level ID must name an existing
+  direct-child directory with `level.dat`. Relative roots, traversal or
+  separator IDs and non-world directories are rejected; personal
+  directories are never scanned. The file travels with a copied world.
+  Remote or unresolved worlds stay session-only.
+- Entering another workspace clears the previous shapes before reading. A
+  failed load leaves an empty collection and blocks editing until reentry,
+  so an unreadable file is never overwritten with an empty one.
+- Changes build a complete candidate, save it, and publish it to rendering
+  only after the file is written. A failed save keeps both the live shapes
+  and the file and shows a save error. Leaving clears the binding, so
+  later session-only changes cannot write into the departed world's file.
+  Candidate copies and validation stay outside rendering.
+- World exit and overlay shutdown release session state and meshes.
 
-Decoding rejects unsupported versions/options, malformed values, documents over
-1 MiB, more than 32 entries and collections exceeding geometry budgets. Integer
-fields never silently truncate fractional values. Collection replacement builds
-and validates a complete candidate before swapping it in; failed loading keeps
-the previous definitions, IDs and caches. Successful replacement assigns fresh
-IDs. Codec tests cover legacy fields, new presets/axes, UTF-8 metadata,
-large-coordinate precision and malformed input.
+### Shape document format (`lamium/shapes.json`)
 
-`ShapeStore` reads at most 1 MiB plus one detection byte and validates before
-returning definitions. Its Windows writer validates first, reserves a sibling
-temporary file with exclusive creation, writes and flushes it, then replaces
-the destination. On failure it cleans up only its own temporary file and leaves
-the previous destination intact. Filesystem tests cover first save, replacement,
-UTF-8 names, invalid data, oversized reads and replacement blocked by an open
-Windows handle. The store is connected to the local-world workspace: supported local joins
-load and save `lamium/shapes.json`; unsupported/remote identities stay
-session-only. Save-before-publish behavior preserves the previous live/file
-state on failure.
+Version 1 JSON with a `shapes` array. Every entry stores `name`,
+`dimension`, `visible`, `style`, `color` and `geometry`; `follow: true` is
+written only when on (older builds ignore it). Runtime IDs and derived
+faces/lines are never stored.
 
-Chunk Borders defaults off. It draws the current chunk walls with a yellow
-2-block grid, blue 16-block section lines/current-chunk corners and red
-neighbor-chunk corners, using floor division at negative coordinates and the
-dimension height range. During Freelook/FreeCamera the view chunk replaces the
-player chunk as the center. The Java-style color structure has been compared
-against a Java reference in game.
+- Shape geometry types `circle`, `cylinder`, `sphere`, `box`, `cone`,
+  `frustum`, `pyramid`, `ellipsoid`, `dome`: a three-number `center`, `snap`
+  (`block_center`, `block_corner`, `off`), `radius`, integer `height`, `axis`
+  (`y`, `x`, `z`), `topRadius`, `heightRadius`, `dome`. Fields added after the
+  first version-1 files are optional on read with compatible defaults.
+- Plane geometry: `type: plane`, integer `origin`, `width`, `depth`,
+  `spacing`, `plane` (`xz`, `xy`, `yz`).
+- Decoding rejects unsupported versions or options, malformed values,
+  documents over 1 MiB, more than 32 entries and collections over the
+  geometry budget. Integer fields never silently truncate fractions. A
+  replacement is validated whole before it is swapped in; a failed load
+  keeps the previous definitions, IDs and caches.
+- `ShapeStore` reads at most 1 MiB plus one detection byte. Its writer
+  validates first, creates a sibling temporary file exclusively, writes and
+  flushes it, then replaces the destination; on failure it removes only its
+  own temporary file and leaves the destination intact.
 
-Hitboxes draw white actor bounds plus a red eye marker and blue 2-block look
-line for ordinary mobs. Ender Dragon multipart damage boxes are deliberately
-not guessed; L-30 tracks whether Bedrock exposes real part boxes. Hitbox lines
-use each actor's frame-interpolated render position. The eye marker adds an
-interpolated, actor-specific eye offset sampled from `getEyePos()`; the view
-vector uses the same frame alpha. White bounds and the revised eye marker were
-confirmed in game by 2026-09-28 (L-51). Chunk Borders and
-Hitboxes submit grouped per-color line batches through the shared tessellator
-path, pulled toward the eye by 0.994 (Depth.h; without a pull lines lying on
-block faces broke up into dashes, L-157; at 0.996 the vanilla selection
-outline still covered them), and
-retain no actor/player pointer across frames. Basic visible output is past the
-compile-only stage; crowded-world performance, graphics/resource-pack variants
-and broader lifecycle cases still need coverage.
+### Chunk Borders
 
-Known bug (L-176, reported 2026-10-14): both Chunk Borders and Hitboxes lose
-their line colors with Vibrant Visuals enabled; Hitboxes is now confirmed
-in game, not only suspected from the shared path. `drawLines()` submitted
-one `debug` mesh with vertex colors. Fixed 2026-10-14 (`2d176aa`; colors seen
-in Vibrant Visuals on `9b3b8a9`): it now submits each nonempty color group separately (up to five for Chunk
-Borders, three for Hitboxes) with the `LineColor.h` selection-outline
-material and that group's shader color, restored after every draw; vertex
-colors stay for the `debug` fallback. Geometry, the eye pull and caching are
-unchanged. Ordinary modes, graphics switching and depth are still to check
-(VALIDATION.md).
+Draws the current chunk's walls with a yellow 2-block grid, blue 16-block
+section lines and current-chunk corners, and red neighbor-chunk corners,
+using floor division at negative coordinates and the dimension height range.
+During Freelook/FreeCamera the view's chunk replaces the player's as the
+center. Line coordinates are cached per render thread by chunk origin and
+height range: moving inside a chunk reuses them; crossing a boundary or a
+height change rebuilds. Inputs are validated on cache hits too, and a failed
+generation keeps the last valid entry. Meshes are temporary;
+camera-relative vertices are submitted each frame.
 
-Chunk border line coordinates are cached per render thread by chunk origin and
-dimension height range. Movement within a chunk reuses the same CPU geometry;
-crossing a chunk boundary or changing the height range rebuilds it. Reuse across
-worlds with identical bounds is safe because the cache contains only coordinates.
-Inputs are validated even on cache hits, and failed generation preserves the last
-valid cache entry. GPU meshes remain temporary and camera-relative vertices are
-still submitted each frame. Unit tests cover reuse, positive/negative boundary
-crossings, height changes, and invalid input; runtime performance is unmeasured.
+### Hitboxes
 
-World-space lines and wire boxes use continuous coordinates. Building guides use
-integer block cells and exposed block faces. They are distinct representations;
-turning center snapping off never converts a building guide into a smooth mesh.
+White actor bounds plus a red eye marker and a blue 2-block look line for
+ordinary mobs. Lines use each actor's frame-interpolated render position;
+the eye marker adds an interpolated, actor-specific eye offset sampled from
+`getEyePos()`, and the look vector uses the same frame alpha. Ender Dragon
+multipart damage boxes are not guessed
+([L-30 Ender Dragon multipart hitboxes on Bedrock](backlog/L-30.md)).
 
-Shape centers default to the containing block's center (`floor(position) + 0.5`),
-including negative coordinates. Block Corner uses the containing block's lower
-corner, and Off retains the supplied center. Radius tests sample block centers.
-The filled representation of a circle is a single disk layer; its horizontal
-boundary cells form a ring. A cylinder repeats that disk upward from the center's
-block Y for the specified number of layers. A sphere uses three-dimensional
-distance. Boundary extraction removes shared internal faces; shell cells can be
-obtained separately. These are explicit Lamium conventions, not a claim of exact
-voxel-for-voxel equivalence with another mod.
+### Line drawing
 
-Rectangular planes support XZ, XY, and YZ orientations. Unit spacing fills the
-plane; larger spacing produces grid lines with a complete outside border. Face
-vertices lie on block boundaries and have outward winding for subsequent line
-or triangle rendering.
+Chunk Borders and Hitboxes submit grouped per-color line batches through the
+shared tessellator path, pulled toward the eye by `worldLinePull`, and keep
+no actor or player pointer across frames. `drawLines()` submits each
+nonempty color group separately (up to five for Chunk Borders, three for
+Hitboxes) with the `LineColor.h` selection-outline material and that group's
+shader color, restored after every draw; vertex colors stay for the `debug`
+fallback.
 
-`gridSurfaceLines` converts exposed block faces into unique unit-length edges.
-It preserves grid seams on the outside surface so individual block positions
-remain visible, while excluding edges contributed only by internal faces.
-Canonical integer endpoints avoid reversed-edge duplicates and floating-point
-matching. The operation rejects inputs over 250,000 cells or its configurable
-line budget (one million by default); it never returns a truncated guide.
-Tests cover a single block, adjacent blocks, a solid cube, internal-edge removal,
-and budget rejection. These lines use the same `Line` representation accepted
-by the world renderer and the session Shape Manager/Editor. CPU geometry
-conversion alone does not establish visible rendering correctness.
+## Code
 
-Enumeration has a default work limit of 250,000 candidate cells. Oversized shapes
-are rejected before enumeration rather than silently truncated. Coordinates are
-checked before integer conversion and retain neighbour-arithmetic headroom.
-Shape generation must be cached outside per-frame drawing when connected to
-the game; the work limit alone is not a frame-time guarantee.
+- `overlay/CellSurface.h` (pure): faces on the cells' own planes and the
+  outline for a set of cells. `overlay/CellMesh.*`: upload, face material,
+  outline coloring, pull by `Depth.h`. Shapes, the breaking region and the
+  schematic save area all draw through these, each with its own colors and
+  visibility rules.
+- `overlay/Depth.h`, `overlay/FaceMaterial.h`, `overlay/LineColor.h`.
+- `overlay/Geometry.h` (pure): rasterizing presets and planes,
+  `gridSurfaceLines`, `faceLines`.
+- `overlay/ShapeCollection.h`, `ShapeSession.h`, `ShapeWorkspace.h`,
+  `ShapeDocument.*`, `ShapeStore.*`, `LocalShapePath.h`.
+- `overlay/ChunkBorders.h`, `overlay/Hitboxes.h`; rendering in
+  `overlay/WorldOverlay.cpp`. Each shape's faces and lines are uploaded once
+  per geometry revision relative to its first block and positioned each
+  frame with the world matrix; a following shape is drawn shifted by whole
+  blocks without a rebuild.
+- `ui/ShapesView.*`, `ui/ShapesLayout.h`, `ui/ShapeEditor.h`.
+- Tests: OverlayGeometryTests (depth, snapping, presets, shared-face removal,
+  rings, planes, grid gaps, winding, budgets), codec and store tests (legacy
+  fields, presets/axes, UTF-8, large coordinates, malformed input, replace
+  blocked by an open Windows handle), chunk-border cache tests, editor rows,
+  reference placement, preview layers and view hit testing.
+- `xmake f --shape_trace=y`: bounded primary-player join diagnostics (Level
+  ID and storage directory).
 
-Pure tests cover negative-coordinate snapping, translations, known small shapes,
-shared-face removal, rings, plane orientation, grid gaps, face winding, new
-shape-profile/axis cases and invalid/oversized input. Runtime checks cover the
-basic renderer/editor path, while exhaustive depth/material, camera-relative
-precision, performance and lifecycle coverage remains incomplete.
+## Known
 
-### Persistence transaction boundary
+- For a local world the Level ID is the storage directory name and stays the
+  same across save, exit and reentry. A world display name or server address
+  alone does not identify a world.
+- The vanilla block selection outline beats a pull of .996 but not .995.
+- The hologram pointer material is not loaded in Simple graphics (its
+  pointer resolves but draws nothing) and does not show in the Vibrant
+  Visuals deferred pipeline. The block selection material multiplies the
+  scene color, so it is unsuitable for faces.
+- One `debug` mesh with vertex colors loses its colors in Vibrant Visuals.
 
-`ShapeWorkspace` owns a collection and an optional resolved world-specific file.
-Entering another workspace clears previous shapes before reading. Successful
-loads allocate fresh session IDs so an old editor selection cannot target a
-different shape. A failed load leaves an empty collection and blocks editing
-until a successful retry or explicit departure; it cannot overwrite the
-unreadable source with an empty document.
+## Tried
 
-Changes prepare a candidate collection and publish it only after the complete
-file has been written successfully. Failed writes preserve both previous live
-values and the destination file. Leaving clears the file binding; subsequent
-session-only changes cannot save into the departed world's file. Candidate
-copies and geometry validation have a cost and must remain outside rendering.
+- Insetting faces 0.005 into their cell: at a grazing angle a few blocks
+  away the inset outgrows the pull and the faces fall behind the block face,
+  fighting the terrain (replaced by the `Depth.h` rules, L-110).
+- Lines on block faces without a pull break into dashes (L-157); a pull of
+  .996 still lets the selection outline cover them.
+- Chunk Borders and Hitboxes as one vertex-colored `debug` mesh: colors lost
+  in Vibrant Visuals (L-176).
 
-This boundary is connected to primary-player world entry and world exit. For
-local joins, the current game's `FilePathManager::mWorlds` and Level ID resolve
-an existing direct-child world directory containing `level.dat`. The shape file
-is `lamium/shapes.json` inside that world, separating identical IDs in different
-storage roots/profiles and allowing the sidecar to travel with a copied world.
-The resolver rejects relative roots, traversal/separator IDs and directories
-that do not look like worlds. It does not scan or guess personal directories.
+## Limits
 
-Changes save before publishing to rendering. Save errors have a dedicated
-message and keep previous values; load errors clear the previous world's
-collection and block edits until reentry. Resolving no supported local target
-leaves an explicitly session-only collection. Remote persistence, in-screen
-load retry, and broader multi-world/failure runtime validation remain outstanding.
-One local-world save/reentry was verified with the stored name, coordinates,
-radius, visibility and snap mode restored in the editor and the guide visible.
-Runtime testing also verified a replacement-denied save: the previous live
-geometry and file survived, a save error was shown, and retyping the edit after
-the lock was released successfully saved without leaving the world.
-
-An opt-in `shape_trace` build records bounded primary-player join diagnostics.
-One local world was verified to return its storage directory name as Level ID,
-unchanged across save/exit/reentry (see `VALIDATION-LOG.md`). Persistence integration
-uses the storage root to scope local IDs and must separately resolve remote
-identities; a world display name or server address alone is insufficient.
-
-## World overlays (Decided unless noted)
-
-Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
-- (Decided 2026-10-12) Against the vanilla block selection outline (the black
-  frame on the targeted block): position markers win, building guides yield.
-  Chunk Borders, Hitboxes and the schematic corners and save area draw over
-  it; Shapes and the light overlay let it show over them; the breaking
-  restriction leaves the targeted block out (unchanged). Depth.h holds the
-  pulls that set this order.
-
-- Block-grid shapes show the blocks that form the shape rather than smooth
-  wireframes. Wireframes are for chunk borders and hitboxes.
-- Shape style: faces (default, faint outline) or lines. Faces are unlit,
-  two-sided, inset 0.005 into their cell, and the whole shape is scaled 0.997
-  toward the eye to avoid z-fighting. Do not widen the inset.
-- Face material follows the graphics mode (Fancy: hologram pointer, two-sided;
-  Simple: lightning, one-sided, with a warning in the Shapes view; Vibrant
-  Visuals: full-strength lines). See `docs/OVERLAYS.md`.
-- Shape colors: cyan (default), yellow, pink, white. Drafts use a dashed cyan.
-- Meshes are rebuilt only when a shape changes, never per frame.
-- (Decided) Line overlays get per-batch colors so chunk borders and hitboxes
-  can follow Java's F3+G / F3+B color coding (see BACKLOG L-09 to L-11).
-- (Proposed) Overlays must not hide vanilla's block selection outline: skip or
-  dim geometry on the targeted block.
-- (Decided 2026-10-07) World-space overlays (chunk borders, hitboxes, light
-  levels, Shapes, schematic ghosts) stay visible with vanilla Hide HUD (F1).
-  Screen HUD elements and in-world waypoint markers hide with it (L-106, L-107).
+- Remote worlds keep shapes for the session only; there is no in-screen
+  load retry after a failed load.
+- Ender Dragon part boxes are not shown.
+- In-game coverage, graphics modes, resource packs and performance:
+  [VALIDATION.md](VALIDATION.md) rows "Shapes (L-13)" and "Chunk Borders
+  (L-10), Hitboxes (L-11, L-51)".

@@ -82,7 +82,7 @@ published for whoever wants it. There is no "first release" gate.
   the README feature tables and Known issues, and [FEATURES.md](FEATURES.md).
   A full regression is not required. From 0.4.0 the smoke test uses the
   commit's CI package and the tag's CI run attaches the assets to a draft
-  release ([DISTRIBUTION.md](DISTRIBUTION.md#release-flow-l-298-from-032)).
+  release ([DISTRIBUTION.md](DISTRIBUTION.md#release-flow-l-298-from-040)).
 - From 0.1.4 on, releases are ordinary GitHub releases, not marked
   pre-release: the 0.x version, the README status and the Experimental badges
   say what is unfinished.

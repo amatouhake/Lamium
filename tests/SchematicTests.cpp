@@ -265,7 +265,7 @@ void structureRejects() {
     check(reason.find("second block layer has") != std::string::npos, "a second layer shorter than the volume is rejected by name");
 }
 
-// The shape a save writes (SCHEMATIC.md A): version 2; the second layer only
+// The shape a save writes (SCHEMATIC.md "Area save"): version 2; the second layer only
 // when some cell holds a liquid, -1 elsewhere.
 void structureWrittenShape() {
     auto wet = sample();

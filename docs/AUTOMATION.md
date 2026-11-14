@@ -1,342 +1,159 @@
 # Lightweight input automation
 
-Current product behavior is in
-[Automatic attack and use](#automatic-attack-and-use-decided-2026-09-25-revised-the-same-day) below;
-current runtime coverage is in [VALIDATION.md](VALIDATION.md). Auto Attack/Use
-use session switches and pause when gameplay input is unavailable; returning
-to gameplay resumes the chosen mode. The earlier Periodic adapter below
-disarmed on menus/manual clicks and used seconds instead of ticks. Those
-sections are implementation history and do not define the current lifecycle.
+Current contract, rewritten 2026-11-14; earlier records: `git show 10d58d01:docs/AUTOMATION.md`.
 
-## Auto Attack / Auto Use (L-34, 2026-09-25)
+**Auto Attack** and **Auto Use** (L-34) press the attack or use button for
+the player: periodically, held down, or as fast clicks. **Permanent Sneak**
+and **Permanent Sprint** (L-43) keep sneaking or sprinting without holding
+the key. All four ship unbound and without the Experimental badge.
 
-Periodic Attack/Use became Auto Attack / Auto Use (DESIGN "Automatic attack
-and use"). Feature ids stay `periodicAttack`/`periodicUse`; the
-`periodicattack`/`periodicuse` actions are now the on/off switch, and
-`cycleattackmode`/`cycleusemode` cycle the mode (all unbound).
+| Row | Switch | Keys (action ids) |
+|---|---|---|
+| Auto Attack | `interaction.autoAttack` (session, never saved) | on/off `periodicattack`; next mode `cycleattackmode`; Fast click only while held `cycleattacktrigger` |
+| Auto Use | `interaction.autoUse` (session, never saved) | `periodicuse`, `cycleusemode`, `cycleusetrigger` |
+| Permanent Sneak | none saved | `permanentsneak` |
+| Permanent Sprint | none saved | `permanentsprint` |
 
-- Settings: `interaction.autoAttack`/`autoUse` (switches, never saved),
-  `attackMode`/`useMode` (saved by name, unknown names load as periodic),
-  `attackTicks`/`useTicks` (1-1200, default 10; old seconds values migrate by
-  rounding seconds x 20), `attackClicks`/`useClicks` (1-10, default 1) and
-  `attackHeldOnly`/`useHeldOnly` (Fast click only while held, default
-  off; a short-lived `attackTrigger: "held"` still loads; hotkeys keep the
-  ids `cycleattacktrigger`/`cycleusetrigger`).
-- `interaction::AutoClick` (pure, `tests/AutoClickTests.cpp`) is the state
-  machine per button. The adapter calls `configure` with the settings and
-  `tick` on every `ClientLevelTickEvent`; edges are delivered from the native
-  `InputHandler::tick` through the captured vanilla callbacks.
-- A physical press takes priority while held; Hold presses again after
-  release and Periodic skips (not queues) clicks during the hold. Fast click
-  gives N press/release pairs per tick (Always), or N release/press pairs
-  while the button is held, ending pressed.
-- Losing gameplay input (menus, focus, death, detached camera, another
-  client) suspends and releases any synthetic press; it resumes when input
-  returns. Focus loss, screen and dimension changes also forget the physical
-  held state. World exit switches both off.
+Saved options per action: `attackMode`/`useMode` (by name; an unknown name
+loads as Periodic), `attackTicks`/`useTicks` (1-1200, default 10),
+`attackClicks`/`useClicks` (1-10, default 1), `attackHeldOnly`/`useHeldOnly`
+(default off). Feature ids stay `periodicAttack`/`periodicUse` and the
+action ids keep their old names; they are saved and never renamed.
 
-Local behavior was rechecked on 2026-09-30 (`221edcb`); whether several clicks
-within one input update all land on servers remains unchecked. See VALIDATION
-for current coverage. The rest of this file records the earlier Periodic adapter.
+## Behavior
 
-## Earlier Periodic adapter record (2026-09-23)
+### Automatic attack and use
 
-Statements below about experimental status, disarming, intervals and remaining
-integration work describe the named early builds. Later rules above supersede
-them. Permanent Sneak/Sprint no longer carry the Experimental badge.
+Decided 2026-09-25 and revised the same day after the maintainer's review:
+one feature per mouse action, each with exactly one switch, one mode and one
+set of keys.
 
-Periodic Attack, Periodic Use, and Permanent Sneak share the runtime intent
-contract in `interaction::AutomationInput`. Permanent Sneak now has an
-experimental native adapter and an unbound toggle action in Features/Hotkeys.
-Its basic toggle, settings-screen cancellation, and app-switch cancellation have passed a local-world
-runtime check; broader compatibility is still unverified. Periodic Attack and Use
-now have an initial native adapter with unbound session toggles in Features and
-Hotkeys. Periodic Attack has passed a basic local empty-hand check, including
-toggle-off, settings cancellation, and a manual click disarming the action.
-Periodic Use has passed a local egg-consumption check, toggle-off, manual-click
-disarming, and cancellation on opening Settings. The broader interaction matrix
-remains unverified.
-
-Initial local-world check on 2026-09-23: the settings editor accepted a custom
-binding and the action logged activation, but the third-person player did not
-visibly crouch. DLL SHA-256:
-`8E45DEE8B16C7AAB1675C6FF7CC7AFF9181C21D3018FCEBE89C14C0F1973BD29`.
-This is evidence against treating the first adapter as functional. Bounded
-extraction/local-match/raw-sneak counters now report on cancellation to separate
-an unused hook or identity mismatch from an ineffective input bit. No packet or
-actor-state fallback has been added.
-
-The diagnostic run (DLL `22C7BBC1B4B76D69525D07FBE6ACC1FC4D941A3537035DD3E1E0BF199D01E72E`)
-reported 313 extraction calls, 313 local matches, and zero output SneakDown
-samples while armed. This excludes an unused hook or local identity mismatch
-for that run. The corrected adapter changes `mRawInputState` rather than
-`mInputState` in the transient copy; the runtime results follow below.
-
-The raw-input revision (commit `01604e3`, DLL
-`F229ED391E7F245AAD1345081BD39D1D83C4C3A6F849F1702AF3DF9C9A175090`)
-passed the following local survival checks with Minecraft 1.26.51.01,
-LeviLamina Client 26.51.3, and Deesse UI 1.3.9:
-
-- A custom hotkey activates crouching and maintains it after key release.
-- The same hotkey restores the standing pose. Diagnostics reported 472
-  extraction calls, local matches, and output SneakDown samples.
-- Reactivating, opening Lamium Settings, and closing it restores standing
-  without automatically resuming crouching.
-- Switching to another app while crouching cancels the intent. Returning to
-  Minecraft and resuming from its automatically opened pause screen leaves the
-  player standing, without reactivation. Diagnostics reported 315 extraction
-  calls, local matches, and output SneakDown samples before cancellation.
-  This checks the combined focus-loss/pause transition; focus loss without a
-  pause screen (including multiplayer) has not been isolated.
-
-Physical-key overlap, world/dimension transitions, movement/ledge
-behavior, and multiplayer remain unverified. The feature is still experimental.
-
-### Initial runtime contract
-
-- Arming is session state, never a persisted instruction to act on world load.
-- Loss of gameplay input ownership cancels and disarms. Closing a menu or
-  regaining focus must not restart automation without an explicit activation.
-- The native adapter must cancel on focus loss, screen/world transitions,
-  runtime disable, and any detached-camera interaction guard.
-- Hold mode contributes one press until cancellation. Periodic mode releases
-  on the following native input update and schedules from the actual press
-  time. Delayed updates never produce catch-up bursts.
-- Physical input takes priority. A release edge removes only Lamium's input
-  contribution; the adapter must preserve the user's physically held input.
-- Interval values must be positive. Interval configuration will be bounded in
-  the settings layer before reaching this state machine.
-
-### Periodic adapter checkpoint
-
-The initial adapter captures the two observed vanilla action callbacks during
-registration and scopes them to their owning `InputHandler`. It advances after
-that handler's native input tick, only for the primary client whose
-`ClientInputHandler` references the same owner. Native callbacks receive the
-observed `DeactivateFocus` argument. No input hash, packet, or GameMode action
-is constructed directly.
-
-Each press lasts one input update. Attack and Use each expose an Interval in
-their feature settings, in seconds (0.1–60, default 0.5). The adapter snapshots
-the interval on activation; opening Settings cancels an active session, so
-editing does not leave a previously scheduled click pending. Missing values
-retain the old 500 ms cadence. Active automation appears at the upper right,
-independent of Info HUD and gameplay key hints. The Automation status setting
-can hide these lines (and the block restriction lines in the same element)
-without changing input intent. Activation
-is never persisted. A manual down event disarms that action and transfers held
-state to the physical input; cancellation does not release underneath a held
-physical button. Common input invalidation, dimension changes, and runtime
-disable cancel intent. Owner destruction discards callbacks without replaying
-them against a disappearing input handler. Callback wrappers use weak owners
-and continue forwarding original input after the adapter is stopped.
-
-This initial registration-based adapter requires a fresh game process. It does
-not recover callback registrations that happened before hook installation, or
-rebuild captures when the mod is disabled and enabled within the same process.
-Runtime checks must cover synthetic attack/use, physical takeover, menu/focus
-cancellation, world exit, and continuous-use items before this feature can be
-treated as usable. Build success alone does not establish those behaviors.
-
-Initial adapter smoke on 2026-09-23, DLL
-`C822AF983F6CA5BD767D15F31EBA1E72CDD8EC3B12333BAC530EFEE19B4B181D`:
-startup and local-world entry succeeded, and Features accepted a custom Periodic
-Attack binding. Activation did not produce sufficient visual or diagnostic
-evidence to establish repeated attacks. Settings was reopened to cancel any
-remaining intent. This is not a successful automation check. The next trace
-adds activation rejection reasons, bounded edge counts, and update-owner
-eligibility diagnostics to distinguish capture, activation, and dispatch failure.
-
-Follow-up on 2026-09-23, commit `71883c7`, DLL SHA-256
-`2A9A153A7CEC0A7C91B3B391F75BB3B2A084F50E9ABBDFC5586EEBAC45E3B9D8`,
-in a local survival world on Minecraft 1.26.51.01 / LeviLamina Client 26.51.3 /
-Deesse UI 1.3.9:
-
-- The custom Periodic Attack key activated arm swings with an empty hand.
-  The first four down edges were about 0.51 seconds apart; their corresponding
-  up edges followed about 17–22 ms later. Toggling off recorded 39 presses and
-  39 releases.
-- Reactivating and opening Settings stopped after 23 matched presses/releases.
-  The rejection diagnostic showed the primary client, armed client, and input
-  owner matched; gameplay eligibility was false while Settings owned input.
-  Closing Settings did not rearm: the next toggle logged a new activation.
-- A manual left click during a subsequent activation delivered the ordinary
-  attack down/up callbacks. The next toggle activated again rather than
-  toggling off, establishing that the click had disarmed the session intent.
-  This does not test a physically held button overlapping a synthetic press.
-
-These observations supersede the earlier inconclusive attack smoke only.
-They do not establish entity damage, block breaking, Periodic Use, continuous-use
-items, world/dimension transitions, multiplayer, or hot re-enable support.
-The configurable-interval and status HUD revisions pass build and settings
-tests. A local runtime check of `99e1641`, DLL SHA-256
-`B14199694DDE22CEC291E808BA3CA97F1AACD01F44EC0270F55BFBFED1034A07`,
-confirmed the following in the same environment:
-
-- Periodic Attack shows its active line; enabling Permanent Sneak adds a second
-  line. Both disappear when Settings opens, and neither returns on closing it.
-- The feature's Interval row displays 0.5 seconds and its 0.1–60 range. Right
-  arrow changes it to 0.6 seconds without a save button.
-- After closing Settings and explicitly reactivating attack, four traced down
-  edges were separated by 615, 602, and 600 ms. Toggling off removes the status.
-
-Alternate UI scales/locales and overlap with other configurable HUD positions
-still need runtime coverage.
-
-#### Periodic Use local check
-
-The same `99e1641` DLL and environment were used for a subsequent local survival
-check on 2026-09-23:
-
-- The in-game editor accepted a custom Periodic Use binding, with its independent
-  interval left at 0.5 seconds.
-- Activating with 14 eggs in the selected hotbar slot displayed the active status
-  line and reduced the count to 13, then emptied the slot while no manual use
-  input was supplied. Projectile flight was not separately captured.
-- The first four traced down edges were separated by 516, 503, and 500 ms;
-  corresponding releases followed about 16–17 ms later. Toggling off recorded
-  33 matched presses/releases and removed the status line. Periodic input
-  continued after the slot became empty until explicitly stopped.
-- On a subsequent empty-hand activation, a manual right click removed the
-  status. The next toggle logged a new activation, confirming that the manual
-  click had disarmed the intent.
-- Opening Settings during that activation stopped it after 23 matched
-  presses/releases. The diagnostic reported matching client/owner identity
-  with gameplay eligibility false. In a follow-up, closing Settings left the
-  status absent; the next explicit toggle logged a new activation and restored
-  the status, confirming that closing Settings had not rearmed use.
-
-The follow-up also exercised the Automation status visibility option through
-the in-game Features list. Turning it off saved `interface.automationStatus`
-as false without a save button. After closing Settings and explicitly arming
-Periodic Use with an empty hand, the status stayed hidden while diagnostics
-confirmed repeated input edges. The next toggle stopped the action.
-The stop diagnostic reported 23 presses and 22 releases: this diagnostic is
-emitted before `cancelButton` sends its final synthetic release, so these counts
-are not final totals and do not by themselves establish a stuck input.
-Observing that final release directly remains a diagnostic limitation.
-
-The subsequent diagnostic revision moves the stop summary after cancellation's
-release callback. It includes `finalRelease` when that callback was dispatched
-and `releaseSkipped` when a release was needed but the primary client no longer
-matched. Counts remain bounded at 1000. This revision passes the DLL build and
-existing test suite; its new diagnostic fields still need a fresh-process
-runtime check and do not retroactively change the preceding observations.
-
-This establishes repeated instant-use consumption in one local world. It does
-not establish food consumption, bow charging, other continuous-use items,
-placement, physical-button overlap, world transitions, or multiplayer behavior.
-
-### Initial integration discovery
-
-#### Periodic input discovery
-
-SDK 26.51.3 exposes named `InputHandler::registerButtonDownHandler` and
-`registerButtonUpHandler` callbacks, but the inspected client input handler
-interfaces do not expose a direct attack/use input dispatcher. Do not guess
-button hashes or invoke GameMode methods as a substitute for vanilla input.
-
-Configure `xmake f --automation_trace=y` for an opt-in discovery build. It
-observes at most 512 registrations and 64 callback invocations per process,
-logging the button name, down/up edge, suspendable flag (registration), and
-focus impact (dispatch). Since 2026-09-28 (L-49) only dispatches whose button
-name contains `build` or `attack` are logged and counted, so menu navigation
-does not use up the budget; every registration is still logged. Widen the
-filter in `AutomationTrace.cpp` before using the trace for other buttons. It forwards each callback with its original arguments
-and does not generate input or retain callbacks for replay. No typed text,
-inventory contents, player identity, or world data is recorded by this trace.
-Hooks start during mod load to catch subsequent client input registration.
-Callbacks registered before mod load are not covered; absence of a logged
-action is not evidence that the game lacks that action.
-
-The discovery build requires a fresh process and is not intended for hot DLL
-unloading: observed callbacks contain trace wrappers for their original
-lifetime. Disable stops logging and removes the registration hooks. Rebuild
-with `--automation_trace=n` for ordinary use.
-
-Runtime discovery on 2026-09-23 (Minecraft 1.26.51.01, LeviLamina Client
-26.51.3, Deesse UI 1.3.9):
-
-- The initial 128-registration budget ended at hotbar selection, before attack
-  and use. This was an instrumentation limit, not a missing vanilla path.
-- The revised 512-registration budget captured 329 registrations without
-  reaching the limit. DLL SHA-256:
-  `C234AD031842E4F8A66BD54E38F7A47D47C5EC59ACB9BE1FE312E7B66BC308D8`.
-- In a local survival world with an empty selected slot, one left click invoked
-  `button.destroy_or_attack` down and up, followed respectively by
-  `button.pointer_pressed` down and up. One right click invoked
-  `button.build_or_interact` down and up.
-- Both action callbacks used focus value 2, named `DeactivateFocus` by the SDK.
-  This enum is an input focus-impact argument, not evidence of OS focus loss.
-- Both action names have down/up registrations with `suspendable=false`.
-  A synthetic adapter still needs its own eligibility guard.
-
-Next establish the native update boundary, callback owner lifetime, and
-physical-input ownership before connecting periodic intent. These observations
-cover ordinary click dispatch, not successful item use, block breaking, or
-synthetic callback replay. The trace itself does not implement Periodic Attack
-or Periodic Use.
-
-The first Permanent Sneak adapter hooks `extractRawHIDInput`, verifies that the
-input belongs to the primary local client, and passes a transient copy with
-`SneakDown` set to vanilla. It never stores synthetic flags in the user's HID
-state. Common input invalidation cancels its session intent; dimension changes
-and runtime disable also cancel. The checks above establish basic local-world
-consumption of the copied bit, not the remaining movement or multiplayer cases.
-
-Use the vanilla local input path rather than constructing attack/use packets
-or modifying authoritative actor state directly. The SDK exposes separate
-`MoveInputState`, `MoveInputComponent`, and local sneak state; selecting the
-correct input update boundary requires runtime verification. Merely setting
-the actor's sneaking flag does not establish that vanilla movement, input
-release, and multiplayer semantics work.
-
-Validate activation, deactivation, physical-key overlap, settings/chat screens,
-focus loss, world exit/re-entry, and disable. For periodic actions also verify
-item use/release and breaking behavior, with no delayed burst after a stall.
-Unit tests prove the independent lifecycle contract only, not Minecraft input
-integration or multiplayer compatibility.
-
-## Automatic attack and use (Decided 2026-09-25, revised the same day)
-
-Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
-One feature per mouse action, **Auto Attack** and **Auto Use**, each with
-exactly one switch, one mode and one set of keys:
-
-- **Switch**: the feature row's switch; its hotkey toggles it. On means it is
-  working in the chosen mode. The switch is session state: never saved, off
-  after leaving the world or restarting.
+- **Switch**: the feature row's switch; its key toggles it. On means it is
+  working in the chosen mode. Session state: never saved, off after leaving
+  the world or restarting.
 - **Mode** (saved): Periodic (clicks every N ticks), Hold (keeps the button
-  pressed: mining, eating, shield, bow) or Fast click (while the physical
-  button is held, clicks N times per tick). One mode at a time. A separate
-  "next mode" hotkey cycles it (unbound by default). Changing mode while on
-  releases the old mode's press first.
-- **Settings**: Periodic interval 1-1200 ticks, default 10, shown as
-  "10 tick (0.50s)"; Fast click 1-10 clicks per tick, default 1, shown as
-  "1/tick (20/s)". Both rows are always listed; their labels name the mode.
+  pressed: mining, eating, shield, bow) or Fast click (N clicks per tick).
+  One mode at a time; the "next mode" key cycles it. Changing mode while on
+  releases the old mode's press first. Periodic clicks at once when started.
+- **Settings**: Periodic interval shown as "10 tick (0.50s)"; Fast click
+  shown as "1/tick (20/s)". Both rows are always listed; their labels name
+  the mode.
 - **Fast click only while the button is held** (saved switch, Fast click
   only): off by default, so Fast click acts while switched on like the other
-  modes. Only Fast click gets this: Hold "while held" would be vanilla and
-  Periodic did not need it (maintainer, 2026-09-25). Toasts/status say
-  "Fast click (while held)" when it is on.
-- **Keyed option rows** (2026-09-25): a setting and the hotkey that changes
-  it share one row. The "Fast click only while held" row has its switch and
-  key; the Mode row has its stepper (moved left of the key column) and the
-  "next mode" key. Breaking Restriction's switch and mode rows carry their
-  respective toggle and "next mode" keys the same way. Those actions get no
-  row of their own under the feature;
-  Hotkeys still lists them. Clicking the key cell edits the binding.
-- **Nothing stops it implicitly.** Only the switch (row or hotkey) turns it
-  off, plus leaving the world. A manual click takes priority while held and
-  automation resumes after release (Hold presses again; Periodic continues on
-  its schedule without saved-up clicks). Menus, focus loss, death, dimension
-  changes and detached cameras pause it; it resumes when gameplay input
-  returns. The status element shows "Auto Attack: Periodic", with
-  "(paused)" while paused.
-- Toasts name the mode: "Auto Attack: Hold  ON".
+  modes. Hold "while held" would be vanilla and Periodic did not need it
+  (maintainer, 2026-09-25). Toasts and status say "Fast click (while held)"
+  when it is on.
+- **Keyed option rows**: a setting and the key that changes it share one
+  row. The "Fast click only while held" row has its switch and key; the Mode
+  row has its stepper (left of the key column) and the "next mode" key.
+  Breaking Restriction's switch and mode rows carry their keys the same way.
+  Those actions get no row of their own under the feature; Hotkeys still
+  lists them. Clicking the key cell edits the binding.
+- **Nothing stops it implicitly.** Only the switch (row or key) turns it
+  off, plus leaving the world. A manual press takes priority while held and
+  automation resumes after release: Hold presses again, Periodic continues
+  on its schedule and skips (never queues) clicks during the hold. With Fast
+  click, a held button gives N release/press pairs per tick, ending pressed;
+  otherwise N press/release pairs.
+- Menus, focus loss, death, dimension changes and detached cameras pause it,
+  releasing any synthetic press; it resumes when gameplay input returns.
+  Focus loss, screen and dimension changes also forget the physical held
+  state (the release may never be reported).
+- The status element shows "Auto Attack: Periodic", with "(paused)" while
+  paused ([HUD.md](HUD.md), Automation status). Toasts name the mode:
+  "Auto Attack: Hold  ON".
 - Help text warns that servers may treat very fast input as cheating.
-- Why: the first version had separate Periodic/Hold/Fast toggles plus a
-  parent row without a switch, so it was unclear what was on, and stopping on
-  a manual click felt arbitrary (maintainer review 2026-09-25). Reference
-  behavior: Tweakeroo's periodic/hold attack and use and fast click (behavior
-  only, no code).
+- Why this shape: the first version had separate Periodic/Hold/Fast toggles
+  plus a parent row without a switch, so it was unclear what was on, and
+  stopping on a manual click felt arbitrary.
+
+### Permanent Sneak and Sprint
+
+- No saved switch (CAMERA.md "Decided 2026-09-26", shared with Zoom,
+  Freelook and FreeCamera): the switch shows whether they are wanted, the key
+  or a click flips it, and the effect starts when gameplay allows.
+- Menus and focus changes pause them; they resume afterwards. Death,
+  dimension change and leaving the world turn them off. Nothing is saved
+  across restarts.
+- Vanilla still decides whether sprinting starts (forward input, food,
+  blindness).
+- A physically held sneak or sprint key is never cleared by Lamium.
+
+## Code
+
+- `src/features/interaction/AutoClick.h` (pure, `tests/AutoClickTests.cpp`):
+  the state machine per button. `configure` follows the settings every tick
+  (only changes act), `tick` counts client ticks and never queues catch-up
+  clicks, `physical` hands the button to the user, `forgetHeld`, `suspend`,
+  and `update` yields the edges for one native input update.
+- `src/features/interaction/AutomationInput.h` (pure,
+  `tests/AutomationInputTests.cpp`): the session intent shared with
+  Permanent Sneak/Sprint. `AutoMode.h`: the mode enum and its names.
+- `src/features/interaction/PeriodicInput.cpp`: the Auto Attack/Use adapter.
+  Hooks `InputHandler::registerButtonDownHandler`/`registerButtonUpHandler`
+  capture the vanilla callbacks for `button.destroy_or_attack` and
+  `button.build_or_interact`, scoped to their owning `InputHandler` (weak
+  owners; wrappers keep forwarding original input after stop). `Update`
+  (after `InputHandler::tick`) emits edges only for the primary client whose
+  input handler is that owner, passing `FocusImpact::DeactivateFocus`.
+  `DestroyOwner` drops callbacks without replay. `ChangeDimension`
+  (`LevelRendererPlayer::$onWillChangeDimension`) interrupts. Timing follows
+  `ClientLevelTickEvent`; `endSession` switches both off at world exit.
+  Eligibility (`eligible`) also excludes sleeping, riding and Lamium's own
+  screens.
+- `src/features/interaction/PermanentSneak.cpp` (both features):
+  `ExtractSneakInput` hooks `ClientInputUpdateSystem::extractRawHIDInput`,
+  checks that the input is the primary local client's
+  (`ClientMoveInputHandler::getMoveInput`), and passes vanilla a transient
+  copy with `SneakDown`/`SprintDown` set in `mRawInputState`. Synthetic bits
+  are never stored in the user's HID state. `SneakDimensionChange` cancels
+  both.
+- Settings migration (`SettingsStore.cpp`): old seconds values
+  (`attackInterval`/`useInterval`) load as seconds x 20 ticks; a short-lived
+  `attackTrigger: "held"` loads as `attackHeldOnly`.
+- `automation_trace` (xmake option, `AutomationTrace.cpp`): logs callback
+  registrations (at most 512: button name, edge, suspendable flag) and
+  dispatches (at most 64, only names containing `build` or `attack`, so menu
+  navigation does not use up the budget; widen the filter before tracing
+  other buttons), plus adapter edges and pause reasons. Read-only: it
+  forwards callbacks with their original arguments, records no typed text,
+  inventory, identity or world data. Needs a fresh process; callbacks
+  registered before mod load are not covered.
+
+## Known
+
+- One left click invokes `button.destroy_or_attack` down and up, followed by
+  `button.pointer_pressed`; one right click invokes `button.build_or_interact`.
+  Both register down/up with `suspendable=false`, so the adapter needs its
+  own eligibility guard.
+- Both action callbacks receive focus value 2 (`DeactivateFocus`): an input
+  focus-impact argument, not OS focus loss.
+- The client input interfaces expose no direct attack/use dispatcher in the
+  SDK.
+- Sneak must be set in `mRawInputState` of the copied `MoveInputComponent`:
+  setting `mInputState` gave zero output `SneakDown` samples while the hook
+  and local match were reached.
+- The game registers about 330 button callbacks; a 128-registration trace
+  budget ends at hotbar selection, before attack and use.
+- Callback registration happens once: the adapter needs a fresh game
+  process and does not recover registrations made before its hooks, or after
+  disabling and re-enabling the mod in one process.
+
+## Tried
+
+- Disarming on a manual click or on opening a menu (first Periodic adapter):
+  felt arbitrary; replaced by priority-while-held and pause/resume.
+- Intervals in seconds (0.1-60): replaced by client ticks.
+- Setting `mInputState` instead of `mRawInputState` for sneak: vanilla
+  ignored it.
+- Not to be tried: guessing button hashes, invoking GameMode methods,
+  building attack/use packets or setting the actor's sneaking flag directly
+  instead of the vanilla input path.
+
+## Limits
+
+- Whether several clicks within one input update all land on servers is
+  unchecked; see [VALIDATION.md](VALIDATION.md), rows "Auto Attack / Auto
+  Use (L-34)" and "Permanent Sneak, Permanent Sprint (L-43)".
+- Synthetic presses go only to the primary client; split-screen is not
+  covered.

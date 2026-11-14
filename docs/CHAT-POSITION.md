@@ -1,125 +1,86 @@
-# Chat position (L-174)
+# Chat position
 
-## Part of Game HUD placement (L-321, 2026-11-11)
+Current contract, rewritten 2026-11-14; earlier records: `git show 10d58d01:docs/CHAT-POSITION.md`.
 
-The chat's switch is now a detail switch, on by default, under the
-default-off **Game HUD placement** feature, beside the paper doll and the
-scoreboard (DESIGN "Game HUD placement"). Older settings with Chat position
-on load with the feature on and only the chat selected. Below, "Chat
-position switch" means that detail switch under the main one.
+HUD layout places and scales the game's own HUD chat messages. The chat is
+one part of **Game HUD placement** (default off), beside the paper doll, the
+scoreboard and the boss bars ([HUD.md](HUD.md), "Game HUD placement" and
+"Showing, hiding and names"). Its row there is Standard / Placed /
+Hidden, default Placed, with one unbound key that steps the three. Older
+settings with Chat position on load with Game HUD placement on and only the
+chat selected.
 
-## Scale (L-321, 2026-11-11)
+## Behavior
 
-HUD layout also scales the chat, 50-200 %, like Lamium's own elements. The
-game's layout stays as it is: for each draw the part's place inside the
-panel, the control's size and the text's font scale and line height are
-multiplied and restored, which keeps the line breaks and spacing (the
-`chat_scale_trace` experiment, VALIDATION-LOG). The text shadow's offset
-grows with the scale. A chat scaled past the screen is left as the game
-draws it. Below, "only offers position controls" and "no ... appearance
-settings" predate this.
+- Placed: the default is the lower left, its left edge flush with the screen
+  and its bottom 44 GUI units above the screen edge (chosen 2026-10-14). Two
+  default Durability HUD rows take 36 units with their 4-unit inset, leaving
+  a 4-unit gap. It is a fixed default, not tracking later Durability HUD
+  changes or avoiding anything. Saved placements are kept; reset uses this
+  default.
+- HUD layout drags, nudges, snaps and resets the chat like any element, and
+  scales it 50-200 %. It has no look controls (background, shadow). The
+  shared edge-anchor rules apply as the measured message area grows and
+  shrinks. The editor shows sample text, not saved chat contents.
+- Scaling keeps the game's layout: the part's place inside the panel, the
+  control's size and the text's font scale and line height are multiplied
+  for each draw and restored, so line breaks and spacing stay. The text
+  shadow's offset grows with the scale. A chat scaled past the screen is
+  left as the game draws it.
+- Hidden: the HUD messages are not drawn; the game's layout and state stay.
+- The game's message contents, font, shadow, background, order and fading
+  stay vanilla. The chat input/history screen is never moved. No width,
+  line-count or appearance settings.
+- Only the gameplay HUD is affected, while a player exists and Minecraft has
+  foreground focus. Switched off, in menus, on world exit and on an
+  unverified game executable the chat stays where the game puts it.
 
-## Current contract (decided 2026-10-14)
+## Code
 
-Information has a saved, default-off **Chat position** switch and an unbound
-toggle key. Enabling it places ordinary HUD chat at the bottom left, with
-its left edge flush against the screen and its bottom 44 GUI units above
-the screen edge (chosen 2026-10-14). Two standard Durability HUD
-rows occupy 36 units with their 4-unit bottom inset, leaving a 4-unit gap.
-This is a fixed default; it does not track later Durability HUD changes.
-Existing saved positions remain unchanged; reset uses the new default.
-HUD layout provides dragging, keyboard nudging, nine snap positions and
-reset; the chat toolbar only offers position controls. Placement follows
-the shared edge-anchor rules as the measured message area grows/shrinks.
+- `src/features/information/ChatPosition.cpp/.h`. Pure: `chatPosition::placed`
+  and `translated` (translation plus a uniform scale; shared with the
+  scoreboard). `preview` gives the editor sample from owned geometry only.
+- Hooks: `ScreenView::render` opens a render scope only for a visual tree
+  whose root control name ends in `.hud_screen` (that identity, not the
+  global screen stack name, which may still name a closing chat or menu).
+  `TextComponent` and `SpriteComponent` render hooks handle the `chat_text`
+  and `chat_background` controls: a bounded ancestor walk (16 levels) finds
+  `chat_panel` under `chat_stack`, reads the panel's measured size after
+  layout, translates (and scales) only the component's cached position and
+  size for its draw, and restores them right after. Parent-relative positions
+  and dirty flags are left alone. No game pointers cross frames.
+- Capability `ChatPosition` ("Chat position (HUD control positions)").
+- Default placement: `HudElementId::Chat` in `src/ui/HudElement.h`.
 
-The game's message contents, font, size, shadow, background, order and fade
-are retained. The input/history screen is outside this step. No width,
-line-count or appearance settings. The layout editor uses sample text, not
-saved chat contents. The initial scope is verified and no longer carries
-Experimental. BACKLOG-DONE owns completion; VALIDATION owns coverage.
+## Known
 
-## Chat-return regression (2026-10-15, L-203)
+- `UIControl` exposes `mParentRelativePosition`, `mCachedPosition`,
+  `mCachedPositionDirty`, `mSize`, `mChildren`, `mClipsChildren` and
+  `_setCachedPosition()`.
+- The vanilla HUD (`hud_screen.json` in Mojang's bedrock-samples) keeps
+  `chat_panel` apart from `player_position`, the paper-doll padding and the
+  other children of `chat_stack`. The panel holds a message factory; each
+  message has its own text, background and fade animation.
+- The game has no fixed chat place: the chat is the last item of a stack
+  under the paper doll's room, the position line, the day count and the game
+  tips, so its height changes with what shows (why the default is a fixed
+  lower left, HUD.md).
 
-The local smoke on `d5978e2` found a brief vanilla-position draw after
-returning from chat input before the chosen HUD position returns. Basic
-placement still works; this transition is reopened, with server coverage
-still pending. The render scope already identifies the actual HUD visual
-tree. It now uses that identity without also consulting the global screen
-stack name, which may still identify the closing chat/menu while the HUD
-is drawing again. Input/history visual trees remain untouched. Existing
-foreground/player, capability and hierarchy checks and per-draw restoration
-remain in place. The maintainer passed the supplied chat-return checklist
-locally on `f8c714b`: no vanilla-position jump reported, with ordinary OFF
-restoration retained. This closes L-203 locally; server and broader layout/
-pack coverage remain open. Evidence and test scope: VALIDATION-LOG.
+## Tried
 
-## Current implementation and validation (2026-10-14)
+- Translating the whole panel subtree before render (relative root and
+  cached positions, restored and marked dirty afterwards): remaining
+  messages flickered when an older one expired.
+- Gating on the global screen stack name: the chat was drawn at the vanilla
+  place for a moment after closing chat input.
 
-The maintainer passed the initial three-step checklist on `5b5750c`, then
-reported a brief flicker of remaining messages when an older one expires.
-This establishes basic placement, editing/reset and OFF restoration, not
-the broader checks below. Evidence: VALIDATION-LOG.
+## Limits
 
-The follow-up replaces the subtree-wide pre-render translation with a
-render scope containing only owned screen/layout values. Native text and
-background render hooks find the panel through a bounded ancestor walk,
-read its current measured size after layout, translate only the component's
-cached position for its draw and restore it immediately. Parent-relative
-positions and dirty flags are left alone; no game pointers cross frames.
-Renamed native text/background controls fail open. The maintainer passed
-the expiry/long-message checklist on `b28a40d`: no flicker and long messages
-remain correct. This confirms the fix in the tested context; the broader
-checks below remain unitemized. The saved placement was left 0, bottom
-offset -45; the maintainer then chose a 4-unit upper gap for the default
-(left 0, bottom offset -44). Existing saved placement is retained.
-The default-reset check passed on `dc3ac45`; the maintainer accepted closing
-L-174. Fresh settings and the broader checks remain unitemized.
-
-## Research and first implementation (2026-10-14, superseded by the fix above)
-
-- SDK 26.51.5 exposes `UIControl::mParentRelativePosition`,
-  `mCachedPosition`, `mCachedPositionDirty`, `mSize`, `mChildren` and
-  `_setCachedPosition()`, and `ScreenView::render(UIRenderContext&)`.
-- Mojang's [HUD UI sample](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/ui/hud_screen.json)
-  separates `chat_panel` from `player_position`, the paper-doll padding
-  and other children of `chat_stack`. The panel contains a message factory;
-  each message has its own text/background and native fade animation.
-  This supports a translation-only experiment; it does not establish
-  the runtime render/cache order on the installed game.
-- `ChatPosition.cpp` gathers at most 512 controls in that panel's subtree,
-  resolves dirty cached positions, and validates measured geometry before
-  any translation. The relative root and absolute cached positions are
-  translated for one render call. A scope guard restores them and marks
-  them dirty so vanilla can re-resolve them afterwards. No game pointers
-  survive the call; only owned screen/size values inform the editor sample.
-- Only the gameplay HUD view is eligible while a player exists and Minecraft
-  has foreground focus. Disabled features, menus, world exit and unknown
-  game executables retain vanilla placement. Unexpected pack hierarchies,
-  clipping and invalid/oversized geometry fail open. The version gate is
-  `Chat position (HUD control positions)`.
-- Build/tests do not prove that native batching consumes the translated
-  caches. First checkpoint: see both text and background move together;
-  confirm fading, coordinates remaining in place and disabling restoration.
-
-Build checkpoint: release DLL, LamiumTests and LamiumNativeTests pass; the hook inventory
-matches. No runtime result is claimed at this checkpoint.
-
-## Runtime checks (basic scope and expiry regression passed; broader checks pending)
-
-First repeat: send three short messages with time between them and watch
-the oldest fade/expire. The other messages and backgrounds should stay
-steady. Repeat with a wrapped message, then with Chat position OFF. Passed
-on `b28a40d`; the final default after reset passed on `dc3ac45`.
-
-1. Enable Chat position; send several messages and a wrapped long message.
-   Text and backgrounds should appear together at the lower left and fade
-   as vanilla does. Coordinates/paper doll must stay where vanilla put them.
-2. In HUD layout, drag the chat sample, use arrows and snap positions; close,
-   send messages and restart. Placement should persist. Reset restores the
-   lower-left default. No font/background/scale controls for chat.
-3. Disable; send another message. Open chat input/history and close it, use
-   F1, alt-tab, leave/rejoin and change dimensions. The input/history screen
-   stays vanilla and no chat offset is left on another screen.
-4. Resize/change GUI scale; repeat with Pocket UI and a resource pack. On
-   unsupported panel layouts retain vanilla. Verify local world and server
-   chat separately. Check the forced `unverified_game` gate separately.
+- A clipping panel on the way, a renamed text/background control, an
+  unexpected pack hierarchy or invalid/oversized geometry leaves the chat
+  where the game draws it (hiding still works).
+- Coverage: [VALIDATION.md "Information and overlays"](VALIDATION.md#information-and-overlays)
+  (Chat position, Chat and scoreboard scale). Not yet checked: fresh
+  settings, GUI scales, Pocket UI, resource packs, F1, alt-tab,
+  leave/rejoin, dimension change, servers, and the forced `unverified_game`
+  gate.

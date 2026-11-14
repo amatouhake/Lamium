@@ -1,440 +1,239 @@
 # Fake Offhand
 
-L-49 implements block placement; L-95 adds the validated instant-use subset
-and is closed. Both decision records are in [BACKLOG-DONE.md](BACKLOG-DONE.md).
-Timed secondary use was excluded on 2026-10-07; the broader extension scope
-below is the earlier research record, not a promise of support. Confirmed
-runtime coverage and remaining checks are in [VALIDATION.md](VALIDATION.md).
+Current contract, rewritten 2026-11-14; earlier records: `git show 10d58d01:docs/FAKE-OFFHAND.md`.
 
-## With Sneak Placement (L-293, maintainer report 2026-11-01)
+Uses a configured hotbar slot as a second hand while the activation binding
+is held: blocks placed and instant items used from that slot without
+selecting it. Under Inventory, off by default (`inventory.fakeOffhand`).
+Rows: "Target slot" (`fakeOffhandSlot`, 1-9, default 9), the toggle action
+`fakeoffhand` (unbound) and the hold action "Fake Offhand activation"
+(`fakeoffhanduse`, right click by default). It performs no inventory
+transfer and does not use the real offhand (that is Offhand swap, L-94).
+Decision records: [L-49](backlog/done/L-49.md) (placement),
+[L-95](backlog/done/L-95.md) (instant use),
+[L-189](backlog/done/L-189.md) (target-specific primary passes),
+[L-198](backlog/done/L-198.md) (primary-use regressions).
 
-Fake Offhand aimed at an interactive block opens it unless the player
-sneaks (L-292). With Sneak Placement on, the slot's item is what acts, so
-the choice takes Sneak Placement's sneak state instead of the player's, for
-the right-click binding and a key of its own alike: the block in the slot is
-placed on a chest with an empty main hand, and with "Open while sneaking"
-sneaking opens it. Without that option such a chest opens only with Fake
-Offhand off or its slot empty, as with an item in the main hand. A first
-build (`1468eaef`) applied this to a key of its own only and did not help
-the default right-click binding (maintainer 2026-11-01). When Sneak Placement holds the use back
-and replays it, the replay selects the slot the use came from for that call
-only, as Fake Offhand does.
+## Scope (maintainer)
 
-## Auto Elytra fireworks (L-246, decided 2026-10-26)
+- 2026-10-06: the goal is broad secondary-hand capability, not one item
+  category, built in validated steps. One switch, one target slot, the
+  existing activation binding.
+- 2026-10-07: timed secondary use (food, potions, bows, crossbows,
+  tridents, spyglass) is out of scope: the per-call borrow cannot keep it,
+  and keeping the target selected for the whole hold was not chosen.
+- Passive holding effects (shield, totem, map, Mending) are not faked: a
+  hotbar item is not server-authoritatively held in an offhand. Never
+  implement client-only health, protection or enchantment effects.
+- 2026-10-15: target-specific primary uses: include as much as possible,
+  and prefer the game's own checks to hand-kept lists.
 
-Auto Elytra's firework jump reads this feature's target slot too: while Fake
-Offhand is on and that slot holds firework rockets, a jump puts the elytra on
-whatever the main hand holds. It is an equipment trigger only, so no firework
-is used and no glide is started; a later jump glides as in vanilla. With Fake
-Offhand off, or its slot empty or not rockets, the trigger reads the main hand
-as before.
+## Behavior
 
-The trigger follows the setting, not the `FakeOffhandTargets` capability. That
-capability pauses only the target-specific main-hand checks in `targetUse()`;
-the slot's own instant uses, fireworks while gliding among them, stay available
-on an unverified game. Counting the slot while its fireworks still work is the
-consistent reading of "Fake Offhand is on" (reviewed 2026-10-30).
+### Who acts
 
-## Primary-use regressions (L-198, 2026-10-15)
+1. Entities, an active primary timed use and interactive blocks (unless
+   sneaking) are decided first and stay vanilla.
+2. Then the primary (selected) item keeps priority unless it passes: its
+   ordinary use cannot act on this target now.
+3. Then the slot's item: placement for a block item aimed at a block face,
+   an instant use for an eligible item.
 
-The maintainer reported three cases: a primary block prevented fireworks
-while gliding and aiming into air; with blocks in both slots the secondary
-placed instead of the primary; secondary blocks prevented primary eating.
-The current fix applies the primary-pass check to placement as well as
-instant use, and rejects placement while a primary timed use is active.
-A normal primary block passes in air even if its native item reports a use
-duration; liquid-placed and wearable/known air-use items keep their checks.
-Block aim keeps the primary placement. Pure regression tests cover these
-decisions. The maintainer's local checklist on `d5978e2` passed all three
-reported cases. Server outcomes remain unchecked. Native duration is still
-a defensive classifier fix, not an observed trace of the reported block.
+A pass is distinguished from failure and mutation; a second use is never
+tried because a callback returned false.
 
-## Extension scope (chosen 2026-10-06)
+### Secondary items
 
-The maintainer chose broad secondary-hand capability, rather than one item
-category. Keep one switch, one target slot and the existing activation binding.
-Implement support in validated steps without narrowing the overall goal.
+- Placement: a block item and a block hit. Air, entities and non-block
+  items keep the selected hand.
+- Instant use: projectiles (`isThrowable` or a known projectile identity)
+  without a use duration, and buckets except milk. Fireworks qualify while
+  gliding or on a block target, so they are not wasted in plain air.
+  Fishing rods and on-a-stick items are excluded: their line follows the
+  selected item.
+- Eligibility is classified from item properties (`isFood`,
+  `getMaxUseDuration`, `isThrowable`, `isBucket`, `isLiquidClipItem`,
+  `isHumanoidArmor`/Armor tag, `isBlockPlanterItem`, `isFertilizer`,
+  `isDye`, `isDamageable`, sword and pickaxe tags, block item); a use
+  callback is never called to find a pass.
 
-| Capability | Examples | Research boundary |
-|---|---|---|
-| Placement | Blocks, torches, seeds | Existing placement plus target-sensitive use |
-| Instant use | Buckets, bottles, fire starters, tools, throwables, fireworks, fishing rod | Air/block use, replacement stacks and cooldowns |
-| Timed consumption | Food, potions, milk, stews | Start/progress/finish/cancel; correct source slot and returned container |
-| Charged/continuous use | Bow, crossbow, trident, spyglass, brush | Charge/release, retained use slot, durability and cancellation |
-| Entity use | Feed, tame, shear, milk, lead, name tag, saddle | Target interaction vs selected-hand use; item source and result |
-| Holding effects | Shield, map, arrows, totem, Mending and equipment modifiers | Real equipped-hand state; cannot infer support from a use callback |
-
-Target priority is ordinary target interaction and applicable primary-hand
-use, then secondary use when the primary hand passes. Distinguish a pass
-from failure and mutation; never retry a second use simply because a bool
-result is false. Bedrock result types and target-sensitive ordering need
-observation before implementing the fallback. L-49 remains unchanged during
-this diagnostic step.
-
-Instant uses restore selection in the call. Timed uses must complete or cancel
-against their actual source slot and restore afterward, without overwriting
-a manual selection. Investigate retaining the primary selection while using
-the secondary slot before adopting a visible selection for the whole hold.
-An ordinary attack must never accidentally use the borrowed item. Simultaneous
-primary-hand attack and secondary use is a separate lifecycle check.
-
-Passive effects remain in scope for feasibility research, not promised parity:
-an item in a hotbar slot is not server-authoritatively held in an offhand.
-Existing real-offhand support (L-68, L-75, L-94) remains available. Do not
-implement client-only health, protection or enchantment effects as if the
-server accepted them. Record unsupported cases and the reason per capability.
-
-Native Bedrock differences require their own checks; for example, shielding
-uses sneak rather than ordinary use (official platform behavior reference:
-[Taking Inventory: Shield](https://www.minecraft.net/en-us/article/taking-inventory--shield)).
-No external mod implementation is used.
-
-## Right-click fallback feedback (2026-10-14)
-
-[L-189](BACKLOG.md) records a request to invoke the configured Fake Offhand
-item when a primary-hand right-click has no **meaningful applicable effect**.
-Reported examples include fireworks while full or when holding a shovel/axe.
-This is **not** a firework-specific binding and is not implemented here.
-
-The existing target-priority rule already distinguishes a primary-hand
-pass from a failure, but the newly requested no-op cases may be reported
-as handled or otherwise consume input without a useful action. Research
-the actual game result and state-change boundary, including air/block/entity
-targets, before deciding when to fall through. A negative bool alone is
-not permission to double-use. Preserve a genuine primary use, prevent
-accidental activation, and validate server-authoritative outcomes. No
-choice of dispatch strategy, default or release is made yet.
-
-## First instant-use adapter (2026-10-06, single clicks checked)
-
-Eligibility is classified from item properties (2026-10-07), replacing the
-earlier per-item allowlists. `FakeOffhandPlan.h` holds the rules and tests;
-`FakeOffhand.cpp` reads the properties (`isFood`, `getMaxUseDuration`,
-`isThrowable`, `isBucket`, `isLiquidClipItem`, `isHumanoidArmor`/Armor tag,
-`isBlockPlanterItem`, `isFertilizer`, `isDye`, `isDamageable`, sword and
-pickaxe tags, block item) and never calls a use callback to find a pass.
-
-Secondary (target slot) items that use the instant borrow: projectiles
-(`isThrowable` or a known projectile identity) without a use duration, and
-buckets except milk. Fireworks qualify while gliding or on a block target, so
-they are not wasted in plain air. Fishing rods and on-a-stick items are
-excluded because their line follows the selected item; tridents, bows, food
-and other timed uses are out of scope (below).
-
-Primary (selected slot) passes when its ordinary use cannot act:
+### Primary passes
 
 | Aim | Primary passes | Keeps vanilla priority |
 |---|---|---|
-| Any | Empty hand; vanilla sword/pickaxe tags (checked in game, though swords report a 72000 use duration) | Non-`minecraft:` or unreadable items; wearables; known air-use identities (fishing rod, firework, empty map, books, ender eye, shield, elytra, bundles, carved pumpkin, heads) |
-| Air (NoHit) | Every other block item except liquid-placed ones; any item without a use duration, projectile, bucket or liquid-clip property; food at confirmed full hunger | Timed, projectile, bucket and liquid-clip items; hungry, always-edible, creative or unreadable food |
-| Ordinary block | Non-block items with none of the properties above and no planter, fertilizer, dye or durability property, and not a known block-use identity (seeds, doors, signs, redstone, string, spawn eggs, minecarts, boats, honeycomb, books, discs, lodestone compass, resin clump, ...), aimed at a solid block without a block entity (2026-10-07) | Block items (placement), food (some plant crops), damageable tools, the listed identities, and every such material aimed at a block with a block entity (decorated pot, lectern, sign, chiseled bookshelf, vault, ...) or a non-solid block |
+| Any | Empty hand; vanilla sword/pickaxe tags | Non-`minecraft:` or unreadable items; wearables; known air-use identities (fishing rod, firework, empty map, books, ender eye, shield, elytra, bundles, carved pumpkin, heads) |
+| Air (no hit) | Every other block item except liquid-placed ones; any item without a use duration, projectile, bucket or liquid-clip property; food at confirmed full hunger | Timed, projectile, bucket and liquid-clip items; hungry, always-edible, creative or unreadable food |
+| Ordinary block | Non-block items with none of the properties above and no planter, fertilizer, dye or durability property, and not a known block-use identity (seeds, doors, signs, redstone, string, spawn eggs, minecarts, boats, honeycomb, books, discs, lodestone compass, resin clump, ...), aimed at a solid block without a block entity | Block items (placement), food (some plant crops), damageable tools, the listed identities, and every such material aimed at a block with a block entity (decorated pot, lectern, sign, chiseled bookshelf, vault, ...) or a non-solid block |
 
-### Target-specific primary uses (L-189, decided and built 2026-10-15)
+L-198: the primary-pass check applies to placement as well as instant use;
+placement is refused while a primary timed use is active. A normal primary
+block passes in air even if its native item reports a use duration;
+liquid-placed and wearable/known air-use items keep their checks. Aimed at a
+block, the primary block keeps placement.
 
-Maintainer 2026-10-15: include as much as possible, and prefer the game's
-own checks to hand-kept lists. Passed locally on `a1a758e` (2026-10-15). On top of the
-table above, a primary item whose use only acts on certain blocks or in
-certain states passes when the game says it cannot act now; anything
-unread keeps vanilla priority. Block targets still have to be plain (no
-block entity, and solid or a collision that fills the cell, such as
-leaves); interactive blocks and entities are decided first.
+Target-specific passes (L-189), on top of the table: a primary item whose
+use only acts on certain blocks or states passes when the game says it
+cannot act now; anything unread keeps vanilla priority. Block targets must
+be plain (no block entity, and solid or a collision that fills the cell,
+such as leaves).
 - Planters (seeds, carrots, potatoes, nether wart, berries, cocoa beans):
   the planted block's `mayPlace` and `canSurvive` on the aimed face, with
   air there; when the planted block is unknown, crops need the top of
   farmland and nether wart the top of soul sand (`plantsOn`); else the
-  component's `canUseOn`. One log line per planter item says how it was
-  judged. Wheat seeds and carrots report neither the planter
-  property nor its component, so vanilla planters also count by name
-  (`plants`: `_seeds`, carrots, potatoes, pitcher pods, nether wart, sweet
-  and glow berries, cocoa beans).
+  component's `canUseOn`. Vanilla planters also count by name (`plants`).
 - Fertilizers (bone meal): the block's `canBeFertilized` with the block
-  above.
-- Minecarts: the block's `isRailBlock`.
-- Honeycomb: the block's copper behaviour, not waxed yet. Axes: an
-  unstripped log, wood, stem, hyphae or bamboo block (by name), or copper
-  that is waxed or oxidized.
+  above. Minecarts: `isRailBlock`.
+- Honeycomb: copper that is not waxed yet. Axes: an unstripped log, wood,
+  stem, hyphae or bamboo block (by name), or copper that is waxed or
+  oxidized.
 - Shovels (tag), hoes (tag) and shears: short vanilla block lists
-  (`shovelChanges`, `hoeChanges`, `shearsChange` in FakeOffhandPlan.h).
-- Empty buckets and glass bottles: water or lava along the aim within
-  reach (the hit's liquid flag stayed unset aimed at water). Food at confirmed full hunger passes on plain blocks unless
-  it plants and its planter could be used there. Dyes, ink sacs and books
-  pass on plain blocks (their uses need block entities).
-- A Riptide trident out of water and rain, a bow without arrows or an
-  uncharged crossbow without arrows or fireworks (survival; inventory and
-  offhand searched), aimed anywhere; aimed at nothing, a firework while not
-  gliding and an empty bucket or bottle with no liquid along the aim.
-The planter component, the copper fields and the block checks are gated
-as "Fake Offhand (item use targets)" (GAME-UPDATES.md); on an unverified
-game the block rules fall back to the table above.
+  (`shovelChanges`, `hoeChanges`, `shearsChange`).
+- Empty buckets and glass bottles: water or lava along the aim within reach.
+  Food at confirmed full hunger passes on plain blocks unless it plants and
+  its planter could be used there. Dyes, ink sacs and books pass on plain
+  blocks (their uses need block entities).
+- Anywhere: a Riptide trident out of water and rain, a bow without arrows,
+  an uncharged crossbow without arrows or fireworks (survival; inventory
+  and offhand searched). Aimed at nothing: a firework while not gliding, an
+  empty bucket or bottle with no liquid along the aim, a filled bucket with
+  no block face to pour on (L-290).
 
-Entities, active primary timed use and interactive blocks (unless sneaking)
-are decided before this and stay vanilla. The block-target identity list is
-the uncertain part: an unlisted vanilla item whose block use the properties do
-not reveal would be replaced by the secondary use. Requiring a plain target
-(solid, no block entity) limits that to uses on ordinary blocks. Report such items so the
-list (or a property) can cover them. The trace build logs each item's
-properties as letters next to its name to confirm what the game reports.
+These block rules are gated by the `FakeOffhandTargets` capability ("Fake
+Offhand (item use targets)", [GAME-UPDATES.md](GAME-UPDATES.md)); on an
+unverified game they fall back to the table, and the slot's own instant
+uses stay available.
 
-After a firework use the server reselects the borrowed slot about 50 ms
-after restoration (trace, 2026-10-07). For one second after a reported
-instant restore, a MobEquipment or PlayerHotbar update that changes the
-selection from exactly the restored slot to exactly the borrowed slot is
-undone and reported again. Any other selection change is kept.
+### Bindings
 
-Holding use while gliding launches one firework, matching vanilla with a
-main-hand firework (maintainer, 2026-10-07); no repeat is added.
+- Right click: the native use-button handler intercepts an eligible instant
+  use before vanilla tries the primary item. It selects the target, replays
+  the captured down-handler list once and restores selection. It also
+  borrows the placement slot around the first press, since vanilla acts
+  there before any build tick (an empty hand would otherwise open a
+  container while sneaking). A queued activation and later physical
+  handlers do not deliver a second down edge for an armed hold; if the
+  queued activation arrives first, it starts the same hold and the later
+  physical down is suppressed.
+- Any other binding (L-288, L-292): replays the captured vanilla use edges
+  with the borrowed slot selected, only while a build tick has a slot. Such
+  a binding asks for the Fake Offhand, so the primary item does not keep
+  priority, and an interactive block aimed without sneaking is opened with
+  the borrowed slot selected. With the target slot itself selected, a press
+  borrows nothing and sends the vanilla use edge, held until the key is
+  released, so the selected item acts as a right click would (L-322).
+- With Sneak Placement on (L-293), the slot's item is what acts, so the
+  interactive-block choice takes Sneak Placement's sneak state instead of
+  the player's, for every binding: the slot's block is placed on a chest
+  with an empty main hand; with "Open while sneaking", sneaking opens it.
+  Without that option such a chest opens only with Fake Offhand off or its
+  slot empty. When Sneak Placement holds a use back and replays it, the
+  replay selects the slot the use came from for that call only.
+- Auto Elytra reads the target slot's fireworks for its jump trigger
+  ([EQUIPMENT.md](EQUIPMENT.md) "Auto Elytra").
 
-A held secondary session cancels when the primary becomes applicable (for
-example dirt aimed from the sky onto a block); a new press then uses the
-primary.
+### Selection and holds
 
-Timed secondary use (food, potions, bows, crossbows, tridents, spyglass) is
-out of scope by maintainer decision (2026-10-07): the per-call borrow cannot
-keep it, and keeping the target selected for the whole hold was not chosen.
+- Selection is restored inside each build call, including unwinding, and
+  only while it is still the borrowed slot; a later manual selection is not
+  overwritten. Only primary/target slot identities and the owed native
+  release survive a call; no game pointer does.
+- The adapter never replaces a callback's ItemStack argument, retries a
+  false result or calls an extra use. Base GameMode use/on hooks report the
+  borrowed selection once before the first native use callback;
+  restoration reports the prior slot afterward. No callback, no report.
+- Held instant use: while the same primary/target slots remain owned and
+  eligible, build calls borrow the item and restore within the call. The
+  native hold decides the repeat cadence (bucket replacements included); no
+  repeat edges, extra uses or timer constants are added. Holding use while
+  gliding launches one firework, as with a main-hand firework.
+- A manual selection, target change, depleted or unsupported target, menu,
+  death, focus loss, world/dimension exit (a dimension hook releases the
+  hold first) or disable cancels the hold. Interactive or entity targeting
+  cancels an instant hold. A held secondary session cancels when the
+  primary becomes applicable (e.g. dirt aimed from the sky onto a block); a
+  new press then uses the primary.
+- For one second after a reported instant restore, a MobEquipment or
+  PlayerHotbar update that changes the selection from exactly the restored
+  slot to exactly the borrowed slot is undone and reported again. Any other
+  selection change is kept.
+- An ordinary attack never uses the borrowed item.
 
-Selection precedes a captured ordinary use-button down edge, so vanilla
-acquires the item reference and runs its ordinary air/block paths; the adapter never
-replaces a callback's ItemStack argument, retries a false result or calls an
-extra use. Base GameMode use/on hooks report the borrowed equipment selection
-once before the first native use callback, and restoration reports the prior
-slot afterward. No callback means no equipment report. Server acceptance
-remains unverified. Selection is restored only while it is still owned; a
-later selection is not overwritten. Only primary/target slot identities and
-the owed native release survive the call; no game pointer does. Eligibility
-and repeat ownership predicates are covered by `FakeOffhandTests.cpp`.
+## Code
 
-For right-click activation, the native use-button wrapper intercepts eligible
-instant use before vanilla attempts the primary item. It selects the target,
-replays the complete captured down-handler list once and restores selection.
-Raw replay cannot reenter the wrapper. Additional physical handlers and the
-queued activation do not deliver a second down edge while this instant hold
-is already armed. If the queued activation arrives first, it starts the same
-hold and the later physical down is suppressed. Other bindings keep their
-queued client-thread activation. Unsupported or unavailable borrowing leaves
-the native handler intact. Release is owed during exception
-unwinding and until the activation ends. While the same primary/target slots
-remain owned and eligible, build calls borrow the instant item and restore
-selection within the call. Native hold state decides repeat cadence, including
-bucket replacements; no repeat edges, extra uses or timer constants are
-inserted. A manual selection, target change, depleted/unsupported target,
-menu, death, focus loss, world/dimension exit or disable cancels the hold.
-Interactive/entity targeting cancels this limited instant adapter. Existing
-input invalidation handles focus, menus and world exit; a dimension hook
-releases this hold before the transition. Block targets keep the existing
-held-placement path. No action-intention flags are invented.
-Test buckets (including collecting water when targeting liquid) and
-snowballs/eggs; compare individual clicks and held input with normal cadence.
-Observe source count, returned container, effect, restored selection and
-rejoin state. Food/bows, entity interactions and passive holding effects are
-still unsupported by this adapter. Existing block placement is retained.
+- `src/features/inventory/FakeOffhand.cpp`: hooks
+  `ClientInstance::_tickBuildAction` (build ticks), `GameMode::useItem` /
+  `useItemOn` (selection reports), `LegacyClientNetworkHandler::handle` for
+  MobEquipment and PlayerHotbar (echo undo),
+  `LevelRendererPlayer::onWillChangeDimension`; `targetUse()` (L-189 game
+  checks), `primaryPasses`, `nativeDown` (called from
+  `src/features/interaction/PeriodicInput.cpp`'s use-button wrapper).
+- Pure: `FakeOffhandPlan.h` (`primaryPass`, `secondaryInstant`,
+  `targetUseOf`, `plants`, `plantsOn`, the tool lists, `undoesRestore`,
+  queued-press and hold-edge decisions, slot choices), tested in
+  `tests/FakeOffhandTests.cpp`.
+- `xmake f --offhand_trace=y`: read-only hooks for build ticks, base and
+  survival air/block/entity use, and player start/complete/stop/release;
+  logs selected and last reported slot, item identities and counts, use
+  slot, callback results, durations, build-action intentions, each item's
+  properties as letters, and an adapter budget for press choices and replay
+  outcomes. Slots are zero-based; each stage group has a fixed line budget.
+  Never deploy or commit with it on.
 
-The first candidate (`621a7b8`, DLL
-`566d683ef87b856ba78167f98cfa2ba38d5b3325072c82e3fc8950a3e3d39f4e`)
-failed in every tested empty-hand/sword/pickaxe combination: no water
-placement, collection or snowball throwing. Placement still worked. Samples
-with a water bucket in slot 8 retained the sword in slot 0 inside build/use
-callbacks, establishing a rejected selection rather than server rollback.
-The old trace did not log eligibility values; the exact rejecting condition
-is not established. The revision removes the maximum-duration heuristic and
-admits known target identities and vanilla primary sword/pickaxe tags.
-Its diagnostics record both items' maximum use durations and animations,
-plus handleBuildAction intention values, to distinguish rejection from a
-missing air-use route after borrowing. The revision is not yet validated.
+## Known
 
-On `c4d6258`, DLL
-`9449ca57ae7d6835dfe3d059b4350bd6ca175adad90f317e008290ee1b33ca2a`,
-the maintainer reported no snowball action; water placement/collection worked
-but could happen in immediate succession and appear to do nothing except
-sound. Logs show the snowball selected during build calls but only useItemOn
-callbacks, with no air use. Water-to-empty and empty-to-water transitions
-occurred about 50 ms apart. Water and empty buckets both report duration 32
-and Drink animation, so those properties cannot distinguish milk from water.
-This establishes the limitations of the held-build route for instant items.
+SDK headers (read on 26.51.5, not re-read for 26.60.4):
+- `GameMode::useItem` / `useItemOn` cover air and block use; `interact` is
+  the entity boundary. `useItem` and `interact` return bool;
+  `InteractionResult` has only success and swing bits: no declared pass/fail
+  distinction.
+- `Player::startUsingItem`, `completeUsingItem`, `releaseUsingItem`,
+  `stopUsingItem` are the timed-use lifecycle; `Player::mItemInUse` holds an
+  owned item and its slot record. `LocalPlayer::mSentSelectedSlot` tracks
+  the reported selection.
 
-On `c522b22`, DLL
-`6c9c0d4c038f561307e0eb2678e3a9be3ec6aea1918bda9cf9a095b8a009f156`,
-the maintainer confirmed snowball throwing, water placement/collection,
-block placement and chest interaction. Once-per-hold is a temporary adapter
-limitation, not the target contract. Held activation must repeat according
-to ordinary item-use cadence and cooldowns; release and ownership loss stop
-repetition. Do not replay every frame or invent a universal item interval.
-The selected-bucket comparison in that session shows replacement transitions
-roughly 200-250 ms apart. In a fresh session on that same diagnostic DLL,
-with Fake Offhand, Auto Use and Hand Restock off, the maintainer confirmed
-ordinary main-hand snowballs repeated in both air and on block faces. The
-trace shows the first air use during handleBuildAction and repeated air use
-inside build processing roughly 200-250 ms apart, with source count changes.
-This supports retaining the initialized native hold while borrowing selection
-only within build calls; the observed timing is not encoded as a universal
-item interval.
+Observed in game (trace builds):
+- A selection change stops vanilla food and bow use; left click does not.
+  A bow's use callback returns false with a populated use item.
+- A water bucket can succeed on a block and then call air use with an empty
+  bucket: a fallback second use would act twice.
+- Water and empty buckets both report duration 32 and the Drink animation;
+  swords report 72000 though they have no use. Duration cannot classify.
+- Wheat seeds and carrots report neither the planter property nor its
+  component. The hit's liquid flag stays unset with an empty bucket aimed
+  at water. Leaves are not solid.
+- After a firework use the server reselects the borrowed slot about 50 ms
+  after restoration.
+- Vanilla repeats a held throw inside build processing, about 200-250 ms
+  apart; the first air use happens during handleBuildAction.
+- Vanilla acts on the first right-click press inside the native handler,
+  before any build tick.
 
-On `e7ce3f1`, DLL
-`5830155266b2baf0858de91f3fd796f3e32b8b0a03115a462d8353f47aaa4d8c`,
-the maintainer confirmed empty-primary snowball/bucket repetition and release,
-manual-selection cancellation, block placement and chest interaction. Buckets
-also worked with swords/pickaxes, but snowballs failed with those primaries.
-Failed samples show native primary-item use while the target snowball count
-stays unchanged. The rejecting stage is unknown: prior traces did not record
-adapter eligibility or replay results. The next diagnostic adds an independent
-128-line adapter budget for press choices, block/tag/idle classification,
-target/hit/selection state, existing ownership, cancellation and native edge
-replay outcomes, without changing gameplay. Compare empty/sword/pickaxe
-snowballs in air and on ordinary blocks in a fresh session, then one bucket
-control with a failing primary. Do not guess a retry from native bool results.
+## Tried
 
-On `2f7878c`, DLL
-`9451ad565dc084ac2622528d794e1c8898614cb72711e224c0581f549e39a019`,
-the maintainer ran that long-hold sequence, omitting short clicks. Both tested
-tools have the expected tags, no block pointer, and idle classification;
-the target is chosen, selection changes and raw down replay returns true.
-However, each tool's initial physical use callback runs before queued
-activation. Subsequent borrowed snowball air use is absent and target counts
-do not change. Empty-primary samples reach and repeat borrowed snowball use;
-the sword/bucket control changes containers after replay. This rejects an
-eligibility or slot-selection explanation. A prior unsuccessful native item
-attempt suppressing the later air-use path is the supported hypothesis;
-the exact internal gate is not established. The revised native input wrapper
-avoids that prior attempt rather than resetting undocumented flags or
-retrying a false callback result.
+- Keeping the target selected for the whole hold: interfered with main-hand
+  use; reverted (L-49).
+- Per-item allowlists for primary passes: replaced by property
+  classification (a totem primary blocked the secondary).
+- A maximum-use-duration heuristic for eligibility: rejected every
+  empty/sword/pickaxe case; durations do not classify (above).
+- Borrowing only in the held build route: no air use for snowballs, and
+  water placed and collected in immediate succession.
+- Borrowing after the queued activation: the primary tool's physical use
+  callback ran first and suppressed the later borrowed air use. Hence the
+  native wrapper, which avoids that attempt; undocumented flags are not
+  reset and false results are not retried.
 
-On `6e41014` (2026-10-07), DLL
-`7807d4c8ea445cbf871a2b7632cefddf036bbb6398383414d9a68ee9ee8643c4`,
-the maintainer found no problems with empty/sword/pickaxe snowballs in air
-and on blocks: long holds repeat and stop on release, and short clicks throw
-one. Sword/bucket placement and collection, block placement and chest
-interaction also passed. Logs show native borrowing before queued activation,
-with the queued duplicate suppressed and the primary selection restored.
-The tested instant subset is confirmed. Eggs, other bindings, overlap,
-broader cancellation, rejoin, servers and a trace-disabled smoke remain open;
-the earlier manual-selection result belongs to `e7ce3f1`.
+## Limits
 
-The sword/snowball single/held/release and bucket smoke also passed on
-trace-disabled `58d121d`, DLL
-`ce2604e8e8966dc33bbd46f1d240e56a6ff4487eda8fb10c9716c304add16a89`.
-The maintainer found the secondary snowball unavailable with a totem and
-other, unspecified primary use items. The totem is excluded by the explicit
-primary allowlist, not by a use failure. A known-passive allowlist followed and was
-replaced by property classification before any runtime check. Food, bows,
-buckets, wearables and target-sensitive items retain primary priority rather
-than triggering a speculative second use. Determining their applicable pass
-remains open and requires the item and target context.
-
-## Placement contract
-
-The feature borrows a configured hotbar slot, default slot 9, while its
-activation binding is held. The default binding is right click. It performs
-no inventory transfer and does not use the real offhand.
-
-`FakeOffhand.cpp` hooks `ClientInstance::_tickBuildAction`. Its pure predicate
-in `FakeOffhandPlan.h` requires a block item and a block hit. Interactive
-blocks preserve ordinary interaction unless sneaking. Air, entities and
-non-block target items keep the selected hand. Selection is restored inside
-each build call, including unwinding, only if the selected slot is still the
-borrowed slot. The native right-click handler also borrows the placement
-slot around its first press (2026-10-07): vanilla acts there before any build
-tick, and an empty hand would otherwise open a container while sneaking.
-Other bindings replay the captured vanilla use edges, with the borrowed slot
-selected, only while a build tick has a slot (L-288). Such a binding asks
-for the Fake Offhand, so the primary item does not keep priority there, and
-an interactive block aimed without sneaking is opened with the borrowed slot
-selected (L-292).
-
-## L-95 static review (2026-10-06)
-
-Inspected the installed LeviLamina Client SDK 26.51.5 headers and Lamium's
-own adapters; no reference-only mod source was used. These declarations
-identify research boundaries, not confirmed runtime ordering:
-
-- `GameMode::useItem` and `useItemOn` cover item use in air and on blocks;
-  `interact` is a separate entity boundary. `releaseUsingItem` is available.
-- `useItem` and `interact` return bool; `InteractionResult` exposes only
-  success and swing bits. There is no declared pass/fail distinction there.
-  A safe fallback needs additional evidence about the vanilla route and
-  whether an earlier callback changed state.
-- `Player::startUsingItem`, `completeUsingItem`, `releaseUsingItem` and
-  `stopUsingItem` expose the timed-use lifecycle.
-- `Player::mItemInUse` contains an owned item and `PlayerInventorySlotData`
-  slot record. Observe those values to establish which slot vanilla follows
-  after temporary selection is restored; never retain a player pointer.
-- `LocalPlayer::mSentSelectedSlot` tracks reported equipment selection.
-  Weapon Switch already reports a new selection before attacking. Additional
-  use must establish its own reporting order; copying the attack solution
-  does not prove food or charged-item synchronization.
-- Hand Restock already observes ordinary and timed uses. Its timed-completion
-  guard documents a completion callback immediately after a new use begins.
-  Trace both features together; do not interpret every completion callback as
-  consumption or attempt to restock from an unconfirmed result.
-
-Removing only the block-item and block-hit guards would allow additional
-calls but would leave their timed-use, release and server-selection contracts
-unverified. L-49 also records that retaining selection throughout every hold
-interfered with main-hand use and was reverted. An extension must distinguish
-instant, placement and timed-use ownership.
-
-## Baseline result (2026-10-06)
-
-Maintainer report on `c673fad`, DLL
-`49059b210fc94b7c0b831f360680eabe8dd5c9de3911d1294028507fd09bf554`,
-with only `offhand_trace` enabled: ordinary food completion/interruption,
-bow firing, water placement/collection and feeding were exercised. Both
-food and bow use stopped on manual slot changes; left click did not stop
-either. Existing Fake Offhand placement and chest interaction were retained.
-No additional Fake Offhand category was tested in this diagnostic build.
-
-Log evidence: food starts with duration 32 and records inventory slot 2;
-completion/stop clears its use item, with the count change observed later.
-Bow starts with duration 72000 and records slot 1; its use callback returns
-false despite a populated use item. Release calls stop; changing selection
-from 1 to 2 calls stop while the old use item still names slot 1. Water bucket
-use can succeed on a block and then call air use with an empty bucket; a
-second explicit fallback would risk another action. Feeding enters both the
-survival and base interact boundaries. These observations motivate one
-whole-call selection scope for instant use and a separate timed-use design.
-
-## Research and verification
-
-`offhand_trace` adds read-only hooks for build ticks, base and survival
-air/block/entity use, and player start/complete/stop/release. It logs selected
-slot, last reported slot, selected/use/target item identities and counts,
-the use slot/container, callback results, duration arguments and timestamps.
-It also records build-action intentions and both items' maximum durations
-and use animations. Maximum duration alone is not used to admit items.
-Slot numbers in these diagnostics are zero-based. Results are observations,
-not authoritative confirmation. Build ticks log only state changes; each
-stage group has a 256-line lifetime budget. Restart for another category if
-the budget is exhausted. The older L-49 and L-66 diagnostics are unchanged.
-
-First baseline session, with Hand Restock and Auto Use off:
-1. Fake Offhand off: select food, eat once, then begin eating and release
-   early. Repeat with a bow, charging and firing once; select a bucket and
-   place/collect water; feed an animal with an applicable item.
-2. During food/bow use, manually select another slot and try an attack.
-   Observe whether vanilla stops use and which item actually acts.
-3. Fake Offhand on, target slot containing blocks: place on an ordinary
-   block, open a chest normally, sneak-place against it. Then put food in
-   the target slot while holding a tool: additional use is still unsupported
-   in this read-only build, so this records the current adapter's baseline.
-
-Build diagnostics with `xmake f --offhand_trace=y -y`, then build Lamium and
-LamiumTests. Deploy only for a requested trace test; name the commit, DLL
-hash and enabled options. After compile verification, reset with
-`xmake f --offhand_trace=n -y` and rebuild the ordinary DLL before committing.
-Include physical right click and a non-mouse activation in later adapter
-checks. Keep every trace option off for ordinary builds.
-
-For each supported category, the maintainer checks:
-1. Actual effect, duration and source stack with the target slot different
-   from the selected slot; release before completion and after completion.
-2. Interactive blocks, air and entities according to the agreed priority;
-   ordinary block placement still follows L-49.
-3. Manual slot changes, intervening attacks, an empty/depleted target,
-   Hand Restock and Auto Use overlap.
-4. Disable, menus, focus loss, death, dimension change and world exit:
-   no stale hold or restoration over a later manual selection.
-5. Rejoin and server testing: counts, replacement containers and durability
-   persist, with no rollback or duplicated effect.
-
-The baseline confirms ordinary use and the existing placement regression.
-The native first-input adapter additionally has confirmed single and held
-snowball/bucket actions for the tested primary hands. Remaining validation
-cases and timed/entity/passive extension categories are still open.
+- Not supported: timed uses (food, potions, bows, crossbows, tridents,
+  spyglass), entity uses (feed, tame, shear, lead, name tag, saddle) and
+  passive holding effects.
+- The block-target identity list is the uncertain part: an unlisted vanilla
+  item whose block use the properties do not reveal is replaced by the
+  secondary use on plain blocks. Report such items so a list or property
+  covers them.
+- Server acceptance of the borrowed selection is not established beyond
+  everyday use.
+- Unchecked in game: the "Fake Offhand (L-49, L-95)" row in
+  [VALIDATION.md](VALIDATION.md); the own key with eating, a bow, a shield
+  or a trident ([L-342 Lower findings of the 2026-11-14 review, kept for later](backlog/L-342.md)).

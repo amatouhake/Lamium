@@ -76,7 +76,7 @@
 namespace lamium::schematic::ghosts {
 namespace {
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-// Measurement for the update plan (SCHEMATIC.md C): where the ghost pass
+// Measurement for the update plan (SCHEMATIC.md, ghost rendering): where the ghost pass
 // spends its time and why sections are rebuilt, logged every 5 s.
 struct Perf {
     std::chrono::steady_clock::time_point since = std::chrono::steady_clock::now();
