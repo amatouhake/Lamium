@@ -311,6 +311,9 @@ Rebuild.
 ### `src/features/inspection/EnglishSearch.cpp`
 Hooks: `SearchHook`
 Meaning: the crafting screen filters by the text passed to `_filterByText`.
+Enchanted books (L-344) read `ItemStackBase::constructItemEnchantsFromUserData`,
+`Enchant::mEnchants`, `mEnchantType`, `mDescription` (en_US key, with or
+without the `enchantment.` prefix) and `mStringId`.
 
 ### `src/features/inspection/hover/HoverTracker.cpp`
 Hooks: `ContainerSlotHoveredHook`, `CraftingSlotHoveredHook`, `ContainerSlotUnhoveredHook`, `ContainerScreenLeaveHook`
