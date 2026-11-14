@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Notice of fuller saved data at its own height (L-343, 2026-11-14)
+
+Build `9b709e81`, DLL SHA-256
+`3d6e4139e2e1edaa13050fe2d3b56af9f6995394c36d7f351840a6a0e4dfec3e`, 1.26.60.05 Dev
+instance, the maintainer: all confirmed. On the Waypoints and Schematics screens the notice's
+words are whole and all three buttons show; it shows on the Verify and Materials tabs and not
+on Files; the world map's notice is as before; "Do not show again" removes it and it stays
+away after a rejoin.
+
 ## Notice of fuller saved data (L-343, 2026-11-14)
 
 Build `f5f0dc78`, DLL SHA-256

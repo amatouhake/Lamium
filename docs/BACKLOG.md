@@ -178,11 +178,11 @@ Do not infer game success from a build or unit-test result.
   2026-11-14), and so did the Open button and child rows, the any-port
   switch releasing other ports with one port given other data afterwards,
   the marks naming the reason and same-named rows told apart (`16330f1f`).
-  The notice of fuller data passed on `f5f0dc78` on the Waypoints screen,
-  the Placements tab and the world map, with "Use this data" and "Saved
-  data". Not looked at: "Do not show again" and that it holds over a
-  rejoin; the notice at its measured height with all three buttons in the
-  list screens; the Verify and Materials tabs; docked panels.
+  The notice of fuller data passed on `f5f0dc78` and `9b709e81`
+  (VALIDATION-LOG 2026-11-14): the Waypoints screen, the Schematics
+  screen's Placements, Verify and Materials tabs and the world map, whole
+  words and all three buttons, "Do not show again" over a rejoin. Not
+  looked at: docked panels.
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
