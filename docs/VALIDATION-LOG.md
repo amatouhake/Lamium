@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Anvil chooser rows whole while sliding (2026-11-15)
+
+Build `5fac844a`, DLL SHA-256
+`5ee55cf4662971ff7224ec9199f5d1cdfb171beeefdd8858deff0abb7cc0b14c`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Opening the anvil, the chooser panel rises with no
+scroll bar and keeps its Curse of Vanishing row.
+
 ## Anvil panel flicker traced; capture warning stays (2026-11-15)
 
 Build `7e6e6993`, DLL SHA-256
