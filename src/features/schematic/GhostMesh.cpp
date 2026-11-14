@@ -477,6 +477,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     // records must be the one its marks are drawn from (L-303).
     auto const entityMarks = entityMistakes();
     out.signature = signatureOf(region, shown, key, entityMarks);
+    out.layers = sectionLayersOf(slab, shown, key);
     out.complete = true;
     auto const tint = faces::ghostTint(Runtime::instance().snapshot()->schematic.ghostTint);
     // L-252: without marks a mistake is drawn like a correct cell (nothing).

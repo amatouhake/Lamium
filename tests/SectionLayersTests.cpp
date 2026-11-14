@@ -36,4 +36,30 @@ void sectionLayersTests() {
     check(sectionLayers(slab(LayerAxis::Y, below, 15), Point{0, 15, 0}, Point{7, 24, 7})
               != sectionLayers(slab(LayerAxis::Y, below, 14), Point{0, 15, 0}, Point{7, 24, 7}),
           "a widened range notices a neighbour layer turning hidden");
+
+    // The renderer's value: section cells widened by the halo and clipped to
+    // the placed box. A placement off the section grid at negative
+    // coordinates: origin (-13, 60, -3), 20 by 10 by 6 placed.
+    Size placed{20, 10, 6};
+    Point origin{-13, 60, -3};
+    auto around = [&](PlacedSlab const& s, Point sectionLow) { return sectionLayersAround(s, placed, origin, sectionLow, 8, 2); };
+    PlacedSlab all{};
+    check(around(all, {-16, 56, -8}) == SectionLayers{}, "every layer shown keeps every section whole");
+    // Up to along X at placed offset 4 (world x -9): the section from x -16
+    // holds it; the section from x -8 starts at offset 5 but its halo reaches
+    // offset 3, so it changes too; the one from x 0 (offsets 13-) does not.
+    auto upTo = [&](int cut) { return slab(LayerAxis::X, below, cut); };
+    check(around(upTo(4), {-16, 56, -8}) != around(upTo(5), {-16, 56, -8}), "the section holding the cut changes with it");
+    check(around(upTo(4), {-8, 56, -8}) != around(upTo(5), {-8, 56, -8}), "so does the next one within the halo");
+    check(around(upTo(4), {0, 56, -8}) == around(upTo(5), {0, 56, -8}), "a section beyond the halo is unchanged");
+    check(around(upTo(4), {0, 56, -8}).state == State::Hidden, "and stays hidden");
+    check(around(all, {0, 56, -8}) != around(upTo(4), {0, 56, -8}), "turning All into Up to hides a far section");
+    check(around(all, {-16, 56, -8}) != around(upTo(4), {-16, 56, -8}), "and cuts the near one");
+    // Only stepping from offset 9 to 10 (world x -4 to -3): both layers' sections change.
+    auto only = [&](int cut) { return slab(LayerAxis::X, cut, cut); };
+    check(around(only(9), {-8, 56, -8}) != around(only(10), {-8, 56, -8}), "an Only step changes the section it leaves");
+    check(around(only(9), {-16, 56, -8}) == around(only(10), {-16, 56, -8}), "a section far from both layers is unchanged");
+    check(around(only(18), {0, 56, -8}) != around(only(19), {0, 56, -8}), "and the section it enters changes");
+    check(around(only(12), {-16, 56, -8}).state == State::Hidden && around(only(1), {-16, 56, -8}).state == State::Part,
+          "the first section's cells are offsets 0-2 plus its halo");
 }

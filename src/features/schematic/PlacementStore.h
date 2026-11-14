@@ -45,6 +45,9 @@ bool safeSchematicPath(std::string_view relative);
 // What the ghosts and the check of a placement depend on: equal keys mean
 // its built sections and check can be kept. Name and visibility are not in it.
 std::string drawKey(SavedPlacement const&);
+// The draw key without the layer view: equal keys keep the resolved palette
+// and every built section whose shown layers did not change (L-236).
+std::string meshKey(SavedPlacement const&);
 // What its check depends on: the draw key and the ignored differences, which
 // change the check's verdicts and marks but not the ghosts.
 std::string checkKey(SavedPlacement const&);

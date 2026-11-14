@@ -47,12 +47,12 @@ std::string layerVisibilityKey(Layers const& layers) {
 }
 }
 
-std::string drawKey(SavedPlacement const& p) {
+std::string meshKey(SavedPlacement const& p) {
     auto const& o = p.placement.origin;
-    return std::format("{}|{}|{},{},{}|{}|{}|{}|{}{}", p.file, p.dimension, o.x, o.y, o.z,
-        p.placement.rotation, static_cast<int>(p.placement.mirror), layerVisibilityKey(p.layers),
-        p.countExtras ? 'x' : '-', p.entities ? 'e' : '-');
+    return std::format("{}|{}|{},{},{}|{}|{}|{}{}", p.file, p.dimension, o.x, o.y, o.z,
+        p.placement.rotation, static_cast<int>(p.placement.mirror), p.countExtras ? 'x' : '-', p.entities ? 'e' : '-');
 }
+std::string drawKey(SavedPlacement const& p) { return meshKey(p) + "|" + layerVisibilityKey(p.layers); }
 std::string checkKey(SavedPlacement const& p) { return drawKey(p) + "|" + p.ignored.fingerprint(); }
 bool safeSchematicPath(std::string_view relative) {
     if (relative.empty() || relative.size() > maxFileBytes || relative.front() == '/' || relative.front() == '\\') return false;

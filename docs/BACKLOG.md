@@ -220,7 +220,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target
 - [L-233](backlog/L-233.md) Make inventory transfer gestures rebindable (Design): Open, not urgent; nothing is blocked today
-- [L-236](backlog/L-236.md) Rebuild only the ghost sections whose visible layer changed (Design): Partly done: pure helper and tests built (2026-11-12); renderer step not started
+- [L-236](backlog/L-236.md) Rebuild only the ghost sections whose visible layer changed (Design): Built, not checked in game
 - [L-190](backlog/L-190.md) Select several rows at once in list screens (Design for the whole): Waypoints trial on branch `l-190-waypoint-selection`, not merged; waits for Shapes, schematic placements and the map side panel
 - [L-183](backlog/L-183.md) Disregard selected schematic check mismatches (Ready): Built, not checked in game
 - [L-184](backlog/L-184.md) Inspect ghost block data and schematic container contents (Design / Research): Partly done: target card and saved block entity rows shipped; file-only data (containers, comparator signal) open.

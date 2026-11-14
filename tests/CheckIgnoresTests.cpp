@@ -111,6 +111,22 @@ void checkIgnoresTests() {
     check(checkKey(back.placements[0]) != checkKey(decodePlacements(plain).placements[0])
               && drawKey(back.placements[0]) == drawKey(decodePlacements(plain).placements[0]),
           "ignores change the check key, not the draw key");
+    // L-236: the mesh key leaves out only the layer view.
+    {
+        auto base = back.placements[0];
+        auto layered = base;
+        layered.layers.legacy = false;
+        layered.layers.mode = LayerMode::UpTo;
+        layered.layers.cut = 3;
+        check(meshKey(layered) == meshKey(base) && drawKey(layered) != drawKey(base), "the mesh key ignores the layer view");
+        auto changed = [&](auto&& apply) { auto p = base; apply(p); return meshKey(p) != meshKey(base); };
+        check(changed([](SavedPlacement& p) { p.file = "other.mcstructure"; }) && changed([](SavedPlacement& p) { p.dimension = 1; })
+                  && changed([](SavedPlacement& p) { p.placement.origin.x += 1; }) && changed([](SavedPlacement& p) { p.placement.origin.y += 1; })
+                  && changed([](SavedPlacement& p) { p.placement.origin.z += 1; }) && changed([](SavedPlacement& p) { p.placement.rotation = 1; })
+                  && changed([](SavedPlacement& p) { p.placement.mirror = Mirror::X; }) && changed([](SavedPlacement& p) { p.countExtras = false; })
+                  && changed([](SavedPlacement& p) { p.entities = false; }),
+              "and changes with every other field the ghosts depend on");
+    }
     auto tolerant = decodePlacements(R"({"version":1,"placements":[{"file":"a.mcstructure",
         "ignored":["1,0,2 minecraft:lever open_bit", 5, "broken", "1,0,2 minecraft:lever open_bit"]}]})");
     check(tolerant.placements.size() == 1 && tolerant.placements[0].ignored.size() == 1,
