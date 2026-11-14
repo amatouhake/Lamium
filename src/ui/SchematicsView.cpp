@@ -201,12 +201,13 @@ void refreshSchematics(bool files) {
     int placements = static_cast<int>(schematicSet.placements.size()), fileCount = static_cast<int>(schematicFiles.size());
     if ((schematicPick == SchematicPick::Placement && schematicIndex >= placements)
         || (schematicPick == SchematicPick::File && schematicIndex >= fileCount)) schematicPick = SchematicPick::None;
-    verification = schematic::ghosts::verification();
     // The selected row follows its cell when the rows change (a new pass, an
-    // ignored difference): the same index would be another cell.
+    // ignored difference): the same index would be another cell. Read before
+    // the rows' result is replaced: they point into it.
     std::optional<std::pair<schematic::Point, bool>> chosen;
     if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size()))
         chosen = std::pair{verifyRows[static_cast<size_t>(verifySelected)]->position, verifyRows[static_cast<size_t>(verifySelected)]->entity};
+    verification = schematic::ghosts::verification();
     verifyRows.clear();
     materialRows.clear();
     if (Runtime::instance().preferences().schematic.enabled && verification->placement >= 0 && verification->placement == schematicSet.selected) {
@@ -302,7 +303,7 @@ void selectSchematicTab(SchematicTab tab) {
     schematicTab = tab;
     schematicListFirst = schematicFieldFirst = 0;
     schematicFieldSelected = -1;
-    schematicDeleteArmed = false;
+    schematicDeleteArmed = verifyUndoAllArmed = false;
     verifySelected = -1;
     if (tab == SchematicTab::Placements) {
         schematicPick = schematicSet.selected >= 0 ? SchematicPick::Placement : SchematicPick::None;
@@ -1596,6 +1597,6 @@ void renderContent(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 
 }
 void reset() {
     editingSchematicField = -1;
-    schematicDeleteArmed = false;
+    schematicDeleteArmed = verifyUndoAllArmed = false;
 }
 }
