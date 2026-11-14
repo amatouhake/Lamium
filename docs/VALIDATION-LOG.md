@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Enchantment level text level when off (2026-11-15)
+
+Build `cc1bee4b`, DLL SHA-256
+`55cbab1b0aa049151e5712f5feb3f1ff27892ff6eb04cae11d9028ca9f1573d9`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Beside the anvil, turning a row on or off keeps its
+level text at the same height.
+
 ## L-341 last changes confirmed; item done (2026-11-15)
 
 Build `e973be78`, DLL SHA-256
