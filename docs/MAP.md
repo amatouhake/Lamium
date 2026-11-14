@@ -375,7 +375,9 @@ Under `src/features/map/` unless stated; pure parts tested in
   experimental", "World map, experimental", "Waypoints, experimental" and the
   map layer rows; [pre-release checks](backlog/pre-release-checks.md).
 - Open: [L-287 Make the minimap arrows legible at every map size](backlog/L-287.md);
+  [L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether](backlog/L-317.md) (built, not checked in game);
   [L-324 Map: custom blocks are drawn in a dirt-like brown](backlog/L-324.md);
+  [L-337 Minimap: one size setting instead of two](backlog/L-337.md) (built, not checked in game);
   [L-343 A server's map, waypoints and placements are lost when its address changes](backlog/L-343.md);
   [L-243 Large terrain gaps that only reload when the player comes near](backlog/L-243.md);
   [L-249 Show the chunks within simulation distance](backlog/L-249.md);

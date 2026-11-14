@@ -174,6 +174,7 @@ struct Settings {
         // on the next save, so a converted file has nothing left to convert.
         static float scaleFromLegacySize(float scale, float size) {
             if (!std::isfinite(size) || size <= 0) return ui::clampHudScale(scale);
+            size = std::clamp(std::round(size), 10.f, 50.f); // The old row's range.
             float merged = ui::clampHudScale(scale) * size / (sideAtFullScale * 100);
             return ui::clampHudScale(std::round(merged / ui::hudScaleStep) * ui::hudScaleStep);
         }

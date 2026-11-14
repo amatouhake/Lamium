@@ -269,4 +269,5 @@ another path.
   [L-123 FreeCamera stretches the worn elytra on the inventory player model](backlog/L-123.md),
   [L-244 FreeCamera keeps the inside-a-block view after starting in a block](backlog/L-244.md),
   [L-257 FreeCamera culler reads blocks on the render thread](backlog/L-257.md),
-  [L-151 Show the player's body in first person](backlog/L-151.md).
+  [L-151 Show the player's body in first person](backlog/L-151.md),
+  [L-325 Zoom: return to the set magnification on release](backlog/L-325.md) (built, not checked in game).

@@ -666,6 +666,8 @@ void settingsStoreTests() {
         check(Map::scaleFromLegacySize(100, 30) == 150 && Map::scaleFromLegacySize(150, 10) == 75,
               "the new scale is the old one times size / 20");
         check(Map::scaleFromLegacySize(110, 23) == 125, "the result rounds to the 5 % step");
+        check(Map::scaleFromLegacySize(100, 80) == 200 && Map::scaleFromLegacySize(100, 4) == 50,
+              "a size outside the old 10-50 % reads as its nearest end");
         check(Map::scaleFromLegacySize(200, 50) == 200 && Map::scaleFromLegacySize(50, 10) == 50,
               "the result stays within 50-200 %");
         auto none = decodeSettings(R"({"hud":{"minimap":{"scale":120}},"map":{"minimap":true}})");

@@ -43,7 +43,8 @@ settings. Bindings are edited under each feature or in the Hotkeys view.
 ### Zoom
 
 Zoom up to 50x with a smooth wheel. Optional: a magnification readout, and a
-wide-angle view where the wheel goes below 1x. Hold or toggle.
+wide-angle view where the wheel goes below 1x, and a reset to the set
+magnification on every release. Hold or toggle.
 
 ### Freelook
 
@@ -135,8 +136,7 @@ while you look across open ground.
 A panel like Java Edition's F3 screen: game, world, look-at and PC details,
 entity counts by kind and the most common entity types. The game's own
 position line and paper doll are hidden while it is open, and where the Info
-HUD covers them. Game HUD placement can hide the game's position and days
-played lines everywhere. It says whether you stand in a slime chunk. What the client
+HUD covers them. It says whether you stand in a slime chunk. What the client
 cannot know (server TPS, mob caps, local difficulty) is not shown.
 
 ### Durability HUD
@@ -176,6 +176,8 @@ Off by default. Lets the HUD layout editor move and resize four parts of
 the game's own HUD, each with its own switch: the chat (at the bottom left
 by default, as on Java Edition), the paper doll, the scoreboard and the boss bars. Each
 can also be hidden while placed. Their text, backgrounds and fading stay vanilla.
+Two more switches hide the game's position and days played lines, even where
+a server's world shows them.
 
 ### HUD layout and toggle toasts
 
@@ -213,7 +215,8 @@ A HUD element colored from your block textures.
   where the camera looks.
 - Cave view: under a roof and in the Nether it shows the floors around your
   height. The Cave view row, or its key, fixes the surface or cave view, or
-  returns to switching on its own.
+  returns to switching on its own. A Nether view row can choose another view
+  for the Nether alone.
 
 ### Map marks
 
