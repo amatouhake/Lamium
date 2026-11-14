@@ -1,6 +1,7 @@
 #pragma once
 // Pieces the list-and-detail views (Shapes, Waypoints, Schematics) and the
 // prompts draw with, on top of Widgets.h.
+#include "ui/HudContents.h"
 #include "ui/NumberInput.h"
 #include "ui/SearchQuery.h"
 #include "ui/SettingsTable.h"
@@ -116,4 +117,11 @@ std::string amountText(std::uint64_t count, int maxStack = 64);
 // column from `x`; `hot` (pointed at or dragged) brightens the thumb a little.
 void drawScrollbar(MinecraftUIRenderContext& context, float x, float top, float track, float thumbTop, float thumb, bool hot);
 void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l, bool hot = false);
+// The HUD layout editor's Contents popover (L-336), laid out by
+// hud_editor::layoutContents: the panel, then per row a switch and its name
+// (faint while off; a row without a name is skipped) and, for a reorderable list, up and down arrows. `on` and
+// `names` are indexed like the entries; `scrollHot` lights the scroll bar.
+void drawContentsPopover(MinecraftUIRenderContext& context, hud_editor::ContentsLayout const& layout,
+                         std::vector<std::string> const& names, std::vector<bool> const& on, float pointerX, float pointerY,
+                         bool scrollHot);
 }

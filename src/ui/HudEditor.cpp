@@ -1,4 +1,5 @@
 #include "ui/HudEditor.h"
+#include "ui/HudContents.h"
 #include "ui/HudEditorLayout.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
@@ -21,9 +22,9 @@ namespace lamium::ui::hud_editor {
 namespace {
 // Everything clickable is laid out while drawing and hit-tested on the next
 // press, so drawing and hit testing can never disagree.
-enum class Command { Done, Reset, ResetAll, OpenSnap, OpenLines, Snap, ScaleDown, ScaleUp, ScaleEdit, Background, Shadow, LineSwitch, LineUp, LineDown, Shown };
+enum class Command { Done, Reset, ResetAll, OpenSnap, OpenContents, Snap, ScaleDown, ScaleUp, ScaleEdit, Background, Shadow, ContentSwitch, LineUp, LineDown, Shown };
 struct Control { Box box; Command command; int arg = 0; std::string line; };
-enum class Popover { None, Snap, Lines };
+enum class Popover { None, Snap, Contents };
 // `under` is what lay under the press; `cycle` when the pressed element was
 // already selected, so a click without a move goes to the one below it.
 struct Drag {
@@ -42,13 +43,12 @@ bool editingScale = false;   // The toolbar's scale is being typed (screen::numb
 std::optional<Point> scaleField;
 std::optional<Spot> spot; // Toolbar position; kept while only the look changes.
 Popover popover = Popover::None;
-int linesFirst = 0;
+int contentsFirst = 0;
 Boxes lastBoxes;
 std::vector<Control> controls;
 std::optional<Box> popoverBox;
-// The lines list's scroll bar as drawn, and whether it is being dragged.
-struct LinesTrack { float x, top, track; int count, visible; };
-std::optional<LinesTrack> linesTrack;
+// The contents list as drawn (for its scroll bar), and whether the bar is being dragged.
+std::optional<ContentsLayout> contentsShown;
 bool scrolling = false;
 float screenW = 0, screenH = 0;
 bool resetArmed = false; // "Reset layout" asks for a second press.
@@ -127,9 +127,6 @@ void button(MinecraftUIRenderContext& context, Box box, std::string text, bool h
     if (dropdown) chevron(context, box.x + box.w - 9, box.y + 3, true, color);
 }
 bool hovering(Box const& box, float px, float py) { return box.contains(px, py); }
-void triangle(MinecraftUIRenderContext& context, float x, float y, bool up, Rgb color) {
-    for (int i = 0; i < 3; ++i) fill(context, x + 2 - i, up ? y + i : y + 2 - i, 1 + 2 * i, 1, color);
-}
 
 // ---- Toolbar ----
 // The toolbar, its popovers and the action bar are opaque: element previews
@@ -145,16 +142,19 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     std::string scaleText = std::format("{}%", static_cast<int>(current.scale));
     std::string backgroundText = background ? optionText(*background, value) : std::string{};
     std::string shadowText = shadow ? optionText(*shadow, value) : std::string{};
-    std::string linesText = translated("hudEditor.lines");
+    auto contents = contentsOf(id, value.information.lineOrder);
+    // For now only the Info HUD's lines.
+    if (id != HudElementId::Info) contents = {};
+    std::string contentsText = translated("hudEditor.lines");
     std::string resetText = translated("resetShort");
     float snapW = textWidth(context, snapText) + 17, scaleW = textWidth(context, "150%") + 24;
     float backgroundW = background ? textWidth(context, backgroundText) + 8 : 0;
     float shadowW = shadow ? textWidth(context, shadowText) + 8 : 0;
-    float linesW = id == HudElementId::Info ? textWidth(context, linesText) + 17 : 0;
+    float contentsW = contents.entries.empty() ? 0 : textWidth(context, contentsText) + 17;
     // The element's reset stands apart from the look controls, behind a divider.
     float resetW = textWidth(context, resetText) + 8;
     float width = pad + snapW + (scaleW ? gap + scaleW : 0) + (backgroundW ? gap + backgroundW : 0)
-        + (shadowW ? gap + shadowW : 0) + (linesW ? gap + linesW : 0) + gap + 1 + gap + resetW + pad;
+        + (shadowW ? gap + shadowW : 0) + (contentsW ? gap + contentsW : 0) + gap + 1 + gap + resetW + pad;
     if (!spot || element.overlaps(Box{spot->x, spot->y, width, barHeight}))
         spot = toolbarSpot(element, width, barHeight, screenW, screenH);
     Box bar{spot->x, spot->y, width, barHeight};
@@ -191,16 +191,16 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
         auto box = add(shadowW, Command::Shadow);
         button(context, box, shadowText, hovering(box, px, py));
     }
-    if (linesW) {
-        auto box = add(linesW, Command::OpenLines);
-        button(context, box, linesText, hovering(box, px, py), popover == Popover::Lines, true);
+    if (contentsW) {
+        auto box = add(contentsW, Command::OpenContents);
+        button(context, box, contentsText, hovering(box, px, py), popover == Popover::Contents, true);
     }
     fill(context, x, bar.y + 3, 1, barHeight - 6, palette::white, .14f);
     x += 1 + gap;
     auto resetBox = add(resetW, Command::Reset);
     button(context, resetBox, resetText, hovering(resetBox, px, py));
     popoverBox.reset();
-    linesTrack.reset();
+    contentsShown.reset();
     if (popover == Popover::Snap) {
         float cellW = 14, cellH = 9, cellGap = 2;
         std::string readout = translated("hudEditor.anchorReadout",
@@ -220,49 +220,30 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
             controls.push_back({cell, Command::Snap, i});
         }
         label(context, at.x + 6, at.y + 6 + 3 * cellH + 2 * cellGap + 3, w - 12, readout, palette::faint);
-    } else if (popover == Popover::Lines) {
-        auto const& order = value.information.lineOrder;
-        constexpr float rowH = 12;
-        // Rows take 130; the scroll bar has its own strip on the right.
-        float w = 136;
-        auto at = popoverSpot(*spot, barHeight, w, order.size() * rowH + 6, screenW, screenH);
-        int visible = std::clamp(static_cast<int>((at.h - 6) / rowH), 0, static_cast<int>(order.size()));
-        linesFirst = std::clamp(linesFirst, 0, std::max(0, static_cast<int>(order.size()) - visible));
-        float h = visible * rowH + 6;
-        if (!spot->below || at.y < spot->y) at.y = at.y + at.h - h; // Hug the toolbar when opening upward.
-        // Dragging the bar: the track as drawn now (linesTrack is rebuilt below).
-        if (scrolling)
-            linesFirst = scrollFirstAt(py, at.y + 3, visible * rowH, static_cast<int>(order.size()), visible);
-        popoverBox = Box{at.x, at.y, w, h};
-        panel(context, at.x, at.y, w, h, opacity::screen);
-        frame(context, at.x, at.y, w, h, palette::white, .14f);
-        for (int i = 0; i < visible; ++i) {
-            auto const& line = order[linesFirst + i];
-            auto option = settings::find("information." + line);
+    } else if (popover == Popover::Contents && !contents.entries.empty()) {
+        auto const& entries = contents.entries;
+        auto layout = layoutContents(*spot, barHeight, static_cast<int>(entries.size()), contents.reorder, contentsFirst,
+                                     screenW, screenH, switchWidth, switchHeight, scrolling ? std::optional(py) : std::nullopt);
+        contentsFirst = layout.first;
+        popoverBox = layout.box;
+        // Each switch is the settings row's own option, so it writes the same field.
+        std::vector<std::string> names(entries.size());
+        std::vector<bool> on(entries.size());
+        for (auto const& row : layout.rows) {
+            auto const& entry = entries[static_cast<size_t>(row.index)];
+            auto option = settings::find(entry.option);
             if (!option) continue;
-            float ry = at.y + 3 + i * rowH;
-            bool on = std::get<bool>(option->read(value));
-            Box row{at.x + 2, ry, w - 4, rowH};
-            if (hovering(row, px, py)) fill(context, row.x, row.y, row.w, row.h, palette::white, .06f);
-            toggleSwitch(context, at.x + 5, ry + (rowH - switchHeight) / 2, on);
-            label(context, at.x + 8 + switchWidth, ry + 1, w - switchWidth - 36, splitLabel(translated(option->label)).name,
-                  on ? palette::text : palette::faint);
-            bool firstLine = linesFirst + i == 0, lastLine = linesFirst + i + 1 == static_cast<int>(order.size());
-            float rw = w - 6;
-            triangle(context, at.x + rw - 22, ry + 4, true, firstLine ? palette::off : palette::dim);
-            triangle(context, at.x + rw - 11, ry + 4, false, lastLine ? palette::off : palette::dim);
-            controls.push_back({{at.x + 2, ry, rw - 30, rowH}, Command::LineSwitch, 0, line});
-            controls.push_back({{at.x + rw - 26, ry, 11, rowH}, Command::LineUp, 0, line});
-            controls.push_back({{at.x + rw - 15, ry, 13, rowH}, Command::LineDown, 0, line});
+            auto current = option->read(value);
+            auto flag = std::get_if<bool>(&current);
+            if (!flag) continue;
+            names[static_cast<size_t>(row.index)] = splitLabel(translated(option->label)).name;
+            on[static_cast<size_t>(row.index)] = *flag;
+            controls.push_back({row.toggle, Command::ContentSwitch, 0, entry.option});
+            if (row.up) controls.push_back({*row.up, Command::LineUp, 0, entry.line});
+            if (row.down) controls.push_back({*row.down, Command::LineDown, 0, entry.line});
         }
-        linesTrack.reset();
-        if (visible < static_cast<int>(order.size()) && visible > 0) {
-            int count = static_cast<int>(order.size());
-            linesTrack = LinesTrack{at.x + w - 5, at.y + 3, visible * rowH, count, visible};
-            auto thumb = scrollThumb(linesTrack->top, linesTrack->track, count, visible, linesFirst);
-            bool overBar = px >= linesTrack->x - 2 && px < linesTrack->x + 4 && py >= linesTrack->top && py < linesTrack->top + linesTrack->track;
-            drawScrollbar(context, linesTrack->x + 1, linesTrack->top, linesTrack->track, thumb.top, thumb.h, scrolling || overBar);
-        }
+        drawContentsPopover(context, layout, names, on, px, py, scrolling);
+        contentsShown = std::move(layout);
     }
     return bar;
 }
@@ -321,7 +302,7 @@ void resetElements(Settings& value, std::optional<HudElementId> only) {
         if (!only || *only == id) settings::hudElement(value, id) = defaultHudElement(id);
     // The Info HUD's own reset also restores its line order (L-221).
     if (!only || *only == HudElementId::Info) value.information.lineOrder = information::defaultLineOrder();
-    linesFirst = 0;
+    contentsFirst = 0;
     spot.reset();
 }
 void run(Control const& control) {
@@ -335,7 +316,7 @@ void run(Control const& control) {
     }
     resetArmed = false;
     if (control.command == Command::OpenSnap) { popover = popover == Popover::Snap ? Popover::None : Popover::Snap; return; }
-    if (control.command == Command::OpenLines) { popover = popover == Popover::Lines ? Popover::None : Popover::Lines; return; }
+    if (control.command == Command::OpenContents) { popover = popover == Popover::Contents ? Popover::None : Popover::Contents; return; }
     // The switch on the selected name tag: the element's own switch (L-334).
     if (control.command == Command::Shown) {
         if (auto* field = settings::hudShownField(value, static_cast<HudElementId>(control.arg))) {
@@ -369,8 +350,8 @@ void run(Control const& control) {
     case Command::Shadow:
         if (auto option = lookOption(id, "shadow")) option->adjust(value, 1);
         break;
-    case Command::LineSwitch:
-        if (auto option = settings::find("information." + control.line)) option->adjust(value, 1);
+    case Command::ContentSwitch:
+        if (auto option = settings::find(control.line)) option->adjust(value, 1);
         break;
     case Command::LineUp: case Command::LineDown: {
         auto order = information::moveLineOrder(value.information.lineOrder, control.line,
@@ -393,16 +374,16 @@ void reset() {
     scaleField.reset();
     spot.reset();
     popover = Popover::None;
-    linesFirst = 0;
+    contentsFirst = 0;
     resetArmed = false;
     lastBoxes = {};
     controls.clear();
     popoverBox.reset();
-    linesTrack.reset();
+    contentsShown.reset();
     scrolling = false;
 }
 void select(std::optional<HudElementId> id) {
-    if (selected != id) { spot.reset(); popover = Popover::None; linesFirst = 0; resetArmed = false; editingScale = false; }
+    if (selected != id) { spot.reset(); popover = Popover::None; contentsFirst = 0; resetArmed = false; editingScale = false; }
     selected = id;
 }
 void render(MinecraftUIRenderContext& context, float width, float height, float pointerX, float pointerY) {
@@ -645,10 +626,10 @@ Result press(float x, float y) {
     }
     screen::finishEditing();
     resetArmed = false;
-    if (popover == Popover::Lines && linesTrack && x >= linesTrack->x - 2 && x < linesTrack->x + 5
-        && y >= linesTrack->top && y < linesTrack->top + linesTrack->track) {
+    if (popover == Popover::Contents && contentsShown && onContentsTrack(*contentsShown, x, y)) {
         scrolling = true;
-        linesFirst = scrollFirstAt(y, linesTrack->top, linesTrack->track, linesTrack->count, linesTrack->visible);
+        auto const& t = *contentsShown->track;
+        contentsFirst = scrollFirstAt(y, t.top, t.track, contentsShown->count, contentsShown->visible);
         return Result::Stay;
     }
     if (popoverBox && popoverBox->contains(x, y)) return Result::Stay;
@@ -695,7 +676,7 @@ void release() {
     moveTo(finished.id, finished.drop->box.x, finished.drop->box.y, finished.drop->box);
 }
 void wheel(int step, float x, float y) {
-    if (popover == Popover::Lines && popoverBox && popoverBox->contains(x, y)) linesFirst = std::max(0, linesFirst + step);
+    if (popover == Popover::Contents && popoverBox && popoverBox->contains(x, y)) contentsFirst = std::max(0, contentsFirst + step);
 }
 bool editingNumber() { return editingScale && selected.has_value(); }
 void applyNumber() {

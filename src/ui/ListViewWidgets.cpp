@@ -189,6 +189,30 @@ void drawScrollbar(MinecraftUIRenderContext& context, float x, float top, float 
     fill(context,x,top,2,track,palette::white,.08f);
     fill(context,x,thumbTop,2,thumb,hot ? palette::dim : palette::keyEdge);
 }
+void drawContentsPopover(MinecraftUIRenderContext& context, hud_editor::ContentsLayout const& layout,
+                         std::vector<std::string> const& names, std::vector<bool> const& on, float pointerX, float pointerY,
+                         bool scrollHot) {
+    auto const& b = layout.box;
+    panel(context, b.x, b.y, b.w, b.h, opacity::screen);
+    frame(context, b.x, b.y, b.w, b.h, palette::white, .14f);
+    auto triangle = [&](hud_editor::Point at, bool up, Rgb color) {
+        for (int i = 0; i < 3; ++i) fill(context, at.x + 2 - i, up ? at.y + i : at.y + 2 - i, 1 + 2 * i, 1, color);
+    };
+    for (auto const& row : layout.rows) {
+        auto i = static_cast<size_t>(row.index);
+        if (i >= names.size() || i >= on.size() || names[i].empty()) continue;
+        if (row.row.contains(pointerX, pointerY)) fill(context, row.row.x, row.row.y, row.row.w, row.row.h, palette::white, .06f);
+        toggleSwitch(context, row.switchAt.x, row.switchAt.y, on[i]);
+        label(context, row.labelAt.x, row.labelAt.y, row.labelWidth, names[i], on[i] ? palette::text : palette::faint);
+        if (row.up) triangle(row.upAt, true, row.canUp ? palette::dim : palette::off);
+        if (row.down) triangle(row.downAt, false, row.canDown ? palette::dim : palette::off);
+    }
+    if (auto const& t = layout.track) {
+        auto thumb = hud_editor::scrollThumb(t->top, t->track, layout.count, layout.visible, layout.first);
+        bool over = pointerX >= t->x - 2 && pointerX < t->x + 4 && pointerY >= t->top && pointerY < t->top + t->track;
+        drawScrollbar(context, t->x + 1, t->top, t->track, thumb.top, thumb.h, scrollHot || over);
+    }
+}
 void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l, bool hot) {
     if (l.listCount <= l.listVisible) return;
     float listRight = l.listLeft + l.listWidth;
