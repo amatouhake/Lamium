@@ -167,16 +167,19 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-317 (Nether minimap under forced Surface). Agree open choices before
    building. L-165 Mass Craft remains below Map and needs a scope conversation;
    existing packs already cover part of that need.
-3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,
-   L-183/L-184/L-185/L-186 and the remaining name-tag issue L-117.
+3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
+   previews, L-115 entity ghosts as models, L-116 raw materials, L-183
+   disregard check mismatches, L-184 inspect ghost data, L-185 instant load,
+   L-186 ghost legibility, and the remaining L-117 schematic name tags.
    The initial feature and 0.1.8 work are complete, not new tasks.
-4. **Placement/breaking:** L-15 breaking redesign before placement;
-   L-59 held-placement style waits for the maintainer's go-ahead.
-5. **Optional integration (L-111):** shared spatial actions, a common menu,
+4. **Placement/breaking:** L-15 breaking and placement restrictions
+   (breaking redesign before placement); L-59 held placement style waits for the maintainer's go-ahead.
+5. **Optional integration (L-111 shared controls between features):** shared spatial actions, a common menu,
    selection and cross-links; the required 0.2.0 steps are complete.
 6. **Research when convenient:** L-79 pumpkin/spyglass frames, L-71 glide
    initiation, L-30 dragon hitboxes, L-33 mob timers, L-105 profiling.
-   L-151/L-152/L-153 and the previously parked work remain later.
+   L-151 body in first person, L-152 held map preview, L-153 last pressed
+   movement key and the previously parked work remain later.
 7. **Before the next release:** changed-feature smoke and the relevant
    [pre-release checks](backlog/pre-release-checks.md). Latest release: 0.6.0, 2026-11-12 (`v0.6.0`). A full
    regression is not a release gate.
