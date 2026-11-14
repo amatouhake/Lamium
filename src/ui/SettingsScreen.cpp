@@ -174,7 +174,7 @@ int& cornerValue(SavePrompt& p, int corner, int axis) {
 void endCornerEdit(SavePrompt& p, bool keep) {
     if (p.editAxis < 0) return;
     if (keep)
-        if (auto typed = p.value.parsedPrecise(-30000000, 30000000, true)) {
+        if (auto typed = p.value.committedPrecise(-30000000, 30000000, true)) {
             cornerValue(p, p.editCorner, p.editAxis) = static_cast<int>(*typed);
             schematic::selection::setArea(p.area, p.dimension);
             p.problem.clear();
@@ -479,7 +479,9 @@ void applyNumber() {
     table_view::applyNumber();
 }
 void finishNumber() {
-    applyNumber();
+    // Keeping the edit: a value past either end becomes that end (it was not applied while typed).
+    if (numericEditing()) { numberInput.clampOut = true; numberDirty = true; applyNumber(); numberInput.clampOut = false; }
+    else applyNumber();
     shapes_view::applyName();
     waypoints_view::applyName();
     releaseTextKeyboard();

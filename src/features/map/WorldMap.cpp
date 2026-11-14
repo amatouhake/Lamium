@@ -25,6 +25,7 @@
 #include "ui/NumberInput.h"
 #include "ui/SearchQuery.h"
 #include "ui/ListViewWidgets.h"
+#include "ui/ScreenParts.h"
 #include "ui/Widgets.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/gui/GuiData.h"
@@ -318,6 +319,8 @@ void toggleCave() {
     state.broad = state.dimension == 1;
     syncFollowing();
 }
+// Shift + a stepper's end steps ten (DESIGN "Controls").
+int stepSize() { return ui::screen::heldShift() ? 10 : 1; }
 void adjustHeight(int delta) {
     if (!state.cave) return;
     state.height = clampHeight(state.dimension, state.height + delta);
@@ -392,8 +395,8 @@ void act(Target target) {
     case Target::BroadToggle:
         if (state.cave) state.broad = !state.broad;
         break;
-    case Target::HeightDown: adjustHeight(-1); break;
-    case Target::HeightUp: adjustHeight(1); break;
+    case Target::HeightDown: adjustHeight(-stepSize()); break;
+    case Target::HeightUp: adjustHeight(stepSize()); break;
     case Target::HeightField:
         state.editingHeight = true;
         state.editingName = false;
@@ -469,17 +472,17 @@ void setPanelOpen(bool open) {
 bool changeSelected(std::function<void(Waypoint&)> const& apply);
 void commitHeight() {
     if (!std::exchange(state.editingHeight, false)) return;
-    auto value = state.heightInput.parsedPrecise(static_cast<float>(heightMin(state.dimension)),
-                                                 static_cast<float>(heightMax(state.dimension)), true);
-    if (!value) return; // Incomplete or out of range: the height stays.
+    auto value = state.heightInput.committedPrecise(static_cast<float>(heightMin(state.dimension)),
+                                                    static_cast<float>(heightMax(state.dimension)), true);
+    if (!value) return; // Incomplete: the height stays (out of range becomes the nearest end).
     state.height = static_cast<int>(*value);
     syncFollowing();
 }
 void commitCoordinate() {
     int axis = std::exchange(state.editingAxis, -1);
     if (axis < 0) return;
-    auto value = state.coordinate.parsedPrecise(-coordinateLimit, coordinateLimit, true);
-    if (!value) return; // Incomplete or out of range: the waypoint keeps its place.
+    auto value = state.coordinate.committedPrecise(-coordinateLimit, coordinateLimit, true);
+    if (!value) return; // Incomplete: the waypoint keeps its place (out of range becomes the nearest end).
     changeSelected([&](Waypoint& w) { (axis == 0 ? w.x : axis == 1 ? w.y : w.z) = static_cast<int>(*value); });
 }
 // Ends whatever is being typed in the side panel, keeping it.
@@ -588,7 +591,7 @@ Request panelAction(Hit const& hit) {
         }
         break;
     case Target::Step: {
-        int axis = hit.item / 2, step = hit.item % 2 ? 1 : -1;
+        int axis = hit.item / 2, step = (hit.item % 2 ? 1 : -1) * stepSize();
         changeSelected([&](Waypoint& w) {
             int& value = axis == 0 ? w.x : axis == 1 ? w.y : w.z;
             value = std::clamp(value + step, -coordinateLimit, coordinateLimit);
@@ -1997,7 +2000,10 @@ Request press(float x, float y, bool right) {
     if ((state.editingHeight || state.editingName || state.editingAxis >= 0) && !heightField && !sameSideField) commitName();
     // The cave panel sits above the map; its controls consume the press.
     if (hit && (hit->target == Target::CaveButton || cavePanelTarget(hit->target) || infoPanelTarget(hit->target))) {
+        // A right click steps the height down and presses nothing else.
         if (!right) act(hit->target);
+        else if (hit->target == Target::HeightDown || hit->target == Target::HeightUp || hit->target == Target::HeightField)
+            act(Target::HeightDown);
         return request;
     }
     if (state.cavePanel || state.infoPanel) {
@@ -2027,7 +2033,16 @@ Request press(float x, float y, bool right) {
     bool menuWasOpen = state.menu.has_value();
     if (!(hit && hit->target == Target::None)) state.menu.reset();
     if (hit && hit->target >= Target::Panel) {
-        if (right) return request;
+        if (right) {
+            // On a coordinate stepper a right click steps it down; nothing else is pressed.
+            if (hit->target == Target::Step || hit->target == Target::Coordinate) {
+                Hit down = *hit;
+                down.target = Target::Step;
+                down.item = (hit->target == Target::Step ? hit->item / 2 : hit->item) * 2;
+                return panelAction(down);
+            }
+            return request;
+        }
         return panelAction(*hit);
     }
     commitName();

@@ -219,7 +219,9 @@ void clearKeyQuery() {
 // overwritten by a stale copy captured when the screen opened.
 void adjustOption_(settings::Option const& option, int direction) {
     auto value = Runtime::instance().preferences();
-    option.adjust(value, direction);
+    // Shift steps a number ten of its own steps (DESIGN "Controls"); a choice or switch steps once.
+    int const times = option.numeric && screen::heldShift() ? 10 : 1;
+    for (int i = 0; i < times; ++i) option.adjust(value, direction);
     screen::setMessage(Runtime::instance().save(value) ? std::string{} : translated("saveError"));
     if (option.id == "schematic.enabled") schematic::actions::resetState();
     // The stepper of a row being typed into shows the typed text; replace it

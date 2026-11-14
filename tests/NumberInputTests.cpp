@@ -13,6 +13,11 @@ void numberInputTests() {
           "invalid characters do not alter number text");
     editor.selectAll(); editor.append("11");
     check(!editor.parsed(1,10), "out of range input is not clamped into a different setting");
+    editor.clampOut = true;
+    check(editor.parsed(1,10) == 10.f && editor.parsedPrecise(1, 10, true) == 10.0, "a kept edit past the end becomes the end");
+    editor.clampOut = false;
+    editor.selectAll(); editor.append("-4");
+    check(editor.committedPrecise(1, 10, true) == 1.0 && !editor.parsed(1, 10), "committing clamps once; typing still does not");
     editor.selectAll(); editor.backspace();
     check(editor.value().empty() && !editor.parsed(1,10), "clearing selection does not write zero");
     editor.append("-");

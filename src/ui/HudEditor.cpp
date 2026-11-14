@@ -360,7 +360,8 @@ void run(Control const& control) {
         break;
     }
     case Command::ScaleDown: case Command::ScaleUp:
-        if (auto option = lookOption(id, "scale")) option->adjust(value, control.command == Command::ScaleUp ? 1 : -1);
+        if (auto option = lookOption(id, "scale"))
+            for (int i = 0, times = screen::heldShift() ? 10 : 1; i < times; ++i) option->adjust(value, control.command == Command::ScaleUp ? 1 : -1);
         break;
     case Command::Background:
         if (auto option = lookOption(id, "background")) option->adjust(value, 1);

@@ -203,7 +203,11 @@ void activateShapeField(int index, int part) {
         screen::clearMessage();
         return;
     }
-    applyShape(shape::adjust(*definition, row.field, direction));
+    // Shift steps a number ten of its own steps; a choice steps once.
+    int const times = shape::numeric(*definition, row.field) && screen::heldShift() ? 10 : 1;
+    auto stepped = *definition;
+    for (int i = 0; i < times; ++i) stepped = shape::adjust(stepped, row.field, direction);
+    applyShape(std::move(stepped));
 }
 void moveShapeField(int step) {
     auto definition = currentShape();
@@ -229,6 +233,13 @@ void openShapeKeySettings() {
 }
 void handleShapeClick(float x, float y, bool right) {
     screen::finishEditing();
+    // A right click steps a stepper down and presses nothing else (L-346).
+    if (right) {
+        auto hit = shapesDisplayed.hit(x, y);
+        if (hit.zone == ShapeZone::Field) activateShapeField(hit.index, -1);
+        else if (hit.zone == ShapeZone::LayerDown || hit.zone == ShapeZone::LayerUp) --shapeLayer;
+        return;
+    }
     if (!right && screen::pressScrollbar(shapesDisplayed, shapeListFirst, x, y)) return;
     if (!shapesDocked && screen::navClick(x, y)) return;
     auto hit = shapesDisplayed.hit(x, y);
@@ -270,8 +281,8 @@ void handleShapeClick(float x, float y, bool right) {
             screen::clearMessage();
         }
         return;
-    case ShapeZone::LayerDown: --shapeLayer; return;
-    case ShapeZone::LayerUp: ++shapeLayer; return;
+    case ShapeZone::LayerDown: shapeLayer -= screen::heldShift() ? 10 : 1; return;
+    case ShapeZone::LayerUp: shapeLayer += screen::heldShift() ? 10 : 1; return;
     case ShapeZone::Field:
         if (!right && hit.part != 2) if (auto definition = currentShape()) {
             auto fields = shape::rows(*definition, shapeDraft.has_value());

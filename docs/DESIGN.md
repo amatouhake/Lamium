@@ -129,11 +129,15 @@ literals left are counted in `scripts/UiTokenBaseline.txt` (BACKLOG L-342).
 - **Steppers** (`drawStepper`): one box, `- value +` for numbers,
   `< value >` for choices (arrows drawn from rectangles); never separate
   `-`/`+` buttons. The end cell under the pointer lightens; an end that
-  cannot step draws faint. Where a value can be typed, a click on it types
-  (the edit draws in the box). A value cut with "..." shows whole in a tip
+  cannot step draws faint. Shift + an end steps ten of the stepper's own
+  steps (a choice ignores Shift); a right click on it steps down like `-`.
+  Where a value can be typed, a click on it types (the edit draws in the
+  box); a typed value past either end is not applied while typing and
+  becomes that end when the edit is kept. A value cut with "..." shows whole in a tip
   under the stepper. A value that defeats another setting draws its stepper in
   warning color, and the footer says why.
-- **Buttons**, three kinds of one shape: a fill, a 1-unit edge lighter than
+- **Buttons** take only a left click (a right click presses nothing, Delete
+  included), three kinds of one shape: a fill, a 1-unit edge lighter than
   the fill, centered white text; only the colors differ. Hovering lightens
   the fill (a white wash). A disabled button is plain with faint text and
   no hover; faint text means disabled nowhere else. Plain (`keyFill`,

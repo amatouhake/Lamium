@@ -365,7 +365,7 @@ void activateSchematicField(int index, int part) {
         int value = index == 0 ? p->placement.origin.x : index == 1 ? p->placement.origin.y : p->placement.origin.z;
         if (part == 0) { editingSchematicField = index; screen::number().beginPrecise(value); screen::clearMessage(); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
-            (index == 0 ? t.placement.origin.x : index == 1 ? t.placement.origin.y : t.placement.origin.z) += direction;
+            (index == 0 ? t.placement.origin.x : index == 1 ? t.placement.origin.y : t.placement.origin.z) += direction * (screen::heldShift() ? 10 : 1);
         });
         return;
     }
@@ -427,7 +427,7 @@ void activateSchematicField(int index, int part) {
         if (part == 0) { editingSchematicField = index; screen::number().beginPrecise(view.cut + 1); screen::clearMessage(); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
-            if (!schematic::leaveAll(t.layers)) t.layers.cut = std::clamp(t.layers.cut + direction, 0, count - 1);
+            if (!schematic::leaveAll(t.layers)) t.layers.cut = std::clamp(t.layers.cut + direction * (screen::heldShift() ? 10 : 1), 0, count - 1);
             schematic::noteLayerEdit(t.layers);
             schematic::dualWrite(t.layers, structure->size, t.placement);
         });
@@ -527,6 +527,12 @@ void pickInPreview(glm::vec2 at) {
 }
 void handleSchematicClick(float x, float y, bool right) {
     screen::finishEditing();
+    // A right click steps a stepper down and presses nothing else (L-346).
+    if (right) {
+        if (schematicsDisplayed.usable() && schematicTabAt(schematicsDisplayed, x, y) < 0)
+            if (auto hit = schematicsDisplayed.hit(x, y); hit.zone == ShapeZone::Field) activateSchematicField(hit.index, -1);
+        return;
+    }
     if (auto pressed = right ? data_notice::Pressed::Outside : data_notice::press(x, y); pressed != data_notice::Pressed::Outside) {
         if (pressed == data_notice::Pressed::Open) screen::showSavedData();
         else refresh(true);

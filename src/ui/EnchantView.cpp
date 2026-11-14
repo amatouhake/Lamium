@@ -32,7 +32,7 @@ NumberInput typed;
 void endTyping(bool keep) {
     if (typingRow < 0) return;
     if (keep)
-        if (auto level = typed.parsedPrecise(1, 255, true)) game::setRowLevel(typingRow, static_cast<int>(*level));
+        if (auto level = typed.committedPrecise(1, 255, true)) game::setRowLevel(typingRow, static_cast<int>(*level));
     typingRow = -1;
 }
 EnchantLayout last;

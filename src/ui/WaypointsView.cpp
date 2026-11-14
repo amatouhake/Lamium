@@ -133,7 +133,7 @@ void activateWaypointField(int index, int part) {
         }
         changeSelected([&](map::Waypoint& t) {
             int& c = index == 0 ? t.x : index == 1 ? t.y : t.z;
-            c = std::clamp(c + direction, -map::coordinateLimit, map::coordinateLimit);
+            c = std::clamp(c + direction * (screen::heldShift() ? 10 : 1), -map::coordinateLimit, map::coordinateLimit);
         });
         return;
     }
@@ -180,6 +180,11 @@ void deleteSelectedWaypoint() {
 }
 void handleWaypointClick(float x, float y, bool right) {
     screen::finishEditing();
+    // A right click steps a stepper down and presses nothing else (L-346).
+    if (right) {
+        if (auto hit = waypointsDisplayed.hit(x, y); hit.zone == ShapeZone::Field) activateWaypointField(hit.index, -1);
+        return;
+    }
     if (auto pressed = right ? data_notice::Pressed::Outside : data_notice::press(x, y); pressed != data_notice::Pressed::Outside) {
         if (pressed == data_notice::Pressed::Open) screen::showSavedData();
         else refresh();
