@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Shared tips, panel opacities and control input (L-345, L-346, 2026-11-15)
+
+Builds `e43634c4` and `88e12ce8` (DLL SHA-256
+`c805f29e039989e94f4cfdea75d4686330e552ccb0156fb09a31aab0b57b944e`), 1.26.60.05 Dev
+instance, the maintainer: confirmed, nothing looked off. Tips (version, binding conflicts,
+cut values, calculator keys, enchantment steps) share one look with white text; panels over
+the world (schematic radial, waypoint and save prompts, HUD editor toolbar) match the
+settings screen's opacity and the ones over Lamium panels stay nearly opaque (the radial and
+HUD editor at .97 looked too dark, hence the split); a right click no longer presses Delete
+and steps a stepper down; Shift + an end steps ten; a typed value past the end becomes the
+end on Enter.
+
 ## Enchantment level text level when off (2026-11-15)
 
 Build `cc1bee4b`, DLL SHA-256

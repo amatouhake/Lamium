@@ -285,6 +285,8 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Refactor
 
+- [L-346](backlog/done/L-346.md) One input behavior for steppers and buttons
+- [L-345](backlog/done/L-345.md) Shared tips and popup panels
 - [L-341](backlog/done/L-341.md) Shared widgets for repeated controls
 
 - [L-158](backlog/done/L-158.md) Prevent missing and inconsistent settings/action labels
