@@ -2,7 +2,7 @@
 
 Implementation notes for the minimap, radar, waypoints and world map (L-60).
 Work status and open choices are in
-[BACKLOG-DONE.md](BACKLOG-DONE.md#l-60-map-minimap-waypoints-and-world-map-experimental);
+[BACKLOG-DONE.md](backlog/done/L-60.md);
 runtime coverage is in [VALIDATION.md](VALIDATION.md), with evidence in
 [VALIDATION-LOG.md](VALIDATION-LOG.md).
 

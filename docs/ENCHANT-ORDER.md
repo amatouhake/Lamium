@@ -3,7 +3,7 @@
 Feature contract and dated record for the enchantment order planner and its
 panels beside the anvil screen (L-170, Experimental). Work status and open
 choices are in
-[BACKLOG.md](BACKLOG.md#l-170-enchantment-order-planner); runtime coverage
+[BACKLOG.md](backlog/L-170.md); runtime coverage
 is in [VALIDATION.md](VALIDATION.md), with evidence in
 [VALIDATION-LOG.md](VALIDATION-LOG.md). The player's description is in
 [FEATURES.md](FEATURES.md); the game members it relies on are listed in

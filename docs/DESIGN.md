@@ -5,7 +5,7 @@ does: a screen, a HUD element, a setting, a key, a message. It is short on
 purpose. Every rule here was agreed with the maintainer; do not change one
 without asking. A rule that only one feature follows belongs in that
 feature's document (index at the end), not here. Why a rule exists and when
-it changed: `git log -p docs/DESIGN.md`, BACKLOG-DONE.md.
+it changed: `git log -p docs/DESIGN.md`, `docs/backlog/done/`.
 
 When a design needs something these rules do not cover, or would break one,
 stop and ask the maintainer (AGENTS.md "When to stop").

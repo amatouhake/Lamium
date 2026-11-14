@@ -6,8 +6,9 @@ working manual for any coding agent. Read it fully before changing code.
 
 ## Where things are
 
-- Pick work: BACKLOG.md's **Current execution order**, then the L-item and
-  the feature document it links. The L-item wins if a summary drifts.
+- Pick work: BACKLOG.md (the index: policy, execution order, one line per
+  item), then only that item's file `docs/backlog/L-<n>.md` and the feature
+  document it links. The item file wins if a summary drifts.
 - Document roles and the feature documents: [docs/README.md](docs/README.md).
 - Shared product and UI rules: [docs/DESIGN.md](docs/DESIGN.md) (short; one
   feature's decisions are in that feature's document).
@@ -17,9 +18,10 @@ working manual for any coding agent. Read it fully before changing code.
 
 A decision made in chat that affects implementation goes into the repository:
 a shared rule into DESIGN.md, one feature's into its document, task choices
-into the L-item. In long feature documents, newer decisions win over older
-dated checkpoints. BACKLOG-DONE.md and VALIDATION-LOG.md are append-only:
-search them (`git grep -n "L-66" docs/BACKLOG-DONE.md`), never read them whole.
+into the item file, rewritten as the current state (BACKLOG.md "How items
+are kept"). In long feature documents, newer decisions win over older dated
+checkpoints. Finished items (`docs/backlog/done/`) and VALIDATION-LOG.md are
+records: search them (`git grep -n "L-66" docs/backlog`), never read them all.
 
 ## Talking to the user
 
@@ -123,8 +125,9 @@ tests          Pure unit tests (no game types). tests-native: SDK-type tests
 - Commit only when build + LamiumTests pass. Check `git diff --stat` first.
 - Update the relevant docs in the same or next commit. A game result goes on
   top of VALIDATION-LOG.md (build, hash, what was and was not seen) and into
-  the feature's VALIDATION.md row. A finished L-item moves to
-  BACKLOG-DONE.md; what is left for the release goes to "Pre-release checks".
+  the feature's VALIDATION.md row. A finished item's file moves to
+  `docs/backlog/done/` (and its line to BACKLOG-DONE.md); what is left for
+  the release goes to `docs/backlog/pre-release-checks.md`.
 
 ## When to stop and escalate
 

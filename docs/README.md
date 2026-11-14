@@ -11,10 +11,10 @@ The [agent guide](../AGENTS.md) is the working manual and the
 |---|---|
 | What does each feature do, for a player? | [FEATURES.md](FEATURES.md): the user guide behind the README's feature tables |
 | What should Lamium look like and how should it behave? | [DESIGN.md](DESIGN.md): shared product/UI rules; one feature's decisions are in its document below |
-| What should be worked on next, and what is still open? | [BACKLOG.md](BACKLOG.md): execution order, L-items, release policy and pending checks |
+| What should be worked on next, and what is still open? | [BACKLOG.md](BACKLOG.md): the index (release policy, execution order, one line per item); each item is `backlog/L-<n>.md` |
 | What was actually checked in Minecraft? | [VALIDATION.md](VALIDATION.md): current coverage per feature |
 | Which build and observation support a result? | [VALIDATION-LOG.md](VALIDATION-LOG.md): append-only evidence, newest first |
-| What happened to a finished or closed L-item? | [BACKLOG-DONE.md](BACKLOG-DONE.md): retained task history |
+| What happened to a finished or closed L-item? | [BACKLOG-DONE.md](BACKLOG-DONE.md): the list of `backlog/done/` files, with their history |
 | How is Lamium packaged, updated and released? | [DISTRIBUTION.md](DISTRIBUTION.md): package contract and release checklist |
 | What does Lamium rely on in the game, and what to do on a game update? | [GAME-UPDATES.md](GAME-UPDATES.md): gated capabilities, update playbook and the hook inventory (script-checked) |
 | How are contributions and translations handled? | [CONTRIBUTING.md](../CONTRIBUTING.md), [TRANSLATING.md](TRANSLATING.md) |
@@ -67,15 +67,15 @@ build named there and may include superseded experiments.
 - A feature added, renamed, made default on/off or out of Experimental is
   changed in both the README feature tables and FEATURES.md, using the
   English names of the settings screen.
-- Keep BACKLOG-DONE and VALIDATION-LOG intact. Search for the L-number or
-  feature instead of reading either whole.
+- Keep `backlog/done/` and VALIDATION-LOG intact. Search for the L-number or
+  feature instead of reading them all.
 - Notion's idea inbox holds unchosen proposals. When importing selected
   notes, assign or reuse an L-item, preserve unresolved choices as Design /
   Research, and record the mapping in the inbox. Current task status stays
   in the repository; a dated Notion checkpoint does not reopen shipped work.
-- Keep only current work and remaining coverage in BACKLOG. Completed
-  planning and old release/regression checkpoints are retained in
-  BACKLOG-DONE, with their pending-status wording labeled as historical.
+- Keep only current work in `backlog/`, each item as its current state.
+  Completed items and old release checkpoints are retained in
+  `backlog/done/`, with their pending-status wording labeled as historical.
 - Update the demo index when its decision or implementation status changes.
   Mockups show intent; current text and implementation can differ from them.
 - Machine-specific paths stay in the gitignored `AGENTS.local.md`.

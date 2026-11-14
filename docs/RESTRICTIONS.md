@@ -1,7 +1,7 @@
 # Placement and breaking restrictions
 
 Breaking follows the press-anchored design of
-[BACKLOG.md](BACKLOG.md#l-15-breaking-and-placement-restrictions) (L-15,
+[BACKLOG.md](backlog/L-15.md) (L-15,
 step 1, built 2026-10-07). Placement is not implemented; its research notes
 are below. Current runtime coverage is in [VALIDATION.md](VALIDATION.md).
 

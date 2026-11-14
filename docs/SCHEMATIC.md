@@ -2,7 +2,7 @@
 
 Implementation notes for loading, placing, projecting, checking and saving
 `.mcstructure` files (L-93). Follow-ups are in
-[BACKLOG.md](BACKLOG.md#l-93-schematic-load-place-project-verify-and-list-materials-experimental);
+[BACKLOG.md](backlog/L-93.md);
 runtime coverage is in [VALIDATION.md](VALIDATION.md), with evidence in
 [VALIDATION-LOG.md](VALIDATION-LOG.md).
 

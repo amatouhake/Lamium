@@ -1,7 +1,7 @@
 # Villager trade helpers
 
 Repeated trading (L-166 part 1) is complete, unreleased; its record is in
-[BACKLOG-DONE](BACKLOG-DONE.md#l-166-villager-trade-helpers-part-1).
+[BACKLOG-DONE](backlog/done/L-166.md).
 Runtime coverage stays in VALIDATION.md. The normal build passes local/BDS
 trading, sold-out and material-limit stops, safe full-inventory refusal,
 settings-off and two-input enchanted books. Controlled BDS response delays,
