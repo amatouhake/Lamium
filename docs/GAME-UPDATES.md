@@ -321,8 +321,9 @@ Hooks: `ShulkerContentsText`, `DurabilityHovertext`, `TooltipFontDraw`, `Tooltip
 Meaning: the hover text's line layout and the placeholder glyph line the
 painter covers with hunger-bar icons; fonts' sheet scales.
 Item details (L-319) read, under the Item details capability (decided 2026-11-14, L-338): `Item::mTags`, `ItemStackBase::mUserData`, `Item::mMaxUseDuration`,
-`FurnaceBlockActor::getItemBurnDuration` and, where that is 0, `FuelItemComponent::mFuelDuration` (seconds), and
-for a suspicious stew `Item::buildEffectDescriptionName` with the effect found by its translated name
+`FurnaceBlockActor::getItemBurnDuration` and, where that is 0, `FuelItemComponent::mFuelDuration` (seconds),
+`Item::getCooldownDuration`, the `minecraft:use_modifiers` component's `UseModifiersItemComponent::mUseDuration`
+(seconds) where `mMaxUseDuration` is 0, and for a suspicious stew `Item::buildEffectDescriptionName` with the effect found by its translated name
 (`MobEffect::getNameById` 1..38, `mDescriptionId`, `mIsHarmful`, `mAttributeModifiers`). The game asks for a slot's
 hover text when the pointer reaches it and keeps it, so a setting changed meanwhile shows at the next hover.
 
