@@ -121,7 +121,11 @@ have local copies (BACKLOG L-341); they are not the pattern.
 - **Key caps** for bindings. The key column never shows Hold/Toggle/Press.
   A binding that relates to another draws warning-colored caps: filled for the
   exact same chord, outlined for an overlap; hovering (or selecting with the
-  keyboard) lists the related bindings in a tip.
+  keyboard) lists the related bindings in a tip. A mouse button alone (left,
+  right, middle) is the game's own click: its caps are outlined too, the tip
+  and the capture footer say which game action it shares, and the click still
+  reaches the game, so both happen (a chord with a modifier takes the click).
+  This shows in Hotkeys whatever the toast settings are.
 - **Steppers** (`drawStepper`): one box, `- value +` for numbers,
   `< value >` for choices (arrows drawn from rectangles); never separate
   `-`/`+` buttons. The end cell under the pointer lightens; an end that

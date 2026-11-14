@@ -143,7 +143,13 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
         for (size_t i = 0; i < actions.size(); ++i)
             if (i != static_cast<size_t>(Action::FakeOffhandUse)
                 && dispatch.isActive(static_cast<Action>(i)) && contains(allowed[i], token)) nativeUse = false;
-    return result.consumed && !nativeUse;
+    // A mouse button bound alone keeps the game's own click (attack, use, pick block): the action runs and the
+    // game gets the click too. A chord with a modifier (Alt + left click) still takes it.
+    bool gameKeeps = gameClick(Chord{token}) != GameClick::None;
+    if (gameKeeps)
+        for (size_t i = 0; i < actions.size(); ++i)
+            if (dispatch.isActive(static_cast<Action>(i)) && contains(allowed[i], token) && allowed[i].size() > 1) gameKeeps = false;
+    return result.consumed && !nativeUse && !gameKeeps;
 }
 }
 void resetCustomInput() { invalidate(); }

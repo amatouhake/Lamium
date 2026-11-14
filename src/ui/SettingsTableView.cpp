@@ -539,9 +539,18 @@ input::Relation strongestConflict(std::vector<input::Conflict> const& conflicts)
     for (auto conflict : conflicts) relation = std::max(relation, conflict.relation);
     return relation;
 }
-KeyTone conflictTone(input::Relation relation) {
+KeyTone conflictTone(input::Relation relation, bool gameClick = false) {
     return relation == input::Relation::Shared ? KeyTone::Filled
-        : relation == input::Relation::Overlap ? KeyTone::Outline : KeyTone::Plain;
+        : relation == input::Relation::Overlap || gameClick ? KeyTone::Outline : KeyTone::Plain;
+}
+// The tip's line for a binding that is the game's own click, empty otherwise.
+std::string gameClickNote(input::Chord const& chord) {
+    switch (input::gameClick(chord)) {
+    case input::GameClick::Attack: return translated("tip.gameAttack");
+    case input::GameClick::Use: return translated("tip.gameUse");
+    case input::GameClick::Pick: return translated("tip.gamePick");
+    default: return {};
+    }
 }
 // Open buttons on tool rows (L-231). The 24 px state cell is too narrow for
 // the word, so the button borrows the gap and a little of the name cell.
@@ -570,8 +579,9 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     }
     auto keys = bindingKeys(current, action);
     if (keys.empty()) { label(context,x,cy+1,width,translated("unbound"),palette::faint); return; }
-    auto relation = strongestConflict(input::bindingConflicts(Runtime::instance().preferences().bindings, action));
-    keycaps(context,x,cy,width,keys,conflictTone(relation));
+    auto const& bindings = Runtime::instance().preferences().bindings;
+    auto relation = strongestConflict(input::bindingConflicts(bindings, action));
+    keycaps(context,x,cy,width,keys,conflictTone(relation, input::gameClick(input::effectiveChord(bindings, action)) != input::GameClick::None));
 }
 float badge(MinecraftUIRenderContext& context, float x, float y, std::string text, Rgb color) {
     float w = textWidth(context, text) + 5;
@@ -713,10 +723,12 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     if (chord.empty()) return false;
     auto const conflicts = input::bindingConflicts(preferences.bindings, action);
     auto const keys = chordKeys(current, chord);
+    auto const gameNote = gameClickNote(chord);
     // Hovering the key cell reveals a binding only when the cell clips it; the
-    // keyboard tip still appears only when there is a conflict (L-235).
-    if (!hoveredKey && conflicts.empty()) return false;
-    if (hoveredKey && conflicts.empty() && keycapsWidth(context, keys) <= t.keyWidth) return false;
+    // keyboard tip still appears only when there is a conflict (L-235) or the game's click.
+    bool const warns = !conflicts.empty() || !gameNote.empty();
+    if (!hoveredKey && !warns) return false;
+    if (hoveredKey && !warns && keycapsWidth(context, keys) <= t.keyWidth) return false;
     constexpr float pad = 4, headHeight = 15, lineHeight = 12, titleHeight = 13, itemHeight = 14;
     // Size the tip to the chord it reveals: the count on the right must not
     // squeeze the caps the row clipped (L-235).
@@ -734,6 +746,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     // little space below; alone they keep equal padding.
     float header = conflicts.empty() ? capsHeight : std::max(headHeight, capsHeight + 4);
     std::vector<std::string> notes;
+    if (!gameNote.empty()) notes.push_back(gameNote);
     bool leads = std::any_of(conflicts.begin(), conflicts.end(), [](auto c) { return c.link == input::Link::StartsWithThis; });
     if (input::firesOnRelease(preferences.bindings, action)) notes.push_back(translated("tip.release"));
     else if (leads && input::actions[static_cast<size_t>(action)].behavior == input::Behavior::Hold)
@@ -768,9 +781,9 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     // Row text is queued until a flush; flush it so the tooltip covers it.
     context.flushText(0, std::nullopt);
     fill(context,x,y,width,height,palette::panel,.97f);
-    frame(context,x,y,width,height,conflicts.empty() ? palette::keyEdge : palette::warning);
+    frame(context,x,y,width,height,warns ? palette::warning : palette::keyEdge);
     float cursor = y + pad;
-    keycapsWrap(context,x+pad,cursor,headerWidth,keys,conflictTone(relation),3);
+    keycapsWrap(context,x+pad,cursor,headerWidth,keys,conflictTone(relation, !gameNote.empty()),3);
     if (!count.empty())
         label(context,x+pad,cursor+boxTextInset(),inner,count,palette::warning,Align::Right);
     cursor += header;
@@ -1135,6 +1148,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     } else if (capturing_) {
         label(context,textLeft,t.footerTop+3,textWidthAvailable,
             screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
+        if (auto note = gameClickNote(capture.value()); !note.empty())
+            label(context,textLeft,t.footerTop+16,textWidthAvailable,note,palette::warning);
         label(context,textLeft,t.footerTop+30,textWidthAvailable,captureText(*capturing_),palette::faint);
     } else {
         for (int i = 0; i < SettingsTable::descriptionLines && helpFirst + i < helpLineCount; ++i)

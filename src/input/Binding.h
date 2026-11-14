@@ -339,6 +339,20 @@ inline std::vector<Conflict> bindingConflicts(Bindings const& bindings, Action a
     return result;
 }
 
+// A chord that is one mouse button alone is the game's own click: attack and
+// destroy (left), use and place (right), pick block (middle). Such a binding is
+// marked in Hotkeys, and the click still reaches the game (DESIGN "Controls").
+enum class GameClick { None, Attack, Use, Pick };
+inline GameClick gameClick(Chord const& chord) {
+    if (chord.size() != 1 || chord[0].device != Device::Mouse) return GameClick::None;
+    switch (chord[0].code) {
+    case 1: return GameClick::Attack;
+    case 2: return GameClick::Use;
+    case 3: return GameClick::Pick;
+    default: return GameClick::None;
+    }
+}
+
 using ChordSet = std::array<Chord, actions.size()>;
 // Like Java's F3: a Press/Toggle action whose chord begins a longer bound
 // chord waits for its release and fires then, unless the longer chord was used
