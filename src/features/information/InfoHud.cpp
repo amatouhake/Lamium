@@ -556,6 +556,9 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     // Bands on the right side of the screen line up on the right edge.
     bool alignRight = band && ui::anchorFactors(element.anchor).x == 1;
     auto* renderer = context.mClient.getItemRenderer();
+    // Drawn in one call after the rows, so enchanted items keep their glint
+    // (a glint drawn after another batch of icons does not show, ItemIcon.cpp).
+    std::vector<inspection::render::IconAt> icons, chargeIcons;
     for (size_t i = 0; i < rows.size(); ++i) {
         auto const& row = rows[i];
         float left = alignRight ? placement.x + boxW - padX - rowWidths[i] : placement.x + padX;
@@ -567,10 +570,10 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         // Whole GUI units, as in inventory slots: layered icons (dyed
         // leather) show seams between their layers at fractional positions.
         if (renderer) {
-            inspection::render::drawItemIcon(context, {&stacks[static_cast<size_t>(row.slot)], std::round(x), std::round(y + z), z}, 17);
+            icons.push_back({&stacks[static_cast<size_t>(row.slot)], std::round(x), std::round(y + z), z, 0, 1.f, true});
             // A loaded crossbow: its charge, small, on the icon's lower right.
             if (auto const& charge = charges[static_cast<size_t>(row.slot)]; !charge.isNull())
-                inspection::render::drawItemIcon(context, {&charge, std::round(x + 8 * z), std::round(y + 9 * z), z / 2}, 18);
+                chargeIcons.push_back({&charge, std::round(x + 8 * z), std::round(y + 9 * z), z / 2});
         }
         float cx = x + icon;
         if (dur::showsBar(look)) {
@@ -593,8 +596,7 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
             cx += k ? ammoKindGap : ammoGap;
             if (renderer) {
                 auto const& stack = ammoIcon(kind);
-                if (!stack.isNull())
-                    inspection::render::drawItemIcon(context, {&stack, std::round(cx), std::round(y + z), z}, 17);
+                if (!stack.isNull()) icons.push_back({&stack, std::round(cx), std::round(y + z), z});
             }
             cx += icon + gap;
             int total = ammo.of(kind);
@@ -606,6 +608,8 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         }
     }
     context.flushText(0, std::nullopt);
+    inspection::render::drawItemIcons(context, icons, 17);
+    inspection::render::drawItemIcons(context, chargeIcons, 18);
     return ui::hud_editor::Box{placement.x, placement.y, boxW, boxH};
 }
 // ---- Status Effects HUD (L-147, docs/demos/status-effects-hud.html) ----
