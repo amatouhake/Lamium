@@ -75,9 +75,14 @@ published for whoever wants it. There is no "first release" gate.
 Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
-1. **Bugs first.** Open: L-324 (custom blocks brown on the map;
-   Research), L-227 (FreeCamera shows only the sky outside loaded
-   terrain; Research). What waits for more game symbols is collected in L-315.
+1. **Bugs first.** Open: L-335 (rows under a switched-off feature dim only in
+   the middle; Ready), L-339 (smaller bugs from the 2026-11-14 code review;
+   Ready), L-299 (a slot stuck after a screenless move when client and server
+   desync), L-240 (death layout restore acts unexpectedly; Research), L-324
+   (custom blocks brown on the map; Research), L-227 (FreeCamera shows only
+   the sky outside loaded terrain; Research), L-243 terrain gaps, L-245 ghost
+   face beside glass, L-257 FreeCamera culler thread, L-117 schematic name
+   tags. What waits for more game symbols is collected in L-315.
    Parked: L-194 save corner marks, L-123 elytra pose, L-91 shield glint,
    L-132 inventory-screen movement, L-244 FreeCamera started inside a block,
    L-287 minimap arrow look; respect each item's stop/resume conditions. L-181
@@ -85,13 +90,16 @@ choices live in the L-items. An L-item wins if a summary drifts.
 
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): the L-266 schematic follow-up batch closed with 0.3.1 except
-   L-265 placement assist (Design). Remaining Design/Research: L-166 trade
-   helpers, L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
-   L-170 enchantment planner, L-173 quick shapes, L-190 list selection, L-163 a
-   Lamium inventory screen, L-249 simulation distance and the 2026-11-07 reports L-317 (Nether
-   minimap under forced Surface) and L-319 (item details order). In progress:
-   L-320 block highlight (built and checked in steps; its open runtime checks
-   are in VALIDATION.md). Agree open choices before
+   L-265 placement assist (Design). Decisions waiting for the maintainer:
+   L-338 (five choices from the 2026-11-14 review). Built, with open checks
+   or follow-ups in their items: L-170 enchantment order planner, L-319 item
+   details, L-320 block highlight (released in 0.6.0). Remaining
+   Design/Research: L-336 Durability HUD items, L-337 minimap size, L-340
+   settings grouping, L-341 shared widgets (Refactor), L-325 zoom release,
+   L-330 radar icons, L-166 trade helpers, L-167 resource packs, L-168 trade
+   finder, L-169 transfer extensions, L-173 quick shapes, L-190 list
+   selection, L-163 a Lamium inventory screen, L-249 simulation distance and
+   L-317 (Nether minimap under forced Surface). Agree open choices before
    building. L-165 Mass Craft remains below Map and needs a scope conversation;
    existing packs already cover part of that need.
 3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,
@@ -134,15 +142,19 @@ Do not infer game success from a build or unit-test result.
   editor's tag switch was not itemized; a settings file from before with Hide
   boss bars on is covered by unit tests only; Pocket UI, other GUI scales and
   servers are not checked.
-- Six fixes from the 2026-11-14 code review (`d4e36406`..`5359af0c`), built
-  and unit-tested only, none looked at in game: a category reset restores the
-  paper doll, scoreboard and boss bar placement; an older file's death point
-  is no longer converted again every frame while the waypoint list is full;
-  item icons and stack counts fade with a faint or hidden HUD element (an
-  enchanted item's glint may still show at full strength); Map size 41-50
-  takes effect; the schematic menu runs the item under the click; a hidden
-  chat, scoreboard or boss bar stays hidden under a clipping panel (needs a
-  resource pack whose HUD clips them).
+- Fixes from the 2026-11-14 code review (`d4e36406`..`5359af0c`): four passed
+  in game on `5359af0c` (VALIDATION-LOG 2026-11-14: category reset of the
+  game parts' placement, faded icons and counts, Map size 50, the schematic
+  menu click). Not looked at: an enchanted item's glint on a faint element;
+  an older file's death point with a full waypoint list; a hidden chat,
+  scoreboard or boss bar under a clipping panel (needs a resource pack whose
+  HUD clips them); the Status element's switch hiding the block restriction
+  lines too (built after that check).
+- Changed since 0.6.0 with open cases listed in VALIDATION.md or their
+  items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
+  key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
+  toasts, Fake Offhand's own key (L-322), Connected Textures panes (L-331),
+  and the features that lost the Experimental badge.
 
 ### Left from 0.6.0
 
@@ -227,6 +239,35 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
+
+### L-335 Rows under a switched-off feature are dimmed only in the middle
+Kind: Ready. Maintainer 2026-11-14 (`5359af0c`, Durability HUD off): the
+dark band over the child rows starts right of the tree guide and ends before
+the value column, so the left edge and the values on the right ("Bar and
+num...", "Edit in HUD layout >") stay at full strength. DESIGN "Settings
+screen": rows of a switched-off feature are drawn dimmed. Fix: the dimming
+covers the whole row, guide and value column included, in every feature.
+DESIGN says command rows are not dimmed; whether the HUD layout link counts
+as one is the only open point. Files: `src/ui/SettingsTableView.cpp`. Check
+in game on one feature with a choice row and a layout link.
+
+### L-339 Smaller bugs found by the 2026-11-14 code review
+Kind: Ready (each is narrow; verified against the code, none seen in game).
+- A toast raised while the settings screen is open is never drawn (version
+  copied, saved map deleted, a waypoint added from the map's prompt); the HUD
+  draws only while the screen is closed (`SettingsScreen.cpp`, the HUD call).
+- Help text of Hide effects, Connected Textures and Skip server packs still
+  says "Experimental." in all four languages after the badge came off.
+- A death's waypoint does not advance the next-color counter (`Waypoints.h`
+  `recordDeath`).
+- The mode-cycle toast reads "Auto Attack > Mode" (`Actions.cpp`).
+- The retired boss bar placement action is still matched and consumes its
+  key.
+- The waypoint prompt's primary button has no hover state; the Schematics
+  Verify tab uses a text ">"; a right click acts as a left click on the
+  header and the sidebar; a distance of 0 reads "0 blocks".
+- Transfer labels with two colons lose the action name in English
+  (`splitLabel` splits at the first ": ").
 
 ### L-324 Map: custom blocks are drawn in a dirt-like brown
 Kind: Research. Issue #76 (2026-11-11), accepted by the maintainer
@@ -625,6 +666,64 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
+
+### L-338 Five choices from the 2026-11-14 review
+Kind: Design (maintainer decisions; each becomes a Ready fix once chosen).
+1. An unstarted death layout stays until the next death (since L-332 a
+   waypoint's removal no longer ends it), so a later visit that picks items
+   up within 32 blocks starts a restore; a started one is dropped on the
+   first tick after joining more than 32 blocks away. Choose when a layout
+   ends. Relates to L-240.
+2. "Toggle toasts" off also hides message toasts (waypoint added, schematic
+   saved, restore ended); its help names only feature toggles. Choose: the
+   switch covers both and says so, or only toggle toasts.
+3. Esc/Close: the calculator and the world map return to where they were
+   opened from; HUD layout, the block highlight list and Enchantment order
+   return to the settings table even when opened by their own key, and from
+   the anvil; the schematic menu closes everything. Choose one rule.
+4. Enchantment order (Experimental) shows its three beside-the-anvil parts
+   by default and has no main switch; "Placement mode" is shown and does
+   nothing. The release policy says large features start default off and
+   unfinished steps stay out of the settings screen.
+5. Item details reads item data (tags, user data, use duration, burn time)
+   without `versionSensitiveAllowed()`; only the Work Penalty line asks it.
+   GAME-UPDATES.md records "read, without a gate". Choose: add the gate, or
+   write the exception into AGENTS.md rule 8.
+
+### L-336 Durability HUD: choose its items in HUD layout
+Kind: Design. Maintainer 2026-11-14: Info HUD's lines are chosen in the HUD
+layout editor, while Durability HUD's items (offhand, armor, elytra, ammo)
+are only switches in the settings table. Make the two work the same way.
+Open: whether the editor's lines popover lists them (and their order), and
+whether the settings rows stay.
+
+### L-337 Minimap: one size setting instead of two
+Kind: Design. Maintainer 2026-11-14: the minimap's side is "Map size"
+(10-50 % of the screen height) times the element's HUD scale, so two
+settings change its size, unlike every other element. Open: which one
+stays (scale only, with the map size folded into it and saved values
+converted; or Map size for the map and the scale for its text only, as
+the comment on `Settings::Map::size` already says).
+
+### L-340 Settings grouping
+Kind: Design. Maintainer 2026-11-14 (noticed before the review, confirmed by
+it): General is a mixed bag; HUD-wide settings (Toggle toasts, HUD text) sit
+away from the HUD section; hiding the paper doll is reachable from three
+places and offhand settings from five. Moving a feature between sections is
+one table (`featureSection` in `SettingsRows.h`) and does not touch saved
+settings. Output: the section list and each feature's place.
+
+### L-341 Shared widgets for repeated controls
+Kind: Refactor (strong model; no behavior change except where copies
+differ). The 2026-11-14 review counted separate implementations of: the
+press-twice confirm button (8, the danger red written as a literal in 7
+files, HUD layout arming yellow instead), the text field frame (8), the
+stepper (7 variants) and the scroll bar (5). Also differing by screen: Esc
+while typing commits in the tool views and discards in the world map; "add
+waypoint here" behaves three ways (prompt or not, camera or body position
+under FreeCamera, the temporary setting). Move each control into
+`src/ui/Widgets.h` one at a time, with the differences listed and agreed
+first.
 
 ### L-330 Radar: mob icons that draw wrongly, then icons by default
 Kind: Research, then Design. Maintainer 2026-11-13: some mobs' icons on

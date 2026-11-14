@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Code review fixes (2026-11-14)
+
+Build `5359af0c`, DLL SHA-256
+`79b9bc84da9631da9ac35f12364db80ba59a45cac0e96ad141c9ae2b4a1f334d`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. A category reset returns a moved scoreboard (and the
+other game parts) to the default place; a hidden Durability or Inventory element's icons and
+counts are as faint as its frame; Map size 50 is larger than 40; the schematic menu runs the
+item under the click while the pointer moves. Not looked at: the older death point's
+conversion and hidden parts under a clipping panel. Raised: Durability HUD's items cannot be
+chosen in HUD layout (L-336); Map size and the HUD scale both size the minimap (L-337); rows
+under a switched-off feature dim only in the middle (L-335).
+
 ## Hidden veil and Standard game parts (L-334, 2026-11-14)
 
 Build `66958838`, DLL SHA-256
