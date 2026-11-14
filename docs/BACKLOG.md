@@ -397,6 +397,16 @@ Open, to agree before building:
    Asked for: "use this data for any port of this address" (for a Realm,
    if its port changes per visit), and a preview (map thumbnail, waypoint
    names) so a person can tell whose data it is.
+   Decided on the second version (2026-11-14): the features that keep data
+   get a small link row in the settings table, always shown; the notice on
+   the tool screens shows while a candidate holds more than the data in
+   use, not only while empty (the map is recorded from the first moment),
+   and its dismissal reads "do not show again"; the port option is the
+   shared switch, not a check box (DESIGN "Components"), shown for any
+   server's data so it can be switched off later, above "use this data";
+   delete is wanted, with a thorough confirmation; the thumbnail is the
+   Overworld surface around where the player last was. The third version
+   draws the tool screens in their real layouts.
 4. Whether folders that turn out to be one server are ever merged (waypoint
    lists could be; map tiles less obviously), or only chosen between.
 Still to see: a Realm; a server whose port changes between visits.
