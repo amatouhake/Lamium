@@ -18,9 +18,11 @@ working manual for any coding agent. Read it fully before changing code.
 
 A decision made in chat that affects implementation goes into the repository:
 a shared rule into DESIGN.md, one feature's into its document, task choices
-into the item file, rewritten as the current state (BACKLOG.md "How items
-are kept"). In long feature documents, newer decisions win over older dated
-checkpoints. Finished items (`docs/backlog/done/`) and VALIDATION-LOG.md are
+into the item file. Documents say what is true now: rewrite the passage that
+changed, never append a dated round (shapes: BACKLOG.md "How items are
+kept", docs/README.md "Feature document shape"). What was built goes in the
+commit message, what was seen in game in VALIDATION-LOG.md; older text is in
+git. Finished items (`docs/backlog/done/`) and VALIDATION-LOG.md are the only
 records: search them (`git grep -n "L-66" docs/backlog`), never read them all.
 
 ## Talking to the user
@@ -44,8 +46,9 @@ xmake build LamiumTests && xmake run LamiumTests               # pure tests
 xmake build LamiumNativeTests && xmake run LamiumNativeTests   # SDK-type tests
 ```
 
-- Run `LamiumTests` after every change; it must print no failures. UI changes
-  also run `scripts/Check-UiTokens.ps1` (CI does).
+- Run `LamiumTests` after every change; it must print no failures. CI also
+  runs `scripts/Check-UiTokens.ps1`, `Check-Backlog.ps1` and `Check-Docs.ps1`;
+  run the one for what you changed.
 - Deploy only when the user wants to test, with Minecraft closed: copy
   `bin/Lamium/Lamium.dll`, `Lamium.pdb`, `manifest.json` into
   `<instance>/mods/Lamium/` and report the SHA-256 of both copies. Log:
@@ -126,9 +129,9 @@ tests          Pure unit tests (no game types). tests-native: SDK-type tests
 - One logical change per commit. Subject: English, imperative, sentence case,
   no prefix, ~70 chars. Body only when the why is not obvious.
 - Commit only when build + LamiumTests pass. Check `git diff --stat` first.
-- Update the relevant docs in the same or next commit. A game result goes on
-  top of VALIDATION-LOG.md (build, hash, what was and was not seen) and into
-  the feature's VALIDATION.md row. A finished item's file moves to
+- Update the relevant docs in the same or next commit, as the current state.
+  A game result goes on top of VALIDATION-LOG.md (build, hash, what was and
+  was not seen) and overwrites the feature's VALIDATION.md row. A finished item's file moves to
   `docs/backlog/done/` (and its line to BACKLOG-DONE.md); what is left for
   the release goes to `docs/backlog/pre-release-checks.md`.
 
