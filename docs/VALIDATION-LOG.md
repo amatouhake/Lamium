@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## An unused crossbow keeps its look (2026-11-14)
+
+Build `761b612e`, DLL SHA-256
+`cb4da9873dd63cee5c6942e3f6cac29ec91b13fe44ce38ae63ee877fcc9afb16`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. While the crossbow in the main hand is drawn, a crossbow
+in the inventory does not change in Inventory HUD; the held one changes by stage in
+Durability HUD and shows loaded afterwards.
+
 ## HUD item icons use the slot's frame (2026-11-14)
 
 Build `df963770`, DLL SHA-256
