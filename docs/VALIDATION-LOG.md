@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Rows of a switched-off feature dimmed whole (L-335, 2026-11-14)
+
+Build `74983a71`, DLL SHA-256
+`092a068a6ee92ed506f23350c45e49b54ac486f44d36ddc5f9a0cefe7beb5faf`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. With Durability HUD switched off, its child setting row
+dims whole (guide, name, value and key); "Edit in HUD layout >" stays at full strength;
+switching back on restores everything. Raised before the fix: the band started right of the
+guide and the text, drawn last, stayed at full strength.
+
 ## Saved data row's name in full (L-343, 2026-11-14)
 
 Build `21de850c`, DLL SHA-256

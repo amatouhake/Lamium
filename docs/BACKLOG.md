@@ -188,7 +188,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 ## Bugs
 
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) open; a Realm and a changing port not seen
-- [L-335](backlog/L-335.md) Rows under a switched-off feature are dimmed only in the middle (Ready): Built on `74983a71`, not checked in game
 - [L-344](backlog/L-344.md) English Search does not find enchanted books by enchantment name (Bug): Open, not started. Reported by the maintainer while working on L-170 (noted before 2026-11-14).
 - [L-339](backlog/L-339.md) Smaller bugs found by the 2026-11-14 code review (Ready): Open, not started; each verified against the code, none seen in game
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on

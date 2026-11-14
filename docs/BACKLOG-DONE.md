@@ -7,6 +7,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Bugs
 
+- [L-335](backlog/done/L-335.md) Rows under a switched-off feature are dimmed only in the middle
 - [L-331](backlog/done/L-331.md) Connected Textures: glass pane edges are uneven in less simple arrangements
 - [L-322](backlog/done/L-322.md) Fake Offhand: a key of its own does nothing while its slot is selected
 - [L-177](backlog/done/L-177.md) Schematic mismatch highlight appears at the wrong position
