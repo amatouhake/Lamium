@@ -79,7 +79,7 @@ ones. Lamium's own colors carry one meaning each, everywhere:
 
 | Token | Meaning |
 |---|---|
-| `panel` (opacity .8) | Screen background |
+| `panel` | Background: `opacity::screen` (.8) for the screen and docked panels, `opacity::floating` (.97) for what floats over them (tips, menus, popovers, prompts, the radial, cards); the world map's bars .85 |
 | `text` / `dim` / `faint` | What it is / secondary text and icons / how to operate it |
 | `accent`, `accentDeep` | On, selected, links, primary buttons |
 | `off` | Switch off track |
@@ -153,7 +153,9 @@ literals left are counted in `scripts/UiTokenBaseline.txt` (BACKLOG L-342).
   pointer or while dragged, without widening; pressing or dragging puts the first line under
   the pointer.
 - **Tips** open below their anchor (above when there is no room) and look
-  the same everywhere.
+  the same everywhere (`drawTipBox`): the floating panel, a `keyEdge` edge
+  (`warning` when the tip warns), 4 units of padding, white text. The
+  locked-trade tip copies the game's own tooltip instead.
 
 ## Screens
 

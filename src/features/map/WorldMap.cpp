@@ -1523,7 +1523,7 @@ void drawInfoPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     float available = size.x - state.panelWidth - 3;
     float left = std::clamp(state.infoButton.x, 3.f, std::max(3.f, available - w));
     float top = std::max(state.infoButton.y + state.infoButton.h + 1, state.top + 1);
-    ui::fill(context, left, top, w, h, ui::palette::panel, .92f);
+    ui::fill(context, left, top, w, h, ui::palette::panel, ui::opacity::floating);
     ui::frame(context, left, top, w, h, ui::palette::white, .14f);
     state.hits.push_back({left, top, w, h, Target::InfoPanel});
     auto const& map = Runtime::instance().preferences().map;
@@ -1559,7 +1559,7 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     float left = std::clamp(state.caveButton.x, 3.f, std::max(3.f, available - w));
     float top = std::max(state.caveButton.y + state.caveButton.h + 1, state.top + 1);
     if (top + h > size.y - bottomHeight) top = std::max(state.top + 1.f, size.y - bottomHeight - h);
-    ui::fill(context, left, top, w, h, ui::palette::panel, .92f);
+    ui::fill(context, left, top, w, h, ui::palette::panel, ui::opacity::floating);
     ui::frame(context, left, top, w, h, ui::palette::white, .14f);
     // The panel background swallows clicks between its rows.
     state.hits.push_back({left, top, w, h, Target::CavePanel});
@@ -1632,7 +1632,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     auto spot = playerSpot();
     float w = std::clamp(size.x * .3f, 124.f, 160.f), x0 = size.x - w, top = state.top, bottom = size.y - bottomHeight;
     state.panelWidth = w;
-    ui::fill(context, x0, top, w, bottom - top, ui::palette::panel, .92f);
+    ui::fill(context, x0, top, w, bottom - top, ui::palette::panel, ui::opacity::floating);
     ui::fill(context, x0, top, 1, bottom - top, ui::palette::white, .14f);
     state.hits.push_back({x0, top, w, bottom - top, Target::Panel});
     constexpr float pad = 4, rowH = 11;
@@ -1853,7 +1853,7 @@ void drawKindMenu(MinecraftUIRenderContext& context) {
     constexpr float rowH = 12;
     constexpr std::array<std::string_view, 3> names{"nav.waypoints", "nav.schematics", "nav.shapes"};
     float x = state.kindX, y = state.kindY + 1, w = state.kindW;
-    ui::fill(context, x, y, w, 3 * rowH + 2, ui::palette::panel, .98f);
+    ui::fill(context, x, y, w, 3 * rowH + 2, ui::palette::panel, ui::opacity::floating);
     ui::frame(context, x, y, w, 3 * rowH + 2, ui::palette::keyEdge);
     for (int i = 0; i < 3; ++i) {
         float ry = y + 1 + i * rowH;
@@ -1892,7 +1892,7 @@ void drawMenu(MinecraftUIRenderContext& context, glm::vec2 size) {
     for (auto const& item : items) width = std::max(width, ui::textWidth(context, item) + 2 * pad);
     float height = 10 + items.size() * itemHeight + 3;
     float x = std::min(m.x, size.x - width - 2), y = std::min(m.y, size.y - bottomHeight - height - 2);
-    ui::fill(context, x, y, width, height, ui::palette::panel, .94f);
+    ui::fill(context, x, y, width, height, ui::palette::panel, ui::opacity::floating);
     ui::frame(context, x, y, width, height, ui::palette::white, .14f);
     ui::labelScaled(context, x + pad, y + 2, width - 2 * pad, head, .75f, ui::palette::faint);
     ui::fill(context, x + 1, y + 9, width - 2, 1, ui::palette::white, .14f);

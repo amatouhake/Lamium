@@ -566,7 +566,7 @@ void handlePromptClick(float x, float y, glm::vec2 size) {
 void renderPrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer) {
     auto l = WaypointPromptLayout::at(size.x, size.y);
     using L = WaypointPromptLayout;
-    panel(context, l.left, l.top, L::width, L::height, .86f);
+    panel(context, l.left, l.top, L::width, L::height, opacity::floating);
     frame(context, l.left, l.top, L::width, L::height, palette::white, .14f);
     float x = l.left + L::pad;
     label(context, x, l.titleY(), l.inner(), translated("waypoint.add"));
@@ -770,7 +770,7 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
         }
         float h = value.empty() ? 16 * s : menuSizes.itemHeight;
         float x = std::round(l.itemX(i, opened) - widest / 2), y = std::round(l.itemY(i, opened) - h / 2);
-        panel(context, x, y, widest, h, .86f * opened);
+        panel(context, x, y, widest, h, opacity::floating * opened);
         frame(context, x, y, widest, h, palette::white, .14f * opened);
         rowBackground(context, x, y, widest, h, i == hover && opened >= 1, false);
         // Text once the plates are mostly in: it cannot fade with them.
@@ -795,7 +795,7 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
     }
     float cw = menuSizes.centerWidth, ch = menuSizes.centerHeight;
     float cx = std::round(l.cx - cw / 2), cy = std::round(l.cy - ch / 2);
-    panel(context, cx, cy, cw, ch, .9f);
+    panel(context, cx, cy, cw, ch, opacity::floating);
     frame(context, cx, cy, cw, ch, palette::white, .14f);
     labelScaled(context, cx + 4, cy + 4 * s + textInset, cw - 8, translated(list ? "schematic.menu.title" : category.label), s,
         palette::text, Align::Center);
@@ -821,7 +821,7 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
         float tx = std::round(std::clamp(l.cx - tw / 2, 4.f, size.x - tw - 4));
         float ty = top ? above - th : below;
         if (!top && ty + th > size.y) ty = above - th;
-        if (card) panel(context, tx, ty, tw, th, .86f);
+        if (card) panel(context, tx, ty, tw, th, opacity::floating);
         for (size_t i = 0; i < parts.size(); ++i)
             labelScaled(context, tx + 5, ty + 1 + textInset + line * static_cast<float>(i), tw - 10, parts[i], s, color, Align::Center);
     };
@@ -906,7 +906,7 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
     auto& p = *savePrompt;
     auto l = SavePromptLayout::at(size.x, size.y);
     using L = SavePromptLayout;
-    panel(context, l.left, l.top, L::width, L::height(), .86f);
+    panel(context, l.left, l.top, L::width, L::height(), opacity::floating);
     frame(context, l.left, l.top, L::width, L::height(), palette::white, .14f);
     float x = l.left + L::pad;
     auto hover = l.hit(pointer.x, pointer.y);

@@ -595,7 +595,7 @@ void paintChooser(MinecraftUIRenderContext& context, Icons& icons) {
     auto const& l = list.choose;
     if (!l.usable() || !opened) return;
     float const pad = SettingsTable::pad;
-    panel(context, l.left, l.headTop, l.width, l.footerTop + EnchantLayout::statusHeight - l.headTop, .8f);
+    panel(context, l.left, l.headTop, l.width, l.footerTop + EnchantLayout::statusHeight - l.headTop, opacity::screen);
     frame(context, l.left, l.headTop, l.width, l.footerTop + EnchantLayout::statusHeight - l.headTop, palette::white, .14f);
     auto const hover = list.free ? l.hit(list.pointerX, list.pointerY) : EnchantLayout::Hit{};
     size_t const before = icons.size();
@@ -625,7 +625,7 @@ ui::enchant_steps::Tip paintSteps(MinecraftUIRenderContext& context, Icons& icon
     using namespace lamium::ui;
     auto const& l = list.steps;
     if (!l.usable()) return {};
-    panel(context, list.left, list.top, list.width, list.height, .8f);
+    panel(context, list.left, list.top, list.width, list.height, opacity::screen);
     frame(context, list.left, list.top, list.width, list.height, palette::white, .14f); // the outline Lamium's screen has
     size_t const before = icons.size();
     // No pointer while an item is on it.

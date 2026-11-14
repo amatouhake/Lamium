@@ -55,11 +55,16 @@ void drawToolHeader(MinecraftUIRenderContext& context, ShapesLayout const& l, st
 }
 void drawDockedFrame(MinecraftUIRenderContext& context, ShapesLayout const& l, std::string const& title, std::string const& close,
                      bool closeHover) {
-    panel(context,l.left,l.top,l.width,l.height,.82f);
+    panel(context,l.left,l.top,l.width,l.height,opacity::screen);
     frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
     label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),title);
     drawButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,close,closeHover);
     fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
+}
+void drawTipBox(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool warns) {
+    context.flushText(0, std::nullopt);
+    fill(context,x,y,w,h,palette::panel,opacity::floating);
+    frame(context,x,y,w,h,warns ? palette::warning : palette::keyEdge);
 }
 void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY) {
     drawButton(context,l.dockX,l.top+4,ShapesLayout::dockWidth,12,translated("shape.undock"),

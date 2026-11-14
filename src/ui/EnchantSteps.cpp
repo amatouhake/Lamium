@@ -50,10 +50,7 @@ void drawTip(MinecraftUIRenderContext& context, Tip const& tip) {
     if (!tip.show) return;
     constexpr float pad = 4, lineHeight = 12;
     float const height = static_cast<float>(tip.lines) * lineHeight + 2 * pad;
-    // Queued text is flushed first so the box covers it.
-    context.flushText(0, std::nullopt);
-    fill(context, tip.x, tip.y, tip.width, height, palette::panel, .97f);
-    frame(context, tip.x, tip.y, tip.width, height, palette::keyEdge);
+    drawTipBox(context, tip.x, tip.y, tip.width, height);
     paragraph(context, tip.x + pad, tip.y + pad, tip.width - 2 * pad, tip.text, static_cast<size_t>(tip.lines), palette::text);
     context.flushText(0, std::nullopt);
 }

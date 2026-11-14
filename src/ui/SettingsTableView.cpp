@@ -776,10 +776,7 @@ bool drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     float x = std::max(t.left + 2, t.keyX + t.keyWidth - width);
     float y = under ? rowBottom + 1 : rowTop - 1 - height;
 
-    // Row text is queued until a flush; flush it so the tooltip covers it.
-    context.flushText(0, std::nullopt);
-    fill(context,x,y,width,height,palette::panel,.97f);
-    frame(context,x,y,width,height,warns ? palette::warning : palette::keyEdge);
+    drawTipBox(context,x,y,width,height,warns);
     float cursor = y + pad;
     keycapsWrap(context,x+pad,cursor,headerWidth,keys,conflictTone(relation, !gameNote.empty()),3);
     if (!count.empty())
@@ -819,9 +816,7 @@ void drawVersionTip(MinecraftUIRenderContext& context, SettingsTable const& t, S
     size_t noteLines = note.empty() ? 0 : paragraphLines(context, width - 2*pad, note, 4);
     float height = (2 + noteLines)*lineHeight + 2*pad;
     float x = std::min(t.versionX, t.left + t.width - SettingsTable::pad - width), y = t.top + SettingsTable::headerHeight + 1;
-    context.flushText(0, std::nullopt);
-    fill(context,x,y,width,height,palette::panel,.97f);
-    frame(context,x,y,width,height,palette::keyEdge);
+    drawTipBox(context,x,y,width,height);
     label(context,x+pad,y+pad,width-2*pad,std::move(line));
     if (noteLines) paragraph(context,x+pad,y+pad+lineHeight,width-2*pad,note,noteLines,palette::warning);
     label(context,x+pad,y+pad+(1 + noteLines)*lineHeight,width-2*pad,std::move(hint),palette::faint);
@@ -849,10 +844,7 @@ void drawValueTip(MinecraftUIRenderContext& context, SettingsTable const& t, Set
     float rowTop = t.rowY(row), rowBottom = rowTop + SettingsTable::rowHeight;
     bool under = rowBottom + 1 + height <= t.top + t.height - 2;
     float x = std::max(t.left + 2, sx + sw - width), y = under ? rowBottom + 1 : rowTop - 1 - height;
-    // Row text is queued until a flush; flush it so the tooltip covers it.
-    context.flushText(0, std::nullopt);
-    fill(context,x,y,width,height,palette::panel,.97f);
-    frame(context,x,y,width,height,palette::keyEdge);
+    drawTipBox(context,x,y,width,height);
     label(context,x+pad,y+pad,width-2*pad,std::move(text));
 }
 void copyVersion_() {
@@ -893,7 +885,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     keyQueryName = keyQuery ? bindingChordName(current, *keyQuery) : std::string{};
     auto hover = t.hit(pointer.x, pointer.y, nav::count);
     if (pointer != tipPointer) { keyboardTip = false; tipPointer = pointer; }
-    panel(context,t.left,t.top,t.width,t.height,.8f);
+    panel(context,t.left,t.top,t.width,t.height,opacity::screen);
     frame(context,t.left,t.top,t.width,t.height,palette::white,.14f);
 
     // Header: title, search field (table views), Close.

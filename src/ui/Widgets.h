@@ -38,6 +38,11 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     tooltipBorder{.55f,.35f,.7f}; // the container preview's frame, as the item tooltip's
 }
 }
+// Two panel opacities (DESIGN "Colors"): the screen and docked panels, and
+// what floats over them (tips, menus, popovers, prompts, the radial, cards).
+namespace opacity {
+inline constexpr float screen = .8f, floating = .97f;
+}
 enum class Align { Left, Right, Center };
 
 // Lamium screens lay out in their own units and shrink to fit a small GUI:

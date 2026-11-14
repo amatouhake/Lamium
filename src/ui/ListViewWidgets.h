@@ -61,6 +61,11 @@ void drawToolHeader(MinecraftUIRenderContext& context, ShapesLayout const& l, st
                     bool overShowAll, bool overKeys, bool overDock);
 void drawDockedFrame(MinecraftUIRenderContext& context, ShapesLayout const& l, std::string const& title, std::string const& close,
                      bool closeHover);
+// A tip's box (DESIGN "Controls"): flushes queued text so it covers it, then
+// the floating panel with a `keyEdge` edge, `warning` when the tip warns.
+// Content goes inside with 4 units of padding, white unless it says otherwise.
+inline constexpr float tipPad = 4;
+void drawTipBox(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool warns = false);
 // A row of color swatches in the editor's value column; the chosen one framed.
 template<class ColorOf>
 void drawSwatchRow(MinecraftUIRenderContext& context, ShapesLayout const& l, float y, int count, int chosen, ColorOf colorOf) {

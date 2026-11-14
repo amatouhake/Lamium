@@ -158,7 +158,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     if (!spot || element.overlaps(Box{spot->x, spot->y, width, barHeight}))
         spot = toolbarSpot(element, width, barHeight, screenW, screenH);
     Box bar{spot->x, spot->y, width, barHeight};
-    panel(context, bar.x, bar.y, bar.w, bar.h, 1.f);
+    panel(context, bar.x, bar.y, bar.w, bar.h, opacity::floating);
     frame(context, bar.x, bar.y, bar.w, bar.h, palette::white, .14f);
     float x = bar.x + pad, y = bar.y + (barHeight - itemHeight) / 2;
     auto add = [&](float w, Command command) {
@@ -210,7 +210,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
         float h = 6 + 3 * cellH + 2 * cellGap + 4 + 12;
         auto at = popoverSpot(*spot, barHeight, w, h, screenW, screenH);
         popoverBox = Box{at.x, at.y, w, h};
-        panel(context, at.x, at.y, w, h, 1.f);
+        panel(context, at.x, at.y, w, h, opacity::floating);
         frame(context, at.x, at.y, w, h, palette::white, .14f);
         for (int i = 0; i < 9; ++i) {
             Box cell{at.x + 6 + (i % 3) * (cellW + cellGap), at.y + 6 + (i / 3) * (cellH + cellGap), cellW, cellH};
@@ -234,7 +234,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
         if (scrolling)
             linesFirst = scrollFirstAt(py, at.y + 3, visible * rowH, static_cast<int>(order.size()), visible);
         popoverBox = Box{at.x, at.y, w, h};
-        panel(context, at.x, at.y, w, h, 1.f);
+        panel(context, at.x, at.y, w, h, opacity::floating);
         frame(context, at.x, at.y, w, h, palette::white, .14f);
         for (int i = 0; i < visible; ++i) {
             auto const& line = order[linesFirst + i];
@@ -285,7 +285,7 @@ void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
     float w = std::max({buttons, textWidth(context, title), textWidth(context, hint), legend, gameLegend}) + 2 * edge;
     float h = edge + 4 * rowH + legendTop + legendBottom + itemHeight + edge;
     Box box = idlePanel(w, h, screenW, screenH);
-    panel(context, box.x, box.y, box.w, box.h, 1.f);
+    panel(context, box.x, box.y, box.w, box.h, opacity::floating);
     frame(context, box.x, box.y, box.w, box.h, palette::white, .14f);
     label(context, box.x, box.y + edge, box.w, title, palette::text, Align::Center);
     label(context, box.x, box.y + edge + rowH, box.w, hint, palette::faint, Align::Center);
