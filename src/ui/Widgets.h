@@ -38,8 +38,9 @@ inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},
     tooltipBorder{.55f,.35f,.7f}; // the container preview's frame, as the item tooltip's
 }
 }
-// Two panel opacities (DESIGN "Colors"): the screen and docked panels, and
-// what floats over them (tips, menus, popovers, prompts, the radial, cards).
+// Two panel opacities (DESIGN "Colors"), by what is under the panel: the
+// world (the screen, docked panels, prompts, the radial, the HUD editor's
+// panels) or another Lamium panel (tips, menus, the world map's side panels).
 namespace opacity {
 inline constexpr float screen = .8f, floating = .97f;
 }

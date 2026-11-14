@@ -79,7 +79,7 @@ ones. Lamium's own colors carry one meaning each, everywhere:
 
 | Token | Meaning |
 |---|---|
-| `panel` | Background: `opacity::screen` (.8) for the screen and docked panels, `opacity::floating` (.97) for what floats over them (tips, menus, popovers, prompts, the radial, cards); the world map's bars .85 |
+| `panel` | Background, by what is under it: the world `opacity::screen` (.8: the screen, docked panels, prompts, the schematic radial and its cards, the HUD editor's toolbar, idle panel and popovers); another Lamium panel `opacity::floating` (.97: tips, menus, the world map's side panels, the calculator's copy menu and help); the world map's bars .85 |
 | `text` / `dim` / `faint` | What it is / secondary text and icons / how to operate it |
 | `accent`, `accentDeep` | On, selected, links, primary buttons |
 | `off` | Switch off track |
