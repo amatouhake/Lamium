@@ -214,7 +214,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
 - [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Ready): Open, not started; name and default agreed 2026-11-15
 - [L-320](backlog/L-320.md) Highlight designated block types in the world (Design): Released in 0.6.0 (Experimental); open are in-game checks and any follow-ups the maintainer raises
-- [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature; what remains is Design): Built 2026-11-13 after 0.6.0 (not released) and checked in game; open choices, small fixes and unchecked cases remain
+- [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature; what remains is Design): Built 2026-11-13 after 0.6.0 (not released) and checked in game; open choices and unchecked cases remain
 - [L-317](backlog/L-317.md) Forcing the Surface view leaves the minimap nearly useless in the Nether (Ready): Open, not started; candidate (b) chosen 2026-11-15
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
