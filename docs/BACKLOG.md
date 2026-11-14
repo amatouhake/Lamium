@@ -69,7 +69,10 @@ Status: <one line: Open / Waiting for the maintainer / Built, not checked in gam
 ```
 
 `scripts/Check-Backlog.ps1` (CI) checks that the index and the files agree
-and that this file and each item stay short.
+and that this file and each item stay short. Each index line is generated
+from its item's title, Kind and Status: after changing an item, run
+`Check-Backlog.ps1 -Update`. A Ready item has no Open section; an open
+choice makes it Design until the maintainer answers.
 
 ## Release policy (decided 2026-09-28)
 
@@ -135,39 +138,27 @@ Experimental badge decisions (moved from DESIGN.md Components on 2026-11-14):
 
 ## Current execution order
 
-Keep this section short: ordering lives here; status, contracts and open
-choices live in the L-items. An L-item wins if a summary drifts.
+Keep this section short: it orders the work and says nothing else. Kind
+and status are in each item's file and on its index line below (generated
+from the file); never restate them here.
 
-1. **Bugs first.** Open: L-343 (a server's map, waypoints and placements lost
-   when its address changes; Research), L-335 (rows under a switched-off feature dim only in
-   the middle; Ready), L-339 (smaller bugs from the 2026-11-14 code review;
-   Ready), L-344 (English Search misses enchanted books by enchantment
-   name; Research), L-299 (a slot stuck after a screenless move when client and server
-   desync), L-240 (death layout restore acts unexpectedly; Research), L-324
-   (custom blocks brown on the map; Research), L-227 (FreeCamera shows only
-   the sky outside loaded terrain; Research), L-243 terrain gaps, L-245 ghost
-   face beside glass, L-257 FreeCamera culler thread, L-117 schematic name
-   tags. What waits for more game symbols is collected in L-315.
-   Parked: L-194 save corner marks, L-123 elytra pose, L-91 shield glint,
-   L-132 inventory-screen movement, L-244 FreeCamera started inside a block,
-   L-287 minimap arrow look; respect each item's stop/resume conditions. L-181
-   trident pose is low priority.
-
+1. **Bugs first**, in the order of the Bugs list below. Parked bugs (L-194
+   save corner marks, L-123 elytra pose, L-91 shield glint, L-132
+   inventory-screen movement, L-244 FreeCamera started inside a block, L-287
+   minimap arrow look) wait for their item's resume condition; L-181 trident
+   pose is low priority. What waits for more game symbols is collected in
+   L-315.
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10): the L-266 schematic follow-up batch closed with 0.3.1 except
-   L-265 placement assist (Design). Decisions waiting for the maintainer:
-   none. Built, with open checks
-   or follow-ups in their items: L-338 death layout time limit, L-170
-   enchantment order planner, L-319 item
-   details, L-320 block highlight (released in 0.6.0). Remaining
-   Design/Research: L-336 Durability HUD items, L-337 minimap size, L-340
-   settings grouping, L-341 shared widgets (Refactor), L-325 zoom release,
-   L-330 radar icons, L-166 trade helpers, L-167 resource packs, L-168 trade
+   2026-10-10), in this order: the follow-ups of L-338 death layout time
+   limit, L-170 enchantment order planner, L-319 item details and L-320
+   block highlight; then L-336 Durability HUD items, L-337 minimap size,
+   L-340 settings grouping, L-341 shared widgets, L-325 zoom release, L-330
+   radar icons, L-166 trade helpers, L-167 resource packs, L-168 trade
    finder, L-169 transfer extensions, L-173 quick shapes, L-190 list
-   selection, L-163 a Lamium inventory screen, L-249 simulation distance and
-   L-317 (Nether minimap under forced Surface). Agree open choices before
-   building. L-165 Mass Craft remains below Map and needs a scope conversation;
-   existing packs already cover part of that need.
+   selection, L-163 a Lamium inventory screen, L-249 simulation distance,
+   L-317 Nether minimap under forced Surface and L-265 placement assist.
+   Agree open choices before building. L-165 Mass Craft stays
+   below the map work and needs a scope conversation first.
 3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
    previews, L-115 entity ghosts as models, L-116 raw materials, L-183
    disregard check mismatches, L-184 inspect ghost data, L-185 instant load,
@@ -196,79 +187,79 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Bugs
 
-- [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug)
-- [L-335](backlog/L-335.md) Rows under a switched-off feature are dimmed only in the middle (Ready)
-- [L-344](backlog/L-344.md) English Search does not find enchanted books by enchantment name (Bug)
-- [L-339](backlog/L-339.md) Smaller bugs found by the 2026-11-14 code review (Ready)
-- [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed)
-- [L-324](backlog/L-324.md) Map: custom blocks are drawn in a dirt-like brown (Research)
-- [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research)
-- [L-243](backlog/L-243.md) Large terrain gaps that only reload when the player comes near (Bug / Research)
-- [L-244](backlog/L-244.md) FreeCamera keeps the inside-a-block view after starting in a block (Bug)
-- [L-245](backlog/L-245.md) Ghost face disappears next to real glass or a beacon from some angles (Bug / Research)
-- [L-257](backlog/L-257.md) FreeCamera culler reads blocks on the render thread (Research)
-- [L-240](backlog/L-240.md) Death layout restore sometimes restores unexpectedly or wrongly (Bug / Research)
-- [L-227](backlog/L-227.md) FreeCamera outside the loaded area shows only the sky (Bug / Research)
-- [L-181](backlog/L-181.md) FreeCamera draws the held trident the wrong way round (Bug / Research)
-- [L-123](backlog/L-123.md) FreeCamera stretches the worn elytra on the inventory player model (Bug)
-- [L-117](backlog/L-117.md) Schematic entity name tags render badly in Japanese (Bug)
-- [L-194](backlog/L-194.md) Save corner marks over real glass or water change with the camera (Bug / Research)
+- [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) open; a Realm and a changing port not seen
+- [L-335](backlog/L-335.md) Rows under a switched-off feature are dimmed only in the middle (Design): Waiting for the maintainer's answer on the HUD layout link
+- [L-344](backlog/L-344.md) English Search does not find enchanted books by enchantment name (Bug): Open, not started. Reported by the maintainer while working on L-170 (noted before 2026-11-14).
+- [L-339](backlog/L-339.md) Smaller bugs found by the 2026-11-14 code review (Ready): Open, not started; each verified against the code, none seen in game
+- [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
+- [L-324](backlog/L-324.md) Map: custom blocks are drawn in a dirt-like brown (Research): Open, not started (issue #76, accepted by the maintainer 2026-11-13)
+- [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
+- [L-243](backlog/L-243.md) Large terrain gaps that only reload when the player comes near (Bug / Research): Not reproduced; watch item, reopen with the conditions if it returns
+- [L-244](backlog/L-244.md) FreeCamera keeps the inside-a-block view after starting in a block (Bug): Parked (maintainer 2026-10-27) until a path to the renderer that draws the effect is found; left vanilla
+- [L-245](backlog/L-245.md) Ghost face disappears next to real glass or a beacon from some angles (Bug / Research): Open, not reproduced on purpose yet.
+- [L-257](backlog/L-257.md) FreeCamera culler reads blocks on the render thread (Research): Open, not started
+- [L-240](backlog/L-240.md) Death layout restore sometimes restores unexpectedly or wrongly (Bug / Research): Open; waiting to see whether L-338's time limit stops the unexpected restores
+- [L-227](backlog/L-227.md) FreeCamera outside the loaded area shows only the sky (Bug / Research): Waiting for the maintainer: whether it is worth two read-only trace rounds
+- [L-181](backlog/L-181.md) FreeCamera draws the held trident the wrong way round (Bug / Research): Open, not reproduced; drawing only, harmless (maintainer 2026-10-15)
+- [L-123](backlog/L-123.md) FreeCamera stretches the worn elytra on the inventory player model (Bug): Parked 2026-10-10 (maintainer) after two culling rounds; resume from the ideas in Next
+- [L-117](backlog/L-117.md) Schematic entity name tags render badly in Japanese (Bug): Partly fixed (`47534d7`, colored fringes gone); dark gray Japanese text accepted for now, item kept open
+- [L-194](backlog/L-194.md) Save corner marks over real glass or water change with the camera (Bug / Research): Parked 2026-10-15 after three tries; resume with one of the ideas in Next
 
 ## Feature work and research
 
-- [L-338](backlog/L-338.md) When a death layout ends (Feature)
-- [L-336](backlog/L-336.md) Durability HUD: choose its items in HUD layout (Design)
-- [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Design)
-- [L-340](backlog/L-340.md) Settings grouping (Design)
-- [L-341](backlog/L-341.md) Shared widgets for repeated controls (Refactor)
-- [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research)
-- [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Design)
-- [L-320](backlog/L-320.md) Highlight designated block types in the world (Design)
-- [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature)
-- [L-317](backlog/L-317.md) Forcing the Surface view leaves the minimap nearly useless in the Nether (Design)
-- [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request)
-- [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research)
-- [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research)
-- [L-233](backlog/L-233.md) Make inventory transfer gestures rebindable (Design)
-- [L-236](backlog/L-236.md) Rebuild only the ghost sections whose visible layer changed (Design)
-- [L-190](backlog/L-190.md) Select several rows at once in list screens (Design for the whole)
-- [L-183](backlog/L-183.md) Disregard selected schematic check mismatches (Design)
-- [L-184](backlog/L-184.md) Inspect ghost block data and schematic container contents (Design / Research for saved data inspection)
-- [L-185](backlog/L-185.md) Instantly load a schematic into the world when cheats allow it (Design)
-- [L-186](backlog/L-186.md) Improve schematic ghost legibility and reconsider translucency (Design / Research)
-- [L-173](backlog/L-173.md) Quick shapes: a beacon's range at a glance, shapes that are not saved (Design)
-- [L-170](backlog/L-170.md) Enchantment order planner (Feature)
-- [L-169](backlog/L-169.md) Item Transfer: remaining gesture and screen extensions (Design)
-- [L-168](backlog/L-168.md) Trade finder: reroll a villager until a wanted trade appears (Design)
-- [L-167](backlog/L-167.md) Change the language and resource packs from inside a world (Research)
-- [L-166](backlog/L-166.md) Villager trade helpers: favourites and assisted trading (Design)
-- [L-165](backlog/L-165.md) Mass Craft: craft a recipe many times at once (Design)
-- [L-163](backlog/L-163.md) A Lamium-drawn inventory screen (Research)
-- [L-132](backlog/L-132.md) Move while the inventory screen is open (Research)
-- [L-59](backlog/L-59.md) Held placement style: vanilla, Java-like or fast (Design done)
-- [L-15](backlog/L-15.md) Breaking and placement restrictions (Design)
-- [L-91](backlog/L-91.md) Shield glint missing in Lamium's item icons (Research)
-- [L-79](backlog/L-79.md) Carved pumpkin and spyglass frame draw path (Research)
-- [L-71](backlog/L-71.md) Start an elytra glide from the mod (Research)
-- [L-93](backlog/L-93.md) Schematic: load, place, project, verify and list materials (experimental) (Follow-up tracking)
-- [L-30](backlog/L-30.md) Ender Dragon multipart hitboxes on Bedrock
-- [L-33](backlog/L-33.md) Mob growth and breeding timers in the target card
-- [L-114](backlog/L-114.md) 3D previews in the schematic screen (Research)
-- [L-115](backlog/L-115.md) Entity ghosts drawn as models (Research)
-- [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research)
-- [L-111](backlog/L-111.md) Integration between features: remaining shared controls (Design)
-- [L-105](backlog/L-105.md) Performance: find the real bottleneck before optimizing (Research)
+- [L-338](backlog/L-338.md) When a death layout ends (Feature): Built 2026-11-14 on the maintainer's go-ahead, not checked in game
+- [L-336](backlog/L-336.md) Durability HUD: choose its items in HUD layout (Design): Open, waiting for the maintainer's choice
+- [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Design): Waiting for the maintainer's choice of which setting stays
+- [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.
+- [L-341](backlog/L-341.md) Shared widgets for repeated controls (Refactor): Waiting for the maintainer: the token shades (Open) before the first commit
+- [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
+- [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Design): Waiting for the option's name and default; the maintainer agreed such a setting may exist (2026-11-13).
+- [L-320](backlog/L-320.md) Highlight designated block types in the world (Design): Released in 0.6.0 (Experimental); open are in-game checks and any follow-ups the maintainer raises
+- [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature; what remains is Design): Built 2026-11-13 after 0.6.0 (not released) and checked in game; open choices, small fixes and unchecked cases remain
+- [L-317](backlog/L-317.md) Forcing the Surface view leaves the minimap nearly useless in the Nether (Design): Problem recorded, solution deferred: no candidate is good enough yet.
+- [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
+- [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
+- [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target
+- [L-233](backlog/L-233.md) Make inventory transfer gestures rebindable (Design): Open, not urgent; nothing is blocked today
+- [L-236](backlog/L-236.md) Rebuild only the ghost sections whose visible layer changed (Design): Partly done: pure helper and tests built (2026-11-12); renderer step not started
+- [L-190](backlog/L-190.md) Select several rows at once in list screens (Design for the whole): Waypoints trial on branch `l-190-waypoint-selection`, not merged; waits for Shapes, schematic placements and the map side panel
+- [L-183](backlog/L-183.md) Disregard selected schematic check mismatches (Design): Rules mostly agreed; two proposals to settle before building
+- [L-184](backlog/L-184.md) Inspect ghost block data and schematic container contents (Design / Research): Partly done: target card and saved block entity rows shipped; file-only data (containers, comparator signal) open.
+- [L-185](backlog/L-185.md) Instantly load a schematic into the world when cheats allow it (Design): Open, not approved for implementation or release
+- [L-186](backlog/L-186.md) Improve schematic ghost legibility and reconsider translucency (Design / Research): Partly done: tint slider and outline widths shipped and checked; translucent ghosts open (maintainer: after the release).
+- [L-173](backlog/L-173.md) Quick shapes: a beacon's range at a glance, shapes that are not saved (Design): Direction decided (2026-11-06); waiting for the in-game range check.
+- [L-170](backlog/L-170.md) Enchantment order planner (Feature): Built on `main` after 0.6.0 (not in a release) and checked in game step by step; runtime checks and open choices remain
+- [L-169](backlog/L-169.md) Item Transfer: remaining gesture and screen extensions (Design): Waiting for the maintainer to choose any extension; none approved
+- [L-168](backlog/L-168.md) Trade finder: reroll a villager until a wanted trade appears (Design): Waiting for the maintainer's choices below; not chosen for building, no release.
+- [L-167](backlog/L-167.md) Change the language and resource packs from inside a world (Research): Partly done: Game language and Skip server resource packs shipped in 0.2.1; global pack stack work not chosen.
+- [L-166](backlog/L-166.md) Villager trade helpers: favourites and assisted trading (Design): Part 1 (Shift + right-click repeated trading) shipped in 0.2.1; part 2 is candidates waiting for the maintainer, not approved to build
+- [L-165](backlog/L-165.md) Mass Craft: craft a recipe many times at once (Design): Open, not chosen for building; needs the purpose-and-scope conversation a larger feature starts with. No release.
+- [L-163](backlog/L-163.md) A Lamium-drawn inventory screen (Research): Open, not started; recorded for later.
+- [L-132](backlog/L-132.md) Move while the inventory screen is open (Research): Parked 2026-10-10 after eight trial rounds without smooth movement; resume from Next
+- [L-59](backlog/L-59.md) Held placement style: vanilla, Java-like or fast (Design done; Research first): Planned, nothing built; no step starts until the maintainer says so
+- [L-15](backlog/L-15.md) Breaking and placement restrictions (Design): Breaking shipped in 0.1.8 and stays until replaced; the whole plan is reopened for redesign before placement is built
+- [L-91](backlog/L-91.md) Shield glint missing in Lamium's item icons (Research): Parked; cause known, the fix needs a different draw path (maintainer's call). Known issue
+- [L-79](backlog/L-79.md) Carved pumpkin and spyglass frame draw path (Research): Open; next step is the transparent-texture test pack (no code)
+- [L-71](backlog/L-71.md) Start an elytra glide from the mod (Research): Open; headers read 2026-11-12, next trace not run
+- [L-93](backlog/L-93.md) Schematic: load, place, project, verify and list materials (experimental) (Follow-up tracking; each L-item below owns its kind and open choices): Initial scope shipped in 0.1.7, 0.1.8 rendering/compatibility work done; follow-ups open
+- [L-30](backlog/L-30.md) Ender Dragon multipart hitboxes on Bedrock (Research): Probed: parts are readable on the client; waiting for a real End dragon check, a server check and the color choice
+- [L-33](backlog/L-33.md) Mob growth and breeding timers in the target card (Research): Probe done 2026-11-12; waiting for the maintainer: states only, or read the local server
+- [L-114](backlog/L-114.md) 3D previews in the schematic screen (Research): Partly done: Files and Check tab previews shipped (0.1.8); the Check tab's mistake look, see-through emphasis and moving the zoomed view are open
+- [L-115](backlog/L-115.md) Entity ghosts drawn as models (Research): A compromise version shipped in 0.1.8; the limits below are open
+- [L-116](backlog/L-116.md) Raw materials from the game's recipes (Research): Pure calculation built and tested, not wired to the Materials tab; what the client holds is unchecked in game
+- [L-111](backlog/L-111.md) Integration between features: remaining shared controls (Design): Optional scope, nothing chosen for implementation or release
+- [L-105](backlog/L-105.md) Performance: find the real bottleneck before optimizing (Research): Open; pure groundwork in place, profiler spike not built (needs the maintainer at the controls)
 
 ## Later / parked
 
-- [L-329](backlog/L-329.md) Health a food would give back, beside its food values (idea)
-- [L-151](backlog/L-151.md) Show the player's body in first person (Research)
-- [L-152](backlog/L-152.md) Preview held map items in inventory (Design)
-- [L-153](backlog/L-153.md) Prefer the last pressed opposing movement key (Design)
-- [L-282](backlog/L-282.md) Toggle Vibrant Visuals with a key (Research)
-- [L-283](backlog/L-283.md) Stronger block outline and a crosshair face highlight (Design)
-- [L-284](backlog/L-284.md) Custom crosshair (Design)
-- [L-287](backlog/L-287.md) Make the minimap arrows legible at every map size (Design)
+- [L-329](backlog/L-329.md) Health a food would give back, beside its food values (idea): Parked; not pursued unless the maintainer takes it up
+- [L-151](backlog/L-151.md) Show the player's body in first person (Research): Open, not started; no runtime evidence
+- [L-152](backlog/L-152.md) Preview held map items in inventory (Design): Open, no implementation commitment
+- [L-153](backlog/L-153.md) Prefer the last pressed opposing movement key (Design): Pure model built and tested; no input hook, setting or action; release behavior and default not chosen
+- [L-282](backlog/L-282.md) Toggle Vibrant Visuals with a key (Research): Open, not started; low priority, no release target
+- [L-283](backlog/L-283.md) Stronger block outline and a crosshair face highlight (Design): Open, not started; no release target selected
+- [L-284](backlog/L-284.md) Custom crosshair (Design): Open, nothing decided; low priority, no release target
+- [L-287](backlog/L-287.md) Make the minimap arrows legible at every map size (Design): Parked (2026-10-31), no release target; reopen with a new marker idea or if the Map Size 18 % distortion matters
 
 ### Previously parked work
 

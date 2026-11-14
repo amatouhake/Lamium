@@ -144,7 +144,9 @@ have local copies (BACKLOG L-341); they are not the pattern.
   the clicked row in place; the wheel scrolls without moving the selection.
   While a feature's switch is off, its child setting rows are dimmed (names
   unchanged, still editable), the footer says "Main switch off" above the
-  help, and a child key's toast says it too. Command rows are not dimmed.
+  help, and a child key's toast says it too. Command rows (a row that runs an action or
+  opens a screen: Open buttons, do-now actions) are not dimmed; whether the
+  HUD layout link is one is open in L-335.
   Switching a feature off stops everything it does, without exception.
 - **A row that opens a page** has the shared Open button; Enter or Space on
   the row opens it too. A row with a current value (Game language) shows it
