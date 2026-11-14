@@ -594,7 +594,7 @@ void settingsStoreTests() {
             "bindings":{"sort":[{"device":"key","code":75}]},"hud":{"info":{"dx":123,"scale":"huge","shadow":false}}})");
         Settings defaults;
         check(mixed.camera.magnification == defaults.camera.magnification && mixed.map.minimap && !mixed.map.rotate
-              && mixed.map.size == defaults.map.size && !mixed.inventory.sorting
+              && mixed.hud.minimap.scale == defaults.hud.minimap.scale && !mixed.inventory.sorting
               && mixed.inventory.restockThreshold == defaults.inventory.restockThreshold,
               "wrong section and field types keep defaults without discarding valid settings");
         check(mixed.bindings[static_cast<size_t>(input::Action::Sort)] == input::Chord{{input::Device::Key, 75}}
@@ -646,6 +646,27 @@ void settingsStoreTests() {
     }
     writeSettings(path, disabledTrading);
     check(!readSettings(path).inventory.repeatTrades, "disabled repeated trading survives saving");
+    {
+        // L-337: "Map size" merges into the minimap's HUD scale once.
+        using Map = Settings::Map;
+        check(Map::scaleFromLegacySize(100, 20) == 100, "the default map size keeps the scale");
+        check(Map::scaleFromLegacySize(100, 30) == 150 && Map::scaleFromLegacySize(150, 10) == 75,
+              "the new scale is the old one times size / 20");
+        check(Map::scaleFromLegacySize(110, 23) == 125, "the result rounds to the 5 % step");
+        check(Map::scaleFromLegacySize(200, 50) == 200 && Map::scaleFromLegacySize(50, 10) == 50,
+              "the result stays within 50-200 %");
+        auto none = decodeSettings(R"({"hud":{"minimap":{"scale":120}},"map":{"minimap":true}})");
+        check(none.hud.minimap.scale == 120, "a file without map.size keeps its scale");
+        { std::ofstream file(path, std::ios::trunc); file << R"({"hud":{"minimap":{"scale":120}},"map":{"size":30}})"; }
+        auto converted = readSettings(path);
+        check(converted.hud.minimap.scale == 180, "a file with map.size converts on load");
+        writeSettings(path, converted);
+        std::ifstream file(path);
+        std::string saved{std::istreambuf_iterator<char>(file), {}};
+        file.close();
+        check(saved.find("\"size\"") == std::string::npos, "saving removes map.size");
+        check(readSettings(path).hud.minimap.scale == 180, "a converted file does not convert again");
+    }
     {
         Settings target;
         target.information.targetSchematic = false;

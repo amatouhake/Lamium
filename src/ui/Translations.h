@@ -339,8 +339,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"mapView.surface", "Minimap: surface view", "ミニマップ: 地表表示"},
     {"mapView.auto", "Minimap: automatic view", "ミニマップ: 自動切り替え"},
     {"mapRotate", "Turn with view: {}", "向きに合わせて回転: {}"},
-    {"mapSize", "Map size: {:.0f}%", "地図の大きさ: {:.0f}%"},
-    {"help.map.size", "The map's side as a percentage of the screen height. The HUD layout's scale still enlarges the whole element, text included.", "地図の一辺を画面の高さに対する割合で指定します。HUD レイアウトの倍率は、文字を含めた要素全体にかかります。"},
     {"key.Lamium.minimapenlarge", "Enlarge the minimap while held", "押している間ミニマップを拡大"},
     {"help.map.rotate", "Keep the direction you face at the top. Off: north stays at the top and the arrow turns.", "向いている方向を常に上にします。オフでは北が上のままで、矢印が回ります。"},
     {"mapRound", "Round: {}", "円形: {}"},

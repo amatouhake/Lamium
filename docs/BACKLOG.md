@@ -209,7 +209,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-348](backlog/L-348.md) Hide the game's position and days played lines (Ready): Open, not started; agreed 2026-11-15
 - [L-338](backlog/L-338.md) When a death layout ends (Feature): Built 2026-11-14 on the maintainer's go-ahead, not checked in game
 - [L-336](backlog/L-336.md) HUD layout: choose each element's contents in the editor (Ready): Open, not started; direction agreed 2026-11-15
-- [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Ready): Open, not started; direction agreed 2026-11-15
+- [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Ready): Built, not checked in game
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
 - [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Ready): Built, not checked in game

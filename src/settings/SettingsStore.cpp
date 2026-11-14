@@ -277,7 +277,8 @@ Json encode(Settings const& settings) {
                    {"paperDoll", encodeHudElement(settings.hud.paperDoll)},
                    {"scoreboard", encodeHudElement(settings.hud.scoreboard)},
                    {"bossBars", encodeHudElement(settings.hud.bossBars)}}},
-        {"map", {{"minimap", settings.map.minimap}, {"range", map::blocksAcross(settings.map.zoom)}, {"size", settings.map.size},
+        {"map", {{"minimap", settings.map.minimap}, {"range", map::blocksAcross(settings.map.zoom)},
+                 {"size", nullptr}, // L-337: removed by the merge, see scaleFromLegacySize.
                  {"rotate", settings.map.rotate},
                  {"round", settings.map.round}, {"caveView", settings.map.caveView},
                  {"coordinates", settings.map.coordinates},
@@ -574,7 +575,6 @@ Settings decodeSettings(std::string_view text) {
         if (map.contains("range")) value.map.zoom = map::zoomIndexFor(settingsValue(map, "range", 128));
         else if (map.contains("zoom"))
             value.map.zoom = map::zoomIndexFor(32 << std::clamp(settingsValue(map, "zoom", 2), 0, 4));
-        value.map.size = settingsValue(map, "size", value.map.size);
         value.map.rotate = settingsValue(map, "rotate", value.map.rotate);
         value.map.round = settingsValue(map, "round", value.map.round);
         value.map.caveView = std::clamp(settingsValue(map, "caveView", value.map.caveView), 0, 2);
@@ -756,6 +756,9 @@ Settings decodeSettings(std::string_view text) {
         if (settingsValue(visuals, "hideEffects", false) && settingsValue(visuals, "hideBossBars", true))
             value.information.hideBossBarsAlone();
     }
+    if (data.contains("map") && data.at("map").is_object() && data.at("map").contains("size"))
+        value.hud.minimap.scale = Settings::Map::scaleFromLegacySize(value.hud.minimap.scale,
+                                                                      settingsValue(data.at("map"), "size", 20.f));
     value.normalize();
     return value;
 }

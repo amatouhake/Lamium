@@ -335,8 +335,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"mapView.surface", "小地图: 地表视图"},
     {"mapView.auto", "小地图: 自动视图"},
     {"mapRotate", "随视角旋转: {}"},
-    {"mapSize", "地图大小: {:.0f}%"},
-    {"help.map.size", "地图边长占屏幕高度的百分比。HUD 布局中的缩放仍会放大整个元素，包括文字。"},
     {"key.Lamium.minimapenlarge", "按住时放大小地图"},
     {"help.map.rotate", "让你面朝的方向始终在上方。关: 北方保持在上方，箭头随之转动。"},
     {"mapRound", "圆形: {}"},

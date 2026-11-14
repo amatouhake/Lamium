@@ -13,7 +13,7 @@ independently; other map mods are reference-only ([PROVENANCE.md](PROVENANCE.md)
 group 3).
 
 Settings (category "Map", `Settings::Map`): "Minimap" (switch, key; range,
-Map size, heading up, round, Cave view, Debug View hiding, zoom/enlarge keys,
+heading up, round, Cave view, Debug View hiding, zoom/enlarge keys,
 layout link); "Map text" heading (compass letters, coordinates, biome);
 "Radar" (switch, one row per kind, invisible ones, faces); "Waypoints"
 (switch, add key, Show in the world with its key, Show up to, Show on the
@@ -72,8 +72,12 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
   Automatic switches wait 1 s after the previous one. The minimap stays broad
   and follows the player; its held height moves only when the player is more
   than 3 blocks away; the roof check uses most of the 3x3 columns around.
-- HUD element, default top right; "Map size" 10-50 % of the screen height in
-  1 % steps (the layout scale still scales it). Hold-to-enlarge: twice the
+- HUD element, default top right; its HUD scale alone sizes it: at 100 % the
+  side is 20 % of the screen height (10-40 % across 50-200 %), text growing
+  with it (L-337). A settings file from before, with "Map size" (`map.size`),
+  converts once on load: scale x (size / 20), rounded to the 5 % step and
+  clamped to 50-200 %; the next save removes `map.size`, so a converted file
+  cannot convert again. Hold-to-enlarge: twice the
   side at the same scale, at most 85 % of the screen height, arrow/dots/names
   at normal size. Hidden while Debug View shows (switch), not while zooming
   or in FreeCamera.
@@ -370,7 +374,6 @@ Under `src/features/map/` unless stated; pure parts tested in
 - Open: [L-287 Make the minimap arrows legible at every map size](backlog/L-287.md);
   [L-317 Forcing the Surface view leaves the minimap nearly useless in the Nether](backlog/L-317.md);
   [L-324 Map: custom blocks are drawn in a dirt-like brown](backlog/L-324.md);
-  [L-337 Minimap: one size setting instead of two](backlog/L-337.md);
   [L-343 A server's map, waypoints and placements are lost when its address changes](backlog/L-343.md);
   [L-243 Large terrain gaps that only reload when the player comes near](backlog/L-243.md);
   [L-249 Show the chunks within simulation distance](backlog/L-249.md);
