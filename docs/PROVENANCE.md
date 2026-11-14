@@ -105,6 +105,14 @@ external research notes. Whoever writes Lamium code works from the specs in
 `docs/` and does not open reference-only source (or source recovered from
 it) while doing so.
 
+Specs describe Lamium's behavior in Lamium's terms, not "like mod X". Name
+another mod or prior-art project only here, as a one-line source for a
+Research hypothesis, in a clean-room boundary ("do not open X"), or in a
+dated decision record of what the maintainer referred to. Tools and
+platforms Lamium depends on (LeviLamina, LIP, Bedrinth) are named freely.
+Do not rewrite historical records (BACKLOG-DONE.md, VALIDATION-LOG.md).
+(Moved from AGENTS.md on 2026-11-14.)
+
 - ChiyanMap (GPL-3.0; repository no longer available). Recovered source and
   notes are kept outside this repository.
 - LeviSchematic (LGPL-3.0). The maintainer decided on 2026-10-03 not to

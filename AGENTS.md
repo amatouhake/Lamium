@@ -2,46 +2,33 @@
 
 Lamium is a client-side quality-of-life mod for Minecraft Bedrock on
 LeviLamina Client (Windows x64, C++20, clang-cl, xmake). This file is the
-working manual for any coding agent (Claude Code, Pi, OpenCode, ...).
-Read it fully before changing code.
+working manual for any coding agent. Read it fully before changing code.
 
-- Documentation index and document roles: [docs/README.md](docs/README.md)
-- Product direction, UI rules and colors: [docs/DESIGN.md](docs/DESIGN.md)
-- What to work on, in what order, and who should do it: [docs/BACKLOG.md](docs/BACKLOG.md)
-  (release rules and pre-release checks are in it; finished items:
-  [docs/BACKLOG-DONE.md](docs/BACKLOG-DONE.md))
-- What works in game and what is unchecked, per feature: [docs/VALIDATION.md](docs/VALIDATION.md)
-  (the evidence behind it: [docs/VALIDATION-LOG.md](docs/VALIDATION-LOG.md))
-- Per-feature technical notes: `docs/*.md` (CAMERA, OVERLAYS, RESTRICTIONS,
-  HAND-RESTOCK, EQUIPMENT, ...)
-- Distribution/package contract: [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md)
-- UI mockups agreed with the maintainer: `docs/demos/` (see its README)
-- Issues and pull requests from outside contributors: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Machine-specific paths (instance folder etc.): `AGENTS.local.md` if present.
-  It is gitignored; never copy its contents into tracked files.
+## Where things are
 
-The repository is the source of truth for work: everything needed to pick up
-a task is in this file and `docs/`. Start with BACKLOG.md's short
-**Current execution order**, then read the selected L-item and its feature doc.
-The L-item is authoritative if a summary ever drifts. If a decision made in
-chat affects implementation, write it into DESIGN.md or BACKLOG.md.
-Long feature contracts and dated implementation records may be linked from
-the L-item (MAP.md, SCHEMATIC.md, ENCHANT-ORDER.md, ITEM-DETAILS.md). Read their current notes first; older build
-checkpoints do not override later decisions or current validation.
+- Pick work: BACKLOG.md's **Current execution order**, then the L-item and
+  the feature document it links. The L-item wins if a summary drifts.
+- Document roles and the feature documents: [docs/README.md](docs/README.md).
+- Shared product and UI rules: [docs/DESIGN.md](docs/DESIGN.md) (short; one
+  feature's decisions are in that feature's document).
+- What was checked in game: [docs/VALIDATION.md](docs/VALIDATION.md).
+- Machine-specific paths: `AGENTS.local.md` if present (gitignored; never
+  copy it into tracked files).
 
-BACKLOG-DONE.md and VALIDATION-LOG.md are long, append-only records. Do not
-read them whole: search them for the L-number or feature you need
-(`git grep -n "L-66" docs/BACKLOG-DONE.md docs/VALIDATION-LOG.md`).
+A decision made in chat that affects implementation goes into the repository:
+a shared rule into DESIGN.md, one feature's into its document, task choices
+into the L-item. In long feature documents, newer decisions win over older
+dated checkpoints. BACKLOG-DONE.md and VALIDATION-LOG.md are append-only:
+search them (`git grep -n "L-66" docs/BACKLOG-DONE.md`), never read them whole.
 
 ## Talking to the user
 
 - Reply in the user's language. Code, comments, commit messages and repo
   docs are English.
-- The user tests in Minecraft. You cannot. Every change that touches game
-  behavior ends with a short checklist: what to do in game and what they
-  should see. Say which build (commit and DLL SHA-256) they are testing.
-- Do not claim runtime behavior you have not seen confirmed. "Builds and
-  tests pass" is not "works in game".
+- The user tests in Minecraft; you cannot. A change to game behavior ends with
+  a short in-game checklist and the build tested (commit, DLL SHA-256).
+- "Builds and tests pass" is not "works in game". Do not claim runtime
+  behavior nobody has seen.
 
 ## Build, test, deploy
 
@@ -52,136 +39,104 @@ xmake build LamiumTests && xmake run LamiumTests               # pure tests
 xmake build LamiumNativeTests && xmake run LamiumNativeTests   # SDK-type tests
 ```
 
-- Run `LamiumTests` after every change. It must print no failures.
-- Deploy only when the user wants to test: Minecraft must be closed
-  (`tasklist | grep -i Minecraft.Windows` prints nothing), otherwise the DLL
-  copy fails. Copy `bin/Lamium/Lamium.dll`, `Lamium.pdb`, `manifest.json` into
-  `<instance>/mods/Lamium/` and report the SHA-256 of both copies.
-- Debug traces are xmake options (`xmake f --camera_trace=y` etc., see
-  `xmake.lua`). Never deploy or commit with a trace option left on unless the
-  user asked for a trace build. Reset with `xmake f --camera_trace=n ...`.
-- Runtime log: `<instance>/mods/Lamium/logs/lamium.log`.
-- Search with `git grep` or limit searches to `src tests docs`. `build/` holds
-  full SDK source copies; a plain recursive grep over it takes minutes.
-- SDK headers (read-only reference for game types): the xmake package cache,
-  `%LOCALAPPDATA%/.xmake/packages/l/levilamina-client-sdk/26.60.4/*/include/mc/...`.
-  Search there before guessing a member or function name.
+- Run `LamiumTests` after every change; it must print no failures. UI changes
+  also run `scripts/Check-UiTokens.ps1` (CI does).
+- Deploy only when the user wants to test, with Minecraft closed: copy
+  `bin/Lamium/Lamium.dll`, `Lamium.pdb`, `manifest.json` into
+  `<instance>/mods/Lamium/` and report the SHA-256 of both copies. Log:
+  `<instance>/mods/Lamium/logs/lamium.log`.
+- Trace builds are xmake options (`--camera_trace=y`, see `xmake.lua`); never
+  deploy or commit with one left on unless asked.
+- Search with `git grep` or within `src tests docs`; `build/` holds SDK
+  copies and a recursive grep over it takes minutes.
+- Game types: SDK headers in the xmake package cache
+  (`%LOCALAPPDATA%/.xmake/packages/l/levilamina-client-sdk/*/*/include/mc/`).
+  Search there before guessing a name.
+- Windows: use `python`, not `python3`. Files are UTF-8 (Japanese and Chinese
+  in `src/ui/Translations*.h`); prefer the edit tool to shell rewrites.
 
-### Windows shell pitfalls
-
-- `python3` is a Store stub; use `python`.
-- Write multi-line files with the file-writing tool, not bash heredocs with
-  quotes/backticks inside.
-- Files are UTF-8 (Japanese and Chinese strings in `src/ui/Translations*.h`). Tools like
-  perl need `-Mutf8`/`-CSD` or they corrupt text; prefer the edit tool.
-
-## Architecture in one page
+## Architecture and rules
 
 ```
 src/app        Runtime (feature lifecycle, logging, settings access)
 src/settings   Settings struct, option catalog (Options.h), JSON store
 src/input      Actions and default keys (Binding.h), dispatch (Actions.cpp)
-src/ui         Settings screen, Shapes view, widgets, layout math, translations
+src/ui         Settings screen, views, shared widgets, layout math, translations
 src/overlay    World-space geometry (pure) and rendering (WorldOverlay.cpp)
-src/features   camera / information / inspection / interaction / inventory /
-               lighting / visuals — one folder per area, hooks live here
+src/features   One folder per area; hooks live here
 tests          Pure unit tests (no game types). tests-native: SDK-type tests
 ```
 
-Rules the code already follows; keep them:
-
 1. **Pure logic in headers, game glue in .cpp.** Layout, geometry, planning
-   and state machines live in `*.h` with no Minecraft types and are covered
-   in `tests/`. Hooks and rendering call into them. When adding behavior,
-   first ask "which part can be a pure function with a test?".
-2. **No game pointers kept across frames.** Collect owned values each frame.
-   Key and mouse events arrive from the window procedure, outside the client
-   tick: never touch game state there. `input/CustomInput.cpp` queues actions
-   and runs them on the client thread (touching inventories from the event
-   crashed Minecraft).
+   and state machines live in `*.h` without Minecraft types, tested in
+   `tests/`. First ask "which part can be a pure function with a test?".
+2. **No game pointers kept across frames.** Key and mouse events arrive
+   outside the client tick: never touch game state there; queue the action
+   (`input/CustomInput.cpp`).
 3. **Every feature restores vanilla behavior** when disabled, on world exit,
    dimension change and focus loss.
-4. **Settings**: add a field in `Settings.h`, an entry in `Options.h`, load/save
-   in `SettingsStore.cpp` (tolerate missing keys), a row in `SettingsRows.h`,
-   and strings in all four languages (rule 6). `SettingsStoreTests`
-   and `TranslationsTest` catch most omissions.
+4. **Settings**: field in `Settings.h`, entry in `Options.h`, load/save in
+   `SettingsStore.cpp` (tolerate missing keys), row in `SettingsRows.h`,
+   strings in all four languages. The tests catch most omissions.
 5. **Actions**: append to `enum Action` and `actions` in `Binding.h` (never
-   reorder; ids are saved), map toggles in `ToggleAction.h`, handle presses in
-   `Actions.cpp`. Behavior (Press/Hold/Toggle) is decided by the action.
-6. **Translations**: English is the default; Japanese, Simplified Chinese
-   (`zh_CN`) and Traditional Chinese (`zh_TW`) are required for every key.
-   Chinese rows live in `src/ui/TranslationsZhCN.h` and
-   `src/ui/TranslationsZhTW.h` in the same order as `Translations.h` (the
-   build checks it). Keep `Name: {}` labels with an ASCII ": ". Contributor
-   notes: docs/TRANSLATING.md.
-7. **UI** draws only rectangles and text through `src/ui/Widgets.h`. Use the
-   palette and widgets there; do not invent colors or sizes. See DESIGN.md.
-   A control the shared files (`Widgets.h`, `ListViewWidgets.h`) lack goes
-   into them, not into the screen's file; do not copy a control from another
-   screen. A control that needs to look or behave unlike the shared one
-   (another button look, another meaning for a color, another Esc or focus
-   rule) is a Design question: stop and ask. Older screens still hold local
-   copies (L-341); do not take them as the pattern.
+   reorder; ids are saved), toggles in `ToggleAction.h`, presses in
+   `Actions.cpp`. Press/Hold/Toggle is decided by the action.
+6. **Translations**: English, Japanese, `zh_CN` and `zh_TW` for every key;
+   the Chinese files keep `Translations.h`'s order (the build checks it).
+   Keep `Name: {}` labels with an ASCII ": ". See docs/TRANSLATING.md.
+7. **UI** draws only rectangles and text through `src/ui/Widgets.h` (read
+   its header comment). A control the shared files (`Widgets.h`,
+   `ListViewWidgets.h`) lack goes into them, never into the screen's file or
+   copied from another screen; no color literals (`Check-UiTokens.ps1`). A
+   control that must look or behave unlike the shared one (another button
+   look, color meaning, Esc or focus rule) is a Design question: stop and
+   ask. Older screens still hold local copies (L-341); they are not the
+   pattern.
 8. **Game dependencies**: a new hook gets an entry in
-   [docs/GAME-UPDATES.md](docs/GAME-UPDATES.md) (CI runs
-   `scripts/Check-GameInventory.ps1`). A path that writes game memory or
-   relies on a meaning a rebuild cannot check asks
-   `versionSensitiveAllowed()` (`app/Versions.h`) at that path. Moving to a
-   new Minecraft or LeviLamina version follows the playbook in the same
-   file; the verified game version changes last, after the in-game checks.
-9. **Engineering behavior** (DESIGN.md, the authoritative wording): bound
-   expensive scans and uploads per frame/tick, discard stale async results by
-   world/dimension generation, confirm gameplay mutations from authoritative
-   state rather than a return value or sent transaction, and fail open to
-   vanilla when a version-sensitive path cannot be verified.
+   [docs/GAME-UPDATES.md](docs/GAME-UPDATES.md) (CI checks it). A path that
+   writes game memory or relies on an unverifiable meaning asks
+   `versionSensitiveAllowed()` (`app/Versions.h`). Version moves follow the
+   playbook there; the verified game version changes last.
+9. **Engineering behavior** (DESIGN.md has the wording): bound expensive work
+   per frame/tick, discard stale async results by world/dimension
+   generation, confirm gameplay changes from authoritative state, and fail
+   open to vanilla when a version-sensitive path cannot be verified.
 
 ## Code style
 
-- Match surrounding code: terse, few comments, comments explain *why*.
-  This is about style; UI controls come from the shared widgets (rule 7).
+- Terse, few comments, comments explain *why*. Match the surrounding style;
+  UI controls still come from the shared widgets (rule 7).
 - C++20, no exceptions across hook boundaries (`noexcept` handlers catch).
-- Tests use `check(bool, "what must hold")` in `tests/*Tests.cpp`, declared and
-  called from `main` in `tests/CameraTests.cpp`.
-- Do not copy code, strings, assets, distinctive constants or implementation
-  structure from other mods. [docs/PROVENANCE.md](docs/PROVENANCE.md) lists
-  the reference-only projects (do not open their source while writing Lamium
-  code) and what to record before any outside code is incorporated.
-- Specs describe Lamium's behavior in Lamium's terms, not "like mod X". Name
-  another mod or prior-art project only in PROVENANCE.md, as a one-line source
-  for a Research hypothesis, in a clean-room boundary ("do not open X"), or in
-  a dated decision record of what the maintainer referred to. Tools and
-  platforms Lamium depends on (LeviLamina, LIP, Bedrinth) are named freely.
-  Comparisons and surveys stay out of the repository. Do not rewrite
-  historical records (BACKLOG-DONE.md, VALIDATION-LOG.md).
+- Tests use `check(bool, "what must hold")` in `tests/*Tests.cpp`, declared
+  and called from `main` in `tests/CameraTests.cpp`.
+- Never copy code, strings, assets or distinctive constants from other mods.
+  [docs/PROVENANCE.md](docs/PROVENANCE.md) lists reference-only projects
+  (do not open their source) and where another mod may be named at all.
+  Specs describe Lamium in its own terms, not "like mod X".
 
 ## Git
 
-- Follow the user's branch and push preferences (see `AGENTS.local.md`);
-  otherwise work on a branch and do not push without being asked.
+- Follow the user's branch and push preferences (`AGENTS.local.md`);
+  otherwise work on a branch and do not push unasked.
 - One logical change per commit. Subject: English, imperative, sentence case,
-  no prefix, ~70 chars (e.g. "Pull shapes slightly toward the eye to stop
-  flicker inside blocks"). Body only when the why is not obvious.
-- Commit only when build + LamiumTests pass. Push when the user asks or after
-  they confirm a runtime check.
-- Update the relevant `docs/*.md` in the same or next commit when behavior or
-  validation status changes. A game result goes on top of VALIDATION-LOG.md
-  (build, hash, environment, what was and was not seen) and updates the
-  feature's row in VALIDATION.md. Keep both factual: verified vs not.
-- A finished L-item moves to BACKLOG-DONE.md (under its kind); anything left
-  for the release goes to BACKLOG's "Pre-release checks".
+  no prefix, ~70 chars. Body only when the why is not obvious.
+- Commit only when build + LamiumTests pass. Check `git diff --stat` first.
+- Update the relevant docs in the same or next commit. A game result goes on
+  top of VALIDATION-LOG.md (build, hash, what was and was not seen) and into
+  the feature's VALIDATION.md row. A finished L-item moves to
+  BACKLOG-DONE.md; what is left for the release goes to "Pre-release checks".
 
 ## When to stop and escalate
 
-Cheap models: stop, write down what you found, and hand back to the user
-(who may bring in a stronger model) when any of these happens:
+Stop, write down what you found, and hand back to the user when:
 
-- The task is marked **Design** or **Research** in BACKLOG.md, or the spec
-  leaves a user-visible choice open. Do not decide product/UX questions.
-- You need a game function you cannot find in the SDK headers, or the same
-  hook approach failed twice at runtime.
-- A fix would change settings file format, action ids, or delete user data.
+- The task is **Design** or **Research** in BACKLOG.md, or leaves a
+  user-visible choice open. Do not decide product/UX questions.
+- A game function is not in the SDK headers, or one hook approach failed
+  twice at runtime.
+- A fix would change the settings format, action ids, or delete user data.
 - Two build/test attempts in a row fail for reasons you do not understand.
 - The change touches more than ~5 files outside the task's listed files.
 
-Hand-back note format: goal, what you changed (commits), what you observed
-(test output, logs), the open question, and your best next guess.
+Hand-back note: goal, commits, what you observed, the open question, your
+best next guess.
