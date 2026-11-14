@@ -138,6 +138,12 @@ direction); Hold actions cannot.
   placement turns normally.
 - A mixed file round-trips both forms; rollback reads the last legacy fields
   and shows the same view.
+- Ignored check differences (L-183): an optional `ignored` array of strings
+  `"x,y,z block state"` (structure-local cell, the file's block there, the
+  state key), written only when not empty, at most 64 per placement. A
+  missing key is an empty list; unreadable or repeated entries are dropped
+  on reading; entries are never pruned when the structure cannot be read.
+  An older Lamium that saves the placement drops the key.
 
 ### Looked-at selection
 

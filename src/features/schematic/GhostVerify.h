@@ -41,6 +41,10 @@ struct EntityMistakes {
     bool has(Point p) const { return cells.contains({p.x, p.y, p.z}); }
 };
 std::shared_ptr<EntityMistakes const> entityMistakes();
+// L-183: whether the placement's cell at `world`, which holds an ignore
+// entry, passes once its ignored differences count as matching. The in-world
+// marks ask it before marking a wrong state there.
+bool passesWithIgnores(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point world);
 // Drops the running pass and publishes an empty result.
 void resetVerification();
 }

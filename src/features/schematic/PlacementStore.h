@@ -1,4 +1,5 @@
 #pragma once
+#include "features/schematic/CheckIgnores.h"
 #include "features/schematic/Placement.h"
 #include <filesystem>
 #include <string>
@@ -20,6 +21,7 @@ struct SavedPlacement {
     bool visible = true;
     bool countExtras = true; // Extra blocks show red (decided default); off ignores them.
     bool entities = true;
+    IgnoreList ignored; // check differences disregarded here (L-183); optional key "ignored"
     std::uint64_t id = 0; // session id (app/SessionIds.h, L-139); not saved
 };
 struct PlacementSet {
@@ -43,4 +45,7 @@ bool safeSchematicPath(std::string_view relative);
 // What the ghosts and the check of a placement depend on: equal keys mean
 // its built sections and check can be kept. Name and visibility are not in it.
 std::string drawKey(SavedPlacement const&);
+// What its check depends on: the draw key and the ignored differences, which
+// change the check's verdicts and marks but not the ghosts.
+std::string checkKey(SavedPlacement const&);
 }

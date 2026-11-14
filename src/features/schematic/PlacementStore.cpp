@@ -53,6 +53,7 @@ std::string drawKey(SavedPlacement const& p) {
         p.placement.rotation, static_cast<int>(p.placement.mirror), layerVisibilityKey(p.layers),
         p.countExtras ? 'x' : '-', p.entities ? 'e' : '-');
 }
+std::string checkKey(SavedPlacement const& p) { return drawKey(p) + "|" + p.ignored.fingerprint(); }
 bool safeSchematicPath(std::string_view relative) {
     if (relative.empty() || relative.size() > maxFileBytes || relative.front() == '/' || relative.front() == '\\') return false;
     if (relative.find(':') != std::string_view::npos || relative.find('\\') != std::string_view::npos) return false;
@@ -98,6 +99,13 @@ std::string encodePlacements(PlacementSet const& set) {
         if (!p.layers.legacy)
             entry["layerView"] = {{"space", "structure"}, {"axis", axisName(p.layers.axis)}, {"cut", p.layers.cut},
                 {"keep", keepName(p.layers.keep)}, {"mode", modeName(p.layers.mode)}};
+        // Optional (L-183): left out when empty, so older documents read and
+        // write back unchanged.
+        if (!p.ignored.empty()) {
+            Json ignored = Json::array();
+            for (auto const& e : p.ignored.entries()) ignored.push_back(encodeIgnored(e));
+            entry["ignored"] = std::move(ignored);
+        }
         list.push_back(std::move(entry));
     }
     return Json{{"version", 1}, {"placements", std::move(list)}, {"selected", set.selected}}.dump(2);
@@ -141,6 +149,13 @@ PlacementSet decodePlacements(std::string_view text) {
             p.visible = flag(entry.value("visible", Json()), true);
             p.countExtras = flag(entry.value("countExtras", Json()), true);
             p.entities = flag(entry.value("entities", Json()), true);
+            if (auto ignored = entry.find("ignored"); ignored != entry.end() && ignored->is_array()) {
+                std::vector<IgnoredDifference> entries;
+                for (auto const& item : *ignored)
+                    if (item.is_string() && entries.size() < maxIgnored)
+                        if (auto e = decodeIgnored(item.get<std::string>())) entries.push_back(std::move(*e));
+                p.ignored = IgnoreList(std::move(entries));
+            }
             set.placements.push_back(std::move(p));
         }
     set.selected = integer(root.value("selected", Json()), -1);
