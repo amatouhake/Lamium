@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Server Data Choice</title>
+<meta name="description" content="L-343: choosing which saved data (waypoints, placements, map, death layout) a server uses when Lamium cannot tell by itself that two names are one server - the settings row, the list screen and a hint where the data is empty.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#141719; --ground-2:#1b2023; --line:#2b3236; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --mc-edge:rgba(255,255,255,.14); --mc-dim:#b4b8b6; --mc-faint:#7d8280;
+  --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c; --mc-warn:#ffc24a; --mc-panel:#101113;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 26px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:80ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.controls{display:grid;gap:8px}
+.cgroup{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cgroup .lab{font-size:12px;color:var(--ink-3);min-width:10em}
+.seg{all:unset;cursor:pointer;font:13px "Noto Sans JP",sans-serif;color:var(--ink-2);padding:3px 10px;border:1px solid var(--line);background:var(--ground-2)}
+.seg:hover{color:var(--ink)}
+.seg[aria-pressed="true"]{color:#fff;border-color:var(--accent-deep);background:rgba(108,195,73,.14)}
+.seg:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.modehelp{font-size:13px;color:var(--ink-2);border-left:2px solid var(--accent-deep);padding-left:10px;max-width:96ch}
+.box{border:1px solid var(--line);background:var(--ground-2);padding:14px 18px}
+.box ol,.box ul{margin:6px 0 0;padding-left:1.4em;color:var(--ink-2)}
+.box li{margin:7px 0}
+.box b{color:var(--ink)}
+.rec{color:var(--accent)}
+
+.stage-outer{width:100%;border:1px solid var(--line);background:#000}
+.stage-fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--mc-font);font-size:16px;color:#fff;user-select:none;overflow:hidden;
+  background:linear-gradient(#78a6ff 0,#b4d8ff 58%,#5d9b3a 58%,#5d9b3a 62%,#866043 62%,#866043 74%,#7d7d7d 74%)}
+.screen{position:absolute;inset:24px 60px;background:rgba(16,17,19,.9);box-shadow:inset 0 0 0 1px var(--mc-edge);display:none}
+.screen.on{display:block}
+.head{position:absolute;left:0;right:0;top:0;height:34px;display:flex;align-items:center;gap:10px;padding:0 12px;box-shadow:inset 0 -1px 0 var(--mc-edge)}
+.head .brand{color:#fff}.head .ver{color:var(--mc-faint);font-size:14px}.head .sp{flex:1}
+.btn{all:unset;cursor:pointer;font:14px var(--mc-font);color:var(--mc-dim);padding:0 9px;height:24px;line-height:24px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key);white-space:nowrap}
+.btn:hover{color:#fff;background:#3a3b3c}
+.btn.go{color:#fff;box-shadow:inset 0 0 0 1px var(--accent);background:rgba(60,133,39,.55)}
+.btn.go:hover{background:rgba(60,133,39,.8)}
+.side{position:absolute;left:0;top:34px;bottom:0;width:150px;box-shadow:inset -1px 0 0 var(--mc-edge);padding:8px 0;font-size:14px;color:var(--mc-dim)}
+.side div{padding:0 12px;line-height:24px}
+.side .cur{color:#fff;background:rgba(108,195,73,.18);box-shadow:inset 2px 0 0 var(--accent)}
+.side .pin{position:absolute;left:0;right:0;bottom:8px}
+.main{position:absolute;left:150px;right:0;top:34px;bottom:44px;padding:8px 12px;font-size:15px}
+.foot{position:absolute;left:150px;right:0;bottom:0;height:44px;padding:5px 12px;font-size:13px;line-height:17px;color:var(--mc-dim);box-shadow:inset 0 1px 0 var(--mc-edge)}
+.row{display:flex;align-items:center;height:26px;gap:8px;color:var(--mc-dim)}
+.row.feat{color:#fff}
+.row.child{padding-left:22px;position:relative}
+.row.child::before{content:"";position:absolute;left:8px;top:0;bottom:0;width:1px;background:var(--mc-key-edge)}
+.row.sel{background:rgba(108,195,73,.14);box-shadow:inset 0 0 0 1px var(--accent-deep)}
+.row .sp{flex:1}.row .val{color:#fff}.row .exp{color:#b98bff;font-size:13px}
+.sw{width:30px;height:12px;background:var(--accent-deep);box-shadow:inset 0 0 0 1px var(--accent);position:relative}
+.sw::after{content:"";position:absolute;right:1px;top:1px;width:12px;height:10px;background:#d8dcd9}
+
+/* List screen */
+.listhead{display:flex;align-items:center;gap:10px;height:26px;color:#fff}
+.cols{position:absolute;left:12px;right:12px;top:40px;bottom:6px;display:grid;grid-template-columns:1fr 250px;gap:12px}
+.list{overflow:hidden}
+.grp{color:var(--mc-faint);font-size:13px;line-height:22px;margin-top:4px}
+.it{padding:3px 8px;cursor:pointer;box-shadow:inset 0 0 0 1px transparent}
+.it:hover{background:rgba(255,255,255,.06)}
+.it.sel{background:rgba(108,195,73,.14);box-shadow:inset 0 0 0 1px var(--accent-deep)}
+.it .nm{display:flex;gap:8px;align-items:center;line-height:20px}
+.it .meta{color:var(--mc-dim);font-size:13px;line-height:17px}
+.mark{font-size:12px;line-height:16px;padding:0 5px;color:var(--mc-panel);background:var(--accent)}
+.mark.maybe{background:var(--mc-warn)}
+.det{box-shadow:inset 0 0 0 1px var(--mc-edge);padding:8px 10px;font-size:14px;line-height:20px;color:var(--mc-dim);display:flex;flex-direction:column;gap:2px}
+.det .t{color:#fff;font-size:15px;margin-bottom:4px;word-break:break-all}
+.det .k{color:var(--mc-faint)}
+.det .sp{flex:1}
+.det .note{font-size:13px;line-height:17px;color:var(--mc-dim);margin-bottom:6px}
+.msg{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);background:rgb(22,23,25);box-shadow:inset 0 0 0 1px var(--accent);padding:4px 12px;font-size:14px;white-space:nowrap;display:none}
+.msg.on{display:block}
+
+/* Hint */
+.hint{margin:4px 0 8px;padding:8px 10px;box-shadow:inset 0 0 0 1px var(--mc-warn);background:rgba(255,194,74,.08);font-size:14px;line-height:20px;color:var(--mc-dim)}
+.hint b{color:#fff;font-weight:400}
+.hint .acts{display:flex;gap:6px;margin-top:6px}
+.empty{color:var(--mc-faint);font-size:14px;margin-top:10px}
+</style>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">L-343 · DESIGN MOCKUP · 2026-11-14</div>
+    <h1>サーバーのデータを選び直す</h1>
+    <p class="lede">サーバーのアドレスやポートが変わると、Lamium は同じサーバーだと分からず、ウェイポイント・設計図の配置・地図・死亡時の配置が「消えた」ように見えます。データは古い名前の下に残っているので、プレイヤーが「このサーバーはあのデータを使う」と選べる入口を作ります。何も消さず、いつでも戻せることを前提にしています。</p>
+  </header>
+
+  <section class="controls">
+    <div class="cgroup"><span class="lab">見る画面</span>
+      <button class="seg" data-view="settings" aria-pressed="true">1 設定の行</button>
+      <button class="seg" data-view="list">2 選ぶ画面</button>
+      <button class="seg" data-view="hint">3 空のときの案内</button>
+    </div>
+    <div class="cgroup"><span class="lab">入口の置き方</span>
+      <button class="seg" data-entry="A">A 設定の行だけ</button>
+      <button class="seg" data-entry="B" aria-pressed="true">B 行 + 空のときの案内（推奨）</button>
+    </div>
+    <p class="modehelp" id="help"></p>
+  </section>
+
+  <div class="stage-outer"><div class="stage-fit" id="fit"><div class="stage" id="stage">
+    <!-- 1: settings row -->
+    <div class="screen on" id="v-settings">
+      <div class="head"><span class="brand">Lamium</span><span class="ver">0.6.x</span><span class="sp"></span><span class="btn">検索</span><span class="btn">閉じる (Esc)</span></div>
+      <div class="side"><div>カメラと見え方</div><div>HUD と表示</div><div class="cur">マップ</div><div>設計図</div><div>インベントリ</div><div>操作</div><div>全般</div>
+        <div class="pin"><div>ホットキー</div><div>図形</div><div>ウェイポイント</div><div>設計図</div><div>ワールドマップ</div><div>HUD レイアウト</div></div></div>
+      <div class="main">
+        <div class="row feat">▾ ウェイポイント <span class="exp">Exp.</span><span class="sp"></span><span class="sw"></span></div>
+        <div class="row child">ワールド内に表示<span class="sp"></span><span class="sw"></span></div>
+        <div class="row feat">▾ ワールドマップ <span class="exp">Exp.</span><span class="sp"></span><span class="btn">開く</span></div>
+        <div class="row child">記録する<span class="sp"></span><span class="sw"></span></div>
+        <div class="row child">保存した地図（このワールド）<span class="sp"></span><span class="val">3.4 MB</span><span class="btn">消す</span></div>
+        <div class="row child sel">このサーバーのデータ<span class="sp"></span><span class="val" id="curname">198.51.100.20:19133</span><span class="btn" data-go="list">選び直す</span></div>
+      </div>
+      <div class="foot">このサーバーのウェイポイント、設計図の配置、地図、死亡時の配置の保存先です。アドレスが変わってデータが見当たらないときは、前のデータを選び直せます。選び直しても何も消えません。</div>
+    </div>
+
+    <!-- 2: list -->
+    <div class="screen" id="v-list">
+      <div class="head"><span class="brand">Lamium</span><span class="ver">0.6.x</span><span class="sp"></span><span class="btn">閉じる (Esc)</span></div>
+      <div class="listhead" style="position:absolute;left:12px;top:38px;right:12px"><span class="btn" data-go="settings">&lt; マップ</span><span>このサーバーのデータ</span></div>
+      <div class="cols" style="top:70px">
+        <div class="list" id="list"></div>
+        <div class="det" id="det"></div>
+      </div>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <!-- 3: hint on the Waypoints screen -->
+    <div class="screen" id="v-hint">
+      <div class="head"><span class="brand">Lamium</span><span class="ver">0.6.x</span><span class="sp"></span><span class="btn">閉じる (Esc)</span></div>
+      <div class="side"><div>カメラと見え方</div><div>HUD と表示</div><div>マップ</div><div>設計図</div><div>インベントリ</div><div>操作</div><div>全般</div>
+        <div class="pin"><div>ホットキー</div><div>図形</div><div class="cur">ウェイポイント</div><div>設計図</div><div>ワールドマップ</div><div>HUD レイアウト</div></div></div>
+      <div class="main">
+        <div class="listhead"><span>ウェイポイント</span><span class="sp" style="flex:1"></span><span class="btn">ここに追加</span></div>
+        <div class="hint" id="hintbox">
+          このサーバーにはまだデータがありません。<br>
+          <b>play.example.net:19133</b> のデータ（ウェイポイント 12、配置 3、地図 3.4 MB、最後に使用 11-02）が、同じサーバーのものかもしれません。
+          <div class="acts"><span class="btn go" id="hint-use">このデータを使う</span><span class="btn" data-go="list">ほかのデータを見る</span><span class="btn" id="hint-no">違うサーバー</span></div>
+        </div>
+        <div class="empty" id="hintempty">ウェイポイントはまだありません。</div>
+      </div>
+      <div class="foot">案内は、いまのデータが空で、同じサーバーかもしれないデータがあるときだけ出ます。「違うサーバー」を押すと、このサーバーでは二度と出ません。</div>
+    </div>
+  </div></div></div>
+
+  <section class="box">
+    <h2>提案</h2>
+    <ol>
+      <li><b>入口は設定の「ワールドマップ」の下の行</b>。すでにある「保存した地図（このワールド）」の隣です。地図だけの話ではありませんが、「消えた」と気づくのは地図とウェイポイントなので、ここが一番見つけやすいと考えました。</li>
+      <li><b>選ぶ画面は一覧と詳細</b>。「いま使っているデータ」を一番上に、次に「このサーバーかもしれないデータ」、最後に「ほかのサーバーのデータ」を並べます。</li>
+      <li><b>「かもしれない」の基準</b>は、(a) 同じサーバーだと判定したのに使わなかった名前、(b) ワールド ID が同じ、(c) ホスト名か IP が同じでポートだけ違う、のどれか。ポート違いは別サーバーのこともあるので、自動では使わず候補に出すだけです。</li>
+      <li><b>選ぶと、その場で切り替わります</b>。いままで使っていたデータは消えず、一覧に残ります。もう一度選べば戻せます。</li>
+      <li><b class="rec">B: 空のときの案内</b>も出します。ウェイポイント画面とワールドマップで、いまのデータが空で候補があるときだけ。入口を知らなくても気づけます。</li>
+    </ol>
+  </section>
+  <section class="box">
+    <h2>決めてほしいこと</h2>
+    <ul>
+      <li>入口の場所は「ワールドマップ」の下でよいか（ほかの案: ウェイポイントの下、「全般」）。</li>
+      <li>案内（B）を出すか。出す場合、ウェイポイント画面とワールドマップの両方でよいか。</li>
+      <li>切り替えはその場で反映するか、入り直してからにするか（その場のほうが分かりやすいが、地図の読み直しが入る）。</li>
+      <li>名前の見せ方。フォルダ名そのまま（<code>http___198.51.100.20_19133_19133</code>）ではなく、<code>198.51.100.20:19133</code> の形に直して見せる想定です。</li>
+      <li>ローカルワールドとフレンドのワールドのデータは一覧に出さない想定です（アドレスがなく、取り違えの原因にならないため）。</li>
+    </ul>
+  </section>
+</div>
+<script>
+const W = 960, H = 540;
+const stage = document.getElementById('stage'), fit = document.getElementById('fit');
+function resize(){ const k = fit.clientWidth / W; stage.style.transform = `scale(${k})`; fit.style.height = (H*k)+'px'; }
+new ResizeObserver(resize).observe(fit); resize();
+
+const data = [
+  {id:'ip', name:'198.51.100.20:19133', group:'cur', wp:0, pl:0, map:'0.1 MB', used:'11-14', level:'local_world', by:'IP（転送で接続）'},
+  {id:'host', name:'play.example.net:19133', group:'maybe', why:'ワールド ID が同じ', wp:12, pl:3, map:'3.4 MB', used:'11-02', level:'local_world', by:'ホスト名'},
+  {id:'host2', name:'play.example.net:19134', group:'maybe', why:'同じホスト名、ポート違い', wp:2, pl:0, map:'1.1 MB', used:'10-28', level:'farm', by:'ホスト名'},
+  {id:'mega', name:'mc.example.org:19132', group:'other', wp:5, pl:0, map:'8.0 MB', used:'10-11', level:'world', by:'ホスト名'},
+  {id:'lb', name:'featured.example.com:19132', group:'other', wp:0, pl:0, map:'0.3 MB', used:'11-14', level:'Featured Network', by:'ホスト名'},
+];
+let current = 'ip', selected = 'host', entry = 'B', view = 'settings';
+const groups = [['cur','いま使っているデータ'],['maybe','このサーバーかもしれないデータ'],['other','ほかのサーバーのデータ']];
+const meta = d => `ウェイポイント ${d.wp} ・ 配置 ${d.pl} ・ 地図 ${d.map} ・ 最後に使用 ${d.used}`;
+function groupOf(d){ return d.id === current ? 'cur' : d.group === 'cur' ? 'maybe' : d.group; }
+function render(){
+  const list = document.getElementById('list'); list.innerHTML = '';
+  for (const [g, title] of groups) {
+    const items = data.filter(d => groupOf(d) === g);
+    if (!items.length) continue;
+    list.insertAdjacentHTML('beforeend', `<div class="grp">${title}</div>`);
+    for (const d of items) {
+      const mark = g === 'cur' ? '<span class="mark">使用中</span>' : g === 'maybe' ? `<span class="mark maybe">${d.why || '前に使っていた'}</span>` : '';
+      const el = document.createElement('div');
+      el.className = 'it' + (d.id === selected ? ' sel' : '');
+      el.innerHTML = `<div class="nm"><span>${d.name}</span>${mark}</div><div class="meta">${meta(d)}</div>`;
+      el.onclick = () => { selected = d.id; render(); };
+      list.appendChild(el);
+    }
+  }
+  const d = data.find(x => x.id === selected), cur = d.id === current;
+  document.getElementById('det').innerHTML =
+    `<div class="t">${d.name}</div>
+     <div><span class="k">ウェイポイント</span> ${d.wp}</div>
+     <div><span class="k">設計図の配置</span> ${d.pl}</div>
+     <div><span class="k">地図</span> ${d.map}</div>
+     <div><span class="k">最後に使用</span> ${d.used}</div>
+     <div><span class="k">ワールド ID</span> ${d.level}</div>
+     <div><span class="k">接続のしかた</span> ${d.by}</div>
+     <span class="sp"></span>
+     <div class="note">${cur ? 'このサーバーはいまこのデータを使っています。' : '選ぶと、このサーバーはこのデータを使います。いまのデータは消えず、この一覧に残ります。'}</div>
+     ${cur ? '' : '<span class="btn go" id="use">このデータを使う</span>'}`;
+  const use = document.getElementById('use');
+  if (use) use.onclick = () => choose(d.id);
+  document.getElementById('curname').textContent = data.find(x => x.id === current).name;
+}
+function choose(id){
+  current = id; selected = id; render();
+  const msg = document.getElementById('msg');
+  msg.textContent = `${data.find(x => x.id === id).name} のデータに切り替えました`;
+  msg.classList.add('on'); clearTimeout(choose.t); choose.t = setTimeout(() => msg.classList.remove('on'), 2200);
+}
+const helps = {
+  settings: '設定の「マップ」区分、ワールドマップの下に 1 行。値はいま使っているデータの名前で、「選び直す」で 2 の画面に行きます。',
+  list: '行をクリックすると右に中身が出ます。「このデータを使う」で切り替え。使用中だったデータは「このサーバーかもしれないデータ」に残り、選び直せば戻ります。',
+  hint: 'ウェイポイント画面の一番上に出る案内。候補のうち一番データの多いものを 1 つだけ挙げます。A（設定の行だけ）を選ぶと、この案内は出ません。',
+};
+function show(v){
+  view = v;
+  for (const s of document.querySelectorAll('.screen')) s.classList.toggle('on', s.id === 'v-' + v);
+  for (const b of document.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === v);
+  document.getElementById('help').textContent = helps[v];
+  const hidden = entry === 'A' || current !== 'ip' || show.dismissed;
+  document.getElementById('hintbox').style.display = hidden ? 'none' : '';
+  document.getElementById('hintempty').textContent = current === 'ip' ? 'ウェイポイントはまだありません。' : `（${data.find(x => x.id === current).wp} 件のウェイポイントが並びます）`;
+}
+for (const b of document.querySelectorAll('[data-view]')) b.onclick = () => show(b.dataset.view);
+for (const b of document.querySelectorAll('[data-go]')) b.onclick = () => show(b.dataset.go);
+for (const b of document.querySelectorAll('[data-entry]')) b.onclick = () => {
+  entry = b.dataset.entry;
+  for (const o of document.querySelectorAll('[data-entry]')) o.setAttribute('aria-pressed', o === b);
+  show(view);
+};
+document.getElementById('hint-use').onclick = () => { choose('host'); show('hint'); };
+document.getElementById('hint-no').onclick = () => { show.dismissed = true; show('hint'); };
+render(); show('settings');
+</script>
+</body>
+</html>

@@ -168,7 +168,7 @@ Do not infer game success from a build or unit-test result.
   compass or clock.
 - Server data names (L-343): a server joined before the change still shows
   its map and waypoints, the log names the key and `config/servers.json`
-  is written (passed on `d6a06f2e`, VALIDATION-LOG 2026-11-14). Not
+  is written (passed, VALIDATION-LOG 2026-11-14). Not
   checked: a friend's world keeping its data over a rejoin (none was
   available).
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
@@ -325,7 +325,7 @@ for sharing as it is. Collect, each twice with a reconnect in between: a
 Realm; a server behind the proxy plugin; an ordinary server by host name;
 the same by IP; two servers on one address with different ports; a local
 world.
-Seen 2026-11-14 (trace build `665ba692`, 1.26.60.05 Dev, the maintainer;
+Seen 2026-11-14 (a `server_trace` build, 1.26.60.05 Dev, the maintainer;
 each joined twice; no Realm was available):
 
 | Joined | type | host | url | port | level id | level name | seed |

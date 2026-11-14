@@ -14,7 +14,7 @@ it was not a full re-run of every entry.
 
 ## A server's data under one name (L-343, 2026-11-14)
 
-Build `d6a06f2e`, DLL SHA-256
+Build of the code in `c8585424` (tested from a commit that was rewritten before it was pushed), DLL SHA-256
 `8f8485b511499cc561b1e51d6cd930834efeeb45ba0f3c1c4db47725cb9c6de9`, 1.26.60.05 Dev
 instance, the maintainer: the servers joined before the change show their maps and waypoints
 as before. From the log and files (the agent; the IP, ports and level ids here are stand-ins
