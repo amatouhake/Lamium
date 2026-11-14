@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Destructive buttons plain until pointed at (L-341, 2026-11-15)
+
+Build `5dab2d6b`, DLL SHA-256
+`5d6b404080811ca16b89f77e5f5d1907b295155bdb7cef6e5fa04e3e3f58a53b`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. The settings section Reset is plain at rest, turns red
+under the pointer and fills red when armed; Shapes Delete, Block highlight Remove and the
+world map's waypoint delete behave the same. Not itemized: the map cache Clear button.
+
 ## Palette tokens and the destructive button (L-341, 2026-11-15)
 
 Build `5e8c8c87`, DLL SHA-256
