@@ -188,15 +188,10 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 ## Bugs
 
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug): Parts 1-3 built and checked in game (not with a friend's world); part 4 (merging) open; a Realm and a changing port not seen
-<<<<<<< HEAD
-- [L-344](backlog/L-344.md) English Search does not find enchanted books by enchantment name (Ready): Built on `night/schematic-map`, not checked in game
+- [L-344](backlog/L-344.md) English Search does not find enchanted books by enchantment name (Ready): Built, not checked in game
 - [L-339](backlog/L-339.md) Smaller bugs found by the 2026-11-14 code review (Ready): In progress; fixed entries leave this list, none seen in game
-=======
-- [L-344](backlog/L-344.md) English Search does not find enchanted books by enchantment name (Ready): Built on `night/schematic-map`, not checked in game
-- [L-339](backlog/L-339.md) Smaller bugs found by the 2026-11-14 code review (Ready): In progress; fixed entries leave this list, none seen in game
->>>>>>> night/schematic-map
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
-- [L-324](backlog/L-324.md) Map: custom blocks are drawn in a dirt-like brown (Ready): Built on `night/schematic-map` (first clause of the rule), not checked in game
+- [L-324](backlog/L-324.md) Map: custom blocks are drawn in a dirt-like brown (Ready): Built (first clause of the rule), not checked in game
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
 - [L-243](backlog/L-243.md) Large terrain gaps that only reload when the player comes near (Bug / Research): Not reproduced; watch item, reopen with the conditions if it returns
 - [L-244](backlog/L-244.md) FreeCamera keeps the inside-a-block view after starting in a block (Bug): Parked (maintainer 2026-10-27) until a path to the renderer that draws the effect is found; left vanilla
