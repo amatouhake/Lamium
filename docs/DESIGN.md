@@ -93,7 +93,19 @@ subsystems:
 
 ### Tokens
 
-All colors come from `ui::palette` in `src/ui/Widgets.h`:
+All colors come from `ui::palette` in `src/ui/Widgets.h`. (Decided
+2026-11-14, L-341) The palette has two groups, and a color literal in a
+screen's file is a missing token:
+
+- **Lamium's own colors** carry one meaning each across every Lamium
+  screen and HUD element. A hue is not reused for another meaning: purple is
+  only "Experimental", yellow only a warning, red only a destructive action,
+  light blue only "reference, not Lamium's own content" (a draft, a ghost,
+  the game's own HUD parts in HUD layout).
+- **Colors sampled from the game** (`heart`, `heartEmpty`, `armor`, `curse`,
+  the container preview's tooltip border) only match what the game draws and
+  carry no Lamium meaning. They are to move under `palette::vanilla::`
+  (L-341); until then they sit beside the Lamium colors.
 
 | Token | Use |
 |---|---|
@@ -101,10 +113,15 @@ All colors come from `ui::palette` in `src/ui/Widgets.h`:
 | `text` / `dim` / `faint` | Primary text / secondary text and icons / hints |
 | `accent`, `accentDeep` | Switch on, selection, links, primary buttons |
 | `off` | Switch off track |
-| `shadow` | HUD text shadow |
-| `keyFill`, `keyEdge` | Key caps |
+| `knobOn`, `knobOff` | Switch knob |
+| `keyFill`, `keyEdge` | Key caps and the plain button fill and edge |
 | `experimental` | "Experimental" badge |
 | `warning` | Warnings (e.g. Simple graphics notice) |
+| `danger` (to add, L-341) | Destructive buttons, their armed state (today a literal in 8 files) |
+| `hover` (to add, L-341) | A hovered button's fill (today a literal in the world map) |
+| `info` (to add, L-341) | Light blue "reference" color (today four near-equal literals) |
+
+Text shadow is drawn by `labelScaled`, not by a token.
 
 Sizes (GUI units, `SettingsTable`): header 20, row 14, nav item 14, sidebar
 112, padding 6, gap 6, key cap height 11, switch 18×9. The settings panel is
@@ -122,6 +139,23 @@ menu and HUD editor keep GUI units.
   No "ON/OFF" words and no check boxes.
 - **Key caps** for bindings. The key column never shows Hold/Toggle/Press.
 - **Steppers**: `− value +` for numbers, `◀ value ▶` for choices.
+- (Decided 2026-11-14, L-341) **Shared controls.** Every screen draws a
+  control through the shared widgets, and a control is specified here when
+  its shared widget lands, in the same commit (a spec without the widget
+  sends the next screen back to a local copy). Agreed so far, built in
+  L-341:
+  - Buttons come in three kinds: plain (`keyFill` with `keyEdge`), primary
+    (`accent` fill) and destructive (press twice: the first press arms it in
+    `danger`, the second acts). HUD layout's "Done (Esc)" becomes a primary
+    button and its Reset a destructive one.
+  - A settings row that opens a page has the shared Open button; Game
+    language too. Its row shows the current language as faint text where
+    the value button was. Enter or Space on the row still opens the list.
+  - A page that replaces the settings rows (Game language, Saved data, Block
+    highlight, ...) stays open when the window loses focus: a drag ends and
+    an armed button disarms, nothing else changes.
+  - In HUD layout the frame and legend of the game's own HUD parts use the
+    light blue `info`, not `warning`.
 - (Decided 2026-11-13, L-319) While a feature's switch is off, its child
   setting rows are drawn dimmed in every feature. Their names do not change
   and they stay editable; the footer says "Main switch off" above the

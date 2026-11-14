@@ -116,6 +116,12 @@ Rules the code already follows; keep them:
    notes: docs/TRANSLATING.md.
 7. **UI** draws only rectangles and text through `src/ui/Widgets.h`. Use the
    palette and widgets there; do not invent colors or sizes. See DESIGN.md.
+   A control the shared files (`Widgets.h`, `ListViewWidgets.h`) lack goes
+   into them, not into the screen's file; do not copy a control from another
+   screen. A control that needs to look or behave unlike the shared one
+   (another button look, another meaning for a color, another Esc or focus
+   rule) is a Design question: stop and ask. Older screens still hold local
+   copies (L-341); do not take them as the pattern.
 8. **Game dependencies**: a new hook gets an entry in
    [docs/GAME-UPDATES.md](docs/GAME-UPDATES.md) (CI runs
    `scripts/Check-GameInventory.ps1`). A path that writes game memory or
@@ -132,6 +138,7 @@ Rules the code already follows; keep them:
 ## Code style
 
 - Match surrounding code: terse, few comments, comments explain *why*.
+  This is about style; UI controls come from the shared widgets (rule 7).
 - C++20, no exceptions across hook boundaries (`noexcept` handlers catch).
 - Tests use `check(bool, "what must hold")` in `tests/*Tests.cpp`, declared and
   called from `main` in `tests/CameraTests.cpp`.

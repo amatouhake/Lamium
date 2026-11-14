@@ -1098,6 +1098,34 @@ to agree, not a fix to make on sight):
   window and back should not lose the page); the other pages were not
   looked at.
 
+Decided (maintainer 2026-11-14; DESIGN.md "Tokens" and "Components" hold
+the rules):
+- The four points above: the Open button for Game language (its row shows
+  the current language faintly; Enter/Space on the row still opens the
+  list, so switching takes no more presses); HUD layout's Done becomes a
+  primary green-fill button and its Reset a destructive press-twice one in
+  `danger`; the game's own HUD parts in HUD layout take the light blue
+  `info`; Game language follows Saved data on focus loss (a `calm()`
+  instead of `reset()` in `cancelInputCapture`), and every page that
+  replaces the settings rows does the same.
+- Palette: add `danger`, `hover` and `info` and replace the literals; move
+  the game-sampled colors (`heart`, `heartEmpty`, `armor`, `curse`, the
+  container preview border `kFrameBorder` in `PreviewRenderer.cpp`) under
+  `palette::vanilla::`. Purple stays only the Experimental badge; the
+  preview border keeps its color as the game's tooltip look.
+- Order: the palette tokens first (no visible change), then buttons (plain,
+  primary, destructive), the text field, the stepper and the scroll bar.
+  Each control: list how the copies differ, agree, then write its DESIGN
+  "Components" entry and the shared widget in the same commit.
+- Later, its own item when this is done: one shared shape for the pages
+  that replace the settings rows (Game language, Saved data, Block
+  highlight) and for the docked views, so heading, Back, footer and the
+  focus/Esc rules live once; today SettingsScreen.cpp resets each page by
+  hand in about ten places.
+- Agent instructions changed the same day (AGENTS.md rule 7): a missing
+  control goes into the shared widgets, a control unlike the shared one is
+  a Design question.
+
 ### L-330 Radar: mob icons that draw wrongly, then icons by default
 Kind: Research, then Design. Maintainer 2026-11-13: some mobs' icons on
 the radar do not draw correctly, so the radar keeps its Experimental badge.
