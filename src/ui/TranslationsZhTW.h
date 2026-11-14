@@ -1021,7 +1021,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"nav.hotkeys", "快捷鍵"},
     {"nav.shapes", "形狀"},
     {"nav.hudLayout", "HUD 版面配置"},
-    {"hudEditor.lines", "行"},
+    {"hudEditor.contents", "內容"},
     {"hudEditor.snap", "貼齊"},
     {"hudEditor.hint", "點擊選取，拖曳移動"},
     {"hudEditor.resetAll", "重設版面配置"},

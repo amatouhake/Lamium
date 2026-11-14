@@ -142,10 +142,10 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     std::string scaleText = std::format("{}%", static_cast<int>(current.scale));
     std::string backgroundText = background ? optionText(*background, value) : std::string{};
     std::string shadowText = shadow ? optionText(*shadow, value) : std::string{};
+    // What the element shows (L-336); its size follows on the next frame,
+    // since every frame measures the HUD from the saved settings.
     auto contents = contentsOf(id, value.information.lineOrder);
-    // For now only the Info HUD's lines.
-    if (id != HudElementId::Info) contents = {};
-    std::string contentsText = translated("hudEditor.lines");
+    std::string contentsText = translated("hudEditor.contents");
     std::string resetText = translated("resetShort");
     float snapW = textWidth(context, snapText) + 17, scaleW = textWidth(context, "150%") + 24;
     float backgroundW = background ? textWidth(context, backgroundText) + 8 : 0;
