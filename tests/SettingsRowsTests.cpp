@@ -449,7 +449,9 @@ void settingsRowsTests() {
         }
     }
     check(ui::splitLabel("Magnification: {}x").name == "Magnification" && ui::splitLabel("Magnification: {}x").value == "{}x",
-        "label splits at the first separator");
+        "label splits at the separator before the value");
+    check(ui::splitLabel("Wheel: one item: {}").name == "Wheel: one item" && ui::splitLabel("Wheel: one item: {}").value == "{}",
+        "a name with a colon of its own stays whole (L-339)");
     check(ui::actionName("Lamium: Hold to zoom") == "Hold to zoom" && ui::actionName("Toggle Periodic Use") == "Toggle Periodic Use",
         "action names drop the controls-screen prefix only");
     // Open buttons (L-231): the main opener of each tool, not its tab

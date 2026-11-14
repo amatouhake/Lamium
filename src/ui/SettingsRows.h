@@ -423,10 +423,12 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
 }
 
 // Option labels are "Name: {value}" patterns. Split them into a column name and
-// a value pattern without adding a second catalog of translations.
+// a value pattern without adding a second catalog of translations. The split
+// is the last ": " before the value, so a name with a colon of its own
+// ("Wheel: one item: {}") stays whole.
 struct LabelParts { std::string name, value; };
 inline LabelParts splitLabel(std::string_view pattern) {
-    auto split = pattern.find(": ");
+    auto split = pattern.rfind(": ", pattern.find('{'));
     if (split == std::string_view::npos) {
         auto brace = pattern.find('{');
         std::string name(pattern.substr(0, brace));
