@@ -2,8 +2,8 @@
 <html lang="ja">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Server Data Choice</title>
-<meta name="description" content="L-343: choosing which saved data (waypoints, placements, map, death layout) a server uses when Lamium cannot tell by itself that two names are one server - the settings row, the list screen and a hint where the data is empty.">
+<title>Saved Data Choice</title>
+<meta name="description" content="L-343, second round: a Saved data page under General listing every world's and server's saved data (waypoints, placements, map, death layout) with a preview, choosing which data the joined server uses, an option to use it for any port of an address, and hints where the data is empty.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
@@ -42,140 +42,154 @@ p{margin:0}
 .stage-fit{position:relative;width:100%;overflow:hidden}
 .stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--mc-font);font-size:16px;color:#fff;user-select:none;overflow:hidden;
   background:linear-gradient(#78a6ff 0,#b4d8ff 58%,#5d9b3a 58%,#5d9b3a 62%,#866043 62%,#866043 74%,#7d7d7d 74%)}
-.screen{position:absolute;inset:24px 60px;background:rgba(16,17,19,.9);box-shadow:inset 0 0 0 1px var(--mc-edge);display:none}
+.screen{position:absolute;inset:20px 40px;background:rgba(16,17,19,.9);box-shadow:inset 0 0 0 1px var(--mc-edge);display:none}
 .screen.on{display:block}
 .head{position:absolute;left:0;right:0;top:0;height:34px;display:flex;align-items:center;gap:10px;padding:0 12px;box-shadow:inset 0 -1px 0 var(--mc-edge)}
-.head .brand{color:#fff}.head .ver{color:var(--mc-faint);font-size:14px}.head .sp{flex:1}
+.head .brand{color:#fff}.head .ver{color:var(--mc-faint);font-size:14px}.sp{flex:1}
 .btn{all:unset;cursor:pointer;font:14px var(--mc-font);color:var(--mc-dim);padding:0 9px;height:24px;line-height:24px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key);white-space:nowrap}
 .btn:hover{color:#fff;background:#3a3b3c}
 .btn.go{color:#fff;box-shadow:inset 0 0 0 1px var(--accent);background:rgba(60,133,39,.55)}
 .btn.go:hover{background:rgba(60,133,39,.8)}
-.side{position:absolute;left:0;top:34px;bottom:0;width:150px;box-shadow:inset -1px 0 0 var(--mc-edge);padding:8px 0;font-size:14px;color:var(--mc-dim)}
-.side div{padding:0 12px;line-height:24px}
+.side{position:absolute;left:0;top:34px;bottom:0;width:152px;box-shadow:inset -1px 0 0 var(--mc-edge);padding:8px 0;font-size:14px;color:var(--mc-dim)}
+.side div{padding:0 12px;line-height:24px;white-space:nowrap}
 .side .cur{color:#fff;background:rgba(108,195,73,.18);box-shadow:inset 2px 0 0 var(--accent)}
 .side .pin{position:absolute;left:0;right:0;bottom:8px}
-.main{position:absolute;left:150px;right:0;top:34px;bottom:44px;padding:8px 12px;font-size:15px}
-.foot{position:absolute;left:150px;right:0;bottom:0;height:44px;padding:5px 12px;font-size:13px;line-height:17px;color:var(--mc-dim);box-shadow:inset 0 1px 0 var(--mc-edge)}
+.main{position:absolute;left:152px;right:0;top:34px;bottom:44px;padding:8px 12px;font-size:15px}
+.foot{position:absolute;left:152px;right:0;bottom:0;height:44px;padding:5px 12px;font-size:13px;line-height:17px;color:var(--mc-dim);box-shadow:inset 0 1px 0 var(--mc-edge)}
 .row{display:flex;align-items:center;height:26px;gap:8px;color:var(--mc-dim)}
 .row.feat{color:#fff}
 .row.child{padding-left:22px;position:relative}
 .row.child::before{content:"";position:absolute;left:8px;top:0;bottom:0;width:1px;background:var(--mc-key-edge)}
 .row.sel{background:rgba(108,195,73,.14);box-shadow:inset 0 0 0 1px var(--accent-deep)}
-.row .sp{flex:1}.row .val{color:#fff}.row .exp{color:#b98bff;font-size:13px}
+.row .val{color:#fff}
 .sw{width:30px;height:12px;background:var(--accent-deep);box-shadow:inset 0 0 0 1px var(--accent);position:relative}
 .sw::after{content:"";position:absolute;right:1px;top:1px;width:12px;height:10px;background:#d8dcd9}
-
-/* List screen */
 .listhead{display:flex;align-items:center;gap:10px;height:26px;color:#fff}
-.cols{position:absolute;left:12px;right:12px;top:40px;bottom:6px;display:grid;grid-template-columns:1fr 250px;gap:12px}
+
+/* Saved data page */
+.cols{position:absolute;left:12px;right:12px;top:40px;bottom:6px;display:grid;grid-template-columns:1fr 262px;gap:10px}
 .list{overflow:hidden}
-.grp{color:var(--mc-faint);font-size:13px;line-height:22px;margin-top:4px}
 .it{padding:3px 8px;cursor:pointer;box-shadow:inset 0 0 0 1px transparent}
 .it:hover{background:rgba(255,255,255,.06)}
 .it.sel{background:rgba(108,195,73,.14);box-shadow:inset 0 0 0 1px var(--accent-deep)}
-.it .nm{display:flex;gap:8px;align-items:center;line-height:20px}
-.it .meta{color:var(--mc-dim);font-size:13px;line-height:17px}
-.mark{font-size:12px;line-height:16px;padding:0 5px;color:var(--mc-panel);background:var(--accent)}
+.it .nm{display:flex;gap:6px;align-items:center;line-height:20px;white-space:nowrap}
+.it .nm .n{overflow:hidden;text-overflow:ellipsis}
+.it .meta{color:var(--mc-dim);font-size:13px;line-height:17px;white-space:nowrap}
+.mark{font-size:12px;line-height:16px;padding:0 5px;color:var(--mc-panel);background:var(--accent);flex:none}
 .mark.maybe{background:var(--mc-warn)}
-.det{box-shadow:inset 0 0 0 1px var(--mc-edge);padding:8px 10px;font-size:14px;line-height:20px;color:var(--mc-dim);display:flex;flex-direction:column;gap:2px}
-.det .t{color:#fff;font-size:15px;margin-bottom:4px;word-break:break-all}
+.mark.kind{background:none;color:var(--mc-faint);box-shadow:inset 0 0 0 1px var(--mc-key-edge)}
+.det{box-shadow:inset 0 0 0 1px var(--mc-edge);padding:8px 10px;font-size:14px;line-height:19px;color:var(--mc-dim);display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.det .t{color:#fff;font-size:15px;word-break:break-all}
 .det .k{color:var(--mc-faint)}
-.det .sp{flex:1}
-.det .note{font-size:13px;line-height:17px;color:var(--mc-dim);margin-bottom:6px}
+.det .note{font-size:13px;line-height:17px;color:var(--mc-dim)}
+.prev{display:grid;grid-template-columns:96px 1fr;gap:8px;margin:4px 0}
+.thumb{width:96px;height:96px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);position:relative;overflow:hidden;background:#0c0d0e}
+.thumb i{position:absolute;width:6px;height:6px;transform:rotate(45deg);box-shadow:0 0 0 1px #000}
+.thumb .none{position:absolute;inset:0;display:grid;place-items:center;color:var(--mc-faint);font-size:12px}
+.wps{font-size:13px;line-height:17px;overflow:hidden}
+.wps div{display:flex;gap:5px;align-items:center;white-space:nowrap}
+.wps s{width:6px;height:6px;transform:rotate(45deg);flex:none}
+.ck{display:flex;gap:6px;align-items:flex-start;font-size:13px;line-height:17px;cursor:pointer;margin:2px 0}
+.ck .b{width:12px;height:12px;margin-top:2px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key);flex:none;position:relative}
+.ck.on .b::after{content:"";position:absolute;left:3px;top:3px;width:6px;height:6px;background:var(--accent)}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 .msg{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);background:rgb(22,23,25);box-shadow:inset 0 0 0 1px var(--accent);padding:4px 12px;font-size:14px;white-space:nowrap;display:none}
 .msg.on{display:block}
 
-/* Hint */
 .hint{margin:4px 0 8px;padding:8px 10px;box-shadow:inset 0 0 0 1px var(--mc-warn);background:rgba(255,194,74,.08);font-size:14px;line-height:20px;color:var(--mc-dim)}
 .hint b{color:#fff;font-weight:400}
-.hint .acts{display:flex;gap:6px;margin-top:6px}
 .empty{color:var(--mc-faint);font-size:14px;margin-top:10px}
 </style>
 <body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">L-343 · DESIGN MOCKUP · 2026-11-14</div>
-    <h1>サーバーのデータを選び直す</h1>
-    <p class="lede">サーバーのアドレスやポートが変わると、Lamium は同じサーバーだと分からず、ウェイポイント・設計図の配置・地図・死亡時の配置が「消えた」ように見えます。データは古い名前の下に残っているので、プレイヤーが「このサーバーはあのデータを使う」と選べる入口を作ります。何も消さず、いつでも戻せることを前提にしています。</p>
+    <div class="eyebrow">L-343 · DESIGN MOCKUP · 第 2 版 · 2026-11-14</div>
+    <h1>保存データを見る・選び直す</h1>
+    <p class="lede">サーバーのアドレスやポートが変わると、Lamium は同じサーバーだと分からず、ウェイポイント・設計図の配置・地図・死亡時の配置が「消えた」ように見えます。第 2 版では、入口を「全般」に置き、ローカルワールドやフレンドのワールドも含めて保存データを一覧し、中身を見て選び直せるようにしました。サーバー名やアドレスはすべて架空のものです。</p>
   </header>
 
   <section class="controls">
     <div class="cgroup"><span class="lab">見る画面</span>
-      <button class="seg" data-view="settings" aria-pressed="true">1 設定の行</button>
-      <button class="seg" data-view="list">2 選ぶ画面</button>
+      <button class="seg" data-view="settings" aria-pressed="true">1 全般の行</button>
+      <button class="seg" data-view="list">2 保存データ</button>
       <button class="seg" data-view="hint">3 空のときの案内</button>
     </div>
-    <div class="cgroup"><span class="lab">入口の置き方</span>
-      <button class="seg" data-entry="A">A 設定の行だけ</button>
-      <button class="seg" data-entry="B" aria-pressed="true">B 行 + 空のときの案内（推奨）</button>
+    <div class="cgroup"><span class="lab">案内を出す画面（3）</span>
+      <button class="seg" data-hint="waypoints" aria-pressed="true">ウェイポイント</button>
+      <button class="seg" data-hint="schematics">設計図</button>
+      <button class="seg" data-hint="map">ワールドマップ</button>
     </div>
     <p class="modehelp" id="help"></p>
   </section>
 
   <div class="stage-outer"><div class="stage-fit" id="fit"><div class="stage" id="stage">
-    <!-- 1: settings row -->
+    <!-- 1: the row under General -->
     <div class="screen on" id="v-settings">
       <div class="head"><span class="brand">Lamium</span><span class="ver">0.6.x</span><span class="sp"></span><span class="btn">検索</span><span class="btn">閉じる (Esc)</span></div>
-      <div class="side"><div>カメラと見え方</div><div>HUD と表示</div><div class="cur">マップ</div><div>設計図</div><div>インベントリ</div><div>操作</div><div>全般</div>
+      <div class="side"><div>カメラと見え方</div><div>HUD と表示</div><div>マップ</div><div>設計図</div><div>インベントリ</div><div>操作</div><div class="cur">全般</div>
         <div class="pin"><div>ホットキー</div><div>図形</div><div>ウェイポイント</div><div>設計図</div><div>ワールドマップ</div><div>HUD レイアウト</div></div></div>
       <div class="main">
-        <div class="row feat">▾ ウェイポイント <span class="exp">Exp.</span><span class="sp"></span><span class="sw"></span></div>
-        <div class="row child">ワールド内に表示<span class="sp"></span><span class="sw"></span></div>
-        <div class="row feat">▾ ワールドマップ <span class="exp">Exp.</span><span class="sp"></span><span class="btn">開く</span></div>
-        <div class="row child">記録する<span class="sp"></span><span class="sw"></span></div>
-        <div class="row child">保存した地図（このワールド）<span class="sp"></span><span class="val">3.4 MB</span><span class="btn">消す</span></div>
-        <div class="row child sel">このサーバーのデータ<span class="sp"></span><span class="val" id="curname">198.51.100.20:19133</span><span class="btn" data-go="list">選び直す</span></div>
+        <div class="row feat">▾ 設定画面<span class="sp"></span><span class="val">右 Shift</span></div>
+        <div class="row child">アニメーション<span class="sp"></span><span class="sw"></span></div>
+        <div class="row feat">▸ ゲームの言語</div>
+        <div class="row feat sel">▾ 保存データ<span class="sp"></span><span class="btn" data-go="list">開く</span></div>
+        <div class="row child">このサーバーのデータ<span class="sp"></span><span class="val" id="curname"></span></div>
+        <div class="row feat">▸ 電卓</div>
       </div>
-      <div class="foot">このサーバーのウェイポイント、設計図の配置、地図、死亡時の配置の保存先です。アドレスが変わってデータが見当たらないときは、前のデータを選び直せます。選び直しても何も消えません。</div>
+      <div class="foot">ワールドやサーバーごとに保存しているウェイポイント、設計図の配置、地図、死亡時の配置です。中身と大きさを確かめたり、アドレスが変わって見当たらなくなったデータを選び直したりできます。</div>
     </div>
 
-    <!-- 2: list -->
+    <!-- 2: the Saved data page, with the sidebar kept -->
     <div class="screen" id="v-list">
       <div class="head"><span class="brand">Lamium</span><span class="ver">0.6.x</span><span class="sp"></span><span class="btn">閉じる (Esc)</span></div>
-      <div class="listhead" style="position:absolute;left:12px;top:38px;right:12px"><span class="btn" data-go="settings">&lt; マップ</span><span>このサーバーのデータ</span></div>
-      <div class="cols" style="top:70px">
-        <div class="list" id="list"></div>
-        <div class="det" id="det"></div>
+      <div class="side"><div>カメラと見え方</div><div>HUD と表示</div><div>マップ</div><div>設計図</div><div>インベントリ</div><div>操作</div><div class="cur">全般</div>
+        <div class="pin"><div>ホットキー</div><div>図形</div><div>ウェイポイント</div><div>設計図</div><div>ワールドマップ</div><div>HUD レイアウト</div></div></div>
+      <div class="main" style="bottom:0">
+        <div class="listhead"><span class="btn" data-go="settings">&lt; 全般</span><span>保存データ</span><span class="sp"></span><span style="color:var(--mc-faint);font-size:13px" id="total"></span></div>
+        <div class="cols">
+          <div class="list" id="list"></div>
+          <div class="det" id="det"></div>
+        </div>
       </div>
       <div class="msg" id="msg"></div>
     </div>
 
-    <!-- 3: hint on the Waypoints screen -->
+    <!-- 3: hint where the data is empty -->
     <div class="screen" id="v-hint">
       <div class="head"><span class="brand">Lamium</span><span class="ver">0.6.x</span><span class="sp"></span><span class="btn">閉じる (Esc)</span></div>
       <div class="side"><div>カメラと見え方</div><div>HUD と表示</div><div>マップ</div><div>設計図</div><div>インベントリ</div><div>操作</div><div>全般</div>
-        <div class="pin"><div>ホットキー</div><div>図形</div><div class="cur">ウェイポイント</div><div>設計図</div><div>ワールドマップ</div><div>HUD レイアウト</div></div></div>
+        <div class="pin"><div>ホットキー</div><div>図形</div><div id="pin-waypoints">ウェイポイント</div><div id="pin-schematics">設計図</div><div id="pin-map">ワールドマップ</div><div>HUD レイアウト</div></div></div>
       <div class="main">
-        <div class="listhead"><span>ウェイポイント</span><span class="sp" style="flex:1"></span><span class="btn">ここに追加</span></div>
+        <div class="listhead"><span id="hinttitle"></span></div>
         <div class="hint" id="hintbox">
-          このサーバーにはまだデータがありません。<br>
-          <b>play.example.net:19133</b> のデータ（ウェイポイント 12、配置 3、地図 3.4 MB、最後に使用 11-02）が、同じサーバーのものかもしれません。
-          <div class="acts"><span class="btn go" id="hint-use">このデータを使う</span><span class="btn" data-go="list">ほかのデータを見る</span><span class="btn" id="hint-no">違うサーバー</span></div>
+          <span id="hinttext"></span>
+          <div class="acts" style="margin-top:6px"><span class="btn go" id="hint-use">このデータを使う</span><span class="btn" data-go="list">保存データを開く</span><span class="btn" id="hint-no">違うサーバー</span></div>
         </div>
-        <div class="empty" id="hintempty">ウェイポイントはまだありません。</div>
+        <div class="empty" id="hintempty"></div>
       </div>
-      <div class="foot">案内は、いまのデータが空で、同じサーバーかもしれないデータがあるときだけ出ます。「違うサーバー」を押すと、このサーバーでは二度と出ません。</div>
+      <div class="foot">案内は、その画面で見るデータが空で、同じサーバーかもしれないデータにそれがあるときだけ出ます。「違うサーバー」を押すと、このサーバーでは二度と出ません。</div>
     </div>
   </div></div></div>
 
   <section class="box">
-    <h2>提案</h2>
+    <h2>第 1 版から変えた点</h2>
     <ol>
-      <li><b>入口は設定の「ワールドマップ」の下の行</b>。すでにある「保存した地図（このワールド）」の隣です。地図だけの話ではありませんが、「消えた」と気づくのは地図とウェイポイントなので、ここが一番見つけやすいと考えました。</li>
-      <li><b>選ぶ画面は一覧と詳細</b>。「いま使っているデータ」を一番上に、次に「このサーバーかもしれないデータ」、最後に「ほかのサーバーのデータ」を並べます。</li>
-      <li><b>「かもしれない」の基準</b>は、(a) 同じサーバーだと判定したのに使わなかった名前、(b) ワールド ID が同じ、(c) ホスト名か IP が同じでポートだけ違う、のどれか。ポート違いは別サーバーのこともあるので、自動では使わず候補に出すだけです。</li>
-      <li><b>選ぶと、その場で切り替わります</b>。いままで使っていたデータは消えず、一覧に残ります。もう一度選べば戻せます。</li>
-      <li><b class="rec">B: 空のときの案内</b>も出します。ウェイポイント画面とワールドマップで、いまのデータが空で候補があるときだけ。入口を知らなくても気づけます。</li>
+      <li><b>入口は「全般」の「保存データ」</b>。ワールドマップの下には置きません。影響する画面（ウェイポイント、設計図、ワールドマップ）には、空のときだけ案内を出します。</li>
+      <li><b>見出しで分けず、タグで区別</b>します。緑「使用中」、黄「候補」、灰色の枠は種類（ローカル、フレンド、サーバー）。並びは、使用中、候補、あとは最後に使った順です。</li>
+      <li><b>左のサイドバーは残します</b>。「全般」の中の 1 ページとして開きます。</li>
+      <li><b>選ぶとその場で切り替わります</b>。入り直しは要りません。</li>
+      <li><b>ローカルワールドとフレンドのワールドも一覧に出します</b>。大きさを確かめられます。これらは選び直しの対象にはならないので、「このデータを使う」は出ません。</li>
+      <li><b>「このアドレスなら、ポートが違ってもこのデータを使う」</b>を、使用中のサーバーのデータに付けました。Realms のように毎回ポートが変わる場合のためです。既定はオフです。</li>
+      <li><b>詳細にプレビュー</b>。地図の縮小表示（ウェイポイントの位置つき）と、ウェイポイントの名前を数件。どのサーバーのデータかを見て判断できます。</li>
     </ol>
   </section>
   <section class="box">
     <h2>決めてほしいこと</h2>
     <ul>
-      <li>入口の場所は「ワールドマップ」の下でよいか（ほかの案: ウェイポイントの下、「全般」）。</li>
-      <li>案内（B）を出すか。出す場合、ウェイポイント画面とワールドマップの両方でよいか。</li>
-      <li>切り替えはその場で反映するか、入り直してからにするか（その場のほうが分かりやすいが、地図の読み直しが入る）。</li>
-      <li>名前の見せ方。フォルダ名そのまま（<code>http___198.51.100.20_19133_19133</code>）ではなく、<code>198.51.100.20:19133</code> の形に直して見せる想定です。</li>
-      <li>ローカルワールドとフレンドのワールドのデータは一覧に出さない想定です（アドレスがなく、取り違えの原因にならないため）。</li>
+      <li>「消す」を付けるか。大きさを確かめる目的なら、不要なデータを消したくなるはずです。付ける場合は 2 回押しの確認にし、使用中のデータは消せないようにします。モックでは付けてあります。</li>
+      <li>地図の縮小表示は、どの範囲を出すか。案: そのデータで最後にいた場所を中心に、オーバーワールドの地表。地図がないデータは「地図なし」と出します。</li>
+      <li>「ポートが違ってもこのデータを使う」をオンにしたあと、同じアドレスの別ポートに本当に別のサーバーがあった場合。案: そのサーバーに入ったときに保存データの画面で別のデータを選べば、そのポートだけ例外として覚えます。</li>
+      <li>案内を出す画面は、ウェイポイント・設計図・ワールドマップの 3 つでよいか。</li>
     </ul>
   </section>
 </div>
@@ -185,74 +199,103 @@ const stage = document.getElementById('stage'), fit = document.getElementById('f
 function resize(){ const k = fit.clientWidth / W; stage.style.transform = `scale(${k})`; fit.style.height = (H*k)+'px'; }
 new ResizeObserver(resize).observe(fit); resize();
 
+const colors = ['#ff5a5a','#ffc24a','#6cc349','#4ab3ff','#b98bff'];
 const data = [
-  {id:'ip', name:'198.51.100.20:19133', group:'cur', wp:0, pl:0, map:'0.1 MB', used:'11-14', level:'local_world', by:'IP（転送で接続）'},
-  {id:'host', name:'play.example.net:19133', group:'maybe', why:'ワールド ID が同じ', wp:12, pl:3, map:'3.4 MB', used:'11-02', level:'local_world', by:'ホスト名'},
-  {id:'host2', name:'play.example.net:19134', group:'maybe', why:'同じホスト名、ポート違い', wp:2, pl:0, map:'1.1 MB', used:'10-28', level:'farm', by:'ホスト名'},
-  {id:'mega', name:'mc.example.org:19132', group:'other', wp:5, pl:0, map:'8.0 MB', used:'10-11', level:'world', by:'ホスト名'},
-  {id:'lb', name:'featured.example.com:19132', group:'other', wp:0, pl:0, map:'0.3 MB', used:'11-14', level:'Featured Network', by:'ホスト名'},
+  {id:'ip', kind:'サーバー', name:'198.51.100.20:19133', maybe:false, wp:[], pl:0, map:'0.1 MB', mapBytes:.1, used:'11-14', level:'local_world', by:'IP（転送で接続）', tone:['#22301c','#2d4a25']},
+  {id:'host', kind:'サーバー', name:'play.example.net:19133', maybe:'ワールド ID が同じ', wp:['拠点','村','ネザー門','鉄トラップ','海底神殿'], more:7, pl:3, map:'3.4 MB', mapBytes:3.4, used:'11-02', level:'local_world', by:'ホスト名', tone:['#3d7a2e','#c9bd7a','#2f6fb0']},
+  {id:'host2', kind:'サーバー', name:'play.example.net:19134', maybe:'同じアドレス、別のポート', wp:['畑','倉庫'], more:0, pl:0, map:'1.1 MB', mapBytes:1.1, used:'10-28', level:'farm', by:'ホスト名', tone:['#5c8f3a','#8a6b3f']},
+  {id:'local', kind:'ローカル', name:'マイ ワールド', maybe:false, wp:['家','廃坑'], more:1, pl:1, map:'12.6 MB', mapBytes:12.6, used:'11-13', level:'（ワールドのフォルダ）', by:'—', tone:['#3d7a2e','#2f6fb0','#d8d2a0']},
+  {id:'friend', kind:'フレンド', name:'ともだちのワールド', maybe:false, wp:['集合場所'], more:0, pl:0, map:'0.8 MB', mapBytes:.8, used:'11-10', level:'（ワールド ID）', by:'—', tone:['#6f8f4a','#7d7d7d']},
+  {id:'mega', kind:'サーバー', name:'mc.example.org:19132', maybe:false, wp:['スポーン','ショップ','自分の土地'], more:2, pl:0, map:'8.0 MB', mapBytes:8, used:'10-11', level:'world', by:'ホスト名', tone:['#7d7d7d','#3d7a2e','#866043']},
 ];
-let current = 'ip', selected = 'host', entry = 'B', view = 'settings';
-const groups = [['cur','いま使っているデータ'],['maybe','このサーバーかもしれないデータ'],['other','ほかのサーバーのデータ']];
-const meta = d => `ウェイポイント ${d.wp} ・ 配置 ${d.pl} ・ 地図 ${d.map} ・ 最後に使用 ${d.used}`;
-function groupOf(d){ return d.id === current ? 'cur' : d.group === 'cur' ? 'maybe' : d.group; }
+let current = 'ip', selected = 'host', view = 'settings', hintOn = 'waypoints', anyPort = false, armed = null;
+const by = id => data.find(d => d.id === id);
+function order(){
+  const rank = d => d.id === current ? 0 : (d.maybe || d.wasCurrent) ? 1 : 2;
+  return [...data].sort((a, b) => rank(a) - rank(b) || b.used.localeCompare(a.used));
+}
+function thumb(d){
+  if (d.mapBytes < .2) return '<div class="thumb"><div class="none">地図なし</div></div>';
+  const t = d.tone, bg = `conic-gradient(from ${d.name.length*23}deg at ${30+d.name.length}% 55%, ${t.concat(t[0]).join(',')})`;
+  const pins = d.wp.slice(0,5).map((_, i) => `<i style="left:${14+((i*37+d.name.length*7)%68)}px;top:${12+((i*53+d.name.length*3)%70)}px;background:${colors[i%5]}"></i>`).join('');
+  return `<div class="thumb" style="background:${bg};image-rendering:pixelated">${pins}</div>`;
+}
 function render(){
   const list = document.getElementById('list'); list.innerHTML = '';
-  for (const [g, title] of groups) {
-    const items = data.filter(d => groupOf(d) === g);
-    if (!items.length) continue;
-    list.insertAdjacentHTML('beforeend', `<div class="grp">${title}</div>`);
-    for (const d of items) {
-      const mark = g === 'cur' ? '<span class="mark">使用中</span>' : g === 'maybe' ? `<span class="mark maybe">${d.why || '前に使っていた'}</span>` : '';
-      const el = document.createElement('div');
-      el.className = 'it' + (d.id === selected ? ' sel' : '');
-      el.innerHTML = `<div class="nm"><span>${d.name}</span>${mark}</div><div class="meta">${meta(d)}</div>`;
-      el.onclick = () => { selected = d.id; render(); };
-      list.appendChild(el);
-    }
+  for (const d of order()) {
+    const tag = d.id === current ? '<span class="mark">使用中</span>' : (d.maybe || d.wasCurrent) ? '<span class="mark maybe">候補</span>' : '';
+    const el = document.createElement('div');
+    el.className = 'it' + (d.id === selected ? ' sel' : '');
+    el.innerHTML = `<div class="nm"><span class="mark kind">${d.kind}</span><span class="n">${d.name}</span>${tag}</div>
+      <div class="meta">ウェイポイント ${d.wp.length + (d.more||0)} ・ 配置 ${d.pl} ・ 地図 ${d.map} ・ ${d.used}</div>`;
+    el.onclick = () => { selected = d.id; armed = null; render(); };
+    list.appendChild(el);
   }
-  const d = data.find(x => x.id === selected), cur = d.id === current;
+  document.getElementById('total').textContent = `合計 ${data.reduce((s, d) => s + d.mapBytes, 0).toFixed(1)} MB`;
+  const d = by(selected), cur = d.id === current, server = d.kind === 'サーバー', here = by(current);
+  const wps = d.wp.length ? d.wp.slice(0,5).map((n, i) => `<div><s style="background:${colors[i%5]}"></s>${n}</div>`).join('') + (d.more ? `<div style="color:var(--mc-faint)">ほか ${d.more} 件</div>` : '')
+    : '<div style="color:var(--mc-faint)">ウェイポイントなし</div>';
+  const why = d.maybe || (d.wasCurrent ? '前に使っていた' : '');
+  let action = '';
+  if (cur) action = `<div class="note">いま入っているサーバーはこのデータを使っています。</div>
+      <div class="ck${anyPort ? ' on' : ''}" id="anyport"><span class="b"></span><span>${d.name.split(':')[0]} なら、ポートが違ってもこのデータを使う</span></div>`;
+  else if (server) action = `<div class="note">${why ? '候補の理由: ' + why + '。' : ''}選ぶと、いまのサーバー（${here.name}）がこのデータを使います。いまのデータは消えず、一覧に残ります。</div>
+      <div class="acts"><span class="btn go" id="use">このデータを使う</span><span class="btn" id="del">${armed === d.id ? 'もう一度押すと消す' : '消す'}</span></div>`;
+  else action = `<div class="note">${d.kind}のワールドのデータです。サーバーには使えません。</div>
+      <div class="acts"><span class="btn" id="del">${armed === d.id ? 'もう一度押すと消す' : '消す'}</span></div>`;
   document.getElementById('det').innerHTML =
     `<div class="t">${d.name}</div>
-     <div><span class="k">ウェイポイント</span> ${d.wp}</div>
-     <div><span class="k">設計図の配置</span> ${d.pl}</div>
-     <div><span class="k">地図</span> ${d.map}</div>
-     <div><span class="k">最後に使用</span> ${d.used}</div>
+     <div class="prev">${thumb(d)}<div class="wps">${wps}</div></div>
+     <div><span class="k">設計図の配置</span> ${d.pl}　<span class="k">地図</span> ${d.map}</div>
+     <div><span class="k">最後に使用</span> ${d.used}　<span class="k">接続</span> ${d.by}</div>
      <div><span class="k">ワールド ID</span> ${d.level}</div>
-     <div><span class="k">接続のしかた</span> ${d.by}</div>
-     <span class="sp"></span>
-     <div class="note">${cur ? 'このサーバーはいまこのデータを使っています。' : '選ぶと、このサーバーはこのデータを使います。いまのデータは消えず、この一覧に残ります。'}</div>
-     ${cur ? '' : '<span class="btn go" id="use">このデータを使う</span>'}`;
-  const use = document.getElementById('use');
-  if (use) use.onclick = () => choose(d.id);
-  document.getElementById('curname').textContent = data.find(x => x.id === current).name;
+     <span class="sp"></span>${action}`;
+  const use = document.getElementById('use'); if (use) use.onclick = () => choose(d.id);
+  const any = document.getElementById('anyport'); if (any) any.onclick = () => { anyPort = !anyPort; render(); };
+  const del = document.getElementById('del'); if (del) del.onclick = () => {
+    if (armed !== d.id) { armed = d.id; render(); return; }
+    data.splice(data.indexOf(d), 1); armed = null; selected = current; render(); say(`${d.name} のデータを消しました`);
+  };
+  document.getElementById('curname').textContent = here.name;
+}
+function say(text){
+  const msg = document.getElementById('msg');
+  msg.textContent = text; msg.classList.add('on');
+  clearTimeout(say.t); say.t = setTimeout(() => msg.classList.remove('on'), 2200);
 }
 function choose(id){
-  current = id; selected = id; render();
-  const msg = document.getElementById('msg');
-  msg.textContent = `${data.find(x => x.id === id).name} のデータに切り替えました`;
-  msg.classList.add('on'); clearTimeout(choose.t); choose.t = setTimeout(() => msg.classList.remove('on'), 2200);
+  by(current).wasCurrent = true;
+  current = id; selected = id; anyPort = false; armed = null; render();
+  say(`${by(id).name} のデータに切り替えました`);
 }
 const helps = {
-  settings: '設定の「マップ」区分、ワールドマップの下に 1 行。値はいま使っているデータの名前で、「選び直す」で 2 の画面に行きます。',
-  list: '行をクリックすると右に中身が出ます。「このデータを使う」で切り替え。使用中だったデータは「このサーバーかもしれないデータ」に残り、選び直せば戻ります。',
-  hint: 'ウェイポイント画面の一番上に出る案内。候補のうち一番データの多いものを 1 つだけ挙げます。A（設定の行だけ）を選ぶと、この案内は出ません。',
+  settings: '「全般」に「保存データ」の見出しを足します。子の行には、いま入っているサーバーが使っているデータの名前が出ます。「開く」で 2 の画面へ。',
+  list: 'サイドバーはそのままで、一覧と詳細。行をクリックすると右に地図の縮小表示とウェイポイントの名前が出ます。タグ: 緑＝使用中、黄＝候補、枠＝種類。「このデータを使う」でその場で切り替わります。',
+  hint: 'ウェイポイント、設計図、ワールドマップの各画面で、見るデータが空で候補にそれがあるときだけ、一番上に出る案内です。上のボタンで画面を切り替えられます。',
+};
+const hints = {
+  waypoints: {title:'ウェイポイント', what:'ウェイポイント 12', none:'ウェイポイントはまだありません。'},
+  schematics: {title:'設計図 ・ 配置', what:'設計図の配置 3', none:'配置した設計図はまだありません。'},
+  map: {title:'ワールドマップ', what:'地図 3.4 MB', none:'（まだ探索していない地図が表示されます）'},
 };
 function show(v){
   view = v;
   for (const s of document.querySelectorAll('.screen')) s.classList.toggle('on', s.id === 'v-' + v);
   for (const b of document.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === v);
   document.getElementById('help').textContent = helps[v];
-  const hidden = entry === 'A' || current !== 'ip' || show.dismissed;
-  document.getElementById('hintbox').style.display = hidden ? 'none' : '';
-  document.getElementById('hintempty').textContent = current === 'ip' ? 'ウェイポイントはまだありません。' : `（${data.find(x => x.id === current).wp} 件のウェイポイントが並びます）`;
+  const h = hints[hintOn];
+  for (const k of Object.keys(hints)) document.getElementById('pin-' + k).className = k === hintOn ? 'cur' : '';
+  document.getElementById('hinttitle').textContent = h.title;
+  document.getElementById('hinttext').innerHTML = `このサーバーにはまだデータがありません。<br><b>play.example.net:19133</b> のデータ（${h.what}、最後に使用 11-02）が、同じサーバーのものかもしれません。`;
+  document.getElementById('hintbox').style.display = (current !== 'ip' || show.dismissed) ? 'none' : '';
+  document.getElementById('hintempty').textContent = current === 'ip' ? h.none : '（選んだデータの中身が並びます）';
 }
 for (const b of document.querySelectorAll('[data-view]')) b.onclick = () => show(b.dataset.view);
 for (const b of document.querySelectorAll('[data-go]')) b.onclick = () => show(b.dataset.go);
-for (const b of document.querySelectorAll('[data-entry]')) b.onclick = () => {
-  entry = b.dataset.entry;
-  for (const o of document.querySelectorAll('[data-entry]')) o.setAttribute('aria-pressed', o === b);
-  show(view);
+for (const b of document.querySelectorAll('[data-hint]')) b.onclick = () => {
+  hintOn = b.dataset.hint;
+  for (const o of document.querySelectorAll('[data-hint]')) o.setAttribute('aria-pressed', o === b);
+  show('hint');
 };
 document.getElementById('hint-use').onclick = () => { choose('host'); show('hint'); };
 document.getElementById('hint-no').onclick = () => { show.dismissed = true; show('hint'); };

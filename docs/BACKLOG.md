@@ -387,9 +387,16 @@ Open, to agree before building:
 3. A different port, or a name and an IP nothing has linked: the player
    says "use the data of ..." on the Waypoints or map screen, listing the
    names passed over and those with the same level id first. Where it
-   sits and how it reads. Mockup 2026-11-14, awaiting review:
-   [demos/server-data.html](demos/server-data.html) (a row under World
-   map, a list-and-detail screen, a hint where the data is empty).
+   sits and how it reads. Mockup, second version 2026-11-14, awaiting
+   review: [demos/server-data.html](demos/server-data.html). Decided by
+   the maintainer on the first version (2026-11-14): the entry sits under
+   General, not World map, with hints on the screens it affects while
+   their data is empty; tags tell rows apart, no group headings; the
+   sidebar stays; a choice takes effect at once; local worlds and friends'
+   worlds are listed too, to see what they hold and how large it is.
+   Asked for: "use this data for any port of this address" (for a Realm,
+   if its port changes per visit), and a preview (map thumbnail, waypoint
+   names) so a person can tell whose data it is.
 4. Whether folders that turn out to be one server are ever merged (waypoint
    lists could be; map tiles less obviously), or only chosen between.
 Still to see: a Realm; a server whose port changes between visits.
