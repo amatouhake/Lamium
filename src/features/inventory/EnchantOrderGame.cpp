@@ -951,8 +951,12 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     // window's own opacity when that is lower.
     float const slide = std::max(0.f, at.y - windowRest), way = std::max(1.f, (screen.y - windowRest) * .5f);
     float opacity = std::clamp(1 - slide / way, 0.f, 1.f);
-    // Only while it is moving and only a value that looks like a fade: at rest the member may not be the drawn opacity.
-    if (float const own = window->mAlpha; slide > .5f && std::isfinite(own) && own > 0 && own < opacity) opacity = own;
+    // Only while it slides away and only a value that looks like a fade: at rest, and while the window comes
+    // up, the member may not be the drawn opacity, and following it there made the panels flicker.
+    static float lastSlide = 0;
+    bool const leaving = slide > lastSlide + .01f;
+    lastSlide = slide;
+    if (float const own = window->mAlpha; leaving && slide > .5f && std::isfinite(own) && own > 0 && own < opacity) opacity = own;
     list.ready = true;
     list.at = clock;
     list.left = left; list.top = top; list.width = width; list.height = height;
