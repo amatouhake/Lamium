@@ -70,13 +70,6 @@ bool installed = false;
 void releaseStates() {
     for (auto transition : dispatch.reset()) post(static_cast<Action>(transition.action), false);
 }
-bool opensMenu(Action action) {
-    return action == Action::Settings || action == Action::OpenShapes || action == Action::OpenHotkeys
-        || action == Action::OpenHudLayout || action == Action::OpenSchematics || action == Action::OpenSchematicFiles
-        || action == Action::OpenSchematicCheck || action == Action::OpenSchematicMaterials || action == Action::OpenSchematicPlaced
-        || action == Action::OpenSchematicKeys || action == Action::SaveSchematicArea || action == Action::SchematicMenu
-        || action == Action::OpenSavedData || action == Action::OpenGameLanguage;
-}
 void invalidate() {
     inventory::repeatTrades::cancel();
     interaction::periodic::interrupt();

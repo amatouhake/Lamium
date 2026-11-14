@@ -236,6 +236,10 @@ void settingsRowsTests() {
     check(options.size() == listed && actions.size() == live, "all settings and actions are reachable");
     check(input::retired(input::Action::CaptureBreaking) && input::retired(input::Action::ResetBreaking)
           && !input::retired(input::Action::CycleBreakingMode), "only the L-15 capture and reset actions are retired");
+    bool openersOpen = input::opensMenu(input::Action::AddWaypoint) && input::opensMenu(input::Action::Settings);
+    for (size_t i = 0; i < input::actions.size(); ++i)
+        if (input::actions[i].id.starts_with("open") && !input::opensMenu(static_cast<input::Action>(i))) openersOpen = false;
+    check(openersOpen && !input::opensMenu(input::Action::Zoom), "every screen-opening action takes the input from held keys (L-339)");
     // Game HUD placement has one link, which opens the editor at the chat; the
     // paper doll and the scoreboard are placed from there too (L-321).
     std::set<ui::HudElementId> linked(ui::hud_editor::drawOrder.begin(), ui::hud_editor::drawOrder.end());

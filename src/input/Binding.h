@@ -315,6 +315,19 @@ inline bool actionAllowed(Action action, bool gameplay, bool container, bool fre
     if (action == Action::Transfer) return gameplay || container;
     return gameplay;
 }
+// Actions that open a Lamium screen or prompt: the screen takes the input,
+// so nothing else held may follow (CustomInput.cpp).
+inline bool opensMenu(Action action) {
+    switch (action) {
+    case Action::Settings: case Action::OpenShapes: case Action::OpenHotkeys: case Action::OpenHudLayout:
+    case Action::OpenSchematics: case Action::OpenSchematicFiles: case Action::OpenSchematicCheck:
+    case Action::OpenSchematicMaterials: case Action::OpenSchematicPlaced: case Action::OpenSchematicKeys:
+    case Action::SaveSchematicArea: case Action::SchematicMenu: case Action::OpenSavedData: case Action::OpenGameLanguage:
+    case Action::OpenWaypoints: case Action::OpenWorldMap: case Action::AddWaypoint: case Action::OpenCalculator:
+    case Action::OpenBlockHighlight: case Action::OpenEnchantOrder: return true;
+    default: return false;
+    }
+}
 // How another binding relates to this one; the Hotkeys tooltip groups by it.
 enum class Link { Same, StartsWithThis, ContainsThis, InsideThis, Reordered };
 struct Conflict { Action action; Relation relation; Link link; };
