@@ -12,7 +12,8 @@ namespace lamium::ui {
 void drawSmallButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                      bool hovered, Rgb fillColor = palette::keyFill, Rgb edge = palette::keyEdge, Rgb textColor = palette::text);
 // A destructive button: the first press arms it (danger fill), the second acts.
-// The danger edge stays in both states so it keeps the plain button's shape.
+// Unarmed it looks plain and turns red only under the pointer, so an always
+// visible one (a section's Reset) does not draw the eye.
 void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                       bool hovered, bool armed);
 // The body of a docked view too short for its editor (!l.usable()): Expand and

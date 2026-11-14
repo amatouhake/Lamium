@@ -1782,8 +1782,9 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         bool over = hovering(sx, sy, bw, buttonHeight);
         Rgb fill = danger && state.deleteArmed ? ui::palette::danger : over ? ui::palette::hover : ui::palette::keyFill;
         ui::fill(context, sx, sy, bw, buttonHeight, fill);
-        ui::frame(context, sx, sy, bw, buttonHeight, danger ? ui::palette::dangerEdge : ui::palette::keyEdge);
-        ui::label(context, sx, sy + inset, bw, std::move(text), danger && !state.deleteArmed ? ui::palette::dangerText : ui::palette::text,
+        bool red = danger && (state.deleteArmed || over);
+        ui::frame(context, sx, sy, bw, buttonHeight, red ? ui::palette::dangerEdge : ui::palette::keyEdge);
+        ui::label(context, sx, sy + inset, bw, std::move(text), red && !state.deleteArmed ? ui::palette::dangerText : ui::palette::text,
                   ui::Align::Center);
         state.hits.push_back({sx, sy, bw, buttonHeight, target, item});
         return bw;
@@ -1932,10 +1933,11 @@ void drawMenu(MinecraftUIRenderContext& context, glm::vec2 size) {
     for (size_t i = 0; i < items.size(); ++i) {
         float iy = y + 11 + i * itemHeight;
         bool danger = (m.kind == MenuKind::Waypoint && i == 2);
+        bool over = hovering(x, iy, width, itemHeight);
         if (danger && m.armed) ui::fill(context, x + 1, iy, width - 2, itemHeight, ui::palette::danger);
-        else if (hovering(x, iy, width, itemHeight)) ui::fill(context, x + 1, iy, width - 2, itemHeight, ui::palette::white, .07f);
+        else if (over) ui::fill(context, x + 1, iy, width - 2, itemHeight, ui::palette::white, .07f);
         ui::label(context, x + pad, iy + 1, width - 2 * pad, items[i],
-                  danger && !m.armed ? ui::palette::dangerText : ui::palette::text);
+                  danger && over && !m.armed ? ui::palette::dangerText : ui::palette::text);
         state.hits.push_back({x, iy, width, itemHeight, Target::Menu, static_cast<int>(i)});
     }
     // The menu swallows clicks on its padding too.

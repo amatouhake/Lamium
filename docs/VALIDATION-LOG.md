@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Palette tokens and the destructive button (L-341, 2026-11-15)
+
+Build `5e8c8c87`, DLL SHA-256
+`aba405acfc0640be146ba57b05ac785a6c174e93a33783d27a67614ee19c19f8`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Delete in Shapes, Waypoints and Schematics, Remove in
+Block highlight and the settings section Reset show a clear red edge unarmed and armed; HUD
+layout draws the game's own HUD frames and legend swatch in light blue, Reset arms red on the
+first press, Done is green; draft shapes, map waypoint names and the schematic missing/ghost
+text in the one light blue look right. Raised: the always visible red section Reset in the
+settings header draws the eye, so the next build keeps unarmed destructive buttons plain
+until pointed at (not yet seen in game). Not checked: the map cache Clear button, the world
+map's delete button and menu.
+
 ## Rows of a switched-off feature dimmed whole (L-335, 2026-11-14)
 
 Build `74983a71`, DLL SHA-256

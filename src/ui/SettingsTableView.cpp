@@ -1121,7 +1121,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 float w = textWidth(context,text) + 8, bx = t.stateX + t.controlWidth() - w;
                 mapCacheButtonX = bx;
                 mapCacheButtonWidth = w;
-                drawDangerButton(context,bx,y+2,w,capHeight,std::move(text),false,mapCacheArmed);
+                bool over = pointer.x >= bx && pointer.x < bx + w && pointer.y >= y + 2 && pointer.y < y + 2 + capHeight;
+                drawDangerButton(context,bx,y+2,w,capHeight,std::move(text),over,mapCacheArmed);
             }
             break;
         }

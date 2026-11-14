@@ -88,7 +88,7 @@ ones. Lamium's own colors carry one meaning each, everywhere:
 | `hover` | A hovered button's fill |
 | `experimental` | Purple: only the Experimental badge |
 | `warning` | Yellow: only warnings (conflicts, refused values, notices, a schematic block in the wrong state) |
-| `danger`, `dangerEdge`, `dangerText` | Red: only destructive actions: armed fill, edge, unarmed text |
+| `danger`, `dangerEdge`, `dangerText` | Red: only destructive actions: armed fill, edge (hovered or armed), hovered text |
 | `info` | Light blue: reference, not Lamium's own content: drafts, ghosts, waypoint names on the map, the game's own HUD parts |
 | `mismatch` | Red text for a schematic block that differs from the world (not destructive, so not `danger`) |
 | `cornerOne`, `cornerTwo` | A schematic area's two corners, as their marks in the world |
@@ -130,9 +130,10 @@ have local copies (BACKLOG L-341); they are not the pattern.
 - **Buttons**, three kinds of one shape: a fill, a 1-unit edge lighter than
   the fill, centered text; only the colors differ. Plain (`keyFill`,
   `keyEdge`), primary (`accentDeep`, `accent`) and destructive
-  (`drawDangerButton`: `keyFill` with `dangerText` until the first press
-  arms it in `danger` with white text; the second press acts; `dangerEdge`
-  in both states; losing focus disarms).
+  (`drawDangerButton`: looks plain until pointed at, then `dangerEdge` and
+  `dangerText`, so an always visible one such as a section's Reset does not
+  draw the eye; the first press arms it, `danger` fill with `dangerEdge` and
+  white text; the second press acts; losing focus disarms).
 - **Scrollbars** on any list or text that overflows; pressing or dragging
   puts the first line under the pointer.
 - **Tips** open below their anchor (above when there is no room) and look
