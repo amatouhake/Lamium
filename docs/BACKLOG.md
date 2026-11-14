@@ -134,6 +134,15 @@ Do not infer game success from a build or unit-test result.
   editor's tag switch was not itemized; a settings file from before with Hide
   boss bars on is covered by unit tests only; Pocket UI, other GUI scales and
   servers are not checked.
+- Six fixes from the 2026-11-14 code review (`d4e36406`..`5359af0c`), built
+  and unit-tested only, none looked at in game: a category reset restores the
+  paper doll, scoreboard and boss bar placement; an older file's death point
+  is no longer converted again every frame while the waypoint list is full;
+  item icons and stack counts fade with a faint or hidden HUD element (an
+  enchanted item's glint may still show at full strength); Map size 41-50
+  takes effect; the schematic menu runs the item under the click; a hidden
+  chat, scoreboard or boss bar stays hidden under a clipping panel (needs a
+  resource pack whose HUD clips them).
 
 ### Left from 0.6.0
 
