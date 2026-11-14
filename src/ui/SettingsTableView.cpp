@@ -366,6 +366,8 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
             ? std::optional<input::Chord>(input::Chord{}) : std::nullopt};
         return;
     }
+    // The header and the sidebar answer the left button only.
+    if (right && hit.zone != Zone::Row) return;
     switch (hit.zone) {
     case Zone::Search: clearKeyQuery(); searchFocused_() = true; return;
     case Zone::Close: screen::close(); return;
