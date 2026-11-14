@@ -69,19 +69,22 @@ struct Translation {
         if (!active) return;
         // The sidebar's parts sit a few panels under it; a clipping panel on
         // the way would cut a moved part, so that leaves the sidebar vanilla.
+        // Hiding moves nothing, so it works under a clipping panel too.
+        bool clipped = false;
         auto panel = control.mParent.lock();
         for (int depth = 0; panel && depth < 16; ++depth) {
             if (sidebarControl(*panel->mName)) break;
-            if (panel->mClipsChildren) return;
+            clipped = clipped || panel->mClipsChildren;
             panel = panel->mParent.lock();
         }
         if (!panel || !sidebarControl(*panel->mName)) return;
+        if (active->hidden) { skip = true; return; }
+        if (clipped) return;
         if (panel->mClipsChildren) {
             if (!warnedClip.exchange(true))
                 Runtime::instance().self().getLogger().warn("Scoreboard position: the sidebar clips its parts; it stays vanilla");
             return;
         }
-        if (active->hidden) { skip = true; return; }
         if (panel->mCachedPositionDirty) panel->_setCachedPosition();
         if (control.mCachedPositionDirty) control._setCachedPosition();
         glm::vec2 at = *panel->mCachedPosition, size = *panel->mSize;

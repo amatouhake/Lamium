@@ -69,16 +69,20 @@ struct Translation {
         if (!active) return;
         std::string const& name = *control.mName;
         if (name != "chat_text" && name != "chat_background") return;
+        // A clipping panel on the way would cut a moved part, so that leaves
+        // the chat where it is; hiding moves nothing and works either way.
+        bool clipped = false;
         auto panel = control.mParent.lock();
         for (int depth = 0; panel && depth < 16; ++depth) {
             if (*panel->mName == "chat_panel") break;
-            if (panel->mClipsChildren) return;
+            clipped = clipped || panel->mClipsChildren;
             panel = panel->mParent.lock();
         }
-        if (!panel || *panel->mName != "chat_panel" || panel->mClipsChildren) return;
+        if (!panel || *panel->mName != "chat_panel") return;
         auto parent = panel->mParent.lock();
-        if (!parent || *parent->mName != "chat_stack" || parent->mClipsChildren) return;
+        if (!parent || *parent->mName != "chat_stack") return;
         if (active->hidden) { skip = true; return; }
+        if (clipped || panel->mClipsChildren || parent->mClipsChildren) return;
         if (panel->mCachedPositionDirty) panel->_setCachedPosition();
         if (control.mCachedPositionDirty) control._setCachedPosition();
         glm::vec2 at = *panel->mCachedPosition, size = *panel->mSize;

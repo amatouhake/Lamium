@@ -91,19 +91,22 @@ struct Translation {
         if (!active) return;
         // The bars' parts sit a few panels under the grid; a clipping panel
         // on the way would cut a moved part, so that leaves the bars vanilla.
+        // Hiding moves nothing, so it works under a clipping panel too.
+        bool clipped = false;
         auto panel = control.mParent.lock();
         for (int depth = 0; panel && depth < 16; ++depth) {
             if (gridControl(*panel->mName)) break;
-            if (panel->mClipsChildren) return;
+            clipped = clipped || panel->mClipsChildren;
             panel = panel->mParent.lock();
         }
         if (!panel || !gridControl(*panel->mName)) return;
+        if (active->hidden) { skip = true; return; }
+        if (clipped) return;
         if (panel->mClipsChildren) {
             if (!warnedClip.exchange(true))
                 Runtime::instance().self().getLogger().warn("Boss bar position: the grid clips its bars; they stay vanilla");
             return;
         }
-        if (active->hidden) { skip = true; return; }
         if (active->grid != panel.get()) {
             active->grid = panel.get();
             active->box = measure(*panel);
