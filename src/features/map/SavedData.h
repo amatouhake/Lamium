@@ -35,7 +35,8 @@ std::vector<SavedData> savedData();
 bool useData(std::string const& key);
 // Deletes the data's waypoints, placements, map and death layout. Never the data in use.
 bool removeData(SavedData const&);
-bool setDataAnyPort(std::string const& key, bool on);
+// On: the address's other ports follow too (how many is returned; below zero on failure), at once for the joined server.
+int setDataAnyPort(std::string const& key, bool on);
 // The data the joined server uses, as shown; empty when there is none to choose (a local world, no world).
 std::string dataName();
 }

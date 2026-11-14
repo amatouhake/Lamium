@@ -106,7 +106,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"automationStatus", "feature.automationStatus", "help.automationStatus", "interface.automationStatus", false, input::Action::ToggleAutomationStatus},
     {"settings", "feature.settings", "help.settings", "", false, input::Action::Settings},
     {"gameLanguage", "feature.gameLanguage", "help.gameLanguage", ""},
-    {"savedData", "feature.savedData", "help.savedData", ""},
+    {"savedData", "feature.savedData", "help.savedData", "", false, input::Action::OpenSavedData},
     {"skipServerPacks", "feature.skipServerPacks", "help.skipServerPacks", "visuals.skipServerPacks", false, input::Action::ToggleSkipServerPacks},
     {"calculator", "feature.calculator", "help.calculator", "", false, input::Action::OpenCalculator},
     {"bookPaste", "feature.bookPaste", "help.bookPaste", "interface.bookPaste", false, input::Action::ToggleBookPaste},
@@ -152,6 +152,7 @@ inline bool opensTool(input::Action action) {
     case input::Action::SchematicMenu:
     case input::Action::OpenBlockHighlight:
     case input::Action::OpenEnchantOrder:
+    case input::Action::OpenSavedData:
         return true;
     default:
         return false;
@@ -234,7 +235,12 @@ inline bool effectsPaused(std::string_view id, Settings const& value) {
 }
 
 // MapCache: the world map's saved data for this world, with a delete button.
-enum class RowKind { Section, Feature, Option, Action, Layout, MapCache };
+// SavedData: which saved data the joined server uses, linking to General > Saved data (L-343).
+enum class RowKind { Section, Feature, Option, Action, Layout, MapCache, SavedData };
+// The features whose data is kept per world and server.
+inline constexpr bool keepsSavedData(std::string_view feature) {
+    return feature == "savedData" || feature == "waypoints" || feature == "worldMap" || feature == "schematic";
+}
 // HUD features link to their element in the layout editor instead of listing
 // placement and look rows (DESIGN "HUD").
 inline std::optional<HudElementId> layoutElement(std::string_view feature) {
@@ -303,7 +309,8 @@ struct SettingsRow {
     bool heading() const { return kind == RowKind::Feature; }
     bool selectable() const { return kind != RowKind::Section; }
     bool child() const {
-        return kind == RowKind::Option || kind == RowKind::Action || kind == RowKind::Layout || kind == RowKind::MapCache;
+        return kind == RowKind::Option || kind == RowKind::Action || kind == RowKind::Layout || kind == RowKind::MapCache
+            || kind == RowKind::SavedData;
     }
     bool operator==(SettingsRow const& other) const {
         return kind == other.kind && feature == other.feature && option == other.option
@@ -373,8 +380,10 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
             if (auto element = layoutElement(feature.id))
                 children.push_back({RowKind::Layout, &feature, nullptr, {}, section, element});
             if (feature.id == "worldMap") children.push_back({RowKind::MapCache, &feature, nullptr, {}, section});
+            if (keepsSavedData(feature.id)) children.push_back({RowKind::SavedData, &feature, nullptr, {}, section});
             auto childText = [&](SettingsRow const& row) {
                 if (row.kind == RowKind::MapCache) return std::string(translate("mapCache"));
+                if (row.kind == RowKind::SavedData) return std::string(translate("savedData.row")) + " " + translate("feature.savedData");
                 if (row.layout) return std::string(translate(layoutLinkLabel(*row.layout))) + " " + translate("nav.hudLayout");
                 if (row.option) return std::string(row.option->id) + " " + translate(row.option->label);
                 // The child label shown here, plus the Hotkeys name as an alias.

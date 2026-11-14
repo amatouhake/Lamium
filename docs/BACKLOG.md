@@ -171,12 +171,14 @@ Do not infer game success from a build or unit-test result.
   is written (passed, VALIDATION-LOG 2026-11-14). Not
   checked: a friend's world keeping its data over a rejoin (none was
   available).
-- Saved data page (L-343 part 3, built only): the page lists what exists;
-  "Use this data" switches at once and back; the choice survives a rejoin;
-  after switching, exploring and switching back the first map is as it
-  was; the any-port switch on and off; Delete on a throwaway entry, and no
-  Delete on the data in use. The join code was restructured for this, so a
-  server and a local world joined before must still show their data.
+- Saved data page (L-343 part 3): the list, switching at once and back,
+  the choice over a rejoin, the first map unchanged after exploring under
+  another data, Delete and none for the data in use, and the data of
+  servers and local worlds joined before all passed (VALIDATION-LOG
+  2026-11-14). Built after that check and not looked at: the Open button
+  and child rows, the any-port switch releasing other ports and switching
+  the joined server at once, the marks naming the reason, rows that read
+  the same told apart.
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
@@ -424,9 +426,22 @@ Open, to agree before building:
    any-port switch (`Entry::anyPort`, a record of the exact port still
    wins); Delete, pressed twice, naming the waypoints and the map size,
    never for the data in use, on a row of its own so that arming it moves
-   nothing. Not built yet: the link rows in the settings table, the
-   notices on the Waypoints, Schematics and world map screens, the map
-   thumbnail.
+   nothing.
+   After the first game check (2026-11-14, maintainer): the row has the
+   shared Open button (an unbound "Open the saved data" action) and a
+   child row naming the data in use, as the mockup had it; the same child
+   row sits under Waypoints, World map and Schematics ("Saved data ...
+   Choose >"), which is the link row of the second version. Switching the
+   any-port switch on now releases the address's other recorded ports, so
+   they follow it at once (it did nothing for a port that had its own
+   record); the data they used stays a candidate, and a port given other
+   data afterwards keeps it. The row's mark says why it is a candidate
+   ("Same level ID", "Same address", "Used before") instead of one word,
+   and the note no longer repeats it. The switch is at the right of its
+   words, as in the settings rows. Rows that read the same carry what
+   tells them apart (a server's last use, a local world's folder name).
+   Not built yet: the notices on the Waypoints, Schematics and world map
+   screens, the map thumbnail.
 4. Whether folders that turn out to be one server are ever merged (waypoint
    lists could be; map tiles less obviously), or only chosen between.
 Still to see: a Realm; a server whose port changes between visits.

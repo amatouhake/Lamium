@@ -220,10 +220,15 @@ void storage() {
         check(sv::choose(wide, "realm.example.net", "203.0.113.71", 30002, "r", held) == "realm.example.net_30002"
               && sv::maybe(wide, "realm.example.net_30002", "realm.example.net_30001") == sv::Maybe::SameLevel,
               "another port is another server until the player says otherwise, and reads as a candidate");
-        std::erase_if(wide, [](sv::Entry const& e) { return e.port == 30002; });
-        check(sv::setAnyPort(wide, "realm.example.net_30001", true)
+        (void)sv::choose(wide, "elsewhere.example.net", "203.0.113.71", 30002, "r", held);
+        check(sv::setAnyPort(wide, "realm.example.net_30001", true) == 1 && wide.size() == 2
+              && sv::choose(wide, "realm.example.net", "203.0.113.71", 30002, "r", held) == "realm.example.net_30001"
               && sv::choose(wide, "realm.example.net", "203.0.113.72", 30003, "r", held) == "realm.example.net_30001"
-              && wide.size() == 1 && wide[0].port == 30001, "with the switch on, any port of that address uses the data");
+              && sv::maybe(wide, "realm.example.net_30001", "realm.example.net_30002") == sv::Maybe::UsedBefore
+              && sv::choose(wide, "elsewhere.example.net", "203.0.113.71", 30002, "r", held) == "elsewhere.example.net_30002",
+              "with the switch on, the address's other ports give up their own data, which stays a candidate; other addresses keep theirs");
+        check(sv::setAnyPort(wide, "nowhere_1", true) < 0, "no record, no switch");
+        std::erase_if(wide, [](sv::Entry const& e) { return e.key == "elsewhere.example.net_30002"; });
         check(sv::assign(wide, "realm.example.net", "203.0.113.72", 30004, "other", "elsewhere_30004")
               && sv::choose(wide, "realm.example.net", "203.0.113.72", 30004, "other", held) == "elsewhere_30004"
               && sv::choose(wide, "realm.example.net", "203.0.113.72", 30005, "r", held) == "realm.example.net_30001",

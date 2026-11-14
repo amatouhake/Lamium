@@ -1141,6 +1141,7 @@ void render(ll::event::UIRenderEvent& event) {
             // Outside the page the sidebar, Close and the rest work as usual.
             if (auto click = std::exchange(pendingClick, std::nullopt); click && !saved_data_view::click(click->x, click->y, click->right)) {
                 saved_data_view::reset();
+                directTool = false;
     saved_data_view::reset();
                 table_view::click(click->x, click->y, click->right);
             }
@@ -1539,6 +1540,20 @@ void openEnchantOrder(IClientInstance& current, bool overAnvil) {
     if (enchant_view::begin()) table_view::rebuild(true);
     directTool = openedNow && enchant_view::opened();
 }
+void openSavedData(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
+    if (!scene) open(current);
+    if (!scene) return;
+    if (openedNow) seedOpener(input::Action::OpenSavedData);
+    if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
+    screen::finishEditing();
+    language_view::reset();
+    highlight_view::reset();
+    enchant_view::reset();
+    if (saved_data_view::begin()) table_view::rebuild(true);
+    directTool = openedNow && saved_data_view::opened();
+}
 void openWorldMap(IClientInstance& current) {
     std::lock_guard lock(mutex);
     if (scene) return;
@@ -1584,6 +1599,7 @@ void openTool(input::Action action) {
     case input::Action::SchematicMenu: enterSchematicMenu(); return;
     case input::Action::OpenBlockHighlight: language_view::reset(); saved_data_view::reset(); enchant_view::reset(); if (highlight_view::begin()) table_view::rebuild(true); return;
     case input::Action::OpenEnchantOrder: language_view::reset(); saved_data_view::reset(); highlight_view::reset(); if (enchant_view::begin()) table_view::rebuild(true); return;
+    case input::Action::OpenSavedData: language_view::reset(); highlight_view::reset(); enchant_view::reset(); if (saved_data_view::begin()) table_view::rebuild(true); return;
     default: return;
     }
 }

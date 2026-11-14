@@ -27,6 +27,8 @@ void openBlockHighlight(IClientInstance& client);
 // The enchantment order planner in the settings (L-170).
 // `overAnvil`: asked from the anvil list; the screen may then open over the anvil screen.
 void openEnchantOrder(IClientInstance& client, bool overAnvil = false);
+// General > Saved data (L-343).
+void openSavedData(IClientInstance& client);
 bool ownsInput();
 void cancelInputCapture();
 }

@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Saved data page (L-343 part 3, 2026-11-14)
+
+Build `e3c240b2`, DLL SHA-256
+`618428a19e51557d9c4c52749dcf5bc05db4d38d36383a9961cf613c90744626`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Servers and local worlds joined before show their data
+(the join code was restructured); General > Saved data lists each data and shows the selected
+one's contents; "Use this data" on a candidate switches waypoints and map at once, and choosing
+the first data again goes back; after walking under the other data and going back, the first
+data's map is unchanged; the choice holds over a rejoin; the any-port switch turns on and off;
+Delete pressed twice removes a throwaway entry and the data in use offers none.
+Raised: the row should use the shared Open button; with the any-port switch on, a port that
+had its own record kept using its own data; the mark "Maybe this" does not say what is alike
+and the note is cut off; the switch sits left of its words, unlike the settings rows. Seen in
+the screenshot: two rows reading the same for one address under an older and a newer name, and
+local worlds of one name.
+
 ## A server's data under one name (L-343, 2026-11-14)
 
 Build of the code in `c8585424` (tested from a commit that was rewritten before it was pushed), DLL SHA-256

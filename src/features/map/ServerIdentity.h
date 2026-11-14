@@ -225,10 +225,35 @@ inline void forget(List& list, std::string const& key) {
     for (auto& e : list.servers) std::erase(e.others, key);
     std::erase_if(list.worlds, [&](World const& w) { return w.key == key; });
 }
-inline bool setAnyPort(std::vector<Entry>& entries, std::string const& key, bool on) {
-    bool any = false;
-    for (auto& e : entries) if (e.key == key && e.anyPort != on) { e.anyPort = on; any = true; }
-    return any;
+// Two records of one address: a shared name, or neither has a name and the IP is the same.
+inline bool sameAddress(Entry const& a, Entry const& b) {
+    for (auto const& host : a.hosts)
+        if (std::find(b.hosts.begin(), b.hosts.end(), host) != b.hosts.end()) return true;
+    return a.hosts.empty() && b.hosts.empty() && !a.ip.empty() && a.ip == b.ip;
+}
+// The any-port switch of the data under `key`. On: the address's other ports give up their own records, so
+// every port uses this data; what they used is remembered as passed over, and a port given other data
+// afterwards is recorded again and keeps it. Returns how many ports were released, below zero for no record.
+inline int setAnyPort(std::vector<Entry>& entries, std::string const& key, bool on) {
+    auto wide = std::find_if(entries.begin(), entries.end(), [&](Entry const& e) { return e.key == key; });
+    if (wide == entries.end()) return -1;
+    if (!on) {
+        for (auto& e : entries) if (e.key == key) e.anyPort = false;
+        return 0;
+    }
+    Entry kept = *wide;
+    kept.anyPort = true;
+    entries.erase(wide);
+    int released = 0;
+    std::erase_if(entries, [&](Entry const& e) {
+        if (!sameAddress(e, kept) || e.port == kept.port) return false;
+        if (e.key != kept.key && std::find(kept.others.begin(), kept.others.end(), e.key) == kept.others.end()
+            && kept.others.size() < maxNames) kept.others.push_back(e.key);
+        ++released;
+        return true;
+    });
+    entries.push_back(std::move(kept));
+    return released;
 }
 // How a key reads in the list: "host:port" from its record, else worked out
 // of the key itself (a name from before L-343).

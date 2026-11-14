@@ -61,9 +61,13 @@ void remove() {
 void anyPort() {
     auto const* d = chosen();
     if (!d || d->kind != Data::Kind::Server || d->host.empty()) return;
-    std::string const key = d->key;
-    if (map::waypoints::setDataAnyPort(key, !d->anyPort)) reload(key);
-    else say(translated("savedData.failed"), true);
+    std::string const key = d->key, host = d->host;
+    bool const on = !d->anyPort;
+    int const released = map::waypoints::setDataAnyPort(key, on);
+    if (released < 0) { say(translated("savedData.failed"), true); return; }
+    reload(key);
+    if (on && released > 0) say(translated("savedData.anyPortOn", released, host));
+    else notice.clear();
 }
 std::string kindText(Data const& d) {
     return translated(d.kind == Data::Kind::Server ? "savedData.kind.server"
@@ -80,6 +84,19 @@ std::string dateText(std::int64_t seconds) {
 }
 std::string deleteText(Data const& d) {
     return armed == d.key ? translated("savedData.deleteArmed", d.waypoints, sizeText(d.mapBytes, d.mapMore)) : translated("savedData.delete");
+}
+// Why it may be the joined server's data, as the row's mark.
+std::string maybeText(map::servers::Maybe maybe) {
+    using M = map::servers::Maybe;
+    return maybe == M::No ? std::string()
+        : translated(maybe == M::UsedBefore ? "savedData.why.before" : maybe == M::SameLevel ? "savedData.why.level" : "savedData.why.address");
+}
+// Two rows that read the same get what tells them apart: a server's last use, a local world's folder.
+std::string apart(Data const& d) {
+    int same = 0;
+    for (auto const& other : items) if (other.kind == d.kind && shown(other) == shown(d)) ++same;
+    if (same < 2) return {};
+    return d.kind == Data::Kind::Local ? d.key.substr(0, 8) : dateText(d.used);
 }
 Rgb markRgb(int color) {
     auto c = map::waypointColors[static_cast<size_t>(map::clampColor(color))];
@@ -175,12 +192,16 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         float const y = list.listRowY(i);
         rowBackground(context, list.listLeft + 1, y, list.listWidth - 2, ShapesLayout::rowHeight, selected == i,
             hover.zone == Zone::Row && hover.index == i);
-        std::string const tag = item.inUse ? translated("savedData.inUse")
-            : item.maybe != map::servers::Maybe::No ? translated("savedData.maybe") : std::string();
+        std::string const tag = item.inUse ? translated("savedData.inUse") : maybeText(item.maybe);
         float const tagWidth = tag.empty() ? 0 : textWidth(context, tag) + SettingsTable::gap;
+        float const nameX = list.listLeft + pad + kindWidth, nameRoom = list.listWidth - 2 * pad - kindWidth - tagWidth - 6;
+        std::string const name = shown(item), extra = apart(item);
         label(context, list.listLeft + pad, y + 3, kindWidth, kindText(item), palette::faint);
-        label(context, list.listLeft + pad + kindWidth, y + 3, list.listWidth - 2 * pad - kindWidth - tagWidth - 6, shown(item),
-            item.inUse ? palette::accent : palette::text);
+        label(context, nameX, y + 3, nameRoom, name, item.inUse ? palette::accent : palette::text);
+        if (!extra.empty()) {
+            float const used = std::min(nameRoom, textWidth(context, name) + SettingsTable::gap);
+            if (nameRoom - used > 20) label(context, nameX + used, y + 3, nameRoom - used, extra, palette::faint);
+        }
         if (!tag.empty())
             label(context, list.listLeft + list.listWidth - pad - 6 - tagWidth, y + 3, tagWidth, tag,
                 item.inUse ? palette::accent : palette::warning, Align::Right);
@@ -217,14 +238,12 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             : d->kind != Data::Kind::Server ? translated("savedData.note.world")
             : !d->canUse ? translated("savedData.note.noServer")
             : translated("savedData.note.use", currentName());
-        if (!d->inUse && d->maybe != map::servers::Maybe::No)
-            note = translated(d->maybe == map::servers::Maybe::UsedBefore ? "savedData.why.before"
-                : d->maybe == map::servers::Maybe::SameLevel ? "savedData.why.level" : "savedData.why.address") + " " + note;
         paragraph(context, x, last.noteY, width, note, static_cast<size_t>(SavedDataLayout::noteLines), palette::dim);
         if (last.anyPort) {
-            toggleSwitch(context, x, last.anyPortY + (line - switchHeight) / 2, d->anyPort);
-            label(context, x + switchWidth + 4, last.anyPortY, width - switchWidth - 4, translated("savedData.anyPort", d->host),
+            // As a settings row: the words left, the switch at the right edge.
+            label(context, x, last.anyPortY, width - switchWidth - 4, translated("savedData.anyPort", d->host),
                 hover.zone == Zone::AnyPort ? palette::text : palette::dim);
+            toggleSwitch(context, x + width - switchWidth, last.anyPortY + (line - switchHeight) / 2, d->anyPort);
         }
         if (last.use)
             drawSmallButton(context, last.useX, last.useY(), last.useWidth, SavedDataLayout::buttonHeight, useText,

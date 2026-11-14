@@ -124,7 +124,7 @@ void settingsRowsTests() {
                 && (!feature.toggle.empty() || sessions.contains(feature.id) || feature.id == "settings"
                     || feature.id == "schematicMenu" || feature.id == "schematicRepeat"
                     || feature.id == "playerList" || feature.id == "worldMap"
-                    || feature.id == "calculator" || feature.id == "enchantOrder"), // Named commands: a key without a switch.
+                    || feature.id == "calculator" || feature.id == "enchantOrder" || feature.id == "savedData"), // Named commands: a key without a switch.
                 "a parent key belongs to the feature's own state or screen opener");
     for (auto id : {"restrictions", "mapText"}) {
         auto found = std::find_if(ui::features.begin(), ui::features.end(),

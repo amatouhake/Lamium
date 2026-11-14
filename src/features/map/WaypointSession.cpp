@@ -489,10 +489,20 @@ bool removeData(SavedData const& item) {
     log("deleted the saved data under '" + item.key + "'");
     return true;
 }
-bool setDataAnyPort(std::string const& key, bool on) {
+int setDataAnyPort(std::string const& key, bool on) {
     std::lock_guard lock(mutex);
-    bool changed = false;
-    return withList([&](servers::List& list) { changed = servers::setAnyPort(list.servers, key, on); }) && changed;
+    int released = -1;
+    if (!withList([&](servers::List& list) { released = servers::setAnyPort(list.servers, key, on); }) || released < 0) return -1;
+    // The joined server may be one of the ports that now follow the switch.
+    if (joined.active && identity.hasAddress()) {
+        auto now = serverKey(identity);
+        if (now && now != identity.key) {
+            log("this server now uses the data under '" + *now + "'");
+            identity.key = now;
+            attach();
+        }
+    }
+    return released;
 }
 std::string dataName() {
     std::lock_guard lock(mutex);

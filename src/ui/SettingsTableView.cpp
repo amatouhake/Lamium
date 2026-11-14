@@ -294,7 +294,6 @@ void activateRow(int row, bool space) {
     case RowKind::Section: return;
     case RowKind::Feature:
         if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
-        if (entry.feature->id == "savedData") { saved_data_view::begin(); return; }
         if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) { screen::openTool(*primary); return; }
         if (space && hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
         if (entry.children) { setExpanded(row, !entry.expanded); return; }
@@ -308,6 +307,7 @@ void activateRow(int row, bool space) {
     case RowKind::Action: startCapture(*entry.action); return;
     case RowKind::Layout: openLayout(*entry.layout); return;
     case RowKind::MapCache: pressMapCache(); return;
+    case RowKind::SavedData: saved_data_view::begin(); return;
     }
 }
 void moveSelection(int step) {
@@ -384,7 +384,6 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     switch (entry.kind) {
     case RowKind::Feature:
         if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
-        if (entry.feature->id == "savedData") { saved_data_view::begin(); return; }
         if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) {
             float openX = openButtonX(displayed);
             if (hit.x >= openX && hit.x < openX + openButtonWidth) { screen::openTool(*primary); return; }
@@ -428,6 +427,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
         return;
     case RowKind::Layout: openLayout(*entry.layout); return;
     case RowKind::MapCache: if (onMapCacheButton(hit.x)) pressMapCache(); return;
+    case RowKind::SavedData: saved_data_view::begin(); return;
     default: return;
     }
 }
@@ -672,6 +672,7 @@ std::string baseDescription() {
     }
     case RowKind::Layout: return translated("help.layoutLink");
     case RowKind::MapCache: return translated("help.mapCache");
+    case RowKind::SavedData: return translated("help.savedData");
     default: return {};
     }
 }
@@ -1036,13 +1037,6 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 drawSmallButton(context, t.stateX, y + 1, width, capHeight, game_language::currentName(),
                     hover.zone == Zone::Row && hover.index == i);
             }
-            if (entry.feature->id == "savedData") {
-                // The data the joined server uses; "open" where there is none to name.
-                float width = t.keyX + t.keyWidth - t.stateX;
-                auto name = saved_data_view::currentName();
-                drawSmallButton(context, t.stateX, y + 1, width, capHeight, name.empty() ? translated("open") : std::move(name),
-                    hover.zone == Zone::Row && hover.index == i);
-            }
             if (open) drawOpenButton(context,t,y,openButtonHovered(t,hover,i));
             break;
         }
@@ -1094,6 +1088,18 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             drawGuide(context,y,entry.lastChild);
             label(context,t.nameX+12,y+3,nameRight-t.nameX-12,translated(layoutLinkLabel(*entry.layout)),palette::dim);
             label(context,t.stateX,y+3,t.controlWidth(),translated("layoutLinkValue"),palette::accent,Align::Right);
+            break;
+        }
+        case RowKind::SavedData: {
+            // Like the layout link: what is in use, and the way to the page that chooses it.
+            drawGuide(context,y,entry.lastChild);
+            auto name = saved_data_view::currentName();
+            auto link = translated(name.empty() ? "savedData.rowOpen" : "savedData.rowChoose");
+            float linkWidth = textWidth(context,link) + SettingsTable::gap;
+            label(context,t.nameX+12,y+3,nameRight-t.nameX-12,
+                translated(entry.feature->id == "savedData" ? "savedData.rowServer" : "savedData.row"),palette::dim);
+            label(context,t.stateX,y+3,t.controlWidth()-linkWidth,std::move(name),palette::text,Align::Right);
+            label(context,t.stateX,y+3,t.controlWidth(),std::move(link),palette::accent,Align::Right);
             break;
         }
         case RowKind::MapCache: {
