@@ -572,7 +572,7 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     // its text lines up with the row name at y + 3.
     float x = displayed.keyX, width = displayed.keyWidth, cy = y + 2;
     if (capturing_ == action) {
-        fill(context,x,cy-1,width,capHeight+2,palette::accent,.25f); // the row's frame marks it; no second frame
+        // Text only: the selected row's fill and frame already mark the listening cell.
         auto text = capture.value().empty() ? translated("captureBox") : bindingChordName(current, capture.value());
         label(context,x+3,cy+boxTextInset(),width-6,std::move(text));
         return;

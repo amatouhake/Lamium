@@ -128,7 +128,9 @@ the same commit. A screen never draws its own variant.
   right, middle) is the game's own click: its caps are outlined too, the tip
   and the capture footer say which game action it shares, and the click still
   reaches the game, so both happen (a chord with a modifier takes the click).
-  This shows in Hotkeys whatever the toast settings are.
+  This shows in Hotkeys whatever the toast settings are. While a binding is
+  captured its cell is text alone ("Press keys...", then the chord held): the
+  selected row's fill and frame mark it, so the cell adds no fill or frame.
 - **Steppers** (`drawStepper`): one box, `- value +` for numbers,
   `< value >` for choices (arrows drawn from rectangles); never separate
   `-`/`+` buttons. The end cell under the pointer lightens; an end that
