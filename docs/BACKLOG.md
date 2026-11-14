@@ -227,7 +227,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-233](backlog/L-233.md) Make inventory transfer gestures rebindable (Design)
 - [L-236](backlog/L-236.md) Rebuild only the ghost sections whose visible layer changed (Design)
 - [L-190](backlog/L-190.md) Select several rows at once in list screens (Design for the whole)
-- [L-183](backlog/L-183.md) Temporarily disregard selected schematic check mismatches (Design)
+- [L-183](backlog/L-183.md) Disregard selected schematic check mismatches (Design)
 - [L-184](backlog/L-184.md) Inspect ghost block data and schematic container contents (Design / Research for saved data inspection)
 - [L-185](backlog/L-185.md) Instantly load a schematic into the world when cheats allow it (Design)
 - [L-186](backlog/L-186.md) Improve schematic ghost legibility and reconsider translucency (Design / Research)

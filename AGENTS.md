@@ -31,6 +31,9 @@ records: search them (`git grep -n "L-66" docs/backlog`), never read them all.
   a short in-game checklist and the build tested (commit, DLL SHA-256).
 - "Builds and tests pass" is not "works in game". Do not claim runtime
   behavior nobody has seen.
+- Name a backlog item with its title, never the number alone: "L-183
+  Disregard selected schematic check mismatches", not "L-183". In a list
+  the title may be shortened, but keep enough to tell what it is.
 
 ## Build, test, deploy
 
