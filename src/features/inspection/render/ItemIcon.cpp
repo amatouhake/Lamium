@@ -80,8 +80,16 @@ int chunkOf(ItemStack const& stack) {
 }
 }
 void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> icons, int zOrder) {
-    // Measured but not drawn (HUD layout's hidden elements, L-334).
-    if (ui::drawOpacity() <= 0) return;
+    // Measured but not drawn (HUD layout's hidden elements, L-334); a faint
+    // element's icons are as faint as its text.
+    float const opacity = ui::drawOpacity();
+    if (opacity <= 0) return;
+    std::vector<IconAt> faded;
+    if (opacity < 1) {
+        faded.assign(icons.begin(), icons.end());
+        for (auto& icon : faded) icon.alpha *= opacity;
+        icons = faded;
+    }
     auto& client = context.mClient;
     auto* renderer = client.getItemRenderer();
     if (!renderer) return;

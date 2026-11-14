@@ -245,6 +245,8 @@ void logPlacement(HotbarLookup const& hotbar, std::optional<offhand::Box> const&
 // the bottom-right of the 18x18 cell, one unit lower, with the label's shadow.
 // drawText ignores renderShadow, so the shadow is a darker copy one unit away.
 void slotCount(MinecraftUIRenderContext& context, offhand::Box icon, float unit, int count) {
+    float const opacity = ui::drawOpacity();
+    if (opacity <= 0) return;
     auto const& handle = context.mClient.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default");
     Bedrock::NotNullNonOwnerPtr<FontHandle const> const fontRef{Bedrock::NonOwnerPointer<FontHandle const>{handle}};
     TextMeasureData const textData{unit, 0.0f, false, false, false, ::ui::TextAlignment::Right};
@@ -257,8 +259,8 @@ void slotCount(MinecraftUIRenderContext& context, offhand::Box icon, float unit,
                          bottom - size.y + offset, bottom + offset}, std::string(text), color, 1.0f,
                          ::ui::TextAlignment::Right, textData, caret);
     };
-    draw(unit, mce::Color{.25f, .25f, .25f, 1.f});
-    draw(0, mce::Color{1.f, 1.f, 1.f, 1.f});
+    draw(unit, mce::Color{.25f, .25f, .25f, opacity});
+    draw(0, mce::Color{1.f, 1.f, 1.f, opacity});
     context.flushText(0, std::nullopt);
 }
 // ---- Target card ----
