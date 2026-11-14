@@ -252,6 +252,13 @@ inline std::optional<HudElementId> layoutElement(std::string_view feature) {
     if (feature == "statusEffects") return HudElementId::StatusEffects;
     return std::nullopt;
 }
+// Every element a feature places: Game HUD has four, its row links to the first.
+inline std::vector<HudElementId> placedElements(std::string_view feature) {
+    if (feature == "gameHud")
+        return {HudElementId::Chat, HudElementId::PaperDoll, HudElementId::Scoreboard, HudElementId::BossBars};
+    if (auto element = layoutElement(feature)) return {*element};
+    return {};
+}
 inline constexpr std::string_view layoutLinkLabel(HudElementId id) {
     return id == HudElementId::Toast ? "layoutLinkToast"
         : id == HudElementId::Magnification ? "layoutLinkMagnification" : "layoutLink";
@@ -417,7 +424,7 @@ inline void resetSection(Settings& value, std::string_view section) {
         if (featureSection(option.feature) == section) settings::resetOption(value, option, defaults);
     for (auto const& feature : features)
         if (featureSection(feature.id) == section)
-            if (auto element = layoutElement(feature.id))
-                settings::hudElement(value, *element) = settings::hudElement(defaults, *element);
+            for (auto element : placedElements(feature.id))
+                settings::hudElement(value, element) = settings::hudElement(defaults, element);
 }
 }

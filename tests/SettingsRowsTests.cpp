@@ -287,6 +287,16 @@ void settingsRowsTests() {
         check(changed.inventory.sorting != defaults.inventory.sorting && changed.bindings[static_cast<size_t>(input::Action::Zoom)].has_value(),
             "a category reset leaves other categories and key bindings alone");
     }
+    {
+        Settings changed, defaults;
+        for (auto id : {ui::HudElementId::Chat, ui::HudElementId::PaperDoll, ui::HudElementId::Scoreboard, ui::HudElementId::BossBars})
+            settings::hudElement(changed, id).dy += 30;
+        ui::resetSection(changed, ui::featureSection("gameHud"));
+        bool restored = true;
+        for (auto id : {ui::HudElementId::Chat, ui::HudElementId::PaperDoll, ui::HudElementId::Scoreboard, ui::HudElementId::BossBars})
+            restored = restored && settings::hudElement(changed, id).dy == settings::hudElement(defaults, id).dy;
+        check(restored, "a category reset restores every game part's placement, not only the chat's");
+    }
 
     // Collapsed: only headings and features; child counts remain visible.
     expanded.clear();
