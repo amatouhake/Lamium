@@ -292,13 +292,15 @@ bool runtimeImage(MinecraftUIRenderContext& context, ResourceLocation const& tex
     context.flushImages(white, std::clamp(opacity, 0.f, 1.f) * currentOpacity, HashedString{"ui_textured_and_glcolor"});
     return true;
 }
-void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on) {
-    fill(context,x,y,switchWidth,switchHeight,on ? palette::accentDeep : palette::off);
-    frame(context,x,y,switchWidth,switchHeight,on ? palette::accent : palette::controlEdge);
-    float knob = switchHeight - 2;
-    float knobX = on ? x + switchWidth - 1 - knob : x + 1;
+void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on, float scale) {
+    if (!(scale > 0)) scale = 1;
+    float const w = switchWidth * scale, h = switchHeight * scale;
+    fill(context,x,y,w,h,on ? palette::accentDeep : palette::off);
+    frame(context,x,y,w,h,on ? palette::accent : palette::controlEdge);
+    float knob = h - 2;
+    float knobX = on ? x + w - 1 - knob : x + 1;
     fill(context,knobX,y+1,knob,knob,on ? palette::knobOn : palette::knobOff);
-    fill(context,knobX,y+knob-1,knob,2,on ? palette::gripOn : palette::gripOff);
+    fill(context,knobX,y+1+knob-2*scale,knob,2*scale,on ? palette::gripOn : palette::gripOff);
 }
 void slider(MinecraftUIRenderContext& context, float x, float y, float width, float fraction, bool active) {
     if (width < sliderKnobWidth + 2) return;

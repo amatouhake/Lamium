@@ -140,8 +140,8 @@ std::optional<ui::hud_editor::Box> drawElement(MinecraftUIRenderContext& context
         contentWidth = std::max(contentWidth, (line.marker ? 8 + 4 : 0) + textWidth);
     }
     contentWidth = std::min(contentWidth, 230 * zoom);
-    float padX = element.background == ui::ElementBackground::Card ? 5 : band ? ui::lineSidePadding * zoom : 0;
-    float padY = element.background == ui::ElementBackground::Card ? 3 : 0;
+    float padX = element.background == ui::ElementBackground::Card ? 5 * zoom : band ? ui::lineSidePadding * zoom : 0;
+    float padY = element.background == ui::ElementBackground::Card ? 3 * zoom : 0;
     float boxWidth = contentWidth + 2 * padX, boxHeight = static_cast<float>(lines.size()) * rowHeight + 2 * padY;
     auto placement = ui::placeElement(width, height, boxWidth, boxHeight, element);
     if (measureOnly) return ui::hud_editor::Box{placement.x, placement.y, boxWidth, boxHeight};
@@ -1416,7 +1416,7 @@ std::optional<ui::hud_editor::Box> drawPlayerList(MinecraftUIRenderContext& cont
     float zoom = elementZoom(element);
     float rowHeight = std::max(rowUnits, 10.f) * zoom, icon = 8 * zoom, gap = 3 * zoom, columnGap = 10 * zoom;
     bool card = element.background == ui::ElementBackground::Card, band = element.background == ui::ElementBackground::Line;
-    float padX = card ? 5 : band ? ui::lineSidePadding * zoom : 0, padY = card ? 3 : 0;
+    float padX = card ? 5 * zoom : band ? ui::lineSidePadding * zoom : 0, padY = card ? 3 * zoom : 0;
     auto measure = [&](std::string const& text) { return ui::labelWidth(context, text, zoom); };
     float platformWidth = 0, distanceWidth = 0, longestName = 0;
     for (auto const& row : rows) {
@@ -1787,8 +1787,8 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             float textWidth = 0;
             for (auto const& part : parts) textWidth = std::max(textWidth, ui::textWidthScaled(context, part, zoom));
             bool card = hud.toast.background == ui::ElementBackground::Card;
-            float padX = card ? 6 : 0, padY = card ? 3 : 0;
-            float lead = toast->plain ? 0 : ui::switchWidth + 6;
+            float padX = card ? 6 * zoom : 0, padY = card ? 3 * zoom : 0;
+            float lead = toast->plain ? 0 : (ui::switchWidth + 6) * zoom;
             float total = lead + textWidth + 2 * padX, rows = 14 * zoom * static_cast<float>(parts.size());
             auto frame = ui::placeElement(width, height, total, rows + 2 * padY, hud.toast);
             bool const outlined = preview && preview->outline[static_cast<size_t>(ui::HudElementId::Toast)];
@@ -1797,7 +1797,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             ui::ElementPlacement placement{frame.x + padX, frame.y + padY};
             for (auto const& [row, on] : switches)
                 if (!toast->plain && !outlined)
-                    ui::toggleSwitch(context, placement.x, placement.y + 14 * zoom * static_cast<float>(row) + (14 * zoom - ui::switchHeight) / 2, on);
+                    ui::toggleSwitch(context, placement.x, placement.y + 14 * zoom * static_cast<float>(row) + (14 * zoom - ui::switchHeight * zoom) / 2, on, zoom);
             for (size_t i = 0; !outlined && i < parts.size(); ++i)
                 // Centered in its row like the switch beside it (at the row's top it read about two units high).
                 ui::labelScaled(context, placement.x + lead,

@@ -118,7 +118,8 @@ void card(MinecraftUIRenderContext&, float left, float top, float width, float h
 void rowBackground(MinecraftUIRenderContext&, float left, float top, float width, float height,
                    bool selected, bool hovered);
 // Bedrock-style switch: the knob position carries the state as well as color.
-void toggleSwitch(MinecraftUIRenderContext&, float x, float y, bool on);
+// `scale` sizes it with a HUD element (the toggle toast); the edge stays one unit.
+void toggleSwitch(MinecraftUIRenderContext&, float x, float y, bool on, float scale = 1);
 // Draws a vanilla UI texture (e.g. "textures/ui/heart") into each rectangle,
 // batched into one flush. Rectangles are x, y, width, height.
 struct ImageRect { float x, y, w, h; };
