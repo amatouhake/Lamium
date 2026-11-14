@@ -164,6 +164,7 @@ struct Settings {
         bool minimap = false;
         int zoom = map::defaultZoomIndex; // Index into map::zoomSteps; saved as blocks ("range").
         float size = 20; // Map side, percent of the screen height; text follows the HUD layout scale.
+        static constexpr float sizeMin = 10, sizeMax = 50;
         bool rotate = false; // Heading up instead of north up.
         bool round = false;
         // map::ViewForce: 0 automatic, 1 surface, 2 cave; the key cycles it (L-253).
@@ -449,7 +450,7 @@ struct Settings {
         normalizeElement(hud.statusEffects, ui::defaultHudElement(ui::HudElementId::StatusEffects), true);
         map.zoom = map::clampZoomIndex(map.zoom);
         if (!std::isfinite(map.size)) map.size = 20;
-        map.size = std::clamp(std::round(map.size), 10.f, 50.f);
+        map.size = std::clamp(std::round(map.size), Map::sizeMin, Map::sizeMax);
         map.waypointsWorld = std::clamp(map.waypointsWorld, 0, 2);
         map.caveView = std::clamp(map.caveView, 0, 2);
         for (auto* shownOn : {&map.marksShownOn, &map.radarShownOn, &map.slimeShownOn}) *shownOn = map::clampShownOn(*shownOn);

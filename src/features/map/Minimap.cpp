@@ -773,10 +773,11 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         int pixels = enlarged ? enlargedPixels : normalPixels;
         double blocks = blocksAcross(zoom) * (enlarged ? 2 : 1), perPixel = blocks / pixels;
         float zoomScale = ui::clampHudScale(element.scale) / 100;
-        float size = std::round(height * std::clamp(settings.size, 10.f, 40.f) / 100 * zoomScale);
+        float size = std::round(height * std::clamp(settings.size, Settings::Map::sizeMin, Settings::Map::sizeMax) / 100 * zoomScale);
         // Markers keep their on-screen size when the map is enlarged.
         float baseSize = size;
-        if (enlarged) size = std::min(size * 2, std::round(height * .85f));
+        // Never smaller than the map it enlarges (a large map at a large scale).
+        if (enlarged) size = std::max(size, std::min(size * 2, std::round(height * .85f)));
         double marker = pixels / 216.0 * baseSize / size; // A mockup pixel, in texture pixels.
         bool underground = view->dimension == 1 || state.automatic.mode == ViewMode::Cave;
         bool saveable = cave ? caveHeightAllowed(view->dimension, layer) : view->dimension != 1;

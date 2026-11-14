@@ -551,7 +551,7 @@ inline constexpr auto options = std::to_array<Option>({
     {"map.size", "minimap", "mapSize",
         [](Settings const& s) -> OptionValue { return s.map.size; },
         [](Settings& s, int direction) { s.map.size += direction; s.normalize(); },
-        NumericOption{10, 50, [](Settings& s, float v) { s.map.size = v; }, 1}},
+        NumericOption{Settings::Map::sizeMin, Settings::Map::sizeMax, [](Settings& s, float v) { s.map.size = v; }, 1}},
     toggle<&Settings::map, &Settings::Map::rotate>("map.rotate", "minimap", "mapRotate"),
     toggle<&Settings::map, &Settings::Map::round>("map.round", "minimap", "mapRound"),
     choice<&Settings::map, &Settings::Map::caveView, caveViewLabels>("map.caveView", "minimap", "mapCaveView"),
