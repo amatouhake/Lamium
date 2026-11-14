@@ -1178,6 +1178,10 @@ Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
 
 ## Waypoints and death records (from DESIGN.md Components)
 
+- (Decided 2026-11-13, L-319/L-328) Waypoints off also stops recording a
+  death point and removing reached temporary waypoints, a death's waypoint
+  included; hiding only the markers is "Show in the world" and the Map
+  marks layer.
 Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
 - (Decided 2026-11-13, L-328) There are two kinds of waypoint, normal and
   temporary, and nothing beside them. A death adds a waypoint named "Death
