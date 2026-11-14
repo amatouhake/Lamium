@@ -651,14 +651,15 @@ void runMenuItem(schematic::menu::Item const& item, int amount) {
     default: schematic::actions::run(*client, command); return;
     }
 }
-void handleMenuClick(bool right) {
+// `hit` is the item under the click itself: the pointer may have moved since.
+void handleMenuClick(bool right, int hit) {
     if (!schematicMenu) return;
     if (right) {
         if (schematicMenu->category >= 0) schematicMenu->show(-1);
         else close();
         return;
     }
-    int hover = schematicMenu->hover;
+    int hover = hit;
     if (hover < 0) return;
     if (schematicMenu->category < 0) { schematicMenu->show(hover); return; }
     auto items = schematic::menu::categories[static_cast<size_t>(schematicMenu->category)].items;
@@ -1182,7 +1183,8 @@ void render(ll::event::UIRenderEvent& event) {
         glm::vec2 pointer = view.mPointerLocationPrevious;
         if (!closing) {
             schematicMenu->hover = menuLayout(size).hit(pointer.x, pointer.y);
-            if (auto click = std::exchange(pendingClick, std::nullopt)) handleMenuClick(click->right);
+            if (auto click = std::exchange(pendingClick, std::nullopt))
+                handleMenuClick(click->right, menuLayout(size).hit(click->x, click->y));
             for (auto wheel : std::exchange(pendingWheels, {})) if (schematicMenu && !closing) handleMenuWheel(wheel.direction);
             for (int key : std::exchange(pendingKeys, {})) if (schematicMenu && !closing) handleMenuKey(key);
         }
