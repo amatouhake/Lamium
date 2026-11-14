@@ -171,6 +171,12 @@ Do not infer game success from a build or unit-test result.
   is written (passed, VALIDATION-LOG 2026-11-14). Not
   checked: a friend's world keeping its data over a rejoin (none was
   available).
+- Saved data page (L-343 part 3, built only): the page lists what exists;
+  "Use this data" switches at once and back; the choice survives a rejoin;
+  after switching, exploring and switching back the first map is as it
+  was; the any-port switch on and off; Delete on a throwaway entry, and no
+  Delete on the data in use. The join code was restructured for this, so a
+  server and a local world joined before must still show their data.
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
@@ -407,6 +413,20 @@ Open, to agree before building:
    delete is wanted, with a thorough confirmation; the thumbnail is the
    Overworld surface around where the player last was. The third version
    draws the tool screens in their real layouts.
+   Built 2026-11-14, not checked in game: General > "Saved data" (a row
+   that names the joined server's data and opens the page; the page keeps
+   the sidebar, lists servers', friends' and local worlds' data with tags,
+   and shows the selected one's waypoints by name and color, placements,
+   map size, last use and level id); "Use this data" re-attaches the
+   joined server at once (`useData`: the waypoints reload and the map,
+   placements and death layout follow the place as at a join; the map
+   store first saves what it holds to the folder it was using); the
+   any-port switch (`Entry::anyPort`, a record of the exact port still
+   wins); Delete, pressed twice, naming the waypoints and the map size,
+   never for the data in use, on a row of its own so that arming it moves
+   nothing. Not built yet: the link rows in the settings table, the
+   notices on the Waypoints, Schematics and world map screens, the map
+   thumbnail.
 4. Whether folders that turn out to be one server are ever merged (waypoint
    lists could be; map tiles less obviously), or only chosen between.
 Still to see: a Realm; a server whose port changes between visits.

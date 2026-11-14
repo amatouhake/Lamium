@@ -3,6 +3,7 @@
 #include "ui/HighlightView.h"
 #include "ui/EnchantView.h"
 #include "ui/LanguageView.h"
+#include "ui/SavedDataView.h"
 #include "ui/GameLanguage.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
@@ -293,6 +294,7 @@ void activateRow(int row, bool space) {
     case RowKind::Section: return;
     case RowKind::Feature:
         if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
+        if (entry.feature->id == "savedData") { saved_data_view::begin(); return; }
         if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) { screen::openTool(*primary); return; }
         if (space && hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
         if (entry.children) { setExpanded(row, !entry.expanded); return; }
@@ -382,6 +384,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     switch (entry.kind) {
     case RowKind::Feature:
         if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
+        if (entry.feature->id == "savedData") { saved_data_view::begin(); return; }
         if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) {
             float openX = openButtonX(displayed);
             if (hit.x >= openX && hit.x < openX + openButtonWidth) { screen::openTool(*primary); return; }
@@ -898,7 +901,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         if (auto paused = pausedHeader(); !paused.empty())
             label(context,t.versionX+versionWidth,t.top+6,t.versionWidth-versionWidth+2,std::move(paused),palette::warning);
     }
-    if (!shapesView() && !waypointsView() && !schematicsView() && !language_view::opened() && !highlight_view::opened() && !enchant_view::opened()) {
+    if (!shapesView() && !waypointsView() && !schematicsView() && !language_view::opened() && !saved_data_view::opened() && !highlight_view::opened() && !enchant_view::opened()) {
     fill(context,t.searchX,t.top+4,t.searchWidth,12,Rgb{0,0,0},.45f);
     frame(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() || (findingKey && hotkeysView()) ? palette::accent : palette::keyEdge);
     if (findingKey && hotkeysView())
@@ -954,6 +957,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     }
     if (language_view::opened()) {
         language_view::renderContent(context, t, pointer);
+        drawVersionTip(context, t, hover);
+        return;
+    }
+    if (saved_data_view::opened()) {
+        saved_data_view::renderContent(context, t, pointer);
         drawVersionTip(context, t, hover);
         return;
     }
@@ -1026,6 +1034,13 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             if (entry.feature->id == "gameLanguage") {
                 float width = t.keyX + t.keyWidth - t.stateX;
                 drawSmallButton(context, t.stateX, y + 1, width, capHeight, game_language::currentName(),
+                    hover.zone == Zone::Row && hover.index == i);
+            }
+            if (entry.feature->id == "savedData") {
+                // The data the joined server uses; "open" where there is none to name.
+                float width = t.keyX + t.keyWidth - t.stateX;
+                auto name = saved_data_view::currentName();
+                drawSmallButton(context, t.stateX, y + 1, width, capHeight, name.empty() ? translated("open") : std::move(name),
                     hover.zone == Zone::Row && hover.index == i);
             }
             if (open) drawOpenButton(context,t,y,openButtonHovered(t,hover,i));

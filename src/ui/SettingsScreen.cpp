@@ -14,6 +14,7 @@
 #include "ui/HighlightView.h"
 #include "ui/EnchantView.h"
 #include "ui/LanguageView.h"
+#include "ui/SavedDataView.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/WaypointPromptLayout.h"
@@ -182,6 +183,7 @@ struct FocusedText { TextEdit* field = nullptr; void (*changed)() = nullptr; };
 FocusedText focusedText() {
     if (highlight_view::opened()) return {&highlight_view::field(), highlight_view::edited};
     if (language_view::opened()) return {};
+    if (saved_data_view::opened()) return {};
     if (table_view::capturing()) return {};
     if (calculatorOpen) return {&calculator_view::field(), calculator_view::edited};
     if (prompt) return {&prompt->name, [] {}};
@@ -409,6 +411,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
 }
 void clear() {
     language_view::reset();
+    saved_data_view::reset();
     highlight_view::reset();
     enchant_view::reset();
     releaseTextKeyboard();
@@ -472,6 +475,7 @@ void finishNumber() {
 }
 void close() {
     language_view::reset();
+    saved_data_view::reset();
     highlight_view::reset();
     enchant_view::reset();
     releaseTextKeyboard();
@@ -1117,11 +1121,32 @@ void render(ll::event::UIRenderEvent& event) {
             // Outside the list the sidebar, Close and the rest work as usual.
             if (auto click = std::exchange(pendingClick, std::nullopt); click && !language_view::click(click->x, click->y, click->right)) {
                 language_view::reset();
+    saved_data_view::reset();
                 table_view::click(click->x, click->y, click->right);
             }
             for (auto wheel : std::exchange(pendingWheels, {})) if (language_view::opened()) language_view::wheel(wheel.direction);
             if (std::exchange(pendingRelease, false)) language_view::release();
             for (int key : std::exchange(pendingKeys, {})) if (language_view::opened()) language_view::key(key);
+        }
+        pendingSearch = false;
+        if (!scene) return;
+        displayedInverseScale = current.getGuiData()->mInvGuiScale;
+        DrawScale scale{screenScale};
+        table_view::render(context, current, size / screenScale, lastPointer);
+        return;
+    }
+    if (saved_data_view::opened()) {
+        releaseTextKeyboard();
+        if (!closing) {
+            // Outside the page the sidebar, Close and the rest work as usual.
+            if (auto click = std::exchange(pendingClick, std::nullopt); click && !saved_data_view::click(click->x, click->y, click->right)) {
+                saved_data_view::reset();
+    saved_data_view::reset();
+                table_view::click(click->x, click->y, click->right);
+            }
+            for (auto wheel : std::exchange(pendingWheels, {})) if (saved_data_view::opened()) saved_data_view::wheel(wheel.direction);
+            if (std::exchange(pendingRelease, false)) saved_data_view::release();
+            for (int key : std::exchange(pendingKeys, {})) if (saved_data_view::opened()) saved_data_view::key(key);
         }
         pendingSearch = false;
         if (!scene) return;
@@ -1257,7 +1282,7 @@ void render(ll::event::UIRenderEvent& event) {
             if (std::exchange(pendingSearch, false)) { finishNumber(); table_view::focusSearch(); }
             if (auto click = std::exchange(pendingClick, std::nullopt)) table_view::click(click->x, click->y, click->right);
             for (int key : std::exchange(pendingKeys, {})) {
-                if (language_view::opened()) break;
+                if (language_view::opened() || saved_data_view::opened()) break;
                 table_view::key(key);
             }
         }
@@ -1490,6 +1515,8 @@ void openBlockHighlight(IClientInstance& current) {
     if (openedNow) seedOpener(input::Action::OpenBlockHighlight);
     if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
     screen::finishEditing();
+    language_view::reset();
+    saved_data_view::reset();
     enchant_view::reset();
     if (highlight_view::begin()) table_view::rebuild(true);
     directTool = openedNow && highlight_view::opened();
@@ -1507,6 +1534,7 @@ void openEnchantOrder(IClientInstance& current, bool overAnvil) {
     if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
     screen::finishEditing();
     language_view::reset();
+    saved_data_view::reset();
     highlight_view::reset();
     if (enchant_view::begin()) table_view::rebuild(true);
     directTool = openedNow && enchant_view::opened();
@@ -1554,8 +1582,8 @@ void openTool(input::Action action) {
     case input::Action::OpenWorldMap: selectNav(worldMapNav); return;
     case input::Action::OpenCalculator: enterCalculator(true); return;
     case input::Action::SchematicMenu: enterSchematicMenu(); return;
-    case input::Action::OpenBlockHighlight: language_view::reset(); enchant_view::reset(); if (highlight_view::begin()) table_view::rebuild(true); return;
-    case input::Action::OpenEnchantOrder: language_view::reset(); highlight_view::reset(); if (enchant_view::begin()) table_view::rebuild(true); return;
+    case input::Action::OpenBlockHighlight: language_view::reset(); saved_data_view::reset(); enchant_view::reset(); if (highlight_view::begin()) table_view::rebuild(true); return;
+    case input::Action::OpenEnchantOrder: language_view::reset(); saved_data_view::reset(); highlight_view::reset(); if (enchant_view::begin()) table_view::rebuild(true); return;
     default: return;
     }
 }
@@ -1567,6 +1595,7 @@ bool ownsInput() {
 void cancelInputCapture() {
     std::lock_guard lock(mutex);
     language_view::reset();
+    saved_data_view::reset();
     releaseTextKeyboard();
     if (table_view::capturing()) table_view::cancelCapture();
     finishNumber();
@@ -1650,7 +1679,7 @@ void start() {
             pendingWheels.push_back({x, y, event.buttonData() > 0 ? -3 : 3});
             return;
         }
-        if (language_view::opened() && wheel) {
+        if ((language_view::opened() || saved_data_view::opened()) && wheel) {
             pendingWheels.push_back({x, y, event.buttonData() > 0 ? -3 : 3});
             return;
         }
@@ -1717,7 +1746,7 @@ void start() {
             event.cancel();
             return;
         }
-        if (language_view::opened() || enchant_view::opened()) {
+        if (language_view::opened() || saved_data_view::opened() || enchant_view::opened()) {
             event.cancel(); pendingKeys.push_back(event.keyCode()); return;
         }
         // The highlight list's search is always focused: editing keys act at

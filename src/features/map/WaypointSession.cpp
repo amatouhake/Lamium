@@ -327,7 +327,9 @@ void stop() {
 // ---- Saved data (L-343 part 3) ----
 namespace {
 bool safeKey(std::string const& key) {
-    return !key.empty() && key.size() <= 140 && key.find_first_of("/\\:") == std::string::npos && key != ".." && key != ".";
+    // A name as written by keyOf or worldKey. Windows drops a trailing dot or space from a path's last part.
+    return !key.empty() && key.size() <= 140 && key.find_first_of("/\\:") == std::string::npos && key.back() != '.'
+        && key.back() != ' ';
 }
 std::int64_t writtenAt(std::filesystem::path const& path) {
     std::error_code ignored;

@@ -543,6 +543,12 @@ Trace (`sneak_trace`, L-293): read-only; the sneak bits of each sent
 player whose `useItemOn` runs (the local player, and in a local world the
 server's copy). `Name` is the macro that makes the two `useItemOn` hooks.
 
+### Saved data per world (`WaypointSession.cpp`, no hooks)
+L-343. At a join, reads `Social::GameConnectionInfo` (`mUnresolvedUrl`, `mHostIpAddress`, `mPort`), `Level::getLevelId`,
+`LevelData::mLevelName` and the worlds folder (`FilePathManager::mWorlds`) to name where the world's waypoints, map,
+placements and death layout are kept. A wrong value names the wrong folder: new data starts there and nothing is
+overwritten. The `server_trace` option logs these and the connection's other ids.
+
 ### Enchantment order (`EnchantOrderGame.cpp`, no hooks)
 L-170. A hook on `InventoryItemRenderer::$render` to paint the list before the slots was tried and removed
 (2026-11-12): drawing there turned the list and enchanted items white. Reads the enchantments from `Enchant::mEnchants()` (`mEnchantType`, `mFrequency`, `mIsDisabled`,

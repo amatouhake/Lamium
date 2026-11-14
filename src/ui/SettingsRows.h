@@ -23,7 +23,7 @@ inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand" || id == "hideEffects" || id == "connectedTextures" || id == "blockHighlight") return "section.camera";
     if (id == "previews" || id == "itemDetails" || id == "lockedTrades" || id == "repeatTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore" || id == "enchantOrder") return "section.inventory";
     if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "sneakPlacement" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
-    if (id == "settings" || id == "gameLanguage" || id == "skipServerPacks" || id == "calculator" || id == "toasts" || id == "hudText" || id == "bookPaste") return "section.interface";
+    if (id == "settings" || id == "gameLanguage" || id == "savedData" || id == "skipServerPacks" || id == "calculator" || id == "toasts" || id == "hudText" || id == "bookPaste") return "section.interface";
     if (id.starts_with("schematic")) return "section.schematic";
     if (id == "minimap" || id == "mapText" || id == "mapMarks" || id == "radar" || id == "slimeChunks" || id == "waypoints" || id == "worldMap")
         return "section.map";
@@ -106,6 +106,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"automationStatus", "feature.automationStatus", "help.automationStatus", "interface.automationStatus", false, input::Action::ToggleAutomationStatus},
     {"settings", "feature.settings", "help.settings", "", false, input::Action::Settings},
     {"gameLanguage", "feature.gameLanguage", "help.gameLanguage", ""},
+    {"savedData", "feature.savedData", "help.savedData", ""},
     {"skipServerPacks", "feature.skipServerPacks", "help.skipServerPacks", "visuals.skipServerPacks", false, input::Action::ToggleSkipServerPacks},
     {"calculator", "feature.calculator", "help.calculator", "", false, input::Action::OpenCalculator},
     {"bookPaste", "feature.bookPaste", "help.bookPaste", "interface.bookPaste", false, input::Action::ToggleBookPaste},

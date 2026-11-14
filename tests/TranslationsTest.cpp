@@ -71,6 +71,7 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(key, key, remaining, remaining));
             else if (entry.key == "schematic.toast.cut" || entry.key == "schematic.toast.cutHere")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining, key));
+            else if (entry.key == "savedData.deleteArmed") rendered = std::vformat(pattern, std::make_format_args(remaining, key));
             else if (entry.key == "schematic.previewLayers") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, key));
             else if (entry.key == "schematic.toast.rotated" || entry.key == "schematic.toast.mirror" || entry.key == "schematic.toast.nearest")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining));

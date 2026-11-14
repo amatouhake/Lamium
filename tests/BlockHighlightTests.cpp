@@ -1,5 +1,6 @@
 #include "features/visuals/BlockHighlight.h"
 #include "ui/HighlightLayout.h"
+#include "ui/SavedDataLayout.h"
 #include <array>
 #include <cmath>
 #include <string>
@@ -108,6 +109,30 @@ void blockHighlightTests() {
     using lamium::ui::SettingsTable;
     using lamium::ui::ShapesLayout;
     auto table = SettingsTable::fit(640, 360, 60, 0, 13);
+    {
+        // General > Saved data (L-343): the list left, the details with their switch and buttons right.
+        using lamium::ui::SavedDataLayout;
+        using Zone = SavedDataLayout::Zone;
+        auto l = SavedDataLayout::fit(table, 40, 0, true, true, true, 80, 40);
+        check(l.usable() && l.dividerX > l.left && l.detailLeft + l.detailWidth <= l.left + l.width + 1
+              && l.list.listVisible > 5 && l.list.listCount == 40, "the saved data list sits left of the details and scrolls");
+        check(l.hit(l.list.listLeft + 10, l.list.listRowY(2) + 2).zone == Zone::Row
+              && l.hit(l.list.listLeft + 10, l.list.listRowY(2) + 2).index == 2
+              && l.hit(l.backX + 2, l.headTop + 2).zone == Zone::Back, "rows and Back answer where they are drawn");
+        check(l.hit(l.useX + 2, l.useY() + 2).zone == Zone::Use && l.hit(l.deleteX + 2, l.deleteY + 2).zone == Zone::Delete
+              && l.hit(l.detailLeft + 4, l.anyPortY + 2).zone == Zone::AnyPort
+              && l.deleteY + SavedDataLayout::buttonHeight <= l.useY() && l.anyPortY + SavedDataLayout::lineHeight <= l.deleteY
+              && l.noteY < l.anyPortY, "Use at the bottom, Delete above it, the switch above both, the note above that");
+        auto wide = SavedDataLayout::fit(table, 1, 0, true, true, true, 80, 400);
+        check(wide.useX == l.useX && wide.useY() == l.useY() && wide.useWidth == l.useWidth && wide.deleteX == l.deleteX
+              && wide.deleteY == l.deleteY && wide.anyPortY == l.anyPortY && wide.deleteWidth <= wide.detailWidth
+              && wide.hit(l.useX + 2, l.useY() + 2).zone == Zone::Use, "arming Delete widens it and moves nothing");
+        auto plain = SavedDataLayout::fit(table, 1, 0, false, false, true, 80, 40);
+        check(plain.hit(plain.deleteX + 2, plain.deleteY + 2).zone == Zone::Delete && plain.deleteY == plain.actionsY
+              && plain.hit(plain.detailLeft + 4, plain.anyPortY + 2).zone == Zone::None, "a world's own data offers Delete alone");
+        check(lamium::ui::sizeText(0) == "0.0 MB" && lamium::ui::sizeText(3565158) == "3.4 MB"
+              && lamium::ui::sizeText(250 * 1024 * 1024, true) == "250 MB+", "sizes read in megabytes");
+    }
     auto layout = HighlightLayout::fit(table, 3, 0, 100, 0);
     check(layout.usable() && layout.dividerX > layout.left && layout.dividerX < layout.left + layout.width,
           "the listed column sits left of the search");
