@@ -237,6 +237,12 @@ inline bool effectsPaused(std::string_view id, Settings const& value) {
 // MapCache: the world map's saved data for this world, with a delete button.
 // SavedData: which saved data the joined server uses, linking to General > Saved data (L-343).
 enum class RowKind { Section, Feature, Option, Action, Layout, MapCache, SavedData };
+// While its feature's switch is off, a setting row is drawn dimmed whole;
+// command rows (actions, the HUD layout link, the saved data and map data
+// rows) stay at full strength (DESIGN "Screens", L-335).
+inline constexpr bool dimsWhenPaused(RowKind kind) { return kind == RowKind::Option; }
+// How strongly a dimmed row is drawn: its guide, name, control and key alike.
+inline constexpr float pausedRowOpacity = .45f;
 // The features whose data is kept per world and server.
 inline constexpr bool keepsSavedData(std::string_view feature) {
     return feature == "savedData" || feature == "waypoints" || feature == "worldMap" || feature == "schematic";

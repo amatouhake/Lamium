@@ -1018,6 +1018,10 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         rowBackground(context,rowLeft,y,rowWidth,SettingsTable::rowHeight,selected == i,hover.zone == Zone::Row && hover.index == i);
         // The edited row's buttons take the place of its switch or stepper.
         bool editingRow = capturing_ && i == captureRow;
+        // Dims everything the row draws after its background, text included (text is
+        // drawn at the end, so a band laid over it would not cover it).
+        DrawOpacity dim{dimsWhenPaused(entry.kind) && entry.feature && effectsPaused(entry.feature->id,preferences)
+            ? pausedRowOpacity : 1.f};
         auto buttons = captureButtons();
         float buttonsX = t.captureButtonX(0, static_cast<int>(buttons.size()));
         float nameRight = editingRow ? buttonsX - SettingsTable::gap : t.stateX - SettingsTable::gap;
@@ -1048,8 +1052,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             drawGuide(context,y,entry.lastChild);
             auto value = entry.option->read(preferences);
             auto name = splitLabel(translated(entry.option->label)).name;
-            // Dimmed, the name as it is: the footer says why.
-            bool paused = effectsPaused(entry.feature->id,preferences);
+            // Dimmed by `dim` above, the name as it is: the footer says why.
             if (editingRow) {
                 label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(name),palette::dim);
             } else if (auto flag = std::get_if<bool>(&value)) {
@@ -1072,7 +1075,6 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 }
             }
             if (auto linked = optionAction(entry.option->id)) drawKeyCell(context,current,y,*linked);
-            if (paused) fill(context,t.nameX+12,y,t.rowsRight()-t.nameX-12,SettingsTable::rowHeight,palette::panel,.4f);
             break;
         }
         case RowKind::Action: {

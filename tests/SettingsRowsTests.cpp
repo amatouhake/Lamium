@@ -165,6 +165,11 @@ void settingsRowsTests() {
     effectSettings.visuals.hideEffects = false;
     check(ui::effectsPaused("hideEffects",effectSettings) && !ui::effectsPaused("freecamera",effectSettings),
           "only Hide effects children display the paused state when their master is off");
+    check(ui::dimsWhenPaused(RowKind::Option) && !ui::dimsWhenPaused(RowKind::Layout) && !ui::dimsWhenPaused(RowKind::Action)
+              && !ui::dimsWhenPaused(RowKind::SavedData) && !ui::dimsWhenPaused(RowKind::MapCache)
+              && !ui::dimsWhenPaused(RowKind::Feature) && !ui::dimsWhenPaused(RowKind::Section)
+              && ui::pausedRowOpacity > 0 && ui::pausedRowOpacity < 1,
+          "a switched-off feature dims its setting rows whole; command rows, the HUD layout link included, stay (L-335)");
     for (auto id : {"visuals.hideWeather", "visuals.hideParticles", "visuals.hideNausea",
                     "visuals.hideWater", "visuals.hideLava", "visuals.hidePowderSnow", "visuals.hideDistanceFog",
                     "visuals.hidePortal"}) {
