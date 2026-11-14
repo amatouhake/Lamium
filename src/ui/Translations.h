@@ -1820,6 +1820,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"savedData.noticeOpen", "Saved data", "保存データを開く"},
     {"savedData.noticeNever", "Do not show again", "今後は表示しない"},
     {"savedData.noticeQuiet", "This notice will not show again for this server", "このサーバーでは、この案内を今後表示しません"},
+    {"savedData.noMap", "No map", "地図なし"},
     {"savedData.row", "Saved data", "保存データ"},
     {"savedData.rowServer", "This server's data", "このサーバーのデータ"},
     {"savedData.rowChoose", "Choose >", "選び直す >"},

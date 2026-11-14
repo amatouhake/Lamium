@@ -182,7 +182,9 @@ Do not infer game success from a build or unit-test result.
   (VALIDATION-LOG 2026-11-14): the Waypoints screen, the Schematics
   screen's Placements, Verify and Materials tabs and the world map, whole
   words and all three buttons, "Do not show again" over a rejoin. Not
-  looked at: docked panels.
+  looked at: docked panels; the map picture on the Saved data page (the
+  place it shows, the waypoints on it, a data without a map, changing the
+  selection quickly).
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
@@ -459,7 +461,15 @@ Open, to agree before building:
    notice now takes the height its words and buttons need (the buttons
    wrap to another row; the screen leaves the room measured at the last
    draw); and it shows on the Schematics screen's Verify and Materials
-   tabs too, which show what is placed. Not built yet: the map thumbnail.
+   tabs too, which show what is placed.
+   The map picture, built 2026-11-14 and not looked at: the details show
+   the Overworld surface, three regions across at eight blocks to a pixel
+   (`MapThumbnail.h`, tested), with the data's Overworld waypoints on it
+   and their names beside it. It is centered on the region written last:
+   where the player last was is not recorded for data that exists, so the
+   newest file stands in for it. A region is read per frame
+   (`ui/SavedDataThumb`), so a large map does not stall the page; data
+   without an Overworld map says "No map".
 4. Whether folders that turn out to be one server are ever merged (waypoint
    lists could be; map tiles less obviously), or only chosen between.
 Still to see: a Realm; a server whose port changes between visits.

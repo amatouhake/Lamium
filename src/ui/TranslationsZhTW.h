@@ -1784,6 +1784,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"savedData.noticeOpen", "開啟儲存的資料"},
     {"savedData.noticeNever", "不再顯示"},
     {"savedData.noticeQuiet", "此伺服器不會再顯示這則提示"},
+    {"savedData.noMap", "無地圖"},
     {"savedData.row", "儲存資料"},
     {"savedData.rowServer", "此伺服器的資料"},
     {"savedData.rowChoose", "重新選擇 >"},

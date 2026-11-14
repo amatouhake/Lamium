@@ -356,8 +356,8 @@ void measure(SavedData& item, std::filesystem::path const& waypointFile, std::fi
             auto set = readWaypoints(waypointFile);
             item.waypoints = static_cast<int>(set.waypoints.size());
             for (auto const& w : set.waypoints) {
-                if (item.marks.size() >= savedMarks) break;
-                item.marks.push_back({w.name, clampColor(w.color)});
+                if (item.marks.size() < savedMarks) item.marks.push_back({w.name, clampColor(w.color)});
+                if (w.dimension == 0 && item.dots.size() < savedDots) item.dots.push_back({w.x, w.z, clampColor(w.color)});
             }
         } catch (...) {}
     }
@@ -367,6 +367,7 @@ void measure(SavedData& item, std::filesystem::path const& waypointFile, std::fi
     }
     if (std::filesystem::is_regular_file(deathFile, ignored)) item.used = std::max(item.used, writtenAt(deathFile));
     if (std::filesystem::is_directory(map, ignored)) {
+        item.mapFolder = map;
         int files = 0;
         std::filesystem::recursive_directory_iterator it(map, ignored), end;
         for (; !ignored && it != end; it.increment(ignored)) {

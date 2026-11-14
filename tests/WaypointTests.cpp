@@ -1,4 +1,5 @@
 #include <map>
+#include "features/map/MapThumbnail.h"
 #include "features/map/WaypointStore.h"
 #include "features/map/Waypoints.h"
 #include "app/SessionIds.h"
@@ -144,6 +145,28 @@ void storage() {
           "unsafe characters are replaced");
     check(serverFileName("", 19132).empty() && serverFileName("host", 0).empty() && serverFileName("..", 1).empty(),
           "nothing to identify gives no file");
+    {
+        // The Saved data page's map picture (L-343): three regions across, eight blocks to a pixel.
+        namespace th = lamium::map::thumbnail;
+        th::Area area{{2, -1}};
+        check(th::side == 96 && area.originX() == 256 && area.originZ() == -512 && area.region(0, 0) == lamium::map::RegionKey{1, -2}
+              && area.region(2, 2) == lamium::map::RegionKey{3, 0}, "the picture is the center region and the ring around it");
+        auto middle = area.at(256 + 384, -512 + 384);
+        check(middle && std::abs(middle->first - .5f) < .01f && std::abs(middle->second - .5f) < .01f
+              && !area.at(255, 0) && !area.at(256 + 768, 0) && area.at(256, -512), "a block finds its place in the picture, or is outside it");
+        std::vector<std::uint32_t> shaded(static_cast<size_t>(lamium::map::regionColumns), 0);
+        // One pixel's 8x8 blocks: half recorded as (200, 100, 0), half not recorded.
+        for (int z = 0; z < 8; ++z) for (int x = 0; x < 4; ++x) shaded[static_cast<size_t>(z * 256 + x)] = lamium::map::packColor(200, 100, 0);
+        auto image = th::blank();
+        th::blit(image, shaded, 1, 2);
+        auto const first = image[static_cast<size_t>((2 * 32) * 96 + 32)];
+        check(first == lamium::map::packColor(200, 100, 0) && image[static_cast<size_t>((2 * 32) * 96 + 33)] == 0 && image[0] == 0,
+              "a pixel is the average of its recorded blocks and clear where none is recorded");
+        auto untouched = image;
+        th::blit(image, shaded, 3, 0);
+        th::blit(image, std::vector<std::uint32_t>(4, 0), 0, 0);
+        check(image == untouched, "a region outside the picture or of the wrong size changes nothing");
+    }
     {
         namespace sv = lamium::map::servers;
         check(sv::hostOf("http://198.51.100.20:19135") == "198.51.100.20" && sv::hostOf("https://featured.example.com:19132") == "featured.example.com"

@@ -5,6 +5,7 @@
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
 #include "ui/SavedDataLayout.h"
+#include "ui/SavedDataThumb.h"
 #include "ui/ScreenParts.h"
 #include "ui/SettingsTableView.h"
 #include "ui/Widgets.h"
@@ -113,6 +114,7 @@ bool begin() {
 }
 bool opened() { return open; }
 void reset() {
+    data_thumb::reset();
     items.clear(); armed.clear(); notice.clear();
     selected = first = 0; last = {};
     open = false; dragging = false; noticeWarns = false;
@@ -220,15 +222,41 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             y += line;
         };
         row(shown(*d), palette::text);
-        row(translated("savedData.waypoints", d->waypoints));
-        for (auto const& mark : d->marks) {
-            if (y + line > bottom) break;
-            fill(context, x + 4, y + 3, 5, 5, markRgb(mark.color));
-            label(context, x + 14, y, width - 14, mark.name, palette::text);
-            y += line;
+        // The map picture with the waypoints on it, and their names beside it: whose data this is, at a glance.
+        constexpr float thumbSide = 60;
+        bool const pictured = y + thumbSide + 2 <= bottom && width >= thumbSide + 60;
+        float const namesX = pictured ? x + thumbSide + 6 : x, namesWidth = width - (namesX - x), thumbTop = y + 1;
+        if (pictured) {
+            data_thumb::show(d->mapFolder, d->key);
+            fill(context, x, thumbTop, thumbSide, thumbSide, Rgb{0, 0, 0}, .45f);
+            if (data_thumb::draw(context, {x, thumbTop, thumbSide, thumbSide})) {
+                for (auto const& dot : d->dots)
+                    if (auto at = data_thumb::at(dot.x, dot.z)) {
+                        float const cx = x + at->first * thumbSide, cy = thumbTop + at->second * thumbSide;
+                        fill(context, cx - 2, cy - 2, 4, 4, Rgb{0, 0, 0});
+                        fill(context, cx - 1, cy - 1, 2, 2, markRgb(dot.color));
+                    }
+            } else label(context, x, thumbTop + thumbSide / 2 - 5, thumbSide, translated("savedData.noMap"), palette::faint, Align::Center);
+            frame(context, x, thumbTop, thumbSide, thumbSide, palette::keyEdge);
         }
-        if (d->waypoints > static_cast<int>(d->marks.size()))
-            row("    " + translated("savedData.more", d->waypoints - static_cast<int>(d->marks.size())), palette::faint);
+        float const below = pictured ? thumbTop + thumbSide + 3 : y;
+        auto beside = [&](std::string text, Rgb color, float indent = 0) {
+            if (y + line > (pictured ? below : bottom)) return false;
+            label(context, namesX + indent, y, namesWidth - indent, std::move(text), color);
+            y += line;
+            return true;
+        };
+        beside(translated("savedData.waypoints", d->waypoints), palette::dim);
+        size_t named = 0;
+        for (auto const& mark : d->marks) {
+            float const markY = y;
+            if (!beside(mark.name, palette::text, 10)) break;
+            fill(context, namesX + 2, markY + 3, 5, 5, markRgb(mark.color));
+            ++named;
+        }
+        if (d->waypoints > static_cast<int>(named) && named > 0)
+            beside(translated("savedData.more", d->waypoints - static_cast<int>(named)), palette::faint, 10);
+        if (pictured) y = below;
         row(translated("savedData.placements", d->placements));
         row(translated("savedData.map", sizeText(d->mapBytes, d->mapMore)));
         row(translated("savedData.used", dateText(d->used)));

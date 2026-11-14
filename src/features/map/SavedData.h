@@ -1,6 +1,7 @@
 #pragma once
 #include "features/map/ServerIdentity.h"
 #include <cstdint>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
@@ -21,6 +22,9 @@ struct SavedData {
     int waypoints = 0, placements = 0;
     struct Mark { std::string name; int color = 0; };
     std::vector<Mark> marks; // The first few waypoints, to tell whose data it is.
+    struct Dot { int x = 0, z = 0, color = 0; };
+    std::vector<Dot> dots;   // Overworld waypoints, for the map picture.
+    std::filesystem::path mapFolder; // Empty when it has no saved map.
     long long mapBytes = 0;
     bool mapMore = false;    // The map was larger than the walk counts.
     std::int64_t used = 0;   // Last written, seconds since the epoch; 0 unknown.
@@ -29,7 +33,7 @@ struct SavedData {
     bool anyPort = false;
     bool canUse = false, canDelete = false;
 };
-inline constexpr size_t savedMarks = 5, savedDataLimit = 300;
+inline constexpr size_t savedMarks = 5, savedDots = 64, savedDataLimit = 300;
 // Reads the folders: call when the page opens and after a change, not every frame.
 std::vector<SavedData> savedData();
 // The joined server uses this server data from now on; everything reloads at once.
