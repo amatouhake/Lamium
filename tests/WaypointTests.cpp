@@ -1,3 +1,4 @@
+#include <map>
 #include "features/map/WaypointStore.h"
 #include "features/map/Waypoints.h"
 #include "app/SessionIds.h"
@@ -143,6 +144,71 @@ void storage() {
           "unsafe characters are replaced");
     check(serverFileName("", 19132).empty() && serverFileName("host", 0).empty() && serverFileName("..", 1).empty(),
           "nothing to identify gives no file");
+    {
+        namespace sv = lamium::map::servers;
+        check(sv::hostOf("http://198.51.100.20:19135") == "198.51.100.20" && sv::hostOf("https://featured.example.com:19132") == "featured.example.com"
+              && sv::hostOf("Play.Example.com") == "Play.Example.com" && sv::hostOf("host:19132/path") == "host"
+              && sv::hostOf("[::1]:19132") == "::1" && sv::hostOf("::1") == "::1" && sv::hostOf("").empty(),
+              "the host is the address without scheme, port and path");
+        check(sv::worldKey("AbCd1234EfG=") == "world_41624364313233344566473d" && sv::worldKey("").empty()
+              && sv::worldKey("a/b") != sv::worldKey("a_b"), "a world without an address is named by its level id, exactly");
+        std::map<std::string, long long> disk;
+        int weighed = 0;
+        auto held = [&](std::string const& key) { ++weighed; auto found = disk.find(key); return found == disk.end() ? -1 : found->second; };
+        std::vector<sv::Entry> entries;
+        // The names in use before L-343 keep their data.
+        disk["http___198.51.100.20_19133_19133"] = 0;
+        check(sv::choose(entries, "http://198.51.100.20:19133", "198.51.100.20", 19133, "local_world", held)
+              == "http___198.51.100.20_19133_19133", "a join keeps using the name its data is already under");
+        // The same server joined by its name: at the same IP and port, with more data under the name.
+        disk["play.example.net_19133"] = 2'000'000'000'000;
+        disk["http___play.example.net_19133_19133"] = 500;
+        check(sv::choose(entries, "play.example.net", "198.51.100.20", 19133, "local_world", held) == "play.example.net_19133"
+              && entries.size() == 1, "of the names of one server the one holding the most is used, as one record");
+        check((entries[0].others == std::vector<std::string>{"http___198.51.100.20_19133_19133", "http___play.example.net_19133_19133"}),
+              "the names passed over are remembered");
+        check(sv::choose(entries, "http://198.51.100.20:19133", "198.51.100.20", 19133, "local_world", held)
+              == "play.example.net_19133", "and from then on however the server is reached");
+        // What is in use stays in use: a deleted map or a grown other folder changes nothing.
+        disk["play.example.net_19133"] = 0;
+        disk["http___198.51.100.20_19133_19133"] = 9'000'000'000'000;
+        weighed = 0;
+        check(sv::choose(entries, "play.example.net", "198.51.100.20", 19133, "local_world", held) == "play.example.net_19133"
+              && sv::choose(entries, "http://198.51.100.20:19133", "198.51.100.20", 19133, "local_world", held)
+                     == "play.example.net_19133" && weighed == 0, "a recorded server keeps its key without looking at the folders");
+        check(sv::choose(entries, "play.example.net", "203.0.113.9", 19133, "local_world", held) == "play.example.net_19133"
+              && entries[0].ip == "203.0.113.9", "a name finds its server at a new IP, and the folders passed over stay passed over");
+        // The old IP now belongs to someone else: neither a new name there nor a bare join brings this data.
+        check(sv::choose(entries, "other.example.net", "198.51.100.20", 19133, "other", held) == "other.example.net_19133"
+              && sv::choose(entries, "third.example.net", "203.0.113.9", 19133, "local_world", held) == "third.example.net_19133",
+              "another name is another server, even at a known IP and with the same level id");
+        std::vector<sv::Entry> byIp;
+        check(sv::choose(byIp, "http://198.51.100.7:19132", "198.51.100.7", 19132, "a", held) == "198.51.100.7_19132"
+              && sv::choose(byIp, "http://198.51.100.7:19132", "198.51.100.7", 19132, "b", held) == "198.51.100.7_19132"
+              && byIp.size() == 1, "one address keeps one folder whatever level id it sends");
+        std::vector<sv::Entry> moved;
+        check(sv::choose(moved, "named.example.net", "198.51.100.8", 19132, "a", held) == "named.example.net_19132"
+              && sv::choose(moved, "http://198.51.100.8:19132", "198.51.100.8", 19132, "b", held) == "198.51.100.8_19132"
+              && sv::choose(moved, "http://198.51.100.8:19132", "198.51.100.8", 19132, "a", held) == "named.example.net_19132",
+              "a join by IP alone finds a named server there only when the level id agrees");
+        check(sv::choose(entries, "play.example.net", "198.51.100.20", 19134, "farm", held) == "play.example.net_19134",
+              "another port is another server, even with the same address");
+        std::vector<sv::Entry> fresh;
+        check(sv::choose(fresh, "https://featured.example.com:19132", "203.0.113.50", 19132, "Featured Network", held) == "featured.example.com_19132"
+              && fresh.size() == 1 && fresh[0].hosts == std::vector<std::string>{"featured.example.com"}
+              && fresh[0].ip == "203.0.113.50" && fresh[0].levelId == "Featured Network",
+              "a server seen for the first time is named by host and port and remembered");
+        check(sv::choose(fresh, "", "", 0, "id", held).empty() && sv::choose(fresh, "host", "1.2.3.4", 0, "id", held).empty(),
+              "no address gives no server name");
+        check(lamium::map::decodeServers(lamium::map::encodeServers(entries)) == entries, "the server list survives saving");
+        auto cleaned = lamium::map::decodeServers(
+            R"({"version":1,"servers":[{"key":"../x","port":1},{"key":"ok_1","port":1,"hosts":["a",5]},{"key":"p","port":0}]})");
+        check(cleaned.size() == 1 && cleaned[0].key == "ok_1" && cleaned[0].hosts == std::vector<std::string>{"a"},
+              "entries that could leave the folder or make no sense are dropped");
+        bool rejected = false;
+        try { (void)lamium::map::decodeServers(R"({"version":2})"); } catch (...) { rejected = true; }
+        check(rejected, "another version of the server list is rejected");
+    }
     WaypointSet set;
     set.waypoints.push_back({"家", 6, -60, 70, 40, 0, true});
     set.waypoints.push_back({"Fortress", 0, 30, 72, -140, 1, false});

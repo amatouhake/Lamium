@@ -177,6 +177,12 @@ option("effects_trace")
     set_description("Observe bounded UI renderer routes and immersion fog selection for L-42")
 option_end()
 
+option("server_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Log what identifies the joined server (address forms, ids, level id and name), for L-343")
+option_end()
+
 option("camera_trace")
     set_default(false)
     set_showmenu(true)
@@ -252,6 +258,7 @@ end
 
 target("Lamium")
     if has_config("effects_trace") then add_defines("LAMIUM_EFFECTS_TRACE") end
+    if has_config("server_trace") then add_defines("LAMIUM_SERVER_TRACE") end
     if has_config("automation_trace") then add_defines("LAMIUM_AUTOMATION_TRACE") end
     if has_config("restock_trace") then add_defines("LAMIUM_RESTOCK_TRACE") end
     if has_config("camera_trace") or has_config("camera_probe") or has_config("camera_position_probe") then add_defines("LAMIUM_CAMERA_TRACE") end

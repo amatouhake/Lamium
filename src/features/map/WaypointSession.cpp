@@ -14,6 +14,11 @@
 #include "mc/deps/core/utility/FilePathManager.h"
 #include "mc/network/GameConnectionInfo.h"
 #include "mc/world/level/Level.h"
+#ifdef LAMIUM_SERVER_TRACE
+#include "mc/world/level/storage/LevelData.h"
+#include <format>
+#include <variant>
+#endif
 #include <atomic>
 #include <cmath>
 #include <ctime>
@@ -39,27 +44,106 @@ ll::event::ListenerPtr startJoinListener, joinListener, exitListener;
 void log(std::string const& text) {
     try { Runtime::instance().self().getLogger().info("Waypoints: {}", text); } catch (...) {}
 }
+// The data kinds kept per server, each in its own folder of the config folder.
+constexpr std::string_view mapFolder = "map", waypointFolder = "waypoints", schematicFolder = "schematics",
+    deathFolder = "death-layouts";
+// How much a key holds (servers::choose): its documents first, then the size of its map, counted up to a limit
+// so that a large map costs a bounded walk at join. Below zero: nothing is there.
+long long held(std::filesystem::path const& config, std::string const& key) {
+    std::error_code ignored;
+    long long documents = 0;
+    for (auto folder : {waypointFolder, schematicFolder, deathFolder})
+        if (std::filesystem::is_regular_file(config / folder / (key + ".json"), ignored)) ++documents;
+    auto map = config / mapFolder / key;
+    bool const hasMap = std::filesystem::is_directory(map, ignored);
+    if (!documents && !hasMap) return -1;
+    long long bytes = 0;
+    int files = 0;
+    if (hasMap)
+        for (std::filesystem::recursive_directory_iterator it(map, ignored), end; !ignored && it != end && files < 2000;
+             it.increment(ignored), ++files)
+            if (it->is_regular_file(ignored)) bytes += static_cast<long long>(it->file_size(ignored));
+    constexpr long long step = 1'000'000'000'000;
+    return documents * step + std::min(bytes, step - 1);
+}
+// The key this join's data is under (L-343), or none. A server: by its address, through the record of which
+// key each server was reached by. No address (a friend's world): by the level id, as a local world is.
+std::optional<std::string> serverKey(ll::event::ClientJoinLevelEvent& event) {
+    auto connection = event.self().getGameConnectionInfo();
+    std::string const levelId = event.player().getLevel().getLevelId();
+    std::string address = connection ? *connection->mUnresolvedUrl : std::string();
+    std::string ip = connection ? *connection->mHostIpAddress : std::string();
+    int const port = connection ? static_cast<int>(connection->mPort) : 0;
+    if (port <= 0 || (address.empty() && ip.empty())) {
+        // Seen for a friend's world, whose level id is as distinct as a local world's. A world that sent a
+        // plain name here would share its data with every world sending the same; the log tells which it was.
+        auto key = servers::worldKey(levelId);
+        log("joined without an address; its data goes by the level id '" + levelId + "'");
+        return key.empty() ? std::nullopt : std::optional(key);
+    }
+    auto config = Runtime::instance().self().getConfigDir();
+    auto list = config / "servers.json";
+    std::vector<servers::Entry> entries;
+    bool writable = true;
+    std::error_code ignored;
+    if (std::filesystem::exists(list, ignored)) {
+        try { entries = readServers(list); }
+        catch (std::exception const& error) {
+            // Never overwrite a list that could not be read; this join goes by the names alone.
+            writable = false;
+            log(std::string("could not read the server list: ") + error.what());
+        }
+    }
+    auto const before = entries;
+    auto key = servers::choose(entries, address, ip, port, levelId, [&](std::string const& k) { return held(config, k); });
+    if (key.empty()) return std::nullopt;
+    if (writable && entries != before) {
+        try { writeServers(list, entries); }
+        catch (std::exception const& error) { log(std::string("could not save the server list: ") + error.what()); }
+    }
+    return key;
+}
 // Where this world's data lives: a local world's Lamium folder, or for a
-// server a file or folder named after its address in Lamium's config folder.
-std::optional<std::filesystem::path> resolve(ll::event::ClientJoinLevelEvent& event, std::string_view localName,
-                                             std::string_view serverFolder, bool serverFile) {
-    auto& client = event.self();
+// server a file or folder named by its key in Lamium's config folder.
+std::optional<std::filesystem::path> resolve(ll::event::ClientJoinLevelEvent& event, std::optional<std::string> const& key,
+                                             std::string_view localName, std::string_view serverFolder, bool serverFile) {
     if (joiningLocal) {
-        auto paths = client.getMinecraftGame_DEPRECATED().getFilePathManager();
+        auto paths = event.self().getMinecraftGame_DEPRECATED().getFilePathManager();
         return overlay::localWorldFile(std::filesystem::u8path(paths->mWorlds->value),
                                        event.player().getLevel().getLevelId(), localName);
     }
-    auto connection = client.getGameConnectionInfo();
-    if (!connection) return std::nullopt;
-    std::string host = connection->mUnresolvedUrl->empty() ? *connection->mHostIpAddress : *connection->mUnresolvedUrl;
-    auto file = serverFileName(host, connection->mPort);
-    if (file.empty()) return std::nullopt;
-    if (!serverFile) file.resize(file.size() - std::string_view(".json").size());
-    return Runtime::instance().self().getConfigDir() / std::filesystem::u8path(serverFolder) / std::filesystem::path(file);
+    if (!key) return std::nullopt;
+    return Runtime::instance().self().getConfigDir() / std::filesystem::u8path(serverFolder)
+        / std::filesystem::path(serverFile ? *key + ".json" : *key);
 }
+#ifdef LAMIUM_SERVER_TRACE
+// L-343: everything the client has at join that could tell one server from another, to see what stays the same
+// across visits. Read-only; a trace build's log names the server, so it is not for sharing as it is.
+void traceIdentity(ll::event::ClientJoinLevelEvent& event) {
+    try {
+        auto& level = event.player().getLevel();
+        std::string line = std::format("{} level id '{}' name '{}' seed {}", joiningLocal ? "local" : "remote",
+            level.getLevelId(), *level.getLevelData().mLevelName, level.getSeed());
+        if (auto c = event.self().getGameConnectionInfo()) {
+            std::string nether = "none";
+            auto const& id = *c->mNetherNetId;
+            if (auto* realm = std::get_if<NetherNet::Realms::NetworkID>(&id)) nether = "realm " + realm->mValue.asString();
+            else if (auto* peer = std::get_if<NetherNet::P2P::NetworkID>(&id)) nether = std::format("p2p {}", peer->mValue);
+            line += std::format("; type {} transport {} host '{}' url '{}' port {} region '{}' external name '{}' raknet guid {}"
+                " nethernet {} experience info {}", static_cast<int>(c->mType), static_cast<int>(c->mTransportType),
+                *c->mHostIpAddress, *c->mUnresolvedUrl, static_cast<int>(c->mPort), *c->mServerRegion, *c->mExternalServerName,
+                (*c->mRakNetGUID).g, nether, c->mResolvedExperienceInfo->has_value() ? "present" : "absent");
+        } else line += "; no connection info";
+        log("identity: " + line);
+    } catch (...) { log("identity: could not be read"); }
+}
+#endif
 void join(ll::event::ClientJoinLevelEvent& event) noexcept {
     try {
         if (event.self().getLocalPlayer() != &event.player()) return;
+#ifdef LAMIUM_SERVER_TRACE
+        traceIdentity(event);
+#endif
         std::lock_guard lock(mutex);
         set = {};
         destination.reset();
@@ -69,14 +153,21 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
         deathWatch.reset();
         arrivalWatch.reset();
         joined = {joined.world + 1, true, std::nullopt};
-        try { joined.mapFolder = resolve(event, "map", "map", false); }
+        std::optional<std::string> key;
+        if (!joiningLocal) {
+            try { key = serverKey(event); }
+            catch (std::exception const& error) { log(std::string("no name for this server's data: ") + error.what()); }
+            // Which folder and files to look in when data seems to be missing (L-343).
+            log(key ? "this server's data is under '" + *key + "'" : std::string("this server has nothing to name its data by; nothing is saved"));
+        }
+        try { joined.mapFolder = resolve(event, key, "map", mapFolder, false); }
         catch (std::exception const& error) { log(std::string("no folder for the world map: ") + error.what()); }
-        try { joined.schematicFile = resolve(event, "schematics.json", "schematics", true); }
+        try { joined.schematicFile = resolve(event, key, "schematics.json", schematicFolder, true); }
         catch (std::exception const& error) { log(std::string("no file for schematic placements: ") + error.what()); }
-        try { joined.deathLayoutFile = resolve(event, "death-layout.json", "death-layouts", true); }
+        try { joined.deathLayoutFile = resolve(event, key, "death-layout.json", deathFolder, true); }
         catch (std::exception const& error) { log(std::string("no file for the death layout: ") + error.what()); }
         try {
-            destination = resolve(event, "waypoints.json", "waypoints", true);
+            destination = resolve(event, key, "waypoints.json", waypointFolder, true);
             if (destination && std::filesystem::exists(*destination)) set = readWaypoints(*destination);
             assignSessionIds(set.waypoints, nextId);
         } catch (std::exception const& error) {
