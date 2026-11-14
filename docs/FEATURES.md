@@ -159,7 +159,7 @@ food previews what eating it would add.
 While `Tab` is held: the players with their faces, platform, dimension,
 distance and permission marks.
 
-### Inventory HUD and Used slots
+### Inventory HUD and Used slots HUD
 
 Your inventory as a 9x3 grid during play, and a counter of used slots such
 as 13/36. Each works without the other.

@@ -12,7 +12,7 @@ text differ, this text wins.
 
 Elements: **Info lines**, **Target**, **Status**, **Toast**, **Zoom
 magnification**, **Durability**, **Minimap**, **Schematic HUD**, **Player
-list**, **Inventory**, **Used slots** and **Status effects** are Lamium's;
+list**, **Inventory**, **Used slots HUD** and **Status effects** are Lamium's;
 **Chat**, **Paper doll**, **Scoreboard** and **Boss bars** are the game's own
 parts, in the editor only while Game HUD placement places them. Feature
 documents describe the contents of the latter elements. The **Debug** panel
