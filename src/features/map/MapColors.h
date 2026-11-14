@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 namespace lamium::map {
 // Raise when the column color or height calculation invalidates saved values.
@@ -28,6 +29,22 @@ inline std::optional<std::uint32_t> averageColor(std::uint8_t const* rgba, size_
     if (weight < .5) return std::nullopt;
     auto c = [&](double v) { return static_cast<int>(std::lround(v / weight)); };
     return packColor(c(r), c(g), c(b));
+}
+// An add-on block (outside the `minecraft` namespace) that defines
+// `minecraft:map_color` is drawn in that color (L-324): its textures may not
+// be in `BlockGraphics`. Every other block keeps its texture color, and the
+// game's map color only where no texture color was found.
+inline constexpr bool addOnBlock(std::string_view typeName) {
+    auto colon = typeName.find(':');
+    return colon != std::string_view::npos && colon > 0 && typeName.substr(0, colon) != "minecraft";
+}
+inline constexpr bool usesDefinedMapColor(std::string_view typeName, bool defined, float alpha) {
+    return defined && alpha > 0 && addOnBlock(typeName);
+}
+// The defined color, opaque, so it is never the 0 that means "no color".
+inline std::uint32_t definedMapColor(float r, float g, float b) {
+    auto byte = [](float v) { return static_cast<int>(std::lround(std::clamp(std::isfinite(v) ? v : 0.f, 0.f, 1.f) * 255)); };
+    return packColor(byte(r), byte(g), byte(b));
 }
 // A biome tint the map can use. The block renderer's tint comes back black
 // (0, 0, 0) for a while after a chunk loads; black grass was saved over

@@ -79,6 +79,9 @@ inline CellState classifyReading(CellReading const& r, bool countExtras) {
 // key order, at most `limit` of them. A state only one side has shows "-".
 struct StateDifference {
     std::string key, expected, actual;
+    // Not a block state (block entity data, a shulker box's opening): an
+    // ignore entry (L-183) cannot name it.
+    bool fixed = false;
     bool operator==(StateDifference const&) const = default;
 };
 inline std::vector<StateDifference> stateDifferences(std::map<std::string, std::string> const& expected,
@@ -109,7 +112,7 @@ inline StateDifference liquidDifference(bool expected, bool actual) {
 inline StateDifference faceDifference(int expected, int actual) {
     constexpr char const* names[6] = {"down", "up", "north", "south", "west", "east"};
     auto name = [&](int face) { return face >= 0 && face < 6 ? std::string(names[face]) : std::to_string(face); };
-    return {"facing", name(expected), name(actual)};
+    return {"facing", name(expected), name(actual), true};
 }
 
 struct Tally {

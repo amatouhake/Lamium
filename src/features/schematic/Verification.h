@@ -18,6 +18,10 @@ struct Mismatch {
     bool entity = false; // a missing entity rather than a block
     std::vector<StateDifference> states; // CellState::State: what differs
     std::string identifier; // the expected block's name (minecraft:oak_trapdoor), for naming its states
+    // What an ignore entry (L-183) names: the structure cell and the file's
+    // block there; local.x is -1 for an entity or an expected air cell.
+    Point local{-1, -1, -1};
+    std::string fileBlock;
 };
 struct MaterialLine {
     std::string item;      // item name, e.g. minecraft:oak_stairs; empty when the block has no item

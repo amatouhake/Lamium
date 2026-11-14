@@ -128,8 +128,15 @@ in progressively ([DESIGN.md](DESIGN.md#engineering)).
   (redstone lamp, repeater, comparator, redstone torch) as a wrong state with
   a "Lit"/"Powered" row instead of a wrong block, never correct. An ignored
   difference is correct everywhere (list, HUD, nearest mistake, marks). Rules
-  are a table: a new category or state is a row, not code. Selected-cell
-  suppression is a separate design ([L-183 Disregard selected schematic check mismatches](backlog/L-183.md)).
+  are a table: a new category or state is a row, not code.
+- Ignored differences ([L-183 Disregard selected schematic check mismatches](backlog/L-183.md)):
+  one state of one cell each, saved with the placement in structure cells
+  (moving, turning, mirroring keep it). "Ignore" beside a state of a selected
+  wrong-state row adds one (not block entity rows, a shulker box's opening or
+  air cells); it counts as matching everywhere, other differences and blocks
+  still show. "Ignored: N" (entries that apply) opens their list in place of
+  the counts: Undo each, "Undo all" pressed twice; an entry whose cell lost
+  the named block is listed as stale, not applied. At most 64.
 - Waterlogging: once a cell's block is right, the second layer must match the
   world's extra block (none on both sides included); a difference is a state
   row `waterlogged: true -> false` (or the reverse) and a yellow mark. A
@@ -262,7 +269,7 @@ Under `src/features/schematic/` unless stated.
   `SchematicSession.*` (files, placements, load cache, size limits);
   `PlacementStore.*` (`schematics.json`).
 - Pure rules: `Placement.h` (`toWorldYaw`, `toWorldFace`, layers), `Verify.h`
-  (`withLiquid`, `stateDifferences`), `CheckRules.h`, `BlockEntityCheck.h`,
+  (`withLiquid`, `stateDifferences`), `CheckRules.h`, `CheckIgnores.h`, `BlockEntityCheck.h`,
   `Verification.h` (`maxMismatches`), `GhostFaces.h`, `LiquidShape.h`,
   `PlacementOverlap.h`, `RayCells.h`, `PickRay.h`, `SectionLayers.h`,
   `PreviewView.h`, `MaterialAmount.h`, `RawMaterials.h`,
@@ -278,7 +285,7 @@ Under `src/features/schematic/` unless stated.
   `Preview.cpp`. Screen: `src/ui/SchematicsView.cpp`. Lines:
   `src/overlay/LineColor.h`.
 - Tests: `tests/SchematicTests.cpp` (`structureWrittenShape` and the rest),
-  `BlockEntityCheckTests.cpp`, `RawMaterialsTests.cpp`,
+  `BlockEntityCheckTests.cpp`, `RawMaterialsTests.cpp`, `CheckIgnoresTests.cpp`,
   `SectionLayersTests.cpp`. `LAMIUM_SAMPLE_STRUCTURES` (a folder or
   `;`-separated files) reads real exports, writes them back and checks layers,
   version and layer count. Traces: `schematic_perf_trace`,

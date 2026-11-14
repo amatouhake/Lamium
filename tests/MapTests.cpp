@@ -562,6 +562,13 @@ void colors() {
     check(tinted(packColor(10, 20, 30), 2, NAN, -1) == packColor(10, 20, 0), "tints never brighten or break");
     check(usableTint(.596f, .765f, .357f) && !usableTint(0, 0, 0) && !usableTint(NAN, 1, 1),
           "a black or broken biome tint is not used");
+    check(usesDefinedMapColor("pack:ruby_block", true, 1) && !usesDefinedMapColor("minecraft:dirt", true, 1)
+              && !usesDefinedMapColor("pack:ruby_block", false, 1) && !usesDefinedMapColor("pack:ruby_block", true, 0),
+          "only an add-on block that defines a visible map color uses it");
+    check(!addOnBlock("stone") && !addOnBlock(":stone") && addOnBlock("minecraftx:stone"), "the namespace decides");
+    check(definedMapColor(0, 0, 0) == packColor(0, 0, 0) && definedMapColor(0, 0, 0) != 0
+              && definedMapColor(1, .5f, NAN) == packColor(255, 128, 0),
+          "a defined black is still a color");
 }
 void surface() {
     // The heightmap (100) holds the ground under a carpet (101): the scan

@@ -18,6 +18,7 @@
 #include "features/camera/ViewFeet.h"
 #include "features/visuals/PackImage.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "ui/Widgets.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/memory/Hook.h"
@@ -52,6 +53,7 @@
 #include "mc/client/world/level/biome/biome_color_sampling/TessellationPolicy.h"
 #include "mc/deps/core/math/Color.h"
 #include "mc/world/level/block/TintMethod.h"
+#include "mc/world/level/block/components/BlockMapColorComponent.h"
 #include "mc/world/level/material/Material.h"
 #include "mc/world/phys/AABB.h"
 #include "mc/world/level/BlockPos.h"
@@ -230,7 +232,7 @@ struct State {
     double evictedAt = 0;
     bool uploaded = false, failed = false, everUploaded = false;
     int textureSize = 0;
-    int texturesLogged = 0, tintsLogged = 0, fallbacksLogged = 0;
+    int texturesLogged = 0, tintsLogged = 0, fallbacksLogged = 0, addOnsLogged = 0;
     Diagnostics diagnostics;
 };
 State state;
@@ -270,7 +272,7 @@ void forget() {
 // How a block shows on the map, by block state. Texture averages are cached
 // by path, since many states share a texture.
 struct BlockLook {
-    std::uint32_t color = 0; // Untinted top texture average; 0: use the map color.
+    std::uint32_t color = 0; // Untinted top texture average or defined map color; 0: use the map color.
     TintMethod tint = TintMethod::None;
     bool skip = false;    // Not drawn; the map looks through it.
     bool pending = false; // The client's stand-in for blocks not received yet.
@@ -321,6 +323,21 @@ BlockLook const* blockLook(IClientInstance& client, Block const& block) {
     if (material == Material::Air || material == Material::Glass || material == Material::StructureVoid
         || material == Material::Barrier || material == Material::Portal) look.skip = true;
     else if (material == Material::ClientRequestPlaceholder) look.pending = true;
+    // An add-on block's own map color (L-324), read once per state like the texture.
+    bool const addOn = !look.skip && !look.pending && addOnBlock(block.getTypeName());
+    bool defined = false;
+    if (addOn && versionSensitiveAllowed(capabilities::Id::MapColorComponent)) {
+        if (auto const* component = block.tryGetComponent<BlockMapColorComponent>()) {
+            mce::Color const& color = component->mMapColor;
+            defined = true;
+            if (usesDefinedMapColor(block.getTypeName(), defined, color.a)) {
+                look.color = definedMapColor(color.r, color.g, color.b);
+                look.tint = component->mTintMethod;
+            }
+        }
+    }
+    std::string texturePath;
+    if (look.skip || look.pending) {}
     else if (auto const* graphics = BlockGraphics::getForBlock(block)) {
         auto const& shape = *graphics->mVisualShape;
         AABB buffer{};
@@ -334,13 +351,19 @@ BlockLook const* blockLook(IClientInstance& client, Block const& block) {
                      || covers(visual.min.x, visual.max.x, visual.min.z, visual.max.z);
         auto const& uv = graphics->getTexture(static_cast<std::uint64_t>(FacingID::Up), type.getVariant(block));
         auto const& path = uv.sourceFileLocation->mPath->value;
-        if (auto cached = textureColors.find(path); cached != textureColors.end()) look.color = cached->second;
+        texturePath = path;
+        if (look.color) {}
+        else if (auto cached = textureColors.find(path); cached != textureColors.end()) look.color = cached->second;
         else {
             if (textureLoadsLeft <= 0) return nullptr;
             --textureLoadsLeft;
             look.color = textureColors[path] = textureAverage(client, *uv.sourceFileLocation);
         }
     }
+    // What add-on blocks get, to tell a defined color from a stand-in texture.
+    if (addOn && ++state.addOnsLogged <= 8)
+        state.diagnostics.log(std::format("add-on block {} map_color {} color {:08x} texture '{}'", block.getTypeName(),
+                                          defined ? "yes" : "no", look.color, texturePath));
     // Which blocks fall back or stand in, for the first runs of the feature.
     if ((look.pending || (!look.skip && !look.color)) && ++state.fallbacksLogged <= 8)
         state.diagnostics.log(std::format("{} {}", look.pending ? "stand-in block" : "no texture color for",

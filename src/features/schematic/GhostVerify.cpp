@@ -1,6 +1,7 @@
 #include "features/schematic/GhostVerify.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/CheckRules.h"
+#include "features/schematic/CheckIgnores.h"
 #include "features/schematic/BlockEntityCheck.h"
 #include "features/information/BlockEntityRows.h"
 #include "features/information/NoteSounds.h"
@@ -69,7 +70,7 @@ struct Cell {
     CellState state = CellState::Unknown;
     int palette = -1;
     bool air = false, visible = false;
-    Point world, offset;
+    Point world, offset, local{-1, -1, -1};
     Block const* expected = nullptr;
     Block const* actual = nullptr;
     // The second layer: the file's liquid and the world's extra block (null: none).
@@ -153,7 +154,7 @@ std::vector<StateDifference> entityStates(std::vector<entitycheck::Difference> c
         std::string name = f.within.empty() ? label(f.key)
             : f.key == "Text"               ? label(f.within)
                                             : std::format("{} {}", label(f.within), label(f.key));
-        out.push_back({std::move(name), value(d.expected), value(d.actual)});
+        out.push_back({std::move(name), value(d.expected), value(d.actual), true});
     }
     return out;
 }
@@ -230,6 +231,37 @@ void addEntityResults(Verification& result, session::Shown const& shown, Resolve
     for (auto& [key, line] : visible) result.visibleMaterials.push_back(std::move(line));
 }
 
+// A wrong-state cell's differences: its block states (those the settings
+// leave out not listed, L-262; at most `blockLimit` of them), a shulker box's
+// opening, block entity fields, then waterlogging. With `ignores`, the
+// differences ignored at the cell are left out first (L-183).
+std::vector<StateDifference> cellDifferences(Cell const& c, IgnoreList const* ignores, std::string_view fileBlock, size_t blockLimit) {
+    std::vector<StateDifference> out;
+    if (!c.expected || !c.actual || c.actual->isAir()) return out;
+    auto skipped = [&](StateDifference const& d) { return ignores && !d.fixed && ignores->ignored(c.local, fileBlock, d.key); };
+    if (c.actual != c.expected) {
+        auto expected = blockStates(*c.expected), actual = blockStates(*c.actual);
+        if (unsigned on = checkRules())
+            for (auto* states : {&expected, &actual}) std::erase_if(*states, [on](auto const& s) { return rules::ignoredState(s.first, on); });
+        // An off/on pair (L-262) differs by name: say which is on.
+        auto shouldBe = rules::switchedOn(c.expected->getTypeName()), now = rules::switchedOn(c.actual->getTypeName());
+        if (shouldBe && now && shouldBe->on != now->on) {
+            expected[std::string(shouldBe->state)] = shouldBe->on ? "1" : "0";
+            actual[std::string(shouldBe->state)] = now->on ? "1" : "0";
+        }
+        out = stateDifferences(expected, actual, SIZE_MAX);
+        std::erase_if(out, skipped);
+        if (out.size() > blockLimit) out.resize(blockLimit);
+    }
+    if (c.expectedFace >= 0 && c.actualFace >= 0 && c.expectedFace != c.actualFace)
+        out.push_back(faceDifference(c.expectedFace, c.actualFace));
+    out.insert(out.end(), c.entityStates.begin(), c.entityStates.end());
+    // Listed with the others, so ignoring the block's states cannot pass a
+    // cell whose water is still wrong. An air cell's liquid is its block.
+    if (!c.air && c.expectedLiquid != c.actualLiquid)
+        if (auto d = liquidDifference(c.expectedLiquid, c.actualLiquid); !skipped(d)) out.push_back(std::move(d));
+    return out;
+}
 // One cell of a placement, the n-th of its placed box (x, then y, then z
 // fastest), compared with the world. `reuseEntity`: the caller asks every frame
 // about the same cell (the card), so its block entity read may be kept for a
@@ -249,6 +281,7 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
     auto paletteIndex = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
     if (paletteIndex == voidCell || static_cast<size_t>(paletteIndex) >= blocks.blocks.size()) return c;
     c.inside = true;
+    c.local = *local;
     c.palette = static_cast<int>(paletteIndex);
     c.air = structure.palette[static_cast<size_t>(paletteIndex)].isAir();
     c.expected = blocks.blocks[static_cast<size_t>(paletteIndex)];
@@ -315,7 +348,7 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
                 auto [belowKnown, below] = fileAt(-1);
                 if (auto instrument = information::noteInstrumentMismatch(region, pos, aboveKnown, above, belowKnown, below)) {
                     same = false;
-                    c.entityStates.push_back({ui::translated("blockEntity.instrument"), instrument->first, instrument->second});
+                    c.entityStates.push_back({ui::translated("blockEntity.instrument"), instrument->first, instrument->second, true});
                 }
             }
         }
@@ -329,37 +362,34 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
                                .actualAir = actual->isAir(),
                                .liquidsMatch = c.expectedLiquid == c.actualLiquid},
                               placement.countExtras);
+    // L-183: a wrong state whose every difference is ignored here passes.
+    if (c.state == CellState::State && !c.air && placement.ignored.anyAt(c.local)) {
+        auto all = cellDifferences(c, nullptr, {}, SIZE_MAX);
+        bool unlisted = all.empty();
+        c.state = applyIgnores(c.state, std::move(all), placement.ignored, c.local,
+                               structure.palette[static_cast<size_t>(paletteIndex)].name, unlisted).state;
+    }
     return c;
 }
-// A classified cell as a row of the Check list.
-Mismatch mismatchFor(Cell const& c, Resolved const& blocks) {
+// A classified cell as a row of the Check list; the differences ignored at
+// the cell are not listed.
+Mismatch mismatchFor(Cell const& c, Resolved const& blocks, session::Shown const& shown) {
     Mismatch m{c.state, c.world, {}, {}, {}, {}};
+    std::string_view fileBlock;
     if (!c.air && c.palette >= 0) {
         auto const& info = blocks.items[static_cast<size_t>(c.palette)];
         m.expected = info.icon;
         m.expectedName = info.name;
+        fileBlock = shown.structure->palette[static_cast<size_t>(c.palette)].name;
+        m.local = c.local;
+        m.fileBlock = std::string(fileBlock);
     }
     if (c.actual && !c.actual->isAir()) {
         auto info = describe(*c.actual, c.actual->getTypeName());
         m.actual = info.icon;
         m.actualName = info.name;
         if (c.state == CellState::State && c.expected) {
-            // States the settings leave out are not listed (L-262).
-            auto expected = blockStates(*c.expected), actual = blockStates(*c.actual);
-            if (unsigned on = checkRules())
-                for (auto* states : {&expected, &actual}) std::erase_if(*states, [on](auto const& s) { return rules::ignoredState(s.first, on); });
-            // An off/on pair (L-262) differs by name: say which is on.
-            auto shouldBe = rules::switchedOn(c.expected->getTypeName()), now = rules::switchedOn(c.actual->getTypeName());
-            if (shouldBe && now && shouldBe->on != now->on) {
-                expected[std::string(shouldBe->state)] = shouldBe->on ? "1" : "0";
-                actual[std::string(shouldBe->state)] = now->on ? "1" : "0";
-            }
-            m.states = stateDifferences(expected, actual);
-            if (c.expectedFace >= 0 && c.actualFace >= 0 && c.expectedFace != c.actualFace)
-                m.states.push_back(faceDifference(c.expectedFace, c.actualFace));
-            m.states.insert(m.states.end(), c.entityStates.begin(), c.entityStates.end());
-            if (m.states.empty() && c.expectedLiquid != c.actualLiquid)
-                m.states.push_back(liquidDifference(c.expectedLiquid, c.actualLiquid));
+            m.states = cellDifferences(c, c.air ? nullptr : &shown.placement.ignored, fileBlock, 3);
             m.identifier = c.expected->getTypeName();
         }
     }
@@ -397,7 +427,7 @@ void stepProgress(BlockSource& region, session::Snapshot const& snapshot, int di
         auto const& shown = snapshot.placements[progressScan.index];
         bool usable = static_cast<int>(progressScan.index) != snapshot.selected && shown.structure
             && shown.placement.dimension == dimension && resolved[progressScan.index].structure == shown.structure.get();
-        auto key = drawKey(shown.placement);
+        auto key = checkKey(shown.placement);
         if (!usable) { ++progressScan.index; progressScan.key.clear(); ++tries; continue; }
         if (progressScan.key != key) { progressScan.key = key; progressScan.next = 0; progressScan.tally = {}; }
         Size placed = placedSize(shown.structure->size, shown.placement.placement.rotation);
@@ -410,7 +440,7 @@ void stepProgress(BlockSource& region, session::Snapshot const& snapshot, int di
             if (c.inside && c.visible) progressScan.tally.add(c.state, !c.air);
         }
         if (progressScan.next < total) return;
-        recordProgress(key, progressScan.tally);
+        recordProgress(drawKey(shown.placement), progressScan.tally);
         progressScan.key.clear();
         ++progressScan.index;
         ++tries;
@@ -435,7 +465,7 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
     }
     // A change to another placement, or to this one's name or visibility,
     // keeps the pass going.
-    auto key = drawKey(snapshot.placements[static_cast<size_t>(index)].placement)
+    auto key = checkKey(snapshot.placements[static_cast<size_t>(index)].placement)
         + std::format("|{}", static_cast<void const*>(snapshot.placements[static_cast<size_t>(index)].structure.get()));
     if (scan.key != key) {
         scan = {};
@@ -508,7 +538,7 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
     result->visible = scan.tally;
     recordProgress(drawKey(placement), scan.tally);
     for (auto* near : {&scan.nearMistakes, &scan.nearMissing})
-        for (auto const& [distance, cell] : *near) scan.mismatches.push_back(mismatchFor(cell, blocks));
+        for (auto const& [distance, cell] : *near) scan.mismatches.push_back(mismatchFor(cell, blocks, shown));
     result->mismatches = std::move(scan.mismatches);
     for (auto& [key, line] : scan.all) result->materials.push_back(std::move(line));
     for (auto& [key, line] : scan.shown) result->visibleMaterials.push_back(std::move(line));
@@ -558,7 +588,17 @@ std::optional<Mismatch> checkedCell(BlockSource& region, Point world, std::vecto
     auto n = (static_cast<std::uint64_t>(ox) * placed.y + static_cast<std::uint64_t>(oy)) * placed.z + static_cast<std::uint64_t>(oz);
     auto c = classifyCell(region, shown, resolved[static_cast<size_t>(index)], placed, n, true);
     if (!c.inside) return std::nullopt;
-    return mismatchFor(c, resolved[static_cast<size_t>(index)]);
+    return mismatchFor(c, resolved[static_cast<size_t>(index)], shown);
+}
+bool passesWithIgnores(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point world) {
+    if (!shown.structure || shown.placement.ignored.empty()) return false;
+    Size placed = placedSize(shown.structure->size, shown.placement.placement.rotation);
+    auto const& o = shown.placement.placement.origin;
+    int ox = world.x - o.x, oy = world.y - o.y, oz = world.z - o.z;
+    if (ox < 0 || oy < 0 || oz < 0 || ox >= placed.x || oy >= placed.y || oz >= placed.z) return false;
+    auto n = (static_cast<std::uint64_t>(ox) * placed.y + static_cast<std::uint64_t>(oy)) * placed.z + static_cast<std::uint64_t>(oz);
+    auto c = classifyCell(region, shown, blocks, placed, n);
+    return c.inside && c.state == CellState::Correct;
 }
 void resetVerification() {
     entitiesChecked = {};

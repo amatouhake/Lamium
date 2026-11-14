@@ -136,6 +136,7 @@ the package/SDK loader-policy alignment in CI.
 | Paste across book pages (page model and caret) | `BookPaste.cpp` (`PageContent::mText`, `TextEditContext::mCaret` and `mSelection`) | a paste works as in vanilla | everything else |
 | Enchantment order (enchantment costs and anvil screen) | `EnchantOrderGame.cpp` (`Enchant::mFrequency` as the cost class, `AnvilContainerManagerController::mCost`, the `anvil_screen` name, its `root_panel` box and the `anvil_input_items` / `anvil_material_items` collections) | the planner screen says it is not checked on this game, nothing is drawn beside the anvil, and item tooltips carry no work penalty line (`Inspection.cpp`, `ItemStackBase::getBaseRepairCost` read as the anvil surcharge) | everything else |
 | Item details (item data reads) | `Inspection.cpp` (`Item::mTags`, `ItemStackBase::mUserData`, `Item::mMaxUseDuration`, burn and use times in the item's components, `getCooldownDuration`, the suspicious stew's effect) | the tooltip has no stew effect, property values, ID, tags or NBT lines | the game's tooltip, durability numbers, food values; the work penalty follows Enchantment order's capability |
+| Map colors of add-on blocks (block map color component) | `Minimap.cpp` `blockLook` (`Block::tryGetComponent<BlockMapColorComponent>`, its `mMapColor` and `mTintMethod`) | add-on blocks are drawn in their top texture's color | every other map color |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
@@ -314,6 +315,9 @@ Rebuild.
 ### `src/features/inspection/EnglishSearch.cpp`
 Hooks: `SearchHook`
 Meaning: the crafting screen filters by the text passed to `_filterByText`.
+Enchanted books (L-344) read `ItemStackBase::constructItemEnchantsFromUserData`,
+`Enchant::mEnchants`, `mEnchantType`, `mDescription` (en_US key, with or
+without the `enchantment.` prefix) and `mStringId`.
 
 ### `src/features/inspection/hover/HoverTracker.cpp`
 Hooks: `ContainerSlotHoveredHook`, `CraftingSlotHoveredHook`, `ContainerSlotUnhoveredHook`, `ContainerScreenLeaveHook`
@@ -661,7 +665,9 @@ Meaning: `BaseLightData`'s night vision fields. Gated (Night Vision).
 ### `src/features/map/Minimap.cpp`
 Hooks: `FrameAlphaHook`, `CommandListHook`
 Meaning: the available commands packet lists `tp` or `teleport` when the
-player may use it (world map teleport).
+player may use it (world map teleport). Block colors (L-324): a block's
+`BlockMapColorComponent`, found with `Block::tryGetComponent`, holds the
+`minecraft:map_color` an add-on defined.
 
 ### `src/features/map/PlayerLocationTrace.cpp`
 Hooks: `UpdateHook`, `HideHook`

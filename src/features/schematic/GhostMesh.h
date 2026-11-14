@@ -4,6 +4,7 @@
 // against ghosts, liquids as shells, mistake marks and outlines. Built by
 // the ghost pass (GhostRenderer.cpp), which owns the sections.
 #include "features/schematic/ResolvedPlacement.h"
+#include "features/schematic/SectionLayers.h"
 #include "features/schematic/SchematicSession.h"
 #include "features/schematic/Nbt.h"
 #include "mc/deps/minecraft_renderer/renderer/Mesh.h"
@@ -27,6 +28,10 @@ namespace lamium::schematic::ghosts {
 // Ghost meshes are built per section of this many blocks a side: one
 // changed block re-tessellates its section, which took 4-12 ms at 16.
 constexpr int sectionSize = 8;
+// How far around its cells a section's mesh depends on the shown layers
+// (L-236): faces, enclosure, liquid corners and flow, and a door's other half
+// read one cell; one more in case the game's tessellator reads further.
+constexpr int meshHalo = 2;
 
 // A ghost drawn by its block-entity renderer, with the file's block entity
 // data for it (bed color, skull type and rotation, sign text, banner).
@@ -71,8 +76,17 @@ struct Section {
     std::uint64_t signature = 0;          // the world's blocks in the section when built
     bool complete = false; // false while some chunk was not loaded
     std::uint64_t wantedStamp = 0; // the wanted list that last included it
+    SectionLayers layers; // the shown layers it was built for (sectionLayersOf)
 };
 using SectionKey = std::tuple<int, int, int, int>; // placement, section x, y, z
+// The layers a section's mesh depends on under `slab` (the placement's
+// placedSlab): equal values let a built section stay when the view changes.
+inline SectionLayers sectionLayersOf(PlacedSlab const& slab, session::Shown const& shown, SectionKey key) {
+    auto [index, sx, sy, sz] = key;
+    return sectionLayersAround(slab, placedSize(shown.structure->size, shown.placement.placement.rotation),
+                               shown.placement.placement.origin, {sx * sectionSize, sy * sectionSize, sz * sectionSize},
+                               sectionSize, meshHalo);
+}
 
 // Where the camera was when sections are built.
 struct BuildCamera {

@@ -9,6 +9,9 @@
 #include "mc/world/containers/models/FilterResult.h"
 #include "mc/world/containers/models/TextSearchMode.h"
 #include "mc/world/item/ItemInstance.h"
+#include "mc/world/item/enchanting/Enchant.h"
+#include "mc/world/item/enchanting/EnchantmentInstance.h"
+#include "mc/world/item/enchanting/ItemEnchants.h"
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -20,6 +23,8 @@ namespace {
 std::mutex namesMutex;
 std::unordered_map<std::string, std::string> names;
 std::shared_ptr<Localization const> english;
+// An enchantment's English name and identifier by type (L-344).
+std::unordered_map<int, std::string> enchantNames;
 std::atomic<int> samplesLogged{0};
 std::atomic<bool> unavailableLogged{false};
 
@@ -39,6 +44,35 @@ std::string englishName(ItemInstance const& item) {
     names.emplace(std::move(id), name);
     return name;
 }
+// Caller holds namesMutex and has tried to load `english`.
+std::string const& enchantName(Enchant::Type type) {
+    int const key = static_cast<int>(type);
+    if (auto found = enchantNames.find(key); found != enchantNames.end()) return found->second;
+    std::string text;
+    for (auto const& enchant : Enchant::mEnchants()) {
+        if (!enchant || static_cast<Enchant::Type>(enchant->mEnchantType) != type) continue;
+        std::string name;
+        std::string const& description = enchant->mDescription;
+        if (!english || !english->get(enchantNameKey(description), name, {})) name.clear();
+        text = name + "\n" + static_cast<HashedString const&>(enchant->mStringId).getString();
+        if (samplesLogged.fetch_add(1) < 5)
+            Runtime::instance().self().getLogger().info("English search: enchantment {} -> '{}'", description, name);
+        break;
+    }
+    return enchantNames.emplace(key, std::move(text)).first->second;
+}
+// A Creative enchanted book is found by its stored enchantments; other
+// items keep only their own name. Books are never in the recipe book, so
+// this stays a Creative search addition.
+std::string storedEnchantNames(ItemInstance const& item) {
+    if (item.getTypeName() != "minecraft:enchanted_book") return {};
+    auto const stored = item.constructItemEnchantsFromUserData().getAllEnchants();
+    std::string out;
+    std::lock_guard lock{namesMutex};
+    if (!english) english = getI18n().getLocaleFor("en_US");
+    for (auto const& e : stored) out += enchantName(e.mEnchantType) + "\n";
+    return out;
+}
 LL_TYPE_INSTANCE_HOOK(SearchHook, ll::memory::HookPriority::Normal, CraftingContainerManagerModel,
     &CraftingContainerManagerModel::_filterByText, FilterResult, ItemInstance const& item, TextSearchMode mode) {
     auto result = origin(item, mode);
@@ -47,7 +81,7 @@ LL_TYPE_INSTANCE_HOOK(SearchHook, ll::memory::HookPriority::Normal, CraftingCont
         if (!Runtime::instance().snapshot()->inspection.englishSearch || item.isNull() || !item.mItem) return result;
         std::string const& query = this->mSearchString;
         if (query.empty()) return result;
-        if (matches(query, englishName(item), item.getTypeName())) return FilterResult::Show;
+        if (matches(query, englishName(item), item.getTypeName(), storedEnchantNames(item))) return FilterResult::Show;
     } catch (...) {}
     return result;
 }
@@ -72,6 +106,7 @@ void stop() {
 void forget() {
     std::lock_guard lock{namesMutex};
     names.clear();
+    enchantNames.clear();
     english.reset();
 }
 }

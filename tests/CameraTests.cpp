@@ -47,6 +47,8 @@ int main() try {
     rawMaterialsTests();
     extern void sectionLayersTests();
     sectionLayersTests();
+    extern void checkIgnoresTests();
+    checkIgnoresTests();
     extern void repeatTradeTests();
     repeatTradeTests();
     extern void englishSearchTests();
