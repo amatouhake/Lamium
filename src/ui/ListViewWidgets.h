@@ -69,8 +69,11 @@ void drawTipBox(MinecraftUIRenderContext& context, float x, float y, float w, fl
 // A passing notice for a screen without a status line (world map,
 // calculator; DESIGN "Screens"): one line in a floating box centered on
 // `centerX` with its top at `y`, shown for noticeSeconds. Failure: warning.
+// Its opacity follows what lies under it (DESIGN "Colors"): `overWorld` for
+// one outside its screen's panel (the calculator's, below it).
 inline constexpr double noticeSeconds = 2.5;
-void drawNotice(MinecraftUIRenderContext& context, float centerX, float y, float maxWidth, std::string const& text, bool warns = false);
+void drawNotice(MinecraftUIRenderContext& context, float centerX, float y, float maxWidth, std::string const& text, bool warns = false,
+                bool overWorld = false);
 // A row of color swatches in the editor's value column; the chosen one framed.
 template<class ColorOf>
 void drawSwatchRow(MinecraftUIRenderContext& context, ShapesLayout const& l, float y, int count, int chosen, ColorOf colorOf) {

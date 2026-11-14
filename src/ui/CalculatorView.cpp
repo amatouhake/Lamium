@@ -459,7 +459,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         label(context, tx + 4, tipY + 1 + boxTextInset() - 1, w - 8, text);
     }
     if (!note.empty() && std::chrono::steady_clock::now() < noteUntil) {
-        drawNotice(context, l.left + l.width / 2, std::min(l.top + l.height + 4, size.y - 14), l.width, note);
+        drawNotice(context, l.left + l.width / 2, std::min(l.top + l.height + 4, size.y - 14), l.width, note, false, true);
     }
     context.flushText(0, std::nullopt);
 }

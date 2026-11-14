@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Notices, map list scroll bar, last tokens (L-347, 2026-11-15)
+
+Build `b671639f`, DLL SHA-256
+`8f127a3077b2c61df95387a864040508c00c66262a067ac80356c5a52b2d65c0`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Copying the version shows "copied" in white in the
+footer, not as a toast; the world map's waypoint list (right side) shows a scroll bar that
+drags; the waypoint distance text in the world stays readable. Raised: the calculator's
+copy notice sits below the panel over the world but used the near-opaque floating shade
+(now the screen's .8, not yet seen).
+
 ## Shared tips, panel opacities and control input (L-345, L-346, 2026-11-15)
 
 Builds `e43634c4` and `88e12ce8` (DLL SHA-256

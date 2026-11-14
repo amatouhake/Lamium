@@ -66,9 +66,10 @@ void drawTipBox(MinecraftUIRenderContext& context, float x, float y, float w, fl
     fill(context,x,y,w,h,palette::panel,opacity::floating);
     frame(context,x,y,w,h,warns ? palette::warning : palette::keyEdge);
 }
-void drawNotice(MinecraftUIRenderContext& context, float centerX, float y, float maxWidth, std::string const& text, bool warns) {
+void drawNotice(MinecraftUIRenderContext& context, float centerX, float y, float maxWidth, std::string const& text, bool warns,
+                bool overWorld) {
     float w = std::min(maxWidth, textWidth(context, text) + 12), x = centerX - w / 2;
-    fill(context,x,y,w,12,palette::panel,opacity::floating);
+    fill(context,x,y,w,12,palette::panel,overWorld ? opacity::screen : opacity::floating);
     frame(context,x,y,w,12,warns ? palette::warning : palette::keyEdge);
     label(context,x,y+1+boxTextInset()-1,w,text,warns ? palette::warning : palette::text,Align::Center);
 }
