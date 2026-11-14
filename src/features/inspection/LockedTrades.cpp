@@ -74,6 +74,15 @@ struct Offer {
 };
 std::mutex offerMutex;
 Offer offer;
+unsigned offerGeneration = 0; // Counts each new offer, so a remembered tip knows it is stale.
+// The tip last drawn: its text is built once, not on every frame the pointer rests on the item.
+struct Tip {
+    int tier = -1, row = -1, slot = -1;
+    unsigned generation = 0;
+    std::shared_ptr<Settings const> settings; // Its lines follow the settings (Item details).
+    std::string text;
+};
+Tip lastTip;
 std::optional<ItemStack> itemOf(CompoundTag const& recipe, std::string_view key) {
     auto const* tag = recipe.get(key);
     if (!tag || tag->getId() != Tag::Compound) return std::nullopt;
@@ -100,6 +109,7 @@ LL_TYPE_INSTANCE_HOOK(OfferHook, ll::memory::HookPriority::Normal, ClientNetwork
         auto read = readOffer(*static_cast<UpdateTradePacketPayload const&>(packet).mData);
         std::lock_guard lock{offerMutex};
         offer = std::move(read);
+        ++offerGeneration;
     } catch (...) {}
     origin(source, packet);
 }
@@ -185,15 +195,30 @@ void onRender(ll::event::AfterUIRenderEvent& event) {
     glm::vec2 pointer = view.mPointerLocationPrevious;
     auto hit = lockedItemUnder(*list, pointer);
     if (!hit) return;
+    auto settings = Runtime::instance().snapshot();
     std::optional<ItemStack> stack;
+    std::optional<std::string> remembered;
+    unsigned generation = 0;
     {
         std::lock_guard lock{offerMutex};
-        if (auto index = recipeAt(offer.tiers, hit->tier, hit->row))
+        generation = offerGeneration;
+        if (lastTip.tier == hit->tier && lastTip.row == hit->row && lastTip.slot == hit->slot
+            && lastTip.generation == generation && lastTip.settings == settings)
+            remembered = lastTip.text;
+        else if (auto index = recipeAt(offer.tiers, hit->tier, hit->row))
             stack = offer.recipes[*index].items[static_cast<size_t>(hit->slot)];
+    }
+    if (remembered) {
+        if (!remembered->empty()) drawTip(event.uiRenderContext(), pointer, *view.mSize, std::move(*remembered));
+        return;
     }
     auto* player = event.uiRenderContext().mClient.getLocalPlayer();
     if (!stack || !player) return;
     auto text = stack->getFormattedHovertext(player->getLevel(), false).mUnredactedString;
+    {
+        std::lock_guard lock{offerMutex};
+        if (generation == offerGeneration) lastTip = {hit->tier, hit->row, hit->slot, generation, settings, text};
+    }
     if (text.empty()) return;
     drawTip(event.uiRenderContext(), pointer, *view.mSize, std::move(text));
 }
@@ -214,6 +239,8 @@ bool start() {
         exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) {
             std::lock_guard lock{offerMutex};
             offer = {};
+            ++offerGeneration;
+            lastTip = {};
         });
     return true;
 }
@@ -229,5 +256,7 @@ void stop() {
     }
     std::lock_guard lock{offerMutex};
     offer = {};
+    ++offerGeneration;
+    lastTip = {};
 }
 }

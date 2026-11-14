@@ -94,7 +94,9 @@ After the game's own text:
    "Tags:" label; more go under it, every row indented two spaces.
 8. **NBT** (dark grey): the raw content, one line per top-level entry of
    `mUserData`, "key: value", the key cut at 40 characters and the value at
-   60; a compound or list is its whole SNBT text on that line. At most 24
+   60; a compound or list is its SNBT text on that line. A large one (32
+   tags or more) is written by Lamium only as far as the line needs, so it
+   is never serialised whole; a smaller one is the game's own text. At most 24
    entries, then "… N more". A section sign in the data is replaced by "&"
    so it cannot recolour the tooltip. The line says "NBT", the only name the
    game's language file has for it. A shulker box's items are one cut line:
@@ -133,9 +135,12 @@ long as the button is).
   `try`/`catch (...)`: on a failure the text is returned with whatever was
   appended so far.
 - `LockedTrades.cpp` calls `getFormattedHovertext` itself for a hovered
-  locked trade, so the hook also runs from there, every frame.
+  locked trade, so the hook also runs from there, once per item hovered: the
+  text is remembered until the pointer moves to another item, a new offer
+  arrives or the settings change.
 - Pure: `src/features/inspection/ItemDetails.h` (`details::lines`,
-  `wrapped`, `clip`, `plain`, `effectTint`, `modifierLine`, the limits),
+  `wrapped`, `clip`, `plain`, `toldBelowName`, `snbtKey`, `effectTint`,
+  `modifierLine`, the limits),
   tested in `tests/ItemDetailsTests.cpp`; `enchantPlan::workPenalty` and
   `priorUses` in `src/features/inventory/EnchantPlan.h`, tested in
   `tests/EnchantPlanTests.cpp`.

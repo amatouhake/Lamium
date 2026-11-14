@@ -67,6 +67,50 @@ void rememberFood(std::string text, std::vector<information::saturation::FoodIco
     if (tooltipFood.size() >= tooltipFoodKept) tooltipFood.erase(tooltipFood.begin());
     tooltipFood.push_back({std::move(text), std::move(icons)});
 }
+// "Show NBT" (L-319): the nodes of a tag, counted no further than `limit`.
+size_t nodesUpTo(Tag const& tag, size_t limit) {
+    size_t n = 1;
+    if (tag.getId() == Tag::Compound) {
+        for (auto const& [key, child] : static_cast<CompoundTag const&>(tag).mTags) {
+            if (n >= limit) break;
+            n += nodesUpTo(child.get(), limit - n);
+        }
+    } else if (tag.getId() == Tag::List) {
+        for (auto const& child : static_cast<ListTag const&>(tag)) {
+            if (n >= limit) break;
+            if (child) n += nodesUpTo(*child, limit - n);
+        }
+    }
+    return n;
+}
+// A tag's SNBT, written no further than about `budget` bytes. A small tag is the game's own text; a large
+// compound or list is walked here so its rest is never serialised for a line that shows 60 characters.
+void boundedSnbt(Tag const& tag, std::string& out, size_t budget) {
+    if (out.size() >= budget) return;
+    bool const compound = tag.getId() == Tag::Compound, list = tag.getId() == Tag::List;
+    if ((!compound && !list) || nodesUpTo(tag, details::smallTagNodes) < details::smallTagNodes) {
+        out += tag.toSnbt(SnbtFormat::Minimize);
+        return;
+    }
+    bool first = true;
+    out += compound ? '{' : '[';
+    if (compound) {
+        for (auto const& [key, child] : static_cast<CompoundTag const&>(tag).mTags) {
+            if (out.size() >= budget) return;
+            if (!std::exchange(first, false)) out += ',';
+            out += details::snbtKey(key) + ':';
+            boundedSnbt(child.get(), out, budget);
+        }
+    } else {
+        for (auto const& child : static_cast<ListTag const&>(tag)) {
+            if (out.size() >= budget) return;
+            if (!child) continue;
+            if (!std::exchange(first, false)) out += ',';
+            boundedSnbt(*child, out, budget);
+        }
+    }
+    out += compound ? '}' : ']';
+}
 std::vector<information::saturation::FoodIcon> const* foodFor(std::string_view text) {
     for (auto it = tooltipFood.rbegin(); it != tooltipFood.rend(); ++it)
         if (it->text == text) return &it->icons;
@@ -177,8 +221,11 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
                 for (auto const& tag : *mItem->mTags) item.tags.push_back(tag.getString());
             // A compound or list is its whole text, cut to a line by the pure side; past the lines shown only counted.
             if (settings.itemDetailsNbt && mUserData)
-                for (auto const& [key, tag] : mUserData->mTags)
-                    item.data.push_back({key, item.data.size() < details::dataLines ? tag.toSnbt(SnbtFormat::Minimize) : std::string{}});
+                for (auto const& [key, tag] : mUserData->mTags) {
+                    std::string shown;
+                    if (item.data.size() < details::dataLines) boundedSnbt(tag.get(), shown, details::dataBudget);
+                    item.data.push_back({key, std::move(shown)});
+                }
             if (settings.itemDetails) {
                 item.enchantability = mItem->getEnchantValue();
                 item.maxStack = getMaxStackSize();

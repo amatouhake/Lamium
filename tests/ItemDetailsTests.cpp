@@ -35,6 +35,11 @@ void itemDetailsTests() {
         check(!toldBelowName("Speed stew", "Speed") && !toldBelowName("\xC2\xA7" "oSpeed stew\n\xC2\xA7" "7Food", "Speed")
                   && toldBelowName("Suspicious Stew\n\xC2\xA7" "9Speed (0:07)", "Speed (0:07)"),
               "a stew's effect counts as told only below the name, which the player may have chosen (L-339)");
+        check(snbtKey("Items") == "Items" && snbtKey("display.Name") == "display.Name" && snbtKey("a b") == "\"a b\""
+                  && snbtKey("q\"") == "\"q\\\"\"" && snbtKey("") == "\"\"",
+              "an NBT key is bare when plain and quoted otherwise");
+        check(dataBudget / 4 > dataWidth && clip(std::string(dataBudget, 'x'), dataWidth).ends_with("\xE2\x80\xA6"),
+              "a value stopped at the NBT budget is still longer than its line, so it shows the ellipsis");
     }
     {
         Item coal{.id = "minecraft:coal", .burnTicks = 1600};

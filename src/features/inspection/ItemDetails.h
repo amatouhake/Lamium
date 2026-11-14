@@ -15,7 +15,7 @@ struct Item {
     std::string id;
     int aux = 0;
     std::vector<std::string> tags;
-    std::vector<Entry> data; // The user data's top level; a compound or list is its whole text on one line
+    std::vector<Entry> data; // The user data's top level; a compound or list is its text on one line, a large one only its start
     int enchantability = 0, maxStack = 64, cooldownTicks = 0;
     float burnTicks = 0, useTicks = 0;
 };
@@ -97,6 +97,27 @@ inline std::vector<std::string> wrapped(std::vector<std::string> const& names, s
         out.back() += piece;
     }
     return out;
+}
+// "Show NBT" writes a large compound or list only this far (bytes): past it the line is cut anyway, and a
+// shulker box's contents need not be serialised whole for one line. Four bytes a character at most, so a text
+// stopped here still has more characters than the line takes and gets its ellipsis.
+inline constexpr size_t dataBudget = (dataWidth + 1) * 4;
+// Tags at or above this many (counted up to it) are written by Lamium within the budget; smaller ones are the
+// game's own text.
+inline constexpr size_t smallTagNodes = 32;
+// A compound's key as SNBT writes it: bare when plain, quoted otherwise.
+inline std::string snbtKey(std::string_view key) {
+    bool bare = !key.empty() && std::all_of(key.begin(), key.end(), [](char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-'
+            || c == '.' || c == '+';
+    });
+    if (bare) return std::string(key);
+    std::string out = "\"";
+    for (char c : key) {
+        if (c == '"' || c == '\\') out += '\\';
+        out += c;
+    }
+    return out + '"';
 }
 inline std::vector<Line> lines(Item const& item) {
     std::vector<Line> out;
