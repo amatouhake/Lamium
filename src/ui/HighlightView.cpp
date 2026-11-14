@@ -199,6 +199,7 @@ bool begin() {
     return true;
 }
 bool opened() { return open; }
+void calm() { dragging = Drag::None; armed.clear(); }
 void reset() {
     open = false;
     catalog.clear(); catalogIndex.clear(); results.clear(); stacks.clear(); nearby.clear(); marks.clear();
@@ -273,10 +274,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     bool on = highlightOn();
 
     // Heading row: where this list belongs, and the way back to it.
-    label(context, t.nameX, t.theadTop + 2, last.backX - t.nameX - SettingsTable::gap,
-        translated("section.camera") + "  >  " + translated("feature.blockHighlight"), palette::faint);
-    drawButton(context, last.backX, t.theadTop, ShapesLayout::closeWidth, 11, "< " + translated("section.camera"), hover.zone == Zone::Back);
-    fill(context, t.tableLeft, t.rowsTop - 1, t.tableWidth, 1, palette::white, .14f);
+    drawPageHeading(context, t, "section.camera", "feature.blockHighlight", last.backX, hover.zone == Zone::Back);
     fill(context, last.dividerX, t.rowsTop, 1, last.footerTop - t.rowsTop, palette::white, .14f);
 
     // Left: the listed types, in the order added.
@@ -306,15 +304,11 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
                 translated(isArmed ? "highlight.removeConfirm" : "highlight.remove"), hover.zone == Zone::Remove && hover.index == i, isArmed);
         }
     }
-    drawListScrollbar(context, lc);
+    drawListScrollbar(context, lc, dragging == Drag::Listed || lc.onScrollbar(pointer.x, pointer.y));
 
     // Right: the search field, then the results.
     float fx = last.searchX(), fw = last.searchWidth();
-    fill(context, fx, last.searchY, fw, HighlightLayout::fieldHeight, palette::shade, .45f);
-    frame(context, fx, last.searchY, fw, HighlightLayout::fieldHeight, palette::accent);
-    if (query.value().empty())
-        label(context, fx + 4, last.searchY + 1 + boxTextInset(), fw - 8, translated("highlight.searchPlaceholder"), palette::faint);
-    drawEditField(context, fx + 4, last.searchY, HighlightLayout::fieldHeight, fw - 8, query);
+    drawTextField(context, fx, last.searchY, fw, HighlightLayout::fieldHeight, true, &query, {}, translated("highlight.searchPlaceholder"));
     auto const& rc = last.results;
     bool searching = query.value().find_first_not_of(' ') != std::string::npos;
     label(context, rc.listLeft + pad, rc.rowsTop - HighlightLayout::titleHeight + 2, rc.listWidth - 2 * pad,
@@ -339,7 +333,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         if (listedNow) label(context, tagLeft, y + 3, HighlightLayout::addWidth, translated("highlight.tagListed"), palette::accent, Align::Center);
         else if (rowHover) label(context, tagLeft, y + 3, HighlightLayout::addWidth, translated("highlight.add"), palette::dim, Align::Center);
     }
-    drawListScrollbar(context, rc);
+    drawListScrollbar(context, rc, dragging == Drag::Results || rc.onScrollbar(pointer.x, pointer.y));
 
     // Footer, as in the table: status first, then what the list is, then keys.
     fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);

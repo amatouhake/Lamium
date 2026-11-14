@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Plain and primary buttons through one widget (L-341, 2026-11-15)
+
+Build `8f386dbf`, DLL SHA-256
+`cade9d631176c0c3ab0afe4885fc35a8afe52f1d258c57aa3fb5a4e5742e78fa`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. World map, calculator, HUD editor, tool view Close,
+binding editor and waypoint prompt buttons look right: white text, lighter on hover, open/on
+ones green. Raised: while capturing a key, the selected row's frame and the key cell's own
+frame doubled up (removed in the next build, not yet seen).
+
 ## Destructive buttons plain until pointed at (L-341, 2026-11-15)
 
 Build `5dab2d6b`, DLL SHA-256

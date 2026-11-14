@@ -122,9 +122,12 @@ have local copies (BACKLOG L-341); they are not the pattern.
   A binding that relates to another draws warning-colored caps: filled for the
   exact same chord, outlined for an overlap; hovering (or selecting with the
   keyboard) lists the related bindings in a tip.
-- **Steppers**: `- value +` for numbers, `< value >` for choices (arrows
-  drawn from rectangles). A value cut with "..." shows whole in a tip under
-  the stepper. A value that defeats another setting draws its stepper in
+- **Steppers** (`drawStepper`): one box, `- value +` for numbers,
+  `< value >` for choices (arrows drawn from rectangles); never separate
+  `-`/`+` buttons. The end cell under the pointer lightens; an end that
+  cannot step draws faint. Where a value can be typed, a click on it types
+  (the edit draws in the box). A value cut with "..." shows whole in a tip
+  under the stepper. A value that defeats another setting draws its stepper in
   warning color, and the footer says why.
 - **Buttons**, three kinds of one shape: a fill, a 1-unit edge lighter than
   the fill, centered white text; only the colors differ. Hovering lightens
@@ -138,8 +141,13 @@ have local copies (BACKLOG L-341); they are not the pattern.
   `dangerText`, so an always visible one such as a section's Reset does not
   draw the eye; the first press arms it, `danger` fill with `dangerEdge` and
   white text; the second press acts; losing focus disarms).
-- **Scrollbars** on any list or text that overflows; pressing or dragging
-  puts the first line under the pointer.
+- **Text fields** (`drawTextField`): a shaded back with a `keyEdge` edge,
+  `accent` while typing; a placeholder faintly when empty. Enter or a click
+  outside keeps the edit; Esc drops it and shows the stored value again.
+- **Scrollbars** (`drawScrollbar`) on any list or text that overflows: a
+  faint track and a 2-unit thumb that widens and turns white under the
+  pointer or while dragged; pressing or dragging puts the first line under
+  the pointer.
 - **Tips** open below their anchor (above when there is no room) and look
   the same everywhere.
 
@@ -162,10 +170,15 @@ have local copies (BACKLOG L-341); they are not the pattern.
   Switching a feature off stops everything it does, without exception.
 - **A row that opens a page** has the shared Open button; Enter or Space on
   the row opens it too. A row with a current value (Game language) shows it
-  as faint text beside the button (Game language: L-341, not built yet).
+  as faint text beside the button (Game language).
 - **Pages** that replace the settings rows (Game language, Saved data, Block
-  highlight, ...) have a heading with the way back, and stay open when the
-  window loses focus: a drag ends and an armed button disarms, nothing else.
+  highlight, Enchantment order) share one shape (`RowPages.h`,
+  `drawPageHeading`): a heading "Section  >  Feature" with "< Section"; one
+  page at a time; a click outside it closes it and goes on to the rows; they
+  stay open when the window loses focus: a drag ends and an armed button
+  disarms, nothing else. The tool views (Shapes, Waypoints, Schematics)
+  share their header (`drawToolHeader`) and, docked, their frame
+  (`drawDockedFrame`).
 - **Footer**: always two description lines; longer text scrolls there (wheel
   or its scrollbar). No "read more", expansion or help panel. White says
   what a setting is (a number's help includes its range); faint says how to

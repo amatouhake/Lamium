@@ -628,7 +628,8 @@ void handleSchematicKey(int key) {
         switch (key) {
         case 0x08: if (screen::number().backspace()) screen::numberTyped(); break;
         case 0x41: if (screen::heldCtrl()) screen::number().selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: screen::finishEditing(); break;
+        case 0x1b: screen::cancelEditing(); break;
+        case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
     }
@@ -759,14 +760,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     auto hover = l.hit(pointer.x, pointer.y);
     int tabHover = schematicTabAt(l, pointer.x, pointer.y);
     auto over = [&](ShapeZone zone, int index = -1) { return tabHover < 0 && hover.zone == zone && (index < 0 || hover.index == index); };
-    float top = l.top + 4;
-    label(context,l.drawAllX,l.drawAllY+1+boxTextInset(),l.drawAllWidth-switchWidth-4,translated("waypoint.showAll"),
-        over(ShapeZone::DrawAll) ? palette::text : palette::dim,Align::Right);
-    toggleSwitch(context,l.drawAllX+l.drawAllWidth-switchWidth,l.drawAllY+2,preferences.schematic.enabled);
-    label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),
-        over(ShapeZone::Keys) ? palette::text : palette::accent,Align::Center);
-    fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,over(ShapeZone::Keys) ? 1.f : .5f);
-    drawButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(schematicsDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
+    drawToolHeader(context,l,translated("waypoint.showAll"),preferences.schematic.enabled,schematicsDocked,over(ShapeZone::DrawAll),over(ShapeZone::Keys),over(ShapeZone::Dock));
 
     // Tabs.
     static constexpr std::array<std::string_view, schematicTabCount> tabNames{"schematic.tab.files", "schematic.tab.placements",
@@ -1006,7 +1000,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         }
         }
     }
-    drawListScrollbar(context,l);
+    drawListScrollbar(context,l,l.onScrollbar(pointer.x,pointer.y));
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
 
@@ -1370,13 +1364,7 @@ void renderSchematicsDocked(MinecraftUIRenderContext& context, glm::vec2 size, g
         context.flushText(0, std::nullopt);
         return;
     }
-    panel(context,l.left,l.top,l.width,l.height,.82f);
-    frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
-    label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),translated("nav.schematics"));
-    bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
-    drawButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),
-        closeHover);
-    fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
+    drawDockedFrame(context,l,translated("nav.schematics"),translated("closeButton"),l.hit(pointer.x, pointer.y).zone == ShapeZone::Close);
     if (l.usable()) drawSchematicsBody(context, l, pointer);
     else {
         previewTurn.w = 0;

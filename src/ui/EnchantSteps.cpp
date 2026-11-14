@@ -169,7 +169,7 @@ Tip draw(MinecraftUIRenderContext& context, EnchantStepsLayout const& l, game::S
                 offer(step.gone, y);
         }
     }
-    drawListScrollbar(context, rows);
+    drawListScrollbar(context, rows, rows.onScrollbar(pointerX, pointerY));
     // What to do next.
     fill(context, l.left, l.footY, l.width, 1, palette::white, .14f);
     paragraph(context, left, l.footY + 3, inner, info.note, static_cast<size_t>(l.footLines),

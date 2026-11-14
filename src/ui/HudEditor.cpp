@@ -172,19 +172,14 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     {
         // Scale: arrows at both ends of one field; a click on the value types it.
         Box scaleBox{x, y, scaleW, itemHeight};
-        fill(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyFill);
-        frame(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, editingScale ? palette::accent : palette::keyEdge);
         controls.push_back({{scaleBox.x, y, 10, itemHeight}, Command::ScaleDown});
         controls.push_back({{scaleBox.x + scaleW - 10, y, 10, itemHeight}, Command::ScaleUp});
         controls.push_back({{scaleBox.x + 10, y, scaleW - 20, itemHeight}, Command::ScaleEdit});
-        arrow(context, scaleBox.x + 3, y + 3, true);
-        arrow(context, scaleBox.x + scaleW - 7, y + 3, false);
-        if (editingScale) {
-            bool valid = screen::number().parsed(hudScaleMin, hudScaleMax).has_value();
-            drawEditField(context, scaleBox.x + 11, y, itemHeight, scaleW - 22, screen::number(), Align::Center,
-                          valid ? palette::text : palette::warning);
-            scaleField = Point{scaleBox.x + 11, y};
-        } else label(context, scaleBox.x + 10, y + boxTextInset(), scaleW - 20, scaleText, palette::text, Align::Center);
+        bool valid = !editingScale || screen::number().parsed(hudScaleMin, hudScaleMax).has_value();
+        int hot = hovering({scaleBox.x, y, 10, itemHeight}, px, py) ? -1 : hovering({scaleBox.x + scaleW - 10, y, 10, itemHeight}, px, py) ? 1 : 0;
+        drawStepper(context, scaleBox.x, y, scaleW, itemHeight, true, scaleText,
+            {.editing = editingScale ? &screen::number() : nullptr, .warn = !valid, .hot = hot, .cell = 10});
+        if (editingScale) scaleField = Point{scaleBox.x + 11, y};
         x += scaleW + gap;
     }
     if (background) {
@@ -265,8 +260,8 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
             int count = static_cast<int>(order.size());
             linesTrack = LinesTrack{at.x + w - 5, at.y + 3, visible * rowH, count, visible};
             auto thumb = scrollThumb(linesTrack->top, linesTrack->track, count, visible, linesFirst);
-            fill(context, linesTrack->x, linesTrack->top, 3, linesTrack->track, palette::white, .08f);
-            fill(context, linesTrack->x, thumb.top, 3, thumb.h, palette::white, scrolling ? .55f : .3f);
+            bool overBar = px >= linesTrack->x - 2 && px < linesTrack->x + 4 && py >= linesTrack->top && py < linesTrack->top + linesTrack->track;
+            drawScrollbar(context, linesTrack->x + 1, linesTrack->top, linesTrack->track, thumb.top, thumb.h, scrolling || overBar);
         }
     }
     return bar;
@@ -723,7 +718,8 @@ void editKey(int key) {
 std::optional<Point> caret() { return editingNumber() ? scaleField : std::nullopt; }
 Result key(int key, bool shift) {
     if (editingScale) {
-        if (key == 0x1b || key == 0x0d || key == 0x09) screen::finishEditing();
+        if (key == 0x1b) screen::cancelEditing();
+        else if (key == 0x0d || key == 0x09) screen::finishEditing();
         return Result::Stay;
     }
     float amount = shift ? 10.f : 1.f;

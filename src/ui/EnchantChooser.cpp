@@ -15,6 +15,10 @@ namespace game = inventory::enchantOrder::game;
 void setButton(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool hovered, bool enabled) {
     ui::drawButton(context, x, y, w, EnchantLayout::buttonHeight, std::move(text), hovered, ButtonKind::Plain, enabled);
 }
+int hotStep(EnchantLayout::Hit const& hover, int row) {
+    if (hover.index != row) return 0;
+    return hover.zone == Zone::RowMinus ? -1 : hover.zone == Zone::RowPlus ? 1 : 0;
+}
 bool rowZone(Zone zone) { return zone == Zone::Row || zone == Zone::RowMinus || zone == Zone::RowPlus; }
 }
 void addIcon(std::vector<inspection::render::IconAt>& icons, ItemStack const* stack, float x, float y, float size) {
@@ -75,12 +79,11 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
             fill(context, l.switchX(), y + 3, switchWidth, switchHeight, palette::panel, .55f);
             float nameRight = l.switchX() - 4;
             if (!row.levelText.empty()) {
-                if (row.maxLevel > row.carried) {
-                    bool const raised = row.level > row.carried;
-                    ui::drawButton(context, l.minusX(), y + 1, L::stepWidth, 12, "-", raised && hover.zone == Zone::RowMinus && hover.index == i, ButtonKind::Plain, raised);
-                    ui::drawButton(context, l.plusX(), y + 1, L::stepWidth, 12, "+", hover.zone == Zone::RowPlus && hover.index == i);
-                }
-                label(context, l.levelX(), y + 3, L::levelWidth, row.levelText, row.level > row.carried ? palette::text : palette::dim, Align::Center);
+                bool const raised = row.level > row.carried;
+                if (row.maxLevel > row.carried)
+                    drawStepper(context, l.minusX(), y + 1, 2 * L::stepWidth + L::levelWidth, 12, true, row.levelText,
+                        {.hot = hotStep(hover, i), .lowEnabled = raised, .cell = L::stepWidth, .ink = raised ? palette::text : palette::dim});
+                else label(context, l.levelX(), y + 3, L::levelWidth, row.levelText, palette::dim, Align::Center);
                 nameRight = l.minusX() - 4;
             }
             label(context, nameLeft, y + 3, nameRight - nameLeft, row.levelText.empty() ? row.label : row.name, nameColor);
@@ -93,18 +96,17 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
             toggleSwitch(context, l.switchX(), y + 3, on);
             float nameRight = l.switchX() - 4;
             if (!row.levelText.empty()) {
-                if (on) {
-                    ui::drawButton(context, l.minusX(), y + 1, L::stepWidth, 12, "-", hover.zone == Zone::RowMinus && hover.index == i);
-                    ui::drawButton(context, l.plusX(), y + 1, L::stepWidth, 12, "+", hover.zone == Zone::RowPlus && hover.index == i);
-                }
+                if (on)
+                    drawStepper(context, l.minusX(), y + 1, 2 * L::stepWidth + L::levelWidth, 12, true, row.levelText,
+                        {.hot = hotStep(hover, i), .cell = L::stepWidth});
                 // Off: the level it would turn on at, without its buttons.
-                label(context, l.levelX(), y + 3, L::levelWidth, row.levelText, on ? palette::text : palette::faint, Align::Center);
+                else label(context, l.levelX(), y + 3, L::levelWidth, row.levelText, palette::faint, Align::Center);
                 nameRight = l.minusX() - 4;
             }
             label(context, nameLeft, y + 3, nameRight - nameLeft, row.levelText.empty() ? row.label : row.name, nameColor);
         }
     }
-    drawListScrollbar(context, rc);
+    drawListScrollbar(context, rc); // no pointer here: the bar is not lit on hover
 }
 std::string status(game::View const& v, EnchantLayout::Hit hover) {
     if (hover.zone == Zone::Kind && hover.index >= 0 && hover.index < static_cast<int>(v.kinds.size()))

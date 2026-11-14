@@ -7,6 +7,7 @@
 #include "ui/GameLanguage.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
+#include "ui/RowPages.h"
 #include "settings/Options.h"
 #include "ui/SettingsRows.h"
 #include "ui/SettingsNavigation.h"
@@ -293,7 +294,7 @@ void activateRow(int row, bool space) {
     switch (entry.kind) {
     case RowKind::Section: return;
     case RowKind::Feature:
-        if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
+        if (entry.feature->id == "gameLanguage") { row_pages::begin(row_pages::language()); return; }
         if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) { screen::openTool(*primary); return; }
         if (space && hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
         if (entry.children) { setExpanded(row, !entry.expanded); return; }
@@ -307,7 +308,7 @@ void activateRow(int row, bool space) {
     case RowKind::Action: startCapture(*entry.action); return;
     case RowKind::Layout: openLayout(*entry.layout); return;
     case RowKind::MapCache: pressMapCache(); return;
-    case RowKind::SavedData: saved_data_view::begin(); return;
+    case RowKind::SavedData: row_pages::begin(row_pages::savedData()); return;
     }
 }
 void moveSelection(int step) {
@@ -383,7 +384,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     }
     switch (entry.kind) {
     case RowKind::Feature:
-        if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
+        if (entry.feature->id == "gameLanguage") { row_pages::begin(row_pages::language()); return; }
         if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) {
             float openX = openButtonX(displayed);
             if (hit.x >= openX && hit.x < openX + openButtonWidth) { screen::openTool(*primary); return; }
@@ -427,7 +428,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
         return;
     case RowKind::Layout: openLayout(*entry.layout); return;
     case RowKind::MapCache: if (onMapCacheButton(hit.x)) pressMapCache(); return;
-    case RowKind::SavedData: saved_data_view::begin(); return;
+    case RowKind::SavedData: row_pages::begin(row_pages::savedData()); return;
     default: return;
     }
 }
@@ -448,7 +449,8 @@ void handleKey(int key) {
         switch (key) {
         case 0x08: if (screen::number().backspace()) screen::numberTyped(); break;
         case 0x41: if (screen::heldCtrl()) screen::number().selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: screen::finishEditing(); break;
+        case 0x1b: screen::cancelEditing(); break;
+        case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
     }
@@ -561,8 +563,7 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     // its text lines up with the row name at y + 3.
     float x = displayed.keyX, width = displayed.keyWidth, cy = y + 2;
     if (capturing_ == action) {
-        fill(context,x,cy-1,width,capHeight+2,palette::accent,.25f);
-        frame(context,x,cy-1,width,capHeight+2,palette::accent);
+        fill(context,x,cy-1,width,capHeight+2,palette::accent,.25f); // the row's frame marks it; no second frame
         auto text = capture.value().empty() ? translated("captureBox") : bindingChordName(current, capture.value());
         label(context,x+3,cy+boxTextInset(),width-6,std::move(text));
         return;
@@ -590,24 +591,12 @@ void drawName(MinecraftUIRenderContext& context, float x, float y, float right, 
     if (count > 0) { label(context,cursor,y+3,right-cursor,countText,palette::faint); cursor += textWidth(context, countText) + 5; }
     if (experimental && cursor + 8 < right) badge(context,cursor,y,std::move(exp),palette::experimental);
 }
-void drawStepper(MinecraftUIRenderContext& context, float y, settings::Option const& option, std::string const& value,
+void drawOptionStepper(MinecraftUIRenderContext& context, float y, settings::Option const& option, std::string const& value,
                  bool editing, bool warn = false) {
     bool keyed = optionAction(option.id).has_value();
     float x = displayed.stepperX(keyed), w = displayed.stepperWidth(keyed), aw = SettingsTable::arrowWidth;
-    float cy = y + 1, h = SettingsTable::rowHeight - 2;
-    fill(context,x,cy,aw,h,palette::keyFill);
-    fill(context,x+w-aw,cy,aw,h,palette::keyFill);
-    frame(context,x,cy,w,h,editing ? palette::accent : warn ? palette::warning : palette::keyEdge);
-    bool numeric = option.numeric.has_value();
-    if (numeric) {
-        label(context,x,cy+1+boxTextInset(),aw,"-",palette::dim,Align::Center);
-        label(context,x+w-aw,cy+1+boxTextInset(),aw,"+",palette::dim,Align::Center);
-    } else {
-        arrow(context,x+4,cy+3,true);
-        arrow(context,x+w-aw+4,cy+3,false);
-    }
-    if (editing) drawEditField(context,x+aw+1,cy,h,w-2*aw-2,screen::number(),Align::Center,warn ? palette::warning : palette::text);
-    else label(context,x+aw+1,cy+1+boxTextInset(),w-2*aw-2,value,warn ? palette::warning : palette::text,Align::Center);
+    drawStepper(context,x,y+1,w,SettingsTable::rowHeight-2,option.numeric.has_value(),value,
+        {.editing = editing ? &screen::number() : nullptr, .warn = warn, .cell = aw});
 }
 void drawGuide(MinecraftUIRenderContext& context, float y, bool last) {
     float x = displayed.nameX + 3;
@@ -906,9 +895,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         if (auto paused = pausedHeader(); !paused.empty())
             label(context,t.versionX+versionWidth,t.top+6,t.versionWidth-versionWidth+2,std::move(paused),palette::warning);
     }
-    if (!shapesView() && !waypointsView() && !schematicsView() && !language_view::opened() && !saved_data_view::opened() && !highlight_view::opened() && !enchant_view::opened()) {
-    fill(context,t.searchX,t.top+4,t.searchWidth,12,palette::shade,.45f);
-    frame(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() || (findingKey && hotkeysView()) ? palette::accent : palette::keyEdge);
+    if (!shapesView() && !waypointsView() && !schematicsView() && !row_pages::any()) {
+    drawFieldBox(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() || (findingKey && hotkeysView()));
     if (findingKey && hotkeysView())
         label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("captureBox"),palette::accent);
     else if (keyQuery && hotkeysView())
@@ -950,23 +938,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         if (!count.empty()) label(context,x+w-5-countWidth,ty,countWidth,count,palette::faint,Align::Right);
     }
 
-    if (enchant_view::opened()) {
-        enchant_view::renderContent(context, t, pointer);
-        drawVersionTip(context, t, hover);
-        return;
-    }
-    if (highlight_view::opened()) {
-        highlight_view::renderContent(context, t, pointer);
-        drawVersionTip(context, t, hover);
-        return;
-    }
-    if (language_view::opened()) {
-        language_view::renderContent(context, t, pointer);
-        drawVersionTip(context, t, hover);
-        return;
-    }
-    if (saved_data_view::opened()) {
-        saved_data_view::renderContent(context, t, pointer);
+    if (auto const* page = row_pages::open()) {
+        page->render(context, t, pointer);
         drawVersionTip(context, t, hover);
         return;
     }
@@ -1039,9 +1012,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                     sessionState(entry.feature->id));
             if (primary) drawKeyCell(context,current,y,*primary);
             if (entry.feature->id == "gameLanguage") {
-                float width = t.keyX + t.keyWidth - t.stateX;
-                drawButton(context, t.stateX, y + 1, width, capHeight, game_language::currentName(),
-                    hover.zone == Zone::Row && hover.index == i);
+                // The current language faintly beside the shared Open button; the row opens the list.
+                float nameLeft = t.nameX + 9 + textWidth(context, featureName(*entry.feature)) + 2 * SettingsTable::gap;
+                float openX = openButtonX(t) - SettingsTable::gap;
+                if (openX > nameLeft) label(context, nameLeft, y + 3, openX - nameLeft, game_language::currentName(), palette::faint, Align::Right);
+                drawOpenButton(context, t, y, openButtonHovered(t, hover, i));
             }
             if (open) drawOpenButton(context,t,y,openButtonHovered(t,hover,i));
             break;
@@ -1068,7 +1043,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                     label(context,t.sliderValueX(),y+3,SettingsTable::sliderValueWidth,optionValueText(*entry.option,value),
                         palette::text,Align::Right);
                 } else {
-                    drawStepper(context,y,*entry.option,optionValueText(*entry.option,value),editingNumber_ == entry.option,
+                    drawOptionStepper(context,y,*entry.option,optionValueText(*entry.option,value),editingNumber_ == entry.option,
                         optionWarning(entry.option->id,preferences).has_value());
                 }
             }
@@ -1138,8 +1113,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         float track = t.visible * SettingsTable::rowHeight;
         float thumb = std::max(8.0f, track * t.visible / rows.size());
         float thumbY = t.rowsTop + (track - thumb) * t.first / (rows.size() - t.visible);
-        fill(context,t.rowsRight()-3,t.rowsTop,2,track,palette::white,.08f);
-        fill(context,t.rowsRight()-3,thumbY,2,thumb,palette::keyEdge);
+        drawScrollbar(context,t.rowsRight()-3,t.rowsTop,track,thumbY,thumb,
+            scrollDrag == ScrollDrag::List || t.onListScrollbar(pointer.x,pointer.y));
     }
 
     // Footer: description and hints, or the binding editor's buttons.
@@ -1170,8 +1145,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             float track = SettingsTable::descriptionLines * SettingsTable::descriptionLineHeight;
             float thumb = std::max(4.0f, track * SettingsTable::descriptionLines / helpLineCount);
             float y = t.footerTop + 3 + (track-thumb) * helpFirst / (helpLineCount-SettingsTable::descriptionLines);
-            fill(context,t.left+t.width-SettingsTable::pad,t.footerTop+3,2,track,palette::white,.08f);
-            fill(context,t.left+t.width-SettingsTable::pad,y,2,thumb,palette::keyEdge);
+            drawScrollbar(context,t.left+t.width-SettingsTable::pad,t.footerTop+3,track,y,thumb,
+                scrollDrag == ScrollDrag::Description || t.onDescriptionScrollbar(pointer.x,pointer.y,helpLineCount));
             if (screen::message().empty()) hint = translated("description.hint") + " | " + hint;
         }
         label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);

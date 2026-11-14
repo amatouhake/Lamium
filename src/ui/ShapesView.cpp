@@ -318,7 +318,8 @@ void handleShapeKey(int key) {
         switch (key) {
         case 0x08: if (shapeNameInput.backspace()) shapeNameDirty = true; break;
         case 0x41: if (screen::heldCtrl()) shapeNameInput.selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: screen::finishEditing(); break;
+        case 0x1b: screen::cancelEditing(); break;
+        case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
     }
@@ -326,7 +327,8 @@ void handleShapeKey(int key) {
         switch (key) {
         case 0x08: if (screen::number().backspace()) screen::numberTyped(); break;
         case 0x41: if (screen::heldCtrl()) screen::number().selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: screen::finishEditing(); break;
+        case 0x1b: screen::cancelEditing(); break;
+        case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
     }
@@ -417,15 +419,8 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     auto const preferences = Runtime::instance().preferences();
     auto hover = l.hit(pointer.x, pointer.y);
     auto over = [&](ShapeZone zone, int index = -1) { return hover.zone == zone && (index < 0 || hover.index == index); };
-    float top = l.top + 4;
     // Header controls.
-    label(context,l.drawAllX,l.drawAllY+1+boxTextInset(),l.drawAllWidth-switchWidth-4,translated("shape.drawAll"),
-        over(ShapeZone::DrawAll) ? palette::text : palette::dim,Align::Right);
-    toggleSwitch(context,l.drawAllX+l.drawAllWidth-switchWidth,l.drawAllY+2,preferences.overlays.shapes);
-    label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),
-        over(ShapeZone::Keys) ? palette::text : palette::accent,Align::Center);
-    fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,over(ShapeZone::Keys) ? 1.f : .5f);
-    drawButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(shapesDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
+    drawToolHeader(context,l,translated("shape.drawAll"),preferences.overlays.shapes,shapesDocked,over(ShapeZone::DrawAll),over(ShapeZone::Keys),over(ShapeZone::Dock));
 
     // List pane.
     float listRight = l.listLeft + l.listWidth;
@@ -464,7 +459,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         label(context,typeX,y+3,48,translated(shape::types[shape::typeIndex(shown)].name),palette::dim);
         if (!isDraft) toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,shown.visible);
     }
-    drawListScrollbar(context,l);
+    drawListScrollbar(context,l,l.onScrollbar(pointer.x,pointer.y));
     // Divider between list and editor.
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
@@ -485,11 +480,8 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     } else {
         if (shapeDraft) label(context,dx,l.detailTop+4,dw,translated("shape.draftNote"),palette::info);
         // Name field.
-        fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,palette::shade,.4f);
-        frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingShapeName ? palette::accent : palette::keyEdge);
+        drawTextField(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingShapeName,&shapeNameInput,definition->name,{},17);
         drawTypeIcon(context,dx+3,l.nameY+1.5f,shape::typeIndex(*definition),shapeDraft ? palette::info : shapeRgb(definition->color));
-        if (editingShapeName) drawEditField(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,shapeNameInput);
-        else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,definition->name);
         // Preview: one layer seen from above; plane seen along its normal.
         float px = dx, py = l.previewY, size = ShapesLayout::previewSize;
         fill(context,px,py,size,size,palette::shade,.35f);
@@ -516,12 +508,8 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         }
         if (preview && preview->lowLayer != preview->highLayer) {
             float lx = l.layerStepperX(), ly = l.layerY(), lw = 64, aw = ShapesLayout::arrowWidth;
-            fill(context,lx,ly+1,aw,ShapesLayout::rowHeight-2,palette::keyFill);
-            fill(context,lx+lw-aw,ly+1,aw,ShapesLayout::rowHeight-2,palette::keyFill);
-            frame(context,lx,ly+1,lw,ShapesLayout::rowHeight-2,palette::keyEdge);
-            label(context,lx,ly+2+boxTextInset(),aw,"-",palette::dim,Align::Center);
-            label(context,lx+lw-aw,ly+2+boxTextInset(),aw,"+",palette::dim,Align::Center);
-            label(context,lx+aw,ly+2+boxTextInset(),lw-2*aw,translated("shape.layer",(shapeLayer >= 0 ? "+" : "") + std::to_string(shapeLayer)),palette::text,Align::Center);
+            drawStepper(context,lx,ly+1,lw,ShapesLayout::rowHeight-2,true,
+                translated("shape.layer",(shapeLayer >= 0 ? "+" : "") + std::to_string(shapeLayer)),{.cell = aw});
         }
         paragraph(context,ix,py+45,iw,translated("shape.previewHint"),1,palette::faint);
         // Fields.
@@ -622,12 +610,7 @@ void renderShapesDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::
         return;
     }
     // Docked: the world stays visible; only the panel is drawn.
-    panel(context,l.left,l.top,l.width,l.height,.82f);
-    frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
-    label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),translated("nav.shapes"));
-    bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
-    drawButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),closeHover);
-    fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
+    drawDockedFrame(context,l,translated("nav.shapes"),translated("closeButton"),l.hit(pointer.x, pointer.y).zone == ShapeZone::Close);
     if (l.usable()) drawShapesBody(context, l, pointer, definition);
     else drawDockedTooShort(context, l, pointer.x, pointer.y);
     context.flushText(0,std::nullopt);

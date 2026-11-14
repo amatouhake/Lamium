@@ -210,7 +210,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-336](backlog/L-336.md) Durability HUD: choose its items in HUD layout (Design): Open, waiting for the maintainer's choice
 - [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Design): Waiting for the maintainer's choice of which setting stays
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.
-- [L-341](backlog/L-341.md) Shared widgets for repeated controls (Refactor): Ready: palette and all three buttons are in; next the text field
+- [L-341](backlog/L-341.md) Shared widgets for repeated controls (Refactor): Built, not checked in game: every control and the page shape are in
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
 - [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Design): Waiting for the option's name and default; the maintainer agreed such a setting may exist (2026-11-13).
 - [L-320](backlog/L-320.md) Highlight designated block types in the world (Design): Released in 0.6.0 (Experimental); open are in-game checks and any follow-ups the maintainer raises

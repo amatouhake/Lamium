@@ -35,6 +35,32 @@ void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float
     box(context,x,y,w,h,hovered,armed ? palette::danger : palette::keyFill,red ? palette::dangerEdge : palette::keyEdge);
     centered(context,x,y,w,h,std::move(text),red && !armed ? palette::dangerText : palette::text);
 }
+void drawPageHeading(MinecraftUIRenderContext& context, SettingsTable const& t, std::string_view section, std::string_view feature,
+                     float backX, bool backHovered, std::string const& aside) {
+    float asideWidth = aside.empty() ? 0 : textWidth(context, aside) + SettingsTable::gap;
+    label(context,t.nameX,t.theadTop+2,backX-t.nameX-SettingsTable::gap-asideWidth,
+        translated(section) + "  >  " + translated(feature),palette::faint);
+    if (!aside.empty()) label(context,backX-asideWidth,t.theadTop+2,asideWidth-SettingsTable::gap,aside,palette::faint);
+    drawButton(context,backX,t.theadTop,ShapesLayout::closeWidth,11,"< " + translated(section),backHovered);
+    fill(context,t.tableLeft,t.rowsTop-1,t.tableWidth,1,palette::white,.14f);
+}
+void drawToolHeader(MinecraftUIRenderContext& context, ShapesLayout const& l, std::string const& showAll, bool showAllOn, bool docked,
+                    bool overShowAll, bool overKeys, bool overDock) {
+    float top = l.top + 4;
+    label(context,l.drawAllX,l.drawAllY+1+boxTextInset(),l.drawAllWidth-switchWidth-4,showAll,overShowAll ? palette::text : palette::dim,Align::Right);
+    toggleSwitch(context,l.drawAllX+l.drawAllWidth-switchWidth,l.drawAllY+2,showAllOn);
+    label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),overKeys ? palette::text : palette::accent,Align::Center);
+    fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,overKeys ? 1.f : .5f);
+    drawButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(docked ? "shape.undock" : "shape.dock"),overDock);
+}
+void drawDockedFrame(MinecraftUIRenderContext& context, ShapesLayout const& l, std::string const& title, std::string const& close,
+                     bool closeHover) {
+    panel(context,l.left,l.top,l.width,l.height,.82f);
+    frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
+    label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),title);
+    drawButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,close,closeHover);
+    fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
+}
 void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY) {
     drawButton(context,l.dockX,l.top+4,ShapesLayout::dockWidth,12,translated("shape.undock"),
         l.hit(pointerX, pointerY).zone == ShapesLayout::Zone::Dock);
@@ -45,20 +71,25 @@ void drawShapeStepper(MinecraftUIRenderContext& context, ShapesLayout const& l, 
                       NumberInput const* editing) {
     drawStepperBox(context, l.stepperX(), y, l.stepperWidth(), numeric, std::move(text), editing);
 }
-void drawStepperBox(MinecraftUIRenderContext& context, float x, float y, float w, bool numeric, std::string text, NumberInput const* editing) {
-    float aw = ShapesLayout::arrowWidth, h = ShapesLayout::rowHeight - 2;
-    fill(context,x,y+1,aw,h,palette::keyFill);
-    fill(context,x+w-aw,y+1,aw,h,palette::keyFill);
-    frame(context,x,y+1,w,h,editing ? palette::accent : palette::keyEdge);
-    if (numeric) {
-        label(context,x,y+2+boxTextInset(),aw,"-",palette::dim,Align::Center);
-        label(context,x+w-aw,y+2+boxTextInset(),aw,"+",palette::dim,Align::Center);
-    } else {
-        arrow(context,x+4,y+4,true);
-        arrow(context,x+w-aw+4,y+4,false);
+void drawStepper(MinecraftUIRenderContext& context, float x, float top, float w, float h, bool numeric, std::string text,
+                 StepperLook const& look) {
+    float aw = look.cell, textY = top + (h - 10) / 2 + boxTextInset();
+    Rgb ink = look.warn ? palette::warning : look.ink;
+    for (int side = 0; side < 2; ++side) {
+        float cx = side ? x + w - aw : x;
+        bool enabled = side ? look.highEnabled : look.lowEnabled;
+        fill(context,cx,top,aw,h,palette::keyFill);
+        if (enabled && look.hot == (side ? 1 : -1)) fill(context,cx,top,aw,h,palette::white,.1f);
+        Rgb mark = !enabled ? palette::faint : look.hot == (side ? 1 : -1) ? palette::text : palette::dim;
+        if (numeric) label(context,cx,textY,aw,side ? "+" : "-",mark,Align::Center);
+        else arrow(context,cx+std::floor((aw-3)/2),top+std::floor((h-5)/2),side == 0,mark);
     }
-    if (editing) drawEditField(context,x+aw+1,y+1,h,w-2*aw-2,*editing,Align::Center);
-    else label(context,x+aw+1,y+2+boxTextInset(),w-2*aw-2,std::move(text),palette::text,Align::Center);
+    frame(context,x,top,w,h,look.editing ? palette::accent : look.warn ? palette::warning : palette::keyEdge);
+    if (look.editing) drawEditField(context,x+aw+1,top,h,w-2*aw-2,*look.editing,Align::Center,ink);
+    else label(context,x+aw+1,textY,w-2*aw-2,std::move(text),ink,Align::Center);
+}
+void drawStepperBox(MinecraftUIRenderContext& context, float x, float y, float w, bool numeric, std::string text, NumberInput const* editing) {
+    drawStepper(context,x,y+1,w,ShapesLayout::rowHeight-2,numeric,std::move(text),{.editing = editing});
 }
 namespace {
 // Where the field being edited was drawn last, for clicks (L-172).
@@ -67,6 +98,20 @@ struct EditFieldPlace {
     float x = 0, top = 0, width = 0, height = 0, origin = 0;
     std::size_t start = 0;
 } lastField;
+}
+void drawFieldBox(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool editing) {
+    fill(context,x,y,w,h,palette::shade,.45f);
+    frame(context,x,y,w,h,editing ? palette::accent : palette::keyEdge);
+}
+void drawTextField(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool editing, TextEdit const* input,
+                   std::string const& text, std::string const& placeholder, float inset, Align align) {
+    drawFieldBox(context,x,y,w,h,editing);
+    float textX = x + inset, textW = w - inset - 4;
+    if (editing && input) {
+        if (input->value().empty() && !placeholder.empty()) label(context,textX,y+(h-10)/2+boxTextInset(),textW,placeholder,palette::faint,align);
+        drawEditField(context,textX,y,h,textW,*input,align);
+    } else if (text.empty()) label(context,textX,y+(h-10)/2+boxTextInset(),textW,placeholder,palette::faint,align);
+    else label(context,textX,y+(h-10)/2+boxTextInset(),textW,text,palette::text,align);
 }
 void drawEditField(MinecraftUIRenderContext& context, float x, float top, float height, float width, TextEdit const& input,
                    Align align, Rgb color) {
@@ -119,13 +164,16 @@ std::string amountText(std::uint64_t count, int maxStack) {
     for (auto const& part : parts) out += (out.empty() ? "" : " + ") + part;
     return out;
 }
-void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l) {
+void drawScrollbar(MinecraftUIRenderContext& context, float x, float top, float track, float thumbTop, float thumb, bool hot) {
+    fill(context,x,top,2,track,palette::white,hot ? .14f : .08f);
+    fill(context,hot ? x-1 : x,thumbTop,hot ? 3 : 2,thumb,hot ? palette::text : palette::keyEdge);
+}
+void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l, bool hot) {
     if (l.listCount <= l.listVisible) return;
     float listRight = l.listLeft + l.listWidth;
     float track = l.listVisible * ShapesLayout::rowHeight;
     float thumb = std::max(8.0f, track * l.listVisible / l.listCount);
     float thumbY = l.rowsTop + (track - thumb) * l.listFirst / (l.listCount - l.listVisible);
-    fill(context,listRight-3,l.rowsTop,2,track,palette::white,.08f);
-    fill(context,listRight-3,thumbY,2,thumb,palette::keyEdge);
+    drawScrollbar(context,listRight-3,l.rowsTop,track,thumbY,thumb,hot);
 }
 }

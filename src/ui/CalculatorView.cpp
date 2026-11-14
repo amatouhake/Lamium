@@ -333,7 +333,7 @@ void wheel(int direction) {
 void release() { dragging = false; }
 glm::vec2 fieldPosition(glm::vec2 size) {
     auto l = Layout::at(size);
-    return {l.leftX() + 3, l.fieldY()};
+    return {l.leftX() + 4, l.fieldY()};
 }
 void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer) {
     // The player's block position for x, y and z.
@@ -361,9 +361,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     fill(context, l.left, l.top + 18, l.width, 1, palette::white, .14f);
 
     // ---- Left: field, result, chests, keys ----
-    fill(context, x, l.fieldY(), lw, 14, palette::shade, .45f);
-    frame(context, x, l.fieldY(), lw, 14, palette::accent);
-    drawEditField(context, x + 3, l.fieldY(), 14, lw - 6, line);
+    drawTextField(context, x, l.fieldY(), lw, 14, true, &line, {});
     if (result.value) {
         labelScaled(context, x, l.resultY(), lw - Layout::copyWidth - Layout::arrowWidth - 6, "= " + calculator::format(*result.value), 1.5f);
         drawButton(context, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12, translated("calc.copy"),
@@ -422,8 +420,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     if (scrollRange(l) > 0) {
         float track = l.bottom() - l.cardsTop(), thumb = thumbLength(l), from = thumbTop(l);
         bool overBar = dragging || onScrollbar(l, pointer.x, pointer.y);
-        fill(context, rx + rw - 3, l.cardsTop(), 2, track, palette::white, overBar ? .14f : .08f);
-        fill(context, rx + rw - (overBar ? 4 : 3), from, overBar ? 3 : 2, thumb, overBar ? palette::text : palette::keyEdge);
+        drawScrollbar(context, rx + rw - 3, l.cardsTop(), track, from, thumb, overBar);
     }
     // Text is drawn when flushed: flush what lies under the overlays first, so
     // their backgrounds cover it (help showed the history through it).

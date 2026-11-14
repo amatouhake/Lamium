@@ -178,13 +178,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     long long total = 0;
     for (auto const& item : items) total += item.mapBytes;
     std::string const totalText = translated("savedData.total", sizeText(total));
-    float const totalWidth = textWidth(context, totalText);
-    label(context, t.nameX, t.theadTop + 2, last.backX - t.nameX - totalWidth - 2 * SettingsTable::gap,
-        translated("section.interface") + "  >  " + translated("feature.savedData"), palette::faint);
-    label(context, last.backX - SettingsTable::gap - totalWidth, t.theadTop + 2, totalWidth, totalText, palette::faint);
-    drawButton(context, last.backX, t.theadTop, ShapesLayout::closeWidth, 11, "< " + translated("section.interface"),
-        hover.zone == Zone::Back);
-    fill(context, t.tableLeft, t.rowsTop - 1, t.tableWidth, 1, palette::white, .14f);
+    drawPageHeading(context, t, "section.interface", "feature.savedData", last.backX, hover.zone == Zone::Back, totalText);
 
     // The list: kind, name, and what it is to the joined server.
     auto const& list = last.list;
@@ -209,7 +203,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             label(context, list.listLeft + list.listWidth - pad - 6 - tagWidth, y + 3, tagWidth, tag,
                 item.inUse ? palette::accent : palette::warning, Align::Right);
     }
-    drawListScrollbar(context, list);
+    drawListScrollbar(context, list, list.onScrollbar(pointer.x, pointer.y));
     fill(context, last.dividerX, last.bodyTop, 1, last.footerTop - last.bodyTop, palette::white, .14f);
 
     // The details: enough to tell whose data it is.

@@ -7,6 +7,8 @@ namespace lamium::ui::language_view {
 bool begin();
 bool opened();
 void reset();
+// Focus left the window: end a drag, keep the page open.
+void calm();
 // False when the click is outside the list (sidebar, header, footer).
 bool click(float x, float y, bool right);
 void key(int key);

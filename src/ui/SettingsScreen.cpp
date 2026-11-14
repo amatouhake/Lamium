@@ -17,6 +17,7 @@
 #include "ui/SavedDataView.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
+#include "ui/RowPages.h"
 #include "ui/WaypointPromptLayout.h"
 #include "ui/SavePromptLayout.h"
 #include "ui/RadialLayout.h"
@@ -410,10 +411,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
     origin(text, impact);
 }
 void clear() {
-    language_view::reset();
-    saved_data_view::reset();
-    highlight_view::reset();
-    enchant_view::reset();
+    row_pages::resetAll();
     releaseTextKeyboard();
     numberDirty = false; uiHeld.clear(); client = nullptr;
     table_view::reset();
@@ -474,10 +472,7 @@ void finishNumber() {
     hud_editor::endEditing();
 }
 void close() {
-    language_view::reset();
-    saved_data_view::reset();
-    highlight_view::reset();
-    enchant_view::reset();
+    row_pages::resetAll();
     releaseTextKeyboard();
     table_view::disarm();
     if (ownsTop()) {
@@ -559,9 +554,7 @@ void renderPrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 p
     auto const& d = prompt->draft;
     std::string_view dimension = d.dimension == 1 ? "dimension.nether" : d.dimension == 2 ? "dimension.end" : "dimension.overworld";
     label(context, x, l.whereY(), l.inner(), std::format("{}, {}, {}  {}", d.x, d.y, d.z, translated(dimension)), palette::dim);
-    fill(context, x, l.fieldY(), l.inner(), L::fieldHeight, palette::shade, .4f);
-    frame(context, x, l.fieldY(), l.inner(), L::fieldHeight, palette::accent);
-    drawEditField(context, x + 3, l.fieldY(), L::fieldHeight, l.inner() - 6, prompt->name);
+    drawTextField(context, x, l.fieldY(), l.inner(), L::fieldHeight, true, &prompt->name, {});
     for (int i = 0; i < L::swatches; ++i) {
         auto c = map::waypointColors[static_cast<size_t>(i)];
         float sx = l.swatchX(i), sy = l.swatchY();
@@ -898,19 +891,14 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
             int value = axis == 0 ? c.x : axis == 1 ? c.y : c.z;
             bool overMinus = hover.part == L::Part::Minus && hover.corner == corner && hover.axis == axis;
             bool overPlus = hover.part == L::Part::Plus && hover.corner == corner && hover.axis == axis;
-            fill(context, cx, y, w, L::rowHeight, palette::shade, .3f);
-            drawButton(context, cx, y, L::step, L::rowHeight, "-", overMinus);
-            drawButton(context, cx + w - L::step, y, L::step, L::rowHeight, "+", overPlus);
             static constexpr std::array<char const*, 3> axes{"X", "Y", "Z"};
-            label(context, cx + L::step, y + boxTextInset(), w - 2 * L::step, std::format("{} {}", axes[static_cast<size_t>(axis)], value),
-                palette::text, Align::Center);
+            drawStepper(context, cx, y, w, L::rowHeight, true, std::format("{} {}", axes[static_cast<size_t>(axis)], value),
+                {.hot = overMinus ? -1 : overPlus ? 1 : 0, .cell = L::step});
         }
     }
     auto s = p.area.size();
     label(context, x, l.sizeY(), l.inner(), translated("schematic.save.size", s.x, s.y, s.z, p.area.cells()), palette::dim);
-    fill(context, x, l.fieldY(), l.inner(), L::fieldHeight, palette::shade, .4f);
-    frame(context, x, l.fieldY(), l.inner(), L::fieldHeight, palette::accent);
-    drawEditField(context, x + 3, l.fieldY(), L::fieldHeight, l.inner() - 6, p.name);
+    drawTextField(context, x, l.fieldY(), l.inner(), L::fieldHeight, true, &p.name, {});
     auto file = schematic::schematicFileName(p.name.value());
     label(context, x, l.whereY(), l.inner(), translated("schematic.save.where", file.empty() ? std::string("-") : file), palette::faint);
     label(context, x, l.entitiesY() + boxTextInset(), l.inner() - L::switchWidth - 4, translated("schematic.save.entities"),
@@ -922,12 +910,12 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
         label(context, x, l.statusY(), l.inner(), translated(running->waiting ? "schematic.save.progressWaiting" : "schematic.save.progress",
             running->file, percent), running->waiting ? palette::warning : palette::dim);
     } else if (!p.problem.empty()) label(context, x, l.statusY(), l.inner(), p.problem, palette::warning);
-    // Overwrite and Stop show as an armed destructive button (L-341 Open).
+    // Save onto an existing file is press twice: the first press finds it and arms Overwrite.
     auto saveText = translated(running ? "schematic.save.stop" : p.overwrite ? "schematic.save.overwrite" : "schematic.save.button");
-    if (p.overwrite || running)
+    if (p.overwrite && !running)
         drawDangerButton(context, l.saveX(), l.buttonY(), L::buttonWidth, L::buttonHeight, saveText, hover.part == L::Part::Save, true);
     else drawButton(context, l.saveX(), l.buttonY(), L::buttonWidth, L::buttonHeight, saveText, hover.part == L::Part::Save,
-        ButtonKind::Primary);
+        running ? ButtonKind::Plain : ButtonKind::Primary);
     drawButton(context, l.clearX(), l.buttonY(), L::buttonWidth, L::buttonHeight, translated("schematic.save.clear"),
         hover.part == L::Part::Clear);
     drawButton(context, l.cancelX(), l.buttonY(), L::buttonWidth, L::buttonHeight, translated("schematic.save.cancel"),
@@ -1081,82 +1069,22 @@ void render(ll::event::UIRenderEvent& event) {
         if (pendingClick && !pendingClick->right && placeCaret(context, *target.field, pendingClick->x, pendingClick->y))
             pendingClick.reset();
     } else forgetEditField();
-    if (enchant_view::opened()) {
-        releaseTextKeyboard();
-        if (!closing) {
-            // Outside the view the sidebar, Close and the rest work as usual.
-            if (auto click = std::exchange(pendingClick, std::nullopt); click && !enchant_view::click(click->x, click->y, click->right)) {
-                enchant_view::reset();
-                directTool = false;
-                table_view::click(click->x, click->y, click->right);
-            }
-            for (auto wheel : std::exchange(pendingWheels, {})) if (enchant_view::opened()) enchant_view::wheel(wheel.direction);
-            if (std::exchange(pendingRelease, false)) enchant_view::release();
-            for (int key : std::exchange(pendingKeys, {})) if (enchant_view::opened()) enchant_view::key(key);
-        }
-        pendingSearch = false;
-        if (!scene) return;
-        displayedInverseScale = current.getGuiData()->mInvGuiScale;
-        DrawScale scale{screenScale};
-        table_view::render(context, current, size / screenScale, lastPointer);
-        return;
-    }
-    if (highlight_view::opened()) {
-        if (!closing) {
-            // Outside the view the sidebar, Close and the rest work as usual.
-            if (auto click = std::exchange(pendingClick, std::nullopt); click && !highlight_view::click(click->x, click->y, click->right)) {
-                highlight_view::reset();
-                directTool = false;
-                table_view::click(click->x, click->y, click->right);
-            }
-            for (auto wheel : std::exchange(pendingWheels, {})) if (highlight_view::opened()) highlight_view::wheel(wheel.direction);
-            if (std::exchange(pendingRelease, false)) highlight_view::release();
-            for (int key : std::exchange(pendingKeys, {})) if (highlight_view::opened()) highlight_view::key(key);
-        }
-        pendingSearch = false;
-        if (!scene) return;
-        if (highlight_view::opened()) syncTextKeyboard(lastPointer.x, lastPointer.y);
-        displayedInverseScale = current.getGuiData()->mInvGuiScale;
-        DrawScale scale{screenScale};
-        table_view::render(context, current, size / screenScale, lastPointer);
-        return;
-    }
-    if (language_view::opened()) {
-        releaseTextKeyboard();
-        if (!closing) {
-            // Outside the list the sidebar, Close and the rest work as usual.
-            if (auto click = std::exchange(pendingClick, std::nullopt); click && !language_view::click(click->x, click->y, click->right)) {
-                language_view::reset();
-    saved_data_view::reset();
-                table_view::click(click->x, click->y, click->right);
-            }
-            for (auto wheel : std::exchange(pendingWheels, {})) if (language_view::opened()) language_view::wheel(wheel.direction);
-            if (std::exchange(pendingRelease, false)) language_view::release();
-            for (int key : std::exchange(pendingKeys, {})) if (language_view::opened()) language_view::key(key);
-        }
-        pendingSearch = false;
-        if (!scene) return;
-        displayedInverseScale = current.getGuiData()->mInvGuiScale;
-        DrawScale scale{screenScale};
-        table_view::render(context, current, size / screenScale, lastPointer);
-        return;
-    }
-    if (saved_data_view::opened()) {
-        releaseTextKeyboard();
+    if (auto const* page = row_pages::open()) {
+        if (!page->typing) releaseTextKeyboard();
         if (!closing) {
             // Outside the page the sidebar, Close and the rest work as usual.
-            if (auto click = std::exchange(pendingClick, std::nullopt); click && !saved_data_view::click(click->x, click->y, click->right)) {
-                saved_data_view::reset();
+            if (auto click = std::exchange(pendingClick, std::nullopt); click && !page->click(click->x, click->y, click->right)) {
+                page->reset();
                 directTool = false;
-    saved_data_view::reset();
                 table_view::click(click->x, click->y, click->right);
             }
-            for (auto wheel : std::exchange(pendingWheels, {})) if (saved_data_view::opened()) saved_data_view::wheel(wheel.direction);
-            if (std::exchange(pendingRelease, false)) saved_data_view::release();
-            for (int key : std::exchange(pendingKeys, {})) if (saved_data_view::opened()) saved_data_view::key(key);
+            for (auto wheel : std::exchange(pendingWheels, {})) if (page->opened()) page->wheel(wheel.direction);
+            if (std::exchange(pendingRelease, false)) page->release();
+            for (int key : std::exchange(pendingKeys, {})) if (page->opened()) page->key(key);
         }
         pendingSearch = false;
         if (!scene) return;
+        if (page->typing && page->opened()) syncTextKeyboard(lastPointer.x, lastPointer.y);
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
         DrawScale scale{screenScale};
         table_view::render(context, current, size / screenScale, lastPointer);
@@ -1289,7 +1217,7 @@ void render(ll::event::UIRenderEvent& event) {
             if (std::exchange(pendingSearch, false)) { finishNumber(); table_view::focusSearch(); }
             if (auto click = std::exchange(pendingClick, std::nullopt)) table_view::click(click->x, click->y, click->right);
             for (int key : std::exchange(pendingKeys, {})) {
-                if (language_view::opened() || saved_data_view::opened()) break;
+                if (row_pages::any()) break;
                 table_view::key(key);
             }
         }
@@ -1343,6 +1271,15 @@ void warnRange(std::string text) { ui::warnRange(std::move(text)); }
 NumberInput& number() { return numberInput; }
 void numberTyped() { numberDirty = true; }
 void finishEditing() { finishNumber(); }
+void cancelEditing() {
+    numberDirty = false;
+    releaseTextKeyboard();
+    table_view::endEditing();
+    shapes_view::endEditing();
+    waypoints_view::endEditing();
+    schematics_view::endEditing();
+    hud_editor::endEditing();
+}
 bool heldCtrl() { return ui::heldCtrl(); }
 bool heldShift() { return ui::heldShift(); }
 void close() { ui::close(); }
@@ -1390,10 +1327,7 @@ void showSavedData() {
     int category = 0;
     for (size_t i = 0; i < sections.size(); ++i) if (sections[i] == featureSection("savedData")) category = static_cast<int>(i) + 1;
     ui::selectNav(category);
-    language_view::reset();
-    highlight_view::reset();
-    enchant_view::reset();
-    if (saved_data_view::begin()) table_view::rebuild(true);
+    if (row_pages::begin(row_pages::savedData())) table_view::rebuild(true);
 }
 }
 // Set while the enchantment order opens from the anvil list: the one case where the scene goes over a
@@ -1532,10 +1466,7 @@ void openBlockHighlight(IClientInstance& current) {
     if (openedNow) seedOpener(input::Action::OpenBlockHighlight);
     if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
     screen::finishEditing();
-    language_view::reset();
-    saved_data_view::reset();
-    enchant_view::reset();
-    if (highlight_view::begin()) table_view::rebuild(true);
+    if (row_pages::begin(row_pages::highlight())) table_view::rebuild(true);
     directTool = openedNow && highlight_view::opened();
 }
 void openEnchantOrder(IClientInstance& current, bool overAnvil) {
@@ -1550,10 +1481,7 @@ void openEnchantOrder(IClientInstance& current, bool overAnvil) {
     if (openedNow && !overAnvil) seedOpener(input::Action::OpenEnchantOrder);
     if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
     screen::finishEditing();
-    language_view::reset();
-    saved_data_view::reset();
-    highlight_view::reset();
-    if (enchant_view::begin()) table_view::rebuild(true);
+    if (row_pages::begin(row_pages::enchant())) table_view::rebuild(true);
     directTool = openedNow && enchant_view::opened();
 }
 void openSavedData(IClientInstance& current) {
@@ -1564,10 +1492,7 @@ void openSavedData(IClientInstance& current) {
     if (openedNow) seedOpener(input::Action::OpenSavedData);
     if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
     screen::finishEditing();
-    language_view::reset();
-    highlight_view::reset();
-    enchant_view::reset();
-    if (saved_data_view::begin()) table_view::rebuild(true);
+    if (row_pages::begin(row_pages::savedData())) table_view::rebuild(true);
     directTool = openedNow && saved_data_view::opened();
 }
 void openWorldMap(IClientInstance& current) {
@@ -1613,9 +1538,9 @@ void openTool(input::Action action) {
     case input::Action::OpenWorldMap: selectNav(worldMapNav); return;
     case input::Action::OpenCalculator: enterCalculator(true); return;
     case input::Action::SchematicMenu: enterSchematicMenu(); return;
-    case input::Action::OpenBlockHighlight: language_view::reset(); saved_data_view::reset(); enchant_view::reset(); if (highlight_view::begin()) table_view::rebuild(true); return;
-    case input::Action::OpenEnchantOrder: language_view::reset(); saved_data_view::reset(); highlight_view::reset(); if (enchant_view::begin()) table_view::rebuild(true); return;
-    case input::Action::OpenSavedData: language_view::reset(); highlight_view::reset(); enchant_view::reset(); if (saved_data_view::begin()) table_view::rebuild(true); return;
+    case input::Action::OpenBlockHighlight: if (row_pages::begin(row_pages::highlight())) table_view::rebuild(true); return;
+    case input::Action::OpenEnchantOrder: if (row_pages::begin(row_pages::enchant())) table_view::rebuild(true); return;
+    case input::Action::OpenSavedData: if (row_pages::begin(row_pages::savedData())) table_view::rebuild(true); return;
     default: return;
     }
 }
@@ -1626,9 +1551,8 @@ bool ownsInput() {
 }
 void cancelInputCapture() {
     std::lock_guard lock(mutex);
-    language_view::reset();
-    // The Saved data page stays where it is: looking at another window to compare, then coming back (L-343).
-    saved_data_view::calm();
+    // Pages that replace the rows stay where they are: looking at another window to compare, then coming back (L-343).
+    row_pages::calmAll();
     releaseTextKeyboard();
     if (table_view::capturing()) table_view::cancelCapture();
     finishNumber();
@@ -1708,11 +1632,7 @@ void start() {
             pendingMapClose = true;
             return;
         }
-        if ((highlight_view::opened() || enchant_view::opened()) && wheel) {
-            pendingWheels.push_back({x, y, event.buttonData() > 0 ? -3 : 3});
-            return;
-        }
-        if ((language_view::opened() || saved_data_view::opened()) && wheel) {
+        if (row_pages::any() && wheel) {
             pendingWheels.push_back({x, y, event.buttonData() > 0 ? -3 : 3});
             return;
         }
@@ -1779,7 +1699,7 @@ void start() {
             event.cancel();
             return;
         }
-        if (language_view::opened() || saved_data_view::opened() || enchant_view::opened()) {
+        if (row_pages::any() && !row_pages::highlight().opened()) {
             event.cancel(); pendingKeys.push_back(event.keyCode()); return;
         }
         // The highlight list's search is always focused: editing keys act at

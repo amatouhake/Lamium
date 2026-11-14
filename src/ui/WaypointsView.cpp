@@ -101,6 +101,7 @@ void addWaypointHere() {
     map::Waypoint w;
     w.x = place->x; w.y = place->y; w.z = place->z; w.dimension = place->dimension;
     w.color = map::nextColor(waypointSet.lastColor);
+    w.temporary = waypointSet.lastTemporary; // as the key and map prompts start
     w.name = map::defaultWaypointName(waypointSet.waypoints, [](int n) { return translated("waypoint.defaultName", n); });
     if (auto id = map::waypoints::add(w)) {
         refreshWaypoints();
@@ -243,7 +244,8 @@ void handleWaypointKey(int key) {
         switch (key) {
         case 0x08: if (waypointNameInput.backspace()) waypointNameDirty = true; break;
         case 0x41: if (screen::heldCtrl()) waypointNameInput.selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: screen::finishEditing(); break;
+        case 0x1b: screen::cancelEditing(); break;
+        case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
     }
@@ -251,7 +253,8 @@ void handleWaypointKey(int key) {
         switch (key) {
         case 0x08: if (screen::number().backspace()) screen::numberTyped(); break;
         case 0x41: if (screen::heldCtrl()) screen::number().selectAll(); break;
-        case 0x1b: case 0x0d: case 0x09: screen::finishEditing(); break;
+        case 0x1b: screen::cancelEditing(); break;
+        case 0x0d: case 0x09: screen::finishEditing(); break;
         }
         return;
     }
@@ -307,14 +310,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     auto const preferences = Runtime::instance().preferences();
     auto hover = l.hit(pointer.x, pointer.y);
     auto over = [&](ShapeZone zone, int index = -1) { return hover.zone == zone && (index < 0 || hover.index == index); };
-    float top = l.top + 4;
-    label(context,l.drawAllX,l.drawAllY+1+boxTextInset(),l.drawAllWidth-switchWidth-4,translated("waypoint.showAll"),
-        over(ShapeZone::DrawAll) ? palette::text : palette::dim,Align::Right);
-    toggleSwitch(context,l.drawAllX+l.drawAllWidth-switchWidth,l.drawAllY+2,preferences.map.waypoints);
-    label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),
-        over(ShapeZone::Keys) ? palette::text : palette::accent,Align::Center);
-    fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,over(ShapeZone::Keys) ? 1.f : .5f);
-    drawButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(waypointsDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
+    drawToolHeader(context,l,translated("waypoint.showAll"),preferences.map.waypoints,waypointsDocked,over(ShapeZone::DrawAll),over(ShapeZone::Keys),over(ShapeZone::Dock));
 
     // List pane.
     float listRight = l.listLeft + l.listWidth;
@@ -350,7 +346,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
             palette::dim,Align::Right);
         toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,w.visible);
     }
-    drawListScrollbar(context,l);
+    drawListScrollbar(context,l,l.onScrollbar(pointer.x,pointer.y));
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
 
@@ -362,15 +358,12 @@ if (!w) {
             : "waypoint.selectHint"),3,palette::faint);
     } else {
         // Name field with the waypoint's diamond.
-        fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,palette::shade,.4f);
-        frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingWaypointName ? palette::accent : palette::keyEdge);
+        drawTextField(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingWaypointName,&waypointNameInput,w->name,{},17);
         if (w->death) drawCrossGlyph(context, dx + 7, l.nameY + 6.5f, waypointRgb(w->color));
         else {
             drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, 7, waypointRgb(w->color));
             if (w->temporary) drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, map::hollowSize(7), palette::shade, .85f);
         }
-        if (editingWaypointName) drawEditField(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,waypointNameInput);
-        else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,w->name);
         // The preview area: a large diamond and where the waypoint is.
         float size = ShapesLayout::previewSize;
         fill(context,dx,l.previewY,size,size,palette::shade,.35f);
@@ -460,13 +453,8 @@ void renderWaypointsDocked(MinecraftUIRenderContext& context, glm::vec2 size, gl
         context.flushText(0, std::nullopt);
         return;
     }
-    panel(context,l.left,l.top,l.width,l.height,.82f);
-    frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
-    label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),translated("nav.waypoints"));
-    bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
-    drawButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated(fromMapFlag ? "worldMap.back" : "closeButton"),
-        closeHover);
-    fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
+    drawDockedFrame(context,l,translated("nav.waypoints"),translated(fromMapFlag ? "worldMap.back" : "closeButton"),
+        l.hit(pointer.x, pointer.y).zone == ShapeZone::Close);
     if (l.usable()) drawWaypointsBody(context, l, pointer);
     else drawDockedTooShort(context, l, pointer.x, pointer.y);
     context.flushText(0,std::nullopt);

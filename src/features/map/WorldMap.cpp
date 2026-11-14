@@ -1596,24 +1596,16 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         ui::fill(context, x, y, w - 10, 1, ui::palette::white, .14f);
         y += 4;
         labelAt(y, ui::translated("worldMap.height"));
-        float bx = x + 54, by = y + 1;
-        auto tiny = [&](float tx, char const* text, Target target) {
-            bool over = hovering(tx, by, 14, buttonHeight);
-            ui::drawButton(context, tx, by, 14, buttonHeight, text, over);
-            state.hits.push_back({tx, by, 14, buttonHeight, target});
-        };
-        tiny(bx, "-", Target::HeightDown);
-        float fx = bx + 16, fw = 44, fh = 13, fy = y;
-        ui::fill(context, fx, fy, fw, fh, ui::palette::keyFill);
-        ui::frame(context, fx, fy, fw, fh, state.editingHeight ? ui::palette::accent : ui::palette::keyEdge);
-        if (state.editingHeight) {
-            ui::drawEditField(context, fx, fy, fh, fw, state.heightInput, ui::Align::Center);
-            state.namePosition = {fx + 3, fy + 2};
-        } else {
-            ui::label(context, fx, fy + 1 + inset, fw, std::to_string(state.height), ui::palette::text, ui::Align::Center);
-            state.hits.push_back({fx, fy, fw, fh, Target::HeightField});
-        }
-        tiny(bx + 62, "+", Target::HeightUp);
+        // One stepper: the ends step, a click on the value types it.
+        constexpr float cell = 14, sw = 76, sh = 13;
+        float bx = x + 54, fy = y;
+        int hot = hovering(bx, fy, cell, sh) ? -1 : hovering(bx + sw - cell, fy, cell, sh) ? 1 : 0;
+        ui::drawStepper(context, bx, fy, sw, sh, true, std::to_string(state.height),
+            {.editing = state.editingHeight ? &state.heightInput : nullptr, .hot = hot, .cell = cell});
+        state.hits.push_back({bx, fy, cell, sh, Target::HeightDown});
+        state.hits.push_back({bx + sw - cell, fy, cell, sh, Target::HeightUp});
+        if (state.editingHeight) state.namePosition = {bx + cell + 3, fy + 2};
+        else state.hits.push_back({bx + cell, fy, sw - 2 * cell, sh, Target::HeightField});
         auto tracking = ui::translated(state.following
                 ? (state.cameraReference && camera ? "worldMap.cameraY" : "worldMap.followingY")
                 : "worldMap.fixedY", state.height);
@@ -1801,12 +1793,9 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     }
     auto const& p = *selectedWaypoint;
     // Name: click to type; Enter or a click elsewhere keeps it, Esc drops it.
-    ui::fill(context, x, y, inner, 12, ui::palette::shade, .4f);
-    ui::frame(context, x, y, inner, 12, state.editingName ? ui::palette::accent : ui::palette::keyEdge);
-    if (state.editingName) ui::drawEditField(context, x + 3, y, 12, inner - 6, state.name);
-    else ui::label(context, x + 3, y + 1 + inset, inner - 6, p.name);
+    ui::drawTextField(context, x, y, inner, 12, state.editingName, &state.name, p.name);
     state.hits.push_back({x, y, inner, 12, Target::Name});
-    state.namePosition = {x + 3, y};
+    state.namePosition = {x + 4, y};
     y += 14;
     std::string info = std::format("{}, {}, {}", p.x, p.y, p.z);
     if (p.dimension != state.dimension) info += "  " + ui::translated(p.dimension == 1 ? "worldMap.nether" : p.dimension == 2 ? "worldMap.end" : "worldMap.overworld");
@@ -1816,19 +1805,15 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     for (int axis = 0; axis < 3 && y + 12 < bottom; ++axis) {
         int value = axis == 0 ? p.x : axis == 1 ? p.y : p.z;
         ui::label(context, x, y + inset, 12, std::string(axes[static_cast<size_t>(axis)]), ui::palette::dim);
-        float sx = x0 + w - pad - 70;
-        for (int side = 0; side < 2; ++side) {
-            float bx2 = side ? sx + 61 : sx;
-            bool over = hovering(bx2, y, 9, buttonHeight);
-            ui::drawButton(context, bx2, y, 9, buttonHeight, side ? "+" : "-", over);
-            state.hits.push_back({bx2, y, 9, buttonHeight, Target::Step, axis * 2 + side});
-        }
-        // The value: click to type it (L-172 follow-up, 2026-10-13).
-        if (state.editingAxis == axis) {
-            ui::frame(context, sx + 9, y, 52, buttonHeight, ui::palette::accent);
-            ui::drawEditField(context, sx + 10, y, buttonHeight, 50, state.coordinate, ui::Align::Center);
-        } else ui::label(context, sx + 9, y + inset, 52, std::to_string(value), ui::palette::text, ui::Align::Center);
-        state.hits.push_back({sx + 9, y, 52, buttonHeight, Target::Coordinate, axis});
+        // One stepper per axis; a click on the value types it (L-172 follow-up, 2026-10-13).
+        constexpr float cell = 10, sw = 70;
+        float sx = x0 + w - pad - sw;
+        int hot = hovering(sx, y, cell, buttonHeight) ? -1 : hovering(sx + sw - cell, y, cell, buttonHeight) ? 1 : 0;
+        ui::drawStepper(context, sx, y, sw, buttonHeight, true, std::to_string(value),
+            {.editing = state.editingAxis == axis ? &state.coordinate : nullptr, .hot = hot, .cell = cell});
+        state.hits.push_back({sx, y, cell, buttonHeight, Target::Step, axis * 2});
+        state.hits.push_back({sx + sw - cell, y, cell, buttonHeight, Target::Step, axis * 2 + 1});
+        state.hits.push_back({sx + cell, y, sw - 2 * cell, buttonHeight, Target::Coordinate, axis});
         y += 12;
     }
     if (y + 12 < bottom) { small(x, y, inner, ui::translated("waypoint.moveHere"), Target::MoveHere, 0); y += 13; }

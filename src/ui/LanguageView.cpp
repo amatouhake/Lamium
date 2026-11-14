@@ -58,6 +58,7 @@ bool begin() {
     return true;
 }
 bool opened() { return open; }
+void calm() { dragging = false; }
 void reset() {
     if (request) request->cancelled.store(true);
     request.reset();
@@ -102,11 +103,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     auto current = game_language::currentCode();
 
     // Heading row: where this list belongs, and the way back to it.
-    label(context, t.nameX, t.theadTop + 2, last.closeX - t.nameX - SettingsTable::gap,
-        translated("section.interface") + "  >  " + translated("feature.gameLanguage"), palette::faint);
-    drawButton(context, last.closeX, t.theadTop, ShapesLayout::closeWidth, 11,
-        "< " + translated("section.interface"), overBack(pointer.x, pointer.y));
-    fill(context, t.tableLeft, t.rowsTop - 1, t.tableWidth, 1, palette::white, .14f);
+    drawPageHeading(context, t, "section.interface", "feature.gameLanguage", last.closeX, overBack(pointer.x, pointer.y));
 
     float codeWidth = t.keyWidth;
     for (int i = last.listFirst; i < last.listFirst + last.listVisible && i < last.listCount; ++i) {
@@ -119,7 +116,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             choice.code == current ? palette::accent : palette::text);
         label(context, t.keyX, y + 3, codeWidth, choice.code, choice.code == current ? palette::accent : palette::faint);
     }
-    drawListScrollbar(context, last);
+    drawListScrollbar(context, last, last.onScrollbar(pointer.x, pointer.y));
 
     // Footer, as in the table: status first, hints below.
     fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);

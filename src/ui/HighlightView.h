@@ -11,6 +11,8 @@ namespace lamium::ui::highlight_view {
 bool begin();
 bool opened();
 void reset();
+// Focus left the window: end a drag, disarm, keep the page open.
+void calm();
 // The search field, always focused while open.
 TextEdit& field();
 void edited();

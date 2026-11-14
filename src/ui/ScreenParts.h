@@ -34,6 +34,8 @@ void numberTyped();
 void numberReset();
 // Applies and ends any typing (a number or a name) in every view.
 void finishEditing();
+// Esc while typing: drop the edit, keep the stored value (DESIGN "Controls").
+void cancelEditing();
 
 bool heldCtrl();
 bool heldShift();
