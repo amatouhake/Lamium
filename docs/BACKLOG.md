@@ -141,7 +141,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
 1. **Bugs first.** Open: L-343 (a server's map, waypoints and placements lost
    when its address changes; Research), L-335 (rows under a switched-off feature dim only in
    the middle; Ready), L-339 (smaller bugs from the 2026-11-14 code review;
-   Ready), L-299 (a slot stuck after a screenless move when client and server
+   Ready), L-344 (English Search misses enchanted books by enchantment
+   name; Research), L-299 (a slot stuck after a screenless move when client and server
    desync), L-240 (death layout restore acts unexpectedly; Research), L-324
    (custom blocks brown on the map; Research), L-227 (FreeCamera shows only
    the sky outside loaded terrain; Research), L-243 terrain gaps, L-245 ghost
@@ -197,6 +198,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 - [L-343](backlog/L-343.md) A server's map, waypoints and placements are lost when its address changes (Bug)
 - [L-335](backlog/L-335.md) Rows under a switched-off feature are dimmed only in the middle (Ready)
+- [L-344](backlog/L-344.md) English Search does not find enchanted books by enchantment name (Bug)
 - [L-339](backlog/L-339.md) Smaller bugs found by the 2026-11-14 code review (Ready)
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed)
 - [L-324](backlog/L-324.md) Map: custom blocks are drawn in a dirt-like brown (Research)
