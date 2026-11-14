@@ -346,7 +346,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
             palette::dim,Align::Right);
         toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,w.visible);
     }
-    drawListScrollbar(context,l,l.onScrollbar(pointer.x,pointer.y));
+    drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
 
@@ -408,7 +408,7 @@ if (!w) {
                 break;
             default: {
                 int value = i == 0 ? w->x : i == 1 ? w->y : w->z;
-                drawShapeStepper(context,l,y,true,std::to_string(value),editingWaypointField == i ? &screen::number() : nullptr);
+                drawShapeStepper(context,l,y,true,std::to_string(value),editingWaypointField == i ? &screen::number() : nullptr,pointer.x,pointer.y);
                 break;
             }
             }

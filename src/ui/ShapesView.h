@@ -29,6 +29,8 @@ bool editingNumber();
 void type(std::string const& text);
 void applyNumber();
 void applyName();
+// Esc: the name from before typing is applied again.
+void revertName();
 void endEditing();
 // Where the native keyboard's caret goes.
 glm::vec2 caret();

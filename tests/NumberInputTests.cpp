@@ -20,6 +20,8 @@ void numberInputTests() {
     editor.append("2.5");
     check(editor.parsed(-10,10) == -2.5f, "reusable editor supports signed values");
     check(!editor.append(std::string(30,'1')), "number input has a bounded length");
+    editor.begin(1.0f / 3); editor.selectAll(); editor.append("7"); editor.restore();
+    check(editor.parsed(0,10) == 1.0f / 3, "restore gives back the exact starting value");
     editor.begin(.1f);
     check(editor.parsed(.1f,2) == .1f, "lower inclusive float bound round trips");
     editor.beginPrecise(16777217.5);

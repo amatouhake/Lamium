@@ -70,7 +70,7 @@ Tip draw(MinecraftUIRenderContext& context, EnchantStepsLayout const& l, game::S
         std::string name = translated(info.goal == Goal::FewestLevels ? "enchantOrder.goal.levels" : "enchantOrder.goal.work");
         label(context, left, l.goalY + 3, gx - left - 4, translated("enchantOrder.goal"), palette::dim);
         if (goalLive) {
-            drawStepperBox(context, gx, l.goalY, gw, false, std::move(name));
+            drawStepperBox(context, gx, l.goalY, gw, false, std::move(name), nullptr, pointerX, pointerY);
             if (hover == Zone::Goal) fill(context, gx, l.goalY + 1, gw, ShapesLayout::rowHeight - 2, palette::white, .1f);
         } else label(context, gx, l.goalY + 3, gw, std::move(name), palette::dim, Align::Right);
     }

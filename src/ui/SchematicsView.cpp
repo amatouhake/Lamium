@@ -1000,7 +1000,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         }
         }
     }
-    drawListScrollbar(context,l,l.onScrollbar(pointer.x,pointer.y));
+    drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
 
@@ -1022,7 +1022,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         rowBackground(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::rowHeight,schematicFieldSelected == i,over(ShapeZone::Field,i));
         label(context,dx,y+3,l.stepperX()-dx-4,translated(key),palette::dim);
         if (isSwitch) toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,on);
-        else drawShapeStepper(context,l,y,false,std::move(value),nullptr);
+        else drawShapeStepper(context,l,y,false,std::move(value),nullptr,pointer.x,pointer.y);
     };
     previewTurn.w = 0; // set again where the preview is drawn this frame
     switch (schematicTab) {
@@ -1055,7 +1055,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 default: {
                     bool numeric = field == SchematicField::X || field == SchematicField::Y || field == SchematicField::Z
                         || field == SchematicField::Layer;
-                    drawShapeStepper(context,l,y,numeric,fieldValue(*p, field),editingSchematicField == i ? &screen::number() : nullptr);
+                    drawShapeStepper(context,l,y,numeric,fieldValue(*p, field),editingSchematicField == i ? &screen::number() : nullptr,pointer.x,pointer.y);
                     break;
                 }
                 }

@@ -116,7 +116,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             choice.code == current ? palette::accent : palette::text);
         label(context, t.keyX, y + 3, codeWidth, choice.code, choice.code == current ? palette::accent : palette::faint);
     }
-    drawListScrollbar(context, last, last.onScrollbar(pointer.x, pointer.y));
+    drawListScrollbar(context, last, dragging || last.onScrollbar(pointer.x, pointer.y));
 
     // Footer, as in the table: status first, hints below.
     fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);

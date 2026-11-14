@@ -599,7 +599,7 @@ void paintChooser(MinecraftUIRenderContext& context, Icons& icons) {
     auto const hover = list.free ? l.hit(list.pointerX, list.pointerY) : EnchantLayout::Hit{};
     size_t const before = icons.size();
     int itemsDrawn = 0;
-    enchant_chooser::draw(context, l, shown, hover, icons, itemsDrawn);
+    enchant_chooser::draw(context, l, shown, hover, icons, itemsDrawn, list.free && l.rows.onScrollbar(list.pointerX, list.pointerY));
     // In their turn and not in batches, so an item held on the pointer, drawn last, is above them all.
     for (size_t i = before; i < icons.size(); ++i) { icons[i].alpha = list.opacity; icons[i].direct = true; }
     fill(context, l.left, l.footerTop, l.width, 1, palette::white, .14f);

@@ -68,19 +68,24 @@ void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l
     paragraph(context,l.left+pad,l.top+ShapesLayout::headerHeight+6,l.width-2*pad,translated("smallWindow"),3,palette::faint);
 }
 void drawShapeStepper(MinecraftUIRenderContext& context, ShapesLayout const& l, float y, bool numeric, std::string text,
-                      NumberInput const* editing) {
-    drawStepperBox(context, l.stepperX(), y, l.stepperWidth(), numeric, std::move(text), editing);
+                      NumberInput const* editing, float pointerX, float pointerY) {
+    drawStepperBox(context, l.stepperX(), y, l.stepperWidth(), numeric, std::move(text), editing, pointerX, pointerY);
 }
 void drawStepper(MinecraftUIRenderContext& context, float x, float top, float w, float h, bool numeric, std::string text,
                  StepperLook const& look) {
     float aw = look.cell, textY = top + (h - 10) / 2 + boxTextInset();
     Rgb ink = look.warn ? palette::warning : look.ink;
+    int hot = look.hot;
+    if (!hot && look.pointerY >= top && look.pointerY < top + h) {
+        if (look.pointerX >= x && look.pointerX < x + aw) hot = -1;
+        else if (look.pointerX >= x + w - aw && look.pointerX < x + w) hot = 1;
+    }
     for (int side = 0; side < 2; ++side) {
         float cx = side ? x + w - aw : x;
         bool enabled = side ? look.highEnabled : look.lowEnabled;
         fill(context,cx,top,aw,h,palette::keyFill);
-        if (enabled && look.hot == (side ? 1 : -1)) fill(context,cx,top,aw,h,palette::white,.1f);
-        Rgb mark = !enabled ? palette::faint : look.hot == (side ? 1 : -1) ? palette::text : palette::dim;
+        if (enabled && hot == (side ? 1 : -1)) fill(context,cx,top,aw,h,palette::white,.1f);
+        Rgb mark = !enabled ? palette::faint : hot == (side ? 1 : -1) ? palette::text : palette::dim;
         if (numeric) label(context,cx,textY,aw,side ? "+" : "-",mark,Align::Center);
         else arrow(context,cx+std::floor((aw-3)/2),top+std::floor((h-5)/2),side == 0,mark);
     }
@@ -88,8 +93,10 @@ void drawStepper(MinecraftUIRenderContext& context, float x, float top, float w,
     if (look.editing) drawEditField(context,x+aw+1,top,h,w-2*aw-2,*look.editing,Align::Center,ink);
     else label(context,x+aw+1,textY,w-2*aw-2,std::move(text),ink,Align::Center);
 }
-void drawStepperBox(MinecraftUIRenderContext& context, float x, float y, float w, bool numeric, std::string text, NumberInput const* editing) {
-    drawStepper(context,x,y+1,w,ShapesLayout::rowHeight-2,numeric,std::move(text),{.editing = editing});
+void drawStepperBox(MinecraftUIRenderContext& context, float x, float y, float w, bool numeric, std::string text, NumberInput const* editing,
+                    float pointerX, float pointerY) {
+    drawStepper(context,x,y+1,w,ShapesLayout::rowHeight-2,numeric,std::move(text),
+        {.editing = editing, .pointerX = pointerX, .pointerY = pointerY});
 }
 namespace {
 // Where the field being edited was drawn last, for clicks (L-172).
@@ -107,11 +114,12 @@ void drawTextField(MinecraftUIRenderContext& context, float x, float y, float w,
                    std::string const& text, std::string const& placeholder, float inset, Align align) {
     drawFieldBox(context,x,y,w,h,editing);
     float textX = x + inset, textW = w - inset - 4;
+    float textY = y + 1 + boxTextInset(); // where drawEditField puts typed text, so clicking does not move it
     if (editing && input) {
-        if (input->value().empty() && !placeholder.empty()) label(context,textX,y+(h-10)/2+boxTextInset(),textW,placeholder,palette::faint,align);
+        if (input->value().empty() && !placeholder.empty()) label(context,textX,textY,textW,placeholder,palette::faint,align);
         drawEditField(context,textX,y,h,textW,*input,align);
-    } else if (text.empty()) label(context,textX,y+(h-10)/2+boxTextInset(),textW,placeholder,palette::faint,align);
-    else label(context,textX,y+(h-10)/2+boxTextInset(),textW,text,palette::text,align);
+    } else if (text.empty()) label(context,textX,textY,textW,placeholder,palette::faint,align);
+    else label(context,textX,textY,textW,text,palette::text,align);
 }
 void drawEditField(MinecraftUIRenderContext& context, float x, float top, float height, float width, TextEdit const& input,
                    Align align, Rgb color) {

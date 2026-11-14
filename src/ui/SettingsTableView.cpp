@@ -592,11 +592,11 @@ void drawName(MinecraftUIRenderContext& context, float x, float y, float right, 
     if (experimental && cursor + 8 < right) badge(context,cursor,y,std::move(exp),palette::experimental);
 }
 void drawOptionStepper(MinecraftUIRenderContext& context, float y, settings::Option const& option, std::string const& value,
-                 bool editing, bool warn = false) {
+                 bool editing, glm::vec2 pointer, bool warn = false) {
     bool keyed = optionAction(option.id).has_value();
     float x = displayed.stepperX(keyed), w = displayed.stepperWidth(keyed), aw = SettingsTable::arrowWidth;
     drawStepper(context,x,y+1,w,SettingsTable::rowHeight-2,option.numeric.has_value(),value,
-        {.editing = editing ? &screen::number() : nullptr, .warn = warn, .cell = aw});
+        {.editing = editing ? &screen::number() : nullptr, .warn = warn, .cell = aw, .pointerX = pointer.x, .pointerY = pointer.y});
 }
 void drawGuide(MinecraftUIRenderContext& context, float y, bool last) {
     float x = displayed.nameX + 3;
@@ -1043,7 +1043,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                     label(context,t.sliderValueX(),y+3,SettingsTable::sliderValueWidth,optionValueText(*entry.option,value),
                         palette::text,Align::Right);
                 } else {
-                    drawOptionStepper(context,y,*entry.option,optionValueText(*entry.option,value),editingNumber_ == entry.option,
+                    drawOptionStepper(context,y,*entry.option,optionValueText(*entry.option,value),editingNumber_ == entry.option,pointer,
                         optionWarning(entry.option->id,preferences).has_value());
                 }
             }

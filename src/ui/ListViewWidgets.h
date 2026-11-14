@@ -40,14 +40,15 @@ struct StepperLook {
     bool lowEnabled = true, highEnabled = true;
     float cell = 11;
     Rgb ink = palette::text;
+    float pointerX = -1, pointerY = -1; // given instead of `hot`: the lit end follows the pointer
 };
 void drawStepper(MinecraftUIRenderContext& context, float x, float top, float w, float h, bool numeric, std::string text,
                  StepperLook const& look = {});
 // The lists' rows: `y` is the row's top; the box is a row high less a unit each side.
 void drawStepperBox(MinecraftUIRenderContext& context, float x, float y, float w, bool numeric, std::string text,
-                    NumberInput const* editing = nullptr);
+                    NumberInput const* editing = nullptr, float pointerX = -1, float pointerY = -1);
 void drawShapeStepper(MinecraftUIRenderContext& context, ShapesLayout const& l, float y, bool numeric, std::string text,
-                      NumberInput const* editing);
+                      NumberInput const* editing, float pointerX = -1, float pointerY = -1);
 // The heading row of a page that replaces the settings rows (DESIGN
 // "Screens"): "Section  >  Feature" faintly, optional `aside` text, the
 // "< Section" button at `backX` and the rule under it.

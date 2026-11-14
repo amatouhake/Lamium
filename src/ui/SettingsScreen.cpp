@@ -1272,6 +1272,9 @@ NumberInput& number() { return numberInput; }
 void numberTyped() { numberDirty = true; }
 void finishEditing() { finishNumber(); }
 void cancelEditing() {
+    // Numbers and shape names apply as they are typed (each frame): put the starting value back through the same path.
+    if (numericEditing()) { numberInput.restore(); numberDirty = true; applyNumber(); }
+    shapes_view::revertName();
     numberDirty = false;
     releaseTextKeyboard();
     table_view::endEditing();
@@ -1302,6 +1305,7 @@ bool navClick(float x, float y) {
     return false;
 }
 bool pressScrollbar(ShapesLayout const& layout, int& first, float x, float y) { return ui::pressScrollbar(layout, first, x, y); }
+bool scrollDragging() { return scrollDragFirst != nullptr; }
 void toggleOption(std::string_view id) { table_view::adjustOption(id, 1); }
 void showFeatureKeys(std::string_view featureId) {
     int category = 0;
@@ -1553,6 +1557,7 @@ void cancelInputCapture() {
     std::lock_guard lock(mutex);
     // Pages that replace the rows stay where they are: looking at another window to compare, then coming back (L-343).
     row_pages::calmAll();
+    if (savePrompt && savePrompt->overwrite) { savePrompt->overwrite = false; savePrompt->problem.clear(); } // an armed Overwrite disarms
     releaseTextKeyboard();
     if (table_view::capturing()) table_view::cancelCapture();
     finishNumber();

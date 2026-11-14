@@ -203,7 +203,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             label(context, list.listLeft + list.listWidth - pad - 6 - tagWidth, y + 3, tagWidth, tag,
                 item.inUse ? palette::accent : palette::warning, Align::Right);
     }
-    drawListScrollbar(context, list, list.onScrollbar(pointer.x, pointer.y));
+    drawListScrollbar(context, list, dragging || list.onScrollbar(pointer.x, pointer.y));
     fill(context, last.dividerX, last.bodyTop, 1, last.footerTop - last.bodyTop, palette::white, .14f);
 
     // The details: enough to tell whose data it is.

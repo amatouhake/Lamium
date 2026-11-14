@@ -117,7 +117,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     fill(context, last.dividerX, t.rowsTop, 1, last.footerTop - t.rowsTop, palette::white, .14f);
 
     // Left: the item, the kinds and the main hand's cell, the sets, the rows.
-    enchant_chooser::draw(context, last, v, hover, icons, itemsDrawn);
+    enchant_chooser::draw(context, last, v, hover, icons, itemsDrawn,
+        dragging == Drag::Rows || last.rows.onScrollbar(pointer.x, pointer.y));
 
     // Right: the goal, the totals, the steps. The same drawing as right of the anvil screen.
     auto const tip = enchant_steps::draw(context, last.side, info, pointer.x, pointer.y, true, icons);

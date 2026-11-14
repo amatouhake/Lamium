@@ -27,7 +27,7 @@ void addIcon(std::vector<inspection::render::IconAt>& icons, ItemStack const* st
     icons.push_back({stack, std::round(x * s), std::round(y * s), size * s / 16, 0, 1.f, true});
 }
 void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View const& v, EnchantLayout::Hit hover,
-          std::vector<inspection::render::IconAt>& icons, int& itemsDrawn) {
+          std::vector<inspection::render::IconAt>& icons, int& itemsDrawn, bool scrollHot) {
     using L = EnchantLayout;
     float const pad = SettingsTable::pad;
     // The item, the kinds with the item cells last, the sets, the rows.
@@ -106,7 +106,7 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
             label(context, nameLeft, y + 3, nameRight - nameLeft, row.levelText.empty() ? row.label : row.name, nameColor);
         }
     }
-    drawListScrollbar(context, rc); // no pointer here: the bar is not lit on hover
+    drawListScrollbar(context, rc, scrollHot);
 }
 std::string status(game::View const& v, EnchantLayout::Hit hover) {
     if (hover.zone == Zone::Kind && hover.index >= 0 && hover.index < static_cast<int>(v.kinds.size()))

@@ -17,20 +17,26 @@ class NumberInput : public TextEdit {
         auto dot = next.find('.');
         return dot == std::string::npos || next.find('.', dot + 1) == std::string::npos;
     }
+    std::string origin;
 public:
     NumberInput() : TextEdit(24, true) {}
     void beginPrecise(double value) {
         char buffer[64];
         auto result = std::to_chars(buffer, buffer + sizeof(buffer), value, std::chars_format::fixed);
-        set(std::string(buffer, result.ptr));
+        origin.assign(buffer, result.ptr);
+        set(origin);
         replace = true;
     }
     void begin(float value) {
         char buffer[32];
         auto result = std::to_chars(buffer, buffer + sizeof(buffer), value);
-        set(std::string(buffer, result.ptr));
+        origin.assign(buffer, result.ptr);
+        set(origin);
         replace = true;
     }
+    // Typed numbers apply as they are typed; Esc puts the starting text back
+    // so the next apply writes the value from before (exact: shortest round trip).
+    void restore() { set(origin); }
     std::optional<float> parsed(float minimum, float maximum) const {
         if (text.empty() || text.back() == '.') return {};
         float result = 0;

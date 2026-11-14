@@ -64,6 +64,8 @@ void nextNav(bool back);
 bool navClick(float x, float y);
 // A press on a list's scrollbar moves the list there and starts a drag.
 bool pressScrollbar(ShapesLayout const& layout, int& first, float x, float y);
+// A tool view's list scroll bar is held (its thumb stays lit while dragged).
+bool scrollDragging();
 // Flips a boolean option by id ("overlays.shapes").
 void toggleOption(std::string_view id);
 // Shows a feature's row, expanded, in its settings category.

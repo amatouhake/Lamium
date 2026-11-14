@@ -36,6 +36,7 @@ int editingShapeField = -1;
 bool editingShapeName = false;
 SearchQuery shapeNameInput;
 bool shapeNameDirty = false;
+std::string shapeNameOrigin; // the name before typing, for Esc (names apply as typed)
 // Applies an edited definition: a draft only updates its world preview; an
 // existing shape is saved through the session, reporting failures in the footer.
 void applyShape(overlay::ShapeDefinition definition) {
@@ -262,6 +263,7 @@ void handleShapeClick(float x, float y, bool right) {
     case ShapeZone::Name:
         if (auto definition = currentShape()) {
             editingShapeName = true;
+            shapeNameOrigin = definition->name;
             shapeNameInput.clear();
             shapeNameInput.append(definition->name);
             shapeNameInput.selectAll();
@@ -459,7 +461,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         label(context,typeX,y+3,48,translated(shape::types[shape::typeIndex(shown)].name),palette::dim);
         if (!isDraft) toggleSwitch(context,shownX,y+(ShapesLayout::rowHeight-switchHeight)/2,shown.visible);
     }
-    drawListScrollbar(context,l,l.onScrollbar(pointer.x,pointer.y));
+    drawListScrollbar(context,l,screen::scrollDragging() || l.onScrollbar(pointer.x,pointer.y));
     // Divider between list and editor.
     if (l.docked) fill(context,l.left,l.detailTop-1,l.width,1,palette::white,.14f);
     else fill(context,l.detailLeft-1,l.toolbarTop,1,l.footerTop-l.toolbarTop,palette::white,.14f);
@@ -509,7 +511,8 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         if (preview && preview->lowLayer != preview->highLayer) {
             float lx = l.layerStepperX(), ly = l.layerY(), lw = 64, aw = ShapesLayout::arrowWidth;
             drawStepper(context,lx,ly+1,lw,ShapesLayout::rowHeight-2,true,
-                translated("shape.layer",(shapeLayer >= 0 ? "+" : "") + std::to_string(shapeLayer)),{.cell = aw});
+                translated("shape.layer",(shapeLayer >= 0 ? "+" : "") + std::to_string(shapeLayer)),
+                {.cell = aw, .pointerX = pointer.x, .pointerY = pointer.y});
         }
         paragraph(context,ix,py+45,iw,translated("shape.previewHint"),1,palette::faint);
         // Fields.
@@ -545,7 +548,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
                         value = range->integer ? value : std::format("{:.3f}", range->value);
                     else value = translated("shape.blocks", value);
                 } else value = translated(shape::choiceLabel(*definition, row.field, shapeReference));
-                drawShapeStepper(context,l,y,range.has_value(),std::move(value),editingShapeField == i ? &screen::number() : nullptr);
+                drawShapeStepper(context,l,y,range.has_value(),std::move(value),editingShapeField == i ? &screen::number() : nullptr,pointer.x,pointer.y);
                 break;
             }
             }
@@ -652,6 +655,13 @@ void applyNumber() {
     applyShape(shape::setNumber(*definition, field, *parsed));
 }
 void applyName() { applyShapeName(); }
+void revertName() {
+    if (!editingShapeName) return;
+    shapeNameInput.clear();
+    shapeNameInput.append(shapeNameOrigin);
+    shapeNameDirty = true;
+    applyShapeName();
+}
 void endEditing() { editingShapeField = -1; editingShapeName = false; shapeNameDirty = false; }
 glm::vec2 caret() {
     return {shapesDisplayed.stepperX(), editingShapeName ? shapesDisplayed.nameY : shapesDisplayed.fieldY(std::max(0, editingShapeField))};
