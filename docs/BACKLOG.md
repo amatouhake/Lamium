@@ -175,10 +175,13 @@ Do not infer game success from a build or unit-test result.
   the choice over a rejoin, the first map unchanged after exploring under
   another data, Delete and none for the data in use, and the data of
   servers and local worlds joined before all passed (VALIDATION-LOG
-  2026-11-14). Built after that check and not looked at: the Open button
-  and child rows, the any-port switch releasing other ports and switching
-  the joined server at once, the marks naming the reason, rows that read
-  the same told apart.
+  2026-11-14), and so did the Open button and child rows, the any-port
+  switch releasing other ports with one port given other data afterwards,
+  the marks naming the reason and same-named rows told apart (`16330f1f`).
+  Not looked at: the notice of fuller data on the Waypoints screen, the
+  Schematics screen's Placements tab and the world map (each with the
+  list still usable under it, docked too), its three buttons, and that
+  "Do not show again" holds over a rejoin.
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
@@ -440,8 +443,17 @@ Open, to agree before building:
    and the note no longer repeats it. The switch is at the right of its
    words, as in the settings rows. Rows that read the same carry what
    tells them apart (a server's last use, a local world's folder name).
-   Not built yet: the notices on the Waypoints, Schematics and world map
-   screens, the map thumbnail.
+   Built after the second game check (2026-11-14), not looked at: the
+   notice (`ui/DataNotice`). While another data that may be the joined
+   server's holds more waypoints, placements or map than the data in use,
+   the Waypoints screen, the Schematics screen's Placements tab and the
+   world map say whose and how much, with "Use this data", "Saved data"
+   and "Do not show again" (kept per server, `Entry::quiet`). It is worked
+   out at a join and after a change, not per frame. On the two list
+   screens it is a band between the toolbar and the list
+   (`ShapesLayout::fit`'s `notice`), docked panels included; on the world
+   map it lies under the top bar at the left and takes only its own
+   presses. Not built yet: the map thumbnail.
 4. Whether folders that turn out to be one server are ever merged (waypoint
    lists could be; map tiles less obviously), or only chosen between.
 Still to see: a Realm; a server whose port changes between visits.

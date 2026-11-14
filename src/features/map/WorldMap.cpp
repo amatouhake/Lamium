@@ -20,6 +20,7 @@
 #include "features/information/SlimeChunk.h"
 #include <tuple>
 #include "app/Runtime.h"
+#include "ui/DataNotice.h"
 #include "ui/Localization.h"
 #include "ui/NumberInput.h"
 #include "ui/SearchQuery.h"
@@ -2013,6 +2014,12 @@ bool cavePanelTarget(Target target) {
 }
 Request press(float x, float y, bool right) {
     Request request;
+    // The notice of fuller saved data lies over the map's corner and takes its presses (L-343).
+    if (auto pressed = right ? ui::data_notice::Pressed::Outside : ui::data_notice::press(x, y);
+        pressed != ui::data_notice::Pressed::Outside) {
+        if (pressed == ui::data_notice::Pressed::Open) request.kind = Request::Kind::OpenSavedData;
+        return request;
+    }
     auto const* hit = hitAt(x, y);
     // Leaving a field for the cave panel or another control keeps its value;
     // only a press on the field being edited keeps it in edit mode.
@@ -2186,6 +2193,10 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     drawKindMenu(context);
     context.flushText(0, std::nullopt);
     drawMenu(context, size);
+    // Under the top bar, at the left: over the map without taking a drag or the wheel from the rest of it.
+    if (!state.cavePanel && !state.infoPanel && ui::data_notice::height(ui::data_notice::Kind::Map) > 0)
+        ui::data_notice::draw(context, 6, state.top + 6, std::min(300.0f, size.x - state.panelWidth - 12),
+            ui::data_notice::Kind::Map, pointer, true);
     if (!state.notice.empty() && now() - state.noticeAt < 2.6) {
         float w = ui::textWidth(context, state.notice) + 12, y = size.y - bottomHeight - 16;
         ui::fill(context, (size.x - w) / 2, y, w, 12, ui::palette::panel, .85f);

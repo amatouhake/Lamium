@@ -1,3 +1,4 @@
+#include "ui/DataNotice.h"
 #include "ui/WaypointsView.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Localization.h"
@@ -178,6 +179,11 @@ void deleteSelectedWaypoint() {
 }
 void handleWaypointClick(float x, float y, bool right) {
     screen::finishEditing();
+    if (auto pressed = right ? data_notice::Pressed::Outside : data_notice::press(x, y); pressed != data_notice::Pressed::Outside) {
+        if (pressed == data_notice::Pressed::Open) screen::showSavedData();
+        else refresh();
+        return;
+    }
     if (!right && screen::pressScrollbar(waypointsDisplayed, waypointListFirst, x, y)) return;
     if (!waypointsDocked && screen::navClick(x, y)) return;
     auto hit = waypointsDisplayed.hit(x, y);
@@ -295,6 +301,9 @@ std::string waypointDescription() {
     return w->name + ": " + translated(w->visible ? "waypoint.shownState" : "waypoint.hiddenState");
 }
 void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l, glm::vec2 pointer) {
+    if (l.noticeHeight > 0)
+        data_notice::draw(context, l.listLeft + ShapesLayout::pad, l.noticeTop + 2, l.listWidth - 2 * ShapesLayout::pad,
+            data_notice::Kind::Waypoints, pointer);
     auto const preferences = Runtime::instance().preferences();
     auto hover = l.hit(pointer.x, pointer.y);
     auto over = [&](ShapeZone zone, int index = -1) { return hover.zone == zone && (index < 0 || hover.index == index); };
@@ -435,7 +444,7 @@ if (!w) {
 ShapesLayout fitWaypoints(SettingsTable const& t, glm::vec2 size, bool docked) {
     int fieldCount = selectedWaypoint() ? static_cast<int>(map::waypointFields.size()) : 0;
     auto l = ShapesLayout::fit(t, size.x, size.y, docked, waypointRowCount(), waypointListFirst, fieldCount,
-        waypointFieldFirst, false, false);
+        waypointFieldFirst, false, false, false, data_notice::height(data_notice::Kind::Waypoints));
     waypointsDisplayed = l;
     waypointListFirst = l.listFirst;
     waypointFieldFirst = l.fieldFirst;

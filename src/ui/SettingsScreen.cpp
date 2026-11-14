@@ -997,6 +997,12 @@ void handleMapRequest(map::world::Request const& request) {
         if (request.mark) schematics_view::showPlacement(request.mark->id);
         break;
     }
+    case Kind::OpenSavedData:
+        map::world::close();
+        worldMapOpen = false;
+        mapFromSettings = false;
+        screen::showSavedData();
+        break;
     case Kind::OpenShape: {
         bool fromSettings = mapFromSettings;
         map::world::close();
@@ -1379,6 +1385,16 @@ int playerDimension() { return ui::playerDimension(); }
 std::string dimensionName(int dimension) { return ui::dimensionName(dimension); }
 int distanceTo(int x, int z) { return ui::distanceTo(x, z); }
 void returnToMap() { enterWorldMap(mapFromSettings, true); }
+void showSavedData() {
+    finishNumber();
+    int category = 0;
+    for (size_t i = 0; i < sections.size(); ++i) if (sections[i] == featureSection("savedData")) category = static_cast<int>(i) + 1;
+    ui::selectNav(category);
+    language_view::reset();
+    highlight_view::reset();
+    enchant_view::reset();
+    if (saved_data_view::begin()) table_view::rebuild(true);
+}
 }
 // Set while the enchantment order opens from the anvil list: the one case where the scene goes over a
 // container screen (L-170 trial; whether the anvil is still there afterwards is checked in game).

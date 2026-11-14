@@ -46,6 +46,8 @@ bool leaveDirectTool();
 void endDirectTool(); // The page's Back button: on to the settings table.
 // Back to the world map the view was opened from.
 void returnToMap();
+// General > Saved data, from a tool page's notice (L-343).
+void showSavedData();
 // The navigation item shown (SettingsNavigation.h nav::), and choosing one.
 int currentNav();
 void selectNav(int index);

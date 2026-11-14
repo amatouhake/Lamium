@@ -1,3 +1,4 @@
+#include "ui/DataNotice.h"
 #include "ui/SchematicsView.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
@@ -526,6 +527,11 @@ void pickInPreview(glm::vec2 at) {
 }
 void handleSchematicClick(float x, float y, bool right) {
     screen::finishEditing();
+    if (auto pressed = right ? data_notice::Pressed::Outside : data_notice::press(x, y); pressed != data_notice::Pressed::Outside) {
+        if (pressed == data_notice::Pressed::Open) screen::showSavedData();
+        else refresh(true);
+        return;
+    }
     // Too short for the body: only the sidebar, or docked Close and Expand, are drawn.
     if (!schematicsDisplayed.usable()) {
         if (!schematicsDocked && screen::navClick(x, y)) return;
@@ -746,6 +752,9 @@ Rgb mismatchColor(schematic::CellState state) {
     }
 }
 void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l, glm::vec2 pointer) {
+    if (l.noticeHeight > 0)
+        data_notice::draw(context, l.listLeft + ShapesLayout::pad, l.noticeTop + 2, l.listWidth - 2 * ShapesLayout::pad,
+            data_notice::Kind::Placements, pointer);
     auto const preferences = Runtime::instance().preferences();
     auto hover = l.hit(pointer.x, pointer.y);
     int tabHover = schematicTabAt(l, pointer.x, pointer.y);
@@ -1337,7 +1346,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
 ShapesLayout fitSchematics(SettingsTable const& t, glm::vec2 size, bool docked) {
     // The tabs fill the toolbar, so docked, the "Show all" switch takes the row below.
     auto l = ShapesLayout::fit(t, size.x, size.y, docked, schematicRowCount(), schematicListFirst, schematicFieldCount(),
-        schematicFieldFirst, false, false, true);
+        schematicFieldFirst, false, false, true,
+        schematicTab == SchematicTab::Placements ? data_notice::height(data_notice::Kind::Placements) : 0);
     // The first action never runs into the one at the right edge.
     l.firstActionWidth = std::clamp(l.detailWidth - 2 * ShapesLayout::pad - ShapesLayout::deleteWidth - 4, 40.f, 96.f);
     // Materials has one action: the calculator link, readable across the pane.

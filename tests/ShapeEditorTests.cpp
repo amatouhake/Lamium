@@ -96,6 +96,16 @@ void shapeEditorTests() {
     auto inside = ui::ShapesLayout::fit(table, 640, 360, false, 3, 0, 16, 0, false, false);
     check(inside.usable() && inside.listLeft + inside.listWidth == inside.detailLeft
         && inside.detailLeft + inside.detailWidth == table.rowsRight(), "list and editor share the table area");
+    {
+        auto plain = ui::ShapesLayout::fit(table, 640, 360, false, 80, 0, 16, 0, false, false);
+        auto noted = ui::ShapesLayout::fit(table, 640, 360, false, 80, 0, 16, 0, false, false, false, 46);
+        check(noted.noticeTop == plain.theadTop && noted.theadTop == plain.theadTop + 46 && noted.rowsTop == plain.rowsTop + 46
+              && noted.listVisible < plain.listVisible && noted.listVisible > 3 && noted.detailTop == plain.detailTop
+              && plain.noticeHeight == 0, "a notice sits between the toolbar and the list and takes its room from the rows");
+        auto dockedNoted = ui::ShapesLayout::fit(table, 640, 360, true, 8, 0, 16, 0, false, false, false, 46);
+        check(dockedNoted.usable() && dockedNoted.rowsTop == ui::ShapesLayout::fit(table, 640, 360, true, 8, 0, 16, 0, false, false).rowsTop + 46,
+              "docked, the list and the editor move down by the notice");
+    }
     auto many = ui::ShapesLayout::fit(table, 640, 360, false, 80, 0, 16, 0, false, false);
     float bar = many.listLeft + many.listWidth - 2;
     check(many.onScrollbar(bar, many.rowsTop + 1) && !many.onScrollbar(many.listLeft + 10, many.rowsTop + 1) && !inside.onScrollbar(bar, inside.rowsTop + 1)

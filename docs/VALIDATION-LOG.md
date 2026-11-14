@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Saved data: Open button, any-port switch, marks (L-343, 2026-11-14)
+
+Build `16330f1f`, DLL SHA-256
+`77e3fdbef9432d33f2639b73bdd8cbaa3532e4cd4a6acee324208c07d1c295ce`, 1.26.60.05 Dev
+instance, the maintainer: all confirmed. General > Saved data has the Open button and a child
+row naming the data, and the same row sits under Waypoints, World map and Schematics; turning
+the any-port switch on switches the joined server to that data and another port's server uses
+it too; another data chosen on one port afterwards stays that port's; a candidate's mark says
+what is alike and the note is not cut off; rows of one name carry a date or a folder name.
+
 ## Saved data page (L-343 part 3, 2026-11-14)
 
 Build `e3c240b2`, DLL SHA-256
