@@ -1244,8 +1244,10 @@ void applyBinding() {
     auto value = Runtime::instance().preferences();
     value.bindings[static_cast<size_t>(bindingEdit->action)] = bindingEdit->binding;
     bool saved = Runtime::instance().save(value);
+    // A binding on the game's own click keeps saying so in the footer after the button is let go.
+    auto note = gameClickNote(input::effectiveChord(value.bindings, bindingEdit->action));
     cancelCapture_();
-    screen::setMessage(saved ? std::string{} : translated("saveError"));
+    screen::setMessage(saved ? note : translated("saveError"));
 }
 bool onCaptureButton(float x, float y) {
     if (findingKey) {

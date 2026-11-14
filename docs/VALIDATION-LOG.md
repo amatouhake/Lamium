@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Bindings on a bare mouse click (2026-11-15)
+
+Build `9ddb6409`, DLL SHA-256
+`305e2aba1df48ec7ca578e085f338b3bb45dbdcc9e3bc58ac16ad061b14a84dc`, 1.26.60.05 Dev
+instance, the maintainer. Cause found first: Sneak placement had been bound to left click
+alone, so every left click went to it and nothing broke blocks or hit mobs (the same with
+the pre-session build `92570077`); toggle toasts were hidden, so nothing showed it. Seen
+with this build: Sneak placement's caps are warning-outlined in Hotkeys and the tip names
+the game's attack and destroy; while capturing, the footer warning showed only while the
+button was held (kept after release in the next build, not yet seen). The anvil planner
+panels still flicker as they rise (the alpha change in `f3559d84` did not help and is
+undone; the next build paints them only after the screen while the window slides, not
+yet seen).
+
 ## Plain and primary buttons through one widget (L-341, 2026-11-15)
 
 Build `8f386dbf`, DLL SHA-256
