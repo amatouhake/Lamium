@@ -118,7 +118,12 @@ cooldown); a bow's or shield's use time (above the 60 s limit).
   verified the line is left out. That capability belongs to the
   `enchantOrder` feature, so nothing marks Item details as paused when the
   line goes missing.
-- **Nothing else in the hook asks a gate.** Read without one: `Item::mTags`,
+- The suspicious stew's effect, the property values, the ID, tags and NBT
+  ask `versionSensitiveAllowed(ItemDetails)`, a capability of this feature
+  (decided 2026-11-14, L-338; before that they were read without a gate).
+  On a game version that is not verified those lines are left out and the
+  feature is marked partly paused; the game's tooltip, the durability
+  numbers and the food values stay. What they read: `Item::mTags`,
   `ItemStackBase::mUserData` and `CompoundTag::mTags`, `Item::mFullName`,
   `Item::mMaxUseDuration`, `FurnaceBlockActor::getItemBurnDuration`,
   `FuelItemComponent::mFuelDuration` and
@@ -126,11 +131,7 @@ cooldown); a bow's or shield's use time (above the 60 s limit).
   component name), `Item::getEnchantValue`, `getCooldownDuration`,
   `getMaxStackSize`, `Item::buildEffectDescriptionName` and the
   `MobEffect` members `mDescriptionId`, `mIsHarmful`,
-  `mAttributeModifiers`. These are reads only; no game memory is written.
-  [GAME-UPDATES.md](GAME-UPDATES.md) records most of them as read "without
-  a gate" (it does not list the use-modifiers component or the cooldown).
-  Whether they get a gate, or the exception is written into AGENTS.md
-  rule 8, is the maintainer's choice 5 in BACKLOG L-338.
+  `mAttributeModifiers`. Reads only; no game memory is written.
 
 ### Known differences from what the settings say
 

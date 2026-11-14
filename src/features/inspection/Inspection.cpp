@@ -147,7 +147,10 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
                                                       : ui::translated("workPenaltyOnly", penalty->levels));
         // The game tells a suspicious stew's effect only in Creative (L-319): the same lines elsewhere, where the
         // game puts them, above the food.
-        if (settings.itemDetailsStew && mItem->mFullName->getString() == "minecraft:suspicious_stew") {
+        // The lines below read item data whose layout a rebuild cannot check (L-338): the game's own tooltip, the
+        // durability numbers and the food values stay on a game this was not checked on.
+        bool const reads = versionSensitiveAllowed(capabilities::Id::ItemDetails);
+        if (reads && settings.itemDetailsStew && mItem->mFullName->getString() == "minecraft:suspicious_stew") {
             auto const effect = details::plain(mItem->buildEffectDescriptionName(*this, true));
             if (!effect.empty() && details::plain(text.mUnredactedString).find(effect) == std::string::npos) {
                 auto const& info = effectInfo(effect);
@@ -164,7 +167,7 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
                 if (!icons.empty()) text += tooltip::glyphLine(tooltip::placeholders(static_cast<int>(icons.size())));
             }
         // The rest the game knows and does not print (L-319).
-        if (settings.itemDetails || settings.itemDetailsId || settings.itemDetailsTags || settings.itemDetailsNbt) {
+        if (reads && (settings.itemDetails || settings.itemDetailsId || settings.itemDetailsTags || settings.itemDetailsNbt)) {
             details::Item item;
             if (settings.itemDetailsId) {
                 item.id = getTypeName();

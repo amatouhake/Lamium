@@ -93,7 +93,9 @@ struct Settings {
         bool offhandSwap = true; // The Swap with offhand key works (L-94)
         bool deathRestore = false; // Put picked-up items back in their death-time slots (L-109, experimental)
         bool deathRestoreAll = false; // Also the main inventory; off: the hotbar, armor and offhand
-        bool enchantOrderAnvil = true; // The planned steps listed beside the anvil screen (L-170)
+        // The planned steps listed beside the anvil screen (L-170). Off for new installs while the feature is
+        // Experimental (L-338); the two below only act with it on.
+        bool enchantOrderAnvil = false;
         bool enchantOrderAnvilChoose = true; // The planner's choosing column left of the anvil screen
         bool enchantOrderAnvilMarks = true;  // The tints on the slots the next step uses and on the anvil's own
         // Fireworks swap with Fake Offhand's slot, not the real offhand, while

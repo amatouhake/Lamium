@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Status element switch hides the restriction lines (2026-11-14)
+
+Build `5fa24a6b`, DLL SHA-256
+`2b562507f98272dd8b8bd13f87efd8092f03a46d701fe89405181c8f8862a485`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. With Block Restrictions on and the Status element
+hidden in HUD layout, the restriction lines are not drawn; shown again, they are.
+
 ## Code review fixes (2026-11-14)
 
 Build `5359af0c`, DLL SHA-256

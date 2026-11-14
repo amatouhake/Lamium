@@ -404,6 +404,15 @@ Contents:
   setting (default 60 %, chosen in game) sets every HUD card and line band.
   Defaults (chosen in game): Info HUD per line, Status on a card, Debug View
   per line. Saved layouts keep their own background.
+- **Toggle toasts' switch** (decided 2026-11-14, L-338) hides on/off notices
+  only. A message that says what an action did (waypoint added, schematic
+  saved, restore ended) and a warning show either way.
+- **Esc returns to where the page was opened from** (decided 2026-11-14,
+  L-338): a tool page opened by its key returns to the game, one opened from
+  the anvil to the anvil, one opened from the settings to the settings table.
+  This holds for the calculator, the world map, HUD layout, the block
+  highlight list and Enchantment order; the schematic menu only opens over
+  the game. A page's Back button always goes to the settings table.
 - **General** (2026-10-06, L-98): three headings - "Settings screen" (its
   key, animations, the Hotkeys and HUD layout openers), "Toggle toasts" (the
   switch, then the toast's layout link) and "HUD text" (line height,

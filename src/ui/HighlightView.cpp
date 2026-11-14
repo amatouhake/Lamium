@@ -174,7 +174,7 @@ void toggle(std::string const& name) {
     armed.clear();
     forceRecount();
 }
-void back() { reset(); table_view::rebuild(true); }
+void back() { screen::endDirectTool(); reset(); table_view::rebuild(true); }
 void revealSelected() {
     if (selected < 0) return;
     resultFirst = SettingsTable::reveal(resultFirst, selected, last.results.listVisible);
@@ -241,7 +241,7 @@ void key(int key) {
     switch (key) {
     case 0x1b:
         if (!query.value().empty()) { query.clear(); edited(); }
-        else back();
+        else if (!screen::leaveDirectTool()) back();
         return;
     case 0x26: moveSelection(-1); return;
     case 0x28: moveSelection(1); return;

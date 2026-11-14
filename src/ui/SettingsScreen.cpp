@@ -105,6 +105,11 @@ constexpr int navCount = nav::count, hotkeysNav = nav::hotkeys, shapesNav = nav:
     schematicsNav = nav::schematics, worldMapNav = nav::worldMap, hudNav = nav::hud;
 // Leaving the HUD layout editor returns to editorReturn.
 int editorReturn = 0;
+// A tool page (HUD layout, the block highlight list, Enchantment order) opened
+// by its key or from the anvil, not from the settings: Esc there returns to
+// the game or the anvil, as the calculator and the world map do (L-338).
+// Going anywhere else in the settings ends it.
+bool directTool = false;
 bool pendingRelease = false;
 SettingsNavigation navigation;
 float displayedInverseScale = 0;
@@ -220,6 +225,7 @@ bool waypointsView() { return navigation.current == waypointsNav; }
 bool schematicsView() { return navigation.current == schematicsNav; }
 bool hudEditorView() { return navigation.current == hudNav; }
 void selectNav(int index, bool temporary = false) {
+    directTool = false;
     // Choosing a category ends a search, which otherwise spans every category.
     table_view::endSearch();
     if (navigation.current == shapesNav && index != shapesNav) shapes_view::leave();
@@ -420,6 +426,7 @@ void clear() {
     worldMapOpen = false; promptOnMap = false; pendingWheels.clear();
     calculatorOpen = false;
     mapFromSettings = false;
+    directTool = false;
     waypoints_view::reset();
     schematics_view::reset();
 }
@@ -1070,6 +1077,7 @@ void render(ll::event::UIRenderEvent& event) {
             // Outside the view the sidebar, Close and the rest work as usual.
             if (auto click = std::exchange(pendingClick, std::nullopt); click && !enchant_view::click(click->x, click->y, click->right)) {
                 enchant_view::reset();
+                directTool = false;
                 table_view::click(click->x, click->y, click->right);
             }
             for (auto wheel : std::exchange(pendingWheels, {})) if (enchant_view::opened()) enchant_view::wheel(wheel.direction);
@@ -1088,6 +1096,7 @@ void render(ll::event::UIRenderEvent& event) {
             // Outside the view the sidebar, Close and the rest work as usual.
             if (auto click = std::exchange(pendingClick, std::nullopt); click && !highlight_view::click(click->x, click->y, click->right)) {
                 highlight_view::reset();
+                directTool = false;
                 table_view::click(click->x, click->y, click->right);
             }
             for (auto wheel : std::exchange(pendingWheels, {})) if (highlight_view::opened()) highlight_view::wheel(wheel.direction);
@@ -1217,7 +1226,11 @@ void render(ll::event::UIRenderEvent& event) {
             exit = hud_editor::press(click->x, click->y) == hud_editor::Result::Exit;
         for (int key : std::exchange(pendingKeys, {}))
             if (!exit) exit = hud_editor::key(key, heldShift()) == hud_editor::Result::Exit;
-        if (exit) { hud_editor::reset(); selectNav(editorReturn); }
+        if (exit) {
+            hud_editor::reset();
+            if (directTool) close();
+            else selectNav(editorReturn);
+        }
     } else if (!closing && std::exchange(pendingClose, false)) {
         close();
     } else if (!closing) {
@@ -1301,6 +1314,12 @@ void finishEditing() { finishNumber(); }
 bool heldCtrl() { return ui::heldCtrl(); }
 bool heldShift() { return ui::heldShift(); }
 void close() { ui::close(); }
+bool leaveDirectTool() {
+    if (!directTool) return false;
+    ui::close();
+    return true;
+}
+void endDirectTool() { directTool = false; }
 void nextNav(bool back) {
     bool world = ui::client && ui::client->getLocalPlayer();
     int index = navigation.current;
@@ -1473,6 +1492,7 @@ void openBlockHighlight(IClientInstance& current) {
     screen::finishEditing();
     enchant_view::reset();
     if (highlight_view::begin()) table_view::rebuild(true);
+    directTool = openedNow && highlight_view::opened();
 }
 void openEnchantOrder(IClientInstance& current, bool overAnvil) {
     std::lock_guard lock(mutex);
@@ -1489,6 +1509,7 @@ void openEnchantOrder(IClientInstance& current, bool overAnvil) {
     language_view::reset();
     highlight_view::reset();
     if (enchant_view::begin()) table_view::rebuild(true);
+    directTool = openedNow && enchant_view::opened();
 }
 void openWorldMap(IClientInstance& current) {
     std::lock_guard lock(mutex);
@@ -1513,6 +1534,7 @@ void openHudLayout(IClientInstance& current) {
     if (openedNow) seedOpener(input::Action::OpenHudLayout);
     selectNav(hudNav, true);
     hud_editor::select(std::nullopt);
+    directTool = openedNow && hudEditorView();
 }
 namespace screen {
 // The Open button on a tool's settings row (L-231). The screen is already

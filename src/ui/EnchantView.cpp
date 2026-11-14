@@ -29,7 +29,7 @@ enum class Drag { None, Rows, Steps } dragging = Drag::None;
 EnchantLayout last;
 glm::vec2 lastPointer{};
 
-void back() { reset(); table_view::rebuild(true); }
+void back() { screen::endDirectTool(); reset(); table_view::rebuild(true); }
 // Icons are collected while the view draws and drawn in one call at the end,
 // each from a stack of its own: that is how glints survive (the container
 // previews do the same).
@@ -76,7 +76,7 @@ bool click(float x, float y, bool right) {
     }
 }
 void key(int key) {
-    if (key == 0x1b) back();
+    if (key == 0x1b && !screen::leaveDirectTool()) back();
 }
 void wheel(int amount) {
     if (lastPointer.x < last.dividerX) rowFirst = SettingsTable::clampFirst(rowFirst + amount, last.rows.listCount, last.rows.listVisible);

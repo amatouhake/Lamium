@@ -221,7 +221,10 @@ void settingsRowsTests() {
     check(features.size() == ui::features.size(), "every feature is listed");
     // HUD look options are edited in the layout editor, reached through the links.
     size_t listed = 0;
-    for (auto const& option : settings::options) if (!option.id.starts_with("hud.")) ++listed;
+    // Placement mode is saved but left out until something reads it (L-338).
+    for (auto const& option : settings::options)
+        if (!option.id.starts_with("hud.") && option.id != "interaction.placementMode") ++listed;
+    check(!options.contains("interaction.placementMode"), "a setting nothing reads is not shown");
     size_t live = 0;
     for (size_t i = 0; i < input::actions.size(); ++i) if (!input::retired(static_cast<input::Action>(i))) ++live;
     check(options.size() == listed && actions.size() == live, "all settings and actions are reachable");

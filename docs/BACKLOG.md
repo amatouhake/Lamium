@@ -93,7 +93,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): the L-266 schematic follow-up batch closed with 0.3.1 except
    L-265 placement assist (Design). Decisions waiting for the maintainer:
-   L-338 (five choices from the 2026-11-14 review). Built, with open checks
+   L-338 (when a death layout ends). Built, with open checks
    or follow-ups in their items: L-170 enchantment order planner, L-319 item
    details, L-320 block highlight (released in 0.6.0). Remaining
    Design/Research: L-336 Durability HUD items, L-337 minimap size, L-340
@@ -150,8 +150,18 @@ Do not infer game success from a build or unit-test result.
   menu click). Not looked at: an enchanted item's glint on a faint element;
   an older file's death point with a full waypoint list; a hidden chat,
   scoreboard or boss bar under a clipping panel (needs a resource pack whose
-  HUD clips them); the Status element's switch hiding the block restriction
-  lines too (built after that check).
+  HUD clips them). The Status element's switch hiding the block restriction
+  lines passed on `5fa24a6b` (VALIDATION-LOG 2026-11-14).
+- Four decisions of 2026-11-14 (L-338), built and unit-tested only, none
+  looked at in game: with Toggle toasts off a message toast still shows and
+  an on/off toast does not; Esc in HUD layout, the block highlight list and
+  Enchantment order opened by their keys returns to the game, opened from
+  the anvil's Change button to the anvil, opened from the settings to the
+  settings table, and their Back button goes to the settings table; a new
+  install shows nothing beside the anvil until "List the steps beside the
+  anvil" is on (a saved on stays on) and Restrictions has no Placement mode
+  row; Item details on an unverified game version (cannot be brought about
+  on the verified one).
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
@@ -669,29 +679,29 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
-### L-338 Five choices from the 2026-11-14 review
-Kind: Design (maintainer decisions; each becomes a Ready fix once chosen).
-1. An unstarted death layout stays until the next death (since L-332 a
-   waypoint's removal no longer ends it), so a later visit that picks items
-   up within 32 blocks starts a restore; a started one is dropped on the
-   first tick after joining more than 32 blocks away. Choose when a layout
-   ends. Relates to L-240.
-2. "Toggle toasts" off also hides message toasts (waypoint added, schematic
-   saved, restore ended); its help names only feature toggles. Choose: the
-   switch covers both and says so, or only toggle toasts.
-3. Esc/Close: the calculator and the world map return to where they were
-   opened from; HUD layout, the block highlight list and Enchantment order
-   return to the settings table even when opened by their own key, and from
-   the anvil; the schematic menu closes everything. Choose one rule.
-4. Enchantment order (Experimental) shows its three beside-the-anvil parts
-   by default and has no main switch. Separately, the Restrictions setting
-   "Placement mode" is shown and does nothing. The release policy says
-   large features start default off and unfinished steps stay out of the
-   settings screen.
-5. Item details reads item data (tags, user data, use duration, burn time)
-   without `versionSensitiveAllowed()`; only the Work Penalty line asks it.
-   GAME-UPDATES.md records "read, without a gate". Choose: add the gate, or
-   write the exception into AGENTS.md rule 8.
+### L-338 When a death layout ends
+Kind: Design (the rule below is the agent's proposal; the maintainer agreed
+to a time limit 2026-11-14 and has not agreed the rule yet). The last of
+five choices from the 2026-11-14 review; the other four were decided and
+built the same day (DESIGN.md "Components"; ENCHANT-ORDER.md and
+ITEM-DETAILS.md "Current behavior"; Pre-release checks).
+Problem: an unstarted death layout stays until the next death (since L-332 a
+waypoint's removal no longer ends it), so a later visit that picks items up
+within 32 blocks starts a restore; a started one is dropped on the first
+tick after joining more than 32 blocks away. Relates to L-240.
+Maintainer 2026-11-14: a time limit, yes; but dropped items only age toward
+their 5 minutes while their chunk is loaded, so a clock that starts at the
+death is wrong; and the limit must be explained to the user.
+Proposal: count time only while the death place can be ticking for this
+player (same dimension, within the simulation distance); when that count
+reaches 5 minutes the items are gone, so the layout ends, with the same
+"restore ended" toast. Away from it, or in another dimension, the count
+stands still, so a far-away death keeps its layout for a later return. The
+feature's help text says so in one sentence. Open: what stands in for
+"loaded" (the simulation distance setting, or a fixed radius); on a server
+other players can keep the chunk loaded while this player is away, so the
+items can be gone with the count unfinished - accept that (the layout then
+ends at the next death, as today) or add a second, long limit.
 
 ### L-336 Durability HUD: choose its items in HUD layout
 Kind: Design. Maintainer 2026-11-14: Info HUD's lines are chosen in the HUD
@@ -890,9 +900,9 @@ Current behavior, the decisions in force and the dated build record:
 Remaining:
 - Open choice: the enchantability wording ("Enchantability: 15"), if the
   setting's help text is not enough.
-- Open choice: the ungated item reads (tags, NBT, use time, fuel, the
-  stew's effect); only the work penalty asks `versionSensitiveAllowed`.
-  Decided under L-338, choice 5.
+- Not checked in game: the Item details capability added 2026-11-14 (tags,
+  NBT, property values, the ID and the stew's effect left out on an
+  unverified game version).
 - Open choice: on an unverified game version the work penalty line goes
   missing under the `EnchantOrder` capability, which belongs to
   Enchantment order, so nothing marks Item details as paused.
@@ -1245,14 +1255,12 @@ Remaining, runtime checks (VALIDATION.md's row has the same list):
 - The cost-differs warning and the result slot's yellow: could not be
   brought about.
 Remaining, open choices (not decided; the maintainer chooses):
-- The three beside-the-anvil settings are on by default and the feature
-  has no main switch (L-338 choice 4; that choice's "Placement mode" is
-  the Restrictions setting, not one of this feature's). The record also
-  asks whether a screen that only opens on request needs a switch.
-- Esc in the planner opened from the anvil's "Change" button: the code
-  (`EnchantView.cpp`, `back()`) leaves for the settings table; the record
-  of `998e845e` says Esc returns to the anvil. What the game does now is
-  not checked; the rule is L-338 choice 3.
+- Decided and built 2026-11-14, not checked in game: "List the steps
+  beside the anvil" is off for a new install and is the switch for all
+  three beside-the-anvil parts (no separate main switch was added: the
+  planner only opens on request); Esc in the planner opened from the
+  anvil's "Change" button or by the key closes the screen (back to the
+  anvil or the game), and its Back button goes to the settings table.
 - A slot item is taken as the plan's item when nothing is chosen and there
   is no plan, beside the decision "not taken from the left slot by itself".
 - The plan is kept in memory across a world exit (read from the code, not

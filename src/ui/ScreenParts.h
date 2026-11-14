@@ -40,6 +40,10 @@ bool heldShift();
 // The keys and buttons held now (a binding being captured starts from them).
 input::Chord const& heldKeys();
 void close();
+// Esc on a tool page opened by its key or from the anvil: closes the screen and
+// returns true; false when the page was reached from the settings.
+bool leaveDirectTool();
+void endDirectTool(); // The page's Back button: on to the settings table.
 // Back to the world map the view was opened from.
 void returnToMap();
 // The navigation item shown (SettingsNavigation.h nav::), and choosing one.

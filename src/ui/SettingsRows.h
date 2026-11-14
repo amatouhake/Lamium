@@ -353,6 +353,8 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
             for (auto const& option : settings::options) {
                 if (option.feature != feature.id || option.id == feature.toggle) continue;
                 if (option.id.starts_with("hud.")) continue; // Edited in the layout editor.
+                // Saved and loaded, but nothing reads it until placement restrictions are built (L-15, L-338).
+                if (option.id == "interaction.placementMode") continue;
                 children.push_back({RowKind::Option, &feature, &option, {}, section});
             }
             for (size_t i : actionOrder) {

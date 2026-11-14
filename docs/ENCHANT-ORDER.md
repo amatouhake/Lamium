@@ -41,11 +41,12 @@ Tests: `tests/EnchantPlanTests.cpp` (the planner, the edits of
   Experimental. The row has an Open button and no switch of its own. The
   action `openenchantorder` ("Lamium: Open the enchantment order planner")
   has no default key.
-- Three settings under that row, all on by default and saved in the
-  settings file: "List the steps beside the anvil"
-  (`inventory.enchantOrderAnvil`), "Choose enchantments beside the anvil"
-  (`inventory.enchantOrderAnvilChoose`) and "Tint the slots to use next"
-  (`inventory.enchantOrderAnvilMarks`). The last two are siblings of the
+- Three settings under that row, saved in the settings file: "List the
+  steps beside the anvil" (`inventory.enchantOrderAnvil`, off for a new
+  install since 2026-11-14, L-338: an Experimental feature draws nothing
+  until asked; a saved on stays on), "Choose enchantments beside the anvil"
+  (`inventory.enchantOrderAnvilChoose`, on) and "Tint the slots to use next"
+  (`inventory.enchantOrderAnvilMarks`, on). The last two are siblings of the
   first, not settings under it, but only work while the first is on. With
   the first off the anvil screen is the game's own; the planner still works.
 - Everything asks `versionSensitiveAllowed(EnchantOrder)`: the cost classes

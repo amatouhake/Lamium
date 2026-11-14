@@ -1744,7 +1744,8 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     {
         auto toast = ui::currentToggleToast(ui::toastNow());
         if (!toast && preview) toast = ui::Toast::Visible{ui::translated("feature.toolSwitch"), true, 1.f};
-        if (toast && !skipped(ui::HudElementId::Toast) && (preview || runtime.ui.toggleToasts || toast->warning)) {
+        // The switch is for on/off notices; a message says what an action did (L-338).
+        if (toast && !skipped(ui::HudElementId::Toast) && (preview || runtime.ui.toggleToasts || toast->plain || toast->warning)) {
             Fading fading{preview, ui::HudElementId::Toast};
             float zoom = elementZoom(hud.toast);
             // A message may hold several lines ("\n"), each centered in the box;

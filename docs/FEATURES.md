@@ -451,7 +451,7 @@ enchant one from an enchanted book: the result is that book again with one more 
 use on it, and the step list could not tell it from the other books afterwards.
 
 The same plan is shown right of the anvil screen ("List the steps beside the anvil",
-on by default), with the step whose two items lie in the slots highlighted and the
+off until you turn it on), with the step whose two items lie in the slots highlighted and the
 last line speaking of that pair (it matches a step, the game's cost differs, an item
 is not part of the plan). The slots themselves are tinted: in the inventory the stack
 to put left in cyan and the one to put right in pink, with the same colours on the
