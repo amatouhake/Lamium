@@ -12,6 +12,11 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## A bare left-click binding no longer stops breaking (2026-11-15)
+
+Build `9ddb6409`, the maintainer: confirmed. With Sneak placement still bound to left click
+alone, left click breaks blocks again.
+
 ## Bindings on a bare mouse click (2026-11-15)
 
 Build `9ddb6409`, DLL SHA-256
