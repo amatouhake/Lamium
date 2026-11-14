@@ -199,7 +199,7 @@ void tick() noexcept {
         // The layout belongs to the place of the death (L-332): pickups count
         // there only, and leaving it after the first one ends the layout.
         auto feet = player->getFeetPos();
-        bool here = atPlace(*state.layout, static_cast<int>(player->getDimensionId()), feet.x, feet.y, feet.z);
+        bool here = atPlace(*state.layout, static_cast<int>(player->getDimensionId()), feet.x, feet.z);
         if (state.layout->started && !here) {
             log("left the place of the death");
             forget();
@@ -208,7 +208,7 @@ void tick() noexcept {
             state.havePrevious = true;
             return;
         }
-        if (state.havePrevious && !game::moving() && here && pickedUp(*state.layout, state.previous, now, scopeOf(*prefs))) {
+        if (state.havePrevious && !game::moving() && here && pickedUp(*state.layout, state.previous, now)) {
             state.armed = true;
             if (!state.layout->started) { state.layout->started = true; save(); }
             state.lastPickup = Clock::now();

@@ -45,11 +45,11 @@ struct Layout {
 // L-332: the layout belongs to the place of the death, not to a waypoint.
 // Pickups count only within this distance of it, in its dimension; once one
 // happened there, going farther ends the layout, so pickups elsewhere never
-// rearrange the inventory.
+// rearrange the inventory. Measured across, at any height: after a death high
+// up the items fall farther than this (maintainer 2026-11-15, L-339).
 inline constexpr double placeDistance = 32;
-inline bool atPlace(Layout const& layout, int dimension, double x, double y, double z) {
-    return dimension == layout.dimension
-        && std::hypot(layout.x + .5 - x, double(layout.y) - y, layout.z + .5 - z) <= placeDistance;
+inline bool atPlace(Layout const& layout, int dimension, double x, double z) {
+    return dimension == layout.dimension && std::hypot(layout.x + .5 - x, layout.z + .5 - z) <= placeDistance;
 }
 // L-338: the layout ends when the dropped items are gone. A dropped item
 // lasts 5 minutes, counted only while its chunk is loaded and ticking, so
@@ -206,10 +206,12 @@ inline int countOf(Slots const& slots, std::string const& kind) {
     for (auto const& s : slots) if (!s.empty() && s.kind == kind) n += s.count;
     return n;
 }
-inline bool pickedUp(Layout const& layout, Slots const& before, Slots const& after, Scope scope = Scope::All) {
+// Any item the layout names counts, also one for a slot outside the scope:
+// the first pickup at the place starts the layout, as the help says (L-339).
+inline bool pickedUp(Layout const& layout, Slots const& before, Slots const& after) {
     for (int s = 0; s < slotCount; ++s) {
         auto const& kind = layout.slots[s].kind;
-        if (layout.slots[s].empty() || layout.done[s] || !inScope(s, scope)) continue;
+        if (layout.slots[s].empty() || layout.done[s]) continue;
         if (countOf(after, kind) > countOf(before, kind)) return true;
     }
     return false;

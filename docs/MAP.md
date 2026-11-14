@@ -134,9 +134,10 @@ ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleMapMarks, ToggleSlimeChunks.
 - (Decided 2026-11-13, L-332) Nothing else is special about a death's
   waypoint: the cross stays whatever is edited, and the next death adds its
   own without replacing one. Death layout restore does not depend on
-  waypoints: it belongs to the place of the death (32 blocks around it),
-  starts with the first pickup there and ends by leaving it, when everything
-  is back, or at the next death. It also ends when the dropped items are gone
+  waypoints: it belongs to the place of the death (32 blocks around it,
+  measured across at any height, L-339), starts with the first pickup there
+  (of any item it names, also outside the restored slots) and ends by
+  leaving it, when everything is back, or at the next death. It also ends when the dropped items are gone
   (decided 2026-11-14, L-338): after 5 minutes in total of the place being
   loaded around the player (48 blocks across, in its dimension); time away
   does not count, since unloaded items do not age, and the help text says so.

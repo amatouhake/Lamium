@@ -123,6 +123,10 @@ void deathLayoutTests() {
         unrelated[3] = item("dirt", 4);
         check(pickedUp(layout, before, after) && !pickedUp(layout, before, unrelated),
               "only picking up a layout item triggers a restore");
+        Layout mainOnly;
+        mainOnly.slots[20] = item("bread", 10);
+        check(!inScope(20, Scope::HotbarEquipment) && pickedUp(mainOnly, before, after),
+              "picking up an item for the main inventory starts the layout with the default scope too (L-339)");
         check(!anyItem(Slots{}) && anyItem(after), "an empty snapshot is not a layout");
     }
     {
@@ -165,8 +169,10 @@ void deathLayoutTests() {
         check(decodeLayout(encodeLayout(layout)) == layout, "the death layout survives saving");
         layout.started = true;
         check(decodeLayout(encodeLayout(layout)).started, "that pickups began at the place is saved");
-        check(atPlace(layout, 1, -11.5, 70, 330) && !atPlace(layout, 1, -11.5, 70, 340) && !atPlace(layout, 0, -11.5, 70, 300.5),
+        check(atPlace(layout, 1, -11.5, 330) && !atPlace(layout, 1, -11.5, 340) && !atPlace(layout, 0, -11.5, 300.5),
               "the place of the death is 32 blocks around it, in its dimension (L-332)");
+        check(atPlace(layout, 1, -11.5 + 20, 300.5 + 20) && !atPlace(layout, 1, -11.5 + 23, 300.5 + 23),
+              "the place is measured across, so the items fallen far below a death high up still count (L-339)");
         // L-338: the layout ends with the dropped items, five minutes of the place being loaded.
         Layout aging = layout;
         check(loadedAround(aging, 1, -11.5, 348) && !loadedAround(aging, 1, -11.5, 349) && !loadedAround(aging, 0, -11.5, 300.5)
