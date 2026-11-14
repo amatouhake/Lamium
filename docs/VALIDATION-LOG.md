@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Calculator notice opacity; L-347 done (2026-11-15)
+
+Build `cb90d3f5`, DLL SHA-256
+`a9d45ec6f632ef6b9a930cb6da7e31f96431b4990b2ee236c6d6cdccfaa1e16b`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. The calculator's copy notice now has the settings
+screen's background shade.
+
 ## Notices, map list scroll bar, last tokens (L-347, 2026-11-15)
 
 Build `b671639f`, DLL SHA-256
