@@ -58,6 +58,12 @@ Status: <one line: Open / Waiting for the maintainer / Built, not checked in gam
 ## Next
 <The next concrete step, and what it waits on.>
 
+## Known (optional)
+<Facts found in the game or SDK that the work relies on.>
+
+## Tried (optional)
+<Approaches that failed, one line each with why, so nobody repeats them.>
+
 ## Links
 <Feature document, mockup, VALIDATION row.>
 ```

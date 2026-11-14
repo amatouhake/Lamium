@@ -43,6 +43,8 @@ jobs:
         run: ./scripts/Check-GameInventory.ps1
       - name: Check capability catalog and loader policy
         run: ./scripts/Check-Capabilities.ps1
+      - name: Check backlog index and item files
+        run: ./scripts/Check-Backlog.ps1
       - name: Check UI tokens
         run: ./scripts/Check-UiTokens.ps1
       - name: Check package
