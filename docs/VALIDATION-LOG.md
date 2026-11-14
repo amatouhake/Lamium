@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Saved data: names, the any-port switch kept reversible, Used by (L-343, 2026-11-14)
+
+Build `03c2248d`, DLL SHA-256
+`91079ae4f26ee6fc246ba452f7df2c7a4d50330c5bb2253768f61f2f1e64fa69`, 1.26.60.05 Dev
+instance, the maintainer: all confirmed. The list's first row is the data in use; each row
+reads as its own address and port; choosing the earlier data again brings its waypoints and
+map back; with the any-port switch turned on and off again, each port's server uses the data
+it used before; the details list the servers using the data; the page stays open after going
+to another window and back. A friend's world is not available for some time and is left.
+
 ## Saved data: docked notices, and the data in use missing (L-343, 2026-11-14)
 
 Build `58d3fda2`, DLL SHA-256

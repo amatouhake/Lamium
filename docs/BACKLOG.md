@@ -183,12 +183,12 @@ Do not infer game success from a build or unit-test result.
   screen's Placements, Verify and Materials tabs and the world map, whole
   words and all three buttons, "Do not show again" over a rejoin. Not
   looked at: docked panels. The map picture on the Saved data page passed
-  on `5970a399` (VALIDATION-LOG 2026-11-14). Built only: the page staying
-  open when the window loses focus; the "Used by" lines; the any-port
-  switch as reworked (on: every port follows; off: each port's own data is
-  back; a port given other data while on keeps it); rows named by their
-  own data; the data in use listed while empty. The notice in docked
-  panels passed (Waypoints; Schematics' Placements, Verify and Materials).
+  on `5970a399`, and on `03c2248d` the page staying open when the window
+  loses focus, the "Used by" lines, the any-port switch as reworked, rows
+  named by their own data and the data in use listed (VALIDATION-LOG
+  2026-11-14). The notice in docked panels passed too. Left for when one
+  is available (maintainer 2026-11-14): a friend's world keeping its data
+  over a rejoin; a Realm.
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
