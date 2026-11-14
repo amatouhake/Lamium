@@ -84,7 +84,7 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
                     drawStepper(context, l.minusX(), y + 1, 2 * L::stepWidth + L::levelWidth, 12, true, row.levelText,
                         {.editing = typingRow == i ? typed : nullptr, .hot = hotStep(hover, i), .lowEnabled = raised, .cell = L::stepWidth,
                          .ink = raised ? palette::text : palette::dim});
-                else label(context, l.levelX(), y + 3, L::levelWidth, row.levelText, palette::dim, Align::Center);
+                else label(context, l.levelX(), y + 2 + boxTextInset(), L::levelWidth, row.levelText, palette::dim, Align::Center);
                 nameRight = l.minusX() - 4;
             }
             label(context, nameLeft, y + 3, nameRight - nameLeft, row.levelText.empty() ? row.label : row.name, nameColor);
@@ -100,8 +100,8 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
                 if (on)
                     drawStepper(context, l.minusX(), y + 1, 2 * L::stepWidth + L::levelWidth, 12, true, row.levelText,
                         {.editing = typingRow == i ? typed : nullptr, .hot = hotStep(hover, i), .cell = L::stepWidth});
-                // Off: the level it would turn on at, without its buttons.
-                else label(context, l.levelX(), y + 3, L::levelWidth, row.levelText, palette::faint, Align::Center);
+                // Off: the level it would turn on at, without its buttons, on the stepper's text line so it does not jump.
+                else label(context, l.levelX(), y + 2 + boxTextInset(), L::levelWidth, row.levelText, palette::faint, Align::Center);
                 nameRight = l.minusX() - 4;
             }
             label(context, nameLeft, y + 3, nameRight - nameLeft, row.levelText.empty() ? row.label : row.name, nameColor);
