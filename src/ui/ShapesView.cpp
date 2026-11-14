@@ -425,12 +425,12 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),
         over(ShapeZone::Keys) ? palette::text : palette::accent,Align::Center);
     fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,over(ShapeZone::Keys) ? 1.f : .5f);
-    drawSmallButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(shapesDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
+    drawButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(shapesDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
 
     // List pane.
     float listRight = l.listLeft + l.listWidth;
-    drawSmallButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("shape.new"),
-        over(ShapeZone::NewShape),shapePicking ? palette::accent : palette::accentDeep,palette::accent);
+    drawButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("shape.new"),
+        over(ShapeZone::NewShape) || shapePicking,ButtonKind::Primary); // lit while picking a type
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
     float nameX = l.listLeft + ShapesLayout::pad + 14;
     float shownX = listRight - ShapesLayout::pad - switchWidth - 2;
@@ -541,7 +541,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
                     row.field == shape::Field::Follow ? definition->follow : definition->visible);
                 break;
             case shape::Row::Kind::Button:
-                drawSmallButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated(row.label),over(ShapeZone::Field,i));
+                drawButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated(row.label),over(ShapeZone::Field,i));
                 break;
             default: {
                 if (row.field == shape::Field::Color) {
@@ -565,11 +565,11 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         // Actions.
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
         if (shapeDraft) {
-            drawSmallButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.create"),
-                over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
-            drawSmallButton(context,l.actionX(1),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.cancel"),over(ShapeZone::Action,1));
+            drawButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.create"),
+                over(ShapeZone::Action,0),ButtonKind::Primary);
+            drawButton(context,l.actionX(1),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.cancel"),over(ShapeZone::Action,1));
         } else {
-            drawSmallButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.duplicateShort"),over(ShapeZone::Action,0));
+            drawButton(context,l.actionX(0),l.actionsY+2,ShapesLayout::actionWidth,12,translated("shape.duplicateShort"),over(ShapeZone::Action,0));
             drawDangerButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,
                 translated(shapeDeleteArmed ? "shape.deleteConfirm" : "shape.delete"),over(ShapeZone::Action,1), shapeDeleteArmed);
         }
@@ -626,8 +626,7 @@ void renderShapesDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::
     frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
     label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),translated("nav.shapes"));
     bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
-    drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),closeHover,
-        palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
+    drawButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),closeHover);
     fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
     if (l.usable()) drawShapesBody(context, l, pointer, definition);
     else drawDockedTooShort(context, l, pointer.x, pointer.y);

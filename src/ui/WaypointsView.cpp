@@ -314,12 +314,12 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),
         over(ShapeZone::Keys) ? palette::text : palette::accent,Align::Center);
     fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,over(ShapeZone::Keys) ? 1.f : .5f);
-    drawSmallButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(waypointsDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
+    drawButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(waypointsDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
 
     // List pane.
     float listRight = l.listLeft + l.listWidth;
-    drawSmallButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("waypoint.addHere"),
-        over(ShapeZone::NewShape),palette::accentDeep,palette::accent);
+    drawButton(context,l.listLeft+ShapesLayout::pad,l.toolbarTop+2,ShapesLayout::newWidth,12,translated("waypoint.addHere"),
+        over(ShapeZone::NewShape),ButtonKind::Primary);
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
     float nameX = l.listLeft + ShapesLayout::pad + 14;
     float shownX = listRight - ShapesLayout::pad - switchWidth - 2;
@@ -406,7 +406,7 @@ if (!w) {
                 toggleSwitch(context,l.stepperX()+l.stepperWidth()-switchWidth,y+(ShapesLayout::rowHeight-switchHeight)/2,w->temporary);
                 break;
             case map::WaypointField::MoveHere:
-                drawSmallButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated("waypoint.moveHere"),
+                drawButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,translated("waypoint.moveHere"),
                     over(ShapeZone::Field,i));
                 break;
             case map::WaypointField::Color:
@@ -464,8 +464,8 @@ void renderWaypointsDocked(MinecraftUIRenderContext& context, glm::vec2 size, gl
     frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
     label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),translated("nav.waypoints"));
     bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
-    drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated(fromMapFlag ? "worldMap.back" : "closeButton"),
-        closeHover,palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
+    drawButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated(fromMapFlag ? "worldMap.back" : "closeButton"),
+        closeHover);
     fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
     if (l.usable()) drawWaypointsBody(context, l, pointer);
     else drawDockedTooShort(context, l, pointer.x, pointer.y);

@@ -766,7 +766,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     label(context,l.keysX,top+1+boxTextInset(),ShapesLayout::keysWidth,translated("shape.keys"),
         over(ShapeZone::Keys) ? palette::text : palette::accent,Align::Center);
     fill(context,l.keysX+6,top+11,ShapesLayout::keysWidth-12,1,palette::accent,over(ShapeZone::Keys) ? 1.f : .5f);
-    drawSmallButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(schematicsDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
+    drawButton(context,l.dockX,top,ShapesLayout::dockWidth,12,translated(schematicsDocked ? "shape.undock" : "shape.dock"),over(ShapeZone::Dock));
 
     // Tabs.
     static constexpr std::array<std::string_view, schematicTabCount> tabNames{"schematic.tab.files", "schematic.tab.placements",
@@ -774,9 +774,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     for (int i = 0; i < schematicTabCount; ++i) {
         bool active = static_cast<int>(schematicTab) == i;
         float x = schematicTabX(l, i), w = schematicTabWidth(l);
-        drawSmallButton(context,x,l.toolbarTop+2,w,12,translated(tabNames[static_cast<size_t>(i)]),tabHover == i,
-            active ? palette::accentDeep : palette::keyFill, active ? palette::accent : palette::keyEdge,
-            active ? palette::text : palette::dim);
+        drawButton(context,x,l.toolbarTop+2,w,12,translated(tabNames[static_cast<size_t>(i)]),tabHover == i, active ? ButtonKind::Primary : ButtonKind::Plain);
     }
     fill(context,l.listLeft,l.theadTop-1,l.listWidth,1,palette::white,.14f);
 
@@ -1056,7 +1054,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                         field == SchematicField::Visible ? p->visible : p->entities);
                     break;
                 case SchematicField::MoveHere: case SchematicField::MatchLayer:
-                    drawSmallButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,
+                    drawButton(context,l.stepperX(),y+1,l.stepperWidth(),ShapesLayout::rowHeight-2,
                         translated(field == SchematicField::MoveHere ? "schematic.moveHere" : "schematic.matchLayerButton"),
                         over(ShapeZone::Field,i));
                     break;
@@ -1123,12 +1121,12 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                     }
                 }
             }
-            drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(waits ? "schematic.loadAnyway" : "schematic.place"),
-                over(ShapeZone::Action,0),palette::accentDeep,palette::accent);
+            drawButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated(waits ? "schematic.loadAnyway" : "schematic.place"),
+                over(ShapeZone::Action,0),ButtonKind::Primary);
         } else paragraph(context,dx,l.detailTop+6,dw,translated(schematicFiles.empty() ? "schematic.empty" : "schematic.fileSelectHint"),
             4,palette::faint);
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        drawSmallButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,translated("schematic.openFolder"),over(ShapeZone::Action,1));
+        drawButton(context,l.deleteX(),l.actionsY+2,ShapesLayout::deleteWidth,12,translated("schematic.openFolder"),over(ShapeZone::Action,1));
         break;
     case SchematicTab::Verify: {
         if (!checked) { paragraph(context,dx,l.detailTop+6,dw,translated("schematic.noSelection"),4,palette::faint); break; }
@@ -1272,9 +1270,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         }
         bool canShow = verifySelected >= 0 || (previewTurn.picked && previewTurn.pickedFile == checked->file);
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("schematic.showInWorld"),
-            over(ShapeZone::Action,0),canShow ? palette::accentDeep : palette::keyFill,
-            canShow ? palette::accent : palette::keyEdge, canShow ? palette::text : palette::faint);
+        drawButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("schematic.showInWorld"),
+            over(ShapeZone::Action,0), ButtonKind::Primary, canShow);
         break;
     }
     case SchematicTab::Materials: {
@@ -1313,9 +1310,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         // The rest of the pane is kept for raw materials from the game's recipes (L-116).
         bool missing = !missingMaterials().empty();
         fill(context,l.detailLeft,l.actionsY-2,l.detailWidth,1,palette::white,.14f);
-        drawSmallButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("schematic.openCalculator"),
-            over(ShapeZone::Action,0),missing ? palette::accentDeep : palette::keyFill,
-            missing ? palette::accent : palette::keyEdge, missing ? palette::text : palette::faint);
+        drawButton(context,l.actionX(0),l.actionsY+2,l.firstActionWidth,12,translated("schematic.openCalculator"),
+            over(ShapeZone::Action,0), ButtonKind::Primary, missing);
         break;
     }
     }
@@ -1378,8 +1374,8 @@ void renderSchematicsDocked(MinecraftUIRenderContext& context, glm::vec2 size, g
     frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
     label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),translated("nav.schematics"));
     bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
-    drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),
-        closeHover,palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
+    drawButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),
+        closeHover);
     fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
     if (l.usable()) drawSchematicsBody(context, l, pointer);
     else {

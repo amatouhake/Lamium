@@ -57,8 +57,8 @@ void draw(MinecraftUIRenderContext& context, float x, float y, float width, Kind
     paragraph(context, x + pad, y + 3, inner, text, maxLines, palette::dim);
     for (auto& b : buttons) {
         bool const hovered = over(*b.slot, pointer.x, pointer.y);
-        if (b.primary) drawSmallButton(context, b.slot->x, b.slot->y, b.w, buttonHeight, b.text, hovered, palette::accentDeep, palette::accent);
-        else drawSmallButton(context, b.slot->x, b.slot->y, b.w, buttonHeight, b.text, hovered);
+        if (b.primary) drawButton(context, b.slot->x, b.slot->y, b.w, buttonHeight, b.text, hovered, ButtonKind::Primary);
+        else drawButton(context, b.slot->x, b.slot->y, b.w, buttonHeight, b.text, hovered);
     }
 }
 Pressed press(float x, float y) {

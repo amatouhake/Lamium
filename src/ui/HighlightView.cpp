@@ -275,7 +275,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     // Heading row: where this list belongs, and the way back to it.
     label(context, t.nameX, t.theadTop + 2, last.backX - t.nameX - SettingsTable::gap,
         translated("section.camera") + "  >  " + translated("feature.blockHighlight"), palette::faint);
-    drawSmallButton(context, last.backX, t.theadTop, ShapesLayout::closeWidth, 11, "< " + translated("section.camera"), hover.zone == Zone::Back);
+    drawButton(context, last.backX, t.theadTop, ShapesLayout::closeWidth, 11, "< " + translated("section.camera"), hover.zone == Zone::Back);
     fill(context, t.tableLeft, t.rowsTop - 1, t.tableWidth, 1, palette::white, .14f);
     fill(context, last.dividerX, t.rowsTop, 1, last.footerTop - t.rowsTop, palette::white, .14f);
 

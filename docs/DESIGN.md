@@ -85,7 +85,6 @@ ones. Lamium's own colors carry one meaning each, everywhere:
 | `off` | Switch off track |
 | `knobOn`, `knobOff` | Switch knob |
 | `keyFill`, `keyEdge` | Key caps; plain button fill and edge |
-| `hover` | A hovered button's fill |
 | `experimental` | Purple: only the Experimental badge |
 | `warning` | Yellow: only warnings (conflicts, refused values, notices, a schematic block in the wrong state) |
 | `danger`, `dangerEdge`, `dangerText` | Red: only destructive actions: armed fill, edge (hovered or armed), hovered text |
@@ -128,8 +127,13 @@ have local copies (BACKLOG L-341); they are not the pattern.
   the stepper. A value that defeats another setting draws its stepper in
   warning color, and the footer says why.
 - **Buttons**, three kinds of one shape: a fill, a 1-unit edge lighter than
-  the fill, centered text; only the colors differ. Plain (`keyFill`,
-  `keyEdge`), primary (`accentDeep`, `accent`) and destructive
+  the fill, centered white text; only the colors differ. Hovering lightens
+  the fill (a white wash). A disabled button is plain with faint text and
+  no hover; faint text means disabled nowhere else. Plain (`keyFill`,
+  `keyEdge`), primary (`accentDeep`, `accent`: the main action, and a
+  button that is on or selected: an open panel or popover, the active
+  tab), both `drawButton` (`drawButtonBox` when the content is an icon or
+  colored text), and destructive
   (`drawDangerButton`: looks plain until pointed at, then `dangerEdge` and
   `dangerText`, so an always visible one such as a section's Reset does not
   draw the eye; the first press arms it, `danger` fill with `dangerEdge` and

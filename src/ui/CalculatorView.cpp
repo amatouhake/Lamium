@@ -227,8 +227,8 @@ void drawKeyLabel(MinecraftUIRenderContext& context, Key const& k, float x, floa
     labelScaled(context, x, y + (h - 10 * scale) / 2 + boxTextInset() * scale - scale, w, text, scale, ink, Align::Center);
 }
 void arrowButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool over, bool open) {
-    drawSmallButton(context, x, y, w, h, "", over, palette::keyFill, open ? palette::accent : palette::keyEdge);
-    downArrow(context, x + w / 2, y + h / 2 - 1, open ? palette::accent : palette::text);
+    Rgb ink = drawButtonBox(context, x, y, w, h, over, open ? ButtonKind::Primary : ButtonKind::Plain);
+    downArrow(context, x + w / 2, y + h / 2 - 1, ink);
 }
 }
 
@@ -355,9 +355,8 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     panel(context, l.left, l.top, l.width, l.height, .88f);
     frame(context, l.left, l.top, l.width, l.height, palette::white, .14f);
     label(context, x, l.top + 6, 120, translated("calc.title"));
-    drawSmallButton(context, l.helpX(), l.top + 4, 12, 12, "?", inside(pointer.x, pointer.y, l.helpX(), l.top + 4, 12, 12),
-                    palette::keyFill, helpOpen ? palette::accent : palette::keyEdge);
-    drawSmallButton(context, l.closeX(), l.top + 4, Layout::closeWidth, 12, translated("closeButton"),
+    drawButton(context, l.helpX(), l.top + 4, 12, 12, "?", inside(pointer.x, pointer.y, l.helpX(), l.top + 4, 12, 12), helpOpen ? ButtonKind::Primary : ButtonKind::Plain);
+    drawButton(context, l.closeX(), l.top + 4, Layout::closeWidth, 12, translated("closeButton"),
         inside(pointer.x, pointer.y, l.closeX(), l.top + 4, Layout::closeWidth, 12));
     fill(context, l.left, l.top + 18, l.width, 1, palette::white, .14f);
 
@@ -367,7 +366,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     drawEditField(context, x + 3, l.fieldY(), 14, lw - 6, line);
     if (result.value) {
         labelScaled(context, x, l.resultY(), lw - Layout::copyWidth - Layout::arrowWidth - 6, "= " + calculator::format(*result.value), 1.5f);
-        drawSmallButton(context, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12, translated("calc.copy"),
+        drawButton(context, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12, translated("calc.copy"),
                         inside(pointer.x, pointer.y, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12));
         float ax = l.copyX() + Layout::copyWidth + 1;
         arrowButton(context, ax, l.resultY() + 1, Layout::arrowWidth, 12, inside(pointer.x, pointer.y, ax, l.resultY() + 1, Layout::arrowWidth, 12),
@@ -385,8 +384,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
             float kx = l.keyX(column), ky = l.keyY(row);
             bool over = inside(pointer.x, pointer.y, kx, ky, l.cell(), rh);
             bool equals = k.kind == Kind::Equals;
-            fill(context, kx, ky, l.cell(), rh, equals ? palette::accentDeep : over ? palette::hover : palette::keyFill);
-            frame(context, kx, ky, l.cell(), rh, equals ? palette::accent : palette::keyEdge);
+            drawButtonBox(context, kx, ky, l.cell(), rh, over, equals ? ButtonKind::Primary : ButtonKind::Plain);
             drawKeyLabel(context, k, kx, ky, l.cell(), rh);
             if (over && !k.tip.empty()) { tip = k.tip; tipX = kx; tipY = ky - 13; }
         }
@@ -414,7 +412,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         if (auto amount = chests(entry.value); !amount.empty()) labelScaled(context, rx + 4, *top + 22, rw - 13, amount, .75f, palette::faint);
         if (buttons) {
             float cx = cardCopyX(l);
-            drawSmallButton(context, cx, *top + 3, Layout::copyWidth, 10, translated("calc.copy"), inside(pointer.x, pointer.y, cx, *top + 3, Layout::copyWidth, 10));
+            drawButton(context, cx, *top + 3, Layout::copyWidth, 10, translated("calc.copy"), inside(pointer.x, pointer.y, cx, *top + 3, Layout::copyWidth, 10));
             arrowButton(context, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10,
                         inside(pointer.x, pointer.y, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10), menuFor == index);
         }

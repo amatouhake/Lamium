@@ -104,7 +104,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     // Heading row: where this list belongs, and the way back to it.
     label(context, t.nameX, t.theadTop + 2, last.closeX - t.nameX - SettingsTable::gap,
         translated("section.interface") + "  >  " + translated("feature.gameLanguage"), palette::faint);
-    drawSmallButton(context, last.closeX, t.theadTop, ShapesLayout::closeWidth, 11,
+    drawButton(context, last.closeX, t.theadTop, ShapesLayout::closeWidth, 11,
         "< " + translated("section.interface"), overBack(pointer.x, pointer.y));
     fill(context, t.tableLeft, t.rowsTop - 1, t.tableWidth, 1, palette::white, .14f);
 

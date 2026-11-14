@@ -574,10 +574,8 @@ void renderPrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 p
         hover == L::Part::Temporary ? palette::text : palette::dim);
     toggleSwitch(context, l.switchX(), l.temporaryY() + (L::rowHeight - switchHeight) / 2, d.temporary);
     auto button = [&](float bx, std::string text, bool primary, bool over) {
-        fill(context, bx, l.buttonY(), L::buttonWidth, L::buttonHeight,
-             primary ? palette::accentDeep : over ? palette::hover : palette::keyFill);
-        frame(context, bx, l.buttonY(), L::buttonWidth, L::buttonHeight, primary ? palette::accent : palette::keyEdge);
-        label(context, bx, l.buttonY() + boxTextInset(), L::buttonWidth, std::move(text), palette::text, Align::Center);
+        drawButton(context, bx, l.buttonY(), L::buttonWidth, L::buttonHeight, std::move(text), over,
+            primary ? ButtonKind::Primary : ButtonKind::Plain);
     };
     button(l.addX(), translated("waypoint.addButton"), true, hover == WaypointPromptLayout::Part::Add);
     button(l.cancelX(), translated("waypoint.cancelButton"), false, hover == WaypointPromptLayout::Part::Cancel);
@@ -901,8 +899,8 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
             bool overMinus = hover.part == L::Part::Minus && hover.corner == corner && hover.axis == axis;
             bool overPlus = hover.part == L::Part::Plus && hover.corner == corner && hover.axis == axis;
             fill(context, cx, y, w, L::rowHeight, palette::shade, .3f);
-            drawSmallButton(context, cx, y, L::step, L::rowHeight, "-", overMinus);
-            drawSmallButton(context, cx + w - L::step, y, L::step, L::rowHeight, "+", overPlus);
+            drawButton(context, cx, y, L::step, L::rowHeight, "-", overMinus);
+            drawButton(context, cx + w - L::step, y, L::step, L::rowHeight, "+", overPlus);
             static constexpr std::array<char const*, 3> axes{"X", "Y", "Z"};
             label(context, cx + L::step, y + boxTextInset(), w - 2 * L::step, std::format("{} {}", axes[static_cast<size_t>(axis)], value),
                 palette::text, Align::Center);
@@ -924,13 +922,15 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
         label(context, x, l.statusY(), l.inner(), translated(running->waiting ? "schematic.save.progressWaiting" : "schematic.save.progress",
             running->file, percent), running->waiting ? palette::warning : palette::dim);
     } else if (!p.problem.empty()) label(context, x, l.statusY(), l.inner(), p.problem, palette::warning);
-    drawSmallButton(context, l.saveX(), l.buttonY(), L::buttonWidth, L::buttonHeight,
-        translated(running ? "schematic.save.stop" : p.overwrite ? "schematic.save.overwrite" : "schematic.save.button"),
-        hover.part == L::Part::Save, p.overwrite || running ? palette::danger : palette::accentDeep,
-        p.overwrite || running ? palette::dangerEdge : palette::accent);
-    drawSmallButton(context, l.clearX(), l.buttonY(), L::buttonWidth, L::buttonHeight, translated("schematic.save.clear"),
+    // Overwrite and Stop show as an armed destructive button (L-341 Open).
+    auto saveText = translated(running ? "schematic.save.stop" : p.overwrite ? "schematic.save.overwrite" : "schematic.save.button");
+    if (p.overwrite || running)
+        drawDangerButton(context, l.saveX(), l.buttonY(), L::buttonWidth, L::buttonHeight, saveText, hover.part == L::Part::Save, true);
+    else drawButton(context, l.saveX(), l.buttonY(), L::buttonWidth, L::buttonHeight, saveText, hover.part == L::Part::Save,
+        ButtonKind::Primary);
+    drawButton(context, l.clearX(), l.buttonY(), L::buttonWidth, L::buttonHeight, translated("schematic.save.clear"),
         hover.part == L::Part::Clear);
-    drawSmallButton(context, l.cancelX(), l.buttonY(), L::buttonWidth, L::buttonHeight, translated("schematic.save.cancel"),
+    drawButton(context, l.cancelX(), l.buttonY(), L::buttonWidth, L::buttonHeight, translated("schematic.save.cancel"),
         hover.part == L::Part::Cancel);
     paragraph(context, x, l.hintY(), l.inner(), translated("schematic.save.hint"), 3, palette::faint);
     label(context, x, l.keysY(), l.inner(), translated("schematic.save.keys"), palette::faint);

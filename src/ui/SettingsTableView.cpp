@@ -988,9 +988,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     }
     label(context,t.keyX,theadY,t.keyWidth,translated("column.key"),palette::faint);
     if (hotkeysView() && !capturing_ && t.keyFindShown())
-        drawSmallButton(context,t.keyFindX(),t.theadTop,SettingsTable::keyFindWidth,11,translated("keyFind.button"),
-            t.keyFind(hover.x,hover.y),palette::keyFill,
-            findingKey || keyQuery ? palette::accent : palette::keyEdge,findingKey || keyQuery ? palette::text : palette::dim);
+        drawButton(context,t.keyFindX(),t.theadTop,SettingsTable::keyFindWidth,11,translated("keyFind.button"),
+            t.keyFind(hover.x,hover.y),findingKey || keyQuery ? ButtonKind::Primary : ButtonKind::Plain);
     if (auto scope = capturing_ || findingKey ? ResetScope::None : resetScope(); scope != ResetScope::None) {
         bool keys = scope == ResetScope::Keys;
         drawDangerButton(context,t.headActionX(keys),t.theadTop,SettingsTable::headActionWidth,11,
@@ -1041,7 +1040,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             if (primary) drawKeyCell(context,current,y,*primary);
             if (entry.feature->id == "gameLanguage") {
                 float width = t.keyX + t.keyWidth - t.stateX;
-                drawSmallButton(context, t.stateX, y + 1, width, capHeight, game_language::currentName(),
+                drawButton(context, t.stateX, y + 1, width, capHeight, game_language::currentName(),
                     hover.zone == Zone::Row && hover.index == i);
             }
             if (open) drawOpenButton(context,t,y,openButtonHovered(t,hover,i));
@@ -1132,9 +1131,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             for (size_t b = 0; b < buttons.size(); ++b) {
                 float bx = t.captureButtonX(static_cast<int>(b), static_cast<int>(buttons.size())), by = y + 1.5f;
                 bool over = t.captureButton(hover.x, hover.y, y, static_cast<int>(buttons.size())) == static_cast<int>(b);
-                fill(context,bx,by,SettingsTable::captureButtonWidth,SettingsTable::footerButtonHeight,over ? palette::hover : palette::keyFill);
-                frame(context,bx,by,SettingsTable::captureButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
-                label(context,bx,by+boxTextInset(),SettingsTable::captureButtonWidth,translated(buttons[b]),palette::text,Align::Center);
+                drawButton(context,bx,by,SettingsTable::captureButtonWidth,SettingsTable::footerButtonHeight,translated(buttons[b]),over);
             }
     }
     if (static_cast<int>(rows.size()) > t.visible) {
@@ -1156,9 +1153,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (findingKey) {
         float x = t.footerButtonX(0), y = t.footerButtonY();
         bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == 0;
-        fill(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,over ? palette::hover : palette::keyFill);
-        frame(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
-        label(context,x,y+boxTextInset(),SettingsTable::footerButtonWidth,translated("cancelShort"),palette::text,Align::Center);
+        drawButton(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,translated("cancelShort"),over);
         float after = t.footerButtonX(1);
         label(context,after,t.footerButtonY()+1,t.left+t.width-SettingsTable::pad-after,
             screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : palette::warning);

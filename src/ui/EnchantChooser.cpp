@@ -12,9 +12,8 @@ namespace {
 using Zone = EnchantLayout::Zone;
 namespace order = inventory::enchantOrder;
 namespace game = inventory::enchantOrder::game;
-void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool hovered, bool enabled) {
-    if (enabled) drawSmallButton(context, x, y, w, EnchantLayout::buttonHeight, std::move(text), hovered);
-    else drawSmallButton(context, x, y, w, EnchantLayout::buttonHeight, std::move(text), false, palette::keyFill, palette::keyEdge, palette::faint);
+void setButton(MinecraftUIRenderContext& context, float x, float y, float w, std::string text, bool hovered, bool enabled) {
+    ui::drawButton(context, x, y, w, EnchantLayout::buttonHeight, std::move(text), hovered, ButtonKind::Plain, enabled);
 }
 bool rowZone(Zone zone) { return zone == Zone::Row || zone == Zone::RowMinus || zone == Zone::RowPlus; }
 }
@@ -52,9 +51,9 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
     };
     if (l.heldCell) itemCell(l.heldIndex(), v.useHeld, hover.zone == Zone::Held, game::heldIcon());
     if (l.slotCell) itemCell(l.slotIndex(), v.useSlot, hover.zone == Zone::Slot, game::slotIcon());
-    drawButton(context, l.setAllX, l.setsY, l.setWide, translated("enchantOrder.setAll"), hover.zone == Zone::SetAll, true);
-    drawButton(context, l.setLastX, l.setsY, l.setWide, translated("enchantOrder.setLast"), hover.zone == Zone::SetLast, v.hasLast);
-    drawButton(context, l.setClearX, l.setsY, l.setNarrow, translated("enchantOrder.setClear"), hover.zone == Zone::SetClear, v.wanted > 0);
+    setButton(context, l.setAllX, l.setsY, l.setWide, translated("enchantOrder.setAll"), hover.zone == Zone::SetAll, true);
+    setButton(context, l.setLastX, l.setsY, l.setWide, translated("enchantOrder.setLast"), hover.zone == Zone::SetLast, v.hasLast);
+    setButton(context, l.setClearX, l.setsY, l.setNarrow, translated("enchantOrder.setClear"), hover.zone == Zone::SetClear, v.wanted > 0);
     auto const& rc = l.rows;
     label(context, rc.listLeft + pad, l.rowsTitleY + 2, rc.listWidth - 2 * pad, translated("enchantOrder.wanted", v.wanted, order::maxBooks), palette::faint);
     for (int i = rc.listFirst; i < rc.listFirst + rc.listVisible && i < rc.listCount && i < static_cast<int>(v.rows.size()); ++i) {
@@ -78,9 +77,8 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
             if (!row.levelText.empty()) {
                 if (row.maxLevel > row.carried) {
                     bool const raised = row.level > row.carried;
-                    drawSmallButton(context, l.minusX(), y + 1, L::stepWidth, 12, "-", raised && hover.zone == Zone::RowMinus && hover.index == i,
-                        palette::keyFill, palette::keyEdge, raised ? palette::text : palette::faint);
-                    drawSmallButton(context, l.plusX(), y + 1, L::stepWidth, 12, "+", hover.zone == Zone::RowPlus && hover.index == i);
+                    ui::drawButton(context, l.minusX(), y + 1, L::stepWidth, 12, "-", raised && hover.zone == Zone::RowMinus && hover.index == i, ButtonKind::Plain, raised);
+                    ui::drawButton(context, l.plusX(), y + 1, L::stepWidth, 12, "+", hover.zone == Zone::RowPlus && hover.index == i);
                 }
                 label(context, l.levelX(), y + 3, L::levelWidth, row.levelText, row.level > row.carried ? palette::text : palette::dim, Align::Center);
                 nameRight = l.minusX() - 4;
@@ -96,8 +94,8 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
             float nameRight = l.switchX() - 4;
             if (!row.levelText.empty()) {
                 if (on) {
-                    drawSmallButton(context, l.minusX(), y + 1, L::stepWidth, 12, "-", hover.zone == Zone::RowMinus && hover.index == i);
-                    drawSmallButton(context, l.plusX(), y + 1, L::stepWidth, 12, "+", hover.zone == Zone::RowPlus && hover.index == i);
+                    ui::drawButton(context, l.minusX(), y + 1, L::stepWidth, 12, "-", hover.zone == Zone::RowMinus && hover.index == i);
+                    ui::drawButton(context, l.plusX(), y + 1, L::stepWidth, 12, "+", hover.zone == Zone::RowPlus && hover.index == i);
                 }
                 // Off: the level it would turn on at, without its buttons.
                 label(context, l.levelX(), y + 3, L::levelWidth, row.levelText, on ? palette::text : palette::faint, Align::Center);

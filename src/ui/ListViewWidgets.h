@@ -9,8 +9,17 @@
 #include <string>
 class MinecraftUIRenderContext;
 namespace lamium::ui {
-void drawSmallButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
-                     bool hovered, Rgb fillColor = palette::keyFill, Rgb edge = palette::keyEdge, Rgb textColor = palette::text);
+// Buttons (DESIGN "Controls"): one shape, a fill with a lighter edge. Plain,
+// or Primary for the main action and for a button that is on/selected. A
+// hovered one is lightened; a disabled one is plain with faint text and no
+// hover. The text is always white otherwise.
+enum class ButtonKind { Plain, Primary };
+void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
+                bool hovered, ButtonKind kind = ButtonKind::Plain, bool enabled = true);
+// The same box for a button whose content is not one centered label (an icon,
+// a chevron, colored key text); returns the color its content takes.
+Rgb drawButtonBox(MinecraftUIRenderContext& context, float x, float y, float w, float h,
+                  bool hovered, ButtonKind kind = ButtonKind::Plain, bool enabled = true);
 // A destructive button: the first press arms it (danger fill), the second acts.
 // Unarmed it looks plain and turns red only under the pointer, so an always
 // visible one (a section's Reset) does not draw the eye.

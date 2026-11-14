@@ -182,7 +182,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     label(context, t.nameX, t.theadTop + 2, last.backX - t.nameX - totalWidth - 2 * SettingsTable::gap,
         translated("section.interface") + "  >  " + translated("feature.savedData"), palette::faint);
     label(context, last.backX - SettingsTable::gap - totalWidth, t.theadTop + 2, totalWidth, totalText, palette::faint);
-    drawSmallButton(context, last.backX, t.theadTop, ShapesLayout::closeWidth, 11, "< " + translated("section.interface"),
+    drawButton(context, last.backX, t.theadTop, ShapesLayout::closeWidth, 11, "< " + translated("section.interface"),
         hover.zone == Zone::Back);
     fill(context, t.tableLeft, t.rowsTop - 1, t.tableWidth, 1, palette::white, .14f);
 
@@ -290,8 +290,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             toggleSwitch(context, x + width - switchWidth, last.anyPortY + (line - switchHeight) / 2, d->anyPort);
         }
         if (last.use)
-            drawSmallButton(context, last.useX, last.useY(), last.useWidth, SavedDataLayout::buttonHeight, useText,
-                hover.zone == Zone::Use, palette::accentDeep, palette::accent);
+            drawButton(context, last.useX, last.useY(), last.useWidth, SavedDataLayout::buttonHeight, useText,
+                hover.zone == Zone::Use, ButtonKind::Primary);
         if (last.remove) {
             // The same red as the other press-twice deletes (L-341 collects them).
             bool const isArmed = armed == d->key;

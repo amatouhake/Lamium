@@ -8,21 +8,35 @@
 #include <cmath>
 
 namespace lamium::ui {
-void drawSmallButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
-                     bool hovered, Rgb fillColor, Rgb edge, Rgb textColor) {
+namespace {
+void box(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool hovered, Rgb fillColor, Rgb edge) {
     fill(context,x,y,w,h,fillColor);
     if (hovered) fill(context,x,y,w,h,palette::white,.1f);
     frame(context,x,y,w,h,edge);
-    label(context,x,y+(h-10)/2+boxTextInset()-1,w,std::move(text),textColor,Align::Center);
+}
+void centered(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text, Rgb color) {
+    label(context,x,y+(h-10)/2+boxTextInset()-1,w,std::move(text),color,Align::Center);
+}
+}
+Rgb drawButtonBox(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool hovered, ButtonKind kind,
+                  bool enabled) {
+    bool primary = enabled && kind == ButtonKind::Primary;
+    box(context,x,y,w,h,enabled && hovered,primary ? palette::accentDeep : palette::keyFill,primary ? palette::accent : palette::keyEdge);
+    return enabled ? palette::text : palette::faint;
+}
+void drawButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
+                bool hovered, ButtonKind kind, bool enabled) {
+    Rgb color = drawButtonBox(context,x,y,w,h,hovered,kind,enabled);
+    centered(context,x,y,w,h,std::move(text),color);
 }
 void drawDangerButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                       bool hovered, bool armed) {
     bool red = armed || hovered;
-    drawSmallButton(context,x,y,w,h,std::move(text),hovered,armed ? palette::danger : palette::keyFill,
-        red ? palette::dangerEdge : palette::keyEdge,red && !armed ? palette::dangerText : palette::text);
+    box(context,x,y,w,h,hovered,armed ? palette::danger : palette::keyFill,red ? palette::dangerEdge : palette::keyEdge);
+    centered(context,x,y,w,h,std::move(text),red && !armed ? palette::dangerText : palette::text);
 }
 void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY) {
-    drawSmallButton(context,l.dockX,l.top+4,ShapesLayout::dockWidth,12,translated("shape.undock"),
+    drawButton(context,l.dockX,l.top+4,ShapesLayout::dockWidth,12,translated("shape.undock"),
         l.hit(pointerX, pointerY).zone == ShapesLayout::Zone::Dock);
     float pad = ShapesLayout::pad;
     paragraph(context,l.left+pad,l.top+ShapesLayout::headerHeight+6,l.width-2*pad,translated("smallWindow"),3,palette::faint);

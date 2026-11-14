@@ -114,7 +114,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     // Heading row: where this screen belongs, and the way back to it.
     label(context, t.nameX, t.theadTop + 2, last.backX - t.nameX - SettingsTable::gap,
         translated("section.inventory") + "  >  " + translated("feature.enchantOrder"), palette::faint);
-    drawSmallButton(context, last.backX, t.theadTop, ShapesLayout::closeWidth, 11, "< " + translated("section.inventory"), hover.zone == Zone::Back);
+    drawButton(context, last.backX, t.theadTop, ShapesLayout::closeWidth, 11, "< " + translated("section.inventory"), hover.zone == Zone::Back);
     fill(context, t.tableLeft, t.rowsTop - 1, t.tableWidth, 1, palette::white, .14f);
     fill(context, last.dividerX, t.rowsTop, 1, last.footerTop - t.rowsTop, palette::white, .14f);
 

@@ -24,7 +24,7 @@ struct Rgb { float r, g, b; };
 namespace palette {
 inline constexpr Rgb panel{.063f,.067f,.075f}, white{1,1,1}, text{1,1,1}, dim{.706f,.722f,.714f},
     faint{.498f,.522f,.514f}, accent{.424f,.765f,.286f}, accentDeep{.235f,.522f,.153f}, off{.282f,.286f,.29f},
-    keyFill{.169f,.173f,.176f}, keyEdge{.353f,.357f,.361f}, hover{.23f,.23f,.24f}, experimental{.725f,.545f,1.f},
+    keyFill{.169f,.173f,.176f}, keyEdge{.353f,.357f,.361f}, experimental{.725f,.545f,1.f},
     warning{1.f,.761f,.29f}, danger{.54f,.18f,.16f}, dangerEdge{.85f,.33f,.3f}, dangerText{1.f,.7f,.68f},
     info{.62f,.83f,1.f}, knobOn{1,1,1}, knobOff{.816f,.82f,.831f},
     shade{0,0,0}, // black scrims and outlines; each use sets its own opacity

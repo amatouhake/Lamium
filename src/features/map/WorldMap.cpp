@@ -837,9 +837,7 @@ void smallLabel(MinecraftUIRenderContext& context, float cx, float y, std::strin
 float button(MinecraftUIRenderContext& context, float x, float y, std::string const& text, Target target, bool on,
              bool hover, int item = -1) {
     float w = ui::textWidth(context, text) + 8;
-    ui::fill(context, x, y, w, buttonHeight, on ? ui::palette::accentDeep : hover ? ui::palette::hover : ui::palette::keyFill, .9f);
-    ui::frame(context, x, y, w, buttonHeight, on ? ui::palette::accent : ui::palette::keyEdge);
-    ui::label(context, x, y + ui::boxTextInset(), w, text, on || hover ? ui::palette::text : ui::palette::dim, ui::Align::Center);
+    ui::drawButton(context, x, y, w, buttonHeight, text, hover, on ? ui::ButtonKind::Primary : ui::ButtonKind::Plain);
     state.hits.push_back({x, y, w, buttonHeight, target, item});
     return w;
 }
@@ -1394,9 +1392,7 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
         // The one terrain control: its panel opens directly under it.
         float w = widthOf(terrainText);
         bool over = hovering(x, y, w, buttonHeight);
-        ui::fill(context, x, y, w, buttonHeight, state.cavePanel ? ui::palette::accentDeep : over ? ui::palette::hover : ui::palette::keyFill, .9f);
-        ui::frame(context, x, y, w, buttonHeight, state.cavePanel ? ui::palette::accent : ui::palette::keyEdge);
-        ui::label(context, x, y + inset, w, terrainText, ui::palette::text, ui::Align::Center);
+        ui::drawButton(context, x, y, w, buttonHeight, terrainText, over, state.cavePanel ? ui::ButtonKind::Primary : ui::ButtonKind::Plain);
         state.hits.push_back({x, y, w, buttonHeight, Target::CaveButton});
         state.caveButton = {x, y, w, buttonHeight};
     } else {
@@ -1405,11 +1401,10 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
     float right = size.x - 4 - closeW;
     {
         bool over = hovering(right, 2, closeW, buttonHeight);
-        ui::fill(context, right, 2, closeW, buttonHeight, over ? ui::palette::hover : ui::palette::keyFill, .9f);
-        ui::frame(context, right, 2, closeW, buttonHeight, ui::palette::keyEdge);
+        Rgb cross = ui::drawButtonBox(context, right, 2, closeW, buttonHeight, over);
         for (int i = 0; i < 5; ++i) {
-            ui::fill(context, right + 4 + i, 5 + i, 1, 1, over ? ui::palette::text : ui::palette::dim);
-            ui::fill(context, right + 8 - i, 5 + i, 1, 1, over ? ui::palette::text : ui::palette::dim);
+            ui::fill(context, right + 4 + i, 5 + i, 1, 1, cross);
+            ui::fill(context, right + 8 - i, 5 + i, 1, 1, cross);
         }
         state.hits.push_back({right, 2, closeW, buttonHeight, Target::Close});
     }
@@ -1436,24 +1431,20 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
             bool over = hovering(bx, y, bw, buttonHeight);
             if (over) overSwitch = i;
             bool live = blocked == Blocked::No;
-            ui::fill(context, bx, y, bw, buttonHeight, on ? ui::palette::accentDeep : over && live ? ui::palette::hover : ui::palette::keyFill,
-                     live ? .9f : .5f);
-            ui::frame(context, bx, y, bw, buttonHeight, on ? ui::palette::accent : ui::palette::keyEdge, live ? 1.f : .5f);
+            Rgb textColor = ui::drawButtonBox(context, bx, y, bw, buttonHeight, over, on ? ui::ButtonKind::Primary : ui::ButtonKind::Plain, live);
             float alpha = on ? 1.f : live ? .4f : .2f, iy = y + buttonHeight / 2;
             layerSymbol(context, static_cast<int>(i), bx + 4, iy, alpha);
-            if (!compact)
-                ui::label(context, bx + 12, y + inset, bw - 12, switchTexts[i], on || (over && live) ? ui::palette::text : ui::palette::faint,
-                          ui::Align::Center);
+            if (!compact) ui::label(context, bx + 12, y + inset, bw - 12, switchTexts[i], textColor, ui::Align::Center);
             state.hits.push_back({bx, y, bw, buttonHeight, switches[i].first});
         }
     {
         float bx = x + 4, bw = compact ? infoIconW : infoNamedW;
         bool over = hovering(bx, y, bw, buttonHeight);
-        ui::fill(context, bx, y, bw, buttonHeight, state.infoPanel ? ui::palette::accentDeep : over ? ui::palette::hover : ui::palette::keyFill, .9f);
-        ui::frame(context, bx, y, bw, buttonHeight, state.infoPanel ? ui::palette::accent : ui::palette::keyEdge);
+        Rgb textColor = ui::drawButtonBox(context, bx, y, bw, buttonHeight, over,
+            state.infoPanel ? ui::ButtonKind::Primary : ui::ButtonKind::Plain);
         layerSymbol(context, 3, bx + 4, y + buttonHeight / 2, 1.f);
-        if (!compact) ui::label(context, bx + 12, y + inset, bw - 19, infoText, ui::palette::text, ui::Align::Center);
-        ui::chevron(context, bx + bw - 8, y + 3, true, over || state.infoPanel ? ui::palette::text : ui::palette::dim);
+        if (!compact) ui::label(context, bx + 12, y + inset, bw - 19, infoText, textColor, ui::Align::Center);
+        ui::chevron(context, bx + bw - 8, y + 3, true, textColor);
         state.hits.push_back({bx, y, bw, buttonHeight, Target::InfoButton});
         state.infoButton = {bx, y, bw, buttonHeight};
     }
@@ -1608,9 +1599,7 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         float bx = x + 54, by = y + 1;
         auto tiny = [&](float tx, char const* text, Target target) {
             bool over = hovering(tx, by, 14, buttonHeight);
-            ui::fill(context, tx, by, 14, buttonHeight, over ? ui::palette::hover : ui::palette::keyFill, .9f);
-            ui::frame(context, tx, by, 14, buttonHeight, ui::palette::keyEdge);
-            ui::label(context, tx, by + inset, 14, text, ui::palette::text, ui::Align::Center);
+            ui::drawButton(context, tx, by, 14, buttonHeight, text, over);
             state.hits.push_back({tx, by, 14, buttonHeight, target});
         };
         tiny(bx, "-", Target::HeightDown);
@@ -1638,9 +1627,7 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
                                              : ui::translated("worldMap.matchingHeight", state.height))
                               : (cameraMatch ? ui::translated("worldMap.matchCameraHeight")
                                              : ui::translated("worldMap.matchHeight"));
-        ui::fill(context, x, y, w - 10, 15, enabled ? (over ? ui::palette::accent : ui::palette::accentDeep) : ui::palette::keyFill, .9f);
-        ui::frame(context, x, y, w - 10, 15, enabled ? ui::palette::accent : ui::palette::keyEdge);
-        ui::label(context, x, y + 2 + inset, w - 10, text, enabled ? ui::palette::text : ui::palette::faint, ui::Align::Center);
+        ui::drawButton(context, x, y, w - 10, 15, text, over, ui::ButtonKind::Primary, enabled);
         if (enabled) state.hits.push_back({x, y, w - 10, 15, Target::MatchHeight});
     } else {
         ui::label(context, x, y + 2, w - 10, ui::translated("worldMap.caveOffHint"), ui::palette::faint);
@@ -1696,13 +1683,13 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     auto count = std::to_string(state.kindCounts[static_cast<size_t>(kind)]);
     float headW = std::min(ui::textWidth(context, title) + 4 + ui::textWidth(context, count) + 14, inner - 30);
     bool headOver = hovering(x - 2, y, headW, buttonHeight);
-    if (headOver || state.kindMenu) ui::fill(context, x - 2, y, headW, buttonHeight, ui::palette::hover, .9f);
-    ui::frame(context, x - 2, y, headW, buttonHeight, state.kindMenu ? ui::palette::accent : ui::palette::keyEdge);
-    ui::label(context, x, y + inset, headW - 12, title);
+    Rgb headColor = ui::drawButtonBox(context, x - 2, y, headW, buttonHeight, headOver,
+        state.kindMenu ? ui::ButtonKind::Primary : ui::ButtonKind::Plain);
+    ui::label(context, x, y + inset, headW - 12, title, headColor);
     float countX = x + ui::textWidth(context, title) + 4;
     if (countX < x - 2 + headW - 12) ui::label(context, countX, y + inset, x - 2 + headW - 12 - countX, count, ui::palette::faint);
     for (int i = 0; i < 3; ++i) // A small triangle pointing down.
-        ui::fill(context, x - 2 + headW - 9 + i, y + 4 + i, 5 - 2 * i, 1, headOver || state.kindMenu ? ui::palette::text : ui::palette::dim);
+        ui::fill(context, x - 2 + headW - 9 + i, y + 4 + i, 5 - 2 * i, 1, headColor);
     state.hits.push_back({x - 2, y, headW, buttonHeight, Target::PanelKind});
     state.kindX = x - 2; state.kindY = y + buttonHeight; state.kindW = inner + 4;
     float bx = x0 + w - pad - 11;
@@ -1780,12 +1767,8 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     auto small = [&](float sx, float sy, float width, std::string text, Target target, int item, bool danger = false) {
         float bw = std::min(width, ui::textWidth(context, text) + 8);
         bool over = hovering(sx, sy, bw, buttonHeight);
-        Rgb fill = danger && state.deleteArmed ? ui::palette::danger : over ? ui::palette::hover : ui::palette::keyFill;
-        ui::fill(context, sx, sy, bw, buttonHeight, fill);
-        bool red = danger && (state.deleteArmed || over);
-        ui::frame(context, sx, sy, bw, buttonHeight, red ? ui::palette::dangerEdge : ui::palette::keyEdge);
-        ui::label(context, sx, sy + inset, bw, std::move(text), red && !state.deleteArmed ? ui::palette::dangerText : ui::palette::text,
-                  ui::Align::Center);
+        if (danger) ui::drawDangerButton(context, sx, sy, bw, buttonHeight, std::move(text), over, state.deleteArmed);
+        else ui::drawButton(context, sx, sy, bw, buttonHeight, std::move(text), over);
         state.hits.push_back({sx, sy, bw, buttonHeight, target, item});
         return bw;
     };
@@ -1837,9 +1820,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         for (int side = 0; side < 2; ++side) {
             float bx2 = side ? sx + 61 : sx;
             bool over = hovering(bx2, y, 9, buttonHeight);
-            ui::fill(context, bx2, y, 9, buttonHeight, over ? ui::palette::hover : ui::palette::keyFill);
-            ui::frame(context, bx2, y, 9, buttonHeight, ui::palette::keyEdge);
-            ui::label(context, bx2, y + inset, 9, side ? "+" : "-", ui::palette::text, ui::Align::Center);
+            ui::drawButton(context, bx2, y, 9, buttonHeight, side ? "+" : "-", over);
             state.hits.push_back({bx2, y, 9, buttonHeight, Target::Step, axis * 2 + side});
         }
         // The value: click to type it (L-172 follow-up, 2026-10-13).

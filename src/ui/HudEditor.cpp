@@ -119,14 +119,12 @@ void moveTo(HudElementId id, float x, float y, Box const& box) {
     save(value);
     spot.reset();
 }
-void button(MinecraftUIRenderContext& context, Box box, std::string text, bool hot, Rgb edge = palette::keyEdge,
-            bool dropdown = false) {
-    fill(context, box.x, box.y, box.w, box.h, palette::keyFill);
-    if (hot) fill(context, box.x, box.y, box.w, box.h, palette::white, .08f);
-    frame(context, box.x, box.y, box.w, box.h, edge);
+// `open`: its popover is showing, so it draws as on.
+void button(MinecraftUIRenderContext& context, Box box, std::string text, bool hovered, bool open = false, bool dropdown = false) {
+    Rgb color = drawButtonBox(context, box.x, box.y, box.w, box.h, hovered, open ? ButtonKind::Primary : ButtonKind::Plain);
     float textW = dropdown ? box.w - 9 : box.w;
-    label(context, box.x, box.y + boxTextInset(), textW, std::move(text), hot ? palette::text : palette::dim, Align::Center);
-    if (dropdown) chevron(context, box.x + box.w - 9, box.y + 3, true, hot ? palette::text : palette::dim);
+    label(context, box.x, box.y + boxTextInset(), textW, std::move(text), color, Align::Center);
+    if (dropdown) chevron(context, box.x + box.w - 9, box.y + 3, true, color);
 }
 bool hovering(Box const& box, float px, float py) { return box.contains(px, py); }
 void triangle(MinecraftUIRenderContext& context, float x, float y, bool up, Rgb color) {
@@ -170,7 +168,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
         return box;
     };
     auto snap = add(snapW, Command::OpenSnap);
-    button(context, snap, snapText, popover == Popover::Snap || hovering(snap, px, py), palette::keyEdge, true);
+    button(context, snap, snapText, hovering(snap, px, py), popover == Popover::Snap, true);
     {
         // Scale: arrows at both ends of one field; a click on the value types it.
         Box scaleBox{x, y, scaleW, itemHeight};
@@ -200,7 +198,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     }
     if (linesW) {
         auto box = add(linesW, Command::OpenLines);
-        button(context, box, linesText, popover == Popover::Lines || hovering(box, px, py), palette::keyEdge, true);
+        button(context, box, linesText, hovering(box, px, py), popover == Popover::Lines, true);
     }
     fill(context, x, bar.y + 3, 1, barHeight - 6, palette::white, .14f);
     x += 1 + gap;
@@ -319,8 +317,7 @@ void drawIdlePanel(MinecraftUIRenderContext& context, float px, float py) {
     float y = box.y + edge + 4 * rowH + legendTop + legendBottom, x = box.x + (box.w - buttons) / 2;
     Box resetBox{x, y, resetW, itemHeight}, doneBox{x + resetW + gap, y, doneW, itemHeight};
     drawDangerButton(context, resetBox.x, resetBox.y, resetBox.w, resetBox.h, reset, hovering(resetBox, px, py), resetArmed);
-    drawSmallButton(context, doneBox.x, doneBox.y, doneBox.w, doneBox.h, done, hovering(doneBox, px, py), palette::accentDeep,
-        palette::accent);
+    drawButton(context, doneBox.x, doneBox.y, doneBox.w, doneBox.h, done, hovering(doneBox, px, py), ButtonKind::Primary);
     controls.push_back({resetBox, Command::ResetAll});
     controls.push_back({doneBox, Command::Done});
 }
