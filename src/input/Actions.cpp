@@ -62,6 +62,8 @@ std::string toggleFeatureName(input::Action action) {
     auto name = key.empty() ? std::string(input::actions[static_cast<size_t>(action)].feature) : ui::translated(key);
     // A child switch is named under its feature, with the label the settings screen gives it. ASCII between them:
     // another sign changes the font in English and sits low in Japanese.
+    // The mode keys are named like the feature's own: "Auto Attack: Hold", not "Auto Attack > Mode: Hold".
+    if (action == input::Action::CycleAttackMode || action == input::Action::CycleUseMode) return name;
     for (auto const& option : settings::options)
         if (ui::optionAction(option.id) == action) return name + " > " + ui::splitLabel(ui::translated(option.label)).name;
     return name;
