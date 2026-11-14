@@ -26,6 +26,9 @@ WaypointSet set;
 std::optional<std::filesystem::path> destination;
 Place joined;
 bool loadFailed = false; // Never overwrite a file that could not be read.
+// A death point from before L-328 that could not become a waypoint (full list,
+// failed save): kept in the file, and tried again when the list changes.
+std::optional<size_t> legacyDeathKept;
 std::optional<DeathPoint> pendingDeath;
 DeathWatch deathWatch;
 ArrivalWatch arrivalWatch;
@@ -61,6 +64,7 @@ void join(ll::event::ClientJoinLevelEvent& event) noexcept {
         set = {};
         destination.reset();
         loadFailed = false;
+        legacyDeathKept.reset();
         pendingDeath.reset();
         deathWatch.reset();
         arrivalWatch.reset();
@@ -87,6 +91,7 @@ void leave() {
     set = {};
     destination.reset();
     loadFailed = false;
+    legacyDeathKept.reset();
     pendingDeath.reset();
     deathWatch.reset();
     arrivalWatch.reset();
@@ -148,10 +153,11 @@ void watchDeath(IClientInstance& client) {
 void frame(bool recordDeath, bool temporary, std::string const& name) {
     std::lock_guard lock(mutex);
     // A death point saved before L-328 becomes its waypoint.
-    if (set.death) {
+    if (set.death && legacyDeathKept != set.waypoints.size()) {
         auto candidate = set;
         auto old = *std::exchange(candidate.death, std::nullopt);
-        if (map::recordDeath(candidate, old, name, temporary)) commit(std::move(candidate));
+        if (!map::recordDeath(candidate, old, name, temporary) || !commit(std::move(candidate)))
+            legacyDeathKept = set.waypoints.size();
     }
     if (!pendingDeath) return;
     auto death = *std::exchange(pendingDeath, std::nullopt);
