@@ -152,7 +152,7 @@ from the file); never restate them here.
    2026-10-10), in this order: the follow-ups of L-338 death layout time
    limit, L-170 enchantment order planner, L-319 item details and L-320
    block highlight; then L-336 Durability HUD items, L-337 minimap size,
-   L-340 settings grouping, L-341 shared widgets, L-325 zoom release, L-330
+   L-340 settings grouping, L-325 zoom release, L-330
    radar icons, L-166 trade helpers, L-167 resource packs, L-168 trade
    finder, L-169 transfer extensions, L-173 quick shapes, L-190 list
    selection, L-163 a Lamium inventory screen, L-249 simulation distance,
@@ -210,7 +210,6 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-336](backlog/L-336.md) Durability HUD: choose its items in HUD layout (Design): Open, waiting for the maintainer's choice
 - [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Design): Waiting for the maintainer's choice of which setting stays
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.
-- [L-341](backlog/L-341.md) Shared widgets for repeated controls (Refactor): Built, not checked in game: every control and the page shape are in
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
 - [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Design): Waiting for the option's name and default; the maintainer agreed such a setting may exist (2026-11-13).
 - [L-320](backlog/L-320.md) Highlight designated block types in the world (Design): Released in 0.6.0 (Experimental); open are in-game checks and any follow-ups the maintainer raises

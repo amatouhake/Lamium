@@ -285,6 +285,8 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Refactor
 
+- [L-341](backlog/done/L-341.md) Shared widgets for repeated controls
+
 - [L-158](backlog/done/L-158.md) Prevent missing and inconsistent settings/action labels
 - [L-137](backlog/done/L-137.md) Game update readiness (with 0.2.0)
 - [L-138](backlog/done/L-138.md) Shared face drawing for cell overlays (0.2.0, L-111 A)

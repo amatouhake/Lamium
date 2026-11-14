@@ -10,7 +10,7 @@
 //   (accent fill), destructive (press twice, armed in red).
 // - A control that must look or behave unlike the one here is a design
 //   question for the maintainer, not a local variant.
-// Details: docs/DESIGN.md "Visual language". Old local copies: BACKLOG L-341.
+// Details: docs/DESIGN.md "Visual language". What is left over: BACKLOG L-342.
 #include <string>
 #include <string_view>
 #include <vector>

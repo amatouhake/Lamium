@@ -113,8 +113,8 @@ layout editor keep GUI units.
 
 Every control comes from the shared widgets (`Widgets.h`, `ListViewWidgets.h`).
 A control a screen needs and they lack is added there, and specified here in
-the same commit. A screen never draws its own variant. Older screens still
-have local copies (BACKLOG L-341); they are not the pattern.
+the same commit. A screen never draws its own variant. The few color
+literals left are counted in `scripts/UiTokenBaseline.txt` (BACKLOG L-342).
 
 - **Switch** for every on/off, knob position carrying the state. No "ON/OFF"
   words, no check boxes.

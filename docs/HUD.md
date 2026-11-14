@@ -311,5 +311,4 @@ choices. The hotbar is not part of it.
 - Coverage: [VALIDATION.md "Information and overlays"](VALIDATION.md#information-and-overlays).
 - Open work:
   [L-336 Durability HUD: choose its items in HUD layout](backlog/L-336.md),
-  [L-184 Inspect ghost block data and schematic container contents](backlog/L-184.md),
-  [L-341 Shared widgets for repeated controls](backlog/L-341.md).
+  [L-184 Inspect ghost block data and schematic container contents](backlog/L-184.md).

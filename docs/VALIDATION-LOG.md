@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-341 last changes confirmed; item done (2026-11-15)
+
+Build `e973be78`, DLL SHA-256
+`50da76e341df2eb51614376bca92fd64f78a727dfb4b7e0129ff8d748ddbc33b`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. The Game language row opens only from its Open button
+(and Enter/Space) and takes the new hotkey; the scroll bar thumb only lightens; beside the
+anvil the level centre no longer toggles the row. Raised: an off row's level sat a little
+higher than the stepper's when on (aligned in the next build, not yet seen).
+
 ## L-341 shared controls in game (2026-11-15)
 
 Build `5fac844a`, DLL SHA-256
