@@ -34,7 +34,9 @@ While a press holds a region, the world overlay draws faint faces like a
 White shape over the allowed cells within four blocks of the anchor, leaving
 out the targeted block so the vanilla outline stays visible. The Status
 element shows the mode (and axis) whenever the restriction is on, and the
-anchor while a press holds one. A rejected block is silent.
+anchor while a press holds one; switching the element off (Automation status,
+or Hidden in HUD layout) hides these lines too (decided 2026-11-14: Hidden
+means nothing is drawn; the toggle toast still names the restriction). A rejected block is silent.
 
 ## Mining session (L-73 B)
 

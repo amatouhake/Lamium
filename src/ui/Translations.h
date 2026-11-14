@@ -224,7 +224,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"feature.periodicAttack", "Auto Attack", "自動攻撃"},
     {"feature.automationStatus", "Automation status", "自動操作の状態表示"},
     {"automationStatus", "Automation status: {}", "自動操作の状態表示: {}"},
-    {"help.automationStatus", "Show active automatic inputs at the upper right. Hiding this does not stop them.", "動作中の自動入力を右上に表示します。非表示にしても自動入力は停止しません。"},
+    {"help.automationStatus", "Show active automatic inputs and the block restriction mode at the upper right. Hiding this does not turn them off.", "動作中の自動入力とブロック操作の制限範囲を右上に表示します。非表示にしても、どちらもオフにはなりません。"},
     {"autoMode.periodic", "Periodic", "周期"},
     {"autoMode.hold", "Hold", "長押し"},
     {"autoMode.fast", "Fast click", "高速クリック"},

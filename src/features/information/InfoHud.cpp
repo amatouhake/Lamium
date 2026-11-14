@@ -1620,7 +1620,8 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     }
     else if (!runtime.map.minimap) map::drawMinimap(context, width, height, hud.minimap, runtime.map, false);
     if (skipped(ui::HudElementId::Status)) {}
-    else if (preview || runtime.ui.automationStatus || runtime.interaction.breaking) {
+    // The element's switch hides all of it, the restriction lines included.
+    else if (preview || runtime.ui.automationStatus) {
         std::vector<ElementLine> lines;
         if (runtime.ui.automationStatus) {
             // One line per switched-on button: "Auto Attack: Periodic", marked

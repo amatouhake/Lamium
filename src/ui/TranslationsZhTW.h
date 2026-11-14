@@ -220,7 +220,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"feature.periodicAttack", "快速左鍵"},
     {"feature.automationStatus", "自動操作狀態"},
     {"automationStatus", "自動操作狀態: {}"},
-    {"help.automationStatus", "在右上角顯示正在進行的自動輸入。隱藏此顯示不會停止它們。"},
+    {"help.automationStatus", "在右上角顯示正在進行的自動輸入和方塊限制的模式。隱藏此顯示不會關閉它們。"},
     {"autoMode.periodic", "定時"},
     {"autoMode.hold", "按住"},
     {"autoMode.fast", "連點"},
