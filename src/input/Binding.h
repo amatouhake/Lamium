@@ -308,6 +308,7 @@ inline bool sameInputContext(Action a, Action b) {
     return a == Action::Transfer || b == Action::Transfer || (a == Action::Sort) == (b == Action::Sort);
 }
 inline bool actionAllowed(Action action, bool gameplay, bool container, bool freeCamera = false, bool outsideWorld = false) {
+    if (retired(action)) return false; // A key saved for it before must not be matched and swallowed.
     if (action == Action::Settings && outsideWorld) return true;
     if (action == Action::FreeCameraSpeedUp || action == Action::FreeCameraSpeedDown) return gameplay && freeCamera;
     if (action == Action::Sort) return container;
@@ -326,7 +327,7 @@ inline std::vector<Conflict> bindingConflicts(Bindings const& bindings, Action a
     auto chord = effectiveChord(bindings, action);
     for (size_t i = 0; i < actions.size(); ++i) {
         auto other = static_cast<Action>(i);
-        if (other == action || !sameInputContext(action, other)) continue;
+        if (other == action || retired(other) || !sameInputContext(action, other)) continue;
         auto otherChord = effectiveChord(bindings, other);
         auto relation = bindingRelation(chord, otherChord);
         if (relation == Relation::None) continue;

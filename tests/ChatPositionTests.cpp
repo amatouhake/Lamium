@@ -151,6 +151,12 @@ void chatPositionTests() {
               && (settings::find("information.bossBarPosition")->adjust(withBars, -1), !withBars.information.placesBossBars())
               && withBars.information.placesScoreboard(),
               "the boss bars follow the group, keep the merged unbound key and can be left out alone");
+        input::Bindings oldKey{};
+        oldKey[static_cast<size_t>(input::Action::ToggleBossBarPosition)] = input::Chord{{input::Device::Key, 0x97}};
+        oldKey[static_cast<size_t>(input::Action::HideBossBars)] = input::Chord{{input::Device::Key, 0x97}};
+        check(!input::actionAllowed(input::Action::ToggleBossBarPosition, true, true)
+              && input::bindingConflicts(oldKey, input::Action::HideBossBars).empty(),
+              "a key saved for the retired boss bar action is never matched nor reported as a conflict (L-339)");
         auto barsSaved = decodeSettings(R"({"information":{"gameHud":true,"bossBarPosition":false},"hud":{"bossBars":{"anchor":7,"dx":3,"dy":-5,"scale":125}}})");
         check(barsSaved.information.gameHud && !barsSaved.information.bossBarPosition && barsSaved.hud.bossBars.anchor == Anchor::BottomCenter
               && barsSaved.hud.bossBars.dy == -5 && barsSaved.hud.bossBars.scale == 125,
