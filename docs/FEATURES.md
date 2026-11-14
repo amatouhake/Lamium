@@ -215,7 +215,7 @@ A HUD element colored from your block textures.
 
 ### Map marks
 
-Waypoints with the death point, schematic placements and shapes on the maps.
+Waypoints, schematic placements and shapes on the maps.
 Each has its own switch (the same as in the world map's top bar), and "Shown
 on" picks the minimap, the world map or both. Turning Map marks off hides
 them from both maps; the world drawing is unchanged.
@@ -234,7 +234,7 @@ world and on servers. Slimes spawn there below Y 40 at any light level.
 
 ### Waypoints
 
-Waypoints with the last death point, shown on the maps and in the world,
+Waypoints, with one added where you die, shown on the maps and in the world,
 edited in a Waypoints screen. With Waypoints off nothing is shown, no death point
 is recorded and reached temporary waypoints stay; saved waypoints are kept. To hide
 only the markers, use "Show in the world" and the Map marks layer.

@@ -371,7 +371,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"mapSlimeChunks", "Slime chunks: {}", "スライムチャンク: {}"},
     {"help.map.slimeShownOn", "Which maps show slime chunks: the minimap, the world map, or both. The world map at first: a wash always on the minimap is busy.", "スライムチャンクを出す地図を、ミニマップ・ワールドマップ・両方から選びます。ミニマップに常に緑が出るとうるさいので、最初はワールドマップです。"},
     {"feature.waypoints", "Waypoints", "ウェイポイント"},
-    {"help.waypoints", "Mark places and see them on the minimap. The key adds one where you stand: type a name, pick a color, Enter adds it. Your last death point is kept too. Saved per local world, or per server address and port. While off, nothing is shown and no death point is recorded.", "場所に印を付けて、ミニマップに表示します。キーを押すと今いる場所に追加します（名前を入れて色を選び、Enter で追加）。最後に死んだ場所も記録します。ローカルワールドごと、サーバーはアドレスとポートごとに保存します。オフの間は何も表示せず、死亡地点も記録しません。"},
+    {"help.waypoints", "Mark places and see them on the minimap. The key adds one where you stand: type a name, pick a color, Enter adds it. Dying adds one where you died. Saved per local world, or per server address and port. While off, nothing is shown and no death point is recorded.", "場所に印を付けて、ミニマップに表示します。キーを押すと今いる場所に追加します（名前を入れて色を選び、Enter で追加）。死んだ場所にも追加します。ローカルワールドごと、サーバーはアドレスとポートごとに保存します。オフの間は何も表示せず、死亡地点も記録しません。"},
     {"mapWaypoints", "Waypoints: {}", "ウェイポイント: {}"},
     {"mapWaypointsWorld", "Show in the world: {}", "ワールドに表示: {}"},
     {"help.map.waypointsWorld", "A diamond in each waypoint's direction with its distance; the name appears when the crosshair is near. Always: the key hides them while held. While the key is held: they show only then. Off: the key does nothing.", "ウェイポイントの方向にひし形と距離を表示します。照準を近づけると名前が出ます。常に：キーを押している間は隠します。キーを押している間：押している間だけ表示します。オフ：キーも効きません。"},

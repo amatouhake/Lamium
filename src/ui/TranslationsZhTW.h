@@ -367,7 +367,7 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"mapSlimeChunks", "史萊姆區塊: {}"},
     {"help.map.slimeShownOn", "選擇要在哪張地圖上顯示史萊姆區塊：小地圖、世界地圖或兩者。預設為世界地圖：小地圖上一直有綠色會顯得雜亂。"},
     {"feature.waypoints", "路徑點"},
-    {"help.waypoints", "標記地點並在小地圖上查看。按鍵會在你站的位置新增一個：輸入名稱、選擇顏色，按 Enter 新增。你上次的死亡地點也會保留。依本機世界，或依伺服器位址和連接埠分別儲存。關閉時不顯示任何標記，也不記錄死亡點。"},
+    {"help.waypoints", "標記地點並在小地圖上查看。按鍵會在你站的位置新增一個：輸入名稱、選擇顏色，按 Enter 新增。死亡時會在死亡地點新增一個。依本機世界，或依伺服器位址和連接埠分別儲存。關閉時不顯示任何標記，也不記錄死亡點。"},
     {"mapWaypoints", "路徑點: {}"},
     {"mapWaypointsWorld", "在世界中顯示: {}"},
     {"help.map.waypointsWorld", "在每個路徑點的方向顯示一個菱形和距離；準心靠近時顯示名稱。永遠：按住按鍵時隱藏。按住按鍵時：只在按住時顯示。關：按鍵沒有作用。"},
