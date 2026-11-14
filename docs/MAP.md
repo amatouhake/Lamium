@@ -322,7 +322,9 @@ Under `src/features/map/` unless stated; pure parts tested in
   `updateTextureInPlace`.
 - Block color: average top texture (`BlockGraphics`, at most 6 new textures a
   frame, cached by state and path) times the tint (`BiomeColorSampling`
-  grass/foliage, water color); the map color only as fallback. Renderer tint
+  grass/foliage, water color); the map color only as fallback. An add-on
+  block (outside `minecraft:`) with a `minecraft:map_color` component uses
+  that color and the component's tint instead (L-324). Renderer tint
   can come back black (fallback and rescan). Surface: the heightmap block or
   the covering block above (snow layer, carpet), seen through glass/plants.
 - Unreceived blocks are request stand-ins; a chunk is received unless all its

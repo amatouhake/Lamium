@@ -14,7 +14,7 @@ enum class Id {
     SchematicBlend, SchematicActorLight, SchematicCreativePick,
     InventoryDiagnostics, LanguageDiagnostics, SneakPlacement, NoteBlockSounds,
     NoteBlockInstrument, BookPastePages, BlockHighlight, PaperDollPosition, ScoreboardPosition, EnchantOrder, BossBarPosition,
-    ItemDetails, Count
+    ItemDetails, MapColorComponent, Count
 };
 enum class Impact { None, Partly, Fully };
 enum class Stage : std::uint8_t { Waiting, Ready, Stopped, Failed };
@@ -71,6 +71,7 @@ inline constexpr auto definitions = std::to_array<Definition>({
     {Id::EnchantOrder, "Enchantment order (enchantment costs and anvil screen)", "enchantOrder", "capability.EnchantOrder", Impact::Fully, true, true},
     {Id::BossBarPosition, "Boss bar position (HUD control positions)", "gameHud", "capability.BossBarPosition", Impact::Partly},
     {Id::ItemDetails, "Item details (item data reads)", "itemDetails", "capability.ItemDetails", Impact::Partly, true, true},
+    {Id::MapColorComponent, "Map colors of add-on blocks (block map color component)", "minimap", "capability.MapColorComponent", Impact::Partly, true, true},
 });
 inline constexpr size_t count = static_cast<size_t>(Id::Count);
 static_assert(definitions.size() == count);

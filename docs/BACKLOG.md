@@ -191,7 +191,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 - [L-344](backlog/L-344.md) English Search does not find enchanted books by enchantment name (Ready): Built on `night/schematic-map`, not checked in game
 - [L-339](backlog/L-339.md) Smaller bugs found by the 2026-11-14 code review (Ready): Open, not started; each verified against the code, none seen in game
 - [L-342](backlog/L-342.md) Lower findings of the 2026-11-14 review, kept for later (mixed; nothing here is agreed work): Listed only; pick a finding up through its own item when it is to be worked on
-- [L-324](backlog/L-324.md) Map: custom blocks are drawn in a dirt-like brown (Ready): Open, not started; fix rule agreed 2026-11-15, reproduction needs an add-on
+- [L-324](backlog/L-324.md) Map: custom blocks are drawn in a dirt-like brown (Ready): Built on `night/schematic-map` (first clause of the rule), not checked in game
 - [L-299](backlog/L-299.md) Screenless inventory moves can leave a slot stuck when client and server desync (Research): Open; question 1 read in code (`8cdfe543`, 2026-11-12), waiting for a reproduction. No release target.
 - [L-243](backlog/L-243.md) Large terrain gaps that only reload when the player comes near (Bug / Research): Not reproduced; watch item, reopen with the conditions if it returns
 - [L-244](backlog/L-244.md) FreeCamera keeps the inside-a-block view after starting in a block (Bug): Parked (maintainer 2026-10-27) until a path to the renderer that draws the effect is found; left vanilla
