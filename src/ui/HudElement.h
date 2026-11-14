@@ -7,7 +7,7 @@
 #include <string_view>
 
 namespace lamium::ui {
-// HUD element placement model (BACKLOG L-04a, DESIGN "HUD", docs/demos/hud.html).
+// HUD element placement model (BACKLOG L-04a, docs/HUD.md, docs/demos/hud.html).
 // Elements are info lines, target, status, toast and the zoom magnification.
 // The debug view is not an element: it is fixed to the screen edges. Pure
 // math; InfoHud draws. Append new ids: they index saved boxes.
@@ -34,7 +34,7 @@ inline constexpr AnchorFactors anchorFactors(Anchor anchor) {
 // Line: a background behind each line (Info, Status and the player list; L-98, L-128). Append: saved as ints.
 enum class ElementBackground { None, Card, Line };
 // Placement is an anchor plus an offset, but the anchor is never chosen
-// directly: where an element is dropped decides it (DESIGN "HUD").
+// directly: where an element is dropped decides it (docs/HUD.md).
 struct HudElement {
     Anchor anchor = Anchor::TopLeft;
     float dx = 0, dy = 0; // GUI-unit offset from the anchor point.

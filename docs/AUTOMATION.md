@@ -1,7 +1,7 @@
 # Lightweight input automation
 
 Current product behavior is in
-[DESIGN.md](DESIGN.md#automatic-attack-and-use-decided-2026-09-25-revised-the-same-day);
+[Automatic attack and use](#automatic-attack-and-use-decided-2026-09-25-revised-the-same-day) below;
 current runtime coverage is in [VALIDATION.md](VALIDATION.md). Auto Attack/Use
 use session switches and pause when gameplay input is unavailable; returning
 to gameplay resumes the chosen mode. The earlier Periodic adapter below
@@ -296,3 +296,47 @@ focus loss, world exit/re-entry, and disable. For periodic actions also verify
 item use/release and breaking behavior, with no delayed burst after a stall.
 Unit tests prove the independent lifecycle contract only, not Minecraft input
 integration or multiplayer compatibility.
+
+## Automatic attack and use (Decided 2026-09-25, revised the same day)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+One feature per mouse action, **Auto Attack** and **Auto Use**, each with
+exactly one switch, one mode and one set of keys:
+
+- **Switch**: the feature row's switch; its hotkey toggles it. On means it is
+  working in the chosen mode. The switch is session state: never saved, off
+  after leaving the world or restarting.
+- **Mode** (saved): Periodic (clicks every N ticks), Hold (keeps the button
+  pressed: mining, eating, shield, bow) or Fast click (while the physical
+  button is held, clicks N times per tick). One mode at a time. A separate
+  "next mode" hotkey cycles it (unbound by default). Changing mode while on
+  releases the old mode's press first.
+- **Settings**: Periodic interval 1-1200 ticks, default 10, shown as
+  "10 tick (0.50s)"; Fast click 1-10 clicks per tick, default 1, shown as
+  "1/tick (20/s)". Both rows are always listed; their labels name the mode.
+- **Fast click only while the button is held** (saved switch, Fast click
+  only): off by default, so Fast click acts while switched on like the other
+  modes. Only Fast click gets this: Hold "while held" would be vanilla and
+  Periodic did not need it (maintainer, 2026-09-25). Toasts/status say
+  "Fast click (while held)" when it is on.
+- **Keyed option rows** (2026-09-25): a setting and the hotkey that changes
+  it share one row. The "Fast click only while held" row has its switch and
+  key; the Mode row has its stepper (moved left of the key column) and the
+  "next mode" key. Breaking Restriction's switch and mode rows carry their
+  respective toggle and "next mode" keys the same way. Those actions get no
+  row of their own under the feature;
+  Hotkeys still lists them. Clicking the key cell edits the binding.
+- **Nothing stops it implicitly.** Only the switch (row or hotkey) turns it
+  off, plus leaving the world. A manual click takes priority while held and
+  automation resumes after release (Hold presses again; Periodic continues on
+  its schedule without saved-up clicks). Menus, focus loss, death, dimension
+  changes and detached cameras pause it; it resumes when gameplay input
+  returns. The status element shows "Auto Attack: Periodic", with
+  "(paused)" while paused.
+- Toasts name the mode: "Auto Attack: Hold  ON".
+- Help text warns that servers may treat very fast input as cheating.
+- Why: the first version had separate Periodic/Hold/Fast toggles plus a
+  parent row without a switch, so it was unclear what was on, and stopping on
+  a manual click felt arbitrary (maintainer review 2026-09-25). Reference
+  behavior: Tweakeroo's periodic/hold attack and use and fast click (behavior
+  only, no code).

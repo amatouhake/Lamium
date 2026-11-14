@@ -2,11 +2,11 @@
 
 Freelook and FreeCamera are disabled and unbound by default.
 Both passed local runtime checks. Current product behavior is in
-[DESIGN.md](DESIGN.md#camera-decided-2026-09-26-unless-noted); current coverage
+[Camera](#camera-decided-2026-09-26-unless-noted) at the end of this file; current coverage
 and remaining checks are in [VALIDATION.md](VALIDATION.md). This file records
 the native integration and its evolution. Dated checkpoints retain earlier
 cancellation rules and limitations; later L-26/L-76/L-77/L-78 entries and
-DESIGN define the current behavior. The SDK/probe sections at the end are
+that section define the current behavior. The SDK/probe sections at the end are
 earlier research, not instructions to replace the working camera path.
 
 ## Freelook camera detachment
@@ -575,3 +575,76 @@ control (`desktop_hotbar`, `pocket_hotbar`, `hotbar_panel`) for each draw
 only and restores it right after (gated). Only while FreeCamera owns the
 view; nothing in the game's options changes. What FreeCamera allows the
 player to do is unchanged (L-25).
+
+## Camera (Decided 2026-09-26 unless noted)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+- (Decided, BACKLOG L-38; lower limit revised 2026-09-30, L-80; wheel range
+  widened 2026-10-06, L-99) Zoom goes up to 50x. The initial magnification
+  setting stays 2x-50x (a saved value below 2x loads as 2x), so pressing Zoom
+  always visibly zooms. While held, the wheel goes from 1x to 50x; with the
+  Zoom setting "Wide-angle view" (off by default; decided 2026-10-11, L-140)
+  it goes down to 0.5x: below 1x the view widens, but never past 160 degrees
+  (the wheel stops there). Turning the setting off brings a kept level below
+  1x up to 1x. A
+  wheel notch multiplies or divides the target magnification by a fixed ratio
+  (about 1.15), so every notch feels the same at 2x and at 40x; a notch that
+  crosses 1x stops on exactly 1x once. The shown magnification eases toward
+  the target over a short time instead of jumping; turn sensitivity follows
+  the shown magnification above 1x and stays normal below it.
+- (Decided 2026-10-06, L-99) The wheel level is kept between presses until
+  the world is left, including levels below 1x and across dimension changes.
+  A level left at exactly 1x is the exception: the next press starts from the
+  magnification setting, so Zoom never opens without a visible change.
+- (Decided 2026-10-06, L-99 follow-up) The wheel changes the magnification
+  only while the Zoom key is held. In Hold mode that is the whole zoom; in
+  Toggle mode the wheel keeps its normal job (hotbar) while Zoom is on, and
+  holding the key adjusts it. Toggle mode switches on at the press and off at
+  the release of a plain tap; a hold that used the wheel leaves Zoom on.
+- (Decided 2026-10-06) Pressing and releasing Zoom switch at once, whatever
+  the Animations setting. An ease-in/out (0.1 s) was built and tried; it felt
+  wrong without a frame like the spyglass's, and following the setting would
+  have made it the default. Only wheel changes ease.
+- (Noted 2026-10-06) Below 1x the held item drifts toward the screen center
+  because the hand follows the wider projection; accepted as is for now.
+- (Decided, BACKLOG L-45) While zooming, the magnification is shown as "×12.5" by its own HUD element
+  (small, dimmed, below the crosshair by default; movable in the HUD layout);
+  a Zoom setting turns it off (default on).
+- (Decided 2026-09-26) The toggle toast's default sits above the armor and
+  absorption rows (bottom center, 72 up) so it does not cover them.
+- (Decided 2026-09-27, BACKLOG L-39/L-48) Freelook saves the current
+  perspective (first, rear third or front third), switches to its configured
+  starting view (rear third by default), and restores the saved perspective on
+  exit. The player may switch perspectives with F5 while Freelook is active.
+  FreeCamera offers Activation: Hold / Toggle, default Toggle. A wheel binding
+  toggles in either mode because a wheel impulse cannot be held.
+- (Decided 2026-10-07, L-37) FreeCamera should show surrounding loaded terrain
+  and caves from inside solid ground, as spectator rendering does. This must
+  remain a camera/rendering change: retain the player's game mode, abilities,
+  body and server movement. Unsupported rendering paths retain vanilla
+  visibility. Implementation and runtime coverage are tracked in CAMERA.md
+  and VALIDATION.md.
+- (Decided 2026-09-26, BACKLOG L-47 and L-27) Zoom, Freelook, FreeCamera,
+  Permanent Sneak and Permanent Sprint have no saved switch. Their switch
+  shows whether they are wanted; the key or a click on the switch flips it,
+  and the effect starts when gameplay allows (a click in settings takes
+  effect after closing them). Menus pause Zoom, Freelook, Sneak and Sprint
+  and they resume afterwards; FreeCamera in Toggle mode keeps its position
+  through menus, settings and focus loss. Hold ends when its input is released
+  or input ownership is lost. Focus loss keeps toggle modes wanted; death, dimension
+  change and leaving the world turn them all off. Nothing is saved across
+  restarts.
+
+- (Decided 2026-09-30, L-26 follow-up) FreeCamera speed actions use concise
+  detail labels (Increase / Decrease speed) and explicitly name FreeCamera in
+  Hotkeys. A fresh sprint-key press during forward input starts a horizontal
+  2x boost that continues after key release. Forward diagonals qualify;
+  strafe-only, backward or cancelled forward input ends it. Vertical speed
+  stays unchanged. Menus, focus loss and session exit cancel the boost.
+
+- (Decided 2026-09-30, L-76) FreeCamera has a saved Position reference choice:
+  Player (default, existing behavior) or World. World keeps the camera's world
+  position independent of body movement while still accepting flight input.
+  Changing the choice during a session preserves its current position. A new
+  session starts at the current player's eye; world/dimension exit clears the
+  anchor. This changes only camera offsets, never the player's position.

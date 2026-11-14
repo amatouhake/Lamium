@@ -372,3 +372,20 @@ No additional immersion observation was requested this step. The span records
 observed debug and shape materials with zero textures; they do not identify
 either missing frame. A repeated identical trace is not the next research step:
 inspect a different documented backend before asking for more frame observations.
+
+## Visual effect visibility (Decided 2026-09-30, L-42 follow-up)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+Hide effects has a saved master switch with a toggle key (L-83) and
+individual effect switches (optionally bound). Revised 2026-09-30 before release: the master
+defaults off and every effect switch defaults on, so turning on the one
+master switch hides everything; nothing is hidden until then. Master off restores drawing
+and retains selections; child switches and keys only edit selections while
+paused. The UI and key toasts make that paused state explicit. Rain and snow
+includes rain-derived splashes. Particles hides all particles, including rain
+splashes, but does not hide falling precipitation. Other water splashes stay
+visible with only Rain and snow selected. Sound, weather state and particle
+emission/ticking stay vanilla.
+- (Decided 2026-10-12, L-148) "Nether portal screen" is another child, on by
+  default like the others: it removes the purple screen in a Nether portal.
+  The portal transfer, its timing and sounds stay vanilla.

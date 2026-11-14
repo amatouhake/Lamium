@@ -10,7 +10,7 @@ The [agent guide](../AGENTS.md) is the working manual and the
 | Question | Source |
 |---|---|
 | What does each feature do, for a player? | [FEATURES.md](FEATURES.md): the user guide behind the README's feature tables |
-| What should Lamium look like and how should it behave? | [DESIGN.md](DESIGN.md): accepted product/UI rules; proposed rules are labeled |
+| What should Lamium look like and how should it behave? | [DESIGN.md](DESIGN.md): shared product/UI rules; one feature's decisions are in its document below |
 | What should be worked on next, and what is still open? | [BACKLOG.md](BACKLOG.md): execution order, L-items, release policy and pending checks |
 | What was actually checked in Minecraft? | [VALIDATION.md](VALIDATION.md): current coverage per feature |
 | Which build and observation support a result? | [VALIDATION-LOG.md](VALIDATION-LOG.md): append-only evidence, newest first |
@@ -23,12 +23,14 @@ The [agent guide](../AGENTS.md) is the working manual and the
 
 ## Feature and implementation notes
 
-L-items own work status and open choices; DESIGN owns shared product/UI rules;
+L-items own work status and open choices; DESIGN owns shared product/UI rules and
+each feature document its own decisions;
 VALIDATION owns runtime coverage. Dated implementation records describe the
 build named there and may include superseded experiments.
 
 | Area | Document |
 |---|---|
+| HUD elements, layout editor, target card, debug view | [HUD.md](HUD.md) |
 | Settings, HUD and input foundation | [UX-FOLLOWUP.md](UX-FOLLOWUP.md) |
 | Native HUD chat placement | [CHAT-POSITION.md](CHAT-POSITION.md) |
 | Parent switches, command rows and keys | [SETTINGS-KEYMAP.md](SETTINGS-KEYMAP.md) |
@@ -53,7 +55,9 @@ build named there and may include superseded experiments.
 
 ## Keeping the docs consistent
 
-- Put shared decisions in DESIGN and task choices/dependencies in the L-item.
+- Put shared decisions in DESIGN, one feature's decisions in its document
+  (a "Decided" section) and task choices/dependencies in the L-item. DESIGN
+  stays short: a rule that only one feature follows does not go there.
   Link to feature contracts rather than copying them into execution order or
   UI summaries. The L-item wins if its status disagrees with a summary.
 - Put current notes ahead of dated records. Label superseded checkpoints so

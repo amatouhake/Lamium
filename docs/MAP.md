@@ -1082,3 +1082,120 @@ Checked in a local world 2026-10-01 on `e6781e5` (all points passed).
 L-83 completed 2026-10-01 (see BACKLOG-DONE.md): the settings/UI consistency
 review covered the map and Waypoints screen. Further map UI changes are new
 work, not an open part of L-83.
+
+## Cave and Nether terrain reference (Decided direction 2026-10-19, L-228)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+- Represent the cavern the player occupies: include the current ledge/path
+  and the deeper floor or lava within that open space. Large Overworld
+  caves share this goal with the Nether. Narrow caves should communicate
+  their floors, walls and forks.
+- Moving up or down within the same space should preserve the recognizable
+  terrain outline. Separate vertically stacked spaces must remain
+  distinguishable; height differences should be readable.
+- Where a bridge or ledge overlaps a lower floor, prefer the floor the
+  player currently occupies. On a bridge, preserve its path and show the
+  deeper floor/lava in the surrounding open parts; below it, prefer the
+  lower floor. The exact visual treatment and selection/transition
+  algorithm remain open.
+- Unknown terrain, walls and deep drops must read differently from floors.
+  The existing received/recorded-terrain boundary and bounded-work
+  requirements apply. V1 uses three reads only: floor, wall and no-floor
+  (deep drops and unknown terrain share the dark no-floor state).
+- Persist explored Overworld cave terrain in 16-block bands for later
+  world-map viewing, including after leaving and rejoining. Retain the
+  surface map alongside it. Vertically overlapping spaces within one band
+  are not distinguished in v1; separate bands are.
+- The world map's cave controls were decided 2026-10-19 (D,
+  [demos/cave-map-simple.html](demos/cave-map-simple.html)):
+  - The top bar has one terrain state button (`地表` / `洞窟 広 Y68` /
+    `洞窟 層 Y68`). Its panel opens directly under that button. It does not
+    close the waypoint list; when space is tight it shifts left instead.
+  - The panel has three rows: cave on/off, broad on/off, and height with
+    `-` / a directly editable number / `+`. A separate action button,
+    `自分の高さに合わせる`, returns the height to the player.
+  - The map opens at the player's height (the FreeCamera eye when it owns
+    the view). Changing the height fixes it; the action button returns to
+    the current reference height. There is no follow toggle, slider,
+    recorded-height list or three-way mode.
+  - Standard: the Nether starts broad, an Overworld cave starts in the
+    selected layer. The minimap stays broad and follows the player.
+  - The layer view keeps the selected height bright and dims farther floors
+    to a solid dark color; there is no checker or dot pattern.
+  - A FreeCamera reference is separate from the body: opening and height
+    matching use the camera, "Center on me" returns to the body, and a green
+    camera arrow marks the camera. The arrow is display-only; closing and
+    reopening the map returns to the camera. The panel names the active
+    reference (`カメラ` / `本体`). Body and camera references each decide
+    cave/surface at their own position; a cave map opens at the stable band
+    height the recorder keeps, not at a boundary band that has no data yet.
+  - The map does not switch between cave and surface while it is open; the
+    initial choice is made when it opens.
+- Layer switches keep their names while they fit; they become symbols only
+  when the bar is too narrow.
+- This is a decided direction, implemented on branch
+  `feat/map-cave-freecamera`; the final checklist passed in game on
+  2026-10-20 (`7e0e2f9`). MAP.md keeps the current behavior and the
+  implementation record.
+
+## World map layer switches (Decided 2026-10-15, L-146)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+- The world map's top bar has three joined switches, Waypoints, Schematics
+  and Shapes, each with its mark's symbol (diamond, cyan footprint, yellow
+  footprint) before the name, left of "Center on me". On: the accent fill
+  and frame of a selected button; off: dark with faint text and symbol.
+  They are remembered across openings in the map settings, not a settings
+  screen option. On a screen too narrow for the names they show their
+  symbols alone, and the bottom bar names the one under the pointer
+  ("Show Schematics on the map: On"); only when even that does not fit do
+  they go to the second row (maintainer 2026-10-15, after two rows appeared
+  at UI Profile 100%). The cave terrain button (L-228) sits on the first
+  row; the second-row fallback is unchanged.
+- A switch that is off removes its marks from the world map entirely (no
+  faint ghost, no click or menu); the death point goes with Waypoints. The
+  side panel's list and editor work as before; the minimap and the world
+  view are not affected.
+- The side panel's button is named "List" so it does not repeat
+  "Waypoints".
+
+## World map side panel lists (Decided 2026-10-15, L-204)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+- The side panel lists one layer at a time: waypoints (with the death
+  point), placed schematics or shapes. Its header names the layer with its
+  count and a small down arrow; clicking it opens a menu of the three
+  layers, each with its symbol and count (maintainer: a menu, since tabs
+  side by side do not fit the panel). The choice is remembered. Selecting a
+  mark on the map shows its layer's list; "+" shows only for waypoints.
+- Placement and shape rows match waypoint rows: symbol in the mark's
+  color, name, distance when the player is in that dimension, nearest
+  first, and the show/hide switch; a click centers the map and selects it
+  (a placement also becomes the schematic's selected one), with the
+  existing details and "Open" below.
+- Only the dimension the map shows. A layer switched off in the top bar
+  keeps its list, with a faint "Hidden on the map" line on top.
+
+## Waypoints and death records (from DESIGN.md Components)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+- (Decided 2026-11-13, L-328) There are two kinds of waypoint, normal and
+  temporary, and nothing beside them. A death adds a waypoint named "Death
+  point": a cross for its mark, red to start with, temporary unless
+  "Temporary death point" is off. Its name, color, kind and visibility are
+  edited like any waypoint's. Older lines here that speak of "the death
+  point" as its own row or mark describe the state before this.
+- (Decided 2026-11-13, L-332) Nothing else is special about a death's
+  waypoint: the cross stays whatever is edited, and the next death adds
+  its own without replacing one. Death layout restore does not depend on
+  waypoints: it belongs to the place of the death (32 blocks around it),
+  starts with the first pickup there and ends by leaving it, when
+  everything is back, or at the next death. It also ends when the dropped
+  items are gone (decided 2026-11-14, L-338): after 5 minutes in total of
+  the place being loaded around the player (48 blocks across, in its
+  dimension); time away does not count, since unloaded items do not age,
+  and the help text tells the player so. The rule behind both: a
+  death's records lean on what waypoints already do and never act in a way
+  the player did not intend. The name carries the local date and time of
+  the death ("Death point 11-13 21:05"), so the latest is told apart
+  (L-333).

@@ -326,7 +326,7 @@ struct Settings {
         bool saturationPreview = true; // What the held food would add
         bool hud = false;
         bool hudHidePaperDoll = true; // L-145: the game's paper doll is not drawn where the Info HUD covers it.
-        bool coordinates = true; // Defaults match DESIGN "HUD".
+        bool coordinates = true; // Defaults match docs/HUD.md.
         bool scaledCoordinates = false;
         bool dimension = false;
         bool biome = true;

@@ -242,7 +242,7 @@ inline constexpr bool keepsSavedData(std::string_view feature) {
     return feature == "savedData" || feature == "waypoints" || feature == "worldMap" || feature == "schematic";
 }
 // HUD features link to their element in the layout editor instead of listing
-// placement and look rows (DESIGN "HUD").
+// placement and look rows (docs/HUD.md).
 inline std::optional<HudElementId> layoutElement(std::string_view feature) {
     if (feature == "infoHud") return HudElementId::Info;
     if (feature == "targetInfo") return HudElementId::Target;

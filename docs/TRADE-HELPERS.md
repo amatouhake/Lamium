@@ -221,3 +221,16 @@ Keep the tested DLL/PDB/manifest as a separate local artifact, then reset
 `xmake f --repeat_trade_trace=n -y` and rebuild the normal DLL before commit
 or release. Deploy a trace artifact only for an explicitly requested test,
 with Minecraft closed, and compare source/deployed SHA-256 values.
+
+## Repeated villager trading (Decided 2026-10-12, trigger 2026-10-13, L-166)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+- Shift + right click on an unlocked trade row trades it as often as
+  allowed, default on. Left click and plain right click keep vanilla
+  behavior; any key or click stops a run.
+- Use vanilla's trade request and confirm each round from authoritative
+  inventory and offer state. Stop when sold out, inputs run out or output
+  cannot fit; never drop output to continue.
+- The maintainer chose this part on 2026-10-13 through its first required
+  runtime checkpoint. Favourites and remaining-use presentation remain
+  undecided. Research notes: [TRADE-HELPERS.md](TRADE-HELPERS.md).

@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace lamium::information {
-// Target card content (BACKLOG L-08, DESIGN "HUD"). Pure: decides which rows
+// Target card content (BACKLOG L-08, docs/HUD.md). Pure: decides which rows
 // the card shows and how ranged values are drawn; InfoHud draws them.
 enum class Meter { Hearts, Icons, Bar, Number };
 struct CardOptions {

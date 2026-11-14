@@ -244,3 +244,31 @@ One local world was verified to return its storage directory name as Level ID,
 unchanged across save/exit/reentry (see `VALIDATION-LOG.md`). Persistence integration
 uses the storage root to scope local IDs and must separately resolve remote
 identities; a world display name or server address alone is insufficient.
+
+## World overlays (Decided unless noted)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+- (Decided 2026-10-12) Against the vanilla block selection outline (the black
+  frame on the targeted block): position markers win, building guides yield.
+  Chunk Borders, Hitboxes and the schematic corners and save area draw over
+  it; Shapes and the light overlay let it show over them; the breaking
+  restriction leaves the targeted block out (unchanged). Depth.h holds the
+  pulls that set this order.
+
+- Block-grid shapes show the blocks that form the shape rather than smooth
+  wireframes. Wireframes are for chunk borders and hitboxes.
+- Shape style: faces (default, faint outline) or lines. Faces are unlit,
+  two-sided, inset 0.005 into their cell, and the whole shape is scaled 0.997
+  toward the eye to avoid z-fighting. Do not widen the inset.
+- Face material follows the graphics mode (Fancy: hologram pointer, two-sided;
+  Simple: lightning, one-sided, with a warning in the Shapes view; Vibrant
+  Visuals: full-strength lines). See `docs/OVERLAYS.md`.
+- Shape colors: cyan (default), yellow, pink, white. Drafts use a dashed cyan.
+- Meshes are rebuilt only when a shape changes, never per frame.
+- (Decided) Line overlays get per-batch colors so chunk borders and hitboxes
+  can follow Java's F3+G / F3+B color coding (see BACKLOG L-09 to L-11).
+- (Proposed) Overlays must not hide vanilla's block selection outline: skip or
+  dim geometry on the targeted block.
+- (Decided 2026-10-07) World-space overlays (chunk borders, hitboxes, light
+  levels, Shapes, schematic ghosts) stay visible with vanilla Hide HUD (F1).
+  Screen HUD elements and in-world waypoint markers hide with it (L-106, L-107).

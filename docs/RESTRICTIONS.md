@@ -134,3 +134,22 @@ whole-operation atomicity from a single callback or successful build.
 Restore a normal build with `xmake f --placement_trace=n` then `xmake`. The option
 is off by default; normal builds do not install these hooks. Do not distribute a
 trace build as a normal release. Runtime trace collection is still pending.
+
+## Edge Guard (Decided 2026-10-12, L-160/L-161)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+- Stops walking off edges like sneaking, without sneaking, also on servers:
+  the move input the server reads is guarded, not only the client's motion.
+- Stops with the box at least a margin over the block, also while sneaking
+  (a box that only touches an edge is no support on a server, and a server's
+  position can drift a few hundredths further out than the client's). The
+  margin is a setting under Edge Guard ("Stop inside the edge by"), 0.02 to
+  0.30 block in 0.01 steps, default 0.10: smaller reaches further for placing
+  blocks, larger is safer on servers (maintainer, 2026-10-12).
+  Reconfirmed 2026-10-13 after L-162: keep default 0.10 and the existing range
+  despite a successful BDS sneak-release check at 0.02; that one result does
+  not establish the smaller margin's safety for all server corrections.
+- A slab that would merge with the slab the player stands on and push them
+  out sideways (their center beside that cell) is not placed; with the
+  center over the cell the merge lifts the player and is allowed.
+- Slippery blocks slide further than the guard expects (known limit).

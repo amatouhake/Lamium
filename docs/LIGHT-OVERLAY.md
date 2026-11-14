@@ -70,3 +70,41 @@ This verifies rendering and immediate settings integration in that scene only.
 There was no independent comparison of the sampled values, light-source edit,
 dimension transition, or performance measurement. Those validation gates remain
 open. See [VALIDATION-LOG.md](VALIDATION-LOG.md) for the installed build identity.
+
+## Light overlay (Decided 2026-09-25, docs/demos/light-overlay.html)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+- Numbers plus color. Numbers lie on the floor, filled (not thin lines), and
+  turn by quarter turns so their top points where the viewer looks (the
+  detached camera's direction during Freelook/FreeCamera).
+- Color by spawning, as a faint tint over the whole floor: red = monsters
+  can spawn at any time (block light 0, stored sky light below 7), yellow =
+  only at night (block light 0, sky light 7 or more), none = block light 1+.
+  From minecraft.wiki (Bedrock); confirm in game.
+- Numbers show block light by default; the setting also offers sky light or
+  both (block above, sky below in blue).
+- Range (revised after the first in-game check): radius 16 by default, 4-64
+  in settings, the same distance up and down (flying high still shows the
+  ground). Whole chunk columns are shown. Users lower it if their machine
+  struggles.
+- Centered on the camera while it is detached (FreeCamera), like Chunk
+  Borders; digits turn with the camera's direction.
+- Number direction setting (2026-09-26): follow the view (default) or a
+  fixed north/east/south/west up. Following rebuilds nearest chunks first
+  within a per-frame budget, so turning at a large range does not stall; a
+  fixed direction never rebuilds on turning.
+- Like shape faces, the tint sits a hair (5 mm) above the floor and the
+  digits just above it (12 mm); the mesh is nudged toward the eye. The
+  flicker seen in Simple and Vibrant Visuals was never the height: (1) every
+  quad had both windings on already two-sided materials, so two copies at one
+  depth fought (reverse winding now only for Fancy), and (2) digit strokes
+  overlapped at their corners in one plane (digits are now non-overlapping
+  cells of a 3x5 bar grid), and (3) tint and digits a few millimetres apart
+  run out of depth precision far away. Tints, digits and Vibrant's line digits
+  are separate meshes nudged toward the eye by growing factors (.997, .995,
+  .993), so their depth gap grows with distance like Shapes' own nudge.
+- Drawn like Shapes: meshes kept per chunk, nudged toward the eye so they do
+  not flicker against the floor, and as faint as shape faces on the additive
+  material (Simple, Vibrant Visuals).
+- Reading is spread over frames: a bounded number of chunk columns per frame,
+  columns next to the viewer re-read every 0.25 s, the rest every 2 s.

@@ -67,3 +67,102 @@ rewritten. The F3 / F3+B / F3+G combination was confirmed in game on 2026-09-28.
 The maintainer confirmed the layout in game on 2026-09-27. Individual
 binding-editing and existing-custom-binding cases were not separately
 confirmed.
+
+## Resetting settings (Decided 2026-09-26, BACKLOG L-46)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+- No per-setting or per-feature reset (vanilla has none either). "All" has
+  "Reset all" (every setting, key bindings and HUD layout; not Shapes), each
+  category (Camera & view, Inventory, ...) has "Reset category" (its features'
+  settings and HUD placement; not key bindings), and Hotkeys has "Reset all
+  keys". They sit on the column-heading line and need a second press to apply.
+  The HUD layout editor keeps its per-element and all-element resets.
+- (Decided 2026-10-12, L-159) Hotkeys has "Find by key" on the same line,
+  right next to the key column, with "Reset all keys" to its left (the
+  destructive button further from the frequent one): press it, then a key,
+  mouse button or combination; the list shows only actions whose binding
+  uses every input pressed (Z finds Z and Ctrl+Z). The search field then
+  has focus and shows "Key: Z" as one unit: Backspace clears it, typing
+  starts a text search instead, Esc clears it, Down/Enter go to the results.
+  Typed text search does not match key names (one letter would match too
+  many names).
+- (Decided 2026-10-12, L-159, demos/binding-editor.html A) While a key is
+  being assigned, Clear / Reset / Cancel sit on the edited row, ending just
+  before its key cell; they take the place of that row's switch or stepper
+  until the edit ends. The footer keeps the action's description and the
+  "press, then release to assign | Esc: cancel" line.
+
+## Keys
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+- (Decided) There is no general default-key policy to design now; defaults are
+  decided per feature when needed. New actions ship unbound unless the
+  maintainer picks a key.
+- (Decided) Settings opens with `L` instead of F8 (BACKLOG L-01).
+- (Decided 2026-09-27) Debug View defaults to `F3`, Hitboxes to `F3+B`, and
+  Chunk Borders to `F3+G`, following Java's debug keys. NightVision defaults
+  unbound; its old `J` key had no feature mnemonic and `N` belongs to Bedrock
+  notifications. Existing saved bindings, including explicit unbinds, win over
+  these defaults.
+- (Decided) Lamium owns its key bindings; Minecraft's keyboard settings no
+  longer list Lamium actions (BACKLOG L-23).
+- (Decided, BACKLOG L-32) Ordinary action chords and modifier-like chords have
+  different matching semantics. Ordinary chords are order-sensitive and a
+  more-specific completed chord suppresses an overlapping shorter chord for
+  that activation. Example: with `B` and `F3+B`, pressing F3 then B fires
+  only `F3+B`; pressing B first may fire B immediately and is not delayed in
+  case another key arrives later.
+- (Decided, BACKLOG L-32) Modifier-like actions such as Zoom and Freelook allow
+  unrelated held gameplay inputs so they remain usable while moving. Matching
+  mode is an action property, not another advanced user option.
+- (Decided, BACKLOG L-32) Exact duplicate bindings are valid. The Hotkeys UI
+  warns that the actions share a binding, but all enabled actions assigned to
+  that exact chord fire together. This intentionally permits grouped toggles;
+  duplicate bindings are never silently prioritized or disabled.
+- (Decided, BACKLOG L-32) Hotkeys UI also warns about subset/superset overlaps.
+  Press/Hold/Toggle remains separate from chord matching semantics, and mouse /
+  keyboard / wheel combinations follow the same overlap rules.
+- (Implemented L-32, 2026-09-25) Details chosen while building it:
+  - A chord is stored in press order; its last input completes it. Actions
+    activate only on that completing press, never while keys merely stay held.
+  - Both kinds tolerate unrelated held inputs (walking with W still allows
+    another bound toggle). Ordinary chords differ by order and by yielding.
+  - The most specific completed chord wins for everyone, modifier-like actions
+    included (Ctrl+C beats C when Ctrl is held). A chord that yielded stays
+    silent until one of its keys is released: no late firing on key repeat.
+  - When a longer chord starts on top of an active ordinary one (B held, then
+    B + click), the shorter one is released and does not resume. Active
+    modifier-like actions (Zoom) keep running.
+  - Settings files written before L-32 stored chords sorted by code. They load
+    in the order modifiers, function keys, other keys, mouse, wheel (so a saved
+    F3+B stays F3 then B); new files carry `orderedBindings: true`.
+- (Decided 2026-09-25, after the L-32 playtest) Keys that begin a longer chord
+  act on release, like Java's F3. A Press/Toggle action whose chord is the
+  leading part of another bound chord (F3 with F3+B bound) does nothing on
+  press and fires when released, unless a longer chord containing it fired
+  while it was held. Unrelated keys (walking, other Lamium actions) do not
+  cancel it; focus loss, menus and text input drop it silently. This is
+  derived from the bindings, not a user option. Actions without such a longer
+  chord still fire on press, and Hold actions (Zoom, Freelook) always act on
+  press.
+- (Decided 2026-10-06, L-97) Colliding settings: when one option's value
+  defeats another (a fetch slot equal to Fake Offhand's target slot), every
+  row involved draws its stepper frame and value in the warning color, and
+  selecting one shows the reason in the warning color in the footer. Same
+  idea as hotkey conflicts, for values.
+- (Decided 2026-09-25, docs/demos/hotkey-conflicts.html) Conflict display.
+  Every key cell (Hotkeys and feature rows alike) draws related bindings with
+  warning-colored key caps: filled for the exact same chord, outlined for an
+  overlap. No text badge beside the keys (it looked like another key cap). Hovering
+  the key cell opens a tooltip below it (above when there is more room) that
+  lists every related binding grouped as same key / starts with this key /
+  longer chords containing it / shorter chords inside it / same keys in
+  another order, plus "fires on release" when that applies; overflow ends in
+  "N more". Keyboard navigation shows the same tooltip for the selected row
+  (keyboard users are not told to use the mouse); moving the mouse returns to
+  hover. The footer keeps only the feature/action description.
+- (Decided 2026-11-01, L-293 follow-up) A stepper value cut with "..." shows
+  whole in a tip right under the stepper (above when there is no room), with
+  the same look as the key-cell tip: on hover over the stepper, and for the
+  keyboard-selected row. A value that fits shows no tip. Chosen over a first
+  footer line because the tip is where the eye already is.

@@ -72,6 +72,32 @@ published for whoever wants it. There is no "first release" gate.
   grow. A step that is not usable yet stays out of the settings screen (or
   behind a build option) instead of being shown half-working.
 
+Experimental badge decisions (moved from DESIGN.md Components on 2026-11-14):
+
+- Freelook, Auto Attack, Auto Use, Light Level Overlay, Permanent Sneak and
+  Permanent Sprint have no Experimental badge after maintainer use. For
+  0.3.0 (decided 2026-10-22) FreeCamera, Hand Restock, Tool Protection, Auto
+  Elytra and Edge Guard lose it too after server use; their remaining limits
+  stay in the README's known issues (Edge Guard: rare drops under heavy lag
+  or a very small margin). Inventory transfer keeps it and is off for new
+  installs (a saved on stays on); none of the features reviewed for 0.3.0
+  keeps the badge while on by default. Radar and Waypoints remain on inside
+  the Experimental Map. Which features carry the badge now is the
+  `experimental` flag in `SettingsRows.h` (2026-11-14: Block highlight,
+  Inventory transfer, Death layout restore, Enchantment order, the Map
+  features and Schematics); when it comes off is BACKLOG "Release policy"
+  (decided 2026-11-13).
+- (Decided 2026-11-13) The badge comes off when a feature has been in two
+  or more releases, has no open bug item and no planned change of behavior
+  (BACKLOG "Release policy"). By that rule Hide effects,
+  Fake Offhand, Sneak placement, Slime chunks, Game language and Skip
+  server resource packs lose it. Kept: the maps, map marks and Schematics
+  (open bugs), Inventory transfer (L-299), Death layout restore (L-240),
+  Waypoints (L-328 changes the death point), Radar (its mob icons are to be
+  fixed, L-330), Block highlight and Enchantment order (too new). Connected Textures lost
+  it, got it back the same day over its glass pane edges (L-331) and lost
+  it again once that was fixed and confirmed.
+
 ## Current execution order
 
 Keep this section short: ordering lives here; status, contracts and open

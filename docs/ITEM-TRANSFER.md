@@ -267,3 +267,95 @@ counts 1/2/full, full or invalid destinations, and interruption by closing,
 focus loss, cursor item, text editing, rejection, timeout and changed source
 counts. Record checked screens in DESIGN and runtime evidence in
 VALIDATION-LOG/VALIDATION; build/tests alone do not close L-169.
+
+## Inventory transfer (Decided 2026-09-27, BACKLOG L-41)
+
+Moved from DESIGN.md on 2026-11-14 without changes; still the decided behavior.
+- The feature has one saved switch, off for new installs since 0.3.0 (a saved
+  on stays on), and an unbound toggle action usable in gameplay or an item
+  screen. Transfers act in screens
+  with a player inventory and another side; the inventory screen moves between
+  main inventory and hotbar. Four original child
+  switches enable ordinary wheel, Shift+wheel, Shift+left drag and Ctrl+left
+  drag independently; all default on. An off gesture passes through to vanilla.
+- Wheel up sends one item into storage; wheel down sends one item into the
+  player inventory, regardless of which side is hovered. When hovering the
+  source side, send from that slot through vanilla auto-place. When hovering
+  the destination side, bring one matching item from the highest source slot
+  into the hovered stack. A full hovered destination stack accepts nothing.
+- Shift+wheel sends one stack of the hovered item kind in the same direction.
+  Pick the highest eligible source slot first and leave the hovered source
+  stack for last. Use vanilla auto-place for the destination, including when
+  the hovered item is already on that side.
+- Shift+left drag transfers the entire stack from every passed slot to the
+  other side. Ctrl+left drag transfers one from each passed slot. Shift+right
+  drag leaves one when its new child switch is on; Ctrl+right stays vanilla.
+  A slot is visited once per entry during a drag. Ctrl takes precedence when both modifiers
+  are down. Unmodified clicks and drags stay vanilla.
+- Requests go out together (revised 2026-10-15, L-169; before: one at a
+  time, each confirmed before the next): every queued move, up to 64 per UI
+  tick, calls the screen's vanilla auto-place or explicit slot-transfer path
+  in the same tick, so vanilla sends them as one batch. Lamium then waits for
+  all of their responses and checks every touched slot against the
+  authoritative state once. Moves gathered meanwhile (drag, wheel) form the
+  next batch. Why: a resource pack's bulk move, traced on 2026-10-15, sent up
+  to 44 auto-place requests in one frame and the game answered them in one
+  response; waiting for each answer made Lamium's moves visibly one by one.
+- Each move's local prediction must still be a conserved move of its own
+  source; a move that predicts nothing (no room) is skipped. Close/focus
+  changes, a cursor item, text editing, feature disable, a rejected or
+  timed-out request, an unexpected prediction or a changed source stop the
+  operation and drop what is still queued; vanilla rolls back its rejected
+  predictions. Mouse release stops gathering slots but lets visited ones
+  finish.
+
+### Bulk moves and more screens (Decided 2026-10-15 for 0.2.2, L-169; smoke-tested, unreleased)
+
+- Ctrl + wheel moves every stack of the hovered kind, Ctrl + Shift + wheel
+  everything, in the plain wheel's direction. Alt + left click and Alt +
+  Shift + left click do the same from the clicked slot's side to the other.
+  "Everything" from the player inventory moves one section: the hotbar
+  when a hotbar slot is hovered, otherwise the main inventory without the
+  hotbar (maintainer 2026-10-15, after the batched build's check).
+- Shift + right drag moves all but one item from each passed slot.
+- Transfers work in every screen that holds items beside the player
+  inventory. Slots with roles get only what they accept; outputs are only
+  taken from.
+- Each new gesture has its own switch, on by default. Not chosen: Shift +
+  click on an empty slot with a cursor item, a wheel "all but one", drop
+  gestures, W/S moves.
+
+### Held stack and drops (Decided 2026-10-15, L-169; passed in a chest on `9da5d9d`)
+
+- Items on the cursor + Shift + left click on an empty slot: the held stack
+  goes into that slot, then every matching item from the other side moves
+  to that side; the hand ends empty. A slot that does not take the whole
+  stack stops after vanilla's own placement.
+- With the game's drop key held: Ctrl + left drag drops one item from each
+  passed slot, Shift + right drag all but one, Shift + left drag the whole
+  stack. The press of the drop key itself stays vanilla (one item, or the
+  stack with Ctrl, from the slot under the pointer).
+- Items on the cursor + Shift + left click outside the window: vanilla
+  drops the held stack, then every matching item in the player inventory,
+  hotbar included, is dropped too.
+- Each has its own switch, all on by default (maintainer's choice; the
+  agent had proposed matching drops off). Drops use vanilla's drop request
+  and are confirmed with the batch like moves. Not chosen for now: Shift +
+  double click, Ctrl + Shift + click, "fill existing stacks only".
+
+Vanilla baseline reported 2026-10-15: chest inputs behave as before;
+Shift + left click routes items by role in furnace, brewing stand and
+beacon screens. A furnace fuel slot also accepted an item that cannot
+burn. Native slot acceptance and routing, rather than a new Lamium fuel
+filter, remain the baseline. Brewing/beacon restrictions were not checked
+exhaustively. The e3f9276 diagnostic checkpoint
+confirmed unchanged vanilla behavior in a large chest, furnace, brewing
+stand and beacon and captured Alt and native handlers/orders; it is not
+validation of the new Lamium gestures. Native discovery follows those orders
+with same-player-side fallbacks removed. On c8c1f1b the maintainer confirmed
+the normal implementation checklist, including the five new gestures and
+switches and chest/furnace/brewing/beacon checks, all behaved as expected.
+Checked screens in that smoke checklist: chest, furnace, brewing stand and
+beacon. Individual combinations and the remaining screen families, servers
+and controlled failure cases were not separately reported. Details:
+[ITEM-TRANSFER.md](ITEM-TRANSFER.md).
