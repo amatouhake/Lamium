@@ -392,7 +392,7 @@ namespace {
 SavedData summary(std::filesystem::path const& config, servers::List const& list, std::string const& key, std::string const& current) {
     SavedData item;
     item.key = key;
-    item.name = servers::shownName(list.servers, key);
+    item.name = servers::shownName(key);
     for (auto const& e : list.servers) {
         if (e.key != key) continue;
         item.anyPort = item.anyPort || e.anyPort;
@@ -468,6 +468,8 @@ std::vector<SavedData> savedData() {
         }
         ignored.clear();
     }
+    // The data in use is listed even before anything is saved under it.
+    if (!current.empty() && safeKey(current)) keys.insert(current);
     for (auto const& key : keys) {
         SavedData item;
         item.key = key;
@@ -476,7 +478,7 @@ std::vector<SavedData> savedData() {
             auto found = std::find_if(list.worlds.begin(), list.worlds.end(), [&](servers::World const& w) { return w.key == key; });
             if (found != list.worlds.end()) item.name = found->name;
         } else {
-            item.name = servers::shownName(list.servers, key);
+            item.name = servers::shownName(key);
             for (auto const& e : list.servers) {
                 if (e.key != key) continue;
                 item.anyPort = item.anyPort || e.anyPort;
@@ -577,10 +579,6 @@ std::string dataName() {
     std::lock_guard lock(mutex);
     if (!joined.active || identity.local || !identity.key) return {};
     if (!identity.hasAddress()) return identity.levelName;
-    std::error_code ignored;
-    servers::List list;
-    try { if (std::filesystem::exists(configFolder() / "servers.json", ignored)) list = readServers(configFolder() / "servers.json"); }
-    catch (...) {}
-    return servers::shownName(list.servers, *identity.key);
+    return servers::shownName(*identity.key);
 }
 }

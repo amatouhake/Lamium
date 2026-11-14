@@ -244,18 +244,24 @@ void storage() {
               && sv::maybe(wide, "realm.example.net_30002", "realm.example.net_30001") == sv::Maybe::SameLevel,
               "another port is another server until the player says otherwise, and reads as a candidate");
         (void)sv::choose(wide, "elsewhere.example.net", "203.0.113.71", 30002, "r", held);
-        check(sv::setAnyPort(wide, "realm.example.net_30001", true) == 1 && wide.size() == 2
+        auto const before = wide;
+        check(sv::setAnyPort(wide, "realm.example.net_30001", true) == 1 && wide.size() == before.size()
               && sv::choose(wide, "realm.example.net", "203.0.113.71", 30002, "r", held) == "realm.example.net_30001"
               && sv::choose(wide, "realm.example.net", "203.0.113.72", 30003, "r", held) == "realm.example.net_30001"
-              && sv::maybe(wide, "realm.example.net_30001", "realm.example.net_30002") == sv::Maybe::UsedBefore
               && sv::choose(wide, "elsewhere.example.net", "203.0.113.71", 30002, "r", held) == "elsewhere.example.net_30002",
-              "with the switch on, the address's other ports give up their own data, which stays a candidate; other addresses keep theirs");
+              "with the switch on, every port of the address uses the data; other addresses keep theirs");
+        check(sv::setAnyPort(wide, "realm.example.net_30001", false) == 0
+              && sv::choose(wide, "realm.example.net", "203.0.113.71", 30002, "r", held) == "realm.example.net_30002",
+              "switching it off brings each port's own data back: no record was given up");
         check(sv::setAnyPort(wide, "nowhere_1", true) < 0, "no record, no switch");
-        std::erase_if(wide, [](sv::Entry const& e) { return e.key == "elsewhere.example.net_30002"; });
+        (void)sv::setAnyPort(wide, "realm.example.net_30001", true);
         check(sv::assign(wide, "realm.example.net", "203.0.113.72", 30004, "other", "elsewhere_30004")
               && sv::choose(wide, "realm.example.net", "203.0.113.72", 30004, "other", held) == "elsewhere_30004"
               && sv::choose(wide, "realm.example.net", "203.0.113.72", 30005, "r", held) == "realm.example.net_30001",
-              "a port given other data keeps it; the rest still follow the switch");
+              "a port given other data while the switch is on keeps it; the rest still follow the switch");
+        check(sv::setAnyPort(wide, "realm.example.net_30001", true) >= 2
+              && sv::choose(wide, "realm.example.net", "203.0.113.72", 30004, "other", held) == "realm.example.net_30001",
+              "setting the switch again takes every port once more");
         check(sv::choose(wide, "stranger.example.net", "203.0.113.72", 30006, "r", held) == "stranger.example.net_30006",
               "the switch is for the address it was set on");
         {
@@ -269,10 +275,17 @@ void storage() {
                   && std::find(keys.begin(), keys.end(), "realm.example.net_30001") == keys.end(),
                   "candidates are the keys passed over and those alike, never the one in use");
         }
-        check(sv::shownName(wide, "realm.example.net_30001") == "realm.example.net:30001"
-              && sv::shownName({}, "http___198.51.100.20_19133_19133") == "198.51.100.20:19133"
-              && sv::shownName({}, "play.example.net_19133") == "play.example.net:19133"
-              && sv::shownName({}, "world_41") == "world:41" , "a key reads as host and port");
+        // A data reads by its own key, whoever uses it now.
+        std::vector<sv::Entry> lent{{"play.example.net_19133", {"play.example.net"}, "198.51.100.20", 19134, "x", {}}};
+        check(sv::shownName("play.example.net_19133") == "play.example.net:19133"
+              && sv::shownName("http___198.51.100.20_19133_19133") == "198.51.100.20:19133"
+              && sv::shownName("https___featured.example.com_19132_19132") == "featured.example.com:19132"
+              && sv::shownName("world_41") == "world:41" && sv::shownName("odd") == "odd",
+              "a key reads as the host and port it was made from");
+        check(sv::maybe(lent, "play.example.net_19133", "http___play.example.net_19135_19135") == sv::Maybe::SameAddress
+              && sv::maybe(lent, "play.example.net_19133", "198.51.100.20_19140") == sv::Maybe::SameAddress
+              && sv::maybe(lent, "play.example.net_19133", "elsewhere.example.org_19133") == sv::Maybe::No,
+              "data no record points at is a candidate when its key names this server's address");
         sv::List all{wide, {{"world_41", "A friend's world"}}};
         check(lamium::map::decodeServers(lamium::map::encodeServers(all)) == all, "the server list survives saving");
         sv::forget(all, "realm.example.net_30001");

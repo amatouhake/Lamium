@@ -184,8 +184,11 @@ Do not infer game success from a build or unit-test result.
   words and all three buttons, "Do not show again" over a rejoin. Not
   looked at: docked panels. The map picture on the Saved data page passed
   on `5970a399` (VALIDATION-LOG 2026-11-14). Built only: the page staying
-  open when the window loses focus; the "Used by" lines, with the any-port
-  switch on and with one port given other data.
+  open when the window loses focus; the "Used by" lines; the any-port
+  switch as reworked (on: every port follows; off: each port's own data is
+  back; a port given other data while on keeps it); rows named by their
+  own data; the data in use listed while empty. The notice in docked
+  panels passed (Waypoints; Schematics' Placements, Verify and Materials).
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
@@ -475,7 +478,21 @@ Open, to agree before building:
    list the servers recorded as using it, as "host:port" or "host (any
    port)". The maintainer asked whether the any-port switch with one port
    given other data was easy to follow; it was not, because nothing showed
-   which port used what. The rule itself is unchanged.
+   which port used what.
+   Found by the maintainer on `58d3fda2` (2026-11-14): the data in use was
+   missing from the list. Two faults. (1) A row was named after a server
+   using the data, so data chosen at another port read as that port; a row
+   is now named by its own key (`shownName`), and who uses it is the "Used
+   by" list. (2) Switching any-port on erased the address's other records;
+   switched off again, such a port started fresh data, which had no file
+   yet and so no row. Now nothing is erased: the address's other records
+   are passed over while the switch is on and apply again when it is off;
+   a port given other data while it is on is marked (`Entry::pinned`) and
+   keeps it until the switch is set again. The data in use is listed even
+   with nothing saved, and data no record points at is a candidate when
+   its key names the joined server's address. Records erased by the
+   earlier build are not brought back: that data is in the list under its
+   own name, marked "Same address", to be chosen again.
 4. Whether folders that turn out to be one server are ever merged (waypoint
    lists could be; map tiles less obviously), or only chosen between.
 Still to see: a Realm; a server whose port changes between visits.

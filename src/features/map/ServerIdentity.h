@@ -71,9 +71,13 @@ struct Entry {
     // weighed again, and kept for the player to choose from later.
     std::vector<std::string> others;
     // The player's switch: this address uses this data whatever the port (a
-    // server whose port changes with every visit). A record of the exact
-    // port still comes first, so one port can be given other data.
+    // server whose port changes with every visit). The address's other
+    // records stay as they are and are passed over while it is on, so
+    // switching it off brings each port's own data back.
     bool anyPort = false;
+    // Chosen by the player for this port while the address's switch was on:
+    // this record is used all the same. Cleared when the switch is set again.
+    bool pinned = false;
     // The player's "do not show again": no notice of fuller data for this server on the tool screens.
     bool quiet = false;
     bool operator==(Entry const&) const = default;
@@ -111,6 +115,11 @@ inline bool reachedBy(Entry const& entry, std::string_view name, std::string_vie
     if (ip.empty() || entry.ip != ip) return false;
     return levelId.empty() || entry.levelId.empty() || entry.levelId == levelId;
 }
+// A record of the join's address, whatever its port: the same name, or neither has a name and the IP is the same.
+inline bool atAddress(Entry const& entry, std::string_view name, std::string_view ip) {
+    return name.empty() ? !ip.empty() && entry.hosts.empty() && entry.ip == ip
+                        : std::find(entry.hosts.begin(), entry.hosts.end(), name) != entry.hosts.end();
+}
 // The key for this join, recorded in `entries`. Empty when the connection
 // has no address.
 //
@@ -142,18 +151,15 @@ std::string choose(std::vector<Entry>& entries, std::string_view address, std::s
     };
     auto matched = std::find_if(entries.begin(), entries.end(), [&](Entry const& e) { return reachedBy(e, name, ip, port, levelId); });
     bool const known = matched != entries.end();
+    // An address the player gave one data for every port: that data, unless this port was given its own since.
+    if (!(known && (matched->pinned || matched->anyPort))) {
+        auto wide = std::find_if(entries.begin(), entries.end(), [&](Entry const& e) { return e.anyPort && atAddress(e, name, ip); });
+        if (wide != entries.end()) return wide->key;
+    }
     if (known && (name.empty() || std::find(matched->hosts.begin(), matched->hosts.end(), name) != matched->hosts.end())
         && (ip.empty() || matched->ip == ip)) {
         record(*matched);
         return matched->key;
-    }
-    // Not recorded at this port: an address the player gave one data for every port.
-    if (!known) {
-        auto wide = std::find_if(entries.begin(), entries.end(), [&](Entry const& e) {
-            return e.anyPort && (name.empty() ? !ip.empty() && e.hosts.empty() && e.ip == ip
-                                              : std::find(e.hosts.begin(), e.hosts.end(), name) != e.hosts.end());
-        });
-        if (wide != entries.end()) return wide->key;
     }
     // Something new: weigh the recorded key, if any, against names not recorded anywhere.
     auto recorded = [&](std::string const& key) {
@@ -219,6 +225,10 @@ inline bool assign(std::vector<Entry>& entries, std::string_view address, std::s
     if (!name.empty() && std::find(entry.hosts.begin(), entry.hosts.end(), name) == entry.hosts.end()) entry.hosts.push_back(name);
     if (!ip.empty()) entry.ip = std::string(ip);
     if (!levelId.empty()) entry.levelId = std::string(levelId);
+    // With the address's switch on, this port keeps what was chosen for it.
+    entry.pinned = std::any_of(entries.begin(), entries.end(), [&](Entry const& e) {
+        return e.anyPort && &e != &entry && atAddress(e, name, ip);
+    });
     return true;
 }
 // The data under `key` was deleted: its records go, and nothing points at it.
@@ -233,9 +243,9 @@ inline bool sameAddress(Entry const& a, Entry const& b) {
         if (std::find(b.hosts.begin(), b.hosts.end(), host) != b.hosts.end()) return true;
     return a.hosts.empty() && b.hosts.empty() && !a.ip.empty() && a.ip == b.ip;
 }
-// The any-port switch of the data under `key`. On: the address's other ports give up their own records, so
-// every port uses this data; what they used is remembered as passed over, and a port given other data
-// afterwards is recorded again and keeps it. Returns how many ports were released, below zero for no record.
+// The any-port switch of the data under `key`. On: every port of its address uses this data from now on,
+// ports given their own earlier included; their records stay, passed over, so switching it off brings each
+// port's data back. Returns how many other ports are recorded for the address, below zero for no record.
 inline int setAnyPort(std::vector<Entry>& entries, std::string const& key, bool on) {
     auto wide = std::find_if(entries.begin(), entries.end(), [&](Entry const& e) { return e.key == key; });
     if (wide == entries.end()) return -1;
@@ -243,40 +253,42 @@ inline int setAnyPort(std::vector<Entry>& entries, std::string const& key, bool 
         for (auto& e : entries) if (e.key == key) e.anyPort = false;
         return 0;
     }
-    Entry kept = *wide;
-    kept.anyPort = true;
-    entries.erase(wide);
-    int released = 0;
-    std::erase_if(entries, [&](Entry const& e) {
-        if (!sameAddress(e, kept) || e.port == kept.port) return false;
-        if (e.key != kept.key && std::find(kept.others.begin(), kept.others.end(), e.key) == kept.others.end()
-            && kept.others.size() < maxNames) kept.others.push_back(e.key);
-        ++released;
-        return true;
-    });
-    entries.push_back(std::move(kept));
-    return released;
+    wide->anyPort = true;
+    wide->pinned = false;
+    int others = 0;
+    for (auto& e : entries) {
+        if (&e == &*wide || !sameAddress(e, *wide) || e.port == wide->port) continue;
+        e.pinned = false;
+        e.anyPort = false;
+        ++others;
+    }
+    return others;
 }
-// How a key reads in the list: "host:port" from its record, else worked out
-// of the key itself (a name from before L-343).
-inline std::string shownName(std::vector<Entry> const& entries, std::string const& key) {
-    for (auto const& e : entries)
-        if (e.key == key && e.port > 0 && !(e.hosts.empty() && e.ip.empty()))
-            return (e.hosts.empty() ? e.ip : e.hosts.back()) + ":" + std::to_string(e.port);
+// The host and port a key was made from; port 0 when it does not end in one.
+struct Named { std::string host; int port = 0; };
+inline Named namedBy(std::string const& key) {
     std::string_view name = key;
     for (std::string_view scheme : {"https___", "http___"})
         if (name.starts_with(scheme)) {
             name.remove_prefix(scheme.size());
             // "host_port_port": the URL's own port and the one appended.
-            if (auto last = name.rfind('_'); last != std::string_view::npos)
+            if (auto last = name.rfind('_'); last != std::string_view::npos && last > 0)
                 if (auto before = name.rfind('_', last - 1); before != std::string_view::npos
                     && name.substr(before, last - before) == name.substr(last)) name = name.substr(0, last);
             break;
         }
     auto split = name.rfind('_');
-    if (split == std::string_view::npos || split + 1 >= name.size()
-        || name.substr(split + 1).find_first_not_of("0123456789") != std::string_view::npos) return std::string(name);
-    return std::string(name.substr(0, split)) + ":" + std::string(name.substr(split + 1));
+    if (split == std::string_view::npos || split + 1 >= name.size() || name.size() - split > 6
+        || name.substr(split + 1).find_first_not_of("0123456789") != std::string_view::npos) return {std::string(name), 0};
+    int port = 0;
+    for (char c : name.substr(split + 1)) port = port * 10 + (c - '0');
+    return {std::string(name.substr(0, split)), port};
+}
+// How a key reads in the list: the data's own name, "host:port", as the key was made. Which servers use it
+// now is another matter (a port given this data, an address's switch) and is listed apart.
+inline std::string shownName(std::string const& key) {
+    auto named = namedBy(key);
+    return named.port ? named.host + ":" + std::to_string(named.port) : named.host;
 }
 // Why another key may be this join's data, for the list's mark.
 enum class Maybe { No, UsedBefore, SameLevel, SameAddress };
@@ -292,6 +304,10 @@ inline Maybe maybe(std::vector<Entry> const& entries, std::string const& current
             if (std::find(mine->hosts.begin(), mine->hosts.end(), host) != mine->hosts.end()) return Maybe::SameAddress;
         if (mine->hosts.empty() && e.hosts.empty() && !mine->ip.empty() && e.ip == mine->ip) return Maybe::SameAddress;
     }
+    // Data no record points at (from before L-343, or left behind): its key still names an address.
+    auto named = namedBy(other);
+    if (named.port && (named.host == mine->ip || std::find(mine->hosts.begin(), mine->hosts.end(), named.host) != mine->hosts.end()))
+        return Maybe::SameAddress;
     return Maybe::No;
 }
 // The keys that may be the joined server's data, most likely first as far as the records tell.

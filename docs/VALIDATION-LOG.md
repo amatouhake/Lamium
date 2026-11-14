@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Saved data: docked notices, and the data in use missing (L-343, 2026-11-14)
+
+Build `58d3fda2`, DLL SHA-256
+`39b3ad84528ff12575c7199abf02fa7e630b091f8176729e1a834e535bdc219b`, 1.26.60.05 Dev
+instance, the maintainer: the notice shows in the docked panels of the Waypoints screen and of
+the Schematics screen's Placements, Verify and Materials tabs. Found, and the rest of the check
+stopped: the Saved data list had no row marked as in use, while the footer named the joined
+server's data; several rows read as one port. The "Used by" lines and the page staying open on
+focus loss were not looked at.
+
 ## Map picture on the Saved data page (L-343, 2026-11-14)
 
 Build `5970a399`, DLL SHA-256
