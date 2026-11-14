@@ -385,8 +385,10 @@ if (!w) {
         float ix = dx + size + 8, iw = dw - size - 8;
         label(context,ix,l.previewY+1,iw,std::format("{}, {}, {}", w->x, w->y, w->z));
         label(context,ix,l.previewY+12,iw,screen::dimensionName(w->dimension),palette::dim);
-        if (w->dimension == screen::playerDimension())
-            label(context,ix,l.previewY+23,iw,translated("waypoint.distance", screen::distanceTo(w->x, w->z)),palette::dim);
+        if (w->dimension == screen::playerDimension()) {
+            int const away = screen::distanceTo(w->x, w->z);
+            label(context,ix,l.previewY+23,iw,away == 0 ? translated("waypoint.here") : translated("waypoint.distance", away),palette::dim);
+        }
         if (w->temporary) paragraph(context,ix,l.previewY+36,iw,translated("waypoint.temporaryNote"),2,palette::faint);
         // Fields.
         for (int i = l.fieldFirst; i < l.fieldFirst + l.fieldVisible && i < static_cast<int>(map::waypointFields.size()); ++i) {

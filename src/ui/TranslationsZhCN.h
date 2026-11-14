@@ -402,6 +402,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"waypoint.columnDistance", "距离"},
     {"waypoint.meters", "{} 米"},
     {"waypoint.distance", "距离 {} 格"},
+    {"waypoint.here", "就在这里"},
     {"waypoint.moveHere", "移到此处"},
     {"waypoint.shown", "显示"},
     {"waypoint.color", "颜色"},
