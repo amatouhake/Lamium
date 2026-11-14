@@ -1819,6 +1819,8 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"magnification", "倍率: {}x"},
     {"zoomWideAngle", "廣角視野: {}"},
     {"help.camera.zoomWideAngle", "允許縮放滾輪低於 1x，以取得更寬的視野。"},
+    {"zoomResetOnRelease", "放開時恢復倍率: {}"},
+    {"help.camera.zoomResetOnRelease", "開：每次按下都從設定的倍率開始。關：滾輪調整的倍率會保留到下次按下。"},
     {"showMagnification", "顯示倍率: {}"},
     {"nightVision", "夜視: {}"},
     {"nightVisionEven", "均勻亮度"},

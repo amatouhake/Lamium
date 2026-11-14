@@ -10,7 +10,7 @@ change, no camera command, no server support. Freelook and FreeCamera are
 off and unbound by default.
 
 Settings (Camera): Zoom with Activation (Hold default), magnification (2x-50x),
-Wide-angle view (off), magnification HUD element (on); Freelook with
+Wide-angle view (off), Reset on release (off), magnification HUD element (on); Freelook with
 Activation and starting view (first, rear third default, front third);
 FreeCamera with Activation (Toggle default), flight speed (5-100 blocks/s,
 default 20), Position reference (Player default, World), Hide while flying
@@ -62,7 +62,9 @@ plus two unbound FreeCamera speed actions.
   the shown magnification above 1x and stays normal below it.
 - The wheel level is kept between presses until the world is left, including
   levels below 1x and across dimension changes. A level left at exactly 1x
-  is the exception: the next press starts from the setting.
+  is the exception: the next press starts from the setting. With Reset on
+  release on (L-325), every release returns to the setting, so each press
+  starts there.
 - The wheel changes the magnification only while the Zoom key is held. In
   Toggle mode the wheel keeps its normal job (hotbar) while Zoom is on;
   Toggle switches on at the press and off at the release of a plain tap, and
@@ -267,5 +269,4 @@ another path.
   [L-123 FreeCamera stretches the worn elytra on the inventory player model](backlog/L-123.md),
   [L-244 FreeCamera keeps the inside-a-block view after starting in a block](backlog/L-244.md),
   [L-257 FreeCamera culler reads blocks on the render thread](backlog/L-257.md),
-  [L-151 Show the player's body in first person](backlog/L-151.md),
-  [L-325 Zoom: return to the set magnification on release](backlog/L-325.md).
+  [L-151 Show the player's body in first person](backlog/L-151.md).

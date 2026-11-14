@@ -469,6 +469,7 @@ inline constexpr auto options = std::to_array<Option>({
         [](Settings& s, int direction) { s.camera.magnification += direction * .5f; s.normalize(); },
         NumericOption{2, 50, [](Settings& s, float v) { s.camera.magnification = v; }, .5f}},
     toggle<&Settings::camera, &Settings::Camera::zoomWideAngle>("camera.zoomWideAngle", "zoom", "zoomWideAngle"),
+    toggle<&Settings::camera, &Settings::Camera::zoomResetOnRelease>("camera.zoomResetOnRelease", "zoom", "zoomResetOnRelease"),
     toggle<&Settings::camera, &Settings::Camera::showMagnification>("camera.showMagnification", "zoom", "showMagnification"),
     toggle<&Settings::lighting, &Settings::Lighting::nightVision>("lighting.nightVision", "nightVision", "nightVision"),
     toggle<&Settings::lighting, &Settings::Lighting::nightVisionEven>("lighting.nightVisionEven", "nightVision", "nightVisionEven"),

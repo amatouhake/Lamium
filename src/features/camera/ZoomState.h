@@ -11,6 +11,7 @@ class ZoomState {
     std::atomic<float> initial{3.0f};
     std::atomic<double> last{-1.0};
     std::atomic<bool> wide{false};
+    std::atomic<bool> resetOnRelease{false};
     // The latest unzoomed FOV, so the wheel knows where maxFov is reached.
     mutable std::atomic<float> lastBase{0.0f};
 public:
@@ -34,6 +35,8 @@ public:
         if (target.load() < 1.0f) target = 1.0f;
         if (shown.load() < 1.0f) shown = 1.0f;
     }
+    // L-325: every press starts from the setting instead of the last wheel level.
+    void resetEachRelease(bool on) { resetOnRelease = on; }
     void configure(float value) {
         float next = std::isfinite(value) ? std::clamp(value, minLevel, maxLevel) : 3.0f;
         // Other camera settings (FreeCamera speed keys) save mid-zoom; only a
@@ -55,6 +58,7 @@ public:
     }
     void release() {
         active = false;
+        if (resetOnRelease.load()) target = initial.load();
         shown = target.load();
     }
     void reset() { release(); target = initial.load(); shown = initial.load(); }

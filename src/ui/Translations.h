@@ -1854,6 +1854,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"magnification", "Magnification: {}x", "倍率: {}倍"},
     {"zoomWideAngle", "Wide-angle view: {}", "広角表示: {}"},
     {"help.camera.zoomWideAngle", "Allow the zoom wheel to go below 1x for a wider view.", "ホイールで 1x より小さい倍率まで縮小できます。"},
+    {"zoomResetOnRelease", "Reset on release: {}", "離すと倍率を戻す: {}"},
+    {"help.camera.zoomResetOnRelease", "On: every press starts from the set magnification. Off: the wheel's magnification is kept for the next press.", "オン: 押すたびに設定した倍率から始まります。オフ: ホイールで変えた倍率を次に押したときも使います。"},
     {"showMagnification", "Show magnification: {}", "倍率を表示: {}"},
     {"nightVision", "Night Vision: {}", "暗視: {}"},
     {"nightVisionEven", "Even brightness", "明るさを均一にする"},

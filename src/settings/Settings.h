@@ -63,6 +63,7 @@ struct Settings {
         float freeCameraSpeed = 20.f;
         float magnification = 3.0f;
         bool zoomWideAngle = false; // L-140: the wheel may go below 1x.
+        bool zoomResetOnRelease = false; // L-325: each press starts from magnification.
         bool showMagnification = true;
         bool operator==(Camera const&) const = default;
     } camera;
