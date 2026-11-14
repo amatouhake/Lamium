@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Binding capture cell (2026-11-15)
+
+Build `9c6f504d`, DLL SHA-256
+`f49f266ea14e1d01f8e4f2151833af20adfbb3ca9822c179d7e2aba790c41e81`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. While a binding is captured the cell has no green
+fill; "Press keys..." lines up with "Unbound" in the row above with a blinking caret, held
+keys draw as caps followed by the caret, and the caps do not move when the chord is kept.
+
 ## Calculator notice opacity; L-347 done (2026-11-15)
 
 Build `cb90d3f5`, DLL SHA-256
