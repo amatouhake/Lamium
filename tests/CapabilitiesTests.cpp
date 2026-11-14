@@ -145,6 +145,10 @@ void capabilitiesTests() {
     fresh.fail(Id::HideParticles,Reason::HookUnavailable);
     selected = lamium::paused::affected(settings,[&](Id id) { return fresh.status(id); });
     check(selected.size() == 1 && selected[0] == "hideEffects", "non-version hook failures also reach the shared notices");
+    lamium::Settings anvil;
+    check(!lamium::paused::requested(Id::EnchantOrder, anvil)
+          && (anvil.inventory.enchantOrderAnvil = true, lamium::paused::requested(Id::EnchantOrder, anvil)),
+        "the anvil's enchantment order list counts as using Enchantment order, so the join notice can name it (L-339)");
     Notice notice;
     check(notice.poll(1,1) && !notice.changed(""), "pending initialization stays quiet on join");
     check(notice.poll(1,2) && notice.changed("terrain failed"), "a meaningful failure after joining notifies");
