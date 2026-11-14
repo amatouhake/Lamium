@@ -57,8 +57,8 @@ is fixed to the screen edges and is not an element.
   warnings, no automatic avoidance and, for now, no element list.
 - Selecting an element opens a small toolbar next to it (below, or above
   when there is no room): snap-to 3x3, scale, background, shadow (a "name:
-  value" button like background), for info lines a "Lines" popover (switch +
-  up/down per line), then a divider and Reset. The toolbar stays put while
+  value" button like background), a "Contents" popover where the element
+  has content switches (below), then a divider and Reset. The toolbar stays put while
   only the look changes and re-anchors after a move or when the element grows
   over it. Why: a side panel that follows the selection jumps across the
   screen.
@@ -66,7 +66,17 @@ is fixed to the screen edges and is not an element.
   square handles drag in 5 % steps. The anchor point stays put, so handles
   sit only on the corners away from it: one for a corner anchor, two for an
   edge, four for the center.
-- Popovers (snap-to, lines) never cover their toolbar: they open on the side
+- Contents (L-336): one shared popover, a row per thing the element shows,
+  each with the settings row's own switch (same saved field; the settings
+  rows stay). Info lines: every line, switch plus up/down, the only list
+  that reorders. Target: icon, ID, other details. Durability: offhand,
+  armor, elytra, ammo. Inventory and Used slots HUD: the hotbar. Look
+  choices (Durability's look, Target's meters) and behavior settings stay
+  in the settings table only; Target's health, armor and growth have no off
+  state, so no switch. The element is measured every frame, so it takes its
+  new size at once; the toolbar keeps its place unless the element grows
+  over it.
+- Popovers (snap-to, contents) never cover their toolbar: they open on the side
   that fits and scroll when there is not enough room.
 - Resets (decided 2026-11-11): the selected element's Reset applies at once,
   like a binding row's Reset (the Info HUD's also restores its line order);
@@ -129,7 +139,7 @@ is fixed to the screen edges and is not an element.
   (speed, horizontal, vertical, sprinting), surroundings (light, weather,
   time, moon, difficulty), then FPS, frame interval, ping and real time. A
   saved order is kept; a line added later goes after its default neighbor.
-  The HUD order changes only in the editor's Lines list.
+  The HUD order changes only in the editor's Contents list.
 - **Target** (look-at card): icon, name, identifier line, then rows chosen
   by independent settings rows: icon, ID, health (hearts / bar / number),
   armor (icons / bar / number), growth (bar / number), other details. The
@@ -287,7 +297,9 @@ choices. The hotbar is not part of it.
 - `src/ui/HudElement.h` (pure): anchor/offset model, drop-to-anchor, snap,
   scale steps (`clampHudScale`), default placements. `HudEditorLayout.h`
   (pure): editor geometry. `HudEditor.cpp/.h`: the editor screen.
-  `HudLines.h` (pure): line height and per-line bands.
+  `HudContents.h` (pure): which switches each element's Contents popover
+  lists and its row layout, drawn by `drawContentsPopover`
+  (`ListViewWidgets.h`). `HudLines.h` (pure): line height and per-line bands.
   `Toast.h`: toast timing and grouping.
 - `src/features/information/`: `InfoLines.h` / `InfoHud.cpp` (Info lines),
   `TargetCard.h`, `TargetRows.h`, `TargetPick.h`, `TargetInfo.cpp`,
@@ -318,5 +330,5 @@ choices. The hotbar is not part of it.
 
 - Coverage: [VALIDATION.md "Information and overlays"](VALIDATION.md#information-and-overlays).
 - Open work:
-  [L-336 Durability HUD: choose its items in HUD layout](backlog/L-336.md),
+  [L-336 HUD layout: choose each element's contents in the editor](backlog/L-336.md),
   [L-184 Inspect ghost block data and schematic container contents](backlog/L-184.md).
