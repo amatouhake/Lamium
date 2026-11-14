@@ -184,7 +184,8 @@ Do not infer game success from a build or unit-test result.
   words and all three buttons, "Do not show again" over a rejoin. Not
   looked at: docked panels. The map picture on the Saved data page passed
   on `5970a399` (VALIDATION-LOG 2026-11-14). Built only: the page staying
-  open when the window loses focus.
+  open when the window loses focus; the "Used by" lines, with the any-port
+  switch on and with one port given other data.
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
@@ -470,6 +471,11 @@ Open, to agree before building:
    newest file stands in for it. A region is read per frame
    (`ui/SavedDataThumb`), so a large map does not stall the page; data
    without an Overworld map says "No map".
+   "Used by", built 2026-11-14 and not looked at: a server data's details
+   list the servers recorded as using it, as "host:port" or "host (any
+   port)". The maintainer asked whether the any-port switch with one port
+   given other data was easy to follow; it was not, because nothing showed
+   which port used what. The rule itself is unchanged.
 4. Whether folders that turn out to be one server are ever merged (waypoint
    lists could be; map tiles less obviously), or only chosen between.
 Still to see: a Realm; a server whose port changes between visits.

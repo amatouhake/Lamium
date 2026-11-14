@@ -262,6 +262,21 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         row(translated("savedData.map", sizeText(d->mapBytes, d->mapMore)));
         row(translated("savedData.used", dateText(d->used)));
         if (!d->levelId.empty() && d->kind == Data::Kind::Server) row(translated("savedData.levelId", d->levelId), palette::faint);
+        // Which servers use it: the any-port switch and a port given other data read off the page (L-343).
+        if (d->kind == Data::Kind::Server) {
+            if (d->users.empty()) row(translated("savedData.usersNone"));
+            else {
+                row(translated("savedData.users"));
+                constexpr size_t shownUsers = 3;
+                for (size_t i = 0; i < d->users.size() && i < shownUsers; ++i) {
+                    auto const& user = d->users[i];
+                    row("  " + (user.anyPort ? translated("savedData.userAny", user.host) : user.host + ":" + std::to_string(user.port)),
+                        palette::text);
+                }
+                if (d->users.size() > shownUsers)
+                    row("  " + translated("savedData.more", static_cast<int>(d->users.size() - shownUsers)), palette::faint);
+            }
+        }
 
         std::string note = d->inUse ? translated("savedData.note.inUse")
             : d->kind != Data::Kind::Server ? translated("savedData.note.world")

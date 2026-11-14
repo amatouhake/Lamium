@@ -31,6 +31,9 @@ struct SavedData {
     bool inUse = false;      // The joined world's data.
     servers::Maybe maybe = servers::Maybe::No;
     bool anyPort = false;
+    // The servers recorded as using this data: which address, and whether at one port or at any.
+    struct User { std::string host; int port = 0; bool anyPort = false; };
+    std::vector<User> users;
     bool canUse = false, canDelete = false;
 };
 inline constexpr size_t savedMarks = 5, savedDots = 64, savedDataLimit = 300;

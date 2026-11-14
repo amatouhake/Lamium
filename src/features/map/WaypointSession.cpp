@@ -398,6 +398,7 @@ SavedData summary(std::filesystem::path const& config, servers::List const& list
         item.anyPort = item.anyPort || e.anyPort;
         if (item.levelId.empty()) item.levelId = e.levelId;
         if (item.host.empty()) item.host = e.hosts.empty() ? e.ip : e.hosts.back();
+        item.users.push_back({e.hosts.empty() ? e.ip : e.hosts.back(), e.port, e.anyPort});
     }
     item.maybe = servers::maybe(list.servers, current, key);
     measure(item, config / waypointFolder / (key + ".json"), config / schematicFolder / (key + ".json"),
@@ -481,6 +482,7 @@ std::vector<SavedData> savedData() {
                 item.anyPort = item.anyPort || e.anyPort;
                 if (item.levelId.empty()) item.levelId = e.levelId;
                 if (item.host.empty()) item.host = e.hosts.empty() ? e.ip : e.hosts.back();
+                item.users.push_back({e.hosts.empty() ? e.ip : e.hosts.back(), e.port, e.anyPort});
             }
             item.maybe = servers::maybe(list.servers, current, key);
         }
