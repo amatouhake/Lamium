@@ -61,19 +61,21 @@ void draw(MinecraftUIRenderContext& context, float x, float y, float width, Kind
         else drawButton(context, b.slot->x, b.slot->y, b.w, buttonHeight, b.text, hovered);
     }
 }
+std::optional<Result> result;
+std::optional<Result> takeResult() { return std::exchange(result, std::nullopt); }
 Pressed press(float x, float y) {
     // Only the notice of this frame or the last: a screen that stopped drawing it takes its clicks back.
     if (drawn.at < 0 || now() - drawn.at > .5 || x < drawn.x || x >= drawn.x + drawn.w || y < drawn.y || y >= drawn.y + drawn.h)
         return Pressed::Outside;
     if (over(drawn.use, x, y)) {
         bool const used = map::waypoints::useData(drawn.key);
-        showMessageToast(translated(used ? "savedData.switched" : "savedData.failed", drawn.name));
+        result = Result{translated(used ? "savedData.switched" : "savedData.failed", drawn.name), !used};
         drawn.at = -1;
         return Pressed::Inside;
     }
     if (over(drawn.never, x, y)) {
         map::waypoints::quietFullerData();
-        showMessageToast(translated("savedData.noticeQuiet"));
+        result = Result{translated("savedData.noticeQuiet"), false};
         drawn.at = -1;
         return Pressed::Inside;
     }

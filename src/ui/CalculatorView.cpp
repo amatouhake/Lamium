@@ -77,10 +77,10 @@ constexpr std::array<std::array<Key, 6>, 7> grid{{
 }};
 Rgb inkOf(Kind kind) {
     switch (kind) {
-    case Kind::Operator: return Rgb{.84f, .95f, .79f};
-    case Kind::Unit: return Rgb{1.f, .85f, .54f};
-    case Kind::Variable: return Rgb{.66f, .83f, 1.f};
-    case Kind::Function: return Rgb{.89f, .77f, 1.f};
+    case Kind::Operator: return palette::syntaxOperator;
+    case Kind::Unit: return palette::syntaxUnit;
+    case Kind::Variable: return palette::syntaxVariable;
+    case Kind::Function: return palette::syntaxFunction;
     default: return palette::text;
     }
 }
@@ -117,7 +117,7 @@ std::string chests(double value) {
 void copy(std::string const& text) {
     if (text.empty() || !copyText(text)) return;
     note = translated("calc.copied", text);
-    noteUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds(1500);
+    noteUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds(static_cast<int>(noticeSeconds * 1000));
 }
 std::string errorText() {
     switch (result.error) {
@@ -459,11 +459,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         label(context, tx + 4, tipY + 1 + boxTextInset() - 1, w - 8, text);
     }
     if (!note.empty() && std::chrono::steady_clock::now() < noteUntil) {
-        float w = std::min(l.width, textWidth(context, note) + 12);
-        float nx = l.left + (l.width - w) / 2, ny = std::min(l.top + l.height + 4, size.y - 14);
-        fill(context, nx, ny, w, 12, palette::panel, opacity::floating);
-        frame(context, nx, ny, w, 12, palette::accent);
-        label(context, nx, ny + 1 + boxTextInset() - 1, w, note, palette::text, Align::Center);
+        drawNotice(context, l.left + l.width / 2, std::min(l.top + l.height + 4, size.y - 14), l.width, note);
     }
     context.flushText(0, std::nullopt);
 }

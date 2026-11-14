@@ -9,6 +9,7 @@
 #include "ui/NumberInput.h"
 #include "ui/SettingsTable.h"
 #include "ui/ShapesLayout.h"
+#include "ui/Widgets.h"
 #include <optional>
 #include <string>
 #include <string_view>
@@ -20,7 +21,11 @@ IClientInstance* client();
 // The footer message every view shows instead of its description: a failed
 // save, a refused value. Empty when there is none.
 std::string const& message();
-void setMessage(std::string text);
+void setMessage(std::string text); // a problem: drawn in warning color
+// A passing result (copied, cleared, switched): drawn in text color where
+// setMessage's would be (DESIGN "Screens": notices inside a screen).
+void setInfo(std::string text);
+Rgb messageColor();
 void clearMessage();
 // A range warning goes again once the user moves to another tab, row or
 // field (L-81).

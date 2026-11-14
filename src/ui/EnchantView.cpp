@@ -154,7 +154,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);
     float const textLeft = t.left + pad, footWidth = t.width - 2 * pad;
     std::string status = screen::message();
-    Rgb statusColor = palette::warning;
+    Rgb statusColor = screen::messageColor();
     if (status.empty()) {
         statusColor = palette::text;
         status = enchant_chooser::status(v, hover);

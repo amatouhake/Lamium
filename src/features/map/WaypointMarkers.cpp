@@ -171,7 +171,7 @@ void draw(MinecraftUIRenderContext& context, float width, float height, Settings
         }
         auto distance = std::format("{} m", static_cast<long long>(std::lround(m.distance)));
         float w = ui::textWidthScaled(context, distance, textScale);
-        ui::labelScaled(context, x - w / 2, below, w + 2, distance, textScale, ui::Rgb{.84f, .86f, .85f}, ui::Align::Left, true);
+        ui::labelScaled(context, x - w / 2, below, w + 2, distance, textScale, ui::palette::dim, ui::Align::Left, true);
     }
     context.flushText(0, std::nullopt);
 }

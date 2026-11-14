@@ -284,7 +284,7 @@ void setSlider(settings::Option const& option, float fraction) {
 void pressMapCache() {
     if (!std::exchange(mapCacheArmed, true)) return;
     mapCacheArmed = false;
-    if (map::store::clear()) showMessageToast(translated("mapCacheCleared"));
+    if (map::store::clear()) screen::setInfo(translated("mapCacheCleared"));
 }
 // Open buttons on tool rows (L-231): the 24 px state cell is too narrow for
 // the word, so the button borrows the gap and a little of the name cell.
@@ -850,7 +850,8 @@ void drawValueTip(MinecraftUIRenderContext& context, SettingsTable const& t, Set
     label(context,x+pad,y+pad,width-2*pad,std::move(text));
 }
 void copyVersion_() {
-    showMessageToast(translated(copyText(runningVersionLine()) ? "version.copied" : "version.copyFailed"));
+    if (copyText(runningVersionLine())) screen::setInfo(translated("version.copied"));
+    else screen::setMessage(translated("version.copyFailed"));
 }
 void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {
     auto t = SettingsTable::fit(size.x, size.y, static_cast<int>(rows.size()), first, nav::count);
@@ -1135,10 +1136,10 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         drawButton(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,translated("cancelShort"),over);
         float after = t.footerButtonX(1);
         label(context,after,t.footerButtonY()+1,t.left+t.width-SettingsTable::pad-after,
-            screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
+            screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : screen::messageColor());
     } else if (capturing_) {
         label(context,textLeft,t.footerTop+3,textWidthAvailable,
-            screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
+            screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : screen::messageColor());
         if (auto note = gameClickNote(capture.value()); !note.empty())
             label(context,textLeft,t.footerTop+16,textWidthAvailable,note,palette::warning);
         label(context,textLeft,t.footerTop+30,textWidthAvailable,captureText(*capturing_),palette::faint);
@@ -1155,7 +1156,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 scrollDrag == ScrollDrag::Description || t.onDescriptionScrollbar(pointer.x,pointer.y,helpLineCount));
             if (screen::message().empty()) hint = translated("description.hint") + " | " + hint;
         }
-        label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
+        label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : screen::messageColor());
     }
     int conflictRow = -1;
     if (!capturing_ && !findingKey)

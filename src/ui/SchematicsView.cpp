@@ -536,6 +536,7 @@ void handleSchematicClick(float x, float y, bool right) {
     if (auto pressed = right ? data_notice::Pressed::Outside : data_notice::press(x, y); pressed != data_notice::Pressed::Outside) {
         if (pressed == data_notice::Pressed::Open) screen::showSavedData();
         else refresh(true);
+        if (auto done = data_notice::takeResult()) done->warns ? screen::setMessage(done->text) : screen::setInfo(done->text);
         return;
     }
     // Too short for the body: only the sidebar, or docked Close and Expand, are drawn.
@@ -1329,9 +1330,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     float textLeft = l.left + ShapesLayout::pad, available = l.width - 2 * ShapesLayout::pad;
     bool shortFooter = l.docked;
     std::string text = !screen::message().empty() ? screen::message() : schematicDescription();
-    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),screen::message().empty() ? palette::text : palette::warning);
+    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),screen::message().empty() ? palette::text : screen::messageColor());
     else {
-        paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : palette::warning);
+        paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : screen::messageColor());
         bool menuUnbound = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::SchematicMenu).empty();
         label(context,textLeft,l.footerTop+30,available,translated(editingSchematicField >= 0 ? "shape.numberHint"
             : menuUnbound ? "schematic.menuKeyHint" : "schematic.screenHint"),palette::faint);

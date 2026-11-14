@@ -62,7 +62,7 @@ namespace lamium::map::world {
 namespace {
 using ui::Rgb;
 constexpr float rowHeight = 15, bottomHeight = 13, buttonHeight = 11;
-constexpr Rgb ground{11 / 255.f, 12 / 255.f, 13 / 255.f};
+constexpr Rgb ground = ui::palette::mapGround;
 
 double now() {
     using namespace std::chrono;
@@ -210,6 +210,10 @@ struct State {
     ui::NumberInput coordinate;
     glm::vec2 namePosition{};
     float listTop = 0, listBottom = 0;
+    // The side list's scroll bar (L-347): rows and visible rows as last drawn, its column, held.
+    int listRows = 0, listVisible = 0;
+    float listBarX = 0;
+    bool listDragging = false;
     float arrowAngle = NAN;
     bool arrowUploaded = false;
     float cameraArrowAngle = NAN;
@@ -366,6 +370,17 @@ void showDimension(int dimension) {
     }
     state.broad = dimension == 1;
     center();
+}
+bool onListBar(float x, float y) {
+    return state.listRows > state.listVisible && x >= state.listBarX - 5 && x < state.listBarX + 3
+        && y >= state.listTop && y < state.listBottom;
+}
+// Pressing or dragging the bar puts the first row under the pointer, as the other lists do.
+int listFirstAt(float y) {
+    float track = state.listBottom - state.listTop;
+    if (state.listRows <= state.listVisible || !(track > 0)) return 0;
+    float t = std::clamp((y - state.listTop) / track, 0.0f, 1.0f);
+    return static_cast<int>(std::lround(t * static_cast<float>(state.listRows - state.listVisible)));
 }
 void say(std::string text) {
     state.notice = std::move(text);
@@ -1705,6 +1720,16 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     state.listFirst = std::clamp(state.listFirst, 0, std::max(0, rows - maxRows));
     state.listTop = y;
     state.listBottom = y + maxRows * rowH;
+    state.listRows = rows;
+    state.listVisible = maxRows;
+    state.listBarX = x0 + w - 3;
+    if (state.listDragging) state.listFirst = listFirstAt(static_cast<float>(state.pointer.y));
+    if (rows > maxRows) {
+        float track = maxRows * rowH, thumb = std::max(8.0f, track * maxRows / rows);
+        float thumbY = y + (track - thumb) * state.listFirst / (rows - maxRows);
+        ui::drawScrollbar(context, state.listBarX, y, track, thumbY, thumb,
+            state.listDragging || onListBar(static_cast<float>(state.pointer.x), static_cast<float>(state.pointer.y)));
+    }
     if (!rows) {
         constexpr std::array<std::string_view, 3> emptyTexts{"worldMap.noWaypoints", "worldMap.noPlacements", "worldMap.noShapes"};
         ui::label(context, x, y + 2, inner, ui::translated(emptyTexts[static_cast<size_t>(kind)]), ui::palette::faint);
@@ -1989,6 +2014,12 @@ Request press(float x, float y, bool right) {
     if (auto pressed = right ? ui::data_notice::Pressed::Outside : ui::data_notice::press(x, y);
         pressed != ui::data_notice::Pressed::Outside) {
         if (pressed == ui::data_notice::Pressed::Open) request.kind = Request::Kind::OpenSavedData;
+        if (auto done = ui::data_notice::takeResult()) say(done->text);
+        return request;
+    }
+    if (!right && onListBar(x, y)) {
+        state.listDragging = true;
+        state.listFirst = listFirstAt(y);
         return request;
     }
     auto const* hit = hitAt(x, y);
@@ -2065,6 +2096,7 @@ Request press(float x, float y, bool right) {
     return request;
 }
 void release() {
+    state.listDragging = false;
     // A click on a marker (no drag) selects it in the side panel.
     if (state.drag && !state.drag->moved && state.drag->marker) {
         setPanelOpen(true);
@@ -2162,7 +2194,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     if (!shown && !pending && empty) {
         auto text = ui::translated("worldMap.empty");
         float w = ui::textWidth(context, text) + 12;
-        ui::fill(context, (size.x - w) / 2, size.y / 2 - 7, w, 14, ui::palette::panel, .8f);
+        ui::fill(context, (size.x - w) / 2, size.y / 2 - 7, w, 14, ui::palette::panel, ui::opacity::floating);
         ui::label(context, (size.x - w) / 2, size.y / 2 - 4, w, text, ui::palette::dim, ui::Align::Center);
     }
     drawBars(context, size, pending, settings.worldMap);
@@ -2180,11 +2212,8 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     if (!state.cavePanel && !state.infoPanel && ui::data_notice::height(ui::data_notice::Kind::Map) > 0)
         ui::data_notice::draw(context, 6, state.top + 6, std::min(300.0f, size.x - state.panelWidth - 12),
             ui::data_notice::Kind::Map, pointer, true);
-    if (!state.notice.empty() && now() - state.noticeAt < 2.6) {
-        float w = ui::textWidth(context, state.notice) + 12, y = size.y - bottomHeight - 16;
-        ui::fill(context, (size.x - w) / 2, y, w, 12, ui::palette::panel, .85f);
-        ui::label(context, (size.x - w) / 2, y + 2, w, state.notice, ui::palette::text, ui::Align::Center);
-    }
+    if (!state.notice.empty() && now() - state.noticeAt < ui::noticeSeconds)
+        ui::drawNotice(context, size.x / 2, size.y - bottomHeight - 16, size.x - 8, state.notice);
     context.flushText(0, std::nullopt);
 }
 }

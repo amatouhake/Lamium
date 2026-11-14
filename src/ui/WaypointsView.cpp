@@ -188,6 +188,7 @@ void handleWaypointClick(float x, float y, bool right) {
     if (auto pressed = right ? data_notice::Pressed::Outside : data_notice::press(x, y); pressed != data_notice::Pressed::Outside) {
         if (pressed == data_notice::Pressed::Open) screen::showSavedData();
         else refresh();
+        if (auto done = data_notice::takeResult()) done->warns ? screen::setMessage(done->text) : screen::setInfo(done->text);
         return;
     }
     if (!right && screen::pressScrollbar(waypointsDisplayed, waypointListFirst, x, y)) return;
@@ -430,9 +431,9 @@ if (!w) {
     float textLeft = l.left + ShapesLayout::pad, available = l.width - 2 * ShapesLayout::pad;
     bool shortFooter = l.docked;
     std::string text = !screen::message().empty() ? screen::message() : waypointDescription();
-    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),screen::message().empty() ? palette::text : palette::warning);
+    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),screen::message().empty() ? palette::text : screen::messageColor());
     else {
-        paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : palette::warning);
+        paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : screen::messageColor());
         label(context,textLeft,l.footerTop+30,available,translated(editingWaypointName || editingWaypointField >= 0
             ? "shape.numberHint" : "waypoint.screenHint"),palette::faint);
     }

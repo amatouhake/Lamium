@@ -10,7 +10,7 @@
 //   (accent fill), destructive (press twice, armed in red).
 // - A control that must look or behave unlike the one here is a design
 //   question for the maintainer, not a local variant.
-// Details: docs/DESIGN.md "Visual language". What is left over: BACKLOG L-342.
+// Details: docs/DESIGN.md "Visual language".
 #include <string>
 #include <string_view>
 #include <vector>
@@ -30,6 +30,13 @@ inline constexpr Rgb panel{.063f,.067f,.075f}, white{1,1,1}, text{1,1,1}, dim{.7
     shade{0,0,0}, // black scrims and outlines; each use sets its own opacity
     mismatch{1.f,.35f,.3f}, // a schematic block that differs from the world: not destructive, so not danger
     cornerOne{1.f,.4f,.35f}, cornerTwo{.45f,.65f,1.f}; // schematic area corners, as their marks in the world
+// Parts of the switch and slider drawing only: the off edge and the knob's grip line.
+inline constexpr Rgb controlEdge{.18f,.18f,.19f}, gripOn{.71f,.71f,.72f}, gripOff{.6f,.61f,.62f};
+// The calculator's expression colors: operators, units, variables, functions.
+inline constexpr Rgb syntaxOperator{.84f,.95f,.79f}, syntaxUnit{1.f,.85f,.54f}, syntaxVariable{.66f,.83f,1.f}, syntaxFunction{.89f,.77f,1.f};
+// The shapes' four colors, also the anvil's left (cyan) and right (pink) stacks.
+inline constexpr Rgb shapeCyan{.25f,.82f,.88f}, shapePink{.94f,.5f,.75f}, shapeYellow{.95f,.8f,.24f}, shapeWhite{.95f,.95f,.95f};
+inline constexpr Rgb mapGround{11 / 255.f, 12 / 255.f, 13 / 255.f}; // the world map where nothing is recorded
 // Sampled from the game: they only match what the game draws, no Lamium meaning.
 namespace vanilla {
 inline constexpr Rgb heart{.878f,.314f,.235f}, heartEmpty{.227f,.122f,.11f},

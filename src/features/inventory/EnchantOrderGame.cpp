@@ -578,7 +578,7 @@ using Icons = std::vector<inspection::render::IconAt>;
 void paintMarks(MinecraftUIRenderContext& context) {
     using namespace lamium::ui;
     using Tone = ListState::Tone;
-    constexpr Rgb cyan{.25f, .82f, .88f}, pink{.94f, .5f, .75f}; // as in ShapesView
+    constexpr Rgb cyan = palette::shapeCyan, pink = palette::shapePink;
     constexpr float tint = .5f;
     for (auto const& mark : list.marks) {
         auto const& b = mark.box;

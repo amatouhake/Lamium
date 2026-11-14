@@ -101,6 +101,7 @@ bool seen = false;
 std::chrono::steady_clock::time_point openedAt;
 bool closing = false;
 std::string error;
+bool errorWarns = true;
 
 // Navigation items (SettingsNavigation.h).
 constexpr int navCount = nav::count, hotkeysNav = nav::hotkeys, shapesNav = nav::shapes, waypointsNav = nav::waypoints,
@@ -784,7 +785,7 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
     std::vector<std::pair<std::string, Rgb>> lines;
     if (!list && schematicMenu->category == menu::moveCategory) {
         static constexpr std::array<Rgb, 5> colors{palette::accent, palette::cornerOne, palette::cornerTwo, palette::white,
-            Rgb{.55f, .55f, .58f}};
+            palette::faint};
         auto t = static_cast<size_t>(schematic::actions::target());
         lines.push_back({translated("schematic.menu.target", translated(targets[t])), colors[t]});
     }
@@ -1299,7 +1300,9 @@ void render(ll::event::UIRenderEvent& event) {
 namespace screen {
 IClientInstance* client() { return ui::client; }
 std::string const& message() { return error; }
-void setMessage(std::string text) { error = std::move(text); }
+void setMessage(std::string text) { error = std::move(text); errorWarns = true; }
+void setInfo(std::string text) { error = std::move(text); errorWarns = false; }
+Rgb messageColor() { return errorWarns ? palette::warning : palette::text; }
 void clearMessage() { error.clear(); }
 void warnRange(std::string text) { ui::warnRange(std::move(text)); }
 NumberInput& number() { return numberInput; }

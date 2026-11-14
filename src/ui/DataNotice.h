@@ -17,4 +17,7 @@ void draw(MinecraftUIRenderContext&, float x, float y, float width, Kind kind, g
 // done here; opening the Saved data page is the caller's, which knows how to leave its own screen.
 enum class Pressed { Outside, Inside, Open };
 Pressed press(float x, float y);
+// What the last press did, for the screen's own status line (DESIGN "Screens"); taken once.
+struct Result { std::string text; bool warns = false; };
+std::optional<Result> takeResult();
 }

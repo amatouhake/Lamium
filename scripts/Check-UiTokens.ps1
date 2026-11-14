@@ -1,7 +1,7 @@
 # Keeps screens on the shared widgets (AGENTS.md rule 7, DESIGN.md "Tokens"):
 # a color literal (`Rgb{...}`, `Rgb name{...}`) or a hand-drawn button fill
 # (`palette::keyFill`) outside the shared widget files may not grow. Existing
-# ones are counted per file in UiTokenBaseline.txt (L-341 removes them); a
+# ones are counted per file in UiTokenBaseline.txt (L-341 and L-347 removed them); a
 # file over its count fails, and so does one under it, so the baseline shrinks
 # with the code. -Update rewrites the baseline after a removal.
 param(
@@ -12,7 +12,8 @@ $ErrorActionPreference = 'Stop'
 $projectDirectory = Split-Path $PSScriptRoot -Parent
 $shared = @('src/ui/Widgets.h', 'src/ui/Widgets.cpp', 'src/ui/ListViewWidgets.h', 'src/ui/ListViewWidgets.cpp')
 $patterns = [ordered]@{
-    color  = '\bRgb(\s+\w+)?\s*\{'
+    # A literal starts with a number; Rgb{c.r, c.g, c.b} converts a game or waypoint color and is not one.
+    color  = '\bRgb(\s+\w+)?\s*\{\s*[-.\d]'
     button = '\bpalette::keyFill\b'
 }
 $counts = [ordered]@{}
@@ -28,7 +29,7 @@ foreach ($folder in 'src/ui', 'src/features', 'src/overlay') {
     }
 }
 if ($Update) {
-    $lines = @('# Check-UiTokens.ps1 baseline: kind, file, count. Only ever goes down (L-341).')
+    $lines = @('# Check-UiTokens.ps1 baseline: kind, file, count. Only ever goes down.')
     $lines += foreach ($key in $counts.Keys) { "$key $($counts[$key])" }
     Set-Content -LiteralPath $Baseline -Value $lines -Encoding utf8NoBOM
     Write-Host "UI token baseline written: $($counts.Count) entries."

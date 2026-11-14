@@ -66,6 +66,11 @@ void drawDockedFrame(MinecraftUIRenderContext& context, ShapesLayout const& l, s
 // Content goes inside with 4 units of padding, white unless it says otherwise.
 inline constexpr float tipPad = 4;
 void drawTipBox(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool warns = false);
+// A passing notice for a screen without a status line (world map,
+// calculator; DESIGN "Screens"): one line in a floating box centered on
+// `centerX` with its top at `y`, shown for noticeSeconds. Failure: warning.
+inline constexpr double noticeSeconds = 2.5;
+void drawNotice(MinecraftUIRenderContext& context, float centerX, float y, float maxWidth, std::string const& text, bool warns = false);
 // A row of color swatches in the editor's value column; the chosen one framed.
 template<class ColorOf>
 void drawSwatchRow(MinecraftUIRenderContext& context, ShapesLayout const& l, float y, int count, int chosen, ColorOf colorOf) {

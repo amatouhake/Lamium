@@ -98,8 +98,7 @@ tests          Pure unit tests (no game types). tests-native: SDK-type tests
    copied from another screen; no color literals (`Check-UiTokens.ps1`). A
    control that must look or behave unlike the shared one (another button
    look, color meaning, Esc or focus rule) is a Design question: stop and
-   ask. The few literals left are counted in `scripts/UiTokenBaseline.txt`
-   (listed in L-342); they are not the pattern.
+   ask.
 8. **Game dependencies**: a new hook gets an entry in
    [docs/GAME-UPDATES.md](docs/GAME-UPDATES.md) (CI checks it). A path that
    writes game memory or relies on an unverifiable meaning asks

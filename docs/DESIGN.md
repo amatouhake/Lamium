@@ -92,6 +92,10 @@ ones. Lamium's own colors carry one meaning each, everywhere:
 | `mismatch` | Red text for a schematic block that differs from the world (not destructive, so not `danger`) |
 | `cornerOne`, `cornerTwo` | A schematic area's two corners, as their marks in the world |
 | `shade` | Black scrims, field backs and outlines; each use sets its opacity |
+| `controlEdge`, `gripOn`, `gripOff` | Switch and slider parts only |
+| `syntaxOperator`, `syntaxUnit`, `syntaxVariable`, `syntaxFunction` | The calculator's expression colors |
+| `shapeCyan`, `shapePink`, `shapeYellow`, `shapeWhite` | The shapes' colors; the anvil's left (cyan) and right (pink) stacks |
+| `mapGround` | The world map where nothing is recorded |
 
 Colors sampled from the game (`heart`, `heartEmpty`, `armor`, `curse`,
 `tooltipBorder` for the container preview's frame) live in
@@ -113,8 +117,7 @@ layout editor keep GUI units.
 
 Every control comes from the shared widgets (`Widgets.h`, `ListViewWidgets.h`).
 A control a screen needs and they lack is added there, and specified here in
-the same commit. A screen never draws its own variant. The few color
-literals left are counted in `scripts/UiTokenBaseline.txt` (BACKLOG L-342).
+the same commit. A screen never draws its own variant.
 
 - **Switch** for every on/off, knob position carrying the state. No "ON/OFF"
   words, no check boxes.
@@ -190,6 +193,12 @@ literals left are counted in `scripts/UiTokenBaseline.txt` (BACKLOG L-342).
   disarms, nothing else. The tool views (Shapes, Waypoints, Schematics)
   share their header (`drawToolHeader`) and, docked, their frame
   (`drawDockedFrame`).
+- **Passing notices**: a toast is for what happens in the world (keys, the
+  schematic menu). Inside a Lamium screen a result goes to that screen's
+  status line (the settings footer, the tool views' footers, the anvil
+  panel's status lines) with `screen::setInfo` (white) or `setMessage`
+  (`warning`); a screen without one (world map, calculator) shows it in the
+  shared notice box above its bottom edge (`drawNotice`, 2.5 s).
 - **Footer**: always two description lines; longer text scrolls there (wheel
   or its scrollbar). No "read more", expansion or help panel. White says
   what a setting is (a number's help includes its range); faint says how to

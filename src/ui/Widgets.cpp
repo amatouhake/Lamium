@@ -294,11 +294,11 @@ bool runtimeImage(MinecraftUIRenderContext& context, ResourceLocation const& tex
 }
 void toggleSwitch(MinecraftUIRenderContext& context, float x, float y, bool on) {
     fill(context,x,y,switchWidth,switchHeight,on ? palette::accentDeep : palette::off);
-    frame(context,x,y,switchWidth,switchHeight,on ? palette::accent : Rgb{.18f,.18f,.19f});
+    frame(context,x,y,switchWidth,switchHeight,on ? palette::accent : palette::controlEdge);
     float knob = switchHeight - 2;
     float knobX = on ? x + switchWidth - 1 - knob : x + 1;
     fill(context,knobX,y+1,knob,knob,on ? palette::knobOn : palette::knobOff);
-    fill(context,knobX,y+knob-1,knob,2,on ? Rgb{.71f,.71f,.72f} : Rgb{.6f,.61f,.62f});
+    fill(context,knobX,y+knob-1,knob,2,on ? palette::gripOn : palette::gripOff);
 }
 void slider(MinecraftUIRenderContext& context, float x, float y, float width, float fraction, bool active) {
     if (width < sliderKnobWidth + 2) return;
@@ -308,11 +308,11 @@ void slider(MinecraftUIRenderContext& context, float x, float y, float width, fl
     float split = knobX + sliderKnobWidth / 2;
     fill(context,x,trackY,split-x,sliderTrackHeight,palette::accentDeep);
     fill(context,split,trackY,x+width-split,sliderTrackHeight,palette::off);
-    frame(context,x,trackY,width,sliderTrackHeight,Rgb{.18f,.18f,.19f});
+    frame(context,x,trackY,width,sliderTrackHeight,palette::controlEdge);
     fill(context,x+1,trackY,split-x-1,1,palette::accent);
     fill(context,knobX,y,sliderKnobWidth,sliderKnobHeight,active ? palette::white : palette::knobOn);
-    fill(context,knobX,y+sliderKnobHeight-2,sliderKnobWidth,2,Rgb{.6f,.61f,.62f});
-    frame(context,knobX,y,sliderKnobWidth,sliderKnobHeight,Rgb{.18f,.18f,.19f});
+    fill(context,knobX,y+sliderKnobHeight-2,sliderKnobWidth,2,palette::gripOff);
+    frame(context,knobX,y,sliderKnobWidth,sliderKnobHeight,palette::controlEdge);
 }
 void chevron(MinecraftUIRenderContext& context, float x, float y, bool expanded, Rgb value) {
     // A 5-unit triangle: pointing right when collapsed, down when expanded.

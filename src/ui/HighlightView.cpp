@@ -339,8 +339,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);
     float textLeft = t.left + SettingsTable::pad, footWidth = t.width - 2 * SettingsTable::pad;
     std::string status = screen::message();
-    Rgb statusColor = palette::warning;
-    if (status.empty() && !on) status = translated("highlight.offNote");
+    Rgb statusColor = screen::messageColor();
+    if (status.empty() && !on) { status = translated("highlight.offNote"); statusColor = palette::warning; }
     if (status.empty()) {
         statusColor = palette::text;
         std::string hovered = hover.zone == Zone::Result && hover.index >= 0 ? catalog[results[static_cast<size_t>(hover.index)]].name

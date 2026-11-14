@@ -402,10 +402,10 @@ shape::Preview const* previewFor(overlay::ShapeDefinition const& definition) {
 }
 Rgb shapeRgb(overlay::ShapeColor color) {
     switch (color) {
-    case overlay::ShapeColor::Yellow: return {.95f,.8f,.24f};
-    case overlay::ShapeColor::Pink: return {.94f,.5f,.75f};
-    case overlay::ShapeColor::White: return {.95f,.95f,.95f};
-    default: return {.25f,.82f,.88f};
+    case overlay::ShapeColor::Yellow: return palette::shapeYellow;
+    case overlay::ShapeColor::Pink: return palette::shapePink;
+    case overlay::ShapeColor::White: return palette::shapeWhite;
+    default: return palette::shapeCyan;
     }
 }
 void drawTypeIcon(MinecraftUIRenderContext& context, float x, float y, int type, Rgb color) {
@@ -586,9 +586,10 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     bool simple = screen::client() && screen::client()->getOptions().getGraphicsMode() == GraphicsMode::Simple;
     bool warn = !screen::message().empty() || simple;
     std::string text = !screen::message().empty() ? screen::message() : simple && shortFooter ? translated("shape.simpleWarning") : shapeDescription(definition);
-    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),warn ? palette::warning : palette::text);
+    if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),
+        !screen::message().empty() ? screen::messageColor() : warn ? palette::warning : palette::text);
     else {
-        paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : palette::warning);
+        paragraph(context,textLeft,l.footerTop+3,available,text,2,screen::message().empty() ? palette::text : screen::messageColor());
         label(context,textLeft,l.footerTop+30,available,translated(simple ? "shape.simpleWarning"
             : editingShapeName || editingShapeField >= 0 ? "shape.numberHint" : "shape.hint"),simple ? palette::warning : palette::faint);
     }
