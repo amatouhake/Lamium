@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## HUD item icons use the slot's frame (2026-11-14)
+
+Build `df963770`, DLL SHA-256
+`470285386e3c37850ae73d25ac763970f3cac2bce29f6d90cbba6ec306ea7fbd`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. A crossbow loaded with an arrow or a firework shows that
+texture in Durability HUD; its icon changes by stage while it is drawn; a loaded crossbow in
+the offhand or the inventory shows loaded in Durability HUD and Inventory HUD; glints as
+before. Found: while a crossbow in the main hand is drawn, another crossbow in the inventory
+(loaded or not) shows the same pull in Inventory HUD.
+
 ## Durability HUD glint (2026-11-14)
 
 Build `fc83b806`, DLL SHA-256

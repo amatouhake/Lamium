@@ -454,9 +454,18 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
 }
 // The icon frame an inventory slot would draw: a crossbow being drawn, loaded with an arrow or a firework, a
 // bow's pull, a compass. Asked of the player's own stack, not a copy: the pull belongs to the item in use.
-int iconFrame(LocalPlayer* player, ItemStack const& stack) {
-    if (!player || !stack.mItem) return 0;
-    try { return stack.mItem->getAnimationFrameFor(player, false, &stack, true); } catch (...) { return 0; }
+// The game answers with the pull of whatever the player is using, for any stack asked about: a second crossbow
+// in the inventory was drawn along with the one in the hand (2026-11-14). So while an item is in use, a stack
+// that is not the held one keeps the frame it had before.
+struct KeptFrame { int item = 0, frame = 0; };
+int iconFrame(LocalPlayer* player, ItemStack const& stack, bool held, KeptFrame& kept) {
+    if (!player || !stack.mItem) { kept = {}; return 0; }
+    int const item = stack.getId();
+    try {
+        if (!held && player->getItemUseDuration() > 0) return kept.item == item ? kept.frame : 0;
+        kept = {item, stack.mItem->getAnimationFrameFor(player, false, &stack, true)};
+    } catch (...) { kept = {item, 0}; }
+    return kept.frame;
 }
 // ---- Durability HUD (L-61) ----
 std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& context, float width, float height,
@@ -477,7 +486,8 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         samples[i] = {true, source.getDamageValue(), static_cast<int>(source.mItem->getMaxDamage()),
                       dur::weaponOf(source.getTypeName())};
         // A loaded crossbow shows what it holds in its own texture, as in a slot (the small mark of L-150 is gone).
-        frames[i] = iconFrame(player, source);
+        static std::array<KeptFrame, 6> kept;
+        frames[i] = iconFrame(player, source, slot == dur::Slot::MainHand, kept[i]);
     };
     dur::AmmoCounts ammo;
     if (player) {
@@ -1333,7 +1343,8 @@ std::optional<InventorySample> sampleInventory(IClientInstance& client, bool pre
             sample.stacks[i].mShowPickUp = false;
             sample.stacks[i].mWasPickedUp = false;
             sample.occupied[i] = true;
-            sample.frames[i] = iconFrame(player, stack);
+            static std::array<KeptFrame, inventoryHud::slotCount> kept;
+            sample.frames[i] = iconFrame(player, stack, player->mInventory && slot == player->mInventory->mSelected, kept[i]);
         }
     }
     if (preview && std::none_of(sample.occupied.begin(), sample.occupied.end(), [](bool b) { return b; })) {

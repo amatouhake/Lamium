@@ -161,11 +161,11 @@ Do not infer game success from a build or unit-test result.
 - Durability HUD's glint on enchanted items passed on `fc83b806`
   (VALIDATION-LOG 2026-11-14), also faint on a hidden element.
 - Durability HUD and Inventory HUD draw an item with the frame a slot would
-  use (2026-11-14, built only): a crossbow being drawn, loaded with an arrow
-  or with a firework; a bow's pull; a compass or clock. The small mark of
-  the loaded item on the crossbow (L-150) is gone. Look at each crossbow
-  state in the main hand and the offhand, and at a crossbow lying in the
-  Inventory HUD.
+  use: the crossbow's states passed on `df963770` (VALIDATION-LOG
+  2026-11-14). Built only: a stack that is not the held one keeps its frame
+  while another item is used (a second crossbow in the inventory followed
+  the pull of the one in the hand). Not looked at: a bow's pull, a compass
+  or clock.
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
