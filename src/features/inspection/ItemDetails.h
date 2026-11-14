@@ -66,6 +66,13 @@ inline std::string plain(std::string_view text) {
     }
     return out;
 }
+// Whether the game's tooltip already tells an effect (Creative): looked for below the first line, which is the
+// item's name and may be one the player gave it ("Speed stew").
+inline bool toldBelowName(std::string_view tooltip, std::string_view effect) {
+    auto const shown = plain(tooltip);
+    auto const firstBreak = shown.find('\n');
+    return firstBreak != std::string::npos && shown.find(effect, firstBreak + 1) != std::string::npos;
+}
 // An effect's lines take the game's colours: red for a harmful one, blue otherwise, white when it cannot be told.
 inline constexpr char effectTint(std::optional<bool> harmful) { return !harmful ? 'f' : *harmful ? 'c' : '9'; }
 // What an effect does to an attribute, as the game words it: "-0.5 Attack Damage", "+20% Speed". Only the first

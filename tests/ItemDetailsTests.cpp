@@ -32,6 +32,9 @@ void itemDetailsTests() {
                   && modifierLine(3, 0, "Armor") == "+3 Armor",
               "an attribute change is an amount or a share, signed");
         check(plain("\xC2\xA7" "cRed\xC2\xA7") == "Red" && plain("plain") == "plain", "codes are dropped, a cut one too");
+        check(!toldBelowName("Speed stew", "Speed") && !toldBelowName("\xC2\xA7" "oSpeed stew\n\xC2\xA7" "7Food", "Speed")
+                  && toldBelowName("Suspicious Stew\n\xC2\xA7" "9Speed (0:07)", "Speed (0:07)"),
+              "a stew's effect counts as told only below the name, which the player may have chosen (L-339)");
     }
     {
         Item coal{.id = "minecraft:coal", .burnTicks = 1600};

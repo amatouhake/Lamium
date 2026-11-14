@@ -152,7 +152,7 @@ LL_TYPE_INSTANCE_HOOK(DurabilityHovertext, ll::memory::HookPriority::Normal, Ite
         bool const reads = versionSensitiveAllowed(capabilities::Id::ItemDetails);
         if (reads && settings.itemDetailsStew && mItem->mFullName->getString() == "minecraft:suspicious_stew") {
             auto const effect = details::plain(mItem->buildEffectDescriptionName(*this, true));
-            if (!effect.empty() && details::plain(text.mUnredactedString).find(effect) == std::string::npos) {
+            if (!effect.empty() && !details::toldBelowName(text.mUnredactedString, effect)) {
                 auto const& info = effectInfo(effect);
                 auto const tint = std::string("\n\u00a7") + details::effectTint(info.harmful);
                 text += tint + effect;
