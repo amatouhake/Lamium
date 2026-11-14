@@ -18,7 +18,9 @@ inline ShapesLayout enchantColumn(float left, float width, float rowsTop, float 
     l.rowsTop = rowsTop;
     l.fieldVisible = 1; // ShapesLayout::usable(), which its scrollbar asks
     l.listCount = std::max(0, count);
-    l.listVisible = std::max(0, static_cast<int>((bottom - rowsTop - 2) / ShapesLayout::rowHeight));
+    // A little slack: a panel sliding at fractional positions made an exact fit come out a hair short, so the
+    // last row hid and a scroll bar showed while the anvil window rose.
+    l.listVisible = std::max(0, static_cast<int>((bottom - rowsTop - 2) / ShapesLayout::rowHeight + .01f));
     l.listFirst = SettingsTable::clampFirst(first, l.listCount, l.listVisible);
     return l;
 }

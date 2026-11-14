@@ -509,7 +509,6 @@ struct ListState {
     std::chrono::steady_clock::time_point at{};
     float left = 0, top = 0, width = 0, height = 0;
     float opacity = 1;
-    bool moving = false; // the window slides: positions from the frame before would lag behind it
     float pointerX = -1, pointerY = -1;
     bool free = false;    // nothing on the pointer: a press beside the window would drop it
     bool planned = false; // there are steps to list; else one line says there is no plan
@@ -690,10 +689,7 @@ void paintList(MinecraftUIRenderContext& context, HeldIcon const* held = nullptr
 // the panels are above the screen's dark layer and under the tooltip. (Painting
 // from the slot renderer instead broke the game's item drawing.)
 void beforeTooltip(MinecraftUIRenderContext& context) {
-    // While the window slides, painting here used the frame before's positions on some frames and the
-    // current ones (after the screen) on others: the panels flickered at their edges as they rose.
-    if (!insideAnvil || paintedInside || !list.ready || list.moving || std::chrono::steady_clock::now() - list.at > std::chrono::milliseconds(250))
-        return;
+    if (!insideAnvil || paintedInside || !list.ready || std::chrono::steady_clock::now() - list.at > std::chrono::milliseconds(250)) return;
     paintedInside = true;
     paintList(context);
 }
@@ -961,7 +957,6 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     list.at = clock;
     list.left = left; list.top = top; list.width = width; list.height = height;
     list.opacity = opacity;
-    list.moving = slide > .5f;
     list.pointerX = view.mPointerLocationPrevious->x; list.pointerY = view.mPointerLocationPrevious->y;
     list.free = heldItem == nullptr;
     list.planned = planned;

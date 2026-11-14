@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Anvil panel flicker traced; capture warning stays (2026-11-15)
+
+Build `7e6e6993`, DLL SHA-256
+`96ed1924f337acfc900c17bf65d6d0e6b4851acb1f5bd1053f78f361a5df88f3`, 1.26.60.05 Dev
+instance, the maintainer: the capture footer's bare-click warning stays after the button is
+released (confirmed). The flicker did not change; screenshots showed what it was: while the
+window rose, the chooser's list hid its last row (Curse of Vanishing) and showed a scroll
+bar, though everything fits at rest. The row area is exactly nine rows tall and fractional
+positions made the count come out 8.999 (fixed in the next build, not yet seen; the paint
+path change in this build was not the cause and is undone).
+
 ## A bare left-click binding no longer stops breaking (2026-11-15)
 
 Build `9ddb6409`, the maintainer: confirmed. With Sneak placement still bound to left click

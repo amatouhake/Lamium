@@ -293,6 +293,13 @@ void enchantLayoutTests() {
     check(layout.slotIndex() == 21 && layout.hit(layout.kindX(21) + 2, layout.kindY(21) + 2).zone == Zone::None
               && !EnchantLayout::fitPanel(10, 20, 100, 240, 20, true, true, 12, 0).usable(),
           "the planner screen has no slot cell; a panel too narrow is not laid out");
+    bool steady = true;
+    for (int i = 0; i < 4000 && steady; ++i) {
+        float const top = 3.0f + i * .137f; // a window sliding by fractions of a unit
+        auto column = lamium::ui::enchantColumn(10, 150, top, top + 2 + 9 * lamium::ui::ShapesLayout::rowHeight, 9, 0);
+        steady = column.listVisible == 9;
+    }
+    check(steady, "a column exactly nine rows tall shows nine rows at any fractional position (no scroll bar while sliding)");
 }
 void enchantPlanTests() {
     enchantOrderTests();
