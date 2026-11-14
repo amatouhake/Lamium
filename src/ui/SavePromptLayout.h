@@ -31,7 +31,7 @@ struct SavePromptLayout {
     float cancelX() const { return left + width - pad - buttonWidth; }
     float saveX() const { return cancelX() - 4 - buttonWidth; }
     float clearX() const { return left + pad; }
-    enum class Part { None, Field, Minus, Plus, Entities, Save, Cancel, Clear };
+    enum class Part { None, Field, Minus, Plus, Value, Entities, Save, Cancel, Clear };
     struct Hit { Part part = Part::None; int corner = -1, axis = -1; };
     Hit hit(float x, float y) const {
         auto in = [&](float bx, float by, float bw, float bh) { return x >= bx && x < bx + bw && y >= by && y < by + bh; };
@@ -39,6 +39,7 @@ struct SavePromptLayout {
             for (int axis = 0; axis < 3; ++axis) {
                 if (in(cellX(axis), cornerY(corner), step, rowHeight)) return {Part::Minus, corner, axis};
                 if (in(cellX(axis) + cellWidth() - step, cornerY(corner), step, rowHeight)) return {Part::Plus, corner, axis};
+                if (in(cellX(axis) + step, cornerY(corner), cellWidth() - 2 * step, rowHeight)) return {Part::Value, corner, axis};
             }
         if (in(left + pad, fieldY(), inner(), fieldHeight)) return {Part::Field};
         if (in(left + pad, entitiesY() - 1, inner(), rowHeight)) return {Part::Entities};

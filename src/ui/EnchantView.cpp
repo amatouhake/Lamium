@@ -26,6 +26,15 @@ namespace game = inventory::enchantOrder::game;
 bool open = false;
 int rowFirst = 0, stepFirst = 0;
 enum class Drag { None, Rows, Steps } dragging = Drag::None;
+int typingRow = -1;  // a level being typed (digits), -1 when none
+NumberInput typed;
+// Enter, Tab or a click elsewhere keeps it; Esc drops it.
+void endTyping(bool keep) {
+    if (typingRow < 0) return;
+    if (keep)
+        if (auto level = typed.parsedPrecise(1, 255, true)) game::setRowLevel(typingRow, static_cast<int>(*level));
+    typingRow = -1;
+}
 EnchantLayout last;
 glm::vec2 lastPointer{};
 
@@ -47,8 +56,9 @@ bool begin() {
     return true;
 }
 bool opened() { return open; }
-void calm() { dragging = Drag::None; }
+void calm() { dragging = Drag::None; endTyping(true); }
 void reset() {
+    typingRow = -1;
     if (open) game::close();
     open = false;
     rowFirst = stepFirst = 0;
@@ -62,6 +72,15 @@ bool click(float x, float y, bool right) {
     if (last.side.rows.onScrollbar(x, y)) { stepFirst = last.side.rows.firstAt(y); dragging = Drag::Steps; return true; }
     auto hit = last.hit(x, y);
     screen::clearMessage();
+    if (hit.zone == Zone::Row && last.onLevel(x) && enchant_chooser::levelStepper(game::view(), hit.index)) {
+        if (typingRow != hit.index) {
+            endTyping(true);
+            typingRow = hit.index;
+            typed.beginPrecise(game::view().rows[static_cast<size_t>(hit.index)].level);
+        }
+        return true;
+    }
+    endTyping(true);
     switch (hit.zone) {
     case Zone::Back: back(); return true;
     case Zone::Goal: game::flipGoal(); stepFirst = 0; return true;
@@ -77,6 +96,14 @@ bool click(float x, float y, bool right) {
     }
 }
 void key(int key) {
+    if (typingRow >= 0) {
+        if (key >= 0x30 && key <= 0x39) typed.append(std::string(1, static_cast<char>(key)));
+        else if (key >= 0x60 && key <= 0x69) typed.append(std::string(1, static_cast<char>('0' + key - 0x60)));
+        else if (key == 0x08) typed.backspace();
+        else if (key == 0x0d || key == 0x09) endTyping(true);
+        else if (key == 0x1b) endTyping(false);
+        return;
+    }
     if (key == 0x1b && !screen::leaveDirectTool()) back();
 }
 void wheel(int amount) {
@@ -118,7 +145,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
 
     // Left: the item, the kinds and the main hand's cell, the sets, the rows.
     enchant_chooser::draw(context, last, v, hover, icons, itemsDrawn,
-        dragging == Drag::Rows || last.rows.onScrollbar(pointer.x, pointer.y));
+        dragging == Drag::Rows || last.rows.onScrollbar(pointer.x, pointer.y), typingRow, &typed);
 
     // Right: the goal, the totals, the steps. The same drawing as right of the anvil screen.
     auto const tip = enchant_steps::draw(context, last.side, info, pointer.x, pointer.y, true, icons);

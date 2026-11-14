@@ -2,6 +2,7 @@
 #include "features/inspection/render/ItemIcon.h"
 #include "features/inventory/EnchantOrderGame.h"
 #include "ui/EnchantLayout.h"
+#include "ui/TextEdit.h"
 #include <string>
 #include <vector>
 class MinecraftUIRenderContext;
@@ -13,7 +14,10 @@ namespace lamium::ui::enchant_chooser {
 // An item icon in the widgets' units; icons are drawn by the caller in one call after its text.
 void addIcon(std::vector<inspection::render::IconAt>& icons, ItemStack const* stack, float x, float y, float size = 10);
 void draw(MinecraftUIRenderContext&, EnchantLayout const&, inventory::enchantOrder::game::View const&, EnchantLayout::Hit hover,
-          std::vector<inspection::render::IconAt>& icons, int& itemsDrawn, bool scrollHot = false);
+          std::vector<inspection::render::IconAt>& icons, int& itemsDrawn, bool scrollHot = false,
+          int typingRow = -1, TextEdit const* typed = nullptr);
+// The row's level is a stepper (on, or on the item and raisable), so its value can be typed.
+bool levelStepper(inventory::enchantOrder::game::View const& v, int row);
 // What the status line says about the zone under the pointer; empty when it is not one of the chooser's.
 std::string status(inventory::enchantOrder::game::View const&, EnchantLayout::Hit hover);
 enum class Pressed { No, Yes, NewItem };

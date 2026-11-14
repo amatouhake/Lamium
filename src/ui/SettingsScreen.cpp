@@ -160,8 +160,27 @@ struct SavePrompt {
     bool entities = false;
     bool overwrite = false; // armed after "exists"; the next Save replaces the file
     std::string problem;
+    int editCorner = -1, editAxis = -1; // a corner value being typed
+    NumberInput value;
 };
 std::optional<SavePrompt> savePrompt;
+// What the keyboard types into: a corner value while one is open, else the name.
+TextEdit& saveField(SavePrompt& p) { return p.editAxis >= 0 ? static_cast<TextEdit&>(p.value) : p.name; }
+int& cornerValue(SavePrompt& p, int corner, int axis) {
+    auto& c = corner == 0 ? p.area.a : p.area.b;
+    return axis == 0 ? c.x : axis == 1 ? c.y : c.z;
+}
+// Enter, Tab or a click elsewhere keeps the typed value; Esc drops it.
+void endCornerEdit(SavePrompt& p, bool keep) {
+    if (p.editAxis < 0) return;
+    if (keep)
+        if (auto typed = p.value.parsedPrecise(-30000000, 30000000, true)) {
+            cornerValue(p, p.editCorner, p.editAxis) = static_cast<int>(*typed);
+            schematic::selection::setArea(p.area, p.dimension);
+            p.problem.clear();
+        }
+    p.editCorner = p.editAxis = -1;
+}
 // The schematic menu (L-93): a ring of categories, then of their items, over
 // the world. Replaces the whole panel while open, like the prompts.
 struct SchematicMenu {
@@ -188,7 +207,7 @@ FocusedText focusedText() {
     if (table_view::capturing()) return {};
     if (calculatorOpen) return {&calculator_view::field(), calculator_view::edited};
     if (prompt) return {&prompt->name, [] {}};
-    if (savePrompt) return {&savePrompt->name, [] { savePrompt->overwrite = false; }};
+    if (savePrompt) return {&saveField(*savePrompt), [] { if (savePrompt->editAxis < 0) savePrompt->overwrite = false; }};
     if (worldMapOpen)
         if (auto* field = map::world::nameField()) return {field, [] {}};
     if (auto* field = waypoints_view::nameField()) return {field, waypoints_view::nameEdited};
@@ -400,7 +419,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
         if (calculatorOpen) { calculator_view::type(text); return; }
         if (highlight_view::opened()) { highlight_view::type(text); return; }
         if (prompt) { prompt->name.type(text); return; }
-        if (savePrompt) { if (savePrompt->name.type(text)) savePrompt->overwrite = false; return; }
+        if (savePrompt) { if (saveField(*savePrompt).type(text) && savePrompt->editAxis < 0) savePrompt->overwrite = false; return; }
         if (worldMapOpen && map::world::editingName()) { map::world::typeText(text); return; }
         if (waypoints_view::editingName()) { waypoints_view::type(text); return; }
         if (shapes_view::editingName()) { shapes_view::type(text); return; }
@@ -843,6 +862,11 @@ void commitSave() {
 }
 void handleSavePromptKey(int key) {
     if (!savePrompt) return;
+    if (savePrompt->editAxis >= 0) {
+        if (key == 0x0d || key == 0x09) endCornerEdit(*savePrompt, true);
+        else if (key == 0x1b) endCornerEdit(*savePrompt, false);
+        return;
+    }
     if (key == 0x0d) commitSave();
     else if (key == 0x1b) close();
 }
@@ -851,11 +875,18 @@ void handleSavePromptClick(float x, float y, glm::vec2 size) {
     auto& p = *savePrompt;
     auto hit = SavePromptLayout::at(size.x, size.y).hit(x, y);
     using Part = SavePromptLayout::Part;
+    bool sameValue = hit.part == Part::Value && hit.corner == p.editCorner && hit.axis == p.editAxis;
+    if (!sameValue) endCornerEdit(p, true);
     switch (hit.part) {
+    case Part::Value:
+        if (!sameValue) {
+            p.editCorner = hit.corner; p.editAxis = hit.axis;
+            p.value.beginPrecise(cornerValue(p, hit.corner, hit.axis));
+        }
+        break;
     case Part::Minus: case Part::Plus: {
         int step = (hit.part == Part::Plus ? 1 : -1) * (heldShift() ? 10 : 1);
-        auto& corner = hit.corner == 0 ? p.area.a : p.area.b;
-        (hit.axis == 0 ? corner.x : hit.axis == 1 ? corner.y : corner.z) += step;
+        cornerValue(p, hit.corner, hit.axis) += step;
         // The frame in the world follows at once.
         schematic::selection::setArea(p.area, p.dimension);
         p.problem.clear();
@@ -892,13 +923,14 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
             bool overMinus = hover.part == L::Part::Minus && hover.corner == corner && hover.axis == axis;
             bool overPlus = hover.part == L::Part::Plus && hover.corner == corner && hover.axis == axis;
             static constexpr std::array<char const*, 3> axes{"X", "Y", "Z"};
+            bool typing = p.editCorner == corner && p.editAxis == axis;
             drawStepper(context, cx, y, w, L::rowHeight, true, std::format("{} {}", axes[static_cast<size_t>(axis)], value),
-                {.hot = overMinus ? -1 : overPlus ? 1 : 0, .cell = L::step});
+                {.editing = typing ? &p.value : nullptr, .hot = overMinus ? -1 : overPlus ? 1 : 0, .cell = L::step});
         }
     }
     auto s = p.area.size();
     label(context, x, l.sizeY(), l.inner(), translated("schematic.save.size", s.x, s.y, s.z, p.area.cells()), palette::dim);
-    drawTextField(context, x, l.fieldY(), l.inner(), L::fieldHeight, true, &p.name, {});
+    drawTextField(context, x, l.fieldY(), l.inner(), L::fieldHeight, p.editAxis < 0, &p.name, p.name.value());
     auto file = schematic::schematicFileName(p.name.value());
     label(context, x, l.whereY(), l.inner(), translated("schematic.save.where", file.empty() ? std::string("-") : file), palette::faint);
     label(context, x, l.entitiesY() + boxTextInset(), l.inner() - L::switchWidth - 4, translated("schematic.save.entities"),
@@ -1558,6 +1590,7 @@ void cancelInputCapture() {
     // Pages that replace the rows stay where they are: looking at another window to compare, then coming back (L-343).
     row_pages::calmAll();
     if (savePrompt && savePrompt->overwrite) { savePrompt->overwrite = false; savePrompt->problem.clear(); } // an armed Overwrite disarms
+    if (savePrompt) endCornerEdit(*savePrompt, true);
     releaseTextKeyboard();
     if (table_view::capturing()) table_view::cancelCapture();
     finishNumber();
@@ -1766,11 +1799,11 @@ void start() {
         if (savePrompt) {
             auto key = event.keyCode();
             bool selectAll = key == 0x41 && heldCtrl();
-            bool command = key == 0x08 || key == 0x1b || key == 0x0d || selectAll;
+            bool command = key == 0x08 || key == 0x1b || key == 0x0d || key == 0x09 || selectAll;
             if (textKeyboardOwned && !command) return;
             event.cancel();
-            if (key == 0x08) { if (savePrompt->name.backspace()) savePrompt->overwrite = false; }
-            else if (selectAll) savePrompt->name.selectAll();
+            if (key == 0x08) { if (saveField(*savePrompt).backspace() && savePrompt->editAxis < 0) savePrompt->overwrite = false; }
+            else if (selectAll) saveField(*savePrompt).selectAll();
             else pendingKeys.push_back(key);
             return;
         }

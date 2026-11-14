@@ -1095,6 +1095,14 @@ void stepRow(int row, int delta) {
     bool const raising = usingItem(kind) && kinds[static_cast<size_t>(kind)].slot != bookSlot;
     if (offer != offers.end() && step(wanted, *offer, delta, raising ? levelOf(planItem.base, type) : 0)) rebuild();
 }
+void setRowLevel(int row, int level) {
+    for (int guard = 0; guard < 16 && row >= 0 && row < static_cast<int>(shown.rows.size()); ++guard) {
+        int const now = shown.rows[static_cast<size_t>(row)].level;
+        if (now == level) return;
+        stepRow(row, level > now ? 1 : -1);
+        if (shown.rows[static_cast<size_t>(row)].level == now) return; // the rules stop it here
+    }
+}
 void setAllHighest() {
     int const kind = chosenKind();
     if (!opened || kind < 0) return;

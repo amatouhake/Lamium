@@ -638,6 +638,8 @@ void savePromptHits() {
     auto minus = l.hit(l.cellX(2) + 2, l.cornerY(1) + 2), plus = l.hit(l.cellX(0) + l.cellWidth() - 2, l.cornerY(0) + 2);
     check(minus.part == Part::Minus && minus.corner == 1 && minus.axis == 2 && plus.part == Part::Plus && plus.corner == 0
           && plus.axis == 0, "the save prompt's steppers name their corner and axis");
+    auto value = l.hit(l.cellX(1) + l.cellWidth() / 2, l.cornerY(1) + 2);
+    check(value.part == Part::Value && value.corner == 1 && value.axis == 1, "a click between a corner's ends types its value");
     check(l.hit(l.saveX() + 1, l.buttonY() + 1).part == Part::Save && l.hit(l.cancelX() + 1, l.buttonY() + 1).part == Part::Cancel
           && l.hit(l.left + 20, l.fieldY() + 2).part == Part::Field && l.hit(l.clearX() + 1, l.buttonY() + 1).part == Part::Clear
           && l.clearX() + lamium::ui::SavePromptLayout::buttonWidth < l.saveX() && l.keysY() + 10 <= l.top + l.height(),

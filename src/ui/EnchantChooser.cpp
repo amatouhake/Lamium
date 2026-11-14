@@ -27,7 +27,7 @@ void addIcon(std::vector<inspection::render::IconAt>& icons, ItemStack const* st
     icons.push_back({stack, std::round(x * s), std::round(y * s), size * s / 16, 0, 1.f, true});
 }
 void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View const& v, EnchantLayout::Hit hover,
-          std::vector<inspection::render::IconAt>& icons, int& itemsDrawn, bool scrollHot) {
+          std::vector<inspection::render::IconAt>& icons, int& itemsDrawn, bool scrollHot, int typingRow, TextEdit const* typed) {
     using L = EnchantLayout;
     float const pad = SettingsTable::pad;
     // The item, the kinds with the item cells last, the sets, the rows.
@@ -82,7 +82,8 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
                 bool const raised = row.level > row.carried;
                 if (row.maxLevel > row.carried)
                     drawStepper(context, l.minusX(), y + 1, 2 * L::stepWidth + L::levelWidth, 12, true, row.levelText,
-                        {.hot = hotStep(hover, i), .lowEnabled = raised, .cell = L::stepWidth, .ink = raised ? palette::text : palette::dim});
+                        {.editing = typingRow == i ? typed : nullptr, .hot = hotStep(hover, i), .lowEnabled = raised, .cell = L::stepWidth,
+                         .ink = raised ? palette::text : palette::dim});
                 else label(context, l.levelX(), y + 3, L::levelWidth, row.levelText, palette::dim, Align::Center);
                 nameRight = l.minusX() - 4;
             }
@@ -98,7 +99,7 @@ void draw(MinecraftUIRenderContext& context, EnchantLayout const& l, game::View 
             if (!row.levelText.empty()) {
                 if (on)
                     drawStepper(context, l.minusX(), y + 1, 2 * L::stepWidth + L::levelWidth, 12, true, row.levelText,
-                        {.hot = hotStep(hover, i), .cell = L::stepWidth});
+                        {.editing = typingRow == i ? typed : nullptr, .hot = hotStep(hover, i), .cell = L::stepWidth});
                 // Off: the level it would turn on at, without its buttons.
                 else label(context, l.levelX(), y + 3, L::levelWidth, row.levelText, palette::faint, Align::Center);
                 nameRight = l.minusX() - 4;
@@ -122,6 +123,12 @@ std::string status(game::View const& v, EnchantLayout::Hit hover) {
             : row.state == game::RowState::Full ? translated("enchantOrder.full", order::maxBooks) : row.label;
     }
     return {};
+}
+bool levelStepper(game::View const& v, int row) {
+    if (row < 0 || row >= static_cast<int>(v.rows.size())) return false;
+    auto const& r = v.rows[static_cast<size_t>(row)];
+    if (r.levelText.empty()) return false;
+    return r.state == game::RowState::On || (r.state == game::RowState::Fixed && r.maxLevel > r.carried);
 }
 Pressed press(EnchantLayout::Hit hit, std::string& message) {
     switch (hit.zone) {

@@ -153,6 +153,7 @@ struct EnchantLayout {
     float switchX() const { return rows.listLeft + rows.listWidth - SettingsTable::pad - 18; }
     float plusX() const { return switchX() - 6 - stepWidth; }
     float levelX() const { return plusX() - levelWidth; }
+    bool onLevel(float x) const { return x >= levelX() && x < levelX() + levelWidth; }
     float minusX() const { return levelX() - stepWidth; }
     static int rowAt(ShapesLayout const& c, float x, float y) {
         if (x < c.listLeft || x >= c.listLeft + c.listWidth || y < c.rowsTop) return -1;

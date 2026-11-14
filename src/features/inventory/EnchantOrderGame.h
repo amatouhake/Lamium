@@ -99,6 +99,8 @@ void pickHeld();
 void pickSlot();
 Change toggleRow(int row);
 void stepRow(int row, int delta);
+// A typed level: steps toward it as far as the row allows.
+void setRowLevel(int row, int level);
 void setAllHighest();
 void restoreLast();
 void clearWanted();
