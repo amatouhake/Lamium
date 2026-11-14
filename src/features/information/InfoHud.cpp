@@ -204,7 +204,7 @@ void noteHotbar(ScreenView const& view) {
 void noteCoveredVanilla(ScreenView const& view, ui::hud_editor::Boxes const& drawn, Settings::Information const& settings) {
     auto const& info = drawn[static_cast<size_t>(ui::HudElementId::Info)];
     std::optional<paperDoll::Box> doll, position, hud;
-    if (settings.hudHidePaperDoll && info) {
+    if (info) {
         hud = paperDoll::Box{info->x, info->y, info->w, info->h};
         if (VisualTree* tree = view.mVisualTree.get()) {
             auto boxOf = [&](char const* name) -> std::optional<paperDoll::Box> {

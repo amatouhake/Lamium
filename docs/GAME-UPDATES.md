@@ -232,7 +232,10 @@ hotbar part is gated (FreeCamera hide).
 ### `src/features/information/DebugVanillaHud.cpp`
 Hooks: `DebugPositionSprite`, `DebugPositionText`, `DebugPaperDoll`
 Meaning: the vanilla HUD's position panel is named `player_position` (label
-`player_position_text`) and the HUD paper doll is drawn by
+`player_position_text`), the days played panel beside it
+`number_of_days_played` (label `number_of_days_played_text`; both in the
+vanilla `ui.brarchive` of 1.26.60, hidden by the same two hooks, L-348), and
+the HUD paper doll is drawn by
 `HudPlayerRenderer`, its control named `hud_player` (where the Info HUD
 covers it, L-145, or Game HUD placement hides it, L-334). A renamed control only stops the hiding. With Paper
 doll position on (gated, L-309) the same hook draws the doll where the HUD

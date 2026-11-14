@@ -1,6 +1,7 @@
 #include "app/PausedFeatures.h"
 #include "settings/SettingsStore.h"
 #include "settings/Options.h"
+#include "features/information/DebugVanillaHud.h"
 #include "features/inventory/FakeOffhandPlan.h"
 #include "features/visuals/EffectVisibility.h"
 #include "input/ToggleAction.h"
@@ -432,10 +433,22 @@ void settingsStoreTests() {
           "Wide-angle view stays off until saved on (L-140)");
     check(!old.visuals.skipServerPacks && decodeSettings(R"({"visuals":{"skipServerPacks":true}})").visuals.skipServerPacks,
           "server resource packs apply until skipping is saved on (L-167)");
-    check(old.information.debugHideVanilla && !decodeSettings(R"({"information":{"debugHideVanilla":false}})").information.debugHideVanilla,
-          "Debug View hides the game's position and paper doll unless saved off");
-    check(old.information.hudHidePaperDoll && !decodeSettings(R"({"information":{"hudHidePaperDoll":false}})").information.hudHidePaperDoll,
-          "the Info HUD hides a covered paper doll unless saved off (L-145)");
+    {
+        // L-348: two switches under Game HUD placement, part of its switch.
+        auto hidden = decodeSettings(R"({"information":{"gameHud":true,"hideGamePosition":true,"hideGameDays":true}})");
+        check(!old.information.hideGamePosition && !old.information.hideGameDays
+              && hidden.information.hidesGamePosition() && hidden.information.hidesGameDays(),
+              "the game's position and days lines show until hiding is saved on");
+        auto groupOff = decodeSettings(R"({"information":{"gameHud":false,"hideGamePosition":true,"hideGameDays":true}})");
+        check(!groupOff.information.hidesGamePosition() && !groupOff.information.hidesGameDays(),
+              "with Game HUD placement off the game's lines are its own again");
+        using information::debugVanilla::vanillaLine;
+        using information::debugVanilla::VanillaLine;
+        check(vanillaLine("player_position") == VanillaLine::Position && vanillaLine("player_position_text") == VanillaLine::Position
+              && vanillaLine("number_of_days_played") == VanillaLine::Days
+              && vanillaLine("number_of_days_played_text") == VanillaLine::Days && vanillaLine("hud_player") == VanillaLine::None,
+              "the vanilla HUD's position and days played controls are told apart by name");
+    }
     {
         // L-137: what players see of the gates on an unverified game.
         using lamium::paused::Level;

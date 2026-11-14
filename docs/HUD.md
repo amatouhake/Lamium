@@ -197,7 +197,9 @@ is fixed to the screen edges and is not an element.
   Target. "Row name style" switches line names between the game language
   (default) and Java F3 abbreviations; FPS and Ping read the same in both.
   Two child options (on by default) hide the Info HUD and the Target card
-  while Debug is open; a third turns the panel's text shadow off.
+  while Debug is open; a third turns the panel's text shadow off. The game's
+  position line and paper doll are always hidden while it is open (no
+  setting since L-348), and wherever the Info HUD covers them (L-145).
 
 ## Game HUD placement (L-321, L-309, L-323, L-334)
 
@@ -238,6 +240,12 @@ choices. The hotbar is not part of it.
   bottom upward (chosen by the implementer from these rules at the
   maintainer's request). Hidden boss bars stay hidden wherever placed.
   Situational, with sample bars from the game's bar textures.
+- **Position line** and **days played line** (L-348): two switches, default
+  off, hide the game's own lines ("Show Coordinates", "Show Days Played")
+  wherever they are, also on a server whose world turns them on; the world's
+  options are not changed. They follow the main switch like the parts, are
+  not moved (Info HUD shows the same values anywhere) and are not in the
+  editor.
 - Settings from before L-334 keep what they showed: boss bars hidden only
   where Hide effects and its boss choice were both on, with the group on for
   the boss bars alone if it was off.

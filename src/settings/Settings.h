@@ -276,7 +276,6 @@ struct Settings {
         int debugLabels = 0; // 0 game standard, 1 Java F3 style
         bool debugHideHud = true;    // Hide the Info HUD while Debug is on
         bool debugHideTarget = true; // Hide the Target card while Debug is on
-        bool debugHideVanilla = true; // Hide the game's position line and paper doll while Debug is on
         bool debugShadow = true;     // Text shadow on the debug panel
         int debugBackground = 1;     // 0 none, 1 a background behind each line (L-98, default per line)
         bool debugEntityKinds = true; // The entity total by kind under it (L-120)
@@ -325,6 +324,11 @@ struct Settings {
         bool hidesPaperDoll() const { return placesPaperDoll() && !showPaperDoll; }
         bool hidesScoreboard() const { return placesScoreboard() && !showScoreboard; }
         bool hidesBossBars() const { return placesBossBars() && !showBossBars; }
+        // L-348: the game's position and days played lines, hidden without
+        // changing the world's options; part of the group's switch.
+        bool hideGamePosition = false, hideGameDays = false;
+        bool hidesGamePosition() const { return gameHud && hideGamePosition; }
+        bool hidesGameDays() const { return gameHud && hideGameDays; }
         // Hides the boss bars with nothing else changing: an off group comes on
         // for the boss bars alone, which stay at their place (L-334).
         void hideBossBarsAlone() {
@@ -337,7 +341,6 @@ struct Settings {
         bool saturation = true;        // Gold outlines on the hunger bar (L-63)
         bool saturationPreview = true; // What the held food would add
         bool hud = false;
-        bool hudHidePaperDoll = true; // L-145: the game's paper doll is not drawn where the Info HUD covers it.
         bool coordinates = true; // Defaults match docs/HUD.md.
         bool scaledCoordinates = false;
         bool dimension = false;

@@ -135,7 +135,8 @@ while you look across open ground.
 A panel like Java Edition's F3 screen: game, world, look-at and PC details,
 entity counts by kind and the most common entity types. The game's own
 position line and paper doll are hidden while it is open, and where the Info
-HUD covers them. It says whether you stand in a slime chunk. What the client
+HUD covers them. Game HUD placement can hide the game's position and days
+played lines everywhere. It says whether you stand in a slime chunk. What the client
 cannot know (server TPS, mob caps, local difficulty) is not shown.
 
 ### Durability HUD

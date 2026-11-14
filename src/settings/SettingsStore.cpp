@@ -99,8 +99,8 @@ Json encode(Settings const& settings) {
                          {"debug", settings.information.debug}, {"debugLabels", settings.information.debugLabels},
                          {"debugHideHud", settings.information.debugHideHud},
                          {"debugHideTarget", settings.information.debugHideTarget},
-                         {"debugHideVanilla", settings.information.debugHideVanilla},
-                         {"hudHidePaperDoll", settings.information.hudHidePaperDoll},
+                         // L-348: always hidden now; removed by the merge.
+                         {"debugHideVanilla", nullptr}, {"hudHidePaperDoll", nullptr},
                          {"debugShadow", settings.information.debugShadow},
                          {"debugBackground", settings.information.debugBackground},
                          {"debugEntityKinds", settings.information.debugEntityKinds},
@@ -143,6 +143,8 @@ Json encode(Settings const& settings) {
                          {"showPaperDoll", settings.information.showPaperDoll},
                          {"showScoreboard", settings.information.showScoreboard},
                          {"showBossBars", settings.information.showBossBars},
+                         {"hideGamePosition", settings.information.hideGamePosition},
+                         {"hideGameDays", settings.information.hideGameDays},
                          {"effectsNames", settings.information.effectsNames},
                          {"effectsWarning", settings.information.effectsWarning},
                          {"effectsHideVanilla", settings.information.effectsHideVanilla},
@@ -373,8 +375,6 @@ Settings decodeSettings(std::string_view text) {
         value.information.debugLabels = settingsValue(info, "debugLabels", value.information.debugLabels);
         value.information.debugHideHud = settingsValue(info, "debugHideHud", value.information.debugHideHud);
         value.information.debugHideTarget = settingsValue(info, "debugHideTarget", value.information.debugHideTarget);
-        value.information.debugHideVanilla = settingsValue(info, "debugHideVanilla", value.information.debugHideVanilla);
-        value.information.hudHidePaperDoll = settingsValue(info, "hudHidePaperDoll", value.information.hudHidePaperDoll);
         value.information.debugShadow = settingsValue(info, "debugShadow", value.information.debugShadow);
         value.information.debugBackground = settingsValue(info, "debugBackground", value.information.debugBackground);
         value.information.debugEntityKinds = settingsValue(info, "debugEntityKinds", value.information.debugEntityKinds);
@@ -435,6 +435,8 @@ Settings decodeSettings(std::string_view text) {
         value.information.showPaperDoll = settingsValue(info, "showPaperDoll", value.information.showPaperDoll);
         value.information.showScoreboard = settingsValue(info, "showScoreboard", value.information.showScoreboard);
         value.information.showBossBars = settingsValue(info, "showBossBars", value.information.showBossBars);
+        value.information.hideGamePosition = settingsValue(info, "hideGamePosition", value.information.hideGamePosition);
+        value.information.hideGameDays = settingsValue(info, "hideGameDays", value.information.hideGameDays);
         value.information.effectsHud = settingsValue(info, "effectsHud", value.information.effectsHud);
         value.information.effectsNames = settingsValue(info, "effectsNames", value.information.effectsNames);
         value.information.effectsWarning = settingsValue(info, "effectsWarning", value.information.effectsWarning);

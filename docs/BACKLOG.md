@@ -206,7 +206,7 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
-- [L-348](backlog/L-348.md) Hide the game's position and days played lines (Ready): Open, not started; agreed 2026-11-15
+- [L-348](backlog/L-348.md) Hide the game's position and days played lines (Ready): Built, not checked in game
 - [L-338](backlog/L-338.md) When a death layout ends (Feature): Built 2026-11-14 on the maintainer's go-ahead, not checked in game
 - [L-336](backlog/L-336.md) HUD layout: choose each element's contents in the editor (Ready): Open, not started; direction agreed 2026-11-15
 - [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Ready): Built, not checked in game

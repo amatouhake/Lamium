@@ -60,7 +60,7 @@ bool hiding() noexcept {
         auto& runtime = Runtime::instance();
         if (!runtime.enabled()) return false;
         auto settings = runtime.snapshot();
-        return settings->information.debug && settings->information.debugHideVanilla;
+        return settings->information.debug;
     } catch (...) { return false; }
 }
 bool hidingCovered(std::atomic<bool> const& covered) noexcept {
@@ -75,21 +75,32 @@ bool dollHidden() noexcept {
             && versionSensitiveAllowed(capabilities::Id::PaperDollPosition);
     } catch (...) { return false; }
 }
-bool position(UIControl& owner) noexcept {
+VanillaLine lineOf(UIControl& owner) noexcept {
     try {
         std::string const& name = *owner.mName;
-        return name.size() <= 32 && positionControl(name);
+        return name.size() <= 32 ? vanillaLine(name) : VanillaLine::None;
+    } catch (...) { return VanillaLine::None; }
+}
+bool lineHidden(UIControl& owner) noexcept {
+    auto line = lineOf(owner);
+    if (line == VanillaLine::None) return false;
+    try {
+        auto& runtime = Runtime::instance();
+        if (!runtime.enabled()) return false;
+        auto const& info = runtime.snapshot()->information;
+        if (line == VanillaLine::Days) return info.hidesGameDays();
+        return info.hidesGamePosition() || hidingCovered(positionCovered);
     } catch (...) { return false; }
 }
 }
 LL_TYPE_INSTANCE_HOOK(DebugPositionSprite, ll::memory::HookPriority::Normal, SpriteComponent,
     &SpriteComponent::render, void, UIRenderContext& context) {
-    if (position(mOwner) && hidingCovered(positionCovered)) return;
+    if (lineHidden(mOwner)) return;
     origin(context);
 }
 LL_TYPE_INSTANCE_HOOK(DebugPositionText, ll::memory::HookPriority::Normal, TextComponent,
     &TextComponent::$render, void, UIRenderContext& context) {
-    if (position(mOwner) && hidingCovered(positionCovered)) return;
+    if (lineHidden(mOwner)) return;
     origin(context);
 }
 LL_TYPE_INSTANCE_HOOK(DebugPaperDoll, ll::memory::HookPriority::Normal, HudPlayerRenderer,
@@ -150,7 +161,7 @@ void start() noexcept {
         if (!installedText) installedText = DebugPositionText::hook(true) == 0;
         if (!installedDoll) installedDoll = DebugPaperDoll::hook(true) == 0;
         if (!installedSprite || !installedText || !installedDoll)
-            Runtime::instance().self().getLogger().warn("Debug View cannot hide the game's position or paper doll; they stay drawn");
+            Runtime::instance().self().getLogger().warn("Cannot hide the game's position, days played or paper doll; they stay drawn");
         capabilities::hooks(capabilities::Id::PaperDollPosition, installedDoll);
     } catch (...) { capabilities::hooks(capabilities::Id::PaperDollPosition, false); }
 }
