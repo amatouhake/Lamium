@@ -837,13 +837,13 @@ void diamond(MinecraftUIRenderContext& context, float cx, float cy, int size, Rg
         ui::fill(context, cx - half, top + i, 2 * half, 1, ui::palette::shade, .85f * opacity);
     }
 }
-void cross(MinecraftUIRenderContext& context, float cx, float cy, Rgb color) {
+void cross(MinecraftUIRenderContext& context, float cx, float cy, Rgb color, float opacity = 1) {
     for (int pass = 0; pass < 2; ++pass)
         for (int i = -2; i <= 2; ++i)
             for (int sign : {1, -1}) {
                 float x = cx + i - .5f, y = cy + sign * i - .5f;
-                if (pass == 0) ui::fill(context, x - 1, y - 1, 3, 3, ui::palette::shade, .85f);
-                else ui::fill(context, x, y, 1, 1, color);
+                if (pass == 0) ui::fill(context, x - 1, y - 1, 3, 3, ui::palette::shade, .85f * opacity);
+                else ui::fill(context, x, y, 1, 1, color, opacity);
             }
 }
 void smallLabel(MinecraftUIRenderContext& context, float cx, float y, std::string const& text, Rgb color) {
@@ -1235,7 +1235,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
             if (w.death) {
                 // A death's waypoint keeps the cross for its mark (L-328).
                 if (chosen) ui::frame(context, x - 5, y - 5, 10, 10, ui::palette::white);
-                cross(context, x, y, color);
+                cross(context, x, y, color, opacity);
             } else {
                 if (chosen) diamond(context, x, y, 13, ui::palette::white, 1);
                 diamond(context, x, y, 9, color, opacity, w.temporary);
@@ -1769,7 +1769,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         state.hits.push_back({x0, ry, w, rowH, Target::Row, index, mark});
         auto const& p = set.waypoints[static_cast<size_t>(index)];
         if (Rgb const color = rgb(waypointColors[static_cast<size_t>(clampColor(p.color))]); p.death)
-            cross(context, x + 4, ry + rowH / 2, color);
+            cross(context, x + 4, ry + rowH / 2, color, p.visible ? 1.f : .4f);
         else diamond(context, x + 4, ry + rowH / 2, 7, color, p.visible ? 1.f : .4f, p.temporary);
         float switchX = x0 + w - pad - ui::switchWidth;
         std::string far;
