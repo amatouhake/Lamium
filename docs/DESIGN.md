@@ -129,8 +129,9 @@ the same commit. A screen never draws its own variant.
   and the capture footer say which game action it shares, and the click still
   reaches the game, so both happen (a chord with a modifier takes the click).
   This shows in Hotkeys whatever the toast settings are. While a binding is
-  captured its cell is text alone ("Press keys...", then the chord held): the
-  selected row's fill and frame mark it, so the cell adds no fill or frame.
+  captured the selected row's fill and frame mark it, so its cell adds no fill
+  or frame: "Press keys..." faint where "Unbound" sits, then the keys held as
+  the caps they will be, each followed by a text field's blinking caret.
 - **Steppers** (`drawStepper`): one box, `- value +` for numbers,
   `< value >` for choices (arrows drawn from rectangles); never separate
   `-`/`+` buttons. The end cell under the pointer lightens; an end that

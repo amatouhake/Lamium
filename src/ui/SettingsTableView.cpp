@@ -572,9 +572,12 @@ void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, fl
     // its text lines up with the row name at y + 3.
     float x = displayed.keyX, width = displayed.keyWidth, cy = y + 2;
     if (capturing_ == action) {
-        // Text only: the selected row's fill and frame already mark the listening cell.
-        auto text = capture.value().empty() ? translated("captureBox") : bindingChordName(current, capture.value());
-        label(context,x+3,cy+boxTextInset(),width-6,std::move(text));
+        // The selected row marks the cell; the keys held draw as the caps they
+        // become, followed by a text field's caret, so a kept chord does not move.
+        if (capture.value().empty()) {
+            label(context,x,cy+1,width,translated("captureBox"),palette::faint);
+            caretBar(context,x,cy-1,capHeight+2);
+        } else caretBar(context,x+keycaps(context,x,cy,width-3,chordKeys(current,capture.value()))+2,cy-1,capHeight+2);
         return;
     }
     auto keys = bindingKeys(current, action);

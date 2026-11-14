@@ -91,6 +91,9 @@ void drawSwatchRow(MinecraftUIRenderContext& context, ShapesLayout const& l, flo
 // scrolls to keep the caret inside. The field is remembered for clicks.
 void drawEditField(MinecraftUIRenderContext& context, float x, float top, float height, float width, TextEdit const& input,
                    Align align = Align::Left, Rgb color = palette::text);
+// The blinking bar a field draws at its caret, for a box of `height` from
+// `top` (also the key cell waiting for a binding).
+void caretBar(MinecraftUIRenderContext& context, float x, float top, float height);
 // Text fields (DESIGN "Controls"): a shaded back with an edge, accent while
 // typing. drawFieldBox is the box alone, for a field whose content is special
 // (the settings search while finding a key).
