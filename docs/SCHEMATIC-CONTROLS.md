@@ -244,7 +244,10 @@ screen.
 
 - The ghost key covers only visible layer fields (All ignores the cut, Only
   ignores Keep, Up to uses both), so editing an unused field saves without
-  rebuilding ghosts. Moving the cut still rebuilds the whole placement.
+  rebuilding ghosts. Moving the cut rebuilds only the sections whose shown
+  cells, two cells around included, change; the palette is kept
+  ([L-236 Rebuild only the ghost sections whose visible layer changed](backlog/L-236.md));
+  placements touching it still rebuild whole.
 
 ## Tried
 
@@ -265,8 +268,6 @@ screen.
 - Not built from the display rule: the target line in the schematic HUD and
   the emphasized target frame in the world ([VALIDATION](VALIDATION.md),
   Schematics row).
-- Up to rebuilds every section of a large placement on each cut step:
-  [L-236 Rebuild only the ghost sections whose visible layer changed](backlog/L-236.md).
 - Shared controls with other features: [L-111 Integration between features: remaining shared controls](backlog/L-111.md).
 - Out of scope: item-based operation, a persistent edit mode, a layer peel
   in the 3D previews' own controls (that is [L-114 3D previews in the schematic screen](backlog/L-114.md)).
