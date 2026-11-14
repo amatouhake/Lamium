@@ -1023,12 +1023,12 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 // Same columns as a wrong block: air where the schematic's block would be.
                 float half = (bw - 10) / 2;
                 label(context,bx+14,y+3,half-14,translated("schematic.air"),palette::faint);
-                label(context,bx+half,y+3,10,">",palette::faint,Align::Center);
+                changeArrow(context,bx+half+(10-changeArrowWidth)/2,y+3+1.5f+shapeTextDrop(),1,palette::faint);
                 block(bx + half + 10, half, m.actual, m.actualName, palette::dim);
             } else {
                 float half = (bw - 10) / 2;
                 block(bx, half, m.expected, m.expectedName, palette::text);
-                label(context,bx+half,y+3,10,">",palette::faint,Align::Center);
+                changeArrow(context,bx+half+(10-changeArrowWidth)/2,y+3+1.5f+shapeTextDrop(),1,palette::faint);
                 block(bx + half + 10, half, m.actual, m.actualName, palette::dim);
             }
             double dx = m.position.x + .5 - feet.x, dy = m.position.y + .5 - feet.y, dz = m.position.z + .5 - feet.z;
