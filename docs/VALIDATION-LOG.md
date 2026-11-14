@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Saved data row's name in full (L-343, 2026-11-14)
+
+Build `21de850c`, DLL SHA-256
+`555e8afb0dd8abcd1e99f5a80a7cee8e1f6b1d82baa0c722983dbfdd51d6d249`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. The "This server's data" row and the "Saved data" rows
+under Waypoints, World map and Schematics show the name uncut, and the footer starts with the
+name in full while the row is hovered. Raised before the fix: the name was cut to the value
+column's width and nothing showed the rest.
+
 ## Saved data: names, the any-port switch kept reversible, Used by (L-343, 2026-11-14)
 
 Build `03c2248d`, DLL SHA-256
