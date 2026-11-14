@@ -26,7 +26,7 @@ a task is in this file and `docs/`. Start with BACKLOG.md's short
 The L-item is authoritative if a summary ever drifts. If a decision made in
 chat affects implementation, write it into DESIGN.md or BACKLOG.md.
 Long feature contracts and dated implementation records may be linked from
-the L-item (MAP.md, SCHEMATIC.md). Read their current notes first; older build
+the L-item (MAP.md, SCHEMATIC.md, ENCHANT-ORDER.md, ITEM-DETAILS.md). Read their current notes first; older build
 checkpoints do not override later decisions or current validation.
 
 BACKLOG-DONE.md and VALIDATION-LOG.md are long, append-only records. Do not

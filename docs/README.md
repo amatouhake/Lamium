@@ -44,6 +44,8 @@ build named there and may include superseded experiments.
 | Fake Offhand | [FAKE-OFFHAND.md](FAKE-OFFHAND.md) |
 | Villager trade helpers and L-166 diagnostics | [TRADE-HELPERS.md](TRADE-HELPERS.md) |
 | Item Transfer and L-169 native-handler investigation | [ITEM-TRANSFER.md](ITEM-TRANSFER.md) |
+| Enchantment order planner and the panels beside the anvil (L-170) | [ENCHANT-ORDER.md](ENCHANT-ORDER.md) |
+| Item tooltip lines: work penalty, stew effect, property values, ID, tags and NBT | [ITEM-DETAILS.md](ITEM-DETAILS.md) |
 | Minimap, radar, waypoints and world map | [MAP.md](MAP.md) |
 | Schematics, checking, materials and area save | [SCHEMATIC.md](SCHEMATIC.md) |
 | Schematic controls and cut-plane layers (implemented contract) | [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) |
