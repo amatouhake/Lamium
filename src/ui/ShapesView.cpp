@@ -517,7 +517,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
             auto feet = player->getFeetPos();
             auto center = centerOf(*definition);
             int distance = static_cast<int>(std::round(std::hypot(center.x - feet.x, center.z - feet.z)));
-            label(context,ix,py+22,iw,translated("shape.distance",distance),palette::dim);
+            label(context,ix,py+22,iw,distance == 0 ? translated("distance.here") : translated("shape.distance",distance),palette::dim);
         }
         if (preview && preview->lowLayer != preview->highLayer) {
             float lx = l.layerStepperX(), ly = l.layerY(), lw = 64, aw = ShapesLayout::arrowWidth;

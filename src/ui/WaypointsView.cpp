@@ -387,7 +387,7 @@ if (!w) {
         label(context,ix,l.previewY+12,iw,screen::dimensionName(w->dimension),palette::dim);
         if (w->dimension == screen::playerDimension()) {
             int const away = screen::distanceTo(w->x, w->z);
-            label(context,ix,l.previewY+23,iw,away == 0 ? translated("waypoint.here") : translated("waypoint.distance", away),palette::dim);
+            label(context,ix,l.previewY+23,iw,away == 0 ? translated("distance.here") : translated("waypoint.distance", away),palette::dim);
         }
         if (w->temporary) paragraph(context,ix,l.previewY+36,iw,translated("waypoint.temporaryNote"),2,palette::faint);
         // Fields.
