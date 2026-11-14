@@ -29,6 +29,7 @@ void openBlockHighlight(IClientInstance& client);
 void openEnchantOrder(IClientInstance& client, bool overAnvil = false);
 // General > Saved data (L-343).
 void openSavedData(IClientInstance& client);
+void openGameLanguage(IClientInstance& client);
 bool ownsInput();
 void cancelInputCapture();
 }

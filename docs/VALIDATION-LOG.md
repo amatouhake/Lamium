@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-341 shared controls in game (2026-11-15)
+
+Build `5fac844a`, DLL SHA-256
+`5ee55cf4662971ff7224ec9199f5d1cdfb171beeefdd8858deff0abb7cc0b14c`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Esc drops typed names and numbers (Enter or a click
+keeps them); text fields look alike and do not move on click; every stepper is one box that
+lights its ends, save corners and enchantment levels on the planner page take typed values;
+the four pages share the heading, close on a click outside and stay open on focus loss; the
+tool view headers and docked frames are unchanged; "Add here" takes the last temporary
+choice; Overwrite arms red and Stop is plain. Raised: beside the anvil the level centre
+toggled the row; the scroll bar's hover was too loud; the Game language row still differs
+from the other Open rows (row click, no hotkey). All three changed in the next build, not
+yet seen.
+
 ## Anvil chooser rows whole while sliding (2026-11-15)
 
 Build `5fac844a`, DLL SHA-256

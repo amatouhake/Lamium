@@ -173,8 +173,8 @@ std::string amountText(std::uint64_t count, int maxStack) {
     return out;
 }
 void drawScrollbar(MinecraftUIRenderContext& context, float x, float top, float track, float thumbTop, float thumb, bool hot) {
-    fill(context,x,top,2,track,palette::white,hot ? .14f : .08f);
-    fill(context,hot ? x-1 : x,thumbTop,hot ? 3 : 2,thumb,hot ? palette::text : palette::keyEdge);
+    fill(context,x,top,2,track,palette::white,.08f);
+    fill(context,x,thumbTop,2,thumb,hot ? palette::dim : palette::keyEdge);
 }
 void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l, bool hot) {
     if (l.listCount <= l.listVisible) return;

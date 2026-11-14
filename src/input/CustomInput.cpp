@@ -75,7 +75,7 @@ bool opensMenu(Action action) {
         || action == Action::OpenHudLayout || action == Action::OpenSchematics || action == Action::OpenSchematicFiles
         || action == Action::OpenSchematicCheck || action == Action::OpenSchematicMaterials || action == Action::OpenSchematicPlaced
         || action == Action::OpenSchematicKeys || action == Action::SaveSchematicArea || action == Action::SchematicMenu
-        || action == Action::OpenSavedData;
+        || action == Action::OpenSavedData || action == Action::OpenGameLanguage;
 }
 void invalidate() {
     inventory::repeatTrades::cancel();

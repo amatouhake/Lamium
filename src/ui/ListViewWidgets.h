@@ -97,7 +97,7 @@ void forgetEditField();
 std::string amountText(std::uint64_t count, int maxStack = 64);
 // The scrollbar of a view's list when it does not fit.
 // Scroll bars (DESIGN "Controls"): a faint track and a thumb in the 2-unit
-// column from `x`; `hot` (pointed at or dragged) widens and brightens it.
+// column from `x`; `hot` (pointed at or dragged) brightens the thumb a little.
 void drawScrollbar(MinecraftUIRenderContext& context, float x, float top, float track, float thumbTop, float thumb, bool hot);
 void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l, bool hot = false);
 }

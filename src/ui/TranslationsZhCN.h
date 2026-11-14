@@ -1796,6 +1796,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"savedData.rowChoose", "重新选择 >"},
     {"savedData.rowOpen", "打开 >"},
     {"key.Lamium.opensaveddata", "Lamium: 打开保存的数据"},
+    {"key.Lamium.opengamelanguage", "Lamium: 打开游戏语言"},
     {"language.current", "当前: {}"},
     {"language.applying", "正在应用..."},
     {"language.hint", "点击或 Enter: 应用 | Esc: 返回"},

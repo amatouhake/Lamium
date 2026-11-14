@@ -539,6 +539,7 @@ struct PressState {
 struct Pending {
     ui::EnchantLayout::Hit hit;
     bool goal = false, scrollbar = false, stepsScrollbar = false;
+    bool level = false; // on a row's level value, which only the planner screen types into
     float y = 0;
 };
 std::vector<Pending> pendingPresses;
@@ -747,6 +748,8 @@ void applyPresses() {
         if (press.stepsScrollbar) { stepsFirst = stepRows.firstAt(press.y); continue; }
         if (press.scrollbar) { chooserFirst = rows.firstAt(press.y); continue; }
         if (!opened) continue;
+        // The level between a stepper's ends is typed on the planner screen; here it does nothing (not a toggle).
+        if (press.level && ui::enchant_chooser::levelStepper(shown, press.hit.index)) continue;
         std::string message;
         auto const pressed = ui::enchant_chooser::press(press.hit, message);
         if (pressed == ui::enchant_chooser::Pressed::NewItem) chooserFirst = 0;
@@ -1165,7 +1168,10 @@ int anvilPress(bool left, bool down) {
         Pending press;
         press.y = y;
         if (state.choose.rows.onScrollbar(x, y)) press.scrollbar = true;
-        else press.hit = state.choose.hit(x, y);
+        else {
+            press.hit = state.choose.hit(x, y);
+            press.level = press.hit.zone == ui::EnchantLayout::Zone::Row && state.choose.onLevel(x);
+        }
         pendingPresses.push_back(press);
         pressSwallow = true;
         return 1;

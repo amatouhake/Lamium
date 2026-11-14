@@ -294,7 +294,6 @@ void activateRow(int row, bool space) {
     switch (entry.kind) {
     case RowKind::Section: return;
     case RowKind::Feature:
-        if (entry.feature->id == "gameLanguage") { row_pages::begin(row_pages::language()); return; }
         if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) { screen::openTool(*primary); return; }
         if (space && hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
         if (entry.children) { setExpanded(row, !entry.expanded); return; }
@@ -384,7 +383,6 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     }
     switch (entry.kind) {
     case RowKind::Feature:
-        if (entry.feature->id == "gameLanguage") { row_pages::begin(row_pages::language()); return; }
         if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) {
             float openX = openButtonX(displayed);
             if (hit.x >= openX && hit.x < openX + openButtonWidth) { screen::openTool(*primary); return; }
@@ -1024,12 +1022,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,
                     sessionState(entry.feature->id));
             if (primary) drawKeyCell(context,current,y,*primary);
-            if (entry.feature->id == "gameLanguage") {
-                // The current language faintly beside the shared Open button; the row opens the list.
+            if (entry.feature->id == "gameLanguage" && !editingRow) {
+                // The current language faintly beside the Open button.
                 float nameLeft = t.nameX + 9 + textWidth(context, featureName(*entry.feature)) + 2 * SettingsTable::gap;
                 float openX = openButtonX(t) - SettingsTable::gap;
                 if (openX > nameLeft) label(context, nameLeft, y + 3, openX - nameLeft, game_language::currentName(), palette::faint, Align::Right);
-                drawOpenButton(context, t, y, openButtonHovered(t, hover, i));
             }
             if (open) drawOpenButton(context,t,y,openButtonHovered(t,hover,i));
             break;

@@ -1832,6 +1832,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"savedData.rowChoose", "Choose >", "選び直す >"},
     {"savedData.rowOpen", "Open >", "開く >"},
     {"key.Lamium.opensaveddata", "Lamium: Open the saved data", "Lamium: 保存データを開く"},
+    {"key.Lamium.opengamelanguage", "Lamium: Open the game language", "Lamium: ゲームの言語を開く"},
     {"language.current", "Current: {}", "現在: {}"},
     {"language.applying", "Applying...", "適用中..."},
     {"language.hint", "Click or Enter: apply | Esc: back", "クリックか Enter: 適用 | Esc: 戻る"},

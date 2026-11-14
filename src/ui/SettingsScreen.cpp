@@ -1531,6 +1531,17 @@ void openSavedData(IClientInstance& current) {
     if (row_pages::begin(row_pages::savedData())) table_view::rebuild(true);
     directTool = openedNow && saved_data_view::opened();
 }
+void openGameLanguage(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
+    if (!scene) open(current);
+    if (!scene) return;
+    if (openedNow) seedOpener(input::Action::OpenGameLanguage);
+    if (prompt || savePrompt || calculatorOpen || worldMapOpen) return;
+    screen::finishEditing();
+    if (row_pages::begin(row_pages::language())) table_view::rebuild(true);
+    directTool = openedNow && language_view::opened();
+}
 void openWorldMap(IClientInstance& current) {
     std::lock_guard lock(mutex);
     if (scene) return;
@@ -1577,6 +1588,7 @@ void openTool(input::Action action) {
     case input::Action::OpenBlockHighlight: if (row_pages::begin(row_pages::highlight())) table_view::rebuild(true); return;
     case input::Action::OpenEnchantOrder: if (row_pages::begin(row_pages::enchant())) table_view::rebuild(true); return;
     case input::Action::OpenSavedData: if (row_pages::begin(row_pages::savedData())) table_view::rebuild(true); return;
+    case input::Action::OpenGameLanguage: if (row_pages::begin(row_pages::language())) table_view::rebuild(true); return;
     default: return;
     }
 }

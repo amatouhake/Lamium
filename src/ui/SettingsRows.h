@@ -105,7 +105,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"schematicScreen", "schematic.menu.cat.screen", "help.schematicScreen", ""},
     {"automationStatus", "feature.automationStatus", "help.automationStatus", "interface.automationStatus", false, input::Action::ToggleAutomationStatus},
     {"settings", "feature.settings", "help.settings", "", false, input::Action::Settings},
-    {"gameLanguage", "feature.gameLanguage", "help.gameLanguage", ""},
+    {"gameLanguage", "feature.gameLanguage", "help.gameLanguage", "", false, input::Action::OpenGameLanguage},
     {"savedData", "feature.savedData", "help.savedData", "", false, input::Action::OpenSavedData},
     {"skipServerPacks", "feature.skipServerPacks", "help.skipServerPacks", "visuals.skipServerPacks", false, input::Action::ToggleSkipServerPacks},
     {"calculator", "feature.calculator", "help.calculator", "", false, input::Action::OpenCalculator},
@@ -153,6 +153,7 @@ inline bool opensTool(input::Action action) {
     case input::Action::OpenBlockHighlight:
     case input::Action::OpenEnchantOrder:
     case input::Action::OpenSavedData:
+    case input::Action::OpenGameLanguage:
         return true;
     default:
         return false;

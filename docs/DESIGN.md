@@ -149,8 +149,8 @@ have local copies (BACKLOG L-341); they are not the pattern.
   `accent` while typing; a placeholder faintly when empty. Enter or a click
   outside keeps the edit; Esc drops it and shows the stored value again.
 - **Scrollbars** (`drawScrollbar`) on any list or text that overflows: a
-  faint track and a 2-unit thumb that widens and turns white under the
-  pointer or while dragged; pressing or dragging puts the first line under
+  faint track and a 2-unit thumb that turns lighter (`dim`) under the
+  pointer or while dragged, without widening; pressing or dragging puts the first line under
   the pointer.
 - **Tips** open below their anchor (above when there is no room) and look
   the same everywhere.
@@ -173,7 +173,8 @@ have local copies (BACKLOG L-341); they are not the pattern.
   dimmed.
   Switching a feature off stops everything it does, without exception.
 - **A row that opens a page** has the shared Open button; Enter or Space on
-  the row opens it too. A row with a current value (Game language) shows it
+  the row opens it too, a click opens it only on the button, and its key cell
+  takes the opener's hotkey (Game language included). A row with a current value (Game language) shows it
   as faint text beside the button (Game language).
 - **Pages** that replace the settings rows (Game language, Saved data, Block
   highlight, Enchantment order) share one shape (`RowPages.h`,
