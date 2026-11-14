@@ -105,6 +105,8 @@ void deathWaypoints() {
     check(recordDeath(set, DeathPoint{10, 70, -5, 1}, "Death point", true) && set.waypoints.size() == 2 && set.waypoints[1].death
               && set.waypoints[1].temporary && set.waypoints[1].color == deathColorIndex && set.waypoints[1].dimension == 1,
           "a death adds a red waypoint of the set kind where the player died");
+    check(set.lastColor == deathColorIndex && nextColor(set.lastColor) != deathColorIndex,
+          "a death's waypoint advances the color counter, so the next waypoint is not red too");
     recordDeath(set, DeathPoint{20, 70, -5, 0}, "Death point", false);
     check(set.waypoints.size() == 3 && set.waypoints[1].x == 10 && set.waypoints[2].x == 20 && !set.waypoints[2].temporary
               && set.waypoints[0].name == "home",

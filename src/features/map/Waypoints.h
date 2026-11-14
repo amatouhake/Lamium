@@ -125,6 +125,7 @@ inline bool recordDeath(WaypointSet& set, DeathPoint const& at, std::string name
     Waypoint w{std::move(name), deathColorIndex, at.x, at.y, at.z, at.dimension, true, temporary};
     w.death = true;
     set.waypoints.push_back(std::move(w));
+    set.lastColor = deathColorIndex; // The next waypoint differs from the red cross.
     return true;
 }
 // The name a new waypoint gets: the lowest "N" not used yet.
