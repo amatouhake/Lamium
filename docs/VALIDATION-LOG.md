@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Map picture on the Saved data page (L-343, 2026-11-14)
+
+Build `5970a399`, DLL SHA-256
+`68369f4707e2460fb6a6ef93f4a05b5a10f5b56e00517b61f5c67b49c839aaa4`, 1.26.60.05 Dev
+instance, the maintainer: all confirmed. Selecting a row shows a picture of its map with a
+place the maintainer knows; the waypoint dots are where they belong; a data without a map says
+"No map"; changing the selection quickly never leaves another data's picture; the picture
+shows again after closing and reopening the page. Raised: choosing another window returns the
+page to the settings table; whether the any-port switch with its exceptions is easy to follow.
+
 ## Notice of fuller saved data at its own height (L-343, 2026-11-14)
 
 Build `9b709e81`, DLL SHA-256

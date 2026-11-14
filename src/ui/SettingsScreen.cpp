@@ -1627,7 +1627,8 @@ bool ownsInput() {
 void cancelInputCapture() {
     std::lock_guard lock(mutex);
     language_view::reset();
-    saved_data_view::reset();
+    // The Saved data page stays where it is: looking at another window to compare, then coming back (L-343).
+    saved_data_view::calm();
     releaseTextKeyboard();
     if (table_view::capturing()) table_view::cancelCapture();
     finishNumber();

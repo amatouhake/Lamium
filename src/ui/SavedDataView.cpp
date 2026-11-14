@@ -162,6 +162,7 @@ void key(int key) {
 }
 void wheel(int amount) { first = SettingsTable::clampFirst(first + amount, static_cast<int>(items.size()), last.list.listVisible); }
 void release() { dragging = false; }
+void calm() { dragging = false; armed.clear(); }
 void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer) {
     auto const* d = chosen();
     bool const server = d && d->kind == Data::Kind::Server;

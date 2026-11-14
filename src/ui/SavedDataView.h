@@ -13,6 +13,8 @@ bool click(float x, float y, bool right);
 void key(int key);
 void wheel(int amount);
 void release();
+// The window lost focus: a drag ends and an armed Delete is disarmed; the page stays open.
+void calm();
 void renderContent(MinecraftUIRenderContext&, SettingsTable const&, glm::vec2 pointer);
 // The joined server's data as its row shows it; empty when there is nothing to choose.
 std::string currentName();

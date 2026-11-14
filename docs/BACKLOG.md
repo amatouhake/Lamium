@@ -182,9 +182,9 @@ Do not infer game success from a build or unit-test result.
   (VALIDATION-LOG 2026-11-14): the Waypoints screen, the Schematics
   screen's Placements, Verify and Materials tabs and the world map, whole
   words and all three buttons, "Do not show again" over a rejoin. Not
-  looked at: docked panels; the map picture on the Saved data page (the
-  place it shows, the waypoints on it, a data without a map, changing the
-  selection quickly).
+  looked at: docked panels. The map picture on the Saved data page passed
+  on `5970a399` (VALIDATION-LOG 2026-11-14). Built only: the page staying
+  open when the window loses focus.
 - Changed since 0.6.0 with open cases listed in VALIDATION.md or their
   items: Enchantment order (L-170: Survival, the 40-level refusal, an unbound
   key, servers), Item details (L-319), death waypoints (L-328, L-332), shared
@@ -1058,6 +1058,22 @@ waypoint here" behaves three ways (prompt or not, camera or body position
 under FreeCamera, the temporary setting). Move each control into
 `src/ui/Widgets.h` one at a time, with the differences listed and agreed
 first.
+Raised by the maintainer 2026-11-14, for the same pass (each is a choice
+to agree, not a fix to make on sight):
+- A row that opens a page does it two ways: "Game language" shows its value
+  as a button and the whole row opens the list; the calculator, the world
+  map and Saved data have the shared Open button. Saved data was first
+  built the first way and changed to the second after its game check.
+- The primary button has two looks: HUD layout's "Done (Esc)" is a green
+  border on the plain fill and is used nowhere else; "+ Add here", "Use
+  this data" and the notices' first button are a green fill.
+- Yellow means two things: a warning elsewhere (warning text, the saved
+  data notice's frame, a candidate's mark), and in HUD layout the frame
+  and legend of the game's own HUD parts, which is not a warning.
+- Losing the window's focus closes the Game language list; the Saved data
+  page stays open since 2026-11-14 (the maintainer: going to another
+  window and back should not lose the page); the other pages were not
+  looked at.
 
 ### L-330 Radar: mob icons that draw wrongly, then icons by default
 Kind: Research, then Design. Maintainer 2026-11-13: some mobs' icons on
