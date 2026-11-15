@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Minimap text size; add-on map color test packs (L-337, L-324, 2026-11-15)
+
+Build `156daadf`, DLL SHA-256
+`cf0c292a50395fe5c9b5421eff82b38e614993df603218e5e6cc8f79f5497b76`, 1.26.60.05 Dev
+instance, the maintainer. Confirmed (L-337): Map text > Text size at 50 % and 200 % scales
+only the text, the map square keeps its size, and at 200 % the compass letters are whole and
+the card covers the lower lines. Seen (L-324, tests/packs/map-color): `map_magenta` drew
+magenta on Lamium's map and `map_none` brown; in the world both showed the missing texture,
+so the packs' textures did not load; Lamium's log named `textures/blocks/missing_tile` as
+both blocks' top texture.
+
 ## Follow-ups of the night run (L-349, L-317, L-325, 2026-11-15)
 
 Build `25d3bb83`, DLL SHA-256
