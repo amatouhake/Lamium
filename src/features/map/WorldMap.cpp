@@ -25,6 +25,7 @@
 #include "ui/NumberInput.h"
 #include "ui/SearchQuery.h"
 #include "ui/ListViewWidgets.h"
+#include "ui/RowSelection.h"
 #include "ui/ScreenParts.h"
 #include "ui/Widgets.h"
 #include "mc/client/game/IClientInstance.h"
@@ -131,7 +132,8 @@ enum class Target {
     InfoButton, InfoPanel, InfoSlime, InfoRadar, // The Information button and its panel (L-297).
     // The side panel: its background, header buttons, list and editor.
     Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Temporary, Swatch, Delete, OpenScreen,
-    PanelKind, PanelKindItem // The list's layer menu (L-204) and its items.
+    PanelKind, PanelKindItem, // The list's layer menu (L-204) and its items.
+    Bulk // A button of the bar shown while several rows are selected (L-190).
 };
 struct Hit {
     float x, y, w, h;
@@ -200,7 +202,12 @@ struct State {
     float top = rowHeight; // The top bar, one or two rows.
     double pixelsPerUnit = 1; // Screen pixels per GUI unit, as last drawn.
     float panelWidth = 0;  // The side panel as last drawn; 0 when closed.
-    std::optional<MarkKey> selected; // Side panel: the death point, a waypoint, a placement or a shape.
+    std::optional<MarkKey> selected; // Side panel: a waypoint, a placement or a shape; rows' shown row.
+    // What the side list has selected (L-190), in its drawn order; several
+    // rows are always of the listed layer and dimension.
+    ui::RowSelection<MarkKey> rows;
+    std::vector<MarkKey> listOrder;
+    ui::BulkBar bulk;
     int listFirst = 0;
     bool deleteArmed = false;
     bool editingName = false;
@@ -523,6 +530,9 @@ void focus(double x, double z) {
 void select(std::optional<MarkKey> mark, bool move) {
     commitName();
     state.selected = mark;
+    if (mark) state.rows.only(*mark);
+    else state.rows.clear();
+    state.bulk.disarm();
     state.deleteArmed = false;
     if (mark) setShownList(listKind(mark->layer));
     if (!move || !mark) return;
@@ -566,6 +576,7 @@ Request panelAction(Hit const& hit) {
     bool sameField = (hit.target == Target::Name && state.editingName) || (hit.target == Target::Coordinate && hit.item == state.editingAxis);
     if (!sameField) commitName();
     if (hit.target != Target::Delete) state.deleteArmed = false;
+    if (hit.target != Target::Bulk) state.bulk.disarm();
     auto set = waypoints::current();
     switch (hit.target) {
     case Target::PanelClose: setPanelOpen(false); break;
@@ -584,6 +595,13 @@ Request panelAction(Hit const& hit) {
         break;
     }
     case Target::Row:
+        // Ctrl + click toggles a row, Shift + click takes a range; the map
+        // stays where it is and the panel shows the row clicked last.
+        if (ui::screen::heldCtrl() || ui::screen::heldShift()) {
+            state.rows.click(hit.mark, ui::screen::heldCtrl(), ui::screen::heldShift(), state.listOrder);
+            state.selected = state.rows.shown;
+            break;
+        }
         if (hit.mark.layer == MarkLayer::Placement) selectPlacement(hit.mark);
         select(hit.mark, true);
         break;
@@ -628,7 +646,15 @@ Request panelAction(Hit const& hit) {
         state.deleteArmed = false;
         if (!state.selected) break;
         if (!deleteMark(*state.selected)) say(ui::translated("waypoint.saveError"));
-        else state.selected.reset();
+        else select(std::nullopt, false);
+        break;
+    }
+    case Target::Bulk: {
+        auto const actions = ui::bulkActions(ui::SelectionList::MapPanel);
+        if (!state.rows.several() || hit.item < 0 || hit.item >= static_cast<int>(actions.size())) break;
+        auto action = actions[static_cast<size_t>(hit.item)];
+        if (state.bulk.press(action) && !setVisible(state.rows.keys, action == ui::BulkAction::Show))
+            say(ui::translated("waypoint.saveError"));
         break;
     }
     case Target::OpenScreen:
@@ -1193,7 +1219,8 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
     // A footprint whose provider turned off, or whose entry is gone, takes
     // its selection and menu with it; one only switched off on the map stays
     // selectable from the side panel (L-204).
-    if (state.selected && !pointLayer(state.selected->layer) && !areaOf(*state.selected)) state.selected.reset();
+    state.rows.retain([](MarkKey mark) { return pointLayer(mark.layer) || areaOf(mark); });
+    state.selected = state.rows.shown;
     if (state.menu && (state.menu->kind == MenuKind::Placement || state.menu->kind == MenuKind::Shape) && !areaOf(state.menu->mark))
         state.menu.reset();
     auto spot = playerSpot();
@@ -1667,9 +1694,8 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     };
     std::stable_sort(listed.begin(), listed.end(), [&](int a, int b) { return distance(a) < distance(b); });
     entries.insert(entries.end(), listed.begin(), listed.end());
-    if (state.selected && pointLayer(state.selected->layer)
-        && !waypointOf(set, *state.selected))
-        state.selected.reset();
+    state.rows.retain([&](MarkKey mark) { return !pointLayer(mark.layer) || waypointOf(set, mark); });
+    state.selected = state.rows.shown;
     // Or this dimension's placements or shapes (L-204), nearest first.
     int const kind = shownList();
     auto areaDistance = [&](AreaMark const& area) {
@@ -1686,6 +1712,14 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     std::stable_sort(areaRows.begin(), areaRows.end(),
                      [&](AreaMark const* a, AreaMark const* b) { return areaDistance(*a) < areaDistance(*b); });
     int const rows = kind == 0 ? static_cast<int>(entries.size()) : static_cast<int>(areaRows.size());
+    state.listOrder.clear();
+    if (kind == 0) for (int index : entries) state.listOrder.push_back(waypointKey(set.waypoints[static_cast<size_t>(index)].id));
+    else for (auto const* area : areaRows) state.listOrder.push_back(area->key);
+    // Several rows stay those the list shows (another layer or dimension drops them).
+    if (state.rows.several()) {
+        state.rows.retain([](MarkKey mark) { return std::ranges::find(state.listOrder, mark) != state.listOrder.end(); });
+        state.selected = state.rows.shown;
+    }
 
     // The header names the listed layer and opens the menu of layers.
     constexpr std::array<std::string_view, 3> kindNames{"nav.waypoints", "nav.schematics", "nav.shapes"};
@@ -1737,7 +1771,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     for (int r = 0; kind != 0 && r < maxRows && state.listFirst + r < rows; ++r) {
         auto const& area = *areaRows[static_cast<size_t>(state.listFirst + r)];
         float ry = y + r * rowH;
-        bool selected = area.key == state.selected, over = hovering(x0, ry, w, rowH);
+        bool selected = state.rows.contains(area.key), over = hovering(x0, ry, w, rowH);
         if (selected) {
             ui::fill(context, x0 + 1, ry, w - 1, rowH, ui::palette::accent, .16f);
             ui::fill(context, x0 + 1, ry, 2, rowH, ui::palette::accent);
@@ -1761,7 +1795,7 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         int index = entries[static_cast<size_t>(state.listFirst + r)];
         auto mark = waypointKey(set.waypoints[static_cast<size_t>(index)].id);
         float ry = y + r * rowH;
-        bool selected = mark == state.selected, over = hovering(x0, ry, w, rowH);
+        bool selected = state.rows.contains(mark), over = hovering(x0, ry, w, rowH);
         if (selected) {
             ui::fill(context, x0 + 1, ry, w - 1, rowH, ui::palette::accent, .16f);
             ui::fill(context, x0 + 1, ry, 2, rowH, ui::palette::accent);
@@ -1781,6 +1815,14 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         state.hits.push_back({switchX - 1, ry, ui::switchWidth + 2, rowH, Target::RowVisible, index, mark});
     }
     y = state.listBottom + 2;
+    if (state.rows.several()) {
+        auto const actions = ui::bulkActions(ui::SelectionList::MapPanel);
+        auto bar = ui::drawBulkBar(context, x, y + 2, inner, buttonHeight, state.rows.keys.size(), actions, state.bulk,
+            static_cast<float>(state.pointer.x), static_cast<float>(state.pointer.y));
+        for (size_t i = 0; i < actions.size(); ++i)
+            state.hits.push_back({bar.buttonX[i], bar.y, bar.buttonW[i], bar.h, Target::Bulk, static_cast<int>(i)});
+        y += buttonHeight + 4;
+    }
     ui::fill(context, x0 + 1, y, w - 1, 1, ui::palette::white, .14f);
     y += 4;
 
@@ -1955,6 +1997,8 @@ void open(IClientInstance& client, bool resume) {
     state.openedAt = now();
     if (resume) return;
     state.selected.reset();
+    state.rows.clear();
+    state.bulk.disarm();
     state.deleteArmed = false;
     state.cameraReference = cameraAvailable();
     if (auto spot = sourceSpot()) {
@@ -2139,9 +2183,22 @@ Request key(int key, bool openKey) {
         else if (key == 0x1b) { state.editingName = false; state.editingAxis = -1; }
         return request;
     }
+    // Ctrl + A takes the side list's rows; Esc closes panels and menus, then
+    // returns several rows to one, then closes the map.
+    if (key == 0x41 && ui::screen::heldCtrl()) {
+        if (panelOpen() && !state.listOrder.empty()) {
+            commitName();
+            state.rows.selectAll(state.listOrder);
+            state.selected = state.rows.shown;
+            state.deleteArmed = false;
+            state.bulk.disarm();
+        }
+        return request;
+    }
     if (key == 0x1b) {
         if (state.cavePanel || state.infoPanel) state.cavePanel = state.infoPanel = false;
         else if (state.menu) state.menu.reset();
+        else if (panelOpen() && state.rows.collapse()) { state.selected = state.rows.shown; state.bulk.disarm(); }
         else request.kind = Request::Kind::Close;
     } else if (key == 0x20) {
         returnToPlayer();
