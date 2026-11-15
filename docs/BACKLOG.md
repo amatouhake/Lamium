@@ -151,18 +151,17 @@ from the file); never restate them here.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10), in this order: the follow-ups of L-338 death layout time
    limit, L-170 enchantment order planner, L-319 item details and L-320
-   block highlight; then L-336 Durability HUD items, L-337 minimap size,
-   L-340 settings grouping, L-325 zoom release, L-330
-   radar icons, L-166 trade helpers, L-167 resource packs, L-168 trade
-   finder, L-169 transfer extensions, L-173 quick shapes, L-190 list
-   selection, L-163 a Lamium inventory screen, L-249 simulation distance,
-   L-317 Nether minimap under forced Surface and L-265 placement assist.
+   block highlight; then L-340 settings grouping, L-330 radar icons, L-166
+   trade helpers, L-167 resource packs, L-168 trade finder, L-169 transfer
+   extensions, L-173 quick shapes, L-163 a Lamium inventory screen, L-249
+   simulation distance and L-265 placement assist.
    Agree open choices before building. L-165 Mass Craft stays
    below the map work and needs a scope conversation first.
 3. **Schematic follow-ups (L-93 Schematic):** choose among L-114 3D
-   previews, L-115 entity ghosts as models, L-116 raw materials, L-183
-   disregard check mismatches, L-184 inspect ghost data, L-185 instant load,
-   L-186 ghost legibility, and the remaining L-117 schematic name tags.
+   previews, L-115 entity ghosts as models, L-116 raw materials, L-184
+   inspect ghost data, L-185 instant load, L-186 ghost legibility, L-352
+   on and off forms as a wrong state, and the remaining L-117 schematic name
+   tags.
    The initial feature and 0.1.8 work are complete, not new tasks.
 4. **Placement/breaking:** L-15 breaking and placement restrictions
    (breaking redesign before placement); L-59 held placement style waits for the maintainer's go-ahead.
