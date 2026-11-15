@@ -246,7 +246,7 @@ screen.
   ignores Keep, Up to uses both), so editing an unused field saves without
   rebuilding ghosts. Moving the cut rebuilds only the sections whose shown
   cells, two cells around included, change; the palette is kept
-  ([L-236 Rebuild only the ghost sections whose visible layer changed](backlog/L-236.md));
+  ([L-236 Rebuild only the ghost sections whose visible layer changed](backlog/done/L-236.md));
   placements touching it still rebuild whole.
 
 ## Tried

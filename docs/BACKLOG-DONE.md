@@ -214,6 +214,7 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Design
 
+- [L-236](backlog/done/L-236.md) Rebuild only the ghost sections whose visible layer changed
 - [L-334](backlog/done/L-334.md) Game HUD: hide each part, from the settings and HUD layout
 - [L-321](backlog/done/L-321.md) Rework the HUD layout editor
 - [L-309](backlog/done/L-309.md) Place and scale the paper doll

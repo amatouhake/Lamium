@@ -205,19 +205,19 @@ Known gaps to pick release checks from: [backlog/pre-release-checks.md](backlog/
 
 ## Feature work and research
 
+- [L-349](backlog/L-349.md) Settings and HUD follow-ups from the 2026-11-15 check (Ready): Open, not started; agreed 2026-11-15
 - [L-338](backlog/L-338.md) When a death layout ends (Feature): Built 2026-11-14 on the maintainer's go-ahead, not checked in game
 - [L-337](backlog/L-337.md) Minimap: one size setting instead of two (Design): Built and checked in game (`10325a18`); a large map with small text is now awkward, to be agreed
 - [L-340](backlog/L-340.md) Settings grouping (Design): Open, not started.
 - [L-330](backlog/L-330.md) Radar: mob icons that draw wrongly, then icons by default (Research): Open, not started
-- [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Design): Built and checked in game (`10325a18`); whether it is on by default is to be agreed
+- [L-325](backlog/L-325.md) Zoom: return to the set magnification on release (Ready): Built and checked in game (`10325a18`); on by default for new installs agreed 2026-11-15, not built
 - [L-320](backlog/L-320.md) Highlight designated block types in the world (Design): Released in 0.6.0 (Experimental); open are in-game checks and any follow-ups the maintainer raises
 - [L-319](backlog/L-319.md) Item details: Work Penalty first, then the unshown rest (Feature; what remains is Design): Built 2026-11-13 after 0.6.0 (not released) and checked in game; open choices and unchecked cases remain
-- [L-317](backlog/L-317.md) Forcing the Surface view leaves the minimap nearly useless in the Nether (Design): Built and checked in game (`10325a18`); the Nether view row has no key, to be agreed
+- [L-317](backlog/L-317.md) Forcing the Surface view leaves the minimap nearly useless in the Nether (Ready): Built and checked in game (`10325a18`); a key of its own for the Nether view agreed 2026-11-15, not built
 - [L-315](backlog/L-315.md) Finish what waits for more game symbols (Blocked on a symbol request): Parked until the maintainer files one request to `LiteLDev/mcapi-requests` (not now, 2026-11-06: keep requests to LiteLDev infrequent). Nothing here is urgent.
 - [L-249](backlog/L-249.md) Show the chunks within simulation distance (Design / Research): Research partly done: the client reads the range (4 in a local world); two checks left before the presentation is agreed
 - [L-265](backlog/L-265.md) Schematic placement assist: place the ghost's block in its state (Design / Research): Open, not started; no release target
 - [L-233](backlog/L-233.md) Make inventory transfer gestures rebindable (Design): Open, not urgent; nothing is blocked today
-- [L-236](backlog/L-236.md) Rebuild only the ghost sections whose visible layer changed (Design): Built and looks right in game (`10325a18`); blocks acting across a section border unchecked
 - [L-190](backlog/L-190.md) Select several rows at once in list screens (Design for the whole): Waypoints trial on branch `l-190-waypoint-selection`, not merged; waits for Shapes, schematic placements and the map side panel
 - [L-183](backlog/L-183.md) Disregard selected schematic check mismatches (Design): Built (`10325a18`) but not working as meant in game; back to Design (mockup first)
 - [L-184](backlog/L-184.md) Inspect ghost block data and schematic container contents (Design / Research): Partly done: target card and saved block entity rows shipped; file-only data (containers, comparator signal) open.
