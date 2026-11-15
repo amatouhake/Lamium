@@ -622,9 +622,9 @@ bool ignoredAt(BlockSource& region, session::Shown const& shown, Resolved const&
     return c.inside && c.mark != IgnoreMark::None;
 }
 std::string itemName(std::string_view item, std::string_view identifier) {
-    auto translate = [](std::string_view key) { return ui::translated(key); };
+    // The target card's names (L-112), whatever the state's value type.
     auto state = [&](std::string const& key) {
-        auto named = information::stateName(key, "0", identifier, translate);
+        auto named = information::stateLabel(key, identifier);
         return named.labelIsKey ? ui::translated(named.label) : named.label;
     };
     if (item == instrumentItem) return ui::translated("blockEntity.instrument");

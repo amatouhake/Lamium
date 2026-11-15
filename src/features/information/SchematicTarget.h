@@ -25,6 +25,15 @@ inline StateName stateName(std::string const& key, std::string const& raw, std::
     if (!row || row->progress) return {key, raw};
     return {row->label, row->valueIsKey ? translate(row->value) : row->value, true};
 }
+// A state's name without a value (L-183's items): the label the card gives
+// its values, probed with a number and with the text forms (named
+// directions, halves, axes); the raw key when the card has no name for it.
+inline StateName stateLabel(std::string const& key, std::string_view identifier) {
+    if (auto row = interpretBlockState(key, StateKind::Integer, 0, {}, identifier)) return {row->label, {}, true};
+    for (std::string_view text : {"north", "top", "x"})
+        if (auto row = interpretBlockState(key, StateKind::Text, 0, text, identifier)) return {row->label, {}, true};
+    return {key, {}};
+}
 // The card's row for a schematic ghost under the crosshair, in the ghost's
 // light blue (L-184). The header already names the block to place.
 inline TargetInfo::DetailRow ghostRow() {
