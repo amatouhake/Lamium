@@ -91,6 +91,9 @@ evidence in [VALIDATION-LOG.md](VALIDATION-LOG.md).
 
 ## Ready
 
+- [L-317](backlog/done/L-317.md) Forcing the Surface view leaves the minimap nearly useless in the Nether
+- [L-325](backlog/done/L-325.md) Zoom: return to the set magnification on release
+- [L-349](backlog/done/L-349.md) Settings and HUD follow-ups from the 2026-11-15 check
 - [L-336](backlog/done/L-336.md) HUD layout: choose each element's contents in the editor
 - [L-348](backlog/done/L-348.md) Hide the game's position and days played lines
 - [L-333](backlog/done/L-333.md) Death waypoints: which one is the latest

@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Follow-ups of the night run (L-349, L-317, L-325, 2026-11-15)
+
+Build `25d3bb83`, DLL SHA-256
+`5f97708fd9f70104b3274e50efcefff1ae4e04824643b0b387ef0a93813a1d97`, 1.26.60.05 Dev
+instance, the maintainer: confirmed. Choice controls on rows without a key stay out of the
+key column; the minimap's "Hide the minimap while Debug View is open" shows its help;
+Durability HUD's Main hand off removes only the held item's row, from the settings table
+and from the editor's Contents popover; the Nether view's own key steps Same as others,
+Automatic, Surface, Cave, and the cave view key changes only the Cave view row; with a new
+settings file, Game HUD placement on leaves the chat in place and Zoom's Reset on release
+starts on. Not seen: the map color test packs (L-324); sliders' typed value box.
+
 ## Night run of 2026-11-15: settings, HUD, map and schematic items
 
 Build `10325a18`, DLL SHA-256
