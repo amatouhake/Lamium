@@ -1785,7 +1785,6 @@ inline constexpr auto traditionalChinese = std::to_array<Text>({
     {"savedData.levelId", "世界 ID: {}"},
     {"savedData.use", "使用此資料"},
     {"savedData.delete", "刪除"},
-    {"savedData.deleteWhat", "{} 個路徑點，地圖 {}"},
     {"savedData.anyPort", "{} 的任何連接埠"},
     {"savedData.note.inUse", "你所在的世界正在使用此資料。"},
     {"savedData.note.world", "這是該世界自己的資料，伺服器無法使用。"},

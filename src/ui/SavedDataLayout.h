@@ -37,7 +37,7 @@ struct SavedDataLayout {
         l.list = HighlightLayout::column(l.left, l.dividerX - l.left, l.bodyTop, l.footerTop, count, first);
         l.anyPort = anyPort; l.use = use; l.remove = remove;
         float inner = l.detailWidth - 2 * SettingsTable::pad;
-        // Use on the bottom row, Delete on a row of its own above it (what it takes written beside it), the
+        // Use on the bottom row, Delete on a row of its own above it, the
         // switch above both. Delete is as wide as its armed label, so a second click lands where the first did.
         l.actionsY = l.footerTop - buttonHeight - 3;
         l.useX = l.deleteX = l.detailLeft + SettingsTable::pad;

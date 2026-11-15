@@ -164,7 +164,7 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     auto const* d = chosen();
     bool const server = d && d->kind == Data::Kind::Server;
     std::string const useText = translated("savedData.use"), removeText = againLabel(translated("savedData.delete"), d && armed == d->key);
-    // Sized for the armed label, so arming moves nothing (the text beside it included).
+    // Sized for the armed label, so arming moves nothing.
     last = SavedDataLayout::fit(t, static_cast<int>(items.size()), first, server && !d->host.empty(), d && d->canUse,
         d && d->canDelete, textWidth(context, useText) + 12, textWidth(context, againLabel(translated("savedData.delete"))) + 12);
     if (!last.usable()) return;
@@ -289,10 +289,6 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
             bool const isArmed = armed == d->key;
             drawDangerButton(context, last.deleteX, last.deleteY, last.deleteWidth, SavedDataLayout::buttonHeight, removeText,
                 hover.zone == Zone::Delete, isArmed);
-            // What a delete takes, beside the button rather than in it (L-351).
-            float const whatX = last.deleteX + last.deleteWidth + 6;
-            label(context, whatX, last.deleteY + (SavedDataLayout::buttonHeight - 10) / 2 + boxTextInset() - 1, x + width - whatX,
-                translated("savedData.deleteWhat", d->waypoints, sizeText(d->mapBytes, d->mapMore)), isArmed ? palette::text : palette::dim);
         }
     }
 

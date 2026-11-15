@@ -1821,7 +1821,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"savedData.levelId", "Level ID: {}", "ワールド ID: {}"},
     {"savedData.use", "Use this data", "このデータを使う"},
     {"savedData.delete", "Delete", "削除"},
-    {"savedData.deleteWhat", "{} waypoints, map {}", "ウェイポイント {} 件、地図 {}"},
     {"savedData.anyPort", "Any port of {}", "{} のどのポートでも使う"},
     {"savedData.note.inUse", "The world you are in uses this data.", "いま入っているワールドは、このデータを使っています。"},
     {"savedData.note.world", "This world's own data. A server cannot use it.", "このワールド専用のデータです。サーバーには使えません。"},
