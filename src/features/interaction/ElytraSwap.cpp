@@ -207,7 +207,7 @@ void start() {
     try {
         auto& bus = ll::event::EventBus::getInstance();
         tickListener = bus.emplaceListener<ll::event::ClientLevelTickEvent>([](auto&) { tick(); });
-        exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { state = {}; });
+        exitListener = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { state = {}; worn = {}; dimension = -1; });
         if (!tickListener || !exitListener) throw std::runtime_error("Could not subscribe Auto Elytra lifecycle");
     } catch (...) { stop(); throw; }
     installed = true;
@@ -217,6 +217,8 @@ void stop() {
         ll::event::EventBus::getInstance().removeListener(*listener); listener->reset();
     }
     state = {};
+    worn = {};
+    dimension = -1;
     installed = false;
 }
 }

@@ -3,6 +3,7 @@
 #include "features/information/BlockEntityRows.h"
 #include "features/information/NoteInstrument.h"
 #include "features/information/NoteSounds.h"
+#include "features/information/PlayerList.h"
 #include "features/information/SchematicTarget.h"
 #include "features/information/TargetPick.h"
 #include "features/schematic/BlockEntityCheck.h"
@@ -749,6 +750,7 @@ void startTargetIcons() {
             clearSpawnEggIndex();
             forgetNoteSounds();
             forgetBlockEntityRows();
+            playerList::forget();
         });
 }
 void stopTargetIcons() {

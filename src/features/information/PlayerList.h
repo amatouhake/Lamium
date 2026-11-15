@@ -98,6 +98,7 @@ std::string fitName(std::string const& name, float maxWidth, Measure&& measure) 
 
 void setHeld(bool held);
 bool held();
+void forget();
 // The server's player list with what the client knows about each player.
 std::vector<Row> collect(IClientInstance&);
 }

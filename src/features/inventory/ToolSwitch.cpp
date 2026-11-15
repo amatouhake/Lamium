@@ -7,6 +7,8 @@
 #include "features/inventory/game/InventoryMove.h"
 #include "app/Runtime.h"
 #include "ui/SettingsScreen.h"
+#include "ll/api/event/EventBus.h"
+#include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/memory/Hook.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
@@ -231,12 +233,22 @@ void mined(bool destroyed) {
     } catch (...) {}
 }
 void stopped() { if (!fetchPending) target.clear(); }
-void start() {}
-void stop() {
+namespace {
+ll::event::ListenerPtr exitListener;
+// The caches are keyed by the world's own objects, whose addresses the next world may reuse.
+void reset() {
     target.clear();
     toolUse.clear();
     dropCache.clear();
     dropCacheRegion = nullptr;
     fetchPending = false;
+}
+}
+void start() {
+    if (!exitListener) exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { reset(); });
+}
+void stop() {
+    if (exitListener) { ll::event::EventBus::getInstance().removeListener(exitListener); exitListener.reset(); }
+    reset();
 }
 }

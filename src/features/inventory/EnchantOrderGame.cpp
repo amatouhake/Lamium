@@ -449,8 +449,10 @@ std::optional<unsigned> sideOf(ItemStack const& stack) {
     bool const isItem = !isBook && active.slot != bookSlot && stack.mItem->getEnchantSlot() == active.slot;
     if (!isBook && !isItem) return std::nullopt;
     auto const on = enchantsOn(stack);
-    // The held book is told from the fresh ones by carrying everything it had.
-    if (isBook && active.heldBook && std::ranges::all_of(active.base, [&](Enchantment const& e) { return std::ranges::find(on, e) != on.end(); }))
+    // The held book is told from the fresh ones by carrying everything it had; one that had nothing, by
+    // having nothing (joined with a wanted book it reads as that book).
+    if (isBook && active.heldBook && (active.base.empty() ? on.empty()
+            : std::ranges::all_of(active.base, [&](Enchantment const& e) { return std::ranges::find(on, e) != on.end(); })))
         return enchantPlan::carried(true, on, active.base, active.wanted);
     return enchantPlan::carried(isItem, on, active.base, active.wanted);
 }
@@ -775,14 +777,15 @@ void drawBeside(ll::event::UIRenderEvent& event) {
     auto const clock = std::chrono::steady_clock::now();
     if (!isAnvil(view)) {
         if (clock - anvilSeen > std::chrono::milliseconds(500)) {
-            if (finishedAtAnvil) {
+            // Not under the planner view: opened on the plan, it is being changed there and stays as shown.
+            if (finishedAtAnvil && (!opened || anvilOpened)) {
                 // Its enchantments go to "Last choice", so the next anvil starts empty.
                 remember();
                 wanted.clear();
                 planItem.use = false;
                 active = {};
-                finishedAtAnvil = false;
             }
+            finishedAtAnvil = false;
             if (anvilOpened) endAnvil();
         }
         return;

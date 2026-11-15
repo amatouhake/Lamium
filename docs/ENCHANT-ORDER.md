@@ -230,7 +230,8 @@ version is verified.
   from rest, or the window's own alpha when lower). Everything attached to
   the anvil closes with it. A finished plan is cleared once the anvil has
   closed, its enchantments going to "Last choice"; an unfinished plan stays
-  for the session.
+  for the session. A finished plan the planner view is open on at that
+  moment stays too, as an unfinished one does.
 
 ## Decided
 

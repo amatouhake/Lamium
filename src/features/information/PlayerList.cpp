@@ -33,6 +33,11 @@ double distanceBetween(Vec3 const& a, Vec3 const& b) {
 }
 void setHeld(bool value) { keyHeld = value; }
 bool held() { return keyHeld.load(); }
+// On world exit, client thread: the next world's Level may reuse the address.
+void forget() {
+    seenIn = nullptr;
+    lastDimension.clear();
+}
 
 std::vector<Row> collect(IClientInstance& client) {
     std::vector<Row> rows;
