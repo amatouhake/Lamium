@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schematic Ignore v4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  --panel:rgba(16,17,19,.86); --edge:rgba(255,255,255,.14); --alt:rgba(255,255,255,.025); --hover:rgba(255,255,255,.07);
+  --sel:rgba(108,195,73,.16); --text:#fff; --dim:#b4b8b6; --faint:#7f8583;
+  --key:#2b2c2d; --key-edge:#5a5b5c; --state:#ffcc40; --bad:#ff5a4e; --miss:#8cccff;
+  --danger:#8f2a24; --danger-edge:#ff6a5e;
+  --font:"DotGothic16","MS Gothic",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 24px/1.3 "Noto Sans JP",sans-serif;margin:0}
+h2{font:700 17px/1.3 "Noto Sans JP",sans-serif;margin:0 0 6px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:84ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.cap{color:var(--ink-2);font-size:13.5px;max-width:92ch}
+.cap b{color:var(--ink)}
+ul.cap{margin:0;padding-left:20px} ul.cap li{margin:3px 0}
+.rec{color:var(--accent);font-weight:700}
+.new{font-size:10.5px;color:var(--accent);border:1px solid var(--accent-deep);padding:0 4px;margin-left:3px;vertical-align:1px}
+.ctrl{display:grid;gap:8px;font-size:13px;color:var(--ink-2)}
+.ctrl .r{display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center}
+.ctrl .r>span:first-child{min-width:13em;color:var(--ink)}
+.grp{display:flex;gap:6px;flex-wrap:wrap}
+.grp button,.act{all:unset;cursor:pointer;background:var(--ground-2);color:var(--ink-2);border:1px solid var(--line);font-size:12.5px;padding:3px 10px}
+.grp button[aria-pressed=true]{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.act:hover{border-color:var(--ink-3)}
+.stage-outer{border:1px solid var(--line);background:#0b0d0e}
+.fit{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--font);color:var(--text);overflow:hidden;outline:none;
+  background:linear-gradient(160deg,#2c4b3c 0%,#46523f 35%,#6b6450 60%,#3b4a57 100%)}
+.screen{position:absolute;left:13px;top:10px;width:934px;height:521px;background:var(--panel);border:1px solid var(--edge);display:grid;
+  grid-template-columns:166px 384px 1fr;grid-template-rows:28px 1fr 40px}
+.top{grid-column:1/4;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid var(--edge);font-size:12px}
+.top .sp{flex:1}
+.btn{border:1px solid var(--key-edge);background:var(--key);padding:0 8px;height:16px;line-height:15px;font-size:11px;color:var(--text);white-space:nowrap;cursor:pointer;display:inline-block}
+.btn:hover{background:#3a3b3c}
+.btn.on{background:var(--accent-deep);border-color:var(--accent);color:#fff}
+.btn.off{color:var(--faint);cursor:default}.btn.off:hover{background:var(--key)}
+.btn.danger:hover{border-color:var(--danger-edge);color:var(--danger-edge)}
+.btn.armed,.btn.armed:hover{background:var(--danger);border-color:var(--danger-edge);color:#fff}
+.btn.sm{height:13px;line-height:12px;font-size:10px;padding:0 5px}
+.side{border-right:1px solid var(--edge);padding:8px 0;font-size:12.5px}
+.side div{padding:3px 12px;display:flex;justify-content:space-between}
+.side div.cur{background:var(--sel);box-shadow:inset 3px 0 var(--accent)}
+.side .n{color:var(--dim)}
+.list{border-right:1px solid var(--edge);display:flex;flex-direction:column;min-height:0}
+.stabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px 8px}
+.stabs .btn{text-align:center;font-size:12px;height:17px;line-height:16px;cursor:default}
+.chips{display:flex;gap:4px;padding:3px 8px 4px}
+.chip{border:1px solid var(--key-edge);border-radius:7px;height:15px;line-height:14px;padding:0 6px;font-size:10.5px;color:var(--dim);cursor:pointer}
+.chip.on{border-color:var(--accent);color:var(--accent)}
+.rows{flex:1;overflow:hidden;font-size:12px;border-top:1px solid var(--edge);user-select:none}
+.row{display:flex;align-items:center;gap:6px;height:21px;padding:0 9px;cursor:pointer;white-space:nowrap}
+.row:nth-child(even){background:var(--alt)}
+.row:hover{background:var(--hover)}
+.row.sel{background:var(--sel);outline:1px solid var(--accent);outline-offset:-1px}
+.row .k{width:52px} .row .p{width:96px;color:var(--dim)} .row .nm{flex:1;overflow:hidden;text-overflow:ellipsis} .row .m{color:var(--dim)}
+.row .tg{color:var(--dim);font-size:10.5px;border:1px solid rgba(255,255,255,.22);padding:0 3px;line-height:12px}
+.row.dimr,.row.dimr .p,.row.dimr .m{color:var(--dim)}
+.row.dimr .sq{opacity:.4}
+.sq{width:7px;height:7px;display:inline-block;margin-right:4px}
+.detail{padding:8px 12px;font-size:12px;display:flex;flex-direction:column;gap:3px;min-height:0;overflow:hidden;position:relative}
+.detail .title{font-size:13px}
+.d{color:var(--dim)} .f{color:var(--faint)} .y{color:var(--state)} .rd{color:var(--bad)} .ac{color:var(--accent)} .bl{color:var(--miss)}
+.pv{border:1px solid var(--edge);background:rgba(0,0,0,.28);height:104px;flex:none;position:relative}
+.pv span{position:absolute;left:5px;top:3px;font-size:10px;color:var(--faint)}
+.two{display:grid;grid-template-columns:42% 1fr;gap:0 12px;margin-top:4px}
+.two>div:last-child{border-left:1px solid var(--edge);padding-left:8px;min-width:0}
+.two>div:last-child div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sl{display:flex;align-items:center;gap:5px;min-height:15px;margin-top:2px;white-space:nowrap}
+.sl .nm{width:58px;color:var(--dim);overflow:hidden} .sl .v{flex:1;overflow:hidden;text-overflow:ellipsis}
+.sl .tag{color:var(--dim);font-size:10.5px}
+.hr{border-top:1px solid rgba(255,255,255,.1);margin:5px 0 1px}
+.acts{grid-column:3;border-top:1px solid var(--edge);display:flex;align-items:center;gap:6px;padding:0 10px}
+.acts .sp{flex:1}
+.acts .btn{height:18px;line-height:17px;font-size:11.5px;padding:0 7px}
+.foot{grid-column:1/3;border-top:1px solid var(--edge);padding:0 10px;font-size:11px;color:var(--faint);display:flex;align-items:center;gap:10px}
+.foot .msg{color:var(--state)}
+/* sections */
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.box{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px;display:grid;gap:10px;align-content:start;min-width:0}
+.hudwrap{background:linear-gradient(160deg,#2c4b3c 0%,#46523f 50%,#3b4a57 100%);padding:14px;font-family:var(--font);color:var(--text)}
+.hud{width:224px;background:rgba(16,17,19,.6);padding:5px 7px;font-size:12px;line-height:1.5}
+.hud .g{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.world svg{display:block;width:100%;height:auto;background:#24302a}
+.toast{font-family:var(--font);font-size:12px;background:rgba(16,17,19,.8);border:1px solid var(--edge);padding:2px 8px;display:inline-block;color:#fff;min-height:21px;min-width:12em}
+.card{font-family:var(--font);font-size:11.5px;background:rgba(16,17,19,.8);border:1px solid var(--edge);padding:4px 8px;display:inline-block;color:#fff;line-height:1.5;min-width:16em}
+.radial svg{display:block;width:100%;max-width:420px;height:auto}
+table.mx{border-collapse:collapse;font-size:12.5px;width:100%}
+table.mx th,table.mx td{border:1px solid var(--line);padding:5px 7px;vertical-align:top;text-align:left}
+table.mx th{color:var(--ink);font-weight:500;background:#181c1f}
+table.mx td{color:var(--ink-2)}
+table.mx td.now{background:rgba(108,195,73,.08)} table.mx td.today{background:rgba(140,204,255,.07)} table.mx td.no{color:var(--ink-3)}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.lg i{display:inline-block;width:12px;height:12px;vertical-align:-2px;margin-right:4px;border:1px solid var(--line)}
+.scroll{overflow-x:auto}
+.qa{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px}
+.qa ol,.qa ul{margin:6px 0 0;padding-left:20px;color:var(--ink-2)} .qa li{margin:4px 0}
+.qa b{color:var(--ink)}
+code{font-size:12.5px;color:var(--ink)}
+.row .k{width:84px;white-space:nowrap}
+.row .p{width:72px}
+.row .nm{display:flex;gap:4px;align-items:center;min-width:0}
+.row .nm span{overflow:hidden;text-overflow:ellipsis}
+.row .ar{color:var(--faint)}
+.row .dist{width:30px;text-align:right;color:var(--dim)}
+.sq.hollow{background:none!important;box-shadow:inset 0 0 0 1px var(--c)}
+.sq.hatch{background:repeating-linear-gradient(45deg,var(--c) 0 1px,transparent 1px 3px)!important}
+.row.hatchrow{background:repeating-linear-gradient(45deg,rgba(160,160,160,.13) 0 2px,transparent 2px 6px)}
+.row .tg2{font-size:10px;border:1px solid var(--dim);color:var(--dim);padding:0 3px;line-height:12px;white-space:nowrap}
+.row.dimtext .nm,.row.dimtext .p,.row.dimtext .dist,.row.dimtext .k{color:var(--faint)}
+.chips{border-top:0}
+.heading{padding:5px 9px 2px;font-size:11px;color:var(--faint);border-top:1px solid rgba(255,255,255,.08)}
+.row.stale .nm,.row.stale .p{color:var(--faint)}
+.item{display:flex;align-items:center;gap:5px;min-height:16px;white-space:nowrap}
+.item .nm{width:78px;color:var(--dim);overflow:hidden}
+.item .v{flex:1;overflow:hidden;text-overflow:ellipsis}
+.item .tag{color:var(--dim);font-size:10.5px}
+.legend{font-size:12px;color:var(--ink-2)}
+.lab{font:500 12px/1.4 "Noto Sans JP",sans-serif;color:var(--ink-2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">BACKLOG L-183 · 設計図の照合で違いを無視する · モック v4 2026-11-15</div>
+  <h1>照合タブ：フィルター、選んだ行の無視、無視の設定</h1>
+  <p class="lede">今の照合タブ（左の一覧、右の欄の上にプレビュー、その下に数と選んだ行の詳細、下に操作行）をもとに、話し合って決めた内容を入れたものです。行を押すと選べます。Ctrl+クリックで複数行、Esc で解除（先に画面を一度押してください）。ブロック名や位置は例です。</p>
+</header>
+
+<div class="ctrl">
+  <div class="r"><span>無視した行の見え方（決めること）</span><div class="grp" data-k="look">
+    <button data-v="A" aria-pressed="true">A: 四角を枠だけ＋枠付きの札</button>
+    <button data-v="B">B: A＋行の文字を暗く</button>
+    <button data-v="C">C: 四角に斜線＋枠付きの札</button>
+    <button data-v="D">D: 行全体に薄い斜線＋札</button></div></div>
+  <div class="r"><span>札の言葉（決めること）</span><div class="grp" data-k="tag">
+    <button data-v="A" aria-pressed="true">A: 場所を無視 / 違いを無視</button>
+    <button data-v="B">B: どちらも「無視中」</button></div></div>
+  <div class="r"><span>例</span><div class="grp">
+    <button class="act" id="ex1">レバーの動力を全レバーで無視</button>
+    <button class="act" id="ex2">石→土の場所を無視</button>
+    <button class="act" id="reset">最初に戻す</button></div></div>
+</div>
+
+<div class="stage-outer"><div class="fit" id="fit"><div class="stage" id="stage" tabindex="0">
+  <div class="screen">
+    <div class="top"><span>Lamium</span><span class="sp"></span><span class="btn" style="cursor:default">閉じる (Esc)</span></div>
+    <div class="side">
+      <div>すべて</div><div>カメラ・見た目</div><div>情報・オーバーレイ</div><div>マップ</div><div>設計図</div>
+      <div style="height:20px"></div><div>形状</div><div>ウェイポイント</div>
+      <div class="cur">設計図</div><div>ワールドマップ</div>
+    </div>
+    <div class="list">
+      <div class="stabs"><span class="btn">ファイル</span><span class="btn">配置</span><span class="btn on">照合</span><span class="btn">資材</span></div>
+      <div class="chips" id="chips"></div>
+      <div class="rows" id="rows"></div>
+    </div>
+    <div class="detail" id="detail"></div>
+    <div class="foot" id="foot"></div>
+    <div class="acts" id="acts"></div>
+  </div>
+</div></div></div>
+
+<section class="box">
+  <h2>このモックで入れたこと</h2>
+  <ul class="cap">
+    <li><b>フィルター</b>：すべて／ブロック違い／状態違い／未設置 から1つ。数は付けません。余計なブロック（空気 → 丸石）はブロック違いに入ります。</li>
+    <li><b>無視は種類ではなく別のオン・オフ</b>：無視した行も元の種類のまま、元の場所に出ます。どのフィルターでも出ます。</li>
+    <li><b>選んだ行</b>：見出し「違う項目（レバー）」の下に項目ごとの違い。ボタンは「全レバーで無視」、無視中は「全レバーで無視中」と「戻す」。看板の文字や音符ブロックの音程も同じ形です。下の操作行に「この場所を無視」／「この場所の無視をやめる」。</li>
+    <li><b>複数行</b>：ワールドで示す／選んだ場所を無視／選んだ場所の無視をやめる だけ。</li>
+    <li><b>無視の設定</b>：操作行の右端にいつも出ます。押すと照合タブが切り替わり、もう一度押すか Esc で戻ります。左は「無視している場所」と「設計図のブロック」、右は選んだものの詳細。</li>
+  </ul>
+</section>
+
+<section class="qa">
+  <h2>このモックで決めたいこと</h2>
+  <ol>
+    <li><b>無視した行の見え方</b>：上の A〜D。A が推奨です（文字は普段どおり読めて、四角の形と札で見分けます）。</li>
+    <li><b>札の言葉</b>：A「場所を無視」「違いを無視」（推奨。なぜ無視しているかが一覧で分かる）か、B「無視中」だけか。</li>
+    <li><b>一部の項目だけ無視している行</b>（例：レバーの「動力」は無視、「向き」は違う）：まだ数える間違いなので札は出さない（推奨）。右の欄で項目ごとに分かります。</li>
+    <li><b>場所を無視した行の右の欄</b>：違う項目はそのまま出し、ボタンは隠して「この場所は無視中で、数えません」と出す（推奨）。</li>
+    <li><b>無視の設定の「設計図のブロック」に、比べる項目がないブロック（石など）を並べるか</b>：並べない（推奨。押しても何もできない行を作らない）。</li>
+  </ol>
+</section>
+</div>
+
+<script>
+const st={look:'A',tag:'A',filter:0,sel:new Set(['r1']),last:'r1',places:new Set(),rules:new Set(),view:'check',ivSel:null,undoArmed:false};
+const ITEMS={
+  'レバー':[['動力','オン','オフ'],['向き','北','東'],['付いている面','床','壁']],
+  'リピーター':[['遅延','1','3'],['向き','南','南'],['固定','いいえ','いいえ']],
+  '看板':[['文字','「入口」','「出口」'],['文字の色','黒','黒'],['向き','西','西']],
+  '音符ブロック':[['音程','ファ#','ド'],['楽器','ピアノ','ピアノ']],
+  '石':[],'土':[],'丸石':[],'オークのドア':[['開閉','開','閉'],['向き','北','北']]};
+const ROWS=[
+  {id:'r1',kind:'state',pos:'10, 64, -3',exp:'レバー',dist:4,diff:['動力']},
+  {id:'r2',kind:'block',pos:'11, 64, -3',exp:'石',act:'土',dist:5},
+  {id:'r3',kind:'state',pos:'12, 64, -2',exp:'レバー',dist:5,diff:['動力','向き']},
+  {id:'r4',kind:'block',pos:'12, 65, -3',exp:'空気',act:'丸石',dist:6,extra:true},
+  {id:'r5',kind:'state',pos:'9, 64, 0',exp:'看板',dist:6,diff:['文字']},
+  {id:'r6',kind:'state',pos:'14, 64, -1',exp:'リピーター',dist:7,diff:['遅延']},
+  {id:'r7',kind:'state',pos:'15, 65, -1',exp:'レバー',dist:8,diff:['動力']},
+  {id:'r8',kind:'state',pos:'8, 64, 3',exp:'音符ブロック',dist:9,diff:['音程']},
+  {id:'r9',kind:'state',pos:'7, 65, 4',exp:'オークのドア',dist:10,diff:['開閉']},
+  {id:'r10',kind:'block',pos:'16, 64, 2',exp:'石',act:'丸石',dist:11},
+  {id:'m1',kind:'missing',pos:'10, 66, -3',exp:'石',dist:6},
+  {id:'m2',kind:'missing',pos:'11, 66, -3',exp:'石',dist:7},
+  {id:'m3',kind:'missing',pos:'12, 66, -3',exp:'レバー',dist:7},
+  {id:'m4',kind:'missing',pos:'13, 66, -3',exp:'丸石',dist:8},
+  {id:'m5',kind:'missing',pos:'14, 66, -3',exp:'石',dist:9},
+];
+const FILE_BLOCKS=['石','丸石','レバー','リピーター','看板','音符ブロック','オークのドア'];
+const STALE_RULES=[['トーチ','向き']];
+const COLORS={block:'var(--bad)',state:'var(--state)',missing:'var(--miss)'};
+const KINDNAME={block:'ブロック違い',state:'状態違い',missing:'未設置'};
+const FILTERS=['すべて','ブロック違い','状態違い','未設置'];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ruleKey=(b,k)=>b+'|'+k;
+const ruled=(r,k)=>st.rules.has(ruleKey(r.exp,k));
+function mark(r){ if(st.places.has(r.id))return 'place'; if(r.kind==='state'&&r.diff.every(k=>ruled(r,k)))return 'rule'; return null; }
+function shown(){ const f=st.filter; return ROWS.filter(r=>f===0||(f===1&&r.kind==='block')||(f===2&&r.kind==='state')||(f===3&&r.kind==='missing')); }
+function tally(){ let total=129,correct=80,miss=0,blk=0,sta=0;
+  for(const r of ROWS){ const m=mark(r); if(m==='place'){ total--; continue; } if(m==='rule'){correct++;continue;}
+    if(r.kind==='missing')miss++; else if(r.kind==='block')blk++; else sta++; }
+  return {total,correct,miss,blk,sta}; }
+function tagText(m){ if(st.tag==='B')return '無視中'; return m==='place'?'場所を無視':'違いを無視'; }
+function allName(b,w){ const t='全'+b+'で無視'; return t.length>9&&w?'全部で無視':t; }
+
+function renderChips(){ $('chips').innerHTML= st.view==='ignore'?'' : FILTERS.map((n,i)=>`<span class="chip ${st.filter===i?'on':''}" data-f="${i}">${n}</span>`).join(''); }
+function rowHtml(r){
+  const m=mark(r), sel=st.sel.has(r.id), c=COLORS[r.kind];
+  let cls='row'+(sel?' sel':''), sq='sq';
+  if(m){ if(st.look==='A'||st.look==='B')sq+=' hollow'; if(st.look==='C')sq+=' hatch'; if(st.look==='B')cls+=' dimtext'; if(st.look==='D')cls+=' hatchrow'; }
+  const name = r.kind==='block'
+    ? `<span>${esc(r.exp)}</span><span class="ar">→</span><span>${esc(r.act)}</span>` : `<span>${esc(r.exp)}</span>`;
+  return `<div class="${cls}" data-id="${r.id}"><span class="k"><i class="${sq}" style="--c:${c};background:${c}"></i>${KINDNAME[r.kind]}</span>`
+   +`<span class="p">${r.pos}</span><span class="nm">${name}</span>${m?`<span class="tg2">${tagText(m)}</span>`:''}<span class="dist">${r.dist} m</span></div>`;
+}
+function renderRows(){
+  if(st.view==='ignore'){ renderIgnoreList(); return; }
+  const rows=shown();   const sorted=[...rows].sort((a,b)=>((a.kind==='missing')-(b.kind==='missing'))||a.dist-b.dist);
+  $('rows').innerHTML=sorted.map(rowHtml).join('');
+}
+function renderIgnoreList(){
+  let h='<div class="heading">無視している場所</div>';
+  const places=ROWS.filter(r=>st.places.has(r.id));
+  if(!places.length)h+='<div class="row" style="cursor:default"><span class="f">なし</span></div>';
+  for(const r of places){ h+=`<div class="row ${st.ivSel==='p:'+r.id?'sel':''}" data-iv="p:${r.id}"><span class="nm"><span>${esc(r.kind==='block'&&r.extra?r.act:r.exp)}</span></span><span class="p" style="width:auto">${r.pos}</span></div>`; }
+  h+='<div class="heading">設計図のブロック</div>';
+  for(const b of FILE_BLOCKS){ if(!ITEMS[b]||!ITEMS[b].length)continue;
+    const on=ITEMS[b].filter(([k])=>st.rules.has(ruleKey(b,k))).map(([k])=>k);
+    h+=`<div class="row ${st.ivSel==='b:'+b?'sel':''}" data-iv="b:${b}"><span class="nm"><span>${esc(b)}</span></span>${on.length?`<span class="tg2">${esc(on.join('・'))}を無視中</span>`:''}</div>`; }
+  for(const [b,k] of STALE_RULES){ h+=`<div class="row stale ${st.ivSel==='s:'+b?'sel':''}" data-iv="s:${b}"><span class="nm"><span>${esc(b)}</span></span><span class="tg2">${k}を無視中 · 設計図にない</span></div>`; }
+  $('rows').innerHTML=h;
+}
+function btn(t,act,cls=''){ return `<span class="btn sm ${cls}" data-a="${act}">${esc(t)}</span>`; }
+function renderDetail(){
+  const d=$('detail'); let h='';
+  if(st.view==='ignore'){ h+=ignoreDetail(); d.innerHTML=h; return; }
+  const sel=ROWS.filter(r=>st.sel.has(r.id));
+  if(sel.length>1){
+    h+=`<div class="title">${sel.length} 件を選択中</div>`;
+    for(const r of sel.slice(0,10))h+=`<div class="d">${KINDNAME[r.kind]}　${esc(r.exp)}${r.act?' → '+esc(r.act):''}　<span class="f">${r.dist} m</span></div>`;
+    d.innerHTML=h; return; }
+  const t=tally();
+  h+=`<div class="title">工場の回路</div><div class="pv"><span>3D プレビュー</span></div>`;
+  const r=sel[0];
+  h+=`<div class="two"><div><div class="f">配置全体 · すべての層</div><div class="ac">正しい: ${t.correct} / ${t.total}</div><div class="bl">未設置: ${t.miss}</div><div class="rd">ブロック違い: ${t.blk}</div><div class="y">状態違い: ${t.sta}</div></div><div>`;
+  if(r){ const m=mark(r);
+    h+=`<div style="color:${m?'var(--dim)':COLORS[r.kind]}">この場所 ${r.pos}</div><div style="color:${m?'var(--dim)':COLORS[r.kind]}">${KINDNAME[r.kind]}${m?' · '+tagText(m):''}</div>`;
+    h+=`<div class="d">設計図では: ${esc(r.exp)}</div>`; if(r.kind!=='missing')h+=`<div class="d">ワールドでは: ${esc(r.act||r.exp)}</div>`; }
+  h+='</div></div>';
+  if(r&&r.kind==='state'){
+    const place=st.places.has(r.id);
+    h+=`<div class="hr"></div><div class="f">違う項目（${esc(r.exp)}）</div>`;
+    for(const k of r.diff){ const it=ITEMS[r.exp].find(x=>x[0]===k); const on=ruled(r,k);
+      h+=`<div class="item"><span class="nm">${k}</span><span class="v ${on||place?'f':'y'}">${it[1]} → ${it[2]}${on?`　<span class="tag">全${esc(r.exp)}で無視中</span>`:''}</span>`
+        +(place?'':on?btn('戻す','unrule:'+k):btn(allName(r.exp,false),'rule:'+k))+`</div>`; }
+    if(place)h+=`<div class="f">この場所は無視中で、数えません。</div>`;
+  } else if(r&&st.places.has(r.id)) h+=`<div class="hr"></div><div class="f">この場所は無視中で、数えません。</div>`;
+  d.innerHTML=h;
+}
+function ignoreDetail(){
+  const s=st.ivSel; if(!s)return `<div class="f">左の一覧から場所かブロックを選んでください。</div>`;
+  const [kind,key]=[s[0],s.slice(2)];
+  if(kind==='p'){ const r=ROWS.find(x=>x.id===key); if(!r)return '';
+    return `<div class="title">${esc(r.extra?r.act:r.exp)}</div><div class="d">この場所 ${r.pos}</div><div class="d">${KINDNAME[r.kind]}${r.act?'：'+esc(r.exp)+' → '+esc(r.act):''}</div><div class="f">この場所は数えません。</div>`; }
+  if(kind==='s')return `<div class="title">${esc(key)}</div><div class="f">このブロックは今の設計図にありません。規則は使われていません。</div><div style="margin-top:4px">${btn('戻す','stale')}</div>`;
+  let h=`<div class="title">${esc(key)}</div><div class="f">照合で比べる項目</div>`;
+  for(const [k] of ITEMS[key]){ const on=st.rules.has(ruleKey(key,k));
+    const n=ROWS.filter(r=>r.exp===key&&r.kind==='state'&&r.diff.includes(k)).length;
+    h+=`<div class="item"><span class="nm">${k}</span><span class="v f">${on?'全'+esc(key)+'で無視中':''}${n&&!on?`<span class="d">${n} か所で違う</span>`:''}</span>${on?btn('戻す','irule-:'+k):btn(allName(key,false),'irule+:'+k)}</div>`; }
+  return h;
+}
+function renderActs(){
+  let h='';
+  const sel=ROWS.filter(r=>st.sel.has(r.id));
+  if(st.view==='ignore'){
+    if(st.ivSel&&st.ivSel[0]==='p')h+=`<span class="btn" data-a="unplace-iv">この場所の無視をやめる</span>`;
+    h+=`<span class="sp"></span><span class="btn danger ${st.undoArmed?'armed':''}" data-a="undoall" style="min-width:86px;text-align:center">${st.undoArmed?'取り消しを確定':'すべて戻す'}</span><span class="btn on" data-a="view">無視の設定</span>`;
+  } else if(sel.length>1){
+    const any=sel.some(r=>st.places.has(r.id)), notall=sel.some(r=>!st.places.has(r.id));
+    h+=`<span class="btn on" data-a="show">ワールドで示す</span><span class="btn ${notall?'':'off'}" data-a="placeall">選んだ場所を無視</span><span class="btn ${any?'':'off'}" data-a="unplaceall">選んだ場所の無視をやめる</span><span class="sp"></span><span class="btn" data-a="view">無視の設定</span>`;
+  } else {
+    const r=sel[0]; h+=`<span class="btn on ${r?'':'off'}" data-a="show">ワールドで示す</span>`;
+    if(r)h+=`<span class="btn" data-a="place">${st.places.has(r.id)?'この場所の無視をやめる':'この場所を無視'}</span>`;
+    h+=`<span class="sp"></span><span class="btn" data-a="view">無視の設定</span>`;
+  }
+  $('acts').innerHTML=h;
+  const n=st.places.size+st.rules.size+STALE_RULES.length;
+  $('foot').innerHTML= st.view==='ignore'?`<span>Esc：照合に戻る</span>`: sel.length>1?`<span>${sel.length} 件を選択中 · Esc で解除</span>`:`<span>Esc：閉じる</span>`;
+}
+function render(){ renderChips(); renderRows(); renderDetail(); renderActs(); fit(); }
+function fit(){ const f=$('fit'),s=$('stage'); const k=Math.min(1,f.clientWidth/960); s.style.transform=`scale(${k})`; f.style.height=540*k+'px'; }
+
+document.addEventListener('click',e=>{
+  const g=e.target.closest('.grp[data-k] button'); if(g){ const k=g.parentNode.dataset.k; st[k]=g.dataset.v; g.parentNode.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===g)); render(); return; }
+  const chip=e.target.closest('.chip'); if(chip){ st.filter=+chip.dataset.f; render(); return; }
+  const iv=e.target.closest('[data-iv]'); if(iv){ st.ivSel=iv.dataset.iv; st.undoArmed=false; render(); return; }
+  const row=e.target.closest('.row[data-id]'); if(row){ const id=row.dataset.id;
+    if(e.ctrlKey||e.metaKey){ st.sel.has(id)?st.sel.delete(id):st.sel.add(id); } else { st.sel=new Set([id]); } st.last=id; render(); return; }
+  const a=e.target.closest('[data-a]'); if(a){ act(a.dataset.a); return; }
+  if(e.target.id==='ex1'){ st.rules.add('レバー|動力'); st.view='check'; render(); }
+  if(e.target.id==='ex2'){ st.places.add('r2'); st.view='check'; st.sel=new Set(['r2']); render(); }
+  if(e.target.id==='reset'){ Object.assign(st,{filter:0,sel:new Set(['r1']),places:new Set(),rules:new Set(),view:'check',ivSel:null,undoArmed:false}); render(); }
+});
+function act(a){
+  const sel=ROWS.filter(r=>st.sel.has(r.id)), r=sel[0];
+  if(a!=='undoall')st.undoArmed=false;
+  if(a==='view'){ st.view=st.view==='ignore'?'check':'ignore'; st.ivSel=null; }
+  else if(a==='place'&&r){ st.places.has(r.id)?st.places.delete(r.id):st.places.add(r.id); }
+  else if(a==='placeall')sel.forEach(x=>st.places.add(x.id));
+  else if(a==='unplaceall')sel.forEach(x=>st.places.delete(x.id));
+  else if(a.startsWith('rule:'))st.rules.add(ruleKey(r.exp,a.slice(5)));
+  else if(a.startsWith('unrule:'))st.rules.delete(ruleKey(r.exp,a.slice(7)));
+  else if(a.startsWith('irule+:'))st.rules.add(ruleKey(st.ivSel.slice(2),a.slice(7)));
+  else if(a.startsWith('irule-:'))st.rules.delete(ruleKey(st.ivSel.slice(2),a.slice(7)));
+  else if(a==='unplace-iv'){ st.places.delete(st.ivSel.slice(2)); st.ivSel=null; }
+  else if(a==='stale'){ STALE_RULES.length=0; st.ivSel=null; }
+  else if(a==='undoall'){ if(!st.undoArmed){st.undoArmed=true;} else { st.undoArmed=false; st.places.clear(); st.rules.clear(); STALE_RULES.length=0; st.ivSel=null; } }
+  render();
+}
+$('stage').addEventListener('keydown',e=>{ if(e.key!=='Escape')return; e.preventDefault();
+  if(st.view==='ignore'){st.view='check';st.ivSel=null;} else if(st.sel.size>1){ st.sel=new Set(); } render(); });
+window.addEventListener('resize',fit);
+render();
+</script>
+</body>
+</html>
