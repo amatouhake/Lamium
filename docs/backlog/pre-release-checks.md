@@ -91,6 +91,10 @@ Do not infer game success from a build or unit-test result.
   Offhand's own key held while scrolling to another slot; a finished
   enchantment plan after Change; the world map's right edge after closing
   the waypoint list; deleting data right after switching away from it.
+  Shared paths changed with them: quick clicks on a slider, a scroll bar
+  and the schematic preview in the settings (press now runs before
+  release); Auto Attack or Auto Use held while a menu opens or on Alt+Tab
+  (the release waits for the next input update).
   Only on an unverified game build: the paused notice naming Item details
   and Enchantment order, English Search without enchanted books, Saved
   data's Delete off.

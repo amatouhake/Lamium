@@ -364,7 +364,8 @@ other switches keep their values. Every row has a toggle key (unbound).
 ### Search English names too
 
 The recipe book and creative search find English names and IDs in any game
-language.
+language. Creative search also finds enchanted books by their enchantments'
+English names, on a game version Lamium was checked on.
 
 ### Inventory sorting
 
@@ -559,8 +560,9 @@ waypoints, schematic placements, the map (with a picture of it) and the
 death layout, with their sizes. When a server's address changed, the server
 you are in can be given the data saved under another name, for that port or
 any port of the address; choosing deletes nothing. Data not in use can be
-deleted. The tool screens say when other data holds more than the data in
-use.
+deleted, except on a game version Lamium was not checked on. The tool
+screens say when other data holds more than the data in use; a docked panel
+too short for that notice and its editor leaves the notice out.
 
 ### Skip server resource packs
 
