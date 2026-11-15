@@ -257,6 +257,7 @@ struct { float x = 0, y = 0, w = 0, h = 0; } ignoreSettingsBox;
 struct {
     int first = 0, count = 0, visible = 0;
     std::string of;
+    bool drawn = false; // this frame, else `of` is forgotten
     float x = 0, y = 0, w = 0, h = 0;
 } itemScroll;
 schematic::IgnoreRow const* pickedIgnoreRow() {
@@ -1182,6 +1183,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     ignoreControls.clear();
     ignoreSettingsBox = {};
     itemScroll.w = 0;
+    itemScroll.drawn = false;
     auto hover = l.hit(pointer.x, pointer.y);
     int tabHover = schematicTabAt(l, pointer.x, pointer.y);
     auto over = [&](ShapeZone zone, int index = -1) { return tabHover < 0 && hover.zone == zone && (index < 0 || hover.index == index); };
@@ -1796,6 +1798,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         // at the top. The bar is the lists' own, at the pane's right edge.
         auto scrollItems = [&](std::string of, size_t count, float top, float bottom, float pitch) {
             if (of != itemScroll.of) { itemScroll.of = std::move(of); itemScroll.first = 0; }
+            itemScroll.drawn = true;
             auto s = lineScroll(static_cast<int>(count), itemScroll.first, top, bottom, pitch, 10);
             itemScroll.first = s.first;
             itemScroll.count = s.count;
@@ -1938,7 +1941,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             if (fits(y + 22)) label(context,dx,y+22,half,translated("schematic.summary.wrong", t.wrong + t.extra),palette::mismatch);
             if (fits(y + 33)) label(context,dx,y+33,half,translated("schematic.summary.state", t.state),palette::warning);
         }
-        float bottom = y + 53;
+        float bottom = y + 57;
         // The list keeps the nearest of each kind; say so when it is cut.
         // Ignored rows are listed but not counted.
         using F = schematic::CheckFilter;
@@ -1946,9 +1949,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             : checkFilter == F::NotPlaced ? t.missing : t.wrong + t.extra + t.state + t.missing;
         auto countedRows = static_cast<std::uint64_t>(std::count_if(verifyRows.begin(), verifyRows.end(),
             [&](auto const* m) { return schematic::liveMark(*m, ignored) == schematic::IgnoreMark::None; }));
-        if (!counting && !unloadable && !verification->outdated && countedRows < kindTotal && fits(y + 53)) {
-            paragraph(context,dx,y+53,dw,translated("schematic.check.listCut", schematic::maxMismatches),3,palette::faint);
-            bottom = y + 53 + 12.f * paragraphLines(context, dw, translated("schematic.check.listCut", schematic::maxMismatches), 3) + 2;
+        if (!counting && !unloadable && !verification->outdated && countedRows < kindTotal && fits(y + 57)) {
+            paragraph(context,dx,y+57,dw,translated("schematic.check.listCut", schematic::maxMismatches),3,palette::faint);
+            bottom = y + 57 + 12.f * paragraphLines(context, dw, translated("schematic.check.listCut", schematic::maxMismatches), 3) + 2;
         }
         if (selected) {
             auto const& m = *selected;
@@ -2114,6 +2117,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     }
     }
 
+    // Lines that went away and come back (a place picked between) start at the top.
+    if (!itemScroll.drawn) itemScroll.of.clear();
     if (listTip) {
         // Text is batched: draw what is under the tip first, or it lands on top.
         context.flushText(0, std::nullopt);
